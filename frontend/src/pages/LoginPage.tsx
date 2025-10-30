@@ -1,32 +1,27 @@
 import React from "react"
+
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { backend } from "@/lib/backend"
+import { AuthSingleton } from "@/lib/auth"
 
-export default function Login() {
+export function LoginPage() {
   const [loading, setLoading] = React.useState(false)
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setLoading(true)
 
     const form = new FormData(e.currentTarget)
     const username = form.get("username") ?? ""
     const password = form.get("password") ?? ""
 
     if (typeof username !== "string" || typeof password !== "string") {
-      setLoading(false)
       throw new Error("Invalid form data")
     }
 
-    backend
-      .login(username, password)
-      .then((token) => {
-        console.log("Logged in with token:", token)
-        localStorage.setItem("JOTTI_TOKEN", token)
-      })
+    setLoading(true)
+    AuthSingleton.login(username, password)
       .catch((error: unknown) => {
         console.error("Login failed:", error)
       })

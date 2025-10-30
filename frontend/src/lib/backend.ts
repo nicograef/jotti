@@ -48,6 +48,6 @@ class Backend {
   }
 }
 
-export const backend = new Backend(
+export const BackendSingleton = new Backend(
   "https://automatic-space-umbrella-v655jg4vp5jfp69-3000.app.github.dev",
 )
