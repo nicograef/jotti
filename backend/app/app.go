@@ -39,9 +39,9 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 
 // SetupRoutes configures HTTP routes
 func (app *App) SetupRoutes() {
-	app.router.HandleFunc("POST /login", api.NewLoginHandler(app.db))
-	app.router.HandleFunc("POST /create-user", api.NewCreateUserHandler(app.db))
-	app.router.HandleFunc("GET /health", api.NewHealthHandler())
+	app.router.HandleFunc("/login", api.CorsHandler(api.NewLoginHandler(app.db)))
+	app.router.HandleFunc("/create-user", api.CorsHandler(api.NewCreateUserHandler(app.db)))
+	app.router.HandleFunc("/health", api.CorsHandler(api.NewHealthHandler()))
 	app.Server.Handler = app.router
 }
 
