@@ -12,7 +12,7 @@ import reactDom from "eslint-plugin-react-dom"
 import eslintConfigPrettier from "eslint-config-prettier/flat"
 
 export default defineConfig([
-  globalIgnores(["dist"]),
+  globalIgnores(["dist", "src/components/ui"]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [
