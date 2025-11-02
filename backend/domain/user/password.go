@@ -1,4 +1,4 @@
-package api
+package user
 
 import (
 	"crypto/rand"
@@ -29,7 +29,7 @@ func generateCryptographicSalt(saltSize uint32) ([]byte, error) {
 	return salt, nil
 }
 
-func hashPasswordSecure(password string) (string, error) {
+func createArgon2idHash(password string) (string, error) {
 	config := &Argon2Configuration{
 		TimeCost:   2,
 		MemoryCost: 64 * 1024,
@@ -105,16 +105,15 @@ func parseArgon2Hash(encodedHash string) (*Argon2Configuration, error) {
 	return config, nil
 }
 
-func verifyPasswordSecure(storedHash, providedPassword string) (bool, error) {
-	// Parse stored hash parameters
-	config, err := parseArgon2Hash(storedHash)
+func verifyPassword(correctPasswordHash, userProvidedPassword string) error {
+	config, err := parseArgon2Hash(correctPasswordHash)
 	if err != nil {
-		return false, fmt.Errorf("hash parsing failed: %w", err)
+		return fmt.Errorf("hash parsing failed: %w", err)
 	}
 
 	// Generate hash using identical parameters
 	computedHash := argon2.IDKey(
-		[]byte(providedPassword),
+		[]byte(userProvidedPassword),
 		config.Salt,
 		config.TimeCost,
 		config.MemoryCost,
@@ -124,17 +123,8 @@ func verifyPasswordSecure(storedHash, providedPassword string) (bool, error) {
 
 	// Perform constant-time comparison to prevent timing attacks
 	match := subtle.ConstantTimeCompare(config.HashRaw, computedHash) == 1
-	return match, nil
-}
-
-func validatePasswordAgainstHash(storedHash, password string) error {
-	isValid, err := verifyPasswordSecure(storedHash, password)
-	if err != nil {
-		return fmt.Errorf("authentication process failed: %w", err)
-	}
-
-	if !isValid {
-		return errors.New("authentication credentials invalid")
+	if !match {
+		return ErrInvalidPassword
 	}
 
 	return nil

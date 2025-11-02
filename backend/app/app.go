@@ -10,13 +10,15 @@ import (
 
 	"github.com/nicograef/jotti/backend/api"
 	"github.com/nicograef/jotti/backend/config"
+	"github.com/nicograef/jotti/backend/domain/user"
+	"github.com/nicograef/jotti/backend/persistence"
 )
 
 type App struct {
 	Server *http.Server
 	Config config.Config
-	router *http.ServeMux
-	db     *sql.DB
+	Router *http.ServeMux
+	DB     *sql.DB
 }
 
 // NewApp creates a new application instance
@@ -32,17 +34,21 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 	return &App{
 		Server: server,
 		Config: cfg,
-		router: router,
-		db:     db,
+		Router: router,
+		DB:     db,
 	}, nil
 }
 
 // SetupRoutes configures HTTP routes
 func (app *App) SetupRoutes() {
-	app.router.HandleFunc("/login", api.CorsHandler(api.NewLoginHandler(app.db)))
-	app.router.HandleFunc("/create-user", api.CorsHandler(api.NewCreateUserHandler(app.db)))
-	app.router.HandleFunc("/health", api.CorsHandler(api.NewHealthHandler()))
-	app.Server.Handler = app.router
+	userPersistence := persistence.UserPersistence{DB: app.DB}
+	userService := user.UserService{DB: &userPersistence, Cfg: app.Config}
+
+	app.Router.HandleFunc("/login", api.CorsHandler(api.LoginHandler(&userService)))
+	app.Router.HandleFunc("/create-user", api.CorsHandler(api.CreateUserHandler(&userService)))
+	app.Router.HandleFunc("/health", api.CorsHandler(api.NewHealthHandler()))
+
+	app.Server.Handler = app.Router
 }
 
 // Run starts the application with graceful shutdown

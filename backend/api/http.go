@@ -7,10 +7,37 @@ import (
 	"net/http"
 )
 
+type ErrorResponse struct {
+	Message string `json:"error"`
+	Code    string `json:"code"`
+}
+
 func sendJSONResponse(w http.ResponseWriter, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(data)
+}
+
+func sendInternalServerError(w http.ResponseWriter) {
+	http.Error(w, "Internal server error", http.StatusInternalServerError)
+}
+
+func sendBadRequestError(w http.ResponseWriter, response ErrorResponse) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusBadRequest)
+	json.NewEncoder(w).Encode(response)
+}
+
+func sendUnauthorizedError(w http.ResponseWriter, response ErrorResponse) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	json.NewEncoder(w).Encode(response)
+}
+
+func sendMethodNotAllowedError(w http.ResponseWriter, response ErrorResponse) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	json.NewEncoder(w).Encode(response)
 }
 
 // readJSONRequest reads JSON from the request body into the provided destination.
@@ -22,7 +49,10 @@ func readJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) boo
 	err := decoder.Decode(dest)
 	if err != nil {
 		log.Printf("ERROR Failed to decode JSON request: %v", err)
-		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+		sendBadRequestError(w, ErrorResponse{
+			Message: "Invalid JSON request",
+			Code:    "invalid_json",
+		})
 		return false
 	}
 
@@ -32,7 +62,10 @@ func readJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) boo
 func validateMethod(w http.ResponseWriter, r *http.Request, expectedMethod string) bool {
 	if r.Method != expectedMethod {
 		log.Printf("WARN Invalid method %s, expected %s", r.Method, expectedMethod)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		sendMethodNotAllowedError(w, ErrorResponse{
+			Message: "Method not allowed",
+			Code:    "method_not_allowed",
+		})
 		return false
 	}
 

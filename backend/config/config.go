@@ -16,8 +16,9 @@ type PostgresConfig struct {
 
 // Config holds application configuration values loaded from environment variables.
 type Config struct {
-	Port     int // Port for the HTTP server
-	Postgres PostgresConfig
+	Port      int // Port for the HTTP server
+	Postgres  PostgresConfig
+	JWTSecret string // Secret key for JWT signing
 }
 
 // Load reads configuration from environment variables and returns a Config struct.
@@ -31,10 +32,12 @@ func Load() Config {
 		Password: parseEnvString("POSTGRES_PASSWORD", "admin"),
 		DBName:   parseEnvString("POSTGRES_DBNAME", "jotti"),
 	}
+	jwtSecret := parseEnvString("JWT_SECRET", "your-256-bit-secret")
 
 	return Config{
-		Port:     port,
-		Postgres: postgres,
+		Port:      port,
+		Postgres:  postgres,
+		JWTSecret: jwtSecret,
 	}
 }
 
