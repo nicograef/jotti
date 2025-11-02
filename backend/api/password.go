@@ -127,7 +127,7 @@ func verifyPasswordSecure(storedHash, providedPassword string) (bool, error) {
 	return match, nil
 }
 
-func authenticateUser(storedHash, password string) error {
+func validatePasswordAgainstHash(storedHash, password string) error {
 	isValid, err := verifyPasswordSecure(storedHash, password)
 	if err != nil {
 		return fmt.Errorf("authentication process failed: %w", err)
