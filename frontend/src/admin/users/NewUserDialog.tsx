@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -18,11 +19,18 @@ import {
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { UserPlus } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface FormData {
   name: string
   username: string
-  role: "admin" | "service"
+  role: "admin" | "service" | ""
 }
 
 function toUsername(name: string) {
@@ -38,7 +46,7 @@ function toUsername(name: string) {
 
 export function NewUserDialog() {
   const form = useForm<FormData>({
-    defaultValues: { name: "", username: "", role: "service" },
+    defaultValues: { name: "", username: "", role: "" },
   })
 
   const onSubmit = (data: FormData) => {
@@ -49,7 +57,7 @@ export function NewUserDialog() {
     <Dialog>
       <DialogTrigger asChild>
         <div className="fixed bottom-16 right-16 z-50">
-          <Button>
+          <Button className="cursor-pointer hover:shadow-sm">
             <UserPlus /> Neuer Benutzer
           </Button>
         </div>
@@ -102,7 +110,7 @@ export function NewUserDialog() {
                     }}
                     id="user-form-name"
                     aria-invalid={fieldState.invalid}
-                    placeholder="Nico Gräf"
+                    placeholder="Vor- und Nachname eingeben"
                     autoComplete="off"
                   />
                   {fieldState.invalid && (
@@ -138,9 +146,50 @@ export function NewUserDialog() {
                     }}
                     id="user-form-username"
                     aria-invalid={fieldState.invalid}
-                    placeholder="nicograef"
+                    placeholder=""
                     autoComplete="off"
                   />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+            <Controller
+              name="role"
+              control={form.control}
+              rules={{
+                required: "Rolle ist ein Pflichtfeld.",
+              }}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="user-form-role">Rolle</FieldLabel>
+                  <Select
+                    name={field.name}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger
+                      id="user-form-role"
+                      aria-invalid={fieldState.invalid}
+                    >
+                      <SelectValue placeholder="Auswählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrator</SelectItem>
+                      <SelectItem value="service">Service</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {field.value === "admin" && (
+                    <FieldDescription>
+                      Administratoren können alle Funktionen nutzen.
+                    </FieldDescription>
+                  )}
+                  {field.value === "service" && (
+                    <FieldDescription>
+                      Service kann Bestellungen und Bezahlungen verwalten.
+                    </FieldDescription>
+                  )}
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}

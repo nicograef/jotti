@@ -8,8 +8,8 @@ export function Users() {
     <>
       <AppBar activeTab="users" />
       <NewUserDialog />
-      <div className="flex p-8 pt-24">
-        <Card className="w-full p-4">
+      <div className="flex p-8 pt-24 justify-center">
+        <Card className="w-full p-4 max-w-4xl">
           <UserTable />
         </Card>
       </div>
