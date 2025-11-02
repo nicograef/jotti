@@ -50,6 +50,11 @@ class Auth {
     localStorage.setItem("JOTTI_TOKEN", token)
   }
 
+  public logout(): void {
+    localStorage.removeItem("JOTTI_TOKEN")
+    this.token = null
+  }
+
   private validateAndSetToken(tokenBase64: string): void {
     try {
       const token = jwtDecode<JottiToken>(tokenBase64)

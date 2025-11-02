@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
-import { NavLink } from "react-router"
+import { AuthSingleton } from "@/lib/auth"
+import { NavLink, useNavigate } from "react-router"
 
 type Pages = "dashboard" | "products" | "tables" | "users"
 
@@ -8,6 +9,13 @@ interface AppBarProps {
 }
 
 export function AppBar({ activeTab }: AppBarProps) {
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    AuthSingleton.logout()
+    await navigate("/login")
+  }
+
   return (
     <header className="fixed inset-x-0 top-0 z-50 shadow-md">
       <div className="mx-auto flex h-16 items-center gap-6 px-8">
@@ -42,7 +50,13 @@ export function AppBar({ activeTab }: AppBarProps) {
         <div className="ml-auto flex items-center gap-2">
           <div className="shrink-0 font-semibold">nicog</div>
           <div className="shrink-0">/</div>
-          <div className="shrink-0 cursor-pointer font-semibold hover:underline">
+          <div
+            className="shrink-0 cursor-pointer font-semibold hover:underline"
+            onClick={(e) => {
+              e.preventDefault()
+              void handleLogout()
+            }}
+          >
             Logout
           </div>
         </div>
