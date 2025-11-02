@@ -1,6 +1,6 @@
 import { createBrowserRouter, redirect } from "react-router"
 import App from "./App"
-import { LoginPage } from "./pages/LoginPage"
+import { LoginPage, LoadingPageLoader } from "./pages/LoginPage"
 import { AdminDashboard } from "./pages/AdminDashboardPage"
 import { AdminUsersPage } from "./pages/AdminUsersPage"
 import { AdminProductsPage } from "./pages/AdminProductsPage"
@@ -11,8 +11,7 @@ export const router = createBrowserRouter([
     path: "/",
     Component: App,
     children: [
-      { index: true, Component: LoginPage },
-      { path: "login", Component: LoginPage },
+      { path: "login", Component: LoginPage, loader: LoadingPageLoader },
       {
         path: "admin",
         children: [
@@ -23,6 +22,7 @@ export const router = createBrowserRouter([
           { path: "", loader: () => redirect("dashboard") },
         ],
       },
+      { path: "", loader: () => redirect("login") },
     ],
   },
 ])

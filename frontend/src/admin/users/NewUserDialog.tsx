@@ -17,10 +17,12 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { UserPlus } from "lucide-react"
 
 interface FormData {
   name: string
   username: string
+  role: "admin" | "service"
 }
 
 function toUsername(name: string) {
@@ -31,12 +33,12 @@ function toUsername(name: string) {
     .replace(/ö/g, "oe")
     .replace(/ü/g, "ue")
     .replace(/ß/g, "ss")
-    .replace(/[^a-z0-9-_]/g, "")
+    .replace(/[^a-z0-9]/g, "")
 }
 
 export function NewUserDialog() {
   const form = useForm<FormData>({
-    defaultValues: { name: "", username: "" },
+    defaultValues: { name: "", username: "", role: "service" },
   })
 
   const onSubmit = (data: FormData) => {
@@ -47,7 +49,9 @@ export function NewUserDialog() {
     <Dialog>
       <DialogTrigger asChild>
         <div className="fixed bottom-16 right-16 z-50">
-          <Button>Benutzer anlegen</Button>
+          <Button>
+            <UserPlus /> Neuer Benutzer
+          </Button>
         </div>
       </DialogTrigger>
       <DialogContent
@@ -117,8 +121,8 @@ export function NewUserDialog() {
                   message: "Benutzername muss mindestens 5 Zeichen lang sein.",
                 },
                 maxLength: {
-                  value: 50,
-                  message: "Benutzername darf maximal 50 Zeichen lang sein.",
+                  value: 20,
+                  message: "Benutzername darf maximal 20 Zeichen lang sein.",
                 },
               }}
               render={({ field, fieldState }) => (

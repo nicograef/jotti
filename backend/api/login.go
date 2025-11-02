@@ -2,8 +2,11 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -23,6 +26,12 @@ type LoginErrorResponse struct {
 	Error string `json:"error"`
 }
 
+// Predefined error variable for better error handling and comparison
+var ErrorUserNotFound = errors.New("user not found")
+var ErrorInvalidPassword = errors.New("invalid password")
+var ErrorPasswordHashing = errors.New("password hashing error")
+var ErrorDatabase = errors.New("database error")
+
 // NewLoginHandler handles user login requests by validating the password hash against the database
 // and returns a jwt token if successful.
 // If this is the first time the user logs in (no password hash set), it sets the provided password as the new password.
@@ -37,38 +46,38 @@ func NewLoginHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		storedHash, err := getPasswordHashFromDB(db, body.Username)
+		err := createOrValidatePassword(db, body.Username, body.Password)
 		if err != nil {
-			http.Error(w, "Failed to retrieve user", http.StatusUnauthorized)
-			return
-		}
-
-		if storedHash == "" {
-			log.Printf("INFO Setting password for first time login for user %s", body.Username)
-			if err := setPasswordHashInDB(db, body.Username, body.Password); err != nil {
-				http.Error(w, "Failed to set password", http.StatusInternalServerError)
+			if errors.Is(err, ErrorUserNotFound) || errors.Is(err, ErrorInvalidPassword) {
+				sendJSONResponse(w, LoginErrorResponse{
+					Ok:    false,
+					Error: "Invalid username or password",
+				})
 				return
 			}
-		}
-
-		if err := validatePasswordAgainstHash(storedHash, body.Password); err != nil {
-			http.Error(w, "Authentication failed", http.StatusUnauthorized)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		userId, err := getUserIdFromUsername(db, body.Username)
+		user, err := getUserFromUsername(db, body.Username)
 		if err != nil {
+			log.Printf("ERROR Failed to retrieve user ID for user %s: %v", body.Username, err)
 			http.Error(w, "Failed to retrieve user ID", http.StatusInternalServerError)
 			return
 		}
 
 		key := []byte("your-256-bit-secret")
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"iss": "jotti",
-			"sub": userId,
+			"iss":  "jotti",
+			"aud":  "jotti-users",
+			"iat":  jwt.NewNumericDate(time.Now()),
+			"exp":  jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // 24 hours
+			"sub":  strconv.Itoa(user.ID),
+			"role": user.Role,
 		})
 		stringToken, err := token.SignedString(key)
 		if err != nil {
+			log.Printf("ERROR Failed to generate token for user %s: %v", body.Username, err)
 			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 			return
 		}
@@ -81,11 +90,43 @@ func NewLoginHandler(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func getPasswordHashFromDB(db *sql.DB, username string) (string, error) {
-	var storedHash string
+func createOrValidatePassword(db *sql.DB, username, password string) error {
+	storedHash, err := getPasswordHashFromDB(db, username)
+	if err != nil {
+		log.Printf("ERROR Failed to retrieve password hash for user %s: %v", username, err)
+		return ErrorUserNotFound
+	}
+
+	log.Printf("DEBUG Retrieved password hash for user %s: %v", username, storedHash)
+
+	if storedHash == nil {
+		log.Printf("INFO Setting password for first time login for user %s", username)
+		hashedPassword, err := hashPasswordSecure(password)
+		if err != nil {
+			log.Printf("ERROR Failed to hash password for user %s: %v", username, err)
+			return ErrorPasswordHashing
+		}
+		if err := setPasswordHashInDB(db, username, hashedPassword); err != nil {
+			log.Printf("ERROR Failed to set password hash in DB for user %s: %v", username, err)
+			return ErrorDatabase
+		}
+		storedHash = &hashedPassword
+		log.Printf("INFO Password set successfully for user %s", username)
+	}
+
+	if err := validatePasswordAgainstHash(*storedHash, password); err != nil {
+		log.Printf("ERROR Password validation failed for user %s: %v", username, err)
+		return ErrorInvalidPassword
+	}
+
+	return nil
+}
+
+func getPasswordHashFromDB(db *sql.DB, username string) (*string, error) {
+	var storedHash *string
 	err := db.QueryRow("SELECT password_hash FROM users WHERE username=$1", username).Scan(&storedHash)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	return storedHash, nil
 }
@@ -95,11 +136,17 @@ func setPasswordHashInDB(db *sql.DB, username, hashedPassword string) error {
 	return err
 }
 
-func getUserIdFromUsername(db *sql.DB, username string) (int, error) {
-	var userId int
-	err := db.QueryRow("SELECT id FROM users WHERE username=$1", username).Scan(&userId)
+type User struct {
+	ID       int
+	Username string
+	Role     string
+}
+
+func getUserFromUsername(db *sql.DB, username string) (User, error) {
+	var user User
+	err := db.QueryRow("SELECT id, username, role FROM users WHERE username=$1", username).Scan(&user.ID, &user.Username, &user.Role)
 	if err != nil {
-		return 0, err
+		return User{}, err
 	}
-	return userId, nil
+	return user, nil
 }

@@ -1,13 +1,13 @@
 import { jwtDecode } from "jwt-decode"
 import { z } from "zod"
 import { BackendSingleton } from "./backend"
-import { redirect } from "react-router"
 
 const JottiTokenSchema = z.object({
   iss: z.literal("jotti"),
-  exp: z.int().min(1750000000000), // some date newer than 2025
-  sub: z.string().min(4),
-  roles: z.array(z.string()),
+  exp: z.int().min(0),
+  iat: z.int().min(0),
+  sub: z.string().min(1),
+  role: z.enum(["admin", "service"]),
 })
 type JottiToken = z.infer<typeof JottiTokenSchema>
 
@@ -21,14 +21,19 @@ class Auth {
 
   constructor(backend: Backend) {
     this.backend = backend
-    const token = localStorage.getItem("JOTTI_TOKEN")
-    if (token) this.validateAndSetToken(token)
   }
 
   public get isAuthenticated(): boolean {
-    if (!this.token) return false
-    const currentTime = Math.floor(Date.now() / 1000)
-    return this.token.exp ? this.token.exp > currentTime : true
+    const token = localStorage.getItem("JOTTI_TOKEN")
+    if (!token) return false
+
+    try {
+      this.validateAndSetToken(token)
+      return true
+    } catch (error) {
+      console.error("Invalid token:", error)
+      return false
+    }
   }
 
   public get username(): string | null {
@@ -36,18 +41,13 @@ class Auth {
   }
 
   public get isAdmin(): boolean {
-    return this.token?.roles.includes("admin") ?? false
+    return this.token?.role === "admin"
   }
 
   public async login(username: string, password: string): Promise<void> {
     const token = await this.backend.login(username, password)
     this.validateAndSetToken(token)
-
-    if (this.isAdmin) {
-      redirect("/admin")
-    } else {
-      redirect("/")
-    }
+    localStorage.setItem("JOTTI_TOKEN", token)
   }
 
   private validateAndSetToken(tokenBase64: string): void {
@@ -65,7 +65,6 @@ class Auth {
       }
 
       this.token = parsedToken
-      localStorage.setItem("JOTTI_TOKEN", JSON.stringify(tokenBase64))
     } catch (error) {
       localStorage.removeItem("JOTTI_TOKEN")
       this.token = null

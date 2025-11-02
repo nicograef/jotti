@@ -1,5 +1,3 @@
-version: "3.8"
-
 name: jotti
 
 services:
@@ -22,6 +20,23 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  migrate:
+    build:
+      context: ./database/migrate
+      dockerfile: Dockerfile
+    container_name: jotti-migrate
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    networks:
+      - app-network
+    volumes:
+      - ./database/migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   backend:
     build:
@@ -58,29 +73,6 @@ services:
     depends_on:
       backend:
         condition: service_started
-
-  migrate:
-    image: migrate/migrate:4
-    container_name: jotti-migrate
-    networks:
-      - app-network
-    volumes:
-      - ./database/migrations:/migrations
-    entrypoint: ["/usr/bin/env"]
-    command:
-      - sh
-      - -lc
-      - |
-        set -e
-        DB_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/jotti?sslmode=disable"
-        migrate -path=/migrations -database "$DB_URL" up
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
 
 networks:
   app-network:

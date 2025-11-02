@@ -3,7 +3,7 @@ import { z } from "zod"
 const LoginResponseSchema = z.union([
   z.object({
     ok: z.literal(true),
-    token: z.jwt(),
+    token: z.string().min(10), // validation is done in Auth Service
   }),
   z.object({
     ok: z.literal(false),
