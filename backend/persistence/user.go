@@ -40,7 +40,7 @@ func (p *UserPersistence) GetUserByUsername(username string) (*user.User, error)
 
 // CreateUserWithoutPassword inserts a new user into the database with the given name, username and role.
 // Returns an error if the operation fails, and the row id of the newly created user.
-func (p *UserPersistence) CreateUserWithoutPassword(name, username string, role user.UserRole) (int64, error) {
+func (p *UserPersistence) CreateUserWithoutPassword(name, username string, role user.Role) (int64, error) {
 	result, err := p.DB.Exec("INSERT INTO users (name, username, role) VALUES ($1, $2, $3)", name, username, role)
 	if err != nil {
 		return 0, err

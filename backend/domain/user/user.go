@@ -7,19 +7,19 @@ import (
 	"github.com/nicograef/jotti/backend/config"
 )
 
-type UserRole string
+type Role string
 
 const (
-	AdminRole   UserRole = "admin"
-	ServiceRole UserRole = "service"
+	AdminRole   Role = "admin"
+	ServiceRole Role = "service"
 )
 
 type User struct {
-	ID           int      `json:"id"`
-	Name         string   `json:"name"`
-	Username     string   `json:"username"`
-	Role         UserRole `json:"role"`
-	PasswordHash string   `json:"-"`
+	ID           int    `json:"id"`
+	Name         string `json:"name"`
+	Username     string `json:"username"`
+	Role         Role   `json:"role"`
+	PasswordHash string `json:"-"`
 }
 
 var ErrUserNotFound = errors.New("user not found")
@@ -27,35 +27,35 @@ var ErrInvalidPassword = errors.New("invalid password")
 var ErrPasswordHashing = errors.New("password hashing error")
 var ErrDatabase = errors.New("database error")
 
-type UserPersistence interface {
+type Persistence interface {
 	GetUserByUsername(username string) (*User, error)
 	GetUser(id int) (*User, error)
-	CreateUserWithoutPassword(name, username string, role UserRole) (int64, error)
+	CreateUserWithoutPassword(name, username string, role Role) (int64, error)
 	SetPasswordHash(userID int, passwordHash string) error
 }
 
-type UserService struct {
-	DB  UserPersistence
+type Service struct {
+	DB  Persistence
 	Cfg config.Config
 }
 
 // CreateUserWithoutPassword creates a new user in the database without setting a password.
-func (s *UserService) CreateUserWithoutPassword(name, username string, role UserRole) (*User, error) {
-	userId, err := s.DB.CreateUserWithoutPassword(name, username, role)
+func (s *Service) CreateUserWithoutPassword(name, username string, role Role) (*User, error) {
+	userID, err := s.DB.CreateUserWithoutPassword(name, username, role)
 	if err != nil {
 		log.Printf("ERROR Failed to create user: %v", err)
 		return nil, ErrDatabase
 	}
 
 	return &User{
-		ID:       int(userId),
+		ID:       int(userID),
 		Name:     name,
 		Username: username,
 		Role:     role,
 	}, nil
 }
 
-func (s *UserService) LoginUserViaPassword(username, password string) (*User, error) {
+func (s *Service) LoginUserViaPassword(username, password string) (*User, error) {
 	user, err := s.DB.GetUserByUsername(username)
 	if err != nil {
 		log.Printf("ERROR Failed to retrieve password hash for user %s: %v", username, err)

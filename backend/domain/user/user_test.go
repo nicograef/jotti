@@ -11,7 +11,7 @@ type MockUserPersistence struct {
 	MockUser   *User
 }
 
-func (m *MockUserPersistence) CreateUserWithoutPassword(name, username string, role UserRole) (int64, error) {
+func (m *MockUserPersistence) CreateUserWithoutPassword(name, username string, role Role) (int64, error) {
 	if m.ShouldFail {
 		return 0, ErrDatabase
 	}
@@ -40,7 +40,7 @@ func (m *MockUserPersistence) SetPasswordHash(userID int, passwordHash string) e
 }
 
 func TestCreateUserWithoutPassword(t *testing.T) {
-	userService := UserService{DB: &MockUserPersistence{MockUser: &User{ID: 1}}}
+	userService := Service{DB: &MockUserPersistence{MockUser: &User{ID: 1}}}
 
 	user, err := userService.CreateUserWithoutPassword("Test User", "testuser", ServiceRole)
 
@@ -65,7 +65,7 @@ func TestCreateUserWithoutPassword(t *testing.T) {
 }
 
 func TestCreateUserWithoutPasswordError(t *testing.T) {
-	userService := UserService{DB: &MockUserPersistence{ShouldFail: true}}
+	userService := Service{DB: &MockUserPersistence{ShouldFail: true}}
 
 	_, err := userService.CreateUserWithoutPassword("Test User", "testuser", ServiceRole)
 
@@ -78,7 +78,7 @@ func TestCreateUserWithoutPasswordError(t *testing.T) {
 }
 
 func TestLoginUserViaPassword_NotFound(t *testing.T) {
-	userService := UserService{DB: &MockUserPersistence{ShouldFail: true}}
+	userService := Service{DB: &MockUserPersistence{ShouldFail: true}}
 
 	_, err := userService.LoginUserViaPassword("nonexistent", "password")
 
@@ -89,7 +89,7 @@ func TestLoginUserViaPassword_NotFound(t *testing.T) {
 
 func TestLoginUserViaPassword_Success(t *testing.T) {
 	mockUser := &User{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}
-	userService := UserService{DB: &MockUserPersistence{MockUser: mockUser}}
+	userService := Service{DB: &MockUserPersistence{MockUser: mockUser}}
 
 	user, err := userService.LoginUserViaPassword("testuser", "testpassword")
 
@@ -103,7 +103,7 @@ func TestLoginUserViaPassword_Success(t *testing.T) {
 
 func TestLoginUserViaPassword_InvalidPassword(t *testing.T) {
 	mockUser := &User{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}
-	userService := UserService{DB: &MockUserPersistence{MockUser: mockUser}}
+	userService := Service{DB: &MockUserPersistence{MockUser: mockUser}}
 
 	_, err := userService.LoginUserViaPassword("testuser", "wrongpassword")
 
@@ -114,7 +114,7 @@ func TestLoginUserViaPassword_InvalidPassword(t *testing.T) {
 
 func TestLoginUserViaPassword_HashError(t *testing.T) {
 	mockUser := &User{PasswordHash: "invalidhashformat"}
-	userService := UserService{DB: &MockUserPersistence{MockUser: mockUser}}
+	userService := Service{DB: &MockUserPersistence{MockUser: mockUser}}
 
 	_, err := userService.LoginUserViaPassword("testuser", "somepassword")
 
@@ -126,7 +126,7 @@ func TestLoginUserViaPassword_HashError(t *testing.T) {
 func TestLoginUserViaPassword_SetNewPassword(t *testing.T) {
 	mockUser := &User{ID: 1, PasswordHash: ""}
 	mockPersistence := &MockUserPersistence{MockUser: mockUser}
-	userService := UserService{DB: mockPersistence}
+	userService := Service{DB: mockPersistence}
 
 	user, err := userService.LoginUserViaPassword("testuser", "testpassword")
 

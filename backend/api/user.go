@@ -7,15 +7,15 @@ import (
 )
 
 type CreateUserRequest struct {
-	Name     string        `json:"name"`
-	Username string        `json:"username"`
-	Role     user.UserRole `json:"role"`
+	Name     string    `json:"name"`
+	Username string    `json:"username"`
+	Role     user.Role `json:"role"`
 }
 
 type CreateUserResponse = user.User
 
 type UserService interface {
-	CreateUserWithoutPassword(name, username string, role user.UserRole) (*user.User, error)
+	CreateUserWithoutPassword(name, username string, role user.Role) (*user.User, error)
 }
 
 func CreateUserHandler(us UserService) http.HandlerFunc {

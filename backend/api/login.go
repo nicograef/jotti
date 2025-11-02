@@ -19,7 +19,7 @@ type LoginResponse struct {
 // LoginHandler handles user login requests by validating the password hash against the database
 // and returns a jwt token if successful.
 // If this is the first time the user logs in (no password hash set), it sets the provided password as the new password.
-func LoginHandler(s *usr.UserService) http.HandlerFunc {
+func LoginHandler(s *usr.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !validateMethod(w, r, http.MethodPost) {
 			return

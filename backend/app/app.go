@@ -42,7 +42,7 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 // SetupRoutes configures HTTP routes
 func (app *App) SetupRoutes() {
 	userPersistence := persistence.UserPersistence{DB: app.DB}
-	userService := user.UserService{DB: &userPersistence, Cfg: app.Config}
+	userService := user.Service{DB: &userPersistence, Cfg: app.Config}
 
 	app.Router.HandleFunc("/login", api.CorsHandler(api.LoginHandler(&userService)))
 	app.Router.HandleFunc("/create-user", api.CorsHandler(api.CreateUserHandler(&userService)))

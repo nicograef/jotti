@@ -11,7 +11,7 @@ import (
 
 var ErrTokenGeneration = errors.New("token generation error")
 
-func (s *UserService) GenerateJWTTokenForUser(user *User) (string, error) {
+func (s *Service) GenerateJWTTokenForUser(user *User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iss":  "jotti",
 		"iat":  jwt.NewNumericDate(time.Now()),
