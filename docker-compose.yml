@@ -17,6 +17,11 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d jotti"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   backend:
     build:
@@ -35,7 +40,10 @@ services:
     networks:
       - app-network
     depends_on:
-      - postgres
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
 
   frontend:
     build:
@@ -48,7 +56,31 @@ services:
     networks:
       - app-network
     depends_on:
-      - backend
+      backend:
+        condition: service_started
+
+  migrate:
+    image: migrate/migrate:4
+    container_name: jotti-migrate
+    networks:
+      - app-network
+    volumes:
+      - ./database/migrations:/migrations
+    entrypoint: ["/usr/bin/env"]
+    command:
+      - sh
+      - -lc
+      - |
+        set -e
+        DB_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/jotti?sslmode=disable"
+        migrate -path=/migrations -database "$DB_URL" up
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
 networks:
   app-network:
