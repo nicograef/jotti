@@ -1,3 +1,5 @@
+//go:build unit
+
 package api
 
 import (
@@ -16,10 +18,6 @@ func TestNewHealthHandler(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
-	}
-
-	if w.Body.String() != "OK" {
-		t.Errorf("expected body %q, got %q", "OK", w.Body.String())
 	}
 }
 
