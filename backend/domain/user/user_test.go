@@ -13,11 +13,11 @@ type MockUserPersistence struct {
 	MockUser   *User
 }
 
-func (m *MockUserPersistence) CreateUserWithoutPassword(name, username string, role Role) (int64, error) {
+func (m *MockUserPersistence) CreateUserWithoutPassword(name, username string, role Role) (int, error) {
 	if m.ShouldFail {
 		return 0, ErrDatabase
 	}
-	return int64(m.MockUser.ID), nil
+	return m.MockUser.ID, nil
 }
 
 func (m *MockUserPersistence) GetUserByUsername(username string) (*User, error) {

@@ -39,7 +39,7 @@ var ErrDatabase = errors.New("database error")
 type persistence interface {
 	GetUserByUsername(username string) (*User, error)
 	GetUser(id int) (*User, error)
-	CreateUserWithoutPassword(name, username string, role Role) (int64, error)
+	CreateUserWithoutPassword(name, username string, role Role) (int, error)
 	SetPasswordHash(userID int, passwordHash string) error
 }
 
@@ -57,7 +57,7 @@ func (s *Service) CreateUserWithoutPassword(name, username string, role Role) (*
 	}
 
 	return &User{
-		ID:       int(userID),
+		ID:       userID,
 		Name:     name,
 		Username: username,
 		Role:     role,

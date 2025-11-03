@@ -73,7 +73,7 @@ jobs:
         run: go build -v ./...
 
       - name: Test
-        run: go test -v -race -coverprofile=coverage.out ./...
+        run: go test -tags=unit -v -race -coverprofile=coverage.out ./...
 
       - name: Check test coverage
         run: |
@@ -148,7 +148,7 @@ jobs:
       - name: Wait some seconds for Postgres to be ready
         run: sleep 10
 
-      - name: Run database migrations (up)
+      - name: Run database migrations up
         working-directory: ./database
         run: |
           chmod +x migrate/migrate || true
@@ -173,3 +173,9 @@ jobs:
             echo "Coverage is below 80%"
             exit 1
           fi
+
+      - name: Run database migrations down
+        working-directory: ./database
+        run: |
+          chmod +x migrate/migrate || true
+          ./migrate/migrate -path ./migrations -database "postgres://admin:admin@localhost:5432/jotti?sslmode=disable" down

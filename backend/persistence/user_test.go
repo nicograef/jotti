@@ -39,7 +39,7 @@ func TestUserPersistence_CreateUserWithoutPassword(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if userID != 1 { // 1 because we reset the database before each test run
+	if userID != 2 { // 2 because the first user is created in the schema migrations
 		t.Fatalf("Expected valid user ID, got %d", userID)
 	}
 
