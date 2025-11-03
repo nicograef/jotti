@@ -13,6 +13,7 @@ jobs:
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
+      database: ${{ steps.changes.outputs.database }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,6 +27,8 @@ jobs:
               - 'backend/**'
             frontend:
               - 'frontend/**'
+            database:
+              - 'database/**'
 
   backend-ci:
     needs: changes
@@ -66,19 +69,6 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Run tests
-        run: go test -v -race -coverprofile=coverage.out ./...
-
-      - name: Check test coverage
-        run: |
-          go tool cover -func=coverage.out
-          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
-          echo "Total coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-            echo "Coverage is below 80%"
-            exit 1
-          fi
-
       - name: Build
         run: go build -v ./...
 
@@ -97,7 +87,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: 'pnpm'
+          cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Set up pnpm
@@ -113,3 +103,60 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+  backend-integration:
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }} || ${{ needs.changes.outputs.database == 'true' }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: jotti
+        ports:
+          - 5432:5432
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Wait some seconds for Postgres to be ready
+        run: sleep 10
+
+      - name: Run database migrations (up)
+        working-directory: ./database
+        run: |
+          chmod +x migrate/migrate || true
+          ./migrate/migrate -path ./migrations -database "postgres://admin:admin@localhost:5432/jotti?sslmode=disable" up
+
+      - name: Run tests
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DBNAME: jotti
+          JWT_SECRET: test-secret
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Check test coverage
+        run: |
+          go tool cover -func=coverage.out
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Total coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "Coverage is below 80%"
+            exit 1
+          fi
