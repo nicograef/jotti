@@ -11,9 +11,8 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      event: ${{ steps.changes.outputs.event }}
-      database: ${{ steps.changes.outputs.database }}
-      queue: ${{ steps.changes.outputs.queue }}
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
