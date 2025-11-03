@@ -43,7 +43,7 @@ func LoginHandler(s *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		stringToken, err := s.GenerateJWTTokenForUser(user)
+		stringToken, err := s.GenerateJWTTokenForUser(*user)
 		if err != nil {
 			sendInternalServerError(w)
 			return
