@@ -72,6 +72,19 @@ jobs:
       - name: Build
         run: go build -v ./...
 
+      - name: Test
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Check test coverage
+        run: |
+          go tool cover -func=coverage.out
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Total coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "Coverage is below 80%"
+            exit 1
+          fi
+
   frontend-ci:
     needs: changes
     if: ${{ needs.changes.outputs.frontend == 'true' }}
@@ -104,7 +117,7 @@ jobs:
       - name: Build
         run: pnpm run build
 
-  backend-integration:
+  backend-integration-tests:
     needs: changes
     if: ${{ needs.changes.outputs.backend == 'true' }} || ${{ needs.changes.outputs.database == 'true' }}
     runs-on: ubuntu-latest
@@ -149,7 +162,7 @@ jobs:
           POSTGRES_PASSWORD: admin
           POSTGRES_DBNAME: jotti
           JWT_SECRET: test-secret
-        run: go test -v -race -coverprofile=coverage.out ./...
+        run: go test -tags=integration -v -race -coverprofile=coverage.out ./...
 
       - name: Check test coverage
         run: |
