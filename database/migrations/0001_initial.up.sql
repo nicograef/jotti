@@ -43,6 +43,6 @@ COMMENT ON COLUMN events.payload IS 'Event data (jsonb), versioned by event_type
 -- CREATE INDEX IF NOT EXISTS idx_events_user_id ON events (user_id);
 
 -- Create first admin user (without password; set password later)
-INSERT INTO users (username, role) VALUES ('nico', 'admin') ON CONFLICT (username) DO NOTHING;
+INSERT INTO users (username, name, role) VALUES ('nico', 'Nico Gräf' 'admin') ON CONFLICT (username) DO NOTHING;
 
 COMMIT;
