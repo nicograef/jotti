@@ -3,8 +3,6 @@ package user
 import (
 	"errors"
 	"log"
-
-	"github.com/nicograef/jotti/backend/config"
 )
 
 type Role string
@@ -35,8 +33,7 @@ type Persistence interface {
 }
 
 type Service struct {
-	DB  Persistence
-	Cfg config.Config
+	DB Persistence
 }
 
 // CreateUserWithoutPassword creates a new user in the database without setting a password.

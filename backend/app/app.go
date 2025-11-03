@@ -10,6 +10,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/api"
 	"github.com/nicograef/jotti/backend/config"
+	"github.com/nicograef/jotti/backend/domain/auth"
 	"github.com/nicograef/jotti/backend/domain/user"
 	"github.com/nicograef/jotti/backend/persistence"
 )
@@ -42,10 +43,12 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 // SetupRoutes configures HTTP routes
 func (app *App) SetupRoutes() {
 	userPersistence := persistence.UserPersistence{DB: app.DB}
-	userService := user.Service{DB: &userPersistence, Cfg: app.Config}
+	userService := user.Service{DB: &userPersistence}
+	authService := auth.Service{JWTSecret: app.Config.JWTSecret}
+	jwtMiddleware := api.NewJWTMiddleware(&authService)
 
-	app.Router.HandleFunc("/login", api.CorsHandler(api.LoginHandler(&userService)))
-	app.Router.HandleFunc("/create-user", api.CorsHandler(api.CreateUserHandler(&userService)))
+	app.Router.HandleFunc("/login", api.CorsHandler(api.LoginHandler(&userService, &authService)))
+	app.Router.HandleFunc("/create-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.CreateUserHandler(&userService)))))
 	app.Router.HandleFunc("/health", api.CorsHandler(api.NewHealthHandler()))
 
 	app.Server.Handler = app.Router

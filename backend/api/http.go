@@ -1,6 +1,5 @@
 package api
 
-// helper function for sending json responses
 import (
 	"encoding/json"
 	"log"

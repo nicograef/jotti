@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/nicograef/jotti/backend/domain/auth"
 	usr "github.com/nicograef/jotti/backend/domain/user"
 )
 
@@ -19,7 +20,7 @@ type LoginResponse struct {
 // LoginHandler handles user login requests by validating the password hash against the database
 // and returns a jwt token if successful.
 // If this is the first time the user logs in (no password hash set), it sets the provided password as the new password.
-func LoginHandler(s *usr.Service) http.HandlerFunc {
+func LoginHandler(s *usr.Service, a *auth.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !validateMethod(w, r, http.MethodPost) {
 			return
@@ -43,7 +44,7 @@ func LoginHandler(s *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		stringToken, err := s.GenerateJWTTokenForUser(*user)
+		stringToken, err := a.GenerateJWTTokenForUser(*user)
 		if err != nil {
 			sendInternalServerError(w)
 			return

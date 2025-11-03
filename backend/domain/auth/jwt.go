@@ -1,4 +1,4 @@
-package user
+package auth
 
 import (
 	"errors"
@@ -7,13 +7,18 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/nicograef/jotti/backend/domain/user"
 )
 
 var ErrTokenGeneration = errors.New("token generation error")
 
 const issuer = "jotti"
 
-func (s *Service) GenerateJWTTokenForUser(user User) (string, error) {
+type Service struct {
+	JWTSecret string
+}
+
+func (s *Service) GenerateJWTTokenForUser(user user.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"alg":  jwt.SigningMethodHS256.Alg(),
 		"iss":  issuer,
@@ -23,7 +28,7 @@ func (s *Service) GenerateJWTTokenForUser(user User) (string, error) {
 		"role": user.Role,
 	})
 
-	key := []byte(s.Cfg.JWTSecret)
+	key := []byte(s.JWTSecret)
 	stringToken, err := token.SignedString(key)
 	if err != nil {
 		log.Printf("ERROR Failed to generate token for user %s: %v", user.Username, err)
@@ -35,13 +40,13 @@ func (s *Service) GenerateJWTTokenForUser(user User) (string, error) {
 
 type TokenPayload struct {
 	UserID int
-	Role   Role
+	Role   user.Role
 }
 
 func (s *Service) ParseAndValidateJWTToken(tokenString string) (*TokenPayload, error) {
 	claims := jwt.MapClaims{}
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
-		return []byte(s.Cfg.JWTSecret), nil
+		return []byte(s.JWTSecret), nil
 	}
 
 	_, err := jwt.ParseWithClaims(tokenString, claims, keyFunc, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithExpirationRequired(), jwt.WithIssuer(issuer))
@@ -58,7 +63,7 @@ func (s *Service) ParseAndValidateJWTToken(tokenString string) (*TokenPayload, e
 
 	payload := &TokenPayload{
 		UserID: userID,
-		Role:   Role(claims["role"].(string)),
+		Role:   user.Role(claims["role"].(string)),
 	}
 
 	return payload, nil

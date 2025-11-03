@@ -1,17 +1,16 @@
-package user
+package auth
 
 import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/nicograef/jotti/backend/config"
+	"github.com/nicograef/jotti/backend/domain/user"
 )
 
 func TestGenerateJWTTokenForUser(t *testing.T) {
-	service := Service{Cfg: config.Config{JWTSecret: "test_secret"}}
-	user := User{ID: 1, Role: AdminRole}
+	service := Service{JWTSecret: "test_secret"}
 
-	token, err := service.GenerateJWTTokenForUser(user)
+	token, err := service.GenerateJWTTokenForUser(user.User{ID: 1, Role: user.AdminRole})
 	if err != nil {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
@@ -19,7 +18,7 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 	// Validate the token
 	claims := jwt.MapClaims{}
 	_, err = jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(service.Cfg.JWTSecret), nil
+		return []byte(service.JWTSecret), nil
 	})
 	if err != nil {
 		t.Fatalf("Failed to parse JWT token: %v", err)
@@ -28,14 +27,14 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 	if claims["sub"] != "1" {
 		t.Errorf("Expected subject '1', got '%v'", claims["sub"])
 	}
-	if Role(claims["role"].(string)) != AdminRole {
-		t.Errorf("Expected role '%s', got '%v'", AdminRole, claims["role"])
+	if user.Role(claims["role"].(string)) != user.AdminRole {
+		t.Errorf("Expected role '%s', got '%v'", user.AdminRole, claims["role"])
 	}
 }
 
 func TestParseAndValidateJWTToken(t *testing.T) {
-	service := Service{Cfg: config.Config{JWTSecret: "test_secret"}}
-	user := User{ID: 2, Role: ServiceRole}
+	service := Service{JWTSecret: "test_secret"}
+	user := user.User{ID: 2, Role: user.ServiceRole}
 
 	token, err := service.GenerateJWTTokenForUser(user)
 	if err != nil {
