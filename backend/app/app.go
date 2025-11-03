@@ -15,6 +15,7 @@ import (
 	"github.com/nicograef/jotti/backend/persistence"
 )
 
+// App represents the application with its configuration, router, server, and database connection.
 type App struct {
 	Server *http.Server
 	Config config.Config

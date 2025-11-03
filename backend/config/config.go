@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-type PostgresConfig struct {
+type postgresConfig struct {
 	Host     string
 	Port     int
 	User     string
@@ -17,7 +17,7 @@ type PostgresConfig struct {
 // Config holds application configuration values loaded from environment variables.
 type Config struct {
 	Port      int // Port for the HTTP server
-	Postgres  PostgresConfig
+	Postgres  postgresConfig
 	JWTSecret string // Secret key for JWT signing
 }
 
@@ -25,7 +25,7 @@ type Config struct {
 // Defaults: PORT=3000 CAPACITY=1000, CONSUMER_URL="http://localhost:4000" DELIVERY_ATTEMPTS=3
 func Load() Config {
 	port := parseEnvInt("PORT", 3000)
-	postgres := PostgresConfig{
+	postgres := postgresConfig{
 		Host:     parseEnvString("POSTGRES_HOST", "localhost"),
 		Port:     parseEnvInt("POSTGRES_PORT", 5432),
 		User:     parseEnvString("POSTGRES_USER", "admin"),

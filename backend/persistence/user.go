@@ -6,10 +6,12 @@ import (
 	"github.com/nicograef/jotti/backend/domain/user"
 )
 
+// UserPersistence implements user persistence layer using a SQL database.
 type UserPersistence struct {
 	DB *sql.DB
 }
 
+// GetUser retrieves a user from the database by their ID.
 func (p *UserPersistence) GetUser(id int) (*user.User, error) {
 	row := p.DB.QueryRow("SELECT id, name, username, role, password_hash FROM users WHERE id = $1", id)
 
@@ -24,6 +26,7 @@ func (p *UserPersistence) GetUser(id int) (*user.User, error) {
 	return &dbUser, nil
 }
 
+// GetUserByUsername retrieves a user from the database by their username.
 func (p *UserPersistence) GetUserByUsername(username string) (*user.User, error) {
 	row := p.DB.QueryRow("SELECT id, name, username, role, password_hash FROM users WHERE username = $1", username)
 
@@ -48,6 +51,7 @@ func (p *UserPersistence) CreateUserWithoutPassword(name, username string, role 
 	return result.LastInsertId()
 }
 
+// SetPasswordHash updates the password hash for the user with the given ID.
 func (p *UserPersistence) SetPasswordHash(userID int, passwordHash string) error {
 	_, err := p.DB.Exec("UPDATE users SET password_hash = $1 WHERE id = $2", passwordHash, userID)
 	return err

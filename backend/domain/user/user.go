@@ -5,13 +5,17 @@ import (
 	"log"
 )
 
+// Role represents the role of a user.
 type Role string
 
 const (
-	AdminRole   Role = "admin"
+	// AdminRole represents the admin role. Users with this role have elevated privileges.
+	AdminRole Role = "admin"
+	// ServiceRole represents the service role. Users with this role have limited privileges.
 	ServiceRole Role = "service"
 )
 
+// User represents a user in the system.
 type User struct {
 	ID           int    `json:"id"`
 	Name         string `json:"name"`
@@ -20,20 +24,28 @@ type User struct {
 	PasswordHash string `json:"-"`
 }
 
+// ErrUserNotFound is returned when a user is not found.
 var ErrUserNotFound = errors.New("user not found")
+
+// ErrInvalidPassword is returned when a password is invalid.
 var ErrInvalidPassword = errors.New("invalid password")
+
+// ErrPasswordHashing is returned when there is an error hashing the password.
 var ErrPasswordHashing = errors.New("password hashing error")
+
+// ErrDatabase is returned when there is a database error.
 var ErrDatabase = errors.New("database error")
 
-type Persistence interface {
+type persistence interface {
 	GetUserByUsername(username string) (*User, error)
 	GetUser(id int) (*User, error)
 	CreateUserWithoutPassword(name, username string, role Role) (int64, error)
 	SetPasswordHash(userID int, passwordHash string) error
 }
 
+// Service provides user-related operations.
 type Service struct {
-	DB Persistence
+	DB persistence
 }
 
 // CreateUserWithoutPassword creates a new user in the database without setting a password.
@@ -52,6 +64,8 @@ func (s *Service) CreateUserWithoutPassword(name, username string, role Role) (*
 	}, nil
 }
 
+// LoginUserViaPassword logs in a user by validating the provided password against the stored password hash.
+// If the user has no password set, it sets the provided password as the new password.
 func (s *Service) LoginUserViaPassword(username, password string) (*User, error) {
 	user, err := s.DB.GetUserByUsername(username)
 	if err != nil {

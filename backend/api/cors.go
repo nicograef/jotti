@@ -4,6 +4,9 @@ import (
 	"net/http"
 )
 
+// CorsHandler is a middleware that adds CORS headers to the response.
+// It allows all origins, methods GET, POST, OPTIONS, and all headers.
+// It also handles preflight OPTIONS requests.
 func CorsHandler(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

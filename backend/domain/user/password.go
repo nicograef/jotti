@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-type Argon2Configuration struct {
+type argon2Configuration struct {
 	HashRaw    []byte
 	Salt       []byte
 	TimeCost   uint32
@@ -30,7 +30,7 @@ func generateCryptographicSalt(saltSize uint32) ([]byte, error) {
 }
 
 func createArgon2idHash(password string) (string, error) {
-	config := &Argon2Configuration{
+	config := &argon2Configuration{
 		TimeCost:   2,
 		MemoryCost: 64 * 1024,
 		Threads:    4,
@@ -67,7 +67,7 @@ func createArgon2idHash(password string) (string, error) {
 	return encodedHash, nil
 }
 
-func parseArgon2Hash(encodedHash string) (*Argon2Configuration, error) {
+func parseArgon2Hash(encodedHash string) (*argon2Configuration, error) {
 	components := strings.Split(encodedHash, "$")
 	if len(components) != 6 {
 		return nil, errors.New("invalid hash format structure")
@@ -83,7 +83,7 @@ func parseArgon2Hash(encodedHash string) (*Argon2Configuration, error) {
 	fmt.Sscanf(components[2], "v=%d", &version)
 
 	// Parse configuration parameters
-	config := &Argon2Configuration{}
+	config := &argon2Configuration{}
 	fmt.Sscanf(components[3], "m=%d,t=%d,p=%d",
 		&config.MemoryCost, &config.TimeCost, &config.Threads)
 

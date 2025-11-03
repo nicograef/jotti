@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type ErrorResponse struct {
+type errorResponse struct {
 	Message string `json:"error"`
 	Code    string `json:"code"`
 }
@@ -21,19 +21,25 @@ func sendInternalServerError(w http.ResponseWriter) {
 	http.Error(w, "Internal server error", http.StatusInternalServerError)
 }
 
-func sendBadRequestError(w http.ResponseWriter, response ErrorResponse) {
+func sendBadRequestError(w http.ResponseWriter, response errorResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
 	json.NewEncoder(w).Encode(response)
 }
 
-func sendUnauthorizedError(w http.ResponseWriter, response ErrorResponse) {
+func sendUnauthorizedError(w http.ResponseWriter, response errorResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
 	json.NewEncoder(w).Encode(response)
 }
 
-func sendMethodNotAllowedError(w http.ResponseWriter, response ErrorResponse) {
+func sendForbiddenError(w http.ResponseWriter, response errorResponse) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	json.NewEncoder(w).Encode(response)
+}
+
+func sendMethodNotAllowedError(w http.ResponseWriter, response errorResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	json.NewEncoder(w).Encode(response)
@@ -48,7 +54,7 @@ func readJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) boo
 	err := decoder.Decode(dest)
 	if err != nil {
 		log.Printf("ERROR Failed to decode JSON request: %v", err)
-		sendBadRequestError(w, ErrorResponse{
+		sendBadRequestError(w, errorResponse{
 			Message: "Invalid JSON request",
 			Code:    "invalid_json",
 		})
@@ -61,7 +67,7 @@ func readJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) boo
 func validateMethod(w http.ResponseWriter, r *http.Request, expectedMethod string) bool {
 	if r.Method != expectedMethod {
 		log.Printf("WARN Invalid method %s, expected %s", r.Method, expectedMethod)
-		sendMethodNotAllowedError(w, ErrorResponse{
+		sendMethodNotAllowedError(w, errorResponse{
 			Message: "Method not allowed",
 			Code:    "method_not_allowed",
 		})

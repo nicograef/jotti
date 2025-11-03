@@ -10,14 +10,17 @@ import (
 	"github.com/nicograef/jotti/backend/domain/user"
 )
 
+// ErrTokenGeneration is returned when there is an error generating the token.
 var ErrTokenGeneration = errors.New("token generation error")
 
 const issuer = "jotti"
 
+// Service provides authentication-related operations.
 type Service struct {
 	JWTSecret string
 }
 
+// GenerateJWTTokenForUser generates a JWT token for the given user.
 func (s *Service) GenerateJWTTokenForUser(user user.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"alg":  jwt.SigningMethodHS256.Alg(),
@@ -38,11 +41,13 @@ func (s *Service) GenerateJWTTokenForUser(user user.User) (string, error) {
 	return stringToken, nil
 }
 
+// TokenPayload represents the jotti-relevant payload of a JWT token.
 type TokenPayload struct {
 	UserID int
 	Role   user.Role
 }
 
+// ParseAndValidateJWTToken parses and validates the JWT token, returning the payload if valid.
 func (s *Service) ParseAndValidateJWTToken(tokenString string) (*TokenPayload, error) {
 	claims := jwt.MapClaims{}
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
