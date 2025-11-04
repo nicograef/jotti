@@ -42,8 +42,9 @@ type persistence interface {
 	GetUser(id int) (*User, error)
 	GetAllUsers() ([]*User, error)
 	CreateUserWithoutPassword(name, username string, role Role) (int, error)
-	SetPasswordHash(userID int, passwordHash string) error
 	UpdateUser(id int, name, username string, role Role, locked bool) error
+	SetPasswordHash(username, passwordHash string) error
+	GetPasswordHash(username string) (string, error)
 }
 
 // Service provides user-related operations.
@@ -71,13 +72,13 @@ func (s *Service) CreateUserWithoutPassword(name, username string, role Role) (*
 // LoginUserViaPassword logs in a user by validating the provided password against the stored password hash.
 // If the user has no password set, it sets the provided password as the new password.
 func (s *Service) LoginUserViaPassword(username, password string) (*User, error) {
-	user, err := s.DB.GetUserByUsername(username)
+	passwordHash, err := s.DB.GetPasswordHash(username)
 	if err != nil {
 		log.Printf("ERROR Failed to retrieve password hash for user %s: %v", username, err)
 		return nil, err
 	}
 
-	if user.PasswordHash == "" {
+	if passwordHash == "" {
 		log.Printf("INFO Setting password for first time login for user %s", username)
 
 		hashedPassword, err := createArgon2idHash(password)
@@ -86,17 +87,23 @@ func (s *Service) LoginUserViaPassword(username, password string) (*User, error)
 			return nil, err
 		}
 
-		if err := s.DB.SetPasswordHash(user.ID, hashedPassword); err != nil {
+		if err := s.DB.SetPasswordHash(username, hashedPassword); err != nil {
 			log.Printf("ERROR Failed to set password hash in DB for user %s: %v", username, err)
 			return nil, err
 		}
 
-		user.PasswordHash = hashedPassword
+		passwordHash = hashedPassword
 		log.Printf("INFO Password set successfully for user %s", username)
 	}
 
-	if err := verifyPassword(user.PasswordHash, password); err != nil {
+	if err := verifyPassword(passwordHash, password); err != nil {
 		log.Printf("ERROR Password validation failed for user %s: %v", username, err)
+		return nil, err
+	}
+
+	user, err := s.DB.GetUserByUsername(username)
+	if err != nil {
+		log.Printf("ERROR Failed to retrieve user %s after password validation: %v", username, err)
 		return nil, err
 	}
 

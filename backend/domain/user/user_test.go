@@ -62,12 +62,19 @@ func (m *MockUserPersistence) UpdateUser(id int, name, username string, role Rol
 	return nil
 }
 
-func (m *MockUserPersistence) SetPasswordHash(userID int, passwordHash string) error {
+func (m *MockUserPersistence) SetPasswordHash(username, passwordHash string) error {
 	if m.ShouldFail {
 		return fmt.Errorf("failed to set password hash")
 	}
 	m.MockUser.PasswordHash = passwordHash
 	return nil
+}
+
+func (m *MockUserPersistence) GetPasswordHash(username string) (string, error) {
+	if m.ShouldFail {
+		return "", ErrUserNotFound
+	}
+	return m.MockUser.PasswordHash, nil
 }
 
 func TestCreateUserWithoutPassword(t *testing.T) {

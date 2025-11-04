@@ -13,10 +13,10 @@ type UserPersistence struct {
 
 // GetUser retrieves a user from the database by their ID.
 func (p *UserPersistence) GetUser(id int) (*user.User, error) {
-	row := p.DB.QueryRow("SELECT id, name, username, role, locked, password_hash FROM users WHERE id = $1", id)
+	row := p.DB.QueryRow("SELECT id, name, username, role, locked FROM users WHERE id = $1", id)
 
 	var dbUser user.User
-	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked, &dbUser.PasswordHash); err != nil {
+	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, user.ErrUserNotFound
 		}
@@ -28,10 +28,10 @@ func (p *UserPersistence) GetUser(id int) (*user.User, error) {
 
 // GetUserByUsername retrieves a user from the database by their username.
 func (p *UserPersistence) GetUserByUsername(username string) (*user.User, error) {
-	row := p.DB.QueryRow("SELECT id, name, username, role, locked, password_hash FROM users WHERE username = $1", username)
+	row := p.DB.QueryRow("SELECT id, name, username, role, locked FROM users WHERE username = $1", username)
 
 	var dbUser user.User
-	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked, &dbUser.PasswordHash); err != nil {
+	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, user.ErrUserNotFound
 		}
@@ -87,8 +87,27 @@ func (p *UserPersistence) UpdateUser(id int, name, username string, role user.Ro
 	return nil
 }
 
-// SetPasswordHash updates the password hash for the user with the given ID.
-func (p *UserPersistence) SetPasswordHash(userID int, passwordHash string) error {
-	_, err := p.DB.Exec("UPDATE users SET password_hash = $1 WHERE id = $2", passwordHash, userID)
+// GetPasswordHash retrieves the password hash for the user with the given username.
+func (p *UserPersistence) GetPasswordHash(username string) (string, error) {
+	row := p.DB.QueryRow("SELECT password_hash FROM users WHERE username = $1", username)
+
+	var passwordHash sql.NullString
+	if err := row.Scan(&passwordHash); err != nil {
+		if err == sql.ErrNoRows {
+			return "", user.ErrUserNotFound
+		}
+		return "", err
+	}
+
+	if !passwordHash.Valid {
+		return "", nil
+	}
+
+	return passwordHash.String, nil
+}
+
+// SetPasswordHash updates the password hash for the user with the given username.
+func (p *UserPersistence) SetPasswordHash(username, passwordHash string) error {
+	_, err := p.DB.Exec("UPDATE users SET password_hash = $1 WHERE username = $2", passwordHash, username)
 	return err
 }
