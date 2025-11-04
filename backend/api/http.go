@@ -27,6 +27,12 @@ func sendBadRequestError(w http.ResponseWriter, response errorResponse) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func sendNotFoundError(w http.ResponseWriter, response errorResponse) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(response)
+}
+
 func sendUnauthorizedError(w http.ResponseWriter, response errorResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)

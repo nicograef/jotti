@@ -17,6 +17,13 @@ func (m *MockUserPersistence) CreateUserWithoutPassword(name, username string, r
 	if m.ShouldFail {
 		return 0, ErrDatabase
 	}
+	m.MockUser = &User{
+		ID:       1,
+		Name:     name,
+		Username: username,
+		Role:     role,
+		Locked:   false,
+	}
 	return m.MockUser.ID, nil
 }
 
@@ -34,10 +41,32 @@ func (m *MockUserPersistence) GetUser(id int) (*User, error) {
 	return m.MockUser, nil
 }
 
+func (m *MockUserPersistence) GetAllUsers() ([]*User, error) {
+	if m.ShouldFail {
+		return nil, ErrDatabase
+	}
+	return []*User{m.MockUser}, nil
+}
+
+func (m *MockUserPersistence) UpdateUser(id int, name, username string, role Role, locked bool) error {
+	if m.ShouldFail {
+		return ErrDatabase
+	}
+	m.MockUser = &User{
+		ID:       id,
+		Name:     name,
+		Username: username,
+		Role:     role,
+		Locked:   locked,
+	}
+	return nil
+}
+
 func (m *MockUserPersistence) SetPasswordHash(userID int, passwordHash string) error {
 	if m.ShouldFail {
 		return fmt.Errorf("failed to set password hash")
 	}
+	m.MockUser.PasswordHash = passwordHash
 	return nil
 }
 
@@ -66,7 +95,7 @@ func TestCreateUserWithoutPassword(t *testing.T) {
 	}
 }
 
-func TestCreateUserWithoutPasswordError(t *testing.T) {
+func TestCreateUserWithoutPassword_Error(t *testing.T) {
 	userService := Service{DB: &MockUserPersistence{ShouldFail: true}}
 
 	_, err := userService.CreateUserWithoutPassword("Test User", "testuser", ServiceRole)
@@ -137,5 +166,67 @@ func TestLoginUserViaPassword_SetNewPassword(t *testing.T) {
 	}
 	if user.PasswordHash == "" {
 		t.Errorf("expected non-empty PasswordHash after setting password")
+	}
+}
+
+func TestGetAllUsers_Success(t *testing.T) {
+	mockUser := &User{ID: 1, Name: "Test User", Username: "testuser", Role: ServiceRole}
+	userService := Service{DB: &MockUserPersistence{MockUser: mockUser}}
+
+	users, err := userService.GetAllUsers()
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(users) != 1 {
+		t.Fatalf("expected 1 user, got %d", len(users))
+	}
+	if users[0].ID != mockUser.ID {
+		t.Errorf("expected user ID %d, got %d", mockUser.ID, users[0].ID)
+	}
+}
+
+func TestGetAllUsers_Error(t *testing.T) {
+	userService := Service{DB: &MockUserPersistence{ShouldFail: true}}
+
+	_, err := userService.GetAllUsers()
+
+	if err != ErrDatabase {
+		t.Fatalf("expected database error, got %v", err)
+	}
+}
+
+func TestUpdateUser_Success(t *testing.T) {
+	userService := Service{DB: &MockUserPersistence{}}
+
+	user, err := userService.UpdateUser(1, "Updated User", "updateduser", AdminRole, false)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if user.Name != "Updated User" {
+		t.Errorf("expected name 'Updated User', got %s", user.Name)
+	}
+	if user.Username != "updateduser" {
+		t.Errorf("expected username 'updateduser', got %s", user.Username)
+	}
+	if user.Role != AdminRole {
+		t.Errorf("expected role 'admin', got %s", user.Role)
+	}
+	if user.Locked != false {
+		t.Errorf("expected locked false, got %v", user.Locked)
+	}
+}
+
+func TestUpdateUser_Error(t *testing.T) {
+	userService := Service{DB: &MockUserPersistence{ShouldFail: true}}
+
+	user, err := userService.UpdateUser(1, "Updated User", "updateduser", AdminRole, false)
+
+	if err != ErrDatabase {
+		t.Fatalf("expected database error, got %v", err)
+	}
+	if user != nil {
+		t.Errorf("expected nil user on error, got %v", user)
 	}
 }

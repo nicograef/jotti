@@ -13,10 +13,10 @@ type UserPersistence struct {
 
 // GetUser retrieves a user from the database by their ID.
 func (p *UserPersistence) GetUser(id int) (*user.User, error) {
-	row := p.DB.QueryRow("SELECT id, name, username, role, password_hash FROM users WHERE id = $1", id)
+	row := p.DB.QueryRow("SELECT id, name, username, role, locked, password_hash FROM users WHERE id = $1", id)
 
 	var dbUser user.User
-	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.PasswordHash); err != nil {
+	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked, &dbUser.PasswordHash); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, user.ErrUserNotFound
 		}
@@ -28,10 +28,10 @@ func (p *UserPersistence) GetUser(id int) (*user.User, error) {
 
 // GetUserByUsername retrieves a user from the database by their username.
 func (p *UserPersistence) GetUserByUsername(username string) (*user.User, error) {
-	row := p.DB.QueryRow("SELECT id, name, username, role, password_hash FROM users WHERE username = $1", username)
+	row := p.DB.QueryRow("SELECT id, name, username, role, locked, password_hash FROM users WHERE username = $1", username)
 
 	var dbUser user.User
-	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.PasswordHash); err != nil {
+	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked, &dbUser.PasswordHash); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, user.ErrUserNotFound
 		}
@@ -39,6 +39,29 @@ func (p *UserPersistence) GetUserByUsername(username string) (*user.User, error)
 	}
 
 	return &dbUser, nil
+}
+
+func (p *UserPersistence) GetAllUsers() ([]*user.User, error) {
+	rows, err := p.DB.Query("SELECT id, name, username, role, locked FROM users")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*user.User
+	for rows.Next() {
+		var dbUser user.User
+		if err := rows.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked); err != nil {
+			return nil, err
+		}
+		users = append(users, &dbUser)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
 
 // CreateUserWithoutPassword inserts a new user into the database with the given name, username and role.
@@ -50,6 +73,18 @@ func (p *UserPersistence) CreateUserWithoutPassword(name, username string, role 
 		return 0, err
 	}
 	return userID, nil
+}
+
+func (p *UserPersistence) UpdateUser(id int, name, username string, role user.Role, locked bool) error {
+	result, err := p.DB.Exec("UPDATE users SET name = $1, username = $2, role = $3, locked = $4 WHERE id = $5", name, username, role, locked, id)
+	if err != nil {
+		return err
+	}
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		return user.ErrUserNotFound
+	}
+
+	return nil
 }
 
 // SetPasswordHash updates the password hash for the user with the given ID.

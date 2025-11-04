@@ -21,6 +21,7 @@ type User struct {
 	Name         string `json:"name"`
 	Username     string `json:"username"`
 	Role         Role   `json:"role"`
+	Locked       bool   `json:"locked"`
 	PasswordHash string `json:"-"`
 }
 
@@ -39,8 +40,10 @@ var ErrDatabase = errors.New("database error")
 type persistence interface {
 	GetUserByUsername(username string) (*User, error)
 	GetUser(id int) (*User, error)
+	GetAllUsers() ([]*User, error)
 	CreateUserWithoutPassword(name, username string, role Role) (int, error)
 	SetPasswordHash(userID int, passwordHash string) error
+	UpdateUser(id int, name, username string, role Role, locked bool) error
 }
 
 // Service provides user-related operations.
@@ -61,6 +64,7 @@ func (s *Service) CreateUserWithoutPassword(name, username string, role Role) (*
 		Name:     name,
 		Username: username,
 		Role:     role,
+		Locked:   false,
 	}, nil
 }
 
@@ -97,4 +101,34 @@ func (s *Service) LoginUserViaPassword(username, password string) (*User, error)
 	}
 
 	return user, nil
+}
+
+// UpdateUser updates the user's details in the database.
+func (s *Service) UpdateUser(id int, name, username string, role Role, locked bool) (*User, error) {
+	err := s.DB.UpdateUser(id, name, username, role, locked)
+	if err != nil && errors.Is(err, ErrUserNotFound) {
+		log.Printf("ERROR User %d not found for update", id)
+		return nil, ErrUserNotFound
+	} else if err != nil {
+		log.Printf("ERROR Failed to update user %d: %v", id, err)
+		return nil, ErrDatabase
+	}
+
+	updatedUser, err := s.DB.GetUser(id)
+	if err != nil {
+		log.Printf("ERROR Failed to retrieve updated user %d: %v", id, err)
+		return nil, ErrDatabase
+	}
+
+	return updatedUser, nil
+}
+
+func (s *Service) GetAllUsers() ([]*User, error) {
+	users, err := s.DB.GetAllUsers()
+	if err != nil {
+		log.Printf("ERROR Failed to retrieve all users: %v", err)
+		return nil, ErrDatabase
+	}
+
+	return users, nil
 }
