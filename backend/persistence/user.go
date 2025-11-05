@@ -127,12 +127,28 @@ func (p *UserPersistence) GetOnetimePasswordHash(username string) (string, error
 
 // SetPasswordHash updates the password hash for the user with the given username.
 func (p *UserPersistence) SetPasswordHash(username, passwordHash string) error {
-	_, err := p.DB.Exec("UPDATE users SET password_hash = $1, onetime_password_hash = NULL WHERE username = $2", passwordHash, username)
-	return err
+	result, err := p.DB.Exec("UPDATE users SET password_hash = $1, onetime_password_hash = NULL WHERE username = $2", passwordHash, username)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		return user.ErrUserNotFound
+	}
+
+	return nil
 }
 
 // SetOnetimePasswordHash updates the one-time password hash for the user with the given username.
 func (p *UserPersistence) SetOnetimePasswordHash(username, onetimePasswordHash string) error {
-	_, err := p.DB.Exec("UPDATE users SET onetime_password_hash = $1, password_hash = NULL WHERE username = $2", onetimePasswordHash, username)
-	return err
+	result, err := p.DB.Exec("UPDATE users SET onetime_password_hash = $1, password_hash = NULL WHERE username = $2", onetimePasswordHash, username)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		return user.ErrUserNotFound
+	}
+
+	return nil
 }

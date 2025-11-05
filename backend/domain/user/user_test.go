@@ -5,7 +5,6 @@ package user
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"testing"
 )
 
@@ -147,7 +146,7 @@ func TestVerifyPasswordAndGetUser_NotFound(t *testing.T) {
 }
 
 func TestVerifyPasswordAndGetUser_Success(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}
+	userService := Service{DB: &MockUserPersistence{MockUser: &User{ID: 1, Username: "testuser"}, PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}
 
 	user, err := userService.VerifyPasswordAndGetUser("testuser", "testpassword")
 
@@ -156,6 +155,9 @@ func TestVerifyPasswordAndGetUser_Success(t *testing.T) {
 	}
 	if user.ID != 1 {
 		t.Errorf("expected user ID %d, got %d", 1, user.ID)
+	}
+	if user.Username != "testuser" {
+		t.Errorf("expected username 'testuser', got %s", user.Username)
 	}
 }
 
@@ -174,8 +176,8 @@ func TestVerifyPasswordAndGetUser_HashError(t *testing.T) {
 
 	_, err := userService.VerifyPasswordAndGetUser("testuser", "somepassword")
 
-	if err == nil || strings.Contains(err.Error(), "hash parsing failed") == false {
-		t.Fatalf("expected hash parsing error, got %v", err)
+	if err != ErrInvalidPassword {
+		t.Fatalf("expected password hashing error, got %v", err)
 	}
 }
 

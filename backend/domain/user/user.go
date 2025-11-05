@@ -93,6 +93,10 @@ func (s *Service) CreateUser(name, username string, role Role) (*User, string, e
 func (s *Service) VerifyPasswordAndGetUser(username, password string) (*User, error) {
 	passwordHash, err := s.DB.GetPasswordHash(username)
 	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			log.Printf("ERROR User %s not found during login", username)
+			return nil, ErrUserNotFound
+		}
 		log.Printf("ERROR Failed to retrieve password hash for user %s: %v", username, err)
 		return nil, ErrDatabase
 	}

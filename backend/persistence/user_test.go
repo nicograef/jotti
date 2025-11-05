@@ -98,54 +98,6 @@ func TestGetAllUsers(t *testing.T) {
 	}
 }
 
-func TestCreateUser(t *testing.T) {
-	db := database()
-	defer db.Close()
-
-	persistence := &UserPersistence{DB: db}
-	userID, err := persistence.CreateUser("Test User", "testuser", "onetimepasswordhash", user.AdminRole)
-
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if userID != 2 { // 2 because the first user is created in the schema migrations
-		t.Fatalf("Expected valid user ID, got %d", userID)
-	}
-
-}
-
-func TestUpdateUser(t *testing.T) {
-	db := database()
-	defer db.Close()
-
-	persistence := &UserPersistence{DB: db}
-	err := persistence.UpdateUser(1, "Updated Name", "updatedusername", user.ServiceRole, true)
-
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	updatedUser, err := persistence.GetUser(1)
-	if err != nil {
-		t.Fatalf("Expected no error retrieving user, got %v", err)
-	}
-	if updatedUser.Name != "Updated Name" || updatedUser.Username != "updatedusername" || updatedUser.Role != user.ServiceRole || !updatedUser.Locked {
-		t.Fatalf("User not updated correctly: %+v", updatedUser)
-	}
-}
-
-func TestUpdateUser_Error(t *testing.T) {
-	db := database()
-	defer db.Close()
-
-	persistence := &UserPersistence{DB: db}
-	err := persistence.UpdateUser(100000, "Updated Name", "updatedusername", user.ServiceRole, true)
-
-	if err != user.ErrUserNotFound {
-		t.Fatalf("Expected user not found error, got %v", err)
-	}
-}
-
 func TestSetPasswordHashAndGetPasswordHash(t *testing.T) {
 	db := database()
 	defer db.Close()
@@ -184,6 +136,54 @@ func TestSetPasswordHash_Error(t *testing.T) {
 
 	persistence := &UserPersistence{DB: db}
 	err := persistence.SetPasswordHash("nonexistentuser", "somehash")
+
+	if err != user.ErrUserNotFound {
+		t.Fatalf("Expected user not found error, got %v", err)
+	}
+}
+
+func TestCreateUser(t *testing.T) {
+	db := database()
+	defer db.Close()
+
+	persistence := &UserPersistence{DB: db}
+	userID, err := persistence.CreateUser("Test User", "testuser", "onetimepasswordhash", user.AdminRole)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if userID != 2 { // 2 because the first user is created in the schema migrations
+		t.Fatalf("Expected valid user ID, got %d", userID)
+	}
+
+}
+
+func TestUpdateUser(t *testing.T) {
+	db := database()
+	defer db.Close()
+
+	persistence := &UserPersistence{DB: db}
+	err := persistence.UpdateUser(2, "Updated Name", "updatedusername", user.ServiceRole, true) // needs to run after TestCreateUser
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	updatedUser, err := persistence.GetUser(2)
+	if err != nil {
+		t.Fatalf("Expected no error retrieving user, got %v", err)
+	}
+	if updatedUser.Name != "Updated Name" || updatedUser.Username != "updatedusername" || updatedUser.Role != user.ServiceRole || !updatedUser.Locked {
+		t.Fatalf("User not updated correctly: %+v", updatedUser)
+	}
+}
+
+func TestUpdateUser_Error(t *testing.T) {
+	db := database()
+	defer db.Close()
+
+	persistence := &UserPersistence{DB: db}
+	err := persistence.UpdateUser(100000, "Updated Name", "updatedusername", user.ServiceRole, true)
 
 	if err != user.ErrUserNotFound {
 		t.Fatalf("Expected user not found error, got %v", err)
