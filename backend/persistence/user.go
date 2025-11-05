@@ -26,7 +26,7 @@ func (p *UserPersistence) GetUser(id int) (*user.User, error) {
 	row := p.DB.QueryRow("SELECT id, name, username, role, locked, password_hash, onetime_password_hash FROM users WHERE id = $1", id)
 
 	var dbUser dbuser
-	if err := row.Scan(&dbUser); err != nil {
+	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked, &dbUser.PasswordHash, &dbUser.OnetimePasswordHash); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, user.ErrUserNotFound
 		}
