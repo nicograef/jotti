@@ -44,18 +44,12 @@ class Auth {
     return this.token?.role === "admin"
   }
 
-  public async login(username: string, password: string): Promise<void> {
-    const token = await this.backend.login(username, password)
-    this.validateAndSetToken(token)
-    localStorage.setItem("JOTTI_TOKEN", token)
-  }
-
   public logout(): void {
     localStorage.removeItem("JOTTI_TOKEN")
     this.token = null
   }
 
-  private validateAndSetToken(tokenBase64: string): void {
+  public validateAndSetToken(tokenBase64: string): void {
     try {
       const token = jwtDecode<JottiToken>(tokenBase64)
 
@@ -70,6 +64,7 @@ class Auth {
       }
 
       this.token = parsedToken
+      localStorage.setItem("JOTTI_TOKEN", tokenBase64)
     } catch (error) {
       localStorage.removeItem("JOTTI_TOKEN")
       this.token = null

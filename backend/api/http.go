@@ -24,7 +24,11 @@ func sendResponse(w http.ResponseWriter, data any) {
 }
 
 func sendInternalServerError(w http.ResponseWriter) {
-	http.Error(w, "Internal server error", http.StatusInternalServerError)
+	response := errorResponse{
+		Message: "Internal server error",
+		Code:    "internal_server_error",
+	}
+	sendJSONResponse(w, response, http.StatusInternalServerError)
 }
 
 func sendBadRequestError(w http.ResponseWriter, response errorResponse) {
