@@ -13,7 +13,13 @@ type createUserRequest struct {
 	Role     usr.Role `json:"role"`
 }
 
-type createUserResponse = usr.User
+type createUserResponse struct {
+	ID              int      `json:"id"`
+	Name            string   `json:"name"`
+	Username        string   `json:"username"`
+	Role            usr.Role `json:"role"`
+	OnetimePassword string   `json:"onetimePassword"`
+}
 
 // CreateUserHandler handles requests to create a new user.
 func CreateUserHandler(us *usr.Service) http.HandlerFunc {
@@ -27,17 +33,18 @@ func CreateUserHandler(us *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		user, err := us.CreateUserWithoutPassword(body.Name, body.Username, body.Role)
+		user, onetimePassword, err := us.CreateUser(body.Name, body.Username, body.Role)
 		if err != nil {
 			sendInternalServerError(w)
 			return
 		}
 
 		sendJSONResponse(w, createUserResponse{
-			ID:       user.ID,
-			Name:     user.Name,
-			Username: user.Username,
-			Role:     user.Role,
+			ID:              user.ID,
+			Name:            user.Name,
+			Username:        user.Username,
+			Role:            user.Role,
+			OnetimePassword: onetimePassword,
 		})
 	}
 }
@@ -100,5 +107,43 @@ func GetUsersHandler(us *usr.Service) http.HandlerFunc {
 		}
 
 		sendJSONResponse(w, users)
+	}
+}
+
+type resetPasswordRequest struct {
+	Username string `json:"username"`
+}
+
+type resetPasswordResponse struct {
+	OnetimePassword string `json:"onetimePassword"`
+}
+
+// ResetPasswordHandler handles requests to reset a user's password.
+func ResetPasswordHandler(us *usr.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !validateMethod(w, r, http.MethodPost) {
+			return
+		}
+
+		body := resetPasswordRequest{}
+		if !readJSONRequest(w, r, &body) {
+			return
+		}
+
+		onetimePassword, err := us.ResetPassword(body.Username)
+		if err != nil && errors.Is(err, usr.ErrUserNotFound) {
+			sendNotFoundError(w, errorResponse{
+				Message: "User not found",
+				Code:    "user_not_found",
+			})
+			return
+		} else if err != nil {
+			sendInternalServerError(w)
+			return
+		}
+
+		sendJSONResponse(w, resetPasswordResponse{
+			OnetimePassword: onetimePassword,
+		})
 	}
 }

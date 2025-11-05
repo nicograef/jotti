@@ -98,12 +98,12 @@ func TestGetAllUsers(t *testing.T) {
 	}
 }
 
-func TestCreateUserWithoutPassword(t *testing.T) {
+func TestCreateUser(t *testing.T) {
 	db := database()
 	defer db.Close()
 
 	persistence := &UserPersistence{DB: db}
-	userID, err := persistence.CreateUserWithoutPassword("Test User", "testuser", user.AdminRole)
+	userID, err := persistence.CreateUser("Test User", "testuser", "onetimepasswordhash", user.AdminRole)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)

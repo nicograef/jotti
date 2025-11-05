@@ -129,3 +129,20 @@ func verifyPassword(correctPasswordHash, userProvidedPassword string) error {
 
 	return nil
 }
+
+func generateOnetimePassword() (string, error) {
+	const passwordLength = 6
+	const charset = "0123456789"
+
+	bytePassword := make([]byte, passwordLength)
+	_, err := rand.Read(bytePassword)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate random bytes for onetime password: %w", err)
+	}
+
+	for i := 0; i < passwordLength; i++ {
+		bytePassword[i] = charset[int(bytePassword[i])%len(charset)]
+	}
+
+	return string(bytePassword), nil
+}

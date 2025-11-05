@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     name TEXT NOT NULL,
     username CITEXT UNIQUE NOT NULL,
     password_hash TEXT NULL,
+    onetime_password_hash TEXT NULL,
     role UserRole NOT NULL,
     locked BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -16,8 +17,10 @@ CREATE TABLE IF NOT EXISTS users (
 
 COMMENT ON TABLE users IS 'System users who perform actions in jotti';
 COMMENT ON COLUMN users.id IS 'Surrogate identity primary key';
+COMMENT ON COLUMN users.name IS 'Full name of the user';
 COMMENT ON COLUMN users.username IS 'Unique, case-insensitive username';
 COMMENT ON COLUMN users.password_hash IS 'Argon2id password hash; NULL if user has not set a password (on first login)';
+COMMENT ON COLUMN users.onetime_password_hash IS 'Argon2id password hash for a one-time password. That can be used to setup a new user or reset their password as an admin. NULL if not set';
 COMMENT ON COLUMN users.created_at IS 'Creation timestamp (UTC)';
 COMMENT ON COLUMN users.locked IS 'Indicates whether the user account is locked';
 COMMENT ON COLUMN users.role IS 'Role of the user, determining access rights';

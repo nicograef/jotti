@@ -4,16 +4,19 @@ package user
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 )
 
 type MockUserPersistence struct {
-	ShouldFail bool
-	MockUser   *User
+	ShouldFail          bool
+	MockUser            *User
+	PasswordHash        string
+	OnetimePasswordHash string
 }
 
-func (m *MockUserPersistence) CreateUserWithoutPassword(name, username string, role Role) (int, error) {
+func (m *MockUserPersistence) CreateUser(name, username, onetimePasswordHash string, role Role) (int, error) {
 	if m.ShouldFail {
 		return 0, ErrDatabase
 	}
@@ -66,7 +69,7 @@ func (m *MockUserPersistence) SetPasswordHash(username, passwordHash string) err
 	if m.ShouldFail {
 		return fmt.Errorf("failed to set password hash")
 	}
-	m.MockUser.PasswordHash = passwordHash
+	m.PasswordHash = passwordHash
 	return nil
 }
 
@@ -74,13 +77,28 @@ func (m *MockUserPersistence) GetPasswordHash(username string) (string, error) {
 	if m.ShouldFail {
 		return "", ErrUserNotFound
 	}
-	return m.MockUser.PasswordHash, nil
+	return m.PasswordHash, nil
 }
 
-func TestCreateUserWithoutPassword(t *testing.T) {
+func (m *MockUserPersistence) SetOnetimePasswordHash(username, passwordHash string) error {
+	if m.ShouldFail {
+		return fmt.Errorf("failed to set one-time password hash")
+	}
+	m.OnetimePasswordHash = passwordHash
+	return nil
+}
+
+func (m *MockUserPersistence) GetOnetimePasswordHash(username string) (string, error) {
+	if m.ShouldFail {
+		return "", ErrUserNotFound
+	}
+	return m.OnetimePasswordHash, nil
+}
+
+func TestCreateUser(t *testing.T) {
 	userService := Service{DB: &MockUserPersistence{MockUser: &User{ID: 1}}}
 
-	user, err := userService.CreateUserWithoutPassword("Test User", "testuser", ServiceRole)
+	user, onetimePassword, err := userService.CreateUser("Test User", "testuser", ServiceRole)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -97,15 +115,18 @@ func TestCreateUserWithoutPassword(t *testing.T) {
 	if user.Name != "Test User" {
 		t.Errorf("expected name 'Test User', got %s", user.Name)
 	}
-	if user.PasswordHash != "" {
-		t.Errorf("expected empty PasswordHash, got %s", user.PasswordHash)
+	if len(onetimePassword) != 6 {
+		t.Fatalf("Expected password length 6, got %d", len(onetimePassword))
+	}
+	if _, err := strconv.Atoi(onetimePassword); err != nil {
+		t.Fatalf("Expected numeric password, got %s", onetimePassword)
 	}
 }
 
-func TestCreateUserWithoutPassword_Error(t *testing.T) {
+func TestCreateUser_Error(t *testing.T) {
 	userService := Service{DB: &MockUserPersistence{ShouldFail: true}}
 
-	_, err := userService.CreateUserWithoutPassword("Test User", "testuser", ServiceRole)
+	_, _, err := userService.CreateUser("Test User", "testuser", ServiceRole)
 
 	if err == nil {
 		t.Fatalf("expected error, got nil")
@@ -115,64 +136,46 @@ func TestCreateUserWithoutPassword_Error(t *testing.T) {
 	}
 }
 
-func TestLoginUserViaPassword_NotFound(t *testing.T) {
+func TestVerifyPasswordAndGetUser_NotFound(t *testing.T) {
 	userService := Service{DB: &MockUserPersistence{ShouldFail: true}}
 
-	_, err := userService.LoginUserViaPassword("nonexistent", "password")
+	_, err := userService.VerifyPasswordAndGetUser("nonexistent", "password")
 
 	if err != ErrUserNotFound {
 		t.Fatalf("expected user not found error, got %v", err)
 	}
 }
 
-func TestLoginUserViaPassword_Success(t *testing.T) {
-	mockUser := &User{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}
-	userService := Service{DB: &MockUserPersistence{MockUser: mockUser}}
+func TestVerifyPasswordAndGetUser_Success(t *testing.T) {
+	userService := Service{DB: &MockUserPersistence{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}
 
-	user, err := userService.LoginUserViaPassword("testuser", "testpassword")
+	user, err := userService.VerifyPasswordAndGetUser("testuser", "testpassword")
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if user.ID != mockUser.ID {
-		t.Errorf("expected user ID %d, got %d", mockUser.ID, user.ID)
+	if user.ID != 1 {
+		t.Errorf("expected user ID %d, got %d", 1, user.ID)
 	}
 }
 
-func TestLoginUserViaPassword_InvalidPassword(t *testing.T) {
-	mockUser := &User{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}
-	userService := Service{DB: &MockUserPersistence{MockUser: mockUser}}
+func TestVerifyPasswordAndGetUser_InvalidPassword(t *testing.T) {
+	userService := Service{DB: &MockUserPersistence{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}
 
-	_, err := userService.LoginUserViaPassword("testuser", "wrongpassword")
+	_, err := userService.VerifyPasswordAndGetUser("testuser", "wrongpassword")
 
 	if err != ErrInvalidPassword {
 		t.Fatalf("expected invalid password error, got %v", err)
 	}
 }
 
-func TestLoginUserViaPassword_HashError(t *testing.T) {
-	mockUser := &User{PasswordHash: "invalidhashformat"}
-	userService := Service{DB: &MockUserPersistence{MockUser: mockUser}}
+func TestVerifyPasswordAndGetUser_HashError(t *testing.T) {
+	userService := Service{DB: &MockUserPersistence{PasswordHash: "invalidhashformat"}}
 
-	_, err := userService.LoginUserViaPassword("testuser", "somepassword")
+	_, err := userService.VerifyPasswordAndGetUser("testuser", "somepassword")
 
 	if err == nil || strings.Contains(err.Error(), "hash parsing failed") == false {
 		t.Fatalf("expected hash parsing error, got %v", err)
-	}
-}
-
-func TestLoginUserViaPassword_SetNewPassword(t *testing.T) {
-	mockUser := &User{ID: 1, PasswordHash: ""}
-	mockPersistence := &MockUserPersistence{MockUser: mockUser}
-	userService := Service{DB: mockPersistence}
-
-	user, err := userService.LoginUserViaPassword("testuser", "testpassword")
-
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if user.PasswordHash == "" {
-		t.Errorf("expected non-empty PasswordHash after setting password")
 	}
 }
 
