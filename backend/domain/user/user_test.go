@@ -9,52 +9,51 @@ import (
 )
 
 type MockUserPersistence struct {
-	ShouldFail          bool
-	MockUser            *User
-	PasswordHash        string
-	OnetimePasswordHash string
+	ShouldFail bool
+	User       *User
 }
 
 func (m *MockUserPersistence) CreateUser(name, username, onetimePasswordHash string, role Role) (int, error) {
 	if m.ShouldFail {
 		return 0, ErrDatabase
 	}
-	m.MockUser = &User{
-		ID:       1,
-		Name:     name,
-		Username: username,
-		Role:     role,
-		Locked:   false,
+	m.User = &User{
+		ID:                  1,
+		Name:                name,
+		Username:            username,
+		Role:                role,
+		Locked:              false,
+		OnetimePasswordHash: onetimePasswordHash,
 	}
-	return m.MockUser.ID, nil
+	return m.User.ID, nil
 }
 
-func (m *MockUserPersistence) GetUserByUsername(username string) (*User, error) {
+func (m *MockUserPersistence) GetUserID(username string) (int, error) {
 	if m.ShouldFail {
-		return nil, ErrUserNotFound
+		return 0, ErrUserNotFound
 	}
-	return m.MockUser, nil
+	return m.User.ID, nil
 }
 
 func (m *MockUserPersistence) GetUser(id int) (*User, error) {
 	if m.ShouldFail {
 		return nil, ErrUserNotFound
 	}
-	return m.MockUser, nil
+	return m.User, nil
 }
 
 func (m *MockUserPersistence) GetAllUsers() ([]*User, error) {
 	if m.ShouldFail {
 		return nil, ErrDatabase
 	}
-	return []*User{m.MockUser}, nil
+	return []*User{m.User}, nil
 }
 
 func (m *MockUserPersistence) UpdateUser(id int, name, username string, role Role, locked bool) error {
 	if m.ShouldFail {
 		return ErrDatabase
 	}
-	m.MockUser = &User{
+	m.User = &User{
 		ID:       id,
 		Name:     name,
 		Username: username,
@@ -64,38 +63,26 @@ func (m *MockUserPersistence) UpdateUser(id int, name, username string, role Rol
 	return nil
 }
 
-func (m *MockUserPersistence) SetPasswordHash(username, passwordHash string) error {
+func (m *MockUserPersistence) SetPasswordHash(id int, passwordHash string) error {
 	if m.ShouldFail {
 		return fmt.Errorf("failed to set password hash")
 	}
-	m.PasswordHash = passwordHash
+	m.User.PasswordHash = passwordHash
+	m.User.OnetimePasswordHash = ""
 	return nil
 }
 
-func (m *MockUserPersistence) GetPasswordHash(username string) (string, error) {
-	if m.ShouldFail {
-		return "", ErrUserNotFound
-	}
-	return m.PasswordHash, nil
-}
-
-func (m *MockUserPersistence) SetOnetimePasswordHash(username, passwordHash string) error {
+func (m *MockUserPersistence) SetOnetimePasswordHash(id int, onetimePasswordHash string) error {
 	if m.ShouldFail {
 		return fmt.Errorf("failed to set one-time password hash")
 	}
-	m.OnetimePasswordHash = passwordHash
+	m.User.OnetimePasswordHash = onetimePasswordHash
+	m.User.PasswordHash = ""
 	return nil
 }
 
-func (m *MockUserPersistence) GetOnetimePasswordHash(username string) (string, error) {
-	if m.ShouldFail {
-		return "", ErrUserNotFound
-	}
-	return m.OnetimePasswordHash, nil
-}
-
 func TestCreateUser(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{MockUser: &User{ID: 1}}}
+	userService := Service{DB: &MockUserPersistence{User: &User{ID: 1}}}
 
 	user, onetimePassword, err := userService.CreateUser("Test User", "testuser", ServiceRole)
 
@@ -146,7 +133,7 @@ func TestVerifyPasswordAndGetUser_NotFound(t *testing.T) {
 }
 
 func TestVerifyPasswordAndGetUser_Success(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{MockUser: &User{ID: 1, Username: "testuser"}, PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}
+	userService := Service{DB: &MockUserPersistence{User: &User{ID: 1, Username: "testuser", PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}}
 
 	user, err := userService.VerifyPasswordAndGetUser("testuser", "testpassword")
 
@@ -162,7 +149,7 @@ func TestVerifyPasswordAndGetUser_Success(t *testing.T) {
 }
 
 func TestVerifyPasswordAndGetUser_InvalidPassword(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}
+	userService := Service{DB: &MockUserPersistence{User: &User{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}}
 
 	_, err := userService.VerifyPasswordAndGetUser("testuser", "wrongpassword")
 
@@ -172,7 +159,7 @@ func TestVerifyPasswordAndGetUser_InvalidPassword(t *testing.T) {
 }
 
 func TestVerifyPasswordAndGetUser_HashError(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{PasswordHash: "invalidhashformat"}}
+	userService := Service{DB: &MockUserPersistence{User: &User{PasswordHash: "invalidhashformat"}}}
 
 	_, err := userService.VerifyPasswordAndGetUser("testuser", "somepassword")
 
@@ -183,7 +170,7 @@ func TestVerifyPasswordAndGetUser_HashError(t *testing.T) {
 
 func TestGetAllUsers_Success(t *testing.T) {
 	mockUser := &User{ID: 1, Name: "Test User", Username: "testuser", Role: ServiceRole}
-	userService := Service{DB: &MockUserPersistence{MockUser: mockUser}}
+	userService := Service{DB: &MockUserPersistence{User: mockUser}}
 
 	users, err := userService.GetAllUsers()
 

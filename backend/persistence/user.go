@@ -11,50 +11,79 @@ type UserPersistence struct {
 	DB *sql.DB
 }
 
+type dbuser struct {
+	ID                  int            `db:"id"`
+	Name                string         `db:"name"`
+	Username            string         `db:"username"`
+	Role                user.Role      `db:"role"`
+	Locked              bool           `db:"locked"`
+	PasswordHash        sql.NullString `db:"password_hash"`
+	OnetimePasswordHash sql.NullString `db:"onetime_password_hash"`
+}
+
 // GetUser retrieves a user from the database by their ID.
 func (p *UserPersistence) GetUser(id int) (*user.User, error) {
-	row := p.DB.QueryRow("SELECT id, name, username, role, locked FROM users WHERE id = $1", id)
+	row := p.DB.QueryRow("SELECT id, name, username, role, locked, password_hash, onetime_password_hash FROM users WHERE id = $1", id)
 
-	var dbUser user.User
-	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked); err != nil {
+	var dbUser dbuser
+	if err := row.Scan(&dbUser); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, user.ErrUserNotFound
 		}
 		return nil, err
 	}
 
-	return &dbUser, nil
+	return &user.User{
+		ID:                  dbUser.ID,
+		Name:                dbUser.Name,
+		Username:            dbUser.Username,
+		Role:                dbUser.Role,
+		Locked:              dbUser.Locked,
+		PasswordHash:        dbUser.PasswordHash.String,
+		OnetimePasswordHash: dbUser.OnetimePasswordHash.String,
+	}, nil
 }
 
-// GetUserByUsername retrieves a user from the database by their username.
-func (p *UserPersistence) GetUserByUsername(username string) (*user.User, error) {
-	row := p.DB.QueryRow("SELECT id, name, username, role, locked FROM users WHERE username = $1", username)
+// GetUserID retrieves a user id from the database by their username.
+func (p *UserPersistence) GetUserID(username string) (int, error) {
+	row := p.DB.QueryRow("SELECT id FROM users WHERE username = $1", username)
 
-	var dbUser user.User
-	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked); err != nil {
+	var userID int
+	if err := row.Scan(&userID); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, user.ErrUserNotFound
+			return 0, user.ErrUserNotFound
 		}
-		return nil, err
+		return 0, err
 	}
 
-	return &dbUser, nil
+	return userID, nil
 }
 
+// GetAllUsers retrieves all users from the database.
 func (p *UserPersistence) GetAllUsers() ([]*user.User, error) {
 	rows, err := p.DB.Query("SELECT id, name, username, role, locked FROM users")
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}()
 
 	var users []*user.User
 	for rows.Next() {
-		var dbUser user.User
+		var dbUser dbuser
 		if err := rows.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked); err != nil {
 			return nil, err
 		}
-		users = append(users, &dbUser)
+		users = append(users, &user.User{
+			ID:       dbUser.ID,
+			Name:     dbUser.Name,
+			Username: dbUser.Username,
+			Role:     dbUser.Role,
+			Locked:   dbUser.Locked,
+		})
 	}
 
 	if err := rows.Err(); err != nil {
@@ -72,14 +101,17 @@ func (p *UserPersistence) CreateUser(name, username, onetimePasswordHash string,
 	if err != nil {
 		return 0, err
 	}
+
 	return userID, nil
 }
 
+// UpdateUser updates the user's information in the database.
 func (p *UserPersistence) UpdateUser(id int, name, username string, role user.Role, locked bool) error {
 	result, err := p.DB.Exec("UPDATE users SET name = $1, username = $2, role = $3, locked = $4 WHERE id = $5", name, username, role, locked, id)
 	if err != nil {
 		return err
 	}
+
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
 		return user.ErrUserNotFound
 	}
@@ -87,47 +119,9 @@ func (p *UserPersistence) UpdateUser(id int, name, username string, role user.Ro
 	return nil
 }
 
-// GetPasswordHash retrieves the password hash for the user with the given username.
-func (p *UserPersistence) GetPasswordHash(username string) (string, error) {
-	row := p.DB.QueryRow("SELECT password_hash FROM users WHERE username = $1", username)
-
-	var passwordHash sql.NullString
-	if err := row.Scan(&passwordHash); err != nil {
-		if err == sql.ErrNoRows {
-			return "", user.ErrUserNotFound
-		}
-		return "", err
-	}
-
-	if !passwordHash.Valid {
-		return "", nil
-	}
-
-	return passwordHash.String, nil
-}
-
-// GetOnetimePasswordHash retrieves the one-time password hash for the user with the given username.
-func (p *UserPersistence) GetOnetimePasswordHash(username string) (string, error) {
-	row := p.DB.QueryRow("SELECT onetime_password_hash FROM users WHERE username = $1", username)
-
-	var passwordHash sql.NullString
-	if err := row.Scan(&passwordHash); err != nil {
-		if err == sql.ErrNoRows {
-			return "", user.ErrUserNotFound
-		}
-		return "", err
-	}
-
-	if !passwordHash.Valid {
-		return "", nil
-	}
-
-	return passwordHash.String, nil
-}
-
-// SetPasswordHash updates the password hash for the user with the given username.
-func (p *UserPersistence) SetPasswordHash(username, passwordHash string) error {
-	result, err := p.DB.Exec("UPDATE users SET password_hash = $1, onetime_password_hash = NULL WHERE username = $2", passwordHash, username)
+// SetPasswordHash updates the password hash for the user with the given user ID.
+func (p *UserPersistence) SetPasswordHash(id int, passwordHash string) error {
+	result, err := p.DB.Exec("UPDATE users SET password_hash = $1, onetime_password_hash = NULL WHERE id = $2", passwordHash, id)
 	if err != nil {
 		return err
 	}
@@ -139,9 +133,9 @@ func (p *UserPersistence) SetPasswordHash(username, passwordHash string) error {
 	return nil
 }
 
-// SetOnetimePasswordHash updates the one-time password hash for the user with the given username.
-func (p *UserPersistence) SetOnetimePasswordHash(username, onetimePasswordHash string) error {
-	result, err := p.DB.Exec("UPDATE users SET onetime_password_hash = $1, password_hash = NULL WHERE username = $2", onetimePasswordHash, username)
+// SetOnetimePasswordHash updates the one-time password hash for the user with the given user ID.
+func (p *UserPersistence) SetOnetimePasswordHash(id int, onetimePasswordHash string) error {
+	result, err := p.DB.Exec("UPDATE users SET onetime_password_hash = $1, password_hash = NULL WHERE id = $2", onetimePasswordHash, id)
 	if err != nil {
 		return err
 	}

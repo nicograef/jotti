@@ -11,10 +11,16 @@ type errorResponse struct {
 	Code    string `json:"code"`
 }
 
-func sendJSONResponse(w http.ResponseWriter, data any) {
+func sendJSONResponse(w http.ResponseWriter, data any, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(data)
+	w.WriteHeader(statusCode)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("ERROR Failed to encode JSON response: %v", err)
+	}
+}
+
+func sendResponse(w http.ResponseWriter, data any) {
+	sendJSONResponse(w, data, http.StatusOK)
 }
 
 func sendInternalServerError(w http.ResponseWriter) {
@@ -22,33 +28,23 @@ func sendInternalServerError(w http.ResponseWriter) {
 }
 
 func sendBadRequestError(w http.ResponseWriter, response errorResponse) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
-	json.NewEncoder(w).Encode(response)
+	sendJSONResponse(w, response, http.StatusBadRequest)
 }
 
 func sendNotFoundError(w http.ResponseWriter, response errorResponse) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(response)
+	sendJSONResponse(w, response, http.StatusNotFound)
 }
 
 func sendUnauthorizedError(w http.ResponseWriter, response errorResponse) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusUnauthorized)
-	json.NewEncoder(w).Encode(response)
+	sendJSONResponse(w, response, http.StatusUnauthorized)
 }
 
 func sendForbiddenError(w http.ResponseWriter, response errorResponse) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusForbidden)
-	json.NewEncoder(w).Encode(response)
+	sendJSONResponse(w, response, http.StatusForbidden)
 }
 
 func sendMethodNotAllowedError(w http.ResponseWriter, response errorResponse) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusMethodNotAllowed)
-	json.NewEncoder(w).Encode(response)
+	sendJSONResponse(w, response, http.StatusMethodNotAllowed)
 }
 
 // readJSONRequest reads JSON from the request body into the provided destination.

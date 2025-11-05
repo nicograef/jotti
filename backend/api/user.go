@@ -39,7 +39,7 @@ func CreateUserHandler(us *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		sendJSONResponse(w, createUserResponse{
+		sendResponse(w, createUserResponse{
 			ID:              user.ID,
 			Name:            user.Name,
 			Username:        user.Username,
@@ -59,7 +59,7 @@ type updateUserRequest struct {
 
 type updateUserResponse = usr.User
 
-// CreateUserHandler handles requests to create a new user.
+// UpdateUserHandler handles requests to update an existing user.
 func UpdateUserHandler(us *usr.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !validateMethod(w, r, http.MethodPost) {
@@ -83,7 +83,7 @@ func UpdateUserHandler(us *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		sendJSONResponse(w, updateUserResponse{
+		sendResponse(w, updateUserResponse{
 			ID:       user.ID,
 			Name:     user.Name,
 			Username: user.Username,
@@ -106,12 +106,12 @@ func GetUsersHandler(us *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		sendJSONResponse(w, users)
+		sendResponse(w, users)
 	}
 }
 
 type resetPasswordRequest struct {
-	Username string `json:"username"`
+	UserID int `json:"userID"`
 }
 
 type resetPasswordResponse struct {
@@ -130,7 +130,7 @@ func ResetPasswordHandler(us *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		onetimePassword, err := us.ResetPassword(body.Username)
+		onetimePassword, err := us.ResetPassword(body.UserID)
 		if err != nil && errors.Is(err, usr.ErrUserNotFound) {
 			sendNotFoundError(w, errorResponse{
 				Message: "User not found",
@@ -142,7 +142,7 @@ func ResetPasswordHandler(us *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		sendJSONResponse(w, resetPasswordResponse{
+		sendResponse(w, resetPasswordResponse{
 			OnetimePassword: onetimePassword,
 		})
 	}

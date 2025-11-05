@@ -56,27 +56,27 @@ func TestGetUser_Error(t *testing.T) {
 	}
 }
 
-func TestGetUserByUsername(t *testing.T) {
+func TestGetUserID(t *testing.T) {
 	db := database()
 	defer db.Close()
 
 	persistence := &UserPersistence{DB: db}
-	user, err := persistence.GetUserByUsername("nico")
+	user, err := persistence.GetUserID("nico")
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if user.Username != "nico" {
-		t.Fatalf("Expected username 'admin', got %s", user.Username)
+	if user != 1 {
+		t.Fatalf("Expected user ID 1, got %d", user)
 	}
 }
 
-func TestGetUserByUsername_Error(t *testing.T) {
+func TestGetUserID_Error(t *testing.T) {
 	db := database()
 	defer db.Close()
 
 	persistence := &UserPersistence{DB: db}
-	_, err := persistence.GetUserByUsername("nonexistentuser")
+	_, err := persistence.GetUserID("nonexistentuser")
 
 	if err != user.ErrUserNotFound {
 		t.Fatalf("Expected user not found error, got %v", err)
@@ -98,35 +98,23 @@ func TestGetAllUsers(t *testing.T) {
 	}
 }
 
-func TestSetPasswordHashAndGetPasswordHash(t *testing.T) {
+func TestSetPasswordHash(t *testing.T) {
 	db := database()
 	defer db.Close()
 
 	persistence := &UserPersistence{DB: db}
-	err := persistence.SetPasswordHash("nico", "hashedpassword123")
+	err := persistence.SetPasswordHash(1, "hashedpassword123")
 
 	if err != nil {
 		t.Fatalf("Expected no error setting password hash, got %v", err)
 	}
 
-	passwordHash, err := persistence.GetPasswordHash("nico")
+	user, err := persistence.GetUser(1)
 	if err != nil {
-		t.Fatalf("Expected no error getting password hash, got %v", err)
+		t.Fatalf("Expected no error getting user, got %v", err)
 	}
-	if passwordHash != "hashedpassword123" {
-		t.Fatalf("Expected password hash 'hashedpassword123', got %s", passwordHash)
-	}
-}
-
-func TestGetPasswordHash_Error(t *testing.T) {
-	db := database()
-	defer db.Close()
-
-	persistence := &UserPersistence{DB: db}
-	_, err := persistence.GetPasswordHash("nonexistentuser")
-
-	if err != user.ErrUserNotFound {
-		t.Fatalf("Expected user not found error, got %v", err)
+	if user.PasswordHash != "hashedpassword123" {
+		t.Fatalf("Expected password hash 'hashedpassword123', got %s", user.PasswordHash)
 	}
 }
 
@@ -135,7 +123,7 @@ func TestSetPasswordHash_Error(t *testing.T) {
 	defer db.Close()
 
 	persistence := &UserPersistence{DB: db}
-	err := persistence.SetPasswordHash("nonexistentuser", "somehash")
+	err := persistence.SetPasswordHash(100000, "somehash")
 
 	if err != user.ErrUserNotFound {
 		t.Fatalf("Expected user not found error, got %v", err)

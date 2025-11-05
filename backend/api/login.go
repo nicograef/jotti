@@ -48,7 +48,7 @@ func LoginHandler(us *usr.Service, as *auth.Service) http.HandlerFunc {
 			return
 		}
 
-		sendJSONResponse(w, loginResponse{
+		sendResponse(w, loginResponse{
 			Token: stringToken,
 		})
 	}
@@ -64,7 +64,7 @@ type setPasswordResponse struct {
 	Token string `json:"token"`
 }
 
-// SetPasswordHandler
+// SetPasswordHandler handles setting a new password for a user using a one-time password and returns a jwt token if successful.
 func SetPasswordHandler(us *usr.Service, as *auth.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !validateMethod(w, r, http.MethodPost) {
@@ -100,7 +100,7 @@ func SetPasswordHandler(us *usr.Service, as *auth.Service) http.HandlerFunc {
 			return
 		}
 
-		sendJSONResponse(w, setPasswordResponse{
+		sendResponse(w, setPasswordResponse{
 			Token: stringToken,
 		})
 	}

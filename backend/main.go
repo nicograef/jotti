@@ -26,7 +26,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			fmt.Printf("Failed to close database connection: %v\n", err)
+		}
+	}()
 
 	err = db.Ping()
 	if err != nil {

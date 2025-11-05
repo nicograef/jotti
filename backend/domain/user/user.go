@@ -17,11 +17,13 @@ const (
 
 // User represents a user in the system.
 type User struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Username string `json:"username"`
-	Role     Role   `json:"role"`
-	Locked   bool   `json:"locked"`
+	ID                  int
+	Name                string
+	Username            string
+	Role                Role
+	Locked              bool
+	PasswordHash        string
+	OnetimePasswordHash string
 }
 
 // ErrUserNotFound is returned when a user is not found.
@@ -43,15 +45,13 @@ var ErrPasswordHashing = errors.New("password hashing error")
 var ErrDatabase = errors.New("database error")
 
 type persistence interface {
-	GetUserByUsername(username string) (*User, error)
+	GetUserID(username string) (int, error)
 	GetUser(id int) (*User, error)
 	GetAllUsers() ([]*User, error)
 	CreateUser(name, username, onetimePasswordHash string, role Role) (int, error)
 	UpdateUser(id int, name, username string, role Role, locked bool) error
-	SetPasswordHash(username, passwordHash string) error
-	GetPasswordHash(username string) (string, error)
-	GetOnetimePasswordHash(username string) (string, error)
-	SetOnetimePasswordHash(username, onetimePasswordHash string) error
+	SetPasswordHash(id int, passwordHash string) error
+	SetOnetimePasswordHash(id int, onetimePasswordHash string) error
 }
 
 // Service provides user-related operations.
@@ -91,7 +91,17 @@ func (s *Service) CreateUser(name, username string, role Role) (*User, string, e
 // VerifyPasswordAndGetUser logs in a user by validating the provided password against the stored password hash.
 // If the user has no password set, it sets the provided password as the new password.
 func (s *Service) VerifyPasswordAndGetUser(username, password string) (*User, error) {
-	passwordHash, err := s.DB.GetPasswordHash(username)
+	userID, err := s.DB.GetUserID(username)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			log.Printf("ERROR User %s not found during login", username)
+			return nil, ErrUserNotFound
+		}
+		log.Printf("ERROR Failed to retrieve user %s: %v", username, err)
+		return nil, ErrDatabase
+	}
+
+	user, err := s.DB.GetUser(userID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			log.Printf("ERROR User %s not found during login", username)
@@ -100,20 +110,14 @@ func (s *Service) VerifyPasswordAndGetUser(username, password string) (*User, er
 		log.Printf("ERROR Failed to retrieve password hash for user %s: %v", username, err)
 		return nil, ErrDatabase
 	}
-	if passwordHash == "" {
+	if user.PasswordHash == "" {
 		log.Printf("ERROR No password set for user %s", username)
 		return nil, ErrNoPassword
 	}
 
-	if err := verifyPassword(passwordHash, password); err != nil {
+	if err := verifyPassword(user.PasswordHash, password); err != nil {
 		log.Printf("ERROR Password validation failed for user %s: %v", username, err)
 		return nil, ErrInvalidPassword
-	}
-
-	user, err := s.DB.GetUserByUsername(username)
-	if err != nil {
-		log.Printf("ERROR Failed to retrieve user %s after password validation: %v", username, err)
-		return nil, ErrDatabase
 	}
 
 	return user, nil
@@ -122,16 +126,26 @@ func (s *Service) VerifyPasswordAndGetUser(username, password string) (*User, er
 // SetNewPassword logs in a user by validating the provided one-time password against the stored password hash.
 // If the user has no password set, it sets the provided password as the new password.
 func (s *Service) SetNewPassword(username, newPassword, onetimePassword string) (*User, error) {
-	onetimePasswordHash, err := s.DB.GetOnetimePasswordHash(username)
+	userID, err := s.DB.GetUserID(username)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			log.Printf("ERROR User %s not found during password validation", username)
+			return nil, ErrUserNotFound
+		}
+		log.Printf("ERROR Failed to retrieve user %s: %v", username, err)
+		return nil, ErrDatabase
+	}
+
+	user, err := s.DB.GetUser(userID)
 	if err != nil {
 		log.Printf("ERROR Failed to retrieve one-time password hash for user %s: %v", username, err)
 		return nil, ErrDatabase
 	}
-	if onetimePasswordHash == "" {
+	if user.OnetimePasswordHash == "" {
 		log.Printf("ERROR No one-time password set for user %s", username)
 		return nil, ErrNoOnetimePassword
 	}
-	if err := verifyPassword(onetimePasswordHash, onetimePassword); err != nil {
+	if err := verifyPassword(user.OnetimePasswordHash, onetimePassword); err != nil {
 		log.Printf("ERROR One-time password validation failed for user %s: %v", username, err)
 		return nil, ErrInvalidPassword
 	}
@@ -142,24 +156,18 @@ func (s *Service) SetNewPassword(username, newPassword, onetimePassword string) 
 		return nil, ErrPasswordHashing
 	}
 
-	if err := s.DB.SetPasswordHash(username, hashedPassword); err != nil {
+	if err := s.DB.SetPasswordHash(user.ID, hashedPassword); err != nil {
 		log.Printf("ERROR Failed to set password hash in DB for user %s: %v", username, err)
 		return nil, ErrDatabase
 	}
 
 	log.Printf("INFO Password set successfully for user %s", username)
 
-	user, err := s.DB.GetUserByUsername(username)
-	if err != nil {
-		log.Printf("ERROR Failed to retrieve user %s: %v", username, err)
-		return nil, ErrDatabase
-	}
-
 	return user, nil
 }
 
-// ResetPassword resets the password for the user with the given username and returns a new one-time password.
-func (s *Service) ResetPassword(username string) (string, error) {
+// ResetPassword resets the password for the user with the given user ID and returns a new one-time password.
+func (s *Service) ResetPassword(userID int) (string, error) {
 	onetimePassword, err := generateOnetimePassword()
 	if err != nil {
 		log.Printf("ERROR Failed to create one-time password: %v", err)
@@ -172,12 +180,12 @@ func (s *Service) ResetPassword(username string) (string, error) {
 		return "", ErrPasswordHashing
 	}
 
-	err = s.DB.SetOnetimePasswordHash(username, onetimePasswordHash)
+	err = s.DB.SetOnetimePasswordHash(userID, onetimePasswordHash)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
-		log.Printf("ERROR User %s not found for password reset", username)
+		log.Printf("ERROR User %d not found for password reset", userID)
 		return "", ErrUserNotFound
 	} else if err != nil {
-		log.Printf("ERROR Failed to set one-time password hash in DB for user %s: %v", username, err)
+		log.Printf("ERROR Failed to set one-time password hash in DB for user %d: %v", userID, err)
 		return "", ErrDatabase
 	}
 
@@ -204,6 +212,7 @@ func (s *Service) UpdateUser(id int, name, username string, role Role, locked bo
 	return updatedUser, nil
 }
 
+// GetAllUsers retrieves all users from the database.
 func (s *Service) GetAllUsers() ([]*User, error) {
 	users, err := s.DB.GetAllUsers()
 	if err != nil {

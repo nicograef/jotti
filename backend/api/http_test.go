@@ -13,7 +13,7 @@ import (
 func TestSendJSONResponse(t *testing.T) {
 	rec := httptest.NewRecorder()
 	data := map[string]string{"foo": "bar"}
-	sendJSONResponse(rec, data)
+	sendResponse(rec, data)
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}

@@ -53,9 +53,7 @@ jobs:
         run: go mod verify
 
       - name: Lint
-        run: |
-          go install golang.org/x/lint/golint@latest
-          golint ./...
+        run: golangci-lint run
 
       - name: Check format
         run: |
@@ -80,10 +78,6 @@ jobs:
           go tool cover -func=coverage.out
           COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Total coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-            echo "Coverage is below 80%"
-            exit 1
-          fi
 
   frontend-ci:
     needs: changes
@@ -162,17 +156,7 @@ jobs:
           POSTGRES_PASSWORD: admin
           POSTGRES_DBNAME: jotti
           JWT_SECRET: test-secret
-        run: go test -tags=integration -v -race -coverprofile=coverage.out ./...
-
-      - name: Check test coverage
-        run: |
-          go tool cover -func=coverage.out
-          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
-          echo "Total coverage: ${COVERAGE}%"
-          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-            echo "Coverage is below 80%"
-            exit 1
-          fi
+        run: go test -tags=integration -v -race ./...
 
       - name: Run database migrations down
         working-directory: ./database

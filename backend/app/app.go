@@ -49,8 +49,10 @@ func (app *App) SetupRoutes() {
 	jwtMiddleware := api.NewJWTMiddleware(&authService)
 
 	app.Router.HandleFunc("/health", api.CorsHandler(api.NewHealthHandler()))
+
 	app.Router.HandleFunc("/login", api.CorsHandler(api.LoginHandler(&userService, &authService)))
 	app.Router.HandleFunc("/set-password", api.CorsHandler(api.SetPasswordHandler(&userService, &authService)))
+
 	app.Router.HandleFunc("/admin/create-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.CreateUserHandler(&userService)))))
 	app.Router.HandleFunc("/admin/update-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.UpdateUserHandler(&userService)))))
 	app.Router.HandleFunc("/admin/get-users", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.GetUsersHandler(&userService)))))
