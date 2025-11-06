@@ -33,7 +33,7 @@ func createArgon2idHash(password string) (string, error) {
 	config := &argon2Configuration{
 		TimeCost:   2,
 		MemoryCost: 64 * 1024,
-		Threads:    4,
+		Threads:    2,
 		KeyLength:  32,
 	}
 
