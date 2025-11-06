@@ -25,7 +25,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
-import { BackendSingleton } from "@/lib/backend"
+import { BackendError, BackendSingleton } from "@/lib/backend"
 
 interface FormData {
   username: string
@@ -55,7 +55,11 @@ export function PasswordForm() {
     setLoading(true)
 
     try {
-      const token = await BackendSingleton.setPassword(data.username, data.password, data.onetimePassword)
+      const token = await BackendSingleton.setPassword(
+        data.username,
+        data.password,
+        data.onetimePassword,
+      )
       AuthSingleton.validateAndSetToken(token)
       if (AuthSingleton.isAdmin) {
         await navigate("/admin")
@@ -63,7 +67,25 @@ export function PasswordForm() {
         await navigate("/")
       }
     } catch (error: unknown) {
-      console.error("Login failed:", error)
+      console.error(error)
+
+      if (error instanceof BackendError) {
+        if (error.code === "invalid_credentials") {
+          form.setError("username", {
+            type: "manual",
+            message: "Benutzername oder Code ist ungültig.",
+          })
+          form.setError("onetimePassword", {
+            type: "manual",
+            message: "Benutzername oder Code ist ungültig.",
+          })
+        } else if (error.code === "already_has_password") {
+          form.setError("password", {
+            type: "manual",
+            message: "Dieses Konto hat bereits ein Passwort festgelegt.",
+          })
+        }
+      }
     }
 
     setLoading(false)
@@ -160,7 +182,7 @@ export function PasswordForm() {
               name="onetimePassword"
               control={form.control}
               rules={{
-                required: "Einmalpasswort fehlt.",
+                required: "Code fehlt.",
               }}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>

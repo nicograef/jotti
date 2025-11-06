@@ -9,13 +9,15 @@ const ErrorResponseSchema = z.object({
   message: z.string(),
 })
 
-export class HttpError extends Error {
-  public status: number
+export class BackendError extends Error {
+  public readonly status: number
+  public readonly code: string
 
-  constructor(status: number, message: string) {
+  constructor(status: number, code: string, message: string) {
     super(message)
     this.status = status
-    Object.setPrototypeOf(this, HttpError.prototype)
+    this.code = code
+    Object.setPrototypeOf(this, BackendError.prototype)
   }
 }
 
@@ -70,18 +72,20 @@ class Backend {
 
     if (!response.ok) {
       try {
-        const { code, message } = ErrorResponseSchema.parse(
-          await response.json(),
+        const responseBody = ErrorResponseSchema.parse(await response.json())
+        throw new BackendError(
+          response.status,
+          responseBody.code,
+          responseBody.message,
         )
-        console.error(`Login failed: [${code}] ${message}`)
       } catch (error) {
+        if (error instanceof BackendError) throw error
+
         console.error("Failed to parse error response:", error)
-        console.log("Response text:", await response.text())
+        const responseText = await response.text()
+        console.log("Response text:", responseText)
+        throw new BackendError(response.status, "unknown", responseText)
       }
-      throw new HttpError(
-        response.status,
-        `Response was not ok: ${response.statusText}`,
-      )
     }
 
     const { error, data } = responseSchema.safeParse(await response.json())

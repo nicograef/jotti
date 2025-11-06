@@ -8,7 +8,7 @@ import { Controller, useForm } from "react-hook-form"
 import { Field, FieldError, FieldGroup } from "@/components/ui/field"
 import { NavLink, useNavigate } from "react-router"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { BackendSingleton } from "@/lib/backend"
+import { BackendError, BackendSingleton } from "@/lib/backend"
 
 interface FormData {
   username: string
@@ -40,13 +40,25 @@ export function LoginForm() {
       const token = await BackendSingleton.login(data.username, data.password)
       AuthSingleton.validateAndSetToken(token)
       if (AuthSingleton.isAdmin) {
-        console.log("Redirecting to /admin")
         await navigate("/admin")
       } else {
         await navigate("/")
       }
     } catch (error: unknown) {
-      console.error("Login failed:", error)
+      console.error(error)
+
+      if (error instanceof BackendError) {
+        if (error.code === "invalid_credentials") {
+          form.setError("username", {
+            type: "manual",
+            message: "Benutzername oder Passwort ist ungültig.",
+          })
+          form.setError("password", {
+            type: "manual",
+            message: "Benutzername oder Passwort ist ungültig.",
+          })
+        }
+      }
     }
 
     setLoading(false)

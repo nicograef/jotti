@@ -1,6 +1,5 @@
 import { jwtDecode } from "jwt-decode"
 import { z } from "zod"
-import { BackendSingleton } from "./backend"
 
 const JottiTokenSchema = z.object({
   iss: z.literal("jotti"),
@@ -11,17 +10,8 @@ const JottiTokenSchema = z.object({
 })
 type JottiToken = z.infer<typeof JottiTokenSchema>
 
-interface Backend {
-  login(username: string, password: string): Promise<string>
-}
-
 class Auth {
-  private backend: Backend
   private token: JottiToken | null = null
-
-  constructor(backend: Backend) {
-    this.backend = backend
-  }
 
   public get isAuthenticated(): boolean {
     const token = localStorage.getItem("JOTTI_TOKEN")
@@ -73,4 +63,4 @@ class Auth {
   }
 }
 
-export const AuthSingleton = new Auth(BackendSingleton)
+export const AuthSingleton = new Auth()
