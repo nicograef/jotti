@@ -8,6 +8,7 @@ import { AdminTablesPage } from "./pages/AdminTablesPage"
 import { PasswordPage } from "./pages/PasswordPage"
 
 import { AuthSingleton } from "@/lib/auth"
+import { AdminLayout } from "./admin/AdminLayout"
 
 function AuthRedirect() {
   if (AuthSingleton.isAuthenticated && AuthSingleton.isAdmin) {
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
       { path: "set-password", Component: PasswordPage, loader: AuthRedirect },
       {
         path: "admin",
+        Component: AdminLayout,
         children: [
           { path: "dashboard", Component: AdminDashboard },
           { path: "products", Component: AdminProductsPage },
