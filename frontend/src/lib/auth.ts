@@ -12,18 +12,28 @@ type JottiToken = z.infer<typeof JottiTokenSchema>
 
 class Auth {
   private token: JottiToken | null = null
+  private tokenBase64: string | null = null
 
   public get isAuthenticated(): boolean {
-    const token = localStorage.getItem("JOTTI_TOKEN")
-    if (!token) return false
+    const tokenBase64 = localStorage.getItem("JOTTI_TOKEN")
+    if (!tokenBase64) return false
 
     try {
-      this.validateAndSetToken(token)
+      this.validateAndSetToken(tokenBase64)
       return true
     } catch (error) {
       console.error("Invalid token:", error)
       return false
     }
+  }
+
+  public getToken(): string | null {
+    if (!this.tokenBase64) {
+      const tokenBase64 = localStorage.getItem("JOTTI_TOKEN")
+      if (!tokenBase64) return null
+      this.validateAndSetToken(tokenBase64)
+    }
+    return this.tokenBase64
   }
 
   public get username(): string | null {
@@ -37,6 +47,7 @@ class Auth {
   public logout(): void {
     localStorage.removeItem("JOTTI_TOKEN")
     this.token = null
+    this.tokenBase64 = null
   }
 
   public validateAndSetToken(tokenBase64: string): void {
@@ -53,13 +64,17 @@ class Auth {
         throw new Error("Token has expired.")
       }
 
-      this.token = parsedToken
-      localStorage.setItem("JOTTI_TOKEN", tokenBase64)
+      this.setToken(parsedToken, tokenBase64)
     } catch (error) {
-      localStorage.removeItem("JOTTI_TOKEN")
-      this.token = null
+      this.logout()
       throw new Error("Failed to decode or validate token", { cause: error })
     }
+  }
+
+  private setToken(token: JottiToken, tokenBase64: string): void {
+    this.token = token
+    this.tokenBase64 = tokenBase64
+    localStorage.setItem("JOTTI_TOKEN", tokenBase64)
   }
 }
 

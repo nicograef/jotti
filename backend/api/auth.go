@@ -5,14 +5,15 @@ import (
 	"net/http"
 
 	"github.com/nicograef/jotti/backend/domain/auth"
+	"github.com/nicograef/jotti/backend/domain/user"
 )
 
 // Context key types to avoid collisions
 type contextKey string
 
 const (
-	userIDKey contextKey = "UserID"
-	roleKey   contextKey = "Role"
+	userIDKey contextKey = "userid"
+	roleKey   contextKey = "userrole"
 )
 
 // NewJWTMiddleware creates a new JWT middleware instance.
@@ -52,9 +53,8 @@ func jwtMiddleware(a *auth.Service, h http.Handler) http.HandlerFunc {
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, userIDKey, payload.UserID)
 		ctx = context.WithValue(ctx, roleKey, payload.Role)
-		r = r.WithContext(ctx)
 
-		h.ServeHTTP(w, r)
+		h.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
 
@@ -63,14 +63,15 @@ func jwtMiddleware(a *auth.Service, h http.Handler) http.HandlerFunc {
 // It should therefore be used after the JWT middleware.
 func AdminMiddleware(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		role, ok := r.Context().Value(roleKey).(string)
-		if !ok || role != "admin" {
+		role := r.Context().Value(roleKey).(user.Role)
+		if role != user.AdminRole {
 			sendForbiddenError(w, errorResponse{
 				Message: "Admin access required",
 				Code:    "admin_access_required",
 			})
 			return
 		}
+
 		h.ServeHTTP(w, r)
 	}
 }

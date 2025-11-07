@@ -14,10 +14,7 @@ type createUserRequest struct {
 }
 
 type createUserResponse struct {
-	ID              int      `json:"id"`
-	Name            string   `json:"name"`
-	Username        string   `json:"username"`
-	Role            usr.Role `json:"role"`
+	User            usr.User `json:"user"`
 	OnetimePassword string   `json:"onetimePassword"`
 }
 
@@ -40,10 +37,7 @@ func CreateUserHandler(us *usr.Service) http.HandlerFunc {
 		}
 
 		sendResponse(w, createUserResponse{
-			ID:              user.ID,
-			Name:            user.Name,
-			Username:        user.Username,
-			Role:            user.Role,
+			User:            *user,
 			OnetimePassword: onetimePassword,
 		})
 	}
@@ -57,7 +51,9 @@ type updateUserRequest struct {
 	Locked   bool     `json:"locked"`
 }
 
-type updateUserResponse = usr.User
+type updateUserResponse = struct {
+	User usr.User `json:"user"`
+}
 
 // UpdateUserHandler handles requests to update an existing user.
 func UpdateUserHandler(us *usr.Service) http.HandlerFunc {
@@ -84,13 +80,13 @@ func UpdateUserHandler(us *usr.Service) http.HandlerFunc {
 		}
 
 		sendResponse(w, updateUserResponse{
-			ID:       user.ID,
-			Name:     user.Name,
-			Username: user.Username,
-			Role:     user.Role,
-			Locked:   user.Locked,
+			User: *user,
 		})
 	}
+}
+
+type getUsersResponse = struct {
+	Users []*usr.User `json:"users"`
 }
 
 // GetUsersHandler handles requests to retrieve all users.
@@ -106,7 +102,9 @@ func GetUsersHandler(us *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		sendResponse(w, users)
+		sendResponse(w, getUsersResponse{
+			Users: users,
+		})
 	}
 }
 

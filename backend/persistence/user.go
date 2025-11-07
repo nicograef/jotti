@@ -19,14 +19,15 @@ type dbuser struct {
 	Locked              bool           `db:"locked"`
 	PasswordHash        sql.NullString `db:"password_hash"`
 	OnetimePasswordHash sql.NullString `db:"onetime_password_hash"`
+	CreatedAt           sql.NullTime   `db:"created_at"`
 }
 
 // GetUser retrieves a user from the database by their ID.
 func (p *UserPersistence) GetUser(id int) (*user.User, error) {
-	row := p.DB.QueryRow("SELECT id, name, username, role, locked, password_hash, onetime_password_hash FROM users WHERE id = $1", id)
+	row := p.DB.QueryRow("SELECT id, name, username, role, locked, password_hash, onetime_password_hash, created_at FROM users WHERE id = $1", id)
 
 	var dbUser dbuser
-	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked, &dbUser.PasswordHash, &dbUser.OnetimePasswordHash); err != nil {
+	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked, &dbUser.PasswordHash, &dbUser.OnetimePasswordHash, &dbUser.CreatedAt); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, user.ErrUserNotFound
 		}
@@ -41,6 +42,7 @@ func (p *UserPersistence) GetUser(id int) (*user.User, error) {
 		Locked:              dbUser.Locked,
 		PasswordHash:        dbUser.PasswordHash.String,
 		OnetimePasswordHash: dbUser.OnetimePasswordHash.String,
+		CreatedAt:           dbUser.CreatedAt.Time,
 	}, nil
 }
 
@@ -61,7 +63,7 @@ func (p *UserPersistence) GetUserID(username string) (int, error) {
 
 // GetAllUsers retrieves all users from the database.
 func (p *UserPersistence) GetAllUsers() ([]*user.User, error) {
-	rows, err := p.DB.Query("SELECT id, name, username, role, locked FROM users")
+	rows, err := p.DB.Query("SELECT id, name, username, role, locked, created_at FROM users")
 	if err != nil {
 		return nil, err
 	}
@@ -74,15 +76,16 @@ func (p *UserPersistence) GetAllUsers() ([]*user.User, error) {
 	var users []*user.User
 	for rows.Next() {
 		var dbUser dbuser
-		if err := rows.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked); err != nil {
+		if err := rows.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked, &dbUser.CreatedAt); err != nil {
 			return nil, err
 		}
 		users = append(users, &user.User{
-			ID:       dbUser.ID,
-			Name:     dbUser.Name,
-			Username: dbUser.Username,
-			Role:     dbUser.Role,
-			Locked:   dbUser.Locked,
+			ID:        dbUser.ID,
+			Name:      dbUser.Name,
+			Username:  dbUser.Username,
+			Role:      dbUser.Role,
+			Locked:    dbUser.Locked,
+			CreatedAt: dbUser.CreatedAt.Time,
 		})
 	}
 

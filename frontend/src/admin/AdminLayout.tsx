@@ -6,9 +6,11 @@ export function AdminLayout() {
   return (
     <SidebarProvider>
       <AdminSidebar />
-      <main>
+      <main className="min-h-screen w-full">
         <SidebarTrigger />
-        <Outlet />
+        <div className="p-4 md:p-8 lg:p-12">
+          <Outlet />
+        </div>
       </main>
     </SidebarProvider>
   )

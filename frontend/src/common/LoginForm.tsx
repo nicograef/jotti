@@ -1,4 +1,4 @@
-import React from "react"
+import { useState } from "react"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -9,26 +9,16 @@ import { Field, FieldError, FieldGroup } from "@/components/ui/field"
 import { NavLink, useNavigate } from "react-router"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { BackendError, BackendSingleton } from "@/lib/backend"
+import { toUsername } from "@/lib/user"
 
 interface FormData {
   username: string
   password: string
 }
 
-function toUsername(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/ä/g, "ae")
-    .replace(/ö/g, "oe")
-    .replace(/ü/g, "ue")
-    .replace(/ß/g, "ss")
-    .replace(/[^a-z0-9]/g, "")
-}
-
 export function LoginForm() {
   const navigate = useNavigate()
-  const [loading, setLoading] = React.useState(false)
+  const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: { username: "", password: "" },
   })
@@ -94,7 +84,7 @@ export function LoginForm() {
                 },
               }}
               render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+                <Field data-invalid={fieldState.invalid} className="gap-0">
                   <Input
                     {...field}
                     onChange={(e) => {
@@ -126,7 +116,7 @@ export function LoginForm() {
                 },
               }}
               render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+                <Field data-invalid={fieldState.invalid} className="gap-0">
                   <Input
                     {...field}
                     type="password"

@@ -26,22 +26,12 @@ import {
 } from "@/components/ui/input-otp"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { BackendError, BackendSingleton } from "@/lib/backend"
+import { toUsername } from "@/lib/user"
 
 interface FormData {
   username: string
   password: string
   onetimePassword: string
-}
-
-function toUsername(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/ä/g, "ae")
-    .replace(/ö/g, "oe")
-    .replace(/ü/g, "ue")
-    .replace(/ß/g, "ss")
-    .replace(/[^a-z0-9]/g, "")
 }
 
 export function PasswordForm() {
@@ -124,7 +114,7 @@ export function PasswordForm() {
                 },
               }}
               render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+                <Field data-invalid={fieldState.invalid} className="gap-0">
                   <Input
                     {...field}
                     onChange={(e) => {
@@ -156,7 +146,7 @@ export function PasswordForm() {
                 },
               }}
               render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+                <Field data-invalid={fieldState.invalid} className="gap-0">
                   <Input
                     {...field}
                     type="password"
@@ -185,7 +175,7 @@ export function PasswordForm() {
                 required: "Code fehlt.",
               }}
               render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+                <Field data-invalid={fieldState.invalid} className="gap-0">
                   <InputOTP
                     maxLength={6}
                     aria-invalid={fieldState.invalid}

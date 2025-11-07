@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"log"
+	"time"
 )
 
 // Role represents the role of a user.
@@ -17,13 +18,14 @@ const (
 
 // User represents a user in the system.
 type User struct {
-	ID                  int
-	Name                string
-	Username            string
-	Role                Role
-	Locked              bool
-	PasswordHash        string
-	OnetimePasswordHash string
+	ID                  int       `json:"id"`
+	Name                string    `json:"name"`
+	Username            string    `json:"username"`
+	Role                Role      `json:"role"`
+	Locked              bool      `json:"locked"`
+	PasswordHash        string    `json:"-"`
+	OnetimePasswordHash string    `json:"-"`
+	CreatedAt           time.Time `json:"createdAt"`
 }
 
 // ErrUserNotFound is returned when a user is not found.
@@ -80,11 +82,12 @@ func (s *Service) CreateUser(name, username string, role Role) (*User, string, e
 	}
 
 	return &User{
-		ID:       userID,
-		Name:     name,
-		Username: username,
-		Role:     role,
-		Locked:   false,
+		ID:        userID,
+		Name:      name,
+		Username:  username,
+		Role:      role,
+		Locked:    false,
+		CreatedAt: time.Now(),
 	}, onetimePassword, nil
 }
 

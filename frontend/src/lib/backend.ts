@@ -1,4 +1,15 @@
 import { z } from "zod"
+import {
+  CreateUserRequestSchema,
+  CreateUserResponseSchema,
+  GetUsersResponseSchema,
+  SetPasswordRequestSchema,
+  UserSchema,
+  type CreateUserResponse,
+  type User,
+  type UserRole,
+} from "./user"
+import { AuthSingleton } from "./auth"
 
 const LoginResponseSchema = z.object({
   token: z.string().min(10), // validation is done in Auth Service
@@ -28,11 +39,17 @@ export class ResponseBodyError extends Error {
   }
 }
 
-class Backend {
-  private baseUrl: string
+type TokenGetter = {
+  getToken(): string | null
+}
 
-  constructor(baseUrl: string) {
+class Backend {
+  private readonly baseUrl: string
+  private readonly tokenGetter: TokenGetter
+
+  constructor(baseUrl: string, tokenGetter: TokenGetter) {
     this.baseUrl = baseUrl
+    this.tokenGetter = tokenGetter
   }
 
   /** Sends a login request with the given username and password and returns the JWT token from the backend. */
@@ -51,12 +68,32 @@ class Backend {
     password: string,
     onetimePassword: string,
   ): Promise<string> {
-    const { token } = await this.post(
-      "set-password",
-      { username, password, onetimePassword },
-      LoginResponseSchema,
-    )
+    const body = SetPasswordRequestSchema.parse({
+      username,
+      password,
+      onetimePassword,
+    })
+    const { token } = await this.post("set-password", body, LoginResponseSchema)
     return token
+  }
+
+  public async createUser(
+    name: string,
+    username: string,
+    role: UserRole,
+  ): Promise<CreateUserResponse> {
+    const body = CreateUserRequestSchema.parse({ name, username, role })
+    const response = await this.post(
+      "admin/create-user",
+      body,
+      CreateUserResponseSchema,
+    )
+    return response
+  }
+
+  public async getUsers(): Promise<User[]> {
+    const { users } = await this.post("admin/get-users", {}, GetUsersResponseSchema)
+    return users
   }
 
   private async post<TResponse>(
@@ -64,9 +101,13 @@ class Backend {
     body: unknown,
     responseSchema: z.ZodType<TResponse>,
   ): Promise<TResponse> {
+    const token = this.tokenGetter.getToken()
     const response = await fetch(`${this.baseUrl}/${endpoint}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(body),
     })
 
@@ -100,4 +141,5 @@ class Backend {
 
 export const BackendSingleton = new Backend(
   "https://automatic-space-umbrella-v655jg4vp5jfp69-3000.app.github.dev",
+  AuthSingleton,
 )

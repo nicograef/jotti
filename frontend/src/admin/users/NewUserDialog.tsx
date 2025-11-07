@@ -1,4 +1,5 @@
 import { Controller, useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -26,35 +27,52 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { toUsername, UserRole, UserSchema, type User } from "@/lib/user"
+import { useState } from "react"
+import { BackendSingleton } from "@/lib/backend"
+import { z } from "zod"
 
-interface FormData {
-  name: string
-  username: string
-  role: "admin" | "service" | ""
+const FormDataSchema = UserSchema.pick({
+  name: true,
+  username: true,
+  role: true,
+})
+type FormData = z.infer<typeof FormDataSchema>
+
+type NewUserDialogProps = {
+  created: (user: User, onetimePassword: string) => void
 }
 
-function toUsername(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/\s+/g, "")
-    .replace(/ä/g, "ae")
-    .replace(/ö/g, "oe")
-    .replace(/ü/g, "ue")
-    .replace(/ß/g, "ss")
-    .replace(/[^a-z0-9]/g, "")
-}
-
-export function NewUserDialog() {
+export function NewUserDialog({ created }: NewUserDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
-    defaultValues: { name: "", username: "", role: "" },
+    defaultValues: { name: "", username: "", role: UserRole.SERVICE },
+    resolver: zodResolver(FormDataSchema),
+    mode: "onBlur",
   })
 
-  const onSubmit = (data: FormData) => {
-    console.log("User:", data)
+  const onSubmit = async (data: FormData) => {
+    setLoading(true)
+
+    try {
+      const response = await BackendSingleton.createUser(
+        data.name,
+        data.username,
+        data.role as UserRole,
+      )
+      form.reset()
+      setOpen(false)
+      created(response.user, response.onetimePassword)
+    } catch (error: unknown) {
+      console.error(error)
+    }
+
+    setLoading(false)
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <div className="fixed bottom-16 right-16 z-50">
           <Button className="cursor-pointer hover:shadow-sm">
@@ -94,7 +112,7 @@ export function NewUserDialog() {
                 },
               }}
               render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+                <Field data-invalid={fieldState.invalid} className="gap-0">
                   <FieldLabel htmlFor="user-form-name">Name</FieldLabel>
                   <Input
                     {...field}
@@ -134,7 +152,7 @@ export function NewUserDialog() {
                 },
               }}
               render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+                <Field data-invalid={fieldState.invalid} className="gap-0">
                   <FieldLabel htmlFor="user-form-username">
                     Benutzername
                   </FieldLabel>
@@ -162,8 +180,18 @@ export function NewUserDialog() {
                 required: "Rolle ist ein Pflichtfeld.",
               }}
               render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+                <Field data-invalid={fieldState.invalid} className="gap-0">
                   <FieldLabel htmlFor="user-form-role">Rolle</FieldLabel>
+                  {field.value === "admin" && (
+                    <FieldDescription>
+                      Administratoren können alle Funktionen nutzen.
+                    </FieldDescription>
+                  )}
+                  {field.value === "service" && (
+                    <FieldDescription>
+                      Service kann Bestellungen und Bezahlungen verwalten.
+                    </FieldDescription>
+                  )}
                   <Select
                     name={field.name}
                     value={field.value}
@@ -180,16 +208,6 @@ export function NewUserDialog() {
                       <SelectItem value="service">Service</SelectItem>
                     </SelectContent>
                   </Select>
-                  {field.value === "admin" && (
-                    <FieldDescription>
-                      Administratoren können alle Funktionen nutzen.
-                    </FieldDescription>
-                  )}
-                  {field.value === "service" && (
-                    <FieldDescription>
-                      Service kann Bestellungen und Bezahlungen verwalten.
-                    </FieldDescription>
-                  )}
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
@@ -205,11 +223,12 @@ export function NewUserDialog() {
               onClick={() => {
                 form.reset()
               }}
+              disabled={loading}
             >
               Abbrechen
             </Button>
           </DialogClose>
-          <Button type="submit" form="user-form">
+          <Button type="submit" form="user-form" disabled={loading}>
             Benutzer anlegen
           </Button>
         </DialogFooter>
