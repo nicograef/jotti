@@ -5,10 +5,16 @@ import { UserCreatedDialog } from "./UserCreatedDialog"
 import { useEffect, useState } from "react"
 import type { User } from "@/lib/user"
 import { BackendSingleton } from "@/lib/backend"
+import { EditUserDialog } from "./EditUserDialog"
 
 const initialUserCreatedState = {
   user: null as User | null,
   onetimePassword: "",
+  open: false,
+}
+
+const initialEditUserState = {
+  user: null as User | null,
   open: false,
 }
 
@@ -18,6 +24,7 @@ export function Users() {
   const [userCreatedState, setUserCreatedState] = useState(
     initialUserCreatedState,
   )
+  const [editUserState, setEditUserState] = useState(initialEditUserState)
 
   useEffect(() => {
     async function fetchUsers() {
@@ -27,6 +34,10 @@ export function Users() {
     }
     fetchUsers()
   }, [])
+
+  const updateUser = (user: User) => {
+    setUsers((prevUsers) => prevUsers.map((u) => (u.id === user.id ? user : u)))
+  }
 
   return (
     <>
@@ -40,8 +51,22 @@ export function Users() {
         {...userCreatedState}
         close={() => setUserCreatedState(initialUserCreatedState)}
       />
+      {editUserState.user && (
+        <EditUserDialog
+          open={editUserState.open}
+          user={editUserState.user}
+          updated={(user) => updateUser(user)}
+          close={() => setEditUserState(initialEditUserState)}
+        />
+      )}
       <Card className="p-0">
-        <UserTable users={users} loading={loading} />
+        <UserTable
+          users={users}
+          loading={loading}
+          onClick={(user) => {
+            setEditUserState({ user, open: true })
+          }}
+        />
       </Card>
     </>
   )

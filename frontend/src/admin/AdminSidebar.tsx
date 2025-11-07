@@ -12,8 +12,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { NavLink } from "react-router"
+import { NavLink, useNavigate } from "react-router"
 import { useLocation } from "react-router"
+import { AuthSingleton } from "@/lib/auth"
 
 const items = [
   {
@@ -40,6 +41,12 @@ const items = [
 
 export function AdminSidebar() {
   const location = useLocation()
+  const navigate = useNavigate()
+
+  const logout = () => {
+    AuthSingleton.logout()
+    navigate("/login")
+  }
 
   return (
     <Sidebar>
@@ -67,10 +74,21 @@ export function AdminSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={logout}>
+                  <span>Abmelden</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <p className="text-center text-sm text-muted-foreground">
-         Entwickelt von{" "}
+          Entwickelt von{" "}
           <a
             href="https://nicograef.de"
             target="_blank"

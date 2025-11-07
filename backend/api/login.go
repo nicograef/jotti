@@ -42,6 +42,14 @@ func LoginHandler(us *usr.Service, as *auth.Service) http.HandlerFunc {
 			return
 		}
 
+		if user.Locked {
+			sendUnauthorizedError(w, errorResponse{
+				Message: "User account is locked",
+				Code:    "user_locked",
+			})
+			return
+		}
+
 		stringToken, err := as.GenerateJWTTokenForUser(*user)
 		if err != nil {
 			sendInternalServerError(w)

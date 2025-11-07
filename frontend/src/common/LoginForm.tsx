@@ -72,19 +72,8 @@ export function LoginForm() {
             <Controller
               name="username"
               control={form.control}
-              rules={{
-                required: "Benutzername fehlt.",
-                minLength: {
-                  value: 4,
-                  message: "Benutzername muss mindestens 4 Zeichen lang sein.",
-                },
-                maxLength: {
-                  value: 20,
-                  message: "Benutzername darf maximal 20 Zeichen lang sein.",
-                },
-              }}
               render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-0">
+                <Field data-invalid={fieldState.invalid} className="gap-1">
                   <Input
                     {...field}
                     onChange={(e) => {
@@ -104,19 +93,8 @@ export function LoginForm() {
             <Controller
               name="password"
               control={form.control}
-              rules={{
-                required: "Passwort fehlt.",
-                minLength: {
-                  value: 6,
-                  message: "Passwort muss mindestens 6 Zeichen lang sein.",
-                },
-                maxLength: {
-                  value: 20,
-                  message: "Passwort darf maximal 20 Zeichen lang sein.",
-                },
-              }}
               render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-0">
+                <Field data-invalid={fieldState.invalid} className="gap-1">
                   <Input
                     {...field}
                     type="password"

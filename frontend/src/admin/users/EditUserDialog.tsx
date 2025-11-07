@@ -5,21 +5,19 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Field,
+  FieldContent,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { UserPlus } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -27,43 +25,54 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { toUsername, UserRole, UserSchema, type User } from "@/lib/user"
+import { toUsername, UserSchema, type User } from "@/lib/user"
 import { useState } from "react"
 import { BackendSingleton } from "@/lib/backend"
 import { z } from "zod"
+import { DialogDescription } from "@radix-ui/react-dialog"
+import { Switch } from "@/components/ui/switch"
 
 const FormDataSchema = UserSchema.pick({
   name: true,
   username: true,
   role: true,
+  locked: true,
 })
 type FormData = z.infer<typeof FormDataSchema>
 
 type NewUserDialogProps = {
-  created: (user: User, onetimePassword: string) => void
+  open: boolean
+  user: User
+  updated: (user: User) => void
+  close: () => void
 }
 
-export function NewUserDialog({ created }: NewUserDialogProps) {
-  const [open, setOpen] = useState(false)
+export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
-    defaultValues: { name: "", username: "", role: UserRole.SERVICE },
+    defaultValues: props.user,
     resolver: zodResolver(FormDataSchema),
     mode: "onBlur",
   })
+
+  const onOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      form.reset()
+      props.close()
+    }
+  }
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
 
     try {
-      const response = await BackendSingleton.createUser(
-        data.name,
-        data.username,
-        data.role as UserRole,
-      )
+      const updatedUser = await BackendSingleton.updateUser({
+        id: props.user.id,
+        ...data,
+      })
       form.reset()
-      setOpen(false)
-      created(response.user, response.onetimePassword)
+      props.updated(updatedUser)
+      props.close()
     } catch (error: unknown) {
       console.error(error)
     }
@@ -72,19 +81,12 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <div className="fixed bottom-16 right-16 z-50">
-          <Button className="cursor-pointer hover:shadow-sm">
-            <UserPlus /> Neuer Benutzer
-          </Button>
-        </div>
-      </DialogTrigger>
+    <Dialog open={props.open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="mb-4">
-          <DialogTitle>Neuen Benutzer anlegen</DialogTitle>
+          <DialogTitle>{props.user.name}</DialogTitle>
           <DialogDescription>
-            Das Passwort kann der Benutzer später selbst festlegen.
+            Du kannst Name, Benutzername, Rolle und Status des Benutzers ändern.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -104,16 +106,6 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
                   <FieldLabel htmlFor="user-form-name">Name</FieldLabel>
                   <Input
                     {...field}
-                    onBlur={() => {
-                      if (form.getValues("username").length === 0) {
-                        const username = toUsername(field.value)
-                        form.setValue("username", username, {
-                          shouldDirty: true,
-                          shouldValidate: true,
-                        })
-                      }
-                      field.onBlur()
-                    }}
                     id="user-form-name"
                     aria-invalid={fieldState.invalid}
                     placeholder="Vor- und Nachname eingeben"
@@ -188,6 +180,32 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
                 </Field>
               )}
             />
+            <Controller
+              name="locked"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid} className="gap-1">
+                  <FieldLabel htmlFor="user-form-locked">Sperren?</FieldLabel>
+                  <FieldContent className="flex flex-row items-center">
+                    <Switch
+                      id="user-form-locked"
+                      aria-invalid={fieldState.invalid}
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                    {field.value === true && (
+                      <FieldDescription className="ml-4">
+                        Wenn du diesen Benutzer sperrst, kann er sich nicht mehr
+                        anmelden.
+                      </FieldDescription>
+                    )}
+                  </FieldContent>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">
@@ -203,7 +221,7 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
             </Button>
           </DialogClose>
           <Button type="submit" form="user-form" disabled={loading}>
-            Benutzer anlegen
+            Speichern
           </Button>
         </DialogFooter>
       </DialogContent>

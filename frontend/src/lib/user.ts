@@ -18,21 +18,24 @@ export function toUsername(name: string) {
 }
 
 const UserIdSchema = z.number().min(1)
-const NameSchema = z.string().min(5).max(50)
+const NameSchema = z
+  .string()
+  .min(5, { message: "Das sieht nicht nach einem echten Namen aus." })
+  .max(50, { message: "Der Name ist zu lang." })
 const UsernameSchema = z
   .string()
-  .min(3)
-  .max(20)
+  .min(3, { message: "Benutzername muss mindestens 3 Zeichen lang sein." })
+  .max(20, { message: "Benutzername darf maximal 20 Zeichen lang sein." })
   .regex(/^[a-z0-9]+$/, {
-    message: "Username can only contain lowercase letters and numbers",
+    message: "Benutzername darf nur aus Kleinbuchstaben und Zahlen bestehen.",
   })
 const RoleSchema = z.enum(UserRole)
 const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {
-  message: "Invalid date format",
+  message: "Ungültiges Datumsformat",
 })
-const PasswordSchema = z.string().min(6).max(20)
+const PasswordSchema = z.string().min(6, { message: "Passwort muss mindestens 6 Zeichen lang sein." }).max(20, { message: "Passwort darf maximal 20 Zeichen lang sein." })
 const OnetimePasswordSchema = z.string().regex(/^\d{6}$/, {
-  message: "Onetime password must be exactly 6 digits",
+  message: "Das Einmalpasswort muss genau 6 Ziffern enthalten.",
 })
 
 export const UserSchema = z.object({
@@ -63,6 +66,20 @@ export const CreateUserResponseSchema = z.object({
   onetimePassword: OnetimePasswordSchema,
 })
 export type CreateUserResponse = z.infer<typeof CreateUserResponseSchema>
+
+export const UpdateUserRequestSchema = UserSchema.pick({
+  id: true,
+  name: true,
+  username: true,
+  role: true,
+  locked: true,
+})
+export type UpdateUserRequest = z.infer<typeof UpdateUserRequestSchema>
+
+export const UpdateUserResponseSchema = z.object({
+  user: UserSchema,
+})
+export type UpdateUserResponse = z.infer<typeof UpdateUserResponseSchema>
 
 export const GetUsersResponseSchema = z.object({
   users: UserSchema.array(),

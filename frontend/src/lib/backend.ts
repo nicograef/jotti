@@ -4,8 +4,10 @@ import {
   CreateUserResponseSchema,
   GetUsersResponseSchema,
   SetPasswordRequestSchema,
-  UserSchema,
+  UpdateUserRequestSchema,
+  UpdateUserResponseSchema,
   type CreateUserResponse,
+  type UpdateUserRequest,
   type User,
   type UserRole,
 } from "./user"
@@ -91,8 +93,22 @@ class Backend {
     return response
   }
 
+  public async updateUser(user: UpdateUserRequest): Promise<User> {
+    const body = UpdateUserRequestSchema.parse(user)
+    const response = await this.post(
+      "admin/update-user",
+      body,
+      UpdateUserResponseSchema,
+    )
+    return response.user
+  }
+
   public async getUsers(): Promise<User[]> {
-    const { users } = await this.post("admin/get-users", {}, GetUsersResponseSchema)
+    const { users } = await this.post(
+      "admin/get-users",
+      {},
+      GetUsersResponseSchema,
+    )
     return users
   }
 

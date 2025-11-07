@@ -63,7 +63,7 @@ func (p *UserPersistence) GetUserID(username string) (int, error) {
 
 // GetAllUsers retrieves all users from the database.
 func (p *UserPersistence) GetAllUsers() ([]*user.User, error) {
-	rows, err := p.DB.Query("SELECT id, name, username, role, locked, created_at FROM users")
+	rows, err := p.DB.Query("SELECT id, name, username, role, locked, created_at FROM users ORDER BY id ASC")
 	if err != nil {
 		return nil, err
 	}

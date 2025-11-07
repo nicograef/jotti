@@ -11,11 +11,11 @@ import { LockKeyhole, ShieldUser } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 
-function UserTableRow(props: { user: User }) {
-  const { user } = props
+function UserTableRow(props: { user: User; onClick: (user: User) => void }) {
+  const { user, onClick } = props
   return (
-    <TableRow className="cursor-pointer">
-      <TableCell>{user.locked ? <LockKeyhole size="16" /> : <></>}</TableCell>
+    <TableRow className="cursor-pointer" onClick={() => onClick(user)}>
+      <TableCell className="flex justify-center">{user.locked ? <LockKeyhole size="30" /> : <></>}</TableCell>
       <TableCell className="font-medium">{user.name}</TableCell>
       <TableCell>{user.username}</TableCell>
       <TableCell>
@@ -25,7 +25,9 @@ function UserTableRow(props: { user: User }) {
             {user.role}
           </Badge>
         ) : (
-          <Badge className="text-sm" variant="secondary">{user.role}</Badge>
+          <Badge className="text-sm" variant="secondary">
+            {user.role}
+          </Badge>
         )}
       </TableCell>
       <TableCell>{new Date(user.createdAt).toLocaleString()} Uhr</TableCell>
@@ -58,6 +60,7 @@ function UserTableRowSkeleton() {
 type UsersTableProps = {
   users: User[]
   loading: boolean
+  onClick: (user: User) => void
 }
 
 export function UserTable(props: Readonly<UsersTableProps>) {
@@ -78,7 +81,7 @@ export function UserTable(props: Readonly<UsersTableProps>) {
               <UserTableRowSkeleton key={index} />
             ))
           : props.users.map((user) => (
-              <UserTableRow key={user.id} user={user} />
+              <UserTableRow key={user.id} user={user} onClick={props.onClick} />
             ))}
       </TableBody>
     </Table>
