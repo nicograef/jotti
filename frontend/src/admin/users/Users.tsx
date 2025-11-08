@@ -32,7 +32,7 @@ export function Users() {
       setUsers(response)
       setLoading(false)
     }
-    fetchUsers()
+    void fetchUsers()
   }, [])
 
   const updateUser = (user: User) => {
@@ -49,14 +49,14 @@ export function Users() {
       />
       <UserCreatedDialog
         {...userCreatedState}
-        close={() => setUserCreatedState(initialUserCreatedState)}
+        close={() => { setUserCreatedState(initialUserCreatedState); }}
       />
       {editUserState.user && (
         <EditUserDialog
           open={editUserState.open}
           user={editUserState.user}
-          updated={(user) => updateUser(user)}
-          close={() => setEditUserState(initialEditUserState)}
+          updated={(user) => { updateUser(user); }}
+          close={() => { setEditUserState(initialEditUserState); }}
         />
       )}
       <Card className="p-0">

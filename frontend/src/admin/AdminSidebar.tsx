@@ -1,4 +1,6 @@
 import { Lamp, ReceiptText, Utensils, Users } from "lucide-react"
+import { NavLink, useNavigate } from "react-router"
+import { useLocation } from "react-router"
 
 import {
   Sidebar,
@@ -12,8 +14,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { NavLink, useNavigate } from "react-router"
-import { useLocation } from "react-router"
 import { AuthSingleton } from "@/lib/auth"
 
 const items = [
@@ -45,7 +45,7 @@ export function AdminSidebar() {
 
   const logout = () => {
     AuthSingleton.logout()
-    navigate("/login")
+    void navigate("/login")
   }
 
   return (

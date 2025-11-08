@@ -41,7 +41,7 @@ export class ResponseBodyError extends Error {
   }
 }
 
-type TokenGetter = {
+interface TokenGetter {
   getToken(): string | null
 }
 

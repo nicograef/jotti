@@ -40,7 +40,7 @@ const FormDataSchema = UserSchema.pick({
 })
 type FormData = z.infer<typeof FormDataSchema>
 
-type NewUserDialogProps = {
+interface NewUserDialogProps {
   open: boolean
   user: User
   updated: (user: User) => void
@@ -193,7 +193,7 @@ export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
-                    {field.value === true && (
+                    {field.value && (
                       <FieldDescription className="ml-4">
                         Wenn du diesen Benutzer sperrst, kann er sich nicht mehr
                         anmelden.

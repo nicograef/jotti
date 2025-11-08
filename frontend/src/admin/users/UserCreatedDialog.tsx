@@ -11,7 +11,7 @@ import {
 import { Field, FieldLabel } from "@/components/ui/field"
 import type { User } from "@/lib/user"
 
-type UserCreatedDialogProps = {
+interface UserCreatedDialogProps {
   user: User | null
   onetimePassword: string
   open: boolean

@@ -17,7 +17,7 @@ function AuthRedirect() {
   }
 }
 
-export async function AdminGuard() {
+export function AdminGuard() {
   if (!AuthSingleton.isAuthenticated || !AuthSingleton.isAdmin) {
     return redirect("/")
   }

@@ -39,7 +39,7 @@ const FormDataSchema = UserSchema.pick({
 })
 type FormData = z.infer<typeof FormDataSchema>
 
-type NewUserDialogProps = {
+interface NewUserDialogProps {
   created: (user: User, onetimePassword: string) => void
 }
 

@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 function UserTableRow(props: { user: User; onClick: (user: User) => void }) {
   const { user, onClick } = props
   return (
-    <TableRow className="cursor-pointer" onClick={() => onClick(user)}>
+    <TableRow className="cursor-pointer" onClick={() => { onClick(user); }}>
       <TableCell className="flex justify-center">{user.locked ? <LockKeyhole size="30" /> : <></>}</TableCell>
       <TableCell className="font-medium">{user.name}</TableCell>
       <TableCell>{user.username}</TableCell>
@@ -57,7 +57,7 @@ function UserTableRowSkeleton() {
   )
 }
 
-type UsersTableProps = {
+interface UsersTableProps {
   users: User[]
   loading: boolean
   onClick: (user: User) => void
@@ -78,6 +78,7 @@ export function UserTable(props: Readonly<UsersTableProps>) {
       <TableBody>
         {props.loading
           ? Array.from({ length: 5 }).map((_, index) => (
+              // eslint-disable-next-line react-x/no-array-index-key
               <UserTableRowSkeleton key={index} />
             ))
           : props.users.map((user) => (
