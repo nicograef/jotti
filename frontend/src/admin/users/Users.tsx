@@ -49,14 +49,20 @@ export function Users() {
       />
       <UserCreatedDialog
         {...userCreatedState}
-        close={() => { setUserCreatedState(initialUserCreatedState); }}
+        close={() => {
+          setUserCreatedState(initialUserCreatedState)
+        }}
       />
       {editUserState.user && (
         <EditUserDialog
           open={editUserState.open}
           user={editUserState.user}
-          updated={(user) => { updateUser(user); }}
-          close={() => { setEditUserState(initialEditUserState); }}
+          updated={(user) => {
+            updateUser(user)
+          }}
+          close={() => {
+            setEditUserState(initialEditUserState)
+          }}
         />
       )}
       <Card className="p-0">

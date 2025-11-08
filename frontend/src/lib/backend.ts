@@ -3,19 +3,16 @@ import {
   CreateUserRequestSchema,
   CreateUserResponseSchema,
   GetUsersResponseSchema,
+  LoginRequestSchema,
+  LoginResponseSchema,
   SetPasswordRequestSchema,
+  SetPasswordResponseSchema,
   UpdateUserRequestSchema,
   UpdateUserResponseSchema,
-  type CreateUserResponse,
-  type UpdateUserRequest,
   type User,
   type UserRole,
 } from "./user"
 import { AuthSingleton } from "./auth"
-
-const LoginResponseSchema = z.object({
-  token: z.string().min(10), // validation is done in Auth Service
-})
 
 const ErrorResponseSchema = z.object({
   code: z.string(),
@@ -56,11 +53,8 @@ class Backend {
 
   /** Sends a login request with the given username and password and returns the JWT token from the backend. */
   public async login(username: string, password: string): Promise<string> {
-    const { token } = await this.post(
-      "login",
-      { username, password },
-      LoginResponseSchema,
-    )
+    const body = LoginRequestSchema.parse({ username, password })
+    const { token } = await this.post("login", body, LoginResponseSchema)
     return token
   }
 
@@ -75,7 +69,11 @@ class Backend {
       password,
       onetimePassword,
     })
-    const { token } = await this.post("set-password", body, LoginResponseSchema)
+    const { token } = await this.post(
+      "set-password",
+      body,
+      SetPasswordResponseSchema,
+    )
     return token
   }
 
@@ -83,24 +81,26 @@ class Backend {
     name: string,
     username: string,
     role: UserRole,
-  ): Promise<CreateUserResponse> {
+  ): Promise<{ user: User; onetimePassword: string }> {
     const body = CreateUserRequestSchema.parse({ name, username, role })
-    const response = await this.post(
+    const { user, onetimePassword } = await this.post(
       "admin/create-user",
       body,
       CreateUserResponseSchema,
     )
-    return response
+    return { user, onetimePassword }
   }
 
-  public async updateUser(user: UpdateUserRequest): Promise<User> {
-    const body = UpdateUserRequestSchema.parse(user)
-    const response = await this.post(
+  public async updateUser(
+    updatedUser: z.infer<typeof UpdateUserRequestSchema>,
+  ): Promise<User> {
+    const body = UpdateUserRequestSchema.parse(updatedUser)
+    const { user } = await this.post(
       "admin/update-user",
       body,
       UpdateUserResponseSchema,
     )
-    return response.user
+    return user
   }
 
   public async getUsers(): Promise<User[]> {

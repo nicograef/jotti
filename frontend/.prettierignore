@@ -1,3 +1,14 @@
 # Ignore artifacts:
 build
 coverage
+node_modules
+dist
+
+# Ignore lock files
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# shadcn/ui generated files
+src/components/ui
+src/hooks/use-mobile.ts

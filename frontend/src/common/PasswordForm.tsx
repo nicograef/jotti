@@ -26,18 +26,19 @@ import {
 } from "@/components/ui/input-otp"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import { BackendError, BackendSingleton } from "@/lib/backend"
-import { toUsername } from "@/lib/user"
+import { SetPasswordRequestSchema, toUsername } from "@/lib/user"
+import type z from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
 
-interface FormData {
-  username: string
-  password: string
-  onetimePassword: string
-}
+const FormDataSchema = SetPasswordRequestSchema
+type FormData = z.infer<typeof FormDataSchema>
 
 export function PasswordForm() {
   const navigate = useNavigate()
   const [loading, setLoading] = React.useState(false)
   const form = useForm<FormData>({
+    resolver: zodResolver(FormDataSchema),
+    mode: "onBlur",
     defaultValues: { username: "", password: "", onetimePassword: "" },
   })
 
@@ -63,11 +64,11 @@ export function PasswordForm() {
         if (error.code === "invalid_credentials") {
           form.setError("username", {
             type: "manual",
-            message: "Benutzername oder Code ist ungültig.",
+            message: "Benutzername oder Code ungültig.",
           })
           form.setError("onetimePassword", {
             type: "manual",
-            message: "Benutzername oder Code ist ungültig.",
+            message: "Benutzername oder Code ungültig.",
           })
         } else if (error.code === "already_has_password") {
           form.setError("password", {

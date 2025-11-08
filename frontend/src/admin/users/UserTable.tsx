@@ -14,8 +14,15 @@ import { Badge } from "@/components/ui/badge"
 function UserTableRow(props: { user: User; onClick: (user: User) => void }) {
   const { user, onClick } = props
   return (
-    <TableRow className="cursor-pointer" onClick={() => { onClick(user); }}>
-      <TableCell className="flex justify-center">{user.locked ? <LockKeyhole size="30" /> : <></>}</TableCell>
+    <TableRow
+      className="cursor-pointer"
+      onClick={() => {
+        onClick(user)
+      }}
+    >
+      <TableCell className="flex justify-center">
+        {user.locked ? <LockKeyhole size="30" /> : <></>}
+      </TableCell>
       <TableCell className="font-medium">{user.name}</TableCell>
       <TableCell>{user.username}</TableCell>
       <TableCell>

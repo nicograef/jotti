@@ -33,7 +33,10 @@ const RoleSchema = z.enum(UserRole)
 const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {
   message: "Ungültiges Datumsformat",
 })
-const PasswordSchema = z.string().min(6, { message: "Passwort muss mindestens 6 Zeichen lang sein." }).max(20, { message: "Passwort darf maximal 20 Zeichen lang sein." })
+const PasswordSchema = z
+  .string()
+  .min(6, { message: "Passwort muss mindestens 6 Zeichen lang sein." })
+  .max(20, { message: "Passwort darf maximal 20 Zeichen lang sein." })
 const OnetimePasswordSchema = z.string().regex(/^\d{6}$/, {
   message: "Das Einmalpasswort muss genau 6 Ziffern enthalten.",
 })
@@ -48,10 +51,21 @@ export const UserSchema = z.object({
 })
 export type User = z.infer<typeof UserSchema>
 
+export const LoginRequestSchema = z.object({
+  username: UsernameSchema,
+  password: PasswordSchema,
+})
+export const LoginResponseSchema = z.object({
+  token: z.string().min(10),
+})
+
 export const SetPasswordRequestSchema = z.object({
   username: UsernameSchema,
   password: PasswordSchema,
   onetimePassword: OnetimePasswordSchema,
+})
+export const SetPasswordResponseSchema = z.object({
+  token: z.string().min(10),
 })
 
 export const CreateUserRequestSchema = z.object({
@@ -59,13 +73,10 @@ export const CreateUserRequestSchema = z.object({
   username: UsernameSchema,
   role: RoleSchema,
 })
-export type CreateUserRequest = z.infer<typeof CreateUserRequestSchema>
-
 export const CreateUserResponseSchema = z.object({
   user: UserSchema,
   onetimePassword: OnetimePasswordSchema,
 })
-export type CreateUserResponse = z.infer<typeof CreateUserResponseSchema>
 
 export const UpdateUserRequestSchema = UserSchema.pick({
   id: true,
@@ -74,12 +85,9 @@ export const UpdateUserRequestSchema = UserSchema.pick({
   role: true,
   locked: true,
 })
-export type UpdateUserRequest = z.infer<typeof UpdateUserRequestSchema>
-
 export const UpdateUserResponseSchema = z.object({
   user: UserSchema,
 })
-export type UpdateUserResponse = z.infer<typeof UpdateUserResponseSchema>
 
 export const GetUsersResponseSchema = z.object({
   users: UserSchema.array(),

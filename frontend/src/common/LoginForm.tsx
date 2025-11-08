@@ -9,17 +9,19 @@ import { Field, FieldError, FieldGroup } from "@/components/ui/field"
 import { NavLink, useNavigate } from "react-router"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { BackendError, BackendSingleton } from "@/lib/backend"
-import { toUsername } from "@/lib/user"
+import { LoginRequestSchema, toUsername } from "@/lib/user"
+import z from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
 
-interface FormData {
-  username: string
-  password: string
-}
+const FormDataSchema = LoginRequestSchema
+type FormData = z.infer<typeof FormDataSchema>
 
 export function LoginForm() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
+    resolver: zodResolver(FormDataSchema),
+    mode: "onBlur",
     defaultValues: { username: "", password: "" },
   })
 
@@ -41,11 +43,11 @@ export function LoginForm() {
         if (error.code === "invalid_credentials") {
           form.setError("username", {
             type: "manual",
-            message: "Benutzername oder Passwort ist ungültig.",
+            message: "Benutzername oder Passwort ungültig.",
           })
           form.setError("password", {
             type: "manual",
-            message: "Benutzername oder Passwort ist ungültig.",
+            message: "Benutzername oder Passwort ungültig.",
           })
         }
       }
