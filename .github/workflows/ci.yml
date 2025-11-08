@@ -121,7 +121,7 @@ jobs:
 
   backend-integration-tests:
     needs: changes
-    if: ${{ needs.changes.outputs.backend == 'true' }} || ${{ needs.changes.outputs.database == 'true' }}
+    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') }}
     runs-on: ubuntu-latest
     services:
       postgres:
