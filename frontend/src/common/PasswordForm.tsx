@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { REGEXP_ONLY_DIGITS } from 'input-otp'
 import React from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { NavLink, useNavigate } from 'react-router'
 import type z from 'zod'
 
@@ -13,22 +12,13 @@ import {
   CardFooter,
   CardHeader,
 } from '@/components/ui/card'
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-} from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from '@/components/ui/input-otp'
+import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { AuthSingleton } from '@/lib/auth'
 import { BackendError, BackendSingleton } from '@/lib/backend'
-import { SetPasswordRequestSchema, toUsername } from '@/lib/user'
+import { SetPasswordRequestSchema } from '@/lib/user'
+
+import { NewPasswordField, OTPField, UsernameField } from './FormFields'
 
 const FormDataSchema = SetPasswordRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
@@ -38,7 +28,7 @@ export function PasswordForm() {
   const [loading, setLoading] = React.useState(false)
   const form = useForm<FormData>({
     resolver: zodResolver(FormDataSchema),
-    mode: 'onBlur',
+    mode: 'onTouched',
     defaultValues: { username: '', password: '', onetimePassword: '' },
   })
 
@@ -100,45 +90,8 @@ export function PasswordForm() {
           }}
         >
           <FieldGroup className="gap-2">
-            <Controller
-              name="username"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-1">
-                  <Input
-                    {...field}
-                    onChange={(e) => {
-                      const username = toUsername(e.target.value)
-                      field.onChange(username)
-                    }}
-                    aria-invalid={fieldState.invalid}
-                    placeholder="Benutzername"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="password"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-1">
-                  <Input
-                    {...field}
-                    type="password"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="Neues Passwort"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
+            <UsernameField form={form} />
+            <NewPasswordField form={form} />
           </FieldGroup>
           <FieldGroup
             className="my-8"
@@ -147,35 +100,7 @@ export function PasswordForm() {
               !form.formState.dirtyFields.password
             }
           >
-            <Controller
-              name="onetimePassword"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-1">
-                  <InputOTP
-                    maxLength={6}
-                    aria-invalid={fieldState.invalid}
-                    pattern={REGEXP_ONLY_DIGITS}
-                    {...field}
-                  >
-                    <InputOTPGroup className="mx-auto">
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                  <FieldDescription className="text-center">
-                    Gib deinen Code ein.
-                  </FieldDescription>
-                </Field>
-              )}
-            />
+            <OTPField form={form} />
           </FieldGroup>
         </form>
       </CardContent>

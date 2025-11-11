@@ -1,17 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { NavLink, useNavigate } from 'react-router'
 import z from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Field, FieldError, FieldGroup } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { AuthSingleton } from '@/lib/auth'
 import { BackendError, BackendSingleton } from '@/lib/backend'
-import { LoginRequestSchema, toUsername } from '@/lib/user'
+import { LoginRequestSchema } from '@/lib/user'
+
+import { PasswordField, UsernameField } from './FormFields'
 
 const FormDataSchema = LoginRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
@@ -21,7 +22,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     resolver: zodResolver(FormDataSchema),
-    mode: 'onBlur',
+    mode: 'onTouched',
     defaultValues: { username: '', password: '' },
   })
 
@@ -71,45 +72,8 @@ export function LoginForm() {
           }}
         >
           <FieldGroup className="gap-2">
-            <Controller
-              name="username"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-1">
-                  <Input
-                    {...field}
-                    onChange={(e) => {
-                      const username = toUsername(e.target.value)
-                      field.onChange(username)
-                    }}
-                    aria-invalid={fieldState.invalid}
-                    placeholder="Benutzername"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="password"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-1">
-                  <Input
-                    {...field}
-                    type="password"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="Passwort"
-                    autoComplete="current-password"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
+            <UsernameField form={form} />
+            <PasswordField form={form} />
           </FieldGroup>
         </form>
       </CardContent>

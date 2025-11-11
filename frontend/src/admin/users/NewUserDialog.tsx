@@ -1,9 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { UserPlus } from 'lucide-react'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
+import { NameField, RoleField, UsernameField } from '@/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,29 +16,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { BackendSingleton } from '@/lib/backend'
-import {
-  CreateUserRequestSchema,
-  toUsername,
-  type User,
-  UserRole,
-} from '@/lib/user'
+import { CreateUserRequestSchema, type User, UserRole } from '@/lib/user'
 
 const FormDataSchema = CreateUserRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
@@ -52,7 +34,7 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
   const form = useForm<FormData>({
     defaultValues: { name: '', username: '', role: UserRole.SERVICE },
     resolver: zodResolver(FormDataSchema),
-    mode: 'onBlur',
+    mode: 'onTouched',
   })
 
   const onSubmit = async (data: FormData) => {
@@ -99,98 +81,9 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
           }}
         >
           <FieldGroup>
-            <Controller
-              name="name"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-1">
-                  <FieldLabel htmlFor="user-form-name">Name</FieldLabel>
-                  <Input
-                    {...field}
-                    onBlur={() => {
-                      if (form.getValues('username').length === 0) {
-                        const username = toUsername(field.value)
-                        form.setValue('username', username, {
-                          shouldDirty: true,
-                          shouldValidate: true,
-                        })
-                      }
-                      field.onBlur()
-                    }}
-                    id="user-form-name"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="Vor- und Nachname eingeben"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="username"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-1">
-                  <FieldLabel htmlFor="user-form-username">
-                    Benutzername
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    onChange={(e) => {
-                      const username = toUsername(e.target.value)
-                      field.onChange(username)
-                    }}
-                    id="user-form-username"
-                    aria-invalid={fieldState.invalid}
-                    placeholder=""
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="role"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="gap-1">
-                  <FieldLabel htmlFor="user-form-role">Rolle</FieldLabel>
-                  {field.value === 'admin' && (
-                    <FieldDescription>
-                      Administratoren können alle Funktionen nutzen.
-                    </FieldDescription>
-                  )}
-                  {field.value === 'service' && (
-                    <FieldDescription>
-                      Service kann Bestellungen und Bezahlungen verwalten.
-                    </FieldDescription>
-                  )}
-                  <Select
-                    name={field.name}
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <SelectTrigger
-                      id="user-form-role"
-                      aria-invalid={fieldState.invalid}
-                    >
-                      <SelectValue placeholder="Auswählen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrator</SelectItem>
-                      <SelectItem value="service">Service</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
+            <NameField form={form} withLabel />
+            <UsernameField form={form} withLabel />
+            <RoleField form={form} withLabel />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">
