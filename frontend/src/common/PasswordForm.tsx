@@ -1,17 +1,11 @@
+import { zodResolver } from "@hookform/resolvers/zod"
+import { REGEXP_ONLY_DIGITS } from "input-otp"
 import React from "react"
-
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Spinner } from "@/components/ui/spinner"
-import { AuthSingleton } from "@/lib/auth"
 import { Controller, useForm } from "react-hook-form"
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-} from "@/components/ui/field"
 import { NavLink, useNavigate } from "react-router"
+import type z from "zod"
+
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -20,15 +14,21 @@ import {
   CardHeader,
 } from "@/components/ui/card"
 import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp"
-import { REGEXP_ONLY_DIGITS } from "input-otp"
+import { Spinner } from "@/components/ui/spinner"
+import { AuthSingleton } from "@/lib/auth"
 import { BackendError, BackendSingleton } from "@/lib/backend"
 import { SetPasswordRequestSchema, toUsername } from "@/lib/user"
-import type z from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
 
 const FormDataSchema = SetPasswordRequestSchema
 type FormData = z.infer<typeof FormDataSchema>

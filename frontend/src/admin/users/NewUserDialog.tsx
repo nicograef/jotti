@@ -1,5 +1,9 @@
-import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { UserPlus } from "lucide-react"
+import { useState } from "react"
+import { Controller, useForm } from "react-hook-form"
+import { z } from "zod"
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -19,7 +23,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { UserPlus } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -27,16 +30,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { toUsername, UserRole, UserSchema, type User } from "@/lib/user"
-import { useState } from "react"
+import { Spinner } from "@/components/ui/spinner"
 import { BackendSingleton } from "@/lib/backend"
-import { z } from "zod"
+import { CreateUserRequestSchema, toUsername, type User,UserRole } from "@/lib/user"
 
-const FormDataSchema = UserSchema.pick({
-  name: true,
-  username: true,
-  role: true,
-})
+const FormDataSchema = CreateUserRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewUserDialogProps {
@@ -202,8 +200,8 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
               Abbrechen
             </Button>
           </DialogClose>
-          <Button type="submit" form="user-form" disabled={loading}>
-            Benutzer anlegen
+          <Button type="submit" form="user-form" disabled={loading  || !form.formState.isValid}>
+            {loading ? <Spinner /> : <></>} Benutzer anlegen
           </Button>
         </DialogFooter>
       </DialogContent>

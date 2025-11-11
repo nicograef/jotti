@@ -1,7 +1,7 @@
+import { redirect } from "react-router"
+
 import { PasswordForm } from "@/common/PasswordForm"
 import { AuthSingleton } from "@/lib/auth"
-
-import { redirect } from "react-router"
 
 export function LoadingPageLoader() {
   if (AuthSingleton.isAuthenticated && AuthSingleton.isAdmin) {

@@ -6,6 +6,7 @@ import tseslint from "typescript-eslint"
 import { defineConfig, globalIgnores } from "eslint/config"
 import reactX from "eslint-plugin-react-x"
 import reactDom from "eslint-plugin-react-dom"
+import simpleImportSort from "eslint-plugin-simple-import-sort"
 // Note the `/flat` suffix here, the difference from default entry is that
 // `/flat` added `name` property to the exported object to improve
 // [config-inspector](https://eslint.org/blog/2024/04/eslint-config-inspector/) experience.
@@ -32,6 +33,13 @@ export default defineConfig([
       },
       ecmaVersion: 2020,
       globals: globals.browser,
+    },
+    plugins: {
+      "simple-import-sort": simpleImportSort,
+    },
+    rules: {
+      "simple-import-sort/imports": "error",
+      "simple-import-sort/exports": "error",
     },
   },
 ])

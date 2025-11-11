@@ -1,13 +1,14 @@
 import { createBrowserRouter, redirect } from "react-router"
-import App from "./App"
-import { LoginPage } from "./pages/LoginPage"
-import { AdminUsersPage } from "./pages/AdminUsersPage"
-import { AdminProductsPage } from "./pages/AdminProductsPage"
-import { AdminTablesPage } from "./pages/AdminTablesPage"
-import { PasswordPage } from "./pages/PasswordPage"
 
 import { AuthSingleton } from "@/lib/auth"
+
 import { AdminLayout } from "./admin/AdminLayout"
+import App from "./App"
+import { AdminProductsPage } from "./pages/AdminProductsPage"
+import { AdminTablesPage } from "./pages/AdminTablesPage"
+import { AdminUsersPage } from "./pages/AdminUsersPage"
+import { LoginPage } from "./pages/LoginPage"
+import { PasswordPage } from "./pages/PasswordPage"
 
 function AuthRedirect() {
   if (AuthSingleton.isAuthenticated && AuthSingleton.isAdmin) {

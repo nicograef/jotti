@@ -1,4 +1,6 @@
 import { z } from "zod"
+
+import { AuthSingleton } from "./auth"
 import {
   CreateUserRequestSchema,
   CreateUserResponseSchema,
@@ -12,7 +14,6 @@ import {
   type User,
   type UserRole,
 } from "./user"
-import { AuthSingleton } from "./auth"
 
 const ErrorResponseSchema = z.object({
   code: z.string(),

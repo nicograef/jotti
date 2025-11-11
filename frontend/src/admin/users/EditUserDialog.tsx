@@ -1,5 +1,9 @@
-import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { DialogDescription } from "@radix-ui/react-dialog"
+import { useState } from "react"
+import { Controller, useForm } from "react-hook-form"
+import { z } from "zod"
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -25,12 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { toUsername, UserSchema, type User } from "@/lib/user"
-import { useState } from "react"
-import { BackendSingleton } from "@/lib/backend"
-import { z } from "zod"
-import { DialogDescription } from "@radix-ui/react-dialog"
 import { Switch } from "@/components/ui/switch"
+import { BackendSingleton } from "@/lib/backend"
+import { toUsername, type User,UserSchema } from "@/lib/user"
 
 const FormDataSchema = UserSchema.pick({
   name: true,
