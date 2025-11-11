@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -75,7 +76,10 @@ func (s *Service) CreateUser(name, username string, role Role) (*User, string, e
 		return nil, "", ErrPasswordHashing
 	}
 
-	userID, err := s.DB.CreateUser(name, username, onetimePasswordHash, role)
+	// usernames are always lowercase in jotti
+	lowerCaseUsername := strings.ToLower(username)
+
+	userID, err := s.DB.CreateUser(name, lowerCaseUsername, onetimePasswordHash, role)
 	if err != nil {
 		log.Printf("ERROR Failed to create user: %v", err)
 		return nil, "", ErrDatabase
@@ -84,7 +88,7 @@ func (s *Service) CreateUser(name, username string, role Role) (*User, string, e
 	return &User{
 		ID:        userID,
 		Name:      name,
-		Username:  username,
+		Username:  lowerCaseUsername,
 		Role:      role,
 		Locked:    false,
 		CreatedAt: time.Now(),
