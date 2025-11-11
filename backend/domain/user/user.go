@@ -3,8 +3,11 @@ package user
 import (
 	"errors"
 	"log"
+	"regexp"
 	"strings"
 	"time"
+
+	z "github.com/Oudwins/zog"
 )
 
 // Role represents the role of a user.
@@ -28,6 +31,24 @@ type User struct {
 	OnetimePasswordHash string    `json:"-"`
 	CreatedAt           time.Time `json:"createdAt"`
 }
+
+// IDSchema defines the schema for a user ID.
+var IDSchema = z.Int().GTE(1, z.Message("Invalid user ID"))
+
+// NameSchema defines the schema for a user's name.
+var NameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(50, z.Message("Name too long"))
+
+// UsernameSchema defines the schema for a username.
+var UsernameSchema = z.String().Trim().Min(3, z.Message("Username too short")).Max(20, z.Message("Username too long")).Match(
+	regexp.MustCompile(`^[a-z0-9]+$`),
+	z.Message("Only lowercase alphanumerical usernames allowed"),
+)
+
+// RoleSchema defines the schema for a user role.
+var RoleSchema = z.StringLike[Role]().OneOf(
+	[]Role{AdminRole, ServiceRole},
+	z.Message("Invalid role"),
+)
 
 // ErrUserNotFound is returned when a user is not found.
 var ErrUserNotFound = errors.New("user not found")

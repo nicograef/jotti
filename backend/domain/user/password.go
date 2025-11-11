@@ -6,9 +6,20 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
+	z "github.com/Oudwins/zog"
 	"golang.org/x/crypto/argon2"
+)
+
+// PasswordSchema defines the schema for a password.
+var PasswordSchema = z.String().Trim().Min(6, z.Message("Password too short")).Max(20, z.Message("Password too long"))
+
+// OnetimePasswordSchema defines the schema for a one-time password.
+var OnetimePasswordSchema = z.String().Trim().Len(6, z.Message("Onetime password must be 6 digits")).Match(
+	regexp.MustCompile(`^[0-9]{6}$`),
+	z.Message("Onetime password must be 6 digits"),
 )
 
 type argon2Configuration struct {

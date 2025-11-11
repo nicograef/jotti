@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/domain/auth"
 	usr "github.com/nicograef/jotti/backend/domain/user"
 )
@@ -12,6 +13,11 @@ type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+
+var loginRequestSchema = z.Struct(z.Shape{
+	"Username": usr.UsernameSchema.Required(),
+	"Password": usr.PasswordSchema.Required(),
+})
 
 type loginResponse struct {
 	Token string `json:"token"`
@@ -26,6 +32,10 @@ func LoginHandler(us *usr.Service, as *auth.Service) http.HandlerFunc {
 
 		body := loginRequest{}
 		if !readJSONRequest(w, r, &body) {
+			return
+		}
+
+		if !validateBody(w, &body, loginRequestSchema) {
 			return
 		}
 
@@ -68,6 +78,12 @@ type setPasswordRequest struct {
 	OnetimePassword string `json:"onetimePassword"`
 }
 
+var setPasswordRequestSchema = z.Struct(z.Shape{
+	"Username":        usr.UsernameSchema.Required(),
+	"Password":        usr.PasswordSchema.Required(),
+	"OnetimePassword": usr.OnetimePasswordSchema.Required(),
+})
+
 type setPasswordResponse struct {
 	Token string `json:"token"`
 }
@@ -81,6 +97,10 @@ func SetPasswordHandler(us *usr.Service, as *auth.Service) http.HandlerFunc {
 
 		body := setPasswordRequest{}
 		if !readJSONRequest(w, r, &body) {
+			return
+		}
+
+		if !validateBody(w, &body, setPasswordRequestSchema) {
 			return
 		}
 

@@ -3,7 +3,6 @@ package api
 import (
 	"errors"
 	"net/http"
-	"regexp"
 
 	z "github.com/Oudwins/zog"
 
@@ -17,9 +16,9 @@ type createUserRequest struct {
 }
 
 var createUserRequestSchema = z.Struct(z.Shape{
-	"Name":     z.String().Required().Trim().Min(3).Max(50),
-	"Username": z.String().Required().Trim().Min(3).Max(20).Match(regexp.MustCompile(`^[a-z0-9]+$`), z.Message("Only lowercase alphanumerical usernames allowed")),
-	"Role":     z.StringLike[usr.Role]().Required().OneOf([]usr.Role{usr.AdminRole, usr.ServiceRole}),
+	"Name":     usr.NameSchema.Required(),
+	"Username": usr.UsernameSchema.Required(),
+	"Role":     usr.RoleSchema.Required(),
 })
 
 type createUserResponse struct {
@@ -64,6 +63,14 @@ type updateUserRequest struct {
 	Locked   bool     `json:"locked"`
 }
 
+var updateUserRequestSchema = z.Struct(z.Shape{
+	"ID":       usr.IDSchema.Required(),
+	"Name":     usr.NameSchema.Required(),
+	"Username": usr.UsernameSchema.Required(),
+	"Role":     usr.RoleSchema.Required(),
+	"Locked":   z.Bool().Required(),
+})
+
 type updateUserResponse = struct {
 	User usr.User `json:"user"`
 }
@@ -77,6 +84,10 @@ func UpdateUserHandler(us *usr.Service) http.HandlerFunc {
 
 		body := updateUserRequest{}
 		if !readJSONRequest(w, r, &body) {
+			return
+		}
+
+		if !validateBody(w, &body, updateUserRequestSchema) {
 			return
 		}
 
@@ -125,6 +136,10 @@ type resetPasswordRequest struct {
 	UserID int `json:"userID"`
 }
 
+var resetPasswordRequestSchema = z.Struct(z.Shape{
+	"UserID": usr.IDSchema.Required(),
+})
+
 type resetPasswordResponse struct {
 	OnetimePassword string `json:"onetimePassword"`
 }
@@ -138,6 +153,10 @@ func ResetPasswordHandler(us *usr.Service) http.HandlerFunc {
 
 		body := resetPasswordRequest{}
 		if !readJSONRequest(w, r, &body) {
+			return
+		}
+
+		if !validateBody(w, &body, resetPasswordRequestSchema) {
 			return
 		}
 
