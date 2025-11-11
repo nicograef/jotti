@@ -1,6 +1,6 @@
-import { Lamp, ReceiptText, Users,Utensils } from "lucide-react"
-import { NavLink, useNavigate } from "react-router"
-import { useLocation } from "react-router"
+import { Lamp, ReceiptText, Users, Utensils } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router'
+import { useLocation } from 'react-router'
 
 import {
   Sidebar,
@@ -13,28 +13,28 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { AuthSingleton } from "@/lib/auth"
+} from '@/components/ui/sidebar'
+import { AuthSingleton } from '@/lib/auth'
 
 const items = [
   {
-    title: "Bestellungen",
-    url: "/admin/orders",
+    title: 'Bestellungen',
+    url: '/admin/orders',
     icon: ReceiptText,
   },
   {
-    title: "Produkte",
-    url: "/admin/products",
+    title: 'Produkte',
+    url: '/admin/products',
     icon: Utensils,
   },
   {
-    title: "Tische",
-    url: "/admin/tables",
+    title: 'Tische',
+    url: '/admin/tables',
     icon: Lamp,
   },
   {
-    title: "Benutzer",
-    url: "/admin/users",
+    title: 'Benutzer',
+    url: '/admin/users',
     icon: Users,
   },
 ]
@@ -45,7 +45,7 @@ export function AdminSidebar() {
 
   const logout = () => {
     AuthSingleton.logout()
-    void navigate("/login")
+    void navigate('/login')
   }
 
   return (
@@ -88,7 +88,7 @@ export function AdminSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <p className="text-center text-sm text-muted-foreground">
-          Entwickelt von{" "}
+          Entwickelt von{' '}
           <a
             href="https://nicograef.de"
             target="_blank"

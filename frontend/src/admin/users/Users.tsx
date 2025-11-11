@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState } from 'react'
 
-import { UserTable } from "@/admin/users/UserTable"
-import { Card } from "@/components/ui/card"
-import { BackendSingleton } from "@/lib/backend"
-import type { User } from "@/lib/user"
+import { UserTable } from '@/admin/users/UserTable'
+import { Card } from '@/components/ui/card'
+import { BackendSingleton } from '@/lib/backend'
+import type { User } from '@/lib/user'
 
-import { EditUserDialog } from "./EditUserDialog"
-import { NewUserDialog } from "./NewUserDialog"
-import { UserCreatedDialog } from "./UserCreatedDialog"
+import { EditUserDialog } from './EditUserDialog'
+import { NewUserDialog } from './NewUserDialog'
+import { UserCreatedDialog } from './UserCreatedDialog'
 
 const initialUserCreatedState = {
   user: null as User | null,
-  onetimePassword: "",
+  onetimePassword: '',
   open: false,
 }
 

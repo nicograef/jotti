@@ -1,6 +1,6 @@
-import { z } from "zod"
+import { z } from 'zod'
 
-import { AuthSingleton } from "./auth"
+import { AuthSingleton } from './auth'
 import {
   CreateUserRequestSchema,
   CreateUserResponseSchema,
@@ -13,7 +13,7 @@ import {
   UpdateUserResponseSchema,
   type User,
   type UserRole,
-} from "./user"
+} from './user'
 
 const ErrorResponseSchema = z.object({
   code: z.string(),
@@ -55,7 +55,7 @@ class Backend {
   /** Sends a login request with the given username and password and returns the JWT token from the backend. */
   public async login(username: string, password: string): Promise<string> {
     const body = LoginRequestSchema.parse({ username, password })
-    const { token } = await this.post("login", body, LoginResponseSchema)
+    const { token } = await this.post('login', body, LoginResponseSchema)
     return token
   }
 
@@ -71,7 +71,7 @@ class Backend {
       onetimePassword,
     })
     const { token } = await this.post(
-      "set-password",
+      'set-password',
       body,
       SetPasswordResponseSchema,
     )
@@ -85,7 +85,7 @@ class Backend {
   ): Promise<{ user: User; onetimePassword: string }> {
     const body = CreateUserRequestSchema.parse({ name, username, role })
     const { user, onetimePassword } = await this.post(
-      "admin/create-user",
+      'admin/create-user',
       body,
       CreateUserResponseSchema,
     )
@@ -97,7 +97,7 @@ class Backend {
   ): Promise<User> {
     const body = UpdateUserRequestSchema.parse(updatedUser)
     const { user } = await this.post(
-      "admin/update-user",
+      'admin/update-user',
       body,
       UpdateUserResponseSchema,
     )
@@ -106,7 +106,7 @@ class Backend {
 
   public async getUsers(): Promise<User[]> {
     const { users } = await this.post(
-      "admin/get-users",
+      'admin/get-users',
       {},
       GetUsersResponseSchema,
     )
@@ -120,9 +120,9 @@ class Backend {
   ): Promise<TResponse> {
     const token = this.tokenGetter.getToken()
     const response = await fetch(`${this.baseUrl}/${endpoint}`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(body),
@@ -139,10 +139,10 @@ class Backend {
       } catch (error) {
         if (error instanceof BackendError) throw error
 
-        console.error("Failed to parse error response:", error)
+        console.error('Failed to parse error response:', error)
         const responseText = await response.text()
-        console.log("Response text:", responseText)
-        throw new BackendError(response.status, "unknown", responseText)
+        console.log('Response text:', responseText)
+        throw new BackendError(response.status, 'unknown', responseText)
       }
     }
 
@@ -157,6 +157,6 @@ class Backend {
 }
 
 export const BackendSingleton = new Backend(
-  "https://automatic-space-umbrella-v655jg4vp5jfp69-3000.app.github.dev",
+  'https://automatic-space-umbrella-v655jg4vp5jfp69-3000.app.github.dev',
   AuthSingleton,
 )

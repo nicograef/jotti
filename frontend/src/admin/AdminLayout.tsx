@@ -1,8 +1,8 @@
-import { Outlet } from "react-router"
+import { Outlet } from 'react-router'
 
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 
-import { AdminSidebar } from "./AdminSidebar"
+import { AdminSidebar } from './AdminSidebar'
 
 export function AdminLayout() {
   return (

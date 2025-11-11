@@ -1,7 +1,7 @@
-import { LockKeyhole, ShieldUser } from "lucide-react"
+import { LockKeyhole, ShieldUser } from 'lucide-react'
 
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -9,8 +9,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { type User,UserRole } from "@/lib/user"
+} from '@/components/ui/table'
+import { type User, UserRole } from '@/lib/user'
 
 function UserTableRow(props: { user: User; onClick: (user: User) => void }) {
   const { user, onClick } = props

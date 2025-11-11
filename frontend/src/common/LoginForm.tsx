@@ -1,17 +1,17 @@
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useState } from "react"
-import { Controller, useForm } from "react-hook-form"
-import { NavLink, useNavigate } from "react-router"
-import z from "zod"
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import { NavLink, useNavigate } from 'react-router'
+import z from 'zod'
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Field, FieldError, FieldGroup } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Spinner } from "@/components/ui/spinner"
-import { AuthSingleton } from "@/lib/auth"
-import { BackendError, BackendSingleton } from "@/lib/backend"
-import { LoginRequestSchema, toUsername } from "@/lib/user"
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { Field, FieldError, FieldGroup } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/spinner'
+import { AuthSingleton } from '@/lib/auth'
+import { BackendError, BackendSingleton } from '@/lib/backend'
+import { LoginRequestSchema, toUsername } from '@/lib/user'
 
 const FormDataSchema = LoginRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
@@ -21,8 +21,8 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     resolver: zodResolver(FormDataSchema),
-    mode: "onBlur",
-    defaultValues: { username: "", password: "" },
+    mode: 'onBlur',
+    defaultValues: { username: '', password: '' },
   })
 
   const onSubmit = async (data: FormData) => {
@@ -32,22 +32,22 @@ export function LoginForm() {
       const token = await BackendSingleton.login(data.username, data.password)
       AuthSingleton.validateAndSetToken(token)
       if (AuthSingleton.isAdmin) {
-        await navigate("/admin")
+        await navigate('/admin')
       } else {
-        await navigate("/")
+        await navigate('/')
       }
     } catch (error: unknown) {
       console.error(error)
 
       if (error instanceof BackendError) {
-        if (error.code === "invalid_credentials") {
-          form.setError("username", {
-            type: "manual",
-            message: "Benutzername oder Passwort ungültig.",
+        if (error.code === 'invalid_credentials') {
+          form.setError('username', {
+            type: 'manual',
+            message: 'Benutzername oder Passwort ungültig.',
           })
-          form.setError("password", {
-            type: "manual",
-            message: "Benutzername oder Passwort ungültig.",
+          form.setError('password', {
+            type: 'manual',
+            message: 'Benutzername oder Passwort ungültig.',
           })
         }
       }

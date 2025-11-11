@@ -1,10 +1,10 @@
-import { zodResolver } from "@hookform/resolvers/zod"
-import { UserPlus } from "lucide-react"
-import { useState } from "react"
-import { Controller, useForm } from "react-hook-form"
-import { z } from "zod"
+import { zodResolver } from '@hookform/resolvers/zod'
+import { UserPlus } from 'lucide-react'
+import { useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import { z } from 'zod'
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogClose,
@@ -14,25 +14,30 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from '@/components/ui/dialog'
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Spinner } from "@/components/ui/spinner"
-import { BackendSingleton } from "@/lib/backend"
-import { CreateUserRequestSchema, toUsername, type User,UserRole } from "@/lib/user"
+} from '@/components/ui/select'
+import { Spinner } from '@/components/ui/spinner'
+import { BackendSingleton } from '@/lib/backend'
+import {
+  CreateUserRequestSchema,
+  toUsername,
+  type User,
+  UserRole,
+} from '@/lib/user'
 
 const FormDataSchema = CreateUserRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
@@ -45,9 +50,9 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
-    defaultValues: { name: "", username: "", role: UserRole.SERVICE },
+    defaultValues: { name: '', username: '', role: UserRole.SERVICE },
     resolver: zodResolver(FormDataSchema),
-    mode: "onBlur",
+    mode: 'onBlur',
   })
 
   const onSubmit = async (data: FormData) => {
@@ -103,9 +108,9 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
                   <Input
                     {...field}
                     onBlur={() => {
-                      if (form.getValues("username").length === 0) {
+                      if (form.getValues('username').length === 0) {
                         const username = toUsername(field.value)
-                        form.setValue("username", username, {
+                        form.setValue('username', username, {
                           shouldDirty: true,
                           shouldValidate: true,
                         })
@@ -154,12 +159,12 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid} className="gap-1">
                   <FieldLabel htmlFor="user-form-role">Rolle</FieldLabel>
-                  {field.value === "admin" && (
+                  {field.value === 'admin' && (
                     <FieldDescription>
                       Administratoren können alle Funktionen nutzen.
                     </FieldDescription>
                   )}
-                  {field.value === "service" && (
+                  {field.value === 'service' && (
                     <FieldDescription>
                       Service kann Bestellungen und Bezahlungen verwalten.
                     </FieldDescription>
@@ -200,7 +205,11 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
               Abbrechen
             </Button>
           </DialogClose>
-          <Button type="submit" form="user-form" disabled={loading  || !form.formState.isValid}>
+          <Button
+            type="submit"
+            form="user-form"
+            disabled={loading || !form.formState.isValid}
+          >
             {loading ? <Spinner /> : <></>} Benutzer anlegen
           </Button>
         </DialogFooter>

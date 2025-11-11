@@ -1,10 +1,10 @@
-import { zodResolver } from "@hookform/resolvers/zod"
-import { DialogDescription } from "@radix-ui/react-dialog"
-import { useState } from "react"
-import { Controller, useForm } from "react-hook-form"
-import { z } from "zod"
+import { zodResolver } from '@hookform/resolvers/zod'
+import { DialogDescription } from '@radix-ui/react-dialog'
+import { useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import { z } from 'zod'
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogClose,
@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from '@/components/ui/dialog'
 import {
   Field,
   FieldContent,
@@ -20,18 +20,18 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { BackendSingleton } from "@/lib/backend"
-import { toUsername, type User,UserSchema } from "@/lib/user"
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { BackendSingleton } from '@/lib/backend'
+import { toUsername, type User, UserSchema } from '@/lib/user'
 
 const FormDataSchema = UserSchema.pick({
   name: true,
@@ -53,7 +53,7 @@ export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
   const form = useForm<FormData>({
     defaultValues: props.user,
     resolver: zodResolver(FormDataSchema),
-    mode: "onBlur",
+    mode: 'onBlur',
   })
 
   const onOpenChange = (isOpen: boolean) => {
@@ -149,12 +149,12 @@ export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid} className="gap-1">
                   <FieldLabel htmlFor="user-form-role">Rolle</FieldLabel>
-                  {field.value === "admin" && (
+                  {field.value === 'admin' && (
                     <FieldDescription>
                       Administratoren können alle Funktionen nutzen.
                     </FieldDescription>
                   )}
-                  {field.value === "service" && (
+                  {field.value === 'service' && (
                     <FieldDescription>
                       Service kann Bestellungen und Bezahlungen verwalten.
                     </FieldDescription>

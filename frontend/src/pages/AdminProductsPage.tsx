@@ -1,4 +1,4 @@
-import { Products } from "@/admin/products/Products"
+import { Products } from '@/admin/products/Products'
 
 export function AdminProductsPage() {
   return <Products />

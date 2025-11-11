@@ -1,34 +1,34 @@
-import { zodResolver } from "@hookform/resolvers/zod"
-import { REGEXP_ONLY_DIGITS } from "input-otp"
-import React from "react"
-import { Controller, useForm } from "react-hook-form"
-import { NavLink, useNavigate } from "react-router"
-import type z from "zod"
+import { zodResolver } from '@hookform/resolvers/zod'
+import { REGEXP_ONLY_DIGITS } from 'input-otp'
+import React from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import { NavLink, useNavigate } from 'react-router'
+import type z from 'zod'
 
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
-} from "@/components/ui/card"
+} from '@/components/ui/card'
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from "@/components/ui/input-otp"
-import { Spinner } from "@/components/ui/spinner"
-import { AuthSingleton } from "@/lib/auth"
-import { BackendError, BackendSingleton } from "@/lib/backend"
-import { SetPasswordRequestSchema, toUsername } from "@/lib/user"
+} from '@/components/ui/input-otp'
+import { Spinner } from '@/components/ui/spinner'
+import { AuthSingleton } from '@/lib/auth'
+import { BackendError, BackendSingleton } from '@/lib/backend'
+import { SetPasswordRequestSchema, toUsername } from '@/lib/user'
 
 const FormDataSchema = SetPasswordRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
@@ -38,8 +38,8 @@ export function PasswordForm() {
   const [loading, setLoading] = React.useState(false)
   const form = useForm<FormData>({
     resolver: zodResolver(FormDataSchema),
-    mode: "onBlur",
-    defaultValues: { username: "", password: "", onetimePassword: "" },
+    mode: 'onBlur',
+    defaultValues: { username: '', password: '', onetimePassword: '' },
   })
 
   const onSubmit = async (data: FormData) => {
@@ -53,27 +53,27 @@ export function PasswordForm() {
       )
       AuthSingleton.validateAndSetToken(token)
       if (AuthSingleton.isAdmin) {
-        await navigate("/admin")
+        await navigate('/admin')
       } else {
-        await navigate("/")
+        await navigate('/')
       }
     } catch (error: unknown) {
       console.error(error)
 
       if (error instanceof BackendError) {
-        if (error.code === "invalid_credentials") {
-          form.setError("username", {
-            type: "manual",
-            message: "Benutzername oder Code ungültig.",
+        if (error.code === 'invalid_credentials') {
+          form.setError('username', {
+            type: 'manual',
+            message: 'Benutzername oder Code ungültig.',
           })
-          form.setError("onetimePassword", {
-            type: "manual",
-            message: "Benutzername oder Code ungültig.",
+          form.setError('onetimePassword', {
+            type: 'manual',
+            message: 'Benutzername oder Code ungültig.',
           })
-        } else if (error.code === "already_has_password") {
-          form.setError("password", {
-            type: "manual",
-            message: "Dieses Konto hat bereits ein Passwort festgelegt.",
+        } else if (error.code === 'already_has_password') {
+          form.setError('password', {
+            type: 'manual',
+            message: 'Dieses Konto hat bereits ein Passwort festgelegt.',
           })
         }
       }

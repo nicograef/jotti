@@ -1,52 +1,52 @@
-import { createBrowserRouter, redirect } from "react-router"
+import { createBrowserRouter, redirect } from 'react-router'
 
-import { AuthSingleton } from "@/lib/auth"
+import { AuthSingleton } from '@/lib/auth'
 
-import { AdminLayout } from "./admin/AdminLayout"
-import App from "./App"
-import { AdminProductsPage } from "./pages/AdminProductsPage"
-import { AdminTablesPage } from "./pages/AdminTablesPage"
-import { AdminUsersPage } from "./pages/AdminUsersPage"
-import { LoginPage } from "./pages/LoginPage"
-import { PasswordPage } from "./pages/PasswordPage"
+import { AdminLayout } from './admin/AdminLayout'
+import App from './App'
+import { AdminProductsPage } from './pages/AdminProductsPage'
+import { AdminTablesPage } from './pages/AdminTablesPage'
+import { AdminUsersPage } from './pages/AdminUsersPage'
+import { LoginPage } from './pages/LoginPage'
+import { PasswordPage } from './pages/PasswordPage'
 
 function AuthRedirect() {
   if (AuthSingleton.isAuthenticated && AuthSingleton.isAdmin) {
-    return redirect("/admin")
+    return redirect('/admin')
   } else if (AuthSingleton.isAuthenticated) {
-    return redirect("/")
+    return redirect('/')
   }
 }
 
 export function AdminGuard() {
   if (!AuthSingleton.isAuthenticated || !AuthSingleton.isAdmin) {
-    return redirect("/")
+    return redirect('/')
   }
 }
 
 export const router = createBrowserRouter([
   {
-    path: "/",
+    path: '/',
     Component: App,
     children: [
-      { path: "login", Component: LoginPage, loader: AuthRedirect },
-      { path: "set-password", Component: PasswordPage, loader: AuthRedirect },
+      { path: 'login', Component: LoginPage, loader: AuthRedirect },
+      { path: 'set-password', Component: PasswordPage, loader: AuthRedirect },
       {
-        path: "admin",
+        path: 'admin',
         Component: AdminLayout,
         loader: AdminGuard,
         children: [
-          { path: "orders", Component: AdminUsersPage },
-          { path: "products", Component: AdminProductsPage },
-          { path: "tables", Component: AdminTablesPage },
+          { path: 'orders', Component: AdminUsersPage },
+          { path: 'products', Component: AdminProductsPage },
+          { path: 'tables', Component: AdminTablesPage },
           {
-            path: "users",
+            path: 'users',
             Component: AdminUsersPage,
           },
-          { path: "", loader: () => redirect("orders") },
+          { path: '', loader: () => redirect('orders') },
         ],
       },
-      { path: "", loader: () => redirect("login") },
+      { path: '', loader: () => redirect('login') },
     ],
   },
 ])

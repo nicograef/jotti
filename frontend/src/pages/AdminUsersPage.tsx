@@ -1,4 +1,4 @@
-import { Users } from "@/admin/users/Users"
+import { Users } from '@/admin/users/Users'
 
 export function AdminUsersPage() {
   return <Users />

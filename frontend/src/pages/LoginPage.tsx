@@ -1,4 +1,4 @@
-import { LoginForm } from "@/common/LoginForm"
+import { LoginForm } from '@/common/LoginForm'
 
 export function LoginPage() {
   return (
@@ -6,7 +6,7 @@ export function LoginPage() {
       <LoginForm />
       <footer className="mt-6">
         <p className="text-muted-foreground text-sm ">
-          Entwickelt von{" "}
+          Entwickelt von{' '}
           <a
             href="https://nicograef.de"
             target="_blank"

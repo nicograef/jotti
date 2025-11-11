@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogClose,
@@ -7,9 +7,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Field, FieldLabel } from "@/components/ui/field"
-import type { User } from "@/lib/user"
+} from '@/components/ui/dialog'
+import { Field, FieldLabel } from '@/components/ui/field'
+import type { User } from '@/lib/user'
 
 interface UserCreatedDialogProps {
   user: User | null

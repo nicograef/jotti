@@ -1,13 +1,13 @@
-import { redirect } from "react-router"
+import { redirect } from 'react-router'
 
-import { PasswordForm } from "@/common/PasswordForm"
-import { AuthSingleton } from "@/lib/auth"
+import { PasswordForm } from '@/common/PasswordForm'
+import { AuthSingleton } from '@/lib/auth'
 
 export function LoadingPageLoader() {
   if (AuthSingleton.isAuthenticated && AuthSingleton.isAdmin) {
-    return redirect("/admin")
+    return redirect('/admin')
   } else if (AuthSingleton.isAuthenticated) {
-    return redirect("/")
+    return redirect('/')
   }
 }
 export function PasswordPage() {
@@ -16,7 +16,7 @@ export function PasswordPage() {
       <PasswordForm />
       <footer className="mt-6">
         <p className="text-muted-foreground text-sm ">
-          Entwickelt von{" "}
+          Entwickelt von{' '}
           <a
             href="https://nicograef.de"
             target="_blank"
