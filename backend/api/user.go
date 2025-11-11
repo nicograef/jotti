@@ -3,6 +3,9 @@ package api
 import (
 	"errors"
 	"net/http"
+	"regexp"
+
+	z "github.com/Oudwins/zog"
 
 	usr "github.com/nicograef/jotti/backend/domain/user"
 )
@@ -12,6 +15,12 @@ type createUserRequest struct {
 	Username string   `json:"username"`
 	Role     usr.Role `json:"role"`
 }
+
+var createUserRequestSchema = z.Struct(z.Shape{
+	"Name":     z.String().Required().Trim().Min(3).Max(50),
+	"Username": z.String().Required().Trim().Min(3).Max(20).Match(regexp.MustCompile(`^[a-z0-9]+$`), z.Message("Only lowercase alphanumerical usernames allowed")),
+	"Role":     z.StringLike[usr.Role]().Required().OneOf([]usr.Role{usr.AdminRole, usr.ServiceRole}),
+})
 
 type createUserResponse struct {
 	User            usr.User `json:"user"`
@@ -27,6 +36,10 @@ func CreateUserHandler(us *usr.Service) http.HandlerFunc {
 
 		body := createUserRequest{}
 		if !readJSONRequest(w, r, &body) {
+			return
+		}
+
+		if !validateBody(w, &body, createUserRequestSchema) {
 			return
 		}
 

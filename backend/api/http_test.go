@@ -7,7 +7,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	z "github.com/Oudwins/zog"
 )
 
 func TestSendJSONResponse(t *testing.T) {
@@ -56,6 +59,67 @@ func TestReadJSONRequest_InvalidJSON(t *testing.T) {
 	}
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestValidateBody_Success(t *testing.T) {
+	rec := httptest.NewRecorder()
+	type testStruct struct {
+		Foo string
+		Bar int
+	}
+	schema := z.Struct(z.Shape{
+		"Foo": z.String().Min(3),
+		"Bar": z.Int().GT(5),
+	})
+
+	body := testStruct{Foo: "bar", Bar: 10}
+	ok := validateBody(rec, &body, schema)
+
+	if !ok {
+		t.Errorf("expected body to be valid")
+	}
+	var resp errorResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err == nil {
+		t.Errorf("expected no response body, got %v", resp)
+	}
+}
+
+func TestValidateBody_Invalid(t *testing.T) {
+	rec := httptest.NewRecorder()
+	type testStruct struct {
+		Foo string
+		Bar int
+	}
+	schema := z.Struct(z.Shape{
+		"Foo": z.String().Min(3),
+		"Bar": z.Int().GT(5),
+	})
+
+	body := testStruct{Foo: "ab", Bar: 2}
+	ok := validateBody(rec, &body, schema)
+
+	if ok {
+		t.Errorf("expected body to be invalid")
+	}
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "number must be greater than 5") {
+		t.Errorf("expected error message about Bar greater than, got %s", rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "string must contain at least 3 character(s)") {
+		t.Errorf("expected error message about Foo length, got %s", rec.Body.String())
+	}
+	var resp errorResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Errorf("failed to decode response: %v", err)
+	}
+	if resp.Code != "invalid_request_body" {
+		t.Errorf("expected code invalid_request_body, got %s", resp.Code)
+	}
+	if resp.Details == nil {
+		t.Errorf("expected details in response, got nil")
 	}
 }
 

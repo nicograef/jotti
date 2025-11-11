@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	z "github.com/Oudwins/zog"
 )
 
 type errorResponse struct {
 	Message string `json:"message"`
 	Code    string `json:"code"`
+	Details any    `json:"details,omitempty"`
 }
 
 func sendJSONResponse(w http.ResponseWriter, data any, statusCode int) {
@@ -70,9 +73,23 @@ func readJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) boo
 	return true
 }
 
+func validateBody[T any](w http.ResponseWriter, body *T, schema *z.StructSchema) bool {
+	if err := schema.Validate(body); err != nil {
+		issues := z.Issues.SanitizeMapAndCollect(err)
+		log.Printf("ERROR Invalid request body: %v", issues)
+		sendBadRequestError(w, errorResponse{
+			Message: "Invalid request body",
+			Code:    "invalid_request_body",
+			Details: issues,
+		})
+		return false
+	}
+	return true
+}
+
 func validateMethod(w http.ResponseWriter, r *http.Request, expectedMethod string) bool {
 	if r.Method != expectedMethod {
-		log.Printf("WARN Invalid method %s, expected %s", r.Method, expectedMethod)
+		log.Printf("ERROR Invalid method %s, expected %s", r.Method, expectedMethod)
 		sendMethodNotAllowedError(w, errorResponse{
 			Message: "Method not allowed",
 			Code:    "method_not_allowed",
