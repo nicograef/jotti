@@ -50,15 +50,13 @@ func CreateTableHandler(ts *tbl.Service) http.HandlerFunc {
 }
 
 type updateTableRequest struct {
-	ID     int    `json:"id"`
-	Name   string `json:"name"`
-	Locked bool   `json:"locked"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 var updateTableRequestSchema = z.Struct(z.Shape{
-	"ID":     tbl.IDSchema.Required(),
-	"Name":   tbl.NameSchema.Required(),
-	"Locked": z.Bool().Required(),
+	"ID":   tbl.IDSchema.Required(),
+	"Name": tbl.NameSchema.Required(),
 })
 
 // UpdateTableHandler handles requests to update an existing table.
@@ -77,7 +75,7 @@ func UpdateTableHandler(ts *tbl.Service) http.HandlerFunc {
 			return
 		}
 
-		table, err := ts.UpdateTable(body.ID, body.Name, body.Locked)
+		table, err := ts.UpdateTable(body.ID, body.Name)
 		if err != nil {
 			if errors.Is(err, tbl.ErrTableNotFound) {
 				sendNotFoundError(w, errorResponse{

@@ -9,10 +9,18 @@ const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {
   message: 'Ungültiges Datumsformat',
 })
 
+export const TableStatus = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  DELETED: 'deleted',
+} as const
+export type TableStatus = (typeof TableStatus)[keyof typeof TableStatus]
+const TableStatusSchema = z.enum(TableStatus)
+
 export const TableSchema = z.object({
   id: TableIdSchema.int().positive(),
   name: TableNameSchema,
-  locked: z.boolean(),
+  status: TableStatusSchema,
   createdAt: DateStringSchema,
 })
 export type Table = z.infer<typeof TableSchema>
@@ -25,7 +33,7 @@ export type CreateTableRequest = z.infer<typeof CreateTableRequestSchema>
 const UpdateTableRequestSchema = z.object({
   id: TableIdSchema,
   name: TableNameSchema,
-  locked: z.boolean(),
+  status: z.enum(Status),
 })
 export type UpdateTableRequest = z.infer<typeof UpdateTableRequestSchema>
 

@@ -14,16 +14,16 @@ type TablePersistence struct {
 type dbtable struct {
 	ID        int          `db:"id"`
 	Name      string       `db:"name"`
-	Locked    bool         `db:"locked"`
+	Status    string       `db:"status"`
 	CreatedAt sql.NullTime `db:"created_at"`
 }
 
 // GetTable retrieves a table from the database by its ID.
 func (p *TablePersistence) GetTable(id int) (*table.Table, error) {
-	row := p.DB.QueryRow("SELECT id, name, locked, created_at FROM tables WHERE id = $1", id)
+	row := p.DB.QueryRow("SELECT id, name, status, created_at FROM tables WHERE id = $1 AND status != 'deleted'", id)
 
 	var dbTable dbtable
-	if err := row.Scan(&dbTable.ID, &dbTable.Name, &dbTable.Locked, &dbTable.CreatedAt); err != nil {
+	if err := row.Scan(&dbTable.ID, &dbTable.Name, &dbTable.Status, &dbTable.CreatedAt); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, table.ErrTableNotFound
 		}
@@ -33,14 +33,14 @@ func (p *TablePersistence) GetTable(id int) (*table.Table, error) {
 	return &table.Table{
 		ID:        dbTable.ID,
 		Name:      dbTable.Name,
-		Locked:    dbTable.Locked,
+		Status:    table.Status(dbTable.Status),
 		CreatedAt: dbTable.CreatedAt.Time,
 	}, nil
 }
 
 // GetAllTables retrieves all tables from the database.
 func (p *TablePersistence) GetAllTables() ([]*table.Table, error) {
-	rows, err := p.DB.Query("SELECT id, name, locked, created_at FROM tables")
+	rows, err := p.DB.Query("SELECT id, name, status, created_at FROM tables WHERE status != 'deleted' ORDER BY id ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -49,18 +49,18 @@ func (p *TablePersistence) GetAllTables() ([]*table.Table, error) {
 			err = closeErr
 		}
 	}()
-	
+
 	var tables []*table.Table
 	for rows.Next() {
 		var dbTable dbtable
-		if err := rows.Scan(&dbTable.ID, &dbTable.Name, &dbTable.Locked, &dbTable.CreatedAt); err != nil {
+		if err := rows.Scan(&dbTable.ID, &dbTable.Name, &dbTable.Status, &dbTable.CreatedAt); err != nil {
 			return nil, err
 		}
 
 		tables = append(tables, &table.Table{
 			ID:        dbTable.ID,
 			Name:      dbTable.Name,
-			Locked:    dbTable.Locked,
+			Status:    table.Status(dbTable.Status),
 			CreatedAt: dbTable.CreatedAt.Time,
 		})
 	}
@@ -71,7 +71,7 @@ func (p *TablePersistence) GetAllTables() ([]*table.Table, error) {
 // CreateTable creates a new table in the database.
 func (p *TablePersistence) CreateTable(name string) (int, error) {
 	var id int
-	err := p.DB.QueryRow("INSERT INTO tables (name, locked, created_at) VALUES ($1, $2, NOW()) RETURNING id", name, false).Scan(&id)
+	err := p.DB.QueryRow("INSERT INTO tables (name) VALUES ($1) RETURNING id", name).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -79,8 +79,8 @@ func (p *TablePersistence) CreateTable(name string) (int, error) {
 }
 
 // UpdateTable updates an existing table in the database.
-func (p *TablePersistence) UpdateTable(id int, name string, locked bool) error {
-	result, err := p.DB.Exec("UPDATE tables SET name = $1, locked = $2 WHERE id = $3", name, locked, id)
+func (p *TablePersistence) UpdateTable(id int, name string) error {
+	result, err := p.DB.Exec("UPDATE tables SET name = $1 WHERE id = $2", name, id)
 	if err != nil {
 		return err
 	}

@@ -17,6 +17,13 @@ export function toUsername(name: string) {
     .replace(/[^a-z0-9]/g, '')
 }
 
+export const Status = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  DELETED: 'deleted',
+} as const
+export type Status = (typeof Status)[keyof typeof Status]
+
 const UserIdSchema = z.number().int().min(1)
 const NameSchema = z
   .string()
@@ -47,7 +54,7 @@ export const UserSchema = z.object({
   username: UsernameSchema,
   role: RoleSchema,
   createdAt: DateStringSchema,
-  locked: z.boolean(),
+  status: z.enum(Status),
 })
 export type User = z.infer<typeof UserSchema>
 
@@ -83,7 +90,7 @@ export const UpdateUserRequestSchema = UserSchema.pick({
   name: true,
   username: true,
   role: true,
-  locked: true,
+  status: true,
 })
 export const UpdateUserResponseSchema = z.object({
   user: UserSchema,

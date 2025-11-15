@@ -257,3 +257,43 @@ export function LockedField<AllFormFields extends FieldValues>({
     />
   )
 }
+
+export function StatusField<AllFormFields extends FieldValues>({
+  form,
+  withLabel,
+  description,
+}: FieldProps<{ status: 'active' | 'inactive' | 'deleted' } & AllFormFields>) {
+  return (
+    <Controller
+      name={
+        'status' as Path<
+          { status: 'active' | 'inactive' | 'deleted' } & AllFormFields
+        >
+      }
+      control={form.control}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid} className="gap-1">
+          {withLabel && <FieldLabel htmlFor="form-status">Status</FieldLabel>}
+          <FieldContent className="flex flex-col gap-2">
+            <Select
+              name={field.name}
+              value={field.value}
+              onValueChange={field.onChange}
+            >
+              <SelectTrigger id="form-status" aria-invalid={fieldState.invalid}>
+                <SelectValue placeholder="Auswählen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Aktiv</SelectItem>
+                <SelectItem value="inactive">Inaktiv</SelectItem>
+                <SelectItem value="deleted">Gelöscht</SelectItem>
+              </SelectContent>
+            </Select>
+            {description && <FieldDescription>{description}</FieldDescription>}
+          </FieldContent>
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  )
+}

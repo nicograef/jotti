@@ -52,10 +52,10 @@ func LoginHandler(us *usr.Service, as *auth.Service) http.HandlerFunc {
 			return
 		}
 
-		if user.Locked {
+		if user.Status != usr.ActiveStatus {
 			sendUnauthorizedError(w, errorResponse{
-				Message: "User account is locked",
-				Code:    "user_locked",
+				Message: "User account is not active",
+				Code:    "user_inactive",
 			})
 			return
 		}

@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import {
-  LockedField,
   NameField,
   RoleField,
   UsernameField,
@@ -28,7 +27,6 @@ const FormDataSchema = UserSchema.pick({
   name: true,
   username: true,
   role: true,
-  locked: true,
 })
 type FormData = z.infer<typeof FormDataSchema>
 
@@ -93,7 +91,6 @@ export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
             <NameField form={form} withLabel />
             <UsernameField form={form} withLabel />
             <RoleField form={form} withLabel />
-            <LockedField form={form} withLabel />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">

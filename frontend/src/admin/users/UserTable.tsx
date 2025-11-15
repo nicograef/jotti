@@ -21,7 +21,9 @@ function UserTableRow(props: { user: User; onClick: (user: User) => void }) {
         onClick(user)
       }}
     >
-      <TableCell>{user.locked ? <LockKeyhole size="30" /> : <></>}</TableCell>
+      <TableCell>
+        {user.status === 'inactive' ? <LockKeyhole size="30" /> : <></>}
+      </TableCell>
       <TableCell className="font-medium">{user.name}</TableCell>
       <TableCell>{user.username}</TableCell>
       <TableCell>
