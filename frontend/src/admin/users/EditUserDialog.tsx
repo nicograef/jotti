@@ -9,7 +9,7 @@ import {
   NameField,
   RoleField,
   UsernameField,
-} from '@/common/FormFields'
+} from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,

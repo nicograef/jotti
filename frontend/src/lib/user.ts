@@ -17,7 +17,7 @@ export function toUsername(name: string) {
     .replace(/[^a-z0-9]/g, '')
 }
 
-const UserIdSchema = z.number().min(1)
+const UserIdSchema = z.number().int().min(1)
 const NameSchema = z
   .string()
   .min(5, { message: 'Das sieht nicht nach einem echten Namen aus.' })

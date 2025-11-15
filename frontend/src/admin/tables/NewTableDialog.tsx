@@ -4,11 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import {
-  NameField,
-  RoleField,
-  UsernameField,
-} from '@/components/common/FormFields'
+import { NameField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,20 +19,24 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { BackendSingleton } from '@/lib/backend'
-import { CreateUserRequestSchema, type User, UserRole } from '@/lib/user'
+import {
+  CreateTableRequestSchema,
+  type Table,
+  TableBackend,
+} from '@/lib/TableBackend'
 
-const FormDataSchema = CreateUserRequestSchema
+const FormDataSchema = CreateTableRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
 
-interface NewUserDialogProps {
-  created: (user: User, onetimePassword: string) => void
+interface NewTableDialogProps {
+  created: (table: Table) => void
 }
 
-export function NewUserDialog({ created }: NewUserDialogProps) {
+export function NewTableDialog({ created }: NewTableDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
-    defaultValues: { name: '', username: '', role: UserRole.SERVICE },
+    defaultValues: { name: '' },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
@@ -45,14 +45,10 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
     setLoading(true)
 
     try {
-      const response = await BackendSingleton.createUser(
-        data.name,
-        data.username,
-        data.role as UserRole,
-      )
+      const table = await new TableBackend(BackendSingleton).createTable(data)
       form.reset()
       setOpen(false)
-      created(response.user, response.onetimePassword)
+      created(table)
     } catch (error: unknown) {
       console.error(error)
     }
@@ -65,19 +61,19 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
       <DialogTrigger asChild>
         <div className="fixed bottom-16 right-16 z-50">
           <Button className="cursor-pointer hover:shadow-sm">
-            <UserPlus /> Neuer Benutzer
+            <UserPlus /> Neuer Tisch
           </Button>
         </div>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="mb-4">
-          <DialogTitle>Neuen Benutzer anlegen</DialogTitle>
+          <DialogTitle>Neuen Tisch anlegen</DialogTitle>
           <DialogDescription>
-            Das Passwort kann der Benutzer später selbst festlegen.
+            Den Namen kannst du später jederzeit ändern.
           </DialogDescription>
         </DialogHeader>
         <form
-          id="user-form"
+          id="table-form"
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
@@ -85,11 +81,10 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
           }}
         >
           <FieldGroup>
-            <NameField form={form} withLabel />
-            <UsernameField form={form} withLabel />
-            <RoleField form={form} withLabel />
+            <NameField form={form} withLabel placeholder="z.B. Tisch 34" />
           </FieldGroup>
         </form>
+        
         <DialogFooter className="mt-4">
           <DialogClose asChild>
             <Button
@@ -104,10 +99,10 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
           </DialogClose>
           <Button
             type="submit"
-            form="user-form"
+            form="table-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Benutzer anlegen
+            {loading ? <Spinner /> : <></>} Tisch anlegen
           </Button>
         </DialogFooter>
       </DialogContent>

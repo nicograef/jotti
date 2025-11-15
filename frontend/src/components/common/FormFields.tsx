@@ -33,11 +33,13 @@ interface FieldProps<TField extends FieldValues> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<TField, any, TField>
   withLabel?: boolean
+  placeholder?: string
 }
 
 export function NameField<AllFormFields extends FieldValues>({
   form,
   withLabel,
+  placeholder,
 }: FieldProps<{ name: string } & AllFormFields>) {
   return (
     <Controller
@@ -50,7 +52,7 @@ export function NameField<AllFormFields extends FieldValues>({
             {...field}
             id="user-form-name"
             aria-invalid={fieldState.invalid}
-            placeholder="Vor- und Nachname eingeben"
+            placeholder={placeholder ?? 'Vor- und Nachname eingeben'}
             autoComplete="off"
           />
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -63,6 +65,7 @@ export function NameField<AllFormFields extends FieldValues>({
 export function UsernameField<AllFormFields extends FieldValues>({
   form,
   withLabel,
+  placeholder,
 }: FieldProps<{ username: string } & AllFormFields>) {
   return (
     <Controller
@@ -80,7 +83,7 @@ export function UsernameField<AllFormFields extends FieldValues>({
               field.onChange(username)
             }}
             aria-invalid={fieldState.invalid}
-            placeholder="Benutzername"
+            placeholder={placeholder ?? 'Benutzername'}
             autoComplete="off"
           />
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -92,6 +95,7 @@ export function UsernameField<AllFormFields extends FieldValues>({
 
 export function PasswordField<AllFormFields extends FieldValues>({
   form,
+  placeholder,
 }: FieldProps<{ password: string } & AllFormFields>) {
   return (
     <Controller
@@ -103,7 +107,7 @@ export function PasswordField<AllFormFields extends FieldValues>({
             {...field}
             type="password"
             aria-invalid={fieldState.invalid}
-            placeholder="Passwort"
+            placeholder={placeholder ?? 'Passwort'}
             autoComplete="current-password"
           />
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -115,6 +119,7 @@ export function PasswordField<AllFormFields extends FieldValues>({
 
 export function NewPasswordField<AllFormFields extends FieldValues>({
   form,
+  placeholder,
 }: FieldProps<{ password: string } & AllFormFields>) {
   return (
     <Controller
@@ -126,7 +131,7 @@ export function NewPasswordField<AllFormFields extends FieldValues>({
             {...field}
             type="password"
             aria-invalid={fieldState.invalid}
-            placeholder="Neues Passwort"
+            placeholder={placeholder ?? 'Neues Passwort'}
             autoComplete="off"
           />
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -175,6 +180,7 @@ export function OTPField<AllFormFields extends FieldValues>({
 export function RoleField<AllFormFields extends FieldValues>({
   form,
   withLabel,
+  placeholder,
 }: FieldProps<{ role: UserRole } & AllFormFields>) {
   return (
     <Controller
@@ -202,7 +208,7 @@ export function RoleField<AllFormFields extends FieldValues>({
               id="user-form-role"
               aria-invalid={fieldState.invalid}
             >
-              <SelectValue placeholder="Auswählen" />
+              <SelectValue placeholder={placeholder ?? 'Auswählen'} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="admin">Administrator</SelectItem>

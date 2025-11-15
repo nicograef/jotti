@@ -113,7 +113,7 @@ class Backend {
     return users
   }
 
-  private async post<TResponse>(
+  public async post<TResponse>(
     endpoint: string,
     body: unknown,
     responseSchema: z.ZodType<TResponse>,

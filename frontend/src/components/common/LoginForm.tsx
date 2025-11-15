@@ -22,7 +22,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     resolver: zodResolver(FormDataSchema),
-    mode: 'onTouched',
+    mode: 'onSubmit',
     defaultValues: { username: '', password: '' },
   })
 

@@ -44,7 +44,7 @@ export function UserCreatedDialog(props: UserCreatedDialogProps) {
         </Field>
         <DialogFooter className="mt-4">
           <DialogClose asChild>
-            <Button>Verstanden</Button>
+            <Button>ooookay</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

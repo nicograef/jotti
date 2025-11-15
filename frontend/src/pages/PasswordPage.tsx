@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 
-import { PasswordForm } from '@/common/PasswordForm'
+import { PasswordForm } from '@/components/common/PasswordForm'
 import { AuthSingleton } from '@/lib/auth'
 
 export function LoadingPageLoader() {

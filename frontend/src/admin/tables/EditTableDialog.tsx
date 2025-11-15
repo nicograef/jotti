@@ -1,58 +1,65 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { UserPlus } from 'lucide-react'
+import { DialogDescription } from '@radix-ui/react-dialog'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import {
-  NameField,
-  RoleField,
-  UsernameField,
-} from '@/components/common/FormFields'
+import { LockedField, NameField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { BackendSingleton } from '@/lib/backend'
-import { CreateUserRequestSchema, type User, UserRole } from '@/lib/user'
+import { type Table, TableBackend, TableSchema } from '@/lib/TableBackend'
 
-const FormDataSchema = CreateUserRequestSchema
+const FormDataSchema = TableSchema.pick({
+  name: true,
+  locked: true,
+})
 type FormData = z.infer<typeof FormDataSchema>
 
-interface NewUserDialogProps {
-  created: (user: User, onetimePassword: string) => void
+interface NewTableDialogProps {
+  open: boolean
+  table: Table
+  updated: (table: Table) => void
+  close: () => void
 }
 
-export function NewUserDialog({ created }: NewUserDialogProps) {
-  const [open, setOpen] = useState(false)
+export function EditTableDialog(props: Readonly<NewTableDialogProps>) {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
-    defaultValues: { name: '', username: '', role: UserRole.SERVICE },
+    defaultValues: props.table,
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
+
+  const onOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      form.reset()
+      props.close()
+    }
+  }
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
 
     try {
-      const response = await BackendSingleton.createUser(
-        data.name,
-        data.username,
-        data.role as UserRole,
+      const updatedTable = await new TableBackend(BackendSingleton).updateTable(
+        {
+          id: props.table.id,
+          ...data,
+        },
       )
       form.reset()
-      setOpen(false)
-      created(response.user, response.onetimePassword)
+      props.updated(updatedTable)
+      props.close()
     } catch (error: unknown) {
       console.error(error)
     }
@@ -61,23 +68,16 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <div className="fixed bottom-16 right-16 z-50">
-          <Button className="cursor-pointer hover:shadow-sm">
-            <UserPlus /> Neuer Benutzer
-          </Button>
-        </div>
-      </DialogTrigger>
+    <Dialog open={props.open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="mb-4">
-          <DialogTitle>Neuen Benutzer anlegen</DialogTitle>
+          <DialogTitle>{props.table.name}</DialogTitle>
           <DialogDescription>
-            Das Passwort kann der Benutzer später selbst festlegen.
+            Du kannst Namen und Status des Tisches ändern.
           </DialogDescription>
         </DialogHeader>
         <form
-          id="user-form"
+          id="table-form"
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
@@ -86,8 +86,7 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
         >
           <FieldGroup>
             <NameField form={form} withLabel />
-            <UsernameField form={form} withLabel />
-            <RoleField form={form} withLabel />
+            <LockedField form={form} withLabel />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">
@@ -104,10 +103,10 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
           </DialogClose>
           <Button
             type="submit"
-            form="user-form"
+            form="table-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Benutzer anlegen
+            {loading ? <Spinner /> : <></>} Speichern
           </Button>
         </DialogFooter>
       </DialogContent>
