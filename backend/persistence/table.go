@@ -44,8 +44,12 @@ func (p *TablePersistence) GetAllTables() ([]*table.Table, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}()
+	
 	var tables []*table.Table
 	for rows.Next() {
 		var dbTable dbtable
