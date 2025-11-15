@@ -11,6 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/api"
 	"github.com/nicograef/jotti/backend/config"
 	"github.com/nicograef/jotti/backend/domain/auth"
+	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/nicograef/jotti/backend/domain/user"
 	"github.com/nicograef/jotti/backend/persistence"
 )
@@ -44,7 +45,9 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 // SetupRoutes configures HTTP routes
 func (app *App) SetupRoutes() {
 	userPersistence := persistence.UserPersistence{DB: app.DB}
+	tablePersistence := persistence.TablePersistence{DB: app.DB}
 	userService := user.Service{DB: &userPersistence}
+	tableService := table.Service{DB: &tablePersistence}
 	authService := auth.Service{JWTSecret: app.Config.JWTSecret}
 	jwtMiddleware := api.NewJWTMiddleware(&authService)
 
@@ -57,6 +60,9 @@ func (app *App) SetupRoutes() {
 	app.Router.HandleFunc("/admin/update-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.UpdateUserHandler(&userService)))))
 	app.Router.HandleFunc("/admin/get-users", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.GetUsersHandler(&userService)))))
 	app.Router.HandleFunc("/admin/reset-password", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.ResetPasswordHandler(&userService)))))
+	app.Router.HandleFunc("/admin/get-tables", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.GetTablesHandler(&tableService)))))
+	app.Router.HandleFunc("/admin/update-table", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.UpdateTableHandler(&tableService)))))
+	app.Router.HandleFunc("/admin/create-table", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.CreateTableHandler(&tableService)))))
 
 	app.Server.Handler = app.Router
 }
