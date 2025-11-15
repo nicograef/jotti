@@ -34,6 +34,7 @@ interface FieldProps<TField extends FieldValues> {
   form: UseFormReturn<TField, any, TField>
   withLabel?: boolean
   placeholder?: string
+  description?: string
 }
 
 export function NameField<AllFormFields extends FieldValues>({
@@ -225,6 +226,7 @@ export function RoleField<AllFormFields extends FieldValues>({
 export function LockedField<AllFormFields extends FieldValues>({
   form,
   withLabel,
+  description,
 }: FieldProps<{ locked: boolean } & AllFormFields>) {
   return (
     <Controller
@@ -244,8 +246,8 @@ export function LockedField<AllFormFields extends FieldValues>({
             />
             {field.value && (
               <FieldDescription className="ml-4">
-                Wenn du diesen Benutzer sperrst, kann er sich nicht mehr
-                anmelden.
+                {description ??
+                  'Wenn du diesen Benutzer sperrst, kann er sich nicht mehr anmelden.'}
               </FieldDescription>
             )}
           </FieldContent>

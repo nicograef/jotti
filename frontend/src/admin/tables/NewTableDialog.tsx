@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { UserPlus } from 'lucide-react'
+import { Lamp } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -61,7 +61,7 @@ export function NewTableDialog({ created }: NewTableDialogProps) {
       <DialogTrigger asChild>
         <div className="fixed bottom-16 right-16 z-50">
           <Button className="cursor-pointer hover:shadow-sm">
-            <UserPlus /> Neuer Tisch
+            <Lamp /> Neuer Tisch
           </Button>
         </div>
       </DialogTrigger>
@@ -84,7 +84,7 @@ export function NewTableDialog({ created }: NewTableDialogProps) {
             <NameField form={form} withLabel placeholder="z.B. Tisch 34" />
           </FieldGroup>
         </form>
-        
+
         <DialogFooter className="mt-4">
           <DialogClose asChild>
             <Button

@@ -23,11 +23,11 @@ function TableTableRow(props: {
         onClick(table)
       }}
     >
-      <TableCell className="flex justify-center">
-        {table.locked ? <LockKeyhole size="30" /> : <></>}
-      </TableCell>
+      <TableCell>{table.locked ? <LockKeyhole size="30" /> : <></>}</TableCell>
       <TableCell className="font-medium">{table.name}</TableCell>
-      <TableCell>{new Date(table.createdAt).toLocaleString()} Uhr</TableCell>
+      <TableCell className="text-right">
+        {new Date(table.createdAt).toLocaleString()} Uhr
+      </TableCell>
     </TableRow>
   )
 }
@@ -59,9 +59,9 @@ export function TablesTable(props: Readonly<TablesTableProps>) {
     <TableComponent className="text-lg">
       <TableHeader className="h-18 bg-muted">
         <TableRow>
-          <TableHead>{/* Gesperrt */}</TableHead>
-          <TableHead>Name</TableHead>
-          <TableHead>Erstellungsdatum</TableHead>
+          <TableHead className="w-[50px]">{/* Gesperrt */}</TableHead>
+          <TableHead>Tischname</TableHead>
+          <TableHead className="text-right">Erstellungsdatum</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

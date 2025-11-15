@@ -86,7 +86,11 @@ export function EditTableDialog(props: Readonly<NewTableDialogProps>) {
         >
           <FieldGroup>
             <NameField form={form} withLabel />
-            <LockedField form={form} withLabel />
+            <LockedField
+              form={form}
+              withLabel
+              description="Wenn du diesen Tisch sperrst, können keine Bestellungen und Bezahlungen mehr darauf gebucht werden."
+            />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">

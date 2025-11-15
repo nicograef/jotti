@@ -25,6 +25,7 @@ export type CreateTableRequest = z.infer<typeof CreateTableRequestSchema>
 const UpdateTableRequestSchema = z.object({
   id: TableIdSchema,
   name: TableNameSchema,
+  locked: z.boolean(),
 })
 export type UpdateTableRequest = z.infer<typeof UpdateTableRequestSchema>
 

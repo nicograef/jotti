@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 
-import { UserTable } from '@/admin/tables/TablesTable'
+import { UserTable } from '@/admin/users/UserTable'
 import { Card } from '@/components/ui/card'
 import { BackendSingleton } from '@/lib/backend'
 import type { User } from '@/lib/user'
 
-import { EditUserDialog } from '../tables/EditTableDialog'
-import { NewUserDialog } from '../tables/NewTableDialog'
-import { UserCreatedDialog } from '../tables/TableCreatedDialog'
+import { EditUserDialog } from '../users/EditUserDialog'
+import { NewUserDialog } from '../users/NewUserDialog'
+import { UserCreatedDialog } from '../users/UserCreatedDialog'
 
 const initialUserCreatedState = {
   user: null as User | null,
@@ -69,7 +69,7 @@ export function Users() {
       )}
       <Card className="p-0">
         <UserTable
-          tables={users}
+          users={users}
           loading={loading}
           onClick={(user) => {
             setEditUserState({ user, open: true })

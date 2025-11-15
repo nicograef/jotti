@@ -21,9 +21,7 @@ function UserTableRow(props: { user: User; onClick: (user: User) => void }) {
         onClick(user)
       }}
     >
-      <TableCell className="flex justify-center">
-        {user.locked ? <LockKeyhole size="30" /> : <></>}
-      </TableCell>
+      <TableCell>{user.locked ? <LockKeyhole size="30" /> : <></>}</TableCell>
       <TableCell className="font-medium">{user.name}</TableCell>
       <TableCell>{user.username}</TableCell>
       <TableCell>
@@ -38,7 +36,9 @@ function UserTableRow(props: { user: User; onClick: (user: User) => void }) {
           </Badge>
         )}
       </TableCell>
-      <TableCell>{new Date(user.createdAt).toLocaleString()} Uhr</TableCell>
+      <TableCell className="text-right">
+        {new Date(user.createdAt).toLocaleString()} Uhr
+      </TableCell>
     </TableRow>
   )
 }
@@ -76,11 +76,11 @@ export function UserTable(props: Readonly<UsersTableProps>) {
     <Table className="text-lg">
       <TableHeader className="h-18 bg-muted">
         <TableRow>
-          <TableHead>{/* Gesperrt */}</TableHead>
+          <TableHead className="w-[50px]">{/* Gesperrt */}</TableHead>
           <TableHead>Name</TableHead>
           <TableHead>Benutzername</TableHead>
           <TableHead>Rolle</TableHead>
-          <TableHead>Erstellungsdatum</TableHead>
+          <TableHead className="text-right">Erstellungsdatum</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
