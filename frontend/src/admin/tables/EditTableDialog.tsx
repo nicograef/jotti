@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import { LockedField, NameField } from '@/components/common/FormFields'
+import { NameField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -16,12 +16,16 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { BackendSingleton } from '@/lib/backend'
-import { type Table, TableBackend, TableSchema } from '@/lib/TableBackend'
+import { BackendSingleton } from '@/lib/Backend'
+import {
+  type Table,
+  TableBackend,
+  TableSchema,
+} from '@/lib/TableBackend'
 
 const FormDataSchema = TableSchema.pick({
   name: true,
-  locked: true,
+  status: true,
 })
 type FormData = z.infer<typeof FormDataSchema>
 
@@ -86,11 +90,6 @@ export function EditTableDialog(props: Readonly<NewTableDialogProps>) {
         >
           <FieldGroup>
             <NameField form={form} withLabel />
-            <LockedField
-              form={form}
-              withLabel
-              description="Wenn du diesen Tisch sperrst, können keine Bestellungen und Bezahlungen mehr darauf gebucht werden."
-            />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">

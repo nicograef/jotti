@@ -9,15 +9,19 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { AuthSingleton } from '@/lib/auth'
-import { BackendError, BackendSingleton } from '@/lib/backend'
-import { LoginRequestSchema } from '@/lib/user'
+import { type AuthBackend, LoginRequestSchema } from '@/lib/AuthBackend'
+import { BackendError } from '@/lib/Backend'
 
 import { PasswordField, UsernameField } from './FormFields'
 
 const FormDataSchema = LoginRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
 
-export function LoginForm() {
+interface LoginFormProps {
+  backend: Pick<AuthBackend, 'login'>
+}
+
+export function LoginForm(props: LoginFormProps) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
@@ -30,7 +34,7 @@ export function LoginForm() {
     setLoading(true)
 
     try {
-      const token = await BackendSingleton.login(data.username, data.password)
+      const token = await props.backend.login(data.username, data.password)
       AuthSingleton.validateAndSetToken(token)
       if (AuthSingleton.isAdmin) {
         await navigate('/admin')

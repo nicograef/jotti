@@ -10,7 +10,7 @@ export function AdminLayout() {
       <AdminSidebar />
       <main className="min-h-screen w-full">
         <SidebarTrigger />
-        <div className="p-4 md:p-8 lg:p-12">
+        <div className="px-4 py-2 md:px-8 md:py-4 xl:px-12 xl:py-6">
           <Outlet />
         </div>
       </main>

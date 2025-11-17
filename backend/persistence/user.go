@@ -15,8 +15,8 @@ type dbuser struct {
 	ID                  int            `db:"id"`
 	Name                string         `db:"name"`
 	Username            string         `db:"username"`
-	Role                user.Role      `db:"role"`
-	Locked              bool           `db:"locked"`
+	Role                string         `db:"role"`
+	Status              string         `db:"status"`
 	PasswordHash        sql.NullString `db:"password_hash"`
 	OnetimePasswordHash sql.NullString `db:"onetime_password_hash"`
 	CreatedAt           sql.NullTime   `db:"created_at"`
@@ -24,10 +24,10 @@ type dbuser struct {
 
 // GetUser retrieves a user from the database by their ID.
 func (p *UserPersistence) GetUser(id int) (*user.User, error) {
-	row := p.DB.QueryRow("SELECT id, name, username, role, locked, password_hash, onetime_password_hash, created_at FROM users WHERE id = $1", id)
+	row := p.DB.QueryRow("SELECT id, name, username, role, status, password_hash, onetime_password_hash, created_at FROM users WHERE id = $1 AND status != 'deleted'", id)
 
 	var dbUser dbuser
-	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked, &dbUser.PasswordHash, &dbUser.OnetimePasswordHash, &dbUser.CreatedAt); err != nil {
+	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Status, &dbUser.PasswordHash, &dbUser.OnetimePasswordHash, &dbUser.CreatedAt); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, user.ErrUserNotFound
 		}
@@ -38,8 +38,8 @@ func (p *UserPersistence) GetUser(id int) (*user.User, error) {
 		ID:                  dbUser.ID,
 		Name:                dbUser.Name,
 		Username:            dbUser.Username,
-		Role:                dbUser.Role,
-		Locked:              dbUser.Locked,
+		Role:                user.Role(dbUser.Role),
+		Status:              user.Status(dbUser.Status),
 		PasswordHash:        dbUser.PasswordHash.String,
 		OnetimePasswordHash: dbUser.OnetimePasswordHash.String,
 		CreatedAt:           dbUser.CreatedAt.Time,
@@ -48,7 +48,7 @@ func (p *UserPersistence) GetUser(id int) (*user.User, error) {
 
 // GetUserID retrieves a user id from the database by their username.
 func (p *UserPersistence) GetUserID(username string) (int, error) {
-	row := p.DB.QueryRow("SELECT id FROM users WHERE username = $1", username)
+	row := p.DB.QueryRow("SELECT id FROM users WHERE username = $1 AND status != 'deleted'", username)
 
 	var userID int
 	if err := row.Scan(&userID); err != nil {
@@ -63,7 +63,7 @@ func (p *UserPersistence) GetUserID(username string) (int, error) {
 
 // GetAllUsers retrieves all users from the database.
 func (p *UserPersistence) GetAllUsers() ([]*user.User, error) {
-	rows, err := p.DB.Query("SELECT id, name, username, role, locked, created_at FROM users ORDER BY id ASC")
+	rows, err := p.DB.Query("SELECT id, name, username, role, status, created_at FROM users WHERE status != 'deleted' ORDER BY id ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -76,15 +76,15 @@ func (p *UserPersistence) GetAllUsers() ([]*user.User, error) {
 	var users []*user.User
 	for rows.Next() {
 		var dbUser dbuser
-		if err := rows.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Locked, &dbUser.CreatedAt); err != nil {
+		if err := rows.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Status, &dbUser.CreatedAt); err != nil {
 			return nil, err
 		}
 		users = append(users, &user.User{
 			ID:        dbUser.ID,
 			Name:      dbUser.Name,
 			Username:  dbUser.Username,
-			Role:      dbUser.Role,
-			Locked:    dbUser.Locked,
+			Role:      user.Role(dbUser.Role),
+			Status:    user.Status(dbUser.Status),
 			CreatedAt: dbUser.CreatedAt.Time,
 		})
 	}
@@ -109,8 +109,36 @@ func (p *UserPersistence) CreateUser(name, username, onetimePasswordHash string,
 }
 
 // UpdateUser updates the user's information in the database.
-func (p *UserPersistence) UpdateUser(id int, name, username string, role user.Role, locked bool) error {
-	result, err := p.DB.Exec("UPDATE users SET name = $1, username = $2, role = $3, locked = $4 WHERE id = $5", name, username, role, locked, id)
+func (p *UserPersistence) UpdateUser(id int, name, username string, role user.Role) error {
+	result, err := p.DB.Exec("UPDATE users SET name = $1, username = $2, role = $3 WHERE id = $4", name, username, role, id)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		return user.ErrUserNotFound
+	}
+
+	return nil
+}
+
+// ActivateUser sets the status of the user with the given user ID to 'active'.
+func (p *UserPersistence) ActivateUser(id int) error {
+	result, err := p.DB.Exec("UPDATE users SET status = 'active' WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		return user.ErrUserNotFound
+	}
+
+	return nil
+}
+
+// DeactivateUser sets the status of the user with the given user ID to 'inactive'.
+func (p *UserPersistence) DeactivateUser(id int) error {
+	result, err := p.DB.Exec("UPDATE users SET status = 'inactive' WHERE id = $1", id)
 	if err != nil {
 		return err
 	}

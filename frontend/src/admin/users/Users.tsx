@@ -1,81 +1,57 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
-import { UserTable } from '@/admin/users/UserTable'
-import { Card } from '@/components/ui/card'
-import { BackendSingleton } from '@/lib/backend'
-import type { User } from '@/lib/user'
+import { ItemGroup } from '@/components/ui/item'
+import { type User, type UserBackend, UserStatus } from '@/lib/UserBackend'
 
-import { EditUserDialog } from '../users/EditUserDialog'
-import { NewUserDialog } from '../users/NewUserDialog'
-import { UserCreatedDialog } from '../users/UserCreatedDialog'
+import { UserItem } from './UserItem'
 
-const initialUserCreatedState = {
-  user: null as User | null,
-  onetimePassword: '',
-  open: false,
+interface UsersProps {
+  loading: boolean
+  backend: Pick<UserBackend, 'activateUser' | 'deactivateUser'>
+  users: User[]
+  onEdit: (userId: number) => void
+  onStatusChange: (userId: number, status: UserStatus) => void
 }
 
-const initialEditUserState = {
-  user: null as User | null,
-  open: false,
-}
+export function Users(props: UsersProps) {
+  const [loading, setLoading] = useState(props.loading)
 
-export function Users() {
-  const [loading, setLoading] = useState(true)
-  const [users, setUsers] = useState<User[]>([])
-  const [userCreatedState, setUserCreatedState] = useState(
-    initialUserCreatedState,
-  )
-  const [editUserState, setEditUserState] = useState(initialEditUserState)
-
-  useEffect(() => {
-    async function fetchUsers() {
-      const response = await BackendSingleton.getUsers()
-      setUsers(response)
-      setLoading(false)
+  const activateUser = async (userId: number) => {
+    setLoading(true)
+    try {
+      await props.backend.activateUser(userId)
+      props.onStatusChange(userId, UserStatus.ACTIVE)
+    } catch (error) {
+      console.error('Error activating user:', error)
     }
-    void fetchUsers()
-  }, [])
+    setLoading(false)
+  }
 
-  const updateUser = (user: User) => {
-    setUsers((prevUsers) => prevUsers.map((u) => (u.id === user.id ? user : u)))
+  const deactivateUser = async (userId: number) => {
+    setLoading(true)
+    try {
+      await props.backend.deactivateUser(userId)
+      props.onStatusChange(userId, UserStatus.INACTIVE)
+    } catch (error) {
+      console.error('Error deactivating user:', error)
+    }
+    setLoading(false)
   }
 
   return (
     <>
-      <NewUserDialog
-        created={(user, onetimePassword) => {
-          setUsers((prevUsers) => [...prevUsers, user])
-          setUserCreatedState({ user, onetimePassword, open: true })
-        }}
-      />
-      <UserCreatedDialog
-        {...userCreatedState}
-        close={() => {
-          setUserCreatedState(initialUserCreatedState)
-        }}
-      />
-      {editUserState.user && (
-        <EditUserDialog
-          open={editUserState.open}
-          user={editUserState.user}
-          updated={(user) => {
-            updateUser(user)
-          }}
-          close={() => {
-            setEditUserState(initialEditUserState)
-          }}
-        />
-      )}
-      <Card className="p-0">
-        <UserTable
-          users={users}
-          loading={loading}
-          onClick={(user) => {
-            setEditUserState({ user, open: true })
-          }}
-        />
-      </Card>
+      <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+        {props.users.map((user) => (
+          <UserItem
+            key={user.id}
+            loading={loading || props.loading}
+            user={user}
+            onActivate={activateUser}
+            onDeactivate={deactivateUser}
+            onEdit={props.onEdit}
+          />
+        ))}
+      </ItemGroup>
     </>
   )
 }

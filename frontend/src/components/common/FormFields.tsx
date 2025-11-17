@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { toUsername, UserRole } from '@/lib/user'
+import { toUsername, UserRole } from '@/lib/UserBackend'
 
 interface FieldProps<TField extends FieldValues> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -250,6 +250,46 @@ export function LockedField<AllFormFields extends FieldValues>({
                   'Wenn du diesen Benutzer sperrst, kann er sich nicht mehr anmelden.'}
               </FieldDescription>
             )}
+          </FieldContent>
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  )
+}
+
+export function StatusField<AllFormFields extends FieldValues>({
+  form,
+  withLabel,
+  description,
+}: FieldProps<{ status: 'active' | 'inactive' | 'deleted' } & AllFormFields>) {
+  return (
+    <Controller
+      name={
+        'status' as Path<
+          { status: 'active' | 'inactive' | 'deleted' } & AllFormFields
+        >
+      }
+      control={form.control}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid} className="gap-1">
+          {withLabel && <FieldLabel htmlFor="form-status">Status</FieldLabel>}
+          <FieldContent className="flex flex-col gap-2">
+            <Select
+              name={field.name}
+              value={field.value}
+              onValueChange={field.onChange}
+            >
+              <SelectTrigger id="form-status" aria-invalid={fieldState.invalid}>
+                <SelectValue placeholder="Auswählen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Aktiv</SelectItem>
+                <SelectItem value="inactive">Inaktiv</SelectItem>
+                <SelectItem value="deleted">Gelöscht</SelectItem>
+              </SelectContent>
+            </Select>
+            {description && <FieldDescription>{description}</FieldDescription>}
           </FieldContent>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
         </Field>

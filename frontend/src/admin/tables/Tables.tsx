@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { TablesTable } from '@/admin/tables/TablesTable'
 import { Card } from '@/components/ui/card'
-import { BackendSingleton } from '@/lib/backend'
+import { BackendSingleton } from '@/lib/Backend'
 import { type Table, TableBackend } from '@/lib/TableBackend'
 
 import { EditTableDialog } from './EditTableDialog'

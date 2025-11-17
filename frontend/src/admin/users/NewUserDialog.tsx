@@ -22,17 +22,22 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { BackendSingleton } from '@/lib/backend'
-import { CreateUserRequestSchema, type User, UserRole } from '@/lib/user'
+import {
+  CreateUserRequestSchema,
+  type User,
+  UserBackend,
+  UserRole,
+} from '@/lib/UserBackend'
 
 const FormDataSchema = CreateUserRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewUserDialogProps {
+  backend: Pick<UserBackend, 'createUser'>
   created: (user: User, onetimePassword: string) => void
 }
 
-export function NewUserDialog({ created }: NewUserDialogProps) {
+export function NewUserDialog(props: NewUserDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
@@ -45,14 +50,14 @@ export function NewUserDialog({ created }: NewUserDialogProps) {
     setLoading(true)
 
     try {
-      const response = await BackendSingleton.createUser(
+      const { user, onetimePassword } = await props.backend.createUser(
         data.name,
         data.username,
         data.role as UserRole,
       )
       form.reset()
       setOpen(false)
-      created(response.user, response.onetimePassword)
+      props.created(user, onetimePassword)
     } catch (error: unknown) {
       console.error(error)
     }

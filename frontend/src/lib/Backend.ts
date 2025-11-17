@@ -1,19 +1,6 @@
 import { z } from 'zod'
 
 import { AuthSingleton } from './auth'
-import {
-  CreateUserRequestSchema,
-  CreateUserResponseSchema,
-  GetUsersResponseSchema,
-  LoginRequestSchema,
-  LoginResponseSchema,
-  SetPasswordRequestSchema,
-  SetPasswordResponseSchema,
-  UpdateUserRequestSchema,
-  UpdateUserResponseSchema,
-  type User,
-  type UserRole,
-} from './user'
 
 const ErrorResponseSchema = z.object({
   code: z.string(),
@@ -52,71 +39,10 @@ class Backend {
     this.tokenGetter = tokenGetter
   }
 
-  /** Sends a login request with the given username and password and returns the JWT token from the backend. */
-  public async login(username: string, password: string): Promise<string> {
-    const body = LoginRequestSchema.parse({ username, password })
-    const { token } = await this.post('login', body, LoginResponseSchema)
-    return token
-  }
-
-  /** Sends a login request with the given username and password and returns the JWT token from the backend. */
-  public async setPassword(
-    username: string,
-    password: string,
-    onetimePassword: string,
-  ): Promise<string> {
-    const body = SetPasswordRequestSchema.parse({
-      username,
-      password,
-      onetimePassword,
-    })
-    const { token } = await this.post(
-      'set-password',
-      body,
-      SetPasswordResponseSchema,
-    )
-    return token
-  }
-
-  public async createUser(
-    name: string,
-    username: string,
-    role: UserRole,
-  ): Promise<{ user: User; onetimePassword: string }> {
-    const body = CreateUserRequestSchema.parse({ name, username, role })
-    const { user, onetimePassword } = await this.post(
-      'admin/create-user',
-      body,
-      CreateUserResponseSchema,
-    )
-    return { user, onetimePassword }
-  }
-
-  public async updateUser(
-    updatedUser: z.infer<typeof UpdateUserRequestSchema>,
-  ): Promise<User> {
-    const body = UpdateUserRequestSchema.parse(updatedUser)
-    const { user } = await this.post(
-      'admin/update-user',
-      body,
-      UpdateUserResponseSchema,
-    )
-    return user
-  }
-
-  public async getUsers(): Promise<User[]> {
-    const { users } = await this.post(
-      'admin/get-users',
-      {},
-      GetUsersResponseSchema,
-    )
-    return users
-  }
-
   public async post<TResponse>(
     endpoint: string,
     body: unknown,
-    responseSchema: z.ZodType<TResponse>,
+    responseSchema?: z.ZodType<TResponse>,
   ): Promise<TResponse> {
     const token = this.tokenGetter.getToken()
     const response = await fetch(`${this.baseUrl}/${endpoint}`, {
@@ -144,6 +70,11 @@ class Backend {
         console.log('Response text:', responseText)
         throw new BackendError(response.status, 'unknown', responseText)
       }
+    }
+
+    if (!responseSchema) {
+      // No response schema provided, return empty object
+      return {} as TResponse
     }
 
     const { error, data } = responseSchema.safeParse(await response.json())

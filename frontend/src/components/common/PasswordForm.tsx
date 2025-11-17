@@ -15,15 +15,19 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { AuthSingleton } from '@/lib/auth'
-import { BackendError, BackendSingleton } from '@/lib/backend'
-import { SetPasswordRequestSchema } from '@/lib/user'
+import { AuthBackend, SetPasswordRequestSchema } from '@/lib/AuthBackend'
+import { BackendError } from '@/lib/Backend'
 
 import { NewPasswordField, OTPField, UsernameField } from './FormFields'
 
 const FormDataSchema = SetPasswordRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
 
-export function PasswordForm() {
+interface PasswordFormProps {
+  backend: Pick<AuthBackend, 'setPassword'>
+}
+
+export function PasswordForm(props: PasswordFormProps) {
   const navigate = useNavigate()
   const [loading, setLoading] = React.useState(false)
   const form = useForm<FormData>({
@@ -36,7 +40,7 @@ export function PasswordForm() {
     setLoading(true)
 
     try {
-      const token = await BackendSingleton.setPassword(
+      const token = await props.backend.setPassword(
         data.username,
         data.password,
         data.onetimePassword,

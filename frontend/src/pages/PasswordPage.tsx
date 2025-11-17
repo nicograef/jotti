@@ -1,19 +1,13 @@
-import { redirect } from 'react-router'
-
 import { PasswordForm } from '@/components/common/PasswordForm'
-import { AuthSingleton } from '@/lib/auth'
+import { AuthBackend } from '@/lib/AuthBackend'
+import { BackendSingleton } from '@/lib/Backend'
 
-export function LoadingPageLoader() {
-  if (AuthSingleton.isAuthenticated && AuthSingleton.isAdmin) {
-    return redirect('/admin')
-  } else if (AuthSingleton.isAuthenticated) {
-    return redirect('/')
-  }
-}
+const authBackend = new AuthBackend(BackendSingleton)
+
 export function PasswordPage() {
   return (
     <div className="flex flex-col min-h-screen max-h-screen items-center justify-center p-4 bg-primary/5">
-      <PasswordForm />
+      <PasswordForm backend={authBackend} />
       <footer className="mt-6">
         <p className="text-muted-foreground text-sm ">
           Entwickelt von{' '}

@@ -48,8 +48,8 @@ func TestGetUser(t *testing.T) {
 	if user.CreatedAt.IsZero() {
 		t.Fatalf("Expected non-zero created_at, got %v", user.CreatedAt)
 	}
-	if user.Locked {
-		t.Fatalf("Expected user to be unlocked, got locked")
+	if user.Status != usr.ActiveStatus {
+		t.Fatalf("Expected user to be active, got %s", user.Status)
 	}
 	if user.Role != usr.AdminRole {
 		t.Fatalf("Expected user role 'admin', got %s", user.Role)
@@ -163,7 +163,7 @@ func TestUpdateUser(t *testing.T) {
 	defer db.Close()
 
 	persistence := &UserPersistence{DB: db}
-	err := persistence.UpdateUser(2, "Updated Name", "updatedusername", usr.ServiceRole, true) // needs to run after TestCreateUser
+	err := persistence.UpdateUser(2, "Updated Name", "updatedusername", usr.ServiceRole) // needs to run after TestCreateUser
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -173,7 +173,7 @@ func TestUpdateUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error retrieving user, got %v", err)
 	}
-	if updatedUser.Name != "Updated Name" || updatedUser.Username != "updatedusername" || updatedUser.Role != usr.ServiceRole || !updatedUser.Locked {
+	if updatedUser.Name != "Updated Name" || updatedUser.Username != "updatedusername" || updatedUser.Role != usr.ServiceRole {
 		t.Fatalf("User not updated correctly: %+v", updatedUser)
 	}
 }
@@ -183,7 +183,7 @@ func TestUpdateUser_Error(t *testing.T) {
 	defer db.Close()
 
 	persistence := &UserPersistence{DB: db}
-	err := persistence.UpdateUser(100000, "Updated Name", "updatedusername", usr.ServiceRole, true)
+	err := persistence.UpdateUser(100000, "Updated Name", "updatedusername", usr.ServiceRole)
 
 	if err != usr.ErrUserNotFound {
 		t.Fatalf("Expected user not found error, got %v", err)

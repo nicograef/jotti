@@ -2,6 +2,7 @@ import { Lamp, ReceiptText, Users, Utensils } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router'
 import { useLocation } from 'react-router'
 
+import { ModeToggle } from '@/components/mode-tootle'
 import {
   Sidebar,
   SidebarContent,
@@ -55,7 +56,7 @@ export function AdminSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>admin</SidebarGroupLabel>
+          <SidebarGroupLabel>Verwaltung</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -71,6 +72,16 @@ export function AdminSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Einstellungen</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <ModeToggle />
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

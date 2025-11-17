@@ -23,7 +23,9 @@ function TableTableRow(props: {
         onClick(table)
       }}
     >
-      <TableCell>{table.locked ? <LockKeyhole size="30" /> : <></>}</TableCell>
+      <TableCell>
+        {table.status === 'inactive' ? <LockKeyhole size="30" /> : <></>}
+      </TableCell>
       <TableCell className="font-medium">{table.name}</TableCell>
       <TableCell className="text-right">
         {new Date(table.createdAt).toLocaleString()} Uhr

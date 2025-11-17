@@ -9,10 +9,18 @@ const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {
   message: 'Ungültiges Datumsformat',
 })
 
+const TableStatus = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  DELETED: 'deleted',
+} as const
+type TableStatus = (typeof TableStatus)[keyof typeof TableStatus]
+const TableStatusSchema = z.enum(TableStatus)
+
 export const TableSchema = z.object({
-  id: TableIdSchema.int().positive(),
+  id: TableIdSchema,
   name: TableNameSchema,
-  locked: z.boolean(),
+  status: TableStatusSchema,
   createdAt: DateStringSchema,
 })
 export type Table = z.infer<typeof TableSchema>
@@ -20,20 +28,20 @@ export type Table = z.infer<typeof TableSchema>
 export const CreateTableRequestSchema = z.object({
   name: TableNameSchema,
 })
-export type CreateTableRequest = z.infer<typeof CreateTableRequestSchema>
+type CreateTableRequest = z.infer<typeof CreateTableRequestSchema>
 
 const UpdateTableRequestSchema = z.object({
   id: TableIdSchema,
   name: TableNameSchema,
-  locked: z.boolean(),
+  status: TableStatusSchema,
 })
-export type UpdateTableRequest = z.infer<typeof UpdateTableRequestSchema>
+type UpdateTableRequest = z.infer<typeof UpdateTableRequestSchema>
 
 interface Backend {
   post<TResponse>(
     endpoint: string,
     body: unknown,
-    responseSchema: z.ZodType<TResponse>,
+    responseSchema?: z.ZodType<TResponse>,
   ): Promise<TResponse>
 }
 

@@ -26,6 +26,10 @@ func sendResponse(w http.ResponseWriter, data any) {
 	sendJSONResponse(w, data, http.StatusOK)
 }
 
+func sendEmptyResponse(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func sendInternalServerError(w http.ResponseWriter) {
 	response := errorResponse{
 		Message: "Internal server error",

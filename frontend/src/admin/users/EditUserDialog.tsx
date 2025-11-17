@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import {
-  LockedField,
   NameField,
   RoleField,
   UsernameField,
@@ -21,18 +20,17 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { BackendSingleton } from '@/lib/backend'
-import { type User, UserSchema } from '@/lib/user'
+import { type User, UserBackend, UserSchema } from '@/lib/UserBackend'
 
 const FormDataSchema = UserSchema.pick({
   name: true,
   username: true,
   role: true,
-  locked: true,
 })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewUserDialogProps {
+  backend: Pick<UserBackend, 'updateUser'>
   open: boolean
   user: User
   updated: (user: User) => void
@@ -58,7 +56,7 @@ export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
     setLoading(true)
 
     try {
-      const updatedUser = await BackendSingleton.updateUser({
+      const updatedUser = await props.backend.updateUser({
         id: props.user.id,
         ...data,
       })
@@ -93,7 +91,6 @@ export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
             <NameField form={form} withLabel />
             <UsernameField form={form} withLabel />
             <RoleField form={form} withLabel />
-            <LockedField form={form} withLabel />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">

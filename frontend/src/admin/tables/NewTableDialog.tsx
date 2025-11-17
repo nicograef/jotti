@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { BackendSingleton } from '@/lib/backend'
+import { BackendSingleton } from '@/lib/Backend'
 import {
   CreateTableRequestSchema,
   type Table,

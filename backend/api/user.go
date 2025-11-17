@@ -60,7 +60,6 @@ type updateUserRequest struct {
 	Name     string   `json:"name"`
 	Username string   `json:"username"`
 	Role     usr.Role `json:"role"`
-	Locked   bool     `json:"locked"`
 }
 
 var updateUserRequestSchema = z.Struct(z.Shape{
@@ -68,7 +67,6 @@ var updateUserRequestSchema = z.Struct(z.Shape{
 	"Name":     usr.NameSchema.Required(),
 	"Username": usr.UsernameSchema.Required(),
 	"Role":     usr.RoleSchema.Required(),
-	"Locked":   z.Bool().Required(),
 })
 
 type updateUserResponse = struct {
@@ -91,7 +89,7 @@ func UpdateUserHandler(us *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		user, err := us.UpdateUser(body.ID, body.Name, body.Username, body.Role, body.Locked)
+		user, err := us.UpdateUser(body.ID, body.Name, body.Username, body.Role)
 		if err != nil && errors.Is(err, usr.ErrUserNotFound) {
 			sendNotFoundError(w, errorResponse{
 				Message: "User not found",
@@ -175,5 +173,85 @@ func ResetPasswordHandler(us *usr.Service) http.HandlerFunc {
 		sendResponse(w, resetPasswordResponse{
 			OnetimePassword: onetimePassword,
 		})
+	}
+}
+
+type activateUserRequest struct {
+	UserID int `json:"userID"`
+}
+
+var activateUserRequestSchema = z.Struct(z.Shape{
+	"UserID": usr.IDSchema.Required(),
+})
+
+// ActivateUserHandler handles requests to activate a user.
+func ActivateUserHandler(us *usr.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !validateMethod(w, r, http.MethodPost) {
+			return
+		}
+
+		body := activateUserRequest{}
+		if !readJSONRequest(w, r, &body) {
+			return
+		}
+
+		if !validateBody(w, &body, activateUserRequestSchema) {
+			return
+		}
+
+		err := us.ActivateUser(body.UserID)
+		if err != nil && errors.Is(err, usr.ErrUserNotFound) {
+			sendNotFoundError(w, errorResponse{
+				Message: "User not found",
+				Code:    "user_not_found",
+			})
+			return
+		} else if err != nil {
+			sendInternalServerError(w)
+			return
+		}
+
+		sendEmptyResponse(w)
+	}
+}
+
+type deactivateUserRequest struct {
+	UserID int `json:"userID"`
+}
+
+var deactivateUserRequestSchema = z.Struct(z.Shape{
+	"UserID": usr.IDSchema.Required(),
+})
+
+// DeactivateUserHandler handles requests to deactivate a user.
+func DeactivateUserHandler(us *usr.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !validateMethod(w, r, http.MethodPost) {
+			return
+		}
+
+		body := deactivateUserRequest{}
+		if !readJSONRequest(w, r, &body) {
+			return
+		}
+
+		if !validateBody(w, &body, deactivateUserRequestSchema) {
+			return
+		}
+
+		err := us.DeactivateUser(body.UserID)
+		if err != nil && errors.Is(err, usr.ErrUserNotFound) {
+			sendNotFoundError(w, errorResponse{
+				Message: "User not found",
+				Code:    "user_not_found",
+			})
+			return
+		} else if err != nil {
+			sendInternalServerError(w)
+			return
+		}
+
+		sendEmptyResponse(w)
 	}
 }

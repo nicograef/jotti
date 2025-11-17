@@ -58,6 +58,8 @@ func (app *App) SetupRoutes() {
 
 	app.Router.HandleFunc("/admin/create-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.CreateUserHandler(&userService)))))
 	app.Router.HandleFunc("/admin/update-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.UpdateUserHandler(&userService)))))
+	app.Router.HandleFunc("/admin/activate-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.ActivateUserHandler(&userService)))))
+	app.Router.HandleFunc("/admin/deactivate-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.DeactivateUserHandler(&userService)))))
 	app.Router.HandleFunc("/admin/get-users", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.GetUsersHandler(&userService)))))
 	app.Router.HandleFunc("/admin/reset-password", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.ResetPasswordHandler(&userService)))))
 	app.Router.HandleFunc("/admin/get-tables", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.GetTablesHandler(&tableService)))))

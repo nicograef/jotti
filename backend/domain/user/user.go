@@ -20,13 +20,25 @@ const (
 	ServiceRole Role = "service"
 )
 
+// Status represents the status of a user.
+type Status string
+
+const (
+	// ActiveStatus indicates the user can authenticate and use the system.
+	ActiveStatus Status = "active"
+	// InactiveStatus indicates the user is disabled and cannot authenticate.
+	InactiveStatus Status = "inactive"
+	// DeletedStatus indicates the user is deleted/archived.
+	DeletedStatus Status = "deleted"
+)
+
 // User represents a user in the system.
 type User struct {
 	ID                  int       `json:"id"`
 	Name                string    `json:"name"`
 	Username            string    `json:"username"`
 	Role                Role      `json:"role"`
-	Locked              bool      `json:"locked"`
+	Status              Status    `json:"status"`
 	PasswordHash        string    `json:"-"`
 	OnetimePasswordHash string    `json:"-"`
 	CreatedAt           time.Time `json:"createdAt"`
@@ -48,6 +60,12 @@ var UsernameSchema = z.String().Trim().Min(3, z.Message("Username too short")).M
 var RoleSchema = z.StringLike[Role]().OneOf(
 	[]Role{AdminRole, ServiceRole},
 	z.Message("Invalid role"),
+)
+
+// StatusSchema defines the schema for a user status.
+var StatusSchema = z.StringLike[Status]().OneOf(
+	[]Status{ActiveStatus, InactiveStatus, DeletedStatus},
+	z.Message("Invalid status"),
 )
 
 // ErrUserNotFound is returned when a user is not found.
@@ -73,7 +91,9 @@ type persistence interface {
 	GetUser(id int) (*User, error)
 	GetAllUsers() ([]*User, error)
 	CreateUser(name, username, onetimePasswordHash string, role Role) (int, error)
-	UpdateUser(id int, name, username string, role Role, locked bool) error
+	UpdateUser(id int, name, username string, role Role) error
+	ActivateUser(id int) error
+	DeactivateUser(id int) error
 	SetPasswordHash(id int, passwordHash string) error
 	SetOnetimePasswordHash(id int, onetimePasswordHash string) error
 }
@@ -111,7 +131,7 @@ func (s *Service) CreateUser(name, username string, role Role) (*User, string, e
 		Name:      name,
 		Username:  lowerCaseUsername,
 		Role:      role,
-		Locked:    false,
+		Status:    ActiveStatus,
 		CreatedAt: time.Now(),
 	}, onetimePassword, nil
 }
@@ -221,8 +241,8 @@ func (s *Service) ResetPassword(userID int) (string, error) {
 }
 
 // UpdateUser updates the user's details in the database.
-func (s *Service) UpdateUser(id int, name, username string, role Role, locked bool) (*User, error) {
-	err := s.DB.UpdateUser(id, name, username, role, locked)
+func (s *Service) UpdateUser(id int, name, username string, role Role) (*User, error) {
+	err := s.DB.UpdateUser(id, name, username, role)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
 		log.Printf("ERROR User %d not found for update", id)
 		return nil, ErrUserNotFound
@@ -249,4 +269,32 @@ func (s *Service) GetAllUsers() ([]*User, error) {
 	}
 
 	return users, nil
+}
+
+// ActivateUser sets the status of the user with the given user ID to 'active'.
+func (s *Service) ActivateUser(id int) error {
+	err := s.DB.ActivateUser(id)
+	if err != nil && errors.Is(err, ErrUserNotFound) {
+		log.Printf("ERROR User %d not found for activation", id)
+		return ErrUserNotFound
+	} else if err != nil {
+		log.Printf("ERROR Failed to activate user %d: %v", id, err)
+		return ErrDatabase
+	}
+
+	return nil
+}
+
+// DeactivateUser sets the status of the user with the given user ID to 'inactive'.
+func (s *Service) DeactivateUser(id int) error {
+	err := s.DB.DeactivateUser(id)
+	if err != nil && errors.Is(err, ErrUserNotFound) {
+		log.Printf("ERROR User %d not found for deactivation", id)
+		return ErrUserNotFound
+	} else if err != nil {
+		log.Printf("ERROR Failed to deactivate user %d: %v", id, err)
+		return ErrDatabase
+	}
+
+	return nil
 }
