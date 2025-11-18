@@ -130,11 +130,13 @@ export class UserBackend {
     return users
   }
 
-  public async activateUser(userId: number): Promise<void> {
-    await this.backend.post('admin/activate-user', { userId })
+  public async activateUser(id: number): Promise<void> {
+    const body = z.object({ id: UserIdSchema }).parse({ id })
+    await this.backend.post('admin/activate-user', body)
   }
 
-  public async deactivateUser(userId: number): Promise<void> {
-    await this.backend.post('admin/deactivate-user', { userId })
+  public async deactivateUser(id: number): Promise<void> {
+    const body = z.object({ id: UserIdSchema }).parse({ id })
+    await this.backend.post('admin/deactivate-user', body)
   }
 }

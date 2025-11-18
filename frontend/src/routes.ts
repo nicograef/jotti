@@ -3,10 +3,10 @@ import { createBrowserRouter, redirect } from 'react-router'
 import { AuthSingleton } from '@/lib/auth'
 
 import { AdminLayout } from './admin/AdminLayout'
+import { AdminTablesPage } from './admin/tables/AdminTablesPage'
 import { AdminUsersPage } from './admin/users/AdminUsersPage'
 import App from './App'
 import { AdminProductsPage } from './pages/AdminProductsPage'
-import { AdminTablesPage } from './pages/AdminTablesPage'
 import { LoginPage } from './pages/LoginPage'
 import { PasswordPage } from './pages/PasswordPage'
 

@@ -1,0 +1,98 @@
+import { useEffect, useState } from 'react'
+
+import { BackendSingleton } from '@/lib/Backend'
+import { type Table, TableBackend, TableStatus } from '@/lib/TableBackend'
+
+import { EditTableDialog } from './EditTableDialog'
+import { NewTableDialog } from './NewTableDialog'
+import { TableCreatedDialog } from './TableCreatedDialog'
+import { Tables } from './Tables'
+
+const initialTableCreatedState = {
+  table: null as Table | null,
+  open: false,
+}
+
+const initialEditTableState = {
+  table: null as Table | null,
+  open: false,
+}
+
+const tableBackend = new TableBackend(BackendSingleton)
+
+export function AdminTablesPage() {
+  const [loading, setLoading] = useState(false)
+  const [tables, setTables] = useState<Table[]>([])
+  const [tableCreatedState, setTableCreatedState] = useState(
+    initialTableCreatedState,
+  )
+  const [editTableState, setEditTableState] = useState(initialEditTableState)
+
+  useEffect(() => {
+    async function fetchTables() {
+      setLoading(true)
+      try {
+        const response = await tableBackend.getTables()
+        setTables(response)
+      } catch (error) {
+        console.error('Failed to fetch tables:', error)
+      }
+      setLoading(false)
+    }
+    void fetchTables()
+  }, [])
+
+  const updateTable = (table: Table) => {
+    setTables((prevTables) =>
+      prevTables.map((t) => (t.id === table.id ? table : t)),
+    )
+  }
+
+  const onStatusChange = (tableId: number, status: TableStatus) => {
+    setTables((prevTables) =>
+      prevTables.map((t) => (t.id === tableId ? { ...t, status } : t)),
+    )
+  }
+
+  return (
+    <>
+      <NewTableDialog
+        backend={tableBackend}
+        created={(table) => {
+          setTables((prevTables) => [...prevTables, table])
+          setTableCreatedState({ table, open: true })
+        }}
+      />
+      <TableCreatedDialog
+        {...tableCreatedState}
+        close={() => {
+          setTableCreatedState(initialTableCreatedState)
+        }}
+      />
+      {editTableState.table && (
+        <EditTableDialog
+          backend={tableBackend}
+          open={editTableState.open}
+          table={editTableState.table}
+          updated={(table) => {
+            updateTable(table)
+          }}
+          close={() => {
+            setEditTableState(initialEditTableState)
+          }}
+        />
+      )}
+      <h1 className="text-2xl font-bold">Tische verwalten</h1>
+      <Tables
+        loading={loading}
+        backend={tableBackend}
+        tables={tables}
+        onEdit={(tableId) => {
+          const tableToEdit = tables.find((t) => t.id === tableId) ?? null
+          setEditTableState({ table: tableToEdit, open: true })
+        }}
+        onStatusChange={onStatusChange}
+      />
+    </>
+  )
+}

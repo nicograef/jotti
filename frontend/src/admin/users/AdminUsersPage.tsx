@@ -31,8 +31,13 @@ export function AdminUsersPage() {
 
   useEffect(() => {
     async function fetchUsers() {
-      const response = await userBackend.getUsers()
-      setUsers(response)
+      setLoading(true)
+      try {
+        const response = await userBackend.getUsers()
+        setUsers(response)
+      } catch (error) {
+        console.error('Failed to fetch users:', error)
+      }
       setLoading(false)
     }
     void fetchUsers()

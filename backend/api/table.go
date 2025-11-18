@@ -120,3 +120,85 @@ func GetTablesHandler(ts *tbl.Service) http.HandlerFunc {
 		})
 	}
 }
+
+type activateTableRequest struct {
+	ID int `json:"id"`
+}
+
+var activateTableRequestSchema = z.Struct(z.Shape{
+	"ID": tbl.IDSchema.Required(),
+})
+
+// ActivateTableHandler handles requests to activate a table.
+func ActivateTableHandler(ts *tbl.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !validateMethod(w, r, http.MethodPost) {
+			return
+		}
+
+		body := activateTableRequest{}
+		if !readJSONRequest(w, r, &body) {
+			return
+		}
+
+		if !validateBody(w, &body, activateTableRequestSchema) {
+			return
+		}
+
+		err := ts.ActivateTable(body.ID)
+		if err != nil {
+			if errors.Is(err, tbl.ErrTableNotFound) {
+				sendNotFoundError(w, errorResponse{
+					Message: "Table not found",
+					Code:    "table_not_found",
+				})
+				return
+			}
+			sendInternalServerError(w)
+			return
+		}
+
+		sendEmptyResponse(w)
+	}
+}
+
+type deactivateTableRequest struct {
+	ID int `json:"id"`
+}
+
+var deactivateTableRequestSchema = z.Struct(z.Shape{
+	"ID": tbl.IDSchema.Required(),
+})
+
+// DeactivateTableHandler handles requests to deactivate a table.
+func DeactivateTableHandler(ts *tbl.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !validateMethod(w, r, http.MethodPost) {
+			return
+		}
+
+		body := deactivateTableRequest{}
+		if !readJSONRequest(w, r, &body) {
+			return
+		}
+
+		if !validateBody(w, &body, deactivateTableRequestSchema) {
+			return
+		}
+
+		err := ts.DeactivateTable(body.ID)
+		if err != nil {
+			if errors.Is(err, tbl.ErrTableNotFound) {
+				sendNotFoundError(w, errorResponse{
+					Message: "Table not found",
+					Code:    "table_not_found",
+				})
+				return
+			}
+			sendInternalServerError(w)
+			return
+		}
+
+		sendEmptyResponse(w)
+	}
+}

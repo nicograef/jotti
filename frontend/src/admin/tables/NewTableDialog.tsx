@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { BackendSingleton } from '@/lib/Backend'
 import {
   CreateTableRequestSchema,
   type Table,
@@ -29,10 +28,11 @@ const FormDataSchema = CreateTableRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewTableDialogProps {
+  backend: Pick<TableBackend, 'createTable'>
   created: (table: Table) => void
 }
 
-export function NewTableDialog({ created }: NewTableDialogProps) {
+export function NewTableDialog(props: NewTableDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
@@ -45,10 +45,10 @@ export function NewTableDialog({ created }: NewTableDialogProps) {
     setLoading(true)
 
     try {
-      const table = await new TableBackend(BackendSingleton).createTable(data)
+      const table = await props.backend.createTable(data)
       form.reset()
       setOpen(false)
-      created(table)
+      props.created(table)
     } catch (error: unknown) {
       console.error(error)
     }

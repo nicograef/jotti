@@ -51,6 +51,8 @@ type persistence interface {
 	GetAllTables() ([]*Table, error)
 	CreateTable(name string) (int, error)
 	UpdateTable(id int, name string) error
+	ActivateTable(id int) error
+	DeactivateTable(id int) error
 }
 
 // Service provides table-related operations.
@@ -104,4 +106,30 @@ func (s *Service) GetAllTables() ([]*Table, error) {
 		return nil, ErrDatabase
 	}
 	return tables, nil
+}
+
+// ActivateTable sets the status of a table to active.
+func (s *Service) ActivateTable(id int) error {
+	err := s.DB.ActivateTable(id)
+	if err != nil {
+		if errors.Is(err, ErrTableNotFound) {
+			return ErrTableNotFound
+		}
+		log.Printf("Error activating table: %v", err)
+		return ErrDatabase
+	}
+	return nil
+}
+
+// DeactivateTable sets the status of a table to inactive.
+func (s *Service) DeactivateTable(id int) error {
+	err := s.DB.DeactivateTable(id)
+	if err != nil {
+		if errors.Is(err, ErrTableNotFound) {
+			return ErrTableNotFound
+		}
+		log.Printf("Error deactivating table: %v", err)
+		return ErrDatabase
+	}
+	return nil
 }

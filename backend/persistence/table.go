@@ -95,3 +95,31 @@ func (p *TablePersistence) UpdateTable(id int, name string) error {
 
 	return nil
 }
+
+// ActivateTable sets the status of a table to active.
+func (p *TablePersistence) ActivateTable(id int) error {
+	result, err := p.DB.Exec("UPDATE tables SET status = 'active' WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		return table.ErrTableNotFound
+	}
+
+	return nil
+}
+
+// DeactivateTable sets the status of a table to inactive.
+func (p *TablePersistence) DeactivateTable(id int) error {
+	result, err := p.DB.Exec("UPDATE tables SET status = 'inactive' WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		return table.ErrTableNotFound
+	}
+
+	return nil
+}

@@ -177,11 +177,11 @@ func ResetPasswordHandler(us *usr.Service) http.HandlerFunc {
 }
 
 type activateUserRequest struct {
-	UserID int `json:"userID"`
+	ID int `json:"id"`
 }
 
 var activateUserRequestSchema = z.Struct(z.Shape{
-	"UserID": usr.IDSchema.Required(),
+	"ID": usr.IDSchema.Required(),
 })
 
 // ActivateUserHandler handles requests to activate a user.
@@ -200,14 +200,15 @@ func ActivateUserHandler(us *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		err := us.ActivateUser(body.UserID)
-		if err != nil && errors.Is(err, usr.ErrUserNotFound) {
-			sendNotFoundError(w, errorResponse{
-				Message: "User not found",
-				Code:    "user_not_found",
-			})
-			return
-		} else if err != nil {
+		err := us.ActivateUser(body.ID)
+		if err != nil {
+			if errors.Is(err, usr.ErrUserNotFound) {
+				sendNotFoundError(w, errorResponse{
+					Message: "User not found",
+					Code:    "user_not_found",
+				})
+				return
+			}
 			sendInternalServerError(w)
 			return
 		}
@@ -217,11 +218,11 @@ func ActivateUserHandler(us *usr.Service) http.HandlerFunc {
 }
 
 type deactivateUserRequest struct {
-	UserID int `json:"userID"`
+	ID int `json:"id"`
 }
 
 var deactivateUserRequestSchema = z.Struct(z.Shape{
-	"UserID": usr.IDSchema.Required(),
+	"ID": usr.IDSchema.Required(),
 })
 
 // DeactivateUserHandler handles requests to deactivate a user.
@@ -240,7 +241,7 @@ func DeactivateUserHandler(us *usr.Service) http.HandlerFunc {
 			return
 		}
 
-		err := us.DeactivateUser(body.UserID)
+		err := us.DeactivateUser(body.ID)
 		if err != nil && errors.Is(err, usr.ErrUserNotFound) {
 			sendNotFoundError(w, errorResponse{
 				Message: "User not found",

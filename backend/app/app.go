@@ -62,9 +62,12 @@ func (app *App) SetupRoutes() {
 	app.Router.HandleFunc("/admin/deactivate-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.DeactivateUserHandler(&userService)))))
 	app.Router.HandleFunc("/admin/get-users", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.GetUsersHandler(&userService)))))
 	app.Router.HandleFunc("/admin/reset-password", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.ResetPasswordHandler(&userService)))))
+
 	app.Router.HandleFunc("/admin/get-tables", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.GetTablesHandler(&tableService)))))
 	app.Router.HandleFunc("/admin/update-table", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.UpdateTableHandler(&tableService)))))
 	app.Router.HandleFunc("/admin/create-table", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.CreateTableHandler(&tableService)))))
+	app.Router.HandleFunc("/admin/activate-table", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.ActivateTableHandler(&tableService)))))
+	app.Router.HandleFunc("/admin/deactivate-table", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.DeactivateTableHandler(&tableService)))))
 
 	app.Server.Handler = app.Router
 }

@@ -16,27 +16,24 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { BackendSingleton } from '@/lib/Backend'
 import {
   type Table,
   TableBackend,
-  TableSchema,
+  UpdateTableRequestSchema,
 } from '@/lib/TableBackend'
 
-const FormDataSchema = TableSchema.pick({
-  name: true,
-  status: true,
-})
+const FormDataSchema = UpdateTableRequestSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
 
-interface NewTableDialogProps {
+interface EditTableDialogProps {
+  backend: Pick<TableBackend, 'updateTable'>
   open: boolean
   table: Table
   updated: (table: Table) => void
   close: () => void
 }
 
-export function EditTableDialog(props: Readonly<NewTableDialogProps>) {
+export function EditTableDialog(props: Readonly<EditTableDialogProps>) {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: props.table,
@@ -55,12 +52,10 @@ export function EditTableDialog(props: Readonly<NewTableDialogProps>) {
     setLoading(true)
 
     try {
-      const updatedTable = await new TableBackend(BackendSingleton).updateTable(
-        {
-          id: props.table.id,
-          ...data,
-        },
-      )
+      const updatedTable = await props.backend.updateTable({
+        id: props.table.id,
+        ...data,
+      })
       form.reset()
       props.updated(updatedTable)
       props.close()

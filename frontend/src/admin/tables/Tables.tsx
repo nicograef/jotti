@@ -1,82 +1,57 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
-import { TablesTable } from '@/admin/tables/TablesTable'
-import { Card } from '@/components/ui/card'
-import { BackendSingleton } from '@/lib/Backend'
-import { type Table, TableBackend } from '@/lib/TableBackend'
+import { ItemGroup } from '@/components/ui/item'
+import { type Table, type TableBackend, TableStatus } from '@/lib/TableBackend'
 
-import { EditTableDialog } from './EditTableDialog'
-import { NewTableDialog } from './NewTableDialog'
-import { TableCreatedDialog } from './TableCreatedDialog'
+import { TableItem } from './TableItem'
 
-const initialTableCreatedState = {
-  table: null as Table | null,
-  open: false,
+interface TablesProps {
+  loading: boolean
+  backend: Pick<TableBackend, 'activateTable' | 'deactivateTable'>
+  tables: Table[]
+  onEdit: (tableId: number) => void
+  onStatusChange: (tableId: number, status: TableStatus) => void
 }
 
-const initialEditTableState = {
-  table: null as Table | null,
-  open: false,
-}
+export function Tables(props: TablesProps) {
+  const [loading, setLoading] = useState(props.loading)
 
-export function Tables() {
-  const [loading, setLoading] = useState(true)
-  const [tables, setTables] = useState<Table[]>([])
-  const [tableCreatedState, setTableCreatedState] = useState(
-    initialTableCreatedState,
-  )
-  const [editTableState, setEditTableState] = useState(initialEditTableState)
-
-  useEffect(() => {
-    async function fetchTables() {
-      const response = await new TableBackend(BackendSingleton).getTables()
-      setTables(response)
-      setLoading(false)
+  const activateTable = async (tableId: number) => {
+    setLoading(true)
+    try {
+      await props.backend.activateTable(tableId)
+      props.onStatusChange(tableId, TableStatus.ACTIVE)
+    } catch (error) {
+      console.error('Error activating table:', error)
     }
-    void fetchTables()
-  }, [])
+    setLoading(false)
+  }
 
-  const updateTable = (table: Table) => {
-    setTables((prevTables) =>
-      prevTables.map((t) => (t.id === table.id ? table : t)),
-    )
+  const deactivateTable = async (tableId: number) => {
+    setLoading(true)
+    try {
+      await props.backend.deactivateTable(tableId)
+      props.onStatusChange(tableId, TableStatus.INACTIVE)
+    } catch (error) {
+      console.error('Error deactivating table:', error)
+    }
+    setLoading(false)
   }
 
   return (
     <>
-      <NewTableDialog
-        created={(table) => {
-          setTables((prevTables) => [...prevTables, table])
-          setTableCreatedState({ table, open: true })
-        }}
-      />
-      <TableCreatedDialog
-        {...tableCreatedState}
-        close={() => {
-          setTableCreatedState(initialTableCreatedState)
-        }}
-      />
-      {editTableState.table && (
-        <EditTableDialog
-          open={editTableState.open}
-          table={editTableState.table}
-          updated={(table) => {
-            updateTable(table)
-          }}
-          close={() => {
-            setEditTableState(initialEditTableState)
-          }}
-        />
-      )}
-      <Card className="p-0">
-        <TablesTable
-          tables={tables}
-          loading={loading}
-          onClick={(table) => {
-            setEditTableState({ table, open: true })
-          }}
-        />
-      </Card>
+      <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+        {props.tables.map((table) => (
+          <TableItem
+            key={table.id}
+            loading={loading || props.loading}
+            table={table}
+            onActivate={activateTable}
+            onDeactivate={deactivateTable}
+            onEdit={props.onEdit}
+          />
+        ))}
+      </ItemGroup>
     </>
   )
 }

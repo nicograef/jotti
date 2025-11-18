@@ -58,7 +58,6 @@ func (m *MockUserPersistence) UpdateUser(id int, name, username string, role Rol
 		Name:     name,
 		Username: username,
 		Role:     role,
-		Status:   m.User.Status,
 	}
 	return nil
 }
@@ -78,6 +77,22 @@ func (m *MockUserPersistence) SetOnetimePasswordHash(id int, onetimePasswordHash
 	}
 	m.User.OnetimePasswordHash = onetimePasswordHash
 	m.User.PasswordHash = ""
+	return nil
+}
+
+func (m *MockUserPersistence) ActivateUser(id int) error {
+	if m.ShouldFail {
+		return fmt.Errorf("failed to activate user")
+	}
+	m.User.Status = ActiveStatus
+	return nil
+}
+
+func (m *MockUserPersistence) DeactivateUser(id int) error {
+	if m.ShouldFail {
+		return fmt.Errorf("failed to deactivate user")
+	}
+	m.User.Status = InactiveStatus
 	return nil
 }
 
