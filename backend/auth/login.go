@@ -1,12 +1,12 @@
-package api
+package auth
 
 import (
 	"errors"
 	"net/http"
 
 	z "github.com/Oudwins/zog"
-	"github.com/nicograef/jotti/backend/domain/auth"
-	usr "github.com/nicograef/jotti/backend/domain/user"
+	"github.com/nicograef/jotti/backend/api"
+	usr "github.com/nicograef/jotti/backend/user"
 )
 
 type loginRequest struct {
@@ -24,36 +24,36 @@ type loginResponse struct {
 }
 
 // LoginHandler handles user login requests by validating the password hash against the database and returns a jwt token if successful.
-func LoginHandler(us *usr.Service, as *auth.Service) http.HandlerFunc {
+func LoginHandler(us *usr.Service, as *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !validateMethod(w, r, http.MethodPost) {
+		if !api.ValidateMethod(w, r, http.MethodPost) {
 			return
 		}
 
 		body := loginRequest{}
-		if !readJSONRequest(w, r, &body) {
+		if !api.ReadJSONRequest(w, r, &body) {
 			return
 		}
 
-		if !validateBody(w, &body, loginRequestSchema) {
+		if !api.ValidateBody(w, &body, loginRequestSchema) {
 			return
 		}
 
 		user, err := us.VerifyPasswordAndGetUser(body.Username, body.Password)
 		if err != nil {
 			if errors.Is(err, usr.ErrUserNotFound) || errors.Is(err, usr.ErrInvalidPassword) {
-				sendUnauthorizedError(w, errorResponse{
+				api.SendUnauthorizedError(w, api.ErrorResponse{
 					Message: "Invalid username or password",
 					Code:    "invalid_credentials",
 				})
 			} else {
-				sendInternalServerError(w)
+				api.SendInternalServerError(w)
 			}
 			return
 		}
 
 		if user.Status != usr.ActiveStatus {
-			sendUnauthorizedError(w, errorResponse{
+			api.SendUnauthorizedError(w, api.ErrorResponse{
 				Message: "User account is not active",
 				Code:    "user_inactive",
 			})
@@ -62,11 +62,11 @@ func LoginHandler(us *usr.Service, as *auth.Service) http.HandlerFunc {
 
 		stringToken, err := as.GenerateJWTTokenForUser(*user)
 		if err != nil {
-			sendInternalServerError(w)
+			api.SendInternalServerError(w)
 			return
 		}
 
-		sendResponse(w, loginResponse{
+		api.SendResponse(w, loginResponse{
 			Token: stringToken,
 		})
 	}
@@ -89,46 +89,46 @@ type setPasswordResponse struct {
 }
 
 // SetPasswordHandler handles setting a new password for a user using a one-time password and returns a jwt token if successful.
-func SetPasswordHandler(us *usr.Service, as *auth.Service) http.HandlerFunc {
+func SetPasswordHandler(us *usr.Service, as *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !validateMethod(w, r, http.MethodPost) {
+		if !api.ValidateMethod(w, r, http.MethodPost) {
 			return
 		}
 
 		body := setPasswordRequest{}
-		if !readJSONRequest(w, r, &body) {
+		if !api.ReadJSONRequest(w, r, &body) {
 			return
 		}
 
-		if !validateBody(w, &body, setPasswordRequestSchema) {
+		if !api.ValidateBody(w, &body, setPasswordRequestSchema) {
 			return
 		}
 
 		user, err := us.SetNewPassword(body.Username, body.Password, body.OnetimePassword)
 		if err != nil {
 			if errors.Is(err, usr.ErrUserNotFound) || errors.Is(err, usr.ErrInvalidPassword) {
-				sendUnauthorizedError(w, errorResponse{
+				api.SendUnauthorizedError(w, api.ErrorResponse{
 					Message: "Invalid username or password",
 					Code:    "invalid_credentials",
 				})
 			} else if errors.Is(err, usr.ErrNoOnetimePassword) {
-				sendBadRequestError(w, errorResponse{
+				api.SendBadRequestError(w, api.ErrorResponse{
 					Message: "No one-time password set for user. User probably already has a password.",
 					Code:    "already_has_password",
 				})
 			} else {
-				sendInternalServerError(w)
+				api.SendInternalServerError(w)
 			}
 			return
 		}
 
 		stringToken, err := as.GenerateJWTTokenForUser(*user)
 		if err != nil {
-			sendInternalServerError(w)
+			api.SendInternalServerError(w)
 			return
 		}
 
-		sendResponse(w, setPasswordResponse{
+		api.SendResponse(w, setPasswordResponse{
 			Token: stringToken,
 		})
 	}

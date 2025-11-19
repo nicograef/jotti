@@ -97,7 +97,7 @@ func (m *MockUserPersistence) DeactivateUser(id int) error {
 }
 
 func TestCreateUser(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{User: &User{ID: 1}}}
+	userService := Service{Persistence: &MockUserPersistence{User: &User{ID: 1}}}
 
 	user, onetimePassword, err := userService.CreateUser("Test User", "testuser", ServiceRole)
 
@@ -125,7 +125,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateUser_Error(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{ShouldFail: true}}
+	userService := Service{Persistence: &MockUserPersistence{ShouldFail: true}}
 
 	_, _, err := userService.CreateUser("Test User", "testuser", ServiceRole)
 
@@ -138,7 +138,7 @@ func TestCreateUser_Error(t *testing.T) {
 }
 
 func TestVerifyPasswordAndGetUser_NotFound(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{ShouldFail: true}}
+	userService := Service{Persistence: &MockUserPersistence{ShouldFail: true}}
 
 	_, err := userService.VerifyPasswordAndGetUser("nonexistent", "password")
 
@@ -148,7 +148,7 @@ func TestVerifyPasswordAndGetUser_NotFound(t *testing.T) {
 }
 
 func TestVerifyPasswordAndGetUser_Success(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{User: &User{ID: 1, Username: "testuser", PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}}
+	userService := Service{Persistence: &MockUserPersistence{User: &User{ID: 1, Username: "testuser", PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}}
 
 	user, err := userService.VerifyPasswordAndGetUser("testuser", "testpassword")
 
@@ -164,7 +164,7 @@ func TestVerifyPasswordAndGetUser_Success(t *testing.T) {
 }
 
 func TestVerifyPasswordAndGetUser_InvalidPassword(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{User: &User{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}}
+	userService := Service{Persistence: &MockUserPersistence{User: &User{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}}
 
 	_, err := userService.VerifyPasswordAndGetUser("testuser", "wrongpassword")
 
@@ -174,7 +174,7 @@ func TestVerifyPasswordAndGetUser_InvalidPassword(t *testing.T) {
 }
 
 func TestVerifyPasswordAndGetUser_HashError(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{User: &User{PasswordHash: "invalidhashformat"}}}
+	userService := Service{Persistence: &MockUserPersistence{User: &User{PasswordHash: "invalidhashformat"}}}
 
 	_, err := userService.VerifyPasswordAndGetUser("testuser", "somepassword")
 
@@ -185,7 +185,7 @@ func TestVerifyPasswordAndGetUser_HashError(t *testing.T) {
 
 func TestGetAllUsers_Success(t *testing.T) {
 	mockUser := &User{ID: 1, Name: "Test User", Username: "testuser", Role: ServiceRole}
-	userService := Service{DB: &MockUserPersistence{User: mockUser}}
+	userService := Service{Persistence: &MockUserPersistence{User: mockUser}}
 
 	users, err := userService.GetAllUsers()
 
@@ -201,7 +201,7 @@ func TestGetAllUsers_Success(t *testing.T) {
 }
 
 func TestGetAllUsers_Error(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{ShouldFail: true}}
+	userService := Service{Persistence: &MockUserPersistence{ShouldFail: true}}
 
 	_, err := userService.GetAllUsers()
 
@@ -211,7 +211,7 @@ func TestGetAllUsers_Error(t *testing.T) {
 }
 
 func TestUpdateUser_Success(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{}}
+	userService := Service{Persistence: &MockUserPersistence{}}
 
 	user, err := userService.UpdateUser(1, "Updated User", "updateduser", AdminRole)
 
@@ -230,7 +230,7 @@ func TestUpdateUser_Success(t *testing.T) {
 }
 
 func TestUpdateUser_Error(t *testing.T) {
-	userService := Service{DB: &MockUserPersistence{ShouldFail: true}}
+	userService := Service{Persistence: &MockUserPersistence{ShouldFail: true}}
 
 	user, err := userService.UpdateUser(1, "Updated User", "updateduser", AdminRole)
 

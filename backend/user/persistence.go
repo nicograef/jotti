@@ -1,13 +1,11 @@
-package persistence
+package user
 
 import (
 	"database/sql"
-
-	"github.com/nicograef/jotti/backend/domain/user"
 )
 
-// UserPersistence implements user persistence layer using a SQL database.
-type UserPersistence struct {
+// Persistence implements user persistence layer using a SQL database.
+type Persistence struct {
 	DB *sql.DB
 }
 
@@ -23,23 +21,23 @@ type dbuser struct {
 }
 
 // GetUser retrieves a user from the database by their ID.
-func (p *UserPersistence) GetUser(id int) (*user.User, error) {
+func (p *Persistence) GetUser(id int) (*User, error) {
 	row := p.DB.QueryRow("SELECT id, name, username, role, status, password_hash, onetime_password_hash, created_at FROM users WHERE id = $1 AND status != 'deleted'", id)
 
 	var dbUser dbuser
 	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Status, &dbUser.PasswordHash, &dbUser.OnetimePasswordHash, &dbUser.CreatedAt); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, user.ErrUserNotFound
+			return nil, ErrUserNotFound
 		}
 		return nil, err
 	}
 
-	return &user.User{
+	return &User{
 		ID:                  dbUser.ID,
 		Name:                dbUser.Name,
 		Username:            dbUser.Username,
-		Role:                user.Role(dbUser.Role),
-		Status:              user.Status(dbUser.Status),
+		Role:                Role(dbUser.Role),
+		Status:              Status(dbUser.Status),
 		PasswordHash:        dbUser.PasswordHash.String,
 		OnetimePasswordHash: dbUser.OnetimePasswordHash.String,
 		CreatedAt:           dbUser.CreatedAt.Time,
@@ -47,13 +45,13 @@ func (p *UserPersistence) GetUser(id int) (*user.User, error) {
 }
 
 // GetUserID retrieves a user id from the database by their username.
-func (p *UserPersistence) GetUserID(username string) (int, error) {
+func (p *Persistence) GetUserID(username string) (int, error) {
 	row := p.DB.QueryRow("SELECT id FROM users WHERE username = $1 AND status != 'deleted'", username)
 
 	var userID int
 	if err := row.Scan(&userID); err != nil {
 		if err == sql.ErrNoRows {
-			return 0, user.ErrUserNotFound
+			return 0, ErrUserNotFound
 		}
 		return 0, err
 	}
@@ -62,7 +60,7 @@ func (p *UserPersistence) GetUserID(username string) (int, error) {
 }
 
 // GetAllUsers retrieves all users from the database.
-func (p *UserPersistence) GetAllUsers() ([]*user.User, error) {
+func (p *Persistence) GetAllUsers() ([]*User, error) {
 	rows, err := p.DB.Query("SELECT id, name, username, role, status, created_at FROM users WHERE status != 'deleted' ORDER BY id ASC")
 	if err != nil {
 		return nil, err
@@ -73,18 +71,18 @@ func (p *UserPersistence) GetAllUsers() ([]*user.User, error) {
 		}
 	}()
 
-	var users []*user.User
+	var users []*User
 	for rows.Next() {
 		var dbUser dbuser
 		if err := rows.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Status, &dbUser.CreatedAt); err != nil {
 			return nil, err
 		}
-		users = append(users, &user.User{
+		users = append(users, &User{
 			ID:        dbUser.ID,
 			Name:      dbUser.Name,
 			Username:  dbUser.Username,
-			Role:      user.Role(dbUser.Role),
-			Status:    user.Status(dbUser.Status),
+			Role:      Role(dbUser.Role),
+			Status:    Status(dbUser.Status),
 			CreatedAt: dbUser.CreatedAt.Time,
 		})
 	}
@@ -97,8 +95,8 @@ func (p *UserPersistence) GetAllUsers() ([]*user.User, error) {
 }
 
 // CreateUser inserts a new user into the database with the given name, username and role.
-// Returns an error if the operation fails, and the row id of the newly created user.
-func (p *UserPersistence) CreateUser(name, username, onetimePasswordHash string, role user.Role) (int, error) {
+// Returns an error if the operation fails, and the row id of the newly created
+func (p *Persistence) CreateUser(name, username, onetimePasswordHash string, role Role) (int, error) {
 	var userID int
 	err := p.DB.QueryRow("INSERT INTO users (name, username, onetime_password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id", name, username, onetimePasswordHash, role).Scan(&userID)
 	if err != nil {
@@ -109,70 +107,70 @@ func (p *UserPersistence) CreateUser(name, username, onetimePasswordHash string,
 }
 
 // UpdateUser updates the user's information in the database.
-func (p *UserPersistence) UpdateUser(id int, name, username string, role user.Role) error {
+func (p *Persistence) UpdateUser(id int, name, username string, role Role) error {
 	result, err := p.DB.Exec("UPDATE users SET name = $1, username = $2, role = $3 WHERE id = $4", name, username, role, id)
 	if err != nil {
 		return err
 	}
 
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		return user.ErrUserNotFound
+		return ErrUserNotFound
 	}
 
 	return nil
 }
 
 // ActivateUser sets the status of the user with the given user ID to 'active'.
-func (p *UserPersistence) ActivateUser(id int) error {
+func (p *Persistence) ActivateUser(id int) error {
 	result, err := p.DB.Exec("UPDATE users SET status = 'active' WHERE id = $1", id)
 	if err != nil {
 		return err
 	}
 
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		return user.ErrUserNotFound
+		return ErrUserNotFound
 	}
 
 	return nil
 }
 
 // DeactivateUser sets the status of the user with the given user ID to 'inactive'.
-func (p *UserPersistence) DeactivateUser(id int) error {
+func (p *Persistence) DeactivateUser(id int) error {
 	result, err := p.DB.Exec("UPDATE users SET status = 'inactive' WHERE id = $1", id)
 	if err != nil {
 		return err
 	}
 
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		return user.ErrUserNotFound
+		return ErrUserNotFound
 	}
 
 	return nil
 }
 
 // SetPasswordHash updates the password hash for the user with the given user ID.
-func (p *UserPersistence) SetPasswordHash(id int, passwordHash string) error {
+func (p *Persistence) SetPasswordHash(id int, passwordHash string) error {
 	result, err := p.DB.Exec("UPDATE users SET password_hash = $1, onetime_password_hash = NULL WHERE id = $2", passwordHash, id)
 	if err != nil {
 		return err
 	}
 
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		return user.ErrUserNotFound
+		return ErrUserNotFound
 	}
 
 	return nil
 }
 
 // SetOnetimePasswordHash updates the one-time password hash for the user with the given user ID.
-func (p *UserPersistence) SetOnetimePasswordHash(id int, onetimePasswordHash string) error {
+func (p *Persistence) SetOnetimePasswordHash(id int, onetimePasswordHash string) error {
 	result, err := p.DB.Exec("UPDATE users SET onetime_password_hash = $1, password_hash = NULL WHERE id = $2", onetimePasswordHash, id)
 	if err != nil {
 		return err
 	}
 
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		return user.ErrUserNotFound
+		return ErrUserNotFound
 	}
 
 	return nil

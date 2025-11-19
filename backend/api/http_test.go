@@ -16,7 +16,7 @@ import (
 func TestSendJSONResponse(t *testing.T) {
 	rec := httptest.NewRecorder()
 	data := map[string]string{"foo": "bar"}
-	sendResponse(rec, data)
+	SendResponse(rec, data)
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
@@ -38,7 +38,7 @@ func TestReadJSONRequest_Success(t *testing.T) {
 	body := bytes.NewBufferString(`{"Foo":"bar"}`)
 	req := httptest.NewRequest(http.MethodPost, "/", body)
 	var dest testStruct
-	ok := readJSONRequest(rec, req, &dest)
+	ok := ReadJSONRequest(rec, req, &dest)
 	if !ok {
 		t.Errorf("expected success reading JSON")
 	}
@@ -53,7 +53,7 @@ func TestReadJSONRequest_InvalidJSON(t *testing.T) {
 	body := bytes.NewBufferString(`{"Foo":}`)
 	req := httptest.NewRequest(http.MethodPost, "/", body)
 	var dest testStruct
-	ok := readJSONRequest(rec, req, &dest)
+	ok := ReadJSONRequest(rec, req, &dest)
 	if ok {
 		t.Errorf("expected failure for invalid JSON")
 	}
@@ -74,12 +74,12 @@ func TestValidateBody_Success(t *testing.T) {
 	})
 
 	body := testStruct{Foo: "bar", Bar: 10}
-	ok := validateBody(rec, &body, schema)
+	ok := ValidateBody(rec, &body, schema)
 
 	if !ok {
 		t.Errorf("expected body to be valid")
 	}
-	var resp errorResponse
+	var resp ErrorResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err == nil {
 		t.Errorf("expected no response body, got %v", resp)
 	}
@@ -97,7 +97,7 @@ func TestValidateBody_Invalid(t *testing.T) {
 	})
 
 	body := testStruct{Foo: "ab", Bar: 2}
-	ok := validateBody(rec, &body, schema)
+	ok := ValidateBody(rec, &body, schema)
 
 	if ok {
 		t.Errorf("expected body to be invalid")
@@ -111,7 +111,7 @@ func TestValidateBody_Invalid(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "string must contain at least 3 character(s)") {
 		t.Errorf("expected error message about Foo length, got %s", rec.Body.String())
 	}
-	var resp errorResponse
+	var resp ErrorResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Errorf("failed to decode response: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestValidateBody_Invalid(t *testing.T) {
 func TestValidateMethod(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	ok := validateMethod(rec, req, http.MethodPost)
+	ok := ValidateMethod(rec, req, http.MethodPost)
 	if ok {
 		t.Errorf("expected method not allowed")
 	}
@@ -136,7 +136,7 @@ func TestValidateMethod(t *testing.T) {
 
 	rec2 := httptest.NewRecorder()
 	req2 := httptest.NewRequest(http.MethodPost, "/", nil)
-	ok2 := validateMethod(rec2, req2, http.MethodPost)
+	ok2 := ValidateMethod(rec2, req2, http.MethodPost)
 	if !ok2 {
 		t.Errorf("expected method allowed")
 	}

@@ -57,23 +57,23 @@ type persistence interface {
 
 // Service provides table-related operations.
 type Service struct {
-	DB persistence
+	Persistence persistence
 }
 
 // CreateTable creates a new table in the database.
 func (s *Service) CreateTable(name string) (*Table, error) {
-	id, err := s.DB.CreateTable(name)
+	id, err := s.Persistence.CreateTable(name)
 	if err != nil {
 		log.Printf("Error creating table: %v", err)
 		return nil, ErrDatabase
 	}
 
-	return s.DB.GetTable(id)
+	return s.Persistence.GetTable(id)
 }
 
 // UpdateTable updates an existing table in the database.
 func (s *Service) UpdateTable(id int, name string) (*Table, error) {
-	err := s.DB.UpdateTable(id, name)
+	err := s.Persistence.UpdateTable(id, name)
 	if err != nil {
 		if errors.Is(err, ErrTableNotFound) {
 			return nil, ErrTableNotFound
@@ -82,12 +82,12 @@ func (s *Service) UpdateTable(id int, name string) (*Table, error) {
 		return nil, ErrDatabase
 	}
 
-	return s.DB.GetTable(id)
+	return s.Persistence.GetTable(id)
 }
 
 // GetTable retrieves a table by its ID.
 func (s *Service) GetTable(id int) (*Table, error) {
-	table, err := s.DB.GetTable(id)
+	table, err := s.Persistence.GetTable(id)
 	if err != nil {
 		if errors.Is(err, ErrTableNotFound) {
 			return nil, ErrTableNotFound
@@ -100,7 +100,7 @@ func (s *Service) GetTable(id int) (*Table, error) {
 
 // GetAllTables retrieves all tables.
 func (s *Service) GetAllTables() ([]*Table, error) {
-	tables, err := s.DB.GetAllTables()
+	tables, err := s.Persistence.GetAllTables()
 	if err != nil {
 		log.Printf("Error retrieving tables: %v", err)
 		return nil, ErrDatabase
@@ -110,7 +110,7 @@ func (s *Service) GetAllTables() ([]*Table, error) {
 
 // ActivateTable sets the status of a table to active.
 func (s *Service) ActivateTable(id int) error {
-	err := s.DB.ActivateTable(id)
+	err := s.Persistence.ActivateTable(id)
 	if err != nil {
 		if errors.Is(err, ErrTableNotFound) {
 			return ErrTableNotFound
@@ -123,7 +123,7 @@ func (s *Service) ActivateTable(id int) error {
 
 // DeactivateTable sets the status of a table to inactive.
 func (s *Service) DeactivateTable(id int) error {
-	err := s.DB.DeactivateTable(id)
+	err := s.Persistence.DeactivateTable(id)
 	if err != nil {
 		if errors.Is(err, ErrTableNotFound) {
 			return ErrTableNotFound

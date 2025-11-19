@@ -8,7 +8,7 @@ import (
 	z "github.com/Oudwins/zog"
 )
 
-type errorResponse struct {
+type ErrorResponse struct {
 	Message string `json:"message"`
 	Code    string `json:"code"`
 	Details any    `json:"details,omitempty"`
@@ -22,52 +22,52 @@ func sendJSONResponse(w http.ResponseWriter, data any, statusCode int) {
 	}
 }
 
-func sendResponse(w http.ResponseWriter, data any) {
+func SendResponse(w http.ResponseWriter, data any) {
 	sendJSONResponse(w, data, http.StatusOK)
 }
 
-func sendEmptyResponse(w http.ResponseWriter) {
+func SendEmptyResponse(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func sendInternalServerError(w http.ResponseWriter) {
-	response := errorResponse{
+func SendInternalServerError(w http.ResponseWriter) {
+	response := ErrorResponse{
 		Message: "Internal server error",
 		Code:    "internal_server_error",
 	}
 	sendJSONResponse(w, response, http.StatusInternalServerError)
 }
 
-func sendBadRequestError(w http.ResponseWriter, response errorResponse) {
+func SendBadRequestError(w http.ResponseWriter, response ErrorResponse) {
 	sendJSONResponse(w, response, http.StatusBadRequest)
 }
 
-func sendNotFoundError(w http.ResponseWriter, response errorResponse) {
+func SendNotFoundError(w http.ResponseWriter, response ErrorResponse) {
 	sendJSONResponse(w, response, http.StatusNotFound)
 }
 
-func sendUnauthorizedError(w http.ResponseWriter, response errorResponse) {
+func SendUnauthorizedError(w http.ResponseWriter, response ErrorResponse) {
 	sendJSONResponse(w, response, http.StatusUnauthorized)
 }
 
-func sendForbiddenError(w http.ResponseWriter, response errorResponse) {
+func SendForbiddenError(w http.ResponseWriter, response ErrorResponse) {
 	sendJSONResponse(w, response, http.StatusForbidden)
 }
 
-func sendMethodNotAllowedError(w http.ResponseWriter, response errorResponse) {
+func SendMethodNotAllowedError(w http.ResponseWriter, response ErrorResponse) {
 	sendJSONResponse(w, response, http.StatusMethodNotAllowed)
 }
 
-// readJSONRequest reads JSON from the request body into the provided destination.
+// ReadJSONRequest reads JSON from the request body into the provided destination.
 // Returns false if decoding fails.
-func readJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) bool {
+func ReadJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) bool {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields() // Disallow unknown fields for strict matching
 
 	err := decoder.Decode(dest)
 	if err != nil {
 		log.Printf("ERROR Failed to decode JSON request: %v", err)
-		sendBadRequestError(w, errorResponse{
+		SendBadRequestError(w, ErrorResponse{
 			Message: "Invalid JSON request",
 			Code:    "invalid_json",
 		})
@@ -77,11 +77,11 @@ func readJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) boo
 	return true
 }
 
-func validateBody[T any](w http.ResponseWriter, body *T, schema *z.StructSchema) bool {
+func ValidateBody[T any](w http.ResponseWriter, body *T, schema *z.StructSchema) bool {
 	if err := schema.Validate(body); err != nil {
 		issues := z.Issues.SanitizeMapAndCollect(err)
 		log.Printf("ERROR Invalid request body: %v", issues)
-		sendBadRequestError(w, errorResponse{
+		SendBadRequestError(w, ErrorResponse{
 			Message: "Invalid request body",
 			Code:    "invalid_request_body",
 			Details: issues,
@@ -91,10 +91,10 @@ func validateBody[T any](w http.ResponseWriter, body *T, schema *z.StructSchema)
 	return true
 }
 
-func validateMethod(w http.ResponseWriter, r *http.Request, expectedMethod string) bool {
+func ValidateMethod(w http.ResponseWriter, r *http.Request, expectedMethod string) bool {
 	if r.Method != expectedMethod {
 		log.Printf("ERROR Invalid method %s, expected %s", r.Method, expectedMethod)
-		sendMethodNotAllowedError(w, errorResponse{
+		SendMethodNotAllowedError(w, ErrorResponse{
 			Message: "Method not allowed",
 			Code:    "method_not_allowed",
 		})

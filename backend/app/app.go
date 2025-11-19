@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api"
+	"github.com/nicograef/jotti/backend/auth"
 	"github.com/nicograef/jotti/backend/config"
-	"github.com/nicograef/jotti/backend/domain/auth"
-	"github.com/nicograef/jotti/backend/domain/table"
-	"github.com/nicograef/jotti/backend/domain/user"
-	"github.com/nicograef/jotti/backend/persistence"
+	"github.com/nicograef/jotti/backend/product"
+	"github.com/nicograef/jotti/backend/table"
+	"github.com/nicograef/jotti/backend/user"
 )
 
 // App represents the application with its configuration, router, server, and database connection.
@@ -44,30 +44,37 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 
 // SetupRoutes configures HTTP routes
 func (app *App) SetupRoutes() {
-	userPersistence := persistence.UserPersistence{DB: app.DB}
-	tablePersistence := persistence.TablePersistence{DB: app.DB}
-	userService := user.Service{DB: &userPersistence}
-	tableService := table.Service{DB: &tablePersistence}
 	authService := auth.Service{JWTSecret: app.Config.JWTSecret}
-	jwtMiddleware := api.NewJWTMiddleware(&authService)
+	jwtMiddleware := auth.NewJWTMiddleware(&authService)
 
 	app.Router.HandleFunc("/health", api.CorsHandler(api.NewHealthHandler()))
 
-	app.Router.HandleFunc("/login", api.CorsHandler(api.LoginHandler(&userService, &authService)))
-	app.Router.HandleFunc("/set-password", api.CorsHandler(api.SetPasswordHandler(&userService, &authService)))
+	userPersistence := user.Persistence{DB: app.DB}
+	userService := user.Service{Persistence: &userPersistence}
+	uh := user.Handler{Service: &userService}
+	app.Router.HandleFunc("/login", api.CorsHandler(auth.LoginHandler(&userService, &authService)))
+	app.Router.HandleFunc("/set-password", api.CorsHandler(auth.SetPasswordHandler(&userService, &authService)))
+	app.Router.HandleFunc("/admin/create-user", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(uh.CreateUserHandler()))))
+	app.Router.HandleFunc("/admin/update-user", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(uh.UpdateUserHandler()))))
+	app.Router.HandleFunc("/admin/activate-user", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(uh.ActivateUserHandler()))))
+	app.Router.HandleFunc("/admin/deactivate-user", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(uh.DeactivateUserHandler()))))
+	app.Router.HandleFunc("/admin/get-users", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(uh.GetUsersHandler()))))
+	app.Router.HandleFunc("/admin/reset-password", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(uh.ResetPasswordHandler()))))
 
-	app.Router.HandleFunc("/admin/create-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.CreateUserHandler(&userService)))))
-	app.Router.HandleFunc("/admin/update-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.UpdateUserHandler(&userService)))))
-	app.Router.HandleFunc("/admin/activate-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.ActivateUserHandler(&userService)))))
-	app.Router.HandleFunc("/admin/deactivate-user", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.DeactivateUserHandler(&userService)))))
-	app.Router.HandleFunc("/admin/get-users", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.GetUsersHandler(&userService)))))
-	app.Router.HandleFunc("/admin/reset-password", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.ResetPasswordHandler(&userService)))))
+	tablePersistence := table.Persistence{DB: app.DB}
+	tableService := table.Service{Persistence: &tablePersistence}
+	th := table.Handler{Service: &tableService}
+	app.Router.HandleFunc("/admin/get-tables", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(th.GetTablesHandler()))))
+	app.Router.HandleFunc("/admin/update-table", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(th.UpdateTableHandler()))))
+	app.Router.HandleFunc("/admin/create-table", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(th.CreateTableHandler()))))
+	app.Router.HandleFunc("/admin/activate-table", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(th.ActivateTableHandler()))))
+	app.Router.HandleFunc("/admin/deactivate-table", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(th.DeactivateTableHandler()))))
 
-	app.Router.HandleFunc("/admin/get-tables", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.GetTablesHandler(&tableService)))))
-	app.Router.HandleFunc("/admin/update-table", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.UpdateTableHandler(&tableService)))))
-	app.Router.HandleFunc("/admin/create-table", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.CreateTableHandler(&tableService)))))
-	app.Router.HandleFunc("/admin/activate-table", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.ActivateTableHandler(&tableService)))))
-	app.Router.HandleFunc("/admin/deactivate-table", api.CorsHandler(jwtMiddleware(api.AdminMiddleware(api.DeactivateTableHandler(&tableService)))))
+	productPersistence := product.Persistence{DB: app.DB}
+	productService := product.Service{Persistence: &productPersistence}
+	ph := product.Handler{Service: &productService}
+	app.Router.HandleFunc("/admin/create-product", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(ph.CreateProductHandler()))))
+	app.Router.HandleFunc("/admin/update-product", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(ph.UpdateProductHandler()))))
 
 	app.Server.Handler = app.Router
 }

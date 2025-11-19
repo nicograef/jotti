@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/nicograef/jotti/backend/domain/user"
+	"github.com/nicograef/jotti/backend/user"
 )
 
 func TestGenerateJWTTokenForUser(t *testing.T) {

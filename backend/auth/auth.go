@@ -1,11 +1,11 @@
-package api
+package auth
 
 import (
 	"context"
 	"net/http"
 
-	"github.com/nicograef/jotti/backend/domain/auth"
-	"github.com/nicograef/jotti/backend/domain/user"
+	"github.com/nicograef/jotti/backend/api"
+	"github.com/nicograef/jotti/backend/user"
 )
 
 // Context key types to avoid collisions
@@ -18,7 +18,7 @@ const (
 
 // NewJWTMiddleware creates a new JWT middleware instance.
 // It validates JWT tokens and adds user info to the request context.
-func NewJWTMiddleware(a *auth.Service) func(http.Handler) http.HandlerFunc {
+func NewJWTMiddleware(a *Service) func(http.Handler) http.HandlerFunc {
 	return func(h http.Handler) http.HandlerFunc {
 		return jwtMiddleware(a, h)
 	}
@@ -26,11 +26,11 @@ func NewJWTMiddleware(a *auth.Service) func(http.Handler) http.HandlerFunc {
 
 // jwtMiddleware validates the JWT Token in the Authorization header.
 // If valid, it adds the user information to the request context.
-func jwtMiddleware(a *auth.Service, h http.Handler) http.HandlerFunc {
+func jwtMiddleware(a *Service, h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
 		if token == "" {
-			sendUnauthorizedError(w, errorResponse{
+			api.SendUnauthorizedError(w, api.ErrorResponse{
 				Message: "Missing Authorization header",
 				Code:    "missing_authorization",
 			})
@@ -42,7 +42,7 @@ func jwtMiddleware(a *auth.Service, h http.Handler) http.HandlerFunc {
 
 		payload, err := a.ParseAndValidateJWTToken(token)
 		if err != nil {
-			sendUnauthorizedError(w, errorResponse{
+			api.SendUnauthorizedError(w, api.ErrorResponse{
 				Message: "Invalid JWT token",
 				Code:    "invalid_jwt",
 			})
@@ -65,7 +65,7 @@ func AdminMiddleware(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		role := r.Context().Value(roleKey).(user.Role)
 		if role != user.AdminRole {
-			sendForbiddenError(w, errorResponse{
+			api.SendForbiddenError(w, api.ErrorResponse{
 				Message: "Admin access required",
 				Code:    "admin_access_required",
 			})

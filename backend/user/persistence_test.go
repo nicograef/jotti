@@ -1,6 +1,6 @@
 //go:build integration
 
-package persistence
+package user
 
 import (
 	"database/sql"
@@ -9,8 +9,6 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
-
-	usr "github.com/nicograef/jotti/backend/domain/user"
 )
 
 func database() *sql.DB {
@@ -33,7 +31,7 @@ func TestGetUser(t *testing.T) {
 	db := database()
 	defer db.Close()
 
-	persistence := &UserPersistence{DB: db}
+	persistence := &Persistence{DB: db}
 	user, err := persistence.GetUser(1)
 
 	if err != nil {
@@ -48,10 +46,10 @@ func TestGetUser(t *testing.T) {
 	if user.CreatedAt.IsZero() {
 		t.Fatalf("Expected non-zero created_at, got %v", user.CreatedAt)
 	}
-	if user.Status != usr.ActiveStatus {
+	if user.Status != ActiveStatus {
 		t.Fatalf("Expected user to be active, got %s", user.Status)
 	}
-	if user.Role != usr.AdminRole {
+	if user.Role != AdminRole {
 		t.Fatalf("Expected user role 'admin', got %s", user.Role)
 	}
 }
@@ -60,10 +58,10 @@ func TestGetUser_Error(t *testing.T) {
 	db := database()
 	defer db.Close()
 
-	persistence := &UserPersistence{DB: db}
+	persistence := &Persistence{DB: db}
 	_, err := persistence.GetUser(100000)
 
-	if err != usr.ErrUserNotFound {
+	if err != ErrUserNotFound {
 		t.Fatalf("Expected user not found error, got %v", err)
 	}
 }
@@ -72,7 +70,7 @@ func TestGetUserID(t *testing.T) {
 	db := database()
 	defer db.Close()
 
-	persistence := &UserPersistence{DB: db}
+	persistence := &Persistence{DB: db}
 	user, err := persistence.GetUserID("nico")
 
 	if err != nil {
@@ -87,10 +85,10 @@ func TestGetUserID_Error(t *testing.T) {
 	db := database()
 	defer db.Close()
 
-	persistence := &UserPersistence{DB: db}
+	persistence := &Persistence{DB: db}
 	_, err := persistence.GetUserID("nonexistentuser")
 
-	if err != usr.ErrUserNotFound {
+	if err != ErrUserNotFound {
 		t.Fatalf("Expected user not found error, got %v", err)
 	}
 }
@@ -99,7 +97,7 @@ func TestGetAllUsers(t *testing.T) {
 	db := database()
 	defer db.Close()
 
-	persistence := &UserPersistence{DB: db}
+	persistence := &Persistence{DB: db}
 	users, err := persistence.GetAllUsers()
 
 	if err != nil {
@@ -114,7 +112,7 @@ func TestSetPasswordHash(t *testing.T) {
 	db := database()
 	defer db.Close()
 
-	persistence := &UserPersistence{DB: db}
+	persistence := &Persistence{DB: db}
 	err := persistence.SetPasswordHash(1, "hashedpassword123")
 
 	if err != nil {
@@ -134,20 +132,20 @@ func TestSetPasswordHash_Error(t *testing.T) {
 	db := database()
 	defer db.Close()
 
-	persistence := &UserPersistence{DB: db}
+	persistence := &Persistence{DB: db}
 	err := persistence.SetPasswordHash(100000, "somehash")
 
-	if err != usr.ErrUserNotFound {
+	if err != ErrUserNotFound {
 		t.Fatalf("Expected user not found error, got %v", err)
 	}
 }
 
-func TestCreateUser(t *testing.T) {
+func TestCreateUserInDB(t *testing.T) {
 	db := database()
 	defer db.Close()
 
-	persistence := &UserPersistence{DB: db}
-	userID, err := persistence.CreateUser("Test User", "testuser", "onetimepasswordhash", usr.AdminRole)
+	persistence := &Persistence{DB: db}
+	userID, err := persistence.CreateUser("Test User", "testuser", "onetimepasswordhash", AdminRole)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -162,8 +160,8 @@ func TestUpdateUser(t *testing.T) {
 	db := database()
 	defer db.Close()
 
-	persistence := &UserPersistence{DB: db}
-	err := persistence.UpdateUser(2, "Updated Name", "updatedusername", usr.ServiceRole) // needs to run after TestCreateUser
+	persistence := &Persistence{DB: db}
+	err := persistence.UpdateUser(2, "Updated Name", "updatedusername", ServiceRole) // needs to run after TestCreateUser
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -173,19 +171,19 @@ func TestUpdateUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error retrieving user, got %v", err)
 	}
-	if updatedUser.Name != "Updated Name" || updatedUser.Username != "updatedusername" || updatedUser.Role != usr.ServiceRole {
+	if updatedUser.Name != "Updated Name" || updatedUser.Username != "updatedusername" || updatedUser.Role != ServiceRole {
 		t.Fatalf("User not updated correctly: %+v", updatedUser)
 	}
 }
 
-func TestUpdateUser_Error(t *testing.T) {
+func TestUpdateUserInDB_Error(t *testing.T) {
 	db := database()
 	defer db.Close()
 
-	persistence := &UserPersistence{DB: db}
-	err := persistence.UpdateUser(100000, "Updated Name", "updatedusername", usr.ServiceRole)
+	persistence := &Persistence{DB: db}
+	err := persistence.UpdateUser(100000, "Updated Name", "updatedusername", ServiceRole)
 
-	if err != usr.ErrUserNotFound {
+	if err != ErrUserNotFound {
 		t.Fatalf("Expected user not found error, got %v", err)
 	}
 }
