@@ -4,7 +4,12 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import { NameField } from '@/components/common/FormFields'
+import {
+  CategoryField,
+  DescriptionField,
+  NameField,
+  NetPriceField,
+} from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -20,24 +25,30 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
 import {
-  CreateTableRequestSchema,
-  type Table,
-  TableBackend,
-} from './TableBackend'
+  CreateProductRequestSchema,
+  type Product,
+  ProductBackend,
+  ProductCategory,
+} from './ProductBackend'
 
-const FormDataSchema = CreateTableRequestSchema
+const FormDataSchema = CreateProductRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
 
-interface NewTableDialogProps {
-  backend: Pick<TableBackend, 'createTable'>
-  created: (table: Table) => void
+interface NewProductDialogProps {
+  backend: Pick<ProductBackend, 'createProduct'>
+  created: (product: Product) => void
 }
 
-export function NewTableDialog(props: NewTableDialogProps) {
+export function NewProductDialog(props: NewProductDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
-    defaultValues: { name: '' },
+    defaultValues: {
+      name: '',
+      description: '',
+      netPrice: 0,
+      category: ProductCategory.FOOD,
+    },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
@@ -46,10 +57,10 @@ export function NewTableDialog(props: NewTableDialogProps) {
     setLoading(true)
 
     try {
-      const table = await props.backend.createTable(data)
+      const { product } = await props.backend.createProduct(data)
       form.reset()
       setOpen(false)
-      props.created(table)
+      props.created(product)
     } catch (error: unknown) {
       console.error(error)
     }
@@ -62,19 +73,19 @@ export function NewTableDialog(props: NewTableDialogProps) {
       <DialogTrigger asChild>
         <div className="fixed bottom-16 right-16 z-50">
           <Button className="cursor-pointer hover:shadow-sm">
-            <Plus /> Neuer Tisch
+            <Plus /> Neues Produkt
           </Button>
         </div>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="mb-4">
-          <DialogTitle>Neuen Tisch anlegen</DialogTitle>
+          <DialogTitle>Neues Produkt anlegen</DialogTitle>
           <DialogDescription>
-            Den Namen kannst du später jederzeit ändern.
+            Du kannst alle Angaben später auch ändern.
           </DialogDescription>
         </DialogHeader>
         <form
-          id="table-form"
+          id="product-form"
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
@@ -82,10 +93,16 @@ export function NewTableDialog(props: NewTableDialogProps) {
           }}
         >
           <FieldGroup>
-            <NameField form={form} withLabel placeholder="z.B. Tisch 34" />
+            <NameField
+              form={form}
+              withLabel
+              placeholder="Produktname eingeben"
+            />
+            <DescriptionField form={form} withLabel />
+            <CategoryField form={form} withLabel />
+            <NetPriceField form={form} withLabel />
           </FieldGroup>
         </form>
-
         <DialogFooter className="mt-4">
           <DialogClose asChild>
             <Button
@@ -100,10 +117,10 @@ export function NewTableDialog(props: NewTableDialogProps) {
           </DialogClose>
           <Button
             type="submit"
-            form="table-form"
+            form="product-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Tisch anlegen
+            {loading ? <Spinner /> : <></>} Produkt anlegen
           </Button>
         </DialogFooter>
       </DialogContent>

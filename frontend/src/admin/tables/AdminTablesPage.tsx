@@ -1,17 +1,12 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
-import { type Table, TableBackend, TableStatus } from '@/lib/TableBackend'
 
 import { EditTableDialog } from './EditTableDialog'
 import { NewTableDialog } from './NewTableDialog'
-import { TableCreatedDialog } from './TableCreatedDialog'
+import { type Table, TableBackend, TableStatus } from './TableBackend'
 import { Tables } from './Tables'
-
-const initialTableCreatedState = {
-  table: null as Table | null,
-  open: false,
-}
 
 const initialEditTableState = {
   table: null as Table | null,
@@ -23,9 +18,6 @@ const tableBackend = new TableBackend(BackendSingleton)
 export function AdminTablesPage() {
   const [loading, setLoading] = useState(false)
   const [tables, setTables] = useState<Table[]>([])
-  const [tableCreatedState, setTableCreatedState] = useState(
-    initialTableCreatedState,
-  )
   const [editTableState, setEditTableState] = useState(initialEditTableState)
 
   useEffect(() => {
@@ -60,13 +52,7 @@ export function AdminTablesPage() {
         backend={tableBackend}
         created={(table) => {
           setTables((prevTables) => [...prevTables, table])
-          setTableCreatedState({ table, open: true })
-        }}
-      />
-      <TableCreatedDialog
-        {...tableCreatedState}
-        close={() => {
-          setTableCreatedState(initialTableCreatedState)
+          toast.success(`Tisch "${table.name}" wurde angelegt.`)
         }}
       />
       {editTableState.table && (

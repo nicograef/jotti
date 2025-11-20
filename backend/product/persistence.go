@@ -79,7 +79,7 @@ func (p *Persistence) GetAllProducts() ([]*Product, error) {
 func (p *Persistence) CreateProduct(name, description string, netPrice float64, category Category) (int, error) {
 	var id int
 	err := p.DB.QueryRow(
-		"INSERT INTO products (name, description, net_price, category, status, created_at) VALUES ($1, $2, $3, $4, 'active', NOW()) RETURNING id",
+		"INSERT INTO products (name, description, net_price, category) VALUES ($1, $2, $3, $4) RETURNING id",
 		name, description, netPrice, string(category),
 	).Scan(&id)
 	if err != nil {

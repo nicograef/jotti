@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NULL,
     onetime_password_hash TEXT NULL,
     role UserRole NOT NULL,
-    status EntityStatus NOT NULL DEFAULT 'active',
+    status EntityStatus NOT NULL DEFAULT 'inactive',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
 import { ItemGroup } from '@/components/ui/item'
-import { type Table, type TableBackend, TableStatus } from '@/lib/TableBackend'
 
+import { type Table, type TableBackend, TableStatus } from './TableBackend'
 import { TableItem } from './TableItem'
 
 interface TablesProps {

@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/item'
 import { Switch } from '@/components/ui/switch'
 import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { type Table, TableStatus } from '@/lib/TableBackend'
+
+import { type Table, TableStatus } from './TableBackend'
 
 interface TableItemProps {
   loading: boolean
@@ -46,7 +47,7 @@ export function TableItem(props: TableItemProps) {
             </span>
           </TooltipTrigger>
           <TooltipContent>
-            {isActive ? 'Tisch ist aktiv' : 'Tisch ist derzeit deaktiviert'}
+            {isActive ? 'Tisch ist aktiv' : 'Tisch ist deaktiviert'}
           </TooltipContent>
         </Tooltip>
       </ItemMedia>

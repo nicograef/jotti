@@ -64,11 +64,17 @@ type Service struct {
 func (s *Service) CreateTable(name string) (*Table, error) {
 	id, err := s.Persistence.CreateTable(name)
 	if err != nil {
-		log.Printf("Error creating table: %v", err)
+		log.Printf("ERROR creating table: %v", err)
 		return nil, ErrDatabase
 	}
 
-	return s.Persistence.GetTable(id)
+	table, err := s.Persistence.GetTable(id)
+	if err != nil {
+		log.Printf("ERROR Failed to retrieve table %d after creation: %v", id, err)
+		return nil, ErrDatabase
+	}
+
+	return table, nil
 }
 
 // UpdateTable updates an existing table in the database.
@@ -78,11 +84,17 @@ func (s *Service) UpdateTable(id int, name string) (*Table, error) {
 		if errors.Is(err, ErrTableNotFound) {
 			return nil, ErrTableNotFound
 		}
-		log.Printf("Error updating table: %v", err)
+		log.Printf("ERROR updating table %d: %v", id, err)
 		return nil, ErrDatabase
 	}
 
-	return s.Persistence.GetTable(id)
+	updatedTable, err := s.Persistence.GetTable(id)
+	if err != nil {
+		log.Printf("ERROR Failed to retrieve updated table %d: %v", id, err)
+		return nil, ErrDatabase
+	}
+
+	return updatedTable, nil
 }
 
 // GetTable retrieves a table by its ID.
@@ -92,7 +104,7 @@ func (s *Service) GetTable(id int) (*Table, error) {
 		if errors.Is(err, ErrTableNotFound) {
 			return nil, ErrTableNotFound
 		}
-		log.Printf("Error retrieving table: %v", err)
+		log.Printf("ERROR retrieving table %d: %v", id, err)
 		return nil, ErrDatabase
 	}
 	return table, nil
@@ -102,7 +114,7 @@ func (s *Service) GetTable(id int) (*Table, error) {
 func (s *Service) GetAllTables() ([]*Table, error) {
 	tables, err := s.Persistence.GetAllTables()
 	if err != nil {
-		log.Printf("Error retrieving tables: %v", err)
+		log.Printf("ERROR retrieving all tables: %v", err)
 		return nil, ErrDatabase
 	}
 	return tables, nil
@@ -115,7 +127,7 @@ func (s *Service) ActivateTable(id int) error {
 		if errors.Is(err, ErrTableNotFound) {
 			return ErrTableNotFound
 		}
-		log.Printf("Error activating table: %v", err)
+		log.Printf("ERROR activating table %d: %v", id, err)
 		return ErrDatabase
 	}
 	return nil
@@ -128,7 +140,7 @@ func (s *Service) DeactivateTable(id int) error {
 		if errors.Is(err, ErrTableNotFound) {
 			return ErrTableNotFound
 		}
-		log.Printf("Error deactivating table: %v", err)
+		log.Printf("ERROR deactivating table %d: %v", id, err)
 		return ErrDatabase
 	}
 	return nil

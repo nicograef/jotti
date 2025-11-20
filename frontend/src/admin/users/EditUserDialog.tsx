@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { type User, UserBackend, UserSchema } from '@/lib/UserBackend'
+
+import { type User, UserBackend, UserSchema } from './UserBackend'
 
 const FormDataSchema = UserSchema.pick({
   name: true,

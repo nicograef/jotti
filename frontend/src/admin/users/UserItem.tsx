@@ -1,5 +1,5 @@
 import { Tooltip } from '@radix-ui/react-tooltip'
-import { Star, UserPen } from 'lucide-react'
+import { Pen, Star } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/item'
 import { Switch } from '@/components/ui/switch'
 import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { type User, UserRole, UserStatus } from '@/lib/UserBackend'
+
+import { type User, UserRole, UserStatus } from './UserBackend'
 
 interface UserItemProps {
   loading: boolean
@@ -46,9 +47,7 @@ export function UserItem(props: UserItemProps) {
             </span>
           </TooltipTrigger>
           <TooltipContent>
-            {isActive
-              ? 'Benutzer ist aktiv'
-              : 'Benutzer ist derzeit deaktiviert'}
+            {isActive ? 'Benutzer ist aktiv' : 'Benutzer ist deaktiviert'}
           </TooltipContent>
         </Tooltip>
       </ItemMedia>
@@ -88,7 +87,7 @@ export function UserItem(props: UserItemProps) {
                 props.onEdit(props.user.id)
               }}
             >
-              <UserPen />
+              <Pen />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Bearbeiten</TooltipContent>

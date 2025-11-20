@@ -73,8 +73,11 @@ func (app *App) SetupRoutes() {
 	productPersistence := product.Persistence{DB: app.DB}
 	productService := product.Service{Persistence: &productPersistence}
 	ph := product.Handler{Service: &productService}
+	app.Router.HandleFunc("/admin/get-products", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(ph.GetAllProductsHandler()))))
 	app.Router.HandleFunc("/admin/create-product", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(ph.CreateProductHandler()))))
 	app.Router.HandleFunc("/admin/update-product", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(ph.UpdateProductHandler()))))
+	app.Router.HandleFunc("/admin/activate-product", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(ph.ActivateProductHandler()))))
+	app.Router.HandleFunc("/admin/deactivate-product", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(ph.DeactivateProductHandler()))))
 
 	app.Server.Handler = app.Router
 }
@@ -110,7 +113,7 @@ func (app *App) Shutdown() error {
 
 	// Shutdown HTTP server
 	if err := app.Server.Shutdown(ctx); err != nil {
-		log.Printf("Error shutting down server: %v", err)
+		log.Printf("ERROR shutting down server: %v", err)
 	}
 
 	fmt.Println("Shutdown complete")

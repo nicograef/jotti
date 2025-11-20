@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
-import { type User, UserBackend, UserStatus } from '@/lib/UserBackend'
 
 import { EditUserDialog } from '../users/EditUserDialog'
 import { NewUserDialog } from '../users/NewUserDialog'
 import { UserCreatedDialog } from '../users/UserCreatedDialog'
+import { type User, UserBackend, UserStatus } from './UserBackend'
 import { Users } from './Users'
 
 const initialUserCreatedState = {
@@ -60,6 +61,7 @@ export function AdminUsersPage() {
         created={(user, onetimePassword) => {
           setUsers((prevUsers) => [...prevUsers, user])
           setUserCreatedState({ user, onetimePassword, open: true })
+          toast.success(`Neuer Benutzer "${user.name}" wurde erstellt.`)
         }}
       />
       <UserCreatedDialog
@@ -81,7 +83,7 @@ export function AdminUsersPage() {
           }}
         />
       )}
-      <h1 className="text-2xl font-bold">Benutzerverwaltung</h1>
+      <h1 className="text-2xl font-bold">Benutzer verwalten</h1>
       <Users
         loading={loading}
         backend={userBackend}

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { UserPlus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -22,12 +22,13 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
+
 import {
   CreateUserRequestSchema,
   type User,
   UserBackend,
   UserRole,
-} from '@/lib/UserBackend'
+} from './UserBackend'
 
 const FormDataSchema = CreateUserRequestSchema
 type FormData = z.infer<typeof FormDataSchema>
@@ -70,7 +71,7 @@ export function NewUserDialog(props: NewUserDialogProps) {
       <DialogTrigger asChild>
         <div className="fixed bottom-16 right-16 z-50">
           <Button className="cursor-pointer hover:shadow-sm">
-            <UserPlus /> Neuer Benutzer
+            <Plus /> Neuer Benutzer
           </Button>
         </div>
       </DialogTrigger>

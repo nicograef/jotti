@@ -1,55 +1,70 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus } from 'lucide-react'
+import { DialogDescription } from '@radix-ui/react-dialog'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import { NameField } from '@/components/common/FormFields'
+import {
+  CategoryField,
+  DescriptionField,
+  NameField,
+  NetPriceField,
+} from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
 import {
-  CreateTableRequestSchema,
-  type Table,
-  TableBackend,
-} from './TableBackend'
+  type Product,
+  ProductBackend,
+  UpdateProductRequestSchema,
+} from './ProductBackend'
 
-const FormDataSchema = CreateTableRequestSchema
+const FormDataSchema = UpdateProductRequestSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
 
-interface NewTableDialogProps {
-  backend: Pick<TableBackend, 'createTable'>
-  created: (table: Table) => void
+interface EditProductDialogProps {
+  backend: Pick<ProductBackend, 'updateProduct'>
+  open: boolean
+  product: Product
+  updated: (product: Product) => void
+  close: () => void
 }
 
-export function NewTableDialog(props: NewTableDialogProps) {
-  const [open, setOpen] = useState(false)
+export function EditProductDialog(props: Readonly<EditProductDialogProps>) {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
-    defaultValues: { name: '' },
+    defaultValues: props.product,
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
+
+  const onOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      form.reset()
+      props.close()
+    }
+  }
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
 
     try {
-      const table = await props.backend.createTable(data)
+      const updatedProduct = await props.backend.updateProduct({
+        id: props.product.id,
+        ...data,
+      })
       form.reset()
-      setOpen(false)
-      props.created(table)
+      props.updated(updatedProduct)
+      props.close()
     } catch (error: unknown) {
       console.error(error)
     }
@@ -58,23 +73,16 @@ export function NewTableDialog(props: NewTableDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <div className="fixed bottom-16 right-16 z-50">
-          <Button className="cursor-pointer hover:shadow-sm">
-            <Plus /> Neuer Tisch
-          </Button>
-        </div>
-      </DialogTrigger>
+    <Dialog open={props.open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="mb-4">
-          <DialogTitle>Neuen Tisch anlegen</DialogTitle>
+          <DialogTitle>{props.product.name}</DialogTitle>
           <DialogDescription>
-            Den Namen kannst du später jederzeit ändern.
+            Du kannst Name, Benutzername, Rolle und Status des Benutzers ändern.
           </DialogDescription>
         </DialogHeader>
         <form
-          id="table-form"
+          id="product-form"
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
@@ -82,10 +90,12 @@ export function NewTableDialog(props: NewTableDialogProps) {
           }}
         >
           <FieldGroup>
-            <NameField form={form} withLabel placeholder="z.B. Tisch 34" />
+            <NameField form={form} withLabel />
+            <DescriptionField form={form} withLabel />
+            <CategoryField form={form} withLabel />
+            <NetPriceField form={form} withLabel />
           </FieldGroup>
         </form>
-
         <DialogFooter className="mt-4">
           <DialogClose asChild>
             <Button
@@ -100,10 +110,10 @@ export function NewTableDialog(props: NewTableDialogProps) {
           </DialogClose>
           <Button
             type="submit"
-            form="table-form"
+            form="product-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Tisch anlegen
+            {loading ? <Spinner /> : <></>} Speichern
           </Button>
         </DialogFooter>
       </DialogContent>

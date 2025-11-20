@@ -26,10 +26,10 @@ var IDSchema = z.Int().GTE(1, z.Message("Invalid product ID"))
 var NameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(30, z.Message("Name too long"))
 
 // DescriptionSchema defines the schema for a product's description.
-var DescriptionSchema = z.String().Trim().Min(0).Max(255, z.Message("Description too long"))
+var DescriptionSchema = z.String().Trim().Min(0).Max(250, z.Message("Description too long"))
 
 // NetPriceSchema defines the schema for a product's net price.
-var NetPriceSchema = z.Float64().GTE(0.01, z.Message("Net price must be non-negative")).LTE(999.99, z.Message("Net price too high"))
+var NetPriceSchema = z.Float64().GTE(0, z.Message("Net price must be non-negative")).LTE(999.99, z.Message("Net price too high"))
 
 // StatusSchema defines the schema for a product status.
 var StatusSchema = z.StringLike[Status]().OneOf(
@@ -91,11 +91,17 @@ type Service struct {
 func (s *Service) CreateProduct(name, description string, netPrice float64, category Category) (*Product, error) {
 	id, err := s.Persistence.CreateProduct(name, description, netPrice, category)
 	if err != nil {
-		log.Printf("Error creating product: %v", err)
+		log.Printf("ERROR creating product: %v", err)
 		return nil, ErrDatabase
 	}
 
-	return s.Persistence.GetProduct(id)
+	product, err := s.Persistence.GetProduct(id)
+	if err != nil {
+		log.Printf("ERROR Failed to retrieve product %d after creation: %v", id, err)
+		return nil, ErrDatabase
+	}
+
+	return product, nil
 }
 
 // UpdateProduct updates an existing product in the database.
@@ -105,11 +111,17 @@ func (s *Service) UpdateProduct(id int, name, description string, netPrice float
 		if errors.Is(err, ErrProductNotFound) {
 			return nil, ErrProductNotFound
 		}
-		log.Printf("Error updating product: %v", err)
+		log.Printf("ERROR updating product: %v", err)
 		return nil, ErrDatabase
 	}
 
-	return s.Persistence.GetProduct(id)
+	updatedProduct, err := s.Persistence.GetProduct(id)
+	if err != nil {
+		log.Printf("ERROR Failed to retrieve updated product %d: %v", id, err)
+		return nil, ErrDatabase
+	}
+
+	return updatedProduct, nil
 }
 
 // GetProduct retrieves a product by its ID.
@@ -119,7 +131,7 @@ func (s *Service) GetProduct(id int) (*Product, error) {
 		if errors.Is(err, ErrProductNotFound) {
 			return nil, ErrProductNotFound
 		}
-		log.Printf("Error retrieving product: %v", err)
+		log.Printf("ERROR retrieving product %d: %v", id, err)
 		return nil, ErrDatabase
 	}
 	return product, nil
@@ -129,7 +141,7 @@ func (s *Service) GetProduct(id int) (*Product, error) {
 func (s *Service) GetAllProducts() ([]*Product, error) {
 	products, err := s.Persistence.GetAllProducts()
 	if err != nil {
-		log.Printf("Error retrieving products: %v", err)
+		log.Printf("ERROR retrieving all products: %v", err)
 		return nil, ErrDatabase
 	}
 	return products, nil
@@ -142,7 +154,7 @@ func (s *Service) ActivateProduct(id int) error {
 		if errors.Is(err, ErrProductNotFound) {
 			return ErrProductNotFound
 		}
-		log.Printf("Error activating product: %v", err)
+		log.Printf("ERROR activating product %d: %v", id, err)
 		return ErrDatabase
 	}
 	return nil
@@ -155,7 +167,7 @@ func (s *Service) DeactivateProduct(id int) error {
 		if errors.Is(err, ErrProductNotFound) {
 			return ErrProductNotFound
 		}
-		log.Printf("Error deactivating product: %v", err)
+		log.Printf("ERROR deactivating product %d: %v", id, err)
 		return ErrDatabase
 	}
 	return nil

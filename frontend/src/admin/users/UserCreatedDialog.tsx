@@ -9,7 +9,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Field, FieldLabel } from '@/components/ui/field'
-import type { User } from '@/lib/UserBackend'
+
+import type { User } from './UserBackend'
 
 interface UserCreatedDialogProps {
   user: User | null
@@ -44,7 +45,7 @@ export function UserCreatedDialog(props: UserCreatedDialogProps) {
         </Field>
         <DialogFooter className="mt-4">
           <DialogClose asChild>
-            <Button>ooookay</Button>
+            <Button>Okay</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

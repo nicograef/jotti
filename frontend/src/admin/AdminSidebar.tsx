@@ -1,4 +1,4 @@
-import { Lamp, ReceiptText, Users, Utensils } from 'lucide-react'
+import { Lamp, LogOut, ReceiptText, Users, Utensils } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router'
 import { useLocation } from 'react-router'
 
@@ -90,6 +90,7 @@ export function AdminSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={logout}>
+                  <LogOut />
                   <span>Abmelden</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>

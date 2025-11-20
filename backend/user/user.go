@@ -120,26 +120,25 @@ func (s *Service) CreateUser(name, username string, role Role) (*User, string, e
 	// usernames are always lowercase in jotti
 	lowerCaseUsername := strings.ToLower(username)
 
-	userID, err := s.Persistence.CreateUser(name, lowerCaseUsername, onetimePasswordHash, role)
+	id, err := s.Persistence.CreateUser(name, lowerCaseUsername, onetimePasswordHash, role)
 	if err != nil {
 		log.Printf("ERROR Failed to create user: %v", err)
 		return nil, "", ErrDatabase
 	}
 
-	return &User{
-		ID:        userID,
-		Name:      name,
-		Username:  lowerCaseUsername,
-		Role:      role,
-		Status:    ActiveStatus,
-		CreatedAt: time.Now(),
-	}, onetimePassword, nil
+	user, err := s.Persistence.GetUser(id)
+	if err != nil {
+		log.Printf("ERROR Failed to retrieve user %d after creation: %v", id, err)
+		return nil, "", ErrDatabase
+	}
+
+	return user, onetimePassword, nil
 }
 
 // VerifyPasswordAndGetUser logs in a user by validating the provided password against the stored password hash.
 // If the user has no password set, it sets the provided password as the new password.
 func (s *Service) VerifyPasswordAndGetUser(username, password string) (*User, error) {
-	userID, err := s.Persistence.GetUserID(username)
+	id, err := s.Persistence.GetUserID(username)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			log.Printf("ERROR User %s not found during login", username)
@@ -149,7 +148,7 @@ func (s *Service) VerifyPasswordAndGetUser(username, password string) (*User, er
 		return nil, ErrDatabase
 	}
 
-	user, err := s.Persistence.GetUser(userID)
+	user, err := s.Persistence.GetUser(id)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			log.Printf("ERROR User %s not found during login", username)
@@ -174,7 +173,7 @@ func (s *Service) VerifyPasswordAndGetUser(username, password string) (*User, er
 // SetNewPassword logs in a user by validating the provided one-time password against the stored password hash.
 // If the user has no password set, it sets the provided password as the new password.
 func (s *Service) SetNewPassword(username, newPassword, onetimePassword string) (*User, error) {
-	userID, err := s.Persistence.GetUserID(username)
+	id, err := s.Persistence.GetUserID(username)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			log.Printf("ERROR User %s not found during password validation", username)
@@ -184,7 +183,7 @@ func (s *Service) SetNewPassword(username, newPassword, onetimePassword string) 
 		return nil, ErrDatabase
 	}
 
-	user, err := s.Persistence.GetUser(userID)
+	user, err := s.Persistence.GetUser(id)
 	if err != nil {
 		log.Printf("ERROR Failed to retrieve one-time password hash for user %s: %v", username, err)
 		return nil, ErrDatabase

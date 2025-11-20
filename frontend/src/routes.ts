@@ -3,10 +3,10 @@ import { createBrowserRouter, redirect } from 'react-router'
 import { AuthSingleton } from '@/lib/auth'
 
 import { AdminLayout } from './admin/AdminLayout'
+import { AdminProductsPage } from './admin/products/AdminProductsPage'
 import { AdminTablesPage } from './admin/tables/AdminTablesPage'
 import { AdminUsersPage } from './admin/users/AdminUsersPage'
 import App from './App'
-import { AdminProductsPage } from './pages/AdminProductsPage'
 import { LoginPage } from './pages/LoginPage'
 import { PasswordPage } from './pages/PasswordPage'
 
@@ -36,14 +36,9 @@ export const router = createBrowserRouter([
         Component: AdminLayout,
         loader: AdminGuard,
         children: [
-          { path: 'orders', Component: AdminUsersPage },
           { path: 'products', Component: AdminProductsPage },
           { path: 'tables', Component: AdminTablesPage },
-          {
-            path: 'users',
-            Component: AdminUsersPage,
-          },
-          { path: '', loader: () => redirect('orders') },
+          { path: 'users', Component: AdminUsersPage },
         ],
       },
       { path: '', loader: () => redirect('login') },
