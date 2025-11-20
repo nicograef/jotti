@@ -24,8 +24,8 @@ export function AdminTablesPage() {
     async function fetchTables() {
       setLoading(true)
       try {
-        const response = await tableBackend.getTables()
-        setTables(response)
+        const tables = await tableBackend.getTables()
+        setTables(tables)
       } catch (error) {
         console.error('Failed to fetch tables:', error)
       }

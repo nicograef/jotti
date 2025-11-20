@@ -14,6 +14,7 @@ type service interface {
 	ActivateTable(id int) error
 	DeactivateTable(id int) error
 	GetAllTables() ([]*Table, error)
+	GetActiveTables() ([]*ServiceTable, error)
 }
 
 type Handler struct {
@@ -109,12 +110,12 @@ func (h *Handler) UpdateTableHandler() http.HandlerFunc {
 	}
 }
 
-type getTablesResponse struct {
+type getAllTablesResponse struct {
 	Tables []*Table `json:"tables"`
 }
 
-// GetTablesHandler handles requests to retrieve all tables.
-func (h *Handler) GetTablesHandler() http.HandlerFunc {
+// GetAllTablesHandler handles requests to retrieve all tables.
+func (h *Handler) GetAllTablesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !api.ValidateMethod(w, r, http.MethodPost) {
 			return
@@ -130,7 +131,34 @@ func (h *Handler) GetTablesHandler() http.HandlerFunc {
 			tables = []*Table{}
 		}
 
-		api.SendResponse(w, getTablesResponse{
+		api.SendResponse(w, getAllTablesResponse{
+			Tables: tables,
+		})
+	}
+}
+
+type getActiveTablesResponse struct {
+	Tables []*ServiceTable `json:"tables"`
+}
+
+// GetActiveTablesHandler handles requests to retrieve all active tables.
+func (h *Handler) GetActiveTablesHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !api.ValidateMethod(w, r, http.MethodPost) {
+			return
+		}
+
+		tables, err := h.Service.GetActiveTables()
+		if err != nil {
+			api.SendInternalServerError(w)
+			return
+		}
+
+		if tables == nil {
+			tables = []*ServiceTable{}
+		}
+
+		api.SendResponse(w, getActiveTablesResponse{
 			Tables: tables,
 		})
 	}

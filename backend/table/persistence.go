@@ -66,6 +66,34 @@ func (p *Persistence) GetAllTables() ([]*Table, error) {
 	return tables, nil
 }
 
+// GetActiveTables retrieves all active tables from the database.
+func (p *Persistence) GetActiveTables() ([]*ServiceTable, error) {
+	rows, err := p.DB.Query("SELECT id, name FROM tables WHERE status = 'active' ORDER BY name ASC")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}()
+
+	var tables []*ServiceTable
+	for rows.Next() {
+		var dbTable dbtable
+		if err := rows.Scan(&dbTable.ID, &dbTable.Name); err != nil {
+			return nil, err
+		}
+
+		tables = append(tables, &ServiceTable{
+			ID:   dbTable.ID,
+			Name: dbTable.Name,
+		})
+	}
+
+	return tables, nil
+}
+
 // CreateTable creates a new table in the database.
 func (p *Persistence) CreateTable(name string) (int, error) {
 	var id int

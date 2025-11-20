@@ -16,6 +16,11 @@ type Table struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+type ServiceTable struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 // IDSchema defines the schema for a user ID.
 var IDSchema = z.Int().GTE(1, z.Message("Invalid table ID"))
 
@@ -49,6 +54,7 @@ var ErrDatabase = errors.New("database error")
 type persistence interface {
 	GetTable(id int) (*Table, error)
 	GetAllTables() ([]*Table, error)
+	GetActiveTables() ([]*ServiceTable, error)
 	CreateTable(name string) (int, error)
 	UpdateTable(id int, name string) error
 	ActivateTable(id int) error
@@ -115,6 +121,16 @@ func (s *Service) GetAllTables() ([]*Table, error) {
 	tables, err := s.Persistence.GetAllTables()
 	if err != nil {
 		log.Printf("ERROR retrieving all tables: %v", err)
+		return nil, ErrDatabase
+	}
+	return tables, nil
+}
+
+// GetActiveTables retrieves all active tables.
+func (s *Service) GetActiveTables() ([]*ServiceTable, error) {
+	tables, err := s.Persistence.GetActiveTables()
+	if err != nil {
+		log.Printf("ERROR retrieving active tables: %v", err)
 		return nil, ErrDatabase
 	}
 	return tables, nil

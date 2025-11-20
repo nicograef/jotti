@@ -75,3 +75,21 @@ func AdminMiddleware(h http.Handler) http.HandlerFunc {
 		h.ServeHTTP(w, r)
 	}
 }
+
+// ServiceMiddleware ensures that the request is made by a service user (or admin)
+// by checking the "Role" value in the request context.
+// It should therefore be used after the JWT middleware.
+func ServiceMiddleware(h http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		role := r.Context().Value(roleKey).(user.Role)
+		if role != user.ServiceRole && role != user.AdminRole {
+			api.SendForbiddenError(w, api.ErrorResponse{
+				Message: "Service access required",
+				Code:    "service_access_required",
+			})
+			return
+		}
+
+		h.ServeHTTP(w, r)
+	}
+}

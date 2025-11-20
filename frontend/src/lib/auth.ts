@@ -23,6 +23,7 @@ class Auth {
       return true
     } catch (error) {
       console.error('Invalid token:', error)
+      this.logout()
       return false
     }
   }
@@ -42,6 +43,10 @@ class Auth {
 
   public get isAdmin(): boolean {
     return this.token?.role === 'admin'
+  }
+
+  public get isService(): boolean {
+    return this.token?.role === 'service'
   }
 
   public logout(): void {

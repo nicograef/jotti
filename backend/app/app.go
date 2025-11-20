@@ -64,7 +64,9 @@ func (app *App) SetupRoutes() {
 	tablePersistence := table.Persistence{DB: app.DB}
 	tableService := table.Service{Persistence: &tablePersistence}
 	th := table.Handler{Service: &tableService}
-	app.Router.HandleFunc("/admin/get-tables", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(th.GetTablesHandler()))))
+
+	app.Router.HandleFunc("/service/get-tables", api.CorsHandler(jwtMiddleware(auth.ServiceMiddleware(th.GetActiveTablesHandler()))))
+	app.Router.HandleFunc("/admin/get-tables", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(th.GetAllTablesHandler()))))
 	app.Router.HandleFunc("/admin/update-table", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(th.UpdateTableHandler()))))
 	app.Router.HandleFunc("/admin/create-table", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(th.CreateTableHandler()))))
 	app.Router.HandleFunc("/admin/activate-table", api.CorsHandler(jwtMiddleware(auth.AdminMiddleware(th.ActivateTableHandler()))))

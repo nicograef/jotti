@@ -9,10 +9,14 @@ import { AdminUsersPage } from './admin/users/AdminUsersPage'
 import App from './App'
 import { LoginPage } from './pages/LoginPage'
 import { PasswordPage } from './pages/PasswordPage'
+import { NewOrderPage } from './service/order/NewOrderPage'
+import { ServiceLayout } from './service/ServiceLayout'
 
 function AuthRedirect() {
   if (AuthSingleton.isAuthenticated && AuthSingleton.isAdmin) {
     return redirect('/admin')
+  } else if (AuthSingleton.isAuthenticated && AuthSingleton.isService) {
+    return redirect('/service')
   } else if (AuthSingleton.isAuthenticated) {
     return redirect('/')
   }
@@ -20,6 +24,16 @@ function AuthRedirect() {
 
 export function AdminGuard() {
   if (!AuthSingleton.isAuthenticated || !AuthSingleton.isAdmin) {
+    return redirect('/')
+  }
+}
+
+export function ServiceGuard() {
+  const isServiceOrdAdmin =
+    AuthSingleton.isAuthenticated &&
+    (AuthSingleton.isService || AuthSingleton.isAdmin)
+
+  if (!isServiceOrdAdmin) {
     return redirect('/')
   }
 }
@@ -40,6 +54,12 @@ export const router = createBrowserRouter([
           { path: 'tables', Component: AdminTablesPage },
           { path: 'users', Component: AdminUsersPage },
         ],
+      },
+      {
+        path: 'service',
+        Component: ServiceLayout,
+        loader: ServiceGuard,
+        children: [{ path: 'new-order', Component: NewOrderPage }],
       },
       { path: '', loader: () => redirect('login') },
     ],
