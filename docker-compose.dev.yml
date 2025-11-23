@@ -64,7 +64,7 @@ services:
     working_dir: /app
     environment:
       NODE_ENV: development
-    command: sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install && pnpm dev --host 0.0.0.0"
+    command: sh -c "corepack enable && corepack prepare pnpm@latest --activate && rm -rf node_modules && CI=1 pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0"
     volumes:
       - ./frontend:/app
     networks:

@@ -24,3 +24,9 @@ export const TableSchema = z.object({
   createdAt: DateStringSchema,
 })
 export type Table = z.infer<typeof TableSchema>
+
+export const TablePublicSchema = TableSchema.pick({
+  id: true,
+  name: true,
+})
+export type TablePublic = z.infer<typeof TablePublicSchema>

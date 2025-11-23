@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-import { type Table, TableSchema } from './Table'
+import {
+  type Table,
+  type TablePublic,
+  TablePublicSchema,
+  TableSchema,
+} from './Table'
 
 export const CreateTableRequestSchema = TableSchema.pick({
   name: true,
@@ -35,11 +40,11 @@ export class TableBackend {
     return tables
   }
 
-  public async getTables(): Promise<Table[]> {
+  public async getTables(): Promise<TablePublic[]> {
     const { tables } = await this.backend.post(
       'service/get-tables',
       {},
-      z.object({ tables: z.array(TableSchema) }),
+      z.object({ tables: z.array(TablePublicSchema) }),
     )
     return tables
   }

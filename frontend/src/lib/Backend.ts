@@ -87,7 +87,4 @@ class Backend {
   }
 }
 
-export const BackendSingleton = new Backend(
-  'https://automatic-space-umbrella-v655jg4vp5jfp69-3000.app.github.dev',
-  AuthSingleton,
-)
+export const BackendSingleton = new Backend('/api', AuthSingleton)
