@@ -40,35 +40,81 @@ mkcert localhost
 # Then add a 443 server block to `reverse-proxy/nginx.dev.conf` referencing the generated certs.
 ```
 
-## Production Reverse Proxy Stack
+## Production Stack
 
-Bring up full stack (includes Certbot renewal loop):
+### Initial Certificate Setup (First Time Only)
+
+Use the initial-cert compose file to obtain your first Let's Encrypt certificate. This runs only nginx + certbot without the application services.
+
+**Step 1: Start minimal stack for certificate issuance**
 
 ```bash
-docker compose -f docker-compose.reverse-proxy.yml up -d --build
+docker compose -f docker-compose.initial-cert.yml up -d
 ```
 
-Initial certificate issuance (single-domain after DNS A record for `jotti.rocks` points to host):
+**Step 2: Obtain Let's Encrypt certificate**
+
+After DNS A record for `jotti.rocks` points to your server and port 80 is accessible:
 
 ```bash
-docker compose -f docker-compose.reverse-proxy.yml up -d reverse-proxy
-docker compose -f docker-compose.reverse-proxy.yml run --rm certbot certbot certonly \
+docker compose -f docker-compose.initial-cert.yml run --rm --entrypoint certbot certbot certonly \
   --webroot -w /var/www/certbot \
   -d jotti.rocks \
-  --email admin@jotti.rocks --agree-tos --no-eff-email
-docker compose -f docker-compose.reverse-proxy.yml restart reverse-proxy
+  --email graef.nico@gmail.com --agree-tos --no-eff-email
+```
+
+**Step 3: Stop initial-cert stack**
+
+```bash
+docker compose -f docker-compose.initial-cert.yml down
+```
+
+**Step 4: Start full production stack**
+
+```bash
+docker compose up -d --build
+```
+
+The certificate is now in place and the full stack (frontend, backend, database, reverse proxy with HTTPS) will start successfully.
+
+### Running Production Stack
+
+Bring up full stack (after certificates are obtained):
+
+```bash
+docker compose up -d --build
 ```
 
 Automatic renewal runs every 12h. Test renewal:
 
 ```bash
-docker compose -f docker-compose.reverse-proxy.yml run --rm certbot certbot renew --dry-run
+docker compose run --rm --entrypoint certbot certbot renew --dry-run
 ```
+
+### Troubleshooting Certificate Issues
+
+If certbot fails with connection timeout:
+
+- Verify DNS A record points to your server: `dig +short jotti.rocks`
+- Check port 80 is open: `sudo netstat -tlnp | grep :80`
+- Test external access: `curl -I http://jotti.rocks/.well-known/acme-challenge/test`
+- Check firewall rules allow incoming HTTP (port 80)
+- Ensure you're using the initial-cert compose file for first-time setup
+
+Adding/transitioning old subdomains (optional redirects):
+
+1. Keep existing certificates for `app.jotti.rocks` / `api.jotti.rocks` until clients migrate.
+2. Add an HTTP-only server block redirecting those hosts to `https://jotti.rocks$request_uri` (already present in updated `nginx.conf`).
+3. After traffic drops, remove the SANs / extra certs and clean up DNS.
 
 ## Directory & Volumes
 
-- Reverse proxy config: `reverse-proxy/nginx.conf`
+- Production reverse proxy config: `reverse-proxy/nginx.conf`
+- Initial certificate nginx config: `reverse-proxy/nginx.initial-cert.conf`
 - Dev proxy config: `reverse-proxy/nginx.dev.conf`
+- Production compose: `docker-compose.yml`
+- Initial certificate compose: `docker-compose.initial-cert.yml`
+- Dev compose: `docker-compose.dev.yml`
 - Certbot challenges volume: `certbot-challenges` → `/var/www/certbot`
 - Live certs volume: `letsencrypt` → `/etc/letsencrypt/live/<domain>`
 - Postgres data: `postgres-data`
@@ -78,13 +124,13 @@ docker compose -f docker-compose.reverse-proxy.yml run --rm certbot certbot rene
 Rebuild & start production stack:
 
 ```bash
-docker compose -f docker-compose.reverse-proxy.yml up -d --build
+docker compose up -d --build
 ```
 
 Tail backend logs (prod):
 
 ```bash
-docker compose -f docker-compose.reverse-proxy.yml logs -f backend
+docker compose logs -f backend
 ```
 
 DB psql (local default compose):
@@ -96,11 +142,12 @@ psql -h localhost -p 5432 -U ${POSTGRES_USER} -d jotti
 Tear down prod stack:
 
 ```bash
-docker compose -f docker-compose.reverse-proxy.yml down
+docker compose down
 ```
 
 ## Troubleshooting
 
+- **Certbot connection timeout**: Firewall blocking port 80, or DNS not pointing to server. See certificate troubleshooting above.
 - Certbot challenges failing: ensure port 80 reachable and DNS A records correct.
 - Permissions issues on certs: verify volumes mounted read/write for certbot and read-only for nginx.
 - Stale frontend assets: restart `frontend` or rebuild if environment variables changed.

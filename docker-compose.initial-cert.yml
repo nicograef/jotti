@@ -1,0 +1,38 @@
+name: jotti-proxy
+
+services:
+  reverse-proxy:
+    image: nginx:1.27-alpine
+    container_name: jotti-reverse-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./reverse-proxy/nginx.initial-cert.conf:/etc/nginx/conf.d/jotti.conf:ro
+      - certbot-challenges:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    networks:
+      - app-network
+
+  certbot:
+    image: certbot/certbot:v2.11.0
+    container_name: jotti-certbot
+    restart: unless-stopped
+    volumes:
+      - certbot-challenges:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    networks:
+      - app-network
+    depends_on:
+      reverse-proxy:
+        condition: service_started
+    entrypoint: /bin/sh
+    command: -c "while true; do certbot renew --webroot -w /var/www/certbot --quiet --deploy-hook 'nginx -s reload'; sleep 12h; done"
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  certbot-challenges:
+  letsencrypt:
