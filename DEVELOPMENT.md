@@ -45,8 +45,9 @@ mkcert localhost
 Use the `docker-compose.initial-cert.yml` file to obtain your first Let's Encrypt certificate. This minimal stack runs only nginx and certbot without the application services.
 
 **Prerequisites:**
-- DNS A record for `jotti.rocks` pointing to your server's public IP
-- Firewall allows incoming traffic on port 80
+
+- DNS A records for `jotti.rocks` and `www.jotti.rocks` pointing to your server's public IP
+- Firewall allows incoming traffic on ports 80 and 443
 
 **Step 1: Start minimal stack**
 
@@ -59,7 +60,7 @@ docker compose -f docker-compose.initial-cert.yml up -d
 ```bash
 docker compose -f docker-compose.initial-cert.yml run --rm --entrypoint certbot certbot certonly \
   --webroot -w /var/www/certbot \
-  -d jotti.rocks \
+  -d jotti.rocks -d www.jotti.rocks \
   --email graef.nico@gmail.com --agree-tos --no-eff-email
 ```
 
@@ -121,41 +122,44 @@ psql -h localhost -p 5432 -U ${POSTGRES_USER} -d jotti
 
 ## Configuration Files
 
-| File | Purpose |
-|------|---------|
-| `docker-compose.yml` | Production stack with full application |
-| `docker-compose.initial-cert.yml` | Minimal stack for first-time certificate issuance |
-| `docker-compose.dev.yml` | Development stack with hot reload |
-| `reverse-proxy/nginx.conf` | Production nginx config with HTTPS |
-| `reverse-proxy/nginx.initial-cert.conf` | Minimal nginx config for certificate issuance |
-| `reverse-proxy/nginx.dev.conf` | Development nginx config (HTTP only) |
+| File                                    | Purpose                                           |
+| --------------------------------------- | ------------------------------------------------- |
+| `docker-compose.yml`                    | Production stack with full application            |
+| `docker-compose.initial-cert.yml`       | Minimal stack for first-time certificate issuance |
+| `docker-compose.dev.yml`                | Development stack with hot reload                 |
+| `reverse-proxy/nginx.conf`              | Production nginx config with HTTPS                |
+| `reverse-proxy/nginx.initial-cert.conf` | Minimal nginx config for certificate issuance     |
+| `reverse-proxy/nginx.dev.conf`          | Development nginx config (HTTP only)              |
 
 ## Docker Volumes
 
-| Volume | Mount Path | Description |
-|--------|------------|-------------|
-| `certbot-challenges` | `/var/www/certbot` | ACME challenge files for Let's Encrypt |
-| `letsencrypt` | `/etc/letsencrypt` | SSL certificates and renewal config |
-| `postgres-data` | `/var/lib/postgresql/data` | PostgreSQL database files |
+| Volume               | Mount Path                 | Description                            |
+| -------------------- | -------------------------- | -------------------------------------- |
+| `certbot-challenges` | `/var/www/certbot`         | ACME challenge files for Let's Encrypt |
+| `letsencrypt`        | `/etc/letsencrypt`         | SSL certificates and renewal config    |
+| `postgres-data`      | `/var/lib/postgresql/data` | PostgreSQL database files              |
 
 ## Troubleshooting
 
 ### Certificate Issues
 
 **Certbot connection timeout:**
-- Verify DNS: `dig +short jotti.rocks`
+
+- Verify DNS: `dig +short jotti.rocks` and `dig +short www.jotti.rocks`
 - Check port 80: `sudo netstat -tlnp | grep :80`
 - Test external access: `curl -I http://jotti.rocks/.well-known/acme-challenge/test`
-- Ensure firewall allows port 80
+- Ensure firewall allows ports 80 and 443
 - Use `docker-compose.initial-cert.yml` for first-time setup
 
 **Certificate not found on startup:**
+
 - Ensure certificates were created using initial-cert stack first
 - Check volume mount: `docker compose exec reverse-proxy ls -la /etc/letsencrypt/live/jotti.rocks/`
 
 ### Application Issues
 
 **Stale frontend assets:**
+
 ```bash
 docker compose restart frontend
 # Or rebuild if environment variables changed
@@ -163,11 +167,13 @@ docker compose up -d --build frontend
 ```
 
 **Database migrations not applied:**
+
 ```bash
 docker compose logs migrate
 ```
 
 **Backend errors:**
+
 ```bash
 docker compose logs -f backend
 ```
@@ -179,4 +185,5 @@ docker compose logs -f backend
   - Production CSP is strict; add external domains explicitly to relevant directives
 - **Rate limiting:** API endpoints limited to 10 requests/second per IP (burst 20)
 - **HTTPS only:** Production redirects all HTTP traffic to HTTPS
+- **www redirect:** `www.jotti.rocks` automatically redirects to `jotti.rocks` for canonical URL
 - **Regular maintenance:** Prune unused Docker volumes periodically to save space
