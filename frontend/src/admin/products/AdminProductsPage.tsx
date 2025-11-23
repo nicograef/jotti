@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
+import type { Product, ProductStatus } from '@/product/Product'
+import { ProductBackend } from '@/product/ProductBackend'
 
 import { EditProductDialog } from './EditProductDialog'
 import { NewProductDialog } from './NewProductDialog'
-import { type Product, ProductBackend, ProductStatus } from './ProductBackend'
 import { Products } from './Products'
 
 const initialEditProductState = {
@@ -26,7 +27,7 @@ export function AdminProductsPage() {
     async function fetchProducts() {
       setLoading(true)
       try {
-        const response = await productBackend.getProducts()
+        const response = await productBackend.getAllProducts()
         setProducts(response)
       } catch (error) {
         console.error('Failed to fetch products:', error)

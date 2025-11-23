@@ -3,8 +3,9 @@ import { toast } from 'sonner'
 
 import { Spinner } from '@/components/ui/spinner'
 import { BackendSingleton } from '@/lib/Backend'
+import type { Table } from '@/table/Table'
+import { TableBackend } from '@/table/TableBackend'
 
-import { type Table, TableBackend } from '../TableBackend'
 import { TableList } from './TableList'
 
 const tableBackend = new TableBackend(BackendSingleton)

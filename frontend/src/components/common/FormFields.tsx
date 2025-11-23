@@ -6,8 +6,6 @@ import {
   type UseFormReturn,
 } from 'react-hook-form'
 
-import type { ProductCategory } from '@/admin/products/ProductBackend'
-import { toUsername, UserRole } from '@/admin/users/UserBackend'
 import {
   Field,
   FieldContent,
@@ -29,6 +27,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import type { ProductCategory } from '@/product/Product'
+import { toUsername, UserRole } from '@/user/User'
 
 import { Textarea } from '../ui/textarea'
 

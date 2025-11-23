@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
+import type { Table, TableStatus } from '@/table/Table'
+import { TableBackend } from '@/table/TableBackend'
 
 import { EditTableDialog } from './EditTableDialog'
 import { NewTableDialog } from './NewTableDialog'
-import { type Table, TableBackend, TableStatus } from './TableBackend'
 import { Tables } from './Tables'
 
 const initialEditTableState = {
@@ -24,7 +25,7 @@ export function AdminTablesPage() {
     async function fetchTables() {
       setLoading(true)
       try {
-        const tables = await tableBackend.getTables()
+        const tables = await tableBackend.getAllTables()
         setTables(tables)
       } catch (error) {
         console.error('Failed to fetch tables:', error)

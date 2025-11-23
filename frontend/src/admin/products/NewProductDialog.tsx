@@ -23,13 +23,11 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-
+import { type Product, ProductCategory } from '@/product/Product'
 import {
   CreateProductRequestSchema,
-  type Product,
   ProductBackend,
-  ProductCategory,
-} from './ProductBackend'
+} from '@/product/ProductBackend'
 
 const FormDataSchema = CreateProductRequestSchema
 type FormData = z.infer<typeof FormDataSchema>

@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
+import type { User, UserStatus } from '@/user/User'
+import { UserBackend } from '@/user/UserBackend'
 
-import { EditUserDialog } from '../users/EditUserDialog'
-import { NewUserDialog } from '../users/NewUserDialog'
-import { UserCreatedDialog } from '../users/UserCreatedDialog'
-import { type User, UserBackend, UserStatus } from './UserBackend'
+import { EditUserDialog } from './EditUserDialog'
+import { NewUserDialog } from './NewUserDialog'
+import { UserCreatedDialog } from './UserCreatedDialog'
 import { Users } from './Users'
 
 const initialUserCreatedState = {

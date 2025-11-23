@@ -12,8 +12,7 @@ import {
 } from '@/components/ui/item'
 import { Switch } from '@/components/ui/switch'
 import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-
-import { type User, UserRole, UserStatus } from './UserBackend'
+import { type User, UserRole, UserStatus } from '@/user/User'
 
 interface UserItemProps {
   loading: boolean

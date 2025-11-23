@@ -1,12 +1,9 @@
 import { useState } from 'react'
 
 import { ItemGroup } from '@/components/ui/item'
+import { type Product, ProductStatus } from '@/product/Product'
+import { type ProductBackend } from '@/product/ProductBackend'
 
-import {
-  type Product,
-  type ProductBackend,
-  ProductStatus,
-} from './ProductBackend'
 import { ProductItem } from './ProductItem'
 
 interface ProductsProps {
