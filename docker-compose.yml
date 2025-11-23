@@ -103,7 +103,7 @@ services:
       reverse-proxy:
         condition: service_started
     entrypoint: /bin/sh
-    command: -c "while true; do certbot renew --webroot -w /var/www/certbot --quiet --deploy-hook 'nginx -s reload'; sleep 12h; done"
+    command: -c "while true; do certbot renew --webroot -w /var/www/certbot --quiet --deploy-hook 'nginx -s reload'; sleep 24h; done"
 
 networks:
   app-network:
