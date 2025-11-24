@@ -42,3 +42,12 @@ export const ProductSchema = z.object({
   status: ProductStatusSchema,
 })
 export type Product = z.infer<typeof ProductSchema>
+
+export const ProductPublicSchema = ProductSchema.pick({
+  id: true,
+  name: true,
+  description: true,
+  netPrice: true,
+  category: true,
+})
+export type ProductPublic = z.infer<typeof ProductPublicSchema>

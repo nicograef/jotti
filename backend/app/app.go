@@ -44,42 +44,45 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 
 // SetupRoutes configures HTTP routes
 func (app *App) SetupRoutes() {
-	authService := auth.Service{JWTSecret: app.Config.JWTSecret}
-	jwtMiddleware := auth.NewJWTMiddleware(&authService)
-
 	app.Router.HandleFunc("/health", api.NewHealthHandler())
 
 	userPersistence := user.Persistence{DB: app.DB}
 	userService := user.Service{Persistence: &userPersistence}
+
+	ah := auth.Handler{JWTSecret: app.Config.JWTSecret, UserService: &userService}
+	app.Router.HandleFunc("/login", ah.LoginHandler())
+	app.Router.HandleFunc("/set-password", ah.SetPasswordHandler())
+
+	admin := auth.NewAdminMiddleware(app.Config.JWTSecret)
+	service := auth.NewServiceMiddleware(app.Config.JWTSecret)
+
 	uh := user.Handler{Service: &userService}
-	app.Router.HandleFunc("/login", auth.LoginHandler(&userService, &authService))
-	app.Router.HandleFunc("/set-password", auth.SetPasswordHandler(&userService, &authService))
-	app.Router.HandleFunc("/admin/create-user", jwtMiddleware(auth.AdminMiddleware(uh.CreateUserHandler())))
-	app.Router.HandleFunc("/admin/update-user", jwtMiddleware(auth.AdminMiddleware(uh.UpdateUserHandler())))
-	app.Router.HandleFunc("/admin/activate-user", jwtMiddleware(auth.AdminMiddleware(uh.ActivateUserHandler())))
-	app.Router.HandleFunc("/admin/deactivate-user", jwtMiddleware(auth.AdminMiddleware(uh.DeactivateUserHandler())))
-	app.Router.HandleFunc("/admin/get-users", jwtMiddleware(auth.AdminMiddleware(uh.GetUsersHandler())))
-	app.Router.HandleFunc("/admin/reset-password", jwtMiddleware(auth.AdminMiddleware(uh.ResetPasswordHandler())))
+	app.Router.HandleFunc("/create-user", admin(uh.CreateUserHandler()))
+	app.Router.HandleFunc("/update-user", admin(uh.UpdateUserHandler()))
+	app.Router.HandleFunc("/activate-user", admin(uh.ActivateUserHandler()))
+	app.Router.HandleFunc("/deactivate-user", admin(uh.DeactivateUserHandler()))
+	app.Router.HandleFunc("/get-all-users", admin(uh.GetAllUsersHandler()))
+	app.Router.HandleFunc("/reset-password", admin(uh.ResetPasswordHandler()))
 
 	tablePersistence := table.Persistence{DB: app.DB}
 	tableService := table.Service{Persistence: &tablePersistence}
 	th := table.Handler{Service: &tableService}
-
-	app.Router.HandleFunc("/service/get-tables", jwtMiddleware(auth.ServiceMiddleware(th.GetActiveTablesHandler())))
-	app.Router.HandleFunc("/admin/get-tables", jwtMiddleware(auth.AdminMiddleware(th.GetAllTablesHandler())))
-	app.Router.HandleFunc("/admin/update-table", jwtMiddleware(auth.AdminMiddleware(th.UpdateTableHandler())))
-	app.Router.HandleFunc("/admin/create-table", jwtMiddleware(auth.AdminMiddleware(th.CreateTableHandler())))
-	app.Router.HandleFunc("/admin/activate-table", jwtMiddleware(auth.AdminMiddleware(th.ActivateTableHandler())))
-	app.Router.HandleFunc("/admin/deactivate-table", jwtMiddleware(auth.AdminMiddleware(th.DeactivateTableHandler())))
+	app.Router.HandleFunc("/get-active-tables", service(th.GetActiveTablesHandler()))
+	app.Router.HandleFunc("/get-all-tables", admin(th.GetAllTablesHandler()))
+	app.Router.HandleFunc("/update-table", admin(th.UpdateTableHandler()))
+	app.Router.HandleFunc("/create-table", admin(th.CreateTableHandler()))
+	app.Router.HandleFunc("/activate-table", admin(th.ActivateTableHandler()))
+	app.Router.HandleFunc("/deactivate-table", admin(th.DeactivateTableHandler()))
 
 	productPersistence := product.Persistence{DB: app.DB}
 	productService := product.Service{Persistence: &productPersistence}
 	ph := product.Handler{Service: &productService}
-	app.Router.HandleFunc("/admin/get-products", jwtMiddleware(auth.AdminMiddleware(ph.GetAllProductsHandler())))
-	app.Router.HandleFunc("/admin/create-product", jwtMiddleware(auth.AdminMiddleware(ph.CreateProductHandler())))
-	app.Router.HandleFunc("/admin/update-product", jwtMiddleware(auth.AdminMiddleware(ph.UpdateProductHandler())))
-	app.Router.HandleFunc("/admin/activate-product", jwtMiddleware(auth.AdminMiddleware(ph.ActivateProductHandler())))
-	app.Router.HandleFunc("/admin/deactivate-product", jwtMiddleware(auth.AdminMiddleware(ph.DeactivateProductHandler())))
+	app.Router.HandleFunc("/get-active-products", service(ph.GetActiveProductsHandler()))
+	app.Router.HandleFunc("/get-all-products", admin(ph.GetAllProductsHandler()))
+	app.Router.HandleFunc("/create-product", admin(ph.CreateProductHandler()))
+	app.Router.HandleFunc("/update-product", admin(ph.UpdateProductHandler()))
+	app.Router.HandleFunc("/activate-product", admin(ph.ActivateProductHandler()))
+	app.Router.HandleFunc("/deactivate-product", admin(ph.DeactivateProductHandler()))
 
 	app.Server.Handler = app.Router
 }

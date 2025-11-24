@@ -10,9 +10,7 @@ import (
 )
 
 func TestGenerateJWTTokenForUser(t *testing.T) {
-	service := Service{JWTSecret: "test_secret"}
-
-	token, err := service.GenerateJWTTokenForUser(user.User{ID: 1, Role: user.AdminRole})
+	token, err := generateJWTTokenForUser(user.User{ID: 1, Role: user.AdminRole}, "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
@@ -20,7 +18,7 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 	// Validate the token
 	claims := jwt.MapClaims{}
 	_, err = jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(service.JWTSecret), nil
+		return []byte("test_secret"), nil
 	})
 	if err != nil {
 		t.Fatalf("Failed to parse JWT token: %v", err)
@@ -35,15 +33,14 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 }
 
 func TestParseAndValidateJWTToken(t *testing.T) {
-	service := Service{JWTSecret: "test_secret"}
 	user := user.User{ID: 2, Role: user.ServiceRole}
 
-	token, err := service.GenerateJWTTokenForUser(user)
+	token, err := generateJWTTokenForUser(user, "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
 
-	payload, err := service.ParseAndValidateJWTToken(token)
+	payload, err := parseAndValidateJWTToken(token, "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to parse and validate JWT token: %v", err)
 	}

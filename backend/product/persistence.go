@@ -75,6 +75,37 @@ func (p *Persistence) GetAllProducts() ([]*Product, error) {
 	return products, nil
 }
 
+// GetActiveProducts retrieves active products from the database.
+func (p *Persistence) GetActiveProducts() ([]*ProductPublic, error) {
+	rows, err := p.DB.Query("SELECT id, name, description, net_price, category FROM products WHERE status = 'active' ORDER BY category, name ASC")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}()
+
+	var products []*ProductPublic
+	for rows.Next() {
+		var dbProduct dbproduct
+		if err := rows.Scan(&dbProduct.ID, &dbProduct.Name, &dbProduct.Description, &dbProduct.NetPrice, &dbProduct.Category); err != nil {
+			return nil, err
+		}
+
+		products = append(products, &ProductPublic{
+			ID:          dbProduct.ID,
+			Name:        dbProduct.Name,
+			Description: dbProduct.Description,
+			NetPrice:    dbProduct.NetPrice,
+			Category:    Category(dbProduct.Category),
+		})
+	}
+
+	return products, nil
+}
+
 // CreateProduct inserts a new product into the database.
 func (p *Persistence) CreateProduct(name, description string, netPrice float64, category Category) (int, error) {
 	var id int

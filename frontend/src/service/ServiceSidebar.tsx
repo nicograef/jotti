@@ -1,4 +1,4 @@
-import { Lamp, LogOut, ReceiptText, Utensils } from 'lucide-react'
+import { Lamp, LogOut } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router'
 import { useLocation } from 'react-router'
 
@@ -19,17 +19,7 @@ import { AuthSingleton } from '@/lib/auth'
 
 const items = [
   {
-    title: 'Bestellungen',
-    url: '/service/orders',
-    icon: ReceiptText,
-  },
-  {
-    title: 'Produkte',
-    url: '/service/products',
-    icon: Utensils,
-  },
-  {
-    title: 'Tische',
+    title: 'Tischauswahl',
     url: '/service/tables',
     icon: Lamp,
   },

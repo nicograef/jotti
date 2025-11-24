@@ -33,16 +33,16 @@ export class TableBackend {
 
   public async getAllTables(): Promise<Table[]> {
     const { tables } = await this.backend.post(
-      'admin/get-tables',
+      'get-all-tables',
       {},
       z.object({ tables: z.array(TableSchema) }),
     )
     return tables
   }
 
-  public async getTables(): Promise<TablePublic[]> {
+  public async getActiveTables(): Promise<TablePublic[]> {
     const { tables } = await this.backend.post(
-      'service/get-tables',
+      'get-active-tables',
       {},
       z.object({ tables: z.array(TablePublicSchema) }),
     )
@@ -54,7 +54,7 @@ export class TableBackend {
   ): Promise<Table> {
     const body = CreateTableRequestSchema.parse(newTable)
     const { table } = await this.backend.post(
-      'admin/create-table',
+      'create-table',
       body,
       z.object({ table: TableSchema }),
     )
@@ -66,7 +66,7 @@ export class TableBackend {
   ): Promise<Table> {
     const body = UpdateTableRequestSchema.parse(updatedTable)
     const { table } = await this.backend.post(
-      'admin/update-table',
+      'update-table',
       body,
       z.object({ table: TableSchema }),
     )
@@ -75,11 +75,11 @@ export class TableBackend {
 
   public async activateTable(id: number): Promise<void> {
     const body = TableSchema.pick({ id: true }).parse({ id })
-    await this.backend.post('admin/activate-table', body)
+    await this.backend.post('activate-table', body)
   }
 
   public async deactivateTable(id: number): Promise<void> {
     const body = TableSchema.pick({ id: true }).parse({ id })
-    await this.backend.post('admin/deactivate-table', body)
+    await this.backend.post('deactivate-table', body)
   }
 }

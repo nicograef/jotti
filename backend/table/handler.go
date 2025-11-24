@@ -14,7 +14,7 @@ type service interface {
 	ActivateTable(id int) error
 	DeactivateTable(id int) error
 	GetAllTables() ([]*Table, error)
-	GetActiveTables() ([]*ServiceTable, error)
+	GetActiveTables() ([]*TablePublic, error)
 }
 
 type Handler struct {
@@ -138,7 +138,7 @@ func (h *Handler) GetAllTablesHandler() http.HandlerFunc {
 }
 
 type getActiveTablesResponse struct {
-	Tables []*ServiceTable `json:"tables"`
+	Tables []*TablePublic `json:"tables"`
 }
 
 // GetActiveTablesHandler handles requests to retrieve all active tables.
@@ -155,7 +155,7 @@ func (h *Handler) GetActiveTablesHandler() http.HandlerFunc {
 		}
 
 		if tables == nil {
-			tables = []*ServiceTable{}
+			tables = []*TablePublic{}
 		}
 
 		api.SendResponse(w, getActiveTablesResponse{

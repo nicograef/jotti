@@ -123,8 +123,8 @@ type getUsersResponse = struct {
 	Users []*User `json:"users"`
 }
 
-// GetUsersHandler handles requests to retrieve all users.
-func (h *Handler) GetUsersHandler() http.HandlerFunc {
+// GetAllUsersHandler handles requests to retrieve all users.
+func (h *Handler) GetAllUsersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !api.ValidateMethod(w, r, http.MethodPost) {
 			return

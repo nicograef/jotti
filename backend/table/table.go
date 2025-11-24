@@ -16,7 +16,7 @@ type Table struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-type ServiceTable struct {
+type TablePublic struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
@@ -54,7 +54,7 @@ var ErrDatabase = errors.New("database error")
 type persistence interface {
 	GetTable(id int) (*Table, error)
 	GetAllTables() ([]*Table, error)
-	GetActiveTables() ([]*ServiceTable, error)
+	GetActiveTables() ([]*TablePublic, error)
 	CreateTable(name string) (int, error)
 	UpdateTable(id int, name string) error
 	ActivateTable(id int) error
@@ -127,7 +127,7 @@ func (s *Service) GetAllTables() ([]*Table, error) {
 }
 
 // GetActiveTables retrieves all active tables.
-func (s *Service) GetActiveTables() ([]*ServiceTable, error) {
+func (s *Service) GetActiveTables() ([]*TablePublic, error) {
 	tables, err := s.Persistence.GetActiveTables()
 	if err != nil {
 		log.Printf("ERROR retrieving active tables: %v", err)

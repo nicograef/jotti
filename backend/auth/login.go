@@ -9,6 +9,16 @@ import (
 	usr "github.com/nicograef/jotti/backend/user"
 )
 
+type userService interface {
+	VerifyPasswordAndGetUser(username, password string) (*usr.User, error)
+	SetNewPassword(username, password, onetimePassword string) (*usr.User, error)
+}
+
+type Handler struct {
+	UserService userService
+	JWTSecret   string
+}
+
 type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -24,7 +34,7 @@ type loginResponse struct {
 }
 
 // LoginHandler handles user login requests by validating the password hash against the database and returns a jwt token if successful.
-func LoginHandler(us *usr.Service, as *Service) http.HandlerFunc {
+func (h *Handler) LoginHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !api.ValidateMethod(w, r, http.MethodPost) {
 			return
@@ -39,7 +49,7 @@ func LoginHandler(us *usr.Service, as *Service) http.HandlerFunc {
 			return
 		}
 
-		user, err := us.VerifyPasswordAndGetUser(body.Username, body.Password)
+		user, err := h.UserService.VerifyPasswordAndGetUser(body.Username, body.Password)
 		if err != nil {
 			if errors.Is(err, usr.ErrUserNotFound) || errors.Is(err, usr.ErrInvalidPassword) {
 				api.SendUnauthorizedError(w, api.ErrorResponse{
@@ -60,7 +70,7 @@ func LoginHandler(us *usr.Service, as *Service) http.HandlerFunc {
 			return
 		}
 
-		stringToken, err := as.GenerateJWTTokenForUser(*user)
+		stringToken, err := generateJWTTokenForUser(*user, h.JWTSecret)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return
@@ -89,7 +99,7 @@ type setPasswordResponse struct {
 }
 
 // SetPasswordHandler handles setting a new password for a user using a one-time password and returns a jwt token if successful.
-func SetPasswordHandler(us *usr.Service, as *Service) http.HandlerFunc {
+func (h *Handler) SetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !api.ValidateMethod(w, r, http.MethodPost) {
 			return
@@ -104,7 +114,7 @@ func SetPasswordHandler(us *usr.Service, as *Service) http.HandlerFunc {
 			return
 		}
 
-		user, err := us.SetNewPassword(body.Username, body.Password, body.OnetimePassword)
+		user, err := h.UserService.SetNewPassword(body.Username, body.Password, body.OnetimePassword)
 		if err != nil {
 			if errors.Is(err, usr.ErrUserNotFound) || errors.Is(err, usr.ErrInvalidPassword) {
 				api.SendUnauthorizedError(w, api.ErrorResponse{
@@ -122,7 +132,7 @@ func SetPasswordHandler(us *usr.Service, as *Service) http.HandlerFunc {
 			return
 		}
 
-		stringToken, err := as.GenerateJWTTokenForUser(*user)
+		stringToken, err := generateJWTTokenForUser(*user, h.JWTSecret)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return

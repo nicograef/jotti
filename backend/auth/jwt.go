@@ -10,18 +10,11 @@ import (
 	"github.com/nicograef/jotti/backend/user"
 )
 
-// ErrTokenGeneration is returned when there is an error generating the token.
-var ErrTokenGeneration = errors.New("token generation error")
+var errTokenGeneration = errors.New("token generation error")
 
 const issuer = "jotti"
 
-// Service provides authentication-related operations.
-type Service struct {
-	JWTSecret string
-}
-
-// GenerateJWTTokenForUser generates a JWT token for the given user.
-func (s *Service) GenerateJWTTokenForUser(user user.User) (string, error) {
+func generateJWTTokenForUser(user user.User, secret string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"alg":  jwt.SigningMethodHS256.Alg(),
 		"iss":  issuer,
@@ -31,27 +24,25 @@ func (s *Service) GenerateJWTTokenForUser(user user.User) (string, error) {
 		"role": user.Role,
 	})
 
-	key := []byte(s.JWTSecret)
+	key := []byte(secret)
 	stringToken, err := token.SignedString(key)
 	if err != nil {
 		log.Printf("ERROR Failed to generate token for user %s: %v", user.Username, err)
-		return "", ErrTokenGeneration
+		return "", errTokenGeneration
 	}
 
 	return stringToken, nil
 }
 
-// TokenPayload represents the jotti-relevant payload of a JWT token.
-type TokenPayload struct {
+type tokenPayload struct {
 	UserID int
 	Role   user.Role
 }
 
-// ParseAndValidateJWTToken parses and validates the JWT token, returning the payload if valid.
-func (s *Service) ParseAndValidateJWTToken(tokenString string) (*TokenPayload, error) {
+func parseAndValidateJWTToken(tokenString, secret string) (*tokenPayload, error) {
 	claims := jwt.MapClaims{}
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
-		return []byte(s.JWTSecret), nil
+		return []byte(secret), nil
 	}
 
 	_, err := jwt.ParseWithClaims(tokenString, claims, keyFunc, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithExpirationRequired(), jwt.WithIssuer(issuer))
@@ -66,7 +57,7 @@ func (s *Service) ParseAndValidateJWTToken(tokenString string) (*TokenPayload, e
 		return nil, err
 	}
 
-	payload := &TokenPayload{
+	payload := &tokenPayload{
 		UserID: userID,
 		Role:   user.Role(claims["role"].(string)),
 	}

@@ -67,7 +67,7 @@ func (p *Persistence) GetAllTables() ([]*Table, error) {
 }
 
 // GetActiveTables retrieves all active tables from the database.
-func (p *Persistence) GetActiveTables() ([]*ServiceTable, error) {
+func (p *Persistence) GetActiveTables() ([]*TablePublic, error) {
 	rows, err := p.DB.Query("SELECT id, name FROM tables WHERE status = 'active' ORDER BY name ASC")
 	if err != nil {
 		return nil, err
@@ -78,14 +78,14 @@ func (p *Persistence) GetActiveTables() ([]*ServiceTable, error) {
 		}
 	}()
 
-	var tables []*ServiceTable
+	var tables []*TablePublic
 	for rows.Next() {
 		var dbTable dbtable
 		if err := rows.Scan(&dbTable.ID, &dbTable.Name); err != nil {
 			return nil, err
 		}
 
-		tables = append(tables, &ServiceTable{
+		tables = append(tables, &TablePublic{
 			ID:   dbTable.ID,
 			Name: dbTable.Name,
 		})

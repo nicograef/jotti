@@ -9,8 +9,9 @@ import { AdminUsersPage } from './admin/users/AdminUsersPage'
 import App from './App'
 import { LoginPage } from './pages/LoginPage'
 import { PasswordPage } from './pages/PasswordPage'
-import { NewOrderPage } from './service/order/NewOrderPage'
 import { ServiceLayout } from './service/ServiceLayout'
+import { TablePage } from './service/TablePage'
+import { TableSelectionPage } from './service/TableSelectionPage'
 
 function AuthRedirect() {
   if (AuthSingleton.isAuthenticated && AuthSingleton.isAdmin) {
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
     path: '/',
     Component: App,
     children: [
+      { index: true, loader: () => redirect('login') },
       { path: 'login', Component: LoginPage, loader: AuthRedirect },
       { path: 'set-password', Component: PasswordPage, loader: AuthRedirect },
       {
@@ -59,7 +61,12 @@ export const router = createBrowserRouter([
         path: 'service',
         Component: ServiceLayout,
         loader: ServiceGuard,
-        children: [{ path: 'new-order', Component: NewOrderPage }],
+        children: [
+          { index: true, loader: () => redirect('tables') },
+          { path: 'tables', Component: TableSelectionPage },
+          { path: 'tables/:tableId', Component: TablePage },
+          { path: '', loader: () => redirect('tables') },
+        ],
       },
       { path: '', loader: () => redirect('login') },
     ],

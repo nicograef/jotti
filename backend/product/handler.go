@@ -11,6 +11,7 @@ type service interface {
 	CreateProduct(name, description string, netPrice float64, category Category) (*Product, error)
 	UpdateProduct(id int, name, description string, netPrice float64, category Category) (*Product, error)
 	GetAllProducts() ([]*Product, error)
+	GetActiveProducts() ([]*ProductPublic, error)
 	ActivateProduct(id int) error
 	DeactivateProduct(id int) error
 }
@@ -135,6 +136,33 @@ func (h *Handler) GetAllProductsHandler() http.HandlerFunc {
 		}
 
 		api.SendResponse(w, getAllProductsResponse{
+			Products: products,
+		})
+	}
+}
+
+type getActiveProductsResponse struct {
+	Products []*ProductPublic `json:"products"`
+}
+
+// GetActiveProductsHandler handles requests to retrieve all active products.
+func (h *Handler) GetActiveProductsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !api.ValidateMethod(w, r, http.MethodPost) {
+			return
+		}
+
+		products, err := h.Service.GetActiveProducts()
+		if err != nil {
+			api.SendInternalServerError(w)
+			return
+		}
+
+		if products == nil {
+			products = []*ProductPublic{}
+		}
+
+		api.SendResponse(w, getActiveProductsResponse{
 			Products: products,
 		})
 	}

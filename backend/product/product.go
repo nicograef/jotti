@@ -19,6 +19,14 @@ type Product struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
+type ProductPublic struct {
+	ID          int      `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	NetPrice    float64  `json:"netPrice"`
+	Category    Category `json:"category"`
+}
+
 // IDSchema defines the schema for a user ID.
 var IDSchema = z.Int().GTE(1, z.Message("Invalid product ID"))
 
@@ -76,6 +84,7 @@ var ErrDatabase = errors.New("database error")
 type persistence interface {
 	GetProduct(id int) (*Product, error)
 	GetAllProducts() ([]*Product, error)
+	GetActiveProducts() ([]*ProductPublic, error)
 	CreateProduct(name, description string, netPrice float64, category Category) (int, error)
 	UpdateProduct(id int, name, description string, netPrice float64, category Category) error
 	ActivateProduct(id int) error
@@ -142,6 +151,16 @@ func (s *Service) GetAllProducts() ([]*Product, error) {
 	products, err := s.Persistence.GetAllProducts()
 	if err != nil {
 		log.Printf("ERROR retrieving all products: %v", err)
+		return nil, ErrDatabase
+	}
+	return products, nil
+}
+
+// GetActiveProducts retrieves active products.
+func (s *Service) GetActiveProducts() ([]*ProductPublic, error) {
+	products, err := s.Persistence.GetActiveProducts()
+	if err != nil {
+		log.Printf("ERROR retrieving active products: %v", err)
 		return nil, ErrDatabase
 	}
 	return products, nil

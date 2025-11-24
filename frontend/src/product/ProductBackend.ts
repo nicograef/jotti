@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-import { type Product, ProductSchema } from './Product'
+import {
+  type Product,
+  type ProductPublic,
+  ProductPublicSchema,
+  ProductSchema,
+} from './Product'
 
 export const CreateProductRequestSchema = ProductSchema.pick({
   name: true,
@@ -37,7 +42,7 @@ export class ProductBackend {
   ): Promise<{ product: Product }> {
     const body = CreateProductRequestSchema.parse(newProduct)
     const { product } = await this.backend.post(
-      'admin/create-product',
+      'create-product',
       body,
       z.object({ product: ProductSchema }),
     )
@@ -49,7 +54,7 @@ export class ProductBackend {
   ): Promise<Product> {
     const body = UpdateProductRequestSchema.parse(updatedProduct)
     const { product } = await this.backend.post(
-      'admin/update-product',
+      'update-product',
       body,
       z.object({ product: ProductSchema }),
     )
@@ -58,29 +63,29 @@ export class ProductBackend {
 
   public async getAllProducts(): Promise<Product[]> {
     const { products } = await this.backend.post(
-      'admin/get-products',
+      'get-all-products',
       {},
       z.object({ products: z.array(ProductSchema) }),
     )
     return products
   }
 
-  public async getProducts(): Promise<Product[]> {
+  public async getActiveProducts(): Promise<ProductPublic[]> {
     const { products } = await this.backend.post(
-      'service/get-products',
+      'get-active-products',
       {},
-      z.object({ products: z.array(ProductSchema) }),
+      z.object({ products: z.array(ProductPublicSchema) }),
     )
     return products
   }
 
   public async activateProduct(id: number): Promise<void> {
     const body = ProductSchema.pick({ id: true }).parse({ id })
-    await this.backend.post('admin/activate-product', body)
+    await this.backend.post('activate-product', body)
   }
 
   public async deactivateProduct(id: number): Promise<void> {
     const body = ProductSchema.pick({ id: true }).parse({ id })
-    await this.backend.post('admin/deactivate-product', body)
+    await this.backend.post('deactivate-product', body)
   }
 }

@@ -33,6 +33,39 @@ func (m *mockProductService) UpdateProduct(id int, name, description string, net
 	}, nil
 }
 
+func (m *mockProductService) GetAllProducts() ([]*Product, error) {
+	return []*Product{
+		{
+			ID:          1,
+			Name:        "French Fries",
+			Description: "The most delicious fries.",
+			NetPrice:    19.99,
+			Status:      ActiveStatus,
+			Category:    FoodCategory,
+		},
+	}, nil
+}
+
+func (m *mockProductService) GetActiveProducts() ([]*ProductPublic, error) {
+	return []*ProductPublic{
+		{
+			ID:          1,
+			Name:        "French Fries",
+			Description: "The most delicious fries.",
+			NetPrice:    19.99,
+			Category:    FoodCategory,
+		},
+	}, nil
+}
+
+func (m *mockProductService) ActivateProduct(id int) error {
+	return nil
+}
+
+func (m *mockProductService) DeactivateProduct(id int) error {
+	return nil
+}
+
 func TestCreateProductHandler_MethodNotAllowed(t *testing.T) {
 	handler := &Handler{Service: &mockProductService{}}
 

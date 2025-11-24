@@ -35,7 +35,7 @@ export function AdminUsersPage() {
     async function fetchUsers() {
       setLoading(true)
       try {
-        const response = await userBackend.getUsers()
+        const response = await userBackend.getAllUsers()
         setUsers(response)
       } catch (error) {
         console.error('Failed to fetch users:', error)
