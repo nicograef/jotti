@@ -45,7 +45,9 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 
 // SetupRoutes configures HTTP routes
 func (app *App) SetupRoutes() {
-	app.Router.HandleFunc("/health", api.NewHealthHandler())
+	// Health check with database connectivity
+	healthCheck := api.HealthCheck{DB: app.DB}
+	app.Router.HandleFunc("/health", healthCheck.Handler())
 
 	userPersistence := user.Persistence{DB: app.DB}
 	userService := user.Service{Persistence: &userPersistence}
