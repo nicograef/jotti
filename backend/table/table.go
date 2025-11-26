@@ -2,10 +2,10 @@ package table
 
 import (
 	"errors"
-	"log"
 	"time"
 
 	z "github.com/Oudwins/zog"
+	"github.com/rs/zerolog/log"
 )
 
 // Table represents a user in the system.
@@ -70,13 +70,13 @@ type Service struct {
 func (s *Service) CreateTable(name string) (*Table, error) {
 	id, err := s.Persistence.CreateTable(name)
 	if err != nil {
-		log.Printf("ERROR creating table: %v", err)
+		log.Error().Err(err).Str("name", name).Msg("Failed to create table")
 		return nil, ErrDatabase
 	}
 
 	table, err := s.Persistence.GetTable(id)
 	if err != nil {
-		log.Printf("ERROR Failed to retrieve table %d after creation: %v", id, err)
+		log.Error().Err(err).Int("table_id", id).Msg("Failed to retrieve table after creation")
 		return nil, ErrDatabase
 	}
 
@@ -90,13 +90,13 @@ func (s *Service) UpdateTable(id int, name string) (*Table, error) {
 		if errors.Is(err, ErrTableNotFound) {
 			return nil, ErrTableNotFound
 		}
-		log.Printf("ERROR updating table %d: %v", id, err)
+		log.Error().Err(err).Int("table_id", id).Msg("Failed to update table")
 		return nil, ErrDatabase
 	}
 
 	updatedTable, err := s.Persistence.GetTable(id)
 	if err != nil {
-		log.Printf("ERROR Failed to retrieve updated table %d: %v", id, err)
+		log.Error().Err(err).Int("table_id", id).Msg("Failed to retrieve updated table")
 		return nil, ErrDatabase
 	}
 
@@ -110,7 +110,7 @@ func (s *Service) GetTable(id int) (*Table, error) {
 		if errors.Is(err, ErrTableNotFound) {
 			return nil, ErrTableNotFound
 		}
-		log.Printf("ERROR retrieving table %d: %v", id, err)
+		log.Error().Err(err).Int("table_id", id).Msg("Failed to retrieve table")
 		return nil, ErrDatabase
 	}
 	return table, nil
@@ -120,7 +120,7 @@ func (s *Service) GetTable(id int) (*Table, error) {
 func (s *Service) GetAllTables() ([]*Table, error) {
 	tables, err := s.Persistence.GetAllTables()
 	if err != nil {
-		log.Printf("ERROR retrieving all tables: %v", err)
+		log.Error().Err(err).Msg("Failed to retrieve all tables")
 		return nil, ErrDatabase
 	}
 	return tables, nil
@@ -130,7 +130,7 @@ func (s *Service) GetAllTables() ([]*Table, error) {
 func (s *Service) GetActiveTables() ([]*TablePublic, error) {
 	tables, err := s.Persistence.GetActiveTables()
 	if err != nil {
-		log.Printf("ERROR retrieving active tables: %v", err)
+		log.Error().Err(err).Msg("Failed to retrieve active tables")
 		return nil, ErrDatabase
 	}
 	return tables, nil
@@ -143,7 +143,7 @@ func (s *Service) ActivateTable(id int) error {
 		if errors.Is(err, ErrTableNotFound) {
 			return ErrTableNotFound
 		}
-		log.Printf("ERROR activating table %d: %v", id, err)
+		log.Error().Err(err).Int("table_id", id).Msg("Failed to activate table")
 		return ErrDatabase
 	}
 	return nil
@@ -156,7 +156,7 @@ func (s *Service) DeactivateTable(id int) error {
 		if errors.Is(err, ErrTableNotFound) {
 			return ErrTableNotFound
 		}
-		log.Printf("ERROR deactivating table %d: %v", id, err)
+		log.Error().Err(err).Int("table_id", id).Msg("Failed to deactivate table")
 		return ErrDatabase
 	}
 	return nil

@@ -2,12 +2,12 @@ package user
 
 import (
 	"errors"
-	"log"
 	"regexp"
 	"strings"
 	"time"
 
 	z "github.com/Oudwins/zog"
+	"github.com/rs/zerolog/log"
 )
 
 // Role represents the role of a user.
@@ -107,13 +107,13 @@ type Service struct {
 func (s *Service) CreateUser(name, username string, role Role) (*User, string, error) {
 	onetimePassword, err := generateOnetimePassword()
 	if err != nil {
-		log.Printf("ERROR Failed to create one-time password: %v", err)
+		log.Error().Err(err).Msg("Failed to create one-time password")
 		return nil, "", ErrPasswordHashing
 	}
 
 	onetimePasswordHash, err := createArgon2idHash(onetimePassword)
 	if err != nil {
-		log.Printf("ERROR Failed to hash one-time password: %v", err)
+		log.Error().Err(err).Msg("Failed to hash one-time password")
 		return nil, "", ErrPasswordHashing
 	}
 
@@ -122,13 +122,13 @@ func (s *Service) CreateUser(name, username string, role Role) (*User, string, e
 
 	id, err := s.Persistence.CreateUser(name, lowerCaseUsername, onetimePasswordHash, role)
 	if err != nil {
-		log.Printf("ERROR Failed to create user: %v", err)
+		log.Error().Err(err).Str("username", lowerCaseUsername).Msg("Failed to create user")
 		return nil, "", ErrDatabase
 	}
 
 	user, err := s.Persistence.GetUser(id)
 	if err != nil {
-		log.Printf("ERROR Failed to retrieve user %d after creation: %v", id, err)
+		log.Error().Err(err).Int("user_id", id).Msg("Failed to retrieve user after creation")
 		return nil, "", ErrDatabase
 	}
 
@@ -141,29 +141,29 @@ func (s *Service) VerifyPasswordAndGetUser(username, password string) (*User, er
 	id, err := s.Persistence.GetUserID(username)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			log.Printf("ERROR User %s not found during login", username)
+			log.Warn().Str("username", username).Msg("User not found during login")
 			return nil, ErrUserNotFound
 		}
-		log.Printf("ERROR Failed to retrieve user %s: %v", username, err)
+		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve user")
 		return nil, ErrDatabase
 	}
 
 	user, err := s.Persistence.GetUser(id)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			log.Printf("ERROR User %s not found during login", username)
+			log.Warn().Str("username", username).Msg("User not found during login")
 			return nil, ErrUserNotFound
 		}
-		log.Printf("ERROR Failed to retrieve password hash for user %s: %v", username, err)
+		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve password hash")
 		return nil, ErrDatabase
 	}
 	if user.PasswordHash == "" {
-		log.Printf("ERROR No password set for user %s", username)
+		log.Warn().Str("username", username).Msg("No password set for user")
 		return nil, ErrNoPassword
 	}
 
 	if err := verifyPassword(user.PasswordHash, password); err != nil {
-		log.Printf("ERROR Password validation failed for user %s: %v", username, err)
+		log.Warn().Err(err).Str("username", username).Msg("Password validation failed")
 		return nil, ErrInvalidPassword
 	}
 
@@ -176,39 +176,39 @@ func (s *Service) SetNewPassword(username, newPassword, onetimePassword string) 
 	id, err := s.Persistence.GetUserID(username)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			log.Printf("ERROR User %s not found during password validation", username)
+			log.Warn().Str("username", username).Msg("User not found during password validation")
 			return nil, ErrUserNotFound
 		}
-		log.Printf("ERROR Failed to retrieve user %s: %v", username, err)
+		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve user")
 		return nil, ErrDatabase
 	}
 
 	user, err := s.Persistence.GetUser(id)
 	if err != nil {
-		log.Printf("ERROR Failed to retrieve one-time password hash for user %s: %v", username, err)
+		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve one-time password hash")
 		return nil, ErrDatabase
 	}
 	if user.OnetimePasswordHash == "" {
-		log.Printf("ERROR No one-time password set for user %s", username)
+		log.Warn().Str("username", username).Msg("No one-time password set for user")
 		return nil, ErrNoOnetimePassword
 	}
 	if err := verifyPassword(user.OnetimePasswordHash, onetimePassword); err != nil {
-		log.Printf("ERROR One-time password validation failed for user %s: %v", username, err)
+		log.Warn().Err(err).Str("username", username).Msg("One-time password validation failed")
 		return nil, ErrInvalidPassword
 	}
 
 	hashedPassword, err := createArgon2idHash(newPassword)
 	if err != nil {
-		log.Printf("ERROR Failed to hash password for user %s: %v", username, err)
+		log.Error().Err(err).Str("username", username).Msg("Failed to hash password")
 		return nil, ErrPasswordHashing
 	}
 
 	if err := s.Persistence.SetPasswordHash(user.ID, hashedPassword); err != nil {
-		log.Printf("ERROR Failed to set password hash in Persistence for user %s: %v", username, err)
+		log.Error().Err(err).Str("username", username).Msg("Failed to set password hash in persistence")
 		return nil, ErrDatabase
 	}
 
-	log.Printf("INFO Password set successfully for user %s", username)
+	log.Info().Str("username", username).Msg("Password set successfully")
 
 	return user, nil
 }
@@ -217,22 +217,22 @@ func (s *Service) SetNewPassword(username, newPassword, onetimePassword string) 
 func (s *Service) ResetPassword(userID int) (string, error) {
 	onetimePassword, err := generateOnetimePassword()
 	if err != nil {
-		log.Printf("ERROR Failed to create one-time password: %v", err)
+		log.Error().Err(err).Msg("Failed to create one-time password")
 		return "", ErrPasswordHashing
 	}
 
 	onetimePasswordHash, err := createArgon2idHash(onetimePassword)
 	if err != nil {
-		log.Printf("ERROR Failed to hash one-time password: %v", err)
+		log.Error().Err(err).Msg("Failed to hash one-time password")
 		return "", ErrPasswordHashing
 	}
 
 	err = s.Persistence.SetOnetimePasswordHash(userID, onetimePasswordHash)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
-		log.Printf("ERROR User %d not found for password reset", userID)
+		log.Warn().Int("user_id", userID).Msg("User not found for password reset")
 		return "", ErrUserNotFound
 	} else if err != nil {
-		log.Printf("ERROR Failed to set one-time password hash in Persistence for user %d: %v", userID, err)
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to set one-time password hash in persistence")
 		return "", ErrDatabase
 	}
 
@@ -243,16 +243,16 @@ func (s *Service) ResetPassword(userID int) (string, error) {
 func (s *Service) UpdateUser(id int, name, username string, role Role) (*User, error) {
 	err := s.Persistence.UpdateUser(id, name, username, role)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
-		log.Printf("ERROR User %d not found for update", id)
+		log.Warn().Int("user_id", id).Msg("User not found for update")
 		return nil, ErrUserNotFound
 	} else if err != nil {
-		log.Printf("ERROR Failed to update user %d: %v", id, err)
+		log.Error().Err(err).Int("user_id", id).Msg("Failed to update user")
 		return nil, ErrDatabase
 	}
 
 	updatedUser, err := s.Persistence.GetUser(id)
 	if err != nil {
-		log.Printf("ERROR Failed to retrieve updated user %d: %v", id, err)
+		log.Error().Err(err).Int("user_id", id).Msg("Failed to retrieve updated user")
 		return nil, ErrDatabase
 	}
 
@@ -263,7 +263,7 @@ func (s *Service) UpdateUser(id int, name, username string, role Role) (*User, e
 func (s *Service) GetAllUsers() ([]*User, error) {
 	users, err := s.Persistence.GetAllUsers()
 	if err != nil {
-		log.Printf("ERROR Failed to retrieve all users: %v", err)
+		log.Error().Err(err).Msg("Failed to retrieve all users")
 		return nil, ErrDatabase
 	}
 
@@ -274,10 +274,10 @@ func (s *Service) GetAllUsers() ([]*User, error) {
 func (s *Service) ActivateUser(id int) error {
 	err := s.Persistence.ActivateUser(id)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
-		log.Printf("ERROR User %d not found for activation", id)
+		log.Warn().Int("user_id", id).Msg("User not found for activation")
 		return ErrUserNotFound
 	} else if err != nil {
-		log.Printf("ERROR Failed to activate user %d: %v", id, err)
+		log.Error().Err(err).Int("user_id", id).Msg("Failed to activate user")
 		return ErrDatabase
 	}
 
@@ -288,10 +288,10 @@ func (s *Service) ActivateUser(id int) error {
 func (s *Service) DeactivateUser(id int) error {
 	err := s.Persistence.DeactivateUser(id)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
-		log.Printf("ERROR User %d not found for deactivation", id)
+		log.Warn().Int("user_id", id).Msg("User not found for deactivation")
 		return ErrUserNotFound
 	} else if err != nil {
-		log.Printf("ERROR Failed to deactivate user %d: %v", id, err)
+		log.Error().Err(err).Int("user_id", id).Msg("Failed to deactivate user")
 		return ErrDatabase
 	}
 

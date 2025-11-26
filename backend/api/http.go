@@ -2,10 +2,10 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	z "github.com/Oudwins/zog"
+	"github.com/rs/zerolog/log"
 )
 
 type ErrorResponse struct {
@@ -18,7 +18,7 @@ func sendJSONResponse(w http.ResponseWriter, data any, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Printf("ERROR Failed to encode JSON response: %v", err)
+		log.Error().Err(err).Msg("Failed to encode JSON response")
 	}
 }
 
@@ -66,7 +66,7 @@ func ReadJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) boo
 
 	err := decoder.Decode(dest)
 	if err != nil {
-		log.Printf("ERROR Failed to decode JSON request: %v", err)
+		log.Error().Err(err).Msg("Failed to decode JSON request")
 		SendBadRequestError(w, ErrorResponse{
 			Message: "Invalid JSON request",
 			Code:    "invalid_json",
@@ -80,7 +80,7 @@ func ReadJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) boo
 func ValidateBody[T any](w http.ResponseWriter, body *T, schema *z.StructSchema) bool {
 	if err := schema.Validate(body); err != nil {
 		issues := z.Issues.SanitizeMapAndCollect(err)
-		log.Printf("ERROR Invalid request body: %v", issues)
+		log.Error().Interface("issues", issues).Msg("Invalid request body")
 		SendBadRequestError(w, ErrorResponse{
 			Message: "Invalid request body",
 			Code:    "invalid_request_body",
@@ -93,7 +93,10 @@ func ValidateBody[T any](w http.ResponseWriter, body *T, schema *z.StructSchema)
 
 func ValidateMethod(w http.ResponseWriter, r *http.Request, expectedMethod string) bool {
 	if r.Method != expectedMethod {
-		log.Printf("ERROR Invalid method %s, expected %s", r.Method, expectedMethod)
+		log.Error().
+			Str("method", r.Method).
+			Str("expected", expectedMethod).
+			Msg("Invalid method")
 		SendMethodNotAllowedError(w, ErrorResponse{
 			Message: "Method not allowed",
 			Code:    "method_not_allowed",

@@ -2,10 +2,10 @@ package product
 
 import (
 	"errors"
-	"log"
 	"time"
 
 	z "github.com/Oudwins/zog"
+	"github.com/rs/zerolog/log"
 )
 
 // Product represents a user in the system.
@@ -100,13 +100,13 @@ type Service struct {
 func (s *Service) CreateProduct(name, description string, netPrice float64, category Category) (*Product, error) {
 	id, err := s.Persistence.CreateProduct(name, description, netPrice, category)
 	if err != nil {
-		log.Printf("ERROR creating product: %v", err)
+		log.Error().Err(err).Str("name", name).Msg("Failed to create product")
 		return nil, ErrDatabase
 	}
 
 	product, err := s.Persistence.GetProduct(id)
 	if err != nil {
-		log.Printf("ERROR Failed to retrieve product %d after creation: %v", id, err)
+		log.Error().Err(err).Int("product_id", id).Msg("Failed to retrieve product after creation")
 		return nil, ErrDatabase
 	}
 
@@ -120,13 +120,13 @@ func (s *Service) UpdateProduct(id int, name, description string, netPrice float
 		if errors.Is(err, ErrProductNotFound) {
 			return nil, ErrProductNotFound
 		}
-		log.Printf("ERROR updating product: %v", err)
+		log.Error().Err(err).Int("product_id", id).Msg("Failed to update product")
 		return nil, ErrDatabase
 	}
 
 	updatedProduct, err := s.Persistence.GetProduct(id)
 	if err != nil {
-		log.Printf("ERROR Failed to retrieve updated product %d: %v", id, err)
+		log.Error().Err(err).Int("product_id", id).Msg("Failed to retrieve updated product")
 		return nil, ErrDatabase
 	}
 
@@ -140,7 +140,7 @@ func (s *Service) GetProduct(id int) (*Product, error) {
 		if errors.Is(err, ErrProductNotFound) {
 			return nil, ErrProductNotFound
 		}
-		log.Printf("ERROR retrieving product %d: %v", id, err)
+		log.Error().Err(err).Int("product_id", id).Msg("Failed to retrieve product")
 		return nil, ErrDatabase
 	}
 	return product, nil
@@ -150,7 +150,7 @@ func (s *Service) GetProduct(id int) (*Product, error) {
 func (s *Service) GetAllProducts() ([]*Product, error) {
 	products, err := s.Persistence.GetAllProducts()
 	if err != nil {
-		log.Printf("ERROR retrieving all products: %v", err)
+		log.Error().Err(err).Msg("Failed to retrieve all products")
 		return nil, ErrDatabase
 	}
 	return products, nil
@@ -160,7 +160,7 @@ func (s *Service) GetAllProducts() ([]*Product, error) {
 func (s *Service) GetActiveProducts() ([]*ProductPublic, error) {
 	products, err := s.Persistence.GetActiveProducts()
 	if err != nil {
-		log.Printf("ERROR retrieving active products: %v", err)
+		log.Error().Err(err).Msg("Failed to retrieve active products")
 		return nil, ErrDatabase
 	}
 	return products, nil
@@ -173,7 +173,7 @@ func (s *Service) ActivateProduct(id int) error {
 		if errors.Is(err, ErrProductNotFound) {
 			return ErrProductNotFound
 		}
-		log.Printf("ERROR activating product %d: %v", id, err)
+		log.Error().Err(err).Int("product_id", id).Msg("Failed to activate product")
 		return ErrDatabase
 	}
 	return nil
@@ -186,7 +186,7 @@ func (s *Service) DeactivateProduct(id int) error {
 		if errors.Is(err, ErrProductNotFound) {
 			return ErrProductNotFound
 		}
-		log.Printf("ERROR deactivating product %d: %v", id, err)
+		log.Error().Err(err).Int("product_id", id).Msg("Failed to deactivate product")
 		return ErrDatabase
 	}
 	return nil

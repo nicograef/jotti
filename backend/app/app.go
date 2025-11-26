@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/nicograef/jotti/backend/api"
 	"github.com/nicograef/jotti/backend/auth"
@@ -94,7 +95,7 @@ func (app *App) Run(ctx context.Context) error {
 	// Start server in goroutine
 	errChan := make(chan error, 1)
 	go func() {
-		fmt.Printf("Starting server on port %d\n", app.Config.Port)
+		log.Info().Int("port", app.Config.Port).Msg("Starting server")
 		if err := app.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errChan <- err
 		}

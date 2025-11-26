@@ -2,11 +2,12 @@ package auth
 
 import (
 	"errors"
-	"log"
 	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/rs/zerolog/log"
+
 	"github.com/nicograef/jotti/backend/user"
 )
 
@@ -27,7 +28,10 @@ func generateJWTTokenForUser(user user.User, secret string) (string, error) {
 	key := []byte(secret)
 	stringToken, err := token.SignedString(key)
 	if err != nil {
-		log.Printf("ERROR Failed to generate token for user %s: %v", user.Username, err)
+		log.Error().
+			Err(err).
+			Str("username", user.Username).
+			Msg("Failed to generate token")
 		return "", errTokenGeneration
 	}
 
@@ -47,13 +51,13 @@ func parseAndValidateJWTToken(tokenString, secret string) (*tokenPayload, error)
 
 	_, err := jwt.ParseWithClaims(tokenString, claims, keyFunc, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithExpirationRequired(), jwt.WithIssuer(issuer))
 	if err != nil {
-		log.Printf("ERROR Failed to parse token: %v", err)
+		log.Error().Err(err).Msg("Failed to parse token")
 		return nil, err
 	}
 
 	userID, err := strconv.Atoi((claims["sub"].(string)))
 	if err != nil {
-		log.Printf("ERROR Failed to convert UserID to int: %v", err)
+		log.Error().Err(err).Msg("Failed to convert UserID to int")
 		return nil, err
 	}
 

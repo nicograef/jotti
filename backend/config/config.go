@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 )
@@ -32,7 +33,7 @@ func Load() Config {
 		Password: parseEnvString("POSTGRES_PASSWORD", "admin"),
 		DBName:   parseEnvString("POSTGRES_DBNAME", "jotti"),
 	}
-	jwtSecret := parseEnvString("JWT_SECRET", "your-256-bit-secret")
+	jwtSecret := parseEnvString("JWT_SECRET", "")
 
 	return Config{
 		Port:      port,
@@ -47,7 +48,7 @@ func parseEnvString(name, defaultValue string) string {
 	if v == "" && defaultValue != "" {
 		return defaultValue
 	} else if v == "" {
-		fmt.Fprintf(os.Stderr, "Warning: %s is not set and has no default value\n", name)
+		log.Fatalf("%s is not set and has no default value\n", name)
 	}
 
 	return v

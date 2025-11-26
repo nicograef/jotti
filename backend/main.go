@@ -10,40 +10,43 @@ import (
 	"database/sql"
 
 	_ "github.com/lib/pq"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/nicograef/jotti/backend/app"
 	"github.com/nicograef/jotti/backend/config"
 )
 
 func main() {
+	// Configure zerolog
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+
 	cfg := config.Load()
 
 	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DBName)
 
 	db, err := sql.Open("postgres", psqlconn)
 	if err != nil {
-		fmt.Printf("Failed to connect to Postgres: %v\n", err)
-		os.Exit(1)
+		log.Fatal().Err(err).Msg("Failed to connect to Postgres")
 	}
 
 	defer func() {
 		if err := db.Close(); err != nil {
-			fmt.Printf("Failed to close database connection: %v\n", err)
+			log.Error().Err(err).Msg("Failed to close database connection")
 		}
 	}()
 
 	err = db.Ping()
 	if err != nil {
-		fmt.Printf("Failed to ping Postgres: %v\n", err)
-		os.Exit(1)
+		log.Fatal().Err(err).Msg("Failed to ping Postgres")
 	}
 
-	fmt.Println("Connected to database.")
+	log.Info().Msg("Connected to database")
 
 	app, err := app.NewApp(cfg, db)
 	if err != nil {
-		fmt.Printf("Failed to create app: %v\n", err)
-		os.Exit(1)
+		log.Fatal().Err(err).Msg("Failed to create app")
 	}
 
 	// Set up signal handling
@@ -60,7 +63,6 @@ func main() {
 
 	// Run application
 	if err := app.Run(ctx); err != nil {
-		fmt.Printf("Application error: %v\n", err)
-		os.Exit(1)
+		log.Fatal().Err(err).Msg("Application error")
 	}
 }
