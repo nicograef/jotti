@@ -87,7 +87,12 @@ func (app *App) SetupRoutes() {
 	app.Router.HandleFunc("/activate-product", admin(ph.ActivateProductHandler()))
 	app.Router.HandleFunc("/deactivate-product", admin(ph.DeactivateProductHandler()))
 
-	app.Server.Handler = app.Router
+	// Wrap the entire router with middleware chain
+	var handler http.Handler = app.Router
+	handler = api.RateLimitMiddleware(100)(handler)
+	handler = api.LoggingMiddleware(handler)
+
+	app.Server.Handler = handler
 }
 
 // Run starts the application with graceful shutdown

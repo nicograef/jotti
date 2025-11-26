@@ -8,6 +8,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/rs/zerolog v1.34.0
 	golang.org/x/crypto v0.43.0
+	golang.org/x/time v0.14.0
 )
 
 require (

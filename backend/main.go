@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"database/sql"
 
@@ -30,6 +31,10 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to Postgres")
 	}
+
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetMaxOpenConns(50)
+	db.SetMaxIdleConns(10)
 
 	defer func() {
 		if err := db.Close(); err != nil {
