@@ -38,6 +38,7 @@ func (p *Persistence) GetUser(ctx context.Context, id int) (*User, error) {
 		return nil, err
 	}
 
+	log.Debug().Str("correlation_id", correlationID).Int("user_id", id).Msg("User retrieved")
 	return &User{
 		ID:                  dbUser.ID,
 		Name:                dbUser.Name,
@@ -65,6 +66,7 @@ func (p *Persistence) GetUserID(ctx context.Context, username string) (int, erro
 		return 0, err
 	}
 
+	log.Debug().Str("correlation_id", correlationID).Str("username", username).Int("user_id", userID).Msg("User ID retrieved by username")
 	return userID, nil
 }
 
@@ -88,6 +90,7 @@ func (p *Persistence) GetAllUsers(ctx context.Context) ([]*User, error) {
 		if err := rows.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Status, &dbUser.CreatedAt); err != nil {
 			return nil, err
 		}
+
 		users = append(users, &User{
 			ID:        dbUser.ID,
 			Name:      dbUser.Name,
@@ -99,9 +102,11 @@ func (p *Persistence) GetAllUsers(ctx context.Context) ([]*User, error) {
 	}
 
 	if err := rows.Err(); err != nil {
+		log.Error().Err(err).Str("correlation_id", correlationID).Msg("Error iterating over user rows")
 		return nil, err
 	}
 
+	log.Debug().Str("correlation_id", correlationID).Int("count", len(users)).Msg("Retrieved all users")
 	return users, nil
 }
 
@@ -130,9 +135,11 @@ func (p *Persistence) UpdateUser(ctx context.Context, id int, name, username str
 	}
 
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		log.Warn().Str("correlation_id", correlationID).Int("user_id", id).Msg("User not found for update")
 		return ErrUserNotFound
 	}
 
+	log.Info().Str("correlation_id", correlationID).Int("user_id", id).Msg("User updated")
 	return nil
 }
 
@@ -146,9 +153,11 @@ func (p *Persistence) ActivateUser(ctx context.Context, id int) error {
 	}
 
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		log.Warn().Str("correlation_id", correlationID).Int("user_id", id).Msg("User not found for activation")
 		return ErrUserNotFound
 	}
 
+	log.Info().Str("correlation_id", correlationID).Int("user_id", id).Msg("User activated")
 	return nil
 }
 
@@ -162,9 +171,11 @@ func (p *Persistence) DeactivateUser(ctx context.Context, id int) error {
 	}
 
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		log.Warn().Str("correlation_id", correlationID).Int("user_id", id).Msg("User not found for deactivation")
 		return ErrUserNotFound
 	}
 
+	log.Info().Str("correlation_id", correlationID).Int("user_id", id).Msg("User deactivated")
 	return nil
 }
 
@@ -178,9 +189,11 @@ func (p *Persistence) SetPasswordHash(ctx context.Context, id int, passwordHash 
 	}
 
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		log.Warn().Str("correlation_id", correlationID).Int("user_id", id).Msg("User not found for setting password hash")
 		return ErrUserNotFound
 	}
 
+	log.Info().Str("correlation_id", correlationID).Int("user_id", id).Msg("Password hash set")
 	return nil
 }
 
@@ -194,8 +207,10 @@ func (p *Persistence) SetOnetimePasswordHash(ctx context.Context, id int, onetim
 	}
 
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
+		log.Warn().Str("correlation_id", correlationID).Int("user_id", id).Msg("User not found for setting onetime password hash")
 		return ErrUserNotFound
 	}
 
+	log.Info().Str("correlation_id", correlationID).Int("user_id", id).Msg("Onetime password hash set")
 	return nil
 }

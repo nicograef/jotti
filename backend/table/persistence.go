@@ -48,6 +48,7 @@ func (p *Persistence) GetAllTables(ctx context.Context) ([]*Table, error) {
 	correlationID, _ := ctx.Value("correlation_id").(string)
 	rows, err := p.DB.QueryContext(ctx, "SELECT id, name, status, created_at FROM tables WHERE status != 'deleted' ORDER BY id ASC")
 	if err != nil {
+		log.Error().Err(err).Str("correlation_id", correlationID).Msg("Failed to query all tables")
 		return nil, err
 	}
 	defer func() {
@@ -60,6 +61,7 @@ func (p *Persistence) GetAllTables(ctx context.Context) ([]*Table, error) {
 	for rows.Next() {
 		var dbTable dbtable
 		if err := rows.Scan(&dbTable.ID, &dbTable.Name, &dbTable.Status, &dbTable.CreatedAt); err != nil {
+			log.Error().Err(err).Str("correlation_id", correlationID).Msg("Failed to scan table")
 			return nil, err
 		}
 
@@ -71,6 +73,11 @@ func (p *Persistence) GetAllTables(ctx context.Context) ([]*Table, error) {
 		})
 	}
 
+	if err := rows.Err(); err != nil {
+		log.Error().Err(err).Str("correlation_id", correlationID).Msg("Error iterating over table rows")
+		return nil, err
+	}
+
 	log.Debug().Str("correlation_id", correlationID).Int("count", len(tables)).Msg("Retrieved all tables")
 	return tables, nil
 }
@@ -80,6 +87,7 @@ func (p *Persistence) GetActiveTables(ctx context.Context) ([]*TablePublic, erro
 	correlationID, _ := ctx.Value("correlation_id").(string)
 	rows, err := p.DB.QueryContext(ctx, "SELECT id, name FROM tables WHERE status = 'active' ORDER BY name ASC")
 	if err != nil {
+		log.Error().Err(err).Str("correlation_id", correlationID).Msg("Failed to query active tables")
 		return nil, err
 	}
 	defer func() {
@@ -101,6 +109,11 @@ func (p *Persistence) GetActiveTables(ctx context.Context) ([]*TablePublic, erro
 		})
 	}
 
+	if err := rows.Err(); err != nil {
+		log.Error().Err(err).Str("correlation_id", correlationID).Msg("Error iterating over table rows")
+		return nil, err
+	}
+
 	log.Debug().Str("correlation_id", correlationID).Int("count", len(tables)).Msg("Retrieved active tables")
 	return tables, nil
 }
@@ -114,6 +127,7 @@ func (p *Persistence) CreateTable(ctx context.Context, name string) (int, error)
 		log.Error().Str("correlation_id", correlationID).Err(err).Str("name", name).Msg("Failed to create table")
 		return 0, err
 	}
+
 	log.Info().Str("correlation_id", correlationID).Int("table_id", id).Str("name", name).Msg("Table created")
 	return id, nil
 }
@@ -127,11 +141,7 @@ func (p *Persistence) UpdateTable(ctx context.Context, id int, name string) erro
 		return err
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rowsAffected == 0 {
+	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
 		log.Warn().Str("correlation_id", correlationID).Int("table_id", id).Msg("Table not found for update")
 		return ErrTableNotFound
 	}

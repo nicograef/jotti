@@ -130,7 +130,7 @@ type getUsersResponse = struct {
 func (h *Handler) GetAllUsersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		if !api.ValidateMethod(w, r, http.MethodGet) {
+		if !api.ValidateMethod(w, r, http.MethodPost) {
 			return
 		}
 
