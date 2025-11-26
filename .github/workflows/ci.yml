@@ -132,6 +132,11 @@ jobs:
           POSTGRES_DB: jotti
         ports:
           - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: ./backend
@@ -144,16 +149,13 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Wait some seconds for Postgres to be ready
-        run: sleep 10
-
       - name: Run database migrations up
         working-directory: ./database
         run: |
           chmod +x migrate/migrate || true
           ./migrate/migrate -path ./migrations -database "postgres://admin:admin@localhost:5432/jotti?sslmode=disable" up
 
-      - name: Run tests
+      - name: Run integration tests
         env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: "5432"
@@ -164,6 +166,7 @@ jobs:
         run: go test -tags=integration -v -race ./...
 
       - name: Run database migrations down
+        if: always()
         working-directory: ./database
         run: |
           chmod +x migrate/migrate || true

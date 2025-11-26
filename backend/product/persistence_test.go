@@ -3,6 +3,7 @@
 package product
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -27,46 +28,52 @@ func database() *sql.DB {
 	return db
 }
 
-func TestCreateProduct(t *testing.T) {
+func TestCreateProductInDB(t *testing.T) {
 	db := database()
 	defer db.Close()
+	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	productID, err := persistence.CreateProduct("French Fries", "The best fries in town", 4.99, FoodCategory)
+	productID, err := persistence.CreateProduct(ctx, "French Fries", "The best fries in town", 4.99, FoodCategory)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if productID != 1 {
+	if productID < 1 {
 		t.Fatalf("Expected valid product ID, got %d", productID)
 	}
 
+	// Cleanup
+	_, _ = db.ExecContext(ctx, "DELETE FROM products WHERE id = $1", productID)
 }
 
 func TestGetProduct(t *testing.T) {
 	db := database()
 	defer db.Close()
+	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	product, err := persistence.GetProduct(1)
+	productID, _ := persistence.CreateProduct(ctx, "Test Product", "Test Description", 5.99, FoodCategory)
+
+	product, err := persistence.GetProduct(ctx, productID)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if product.ID != 1 {
-		t.Fatalf("Expected product ID 1, got %d", product.ID)
+	if product.ID != productID {
+		t.Fatalf("Expected product ID %d, got %d", productID, product.ID)
 	}
-	if product.Name != "French Fries" {
-		t.Fatalf("Expected productname 'French Fries', got %s", product.Name)
+	if product.Name != "Test Product" {
+		t.Fatalf("Expected product name 'Test Product', got %s", product.Name)
 	}
-	if product.Description != "The best fries in town" {
-		t.Fatalf("Expected description 'The best fries in town', got %s", product.Description)
+	if product.Description != "Test Description" {
+		t.Fatalf("Expected description 'Test Description', got %s", product.Description)
 	}
-	if product.NetPrice != 4.99 {
-		t.Fatalf("Expected net price 4.99, got %f", product.NetPrice)
+	if product.NetPrice != 5.99 {
+		t.Fatalf("Expected net price 5.99, got %f", product.NetPrice)
 	}
 	if product.Status != InactiveStatus {
-		t.Fatalf("Expected product to be active, got %s", product.Status)
+		t.Fatalf("Expected product to be inactive, got %s", product.Status)
 	}
 	if product.Category != FoodCategory {
 		t.Fatalf("Expected product category 'food', got %s", product.Category)
@@ -74,14 +81,18 @@ func TestGetProduct(t *testing.T) {
 	if product.CreatedAt.IsZero() {
 		t.Fatalf("Expected non-zero created_at, got %v", product.CreatedAt)
 	}
+
+	// Cleanup
+	_, _ = db.ExecContext(ctx, "DELETE FROM products WHERE id = $1", productID)
 }
 
-func TestGetProduct_Error(t *testing.T) {
+func TestGetProduct_NotFound(t *testing.T) {
 	db := database()
 	defer db.Close()
+	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	_, err := persistence.GetProduct(100000)
+	_, err := persistence.GetProduct(ctx, 999999)
 
 	if err != ErrProductNotFound {
 		t.Fatalf("Expected product not found error, got %v", err)
@@ -91,38 +102,71 @@ func TestGetProduct_Error(t *testing.T) {
 func TestGetAllProducts(t *testing.T) {
 	db := database()
 	defer db.Close()
+	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	products, err := persistence.GetAllProducts()
+	productID1, _ := persistence.CreateProduct(ctx, "Product 1", "Description 1", 3.99, FoodCategory)
+	productID2, _ := persistence.CreateProduct(ctx, "Product 2", "Description 2", 4.99, BeverageCategory)
+
+	products, err := persistence.GetAllProducts(ctx)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if len(products) == 0 {
-		t.Fatalf("Expected at least one product, got %d", len(products))
+	if len(products) < 2 {
+		t.Fatalf("Expected at least 2 products, got %d", len(products))
 	}
+
+	// Cleanup
+	_, _ = db.ExecContext(ctx, "DELETE FROM products WHERE id = $1", productID1)
+	_, _ = db.ExecContext(ctx, "DELETE FROM products WHERE id = $1", productID2)
+}
+
+func TestGetActiveProducts(t *testing.T) {
+	db := database()
+	defer db.Close()
+	ctx := context.Background()
+
+	persistence := &Persistence{DB: db}
+	productID, _ := persistence.CreateProduct(ctx, "Active Product", "Active Description", 6.99, FoodCategory)
+	_ = persistence.ActivateProduct(ctx, productID)
+
+	products, err := persistence.GetActiveProducts(ctx)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if len(products) < 1 {
+		t.Fatalf("Expected at least 1 active product, got %d", len(products))
+	}
+
+	// Cleanup
+	_, _ = db.ExecContext(ctx, "DELETE FROM products WHERE id = $1", productID)
 }
 
 func TestUpdateProduct(t *testing.T) {
 	db := database()
 	defer db.Close()
+	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	err := persistence.UpdateProduct(1, "Updated Name", "updatedproductname", 9.99, BeverageCategory)
+	productID, _ := persistence.CreateProduct(ctx, "Original Product", "Original Description", 7.99, FoodCategory)
+
+	err := persistence.UpdateProduct(ctx, productID, "Updated Name", "Updated Description", 9.99, BeverageCategory)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	updatedProduct, err := persistence.GetProduct(1)
+	updatedProduct, err := persistence.GetProduct(ctx, productID)
 	if err != nil {
 		t.Fatalf("Expected no error retrieving product, got %v", err)
 	}
 	if updatedProduct.Name != "Updated Name" {
 		t.Fatalf("Expected product name 'Updated Name', got %s", updatedProduct.Name)
 	}
-	if updatedProduct.Description != "updatedproductname" {
-		t.Fatalf("Expected description 'updatedproductname', got %s", updatedProduct.Description)
+	if updatedProduct.Description != "Updated Description" {
+		t.Fatalf("Expected description 'Updated Description', got %s", updatedProduct.Description)
 	}
 	if updatedProduct.NetPrice != 9.99 {
 		t.Fatalf("Expected net price 9.99, got %f", updatedProduct.NetPrice)
@@ -130,14 +174,91 @@ func TestUpdateProduct(t *testing.T) {
 	if updatedProduct.Category != BeverageCategory {
 		t.Fatalf("Expected product category 'beverage', got %s", updatedProduct.Category)
 	}
+
+	// Cleanup
+	_, _ = db.ExecContext(ctx, "DELETE FROM products WHERE id = $1", productID)
 }
 
-func TestUpdateProduct_Error(t *testing.T) {
+func TestUpdateProduct_NotFound(t *testing.T) {
 	db := database()
 	defer db.Close()
+	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	err := persistence.UpdateProduct(100000, "Updated Name", "updatedproductname", 9.99, BeverageCategory)
+	err := persistence.UpdateProduct(ctx, 999999, "Updated Name", "Updated Description", 9.99, BeverageCategory)
+
+	if err != ErrProductNotFound {
+		t.Fatalf("Expected product not found error, got %v", err)
+	}
+}
+
+func TestActivateProduct(t *testing.T) {
+	db := database()
+	defer db.Close()
+	ctx := context.Background()
+
+	persistence := &Persistence{DB: db}
+	productID, _ := persistence.CreateProduct(ctx, "Inactive Product", "To be activated", 8.99, FoodCategory)
+
+	err := persistence.ActivateProduct(ctx, productID)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	product, _ := persistence.GetProduct(ctx, productID)
+	if product.Status != ActiveStatus {
+		t.Fatalf("Expected product status to be active, got %s", product.Status)
+	}
+
+	// Cleanup
+	_, _ = db.ExecContext(ctx, "DELETE FROM products WHERE id = $1", productID)
+}
+
+func TestActivateProduct_NotFound(t *testing.T) {
+	db := database()
+	defer db.Close()
+	ctx := context.Background()
+
+	persistence := &Persistence{DB: db}
+	err := persistence.ActivateProduct(ctx, 999999)
+
+	if err != ErrProductNotFound {
+		t.Fatalf("Expected product not found error, got %v", err)
+	}
+}
+
+func TestDeactivateProduct(t *testing.T) {
+	db := database()
+	defer db.Close()
+	ctx := context.Background()
+
+	persistence := &Persistence{DB: db}
+	productID, _ := persistence.CreateProduct(ctx, "Active Product", "To be deactivated", 10.99, FoodCategory)
+	_ = persistence.ActivateProduct(ctx, productID)
+
+	err := persistence.DeactivateProduct(ctx, productID)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	product, _ := persistence.GetProduct(ctx, productID)
+	if product.Status != InactiveStatus {
+		t.Fatalf("Expected product status to be inactive, got %s", product.Status)
+	}
+
+	// Cleanup
+	_, _ = db.ExecContext(ctx, "DELETE FROM products WHERE id = $1", productID)
+}
+
+func TestDeactivateProduct_NotFound(t *testing.T) {
+	db := database()
+	defer db.Close()
+	ctx := context.Background()
+
+	persistence := &Persistence{DB: db}
+	err := persistence.DeactivateProduct(ctx, 999999)
 
 	if err != ErrProductNotFound {
 		t.Fatalf("Expected product not found error, got %v", err)
