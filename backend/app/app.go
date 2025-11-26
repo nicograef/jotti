@@ -91,6 +91,7 @@ func (app *App) SetupRoutes() {
 	var handler http.Handler = app.Router
 	handler = api.RateLimitMiddleware(100)(handler)
 	handler = api.LoggingMiddleware(handler)
+	handler = api.CorrelationIDMiddleware(handler)
 
 	app.Server.Handler = handler
 }

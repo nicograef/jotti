@@ -3,6 +3,7 @@
 package user
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -13,7 +14,7 @@ type MockUserPersistence struct {
 	User       *User
 }
 
-func (m *MockUserPersistence) CreateUser(name, username, onetimePasswordHash string, role Role) (int, error) {
+func (m *MockUserPersistence) CreateUser(ctx context.Context, name, username, onetimePasswordHash string, role Role) (int, error) {
 	if m.ShouldFail {
 		return 0, ErrDatabase
 	}
@@ -28,28 +29,28 @@ func (m *MockUserPersistence) CreateUser(name, username, onetimePasswordHash str
 	return m.User.ID, nil
 }
 
-func (m *MockUserPersistence) GetUserID(username string) (int, error) {
+func (m *MockUserPersistence) GetUserID(ctx context.Context, username string) (int, error) {
 	if m.ShouldFail {
 		return 0, ErrUserNotFound
 	}
 	return m.User.ID, nil
 }
 
-func (m *MockUserPersistence) GetUser(id int) (*User, error) {
+func (m *MockUserPersistence) GetUser(ctx context.Context, id int) (*User, error) {
 	if m.ShouldFail {
 		return nil, ErrUserNotFound
 	}
 	return m.User, nil
 }
 
-func (m *MockUserPersistence) GetAllUsers() ([]*User, error) {
+func (m *MockUserPersistence) GetAllUsers(ctx context.Context) ([]*User, error) {
 	if m.ShouldFail {
 		return nil, ErrDatabase
 	}
 	return []*User{m.User}, nil
 }
 
-func (m *MockUserPersistence) UpdateUser(id int, name, username string, role Role) error {
+func (m *MockUserPersistence) UpdateUser(ctx context.Context, id int, name, username string, role Role) error {
 	if m.ShouldFail {
 		return ErrDatabase
 	}
@@ -62,7 +63,7 @@ func (m *MockUserPersistence) UpdateUser(id int, name, username string, role Rol
 	return nil
 }
 
-func (m *MockUserPersistence) SetPasswordHash(id int, passwordHash string) error {
+func (m *MockUserPersistence) SetPasswordHash(ctx context.Context, id int, passwordHash string) error {
 	if m.ShouldFail {
 		return fmt.Errorf("failed to set password hash")
 	}
@@ -71,7 +72,7 @@ func (m *MockUserPersistence) SetPasswordHash(id int, passwordHash string) error
 	return nil
 }
 
-func (m *MockUserPersistence) SetOnetimePasswordHash(id int, onetimePasswordHash string) error {
+func (m *MockUserPersistence) SetOnetimePasswordHash(ctx context.Context, id int, onetimePasswordHash string) error {
 	if m.ShouldFail {
 		return fmt.Errorf("failed to set one-time password hash")
 	}
@@ -80,7 +81,7 @@ func (m *MockUserPersistence) SetOnetimePasswordHash(id int, onetimePasswordHash
 	return nil
 }
 
-func (m *MockUserPersistence) ActivateUser(id int) error {
+func (m *MockUserPersistence) ActivateUser(ctx context.Context, id int) error {
 	if m.ShouldFail {
 		return fmt.Errorf("failed to activate user")
 	}
@@ -88,7 +89,7 @@ func (m *MockUserPersistence) ActivateUser(id int) error {
 	return nil
 }
 
-func (m *MockUserPersistence) DeactivateUser(id int) error {
+func (m *MockUserPersistence) DeactivateUser(ctx context.Context, id int) error {
 	if m.ShouldFail {
 		return fmt.Errorf("failed to deactivate user")
 	}
@@ -99,7 +100,7 @@ func (m *MockUserPersistence) DeactivateUser(id int) error {
 func TestCreateUser(t *testing.T) {
 	userService := Service{Persistence: &MockUserPersistence{User: &User{ID: 1}}}
 
-	user, onetimePassword, err := userService.CreateUser("Test User", "testuser", ServiceRole)
+	user, onetimePassword, err := userService.CreateUser(context.Background(), "Test User", "testuser", ServiceRole)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -127,7 +128,7 @@ func TestCreateUser(t *testing.T) {
 func TestCreateUser_Error(t *testing.T) {
 	userService := Service{Persistence: &MockUserPersistence{ShouldFail: true}}
 
-	_, _, err := userService.CreateUser("Test User", "testuser", ServiceRole)
+	_, _, err := userService.CreateUser(context.Background(), "Test User", "testuser", ServiceRole)
 
 	if err == nil {
 		t.Fatalf("expected error, got nil")
@@ -140,7 +141,7 @@ func TestCreateUser_Error(t *testing.T) {
 func TestVerifyPasswordAndGetUser_NotFound(t *testing.T) {
 	userService := Service{Persistence: &MockUserPersistence{ShouldFail: true}}
 
-	_, err := userService.VerifyPasswordAndGetUser("nonexistent", "password")
+	_, err := userService.VerifyPasswordAndGetUser(context.Background(), "nonexistent", "password")
 
 	if err != ErrUserNotFound {
 		t.Fatalf("expected user not found error, got %v", err)
@@ -150,7 +151,7 @@ func TestVerifyPasswordAndGetUser_NotFound(t *testing.T) {
 func TestVerifyPasswordAndGetUser_Success(t *testing.T) {
 	userService := Service{Persistence: &MockUserPersistence{User: &User{ID: 1, Username: "testuser", PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}}
 
-	user, err := userService.VerifyPasswordAndGetUser("testuser", "testpassword")
+	user, err := userService.VerifyPasswordAndGetUser(context.Background(), "testuser", "testpassword")
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -166,7 +167,7 @@ func TestVerifyPasswordAndGetUser_Success(t *testing.T) {
 func TestVerifyPasswordAndGetUser_InvalidPassword(t *testing.T) {
 	userService := Service{Persistence: &MockUserPersistence{User: &User{PasswordHash: "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"}}}
 
-	_, err := userService.VerifyPasswordAndGetUser("testuser", "wrongpassword")
+	_, err := userService.VerifyPasswordAndGetUser(context.Background(), "testuser", "wrongpassword")
 
 	if err != ErrInvalidPassword {
 		t.Fatalf("expected invalid password error, got %v", err)
@@ -176,7 +177,7 @@ func TestVerifyPasswordAndGetUser_InvalidPassword(t *testing.T) {
 func TestVerifyPasswordAndGetUser_HashError(t *testing.T) {
 	userService := Service{Persistence: &MockUserPersistence{User: &User{PasswordHash: "invalidhashformat"}}}
 
-	_, err := userService.VerifyPasswordAndGetUser("testuser", "somepassword")
+	_, err := userService.VerifyPasswordAndGetUser(context.Background(), "testuser", "somepassword")
 
 	if err != ErrInvalidPassword {
 		t.Fatalf("expected password hashing error, got %v", err)
@@ -187,7 +188,7 @@ func TestGetAllUsers_Success(t *testing.T) {
 	mockUser := &User{ID: 1, Name: "Test User", Username: "testuser", Role: ServiceRole}
 	userService := Service{Persistence: &MockUserPersistence{User: mockUser}}
 
-	users, err := userService.GetAllUsers()
+	users, err := userService.GetAllUsers(context.Background())
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -203,7 +204,7 @@ func TestGetAllUsers_Success(t *testing.T) {
 func TestGetAllUsers_Error(t *testing.T) {
 	userService := Service{Persistence: &MockUserPersistence{ShouldFail: true}}
 
-	_, err := userService.GetAllUsers()
+	_, err := userService.GetAllUsers(context.Background())
 
 	if err != ErrDatabase {
 		t.Fatalf("expected database error, got %v", err)
@@ -213,7 +214,7 @@ func TestGetAllUsers_Error(t *testing.T) {
 func TestUpdateUser_Success(t *testing.T) {
 	userService := Service{Persistence: &MockUserPersistence{}}
 
-	user, err := userService.UpdateUser(1, "Updated User", "updateduser", AdminRole)
+	user, err := userService.UpdateUser(context.Background(), 1, "Updated User", "updateduser", AdminRole)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -232,7 +233,7 @@ func TestUpdateUser_Success(t *testing.T) {
 func TestUpdateUser_Error(t *testing.T) {
 	userService := Service{Persistence: &MockUserPersistence{ShouldFail: true}}
 
-	user, err := userService.UpdateUser(1, "Updated User", "updateduser", AdminRole)
+	user, err := userService.UpdateUser(context.Background(), 1, "Updated User", "updateduser", AdminRole)
 
 	if err != ErrDatabase {
 		t.Fatalf("expected database error, got %v", err)

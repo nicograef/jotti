@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -82,13 +83,13 @@ const (
 var ErrDatabase = errors.New("database error")
 
 type persistence interface {
-	GetProduct(id int) (*Product, error)
-	GetAllProducts() ([]*Product, error)
-	GetActiveProducts() ([]*ProductPublic, error)
-	CreateProduct(name, description string, netPrice float64, category Category) (int, error)
-	UpdateProduct(id int, name, description string, netPrice float64, category Category) error
-	ActivateProduct(id int) error
-	DeactivateProduct(id int) error
+	GetProduct(ctx context.Context, id int) (*Product, error)
+	GetAllProducts(ctx context.Context) ([]*Product, error)
+	GetActiveProducts(ctx context.Context) ([]*ProductPublic, error)
+	CreateProduct(ctx context.Context, name, description string, netPrice float64, category Category) (int, error)
+	UpdateProduct(ctx context.Context, id int, name, description string, netPrice float64, category Category) error
+	ActivateProduct(ctx context.Context, id int) error
+	DeactivateProduct(ctx context.Context, id int) error
 }
 
 // Service provides product-related operations.
@@ -97,14 +98,14 @@ type Service struct {
 }
 
 // CreateProduct creates a new product in the database.
-func (s *Service) CreateProduct(name, description string, netPrice float64, category Category) (*Product, error) {
-	id, err := s.Persistence.CreateProduct(name, description, netPrice, category)
+func (s *Service) CreateProduct(ctx context.Context, name, description string, netPrice float64, category Category) (*Product, error) {
+	id, err := s.Persistence.CreateProduct(ctx, name, description, netPrice, category)
 	if err != nil {
 		log.Error().Err(err).Str("name", name).Msg("Failed to create product")
 		return nil, ErrDatabase
 	}
 
-	product, err := s.Persistence.GetProduct(id)
+	product, err := s.Persistence.GetProduct(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Int("product_id", id).Msg("Failed to retrieve product after creation")
 		return nil, ErrDatabase
@@ -114,8 +115,8 @@ func (s *Service) CreateProduct(name, description string, netPrice float64, cate
 }
 
 // UpdateProduct updates an existing product in the database.
-func (s *Service) UpdateProduct(id int, name, description string, netPrice float64, category Category) (*Product, error) {
-	err := s.Persistence.UpdateProduct(id, name, description, netPrice, category)
+func (s *Service) UpdateProduct(ctx context.Context, id int, name, description string, netPrice float64, category Category) (*Product, error) {
+	err := s.Persistence.UpdateProduct(ctx, id, name, description, netPrice, category)
 	if err != nil {
 		if errors.Is(err, ErrProductNotFound) {
 			return nil, ErrProductNotFound
@@ -124,7 +125,7 @@ func (s *Service) UpdateProduct(id int, name, description string, netPrice float
 		return nil, ErrDatabase
 	}
 
-	updatedProduct, err := s.Persistence.GetProduct(id)
+	updatedProduct, err := s.Persistence.GetProduct(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Int("product_id", id).Msg("Failed to retrieve updated product")
 		return nil, ErrDatabase
@@ -134,8 +135,8 @@ func (s *Service) UpdateProduct(id int, name, description string, netPrice float
 }
 
 // GetProduct retrieves a product by its ID.
-func (s *Service) GetProduct(id int) (*Product, error) {
-	product, err := s.Persistence.GetProduct(id)
+func (s *Service) GetProduct(ctx context.Context, id int) (*Product, error) {
+	product, err := s.Persistence.GetProduct(ctx, id)
 	if err != nil {
 		if errors.Is(err, ErrProductNotFound) {
 			return nil, ErrProductNotFound
@@ -147,8 +148,8 @@ func (s *Service) GetProduct(id int) (*Product, error) {
 }
 
 // GetAllProducts retrieves all products.
-func (s *Service) GetAllProducts() ([]*Product, error) {
-	products, err := s.Persistence.GetAllProducts()
+func (s *Service) GetAllProducts(ctx context.Context) ([]*Product, error) {
+	products, err := s.Persistence.GetAllProducts(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve all products")
 		return nil, ErrDatabase
@@ -157,8 +158,8 @@ func (s *Service) GetAllProducts() ([]*Product, error) {
 }
 
 // GetActiveProducts retrieves active products.
-func (s *Service) GetActiveProducts() ([]*ProductPublic, error) {
-	products, err := s.Persistence.GetActiveProducts()
+func (s *Service) GetActiveProducts(ctx context.Context) ([]*ProductPublic, error) {
+	products, err := s.Persistence.GetActiveProducts(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve active products")
 		return nil, ErrDatabase
@@ -167,8 +168,8 @@ func (s *Service) GetActiveProducts() ([]*ProductPublic, error) {
 }
 
 // ActivateProduct sets the status of a product to active.
-func (s *Service) ActivateProduct(id int) error {
-	err := s.Persistence.ActivateProduct(id)
+func (s *Service) ActivateProduct(ctx context.Context, id int) error {
+	err := s.Persistence.ActivateProduct(ctx, id)
 	if err != nil {
 		if errors.Is(err, ErrProductNotFound) {
 			return ErrProductNotFound
@@ -180,8 +181,8 @@ func (s *Service) ActivateProduct(id int) error {
 }
 
 // DeactivateProduct sets the status of a product to inactive.
-func (s *Service) DeactivateProduct(id int) error {
-	err := s.Persistence.DeactivateProduct(id)
+func (s *Service) DeactivateProduct(ctx context.Context, id int) error {
+	err := s.Persistence.DeactivateProduct(ctx, id)
 	if err != nil {
 		if errors.Is(err, ErrProductNotFound) {
 			return ErrProductNotFound

@@ -1,17 +1,45 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/time/rate"
 )
 
-// LoggingMiddleware logs HTTP requests
+type contextKey string
+
+const CorrelationIDKey contextKey = "correlation_id"
+
+// CorrelationIDMiddleware adds a correlation ID to each request for tracing
+func CorrelationIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if correlation ID already exists in header
+		correlationID := r.Header.Get("X-Correlation-ID")
+		if correlationID == "" {
+			// Generate new correlation ID
+			correlationID = uuid.New().String()
+		}
+
+		// Add to response header
+		w.Header().Set("X-Correlation-ID", correlationID)
+
+		// Add to context
+		ctx := context.WithValue(r.Context(), CorrelationIDKey, correlationID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// LoggingMiddleware logs HTTP requests with correlation ID
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+
+		// Extract correlation ID from context
+		correlationID, _ := r.Context().Value(CorrelationIDKey).(string)
 
 		// Create a response writer wrapper to capture status code
 		ww := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
@@ -19,6 +47,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(ww, r)
 
 		log.Info().
+			Str("correlation_id", correlationID).
 			Str("method", r.Method).
 			Str("path", r.URL.Path).
 			Int("status", ww.statusCode).

@@ -3,6 +3,7 @@
 package product
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,7 +12,7 @@ import (
 
 type mockProductService struct{}
 
-func (m *mockProductService) CreateProduct(name, description string, netPrice float64, category Category) (*Product, error) {
+func (m *mockProductService) CreateProduct(ctx context.Context, name, description string, netPrice float64, category Category) (*Product, error) {
 	return &Product{
 		ID:          1,
 		Name:        name,
@@ -22,7 +23,7 @@ func (m *mockProductService) CreateProduct(name, description string, netPrice fl
 	}, nil
 }
 
-func (m *mockProductService) UpdateProduct(id int, name, description string, netPrice float64, category Category) (*Product, error) {
+func (m *mockProductService) UpdateProduct(ctx context.Context, id int, name, description string, netPrice float64, category Category) (*Product, error) {
 	return &Product{
 		ID:          id,
 		Name:        name,
@@ -33,7 +34,7 @@ func (m *mockProductService) UpdateProduct(id int, name, description string, net
 	}, nil
 }
 
-func (m *mockProductService) GetAllProducts() ([]*Product, error) {
+func (m *mockProductService) GetAllProducts(ctx context.Context) ([]*Product, error) {
 	return []*Product{
 		{
 			ID:          1,
@@ -46,7 +47,7 @@ func (m *mockProductService) GetAllProducts() ([]*Product, error) {
 	}, nil
 }
 
-func (m *mockProductService) GetActiveProducts() ([]*ProductPublic, error) {
+func (m *mockProductService) GetActiveProducts(ctx context.Context) ([]*ProductPublic, error) {
 	return []*ProductPublic{
 		{
 			ID:          1,
@@ -58,11 +59,11 @@ func (m *mockProductService) GetActiveProducts() ([]*ProductPublic, error) {
 	}, nil
 }
 
-func (m *mockProductService) ActivateProduct(id int) error {
+func (m *mockProductService) ActivateProduct(ctx context.Context, id int) error {
 	return nil
 }
 
-func (m *mockProductService) DeactivateProduct(id int) error {
+func (m *mockProductService) DeactivateProduct(ctx context.Context, id int) error {
 	return nil
 }
 

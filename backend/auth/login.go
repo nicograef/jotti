@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -10,8 +11,8 @@ import (
 )
 
 type userService interface {
-	VerifyPasswordAndGetUser(username, password string) (*usr.User, error)
-	SetNewPassword(username, password, onetimePassword string) (*usr.User, error)
+	VerifyPasswordAndGetUser(ctx context.Context, username, password string) (*usr.User, error)
+	SetNewPassword(ctx context.Context, username, password, onetimePassword string) (*usr.User, error)
 }
 
 type Handler struct {
@@ -49,7 +50,8 @@ func (h *Handler) LoginHandler() http.HandlerFunc {
 			return
 		}
 
-		user, err := h.UserService.VerifyPasswordAndGetUser(body.Username, body.Password)
+		ctx := r.Context()
+		user, err := h.UserService.VerifyPasswordAndGetUser(ctx, body.Username, body.Password)
 		if err != nil {
 			if errors.Is(err, usr.ErrUserNotFound) || errors.Is(err, usr.ErrInvalidPassword) {
 				api.SendUnauthorizedError(w, api.ErrorResponse{
@@ -114,7 +116,8 @@ func (h *Handler) SetPasswordHandler() http.HandlerFunc {
 			return
 		}
 
-		user, err := h.UserService.SetNewPassword(body.Username, body.Password, body.OnetimePassword)
+		ctx := r.Context()
+		user, err := h.UserService.SetNewPassword(ctx, body.Username, body.Password, body.OnetimePassword)
 		if err != nil {
 			if errors.Is(err, usr.ErrUserNotFound) || errors.Is(err, usr.ErrInvalidPassword) {
 				api.SendUnauthorizedError(w, api.ErrorResponse{

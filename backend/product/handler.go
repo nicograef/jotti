@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"net/http"
 
 	z "github.com/Oudwins/zog"
@@ -8,12 +9,12 @@ import (
 )
 
 type service interface {
-	CreateProduct(name, description string, netPrice float64, category Category) (*Product, error)
-	UpdateProduct(id int, name, description string, netPrice float64, category Category) (*Product, error)
-	GetAllProducts() ([]*Product, error)
-	GetActiveProducts() ([]*ProductPublic, error)
-	ActivateProduct(id int) error
-	DeactivateProduct(id int) error
+	CreateProduct(ctx context.Context, name, description string, netPrice float64, category Category) (*Product, error)
+	UpdateProduct(ctx context.Context, id int, name, description string, netPrice float64, category Category) (*Product, error)
+	GetAllProducts(ctx context.Context) ([]*Product, error)
+	GetActiveProducts(ctx context.Context) ([]*ProductPublic, error)
+	ActivateProduct(ctx context.Context, id int) error
+	DeactivateProduct(ctx context.Context, id int) error
 }
 
 type Handler struct {
@@ -54,7 +55,8 @@ func (h *Handler) CreateProductHandler() http.HandlerFunc {
 			return
 		}
 
-		product, err := h.Service.CreateProduct(body.Name, body.Description, body.NetPrice, body.Category)
+		ctx := r.Context()
+		product, err := h.Service.CreateProduct(ctx, body.Name, body.Description, body.NetPrice, body.Category)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return
@@ -102,7 +104,8 @@ func (h *Handler) UpdateProductHandler() http.HandlerFunc {
 			return
 		}
 
-		product, err := h.Service.UpdateProduct(body.ID, body.Name, body.Description, body.NetPrice, body.Category)
+		ctx := r.Context()
+		product, err := h.Service.UpdateProduct(ctx, body.ID, body.Name, body.Description, body.NetPrice, body.Category)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return
@@ -125,7 +128,8 @@ func (h *Handler) GetAllProductsHandler() http.HandlerFunc {
 			return
 		}
 
-		products, err := h.Service.GetAllProducts()
+		ctx := r.Context()
+		products, err := h.Service.GetAllProducts(ctx)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return
@@ -152,7 +156,8 @@ func (h *Handler) GetActiveProductsHandler() http.HandlerFunc {
 			return
 		}
 
-		products, err := h.Service.GetActiveProducts()
+		ctx := r.Context()
+		products, err := h.Service.GetActiveProducts(ctx)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return
@@ -192,7 +197,8 @@ func (h *Handler) ActivateProductHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Service.ActivateProduct(body.ID)
+		ctx := r.Context()
+		err := h.Service.ActivateProduct(ctx, body.ID)
 		if err != nil {
 			if err == ErrProductNotFound {
 				api.SendNotFoundError(w, api.ErrorResponse{
@@ -233,7 +239,8 @@ func (h *Handler) DeactivateProductHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Service.DeactivateProduct(body.ID)
+		ctx := r.Context()
+		err := h.Service.DeactivateProduct(ctx, body.ID)
 		if err != nil {
 			if err == ErrProductNotFound {
 				api.SendNotFoundError(w, api.ErrorResponse{

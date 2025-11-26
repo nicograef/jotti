@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"strings"
@@ -87,15 +88,15 @@ var ErrPasswordHashing = errors.New("password hashing error")
 var ErrDatabase = errors.New("database error")
 
 type persistence interface {
-	GetUserID(username string) (int, error)
-	GetUser(id int) (*User, error)
-	GetAllUsers() ([]*User, error)
-	CreateUser(name, username, onetimePasswordHash string, role Role) (int, error)
-	UpdateUser(id int, name, username string, role Role) error
-	ActivateUser(id int) error
-	DeactivateUser(id int) error
-	SetPasswordHash(id int, passwordHash string) error
-	SetOnetimePasswordHash(id int, onetimePasswordHash string) error
+	GetUserID(ctx context.Context, username string) (int, error)
+	GetUser(ctx context.Context, id int) (*User, error)
+	GetAllUsers(ctx context.Context) ([]*User, error)
+	CreateUser(ctx context.Context, name, username, onetimePasswordHash string, role Role) (int, error)
+	UpdateUser(ctx context.Context, id int, name, username string, role Role) error
+	ActivateUser(ctx context.Context, id int) error
+	DeactivateUser(ctx context.Context, id int) error
+	SetPasswordHash(ctx context.Context, id int, passwordHash string) error
+	SetOnetimePasswordHash(ctx context.Context, id int, onetimePasswordHash string) error
 }
 
 // Service provides user-related operations.
@@ -104,7 +105,7 @@ type Service struct {
 }
 
 // CreateUser creates a new user in the database without setting a password.
-func (s *Service) CreateUser(name, username string, role Role) (*User, string, error) {
+func (s *Service) CreateUser(ctx context.Context, name, username string, role Role) (*User, string, error) {
 	onetimePassword, err := generateOnetimePassword()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create one-time password")
@@ -120,13 +121,13 @@ func (s *Service) CreateUser(name, username string, role Role) (*User, string, e
 	// usernames are always lowercase in jotti
 	lowerCaseUsername := strings.ToLower(username)
 
-	id, err := s.Persistence.CreateUser(name, lowerCaseUsername, onetimePasswordHash, role)
+	id, err := s.Persistence.CreateUser(ctx, name, lowerCaseUsername, onetimePasswordHash, role)
 	if err != nil {
 		log.Error().Err(err).Str("username", lowerCaseUsername).Msg("Failed to create user")
 		return nil, "", ErrDatabase
 	}
 
-	user, err := s.Persistence.GetUser(id)
+	user, err := s.Persistence.GetUser(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Int("user_id", id).Msg("Failed to retrieve user after creation")
 		return nil, "", ErrDatabase
@@ -137,8 +138,8 @@ func (s *Service) CreateUser(name, username string, role Role) (*User, string, e
 
 // VerifyPasswordAndGetUser logs in a user by validating the provided password against the stored password hash.
 // If the user has no password set, it sets the provided password as the new password.
-func (s *Service) VerifyPasswordAndGetUser(username, password string) (*User, error) {
-	id, err := s.Persistence.GetUserID(username)
+func (s *Service) VerifyPasswordAndGetUser(ctx context.Context, username, password string) (*User, error) {
+	id, err := s.Persistence.GetUserID(ctx, username)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			log.Warn().Str("username", username).Msg("User not found during login")
@@ -148,7 +149,7 @@ func (s *Service) VerifyPasswordAndGetUser(username, password string) (*User, er
 		return nil, ErrDatabase
 	}
 
-	user, err := s.Persistence.GetUser(id)
+	user, err := s.Persistence.GetUser(ctx, id)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			log.Warn().Str("username", username).Msg("User not found during login")
@@ -172,8 +173,8 @@ func (s *Service) VerifyPasswordAndGetUser(username, password string) (*User, er
 
 // SetNewPassword logs in a user by validating the provided one-time password against the stored password hash.
 // If the user has no password set, it sets the provided password as the new password.
-func (s *Service) SetNewPassword(username, newPassword, onetimePassword string) (*User, error) {
-	id, err := s.Persistence.GetUserID(username)
+func (s *Service) SetNewPassword(ctx context.Context, username, newPassword, onetimePassword string) (*User, error) {
+	id, err := s.Persistence.GetUserID(ctx, username)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			log.Warn().Str("username", username).Msg("User not found during password validation")
@@ -183,7 +184,7 @@ func (s *Service) SetNewPassword(username, newPassword, onetimePassword string) 
 		return nil, ErrDatabase
 	}
 
-	user, err := s.Persistence.GetUser(id)
+	user, err := s.Persistence.GetUser(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve one-time password hash")
 		return nil, ErrDatabase
@@ -203,7 +204,7 @@ func (s *Service) SetNewPassword(username, newPassword, onetimePassword string) 
 		return nil, ErrPasswordHashing
 	}
 
-	if err := s.Persistence.SetPasswordHash(user.ID, hashedPassword); err != nil {
+	if err := s.Persistence.SetPasswordHash(ctx, user.ID, hashedPassword); err != nil {
 		log.Error().Err(err).Str("username", username).Msg("Failed to set password hash in persistence")
 		return nil, ErrDatabase
 	}
@@ -214,7 +215,7 @@ func (s *Service) SetNewPassword(username, newPassword, onetimePassword string) 
 }
 
 // ResetPassword resets the password for the user with the given user ID and returns a new one-time password.
-func (s *Service) ResetPassword(userID int) (string, error) {
+func (s *Service) ResetPassword(ctx context.Context, userID int) (string, error) {
 	onetimePassword, err := generateOnetimePassword()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create one-time password")
@@ -227,7 +228,7 @@ func (s *Service) ResetPassword(userID int) (string, error) {
 		return "", ErrPasswordHashing
 	}
 
-	err = s.Persistence.SetOnetimePasswordHash(userID, onetimePasswordHash)
+	err = s.Persistence.SetOnetimePasswordHash(ctx, userID, onetimePasswordHash)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
 		log.Warn().Int("user_id", userID).Msg("User not found for password reset")
 		return "", ErrUserNotFound
@@ -240,8 +241,8 @@ func (s *Service) ResetPassword(userID int) (string, error) {
 }
 
 // UpdateUser updates the user's details in the database.
-func (s *Service) UpdateUser(id int, name, username string, role Role) (*User, error) {
-	err := s.Persistence.UpdateUser(id, name, username, role)
+func (s *Service) UpdateUser(ctx context.Context, id int, name, username string, role Role) (*User, error) {
+	err := s.Persistence.UpdateUser(ctx, id, name, username, role)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
 		log.Warn().Int("user_id", id).Msg("User not found for update")
 		return nil, ErrUserNotFound
@@ -250,7 +251,7 @@ func (s *Service) UpdateUser(id int, name, username string, role Role) (*User, e
 		return nil, ErrDatabase
 	}
 
-	updatedUser, err := s.Persistence.GetUser(id)
+	updatedUser, err := s.Persistence.GetUser(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Int("user_id", id).Msg("Failed to retrieve updated user")
 		return nil, ErrDatabase
@@ -260,8 +261,8 @@ func (s *Service) UpdateUser(id int, name, username string, role Role) (*User, e
 }
 
 // GetAllUsers retrieves all users from the database.
-func (s *Service) GetAllUsers() ([]*User, error) {
-	users, err := s.Persistence.GetAllUsers()
+func (s *Service) GetAllUsers(ctx context.Context) ([]*User, error) {
+	users, err := s.Persistence.GetAllUsers(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve all users")
 		return nil, ErrDatabase
@@ -271,8 +272,8 @@ func (s *Service) GetAllUsers() ([]*User, error) {
 }
 
 // ActivateUser sets the status of the user with the given user ID to 'active'.
-func (s *Service) ActivateUser(id int) error {
-	err := s.Persistence.ActivateUser(id)
+func (s *Service) ActivateUser(ctx context.Context, id int) error {
+	err := s.Persistence.ActivateUser(ctx, id)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
 		log.Warn().Int("user_id", id).Msg("User not found for activation")
 		return ErrUserNotFound
@@ -285,8 +286,8 @@ func (s *Service) ActivateUser(id int) error {
 }
 
 // DeactivateUser sets the status of the user with the given user ID to 'inactive'.
-func (s *Service) DeactivateUser(id int) error {
-	err := s.Persistence.DeactivateUser(id)
+func (s *Service) DeactivateUser(ctx context.Context, id int) error {
+	err := s.Persistence.DeactivateUser(ctx, id)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
 		log.Warn().Int("user_id", id).Msg("User not found for deactivation")
 		return ErrUserNotFound

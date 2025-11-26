@@ -1,6 +1,7 @@
 package table
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -52,13 +53,13 @@ const (
 var ErrDatabase = errors.New("database error")
 
 type persistence interface {
-	GetTable(id int) (*Table, error)
-	GetAllTables() ([]*Table, error)
-	GetActiveTables() ([]*TablePublic, error)
-	CreateTable(name string) (int, error)
-	UpdateTable(id int, name string) error
-	ActivateTable(id int) error
-	DeactivateTable(id int) error
+	GetTable(ctx context.Context, id int) (*Table, error)
+	GetAllTables(ctx context.Context) ([]*Table, error)
+	GetActiveTables(ctx context.Context) ([]*TablePublic, error)
+	CreateTable(ctx context.Context, name string) (int, error)
+	UpdateTable(ctx context.Context, id int, name string) error
+	ActivateTable(ctx context.Context, id int) error
+	DeactivateTable(ctx context.Context, id int) error
 }
 
 // Service provides table-related operations.
@@ -67,14 +68,14 @@ type Service struct {
 }
 
 // CreateTable creates a new table in the database.
-func (s *Service) CreateTable(name string) (*Table, error) {
-	id, err := s.Persistence.CreateTable(name)
+func (s *Service) CreateTable(ctx context.Context, name string) (*Table, error) {
+	id, err := s.Persistence.CreateTable(ctx, name)
 	if err != nil {
 		log.Error().Err(err).Str("name", name).Msg("Failed to create table")
 		return nil, ErrDatabase
 	}
 
-	table, err := s.Persistence.GetTable(id)
+	table, err := s.Persistence.GetTable(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Int("table_id", id).Msg("Failed to retrieve table after creation")
 		return nil, ErrDatabase
@@ -84,8 +85,8 @@ func (s *Service) CreateTable(name string) (*Table, error) {
 }
 
 // UpdateTable updates an existing table in the database.
-func (s *Service) UpdateTable(id int, name string) (*Table, error) {
-	err := s.Persistence.UpdateTable(id, name)
+func (s *Service) UpdateTable(ctx context.Context, id int, name string) (*Table, error) {
+	err := s.Persistence.UpdateTable(ctx, id, name)
 	if err != nil {
 		if errors.Is(err, ErrTableNotFound) {
 			return nil, ErrTableNotFound
@@ -94,7 +95,7 @@ func (s *Service) UpdateTable(id int, name string) (*Table, error) {
 		return nil, ErrDatabase
 	}
 
-	updatedTable, err := s.Persistence.GetTable(id)
+	updatedTable, err := s.Persistence.GetTable(ctx, id)
 	if err != nil {
 		log.Error().Err(err).Int("table_id", id).Msg("Failed to retrieve updated table")
 		return nil, ErrDatabase
@@ -104,8 +105,8 @@ func (s *Service) UpdateTable(id int, name string) (*Table, error) {
 }
 
 // GetTable retrieves a table by its ID.
-func (s *Service) GetTable(id int) (*Table, error) {
-	table, err := s.Persistence.GetTable(id)
+func (s *Service) GetTable(ctx context.Context, id int) (*Table, error) {
+	table, err := s.Persistence.GetTable(ctx, id)
 	if err != nil {
 		if errors.Is(err, ErrTableNotFound) {
 			return nil, ErrTableNotFound
@@ -117,8 +118,8 @@ func (s *Service) GetTable(id int) (*Table, error) {
 }
 
 // GetAllTables retrieves all tables.
-func (s *Service) GetAllTables() ([]*Table, error) {
-	tables, err := s.Persistence.GetAllTables()
+func (s *Service) GetAllTables(ctx context.Context) ([]*Table, error) {
+	tables, err := s.Persistence.GetAllTables(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve all tables")
 		return nil, ErrDatabase
@@ -127,8 +128,8 @@ func (s *Service) GetAllTables() ([]*Table, error) {
 }
 
 // GetActiveTables retrieves all active tables.
-func (s *Service) GetActiveTables() ([]*TablePublic, error) {
-	tables, err := s.Persistence.GetActiveTables()
+func (s *Service) GetActiveTables(ctx context.Context) ([]*TablePublic, error) {
+	tables, err := s.Persistence.GetActiveTables(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve active tables")
 		return nil, ErrDatabase
@@ -137,8 +138,8 @@ func (s *Service) GetActiveTables() ([]*TablePublic, error) {
 }
 
 // ActivateTable sets the status of a table to active.
-func (s *Service) ActivateTable(id int) error {
-	err := s.Persistence.ActivateTable(id)
+func (s *Service) ActivateTable(ctx context.Context, id int) error {
+	err := s.Persistence.ActivateTable(ctx, id)
 	if err != nil {
 		if errors.Is(err, ErrTableNotFound) {
 			return ErrTableNotFound
@@ -150,8 +151,8 @@ func (s *Service) ActivateTable(id int) error {
 }
 
 // DeactivateTable sets the status of a table to inactive.
-func (s *Service) DeactivateTable(id int) error {
-	err := s.Persistence.DeactivateTable(id)
+func (s *Service) DeactivateTable(ctx context.Context, id int) error {
+	err := s.Persistence.DeactivateTable(ctx, id)
 	if err != nil {
 		if errors.Is(err, ErrTableNotFound) {
 			return ErrTableNotFound

@@ -1,6 +1,7 @@
 package table
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -9,12 +10,12 @@ import (
 )
 
 type service interface {
-	CreateTable(name string) (*Table, error)
-	UpdateTable(id int, name string) (*Table, error)
-	ActivateTable(id int) error
-	DeactivateTable(id int) error
-	GetAllTables() ([]*Table, error)
-	GetActiveTables() ([]*TablePublic, error)
+	CreateTable(ctx context.Context, name string) (*Table, error)
+	UpdateTable(ctx context.Context, id int, name string) (*Table, error)
+	ActivateTable(ctx context.Context, id int) error
+	DeactivateTable(ctx context.Context, id int) error
+	GetAllTables(ctx context.Context) ([]*Table, error)
+	GetActiveTables(ctx context.Context) ([]*TablePublic, error)
 }
 
 type Handler struct {
@@ -49,7 +50,8 @@ func (h *Handler) CreateTableHandler() http.HandlerFunc {
 			return
 		}
 
-		table, err := h.Service.CreateTable(body.Name)
+		ctx := r.Context()
+		table, err := h.Service.CreateTable(ctx, body.Name)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return
@@ -91,7 +93,8 @@ func (h *Handler) UpdateTableHandler() http.HandlerFunc {
 			return
 		}
 
-		table, err := h.Service.UpdateTable(body.ID, body.Name)
+		ctx := r.Context()
+		table, err := h.Service.UpdateTable(ctx, body.ID, body.Name)
 		if err != nil {
 			if errors.Is(err, ErrTableNotFound) {
 				api.SendNotFoundError(w, api.ErrorResponse{
@@ -121,7 +124,8 @@ func (h *Handler) GetAllTablesHandler() http.HandlerFunc {
 			return
 		}
 
-		tables, err := h.Service.GetAllTables()
+		ctx := r.Context()
+		tables, err := h.Service.GetAllTables(ctx)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return
@@ -148,7 +152,8 @@ func (h *Handler) GetActiveTablesHandler() http.HandlerFunc {
 			return
 		}
 
-		tables, err := h.Service.GetActiveTables()
+		ctx := r.Context()
+		tables, err := h.Service.GetActiveTables(ctx)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return
@@ -188,7 +193,8 @@ func (h *Handler) ActivateTableHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Service.ActivateTable(body.ID)
+		ctx := r.Context()
+		err := h.Service.ActivateTable(ctx, body.ID)
 		if err != nil {
 			if errors.Is(err, ErrTableNotFound) {
 				api.SendNotFoundError(w, api.ErrorResponse{
@@ -229,7 +235,8 @@ func (h *Handler) DeactivateTableHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Service.DeactivateTable(body.ID)
+		ctx := r.Context()
+		err := h.Service.DeactivateTable(ctx, body.ID)
 		if err != nil {
 			if errors.Is(err, ErrTableNotFound) {
 				api.SendNotFoundError(w, api.ErrorResponse{
