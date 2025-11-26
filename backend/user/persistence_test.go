@@ -8,11 +8,11 @@ import (
 	"os"
 	"testing"
 
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func database() *sql.DB {
-	db, err := sql.Open("postgres", "host=localhost port=5432 user=admin password=admin dbname=jotti sslmode=disable")
+	db, err := sql.Open("pgx", "host=localhost port=5432 user=admin password=admin dbname=jotti sslmode=disable")
 	if err != nil {
 		fmt.Printf("Failed to connect to Postgres: %v\n", err)
 		os.Exit(1)

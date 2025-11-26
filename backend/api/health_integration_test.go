@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func TestHealthCheck_WithDatabase(t *testing.T) {
@@ -19,7 +19,7 @@ func TestHealthCheck_WithDatabase(t *testing.T) {
 
 func TestHealthCheck_WithMockDB(t *testing.T) {
 	// Create a mock database connection (will fail on ping)
-	db, err := sql.Open("postgres", "invalid-connection-string")
+	db, err := sql.Open("pgx", "invalid-connection-string")
 	if err != nil {
 		t.Fatalf("Failed to create mock DB: %v", err)
 	}

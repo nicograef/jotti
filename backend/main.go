@@ -10,7 +10,7 @@ import (
 
 	"database/sql"
 
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -27,7 +27,7 @@ func main() {
 
 	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DBName)
 
-	db, err := sql.Open("postgres", psqlconn)
+	db, err := sql.Open("pgx", psqlconn)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to Postgres")
 	}
