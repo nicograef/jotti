@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestNewApp(t *testing.T) {
+	os.Setenv("JWT_SECRET", "test-secret-for-app-tests")
 	cfg := config.Load()
 	app, err := NewApp(cfg, &sql.DB{})
 	if err != nil {
@@ -29,6 +31,7 @@ func TestNewApp(t *testing.T) {
 }
 
 func TestSetupRoutes(t *testing.T) {
+	os.Setenv("JWT_SECRET", "test-secret-for-app-tests")
 	cfg := config.Load()
 	app, err := NewApp(cfg, &sql.DB{})
 	if err != nil {
@@ -63,6 +66,7 @@ func TestShutdown(t *testing.T) {
 }
 
 func TestRun_ContextCancellation(t *testing.T) {
+	os.Setenv("JWT_SECRET", "test-secret-for-app-tests")
 	cfg := config.Load()
 	app, err := NewApp(cfg, &sql.DB{})
 	if err != nil {

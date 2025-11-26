@@ -46,6 +46,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DBNAME: jotti
+      JWT_SECRET: ${JWT_SECRET}
     command: sh -c "go mod download && go run ./main.go"
     volumes:
       - ./backend:/src

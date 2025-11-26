@@ -9,6 +9,7 @@ import (
 
 func TestLoad_Defaults(t *testing.T) {
 	os.Clearenv()
+	os.Setenv("JWT_SECRET", "test-secret-key-for-unit-tests")
 
 	cfg := Load()
 
@@ -36,6 +37,9 @@ func TestLoad_Defaults(t *testing.T) {
 func TestLoad_EnvValues(t *testing.T) {
 	os.Clearenv()
 
+	if err := os.Setenv("JWT_SECRET", "test-jwt-secret"); err != nil {
+		t.Fatalf("Failed to set JWT_SECRET: %v", err)
+	}
 	if err := os.Setenv("PORT", "8080"); err != nil {
 		t.Fatalf("Failed to set PORT: %v", err)
 	}
@@ -80,6 +84,9 @@ func TestLoad_EnvValues(t *testing.T) {
 func TestLoad_InvalidIntAndLowValues(t *testing.T) {
 	os.Clearenv()
 
+	if err := os.Setenv("JWT_SECRET", "test-secret"); err != nil {
+		t.Fatalf("Failed to set JWT_SECRET: %v", err)
+	}
 	if err := os.Setenv("PORT", "notanint"); err != nil {
 		t.Fatalf("Failed to set PORT: %v", err)
 	}
@@ -100,6 +107,9 @@ func TestLoad_InvalidIntAndLowValues(t *testing.T) {
 func TestLoad_NegativeValues(t *testing.T) {
 	os.Clearenv()
 
+	if err := os.Setenv("JWT_SECRET", "test-secret"); err != nil {
+		t.Fatalf("Failed to set JWT_SECRET: %v", err)
+	}
 	if err := os.Setenv("PORT", "-1"); err != nil {
 		t.Fatalf("Failed to set PORT: %v", err)
 	}

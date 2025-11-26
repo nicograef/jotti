@@ -2,6 +2,29 @@
 
 This document covers running the application locally for development (hot reload) and deploying to production with HTTPS certificates.
 
+## Environment Configuration
+
+Before starting the application, you need to configure environment variables:
+
+1. **Copy the example file:**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Edit `.env` and set:**
+
+   - `POSTGRES_USER` - Database username (default: admin)
+   - `POSTGRES_PASSWORD` - Database password (**change this!**)
+   - `JWT_SECRET` - Secret key for JWT signing (**required, no default**)
+
+3. **Generate a secure JWT secret:**
+   ```bash
+   openssl rand -base64 32
+   ```
+
+**Important:** The application will **fail to start** if `JWT_SECRET` is not set. This is a security feature.
+
 ## Local Development (HTTP, Hot Reload)
 
 Local access uses `localhost` only (no subdomains needed).
