@@ -88,6 +88,7 @@ func (app *App) SetupRoutes() {
 	app.Router.HandleFunc("/deactivate-product", admin(ph.DeactivateProductHandler()))
 
 	// Wrap the entire router with middleware chain
+	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by nginx
 	var handler http.Handler = app.Router
 	handler = api.RateLimitMiddleware(100)(handler)
 	handler = api.LoggingMiddleware(handler)
