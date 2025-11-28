@@ -70,6 +70,7 @@ func (app *App) SetupRoutes() {
 	tablePersistence := table.Persistence{DB: app.DB}
 	tableService := table.Service{Persistence: &tablePersistence}
 	th := table.Handler{Service: &tableService}
+	app.Router.HandleFunc("/get-table", service(th.GetTableHandler()))
 	app.Router.HandleFunc("/get-active-tables", service(th.GetActiveTablesHandler()))
 	app.Router.HandleFunc("/get-all-tables", admin(th.GetAllTablesHandler()))
 	app.Router.HandleFunc("/update-table", admin(th.UpdateTableHandler()))

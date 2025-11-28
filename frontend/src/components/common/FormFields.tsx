@@ -27,8 +27,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import type { ProductCategory } from '@/product/Product'
-import { toUsername, UserRole } from '@/user/User'
+import type { ProductCategory } from '@/lib/product/Product'
+import { toUsername, UserRole } from '@/lib/user/User'
 
 import { Textarea } from '../ui/textarea'
 

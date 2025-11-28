@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Field, FieldLabel } from '@/components/ui/field'
-import type { User } from '@/user/User'
+import type { User } from '@/lib/user/User'
 
 interface UserCreatedDialogProps {
   user: User | null

@@ -37,6 +37,17 @@ func (m *mockTableService) UpdateTable(ctx context.Context, id int, name string)
 	}, nil
 }
 
+func (m *mockTableService) GetTable(ctx context.Context, id int) (*Table, error) {
+	if m.shouldFail {
+		return nil, ErrTableNotFound
+	}
+	return &Table{
+		ID:     id,
+		Name:   "Table Name",
+		Status: ActiveStatus,
+	}, nil
+}
+
 func (m *mockTableService) GetAllTables(ctx context.Context) ([]*Table, error) {
 	if m.shouldFail {
 		return nil, ErrDatabase
@@ -128,6 +139,36 @@ func TestUpdateTableHandler_NotFound(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	handler.UpdateTableHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("expected status 404, got %d", rec.Code)
+	}
+}
+
+func TestGetTableHandler_Success(t *testing.T) {
+	handler := &Handler{Service: &mockTableService{}}
+
+	body := `{"id":1}`
+	req := httptest.NewRequest(http.MethodPost, "/get-table", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.GetTableHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestGetTableHandler_NotFound(t *testing.T) {
+	handler := &Handler{Service: &mockTableService{shouldFail: true}}
+
+	body := `{"id":999}`
+	req := httptest.NewRequest(http.MethodPost, "/get-table", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.GetTableHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("expected status 404, got %d", rec.Code)

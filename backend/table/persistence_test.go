@@ -47,7 +47,7 @@ func TestCreateTableInDB(t *testing.T) {
 	_, _ = db.ExecContext(ctx, "DELETE FROM tables WHERE id = $1", tableID)
 }
 
-func TestGetTable(t *testing.T) {
+func TestGetTableDB(t *testing.T) {
 	db := database()
 	defer db.Close()
 
@@ -82,7 +82,7 @@ func TestGetTable(t *testing.T) {
 	_, _ = db.ExecContext(ctx, "DELETE FROM tables WHERE id = $1", tableID)
 }
 
-func TestGetTable_NotFound(t *testing.T) {
+func TestGetTableDB_NotFound(t *testing.T) {
 	db := database()
 	defer db.Close()
 
@@ -95,7 +95,7 @@ func TestGetTable_NotFound(t *testing.T) {
 	}
 }
 
-func TestGetAllTables_DB(t *testing.T) {
+func TestGetAllTablesDB(t *testing.T) {
 	db := database()
 	defer db.Close()
 
@@ -118,7 +118,7 @@ func TestGetAllTables_DB(t *testing.T) {
 	_, _ = db.ExecContext(ctx, "DELETE FROM tables WHERE id IN ($1, $2)", id1, id2)
 }
 
-func TestGetActiveTables_DB(t *testing.T) {
+func TestGetActiveTablesDB(t *testing.T) {
 	db := database()
 	defer db.Close()
 
@@ -152,7 +152,7 @@ func TestGetActiveTables_DB(t *testing.T) {
 	_, _ = db.ExecContext(ctx, "DELETE FROM tables WHERE id = $1", tableID)
 }
 
-func TestUpdateTable_DB(t *testing.T) {
+func TestUpdateTableDB(t *testing.T) {
 	db := database()
 	defer db.Close()
 
@@ -181,7 +181,7 @@ func TestUpdateTable_DB(t *testing.T) {
 	_, _ = db.ExecContext(ctx, "DELETE FROM tables WHERE id = $1", tableID)
 }
 
-func TestUpdateTable_DB_NotFound(t *testing.T) {
+func TestUpdateTableDB_NotFound(t *testing.T) {
 	db := database()
 	defer db.Close()
 
@@ -194,7 +194,7 @@ func TestUpdateTable_DB_NotFound(t *testing.T) {
 	}
 }
 
-func TestActivateTable_DB(t *testing.T) {
+func TestActivateTableDB(t *testing.T) {
 	db := database()
 	defer db.Close()
 
@@ -223,7 +223,7 @@ func TestActivateTable_DB(t *testing.T) {
 	_, _ = db.ExecContext(ctx, "DELETE FROM tables WHERE id = $1", tableID)
 }
 
-func TestActivateTable_DB_NotFound(t *testing.T) {
+func TestActivateTableDB_NotFound(t *testing.T) {
 	db := database()
 	defer db.Close()
 
@@ -236,7 +236,7 @@ func TestActivateTable_DB_NotFound(t *testing.T) {
 	}
 }
 
-func TestDeactivateTable_DB(t *testing.T) {
+func TestDeactivateTableDB(t *testing.T) {
 	db := database()
 	defer db.Close()
 
@@ -266,7 +266,7 @@ func TestDeactivateTable_DB(t *testing.T) {
 	_, _ = db.ExecContext(ctx, "DELETE FROM tables WHERE id = $1", tableID)
 }
 
-func TestDeactivateTable_DB_NotFound(t *testing.T) {
+func TestDeactivateTableDB_NotFound(t *testing.T) {
 	db := database()
 	defer db.Close()
 

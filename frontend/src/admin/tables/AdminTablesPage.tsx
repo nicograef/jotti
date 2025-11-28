@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
-import type { Table, TableStatus } from '@/table/Table'
-import { TableBackend } from '@/table/TableBackend'
+import { useAllTables } from '@/lib/table/hooks'
+import type { Table, TableStatus } from '@/lib/table/Table'
+import { TableBackend } from '@/lib/table/TableBackend'
 
 import { EditTableDialog } from './EditTableDialog'
 import { NewTableDialog } from './NewTableDialog'
 import { Tables } from './Tables'
 
-const initialEditTableState = {
+const initialEditState = {
   table: null as Table | null,
   open: false,
 }
@@ -17,23 +18,8 @@ const initialEditTableState = {
 const tableBackend = new TableBackend(BackendSingleton)
 
 export function AdminTablesPage() {
-  const [loading, setLoading] = useState(false)
-  const [tables, setTables] = useState<Table[]>([])
-  const [editTableState, setEditTableState] = useState(initialEditTableState)
-
-  useEffect(() => {
-    async function fetchTables() {
-      setLoading(true)
-      try {
-        const tables = await tableBackend.getAllTables()
-        setTables(tables)
-      } catch (error) {
-        console.error('Failed to fetch tables:', error)
-      }
-      setLoading(false)
-    }
-    void fetchTables()
-  }, [])
+  const { loading, tables, setTables } = useAllTables()
+  const [editState, setEditState] = useState(initialEditState)
 
   const updateTable = (table: Table) => {
     setTables((prevTables) =>
@@ -56,16 +42,16 @@ export function AdminTablesPage() {
           toast.success(`Tisch "${table.name}" wurde angelegt.`)
         }}
       />
-      {editTableState.table && (
+      {editState.table && (
         <EditTableDialog
           backend={tableBackend}
-          open={editTableState.open}
-          table={editTableState.table}
+          open={editState.open}
+          table={editState.table}
           updated={(table) => {
             updateTable(table)
           }}
           close={() => {
-            setEditTableState(initialEditTableState)
+            setEditState(initialEditState)
           }}
         />
       )}
@@ -76,7 +62,7 @@ export function AdminTablesPage() {
         tables={tables}
         onEdit={(tableId) => {
           const tableToEdit = tables.find((t) => t.id === tableId) ?? null
-          setEditTableState({ table: tableToEdit, open: true })
+          setEditState({ table: tableToEdit, open: true })
         }}
         onStatusChange={onStatusChange}
       />

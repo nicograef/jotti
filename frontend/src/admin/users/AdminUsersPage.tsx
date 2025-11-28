@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
-import type { User, UserStatus } from '@/user/User'
-import { UserBackend } from '@/user/UserBackend'
+import { useAllUsers } from '@/lib/user/hooks'
+import type { User, UserStatus } from '@/lib/user/User'
+import { UserBackend } from '@/lib/user/UserBackend'
 
 import { EditUserDialog } from './EditUserDialog'
 import { NewUserDialog } from './NewUserDialog'
@@ -16,7 +17,7 @@ const initialUserCreatedState = {
   open: false,
 }
 
-const initialEditUserState = {
+const initialEditState = {
   user: null as User | null,
   open: false,
 }
@@ -24,26 +25,11 @@ const initialEditUserState = {
 const userBackend = new UserBackend(BackendSingleton)
 
 export function AdminUsersPage() {
-  const [loading, setLoading] = useState(false)
-  const [users, setUsers] = useState<User[]>([])
+  const { loading, users, setUsers } = useAllUsers()
   const [userCreatedState, setUserCreatedState] = useState(
     initialUserCreatedState,
   )
-  const [editUserState, setEditUserState] = useState(initialEditUserState)
-
-  useEffect(() => {
-    async function fetchUsers() {
-      setLoading(true)
-      try {
-        const response = await userBackend.getAllUsers()
-        setUsers(response)
-      } catch (error) {
-        console.error('Failed to fetch users:', error)
-      }
-      setLoading(false)
-    }
-    void fetchUsers()
-  }, [])
+  const [editState, setEditState] = useState(initialEditState)
 
   const updateUser = (user: User) => {
     setUsers((prevUsers) => prevUsers.map((u) => (u.id === user.id ? user : u)))
@@ -71,16 +57,16 @@ export function AdminUsersPage() {
           setUserCreatedState(initialUserCreatedState)
         }}
       />
-      {editUserState.user && (
+      {editState.user && (
         <EditUserDialog
           backend={userBackend}
-          open={editUserState.open}
-          user={editUserState.user}
+          open={editState.open}
+          user={editState.user}
           updated={(user) => {
             updateUser(user)
           }}
           close={() => {
-            setEditUserState(initialEditUserState)
+            setEditState(initialEditState)
           }}
         />
       )}
@@ -91,7 +77,7 @@ export function AdminUsersPage() {
         users={users}
         onEdit={(userId) => {
           const userToEdit = users.find((u) => u.id === userId) ?? null
-          setEditUserState({ user: userToEdit, open: true })
+          setEditState({ user: userToEdit, open: true })
         }}
         onStatusChange={onStatusChange}
       />

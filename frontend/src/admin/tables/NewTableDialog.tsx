@@ -18,8 +18,11 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import type { Table } from '@/table/Table'
-import { CreateTableRequestSchema, TableBackend } from '@/table/TableBackend'
+import type { Table } from '@/lib/table/Table'
+import {
+  CreateTableRequestSchema,
+  TableBackend,
+} from '@/lib/table/TableBackend'
 
 const FormDataSchema = CreateTableRequestSchema
 type FormData = z.infer<typeof FormDataSchema>

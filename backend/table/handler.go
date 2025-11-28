@@ -14,6 +14,7 @@ type service interface {
 	UpdateTable(ctx context.Context, id int, name string) (*Table, error)
 	ActivateTable(ctx context.Context, id int) error
 	DeactivateTable(ctx context.Context, id int) error
+	GetTable(ctx context.Context, id int) (*Table, error)
 	GetAllTables(ctx context.Context) ([]*Table, error)
 	GetActiveTables(ctx context.Context) ([]*TablePublic, error)
 }
@@ -165,6 +166,54 @@ func (h *Handler) GetActiveTablesHandler() http.HandlerFunc {
 
 		api.SendResponse(w, getActiveTablesResponse{
 			Tables: tables,
+		})
+	}
+}
+
+type getTableRequest struct {
+	ID int `json:"id"`
+}
+
+var getTableRequestSchema = z.Struct(z.Shape{
+	"ID": IDSchema.Required(),
+})
+
+type getTableResponse struct {
+	Table Table `json:"table"`
+}
+
+// GetTableHandler handles requests to retrieve a table by its ID.
+func (h *Handler) GetTableHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !api.ValidateMethod(w, r, http.MethodPost) {
+			return
+		}
+
+		body := getTableRequest{}
+		if !api.ReadJSONRequest(w, r, &body) {
+			return
+		}
+
+		if !api.ValidateBody(w, &body, getTableRequestSchema) {
+			return
+		}
+
+		ctx := r.Context()
+		table, err := h.Service.GetTable(ctx, body.ID)
+		if err != nil {
+			if errors.Is(err, ErrTableNotFound) {
+				api.SendNotFoundError(w, api.ErrorResponse{
+					Message: "Table not found",
+					Code:    "table_not_found",
+				})
+				return
+			}
+			api.SendInternalServerError(w)
+			return
+		}
+
+		api.SendResponse(w, getTableResponse{
+			Table: *table,
 		})
 	}
 }

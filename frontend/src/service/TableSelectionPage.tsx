@@ -1,15 +1,14 @@
-import { BackendSingleton } from '@/lib/Backend'
-import { TableBackend } from '@/table/TableBackend'
+import { useActiveTables } from '@/lib/table/hooks'
 
-import { TableList } from './TableList'
-
-const tableBackend = new TableBackend(BackendSingleton)
+import { TableList, TableListSkeleton } from './TableList'
 
 export function TableSelectionPage() {
+  const { loading, tables } = useActiveTables()
+
   return (
     <>
       <h1 className="text-2xl font-bold">Tisch auswählen</h1>
-      <TableList tableBackend={tableBackend} />
+      {loading ? <TableListSkeleton /> : <TableList tables={tables} />}
     </>
   )
 }

@@ -1,5 +1,4 @@
 import { ChevronRightIcon, Lamp } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 
 import {
@@ -10,43 +9,13 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
-import { type TablePublic } from '@/table/Table'
-import type { TableBackend } from '@/table/TableBackend'
-
-interface TableListProps {
-  tableBackend: Pick<TableBackend, 'getActiveTables'>
-}
-
-export function TableList(props: TableListProps) {
-  const [loading, setLoading] = useState(false)
-  const [tables, setTables] = useState<TablePublic[]>([])
-
-  useEffect(() => {
-    async function fetchTables() {
-      setLoading(true)
-      try {
-        const tables = await props.tableBackend.getActiveTables()
-        setTables(tables)
-      } catch (error) {
-        console.error('Failed to fetch tables:', error)
-      }
-      setLoading(false)
-    }
-    void fetchTables()
-  }, [props.tableBackend])
-
-  if (loading) {
-    return <TableListSkeleton />
-  }
-
-  return <TableListComponent {...props} tables={tables} />
-}
+import { type TablePublic } from '@/lib/table/Table'
 
 interface TableListComponentProps {
   tables: TablePublic[]
 }
 
-function TableListComponent(props: TableListComponentProps) {
+export function TableList(props: TableListComponentProps) {
   return (
     <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
       {props.tables.map((table) => (
@@ -67,7 +36,7 @@ function TableListComponent(props: TableListComponentProps) {
   )
 }
 
-function TableListSkeleton() {
+export function TableListSkeleton() {
   return (
     <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
       {Array.from({ length: 6 }).map((_, index) => (

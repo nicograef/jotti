@@ -12,7 +12,11 @@ import {
 } from '@/components/ui/item'
 import { Switch } from '@/components/ui/switch'
 import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { type Product, ProductCategory, ProductStatus } from '@/product/Product'
+import {
+  type Product,
+  ProductCategory,
+  ProductStatus,
+} from '@/lib/product/Product'
 
 interface ProductItemProps {
   loading: boolean

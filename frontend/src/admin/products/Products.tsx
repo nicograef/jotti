@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
 import { ItemGroup } from '@/components/ui/item'
-import { type Product, ProductStatus } from '@/product/Product'
-import { type ProductBackend } from '@/product/ProductBackend'
+import { type Product, ProductStatus } from '@/lib/product/Product'
+import { type ProductBackend } from '@/lib/product/ProductBackend'
 
 import { ProductItem } from './ProductItem'
 

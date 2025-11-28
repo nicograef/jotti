@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
-import type { Product, ProductStatus } from '@/product/Product'
-import { ProductBackend } from '@/product/ProductBackend'
+import { useAllProducts } from '@/lib/product/hooks'
+import type { Product, ProductStatus } from '@/lib/product/Product'
+import { ProductBackend } from '@/lib/product/ProductBackend'
 
 import { EditProductDialog } from './EditProductDialog'
 import { NewProductDialog } from './NewProductDialog'
 import { Products } from './Products'
 
-const initialEditProductState = {
+const initialEditState = {
   product: null as Product | null,
   open: false,
 }
@@ -17,25 +18,8 @@ const initialEditProductState = {
 const productBackend = new ProductBackend(BackendSingleton)
 
 export function AdminProductsPage() {
-  const [loading, setLoading] = useState(false)
-  const [products, setProducts] = useState<Product[]>([])
-  const [editProductState, setEditProductState] = useState(
-    initialEditProductState,
-  )
-
-  useEffect(() => {
-    async function fetchProducts() {
-      setLoading(true)
-      try {
-        const response = await productBackend.getAllProducts()
-        setProducts(response)
-      } catch (error) {
-        console.error('Failed to fetch products:', error)
-      }
-      setLoading(false)
-    }
-    void fetchProducts()
-  }, [])
+  const { loading, products, setProducts } = useAllProducts()
+  const [editState, setEditState] = useState(initialEditState)
 
   const updateProduct = (product: Product) => {
     setProducts((prevProducts) =>
@@ -58,16 +42,16 @@ export function AdminProductsPage() {
           toast.success(`Produkt "${product.name}" wurde angelegt.`)
         }}
       />
-      {editProductState.product && (
+      {editState.product && (
         <EditProductDialog
           backend={productBackend}
-          open={editProductState.open}
-          product={editProductState.product}
+          open={editState.open}
+          product={editState.product}
           updated={(product) => {
             updateProduct(product)
           }}
           close={() => {
-            setEditProductState(initialEditProductState)
+            setEditState(initialEditState)
           }}
         />
       )}
@@ -78,7 +62,7 @@ export function AdminProductsPage() {
         products={products}
         onEdit={(productId) => {
           const productToEdit = products.find((u) => u.id === productId) ?? null
-          setEditProductState({ product: productToEdit, open: true })
+          setEditState({ product: productToEdit, open: true })
         }}
         onStatusChange={onStatusChange}
       />

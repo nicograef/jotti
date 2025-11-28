@@ -22,8 +22,8 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { type User, UserRole } from '@/user/User'
-import { CreateUserRequestSchema, UserBackend } from '@/user/UserBackend'
+import { type User, UserRole } from '@/lib/user/User'
+import { CreateUserRequestSchema, UserBackend } from '@/lib/user/UserBackend'
 
 const FormDataSchema = CreateUserRequestSchema
 type FormData = z.infer<typeof FormDataSchema>

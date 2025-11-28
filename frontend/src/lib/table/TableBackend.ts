@@ -49,6 +49,16 @@ export class TableBackend {
     return tables
   }
 
+  public async getTable(id: number): Promise<Table> {
+    const body = TableSchema.pick({ id: true }).parse({ id })
+    const { table } = await this.backend.post(
+      'get-table',
+      body,
+      z.object({ table: TableSchema }),
+    )
+    return table
+  }
+
   public async createTable(
     newTable: z.infer<typeof CreateTableRequestSchema>,
   ): Promise<Table> {
