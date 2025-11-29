@@ -10,7 +10,7 @@ import {
 export const CreateProductRequestSchema = ProductSchema.pick({
   name: true,
   description: true,
-  netPrice: true,
+  netPriceCents: true,
   category: true,
 })
 
@@ -18,7 +18,7 @@ export const UpdateProductRequestSchema = ProductSchema.pick({
   id: true,
   name: true,
   description: true,
-  netPrice: true,
+  netPriceCents: true,
   category: true,
 })
 

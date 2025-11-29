@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS products (
     name TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     category ProductCategory NOT NULL,
-    net_price NUMERIC(5, 2) NOT NULL,
+    net_price_cents INT NOT NULL,
     status EntityStatus NOT NULL DEFAULT 'inactive',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -63,7 +63,7 @@ COMMENT ON COLUMN products.id IS 'Surrogate identity primary key';
 COMMENT ON COLUMN products.name IS 'Name of the product';
 COMMENT ON COLUMN products.description IS 'Description of the product';
 COMMENT ON COLUMN products.category IS 'Category of the product: food, beverage, or other';
-COMMENT ON COLUMN products.net_price IS 'Net price in euros (e.g., 1.99 for €1.99)';
+COMMENT ON COLUMN products.net_price_cents IS 'Net price in cents (e.g., 199 for €1.99)';
 COMMENT ON COLUMN products.status IS 'Product status: active, inactive, or deleted';
 COMMENT ON COLUMN products.created_at IS 'Creation timestamp (UTC)';
 

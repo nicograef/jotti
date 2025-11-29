@@ -44,7 +44,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
     defaultValues: {
       name: '',
       description: '',
-      netPrice: 0,
+      netPriceCents: 0,
       category: ProductCategory.FOOD,
     },
     resolver: zodResolver(FormDataSchema),

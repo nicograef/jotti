@@ -9,8 +9,8 @@ import (
 )
 
 type service interface {
-	CreateProduct(ctx context.Context, name, description string, netPrice float64, category Category) (*Product, error)
-	UpdateProduct(ctx context.Context, id int, name, description string, netPrice float64, category Category) (*Product, error)
+	CreateProduct(ctx context.Context, name, description string, netPriceCents int, category Category) (*Product, error)
+	UpdateProduct(ctx context.Context, id int, name, description string, netPriceCents int, category Category) (*Product, error)
 	GetAllProducts(ctx context.Context) ([]*Product, error)
 	GetActiveProducts(ctx context.Context) ([]*ProductPublic, error)
 	ActivateProduct(ctx context.Context, id int) error
@@ -22,17 +22,17 @@ type Handler struct {
 }
 
 type createProductRequest struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	NetPrice    float64  `json:"netPrice"`
-	Category    Category `json:"category"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	NetPriceCents int      `json:"netPriceCents"`
+	Category      Category `json:"category"`
 }
 
 var createProductRequestSchema = z.Struct(z.Shape{
-	"Name":        NameSchema.Required(),
-	"Description": DescriptionSchema.Default(""),
-	"NetPrice":    NetPriceSchema.Default(0),
-	"Category":    CategorySchema.Required(),
+	"Name":          NameSchema.Required(),
+	"Description":   DescriptionSchema.Default(""),
+	"NetPriceCents": NetPriceCentsSchema.Default(0),
+	"Category":      CategorySchema.Required(),
 })
 
 type createProductResponse struct {
@@ -56,7 +56,7 @@ func (h *Handler) CreateProductHandler() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		product, err := h.Service.CreateProduct(ctx, body.Name, body.Description, body.NetPrice, body.Category)
+		product, err := h.Service.CreateProduct(ctx, body.Name, body.Description, body.NetPriceCents, body.Category)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return
@@ -69,19 +69,19 @@ func (h *Handler) CreateProductHandler() http.HandlerFunc {
 }
 
 type updateProductRequest struct {
-	ID          int      `json:"id"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	NetPrice    float64  `json:"netPrice"`
-	Category    Category `json:"category"`
+	ID            int      `json:"id"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	NetPriceCents int      `json:"netPriceCents"`
+	Category      Category `json:"category"`
 }
 
 var updateProductRequestSchema = z.Struct(z.Shape{
-	"ID":          IDSchema.Required(),
-	"Name":        NameSchema.Required(),
-	"Description": DescriptionSchema.Default(""),
-	"NetPrice":    NetPriceSchema.Default(0),
-	"Category":    CategorySchema.Required(),
+	"ID":            IDSchema.Required(),
+	"Name":          NameSchema.Required(),
+	"Description":   DescriptionSchema.Default(""),
+	"NetPriceCents": NetPriceCentsSchema.Default(0),
+	"Category":      CategorySchema.Required(),
 })
 
 type updateProductResponse struct {
@@ -105,7 +105,7 @@ func (h *Handler) UpdateProductHandler() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		product, err := h.Service.UpdateProduct(ctx, body.ID, body.Name, body.Description, body.NetPrice, body.Category)
+		product, err := h.Service.UpdateProduct(ctx, body.ID, body.Name, body.Description, body.NetPriceCents, body.Category)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return

@@ -11,21 +11,21 @@ import (
 
 // Product represents a user in the system.
 type Product struct {
-	ID          int       `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	NetPrice    float64   `json:"netPrice"`
-	Status      Status    `json:"status"`
-	Category    Category  `json:"category"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID            int       `json:"id"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	NetPriceCents int       `json:"netPriceCents"`
+	Status        Status    `json:"status"`
+	Category      Category  `json:"category"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 type ProductPublic struct {
-	ID          int      `json:"id"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	NetPrice    float64  `json:"netPrice"`
-	Category    Category `json:"category"`
+	ID            int      `json:"id"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	NetPriceCents int      `json:"netPriceCents"`
+	Category      Category `json:"category"`
 }
 
 // IDSchema defines the schema for a user ID.
@@ -37,8 +37,8 @@ var NameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(30, z
 // DescriptionSchema defines the schema for a product's description.
 var DescriptionSchema = z.String().Trim().Min(0).Max(250, z.Message("Description too long"))
 
-// NetPriceSchema defines the schema for a product's net price.
-var NetPriceSchema = z.Float64().GTE(0, z.Message("Net price must be non-negative")).LTE(999.99, z.Message("Net price too high"))
+// NetPriceCentsSchema defines the schema for a product's net price in cents.
+var NetPriceCentsSchema = z.Int().GTE(0, z.Message("Net price must be non-negative")).LTE(99999, z.Message("Net price too high"))
 
 // StatusSchema defines the schema for a product status.
 var StatusSchema = z.StringLike[Status]().OneOf(
@@ -86,8 +86,8 @@ type persistence interface {
 	GetProduct(ctx context.Context, id int) (*Product, error)
 	GetAllProducts(ctx context.Context) ([]*Product, error)
 	GetActiveProducts(ctx context.Context) ([]*ProductPublic, error)
-	CreateProduct(ctx context.Context, name, description string, netPrice float64, category Category) (int, error)
-	UpdateProduct(ctx context.Context, id int, name, description string, netPrice float64, category Category) error
+	CreateProduct(ctx context.Context, name, description string, netPriceCents int, category Category) (int, error)
+	UpdateProduct(ctx context.Context, id int, name, description string, netPriceCents int, category Category) error
 	ActivateProduct(ctx context.Context, id int) error
 	DeactivateProduct(ctx context.Context, id int) error
 }
@@ -98,8 +98,8 @@ type Service struct {
 }
 
 // CreateProduct creates a new product in the database.
-func (s *Service) CreateProduct(ctx context.Context, name, description string, netPrice float64, category Category) (*Product, error) {
-	id, err := s.Persistence.CreateProduct(ctx, name, description, netPrice, category)
+func (s *Service) CreateProduct(ctx context.Context, name, description string, netPriceCents int, category Category) (*Product, error) {
+	id, err := s.Persistence.CreateProduct(ctx, name, description, netPriceCents, category)
 	if err != nil {
 		log.Error().Err(err).Str("name", name).Msg("Failed to create product")
 		return nil, ErrDatabase
@@ -115,8 +115,8 @@ func (s *Service) CreateProduct(ctx context.Context, name, description string, n
 }
 
 // UpdateProduct updates an existing product in the database.
-func (s *Service) UpdateProduct(ctx context.Context, id int, name, description string, netPrice float64, category Category) (*Product, error) {
-	err := s.Persistence.UpdateProduct(ctx, id, name, description, netPrice, category)
+func (s *Service) UpdateProduct(ctx context.Context, id int, name, description string, netPriceCents int, category Category) (*Product, error) {
+	err := s.Persistence.UpdateProduct(ctx, id, name, description, netPriceCents, category)
 	if err != nil {
 		if errors.Is(err, ErrProductNotFound) {
 			return nil, ErrProductNotFound

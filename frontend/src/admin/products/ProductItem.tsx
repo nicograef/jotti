@@ -60,7 +60,7 @@ export function ProductItem(props: ProductItemProps) {
           <Tooltip>
             <TooltipTrigger>
               <span className="ml-1 text-muted-foreground text-sm font-normal">
-                {props.product.netPrice.toFixed(2)} €
+                {(props.product.netPriceCents / 100).toFixed(2)} €
               </span>
             </TooltipTrigger>
             <TooltipContent>Netto-Preis</TooltipContent>

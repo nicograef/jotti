@@ -34,7 +34,7 @@ func TestCreateProductInDB(t *testing.T) {
 	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	productID, err := persistence.CreateProduct(ctx, "French Fries", "The best fries in town", 4.99, FoodCategory)
+	productID, err := persistence.CreateProduct(ctx, "French Fries", "The best fries in town", 499, FoodCategory)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -53,7 +53,7 @@ func TestGetProduct(t *testing.T) {
 	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	productID, _ := persistence.CreateProduct(ctx, "Test Product", "Test Description", 5.99, FoodCategory)
+	productID, _ := persistence.CreateProduct(ctx, "Test Product", "Test Description", 599, FoodCategory)
 
 	product, err := persistence.GetProduct(ctx, productID)
 
@@ -69,8 +69,8 @@ func TestGetProduct(t *testing.T) {
 	if product.Description != "Test Description" {
 		t.Fatalf("Expected description 'Test Description', got %s", product.Description)
 	}
-	if product.NetPrice != 5.99 {
-		t.Fatalf("Expected net price 5.99, got %f", product.NetPrice)
+	if product.NetPriceCents != 599 {
+		t.Fatalf("Expected net price 599, got %d", product.NetPriceCents)
 	}
 	if product.Status != InactiveStatus {
 		t.Fatalf("Expected product to be inactive, got %s", product.Status)
@@ -105,8 +105,8 @@ func TestGetAllProducts(t *testing.T) {
 	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	productID1, _ := persistence.CreateProduct(ctx, "Product 1", "Description 1", 3.99, FoodCategory)
-	productID2, _ := persistence.CreateProduct(ctx, "Product 2", "Description 2", 4.99, BeverageCategory)
+	productID1, _ := persistence.CreateProduct(ctx, "Product 1", "Description 1", 399, FoodCategory)
+	productID2, _ := persistence.CreateProduct(ctx, "Product 2", "Description 2", 499, BeverageCategory)
 
 	products, err := persistence.GetAllProducts(ctx)
 
@@ -128,7 +128,7 @@ func TestGetActiveProducts(t *testing.T) {
 	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	productID, _ := persistence.CreateProduct(ctx, "Active Product", "Active Description", 6.99, FoodCategory)
+	productID, _ := persistence.CreateProduct(ctx, "Active Product", "Active Description", 699, FoodCategory)
 	_ = persistence.ActivateProduct(ctx, productID)
 
 	products, err := persistence.GetActiveProducts(ctx)
@@ -150,9 +150,9 @@ func TestUpdateProduct(t *testing.T) {
 	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	productID, _ := persistence.CreateProduct(ctx, "Original Product", "Original Description", 7.99, FoodCategory)
+	productID, _ := persistence.CreateProduct(ctx, "Original Product", "Original Description", 799, FoodCategory)
 
-	err := persistence.UpdateProduct(ctx, productID, "Updated Name", "Updated Description", 9.99, BeverageCategory)
+	err := persistence.UpdateProduct(ctx, productID, "Updated Name", "Updated Description", 999, BeverageCategory)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -168,8 +168,8 @@ func TestUpdateProduct(t *testing.T) {
 	if updatedProduct.Description != "Updated Description" {
 		t.Fatalf("Expected description 'Updated Description', got %s", updatedProduct.Description)
 	}
-	if updatedProduct.NetPrice != 9.99 {
-		t.Fatalf("Expected net price 9.99, got %f", updatedProduct.NetPrice)
+	if updatedProduct.NetPriceCents != 999 {
+		t.Fatalf("Expected net price 999, got %d", updatedProduct.NetPriceCents)
 	}
 	if updatedProduct.Category != BeverageCategory {
 		t.Fatalf("Expected product category 'beverage', got %s", updatedProduct.Category)
@@ -185,7 +185,7 @@ func TestUpdateProduct_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	err := persistence.UpdateProduct(ctx, 999999, "Updated Name", "Updated Description", 9.99, BeverageCategory)
+	err := persistence.UpdateProduct(ctx, 999999, "Updated Name", "Updated Description", 999, BeverageCategory)
 
 	if err != ErrProductNotFound {
 		t.Fatalf("Expected product not found error, got %v", err)
@@ -198,7 +198,7 @@ func TestActivateProduct(t *testing.T) {
 	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	productID, _ := persistence.CreateProduct(ctx, "Inactive Product", "To be activated", 8.99, FoodCategory)
+	productID, _ := persistence.CreateProduct(ctx, "Inactive Product", "To be activated", 899, FoodCategory)
 
 	err := persistence.ActivateProduct(ctx, productID)
 
@@ -234,7 +234,7 @@ func TestDeactivateProduct(t *testing.T) {
 	ctx := context.Background()
 
 	persistence := &Persistence{DB: db}
-	productID, _ := persistence.CreateProduct(ctx, "Active Product", "To be deactivated", 10.99, FoodCategory)
+	productID, _ := persistence.CreateProduct(ctx, "Active Product", "To be deactivated", 1099, FoodCategory)
 	_ = persistence.ActivateProduct(ctx, productID)
 
 	err := persistence.DeactivateProduct(ctx, productID)

@@ -23,8 +23,9 @@ const NameSchema = z
 const DescriptionSchema = z
   .string()
   .max(250, { message: 'Die Beschreibung ist zu lang.' })
-const NetPriceSchema = z
+const NetPriceCentsSchema = z
   .number()
+  .int()
   .min(0, { message: 'Der Nettopreis muss positiv sein.' })
 const CategorySchema = z.enum(ProductCategory)
 const ProductStatusSchema = z.enum(ProductStatus)
@@ -36,7 +37,7 @@ export const ProductSchema = z.object({
   id: ProductIdSchema,
   name: NameSchema,
   description: DescriptionSchema,
-  netPrice: NetPriceSchema,
+  netPriceCents: NetPriceCentsSchema,
   category: CategorySchema,
   createdAt: DateStringSchema,
   status: ProductStatusSchema,
@@ -47,7 +48,7 @@ export const ProductPublicSchema = ProductSchema.pick({
   id: true,
   name: true,
   description: true,
-  netPrice: true,
+  netPriceCents: true,
   category: true,
 })
 export type ProductPublic = z.infer<typeof ProductPublicSchema>

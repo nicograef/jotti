@@ -285,14 +285,21 @@ export function DescriptionField<AllFormFields extends FieldValues>({
   )
 }
 
+const toPriceCents = (input: string): number => {
+  const cleaned = input.replace(/[^0-9,]/g, '').replace(',', '.')
+  const parsed = parseFloat(cleaned)
+  return isNaN(parsed) ? 0 : Math.round(parsed * 100)
+}
+
+/** Input field for the net price. Converts the data representation as cents to the user-friendly Euro format. */
 export function NetPriceField<AllFormFields extends FieldValues>({
   form,
   withLabel,
   placeholder,
-}: FieldProps<{ netPrice: number } & AllFormFields>) {
+}: FieldProps<{ netPriceCents: number } & AllFormFields>) {
   return (
     <Controller
-      name={'netPrice' as Path<{ netPrice: number } & AllFormFields>}
+      name={'netPriceCents' as Path<{ netPriceCents: number } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
@@ -302,15 +309,17 @@ export function NetPriceField<AllFormFields extends FieldValues>({
           <Input
             {...field}
             id="form-netPrice"
-            type="number"
-            step="0.01"
-            min="0"
             aria-invalid={fieldState.invalid}
-            placeholder={placeholder ?? 'Preis eingeben (in Euro)'}
+            placeholder={placeholder ?? 'Preis in Euro (z.B. 4,50)'}
             autoComplete="off"
+            value={
+              field.value
+                ? (field.value / 100).toFixed(2).replace('.', ',')
+                : ''
+            }
             onChange={(e) => {
-              const value = parseFloat(e.target.value)
-              field.onChange(isNaN(value) ? 0 : value)
+              const netPriceCents = toPriceCents(e.target.value)
+              field.onChange(netPriceCents)
             }}
           />
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
