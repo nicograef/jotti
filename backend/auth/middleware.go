@@ -10,10 +10,10 @@ import (
 )
 
 // Context key types to avoid collisions
-type contextKey string
+type ContextKey string
 
 const (
-	userIDKey contextKey = "userid"
+	UserIDKey ContextKey = "userid"
 )
 
 // NewAdminMiddleware ensures that the request is made by an admin user.
@@ -72,7 +72,7 @@ func jwtMiddleware(jwtSecret string, allowedRoles []user.Role, h http.Handler) h
 		}
 
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, userIDKey, payload.UserID)
+		ctx = context.WithValue(ctx, UserIDKey, payload.UserID)
 
 		h.ServeHTTP(w, r.WithContext(ctx))
 	}

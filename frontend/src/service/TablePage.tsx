@@ -7,11 +7,15 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { BackendSingleton } from '@/lib/Backend'
+import { OrderBackend } from '@/lib/order/OrderBackend'
 import { useActiveProducts } from '@/lib/product/hooks'
 import { useTable } from '@/lib/table/hooks'
 import type { TablePublic } from '@/lib/table/Table'
 
 import { Order } from './Order'
+
+const orderBackend = new OrderBackend(BackendSingleton)
 
 export function TablePage() {
   const { tableId } = useParams<{ tableId: string }>()
@@ -42,6 +46,7 @@ export function TablePage() {
         <TabsContent value="order">
           {table && (
             <Order
+              backend={orderBackend}
               table={table}
               loading={productsLoading}
               products={products}

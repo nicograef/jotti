@@ -3,9 +3,14 @@ package order
 import (
 	"context"
 	"errors"
+	"strconv"
+	"strings"
+	"time"
 
+	z "github.com/Oudwins/zog"
 	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/event"
+	"github.com/nicograef/jotti/backend/product"
 )
 
 type EventType string
@@ -28,13 +33,21 @@ type OrderProduct struct {
 	Quantity      int    `json:"quantity"`
 }
 
+var OrderProductSchema = z.Struct(z.Shape{
+	"ID":            product.IDSchema.Required(),
+	"Name":          product.NameSchema.Required(),
+	"NetPriceCents": product.NetPriceCentsSchema.Required(),
+	"Quantity":      z.Int().GTE(1, z.Message("Quantity must be at least 1")).Required(),
+})
+
 // Order represents an order aggregate model.
 type Order struct {
-	ID              uuid.UUID      `json:"id"`
-	UserID          int            `json:"userId"`
-	TableID         string         `json:"tableId"`
-	Products        []OrderProduct `json:"products"`
-	TotalPriceCents int            `json:"totalPriceCents"`
+	ID                 uuid.UUID      `json:"id"`
+	UserID             int            `json:"userId"`
+	TableID            int            `json:"tableId"`
+	Products           []OrderProduct `json:"products"`
+	TotalNetPriceCents int            `json:"totalNetPriceCents"`
+	PlacedAt           time.Time      `json:"placedAt"`
 }
 
 // ErrDatabase is returned when there is a database error.
@@ -50,7 +63,8 @@ type Service struct {
 	Persistence persistence
 }
 
-func (s *Service) PlaceOrder(ctx context.Context, userID int, tableID string, products []OrderProduct) (*Order, error) {
+// PlaceOrder places a new order by writing an event to the database.
+func (s *Service) PlaceOrder(ctx context.Context, userID, tableID int, products []OrderProduct) (*Order, error) {
 	totalPriceCents := 0
 	for _, product := range products {
 		totalPriceCents += product.NetPriceCents * product.Quantity
@@ -59,7 +73,7 @@ func (s *Service) PlaceOrder(ctx context.Context, userID int, tableID string, pr
 	event, err := e.New(e.Candidate{
 		UserID:  userID,
 		Type:    string(EventTypeOrderPlacedV1),
-		Subject: "table:" + tableID,
+		Subject: "table:" + strconv.Itoa(tableID),
 		Data:    OrderPlacedData{Products: products, TotalPriceCents: totalPriceCents},
 	})
 	if err != nil {
@@ -72,16 +86,18 @@ func (s *Service) PlaceOrder(ctx context.Context, userID int, tableID string, pr
 	}
 
 	order := &Order{
-		ID:              id,
-		UserID:          userID,
-		TableID:         tableID,
-		Products:        products,
-		TotalPriceCents: totalPriceCents,
+		ID:                 id,
+		UserID:             userID,
+		TableID:            tableID,
+		Products:           products,
+		TotalNetPriceCents: totalPriceCents,
+		PlacedAt:           event.Time,
 	}
 
 	return order, nil
 }
 
+// GetOrders retrieves all orders for a given table by reading events from the database.
 func (s *Service) GetOrders(ctx context.Context, tableID string) (*[]Order, error) {
 	events, err := s.Persistence.ReadEventsBySubject(ctx, "table:"+tableID, []string{string(EventTypeOrderPlacedV1)})
 	if err != nil {
@@ -114,16 +130,23 @@ func (s *Service) GetOrders(ctx context.Context, tableID string) (*[]Order, erro
 			}
 			products = append(products, product)
 		}
-
 		totalPriceCents := int(dataMap["totalPriceCents"].(float64))
 
-		order := Order{
-			ID:              event.ID,
-			UserID:          event.UserID,
-			TableID:         tableID,
-			Products:        products,
-			TotalPriceCents: totalPriceCents,
+		tableIDStr := strings.TrimPrefix(event.Subject, "table:")
+		tableID, err := strconv.Atoi(tableIDStr)
+		if err != nil {
+			continue
 		}
+
+		order := Order{
+			ID:                 event.ID,
+			UserID:             event.UserID,
+			TableID:            tableID,
+			Products:           products,
+			TotalNetPriceCents: totalPriceCents,
+			PlacedAt:           event.Time,
+		}
+		orders = append(orders, order)
 		orders = append(orders, order)
 	}
 

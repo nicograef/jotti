@@ -12,6 +12,8 @@ import (
 	"github.com/nicograef/jotti/backend/api"
 	"github.com/nicograef/jotti/backend/auth"
 	"github.com/nicograef/jotti/backend/config"
+	"github.com/nicograef/jotti/backend/event"
+	"github.com/nicograef/jotti/backend/order"
 	"github.com/nicograef/jotti/backend/product"
 	"github.com/nicograef/jotti/backend/table"
 	"github.com/nicograef/jotti/backend/user"
@@ -87,6 +89,11 @@ func (app *App) SetupRoutes() {
 	app.Router.HandleFunc("/update-product", admin(ph.UpdateProductHandler()))
 	app.Router.HandleFunc("/activate-product", admin(ph.ActivateProductHandler()))
 	app.Router.HandleFunc("/deactivate-product", admin(ph.DeactivateProductHandler()))
+
+	eventPersistence := event.Persistence{DB: app.DB}
+	eventService := order.Service{Persistence: &eventPersistence}
+	oh := order.Handler{Service: &eventService}
+	app.Router.HandleFunc("/place-order", admin(oh.PlaceOrderHandler()))
 
 	// Wrap the entire router with middleware chain
 	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by nginx

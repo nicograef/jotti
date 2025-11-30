@@ -25,6 +25,7 @@ export function OrderDrawer({
   table,
   products,
   productsAmounts,
+  onSubmit,
 }: OrderDrawerProps) {
   const orderedProducts = orderProducts(products, productsAmounts)
   const totalPrice = calculateTotalPrice(orderedProducts)
@@ -71,7 +72,13 @@ export function OrderDrawer({
             </div>
           </div>
           <DrawerFooter>
-            <Button>Jetzt Bestellen</Button>
+            <Button
+              onClick={() => {
+                onSubmit()
+              }}
+            >
+              Jetzt Bestellen
+            </Button>
             <DrawerClose asChild>
               <Button variant="outline">Abbrechen</Button>
             </DrawerClose>
