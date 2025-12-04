@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	z "github.com/Oudwins/zog"
+	"github.com/nicograef/jotti/backend/api"
 	e "github.com/nicograef/jotti/backend/event"
+	"github.com/rs/zerolog/log"
 )
 
 type queryPersistence interface {
@@ -20,8 +22,11 @@ type queryService struct {
 
 // GetOrders retrieves all orders for a given table by reading events from the database.
 func (s *queryService) GetOrders(ctx context.Context, tableID int) ([]Order, error) {
+	correlationID, _ := ctx.Value(api.CorrelationIDKey).(string)
+
 	events, err := s.persistence.ReadEventsBySubject(ctx, "table:"+strconv.Itoa(tableID), []string{string(eventTypeOrderPlacedV1)})
 	if err != nil {
+		log.Error().Str("correlation_id", correlationID).Int("table_id", tableID).Err(err).Msg("Failed to read order events for table")
 		return nil, ErrDatabase
 	}
 
@@ -29,6 +34,7 @@ func (s *queryService) GetOrders(ctx context.Context, tableID int) ([]Order, err
 	for _, event := range events {
 		order, err := buildOrderFromEvent(event)
 		if err != nil {
+			log.Error().Str("correlation_id", correlationID).Int("table_id", tableID).Err(err).Msg("Failed to build order from event")
 			return nil, err
 		}
 		orders = append(orders, *order)

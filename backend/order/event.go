@@ -30,7 +30,7 @@ func newOrderPlacedV1Event(userID, tableID int, products []orderProduct, totalPr
 		TotalPriceCents: totalPriceCents,
 	}
 
-	if err := orderPlacedV1DataSchema.Validate(data); err != nil {
+	if err := orderPlacedV1DataSchema.Validate(&data); err != nil {
 		issues := z.Issues.SanitizeMapAndCollect(err)
 		return nil, fmt.Errorf("validation failed: %v", issues)
 	}

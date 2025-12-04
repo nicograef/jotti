@@ -28,4 +28,14 @@ export class OrderBackend {
     )
     return order
   }
+
+  public async getOrders(tableId: number): Promise<Order[]> {
+    const body = OrderSchema.pick({ tableId: true }).parse({ tableId })
+    const { orders } = await this.backend.post(
+      'get-orders',
+      body,
+      z.object({ orders: z.array(OrderSchema) }),
+    )
+    return orders
+  }
 }

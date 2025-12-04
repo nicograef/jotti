@@ -14,6 +14,7 @@ import { useTable } from '@/lib/table/hooks'
 import type { TablePublic } from '@/lib/table/Table'
 
 import { Order } from './Order'
+import { TableHistory } from './TableHistory'
 
 const orderBackend = new OrderBackend(BackendSingleton)
 
@@ -54,7 +55,9 @@ export function TablePage() {
           )}
         </TabsContent>
         <TabsContent value="payment">Change your password here.</TabsContent>
-        <TabsContent value="history">Change your password here.</TabsContent>
+        <TabsContent value="history">
+          {table && <TableHistory tableId={table.id} />}
+        </TabsContent>
       </Tabs>
     </>
   )

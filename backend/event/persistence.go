@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/nicograef/jotti/backend/api"
 	"github.com/rs/zerolog/log"
 )
 
@@ -16,7 +17,7 @@ type Persistence struct {
 
 // WriteEvent stores a new event in the database.
 func (p *Persistence) WriteEvent(ctx context.Context, event Event) (uuid.UUID, error) {
-	correlationID, _ := ctx.Value("correlation_id").(string)
+	correlationID, _ := ctx.Value(api.CorrelationIDKey).(string)
 
 	dataJSON, err := json.Marshal(event.Data)
 	if err != nil {
