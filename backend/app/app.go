@@ -92,7 +92,8 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 
 	eventPersistence := event.Persistence{DB: db}
 	oh := order.NewHandler(&eventPersistence)
-	r.HandleFunc("/place-order", admin(oh.PlaceOrderHandler()))
+	r.HandleFunc("/place-order", service(oh.PlaceOrderHandler()))
+	r.HandleFunc("/get-orders", service(oh.GetOrdersHandler()))
 
 	// Wrap the entire router with middleware chain
 	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by nginx

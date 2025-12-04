@@ -2,7 +2,6 @@ package order
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/event"
@@ -18,18 +17,13 @@ type commandService struct {
 }
 
 // PlaceOrder places a new order by writing an event to the database.
-func (s *commandService) PlaceOrder(ctx context.Context, userID, tableID int, products []OrderProduct) (*Order, error) {
+func (s *commandService) PlaceOrder(ctx context.Context, userID, tableID int, products []orderProduct) (*Order, error) {
 	totalPriceCents := 0
 	for _, product := range products {
 		totalPriceCents += product.NetPriceCents * product.Quantity
 	}
 
-	event, err := e.New(e.Candidate{
-		UserID:  userID,
-		Type:    string(EventTypeOrderPlacedV1),
-		Subject: "table:" + strconv.Itoa(tableID),
-		Data:    OrderPlacedData{Products: products, TotalPriceCents: totalPriceCents},
-	})
+	event, err := newOrderPlacedV1Event(userID, tableID, products, totalPriceCents)
 	if err != nil {
 		return nil, err
 	}

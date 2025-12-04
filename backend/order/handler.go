@@ -7,29 +7,35 @@ import (
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api"
 	"github.com/nicograef/jotti/backend/auth"
+	"github.com/nicograef/jotti/backend/event"
 	"github.com/nicograef/jotti/backend/table"
 )
 
-func NewHandler(p commandPersistence) *handler {
-	return &handler{&commandService{persistence: p}}
+func NewHandler(p *event.Persistence) *handler {
+	return &handler{&commandService{persistence: p}, &queryService{persistence: p}}
 }
 
 type command interface {
-	PlaceOrder(ctx context.Context, userID int, tableID int, products []OrderProduct) (*Order, error)
+	PlaceOrder(ctx context.Context, userID int, tableID int, products []orderProduct) (*Order, error)
+}
+
+type query interface {
+	GetOrders(ctx context.Context, tableID int) ([]Order, error)
 }
 
 type handler struct {
 	command command
+	query   query
 }
 
 type placeOrderRequest struct {
 	TableID  int            `json:"tableId"`
-	Products []OrderProduct `json:"products"`
+	Products []orderProduct `json:"products"`
 }
 
 var placeOrderRequestSchema = z.Struct(z.Shape{
 	"TableID":  table.IDSchema.Required(),
-	"Products": z.Slice(OrderProductSchema).Min(1).Required(),
+	"Products": z.Slice(orderProductSchema).Min(1).Required(),
 })
 
 type placeOrderResponse struct {
@@ -54,6 +60,39 @@ func (h *handler) PlaceOrderHandler() http.HandlerFunc {
 
 		api.SendResponse(w, placeOrderResponse{
 			Order: *order,
+		})
+	}
+}
+
+type getOrdersRequest struct {
+	TableID int `json:"tableId"`
+}
+
+var getOrdersRequestSchema = z.Struct(z.Shape{
+	"TableID": table.IDSchema.Required(),
+})
+
+type getOrdersResponse struct {
+	Orders []Order `json:"orders"`
+}
+
+// GetOrdersHandler handles requests to retrieve orders for a specific table.
+func (h *handler) GetOrdersHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := getOrdersRequest{}
+		if !api.ReadAndValidateBody(w, r, &body, getOrdersRequestSchema) {
+			return
+		}
+
+		ctx := r.Context()
+		orders, err := h.query.GetOrders(ctx, body.TableID)
+		if err != nil {
+			api.SendInternalServerError(w)
+			return
+		}
+
+		api.SendResponse(w, getOrdersResponse{
+			Orders: orders,
 		})
 	}
 }
