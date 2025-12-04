@@ -26,9 +26,10 @@ func (p *Persistence) WriteEvent(ctx context.Context, event Event) (uuid.UUID, e
 
 	var id uuid.UUID
 	err = p.DB.QueryRowContext(ctx,
-		`INSERT INTO events (id, user_id, type, subject, data, timestamp)
-		 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+		`INSERT INTO events (id, correlation_id, user_id, type, subject, data, timestamp)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
 		event.ID,
+		correlationID,
 		event.UserID,
 		event.Type,
 		event.Subject,
@@ -36,11 +37,11 @@ func (p *Persistence) WriteEvent(ctx context.Context, event Event) (uuid.UUID, e
 		event.Time,
 	).Scan(&id)
 	if err != nil {
-		log.Error().Str("correlation_id", correlationID).Err(err).Msg("Failed to create place order event")
+		log.Error().Str("correlation_id", correlationID).Err(err).Msg("Failed to create event")
 		return uuid.Nil, err
 	}
 
-	log.Debug().Str("correlation_id", correlationID).Str("order_id", id.String()).Msg("Place order event created")
+	log.Debug().Str("correlation_id", correlationID).Str("event_id", id.String()).Msg("Event created")
 	return id, nil
 }
 
@@ -74,13 +75,15 @@ func (p *Persistence) ReadEvent(ctx context.Context, eventID uuid.UUID) (*Event,
 }
 
 // ReadEventsBySubject retrieves all events of the specified types from the database for the given subject.
+// Events are ordered by their sequence number ascending (first element in slice is first event).
 func (p *Persistence) ReadEventsBySubject(ctx context.Context, subject string, eventTypes []string) ([]Event, error) {
 	correlationID, _ := ctx.Value("correlation_id").(string)
 
 	rows, err := p.DB.QueryContext(ctx,
 		`SELECT id, user_id, type, subject, data, timestamp
 		 FROM events
-		 WHERE subject = $1 AND type = ANY($2)`,
+		 WHERE subject = $1 AND type = ANY($2)
+		 ORDER BY sequence ASC`,
 		subject,
 		eventTypes,
 	)

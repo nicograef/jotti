@@ -10,12 +10,16 @@ import (
 	"github.com/nicograef/jotti/backend/table"
 )
 
-type service interface {
+func NewHandler(p commandPersistence) *handler {
+	return &handler{&commandService{persistence: p}}
+}
+
+type command interface {
 	PlaceOrder(ctx context.Context, userID int, tableID int, products []OrderProduct) (*Order, error)
 }
 
-type Handler struct {
-	Service service
+type handler struct {
+	command command
 }
 
 type placeOrderRequest struct {
@@ -33,7 +37,7 @@ type placeOrderResponse struct {
 }
 
 // PlaceOrderHandler handles requests to place a new order.
-func (h *Handler) PlaceOrderHandler() http.HandlerFunc {
+func (h *handler) PlaceOrderHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := placeOrderRequest{}
 		if !api.ReadAndValidateBody(w, r, &body, placeOrderRequestSchema) {
@@ -42,7 +46,7 @@ func (h *Handler) PlaceOrderHandler() http.HandlerFunc {
 
 		ctx := r.Context()
 		userID := ctx.Value(auth.UserIDKey).(int)
-		order, err := h.Service.PlaceOrder(ctx, userID, body.TableID, body.Products)
+		order, err := h.command.PlaceOrder(ctx, userID, body.TableID, body.Products)
 		if err != nil {
 			api.SendInternalServerError(w)
 			return

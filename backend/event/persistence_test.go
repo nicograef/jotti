@@ -31,9 +31,9 @@ func database() *sql.DB {
 	return db
 }
 
-func createUser(ctx context.Context, DB *sql.DB) (int, error) {
+func createUser(DB *sql.DB) (int, error) {
 	var userID int
-	err := DB.QueryRowContext(ctx, "INSERT INTO users (name, username, role) VALUES ($1, $2, $3) RETURNING id", "nico", "nico", "admin").Scan(&userID)
+	err := DB.QueryRow("INSERT INTO users (name, username, role) VALUES ($1, $2, $3) RETURNING id", "nico", "nico", "admin").Scan(&userID)
 	if err != nil {
 		return 0, err
 	}
@@ -44,8 +44,9 @@ func TestWriteEvent(t *testing.T) {
 	db := database()
 	defer db.Close()
 	ctx := context.Background()
+	ctx = context.WithValue(ctx, "correlation_id", "123e4567-e89b-12d3-a456-426614174000")
 
-	userID, err := createUser(ctx, db)
+	userID, err := createUser(db)
 	if err != nil {
 		t.Fatalf("Failed to insert user: %v", err)
 	}
@@ -79,8 +80,9 @@ func TestReadEvent(t *testing.T) {
 	db := database()
 	defer db.Close()
 	ctx := context.Background()
+	ctx = context.WithValue(ctx, "correlation_id", "123e4567-e89b-12d3-a456-426614174000")
 
-	userID, err := createUser(ctx, db)
+	userID, err := createUser(db)
 	if err != nil {
 		t.Fatalf("Failed to insert user: %v", err)
 	}
@@ -140,8 +142,9 @@ func TestReadEventsBySubject(t *testing.T) {
 	db := database()
 	defer db.Close()
 	ctx := context.Background()
+	ctx = context.WithValue(ctx, "correlation_id", "123e4567-e89b-12d3-a456-426614174000")
 
-	userID, err := createUser(ctx, db)
+	userID, err := createUser(db)
 	if err != nil {
 		t.Fatalf("Failed to insert user: %v", err)
 	}

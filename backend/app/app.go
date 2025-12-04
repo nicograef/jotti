@@ -91,8 +91,7 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/deactivate-product", admin(ph.DeactivateProductHandler()))
 
 	eventPersistence := event.Persistence{DB: db}
-	eventService := order.Service{Persistence: &eventPersistence}
-	oh := order.Handler{Service: &eventService}
+	oh := order.NewHandler(&eventPersistence)
 	r.HandleFunc("/place-order", admin(oh.PlaceOrderHandler()))
 
 	// Wrap the entire router with middleware chain
