@@ -87,19 +87,6 @@ func (m *mockTableService) DeactivateTable(ctx context.Context, id int) error {
 	return nil
 }
 
-func TestCreateTableHandler_MethodNotAllowed(t *testing.T) {
-	handler := &Handler{Service: &mockTableService{}}
-
-	req := httptest.NewRequest(http.MethodGet, "/create-table", nil)
-	rec := httptest.NewRecorder()
-
-	handler.CreateTableHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusMethodNotAllowed {
-		t.Errorf("expected status 405, got %d", rec.Code)
-	}
-}
-
 func TestCreateTableHandler_Success(t *testing.T) {
 	handler := &Handler{Service: &mockTableService{}}
 

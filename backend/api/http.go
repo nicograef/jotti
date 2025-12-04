@@ -58,15 +58,17 @@ func SendMethodNotAllowedError(w http.ResponseWriter, response ErrorResponse) {
 	sendJSONResponse(w, response, http.StatusMethodNotAllowed)
 }
 
-// ReadJSONRequest reads JSON from the request body into the provided destination.
-// Returns false if decoding fails.
-func ReadJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) bool {
+// ReadAndValidateBody reads the JSON request body into the provided struct
+// and validates it against the provided Zod schema.
+func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T, schema *z.StructSchema) bool {
+	correlationID, _ := r.Context().Value(CorrelationIDKey).(string)
+
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields() // Disallow unknown fields for strict matching
 
-	err := decoder.Decode(dest)
+	err := decoder.Decode(body)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to decode JSON request")
+		log.Error().Str("correlation_id", correlationID).Err(err).Msg("Failed to decode JSON request")
 		SendBadRequestError(w, ErrorResponse{
 			Message: "Invalid JSON request",
 			Code:    "invalid_json",
@@ -74,32 +76,13 @@ func ReadJSONRequest[T any](w http.ResponseWriter, r *http.Request, dest *T) boo
 		return false
 	}
 
-	return true
-}
-
-func ValidateBody[T any](w http.ResponseWriter, body *T, schema *z.StructSchema) bool {
 	if err := schema.Validate(body); err != nil {
 		issues := z.Issues.SanitizeMapAndCollect(err)
-		log.Error().Interface("issues", issues).Msg("Invalid request body")
+		log.Error().Str("correlation_id", correlationID).Interface("issues", issues).Msg("Invalid request body")
 		SendBadRequestError(w, ErrorResponse{
 			Message: "Invalid request body",
 			Code:    "invalid_request_body",
 			Details: issues,
-		})
-		return false
-	}
-	return true
-}
-
-func ValidateMethod(w http.ResponseWriter, r *http.Request, expectedMethod string) bool {
-	if r.Method != expectedMethod {
-		log.Error().
-			Str("method", r.Method).
-			Str("expected", expectedMethod).
-			Msg("Invalid method")
-		SendMethodNotAllowedError(w, ErrorResponse{
-			Message: "Method not allowed",
-			Code:    "method_not_allowed",
 		})
 		return false
 	}

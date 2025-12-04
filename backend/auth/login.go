@@ -37,16 +37,8 @@ type loginResponse struct {
 // LoginHandler handles user login requests by validating the password hash against the database and returns a jwt token if successful.
 func (h *Handler) LoginHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := loginRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, loginRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, loginRequestSchema) {
 			return
 		}
 
@@ -103,16 +95,8 @@ type setPasswordResponse struct {
 // SetPasswordHandler handles setting a new password for a user using a one-time password and returns a jwt token if successful.
 func (h *Handler) SetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := setPasswordRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, setPasswordRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, setPasswordRequestSchema) {
 			return
 		}
 

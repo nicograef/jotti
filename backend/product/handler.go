@@ -42,16 +42,8 @@ type createProductResponse struct {
 // CreateProductHandler handles requests to create a new product.
 func (h *Handler) CreateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := createProductRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, createProductRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, createProductRequestSchema) {
 			return
 		}
 
@@ -91,16 +83,8 @@ type updateProductResponse struct {
 // UpdateProductHandler handles requests to update an existing product.
 func (h *Handler) UpdateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := updateProductRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, updateProductRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, updateProductRequestSchema) {
 			return
 		}
 
@@ -124,10 +108,6 @@ type getAllProductsResponse struct {
 // GetAllProductsHandler handles requests to retrieve all products.
 func (h *Handler) GetAllProductsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		ctx := r.Context()
 		products, err := h.Service.GetAllProducts(ctx)
 		if err != nil {
@@ -152,10 +132,6 @@ type getActiveProductsResponse struct {
 // GetActiveProductsHandler handles requests to retrieve all active products.
 func (h *Handler) GetActiveProductsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		ctx := r.Context()
 		products, err := h.Service.GetActiveProducts(ctx)
 		if err != nil {
@@ -184,16 +160,8 @@ var activateProductRequestSchema = z.Struct(z.Shape{
 // ActivateProductHandler handles requests to activate a product.
 func (h *Handler) ActivateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := activateProductRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, activateProductRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, activateProductRequestSchema) {
 			return
 		}
 
@@ -226,16 +194,8 @@ var deactivateTableRequestSchema = z.Struct(z.Shape{
 // DeactivateProductHandler handles requests to deactivate a product.
 func (h *Handler) DeactivateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := deactivateTableRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, deactivateTableRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, deactivateTableRequestSchema) {
 			return
 		}
 

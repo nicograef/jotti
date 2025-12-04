@@ -33,7 +33,7 @@ func NewServiceMiddleware(secret string) func(http.Handler) http.HandlerFunc {
 // jwtMiddleware validates the JWT Token in the Authorization header.
 // If valid, it adds the user information to the request context.
 func jwtMiddleware(jwtSecret string, allowedRoles []user.Role, h http.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
 		if token == "" {
 			api.SendUnauthorizedError(w, api.ErrorResponse{
@@ -75,5 +75,5 @@ func jwtMiddleware(jwtSecret string, allowedRoles []user.Role, h http.Handler) h
 		ctx = context.WithValue(ctx, UserIDKey, payload.UserID)
 
 		h.ServeHTTP(w, r.WithContext(ctx))
-	}
+	})
 }

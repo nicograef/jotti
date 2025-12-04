@@ -72,6 +72,25 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 	}
 }
 
+// PostMethodOnlyMiddleware middleware ensures the request method is POST
+func PostMethodOnlyMiddleware(next http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			log.Error().
+				Str("method", r.Method).
+				Str("expected", http.MethodPost).
+				Msg("Invalid method")
+			SendMethodNotAllowedError(w, ErrorResponse{
+				Message: "Method not allowed",
+				Code:    "method_not_allowed",
+			})
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // responseWriter wraps http.ResponseWriter to capture status code
 type responseWriter struct {
 	http.ResponseWriter

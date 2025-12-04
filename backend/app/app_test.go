@@ -5,7 +5,6 @@ package app
 import (
 	"context"
 	"database/sql"
-	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -33,21 +32,11 @@ func TestNewApp(t *testing.T) {
 func TestSetupRoutes(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test-secret-for-app-tests")
 	cfg := config.Load()
-	app, err := NewApp(cfg, &sql.DB{})
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
 
-	app.SetupRoutes()
+	handler := SetupRoutes(cfg, &sql.DB{})
 
-	// Test that routes are set up by checking the default mux
-	// Note: This is a basic check - integration tests would be better
-	req, _ := http.NewRequest("GET", "/health", nil)
-
-	// We can't easily test the mux without starting the server,
-	// so this is more of a smoke test
-	if req == nil {
-		t.Error("Failed to create test request")
+	if handler == nil {
+		t.Error("Handler should not be nil")
 	}
 }
 

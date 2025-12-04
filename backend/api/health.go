@@ -2,16 +2,19 @@ package api
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	"time"
 
 	"github.com/rs/zerolog/log"
 )
 
+type database interface {
+	PingContext(ctx context.Context) error
+}
+
 // HealthCheck provides health check functionality with database connectivity testing.
 type HealthCheck struct {
-	DB *sql.DB
+	DB database
 }
 
 // HealthResponse represents the health check response structure.
@@ -24,10 +27,6 @@ type HealthResponse struct {
 // Handler returns an HTTP handler for the enhanced health check endpoint with database ping.
 func (h *HealthCheck) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !ValidateMethod(w, r, http.MethodGet) {
-			return
-		}
-
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
 

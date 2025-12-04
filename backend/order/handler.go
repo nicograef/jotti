@@ -35,16 +35,8 @@ type placeOrderResponse struct {
 // PlaceOrderHandler handles requests to place a new order.
 func (h *Handler) PlaceOrderHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := placeOrderRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, placeOrderRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, placeOrderRequestSchema) {
 			return
 		}
 

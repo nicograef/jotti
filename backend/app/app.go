@@ -23,92 +23,91 @@ import (
 type App struct {
 	Server *http.Server
 	Config config.Config
-	Router *http.ServeMux
 	DB     *sql.DB
 }
 
 // NewApp creates a new application instance
 func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
+	router := SetupRoutes(cfg, db)
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
+		Handler:      router,
 	}
-
-	router := http.NewServeMux()
 
 	return &App{
 		Server: server,
 		Config: cfg,
-		Router: router,
 		DB:     db,
 	}, nil
 }
 
 // SetupRoutes configures HTTP routes
-func (app *App) SetupRoutes() {
-	// Health check with database connectivity
-	healthCheck := api.HealthCheck{DB: app.DB}
-	app.Router.HandleFunc("/health", healthCheck.Handler())
+func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
+	r := http.NewServeMux()
 
-	userPersistence := user.Persistence{DB: app.DB}
+	// Health check with database connectivity
+	healthCheck := api.HealthCheck{DB: db}
+	r.HandleFunc("/health", healthCheck.Handler())
+
+	userPersistence := user.Persistence{DB: db}
 	userService := user.Service{Persistence: &userPersistence}
 
-	ah := auth.Handler{JWTSecret: app.Config.JWTSecret, UserService: &userService}
-	app.Router.HandleFunc("/login", ah.LoginHandler())
-	app.Router.HandleFunc("/set-password", ah.SetPasswordHandler())
+	ah := auth.Handler{JWTSecret: cfg.JWTSecret, UserService: &userService}
+	r.HandleFunc("/login", ah.LoginHandler())
+	r.HandleFunc("/set-password", ah.SetPasswordHandler())
 
-	admin := auth.NewAdminMiddleware(app.Config.JWTSecret)
-	service := auth.NewServiceMiddleware(app.Config.JWTSecret)
+	admin := auth.NewAdminMiddleware(cfg.JWTSecret)
+	service := auth.NewServiceMiddleware(cfg.JWTSecret)
 
 	uh := user.Handler{Service: &userService}
-	app.Router.HandleFunc("/create-user", admin(uh.CreateUserHandler()))
-	app.Router.HandleFunc("/update-user", admin(uh.UpdateUserHandler()))
-	app.Router.HandleFunc("/activate-user", admin(uh.ActivateUserHandler()))
-	app.Router.HandleFunc("/deactivate-user", admin(uh.DeactivateUserHandler()))
-	app.Router.HandleFunc("/get-all-users", admin(uh.GetAllUsersHandler()))
-	app.Router.HandleFunc("/reset-password", admin(uh.ResetPasswordHandler()))
+	r.HandleFunc("/create-user", admin(uh.CreateUserHandler()))
+	r.HandleFunc("/update-user", admin(uh.UpdateUserHandler()))
+	r.HandleFunc("/activate-user", admin(uh.ActivateUserHandler()))
+	r.HandleFunc("/deactivate-user", admin(uh.DeactivateUserHandler()))
+	r.HandleFunc("/get-all-users", admin(uh.GetAllUsersHandler()))
+	r.HandleFunc("/reset-password", admin(uh.ResetPasswordHandler()))
 
-	tablePersistence := table.Persistence{DB: app.DB}
+	tablePersistence := table.Persistence{DB: db}
 	tableService := table.Service{Persistence: &tablePersistence}
 	th := table.Handler{Service: &tableService}
-	app.Router.HandleFunc("/get-table", service(th.GetTableHandler()))
-	app.Router.HandleFunc("/get-active-tables", service(th.GetActiveTablesHandler()))
-	app.Router.HandleFunc("/get-all-tables", admin(th.GetAllTablesHandler()))
-	app.Router.HandleFunc("/update-table", admin(th.UpdateTableHandler()))
-	app.Router.HandleFunc("/create-table", admin(th.CreateTableHandler()))
-	app.Router.HandleFunc("/activate-table", admin(th.ActivateTableHandler()))
-	app.Router.HandleFunc("/deactivate-table", admin(th.DeactivateTableHandler()))
+	r.HandleFunc("/get-table", service(th.GetTableHandler()))
+	r.HandleFunc("/get-active-tables", service(th.GetActiveTablesHandler()))
+	r.HandleFunc("/get-all-tables", admin(th.GetAllTablesHandler()))
+	r.HandleFunc("/update-table", admin(th.UpdateTableHandler()))
+	r.HandleFunc("/create-table", admin(th.CreateTableHandler()))
+	r.HandleFunc("/activate-table", admin(th.ActivateTableHandler()))
+	r.HandleFunc("/deactivate-table", admin(th.DeactivateTableHandler()))
 
-	productPersistence := product.Persistence{DB: app.DB}
+	productPersistence := product.Persistence{DB: db}
 	productService := product.Service{Persistence: &productPersistence}
 	ph := product.Handler{Service: &productService}
-	app.Router.HandleFunc("/get-active-products", service(ph.GetActiveProductsHandler()))
-	app.Router.HandleFunc("/get-all-products", admin(ph.GetAllProductsHandler()))
-	app.Router.HandleFunc("/create-product", admin(ph.CreateProductHandler()))
-	app.Router.HandleFunc("/update-product", admin(ph.UpdateProductHandler()))
-	app.Router.HandleFunc("/activate-product", admin(ph.ActivateProductHandler()))
-	app.Router.HandleFunc("/deactivate-product", admin(ph.DeactivateProductHandler()))
+	r.HandleFunc("/get-active-products", service(ph.GetActiveProductsHandler()))
+	r.HandleFunc("/get-all-products", admin(ph.GetAllProductsHandler()))
+	r.HandleFunc("/create-product", admin(ph.CreateProductHandler()))
+	r.HandleFunc("/update-product", admin(ph.UpdateProductHandler()))
+	r.HandleFunc("/activate-product", admin(ph.ActivateProductHandler()))
+	r.HandleFunc("/deactivate-product", admin(ph.DeactivateProductHandler()))
 
-	eventPersistence := event.Persistence{DB: app.DB}
+	eventPersistence := event.Persistence{DB: db}
 	eventService := order.Service{Persistence: &eventPersistence}
 	oh := order.Handler{Service: &eventService}
-	app.Router.HandleFunc("/place-order", admin(oh.PlaceOrderHandler()))
+	r.HandleFunc("/place-order", admin(oh.PlaceOrderHandler()))
 
 	// Wrap the entire router with middleware chain
 	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by nginx
-	var handler http.Handler = app.Router
-	handler = api.RateLimitMiddleware(100)(handler)
-	handler = api.LoggingMiddleware(handler)
-	handler = api.CorrelationIDMiddleware(handler)
+	var handler http.Handler = r
+	handler = api.PostMethodOnlyMiddleware(handler) // Enforce POST method
+	handler = api.RateLimitMiddleware(100)(handler) // Rate limiting
+	handler = api.LoggingMiddleware(handler)        // Logging
+	handler = api.CorrelationIDMiddleware(handler)  // Correlation ID
 
-	app.Server.Handler = handler
+	return handler
 }
 
 // Run starts the application with graceful shutdown
 func (app *App) Run(ctx context.Context) error {
-	app.SetupRoutes()
-
 	// Start server in goroutine
 	errChan := make(chan error, 1)
 	go func() {

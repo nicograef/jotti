@@ -38,16 +38,8 @@ type createTableResponse struct {
 // CreateTableHandler handles requests to create a new table.
 func (h *Handler) CreateTableHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := createTableRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, createTableRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, createTableRequestSchema) {
 			return
 		}
 
@@ -81,16 +73,8 @@ type updateTableResponse struct {
 // UpdateTableHandler handles requests to update an existing table.
 func (h *Handler) UpdateTableHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := updateTableRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, updateTableRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, updateTableRequestSchema) {
 			return
 		}
 
@@ -121,10 +105,6 @@ type getAllTablesResponse struct {
 // GetAllTablesHandler handles requests to retrieve all tables.
 func (h *Handler) GetAllTablesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		ctx := r.Context()
 		tables, err := h.Service.GetAllTables(ctx)
 		if err != nil {
@@ -149,10 +129,6 @@ type getActiveTablesResponse struct {
 // GetActiveTablesHandler handles requests to retrieve all active tables.
 func (h *Handler) GetActiveTablesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		ctx := r.Context()
 		tables, err := h.Service.GetActiveTables(ctx)
 		if err != nil {
@@ -185,16 +161,8 @@ type getTableResponse struct {
 // GetTableHandler handles requests to retrieve a table by its ID.
 func (h *Handler) GetTableHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := getTableRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, getTableRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, getTableRequestSchema) {
 			return
 		}
 
@@ -229,16 +197,8 @@ var activateTableRequestSchema = z.Struct(z.Shape{
 // ActivateTableHandler handles requests to activate a table.
 func (h *Handler) ActivateTableHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := activateTableRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, activateTableRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, activateTableRequestSchema) {
 			return
 		}
 
@@ -271,16 +231,8 @@ var deactivateTableRequestSchema = z.Struct(z.Shape{
 // DeactivateTableHandler handles requests to deactivate a table.
 func (h *Handler) DeactivateTableHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := deactivateTableRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, deactivateTableRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, deactivateTableRequestSchema) {
 			return
 		}
 

@@ -42,20 +42,12 @@ type createUserResponse struct {
 // CreateUserHandler handles requests to create a new user.
 func (h *Handler) CreateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := createUserRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
+		if !api.ReadAndValidateBody(w, r, &body, createUserRequestSchema) {
 			return
 		}
 
-		if !api.ValidateBody(w, &body, createUserRequestSchema) {
-			return
-		}
-
+		ctx := r.Context()
 		user, onetimePassword, err := h.Service.CreateUser(ctx, body.Name, body.Username, body.Role)
 		if err != nil {
 			api.SendInternalServerError(w)
@@ -90,29 +82,22 @@ type updateUserResponse = struct {
 // UpdateUserHandler handles requests to update a user.
 func (h *Handler) UpdateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := updateUserRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
+		if !api.ReadAndValidateBody(w, r, &body, updateUserRequestSchema) {
 			return
 		}
 
-		if !api.ValidateBody(w, &body, updateUserRequestSchema) {
-			return
-		}
-
+		ctx := r.Context()
 		user, err := h.Service.UpdateUser(ctx, body.ID, body.Name, body.Username, body.Role)
-		if err != nil && errors.Is(err, ErrUserNotFound) {
-			api.SendNotFoundError(w, api.ErrorResponse{
-				Message: "User not found",
-				Code:    "user_not_found",
-			})
-			return
-		} else if err != nil {
-			api.SendInternalServerError(w)
+		if err != nil {
+			if errors.Is(err, ErrUserNotFound) {
+				api.SendNotFoundError(w, api.ErrorResponse{
+					Message: "User not found",
+					Code:    "user_not_found",
+				})
+			} else {
+				api.SendInternalServerError(w)
+			}
 			return
 		}
 
@@ -130,10 +115,6 @@ type getUsersResponse = struct {
 func (h *Handler) GetAllUsersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		users, err := h.Service.GetAllUsers(ctx)
 		if err != nil {
 			api.SendInternalServerError(w)
@@ -161,29 +142,22 @@ type resetPasswordResponse struct {
 // ResetPasswordHandler handles requests to reset a user's password.
 func (h *Handler) ResetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := resetPasswordRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
+		if !api.ReadAndValidateBody(w, r, &body, resetPasswordRequestSchema) {
 			return
 		}
 
-		if !api.ValidateBody(w, &body, resetPasswordRequestSchema) {
-			return
-		}
-
+		ctx := r.Context()
 		onetimePassword, err := h.Service.ResetPassword(ctx, body.UserID)
-		if err != nil && errors.Is(err, ErrUserNotFound) {
-			api.SendNotFoundError(w, api.ErrorResponse{
-				Message: "User not found",
-				Code:    "user_not_found",
-			})
-			return
-		} else if err != nil {
-			api.SendInternalServerError(w)
+		if err != nil {
+			if errors.Is(err, ErrUserNotFound) {
+				api.SendNotFoundError(w, api.ErrorResponse{
+					Message: "User not found",
+					Code:    "user_not_found",
+				})
+			} else {
+				api.SendInternalServerError(w)
+			}
 			return
 		}
 
@@ -205,16 +179,9 @@ var activateUserRequestSchema = z.Struct(z.Shape{
 func (h *Handler) ActivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
 
 		body := activateUserRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
-			return
-		}
-
-		if !api.ValidateBody(w, &body, activateUserRequestSchema) {
+		if !api.ReadAndValidateBody(w, r, &body, activateUserRequestSchema) {
 			return
 		}
 
@@ -225,9 +192,9 @@ func (h *Handler) ActivateUserHandler() http.HandlerFunc {
 					Message: "User not found",
 					Code:    "user_not_found",
 				})
-				return
+			} else {
+				api.SendInternalServerError(w)
 			}
-			api.SendInternalServerError(w)
 			return
 		}
 
@@ -246,29 +213,22 @@ var deactivateUserRequestSchema = z.Struct(z.Shape{
 // DeactivateUserHandler handles requests to deactivate a user.
 func (h *Handler) DeactivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		if !api.ValidateMethod(w, r, http.MethodPost) {
-			return
-		}
-
 		body := deactivateUserRequest{}
-		if !api.ReadJSONRequest(w, r, &body) {
+		if !api.ReadAndValidateBody(w, r, &body, deactivateUserRequestSchema) {
 			return
 		}
 
-		if !api.ValidateBody(w, &body, deactivateUserRequestSchema) {
-			return
-		}
-
+		ctx := r.Context()
 		err := h.Service.DeactivateUser(ctx, body.ID)
-		if err != nil && errors.Is(err, ErrUserNotFound) {
-			api.SendNotFoundError(w, api.ErrorResponse{
-				Message: "User not found",
-				Code:    "user_not_found",
-			})
-			return
-		} else if err != nil {
-			api.SendInternalServerError(w)
+		if err != nil {
+			if errors.Is(err, ErrUserNotFound) {
+				api.SendNotFoundError(w, api.ErrorResponse{
+					Message: "User not found",
+					Code:    "user_not_found",
+				})
+			} else {
+				api.SendInternalServerError(w)
+			}
 			return
 		}
 

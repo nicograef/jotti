@@ -67,19 +67,6 @@ func (m *mockProductService) DeactivateProduct(ctx context.Context, id int) erro
 	return nil
 }
 
-func TestCreateProductHandler_MethodNotAllowed(t *testing.T) {
-	handler := &Handler{Service: &mockProductService{}}
-
-	req := httptest.NewRequest(http.MethodGet, "/create-product", nil)
-	rec := httptest.NewRecorder()
-
-	handler.CreateProductHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusMethodNotAllowed {
-		t.Errorf("expected status 405, got %d", rec.Code)
-	}
-}
-
 func TestCreateProductHandler_Success(t *testing.T) {
 	handler := &Handler{Service: &mockProductService{}}
 
