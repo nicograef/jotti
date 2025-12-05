@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	z "github.com/Oudwins/zog"
 	e "github.com/nicograef/jotti/backend/event"
 	"github.com/rs/zerolog"
 )
@@ -42,11 +41,10 @@ func (s *queryService) GetOrders(ctx context.Context, tableID int) ([]Order, err
 }
 
 func buildOrderFromEvent(event e.Event) (*Order, error) {
-	data := &orderPlacedV1Data{}
-	parseErr := orderPlacedV1DataSchema.Parse(event.Data, data)
-	if parseErr != nil {
-		issues := z.Issues.SanitizeMapAndCollect(parseErr)
-		return nil, fmt.Errorf("validation failed: %v", issues)
+	data := orderPlacedV1Data{}
+	err := e.ParseData(event, &data, orderPlacedV1DataSchema)
+	if err != nil {
+		return nil, err
 	}
 
 	tableIDStr := strings.TrimPrefix(event.Subject, "table:")

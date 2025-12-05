@@ -1,10 +1,13 @@
 package event
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
+	z "github.com/Oudwins/zog"
 	"github.com/google/uuid"
 )
 
@@ -21,7 +24,7 @@ type Event struct {
 	// The subject of the event in the context of the event producer (identified by source). E.g. the entity to which the event is primarily related. E.g. /users/12345
 	Subject string `json:"subject"`
 	// The event payload.
-	Data any `json:"data"`
+	Data json.RawMessage `json:"data"`
 }
 
 // Candidate represents the input required to create a new Event.
@@ -39,13 +42,18 @@ type Candidate struct {
 // New creates a new Event with the given parameters and automatically sets the ID and Time fields.
 // It returns an error if any of the required fields are invalid.
 func New(candidate Candidate) (*Event, error) {
+	dataJSON, err := json.Marshal(candidate.Data)
+	if err != nil {
+		return nil, err
+	}
+
 	event := Event{
 		ID:      uuid.New(),
 		UserID:  candidate.UserID,
 		Type:    candidate.Type,
 		Time:    time.Now().UTC(),
 		Subject: candidate.Subject,
-		Data:    candidate.Data,
+		Data:    dataJSON,
 	}
 
 	if err := event.Validate(); err != nil {
@@ -77,8 +85,21 @@ func (e *Event) Validate() error {
 		return errors.New("event subject must be at least 5 characters long")
 	}
 
-	if e.Data == nil {
-		return errors.New("event data cannot be nil")
+	if len(e.Data) == 0 {
+		return errors.New("event data cannot be empty")
+	}
+
+	return nil
+}
+
+func ParseData[T any](e Event, dest *T, schema *z.StructSchema) error {
+	if err := json.Unmarshal(e.Data, dest); err != nil {
+		return err
+	}
+
+	if errsMap := schema.Validate(dest); errsMap != nil {
+		issues := z.Issues.SanitizeMapAndCollect(errsMap)
+		return fmt.Errorf("validation failed: %v", issues)
 	}
 
 	return nil

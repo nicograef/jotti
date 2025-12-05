@@ -5,6 +5,7 @@ package event
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -123,8 +124,9 @@ func TestReadEvent(t *testing.T) {
 	if readEvent.Time.Unix() != event.Time.Unix() {
 		t.Fatalf("Expected time %v, got %v", event.Time, readEvent.Time)
 	}
-	data, ok := readEvent.Data.(map[string]any)
-	if !ok {
+	var data map[string]any
+	err = json.Unmarshal(readEvent.Data, &data)
+	if err != nil {
 		t.Fatalf("Expected data to be map[string]any, got %T", readEvent.Data)
 	}
 	if data["k"] != "v" {

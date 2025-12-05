@@ -3,6 +3,7 @@
 package event
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -51,7 +52,7 @@ func TestValidate_Errors(t *testing.T) {
 		{"short type", func(e *Event) { e.Type = "aaa" }, "event type must be at least 5 characters long"},
 		{"zero time", func(e *Event) { e.Time = time.Time{} }, "event time cannot be zero"},
 		{"short subject", func(e *Event) { e.Subject = "abc" }, "event subject must be at least 5 characters long"},
-		{"nil data", func(e *Event) { e.Data = nil }, "event data cannot be nil"},
+		{"nil data", func(e *Event) { e.Data = []byte{} }, "event data cannot be empty"},
 	}
 
 	for _, tc := range cases {
@@ -62,7 +63,7 @@ func TestValidate_Errors(t *testing.T) {
 				Type:    "com.example.event:v1",
 				Time:    time.Now().UTC(),
 				Subject: "/users/123",
-				Data:    map[string]any{"k": "v"},
+				Data:    json.RawMessage(`{"k": "v"}`),
 			}
 			// mutate to make invalid
 			tc.mutate(e)
