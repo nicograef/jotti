@@ -19,9 +19,7 @@ import (
 )
 
 func main() {
-	// Configure zerolog
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).With().Caller().Logger()
 
 	cfg := config.Load()
 

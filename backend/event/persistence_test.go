@@ -44,7 +44,6 @@ func TestWriteEvent(t *testing.T) {
 	db := database()
 	defer db.Close()
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, "correlation_id", "123e4567-e89b-12d3-a456-426614174000")
 
 	userID, err := createUser(db)
 	if err != nil {
@@ -80,7 +79,6 @@ func TestReadEvent(t *testing.T) {
 	db := database()
 	defer db.Close()
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, "correlation_id", "123e4567-e89b-12d3-a456-426614174000")
 
 	userID, err := createUser(db)
 	if err != nil {
@@ -142,7 +140,6 @@ func TestReadEventsBySubject(t *testing.T) {
 	db := database()
 	defer db.Close()
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, "correlation_id", "123e4567-e89b-12d3-a456-426614174000")
 
 	userID, err := createUser(db)
 	if err != nil {

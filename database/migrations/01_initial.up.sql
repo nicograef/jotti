@@ -72,8 +72,6 @@ COMMENT ON COLUMN products.created_at IS 'Creation timestamp (UTC)';
 -- Append-only, never updated or deleted (INSERT and SELECT only).
 CREATE TABLE IF NOT EXISTS events (
     id UUID PRIMARY KEY,
-    correlation_id UUID NOT NULL,
-    sequence SERIAL,
     user_id INT REFERENCES users(id) NOT NULL,
     type TEXT NOT NULL,
     subject TEXT NOT NULL,
@@ -83,21 +81,17 @@ CREATE TABLE IF NOT EXISTS events (
 
 REVOKE ALL ON TABLE events FROM PUBLIC;
 GRANT SELECT, INSERT ON TABLE events TO public;
-GRANT USAGE ON SEQUENCE events_sequence_seq TO public;
 
 COMMENT ON TABLE events IS 'Event log for orders/payments and admin actions (event-sourcing)';
 COMMENT ON COLUMN events.id IS 'Unique event identifier (UUID)';
-COMMENT ON COLUMN events.correlation_id IS 'Correlation ID to group related events';
-COMMENT ON COLUMN events.sequence IS 'Sequential event number';
 COMMENT ON COLUMN events.user_id IS 'Actor who triggered the event (nullable)';
 COMMENT ON COLUMN events.type IS 'Event type identifier, e.g., bestellung-aufgegeben:v1';
 COMMENT ON COLUMN events.subject IS 'Aggregate key, e.g., tisch:42';
 COMMENT ON COLUMN events.timestamp IS 'Event time (UTC)';
 COMMENT ON COLUMN events.data IS 'Event data (jsonb), versioned by type';
 
--- Indexes could be added later as needed
--- CREATE INDEX IF NOT EXISTS idx_events_subject_time ON events (subject, timestamp DESC);
--- CREATE INDEX IF NOT EXISTS idx_events_type_time ON events (type, timestamp DESC);
--- CREATE INDEX IF NOT EXISTS idx_events_user_id ON events (user_id);
+CREATE INDEX IF NOT EXISTS idx_events_subject_time ON events (subject, timestamp);
+CREATE INDEX IF NOT EXISTS idx_events_type_time ON events (type, timestamp);
+CREATE INDEX IF NOT EXISTS idx_events_user_id ON events (user_id);
 
 COMMIT;

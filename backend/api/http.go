@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	z "github.com/Oudwins/zog"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -61,14 +62,14 @@ func SendMethodNotAllowedError(w http.ResponseWriter, response ErrorResponse) {
 // ReadAndValidateBody reads the JSON request body into the provided struct
 // and validates it against the provided Zod schema.
 func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T, schema *z.StructSchema) bool {
-	correlationID, _ := r.Context().Value(CorrelationIDKey).(string)
+	logger := zerolog.Ctx(r.Context())
 
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields() // Disallow unknown fields for strict matching
 
 	err := decoder.Decode(body)
 	if err != nil {
-		log.Error().Str("correlation_id", correlationID).Err(err).Msg("Failed to decode JSON request")
+		logger.Error().Err(err).Msg("Failed to decode JSON request")
 		SendBadRequestError(w, ErrorResponse{
 			Message: "Invalid JSON request",
 			Code:    "invalid_json",
@@ -78,7 +79,7 @@ func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T,
 
 	if err := schema.Validate(body); err != nil {
 		issues := z.Issues.SanitizeMapAndCollect(err)
-		log.Error().Str("correlation_id", correlationID).Interface("issues", issues).Msg("Invalid request body")
+		logger.Error().Interface("issues", issues).Msg("Invalid request body")
 		SendBadRequestError(w, ErrorResponse{
 			Message: "Invalid request body",
 			Code:    "invalid_request_body",
