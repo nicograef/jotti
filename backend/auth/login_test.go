@@ -71,8 +71,8 @@ func TestLoginHandler_InvalidCredentials(t *testing.T) {
 
 	handler.LoginHandler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Errorf("expected status 401, got %d", rec.Code)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
 
@@ -99,7 +99,7 @@ func TestLoginHandler_InactiveUser(t *testing.T) {
 
 	handler.LoginHandler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Errorf("expected status 401, got %d", rec.Code)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }

@@ -12,7 +12,9 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - db-network
+      - app-network
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d jotti"]
       interval: 5s
@@ -28,7 +30,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
-      - db-network
+      - app-network
     volumes:
       - ./database/migrations:/migrations
     depends_on:
@@ -52,7 +54,6 @@ services:
       - ./backend:/src
     networks:
       - app-network
-      - db-network
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -90,9 +91,6 @@ services:
 networks:
   app-network:
     driver: bridge
-  db-network:
-    driver: bridge
-    internal: true
 
 volumes:
   postgres-data:

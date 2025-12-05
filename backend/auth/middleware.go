@@ -7,6 +7,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/api"
 	"github.com/nicograef/jotti/backend/user"
+	"github.com/rs/zerolog/log"
 )
 
 // Context key types to avoid collisions
@@ -36,22 +37,17 @@ func jwtMiddleware(jwtSecret string, allowedRoles []user.Role, h http.Handler) h
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
 		if token == "" {
-			api.SendUnauthorizedError(w, api.ErrorResponse{
-				Message: "Missing Authorization header",
-				Code:    "missing_authorization",
-			})
+			log.Error().Msg("Missing Authorization header")
+			api.SendClientError(w, "missing_authorization", nil)
 			return
 		}
 
 		// get jwt token, remove "Bearer " prefix
 		token = token[len("Bearer "):]
-
 		payload, err := parseAndValidateJWTToken(token, jwtSecret)
 		if err != nil {
-			api.SendUnauthorizedError(w, api.ErrorResponse{
-				Message: "Invalid JWT token",
-				Code:    "invalid_jwt",
-			})
+			log.Error().Err(err).Msg("Invalid JWT token")
+			api.SendClientError(w, "invalid_jwt", nil)
 			return
 		}
 
@@ -64,10 +60,7 @@ func jwtMiddleware(jwtSecret string, allowedRoles []user.Role, h http.Handler) h
 			}
 		}
 		if !roleAllowed {
-			api.SendForbiddenError(w, api.ErrorResponse{
-				Message: fmt.Sprintf("Insufficient permissions for role %s", payload.Role),
-				Code:    "insufficient_permissions",
-			})
+			api.SendClientError(w, "insufficient_permissions", fmt.Sprintf("Insufficient permissions for role %s", payload.Role))
 			return
 		}
 

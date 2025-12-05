@@ -20,7 +20,7 @@ func CorrelationIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		correlationID := r.Header.Get("X-Correlation-ID")
 		if correlationID == "" {
-			correlationID = uuid.New().String()
+			correlationID = uuid.NewString()[:8] // Shorten UUID for brevity
 		}
 
 		w.Header().Set("X-Correlation-ID", correlationID)
@@ -36,24 +36,22 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 
 		correlationID, _ := r.Context().Value(CorrelationIDKey).(string)
-		logger := log.With().Str("correlation_id", correlationID).Logger()
+		logger := log.With().Str("correlation", correlationID).Logger()
 		r = r.WithContext(logger.WithContext(r.Context()))
 
 		logger.Debug().
-			Str("method", r.Method).
 			Str("path", r.URL.Path).
-			Msg("HTTP request received")
+			Msg("Request received")
 
 		// Create a response writer wrapper to capture status code
 		ww := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(ww, r)
 
 		logger.Info().
-			Str("method", r.Method).
 			Str("path", r.URL.Path).
 			Int("status", ww.statusCode).
-			Dur("duration_ms", time.Since(start)).
-			Msg("HTTP request completed")
+			Int64("duration_ms", time.Since(start).Milliseconds()).
+			Msg("Request completed")
 	})
 }
 
@@ -66,7 +64,7 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 			logger := zerolog.Ctx(r.Context())
 
 			if !limiter.Allow() {
-				logger.Warn().Str("path", r.URL.Path).Msg("Rate limit exceeded")
+				logger.Warn().Msg("Rate limit exceeded")
 				http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 				return
 			}
@@ -81,13 +79,8 @@ func PostMethodOnlyMiddleware(next http.Handler) http.HandlerFunc {
 		logger := zerolog.Ctx(r.Context())
 
 		if r.Method != http.MethodPost {
-			logger.Error().
-				Str("method", r.Method).
-				Msg("Invalid method. Only POST is allowed.")
-			SendMethodNotAllowedError(w, ErrorResponse{
-				Message: "Method not allowed",
-				Code:    "method_not_allowed",
-			})
+			logger.Error().Str("method", r.Method).Msg("Invalid method.")
+			SendClientError(w, "method_not_allowed", nil)
 			return
 		}
 

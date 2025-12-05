@@ -28,12 +28,12 @@ type handler struct {
 	query   query
 }
 
-type placeOrderRequest struct {
+type placeOrder struct {
 	TableID  int            `json:"tableId"`
 	Products []orderProduct `json:"products"`
 }
 
-var placeOrderRequestSchema = z.Struct(z.Shape{
+var placeOrderSchema = z.Struct(z.Shape{
 	"TableID":  table.IDSchema.Required(),
 	"Products": z.Slice(orderProductSchema).Min(1).Required(),
 })
@@ -45,8 +45,8 @@ type placeOrderResponse struct {
 // PlaceOrderHandler handles requests to place a new order.
 func (h *handler) PlaceOrderHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := placeOrderRequest{}
-		if !api.ReadAndValidateBody(w, r, &body, placeOrderRequestSchema) {
+		body := placeOrder{}
+		if !api.ReadAndValidateBody(w, r, &body, placeOrderSchema) {
 			return
 		}
 
@@ -54,7 +54,7 @@ func (h *handler) PlaceOrderHandler() http.HandlerFunc {
 		userID := ctx.Value(auth.UserIDKey).(int)
 		order, err := h.command.PlaceOrder(ctx, userID, body.TableID, body.Products)
 		if err != nil {
-			api.SendInternalServerError(w)
+			api.SendServerError(w)
 			return
 		}
 
@@ -64,11 +64,11 @@ func (h *handler) PlaceOrderHandler() http.HandlerFunc {
 	}
 }
 
-type getOrdersRequest struct {
+type getOrders struct {
 	TableID int `json:"tableId"`
 }
 
-var getOrdersRequestSchema = z.Struct(z.Shape{
+var getOrdersSchema = z.Struct(z.Shape{
 	"TableID": table.IDSchema.Required(),
 })
 
@@ -79,15 +79,15 @@ type getOrdersResponse struct {
 // GetOrdersHandler handles requests to retrieve orders for a specific table.
 func (h *handler) GetOrdersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := getOrdersRequest{}
-		if !api.ReadAndValidateBody(w, r, &body, getOrdersRequestSchema) {
+		body := getOrders{}
+		if !api.ReadAndValidateBody(w, r, &body, getOrdersSchema) {
 			return
 		}
 
 		ctx := r.Context()
 		orders, err := h.query.GetOrders(ctx, body.TableID)
 		if err != nil {
-			api.SendInternalServerError(w)
+			api.SendServerError(w)
 			return
 		}
 

@@ -20,11 +20,11 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import type { Table } from '@/lib/table/Table'
 import {
-  CreateTableRequestSchema,
+  CreateTableSchema,
   TableBackend,
 } from '@/lib/table/TableBackend'
 
-const FormDataSchema = CreateTableRequestSchema
+const FormDataSchema = CreateTableSchema
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewTableDialogProps {

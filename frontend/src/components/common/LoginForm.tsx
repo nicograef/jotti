@@ -9,12 +9,12 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { AuthSingleton } from '@/lib/auth'
-import { type AuthBackend, LoginRequestSchema } from '@/lib/AuthBackend'
+import { type AuthBackend, LoginSchema } from '@/lib/AuthBackend'
 import { BackendError } from '@/lib/Backend'
 
 import { PasswordField, UsernameField } from './FormFields'
 
-const FormDataSchema = LoginRequestSchema
+const FormDataSchema = LoginSchema
 type FormData = z.infer<typeof FormDataSchema>
 
 interface LoginFormProps {

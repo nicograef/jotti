@@ -22,10 +22,11 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
+import { BackendError } from '@/lib/Backend'
 import { type User, UserRole } from '@/lib/user/User'
-import { CreateUserRequestSchema, UserBackend } from '@/lib/user/UserBackend'
+import { CreateUserSchema, UserBackend } from '@/lib/user/UserBackend'
 
-const FormDataSchema = CreateUserRequestSchema
+const FormDataSchema = CreateUserSchema
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewUserDialogProps {
@@ -56,6 +57,15 @@ export function NewUserDialog(props: NewUserDialogProps) {
       props.created(user, onetimePassword)
     } catch (error: unknown) {
       console.error(error)
+
+      if (error instanceof BackendError) {
+        if (error.code === 'username_already_exists') {
+          form.setError('username', {
+            type: 'custom',
+            message: 'Dieser Benutzername ist bereits vergeben.',
+          })
+        }
+      }
     }
 
     setLoading(false)

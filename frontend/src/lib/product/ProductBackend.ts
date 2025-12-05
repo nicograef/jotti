@@ -7,14 +7,14 @@ import {
   ProductSchema,
 } from './Product'
 
-export const CreateProductRequestSchema = ProductSchema.pick({
+export const CreateProductSchema = ProductSchema.pick({
   name: true,
   description: true,
   netPriceCents: true,
   category: true,
 })
 
-export const UpdateProductRequestSchema = ProductSchema.pick({
+export const UpdateProductSchema = ProductSchema.pick({
   id: true,
   name: true,
   description: true,
@@ -38,9 +38,9 @@ export class ProductBackend {
   }
 
   public async createProduct(
-    newProduct: z.infer<typeof CreateProductRequestSchema>,
+    newProduct: z.infer<typeof CreateProductSchema>,
   ): Promise<{ product: Product }> {
-    const body = CreateProductRequestSchema.parse(newProduct)
+    const body = CreateProductSchema.parse(newProduct)
     const { product } = await this.backend.post(
       'create-product',
       body,
@@ -50,9 +50,9 @@ export class ProductBackend {
   }
 
   public async updateProduct(
-    updatedProduct: z.infer<typeof UpdateProductRequestSchema>,
+    updatedProduct: z.infer<typeof UpdateProductSchema>,
   ): Promise<Product> {
-    const body = UpdateProductRequestSchema.parse(updatedProduct)
+    const body = UpdateProductSchema.parse(updatedProduct)
     const { product } = await this.backend.post(
       'update-product',
       body,

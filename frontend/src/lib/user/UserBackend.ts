@@ -6,13 +6,13 @@ const OnetimePasswordSchema = z.string().regex(/^\d{6}$/, {
   message: 'Das Einmalpasswort muss genau 6 Ziffern enthalten.',
 })
 
-export const CreateUserRequestSchema = UserSchema.pick({
+export const CreateUserSchema = UserSchema.pick({
   name: true,
   username: true,
   role: true,
 })
 
-export const UpdateUserRequestSchema = UserSchema.pick({
+export const UpdateUserSchema = UserSchema.pick({
   id: true,
   name: true,
   username: true,
@@ -39,7 +39,7 @@ export class UserBackend {
     username: string,
     role: UserRole,
   ): Promise<{ user: User; onetimePassword: string }> {
-    const body = CreateUserRequestSchema.parse({ name, username, role })
+    const body = CreateUserSchema.parse({ name, username, role })
     const { user, onetimePassword } = await this.backend.post(
       'create-user',
       body,
@@ -49,9 +49,9 @@ export class UserBackend {
   }
 
   public async updateUser(
-    updatedUser: z.infer<typeof UpdateUserRequestSchema>,
+    updatedUser: z.infer<typeof UpdateUserSchema>,
   ): Promise<User> {
-    const body = UpdateUserRequestSchema.parse(updatedUser)
+    const body = UpdateUserSchema.parse(updatedUser)
     const { user } = await this.backend.post(
       'update-user',
       body,

@@ -4,15 +4,17 @@ import { AuthSingleton } from './auth'
 
 const ErrorResponseSchema = z.object({
   code: z.string(),
-  message: z.string(),
+  details: z.string().optional(),
 })
 
 export class BackendError extends Error {
   public readonly status: number
   public readonly code: string
 
-  constructor(status: number, code: string, message: string) {
-    super(message)
+  constructor(status: number, code: string, details?: string) {
+    super(
+      details ? `BackendError: ${code} - ${details}` : `BackendError: ${code}`,
+    )
     this.status = status
     this.code = code
     Object.setPrototypeOf(this, BackendError.prototype)
@@ -56,12 +58,10 @@ class Backend {
 
     if (!response.ok) {
       try {
-        const responseBody = ErrorResponseSchema.parse(await response.json())
-        throw new BackendError(
-          response.status,
-          responseBody.code,
-          responseBody.message,
+        const { code, details } = ErrorResponseSchema.parse(
+          await response.json(),
         )
+        throw new BackendError(response.status, code, details)
       } catch (error) {
         if (error instanceof BackendError) throw error
 

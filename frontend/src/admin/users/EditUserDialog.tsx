@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
+import { BackendError } from '@/lib/Backend'
 import { type User, UserSchema } from '@/lib/user/User'
 import type { UserBackend } from '@/lib/user/UserBackend'
 
@@ -66,6 +67,15 @@ export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
       props.close()
     } catch (error: unknown) {
       console.error(error)
+
+      if (error instanceof BackendError) {
+        if (error.code === 'username_already_exists') {
+          form.setError('username', {
+            type: 'custom',
+            message: 'Dieser Benutzername ist bereits vergeben.',
+          })
+        }
+      }
     }
 
     setLoading(false)

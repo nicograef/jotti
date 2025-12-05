@@ -1,12 +1,10 @@
 package product
 
 import (
-	"context"
 	"errors"
 	"time"
 
 	z "github.com/Oudwins/zog"
-	"github.com/rs/zerolog/log"
 )
 
 // Product represents a user in the system.
@@ -55,6 +53,11 @@ var CategorySchema = z.StringLike[Category]().OneOf(
 // ErrProductNotFound is returned when a product is not found.
 var ErrProductNotFound = errors.New("product not found")
 
+var ErrProductAlreadyExists = errors.New("product already exists")
+
+// ErrDatabase is returned when there is a database error.
+var ErrDatabase = errors.New("database error")
+
 // Status represents the status of a product.
 type Status string
 
@@ -78,117 +81,3 @@ const (
 	// OtherCategory indicates the product belongs to the other category.
 	OtherCategory Category = "other"
 )
-
-// ErrDatabase is returned when there is a database error.
-var ErrDatabase = errors.New("database error")
-
-type persistence interface {
-	GetProduct(ctx context.Context, id int) (*Product, error)
-	GetAllProducts(ctx context.Context) ([]*Product, error)
-	GetActiveProducts(ctx context.Context) ([]*ProductPublic, error)
-	CreateProduct(ctx context.Context, name, description string, netPriceCents int, category Category) (int, error)
-	UpdateProduct(ctx context.Context, id int, name, description string, netPriceCents int, category Category) error
-	ActivateProduct(ctx context.Context, id int) error
-	DeactivateProduct(ctx context.Context, id int) error
-}
-
-// Service provides product-related operations.
-type Service struct {
-	Persistence persistence
-}
-
-// CreateProduct creates a new product in the database.
-func (s *Service) CreateProduct(ctx context.Context, name, description string, netPriceCents int, category Category) (*Product, error) {
-	id, err := s.Persistence.CreateProduct(ctx, name, description, netPriceCents, category)
-	if err != nil {
-		log.Error().Err(err).Str("name", name).Msg("Failed to create product")
-		return nil, ErrDatabase
-	}
-
-	product, err := s.Persistence.GetProduct(ctx, id)
-	if err != nil {
-		log.Error().Err(err).Int("product_id", id).Msg("Failed to retrieve product after creation")
-		return nil, ErrDatabase
-	}
-
-	return product, nil
-}
-
-// UpdateProduct updates an existing product in the database.
-func (s *Service) UpdateProduct(ctx context.Context, id int, name, description string, netPriceCents int, category Category) (*Product, error) {
-	err := s.Persistence.UpdateProduct(ctx, id, name, description, netPriceCents, category)
-	if err != nil {
-		if errors.Is(err, ErrProductNotFound) {
-			return nil, ErrProductNotFound
-		}
-		log.Error().Err(err).Int("product_id", id).Msg("Failed to update product")
-		return nil, ErrDatabase
-	}
-
-	updatedProduct, err := s.Persistence.GetProduct(ctx, id)
-	if err != nil {
-		log.Error().Err(err).Int("product_id", id).Msg("Failed to retrieve updated product")
-		return nil, ErrDatabase
-	}
-
-	return updatedProduct, nil
-}
-
-// GetProduct retrieves a product by its ID.
-func (s *Service) GetProduct(ctx context.Context, id int) (*Product, error) {
-	product, err := s.Persistence.GetProduct(ctx, id)
-	if err != nil {
-		if errors.Is(err, ErrProductNotFound) {
-			return nil, ErrProductNotFound
-		}
-		log.Error().Err(err).Int("product_id", id).Msg("Failed to retrieve product")
-		return nil, ErrDatabase
-	}
-	return product, nil
-}
-
-// GetAllProducts retrieves all products.
-func (s *Service) GetAllProducts(ctx context.Context) ([]*Product, error) {
-	products, err := s.Persistence.GetAllProducts(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve all products")
-		return nil, ErrDatabase
-	}
-	return products, nil
-}
-
-// GetActiveProducts retrieves active products.
-func (s *Service) GetActiveProducts(ctx context.Context) ([]*ProductPublic, error) {
-	products, err := s.Persistence.GetActiveProducts(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve active products")
-		return nil, ErrDatabase
-	}
-	return products, nil
-}
-
-// ActivateProduct sets the status of a product to active.
-func (s *Service) ActivateProduct(ctx context.Context, id int) error {
-	err := s.Persistence.ActivateProduct(ctx, id)
-	if err != nil {
-		if errors.Is(err, ErrProductNotFound) {
-			return ErrProductNotFound
-		}
-		log.Error().Err(err).Int("product_id", id).Msg("Failed to activate product")
-		return ErrDatabase
-	}
-	return nil
-}
-
-// DeactivateProduct sets the status of a product to inactive.
-func (s *Service) DeactivateProduct(ctx context.Context, id int) error {
-	err := s.Persistence.DeactivateProduct(ctx, id)
-	if err != nil {
-		if errors.Is(err, ErrProductNotFound) {
-			return ErrProductNotFound
-		}
-		log.Error().Err(err).Int("product_id", id).Msg("Failed to deactivate product")
-		return ErrDatabase
-	}
-	return nil
-}

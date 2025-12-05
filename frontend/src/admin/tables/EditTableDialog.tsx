@@ -19,10 +19,10 @@ import { Spinner } from '@/components/ui/spinner'
 import type { Table } from '@/lib/table/Table'
 import {
   TableBackend,
-  UpdateTableRequestSchema,
+  UpdateTableSchema,
 } from '@/lib/table/TableBackend'
 
-const FormDataSchema = UpdateTableRequestSchema.omit({ id: true })
+const FormDataSchema = UpdateTableSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface EditTableDialogProps {

@@ -15,7 +15,7 @@ const OnetimePasswordSchema = z.string().regex(/^\d{6}$/, {
   message: 'Das Einmalpasswort muss genau 6 Ziffern enthalten.',
 })
 
-export const LoginRequestSchema = z.object({
+export const LoginSchema = z.object({
   username: UsernameSchema,
   password: PasswordSchema,
 })
@@ -23,7 +23,7 @@ const LoginResponseSchema = z.object({
   token: z.string().min(10),
 })
 
-export const SetPasswordRequestSchema = z.object({
+export const SetPasswordSchema = z.object({
   username: UsernameSchema,
   password: PasswordSchema,
   onetimePassword: OnetimePasswordSchema,
@@ -49,7 +49,7 @@ export class AuthBackend {
 
   /** Sends a login request with the given username and password and returns the JWT token from the backend. */
   public async login(username: string, password: string): Promise<string> {
-    const body = LoginRequestSchema.parse({ username, password })
+    const body = LoginSchema.parse({ username, password })
     const { token } = await this.backend.post(
       'login',
       body,
@@ -64,7 +64,7 @@ export class AuthBackend {
     password: string,
     onetimePassword: string,
   ): Promise<string> {
-    const body = SetPasswordRequestSchema.parse({
+    const body = SetPasswordSchema.parse({
       username,
       password,
       onetimePassword,

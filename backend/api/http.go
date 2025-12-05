@@ -9,8 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type ErrorResponse struct {
-	Message string `json:"message"`
+type errorResponse struct {
 	Code    string `json:"code"`
 	Details any    `json:"details,omitempty"`
 }
@@ -23,68 +22,41 @@ func sendJSONResponse(w http.ResponseWriter, data any, statusCode int) {
 	}
 }
 
-func SendResponse(w http.ResponseWriter, data any) {
-	sendJSONResponse(w, data, http.StatusOK)
+func SendResponse(w http.ResponseWriter, response any) {
+	sendJSONResponse(w, response, http.StatusOK)
 }
 
 func SendEmptyResponse(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNoContent)
+	sendJSONResponse(w, struct{}{}, http.StatusOK)
 }
 
-func SendInternalServerError(w http.ResponseWriter) {
-	response := ErrorResponse{
-		Message: "Internal server error",
-		Code:    "internal_server_error",
-	}
-	sendJSONResponse(w, response, http.StatusInternalServerError)
+func SendClientError(w http.ResponseWriter, code string, details any) {
+	sendJSONResponse(w, errorResponse{Code: code, Details: details}, http.StatusBadRequest)
 }
 
-func SendBadRequestError(w http.ResponseWriter, response ErrorResponse) {
-	sendJSONResponse(w, response, http.StatusBadRequest)
-}
-
-func SendNotFoundError(w http.ResponseWriter, response ErrorResponse) {
-	sendJSONResponse(w, response, http.StatusNotFound)
-}
-
-func SendUnauthorizedError(w http.ResponseWriter, response ErrorResponse) {
-	sendJSONResponse(w, response, http.StatusUnauthorized)
-}
-
-func SendForbiddenError(w http.ResponseWriter, response ErrorResponse) {
-	sendJSONResponse(w, response, http.StatusForbidden)
-}
-
-func SendMethodNotAllowedError(w http.ResponseWriter, response ErrorResponse) {
-	sendJSONResponse(w, response, http.StatusMethodNotAllowed)
+func SendServerError(w http.ResponseWriter) {
+	sendJSONResponse(w, errorResponse{Code: "internal_server_error"}, http.StatusInternalServerError)
 }
 
 // ReadAndValidateBody reads the JSON request body into the provided struct
 // and validates it against the provided Zod schema.
 func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T, schema *z.StructSchema) bool {
-	logger := zerolog.Ctx(r.Context())
+	log := zerolog.Ctx(r.Context())
 
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields() // Disallow unknown fields for strict matching
 
 	err := decoder.Decode(body)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to decode JSON request")
-		SendBadRequestError(w, ErrorResponse{
-			Message: "Invalid JSON request",
-			Code:    "invalid_json",
-		})
+		log.Error().Err(err).Msg("Failed to decode JSON request")
+		SendClientError(w, "invalid_json", nil)
 		return false
 	}
 
 	if err := schema.Validate(body); err != nil {
 		issues := z.Issues.SanitizeMapAndCollect(err)
-		logger.Error().Interface("issues", issues).Msg("Invalid request body")
-		SendBadRequestError(w, ErrorResponse{
-			Message: "Invalid request body",
-			Code:    "invalid_request_body",
-			Details: issues,
-		})
+		log.Error().Interface("issues", issues).Msg("Invalid request body")
+		SendClientError(w, "invalid_request_body", issues)
 		return false
 	}
 

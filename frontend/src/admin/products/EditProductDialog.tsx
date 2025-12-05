@@ -24,10 +24,10 @@ import { Spinner } from '@/components/ui/spinner'
 import type { Product } from '@/lib/product/Product'
 import {
   ProductBackend,
-  UpdateProductRequestSchema,
+  UpdateProductSchema,
 } from '@/lib/product/ProductBackend'
 
-const FormDataSchema = UpdateProductRequestSchema.omit({ id: true })
+const FormDataSchema = UpdateProductSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface EditProductDialogProps {

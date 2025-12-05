@@ -7,11 +7,11 @@ import {
   TableSchema,
 } from './Table'
 
-export const CreateTableRequestSchema = TableSchema.pick({
+export const CreateTableSchema = TableSchema.pick({
   name: true,
 })
 
-export const UpdateTableRequestSchema = TableSchema.pick({
+export const UpdateTableSchema = TableSchema.pick({
   id: true,
   name: true,
 })
@@ -60,9 +60,9 @@ export class TableBackend {
   }
 
   public async createTable(
-    newTable: z.infer<typeof CreateTableRequestSchema>,
+    newTable: z.infer<typeof CreateTableSchema>,
   ): Promise<Table> {
-    const body = CreateTableRequestSchema.parse(newTable)
+    const body = CreateTableSchema.parse(newTable)
     const { table } = await this.backend.post(
       'create-table',
       body,
@@ -72,9 +72,9 @@ export class TableBackend {
   }
 
   public async updateTable(
-    updatedTable: z.infer<typeof UpdateTableRequestSchema>,
+    updatedTable: z.infer<typeof UpdateTableSchema>,
   ): Promise<Table> {
-    const body = UpdateTableRequestSchema.parse(updatedTable)
+    const body = UpdateTableSchema.parse(updatedTable)
     const { table } = await this.backend.post(
       'update-table',
       body,

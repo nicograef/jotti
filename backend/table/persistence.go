@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/rs/zerolog"
 )
 
@@ -27,15 +28,10 @@ func (p *Persistence) GetTable(ctx context.Context, id int) (*Table, error) {
 
 	var dbTable dbtable
 	if err := row.Scan(&dbTable.ID, &dbTable.Name, &dbTable.Status, &dbTable.CreatedAt); err != nil {
-		if err == sql.ErrNoRows {
-			log.Warn().Int("table_id", id).Msg("Table not found")
-			return nil, ErrTableNotFound
-		}
-		log.Error().Err(err).Int("table_id", id).Msg("Failed to scan table")
-		return nil, err
+		log.Error().Err(err).Int("table_id", id).Msg("DB Error scanning table row")
+		return nil, db.Error(err)
 	}
 
-	log.Debug().Int("table_id", id).Msg("Table retrieved")
 	return &Table{
 		ID:        dbTable.ID,
 		Name:      dbTable.Name,
@@ -45,29 +41,25 @@ func (p *Persistence) GetTable(ctx context.Context, id int) (*Table, error) {
 }
 
 // GetAllTables retrieves all tables from the database.
-func (p *Persistence) GetAllTables(ctx context.Context) ([]*Table, error) {
+func (p *Persistence) GetAllTables(ctx context.Context) ([]Table, error) {
 	log := zerolog.Ctx(ctx)
 
 	rows, err := p.DB.QueryContext(ctx, "SELECT id, name, status, created_at FROM tables WHERE status != 'deleted' ORDER BY id ASC")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to query all tables")
-		return nil, err
+		log.Error().Err(err).Msg("DB Error querying all tables")
+		return nil, db.Error(err)
 	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			err = closeErr
-		}
-	}()
+	defer db.Close(rows, "tables", log)
 
-	var tables []*Table
+	tables := []Table{}
 	for rows.Next() {
 		var dbTable dbtable
 		if err := rows.Scan(&dbTable.ID, &dbTable.Name, &dbTable.Status, &dbTable.CreatedAt); err != nil {
-			log.Error().Err(err).Msg("Failed to scan table")
-			return nil, err
+			log.Error().Err(err).Msg("DB Error scanning table row")
+			return nil, db.Error(err)
 		}
 
-		tables = append(tables, &Table{
+		tables = append(tables, Table{
 			ID:        dbTable.ID,
 			Name:      dbTable.Name,
 			Status:    Status(dbTable.Status),
@@ -76,48 +68,43 @@ func (p *Persistence) GetAllTables(ctx context.Context) ([]*Table, error) {
 	}
 
 	if err := rows.Err(); err != nil {
-		log.Error().Err(err).Msg("Error iterating over table rows")
-		return nil, err
+		log.Error().Err(err).Msg("DB Error iterating over table rows")
+		return nil, db.Error(err)
 	}
 
-	log.Debug().Int("count", len(tables)).Msg("Retrieved all tables")
 	return tables, nil
 }
 
 // GetActiveTables retrieves all active tables from the database.
-func (p *Persistence) GetActiveTables(ctx context.Context) ([]*TablePublic, error) {
+func (p *Persistence) GetActiveTables(ctx context.Context) ([]TablePublic, error) {
 	log := zerolog.Ctx(ctx)
 
 	rows, err := p.DB.QueryContext(ctx, "SELECT id, name FROM tables WHERE status = 'active' ORDER BY name ASC")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to query active tables")
-		return nil, err
+		log.Error().Err(err).Msg("DB Error querying active tables")
+		return nil, db.Error(err)
 	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			err = closeErr
-		}
-	}()
+	defer db.Close(rows, "tables", log)
 
-	var tables []*TablePublic
+	tables := []TablePublic{}
 	for rows.Next() {
 		var dbTable dbtable
 		if err := rows.Scan(&dbTable.ID, &dbTable.Name); err != nil {
-			return nil, err
+			log.Error().Err(err).Msg("DB Error scanning active table row")
+			return nil, db.Error(err)
 		}
 
-		tables = append(tables, &TablePublic{
+		tables = append(tables, TablePublic{
 			ID:   dbTable.ID,
 			Name: dbTable.Name,
 		})
 	}
 
 	if err := rows.Err(); err != nil {
-		log.Error().Err(err).Msg("Error iterating over table rows")
-		return nil, err
+		log.Error().Err(err).Msg("DB Error iterating over table rows")
+		return nil, db.Error(err)
 	}
 
-	log.Debug().Int("count", len(tables)).Msg("Retrieved active tables")
 	return tables, nil
 }
 
@@ -127,12 +114,12 @@ func (p *Persistence) CreateTable(ctx context.Context, name string) (int, error)
 
 	var id int
 	err := p.DB.QueryRowContext(ctx, "INSERT INTO tables (name) VALUES ($1) RETURNING id", name).Scan(&id)
+
 	if err != nil {
-		log.Error().Err(err).Str("name", name).Msg("Failed to create table")
-		return 0, err
+		log.Error().Err(err).Str("table_name", name).Msg("DB Error creating table")
+		return 0, db.Error(err)
 	}
 
-	log.Info().Int("table_id", id).Str("name", name).Msg("Table created")
 	return id, nil
 }
 
@@ -142,17 +129,11 @@ func (p *Persistence) UpdateTable(ctx context.Context, id int, name string) erro
 
 	result, err := p.DB.ExecContext(ctx, "UPDATE tables SET name = $1 WHERE id = $2", name, id)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", id).Msg("Failed to update table")
-		return err
+		log.Error().Err(err).Int("table_id", id).Msg("DB Error updating table")
+		return db.Error(err)
 	}
 
-	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		log.Warn().Int("table_id", id).Msg("Table not found for update")
-		return ErrTableNotFound
-	}
-
-	log.Info().Int("table_id", id).Msg("Table updated")
-	return nil
+	return db.ResultError(result)
 }
 
 // ActivateTable sets the status of a table to active.
@@ -161,17 +142,11 @@ func (p *Persistence) ActivateTable(ctx context.Context, id int) error {
 
 	result, err := p.DB.ExecContext(ctx, "UPDATE tables SET status = 'active' WHERE id = $1", id)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", id).Msg("Failed to activate table")
-		return err
+		log.Error().Err(err).Int("table_id", id).Msg("DB Error activating table")
+		return db.Error(err)
 	}
 
-	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		log.Warn().Int("table_id", id).Msg("Table not found for activation")
-		return ErrTableNotFound
-	}
-
-	log.Info().Int("table_id", id).Msg("Table activated")
-	return nil
+	return db.ResultError(result)
 }
 
 // DeactivateTable sets the status of a table to inactive.
@@ -180,15 +155,9 @@ func (p *Persistence) DeactivateTable(ctx context.Context, id int) error {
 
 	result, err := p.DB.ExecContext(ctx, "UPDATE tables SET status = 'inactive' WHERE id = $1", id)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", id).Msg("Failed to deactivate table")
-		return err
+		log.Error().Err(err).Int("table_id", id).Msg("DB Error deactivating table")
+		return db.Error(err)
 	}
 
-	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		log.Debug().Int("table_id", id).Msg("Table not found for deactivation")
-		return ErrTableNotFound
-	}
-
-	log.Info().Int("table_id", id).Msg("Table deactivated")
-	return nil
+	return db.ResultError(result)
 }

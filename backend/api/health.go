@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 type database interface {
@@ -27,6 +27,8 @@ type HealthResponse struct {
 // Handler returns an HTTP handler for the enhanced health check endpoint with database ping.
 func (h *HealthCheck) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log := zerolog.Ctx(r.Context())
+
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
 

@@ -70,25 +70,25 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/reset-password", admin(uh.ResetPasswordHandler()))
 
 	tablePersistence := table.Persistence{DB: db}
-	tableService := table.Service{Persistence: &tablePersistence}
-	th := table.Handler{Service: &tableService}
-	r.HandleFunc("/get-table", service(th.GetTableHandler()))
-	r.HandleFunc("/get-active-tables", service(th.GetActiveTablesHandler()))
-	r.HandleFunc("/get-all-tables", admin(th.GetAllTablesHandler()))
-	r.HandleFunc("/update-table", admin(th.UpdateTableHandler()))
-	r.HandleFunc("/create-table", admin(th.CreateTableHandler()))
-	r.HandleFunc("/activate-table", admin(th.ActivateTableHandler()))
-	r.HandleFunc("/deactivate-table", admin(th.DeactivateTableHandler()))
+	tch := table.CommandHandler{Command: &table.Command{Persistence: &tablePersistence}}
+	r.HandleFunc("/update-table", admin(tch.UpdateTableHandler()))
+	r.HandleFunc("/create-table", admin(tch.CreateTableHandler()))
+	r.HandleFunc("/activate-table", admin(tch.ActivateTableHandler()))
+	r.HandleFunc("/deactivate-table", admin(tch.DeactivateTableHandler()))
+	tqh := table.QueryHandler{Query: &table.Query{Persistence: &tablePersistence}}
+	r.HandleFunc("/get-table", service(tqh.GetTableHandler()))
+	r.HandleFunc("/get-active-tables", service(tqh.GetActiveTablesHandler()))
+	r.HandleFunc("/get-all-tables", admin(tqh.GetAllTablesHandler()))
 
 	productPersistence := product.Persistence{DB: db}
-	productService := product.Service{Persistence: &productPersistence}
-	ph := product.Handler{Service: &productService}
-	r.HandleFunc("/get-active-products", service(ph.GetActiveProductsHandler()))
-	r.HandleFunc("/get-all-products", admin(ph.GetAllProductsHandler()))
-	r.HandleFunc("/create-product", admin(ph.CreateProductHandler()))
-	r.HandleFunc("/update-product", admin(ph.UpdateProductHandler()))
-	r.HandleFunc("/activate-product", admin(ph.ActivateProductHandler()))
-	r.HandleFunc("/deactivate-product", admin(ph.DeactivateProductHandler()))
+	pch := product.CommandHandler{Command: &product.Command{Persistence: &productPersistence}}
+	r.HandleFunc("/create-product", admin(pch.CreateProductHandler()))
+	r.HandleFunc("/update-product", admin(pch.UpdateProductHandler()))
+	r.HandleFunc("/activate-product", admin(pch.ActivateProductHandler()))
+	r.HandleFunc("/deactivate-product", admin(pch.DeactivateProductHandler()))
+	pqh := product.QueryHandler{Query: &product.Query{Persistence: &productPersistence}}
+	r.HandleFunc("/get-active-products", service(pqh.GetActiveProductsHandler()))
+	r.HandleFunc("/get-all-products", admin(pqh.GetAllProductsHandler()))
 
 	eventPersistence := event.Persistence{DB: db}
 	oh := order.NewHandler(&eventPersistence)

@@ -32,7 +32,7 @@ Local access uses `localhost` only (no subdomains needed).
 **Start dev stack:**
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up --build -d
 ```
 
 - Frontend: http://localhost (SPA served at root)

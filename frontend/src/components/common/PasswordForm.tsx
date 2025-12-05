@@ -15,12 +15,12 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { AuthSingleton } from '@/lib/auth'
-import { AuthBackend, SetPasswordRequestSchema } from '@/lib/AuthBackend'
+import { AuthBackend, SetPasswordSchema } from '@/lib/AuthBackend'
 import { BackendError } from '@/lib/Backend'
 
 import { NewPasswordField, OTPField, UsernameField } from './FormFields'
 
-const FormDataSchema = SetPasswordRequestSchema
+const FormDataSchema = SetPasswordSchema
 type FormData = z.infer<typeof FormDataSchema>
 
 interface PasswordFormProps {

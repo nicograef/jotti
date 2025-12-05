@@ -8,7 +8,7 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 // Role represents the role of a user.
@@ -72,6 +72,9 @@ var StatusSchema = z.StringLike[Status]().OneOf(
 // ErrUserNotFound is returned when a user is not found.
 var ErrUserNotFound = errors.New("user not found")
 
+// ErrUserNotFound is returned when a user is not found.
+var ErrUsernameAlreadyExists = errors.New("username already exists")
+
 // ErrInvalidPassword is returned when a password is invalid.
 var ErrInvalidPassword = errors.New("invalid password")
 
@@ -106,6 +109,8 @@ type Service struct {
 
 // CreateUser creates a new user in the database without setting a password.
 func (s *Service) CreateUser(ctx context.Context, name, username string, role Role) (*User, string, error) {
+	log := zerolog.Ctx(ctx)
+
 	onetimePassword, err := generateOnetimePassword()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create one-time password")
@@ -139,6 +144,8 @@ func (s *Service) CreateUser(ctx context.Context, name, username string, role Ro
 // VerifyPasswordAndGetUser logs in a user by validating the provided password against the stored password hash.
 // If the user has no password set, it sets the provided password as the new password.
 func (s *Service) VerifyPasswordAndGetUser(ctx context.Context, username, password string) (*User, error) {
+	log := zerolog.Ctx(ctx)
+
 	id, err := s.Persistence.GetUserID(ctx, username)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
@@ -174,6 +181,8 @@ func (s *Service) VerifyPasswordAndGetUser(ctx context.Context, username, passwo
 // SetNewPassword logs in a user by validating the provided one-time password against the stored password hash.
 // If the user has no password set, it sets the provided password as the new password.
 func (s *Service) SetNewPassword(ctx context.Context, username, newPassword, onetimePassword string) (*User, error) {
+	log := zerolog.Ctx(ctx)
+
 	id, err := s.Persistence.GetUserID(ctx, username)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
@@ -216,6 +225,8 @@ func (s *Service) SetNewPassword(ctx context.Context, username, newPassword, one
 
 // ResetPassword resets the password for the user with the given user ID and returns a new one-time password.
 func (s *Service) ResetPassword(ctx context.Context, userID int) (string, error) {
+	log := zerolog.Ctx(ctx)
+
 	onetimePassword, err := generateOnetimePassword()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create one-time password")
@@ -242,6 +253,8 @@ func (s *Service) ResetPassword(ctx context.Context, userID int) (string, error)
 
 // UpdateUser updates the user's details in the database.
 func (s *Service) UpdateUser(ctx context.Context, id int, name, username string, role Role) (*User, error) {
+	log := zerolog.Ctx(ctx)
+
 	err := s.Persistence.UpdateUser(ctx, id, name, username, role)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
 		log.Warn().Int("user_id", id).Msg("User not found for update")
@@ -262,6 +275,8 @@ func (s *Service) UpdateUser(ctx context.Context, id int, name, username string,
 
 // GetAllUsers retrieves all users from the database.
 func (s *Service) GetAllUsers(ctx context.Context) ([]*User, error) {
+	log := zerolog.Ctx(ctx)
+
 	users, err := s.Persistence.GetAllUsers(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve all users")
@@ -273,6 +288,8 @@ func (s *Service) GetAllUsers(ctx context.Context) ([]*User, error) {
 
 // ActivateUser sets the status of the user with the given user ID to 'active'.
 func (s *Service) ActivateUser(ctx context.Context, id int) error {
+	log := zerolog.Ctx(ctx)
+
 	err := s.Persistence.ActivateUser(ctx, id)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
 		log.Warn().Int("user_id", id).Msg("User not found for activation")
@@ -287,6 +304,8 @@ func (s *Service) ActivateUser(ctx context.Context, id int) error {
 
 // DeactivateUser sets the status of the user with the given user ID to 'inactive'.
 func (s *Service) DeactivateUser(ctx context.Context, id int) error {
+	log := zerolog.Ctx(ctx)
+
 	err := s.Persistence.DeactivateUser(ctx, id)
 	if err != nil && errors.Is(err, ErrUserNotFound) {
 		log.Warn().Int("user_id", id).Msg("User not found for deactivation")

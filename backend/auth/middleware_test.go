@@ -51,8 +51,8 @@ func TestAdminMiddleware_NoToken(t *testing.T) {
 
 	middleware.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Errorf("expected status 401, got %d", rec.Code)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
 
@@ -81,8 +81,8 @@ func TestAdminMiddleware_ServiceRole(t *testing.T) {
 
 	middleware.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusForbidden {
-		t.Errorf("expected status 403, got %d", rec.Code)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
 

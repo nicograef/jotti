@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/rs/zerolog"
 )
 
@@ -30,15 +31,10 @@ func (p *Persistence) GetProduct(ctx context.Context, id int) (*Product, error) 
 
 	var dbProduct dbproduct
 	if err := row.Scan(&dbProduct.ID, &dbProduct.Name, &dbProduct.Description, &dbProduct.NetPriceCents, &dbProduct.Status, &dbProduct.Category, &dbProduct.CreatedAt); err != nil {
-		if err == sql.ErrNoRows {
-			log.Warn().Int("product_id", id).Msg("Product not found")
-			return nil, ErrProductNotFound
-		}
-		log.Error().Err(err).Int("product_id", id).Msg("Failed to scan product")
-		return nil, err
+		log.Error().Err(err).Int("product_id", id).Msg("DB Error scanning product row")
+		return nil, db.Error(err)
 	}
 
-	log.Debug().Int("product_id", id).Msg("Product retrieved")
 	return &Product{
 		ID:            dbProduct.ID,
 		Name:          dbProduct.Name,
@@ -51,27 +47,25 @@ func (p *Persistence) GetProduct(ctx context.Context, id int) (*Product, error) 
 }
 
 // GetAllProducts retrieves all products from the database.
-func (p *Persistence) GetAllProducts(ctx context.Context) ([]*Product, error) {
+func (p *Persistence) GetAllProducts(ctx context.Context) ([]Product, error) {
 	log := zerolog.Ctx(ctx)
 
 	rows, err := p.DB.QueryContext(ctx, "SELECT id, name, description, net_price_cents, status, category, created_at FROM products WHERE status != 'deleted' ORDER BY id ASC")
 	if err != nil {
-		return nil, err
+		log.Error().Err(err).Msg("DB Error querying all products")
+		return nil, db.Error(err)
 	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			err = closeErr
-		}
-	}()
+	defer db.Close(rows, "products", log)
 
-	var products []*Product
+	products := []Product{}
 	for rows.Next() {
 		var dbProduct dbproduct
 		if err := rows.Scan(&dbProduct.ID, &dbProduct.Name, &dbProduct.Description, &dbProduct.NetPriceCents, &dbProduct.Status, &dbProduct.Category, &dbProduct.CreatedAt); err != nil {
-			return nil, err
+			log.Error().Err(err).Msg("DB Error scanning product row")
+			return nil, db.Error(err)
 		}
 
-		products = append(products, &Product{
+		products = append(products, Product{
 			ID:            dbProduct.ID,
 			Name:          dbProduct.Name,
 			Description:   dbProduct.Description,
@@ -82,32 +76,34 @@ func (p *Persistence) GetAllProducts(ctx context.Context) ([]*Product, error) {
 		})
 	}
 
-	log.Debug().Int("count", len(products)).Msg("Retrieved all products")
+	if err := rows.Err(); err != nil {
+		log.Error().Err(err).Msg("DB Error iterating over product rows")
+		return nil, db.Error(err)
+	}
+
 	return products, nil
 }
 
 // GetActiveProducts retrieves active products from the database.
-func (p *Persistence) GetActiveProducts(ctx context.Context) ([]*ProductPublic, error) {
+func (p *Persistence) GetActiveProducts(ctx context.Context) ([]ProductPublic, error) {
 	log := zerolog.Ctx(ctx)
 
 	rows, err := p.DB.QueryContext(ctx, "SELECT id, name, description, net_price_cents, category FROM products WHERE status = 'active' ORDER BY category, name ASC")
 	if err != nil {
-		return nil, err
+		log.Error().Err(err).Msg("DB Error querying active products")
+		return nil, db.Error(err)
 	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			err = closeErr
-		}
-	}()
+	defer db.Close(rows, "products", log)
 
-	var products []*ProductPublic
+	products := []ProductPublic{}
 	for rows.Next() {
 		var dbProduct dbproduct
 		if err := rows.Scan(&dbProduct.ID, &dbProduct.Name, &dbProduct.Description, &dbProduct.NetPriceCents, &dbProduct.Category); err != nil {
-			return nil, err
+			log.Error().Err(err).Msg("DB Error scanning product row")
+			return nil, db.Error(err)
 		}
 
-		products = append(products, &ProductPublic{
+		products = append(products, ProductPublic{
 			ID:            dbProduct.ID,
 			Name:          dbProduct.Name,
 			Description:   dbProduct.Description,
@@ -116,7 +112,11 @@ func (p *Persistence) GetActiveProducts(ctx context.Context) ([]*ProductPublic, 
 		})
 	}
 
-	log.Debug().Int("count", len(products)).Msg("Retrieved active products")
+	if err := rows.Err(); err != nil {
+		log.Error().Err(err).Msg("DB Error iterating over product rows")
+		return nil, db.Error(err)
+	}
+
 	return products, nil
 }
 
@@ -129,11 +129,12 @@ func (p *Persistence) CreateProduct(ctx context.Context, name, description strin
 		"INSERT INTO products (name, description, net_price_cents, category) VALUES ($1, $2, $3, $4) RETURNING id",
 		name, description, netPriceCents, string(category),
 	).Scan(&id)
+
 	if err != nil {
-		log.Error().Err(err).Str("name", name).Msg("Failed to create product")
-		return 0, err
+		log.Error().Err(err).Str("product_name", name).Msg("DB Error creating product")
+		return 0, db.Error(err)
 	}
-	log.Info().Int("product_id", id).Str("name", name).Msg("Product created")
+
 	return id, nil
 }
 
@@ -146,21 +147,11 @@ func (p *Persistence) UpdateProduct(ctx context.Context, id int, name, descripti
 		name, description, netPriceCents, string(category), id,
 	)
 	if err != nil {
-		log.Error().Err(err).Int("product_id", id).Msg("Failed to update product")
-		return err
+		log.Error().Err(err).Int("product_id", id).Msg("DB Error updating product")
+		return db.Error(err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rowsAffected == 0 {
-		log.Warn().Int("product_id", id).Msg("Product not found for update")
-		return ErrProductNotFound
-	}
-
-	log.Info().Int("product_id", id).Msg("Product updated")
-	return nil
+	return db.ResultError(result)
 }
 
 // ActivateProduct sets the status of a product to active.
@@ -169,21 +160,11 @@ func (p *Persistence) ActivateProduct(ctx context.Context, id int) error {
 
 	result, err := p.DB.ExecContext(ctx, "UPDATE products SET status = 'active' WHERE id = $1 AND status != 'deleted'", id)
 	if err != nil {
-		log.Error().Err(err).Int("product_id", id).Msg("Failed to activate product")
-		return err
+		log.Error().Err(err).Int("product_id", id).Msg("DB Error activating product")
+		return db.Error(err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rowsAffected == 0 {
-		log.Warn().Int("product_id", id).Msg("Product not found for activation")
-		return ErrProductNotFound
-	}
-
-	log.Info().Int("product_id", id).Msg("Product activated")
-	return nil
+	return db.ResultError(result)
 }
 
 // DeactivateProduct sets the status of a product to inactive.
@@ -192,19 +173,9 @@ func (p *Persistence) DeactivateProduct(ctx context.Context, id int) error {
 
 	result, err := p.DB.ExecContext(ctx, "UPDATE products SET status = 'inactive' WHERE id = $1 AND status != 'deleted'", id)
 	if err != nil {
-		log.Error().Err(err).Int("product_id", id).Msg("Failed to deactivate product")
-		return err
+		log.Error().Err(err).Int("product_id", id).Msg("DB Error deactivating product")
+		return db.Error(err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rowsAffected == 0 {
-		log.Warn().Int("product_id", id).Msg("Product not found for deactivation")
-		return ErrProductNotFound
-	}
-
-	log.Info().Int("product_id", id).Msg("Product deactivated")
-	return nil
+	return db.ResultError(result)
 }

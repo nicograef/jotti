@@ -79,7 +79,7 @@ func TestReadAndValidateBody_InvalidJSON(t *testing.T) {
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", rec.Code)
 	}
-	var resp ErrorResponse
+	var resp errorResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Errorf("failed to decode response: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestReadAndValidateBody_ValidationFailure(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "string must contain at least 3 character(s)") {
 		t.Errorf("expected error message about Foo length, got %s", rec.Body.String())
 	}
-	var resp ErrorResponse
+	var resp errorResponse
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Errorf("failed to decode response: %v", err)
 	}
