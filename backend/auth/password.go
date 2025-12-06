@@ -1,4 +1,4 @@
-package user
+package auth
 
 import (
 	"crypto/rand"
@@ -21,6 +21,18 @@ var OnetimePasswordSchema = z.String().Trim().Len(6, z.Message("Onetime password
 	regexp.MustCompile(`^[0-9]{6}$`),
 	z.Message("Onetime password must be 6 digits"),
 )
+
+// ErrInvalidPassword is returned when a password is invalid.
+var ErrInvalidPassword = errors.New("invalid password")
+
+// ErrNoPassword is returned when there is no password set for the user.
+var ErrNoPassword = errors.New("no password set")
+
+// ErrNoOnetimePassword is returned when there is no one-time password set for the user.
+var ErrNoOnetimePassword = errors.New("no onetime password set")
+
+// ErrPasswordHashing is returned when there is an error hashing the password.
+var ErrPasswordHashing = errors.New("password hashing error")
 
 type argon2Configuration struct {
 	HashRaw    []byte
@@ -146,7 +158,7 @@ func verifyPassword(correctPasswordHash, userProvidedPassword string) error {
 	return nil
 }
 
-func generateOnetimePassword() (string, error) {
+func GenerateOnetimePassword() (string, error) {
 	const passwordLength = 6
 	const charset = "0123456789"
 

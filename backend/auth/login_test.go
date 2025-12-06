@@ -56,7 +56,7 @@ func TestLoginHandler_Success(t *testing.T) {
 func TestLoginHandler_InvalidCredentials(t *testing.T) {
 	mockService := &mockUserService{
 		user: nil,
-		err:  usr.ErrInvalidPassword,
+		err:  ErrInvalidPassword,
 	}
 
 	handler := Handler{

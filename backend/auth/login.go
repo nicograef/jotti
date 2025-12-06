@@ -28,7 +28,7 @@ type login struct {
 
 var loginSchema = z.Struct(z.Shape{
 	"Username": usr.UsernameSchema.Required(),
-	"Password": usr.PasswordSchema.Required(),
+	"Password": PasswordSchema.Required(),
 })
 
 type loginResponse struct {
@@ -48,7 +48,10 @@ func (h *Handler) LoginHandler() http.HandlerFunc {
 
 		user, err := h.UserService.VerifyPasswordAndGetUser(ctx, body.Username, body.Password)
 		if err != nil {
-			if errors.Is(err, usr.ErrUserNotFound) || errors.Is(err, usr.ErrInvalidPassword) {
+			if errors.Is(err, usr.ErrUserNotFound) {
+				api.SendClientError(w, "invalid_credentials", nil)
+				return
+			} else if errors.Is(err, ErrInvalidPassword) {
 				api.SendClientError(w, "invalid_credentials", nil)
 				return
 			} else {
@@ -82,8 +85,8 @@ type setPassword struct {
 
 var setPasswordSchema = z.Struct(z.Shape{
 	"Username":        usr.UsernameSchema.Required(),
-	"Password":        usr.PasswordSchema.Required(),
-	"OnetimePassword": usr.OnetimePasswordSchema.Required(),
+	"Password":        PasswordSchema.Required(),
+	"OnetimePassword": OnetimePasswordSchema.Required(),
 })
 
 type setPasswordResponse struct {
@@ -106,10 +109,10 @@ func (h *Handler) SetPasswordHandler() http.HandlerFunc {
 			if errors.Is(err, usr.ErrUserNotFound) {
 				api.SendClientError(w, "invalid_credentials", nil)
 				return
-			} else if errors.Is(err, usr.ErrInvalidPassword) {
+			} else if errors.Is(err, ErrInvalidPassword) {
 				api.SendClientError(w, "invalid_credentials", nil)
 				return
-			} else if errors.Is(err, usr.ErrNoOnetimePassword) {
+			} else if errors.Is(err, ErrNoOnetimePassword) {
 				api.SendClientError(w, "already_has_password", "No one-time password set for user. User probably already has a password.")
 				return
 			} else {

@@ -1,6 +1,6 @@
 //go:build unit
 
-package user
+package auth
 
 import (
 	"strconv"
