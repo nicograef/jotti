@@ -14,14 +14,14 @@ type queryPersistence interface {
 	ReadEventsBySubject(ctx context.Context, subject string, eventTypes []string) ([]e.Event, error)
 }
 
-type queryService struct {
-	persistence queryPersistence
+type Query struct {
+	Persistence queryPersistence
 }
 
 // GetOrders retrieves all orders for a given table by reading events from the database.
-func (s *queryService) GetOrders(ctx context.Context, tableID int) ([]Order, error) {
+func (s *Query) GetOrders(ctx context.Context, tableID int) ([]Order, error) {
 	logger := zerolog.Ctx(ctx)
-	events, err := s.persistence.ReadEventsBySubject(ctx, "table:"+strconv.Itoa(tableID), []string{string(eventTypeOrderPlacedV1)})
+	events, err := s.Persistence.ReadEventsBySubject(ctx, "table:"+strconv.Itoa(tableID), []string{string(eventTypeOrderPlacedV1)})
 	if err != nil {
 		logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to read order events for table")
 		return nil, ErrDatabase

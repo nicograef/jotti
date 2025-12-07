@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/rs/zerolog"
 )
 
@@ -31,15 +32,10 @@ func (p *Persistence) GetUser(ctx context.Context, id int) (*User, error) {
 
 	var dbUser dbuser
 	if err := row.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Status, &dbUser.PasswordHash, &dbUser.OnetimePasswordHash, &dbUser.CreatedAt); err != nil {
-		if err == sql.ErrNoRows {
-			log.Warn().Int("user_id", id).Msg("User not found")
-			return nil, ErrUserNotFound
-		}
-		log.Error().Err(err).Int("user_id", id).Msg("Failed to scan user")
-		return nil, err
+		log.Error().Err(err).Int("user_id", id).Msg("DB Error scanning user row")
+		return nil, db.Error(err)
 	}
 
-	log.Debug().Int("user_id", id).Msg("User retrieved")
 	return &User{
 		ID:                  dbUser.ID,
 		Name:                dbUser.Name,
@@ -60,41 +56,33 @@ func (p *Persistence) GetUserID(ctx context.Context, username string) (int, erro
 
 	var userID int
 	if err := row.Scan(&userID); err != nil {
-		if err == sql.ErrNoRows {
-			log.Warn().Str("username", username).Msg("User not found by username")
-			return 0, ErrUserNotFound
-		}
-		log.Error().Err(err).Str("username", username).Msg("Failed to get user ID")
-		return 0, err
+		log.Error().Err(err).Str("username", username).Msg("DB Error scanning user ID row")
+		return 0, db.Error(err)
 	}
 
-	log.Debug().Str("username", username).Int("user_id", userID).Msg("User ID retrieved by username")
 	return userID, nil
 }
 
 // GetAllUsers retrieves all users from the database.
-func (p *Persistence) GetAllUsers(ctx context.Context) ([]*User, error) {
+func (p *Persistence) GetAllUsers(ctx context.Context) ([]User, error) {
 	log := zerolog.Ctx(ctx)
 
 	rows, err := p.DB.QueryContext(ctx, "SELECT id, name, username, role, status, created_at FROM users WHERE status != 'deleted' ORDER BY id ASC")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to query all users")
-		return nil, err
+		log.Error().Err(err).Msg("DB Error querying all users")
+		return nil, db.Error(err)
 	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			err = closeErr
-		}
-	}()
+	defer db.Close(rows, "users", log)
 
-	var users []*User
+	users := []User{}
 	for rows.Next() {
 		var dbUser dbuser
 		if err := rows.Scan(&dbUser.ID, &dbUser.Name, &dbUser.Username, &dbUser.Role, &dbUser.Status, &dbUser.CreatedAt); err != nil {
-			return nil, err
+			log.Error().Err(err).Msg("DB Error scanning user row")
+			return nil, db.Error(err)
 		}
 
-		users = append(users, &User{
+		users = append(users, User{
 			ID:        dbUser.ID,
 			Name:      dbUser.Name,
 			Username:  dbUser.Username,
@@ -105,11 +93,10 @@ func (p *Persistence) GetAllUsers(ctx context.Context) ([]*User, error) {
 	}
 
 	if err := rows.Err(); err != nil {
-		log.Error().Err(err).Msg("Error iterating over user rows")
-		return nil, err
+		log.Error().Err(err).Msg("DB Error iterating over user rows")
+		return nil, db.Error(err)
 	}
 
-	log.Debug().Int("count", len(users)).Msg("Retrieved all users")
 	return users, nil
 }
 
@@ -120,12 +107,12 @@ func (p *Persistence) CreateUser(ctx context.Context, name, username, onetimePas
 
 	var userID int
 	err := p.DB.QueryRowContext(ctx, "INSERT INTO users (name, username, onetime_password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id", name, username, onetimePasswordHash, role).Scan(&userID)
+
 	if err != nil {
-		log.Error().Err(err).Str("username", username).Msg("Failed to create user")
-		return 0, err
+		log.Error().Err(err).Str("username", username).Msg("DB Failed to create user")
+		return 0, db.Error(err)
 	}
 
-	log.Info().Int("user_id", userID).Str("username", username).Msg("User created")
 	return userID, nil
 }
 
@@ -135,17 +122,11 @@ func (p *Persistence) UpdateUser(ctx context.Context, id int, name, username str
 
 	result, err := p.DB.ExecContext(ctx, "UPDATE users SET name = $1, username = $2, role = $3 WHERE id = $4", name, username, role, id)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", id).Msg("Failed to update user")
-		return err
+		log.Error().Err(err).Int("user_id", id).Msg("DB Error updating user")
+		return db.Error(err)
 	}
 
-	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		log.Warn().Int("user_id", id).Msg("User not found for update")
-		return ErrUserNotFound
-	}
-
-	log.Info().Int("user_id", id).Msg("User updated")
-	return nil
+	return db.ResultError(result)
 }
 
 // ActivateUser sets the status of the user with the given user ID to 'active'.
@@ -154,17 +135,11 @@ func (p *Persistence) ActivateUser(ctx context.Context, id int) error {
 
 	result, err := p.DB.ExecContext(ctx, "UPDATE users SET status = 'active' WHERE id = $1", id)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", id).Msg("Failed to activate user")
-		return err
+		log.Error().Err(err).Int("user_id", id).Msg("DB Error activating user")
+		return db.Error(err)
 	}
 
-	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		log.Warn().Int("user_id", id).Msg("User not found for activation")
-		return ErrUserNotFound
-	}
-
-	log.Info().Int("user_id", id).Msg("User activated")
-	return nil
+	return db.ResultError(result)
 }
 
 // DeactivateUser sets the status of the user with the given user ID to 'inactive'.
@@ -173,17 +148,11 @@ func (p *Persistence) DeactivateUser(ctx context.Context, id int) error {
 
 	result, err := p.DB.ExecContext(ctx, "UPDATE users SET status = 'inactive' WHERE id = $1", id)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", id).Msg("Failed to deactivate user")
-		return err
+		log.Error().Err(err).Int("user_id", id).Msg("DB Error deactivating user")
+		return db.Error(err)
 	}
 
-	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		log.Warn().Int("user_id", id).Msg("User not found for deactivation")
-		return ErrUserNotFound
-	}
-
-	log.Info().Int("user_id", id).Msg("User deactivated")
-	return nil
+	return db.ResultError(result)
 }
 
 // SetPasswordHash updates the password hash for the user with the given user ID.
@@ -192,17 +161,11 @@ func (p *Persistence) SetPasswordHash(ctx context.Context, id int, passwordHash 
 
 	result, err := p.DB.ExecContext(ctx, "UPDATE users SET password_hash = $1, onetime_password_hash = NULL WHERE id = $2", passwordHash, id)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", id).Msg("Failed to set password hash")
-		return err
+		log.Error().Err(err).Int("user_id", id).Msg("DB Error setting password hash")
+		return db.Error(err)
 	}
 
-	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		log.Warn().Int("user_id", id).Msg("User not found for setting password hash")
-		return ErrUserNotFound
-	}
-
-	log.Info().Int("user_id", id).Msg("Password hash set")
-	return nil
+	return db.ResultError(result)
 }
 
 // SetOnetimePasswordHash updates the one-time password hash for the user with the given user ID.
@@ -211,15 +174,9 @@ func (p *Persistence) SetOnetimePasswordHash(ctx context.Context, id int, onetim
 
 	result, err := p.DB.ExecContext(ctx, "UPDATE users SET onetime_password_hash = $1, password_hash = NULL WHERE id = $2", onetimePasswordHash, id)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", id).Msg("Failed to set onetime password hash")
-		return err
+		log.Error().Err(err).Int("user_id", id).Msg("DB Error setting onetime password hash")
+		return db.Error(err)
 	}
 
-	if rowsAffected, _ := result.RowsAffected(); rowsAffected == 0 {
-		log.Warn().Int("user_id", id).Msg("User not found for setting onetime password hash")
-		return ErrUserNotFound
-	}
-
-	log.Info().Int("user_id", id).Msg("Onetime password hash set")
-	return nil
+	return db.ResultError(result)
 }

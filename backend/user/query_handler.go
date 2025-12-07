@@ -8,7 +8,7 @@ import (
 )
 
 type query interface {
-	GetAllUsers(ctx context.Context) ([]*User, error)
+	GetAllUsers(ctx context.Context) ([]User, error)
 }
 
 type QueryHandler struct {
@@ -16,7 +16,7 @@ type QueryHandler struct {
 }
 
 type getUsersResponse = struct {
-	Users []*User `json:"users"`
+	Users []User `json:"users"`
 }
 
 // GetAllUsersHandler handles requests to retrieve all users.

@@ -9,15 +9,14 @@ import (
 
 type commandPersistence interface {
 	WriteEvent(ctx context.Context, event e.Event) (uuid.UUID, error)
-	ReadEventsBySubject(ctx context.Context, subject string, eventTypes []string) ([]e.Event, error)
 }
 
-type commandService struct {
-	persistence commandPersistence
+type Command struct {
+	Persistence commandPersistence
 }
 
 // PlaceOrder places a new order by writing an event to the database.
-func (s *commandService) PlaceOrder(ctx context.Context, userID, tableID int, products []orderProduct) (*Order, error) {
+func (s *Command) PlaceOrder(ctx context.Context, userID, tableID int, products []orderProduct) (uuid.UUID, error) {
 	totalPriceCents := 0
 	for _, product := range products {
 		totalPriceCents += product.NetPriceCents * product.Quantity
@@ -25,22 +24,13 @@ func (s *commandService) PlaceOrder(ctx context.Context, userID, tableID int, pr
 
 	event, err := newOrderPlacedV1Event(userID, tableID, products, totalPriceCents)
 	if err != nil {
-		return nil, err
+		return uuid.Nil, err
 	}
 
-	id, err := s.persistence.WriteEvent(ctx, *event)
+	id, err := s.Persistence.WriteEvent(ctx, *event)
 	if err != nil {
-		return nil, ErrDatabase
+		return uuid.Nil, ErrDatabase
 	}
 
-	order := &Order{
-		ID:                 id,
-		UserID:             userID,
-		TableID:            tableID,
-		Products:           products,
-		TotalNetPriceCents: totalPriceCents,
-		PlacedAt:           event.Time,
-	}
-
-	return order, nil
+	return id, nil
 }

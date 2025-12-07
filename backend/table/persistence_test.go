@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	dbpkg "github.com/nicograef/jotti/backend/db"
 )
 
 func database() *sql.DB {
@@ -90,7 +91,7 @@ func TestGetTableDB_NotFound(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	_, err := persistence.GetTable(ctx, 999999)
 
-	if err != ErrTableNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("expected table not found error, got %v", err)
 	}
 }
@@ -189,7 +190,7 @@ func TestUpdateTableDB_NotFound(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	err := persistence.UpdateTable(ctx, 999999, "New Name")
 
-	if err != ErrTableNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("expected table not found error, got %v", err)
 	}
 }
@@ -231,7 +232,7 @@ func TestActivateTableDB_NotFound(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	err := persistence.ActivateTable(ctx, 999999)
 
-	if err != ErrTableNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("expected table not found error, got %v", err)
 	}
 }
@@ -274,7 +275,7 @@ func TestDeactivateTableDB_NotFound(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	err := persistence.DeactivateTable(ctx, 999999)
 
-	if err != ErrTableNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("expected table not found error, got %v", err)
 	}
 }

@@ -89,9 +89,10 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/get-all-products", admin(pqh.GetAllProductsHandler()))
 
 	eventPersistence := event.Persistence{DB: db}
-	oh := order.NewHandler(&eventPersistence)
-	r.HandleFunc("/place-order", service(oh.PlaceOrderHandler()))
-	r.HandleFunc("/get-orders", service(oh.GetOrdersHandler()))
+	och := order.CommandHandler{Command: &order.Command{Persistence: &eventPersistence}}
+	r.HandleFunc("/place-order", service(och.PlaceOrderHandler()))
+	oqh := order.QueryHandler{Query: &order.Query{Persistence: &eventPersistence}}
+	r.HandleFunc("/get-orders", service(oqh.GetOrdersHandler()))
 
 	// Wrap the entire router with middleware chain
 	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by nginx

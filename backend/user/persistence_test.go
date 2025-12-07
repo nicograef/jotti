@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	dbpkg "github.com/nicograef/jotti/backend/db"
 )
 
 func database() *sql.DB {
@@ -64,7 +65,7 @@ func TestGetUser_Error(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	_, err := persistence.GetUser(ctx, 100000)
 
-	if err != ErrUserNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("expected user not found error, got %v", err)
 	}
 }
@@ -93,7 +94,7 @@ func TestGetUserID_Error(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	_, err := persistence.GetUserID(ctx, "nonexistentuser")
 
-	if err != ErrUserNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("expected user not found error, got %v", err)
 	}
 }
@@ -143,7 +144,7 @@ func TestSetPasswordHash_Error(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	err := persistence.SetPasswordHash(ctx, 100000, "somehash")
 
-	if err != ErrUserNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("expected user not found error, got %v", err)
 	}
 }
@@ -205,7 +206,7 @@ func TestUpdateUserInDB_Error(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	err := persistence.UpdateUser(ctx, 100000, "Updated Name", "updatedusername", ServiceRole)
 
-	if err != ErrUserNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("expected user not found error, got %v", err)
 	}
 }

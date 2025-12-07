@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	dbpkg "github.com/nicograef/jotti/backend/db"
 )
 
 func database() *sql.DB {
@@ -94,7 +95,7 @@ func TestGetProduct_NotFound(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	_, err := persistence.GetProduct(ctx, 999999)
 
-	if err != ErrProductNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("Expected product not found error, got %v", err)
 	}
 }
@@ -187,7 +188,7 @@ func TestUpdateProduct_NotFound(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	err := persistence.UpdateProduct(ctx, 999999, "Updated Name", "Updated Description", 999, BeverageCategory)
 
-	if err != ErrProductNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("Expected product not found error, got %v", err)
 	}
 }
@@ -223,7 +224,7 @@ func TestActivateProduct_NotFound(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	err := persistence.ActivateProduct(ctx, 999999)
 
-	if err != ErrProductNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("Expected product not found error, got %v", err)
 	}
 }
@@ -260,7 +261,7 @@ func TestDeactivateProduct_NotFound(t *testing.T) {
 	persistence := &Persistence{DB: db}
 	err := persistence.DeactivateProduct(ctx, 999999)
 
-	if err != ErrProductNotFound {
+	if err != dbpkg.ErrNotFound {
 		t.Fatalf("Expected product not found error, got %v", err)
 	}
 }

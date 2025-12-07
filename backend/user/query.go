@@ -9,7 +9,7 @@ import (
 type queryPersistence interface {
 	GetUserID(ctx context.Context, username string) (int, error)
 	GetUser(ctx context.Context, id int) (*User, error)
-	GetAllUsers(ctx context.Context) ([]*User, error)
+	GetAllUsers(ctx context.Context) ([]User, error)
 }
 
 // Query provides user-related operations.
@@ -18,7 +18,7 @@ type Query struct {
 }
 
 // GetAllUsers retrieves all users from the database.
-func (s *Query) GetAllUsers(ctx context.Context) ([]*User, error) {
+func (s *Query) GetAllUsers(ctx context.Context) ([]User, error) {
 	log := zerolog.Ctx(ctx)
 
 	users, err := s.Persistence.GetAllUsers(ctx)
