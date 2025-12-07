@@ -1,4 +1,4 @@
-package auth
+package user
 
 import (
 	"errors"
@@ -7,15 +7,13 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog/log"
-
-	"github.com/nicograef/jotti/backend/user"
 )
 
 var errTokenGeneration = errors.New("token generation error")
 
 const issuer = "jotti"
 
-func generateJWTTokenForUser(user user.User, secret string) (string, error) {
+func generateJWTTokenForUser(user User, secret string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"alg":  jwt.SigningMethodHS256.Alg(),
 		"iss":  issuer,
@@ -40,7 +38,7 @@ func generateJWTTokenForUser(user user.User, secret string) (string, error) {
 
 type tokenPayload struct {
 	UserID int
-	Role   user.Role
+	Role   Role
 }
 
 func parseAndValidateJWTToken(tokenString, secret string) (*tokenPayload, error) {
@@ -63,7 +61,7 @@ func parseAndValidateJWTToken(tokenString, secret string) (*tokenPayload, error)
 
 	payload := &tokenPayload{
 		UserID: userID,
-		Role:   user.Role(claims["role"].(string)),
+		Role:   Role(claims["role"].(string)),
 	}
 
 	return payload, nil

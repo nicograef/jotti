@@ -1,4 +1,4 @@
-package auth
+package user
 
 import (
 	"context"
@@ -7,18 +7,17 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api"
-	usr "github.com/nicograef/jotti/backend/user"
 	"github.com/rs/zerolog"
 )
 
-type userService interface {
-	VerifyPasswordAndGetUser(ctx context.Context, username, password string) (*usr.User, error)
-	SetNewPassword(ctx context.Context, username, password, onetimePassword string) (*usr.User, error)
+type authCommand interface {
+	VerifyPasswordAndGetUser(ctx context.Context, username, password string) (*User, error)
+	SetNewPassword(ctx context.Context, username, password, onetimePassword string) (*User, error)
 }
 
-type Handler struct {
-	UserService userService
-	JWTSecret   string
+type AuthHandler struct {
+	Command   authCommand
+	JWTSecret string
 }
 
 type login struct {
@@ -27,8 +26,8 @@ type login struct {
 }
 
 var loginSchema = z.Struct(z.Shape{
-	"Username": usr.UsernameSchema.Required(),
-	"Password": usr.PasswordSchema.Required(),
+	"Username": UsernameSchema.Required(),
+	"Password": PasswordSchema.Required(),
 })
 
 type loginResponse struct {
@@ -36,7 +35,7 @@ type loginResponse struct {
 }
 
 // LoginHandler handles user login requests by validating the password hash against the database and returns a jwt token if successful.
-func (h *Handler) LoginHandler() http.HandlerFunc {
+func (h *AuthHandler) LoginHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		log := zerolog.Ctx(ctx)
@@ -46,9 +45,9 @@ func (h *Handler) LoginHandler() http.HandlerFunc {
 			return
 		}
 
-		user, err := h.UserService.VerifyPasswordAndGetUser(ctx, body.Username, body.Password)
+		user, err := h.Command.VerifyPasswordAndGetUser(ctx, body.Username, body.Password)
 		if err != nil {
-			if errors.Is(err, usr.ErrUserNotFound) || errors.Is(err, usr.ErrInvalidPassword) {
+			if errors.Is(err, ErrUserNotFound) || errors.Is(err, ErrInvalidPassword) {
 				api.SendClientError(w, "invalid_credentials", nil)
 				return
 			} else {
@@ -57,7 +56,7 @@ func (h *Handler) LoginHandler() http.HandlerFunc {
 			}
 		}
 
-		if user.Status != usr.ActiveStatus {
+		if user.Status != ActiveStatus {
 			log.Warn().Str("username", body.Username).Msg("Inactive user attempted to log in")
 			api.SendClientError(w, "user_inactive", nil)
 			return
@@ -81,9 +80,9 @@ type setPassword struct {
 }
 
 var setPasswordSchema = z.Struct(z.Shape{
-	"Username":        usr.UsernameSchema.Required(),
-	"Password":        usr.PasswordSchema.Required(),
-	"OnetimePassword": usr.OnetimePasswordSchema.Required(),
+	"Username":        UsernameSchema.Required(),
+	"Password":        PasswordSchema.Required(),
+	"OnetimePassword": OnetimePasswordSchema.Required(),
 })
 
 type setPasswordResponse struct {
@@ -91,7 +90,7 @@ type setPasswordResponse struct {
 }
 
 // SetPasswordHandler handles setting a new password for a user using a one-time password and returns a jwt token if successful.
-func (h *Handler) SetPasswordHandler() http.HandlerFunc {
+func (h *AuthHandler) SetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		log := zerolog.Ctx(ctx)
@@ -101,15 +100,15 @@ func (h *Handler) SetPasswordHandler() http.HandlerFunc {
 			return
 		}
 
-		user, err := h.UserService.SetNewPassword(ctx, body.Username, body.Password, body.OnetimePassword)
+		user, err := h.Command.SetNewPassword(ctx, body.Username, body.Password, body.OnetimePassword)
 		if err != nil {
-			if errors.Is(err, usr.ErrUserNotFound) {
+			if errors.Is(err, ErrUserNotFound) {
 				api.SendClientError(w, "invalid_credentials", nil)
 				return
-			} else if errors.Is(err, usr.ErrInvalidPassword) {
+			} else if errors.Is(err, ErrInvalidPassword) {
 				api.SendClientError(w, "invalid_credentials", nil)
 				return
-			} else if errors.Is(err, usr.ErrNoOnetimePassword) {
+			} else if errors.Is(err, ErrNoOnetimePassword) {
 				api.SendClientError(w, "already_has_password", "No one-time password set for user. User probably already has a password.")
 				return
 			} else {

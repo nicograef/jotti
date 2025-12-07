@@ -1,16 +1,15 @@
 //go:build unit
 
-package auth
+package user
 
 import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/nicograef/jotti/backend/user"
 )
 
 func TestGenerateJWTTokenForUser(t *testing.T) {
-	token, err := generateJWTTokenForUser(user.User{ID: 1, Role: user.AdminRole}, "test_secret")
+	token, err := generateJWTTokenForUser(User{ID: 1, Role: AdminRole}, "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
@@ -27,13 +26,13 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 	if claims["sub"] != "1" {
 		t.Errorf("Expected subject '1', got '%v'", claims["sub"])
 	}
-	if user.Role(claims["role"].(string)) != user.AdminRole {
-		t.Errorf("Expected role '%s', got '%v'", user.AdminRole, claims["role"])
+	if Role(claims["role"].(string)) != AdminRole {
+		t.Errorf("Expected role '%s', got '%v'", AdminRole, claims["role"])
 	}
 }
 
 func TestParseAndValidateJWTToken(t *testing.T) {
-	user := user.User{ID: 2, Role: user.ServiceRole}
+	user := User{ID: 2, Role: ServiceRole}
 
 	token, err := generateJWTTokenForUser(user, "test_secret")
 	if err != nil {

@@ -1,4 +1,4 @@
-package auth
+package user
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/nicograef/jotti/backend/api"
-	"github.com/nicograef/jotti/backend/user"
 	"github.com/rs/zerolog/log"
 )
 
@@ -20,20 +19,20 @@ const (
 // NewAdminMiddleware ensures that the request is made by an admin user.
 func NewAdminMiddleware(secret string) func(http.Handler) http.HandlerFunc {
 	return func(h http.Handler) http.HandlerFunc {
-		return jwtMiddleware(secret, []user.Role{user.AdminRole}, h)
+		return jwtMiddleware(secret, []Role{AdminRole}, h)
 	}
 }
 
 // NewServiceMiddleware ensures that the request is made by a service or admin user.
 func NewServiceMiddleware(secret string) func(http.Handler) http.HandlerFunc {
 	return func(h http.Handler) http.HandlerFunc {
-		return jwtMiddleware(secret, []user.Role{user.AdminRole, user.ServiceRole}, h)
+		return jwtMiddleware(secret, []Role{AdminRole, ServiceRole}, h)
 	}
 }
 
 // jwtMiddleware validates the JWT Token in the Authorization header.
 // If valid, it adds the user information to the request context.
-func jwtMiddleware(jwtSecret string, allowedRoles []user.Role, h http.Handler) http.HandlerFunc {
+func jwtMiddleware(jwtSecret string, allowedRoles []Role, h http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
 		if token == "" {

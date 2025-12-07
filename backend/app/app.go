@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/nicograef/jotti/backend/api"
-	"github.com/nicograef/jotti/backend/auth"
 	"github.com/nicograef/jotti/backend/config"
 	"github.com/nicograef/jotti/backend/event"
 	"github.com/nicograef/jotti/backend/order"
@@ -47,27 +46,26 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	r := http.NewServeMux()
 
+	admin := user.NewAdminMiddleware(cfg.JWTSecret)
+	service := user.NewServiceMiddleware(cfg.JWTSecret)
+
 	// Health check with database connectivity
 	healthCheck := api.HealthCheck{DB: db}
 	r.HandleFunc("/health", healthCheck.Handler())
 
 	userPersistence := user.Persistence{DB: db}
-	userService := user.Service{Persistence: &userPersistence}
-
-	ah := auth.Handler{JWTSecret: cfg.JWTSecret, UserService: &userService}
+	ah := user.AuthHandler{JWTSecret: cfg.JWTSecret, Command: &user.Command{Persistence: &userPersistence}}
 	r.HandleFunc("/login", ah.LoginHandler())
 	r.HandleFunc("/set-password", ah.SetPasswordHandler())
 
-	admin := auth.NewAdminMiddleware(cfg.JWTSecret)
-	service := auth.NewServiceMiddleware(cfg.JWTSecret)
-
-	uh := user.Handler{Service: &userService}
-	r.HandleFunc("/create-user", admin(uh.CreateUserHandler()))
-	r.HandleFunc("/update-user", admin(uh.UpdateUserHandler()))
-	r.HandleFunc("/activate-user", admin(uh.ActivateUserHandler()))
-	r.HandleFunc("/deactivate-user", admin(uh.DeactivateUserHandler()))
-	r.HandleFunc("/get-all-users", admin(uh.GetAllUsersHandler()))
-	r.HandleFunc("/reset-password", admin(uh.ResetPasswordHandler()))
+	uch := user.CommandHandler{Command: &user.Command{Persistence: &userPersistence}}
+	r.HandleFunc("/create-user", admin(uch.CreateUserHandler()))
+	r.HandleFunc("/update-user", admin(uch.UpdateUserHandler()))
+	r.HandleFunc("/activate-user", admin(uch.ActivateUserHandler()))
+	r.HandleFunc("/deactivate-user", admin(uch.DeactivateUserHandler()))
+	r.HandleFunc("/reset-password", admin(uch.ResetPasswordHandler()))
+	uqh := user.QueryHandler{Query: &user.Query{Persistence: &userPersistence}}
+	r.HandleFunc("/get-all-users", admin(uqh.GetAllUsersHandler()))
 
 	tablePersistence := table.Persistence{DB: db}
 	tch := table.CommandHandler{Command: &table.Command{Persistence: &tablePersistence}}

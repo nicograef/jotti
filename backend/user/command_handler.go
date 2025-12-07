@@ -9,17 +9,16 @@ import (
 	"github.com/nicograef/jotti/backend/api"
 )
 
-type service interface {
-	CreateUser(ctx context.Context, name, username string, role Role) (*User, string, error)
-	UpdateUser(ctx context.Context, id int, name, username string, role Role) (*User, error)
+type command interface {
+	CreateUser(ctx context.Context, name, username string, role Role) (int, string, error)
+	UpdateUser(ctx context.Context, id int, name, username string, role Role) error
 	ActivateUser(ctx context.Context, id int) error
 	DeactivateUser(ctx context.Context, id int) error
-	GetAllUsers(ctx context.Context) ([]*User, error)
 	ResetPassword(ctx context.Context, userID int) (string, error)
 }
 
-type Handler struct {
-	Service service
+type CommandHandler struct {
+	Command command
 }
 
 type createUser struct {
@@ -35,12 +34,12 @@ var createUserSchema = z.Struct(z.Shape{
 })
 
 type createUserResponse struct {
-	User            User   `json:"user"`
+	ID              int    `json:"id"`
 	OnetimePassword string `json:"onetimePassword"`
 }
 
 // CreateUserHandler handles requests to create a new user.
-func (h *Handler) CreateUserHandler() http.HandlerFunc {
+func (h *CommandHandler) CreateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := createUser{}
 		if !api.ReadAndValidateBody(w, r, &body, createUserSchema) {
@@ -48,7 +47,7 @@ func (h *Handler) CreateUserHandler() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		user, onetimePassword, err := h.Service.CreateUser(ctx, body.Name, body.Username, body.Role)
+		userID, onetimePassword, err := h.Command.CreateUser(ctx, body.Name, body.Username, body.Role)
 		if err != nil {
 			if errors.Is(err, ErrUsernameAlreadyExists) {
 				api.SendClientError(w, "username_already_exists", nil)
@@ -59,7 +58,7 @@ func (h *Handler) CreateUserHandler() http.HandlerFunc {
 			}
 		}
 
-		api.SendResponse(w, createUserResponse{User: *user, OnetimePassword: onetimePassword})
+		api.SendResponse(w, createUserResponse{ID: userID, OnetimePassword: onetimePassword})
 	}
 }
 
@@ -77,12 +76,8 @@ var updateUserSchema = z.Struct(z.Shape{
 	"Role":     RoleSchema.Required(),
 })
 
-type updateUserResponse = struct {
-	User User `json:"user"`
-}
-
 // UpdateUserHandler handles requests to update a user.
-func (h *Handler) UpdateUserHandler() http.HandlerFunc {
+func (h *CommandHandler) UpdateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := updateUser{}
 		if !api.ReadAndValidateBody(w, r, &body, updateUserSchema) {
@@ -90,7 +85,7 @@ func (h *Handler) UpdateUserHandler() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		user, err := h.Service.UpdateUser(ctx, body.ID, body.Name, body.Username, body.Role)
+		err := h.Command.UpdateUser(ctx, body.ID, body.Name, body.Username, body.Role)
 		if err != nil {
 			if errors.Is(err, ErrUserNotFound) {
 				api.SendClientError(w, "user_not_found", nil)
@@ -104,25 +99,7 @@ func (h *Handler) UpdateUserHandler() http.HandlerFunc {
 			}
 		}
 
-		api.SendResponse(w, updateUserResponse{User: *user})
-	}
-}
-
-type getUsersResponse = struct {
-	Users []*User `json:"users"`
-}
-
-// GetAllUsersHandler handles requests to retrieve all users.
-func (h *Handler) GetAllUsersHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		users, err := h.Service.GetAllUsers(ctx)
-		if err != nil {
-			api.SendServerError(w)
-			return
-		}
-
-		api.SendResponse(w, getUsersResponse{Users: users})
+		api.SendEmptyResponse(w)
 	}
 }
 
@@ -139,7 +116,7 @@ type resetPasswordResponse struct {
 }
 
 // ResetPasswordHandler handles requests to reset a user's password.
-func (h *Handler) ResetPasswordHandler() http.HandlerFunc {
+func (h *CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := resetPassword{}
 		if !api.ReadAndValidateBody(w, r, &body, resetPasswordSchema) {
@@ -147,7 +124,7 @@ func (h *Handler) ResetPasswordHandler() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		onetimePassword, err := h.Service.ResetPassword(ctx, body.UserID)
+		onetimePassword, err := h.Command.ResetPassword(ctx, body.UserID)
 		if err != nil {
 			if errors.Is(err, ErrUserNotFound) {
 				api.SendClientError(w, "user_not_found", nil)
@@ -171,7 +148,7 @@ var activateUserSchema = z.Struct(z.Shape{
 })
 
 // ActivateUserHandler handles requests to activate a user.
-func (h *Handler) ActivateUserHandler() http.HandlerFunc {
+func (h *CommandHandler) ActivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := activateUser{}
 		if !api.ReadAndValidateBody(w, r, &body, activateUserSchema) {
@@ -179,7 +156,7 @@ func (h *Handler) ActivateUserHandler() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		err := h.Service.ActivateUser(ctx, body.ID)
+		err := h.Command.ActivateUser(ctx, body.ID)
 		if err != nil {
 			if errors.Is(err, ErrUserNotFound) {
 				api.SendClientError(w, "user_not_found", nil)
@@ -203,7 +180,7 @@ var deactivateUserSchema = z.Struct(z.Shape{
 })
 
 // DeactivateUserHandler handles requests to deactivate a user.
-func (h *Handler) DeactivateUserHandler() http.HandlerFunc {
+func (h *CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deactivateUser{}
 		if !api.ReadAndValidateBody(w, r, &body, deactivateUserSchema) {
@@ -211,7 +188,7 @@ func (h *Handler) DeactivateUserHandler() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		err := h.Service.DeactivateUser(ctx, body.ID)
+		err := h.Command.DeactivateUser(ctx, body.ID)
 		if err != nil {
 			if errors.Is(err, ErrUserNotFound) {
 				api.SendClientError(w, "user_not_found", nil)

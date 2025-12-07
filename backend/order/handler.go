@@ -6,9 +6,9 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api"
-	"github.com/nicograef/jotti/backend/auth"
 	"github.com/nicograef/jotti/backend/event"
 	"github.com/nicograef/jotti/backend/table"
+	"github.com/nicograef/jotti/backend/user"
 )
 
 func NewHandler(p *event.Persistence) *handler {
@@ -51,7 +51,7 @@ func (h *handler) PlaceOrderHandler() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		userID := ctx.Value(auth.UserIDKey).(int)
+		userID := ctx.Value(user.UserIDKey).(int)
 		order, err := h.command.PlaceOrder(ctx, userID, body.TableID, body.Products)
 		if err != nil {
 			api.SendServerError(w)

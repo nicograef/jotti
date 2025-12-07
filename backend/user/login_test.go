@@ -1,6 +1,6 @@
 //go:build unit
 
-package auth
+package user
 
 import (
 	"context"
@@ -8,37 +8,35 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	usr "github.com/nicograef/jotti/backend/user"
 )
 
-type mockUserService struct {
-	user *usr.User
+type mockAuthCommand struct {
+	user *User
 	err  error
 }
 
-func (m *mockUserService) VerifyPasswordAndGetUser(ctx context.Context, username, password string) (*usr.User, error) {
+func (m *mockAuthCommand) VerifyPasswordAndGetUser(ctx context.Context, username, password string) (*User, error) {
 	return m.user, m.err
 }
 
-func (m *mockUserService) SetNewPassword(ctx context.Context, username, password, onetimePassword string) (*usr.User, error) {
+func (m *mockAuthCommand) SetNewPassword(ctx context.Context, username, password, onetimePassword string) (*User, error) {
 	return m.user, m.err
 }
 
 func TestLoginHandler_Success(t *testing.T) {
-	mockService := &mockUserService{
-		user: &usr.User{
+	command := &mockAuthCommand{
+		user: &User{
 			ID:       1,
 			Username: "testuser",
-			Status:   usr.ActiveStatus,
-			Role:     usr.AdminRole,
+			Status:   ActiveStatus,
+			Role:     AdminRole,
 		},
 		err: nil,
 	}
 
-	handler := Handler{
-		UserService: mockService,
-		JWTSecret:   "test-secret",
+	handler := AuthHandler{
+		Command:   command,
+		JWTSecret: "test-secret",
 	}
 
 	body := `{"username":"testuser","password":"Test123!"}`
@@ -54,14 +52,14 @@ func TestLoginHandler_Success(t *testing.T) {
 }
 
 func TestLoginHandler_InvalidCredentials(t *testing.T) {
-	mockService := &mockUserService{
+	command := &mockAuthCommand{
 		user: nil,
-		err:  usr.ErrInvalidPassword,
+		err:  ErrInvalidPassword,
 	}
 
-	handler := Handler{
-		UserService: mockService,
-		JWTSecret:   "test-secret",
+	handler := AuthHandler{
+		Command:   command,
+		JWTSecret: "test-secret",
 	}
 
 	body := `{"username":"testuser","password":"wrongpassword"}`
@@ -77,19 +75,19 @@ func TestLoginHandler_InvalidCredentials(t *testing.T) {
 }
 
 func TestLoginHandler_InactiveUser(t *testing.T) {
-	mockService := &mockUserService{
-		user: &usr.User{
+	command := &mockAuthCommand{
+		user: &User{
 			ID:       1,
 			Username: "testuser",
-			Status:   usr.InactiveStatus,
-			Role:     usr.ServiceRole,
+			Status:   InactiveStatus,
+			Role:     ServiceRole,
 		},
 		err: nil,
 	}
 
-	handler := Handler{
-		UserService: mockService,
-		JWTSecret:   "test-secret",
+	handler := AuthHandler{
+		Command:   command,
+		JWTSecret: "test-secret",
 	}
 
 	body := `{"username":"testuser","password":"Test123!"}`

@@ -1,22 +1,20 @@
 //go:build unit
 
-package auth
+package user
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	usr "github.com/nicograef/jotti/backend/user"
 )
 
 func TestAdminMiddleware_ValidToken(t *testing.T) {
 	secret := "test-secret"
-	user := usr.User{
+	user := User{
 		ID:       1,
 		Username: "admin",
-		Role:     usr.AdminRole,
-		Status:   usr.ActiveStatus,
+		Role:     AdminRole,
+		Status:   ActiveStatus,
 	}
 
 	token, err := generateJWTTokenForUser(user, secret)
@@ -58,11 +56,11 @@ func TestAdminMiddleware_NoToken(t *testing.T) {
 
 func TestAdminMiddleware_ServiceRole(t *testing.T) {
 	secret := "test-secret"
-	user := usr.User{
+	user := User{
 		ID:       2,
 		Username: "service",
-		Role:     usr.ServiceRole,
-		Status:   usr.ActiveStatus,
+		Role:     ServiceRole,
+		Status:   ActiveStatus,
 	}
 
 	token, err := generateJWTTokenForUser(user, secret)
@@ -88,11 +86,11 @@ func TestAdminMiddleware_ServiceRole(t *testing.T) {
 
 func TestServiceMiddleware_ValidToken(t *testing.T) {
 	secret := "test-secret"
-	user := usr.User{
+	user := User{
 		ID:       2,
 		Username: "service",
-		Role:     usr.ServiceRole,
-		Status:   usr.ActiveStatus,
+		Role:     ServiceRole,
+		Status:   ActiveStatus,
 	}
 
 	token, err := generateJWTTokenForUser(user, secret)
