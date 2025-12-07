@@ -57,12 +57,12 @@ export function EditProductDialog(props: Readonly<EditProductDialogProps>) {
     setLoading(true)
 
     try {
-      const updatedProduct = await props.backend.updateProduct({
+      await props.backend.updateProduct({
         id: props.product.id,
         ...data,
       })
       form.reset()
-      props.updated(updatedProduct)
+      props.updated({ ...props.product, ...data })
       props.close()
     } catch (error: unknown) {
       console.error(error)

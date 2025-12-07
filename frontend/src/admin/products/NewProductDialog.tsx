@@ -55,10 +55,15 @@ export function NewProductDialog(props: NewProductDialogProps) {
     setLoading(true)
 
     try {
-      const { product } = await props.backend.createProduct(data)
+      const id = await props.backend.createProduct(data)
       form.reset()
       setOpen(false)
-      props.created(product)
+      props.created({
+        id,
+        ...data,
+        status: 'inactive',
+        createdAt: new Date().toISOString(),
+      })
     } catch (error: unknown) {
       console.error(error)
     }

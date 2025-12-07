@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { type User, UserRole, UserSchema } from './User'
+import { type User, UserIdSchema, UserRole, UserSchema } from './User'
 
 const OnetimePasswordSchema = z.string().regex(/^\d{6}$/, {
   message: 'Das Einmalpasswort muss genau 6 Ziffern enthalten.',
@@ -38,26 +38,21 @@ export class UserBackend {
     name: string,
     username: string,
     role: UserRole,
-  ): Promise<{ user: User; onetimePassword: string }> {
+  ): Promise<{ id: number; onetimePassword: string }> {
     const body = CreateUserSchema.parse({ name, username, role })
-    const { user, onetimePassword } = await this.backend.post(
+    const { id, onetimePassword } = await this.backend.post(
       'create-user',
       body,
-      z.object({ user: UserSchema, onetimePassword: OnetimePasswordSchema }),
+      z.object({ id: UserIdSchema, onetimePassword: OnetimePasswordSchema }),
     )
-    return { user, onetimePassword }
+    return { id, onetimePassword }
   }
 
   public async updateUser(
     updatedUser: z.infer<typeof UpdateUserSchema>,
-  ): Promise<User> {
+  ): Promise<void> {
     const body = UpdateUserSchema.parse(updatedUser)
-    const { user } = await this.backend.post(
-      'update-user',
-      body,
-      z.object({ user: UserSchema }),
-    )
-    return user
+    await this.backend.post('update-user', body)
   }
 
   public async getAllUsers(): Promise<User[]> {

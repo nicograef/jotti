@@ -58,12 +58,12 @@ export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
     setLoading(true)
 
     try {
-      const updatedUser = await props.backend.updateUser({
+      await props.backend.updateUser({
         id: props.user.id,
         ...data,
       })
       form.reset()
-      props.updated(updatedUser)
+      props.updated({ ...props.user, ...data })
       props.close()
     } catch (error: unknown) {
       console.error(error)

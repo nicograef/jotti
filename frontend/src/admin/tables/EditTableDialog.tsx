@@ -17,10 +17,7 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import type { Table } from '@/lib/table/Table'
-import {
-  TableBackend,
-  UpdateTableSchema,
-} from '@/lib/table/TableBackend'
+import { TableBackend, UpdateTableSchema } from '@/lib/table/TableBackend'
 
 const FormDataSchema = UpdateTableSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
@@ -52,12 +49,12 @@ export function EditTableDialog(props: Readonly<EditTableDialogProps>) {
     setLoading(true)
 
     try {
-      const updatedTable = await props.backend.updateTable({
+      await props.backend.updateTable({
         id: props.table.id,
         ...data,
       })
       form.reset()
-      props.updated(updatedTable)
+      props.updated({ ...props.table, ...data })
       props.close()
     } catch (error: unknown) {
       console.error(error)

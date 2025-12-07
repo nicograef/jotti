@@ -24,7 +24,7 @@ export const UserStatus = {
 } as const
 export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus]
 
-const UserIdSchema = z.number().int().min(1)
+export const UserIdSchema = z.number().int().min(1)
 const NameSchema = z
   .string()
   .min(5, { message: 'Das sieht nicht nach einem echten Namen aus.' })

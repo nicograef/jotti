@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import {
   type Table,
+  TableIdSchema,
   type TablePublic,
   TablePublicSchema,
   TableSchema,
@@ -61,26 +62,21 @@ export class TableBackend {
 
   public async createTable(
     newTable: z.infer<typeof CreateTableSchema>,
-  ): Promise<Table> {
+  ): Promise<number> {
     const body = CreateTableSchema.parse(newTable)
-    const { table } = await this.backend.post(
+    const { id } = await this.backend.post(
       'create-table',
       body,
-      z.object({ table: TableSchema }),
+      z.object({ id: TableIdSchema }),
     )
-    return table
+    return id
   }
 
   public async updateTable(
     updatedTable: z.infer<typeof UpdateTableSchema>,
-  ): Promise<Table> {
+  ): Promise<void> {
     const body = UpdateTableSchema.parse(updatedTable)
-    const { table } = await this.backend.post(
-      'update-table',
-      body,
-      z.object({ table: TableSchema }),
-    )
-    return table
+    await this.backend.post('update-table', body)
   }
 
   public async activateTable(id: number): Promise<void> {

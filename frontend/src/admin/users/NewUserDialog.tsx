@@ -47,14 +47,22 @@ export function NewUserDialog(props: NewUserDialogProps) {
     setLoading(true)
 
     try {
-      const { user, onetimePassword } = await props.backend.createUser(
+      const { id, onetimePassword } = await props.backend.createUser(
         data.name,
         data.username,
         data.role as UserRole,
       )
       form.reset()
       setOpen(false)
-      props.created(user, onetimePassword)
+      props.created(
+        {
+          id,
+          ...data,
+          status: 'inactive',
+          createdAt: new Date().toISOString(),
+        },
+        onetimePassword,
+      )
     } catch (error: unknown) {
       console.error(error)
 

@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import {
   type Product,
+  ProductIdSchema,
   type ProductPublic,
   ProductPublicSchema,
   ProductSchema,
@@ -39,26 +40,21 @@ export class ProductBackend {
 
   public async createProduct(
     newProduct: z.infer<typeof CreateProductSchema>,
-  ): Promise<{ product: Product }> {
+  ): Promise<number> {
     const body = CreateProductSchema.parse(newProduct)
-    const { product } = await this.backend.post(
+    const { id } = await this.backend.post(
       'create-product',
       body,
-      z.object({ product: ProductSchema }),
+      z.object({ id: ProductIdSchema }),
     )
-    return { product }
+    return id
   }
 
   public async updateProduct(
     updatedProduct: z.infer<typeof UpdateProductSchema>,
-  ): Promise<Product> {
+  ): Promise<void> {
     const body = UpdateProductSchema.parse(updatedProduct)
-    const { product } = await this.backend.post(
-      'update-product',
-      body,
-      z.object({ product: ProductSchema }),
-    )
-    return product
+    await this.backend.post('update-product', body)
   }
 
   public async getAllProducts(): Promise<Product[]> {

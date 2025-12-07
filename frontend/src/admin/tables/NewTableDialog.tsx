@@ -19,10 +19,7 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import type { Table } from '@/lib/table/Table'
-import {
-  CreateTableSchema,
-  TableBackend,
-} from '@/lib/table/TableBackend'
+import { CreateTableSchema, TableBackend } from '@/lib/table/TableBackend'
 
 const FormDataSchema = CreateTableSchema
 type FormData = z.infer<typeof FormDataSchema>
@@ -45,10 +42,15 @@ export function NewTableDialog(props: NewTableDialogProps) {
     setLoading(true)
 
     try {
-      const table = await props.backend.createTable(data)
+      const id = await props.backend.createTable(data)
       form.reset()
       setOpen(false)
-      props.created(table)
+      props.created({
+        id,
+        ...data,
+        status: 'inactive',
+        createdAt: new Date().toISOString(),
+      })
     } catch (error: unknown) {
       console.error(error)
     }

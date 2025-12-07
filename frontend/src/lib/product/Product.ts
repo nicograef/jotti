@@ -15,7 +15,7 @@ export const ProductStatus = {
 } as const
 export type ProductStatus = (typeof ProductStatus)[keyof typeof ProductStatus]
 
-const ProductIdSchema = z.number().int().min(1)
+export const ProductIdSchema = z.number().int().min(1)
 const NameSchema = z
   .string()
   .min(3, { message: 'Das sieht nicht nach einem echten Namen aus.' })
