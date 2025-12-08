@@ -46,7 +46,7 @@ POSTGRES_USER=admin \
 POSTGRES_PASSWORD=admin \
 POSTGRES_DBNAME=jotti \
 JWT_SECRET=test-secret \
-go test -tags=integration -race ./... || true
+go test -tags=integration -count=1 -race ./... || true
 
 echo ""
 echo "🧹 Cleaning up..."

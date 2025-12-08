@@ -26,21 +26,37 @@ func database() *sql.DB {
 		os.Exit(1)
 	}
 
+	_, _ = db.Exec("DELETE FROM users")
+
 	return db
+}
+
+func createTestUser(DB *sql.DB) (int, error) {
+	var userID int
+	err := DB.QueryRow("INSERT INTO users (name, username, role, status) VALUES ($1, $2, $3, $4) RETURNING id", "nico", "nico", "admin", "active").Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
 }
 
 func TestGetUser(t *testing.T) {
 	db := database()
 	defer db.Close()
-
 	ctx := context.Background()
+
+	userID, err := createTestUser(db)
+	if err != nil {
+		t.Fatalf("Failed to insert user: %v", err)
+	}
+
 	persistence := &Persistence{DB: db}
-	user, err := persistence.GetUser(ctx, 1)
+	user, err := persistence.GetUser(ctx, userID)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if user.ID != 1 {
+	if user.ID != userID {
 		t.Fatalf("expected user ID 1, got %d", user.ID)
 	}
 	if user.Username != "nico" {
@@ -55,6 +71,10 @@ func TestGetUser(t *testing.T) {
 	if user.Role != AdminRole {
 		t.Fatalf("expected user role 'admin', got %s", user.Role)
 	}
+
+	// Cleanup
+	_, _ = db.ExecContext(ctx, "DELETE FROM users")
+
 }
 
 func TestGetUser_Error(t *testing.T) {
@@ -73,17 +93,25 @@ func TestGetUser_Error(t *testing.T) {
 func TestGetUserID(t *testing.T) {
 	db := database()
 	defer db.Close()
-
 	ctx := context.Background()
+
+	newUserID, err := createTestUser(db)
+	if err != nil {
+		t.Fatalf("Failed to insert user: %v", err)
+	}
+
 	persistence := &Persistence{DB: db}
 	userID, err := persistence.GetUserID(ctx, "nico")
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if userID != 1 {
-		t.Fatalf("expected user ID 1, got %d", userID)
+	if userID != newUserID {
+		t.Fatalf("expected user ID %d, got %d", newUserID, userID)
 	}
+
+	// Cleanup
+	_, _ = db.ExecContext(ctx, "DELETE FROM users")
 }
 
 func TestGetUserID_Error(t *testing.T) {
@@ -102,38 +130,54 @@ func TestGetUserID_Error(t *testing.T) {
 func TestGetAllUsers(t *testing.T) {
 	db := database()
 	defer db.Close()
-
 	ctx := context.Background()
+
+	_, err := createTestUser(db)
+	if err != nil {
+		t.Fatalf("Failed to insert user: %v", err)
+	}
+
 	persistence := &Persistence{DB: db}
 	users, err := persistence.GetAllUsers(ctx)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if len(users) == 0 {
-		t.Fatalf("expected at least one user, got %d", len(users))
+	if len(users) != 1 {
+		t.Fatalf("expected 1 users, got %d", len(users))
 	}
+
+	// Cleanup
+	_, _ = db.ExecContext(ctx, "DELETE FROM users")
 }
 
 func TestSetPasswordHash(t *testing.T) {
 	db := database()
 	defer db.Close()
-
 	ctx := context.Background()
+
+	userID, err := createTestUser(db)
+	if err != nil {
+		t.Fatalf("Failed to insert user: %v", err)
+	}
+
 	persistence := &Persistence{DB: db}
-	err := persistence.SetPasswordHash(ctx, 1, "hashedpassword123")
+	err = persistence.SetPasswordHash(ctx, userID, "hashedpassword123")
 
 	if err != nil {
 		t.Fatalf("expected no error setting password hash, got %v", err)
 	}
 
-	user, err := persistence.GetUser(ctx, 1)
+	user, err := persistence.GetUser(ctx, userID)
 	if err != nil {
 		t.Fatalf("expected no error getting user, got %v", err)
 	}
 	if user.PasswordHash != "hashedpassword123" {
 		t.Fatalf("expected password hash 'hashedpassword123', got %s", user.PasswordHash)
 	}
+
+	// Cleanup
+	_, _ = db.ExecContext(ctx, "DELETE FROM users")
 }
 
 func TestSetPasswordHash_Error(t *testing.T) {
@@ -165,7 +209,7 @@ func TestCreateUserInDB(t *testing.T) {
 	}
 
 	// Cleanup
-	_, _ = db.ExecContext(ctx, "DELETE FROM users WHERE id = $1", userID)
+	_, _ = db.ExecContext(ctx, "DELETE FROM users")
 }
 
 func TestUpdateUser(t *testing.T) {
@@ -195,7 +239,7 @@ func TestUpdateUser(t *testing.T) {
 	}
 
 	// Cleanup
-	_, _ = db.ExecContext(ctx, "DELETE FROM users WHERE id = $1", userID)
+	_, _ = db.ExecContext(ctx, "DELETE FROM users")
 }
 
 func TestUpdateUserInDB_Error(t *testing.T) {
