@@ -15,7 +15,7 @@ export const PlaceOrderSchema = z.object({
 export type PlaceOrder = z.infer<typeof PlaceOrderSchema>
 
 export const OrderSchema = z.object({
-  id: z.uuid(),
+  id: z.number().int().min(1),
   userId: z.number().int().min(1),
   tableId: z.number().int().min(1),
   products: OrderProductSchema.array().min(1),

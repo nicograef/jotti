@@ -3,12 +3,11 @@ package order
 import (
 	"context"
 
-	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/event"
 )
 
 type commandPersistence interface {
-	WriteEvent(ctx context.Context, event e.Event) (uuid.UUID, error)
+	WriteEvent(ctx context.Context, event e.Event) (int, error)
 }
 
 type Command struct {
@@ -16,7 +15,7 @@ type Command struct {
 }
 
 // PlaceOrder places a new order by writing an event to the database.
-func (s *Command) PlaceOrder(ctx context.Context, userID, tableID int, products []orderProduct) (uuid.UUID, error) {
+func (s *Command) PlaceOrder(ctx context.Context, userID, tableID int, products []orderProduct) (int, error) {
 	totalPriceCents := 0
 	for _, product := range products {
 		totalPriceCents += product.NetPriceCents * product.Quantity
@@ -24,13 +23,13 @@ func (s *Command) PlaceOrder(ctx context.Context, userID, tableID int, products 
 
 	event, err := newOrderPlacedV1Event(userID, tableID, products, totalPriceCents)
 	if err != nil {
-		return uuid.Nil, err
+		return 0, err
 	}
 
-	id, err := s.Persistence.WriteEvent(ctx, *event)
+	eventID, err := s.Persistence.WriteEvent(ctx, *event)
 	if err != nil {
-		return uuid.Nil, ErrDatabase
+		return 0, ErrDatabase
 	}
 
-	return id, nil
+	return eventID, nil
 }

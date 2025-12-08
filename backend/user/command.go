@@ -95,49 +95,49 @@ func (s *Command) VerifyPasswordAndGetUser(ctx context.Context, username, passwo
 
 // SetNewPassword logs in a user by validating the provided one-time password against the stored password hash.
 // If the user has no password set, it sets the provided password as the new password.
-func (s *Command) SetNewPassword(ctx context.Context, username, newPassword, onetimePassword string) (*User, error) {
+func (s *Command) SetNewPassword(ctx context.Context, username, newPassword, onetimePassword string) error {
 	log := zerolog.Ctx(ctx)
 
 	id, err := s.Persistence.GetUserID(ctx, username)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Str("username", username).Msg("User not found during password validation")
-			return nil, ErrUserNotFound
+			return ErrUserNotFound
 		} else {
 			log.Error().Str("username", username).Msg("Failed to retrieve user")
-			return nil, ErrDatabase
+			return ErrDatabase
 		}
 	}
 
 	user, err := s.Persistence.GetUser(ctx, id)
 	if err != nil {
 		log.Error().Str("username", username).Msg("Failed to retrieve one-time password hash")
-		return nil, ErrDatabase
+		return ErrDatabase
 	}
 
 	if user.OnetimePasswordHash == "" {
 		log.Warn().Str("username", username).Msg("No one-time password set for user")
-		return nil, ErrNoOnetimePassword
+		return ErrNoOnetimePassword
 	}
 
 	if err := verifyPassword(user.OnetimePasswordHash, onetimePassword); err != nil {
 		log.Warn().Err(err).Str("username", username).Msg("One-time password validation failed")
-		return nil, ErrInvalidPassword
+		return ErrInvalidPassword
 	}
 
 	hashedPassword, err := createArgon2idHash(newPassword)
 	if err != nil {
 		log.Error().Err(err).Str("username", username).Msg("Failed to hash password")
-		return nil, ErrPasswordHashing
+		return ErrPasswordHashing
 	}
 
 	if err := s.Persistence.SetPasswordHash(ctx, user.ID, hashedPassword); err != nil {
 		log.Error().Str("username", username).Msg("Failed to set password hash in persistence")
-		return nil, ErrDatabase
+		return ErrDatabase
 	}
 
 	log.Info().Str("username", username).Msg("New password set successfully")
-	return user, nil
+	return nil
 }
 
 // ResetPassword resets the password for the user with the given user ID and returns a new one-time password.

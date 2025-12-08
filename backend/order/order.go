@@ -5,7 +5,6 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
-	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/product"
 )
 
@@ -24,7 +23,7 @@ var orderProductSchema = z.Struct(z.Shape{
 })
 
 type Order struct {
-	ID                 uuid.UUID      `json:"id"`
+	ID                 int            `json:"id"`
 	UserID             int            `json:"userId"`
 	TableID            int            `json:"tableId"`
 	Products           []orderProduct `json:"products"`

@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/google/uuid"
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/rs/zerolog"
 )
 
@@ -14,56 +14,51 @@ type Persistence struct {
 }
 
 // WriteEvent stores a new event in the database.
-func (p *Persistence) WriteEvent(ctx context.Context, event Event) (uuid.UUID, error) {
-	logger := zerolog.Ctx(ctx)
+func (p *Persistence) WriteEvent(ctx context.Context, event Event) (int, error) {
+	log := zerolog.Ctx(ctx)
 
-	var id uuid.UUID
+	var id int
 	err := p.DB.QueryRowContext(ctx,
-		`INSERT INTO events (id, user_id, type, subject, data, timestamp)
-		 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-		event.ID,
+		`INSERT INTO events (user_id, type, subject, data, timestamp)
+		 VALUES ($1, $2, $3, $4, $5) RETURNING id`,
 		event.UserID,
 		event.Type,
 		event.Subject,
 		event.Data,
 		event.Time,
 	).Scan(&id)
+
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to create event")
-		return uuid.Nil, err
+		log.Error().Err(err).Str("event_type", event.Type).Msg("DB Error creating event")
+		return 0, db.Error(err)
 	}
 
-	logger.Debug().Str("event_id", id.String()).Msg("Event created")
 	return id, nil
 }
 
-func (p *Persistence) ReadEvent(ctx context.Context, eventID uuid.UUID) (*Event, error) {
-	logger := zerolog.Ctx(ctx)
+func (p *Persistence) ReadEvent(ctx context.Context, eventID int) (*Event, error) {
+	log := zerolog.Ctx(ctx)
+
+	row := p.DB.QueryRowContext(ctx,
+		`SELECT id, user_id, type, subject, data, timestamp
+		FROM events
+		WHERE id = $1`,
+		eventID,
+	)
 
 	var event Event
-	err := p.DB.QueryRowContext(ctx,
-		`SELECT id, user_id, type, subject, data, timestamp
-		 FROM events
-		 WHERE id = $1`,
-		eventID,
-	).Scan(&event.ID, &event.UserID, &event.Type, &event.Subject, &event.Data, &event.Time)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			logger.Warn().Str("event_id", eventID.String()).Msg("Event not found")
-			return nil, nil
-		}
-		logger.Error().Err(err).Msg("Failed to read event by ID")
-		return nil, err
+	if err := row.Scan(&event.ID, &event.UserID, &event.Type, &event.Subject, &event.Data, &event.Time); err != nil {
+		log.Error().Err(err).Int("event_id", eventID).Msg("DB Error scanning event row")
+		return nil, db.Error(err)
 	}
 
-	logger.Debug().Str("event_id", event.ID.String()).Msg("Event read by ID")
 	return &event, nil
 }
 
 // ReadEventsBySubject retrieves all events of the specified types from the database for the given subject.
 // Events are ordered by their sequence number ascending (first element in slice is first event).
 func (p *Persistence) ReadEventsBySubject(ctx context.Context, subject string, eventTypes []string) ([]Event, error) {
-	logger := zerolog.Ctx(ctx)
+	log := zerolog.Ctx(ctx)
 
 	rows, err := p.DB.QueryContext(ctx,
 		`SELECT id, user_id, type, subject, data, timestamp
@@ -74,30 +69,25 @@ func (p *Persistence) ReadEventsBySubject(ctx context.Context, subject string, e
 		eventTypes,
 	)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to read events by subject")
-		return nil, err
+		log.Error().Err(err).Str("subject", subject).Msg("DB Error querying events")
+		return nil, db.Error(err)
 	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			logger.Error().Err(closeErr).Msg("Failed to close rows")
-		}
-	}()
+	defer db.Close(rows, "events", log)
 
-	var events []Event
+	events := []Event{}
 	for rows.Next() {
 		var event Event
 		if err := rows.Scan(&event.ID, &event.UserID, &event.Type, &event.Subject, &event.Data, &event.Time); err != nil {
-			logger.Error().Err(err).Msg("Failed to scan event row")
-			return nil, err
+			log.Error().Err(err).Msg("DB Error scanning event row")
+			return nil, db.Error(err)
 		}
 		events = append(events, event)
 	}
 
 	if err := rows.Err(); err != nil {
-		logger.Error().Err(err).Msg("Row iteration error")
-		return nil, err
+		log.Error().Err(err).Msg("DB Error iterating over event rows")
+		return nil, db.Error(err)
 	}
 
-	logger.Debug().Int("event_count", len(events)).Msg("Events read by subject")
 	return events, nil
 }

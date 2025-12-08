@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/card'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { AuthSingleton } from '@/lib/auth'
 import { AuthBackend, SetPasswordSchema } from '@/lib/AuthBackend'
 import { BackendError } from '@/lib/Backend'
 
@@ -40,17 +39,12 @@ export function PasswordForm(props: PasswordFormProps) {
     setLoading(true)
 
     try {
-      const token = await props.backend.setPassword(
+      await props.backend.setPassword(
         data.username,
         data.password,
         data.onetimePassword,
       )
-      AuthSingleton.validateAndSetToken(token)
-      if (AuthSingleton.isAdmin) {
-        await navigate('/admin')
-      } else {
-        await navigate('/')
-      }
+      await navigate('/login')
     } catch (error: unknown) {
       console.error(error)
 

@@ -19,8 +19,8 @@ func (m *mockAuthCommand) VerifyPasswordAndGetUser(ctx context.Context, username
 	return m.user, m.err
 }
 
-func (m *mockAuthCommand) SetNewPassword(ctx context.Context, username, password, onetimePassword string) (*User, error) {
-	return m.user, m.err
+func (m *mockAuthCommand) SetNewPassword(ctx context.Context, username, password, onetimePassword string) error {
+	return m.err
 }
 
 func TestLoginHandler_Success(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 
 type authCommand interface {
 	VerifyPasswordAndGetUser(ctx context.Context, username, password string) (*User, error)
-	SetNewPassword(ctx context.Context, username, password, onetimePassword string) (*User, error)
+	SetNewPassword(ctx context.Context, username, password, onetimePassword string) error
 }
 
 type AuthHandler struct {
@@ -88,22 +88,17 @@ var setPasswordSchema = z.Struct(z.Shape{
 	"OnetimePassword": OnetimePasswordSchema.Required(),
 })
 
-type setPasswordResponse struct {
-	Token string `json:"token"`
-}
-
-// SetPasswordHandler handles setting a new password for a user using a one-time password and returns a jwt token if successful.
+// SetPasswordHandler handles setting a new password for a user using a one-time password.
 func (h *AuthHandler) SetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		log := zerolog.Ctx(ctx)
 
 		body := setPassword{}
 		if !api.ReadAndValidateBody(w, r, &body, setPasswordSchema) {
 			return
 		}
 
-		user, err := h.Command.SetNewPassword(ctx, body.Username, body.Password, body.OnetimePassword)
+		err := h.Command.SetNewPassword(ctx, body.Username, body.Password, body.OnetimePassword)
 		if err != nil {
 			if errors.Is(err, ErrUserNotFound) {
 				api.SendClientError(w, "invalid_credentials", nil)
@@ -120,13 +115,6 @@ func (h *AuthHandler) SetPasswordHandler() http.HandlerFunc {
 			}
 		}
 
-		stringToken, err := generateJWTTokenForUser(*user, h.JWTSecret)
-		if err != nil {
-			log.Error().Err(err).Str("username", body.Username).Msg("Failed to generate JWT token")
-			api.SendServerError(w)
-			return
-		}
-
-		api.SendResponse(w, setPasswordResponse{Token: stringToken})
+		api.SendEmptyResponse(w)
 	}
 }

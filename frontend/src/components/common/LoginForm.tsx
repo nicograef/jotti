@@ -59,6 +59,11 @@ export function LoginForm(props: LoginFormProps) {
             type: 'manual',
             message: 'Für dieses Konto wurde noch kein Passwort festgelegt.',
           })
+        } else if (error.code === 'user_inactive') {
+          form.setError('username', {
+            type: 'manual',
+            message: 'Dieses Konto ist deaktiviert.',
+          })
         } else {
           form.setError('username', {
             type: 'manual',

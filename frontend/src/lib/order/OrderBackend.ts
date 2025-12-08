@@ -19,7 +19,7 @@ export class OrderBackend {
 
   public async placeOrder(
     placeOrder: z.infer<typeof PlaceOrderSchema>,
-  ): Promise<string> {
+  ): Promise<number> {
     const body = PlaceOrderSchema.parse(placeOrder)
     const { id } = await this.backend.post(
       'place-order',

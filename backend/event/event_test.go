@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 func TestNew_Success(t *testing.T) {
@@ -20,9 +18,6 @@ func TestNew_Success(t *testing.T) {
 	e, err := New(candidate)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
-	}
-	if e.ID == uuid.Nil {
-		t.Errorf("expected non-nil UUID")
 	}
 	if e.UserID != 123 {
 		t.Errorf("unexpected user ID: %d", e.UserID)
@@ -47,7 +42,6 @@ func TestValidate_Errors(t *testing.T) {
 		mutate   func(*Event)
 		expected string
 	}{
-		{"nil uuid", func(e *Event) { e.ID = uuid.Nil }, "event ID cannot be nil"},
 		{"non-positive user ID", func(e *Event) { e.UserID = 0 }, "user ID must be a positive integer"},
 		{"short type", func(e *Event) { e.Type = "aaa" }, "event type must be at least 5 characters long"},
 		{"zero time", func(e *Event) { e.Time = time.Time{} }, "event time cannot be zero"},
@@ -58,7 +52,6 @@ func TestValidate_Errors(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			e := &Event{
-				ID:      uuid.New(),
 				UserID:  123,
 				Type:    "com.example.event:v1",
 				Time:    time.Now().UTC(),

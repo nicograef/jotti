@@ -28,15 +28,12 @@ export const SetPasswordSchema = z.object({
   password: PasswordSchema,
   onetimePassword: OnetimePasswordSchema,
 })
-const SetPasswordResponseSchema = z.object({
-  token: z.string().min(10),
-})
 
 interface Backend {
   post<TResponse>(
     endpoint: string,
     body: unknown,
-    responseSchema: z.ZodType<TResponse>,
+    responseSchema?: z.ZodType<TResponse>,
   ): Promise<TResponse>
 }
 
@@ -63,17 +60,12 @@ export class AuthBackend {
     username: string,
     password: string,
     onetimePassword: string,
-  ): Promise<string> {
+  ): Promise<void> {
     const body = SetPasswordSchema.parse({
       username,
       password,
       onetimePassword,
     })
-    const { token } = await this.backend.post(
-      'set-password',
-      body,
-      SetPasswordResponseSchema,
-    )
-    return token
+    await this.backend.post('set-password', body)
   }
 }

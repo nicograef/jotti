@@ -5,14 +5,13 @@ import (
 	"net/http"
 
 	z "github.com/Oudwins/zog"
-	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/api"
 	"github.com/nicograef/jotti/backend/table"
 	"github.com/nicograef/jotti/backend/user"
 )
 
 type command interface {
-	PlaceOrder(ctx context.Context, userID int, tableID int, products []orderProduct) (uuid.UUID, error)
+	PlaceOrder(ctx context.Context, userID int, tableID int, products []orderProduct) (int, error)
 }
 
 type CommandHandler struct {
@@ -30,7 +29,7 @@ var placeOrderSchema = z.Struct(z.Shape{
 })
 
 type placeOrderResponse struct {
-	ID uuid.UUID `json:"id"`
+	ID int `json:"id"`
 }
 
 // PlaceOrderHandler handles requests to place a new order.

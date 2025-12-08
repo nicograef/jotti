@@ -67,8 +67,8 @@ func TestWriteEvent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if eventID != event.ID {
-		t.Fatalf("Expected event ID %s, got %s", event.ID.String(), eventID.String())
+	if eventID == 0 {
+		t.Fatalf("Expected valid event ID, got %d", eventID)
 	}
 
 	// Cleanup
@@ -109,8 +109,8 @@ func TestReadEvent(t *testing.T) {
 	if readEvent == nil {
 		t.Fatalf("Expected event, got nil")
 	}
-	if readEvent.ID != event.ID {
-		t.Fatalf("Expected event ID %s, got %s", event.ID.String(), readEvent.ID.String())
+	if readEvent.ID != eventID {
+		t.Fatalf("Expected event ID %d, got %d", eventID, readEvent.ID)
 	}
 	if readEvent.UserID != event.UserID {
 		t.Fatalf("Expected user ID %d, got %d", event.UserID, readEvent.UserID)

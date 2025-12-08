@@ -8,13 +8,12 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
-	"github.com/google/uuid"
 )
 
-// Event represents an event (message) following the CNCF Cloudevents specification.
+// Event represents a CNCF Cloudevent with additional fields for user association.
 type Event struct {
 	// Identifies the event. Must be unique within the scope of the producer/source.
-	ID uuid.UUID `json:"id"`
+	ID int `json:"id"`
 	// The ID of the user associated with the event.
 	UserID int `json:"userId"`
 	// The type of event related to the source system and subject. E.g. com.library.book.borrowed:v1
@@ -48,7 +47,6 @@ func New(candidate Candidate) (*Event, error) {
 	}
 
 	event := Event{
-		ID:      uuid.New(),
 		UserID:  candidate.UserID,
 		Type:    candidate.Type,
 		Time:    time.Now().UTC(),
@@ -65,10 +63,6 @@ func New(candidate Candidate) (*Event, error) {
 
 // Validate checks the Event fields for validity according to the CNCF Cloudevents specification.
 func (e *Event) Validate() error {
-	if e.ID == uuid.Nil {
-		return errors.New("event ID cannot be nil")
-	}
-
 	if e.UserID <= 0 {
 		return errors.New("user ID must be a positive integer")
 	}
