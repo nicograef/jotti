@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -9,29 +11,52 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer'
+import { Spinner } from '@/components/ui/spinner'
+import type { OrderBackend } from '@/lib/order/OrderBackend'
 import type { ProductPublic } from '@/lib/product/Product'
 import type { TablePublic } from '@/lib/table/Table'
 
-type OrderProduct = ProductPublic & { amount: number }
+type OrderProduct = ProductPublic & { quantity: number }
 
 interface OrderDrawerProps {
+  backend: Pick<OrderBackend, 'placeOrder'>
+  open: boolean
   table: TablePublic
   products: ProductPublic[]
-  productsAmounts: Record<number, number>
-  onSubmit: () => void
+  quantities: Record<number, number>
+  cancel: () => void
+  orderPlaced: () => void
 }
 
-export function OrderDrawer({
-  table,
-  products,
-  productsAmounts,
-  onSubmit,
-}: OrderDrawerProps) {
-  const orderedProducts = orderProducts(products, productsAmounts)
+export function OrderDrawer(props: OrderDrawerProps) {
+  const [loading, setLoading] = useState(false)
+  const orderedProducts = orderProducts(props.products, props.quantities)
   const totalPrice = calculateTotalPrice(orderedProducts)
 
+  const onOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      props.cancel()
+    }
+  }
+
+  const onSubmit = async () => {
+    setLoading(true)
+
+    try {
+      await props.backend.placeOrder({
+        tableId: props.table.id,
+        products: orderedProducts,
+      })
+      props.orderPlaced()
+    } catch (error: unknown) {
+      console.error(error)
+    }
+
+    setLoading(false)
+  }
+
   return (
-    <Drawer>
+    <Drawer open={props.open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
         <div className="text-center">
           <Button className="cursor-pointer hover:shadow-sm w-full lg:w-1/2">
@@ -42,7 +67,7 @@ export function OrderDrawer({
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Bestellung für {table.name}</DrawerTitle>
+            <DrawerTitle>Bestellung für {props.table.name}</DrawerTitle>
             <DrawerDescription>
               Überprüfe deine Bestellung vor dem Absenden.
             </DrawerDescription>
@@ -55,11 +80,11 @@ export function OrderDrawer({
                   className="flex justify-between border-b pb-2"
                 >
                   <div>
-                    {product.amount} x {product.name}
+                    {product.quantity} x {product.name}
                   </div>
                   <div>
                     €{' '}
-                    {((product.netPriceCents / 100) * product.amount).toFixed(
+                    {((product.netPriceCents / 100) * product.quantity).toFixed(
                       2,
                     )}
                   </div>
@@ -74,10 +99,10 @@ export function OrderDrawer({
           <DrawerFooter>
             <Button
               onClick={() => {
-                onSubmit()
+                void onSubmit()
               }}
             >
-              Jetzt Bestellen
+              {loading ? <Spinner /> : <></>} Jetzt Bestellen
             </Button>
             <DrawerClose asChild>
               <Button variant="outline">Abbrechen</Button>
@@ -91,19 +116,19 @@ export function OrderDrawer({
 
 function orderProducts(
   products: ProductPublic[],
-  productsAmounts: Record<number, number>,
+  selectedQuantity: Record<number, number>,
 ): OrderProduct[] {
   return products
     .map((product) => ({
       ...product,
-      amount: productsAmounts[product.id] || 0,
+      quantity: selectedQuantity[product.id] || 0,
     }))
-    .filter((product) => product.amount > 0)
+    .filter((product) => product.quantity > 0)
 }
 
 function calculateTotalPrice(orderProducts: OrderProduct[]): number {
   return orderProducts.reduce(
-    (total, product) => total + product.netPriceCents * product.amount,
+    (total, product) => total + product.netPriceCents * product.quantity,
     0,
   )
 }

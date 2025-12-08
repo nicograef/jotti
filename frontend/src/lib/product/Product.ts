@@ -11,7 +11,6 @@ export type ProductCategory =
 export const ProductStatus = {
   ACTIVE: 'active',
   INACTIVE: 'inactive',
-  DELETED: 'deleted',
 } as const
 export type ProductStatus = (typeof ProductStatus)[keyof typeof ProductStatus]
 

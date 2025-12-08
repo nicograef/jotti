@@ -12,7 +12,6 @@ const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {
 export const TableStatus = {
   ACTIVE: 'active',
   INACTIVE: 'inactive',
-  DELETED: 'deleted',
 } as const
 export type TableStatus = (typeof TableStatus)[keyof typeof TableStatus]
 const TableStatusSchema = z.enum(TableStatus)

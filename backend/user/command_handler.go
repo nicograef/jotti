@@ -104,11 +104,11 @@ func (h *CommandHandler) UpdateUserHandler() http.HandlerFunc {
 }
 
 type resetPassword struct {
-	UserID int `json:"userID"`
+	ID int `json:"id"`
 }
 
 var resetPasswordSchema = z.Struct(z.Shape{
-	"UserID": IDSchema.Required(),
+	"ID": IDSchema.Required(),
 })
 
 type resetPasswordResponse struct {
@@ -124,7 +124,7 @@ func (h *CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		onetimePassword, err := h.Command.ResetPassword(ctx, body.UserID)
+		onetimePassword, err := h.Command.ResetPassword(ctx, body.ID)
 		if err != nil {
 			if errors.Is(err, ErrUserNotFound) {
 				api.SendClientError(w, "user_not_found", nil)

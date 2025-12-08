@@ -6,6 +6,8 @@ import (
 	"context"
 	"strconv"
 	"testing"
+
+	"github.com/nicograef/jotti/backend/db"
 )
 
 type mockCommandPersistence struct {
@@ -65,7 +67,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateUser_Error(t *testing.T) {
-	userCommand := Command{Persistence: &mockCommandPersistence{err: ErrDatabase}}
+	userCommand := Command{Persistence: &mockCommandPersistence{err: db.ErrDatabase}}
 
 	_, _, err := userCommand.CreateUser(context.Background(), "Test User", "testuser", ServiceRole)
 
@@ -78,7 +80,7 @@ func TestCreateUser_Error(t *testing.T) {
 }
 
 func TestVerifyPasswordAndGetUser_NotFound(t *testing.T) {
-	userCommand := Command{Persistence: &mockCommandPersistence{err: ErrUserNotFound}}
+	userCommand := Command{Persistence: &mockCommandPersistence{err: db.ErrNotFound}}
 
 	_, err := userCommand.VerifyPasswordAndGetUser(context.Background(), "nonexistent", "password")
 
@@ -134,7 +136,7 @@ func TestUpdateUser_Success(t *testing.T) {
 }
 
 func TestUpdateUser_Error(t *testing.T) {
-	userCommand := Command{Persistence: &mockCommandPersistence{err: ErrDatabase}}
+	userCommand := Command{Persistence: &mockCommandPersistence{err: db.ErrDatabase}}
 
 	err := userCommand.UpdateUser(context.Background(), 1, "Updated User", "updateduser", AdminRole)
 

@@ -54,6 +54,16 @@ export function LoginForm(props: LoginFormProps) {
             type: 'manual',
             message: 'Benutzername oder Passwort ungültig.',
           })
+        } else if (error.code === 'no_password_set') {
+          form.setError('username', {
+            type: 'manual',
+            message: 'Für dieses Konto wurde noch kein Passwort festgelegt.',
+          })
+        } else {
+          form.setError('username', {
+            type: 'manual',
+            message: 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.',
+          })
         }
       }
     }

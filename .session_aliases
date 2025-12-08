@@ -1,4 +1,5 @@
 alias backend='(cd backend && go mod tidy && golangci-lint run && goimports -w . && go vet ./... && go test -tags=unit ./... && go build ./...)'
+alias frontend='(cd frontend && pnpm format && pnpm lint && pnpm build)'
 alias up='docker compose -f docker-compose.dev.yml up --build -d'
 alias down='docker compose -f docker-compose.dev.yml down'
 alias restart='down && up'

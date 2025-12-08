@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/rs/zerolog"
 )
 
@@ -43,10 +44,11 @@ func (s *Command) CreateUser(ctx context.Context, name, username string, role Ro
 	lowerCaseUsername := strings.ToLower(username) // usernames are always lowercase in jotti
 	id, err := s.Persistence.CreateUser(ctx, name, lowerCaseUsername, onetimePasswordHash, role)
 	if err != nil {
-		log.Error().Err(err).Str("username", lowerCaseUsername).Msg("Failed to create user")
+		log.Error().Str("username", lowerCaseUsername).Msg("Failed to create user")
 		return 0, "", ErrDatabase
 	}
 
+	log.Info().Str("username", lowerCaseUsername).Msg("User created successfully")
 	return id, onetimePassword, nil
 }
 
@@ -57,23 +59,26 @@ func (s *Command) VerifyPasswordAndGetUser(ctx context.Context, username, passwo
 
 	id, err := s.Persistence.GetUserID(ctx, username)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Str("username", username).Msg("User not found during login")
 			return nil, ErrUserNotFound
+		} else {
+			log.Error().Str("username", username).Msg("Failed to retrieve user ID")
+			return nil, ErrDatabase
 		}
-		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve user")
-		return nil, ErrDatabase
 	}
 
 	user, err := s.Persistence.GetUser(ctx, id)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Str("username", username).Msg("User not found during login")
 			return nil, ErrUserNotFound
+		} else {
+			log.Error().Str("username", username).Msg("Failed to retrieve password hash")
+			return nil, ErrDatabase
 		}
-		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve password hash")
-		return nil, ErrDatabase
 	}
+
 	if user.PasswordHash == "" {
 		log.Warn().Str("username", username).Msg("No password set for user")
 		return nil, ErrNoPassword
@@ -84,6 +89,7 @@ func (s *Command) VerifyPasswordAndGetUser(ctx context.Context, username, passwo
 		return nil, ErrInvalidPassword
 	}
 
+	log.Info().Str("username", username).Msg("User logged in successfully")
 	return user, nil
 }
 
@@ -94,23 +100,26 @@ func (s *Command) SetNewPassword(ctx context.Context, username, newPassword, one
 
 	id, err := s.Persistence.GetUserID(ctx, username)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Str("username", username).Msg("User not found during password validation")
 			return nil, ErrUserNotFound
+		} else {
+			log.Error().Str("username", username).Msg("Failed to retrieve user")
+			return nil, ErrDatabase
 		}
-		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve user")
-		return nil, ErrDatabase
 	}
 
 	user, err := s.Persistence.GetUser(ctx, id)
 	if err != nil {
-		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve one-time password hash")
+		log.Error().Str("username", username).Msg("Failed to retrieve one-time password hash")
 		return nil, ErrDatabase
 	}
+
 	if user.OnetimePasswordHash == "" {
 		log.Warn().Str("username", username).Msg("No one-time password set for user")
 		return nil, ErrNoOnetimePassword
 	}
+
 	if err := verifyPassword(user.OnetimePasswordHash, onetimePassword); err != nil {
 		log.Warn().Err(err).Str("username", username).Msg("One-time password validation failed")
 		return nil, ErrInvalidPassword
@@ -123,12 +132,11 @@ func (s *Command) SetNewPassword(ctx context.Context, username, newPassword, one
 	}
 
 	if err := s.Persistence.SetPasswordHash(ctx, user.ID, hashedPassword); err != nil {
-		log.Error().Err(err).Str("username", username).Msg("Failed to set password hash in persistence")
+		log.Error().Str("username", username).Msg("Failed to set password hash in persistence")
 		return nil, ErrDatabase
 	}
 
-	log.Info().Str("username", username).Msg("Password set successfully")
-
+	log.Info().Str("username", username).Msg("New password set successfully")
 	return user, nil
 }
 
@@ -149,14 +157,17 @@ func (s *Command) ResetPassword(ctx context.Context, userID int) (string, error)
 	}
 
 	err = s.Persistence.SetOnetimePasswordHash(ctx, userID, onetimePasswordHash)
-	if err != nil && errors.Is(err, ErrUserNotFound) {
-		log.Warn().Int("user_id", userID).Msg("User not found for password reset")
-		return "", ErrUserNotFound
-	} else if err != nil {
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to set one-time password hash in persistence")
-		return "", ErrDatabase
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn().Int("user_id", userID).Msg("User not found for password reset")
+			return "", ErrUserNotFound
+		} else {
+			log.Error().Int("user_id", userID).Msg("Failed to set one-time password hash in persistence")
+			return "", ErrDatabase
+		}
 	}
 
+	log.Info().Int("user_id", userID).Msg("Password reset successfully")
 	return onetimePassword, nil
 }
 
@@ -165,14 +176,17 @@ func (s *Command) UpdateUser(ctx context.Context, id int, name, username string,
 	log := zerolog.Ctx(ctx)
 
 	err := s.Persistence.UpdateUser(ctx, id, name, username, role)
-	if err != nil && errors.Is(err, ErrUserNotFound) {
-		log.Warn().Int("user_id", id).Msg("User not found for update")
-		return ErrUserNotFound
-	} else if err != nil {
-		log.Error().Err(err).Int("user_id", id).Msg("Failed to update user")
-		return ErrDatabase
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn().Int("user_id", id).Msg("User not found for update")
+			return ErrUserNotFound
+		} else {
+			log.Error().Err(err).Int("user_id", id).Msg("Failed to update user")
+			return ErrDatabase
+		}
 	}
 
+	log.Info().Int("user_id", id).Msg("User updated successfully")
 	return nil
 }
 
@@ -181,14 +195,17 @@ func (s *Command) ActivateUser(ctx context.Context, id int) error {
 	log := zerolog.Ctx(ctx)
 
 	err := s.Persistence.ActivateUser(ctx, id)
-	if err != nil && errors.Is(err, ErrUserNotFound) {
-		log.Warn().Int("user_id", id).Msg("User not found for activation")
-		return ErrUserNotFound
-	} else if err != nil {
-		log.Error().Err(err).Int("user_id", id).Msg("Failed to activate user")
-		return ErrDatabase
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn().Int("user_id", id).Msg("User not found for activation")
+			return ErrUserNotFound
+		} else {
+			log.Error().Int("user_id", id).Msg("Failed to activate user")
+			return ErrDatabase
+		}
 	}
 
+	log.Info().Int("user_id", id).Msg("User activated successfully")
 	return nil
 }
 
@@ -197,13 +214,16 @@ func (s *Command) DeactivateUser(ctx context.Context, id int) error {
 	log := zerolog.Ctx(ctx)
 
 	err := s.Persistence.DeactivateUser(ctx, id)
-	if err != nil && errors.Is(err, ErrUserNotFound) {
-		log.Warn().Int("user_id", id).Msg("User not found for deactivation")
-		return ErrUserNotFound
-	} else if err != nil {
-		log.Error().Err(err).Int("user_id", id).Msg("Failed to deactivate user")
-		return ErrDatabase
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn().Int("user_id", id).Msg("User not found for deactivation")
+			return ErrUserNotFound
+		} else {
+			log.Error().Int("user_id", id).Msg("Failed to deactivate user")
+			return ErrDatabase
+		}
 	}
 
+	log.Info().Int("user_id", id).Msg("User deactivated successfully")
 	return nil
 }

@@ -34,6 +34,15 @@ export class UserBackend {
     this.backend = backend
   }
 
+  public async getAllUsers(): Promise<User[]> {
+    const { users } = await this.backend.post(
+      'get-all-users',
+      {},
+      z.object({ users: UserSchema.array() }),
+    )
+    return users
+  }
+
   public async createUser(
     name: string,
     username: string,
@@ -55,15 +64,6 @@ export class UserBackend {
     await this.backend.post('update-user', body)
   }
 
-  public async getAllUsers(): Promise<User[]> {
-    const { users } = await this.backend.post(
-      'get-all-users',
-      {},
-      z.object({ users: UserSchema.array() }),
-    )
-    return users
-  }
-
   public async activateUser(id: number): Promise<void> {
     const body = UserSchema.pick({ id: true }).parse({ id })
     await this.backend.post('activate-user', body)
@@ -72,5 +72,15 @@ export class UserBackend {
   public async deactivateUser(id: number): Promise<void> {
     const body = UserSchema.pick({ id: true }).parse({ id })
     await this.backend.post('deactivate-user', body)
+  }
+
+  public async resetPassword(id: number): Promise<string> {
+    const body = UserSchema.pick({ id: true }).parse({ id })
+    const { onetimePassword } = await this.backend.post(
+      'reset-password',
+      body,
+      z.object({ onetimePassword: OnetimePasswordSchema }),
+    )
+    return onetimePassword
   }
 }

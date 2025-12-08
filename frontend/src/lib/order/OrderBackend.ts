@@ -19,14 +19,14 @@ export class OrderBackend {
 
   public async placeOrder(
     placeOrder: z.infer<typeof PlaceOrderSchema>,
-  ): Promise<Order> {
+  ): Promise<string> {
     const body = PlaceOrderSchema.parse(placeOrder)
-    const { order } = await this.backend.post(
+    const { id } = await this.backend.post(
       'place-order',
       body,
-      z.object({ order: OrderSchema }),
+      z.object({ id: OrderSchema.shape.id }),
     )
-    return order
+    return id
   }
 
   public async getOrders(tableId: number): Promise<Order[]> {

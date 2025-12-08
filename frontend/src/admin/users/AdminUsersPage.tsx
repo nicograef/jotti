@@ -3,16 +3,23 @@ import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
 import { useAllUsers } from '@/lib/user/hooks'
-import type { User, UserStatus } from '@/lib/user/User'
+import type { User } from '@/lib/user/User'
 import { UserBackend } from '@/lib/user/UserBackend'
 
 import { EditUserDialog } from './EditUserDialog'
 import { NewUserDialog } from './NewUserDialog'
+import { PasswordResetDialog } from './PasswordResetDialog'
 import { UserCreatedDialog } from './UserCreatedDialog'
 import { Users } from './Users'
 
 const initialUserCreatedState = {
   user: null as User | null,
+  onetimePassword: '',
+  open: false,
+}
+
+const initialPasswordResetState = {
+  username: null as string | null,
   onetimePassword: '',
   open: false,
 }
@@ -29,17 +36,10 @@ export function AdminUsersPage() {
   const [userCreatedState, setUserCreatedState] = useState(
     initialUserCreatedState,
   )
+  const [passwordResetState, setPasswordResetState] = useState(
+    initialPasswordResetState,
+  )
   const [editState, setEditState] = useState(initialEditState)
-
-  const updateUser = (user: User) => {
-    setUsers((prevUsers) => prevUsers.map((u) => (u.id === user.id ? user : u)))
-  }
-
-  const onStatusChange = (userId: number, status: UserStatus) => {
-    setUsers((prevUsers) =>
-      prevUsers.map((u) => (u.id === userId ? { ...u, status } : u)),
-    )
-  }
 
   return (
     <>
@@ -57,13 +57,24 @@ export function AdminUsersPage() {
           setUserCreatedState(initialUserCreatedState)
         }}
       />
+      <PasswordResetDialog
+        {...passwordResetState}
+        close={() => {
+          setPasswordResetState(initialPasswordResetState)
+        }}
+      />
       {editState.user && (
         <EditUserDialog
           backend={userBackend}
           open={editState.open}
           user={editState.user}
           updated={(user) => {
-            updateUser(user)
+            setUsers((prevUsers) =>
+              prevUsers.map((u) => (u.id === user.id ? user : u)),
+            )
+          }}
+          onPasswordReset={(username, onetimePassword) => {
+            setPasswordResetState({ username, onetimePassword, open: true })
           }}
           close={() => {
             setEditState(initialEditState)
@@ -79,7 +90,11 @@ export function AdminUsersPage() {
           const userToEdit = users.find((u) => u.id === userId) ?? null
           setEditState({ user: userToEdit, open: true })
         }}
-        onStatusChange={onStatusChange}
+        onStatusChange={(userId, status) => {
+          setUsers((prevUsers) =>
+            prevUsers.map((u) => (u.id === userId ? { ...u, status } : u)),
+          )
+        }}
       />
     </>
   )

@@ -38,7 +38,7 @@ interface EditProductDialogProps {
   close: () => void
 }
 
-export function EditProductDialog(props: Readonly<EditProductDialogProps>) {
+export function EditProductDialog(props: EditProductDialogProps) {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: props.product,

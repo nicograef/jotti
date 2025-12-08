@@ -20,7 +20,6 @@ export function toUsername(name: string) {
 export const UserStatus = {
   ACTIVE: 'active',
   INACTIVE: 'inactive',
-  DELETED: 'deleted',
 } as const
 export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus]
 

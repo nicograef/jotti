@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { DialogDescription } from '@radix-ui/react-dialog'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import {
@@ -32,14 +33,15 @@ const FormDataSchema = UserSchema.pick({
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewUserDialogProps {
-  backend: Pick<UserBackend, 'updateUser'>
+  backend: Pick<UserBackend, 'updateUser' | 'resetPassword'>
   open: boolean
   user: User
   updated: (user: User) => void
+  onPasswordReset: (username: string, onetimePassword: string) => void
   close: () => void
 }
 
-export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
+export function EditUserDialog(props: NewUserDialogProps) {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: props.user,
@@ -81,6 +83,22 @@ export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
     setLoading(false)
   }
 
+  const resetPassword = async () => {
+    setLoading(true)
+
+    try {
+      const onetimePassword = await props.backend.resetPassword(props.user.id)
+      form.reset()
+      props.onPasswordReset(props.user.username, onetimePassword)
+      props.close()
+    } catch (error: unknown) {
+      console.error(error)
+      toast.error('Fehler beim Zurücksetzen des Passworts.')
+    }
+
+    setLoading(false)
+  }
+
   return (
     <Dialog open={props.open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -105,14 +123,16 @@ export function EditUserDialog(props: Readonly<NewUserDialogProps>) {
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">
+          <Button
+            disabled={loading || !form.formState.isValid}
+            onClick={() => {
+              void resetPassword()
+            }}
+          >
+            {loading ? <Spinner /> : <></>} Passwort zurücksetzen
+          </Button>
           <DialogClose asChild>
-            <Button
-              variant="outline"
-              onClick={() => {
-                form.reset()
-              }}
-              disabled={loading}
-            >
+            <Button variant="outline" disabled={loading}>
               Abbrechen
             </Button>
           </DialogClose>

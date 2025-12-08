@@ -50,6 +50,9 @@ func (h *AuthHandler) LoginHandler() http.HandlerFunc {
 			if errors.Is(err, ErrUserNotFound) || errors.Is(err, ErrInvalidPassword) {
 				api.SendClientError(w, "invalid_credentials", nil)
 				return
+			} else if errors.Is(err, ErrNoPassword) {
+				api.SendClientError(w, "no_password_set", "No password set for user. Please set a password first.")
+				return
 			} else {
 				api.SendServerError(w)
 				return

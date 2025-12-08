@@ -26,11 +26,11 @@ func (m *mockQueryPersistence) GetUser(ctx context.Context, id int) (*User, erro
 	return m.User, nil
 }
 
-func (m *mockQueryPersistence) GetAllUsers(ctx context.Context) ([]*User, error) {
+func (m *mockQueryPersistence) GetAllUsers(ctx context.Context) ([]User, error) {
 	if m.ShouldFail {
 		return nil, ErrDatabase
 	}
-	return []*User{m.User}, nil
+	return []User{*m.User}, nil
 }
 
 func TestGetAllUsers_Success(t *testing.T) {

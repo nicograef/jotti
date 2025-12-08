@@ -30,7 +30,7 @@ interface EditTableDialogProps {
   close: () => void
 }
 
-export function EditTableDialog(props: Readonly<EditTableDialogProps>) {
+export function EditTableDialog(props: EditTableDialogProps) {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: props.table,
