@@ -11,16 +11,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  // server: {
-  //   host: '0.0.0.0',
-  //   port: 5173,
-  //   proxy: {
-  //     // Proxy API requests to backend container; allows using relative /api base
-  //     '/api': {
-  //       target: 'http://backend-dev:3000',
-  //       changeOrigin: true,
-  //       rewrite: (p) => p.replace(/^\/api/, ''),
-  //     },
-  //   },
-  // },
 })
