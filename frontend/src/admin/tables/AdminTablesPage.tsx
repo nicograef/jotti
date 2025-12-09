@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
-import { useAllTables } from '@/lib/table/hooks'
-import type { Table, TableStatus } from '@/lib/table/Table'
-import { TableBackend } from '@/lib/table/TableBackend'
 
 import { EditTableDialog } from './EditTableDialog'
+import { useAllTables } from './hooks'
 import { NewTableDialog } from './NewTableDialog'
+import type { Table, TableStatus } from './Table'
+import { TableBackend } from './TableBackend'
 import { Tables } from './Tables'
 
 const initialEditState = {

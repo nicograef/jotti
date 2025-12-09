@@ -12,13 +12,14 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
-import type { OrderProduct } from '@/lib/order/Order'
-import type { OrderBackend } from '@/lib/order/OrderBackend'
-import type { TablePublic } from '@/lib/table/Table'
+
+import type { OrderProduct } from './order/Order'
+import type { OrderBackend } from './order/OrderBackend'
+import type { Table } from './table/Table'
 
 interface PaymentDrawerProps {
   backend: Pick<OrderBackend, 'registerPayment'>
-  table: TablePublic
+  table: Table
   unpaidProducts: OrderProduct[]
   quantities: Record<number, number>
   paymentRegistered: () => void

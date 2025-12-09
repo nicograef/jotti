@@ -16,8 +16,9 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import type { Table } from '@/lib/table/Table'
-import { TableBackend, UpdateTableSchema } from '@/lib/table/TableBackend'
+
+import type { Table } from './Table'
+import { TableBackend, UpdateTableSchema } from './TableBackend'
 
 const FormDataSchema = UpdateTableSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>

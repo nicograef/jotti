@@ -20,8 +20,9 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useOrders } from '@/lib/order/hooks'
-import type { Order } from '@/lib/order/Order'
+
+import { useOrders } from './order/hooks'
+import type { Order } from './order/Order'
 
 interface TableHistoryProps {
   tableId: number
@@ -119,10 +120,11 @@ function HistoryItemSkeleton() {
         <ItemTitle>
           <Skeleton className="h-6 w-32" />
         </ItemTitle>
-        <ItemDescription>
-          <Skeleton className="h-4 w-48" />
-        </ItemDescription>
+        <Skeleton className="h-4 w-48" />
       </ItemContent>
+      <ItemActions>
+        <Skeleton className="h-8 w-8 rounded-full" />
+      </ItemActions>
     </Item>
   )
 }

@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/item'
 import { Switch } from '@/components/ui/switch'
 import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { type Table, TableStatus } from '@/lib/table/Table'
+
+import { type Table, TableStatus } from './Table'
 
 interface TableItemProps {
   loading: boolean

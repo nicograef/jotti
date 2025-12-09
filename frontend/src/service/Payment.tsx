@@ -12,16 +12,16 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useTableUnpaidProducts } from '@/lib/order/hooks'
-import type { OrderProduct } from '@/lib/order/Order'
-import type { OrderBackend } from '@/lib/order/OrderBackend'
-import type { TablePublic } from '@/lib/table/Table'
 
+import { useTableUnpaidProducts } from './order/hooks'
+import type { OrderProduct } from './order/Order'
+import type { OrderBackend } from './order/OrderBackend'
 import { PaymentDrawer } from './PaymentDrawer'
+import type { Table } from './table/Table'
 
 interface PaymentProps {
   backend: Pick<OrderBackend, 'registerPayment'>
-  table: TablePublic
+  table: Table
 }
 
 export function Payment({ table, backend }: PaymentProps) {

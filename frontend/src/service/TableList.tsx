@@ -9,10 +9,11 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
-import { type TablePublic } from '@/lib/table/Table'
+
+import { type Table } from './table/Table'
 
 interface TableListComponentProps {
-  tables: TablePublic[]
+  tables: Table[]
 }
 
 export function TableList(props: TableListComponentProps) {

@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
 import { ItemGroup } from '@/components/ui/item'
-import { type User, UserStatus } from '@/lib/user/User'
-import type { UserBackend } from '@/lib/user/UserBackend'
 
+import { type User, UserStatus } from './User'
+import type { UserBackend } from './UserBackend'
 import { UserItem } from './UserItem'
 
 interface UsersProps {

@@ -21,11 +21,9 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import type { Product } from '@/lib/product/Product'
-import {
-  ProductBackend,
-  UpdateProductSchema,
-} from '@/lib/product/ProductBackend'
+
+import type { Product } from './Product'
+import { ProductBackend, UpdateProductSchema } from './ProductBackend'
 
 const FormDataSchema = UpdateProductSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>

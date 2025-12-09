@@ -1,22 +1,21 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import type { OrderBackend } from '@/lib/order/OrderBackend'
-import { useActiveProducts } from '@/lib/product/hooks'
-import type { TablePublic } from '@/lib/table/Table'
-
+import type { OrderBackend } from './order/OrderBackend'
 import { OrderDrawer } from './OrderDrawer'
+import { useAllProducts } from './product/hooks'
 import { ProductList, ProductListSkeleton } from './ProductList'
+import type { Table } from './table/Table'
 
 interface OrderProps {
   backend: Pick<OrderBackend, 'placeOrder'>
-  table: TablePublic
+  table: Table
 }
 
 type ProductAmountMap = Record<number, number>
 
 export function Order({ backend, table }: OrderProps) {
-  const { loading, products } = useActiveProducts()
+  const { loading, products } = useAllProducts()
   const [quantities, setQuantities] = useState<ProductAmountMap>({})
 
   if (loading) {

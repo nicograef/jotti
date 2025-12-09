@@ -12,15 +12,16 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
-import type { OrderProduct } from '@/lib/order/Order'
-import type { OrderBackend } from '@/lib/order/OrderBackend'
-import type { ProductPublic } from '@/lib/product/Product'
-import type { TablePublic } from '@/lib/table/Table'
+
+import type { OrderProduct } from './order/Order'
+import type { OrderBackend } from './order/OrderBackend'
+import type { Product } from './product/Product'
+import type { Table } from './table/Table'
 
 interface OrderDrawerProps {
   backend: Pick<OrderBackend, 'placeOrder'>
-  table: TablePublic
-  products: ProductPublic[]
+  table: Table
+  products: Product[]
   quantities: Record<number, number>
   orderPlaced: () => void
 }
@@ -111,7 +112,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
 }
 
 function orderProducts(
-  products: ProductPublic[],
+  products: Product[],
   selectedQuantity: Record<number, number>,
 ): OrderProduct[] {
   return products

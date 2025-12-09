@@ -10,10 +10,11 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
-import { type ProductPublic } from '@/lib/product/Product'
+
+import { type Product } from './product/Product'
 
 interface ProductListComponentProps {
-  products: ProductPublic[]
+  products: Product[]
   productAmounts: Record<number, number>
   onAdd: (productId: number) => void
   onRemove: (productId: number) => void

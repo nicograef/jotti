@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
-import { useAllUsers } from '@/lib/user/hooks'
-import type { User } from '@/lib/user/User'
-import { UserBackend } from '@/lib/user/UserBackend'
 
 import { EditUserDialog } from './EditUserDialog'
+import { useAllUsers } from './hooks'
 import { NewUserDialog } from './NewUserDialog'
 import { PasswordResetDialog } from './PasswordResetDialog'
+import type { User } from './User'
+import { UserBackend } from './UserBackend'
 import { UserCreatedDialog } from './UserCreatedDialog'
 import { Users } from './Users'
 

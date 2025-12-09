@@ -19,8 +19,9 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { BackendError } from '@/lib/Backend'
-import type { Table } from '@/lib/table/Table'
-import { CreateTableSchema, TableBackend } from '@/lib/table/TableBackend'
+
+import type { Table } from './Table'
+import { CreateTableSchema, TableBackend } from './TableBackend'
 
 const FormDataSchema = CreateTableSchema
 type FormData = z.infer<typeof FormDataSchema>

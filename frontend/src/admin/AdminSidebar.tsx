@@ -14,6 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar'
 import { AuthSingleton } from '@/lib/Auth'
 
@@ -43,6 +44,7 @@ const items = [
 export function AdminSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { toggleSidebar } = useSidebar()
 
   const logout = () => {
     AuthSingleton.logout()
@@ -65,7 +67,12 @@ export function AdminSidebar() {
                     asChild
                     isActive={location.pathname === item.url}
                   >
-                    <NavLink to={item.url}>
+                    <NavLink
+                      to={item.url}
+                      onClick={() => {
+                        toggleSidebar()
+                      }}
+                    >
                       <item.icon />
                       <span>{item.title}</span>
                     </NavLink>

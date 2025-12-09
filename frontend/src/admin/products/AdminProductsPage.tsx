@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
-import { useAllProducts } from '@/lib/product/hooks'
-import type { Product, ProductStatus } from '@/lib/product/Product'
-import { ProductBackend } from '@/lib/product/ProductBackend'
 
 import { EditProductDialog } from './EditProductDialog'
+import { useAllProducts } from './hooks'
 import { NewProductDialog } from './NewProductDialog'
+import type { Product, ProductStatus } from './Product'
+import { ProductBackend } from './ProductBackend'
 import { Products } from './Products'
 
 const initialEditState = {

@@ -9,12 +9,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AuthSingleton } from '@/lib/Auth'
 import { BackendSingleton } from '@/lib/Backend'
-import { useTableBalance } from '@/lib/order/hooks'
-import { OrderBackend } from '@/lib/order/OrderBackend'
-import { useTable } from '@/lib/table/hooks'
 
 import { Order } from './Order'
+import { useTableBalance } from './order/hooks'
+import { OrderBackend } from './order/OrderBackend'
 import { Payment } from './Payment'
+import { useTable } from './table/hooks'
 import { TableHistory } from './TableHistory'
 
 const orderBackend = new OrderBackend(BackendSingleton)
