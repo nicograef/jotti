@@ -2,7 +2,6 @@ package user
 
 import (
 	"errors"
-	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -18,8 +17,8 @@ func generateJWTTokenForUser(user User, secret string) (string, error) {
 		"alg":  jwt.SigningMethodHS256.Alg(),
 		"iss":  issuer,
 		"iat":  jwt.NewNumericDate(time.Now()),
-		"exp":  jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // 24 hours
-		"sub":  strconv.Itoa(user.ID),
+		"exp":  jwt.NewNumericDate(time.Now().Add(12 * time.Hour)), // 12 hours validity
+		"sub":  user.ID,
 		"role": user.Role,
 	})
 
@@ -53,14 +52,8 @@ func parseAndValidateJWTToken(tokenString, secret string) (*tokenPayload, error)
 		return nil, err
 	}
 
-	userID, err := strconv.Atoi((claims["sub"].(string)))
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to convert UserID to int")
-		return nil, err
-	}
-
 	payload := &tokenPayload{
-		UserID: userID,
+		UserID: int(claims["sub"].(float64)),
 		Role:   Role(claims["role"].(string)),
 	}
 

@@ -65,7 +65,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
               Überprüfe deine Bestellung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="my-4 space-y-2">
+          <div className="p-4 space-y-2">
             {orderedProducts.map((product) => {
               return (
                 <div

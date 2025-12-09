@@ -25,6 +25,7 @@ import type { Order } from '@/lib/order/Order'
 
 interface TableHistoryProps {
   tableId: number
+  userId: number | null
 }
 
 const initialOrderDetailsState: {
@@ -35,7 +36,7 @@ const initialOrderDetailsState: {
   open: false,
 }
 
-export function TableHistory({ tableId }: TableHistoryProps) {
+export function TableHistory({ tableId, userId }: TableHistoryProps) {
   const { loading, orders } = useOrders(tableId)
   const [orderDetails, setOrderDetails] = useState(initialOrderDetailsState)
 
@@ -54,6 +55,7 @@ export function TableHistory({ tableId }: TableHistoryProps) {
           : sortedOrders.map((order) => (
               <HistoryItem
                 key={order.id}
+                userId={userId}
                 order={order}
                 onClick={() => {
                   setOrderDetails({ order, open: true })
@@ -73,21 +75,26 @@ export function TableHistory({ tableId }: TableHistoryProps) {
 }
 
 function HistoryItem({
+  userId,
   order,
   onClick,
 }: {
+  userId: number | null
   order: Order
   onClick: () => void
 }) {
   return (
-    <Item variant="outline">
+    <Item
+      variant="outline"
+      className={order.userId === userId ? 'border-primary' : ''}
+    >
       <ItemContent>
         <ItemTitle>Bestellung {order.id.slice(0, 8)}</ItemTitle>
         <ItemDescription>
           <span className="font-bold">
             {(order.totalNetPriceCents / 100).toFixed(2)}&nbsp;€
           </span>
-          &nbsp; &ndash; &nbsp; am {new Date(order.placedAt).toLocaleString()}
+          &nbsp; &ndash; &nbsp;am {new Date(order.placedAt).toLocaleString()}
         </ItemDescription>
       </ItemContent>
       <ItemActions>
@@ -141,12 +148,11 @@ function OrderDetails({ order, open, onClose }: OrderDetailsProps) {
           <DrawerHeader>
             <DrawerTitle>Bestellung {order.id.slice(0, 8)}</DrawerTitle>
             <DrawerDescription>
-              Diese Bestellung wurde am{' '}
-              {new Date(order.placedAt).toLocaleString()} von Tisch{' '}
-              {order.userId} aufgegeben.
+              Aufgegeben am {new Date(order.placedAt).toLocaleDateString()} um{' '}
+              {new Date(order.placedAt).toLocaleTimeString()} Uhr
             </DrawerDescription>
           </DrawerHeader>
-          <div className="my-4 space-y-2">
+          <div className="p-4 space-y-2">
             {order.products.map((product) => {
               return (
                 <div

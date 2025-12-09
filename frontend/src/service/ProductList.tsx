@@ -31,8 +31,7 @@ export function ProductList(props: ProductListComponentProps) {
                 <span className="font-bold">
                   {(product.netPriceCents / 100).toFixed(2)}&nbsp;€
                 </span>
-                &nbsp; &ndash; &nbsp;
-                {product.description}
+                &nbsp; &ndash; &nbsp;{product.description}
               </ItemDescription>
             ) : (
               <ItemDescription>

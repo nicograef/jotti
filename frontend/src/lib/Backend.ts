@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { AuthSingleton } from './auth'
+import { AuthSingleton } from './Auth'
 
 const ErrorResponseSchema = z.object({
   code: z.string(),

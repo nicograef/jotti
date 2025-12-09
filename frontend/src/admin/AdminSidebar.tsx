@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { AuthSingleton } from '@/lib/auth'
+import { AuthSingleton } from '@/lib/Auth'
 
 const items = [
   {

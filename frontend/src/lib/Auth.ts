@@ -5,7 +5,7 @@ const JottiTokenSchema = z.object({
   iss: z.literal('jotti'),
   exp: z.int().min(0),
   iat: z.int().min(0),
-  sub: z.string().min(1),
+  sub: z.number().int().min(1),
   role: z.enum(['admin', 'service']),
 })
 type JottiToken = z.infer<typeof JottiTokenSchema>
@@ -37,7 +37,7 @@ class Auth {
     return this.tokenBase64
   }
 
-  public get username(): string | null {
+  public get userId(): number | null {
     return this.token?.sub ?? null
   }
 

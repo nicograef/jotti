@@ -67,7 +67,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
               Überprüfe deine Zahlung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="my-4 space-y-2">
+          <div className="p-4 space-y-2">
             {props.unpaidProducts.map((product) => {
               return (
                 <div

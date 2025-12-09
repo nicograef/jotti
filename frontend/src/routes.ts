@@ -1,6 +1,6 @@
 import { createBrowserRouter, redirect } from 'react-router'
 
-import { AuthSingleton } from '@/lib/auth'
+import { AuthSingleton } from '@/lib/Auth'
 
 import { AdminLayout } from './admin/AdminLayout'
 import { AdminProductsPage } from './admin/products/AdminProductsPage'

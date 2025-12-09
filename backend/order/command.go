@@ -29,7 +29,7 @@ func (s *Command) PlaceOrder(ctx context.Context, userID, tableID int, products 
 
 	_, err = s.Persistence.WriteEvent(ctx, *event)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write order placed event to database")
+		log.Error().Int("table_id", tableID).Msg("Failed to write order placed event to database")
 		return ErrDatabase
 	}
 

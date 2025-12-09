@@ -23,8 +23,8 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 		t.Fatalf("Failed to parse JWT token: %v", err)
 	}
 
-	if claims["sub"] != "1" {
-		t.Errorf("Expected subject '1', got '%v'", claims["sub"])
+	if int(claims["sub"].(float64)) != 1 {
+		t.Errorf("Expected subject '1', got '%v'", int(claims["sub"].(float64)))
 	}
 	if Role(claims["role"].(string)) != AdminRole {
 		t.Errorf("Expected role '%s', got '%v'", AdminRole, claims["role"])

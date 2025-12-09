@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { AuthSingleton } from '@/lib/auth'
+import { AuthSingleton } from '@/lib/Auth'
 import { type AuthBackend, LoginSchema } from '@/lib/AuthBackend'
 import { BackendError } from '@/lib/Backend'
 

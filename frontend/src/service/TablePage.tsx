@@ -7,6 +7,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AuthSingleton } from '@/lib/Auth'
 import { BackendSingleton } from '@/lib/Backend'
 import { useTableBalance } from '@/lib/order/hooks'
 import { OrderBackend } from '@/lib/order/OrderBackend'
@@ -60,7 +61,9 @@ export function TablePage() {
           {table && <Payment backend={orderBackend} table={table} />}
         </TabsContent>
         <TabsContent value="history">
-          {table && <TableHistory tableId={table.id} />}
+          {table && (
+            <TableHistory tableId={table.id} userId={AuthSingleton.userId} />
+          )}
         </TabsContent>
       </Tabs>
     </>
