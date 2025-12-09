@@ -15,7 +15,7 @@ export const PlaceOrderSchema = z.object({
 export type PlaceOrder = z.infer<typeof PlaceOrderSchema>
 
 export const OrderSchema = z.object({
-  id: z.number().int().min(1),
+  id: z.uuid(),
   userId: z.number().int().min(1),
   tableId: z.number().int().min(1),
   products: OrderProductSchema.array().min(1),
@@ -25,3 +25,21 @@ export const OrderSchema = z.object({
   }),
 })
 export type Order = z.infer<typeof OrderSchema>
+
+export const RegisterPaymentSchema = z.object({
+  tableId: z.number().int().min(1),
+  products: OrderProductSchema.array().min(1),
+})
+export type RegisterPayment = z.infer<typeof RegisterPaymentSchema>
+
+export const PaymentSchema = z.object({
+  id: z.uuid(),
+  userId: z.number().int().min(1),
+  tableId: z.number().int().min(1),
+  products: OrderProductSchema.array().min(1),
+  totalNetPriceCents: z.number().int().min(0),
+  placedAt: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: 'Invalid date format',
+  }),
+})
+export type Payment = z.infer<typeof PaymentSchema>

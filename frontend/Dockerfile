@@ -1,5 +1,5 @@
 # Build stage: compile the React (Vite) app
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 
 WORKDIR /app
 

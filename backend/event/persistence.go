@@ -64,7 +64,7 @@ func (p *Persistence) ReadEventsBySubject(ctx context.Context, subject string, e
 		`SELECT id, user_id, type, subject, data, timestamp
 		 FROM events
 		 WHERE subject = $1 AND type = ANY($2)
-		 ORDER BY sequence ASC`,
+		 ORDER BY id ASC`,
 		subject,
 		eventTypes,
 	)

@@ -23,13 +23,22 @@ var orderProductSchema = z.Struct(z.Shape{
 })
 
 type Order struct {
-	ID                 int            `json:"id"`
+	ID                 string         `json:"id"`
 	UserID             int            `json:"userId"`
 	TableID            int            `json:"tableId"`
 	Products           []orderProduct `json:"products"`
 	TotalNetPriceCents int            `json:"totalNetPriceCents"`
 	PlacedAt           time.Time      `json:"placedAt"`
 }
+
+var orderSchema = z.Struct(z.Shape{
+	"ID":                 z.String().UUID().Required(),
+	"UserID":             z.Int().GTE(1).Required(),
+	"TableID":            z.Int().GTE(1).Required(),
+	"Products":           z.Slice(orderProductSchema).Min(1).Required(),
+	"TotalNetPriceCents": z.Int().GTE(0).Required(),
+	"PlacedAt":           z.Time().Required(),
+})
 
 // ErrDatabase is returned when there is a database error.
 var ErrDatabase = errors.New("database error")

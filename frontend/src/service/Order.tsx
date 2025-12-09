@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import type { OrderBackend } from '@/lib/order/OrderBackend'
-import type { ProductPublic } from '@/lib/product/Product'
+import { useActiveProducts } from '@/lib/product/hooks'
 import type { TablePublic } from '@/lib/table/Table'
 
 import { OrderDrawer } from './OrderDrawer'
@@ -10,16 +10,14 @@ import { ProductList, ProductListSkeleton } from './ProductList'
 
 interface OrderProps {
   backend: Pick<OrderBackend, 'placeOrder'>
-  loading: boolean
   table: TablePublic
-  products: ProductPublic[]
 }
 
 type ProductAmountMap = Record<number, number>
 
-export function Order({ backend, loading, products, table }: OrderProps) {
+export function Order({ backend, table }: OrderProps) {
+  const { loading, products } = useActiveProducts()
   const [quantities, setQuantities] = useState<ProductAmountMap>({})
-  const [drawerOpen, setDrawerOpen] = useState(false)
 
   if (loading) {
     return <ProductListSkeleton />
@@ -28,18 +26,13 @@ export function Order({ backend, loading, products, table }: OrderProps) {
   return (
     <>
       <OrderDrawer
-        open={drawerOpen}
         backend={backend}
         table={table}
         products={products}
         quantities={quantities}
-        cancel={() => {
-          setDrawerOpen(false)
-        }}
         orderPlaced={() => {
-          setDrawerOpen(false)
           setQuantities({})
-          toast.success(`Bestellung für ${table.name} wurde aufgegeben.`)
+          toast.success(`Bestellung wurde aufgegeben.`)
         }}
       />
       <ProductList

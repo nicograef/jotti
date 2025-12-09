@@ -14,32 +14,34 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import type { OrderProduct } from '@/lib/order/Order'
 import type { OrderBackend } from '@/lib/order/OrderBackend'
-import type { ProductPublic } from '@/lib/product/Product'
 import type { TablePublic } from '@/lib/table/Table'
 
-interface OrderDrawerProps {
-  backend: Pick<OrderBackend, 'placeOrder'>
+interface PaymentDrawerProps {
+  backend: Pick<OrderBackend, 'registerPayment'>
   table: TablePublic
-  products: ProductPublic[]
+  unpaidProducts: OrderProduct[]
   quantities: Record<number, number>
-  orderPlaced: () => void
+  paymentRegistered: () => void
 }
 
-export function OrderDrawer(props: OrderDrawerProps) {
+export function PaymentDrawer(props: PaymentDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const orderedProducts = orderProducts(props.products, props.quantities)
-  const totalPrice = calculateTotalPrice(orderedProducts)
+
+  const totalPrice = props.unpaidProducts.reduce(
+    (total, p) => total + p.netPriceCents * p.quantity,
+    0,
+  )
 
   const onSubmit = async () => {
     setLoading(true)
 
     try {
-      await props.backend.placeOrder({
+      await props.backend.registerPayment({
         tableId: props.table.id,
-        products: orderedProducts,
+        products: props.unpaidProducts,
       })
-      props.orderPlaced()
+      props.paymentRegistered()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -53,20 +55,20 @@ export function OrderDrawer(props: OrderDrawerProps) {
       <DrawerTrigger asChild>
         <div className="text-center">
           <Button className="cursor-pointer hover:shadow-sm w-full lg:w-1/2">
-            Bestellung überprüfen
+            Zahlung überprüfen
           </Button>
         </div>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Bestellung für {props.table.name}</DrawerTitle>
+            <DrawerTitle>Zahlung für {props.table.name}</DrawerTitle>
             <DrawerDescription>
-              Überprüfe deine Bestellung vor dem Absenden.
+              Überprüfe deine Zahlung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
           <div className="my-4 space-y-2">
-            {orderedProducts.map((product) => {
+            {props.unpaidProducts.map((product) => {
               return (
                 <div
                   key={product.id}
@@ -96,7 +98,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Bestellung aufgeben
+              {loading ? <Spinner /> : <></>} Zahlung registrieren
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>
@@ -107,24 +109,5 @@ export function OrderDrawer(props: OrderDrawerProps) {
         </div>
       </DrawerContent>
     </Drawer>
-  )
-}
-
-function orderProducts(
-  products: ProductPublic[],
-  selectedQuantity: Record<number, number>,
-): OrderProduct[] {
-  return products
-    .map((product) => ({
-      ...product,
-      quantity: selectedQuantity[product.id] || 0,
-    }))
-    .filter((product) => product.quantity > 0)
-}
-
-function calculateTotalPrice(orderProducts: OrderProduct[]): number {
-  return orderProducts.reduce(
-    (total, product) => total + product.netPriceCents * product.quantity,
-    0,
   )
 }

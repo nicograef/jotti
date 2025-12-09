@@ -2,12 +2,11 @@ package order
 
 import (
 	"context"
-	"fmt"
 	"strconv"
-	"strings"
 
 	e "github.com/nicograef/jotti/backend/event"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type queryPersistence interface {
@@ -19,15 +18,16 @@ type Query struct {
 }
 
 // GetOrders retrieves all orders for a given table by reading events from the database.
-func (s *Query) GetOrders(ctx context.Context, tableID int) ([]Order, error) {
+func (q *Query) GetOrders(ctx context.Context, tableID int) ([]Order, error) {
 	logger := zerolog.Ctx(ctx)
-	events, err := s.Persistence.ReadEventsBySubject(ctx, "table:"+strconv.Itoa(tableID), []string{string(eventTypeOrderPlacedV1)})
+
+	events, err := q.Persistence.ReadEventsBySubject(ctx, "table:"+strconv.Itoa(tableID), []string{string(eventTypeOrderPlacedV1)})
 	if err != nil {
-		logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to read order events for table")
+		logger.Error().Int("table_id", tableID).Msg("Failed to read order events for table")
 		return nil, ErrDatabase
 	}
 
-	var orders []Order
+	orders := []Order{}
 	for _, event := range events {
 		order, err := buildOrderFromEvent(event)
 		if err != nil {
@@ -37,30 +37,69 @@ func (s *Query) GetOrders(ctx context.Context, tableID int) ([]Order, error) {
 		orders = append(orders, *order)
 	}
 
+	log.Info().Int("table_id", tableID).Int("order_count", len(orders)).Msg("Retrieved orders for table")
 	return orders, nil
 }
 
-func buildOrderFromEvent(event e.Event) (*Order, error) {
-	data := orderPlacedV1Data{}
-	err := e.ParseData(event, &data, orderPlacedV1DataSchema)
+func (q *Query) GetTableBalance(ctx context.Context, tableID int) (int, error) {
+	logger := zerolog.Ctx(ctx)
+
+	events, err := q.Persistence.ReadEventsBySubject(ctx, "table:"+strconv.Itoa(tableID), []string{string(eventTypeOrderPlacedV1)})
 	if err != nil {
-		return nil, err
+		logger.Error().Int("table_id", tableID).Msg("Failed to read order events for table")
+		return 0, ErrDatabase
 	}
 
-	tableIDStr := strings.TrimPrefix(event.Subject, "table:")
-	tableID, err := strconv.Atoi(tableIDStr)
+	totalBalanceCents := 0
+	for _, event := range events {
+		if event.Type == string(eventTypeOrderPlacedV1) {
+			order, err := buildOrderFromEvent(event)
+			if err != nil {
+				logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to build order from event")
+				return 0, err
+			}
+			totalBalanceCents += order.TotalNetPriceCents
+		}
+	}
+
+	log.Info().Int("table_id", tableID).Int("total_balance_cents", totalBalanceCents).Msg("Calculated table balance")
+	return totalBalanceCents, nil
+}
+
+func (q *Query) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]orderProduct, error) {
+	logger := zerolog.Ctx(ctx)
+
+	events, err := q.Persistence.ReadEventsBySubject(ctx, "table:"+strconv.Itoa(tableID), []string{string(eventTypeOrderPlacedV1)})
 	if err != nil {
-		return nil, fmt.Errorf("invalid table ID: %w", err)
+		logger.Error().Int("table_id", tableID).Msg("Failed to read order events for table")
+		return nil, ErrDatabase
 	}
 
-	order := Order{
-		ID:                 event.ID,
-		UserID:             event.UserID,
-		TableID:            tableID,
-		Products:           data.Products,
-		TotalNetPriceCents: data.TotalPriceCents,
-		PlacedAt:           event.Time,
+	unpaidProducts := []orderProduct{}
+	for _, event := range events {
+		if event.Type == string(eventTypeOrderPlacedV1) {
+			order, err := buildOrderFromEvent(event)
+			if err != nil {
+				logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to build order from event")
+				return nil, err
+			}
+			// accumulate quantities of unpaid products without duplicate product entries
+			for _, prod := range order.Products {
+				found := false
+				for i, unpaidProd := range unpaidProducts {
+					if unpaidProd.ID == prod.ID && unpaidProd.NetPriceCents == prod.NetPriceCents {
+						unpaidProducts[i].Quantity += prod.Quantity
+						found = true
+						break
+					}
+				}
+				if !found {
+					unpaidProducts = append(unpaidProducts, prod)
+				}
+			}
+		}
 	}
 
-	return &order, nil
+	log.Info().Int("table_id", tableID).Int("unpaid_product_count", len(unpaidProducts)).Msg("Retrieved unpaid products for table")
+	return unpaidProducts, nil
 }

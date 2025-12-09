@@ -1,5 +1,0 @@
-alias backend='(cd backend && go mod tidy && golangci-lint run && goimports -w . && go vet ./... && go test -tags=unit -count=1 ./... && go build ./...)'
-alias frontend='(cd frontend && pnpm format && pnpm lint && pnpm build)'
-alias up='docker compose -f docker-compose.test.yml up --build -d'
-alias down='docker compose -f docker-compose.test.yml down'
-alias logs='docker compose -f docker-compose.test.yml logs'

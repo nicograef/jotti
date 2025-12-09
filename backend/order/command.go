@@ -3,7 +3,9 @@ package order
 import (
 	"context"
 
+	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/event"
+	"github.com/rs/zerolog"
 )
 
 type commandPersistence interface {
@@ -15,21 +17,22 @@ type Command struct {
 }
 
 // PlaceOrder places a new order by writing an event to the database.
-func (s *Command) PlaceOrder(ctx context.Context, userID, tableID int, products []orderProduct) (int, error) {
-	totalPriceCents := 0
-	for _, product := range products {
-		totalPriceCents += product.NetPriceCents * product.Quantity
-	}
+func (s *Command) PlaceOrder(ctx context.Context, userID, tableID int, products []orderProduct) error {
+	log := zerolog.Ctx(ctx)
 
-	event, err := newOrderPlacedV1Event(userID, tableID, products, totalPriceCents)
+	orderID := uuid.New()
+	event, err := newOrderPlacedV1Event(userID, tableID, orderID.String(), products)
 	if err != nil {
-		return 0, err
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create order placed event")
+		return err
 	}
 
-	eventID, err := s.Persistence.WriteEvent(ctx, *event)
+	_, err = s.Persistence.WriteEvent(ctx, *event)
 	if err != nil {
-		return 0, ErrDatabase
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write order placed event to database")
+		return ErrDatabase
 	}
 
-	return eventID, nil
+	log.Info().Int("table_id", tableID).Msg("Order placed")
+	return nil
 }

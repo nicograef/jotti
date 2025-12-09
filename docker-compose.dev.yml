@@ -61,7 +61,7 @@ services:
         condition: service_healthy
 
   frontend-dev:
-    image: node:22-alpine
+    image: node:24-alpine
     container_name: jotti-frontend-dev
     working_dir: /app
     environment:

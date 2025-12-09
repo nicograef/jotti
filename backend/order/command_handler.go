@@ -11,7 +11,7 @@ import (
 )
 
 type command interface {
-	PlaceOrder(ctx context.Context, userID int, tableID int, products []orderProduct) (int, error)
+	PlaceOrder(ctx context.Context, userID int, tableID int, products []orderProduct) error
 }
 
 type CommandHandler struct {
@@ -28,10 +28,6 @@ var placeOrderSchema = z.Struct(z.Shape{
 	"Products": z.Slice(orderProductSchema).Min(1).Required(),
 })
 
-type placeOrderResponse struct {
-	ID int `json:"id"`
-}
-
 // PlaceOrderHandler handles requests to place a new order.
 func (h *CommandHandler) PlaceOrderHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -42,12 +38,12 @@ func (h *CommandHandler) PlaceOrderHandler() http.HandlerFunc {
 
 		ctx := r.Context()
 		userID := ctx.Value(user.UserIDKey).(int)
-		orderID, err := h.Command.PlaceOrder(ctx, userID, body.TableID, body.Products)
+		err := h.Command.PlaceOrder(ctx, userID, body.TableID, body.Products)
 		if err != nil {
 			api.SendServerError(w)
 			return
 		}
 
-		api.SendResponse(w, placeOrderResponse{ID: orderID})
+		api.SendEmptyResponse(w)
 	}
 }

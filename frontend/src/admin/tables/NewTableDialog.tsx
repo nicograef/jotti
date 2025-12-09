@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
+import { BackendError } from '@/lib/Backend'
 import type { Table } from '@/lib/table/Table'
 import { CreateTableSchema, TableBackend } from '@/lib/table/TableBackend'
 
@@ -53,6 +54,15 @@ export function NewTableDialog(props: NewTableDialogProps) {
       })
     } catch (error: unknown) {
       console.error(error)
+
+      if (error instanceof BackendError) {
+        if (error.code === 'table_already_exists') {
+          form.setError('name', {
+            type: 'custom',
+            message: 'Dieser Name ist bereits vergeben.',
+          })
+        }
+      }
     }
 
     setLoading(false)
