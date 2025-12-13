@@ -1,24 +1,26 @@
 //go:build unit
 
-package table
+package application
 
 import (
 	"context"
 	"testing"
+
+	"github.com/nicograef/jotti/backend/admin/table/domain"
 )
 
-type mockQueryPersistence struct {
+type mockQueryRepo struct {
 	err   error
-	table Table
+	table domain.Table
 }
 
-func (m *mockQueryPersistence) GetAllTables(ctx context.Context) ([]Table, error) {
-	return []Table{m.table}, m.err
+func (m *mockQueryRepo) GetAllTables(ctx context.Context) ([]domain.Table, error) {
+	return []domain.Table{m.table}, m.err
 }
 
 func TestGetAllTables(t *testing.T) {
-	query := Query{Persistence: &mockQueryPersistence{
-		table: Table{ID: 1, Name: "Table 1", Status: ActiveStatus},
+	query := Query{TableRepo: &mockQueryRepo{
+		table: domain.Table{ID: 1, Name: "Table 1", Status: domain.ActiveStatus},
 	}}
 
 	tables, err := query.GetAllTables(context.Background())

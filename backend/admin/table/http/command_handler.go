@@ -1,10 +1,11 @@
-package table
+package http
 
 import (
 	"context"
 	"errors"
 	"net/http"
 
+	"github.com/nicograef/jotti/backend/admin/table/application"
 	"github.com/nicograef/jotti/backend/api"
 )
 
@@ -38,7 +39,7 @@ func (h *CommandHandler) CreateTableHandler() http.HandlerFunc {
 		ctx := r.Context()
 		id, err := h.Command.CreateTable(ctx, body.Name)
 		if err != nil {
-			if errors.Is(err, ErrTableAlreadyExists) {
+			if errors.Is(err, application.ErrTableAlreadyExists) {
 				api.SendClientError(w, "table_already_exists", nil)
 				return
 			} else {
@@ -67,7 +68,7 @@ func (h *CommandHandler) UpdateTableHandler() http.HandlerFunc {
 		ctx := r.Context()
 		err := h.Command.UpdateTable(ctx, body.ID, body.Name)
 		if err != nil {
-			if errors.Is(err, ErrTableNotFound) {
+			if errors.Is(err, application.ErrTableNotFound) {
 				api.SendClientError(w, "table_not_found", nil)
 				return
 			} else {
@@ -95,7 +96,7 @@ func (h *CommandHandler) ActivateTableHandler() http.HandlerFunc {
 		ctx := r.Context()
 		err := h.Command.ActivateTable(ctx, body.ID)
 		if err != nil {
-			if errors.Is(err, ErrTableNotFound) {
+			if errors.Is(err, application.ErrTableNotFound) {
 				api.SendClientError(w, "table_not_found", nil)
 				return
 			} else {
@@ -123,7 +124,7 @@ func (h *CommandHandler) DeactivateTableHandler() http.HandlerFunc {
 		ctx := r.Context()
 		err := h.Command.DeactivateTable(ctx, body.ID)
 		if err != nil {
-			if errors.Is(err, ErrTableNotFound) {
+			if errors.Is(err, application.ErrTableNotFound) {
 				api.SendClientError(w, "table_not_found", nil)
 				return
 			} else {

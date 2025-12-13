@@ -1,6 +1,6 @@
 //go:build unit
 
-package table
+package http
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/nicograef/jotti/backend/admin/table/application"
 )
 
 type mockCommand struct {
@@ -46,7 +48,7 @@ func TestCreateTableHandler_Success(t *testing.T) {
 }
 
 func TestCreateTabkeHandler_Failure(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: ErrDatabase}}
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
 	body := `{"name":"Table 1"}`
 	req := httptest.NewRequest(http.MethodPost, "/create-table", strings.NewReader(body))
@@ -76,7 +78,7 @@ func TestUpdateTableHandler_Success(t *testing.T) {
 }
 
 func TestUpdateTableHandler_NotFound(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: ErrTableNotFound}}
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTableNotFound}}
 
 	body := `{"id":999,"name":"Updated Table"}`
 	req := httptest.NewRequest(http.MethodPost, "/update-table", strings.NewReader(body))
@@ -106,7 +108,7 @@ func TestActivateTableHandler_Success(t *testing.T) {
 }
 
 func TestActivateTableHandler_NotFound(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: ErrTableNotFound}}
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTableNotFound}}
 
 	body := `{"id":999}`
 	req := httptest.NewRequest(http.MethodPost, "/activate-table", strings.NewReader(body))
@@ -136,7 +138,7 @@ func TestDeactivateTableHandler_Success(t *testing.T) {
 }
 
 func TestDeactivateTableHandler_NotFound(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: ErrTableNotFound}}
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTableNotFound}}
 
 	body := `{"id":999}`
 	req := httptest.NewRequest(http.MethodPost, "/deactivate-table", strings.NewReader(body))

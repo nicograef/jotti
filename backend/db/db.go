@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 // ErrorCode represents a PostgreSQL error code.
@@ -59,7 +59,7 @@ func ResultError(res sql.Result) error {
 }
 
 // Close safely closes an io.Closer and logs any error that occurs.
-func Close(c io.Closer, name string, log *zerolog.Logger) {
+func Close(c io.Closer, name string) {
 	if err := c.Close(); err != nil {
 		log.Error().Err(err).Str("resource", name).Msg("Error while closing resource")
 	}

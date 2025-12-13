@@ -15,8 +15,6 @@ const (
 	ActiveStatus Status = "active"
 	// InactiveStatus indicates the product is inactive and not currently in use.
 	InactiveStatus Status = "inactive"
-	// DeletedStatus indicates the product has been deleted and is no longer in use.
-	DeletedStatus Status = "deleted"
 )
 
 // Category represents the category of a product.
@@ -41,7 +39,7 @@ type Product struct {
 	CreatedAt     time.Time `json:"createdAt"`
 }
 
-// IDSchema defines the schema for a user ID.
+// IDSchema defines the schema for a product ID.
 var IDSchema = z.Int().GTE(1, z.Message("Invalid product ID"))
 
 // NameSchema defines the schema for a product's name.
@@ -55,7 +53,7 @@ var NetPriceCentsSchema = z.Int().GTE(0, z.Message("Net price must be non-negati
 
 // StatusSchema defines the schema for a product status.
 var StatusSchema = z.StringLike[Status]().OneOf(
-	[]Status{ActiveStatus, InactiveStatus, DeletedStatus},
+	[]Status{ActiveStatus, InactiveStatus},
 	z.Message("Invalid status"),
 )
 
@@ -102,14 +100,16 @@ func NewProduct(name, description string, netPriceCents int, category Category) 
 		return Product{}, fmt.Errorf("invalid category")
 	}
 
-	return Product{
+	product := Product{
 		Name:          name,
 		Description:   description,
 		NetPriceCents: netPriceCents,
 		Status:        InactiveStatus,
 		Category:      category,
 		CreatedAt:     time.Now(),
-	}, nil
+	}
+
+	return product, nil
 }
 
 func (p *Product) Activate() {

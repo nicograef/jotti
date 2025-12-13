@@ -72,7 +72,7 @@ func (p *Persistence) GetAllUsers(ctx context.Context) ([]User, error) {
 		log.Error().Err(err).Msg("DB Error querying all users")
 		return nil, db.Error(err)
 	}
-	defer db.Close(rows, "users", log)
+	defer db.Close(rows, "users")
 
 	users := []User{}
 	for rows.Next() {

@@ -1,14 +1,15 @@
-package table
+package http
 
 import (
 	"context"
 	"net/http"
 
+	"github.com/nicograef/jotti/backend/admin/table/domain"
 	"github.com/nicograef/jotti/backend/api"
 )
 
 type query interface {
-	GetAllTables(ctx context.Context) ([]Table, error)
+	GetAllTables(ctx context.Context) ([]domain.Table, error)
 }
 
 type QueryHandler struct {
@@ -16,7 +17,7 @@ type QueryHandler struct {
 }
 
 type getAllTablesResponse struct {
-	Tables []Table `json:"tables"`
+	Tables []domain.Table `json:"tables"`
 }
 
 // GetAllTablesHandler handles requests to retrieve all tables.

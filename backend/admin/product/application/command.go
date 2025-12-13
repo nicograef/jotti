@@ -2,10 +2,8 @@ package application
 
 import (
 	"context"
-	"errors"
 
 	"github.com/nicograef/jotti/backend/admin/product/domain"
-	"github.com/nicograef/jotti/backend/db"
 	"github.com/rs/zerolog"
 )
 
@@ -26,18 +24,12 @@ func (c Command) CreateProduct(ctx context.Context, name, description string, ne
 	product, err := domain.NewProduct(name, description, netPriceCents, category)
 	if err != nil {
 		log.Warn().Err(err).Str("product_name", name).Msg("Invalid product data")
-		return 0, err
+		return 0, ErrInvalidProductData
 	}
 
 	id, err := c.ProductRepo.CreateProduct(ctx, product)
 	if err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn().Str("product_name", name).Msg("Product name already exists")
-			return 0, ErrProductAlreadyExists
-		} else {
-			log.Error().Str("product_name", name).Msg("Failed to create product")
-			return 0, ErrDatabase
-		}
+		return 0, fromRepositoryError(err, log, 0)
 	}
 
 	log.Info().Int("product_id", id).Msg("Product created")
@@ -50,29 +42,19 @@ func (c Command) UpdateProduct(ctx context.Context, id int, name, description st
 
 	product, err := c.ProductRepo.GetProduct(ctx, id)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("product_id", id).Msg("Product not found for update")
-			return ErrProductNotFound
-		} else {
-			log.Error().Int("product_id", id).Msg("Failed to retrieve product for update")
-			return ErrDatabase
-		}
+		return fromRepositoryError(err, log, id)
+
 	}
 
-	if err = product.Update(name, description, netPriceCents, category); err != nil {
+	err = product.Update(name, description, netPriceCents, category)
+	if err != nil {
 		log.Warn().Err(err).Int("product_id", id).Msg("Invalid product data for update")
 		return ErrInvalidProductData
 	}
 
 	err = c.ProductRepo.UpdateProduct(ctx, product)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("product_id", id).Msg("Product not found for update")
-			return ErrProductNotFound
-		} else {
-			log.Error().Int("product_id", id).Msg("Failed to update product")
-			return ErrDatabase
-		}
+		return fromRepositoryError(err, log, id)
 	}
 
 	log.Info().Int("product_id", id).Msg("Product updated")
@@ -85,26 +67,14 @@ func (c Command) ActivateProduct(ctx context.Context, id int) error {
 
 	product, err := c.ProductRepo.GetProduct(ctx, id)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("product_id", id).Msg("Product not found for update")
-			return ErrProductNotFound
-		} else {
-			log.Error().Int("product_id", id).Msg("Failed to retrieve product for update")
-			return ErrDatabase
-		}
+		return fromRepositoryError(err, log, id)
 	}
 
 	product.Activate()
 
 	err = c.ProductRepo.UpdateProduct(ctx, product)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("product_id", id).Msg("Product not found for activation")
-			return ErrProductNotFound
-		} else {
-			log.Error().Int("product_id", id).Msg("Failed to activate product")
-			return ErrDatabase
-		}
+		return fromRepositoryError(err, log, id)
 	}
 
 	log.Info().Int("product_id", id).Msg("Product activated")
@@ -117,26 +87,14 @@ func (c Command) DeactivateProduct(ctx context.Context, id int) error {
 
 	product, err := c.ProductRepo.GetProduct(ctx, id)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("product_id", id).Msg("Product not found for update")
-			return ErrProductNotFound
-		} else {
-			log.Error().Int("product_id", id).Msg("Failed to retrieve product for update")
-			return ErrDatabase
-		}
+		return fromRepositoryError(err, log, id)
 	}
 
 	product.Deactivate()
 
 	err = c.ProductRepo.UpdateProduct(ctx, product)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("product_id", id).Msg("Product not found for deactivation")
-			return ErrProductNotFound
-		} else {
-			log.Error().Int("product_id", id).Msg("Failed to deactivate product")
-			return ErrDatabase
-		}
+		return fromRepositoryError(err, log, id)
 	}
 
 	log.Info().Int("product_id", id).Msg("Product deactivated")
