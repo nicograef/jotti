@@ -48,7 +48,7 @@ export class AuthBackend {
   public async login(username: string, password: string): Promise<string> {
     const body = LoginSchema.parse({ username, password })
     const { token } = await this.backend.post(
-      'login',
+      'auth/login',
       body,
       LoginResponseSchema,
     )
@@ -66,6 +66,6 @@ export class AuthBackend {
       password,
       onetimePassword,
     })
-    await this.backend.post('set-password', body)
+    await this.backend.post('auth/set-password', body)
   }
 }

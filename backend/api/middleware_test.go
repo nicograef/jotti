@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/nicograef/jotti/backend/auth/jwt"
 )
 
 func TestCorrelationIDMiddleware_GeneratesID(t *testing.T) {
@@ -84,5 +86,108 @@ func TestRateLimitMiddleware_BlocksExceedingLimit(t *testing.T) {
 
 	if rec.Code != http.StatusTooManyRequests {
 		t.Errorf("expected status 429, got %d", rec.Code)
+	}
+}
+
+func TestJwtMiddleware_ValidToken(t *testing.T) {
+	secret := "test-secret"
+	user := jwt.User{
+		ID:       1,
+		Username: "admin",
+		Role:     "admin",
+	}
+
+	token, err := jwt.GenerateJWTTokenForUser(user, secret)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := NewJwtMiddleware(secret, []string{"admin"})(handler)
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+
+	middleware.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestJwtMiddleware_NoToken(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := NewJwtMiddleware("test-secret", []string{"admin"})(handler)
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	rec := httptest.NewRecorder()
+
+	middleware.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestJwtMiddleware_ServiceRole(t *testing.T) {
+	secret := "test-secret"
+	user := jwt.User{
+		ID:       2,
+		Username: "service",
+		Role:     "service",
+	}
+
+	token, err := jwt.GenerateJWTTokenForUser(user, secret)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := NewJwtMiddleware(secret, []string{"admin"})(handler)
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+
+	middleware.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestServiceMiddleware_ValidToken(t *testing.T) {
+	secret := "test-secret"
+	user := jwt.User{
+		ID:       2,
+		Username: "service",
+		Role:     "service",
+	}
+
+	token, err := jwt.GenerateJWTTokenForUser(user, secret)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := NewJwtMiddleware(secret, []string{"service"})(handler)
+	req := httptest.NewRequest(http.MethodGet, "/service", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+
+	middleware.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
 	}
 }

@@ -2,18 +2,23 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/nicograef/jotti/backend/auth/jwt"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/time/rate"
 )
 
-type contextKey string
+type ContextKey string
 
-const CorrelationIDKey contextKey = "correlation_id"
+const (
+	UserIDKey        ContextKey = "userid"
+	CorrelationIDKey ContextKey = "correlation_id"
+)
 
 // CorrelationIDMiddleware adds a correlation ID to each request for tracing
 func CorrelationIDMiddleware(next http.Handler) http.Handler {
@@ -97,4 +102,46 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+// NewJwtMiddleware validates the JWT Token in the Authorization header.
+// If valid, it adds the user information to the request context.
+func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler) http.HandlerFunc {
+	return func(h http.Handler) http.HandlerFunc {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := r.Header.Get("Authorization")
+			if token == "" {
+				log.Error().Msg("Missing Authorization header")
+				SendClientError(w, "missing_authorization", nil)
+				return
+			}
+
+			// get jwt token, remove "Bearer " prefix
+			token = token[len("Bearer "):]
+			payload, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
+			if err != nil {
+				log.Error().Err(err).Msg("Invalid JWT token")
+				SendClientError(w, "invalid_jwt", nil)
+				return
+			}
+
+			// check if role is allowed
+			roleAllowed := false
+			for _, role := range allowedRoles {
+				if payload.Role == role {
+					roleAllowed = true
+					break
+				}
+			}
+			if !roleAllowed {
+				SendClientError(w, "insufficient_permissions", fmt.Sprintf("Insufficient permissions for role %s", payload.Role))
+				return
+			}
+
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, UserIDKey, payload.UserID)
+
+			h.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }
