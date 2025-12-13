@@ -9,11 +9,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	adm "github.com/nicograef/jotti/backend/admin/api"
 	"github.com/nicograef/jotti/backend/api"
-	auth "github.com/nicograef/jotti/backend/auth/api"
+	"github.com/nicograef/jotti/backend/api/health"
+	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/config"
-	service "github.com/nicograef/jotti/backend/service/api"
 )
 
 // App represents the application with its configuration, router, server, and database connection.
@@ -45,27 +44,27 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	r := http.NewServeMux()
 
 	// Health check with database connectivity
-	healthCheck := api.HealthCheck{DB: db}
+	healthCheck := health.HealthCheck{DB: db}
 	r.HandleFunc("/health", healthCheck.Handler())
 
-	authApi := auth.NewApi(cfg, db)
+	authApi := api.NewAuthApi(cfg, db)
 	r.Handle("/auth/", http.StripPrefix("/auth", authApi))
 
-	admin := api.NewJwtMiddleware(cfg.JWTSecret, []string{"admin"})
-	adminApi := adm.NewApi(db)
+	admin := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin"})
+	adminApi := api.NewAdminApi(db)
 	r.Handle("/admin/", admin(http.StripPrefix("/admin", adminApi)))
 
-	servicesApi := service.NewApi(db)
-	service := api.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "service"})
+	servicesApi := api.NewServiceApi(db)
+	service := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "service"})
 	r.Handle("/service/", service(http.StripPrefix("/service", servicesApi)))
 
 	// Wrap the entire router with middleware chain
 	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by nginx
 	var handler http.Handler = r
-	handler = api.PostMethodOnlyMiddleware(handler) // Enforce POST method
-	handler = api.RateLimitMiddleware(100)(handler) // Rate limiting
-	handler = api.LoggingMiddleware(handler)        // Logging
-	handler = api.CorrelationIDMiddleware(handler)  // Correlation ID
+	handler = middleware.PostMethodOnlyMiddleware(handler) // Enforce POST method
+	handler = middleware.RateLimitMiddleware(100)(handler) // Rate limiting
+	handler = middleware.LoggingMiddleware(handler)        // Logging
+	handler = middleware.CorrelationIDMiddleware(handler)  // Correlation ID
 
 	return handler
 }
