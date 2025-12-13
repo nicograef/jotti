@@ -5,10 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api"
 	"github.com/nicograef/jotti/backend/auth/jwt"
-	pwd "github.com/nicograef/jotti/backend/auth/password"
 	"github.com/rs/zerolog"
 )
 
@@ -27,11 +25,6 @@ type login struct {
 	Password string `json:"password"`
 }
 
-var loginSchema = z.Struct(z.Shape{
-	"Username": UsernameSchema.Required(),
-	"Password": pwd.PasswordSchema.Required(),
-})
-
 type loginResponse struct {
 	Token string `json:"token"`
 }
@@ -43,7 +36,7 @@ func (h *AuthHandler) LoginHandler() http.HandlerFunc {
 		log := zerolog.Ctx(ctx)
 
 		body := login{}
-		if !api.ReadAndValidateBody(w, r, &body, loginSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
@@ -89,19 +82,13 @@ type setPassword struct {
 	OnetimePassword string `json:"onetimePassword"`
 }
 
-var setPasswordSchema = z.Struct(z.Shape{
-	"Username":        UsernameSchema.Required(),
-	"Password":        pwd.PasswordSchema.Required(),
-	"OnetimePassword": pwd.OnetimePasswordSchema.Required(),
-})
-
 // SetPasswordHandler handles setting a new password for a user using a one-time password.
 func (h *AuthHandler) SetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		body := setPassword{}
-		if !api.ReadAndValidateBody(w, r, &body, setPasswordSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 
-	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api"
 )
 
@@ -27,12 +26,6 @@ type createUser struct {
 	Role     Role   `json:"role"`
 }
 
-var createUserSchema = z.Struct(z.Shape{
-	"Name":     NameSchema.Required(),
-	"Username": UsernameSchema.Required(),
-	"Role":     RoleSchema.Required(),
-})
-
 type createUserResponse struct {
 	ID              int    `json:"id"`
 	OnetimePassword string `json:"onetimePassword"`
@@ -42,7 +35,7 @@ type createUserResponse struct {
 func (h *CommandHandler) CreateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := createUser{}
-		if !api.ReadAndValidateBody(w, r, &body, createUserSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
@@ -69,18 +62,11 @@ type updateUser struct {
 	Role     Role   `json:"role"`
 }
 
-var updateUserSchema = z.Struct(z.Shape{
-	"ID":       IDSchema.Required(),
-	"Name":     NameSchema.Required(),
-	"Username": UsernameSchema.Required(),
-	"Role":     RoleSchema.Required(),
-})
-
 // UpdateUserHandler handles requests to update a user.
 func (h *CommandHandler) UpdateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := updateUser{}
-		if !api.ReadAndValidateBody(w, r, &body, updateUserSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
@@ -107,10 +93,6 @@ type resetPassword struct {
 	ID int `json:"id"`
 }
 
-var resetPasswordSchema = z.Struct(z.Shape{
-	"ID": IDSchema.Required(),
-})
-
 type resetPasswordResponse struct {
 	OnetimePassword string `json:"onetimePassword"`
 }
@@ -119,7 +101,7 @@ type resetPasswordResponse struct {
 func (h *CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := resetPassword{}
-		if !api.ReadAndValidateBody(w, r, &body, resetPasswordSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
@@ -143,15 +125,11 @@ type activateUser struct {
 	ID int `json:"id"`
 }
 
-var activateUserSchema = z.Struct(z.Shape{
-	"ID": IDSchema.Required(),
-})
-
 // ActivateUserHandler handles requests to activate a user.
 func (h *CommandHandler) ActivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := activateUser{}
-		if !api.ReadAndValidateBody(w, r, &body, activateUserSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
@@ -175,15 +153,11 @@ type deactivateUser struct {
 	ID int `json:"id"`
 }
 
-var deactivateUserSchema = z.Struct(z.Shape{
-	"ID": IDSchema.Required(),
-})
-
 // DeactivateUserHandler handles requests to deactivate a user.
 func (h *CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deactivateUser{}
-		if !api.ReadAndValidateBody(w, r, &body, deactivateUserSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 

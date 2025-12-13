@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 
-	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api"
 )
 
@@ -24,10 +23,6 @@ type createTable struct {
 	Name string `json:"name"`
 }
 
-var createTableSchema = z.Struct(z.Shape{
-	"Name": NameSchema.Required(),
-})
-
 type createTableResponse struct {
 	ID int `json:"id"`
 }
@@ -36,7 +31,7 @@ type createTableResponse struct {
 func (h *CommandHandler) CreateTableHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := createTable{}
-		if !api.ReadAndValidateBody(w, r, &body, createTableSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
@@ -61,16 +56,11 @@ type updateTable struct {
 	Name string `json:"name"`
 }
 
-var updateTableSchema = z.Struct(z.Shape{
-	"ID":   IDSchema.Required(),
-	"Name": NameSchema.Required(),
-})
-
 // UpdateTableHandler handles requests to update an existing table.
 func (h *CommandHandler) UpdateTableHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := updateTable{}
-		if !api.ReadAndValidateBody(w, r, &body, updateTableSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
@@ -94,15 +84,11 @@ type activateTable struct {
 	ID int `json:"id"`
 }
 
-var activateTableSchema = z.Struct(z.Shape{
-	"ID": IDSchema.Required(),
-})
-
 // ActivateTableHandler handles requests to activate a table.
 func (h *CommandHandler) ActivateTableHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := activateTable{}
-		if !api.ReadAndValidateBody(w, r, &body, activateTableSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
@@ -126,15 +112,11 @@ type deactivateTable struct {
 	ID int `json:"id"`
 }
 
-var deactivateTableSchema = z.Struct(z.Shape{
-	"ID": IDSchema.Required(),
-})
-
 // DeactivateTableHandler handles requests to deactivate a table.
 func (h *CommandHandler) DeactivateTableHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deactivateTable{}
-		if !api.ReadAndValidateBody(w, r, &body, deactivateTableSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 

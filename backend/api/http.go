@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	z "github.com/Oudwins/zog"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -38,9 +37,8 @@ func SendServerError(w http.ResponseWriter) {
 	sendJSONResponse(w, errorResponse{Code: "internal_server_error"}, http.StatusInternalServerError)
 }
 
-// ReadAndValidateBody reads the JSON request body into the provided struct
-// and validates it against the provided Zod schema.
-func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T, schema *z.StructSchema) bool {
+// ReadBody reads the JSON request body into the provided struct
+func ReadBody[T any](w http.ResponseWriter, r *http.Request, body *T) bool {
 	log := zerolog.Ctx(r.Context())
 
 	decoder := json.NewDecoder(r.Body)
@@ -50,13 +48,6 @@ func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T,
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to decode JSON request")
 		SendClientError(w, "invalid_json", nil)
-		return false
-	}
-
-	if err := schema.Validate(body); err != nil {
-		issues := z.Issues.SanitizeMapAndCollect(err)
-		log.Error().Interface("issues", issues).Msg("Invalid request body")
-		SendClientError(w, "invalid_request_body", issues)
 		return false
 	}
 

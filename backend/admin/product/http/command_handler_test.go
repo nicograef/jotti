@@ -1,6 +1,6 @@
 //go:build unit
 
-package product
+package http
 
 import (
 	"context"
@@ -8,17 +8,20 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/nicograef/jotti/backend/admin/product/application"
+	"github.com/nicograef/jotti/backend/admin/product/domain"
 )
 
 type mockCommand struct {
 	err error
 }
 
-func (m *mockCommand) CreateProduct(ctx context.Context, name, description string, netPriceCents int, category Category) (int, error) {
+func (m *mockCommand) CreateProduct(ctx context.Context, name, description string, netPriceCents int, category domain.Category) (int, error) {
 	return 1, m.err
 }
 
-func (m *mockCommand) UpdateProduct(ctx context.Context, id int, name, description string, netPriceCents int, category Category) error {
+func (m *mockCommand) UpdateProduct(ctx context.Context, id int, name, description string, netPriceCents int, category domain.Category) error {
 	return m.err
 }
 
@@ -46,7 +49,7 @@ func TestCreateProductHandler_Success(t *testing.T) {
 }
 
 func TestCreateProductHandler_Failure(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: ErrDatabase}}
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
 	body := `{"name":"French Fries","description":"The most delicious fries.","netPriceCents":1999,"category":"food"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/create-product", strings.NewReader(body))
@@ -76,7 +79,7 @@ func TestUpdateProductHandler_Success(t *testing.T) {
 }
 
 func TestUpdateProductHandler_Failure(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: ErrDatabase}}
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
 	body := `{"id":1,"name":"French Fries","description":"The most delicious fries.","netPriceCents":1999,"category":"food"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/update-product", strings.NewReader(body))

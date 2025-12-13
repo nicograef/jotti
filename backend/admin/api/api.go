@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/nicograef/jotti/backend/admin/product"
+	product "github.com/nicograef/jotti/backend/admin/product/http"
 	"github.com/nicograef/jotti/backend/admin/table"
 	"github.com/nicograef/jotti/backend/admin/user"
 )
@@ -22,13 +22,13 @@ func NewApi(db *sql.DB) http.Handler {
 	uq := user.QueryHandler{Query: &user.Query{Persistence: &user.Persistence{DB: db}}}
 	r.HandleFunc("/get-all-users", uq.GetAllUsersHandler())
 
-	pc := product.CommandHandler{Command: &product.Command{Persistence: &product.Persistence{DB: db}}}
+	pc := product.NewCommandHandler(db)
 	r.HandleFunc("/create-product", pc.CreateProductHandler())
 	r.HandleFunc("/update-product", pc.UpdateProductHandler())
 	r.HandleFunc("/activate-product", pc.ActivateProductHandler())
 	r.HandleFunc("/deactivate-product", pc.DeactivateProductHandler())
 
-	pq := product.QueryHandler{Query: &product.Query{Persistence: &product.Persistence{DB: db}}}
+	pq := product.NewQueryHandler(db)
 	r.HandleFunc("/get-all-products", pq.GetAllProductsHandler())
 
 	tc := table.CommandHandler{Command: &table.Command{Persistence: &table.Persistence{DB: db}}}

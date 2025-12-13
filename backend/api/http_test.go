@@ -7,10 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
-
-	z "github.com/Oudwins/zog"
 )
 
 func TestSendJSONResponse(t *testing.T) {
@@ -32,21 +29,17 @@ func TestSendJSONResponse(t *testing.T) {
 	}
 }
 
-func TestReadAndValidateBody_Success(t *testing.T) {
+func TestReadBody_Success(t *testing.T) {
 	rec := httptest.NewRecorder()
 	type testStruct struct {
 		Foo string
 		Bar int
 	}
-	schema := z.Struct(z.Shape{
-		"Foo": z.String().Min(3),
-		"Bar": z.Int().GT(5),
-	})
 
 	body := bytes.NewBufferString(`{"Foo":"bar","Bar":10}`)
 	req := httptest.NewRequest(http.MethodPost, "/", body)
 	var dest testStruct
-	ok := ReadAndValidateBody(rec, req, &dest, schema)
+	ok := ReadBody(rec, req, &dest)
 
 	if !ok {
 		t.Errorf("expected body to be valid")
@@ -59,19 +52,16 @@ func TestReadAndValidateBody_Success(t *testing.T) {
 	}
 }
 
-func TestReadAndValidateBody_InvalidJSON(t *testing.T) {
+func TestReadBody_InvalidJSON(t *testing.T) {
 	rec := httptest.NewRecorder()
 	type testStruct struct {
 		Foo string
 	}
-	schema := z.Struct(z.Shape{
-		"Foo": z.String(),
-	})
 
 	body := bytes.NewBufferString(`{"Foo":}`)
 	req := httptest.NewRequest(http.MethodPost, "/", body)
 	var dest testStruct
-	ok := ReadAndValidateBody(rec, req, &dest, schema)
+	ok := ReadBody(rec, req, &dest)
 
 	if ok {
 		t.Errorf("expected failure for invalid JSON")
@@ -88,59 +78,16 @@ func TestReadAndValidateBody_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestReadAndValidateBody_ValidationFailure(t *testing.T) {
-	rec := httptest.NewRecorder()
-	type testStruct struct {
-		Foo string
-		Bar int
-	}
-	schema := z.Struct(z.Shape{
-		"Foo": z.String().Min(3),
-		"Bar": z.Int().GT(5),
-	})
-
-	body := bytes.NewBufferString(`{"Foo":"ab","Bar":2}`)
-	req := httptest.NewRequest(http.MethodPost, "/", body)
-	var dest testStruct
-	ok := ReadAndValidateBody(rec, req, &dest, schema)
-
-	if ok {
-		t.Errorf("expected body to be invalid")
-	}
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "number must be greater than 5") {
-		t.Errorf("expected error message about Bar greater than, got %s", rec.Body.String())
-	}
-	if !strings.Contains(rec.Body.String(), "string must contain at least 3 character(s)") {
-		t.Errorf("expected error message about Foo length, got %s", rec.Body.String())
-	}
-	var resp errorResponse
-	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
-		t.Errorf("failed to decode response: %v", err)
-	}
-	if resp.Code != "invalid_request_body" {
-		t.Errorf("expected code invalid_request_body, got %s", resp.Code)
-	}
-	if resp.Details == nil {
-		t.Errorf("expected details in response, got nil")
-	}
-}
-
-func TestReadAndValidateBody_UnknownFields(t *testing.T) {
+func TestReadBody_UnknownFields(t *testing.T) {
 	rec := httptest.NewRecorder()
 	type testStruct struct {
 		Foo string
 	}
-	schema := z.Struct(z.Shape{
-		"Foo": z.String(),
-	})
 
 	body := bytes.NewBufferString(`{"Foo":"bar","Unknown":"field"}`)
 	req := httptest.NewRequest(http.MethodPost, "/", body)
 	var dest testStruct
-	ok := ReadAndValidateBody(rec, req, &dest, schema)
+	ok := ReadBody(rec, req, &dest)
 
 	if ok {
 		t.Errorf("expected failure for unknown fields")

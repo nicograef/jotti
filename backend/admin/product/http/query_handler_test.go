@@ -1,20 +1,23 @@
 //go:build unit
 
-package product
+package http
 
 import (
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/nicograef/jotti/backend/admin/product/application"
+	"github.com/nicograef/jotti/backend/admin/product/domain"
 )
 
 type mockQuery struct {
 	err error
 }
 
-func (m *mockQuery) GetAllProducts(ctx context.Context) ([]Product, error) {
-	return []Product{{ID: 1, Name: "French Fries", Description: "The most delicious fries.", NetPriceCents: 1999, Status: ActiveStatus, Category: FoodCategory}}, m.err
+func (m *mockQuery) GetAllProducts(ctx context.Context) ([]domain.Product, error) {
+	return []domain.Product{{ID: 1, Name: "French Fries", Description: "The most delicious fries.", NetPriceCents: 1999, Status: domain.ActiveStatus, Category: domain.FoodCategory}}, m.err
 }
 
 func TestGetAllProductsHandler_Success(t *testing.T) {
@@ -31,7 +34,7 @@ func TestGetAllProductsHandler_Success(t *testing.T) {
 }
 
 func TestGetAllProductsHandler_Failure(t *testing.T) {
-	handler := &QueryHandler{Query: &mockQuery{err: ErrDatabase}}
+	handler := &QueryHandler{Query: &mockQuery{err: application.ErrDatabase}}
 
 	req := httptest.NewRequest(http.MethodGet, "/get-all-products", nil)
 	rec := httptest.NewRecorder()

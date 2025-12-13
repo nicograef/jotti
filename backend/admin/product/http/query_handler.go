@@ -1,14 +1,15 @@
-package product
+package http
 
 import (
 	"context"
 	"net/http"
 
+	"github.com/nicograef/jotti/backend/admin/product/domain"
 	"github.com/nicograef/jotti/backend/api"
 )
 
 type query interface {
-	GetAllProducts(ctx context.Context) ([]Product, error)
+	GetAllProducts(ctx context.Context) ([]domain.Product, error)
 }
 
 type QueryHandler struct {
@@ -16,7 +17,7 @@ type QueryHandler struct {
 }
 
 type getAllProductsResponse struct {
-	Products []Product `json:"products"`
+	Products []domain.Product `json:"products"`
 }
 
 // GetAllProductsHandler handles requests to retrieve all products.

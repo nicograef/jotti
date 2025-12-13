@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 
-	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api"
 )
 
@@ -25,10 +24,6 @@ type getTable struct {
 	ID int `json:"id"`
 }
 
-var getTableSchema = z.Struct(z.Shape{
-	"ID": IDSchema.Required(),
-})
-
 type getTableResponse struct {
 	Table Table `json:"table"`
 }
@@ -37,7 +32,7 @@ type getTableResponse struct {
 func (h *QueryHandler) GetTableHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := getTable{}
-		if !api.ReadAndValidateBody(w, r, &body, getTableSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
@@ -79,10 +74,6 @@ type getOrders struct {
 	TableID int `json:"tableId"`
 }
 
-var getOrdersSchema = z.Struct(z.Shape{
-	"TableID": IDSchema.Required(),
-})
-
 type getOrdersResponse struct {
 	Orders []Order `json:"orders"`
 }
@@ -91,7 +82,7 @@ type getOrdersResponse struct {
 func (h *QueryHandler) GetOrdersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := getOrders{}
-		if !api.ReadAndValidateBody(w, r, &body, getOrdersSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
@@ -110,10 +101,6 @@ type getTableBalance struct {
 	TableID int `json:"tableId"`
 }
 
-var getTableBalanceSchema = z.Struct(z.Shape{
-	"TableID": IDSchema.Required(),
-})
-
 type getTableBalanceResponse struct {
 	TotalBalanceCents int `json:"totalBalanceCents"`
 }
@@ -122,7 +109,7 @@ type getTableBalanceResponse struct {
 func (h *QueryHandler) GetTableBalanceHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := getTableBalance{}
-		if !api.ReadAndValidateBody(w, r, &body, getTableBalanceSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
@@ -141,10 +128,6 @@ type getTableUnpaidProducts struct {
 	TableID int `json:"tableId"`
 }
 
-var getTableUnpaidProductsSchema = z.Struct(z.Shape{
-	"TableID": IDSchema.Required(),
-})
-
 type getTableUnpaidProductsResponse struct {
 	Products []orderProduct `json:"products"`
 }
@@ -153,7 +136,7 @@ type getTableUnpaidProductsResponse struct {
 func (h *QueryHandler) GetTableUnpaidProductsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := getTableUnpaidProducts{}
-		if !api.ReadAndValidateBody(w, r, &body, getTableUnpaidProductsSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 

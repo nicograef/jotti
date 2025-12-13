@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api"
 )
 
@@ -21,16 +20,11 @@ type placeOrder struct {
 	Products []orderProduct `json:"products"`
 }
 
-var placeOrderSchema = z.Struct(z.Shape{
-	"TableID":  IDSchema.Required(),
-	"Products": z.Slice(orderProductSchema).Min(1).Required(),
-})
-
 // PlaceOrderHandler handles requests to place a new order.
 func (h *CommandHandler) PlaceOrderHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := placeOrder{}
-		if !api.ReadAndValidateBody(w, r, &body, placeOrderSchema) {
+		if !api.ReadBody(w, r, &body) {
 			return
 		}
 
