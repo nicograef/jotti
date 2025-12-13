@@ -20,7 +20,6 @@ type HealthCheck struct {
 // HealthResponse represents the health check response structure.
 type HealthResponse struct {
 	Status    string `json:"status"`
-	Database  string `json:"database"`
 	Timestamp string `json:"timestamp"`
 }
 
@@ -32,20 +31,17 @@ func (h *HealthCheck) Handler() http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
 
-		dbStatus := "ok"
-		overallStatus := "ok"
+		status := "ok"
 		statusCode := http.StatusOK
 
 		if err := h.DB.PingContext(ctx); err != nil {
-			dbStatus = "error"
-			overallStatus = "degraded"
+			status = "degraded"
 			statusCode = http.StatusServiceUnavailable
 			log.Error().Err(err).Msg("Database ping failed")
 		}
 
 		response := HealthResponse{
-			Status:    overallStatus,
-			Database:  dbStatus,
+			Status:    status,
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 
