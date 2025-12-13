@@ -60,7 +60,7 @@ func TestGetTableDB(t *testing.T) {
 	}
 
 	// Clean up
-	_, _ = db.ExecContext(ctx, "DELETE FROM tables", tableID)
+	_, _ = db.ExecContext(ctx, "DELETE FROM tables")
 }
 
 func TestGetTableDB_NotFound(t *testing.T) {
