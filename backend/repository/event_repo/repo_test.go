@@ -14,25 +14,50 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 )
 
-func createUser(DB *sql.DB) (int, error) {
+func createUser(db *sql.DB) (int, error) {
 	var userID int
-	err := DB.QueryRow("INSERT INTO users (name, username, role, status, password_hash, onetime_password_hash, created_at) VALUES ($1, $2, $3, $4, $5, $6, now()) RETURNING id", "nico", "nico", "admin", "active", "hashedpassword", "onetimesethash").Scan(&userID)
+	err := db.QueryRow("INSERT INTO users (name, username, role, status, password_hash, onetime_password_hash, created_at) VALUES ($1, $2, $3, $4, $5, $6, now()) RETURNING id", "nico", "nico", "admin", "active", "hashedpassword", "onetimesethash").Scan(&userID)
 	if err != nil {
 		return 0, err
 	}
 	return userID, nil
 }
 
-func TestWriteEvent(t *testing.T) {
+func setup(t *testing.T) (int, Repository, func(t *testing.T)) {
 	db := dbpkg.OpenTestDatabase()
-	defer db.Close()
+
+	_, err := db.Exec("DELETE FROM events")
+	if err != nil {
+		t.Fatalf("Failed to clean events table: %v", err)
+	}
+	_, err = db.Exec("DELETE FROM users")
+	if err != nil {
+		t.Fatalf("Failed to clean users table: %v", err)
+	}
 
 	userID, err := createUser(db)
 	if err != nil {
 		t.Fatalf("Failed to insert user: %v", err)
 	}
 
-	repo := Repository{DB: db}
+	return userID, Repository{DB: db}, func(t *testing.T) {
+		_, err = db.Exec("DELETE FROM events")
+		if err != nil {
+			t.Fatalf("Failed to clean events table: %v", err)
+		}
+		_, err = db.Exec("DELETE FROM users")
+		if err != nil {
+			t.Fatalf("Failed to clean users table: %v", err)
+		}
+
+		db.Close()
+	}
+}
+
+func TestWriteEvent(t *testing.T) {
+	userID, repo, teardown := setup(t)
+	defer teardown(t)
+
 	event, err := event.New(userID, "table.order-placed:v1", "table:42", map[string]any{"k": "v"})
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -46,22 +71,12 @@ func TestWriteEvent(t *testing.T) {
 	if eventID == 0 {
 		t.Fatalf("Expected valid event ID, got %d", eventID)
 	}
-
-	// Cleanup
-	_, _ = db.ExecContext(context.Background(), "DELETE FROM events")
-	_, _ = db.ExecContext(context.Background(), "DELETE FROM users")
 }
 
 func TestReadEvent(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
-	defer db.Close()
+	userID, repo, teardown := setup(t)
+	defer teardown(t)
 
-	userID, err := createUser(db)
-	if err != nil {
-		t.Fatalf("Failed to insert user: %v", err)
-	}
-
-	repo := &Repository{DB: db}
 	event, err := event.New(userID, "table.order-placed:v1", "table:42", map[string]any{"k": "v"})
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -99,17 +114,12 @@ func TestReadEvent(t *testing.T) {
 	if data["k"] != "v" {
 		t.Fatalf("Expected data k=v, got k=%v", data["k"])
 	}
-
-	// Cleanup
-	_, _ = db.ExecContext(context.Background(), "DELETE FROM events")
-	_, _ = db.ExecContext(context.Background(), "DELETE FROM users")
 }
 
 func TestReadEvent_NotFound(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
-	defer db.Close()
+	_, repo, teardown := setup(t)
+	defer teardown(t)
 
-	repo := &Repository{DB: db}
 	_, err := repo.ReadEvent(context.Background(), 999999)
 	if err == nil {
 		t.Fatalf("Expected error, got nil")
@@ -117,22 +127,12 @@ func TestReadEvent_NotFound(t *testing.T) {
 	if errors.Is(err, dbpkg.ErrNotFound) == false {
 		t.Fatalf("Expected not found error, got %v", err)
 	}
-
-	// Cleanup
-	_, _ = db.ExecContext(context.Background(), "DELETE FROM events")
-	_, _ = db.ExecContext(context.Background(), "DELETE FROM users")
 }
 
 func TestReadEventsBySubject(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
-	defer db.Close()
+	userID, repo, teardown := setup(t)
+	defer teardown(t)
 
-	userID, err := createUser(db)
-	if err != nil {
-		t.Fatalf("Failed to insert user: %v", err)
-	}
-
-	repo := &Repository{DB: db}
 	event1, err := event.New(userID, "table.order-placed:v1", "table:1", map[string]any{"k": "v"})
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -154,8 +154,4 @@ func TestReadEventsBySubject(t *testing.T) {
 	if events[0].Subject != "table:42" {
 		t.Fatalf("Expected subject table:42, got %s", events[0].Subject)
 	}
-
-	// Cleanup
-	_, _ = db.ExecContext(context.Background(), "DELETE FROM events")
-	_, _ = db.ExecContext(context.Background(), "DELETE FROM users")
 }
