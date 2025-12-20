@@ -11,13 +11,13 @@ import { AuthSingleton } from '@/lib/Auth'
 import { BackendSingleton } from '@/lib/Backend'
 
 import { Order } from './Order'
-import { useTableBalance } from './order/hooks'
-import { OrderBackend } from './order/OrderBackend'
 import { Payment } from './Payment'
-import { useTable } from './table/hooks'
+import { useTableBalance } from './table/orderHooks'
+import { TableBackend } from './table/TableBackend'
+import { useTable } from './table/tableHooks'
 import { TableHistory } from './TableHistory'
 
-const orderBackend = new OrderBackend(BackendSingleton)
+const tableBackend = new TableBackend(BackendSingleton)
 
 export function TablePage() {
   const { tableId } = useParams<{ tableId: string }>()
@@ -55,10 +55,10 @@ export function TablePage() {
           </TabsList>
         </div>
         <TabsContent value="order">
-          {table && <Order backend={orderBackend} table={table} />}
+          {table && <Order backend={tableBackend} table={table} />}
         </TabsContent>
         <TabsContent value="payment">
-          {table && <Payment backend={orderBackend} table={table} />}
+          {table && <Payment backend={tableBackend} table={table} />}
         </TabsContent>
         <TabsContent value="history">
           {table && (

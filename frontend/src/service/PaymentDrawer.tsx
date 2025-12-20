@@ -13,12 +13,12 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { OrderProduct } from './order/Order'
-import type { OrderBackend } from './order/OrderBackend'
+import type { OrderProduct } from './table/Order'
 import type { Table } from './table/Table'
+import type { TableBackend } from './table/TableBackend'
 
 interface PaymentDrawerProps {
-  backend: Pick<OrderBackend, 'registerPayment'>
+  backend: Pick<TableBackend, 'registerTablePayment'>
   table: Table
   unpaidProducts: OrderProduct[]
   quantities: Record<number, number>
@@ -38,7 +38,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
     setLoading(true)
 
     try {
-      await props.backend.registerPayment({
+      await props.backend.registerTablePayment({
         tableId: props.table.id,
         products: props.unpaidProducts,
       })

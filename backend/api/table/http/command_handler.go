@@ -16,7 +16,7 @@ type command interface {
 	UpdateTable(ctx context.Context, id int, name string) error
 	ActivateTable(ctx context.Context, id int) error
 	DeactivateTable(ctx context.Context, id int) error
-	PlaceOrder(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error
+	PlaceTableOrder(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error
 }
 
 type CommandHandler struct {
@@ -132,20 +132,20 @@ func (h *CommandHandler) DeactivateTableHandler() http.HandlerFunc {
 	}
 }
 
-type placeOrder struct {
+type placeTableOrder struct {
 	TableID  int                  `json:"tableId"`
 	Products []table.OrderProduct `json:"products"`
 }
 
-func (h *CommandHandler) PlaceOrderHandler() http.HandlerFunc {
+func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := placeOrder{}
+		body := placeTableOrder{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
 		userID := r.Context().Value(middleware.UserIDKey).(int)
-		err := h.Command.PlaceOrder(r.Context(), userID, body.TableID, body.Products)
+		err := h.Command.PlaceTableOrder(r.Context(), userID, body.TableID, body.Products)
 		if err != nil {
 			helper.SendServerError(w)
 			return

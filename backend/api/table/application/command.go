@@ -101,7 +101,7 @@ func (c Command) DeactivateTable(ctx context.Context, id int) error {
 	return nil
 }
 
-func (c Command) PlaceOrder(ctx context.Context, userID, tableID int, products []table.OrderProduct) error {
+func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, products []table.OrderProduct) error {
 	log := zerolog.Ctx(ctx)
 
 	event, err := table.NewOrderPlacedEvent(userID, tableID, products)

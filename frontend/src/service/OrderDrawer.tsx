@@ -13,13 +13,13 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { OrderProduct } from './order/Order'
-import type { OrderBackend } from './order/OrderBackend'
 import type { Product } from './product/Product'
+import type { OrderProduct } from './table/Order'
 import type { Table } from './table/Table'
+import type { TableBackend } from './table/TableBackend'
 
 interface OrderDrawerProps {
-  backend: Pick<OrderBackend, 'placeOrder'>
+  backend: Pick<TableBackend, 'placeTableOrder'>
   table: Table
   products: Product[]
   quantities: Record<number, number>
@@ -36,7 +36,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
     setLoading(true)
 
     try {
-      await props.backend.placeOrder({
+      await props.backend.placeTableOrder({
         tableId: props.table.id,
         products: orderedProducts,
       })

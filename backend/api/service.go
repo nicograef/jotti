@@ -15,7 +15,7 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/get-active-products", pq.GetActiveProductsHandler())
 
 	tc := table.NewCommandHandler(db)
-	r.HandleFunc("/place-order", tc.PlaceOrderHandler())
+	r.HandleFunc("/place-table-order", tc.PlaceTableOrderHandler())
 
 	tq := table.NewQueryHandler(db)
 	r.HandleFunc("/get-table", tq.GetTableHandler())

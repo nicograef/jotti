@@ -21,8 +21,8 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import { useTableOrders } from './order/hooks'
-import type { Order } from './order/Order'
+import type { Order } from './table/Order'
+import { useTableOrders } from './table/orderHooks'
 
 interface TableHistoryProps {
   tableId: number

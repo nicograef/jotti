@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import type { OrderBackend } from './order/OrderBackend'
 import { OrderDrawer } from './OrderDrawer'
 import { useActiveProducts } from './product/hooks'
 import { ProductList, ProductListSkeleton } from './ProductList'
 import type { Table } from './table/Table'
+import type { TableBackend } from './table/TableBackend'
 
 interface OrderProps {
-  backend: Pick<OrderBackend, 'placeOrder'>
+  backend: Pick<TableBackend, 'placeTableOrder'>
   table: Table
 }
 

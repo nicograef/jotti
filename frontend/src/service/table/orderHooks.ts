@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react'
 import { BackendSingleton } from '@/lib/Backend'
 
 import type { Order } from './Order'
-import { OrderBackend } from './OrderBackend'
+import { TableBackend } from './TableBackend'
 
-const orderBackend = new OrderBackend(BackendSingleton)
+const tableBackend = new TableBackend(BackendSingleton)
 
 /** Custom hook to fetch orders for a specific table from backend. */
 export function useTableOrders(tableId: number) {
@@ -17,7 +17,7 @@ export function useTableOrders(tableId: number) {
       setLoading(true)
 
       try {
-        const orders = await orderBackend.getTableOrders(tableId)
+        const orders = await tableBackend.getTableOrders(tableId)
         setOrders(orders)
       } catch (error) {
         console.error('Failed to fetch orders:', error)
@@ -41,7 +41,7 @@ export function useTableBalance(tableId: number) {
       setLoading(true)
 
       try {
-        const balance = await orderBackend.getTableBalance(tableId)
+        const balance = await tableBackend.getTableBalance(tableId)
         setBalanceCents(balance)
       } catch (error) {
         console.error('Failed to fetch table balance:', error)
@@ -65,7 +65,7 @@ export function useTableUnpaidProducts(tableId: number) {
       setLoading(true)
 
       try {
-        const products = await orderBackend.getTableUnpaidProducts(tableId)
+        const products = await tableBackend.getTableUnpaidProducts(tableId)
         setProducts(products)
       } catch (error) {
         console.error('Failed to fetch unpaid products:', error)

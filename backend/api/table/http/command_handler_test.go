@@ -33,7 +33,7 @@ func (m *mockCommand) DeactivateTable(ctx context.Context, id int) error {
 	return m.err
 }
 
-func (m *mockCommand) PlaceOrder(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error {
+func (m *mockCommand) PlaceTableOrder(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error {
 	return m.err
 }
 
