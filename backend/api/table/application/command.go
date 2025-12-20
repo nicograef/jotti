@@ -119,3 +119,22 @@ func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, produ
 	log.Info().Int("table_id", tableID).Msg("Order placed")
 	return nil
 }
+
+func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, products []table.PaymentProduct) error {
+	log := zerolog.Ctx(ctx)
+
+	event, err := table.NewPaymentRegisteredEvent(userID, tableID, products)
+	if err != nil {
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create payment registered event")
+		return err
+	}
+
+	_, err = c.EventRepo.WriteEvent(ctx, event)
+	if err != nil {
+		log.Error().Int("table_id", tableID).Msg("Failed to write payment registered event to database")
+		return ErrDatabase
+	}
+
+	log.Info().Int("table_id", tableID).Msg("Payment registered")
+	return nil
+}

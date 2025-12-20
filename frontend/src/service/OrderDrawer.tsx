@@ -31,6 +31,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
   const [loading, setLoading] = useState(false)
   const orderedProducts = orderProducts(props.products, props.quantities)
   const totalPrice = calculateTotalPrice(orderedProducts)
+  const noProductsSelected = orderedProducts.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
@@ -49,11 +50,22 @@ export function OrderDrawer(props: OrderDrawerProps) {
     setLoading(false)
   }
 
+  const onOpenChange = (isOpen: boolean) => {
+    if (noProductsSelected) {
+      setOpen(false)
+    } else {
+      setOpen(isOpen)
+    }
+  }
+
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
+    <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
         <div className="text-center">
-          <Button className="cursor-pointer hover:shadow-sm w-full lg:w-1/2">
+          <Button
+            className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
+            disabled={noProductsSelected}
+          >
             Bestellung überprüfen
           </Button>
         </div>

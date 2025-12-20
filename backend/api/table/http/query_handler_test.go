@@ -32,6 +32,9 @@ func (m mockQuery) GetActiveTables(ctx context.Context) ([]table.Table, error) {
 func (m mockQuery) GetTableOrders(ctx context.Context, tableID int) ([]table.Order, error) {
 	return []table.Order{m.order}, m.err
 }
+func (m mockQuery) GetTablePayments(ctx context.Context, tableID int) ([]table.Payment, error) {
+	return []table.Payment{}, m.err
+}
 func (m mockQuery) GetTableBalance(ctx context.Context, tableID int) (int, error) {
 	return m.balance, m.err
 }

@@ -1,4 +1,4 @@
-import { useActiveTables } from './table/tableHooks'
+import { useActiveTables } from './table/hooks'
 import { TableList, TableListSkeleton } from './TableList'
 
 export function TableSelectionPage() {

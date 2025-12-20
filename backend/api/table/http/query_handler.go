@@ -15,6 +15,7 @@ type query interface {
 	GetAllTables(ctx context.Context) ([]t.Table, error)
 	GetActiveTables(ctx context.Context) ([]t.Table, error)
 	GetTableOrders(ctx context.Context, tableID int) ([]t.Order, error)
+	GetTablePayments(ctx context.Context, tableID int) ([]t.Payment, error)
 	GetTableBalance(ctx context.Context, tableID int) (int, error)
 	GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error)
 }
@@ -120,6 +121,31 @@ func (h QueryHandler) GetTableOrdersHandler() http.HandlerFunc {
 		}
 
 		helper.SendResponse(w, getTableOrdersResponse{Orders: orders})
+	}
+}
+
+type getTablePayments struct {
+	TableID int `json:"tableId"`
+}
+
+type getTablePaymentsResponse struct {
+	Payments []t.Payment `json:"payments"`
+}
+
+func (h QueryHandler) GetTablePaymentsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := getTablePayments{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		payments, err := h.Query.GetTablePayments(r.Context(), body.TableID)
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		helper.SendResponse(w, getTablePaymentsResponse{Payments: payments})
 	}
 }
 

@@ -14,18 +14,19 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { PaymentDrawer } from './PaymentDrawer'
+import { useTableUnpaidProducts } from './table/hooks'
 import type { OrderProduct } from './table/Order'
-import { useTableUnpaidProducts } from './table/orderHooks'
 import type { Table } from './table/Table'
 import type { TableBackend } from './table/TableBackend'
 
 interface PaymentProps {
   backend: Pick<TableBackend, 'registerTablePayment'>
   table: Table
+  onPaymentRegistered: () => void
 }
 
-export function Payment({ table, backend }: PaymentProps) {
-  const { products, loading } = useTableUnpaidProducts(table.id)
+export function Payment({ table, backend, onPaymentRegistered }: PaymentProps) {
+  const { products, loading, reload } = useTableUnpaidProducts(table.id)
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
   const unpaidQuantities: Record<number, number> = {}
@@ -65,6 +66,8 @@ export function Payment({ table, backend }: PaymentProps) {
         paymentRegistered={() => {
           setQuantities({})
           toast.success(`Zahlung wurde registriert.`)
+          onPaymentRegistered()
+          void reload()
         }}
       />
       <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">

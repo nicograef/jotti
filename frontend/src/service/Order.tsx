@@ -10,11 +10,12 @@ import type { TableBackend } from './table/TableBackend'
 interface OrderProps {
   backend: Pick<TableBackend, 'placeTableOrder'>
   table: Table
+  onOrderPlaced: () => void
 }
 
 type ProductAmountMap = Record<number, number>
 
-export function Order({ backend, table }: OrderProps) {
+export function Order({ backend, table, onOrderPlaced }: OrderProps) {
   const { loading, products } = useActiveProducts()
   const [quantities, setQuantities] = useState<ProductAmountMap>({})
 
@@ -32,6 +33,7 @@ export function Order({ backend, table }: OrderProps) {
         orderPlaced={() => {
           setQuantities({})
           toast.success(`Bestellung wurde aufgegeben.`)
+          onOrderPlaced()
         }}
       />
       <ProductList

@@ -6,8 +6,8 @@ import {
   OrderProductSchema,
   OrderSchema,
   PlaceOrderSchema,
-  type RegisterPaymentSchema,
 } from './Order'
+import { type Payment, PaymentSchema, RegisterPaymentSchema } from './Payment'
 import { type Table, TableSchema } from './Table'
 
 interface Backend {
@@ -51,11 +51,11 @@ export class TableBackend {
     await this.backend.post('service/place-table-order', body)
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   public async registerTablePayment(
     registerPayment: z.infer<typeof RegisterPaymentSchema>,
   ): Promise<void> {
-    console.log('registerTablePayment', registerPayment)
+    const body = RegisterPaymentSchema.parse(registerPayment)
+    await this.backend.post('service/register-table-payment', body)
   }
 
   public async getTableOrders(tableId: number): Promise<Order[]> {
@@ -66,6 +66,16 @@ export class TableBackend {
       z.object({ orders: z.array(OrderSchema) }),
     )
     return orders
+  }
+
+  public async getTablePayments(tableId: number): Promise<Payment[]> {
+    const body = OrderSchema.pick({ tableId: true }).parse({ tableId })
+    const { payments } = await this.backend.post(
+      'service/get-table-payments',
+      body,
+      z.object({ payments: z.array(PaymentSchema) }),
+    )
+    return payments
   }
 
   public async getTableBalance(tableId: number): Promise<number> {

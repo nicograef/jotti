@@ -17,6 +17,7 @@ type command interface {
 	ActivateTable(ctx context.Context, id int) error
 	DeactivateTable(ctx context.Context, id int) error
 	PlaceTableOrder(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error
+	RegisterTablePayment(ctx context.Context, userID int, tableID int, products []table.PaymentProduct) error
 }
 
 type CommandHandler struct {
@@ -146,6 +147,29 @@ func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
 
 		userID := r.Context().Value(middleware.UserIDKey).(int)
 		err := h.Command.PlaceTableOrder(r.Context(), userID, body.TableID, body.Products)
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+type registerTablePayment struct {
+	TableID  int                    `json:"tableId"`
+	Products []table.PaymentProduct `json:"products"`
+}
+
+func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := registerTablePayment{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		userID := r.Context().Value(middleware.UserIDKey).(int)
+		err := h.Command.RegisterTablePayment(r.Context(), userID, body.TableID, body.Products)
 		if err != nil {
 			helper.SendServerError(w)
 			return

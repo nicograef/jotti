@@ -12,9 +12,9 @@ import { BackendSingleton } from '@/lib/Backend'
 
 import { Order } from './Order'
 import { Payment } from './Payment'
-import { useTableBalance } from './table/orderHooks'
+import { useTableBalance } from './table/hooks'
+import { useTable } from './table/hooks'
 import { TableBackend } from './table/TableBackend'
-import { useTable } from './table/tableHooks'
 import { TableHistory } from './TableHistory'
 
 const tableBackend = new TableBackend(BackendSingleton)
@@ -22,9 +22,11 @@ const tableBackend = new TableBackend(BackendSingleton)
 export function TablePage() {
   const { tableId } = useParams<{ tableId: string }>()
   const { loading: tableLoading, table } = useTable(Number(tableId))
-  const { balanceCents, loading: balanceLoading } = useTableBalance(
-    Number(tableId),
-  )
+  const {
+    balanceCents,
+    loading: balanceLoading,
+    reload: reloadBalance,
+  } = useTableBalance(Number(tableId))
 
   return (
     <>
@@ -55,10 +57,26 @@ export function TablePage() {
           </TabsList>
         </div>
         <TabsContent value="order">
-          {table && <Order backend={tableBackend} table={table} />}
+          {table && (
+            <Order
+              backend={tableBackend}
+              table={table}
+              onOrderPlaced={() => {
+                void reloadBalance()
+              }}
+            />
+          )}
         </TabsContent>
         <TabsContent value="payment">
-          {table && <Payment backend={tableBackend} table={table} />}
+          {table && (
+            <Payment
+              backend={tableBackend}
+              table={table}
+              onPaymentRegistered={() => {
+                void reloadBalance()
+              }}
+            />
+          )}
         </TabsContent>
         <TabsContent value="history">
           {table && (

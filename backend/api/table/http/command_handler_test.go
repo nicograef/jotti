@@ -36,6 +36,9 @@ func (m *mockCommand) DeactivateTable(ctx context.Context, id int) error {
 func (m *mockCommand) PlaceTableOrder(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error {
 	return m.err
 }
+func (m *mockCommand) RegisterTablePayment(ctx context.Context, userID int, tableID int, products []table.PaymentProduct) error {
+	return m.err
+}
 
 func TestCreateTableHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}

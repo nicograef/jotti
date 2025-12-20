@@ -16,11 +16,13 @@ func NewServiceApi(db *sql.DB) http.Handler {
 
 	tc := table.NewCommandHandler(db)
 	r.HandleFunc("/place-table-order", tc.PlaceTableOrderHandler())
+	r.HandleFunc("/register-table-payment", tc.RegisterTablePaymentHandler())
 
 	tq := table.NewQueryHandler(db)
 	r.HandleFunc("/get-table", tq.GetTableHandler())
 	r.HandleFunc("/get-active-tables", tq.GetActiveTablesHandler())
 	r.HandleFunc("/get-table-orders", tq.GetTableOrdersHandler())
+	r.HandleFunc("/get-table-payments", tq.GetTablePaymentsHandler())
 	r.HandleFunc("/get-table-balance", tq.GetTableBalanceHandler())
 	r.HandleFunc("/get-table-unpaid-products", tq.GetTableUnpaidProductsHandler())
 

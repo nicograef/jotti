@@ -14,6 +14,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 
 import type { OrderProduct } from './table/Order'
+import type { PaymentProduct } from './table/Payment'
 import type { Table } from './table/Table'
 import type { TableBackend } from './table/TableBackend'
 
@@ -28,11 +29,12 @@ interface PaymentDrawerProps {
 export function PaymentDrawer(props: PaymentDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-
-  const totalPrice = props.unpaidProducts.reduce(
-    (total, p) => total + p.netPriceCents * p.quantity,
-    0,
+  const productsToPay = buildPaymentProducts(
+    props.unpaidProducts,
+    props.quantities,
   )
+  const totalPrice = calculateTotalPrice(productsToPay)
+  const noProductsSelected = productsToPay.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
@@ -40,7 +42,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
     try {
       await props.backend.registerTablePayment({
         tableId: props.table.id,
-        products: props.unpaidProducts,
+        products: productsToPay,
       })
       props.paymentRegistered()
       setOpen(false)
@@ -51,11 +53,22 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
     setLoading(false)
   }
 
+  const onOpenChange = (isOpen: boolean) => {
+    if (noProductsSelected) {
+      setOpen(false)
+    } else {
+      setOpen(isOpen)
+    }
+  }
+
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
+    <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
         <div className="text-center">
-          <Button className="cursor-pointer hover:shadow-sm w-full lg:w-1/2">
+          <Button
+            disabled={noProductsSelected}
+            className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
+          >
             Zahlung überprüfen
           </Button>
         </div>
@@ -69,7 +82,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
             </DrawerDescription>
           </DrawerHeader>
           <div className="p-4 space-y-2">
-            {props.unpaidProducts.map((product) => {
+            {productsToPay.map((product) => {
               return (
                 <div
                   key={product.id}
@@ -110,5 +123,24 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
         </div>
       </DrawerContent>
     </Drawer>
+  )
+}
+
+function buildPaymentProducts(
+  products: OrderProduct[],
+  selectedQuantity: Record<number, number>,
+): PaymentProduct[] {
+  return products
+    .map((product) => ({
+      ...product,
+      quantity: selectedQuantity[product.id] || 0,
+    }))
+    .filter((product) => product.quantity > 0)
+}
+
+function calculateTotalPrice(paymentProducts: PaymentProduct[]): number {
+  return paymentProducts.reduce(
+    (total, product) => total + product.netPriceCents * product.quantity,
+    0,
   )
 }

@@ -111,6 +111,26 @@ func (q Query) GetTableOrders(ctx context.Context, tableID int) ([]t.Order, erro
 	return orders, nil
 }
 
+func (q Query) GetTablePayments(ctx context.Context, tableID int) ([]t.Payment, error) {
+	logger := zerolog.Ctx(ctx)
+
+	subject := "table:" + strconv.Itoa(tableID)
+	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		logger.Error().Int("table_id", tableID).Msg("Failed to read payment events for table")
+		return []t.Payment{}, ErrDatabase
+	}
+
+	payments, err := t.GetPaymentsFromEvents(events)
+	if err != nil {
+		logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to build payments from events")
+		return []t.Payment{}, err
+	}
+
+	log.Info().Int("table_id", tableID).Int("payment_count", len(payments)).Msg("Retrieved payments for table")
+	return payments, nil
+}
+
 func (q Query) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error) {
 	logger := zerolog.Ctx(ctx)
 
