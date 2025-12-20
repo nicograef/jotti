@@ -30,13 +30,13 @@ const (
 )
 
 type Product struct {
-	ID            int
-	Name          string
-	Description   string
-	NetPriceCents int
-	Status        Status
-	Category      Category
-	CreatedAt     time.Time
+	ID            int       `json:"id"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	NetPriceCents int       `json:"netPriceCents"`
+	Status        Status    `json:"status"`
+	Category      Category  `json:"category"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 // IDSchema defines the schema for a product ID.
@@ -66,7 +66,7 @@ var CategorySchema = z.StringLike[Category]().OneOf(
 var ProductSchema = z.Struct(z.Shape{
 	"ID":            IDSchema.Required(),
 	"Name":          NameSchema.Required(),
-	"Description":   DescriptionSchema.Required(),
+	"Description":   DescriptionSchema.Optional(),
 	"NetPriceCents": NetPriceCentsSchema.Required(),
 	"Status":        StatusSchema.Required(),
 	"Category":      CategorySchema.Required(),
@@ -88,7 +88,7 @@ func NewProduct(name, description string, netPriceCents int, category Category) 
 		return Product{}, fmt.Errorf("invalid name")
 	}
 
-	if issue := DescriptionSchema.Validate(&description); issue != nil {
+	if issue := DescriptionSchema.Optional().Validate(&description); issue != nil {
 		return Product{}, fmt.Errorf("invalid description")
 	}
 

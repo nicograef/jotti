@@ -14,11 +14,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from '@/components/ui/sidebar'
 import { AuthSingleton } from '@/lib/Auth'
 
-const items = [
+const adminItems = [
   {
     title: 'Bestellungen',
     url: '/admin/orders',
@@ -41,10 +40,17 @@ const items = [
   },
 ]
 
+const serviceItems = [
+  {
+    title: 'Tischauswahl',
+    url: '/service/tables',
+    icon: Lamp,
+  },
+]
+
 export function AdminSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { toggleSidebar } = useSidebar()
 
   const logout = () => {
     AuthSingleton.logout()
@@ -61,18 +67,33 @@ export function AdminSidebar() {
           <SidebarGroupLabel>Verwaltung</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {adminItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={location.pathname === item.url}
                   >
-                    <NavLink
-                      to={item.url}
-                      onClick={() => {
-                        toggleSidebar()
-                      }}
-                    >
+                    <NavLink to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Service</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {serviceItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === item.url}
+                  >
+                    <NavLink to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
                     </NavLink>

@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 
 import type { OrderBackend } from './order/OrderBackend'
 import { OrderDrawer } from './OrderDrawer'
-import { useAllProducts } from './product/hooks'
+import { useActiveProducts } from './product/hooks'
 import { ProductList, ProductListSkeleton } from './ProductList'
 import type { Table } from './table/Table'
 
@@ -15,7 +15,7 @@ interface OrderProps {
 type ProductAmountMap = Record<number, number>
 
 export function Order({ backend, table }: OrderProps) {
-  const { loading, products } = useAllProducts()
+  const { loading, products } = useActiveProducts()
   const [quantities, setQuantities] = useState<ProductAmountMap>({})
 
   if (loading) {

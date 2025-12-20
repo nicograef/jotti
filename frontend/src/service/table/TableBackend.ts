@@ -17,9 +17,9 @@ export class TableBackend {
     this.backend = backend
   }
 
-  public async getAllTables(): Promise<Table[]> {
+  public async getActiveTables(): Promise<Table[]> {
     const { tables } = await this.backend.post(
-      'service/get-all-tables',
+      'service/get-active-tables',
       {},
       z.object({ tables: z.array(TableSchema) }),
     )

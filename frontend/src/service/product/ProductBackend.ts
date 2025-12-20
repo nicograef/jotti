@@ -17,9 +17,9 @@ export class ProductBackend {
     this.backend = backend
   }
 
-  public async getAllProducts(): Promise<Product[]> {
+  public async getActiveProducts(): Promise<Product[]> {
     const { products } = await this.backend.post(
-      'service/get-all-products',
+      'service/get-active-products',
       {},
       z.object({ products: z.array(ProductSchema) }),
     )

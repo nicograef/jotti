@@ -29,14 +29,14 @@ const (
 )
 
 type User struct {
-	ID                  int
-	Name                string
-	Username            string
-	Role                Role
-	Status              Status
-	PasswordHash        string
-	OnetimePasswordHash string
-	CreatedAt           time.Time
+	ID                  int       `json:"id"`
+	Name                string    `json:"name"`
+	Username            string    `json:"username"`
+	Role                Role      `json:"role"`
+	Status              Status    `json:"status"`
+	PasswordHash        string    `json:"-"`
+	OnetimePasswordHash string    `json:"-"`
+	CreatedAt           time.Time `json:"createdAt"`
 }
 
 var IDSchema = z.Int().GTE(1, z.Message("Invalid user ID"))

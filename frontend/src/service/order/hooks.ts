@@ -8,7 +8,7 @@ import { OrderBackend } from './OrderBackend'
 const orderBackend = new OrderBackend(BackendSingleton)
 
 /** Custom hook to fetch orders for a specific table from backend. */
-export function useOrders(tableId: number) {
+export function useTableOrders(tableId: number) {
   const [loading, setLoading] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
 
@@ -17,7 +17,7 @@ export function useOrders(tableId: number) {
       setLoading(true)
 
       try {
-        const orders = await orderBackend.getOrders(tableId)
+        const orders = await orderBackend.getTableOrders(tableId)
         setOrders(orders)
       } catch (error) {
         console.error('Failed to fetch orders:', error)

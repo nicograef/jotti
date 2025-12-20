@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import { useOrders } from './order/hooks'
+import { useTableOrders } from './order/hooks'
 import type { Order } from './order/Order'
 
 interface TableHistoryProps {
@@ -38,7 +38,7 @@ const initialOrderDetailsState: {
 }
 
 export function TableHistory({ tableId, userId }: TableHistoryProps) {
-  const { loading, orders } = useOrders(tableId)
+  const { loading, orders } = useTableOrders(tableId)
   const [orderDetails, setOrderDetails] = useState(initialOrderDetailsState)
 
   const sortedOrders = orders.sort((a, b) => {

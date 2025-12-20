@@ -60,8 +60,8 @@ func (r Repository) GetAllUsers(ctx context.Context) ([]user.User, error) {
 func (r Repository) CreateUser(ctx context.Context, u user.User) (int, error) {
 	var userID int
 	err := r.DB.QueryRowContext(ctx,
-		"INSERT INTO users (name, username, role, status, password_hash, onetime_password_hash, created_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-		u.Name, u.Username, string(u.Role), string(u.Status), u.OnetimePasswordHash, u.CreatedAt,
+		"INSERT INTO users (name, username, role, status, password_hash, onetime_password_hash, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+		u.Name, u.Username, string(u.Role), string(u.Status), u.PasswordHash, u.OnetimePasswordHash, u.CreatedAt,
 	).Scan(&userID)
 
 	if err != nil {

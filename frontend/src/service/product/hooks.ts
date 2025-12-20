@@ -7,8 +7,8 @@ import { ProductBackend } from './ProductBackend'
 
 const productBackend = new ProductBackend(BackendSingleton)
 
-/** Custom hook to fetch all products from backend. */
-export function useAllProducts() {
+/** Custom hook to fetch active products from backend. */
+export function useActiveProducts() {
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
 
@@ -17,7 +17,7 @@ export function useAllProducts() {
       setLoading(true)
 
       try {
-        const products = await productBackend.getAllProducts()
+        const products = await productBackend.getActiveProducts()
         setProducts(products)
       } catch (error) {
         console.error('Failed to fetch products:', error)

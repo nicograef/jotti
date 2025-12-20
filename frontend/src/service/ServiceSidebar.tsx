@@ -43,7 +43,7 @@ export function ServiceSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Verwaltung</SidebarGroupLabel>
+          <SidebarGroupLabel>Service</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (

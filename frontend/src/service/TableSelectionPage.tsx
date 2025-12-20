@@ -1,8 +1,8 @@
-import { useAllTables } from './table/hooks'
+import { useActiveTables } from './table/hooks'
 import { TableList, TableListSkeleton } from './TableList'
 
 export function TableSelectionPage() {
-  const { loading, tables } = useAllTables()
+  const { loading, tables } = useActiveTables()
 
   return (
     <>

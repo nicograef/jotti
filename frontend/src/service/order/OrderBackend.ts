@@ -38,10 +38,10 @@ export class OrderBackend {
     console.log('registerPayment', registerPayment)
   }
 
-  public async getOrders(tableId: number): Promise<Order[]> {
+  public async getTableOrders(tableId: number): Promise<Order[]> {
     const body = OrderSchema.pick({ tableId: true }).parse({ tableId })
     const { orders } = await this.backend.post(
-      'service/get-orders',
+      'service/get-table-orders',
       body,
       z.object({ orders: z.array(OrderSchema) }),
     )
@@ -50,12 +50,12 @@ export class OrderBackend {
 
   public async getTableBalance(tableId: number): Promise<number> {
     const body = OrderSchema.pick({ tableId: true }).parse({ tableId })
-    const { totalBalanceCents } = await this.backend.post(
+    const { balanceCents } = await this.backend.post(
       'service/get-table-balance',
       body,
-      z.object({ totalBalanceCents: z.number().int() }),
+      z.object({ balanceCents: z.number().int() }),
     )
-    return totalBalanceCents
+    return balanceCents
   }
 
   public async getTableUnpaidProducts(

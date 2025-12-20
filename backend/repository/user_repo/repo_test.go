@@ -130,7 +130,12 @@ func TestCreateUserInDB(t *testing.T) {
 	_, repo, teardown := setup(t)
 	defer teardown(t)
 
-	userID, err := repo.CreateUser(context.Background(), user.User{Name: "Test User", Username: "testuser", Role: user.AdminRole})
+	u, _, err := user.NewUser("nico2", "nicousername2", user.AdminRole)
+	if err != nil {
+		t.Fatalf("Failed to create user user object: %v", err)
+	}
+
+	userID, err := repo.CreateUser(context.Background(), u)
 	if err != nil {
 		t.Fatalf("Failed to insert user: %v", err)
 	}
@@ -162,10 +167,11 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestUpdateUserInDB_Error(t *testing.T) {
-	_, repo, teardown := setup(t)
+	u, repo, teardown := setup(t)
 	defer teardown(t)
 
-	err := repo.UpdateUser(context.Background(), user.User{ID: 99999})
+	u.ID = 99999 // Non-existent user ID
+	err := repo.UpdateUser(context.Background(), u)
 
 	if err != dbpkg.ErrNotFound {
 		t.Fatalf("expected user not found error, got %v", err)

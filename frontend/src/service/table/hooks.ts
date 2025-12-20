@@ -31,7 +31,7 @@ export function useTable(id: number) {
 }
 
 /** Custom hook to fetch active tables from backend. */
-export function useAllTables() {
+export function useActiveTables() {
   const [loading, setLoading] = useState(false)
   const [tables, setTables] = useState<Table[]>([])
 
@@ -39,7 +39,7 @@ export function useAllTables() {
     async function fetchTables() {
       setLoading(true)
       try {
-        const tables = await tableBackend.getAllTables()
+        const tables = await tableBackend.getActiveTables()
         setTables(tables)
       } catch (error) {
         console.error('Failed to fetch tables:', error)

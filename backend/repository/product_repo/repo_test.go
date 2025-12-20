@@ -5,6 +5,7 @@ package product_repo
 import (
 	"context"
 	"testing"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
@@ -29,13 +30,24 @@ func setup(t *testing.T) (Repository, func(t *testing.T)) {
 	}
 }
 
+func NewProduct(name string, status product.Status) product.Product {
+	return product.Product{
+		Name:          name,
+		Description:   "Sample Description",
+		NetPriceCents: 999,
+		Category:      product.FoodCategory,
+		Status:        status,
+		CreatedAt:     time.Now().UTC(),
+	}
+}
+
 func TestGetAllProducts(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	ctx := context.Background()
-	_, _ = repo.CreateProduct(ctx, product.Product{Name: "Product 1", Description: "Description 1", NetPriceCents: 399, Category: product.FoodCategory})
-	_, _ = repo.CreateProduct(ctx, product.Product{Name: "Product 2", Description: "Description 2", NetPriceCents: 499, Category: product.BeverageCategory})
+	_, _ = repo.CreateProduct(ctx, NewProduct("Product 1", product.ActiveStatus))
+	_, _ = repo.CreateProduct(ctx, NewProduct("Product 2", product.InactiveStatus))
 
 	products, err := repo.GetAllProducts(ctx)
 
@@ -52,8 +64,8 @@ func TestGetActiveProducts(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	_, _ = repo.CreateProduct(ctx, product.Product{Name: "Product 1", Description: "Description 1", NetPriceCents: 399, Category: product.FoodCategory, Status: product.ActiveStatus})
-	_, _ = repo.CreateProduct(ctx, product.Product{Name: "Product 2", Description: "Description 2", NetPriceCents: 499, Category: product.BeverageCategory, Status: product.InactiveStatus})
+	_, _ = repo.CreateProduct(ctx, NewProduct("Product 1", product.ActiveStatus))
+	_, _ = repo.CreateProduct(ctx, NewProduct("Product 2", product.InactiveStatus))
 
 	products, err := repo.GetActiveProducts(ctx)
 
@@ -70,7 +82,7 @@ func TestCreateProductInDB(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, err := repo.CreateProduct(ctx, product.Product{Name: "French Fries", Description: "The best fries in town", NetPriceCents: 499, Category: product.FoodCategory})
+	productID, err := repo.CreateProduct(ctx, NewProduct("French Fries", product.ActiveStatus))
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -85,9 +97,15 @@ func TestUpdateProduct(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, _ := repo.CreateProduct(ctx, product.Product{Name: "Original Product", Description: "Original Description", NetPriceCents: 799, Category: product.FoodCategory})
+	p := NewProduct("Original Product", product.ActiveStatus)
+	productID, _ := repo.CreateProduct(ctx, p)
 
-	err := repo.UpdateProduct(ctx, product.Product{ID: productID, Name: "Updated Name", Description: "Updated Description", NetPriceCents: 999, Category: product.BeverageCategory})
+	p.ID = productID
+	p.Name = "Updated Name"
+	p.Description = "Updated Description"
+	p.NetPriceCents = 999
+	p.Category = product.BeverageCategory
+	err := repo.UpdateProduct(ctx, p)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -115,7 +133,7 @@ func TestUpdateProduct_NotFound(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	err := repo.UpdateProduct(ctx, product.Product{ID: 999999, Name: "Updated Name", Description: "Updated Description", NetPriceCents: 999, Category: product.BeverageCategory})
+	err := repo.UpdateProduct(ctx, product.Product{ID: 999999, Name: "Updated Name", Description: "Updated Description", NetPriceCents: 999, Category: product.BeverageCategory, Status: product.ActiveStatus})
 
 	if err != dbpkg.ErrNotFound {
 		t.Fatalf("Expected product not found error, got %v", err)
