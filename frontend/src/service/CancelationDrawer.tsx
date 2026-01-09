@@ -22,7 +22,7 @@ interface CancelationDrawerProps {
   table: Table
   unpaidProducts: OrderProduct[]
   quantities: Record<number, number>
-  cancelationRegistered: () => void
+  productsCanceled: () => void
 }
 
 export function CancelationDrawer(props: CancelationDrawerProps) {
@@ -43,7 +43,7 @@ export function CancelationDrawer(props: CancelationDrawerProps) {
         tableId: props.table.id,
         products: productsToCancel,
       })
-      props.cancelationRegistered()
+      props.productsCanceled()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -63,14 +63,13 @@ export function CancelationDrawer(props: CancelationDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
-        <div className="text-center">
-          <Button
-            disabled={noProductsSelected}
-            className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
-          >
-            Stornierung überprüfen
-          </Button>
-        </div>
+        <Button
+          variant="destructive"
+          disabled={noProductsSelected}
+          className="cursor-pointer hover:shadow-sm w-full"
+        >
+          Stornierung
+        </Button>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
@@ -106,6 +105,7 @@ export function CancelationDrawer(props: CancelationDrawerProps) {
           </div>
           <DrawerFooter>
             <Button
+              variant="destructive"
               disabled={loading}
               onClick={() => {
                 void onSubmit()

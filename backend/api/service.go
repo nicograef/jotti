@@ -18,6 +18,7 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/place-table-order", tc.PlaceTableOrderHandler())
 	r.HandleFunc("/register-table-payment", tc.RegisterTablePaymentHandler())
 	r.HandleFunc("/cancel-table-products", tc.CancelTableProductsHandler())
+	r.HandleFunc("/deliver-table-products", tc.DeliverTableProductsHandler())
 
 	tq := table.NewQueryHandler(db)
 	r.HandleFunc("/get-table", tq.GetTableHandler())
@@ -25,6 +26,7 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/get-table-history", tq.GetTableHistoryHandler())
 	r.HandleFunc("/get-table-balance", tq.GetTableBalanceHandler())
 	r.HandleFunc("/get-table-unpaid-products", tq.GetTableUnpaidProductsHandler())
+	r.HandleFunc("/get-table-undelivered-products", tq.GetTableUndeliveredProductsHandler())
 
 	return r
 }

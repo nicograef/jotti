@@ -117,7 +117,7 @@ func (q Query) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.Ord
 	subject := "table:" + strconv.Itoa(tableID)
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		logger.Error().Int("table_id", tableID).Msg("Failed to read order events for table")
+		logger.Error().Int("table_id", tableID).Msg("Failed to read events for table")
 		return []t.OrderProduct{}, ErrDatabase
 	}
 
@@ -129,4 +129,24 @@ func (q Query) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.Ord
 
 	log.Info().Int("table_id", tableID).Int("unpaid_product_count", len(unpaidProducts)).Msg("Retrieved unpaid products for table")
 	return unpaidProducts, nil
+}
+
+func (q Query) GetTableUndeliveredProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error) {
+	logger := zerolog.Ctx(ctx)
+
+	subject := "table:" + strconv.Itoa(tableID)
+	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		logger.Error().Int("table_id", tableID).Msg("Failed to read events for table")
+		return []t.OrderProduct{}, ErrDatabase
+	}
+
+	undeliveredProducts, err := t.GetUndeliveredProductsFromEvents(events)
+	if err != nil {
+		logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to build undelivered products from events")
+		return []t.OrderProduct{}, err
+	}
+
+	log.Info().Int("table_id", tableID).Int("undelivered_product_count", len(undeliveredProducts)).Msg("Retrieved undelivered products for table")
+	return undeliveredProducts, nil
 }

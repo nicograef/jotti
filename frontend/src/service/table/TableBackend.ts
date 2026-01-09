@@ -6,6 +6,11 @@ import {
   CancelProductsSchema,
 } from './Cancelation'
 import {
+  DeliverProductsSchema,
+  type Delivery,
+  DeliverySchema,
+} from './Delivery'
+import {
   type Order,
   type OrderProduct,
   OrderProductSchema,
@@ -70,16 +75,28 @@ export class TableBackend {
     await this.backend.post('service/cancel-table-products', body)
   }
 
+  public async deliverTableProducts(
+    deliverProducts: z.infer<typeof DeliverProductsSchema>,
+  ): Promise<void> {
+    const body = DeliverProductsSchema.parse(deliverProducts)
+    await this.backend.post('service/deliver-table-products', body)
+  }
+
   public async getTableHistory(
     tableId: number,
-  ): Promise<(Order | Payment | Cancelation)[]> {
+  ): Promise<(Order | Payment | Cancelation | Delivery)[]> {
     const body = z.object({ tableId: TableIdSchema }).parse({ tableId })
     const { history } = await this.backend.post(
       'service/get-table-history',
       body,
       z.object({
         history: z.array(
-          z.union([OrderSchema, PaymentSchema, CancelationSchema]),
+          z.union([
+            OrderSchema,
+            PaymentSchema,
+            CancelationSchema,
+            DeliverySchema,
+          ]),
         ),
       }),
     )
@@ -102,6 +119,18 @@ export class TableBackend {
     const body = z.object({ tableId: TableIdSchema }).parse({ tableId })
     const { products } = await this.backend.post(
       'service/get-table-unpaid-products',
+      body,
+      z.object({ products: z.array(OrderProductSchema) }),
+    )
+    return products
+  }
+
+  public async getTableUndeliveredProducts(
+    tableId: number,
+  ): Promise<OrderProduct[]> {
+    const body = z.object({ tableId: TableIdSchema }).parse({ tableId })
+    const { products } = await this.backend.post(
+      'service/get-table-undelivered-products',
       body,
       z.object({ products: z.array(OrderProductSchema) }),
     )

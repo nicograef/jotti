@@ -22,6 +22,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 import type { Cancelation } from './table/Cancelation'
+import type { Delivery } from './table/Delivery'
 import { useTableHistory } from './table/hooks'
 import type { Order } from './table/Order'
 import type { Payment } from './table/Payment'
@@ -31,7 +32,7 @@ interface TableHistoryProps {
   userId: number | null
 }
 
-const initialOrderDetailsState: {
+const initialOrderState: {
   order: Order | null
   open: boolean
 } = {
@@ -39,7 +40,7 @@ const initialOrderDetailsState: {
   open: false,
 }
 
-const initialPaymentDetailsState: {
+const initialPaymentState: {
   payment: Payment | null
   open: boolean
 } = {
@@ -47,7 +48,7 @@ const initialPaymentDetailsState: {
   open: false,
 }
 
-const initialCancelationDetailsState: {
+const initialCancelationState: {
   cancelation: Cancelation | null
   open: boolean
 } = {
@@ -55,15 +56,20 @@ const initialCancelationDetailsState: {
   open: false,
 }
 
+const initialDeliveryState: {
+  delivery: Delivery | null
+  open: boolean
+} = {
+  delivery: null,
+  open: false,
+}
+
 export function TableHistory({ tableId, userId }: TableHistoryProps) {
   const { loading, history } = useTableHistory(tableId)
-  const [orderDetails, setOrderDetails] = useState(initialOrderDetailsState)
-  const [paymentDetails, setPaymentDetails] = useState(
-    initialPaymentDetailsState,
-  )
-  const [cancelationDetails, setCancelationDetails] = useState(
-    initialCancelationDetailsState,
-  )
+  const [order, setOrder] = useState(initialOrderState)
+  const [payment, setPayment] = useState(initialPaymentState)
+  const [cancelation, setCancelation] = useState(initialCancelationState)
+  const [delivery, setDelivery] = useState(initialDeliveryState)
 
   return (
     <>
@@ -81,7 +87,7 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
                     payment={item as Payment}
                     userId={userId}
                     onClick={() => {
-                      setPaymentDetails({
+                      setPayment({
                         payment: item as Payment,
                         open: true,
                       })
@@ -97,7 +103,7 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
                     order={item as Order}
                     userId={userId}
                     onClick={() => {
-                      setOrderDetails({ order: item as Order, open: true })
+                      setOrder({ order: item as Order, open: true })
                     }}
                   />
                 )
@@ -110,8 +116,24 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
                     cancelation={item as Cancelation}
                     userId={userId}
                     onClick={() => {
-                      setCancelationDetails({
+                      setCancelation({
                         cancelation: item as Cancelation,
+                        open: true,
+                      })
+                    }}
+                  />
+                )
+              } else if (
+                Object.prototype.hasOwnProperty.call(item, 'deliveredAt')
+              ) {
+                return (
+                  <DeliveryItem
+                    key={item.id}
+                    delivery={item as Delivery}
+                    userId={userId}
+                    onClick={() => {
+                      setDelivery({
+                        delivery: item as Delivery,
                         open: true,
                       })
                     }}
@@ -123,27 +145,35 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
             })}
       </ItemGroup>
       <OrderDetails
-        order={orderDetails.order}
+        order={order.order}
         userId={userId}
-        open={orderDetails.open}
+        open={order.open}
         onClose={() => {
-          setOrderDetails(initialOrderDetailsState)
+          setOrder(initialOrderState)
         }}
       />
       <PaymentDetails
-        payment={paymentDetails.payment}
+        payment={payment.payment}
         userId={userId}
-        open={paymentDetails.open}
+        open={payment.open}
         onClose={() => {
-          setPaymentDetails(initialPaymentDetailsState)
+          setPayment(initialPaymentState)
         }}
       />
       <CancelationDetails
-        cancelation={cancelationDetails.cancelation}
+        cancelation={cancelation.cancelation}
         userId={userId}
-        open={cancelationDetails.open}
+        open={cancelation.open}
         onClose={() => {
-          setCancelationDetails(initialCancelationDetailsState)
+          setCancelation(initialCancelationState)
+        }}
+      />
+      <DeliveryDetails
+        delivery={delivery.delivery}
+        userId={userId}
+        open={delivery.open}
+        onClose={() => {
+          setDelivery(initialDeliveryState)
         }}
       />
     </>
@@ -160,7 +190,7 @@ function OrderItem({
   onClick: () => void
 }) {
   return (
-    <Item variant="outline" className="border-amber-500">
+    <Item variant="outline">
       <ItemContent>
         <ItemTitle>
           Bestellung +{(order.totalPriceCents / 100).toFixed(2)}&nbsp;€
@@ -195,7 +225,7 @@ function PaymentItem({
   onClick: () => void
 }) {
   return (
-    <Item variant="outline" className="border-green-500">
+    <Item variant="outline">
       <ItemContent>
         <ItemTitle>
           Zahlung -{(payment.totalPaymentCents / 100).toFixed(2)}
@@ -231,7 +261,7 @@ function CancelationItem({
   onClick: () => void
 }) {
   return (
-    <Item variant="outline" className="border-red-500">
+    <Item variant="outline">
       <ItemContent>
         <ItemTitle>
           Stornierung -{(cancelation.totalCancelationCents / 100).toFixed(2)}
@@ -244,6 +274,39 @@ function CancelationItem({
           ) : (
             ''
           )}
+        </ItemDescription>
+      </ItemContent>
+      <ItemActions>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          className="rounded-full cursor-pointer"
+          aria-label="Details anzeigen"
+          onClick={onClick}
+        >
+          <Eye />
+        </Button>
+      </ItemActions>
+    </Item>
+  )
+}
+
+function DeliveryItem({
+  delivery,
+  userId,
+  onClick,
+}: {
+  delivery: Delivery
+  userId: number | null
+  onClick: () => void
+}) {
+  return (
+    <Item variant="outline">
+      <ItemContent>
+        <ItemTitle>Auslieferung</ItemTitle>
+        <ItemDescription>
+          {new Date(delivery.deliveredAt).toLocaleString()}
+          {userId === delivery.userId ? <>&nbsp; &ndash; &nbsp;von Dir</> : ''}
         </ItemDescription>
       </ItemContent>
       <ItemActions>
@@ -471,6 +534,65 @@ function CancelationDetails({
                 € {(cancelation.totalCancelationCents / 100).toFixed(2)}
               </div>
             </div>
+          </div>
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <Button variant="outline">Schließen</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  )
+}
+
+interface DeliveryDetailsProps {
+  delivery: Delivery | null
+  userId: number | null
+  open: boolean
+  onClose: () => void
+}
+
+function DeliveryDetails({
+  delivery,
+  userId,
+  open,
+  onClose,
+}: DeliveryDetailsProps) {
+  if (!delivery) return null
+
+  return (
+    <Drawer
+      open={open}
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
+      <DrawerContent>
+        <div className="mx-auto w-full max-w-sm">
+          <DrawerHeader>
+            <DrawerTitle>
+              Auslieferung {delivery.id.slice(0, 8)}{' '}
+              {userId === delivery.userId ? ' von Dir' : ''}
+            </DrawerTitle>
+            <DrawerDescription>
+              Getätigt am {new Date(delivery.deliveredAt).toLocaleDateString()}{' '}
+              um {new Date(delivery.deliveredAt).toLocaleTimeString()} Uhr
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="p-4 space-y-2">
+            {delivery.products.map((product) => {
+              return (
+                <div
+                  key={product.id}
+                  className="flex justify-between border-b pb-2"
+                >
+                  <div>
+                    {product.quantity} x {product.name}
+                  </div>
+                </div>
+              )
+            })}
           </div>
           <DrawerFooter>
             <DrawerClose asChild>

@@ -17,6 +17,7 @@ type query interface {
 	GetTableHistory(ctx context.Context, tableID int) ([]any, error)
 	GetTableBalance(ctx context.Context, tableID int) (int, error)
 	GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error)
+	GetTableUndeliveredProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error)
 }
 
 type QueryHandler struct {
@@ -170,5 +171,30 @@ func (h QueryHandler) GetTableUnpaidProductsHandler() http.HandlerFunc {
 		}
 
 		helper.SendResponse(w, getTableUnpaidProductsResponse{Products: products})
+	}
+}
+
+type getTableUndeliveredProducts struct {
+	TableID int `json:"tableId"`
+}
+
+type getTableUndeliveredProductsResponse struct {
+	Products []t.OrderProduct `json:"products"`
+}
+
+func (h QueryHandler) GetTableUndeliveredProductsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := getTableUndeliveredProducts{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		products, err := h.Query.GetTableUndeliveredProducts(r.Context(), body.TableID)
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		helper.SendResponse(w, getTableUndeliveredProductsResponse{Products: products})
 	}
 }

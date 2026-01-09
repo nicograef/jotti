@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { BackendSingleton } from '@/lib/Backend'
 
 import type { Cancelation } from './Cancelation'
+import type { Delivery } from './Delivery'
 import type { Order } from './Order'
 import type { Payment } from './Payment'
 import type { Table } from './Table'
@@ -59,7 +60,9 @@ export function useActiveTables() {
 /** Custom hook to fetch the history for a specific table from backend. */
 export function useTableHistory(tableId: number) {
   const [loading, setLoading] = useState(false)
-  const [history, setHistory] = useState<(Order | Payment | Cancelation)[]>([])
+  const [history, setHistory] = useState<
+    (Order | Payment | Cancelation | Delivery)[]
+  >([])
 
   useEffect(() => {
     async function fetchHistory() {
@@ -129,4 +132,29 @@ export function useTableUnpaidProducts(tableId: number) {
   }, [fetchUnpaidProducts])
 
   return { loading, products, reload: fetchUnpaidProducts }
+}
+
+export function useTableUndeliveredProducts(tableId: number) {
+  const [loading, setLoading] = useState(false)
+  const [products, setProducts] = useState<Order['products']>([])
+
+  const fetchUndeliveredProducts = useCallback(async () => {
+    setLoading(true)
+
+    try {
+      const products = await tableBackend.getTableUndeliveredProducts(tableId)
+      setProducts(products)
+    } catch (error) {
+      console.error('Failed to fetch undelivered products:', error)
+    }
+
+    setLoading(false)
+  }, [tableId])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchUndeliveredProducts()
+  }, [fetchUndeliveredProducts])
+
+  return { loading, products, reload: fetchUndeliveredProducts }
 }

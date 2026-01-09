@@ -13,35 +13,36 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import { CancelationDrawer } from './CancelationDrawer'
-import { useTableUnpaidProducts } from './table/hooks'
+import { DeliveryDrawer } from './DeliveryDrawer'
+import { useTableUndeliveredProducts } from './table/hooks'
 import type { OrderProduct } from './table/Order'
 import type { Table } from './table/Table'
 import type { TableBackend } from './table/TableBackend'
 
-interface CancelationProps {
-  backend: Pick<TableBackend, 'cancelTableProducts'>
+interface DeliveryProps {
+  backend: Pick<TableBackend, 'deliverTableProducts'>
   table: Table
-  onProductsCanceled: () => void
+  onProductsDelivered: () => void
 }
 
-export function Cancelation({
+export function Delivery({
   table,
   backend,
-  onProductsCanceled,
-}: CancelationProps) {
-  const { products, loading, reload } = useTableUnpaidProducts(table.id)
+  onProductsDelivered,
+}: DeliveryProps) {
+  const { products, loading, reload } = useTableUndeliveredProducts(table.id)
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
-  const unpaidQuantities: Record<number, number> = {}
+  const undeliveredQuantities: Record<number, number> = {}
   products.forEach((product) => {
-    unpaidQuantities[product.id] = product.quantity
+    undeliveredQuantities[product.id] = product.quantity
   })
 
   const onAdd = (productId: number) => {
     setQuantities((prev) => {
       const currentQuantity = prev[productId] || 0
-      if (currentQuantity >= (unpaidQuantities[productId] || 0)) return prev
+      if (currentQuantity >= (undeliveredQuantities[productId] || 0))
+        return prev
       return {
         ...prev,
         [productId]: currentQuantity + 1,
@@ -62,19 +63,20 @@ export function Cancelation({
 
   return (
     <>
-      <CancelationDrawer
+      {' '}
+      <DeliveryDrawer
         backend={backend}
         table={table}
-        unpaidProducts={products}
+        undeliveredProducts={products}
         quantities={quantities}
-        cancelationRegistered={() => {
+        productsDelivered={() => {
           setQuantities({})
-          toast.success(`Stornierung wurde registriert.`)
-          onProductsCanceled()
+          toast.success(`Lieferung wurde registriert.`)
+          onProductsDelivered()
           void reload()
         }}
       />
-      <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+      <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 mt-4">
         {loading
           ? Array.from({ length: 6 }).map((_, index) => (
               // eslint-disable-next-line react-x/no-array-index-key
@@ -85,7 +87,7 @@ export function Cancelation({
                 key={product.id}
                 product={product}
                 quantity={quantities[product.id] || 0}
-                unpaidQuantity={unpaidQuantities[product.id] || 0}
+                undeliveredQuantity={undeliveredQuantities[product.id] || 0}
                 onAdd={() => {
                   onAdd(product.id)
                 }}
@@ -102,7 +104,7 @@ export function Cancelation({
 interface ProductItemProps {
   product: OrderProduct
   quantity: number
-  unpaidQuantity: number
+  undeliveredQuantity: number
   onAdd: () => void
   onRemove: () => void
 }
@@ -110,7 +112,7 @@ interface ProductItemProps {
 function ProductItem({
   product,
   quantity,
-  unpaidQuantity,
+  undeliveredQuantity,
   onAdd,
   onRemove,
 }: ProductItemProps) {
@@ -119,10 +121,7 @@ function ProductItem({
       <ItemContent>
         <ItemTitle>{product.name}</ItemTitle>
         <ItemDescription>
-          <span className="font-bold">
-            {(product.netPriceCents / 100).toFixed(2)}&nbsp;€
-          </span>
-          &nbsp; &ndash; &nbsp;noch {unpaidQuantity - quantity} offen
+          noch {undeliveredQuantity - quantity} zu liefern
         </ItemDescription>
       </ItemContent>
       <ItemActions>

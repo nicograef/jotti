@@ -157,3 +157,22 @@ func (c Command) CancelTableProducts(ctx context.Context, userID, tableID int, p
 	log.Info().Int("table_id", tableID).Msg("Products canceled")
 	return nil
 }
+
+func (c Command) DeliverTableProducts(ctx context.Context, userID, tableID int, products []table.OrderProduct) error {
+	log := zerolog.Ctx(ctx)
+
+	event, err := table.NewProductsDeliveredEvent(userID, tableID, products)
+	if err != nil {
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create products delivered event")
+		return err
+	}
+
+	_, err = c.EventRepo.WriteEvent(ctx, event)
+	if err != nil {
+		log.Error().Int("table_id", tableID).Msg("Failed to write products delivered event to database")
+		return ErrDatabase
+	}
+
+	log.Info().Int("table_id", tableID).Msg("Products delivered")
+	return nil
+}

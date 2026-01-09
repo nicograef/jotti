@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
+import { CancelationDrawer } from './CancelationDrawer'
 import { PaymentDrawer } from './PaymentDrawer'
 import { useTableUnpaidProducts } from './table/hooks'
 import type { OrderProduct } from './table/Order'
@@ -20,12 +21,18 @@ import type { Table } from './table/Table'
 import type { TableBackend } from './table/TableBackend'
 
 interface PaymentProps {
-  backend: Pick<TableBackend, 'registerTablePayment'>
+  backend: Pick<TableBackend, 'registerTablePayment' | 'cancelTableProducts'>
   table: Table
   onPaymentRegistered: () => void
+  onProductsCanceled: () => void
 }
 
-export function Payment({ table, backend, onPaymentRegistered }: PaymentProps) {
+export function Payment({
+  table,
+  backend,
+  onPaymentRegistered,
+  onProductsCanceled,
+}: PaymentProps) {
   const { products, loading, reload } = useTableUnpaidProducts(table.id)
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
@@ -58,18 +65,36 @@ export function Payment({ table, backend, onPaymentRegistered }: PaymentProps) {
 
   return (
     <>
-      <PaymentDrawer
-        backend={backend}
-        table={table}
-        unpaidProducts={products}
-        quantities={quantities}
-        paymentRegistered={() => {
-          setQuantities({})
-          toast.success(`Zahlung wurde registriert.`)
-          onPaymentRegistered()
-          void reload()
-        }}
-      />
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <CancelationDrawer
+            backend={backend}
+            table={table}
+            unpaidProducts={products}
+            quantities={quantities}
+            productsCanceled={() => {
+              setQuantities({})
+              toast.success(`Stornierung erfolgreich.`)
+              onProductsCanceled()
+              void reload()
+            }}
+          />
+        </div>
+        <div className="flex-1">
+          <PaymentDrawer
+            backend={backend}
+            table={table}
+            unpaidProducts={products}
+            quantities={quantities}
+            paymentRegistered={() => {
+              setQuantities({})
+              toast.success(`Zahlung erfolgreich.`)
+              onPaymentRegistered()
+              void reload()
+            }}
+          />
+        </div>
+      </div>
       <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
         {loading
           ? Array.from({ length: 6 }).map((_, index) => (
@@ -118,7 +143,7 @@ function ProductItem({
           <span className="font-bold">
             {(product.netPriceCents / 100).toFixed(2)}&nbsp;€
           </span>
-          &nbsp; &ndash; &nbsp;noch {unpaidQuantity - quantity} offen
+          &nbsp; &ndash; &nbsp;noch {unpaidQuantity - quantity} unbezahlt
         </ItemDescription>
       </ItemContent>
       <ItemActions>

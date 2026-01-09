@@ -44,6 +44,10 @@ func (m mockQuery) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t
 	return []table.OrderProduct{m.product}, m.err
 }
 
+func (m mockQuery) GetTableUndeliveredProducts(ctx context.Context, tableID int) ([]table.OrderProduct, error) {
+	return []table.OrderProduct{m.product}, m.err
+}
+
 func TestGetAllTablesHandler_Success(t *testing.T) {
 	handler := &QueryHandler{Query: mockQuery{}}
 

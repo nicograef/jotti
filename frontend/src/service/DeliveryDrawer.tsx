@@ -17,33 +17,32 @@ import type { OrderProduct } from './table/Order'
 import type { Table } from './table/Table'
 import type { TableBackend } from './table/TableBackend'
 
-interface PaymentDrawerProps {
-  backend: Pick<TableBackend, 'registerTablePayment'>
+interface DeliveryDrawerProps {
+  backend: Pick<TableBackend, 'deliverTableProducts'>
   table: Table
-  unpaidProducts: OrderProduct[]
+  undeliveredProducts: OrderProduct[]
   quantities: Record<number, number>
-  paymentRegistered: () => void
+  productsDelivered: () => void
 }
 
-export function PaymentDrawer(props: PaymentDrawerProps) {
+export function DeliveryDrawer(props: DeliveryDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const productsToPay = buildOrderProducts(
-    props.unpaidProducts,
+  const productsToDeliver = buildOrderProducts(
+    props.undeliveredProducts,
     props.quantities,
   )
-  const totalPrice = calculateTotalPrice(productsToPay)
-  const noProductsSelected = productsToPay.length === 0
+  const noProductsSelected = productsToDeliver.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
 
     try {
-      await props.backend.registerTablePayment({
+      await props.backend.deliverTableProducts({
         tableId: props.table.id,
-        products: productsToPay,
+        products: productsToDeliver,
       })
-      props.paymentRegistered()
+      props.productsDelivered()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -63,23 +62,25 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
-        <Button
-          disabled={noProductsSelected}
-          className="cursor-pointer hover:shadow-sm w-full"
-        >
-          Zahlung
-        </Button>
+        <div className="text-center">
+          <Button
+            disabled={noProductsSelected}
+            className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
+          >
+            Produkte liefern
+          </Button>
+        </div>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Zahlung für {props.table.name}</DrawerTitle>
+            <DrawerTitle>Lieferung für {props.table.name}</DrawerTitle>
             <DrawerDescription>
-              Überprüfe deine Zahlung vor dem Absenden.
+              Wurden diese Produkte an den Tisch ausgeliefert?
             </DrawerDescription>
           </DrawerHeader>
           <div className="p-4 space-y-2">
-            {productsToPay.map((product) => {
+            {productsToDeliver.map((product) => {
               return (
                 <div
                   key={product.id}
@@ -88,19 +89,9 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
                   <div>
                     {product.quantity} x {product.name}
                   </div>
-                  <div>
-                    €{' '}
-                    {((product.netPriceCents / 100) * product.quantity).toFixed(
-                      2,
-                    )}
-                  </div>
                 </div>
               )
             })}
-            <div className="flex justify-between font-bold pt-2">
-              <div>Gesamt</div>
-              <div>€ {(totalPrice / 100).toFixed(2)}</div>
-            </div>
           </div>
           <DrawerFooter>
             <Button
@@ -109,7 +100,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Zahlung registrieren
+              {loading ? <Spinner /> : <></>} Produkte liefern
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>
@@ -133,11 +124,4 @@ function buildOrderProducts(
       quantity: selectedQuantity[product.id] || 0,
     }))
     .filter((product) => product.quantity > 0)
-}
-
-function calculateTotalPrice(paymentProducts: OrderProduct[]): number {
-  return paymentProducts.reduce(
-    (total, product) => total + product.netPriceCents * product.quantity,
-    0,
-  )
 }

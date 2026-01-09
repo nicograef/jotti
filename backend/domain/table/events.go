@@ -8,26 +8,26 @@ const (
 	EventTypeOrderPlacedV1       EventType = "table.order-placed:v1"
 	EventTypePaymentRegisteredV1 EventType = "table.payment-registered:v1"
 	EventTypeProductsCanceledV1  EventType = "table.products-canceled:v1"
+	EventTypeProductsDeliveredV1 EventType = "table.products-delivered:v1"
 )
 
 func GetBalanceFromEvents(events []e.Event) (int, error) {
 	balanceCents := 0
-
 	for _, event := range events {
-		if event.Type == string(EventTypeOrderPlacedV1) {
+		switch event.Type {
+		case string(EventTypeOrderPlacedV1):
 			order, err := buildOrderFromEvent(event)
 			if err != nil {
 				return 0, err
 			}
 			balanceCents += order.TotalPriceCents
-		} else if event.Type == string(EventTypePaymentRegisteredV1) {
+		case string(EventTypePaymentRegisteredV1):
 			payment, err := buildPaymentFromEvent(event)
 			if err != nil {
 				return 0, err
 			}
 			balanceCents -= payment.TotalPaymentCents
-
-		} else if event.Type == string(EventTypeProductsCanceledV1) {
+		case string(EventTypeProductsCanceledV1):
 			cancelation, err := buildCancelationFromEvent(event)
 			if err != nil {
 				return 0, err
@@ -62,6 +62,13 @@ func GetHistoryFromEvents(events []e.Event) ([]any, error) {
 				return []any{}, err
 			}
 			history = append(history, cancelation)
+
+		case string(EventTypeProductsDeliveredV1):
+			delivery, err := buildDeliveryFromEvent(event)
+			if err != nil {
+				return []any{}, err
+			}
+			history = append(history, delivery)
 		}
 	}
 
@@ -143,4 +150,55 @@ func GetUnpaidProductsFromEvents(events []e.Event) ([]OrderProduct, error) {
 	}
 
 	return unpaidProducts, nil
+}
+
+func GetUndeliveredProductsFromEvents(events []e.Event) ([]OrderProduct, error) {
+	undeliveredProducts := []OrderProduct{}
+
+	for _, event := range events {
+		if event.Type == string(EventTypeOrderPlacedV1) {
+			order, err := buildOrderFromEvent(event)
+			if err != nil {
+				return []OrderProduct{}, err
+			}
+
+			// accumulate quantities of undelivered products without duplicate product entries
+			for _, orderProduct := range order.Products {
+				found := false
+				for i, undeliveredProd := range undeliveredProducts {
+					if undeliveredProd.ID == orderProduct.ID && undeliveredProd.NetPriceCents == orderProduct.NetPriceCents {
+						undeliveredProducts[i].Quantity += orderProduct.Quantity
+						found = true
+						break
+					}
+				}
+				if !found {
+					undeliveredProducts = append(undeliveredProducts, orderProduct)
+				}
+			}
+		} else if event.Type == string(EventTypeProductsDeliveredV1) {
+			delivery, err := buildDeliveryFromEvent(event)
+			if err != nil {
+				return []OrderProduct{}, err
+			}
+
+			// reduce quantities of delivered products from undeliveredProducts
+			for _, deliveredProduct := range delivery.Products {
+				for i := 0; i < len(undeliveredProducts); i++ {
+					if undeliveredProducts[i].ID == deliveredProduct.ID && undeliveredProducts[i].NetPriceCents == deliveredProduct.NetPriceCents {
+						if undeliveredProducts[i].Quantity > deliveredProduct.Quantity {
+							undeliveredProducts[i].Quantity -= deliveredProduct.Quantity
+						} else {
+							// remove product from undeliveredProducts if fully delivered
+							undeliveredProducts = append(undeliveredProducts[:i], undeliveredProducts[i+1:]...)
+							i-- // adjust index after removal
+						}
+						break
+					}
+				}
+			}
+		}
+	}
+
+	return undeliveredProducts, nil
 }

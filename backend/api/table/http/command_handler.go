@@ -19,6 +19,7 @@ type command interface {
 	PlaceTableOrder(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error
 	RegisterTablePayment(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error
 	CancelTableProducts(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error
+	DeliverTableProducts(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error
 }
 
 type CommandHandler struct {
@@ -194,6 +195,29 @@ func (h *CommandHandler) CancelTableProductsHandler() http.HandlerFunc {
 
 		userID := r.Context().Value(middleware.UserIDKey).(int)
 		err := h.Command.CancelTableProducts(r.Context(), userID, body.TableID, body.Products)
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+type deliverTableProducts struct {
+	TableID  int                  `json:"tableId"`
+	Products []table.OrderProduct `json:"products"`
+}
+
+func (h *CommandHandler) DeliverTableProductsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := deliverTableProducts{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		userID := r.Context().Value(middleware.UserIDKey).(int)
+		err := h.Command.DeliverTableProducts(r.Context(), userID, body.TableID, body.Products)
 		if err != nil {
 			helper.SendServerError(w)
 			return
