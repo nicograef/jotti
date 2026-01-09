@@ -10,19 +10,27 @@ import (
 )
 
 type paymentRegisteredV1Data struct {
-	PaymentID string           `json:"paymentId"` // UUID string
-	Products  []PaymentProduct `json:"products"`
+	PaymentID         string           `json:"paymentId"` // UUID string
+	Products          []PaymentProduct `json:"products"`
+	TotalPaymentCents int              `json:"totalPaymentCents"`
 }
 
 var paymentRegisteredV1DataSchema = z.Struct(z.Shape{
-	"PaymentID": z.String().UUID().Required(),
-	"Products":  z.Slice(paymentProductSchema).Min(1).Required(),
+	"PaymentID":         z.String().UUID().Required(),
+	"Products":          z.Slice(paymentProductSchema).Min(1).Required(),
+	"TotalPaymentCents": z.Int().GTE(0).Required(),
 })
 
 func NewPaymentRegisteredEvent(userID, tableID int, products []PaymentProduct) (e.Event, error) {
+	totalPaymentCents := 0
+	for _, product := range products {
+		totalPaymentCents += product.NetPriceCents * product.Quantity
+	}
+
 	data := paymentRegisteredV1Data{
-		PaymentID: uuid.New().String(),
-		Products:  products,
+		PaymentID:         uuid.New().String(),
+		Products:          products,
+		TotalPaymentCents: totalPaymentCents,
 	}
 
 	if err := paymentRegisteredV1DataSchema.Validate(&data); err != nil {
@@ -54,17 +62,12 @@ func buildPaymentFromEvent(event e.Event) (Payment, error) {
 		return Payment{}, err
 	}
 
-	totalPaymentCents := 0
-	for _, product := range data.Products {
-		totalPaymentCents += product.NetPriceCents * product.Quantity
-	}
-
 	payment := Payment{
 		ID:                data.PaymentID,
 		UserID:            event.UserID,
 		TableID:           tableID,
 		Products:          data.Products,
-		TotalPaymentCents: totalPaymentCents,
+		TotalPaymentCents: data.TotalPaymentCents,
 		RegisteredAt:      event.Time,
 	}
 
