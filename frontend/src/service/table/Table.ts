@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const TableIdSchema = z.number().int().min(1)
+export const TableIdSchema = z.number().int().min(1)
 const TableNameSchema = z
   .string()
   .min(3, { message: 'Das sieht nicht nach einem echten Namen aus.' })

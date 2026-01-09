@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { BackendSingleton } from '@/lib/Backend'
 
+import type { Cancelation } from './Cancelation'
 import type { Order } from './Order'
 import type { Payment } from './Payment'
 import type { Table } from './Table'
@@ -55,54 +56,29 @@ export function useActiveTables() {
   return { loading, tables }
 }
 
-/** Custom hook to fetch orders for a specific table from backend. */
-export function useTableOrders(tableId: number) {
+/** Custom hook to fetch the history for a specific table from backend. */
+export function useTableHistory(tableId: number) {
   const [loading, setLoading] = useState(false)
-  const [orders, setOrders] = useState<Order[]>([])
+  const [history, setHistory] = useState<(Order | Payment | Cancelation)[]>([])
 
   useEffect(() => {
-    async function fetchOrders() {
+    async function fetchHistory() {
       setLoading(true)
 
       try {
-        const orders = await tableBackend.getTableOrders(tableId)
-        setOrders(orders)
+        const history = await tableBackend.getTableHistory(tableId)
+        setHistory(history)
       } catch (error) {
-        console.error('Failed to fetch orders:', error)
+        console.error('Failed to fetch history:', error)
       }
 
       setLoading(false)
     }
 
-    void fetchOrders()
+    void fetchHistory()
   }, [tableId])
 
-  return { loading, orders }
-}
-
-/** Custom hook to fetch payments for a specific table from backend. */
-export function useTablePayments(tableId: number) {
-  const [loading, setLoading] = useState(false)
-  const [payments, setPayments] = useState<Payment[]>([])
-
-  useEffect(() => {
-    async function fetchPayments() {
-      setLoading(true)
-
-      try {
-        const payments = await tableBackend.getTablePayments(tableId)
-        setPayments(payments)
-      } catch (error) {
-        console.error('Failed to fetch payments:', error)
-      }
-
-      setLoading(false)
-    }
-
-    void fetchPayments()
-  }, [tableId])
-
-  return { loading, payments }
+  return { loading, history }
 }
 
 export function useTableBalance(tableId: number) {

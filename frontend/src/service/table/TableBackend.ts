@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
 import {
+  type Cancelation,
+  CancelationSchema,
+  CancelProductsSchema,
+} from './Cancelation'
+import {
   type Order,
   type OrderProduct,
   OrderProductSchema,
@@ -8,7 +13,7 @@ import {
   PlaceOrderSchema,
 } from './Order'
 import { type Payment, PaymentSchema, RegisterPaymentSchema } from './Payment'
-import { type Table, TableSchema } from './Table'
+import { type Table, TableIdSchema, TableSchema } from './Table'
 
 interface Backend {
   post<TResponse>(
@@ -58,28 +63,31 @@ export class TableBackend {
     await this.backend.post('service/register-table-payment', body)
   }
 
-  public async getTableOrders(tableId: number): Promise<Order[]> {
-    const body = OrderSchema.pick({ tableId: true }).parse({ tableId })
-    const { orders } = await this.backend.post(
-      'service/get-table-orders',
-      body,
-      z.object({ orders: z.array(OrderSchema) }),
-    )
-    return orders
+  public async cancelTableProducts(
+    cancelProducts: z.infer<typeof CancelProductsSchema>,
+  ): Promise<void> {
+    const body = CancelProductsSchema.parse(cancelProducts)
+    await this.backend.post('service/cancel-table-products', body)
   }
 
-  public async getTablePayments(tableId: number): Promise<Payment[]> {
-    const body = OrderSchema.pick({ tableId: true }).parse({ tableId })
-    const { payments } = await this.backend.post(
-      'service/get-table-payments',
+  public async getTableHistory(
+    tableId: number,
+  ): Promise<(Order | Payment | Cancelation)[]> {
+    const body = z.object({ tableId: TableIdSchema }).parse({ tableId })
+    const { history } = await this.backend.post(
+      'service/get-table-history',
       body,
-      z.object({ payments: z.array(PaymentSchema) }),
+      z.object({
+        history: z.array(
+          z.union([OrderSchema, PaymentSchema, CancelationSchema]),
+        ),
+      }),
     )
-    return payments
+    return history
   }
 
   public async getTableBalance(tableId: number): Promise<number> {
-    const body = OrderSchema.pick({ tableId: true }).parse({ tableId })
+    const body = z.object({ tableId: TableIdSchema }).parse({ tableId })
     const { balanceCents } = await this.backend.post(
       'service/get-table-balance',
       body,
@@ -91,7 +99,7 @@ export class TableBackend {
   public async getTableUnpaidProducts(
     tableId: number,
   ): Promise<OrderProduct[]> {
-    const body = OrderSchema.pick({ tableId: true }).parse({ tableId })
+    const body = z.object({ tableId: TableIdSchema }).parse({ tableId })
     const { products } = await this.backend.post(
       'service/get-table-unpaid-products',
       body,

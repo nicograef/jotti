@@ -1,0 +1,25 @@
+package table
+
+import (
+	"time"
+
+	z "github.com/Oudwins/zog"
+)
+
+type Cancelation struct {
+	ID                    string         `json:"id"`
+	UserID                int            `json:"userId"`
+	TableID               int            `json:"tableId"`
+	Products              []OrderProduct `json:"products"`
+	TotalCancelationCents int            `json:"totalCancelationCents"`
+	CanceledAt            time.Time      `json:"canceledAt"`
+}
+
+var cancelationSchema = z.Struct(z.Shape{
+	"ID":                    z.String().UUID().Required(),
+	"UserID":                z.Int().GTE(1).Required(),
+	"TableID":               z.Int().GTE(1).Required(),
+	"Products":              z.Slice(orderProductSchema).Min(1).Required(),
+	"TotalCancelationCents": z.Int().GTE(0).Required(),
+	"CanceledAt":            z.Time().Required(),
+})

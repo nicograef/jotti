@@ -23,21 +23,23 @@ type mockQuery struct {
 func (m mockQuery) GetTable(ctx context.Context, id int) (table.Table, error) {
 	return m.table, m.err
 }
+
 func (m mockQuery) GetAllTables(ctx context.Context) ([]table.Table, error) {
 	return []table.Table{m.table}, m.err
 }
+
 func (m mockQuery) GetActiveTables(ctx context.Context) ([]table.Table, error) {
 	return []table.Table{m.table}, m.err
 }
-func (m mockQuery) GetTableOrders(ctx context.Context, tableID int) ([]table.Order, error) {
-	return []table.Order{m.order}, m.err
+
+func (m mockQuery) GetTableHistory(ctx context.Context, tableID int) ([]any, error) {
+	return []any{m.order}, m.err
 }
-func (m mockQuery) GetTablePayments(ctx context.Context, tableID int) ([]table.Payment, error) {
-	return []table.Payment{}, m.err
-}
+
 func (m mockQuery) GetTableBalance(ctx context.Context, tableID int) (int, error) {
 	return m.balance, m.err
 }
+
 func (m mockQuery) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]table.OrderProduct, error) {
 	return []table.OrderProduct{m.product}, m.err
 }

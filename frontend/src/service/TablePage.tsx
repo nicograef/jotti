@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AuthSingleton } from '@/lib/Auth'
 import { BackendSingleton } from '@/lib/Backend'
 
+import { Cancelation } from './Cancelation'
 import { Order } from './Order'
 import { Payment } from './Payment'
 import { useTableBalance } from './table/hooks'
@@ -51,6 +52,9 @@ export function TablePage() {
             <TabsTrigger value="payment" className="p-4">
               Bezahlen
             </TabsTrigger>
+            <TabsTrigger value="cancelation" className="p-4">
+              Stornieren
+            </TabsTrigger>
             <TabsTrigger value="history" className="p-4">
               Historie
             </TabsTrigger>
@@ -73,6 +77,17 @@ export function TablePage() {
               backend={tableBackend}
               table={table}
               onPaymentRegistered={() => {
+                void reloadBalance()
+              }}
+            />
+          )}
+        </TabsContent>
+        <TabsContent value="cancelation">
+          {table && (
+            <Cancelation
+              backend={tableBackend}
+              table={table}
+              onProductsCanceled={() => {
                 void reloadBalance()
               }}
             />

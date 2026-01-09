@@ -21,7 +21,8 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import { useTableOrders, useTablePayments } from './table/hooks'
+import type { Cancelation } from './table/Cancelation'
+import { useTableHistory } from './table/hooks'
 import type { Order } from './table/Order'
 import type { Payment } from './table/Payment'
 
@@ -46,30 +47,33 @@ const initialPaymentDetailsState: {
   open: false,
 }
 
+const initialCancelationDetailsState: {
+  cancelation: Cancelation | null
+  open: boolean
+} = {
+  cancelation: null,
+  open: false,
+}
+
 export function TableHistory({ tableId, userId }: TableHistoryProps) {
-  const { loading: ordersLoading, orders } = useTableOrders(tableId)
-  const { loading: paymentsLoading, payments } = useTablePayments(tableId)
+  const { loading, history } = useTableHistory(tableId)
   const [orderDetails, setOrderDetails] = useState(initialOrderDetailsState)
   const [paymentDetails, setPaymentDetails] = useState(
     initialPaymentDetailsState,
   )
-
-  const sortedItems: (Order | Payment)[] = [
-    ...orders.map((o) => ({ ...o, time: o.placedAt })),
-    ...payments.map((p) => ({ ...p, time: p.registeredAt })),
-  ].sort((a, b) => {
-    return new Date(b.time).getTime() - new Date(a.time).getTime()
-  })
+  const [cancelationDetails, setCancelationDetails] = useState(
+    initialCancelationDetailsState,
+  )
 
   return (
     <>
       <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-        {ordersLoading || paymentsLoading
+        {loading
           ? Array.from({ length: 6 }).map((_, index) => (
               // eslint-disable-next-line react-x/no-array-index-key
               <ItemSkeleton key={index} />
             ))
-          : sortedItems.map((item) => {
+          : history.map((item) => {
               if (Object.prototype.hasOwnProperty.call(item, 'registeredAt')) {
                 return (
                   <PaymentItem
@@ -97,6 +101,22 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
                     }}
                   />
                 )
+              } else if (
+                Object.prototype.hasOwnProperty.call(item, 'canceledAt')
+              ) {
+                return (
+                  <CancelationItem
+                    key={item.id}
+                    cancelation={item as Cancelation}
+                    userId={userId}
+                    onClick={() => {
+                      setCancelationDetails({
+                        cancelation: item as Cancelation,
+                        open: true,
+                      })
+                    }}
+                  />
+                )
               } else {
                 return null
               }
@@ -118,6 +138,14 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
           setPaymentDetails(initialPaymentDetailsState)
         }}
       />
+      <CancelationDetails
+        cancelation={cancelationDetails.cancelation}
+        userId={userId}
+        open={cancelationDetails.open}
+        onClose={() => {
+          setCancelationDetails(initialCancelationDetailsState)
+        }}
+      />
     </>
   )
 }
@@ -135,7 +163,7 @@ function OrderItem({
     <Item variant="outline" className="border-amber-500">
       <ItemContent>
         <ItemTitle>
-          Bestellung +{(order.totalNetPriceCents / 100).toFixed(2)}&nbsp;€
+          Bestellung +{(order.totalPriceCents / 100).toFixed(2)}&nbsp;€
         </ItemTitle>
         <ItemDescription>
           {new Date(order.placedAt).toLocaleString()}
@@ -176,6 +204,46 @@ function PaymentItem({
         <ItemDescription>
           {new Date(payment.registeredAt).toLocaleString()}
           {userId === payment.userId ? <>&nbsp; &ndash; &nbsp;von Dir</> : ''}
+        </ItemDescription>
+      </ItemContent>
+      <ItemActions>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          className="rounded-full cursor-pointer"
+          aria-label="Details anzeigen"
+          onClick={onClick}
+        >
+          <Eye />
+        </Button>
+      </ItemActions>
+    </Item>
+  )
+}
+
+function CancelationItem({
+  cancelation,
+  userId,
+  onClick,
+}: {
+  cancelation: Cancelation
+  userId: number | null
+  onClick: () => void
+}) {
+  return (
+    <Item variant="outline" className="border-red-500">
+      <ItemContent>
+        <ItemTitle>
+          Stornierung -{(cancelation.totalCancelationCents / 100).toFixed(2)}
+          &nbsp;€
+        </ItemTitle>
+        <ItemDescription>
+          {new Date(cancelation.canceledAt).toLocaleString()}
+          {userId === cancelation.userId ? (
+            <>&nbsp; &ndash; &nbsp;von Dir</>
+          ) : (
+            ''
+          )}
         </ItemDescription>
       </ItemContent>
       <ItemActions>
@@ -259,7 +327,7 @@ function OrderDetails({ order, userId, open, onClose }: OrderDetailsProps) {
             })}
             <div className="flex justify-between font-bold pt-2">
               <div>Gesamt</div>
-              <div>€ {(order.totalNetPriceCents / 100).toFixed(2)}</div>
+              <div>€ {(order.totalPriceCents / 100).toFixed(2)}</div>
             </div>
           </div>
           <DrawerFooter>
@@ -330,6 +398,78 @@ function PaymentDetails({
             <div className="flex justify-between font-bold pt-2">
               <div>Gesamt</div>
               <div>€ {(payment.totalPaymentCents / 100).toFixed(2)}</div>
+            </div>
+          </div>
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <Button variant="outline">Schließen</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  )
+}
+
+interface CancelationDetailsProps {
+  cancelation: Cancelation | null
+  userId: number | null
+  open: boolean
+  onClose: () => void
+}
+
+function CancelationDetails({
+  cancelation,
+  userId,
+  open,
+  onClose,
+}: CancelationDetailsProps) {
+  if (!cancelation) return null
+
+  return (
+    <Drawer
+      open={open}
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
+      <DrawerContent>
+        <div className="mx-auto w-full max-w-sm">
+          <DrawerHeader>
+            <DrawerTitle>
+              Stornierung {cancelation.id.slice(0, 8)}{' '}
+              {userId === cancelation.userId ? ' von Dir' : ''}
+            </DrawerTitle>
+            <DrawerDescription>
+              Getätigt am{' '}
+              {new Date(cancelation.canceledAt).toLocaleDateString()} um{' '}
+              {new Date(cancelation.canceledAt).toLocaleTimeString()} Uhr
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="p-4 space-y-2">
+            {cancelation.products.map((product) => {
+              return (
+                <div
+                  key={product.id}
+                  className="flex justify-between border-b pb-2"
+                >
+                  <div>
+                    {product.quantity} x {product.name}
+                  </div>
+                  <div>
+                    €{' '}
+                    {((product.netPriceCents / 100) * product.quantity).toFixed(
+                      2,
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+            <div className="flex justify-between font-bold pt-2">
+              <div>Gesamt</div>
+              <div>
+                € {(cancelation.totalCancelationCents / 100).toFixed(2)}
+              </div>
             </div>
           </div>
           <DrawerFooter>

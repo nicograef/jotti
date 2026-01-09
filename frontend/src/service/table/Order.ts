@@ -19,7 +19,7 @@ export const OrderSchema = z.object({
   userId: z.number().int().min(1),
   tableId: z.number().int().min(1),
   products: OrderProductSchema.array().min(1),
-  totalNetPriceCents: z.number().int().min(0),
+  totalPriceCents: z.number().int().min(0),
   placedAt: z.string().refine((date) => !isNaN(Date.parse(date)), {
     message: 'Invalid date format',
   }),

@@ -91,44 +91,24 @@ func (q Query) GetTableBalance(ctx context.Context, tableID int) (int, error) {
 	return balanceCents, nil
 }
 
-func (q Query) GetTableOrders(ctx context.Context, tableID int) ([]t.Order, error) {
+func (q Query) GetTableHistory(ctx context.Context, tableID int) ([]any, error) {
 	logger := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		logger.Error().Int("table_id", tableID).Msg("Failed to read order events for table")
-		return []t.Order{}, ErrDatabase
+		logger.Error().Int("table_id", tableID).Msg("Failed to read events for table")
+		return []any{}, ErrDatabase
 	}
 
-	orders, err := t.GetOrdersFromEvents(events)
+	history, err := t.GetHistoryFromEvents(events)
 	if err != nil {
-		logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to build orders from events")
-		return []t.Order{}, err
+		logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to build history from events")
+		return []any{}, err
 	}
 
-	log.Info().Int("table_id", tableID).Int("order_count", len(orders)).Msg("Retrieved orders for table")
-	return orders, nil
-}
-
-func (q Query) GetTablePayments(ctx context.Context, tableID int) ([]t.Payment, error) {
-	logger := zerolog.Ctx(ctx)
-
-	subject := "table:" + strconv.Itoa(tableID)
-	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
-	if err != nil {
-		logger.Error().Int("table_id", tableID).Msg("Failed to read payment events for table")
-		return []t.Payment{}, ErrDatabase
-	}
-
-	payments, err := t.GetPaymentsFromEvents(events)
-	if err != nil {
-		logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to build payments from events")
-		return []t.Payment{}, err
-	}
-
-	log.Info().Int("table_id", tableID).Int("payment_count", len(payments)).Msg("Retrieved payments for table")
-	return payments, nil
+	log.Info().Int("table_id", tableID).Int("history_count", len(history)).Msg("Retrieved history for table")
+	return history, nil
 }
 
 func (q Query) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error) {

@@ -17,33 +17,33 @@ import type { OrderProduct } from './table/Order'
 import type { Table } from './table/Table'
 import type { TableBackend } from './table/TableBackend'
 
-interface PaymentDrawerProps {
-  backend: Pick<TableBackend, 'registerTablePayment'>
+interface CancelationDrawerProps {
+  backend: Pick<TableBackend, 'cancelTableProducts'>
   table: Table
   unpaidProducts: OrderProduct[]
   quantities: Record<number, number>
-  paymentRegistered: () => void
+  cancelationRegistered: () => void
 }
 
-export function PaymentDrawer(props: PaymentDrawerProps) {
+export function CancelationDrawer(props: CancelationDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const productsToPay = buildOrderProducts(
+  const productsToCancel = buildOrderProducts(
     props.unpaidProducts,
     props.quantities,
   )
-  const totalPrice = calculateTotalPrice(productsToPay)
-  const noProductsSelected = productsToPay.length === 0
+  const totalPrice = calculateTotalPrice(productsToCancel)
+  const noProductsSelected = productsToCancel.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
 
     try {
-      await props.backend.registerTablePayment({
+      await props.backend.cancelTableProducts({
         tableId: props.table.id,
-        products: productsToPay,
+        products: productsToCancel,
       })
-      props.paymentRegistered()
+      props.cancelationRegistered()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -68,20 +68,20 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
             disabled={noProductsSelected}
             className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
           >
-            Zahlung überprüfen
+            Stornierung überprüfen
           </Button>
         </div>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Zahlung für {props.table.name}</DrawerTitle>
+            <DrawerTitle>Stornierung für {props.table.name}</DrawerTitle>
             <DrawerDescription>
-              Überprüfe deine Zahlung vor dem Absenden.
+              Sollen diese Produkte wirklich storniert werden?
             </DrawerDescription>
           </DrawerHeader>
           <div className="p-4 space-y-2">
-            {productsToPay.map((product) => {
+            {productsToCancel.map((product) => {
               return (
                 <div
                   key={product.id}
@@ -111,7 +111,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Zahlung registrieren
+              {loading ? <Spinner /> : <></>} Produkte stornieren
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>
@@ -137,8 +137,8 @@ function buildOrderProducts(
     .filter((product) => product.quantity > 0)
 }
 
-function calculateTotalPrice(paymentProducts: OrderProduct[]): number {
-  return paymentProducts.reduce(
+function calculateTotalPrice(cancelationProducts: OrderProduct[]): number {
+  return cancelationProducts.reduce(
     (total, product) => total + product.netPriceCents * product.quantity,
     0,
   )

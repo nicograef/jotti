@@ -16,9 +16,9 @@ type orderPlacedV1Data struct {
 }
 
 var orderPlacedV1DataSchema = z.Struct(z.Shape{
-	"OrderID":            z.String().UUID().Required(),
-	"Products":           z.Slice(orderProductSchema).Min(1).Required(),
-	"TotalNetPriceCents": z.Int().GTE(0).Required(),
+	"OrderID":         z.String().UUID().Required(),
+	"Products":        z.Slice(orderProductSchema).Min(1).Required(),
+	"TotalPriceCents": z.Int().GTE(0).Required(),
 })
 
 func NewOrderPlacedEvent(userID, tableID int, products []OrderProduct) (e.Event, error) {
@@ -63,12 +63,12 @@ func buildOrderFromEvent(event e.Event) (Order, error) {
 	}
 
 	order := Order{
-		ID:                 data.OrderID,
-		UserID:             event.UserID,
-		TableID:            tableID,
-		Products:           data.Products,
-		TotalNetPriceCents: data.TotalPriceCents,
-		PlacedAt:           event.Time,
+		ID:              data.OrderID,
+		UserID:          event.UserID,
+		TableID:         tableID,
+		Products:        data.Products,
+		TotalPriceCents: data.TotalPriceCents,
+		PlacedAt:        event.Time,
 	}
 
 	if err := orderSchema.Validate(&order); err != nil {

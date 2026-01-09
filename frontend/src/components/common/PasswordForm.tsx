@@ -91,13 +91,7 @@ export function PasswordForm(props: PasswordFormProps) {
             <UsernameField form={form} />
             <NewPasswordField form={form} />
           </FieldGroup>
-          <FieldGroup
-            className="my-8"
-            hidden={
-              !form.formState.dirtyFields.username ||
-              !form.formState.dirtyFields.password
-            }
-          >
+          <FieldGroup className="my-8">
             <OTPField form={form} />
           </FieldGroup>
         </form>

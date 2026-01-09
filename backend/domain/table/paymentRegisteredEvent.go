@@ -10,18 +10,18 @@ import (
 )
 
 type paymentRegisteredV1Data struct {
-	PaymentID         string           `json:"paymentId"` // UUID string
-	Products          []PaymentProduct `json:"products"`
-	TotalPaymentCents int              `json:"totalPaymentCents"`
+	PaymentID         string         `json:"paymentId"` // UUID string
+	Products          []OrderProduct `json:"products"`
+	TotalPaymentCents int            `json:"totalPaymentCents"`
 }
 
 var paymentRegisteredV1DataSchema = z.Struct(z.Shape{
 	"PaymentID":         z.String().UUID().Required(),
-	"Products":          z.Slice(paymentProductSchema).Min(1).Required(),
+	"Products":          z.Slice(orderProductSchema).Min(1).Required(),
 	"TotalPaymentCents": z.Int().GTE(0).Required(),
 })
 
-func NewPaymentRegisteredEvent(userID, tableID int, products []PaymentProduct) (e.Event, error) {
+func NewPaymentRegisteredEvent(userID, tableID int, products []OrderProduct) (e.Event, error) {
 	totalPaymentCents := 0
 	for _, product := range products {
 		totalPaymentCents += product.NetPriceCents * product.Quantity
