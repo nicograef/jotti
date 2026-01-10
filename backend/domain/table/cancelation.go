@@ -12,6 +12,7 @@ type Cancelation struct {
 	TableID               int            `json:"tableId"`
 	Products              []OrderProduct `json:"products"`
 	TotalCancelationCents int            `json:"totalCancelationCents"`
+	Comment               string         `json:"comment"`
 	CanceledAt            time.Time      `json:"canceledAt"`
 }
 
@@ -21,5 +22,6 @@ var cancelationSchema = z.Struct(z.Shape{
 	"TableID":               z.Int().GTE(1).Required(),
 	"Products":              z.Slice(orderProductSchema).Min(1).Required(),
 	"TotalCancelationCents": z.Int().GTE(0).Required(),
+	"Comment":               z.String().Optional(),
 	"CanceledAt":            z.Time().Required(),
 })

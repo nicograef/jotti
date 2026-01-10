@@ -12,17 +12,20 @@ import (
 type productsDeliveredV1Data struct {
 	DeliveryID string         `json:"deliveryId"` // UUID string
 	Products   []OrderProduct `json:"products"`
+	Comment    string         `json:"comment"`
 }
 
 var productsDeliveredV1DataSchema = z.Struct(z.Shape{
 	"DeliveryID": z.String().UUID().Required(),
 	"Products":   z.Slice(orderProductSchema).Min(1).Required(),
+	"Comment":    z.String().Optional(),
 })
 
-func NewProductsDeliveredEvent(userID, tableID int, products []OrderProduct) (e.Event, error) {
+func NewProductsDeliveredEvent(userID, tableID int, products []OrderProduct, comment string) (e.Event, error) {
 	data := productsDeliveredV1Data{
 		DeliveryID: uuid.New().String(),
 		Products:   products,
+		Comment:    comment,
 	}
 
 	if err := productsDeliveredV1DataSchema.Validate(&data); err != nil {
@@ -59,6 +62,7 @@ func buildDeliveryFromEvent(event e.Event) (Delivery, error) {
 		UserID:      event.UserID,
 		TableID:     tableID,
 		Products:    data.Products,
+		Comment:     data.Comment,
 		DeliveredAt: event.Time,
 	}
 

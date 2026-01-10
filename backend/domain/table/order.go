@@ -27,6 +27,7 @@ type Order struct {
 	TableID         int            `json:"tableId"`
 	Products        []OrderProduct `json:"products"`
 	TotalPriceCents int            `json:"totalPriceCents"`
+	Comment         string         `json:"comment"`
 	PlacedAt        time.Time      `json:"placedAt"`
 }
 
@@ -36,5 +37,6 @@ var orderSchema = z.Struct(z.Shape{
 	"TableID":         z.Int().GTE(1).Required(),
 	"Products":        z.Slice(orderProductSchema).Min(1).Required(),
 	"TotalPriceCents": z.Int().GTE(0).Required(),
+	"Comment":         z.String().Optional(),
 	"PlacedAt":        z.Time().Required(),
 })

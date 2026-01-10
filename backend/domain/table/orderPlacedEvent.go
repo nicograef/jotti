@@ -13,15 +13,17 @@ type orderPlacedV1Data struct {
 	OrderID         string         `json:"orderId"` // UUID string
 	Products        []OrderProduct `json:"products"`
 	TotalPriceCents int            `json:"totalPriceCents"`
+	Comment         string         `json:"comment"`
 }
 
 var orderPlacedV1DataSchema = z.Struct(z.Shape{
 	"OrderID":         z.String().UUID().Required(),
 	"Products":        z.Slice(orderProductSchema).Min(1).Required(),
 	"TotalPriceCents": z.Int().GTE(0).Required(),
+	"Comment":         z.String().Optional(),
 })
 
-func NewOrderPlacedEvent(userID, tableID int, products []OrderProduct) (e.Event, error) {
+func NewOrderPlacedEvent(userID, tableID int, products []OrderProduct, comment string) (e.Event, error) {
 	totalPriceCents := 0
 	for _, product := range products {
 		totalPriceCents += product.NetPriceCents * product.Quantity
@@ -31,6 +33,7 @@ func NewOrderPlacedEvent(userID, tableID int, products []OrderProduct) (e.Event,
 		OrderID:         uuid.New().String(),
 		Products:        products,
 		TotalPriceCents: totalPriceCents,
+		Comment:         comment,
 	}
 
 	if err := orderPlacedV1DataSchema.Validate(&data); err != nil {
@@ -68,6 +71,7 @@ func buildOrderFromEvent(event e.Event) (Order, error) {
 		TableID:         tableID,
 		Products:        data.Products,
 		TotalPriceCents: data.TotalPriceCents,
+		Comment:         data.Comment,
 		PlacedAt:        event.Time,
 	}
 

@@ -12,6 +12,7 @@ type Payment struct {
 	TableID           int            `json:"tableId"`
 	Products          []OrderProduct `json:"products"`
 	TotalPaymentCents int            `json:"totalPaymentCents"`
+	Comment           string         `json:"comment"`
 	RegisteredAt      time.Time      `json:"registeredAt"`
 }
 
@@ -21,5 +22,6 @@ var paymentSchema = z.Struct(z.Shape{
 	"TableID":           z.Int().GTE(1).Required(),
 	"Products":          z.Slice(orderProductSchema).Min(1).Required(),
 	"TotalPaymentCents": z.Int().GTE(0).Required(),
+	"Comment":           z.String().Optional(),
 	"RegisteredAt":      z.Time().Required(),
 })
