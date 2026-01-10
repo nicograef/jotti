@@ -20,7 +20,7 @@ var productsCanceledV1DataSchema = z.Struct(z.Shape{
 	"CancelationID":         z.String().UUID().Required(),
 	"Products":              z.Slice(orderProductSchema).Min(1).Required(),
 	"TotalCancelationCents": z.Int().GTE(0).Required(),
-	"Comment":               z.String().Optional(),
+	"Comment":               z.String().Max(100).Optional(),
 })
 
 func NewProductsCanceledEvent(userID, tableID int, products []OrderProduct, comment string) (e.Event, error) {

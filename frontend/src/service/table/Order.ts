@@ -11,6 +11,7 @@ export type OrderProduct = z.infer<typeof OrderProductSchema>
 export const PlaceOrderSchema = z.object({
   tableId: z.number().int().min(1),
   products: OrderProductSchema.array().min(1),
+  comment: z.string().max(100),
 })
 export type PlaceOrder = z.infer<typeof PlaceOrderSchema>
 
@@ -20,6 +21,7 @@ export const OrderSchema = z.object({
   tableId: z.number().int().min(1),
   products: OrderProductSchema.array().min(1),
   totalPriceCents: z.number().int().min(0),
+  comment: z.string().max(100),
   placedAt: z.string().refine((date) => !isNaN(Date.parse(date)), {
     message: 'Invalid date format',
   }),

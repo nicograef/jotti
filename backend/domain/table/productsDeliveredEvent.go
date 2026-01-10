@@ -18,7 +18,7 @@ type productsDeliveredV1Data struct {
 var productsDeliveredV1DataSchema = z.Struct(z.Shape{
 	"DeliveryID": z.String().UUID().Required(),
 	"Products":   z.Slice(orderProductSchema).Min(1).Required(),
-	"Comment":    z.String().Optional(),
+	"Comment":    z.String().Max(100).Optional(),
 })
 
 func NewProductsDeliveredEvent(userID, tableID int, products []OrderProduct, comment string) (e.Event, error) {

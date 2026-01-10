@@ -13,35 +13,40 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { Product } from './product/Product'
-import type { OrderProduct } from './table/Order'
-import type { Table } from './table/Table'
-import type { TableBackend } from './table/TableBackend'
+import type { OrderProduct } from '../../table/Order'
+import type { Table } from '../../table/Table'
+import type { TableBackend } from '../../table/TableBackend'
+import { CommentField } from './CommentField'
 
-interface OrderDrawerProps {
-  backend: Pick<TableBackend, 'placeTableOrder'>
+interface CancelationDrawerProps {
+  backend: Pick<TableBackend, 'cancelTableProducts'>
   table: Table
-  products: Product[]
+  unpaidProducts: OrderProduct[]
   quantities: Record<number, number>
-  orderPlaced: () => void
+  productsCanceled: () => void
 }
 
-export function OrderDrawer(props: OrderDrawerProps) {
+export function CancelationDrawer(props: CancelationDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const orderedProducts = orderProducts(props.products, props.quantities)
-  const totalPrice = calculateTotalPrice(orderedProducts)
-  const noProductsSelected = orderedProducts.length === 0
+  const [comment, setComment] = useState('')
+  const productsToCancel = buildOrderProducts(
+    props.unpaidProducts,
+    props.quantities,
+  )
+  const totalPrice = calculateTotalPrice(productsToCancel)
+  const noProductsSelected = productsToCancel.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
 
     try {
-      await props.backend.placeTableOrder({
+      await props.backend.cancelTableProducts({
         tableId: props.table.id,
-        products: orderedProducts,
+        products: productsToCancel,
+        comment: comment,
       })
-      props.orderPlaced()
+      props.productsCanceled()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -61,25 +66,24 @@ export function OrderDrawer(props: OrderDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
-        <div className="text-center">
-          <Button
-            className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
-            disabled={noProductsSelected}
-          >
-            Bestellung überprüfen
-          </Button>
-        </div>
+        <Button
+          variant="destructive"
+          disabled={noProductsSelected}
+          className="cursor-pointer hover:shadow-sm w-full"
+        >
+          Stornierung
+        </Button>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Bestellung für {props.table.name}</DrawerTitle>
+            <DrawerTitle>Stornierung für {props.table.name}</DrawerTitle>
             <DrawerDescription>
-              Überprüfe deine Bestellung vor dem Absenden.
+              Sollen diese Produkte wirklich storniert werden?
             </DrawerDescription>
           </DrawerHeader>
           <div className="p-4 space-y-2">
-            {orderedProducts.map((product) => {
+            {productsToCancel.map((product) => {
               return (
                 <div
                   key={product.id}
@@ -102,14 +106,22 @@ export function OrderDrawer(props: OrderDrawerProps) {
               <div>€ {(totalPrice / 100).toFixed(2)}</div>
             </div>
           </div>
+          <div className="px-4">
+            <CommentField
+              onChange={(value) => {
+                setComment(value)
+              }}
+            />
+          </div>
           <DrawerFooter>
             <Button
+              variant="destructive"
               disabled={loading}
               onClick={() => {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Bestellung aufgeben
+              {loading ? <Spinner /> : <></>} Produkte stornieren
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>
@@ -123,8 +135,8 @@ export function OrderDrawer(props: OrderDrawerProps) {
   )
 }
 
-function orderProducts(
-  products: Product[],
+function buildOrderProducts(
+  products: OrderProduct[],
   selectedQuantity: Record<number, number>,
 ): OrderProduct[] {
   return products
@@ -135,8 +147,8 @@ function orderProducts(
     .filter((product) => product.quantity > 0)
 }
 
-function calculateTotalPrice(orderProducts: OrderProduct[]): number {
-  return orderProducts.reduce(
+function calculateTotalPrice(cancelationProducts: OrderProduct[]): number {
+  return cancelationProducts.reduce(
     (total, product) => total + product.netPriceCents * product.quantity,
     0,
   )

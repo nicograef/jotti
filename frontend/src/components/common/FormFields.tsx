@@ -29,8 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-
-import { Textarea } from '../ui/textarea'
+import { Textarea } from '@/components/ui/textarea'
 
 interface FieldProps<TField extends FieldValues> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

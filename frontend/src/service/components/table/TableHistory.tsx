@@ -19,13 +19,15 @@ import {
   ItemGroup,
   ItemTitle,
 } from '@/components/ui/item'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import type { Cancelation } from './table/Cancelation'
-import type { Delivery } from './table/Delivery'
-import { useTableHistory } from './table/hooks'
-import type { Order } from './table/Order'
-import type { Payment } from './table/Payment'
+import type { Cancelation } from '../../table/Cancelation'
+import type { Delivery } from '../../table/Delivery'
+import { useTableHistory } from '../../table/hooks'
+import type { Order } from '../../table/Order'
+import type { Payment } from '../../table/Payment'
+import { Comment } from './CommentField'
 
 interface TableHistoryProps {
   tableId: number
@@ -190,14 +192,22 @@ function OrderItem({
   onClick: () => void
 }) {
   return (
-    <Item variant="outline">
+    <Item
+      variant="outline"
+      className={userId === order.userId ? 'border-primary' : ''}
+    >
       <ItemContent>
         <ItemTitle>
           Bestellung +{(order.totalPriceCents / 100).toFixed(2)}&nbsp;€
         </ItemTitle>
         <ItemDescription>
           {new Date(order.placedAt).toLocaleString()}
-          {userId === order.userId ? <>&nbsp; &ndash; &nbsp;von Dir</> : ''}
+          {order.comment && (
+            <>
+              <br />
+              {order.comment}
+            </>
+          )}
         </ItemDescription>
       </ItemContent>
       <ItemActions>
@@ -369,29 +379,35 @@ function OrderDetails({ order, userId, open, onClose }: OrderDetailsProps) {
               {new Date(order.placedAt).toLocaleTimeString()} Uhr
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-4 space-y-2">
-            {order.products.map((product) => {
-              return (
-                <div
-                  key={product.id}
-                  className="flex justify-between border-b pb-2"
-                >
-                  <div>
-                    {product.quantity} x {product.name}
+          <ScrollArea className="max-h-50 inset-shadow-sm">
+            <div className="px-4 pt-2 pb-0 space-y-2">
+              {order.products.map((product) => {
+                return (
+                  <div
+                    key={product.id}
+                    className="flex justify-between border-b pb-2 last:border-0"
+                  >
+                    <div>
+                      {product.quantity} x {product.name}
+                    </div>
+                    <div>
+                      €{' '}
+                      {(
+                        (product.netPriceCents / 100) *
+                        product.quantity
+                      ).toFixed(2)}
+                    </div>
                   </div>
-                  <div>
-                    €{' '}
-                    {((product.netPriceCents / 100) * product.quantity).toFixed(
-                      2,
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-            <div className="flex justify-between font-bold pt-2">
-              <div>Gesamt</div>
-              <div>€ {(order.totalPriceCents / 100).toFixed(2)}</div>
+                )
+              })}
             </div>
+          </ScrollArea>
+          <div className="flex justify-between font-bold px-4 pt-2 pb-4 border-t-2">
+            <div>Gesamt</div>
+            <div>€ {(order.totalPriceCents / 100).toFixed(2)}</div>
+          </div>
+          <div className="px-4">
+            <Comment value={order.comment} />
           </div>
           <DrawerFooter>
             <DrawerClose asChild>

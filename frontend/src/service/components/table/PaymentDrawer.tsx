@@ -13,9 +13,9 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { OrderProduct } from './table/Order'
-import type { Table } from './table/Table'
-import type { TableBackend } from './table/TableBackend'
+import type { OrderProduct } from '../../table/Order'
+import type { Table } from '../../table/Table'
+import type { TableBackend } from '../../table/TableBackend'
 
 interface PaymentDrawerProps {
   backend: Pick<TableBackend, 'registerTablePayment'>

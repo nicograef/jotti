@@ -20,7 +20,7 @@ var paymentRegisteredV1DataSchema = z.Struct(z.Shape{
 	"PaymentID":         z.String().UUID().Required(),
 	"Products":          z.Slice(orderProductSchema).Min(1).Required(),
 	"TotalPaymentCents": z.Int().GTE(0).Required(),
-	"Comment":           z.String().Optional(),
+	"Comment":           z.String().Max(100).Optional(),
 })
 
 func NewPaymentRegisteredEvent(userID, tableID int, products []OrderProduct, comment string) (e.Event, error) {

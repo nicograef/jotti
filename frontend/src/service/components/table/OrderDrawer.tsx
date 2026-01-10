@@ -13,36 +13,44 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { OrderProduct } from './table/Order'
-import type { Table } from './table/Table'
-import type { TableBackend } from './table/TableBackend'
+import type { Product } from '../../product/Product'
+import type { OrderProduct } from '../../table/Order'
+import type { Table } from '../../table/Table'
+import type { TableBackend } from '../../table/TableBackend'
+import { CommentField } from './CommentField'
+import { Receipt } from './Receipt'
 
-interface DeliveryDrawerProps {
-  backend: Pick<TableBackend, 'deliverTableProducts'>
+interface OrderDrawerProps {
+  backend: Pick<TableBackend, 'placeTableOrder'>
   table: Table
-  undeliveredProducts: OrderProduct[]
+  products: Product[]
   quantities: Record<number, number>
-  productsDelivered: () => void
+  orderPlaced: () => void
 }
 
-export function DeliveryDrawer(props: DeliveryDrawerProps) {
+export function OrderDrawer(props: OrderDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const productsToDeliver = buildOrderProducts(
-    props.undeliveredProducts,
-    props.quantities,
-  )
-  const noProductsSelected = productsToDeliver.length === 0
+  const [comment, setComment] = useState('')
+  const orderedProducts = [
+    ...orderProducts(props.products, props.quantities),
+    // ...orderProducts(props.products, props.quantities),
+    // ...orderProducts(props.products, props.quantities),
+    // ...orderProducts(props.products, props.quantities),
+  ]
+  const totalPrice = calculateTotalPrice(orderedProducts)
+  const noProductsSelected = orderedProducts.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
 
     try {
-      await props.backend.deliverTableProducts({
+      await props.backend.placeTableOrder({
         tableId: props.table.id,
-        products: productsToDeliver,
+        products: orderedProducts,
+        comment: comment,
       })
-      props.productsDelivered()
+      props.orderPlaced()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -64,34 +72,28 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
       <DrawerTrigger asChild>
         <div className="text-center">
           <Button
-            disabled={noProductsSelected}
             className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
+            disabled={noProductsSelected}
           >
-            Produkte liefern
+            Bestellung überprüfen
           </Button>
         </div>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Lieferung für {props.table.name}</DrawerTitle>
+            <DrawerTitle>Bestellung für {props.table.name}</DrawerTitle>
             <DrawerDescription>
-              Wurden diese Produkte an den Tisch ausgeliefert?
+              Überprüfe deine Bestellung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-4 space-y-2">
-            {productsToDeliver.map((product) => {
-              return (
-                <div
-                  key={product.id}
-                  className="flex justify-between border-b pb-2"
-                >
-                  <div>
-                    {product.quantity} x {product.name}
-                  </div>
-                </div>
-              )
-            })}
+          <Receipt products={orderedProducts} totalPrice={totalPrice} />
+          <div className="px-4">
+            <CommentField
+              onChange={(value) => {
+                setComment(value)
+              }}
+            />
           </div>
           <DrawerFooter>
             <Button
@@ -100,7 +102,7 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Produkte liefern
+              {loading ? <Spinner /> : <></>} Bestellung aufgeben
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>
@@ -114,8 +116,8 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
   )
 }
 
-function buildOrderProducts(
-  products: OrderProduct[],
+function orderProducts(
+  products: Product[],
   selectedQuantity: Record<number, number>,
 ): OrderProduct[] {
   return products
@@ -124,4 +126,11 @@ function buildOrderProducts(
       quantity: selectedQuantity[product.id] || 0,
     }))
     .filter((product) => product.quantity > 0)
+}
+
+function calculateTotalPrice(orderProducts: OrderProduct[]): number {
+  return orderProducts.reduce(
+    (total, product) => total + product.netPriceCents * product.quantity,
+    0,
+  )
 }
