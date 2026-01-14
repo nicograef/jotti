@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/table"
@@ -16,6 +17,7 @@ type tableRepoCommand interface {
 
 type eventRepoCommand interface {
 	WriteEvent(ctx context.Context, event event.Event) (int, error)
+	ReadEventsWithSnapshot(ctx context.Context, subject string, snapshotEventType string) ([]event.Event, error)
 }
 
 type Command struct {
@@ -174,5 +176,56 @@ func (c Command) DeliverTableProducts(ctx context.Context, userID, tableID int, 
 	}
 
 	log.Info().Int("table_id", tableID).Msg("Products delivered")
+	return nil
+}
+
+func (c Command) CreateTableSnapshot(ctx context.Context, userID, tableID int) error {
+	log := zerolog.Ctx(ctx)
+
+	subject := "table:" + strconv.Itoa(tableID)
+	events, err := c.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(table.EventTypeSnapshotV1))
+	if err != nil {
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to read events for snapshot")
+		return ErrDatabase
+	}
+
+	balance, err := table.GetBalanceFromEvents(events)
+	if err != nil {
+		return err
+	}
+	unpaid, err := table.GetUnpaidProductsFromEvents(events)
+	if err != nil {
+		return err
+	}
+	undelivered, err := table.GetUndeliveredProductsFromEvents(events)
+	if err != nil {
+		return err
+	}
+	totalPayment, err := table.GetTotalPaymentsFromEvents(events)
+	if err != nil {
+		return err
+	}
+
+	log.Debug().
+		Int("table_id", tableID).
+		Int("balance", balance).
+		Int("unpaid_count", len(unpaid)).
+		Int("undelivered_count", len(undelivered)).
+		Int("total_payments", totalPayment).
+		Msg("Creating snapshot with computed state")
+
+	snapshotEvent, err := table.NewSnapshotEvent(userID, tableID, balance, unpaid, undelivered, totalPayment)
+	if err != nil {
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create snapshot event")
+		return err
+	}
+
+	_, err = c.EventRepo.WriteEvent(ctx, snapshotEvent)
+	if err != nil {
+		log.Error().Int("table_id", tableID).Msg("Failed to write snapshot event")
+		return ErrDatabase
+	}
+
+	log.Info().Int("table_id", tableID).Int("balance", balance).Msg("Snapshot created")
 	return nil
 }

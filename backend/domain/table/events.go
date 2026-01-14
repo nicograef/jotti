@@ -9,12 +9,21 @@ const (
 	EventTypePaymentRegisteredV1 EventType = "table.payment-registered:v1"
 	EventTypeProductsCanceledV1  EventType = "table.products-canceled:v1"
 	EventTypeProductsDeliveredV1 EventType = "table.products-delivered:v1"
+	EventTypeSnapshotV1          EventType = "table.snapshot:v1"
 )
 
 func GetBalanceFromEvents(events []e.Event) (int, error) {
 	balanceCents := 0
+
 	for _, event := range events {
 		switch event.Type {
+		case string(EventTypeSnapshotV1):
+			snapshot, err := buildSnapshotFromEvent(event)
+			if err != nil {
+				return 0, err
+			}
+			balanceCents = snapshot.BalanceCents
+
 		case string(EventTypeOrderPlacedV1):
 			order, err := buildOrderFromEvent(event)
 			if err != nil {
@@ -121,6 +130,13 @@ func GetUnpaidProductsFromEvents(events []e.Event) ([]OrderProduct, error) {
 
 	for _, event := range events {
 		switch event.Type {
+		case string(EventTypeSnapshotV1):
+			snapshot, err := buildSnapshotFromEvent(event)
+			if err != nil {
+				return nil, err
+			}
+			unpaidProducts = snapshot.UnpaidProducts
+
 		case string(EventTypeOrderPlacedV1):
 			order, err := buildOrderFromEvent(event)
 			if err != nil {
@@ -152,6 +168,13 @@ func GetUndeliveredProductsFromEvents(events []e.Event) ([]OrderProduct, error) 
 
 	for _, event := range events {
 		switch event.Type {
+		case string(EventTypeSnapshotV1):
+			snapshot, err := buildSnapshotFromEvent(event)
+			if err != nil {
+				return nil, err
+			}
+			undeliveredProducts = snapshot.UndeliveredProducts
+
 		case string(EventTypeOrderPlacedV1):
 			order, err := buildOrderFromEvent(event)
 			if err != nil {
@@ -176,4 +199,28 @@ func GetUndeliveredProductsFromEvents(events []e.Event) ([]OrderProduct, error) 
 	}
 
 	return undeliveredProducts, nil
+}
+
+func GetTotalPaymentsFromEvents(events []e.Event) (int, error) {
+	totalPaymentsCents := 0
+
+	for _, event := range events {
+		switch event.Type {
+		case string(EventTypeSnapshotV1):
+			snapshot, err := buildSnapshotFromEvent(event)
+			if err != nil {
+				return 0, err
+			}
+			totalPaymentsCents = snapshot.TotalPaymentsCents
+
+		case string(EventTypePaymentRegisteredV1):
+			payment, err := buildPaymentFromEvent(event)
+			if err != nil {
+				return 0, err
+			}
+			totalPaymentsCents += payment.TotalPaymentCents
+		}
+	}
+
+	return totalPaymentsCents, nil
 }

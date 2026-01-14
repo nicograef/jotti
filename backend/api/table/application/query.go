@@ -19,6 +19,7 @@ type tableRepoQuery interface {
 
 type eventRepoQuery interface {
 	ReadEventsBySubject(ctx context.Context, subject string) ([]e.Event, error)
+	ReadEventsWithSnapshot(ctx context.Context, subject string, snapshotEventType string) ([]e.Event, error)
 }
 
 type Query struct {
@@ -74,7 +75,7 @@ func (q Query) GetTableBalance(ctx context.Context, tableID int) (int, error) {
 	log := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)
-	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
+	events, err := q.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(t.EventTypeSnapshotV1))
 	if err != nil {
 		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to read order events for table")
 		return 0, ErrDatabase
@@ -93,6 +94,7 @@ func (q Query) GetTableBalance(ctx context.Context, tableID int) (int, error) {
 func (q Query) GetTableHistory(ctx context.Context, tableID int) ([]any, error) {
 	log := zerolog.Ctx(ctx)
 
+	// Note: History needs all events, not just since snapshot, to show full timeline
 	subject := "table:" + strconv.Itoa(tableID)
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
@@ -114,7 +116,7 @@ func (q Query) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.Ord
 	log := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)
-	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
+	events, err := q.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(t.EventTypeSnapshotV1))
 	if err != nil {
 		log.Error().Int("table_id", tableID).Msg("Failed to read events for table")
 		return nil, ErrDatabase
@@ -134,7 +136,7 @@ func (q Query) GetTableUndeliveredProducts(ctx context.Context, tableID int) ([]
 	log := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)
-	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
+	events, err := q.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(t.EventTypeSnapshotV1))
 	if err != nil {
 		log.Error().Int("table_id", tableID).Msg("Failed to read events for table")
 		return nil, ErrDatabase
