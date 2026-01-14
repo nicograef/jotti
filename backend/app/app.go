@@ -27,8 +27,8 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 	router := SetupRoutes(cfg, db)
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
 		Handler:      router,
 	}
 
@@ -62,7 +62,7 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by nginx
 	var handler http.Handler = r
 	handler = middleware.PostMethodOnlyMiddleware(handler) // Enforce POST method
-	handler = middleware.RateLimitMiddleware(100)(handler) // Rate limiting
+	handler = middleware.RateLimitMiddleware(10)(handler)  // Rate limiting
 	handler = middleware.LoggingMiddleware(handler)        // Logging
 	handler = middleware.CorrelationIDMiddleware(handler)  // Correlation ID
 

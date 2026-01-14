@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -58,16 +59,37 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// RateLimitMiddleware limits requests per IP
+// RateLimitMiddleware limits requests per IP address
 func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler {
-	limiter := rate.NewLimiter(rate.Limit(requestsPerSecond), requestsPerSecond*2)
+	var mu sync.Mutex
+	limiters := make(map[string]*rate.Limiter)
+
+	getLimiter := func(ip string) *rate.Limiter {
+		mu.Lock()
+		defer mu.Unlock()
+
+		if limiter, exists := limiters[ip]; exists {
+			return limiter
+		}
+
+		limiter := rate.NewLimiter(rate.Limit(requestsPerSecond), requestsPerSecond*2)
+		limiters[ip] = limiter
+		return limiter
+	}
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger := zerolog.Ctx(r.Context())
 
+			// Extract IP from X-Forwarded-For (set by nginx) or fall back to RemoteAddr
+			ip := r.Header.Get("X-Forwarded-For")
+			if ip == "" {
+				ip = r.RemoteAddr
+			}
+
+			limiter := getLimiter(ip)
 			if !limiter.Allow() {
-				logger.Warn().Msg("Rate limit exceeded")
+				logger.Warn().Str("ip", ip).Msg("Rate limit exceeded")
 				http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 				return
 			}
