@@ -115,7 +115,13 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler
 			}
 
 			// get jwt token, remove "Bearer " prefix
-			token = token[len("Bearer "):]
+			const bearerPrefix = "Bearer "
+			if len(token) <= len(bearerPrefix) || token[:len(bearerPrefix)] != bearerPrefix {
+				log.Error().Msg("Invalid Authorization header format")
+				helper.SendClientError(w, "invalid_authorization_format", nil)
+				return
+			}
+			token = token[len(bearerPrefix):]
 			userID, userRole, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
 			if err != nil {
 				log.Error().Err(err).Msg("Invalid JWT token")

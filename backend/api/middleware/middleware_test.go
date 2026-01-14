@@ -128,6 +128,37 @@ func TestJwtMiddleware_NoToken(t *testing.T) {
 	}
 }
 
+func TestJwtMiddleware_InvalidBearerFormat(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	testCases := []struct {
+		name  string
+		value string
+	}{
+		{"short header", "Bear"},
+		{"wrong prefix", "Basic xyz123"},
+		{"just Bearer", "Bearer"},
+		{"bearer lowercase", "bearer token123"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			middleware := NewJwtMiddleware("test-secret", []string{"admin"})(handler)
+			req := httptest.NewRequest(http.MethodGet, "/admin", nil)
+			req.Header.Set("Authorization", tc.value)
+			rec := httptest.NewRecorder()
+
+			middleware.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("expected status 400 for %q, got %d", tc.value, rec.Code)
+			}
+		})
+	}
+}
+
 func TestJwtMiddleware_ServiceRole(t *testing.T) {
 	secret := "test-secret"
 	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
