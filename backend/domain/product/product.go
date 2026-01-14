@@ -66,7 +66,7 @@ var CategorySchema = z.StringLike[Category]().OneOf(
 var ProductSchema = z.Struct(z.Shape{
 	"ID":            IDSchema.Required(),
 	"Name":          NameSchema.Required(),
-	"Description":   DescriptionSchema.Optional(),
+	"Description":   DescriptionSchema,
 	"NetPriceCents": NetPriceCentsSchema.Required(),
 	"Status":        StatusSchema.Required(),
 	"Category":      CategorySchema.Required(),
@@ -88,7 +88,7 @@ func NewProduct(name, description string, netPriceCents int, category Category) 
 		return Product{}, fmt.Errorf("invalid name")
 	}
 
-	if issue := DescriptionSchema.Optional().Validate(&description); issue != nil {
+	if issue := DescriptionSchema.Validate(&description); issue != nil {
 		return Product{}, fmt.Errorf("invalid description")
 	}
 

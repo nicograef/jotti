@@ -22,6 +22,6 @@ var paymentSchema = z.Struct(z.Shape{
 	"TableID":           z.Int().GTE(1).Required(),
 	"Products":          z.Slice(orderProductSchema).Min(1).Required(),
 	"TotalPaymentCents": z.Int().GTE(0).Required(),
-	"Comment":           z.String().Max(100).Optional(),
+	"Comment":           z.String().Max(100),
 	"RegisteredAt":      z.Time().Required(),
 })
