@@ -1,4 +1,5 @@
 import { REGEXP_ONLY_DIGITS } from 'input-otp'
+import { EyeClosedIcon, EyeIcon } from 'lucide-react'
 import { useState } from 'react'
 import {
   Controller,
@@ -9,6 +10,7 @@ import {
 
 import type { ProductCategory } from '@/admin/products/Product'
 import { toUsername, UserRole } from '@/admin/users/User'
+import { Button } from '@/components/ui/button'
 import {
   Field,
   FieldContent,
@@ -101,19 +103,36 @@ export function PasswordField<AllFormFields extends FieldValues>({
   form,
   placeholder,
 }: FieldProps<{ password: string } & AllFormFields>) {
+  const [visible, setVisible] = useState(false)
+
   return (
     <Controller
       name={'password' as Path<{ password: string } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          <Input
-            {...field}
-            type="password"
-            aria-invalid={fieldState.invalid}
-            placeholder={placeholder ?? 'Passwort'}
-            autoComplete="current-password"
-          />
+          <div className="flex">
+            <Input
+              {...field}
+              type={visible ? 'text' : 'password'}
+              aria-invalid={fieldState.invalid}
+              placeholder={placeholder ?? 'Passwort'}
+              autoComplete="current-password"
+              className="rounded-r-none"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Show password"
+              className="rounded-l-none"
+              type="button"
+              onClick={() => {
+                setVisible(!visible)
+              }}
+            >
+              {visible ? <EyeIcon /> : <EyeClosedIcon />}
+            </Button>
+          </div>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
         </Field>
       )}
@@ -125,19 +144,36 @@ export function NewPasswordField<AllFormFields extends FieldValues>({
   form,
   placeholder,
 }: FieldProps<{ password: string } & AllFormFields>) {
+  const [visible, setVisible] = useState(false)
+
   return (
     <Controller
       name={'password' as Path<{ password: string } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          <Input
-            {...field}
-            type="password"
-            aria-invalid={fieldState.invalid}
-            placeholder={placeholder ?? 'Neues Passwort'}
-            autoComplete="off"
-          />
+          <div className="flex">
+            <Input
+              {...field}
+              type={visible ? 'text' : 'password'}
+              aria-invalid={fieldState.invalid}
+              placeholder={placeholder ?? 'Neues Passwort'}
+              autoComplete="off"
+              className="rounded-r-none"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Show password"
+              className="rounded-l-none"
+              type="button"
+              onClick={() => {
+                setVisible(!visible)
+              }}
+            >
+              {visible ? <EyeIcon /> : <EyeClosedIcon />}
+            </Button>
+          </div>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
         </Field>
       )}
@@ -319,7 +355,6 @@ export function PriceField<AllFormFields extends FieldValues>({
           {withLabel && (
             <FieldLabel htmlFor="form-priceCents">Preis</FieldLabel>
           )}
-          {/* prepend input with a euros currency symbol */}
           <div className="flex">
             <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-background text-muted-foreground text-sm">
               €
