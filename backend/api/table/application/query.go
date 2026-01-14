@@ -97,13 +97,13 @@ func (q Query) GetTableHistory(ctx context.Context, tableID int) ([]any, error) 
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		log.Error().Int("table_id", tableID).Msg("Failed to read events for table")
-		return []any{}, ErrDatabase
+		return nil, ErrDatabase
 	}
 
 	history, err := t.GetHistoryFromEvents(events)
 	if err != nil {
 		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build history from events")
-		return []any{}, err
+		return nil, err
 	}
 
 	log.Info().Int("table_id", tableID).Int("history_count", len(history)).Msg("Retrieved history for table")
@@ -117,13 +117,13 @@ func (q Query) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.Ord
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		log.Error().Int("table_id", tableID).Msg("Failed to read events for table")
-		return []t.OrderProduct{}, ErrDatabase
+		return nil, ErrDatabase
 	}
 
 	unpaidProducts, err := t.GetUnpaidProductsFromEvents(events)
 	if err != nil {
 		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build unpaid products from events")
-		return []t.OrderProduct{}, err
+		return nil, err
 	}
 
 	log.Info().Int("table_id", tableID).Int("unpaid_product_count", len(unpaidProducts)).Msg("Retrieved unpaid products for table")
@@ -137,13 +137,13 @@ func (q Query) GetTableUndeliveredProducts(ctx context.Context, tableID int) ([]
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		log.Error().Int("table_id", tableID).Msg("Failed to read events for table")
-		return []t.OrderProduct{}, ErrDatabase
+		return nil, ErrDatabase
 	}
 
 	undeliveredProducts, err := t.GetUndeliveredProductsFromEvents(events)
 	if err != nil {
 		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build undelivered products from events")
-		return []t.OrderProduct{}, err
+		return nil, err
 	}
 
 	log.Info().Int("table_id", tableID).Int("undelivered_product_count", len(undeliveredProducts)).Msg("Retrieved undelivered products for table")
