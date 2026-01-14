@@ -25,7 +25,7 @@ const DescriptionSchema = z
 const NetPriceCentsSchema = z
   .number()
   .int()
-  .min(0, { message: 'Der Nettopreis muss positiv sein.' })
+  .min(1, { message: 'Preis muss mindestens 1 Cent sein.' })
 const CategorySchema = z.enum(ProductCategory)
 const ProductStatusSchema = z.enum(ProductStatus)
 const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {

@@ -8,7 +8,7 @@ import {
   CategoryField,
   DescriptionField,
   NameField,
-  NetPriceField,
+  PriceField,
 } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
@@ -101,7 +101,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
             />
             <DescriptionField form={form} withLabel />
             <CategoryField form={form} withLabel />
-            <NetPriceField form={form} withLabel />
+            <PriceField form={form} withLabel />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">
