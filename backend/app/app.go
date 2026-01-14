@@ -28,7 +28,8 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
 		Handler:      router,
 	}
 
