@@ -9,7 +9,6 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 	t "github.com/nicograef/jotti/backend/domain/table"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type tableRepoQuery interface {
@@ -72,18 +71,18 @@ func (q Query) GetActiveTables(ctx context.Context) ([]t.Table, error) {
 }
 
 func (q Query) GetTableBalance(ctx context.Context, tableID int) (int, error) {
-	logger := zerolog.Ctx(ctx)
+	log := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		logger.Error().Err(err).Int("table_id", tableID).Msg("Failed to read order events for table")
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to read order events for table")
 		return 0, ErrDatabase
 	}
 
 	balanceCents, err := t.GetBalanceFromEvents(events)
 	if err != nil {
-		logger.Error().Err(err).Int("table_id", tableID).Msg("Failed to calculate balance from events")
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to calculate balance from events")
 		return 0, err
 	}
 
@@ -92,18 +91,18 @@ func (q Query) GetTableBalance(ctx context.Context, tableID int) (int, error) {
 }
 
 func (q Query) GetTableHistory(ctx context.Context, tableID int) ([]any, error) {
-	logger := zerolog.Ctx(ctx)
+	log := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		logger.Error().Int("table_id", tableID).Msg("Failed to read events for table")
+		log.Error().Int("table_id", tableID).Msg("Failed to read events for table")
 		return []any{}, ErrDatabase
 	}
 
 	history, err := t.GetHistoryFromEvents(events)
 	if err != nil {
-		logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to build history from events")
+		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build history from events")
 		return []any{}, err
 	}
 
@@ -112,18 +111,18 @@ func (q Query) GetTableHistory(ctx context.Context, tableID int) ([]any, error) 
 }
 
 func (q Query) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error) {
-	logger := zerolog.Ctx(ctx)
+	log := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		logger.Error().Int("table_id", tableID).Msg("Failed to read events for table")
+		log.Error().Int("table_id", tableID).Msg("Failed to read events for table")
 		return []t.OrderProduct{}, ErrDatabase
 	}
 
 	unpaidProducts, err := t.GetUnpaidProductsFromEvents(events)
 	if err != nil {
-		logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to build unpaid products from events")
+		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build unpaid products from events")
 		return []t.OrderProduct{}, err
 	}
 
@@ -132,18 +131,18 @@ func (q Query) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.Ord
 }
 
 func (q Query) GetTableUndeliveredProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error) {
-	logger := zerolog.Ctx(ctx)
+	log := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		logger.Error().Int("table_id", tableID).Msg("Failed to read events for table")
+		log.Error().Int("table_id", tableID).Msg("Failed to read events for table")
 		return []t.OrderProduct{}, ErrDatabase
 	}
 
 	undeliveredProducts, err := t.GetUndeliveredProductsFromEvents(events)
 	if err != nil {
-		logger.Error().Int("table_id", tableID).Err(err).Msg("Failed to build undelivered products from events")
+		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build undelivered products from events")
 		return []t.OrderProduct{}, err
 	}
 

@@ -107,9 +107,11 @@ func (rw *responseWriter) WriteHeader(code int) {
 func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler) http.HandlerFunc {
 	return func(h http.Handler) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger := zerolog.Ctx(r.Context())
+
 			token := r.Header.Get("Authorization")
 			if token == "" {
-				log.Error().Msg("Missing Authorization header")
+				logger.Error().Msg("Missing Authorization header")
 				helper.SendClientError(w, "missing_authorization", nil)
 				return
 			}
@@ -117,14 +119,14 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler
 			// get jwt token, remove "Bearer " prefix
 			const bearerPrefix = "Bearer "
 			if len(token) <= len(bearerPrefix) || token[:len(bearerPrefix)] != bearerPrefix {
-				log.Error().Msg("Invalid Authorization header format")
+				logger.Error().Msg("Invalid Authorization header format")
 				helper.SendClientError(w, "invalid_authorization_format", nil)
 				return
 			}
 			token = token[len(bearerPrefix):]
 			userID, userRole, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
 			if err != nil {
-				log.Error().Err(err).Msg("Invalid JWT token")
+				logger.Error().Err(err).Msg("Invalid JWT token")
 				helper.SendClientError(w, "invalid_jwt", nil)
 				return
 			}
@@ -138,6 +140,7 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler
 				}
 			}
 			if !roleAllowed {
+				logger.Warn().Str("role", userRole).Msg("Insufficient permissions")
 				helper.SendClientError(w, "insufficient_permissions", fmt.Sprintf("Insufficient permissions for role %s", userRole))
 				return
 			}
