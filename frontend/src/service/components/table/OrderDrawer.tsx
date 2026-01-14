@@ -13,10 +13,12 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { Product } from './product/Product'
-import type { OrderProduct } from './table/Order'
-import type { Table } from './table/Table'
-import type { TableBackend } from './table/TableBackend'
+import type { Product } from '../../product/Product'
+import type { OrderProduct } from '../../table/Order'
+import type { Table } from '../../table/Table'
+import type { TableBackend } from '../../table/TableBackend'
+import { CommentField } from './CommentField'
+import { Receipt } from './Receipt'
 
 interface OrderDrawerProps {
   backend: Pick<TableBackend, 'placeTableOrder'>
@@ -29,6 +31,7 @@ interface OrderDrawerProps {
 export function OrderDrawer(props: OrderDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [comment, setComment] = useState('')
   const orderedProducts = orderProducts(props.products, props.quantities)
   const totalPrice = calculateTotalPrice(orderedProducts)
   const noProductsSelected = orderedProducts.length === 0
@@ -40,6 +43,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
       await props.backend.placeTableOrder({
         tableId: props.table.id,
         products: orderedProducts,
+        comment: comment,
       })
       props.orderPlaced()
       setOpen(false)
@@ -78,29 +82,13 @@ export function OrderDrawer(props: OrderDrawerProps) {
               Überprüfe deine Bestellung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-4 space-y-2">
-            {orderedProducts.map((product) => {
-              return (
-                <div
-                  key={product.id}
-                  className="flex justify-between border-b pb-2"
-                >
-                  <div>
-                    {product.quantity} x {product.name}
-                  </div>
-                  <div>
-                    €{' '}
-                    {((product.netPriceCents / 100) * product.quantity).toFixed(
-                      2,
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-            <div className="flex justify-between font-bold pt-2">
-              <div>Gesamt</div>
-              <div>€ {(totalPrice / 100).toFixed(2)}</div>
-            </div>
+          <Receipt products={orderedProducts} totalPrice={totalPrice} />
+          <div className="px-4">
+            <CommentField
+              onChange={(value) => {
+                setComment(value)
+              }}
+            />
           </div>
           <DrawerFooter>
             <Button

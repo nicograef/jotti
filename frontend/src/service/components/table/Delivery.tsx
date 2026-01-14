@@ -13,11 +13,11 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
+import { useTableUndeliveredProducts } from '../../table/hooks'
+import type { OrderProduct } from '../../table/Order'
+import type { Table } from '../../table/Table'
+import type { TableBackend } from '../../table/TableBackend'
 import { DeliveryDrawer } from './DeliveryDrawer'
-import { useTableUndeliveredProducts } from './table/hooks'
-import type { OrderProduct } from './table/Order'
-import type { Table } from './table/Table'
-import type { TableBackend } from './table/TableBackend'
 
 interface DeliveryProps {
   backend: Pick<TableBackend, 'deliverTableProducts'>

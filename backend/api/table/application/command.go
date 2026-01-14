@@ -101,10 +101,10 @@ func (c Command) DeactivateTable(ctx context.Context, id int) error {
 	return nil
 }
 
-func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, products []table.OrderProduct) error {
+func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, products []table.OrderProduct, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewOrderPlacedEvent(userID, tableID, products)
+	event, err := table.NewOrderPlacedEvent(userID, tableID, products, comment)
 	if err != nil {
 		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create order placed event")
 		return err
@@ -120,10 +120,10 @@ func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, produ
 	return nil
 }
 
-func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, products []table.OrderProduct) error {
+func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, products []table.OrderProduct, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewPaymentRegisteredEvent(userID, tableID, products)
+	event, err := table.NewPaymentRegisteredEvent(userID, tableID, products, comment)
 	if err != nil {
 		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create payment registered event")
 		return err
@@ -139,10 +139,10 @@ func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, 
 	return nil
 }
 
-func (c Command) CancelTableProducts(ctx context.Context, userID, tableID int, products []table.OrderProduct) error {
+func (c Command) CancelTableProducts(ctx context.Context, userID, tableID int, products []table.OrderProduct, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewProductsCanceledEvent(userID, tableID, products)
+	event, err := table.NewProductsCanceledEvent(userID, tableID, products, comment)
 	if err != nil {
 		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create products canceled event")
 		return err
@@ -158,10 +158,10 @@ func (c Command) CancelTableProducts(ctx context.Context, userID, tableID int, p
 	return nil
 }
 
-func (c Command) DeliverTableProducts(ctx context.Context, userID, tableID int, products []table.OrderProduct) error {
+func (c Command) DeliverTableProducts(ctx context.Context, userID, tableID int, products []table.OrderProduct, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewProductsDeliveredEvent(userID, tableID, products)
+	event, err := table.NewProductsDeliveredEvent(userID, tableID, products, comment)
 	if err != nil {
 		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create products delivered event")
 		return err

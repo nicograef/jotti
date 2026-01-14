@@ -11,6 +11,7 @@ type Delivery struct {
 	UserID      int            `json:"userId"`
 	TableID     int            `json:"tableId"`
 	Products    []OrderProduct `json:"products"`
+	Comment     string         `json:"comment"`
 	DeliveredAt time.Time      `json:"deliveredAt"`
 }
 
@@ -19,5 +20,6 @@ var deliverySchema = z.Struct(z.Shape{
 	"UserID":      z.Int().GTE(1).Required(),
 	"TableID":     z.Int().GTE(1).Required(),
 	"Products":    z.Slice(orderProductSchema).Min(1).Required(),
+	"Comment":     z.String().Max(100).Optional(),
 	"DeliveredAt": z.Time().Required(),
 })

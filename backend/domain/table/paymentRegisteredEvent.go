@@ -13,15 +13,17 @@ type paymentRegisteredV1Data struct {
 	PaymentID         string         `json:"paymentId"` // UUID string
 	Products          []OrderProduct `json:"products"`
 	TotalPaymentCents int            `json:"totalPaymentCents"`
+	Comment           string         `json:"comment"`
 }
 
 var paymentRegisteredV1DataSchema = z.Struct(z.Shape{
 	"PaymentID":         z.String().UUID().Required(),
 	"Products":          z.Slice(orderProductSchema).Min(1).Required(),
 	"TotalPaymentCents": z.Int().GTE(0).Required(),
+	"Comment":           z.String().Max(100).Optional(),
 })
 
-func NewPaymentRegisteredEvent(userID, tableID int, products []OrderProduct) (e.Event, error) {
+func NewPaymentRegisteredEvent(userID, tableID int, products []OrderProduct, comment string) (e.Event, error) {
 	totalPaymentCents := 0
 	for _, product := range products {
 		totalPaymentCents += product.NetPriceCents * product.Quantity
@@ -31,6 +33,7 @@ func NewPaymentRegisteredEvent(userID, tableID int, products []OrderProduct) (e.
 		PaymentID:         uuid.New().String(),
 		Products:          products,
 		TotalPaymentCents: totalPaymentCents,
+		Comment:           comment,
 	}
 
 	if err := paymentRegisteredV1DataSchema.Validate(&data); err != nil {
@@ -68,6 +71,7 @@ func buildPaymentFromEvent(event e.Event) (Payment, error) {
 		TableID:           tableID,
 		Products:          data.Products,
 		TotalPaymentCents: data.TotalPaymentCents,
+		Comment:           data.Comment,
 		RegisteredAt:      event.Time,
 	}
 

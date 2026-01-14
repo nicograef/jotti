@@ -12,13 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AuthSingleton } from '@/lib/Auth'
 import { BackendSingleton } from '@/lib/Backend'
 
-import { Delivery } from './Delivery'
-import { Order } from './Order'
-import { Payment } from './Payment'
+import { Delivery } from './components/table/Delivery'
+import { Order } from './components/table/Order'
+import { Payment } from './components/table/Payment'
+import { TableHistory } from './components/table/TableHistory'
 import { useTableBalance, useTableUndeliveredProducts } from './table/hooks'
 import { useTable } from './table/hooks'
 import { TableBackend } from './table/TableBackend'
-import { TableHistory } from './TableHistory'
 
 const tableBackend = new TableBackend(BackendSingleton)
 

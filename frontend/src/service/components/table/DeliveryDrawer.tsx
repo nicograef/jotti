@@ -13,9 +13,11 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { OrderProduct } from './table/Order'
-import type { Table } from './table/Table'
-import type { TableBackend } from './table/TableBackend'
+import type { OrderProduct } from '../../table/Order'
+import type { Table } from '../../table/Table'
+import type { TableBackend } from '../../table/TableBackend'
+import { CommentField } from './CommentField'
+import { Receipt } from './Receipt'
 
 interface DeliveryDrawerProps {
   backend: Pick<TableBackend, 'deliverTableProducts'>
@@ -28,6 +30,7 @@ interface DeliveryDrawerProps {
 export function DeliveryDrawer(props: DeliveryDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [comment, setComment] = useState('')
   const productsToDeliver = buildOrderProducts(
     props.undeliveredProducts,
     props.quantities,
@@ -41,6 +44,7 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
       await props.backend.deliverTableProducts({
         tableId: props.table.id,
         products: productsToDeliver,
+        comment: comment,
       })
       props.productsDelivered()
       setOpen(false)
@@ -79,19 +83,13 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
               Wurden diese Produkte an den Tisch ausgeliefert?
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-4 space-y-2">
-            {productsToDeliver.map((product) => {
-              return (
-                <div
-                  key={product.id}
-                  className="flex justify-between border-b pb-2"
-                >
-                  <div>
-                    {product.quantity} x {product.name}
-                  </div>
-                </div>
-              )
-            })}
+          <Receipt products={productsToDeliver} />
+          <div className="px-4">
+            <CommentField
+              onChange={(value) => {
+                setComment(value)
+              }}
+            />
           </div>
           <DrawerFooter>
             <Button

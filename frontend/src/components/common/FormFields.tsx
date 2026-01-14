@@ -1,4 +1,6 @@
 import { REGEXP_ONLY_DIGITS } from 'input-otp'
+import { EyeClosedIcon, EyeIcon } from 'lucide-react'
+import { useState } from 'react'
 import {
   Controller,
   type FieldValues,
@@ -8,6 +10,7 @@ import {
 
 import type { ProductCategory } from '@/admin/products/Product'
 import { toUsername, UserRole } from '@/admin/users/User'
+import { Button } from '@/components/ui/button'
 import {
   Field,
   FieldContent,
@@ -29,8 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-
-import { Textarea } from '../ui/textarea'
+import { Textarea } from '@/components/ui/textarea'
 
 interface FieldProps<TField extends FieldValues> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,19 +103,36 @@ export function PasswordField<AllFormFields extends FieldValues>({
   form,
   placeholder,
 }: FieldProps<{ password: string } & AllFormFields>) {
+  const [visible, setVisible] = useState(false)
+
   return (
     <Controller
       name={'password' as Path<{ password: string } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          <Input
-            {...field}
-            type="password"
-            aria-invalid={fieldState.invalid}
-            placeholder={placeholder ?? 'Passwort'}
-            autoComplete="current-password"
-          />
+          <div className="flex">
+            <Input
+              {...field}
+              type={visible ? 'text' : 'password'}
+              aria-invalid={fieldState.invalid}
+              placeholder={placeholder ?? 'Passwort'}
+              autoComplete="current-password"
+              className="rounded-r-none"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Show password"
+              className="rounded-l-none"
+              type="button"
+              onClick={() => {
+                setVisible(!visible)
+              }}
+            >
+              {visible ? <EyeIcon /> : <EyeClosedIcon />}
+            </Button>
+          </div>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
         </Field>
       )}
@@ -125,19 +144,36 @@ export function NewPasswordField<AllFormFields extends FieldValues>({
   form,
   placeholder,
 }: FieldProps<{ password: string } & AllFormFields>) {
+  const [visible, setVisible] = useState(false)
+
   return (
     <Controller
       name={'password' as Path<{ password: string } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          <Input
-            {...field}
-            type="password"
-            aria-invalid={fieldState.invalid}
-            placeholder={placeholder ?? 'Neues Passwort'}
-            autoComplete="off"
-          />
+          <div className="flex">
+            <Input
+              {...field}
+              type={visible ? 'text' : 'password'}
+              aria-invalid={fieldState.invalid}
+              placeholder={placeholder ?? 'Neues Passwort'}
+              autoComplete="off"
+              className="rounded-r-none"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Show password"
+              className="rounded-l-none"
+              type="button"
+              onClick={() => {
+                setVisible(!visible)
+              }}
+            >
+              {visible ? <EyeIcon /> : <EyeClosedIcon />}
+            </Button>
+          </div>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
         </Field>
       )}
@@ -285,18 +321,31 @@ export function DescriptionField<AllFormFields extends FieldValues>({
   )
 }
 
-const toPriceCents = (input: string): number => {
-  const cleaned = input.replace(/[^0-9,]/g, '').replace(',', '.')
-  const parsed = parseFloat(cleaned)
+const centsToPrice = (cents: number): string => {
+  if (cents <= 0) return ''
+  return (cents / 100).toFixed(2).replace('.', ',')
+}
+
+const priceToCents = (price: string): number => {
+  const parsed = parseFloat(price.replace(',', '.'))
   return isNaN(parsed) ? 0 : Math.round(parsed * 100)
 }
 
+const cleanInput = (input: string): string => {
+  return input.replace(/[^0-9,]/g, '').replace(/,+/g, ',')
+}
+
 /** Input field for the net price. Converts the data representation as cents to the user-friendly Euro format. */
-export function NetPriceField<AllFormFields extends FieldValues>({
+export function PriceField<AllFormFields extends FieldValues>({
   form,
   withLabel,
   placeholder,
 }: FieldProps<{ netPriceCents: number } & AllFormFields>) {
+  const [value, setValue] = useState<string>(() =>
+    centsToPrice(form.getValues().netPriceCents),
+  )
+  const [debounceTimeout, setDebounceTimeout] = useState<number | null>(null)
+
   return (
     <Controller
       name={'netPriceCents' as Path<{ netPriceCents: number } & AllFormFields>}
@@ -304,24 +353,43 @@ export function NetPriceField<AllFormFields extends FieldValues>({
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
           {withLabel && (
-            <FieldLabel htmlFor="form-netPrice">Netto-Preis</FieldLabel>
+            <FieldLabel htmlFor="form-priceCents">Preis</FieldLabel>
           )}
-          <Input
-            {...field}
-            id="form-netPrice"
-            aria-invalid={fieldState.invalid}
-            placeholder={placeholder ?? 'Preis in Euro (z.B. 4,50)'}
-            autoComplete="off"
-            value={
-              field.value
-                ? (field.value / 100).toFixed(2).replace('.', ',')
-                : ''
-            }
-            onChange={(e) => {
-              const netPriceCents = toPriceCents(e.target.value)
-              field.onChange(netPriceCents)
-            }}
-          />
+          <div className="flex">
+            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-background text-muted-foreground text-sm">
+              €
+            </span>
+            <Input
+              {...field}
+              id="form-priceCents"
+              className="border-l-0"
+              type="text"
+              aria-invalid={fieldState.invalid}
+              placeholder={placeholder ?? 'Preis in Euro (z.B. 4,50)'}
+              autoComplete="off"
+              value={value}
+              onChange={(e) => {
+                const cleanedValue = cleanInput(e.target.value)
+                setValue(cleanedValue)
+                const priceCents = priceToCents(cleanedValue)
+                field.onChange(priceCents)
+
+                //  Debounce the conversion to avoid cursor jumping
+                if (debounceTimeout) clearTimeout(debounceTimeout)
+                const newTimeout = setTimeout(() => {
+                  setValue(centsToPrice(priceCents))
+                }, 1000)
+                setDebounceTimeout(newTimeout)
+              }}
+              onBlur={(e) => {
+                console.log('onBlur triggered')
+                if (debounceTimeout) clearTimeout(debounceTimeout)
+                const priceCents = priceToCents(e.target.value)
+                setValue(centsToPrice(priceCents))
+                field.onChange(priceCents)
+              }}
+            />
+          </div>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
         </Field>
       )}

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import { type Product } from './product/Product'
+import { type Product } from '../../product/Product'
 
 interface ProductListComponentProps {
   products: Product[]

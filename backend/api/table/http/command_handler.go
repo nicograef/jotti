@@ -16,10 +16,10 @@ type command interface {
 	UpdateTable(ctx context.Context, id int, name string) error
 	ActivateTable(ctx context.Context, id int) error
 	DeactivateTable(ctx context.Context, id int) error
-	PlaceTableOrder(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error
-	RegisterTablePayment(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error
-	CancelTableProducts(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error
-	DeliverTableProducts(ctx context.Context, userID int, tableID int, products []table.OrderProduct) error
+	PlaceTableOrder(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error
+	RegisterTablePayment(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error
+	CancelTableProducts(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error
+	DeliverTableProducts(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error
 }
 
 type CommandHandler struct {
@@ -138,6 +138,7 @@ func (h *CommandHandler) DeactivateTableHandler() http.HandlerFunc {
 type placeTableOrder struct {
 	TableID  int                  `json:"tableId"`
 	Products []table.OrderProduct `json:"products"`
+	Comment  string               `json:"comment"`
 }
 
 func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
@@ -148,7 +149,7 @@ func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
 		}
 
 		userID := r.Context().Value(middleware.UserIDKey).(int)
-		err := h.Command.PlaceTableOrder(r.Context(), userID, body.TableID, body.Products)
+		err := h.Command.PlaceTableOrder(r.Context(), userID, body.TableID, body.Products, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -161,6 +162,7 @@ func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
 type registerTablePayment struct {
 	TableID  int                  `json:"tableId"`
 	Products []table.OrderProduct `json:"products"`
+	Comment  string               `json:"comment"`
 }
 
 func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
@@ -171,7 +173,7 @@ func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
 		}
 
 		userID := r.Context().Value(middleware.UserIDKey).(int)
-		err := h.Command.RegisterTablePayment(r.Context(), userID, body.TableID, body.Products)
+		err := h.Command.RegisterTablePayment(r.Context(), userID, body.TableID, body.Products, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -184,6 +186,7 @@ func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
 type cancelTableProducts struct {
 	TableID  int                  `json:"tableId"`
 	Products []table.OrderProduct `json:"products"`
+	Comment  string               `json:"comment"`
 }
 
 func (h *CommandHandler) CancelTableProductsHandler() http.HandlerFunc {
@@ -194,7 +197,7 @@ func (h *CommandHandler) CancelTableProductsHandler() http.HandlerFunc {
 		}
 
 		userID := r.Context().Value(middleware.UserIDKey).(int)
-		err := h.Command.CancelTableProducts(r.Context(), userID, body.TableID, body.Products)
+		err := h.Command.CancelTableProducts(r.Context(), userID, body.TableID, body.Products, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -207,6 +210,7 @@ func (h *CommandHandler) CancelTableProductsHandler() http.HandlerFunc {
 type deliverTableProducts struct {
 	TableID  int                  `json:"tableId"`
 	Products []table.OrderProduct `json:"products"`
+	Comment  string               `json:"comment"`
 }
 
 func (h *CommandHandler) DeliverTableProductsHandler() http.HandlerFunc {
@@ -217,7 +221,7 @@ func (h *CommandHandler) DeliverTableProductsHandler() http.HandlerFunc {
 		}
 
 		userID := r.Context().Value(middleware.UserIDKey).(int)
-		err := h.Command.DeliverTableProducts(r.Context(), userID, body.TableID, body.Products)
+		err := h.Command.DeliverTableProducts(r.Context(), userID, body.TableID, body.Products, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return

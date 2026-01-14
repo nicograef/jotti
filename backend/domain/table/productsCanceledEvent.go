@@ -13,15 +13,17 @@ type productsCanceledV1Data struct {
 	CancelationID         string         `json:"cancelationId"` // UUID string
 	Products              []OrderProduct `json:"products"`
 	TotalCancelationCents int            `json:"totalCancelationCents"`
+	Comment               string         `json:"comment"`
 }
 
 var productsCanceledV1DataSchema = z.Struct(z.Shape{
 	"CancelationID":         z.String().UUID().Required(),
 	"Products":              z.Slice(orderProductSchema).Min(1).Required(),
 	"TotalCancelationCents": z.Int().GTE(0).Required(),
+	"Comment":               z.String().Max(100).Optional(),
 })
 
-func NewProductsCanceledEvent(userID, tableID int, products []OrderProduct) (e.Event, error) {
+func NewProductsCanceledEvent(userID, tableID int, products []OrderProduct, comment string) (e.Event, error) {
 	totalCancelationCents := 0
 	for _, product := range products {
 		totalCancelationCents += product.NetPriceCents * product.Quantity
@@ -31,6 +33,7 @@ func NewProductsCanceledEvent(userID, tableID int, products []OrderProduct) (e.E
 		CancelationID:         uuid.New().String(),
 		Products:              products,
 		TotalCancelationCents: totalCancelationCents,
+		Comment:               comment,
 	}
 
 	if err := productsCanceledV1DataSchema.Validate(&data); err != nil {
@@ -68,6 +71,7 @@ func buildCancelationFromEvent(event e.Event) (Cancelation, error) {
 		TableID:               tableID,
 		Products:              data.Products,
 		TotalCancelationCents: data.TotalCancelationCents,
+		Comment:               data.Comment,
 		CanceledAt:            event.Time,
 	}
 

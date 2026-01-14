@@ -13,12 +13,12 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
+import { useTableUnpaidProducts } from '../../table/hooks'
+import type { OrderProduct } from '../../table/Order'
+import type { Table } from '../../table/Table'
+import type { TableBackend } from '../../table/TableBackend'
 import { CancelationDrawer } from './CancelationDrawer'
 import { PaymentDrawer } from './PaymentDrawer'
-import { useTableUnpaidProducts } from './table/hooks'
-import type { OrderProduct } from './table/Order'
-import type { Table } from './table/Table'
-import type { TableBackend } from './table/TableBackend'
 
 interface PaymentProps {
   backend: Pick<TableBackend, 'registerTablePayment' | 'cancelTableProducts'>
