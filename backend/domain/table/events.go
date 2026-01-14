@@ -80,72 +80,67 @@ func GetHistoryFromEvents(events []e.Event) ([]any, error) {
 	return history, nil
 }
 
+// accumulateProducts adds products to a list, merging quantities for matching products
+func accumulateProducts(list []OrderProduct, products []OrderProduct) []OrderProduct {
+	for _, product := range products {
+		found := false
+		for i, existing := range list {
+			if existing.ID == product.ID && existing.NetPriceCents == product.NetPriceCents {
+				list[i].Quantity += product.Quantity
+				found = true
+				break
+			}
+		}
+		if !found {
+			list = append(list, product)
+		}
+	}
+	return list
+}
+
+// reduceProducts subtracts products from a list, removing entries when quantity reaches zero
+func reduceProducts(list []OrderProduct, products []OrderProduct) []OrderProduct {
+	for _, product := range products {
+		for i := 0; i < len(list); i++ {
+			if list[i].ID == product.ID && list[i].NetPriceCents == product.NetPriceCents {
+				if list[i].Quantity > product.Quantity {
+					list[i].Quantity -= product.Quantity
+				} else {
+					list = append(list[:i], list[i+1:]...)
+					i--
+				}
+				break
+			}
+		}
+	}
+	return list
+}
+
 func GetUnpaidProductsFromEvents(events []e.Event) ([]OrderProduct, error) {
 	unpaidProducts := []OrderProduct{}
 
 	for _, event := range events {
-		if event.Type == string(EventTypeOrderPlacedV1) {
+		switch event.Type {
+		case string(EventTypeOrderPlacedV1):
 			order, err := buildOrderFromEvent(event)
 			if err != nil {
-				return []OrderProduct{}, err
+				return nil, err
 			}
+			unpaidProducts = accumulateProducts(unpaidProducts, order.Products)
 
-			// accumulate quantities of unpaid products without duplicate product entries
-			for _, orderProduct := range order.Products {
-				found := false
-				for i, unpaidProd := range unpaidProducts {
-					if unpaidProd.ID == orderProduct.ID && unpaidProd.NetPriceCents == orderProduct.NetPriceCents {
-						unpaidProducts[i].Quantity += orderProduct.Quantity
-						found = true
-						break
-					}
-				}
-				if !found {
-					unpaidProducts = append(unpaidProducts, orderProduct)
-				}
-			}
-		} else if event.Type == string(EventTypePaymentRegisteredV1) {
+		case string(EventTypePaymentRegisteredV1):
 			payment, err := buildPaymentFromEvent(event)
 			if err != nil {
-				return []OrderProduct{}, err
+				return nil, err
 			}
+			unpaidProducts = reduceProducts(unpaidProducts, payment.Products)
 
-			// reduce quantities of paid products from unpaidProducts
-			for _, paidProduct := range payment.Products {
-				for i := 0; i < len(unpaidProducts); i++ {
-					if unpaidProducts[i].ID == paidProduct.ID && unpaidProducts[i].NetPriceCents == paidProduct.NetPriceCents {
-						if unpaidProducts[i].Quantity > paidProduct.Quantity {
-							unpaidProducts[i].Quantity -= paidProduct.Quantity
-						} else {
-							// remove product from unpaidProducts if fully paid
-							unpaidProducts = append(unpaidProducts[:i], unpaidProducts[i+1:]...)
-							i-- // adjust index after removal
-						}
-						break
-					}
-				}
-			}
-		} else if event.Type == string(EventTypeProductsCanceledV1) {
+		case string(EventTypeProductsCanceledV1):
 			cancelation, err := buildCancelationFromEvent(event)
 			if err != nil {
-				return []OrderProduct{}, err
+				return nil, err
 			}
-
-			// reduce quantities of canceled products from unpaidProducts
-			for _, canceledProduct := range cancelation.Products {
-				for i := 0; i < len(unpaidProducts); i++ {
-					if unpaidProducts[i].ID == canceledProduct.ID && unpaidProducts[i].NetPriceCents == canceledProduct.NetPriceCents {
-						if unpaidProducts[i].Quantity > canceledProduct.Quantity {
-							unpaidProducts[i].Quantity -= canceledProduct.Quantity
-						} else {
-							// remove product from unpaidProducts if fully paid
-							unpaidProducts = append(unpaidProducts[:i], unpaidProducts[i+1:]...)
-							i-- // adjust index after removal
-						}
-						break
-					}
-				}
-			}
+			unpaidProducts = reduceProducts(unpaidProducts, cancelation.Products)
 		}
 	}
 
@@ -156,47 +151,27 @@ func GetUndeliveredProductsFromEvents(events []e.Event) ([]OrderProduct, error) 
 	undeliveredProducts := []OrderProduct{}
 
 	for _, event := range events {
-		if event.Type == string(EventTypeOrderPlacedV1) {
+		switch event.Type {
+		case string(EventTypeOrderPlacedV1):
 			order, err := buildOrderFromEvent(event)
 			if err != nil {
-				return []OrderProduct{}, err
+				return nil, err
 			}
+			undeliveredProducts = accumulateProducts(undeliveredProducts, order.Products)
 
-			// accumulate quantities of undelivered products without duplicate product entries
-			for _, orderProduct := range order.Products {
-				found := false
-				for i, undeliveredProd := range undeliveredProducts {
-					if undeliveredProd.ID == orderProduct.ID && undeliveredProd.NetPriceCents == orderProduct.NetPriceCents {
-						undeliveredProducts[i].Quantity += orderProduct.Quantity
-						found = true
-						break
-					}
-				}
-				if !found {
-					undeliveredProducts = append(undeliveredProducts, orderProduct)
-				}
-			}
-		} else if event.Type == string(EventTypeProductsDeliveredV1) {
+		case string(EventTypeProductsDeliveredV1):
 			delivery, err := buildDeliveryFromEvent(event)
 			if err != nil {
-				return []OrderProduct{}, err
+				return nil, err
 			}
+			undeliveredProducts = reduceProducts(undeliveredProducts, delivery.Products)
 
-			// reduce quantities of delivered products from undeliveredProducts
-			for _, deliveredProduct := range delivery.Products {
-				for i := 0; i < len(undeliveredProducts); i++ {
-					if undeliveredProducts[i].ID == deliveredProduct.ID && undeliveredProducts[i].NetPriceCents == deliveredProduct.NetPriceCents {
-						if undeliveredProducts[i].Quantity > deliveredProduct.Quantity {
-							undeliveredProducts[i].Quantity -= deliveredProduct.Quantity
-						} else {
-							// remove product from undeliveredProducts if fully delivered
-							undeliveredProducts = append(undeliveredProducts[:i], undeliveredProducts[i+1:]...)
-							i-- // adjust index after removal
-						}
-						break
-					}
-				}
+		case string(EventTypeProductsCanceledV1):
+			cancelation, err := buildCancelationFromEvent(event)
+			if err != nil {
+				return nil, err
 			}
+			undeliveredProducts = reduceProducts(undeliveredProducts, cancelation.Products)
 		}
 	}
 
