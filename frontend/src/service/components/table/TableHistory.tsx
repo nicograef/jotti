@@ -19,15 +19,15 @@ import {
   ItemGroup,
   ItemTitle,
 } from '@/components/ui/item'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 
 import type { Cancelation } from '../../table/Cancelation'
 import type { Delivery } from '../../table/Delivery'
 import { useTableHistory } from '../../table/hooks'
-import type { Order } from '../../table/Order'
+import type { Order, OrderProduct } from '../../table/Order'
 import type { Payment } from '../../table/Payment'
 import { Comment } from './CommentField'
+import { Receipt } from './Receipt'
 
 interface TableHistoryProps {
   tableId: number
@@ -83,61 +83,64 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
             ))
           : history.map((item) => {
               if (Object.prototype.hasOwnProperty.call(item, 'registeredAt')) {
+                const payment = item as Payment
                 return (
-                  <PaymentItem
+                  <HistoryItem
                     key={item.id}
-                    payment={item as Payment}
-                    userId={userId}
+                    title={`Zahlung -${(payment.totalPaymentCents / 100).toFixed(2)} €`}
+                    date={payment.registeredAt}
+                    isFromUser={userId === payment.userId}
+                    comment={payment.comment}
                     onClick={() => {
-                      setPayment({
-                        payment: item as Payment,
-                        open: true,
-                      })
+                      setPayment({ payment, open: true })
                     }}
                   />
                 )
               } else if (
                 Object.prototype.hasOwnProperty.call(item, 'placedAt')
               ) {
+                const order = item as Order
                 return (
-                  <OrderItem
+                  <HistoryItem
                     key={item.id}
-                    order={item as Order}
-                    userId={userId}
+                    title={`Bestellung +${(order.totalPriceCents / 100).toFixed(2)} €`}
+                    date={order.placedAt}
+                    isFromUser={userId === order.userId}
+                    comment={order.comment}
                     onClick={() => {
-                      setOrder({ order: item as Order, open: true })
+                      setOrder({ order, open: true })
                     }}
                   />
                 )
               } else if (
                 Object.prototype.hasOwnProperty.call(item, 'canceledAt')
               ) {
+                const cancelation = item as Cancelation
                 return (
-                  <CancelationItem
+                  <HistoryItem
                     key={item.id}
-                    cancelation={item as Cancelation}
-                    userId={userId}
+                    title={`Stornierung -${(cancelation.totalCancelationCents / 100).toFixed(2)} €`}
+                    date={cancelation.canceledAt}
+                    isFromUser={userId === cancelation.userId}
+                    comment={cancelation.comment}
                     onClick={() => {
-                      setCancelation({
-                        cancelation: item as Cancelation,
-                        open: true,
-                      })
+                      setCancelation({ cancelation, open: true })
                     }}
                   />
                 )
               } else if (
                 Object.prototype.hasOwnProperty.call(item, 'deliveredAt')
               ) {
+                const delivery = item as Delivery
                 return (
-                  <DeliveryItem
+                  <HistoryItem
                     key={item.id}
-                    delivery={item as Delivery}
-                    userId={userId}
+                    title="Auslieferung"
+                    date={delivery.deliveredAt}
+                    isFromUser={userId === delivery.userId}
+                    comment={delivery.comment}
                     onClick={() => {
-                      setDelivery({
-                        delivery: item as Delivery,
-                        open: true,
-                      })
+                      setDelivery({ delivery, open: true })
                     }}
                   />
                 )
@@ -146,177 +149,94 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
               }
             })}
       </ItemGroup>
-      <OrderDetails
-        order={order.order}
-        userId={userId}
-        open={order.open}
-        onClose={() => {
-          setOrder(initialOrderState)
-        }}
-      />
-      <PaymentDetails
-        payment={payment.payment}
-        userId={userId}
-        open={payment.open}
-        onClose={() => {
-          setPayment(initialPaymentState)
-        }}
-      />
-      <CancelationDetails
-        cancelation={cancelation.cancelation}
-        userId={userId}
-        open={cancelation.open}
-        onClose={() => {
-          setCancelation(initialCancelationState)
-        }}
-      />
-      <DeliveryDetails
-        delivery={delivery.delivery}
-        userId={userId}
-        open={delivery.open}
-        onClose={() => {
-          setDelivery(initialDeliveryState)
-        }}
-      />
+      {order.order && (
+        <Details
+          title="Bestellung"
+          id={order.order.id}
+          isFromUser={userId === order.order.userId}
+          open={order.open}
+          onClose={() => {
+            setOrder(initialOrderState)
+          }}
+          date={order.order.placedAt}
+          comment={order.order.comment}
+          products={order.order.products}
+          totalPrice={order.order.totalPriceCents}
+        />
+      )}
+      {payment.payment && (
+        <Details
+          title="Zahlung"
+          id={payment.payment.id}
+          isFromUser={userId === payment.payment.userId}
+          open={payment.open}
+          onClose={() => {
+            setPayment(initialPaymentState)
+          }}
+          date={payment.payment.registeredAt}
+          comment={payment.payment.comment}
+          products={payment.payment.products}
+          totalPrice={payment.payment.totalPaymentCents}
+        />
+      )}
+      {cancelation.cancelation && (
+        <Details
+          title="Stornierung"
+          id={cancelation.cancelation.id}
+          isFromUser={userId === cancelation.cancelation.userId}
+          open={cancelation.open}
+          onClose={() => {
+            setCancelation(initialCancelationState)
+          }}
+          date={cancelation.cancelation.canceledAt}
+          comment={cancelation.cancelation.comment}
+          products={cancelation.cancelation.products}
+          totalPrice={cancelation.cancelation.totalCancelationCents}
+        />
+      )}
+      {delivery.delivery && (
+        <Details
+          title="Auslieferung"
+          id={delivery.delivery.id}
+          isFromUser={userId === delivery.delivery.userId}
+          open={delivery.open}
+          onClose={() => {
+            setDelivery(initialDeliveryState)
+          }}
+          date={delivery.delivery.deliveredAt}
+          comment={delivery.delivery.comment}
+          products={delivery.delivery.products}
+        />
+      )}
     </>
   )
 }
 
-function OrderItem({
-  order,
-  userId,
+function HistoryItem({
+  title,
+  date,
+  isFromUser,
+  comment,
   onClick,
 }: {
-  order: Order
-  userId: number | null
+  title: string
+  date: string
+  isFromUser: boolean
+  comment: string
   onClick: () => void
 }) {
   return (
-    <Item
-      variant="outline"
-      className={userId === order.userId ? 'border-primary' : ''}
-    >
+    <Item variant="outline" className={isFromUser ? 'border-primary' : ''}>
       <ItemContent>
-        <ItemTitle>
-          Bestellung +{(order.totalPriceCents / 100).toFixed(2)}&nbsp;€
-        </ItemTitle>
+        <ItemTitle>{title}</ItemTitle>
         <ItemDescription>
-          {new Date(order.placedAt).toLocaleString()}
-          {order.comment && (
+          {new Date(date).toLocaleString()}
+          {comment && (
             <>
               <br />
-              {order.comment}
+              {comment}
             </>
           )}
-        </ItemDescription>
-      </ItemContent>
-      <ItemActions>
-        <Button
-          size="icon-sm"
-          variant="outline"
-          className="rounded-full cursor-pointer"
-          aria-label="Details anzeigen"
-          onClick={onClick}
-        >
-          <Eye />
-        </Button>
-      </ItemActions>
-    </Item>
-  )
-}
-
-function PaymentItem({
-  payment,
-  userId,
-  onClick,
-}: {
-  payment: Payment
-  userId: number | null
-  onClick: () => void
-}) {
-  return (
-    <Item variant="outline">
-      <ItemContent>
-        <ItemTitle>
-          Zahlung -{(payment.totalPaymentCents / 100).toFixed(2)}
-          &nbsp;€
-        </ItemTitle>
-        <ItemDescription>
-          {new Date(payment.registeredAt).toLocaleString()}
-          {userId === payment.userId ? <>&nbsp; &ndash; &nbsp;von Dir</> : ''}
-        </ItemDescription>
-      </ItemContent>
-      <ItemActions>
-        <Button
-          size="icon-sm"
-          variant="outline"
-          className="rounded-full cursor-pointer"
-          aria-label="Details anzeigen"
-          onClick={onClick}
-        >
-          <Eye />
-        </Button>
-      </ItemActions>
-    </Item>
-  )
-}
-
-function CancelationItem({
-  cancelation,
-  userId,
-  onClick,
-}: {
-  cancelation: Cancelation
-  userId: number | null
-  onClick: () => void
-}) {
-  return (
-    <Item variant="outline">
-      <ItemContent>
-        <ItemTitle>
-          Stornierung -{(cancelation.totalCancelationCents / 100).toFixed(2)}
-          &nbsp;€
-        </ItemTitle>
-        <ItemDescription>
-          {new Date(cancelation.canceledAt).toLocaleString()}
-          {userId === cancelation.userId ? (
-            <>&nbsp; &ndash; &nbsp;von Dir</>
-          ) : (
-            ''
-          )}
-        </ItemDescription>
-      </ItemContent>
-      <ItemActions>
-        <Button
-          size="icon-sm"
-          variant="outline"
-          className="rounded-full cursor-pointer"
-          aria-label="Details anzeigen"
-          onClick={onClick}
-        >
-          <Eye />
-        </Button>
-      </ItemActions>
-    </Item>
-  )
-}
-
-function DeliveryItem({
-  delivery,
-  userId,
-  onClick,
-}: {
-  delivery: Delivery
-  userId: number | null
-  onClick: () => void
-}) {
-  return (
-    <Item variant="outline">
-      <ItemContent>
-        <ItemTitle>Auslieferung</ItemTitle>
-        <ItemDescription>
-          {new Date(delivery.deliveredAt).toLocaleString()}
-          {userId === delivery.userId ? <>&nbsp; &ndash; &nbsp;von Dir</> : ''}
         </ItemDescription>
       </ItemContent>
       <ItemActions>
@@ -350,161 +270,27 @@ function ItemSkeleton() {
   )
 }
 
-interface OrderDetailsProps {
-  order: Order | null
-  userId: number | null
-  open: boolean
-  onClose: () => void
-}
-
-function OrderDetails({ order, userId, open, onClose }: OrderDetailsProps) {
-  if (!order) return null
-
-  return (
-    <Drawer
-      open={open}
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
-    >
-      <DrawerContent>
-        <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader>
-            <DrawerTitle>
-              Bestellung {order.id.slice(0, 8)}
-              {userId === order.userId ? ' von Dir' : ''}
-            </DrawerTitle>
-            <DrawerDescription>
-              Aufgegeben am {new Date(order.placedAt).toLocaleDateString()} um{' '}
-              {new Date(order.placedAt).toLocaleTimeString()} Uhr
-            </DrawerDescription>
-          </DrawerHeader>
-          <ScrollArea className="max-h-50 inset-shadow-sm">
-            <div className="px-4 pt-2 pb-0 space-y-2">
-              {order.products.map((product) => {
-                return (
-                  <div
-                    key={product.id}
-                    className="flex justify-between border-b pb-2 last:border-0"
-                  >
-                    <div>
-                      {product.quantity} x {product.name}
-                    </div>
-                    <div>
-                      €{' '}
-                      {(
-                        (product.netPriceCents / 100) *
-                        product.quantity
-                      ).toFixed(2)}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </ScrollArea>
-          <div className="flex justify-between font-bold px-4 pt-2 pb-4 border-t-2">
-            <div>Gesamt</div>
-            <div>€ {(order.totalPriceCents / 100).toFixed(2)}</div>
-          </div>
-          <div className="px-4">
-            <Comment value={order.comment} />
-          </div>
-          <DrawerFooter>
-            <DrawerClose asChild>
-              <Button variant="outline">Schließen</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </div>
-      </DrawerContent>
-    </Drawer>
-  )
-}
-
-interface PaymentDetailsProps {
-  payment: Payment | null
-  userId: number | null
-  open: boolean
-  onClose: () => void
-}
-
-function PaymentDetails({
-  payment,
-  userId,
+function Details({
   open,
   onClose,
-}: PaymentDetailsProps) {
-  if (!payment) return null
-
-  return (
-    <Drawer
-      open={open}
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
-    >
-      <DrawerContent>
-        <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader>
-            <DrawerTitle>
-              Zahlung {payment.id.slice(0, 8)}{' '}
-              {userId === payment.userId ? ' von Dir' : ''}
-            </DrawerTitle>
-            <DrawerDescription>
-              Registriert am{' '}
-              {new Date(payment.registeredAt).toLocaleDateString()} um{' '}
-              {new Date(payment.registeredAt).toLocaleTimeString()} Uhr
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="p-4 space-y-2">
-            {payment.products.map((product) => {
-              return (
-                <div
-                  key={product.id}
-                  className="flex justify-between border-b pb-2"
-                >
-                  <div>
-                    {product.quantity} x {product.name}
-                  </div>
-                  <div>
-                    €{' '}
-                    {((product.netPriceCents / 100) * product.quantity).toFixed(
-                      2,
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-            <div className="flex justify-between font-bold pt-2">
-              <div>Gesamt</div>
-              <div>€ {(payment.totalPaymentCents / 100).toFixed(2)}</div>
-            </div>
-          </div>
-          <DrawerFooter>
-            <DrawerClose asChild>
-              <Button variant="outline">Schließen</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </div>
-      </DrawerContent>
-    </Drawer>
-  )
-}
-
-interface CancelationDetailsProps {
-  cancelation: Cancelation | null
-  userId: number | null
+  title,
+  id,
+  date,
+  isFromUser,
+  comment,
+  products,
+  totalPrice,
+}: {
   open: boolean
   onClose: () => void
-}
-
-function CancelationDetails({
-  cancelation,
-  userId,
-  open,
-  onClose,
-}: CancelationDetailsProps) {
-  if (!cancelation) return null
-
+  title: string
+  id: string
+  date: string
+  isFromUser: boolean
+  comment: string
+  products: OrderProduct[]
+  totalPrice?: number
+}) {
   return (
     <Drawer
       open={open}
@@ -516,100 +302,20 @@ function CancelationDetails({
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
             <DrawerTitle>
-              Stornierung {cancelation.id.slice(0, 8)}{' '}
-              {userId === cancelation.userId ? ' von Dir' : ''}
+              {title} {id.slice(0, 8)}
             </DrawerTitle>
             <DrawerDescription>
-              Getätigt am{' '}
-              {new Date(cancelation.canceledAt).toLocaleDateString()} um{' '}
-              {new Date(cancelation.canceledAt).toLocaleTimeString()} Uhr
+              {isFromUser ? 'Du am ' : ''}
+              {new Date(date).toLocaleDateString()} um{' '}
+              {new Date(date).toLocaleTimeString()} Uhr
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-4 space-y-2">
-            {cancelation.products.map((product) => {
-              return (
-                <div
-                  key={product.id}
-                  className="flex justify-between border-b pb-2"
-                >
-                  <div>
-                    {product.quantity} x {product.name}
-                  </div>
-                  <div>
-                    €{' '}
-                    {((product.netPriceCents / 100) * product.quantity).toFixed(
-                      2,
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-            <div className="flex justify-between font-bold pt-2">
-              <div>Gesamt</div>
-              <div>
-                € {(cancelation.totalCancelationCents / 100).toFixed(2)}
-              </div>
+          <Receipt products={products} totalPrice={totalPrice} />
+          {comment && (
+            <div className="px-4">
+              <Comment value={comment} />
             </div>
-          </div>
-          <DrawerFooter>
-            <DrawerClose asChild>
-              <Button variant="outline">Schließen</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </div>
-      </DrawerContent>
-    </Drawer>
-  )
-}
-
-interface DeliveryDetailsProps {
-  delivery: Delivery | null
-  userId: number | null
-  open: boolean
-  onClose: () => void
-}
-
-function DeliveryDetails({
-  delivery,
-  userId,
-  open,
-  onClose,
-}: DeliveryDetailsProps) {
-  if (!delivery) return null
-
-  return (
-    <Drawer
-      open={open}
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
-    >
-      <DrawerContent>
-        <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader>
-            <DrawerTitle>
-              Auslieferung {delivery.id.slice(0, 8)}{' '}
-              {userId === delivery.userId ? ' von Dir' : ''}
-            </DrawerTitle>
-            <DrawerDescription>
-              Getätigt am {new Date(delivery.deliveredAt).toLocaleDateString()}{' '}
-              um {new Date(delivery.deliveredAt).toLocaleTimeString()} Uhr
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="p-4 space-y-2">
-            {delivery.products.map((product) => {
-              return (
-                <div
-                  key={product.id}
-                  className="flex justify-between border-b pb-2"
-                >
-                  <div>
-                    {product.quantity} x {product.name}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          )}
           <DrawerFooter>
             <DrawerClose asChild>
               <Button variant="outline">Schließen</Button>

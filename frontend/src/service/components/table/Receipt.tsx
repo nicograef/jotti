@@ -6,7 +6,7 @@ export function Receipt({
   totalPrice,
 }: {
   products: OrderProduct[]
-  totalPrice: number
+  totalPrice?: number
 }) {
   return (
     <>
@@ -35,8 +35,12 @@ export function Receipt({
         </div>
       </ScrollArea>
       <div className="flex justify-between font-bold px-4 pt-2 pb-4 border-t-2">
-        <div>Gesamt</div>
-        <div>€ {(totalPrice / 100).toFixed(2)}</div>
+        {totalPrice !== undefined && (
+          <>
+            <div>Gesamt</div>
+            <div>€ {(totalPrice / 100).toFixed(2)}</div>
+          </>
+        )}
       </div>
     </>
   )

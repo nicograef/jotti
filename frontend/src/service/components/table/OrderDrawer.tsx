@@ -32,12 +32,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [comment, setComment] = useState('')
-  const orderedProducts = [
-    ...orderProducts(props.products, props.quantities),
-    // ...orderProducts(props.products, props.quantities),
-    // ...orderProducts(props.products, props.quantities),
-    // ...orderProducts(props.products, props.quantities),
-  ]
+  const orderedProducts = orderProducts(props.products, props.quantities)
   const totalPrice = calculateTotalPrice(orderedProducts)
   const noProductsSelected = orderedProducts.length === 0
 

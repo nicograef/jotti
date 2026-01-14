@@ -16,6 +16,8 @@ import { Spinner } from '@/components/ui/spinner'
 import type { OrderProduct } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
+import { CommentField } from './CommentField'
+import { Receipt } from './Receipt'
 
 interface PaymentDrawerProps {
   backend: Pick<TableBackend, 'registerTablePayment'>
@@ -28,10 +30,8 @@ interface PaymentDrawerProps {
 export function PaymentDrawer(props: PaymentDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const productsToPay = buildOrderProducts(
-    props.unpaidProducts,
-    props.quantities,
-  )
+  const [comment, setComment] = useState('')
+  const productsToPay = orderProducts(props.unpaidProducts, props.quantities)
   const totalPrice = calculateTotalPrice(productsToPay)
   const noProductsSelected = productsToPay.length === 0
 
@@ -42,6 +42,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
       await props.backend.registerTablePayment({
         tableId: props.table.id,
         products: productsToPay,
+        comment: comment,
       })
       props.paymentRegistered()
       setOpen(false)
@@ -78,29 +79,13 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
               Überprüfe deine Zahlung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-4 space-y-2">
-            {productsToPay.map((product) => {
-              return (
-                <div
-                  key={product.id}
-                  className="flex justify-between border-b pb-2"
-                >
-                  <div>
-                    {product.quantity} x {product.name}
-                  </div>
-                  <div>
-                    €{' '}
-                    {((product.netPriceCents / 100) * product.quantity).toFixed(
-                      2,
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-            <div className="flex justify-between font-bold pt-2">
-              <div>Gesamt</div>
-              <div>€ {(totalPrice / 100).toFixed(2)}</div>
-            </div>
+          <Receipt products={productsToPay} totalPrice={totalPrice} />
+          <div className="px-4">
+            <CommentField
+              onChange={(value) => {
+                setComment(value)
+              }}
+            />
           </div>
           <DrawerFooter>
             <Button
@@ -123,7 +108,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
   )
 }
 
-function buildOrderProducts(
+function orderProducts(
   products: OrderProduct[],
   selectedQuantity: Record<number, number>,
 ): OrderProduct[] {

@@ -17,6 +17,7 @@ import type { OrderProduct } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { CommentField } from './CommentField'
+import { Receipt } from './Receipt'
 
 interface CancelationDrawerProps {
   backend: Pick<TableBackend, 'cancelTableProducts'>
@@ -30,10 +31,7 @@ export function CancelationDrawer(props: CancelationDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [comment, setComment] = useState('')
-  const productsToCancel = buildOrderProducts(
-    props.unpaidProducts,
-    props.quantities,
-  )
+  const productsToCancel = orderProducts(props.unpaidProducts, props.quantities)
   const totalPrice = calculateTotalPrice(productsToCancel)
   const noProductsSelected = productsToCancel.length === 0
 
@@ -82,30 +80,7 @@ export function CancelationDrawer(props: CancelationDrawerProps) {
               Sollen diese Produkte wirklich storniert werden?
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-4 space-y-2">
-            {productsToCancel.map((product) => {
-              return (
-                <div
-                  key={product.id}
-                  className="flex justify-between border-b pb-2"
-                >
-                  <div>
-                    {product.quantity} x {product.name}
-                  </div>
-                  <div>
-                    €{' '}
-                    {((product.netPriceCents / 100) * product.quantity).toFixed(
-                      2,
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-            <div className="flex justify-between font-bold pt-2">
-              <div>Gesamt</div>
-              <div>€ {(totalPrice / 100).toFixed(2)}</div>
-            </div>
-          </div>
+          <Receipt products={productsToCancel} totalPrice={totalPrice} />
           <div className="px-4">
             <CommentField
               onChange={(value) => {
@@ -135,7 +110,7 @@ export function CancelationDrawer(props: CancelationDrawerProps) {
   )
 }
 
-function buildOrderProducts(
+function orderProducts(
   products: OrderProduct[],
   selectedQuantity: Record<number, number>,
 ): OrderProduct[] {
