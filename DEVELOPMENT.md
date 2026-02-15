@@ -115,3 +115,9 @@ GitHub Actions CI (`ci.yml`) führt bei Push/PR auf `main` aus:
 - **Frontend**: `pnpm lint`, `pnpm build`
 
 Nur geänderte Pfade werden getestet (via `dorny/paths-filter`).
+
+## Anforderungen & Roadmap
+
+Der vollständige Anforderungskatalog mit 50 Anforderungen (21 umgesetzt, 2 teilweise, 27 offen) liegt in `ANFORDERUNGEN.md`. Dort finden sich auch konkrete Implementierungsvorschläge für jede offene Anforderung.
+
+Für Kodier-Agenten sind die wichtigsten Architekturhinweise und offenen Features in `AGENTS.md` und `.github/copilot-instructions.md` zusammengefasst.

@@ -8,14 +8,45 @@ Eine Webapp, die auf jedem Smartphone läuft. Servicekräfte nehmen Bestellungen
 
 ## Features
 
+### ✅ Umgesetzt (21 von 50 Anforderungen)
+
 - **Bestellungen** auf Tische buchen (Produkte mit Varianten und Mengen auswählen)
 - **Lieferungen** als ausgeliefert markieren
-- **Bezahlungen** für offene Positionen registrieren
-- **Stornierungen** von Positionen
+- **Bezahlungen** für offene Positionen registrieren (Teilzahlung möglich)
+- **Stornierungen** von Positionen (aktuell für beide Rollen, soll nur Admin sein)
 - **Tisch-Übersicht**: offener Saldo, unbezahlte und ungelieferte Positionen, Verlauf aller Aktionen
 - **Admin-Bereich**: Produkte (mit Varianten, Preisen, Kategorien), Tische und Benutzer verwalten
 - **Rollen**: `admin` (Vollzugriff) und `service` (Bestell-/Kassierbetrieb)
 - **Authentifizierung**: JWT (12h Gültigkeit), Einmalpasswort-Onboarding, Argon2id-Hashing
+- **Kommentar/Notiz** pro Bestellvorgang (max. 100 Zeichen)
+- **Produktvarianten** (z. B. Pommes mit Ketchup/Soße)
+
+### 🔧 Teilweise umgesetzt (2)
+
+- **Produktkategorien in Service-UI (#21)**: Kategorie im Datenmodell vorhanden (`food`, `beverage`, `other`), UI zeigt flache Liste
+- **Stornierung nur für Admins (#22)**: Stornierung steht beiden Rollen offen, Rollenprüfung fehlt
+
+### ❌ Nächste offene Must-haves
+
+| #   | Anforderung                              |
+| --- | ---------------------------------------- |
+| 23  | Tisch-Schnellsuche per Shortcut          |
+| 24  | Übersicht eigene Bestellungen mit Status |
+| 25  | Bestellungen auf anderen Tisch umbuchen  |
+| 26  | Umsatz pro Bediener (Tagesabrechnung)    |
+| 27  | Bons drucken (formatiert)                |
+| 31  | Freibon mit freier Preiseingabe          |
+| 33  | Offline-Fähigkeit                        |
+
+### Nice-to-haves
+
+- Rückgeldberechnung (#37)
+- Freitext-Notiz pro Position (#42)
+- Bezeichnung/Name pro Bestellung (#36)
+- Reporting und Datenexport (#38–40)
+- Zubereitungsstatus einsehen (#35)
+
+Der vollständige Anforderungskatalog (50 Anforderungen) mit Implementierungsvorschlägen liegt in `ANFORDERUNGEN.md`.
 
 ## Architektur
 
@@ -62,11 +93,3 @@ reverse-proxy/    nginx-Konfigurationen (dev, staging, production)
 - Steuern/Mehrwertsteuer: mehrere Sätze pro Produkt? Brutto/Netto-Preise, Rundung?
 - Dynamische Preise (Happy Hour, Event-spezifisch), Rabatte/Aktionen, Gratisartikel?
 - Ausverkauft: manuell gesetzt vs. Bestandsführung?
-
-## Ideen für spätere Weiterentwicklungen
-
-- Belegdruck: Küchen-/Bontickets, Re-Druck, Drucker pro Bereich?
-- Stornierung: Benutzer können Bestellungen innerhalb von einer Minute stornieren. Danach sind Bestellungen final.
-- Workflows: Tische zusammenlegen/teilen, Positionen zwischen Tischen verschieben, umbenennen, schließen/wieder öffnen?
-- Offline‑First: Bestellungen und Bezahlungen müssen bei Verbindungsproblemen (z. B. Zeltfest mit schwachem Internet) lokal gepuffert und asynchron an den Server gesendet werden.
-- Optionen für Produkte wie Beispielsweise "mit Soße".

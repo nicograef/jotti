@@ -13,6 +13,27 @@ jotti ist ein Bestell- und Kassensystem für Vereine. Single-Tenant Webapp deplo
 
 ## Bereiche: Admin vs. Service
 
+### Projektstand & Anforderungen
+
+Der vollständige Anforderungskatalog liegt in `ANFORDERUNGEN.md` (50 Anforderungen: 21 umgesetzt, 2 teilweise, 27 offen).
+
+**Bekannte teilweise Umsetzungen:**
+
+- **Produktkategorien in Service-UI (#21)**: `ProductCategory` existiert im Datenmodell, aber `ProductList.tsx` zeigt flache Liste. → Nach `category` gruppieren.
+- **Stornierung nur für Admins (#22)**: `cancel-table-variants` ist für beide Rollen offen. → Rollenprüfung einbauen, Frontend: Stornierungstab nur für Admins.
+
+**Nächste offene Must-haves (siehe `ANFORDERUNGEN.md` für Details):**
+
+- #23 Tisch-Schnellsuche (FAB/Suchfeld in `TableSelectionPage.tsx`)
+- #24 Übersicht eigene Bestellungen (`POST /service/get-user-orders`)
+- #25 Tisch-Umbuchung (neuer Event-Typ `table.order-transferred:v1`)
+- #26 Umsatz pro Bediener (`POST /admin/get-revenue-by-user`)
+- #27 Bondruck (ESC/POS oder Web-Print mit Print-CSS)
+- #31 Freibon mit freier Preiseingabe
+- #33 Offline-Fähigkeit (`vite-plugin-pwa`, Service Worker, IndexedDB-Queue)
+
+**Nice-to-haves:** Rückgeldberechnung (#37), Freitext-Notiz pro Position (#42), Label pro Bestellung (#36), Reporting/Export (#38–40).
+
 ### Admin (`/admin/*`) — nur Rolle `admin`
 
 Verwaltung: Produkte + Varianten, Tische, Benutzer. Backend-Routen in `api/admin.go`, Frontend unter `src/admin/`.
@@ -54,6 +75,12 @@ repository/<domain>_repo/ → SQL-Persistenz (pgx)
 - `table.variants-delivered:v1` — Varianten ausgeliefert
 - `table.variants-canceled:v1` — Varianten storniert
 - `table.snapshot:v1` — Materialisierter Snapshot
+
+### Geplante Event-Typen (noch nicht implementiert)
+
+- `table.order-transferred:v1` — Bestellung auf anderen Tisch umbucht (Anforderung #25)
+- `table.variants-prepared:v1` — Varianten zubereitet / abholbereit (Anforderung #35, #45)
+- `table.variants-status-changed:v1` — Zubereitungsstatus geändert (Anforderung #46)
 
 ### Event-Subject-Format
 

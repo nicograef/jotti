@@ -15,6 +15,43 @@ jotti ist ein Bestell- und Kassensystem für Vereine und Nonprofit-Veranstaltung
 | Datenbank     | PostgreSQL 17, `golang-migrate`                                             |
 | Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                          |
 
+## Projektstand & Anforderungen
+
+Der vollständige Anforderungskatalog mit Implementierungsvorschlägen liegt in `ANFORDERUNGEN.md`. Aktueller Stand:
+
+| Status       | Anzahl |
+| ------------ | ------ |
+| ✅ Umgesetzt | 21     |
+| 🔧 Teilweise | 2      |
+| ❌ Offen     | 27     |
+| **Gesamt**   | **50** |
+
+### Bekannte teilweise Umsetzungen
+
+- **Produktkategorien in Service-UI (#21)**: `ProductCategory` (food, beverage, other) existiert im Datenmodell, aber `ProductList.tsx` zeigt eine flache, ungruppierte Liste. → Produkte nach `category` gruppieren und mit Überschriften rendern.
+- **Stornierung nur für Admins (#22)**: `cancel-table-variants` ist für beide Rollen (`admin` + `service`) zugänglich. Laut Anforderung darf nur `admin` stornieren. → Rollenprüfung im Backend-Endpunkt oder separate Admin-Route. Frontend: Stornierungstab nur für Admins anzeigen.
+
+### Nächste offene Must-haves
+
+| #   | Anforderung                              | Implementierungshinweise                                                                                                    |
+| --- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 23  | Tisch-Schnellsuche per Shortcut          | FAB oder Suchfeld in `TableSelectionPage.tsx`, filtert Tischliste oder navigiert direkt zu `/service/table/:id`             |
+| 24  | Übersicht eigene Bestellungen mit Status | Neue Service-Seite `/service/orders`, neuer Endpunkt `POST /service/get-user-orders` (Events nach `user_id` aggregieren)    |
+| 25  | Bestellungen auf anderen Tisch umbuchen  | Neuer Event-Typ `table.order-transferred:v1`, Endpunkt `POST /service/transfer-table-order` (Storno + Order in Transaktion) |
+| 26  | Umsatz pro Bediener (Tagesabrechnung)    | Neuer Admin-Endpunkt `POST /admin/get-revenue-by-user`, `payment-registered`-Events nach `user_id` aggregieren              |
+| 27  | Bons drucken (formatiert)                | ESC/POS oder Web-Print (`window.print()` mit Print-CSS für 58mm/80mm), `Receipt.tsx` als Vorlage                            |
+| 31  | Freibon mit freier Preiseingabe          | Spezielle Position mit `variant_id = null` + eigenem Preis/Bezeichnung im Event-Data, oder Freibon-Variante                 |
+| 33  | Offline-Fähigkeit                        | `vite-plugin-pwa`, Service Worker, IndexedDB-Queue, Cache-Invalidation — hohe Komplexität                                   |
+
+### Offene Nice-to-haves
+
+- **Rückgeldberechnung (#37)**: Rein clientseitig im `PaymentDrawer` — Eingabefeld "Erhalten", Anzeige Rückgeld.
+- **Freitext-Notiz pro Position (#42)**: `LineItem`-Struct um `note: string` erweitern, in `ProductList.tsx` Notiz-Icon pro Variante.
+- **Bezeichnung/Name pro Bestellung (#36)**: Optionales `label`-Feld in `OrderPlacedEvent.data`, Textfeld im OrderDrawer.
+- **Reporting (#38–40)**: Admin-Seite "Tagesabrechnung" mit Umsatz pro Bediener, Gesamtumsatz, CSV/Excel-Export.
+
+Details und vollständige Implementierungsvorschläge: siehe `ANFORDERUNGEN.md`.
+
 ## Wichtige Regeln
 
 1. **Alle API-Endpunkte sind POST-only.** Keine GET/PUT/DELETE.
@@ -142,6 +179,14 @@ Events für Tisch-Operationen. Subject-Format: `"table:<id>"`.
 | `table.snapshot:v1`           | Materialisierter Snapshot |
 
 State wird durch Replay aller Events rekonstruiert. Snapshots optimieren Lesezugriffe.
+
+### Geplante Event-Typen (noch nicht implementiert)
+
+| Event-Typ                          | Beschreibung                         | Anforderung |
+| ---------------------------------- | ------------------------------------ | ----------- |
+| `table.order-transferred:v1`       | Bestellung auf anderen Tisch umbucht | #25         |
+| `table.variants-prepared:v1`       | Varianten zubereitet / abholbereit   | #35, #45    |
+| `table.variants-status-changed:v1` | Zubereitungsstatus geändert          | #46         |
 
 ## Datenbank-Schema
 
