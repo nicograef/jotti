@@ -1,212 +1,117 @@
-## Overview
+# Entwicklung & Deployment
 
-This document covers running the application locally for development (hot reload) and deploying to production with HTTPS certificates.
+## Umgebungsvariablen
 
-## Environment Configuration
+```bash
+cp .env.example .env
+```
 
-Before starting the application, you need to configure environment variables:
+Folgende Variablen setzen:
 
-1. **Copy the example file:**
+| Variable            | Beschreibung                                         |
+| ------------------- | ---------------------------------------------------- |
+| `POSTGRES_USER`     | Datenbank-Benutzer (Standard: `admin`)               |
+| `POSTGRES_PASSWORD` | Datenbank-Passwort                                   |
+| `JWT_SECRET`        | Geheimer Schlüssel für JWT-Signierung (erforderlich) |
 
-   ```bash
-   cp .env.example .env
-   ```
+JWT-Secret generieren: `openssl rand -base64 32`
 
-2. **Edit `.env` and set:**
-
-   - `POSTGRES_USER` - Database username (default: admin)
-   - `POSTGRES_PASSWORD` - Database password (**change this!**)
-   - `JWT_SECRET` - Secret key for JWT signing (**required, no default**)
-
-3. **Generate a secure JWT secret:**
-   ```bash
-   openssl rand -base64 32
-   ```
-
-**Important:** The application will **fail to start** if `JWT_SECRET` is not set. This is a security feature.
-
-## Local Development (HTTP, Hot Reload)
-
-Local access uses `localhost` only (no subdomains needed).
-
-**Start dev stack:**
+## Lokale Entwicklung
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build -d
 ```
 
-- Frontend: http://localhost (SPA served at root)
-- Backend API: http://localhost/api (reverse proxied path prefix)
+- Frontend: http://localhost (Vite Dev-Server mit HMR)
+- Backend-API: http://localhost/api (nginx Reverse Proxy)
+- PostgreSQL: `localhost:5432`
 
-Edit Go or TS/TSX files and refresh your browser. Containers run `go run` (backend) and `pnpm dev` (frontend) with hot reload enabled.
-
-**View logs:**
+Backend läuft mit `go run`, Frontend mit `pnpm dev` — Änderungen werden automatisch übernommen.
 
 ```bash
+# Logs
 docker compose -f docker-compose.dev.yml logs -f backend-dev
-docker compose -f docker-compose.dev.yml logs -f frontend-dev
-docker compose -f docker-compose.dev.yml logs -f reverse-proxy-dev
-```
 
-**Stop dev stack:**
-
-```bash
+# Stoppen
 docker compose -f docker-compose.dev.yml down
 ```
 
-**Optional local HTTPS (mkcert):**
+## Tests
+
+### Unit-Tests (Backend)
 
 ```bash
-mkcert localhost
-# Then add a 443 server block to `reverse-proxy/nginx.dev.conf` referencing the generated certs.
+cd backend && go test -tags=unit -race ./...
 ```
 
-## Production Deployment
+### Integrationstests (Backend)
 
-### Initial Certificate Setup (First Time Only)
+Benötigt eine laufende PostgreSQL-Instanz mit angewendeten Migrationen:
 
-Use the `docker-compose.initial-cert.yml` file to obtain your first Let's Encrypt certificate. This minimal stack runs only nginx and certbot without the application services.
+```bash
+./test-integration.sh
+```
 
-**Prerequisites:**
+Oder manuell in CI: `go test -tags=integration -race ./...`
 
-- DNS A records for `jotti.rocks` and `www.jotti.rocks` pointing to your server's public IP
-- Firewall allows incoming traffic on ports 80 and 443
+### Linting
 
-**Step 1: Start minimal stack**
+```bash
+# Backend
+cd backend && go vet ./... && goimports -l .
+
+# Frontend
+cd frontend && pnpm lint
+```
+
+## Production-Deployment
+
+### Erstes Zertifikat (einmalig)
 
 ```bash
 docker compose -f docker-compose.initial-cert.yml up -d
-```
 
-**Step 2: Obtain Let's Encrypt certificate**
-
-```bash
 docker compose -f docker-compose.initial-cert.yml run --rm --entrypoint certbot certbot certonly \
   --webroot -w /var/www/certbot \
   -d jotti.rocks -d www.jotti.rocks \
   --email graef.nico@gmail.com --agree-tos --no-eff-email
-```
 
-**Step 3: Stop initial-cert stack**
-
-```bash
 docker compose -f docker-compose.initial-cert.yml down
 ```
 
-**Step 4: Start full production stack**
+### Produktionsstack starten
 
 ```bash
 docker compose up -d --build
 ```
 
-The certificate is now mounted and the full stack (frontend, backend, database, reverse proxy with HTTPS) will start successfully.
-
-### Running Production Stack
-
-After initial certificate setup, bring up the full stack:
+Zertifikate werden automatisch alle 24h via Certbot erneuert.
 
 ```bash
-docker compose up -d --build
-```
-
-Certificates automatically renew every 12 hours via the certbot service.
-
-**Test certificate renewal:**
-
-```bash
-docker compose run --rm --entrypoint certbot certbot renew --dry-run
-```
-
-**Rebuild and restart:**
-
-```bash
-docker compose up -d --build
-```
-
-**View backend logs:**
-
-```bash
+# Logs
 docker compose logs -f backend
-```
 
-**Stop production stack:**
-
-```bash
+# Stoppen
 docker compose down
 ```
 
-## Database Access
+## Konfigurationsdateien
 
-Connect to the PostgreSQL database:
+| Datei                              | Zweck                          |
+| ---------------------------------- | ------------------------------ |
+| `docker-compose.yml`               | Produktionsstack               |
+| `docker-compose.staging.yml`       | Staging-Stack                  |
+| `docker-compose.dev.yml`           | Entwicklung mit Hot Reload     |
+| `docker-compose.initial-cert.yml`  | Erstzertifikat (Let's Encrypt) |
+| `reverse-proxy/nginx.conf`         | nginx Produktion (HTTPS)       |
+| `reverse-proxy/nginx.dev.conf`     | nginx Entwicklung (HTTP)       |
+| `reverse-proxy/nginx.staging.conf` | nginx Staging                  |
 
-```bash
-psql -h localhost -p 5432 -U ${POSTGRES_USER} -d jotti
-```
+## CI/CD
 
-## Configuration Files
+GitHub Actions CI (`ci.yml`) führt bei Push/PR auf `main` aus:
 
-| File                                    | Purpose                                           |
-| --------------------------------------- | ------------------------------------------------- |
-| `docker-compose.yml`                    | Production stack with full application            |
-| `docker-compose.initial-cert.yml`       | Minimal stack for first-time certificate issuance |
-| `docker-compose.dev.yml`                | Development stack with hot reload                 |
-| `reverse-proxy/nginx.conf`              | Production nginx config with HTTPS                |
-| `reverse-proxy/nginx.initial-cert.conf` | Minimal nginx config for certificate issuance     |
-| `reverse-proxy/nginx.dev.conf`          | Development nginx config (HTTP only)              |
+- **Backend**: `go vet`, `goimports`, `go build`, Unit-Tests, `golangci-lint`, Integrationstests
+- **Frontend**: `pnpm lint`, `pnpm build`
 
-## Docker Volumes
-
-| Volume               | Mount Path                 | Description                            |
-| -------------------- | -------------------------- | -------------------------------------- |
-| `certbot-challenges` | `/var/www/certbot`         | ACME challenge files for Let's Encrypt |
-| `letsencrypt`        | `/etc/letsencrypt`         | SSL certificates and renewal config    |
-| `postgres-data`      | `/var/lib/postgresql/data` | PostgreSQL database files              |
-
-## Troubleshooting
-
-### Certificate Issues
-
-**Certbot connection timeout:**
-
-- Verify DNS: `dig +short jotti.rocks` and `dig +short www.jotti.rocks`
-- Check port 80: `sudo netstat -tlnp | grep :80`
-- Test external access: `curl -I http://jotti.rocks/.well-known/acme-challenge/test`
-- Ensure firewall allows ports 80 and 443
-- Use `docker-compose.initial-cert.yml` for first-time setup
-
-**Certificate not found on startup:**
-
-- Ensure certificates were created using initial-cert stack first
-- Check volume mount: `docker compose exec reverse-proxy ls -la /etc/letsencrypt/live/jotti.rocks/`
-
-### Application Issues
-
-**Stale frontend assets:**
-
-```bash
-docker compose restart frontend
-# Or rebuild if environment variables changed
-docker compose up -d --build frontend
-```
-
-**Database migrations not applied:**
-
-```bash
-docker compose logs migrate
-```
-
-**Backend errors:**
-
-```bash
-docker compose logs -f backend
-```
-
-## Security Notes
-
-- **CSP enforced:** Content Security Policy headers are configured in both production and dev nginx configs
-  - Dev CSP includes `unsafe-eval` and `unsafe-inline` for Vite HMR
-  - Production CSP is strict; add external domains explicitly to relevant directives
-- **Rate limiting:** API endpoints limited to 10 requests/second per IP (burst 20)
-- **HTTPS only:** Production redirects all HTTP traffic to HTTPS
-- **www redirect:** `www.jotti.rocks` automatically redirects to `jotti.rocks` for canonical URL
-- **Regular maintenance:** Prune unused Docker volumes periodically to save space
+Nur geänderte Pfade werden getestet (via `dorny/paths-filter`).

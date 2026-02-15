@@ -1,103 +1,47 @@
 # jotti
 
-jotti ist ein einfaches Bestellsystem für Vereine und Nonprofit-Organisationen.
+jotti ist ein einfaches Bestell- und Kassensystem für Vereine und Nonprofit-Organisationen (z. B. Vereinsfeste, Weihnachtsmärkte).
 
-Mit jotti können Produkte (Getränke und Speisen) verwaltet werden, sowie Bestellungen und Bezahlungen auf Tische gebucht werden.
+## Was ist jotti?
 
-Als Webapp kann jotti auf jedem Smartphone genutzt werden. jotti bietet Administratoren einen gesonderten Web-Zugang, um Produkte und Tische zu verwalten, sowie Buchhaltungsaufgaben zu bearbeiten.
+Eine Webapp, die auf jedem Smartphone läuft. Servicekräfte nehmen Bestellungen auf, liefern Produkte aus, kassieren und stornieren — alles pro Tisch. Administratoren verwalten Produkte, Tische und Benutzer über einen eigenen Admin-Bereich.
 
----
+## Features
 
-Im Folgenden wird das Konzept für das MVP von jotti beschrieben.
+- **Bestellungen** auf Tische buchen (Produkte mit Varianten und Mengen auswählen)
+- **Lieferungen** als ausgeliefert markieren
+- **Bezahlungen** für offene Positionen registrieren
+- **Stornierungen** von Positionen
+- **Tisch-Übersicht**: offener Saldo, unbezahlte und ungelieferte Positionen, Verlauf aller Aktionen
+- **Admin-Bereich**: Produkte (mit Varianten, Preisen, Kategorien), Tische und Benutzer verwalten
+- **Rollen**: `admin` (Vollzugriff) und `service` (Bestell-/Kassierbetrieb)
+- **Authentifizierung**: JWT (12h Gültigkeit), Einmalpasswort-Onboarding, Argon2id-Hashing
 
-## Entities
+## Architektur
 
-**Benutzer**
+Single-Tenant, deployed via Docker Compose auf einer VM.
 
-- Benutzer entsprechen in jotti Mitarbeiter:innen der Gastroeinrichtung bzw. Veranstaltung.
-- Benutzer können Servicekräfte, PoS-Personal oder auch Verwaltungspersonal sein.
-- Benutzer melden sich via Benutzername und Passwort an
-- Manche Benutzer sind als Administrator (Admin) gekennzeichnet.
-  - Admin-Benutzer haben alle Berechtigungen: z.B. Produkte verwalten, Tische verwalten etc.
-  - Normale Benutzer können nur Bestellungen und Bezahlungen tätigen.
+| Komponente    | Technologie                                           |
+| ------------- | ----------------------------------------------------- |
+| Frontend      | React 19, Vite, Tailwind CSS 4, shadcn/ui, TypeScript |
+| Backend       | Go 1.25, stdlib `net/http`, pgx/v5                    |
+| Datenbank     | PostgreSQL 17                                         |
+| Reverse Proxy | nginx (HTTPS via Let's Encrypt)                       |
 
-**Produkt**
+- Benutzer, Produkte und Tische → relationale Tabellen (CRUD)
+- Bestellungen, Bezahlungen, Lieferungen, Stornierungen → **Event Sourcing** (append-only Event-Log mit Snapshots)
+- Alle API-Endpunkte sind ausschließlich `POST`
+- Frontend-API-Aufrufe validieren Request und Response mit Zod-Schemas
 
-- Ein Produkt entspricht in jotti einem Getränk oder einem Gericht.
-- Ein Produkt hat einen Namen und einen Preis, und ist einer Kategorie zugeordnet ("Getränk", "Essen").
-- Produkte werden über Bestellungen verkauft.
-- Ein Produkt kann ausverkauft sein und kann in diesem Fall nicht mehr bestellt werden.
-- Produkte werden von Administratoren verwaltet.
-- Produkte können mehrfach bestellt werden.
-- Beispiel: Kaffee, Bier, Pommes, Pizza
+## Projektstruktur
 
-**Tisch**
+```
+backend/          Go-Backend (Layered Architecture: HTTP → Application → Domain → Repository)
+frontend/         React-SPA (Feature-basiert: admin/, service/, components/, lib/)
+database/         SQL-Migrationen (golang-migrate)
+reverse-proxy/    nginx-Konfigurationen (dev, staging, production)
+```
 
-- Tische bestellen Produkte und müssen diese anschließend bezahlen.
-- Tische werden von Administratoren verwaltet.
-- Tische haben einen Namen.
-- Tische können Bestellungen und Bezahlungen haben.
-- Beispiel: "Tisch 1", "Tisch 2", "Selbstbedienungskasse"
-
-## Aggregates
-
-**Bestellung**
-
-- Jede Bestellung wird auf einen Tisch gebucht.
-- Eine Bestellung beinhaltet eine Liste von Produkten mit Mengenangabe.
-
-**Bezahlung**
-
-- Jede Bezahlung wird auf einen Tisch gebucht und beinhaltet eine Liste von Produkten (und Mengenangaben)
-- Bezahlungen können nur getätigt werden, wenn die ausgewählten Produkte (inkl. der angegebenen Menge) bei diesem Tisch noch unbezahlt sind.
-- Bezahlungen sind unabhängig von Bestellungen. D.h. es wird nicht eine Bestellung bezahlt, sondern eine Menge von Produkten.
-- jotti kennt die Art der Bezahlung (Bar, Karte, Gutschein etc.) und auch den tatsächlichen Kassenstand (Wechselgeld, Trinkgeld etc.) nicht. Diese werden extern verwaltet.
-
-## Funktionale Anforderungen
-
-- Benutzer (und Administratoren) können sich anmelden und abmelden.
-- Administratoren können Produkte anlegen, bearbeiten und löschen.
-- Administratoren können Tische anlegen, bearbeiten und löschen.
-- Benutzer können für einen Tisch eine Bestellung aufgeben, indem sie Produkte und Mengen angeben.
-- Benutzer können für einen Tisch eine Bezahlung tätigen, indem sie Produkte und Mengen angeben, die bezahlt werden sollen.
-- Das System verhindert, dass mehr Produkte bezahlt werden, als bestellt wurden.
-- Das System zeigt den aktuellen Status eines Tisches an: bestellte Produkte, bezahlte Produkte, offene (unbezahlte) Produkte.
-- Administratoren können Berichte über Umsätze je Produkt und Zeitraum generieren.
-- Administratoren können einen Tagesabschlussbericht generieren oder alle Bestellungen und Bezahlungen eines Zeitraums exportieren (z.B. als CSV).
-- Das System protokolliert alle Bestellungen und Bezahlungen für Auditzwecke.
-- Das System ist nur auf deutscher Sprache verfügbar.
-- Das System unterstützt Mehrwertsteuer (z.B. 7% und 19%) und zeigt diese in Berichten an.
-- Das System ist DSGVO-konform und speichert keine personenbezogenen Daten außer Benutzername und Passwort-Hash.
--
-
-## Commands
-
-- `v1/bestellung-aufgeben`: Ein Benutzer gibt eine Bestellung für einen Tisch auf.
-- `v1/bezahlung-registrieren`: Ein Benutzer registriert eine Bezahlung für einen Tisch.
-- `v1/produkt-anlegen`: Ein Administrator legt ein neues Produkt an.
-- `v1/produkt-bearbeiten`: Ein Administrator bearbeitet ein bestehendes Produkt.
-- `v1/produkt-loeschen`: Ein Administrator löscht ein bestehendes Produkt.
-- `v1/tisch-anlegen`: Ein Administrator legt einen neuen Tisch an.
-- `v1/tisch-bearbeiten`: Ein Administrator bearbeitet einen bestehenden Tisch.
-- `v1/tisch-loeschen`: Ein Administrator löscht einen bestehenden Tisch.
-
-## Events
-
-- `bestellung-aufgegeben:v1`
-  - Beschreibt, dass ein Tisch eine Bestellung aufgegeben hat.
-  - Subject gibt den Tisch (z.B. `tisch:42`) an.
-  - Die bestellten Produkte und ihre Menge sind in der Payload angegeben.
-- `bezahlung-registriert:v1`
-  - Beschreibt, dass ein Benutzer eine Bezahlung eines Tisches registriert hat.
-  - Subject gibt den Tisch an (z.B. `tisch:42`).
-  - Die bezahlten Produkte und ihre Menge sind in der Payload angegeben.
-
-## Technische Spezifikation
-
-- Single-Tenant: Es gibt ein System pro Verein/Veranstaltung.
-- Als Datenbank wird Postgres eingesetzt.
-  - Benutzer und Produkte werden in relationalen Tabellen gespeichert.
-  - Bestellungen und Bezahlungen werden als Event-Sourcing Events in einer Event-Log Tabelle gespeichert.
 - Der Server wird in Go geschrieben.
   - Der Server stellt eine HTTP API zur Verfügung.
   - Die API ist im Command- und Query-Pattern aufgebaut und verwendet JSON für die Datenübertragung.
