@@ -8,23 +8,19 @@ Eine Webapp, die auf jedem Smartphone läuft. Servicekräfte nehmen Bestellungen
 
 ## Features
 
-### ✅ Umgesetzt (22 von 50 Anforderungen)
+### ✅ Umgesetzt (23 von 50 Anforderungen)
 
 - **Bestellungen** auf Tische buchen (Produkte mit Varianten und Mengen auswählen)
 - **Lieferungen** als ausgeliefert markieren
 - **Bezahlungen** für offene Positionen registrieren (Teilzahlung möglich)
-- **Stornierungen** von Positionen (aktuell für beide Rollen, soll nur Admin sein)
+- **Stornierungen** von Positionen (nur Admin und Serviceleitung)
 - **Tisch-Übersicht**: offener Saldo, unbezahlte und ungelieferte Positionen, Verlauf aller Aktionen
 - **Admin-Bereich**: Produkte (mit Varianten, Preisen, Kategorien), Tische und Benutzer verwalten
-- **Rollen**: `admin` (Vollzugriff) und `service` (Bestell-/Kassierbetrieb)
+- **Rollen**: `admin` (Vollzugriff), `senior_service` (Service + Stornierung) und `service` (Bestell-/Kassierbetrieb)
 - **Authentifizierung**: JWT (12h Gültigkeit), Einmalpasswort-Onboarding, Argon2id-Hashing
 - **Kommentar/Notiz** pro Bestellvorgang (max. 100 Zeichen)
 - **Produktvarianten** (z. B. Pommes mit Ketchup/Soße)
 - **Produktkategorien** in der Bestellansicht (gruppiert nach Essen, Getränke, Sonstiges)
-
-### 🔧 Teilweise umgesetzt (1)
-
-- **Stornierung nur für Admins (#22)**: Stornierung steht beiden Rollen offen, Rollenprüfung fehlt
 
 ### ❌ Nächste offene Must-haves
 

@@ -15,6 +15,8 @@ type Role string
 const (
 	// AdminRole: can do everything.
 	AdminRole Role = "admin"
+	// SeniorServiceRole: same as service, but can also cancel orders.
+	SeniorServiceRole Role = "senior_service"
 	// ServiceRole: can only see active tables and products and .
 	ServiceRole Role = "service"
 )
@@ -49,7 +51,7 @@ var UsernameSchema = z.String().Trim().Min(3, z.Message("Username too short")).M
 )
 
 var RoleSchema = z.StringLike[Role]().OneOf(
-	[]Role{AdminRole, ServiceRole},
+	[]Role{AdminRole, SeniorServiceRole, ServiceRole},
 	z.Message("Invalid role"),
 )
 

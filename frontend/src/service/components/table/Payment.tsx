@@ -12,6 +12,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
 import { useTableUnpaidVariants } from '../../table/hooks'
@@ -67,20 +68,22 @@ export function Payment({
   return (
     <>
       <div className="flex gap-2">
-        <div className="flex-1">
-          <CancelationDrawer
-            backend={backend}
-            table={table}
-            unpaidVariants={variants}
-            quantities={quantities}
-            variantsCanceled={() => {
-              setQuantities({})
-              toast.success(`Stornierung erfolgreich.`)
-              onVariantsCanceled()
-              reload()
-            }}
-          />
-        </div>
+        {AuthSingleton.canCancel && (
+          <div className="flex-1">
+            <CancelationDrawer
+              backend={backend}
+              table={table}
+              unpaidVariants={variants}
+              quantities={quantities}
+              variantsCanceled={() => {
+                setQuantities({})
+                toast.success(`Stornierung erfolgreich.`)
+                onVariantsCanceled()
+                reload()
+              }}
+            />
+          </div>
+        )}
         <div className="flex-1">
           <PaymentDrawer
             backend={backend}

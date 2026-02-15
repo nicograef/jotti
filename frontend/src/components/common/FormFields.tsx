@@ -234,6 +234,11 @@ export function RoleField<AllFormFields extends FieldValues>({
               Administratoren können alle Funktionen nutzen.
             </FieldDescription>
           )}
+          {field.value === 'senior_service' && (
+            <FieldDescription>
+              Serviceleitung kann bestellen, kassieren und stornieren.
+            </FieldDescription>
+          )}
           {field.value === 'service' && (
             <FieldDescription>
               Service kann Bestellungen und Bezahlungen verwalten.
@@ -249,6 +254,7 @@ export function RoleField<AllFormFields extends FieldValues>({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="admin">Administrator</SelectItem>
+              <SelectItem value="senior_service">Serviceleitung</SelectItem>
               <SelectItem value="service">Service</SelectItem>
             </SelectContent>
           </Select>

@@ -6,7 +6,7 @@ const JottiTokenSchema = z.object({
   exp: z.int().min(0),
   iat: z.int().min(0),
   sub: z.number().int().min(1),
-  role: z.enum(['admin', 'service']),
+  role: z.enum(['admin', 'senior_service', 'service']),
 })
 type JottiToken = z.infer<typeof JottiTokenSchema>
 
@@ -45,8 +45,16 @@ class Auth {
     return this.token?.role === 'admin'
   }
 
+  public get isSeniorService(): boolean {
+    return this.token?.role === 'senior_service'
+  }
+
   public get isService(): boolean {
     return this.token?.role === 'service'
+  }
+
+  public get canCancel(): boolean {
+    return this.isAdmin || this.isSeniorService
   }
 
   public logout(): void {

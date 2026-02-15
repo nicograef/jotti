@@ -17,7 +17,6 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	tc := table.NewCommandHandler(db)
 	r.HandleFunc("/place-table-order", tc.PlaceTableOrderHandler())
 	r.HandleFunc("/register-table-payment", tc.RegisterTablePaymentHandler())
-	r.HandleFunc("/cancel-table-variants", tc.CancelTableVariantsHandler())
 	r.HandleFunc("/deliver-table-variants", tc.DeliverTableVariantsHandler())
 
 	tq := table.NewQueryHandler(db)

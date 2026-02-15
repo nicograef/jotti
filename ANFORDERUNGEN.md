@@ -39,12 +39,7 @@ Dieses Dokument beschreibt alle funktionalen Anforderungen an jotti, abgeleitet 
 | 19  | Schnelle und korrekte Bestellaufnahme                         | Must-have    | Gast     |
 | 20  | Einfache, intuitive Benutzeroberfläche                        | Must-have    | System   |
 | 21  | Produktübersicht nach Kategorien (Essen, Getränke, Sonstiges) | Must-have    | Bediener |
-
-### 🔧 Teilweise umgesetzt
-
-| #   | Anforderung                                           | Prio      | Rolle    | Stand                                                      |
-| --- | ----------------------------------------------------- | --------- | -------- | ---------------------------------------------------------- |
-| 22  | Servicekraft darf nach Bestellabgabe nicht stornieren | Must-have | Bediener | Stornierung steht beiden Rollen offen; Rollenprüfung fehlt |
+| 22  | Servicekraft darf nach Bestellabgabe nicht stornieren         | Must-have    | Bediener |
 
 ### ❌ Offen
 
@@ -229,17 +224,11 @@ Tisch-Balance wird über `get-table-balance` berechnet und prominent auf der Tis
 
 Wer darf stornieren, und unter welchen Bedingungen.
 
-#### 3.1 Servicekraft darf nach Abgabe nicht stornieren 🔧
+#### 3.1 Servicekraft darf nach Abgabe nicht stornieren ✅
 
 > Als Servicekraft darf ich nach Aufgabe der Bestellung diese nicht mehr stornieren können. Nur ein Master/Admin soll dies nachträglich tun können.
 
-**Stand:** Stornierung ist über den `cancel-table-variants`-Endpunkt für beide Rollen (`admin` und `service`) erlaubt. Die geforderte Einschränkung auf Admins fehlt.
-
-**Implementierungsvorschlag:**
-
-- Im Service-Router eine zusätzliche Middleware oder Rollenprüfung einbauen, die `cancel-table-variants` nur für Role `admin` freigibt.
-- Alternativ: Separater Admin-Stornierungsendpunkt, Service-Variante entfernen.
-- Frontend: Stornierungstab im `TablePage` nur für Admins rendern (Role aus JWT/Auth-Context prüfen).
+**Umgesetzt:** Der `cancel-table-variants`-Endpunkt läuft über eine eigene `NewSeniorServiceApi` (`api/senior_service.go`) mit separater Middleware, die nur die Rollen `admin` und `senior_service` (Serviceleitung) erlaubt. Die Rolle `service` hat keinen Zugriff. Im Frontend wird der Stornierungsbutton nur angezeigt, wenn `AuthSingleton.canCancel` (Admin oder Serviceleitung) `true` ist.
 
 #### 3.2 Nachträgliche Stornierung durch Admin ✅
 
@@ -562,8 +551,8 @@ Event-Sourcing garantiert konsistente Balance: Bestellungen − Bezahlungen − 
 
 | Priorität    | Gesamt | ✅ Umgesetzt | 🔧 Teilweise | ❌ Offen |
 | ------------ | ------ | ------------ | ------------ | -------- |
-| Must-have    | 31     | 20           | 1            | 10       |
+| Must-have    | 31     | 21           | 0            | 10       |
 | Nice-to-have | 11     | 2            | 0            | 9        |
 | Später       | 6      | 0            | 0            | 6        |
 | Won't-have   | 2      | 0            | 0            | 2        |
-| **Gesamt**   | **50** | **22**       | **1**        | **27**   |
+| **Gesamt**   | **50** | **23**       | **0**        | **27**   |

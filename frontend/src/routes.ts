@@ -16,7 +16,10 @@ import { TableSelectionPage } from './service/TableSelectionPage'
 function AuthRedirect() {
   if (AuthSingleton.isAuthenticated && AuthSingleton.isAdmin) {
     return redirect('/admin')
-  } else if (AuthSingleton.isAuthenticated && AuthSingleton.isService) {
+  } else if (
+    AuthSingleton.isAuthenticated &&
+    (AuthSingleton.isService || AuthSingleton.isSeniorService)
+  ) {
     return redirect('/service')
   } else if (AuthSingleton.isAuthenticated) {
     return redirect('/')
@@ -30,11 +33,13 @@ export function AdminGuard() {
 }
 
 export function ServiceGuard() {
-  const isServiceOrdAdmin =
+  const hasServiceAccess =
     AuthSingleton.isAuthenticated &&
-    (AuthSingleton.isService || AuthSingleton.isAdmin)
+    (AuthSingleton.isService ||
+      AuthSingleton.isSeniorService ||
+      AuthSingleton.isAdmin)
 
-  if (!isServiceOrdAdmin) {
+  if (!hasServiceAccess) {
     return redirect('/')
   }
 }

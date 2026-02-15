@@ -21,14 +21,9 @@ Der vollständige Anforderungskatalog mit Implementierungsvorschlägen liegt in 
 
 | Status       | Anzahl |
 | ------------ | ------ |
-| ✅ Umgesetzt | 22     |
-| 🔧 Teilweise | 1      |
+| ✅ Umgesetzt | 23     |
 | ❌ Offen     | 27     |
 | **Gesamt**   | **50** |
-
-### Bekannte teilweise Umsetzungen
-
-- **Stornierung nur für Admins (#22)**: `cancel-table-variants` ist für beide Rollen (`admin` + `service`) zugänglich. Laut Anforderung darf nur `admin` stornieren. → Rollenprüfung im Backend-Endpunkt oder separate Admin-Route. Frontend: Stornierungstab nur für Admins anzeigen.
 
 ### Nächste offene Must-haves
 
@@ -81,11 +76,11 @@ Verwaltung von Stammdaten. Nur für Administratoren zugänglich.
 - **Funktionen**: Produkte + Varianten erstellen/bearbeiten/aktivieren/deaktivieren, Tische verwalten, Benutzer anlegen/bearbeiten/Passwort zurücksetzen
 - **Endpunkte**: `create-product`, `update-product`, `create-variant`, `update-variant`, `activate-variant`, `deactivate-variant`, `get-all-products`, `create-table`, `update-table`, `activate-table`, `deactivate-table`, `get-all-tables`, `create-user`, `update-user`, `activate-user`, `deactivate-user`, `reset-password`, `get-all-users`
 
-### Service-Bereich (Rollen: `admin` + `service`)
+### Service-Bereich (Rollen: `admin` + `senior_service` + `service`)
 
-Bestell- und Kassierbetrieb am Tisch. Für Servicekräfte und Admins zugänglich.
+Bestell- und Kassierbetrieb am Tisch. Für Servicekräfte, Serviceleitung und Admins zugänglich.
 
-- **Backend**: Routen in `api/service.go` unter `/service/*`, JWT-Middleware erlaubt Rollen `admin` und `service`
+- **Backend**: Routen in `api/service.go` unter `/service/*`, JWT-Middleware erlaubt Rollen `admin`, `senior_service` und `service`. Stornierung (`cancel-table-variants`) läuft über eigene `api/senior_service.go` mit Middleware nur für `admin` und `senior_service`.
 - **Frontend**: Seiten unter `src/service/` mit `ServiceGuard` (React Router Loader)
 - **Funktionen**: Tisch auswählen, Bestellungen aufgeben, Lieferungen bestätigen, Bezahlungen registrieren, Stornierungen, Tisch-Verlauf einsehen
 - **Endpunkte**: `get-active-products`, `get-active-tables`, `get-table`, `place-table-order`, `register-table-payment`, `cancel-table-variants`, `deliver-table-variants`, `get-table-history`, `get-table-balance`, `get-table-unpaid-variants`, `get-table-undelivered-variants`
@@ -101,6 +96,7 @@ Bestell- und Kassierbetrieb am Tisch. Für Servicekräfte und Admins zugänglich
 backend/
   main.go                       # Einstiegspunkt
   api/service.go                # Service-Routen (Bestell-/Kassierbetrieb)
+  api/senior_service.go         # Senior-Service-Routen (Stornierung)
   api/admin.go                  # Admin-Routen (Verwaltung)
   api/auth.go                   # Auth-Routen (Login, Passwort setzen)
   api/<domain>/http/            # HTTP-Handler
@@ -189,7 +185,7 @@ State wird durch Replay aller Events rekonstruiert. Snapshots optimieren Lesezug
 
 ## Datenbank-Schema
 
-Enums: `UserRole(admin, service)`, `EntityStatus(active, inactive, deleted)`, `ProductCategory(food, beverage, other)`
+Enums: `UserRole(admin, senior_service, service)`, `EntityStatus(active, inactive, deleted)`, `ProductCategory(food, beverage, other)`
 
 Tabellen: `users`, `tables`, `products`, `product_variants`, `events` (append-only)
 

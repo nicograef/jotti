@@ -204,3 +204,72 @@ func TestServiceMiddleware_ValidToken(t *testing.T) {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
 }
+
+func TestSeniorServiceRole_AllowedForServiceEndpoints(t *testing.T) {
+	secret := "test-secret"
+	token, err := jwt.GenerateJWTTokenForUser(3, "senior_service", secret)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := NewJwtMiddleware(secret, []string{"admin", "senior_service", "service"})(handler)
+	req := httptest.NewRequest(http.MethodGet, "/service", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+
+	middleware.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestSeniorServiceRole_AllowedForCancelEndpoint(t *testing.T) {
+	secret := "test-secret"
+	token, err := jwt.GenerateJWTTokenForUser(3, "senior_service", secret)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := NewJwtMiddleware(secret, []string{"admin", "senior_service"})(handler)
+	req := httptest.NewRequest(http.MethodGet, "/service/cancel", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+
+	middleware.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestServiceRole_DeniedForCancelEndpoint(t *testing.T) {
+	secret := "test-secret"
+	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := NewJwtMiddleware(secret, []string{"admin", "senior_service"})(handler)
+	req := httptest.NewRequest(http.MethodGet, "/service/cancel", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+
+	middleware.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}

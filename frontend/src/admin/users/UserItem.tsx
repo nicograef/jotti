@@ -61,6 +61,14 @@ export function UserItem(props: UserItemProps) {
               <TooltipContent>Administrator</TooltipContent>
             </Tooltip>
           )}
+          {props.user.role === UserRole.SENIOR_SERVICE && (
+            <Tooltip>
+              <TooltipTrigger>
+                <Star size={16} className="stroke-none fill-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>Serviceleitung</TooltipContent>
+            </Tooltip>
+          )}
           {props.user.name}
           <Tooltip>
             <TooltipTrigger>

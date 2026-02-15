@@ -9,7 +9,7 @@ Dieser Plan beschreibt die nächsten sechs Features in der Reihenfolge ihrer Imp
 | #   | Feature                                                | Typ             | Komplexität | Branch                           | Status |
 | --- | ------------------------------------------------------ | --------------- | ----------- | -------------------------------- | ------ |
 | 21  | Produktkategorien in Service-UI gruppieren             | Frontend-only   | Niedrig     | `feature/21-product-categories`  | ✅     |
-| 22  | Neue Rolle `senior_service` + Stornierung einschränken | Full-Stack + DB | Mittel      | `feature/22-senior-service-role` | ❌     |
+| 22  | Neue Rolle `senior_service` + Stornierung einschränken | Full-Stack + DB | Mittel      | `feature/22-senior-service-role` | ✅     |
 | 23  | Tisch-Schnellsuche                                     | Frontend-only   | Niedrig     | `feature/23-table-search`        | ❌     |
 | 37  | Rückgeldberechnung                                     | Frontend-only   | Niedrig     | `feature/37-change-calculation`  | ❌     |
 | 24  | Übersicht eigene Bestellungen                          | Full-Stack      | Mittel      | `feature/24-user-orders`         | ❌     |
@@ -23,206 +23,14 @@ Umgesetzt und gemergt in `main` (Commit `6ee6751`). Produkte werden in `ProductL
 
 ---
 
-## #22 — Neue Rolle `senior_service` + Stornierung einschränken
+## ✅ #22 — Neue Rolle `senior_service` + Stornierung einschränken (erledigt)
 
-### Ziel
+Umgesetzt auf Branch `feature/22-senior-service-role`. Neue Rolle `senior_service` (Serviceleitung) eingeführt:
 
-Einführung einer neuen Rolle **`senior_service`** (Serviceleitung), die alles darf was `service` darf, plus zusätzlich stornieren. Normale Servicekräfte (`service`) dürfen **nicht** stornieren. Nur `admin` und `senior_service` dürfen stornieren.
-
-### Rollenname
-
-`senior_service` — im UI als **„Serviceleitung"** angezeigt. Kurz, selbsterklärend, passt zum bestehenden `service`-Namensschema.
-
-### Betroffene Dateien
-
-#### Backend
-
-1. **DB-Migration** (`database/migrations/02_add_senior_service_role.up.sql` + `.down.sql`)
-2. **Domain** (`backend/domain/user/user.go`)
-3. **JWT** (`backend/domain/jwt/jwt.go` — keine Änderung nötig, Role ist generisch als `string`)
-4. **Middleware** (`backend/api/middleware/middleware.go` — keine Änderung nötig, arbeitet mit `allowedRoles []string`)
-5. **Service-Router** (`backend/api/service.go`) — Route-Split oder Rollenprüfung für Cancel
-6. **App-Wiring** (`backend/app/app.go`) — `senior_service` zu Service-Rollen hinzufügen
-
-#### Frontend
-
-7. **Auth** (`frontend/src/lib/Auth.ts`) — Rolle im Token erkennen
-8. **Admin User-Model** (`frontend/src/admin/users/User.ts`) — Rolle als Option
-9. **Route Guards** (`frontend/src/routes.ts`) — `senior_service` darf Service-Bereich nutzen
-10. **Payment/Stornierung** (`frontend/src/service/components/table/Payment.tsx`) — CancelationDrawer nur für `admin` + `senior_service`
-
-### Implementierung
-
-#### 1. DB-Migration
-
-```sql
--- 02_add_senior_service_role.up.sql
-ALTER TYPE UserRole ADD VALUE 'senior_service';
-```
-
-```sql
--- 02_add_senior_service_role.down.sql
--- PostgreSQL erlaubt kein einfaches Entfernen von ENUM-Werten.
--- Für Rollback: Typ neu erstellen und Spalte migrieren.
--- In der Praxis: Diese Migration ist vorwärts-only.
--- Sicherheitshalber: UPDATE users SET role = 'service' WHERE role = 'senior_service';
--- Dann Typ-Umbau (CREATE TYPE ... AS ENUM, ALTER TABLE, DROP TYPE, RENAME TYPE).
-```
-
-#### 2. Domain-Modell (`backend/domain/user/user.go`)
-
-```go
-const (
-    AdminRole         Role = "admin"
-    SeniorServiceRole Role = "senior_service"
-    ServiceRole       Role = "service"
-)
-
-var RoleSchema = z.StringLike[Role]().OneOf(
-    []Role{AdminRole, SeniorServiceRole, ServiceRole},
-    z.Message("Invalid role"),
-)
-```
-
-#### 3. App-Wiring (`backend/app/app.go`)
-
-Die Service-Middleware muss `senior_service` als erlaubte Rolle akzeptieren:
-
-```go
-service := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "senior_service", "service"})
-```
-
-#### 4. Stornierung nur für `admin` und `senior_service`
-
-Zwei Optionen (Option A bevorzugt):
-
-**Option A: Separate Middleware für Cancel-Route**
-
-In `backend/api/service.go` den `cancel-table-variants`-Handler aus dem allgemeinen Service-Router herausnehmen und separat mit eingeschränkter Middleware registrieren.
-
-Alternativ: In `backend/app/app.go` einen separaten Router für stornierungsberechtigte Endpunkte erstellen:
-
-```go
-// Normaler Service-Bereich (alle Service-Rollen)
-serviceApi := api.NewServiceApi(db)
-service := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "senior_service", "service"})
-r.Handle("/service/", service(http.StripPrefix("/service", serviceApi)))
-
-// Stornierung nur für admin + senior_service
-cancelApi := api.NewCancelApi(db) // Neuer Mini-Router nur für cancel-table-variants
-cancelMiddleware := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "senior_service"})
-r.Handle("/service/cancel-table-variants", cancelMiddleware(http.StripPrefix("/service", cancelApi)))
-```
-
-**Alternativ Option B: Rollenprüfung im Handler**
-
-Im `CancelTableVariantsHandler` die Rolle aus dem JWT-Context prüfen. Dafür müsste die Middleware die Rolle zusätzlich zum UserID in den Context schreiben. Aktuell wird nur `UserIDKey` gesetzt — man müsste einen `RoleKey` ergänzen.
-
-**Empfehlung:** Option A ist sauberer, da die Middleware bereits die Rollenprüfung macht und kein Code im Handler geändert werden muss.
-
-**Konkrete Umsetzung mit Option A:**
-
-1. In `api/service.go` den `cancel-table-variants`-Handler entfernen.
-2. Neue Funktion `NewCancelApi(db) http.Handler` in `api/service.go` (oder eigene Datei), die nur den Cancel-Handler registriert.
-3. In `app/app.go` den Cancel-Endpunkt mit eingeschränkter Middleware registrieren (s. oben).
-
-#### 5. Frontend: Auth erweitern (`frontend/src/lib/Auth.ts`)
-
-```typescript
-const JottiTokenSchema = z.object({
-  iss: z.literal('jotti'),
-  exp: z.int().min(0),
-  iat: z.int().min(0),
-  sub: z.number().int().min(1),
-  role: z.enum(['admin', 'senior_service', 'service']),
-})
-
-// Neue Getter:
-public get isSeniorService(): boolean {
-  return this.token?.role === 'senior_service'
-}
-
-public get canCancel(): boolean {
-  return this.isAdmin || this.isSeniorService
-}
-```
-
-#### 6. Frontend: Route Guards (`frontend/src/routes.ts`)
-
-```typescript
-export function ServiceGuard() {
-  const canAccessService =
-    AuthSingleton.isAuthenticated &&
-    (AuthSingleton.isService ||
-      AuthSingleton.isSeniorService ||
-      AuthSingleton.isAdmin);
-
-  if (!canAccessService) {
-    return redirect("/");
-  }
-}
-```
-
-#### 7. Frontend: User-Model (`frontend/src/admin/users/User.ts`)
-
-```typescript
-export const UserRole = {
-  ADMIN: "admin",
-  SENIOR_SERVICE: "senior_service",
-  SERVICE: "service",
-} as const;
-```
-
-Im `NewUserDialog` und `EditUserDialog`: Die Auswahl der Rolle um „Serviceleitung" ergänzen. Das Label für die Rolle im UI als Map:
-
-```typescript
-export const UserRoleLabels: Record<UserRole, string> = {
-  admin: "Admin",
-  senior_service: "Serviceleitung",
-  service: "Service",
-};
-```
-
-#### 8. Frontend: CancelationDrawer ausblenden (`frontend/src/service/components/table/Payment.tsx`)
-
-```tsx
-import { AuthSingleton } from '@/lib/Auth'
-
-// Im JSX: CancelationDrawer nur rendern wenn canCancel
-{AuthSingleton.canCancel && (
-  <div className="flex-1">
-    <CancelationDrawer ... />
-  </div>
-)}
-```
-
-### DB-Migration testen
-
-```bash
-# Container neu starten, damit Migration 02 angewendet wird
-docker compose -f docker-compose.dev.yml up --build -d
-```
-
-### Akzeptanzkriterien
-
-- [ ] Neue Rolle `senior_service` in DB, Backend und Frontend
-- [ ] `senior_service` kann Service-Bereich nutzen (Bestellen, Bezahlen, Liefern)
-- [ ] `senior_service` kann stornieren
-- [ ] `service` kann **nicht** stornieren (kein Button, Backend lehnt ab)
-- [ ] `admin` kann weiterhin stornieren
-- [ ] Admin kann Benutzer mit Rolle `senior_service` anlegen/bearbeiten
-- [ ] Rolle wird im Admin-User-Management als „Serviceleitung" angezeigt
-- [ ] Unit-Tests für Rollenvalidierung angepasst
-- [ ] `go test -tags=unit -race ./...` und `pnpm lint` ohne Fehler
-
-### Dokumentation aktualisieren
-
-Nach Implementierung folgende Dateien anpassen:
-
-- `AGENTS.md` — Rollendokumentation, DB-Schema-Enums
-- `.github/copilot-instructions.md` — Auth-Rollen, Middleware-Beschreibung
-- `README.md` — Rollen-Liste
-- `ANFORDERUNGEN.md` — #22 als ✅ markieren, neue Rolle dokumentieren
+- **DB**: Migration `02_add_senior_service_role` fügt `senior_service` zum `UserRole`-Enum hinzu
+- **Backend**: `SeniorServiceRole` in Domain-Modell, eigene `NewSeniorServiceApi` in `api/senior_service.go` (analog zu `admin.go`/`service.go`) mit `cancel-table-variants`-Endpunkt, Service-Middleware erlaubt `admin`/`senior_service`/`service`, Cancel-Middleware nur `admin`/`senior_service`
+- **Frontend**: `isSeniorService` + `canCancel` Getter in Auth, `ServiceGuard` aktualisiert, Rollenauswahl „Serviceleitung" im Admin, `CancelationDrawer` nur bei `canCancel`, Star-Icon für Serviceleitung in UserItem
+- **Tests**: 3 neue Middleware-Tests für Rollenrestriktionen
 
 ---
 
@@ -612,8 +420,8 @@ In `AdminSidebar.tsx` einen Link "Tagesabrechnung" ergänzen.
 ### Reihenfolge der Implementierung
 
 1. ~~**#21** zuerst (kein Dependency)~~ ✅ erledigt
-2. **#22** als nächstes (DB-Migration + Rolle nötig für spätere Features)
-3. **#23** und **#37** parallel möglich (beide Frontend-only, keine Abhängigkeiten)
+2. ~~**#22** danach (DB-Migration + Rolle nötig für spätere Features)~~ ✅ erledigt
+3. **#23** und **#37** als nächstes — parallel möglich (beide Frontend-only, keine Abhängigkeiten)
 4. **#24** und **#26** danach (Backend + Frontend, unabhängig voneinander)
 
 ### Test-Befehle

@@ -15,11 +15,7 @@ jotti ist ein Bestell- und Kassensystem für Vereine. Single-Tenant Webapp deplo
 
 ### Projektstand & Anforderungen
 
-Der vollständige Anforderungskatalog liegt in `ANFORDERUNGEN.md` (50 Anforderungen: 22 umgesetzt, 1 teilweise, 27 offen).
-
-**Bekannte teilweise Umsetzungen:**
-
-- **Stornierung nur für Admins (#22)**: `cancel-table-variants` ist für beide Rollen offen. → Rollenprüfung einbauen, Frontend: Stornierungstab nur für Admins.
+Der vollständige Anforderungskatalog liegt in `ANFORDERUNGEN.md` (50 Anforderungen: 23 umgesetzt, 0 teilweise, 27 offen).
 
 **Nächste offene Must-haves (siehe `ANFORDERUNGEN.md` für Details):**
 
@@ -37,9 +33,9 @@ Der vollständige Anforderungskatalog liegt in `ANFORDERUNGEN.md` (50 Anforderun
 
 Verwaltung: Produkte + Varianten, Tische, Benutzer. Backend-Routen in `api/admin.go`, Frontend unter `src/admin/`.
 
-### Service (`/service/*`) — Rollen `admin` + `service`
+### Service (`/service/*`) — Rollen `admin` + `senior_service` + `service`
 
-Betrieb: Tisch auswählen, bestellen, liefern, bezahlen, stornieren, Verlauf. Backend-Routen in `api/service.go`, Frontend unter `src/service/`.
+Betrieb: Tisch auswählen, bestellen, liefern, bezahlen, stornieren, Verlauf. Backend-Routen in `api/service.go` und `api/senior_service.go`, Frontend unter `src/service/`. Stornierung (`cancel-table-variants`) nur für `admin` und `senior_service`.
 
 ### Auth (`/auth/*`) — kein JWT
 
@@ -93,10 +89,10 @@ repository/<domain>_repo/ → SQL-Persistenz (pgx)
 
 ### Auth
 
-- JWT HS256, 12h Gültigkeit, Claims: `sub` (userID), `role` (admin|service)
+- JWT HS256, 12h Gültigkeit, Claims: `sub` (userID), `role` (admin|senior_service|service)
 - Middleware extrahiert `userID` aus JWT und setzt in Request-Context
 - Passwörter: Argon2id-Hashing
-- Rollen: `admin` (Vollzugriff), `service` (Bestell-/Kassierbetrieb)
+- Rollen: `admin` (Vollzugriff), `senior_service` (Service + Stornierung), `service` (Bestell-/Kassierbetrieb)
 
 ### Neue Endpunkte hinzufügen
 
@@ -173,7 +169,7 @@ src/components/common/   → Gemeinsame Komponenten (Formulare, EmptyState)
 
 ### Schema-Enums
 
-- `UserRole`: `admin`, `service`
+- `UserRole`: `admin`, `senior_service`, `service`
 - `EntityStatus`: `active`, `inactive`, `deleted`
 - `ProductCategory`: `food`, `beverage`, `other`
 
