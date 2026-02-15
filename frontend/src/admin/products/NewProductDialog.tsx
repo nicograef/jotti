@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { CategoryField, NameField } from '@/components/common/FormFields'
@@ -57,6 +58,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
       })
     } catch (error: unknown) {
       console.error(error)
+      toast.error('Aktion fehlgeschlagen')
     }
 
     setLoading(false)

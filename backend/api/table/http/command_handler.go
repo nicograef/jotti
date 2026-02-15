@@ -148,7 +148,11 @@ func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
 			return
 		}
 
-		userID := r.Context().Value(middleware.UserIDKey).(int)
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
 		err := h.Command.PlaceTableOrder(r.Context(), userID, body.TableID, body.Variants, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
@@ -172,7 +176,11 @@ func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
 			return
 		}
 
-		userID := r.Context().Value(middleware.UserIDKey).(int)
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
 		err := h.Command.RegisterTablePayment(r.Context(), userID, body.TableID, body.Variants, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
@@ -196,7 +204,11 @@ func (h *CommandHandler) CancelTableVariantsHandler() http.HandlerFunc {
 			return
 		}
 
-		userID := r.Context().Value(middleware.UserIDKey).(int)
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
 		err := h.Command.CancelTableVariants(r.Context(), userID, body.TableID, body.Variants, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
@@ -220,7 +232,11 @@ func (h *CommandHandler) DeliverTableVariantsHandler() http.HandlerFunc {
 			return
 		}
 
-		userID := r.Context().Value(middleware.UserIDKey).(int)
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
 		err := h.Command.DeliverTableVariants(r.Context(), userID, body.TableID, body.Variants, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)

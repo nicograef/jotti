@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { type ReactNode, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { NameField, PriceField } from '@/components/common/FormFields'
@@ -61,6 +62,7 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
       })
     } catch (error: unknown) {
       console.error(error)
+      toast.error('Aktion fehlgeschlagen')
     }
 
     setLoading(false)

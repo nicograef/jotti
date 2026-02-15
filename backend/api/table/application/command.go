@@ -114,7 +114,7 @@ func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, varia
 
 	_, err = c.EventRepo.WriteEvent(ctx, event)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Msg("Failed to write order placed event to database")
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write order placed event to database")
 		return ErrDatabase
 	}
 
@@ -133,7 +133,7 @@ func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, 
 
 	_, err = c.EventRepo.WriteEvent(ctx, event)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Msg("Failed to write payment registered event to database")
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write payment registered event to database")
 		return ErrDatabase
 	}
 
@@ -152,7 +152,7 @@ func (c Command) CancelTableVariants(ctx context.Context, userID, tableID int, v
 
 	_, err = c.EventRepo.WriteEvent(ctx, event)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Msg("Failed to write variants canceled event to database")
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write variants canceled event to database")
 		return ErrDatabase
 	}
 
@@ -171,7 +171,7 @@ func (c Command) DeliverTableVariants(ctx context.Context, userID, tableID int, 
 
 	_, err = c.EventRepo.WriteEvent(ctx, event)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Msg("Failed to write variants delivered event to database")
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write variants delivered event to database")
 		return ErrDatabase
 	}
 
@@ -222,7 +222,7 @@ func (c Command) CreateTableSnapshot(ctx context.Context, userID, tableID int) e
 
 	_, err = c.EventRepo.WriteEvent(ctx, snapshotEvent)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Msg("Failed to write snapshot event")
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write snapshot event")
 		return ErrDatabase
 	}
 

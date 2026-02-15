@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { DialogDescription } from '@radix-ui/react-dialog'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { NameField } from '@/components/common/FormFields'
@@ -59,6 +60,7 @@ export function EditTableDialog(props: EditTableDialogProps) {
       props.close()
     } catch (error: unknown) {
       console.error(error)
+      toast.error('Aktion fehlgeschlagen')
     }
 
     setLoading(false)

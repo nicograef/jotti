@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -49,6 +50,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
+      toast.error('Aktion fehlgeschlagen')
     }
 
     setLoading(false)

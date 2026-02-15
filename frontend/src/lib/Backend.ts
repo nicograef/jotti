@@ -57,6 +57,12 @@ class Backend {
     })
 
     if (!response.ok) {
+      if (response.status === 401) {
+        AuthSingleton.logout()
+        window.location.href = '/login'
+        throw new BackendError(401, 'unauthorized')
+      }
+
       try {
         const { code, details } = ErrorResponseSchema.parse(
           await response.json(),
