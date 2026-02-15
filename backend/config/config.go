@@ -23,7 +23,7 @@ type Config struct {
 }
 
 // Load reads configuration from environment variables and returns a Config struct.
-// Defaults: PORT=3000 CAPACITY=1000, CONSUMER_URL="http://localhost:4000" DELIVERY_ATTEMPTS=3
+// Defaults: PORT=3000, POSTGRES_HOST="localhost", POSTGRES_PORT=5432
 func Load() Config {
 	port := parseEnvInt("PORT", 3000)
 	postgres := postgresConfig{
