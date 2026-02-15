@@ -2,6 +2,8 @@ package application
 
 import (
 	"errors"
+
+	"github.com/nicograef/jotti/backend/db"
 )
 
 var ErrUserNotFound = errors.New("user not found")
@@ -16,4 +18,4 @@ var ErrNoOnetimePassword = errors.New("no onetime password set")
 
 var ErrTokenGeneration = errors.New("token generation failed")
 
-var ErrDatabase = errors.New("database error")
+var ErrDatabase = db.ErrDatabase

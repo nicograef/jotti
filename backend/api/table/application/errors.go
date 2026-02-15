@@ -14,7 +14,7 @@ var ErrTableNotFound = errors.New("table not found")
 var ErrTableAlreadyExists = errors.New("table already exists")
 
 // ErrDatabase is returned when there is a database error.
-var ErrDatabase = errors.New("database error")
+var ErrDatabase = db.ErrDatabase
 
 // ErrInvalidTableData is returned when the provided table data is invalid.
 var ErrInvalidTableData = errors.New("invalid table data")

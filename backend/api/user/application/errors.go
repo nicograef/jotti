@@ -2,6 +2,8 @@ package application
 
 import (
 	"errors"
+
+	"github.com/nicograef/jotti/backend/db"
 )
 
 // ErrUserNotFound is returned when a user is not found.
@@ -19,4 +21,4 @@ var ErrInvalidUserData = errors.New("invalid user data")
 var ErrNoOnetimePassword = errors.New("no onetime password set")
 
 // ErrDatabase is returned when there is a database error.
-var ErrDatabase = errors.New("database error")
+var ErrDatabase = db.ErrDatabase

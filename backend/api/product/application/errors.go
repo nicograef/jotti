@@ -2,6 +2,8 @@ package application
 
 import (
 	"errors"
+
+	"github.com/nicograef/jotti/backend/db"
 )
 
 // ErrProductNotFound is returned when a product is not found.
@@ -14,7 +16,7 @@ var ErrProductAlreadyExists = errors.New("product already exists")
 var ErrVariantNotFound = errors.New("variant not found")
 
 // ErrDatabase is returned when there is a database error.
-var ErrDatabase = errors.New("database error")
+var ErrDatabase = db.ErrDatabase
 
 // ErrInvalidProductData is returned when the provided product data is invalid.
 var ErrInvalidProductData = errors.New("invalid product data")
