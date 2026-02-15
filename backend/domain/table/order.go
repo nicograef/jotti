@@ -22,13 +22,13 @@ var lineItemSchema = z.Struct(z.Shape{
 })
 
 type Order struct {
-	ID              string         `json:"id"`
-	UserID          int            `json:"userId"`
-	TableID         int            `json:"tableId"`
+	ID              string     `json:"id"`
+	UserID          int        `json:"userId"`
+	TableID         int        `json:"tableId"`
 	Variants        []LineItem `json:"variants"`
-	TotalPriceCents int            `json:"totalPriceCents"`
-	Comment         string         `json:"comment"`
-	PlacedAt        time.Time      `json:"placedAt"`
+	TotalPriceCents int        `json:"totalPriceCents"`
+	Comment         string     `json:"comment"`
+	PlacedAt        time.Time  `json:"placedAt"`
 }
 
 var orderSchema = z.Struct(z.Shape{

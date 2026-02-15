@@ -10,10 +10,10 @@ import (
 )
 
 type paymentRegisteredV1Data struct {
-	PaymentID         string         `json:"paymentId"` // UUID string
+	PaymentID         string     `json:"paymentId"` // UUID string
 	Variants          []LineItem `json:"variants"`
-	TotalPaymentCents int            `json:"totalPaymentCents"`
-	Comment           string         `json:"comment"`
+	TotalPaymentCents int        `json:"totalPaymentCents"`
+	Comment           string     `json:"comment"`
 }
 
 var paymentRegisteredV1DataSchema = z.Struct(z.Shape{
@@ -54,9 +54,9 @@ func buildPaymentFromEvent(event e.Event) (Payment, error) {
 		return Payment{}, fmt.Errorf("unsupported event type: %s", event.Type)
 	}
 
-	tableID, err := strconv.Atoi(event.Subject[len("table:"):])
+	tableID, err := parseTableIDFromSubject(event.Subject)
 	if err != nil {
-		return Payment{}, fmt.Errorf("invalid table ID in event subject: %v", err)
+		return Payment{}, err
 	}
 
 	data := paymentRegisteredV1Data{}

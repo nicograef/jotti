@@ -7,13 +7,13 @@ import (
 )
 
 type Payment struct {
-	ID                string         `json:"id"`
-	UserID            int            `json:"userId"`
-	TableID           int            `json:"tableId"`
+	ID                string     `json:"id"`
+	UserID            int        `json:"userId"`
+	TableID           int        `json:"tableId"`
 	Variants          []LineItem `json:"variants"`
-	TotalPaymentCents int            `json:"totalPaymentCents"`
-	Comment           string         `json:"comment"`
-	RegisteredAt      time.Time      `json:"registeredAt"`
+	TotalPaymentCents int        `json:"totalPaymentCents"`
+	Comment           string     `json:"comment"`
+	RegisteredAt      time.Time  `json:"registeredAt"`
 }
 
 var paymentSchema = z.Struct(z.Shape{

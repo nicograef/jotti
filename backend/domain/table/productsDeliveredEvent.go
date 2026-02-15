@@ -10,9 +10,9 @@ import (
 )
 
 type variantsDeliveredV1Data struct {
-	DeliveryID string         `json:"deliveryId"` // UUID string
+	DeliveryID string     `json:"deliveryId"` // UUID string
 	Variants   []LineItem `json:"variants"`
-	Comment    string         `json:"comment"`
+	Comment    string     `json:"comment"`
 }
 
 var variantsDeliveredV1DataSchema = z.Struct(z.Shape{
@@ -46,9 +46,9 @@ func buildDeliveryFromEvent(event e.Event) (Delivery, error) {
 		return Delivery{}, fmt.Errorf("unsupported event type: %s", event.Type)
 	}
 
-	tableID, err := strconv.Atoi(event.Subject[len("table:"):])
+	tableID, err := parseTableIDFromSubject(event.Subject)
 	if err != nil {
-		return Delivery{}, fmt.Errorf("invalid table ID in event subject: %v", err)
+		return Delivery{}, err
 	}
 
 	data := variantsDeliveredV1Data{}

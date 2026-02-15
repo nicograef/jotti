@@ -10,17 +10,17 @@ import (
 )
 
 type snapshotV1Data struct {
-	BalanceCents        int            `json:"balanceCents"`
+	BalanceCents        int        `json:"balanceCents"`
 	UnpaidVariants      []LineItem `json:"unpaidVariants"`
 	UndeliveredVariants []LineItem `json:"undeliveredVariants"`
-	TotalPaymentsCents  int            `json:"totalPaymentsCents"`
+	TotalPaymentsCents  int        `json:"totalPaymentsCents"`
 }
 
 var snapshotV1DataSchema = z.Struct(z.Shape{
-	"BalanceCents":        z.Int(),                     // Can be 0 (no outstanding balance)
+	"BalanceCents":        z.Int(),                 // Can be 0 (no outstanding balance)
 	"UnpaidVariants":      z.Slice(lineItemSchema), // Can be empty slice
 	"UndeliveredVariants": z.Slice(lineItemSchema), // Can be empty slice
-	"TotalPaymentsCents":  z.Int(),                     // Can be 0 (no payments yet)
+	"TotalPaymentsCents":  z.Int(),                 // Can be 0 (no payments yet)
 })
 
 // Snapshot represents the materialized state at a point in time
@@ -54,9 +54,9 @@ func buildSnapshotFromEvent(event e.Event) (Snapshot, error) {
 		return Snapshot{}, fmt.Errorf("unsupported event type: %s", event.Type)
 	}
 
-	tableID, err := strconv.Atoi(event.Subject[len("table:"):])
+	tableID, err := parseTableIDFromSubject(event.Subject)
 	if err != nil {
-		return Snapshot{}, fmt.Errorf("invalid table ID: %v", err)
+		return Snapshot{}, err
 	}
 
 	var data snapshotV1Data

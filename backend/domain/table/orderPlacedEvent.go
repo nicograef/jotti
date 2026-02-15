@@ -10,10 +10,10 @@ import (
 )
 
 type orderPlacedV1Data struct {
-	OrderID         string         `json:"orderId"` // UUID string
+	OrderID         string     `json:"orderId"` // UUID string
 	Variants        []LineItem `json:"variants"`
-	TotalPriceCents int            `json:"totalPriceCents"`
-	Comment         string         `json:"comment"`
+	TotalPriceCents int        `json:"totalPriceCents"`
+	Comment         string     `json:"comment"`
 }
 
 var orderPlacedV1DataSchema = z.Struct(z.Shape{
@@ -54,9 +54,9 @@ func buildOrderFromEvent(event e.Event) (Order, error) {
 		return Order{}, fmt.Errorf("unsupported event type: %s", event.Type)
 	}
 
-	tableID, err := strconv.Atoi(event.Subject[len("table:"):])
+	tableID, err := parseTableIDFromSubject(event.Subject)
 	if err != nil {
-		return Order{}, fmt.Errorf("invalid table ID in event subject: %v", err)
+		return Order{}, err
 	}
 
 	data := orderPlacedV1Data{}

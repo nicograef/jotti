@@ -1,6 +1,11 @@
 package table
 
-import e "github.com/nicograef/jotti/backend/domain/event"
+import (
+	"fmt"
+	"strconv"
+
+	e "github.com/nicograef/jotti/backend/domain/event"
+)
 
 type EventType string
 
@@ -11,6 +16,19 @@ const (
 	EventTypeVariantsDeliveredV1 EventType = "table.variants-delivered:v1"
 	EventTypeSnapshotV1          EventType = "table.snapshot:v1"
 )
+
+// parseTableIDFromSubject extracts the table ID from an event subject like "table:42".
+func parseTableIDFromSubject(subject string) (int, error) {
+	const prefix = "table:"
+	if len(subject) <= len(prefix) || subject[:len(prefix)] != prefix {
+		return 0, fmt.Errorf("invalid event subject format: %s", subject)
+	}
+	id, err := strconv.Atoi(subject[len(prefix):])
+	if err != nil {
+		return 0, fmt.Errorf("invalid table ID in event subject: %v", err)
+	}
+	return id, nil
+}
 
 func GetBalanceFromEvents(events []e.Event) (int, error) {
 	balanceCents := 0

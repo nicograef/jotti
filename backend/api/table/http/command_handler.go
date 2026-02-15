@@ -136,9 +136,9 @@ func (h *CommandHandler) DeactivateTableHandler() http.HandlerFunc {
 }
 
 type placeTableOrder struct {
-	TableID  int                  `json:"tableId"`
+	TableID  int              `json:"tableId"`
 	Variants []table.LineItem `json:"variants"`
-	Comment  string               `json:"comment"`
+	Comment  string           `json:"comment"`
 }
 
 func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
@@ -160,9 +160,9 @@ func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
 }
 
 type registerTablePayment struct {
-	TableID  int                  `json:"tableId"`
+	TableID  int              `json:"tableId"`
 	Variants []table.LineItem `json:"variants"`
-	Comment  string               `json:"comment"`
+	Comment  string           `json:"comment"`
 }
 
 func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
@@ -184,9 +184,9 @@ func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
 }
 
 type cancelTableVariants struct {
-	TableID  int                  `json:"tableId"`
+	TableID  int              `json:"tableId"`
 	Variants []table.LineItem `json:"variants"`
-	Comment  string               `json:"comment"`
+	Comment  string           `json:"comment"`
 }
 
 func (h *CommandHandler) CancelTableVariantsHandler() http.HandlerFunc {
@@ -208,9 +208,9 @@ func (h *CommandHandler) CancelTableVariantsHandler() http.HandlerFunc {
 }
 
 type deliverTableVariants struct {
-	TableID  int                  `json:"tableId"`
+	TableID  int              `json:"tableId"`
 	Variants []table.LineItem `json:"variants"`
-	Comment  string               `json:"comment"`
+	Comment  string           `json:"comment"`
 }
 
 func (h *CommandHandler) DeliverTableVariantsHandler() http.HandlerFunc {

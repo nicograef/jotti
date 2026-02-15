@@ -7,12 +7,12 @@ import (
 )
 
 type Delivery struct {
-	ID          string         `json:"id"`
-	UserID      int            `json:"userId"`
-	TableID     int            `json:"tableId"`
+	ID          string     `json:"id"`
+	UserID      int        `json:"userId"`
+	TableID     int        `json:"tableId"`
 	Variants    []LineItem `json:"variants"`
-	Comment     string         `json:"comment"`
-	DeliveredAt time.Time      `json:"deliveredAt"`
+	Comment     string     `json:"comment"`
+	DeliveredAt time.Time  `json:"deliveredAt"`
 }
 
 var deliverySchema = z.Struct(z.Shape{

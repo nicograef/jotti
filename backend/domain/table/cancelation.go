@@ -7,13 +7,13 @@ import (
 )
 
 type Cancelation struct {
-	ID                    string         `json:"id"`
-	UserID                int            `json:"userId"`
-	TableID               int            `json:"tableId"`
+	ID                    string     `json:"id"`
+	UserID                int        `json:"userId"`
+	TableID               int        `json:"tableId"`
 	Variants              []LineItem `json:"variants"`
-	TotalCancelationCents int            `json:"totalCancelationCents"`
-	Comment               string         `json:"comment"`
-	CanceledAt            time.Time      `json:"canceledAt"`
+	TotalCancelationCents int        `json:"totalCancelationCents"`
+	Comment               string     `json:"comment"`
+	CanceledAt            time.Time  `json:"canceledAt"`
 }
 
 var cancelationSchema = z.Struct(z.Shape{

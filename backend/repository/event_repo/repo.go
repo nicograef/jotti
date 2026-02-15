@@ -12,6 +12,22 @@ type Repository struct {
 	DB *sql.DB
 }
 
+// scanEvents reads all rows from a query result and returns a slice of events.
+func scanEvents(rows *sql.Rows) ([]event.Event, error) {
+	events := []event.Event{}
+	for rows.Next() {
+		var e event.Event
+		if err := rows.Scan(&e.ID, &e.UserID, &e.Type, &e.Subject, &e.Data, &e.Time); err != nil {
+			return nil, db.Error(err)
+		}
+		events = append(events, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, db.Error(err)
+	}
+	return events, nil
+}
+
 // WriteEvent stores a new event in the database.
 func (r Repository) WriteEvent(ctx context.Context, e event.Event) (int, error) {
 	var id int
@@ -58,20 +74,7 @@ func (r Repository) ReadEventsBySubject(ctx context.Context, subject string) ([]
 	}
 	defer db.Close(rows, "events")
 
-	events := []event.Event{}
-	for rows.Next() {
-		var event event.Event
-		if err := rows.Scan(&event.ID, &event.UserID, &event.Type, &event.Subject, &event.Data, &event.Time); err != nil {
-			return nil, db.Error(err)
-		}
-		events = append(events, event)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, db.Error(err)
-	}
-
-	return events, nil
+	return scanEvents(rows)
 }
 
 // ReadEventsSinceID retrieves events for a subject starting from a given ID (inclusive).
@@ -87,20 +90,7 @@ func (r Repository) ReadEventsSinceID(ctx context.Context, subject string, fromI
 	}
 	defer db.Close(rows, "events")
 
-	events := []event.Event{}
-	for rows.Next() {
-		var event event.Event
-		if err := rows.Scan(&event.ID, &event.UserID, &event.Type, &event.Subject, &event.Data, &event.Time); err != nil {
-			return nil, db.Error(err)
-		}
-		events = append(events, event)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, db.Error(err)
-	}
-
-	return events, nil
+	return scanEvents(rows)
 }
 
 // GetLastSnapshotID returns the ID of the most recent snapshot for a subject.
@@ -140,18 +130,5 @@ func (r Repository) ReadEventsWithSnapshot(ctx context.Context, subject string, 
 	}
 	defer db.Close(rows, "events with snapshot")
 
-	events := []event.Event{}
-	for rows.Next() {
-		var event event.Event
-		if err := rows.Scan(&event.ID, &event.UserID, &event.Type, &event.Subject, &event.Data, &event.Time); err != nil {
-			return nil, db.Error(err)
-		}
-		events = append(events, event)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, db.Error(err)
-	}
-
-	return events, nil
+	return scanEvents(rows)
 }

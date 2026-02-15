@@ -10,10 +10,10 @@ import (
 )
 
 type variantsCanceledV1Data struct {
-	CancelationID         string         `json:"cancelationId"` // UUID string
+	CancelationID         string     `json:"cancelationId"` // UUID string
 	Variants              []LineItem `json:"variants"`
-	TotalCancelationCents int            `json:"totalCancelationCents"`
-	Comment               string         `json:"comment"`
+	TotalCancelationCents int        `json:"totalCancelationCents"`
+	Comment               string     `json:"comment"`
 }
 
 var variantsCanceledV1DataSchema = z.Struct(z.Shape{
@@ -54,9 +54,9 @@ func buildCancelationFromEvent(event e.Event) (Cancelation, error) {
 		return Cancelation{}, fmt.Errorf("unsupported event type: %s", event.Type)
 	}
 
-	tableID, err := strconv.Atoi(event.Subject[len("table:"):])
+	tableID, err := parseTableIDFromSubject(event.Subject)
 	if err != nil {
-		return Cancelation{}, fmt.Errorf("invalid table ID in event subject: %v", err)
+		return Cancelation{}, err
 	}
 
 	data := variantsCanceledV1Data{}
