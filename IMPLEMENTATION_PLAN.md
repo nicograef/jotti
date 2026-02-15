@@ -6,91 +6,20 @@ Dieser Plan beschreibt die nächsten sechs Features in der Reihenfolge ihrer Imp
 
 ## Übersicht
 
-| #   | Feature                                                | Typ             | Komplexität | Branch                           |
-| --- | ------------------------------------------------------ | --------------- | ----------- | -------------------------------- |
-| 21  | Produktkategorien in Service-UI gruppieren             | Frontend-only   | Niedrig     | `feature/21-product-categories`  |
-| 22  | Neue Rolle `senior_service` + Stornierung einschränken | Full-Stack + DB | Mittel      | `feature/22-senior-service-role` |
-| 23  | Tisch-Schnellsuche                                     | Frontend-only   | Niedrig     | `feature/23-table-search`        |
-| 37  | Rückgeldberechnung                                     | Frontend-only   | Niedrig     | `feature/37-change-calculation`  |
-| 24  | Übersicht eigene Bestellungen                          | Full-Stack      | Mittel      | `feature/24-user-orders`         |
-| 26  | Umsatz pro Bediener (Tagesabrechnung)                  | Full-Stack      | Mittel      | `feature/26-revenue-by-user`     |
+| #   | Feature                                                | Typ             | Komplexität | Branch                           | Status |
+| --- | ------------------------------------------------------ | --------------- | ----------- | -------------------------------- | ------ |
+| 21  | Produktkategorien in Service-UI gruppieren             | Frontend-only   | Niedrig     | `feature/21-product-categories`  | ✅     |
+| 22  | Neue Rolle `senior_service` + Stornierung einschränken | Full-Stack + DB | Mittel      | `feature/22-senior-service-role` | ❌     |
+| 23  | Tisch-Schnellsuche                                     | Frontend-only   | Niedrig     | `feature/23-table-search`        | ❌     |
+| 37  | Rückgeldberechnung                                     | Frontend-only   | Niedrig     | `feature/37-change-calculation`  | ❌     |
+| 24  | Übersicht eigene Bestellungen                          | Full-Stack      | Mittel      | `feature/24-user-orders`         | ❌     |
+| 26  | Umsatz pro Bediener (Tagesabrechnung)                  | Full-Stack      | Mittel      | `feature/26-revenue-by-user`     | ❌     |
 
 ---
 
-## #21 — Produktkategorien in Service-UI gruppieren
+## ✅ #21 — Produktkategorien in Service-UI gruppieren (erledigt)
 
-### Ziel
-
-Die flache Produktliste in der Bestellansicht soll nach Produktkategorie (`food`, `beverage`, `other`) gruppiert werden, damit Servicekräfte schneller das richtige Produkt finden.
-
-### Ist-Zustand
-
-- `ProductList.tsx` (`frontend/src/service/components/table/ProductList.tsx`) rendert `props.products.map(...)` als flache Liste.
-- Jedes `Product`-Objekt hat bereits ein `category`-Feld (`food | beverage | other`), das vom Backend geliefert wird.
-- Die Daten kommen über `useActiveProducts()` → `ProductBackend.getActiveProducts()`.
-
-### Implementierung
-
-**Nur Frontend-Änderungen. Kein Backend, kein DB-Schema.**
-
-#### 1. Kategorie-Labels definieren
-
-In `frontend/src/service/product/Product.ts` ein Mapping ergänzen:
-
-```typescript
-export const ProductCategoryLabels: Record<ProductCategory, string> = {
-  food: "Essen",
-  beverage: "Getränke",
-  other: "Sonstiges",
-};
-
-/** Sortierreihenfolge der Kategorien in der UI */
-export const ProductCategoryOrder: ProductCategory[] = [
-  "food",
-  "beverage",
-  "other",
-];
-```
-
-#### 2. Produkte gruppieren
-
-In `ProductList.tsx`:
-
-1. Produkte nach Kategorie gruppieren (z. B. mit `Object.groupBy` oder manuellem Reduce).
-2. Pro Kategorie eine Überschrift rendern, dann die Produkte dieser Kategorie.
-3. Die Reihenfolge der Kategorien fest definieren: Essen → Getränke → Sonstiges.
-
-```tsx
-// Pseudocode-Struktur in ProductList.tsx
-{ProductCategoryOrder.map((category) => {
-  const categoryProducts = props.products.filter(p => p.category === category)
-  if (categoryProducts.length === 0) return null
-  return (
-    <div key={category}>
-      <h2 className="text-lg font-semibold mt-4 mb-2">
-        {ProductCategoryLabels[category]}
-      </h2>
-      <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
-        {categoryProducts.map((product) => (
-          // ... bestehender Product-Render-Code ...
-        ))}
-      </ItemGroup>
-    </div>
-  )
-})}
-```
-
-#### 3. Skeleton anpassen
-
-`ProductListSkeleton` sollte ebenfalls Kategorie-Überschriften andeuten (3 Gruppen mit je 2 Skeleton-Items).
-
-### Akzeptanzkriterien
-
-- [ ] Produkte sind nach Kategorie gruppiert mit deutscher Überschrift
-- [ ] Reihenfolge: Essen → Getränke → Sonstiges
-- [ ] Leere Kategorien werden nicht angezeigt
-- [ ] +/−-Buttons und Mengenanzeige funktionieren wie zuvor
-- [ ] `pnpm lint` ohne Fehler
+Umgesetzt und gemergt in `main` (Commit `6ee6751`). Produkte werden in `ProductList.tsx` nach Kategorie gruppiert (Essen → Getränke → Sonstiges) mit `ProductCategoryLabels` und `ProductCategoryOrder` aus `Product.ts`.
 
 ---
 
@@ -682,8 +611,8 @@ In `AdminSidebar.tsx` einen Link "Tagesabrechnung" ergänzen.
 
 ### Reihenfolge der Implementierung
 
-1. **#21** zuerst (kein Dependency)
-2. **#22** danach (DB-Migration + Rolle nötig für spätere Features)
+1. ~~**#21** zuerst (kein Dependency)~~ ✅ erledigt
+2. **#22** als nächstes (DB-Migration + Rolle nötig für spätere Features)
 3. **#23** und **#37** parallel möglich (beide Frontend-only, keine Abhängigkeiten)
 4. **#24** und **#26** danach (Backend + Frontend, unabhängig voneinander)
 
