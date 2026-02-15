@@ -8,9 +8,10 @@ const userBackend = new UserBackend(BackendSingleton)
 
 /** Custom hook to fetch all users from backend. */
 export function useAllUsers() {
-  const { data: users, setData: setUsers, ...rest } = useFetch(
-    () => userBackend.getAllUsers(),
-    [] as User[],
-  )
+  const {
+    data: users,
+    setData: setUsers,
+    ...rest
+  } = useFetch(() => userBackend.getAllUsers(), [] as User[])
   return { ...rest, users, setUsers }
 }

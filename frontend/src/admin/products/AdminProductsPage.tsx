@@ -4,7 +4,6 @@ import { toast } from 'sonner'
 import { BackendSingleton } from '@/lib/Backend'
 
 import { EditProductDialog } from './EditProductDialog'
-import { EditVariantDialog } from './EditVariantDialog'
 import { useAllProducts } from './hooks'
 import { NewProductDialog } from './NewProductDialog'
 import type { Product, Variant } from './Product'
@@ -16,21 +15,12 @@ const initialProductEditState = {
   open: false,
 }
 
-const initialVariantEditState = {
-  productId: null as number | null,
-  variant: null as Variant | null,
-  open: false,
-}
-
 const productBackend = new ProductBackend(BackendSingleton)
 
 export function AdminProductsPage() {
   const { loading, products, setProducts } = useAllProducts()
   const [productEditState, setProductEditState] = useState(
     initialProductEditState,
-  )
-  const [variantEditState, setVariantEditState] = useState(
-    initialVariantEditState,
   )
 
   const updateProduct = (product: Product) => {
@@ -93,23 +83,6 @@ export function AdminProductsPage() {
           }}
         />
       )}
-      {variantEditState.variant && variantEditState.productId && (
-        <EditVariantDialog
-          backend={productBackend}
-          open={variantEditState.open}
-          variant={variantEditState.variant}
-          updated={(variant) => {
-            if (variantEditState.productId === null) {
-              console.error('Product ID is null')
-            } else {
-              onVariantUpdated(variantEditState.productId, variant)
-            }
-          }}
-          close={() => {
-            setVariantEditState(initialVariantEditState)
-          }}
-        />
-      )}
       <h1 className="text-2xl font-bold">Produkte verwalten</h1>
       <Products
         loading={loading}
@@ -120,9 +93,7 @@ export function AdminProductsPage() {
           setProductEditState({ product: productToEdit, open: true })
         }}
         onVariantCreated={onVariantCreated}
-        onVariantUpdated={(productId, variant) => {
-          setVariantEditState({ productId, variant, open: true })
-        }}
+        onVariantUpdated={onVariantUpdated}
         onVariantStatusChange={onVariantStatusChange}
       />
     </>

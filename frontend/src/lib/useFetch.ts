@@ -1,4 +1,10 @@
-import { type Dispatch, type SetStateAction, useCallback, useEffect, useState } from 'react'
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react'
 
 interface UseFetchResult<T> {
   loading: boolean
