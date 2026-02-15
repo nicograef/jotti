@@ -24,7 +24,7 @@ jotti ist ein Bestell- und Kassensystem für Vereine und Nonprofit-Veranstaltung
 5. **Validierung mit Schemas.** Backend: `zog`. Frontend: `Zod`. Beide Seiten validieren.
 6. **Deutsche UI, englischer Code.** Alle Benutzer-sichtbaren Strings auf Deutsch. Code, Variablen, Commits auf Englisch.
 7. **Kein globaler State-Store im Frontend.** Nur React Hooks + Singletons.
-8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden.
+8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
 9. **Dokumentation synchron halten.** Bei jeder Änderung am Projekt (neue Endpunkte, neue Seiten, geänderte Architektur, neue Dependencies, Versionsänderungen etc.) müssen folgende Dateien aktualisiert werden, sofern betroffen:
    - `AGENTS.md` — Tech-Stack-Tabelle, Verzeichnisstruktur, Regeln, Event-Referenz, DB-Schema
    - `.github/copilot-instructions.md` — Architektur, Konventionen, Patterns, DB-Tabellen
@@ -80,7 +80,7 @@ backend/
 frontend/
   src/routes.ts                 # Alle Routen + Guards
   src/App.tsx                   # Root-Komponente
-  src/lib/                      # Auth, Backend-Client, Utilities
+  src/lib/                      # Auth, Backend-Client (BackendClient-Interface), useFetch-Hook, Utilities
   src/admin/                    # Admin-Bereich (Produkte, Tische, Benutzer)
   src/service/                  # Service-Bereich (Tisch-Workflow)
   src/pages/                    # Login, Passwort setzen
@@ -124,8 +124,8 @@ cd frontend && pnpm lint                              # Frontend-Lint
 ### Frontend (neue Seite)
 
 1. Zod-Schema + TypeScript-Typen in Feature-Verzeichnis
-2. Backend-Client-Klasse (Dependency Injection via Constructor)
-3. Custom Hook für Daten-Fetching
+2. Backend-Client-Klasse (nutzt `BackendClient`-Interface aus `@/lib/Backend`)
+3. Custom Hook via `useFetch<T>()` aus `@/lib/useFetch`
 4. React-Komponenten
 5. Route in `src/routes.ts` registrieren
 

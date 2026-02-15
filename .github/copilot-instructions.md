@@ -102,12 +102,15 @@ src/components/common/   → Gemeinsame Komponenten (Formulare, EmptyState)
 ### Patterns
 
 - **Alle API-Aufrufe über `Backend`-Singleton** (`src/lib/Backend.ts`) — nie direkt `fetch`
+- **`BackendClient`-Interface** aus `src/lib/Backend.ts` — alle Domain-Backend-Klassen verwenden dieses Interface per Dependency Injection statt eigene zu definieren
+- **401-Interceptor** — `Backend.post()` erkennt 401-Responses automatisch, loggt den Benutzer aus und leitet zu `/login` weiter
 - **Zod-Validierung** für alle Request- und Response-Bodies (Runtime-Typsicherheit)
 - **Domain-spezifische Backend-Klassen** (z.B. `ProductBackend`, `TableBackend`) mit Dependency Injection
 - **State Management**: Kein globaler Store — React `useState`/`useEffect` + Custom Hooks
-- **Custom Hooks** pro Datentyp: `useAllProducts()`, `useActiveTables()`, `useTableBalance()`, etc.
+- **`useFetch<T>()`-Hook** (`src/lib/useFetch.ts`) — generischer Data-Fetching-Hook mit `loading`, `data`, `error`, `reload`, `setData`. Alle Feature-Hooks (`useAllProducts`, `useActiveTables`, etc.) basieren darauf.
 - **Route Guards**: als React Router `loader`-Funktionen (`AdminGuard`, `ServiceGuard`, `AuthRedirect`)
-- **Drawer-Pattern**: Alle wichtigen Aktionen (Bestellen, Bezahlen, Stornieren, Liefern) öffnen einen Bottom-Sheet-Drawer mit Zusammenfassung vor Bestätigung
+- **Drawer-Pattern**: Alle wichtigen Aktionen (Bestellen, Bezahlen, Stornieren, Liefern) öffnen einen Bottom-Sheet-Drawer mit Zusammenfassung vor Bestätigung. Gemeinsame Hilfsfunktionen (`selectVariants`, `calculateTotalPrice`) in `src/service/components/table/drawerUtils.ts`
+- **Error Toasts**: Alle mutativen Aktionen zeigen `toast.error('Aktion fehlgeschlagen')` bei Fehlern (Sonner)
 - **UI-Sprache**: Deutsch. Code-Sprache: Englisch.
 - **Backend ist Single Source of Truth für Daten-Filterung** — keine redundante Filterlogik im Frontend. Vor dem Hinzufügen von Frontend-Filtern prüfen, ob das Backend die Daten bereits korrekt aufbereitet.
 
@@ -127,8 +130,8 @@ src/components/common/   → Gemeinsame Komponenten (Formulare, EmptyState)
 ### Neue Seiten hinzufügen
 
 1. Model + Zod-Schema in `src/admin/<feature>/Model.ts` oder `src/service/`
-2. Backend-Client in `src/admin/<feature>/Backend.ts` oder `src/service/`
-3. Hook in `src/admin/<feature>/hooks.ts`
+2. Backend-Client mit `BackendClient`-Interface aus `@/lib/Backend`
+3. Hook via `useFetch<T>()` aus `@/lib/useFetch`
 4. Komponenten in gleichem Verzeichnis
 5. Route in `src/routes.ts` registrieren
 
