@@ -17,11 +17,26 @@ type mockQuery struct {
 }
 
 func (m *mockQuery) GetAllProducts(ctx context.Context) ([]product.Product, error) {
-	return []product.Product{{ID: 1, Name: "French Fries", Description: "The most delicious fries.", NetPriceCents: 1999, Status: product.ActiveStatus, Category: product.FoodCategory}}, m.err
+	return []product.Product{{
+		ID:       1,
+		Name:     "French Fries",
+		Category: product.FoodCategory,
+		Variants: []product.Variant{
+			{ID: 1, Name: "Regular", PriceCents: 499, Status: product.ActiveStatus},
+			{ID: 2, Name: "Large", PriceCents: 699, Status: product.ActiveStatus},
+		},
+	}}, m.err
 }
 
 func (m *mockQuery) GetActiveProducts(ctx context.Context) ([]product.Product, error) {
-	return []product.Product{{ID: 1, Name: "French Fries", Description: "The most delicious fries.", NetPriceCents: 1999, Status: product.ActiveStatus, Category: product.FoodCategory}}, m.err
+	return []product.Product{{
+		ID:       1,
+		Name:     "French Fries",
+		Category: product.FoodCategory,
+		Variants: []product.Variant{
+			{ID: 1, Name: "Regular", PriceCents: 499, Status: product.ActiveStatus},
+		},
+	}}, m.err
 }
 
 func TestGetAllProductsHandler_Success(t *testing.T) {

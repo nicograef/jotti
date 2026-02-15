@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { Product } from '../../product/Product'
-import type { OrderProduct } from '../../table/Order'
+import type { Product, Variant } from '../../product/Product'
+import type { OrderVariant } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { CommentField } from './CommentField'
@@ -32,9 +32,9 @@ export function OrderDrawer(props: OrderDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [comment, setComment] = useState('')
-  const orderedProducts = orderProducts(props.products, props.quantities)
-  const totalPrice = calculateTotalPrice(orderedProducts)
-  const noProductsSelected = orderedProducts.length === 0
+  const orderedVariants = orderVariants(props.products, props.quantities)
+  const totalPrice = calculateTotalPrice(orderedVariants)
+  const noVariantsSelected = orderedVariants.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
@@ -42,7 +42,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
     try {
       await props.backend.placeTableOrder({
         tableId: props.table.id,
-        products: orderedProducts,
+        variants: orderedVariants,
         comment: comment,
       })
       props.orderPlaced()
@@ -55,7 +55,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
   }
 
   const onOpenChange = (isOpen: boolean) => {
-    if (noProductsSelected) {
+    if (noVariantsSelected) {
       setOpen(false)
     } else {
       setOpen(isOpen)
@@ -68,7 +68,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
         <div className="text-center">
           <Button
             className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
-            disabled={noProductsSelected}
+            disabled={noVariantsSelected}
           >
             Bestellung überprüfen
           </Button>
@@ -82,7 +82,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
               Überprüfe deine Bestellung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt products={orderedProducts} totalPrice={totalPrice} />
+          <Receipt variants={orderedVariants} totalPrice={totalPrice} />
           <div className="px-4">
             <CommentField
               onChange={(value) => {
@@ -111,21 +111,24 @@ export function OrderDrawer(props: OrderDrawerProps) {
   )
 }
 
-function orderProducts(
+function orderVariants(
   products: Product[],
   selectedQuantity: Record<number, number>,
-): OrderProduct[] {
-  return products
-    .map((product) => ({
-      ...product,
-      quantity: selectedQuantity[product.id] || 0,
+): OrderVariant[] {
+  const allVariants: Variant[] = products.flatMap((p) => p.variants)
+  return allVariants
+    .map((variant) => ({
+      id: variant.id,
+      name: variant.name,
+      priceCents: variant.priceCents,
+      quantity: selectedQuantity[variant.id] || 0,
     }))
-    .filter((product) => product.quantity > 0)
+    .filter((variant) => variant.quantity > 0)
 }
 
-function calculateTotalPrice(orderProducts: OrderProduct[]): number {
-  return orderProducts.reduce(
-    (total, product) => total + product.netPriceCents * product.quantity,
+function calculateTotalPrice(orderVariants: OrderVariant[]): number {
+  return orderVariants.reduce(
+    (total, variant) => total + variant.priceCents * variant.quantity,
     0,
   )
 }

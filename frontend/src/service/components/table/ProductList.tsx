@@ -1,4 +1,5 @@
-import { Minus, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Minus, Plus } from 'lucide-react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -11,67 +12,149 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import { type Product } from '../../product/Product'
+import { type Product, type Variant } from '../../product/Product'
 
 interface ProductListComponentProps {
   products: Product[]
-  productAmounts: Record<number, number>
-  onAdd: (productId: number) => void
-  onRemove: (productId: number) => void
+  variantQuantities: Record<number, number>
+  onAdd: (variantId: number) => void
+  onRemove: (variantId: number) => void
 }
 
 export function ProductList(props: ProductListComponentProps) {
+  const [expandedProducts, setExpandedProducts] = useState<Set<number>>(
+    () => new Set(),
+  )
+
+  const toggleExpanded = (productId: number) => {
+    setExpandedProducts((prev) => {
+      const next = new Set(prev)
+      if (next.has(productId)) {
+        next.delete(productId)
+      } else {
+        next.add(productId)
+      }
+      return next
+    })
+  }
+
+  const getProductTotal = (variants: Variant[]) => {
+    return variants.reduce(
+      (sum, v) => sum + (props.variantQuantities[v.id] || 0),
+      0,
+    )
+  }
+
   return (
     <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-      {props.products.map((product) => (
-        <Item key={product.id} variant="outline">
-          <ItemContent>
-            <ItemTitle>{product.name}</ItemTitle>
-            {product.description ? (
-              <ItemDescription>
-                <span className="font-bold">
-                  {(product.netPriceCents / 100).toFixed(2)}&nbsp;€
-                </span>
-                &nbsp; &ndash; &nbsp;{product.description}
-              </ItemDescription>
-            ) : (
-              <ItemDescription>
-                <span className="font-bold">
-                  {(product.netPriceCents / 100).toFixed(2)}&nbsp;€
-                </span>
-              </ItemDescription>
+      {props.products.map((product) => {
+        const isExpanded = expandedProducts.has(product.id)
+        const productTotal = getProductTotal(product.variants)
+
+        return (
+          <div key={product.id} className="space-y-1">
+            <Item
+              variant="outline"
+              className="cursor-pointer"
+              onClick={() => {
+                toggleExpanded(product.id)
+              }}
+            >
+              <ItemContent>
+                <ItemTitle className="flex items-center gap-2">
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  {product.name}
+                </ItemTitle>
+                <ItemDescription>
+                  {product.variants.length} Variante
+                  {product.variants.length !== 1 ? 'n' : ''}
+                </ItemDescription>
+              </ItemContent>
+              {productTotal > 0 && (
+                <ItemActions>
+                  <span className="text-sm font-medium bg-primary text-primary-foreground rounded-full px-2 py-1">
+                    {productTotal}
+                  </span>
+                </ItemActions>
+              )}
+            </Item>
+            {isExpanded && (
+              <div className="ml-4 space-y-1">
+                {product.variants.map((variant) => (
+                  <VariantItem
+                    key={variant.id}
+                    variant={variant}
+                    quantity={props.variantQuantities[variant.id] || 0}
+                    onAdd={() => {
+                      props.onAdd(variant.id)
+                    }}
+                    onRemove={() => {
+                      props.onRemove(variant.id)
+                    }}
+                  />
+                ))}
+              </div>
             )}
-          </ItemContent>
-          <ItemActions>
-            <Button
-              size="icon-sm"
-              variant="outline"
-              className="rounded-full"
-              aria-label="Produkt entfernen"
-              onClick={() => {
-                props.onRemove(product.id)
-              }}
-            >
-              <Minus />
-            </Button>
-            <span className="text-lg mx-1">
-              {props.productAmounts[product.id] || 0}
-            </span>
-            <Button
-              size="icon-sm"
-              variant="outline"
-              className="rounded-full"
-              aria-label="Produkt hinzufügen"
-              onClick={() => {
-                props.onAdd(product.id)
-              }}
-            >
-              <Plus />
-            </Button>
-          </ItemActions>
-        </Item>
-      ))}
+          </div>
+        )
+      })}
     </ItemGroup>
+  )
+}
+
+function VariantItem({
+  variant,
+  quantity,
+  onAdd,
+  onRemove,
+}: {
+  variant: Variant
+  quantity: number
+  onAdd: () => void
+  onRemove: () => void
+}) {
+  return (
+    <Item variant="outline" className="bg-muted/30">
+      <ItemContent>
+        <ItemTitle className="text-sm">{variant.name}</ItemTitle>
+        <ItemDescription>
+          <span className="font-bold">
+            {(variant.priceCents / 100).toFixed(2)}&nbsp;€
+          </span>
+        </ItemDescription>
+      </ItemContent>
+      <ItemActions>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          className="rounded-full"
+          aria-label="Variante entfernen"
+          onClick={(e) => {
+            e.stopPropagation()
+            onRemove()
+          }}
+        >
+          <Minus />
+        </Button>
+        <span className="text-lg mx-1">{quantity}</span>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          className="rounded-full"
+          aria-label="Variante hinzufügen"
+          onClick={(e) => {
+            e.stopPropagation()
+            onAdd()
+          }}
+        >
+          <Plus />
+        </Button>
+      </ItemActions>
+    </Item>
   )
 }
 

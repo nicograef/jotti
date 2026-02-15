@@ -340,15 +340,15 @@ export function PriceField<AllFormFields extends FieldValues>({
   form,
   withLabel,
   placeholder,
-}: FieldProps<{ netPriceCents: number } & AllFormFields>) {
+}: FieldProps<{ priceCents: number } & AllFormFields>) {
   const [value, setValue] = useState<string>(() =>
-    centsToPrice(form.getValues().netPriceCents),
+    centsToPrice(form.getValues().priceCents),
   )
   const [debounceTimeout, setDebounceTimeout] = useState<number | null>(null)
 
   return (
     <Controller
-      name={'netPriceCents' as Path<{ netPriceCents: number } & AllFormFields>}
+      name={'priceCents' as Path<{ priceCents: number } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">

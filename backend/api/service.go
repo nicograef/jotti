@@ -17,16 +17,16 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	tc := table.NewCommandHandler(db)
 	r.HandleFunc("/place-table-order", tc.PlaceTableOrderHandler())
 	r.HandleFunc("/register-table-payment", tc.RegisterTablePaymentHandler())
-	r.HandleFunc("/cancel-table-products", tc.CancelTableProductsHandler())
-	r.HandleFunc("/deliver-table-products", tc.DeliverTableProductsHandler())
+	r.HandleFunc("/cancel-table-variants", tc.CancelTableVariantsHandler())
+	r.HandleFunc("/deliver-table-variants", tc.DeliverTableVariantsHandler())
 
 	tq := table.NewQueryHandler(db)
 	r.HandleFunc("/get-table", tq.GetTableHandler())
 	r.HandleFunc("/get-active-tables", tq.GetActiveTablesHandler())
 	r.HandleFunc("/get-table-history", tq.GetTableHistoryHandler())
 	r.HandleFunc("/get-table-balance", tq.GetTableBalanceHandler())
-	r.HandleFunc("/get-table-unpaid-products", tq.GetTableUnpaidProductsHandler())
-	r.HandleFunc("/get-table-undelivered-products", tq.GetTableUndeliveredProductsHandler())
+	r.HandleFunc("/get-table-unpaid-variants", tq.GetTableUnpaidVariantsHandler())
+	r.HandleFunc("/get-table-undelivered-variants", tq.GetTableUndeliveredVariantsHandler())
 
 	return r
 }

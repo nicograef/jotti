@@ -34,16 +34,8 @@ func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
 	}
 }
 
-type activeProduct struct {
-	ID            int              `json:"id"`
-	Name          string           `json:"name"`
-	Description   string           `json:"description"`
-	NetPriceCents int              `json:"netPriceCents"`
-	Category      product.Category `json:"category"`
-}
-
 type getActiveProductsResponse struct {
-	Products []activeProduct `json:"products"`
+	Products []product.Product `json:"products"`
 }
 
 func (h *QueryHandler) GetActiveProductsHandler() http.HandlerFunc {
@@ -55,17 +47,6 @@ func (h *QueryHandler) GetActiveProductsHandler() http.HandlerFunc {
 			return
 		}
 
-		convertedProducts := make([]activeProduct, len(products))
-		for i, p := range products {
-			convertedProducts[i] = activeProduct{
-				ID:            p.ID,
-				Name:          p.Name,
-				Description:   p.Description,
-				NetPriceCents: p.NetPriceCents,
-				Category:      p.Category,
-			}
-		}
-
-		helper.SendResponse(w, getActiveProductsResponse{Products: convertedProducts})
+		helper.SendResponse(w, getActiveProductsResponse{Products: products})
 	}
 }

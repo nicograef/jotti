@@ -26,7 +26,7 @@ type Table struct {
 
 var IDSchema = z.Int().GTE(1, z.Message("Invalid table ID"))
 
-var NameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(30, z.Message("Name too long"))
+var NameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(100, z.Message("Name too long"))
 
 var StatusSchema = z.StringLike[Status]().OneOf(
 	[]Status{ActiveStatus, InactiveStatus},

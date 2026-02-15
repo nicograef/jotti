@@ -1,33 +1,30 @@
 import { ScrollArea } from '@/components/ui/scroll-area'
-import type { OrderProduct } from '@/service/table/Order'
+import type { OrderVariant } from '@/service/table/Order'
 
 export function Receipt({
-  products,
+  variants,
   totalPrice,
 }: {
-  products: OrderProduct[]
+  variants: OrderVariant[]
   totalPrice?: number
 }) {
   return (
     <>
       <ScrollArea
-        className={`inset-shadow-sm h-${Math.min(products.length * 10, 50).toString()}`} // max height 50 units, 10 units per product
+        className={`inset-shadow-sm h-${Math.min(variants.length * 10, 50).toString()}`} // max height 50 units, 10 units per variant
       >
         <div className="px-4 pt-2 pb-0 space-y-2">
-          {products.map((product) => {
+          {variants.map((variant) => {
             return (
               <div
-                key={product.id}
+                key={variant.id}
                 className="flex justify-between border-b pb-2 last:border-0"
               >
                 <div>
-                  {product.quantity} x {product.name}
+                  {variant.quantity} x {variant.name}
                 </div>
                 <div>
-                  €{' '}
-                  {((product.netPriceCents / 100) * product.quantity).toFixed(
-                    2,
-                  )}
+                  € {((variant.priceCents / 100) * variant.quantity).toFixed(2)}
                 </div>
               </div>
             )

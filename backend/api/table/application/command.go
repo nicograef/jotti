@@ -103,10 +103,10 @@ func (c Command) DeactivateTable(ctx context.Context, id int) error {
 	return nil
 }
 
-func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, products []table.OrderProduct, comment string) error {
+func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, variants []table.OrderVariant, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewOrderPlacedEvent(userID, tableID, products, comment)
+	event, err := table.NewOrderPlacedEvent(userID, tableID, variants, comment)
 	if err != nil {
 		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create order placed event")
 		return err
@@ -122,10 +122,10 @@ func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, produ
 	return nil
 }
 
-func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, products []table.OrderProduct, comment string) error {
+func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, variants []table.OrderVariant, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewPaymentRegisteredEvent(userID, tableID, products, comment)
+	event, err := table.NewPaymentRegisteredEvent(userID, tableID, variants, comment)
 	if err != nil {
 		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create payment registered event")
 		return err
@@ -141,41 +141,41 @@ func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, 
 	return nil
 }
 
-func (c Command) CancelTableProducts(ctx context.Context, userID, tableID int, products []table.OrderProduct, comment string) error {
+func (c Command) CancelTableVariants(ctx context.Context, userID, tableID int, variants []table.OrderVariant, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewProductsCanceledEvent(userID, tableID, products, comment)
+	event, err := table.NewVariantsCanceledEvent(userID, tableID, variants, comment)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create products canceled event")
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create variants canceled event")
 		return err
 	}
 
 	_, err = c.EventRepo.WriteEvent(ctx, event)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Msg("Failed to write products canceled event to database")
+		log.Error().Int("table_id", tableID).Msg("Failed to write variants canceled event to database")
 		return ErrDatabase
 	}
 
-	log.Info().Int("table_id", tableID).Msg("Products canceled")
+	log.Info().Int("table_id", tableID).Msg("Variants canceled")
 	return nil
 }
 
-func (c Command) DeliverTableProducts(ctx context.Context, userID, tableID int, products []table.OrderProduct, comment string) error {
+func (c Command) DeliverTableVariants(ctx context.Context, userID, tableID int, variants []table.OrderVariant, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewProductsDeliveredEvent(userID, tableID, products, comment)
+	event, err := table.NewVariantsDeliveredEvent(userID, tableID, variants, comment)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create products delivered event")
+		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create variants delivered event")
 		return err
 	}
 
 	_, err = c.EventRepo.WriteEvent(ctx, event)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Msg("Failed to write products delivered event to database")
+		log.Error().Int("table_id", tableID).Msg("Failed to write variants delivered event to database")
 		return ErrDatabase
 	}
 
-	log.Info().Int("table_id", tableID).Msg("Products delivered")
+	log.Info().Int("table_id", tableID).Msg("Variants delivered")
 	return nil
 }
 
@@ -193,11 +193,11 @@ func (c Command) CreateTableSnapshot(ctx context.Context, userID, tableID int) e
 	if err != nil {
 		return err
 	}
-	unpaid, err := table.GetUnpaidProductsFromEvents(events)
+	unpaid, err := table.GetUnpaidVariantsFromEvents(events)
 	if err != nil {
 		return err
 	}
-	undelivered, err := table.GetUndeliveredProductsFromEvents(events)
+	undelivered, err := table.GetUndeliveredVariantsFromEvents(events)
 	if err != nil {
 		return err
 	}

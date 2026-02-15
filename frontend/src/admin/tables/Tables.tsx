@@ -1,5 +1,7 @@
+import { LayoutGrid } from 'lucide-react'
 import { useState } from 'react'
 
+import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
 
 import { type Table, TableStatus } from './Table'
@@ -37,6 +39,16 @@ export function Tables(props: TablesProps) {
       console.error('Error deactivating table:', error)
     }
     setLoading(false)
+  }
+
+  if (props.tables.length === 0 && !props.loading) {
+    return (
+      <EmptyState
+        icon={LayoutGrid}
+        title="Keine Tische vorhanden"
+        description="Erstelle einen neuen Tisch, um Bestellungen aufnehmen zu können."
+      />
+    )
   }
 
   return (

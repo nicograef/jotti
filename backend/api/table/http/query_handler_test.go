@@ -15,7 +15,7 @@ import (
 type mockQuery struct {
 	table   table.Table
 	order   table.Order
-	product table.OrderProduct
+	variant table.OrderVariant
 	balance int
 	err     error
 }
@@ -40,12 +40,12 @@ func (m mockQuery) GetTableBalance(ctx context.Context, tableID int) (int, error
 	return m.balance, m.err
 }
 
-func (m mockQuery) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]table.OrderProduct, error) {
-	return []table.OrderProduct{m.product}, m.err
+func (m mockQuery) GetTableUnpaidVariants(ctx context.Context, tableID int) ([]table.OrderVariant, error) {
+	return []table.OrderVariant{m.variant}, m.err
 }
 
-func (m mockQuery) GetTableUndeliveredProducts(ctx context.Context, tableID int) ([]table.OrderProduct, error) {
-	return []table.OrderProduct{m.product}, m.err
+func (m mockQuery) GetTableUndeliveredVariants(ctx context.Context, tableID int) ([]table.OrderVariant, error) {
+	return []table.OrderVariant{m.variant}, m.err
 }
 
 func TestGetAllTablesHandler_Success(t *testing.T) {

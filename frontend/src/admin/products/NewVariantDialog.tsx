@@ -1,10 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus } from 'lucide-react'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import { CategoryField, NameField } from '@/components/common/FormFields'
+import { NameField, PriceField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,24 +18,26 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
-import { type Product, ProductCategory } from './Product'
-import { CreateProductSchema, ProductBackend } from './ProductBackend'
+import { type Variant, VariantStatus } from './Product'
+import { CreateVariantSchema, type ProductBackend } from './ProductBackend'
 
-const FormDataSchema = CreateProductSchema
+const FormDataSchema = CreateVariantSchema.omit({ productId: true })
 type FormData = z.infer<typeof FormDataSchema>
 
-interface NewProductDialogProps {
-  backend: Pick<ProductBackend, 'createProduct'>
-  created: (product: Product) => void
+interface NewVariantDialogProps {
+  productId: number
+  backend: Pick<ProductBackend, 'createVariant'>
+  created: (variant: Variant) => void
+  children: ReactNode
 }
 
-export function NewProductDialog(props: NewProductDialogProps) {
+export function NewVariantDialog(props: NewVariantDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: {
       name: '',
-      category: ProductCategory.FOOD,
+      priceCents: 0,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
@@ -46,13 +47,16 @@ export function NewProductDialog(props: NewProductDialogProps) {
     setLoading(true)
 
     try {
-      const id = await props.backend.createProduct(data)
+      const id = await props.backend.createVariant({
+        productId: props.productId,
+        ...data,
+      })
       form.reset()
       setOpen(false)
       props.created({
         id,
         ...data,
-        variants: [],
+        status: VariantStatus.INACTIVE,
         createdAt: new Date().toISOString(),
       })
     } catch (error: unknown) {
@@ -64,23 +68,17 @@ export function NewProductDialog(props: NewProductDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <div className="fixed bottom-16 right-16 z-50">
-          <Button className="cursor-pointer hover:shadow-sm">
-            <Plus /> Neues Produkt
-          </Button>
-        </div>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
+      <DialogContent className="sm:max-w-100">
         <DialogHeader className="mb-4">
-          <DialogTitle>Neues Produkt anlegen</DialogTitle>
+          <DialogTitle>Neue Variante anlegen</DialogTitle>
           <DialogDescription>
-            Produkte haben einen Namen und eine Kategorie. Varianten mit Preisen
-            können später hinzugefügt werden.
+            Varianten haben einen Namen und Preis. Sie können später aktiviert
+            werden.
           </DialogDescription>
         </DialogHeader>
         <form
-          id="product-form"
+          id="variant-form"
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
@@ -91,9 +89,9 @@ export function NewProductDialog(props: NewProductDialogProps) {
             <NameField
               form={form}
               withLabel
-              placeholder="Produktname eingeben"
+              placeholder="z.B. Klein, Groß, 0.5L"
             />
-            <CategoryField form={form} withLabel />
+            <PriceField form={form} withLabel />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">
@@ -110,10 +108,10 @@ export function NewProductDialog(props: NewProductDialogProps) {
           </DialogClose>
           <Button
             type="submit"
-            form="product-form"
+            form="variant-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Produkt anlegen
+            {loading ? <Spinner /> : <></>} Variante anlegen
           </Button>
         </DialogFooter>
       </DialogContent>

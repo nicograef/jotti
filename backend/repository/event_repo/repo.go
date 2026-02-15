@@ -122,15 +122,36 @@ func (r Repository) GetLastSnapshotID(ctx context.Context, subject string, snaps
 // all events starting from that snapshot (inclusive). If no snapshot exists,
 // all events for the subject are returned.
 func (r Repository) ReadEventsWithSnapshot(ctx context.Context, subject string, snapshotEventType string) ([]event.Event, error) {
-	lastSnapshotID, err := r.GetLastSnapshotID(ctx, subject, snapshotEventType)
+	query := `
+		WITH last_snapshot AS (
+			SELECT COALESCE(MAX(id), 0) AS id 
+			FROM events 
+			WHERE subject = $1 AND type = $2
+		)
+		SELECT e.id, e.user_id, e.type, e.subject, e.data, e.timestamp
+		FROM events e, last_snapshot ls
+		WHERE e.subject = $1 AND e.id >= ls.id
+		ORDER BY e.id ASC
+	`
+
+	rows, err := r.DB.QueryContext(ctx, query, subject, snapshotEventType)
 	if err != nil {
-		return nil, err
+		return nil, db.Error(err)
+	}
+	defer db.Close(rows, "events with snapshot")
+
+	events := []event.Event{}
+	for rows.Next() {
+		var event event.Event
+		if err := rows.Scan(&event.ID, &event.UserID, &event.Type, &event.Subject, &event.Data, &event.Time); err != nil {
+			return nil, db.Error(err)
+		}
+		events = append(events, event)
 	}
 
-	if lastSnapshotID == 0 {
-		// No snapshot exists, return all events
-		return r.ReadEventsBySubject(ctx, subject)
+	if err := rows.Err(); err != nil {
+		return nil, db.Error(err)
 	}
 
-	return r.ReadEventsSinceID(ctx, subject, lastSnapshotID)
+	return events, nil
 }

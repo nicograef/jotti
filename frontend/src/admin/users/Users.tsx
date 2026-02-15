@@ -1,5 +1,7 @@
+import { Users as UsersIcon } from 'lucide-react'
 import { useState } from 'react'
 
+import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
 
 import { type User, UserStatus } from './User'
@@ -37,6 +39,16 @@ export function Users(props: UsersProps) {
       console.error('Error deactivating user:', error)
     }
     setLoading(false)
+  }
+
+  if (props.users.length === 0 && !props.loading) {
+    return (
+      <EmptyState
+        icon={UsersIcon}
+        title="Keine Benutzer vorhanden"
+        description="Erstelle einen neuen Benutzer, um loszulegen."
+      />
+    )
   }
 
   return (

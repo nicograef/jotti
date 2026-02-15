@@ -13,40 +13,40 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { OrderProduct } from '../../table/Order'
+import type { OrderVariant } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { CommentField } from './CommentField'
 import { Receipt } from './Receipt'
 
 interface DeliveryDrawerProps {
-  backend: Pick<TableBackend, 'deliverTableProducts'>
+  backend: Pick<TableBackend, 'deliverTableVariants'>
   table: Table
-  undeliveredProducts: OrderProduct[]
+  undeliveredVariants: OrderVariant[]
   quantities: Record<number, number>
-  productsDelivered: () => void
+  variantsDelivered: () => void
 }
 
 export function DeliveryDrawer(props: DeliveryDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [comment, setComment] = useState('')
-  const productsToDeliver = buildOrderProducts(
-    props.undeliveredProducts,
+  const variantsToDeliver = selectVariants(
+    props.undeliveredVariants,
     props.quantities,
   )
-  const noProductsSelected = productsToDeliver.length === 0
+  const noVariantsSelected = variantsToDeliver.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
 
     try {
-      await props.backend.deliverTableProducts({
+      await props.backend.deliverTableVariants({
         tableId: props.table.id,
-        products: productsToDeliver,
+        variants: variantsToDeliver,
         comment: comment,
       })
-      props.productsDelivered()
+      props.variantsDelivered()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -56,7 +56,7 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
   }
 
   const onOpenChange = (isOpen: boolean) => {
-    if (noProductsSelected) {
+    if (noVariantsSelected) {
       setOpen(false)
     } else {
       setOpen(isOpen)
@@ -68,10 +68,10 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
       <DrawerTrigger asChild>
         <div className="text-center">
           <Button
-            disabled={noProductsSelected}
+            disabled={noVariantsSelected}
             className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
           >
-            Produkte liefern
+            Varianten liefern
           </Button>
         </div>
       </DrawerTrigger>
@@ -80,10 +80,10 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
           <DrawerHeader>
             <DrawerTitle>Lieferung für {props.table.name}</DrawerTitle>
             <DrawerDescription>
-              Wurden diese Produkte an den Tisch ausgeliefert?
+              Wurden diese Varianten an den Tisch ausgeliefert?
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt products={productsToDeliver} />
+          <Receipt variants={variantsToDeliver} />
           <div className="px-4">
             <CommentField
               onChange={(value) => {
@@ -98,7 +98,7 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Produkte liefern
+              {loading ? <Spinner /> : <></>} Varianten liefern
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>
@@ -112,14 +112,14 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
   )
 }
 
-function buildOrderProducts(
-  products: OrderProduct[],
+function selectVariants(
+  variants: OrderVariant[],
   selectedQuantity: Record<number, number>,
-): OrderProduct[] {
-  return products
-    .map((product) => ({
-      ...product,
-      quantity: selectedQuantity[product.id] || 0,
+): OrderVariant[] {
+  return variants
+    .map((variant) => ({
+      ...variant,
+      quantity: selectedQuantity[variant.id] || 0,
     }))
-    .filter((product) => product.quantity > 0)
+    .filter((variant) => variant.quantity > 0)
 }

@@ -13,50 +13,50 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import { useTableUndeliveredProducts } from '../../table/hooks'
-import type { OrderProduct } from '../../table/Order'
+import { useTableUndeliveredVariants } from '../../table/hooks'
+import type { OrderVariant } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { DeliveryDrawer } from './DeliveryDrawer'
 
 interface DeliveryProps {
-  backend: Pick<TableBackend, 'deliverTableProducts'>
+  backend: Pick<TableBackend, 'deliverTableVariants'>
   table: Table
-  onProductsDelivered: () => void
+  onVariantsDelivered: () => void
 }
 
 export function Delivery({
   table,
   backend,
-  onProductsDelivered,
+  onVariantsDelivered,
 }: DeliveryProps) {
-  const { products, loading, reload } = useTableUndeliveredProducts(table.id)
+  const { variants, loading, reload } = useTableUndeliveredVariants(table.id)
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
   const undeliveredQuantities: Record<number, number> = {}
-  products.forEach((product) => {
-    undeliveredQuantities[product.id] = product.quantity
+  variants.forEach((variant) => {
+    undeliveredQuantities[variant.id] = variant.quantity
   })
 
-  const onAdd = (productId: number) => {
+  const onAdd = (variantId: number) => {
     setQuantities((prev) => {
-      const currentQuantity = prev[productId] || 0
-      if (currentQuantity >= (undeliveredQuantities[productId] || 0))
+      const currentQuantity = prev[variantId] || 0
+      if (currentQuantity >= (undeliveredQuantities[variantId] || 0))
         return prev
       return {
         ...prev,
-        [productId]: currentQuantity + 1,
+        [variantId]: currentQuantity + 1,
       }
     })
   }
 
-  const onRemove = (productId: number) => {
+  const onRemove = (variantId: number) => {
     setQuantities((prev) => {
-      const currentQuantity = prev[productId] || 0
+      const currentQuantity = prev[variantId] || 0
       if (currentQuantity <= 0) return prev
       return {
         ...prev,
-        [productId]: currentQuantity - 1,
+        [variantId]: currentQuantity - 1,
       }
     })
   }
@@ -67,12 +67,12 @@ export function Delivery({
       <DeliveryDrawer
         backend={backend}
         table={table}
-        undeliveredProducts={products}
+        undeliveredVariants={variants}
         quantities={quantities}
-        productsDelivered={() => {
+        variantsDelivered={() => {
           setQuantities({})
           toast.success(`Lieferung wurde registriert.`)
-          onProductsDelivered()
+          onVariantsDelivered()
           void reload()
         }}
       />
@@ -80,19 +80,19 @@ export function Delivery({
         {loading
           ? Array.from({ length: 6 }).map((_, index) => (
               // eslint-disable-next-line react-x/no-array-index-key
-              <ProductItemSkeleton key={index} />
+              <VariantItemSkeleton key={index} />
             ))
-          : products.map((product) => (
-              <ProductItem
-                key={product.id}
-                product={product}
-                quantity={quantities[product.id] || 0}
-                undeliveredQuantity={undeliveredQuantities[product.id] || 0}
+          : variants.map((variant) => (
+              <VariantItem
+                key={variant.id}
+                variant={variant}
+                quantity={quantities[variant.id] || 0}
+                undeliveredQuantity={undeliveredQuantities[variant.id] || 0}
                 onAdd={() => {
-                  onAdd(product.id)
+                  onAdd(variant.id)
                 }}
                 onRemove={() => {
-                  onRemove(product.id)
+                  onRemove(variant.id)
                 }}
               />
             ))}
@@ -101,25 +101,25 @@ export function Delivery({
   )
 }
 
-interface ProductItemProps {
-  product: OrderProduct
+interface VariantItemProps {
+  variant: OrderVariant
   quantity: number
   undeliveredQuantity: number
   onAdd: () => void
   onRemove: () => void
 }
 
-function ProductItem({
-  product,
+function VariantItem({
+  variant,
   quantity,
   undeliveredQuantity,
   onAdd,
   onRemove,
-}: ProductItemProps) {
+}: VariantItemProps) {
   return (
-    <Item key={product.id} variant="outline">
+    <Item key={variant.id} variant="outline">
       <ItemContent>
-        <ItemTitle>{product.name}</ItemTitle>
+        <ItemTitle>{variant.name}</ItemTitle>
         <ItemDescription>
           noch {undeliveredQuantity - quantity} zu liefern
         </ItemDescription>
@@ -129,7 +129,7 @@ function ProductItem({
           size="icon-sm"
           variant="outline"
           className="rounded-full"
-          aria-label="Produkt entfernen"
+          aria-label="Variante entfernen"
           onClick={onRemove}
         >
           <Minus />
@@ -139,7 +139,7 @@ function ProductItem({
           size="icon-sm"
           variant="outline"
           className="rounded-full"
-          aria-label="Produkt hinzufügen"
+          aria-label="Variante hinzufügen"
           onClick={onAdd}
         >
           <Plus />
@@ -149,7 +149,7 @@ function ProductItem({
   )
 }
 
-function ProductItemSkeleton() {
+function VariantItemSkeleton() {
   return (
     <Item variant="outline">
       <ItemContent>

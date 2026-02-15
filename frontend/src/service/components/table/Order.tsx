@@ -13,11 +13,11 @@ interface OrderProps {
   onOrderPlaced: () => void
 }
 
-type ProductAmountMap = Record<number, number>
+type VariantQuantityMap = Record<number, number>
 
 export function Order({ backend, table, onOrderPlaced }: OrderProps) {
   const { loading, products } = useActiveProducts()
-  const [quantities, setQuantities] = useState<ProductAmountMap>({})
+  const [quantities, setQuantities] = useState<VariantQuantityMap>({})
 
   if (loading) {
     return <ProductListSkeleton />
@@ -38,20 +38,20 @@ export function Order({ backend, table, onOrderPlaced }: OrderProps) {
       />
       <ProductList
         products={products}
-        productAmounts={quantities}
-        onAdd={(productId) => {
+        variantQuantities={quantities}
+        onAdd={(variantId) => {
           setQuantities((prev) => ({
             ...prev,
-            [productId]: (prev[productId] || 0) + 1,
+            [variantId]: (prev[variantId] || 0) + 1,
           }))
         }}
-        onRemove={(productId) => {
+        onRemove={(variantId) => {
           setQuantities((prev) => {
-            const currentQuantity = prev[productId] || 0
+            const currentQuantity = prev[variantId] || 0
             if (currentQuantity <= 0) return prev
             return {
               ...prev,
-              [productId]: currentQuantity - 1,
+              [variantId]: currentQuantity - 1,
             }
           })
         }}

@@ -16,8 +16,8 @@ type query interface {
 	GetActiveTables(ctx context.Context) ([]t.Table, error)
 	GetTableHistory(ctx context.Context, tableID int) ([]any, error)
 	GetTableBalance(ctx context.Context, tableID int) (int, error)
-	GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error)
-	GetTableUndeliveredProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error)
+	GetTableUnpaidVariants(ctx context.Context, tableID int) ([]t.OrderVariant, error)
+	GetTableUndeliveredVariants(ctx context.Context, tableID int) ([]t.OrderVariant, error)
 }
 
 type QueryHandler struct {
@@ -149,52 +149,52 @@ func (h QueryHandler) GetTableBalanceHandler() http.HandlerFunc {
 	}
 }
 
-type getTableUnpaidProducts struct {
+type getTableUnpaidVariants struct {
 	TableID int `json:"tableId"`
 }
 
-type getTableUnpaidProductsResponse struct {
-	Products []t.OrderProduct `json:"products"`
+type getTableUnpaidVariantsResponse struct {
+	Variants []t.OrderVariant `json:"variants"`
 }
 
-func (h QueryHandler) GetTableUnpaidProductsHandler() http.HandlerFunc {
+func (h QueryHandler) GetTableUnpaidVariantsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTableUnpaidProducts{}
+		body := getTableUnpaidVariants{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		products, err := h.Query.GetTableUnpaidProducts(r.Context(), body.TableID)
+		variants, err := h.Query.GetTableUnpaidVariants(r.Context(), body.TableID)
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, getTableUnpaidProductsResponse{Products: products})
+		helper.SendResponse(w, getTableUnpaidVariantsResponse{Variants: variants})
 	}
 }
 
-type getTableUndeliveredProducts struct {
+type getTableUndeliveredVariants struct {
 	TableID int `json:"tableId"`
 }
 
-type getTableUndeliveredProductsResponse struct {
-	Products []t.OrderProduct `json:"products"`
+type getTableUndeliveredVariantsResponse struct {
+	Variants []t.OrderVariant `json:"variants"`
 }
 
-func (h QueryHandler) GetTableUndeliveredProductsHandler() http.HandlerFunc {
+func (h QueryHandler) GetTableUndeliveredVariantsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTableUndeliveredProducts{}
+		body := getTableUndeliveredVariants{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		products, err := h.Query.GetTableUndeliveredProducts(r.Context(), body.TableID)
+		variants, err := h.Query.GetTableUndeliveredVariants(r.Context(), body.TableID)
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, getTableUndeliveredProductsResponse{Products: products})
+		helper.SendResponse(w, getTableUndeliveredVariantsResponse{Variants: variants})
 	}
 }

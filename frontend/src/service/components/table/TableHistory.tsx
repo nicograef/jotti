@@ -24,7 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { Cancelation } from '../../table/Cancelation'
 import type { Delivery } from '../../table/Delivery'
 import { useTableHistory } from '../../table/hooks'
-import type { Order, OrderProduct } from '../../table/Order'
+import type { Order, OrderVariant } from '../../table/Order'
 import type { Payment } from '../../table/Payment'
 import { Comment } from './CommentField'
 import { Receipt } from './Receipt'
@@ -160,7 +160,7 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
           }}
           date={order.order.placedAt}
           comment={order.order.comment}
-          products={order.order.products}
+          variants={order.order.variants}
           totalPrice={order.order.totalPriceCents}
         />
       )}
@@ -175,7 +175,7 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
           }}
           date={payment.payment.registeredAt}
           comment={payment.payment.comment}
-          products={payment.payment.products}
+          variants={payment.payment.variants}
           totalPrice={payment.payment.totalPaymentCents}
         />
       )}
@@ -190,7 +190,7 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
           }}
           date={cancelation.cancelation.canceledAt}
           comment={cancelation.cancelation.comment}
-          products={cancelation.cancelation.products}
+          variants={cancelation.cancelation.variants}
           totalPrice={cancelation.cancelation.totalCancelationCents}
         />
       )}
@@ -205,7 +205,7 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
           }}
           date={delivery.delivery.deliveredAt}
           comment={delivery.delivery.comment}
-          products={delivery.delivery.products}
+          variants={delivery.delivery.variants}
         />
       )}
     </>
@@ -278,7 +278,7 @@ function Details({
   date,
   isFromUser,
   comment,
-  products,
+  variants,
   totalPrice,
 }: {
   open: boolean
@@ -288,7 +288,7 @@ function Details({
   date: string
   isFromUser: boolean
   comment: string
-  products: OrderProduct[]
+  variants: OrderVariant[]
   totalPrice?: number
 }) {
   return (
@@ -310,7 +310,7 @@ function Details({
               {new Date(date).toLocaleTimeString()} Uhr
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt products={products} totalPrice={totalPrice} />
+          <Receipt variants={variants} totalPrice={totalPrice} />
           {comment && (
             <div className="px-4">
               <Comment value={comment} />

@@ -13,52 +13,52 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import { useTableUnpaidProducts } from '../../table/hooks'
-import type { OrderProduct } from '../../table/Order'
+import { useTableUnpaidVariants } from '../../table/hooks'
+import type { OrderVariant } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { CancelationDrawer } from './CancelationDrawer'
 import { PaymentDrawer } from './PaymentDrawer'
 
 interface PaymentProps {
-  backend: Pick<TableBackend, 'registerTablePayment' | 'cancelTableProducts'>
+  backend: Pick<TableBackend, 'registerTablePayment' | 'cancelTableVariants'>
   table: Table
   onPaymentRegistered: () => void
-  onProductsCanceled: () => void
+  onVariantsCanceled: () => void
 }
 
 export function Payment({
   table,
   backend,
   onPaymentRegistered,
-  onProductsCanceled,
+  onVariantsCanceled,
 }: PaymentProps) {
-  const { products, loading, reload } = useTableUnpaidProducts(table.id)
+  const { variants, loading, reload } = useTableUnpaidVariants(table.id)
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
   const unpaidQuantities: Record<number, number> = {}
-  products.forEach((product) => {
-    unpaidQuantities[product.id] = product.quantity
+  variants.forEach((variant) => {
+    unpaidQuantities[variant.id] = variant.quantity
   })
 
-  const onAdd = (productId: number) => {
+  const onAdd = (variantId: number) => {
     setQuantities((prev) => {
-      const currentQuantity = prev[productId] || 0
-      if (currentQuantity >= (unpaidQuantities[productId] || 0)) return prev
+      const currentQuantity = prev[variantId] || 0
+      if (currentQuantity >= (unpaidQuantities[variantId] || 0)) return prev
       return {
         ...prev,
-        [productId]: currentQuantity + 1,
+        [variantId]: currentQuantity + 1,
       }
     })
   }
 
-  const onRemove = (productId: number) => {
+  const onRemove = (variantId: number) => {
     setQuantities((prev) => {
-      const currentQuantity = prev[productId] || 0
+      const currentQuantity = prev[variantId] || 0
       if (currentQuantity <= 0) return prev
       return {
         ...prev,
-        [productId]: currentQuantity - 1,
+        [variantId]: currentQuantity - 1,
       }
     })
   }
@@ -70,12 +70,12 @@ export function Payment({
           <CancelationDrawer
             backend={backend}
             table={table}
-            unpaidProducts={products}
+            unpaidVariants={variants}
             quantities={quantities}
-            productsCanceled={() => {
+            variantsCanceled={() => {
               setQuantities({})
               toast.success(`Stornierung erfolgreich.`)
-              onProductsCanceled()
+              onVariantsCanceled()
               void reload()
             }}
           />
@@ -84,7 +84,7 @@ export function Payment({
           <PaymentDrawer
             backend={backend}
             table={table}
-            unpaidProducts={products}
+            unpaidVariants={variants}
             quantities={quantities}
             paymentRegistered={() => {
               setQuantities({})
@@ -99,19 +99,19 @@ export function Payment({
         {loading
           ? Array.from({ length: 6 }).map((_, index) => (
               // eslint-disable-next-line react-x/no-array-index-key
-              <ProductItemSkeleton key={index} />
+              <VariantItemSkeleton key={index} />
             ))
-          : products.map((product) => (
-              <ProductItem
-                key={product.id}
-                product={product}
-                quantity={quantities[product.id] || 0}
-                unpaidQuantity={unpaidQuantities[product.id] || 0}
+          : variants.map((variant) => (
+              <VariantItem
+                key={variant.id}
+                variant={variant}
+                quantity={quantities[variant.id] || 0}
+                unpaidQuantity={unpaidQuantities[variant.id] || 0}
                 onAdd={() => {
-                  onAdd(product.id)
+                  onAdd(variant.id)
                 }}
                 onRemove={() => {
-                  onRemove(product.id)
+                  onRemove(variant.id)
                 }}
               />
             ))}
@@ -120,28 +120,28 @@ export function Payment({
   )
 }
 
-interface ProductItemProps {
-  product: OrderProduct
+interface VariantItemProps {
+  variant: OrderVariant
   quantity: number
   unpaidQuantity: number
   onAdd: () => void
   onRemove: () => void
 }
 
-function ProductItem({
-  product,
+function VariantItem({
+  variant,
   quantity,
   unpaidQuantity,
   onAdd,
   onRemove,
-}: ProductItemProps) {
+}: VariantItemProps) {
   return (
-    <Item key={product.id} variant="outline">
+    <Item key={variant.id} variant="outline">
       <ItemContent>
-        <ItemTitle>{product.name}</ItemTitle>
+        <ItemTitle>{variant.name}</ItemTitle>
         <ItemDescription>
           <span className="font-bold">
-            {(product.netPriceCents / 100).toFixed(2)}&nbsp;€
+            {(variant.priceCents / 100).toFixed(2)}&nbsp;€
           </span>
           &nbsp; &ndash; &nbsp;noch {unpaidQuantity - quantity} unbezahlt
         </ItemDescription>
@@ -151,7 +151,7 @@ function ProductItem({
           size="icon-sm"
           variant="outline"
           className="rounded-full"
-          aria-label="Produkt entfernen"
+          aria-label="Variante entfernen"
           onClick={onRemove}
         >
           <Minus />
@@ -161,7 +161,7 @@ function ProductItem({
           size="icon-sm"
           variant="outline"
           className="rounded-full"
-          aria-label="Produkt hinzufügen"
+          aria-label="Variante hinzufügen"
           onClick={onAdd}
         >
           <Plus />
@@ -171,7 +171,7 @@ function ProductItem({
   )
 }
 
-function ProductItemSkeleton() {
+function VariantItemSkeleton() {
   return (
     <Item variant="outline">
       <ItemContent>

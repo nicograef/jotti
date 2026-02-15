@@ -112,7 +112,7 @@ func (q Query) GetTableHistory(ctx context.Context, tableID int) ([]any, error) 
 	return history, nil
 }
 
-func (q Query) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error) {
+func (q Query) GetTableUnpaidVariants(ctx context.Context, tableID int) ([]t.OrderVariant, error) {
 	log := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)
@@ -122,17 +122,17 @@ func (q Query) GetTableUnpaidProducts(ctx context.Context, tableID int) ([]t.Ord
 		return nil, ErrDatabase
 	}
 
-	unpaidProducts, err := t.GetUnpaidProductsFromEvents(events)
+	unpaidVariants, err := t.GetUnpaidVariantsFromEvents(events)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build unpaid products from events")
+		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build unpaid variants from events")
 		return nil, err
 	}
 
-	log.Info().Int("table_id", tableID).Int("unpaid_product_count", len(unpaidProducts)).Msg("Retrieved unpaid products for table")
-	return unpaidProducts, nil
+	log.Info().Int("table_id", tableID).Int("unpaid_variant_count", len(unpaidVariants)).Msg("Retrieved unpaid variants for table")
+	return unpaidVariants, nil
 }
 
-func (q Query) GetTableUndeliveredProducts(ctx context.Context, tableID int) ([]t.OrderProduct, error) {
+func (q Query) GetTableUndeliveredVariants(ctx context.Context, tableID int) ([]t.OrderVariant, error) {
 	log := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)
@@ -142,12 +142,12 @@ func (q Query) GetTableUndeliveredProducts(ctx context.Context, tableID int) ([]
 		return nil, ErrDatabase
 	}
 
-	undeliveredProducts, err := t.GetUndeliveredProductsFromEvents(events)
+	undeliveredVariants, err := t.GetUndeliveredVariantsFromEvents(events)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build undelivered products from events")
+		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build undelivered variants from events")
 		return nil, err
 	}
 
-	log.Info().Int("table_id", tableID).Int("undelivered_product_count", len(undeliveredProducts)).Msg("Retrieved undelivered products for table")
-	return undeliveredProducts, nil
+	log.Info().Int("table_id", tableID).Int("undelivered_variant_count", len(undeliveredVariants)).Msg("Retrieved undelivered variants for table")
+	return undeliveredVariants, nil
 }

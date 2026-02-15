@@ -11,27 +11,27 @@ import (
 
 type paymentRegisteredV1Data struct {
 	PaymentID         string         `json:"paymentId"` // UUID string
-	Products          []OrderProduct `json:"products"`
+	Variants          []OrderVariant `json:"variants"`
 	TotalPaymentCents int            `json:"totalPaymentCents"`
 	Comment           string         `json:"comment"`
 }
 
 var paymentRegisteredV1DataSchema = z.Struct(z.Shape{
 	"PaymentID":         z.String().UUID().Required(),
-	"Products":          z.Slice(orderProductSchema).Min(1).Required(),
+	"Variants":          z.Slice(orderVariantSchema).Min(1).Required(),
 	"TotalPaymentCents": z.Int().GTE(0).Required(),
 	"Comment":           z.String().Max(100),
 })
 
-func NewPaymentRegisteredEvent(userID, tableID int, products []OrderProduct, comment string) (e.Event, error) {
+func NewPaymentRegisteredEvent(userID, tableID int, variants []OrderVariant, comment string) (e.Event, error) {
 	totalPaymentCents := 0
-	for _, product := range products {
-		totalPaymentCents += product.NetPriceCents * product.Quantity
+	for _, variant := range variants {
+		totalPaymentCents += variant.PriceCents * variant.Quantity
 	}
 
 	data := paymentRegisteredV1Data{
 		PaymentID:         uuid.New().String(),
-		Products:          products,
+		Variants:          variants,
 		TotalPaymentCents: totalPaymentCents,
 		Comment:           comment,
 	}
@@ -69,7 +69,7 @@ func buildPaymentFromEvent(event e.Event) (Payment, error) {
 		ID:                data.PaymentID,
 		UserID:            event.UserID,
 		TableID:           tableID,
-		Products:          data.Products,
+		Variants:          data.Variants,
 		TotalPaymentCents: data.TotalPaymentCents,
 		Comment:           data.Comment,
 		RegisteredAt:      event.Time,

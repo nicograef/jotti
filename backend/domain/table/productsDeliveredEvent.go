@@ -9,31 +9,31 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-type productsDeliveredV1Data struct {
+type variantsDeliveredV1Data struct {
 	DeliveryID string         `json:"deliveryId"` // UUID string
-	Products   []OrderProduct `json:"products"`
+	Variants   []OrderVariant `json:"variants"`
 	Comment    string         `json:"comment"`
 }
 
-var productsDeliveredV1DataSchema = z.Struct(z.Shape{
+var variantsDeliveredV1DataSchema = z.Struct(z.Shape{
 	"DeliveryID": z.String().UUID().Required(),
-	"Products":   z.Slice(orderProductSchema).Min(1).Required(),
+	"Variants":   z.Slice(orderVariantSchema).Min(1).Required(),
 	"Comment":    z.String().Max(100),
 })
 
-func NewProductsDeliveredEvent(userID, tableID int, products []OrderProduct, comment string) (e.Event, error) {
-	data := productsDeliveredV1Data{
+func NewVariantsDeliveredEvent(userID, tableID int, variants []OrderVariant, comment string) (e.Event, error) {
+	data := variantsDeliveredV1Data{
 		DeliveryID: uuid.New().String(),
-		Products:   products,
+		Variants:   variants,
 		Comment:    comment,
 	}
 
-	if err := productsDeliveredV1DataSchema.Validate(&data); err != nil {
+	if err := variantsDeliveredV1DataSchema.Validate(&data); err != nil {
 		issues := z.Issues.SanitizeMapAndCollect(err)
-		return e.Event{}, fmt.Errorf("products delivered data validation failed: %v", issues)
+		return e.Event{}, fmt.Errorf("variants delivered data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, string(EventTypeProductsDeliveredV1), "table:"+strconv.Itoa(tableID), data)
+	event, err := e.New(userID, string(EventTypeVariantsDeliveredV1), "table:"+strconv.Itoa(tableID), data)
 	if err != nil {
 		return e.Event{}, err
 	}
@@ -42,7 +42,7 @@ func NewProductsDeliveredEvent(userID, tableID int, products []OrderProduct, com
 }
 
 func buildDeliveryFromEvent(event e.Event) (Delivery, error) {
-	if event.Type != string(EventTypeProductsDeliveredV1) {
+	if event.Type != string(EventTypeVariantsDeliveredV1) {
 		return Delivery{}, fmt.Errorf("unsupported event type: %s", event.Type)
 	}
 
@@ -51,8 +51,8 @@ func buildDeliveryFromEvent(event e.Event) (Delivery, error) {
 		return Delivery{}, fmt.Errorf("invalid table ID in event subject: %v", err)
 	}
 
-	data := productsDeliveredV1Data{}
-	err = e.ParseData(event, &data, productsDeliveredV1DataSchema)
+	data := variantsDeliveredV1Data{}
+	err = e.ParseData(event, &data, variantsDeliveredV1DataSchema)
 	if err != nil {
 		return Delivery{}, err
 	}
@@ -61,7 +61,7 @@ func buildDeliveryFromEvent(event e.Event) (Delivery, error) {
 		ID:          data.DeliveryID,
 		UserID:      event.UserID,
 		TableID:     tableID,
-		Products:    data.Products,
+		Variants:    data.Variants,
 		Comment:     data.Comment,
 		DeliveredAt: event.Time,
 	}

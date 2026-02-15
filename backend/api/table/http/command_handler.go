@@ -16,10 +16,10 @@ type command interface {
 	UpdateTable(ctx context.Context, id int, name string) error
 	ActivateTable(ctx context.Context, id int) error
 	DeactivateTable(ctx context.Context, id int) error
-	PlaceTableOrder(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error
-	RegisterTablePayment(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error
-	CancelTableProducts(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error
-	DeliverTableProducts(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error
+	PlaceTableOrder(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error
+	RegisterTablePayment(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error
+	CancelTableVariants(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error
+	DeliverTableVariants(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error
 }
 
 type CommandHandler struct {
@@ -137,7 +137,7 @@ func (h *CommandHandler) DeactivateTableHandler() http.HandlerFunc {
 
 type placeTableOrder struct {
 	TableID  int                  `json:"tableId"`
-	Products []table.OrderProduct `json:"products"`
+	Variants []table.OrderVariant `json:"variants"`
 	Comment  string               `json:"comment"`
 }
 
@@ -149,7 +149,7 @@ func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
 		}
 
 		userID := r.Context().Value(middleware.UserIDKey).(int)
-		err := h.Command.PlaceTableOrder(r.Context(), userID, body.TableID, body.Products, body.Comment)
+		err := h.Command.PlaceTableOrder(r.Context(), userID, body.TableID, body.Variants, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -161,7 +161,7 @@ func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
 
 type registerTablePayment struct {
 	TableID  int                  `json:"tableId"`
-	Products []table.OrderProduct `json:"products"`
+	Variants []table.OrderVariant `json:"variants"`
 	Comment  string               `json:"comment"`
 }
 
@@ -173,7 +173,7 @@ func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
 		}
 
 		userID := r.Context().Value(middleware.UserIDKey).(int)
-		err := h.Command.RegisterTablePayment(r.Context(), userID, body.TableID, body.Products, body.Comment)
+		err := h.Command.RegisterTablePayment(r.Context(), userID, body.TableID, body.Variants, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -183,21 +183,21 @@ func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
 	}
 }
 
-type cancelTableProducts struct {
+type cancelTableVariants struct {
 	TableID  int                  `json:"tableId"`
-	Products []table.OrderProduct `json:"products"`
+	Variants []table.OrderVariant `json:"variants"`
 	Comment  string               `json:"comment"`
 }
 
-func (h *CommandHandler) CancelTableProductsHandler() http.HandlerFunc {
+func (h *CommandHandler) CancelTableVariantsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := cancelTableProducts{}
+		body := cancelTableVariants{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
 		userID := r.Context().Value(middleware.UserIDKey).(int)
-		err := h.Command.CancelTableProducts(r.Context(), userID, body.TableID, body.Products, body.Comment)
+		err := h.Command.CancelTableVariants(r.Context(), userID, body.TableID, body.Variants, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -207,21 +207,21 @@ func (h *CommandHandler) CancelTableProductsHandler() http.HandlerFunc {
 	}
 }
 
-type deliverTableProducts struct {
+type deliverTableVariants struct {
 	TableID  int                  `json:"tableId"`
-	Products []table.OrderProduct `json:"products"`
+	Variants []table.OrderVariant `json:"variants"`
 	Comment  string               `json:"comment"`
 }
 
-func (h *CommandHandler) DeliverTableProductsHandler() http.HandlerFunc {
+func (h *CommandHandler) DeliverTableVariantsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deliverTableProducts{}
+		body := deliverTableVariants{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
 		userID := r.Context().Value(middleware.UserIDKey).(int)
-		err := h.Command.DeliverTableProducts(r.Context(), userID, body.TableID, body.Products, body.Comment)
+		err := h.Command.DeliverTableVariants(r.Context(), userID, body.TableID, body.Variants, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return

@@ -11,15 +11,15 @@ import (
 
 type snapshotV1Data struct {
 	BalanceCents        int            `json:"balanceCents"`
-	UnpaidProducts      []OrderProduct `json:"unpaidProducts"`
-	UndeliveredProducts []OrderProduct `json:"undeliveredProducts"`
+	UnpaidVariants      []OrderVariant `json:"unpaidVariants"`
+	UndeliveredVariants []OrderVariant `json:"undeliveredVariants"`
 	TotalPaymentsCents  int            `json:"totalPaymentsCents"`
 }
 
 var snapshotV1DataSchema = z.Struct(z.Shape{
 	"BalanceCents":        z.Int(),                     // Can be 0 (no outstanding balance)
-	"UnpaidProducts":      z.Slice(orderProductSchema), // Can be empty slice
-	"UndeliveredProducts": z.Slice(orderProductSchema), // Can be empty slice
+	"UnpaidVariants":      z.Slice(orderVariantSchema), // Can be empty slice
+	"UndeliveredVariants": z.Slice(orderVariantSchema), // Can be empty slice
 	"TotalPaymentsCents":  z.Int(),                     // Can be 0 (no payments yet)
 })
 
@@ -27,17 +27,17 @@ var snapshotV1DataSchema = z.Struct(z.Shape{
 type Snapshot struct {
 	TableID             int
 	BalanceCents        int
-	UnpaidProducts      []OrderProduct
-	UndeliveredProducts []OrderProduct
+	UnpaidVariants      []OrderVariant
+	UndeliveredVariants []OrderVariant
 	TotalPaymentsCents  int
 	CreatedAt           time.Time
 }
 
-func NewSnapshotEvent(userID, tableID int, balance int, unpaid, undelivered []OrderProduct, totalPayments int) (e.Event, error) {
+func NewSnapshotEvent(userID, tableID int, balance int, unpaid, undelivered []OrderVariant, totalPayments int) (e.Event, error) {
 	data := snapshotV1Data{
 		BalanceCents:        balance,
-		UnpaidProducts:      unpaid,
-		UndeliveredProducts: undelivered,
+		UnpaidVariants:      unpaid,
+		UndeliveredVariants: undelivered,
 		TotalPaymentsCents:  totalPayments,
 	}
 
@@ -67,8 +67,8 @@ func buildSnapshotFromEvent(event e.Event) (Snapshot, error) {
 	return Snapshot{
 		TableID:             tableID,
 		BalanceCents:        data.BalanceCents,
-		UnpaidProducts:      data.UnpaidProducts,
-		UndeliveredProducts: data.UndeliveredProducts,
+		UnpaidVariants:      data.UnpaidVariants,
+		UndeliveredVariants: data.UndeliveredVariants,
 		TotalPaymentsCents:  data.TotalPaymentsCents,
 		CreatedAt:           event.Time,
 	}, nil

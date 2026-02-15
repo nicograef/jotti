@@ -4,6 +4,7 @@ BEGIN;
 DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS tables;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS product_variants;
 DROP TABLE IF EXISTS products;
 
 -- Drop types after dropping tables that depend on them

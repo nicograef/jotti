@@ -9,39 +9,39 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-type productsCanceledV1Data struct {
+type variantsCanceledV1Data struct {
 	CancelationID         string         `json:"cancelationId"` // UUID string
-	Products              []OrderProduct `json:"products"`
+	Variants              []OrderVariant `json:"variants"`
 	TotalCancelationCents int            `json:"totalCancelationCents"`
 	Comment               string         `json:"comment"`
 }
 
-var productsCanceledV1DataSchema = z.Struct(z.Shape{
+var variantsCanceledV1DataSchema = z.Struct(z.Shape{
 	"CancelationID":         z.String().UUID().Required(),
-	"Products":              z.Slice(orderProductSchema).Min(1).Required(),
+	"Variants":              z.Slice(orderVariantSchema).Min(1).Required(),
 	"TotalCancelationCents": z.Int().GTE(0).Required(),
 	"Comment":               z.String().Max(100),
 })
 
-func NewProductsCanceledEvent(userID, tableID int, products []OrderProduct, comment string) (e.Event, error) {
+func NewVariantsCanceledEvent(userID, tableID int, variants []OrderVariant, comment string) (e.Event, error) {
 	totalCancelationCents := 0
-	for _, product := range products {
-		totalCancelationCents += product.NetPriceCents * product.Quantity
+	for _, variant := range variants {
+		totalCancelationCents += variant.PriceCents * variant.Quantity
 	}
 
-	data := productsCanceledV1Data{
+	data := variantsCanceledV1Data{
 		CancelationID:         uuid.New().String(),
-		Products:              products,
+		Variants:              variants,
 		TotalCancelationCents: totalCancelationCents,
 		Comment:               comment,
 	}
 
-	if err := productsCanceledV1DataSchema.Validate(&data); err != nil {
+	if err := variantsCanceledV1DataSchema.Validate(&data); err != nil {
 		issues := z.Issues.SanitizeMapAndCollect(err)
-		return e.Event{}, fmt.Errorf("products canceled data validation failed: %v", issues)
+		return e.Event{}, fmt.Errorf("variants canceled data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, string(EventTypeProductsCanceledV1), "table:"+strconv.Itoa(tableID), data)
+	event, err := e.New(userID, string(EventTypeVariantsCanceledV1), "table:"+strconv.Itoa(tableID), data)
 	if err != nil {
 		return e.Event{}, err
 	}
@@ -50,7 +50,7 @@ func NewProductsCanceledEvent(userID, tableID int, products []OrderProduct, comm
 }
 
 func buildCancelationFromEvent(event e.Event) (Cancelation, error) {
-	if event.Type != string(EventTypeProductsCanceledV1) {
+	if event.Type != string(EventTypeVariantsCanceledV1) {
 		return Cancelation{}, fmt.Errorf("unsupported event type: %s", event.Type)
 	}
 
@@ -59,8 +59,8 @@ func buildCancelationFromEvent(event e.Event) (Cancelation, error) {
 		return Cancelation{}, fmt.Errorf("invalid table ID in event subject: %v", err)
 	}
 
-	data := productsCanceledV1Data{}
-	err = e.ParseData(event, &data, productsCanceledV1DataSchema)
+	data := variantsCanceledV1Data{}
+	err = e.ParseData(event, &data, variantsCanceledV1DataSchema)
 	if err != nil {
 		return Cancelation{}, err
 	}
@@ -69,7 +69,7 @@ func buildCancelationFromEvent(event e.Event) (Cancelation, error) {
 		ID:                    data.CancelationID,
 		UserID:                event.UserID,
 		TableID:               tableID,
-		Products:              data.Products,
+		Variants:              data.Variants,
 		TotalCancelationCents: data.TotalCancelationCents,
 		Comment:               data.Comment,
 		CanceledAt:            event.Time,

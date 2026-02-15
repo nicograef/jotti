@@ -1,10 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import { CategoryField, NameField } from '@/components/common/FormFields'
+import { NameField, PriceField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,47 +13,55 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
-import { type Product, ProductCategory } from './Product'
-import { CreateProductSchema, ProductBackend } from './ProductBackend'
+import type { Variant } from './Product'
+import { type ProductBackend, UpdateVariantSchema } from './ProductBackend'
 
-const FormDataSchema = CreateProductSchema
+const FormDataSchema = UpdateVariantSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
 
-interface NewProductDialogProps {
-  backend: Pick<ProductBackend, 'createProduct'>
-  created: (product: Product) => void
+interface EditVariantDialogProps {
+  open: boolean
+  variant: Variant
+  backend: Pick<ProductBackend, 'updateVariant'>
+  updated: (variant: Variant) => void
+  close: () => void
 }
 
-export function NewProductDialog(props: NewProductDialogProps) {
-  const [open, setOpen] = useState(false)
+export function EditVariantDialog(props: EditVariantDialogProps) {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: {
-      name: '',
-      category: ProductCategory.FOOD,
+      name: props.variant.name,
+      priceCents: props.variant.priceCents,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
 
+  const onOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      form.reset({
+        name: props.variant.name,
+        priceCents: props.variant.priceCents,
+      })
+      props.close()
+    }
+  }
+
   const onSubmit = async (data: FormData) => {
     setLoading(true)
 
     try {
-      const id = await props.backend.createProduct(data)
-      form.reset()
-      setOpen(false)
-      props.created({
-        id,
+      await props.backend.updateVariant({
+        id: props.variant.id,
         ...data,
-        variants: [],
-        createdAt: new Date().toISOString(),
       })
+      props.updated({ ...props.variant, ...data })
+      props.close()
     } catch (error: unknown) {
       console.error(error)
     }
@@ -63,24 +70,16 @@ export function NewProductDialog(props: NewProductDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <div className="fixed bottom-16 right-16 z-50">
-          <Button className="cursor-pointer hover:shadow-sm">
-            <Plus /> Neues Produkt
-          </Button>
-        </div>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={props.open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-100">
         <DialogHeader className="mb-4">
-          <DialogTitle>Neues Produkt anlegen</DialogTitle>
+          <DialogTitle>Variante bearbeiten</DialogTitle>
           <DialogDescription>
-            Produkte haben einen Namen und eine Kategorie. Varianten mit Preisen
-            können später hinzugefügt werden.
+            Name und Preis der Variante ändern.
           </DialogDescription>
         </DialogHeader>
         <form
-          id="product-form"
+          id="edit-variant-form"
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
@@ -91,9 +90,9 @@ export function NewProductDialog(props: NewProductDialogProps) {
             <NameField
               form={form}
               withLabel
-              placeholder="Produktname eingeben"
+              placeholder="z.B. Klein, Groß, 0.5L"
             />
-            <CategoryField form={form} withLabel />
+            <PriceField form={form} withLabel />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">
@@ -110,10 +109,10 @@ export function NewProductDialog(props: NewProductDialogProps) {
           </DialogClose>
           <Button
             type="submit"
-            form="product-form"
+            form="edit-variant-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Produkt anlegen
+            {loading ? <Spinner /> : <></>} Speichern
           </Button>
         </DialogFooter>
       </DialogContent>

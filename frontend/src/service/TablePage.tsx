@@ -16,7 +16,7 @@ import { Delivery } from './components/table/Delivery'
 import { Order } from './components/table/Order'
 import { Payment } from './components/table/Payment'
 import { TableHistory } from './components/table/TableHistory'
-import { useTableBalance, useTableUndeliveredProducts } from './table/hooks'
+import { useTableBalance, useTableUndeliveredVariants } from './table/hooks'
 import { useTable } from './table/hooks'
 import { TableBackend } from './table/TableBackend'
 
@@ -31,13 +31,13 @@ export function TablePage() {
     reload: reloadBalance,
   } = useTableBalance(Number(tableId))
   const {
-    products: undeliveredProducts,
-    loading: undeliveredProductsLoading,
-    reload: reloadUndeliveredProducts,
-  } = useTableUndeliveredProducts(Number(tableId))
+    variants: undeliveredVariants,
+    loading: undeliveredVariantsLoading,
+    reload: reloadUndeliveredVariants,
+  } = useTableUndeliveredVariants(Number(tableId))
 
-  const openProducts = undeliveredProducts.reduce(
-    (sum, product) => sum + product.quantity,
+  const openVariants = undeliveredVariants.reduce(
+    (sum, variant) => sum + variant.quantity,
     0,
   )
 
@@ -47,10 +47,10 @@ export function TablePage() {
         <ItemContent>
           <ItemTitle className="text-2xl">
             {tableLoading ? 'Tisch ??' : table?.name}{' '}
-            {!undeliveredProductsLoading && openProducts > 0 && (
-              <Badge variant="destructive">{openProducts} offen</Badge>
+            {!undeliveredVariantsLoading && openVariants > 0 && (
+              <Badge variant="destructive">{openVariants} offen</Badge>
             )}
-            {!undeliveredProductsLoading && openProducts === 0 && (
+            {!undeliveredVariantsLoading && openVariants === 0 && (
               <Badge>Alles geliefert!</Badge>
             )}
           </ItemTitle>
@@ -78,13 +78,13 @@ export function TablePage() {
         <TabsContent value="order">
           {table && (
             <>
-              {openProducts > 0 && (
+              {openVariants > 0 && (
                 <Card className="p-2 gap-0 mb-4">
                   <Delivery
                     backend={tableBackend}
                     table={table}
-                    onProductsDelivered={() => {
-                      void reloadUndeliveredProducts()
+                    onVariantsDelivered={() => {
+                      void reloadUndeliveredVariants()
                     }}
                   />
                 </Card>
@@ -94,7 +94,7 @@ export function TablePage() {
                 table={table}
                 onOrderPlaced={() => {
                   void reloadBalance()
-                  void reloadUndeliveredProducts()
+                  void reloadUndeliveredVariants()
                 }}
               />
             </>
@@ -108,7 +108,7 @@ export function TablePage() {
               onPaymentRegistered={() => {
                 void reloadBalance()
               }}
-              onProductsCanceled={() => {
+              onVariantsCanceled={() => {
                 void reloadBalance()
               }}
             />

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { OrderProduct } from '../../table/Order'
+import type { OrderVariant } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { CommentField } from './CommentField'
@@ -22,7 +22,7 @@ import { Receipt } from './Receipt'
 interface PaymentDrawerProps {
   backend: Pick<TableBackend, 'registerTablePayment'>
   table: Table
-  unpaidProducts: OrderProduct[]
+  unpaidVariants: OrderVariant[]
   quantities: Record<number, number>
   paymentRegistered: () => void
 }
@@ -31,9 +31,9 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [comment, setComment] = useState('')
-  const productsToPay = orderProducts(props.unpaidProducts, props.quantities)
-  const totalPrice = calculateTotalPrice(productsToPay)
-  const noProductsSelected = productsToPay.length === 0
+  const variantsToPay = selectVariants(props.unpaidVariants, props.quantities)
+  const totalPrice = calculateTotalPrice(variantsToPay)
+  const noVariantsSelected = variantsToPay.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
@@ -41,7 +41,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
     try {
       await props.backend.registerTablePayment({
         tableId: props.table.id,
-        products: productsToPay,
+        variants: variantsToPay,
         comment: comment,
       })
       props.paymentRegistered()
@@ -54,7 +54,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
   }
 
   const onOpenChange = (isOpen: boolean) => {
-    if (noProductsSelected) {
+    if (noVariantsSelected) {
       setOpen(false)
     } else {
       setOpen(isOpen)
@@ -65,7 +65,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
         <Button
-          disabled={noProductsSelected}
+          disabled={noVariantsSelected}
           className="cursor-pointer hover:shadow-sm w-full"
         >
           Zahlung
@@ -79,7 +79,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
               Überprüfe deine Zahlung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt products={productsToPay} totalPrice={totalPrice} />
+          <Receipt variants={variantsToPay} totalPrice={totalPrice} />
           <div className="px-4">
             <CommentField
               onChange={(value) => {
@@ -108,21 +108,21 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
   )
 }
 
-function orderProducts(
-  products: OrderProduct[],
+function selectVariants(
+  variants: OrderVariant[],
   selectedQuantity: Record<number, number>,
-): OrderProduct[] {
-  return products
-    .map((product) => ({
-      ...product,
-      quantity: selectedQuantity[product.id] || 0,
+): OrderVariant[] {
+  return variants
+    .map((variant) => ({
+      ...variant,
+      quantity: selectedQuantity[variant.id] || 0,
     }))
-    .filter((product) => product.quantity > 0)
+    .filter((variant) => variant.quantity > 0)
 }
 
-function calculateTotalPrice(paymentProducts: OrderProduct[]): number {
-  return paymentProducts.reduce(
-    (total, product) => total + product.netPriceCents * product.quantity,
+function calculateTotalPrice(variants: OrderVariant[]): number {
+  return variants.reduce(
+    (total, variant) => total + variant.priceCents * variant.quantity,
     0,
   )
 }

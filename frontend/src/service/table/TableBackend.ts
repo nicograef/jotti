@@ -3,18 +3,18 @@ import { z } from 'zod'
 import {
   type Cancelation,
   CancelationSchema,
-  CancelProductsSchema,
+  CancelVariantsSchema,
 } from './Cancelation'
 import {
-  DeliverProductsSchema,
+  DeliverVariantsSchema,
   type Delivery,
   DeliverySchema,
 } from './Delivery'
 import {
   type Order,
-  type OrderProduct,
-  OrderProductSchema,
   OrderSchema,
+  type OrderVariant,
+  OrderVariantSchema,
   PlaceOrderSchema,
 } from './Order'
 import { type Payment, PaymentSchema, RegisterPaymentSchema } from './Payment'
@@ -68,18 +68,18 @@ export class TableBackend {
     await this.backend.post('service/register-table-payment', body)
   }
 
-  public async cancelTableProducts(
-    cancelProducts: z.infer<typeof CancelProductsSchema>,
+  public async cancelTableVariants(
+    cancelVariants: z.infer<typeof CancelVariantsSchema>,
   ): Promise<void> {
-    const body = CancelProductsSchema.parse(cancelProducts)
-    await this.backend.post('service/cancel-table-products', body)
+    const body = CancelVariantsSchema.parse(cancelVariants)
+    await this.backend.post('service/cancel-table-variants', body)
   }
 
-  public async deliverTableProducts(
-    deliverProducts: z.infer<typeof DeliverProductsSchema>,
+  public async deliverTableVariants(
+    deliverVariants: z.infer<typeof DeliverVariantsSchema>,
   ): Promise<void> {
-    const body = DeliverProductsSchema.parse(deliverProducts)
-    await this.backend.post('service/deliver-table-products', body)
+    const body = DeliverVariantsSchema.parse(deliverVariants)
+    await this.backend.post('service/deliver-table-variants', body)
   }
 
   public async getTableHistory(
@@ -113,27 +113,27 @@ export class TableBackend {
     return balanceCents
   }
 
-  public async getTableUnpaidProducts(
+  public async getTableUnpaidVariants(
     tableId: number,
-  ): Promise<OrderProduct[]> {
+  ): Promise<OrderVariant[]> {
     const body = z.object({ tableId: TableIdSchema }).parse({ tableId })
-    const { products } = await this.backend.post(
-      'service/get-table-unpaid-products',
+    const { variants } = await this.backend.post(
+      'service/get-table-unpaid-variants',
       body,
-      z.object({ products: z.array(OrderProductSchema) }),
+      z.object({ variants: z.array(OrderVariantSchema) }),
     )
-    return products
+    return variants
   }
 
-  public async getTableUndeliveredProducts(
+  public async getTableUndeliveredVariants(
     tableId: number,
-  ): Promise<OrderProduct[]> {
+  ): Promise<OrderVariant[]> {
     const body = z.object({ tableId: TableIdSchema }).parse({ tableId })
-    const { products } = await this.backend.post(
-      'service/get-table-undelivered-products',
+    const { variants } = await this.backend.post(
+      'service/get-table-undelivered-variants',
       body,
-      z.object({ products: z.array(OrderProductSchema) }),
+      z.object({ variants: z.array(OrderVariantSchema) }),
     )
-    return products
+    return variants
   }
 }

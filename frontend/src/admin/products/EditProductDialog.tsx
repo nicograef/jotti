@@ -4,12 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import {
-  CategoryField,
-  DescriptionField,
-  NameField,
-  PriceField,
-} from '@/components/common/FormFields'
+import { CategoryField, NameField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -39,7 +34,10 @@ interface EditProductDialogProps {
 export function EditProductDialog(props: EditProductDialogProps) {
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
-    defaultValues: props.product,
+    defaultValues: {
+      name: props.product.name,
+      category: props.product.category,
+    },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
@@ -75,7 +73,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
         <DialogHeader className="mb-4">
           <DialogTitle>{props.product.name}</DialogTitle>
           <DialogDescription>
-            Du kannst Name, Benutzername, Rolle und Status des Benutzers ändern.
+            Du kannst Name und Kategorie des Produkts ändern.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -88,9 +86,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
         >
           <FieldGroup>
             <NameField form={form} withLabel />
-            <DescriptionField form={form} withLabel />
             <CategoryField form={form} withLabel />
-            <PriceField form={form} withLabel />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">

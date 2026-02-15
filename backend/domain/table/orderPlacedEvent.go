@@ -11,27 +11,27 @@ import (
 
 type orderPlacedV1Data struct {
 	OrderID         string         `json:"orderId"` // UUID string
-	Products        []OrderProduct `json:"products"`
+	Variants        []OrderVariant `json:"variants"`
 	TotalPriceCents int            `json:"totalPriceCents"`
 	Comment         string         `json:"comment"`
 }
 
 var orderPlacedV1DataSchema = z.Struct(z.Shape{
 	"OrderID":         z.String().UUID().Required(),
-	"Products":        z.Slice(orderProductSchema).Min(1).Required(),
+	"Variants":        z.Slice(orderVariantSchema).Min(1).Required(),
 	"TotalPriceCents": z.Int().GTE(0).Required(),
 	"Comment":         z.String().Max(100),
 })
 
-func NewOrderPlacedEvent(userID, tableID int, products []OrderProduct, comment string) (e.Event, error) {
+func NewOrderPlacedEvent(userID, tableID int, variants []OrderVariant, comment string) (e.Event, error) {
 	totalPriceCents := 0
-	for _, product := range products {
-		totalPriceCents += product.NetPriceCents * product.Quantity
+	for _, variant := range variants {
+		totalPriceCents += variant.PriceCents * variant.Quantity
 	}
 
 	data := orderPlacedV1Data{
 		OrderID:         uuid.New().String(),
-		Products:        products,
+		Variants:        variants,
 		TotalPriceCents: totalPriceCents,
 		Comment:         comment,
 	}
@@ -69,7 +69,7 @@ func buildOrderFromEvent(event e.Event) (Order, error) {
 		ID:              data.OrderID,
 		UserID:          event.UserID,
 		TableID:         tableID,
-		Products:        data.Products,
+		Variants:        data.Variants,
 		TotalPriceCents: data.TotalPriceCents,
 		Comment:         data.Comment,
 		PlacedAt:        event.Time,

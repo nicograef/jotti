@@ -33,19 +33,19 @@ func (m *mockCommand) DeactivateTable(ctx context.Context, id int) error {
 	return m.err
 }
 
-func (m *mockCommand) PlaceTableOrder(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error {
+func (m *mockCommand) PlaceTableOrder(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error {
 	return m.err
 }
 
-func (m *mockCommand) RegisterTablePayment(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error {
+func (m *mockCommand) RegisterTablePayment(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error {
 	return m.err
 }
 
-func (m *mockCommand) CancelTableProducts(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error {
+func (m *mockCommand) CancelTableVariants(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error {
 	return m.err
 }
 
-func (m *mockCommand) DeliverTableProducts(ctx context.Context, userID int, tableID int, products []table.OrderProduct, comment string) error {
+func (m *mockCommand) DeliverTableVariants(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error {
 	return m.err
 }
 

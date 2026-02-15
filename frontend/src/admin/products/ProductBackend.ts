@@ -1,20 +1,34 @@
 import { z } from 'zod'
 
-import { type Product, ProductIdSchema, ProductSchema } from './Product'
+import {
+  type Product,
+  ProductIdSchema,
+  ProductSchema,
+  VariantIdSchema,
+  VariantSchema,
+} from './Product'
 
 export const CreateProductSchema = ProductSchema.pick({
   name: true,
-  description: true,
-  netPriceCents: true,
   category: true,
 })
 
 export const UpdateProductSchema = ProductSchema.pick({
   id: true,
   name: true,
-  description: true,
-  netPriceCents: true,
   category: true,
+})
+
+export const CreateVariantSchema = z.object({
+  productId: ProductIdSchema,
+  name: VariantSchema.shape.name,
+  priceCents: VariantSchema.shape.priceCents,
+})
+
+export const UpdateVariantSchema = VariantSchema.pick({
+  id: true,
+  name: true,
+  priceCents: true,
 })
 
 interface Backend {
@@ -31,6 +45,8 @@ export class ProductBackend {
   constructor(backend: Backend) {
     this.backend = backend
   }
+
+  // Product methods
 
   public async createProduct(
     newProduct: z.infer<typeof CreateProductSchema>,
@@ -60,13 +76,34 @@ export class ProductBackend {
     return products
   }
 
-  public async activateProduct(id: number): Promise<void> {
-    const body = ProductSchema.pick({ id: true }).parse({ id })
-    await this.backend.post('admin/activate-product', body)
+  // Variant methods
+
+  public async createVariant(
+    newVariant: z.infer<typeof CreateVariantSchema>,
+  ): Promise<number> {
+    const body = CreateVariantSchema.parse(newVariant)
+    const { id } = await this.backend.post(
+      'admin/create-variant',
+      body,
+      z.object({ id: VariantIdSchema }),
+    )
+    return id
   }
 
-  public async deactivateProduct(id: number): Promise<void> {
-    const body = ProductSchema.pick({ id: true }).parse({ id })
-    await this.backend.post('admin/deactivate-product', body)
+  public async updateVariant(
+    updatedVariant: z.infer<typeof UpdateVariantSchema>,
+  ): Promise<void> {
+    const body = UpdateVariantSchema.parse(updatedVariant)
+    await this.backend.post('admin/update-variant', body)
+  }
+
+  public async activateVariant(id: number): Promise<void> {
+    const body = { id: VariantIdSchema.parse(id) }
+    await this.backend.post('admin/activate-variant', body)
+  }
+
+  public async deactivateVariant(id: number): Promise<void> {
+    const body = { id: VariantIdSchema.parse(id) }
+    await this.backend.post('admin/deactivate-variant', body)
   }
 }

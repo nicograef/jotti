@@ -1,58 +1,60 @@
-import { useState } from 'react'
+import { Package } from 'lucide-react'
 
+import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
 
-import { type Product, ProductStatus } from './Product'
+import { type Product, type Variant, VariantStatus } from './Product'
 import { type ProductBackend } from './ProductBackend'
 import { ProductItem } from './ProductItem'
 
 interface ProductsProps {
   loading: boolean
-  backend: Pick<ProductBackend, 'activateProduct' | 'deactivateProduct'>
+  backend: Pick<
+    ProductBackend,
+    'activateVariant' | 'deactivateVariant' | 'createVariant' | 'updateVariant'
+  >
   products: Product[]
   onEdit: (productId: number) => void
-  onStatusChange: (productId: number, status: ProductStatus) => void
+  onVariantCreated: (productId: number, variant: Variant) => void
+  onVariantUpdated: (productId: number, variant: Variant) => void
+  onVariantStatusChange: (
+    productId: number,
+    variantId: number,
+    status: VariantStatus,
+  ) => void
 }
 
 export function Products(props: ProductsProps) {
-  const [loading, setLoading] = useState(props.loading)
-
-  const activateProduct = async (productId: number) => {
-    setLoading(true)
-    try {
-      await props.backend.activateProduct(productId)
-      props.onStatusChange(productId, ProductStatus.ACTIVE)
-    } catch (error) {
-      console.error('Error activating user:', error)
-    }
-    setLoading(false)
-  }
-
-  const deactivateProduct = async (productId: number) => {
-    setLoading(true)
-    try {
-      await props.backend.deactivateProduct(productId)
-      props.onStatusChange(productId, ProductStatus.INACTIVE)
-    } catch (error) {
-      console.error('Error deactivating user:', error)
-    }
-    setLoading(false)
+  if (props.products.length === 0 && !props.loading) {
+    return (
+      <EmptyState
+        icon={Package}
+        title="Keine Produkte vorhanden"
+        description="Erstelle ein neues Produkt und füge Varianten mit Preisen hinzu."
+      />
+    )
   }
 
   return (
-    <>
-      <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-        {props.products.map((product) => (
-          <ProductItem
-            key={product.id}
-            loading={loading || props.loading}
-            product={product}
-            onActivate={activateProduct}
-            onDeactivate={deactivateProduct}
-            onEdit={props.onEdit}
-          />
-        ))}
-      </ItemGroup>
-    </>
+    <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+      {props.products.map((product) => (
+        <ProductItem
+          key={product.id}
+          loading={props.loading}
+          product={product}
+          backend={props.backend}
+          onEdit={props.onEdit}
+          onVariantCreated={(variant) => {
+            props.onVariantCreated(product.id, variant)
+          }}
+          onVariantUpdated={(variant) => {
+            props.onVariantUpdated(product.id, variant)
+          }}
+          onVariantStatusChange={(variantId, status) => {
+            props.onVariantStatusChange(product.id, variantId, status)
+          }}
+        />
+      ))}
+    </ItemGroup>
   )
 }

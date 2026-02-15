@@ -109,18 +109,18 @@ export function useTableBalance(tableId: number) {
   return { loading, balanceCents, reload: fetchBalance }
 }
 
-export function useTableUnpaidProducts(tableId: number) {
+export function useTableUnpaidVariants(tableId: number) {
   const [loading, setLoading] = useState(false)
-  const [products, setProducts] = useState<Order['products']>([])
+  const [variants, setVariants] = useState<Order['variants']>([])
 
-  const fetchUnpaidProducts = useCallback(async () => {
+  const fetchUnpaidVariants = useCallback(async () => {
     setLoading(true)
 
     try {
-      const products = await tableBackend.getTableUnpaidProducts(tableId)
-      setProducts(products)
+      const variants = await tableBackend.getTableUnpaidVariants(tableId)
+      setVariants(variants)
     } catch (error) {
-      console.error('Failed to fetch unpaid products:', error)
+      console.error('Failed to fetch unpaid variants:', error)
     }
 
     setLoading(false)
@@ -128,24 +128,24 @@ export function useTableUnpaidProducts(tableId: number) {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchUnpaidProducts()
-  }, [fetchUnpaidProducts])
+    void fetchUnpaidVariants()
+  }, [fetchUnpaidVariants])
 
-  return { loading, products, reload: fetchUnpaidProducts }
+  return { loading, variants, reload: fetchUnpaidVariants }
 }
 
-export function useTableUndeliveredProducts(tableId: number) {
+export function useTableUndeliveredVariants(tableId: number) {
   const [loading, setLoading] = useState(false)
-  const [products, setProducts] = useState<Order['products']>([])
+  const [variants, setVariants] = useState<Order['variants']>([])
 
-  const fetchUndeliveredProducts = useCallback(async () => {
+  const fetchUndeliveredVariants = useCallback(async () => {
     setLoading(true)
 
     try {
-      const products = await tableBackend.getTableUndeliveredProducts(tableId)
-      setProducts(products)
+      const variants = await tableBackend.getTableUndeliveredVariants(tableId)
+      setVariants(variants)
     } catch (error) {
-      console.error('Failed to fetch undelivered products:', error)
+      console.error('Failed to fetch undelivered variants:', error)
     }
 
     setLoading(false)
@@ -153,8 +153,8 @@ export function useTableUndeliveredProducts(tableId: number) {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchUndeliveredProducts()
-  }, [fetchUndeliveredProducts])
+    void fetchUndeliveredVariants()
+  }, [fetchUndeliveredVariants])
 
-  return { loading, products, reload: fetchUndeliveredProducts }
+  return { loading, variants, reload: fetchUndeliveredVariants }
 }
