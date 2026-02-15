@@ -64,7 +64,7 @@ func TestCreateTableHandler_Success(t *testing.T) {
 	}
 }
 
-func TestCreateTabkeHandler_Failure(t *testing.T) {
+func TestCreateTableHandler_Failure(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
 	body := `{"name":"Table 1"}`

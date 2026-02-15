@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/nicograef/jotti/backend/api/product/application"
+	"github.com/nicograef/jotti/backend/api/table/application"
 	"github.com/nicograef/jotti/backend/domain/table"
 )
 
