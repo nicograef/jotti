@@ -8,6 +8,20 @@ export const ProductCategory = {
 export type ProductCategory =
   (typeof ProductCategory)[keyof typeof ProductCategory]
 
+/** Deutsche Labels für Produktkategorien */
+export const ProductCategoryLabels: Record<ProductCategory, string> = {
+  food: 'Essen',
+  beverage: 'Getränke',
+  other: 'Sonstiges',
+}
+
+/** Sortierreihenfolge der Kategorien in der UI */
+export const ProductCategoryOrder: ProductCategory[] = [
+  'food',
+  'beverage',
+  'other',
+]
+
 const ProductIdSchema = z.number().int().min(1)
 const VariantIdSchema = z.number().int().min(1)
 const NameSchema = z

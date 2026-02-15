@@ -8,7 +8,7 @@ Eine Webapp, die auf jedem Smartphone läuft. Servicekräfte nehmen Bestellungen
 
 ## Features
 
-### ✅ Umgesetzt (21 von 50 Anforderungen)
+### ✅ Umgesetzt (22 von 50 Anforderungen)
 
 - **Bestellungen** auf Tische buchen (Produkte mit Varianten und Mengen auswählen)
 - **Lieferungen** als ausgeliefert markieren
@@ -20,10 +20,10 @@ Eine Webapp, die auf jedem Smartphone läuft. Servicekräfte nehmen Bestellungen
 - **Authentifizierung**: JWT (12h Gültigkeit), Einmalpasswort-Onboarding, Argon2id-Hashing
 - **Kommentar/Notiz** pro Bestellvorgang (max. 100 Zeichen)
 - **Produktvarianten** (z. B. Pommes mit Ketchup/Soße)
+- **Produktkategorien** in der Bestellansicht (gruppiert nach Essen, Getränke, Sonstiges)
 
-### 🔧 Teilweise umgesetzt (2)
+### 🔧 Teilweise umgesetzt (1)
 
-- **Produktkategorien in Service-UI (#21)**: Kategorie im Datenmodell vorhanden (`food`, `beverage`, `other`), UI zeigt flache Liste
 - **Stornierung nur für Admins (#22)**: Stornierung steht beiden Rollen offen, Rollenprüfung fehlt
 
 ### ❌ Nächste offene Must-haves

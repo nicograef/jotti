@@ -15,11 +15,10 @@ jotti ist ein Bestell- und Kassensystem für Vereine. Single-Tenant Webapp deplo
 
 ### Projektstand & Anforderungen
 
-Der vollständige Anforderungskatalog liegt in `ANFORDERUNGEN.md` (50 Anforderungen: 21 umgesetzt, 2 teilweise, 27 offen).
+Der vollständige Anforderungskatalog liegt in `ANFORDERUNGEN.md` (50 Anforderungen: 22 umgesetzt, 1 teilweise, 27 offen).
 
 **Bekannte teilweise Umsetzungen:**
 
-- **Produktkategorien in Service-UI (#21)**: `ProductCategory` existiert im Datenmodell, aber `ProductList.tsx` zeigt flache Liste. → Nach `category` gruppieren.
 - **Stornierung nur für Admins (#22)**: `cancel-table-variants` ist für beide Rollen offen. → Rollenprüfung einbauen, Frontend: Stornierungstab nur für Admins.
 
 **Nächste offene Must-haves (siehe `ANFORDERUNGEN.md` für Details):**

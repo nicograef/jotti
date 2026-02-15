@@ -13,7 +13,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCents } from '@/lib/utils'
 
-import { type Product, type Variant } from '../../product/Product'
+import {
+  type Product,
+  ProductCategoryLabels,
+  ProductCategoryOrder,
+  type Variant,
+} from '../../product/Product'
 
 interface ProductListComponentProps {
   products: Product[]
@@ -47,63 +52,79 @@ export function ProductList(props: ProductListComponentProps) {
   }
 
   return (
-    <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-      {props.products.map((product) => {
-        const isExpanded = expandedProducts.has(product.id)
-        const productTotal = getProductTotal(product.variants)
+    <div className="my-4 space-y-6">
+      {ProductCategoryOrder.map((category) => {
+        const categoryProducts = props.products.filter(
+          (p) => p.category === category,
+        )
+        if (categoryProducts.length === 0) return null
 
         return (
-          <div key={product.id} className="space-y-1">
-            <Item
-              variant="outline"
-              className="cursor-pointer"
-              onClick={() => {
-                toggleExpanded(product.id)
-              }}
-            >
-              <ItemContent>
-                <ItemTitle className="flex items-center gap-2">
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                  {product.name}
-                </ItemTitle>
-                <ItemDescription>
-                  {product.variants.length} Variante
-                  {product.variants.length !== 1 ? 'n' : ''}
-                </ItemDescription>
-              </ItemContent>
-              {productTotal > 0 && (
-                <ItemActions>
-                  <span className="text-sm font-medium bg-primary text-primary-foreground rounded-full px-2 py-1">
-                    {productTotal}
-                  </span>
-                </ItemActions>
-              )}
-            </Item>
-            {isExpanded && (
-              <div className="ml-4 space-y-1">
-                {product.variants.map((variant) => (
-                  <VariantItem
-                    key={variant.id}
-                    variant={variant}
-                    quantity={props.variantQuantities[variant.id] || 0}
-                    onAdd={() => {
-                      props.onAdd(variant.id)
-                    }}
-                    onRemove={() => {
-                      props.onRemove(variant.id)
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+          <div key={category}>
+            <h2 className="text-lg font-semibold mb-2">
+              {ProductCategoryLabels[category]}
+            </h2>
+            <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+              {categoryProducts.map((product) => {
+                const isExpanded = expandedProducts.has(product.id)
+                const productTotal = getProductTotal(product.variants)
+
+                return (
+                  <div key={product.id} className="space-y-1">
+                    <Item
+                      variant="outline"
+                      className="cursor-pointer"
+                      onClick={() => {
+                        toggleExpanded(product.id)
+                      }}
+                    >
+                      <ItemContent>
+                        <ItemTitle className="flex items-center gap-2">
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                          {product.name}
+                        </ItemTitle>
+                        <ItemDescription>
+                          {product.variants.length} Variante
+                          {product.variants.length !== 1 ? 'n' : ''}
+                        </ItemDescription>
+                      </ItemContent>
+                      {productTotal > 0 && (
+                        <ItemActions>
+                          <span className="text-sm font-medium bg-primary text-primary-foreground rounded-full px-2 py-1">
+                            {productTotal}
+                          </span>
+                        </ItemActions>
+                      )}
+                    </Item>
+                    {isExpanded && (
+                      <div className="ml-4 space-y-1">
+                        {product.variants.map((variant) => (
+                          <VariantItem
+                            key={variant.id}
+                            variant={variant}
+                            quantity={props.variantQuantities[variant.id] || 0}
+                            onAdd={() => {
+                              props.onAdd(variant.id)
+                            }}
+                            onRemove={() => {
+                              props.onRemove(variant.id)
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </ItemGroup>
           </div>
         )
       })}
-    </ItemGroup>
+    </div>
   )
 }
 
@@ -161,17 +182,27 @@ function VariantItem({
 
 export function ProductListSkeleton() {
   return (
-    <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <Item key={`skeleton-${index.toString()}`} variant="outline">
-          <ItemContent>
-            <Skeleton className="h-4 w-24" />
-          </ItemContent>
-          <ItemActions>
-            <Plus />
-          </ItemActions>
-        </Item>
+    <div className="my-4 space-y-6">
+      {ProductCategoryOrder.map((category) => (
+        <div key={category}>
+          <Skeleton className="h-5 w-24 mb-2" />
+          <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+            {Array.from({ length: 2 }).map((_, index) => (
+              <Item
+                key={`skeleton-${category}-${index.toString()}`}
+                variant="outline"
+              >
+                <ItemContent>
+                  <Skeleton className="h-4 w-24" />
+                </ItemContent>
+                <ItemActions>
+                  <Plus />
+                </ItemActions>
+              </Item>
+            ))}
+          </ItemGroup>
+        </div>
       ))}
-    </ItemGroup>
+    </div>
   )
 }

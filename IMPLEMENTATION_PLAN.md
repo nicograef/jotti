@@ -6,14 +6,14 @@ Dieser Plan beschreibt die nächsten sechs Features in der Reihenfolge ihrer Imp
 
 ## Übersicht
 
-| #   | Feature                                         | Typ               | Komplexität | Branch                       |
-| --- | ----------------------------------------------- | ------------------ | ----------- | ---------------------------- |
-| 21  | Produktkategorien in Service-UI gruppieren       | Frontend-only      | Niedrig     | `feature/21-product-categories` |
+| #   | Feature                                                | Typ             | Komplexität | Branch                           |
+| --- | ------------------------------------------------------ | --------------- | ----------- | -------------------------------- |
+| 21  | Produktkategorien in Service-UI gruppieren             | Frontend-only   | Niedrig     | `feature/21-product-categories`  |
 | 22  | Neue Rolle `senior_service` + Stornierung einschränken | Full-Stack + DB | Mittel      | `feature/22-senior-service-role` |
-| 23  | Tisch-Schnellsuche                               | Frontend-only      | Niedrig     | `feature/23-table-search`    |
-| 37  | Rückgeldberechnung                               | Frontend-only      | Niedrig     | `feature/37-change-calculation` |
-| 24  | Übersicht eigene Bestellungen                    | Full-Stack         | Mittel      | `feature/24-user-orders`     |
-| 26  | Umsatz pro Bediener (Tagesabrechnung)            | Full-Stack         | Mittel      | `feature/26-revenue-by-user` |
+| 23  | Tisch-Schnellsuche                                     | Frontend-only   | Niedrig     | `feature/23-table-search`        |
+| 37  | Rückgeldberechnung                                     | Frontend-only   | Niedrig     | `feature/37-change-calculation`  |
+| 24  | Übersicht eigene Bestellungen                          | Full-Stack      | Mittel      | `feature/24-user-orders`         |
+| 26  | Umsatz pro Bediener (Tagesabrechnung)                  | Full-Stack      | Mittel      | `feature/26-revenue-by-user`     |
 
 ---
 
@@ -39,13 +39,17 @@ In `frontend/src/service/product/Product.ts` ein Mapping ergänzen:
 
 ```typescript
 export const ProductCategoryLabels: Record<ProductCategory, string> = {
-  food: 'Essen',
-  beverage: 'Getränke',
-  other: 'Sonstiges',
-}
+  food: "Essen",
+  beverage: "Getränke",
+  other: "Sonstiges",
+};
 
 /** Sortierreihenfolge der Kategorien in der UI */
-export const ProductCategoryOrder: ProductCategory[] = ['food', 'beverage', 'other']
+export const ProductCategoryOrder: ProductCategory[] = [
+  "food",
+  "beverage",
+  "other",
+];
 ```
 
 #### 2. Produkte gruppieren
@@ -220,10 +224,12 @@ public get canCancel(): boolean {
 export function ServiceGuard() {
   const canAccessService =
     AuthSingleton.isAuthenticated &&
-    (AuthSingleton.isService || AuthSingleton.isSeniorService || AuthSingleton.isAdmin)
+    (AuthSingleton.isService ||
+      AuthSingleton.isSeniorService ||
+      AuthSingleton.isAdmin);
 
   if (!canAccessService) {
-    return redirect('/')
+    return redirect("/");
   }
 }
 ```
@@ -232,20 +238,20 @@ export function ServiceGuard() {
 
 ```typescript
 export const UserRole = {
-  ADMIN: 'admin',
-  SENIOR_SERVICE: 'senior_service',
-  SERVICE: 'service',
-} as const
+  ADMIN: "admin",
+  SENIOR_SERVICE: "senior_service",
+  SERVICE: "service",
+} as const;
 ```
 
 Im `NewUserDialog` und `EditUserDialog`: Die Auswahl der Rolle um „Serviceleitung" ergänzen. Das Label für die Rolle im UI als Map:
 
 ```typescript
 export const UserRoleLabels: Record<UserRole, string> = {
-  admin: 'Admin',
-  senior_service: 'Serviceleitung',
-  service: 'Service',
-}
+  admin: "Admin",
+  senior_service: "Serviceleitung",
+  service: "Service",
+};
 ```
 
 #### 8. Frontend: CancelationDrawer ausblenden (`frontend/src/service/components/table/Payment.tsx`)
@@ -312,17 +318,17 @@ Auf der Tischübersicht (`TableSelectionPage.tsx`) soll ein Suchfeld die Tischli
 In `TableSelectionPage.tsx` ein `Input`-Feld oberhalb der Tischliste ergänzen:
 
 ```tsx
-import { Input } from '@/components/ui/input'
-import { Search } from 'lucide-react'
-import { useState } from 'react'
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { useState } from "react";
 
 export function TableSelectionPage() {
-  const { loading, tables } = useActiveTables()
-  const [search, setSearch] = useState('')
+  const { loading, tables } = useActiveTables();
+  const [search, setSearch] = useState("");
 
   const filteredTables = tables.filter((table) =>
-    table.name.toLowerCase().includes(search.toLowerCase())
-  )
+    table.name.toLowerCase().includes(search.toLowerCase()),
+  );
 
   return (
     <>
@@ -339,7 +345,7 @@ export function TableSelectionPage() {
       </div>
       {loading ? <TableListSkeleton /> : <TableList tables={filteredTables} />}
     </>
-  )
+  );
 }
 ```
 
@@ -348,11 +354,13 @@ export function TableSelectionPage() {
 Wenn keine Tische zum Suchbegriff passen, einen Hinweis anzeigen:
 
 ```tsx
-{filteredTables.length === 0 && !loading && (
-  <p className="text-muted-foreground text-center mt-8">
-    Kein Tisch gefunden.
-  </p>
-)}
+{
+  filteredTables.length === 0 && !loading && (
+    <p className="text-muted-foreground text-center mt-8">
+      Kein Tisch gefunden.
+    </p>
+  );
+}
 ```
 
 ### Akzeptanzkriterien
@@ -517,14 +525,15 @@ export function useUserOrders() {
   const { data: orders, ...rest } = useFetch(
     () => tableBackend.getUserOrders(),
     [] as UserOrderEntry[],
-  )
-  return { ...rest, orders }
+  );
+  return { ...rest, orders };
 }
 ```
 
 ##### 7. Seite
 
 Neue Seite `frontend/src/service/UserOrdersPage.tsx`:
+
 - Chronologische Liste der eigenen Aktionen
 - Pro Eintrag: Typ-Icon (Bestellung/Bezahlung/Lieferung/Storno), Tisch, Zeitstempel, Positionen, Gesamtbetrag
 - Pull-to-Refresh oder Reload-Button
@@ -635,10 +644,10 @@ Ein einfaches Datums-Input (`<input type="date">`) mit dem aktuellen Tag als Def
 
 ##### 7. Tabelle
 
-| Bediener      | Umsatz    | Zahlungen |
-| ------------- | --------- | --------- |
-| Max Mustermann | 1.234,56 € | 42        |
-| **Gesamt**     | **2.500,00 €** | **85** |
+| Bediener       | Umsatz         | Zahlungen |
+| -------------- | -------------- | --------- |
+| Max Mustermann | 1.234,56 €     | 42        |
+| **Gesamt**     | **2.500,00 €** | **85**    |
 
 ##### 8. Route und Navigation
 

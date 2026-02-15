@@ -21,14 +21,13 @@ Der vollständige Anforderungskatalog mit Implementierungsvorschlägen liegt in 
 
 | Status       | Anzahl |
 | ------------ | ------ |
-| ✅ Umgesetzt | 21     |
-| 🔧 Teilweise | 2      |
+| ✅ Umgesetzt | 22     |
+| 🔧 Teilweise | 1      |
 | ❌ Offen     | 27     |
 | **Gesamt**   | **50** |
 
 ### Bekannte teilweise Umsetzungen
 
-- **Produktkategorien in Service-UI (#21)**: `ProductCategory` (food, beverage, other) existiert im Datenmodell, aber `ProductList.tsx` zeigt eine flache, ungruppierte Liste. → Produkte nach `category` gruppieren und mit Überschriften rendern.
 - **Stornierung nur für Admins (#22)**: `cancel-table-variants` ist für beide Rollen (`admin` + `service`) zugänglich. Laut Anforderung darf nur `admin` stornieren. → Rollenprüfung im Backend-Endpunkt oder separate Admin-Route. Frontend: Stornierungstab nur für Admins anzeigen.
 
 ### Nächste offene Must-haves

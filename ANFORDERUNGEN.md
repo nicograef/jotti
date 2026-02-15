@@ -16,35 +16,35 @@ Dieses Dokument beschreibt alle funktionalen Anforderungen an jotti, abgeleitet 
 
 ### ✅ Umgesetzt
 
-| #   | Anforderung                                                | Prio         | Rolle    |
-| --- | ---------------------------------------------------------- | ------------ | -------- |
-| 1   | Bestellaufnahme per Smartphone (plattformunabhängig)       | Must-have    | Bediener |
-| 2   | Sichere Anmeldung für Servicekräfte                        | Must-have    | Bediener |
-| 3   | Preisanzeige bei Produktauswahl                            | Must-have    | Bediener |
-| 4   | Mengenänderung per +/−-Buttons mit Bestätigung             | Must-have    | Bediener |
-| 5   | Positionen vor Bestellabgabe entfernen                     | Must-have    | Bediener |
-| 6   | Tischübersicht als Liste                                   | Must-have    | Bediener |
-| 7   | Mehrere Bestellungen pro Tisch                             | Must-have    | Bediener |
-| 8   | Gesamtbetrag pro Bestellung einsehen                       | Must-have    | Bediener |
-| 9   | Passwort selbst festlegen                                  | Must-have    | Bediener |
-| 10  | Benutzerkonten verwalten (CRUD)                            | Must-have    | Admin    |
-| 11  | Passwörter zurücksetzen                                    | Must-have    | Admin    |
-| 12  | Artikelpreise zentral pflegen                              | Must-have    | Rechner  |
-| 13  | Produktvarianten bestellen (z. B. Pommes mit Ketchup/Soße) | Must-have    | Bediener |
-| 14  | Kommentar/Notiz pro Bestellvorgang                         | Nice-to-have | Bediener |
-| 15  | Bestellung vor Abgabe komplett verwerfen                   | Nice-to-have | Bediener |
-| 16  | Einzelne Positionen bei Abrechnung auswählen (Teilzahlung) | Nice-to-have | Bediener |
-| 17  | Nachträgliche Stornierung durch Admin/Master               | Must-have    | Bediener |
-| 18  | Mehrere Servicekräfte gleichzeitig                         | Must-have    | System   |
-| 19  | Schnelle und korrekte Bestellaufnahme                      | Must-have    | Gast     |
-| 20  | Einfache, intuitive Benutzeroberfläche                     | Must-have    | System   |
+| #   | Anforderung                                                   | Prio         | Rolle    |
+| --- | ------------------------------------------------------------- | ------------ | -------- |
+| 1   | Bestellaufnahme per Smartphone (plattformunabhängig)          | Must-have    | Bediener |
+| 2   | Sichere Anmeldung für Servicekräfte                           | Must-have    | Bediener |
+| 3   | Preisanzeige bei Produktauswahl                               | Must-have    | Bediener |
+| 4   | Mengenänderung per +/−-Buttons mit Bestätigung                | Must-have    | Bediener |
+| 5   | Positionen vor Bestellabgabe entfernen                        | Must-have    | Bediener |
+| 6   | Tischübersicht als Liste                                      | Must-have    | Bediener |
+| 7   | Mehrere Bestellungen pro Tisch                                | Must-have    | Bediener |
+| 8   | Gesamtbetrag pro Bestellung einsehen                          | Must-have    | Bediener |
+| 9   | Passwort selbst festlegen                                     | Must-have    | Bediener |
+| 10  | Benutzerkonten verwalten (CRUD)                               | Must-have    | Admin    |
+| 11  | Passwörter zurücksetzen                                       | Must-have    | Admin    |
+| 12  | Artikelpreise zentral pflegen                                 | Must-have    | Rechner  |
+| 13  | Produktvarianten bestellen (z. B. Pommes mit Ketchup/Soße)    | Must-have    | Bediener |
+| 14  | Kommentar/Notiz pro Bestellvorgang                            | Nice-to-have | Bediener |
+| 15  | Bestellung vor Abgabe komplett verwerfen                      | Nice-to-have | Bediener |
+| 16  | Einzelne Positionen bei Abrechnung auswählen (Teilzahlung)    | Nice-to-have | Bediener |
+| 17  | Nachträgliche Stornierung durch Admin/Master                  | Must-have    | Bediener |
+| 18  | Mehrere Servicekräfte gleichzeitig                            | Must-have    | System   |
+| 19  | Schnelle und korrekte Bestellaufnahme                         | Must-have    | Gast     |
+| 20  | Einfache, intuitive Benutzeroberfläche                        | Must-have    | System   |
+| 21  | Produktübersicht nach Kategorien (Essen, Getränke, Sonstiges) | Must-have    | Bediener |
 
 ### 🔧 Teilweise umgesetzt
 
-| #   | Anforderung                                                    | Prio      | Rolle    | Stand                                                      |
-| --- | -------------------------------------------------------------- | --------- | -------- | ---------------------------------------------------------- |
-| 21  | Produktübersicht nach Kategorien (Essen, Alkoholfrei, Alkohol) | Must-have | Bediener | Kategorie im Datenmodell vorhanden, UI zeigt flache Liste  |
-| 22  | Servicekraft darf nach Bestellabgabe nicht stornieren          | Must-have | Bediener | Stornierung steht beiden Rollen offen; Rollenprüfung fehlt |
+| #   | Anforderung                                           | Prio      | Rolle    | Stand                                                      |
+| --- | ----------------------------------------------------- | --------- | -------- | ---------------------------------------------------------- |
+| 22  | Servicekraft darf nach Bestellabgabe nicht stornieren | Must-have | Bediener | Stornierung steht beiden Rollen offen; Rollenprüfung fehlt |
 
 ### ❌ Offen
 
@@ -139,17 +139,11 @@ Jede Bestellung wird als eigenes Event (`table.order-placed:v1`) gespeichert; pr
 
 `CommentField`-Komponente ist in allen vier Drawern (Bestellen, Bezahlen, Liefern, Stornieren) eingebunden. Maximal 100 Zeichen, wird im Event gespeichert.
 
-#### 1.9 Produktübersicht nach Kategorien 🔧
+#### 1.9 Produktübersicht nach Kategorien ✅
 
 > Als Servicekraft möchte ich einen klaren Überblick über das Sortiment haben — gegliedert nach Kategorien (z. B. Essen, Alkoholfreie Getränke, Alkoholische Getränke).
 
-**Stand:** Das Datenmodell kennt `ProductCategory` (food, beverage, other). Die Service-UI zeigt Produkte jedoch als flache, ungruppierte Liste.
-
-**Implementierungsvorschlag:**
-
-- In `ProductList.tsx` die Produkte nach `category` gruppieren und mit Überschriften (z. B. „Essen", „Getränke", „Sonstiges") rendern.
-- Optional: Sticky-Headers oder Tab-Navigation pro Kategorie für schnelles Scrollen auf dem Smartphone.
-- Ggf. die Kategorie-Werte um „Alkoholfrei" und „Alkoholisch" erweitern (Enum-Migration + Backend-Anpassung).
+Umgesetzt: `ProductList.tsx` gruppiert Produkte nach Kategorie (`food` → „Essen", `beverage` → „Getränke", `other` → „Sonstiges") mit Überschriften. Leere Kategorien werden ausgeblendet. Kategorie-Labels und -Reihenfolge definiert in `Product.ts` (`ProductCategoryLabels`, `ProductCategoryOrder`).
 
 #### 1.10 Tisch-Schnellsuche per Shortcut ❌
 
@@ -568,8 +562,8 @@ Event-Sourcing garantiert konsistente Balance: Bestellungen − Bezahlungen − 
 
 | Priorität    | Gesamt | ✅ Umgesetzt | 🔧 Teilweise | ❌ Offen |
 | ------------ | ------ | ------------ | ------------ | -------- |
-| Must-have    | 31     | 19           | 2            | 10       |
+| Must-have    | 31     | 20           | 1            | 10       |
 | Nice-to-have | 11     | 2            | 0            | 9        |
 | Später       | 6      | 0            | 0            | 6        |
 | Won't-have   | 2      | 0            | 0            | 2        |
-| **Gesamt**   | **50** | **21**       | **2**        | **27**   |
+| **Gesamt**   | **50** | **22**       | **1**        | **27**   |
