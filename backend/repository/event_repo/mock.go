@@ -39,10 +39,16 @@ func (m mockRepo) ReadEvent(ctx context.Context, eventID int) (event.Event, erro
 	return e, m.err
 }
 
-func (m mockRepo) ReadEventsBySubject(ctx context.Context, t event.Event) ([]event.Event, error) {
+func (m mockRepo) ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error) {
 	events := []event.Event{}
-	for _, u := range m.events {
-		events = append(events, u)
+	for _, e := range m.events {
+		if e.Subject == subject {
+			events = append(events, e)
+		}
 	}
 	return events, m.err
+}
+
+func (m mockRepo) ReadEventsWithSnapshot(ctx context.Context, subject string, snapshotEventType string) ([]event.Event, error) {
+	return m.ReadEventsBySubject(ctx, subject)
 }
