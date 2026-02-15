@@ -1,4 +1,4 @@
-import { Lamp, LogOut, ReceiptText, Users, Utensils } from 'lucide-react'
+import { Lamp, LogOut, Users, Utensils } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router'
 import { useLocation } from 'react-router'
 
@@ -18,11 +18,6 @@ import {
 import { AuthSingleton } from '@/lib/Auth'
 
 const adminItems = [
-  {
-    title: 'Bestellungen',
-    url: '/admin/orders',
-    icon: ReceiptText,
-  },
   {
     title: 'Produkte',
     url: '/admin/products',
