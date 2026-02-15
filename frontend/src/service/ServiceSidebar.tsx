@@ -2,7 +2,7 @@ import { Lamp, LogOut } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router'
 import { useLocation } from 'react-router'
 
-import { ModeToggle } from '@/components/mode-tootle'
+import { ModeToggle } from '@/components/mode-toggle'
 import {
   Sidebar,
   SidebarContent,
