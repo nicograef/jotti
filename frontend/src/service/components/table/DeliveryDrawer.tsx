@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { OrderVariant } from '../../table/Order'
+import type { LineItem } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { CommentField } from './CommentField'
@@ -22,7 +22,7 @@ import { Receipt } from './Receipt'
 interface DeliveryDrawerProps {
   backend: Pick<TableBackend, 'deliverTableVariants'>
   table: Table
-  undeliveredVariants: OrderVariant[]
+  undeliveredVariants: LineItem[]
   quantities: Record<number, number>
   variantsDelivered: () => void
 }
@@ -113,9 +113,9 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
 }
 
 function selectVariants(
-  variants: OrderVariant[],
+  variants: LineItem[],
   selectedQuantity: Record<number, number>,
-): OrderVariant[] {
+): LineItem[] {
   return variants
     .map((variant) => ({
       ...variant,

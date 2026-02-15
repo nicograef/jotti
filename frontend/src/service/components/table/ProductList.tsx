@@ -11,6 +11,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatCents } from '@/lib/utils'
 
 import { type Product, type Variant } from '../../product/Product'
 
@@ -123,7 +124,7 @@ function VariantItem({
         <ItemTitle className="text-sm">{variant.name}</ItemTitle>
         <ItemDescription>
           <span className="font-bold">
-            {(variant.priceCents / 100).toFixed(2)}&nbsp;€
+            {formatCents(variant.priceCents)}&nbsp;€
           </span>
         </ItemDescription>
       </ItemContent>

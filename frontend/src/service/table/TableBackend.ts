@@ -11,10 +11,10 @@ import {
   DeliverySchema,
 } from './Delivery'
 import {
+  type LineItem,
+  LineItemSchema,
   type Order,
   OrderSchema,
-  type OrderVariant,
-  OrderVariantSchema,
   PlaceOrderSchema,
 } from './Order'
 import { type Payment, PaymentSchema, RegisterPaymentSchema } from './Payment'
@@ -113,26 +113,24 @@ export class TableBackend {
     return balanceCents
   }
 
-  public async getTableUnpaidVariants(
-    tableId: number,
-  ): Promise<OrderVariant[]> {
+  public async getTableUnpaidVariants(tableId: number): Promise<LineItem[]> {
     const body = z.object({ tableId: TableIdSchema }).parse({ tableId })
     const { variants } = await this.backend.post(
       'service/get-table-unpaid-variants',
       body,
-      z.object({ variants: z.array(OrderVariantSchema) }),
+      z.object({ variants: z.array(LineItemSchema) }),
     )
     return variants
   }
 
   public async getTableUndeliveredVariants(
     tableId: number,
-  ): Promise<OrderVariant[]> {
+  ): Promise<LineItem[]> {
     const body = z.object({ tableId: TableIdSchema }).parse({ tableId })
     const { variants } = await this.backend.post(
       'service/get-table-undelivered-variants',
       body,
-      z.object({ variants: z.array(OrderVariantSchema) }),
+      z.object({ variants: z.array(LineItemSchema) }),
     )
     return variants
   }

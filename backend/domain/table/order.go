@@ -7,14 +7,14 @@ import (
 	"github.com/nicograef/jotti/backend/domain/product"
 )
 
-type OrderVariant struct {
+type LineItem struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name"`
 	PriceCents int    `json:"priceCents"`
 	Quantity   int    `json:"quantity"`
 }
 
-var orderVariantSchema = z.Struct(z.Shape{
+var lineItemSchema = z.Struct(z.Shape{
 	"ID":         product.IDSchema.Required(),
 	"Name":       product.NameSchema.Required(),
 	"PriceCents": product.PriceCentsSchema.Required(),
@@ -25,7 +25,7 @@ type Order struct {
 	ID              string         `json:"id"`
 	UserID          int            `json:"userId"`
 	TableID         int            `json:"tableId"`
-	Variants        []OrderVariant `json:"variants"`
+	Variants        []LineItem `json:"variants"`
 	TotalPriceCents int            `json:"totalPriceCents"`
 	Comment         string         `json:"comment"`
 	PlacedAt        time.Time      `json:"placedAt"`
@@ -35,7 +35,7 @@ var orderSchema = z.Struct(z.Shape{
 	"ID":              z.String().UUID().Required(),
 	"UserID":          z.Int().GTE(1).Required(),
 	"TableID":         z.Int().GTE(1).Required(),
-	"Variants":        z.Slice(orderVariantSchema).Min(1).Required(),
+	"Variants":        z.Slice(lineItemSchema).Min(1).Required(),
 	"TotalPriceCents": z.Int().GTE(0).Required(),
 	"Comment":         z.String().Max(100),
 	"PlacedAt":        z.Time().Required(),

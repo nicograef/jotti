@@ -11,19 +11,19 @@ import (
 
 type orderPlacedV1Data struct {
 	OrderID         string         `json:"orderId"` // UUID string
-	Variants        []OrderVariant `json:"variants"`
+	Variants        []LineItem `json:"variants"`
 	TotalPriceCents int            `json:"totalPriceCents"`
 	Comment         string         `json:"comment"`
 }
 
 var orderPlacedV1DataSchema = z.Struct(z.Shape{
 	"OrderID":         z.String().UUID().Required(),
-	"Variants":        z.Slice(orderVariantSchema).Min(1).Required(),
+	"Variants":        z.Slice(lineItemSchema).Min(1).Required(),
 	"TotalPriceCents": z.Int().GTE(0).Required(),
 	"Comment":         z.String().Max(100),
 })
 
-func NewOrderPlacedEvent(userID, tableID int, variants []OrderVariant, comment string) (e.Event, error) {
+func NewOrderPlacedEvent(userID, tableID int, variants []LineItem, comment string) (e.Event, error) {
 	totalPriceCents := 0
 	for _, variant := range variants {
 		totalPriceCents += variant.PriceCents * variant.Quantity

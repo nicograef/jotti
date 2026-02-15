@@ -11,19 +11,19 @@ import (
 
 type variantsCanceledV1Data struct {
 	CancelationID         string         `json:"cancelationId"` // UUID string
-	Variants              []OrderVariant `json:"variants"`
+	Variants              []LineItem `json:"variants"`
 	TotalCancelationCents int            `json:"totalCancelationCents"`
 	Comment               string         `json:"comment"`
 }
 
 var variantsCanceledV1DataSchema = z.Struct(z.Shape{
 	"CancelationID":         z.String().UUID().Required(),
-	"Variants":              z.Slice(orderVariantSchema).Min(1).Required(),
+	"Variants":              z.Slice(lineItemSchema).Min(1).Required(),
 	"TotalCancelationCents": z.Int().GTE(0).Required(),
 	"Comment":               z.String().Max(100),
 })
 
-func NewVariantsCanceledEvent(userID, tableID int, variants []OrderVariant, comment string) (e.Event, error) {
+func NewVariantsCanceledEvent(userID, tableID int, variants []LineItem, comment string) (e.Event, error) {
 	totalCancelationCents := 0
 	for _, variant := range variants {
 		totalCancelationCents += variant.PriceCents * variant.Quantity

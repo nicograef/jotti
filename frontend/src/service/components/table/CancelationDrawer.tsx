@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { OrderVariant } from '../../table/Order'
+import type { LineItem } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { CommentField } from './CommentField'
@@ -22,7 +22,7 @@ import { Receipt } from './Receipt'
 interface CancelationDrawerProps {
   backend: Pick<TableBackend, 'cancelTableVariants'>
   table: Table
-  unpaidVariants: OrderVariant[]
+  unpaidVariants: LineItem[]
   quantities: Record<number, number>
   variantsCanceled: () => void
 }
@@ -114,9 +114,9 @@ export function CancelationDrawer(props: CancelationDrawerProps) {
 }
 
 function selectVariants(
-  variants: OrderVariant[],
+  variants: LineItem[],
   selectedQuantity: Record<number, number>,
-): OrderVariant[] {
+): LineItem[] {
   return variants
     .map((variant) => ({
       ...variant,
@@ -125,7 +125,7 @@ function selectVariants(
     .filter((variant) => variant.quantity > 0)
 }
 
-function calculateTotalPrice(variants: OrderVariant[]): number {
+function calculateTotalPrice(variants: LineItem[]): number {
   return variants.reduce(
     (total, variant) => total + variant.priceCents * variant.quantity,
     0,

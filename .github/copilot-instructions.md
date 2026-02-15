@@ -109,6 +109,7 @@ src/components/common/   → Gemeinsame Komponenten (Formulare, EmptyState)
 - **Route Guards**: als React Router `loader`-Funktionen (`AdminGuard`, `ServiceGuard`, `AuthRedirect`)
 - **Drawer-Pattern**: Alle wichtigen Aktionen (Bestellen, Bezahlen, Stornieren, Liefern) öffnen einen Bottom-Sheet-Drawer mit Zusammenfassung vor Bestätigung
 - **UI-Sprache**: Deutsch. Code-Sprache: Englisch.
+- **Backend ist Single Source of Truth für Daten-Filterung** — keine redundante Filterlogik im Frontend. Vor dem Hinzufügen von Frontend-Filtern prüfen, ob das Backend die Daten bereits korrekt aufbereitet.
 
 ### UI-Komponenten
 
@@ -120,8 +121,8 @@ src/components/common/   → Gemeinsame Komponenten (Formulare, EmptyState)
 ### Geldbeträge im Frontend
 
 - Gespeichert/übertragen als Cent (int)
-- Anzeige als Euro (`(cents / 100).toFixed(2).replace('.', ',') + ' €'`)
-- Eingabe über spezielle Euro-Eingabefelder mit Umrechnung
+- Anzeige als Euro über `formatCents()` aus `src/lib/utils.ts` — nie inline formatieren
+- Eingabe über spezielle Euro-Eingabefelder mit Umrechnung (`centsToPrice`/`priceToCents` in `FormFields.tsx`)
 
 ### Neue Seiten hinzufügen
 

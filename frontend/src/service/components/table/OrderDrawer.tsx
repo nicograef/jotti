@@ -14,7 +14,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 
 import type { Product, Variant } from '../../product/Product'
-import type { OrderVariant } from '../../table/Order'
+import type { LineItem } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { CommentField } from './CommentField'
@@ -32,7 +32,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [comment, setComment] = useState('')
-  const orderedVariants = orderVariants(props.products, props.quantities)
+  const orderedVariants = lineItems(props.products, props.quantities)
   const totalPrice = calculateTotalPrice(orderedVariants)
   const noVariantsSelected = orderedVariants.length === 0
 
@@ -111,10 +111,10 @@ export function OrderDrawer(props: OrderDrawerProps) {
   )
 }
 
-function orderVariants(
+function lineItems(
   products: Product[],
   selectedQuantity: Record<number, number>,
-): OrderVariant[] {
+): LineItem[] {
   const allVariants: Variant[] = products.flatMap((p) => p.variants)
   return allVariants
     .map((variant) => ({
@@ -126,8 +126,8 @@ function orderVariants(
     .filter((variant) => variant.quantity > 0)
 }
 
-function calculateTotalPrice(orderVariants: OrderVariant[]): number {
-  return orderVariants.reduce(
+function calculateTotalPrice(lineItems: LineItem[]): number {
+  return lineItems.reduce(
     (total, variant) => total + variant.priceCents * variant.quantity,
     0,
   )

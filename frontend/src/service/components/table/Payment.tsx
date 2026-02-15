@@ -12,9 +12,10 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatCents } from '@/lib/utils'
 
 import { useTableUnpaidVariants } from '../../table/hooks'
-import type { OrderVariant } from '../../table/Order'
+import type { LineItem } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { CancelationDrawer } from './CancelationDrawer'
@@ -121,7 +122,7 @@ export function Payment({
 }
 
 interface VariantItemProps {
-  variant: OrderVariant
+  variant: LineItem
   quantity: number
   unpaidQuantity: number
   onAdd: () => void
@@ -141,7 +142,7 @@ function VariantItem({
         <ItemTitle>{variant.name}</ItemTitle>
         <ItemDescription>
           <span className="font-bold">
-            {(variant.priceCents / 100).toFixed(2)}&nbsp;€
+            {formatCents(variant.priceCents)}&nbsp;€
           </span>
           &nbsp; &ndash; &nbsp;noch {unpaidQuantity - quantity} unbezahlt
         </ItemDescription>

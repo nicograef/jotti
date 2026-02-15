@@ -30,6 +30,7 @@ jotti ist ein Bestell- und Kassensystem für Vereine und Nonprofit-Veranstaltung
    - `.github/copilot-instructions.md` — Architektur, Konventionen, Patterns, DB-Tabellen
    - `README.md` — Feature-Liste, Architektur-Tabelle
    - `DEVELOPMENT.md` — Build-/Test-/Deploy-Befehle, Konfigurationsdateien-Tabelle
+10. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend (SQL/Repository). Das Frontend zeigt an, was das Backend liefert — keine redundante Filterlogik im Frontend duplizieren. Vor dem Hinzufügen von Frontend-Filtern prüfen, ob das Backend die Daten bereits korrekt aufbereitet.
 
 ## Bereiche: Admin vs. Service
 

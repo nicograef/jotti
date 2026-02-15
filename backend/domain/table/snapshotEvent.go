@@ -11,15 +11,15 @@ import (
 
 type snapshotV1Data struct {
 	BalanceCents        int            `json:"balanceCents"`
-	UnpaidVariants      []OrderVariant `json:"unpaidVariants"`
-	UndeliveredVariants []OrderVariant `json:"undeliveredVariants"`
+	UnpaidVariants      []LineItem `json:"unpaidVariants"`
+	UndeliveredVariants []LineItem `json:"undeliveredVariants"`
 	TotalPaymentsCents  int            `json:"totalPaymentsCents"`
 }
 
 var snapshotV1DataSchema = z.Struct(z.Shape{
 	"BalanceCents":        z.Int(),                     // Can be 0 (no outstanding balance)
-	"UnpaidVariants":      z.Slice(orderVariantSchema), // Can be empty slice
-	"UndeliveredVariants": z.Slice(orderVariantSchema), // Can be empty slice
+	"UnpaidVariants":      z.Slice(lineItemSchema), // Can be empty slice
+	"UndeliveredVariants": z.Slice(lineItemSchema), // Can be empty slice
 	"TotalPaymentsCents":  z.Int(),                     // Can be 0 (no payments yet)
 })
 
@@ -27,13 +27,13 @@ var snapshotV1DataSchema = z.Struct(z.Shape{
 type Snapshot struct {
 	TableID             int
 	BalanceCents        int
-	UnpaidVariants      []OrderVariant
-	UndeliveredVariants []OrderVariant
+	UnpaidVariants      []LineItem
+	UndeliveredVariants []LineItem
 	TotalPaymentsCents  int
 	CreatedAt           time.Time
 }
 
-func NewSnapshotEvent(userID, tableID int, balance int, unpaid, undelivered []OrderVariant, totalPayments int) (e.Event, error) {
+func NewSnapshotEvent(userID, tableID int, balance int, unpaid, undelivered []LineItem, totalPayments int) (e.Event, error) {
 	data := snapshotV1Data{
 		BalanceCents:        balance,
 		UnpaidVariants:      unpaid,

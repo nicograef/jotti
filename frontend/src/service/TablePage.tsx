@@ -11,6 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AuthSingleton } from '@/lib/Auth'
 import { BackendSingleton } from '@/lib/Backend'
+import { formatCents } from '@/lib/utils'
 
 import { Delivery } from './components/table/Delivery'
 import { Order } from './components/table/Order'
@@ -57,7 +58,7 @@ export function TablePage() {
         </ItemContent>
         <ItemContent>
           <ItemDescription className="text-2xl">
-            {balanceLoading ? '?' : (balanceCents / 100).toFixed(2)} €
+            {balanceLoading ? '?' : formatCents(balanceCents)} €
           </ItemDescription>
         </ItemContent>
       </Item>

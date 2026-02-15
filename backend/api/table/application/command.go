@@ -103,7 +103,7 @@ func (c Command) DeactivateTable(ctx context.Context, id int) error {
 	return nil
 }
 
-func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, variants []table.OrderVariant, comment string) error {
+func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, variants []table.LineItem, comment string) error {
 	log := zerolog.Ctx(ctx)
 
 	event, err := table.NewOrderPlacedEvent(userID, tableID, variants, comment)
@@ -122,7 +122,7 @@ func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, varia
 	return nil
 }
 
-func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, variants []table.OrderVariant, comment string) error {
+func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, variants []table.LineItem, comment string) error {
 	log := zerolog.Ctx(ctx)
 
 	event, err := table.NewPaymentRegisteredEvent(userID, tableID, variants, comment)
@@ -141,7 +141,7 @@ func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, 
 	return nil
 }
 
-func (c Command) CancelTableVariants(ctx context.Context, userID, tableID int, variants []table.OrderVariant, comment string) error {
+func (c Command) CancelTableVariants(ctx context.Context, userID, tableID int, variants []table.LineItem, comment string) error {
 	log := zerolog.Ctx(ctx)
 
 	event, err := table.NewVariantsCanceledEvent(userID, tableID, variants, comment)
@@ -160,7 +160,7 @@ func (c Command) CancelTableVariants(ctx context.Context, userID, tableID int, v
 	return nil
 }
 
-func (c Command) DeliverTableVariants(ctx context.Context, userID, tableID int, variants []table.OrderVariant, comment string) error {
+func (c Command) DeliverTableVariants(ctx context.Context, userID, tableID int, variants []table.LineItem, comment string) error {
 	log := zerolog.Ctx(ctx)
 
 	event, err := table.NewVariantsDeliveredEvent(userID, tableID, variants, comment)

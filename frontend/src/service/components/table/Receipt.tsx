@@ -1,11 +1,12 @@
 import { ScrollArea } from '@/components/ui/scroll-area'
-import type { OrderVariant } from '@/service/table/Order'
+import { formatCents } from '@/lib/utils'
+import type { LineItem } from '@/service/table/Order'
 
 export function Receipt({
   variants,
   totalPrice,
 }: {
-  variants: OrderVariant[]
+  variants: LineItem[]
   totalPrice?: number
 }) {
   return (
@@ -24,7 +25,7 @@ export function Receipt({
                   {variant.quantity} x {variant.name}
                 </div>
                 <div>
-                  € {((variant.priceCents / 100) * variant.quantity).toFixed(2)}
+                  € {formatCents(variant.priceCents * variant.quantity)}
                 </div>
               </div>
             )
@@ -35,7 +36,7 @@ export function Receipt({
         {totalPrice !== undefined && (
           <>
             <div>Gesamt</div>
-            <div>€ {(totalPrice / 100).toFixed(2)}</div>
+            <div>€ {formatCents(totalPrice)}</div>
           </>
         )}
       </div>

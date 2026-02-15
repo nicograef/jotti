@@ -11,19 +11,19 @@ import (
 
 type paymentRegisteredV1Data struct {
 	PaymentID         string         `json:"paymentId"` // UUID string
-	Variants          []OrderVariant `json:"variants"`
+	Variants          []LineItem `json:"variants"`
 	TotalPaymentCents int            `json:"totalPaymentCents"`
 	Comment           string         `json:"comment"`
 }
 
 var paymentRegisteredV1DataSchema = z.Struct(z.Shape{
 	"PaymentID":         z.String().UUID().Required(),
-	"Variants":          z.Slice(orderVariantSchema).Min(1).Required(),
+	"Variants":          z.Slice(lineItemSchema).Min(1).Required(),
 	"TotalPaymentCents": z.Int().GTE(0).Required(),
 	"Comment":           z.String().Max(100),
 })
 
-func NewPaymentRegisteredEvent(userID, tableID int, variants []OrderVariant, comment string) (e.Event, error) {
+func NewPaymentRegisteredEvent(userID, tableID int, variants []LineItem, comment string) (e.Event, error) {
 	totalPaymentCents := 0
 	for _, variant := range variants {
 		totalPaymentCents += variant.PriceCents * variant.Quantity

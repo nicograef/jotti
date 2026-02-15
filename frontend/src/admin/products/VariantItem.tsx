@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { formatCents } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'
 import { type Variant, VariantStatus } from './Product'
@@ -53,7 +54,7 @@ export function VariantItem(props: VariantItemProps) {
         </div>
 
         <span className="text-muted-foreground text-sm whitespace-nowrap">
-          {(props.variant.priceCents / 100).toFixed(2)} €
+          {formatCents(props.variant.priceCents)} €
         </span>
 
         <Tooltip>

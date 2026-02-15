@@ -20,11 +20,12 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatCents } from '@/lib/utils'
 
 import type { Cancelation } from '../../table/Cancelation'
 import type { Delivery } from '../../table/Delivery'
 import { useTableHistory } from '../../table/hooks'
-import type { Order, OrderVariant } from '../../table/Order'
+import type { LineItem, Order } from '../../table/Order'
 import type { Payment } from '../../table/Payment'
 import { Comment } from './CommentField'
 import { Receipt } from './Receipt'
@@ -87,7 +88,7 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
                 return (
                   <HistoryItem
                     key={item.id}
-                    title={`Zahlung -${(payment.totalPaymentCents / 100).toFixed(2)} €`}
+                    title={`Zahlung -${formatCents(payment.totalPaymentCents)} €`}
                     date={payment.registeredAt}
                     isFromUser={userId === payment.userId}
                     comment={payment.comment}
@@ -103,7 +104,7 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
                 return (
                   <HistoryItem
                     key={item.id}
-                    title={`Bestellung +${(order.totalPriceCents / 100).toFixed(2)} €`}
+                    title={`Bestellung +${formatCents(order.totalPriceCents)} €`}
                     date={order.placedAt}
                     isFromUser={userId === order.userId}
                     comment={order.comment}
@@ -119,7 +120,7 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
                 return (
                   <HistoryItem
                     key={item.id}
-                    title={`Stornierung -${(cancelation.totalCancelationCents / 100).toFixed(2)} €`}
+                    title={`Stornierung -${formatCents(cancelation.totalCancelationCents)} €`}
                     date={cancelation.canceledAt}
                     isFromUser={userId === cancelation.userId}
                     comment={cancelation.comment}
@@ -288,7 +289,7 @@ function Details({
   date: string
   isFromUser: boolean
   comment: string
-  variants: OrderVariant[]
+  variants: LineItem[]
   totalPrice?: number
 }) {
   return (

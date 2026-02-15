@@ -90,7 +90,7 @@ func GetHistoryFromEvents(events []e.Event) ([]any, error) {
 }
 
 // accumulateVariants adds variants to a list, merging quantities for matching variants
-func accumulateVariants(list []OrderVariant, variants []OrderVariant) []OrderVariant {
+func accumulateVariants(list []LineItem, variants []LineItem) []LineItem {
 	for _, variant := range variants {
 		found := false
 		for i, existing := range list {
@@ -108,7 +108,7 @@ func accumulateVariants(list []OrderVariant, variants []OrderVariant) []OrderVar
 }
 
 // reduceVariants subtracts variants from a list, removing entries when quantity reaches zero
-func reduceVariants(list []OrderVariant, variants []OrderVariant) []OrderVariant {
+func reduceVariants(list []LineItem, variants []LineItem) []LineItem {
 	for _, variant := range variants {
 		for i := 0; i < len(list); i++ {
 			if list[i].ID == variant.ID && list[i].PriceCents == variant.PriceCents {
@@ -125,8 +125,8 @@ func reduceVariants(list []OrderVariant, variants []OrderVariant) []OrderVariant
 	return list
 }
 
-func GetUnpaidVariantsFromEvents(events []e.Event) ([]OrderVariant, error) {
-	unpaidVariants := []OrderVariant{}
+func GetUnpaidVariantsFromEvents(events []e.Event) ([]LineItem, error) {
+	unpaidVariants := []LineItem{}
 
 	for _, event := range events {
 		switch event.Type {
@@ -163,8 +163,8 @@ func GetUnpaidVariantsFromEvents(events []e.Event) ([]OrderVariant, error) {
 	return unpaidVariants, nil
 }
 
-func GetUndeliveredVariantsFromEvents(events []e.Event) ([]OrderVariant, error) {
-	undeliveredVariants := []OrderVariant{}
+func GetUndeliveredVariantsFromEvents(events []e.Event) ([]LineItem, error) {
+	undeliveredVariants := []LineItem{}
 
 	for _, event := range events {
 		switch event.Type {

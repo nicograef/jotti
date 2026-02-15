@@ -16,10 +16,10 @@ type command interface {
 	UpdateTable(ctx context.Context, id int, name string) error
 	ActivateTable(ctx context.Context, id int) error
 	DeactivateTable(ctx context.Context, id int) error
-	PlaceTableOrder(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error
-	RegisterTablePayment(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error
-	CancelTableVariants(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error
-	DeliverTableVariants(ctx context.Context, userID int, tableID int, variants []table.OrderVariant, comment string) error
+	PlaceTableOrder(ctx context.Context, userID int, tableID int, variants []table.LineItem, comment string) error
+	RegisterTablePayment(ctx context.Context, userID int, tableID int, variants []table.LineItem, comment string) error
+	CancelTableVariants(ctx context.Context, userID int, tableID int, variants []table.LineItem, comment string) error
+	DeliverTableVariants(ctx context.Context, userID int, tableID int, variants []table.LineItem, comment string) error
 }
 
 type CommandHandler struct {
@@ -137,7 +137,7 @@ func (h *CommandHandler) DeactivateTableHandler() http.HandlerFunc {
 
 type placeTableOrder struct {
 	TableID  int                  `json:"tableId"`
-	Variants []table.OrderVariant `json:"variants"`
+	Variants []table.LineItem `json:"variants"`
 	Comment  string               `json:"comment"`
 }
 
@@ -161,7 +161,7 @@ func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
 
 type registerTablePayment struct {
 	TableID  int                  `json:"tableId"`
-	Variants []table.OrderVariant `json:"variants"`
+	Variants []table.LineItem `json:"variants"`
 	Comment  string               `json:"comment"`
 }
 
@@ -185,7 +185,7 @@ func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
 
 type cancelTableVariants struct {
 	TableID  int                  `json:"tableId"`
-	Variants []table.OrderVariant `json:"variants"`
+	Variants []table.LineItem `json:"variants"`
 	Comment  string               `json:"comment"`
 }
 
@@ -209,7 +209,7 @@ func (h *CommandHandler) CancelTableVariantsHandler() http.HandlerFunc {
 
 type deliverTableVariants struct {
 	TableID  int                  `json:"tableId"`
-	Variants []table.OrderVariant `json:"variants"`
+	Variants []table.LineItem `json:"variants"`
 	Comment  string               `json:"comment"`
 }
 

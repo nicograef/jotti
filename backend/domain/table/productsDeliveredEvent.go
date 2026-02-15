@@ -11,17 +11,17 @@ import (
 
 type variantsDeliveredV1Data struct {
 	DeliveryID string         `json:"deliveryId"` // UUID string
-	Variants   []OrderVariant `json:"variants"`
+	Variants   []LineItem `json:"variants"`
 	Comment    string         `json:"comment"`
 }
 
 var variantsDeliveredV1DataSchema = z.Struct(z.Shape{
 	"DeliveryID": z.String().UUID().Required(),
-	"Variants":   z.Slice(orderVariantSchema).Min(1).Required(),
+	"Variants":   z.Slice(lineItemSchema).Min(1).Required(),
 	"Comment":    z.String().Max(100),
 })
 
-func NewVariantsDeliveredEvent(userID, tableID int, variants []OrderVariant, comment string) (e.Event, error) {
+func NewVariantsDeliveredEvent(userID, tableID int, variants []LineItem, comment string) (e.Event, error) {
 	data := variantsDeliveredV1Data{
 		DeliveryID: uuid.New().String(),
 		Variants:   variants,

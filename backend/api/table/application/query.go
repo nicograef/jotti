@@ -112,7 +112,7 @@ func (q Query) GetTableHistory(ctx context.Context, tableID int) ([]any, error) 
 	return history, nil
 }
 
-func (q Query) GetTableUnpaidVariants(ctx context.Context, tableID int) ([]t.OrderVariant, error) {
+func (q Query) GetTableUnpaidVariants(ctx context.Context, tableID int) ([]t.LineItem, error) {
 	log := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)
@@ -132,7 +132,7 @@ func (q Query) GetTableUnpaidVariants(ctx context.Context, tableID int) ([]t.Ord
 	return unpaidVariants, nil
 }
 
-func (q Query) GetTableUndeliveredVariants(ctx context.Context, tableID int) ([]t.OrderVariant, error) {
+func (q Query) GetTableUndeliveredVariants(ctx context.Context, tableID int) ([]t.LineItem, error) {
 	log := zerolog.Ctx(ctx)
 
 	subject := "table:" + strconv.Itoa(tableID)

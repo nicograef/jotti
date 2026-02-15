@@ -16,8 +16,8 @@ type query interface {
 	GetActiveTables(ctx context.Context) ([]t.Table, error)
 	GetTableHistory(ctx context.Context, tableID int) ([]any, error)
 	GetTableBalance(ctx context.Context, tableID int) (int, error)
-	GetTableUnpaidVariants(ctx context.Context, tableID int) ([]t.OrderVariant, error)
-	GetTableUndeliveredVariants(ctx context.Context, tableID int) ([]t.OrderVariant, error)
+	GetTableUnpaidVariants(ctx context.Context, tableID int) ([]t.LineItem, error)
+	GetTableUndeliveredVariants(ctx context.Context, tableID int) ([]t.LineItem, error)
 }
 
 type QueryHandler struct {
@@ -154,7 +154,7 @@ type getTableUnpaidVariants struct {
 }
 
 type getTableUnpaidVariantsResponse struct {
-	Variants []t.OrderVariant `json:"variants"`
+	Variants []t.LineItem `json:"variants"`
 }
 
 func (h QueryHandler) GetTableUnpaidVariantsHandler() http.HandlerFunc {
@@ -179,7 +179,7 @@ type getTableUndeliveredVariants struct {
 }
 
 type getTableUndeliveredVariantsResponse struct {
-	Variants []t.OrderVariant `json:"variants"`
+	Variants []t.LineItem `json:"variants"`
 }
 
 func (h QueryHandler) GetTableUndeliveredVariantsHandler() http.HandlerFunc {

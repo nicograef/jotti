@@ -14,7 +14,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { useTableUndeliveredVariants } from '../../table/hooks'
-import type { OrderVariant } from '../../table/Order'
+import type { LineItem } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { DeliveryDrawer } from './DeliveryDrawer'
@@ -102,7 +102,7 @@ export function Delivery({
 }
 
 interface VariantItemProps {
-  variant: OrderVariant
+  variant: LineItem
   quantity: number
   undeliveredQuantity: number
   onAdd: () => void
