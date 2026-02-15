@@ -18,6 +18,7 @@ import type { LineItem } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { CommentField } from './CommentField'
+import { selectVariants } from './drawerUtils'
 import { Receipt } from './Receipt'
 
 interface DeliveryDrawerProps {
@@ -112,16 +113,4 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
       </DrawerContent>
     </Drawer>
   )
-}
-
-function selectVariants(
-  variants: LineItem[],
-  selectedQuantity: Record<number, number>,
-): LineItem[] {
-  return variants
-    .map((variant) => ({
-      ...variant,
-      quantity: selectedQuantity[variant.id] || 0,
-    }))
-    .filter((variant) => variant.quantity > 0)
 }

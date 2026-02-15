@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import type { BackendClient } from '@/lib/Backend'
+
 import {
   type Cancelation,
   CancelationSchema,
@@ -20,18 +22,10 @@ import {
 import { type Payment, PaymentSchema, RegisterPaymentSchema } from './Payment'
 import { type Table, TableIdSchema, TableSchema } from './Table'
 
-interface Backend {
-  post<TResponse>(
-    endpoint: string,
-    body: unknown,
-    responseSchema?: z.ZodType<TResponse>,
-  ): Promise<TResponse>
-}
-
 export class TableBackend {
-  private readonly backend: Backend
+  private readonly backend: BackendClient
 
-  constructor(backend: Backend) {
+  constructor(backend: BackendClient) {
     this.backend = backend
   }
 

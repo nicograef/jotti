@@ -19,6 +19,7 @@ import type { LineItem } from '../../table/Order'
 import type { Table } from '../../table/Table'
 import type { TableBackend } from '../../table/TableBackend'
 import { CommentField } from './CommentField'
+import { calculateTotalPrice } from './drawerUtils'
 import { Receipt } from './Receipt'
 
 interface OrderDrawerProps {
@@ -126,11 +127,4 @@ function lineItems(
       quantity: selectedQuantity[variant.id] || 0,
     }))
     .filter((variant) => variant.quantity > 0)
-}
-
-function calculateTotalPrice(lineItems: LineItem[]): number {
-  return lineItems.reduce(
-    (total, variant) => total + variant.priceCents * variant.quantity,
-    0,
-  )
 }

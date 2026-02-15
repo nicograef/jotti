@@ -32,7 +32,15 @@ interface TokenGetter {
   getToken(): string | null
 }
 
-class Backend {
+export interface BackendClient {
+  post<TResponse>(
+    endpoint: string,
+    body: unknown,
+    responseSchema?: z.ZodType<TResponse>,
+  ): Promise<TResponse>
+}
+
+class Backend implements BackendClient {
   private readonly baseUrl: string
   private readonly tokenGetter: TokenGetter
 

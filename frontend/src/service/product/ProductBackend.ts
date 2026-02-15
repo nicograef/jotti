@@ -1,19 +1,13 @@
 import { z } from 'zod'
 
+import type { BackendClient } from '@/lib/Backend'
+
 import { type Product, ProductSchema } from './Product'
 
-interface Backend {
-  post<TResponse>(
-    endpoint: string,
-    body: unknown,
-    responseSchema?: z.ZodType<TResponse>,
-  ): Promise<TResponse>
-}
-
 export class ProductBackend {
-  private readonly backend: Backend
+  private readonly backend: BackendClient
 
-  constructor(backend: Backend) {
+  constructor(backend: BackendClient) {
     this.backend = backend
   }
 

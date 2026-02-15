@@ -31,18 +31,12 @@ export const UpdateVariantSchema = VariantSchema.pick({
   priceCents: true,
 })
 
-interface Backend {
-  post<TResponse>(
-    endpoint: string,
-    body: unknown,
-    responseSchema?: z.ZodType<TResponse>,
-  ): Promise<TResponse>
-}
+import type { BackendClient } from '@/lib/Backend'
 
 export class ProductBackend {
-  private readonly backend: Backend
+  private readonly backend: BackendClient
 
-  constructor(backend: Backend) {
+  constructor(backend: BackendClient) {
     this.backend = backend
   }
 
