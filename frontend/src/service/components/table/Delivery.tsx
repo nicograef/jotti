@@ -73,7 +73,7 @@ export function Delivery({
           setQuantities({})
           toast.success(`Lieferung wurde registriert.`)
           onVariantsDelivered()
-          void reload()
+          reload()
         }}
       />
       <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 mt-4">

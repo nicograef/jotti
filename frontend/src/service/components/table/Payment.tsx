@@ -77,7 +77,7 @@ export function Payment({
               setQuantities({})
               toast.success(`Stornierung erfolgreich.`)
               onVariantsCanceled()
-              void reload()
+              reload()
             }}
           />
         </div>
@@ -91,7 +91,7 @@ export function Payment({
               setQuantities({})
               toast.success(`Zahlung erfolgreich.`)
               onPaymentRegistered()
-              void reload()
+              reload()
             }}
           />
         </div>

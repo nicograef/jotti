@@ -85,7 +85,7 @@ export function TablePage() {
                     backend={tableBackend}
                     table={table}
                     onVariantsDelivered={() => {
-                      void reloadUndeliveredVariants()
+                      reloadUndeliveredVariants()
                     }}
                   />
                 </Card>
@@ -94,8 +94,8 @@ export function TablePage() {
                 backend={tableBackend}
                 table={table}
                 onOrderPlaced={() => {
-                  void reloadBalance()
-                  void reloadUndeliveredVariants()
+                  reloadBalance()
+                  reloadUndeliveredVariants()
                 }}
               />
             </>
@@ -107,10 +107,10 @@ export function TablePage() {
               backend={tableBackend}
               table={table}
               onPaymentRegistered={() => {
-                void reloadBalance()
+                reloadBalance()
               }}
               onVariantsCanceled={() => {
-                void reloadBalance()
+                reloadBalance()
               }}
             />
           )}
