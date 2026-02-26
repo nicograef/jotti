@@ -2,7 +2,7 @@ name: jotti-dev
 
 services:
   postgres:
-    image: postgres:17
+    image: postgres:17.8
     container_name: jotti-postgres-dev
     restart: unless-stopped
     environment:

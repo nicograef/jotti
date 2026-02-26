@@ -26,9 +26,17 @@ func createUser(db *sql.DB) (int, error) {
 func setup(t *testing.T) (int, Repository, func(t *testing.T)) {
 	db := dbpkg.OpenTestDatabase()
 
-	_, err := db.Exec("DELETE FROM events")
+	_, err := db.Exec("ALTER TABLE events DISABLE TRIGGER events_no_delete")
+	if err != nil {
+		t.Fatalf("Failed to disable events_no_delete trigger: %v", err)
+	}
+	_, err = db.Exec("DELETE FROM events")
 	if err != nil {
 		t.Fatalf("Failed to clean events table: %v", err)
+	}
+	_, err = db.Exec("ALTER TABLE events ENABLE TRIGGER events_no_delete")
+	if err != nil {
+		t.Fatalf("Failed to enable events_no_delete trigger: %v", err)
 	}
 	_, err = db.Exec("DELETE FROM users")
 	if err != nil {
@@ -41,9 +49,17 @@ func setup(t *testing.T) (int, Repository, func(t *testing.T)) {
 	}
 
 	return userID, Repository{DB: db}, func(t *testing.T) {
+		_, err = db.Exec("ALTER TABLE events DISABLE TRIGGER events_no_delete")
+		if err != nil {
+			t.Fatalf("Failed to disable events_no_delete trigger: %v", err)
+		}
 		_, err = db.Exec("DELETE FROM events")
 		if err != nil {
 			t.Fatalf("Failed to clean events table: %v", err)
+		}
+		_, err = db.Exec("ALTER TABLE events ENABLE TRIGGER events_no_delete")
+		if err != nil {
+			t.Fatalf("Failed to enable events_no_delete trigger: %v", err)
 		}
 		_, err = db.Exec("DELETE FROM users")
 		if err != nil {

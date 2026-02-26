@@ -2,7 +2,7 @@ name: jotti-proxy
 
 services:
   postgres:
-    image: postgres:17
+    image: postgres:17.8
     container_name: jotti-postgres
     restart: unless-stopped
     environment:

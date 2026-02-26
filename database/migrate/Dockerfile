@@ -1,8 +1,11 @@
-FROM alpine:latest
+FROM alpine:3.22
 
-# Install migrate tool by copying the executable
-COPY migrate /usr/local/bin/migrate
+ARG MIGRATE_VERSION=v4.19.1
 
-# run the migrations on container startup with the provided environment variables and mounted migration files
-CMD /usr/local/bin/migrate -path /migrations -database postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/jotti?sslmode=disable up
+RUN apk add --no-cache curl \
+    && curl -fsSL "https://github.com/golang-migrate/migrate/releases/download/${MIGRATE_VERSION}/migrate.linux-amd64.tar.gz" \
+    | tar -xz -C /usr/local/bin \
+    && apk del curl
+
+CMD /usr/local/bin/migrate -path /migrations -database "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/jotti?sslmode=disable" up
 

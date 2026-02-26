@@ -97,9 +97,32 @@ CREATE TABLE IF NOT EXISTS events (
 
 CREATE INDEX IF NOT EXISTS idx_events_user_id ON events(user_id);
 CREATE INDEX IF NOT EXISTS idx_events_subject ON events(subject);
+CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
+CREATE INDEX IF NOT EXISTS idx_events_subject_type ON events(subject, type);
 
+-- Restrict public role to SELECT + INSERT only (defense-in-depth for non-owner roles)
 REVOKE ALL ON TABLE events FROM PUBLIC;
-GRANT SELECT, INSERT ON TABLE events TO public;
+GRANT SELECT, INSERT ON TABLE events TO PUBLIC;
+
+-- Triggers to enforce append-only immutability for ALL roles, including the table owner.
+-- REVOKE/GRANT alone is not sufficient because PostgreSQL table owners bypass privilege checks.
+CREATE OR REPLACE FUNCTION prevent_event_mutation() RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'events table is append-only: % not allowed', TG_OP;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER events_no_update
+    BEFORE UPDATE ON events FOR EACH ROW
+    EXECUTE FUNCTION prevent_event_mutation();
+
+CREATE TRIGGER events_no_delete
+    BEFORE DELETE ON events FOR EACH ROW
+    EXECUTE FUNCTION prevent_event_mutation();
+
+CREATE TRIGGER events_no_truncate
+    BEFORE TRUNCATE ON events FOR EACH STATEMENT
+    EXECUTE FUNCTION prevent_event_mutation();
 
 COMMENT ON TABLE events IS 'Event log for orders/payments and admin actions (event-sourcing)';
 COMMENT ON COLUMN events.user_id IS 'Actor who triggered the event (nullable)';
