@@ -149,11 +149,14 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      - name: Install golang-migrate
+        run: |
+          curl -fsSL "https://github.com/golang-migrate/migrate/releases/download/v4.19.1/migrate.linux-amd64.tar.gz" \
+            | tar -xz -C /usr/local/bin
+
       - name: Run database migrations up
         working-directory: ./database
-        run: |
-          chmod +x migrate/migrate || true
-          ./migrate/migrate -path ./migrations -database "postgres://admin:admin@localhost:5432/jotti?sslmode=disable" up
+        run: migrate -path ./migrations -database "postgres://admin:admin@localhost:5432/jotti?sslmode=disable" up
 
       - name: Run integration tests
         env:
@@ -168,6 +171,4 @@ jobs:
       - name: Run database migrations down
         if: always()
         working-directory: ./database
-        run: |
-          chmod +x migrate/migrate || true
-          ./migrate/migrate -path ./migrations -database "postgres://admin:admin@localhost:5432/jotti?sslmode=disable" down -all
+        run: migrate -path ./migrations -database "postgres://admin:admin@localhost:5432/jotti?sslmode=disable" down -all
