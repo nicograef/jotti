@@ -8,43 +8,56 @@ jotti ist ein Bestell- und Kassensystem für Vereine und Nonprofit-Veranstaltung
 
 ## Tech-Stack
 
-| Komponente    | Technologie                                                                 |
-| ------------- | --------------------------------------------------------------------------- |
-| Backend       | Go 1.25, stdlib `net/http`, `pgx/v5`, `zerolog`, `zog`, `golang-jwt/v5`     |
-| Frontend      | React 19, Vite 7, TypeScript 5.9 (strict), Tailwind CSS 4, shadcn/ui, Zod 4 |
-| Datenbank     | PostgreSQL 17, `golang-migrate`                                             |
-| Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                          |
+| Komponente    | Technologie                                                        | Versionen in             |
+| ------------- | ------------------------------------------------------------------ | ------------------------ |
+| Backend       | Go, stdlib `net/http`, `pgx/v5`, `zerolog`, `zog`, `golang-jwt/v5` | `backend/go.mod`         |
+| Frontend      | React, Vite, TypeScript (strict), Tailwind CSS, shadcn/ui, Zod     | `frontend/package.json`  |
+| Datenbank     | PostgreSQL, `golang-migrate`                                       | `docker-compose.dev.yml` |
+| Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                 |                          |
 
 ## Projektstand & Anforderungen
 
-Der vollständige Anforderungskatalog mit Implementierungsvorschlägen liegt in `ANFORDERUNGEN.md`. Aktueller Stand:
+Der vollständige Anforderungskatalog mit Implementierungsvorschlägen und aktuellem Status liegt in `ANFORDERUNGEN.md`. Vor jeder Feature-Arbeit dort den aktuellen Stand prüfen.
 
-| Status       | Anzahl |
-| ------------ | ------ |
-| ✅ Umgesetzt | 23     |
-| ❌ Offen     | 27     |
-| **Gesamt**   | **50** |
+## Backend-Konventionen
 
-### Nächste offene Must-haves
+### Fehlerformat
 
-| #   | Anforderung                              | Implementierungshinweise                                                                                                    |
-| --- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 23  | Tisch-Schnellsuche per Shortcut          | FAB oder Suchfeld in `TableSelectionPage.tsx`, filtert Tischliste oder navigiert direkt zu `/service/table/:id`             |
-| 24  | Übersicht eigene Bestellungen mit Status | Neue Service-Seite `/service/orders`, neuer Endpunkt `POST /service/get-user-orders` (Events nach `user_id` aggregieren)    |
-| 25  | Bestellungen auf anderen Tisch umbuchen  | Neuer Event-Typ `table.order-transferred:v1`, Endpunkt `POST /service/transfer-table-order` (Storno + Order in Transaktion) |
-| 26  | Umsatz pro Bediener (Tagesabrechnung)    | Neuer Admin-Endpunkt `POST /admin/get-revenue-by-user`, `payment-registered`-Events nach `user_id` aggregieren              |
-| 27  | Bons drucken (formatiert)                | ESC/POS oder Web-Print (`window.print()` mit Print-CSS für 58mm/80mm), `Receipt.tsx` als Vorlage                            |
-| 31  | Freibon mit freier Preiseingabe          | Spezielle Position mit `variant_id = null` + eigenem Preis/Bezeichnung im Event-Data, oder Freibon-Variante                 |
-| 33  | Offline-Fähigkeit                        | `vite-plugin-pwa`, Service Worker, IndexedDB-Queue, Cache-Invalidation — hohe Komplexität                                   |
+Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `api/helper/http.go`).
 
-### Offene Nice-to-haves
+### Auth
 
-- **Rückgeldberechnung (#37)**: Rein clientseitig im `PaymentDrawer` — Eingabefeld "Erhalten", Anzeige Rückgeld.
-- **Freitext-Notiz pro Position (#42)**: `LineItem`-Struct um `note: string` erweitern, in `ProductList.tsx` Notiz-Icon pro Variante.
-- **Bezeichnung/Name pro Bestellung (#36)**: Optionales `label`-Feld in `OrderPlacedEvent.data`, Textfeld im OrderDrawer.
-- **Reporting (#38–40)**: Admin-Seite "Tagesabrechnung" mit Umsatz pro Bediener, Gesamtumsatz, CSV/Excel-Export.
+- JWT HS256, 12h Gültigkeit, Claims: `sub` (userID), `role` (admin|senior_service|service)
+- Middleware extrahiert `userID` und `role` aus JWT in Request-Context
+- Passwörter: Argon2id-Hashing (`domain/user/password.go`)
 
-Details und vollständige Implementierungsvorschläge: siehe `ANFORDERUNGEN.md`.
+### State-Rekonstruktion aus Events
+
+- Balance = Summe(Bestellungen) − Summe(Bezahlungen) − Summe(Stornierungen)
+- Unbezahlt = bestellt − bezahlt − storniert
+- Ungeliefert = bestellt − geliefert − storniert
+
+## Frontend-Konventionen
+
+### UI-Bibliotheken
+
+- **shadcn/ui** (Stil: `new-york`, Radix-basiert)
+- **Lucide React** (Icons)
+- **Sonner** (Toasts) — alle mutativen Aktionen zeigen `toast.error(...)` bei Fehlern
+- **Vaul** (Drawers)
+
+### Patterns
+
+- **401-Interceptor**: `Backend.post()` erkennt 401, loggt aus und leitet zu `/login` weiter — kein manuelles 401-Handling nötig
+- **Drawer-Pattern**: Bestellen, Bezahlen, Stornieren, Liefern öffnen Bottom-Sheet-Drawer mit Zusammenfassung. Hilfsfunktionen (`selectVariants`, `calculateTotalPrice`) in `src/service/components/table/drawerUtils.ts`
+- **Geldbeträge anzeigen**: `formatCents()` aus `src/lib/utils.ts` — nie inline formatieren
+
+### Styling
+
+- Tailwind CSS 4 via `@tailwindcss/vite` (keine `tailwind.config.js`)
+- CSS-Variablen in `src/index.css` (Violet/Indigo-Schema, Dark Mode via `.dark`-Klasse)
+- `cn()` Utility aus `src/lib/utils.ts` (`clsx` + `tailwind-merge`)
+- Path-Alias: `@/` → `./src/`
 
 ## Wichtige Regeln
 
@@ -58,7 +71,6 @@ Details und vollständige Implementierungsvorschläge: siehe `ANFORDERUNGEN.md`.
 8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
 9. **Dokumentation synchron halten.** Bei jeder Änderung am Projekt (neue Endpunkte, neue Seiten, geänderte Architektur, neue Dependencies, Versionsänderungen etc.) müssen folgende Dateien aktualisiert werden, sofern betroffen:
    - `AGENTS.md` — Tech-Stack-Tabelle, Verzeichnisstruktur, Regeln, Event-Referenz, DB-Schema
-   - `.github/copilot-instructions.md` — Architektur, Konventionen, Patterns, DB-Tabellen
    - `README.md` — Feature-Liste, Architektur-Tabelle
    - `DEVELOPMENT.md` — Build-/Test-/Deploy-Befehle, Konfigurationsdateien-Tabelle
 10. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend (SQL/Repository). Das Frontend zeigt an, was das Backend liefert — keine redundante Filterlogik im Frontend duplizieren. Vor dem Hinzufügen von Frontend-Filtern prüfen, ob das Backend die Daten bereits korrekt aufbereitet.
@@ -74,7 +86,7 @@ Verwaltung von Stammdaten. Nur für Administratoren zugänglich.
 - **Backend**: Routen in `api/admin.go` unter `/admin/*`, JWT-Middleware erlaubt nur Rolle `admin`
 - **Frontend**: Seiten unter `src/admin/` mit `AdminGuard` (React Router Loader)
 - **Funktionen**: Produkte + Varianten erstellen/bearbeiten/aktivieren/deaktivieren, Tische verwalten, Benutzer anlegen/bearbeiten/Passwort zurücksetzen
-- **Endpunkte**: `create-product`, `update-product`, `create-variant`, `update-variant`, `activate-variant`, `deactivate-variant`, `get-all-products`, `create-table`, `update-table`, `activate-table`, `deactivate-table`, `get-all-tables`, `create-user`, `update-user`, `activate-user`, `deactivate-user`, `reset-password`, `get-all-users`
+- **Endpunkte**: siehe `backend/api/admin.go`
 
 ### Service-Bereich (Rollen: `admin` + `senior_service` + `service`)
 
@@ -83,12 +95,12 @@ Bestell- und Kassierbetrieb am Tisch. Für Servicekräfte, Serviceleitung und Ad
 - **Backend**: Routen in `api/service.go` unter `/service/*`, JWT-Middleware erlaubt Rollen `admin`, `senior_service` und `service`. Stornierung (`cancel-table-variants`) läuft über eigene `api/senior_service.go` mit Middleware nur für `admin` und `senior_service`.
 - **Frontend**: Seiten unter `src/service/` mit `ServiceGuard` (React Router Loader)
 - **Funktionen**: Tisch auswählen, Bestellungen aufgeben, Lieferungen bestätigen, Bezahlungen registrieren, Stornierungen, Tisch-Verlauf einsehen
-- **Endpunkte**: `get-active-products`, `get-active-tables`, `get-table`, `place-table-order`, `register-table-payment`, `cancel-table-variants`, `deliver-table-variants`, `get-table-history`, `get-table-balance`, `get-table-unpaid-variants`, `get-table-undelivered-variants`
+- **Endpunkte**: siehe `backend/api/service.go` und `backend/api/senior_service.go`
 
 ### Auth-Bereich (kein JWT erforderlich)
 
 - **Backend**: Routen in `api/auth.go` unter `/auth/*`
-- **Endpunkte**: `login`, `set-password`
+- **Endpunkte**: siehe `backend/api/auth.go`
 
 ## Verzeichnisstruktur
 
@@ -163,30 +175,14 @@ cd frontend && pnpm lint                              # Frontend-Lint
 
 ## Event-Sourcing-Referenz
 
-Events für Tisch-Operationen. Subject-Format: `"table:<id>"`.
+Events für Tisch-Operationen. Subject-Format: `"table:<id>"`. State wird durch Replay aller Events rekonstruiert. Snapshots optimieren Lesezugriffe.
 
-| Event-Typ                     | Beschreibung              |
-| ----------------------------- | ------------------------- |
-| `table.order-placed:v1`       | Bestellung aufgegeben     |
-| `table.payment-registered:v1` | Bezahlung registriert     |
-| `table.variants-delivered:v1` | Varianten geliefert       |
-| `table.variants-canceled:v1`  | Varianten storniert       |
-| `table.snapshot:v1`           | Materialisierter Snapshot |
-
-State wird durch Replay aller Events rekonstruiert. Snapshots optimieren Lesezugriffe.
-
-### Geplante Event-Typen (noch nicht implementiert)
-
-| Event-Typ                          | Beschreibung                         | Anforderung |
-| ---------------------------------- | ------------------------------------ | ----------- |
-| `table.order-transferred:v1`       | Bestellung auf anderen Tisch umbucht | #25         |
-| `table.variants-prepared:v1`       | Varianten zubereitet / abholbereit   | #35, #45    |
-| `table.variants-status-changed:v1` | Zubereitungsstatus geändert          | #46         |
+Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/table/events.go` und die zugehörigen `*Event.go`-Dateien im selben Verzeichnis.
 
 ## Datenbank-Schema
 
-Enums: `UserRole(admin, senior_service, service)`, `EntityStatus(active, inactive, deleted)`, `ProductCategory(food, beverage, other)`
+Tabellen: `users`, `tables`, `products`, `product_variants`, `events` (append-only).
 
-Tabellen: `users`, `tables`, `products`, `product_variants`, `events` (append-only)
+Aktuelles Schema und Spalten: siehe SQL-Migrationen in `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge anwenden).
 
 Neue Migration: `database/migrations/<nr>_<name>.up.sql` + `.down.sql`

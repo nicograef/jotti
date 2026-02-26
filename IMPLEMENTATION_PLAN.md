@@ -415,7 +415,7 @@ In `AdminSidebar.tsx` einen Link "Tagesabrechnung" ergänzen.
 1. Jedes Feature auf eigenem Branch implementieren (Branch-Name aus Tabelle oben).
 2. Von `main` branchen.
 3. Nach Implementierung: Tests laufen lassen, Lint prüfen, committen.
-4. Dokumentation aktualisieren (AGENTS.md, copilot-instructions.md, README.md, ANFORDERUNGEN.md).
+4. Dokumentation aktualisieren (AGENTS.md, README.md, ANFORDERUNGEN.md).
 
 ### Reihenfolge der Implementierung
 

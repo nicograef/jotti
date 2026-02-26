@@ -120,4 +120,4 @@ Nur geänderte Pfade werden getestet (via `dorny/paths-filter`).
 
 Der vollständige Anforderungskatalog mit 50 Anforderungen (21 umgesetzt, 2 teilweise, 27 offen) liegt in `ANFORDERUNGEN.md`. Dort finden sich auch konkrete Implementierungsvorschläge für jede offene Anforderung.
 
-Für Kodier-Agenten sind die wichtigsten Architekturhinweise und offenen Features in `AGENTS.md` und `.github/copilot-instructions.md` zusammengefasst.
+Für Kodier-Agenten sind die wichtigsten Architekturhinweise und offenen Features in `AGENTS.md` zusammengefasst.
