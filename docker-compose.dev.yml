@@ -66,7 +66,8 @@ services:
     working_dir: /app
     environment:
       NODE_ENV: development
-    command: sh -c "npm run dev -- --host 0.0.0.0"
+      CI: "true"
+    command: sh -c "corepack enable && pnpm install && pnpm run dev"
     volumes:
       - ./frontend:/app
     networks:
