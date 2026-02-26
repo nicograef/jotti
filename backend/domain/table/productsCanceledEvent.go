@@ -37,7 +37,7 @@ func NewVariantsCanceledEvent(userID, tableID int, variants []LineItem, comment 
 	}
 
 	if err := variantsCanceledV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.SanitizeMapAndCollect(err)
+		issues := z.Issues.FlattenAndCollect(err)
 		return e.Event{}, fmt.Errorf("variants canceled data validation failed: %v", issues)
 	}
 
@@ -76,7 +76,7 @@ func buildCancelationFromEvent(event e.Event) (Cancelation, error) {
 	}
 
 	if err := cancelationSchema.Validate(&cancelation); err != nil {
-		issues := z.Issues.SanitizeMapAndCollect(err)
+		issues := z.Issues.FlattenAndCollect(err)
 		return Cancelation{}, fmt.Errorf("cancelation validation failed: %v", issues)
 	}
 

@@ -29,7 +29,7 @@ func NewVariantsDeliveredEvent(userID, tableID int, variants []LineItem, comment
 	}
 
 	if err := variantsDeliveredV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.SanitizeMapAndCollect(err)
+		issues := z.Issues.FlattenAndCollect(err)
 		return e.Event{}, fmt.Errorf("variants delivered data validation failed: %v", issues)
 	}
 
@@ -67,7 +67,7 @@ func buildDeliveryFromEvent(event e.Event) (Delivery, error) {
 	}
 
 	if err := deliverySchema.Validate(&delivery); err != nil {
-		issues := z.Issues.SanitizeMapAndCollect(err)
+		issues := z.Issues.FlattenAndCollect(err)
 		return Delivery{}, fmt.Errorf("delivery validation failed: %v", issues)
 	}
 

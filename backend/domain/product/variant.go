@@ -43,8 +43,8 @@ var VariantSchema = z.Struct(z.Shape{
 })
 
 func (v Variant) Validate() error {
-	if errsMap := VariantSchema.Validate(&v); errsMap != nil {
-		issues := z.Issues.SanitizeMapAndCollect(errsMap)
+	if errs := VariantSchema.Validate(&v); errs != nil {
+		issues := z.Issues.FlattenAndCollect(errs)
 		return fmt.Errorf("invalid product variant: %v", issues)
 	}
 	return nil

@@ -37,7 +37,7 @@ func NewPaymentRegisteredEvent(userID, tableID int, variants []LineItem, comment
 	}
 
 	if err := paymentRegisteredV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.SanitizeMapAndCollect(err)
+		issues := z.Issues.FlattenAndCollect(err)
 		return e.Event{}, fmt.Errorf("payment registered data validation failed: %v", issues)
 	}
 
@@ -76,7 +76,7 @@ func buildPaymentFromEvent(event e.Event) (Payment, error) {
 	}
 
 	if err := paymentSchema.Validate(&payment); err != nil {
-		issues := z.Issues.SanitizeMapAndCollect(err)
+		issues := z.Issues.FlattenAndCollect(err)
 		return Payment{}, fmt.Errorf("payment validation failed: %v", issues)
 	}
 

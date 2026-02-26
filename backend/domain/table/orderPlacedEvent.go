@@ -37,7 +37,7 @@ func NewOrderPlacedEvent(userID, tableID int, variants []LineItem, comment strin
 	}
 
 	if err := orderPlacedV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.SanitizeMapAndCollect(err)
+		issues := z.Issues.FlattenAndCollect(err)
 		return e.Event{}, fmt.Errorf("order placed data validation failed: %v", issues)
 	}
 
@@ -76,7 +76,7 @@ func buildOrderFromEvent(event e.Event) (Order, error) {
 	}
 
 	if err := orderSchema.Validate(&order); err != nil {
-		issues := z.Issues.SanitizeMapAndCollect(err)
+		issues := z.Issues.FlattenAndCollect(err)
 		return Order{}, fmt.Errorf("order validation failed: %v", issues)
 	}
 

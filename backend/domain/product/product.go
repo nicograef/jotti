@@ -48,8 +48,8 @@ var ProductSchema = z.Struct(z.Shape{
 })
 
 func (p Product) Validate() error {
-	if errsMap := ProductSchema.Validate(&p); errsMap != nil {
-		issues := z.Issues.SanitizeMapAndCollect(errsMap)
+	if errs := ProductSchema.Validate(&p); errs != nil {
+		issues := z.Issues.FlattenAndCollect(errs)
 		return fmt.Errorf("invalid product: %v", issues)
 	}
 	return nil

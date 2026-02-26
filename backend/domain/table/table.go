@@ -41,8 +41,8 @@ var TableSchema = z.Struct(z.Shape{
 })
 
 func (p Table) Validate() error {
-	if errsMap := TableSchema.Validate(&p); errsMap != nil {
-		issues := z.Issues.SanitizeMapAndCollect(errsMap)
+	if errs := TableSchema.Validate(&p); errs != nil {
+		issues := z.Issues.FlattenAndCollect(errs)
 		return fmt.Errorf("invalid table: %v", issues)
 	}
 	return nil

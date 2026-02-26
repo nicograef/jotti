@@ -74,8 +74,8 @@ var UserSchema = z.Struct(z.Shape{
 var ErrNotActive = fmt.Errorf("user is not active")
 
 func (u User) Validate() error {
-	if errsMap := UserSchema.Validate(&u); errsMap != nil {
-		issues := z.Issues.SanitizeMapAndCollect(errsMap)
+	if errs := UserSchema.Validate(&u); errs != nil {
+		issues := z.Issues.FlattenAndCollect(errs)
 		return fmt.Errorf("invalid user: %v", issues)
 	}
 	return nil

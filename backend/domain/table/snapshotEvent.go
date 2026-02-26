@@ -42,7 +42,7 @@ func NewSnapshotEvent(userID, tableID int, balance int, unpaid, undelivered []Li
 	}
 
 	if err := snapshotV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.SanitizeMapAndCollect(err)
+		issues := z.Issues.FlattenAndCollect(err)
 		return e.Event{}, fmt.Errorf("snapshot data validation failed: %v", issues)
 	}
 

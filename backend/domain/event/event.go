@@ -79,8 +79,8 @@ func ParseData[T any](e Event, dest *T, schema *z.StructSchema) error {
 		return err
 	}
 
-	if errsMap := schema.Validate(dest); errsMap != nil {
-		issues := z.Issues.SanitizeMapAndCollect(errsMap)
+	if errs := schema.Validate(dest); errs != nil {
+		issues := z.Issues.FlattenAndCollect(errs)
 		return fmt.Errorf("validation failed: %v", issues)
 	}
 
