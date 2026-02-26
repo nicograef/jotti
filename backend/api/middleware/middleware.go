@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 
@@ -154,13 +155,7 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler
 			}
 
 			// check if role is allowed
-			roleAllowed := false
-			for _, role := range allowedRoles {
-				if userRole == role {
-					roleAllowed = true
-					break
-				}
-			}
+			roleAllowed := slices.Contains(allowedRoles, userRole)
 			if !roleAllowed {
 				logger.Warn().Str("role", userRole).Msg("Insufficient permissions")
 				helper.SendClientError(w, "insufficient_permissions", fmt.Sprintf("Insufficient permissions for role %s", userRole))

@@ -73,7 +73,7 @@ func TestRateLimitMiddleware_BlocksExceedingLimit(t *testing.T) {
 	middleware := RateLimitMiddleware(1)(handler)
 
 	// Fill the limiter
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		rec := httptest.NewRecorder()
 		middleware.ServeHTTP(rec, req)

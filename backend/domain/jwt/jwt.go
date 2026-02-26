@@ -29,7 +29,7 @@ func GenerateJWTTokenForUser(userID int, userRole string, secret string) (string
 
 func ParseAndValidateJWTToken(tokenString, secret string) (int, string, error) {
 	claims := jwt.MapClaims{}
-	keyFunc := func(token *jwt.Token) (interface{}, error) {
+	keyFunc := func(token *jwt.Token) (any, error) {
 		return []byte(secret), nil
 	}
 

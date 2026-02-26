@@ -51,7 +51,7 @@ Single-Tenant, deployed via Docker Compose auf einer VM.
 | Komponente    | Technologie                                           |
 | ------------- | ----------------------------------------------------- |
 | Frontend      | React 19, Vite, Tailwind CSS 4, shadcn/ui, TypeScript |
-| Backend       | Go 1.25, stdlib `net/http`, pgx/v5                    |
+| Backend       | Go 1.26, stdlib `net/http`, pgx/v5                    |
 | Datenbank     | PostgreSQL 17                                         |
 | Reverse Proxy | nginx (HTTPS via Let's Encrypt)                       |
 

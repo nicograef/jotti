@@ -156,7 +156,7 @@ func generateOnetimePassword() (string, error) {
 		return "", fmt.Errorf("failed to generate random bytes for onetime password: %w", err)
 	}
 
-	for i := 0; i < passwordLength; i++ {
+	for i := range passwordLength {
 		bytePassword[i] = charset[int(bytePassword[i])%len(charset)]
 	}
 

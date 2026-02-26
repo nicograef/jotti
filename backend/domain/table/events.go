@@ -2,6 +2,7 @@ package table
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 
 	e "github.com/nicograef/jotti/backend/domain/event"
@@ -100,9 +101,7 @@ func GetHistoryFromEvents(events []e.Event) ([]any, error) {
 	}
 
 	// reverse the order of the array so that the most recent event is first
-	for i, j := 0, len(history)-1; i < j; i, j = i+1, j-1 {
-		history[i], history[j] = history[j], history[i]
-	}
+	slices.Reverse(history)
 
 	return history, nil
 }

@@ -1,6 +1,6 @@
 module github.com/nicograef/jotti/backend
 
-go 1.25.7
+go 1.26.0
 
 require (
 	github.com/Oudwins/zog v0.22.0
