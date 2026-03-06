@@ -57,6 +57,11 @@ services:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "1.0"
     # No exposed ports; reachable only via reverse proxy
 
   frontend:
@@ -70,6 +75,11 @@ services:
     depends_on:
       backend:
         condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
     # No exposed ports; served via reverse proxy
 
   reverse-proxy:
