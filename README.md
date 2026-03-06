@@ -65,6 +65,7 @@ Ausführliche Anleitungen: [Entwicklung & Deployment](docs/development.md)
 | [docs/development.md](docs/development.md) | Lokale Entwicklung, Tests, Deployment, CI/CD |
 | [docs/requirements.md](docs/requirements.md) | Vollständiger Anforderungskatalog (50 Anforderungen) |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Implementierungsplan für die nächsten Features |
+| [docs/orm.md](docs/orm.md) | Datenbank-Schema & Backend-Persistenz (Repository-Layer) |
 | [AGENTS.md](AGENTS.md) | Instruktionen für KI-Coding-Agenten |
 
 ## Offene Fragen
