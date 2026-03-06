@@ -19,7 +19,8 @@ JWT-Secret generieren: `openssl rand -base64 32`
 ## Lokale Entwicklung
 
 ```bash
-docker compose -f docker-compose.dev.yml up --build -d
+make dev
+# oder: docker compose -f docker-compose.dev.yml up --build -d
 ```
 
 - Frontend: http://localhost (Vite Dev-Server mit HMR)
@@ -30,10 +31,12 @@ Backend läuft mit `go run`, Frontend mit `pnpm dev` — Änderungen werden auto
 
 ```bash
 # Logs
-docker compose -f docker-compose.dev.yml logs -f backend-dev
+make logs
+# oder: docker compose -f docker-compose.dev.yml logs -f backend-dev
 
 # Stoppen
-docker compose -f docker-compose.dev.yml down
+make down
+# oder: docker compose -f docker-compose.dev.yml down
 ```
 
 ## Tests
@@ -41,7 +44,8 @@ docker compose -f docker-compose.dev.yml down
 ### Unit-Tests (Backend)
 
 ```bash
-cd backend && go test -tags=unit -race ./...
+make test
+# oder: cd backend && go test -tags=unit -race ./...
 ```
 
 ### Integrationstests (Backend)
@@ -49,7 +53,8 @@ cd backend && go test -tags=unit -race ./...
 Benötigt eine laufende PostgreSQL-Instanz mit angewendeten Migrationen:
 
 ```bash
-./test-integration.sh
+make test-integration
+# oder: ./test-integration.sh
 ```
 
 Oder manuell in CI: `go test -tags=integration -race ./...`
@@ -57,10 +62,12 @@ Oder manuell in CI: `go test -tags=integration -race ./...`
 ### Linting
 
 ```bash
-# Backend
-cd backend && go vet ./... && goimports -l .
+make lint           # Backend + Frontend
+make lint-backend   # nur Backend
+make lint-frontend  # nur Frontend
 
-# Frontend
+# oder manuell:
+cd backend && go vet ./... && goimports -l .
 cd frontend && pnpm lint
 ```
 
@@ -82,7 +89,8 @@ docker compose -f docker-compose.initial-cert.yml down
 ### Produktionsstack starten
 
 ```bash
-docker compose up -d --build
+make prod-up
+# oder: docker compose up -d --build
 ```
 
 Zertifikate werden automatisch alle 24h via Certbot erneuert.
@@ -92,7 +100,8 @@ Zertifikate werden automatisch alle 24h via Certbot erneuert.
 docker compose logs -f backend
 
 # Stoppen
-docker compose down
+make prod-down
+# oder: docker compose down
 ```
 
 ## Konfigurationsdateien
