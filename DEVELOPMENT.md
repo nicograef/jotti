@@ -73,7 +73,32 @@ cd frontend && pnpm lint
 
 ## Production-Deployment
 
-### Erstes Zertifikat (einmalig)
+### Erstes Deployment (einmalig)
+
+Das Skript `scripts/prod-init.sh` automatisiert das erste Deployment:
+
+```bash
+make init
+# oder: ./scripts/prod-init.sh
+```
+
+Das Skript führt folgende Schritte aus:
+
+1. Prüft Voraussetzungen (`.env`, Docker, DNS)
+2. Startet nginx für die ACME-Challenge
+3. Fordert ein Let's-Encrypt-Zertifikat an
+4. Startet den vollständigen Produktionsstack
+5. Verifiziert, dass HTTPS funktioniert
+
+**Voraussetzungen:**
+
+- `.env` konfiguriert (siehe oben)
+- DNS für `jotti.rocks` zeigt auf den Server
+- Port 80 ist erreichbar (für ACME-Challenge)
+
+### Manuelle Zertifikatserstellung (alternativ)
+
+Falls das automatisierte Skript nicht verwendet werden soll:
 
 ```bash
 docker compose -f docker-compose.initial-cert.yml up -d
@@ -106,15 +131,16 @@ make prod-down
 
 ## Konfigurationsdateien
 
-| Datei                              | Zweck                          |
-| ---------------------------------- | ------------------------------ |
-| `docker-compose.yml`               | Produktionsstack               |
-| `docker-compose.staging.yml`       | Staging-Stack                  |
-| `docker-compose.dev.yml`           | Entwicklung mit Hot Reload     |
-| `docker-compose.initial-cert.yml`  | Erstzertifikat (Let's Encrypt) |
-| `reverse-proxy/nginx.conf`         | nginx Produktion (HTTPS)       |
-| `reverse-proxy/nginx.dev.conf`     | nginx Entwicklung (HTTP)       |
-| `reverse-proxy/nginx.staging.conf` | nginx Staging                  |
+| Datei                              | Zweck                           |
+| ---------------------------------- | ------------------------------- |
+| `docker-compose.yml`               | Produktionsstack                |
+| `docker-compose.staging.yml`       | Staging-Stack                   |
+| `docker-compose.dev.yml`           | Entwicklung mit Hot Reload      |
+| `docker-compose.initial-cert.yml`  | Erstzertifikat (Let's Encrypt)  |
+| `scripts/prod-init.sh`             | Automatisiertes Erst-Deployment |
+| `reverse-proxy/nginx.conf`         | nginx Produktion (HTTPS)        |
+| `reverse-proxy/nginx.dev.conf`     | nginx Entwicklung (HTTP)        |
+| `reverse-proxy/nginx.staging.conf` | nginx Staging                   |
 
 ## CI/CD
 

@@ -140,6 +140,9 @@ database/
   migrate/                      # Migration-Tool (Container)
 
 reverse-proxy/                  # nginx-Konfigurationen
+
+scripts/
+  prod-init.sh                  # Automatisiertes Erst-Deployment
 ```
 
 ## Lokale Entwicklung

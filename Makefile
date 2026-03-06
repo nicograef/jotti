@@ -1,4 +1,4 @@
-.PHONY: dev down logs test test-integration lint-backend lint-frontend lint prod-up prod-down
+.PHONY: dev down logs test test-integration lint-backend lint-frontend lint prod-up prod-down init
 
 dev:
 	docker compose -f docker-compose.dev.yml up --build -d
@@ -28,3 +28,6 @@ prod-up:
 
 prod-down:
 	docker compose down
+
+init:
+	./scripts/prod-init.sh
