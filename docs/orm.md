@@ -29,6 +29,7 @@ This document describes how jotti implements database access and persistence. jo
 - [Mock Repositories](#mock-repositories)
 - [Integration Tests](#integration-tests)
 - [Dual Persistence Strategy](#dual-persistence-strategy)
+- [ORM Evaluation: Is GORM a Good Fit for jotti?](#orm-evaluation-is-gorm-a-good-fit-for-jotti)
 
 ---
 
@@ -490,3 +491,210 @@ jotti uses two fundamentally different persistence strategies:
 Snapshots (`table.snapshot:v1` events) periodically capture the full state, allowing `ReadEventsWithSnapshot` to skip replaying older events.
 
 This dual approach gives the best of both worlds: simple CRUD for rarely-changing master data, and a complete audit trail with temporal queries for the operational core.
+
+---
+
+## ORM Evaluation: Is GORM a Good Fit for jotti?
+
+This section evaluates whether adopting an ORM — specifically [GORM](https://github.com/go-gorm/gorm), the most popular ORM in the Go ecosystem — would be beneficial for jotti.
+
+### What Is an ORM?
+
+Object-Relational Mapping (ORM) is a technique that lets developers interact with a relational database using the programming language's own object model instead of writing raw SQL. An ORM library automatically translates between in-memory objects (structs in Go) and database rows. Typical ORM features include:
+
+- **Automatic CRUD generation** — `Create()`, `Find()`, `Update()`, `Delete()` methods generated from struct definitions.
+- **Schema-to-struct mapping** — Struct tags define column names, types, and constraints; the ORM handles scanning and parameter binding.
+- **Relationship management** — Associations (has-one, has-many, belongs-to, many-to-many) with eager/lazy loading.
+- **Auto-migrations** — The ORM detects differences between struct definitions and the database schema and generates DDL to synchronize them.
+- **Query builder** — Chainable API for building queries programmatically (`Where()`, `Order()`, `Limit()`, `Joins()`).
+- **Hooks/callbacks** — Lifecycle events (before/after create, update, delete) for cross-cutting concerns.
+- **Transaction management** — Simplified API for wrapping operations in database transactions.
+
+ORMs shine when an application has many entities with straightforward CRUD patterns, frequent schema changes, or developers who are more comfortable with application code than SQL. They trade direct SQL control for developer productivity and reduced boilerplate.
+
+### GORM Overview
+
+[GORM](https://github.com/go-gorm/gorm) is Go's most widely adopted ORM (36k+ GitHub stars). Key features:
+
+| Feature | Description |
+| --- | --- |
+| Struct-based models | Define tables as Go structs with `gorm:"..."` tags |
+| Auto-migrations | `db.AutoMigrate(&User{})` creates/alters tables to match structs |
+| Associations | Has One, Has Many, Belongs To, Many To Many with Preload/Joins |
+| Hooks | Before/After Create/Save/Update/Delete/Find callbacks |
+| Transactions | `db.Transaction(func(tx) error { ... })` with nested savepoints |
+| SQL builder | Raw SQL support alongside the query builder |
+| Soft deletes | Built-in `gorm.Model` includes `DeletedAt` for soft deletes |
+| Batch operations | Batch insert, find-in-batches |
+| Plugin system | Database resolver, Prometheus, custom plugins |
+
+**Typical GORM usage:**
+
+```go
+type User struct {
+    gorm.Model          // ID, CreatedAt, UpdatedAt, DeletedAt
+    Name     string
+    Username string `gorm:"uniqueIndex"`
+    Role     string
+}
+
+// Create
+db.Create(&User{Name: "Alice", Username: "alice", Role: "admin"})
+
+// Read
+var user User
+db.Where("username = ? AND deleted_at IS NULL", "alice").First(&user)
+
+// Update
+db.Model(&user).Update("role", "service")
+
+// Preload associations
+db.Preload("Variants").Find(&products)
+```
+
+### Dimension-by-Dimension Analysis
+
+The following analysis evaluates GORM against jotti's actual codebase characteristics.
+
+#### 1. CRUD Repositories (user_repo, table_repo)
+
+**Current state:** `user_repo` (84 lines) and `table_repo` (86 lines) implement simple single-table CRUD with soft deletes. Each has a private `db*` struct, a `toDomain()` converter, and 5 methods with straightforward SQL.
+
+**What GORM would change:**
+- Eliminate the `db*` adapter structs — GORM scans directly into annotated structs.
+- Replace hand-written `INSERT ... RETURNING id` and `SELECT ... WHERE` with `db.Create()` and `db.Where().First()`.
+- Built-in soft-delete support via `gorm.DeletedAt` matches jotti's `status = 'deleted'` pattern (though the semantics differ — GORM uses a nullable timestamp, jotti uses a status enum with three states: active, inactive, deleted).
+
+**Verdict:** GORM would reduce boilerplate here, but the savings are modest (~40–50 lines per repo). The current code is already simple and readable.
+
+**Friction point:** jotti uses a three-state `EntityStatus` enum (active/inactive/deleted) rather than GORM's binary deleted-at timestamp. Adapting GORM's soft-delete to jotti's three-state model would require custom scopes or overriding GORM's default behavior, partially negating the convenience.
+
+#### 2. Product Repository (product_repo) — JSON Aggregation
+
+**Current state:** `product_repo` (191 lines) is the most complex repository. It uses PostgreSQL-specific features:
+- `json_agg()` + `json_build_object()` for denormalizing variants into parent products.
+- Common Table Expressions (CTEs) for efficient aggregation.
+- `COALESCE(..., '[]')` for handling products with no variants.
+- Custom `db.NullTime` type to handle JSON timestamp unmarshaling from `json_agg()` output.
+
+**What GORM would change:**
+- The `Preload("Variants")` feature could replace the JSON aggregation approach. GORM would issue two queries (one for products, one for variants) and stitch them together in memory.
+- The CTE-based single-query approach would be replaced with GORM's N+1-safe but less efficient two-query preload.
+
+**Verdict:** This is where GORM would actually cause a **regression**. The current implementation is a deliberate optimization: a single SQL query returns products with pre-aggregated variants. GORM's Preload is simpler to write but less efficient and cannot replicate the CTE+JSON aggregation pattern. To use the current SQL with GORM, you would need to fall back to `db.Raw()` — at which point you are writing raw SQL inside an ORM, losing the abstraction benefit.
+
+#### 3. Event Repository (event_repo) — Event Sourcing
+
+**Current state:** `event_repo` (134 lines) implements an append-only event store with:
+- `WriteEvent()` — simple INSERT.
+- `ReadEventsWithSnapshot()` — CTE-based query that finds the latest snapshot and reads forward.
+- Direct scanning into the `event.Event` domain model (no adapter struct needed because `data` is `json.RawMessage`).
+- Database-level immutability enforcement via triggers (UPDATE/DELETE/TRUNCATE prevented).
+
+**What GORM would change:**
+- GORM fundamentally assumes mutable records (Create, Update, Delete lifecycle). An append-only event store contradicts GORM's core model.
+- GORM's auto-migration would conflict with the trigger-based immutability enforcement.
+- The CTE-based snapshot query has no GORM equivalent — it would require `db.Raw()`.
+- GORM's soft-delete feature is meaningless for an event store.
+
+**Verdict:** GORM is a **poor fit** for event sourcing. The event repository pattern is fundamentally different from what ORMs are designed for. Using GORM here would mean fighting the framework rather than benefiting from it.
+
+#### 4. Domain Model Separation
+
+**Current state:** jotti maintains a clean separation between database types and domain models. Each repository has private `db*` structs that map to SQL columns, with `toDomain()` methods that convert to rich domain models with business logic (validation, state transitions, etc.).
+
+**What GORM would change:**
+- GORM encourages using the same struct for both ORM mapping and business logic (via `gorm:"..."` tags on domain structs).
+- To maintain jotti's clean domain separation, you would need either:
+  - (a) Add `gorm:"..."` tags to domain models — mixing persistence concerns into the domain layer.
+  - (b) Keep separate ORM models and domain models — which retains the current adapter overhead while adding ORM complexity.
+
+**Verdict:** jotti's architecture explicitly separates database concerns from domain logic. GORM's design pushes toward coupling them. Maintaining the current clean separation while using GORM would negate most of GORM's convenience.
+
+#### 5. PostgreSQL-Specific Features
+
+**Current state:** jotti leverages several PostgreSQL-specific features:
+- Custom enum types (`UserRole`, `EntityStatus`, `ProductCategory`).
+- `JSONB` columns with `json_agg()` / `json_build_object()`.
+- Trigger-based immutability enforcement.
+- `IDENTITY` columns (SQL standard auto-increment).
+- `TIMESTAMPTZ` with timezone awareness.
+
+**What GORM would change:**
+- GORM supports PostgreSQL via the `gorm.io/driver/postgres` driver, but many PostgreSQL-specific features require raw SQL or custom data types.
+- Custom enums need manual handling (GORM does not natively manage PostgreSQL enum types).
+- JSONB operations require the `datatypes` plugin or raw expressions.
+- Triggers are outside GORM's scope entirely — they must be managed via manual migrations.
+
+**Verdict:** jotti's use of PostgreSQL-specific features reduces the practical benefit of GORM's database abstraction. The application is committed to PostgreSQL (event sourcing triggers, custom enums, JSON aggregation), so database portability is not a goal.
+
+#### 6. Error Handling
+
+**Current state:** The `db` package provides a focused error-mapping layer (`db.Error()`, `db.ResultError()`) that translates PostgreSQL error codes into domain sentinel errors (`ErrNotFound`, `ErrAlreadyExists`, `ErrDatabase`). These are used consistently across all repositories.
+
+**What GORM would change:**
+- GORM has its own error handling (`gorm.ErrRecordNotFound`, etc.) that would replace the custom error mapping.
+- However, the mapping from GORM errors to jotti's domain errors would still be needed in application services or handlers.
+
+**Verdict:** Neutral. The error-mapping layer would change but not disappear.
+
+#### 7. Testing & Mocking
+
+**Current state:** Each repository has a `mock.go` file implementing the repository interface with in-memory data. Unit tests use these mocks; integration tests run against a real PostgreSQL instance.
+
+**What GORM would change:**
+- GORM-based repositories would be harder to mock because they depend on `*gorm.DB` rather than a simple interface.
+- Options: use `go-sqlmock` to mock the SQL driver, or maintain the current interface-based mocking pattern with a GORM-based implementation behind it.
+
+**Verdict:** The current interface-based mocking pattern is cleaner and simpler than GORM-specific mocking approaches.
+
+#### 8. Codebase Size & Complexity
+
+| Metric | Current | With GORM (estimated) |
+| --- | --- | --- |
+| Repository code | ~495 lines | ~350 lines (CRUD shrinks, event_repo unchanged) |
+| Adapter structs | 4 files (types.go) | 0–2 files (GORM tags on models or separate) |
+| SQL statements | ~42 | ~15 (CRUD eliminated, complex queries remain as Raw) |
+| Dependencies | `pgx/v5` only | `pgx/v5` + `gorm` + `gorm/driver/postgres` |
+| Learning curve | SQL + pgx | SQL + pgx + GORM API + GORM conventions |
+| db package | 3 files, ~160 lines | Partially replaced, partially retained |
+
+The net reduction is roughly **100–150 lines** of repository code, at the cost of an additional major dependency and a split between ORM-managed and raw-SQL code paths.
+
+### Summary
+
+| Criterion | GORM Benefit | jotti Fit |
+| --- | --- | --- |
+| Simple CRUD boilerplate reduction | ✅ Moderate | ⚠️ Savings are real but small (~100 lines) |
+| JSON aggregation queries | ❌ Cannot replace | ❌ Would require Raw SQL fallback |
+| Event sourcing (append-only) | ❌ Fundamentally incompatible | ❌ Would fight the framework |
+| Domain model separation | ❌ Encourages coupling | ❌ Conflicts with jotti's architecture |
+| PostgreSQL-specific features | ❌ Limited support | ❌ Would need raw SQL for enums, triggers, JSONB |
+| Soft-delete (three-state enum) | ⚠️ Partial | ⚠️ Custom scopes needed for active/inactive/deleted |
+| Testing & mocking | ❌ More complex | ❌ Current approach is simpler |
+| Auto-migrations | ✅ Convenient | ⚠️ Conflicts with trigger-based immutability |
+| Developer onboarding | ✅ Familiar API | ⚠️ Must learn GORM quirks + still write raw SQL |
+| Dependency footprint | ❌ Large dependency | ⚠️ jotti is intentionally dependency-light |
+
+### Recommendation
+
+**Do not adopt GORM for jotti.**
+
+The analysis shows that GORM would provide marginal benefits (reducing ~100–150 lines of CRUD boilerplate) while introducing significant friction in the areas that matter most:
+
+1. **Event sourcing is incompatible with ORM assumptions.** The `event_repo` — which handles the operational core of jotti (orders, payments, deliveries, cancelations) — is fundamentally append-only. GORM assumes mutable CRUD records. Using GORM for the event repository would mean constantly bypassing the framework.
+
+2. **The most complex queries cannot be expressed in GORM.** The `product_repo`'s CTE-based JSON aggregation — jotti's most sophisticated SQL — would require `db.Raw()`, defeating the purpose of an ORM.
+
+3. **jotti's architecture actively resists ORM coupling.** The clean separation between database types and domain models is a deliberate design choice. GORM pushes toward coupling these, which would erode the architecture's clarity.
+
+4. **The codebase is small and manageable.** With ~495 lines of repository code across 4 packages, the current hand-written SQL is not a maintenance burden. An ORM pays off at scale (dozens of entities, complex relationships, frequent schema changes) — jotti has 5 tables and a stable schema.
+
+5. **PostgreSQL commitment eliminates the portability argument.** jotti uses custom enums, JSONB, triggers, and CTEs — all PostgreSQL-specific. Database portability, one of the main ORM selling points, is not relevant here.
+
+**If boilerplate reduction is still desired**, consider lighter alternatives that complement rather than replace the current approach:
+
+- **[sqlc](https://sqlc.dev/)** — Generates type-safe Go code from SQL queries. Keeps the SQL-first approach while eliminating manual `Scan()` calls and adapter structs. Best fit for jotti's philosophy.
+- **[scany](https://github.com/georgysavva/scany)** — A lightweight scanning library that reduces `rows.Scan()` boilerplate without introducing a query builder or ORM. Compatible with `pgx/v5`.
+
+Both options preserve jotti's SQL-first, PostgreSQL-native approach while reducing the mechanical boilerplate that an ORM would target.
