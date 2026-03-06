@@ -7,6 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import reactX from 'eslint-plugin-react-x'
 import reactDom from 'eslint-plugin-react-dom'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
+import vitest from '@vitest/eslint-plugin'
 // Note the `/flat` suffix here, the difference from default entry is that
 // `/flat` added `name` property to the exported object to improve
 // [config-inspector](https://eslint.org/blog/2024/04/eslint-config-inspector/) experience.
@@ -40,6 +41,13 @@ export default defineConfig([
     rules: {
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
+    },
+  },
+  {
+    files: ['**/*.test.{ts,tsx}'],
+    plugins: { vitest },
+    rules: {
+      ...vitest.configs.recommended.rules,
     },
   },
 ])
