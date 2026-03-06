@@ -48,7 +48,7 @@ func setup(t *testing.T) (int, Repository, func(t *testing.T)) {
 		t.Fatalf("Failed to insert user: %v", err)
 	}
 
-	return userID, Repository{DB: db}, func(t *testing.T) {
+	return userID, NewRepository(db), func(t *testing.T) {
 		_, err = db.Exec("ALTER TABLE events DISABLE TRIGGER events_no_delete")
 		if err != nil {
 			t.Fatalf("Failed to disable events_no_delete trigger: %v", err)

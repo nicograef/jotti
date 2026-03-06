@@ -35,12 +35,13 @@ func setup(t *testing.T) (user.User, Repository, func(t *testing.T)) {
 		t.Fatalf("Failed to clean users table: %v", err)
 	}
 
-	user, err := createTestUser(t, Repository{DB: db})
+	repo := NewRepository(db)
+	user, err := createTestUser(t, repo)
 	if err != nil {
 		t.Fatalf("Failed to insert user: %v", err)
 	}
 
-	return user, Repository{DB: db}, func(t *testing.T) {
+	return user, repo, func(t *testing.T) {
 		_, err := db.Exec("DELETE FROM users")
 		if err != nil {
 			t.Fatalf("Failed to clean users table: %v", err)

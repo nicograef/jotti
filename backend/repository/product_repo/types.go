@@ -2,46 +2,60 @@ package product_repo
 
 import (
 	"database/sql"
+	"encoding/json"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
 type Repository struct {
 	DB *sql.DB
+	q  *dbgen.Queries
 }
 
-type dbproduct struct {
-	ID        int         `db:"id"`
-	Name      string      `db:"name"`
-	Category  string      `db:"category"`
-	Variants  []dbvariant // Not stored directly in products table
-	CreatedAt db.NullTime `db:"created_at"`
+func NewRepository(db *sql.DB) Repository {
+	return Repository{DB: db, q: dbgen.New(db)}
 }
 
-func (dp *dbproduct) toDomain() product.Product {
-	return product.Product{
-		ID:        dp.ID,
-		Name:      dp.Name,
-		Category:  product.Category(dp.Category),
-		CreatedAt: dp.CreatedAt.Time,
+type jsonVariant struct {
+	ID         int         `json:"id"`
+	Name       string      `json:"name"`
+	PriceCents int         `json:"price_cents"`
+	Status     string      `json:"status"`
+	CreatedAt  db.NullTime `json:"created_at"`
+}
+
+func (jv *jsonVariant) toDomain() product.Variant {
+	return product.Variant{
+		ID:         jv.ID,
+		Name:       jv.Name,
+		PriceCents: jv.PriceCents,
+		Status:     product.Status(jv.Status),
+		CreatedAt:  jv.CreatedAt.Time,
 	}
 }
 
-type dbvariant struct {
-	ID         int         `db:"id" json:"id"`
-	Name       string      `db:"name" json:"name"`
-	PriceCents int         `db:"price_cents" json:"price_cents"`
-	Status     string      `db:"status" json:"status"`
-	CreatedAt  db.NullTime `db:"created_at" json:"created_at"`
+func parseVariantsJSON(data json.RawMessage) ([]product.Variant, error) {
+	var variants []jsonVariant
+	if err := json.Unmarshal(data, &variants); err != nil {
+		return nil, err
+	}
+
+	result := make([]product.Variant, 0, len(variants))
+	for _, v := range variants {
+		result = append(result, v.toDomain())
+	}
+
+	return result, nil
 }
 
-func (dv *dbvariant) toDomain() product.Variant {
+func variantRowToDomain(row dbgen.GetVariantRow) product.Variant {
 	return product.Variant{
-		ID:         dv.ID,
-		Name:       dv.Name,
-		PriceCents: dv.PriceCents,
-		Status:     product.Status(dv.Status),
-		CreatedAt:  dv.CreatedAt.Time,
+		ID:         row.ID,
+		Name:       row.Name,
+		PriceCents: row.PriceCents,
+		Status:     product.Status(row.Status),
+		CreatedAt:  row.CreatedAt,
 	}
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func NewCommandHandler(db *sql.DB, jwtSecret string) CommandHandler {
-	repo := user_repo.Repository{DB: db}
+	repo := user_repo.NewRepository(db)
 	command := application.Command{UserRepo: repo, JWTSecret: jwtSecret}
 	return CommandHandler{Command: command}
 }

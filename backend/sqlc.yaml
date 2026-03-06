@@ -1,0 +1,25 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "sqlc/queries"
+    schema: "../database/migrations"
+    gen:
+      go:
+        package: "dbgen"
+        out: "sqlc/dbgen"
+        sql_package: "database/sql"
+        emit_json_tags: false
+        emit_result_struct_pointers: false
+        emit_params_struct_pointers: false
+        emit_empty_slices: true
+        overrides:
+          - db_type: "pg_catalog.int4"
+            go_type: "int"
+          - db_type: "pg_catalog.int8"
+            go_type: "int64"
+          - db_type: "pg_catalog.timestamptz"
+            go_type: "time.Time"
+          - db_type: "json"
+            go_type: "encoding/json.RawMessage"
+          - db_type: "jsonb"
+            go_type: "encoding/json.RawMessage"

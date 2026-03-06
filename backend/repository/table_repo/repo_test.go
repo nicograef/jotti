@@ -20,7 +20,7 @@ func setup(t *testing.T) (Repository, func(t *testing.T)) {
 		t.Fatalf("Failed to clean tables table: %v", err)
 	}
 
-	return Repository{DB: db}, func(t *testing.T) {
+	return NewRepository(db), func(t *testing.T) {
 		_, err = db.Exec("DELETE FROM tables")
 		if err != nil {
 			t.Fatalf("Failed to clean tables table: %v", err)

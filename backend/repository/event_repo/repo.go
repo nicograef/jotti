@@ -6,40 +6,27 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
 type Repository struct {
 	DB *sql.DB
+	q  *dbgen.Queries
 }
 
-// scanEvents reads all rows from a query result and returns a slice of events.
-func scanEvents(rows *sql.Rows) ([]event.Event, error) {
-	events := []event.Event{}
-	for rows.Next() {
-		var e event.Event
-		if err := rows.Scan(&e.ID, &e.UserID, &e.Type, &e.Subject, &e.Data, &e.Time); err != nil {
-			return nil, db.Error(err)
-		}
-		events = append(events, e)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, db.Error(err)
-	}
-	return events, nil
+func NewRepository(db *sql.DB) Repository {
+	return Repository{DB: db, q: dbgen.New(db)}
 }
 
 // WriteEvent stores a new event in the database.
 func (r Repository) WriteEvent(ctx context.Context, e event.Event) (int, error) {
-	var id int
-	err := r.DB.QueryRowContext(ctx,
-		`INSERT INTO events (user_id, type, subject, data, timestamp)
-		 VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-		e.UserID,
-		e.Type,
-		e.Subject,
-		e.Data,
-		e.Time,
-	).Scan(&id)
+	id, err := r.q.WriteEvent(ctx, dbgen.WriteEventParams{
+		UserID:    e.UserID,
+		Type:      e.Type,
+		Subject:   e.Subject,
+		Data:      e.Data,
+		Timestamp: e.Time,
+	})
 	if err != nil {
 		return 0, db.Error(err)
 	}
@@ -48,59 +35,77 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event) (int, error) 
 }
 
 func (r Repository) ReadEvent(ctx context.Context, eventID int) (event.Event, error) {
-	row := r.DB.QueryRowContext(ctx,
-		`SELECT id, user_id, type, subject, data, timestamp FROM events WHERE id = $1`,
-		eventID,
-	)
-
-	var e event.Event
-	if err := row.Scan(&e.ID, &e.UserID, &e.Type, &e.Subject, &e.Data, &e.Time); err != nil {
-		return e, db.Error(err)
+	row, err := r.q.ReadEvent(ctx, eventID)
+	if err != nil {
+		return event.Event{}, db.Error(err)
 	}
 
-	return e, nil
+	return event.Event{
+		ID:      row.ID,
+		UserID:  row.UserID,
+		Type:    row.Type,
+		Subject: row.Subject,
+		Data:    row.Data,
+		Time:    row.Timestamp,
+	}, nil
 }
 
 // ReadEventsBySubject retrieves all events of the given subject.
 // Events are ordered by ID ascending (first element in slice is first event).
 func (r Repository) ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error) {
-	rows, err := r.DB.QueryContext(ctx,
-		`SELECT id, user_id, type, subject, data, timestamp 
-		 FROM events WHERE subject = $1 ORDER BY id ASC`,
-		subject,
-	)
+	rows, err := r.q.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		return nil, db.Error(err)
 	}
-	defer db.Close(rows, "events")
 
-	return scanEvents(rows)
+	events := make([]event.Event, 0, len(rows))
+	for _, row := range rows {
+		events = append(events, event.Event{
+			ID:      row.ID,
+			UserID:  row.UserID,
+			Type:    row.Type,
+			Subject: row.Subject,
+			Data:    row.Data,
+			Time:    row.Timestamp,
+		})
+	}
+
+	return events, nil
 }
 
 // ReadEventsSinceID retrieves events for a subject starting from a given ID (inclusive).
 // This is useful for reading events since the last snapshot.
 func (r Repository) ReadEventsSinceID(ctx context.Context, subject string, fromID int) ([]event.Event, error) {
-	rows, err := r.DB.QueryContext(ctx,
-		`SELECT id, user_id, type, subject, data, timestamp 
-		 FROM events WHERE subject = $1 AND id >= $2 ORDER BY id ASC`,
-		subject, fromID,
-	)
+	rows, err := r.q.ReadEventsSinceID(ctx, dbgen.ReadEventsSinceIDParams{
+		Subject: subject,
+		ID:      fromID,
+	})
 	if err != nil {
 		return nil, db.Error(err)
 	}
-	defer db.Close(rows, "events")
 
-	return scanEvents(rows)
+	events := make([]event.Event, 0, len(rows))
+	for _, row := range rows {
+		events = append(events, event.Event{
+			ID:      row.ID,
+			UserID:  row.UserID,
+			Type:    row.Type,
+			Subject: row.Subject,
+			Data:    row.Data,
+			Time:    row.Timestamp,
+		})
+	}
+
+	return events, nil
 }
 
 // GetLastSnapshotID returns the ID of the most recent snapshot for a subject.
 // Returns 0 if no snapshot exists.
 func (r Repository) GetLastSnapshotID(ctx context.Context, subject string, snapshotEventType string) (int, error) {
-	var id int
-	err := r.DB.QueryRowContext(ctx,
-		`SELECT COALESCE(MAX(id), 0) FROM events WHERE subject = $1 AND type = $2`,
-		subject, snapshotEventType,
-	).Scan(&id)
+	id, err := r.q.GetLastSnapshotID(ctx, dbgen.GetLastSnapshotIDParams{
+		Subject: subject,
+		Type:    snapshotEventType,
+	})
 	if err != nil {
 		return 0, db.Error(err)
 	}
@@ -112,23 +117,25 @@ func (r Repository) GetLastSnapshotID(ctx context.Context, subject string, snaps
 // all events starting from that snapshot (inclusive). If no snapshot exists,
 // all events for the subject are returned.
 func (r Repository) ReadEventsWithSnapshot(ctx context.Context, subject string, snapshotEventType string) ([]event.Event, error) {
-	query := `
-		WITH last_snapshot AS (
-			SELECT COALESCE(MAX(id), 0) AS id 
-			FROM events 
-			WHERE subject = $1 AND type = $2
-		)
-		SELECT e.id, e.user_id, e.type, e.subject, e.data, e.timestamp
-		FROM events e, last_snapshot ls
-		WHERE e.subject = $1 AND e.id >= ls.id
-		ORDER BY e.id ASC
-	`
-
-	rows, err := r.DB.QueryContext(ctx, query, subject, snapshotEventType)
+	rows, err := r.q.ReadEventsWithSnapshot(ctx, dbgen.ReadEventsWithSnapshotParams{
+		Subject: subject,
+		Type:    snapshotEventType,
+	})
 	if err != nil {
 		return nil, db.Error(err)
 	}
-	defer db.Close(rows, "events with snapshot")
 
-	return scanEvents(rows)
+	events := make([]event.Event, 0, len(rows))
+	for _, row := range rows {
+		events = append(events, event.Event{
+			ID:      row.ID,
+			UserID:  row.UserID,
+			Type:    row.Type,
+			Subject: row.Subject,
+			Data:    row.Data,
+			Time:    row.Timestamp,
+		})
+	}
+
+	return events, nil
 }
