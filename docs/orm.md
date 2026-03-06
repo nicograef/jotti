@@ -35,9 +35,27 @@ This document describes how jotti implements database access and persistence. jo
   - [Go and ORMs — A Unique Relationship](#go-and-orms--a-unique-relationship)
   - [GORM Overview](#gorm-overview)
   - [When ORMs ARE the Right Choice](#when-orms-are-the-right-choice)
-  - [Dimension-by-Dimension Analysis](#dimension-by-dimension-analysis-gorm-vs-jotti)
-  - [Summary](#summary)
-  - [Recommendation](#recommendation)
+  - [Dimension-by-Dimension Analysis (GORM)](#dimension-by-dimension-analysis-gorm-vs-jotti)
+  - [Summary (GORM)](#summary)
+  - [Recommendation (GORM)](#recommendation)
+- [sqlc Evaluation: Is sqlc a Good Fit for jotti?](#sqlc-evaluation-is-sqlc-a-good-fit-for-jotti)
+  - [What Is sqlc?](#what-is-sqlc)
+  - [How sqlc Works](#how-sqlc-works)
+  - [sqlc Overview](#sqlc-overview)
+  - [Dimension-by-Dimension Analysis (sqlc)](#dimension-by-dimension-analysis-sqlc-vs-jotti)
+  - [Summary (sqlc)](#summary-sqlc)
+  - [Recommendation (sqlc)](#recommendation-sqlc)
+- [sqlx Evaluation: Is sqlx a Good Fit for jotti?](#sqlx-evaluation-is-sqlx-a-good-fit-for-jotti)
+  - [What Is sqlx?](#what-is-sqlx)
+  - [sqlx Overview](#sqlx-overview)
+  - [Dimension-by-Dimension Analysis (sqlx)](#dimension-by-dimension-analysis-sqlx-vs-jotti)
+  - [Summary (sqlx)](#summary-sqlx)
+  - [Recommendation (sqlx)](#recommendation-sqlx)
+- [Comprehensive Comparison: All Four Approaches](#comprehensive-comparison-all-four-approaches)
+  - [Approach Profiles](#approach-profiles)
+  - [Feature Matrix](#feature-matrix)
+  - [Fit Analysis for jotti](#fit-analysis-for-jotti)
+  - [Final Recommendation](#final-recommendation)
 
 ---
 
@@ -808,3 +826,547 @@ After studying ORM theory, the object-relational impedance mismatch, GORM's spec
 - **[pgx` built-in features](https://github.com/jackc/pgx)** — `pgx/v5` already supports `pgx.CollectRows()` and `pgx.RowToStructByName()` for automated struct scanning. jotti could use these directly without any new dependency.
 
 All three options preserve jotti's SQL-first, PostgreSQL-native, dependency-light approach while addressing the only real GORM benefit: reduced CRUD boilerplate.
+
+---
+
+## sqlc Evaluation: Is sqlc a Good Fit for jotti?
+
+This section evaluates whether adopting [sqlc](https://github.com/sqlc-dev/sqlc) — a SQL compiler that generates type-safe Go code from SQL queries — would be beneficial for jotti. The evaluation applies the same dimension-by-dimension methodology used for the GORM analysis above.
+
+### What Is sqlc?
+
+sqlc is **not** an ORM. It is a **code generator** that takes a fundamentally different approach to database access: instead of mapping objects to tables at runtime, it **parses your SQL queries at compile time** and generates type-safe Go functions, parameter structs, and result structs from them.
+
+The core philosophy is captured by the [Encore engineering blog](https://encore.dev/blog/go-get-it-001-sqlc): *"sqlc lets you write queries in a plain `.sql` file. Alongside each query you give it a name and specify what it returns: no rows, one row, or many rows. From this sqlc generates a function for each query."*
+
+This inverts the traditional ORM approach:
+
+| Aspect | ORM (e.g., GORM) | sqlc |
+| --- | --- | --- |
+| **Input** | Go structs with tags | SQL queries + schema |
+| **Output** | SQL queries (at runtime, via reflection) | Go code (at compile time, via static analysis) |
+| **Source of truth** | Go struct definitions | SQL schema + migration files |
+| **Query language** | Chainable Go API (`.Where()`, `.Find()`) | Standard SQL |
+| **Type safety** | Runtime (reflection-based scanning) | Compile time (generated code) |
+| **When errors are caught** | Runtime (often in production) | Build time (`sqlc generate`) |
+
+As noted in the sqlc documentation: *"sqlc generates type-safe code from SQL. You write queries in SQL. You run sqlc to generate code with type-safe interfaces to those queries. You write application code that calls the generated code."*
+
+### How sqlc Works
+
+sqlc's workflow is a three-step process:
+
+1. **Define schema** — sqlc reads your migration files (e.g., `database/migrations/*.up.sql`) to build an internal model of your database schema. It understands `CREATE TABLE`, `ALTER TABLE`, custom types, indexes, and constraints.
+
+2. **Write annotated SQL queries** — You write standard SQL in `.sql` files with a special comment annotation:
+   ```sql
+   -- name: GetUserByUsername :one
+   SELECT id, name, username, role, status, created_at
+   FROM users
+   WHERE username = $1 AND status != 'deleted';
+
+   -- name: ListActiveUsers :many
+   SELECT id, name, username, role, status, created_at
+   FROM users
+   WHERE status != 'deleted'
+   ORDER BY name;
+
+   -- name: CreateUser :one
+   INSERT INTO users (name, username, password_hash, onetime_password_hash, role, status)
+   VALUES ($1, $2, $3, $4, $5, $6)
+   RETURNING id;
+   ```
+
+3. **Generate Go code** — Running `sqlc generate` produces:
+   - A `models.go` file with Go structs matching your database tables.
+   - A `query.sql.go` file with type-safe functions for each annotated query.
+   - A `db.go` file with a `Queries` struct and a `DBTX` interface.
+
+The generated code looks exactly like the hand-written boilerplate you would write yourself — `QueryRowContext`, `row.Scan()`, explicit column lists — but it is **correct by construction** because sqlc validates the SQL against the actual schema.
+
+**The key insight**, as the Encore blog emphasizes: *"What makes sqlc special is that it understands your database structure, and uses that understanding to validate the SQL you write. So while it may look like regular, stringly-typed SQL, it's actually being validated against the actual database table. If you have a typo in a column name, sqlc will give you a compile-time error."*
+
+sqlc achieves this **without connecting to your database** — it parses your migration files and uses PostgreSQL's own parsing library under the hood.
+
+### sqlc Overview
+
+| Feature | Description |
+| --- | --- |
+| Code generation | Generates Go structs, query functions, and `DBTX` interface from SQL |
+| Schema understanding | Parses migration files to build schema model; supports `CREATE TABLE`, `ALTER TABLE`, custom types |
+| Query validation | Validates SQL queries against schema at compile time; catches typos, type mismatches, missing columns |
+| Return types | `:one` (single row), `:many` (slice), `:exec` (no rows), `:execresult` (`sql.Result`), `:execrows` (row count) |
+| Parameter binding | Positional (`$1`, `$2`) or named (`sqlc.arg('name')`) parameters become typed function arguments |
+| PostgreSQL support | Full PostgreSQL dialect support via `pg_query_go` (PostgreSQL's actual parser); CTEs, `json_agg`, custom enums, JSONB |
+| Driver compatibility | Supports `database/sql`, `pgx/v5`, and `pgx/v4` as output targets via `sql_package` config |
+| Configuration | `sqlc.yaml` config file defining engine, query/schema paths, output package, and options |
+| Cloud features | Optional `sqlc cloud` for query verification, analysis, and CI integration |
+| Multi-database | Supports PostgreSQL, MySQL, and SQLite |
+
+**Typical sqlc configuration for jotti:**
+```yaml
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "queries/"
+    schema: "../../database/migrations/"
+    gen:
+      go:
+        package: "sqlcgen"
+        out: "sqlcgen"
+        sql_package: "pgx/v5"
+```
+
+**sqlc's strengths:**
+- **SQL-first** — You write real SQL, not a DSL or chainable API. The database speaks SQL, and so do you.
+- **Compile-time safety** — Column name typos, type mismatches, and schema drift are caught before the code runs.
+- **Zero runtime overhead** — Generated code is identical to hand-written `database/sql` / `pgx` code. No reflection, no proxy objects.
+- **PostgreSQL-native** — Uses PostgreSQL's own parser. Full support for CTEs, `json_agg()`, custom enums, window functions, and other advanced features.
+- **No new query language** — Unlike ORMs, there is nothing new to learn beyond SQL and a few annotation comments.
+
+**sqlc's known limitations:**
+- **Static analysis is imperfect.** Complex expressions sometimes require manual type casts (`$1::text`) to help sqlc infer the correct type. As the Encore blog notes: *"its static analysis isn't perfect. Sometimes you have to manually specify the type of an expression or column."*
+- **SQL lives in separate files.** Queries are decoupled from the Go code that calls them. For simple queries this improves clarity; for complex queries, the Encore blog warns: *"you have to be careful with naming your queries to ensure the semantics of your query are fully described by the name."*
+- **Build step required.** Every schema or query change requires running `sqlc generate`. This must be integrated into the development workflow and CI pipeline.
+- **Generated code is not idiomatic for all patterns.** The generated `Queries` struct and `DBTX` interface may not align perfectly with existing repository interfaces; an adapter layer may still be needed.
+- **Custom types require configuration.** PostgreSQL custom enums and JSONB types need explicit `overrides` in `sqlc.yaml` to map to the correct Go types.
+
+### Dimension-by-Dimension Analysis: sqlc vs. jotti
+
+#### 1. CRUD Repositories (user_repo, table_repo)
+
+**Current state:** `user_repo` (84 + 35 = 119 lines) and `table_repo` (86 + 28 = 114 lines) implement simple CRUD with hand-written SQL, manual `row.Scan()` calls, and `db*` adapter structs with `toDomain()` converters.
+
+**What sqlc would change:**
+- The SQL queries already written in `repo.go` files would move to `.sql` files with annotations.
+- sqlc would generate the `row.Scan()` boilerplate, parameter binding, and result structs automatically.
+- The `db*` adapter structs (`dbuser`, `dbtable`) and their `toDomain()` methods could potentially be replaced by sqlc-generated model structs — or retained if domain separation is preferred.
+
+**Verdict:** sqlc provides a **clear benefit** here. It eliminates the manual scanning boilerplate while keeping the exact same SQL. The queries remain under developer control, and compile-time validation catches schema drift. Unlike GORM, sqlc does not impose its own lifecycle model — it just generates the boilerplate you would write yourself.
+
+**Friction point:** jotti's `db*` → `toDomain()` pattern (Data Mapper) would need adaptation. Options: (a) use sqlc-generated models directly as domain types (simpler but couples generation to domain), or (b) keep a thin mapping layer from sqlc models to domain models (preserves separation but retains some adapter code). Option (b) is more consistent with jotti's architecture.
+
+#### 2. Product Repository (product_repo) — JSON Aggregation
+
+**Current state:** `product_repo` (286 lines total) uses `json_agg()` + `json_build_object()` + CTEs for single-query product-with-variants fetching.
+
+**What sqlc would change:**
+- sqlc **fully supports** CTEs, `json_agg()`, `json_build_object()`, and other PostgreSQL-specific functions because it uses PostgreSQL's own parser.
+- The complex aggregation query could be placed in a `.sql` file and sqlc would generate the appropriate Go function and result struct.
+- However, the return type of `json_agg()` is `json`/`jsonb`, which sqlc would map to `json.RawMessage` or a configured custom type. The developer would still need to unmarshal the JSON into domain types.
+
+**Verdict:** sqlc handles this **significantly better than GORM**. The CTE + `json_agg()` query works as-is in sqlc because sqlc understands the full PostgreSQL dialect. The main friction is configuring the return type for the JSON aggregation column — but this is a one-time configuration in `sqlc.yaml`, not a fundamental architectural conflict.
+
+#### 3. Event Repository (event_repo) — Event Sourcing
+
+**Current state:** `event_repo` (134 lines) implements append-only writes (`WriteEvent`) and CTE-based snapshot reads (`ReadEventsWithSnapshot`).
+
+**What sqlc would change:**
+- `WriteEvent` is a simple `INSERT ... RETURNING id` — sqlc would generate this trivially.
+- `ReadEventsWithSnapshot` uses a CTE to find the latest snapshot and read events forward — sqlc supports CTEs natively.
+- sqlc generates `exec`/`one`/`many` functions without any assumption about mutability. There are no lifecycle hooks, no update/delete methods unless you write `UPDATE`/`DELETE` SQL. An append-only store is perfectly natural: you simply don't write UPDATE or DELETE queries.
+
+**Verdict:** sqlc is an **excellent fit** for event sourcing. Unlike GORM (which assumes mutable records), sqlc generates exactly the functions you define — nothing more. If you only write `INSERT` and `SELECT` queries, that is all that gets generated. The append-only pattern is fully supported because sqlc imposes no lifecycle model.
+
+#### 4. Domain Model Separation (Data Mapper vs. Active Record)
+
+**Current state:** jotti uses the Data Mapper pattern with private `db*` structs and `toDomain()` converters.
+
+**What sqlc would change:**
+- sqlc generates its own model structs in a `models.go` file. These are plain Go structs with no tags, no methods, no framework coupling — just fields matching the database columns.
+- These generated models are **not** domain models — they are database-level types. To maintain jotti's Data Mapper separation, a mapping layer from sqlc models to domain models would still be needed.
+- However, this mapping layer would be significantly simpler: sqlc models are already well-typed Go structs with correct field types, so the mapping is straightforward field-to-field assignment.
+
+**Verdict:** sqlc is **compatible with the Data Mapper pattern**. Unlike GORM (which pushes Active Record), sqlc generates pure data structs that live in a separate package. The `domain/` layer remains untouched. The `repository/` layer becomes a thin wrapper that calls sqlc-generated functions and maps results to domain types.
+
+#### 5. PostgreSQL-Specific Features
+
+**Current state:** jotti uses custom enums, JSONB, triggers, `IDENTITY` columns, `TIMESTAMPTZ`, and privilege restrictions.
+
+**What sqlc would change:**
+- **Custom enums:** sqlc parses `CREATE TYPE ... AS ENUM` from migration files and can generate Go string constants or custom types. This requires `overrides` in `sqlc.yaml` to map to jotti's existing domain types (e.g., `user.Role`).
+- **JSONB columns:** Supported natively. sqlc maps `jsonb` to `json.RawMessage` by default, which matches jotti's current `event.Data` field.
+- **CTEs:** Fully supported — sqlc uses PostgreSQL's own parser.
+- **Triggers:** Irrelevant to sqlc — triggers are database-level enforcement that does not affect query generation.
+- **`IDENTITY` and `TIMESTAMPTZ`:** Supported natively.
+
+**Verdict:** sqlc has **excellent PostgreSQL support**. Because it uses PostgreSQL's parser (`pg_query_go`), it understands virtually all PostgreSQL-specific features. This is a fundamental advantage over GORM, which provides a generic ORM layer that often cannot express database-specific functionality.
+
+#### 6. Error Handling
+
+**Current state:** The `db` package maps PostgreSQL error codes to domain sentinel errors.
+
+**What sqlc would change:**
+- sqlc generates functions that return standard Go errors. The underlying errors are PostgreSQL driver errors (from `pgx`), which are the same errors jotti already handles.
+- The `db.Error()` mapping layer would remain unchanged — it operates on the driver-level errors, not on the query execution layer.
+
+**Verdict:** **Fully compatible.** sqlc does not introduce its own error abstraction. The existing error mapping works as-is.
+
+#### 7. Testing & Mocking
+
+**Current state:** Each repository has a `mock.go` implementing the repository interface. Unit tests use mocks; integration tests use a real database.
+
+**What sqlc would change:**
+- sqlc generates a `Queries` struct with a `DBTX` interface. This interface can be mocked using standard Go techniques.
+- However, jotti's repository interfaces are domain-specific (e.g., `UserRepository`, `TableRepository`), not generated. To maintain these interfaces, the repository layer would wrap sqlc's `Queries` struct, and mocking would continue at the repository interface level.
+- Alternatively, sqlc can be configured to emit interfaces for the generated queries, enabling direct mocking of the generated code.
+
+**Verdict:** **Compatible.** The existing mocking strategy is preserved. sqlc does not complicate mocking — it uses standard Go interfaces, not reflection or proxy objects.
+
+#### 8. Codebase Size & Complexity
+
+| Metric | Current | With sqlc (estimated) |
+| --- | --- | --- |
+| Repository code (hand-written) | 653 lines (8 files) | ~350 lines (mapping layer only, scanning eliminated) |
+| SQL query files | 0 (SQL inline in Go) | ~150 lines (`.sql` files with annotations) |
+| Generated code | 0 | ~400 lines (auto-generated, not maintained) |
+| Adapter structs | 3 `types.go` files | 0–1 (sqlc generates models; thin mapping may remain) |
+| SQL statements | ~29 explicit queries | ~29 (same queries, now in `.sql` files) |
+| Direct dependencies | 7 | 7 (sqlc is a build tool, not a runtime dependency) |
+| Build tools | `go build` | `go build` + `sqlc generate` |
+| Learning curve | SQL + pgx | SQL + pgx + sqlc annotation syntax + sqlc.yaml config |
+
+**Key insight:** sqlc is a **build-time tool**, not a runtime dependency. It does not appear in `go.mod`. The generated code uses `database/sql` or `pgx/v5` directly — the same interfaces jotti already uses. This means zero runtime overhead and no new runtime dependencies.
+
+#### 9. Dependency Philosophy
+
+sqlc aligns well with jotti's dependency-light philosophy:
+
+- **No runtime dependency.** sqlc is a CLI tool run during development/CI. The generated code depends only on `database/sql` or `pgx/v5` — libraries jotti already uses.
+- **No reflection.** Generated code is plain Go with explicit `Scan()` calls — no runtime struct inspection.
+- **No framework lock-in.** If sqlc is abandoned, the generated code continues to work. Queries can be manually maintained as regular Go code (they are already hand-written-style).
+
+The only "cost" is adding `sqlc generate` to the development workflow and CI pipeline, and maintaining a `sqlc.yaml` configuration file.
+
+### Summary (sqlc)
+
+| Criterion | sqlc Benefit | jotti Fit |
+| --- | --- | --- |
+| Simple CRUD boilerplate reduction | ✅ Eliminates `Scan()` boilerplate | ✅ Saves ~300 lines of hand-written scanning code |
+| JSON aggregation queries | ✅ Full PostgreSQL parser support | ✅ CTE + `json_agg()` works natively |
+| Event sourcing (append-only) | ✅ No lifecycle assumptions | ✅ Generate only the queries you write |
+| Domain model separation | ✅ Generated models are plain structs | ✅ Compatible with Data Mapper pattern |
+| PostgreSQL-specific features | ✅ Uses PostgreSQL's own parser | ✅ Enums, JSONB, CTEs, triggers all supported |
+| Soft-delete (three-state enum) | ✅ SQL-level filtering unchanged | ✅ Same `WHERE status != 'deleted'` queries |
+| Testing & mocking | ✅ Standard Go interfaces | ✅ Existing mocking strategy preserved |
+| Compile-time validation | ✅ Catches schema drift, typos | ✅ Prevents runtime query errors |
+| Developer onboarding | ⚠️ Must learn sqlc annotations + config | ⚠️ Small learning curve, but SQL knowledge transfers |
+| Database portability | ⚠️ Supports PG/MySQL/SQLite separately | ❌ Not a goal for jotti |
+| Dependency footprint | ✅ Zero runtime dependency | ✅ Build tool only, no `go.mod` changes |
+| Go idiom alignment | ✅ Generates idiomatic Go code | ✅ Matches Go's explicit, no-magic philosophy |
+| Build workflow | ⚠️ Requires `sqlc generate` step | ⚠️ Must be integrated into CI/CD |
+
+### Recommendation (sqlc)
+
+**sqlc is a strong candidate for jotti.**
+
+sqlc aligns remarkably well with jotti's philosophy: SQL-first, PostgreSQL-native, explicit, and dependency-light. It addresses the primary weakness of the current approach — manual `Scan()` boilerplate and the risk of runtime errors from schema drift — without introducing the architectural conflicts that disqualify GORM.
+
+The main trade-off is adding a code generation step to the development workflow. This is a process change, not an architectural compromise. The generated code is idiomatic Go that uses the same interfaces jotti already relies on.
+
+---
+
+## sqlx Evaluation: Is sqlx a Good Fit for jotti?
+
+This section evaluates whether adopting [sqlx](https://github.com/jmoiron/sqlx) — a set of extensions to Go's `database/sql` standard library — would be beneficial for jotti.
+
+### What Is sqlx?
+
+sqlx is a **lightweight extension library** for Go's `database/sql` package. It is not an ORM, not a query builder, and not a code generator. Instead, it wraps the standard `sql.DB`, `sql.Tx`, and `sql.Rows` types with additional convenience methods — most importantly, **automatic struct scanning**.
+
+As the sqlx README describes: *"sqlx is a library which provides a set of extensions on go's standard `database/sql` library. The sqlx versions of `sql.DB`, `sql.TX`, `sql.Stmt`, et al. all leave the underlying interfaces untouched, so that their interfaces are a superset on the standard ones."*
+
+This makes sqlx the most conservative option in this evaluation — it changes the least about how you interact with your database.
+
+| Aspect | `database/sql` (current) | sqlx |
+| --- | --- | --- |
+| **Query execution** | `QueryRowContext`, `QueryContext`, `ExecContext` | Same, plus `Get`, `Select`, `NamedExec`, `NamedQuery` |
+| **Result scanning** | Manual `row.Scan(&field1, &field2, ...)` | Automatic `StructScan`, `Get`, `Select` via `db:"..."` tags |
+| **Named parameters** | Not supported (positional `$1`, `$2` only) | `NamedExec`, `NamedQuery` with `:field_name` syntax |
+| **Struct mapping** | Manual field-by-field | Automatic via struct tags (`db:"column_name"`) |
+| **Transactions** | `sql.Tx` with manual `Begin`/`Commit`/`Rollback` | `sqlx.Tx` with same methods + struct scanning |
+| **Connection** | `sql.Open()` | `sqlx.Connect()` (also pings) or `sqlx.Open()` |
+
+### sqlx Overview
+
+| Feature | Description |
+| --- | --- |
+| `db.Get(&dest, query, args...)` | Execute query, scan single row into struct |
+| `db.Select(&dest, query, args...)` | Execute query, scan all rows into slice of structs |
+| `StructScan(rows, &dest)` | Scan current row into struct using `db:"..."` tags |
+| `NamedExec(query, struct/map)` | Execute with named parameters (`:name` instead of `$1`) |
+| `NamedQuery(query, struct/map)` | Query with named parameters |
+| `Rebind(query)` | Translate `?` placeholders to driver-specific format (`$1`, `:arg`) |
+| `In(query, args...)` | Expand `IN (?)` clauses with slice arguments |
+| `MapScan(rows, &map)` | Scan row into `map[string]interface{}` |
+| `sqlx.DB`, `sqlx.Tx`, `sqlx.Rows` | Drop-in replacements for `sql.DB`, `sql.Tx`, `sql.Rows` with extra methods |
+
+**Typical sqlx usage (adapted for jotti):**
+
+```go
+type dbuser struct {
+    ID                  int       `db:"id"`
+    Name                string    `db:"name"`
+    Username            string    `db:"username"`
+    PasswordHash        *string   `db:"password_hash"`
+    OnetimePasswordHash *string   `db:"onetime_password_hash"`
+    Role                string    `db:"role"`
+    Status              string    `db:"status"`
+    CreatedAt           time.Time `db:"created_at"`
+}
+
+// Current jotti code (manual scanning):
+func (r *Repository) GetByUsername(ctx context.Context, username string) (user.User, error) {
+    row := r.DB.QueryRowContext(ctx, queryGetByUsername, username)
+    var u dbuser
+    err := row.Scan(&u.ID, &u.Name, &u.Username, &u.PasswordHash,
+        &u.OnetimePasswordHash, &u.Role, &u.Status, &u.CreatedAt)
+    if err != nil {
+        return user.User{}, db.Error(err)
+    }
+    return u.toDomain(), nil
+}
+
+// With sqlx (automatic struct scanning):
+func (r *Repository) GetByUsername(ctx context.Context, username string) (user.User, error) {
+    var u dbuser
+    err := r.DB.GetContext(ctx, &u, queryGetByUsername, username)
+    if err != nil {
+        return user.User{}, db.Error(err)
+    }
+    return u.toDomain(), nil
+}
+```
+
+**sqlx's strengths:**
+- **Minimal learning curve.** If you know `database/sql`, you know sqlx. The API is a superset — nothing is replaced, only extended.
+- **Drop-in compatible.** Existing `*sql.DB` code works unchanged. Migration can be incremental — one function at a time.
+- **Struct scanning.** Eliminates the most tedious part of hand-written database code: manual `row.Scan()` calls with positional field matching.
+- **Named parameters.** Improves readability for INSERT/UPDATE statements with many columns.
+- **No magic.** No reflection-based query building, no implicit behaviors, no lifecycle hooks. You still write SQL; sqlx just reduces the scanning boilerplate.
+- **Battle-tested.** 16k+ GitHub stars, widely used in production, stable API.
+
+**sqlx's known limitations:**
+- **Runtime reflection for struct scanning.** Unlike sqlc (compile-time generation), sqlx uses runtime reflection to map column names to struct fields. Errors (e.g., missing `db:"..."` tag, column name mismatch) are caught at runtime, not compile time.
+- **No query validation.** sqlx does not understand your schema. Typos in SQL queries are not caught until execution.
+- **No code generation.** You still write the `db*` adapter structs, the `toDomain()` converters, and the SQL queries by hand. sqlx only automates the scanning step.
+- **`database/sql`-only.** sqlx wraps `database/sql`, not `pgx/v5` native. jotti already uses `pgx/v5` via the `database/sql` compatibility layer (`pgx/v5/stdlib`), so this is compatible — but it means sqlx cannot take advantage of pgx-native features (e.g., `pgx.CollectRows()`).
+- **Maintenance status.** sqlx has had less active development in recent years. The library is stable but not rapidly evolving.
+
+### Dimension-by-Dimension Analysis: sqlx vs. jotti
+
+#### 1. CRUD Repositories (user_repo, table_repo)
+
+**Current state:** Each repository manually scans columns positionally with `row.Scan(&field1, &field2, ...)`.
+
+**What sqlx would change:**
+- Replace `row.Scan(&u.ID, &u.Name, &u.Username, ...)` with `db.GetContext(ctx, &u, query, args...)`.
+- Replace `rows.Scan(...)` loops with `db.SelectContext(ctx, &dest, query, args...)`.
+- The `db*` adapter structs would gain `db:"column_name"` tags (most already have the correct field names, so tags may be minimal).
+- The `toDomain()` pattern and SQL queries remain unchanged.
+
+**Verdict:** sqlx provides a **moderate benefit** here. It eliminates ~3–5 lines per query method (the `Scan()` call with all its positional arguments) and reduces the risk of column-order bugs. The benefit is real but smaller than sqlc's, because the adapter structs and SQL still need manual maintenance.
+
+#### 2. Product Repository (product_repo) — JSON Aggregation
+
+**Current state:** Uses `json_agg()` + CTE, scanning JSON into `json.RawMessage` and then unmarshaling.
+
+**What sqlx would change:**
+- The complex query remains unchanged — sqlx does not modify or interpret queries.
+- For the JSON aggregation column, sqlx's `StructScan` would need a field with type `json.RawMessage` and a matching `db:"..."` tag. The subsequent JSON unmarshaling logic remains the same.
+- For the simpler variant queries (`CreateVariant`, `UpdateVariant`), sqlx would reduce scanning boilerplate.
+
+**Verdict:** **Marginal improvement.** The complex JSON aggregation query's main boilerplate is in the JSON unmarshaling, not the `Scan()` call. sqlx helps with the simpler queries but does not address the core complexity.
+
+#### 3. Event Repository (event_repo) — Event Sourcing
+
+**Current state:** Simple INSERT and CTE-based SELECT with `json.RawMessage` for event data.
+
+**What sqlx would change:**
+- `WriteEvent` (INSERT ... RETURNING id) could use `db.GetContext()` for slightly cleaner scanning.
+- `ReadEventsWithSnapshot` scans multiple rows — sqlx's `SelectContext()` would replace the manual scan loop.
+- sqlx has no lifecycle assumptions — it works exactly the same for append-only stores as for mutable tables.
+
+**Verdict:** **Good fit.** sqlx simplifies the row-scanning loop in `ReadEventsWithSnapshot` and imposes no architectural constraints on event sourcing. The improvement is modest because `event_repo` is already relatively simple.
+
+#### 4. Domain Model Separation (Data Mapper vs. Active Record)
+
+**Current state:** Private `db*` structs with `toDomain()` converters.
+
+**What sqlx would change:**
+- The `db*` structs remain, but with added `db:"..."` tags for automatic scanning.
+- The `toDomain()` pattern is completely unaffected.
+- sqlx does not generate models, does not push Active Record, and does not require any structural changes to the domain layer.
+
+**Verdict:** **Fully compatible.** sqlx is the most architecturally conservative option. It enhances the existing `db*` structs with tags and provides scanning shortcuts — nothing more. The Data Mapper pattern is preserved exactly as-is.
+
+#### 5. PostgreSQL-Specific Features
+
+**What sqlx would change:** Nothing. sqlx passes SQL queries through to the driver without interpretation. All PostgreSQL features — custom enums, JSONB, CTEs, triggers, `IDENTITY`, `TIMESTAMPTZ` — continue to work exactly as they do now.
+
+**Verdict:** **Fully compatible.** sqlx is query-agnostic; it does not parse, validate, or transform your SQL.
+
+#### 6. Error Handling
+
+**What sqlx would change:** sqlx returns standard `database/sql` errors. The existing `db.Error()` mapping works unchanged.
+
+**Verdict:** **Fully compatible.** No changes needed.
+
+#### 7. Testing & Mocking
+
+**What sqlx would change:**
+- Repository structs would hold `*sqlx.DB` instead of `*sql.DB`. Since `sqlx.DB` embeds `sql.DB`, this is backward-compatible.
+- The existing interface-based mocking strategy is unaffected — mocks implement the repository interface, not the database type.
+
+**Verdict:** **Fully compatible.** The mocking approach remains unchanged.
+
+#### 8. Codebase Size & Complexity
+
+| Metric | Current | With sqlx (estimated) |
+| --- | --- | --- |
+| Repository code | 653 lines (8 files) | ~550 lines (scanning reduced, SQL + adapters unchanged) |
+| Adapter structs | 3 `types.go` files | 3 `types.go` files (with added `db:"..."` tags) |
+| SQL statements | ~29 explicit queries | ~29 (unchanged) |
+| Direct dependencies | 7 | 8 (+`sqlx`) |
+| Learning curve | SQL + pgx | SQL + pgx + sqlx API (minimal) |
+
+The net reduction is ~100 lines — roughly the scanning boilerplate. The SQL queries, adapter structs, `toDomain()` converters, and error handling all remain.
+
+#### 9. Dependency Philosophy
+
+sqlx is a lightweight library (~4k lines of code) with no transitive dependencies beyond the standard library. It is a smaller dependency than GORM by an order of magnitude and well-aligned with jotti's dependency-light philosophy.
+
+However, adding any dependency has a cost, and the benefit of sqlx (~100 lines saved) is the smallest of the alternatives evaluated. Additionally, pgx already offers `pgx.CollectRows()` and `pgx.RowToStructByName()` for similar struct scanning — though jotti currently uses pgx through the `database/sql` compatibility layer rather than natively.
+
+### Summary (sqlx)
+
+| Criterion | sqlx Benefit | jotti Fit |
+| --- | --- | --- |
+| Simple CRUD boilerplate reduction | ✅ Moderate (`Scan()` eliminated) | ⚠️ Saves ~100 lines; adapter structs remain |
+| JSON aggregation queries | ⚠️ Marginal (scanning only) | ⚠️ Core complexity is in JSON unmarshaling |
+| Event sourcing (append-only) | ✅ No lifecycle assumptions | ✅ Works naturally |
+| Domain model separation | ✅ Fully compatible | ✅ Data Mapper pattern preserved exactly |
+| PostgreSQL-specific features | ✅ Query-agnostic | ✅ All features work unchanged |
+| Soft-delete (three-state enum) | ✅ SQL-level filtering unchanged | ✅ Same queries |
+| Testing & mocking | ✅ Backward-compatible | ✅ Existing strategy preserved |
+| Compile-time validation | ❌ No schema awareness | ❌ Errors caught at runtime only |
+| Developer onboarding | ✅ Minimal learning curve | ✅ `database/sql` superset |
+| Database portability | ✅ Multi-driver via `database/sql` | ❌ Not a goal for jotti |
+| Dependency footprint | ⚠️ Small dependency | ⚠️ Adds 1 dependency for ~100 lines saved |
+| Go idiom alignment | ✅ Idiomatic, no magic | ✅ Matches Go philosophy |
+| Build workflow | ✅ No extra build step | ✅ No workflow changes needed |
+
+### Recommendation (sqlx)
+
+**sqlx is a valid but modest improvement for jotti.**
+
+sqlx is the lowest-risk, lowest-reward option. It reduces scanning boilerplate without changing anything about jotti's architecture, SQL, error handling, or testing strategy. The migration would be incremental and non-disruptive — you could adopt it one repository at a time.
+
+However, the benefit is small (~100 lines saved), it does not provide compile-time safety, and it adds a runtime dependency. Given that pgx itself already offers struct scanning via `pgx.CollectRows()` and `pgx.RowToStructByName()`, jotti could achieve similar convenience without adding any new dependency by switching from the `database/sql` compatibility layer to native `pgx/v5`.
+
+---
+
+## Comprehensive Comparison: All Four Approaches
+
+This section compares all evaluated approaches side by side: the current status quo (bare `database/sql` + `pgx/v5`), GORM, sqlc, and sqlx.
+
+### Approach Profiles
+
+**1. Status Quo — Bare `database/sql` + `pgx/v5`**
+- Hand-written SQL queries, manual `row.Scan()` calls, explicit adapter structs with `toDomain()` converters.
+- Full control, zero abstraction overhead, zero additional dependencies.
+- Trade-off: manual boilerplate and no compile-time schema validation.
+
+**2. GORM — Full ORM**
+- Object-Relational Mapper that generates SQL from Go struct definitions at runtime.
+- Provides CRUD automation, association management, hooks, auto-migrations, and soft deletes.
+- Trade-off: heavy abstraction, runtime reflection, Active Record pattern, poor fit for event sourcing and PostgreSQL-specific features.
+
+**3. sqlc — SQL Compiler (Code Generator)**
+- Compile-time code generator that produces type-safe Go code from hand-written SQL queries.
+- Validates queries against the database schema at build time using PostgreSQL's own parser.
+- Trade-off: requires a code generation step in the build workflow; SQL lives in separate files.
+
+**4. sqlx — `database/sql` Extension Library**
+- Lightweight wrapper around `database/sql` that adds struct scanning, named parameters, and convenience methods.
+- Drop-in compatible; changes only the scanning layer.
+- Trade-off: runtime reflection for scanning; no schema validation; modest benefit.
+
+### Feature Matrix
+
+| Feature | Status Quo | GORM | sqlc | sqlx |
+| --- | --- | --- | --- | --- |
+| **Query language** | Raw SQL | Go API + `db.Raw()` | Raw SQL (annotated) | Raw SQL |
+| **Type safety** | Runtime | Runtime (reflection) | Compile time | Runtime (reflection) |
+| **Schema validation** | None | Partial (auto-migrate) | Full (parse migrations) | None |
+| **Struct scanning** | Manual `Scan()` | Automatic (reflection) | Generated code | Automatic (`db:"..."` tags) |
+| **Runtime overhead** | None | Reflection + session mgmt | None (generated code) | Reflection (scanning only) |
+| **CTE support** | ✅ Native SQL | ❌ `db.Raw()` only | ✅ Native SQL | ✅ Native SQL |
+| **`json_agg()` support** | ✅ Native SQL | ❌ `db.Raw()` only | ✅ Native SQL | ✅ Native SQL |
+| **Custom enums** | ✅ Manual mapping | ⚠️ Manual handling | ✅ Config overrides | ✅ Manual mapping |
+| **Event sourcing fit** | ✅ No assumptions | ❌ Mutable lifecycle | ✅ No assumptions | ✅ No assumptions |
+| **Data Mapper compatible** | ✅ Current pattern | ❌ Active Record | ✅ Generated models | ✅ Tag-based scanning |
+| **PostgreSQL-native** | ✅ Full support | ⚠️ Limited | ✅ PG parser | ✅ Query-agnostic |
+| **Soft-delete (3-state)** | ✅ SQL-level | ⚠️ Custom scopes | ✅ SQL-level | ✅ SQL-level |
+| **Mocking strategy** | Interface-based | Complex (`*gorm.DB`) | Interface-based | Interface-based |
+| **Runtime dependencies** | 0 new | +2 (gorm + driver) | 0 new (build tool) | +1 (sqlx) |
+| **Build workflow change** | None | None | `sqlc generate` step | None |
+| **Migration path** | N/A (current) | Full rewrite | Incremental | Incremental |
+| **Boilerplate reduction** | Baseline | ~170 lines (CRUD only) | ~300 lines (all repos) | ~100 lines (scanning) |
+| **Learning curve** | SQL only | SQL + GORM API | SQL + annotations | SQL + minimal API |
+| **Framework lock-in** | None | High (GORM conventions) | Low (generated code works standalone) | Low (superset of `database/sql`) |
+
+### Fit Analysis for jotti
+
+The following table scores each approach against jotti's specific requirements and constraints. Scores: ✅ good fit, ⚠️ partial fit, ❌ poor fit.
+
+| jotti Requirement | Status Quo | GORM | sqlc | sqlx |
+| --- | --- | --- | --- | --- |
+| Event sourcing (append-only core) | ✅ | ❌ | ✅ | ✅ |
+| PostgreSQL-specific SQL (CTEs, `json_agg`) | ✅ | ❌ | ✅ | ✅ |
+| Data Mapper architecture | ✅ | ❌ | ✅ | ✅ |
+| Three-state soft deletes | ✅ | ⚠️ | ✅ | ✅ |
+| Dependency-light philosophy (7 deps) | ✅ | ❌ | ✅ | ⚠️ |
+| Compile-time error detection | ❌ | ❌ | ✅ | ❌ |
+| Schema drift protection | ❌ | ⚠️ | ✅ | ❌ |
+| Boilerplate reduction | ❌ | ⚠️ | ✅ | ⚠️ |
+| No workflow changes | ✅ | ✅ | ⚠️ | ✅ |
+| Go idiom alignment (explicit, no magic) | ✅ | ❌ | ✅ | ✅ |
+| **Score** | **8 ✅, 2 ❌** | **1 ✅, 4 ❌, 5 ⚠️** | **9 ✅, 1 ⚠️** | **7 ✅, 2 ❌, 1 ⚠️** |
+
+### Final Recommendation
+
+**The recommended approach for jotti: Stay with the status quo, with sqlc as the preferred upgrade path if boilerplate reduction and compile-time safety become priorities.**
+
+#### Reasoning
+
+1. **GORM is not suitable for jotti.** The analysis is unambiguous: GORM's mutable-lifecycle model conflicts with event sourcing, its Active Record pattern conflicts with jotti's Data Mapper architecture, and its abstraction layer cannot express jotti's PostgreSQL-specific queries. The boilerplate savings (~170 lines in CRUD repos only) do not justify the architectural compromises, the dependency weight, or the split between ORM-managed and raw-SQL code paths.
+
+2. **sqlx is a safe but insufficient upgrade.** sqlx reduces scanning boilerplate (~100 lines) with minimal risk and no architectural changes. However, it provides no compile-time safety, no schema validation, and no protection against the most common database-related bugs (column name typos, type mismatches, schema drift). Given that pgx itself offers similar struct scanning features (`pgx.CollectRows()`, `pgx.RowToStructByName()`), adopting sqlx adds a dependency for a benefit that could be achieved without one.
+
+3. **sqlc is the strongest alternative.** It addresses the two main weaknesses of the status quo — manual scanning boilerplate and lack of compile-time validation — without compromising any of jotti's architectural principles. It is SQL-first, PostgreSQL-native, generates idiomatic Go code, adds no runtime dependency, and works seamlessly with event sourcing, CTEs, `json_agg()`, and custom enums. The only cost is a code generation step in the build workflow.
+
+4. **The status quo is viable.** jotti's current approach is clean, explicit, and working. The codebase is small (653 lines of repository code), the team understands the SQL, and the existing tests cover the persistence layer. There is no urgent problem to solve. The status quo's main weakness — manual `Scan()` boilerplate with no compile-time validation — is a developer experience issue, not a correctness or architecture issue.
+
+#### Decision Framework
+
+| If... | Then... |
+| --- | --- |
+| The current approach works well and the team is productive | **Stay with the status quo.** The codebase is small, and manual SQL is not a bottleneck. |
+| Schema drift or scanning bugs become a recurring problem | **Adopt sqlc.** Compile-time validation will prevent these errors systematically. |
+| The team wants incremental improvement with minimal disruption | **Consider sqlx** as a stepping stone, or use pgx's native struct scanning features directly. |
+| The project grows to 20+ tables with complex CRUD | **Re-evaluate sqlc.** The code generation benefit increases linearly with the number of queries. |
+| The project needs to support multiple database engines | **Re-evaluate GORM or sqlc's multi-engine support.** But this is not currently a jotti requirement. |
+
+#### If Adopting sqlc
+
+Should jotti decide to adopt sqlc, the migration path would be:
+
+1. Add `sqlc.yaml` configuration pointing to existing migration files.
+2. Create `.sql` query files for each repository, using the existing SQL queries from `repo.go` files.
+3. Run `sqlc generate` to produce the initial Go code.
+4. Refactor each repository to wrap sqlc's generated `Queries` struct, mapping results to domain types.
+5. Add `sqlc generate` to the CI pipeline and Makefile.
+6. Remove the hand-written `db*` adapter structs and `Scan()` calls, replaced by sqlc's generated models and functions.
+
+This migration can be done incrementally — one repository at a time — without disrupting the rest of the codebase.
