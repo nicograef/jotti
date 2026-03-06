@@ -1,6 +1,6 @@
 # Database & Backend Persistence
 
-This document describes how jotti implements database access and persistence. jotti does **not** use an ORM — instead it uses hand-written SQL queries executed via the `database/sql` standard library with the [`pgx/v5`](https://github.com/jackc/pgx) PostgreSQL driver. This approach gives full control over queries while keeping the code simple and dependency-light.
+This document describes how jotti implements database access and persistence. jotti uses **[sqlc](https://sqlc.dev/)** — a compile-time SQL code generator — to produce type-safe Go code from raw SQL queries. Queries are defined in `.sql` files, validated against the PostgreSQL schema at generation time, and compiled into Go functions with full type safety. The generated code uses the `database/sql` standard library with the [`pgx/v5`](https://github.com/jackc/pgx) PostgreSQL driver. This approach gives full control over queries, eliminates hand-written scanning boilerplate, provides compile-time SQL validation, and keeps the code dependency-light (sqlc has zero runtime dependencies).
 
 ---
 
@@ -266,63 +266,77 @@ The `db.OpenTestDatabase()` function opens a connection to a local PostgreSQL in
 
 ### General Structure
 
-Each domain has its own repository package under `backend/repository/`:
+Each domain has its own repository package under `backend/repository/`, with SQL queries defined in `backend/sqlc/queries/` and generated code in `backend/sqlc/dbgen/`:
 
 ```
-backend/repository/
-  event_repo/       # Event sourcing (append-only)
-  product_repo/     # Products + variants (CRUD)
-  table_repo/       # Tables (CRUD)
-  user_repo/        # Users (CRUD)
+backend/
+  sqlc.yaml                 # sqlc configuration
+  sqlc/queries/             # SQL query definitions
+    users.sql               # User queries
+    tables.sql              # Table queries
+    products.sql            # Product + variant queries
+    events.sql              # Event sourcing queries
+  sqlc/dbgen/               # Generated code (DO NOT EDIT)
+    db.go                   # DBTX interface + Queries struct
+    models.go               # Database model types + enums
+    users.sql.go            # Generated user query functions
+    tables.sql.go           # Generated table query functions
+    products.sql.go         # Generated product + variant query functions
+    events.sql.go           # Generated event query functions
+  repository/
+    event_repo/             # Event sourcing (append-only)
+    product_repo/           # Products + variants (CRUD)
+    table_repo/             # Tables (CRUD)
+    user_repo/              # Users (CRUD)
 ```
 
 Every repository package contains:
 
-| File            | Purpose                                             |
-| --------------- | --------------------------------------------------- |
-| `types.go`      | Private DB struct + `toDomain()` converter          |
-| `repo.go`       | `Repository` struct + SQL query methods             |
-| `mock.go`       | In-memory mock for unit tests                       |
-| `repo_test.go`  | Integration tests (`//go:build integration`)        |
+| File            | Purpose                                                            |
+| --------------- | ------------------------------------------------------------------ |
+| `types.go`      | `Repository` struct, `NewRepository()` constructor, type converters |
+| `repo.go`       | Repository methods wrapping sqlc-generated query functions          |
+| `mock.go`       | In-memory mock for unit tests                                      |
+| `repo_test.go`  | Integration tests (`//go:build integration`)                       |
 
-The `event_repo` is an exception — it has no `types.go` because event data is stored as `JSONB` and the `event.Event` domain type is used directly.
+The `event_repo` is an exception — it has no separate `types.go` because event data is stored as `JSONB` and the `event.Event` domain type is used directly.
 
 ### DB-to-Domain Mapping
 
-Each CRUD repository defines a private struct that mirrors the database row layout, using `sql.NullString`, `sql.NullTime`, or `db.NullTime` for nullable columns. These structs have a `toDomain()` method that converts them to domain model types:
+sqlc generates type-safe Go structs for each query result (e.g., `dbgen.GetUserRow`, `dbgen.GetAllUsersRow`). Each repository defines thin converter functions that map these generated structs to domain model types:
 
 ```go
 // user_repo/types.go
-type dbuser struct {
-    ID                  int            `db:"id"`
-    Name                string         `db:"name"`
-    Username            string         `db:"username"`
-    Role                string         `db:"role"`
-    Status              string         `db:"status"`
-    PasswordHash        sql.NullString `db:"password_hash"`
-    OnetimePasswordHash sql.NullString `db:"onetime_password_hash"`
-    CreatedAt           sql.NullTime   `db:"created_at"`
-}
-
-func (dp *dbuser) toDomain() user.User {
+func userRowToDomain(row dbgen.GetUserRow) user.User {
     return user.User{
-        ID:                  dp.ID,
-        Name:                dp.Name,
-        Username:            dp.Username,
-        Role:                user.Role(dp.Role),
-        Status:              user.Status(dp.Status),
-        PasswordHash:        dp.PasswordHash.String,
-        OnetimePasswordHash: dp.OnetimePasswordHash.String,
-        CreatedAt:           dp.CreatedAt.Time,
+        ID:                  row.ID,
+        Name:                row.Name,
+        Username:            row.Username,
+        Role:                user.Role(row.Role),
+        Status:              user.Status(row.Status),
+        PasswordHash:        row.PasswordHash.String,
+        OnetimePasswordHash: row.OnetimePasswordHash.String,
+        CreatedAt:           row.CreatedAt,
     }
 }
 ```
 
-Note: The `db:"..."` struct tags are purely documentary — they are not used by any reflection-based mapper. All column mapping is done via explicit `rows.Scan()` calls with positional arguments matching the `SELECT` column order.
+The `Repository` struct wraps sqlc's `Queries` struct, which is initialized via `NewRepository()`:
+
+```go
+type Repository struct {
+    DB *sql.DB
+    q  *dbgen.Queries
+}
+
+func NewRepository(db *sql.DB) Repository {
+    return Repository{DB: db, q: dbgen.New(db)}
+}
+```
 
 **Direction of mapping:**
-- **Read (DB → Domain):** `Scan()` into db struct → `toDomain()` → return domain model.
-- **Write (Domain → DB):** Extract fields from domain model → pass directly as SQL parameters. No intermediate db struct is used for writes.
+- **Read (DB → Domain):** sqlc-generated function scans row → converter maps to domain model.
+- **Write (Domain → DB):** Extract fields from domain model → pass as sqlc `Params` struct → sqlc-generated function executes query.
 
 ### CRUD Repositories
 
