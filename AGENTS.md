@@ -1,14 +1,15 @@
-Take a deep breath and relax. Make yourself feel comfortable and start to focus.
-
-Use all your tools available, slice tasks into small todos, work iteratively where possible, store your context, tasks and progress in a context.txt file and keep it updated, ask me questions when necessary.
-
 # Agent Instructions — jotti
 
 Dieses Dokument richtet sich an KI-Coding-Agenten (Copilot, Cursor, Cline, Aider, etc.).
 
-## Projektbeschreibung
+## Projektübersicht
 
 jotti ist ein Bestell- und Kassensystem für Vereine und Nonprofit-Veranstaltungen. Servicekräfte nehmen auf Smartphones Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer.
+
+**Weiterführende Dokumentation:**
+- [Anforderungskatalog](docs/requirements.md) — 50 Anforderungen mit Status und Implementierungsvorschlägen
+- [Implementierungsplan](docs/implementation-plan.md) — Nächste Features mit Code-Snippets und Akzeptanzkriterien
+- [Entwicklung & Deployment](docs/development.md) — Setup, Tests, CI/CD, Deployment
 
 ## Tech-Stack
 
@@ -19,9 +20,18 @@ jotti ist ein Bestell- und Kassensystem für Vereine und Nonprofit-Veranstaltung
 | Datenbank     | PostgreSQL, `golang-migrate`                                       | `docker-compose.dev.yml` |
 | Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                 |                          |
 
-## Projektstand & Anforderungen
+## Wichtige Regeln
 
-Der vollständige Anforderungskatalog mit Implementierungsvorschlägen und aktuellem Status liegt in `ANFORDERUNGEN.md`. Vor jeder Feature-Arbeit dort den aktuellen Stand prüfen.
+1. **Alle API-Endpunkte sind POST-only.** Keine GET/PUT/DELETE.
+2. **Geldbeträge sind immer in Cent (int).** Niemals Floats für Geld verwenden.
+3. **Event-Sourcing für Tisch-Operationen.** Events sind immutable (append-only). Nie Events updaten oder löschen.
+4. **CRUD für Stammdaten** (Benutzer, Produkte, Tische). Soft-Deletes via `status = 'deleted'`.
+5. **Validierung mit Schemas.** Backend: `zog`. Frontend: `Zod`. Beide Seiten validieren.
+6. **Deutsche UI, englischer Code.** Alle Benutzer-sichtbaren Strings auf Deutsch. Code, Variablen, Commits auf Englisch.
+7. **Kein globaler State-Store im Frontend.** Nur React Hooks + Singletons.
+8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
+9. **Dokumentation synchron halten.** Bei Änderungen diese Dateien aktualisieren, sofern betroffen: `AGENTS.md`, `README.md`, `docs/development.md`, `docs/requirements.md`, `docs/implementation-plan.md`.
+10. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend. Das Frontend zeigt an, was das Backend liefert. Vor dem Hinzufügen von Frontend-Filtern prüfen, ob das Backend die Daten bereits korrekt aufbereitet.
 
 ## Backend-Konventionen
 
@@ -63,25 +73,7 @@ Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `a
 - `cn()` Utility aus `src/lib/utils.ts` (`clsx` + `tailwind-merge`)
 - Path-Alias: `@/` → `./src/`
 
-## Wichtige Regeln
-
-1. **Alle API-Endpunkte sind POST-only.** Keine GET/PUT/DELETE.
-2. **Geldbeträge sind immer in Cent (int).** Niemals Floats für Geld verwenden.
-3. **Event-Sourcing für Tisch-Operationen.** Events sind immutable (append-only). Nie Events updaten oder löschen.
-4. **CRUD für Stammdaten** (Benutzer, Produkte, Tische). Soft-Deletes via `status = 'deleted'`.
-5. **Validierung mit Schemas.** Backend: `zog`. Frontend: `Zod`. Beide Seiten validieren.
-6. **Deutsche UI, englischer Code.** Alle Benutzer-sichtbaren Strings auf Deutsch. Code, Variablen, Commits auf Englisch.
-7. **Kein globaler State-Store im Frontend.** Nur React Hooks + Singletons.
-8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
-9. **Dokumentation synchron halten.** Bei jeder Änderung am Projekt (neue Endpunkte, neue Seiten, geänderte Architektur, neue Dependencies, Versionsänderungen etc.) müssen folgende Dateien aktualisiert werden, sofern betroffen:
-   - `AGENTS.md` — Tech-Stack-Tabelle, Verzeichnisstruktur, Regeln, Event-Referenz, DB-Schema
-   - `README.md` — Feature-Liste, Architektur-Tabelle
-   - `DEVELOPMENT.md` — Build-/Test-/Deploy-Befehle, Konfigurationsdateien-Tabelle
-10. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend (SQL/Repository). Das Frontend zeigt an, was das Backend liefert — keine redundante Filterlogik im Frontend duplizieren. Vor dem Hinzufügen von Frontend-Filtern prüfen, ob das Backend die Daten bereits korrekt aufbereitet.
-
 ## Bereiche: Admin vs. Service
-
-jotti hat zwei getrennte Bereiche mit unterschiedlichen Rollen und Funktionen:
 
 ### Admin-Bereich (Rolle: `admin`)
 
@@ -90,21 +82,18 @@ Verwaltung von Stammdaten. Nur für Administratoren zugänglich.
 - **Backend**: Routen in `api/admin.go` unter `/admin/*`, JWT-Middleware erlaubt nur Rolle `admin`
 - **Frontend**: Seiten unter `src/admin/` mit `AdminGuard` (React Router Loader)
 - **Funktionen**: Produkte + Varianten erstellen/bearbeiten/aktivieren/deaktivieren, Tische verwalten, Benutzer anlegen/bearbeiten/Passwort zurücksetzen
-- **Endpunkte**: siehe `backend/api/admin.go`
 
 ### Service-Bereich (Rollen: `admin` + `senior_service` + `service`)
 
-Bestell- und Kassierbetrieb am Tisch. Für Servicekräfte, Serviceleitung und Admins zugänglich.
+Bestell- und Kassierbetrieb am Tisch.
 
-- **Backend**: Routen in `api/service.go` unter `/service/*`, JWT-Middleware erlaubt Rollen `admin`, `senior_service` und `service`. Stornierung (`cancel-table-variants`) läuft über eigene `api/senior_service.go` mit Middleware nur für `admin` und `senior_service`.
+- **Backend**: Routen in `api/service.go` unter `/service/*`. Stornierung (`cancel-table-variants`) läuft über `api/senior_service.go` mit Middleware nur für `admin` und `senior_service`.
 - **Frontend**: Seiten unter `src/service/` mit `ServiceGuard` (React Router Loader)
 - **Funktionen**: Tisch auswählen, Bestellungen aufgeben, Lieferungen bestätigen, Bezahlungen registrieren, Stornierungen, Tisch-Verlauf einsehen
-- **Endpunkte**: siehe `backend/api/service.go` und `backend/api/senior_service.go`
 
 ### Auth-Bereich (kein JWT erforderlich)
 
 - **Backend**: Routen in `api/auth.go` unter `/auth/*`
-- **Endpunkte**: siehe `backend/api/auth.go`
 
 ## Verzeichnisstruktur
 
@@ -128,7 +117,7 @@ backend/
 frontend/
   src/routes.ts                 # Alle Routen + Guards
   src/App.tsx                   # Root-Komponente
-  src/lib/                      # Auth, Backend-Client (BackendClient-Interface), useFetch-Hook, Utilities
+  src/lib/                      # Auth, Backend-Client, useFetch-Hook, Utilities
   src/admin/                    # Admin-Bereich (Produkte, Tische, Benutzer)
   src/service/                  # Service-Bereich (Tisch-Workflow)
   src/pages/                    # Login, Passwort setzen
@@ -137,28 +126,11 @@ frontend/
 
 database/
   migrations/                   # SQL-Migrationen (up/down)
-  migrate/                      # Migration-Tool (Container)
 
-reverse-proxy/                  # nginx-Konfigurationen
-
-scripts/
-  prod-init.sh                  # Automatisiertes Erst-Deployment
-```
-
-## Lokale Entwicklung
-
-```bash
-cp .env.example .env            # Umgebungsvariablen konfigurieren
-docker compose -f docker-compose.dev.yml up --build -d
-# Frontend: http://localhost | API: http://localhost/api
-```
-
-## Tests ausführen
-
-```bash
-cd backend && go test -tags=unit -race ./...         # Unit-Tests
-./test-integration.sh                                 # Integrationstests
-cd frontend && pnpm lint                              # Frontend-Lint
+docs/
+  development.md                # Entwicklung & Deployment
+  requirements.md               # Anforderungskatalog
+  implementation-plan.md        # Implementierungsplan Phase 1 & 2
 ```
 
 ## Wie füge ich ein neues Feature hinzu?
@@ -190,6 +162,14 @@ Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/table/events.g
 
 Tabellen: `users`, `tables`, `products`, `product_variants`, `events` (append-only).
 
-Aktuelles Schema und Spalten: siehe SQL-Migrationen in `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge anwenden).
+Aktuelles Schema: siehe SQL-Migrationen in `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge).
 
 Neue Migration: `database/migrations/<nr>_<name>.up.sql` + `.down.sql`
+
+## Tests ausführen
+
+```bash
+cd backend && go test -tags=unit -race ./...   # Unit-Tests
+./test-integration.sh                           # Integrationstests
+cd frontend && pnpm lint                        # Frontend-Lint
+```
