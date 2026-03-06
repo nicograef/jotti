@@ -43,16 +43,15 @@ func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 
 		id, err := h.Command.CreateProduct(r.Context(), body.Name, body.Category)
 		if err != nil {
-			if errors.Is(err, application.ErrProductAlreadyExists) {
+			switch {
+			case errors.Is(err, application.ErrProductAlreadyExists):
 				helper.SendClientError(w, "product_already_exists", nil)
-				return
-			} else if errors.Is(err, application.ErrInvalidProductData) {
+			case errors.Is(err, application.ErrInvalidProductData):
 				helper.SendClientError(w, "invalid_product_data", nil)
-				return
-			} else {
+			default:
 				helper.SendServerError(w)
-				return
 			}
+			return
 		}
 
 		helper.SendResponse(w, createProductResponse{ID: id})
@@ -74,16 +73,15 @@ func (h *CommandHandler) UpdateProductHandler() http.HandlerFunc {
 
 		err := h.Command.UpdateProduct(r.Context(), body.ID, body.Name, body.Category)
 		if err != nil {
-			if errors.Is(err, application.ErrProductNotFound) {
+			switch {
+			case errors.Is(err, application.ErrProductNotFound):
 				helper.SendClientError(w, "product_not_found", nil)
-				return
-			} else if errors.Is(err, application.ErrInvalidProductData) {
+			case errors.Is(err, application.ErrInvalidProductData):
 				helper.SendClientError(w, "invalid_product_data", nil)
-				return
-			} else {
+			default:
 				helper.SendServerError(w)
-				return
 			}
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -111,16 +109,15 @@ func (h *CommandHandler) CreateVariantHandler() http.HandlerFunc {
 
 		id, err := h.Command.CreateVariant(r.Context(), body.ProductID, body.Name, body.PriceCents)
 		if err != nil {
-			if errors.Is(err, application.ErrProductNotFound) {
+			switch {
+			case errors.Is(err, application.ErrProductNotFound):
 				helper.SendClientError(w, "product_not_found", nil)
-				return
-			} else if errors.Is(err, application.ErrInvalidVariantData) {
+			case errors.Is(err, application.ErrInvalidVariantData):
 				helper.SendClientError(w, "invalid_variant_data", nil)
-				return
-			} else {
+			default:
 				helper.SendServerError(w)
-				return
 			}
+			return
 		}
 
 		helper.SendResponse(w, createVariantResponse{ID: id})
@@ -142,16 +139,15 @@ func (h *CommandHandler) UpdateVariantHandler() http.HandlerFunc {
 
 		err := h.Command.UpdateVariant(r.Context(), body.ID, body.Name, body.PriceCents)
 		if err != nil {
-			if errors.Is(err, application.ErrVariantNotFound) {
+			switch {
+			case errors.Is(err, application.ErrVariantNotFound):
 				helper.SendClientError(w, "variant_not_found", nil)
-				return
-			} else if errors.Is(err, application.ErrInvalidVariantData) {
+			case errors.Is(err, application.ErrInvalidVariantData):
 				helper.SendClientError(w, "invalid_variant_data", nil)
-				return
-			} else {
+			default:
 				helper.SendServerError(w)
-				return
 			}
+			return
 		}
 
 		helper.SendEmptyResponse(w)

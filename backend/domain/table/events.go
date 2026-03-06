@@ -26,7 +26,7 @@ func parseTableIDFromSubject(subject string) (int, error) {
 	}
 	id, err := strconv.Atoi(subject[len(prefix):])
 	if err != nil {
-		return 0, fmt.Errorf("invalid table ID in event subject: %v", err)
+		return 0, fmt.Errorf("invalid table ID in event subject: %w", err)
 	}
 	return id, nil
 }

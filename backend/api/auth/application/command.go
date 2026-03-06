@@ -35,16 +35,17 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 
 	token, err := u.GenerateJWTToken(password, c.JWTSecret)
 	if err != nil {
-		if errors.Is(err, user.ErrNotActive) {
+		switch {
+		case errors.Is(err, user.ErrNotActive):
 			log.Warn().Str("username", username).Msg("Inactive user attempted to log in")
 			return "", ErrNotActive
-		} else if errors.Is(err, user.ErrNoPassword) {
+		case errors.Is(err, user.ErrNoPassword):
 			log.Warn().Str("username", username).Msg("No password set for user during login")
 			return "", ErrNoPassword
-		} else if errors.Is(err, user.ErrInvalidPassword) {
+		case errors.Is(err, user.ErrInvalidPassword):
 			log.Warn().Err(err).Str("username", username).Msg("Password validation failed")
 			return "", ErrInvalidPassword
-		} else {
+		default:
 			log.Error().Err(err).Str("username", username).Msg("Failed to generate JWT token")
 			return "", ErrTokenGeneration
 		}

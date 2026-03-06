@@ -8,8 +8,8 @@ import (
 
 func NewMock(users []user.User, err error) *mockRepo {
 	userMap := make(map[int]user.User)
-	for _, t := range users {
-		userMap[t.ID] = t
+	for i := range users {
+		userMap[users[i].ID] = users[i]
 	}
 
 	return &mockRepo{
@@ -32,7 +32,7 @@ func (m mockRepo) GetUser(ctx context.Context, id int) (user.User, error) {
 }
 
 func (m mockRepo) GetUserByUsername(ctx context.Context, username string) (user.User, error) {
-	for _, u := range m.user {
+	for _, u := range m.user { //nolint:gocritic // iterating small map for lookup
 		if u.Username == username {
 			return u, m.err
 		}
@@ -42,7 +42,7 @@ func (m mockRepo) GetUserByUsername(ctx context.Context, username string) (user.
 
 func (m mockRepo) GetAllUsers(ctx context.Context) ([]user.User, error) {
 	users := []user.User{}
-	for _, u := range m.user {
+	for _, u := range m.user { //nolint:gocritic // collecting all values
 		users = append(users, u)
 	}
 	return users, m.err

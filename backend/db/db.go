@@ -30,8 +30,7 @@ var ErrDatabase = errors.New("database error")
 // Error maps a database error to a more specific error.
 func Error(err error) error {
 	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
-		switch pgErr.Code {
-		case string(ErrorCodeUniqueViolation):
+		if pgErr.Code == string(ErrorCodeUniqueViolation) {
 			return ErrAlreadyExists
 		}
 	}

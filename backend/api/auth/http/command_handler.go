@@ -38,19 +38,17 @@ func (h *CommandHandler) LoginHandler() http.HandlerFunc {
 
 		token, err := h.Command.GenerateJWTToken(ctx, body.Username, body.Password)
 		if err != nil {
-			if errors.Is(err, application.ErrNotActive) {
+			switch {
+			case errors.Is(err, application.ErrNotActive):
 				helper.SendClientError(w, "user_inactive", nil)
-				return
-			} else if errors.Is(err, application.ErrUserNotFound) || errors.Is(err, application.ErrInvalidPassword) {
+			case errors.Is(err, application.ErrUserNotFound) || errors.Is(err, application.ErrInvalidPassword):
 				helper.SendClientError(w, "invalid_credentials", nil)
-				return
-			} else if errors.Is(err, application.ErrNoPassword) {
+			case errors.Is(err, application.ErrNoPassword):
 				helper.SendClientError(w, "no_password_set", "No password set for user. Please set a password first.")
-				return
-			} else {
+			default:
 				helper.SendServerError(w)
-				return
 			}
+			return
 		}
 
 		helper.SendResponse(w, loginResponse{Token: token})
@@ -74,19 +72,15 @@ func (h *CommandHandler) SetPasswordHandler() http.HandlerFunc {
 
 		err := h.Command.SetNewPassword(ctx, body.Username, body.Password, body.OnetimePassword)
 		if err != nil {
-			if errors.Is(err, application.ErrUserNotFound) {
+			switch {
+			case errors.Is(err, application.ErrUserNotFound), errors.Is(err, application.ErrInvalidPassword):
 				helper.SendClientError(w, "invalid_credentials", nil)
-				return
-			} else if errors.Is(err, application.ErrInvalidPassword) {
-				helper.SendClientError(w, "invalid_credentials", nil)
-				return
-			} else if errors.Is(err, application.ErrNoOnetimePassword) {
+			case errors.Is(err, application.ErrNoOnetimePassword):
 				helper.SendClientError(w, "already_has_password", "No one-time password set for user. User probably already has a password.")
-				return
-			} else {
+			default:
 				helper.SendServerError(w)
-				return
 			}
+			return
 		}
 
 		helper.SendEmptyResponse(w)

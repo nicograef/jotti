@@ -1,0 +1,38 @@
+# golangci-lint config format version
+version: "2"
+
+linters:
+  enable:
+    - errcheck # Checks that error return values are not ignored
+    - govet # Reports suspicious constructs (e.g. Printf format mismatches)
+    - staticcheck # Advanced static analysis (nil derefs, unreachable code, deprecations)
+    - unused # Finds unused constants, variables, functions, and types
+    - ineffassign # Detects assignments to variables that are never read afterwards
+    - gosec # Security-focused linter (SQL injection, hardcoded creds, etc.)
+    - bodyclose # Ensures HTTP response bodies are properly closed
+    - errorlint # Enforces correct error wrapping and comparison (errors.Is/As)
+    - gocritic # Opinionated linter with diagnostic and performance checks
+    - nilerr # Detects returning nil instead of the actual error in error branches
+  disable:
+    - wsl # Whitespace linter — too opinionated on blank line placement
+    - exhaustive # Requires exhaustive switch statements on enums — not needed here
+    - exhaustruct # Requires all struct fields to be set — too strict for this project
+  settings:
+    gosec:
+      excludes:
+        - G115 # Suppress integer overflow conversion warnings (false positives on safe casts)
+        - G117 # Suppress implicit memory aliasing in for loops (resolved in Go 1.22+)
+    gocritic:
+      enabled-tags:
+        - diagnostic # Catch common bugs and suspicious code patterns
+        - performance # Flag code that can be optimized for speed or allocations
+      disabled-checks:
+        - hugeParam # Allow passing large structs by value (acceptable in this codebase)
+
+formatters:
+  enable:
+    - goimports # Auto-format imports (groups stdlib, third-party, local) and runs gofmt
+
+output:
+  sort-order:
+    - file # Group lint findings by file path for easier navigation

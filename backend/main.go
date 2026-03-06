@@ -34,12 +34,6 @@ func main() {
 	db.SetMaxOpenConns(50)
 	db.SetMaxIdleConns(10)
 
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Error().Err(err).Msg("Failed to close database connection")
-		}
-	}()
-
 	err = db.Ping()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to ping Postgres")
@@ -47,9 +41,21 @@ func main() {
 
 	log.Info().Msg("Connected to database")
 
-	app, err := app.NewApp(cfg, db)
+	if err := run(cfg, db); err != nil {
+		log.Fatal().Err(err).Msg("Application error")
+	}
+}
+
+func run(cfg config.Config, db *sql.DB) error {
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Error().Err(err).Msg("Failed to close database connection")
+		}
+	}()
+
+	a, err := app.NewApp(cfg, db)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create app")
+		return fmt.Errorf("failed to create app: %w", err)
 	}
 
 	// Set up signal handling
@@ -65,7 +71,5 @@ func main() {
 	}()
 
 	// Run application
-	if err := app.Run(ctx); err != nil {
-		log.Fatal().Err(err).Msg("Application error")
-	}
+	return a.Run(ctx)
 }

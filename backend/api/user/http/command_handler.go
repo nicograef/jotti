@@ -71,16 +71,15 @@ func (h CommandHandler) UpdateUserHandler() http.HandlerFunc {
 
 		err := h.Command.UpdateUser(r.Context(), body.ID, body.Name, body.Username, body.Role)
 		if err != nil {
-			if errors.Is(err, application.ErrUserNotFound) {
+			switch {
+			case errors.Is(err, application.ErrUserNotFound):
 				helper.SendClientError(w, "user_not_found", nil)
-				return
-			} else if errors.Is(err, application.ErrUsernameAlreadyExists) {
+			case errors.Is(err, application.ErrUsernameAlreadyExists):
 				helper.SendClientError(w, "username_already_exists", nil)
-				return
-			} else {
+			default:
 				helper.SendServerError(w)
-				return
 			}
+			return
 		}
 
 		helper.SendEmptyResponse(w)
