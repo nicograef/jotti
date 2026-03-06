@@ -1,3 +1,7 @@
+Take a deep breath and relax. Make yourself feel comfortable and start to focus.
+
+Use all your tools available, slice tasks into small todos, work iteratively where possible, store your context, tasks and progress in a context.txt file and keep it updated, ask me questions when necessary.
+
 # Agent Instructions — jotti
 
 Dieses Dokument richtet sich an KI-Coding-Agenten (Copilot, Cursor, Cline, Aider, etc.).
