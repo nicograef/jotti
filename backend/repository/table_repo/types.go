@@ -4,25 +4,24 @@ import (
 	"database/sql"
 
 	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-// Repository implements table persistence layer using a SQL database.
+// Repository implements table persistence layer using sqlc-generated queries.
 type Repository struct {
 	DB *sql.DB
+	q  *dbgen.Queries
 }
 
-type dbtable struct {
-	ID        int          `db:"id"`
-	Name      string       `db:"name"`
-	Status    string       `db:"status"`
-	CreatedAt sql.NullTime `db:"created_at"`
+func NewRepository(db *sql.DB) Repository {
+	return Repository{DB: db, q: dbgen.New(db)}
 }
 
-func (dt *dbtable) toDomain() table.Table {
+func tableRowToDomain(row dbgen.Table) table.Table {
 	return table.Table{
-		ID:        dt.ID,
-		Name:      dt.Name,
-		Status:    table.Status(dt.Status),
-		CreatedAt: dt.CreatedAt.Time,
+		ID:        row.ID,
+		Name:      row.Name,
+		Status:    table.Status(row.Status),
+		CreatedAt: row.CreatedAt,
 	}
 }

@@ -8,13 +8,13 @@ import (
 )
 
 func NewCommandHandler(db *sql.DB) CommandHandler {
-	repo := product_repo.Repository{DB: db}
+	repo := product_repo.NewRepository(db)
 	command := application.Command{ProductRepo: repo}
 	return CommandHandler{Command: command}
 }
 
 func NewQueryHandler(db *sql.DB) QueryHandler {
-	repo := product_repo.Repository{DB: db}
+	repo := product_repo.NewRepository(db)
 	query := application.Query{ProductRepo: repo}
 	return QueryHandler{Query: query}
 }

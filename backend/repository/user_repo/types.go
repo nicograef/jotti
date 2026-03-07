@@ -4,32 +4,51 @@ import (
 	"database/sql"
 
 	"github.com/nicograef/jotti/backend/domain/user"
+	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
 type Repository struct {
 	DB *sql.DB
+	q  *dbgen.Queries
 }
 
-type dbuser struct {
-	ID                  int            `db:"id"`
-	Name                string         `db:"name"`
-	Username            string         `db:"username"`
-	Role                string         `db:"role"`
-	Status              string         `db:"status"`
-	PasswordHash        sql.NullString `db:"password_hash"`
-	OnetimePasswordHash sql.NullString `db:"onetime_password_hash"`
-	CreatedAt           sql.NullTime   `db:"created_at"`
+func NewRepository(db *sql.DB) Repository {
+	return Repository{DB: db, q: dbgen.New(db)}
 }
 
-func (dp *dbuser) toDomain() user.User {
+func userRowToDomain(row dbgen.GetUserRow) user.User {
 	return user.User{
-		ID:                  dp.ID,
-		Name:                dp.Name,
-		Username:            dp.Username,
-		Role:                user.Role(dp.Role),
-		Status:              user.Status(dp.Status),
-		PasswordHash:        dp.PasswordHash.String,
-		OnetimePasswordHash: dp.OnetimePasswordHash.String,
-		CreatedAt:           dp.CreatedAt.Time,
+		ID:                  row.ID,
+		Name:                row.Name,
+		Username:            row.Username,
+		Role:                user.Role(row.Role),
+		Status:              user.Status(row.Status),
+		PasswordHash:        row.PasswordHash.String,
+		OnetimePasswordHash: row.OnetimePasswordHash.String,
+		CreatedAt:           row.CreatedAt,
+	}
+}
+
+func userByUsernameRowToDomain(row dbgen.GetUserByUsernameRow) user.User {
+	return user.User{
+		ID:                  row.ID,
+		Name:                row.Name,
+		Username:            row.Username,
+		Role:                user.Role(row.Role),
+		Status:              user.Status(row.Status),
+		PasswordHash:        row.PasswordHash.String,
+		OnetimePasswordHash: row.OnetimePasswordHash.String,
+		CreatedAt:           row.CreatedAt,
+	}
+}
+
+func allUsersRowToDomain(row dbgen.GetAllUsersRow) user.User {
+	return user.User{
+		ID:        row.ID,
+		Name:      row.Name,
+		Username:  row.Username,
+		Role:      user.Role(row.Role),
+		Status:    user.Status(row.Status),
+		CreatedAt: row.CreatedAt,
 	}
 }

@@ -9,15 +9,15 @@ import (
 )
 
 func NewCommandHandler(db *sql.DB) CommandHandler {
-	tableRepo := table_repo.Repository{DB: db}
-	eventRepo := event_repo.Repository{DB: db}
+	tableRepo := table_repo.NewRepository(db)
+	eventRepo := event_repo.NewRepository(db)
 	command := application.Command{TableRepo: tableRepo, EventRepo: eventRepo}
 	return CommandHandler{Command: command}
 }
 
 func NewQueryHandler(db *sql.DB) QueryHandler {
-	tableRepo := table_repo.Repository{DB: db}
-	eventRepo := event_repo.Repository{DB: db}
+	tableRepo := table_repo.NewRepository(db)
+	eventRepo := event_repo.NewRepository(db)
 	query := application.Query{TableRepo: tableRepo, EventRepo: eventRepo}
 	return QueryHandler{Query: query}
 }

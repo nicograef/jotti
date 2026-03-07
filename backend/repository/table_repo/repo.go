@@ -5,70 +5,52 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
 func (r Repository) GetTable(ctx context.Context, id int) (table.Table, error) {
-	var dbTable dbtable
-	err := r.DB.QueryRowContext(ctx, "SELECT id, name, status, created_at FROM tables WHERE id = $1 AND status != 'deleted'", id).
-		Scan(&dbTable.ID, &dbTable.Name, &dbTable.Status, &dbTable.CreatedAt)
+	row, err := r.q.GetTable(ctx, id)
 	if err != nil {
 		return table.Table{}, db.Error(err)
 	}
 
-	return dbTable.toDomain(), nil
+	return tableRowToDomain(row), nil
 }
 
 func (r Repository) GetAllTables(ctx context.Context) ([]table.Table, error) {
-	rows, err := r.DB.QueryContext(ctx, "SELECT id, name, status, created_at FROM tables WHERE status != 'deleted' ORDER BY id ASC")
+	rows, err := r.q.GetAllTables(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
-	defer db.Close(rows, "tables")
 
-	tables := []table.Table{}
-	for rows.Next() {
-		var dbTable dbtable
-		if err := rows.Scan(&dbTable.ID, &dbTable.Name, &dbTable.Status, &dbTable.CreatedAt); err != nil {
-			return nil, db.Error(err)
-		}
-
-		tables = append(tables, dbTable.toDomain())
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, db.Error(err)
+	tables := make([]table.Table, 0, len(rows))
+	for _, row := range rows {
+		tables = append(tables, tableRowToDomain(row))
 	}
 
 	return tables, nil
 }
 
 func (r Repository) GetActiveTables(ctx context.Context) ([]table.Table, error) {
-	rows, err := r.DB.QueryContext(ctx, "SELECT id, name, status, created_at FROM tables WHERE status = 'active' ORDER BY id ASC")
+	rows, err := r.q.GetActiveTables(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
-	defer db.Close(rows, "tables")
 
-	tables := []table.Table{}
-	for rows.Next() {
-		var dbTable dbtable
-		if err := rows.Scan(&dbTable.ID, &dbTable.Name, &dbTable.Status, &dbTable.CreatedAt); err != nil {
-			return nil, db.Error(err)
-		}
-
-		tables = append(tables, dbTable.toDomain())
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, db.Error(err)
+	tables := make([]table.Table, 0, len(rows))
+	for _, row := range rows {
+		tables = append(tables, tableRowToDomain(row))
 	}
 
 	return tables, nil
 }
 
 func (r Repository) CreateTable(ctx context.Context, t table.Table) (int, error) {
-	var id int
-	err := r.DB.QueryRowContext(ctx, "INSERT INTO tables (name, status, created_at) VALUES ($1, $2, $3) RETURNING id", t.Name, t.Status, t.CreatedAt).Scan(&id)
+	id, err := r.q.CreateTable(ctx, dbgen.CreateTableParams{
+		Name:      t.Name,
+		Status:    dbgen.Entitystatus(t.Status),
+		CreatedAt: t.CreatedAt,
+	})
 	if err != nil {
 		return 0, db.Error(err)
 	}
@@ -77,7 +59,11 @@ func (r Repository) CreateTable(ctx context.Context, t table.Table) (int, error)
 }
 
 func (r Repository) UpdateTable(ctx context.Context, t table.Table) error {
-	result, err := r.DB.ExecContext(ctx, "UPDATE tables SET name = $1, status = $2 WHERE id = $3", t.Name, t.Status, t.ID)
+	result, err := r.q.UpdateTable(ctx, dbgen.UpdateTableParams{
+		Name:   t.Name,
+		Status: dbgen.Entitystatus(t.Status),
+		ID:     t.ID,
+	})
 	if err != nil {
 		return db.Error(err)
 	}

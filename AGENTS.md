@@ -15,7 +15,7 @@ jotti ist ein Bestell- und Kassensystem für Vereine und Nonprofit-Veranstaltung
 
 | Komponente    | Technologie                                                        | Versionen in             |
 | ------------- | ------------------------------------------------------------------ | ------------------------ |
-| Backend       | Go, stdlib `net/http`, `pgx/v5`, `zerolog`, `zog`, `golang-jwt/v5` | `backend/go.mod`         |
+| Backend       | Go, stdlib `net/http`, `pgx/v5`, `sqlc`, `zerolog`, `zog`, `golang-jwt/v5` | `backend/go.mod`         |
 | Frontend      | React, Vite, TypeScript (strict), Tailwind CSS, shadcn/ui, Zod     | `frontend/package.json`  |
 | Datenbank     | PostgreSQL, `golang-migrate`                                       | `docker-compose.dev.yml` |
 | Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                 |                          |
@@ -100,6 +100,9 @@ Bestell- und Kassierbetrieb am Tisch.
 ```
 backend/
   main.go                       # Einstiegspunkt
+  sqlc.yaml                     # sqlc-Konfiguration
+  sqlc/queries/                 # SQL-Queries für sqlc
+  sqlc/dbgen/                   # Generierter Code (NICHT EDITIEREN)
   api/service.go                # Service-Routen (Bestell-/Kassierbetrieb)
   api/senior_service.go         # Senior-Service-Routen (Stornierung)
   api/admin.go                  # Admin-Routen (Verwaltung)
@@ -109,10 +112,10 @@ backend/
   api/middleware/               # JWT-Auth, Rate-Limiting, Logging
   api/helper/                   # HTTP-Hilfsfunktionen (JSON-Parsing, Response)
   domain/<domain>/              # Domain-Modelle und Business-Logik
-  repository/<domain>_repo/     # Datenbank-Zugriff (SQL via pgx)
+  repository/<domain>_repo/     # Datenbank-Zugriff (sqlc-basiert)
   config/                       # Konfiguration aus Umgebungsvariablen
   app/                          # App-Struct (Dependency Wiring)
-  db/                           # Datenbank-Verbindung
+  db/                           # Datenbank-Verbindung und Fehler-Mapping
 
 frontend/
   src/routes.ts                 # Alle Routen + Guards
@@ -128,9 +131,11 @@ database/
   migrations/                   # SQL-Migrationen (up/down)
 
 docs/
-  development.md                # Entwicklung & Deployment
-  requirements.md               # Anforderungskatalog
-  implementation-plan.md        # Implementierungsplan Phase 1 & 2
+  database.md                 # Datenbank & Persistenz (Einstieg)
+  development.md              # Entwicklung & Deployment
+  requirements.md             # Anforderungskatalog
+  implementation-plan.md      # Implementierungsplan Phase 1 & 2
+  adr/orm.md                  # ADR: ORM-Bewertung und Entscheidung für sqlc
 ```
 
 ## Wie füge ich ein neues Feature hinzu?
@@ -138,11 +143,12 @@ docs/
 ### Backend (neuer Endpunkt)
 
 1. Domain-Modell + zog-Schema in `domain/<domain>/`
-2. Repository-Interface + Implementierung in `repository/<domain>_repo/`
-3. Application-Service in `api/<domain>/application/`
-4. HTTP-Handler in `api/<domain>/http/`
-5. Route registrieren in `api/admin.go` oder `api/service.go`
-6. Unit-Test mit `//go:build unit` Tag
+2. SQL-Query in `sqlc/queries/<domain>.sql` definieren, dann `sqlc generate` ausführen
+3. Repository-Interface + Implementierung in `repository/<domain>_repo/` (wraps sqlc-generierte Funktionen)
+4. Application-Service in `api/<domain>/application/`
+5. HTTP-Handler in `api/<domain>/http/`
+6. Route registrieren in `api/admin.go` oder `api/service.go`
+7. Unit-Test mit `//go:build unit` Tag
 
 ### Frontend (neue Seite)
 
