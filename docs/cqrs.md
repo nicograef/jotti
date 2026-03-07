@@ -5,6 +5,7 @@ Dieses Dokument beschreibt das Architekturmuster **Command Query Responsibility 
 > **Verwandte Dokumente:**
 > - [Event-Sourcing vs. CRUD](event-sourcing-vs-crud.md) — Hybride Architektur und Event-Sourcing-Implementierung
 > - [jotti ohne Event-Sourcing](no-event-sourcing.md) — CRUD-Alternative und Vergleich
+> - [ADR: Datenbankzugriff — Entscheidung für sqlc](adr/orm.md) — sqlc als Persistenz-Werkzeug
 
 ---
 
@@ -13,10 +14,11 @@ Dieses Dokument beschreibt das Architekturmuster **Command Query Responsibility 
 1. [CQRS — Theorie und Ursprung](#1-cqrs--theorie-und-ursprung)
 2. [CQRS in jotti — Ist-Zustand](#2-cqrs-in-jotti--ist-zustand)
 3. [Die Schwächen von Event-Sourcing und wie CQRS hilft](#3-die-schwächen-von-event-sourcing-und-wie-cqrs-hilft)
-4. [Implementierungsplan: Vollständiges CQRS für jotti](#4-implementierungsplan-vollständiges-cqrs-für-jotti)
-5. [Vor- und Nachteile der vorgeschlagenen Lösung](#5-vor--und-nachteile-der-vorgeschlagenen-lösung)
-6. [Zusammenfassung und Empfehlung](#6-zusammenfassung-und-empfehlung)
-7. [Referenzen](#7-referenzen)
+4. [Implementierungsplan: Synchrone Projektion (empfohlener Ansatz)](#4-implementierungsplan-synchrone-projektion-empfohlener-ansatz)
+5. [Vor- und Nachteile der synchronen Projektion](#5-vor--und-nachteile-der-synchronen-projektion)
+6. [Fortgeschrittene Alternativen: Ohne Snapshots und ohne C→Q-Abhängigkeit](#6-fortgeschrittene-alternativen-ohne-snapshots-und-ohne-cq-abhängigkeit)
+7. [Zusammenfassung und Empfehlung](#7-zusammenfassung-und-empfehlung)
+8. [Referenzen](#8-referenzen)
 
 ---
 
@@ -268,9 +270,11 @@ CQRS löst primär die **Lese-seitigen** Nachteile. Schreib-seitige Nachteile (f
 
 ---
 
-## 4. Implementierungsplan: Vollständiges CQRS für jotti
+## 4. Implementierungsplan: Synchrone Projektion (empfohlener Ansatz)
 
 Der Plan beschreibt die Migration von der aktuellen logischen CQRS-Trennung zu einem vollständigen CQRS mit **synchronen Projektionen** als Read Model. Der Ansatz ist bewusst inkrementell und vermeidet einen Big-Bang-Umbau.
+
+> **Hinweis:** Seit der Erstellung dieses Dokuments wurde [sqlc als Persistenz-Werkzeug übernommen](adr/orm.md). Die folgenden Code-Beispiele verwenden daher die sqlc-basierte Repository-Architektur: SQL-Queries werden in `.sql`-Dateien definiert, `sqlc generate` erzeugt typsichere Go-Funktionen, und Repositories wrappen diese generierten Funktionen. Details zur sqlc-Architektur siehe [ADR: Datenbankzugriff](adr/orm.md) und [Datenbank & Persistenz](database.md).
 
 ### Designentscheidung: Synchrone vs. asynchrone Projektion
 
@@ -319,6 +323,35 @@ Diese Listen sind variabel lang und haben keine feste Kardinalität pro Tisch. T
 
 ### 4.2 Schritt 2 — Neues Repository: `table_state_repo`
 
+#### SQL-Queries (`sqlc/queries/table_state.sql`)
+
+Neue sqlc-Query-Datei für die Projektions-Tabelle:
+
+```sql
+-- name: UpsertTableState :exec
+INSERT INTO table_state
+    (table_id, balance_cents, total_payments_cents,
+     unpaid_variants, undelivered_variants, last_event_id, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, now())
+ON CONFLICT (table_id) DO UPDATE SET
+    balance_cents        = EXCLUDED.balance_cents,
+    total_payments_cents = EXCLUDED.total_payments_cents,
+    unpaid_variants      = EXCLUDED.unpaid_variants,
+    undelivered_variants = EXCLUDED.undelivered_variants,
+    last_event_id        = EXCLUDED.last_event_id,
+    updated_at           = now();
+
+-- name: GetTableState :one
+SELECT table_id, balance_cents, total_payments_cents,
+       unpaid_variants, undelivered_variants, last_event_id
+FROM table_state
+WHERE table_id = $1;
+```
+
+Nach `sqlc generate` werden typsichere Go-Funktionen generiert (`dbgen.UpsertTableState`, `dbgen.GetTableState`).
+
+#### Repository-Wrapper (`repository/table_state_repo/`)
+
 Neues Package `backend/repository/table_state_repo/`:
 
 ```go
@@ -329,7 +362,9 @@ import (
     "database/sql"
     "encoding/json"
 
+    "github.com/nicograef/jotti/backend/db"
     "github.com/nicograef/jotti/backend/domain/table"
+    "github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
 type TableState struct {
@@ -343,11 +378,17 @@ type TableState struct {
 
 type Repository struct {
     DB *sql.DB
+    q  *dbgen.Queries
 }
 
-// Upsert schreibt oder aktualisiert den Zustand eines Tisches atomar.
-// Wird innerhalb derselben Transaktion aufgerufen wie WriteEvent.
-func (r Repository) Upsert(ctx context.Context, tx *sql.Tx, state TableState) error {
+func NewRepository(sqlDB *sql.DB) Repository {
+    return Repository{DB: sqlDB, q: dbgen.New(sqlDB)}
+}
+
+// UpsertTx schreibt oder aktualisiert den Zustand eines Tisches innerhalb
+// einer bestehenden Transaktion. Wird in derselben Transaktion wie
+// WriteEvent aufgerufen.
+func (r Repository) UpsertTx(ctx context.Context, tx *sql.Tx, state TableState) error {
     unpaidJSON, err := json.Marshal(state.UnpaidVariants)
     if err != nil {
         return err
@@ -357,46 +398,34 @@ func (r Repository) Upsert(ctx context.Context, tx *sql.Tx, state TableState) er
         return err
     }
 
-    _, err = tx.ExecContext(ctx, `
-        INSERT INTO table_state
-            (table_id, balance_cents, total_payments_cents,
-             unpaid_variants, undelivered_variants, last_event_id, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, now())
-        ON CONFLICT (table_id) DO UPDATE SET
-            balance_cents        = EXCLUDED.balance_cents,
-            total_payments_cents = EXCLUDED.total_payments_cents,
-            unpaid_variants      = EXCLUDED.unpaid_variants,
-            undelivered_variants = EXCLUDED.undelivered_variants,
-            last_event_id        = EXCLUDED.last_event_id,
-            updated_at           = now()
-    `, state.TableID, state.BalanceCents, state.TotalPaymentsCents,
-       unpaidJSON, undeliveredJSON, state.LastEventID)
-
-    return err
+    qtx := r.q.WithTx(tx)
+    return qtx.UpsertTableState(ctx, dbgen.UpsertTableStateParams{
+        TableID:             state.TableID,
+        BalanceCents:        state.BalanceCents,
+        TotalPaymentsCents:  state.TotalPaymentsCents,
+        UnpaidVariants:      unpaidJSON,
+        UndeliveredVariants: undeliveredJSON,
+        LastEventID:         state.LastEventID,
+    })
 }
 
 // Get liest den aktuellen Zustand eines Tisches aus der Projektionstabelle.
 func (r Repository) Get(ctx context.Context, tableID int) (TableState, error) {
-    var state TableState
-    var unpaidJSON, undeliveredJSON []byte
-
-    err := r.DB.QueryRowContext(ctx, `
-        SELECT table_id, balance_cents, total_payments_cents,
-               unpaid_variants, undelivered_variants, last_event_id
-        FROM table_state
-        WHERE table_id = $1
-    `, tableID).Scan(
-        &state.TableID, &state.BalanceCents, &state.TotalPaymentsCents,
-        &unpaidJSON, &undeliveredJSON, &state.LastEventID,
-    )
+    row, err := r.q.GetTableState(ctx, tableID)
     if err != nil {
-        return TableState{}, err
+        return TableState{}, db.Error(err)
     }
 
-    if err := json.Unmarshal(unpaidJSON, &state.UnpaidVariants); err != nil {
+    var state TableState
+    state.TableID = row.TableID
+    state.BalanceCents = row.BalanceCents
+    state.TotalPaymentsCents = row.TotalPaymentsCents
+    state.LastEventID = row.LastEventID
+
+    if err := json.Unmarshal(row.UnpaidVariants, &state.UnpaidVariants); err != nil {
         return TableState{}, err
     }
-    if err := json.Unmarshal(undeliveredJSON, &state.UndeliveredVariants); err != nil {
+    if err := json.Unmarshal(row.UndeliveredVariants, &state.UndeliveredVariants); err != nil {
         return TableState{}, err
     }
 
@@ -404,30 +433,40 @@ func (r Repository) Get(ctx context.Context, tableID int) (TableState, error) {
 }
 ```
 
+Das Repository folgt dem bestehenden sqlc-Pattern: sqlc generiert die typsicheren Query-Funktionen in `dbgen/`, das Repository-Package wrappt diese und bildet sie auf Domain-Typen ab (analog zu `event_repo`, `table_repo`, etc. — siehe [Datenbank & Persistenz](database.md)).
+
 ### 4.3 Schritt 3 — Event Store mit Transaktionsunterstützung
 
-Das bestehende `event_repo` muss eine **transaktionale Variante** von `WriteEvent` erhalten, die es ermöglicht, Event-Insert und Projektion-Upsert atomar auszuführen:
+Das bestehende `event_repo` muss eine **transaktionale Variante** von `WriteEvent` erhalten, die es ermöglicht, Event-Insert und Projektion-Upsert atomar auszuführen.
 
-In `backend/repository/event_repo/repo.go` eine neue Methode ergänzen:
+In `backend/repository/event_repo/repo.go` zwei neue Methoden ergänzen:
 
 ```go
 // WriteEventTx schreibt ein Event innerhalb einer bestehenden Transaktion.
 // Damit kann der Aufrufer Event-Insert und Projektion-Upsert atomar ausführen.
+// Nutzt sqlcs WithTx()-Methode, um die generierten Queries transaktional auszuführen.
 func (r Repository) WriteEventTx(ctx context.Context, tx *sql.Tx, e event.Event) (int, error) {
-    var id int
-    err := tx.QueryRowContext(ctx,
-        `INSERT INTO events (user_id, type, subject, data, timestamp)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-        e.UserID, e.Type, e.Subject, e.Data, e.Time,
-    ).Scan(&id)
-    return id, err
+    qtx := r.q.WithTx(tx)
+    id, err := qtx.WriteEvent(ctx, dbgen.WriteEventParams{
+        UserID:    e.UserID,
+        Type:      e.Type,
+        Subject:   e.Subject,
+        Data:      e.Data,
+        Timestamp: e.Time,
+    })
+    if err != nil {
+        return 0, db.Error(err)
+    }
+    return id, nil
 }
 
-// BeginTx startet eine neue Transaktion.
+// BeginTx startet eine neue Datenbanktransaktion.
 func (r Repository) BeginTx(ctx context.Context) (*sql.Tx, error) {
     return r.DB.BeginTx(ctx, nil)
 }
 ```
+
+Die `WithTx()`-Methode wird von sqlc automatisch generiert und erlaubt es, dasselbe `dbgen.Queries`-Struct mit einer bestehenden Transaktion zu verwenden. So wird die bestehende `WriteEvent`-SQL-Query (definiert in `sqlc/queries/events.sql`) wiederverwendet — kein dupliziertes SQL nötig.
 
 ### 4.4 Schritt 4 — Projektion-Service (Domain Layer)
 
@@ -493,7 +532,7 @@ Die Commands in `backend/api/table/application/command.go` werden erweitert, um 
 
 ```go
 type TableStateRepo interface {
-    Upsert(ctx context.Context, tx *sql.Tx, state table_state_repo.TableState) error
+    UpsertTx(ctx context.Context, tx *sql.Tx, state table_state_repo.TableState) error
     Get(ctx context.Context, tableID int) (table_state_repo.TableState, error)
 }
 
@@ -573,7 +612,7 @@ func (c Command) writeEventAndUpdateProjection(ctx context.Context,
         UndeliveredVariants: newProjState.UndeliveredVariants,
         LastEventID:         eventID,
     }
-    if err := c.TableStateRepo.Upsert(ctx, tx, newState); err != nil {
+    if err := c.TableStateRepo.UpsertTx(ctx, tx, newState); err != nil {
         return ErrDatabase
     }
 
@@ -671,8 +710,9 @@ Ein Go-Backfill-Skript (`cmd/backfill-table-state/main.go`) würde:
 | Bereich | Änderung | Aufwand |
 |---------|----------|---------|
 | Datenbank | Migration: `table_state`-Tabelle | Gering |
-| Repository | Neues `table_state_repo` | Mittel |
-| Repository | `event_repo` um `WriteEventTx`/`BeginTx` erweitern | Gering |
+| sqlc | Query-Datei `sqlc/queries/table_state.sql` + `sqlc generate` | Gering |
+| Repository | Neues `table_state_repo` (wrappt sqlc-generierte Funktionen) | Mittel |
+| Repository | `event_repo` um `WriteEventTx`/`BeginTx` erweitern (nutzt `q.WithTx()`) | Gering |
 | Domain | `ApplyEventToState()` + `ProjectionState` | Mittel |
 | Application/Command | `writeEventAndUpdateProjection()` | Mittel |
 | Application/Query | Auf `table_state_repo` umstellen | Gering |
@@ -683,7 +723,7 @@ Ein Go-Backfill-Skript (`cmd/backfill-table-state/main.go`) würde:
 
 ---
 
-## 5. Vor- und Nachteile der vorgeschlagenen Lösung
+## 5. Vor- und Nachteile der synchronen Projektion
 
 ### Vorteile
 
@@ -725,7 +765,358 @@ Ein Go-Backfill-Skript (`cmd/backfill-table-state/main.go`) würde:
 
 ---
 
-## 6. Zusammenfassung und Empfehlung
+## 6. Fortgeschrittene Alternativen: Ohne Snapshots und ohne C→Q-Abhängigkeit
+
+Die in Abschnitt 4 vorgeschlagene **synchrone Projektion** löst die Lese-Probleme elegant, bringt aber drei Nachteile auf der Schreibseite mit sich:
+
+1. **Zusätzliche Komplexität beim Schreiben**: Jedes Command erfordert nun eine Datenbanktransaktion (Event-Insert + Projektion-Upsert). Bisher war ein einzelnes `INSERT` ausreichend.
+2. **Zusätzliche Abhängigkeit (C→Q)**: Der Command-Service hängt von `TableStateRepo` ab — eine zusätzliche Schicht. Bei Fehlern in der Projektion-Logik schlagen Commands fehl, obwohl das Event valide gewesen wäre. Dies verletzt das CQRS-Prinzip der strikten Trennung: die Write-Seite kennt und beeinflusst die Read-Seite.
+3. **Backfill erforderlich**: Für bestehende Daten muss die Projektion einmalig befüllt werden — ein Deployment-Schritt mehr.
+
+Dieser Abschnitt untersucht alternative Ansätze, die **Snapshots vollständig eliminieren** und gleichzeitig die **C→Q-Abhängigkeit vermeiden** — d.h. Commands bleiben einfache Event-INSERTs ohne Wissen über das Read Model.
+
+### 6.1 Problemanalyse: Warum entsteht die C→Q-Abhängigkeit?
+
+Die C→Q-Abhängigkeit in Abschnitt 4 entsteht, weil die Projektion **synchron im Command-Pfad** aktualisiert wird:
+
+```
+Command → BEGIN TX → INSERT event → READ projection → APPLY event → UPSERT projection → COMMIT
+```
+
+Der Command-Service muss dafür:
+- Das `TableStateRepo` kennen (zusätzliches Interface)
+- Die `ApplyEventToState()`-Logik aufrufen (Domain-Logik im Write-Pfad)
+- Bei Projektionsfehlern die gesamte Transaktion rollbacken (Write scheitert wegen Read-Logik)
+
+Dies ist architektonisch problematisch, denn in einem sauberen CQRS-Modell sollte die Write-Seite keine Kenntnis von der Read-Seite haben. Microsoft beschreibt dies im Azure Architecture Center:
+
+> *"Commands update data. Queries retrieve data."* — Die Verantwortlichkeiten sollen getrennt bleiben.
+
+In Event-Sourcing-Systemen ist der Event Store die Single Source of Truth. Projektionen (Read Models) sind **abgeleitete Daten** — sie können jederzeit aus dem Event Log rekonstruiert werden (vgl. Baytech Consulting: *"If a read model becomes corrupted, contains a bug, or needs to be changed, it can be safely deleted and completely rebuilt by replaying the event stream"*). Wenn die Projektion den Write-Pfad blockieren kann, wird diese Eigenschaft untergraben.
+
+### 6.2 Alternative A: PostgreSQL-Trigger-basierte Projektion
+
+#### Konzept
+
+Die Projektionslogik wird **auf Datenbankebene** via PostgreSQL-Trigger implementiert. Ein `AFTER INSERT`-Trigger auf der `events`-Tabelle aktualisiert die `table_state`-Tabelle automatisch bei jedem neuen Event.
+
+```
+Command → INSERT event → [Trigger: UPDATE table_state] → Done
+Query   → SELECT FROM table_state → Done
+```
+
+#### Implementierung
+
+```sql
+-- Trigger-Funktion: aktualisiert table_state nach jedem Event-Insert
+CREATE OR REPLACE FUNCTION update_table_state_projection()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_table_id INT;
+    v_data JSONB;
+    v_variants JSONB;
+    v_total_cents INT;
+BEGIN
+    -- Nur table-Events verarbeiten
+    IF NEW.subject NOT LIKE 'table:%' THEN
+        RETURN NEW;
+    END IF;
+
+    v_table_id := CAST(split_part(NEW.subject, ':', 2) AS INT);
+    v_data := NEW.data;
+
+    -- Initialen Zustand sicherstellen
+    INSERT INTO table_state (table_id, last_event_id)
+    VALUES (v_table_id, 0)
+    ON CONFLICT (table_id) DO NOTHING;
+
+    CASE NEW.type
+        WHEN 'table.order-placed:v1' THEN
+            v_total_cents := (v_data->>'totalPriceCents')::INT;
+            UPDATE table_state SET
+                balance_cents = balance_cents + v_total_cents,
+                unpaid_variants = unpaid_variants || (v_data->'variants'),
+                undelivered_variants = undelivered_variants || (v_data->'variants'),
+                last_event_id = NEW.id,
+                updated_at = now()
+            WHERE table_id = v_table_id;
+
+        WHEN 'table.payment-registered:v1' THEN
+            v_total_cents := (v_data->>'totalPaymentCents')::INT;
+            UPDATE table_state SET
+                balance_cents = balance_cents - v_total_cents,
+                total_payments_cents = total_payments_cents + v_total_cents,
+                last_event_id = NEW.id,
+                updated_at = now()
+            WHERE table_id = v_table_id;
+            -- Hinweis: Varianten-Reduktion (reduceVariants) erfordert
+            -- komplexere JSONB-Manipulation — siehe Bewertung unten.
+
+        WHEN 'table.variants-canceled:v1' THEN
+            v_total_cents := (v_data->>'totalCancelationCents')::INT;
+            UPDATE table_state SET
+                balance_cents = balance_cents - v_total_cents,
+                last_event_id = NEW.id,
+                updated_at = now()
+            WHERE table_id = v_table_id;
+
+        WHEN 'table.variants-delivered:v1' THEN
+            UPDATE table_state SET
+                last_event_id = NEW.id,
+                updated_at = now()
+            WHERE table_id = v_table_id;
+
+        ELSE NULL; -- Unbekannte Events ignorieren (z.B. Snapshots)
+    END CASE;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_update_table_state
+    AFTER INSERT ON events
+    FOR EACH ROW
+    EXECUTE FUNCTION update_table_state_projection();
+```
+
+#### Bewertung
+
+| Kriterium | Bewertung |
+|-----------|-----------|
+| Command-Einfachheit | ✅ Commands bleiben einfache Event-INSERTs — kein Go-Code-Änderung |
+| C→Q-Trennung | ✅ Command-Service hat keine Kenntnis der Projektion |
+| Konsistenz | ✅ Atomar — Trigger läuft in derselben Transaktion wie INSERT |
+| Snapshot-Eliminierung | ✅ Projektion ersetzt Snapshots vollständig |
+| Backfill | ⚠️ Einmalig nötig für bestehende Daten (oder Trigger manuell für historische Events triggern) |
+| Wartbarkeit | ❌ Business-Logik in PL/pgSQL — schwerer zu testen, debuggen und refactoren als Go-Code |
+| JSONB-Manipulation | ❌ Komplexe Varianten-Reduktion (`reduceVariants`) in PL/pgSQL ist aufwendig und fehleranfällig |
+| Testbarkeit | ❌ Keine Unit-Tests im Go-Sinne; Integrationstests auf DB-Ebene nötig |
+
+**Fazit**: Für die einfachen Aggregationen (Balance, Summen) funktioniert der Trigger-Ansatz gut. Die **Varianten-Listen-Manipulation** (Elemente aus JSONB-Arrays subtrahieren) ist in PL/pgSQL jedoch deutlich komplexer als in Go und schwer testbar. Für jottis spezifische Anforderungen (varianten-basierte Akkumulation und Reduktion) ist dieser Ansatz **bedingt geeignet**.
+
+### 6.3 Alternative B: Query-seitige Lazy Projection (Read-Through-Cache)
+
+#### Konzept
+
+Die Projektion wird **nicht beim Schreiben** aktualisiert, sondern **beim Lesen** — als Read-Through-Cache. Wenn eine Query den Tischzustand anfragt, prüft die Query-Seite, ob die gespeicherte Projektion aktuell ist (anhand `last_event_id`). Falls nicht, werden nur die fehlenden Events nachgespielt und die Projektion aktualisiert.
+
+```
+Command → INSERT event → Done (kein Projektions-Update)
+Query   → Ist Projektion aktuell?
+            Ja  → SELECT FROM table_state → return
+            Nein → Replay fehlende Events → UPDATE table_state → return
+```
+
+#### Implementierung
+
+```go
+// In query.go — Lazy Projection Pattern
+func (q Query) GetTableBalance(ctx context.Context, tableID int) (int, error) {
+    state, err := q.ensureProjectionUpToDate(ctx, tableID)
+    if err != nil {
+        return 0, err
+    }
+    return state.BalanceCents, nil
+}
+
+func (q Query) ensureProjectionUpToDate(ctx context.Context, tableID int) (TableState, error) {
+    // 1. Aktuellen Projektion-Zustand lesen (falls vorhanden)
+    currentState, err := q.TableStateRepo.Get(ctx, tableID)
+    if err != nil && !errors.Is(err, db.ErrNotFound) {
+        return TableState{}, ErrDatabase
+    }
+
+    // 2. Prüfen, ob neue Events existieren
+    subject := "table:" + strconv.Itoa(tableID)
+    var events []event.Event
+    if currentState.LastEventID > 0 {
+        // Nur Events seit dem letzten projizierten Event lesen
+        events, err = q.EventRepo.ReadEventsSinceID(ctx, subject, currentState.LastEventID+1)
+    } else {
+        // Kein Projektion-Eintrag vorhanden: alle Events lesen
+        events, err = q.EventRepo.ReadEventsBySubject(ctx, subject)
+    }
+    if err != nil {
+        return TableState{}, ErrDatabase
+    }
+
+    // 3. Wenn keine neuen Events: Projektion ist aktuell
+    if len(events) == 0 {
+        return currentState, nil
+    }
+
+    // 4. Fehlende Events auf den Zustand anwenden
+    projState := table.ProjectionState{
+        BalanceCents:        currentState.BalanceCents,
+        TotalPaymentsCents:  currentState.TotalPaymentsCents,
+        UnpaidVariants:      currentState.UnpaidVariants,
+        UndeliveredVariants: currentState.UndeliveredVariants,
+    }
+    for _, evt := range events {
+        projState, err = table.ApplyEventToState(projState, evt)
+        if err != nil {
+            return TableState{}, err
+        }
+    }
+
+    // 5. Projektion aktualisieren (für nachfolgende Queries)
+    newState := TableState{
+        TableID:             tableID,
+        BalanceCents:        projState.BalanceCents,
+        TotalPaymentsCents:  projState.TotalPaymentsCents,
+        UnpaidVariants:      projState.UnpaidVariants,
+        UndeliveredVariants: projState.UndeliveredVariants,
+        LastEventID:         events[len(events)-1].ID,
+    }
+    // Nicht-transaktional: Projektions-Update ist optional.
+    // Bei Fehler wird die Projektion beim nächsten Read erneut berechnet.
+    _ = q.TableStateRepo.Upsert(ctx, newState)
+
+    return newState, nil
+}
+```
+
+#### Bewertung
+
+| Kriterium | Bewertung |
+|-----------|-----------|
+| Command-Einfachheit | ✅ Commands bleiben unverändert — reines Event-INSERT |
+| C→Q-Trennung | ✅ Command-Service hat keine Kenntnis der Projektion |
+| Konsistenz | ✅ Stark konsistent — Leser sehen immer den aktuellen Zustand (Replay on Read) |
+| Snapshot-Eliminierung | ✅ Projektion ersetzt Snapshots vollständig |
+| Backfill | ✅ **Nicht nötig** — Lazy Projection befüllt sich beim ersten Lesezugriff selbst |
+| Wartbarkeit | ✅ Gesamte Projektionslogik in Go — testbar mit Unit-Tests |
+| Selbstheilend | ✅ Fehlerhafte Projektion wird beim nächsten Read automatisch korrigiert |
+| Latenz beim Lesen | ⚠️ Erster Lesezugriff nach vielen Writes ist langsamer (einmaliger Replay) |
+| Concurrent Writes | ⚠️ Bei gleichzeitigen Reads auf denselben Tisch kann es zu Race Conditions beim Projektions-Update kommen — lösbar durch `SELECT ... FOR UPDATE` oder optimistisches Locking via `last_event_id` |
+
+**Fazit**: Die Lazy Projection löst **alle drei genannten Nachteile** der synchronen Projektion:
+- ✅ Keine zusätzliche Schreibkomplexität (Commands bleiben ein INSERT)
+- ✅ Keine C→Q-Abhängigkeit (Command-Service kennt die Projektion nicht)
+- ✅ Kein Backfill nötig (Projektion befüllt sich selbst beim ersten Read)
+
+Der Trade-off ist eine potenzielle Latenz beim ersten Lesezugriff, die aber in der Praxis gering ist: Tische in jotti haben typischerweise wenige Dutzend Events pro Schicht, und das Replay weniger Events ist in Go extrem schnell.
+
+### 6.4 Alternative C: Asynchroner Background Worker (Polling)
+
+#### Konzept
+
+Ein Hintergrundprozess (Goroutine) pollt periodisch die `events`-Tabelle auf neue Events und aktualisiert die Projektion asynchron. Commands und Queries sind vollständig entkoppelt.
+
+```
+Command → INSERT event → Done
+                              ↓ (asynchron, z.B. alle 100ms)
+Worker  → Poll neue Events → UPDATE table_state
+Query   → SELECT FROM table_state → Done
+```
+
+#### Implementierung (Skizze)
+
+```go
+// projector/worker.go
+func StartProjectionWorker(ctx context.Context, eventRepo EventRepo,
+    stateRepo TableStateRepo, interval time.Duration) {
+
+    ticker := time.NewTicker(interval)
+    defer ticker.Stop()
+
+    for {
+        select {
+        case <-ctx.Done():
+            return
+        case <-ticker.C:
+            if err := projectNewEvents(ctx, eventRepo, stateRepo); err != nil {
+                log.Error().Err(err).Msg("Projection worker error")
+            }
+        }
+    }
+}
+
+func projectNewEvents(ctx context.Context, eventRepo EventRepo,
+    stateRepo TableStateRepo) error {
+
+    // 1. Höchste projizierte Event-ID ermitteln
+    lastProjectedID, _ := stateRepo.GetGlobalLastEventID(ctx)
+
+    // 2. Alle neuen Events seit letzter Projektion lesen
+    events, err := eventRepo.ReadEventsSinceGlobalID(ctx, lastProjectedID+1)
+    if err != nil || len(events) == 0 {
+        return err
+    }
+
+    // 3. Events nach Tisch gruppieren und Projektionen aktualisieren
+    for tableID, tableEvents := range groupByTable(events) {
+        state, _ := stateRepo.Get(ctx, tableID)
+        for _, evt := range tableEvents {
+            state = table.ApplyEventToState(state, evt)
+        }
+        stateRepo.Upsert(ctx, state)
+    }
+
+    return nil
+}
+```
+
+#### Bewertung
+
+| Kriterium | Bewertung |
+|-----------|-----------|
+| Command-Einfachheit | ✅ Commands bleiben unverändert — reines Event-INSERT |
+| C→Q-Trennung | ✅ Vollständige Entkopplung — Command kennt weder Projektion noch Worker |
+| Konsistenz | ❌ **Eventual Consistency** — kurzes Zeitfenster (~100ms), in dem Leser veraltete Daten sehen |
+| Snapshot-Eliminierung | ✅ Projektion ersetzt Snapshots vollständig |
+| Backfill | ⚠️ Worker kann bestehende Events beim Start nachprojizieren — aber initialer Durchlauf nötig |
+| Wartbarkeit | ✅ Projektionslogik in Go — testbar |
+| Infrastruktur | ❌ Zusätzliche Goroutine, Lifecycle-Management, Health-Checks, Fehlerbehandlung bei Crashes |
+| Skalierbarkeit | ⚠️ Einzelner Worker — bei mehreren Instanzen braucht man Leader Election oder Partitionierung |
+
+**Fazit**: Der Background Worker bietet die **sauberste CQRS-Trennung**, hat aber einen gravierenden Nachteil für jotti: **Eventual Consistency**. In einem Kassensystem muss die Servicekraft unmittelbar nach dem Aufgeben einer Bestellung die korrekte Balance sehen. Ein Fenster von 100ms mag technisch akzeptabel erscheinen, ist aber architektonisch riskant — unter Last, bei Fehlern im Worker oder bei Neustarts kann dieses Fenster wachsen. Microsoft und Confluent betonen diese Problematik:
+
+> *"When the read databases and write databases are separated, the read data might not show the most recent changes immediately."* — Microsoft Azure Architecture Center
+
+Für jottis Kontext — wenige gleichzeitige Benutzer, keine Hochlast-Anforderungen — überwiegen die operativen Nachteile (Goroutine-Management, Eventual Consistency, Recovery nach Crashes) die architektonischen Vorteile.
+
+### 6.5 Vergleich der Alternativen
+
+| Kriterium | Synchrone Projektion (Abschnitt 4) | A: DB-Trigger | B: Lazy Projection | C: Background Worker |
+|-----------|--------------------------------------|---------------|---------------------|-----------------------|
+| Command bleibt einfach (single INSERT) | ❌ Transaktion nötig | ✅ | ✅ | ✅ |
+| Keine C→Q-Abhängigkeit | ❌ Command kennt Read Model | ✅ | ✅ | ✅ |
+| Kein Backfill nötig | ❌ Einmaliger Backfill | ❌ Einmaliger Backfill | ✅ Self-healing | ⚠️ Worker-Initialisierung |
+| Starke Konsistenz | ✅ Gleiche Transaktion | ✅ Gleiche Transaktion | ✅ Read-Time-Konsistenz | ❌ Eventual Consistency |
+| Snapshot-Eliminierung | ✅ | ✅ | ✅ | ✅ |
+| Wartbarkeit / Testbarkeit | ✅ Go-Code | ❌ PL/pgSQL | ✅ Go-Code | ✅ Go-Code |
+| JSONB-Varianten-Manipulation | ✅ Go-Logik | ❌ Komplex in SQL | ✅ Go-Logik | ✅ Go-Logik |
+| Infrastruktur-Overhead | Gering | Gering | Gering | Mittel (Worker-Lifecycle) |
+| Implementierungsaufwand | Mittel | Mittel | **Gering** | Hoch |
+
+### 6.6 Empfehlung für jotti
+
+Für jottis spezifischen Kontext — ein Kassensystem mit wenigen gleichzeitigen Benutzern, PostgreSQL als einziger Datenspeicher, Go als Backend-Sprache — ist **Alternative B (Lazy Projection)** die attraktivste Wahl, wenn die Nachteile der synchronen Projektion vermieden werden sollen:
+
+1. **Commands bleiben einfach**: Ein `INSERT INTO events` — kein transaktionaler Overhead, keine neue Abhängigkeit. Der Code in `command.go` bleibt unverändert.
+2. **Keine C→Q-Abhängigkeit**: Der Command-Service kennt weder die `table_state`-Tabelle noch das `TableStateRepo`. Die CQRS-Trennung bleibt rein.
+3. **Kein Backfill nötig**: Die Projektion befüllt sich selbst beim ersten Lesezugriff. Kein separater Migrations- oder Deployment-Schritt.
+4. **Starke Konsistenz**: Da die Projektion beim Lesen aktualisiert wird, sieht der Leser immer den aktuellen Zustand — kein Eventual-Consistency-Problem.
+5. **Selbstheilend**: Fehlerhafte Projektionen werden beim nächsten Read automatisch korrigiert — robuster als die synchrone Variante, bei der ein Projektionsfehler den Write-Pfad blockiert.
+
+Der einzige Trade-off — eine leicht erhöhte Latenz beim ersten Read nach mehreren Writes — ist für jottis Lastprofil (wenige Events pro Tisch, wenige Tische gleichzeitig) vernachlässigbar.
+
+**Empfohlene Reihenfolge der Umsetzung (falls Lazy Projection gewählt wird):**
+
+1. Migration: `table_state`-Tabelle anlegen (identisch zu Abschnitt 4.1)
+2. sqlc-Queries für `table_state` definieren (identisch zu Abschnitt 4.2)
+3. `table_state_repo` implementieren — mit einer nicht-transaktionalen `Upsert`-Methode (ohne `*sql.Tx`)
+4. `ApplyEventToState()` in der Domain-Schicht implementieren (identisch zu Abschnitt 4.4)
+5. `Query`-Struct um `TableStateRepo` erweitern, `ensureProjectionUpToDate()` implementieren
+6. `CreateTableSnapshot()` und Snapshot-Logik entfernen
+7. Tests: Unit-Tests für `ApplyEventToState()`, Integration-Tests für Lazy Projection
+
+**Kein `command.go`-Refactoring nötig** — Commands bleiben unverändert.
+
+---
+
+## 7. Zusammenfassung und Empfehlung
 
 ### Zusammenfassung
 
@@ -733,44 +1124,55 @@ jotti implementiert CQRS bereits auf der logischen Ebene: Die Application-Schich
 
 Was fehlt, ist die **Nutzung eines separaten Read Models**. Aktuell lesen sowohl Commands als auch Queries aus demselben Event Store — die Query-Seite rekonstruiert den Zustand jedes Mal aus Events. Das ist konzeptuell sauber (keine Redundanz, Quelle der Wahrheit ist der Event Store), aber suboptimal in Bezug auf Leseleistung und Wartbarkeit.
 
-Die vorgeschlagene Erweiterung — eine **synchrone Projektionstabelle `table_state`** — ist die kleinstmögliche Ergänzung, die den größten Nutzen bringt:
+Dieses Dokument beschreibt zwei Wege, den Zustand als Projektion vorzuhalten und damit den Snapshot-Mechanismus abzulösen:
 
-- Sie ersetzt den unnatürlichen Snapshot-as-Event-Mechanismus durch ein sauberes, immer-aktuelles Read Model.
-- Sie macht Balance- und Positions-Abfragen trivial.
-- Sie bewahrt den vollständigen Event Log als unveränderliche Quelle der Wahrheit.
-- Sie hält die Schreiboperationen transaktional konsistent.
+1. **Synchrone Projektion** (Abschnitt 4): Die Projektion wird im Command-Pfad innerhalb derselben Transaktion aktualisiert. Einfach zu verstehen und konsistent, aber mit erhöhter Schreibkomplexität und einer C→Q-Abhängigkeit.
+2. **Lazy Projection** (Abschnitt 6.3): Die Projektion wird auf der Query-Seite als Read-Through-Cache aktualisiert. Commands bleiben unverändert, kein Backfill nötig, selbstheilend — aber leicht erhöhte Latenz beim ersten Lesezugriff.
+
+Beide Ansätze nutzen die gleiche `table_state`-Tabelle und die gleiche `ApplyEventToState()`-Logik. Der Unterschied liegt nur darin, **wann und wo** die Projektion aktualisiert wird.
 
 ### Empfehlung
 
-**Die Implementierung der synchronen Projektion (`table_state`) wird empfohlen** — aber mit Prioritätsstufe **mittel**, nicht hoch. Begründung:
+**Die Implementierung einer Projektionstabelle (`table_state`) wird empfohlen** — aber mit Prioritätsstufe **mittel**, nicht hoch. Begründung:
 
 1. **Kein unmittelbarer Performance-Engpass**: In der aktuellen Praxis sind Tische klein (wenige Dutzend Events pro Schicht). Der Snapshot-Mechanismus adressiert das Performance-Problem ausreichend. Die Migration ist sinnvoll, aber nicht dringend.
 
-2. **Klarer Architektur-Gewinn**: Der Snapshot-as-Event-Ansatz ist konzeptuell fragwürdig — ein Snapshot ist kein Domain-Event. Die synchrone Projektion ist konzeptuell sauberer und führt langfristig zu besser wartbarem Code.
+2. **Klarer Architektur-Gewinn**: Der Snapshot-as-Event-Ansatz ist konzeptuell fragwürdig — ein Snapshot ist kein Domain-Event. Eine echte Projektion ist konzeptuell sauberer und führt langfristig zu besser wartbarem Code.
 
 3. **Enabler für zukünftige Features**: Analytische Abfragen (Tagesabrechnung nach Benutzer, Umsatz pro Produkt) werden mit typisierten Projektionen erheblich einfacher implementierbar. Die `table_state`-Projektion ist der erste Schritt in diese Richtung.
 
 4. **Bewusstes Maßhalten**: Das Muster bleibt auf Stufe 2 (*Separate Read Models im selben Store*). Eine Trennung in separate Datenspeicher oder asynchrone Projektionen ist für jottis Größe nicht notwendig und würde mehr Komplexität einführen als lösen — wie Fowler warnt.
 
+**Bevorzugter Ansatz**: Wenn die Projektion umgesetzt wird, empfiehlt sich die **Lazy Projection** (Abschnitt 6.3), da sie alle Vorteile der synchronen Projektion bietet, ohne die drei Nachteile (Schreibkomplexität, C→Q-Abhängigkeit, Backfill) einzuführen. Die synchrone Projektion (Abschnitt 4) bleibt als Alternative, falls eine noch einfachere Implementierung bevorzugt wird.
+
 **Nicht empfohlen** wird:
-- Asynchrone Projektionen (Eventual Consistency ist für ein Kassensystem nicht akzeptabel)
-- Separate Read-Datenbank (overhead nicht gerechtfertigt)
+- Asynchrone Projektionen via Background Worker (Eventual Consistency ist für ein Kassensystem nicht akzeptabel)
+- Separate Read-Datenbank (Overhead nicht gerechtfertigt)
+- PostgreSQL-Trigger-basierte Projektion (Business-Logik in PL/pgSQL schwer wartbar)
 - Vollständige Auflösung des Event Store zugunsten von CRUD (verliert Audit-Trail-Garantien — siehe [no-event-sourcing.md](no-event-sourcing.md))
 
 ### Fazit
 
-CQRS ist in jotti bereits als Denkmodell verankert — die Benennung `Command`/`Query`, die Trennung der Structs und Handler zeigen das. Der nächste sinnvolle Schritt ist, dieses Muster mit einer konkreten Projektion zu vervollständigen und damit die bekannten Schwächen des aktuellen Ansatzes (Snapshot-Mechanismus, Lese-Komplexität) elegant zu lösen. Die Implementierung ist überschaubar, rückwärtskompatibel und bringt einen messbaren Gewinn in Sauberkeit und Wartbarkeit.
+CQRS ist in jotti bereits als Denkmodell verankert — die Benennung `Command`/`Query`, die Trennung der Structs und Handler zeigen das. Der nächste sinnvolle Schritt ist, dieses Muster mit einer konkreten Projektion zu vervollständigen und damit die bekannten Schwächen des aktuellen Ansatzes (Snapshot-Mechanismus, Lese-Komplexität) elegant zu lösen. Die Implementierung ist überschaubar, rückwärtskompatibel und bringt einen messbaren Gewinn in Sauberkeit und Wartbarkeit. Die sqlc-basierte Repository-Architektur (siehe [ADR: Datenbankzugriff](adr/orm.md)) bietet dabei eine solide Grundlage für die neuen Repository-Schichten.
 
 ---
 
-## 7. Referenzen
+## 8. Referenzen
 
 - **Martin Fowler**: [CQRS](https://martinfowler.com/bliki/CQRS.html) — Grundlegende Beschreibung des Musters, Warnung vor übermäßigem Einsatz
 - **Martin Fowler**: [CommandQuerySeparation](https://martinfowler.com/bliki/CommandQuerySeparation.html) — Das Grundprinzip hinter CQRS
 - **Greg Young**: [CQRS Documents](https://cqrs.wordpress.com/wp-content/uploads/2010/11/cqrs_documents.pdf) (PDF) — Originals Dokument, das CQRS popularisiert hat; Verbindung mit Event Sourcing
 - **Udi Dahan**: [Clarified CQRS](https://udidahan.com/2009/12/09/clarified-cqrs/) — Frühe, einflussreiche Beschreibung
 - **Wikipedia**: [Command Query Responsibility Segregation](https://en.wikipedia.org/wiki/Command_Query_Responsibility_Segregation) — Übersicht und Geschichte
-- **Microsoft**: [CQRS pattern (Azure Architecture)](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs) — Praxisnahe Beschreibung mit Varianten
+- **Microsoft**: [CQRS pattern (Azure Architecture)](https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs) — Praxisnahe Beschreibung mit Varianten, Separate Read/Write Models
+- **Microsoft**: [Tactical DDD](https://learn.microsoft.com/en-us/azure/architecture/microservices/model/tactical-domain-driven-design) — Aggregate-Design, Domain Events, Konsistenzgrenzen
+- **AWS**: [CQRS Pattern (Prescriptive Guidance)](https://docs.aws.amazon.com/prescriptive-guidance/latest/modernization-data-persistence/cqrs-pattern.html) — Eventual Consistency und Datenspeicher-Kombinationen
+- **Confluent**: [What is CQRS?](https://www.confluent.io/learn/cqrs/) — Asynchrone Updates, Event-Log-Integration, Projections
+- **Baytech Consulting**: [Event Sourcing Explained 2025](https://www.baytechconsulting.com/blog/event-sourcing-explained-2025) — Snapshots, Projections, Aggregate-Rehydration
+- **Mia-Platform**: [Understanding Event Sourcing and CQRS](https://mia-platform.eu/blog/understanding-event-sourcing-and-cqrs-pattern/) — Zusammenspiel von Event Sourcing und CQRS
+- **GeeksforGeeks**: [CQRS vs. Event Sourcing](https://www.geeksforgeeks.org/system-design/difference-between-cqrs-and-event-sourcing/) — Unterschiede und Gemeinsamkeiten
+- **DEV Community**: [Event Sourcing vs. CRUD](https://dev.to/alex_aslam/event-sourcing-vs-crud-when-1000-database-writes-dont-matter-5bpj) — Hybride Ansätze und Entscheidungsframeworks
 - **Bertrand Meyer**: *Object-Oriented Software Construction* (1988) — Ursprung von CQS
 - **jotti intern**: [Event-Sourcing vs. CRUD](event-sourcing-vs-crud.md) — Hybride Architektur und Event-Sourcing-Details
 - **jotti intern**: [jotti ohne Event-Sourcing](no-event-sourcing.md) — CRUD-Alternative und Nachteile-Analyse
+- **jotti intern**: [ADR: Datenbankzugriff — Entscheidung für sqlc](adr/orm.md) — sqlc als Persistenz-Werkzeug
