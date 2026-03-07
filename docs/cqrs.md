@@ -14,7 +14,7 @@ Dieses Dokument beschreibt das Architekturmuster **Command Query Responsibility 
 1. [CQRS — Theorie und Ursprung](#1-cqrs--theorie-und-ursprung)
 2. [CQRS in jotti — Ist-Zustand](#2-cqrs-in-jotti--ist-zustand)
 3. [Die Schwächen von Event-Sourcing und wie CQRS hilft](#3-die-schwächen-von-event-sourcing-und-wie-cqrs-hilft)
-4. [Implementierungsplan: Synchrone Projektion (empfohlener Ansatz)](#4-implementierungsplan-synchrone-projektion-empfohlener-ansatz)
+4. [Implementierungsplan: Synchrone Projektion (einfacher Ansatz)](#4-implementierungsplan-synchrone-projektion-einfacher-ansatz)
 5. [Vor- und Nachteile der synchronen Projektion](#5-vor--und-nachteile-der-synchronen-projektion)
 6. [Fortgeschrittene Alternativen: Ohne Snapshots und ohne C→Q-Abhängigkeit](#6-fortgeschrittene-alternativen-ohne-snapshots-und-ohne-cq-abhängigkeit)
 7. [Zusammenfassung und Empfehlung](#7-zusammenfassung-und-empfehlung)
@@ -270,7 +270,7 @@ CQRS löst primär die **Lese-seitigen** Nachteile. Schreib-seitige Nachteile (f
 
 ---
 
-## 4. Implementierungsplan: Synchrone Projektion (empfohlener Ansatz)
+## 4. Implementierungsplan: Synchrone Projektion (einfacher Ansatz)
 
 Der Plan beschreibt die Migration von der aktuellen logischen CQRS-Trennung zu einem vollständigen CQRS mit **synchronen Projektionen** als Read Model. Der Ansatz ist bewusst inkrementell und vermeidet einen Big-Bang-Umbau.
 
@@ -430,6 +430,30 @@ func (r Repository) Get(ctx context.Context, tableID int) (TableState, error) {
     }
 
     return state, nil
+}
+
+// Upsert schreibt oder aktualisiert den Zustand eines Tisches nicht-transaktional.
+// Wird für die Lazy Projection (Alternative B, Abschnitt 6.3) verwendet, bei der
+// das Projektions-Update außerhalb einer Transaktion erfolgt und bei Fehlern
+// ignoriert werden kann (Self-Healing beim nächsten Read).
+func (r Repository) Upsert(ctx context.Context, state TableState) error {
+    unpaidJSON, err := json.Marshal(state.UnpaidVariants)
+    if err != nil {
+        return err
+    }
+    undeliveredJSON, err := json.Marshal(state.UndeliveredVariants)
+    if err != nil {
+        return err
+    }
+
+    return r.q.UpsertTableState(ctx, dbgen.UpsertTableStateParams{
+        TableID:             state.TableID,
+        BalanceCents:        state.BalanceCents,
+        TotalPaymentsCents:  state.TotalPaymentsCents,
+        UnpaidVariants:      unpaidJSON,
+        UndeliveredVariants: undeliveredJSON,
+        LastEventID:         state.LastEventID,
+    })
 }
 ```
 
@@ -849,8 +873,11 @@ BEGIN
                 last_event_id = NEW.id,
                 updated_at = now()
             WHERE table_id = v_table_id;
-            -- Hinweis: Varianten-Reduktion (reduceVariants) erfordert
-            -- komplexere JSONB-Manipulation — siehe Bewertung unten.
+            -- Hinweis: Die Varianten-Reduktion (reduceVariants) — also das
+            -- Entfernen bezahlter Varianten aus dem JSONB-Array unpaid_variants —
+            -- erfordert in PL/pgSQL elementweisen Vergleich und Manipulation von
+            -- JSONB-Arrays (jsonb_array_elements, jsonb_agg mit Filterung).
+            -- In Go ist dies eine einfache Slice-Operation, in SQL deutlich komplexer.
 
         WHEN 'table.variants-canceled:v1' THEN
             v_total_cents := (v_data->>'totalCancelationCents')::INT;
