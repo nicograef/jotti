@@ -4,12 +4,16 @@ Dieses Dokument richtet sich an KI-Coding-Agenten (Copilot, Cursor, Cline, Aider
 
 ## Projektübersicht
 
-jotti ist ein Bestell- und Kassensystem für Vereine und Nonprofit-Veranstaltungen. Servicekräfte nehmen auf Smartphones Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer.
+jotti ist ein **Gastronomie-Kassensystem (POS)** für Vereine und Non-Profit-Veranstaltungen (Vereinsfeste, Weihnachtsmärkte, Konzerte, Maihocks). Servicekräfte nehmen auf Smartphones Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer.
+
+jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo, kein Zahlungsgateway. Self-hosted, Open Source, Mobile-first.
 
 **Weiterführende Dokumentation:**
+- [POS-Einordnung](docs/pos.md) — Kontext, Zielgruppe, Abgrenzung zu kommerziellen Systemen
 - [Anforderungskatalog](docs/requirements.md) — 50 Anforderungen mit Status und Implementierungsvorschlägen
 - [Implementierungsplan](docs/implementation-plan.md) — Nächste Features mit Code-Snippets und Akzeptanzkriterien
 - [Entwicklung & Deployment](docs/development.md) — Setup, Tests, CI/CD, Deployment
+- [Ubiquitous Language](docs/language.md) — Domain-Begriffe und DDD-Empfehlungen
 
 ## Tech-Stack
 
@@ -30,7 +34,7 @@ jotti ist ein Bestell- und Kassensystem für Vereine und Nonprofit-Veranstaltung
 6. **Deutsche UI, englischer Code.** Alle Benutzer-sichtbaren Strings auf Deutsch. Code, Variablen, Commits auf Englisch.
 7. **Kein globaler State-Store im Frontend.** Nur React Hooks + Singletons.
 8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
-9. **Dokumentation synchron halten.** Bei Änderungen diese Dateien aktualisieren, sofern betroffen: `AGENTS.md`, `README.md`, `docs/development.md`, `docs/requirements.md`, `docs/implementation-plan.md`.
+9. **Dokumentation synchron halten.** Bei Änderungen diese Dateien aktualisieren, sofern betroffen: `AGENTS.md`, `README.md`, `docs/development.md`, `docs/requirements.md`, `docs/implementation-plan.md`, `docs/pos.md`, `docs/language.md`.
 10. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend. Das Frontend zeigt an, was das Backend liefert. Vor dem Hinzufügen von Frontend-Filtern prüfen, ob das Backend die Daten bereits korrekt aufbereitet.
 
 ## Backend-Konventionen
@@ -85,7 +89,7 @@ Verwaltung von Stammdaten. Nur für Administratoren zugänglich.
 
 ### Service-Bereich (Rollen: `admin` + `senior_service` + `service`)
 
-Bestell- und Kassierbetrieb am Tisch.
+Kassenbetrieb am Tisch.
 
 - **Backend**: Routen in `api/service.go` unter `/service/*`. Stornierung (`cancel-table-variants`) läuft über `api/senior_service.go` mit Middleware nur für `admin` und `senior_service`.
 - **Frontend**: Seiten unter `src/service/` mit `ServiceGuard` (React Router Loader)
@@ -103,7 +107,7 @@ backend/
   sqlc.yaml                     # sqlc-Konfiguration
   sqlc/queries/                 # SQL-Queries für sqlc
   sqlc/dbgen/                   # Generierter Code (NICHT EDITIEREN)
-  api/service.go                # Service-Routen (Bestell-/Kassierbetrieb)
+  api/service.go                # Service-Routen (Kassenbetrieb)
   api/senior_service.go         # Senior-Service-Routen (Stornierung)
   api/admin.go                  # Admin-Routen (Verwaltung)
   api/auth.go                   # Auth-Routen (Login, Passwort setzen)

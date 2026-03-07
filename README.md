@@ -1,8 +1,10 @@
 # jotti
 
-Ein einfaches Bestell- und Kassensystem für Vereine und Nonprofit-Organisationen (z. B. Vereinsfeste, Weihnachtsmärkte).
+Ein leichtgewichtiges **Gastronomie-Kassensystem (POS)** für Vereine und Non-Profit-Organisationen bei Veranstaltungen — Vereinsfeste, Weihnachtsmärkte, Konzerte, Maihocks, Sommerfeste.
 
 Servicekräfte nehmen auf Smartphones Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer über einen eigenen Admin-Bereich.
+
+> **Grundsatz:** Höchste Qualität statt umfangreichem Featureset. Keine Hardware-Bindung, keine laufenden Kosten, kein Cloud-Abo.
 
 ## Features
 
@@ -62,10 +64,12 @@ Ausführliche Anleitungen: [Entwicklung & Deployment](docs/development.md)
 
 | Dokument | Inhalt |
 | --- | --- |
+| [docs/pos.md](docs/pos.md) | POS-Einordnung: Kontext, Zielgruppe, Abgrenzung |
 | [docs/development.md](docs/development.md) | Lokale Entwicklung, Tests, Deployment, CI/CD |
 | [docs/requirements.md](docs/requirements.md) | Vollständiger Anforderungskatalog (50 Anforderungen) |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Implementierungsplan für die nächsten Features |
 | [docs/database.md](docs/database.md) | Datenbank & Persistenz (sqlc, Repository-Layer) |
+| [docs/language.md](docs/language.md) | Ubiquitous Language: Domain-Begriffe und DDD-Empfehlungen |
 | [docs/adr/orm.md](docs/adr/orm.md) | ADR: Bewertung von ORM-Alternativen und Entscheidung für sqlc |
 | [AGENTS.md](AGENTS.md) | Instruktionen für KI-Coding-Agenten |
 
