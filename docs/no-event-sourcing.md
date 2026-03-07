@@ -2,7 +2,7 @@
 
 Dieses Dokument beschreibt, wie jotti implementiert werden würde, wenn **alle Tisch-Operationen** (Bestellungen, Zahlungen, Lieferungen, Stornierungen) statt mit Event-Sourcing mit klassischem CRUD umgesetzt wären. Anschließend werden die Schlüsselunterschiede zur aktuellen Implementierung analysiert und beide Ansätze objektiv verglichen.
 
-> **Kontext**: Die aktuelle jotti-Architektur ist in [Event-Sourcing vs. CRUD](event-sourcing-vs-crud.md) und [Database & Backend Persistence](orm.md) beschrieben.
+> **Kontext**: Die aktuelle jotti-Architektur ist in [Event-Sourcing vs. CRUD](event-sourcing-vs-crud.md) und [Datenbank & Persistenz](database.md) beschrieben.
 
 ---
 

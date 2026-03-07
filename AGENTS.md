@@ -131,9 +131,11 @@ database/
   migrations/                   # SQL-Migrationen (up/down)
 
 docs/
-  development.md                # Entwicklung & Deployment
-  requirements.md               # Anforderungskatalog
-  implementation-plan.md        # Implementierungsplan Phase 1 & 2
+  database.md                 # Datenbank & Persistenz (Einstieg)
+  development.md              # Entwicklung & Deployment
+  requirements.md             # Anforderungskatalog
+  implementation-plan.md      # Implementierungsplan Phase 1 & 2
+  adr/orm.md                  # ADR: ORM-Bewertung und Entscheidung für sqlc
 ```
 
 ## Wie füge ich ein neues Feature hinzu?
