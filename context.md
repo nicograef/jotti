@@ -666,22 +666,16 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte Felder wie `orderId`, 
 
 ## 9. Status
 
-- [x] Codebase-Analyse abgeschlossen
-- [x] Plan erstellt und dokumentiert
-- [x] Database Migration (Option A: JSONB migrieren)
-- [x] Backend Domain Layer
-- [ ] Backend API Layer (Application)
-- [ ] Backend API Layer (HTTP Handler)
-- [ ] Backend API Routes
-- [ ] Backend Product API Anpassungen
-- [ ] Backend Repository
-- [ ] Backend Tests
-- [ ] sqlc Queries + Regenerierung
-- [ ] Frontend Types (service/table/)
-- [ ] Frontend Backend-Client + Hooks
-- [ ] Frontend Components (service/components/table/)
-- [ ] Frontend Admin Anpassungen
-- [ ] Frontend Service/Product Anpassungen
-- [ ] Build verifizieren
-- [ ] Tests ausführen
-- [ ] Dokumentation aktualisieren
+Tracking analog zu `tasks.md`:
+
+- [x] Task 1: Database Migration
+- [x] Task 2: Backend Domain Layer
+- [x] Task 3: Backend Repository Layer
+- [ ] Task 4: Backend Application Layer (Commands & Queries)
+- [ ] Task 5: Backend HTTP Handler
+- [ ] Task 6: Backend Routen & Product API
+- [ ] Task 7: Frontend Service Types, Backend-Client & Hooks
+- [ ] Task 8: Frontend Service-Komponenten
+- [ ] Task 9: Frontend Admin-Bereich
+- [ ] Task 10: Build verifizieren & Tests ausführen
+- [ ] Task 11: Dokumentation aktualisieren

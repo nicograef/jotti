@@ -72,7 +72,9 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte englische Feldnamen (`
 
 ---
 
-## Task 3: Backend Repository Layer
+## Task 3: Backend Repository Layer ✅
+
+**Status:** Abgeschlossen
 
 **Scope:** `backend/repository/table_repo/`, `backend/repository/product_repo/`, `backend/repository/event_repo/`
 
