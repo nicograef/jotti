@@ -3,8 +3,8 @@
 Dieses Dokument beschreibt das Architekturmuster **Command Query Responsibility Segregation (CQRS)**, analysiert dessen aktuelle Nutzung in jotti und zeigt, wie eine vollständige CQRS-Implementierung die bekannten Schwächen des Event-Sourcing-Ansatzes in jotti mindern kann.
 
 > **Verwandte Dokumente:**
-> - [Event-Sourcing vs. CRUD](event-sourcing-vs-crud.md) — Hybride Architektur und Event-Sourcing-Implementierung
-> - [jotti ohne Event-Sourcing](no-event-sourcing.md) — CRUD-Alternative und Vergleich
+>
+> - [ADR: Event-Sourcing für Tisch-Operationen](adr/event-sourcing.md) — Entscheidung für Event-Sourcing, Vergleich mit CRUD
 > - [ADR: Datenbankzugriff — Entscheidung für sqlc](adr/orm.md) — sqlc als Persistenz-Werkzeug
 
 ---
@@ -27,16 +27,16 @@ Dieses Dokument beschreibt das Architekturmuster **Command Query Responsibility 
 
 ### 1.1 Grundidee
 
-**Command Query Responsibility Segregation (CQRS)** ist ein Architekturmuster, das die Verantwortlichkeit für *Schreiboperationen* (Commands) und *Leseoperationen* (Queries) in einem System strikt trennt. CQRS erweitert damit das ältere Prinzip der **Command Query Separation (CQS)** von Bertrand Meyer, das auf Methodenebene definiert: Eine Methode soll entweder den Zustand ändern (Command) oder Daten zurückgeben (Query) — aber nie beides.
+**Command Query Responsibility Segregation (CQRS)** ist ein Architekturmuster, das die Verantwortlichkeit für _Schreiboperationen_ (Commands) und _Leseoperationen_ (Queries) in einem System strikt trennt. CQRS erweitert damit das ältere Prinzip der **Command Query Separation (CQS)** von Bertrand Meyer, das auf Methodenebene definiert: Eine Methode soll entweder den Zustand ändern (Command) oder Daten zurückgeben (Query) — aber nie beides.
 
 > **Martin Fowler** schreibt dazu (martinfowler.com/bliki/CQRS.html):
-> *"At its heart is the notion that you can use a different model to update information than the model you use to read information."*
+> _"At its heart is the notion that you can use a different model to update information than the model you use to read information."_
 
 CQRS hebt diese Trennung von der Methoden- auf die Service-/Systemebene: Command-Seite und Query-Seite erhalten eigene Modelle, eigene Schichten und können sogar auf eigenen Datenspeichern operieren.
 
 ### 1.2 Geschichte und Herkunft
 
-- **Bertrand Meyer (1988)**: Formuliert CQS in *Object-Oriented Software Construction* — das konzeptionelle Fundament.
+- **Bertrand Meyer (1988)**: Formuliert CQS in _Object-Oriented Software Construction_ — das konzeptionelle Fundament.
 - **Udi Dahan (2008/2009)**: Überträgt das Prinzip auf Service-Ebene und veröffentlicht "Clarified CQRS" (udidahan.com). Er kombiniert CQRS mit Domain-Driven Design (DDD) und Service-orientierten Architekturen.
 - **Greg Young (2010)**: Prägt den Begriff "CQRS" in seiner heutigen Form und popularisiert die Verbindung mit **Event Sourcing** ("CQRS Documents", cqrs.wordpress.com). Young zeigt, dass Event Sourcing und CQRS natürliche Partner sind: das Event Log ist das Write Model, Projektionen sind das Read Model.
 
@@ -44,7 +44,7 @@ CQRS hebt diese Trennung von der Methoden- auf die Service-/Systemebene: Command
 
 #### Command (Schreiben)
 
-Ein Command ist eine Absichtserklärung: *"Platziere diese Bestellung"*, *"Registriere diese Zahlung"*. Commands:
+Ein Command ist eine Absichtserklärung: _"Platziere diese Bestellung"_, _"Registriere diese Zahlung"_. Commands:
 
 - **Ändern den Zustand** des Systems (Seiteneffekte erlaubt)
 - Geben **keinen Datensatz zurück** (allenfalls eine ID oder einen Erfolgsindikator)
@@ -53,7 +53,7 @@ Ein Command ist eine Absichtserklärung: *"Platziere diese Bestellung"*, *"Regis
 
 #### Query (Lesen)
 
-Eine Query fragt Daten ab: *"Was ist der aktuelle Kontostand?"*, *"Welche Varianten sind noch offen?"*. Queries:
+Eine Query fragt Daten ab: _"Was ist der aktuelle Kontostand?"_, _"Welche Varianten sind noch offen?"_. Queries:
 
 - **Ändern keinen Zustand** (keine Seiteneffekte)
 - Geben **Daten zurück** (Read Model)
@@ -85,7 +85,7 @@ Eine Query fragt Daten ab: *"Was ist der aktuelle Kontostand?"*, *"Welche Varian
 
 Martin Fowler beschreibt CQRS als natürlichen Partner von Event Sourcing:
 
-> *"CQRS fits well with event-based programming models. It's common to see CQRS systems split into separate services communicating with Event Collaboration. This allows these services to easily take advantage of Event Sourcing."*
+> _"CQRS fits well with event-based programming models. It's common to see CQRS systems split into separate services communicating with Event Collaboration. This allows these services to easily take advantage of Event Sourcing."_
 
 Der Grund: Beim Event Sourcing ist das Write Model der **Event Store** (append-only). Der aktuelle Zustand muss aus Events rekonstruiert werden — das ist inhärent eine Query-seitige Aufgabe. CQRS gibt dieser Aufgabe einen eigenen Ort: die **Projektion** (Read Model), die den aktuellen Zustand vorhält, ohne bei jeder Abfrage Events neu durchlaufen zu müssen.
 
@@ -93,16 +93,16 @@ Der Grund: Beim Event Sourcing ist das Write Model der **Event Store** (append-o
 
 CQRS ist kein Alles-oder-Nichts-Muster. Es gibt mehrere Abstufungsstufen:
 
-| Stufe | Beschreibung | Komplexität |
-|-------|-------------|-------------|
-| **Logische Trennung** | Command/Query als separate Klassen oder Interfaces, gleiche DB | Gering |
-| **Separate Read Models** | Eigene Query-Objekte, Projektionen im selben Store | Mittel |
-| **Getrennte Datenspeicher** | Write DB + Read DB, asynchrone Synchronisierung | Hoch |
-| **Vollständig verteiltes CQRS** | Separate Services, Message Broker, eventual consistency | Sehr hoch |
+| Stufe                           | Beschreibung                                                   | Komplexität |
+| ------------------------------- | -------------------------------------------------------------- | ----------- |
+| **Logische Trennung**           | Command/Query als separate Klassen oder Interfaces, gleiche DB | Gering      |
+| **Separate Read Models**        | Eigene Query-Objekte, Projektionen im selben Store             | Mittel      |
+| **Getrennte Datenspeicher**     | Write DB + Read DB, asynchrone Synchronisierung                | Hoch        |
+| **Vollständig verteiltes CQRS** | Separate Services, Message Broker, eventual consistency        | Sehr hoch   |
 
 Fowler warnt ausdrücklich:
 
-> *"You should be very cautious about using CQRS. Many information systems fit well with the notion of an information base that is updated in the same way that it's read, adding CQRS to such a system can add significant complexity."*
+> _"You should be very cautious about using CQRS. Many information systems fit well with the notion of an information base that is updated in the same way that it's read, adding CQRS to such a system can add significant complexity."_
 
 ---
 
@@ -200,22 +200,22 @@ Obwohl die **logische CQRS-Trennung** vorhanden ist, fehlen zwei wesentliche Asp
 
 ### 2.3 Zusammenfassung Ist-Zustand
 
-| Aspekt | Status | Anmerkung |
-|--------|--------|-----------|
+| Aspekt                                        | Status       | Anmerkung                               |
+| --------------------------------------------- | ------------ | --------------------------------------- |
 | Logische Command/Query-Trennung (Application) | ✅ Vorhanden | `Command`- und `Query`-Structs getrennt |
-| Separate HTTP-Handler | ✅ Vorhanden | `CommandHandler` und `QueryHandler` |
-| Interface Segregation | ✅ Vorhanden | Separate Repo-Interfaces |
-| Separates Read Model | ❌ Fehlt | Queries lesen denselben Event Store |
-| Event-getriebene Projektionen | ❌ Fehlt | Kein automatisches Projektion-Update |
-| Separate Datenspeicher | ❌ Fehlt | Single DB für Read und Write |
+| Separate HTTP-Handler                         | ✅ Vorhanden | `CommandHandler` und `QueryHandler`     |
+| Interface Segregation                         | ✅ Vorhanden | Separate Repo-Interfaces                |
+| Separates Read Model                          | ❌ Fehlt     | Queries lesen denselben Event Store     |
+| Event-getriebene Projektionen                 | ❌ Fehlt     | Kein automatisches Projektion-Update    |
+| Separate Datenspeicher                        | ❌ Fehlt     | Single DB für Read und Write            |
 
-jotti befindet sich auf CQRS-Stufe 1 (*Logische Trennung*) und hat klare Ansatzpunkte, um auf Stufe 2 (*Separate Read Models*) zu migrieren.
+jotti befindet sich auf CQRS-Stufe 1 (_Logische Trennung_) und hat klare Ansatzpunkte, um auf Stufe 2 (_Separate Read Models_) zu migrieren.
 
 ---
 
 ## 3. Die Schwächen von Event-Sourcing und wie CQRS hilft
 
-Das Dokument [Event-Sourcing vs. CRUD](event-sourcing-vs-crud.md) identifiziert mehrere Nachteile des Event-Sourcing-Ansatzes in jotti. CQRS — konkret in Form von **Projektionen** als Read Model — adressiert diese direkt:
+Das [ADR: Event-Sourcing für Tisch-Operationen](adr/event-sourcing.md) identifiziert mehrere Nachteile des Event-Sourcing-Ansatzes in jotti. CQRS — konkret in Form von **Projektionen** als Read Model — adressiert diese direkt:
 
 ### 3.1 Nachteil: Höhere Lese-Komplexität
 
@@ -231,9 +231,10 @@ Mit CQRS: Query → SELECT from projection → return
 ### 3.2 Nachteil: Snapshot-Mechanismus nötig
 
 **Problem**: Der aktuelle Snapshot-Mechanismus ist ein Workaround: Ein Snapshot ist selbst ein Event (`table.snapshot:v1`), das manuell über `CreateTableSnapshot()` ausgelöst werden muss. Das führt zu:
+
 - Zusätzlichem Code für Snapshot-Erstellung und -Erkennung
 - Manueller Auslösung (wer, wann, wie oft?)
-- Snapshots als Teil des Event Logs — was konzeptuell fragwürdig ist (ein Snapshot *ist* kein Domain-Event)
+- Snapshots als Teil des Event Logs — was konzeptuell fragwürdig ist (ein Snapshot _ist_ kein Domain-Event)
 
 **CQRS-Lösung**: Eine **synchrone Projektion** (aktualisiert beim Schreiben jedes Events) ersetzt den Snapshot vollständig. Nach jedem Command (`PlaceTableOrder`, `RegisterTablePayment`, etc.) wird die Projektions-Tabelle atomisch aktualisiert. Der Zustand ist immer aktuell — kein separater Snapshot-Mechanismus nötig.
 
@@ -257,15 +258,15 @@ Mit CQRS: Query → SELECT from projection → return
 
 ### 3.6 Übersicht: Event-Sourcing-Nachteile vs. CQRS-Lösungen
 
-| Nachteil (Event Sourcing) | CQRS-Lösung | Aufwand |
-|---------------------------|-------------|---------|
-| Höhere Lese-Komplexität | Projektionstabelle mit vorberechnetem Zustand | Mittel |
-| Snapshot-Mechanismus nötig | Synchrone Projektion ersetzt Snapshots | Mittel |
-| Erschwertes Querying | Typisierte Projektionen für Analytics | Mittel |
-| JSONB nicht typsicher (Query-Seite) | Read Model mit typisierten Spalten | Gering |
-| Konzeptuelle Hürde | Vereinfachte Query-Seite | Gering |
-| Keine referenzielle Integrität (Write-Seite) | **Nicht adressiert** — bleibt Validierungs-Aufgabe der Anwendung | — |
-| Doppelte Validierung (Write-Seite) | **Nicht adressiert** — bleibt bei Event-Sourcing strukturell | — |
+| Nachteil (Event Sourcing)                    | CQRS-Lösung                                                      | Aufwand |
+| -------------------------------------------- | ---------------------------------------------------------------- | ------- |
+| Höhere Lese-Komplexität                      | Projektionstabelle mit vorberechnetem Zustand                    | Mittel  |
+| Snapshot-Mechanismus nötig                   | Synchrone Projektion ersetzt Snapshots                           | Mittel  |
+| Erschwertes Querying                         | Typisierte Projektionen für Analytics                            | Mittel  |
+| JSONB nicht typsicher (Query-Seite)          | Read Model mit typisierten Spalten                               | Gering  |
+| Konzeptuelle Hürde                           | Vereinfachte Query-Seite                                         | Gering  |
+| Keine referenzielle Integrität (Write-Seite) | **Nicht adressiert** — bleibt Validierungs-Aufgabe der Anwendung | —       |
+| Doppelte Validierung (Write-Seite)           | **Nicht adressiert** — bleibt bei Event-Sourcing strukturell     | —       |
 
 CQRS löst primär die **Lese-seitigen** Nachteile. Schreib-seitige Nachteile (fehlende referenzielle Integrität, JSONB) bleiben erhalten — sie sind inhärenter Teil des Event-Sourcing-Write-Modells.
 
@@ -281,11 +282,12 @@ Der Plan beschreibt die Migration von der aktuellen logischen CQRS-Trennung zu e
 
 Es gibt zwei grundlegende Ansätze:
 
-**Asynchrone Projektion**: Ein separater Prozess (Event Handler, Message Consumer) liest neue Events und aktualisiert Projektionen. Dies ermöglicht maximale Skalierbarkeit, führt aber zu *eventual consistency* — Leser sehen möglicherweise kurzzeitig veraltete Daten.
+**Asynchrone Projektion**: Ein separater Prozess (Event Handler, Message Consumer) liest neue Events und aktualisiert Projektionen. Dies ermöglicht maximale Skalierbarkeit, führt aber zu _eventual consistency_ — Leser sehen möglicherweise kurzzeitig veraltete Daten.
 
 **Synchrone Projektion**: Die Projektion wird innerhalb derselben Datenbanktransaktion wie das Event-Insert aktualisiert. Starke Konsistenz — Leser sehen immer den aktuellen Zustand. Einfacher zu implementieren und zu testen.
 
 **Für jotti ist die synchrone Projektion die richtige Wahl**, weil:
+
 - Servicekräfte unmittelbar nach einer Bestellung die korrekte Balance sehen müssen (keine Verzögerungen akzeptabel)
 - Die Last ist überschaubar (keine Hochlast-Skalierungsanforderungen)
 - Die Implementierung einfacher ist und weniger Infrastruktur erfordert
@@ -725,6 +727,7 @@ Für bestehende Produktionsdaten muss die `table_state`-Tabelle initial befüllt
 ```
 
 Ein Go-Backfill-Skript (`cmd/backfill-table-state/main.go`) würde:
+
 1. Alle Tische laden
 2. Für jeden Tisch alle Events laden
 3. Den Zustand aus Events berechnen (mit den bestehenden `GetBalanceFromEvents()` etc.)
@@ -732,19 +735,19 @@ Ein Go-Backfill-Skript (`cmd/backfill-table-state/main.go`) würde:
 
 ### 4.9 Übersicht der Änderungen
 
-| Bereich | Änderung | Aufwand |
-|---------|----------|---------|
-| Datenbank | Migration: `table_state`-Tabelle | Gering |
-| sqlc | Query-Datei `sqlc/queries/table_state.sql` + `sqlc generate` | Gering |
-| Repository | Neues `table_state_repo` (wrappt sqlc-generierte Funktionen) | Mittel |
-| Repository | `event_repo` um `WriteEventTx`/`BeginTx` erweitern (nutzt `q.WithTx()`) | Gering |
-| Domain | `ApplyEventToState()` + `ProjectionState` | Mittel |
-| Application/Command | `writeEventAndUpdateProjection()` | Mittel |
-| Application/Query | Auf `table_state_repo` umstellen | Gering |
-| Application/Command | `CreateTableSnapshot()` entfernen | Gering |
-| Backfill | Einmaliges Migrationsskript | Mittel |
-| Tests | Unit-Tests für `ApplyEventToState()` | Mittel |
-| **Gesamt** | | **Mittel** |
+| Bereich             | Änderung                                                                | Aufwand    |
+| ------------------- | ----------------------------------------------------------------------- | ---------- |
+| Datenbank           | Migration: `table_state`-Tabelle                                        | Gering     |
+| sqlc                | Query-Datei `sqlc/queries/table_state.sql` + `sqlc generate`            | Gering     |
+| Repository          | Neues `table_state_repo` (wrappt sqlc-generierte Funktionen)            | Mittel     |
+| Repository          | `event_repo` um `WriteEventTx`/`BeginTx` erweitern (nutzt `q.WithTx()`) | Gering     |
+| Domain              | `ApplyEventToState()` + `ProjectionState`                               | Mittel     |
+| Application/Command | `writeEventAndUpdateProjection()`                                       | Mittel     |
+| Application/Query   | Auf `table_state_repo` umstellen                                        | Gering     |
+| Application/Command | `CreateTableSnapshot()` entfernen                                       | Gering     |
+| Backfill            | Einmaliges Migrationsskript                                             | Mittel     |
+| Tests               | Unit-Tests für `ApplyEventToState()`                                    | Mittel     |
+| **Gesamt**          |                                                                         | **Mittel** |
 
 ---
 
@@ -778,15 +781,15 @@ Ein Go-Backfill-Skript (`cmd/backfill-table-state/main.go`) würde:
 
 ### Vergleichstabelle: Vorher / Nachher
 
-| Aspekt | Aktuell (CQRS Stufe 1) | Vorgeschlagen (CQRS Stufe 2) |
-|--------|------------------------|------------------------------|
-| Balance-Query | Events laden + iterieren O(n) | Direkter DB-Zugriff O(1) |
-| Unpaid/Undelivered-Query | Events laden + rekonstruieren O(n) | Direkter DB-Zugriff O(1) |
-| History-Query | Events laden + transformieren | Events laden + transformieren (unverändert) |
-| Schreiboperationen | Single INSERT | Transaktion: INSERT + UPSERT |
-| Snapshot | Manuell auslösen, Events schreiben | Entfällt |
-| Konsistenzmodell | Eventual (Snapshot manuell) | Strong (synchrone Projektion) |
-| Neue Entwickler | Müssen ES verstehen | Query-Seite unabhängig von ES |
+| Aspekt                   | Aktuell (CQRS Stufe 1)             | Vorgeschlagen (CQRS Stufe 2)                |
+| ------------------------ | ---------------------------------- | ------------------------------------------- |
+| Balance-Query            | Events laden + iterieren O(n)      | Direkter DB-Zugriff O(1)                    |
+| Unpaid/Undelivered-Query | Events laden + rekonstruieren O(n) | Direkter DB-Zugriff O(1)                    |
+| History-Query            | Events laden + transformieren      | Events laden + transformieren (unverändert) |
+| Schreiboperationen       | Single INSERT                      | Transaktion: INSERT + UPSERT                |
+| Snapshot                 | Manuell auslösen, Events schreiben | Entfällt                                    |
+| Konsistenzmodell         | Eventual (Snapshot manuell)        | Strong (synchrone Projektion)               |
+| Neue Entwickler          | Müssen ES verstehen                | Query-Seite unabhängig von ES               |
 
 ---
 
@@ -809,15 +812,16 @@ Command → BEGIN TX → INSERT event → READ projection → APPLY event → UP
 ```
 
 Der Command-Service muss dafür:
+
 - Das `TableStateRepo` kennen (zusätzliches Interface)
 - Die `ApplyEventToState()`-Logik aufrufen (Domain-Logik im Write-Pfad)
 - Bei Projektionsfehlern die gesamte Transaktion rollbacken (Write scheitert wegen Read-Logik)
 
 Dies ist architektonisch problematisch, denn in einem sauberen CQRS-Modell sollte die Write-Seite keine Kenntnis von der Read-Seite haben. Microsoft beschreibt dies im Azure Architecture Center:
 
-> *"Commands update data. Queries retrieve data."* — Die Verantwortlichkeiten sollen getrennt bleiben.
+> _"Commands update data. Queries retrieve data."_ — Die Verantwortlichkeiten sollen getrennt bleiben.
 
-In Event-Sourcing-Systemen ist der Event Store die Single Source of Truth. Projektionen (Read Models) sind **abgeleitete Daten** — sie können jederzeit aus dem Event Log rekonstruiert werden (vgl. Baytech Consulting: *"If a read model becomes corrupted, contains a bug, or needs to be changed, it can be safely deleted and completely rebuilt by replaying the event stream"*). Wenn die Projektion den Write-Pfad blockieren kann, wird diese Eigenschaft untergraben.
+In Event-Sourcing-Systemen ist der Event Store die Single Source of Truth. Projektionen (Read Models) sind **abgeleitete Daten** — sie können jederzeit aus dem Event Log rekonstruiert werden (vgl. Baytech Consulting: _"If a read model becomes corrupted, contains a bug, or needs to be changed, it can be safely deleted and completely rebuilt by replaying the event stream"_). Wenn die Projektion den Write-Pfad blockieren kann, wird diese Eigenschaft untergraben.
 
 ### 6.2 Alternative A: PostgreSQL-Trigger-basierte Projektion
 
@@ -909,16 +913,16 @@ CREATE TRIGGER trg_update_table_state
 
 #### Bewertung
 
-| Kriterium | Bewertung |
-|-----------|-----------|
-| Command-Einfachheit | ✅ Commands bleiben einfache Event-INSERTs — kein Go-Code-Änderung |
-| C→Q-Trennung | ✅ Command-Service hat keine Kenntnis der Projektion |
-| Konsistenz | ✅ Atomar — Trigger läuft in derselben Transaktion wie INSERT |
-| Snapshot-Eliminierung | ✅ Projektion ersetzt Snapshots vollständig |
-| Backfill | ⚠️ Einmalig nötig für bestehende Daten (oder Trigger manuell für historische Events triggern) |
-| Wartbarkeit | ❌ Business-Logik in PL/pgSQL — schwerer zu testen, debuggen und refactoren als Go-Code |
-| JSONB-Manipulation | ❌ Komplexe Varianten-Reduktion (`reduceVariants`) in PL/pgSQL ist aufwendig und fehleranfällig |
-| Testbarkeit | ❌ Keine Unit-Tests im Go-Sinne; Integrationstests auf DB-Ebene nötig |
+| Kriterium             | Bewertung                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| Command-Einfachheit   | ✅ Commands bleiben einfache Event-INSERTs — kein Go-Code-Änderung                              |
+| C→Q-Trennung          | ✅ Command-Service hat keine Kenntnis der Projektion                                            |
+| Konsistenz            | ✅ Atomar — Trigger läuft in derselben Transaktion wie INSERT                                   |
+| Snapshot-Eliminierung | ✅ Projektion ersetzt Snapshots vollständig                                                     |
+| Backfill              | ⚠️ Einmalig nötig für bestehende Daten (oder Trigger manuell für historische Events triggern)   |
+| Wartbarkeit           | ❌ Business-Logik in PL/pgSQL — schwerer zu testen, debuggen und refactoren als Go-Code         |
+| JSONB-Manipulation    | ❌ Komplexe Varianten-Reduktion (`reduceVariants`) in PL/pgSQL ist aufwendig und fehleranfällig |
+| Testbarkeit           | ❌ Keine Unit-Tests im Go-Sinne; Integrationstests auf DB-Ebene nötig                           |
 
 **Fazit**: Für die einfachen Aggregationen (Balance, Summen) funktioniert der Trigger-Ansatz gut. Die **Varianten-Listen-Manipulation** (Elemente aus JSONB-Arrays subtrahieren) ist in PL/pgSQL jedoch deutlich komplexer als in Go und schwer testbar. Für jottis spezifische Anforderungen (varianten-basierte Akkumulation und Reduktion) ist dieser Ansatz **bedingt geeignet**.
 
@@ -1006,19 +1010,20 @@ func (q Query) ensureProjectionUpToDate(ctx context.Context, tableID int) (Table
 
 #### Bewertung
 
-| Kriterium | Bewertung |
-|-----------|-----------|
-| Command-Einfachheit | ✅ Commands bleiben unverändert — reines Event-INSERT |
-| C→Q-Trennung | ✅ Command-Service hat keine Kenntnis der Projektion |
-| Konsistenz | ✅ Stark konsistent — Leser sehen immer den aktuellen Zustand (Replay on Read) |
-| Snapshot-Eliminierung | ✅ Projektion ersetzt Snapshots vollständig |
-| Backfill | ✅ **Nicht nötig** — Lazy Projection befüllt sich beim ersten Lesezugriff selbst |
-| Wartbarkeit | ✅ Gesamte Projektionslogik in Go — testbar mit Unit-Tests |
-| Selbstheilend | ✅ Fehlerhafte Projektion wird beim nächsten Read automatisch korrigiert |
-| Latenz beim Lesen | ⚠️ Erster Lesezugriff nach vielen Writes ist langsamer (einmaliger Replay) |
-| Concurrent Writes | ⚠️ Bei gleichzeitigen Reads auf denselben Tisch kann es zu Race Conditions beim Projektions-Update kommen — lösbar durch `SELECT ... FOR UPDATE` oder optimistisches Locking via `last_event_id` |
+| Kriterium             | Bewertung                                                                                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Command-Einfachheit   | ✅ Commands bleiben unverändert — reines Event-INSERT                                                                                                                                            |
+| C→Q-Trennung          | ✅ Command-Service hat keine Kenntnis der Projektion                                                                                                                                             |
+| Konsistenz            | ✅ Stark konsistent — Leser sehen immer den aktuellen Zustand (Replay on Read)                                                                                                                   |
+| Snapshot-Eliminierung | ✅ Projektion ersetzt Snapshots vollständig                                                                                                                                                      |
+| Backfill              | ✅ **Nicht nötig** — Lazy Projection befüllt sich beim ersten Lesezugriff selbst                                                                                                                 |
+| Wartbarkeit           | ✅ Gesamte Projektionslogik in Go — testbar mit Unit-Tests                                                                                                                                       |
+| Selbstheilend         | ✅ Fehlerhafte Projektion wird beim nächsten Read automatisch korrigiert                                                                                                                         |
+| Latenz beim Lesen     | ⚠️ Erster Lesezugriff nach vielen Writes ist langsamer (einmaliger Replay)                                                                                                                       |
+| Concurrent Writes     | ⚠️ Bei gleichzeitigen Reads auf denselben Tisch kann es zu Race Conditions beim Projektions-Update kommen — lösbar durch `SELECT ... FOR UPDATE` oder optimistisches Locking via `last_event_id` |
 
 **Fazit**: Die Lazy Projection löst **alle drei genannten Nachteile** der synchronen Projektion:
+
 - ✅ Keine zusätzliche Schreibkomplexität (Commands bleiben ein INSERT)
 - ✅ Keine C→Q-Abhängigkeit (Command-Service kennt die Projektion nicht)
 - ✅ Kein Backfill nötig (Projektion befüllt sich selbst beim ersten Read)
@@ -1087,36 +1092,36 @@ func projectNewEvents(ctx context.Context, eventRepo EventRepo,
 
 #### Bewertung
 
-| Kriterium | Bewertung |
-|-----------|-----------|
-| Command-Einfachheit | ✅ Commands bleiben unverändert — reines Event-INSERT |
-| C→Q-Trennung | ✅ Vollständige Entkopplung — Command kennt weder Projektion noch Worker |
-| Konsistenz | ❌ **Eventual Consistency** — kurzes Zeitfenster (~100ms), in dem Leser veraltete Daten sehen |
-| Snapshot-Eliminierung | ✅ Projektion ersetzt Snapshots vollständig |
-| Backfill | ⚠️ Worker kann bestehende Events beim Start nachprojizieren — aber initialer Durchlauf nötig |
-| Wartbarkeit | ✅ Projektionslogik in Go — testbar |
-| Infrastruktur | ❌ Zusätzliche Goroutine, Lifecycle-Management, Health-Checks, Fehlerbehandlung bei Crashes |
-| Skalierbarkeit | ⚠️ Einzelner Worker — bei mehreren Instanzen braucht man Leader Election oder Partitionierung |
+| Kriterium             | Bewertung                                                                                     |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| Command-Einfachheit   | ✅ Commands bleiben unverändert — reines Event-INSERT                                         |
+| C→Q-Trennung          | ✅ Vollständige Entkopplung — Command kennt weder Projektion noch Worker                      |
+| Konsistenz            | ❌ **Eventual Consistency** — kurzes Zeitfenster (~100ms), in dem Leser veraltete Daten sehen |
+| Snapshot-Eliminierung | ✅ Projektion ersetzt Snapshots vollständig                                                   |
+| Backfill              | ⚠️ Worker kann bestehende Events beim Start nachprojizieren — aber initialer Durchlauf nötig  |
+| Wartbarkeit           | ✅ Projektionslogik in Go — testbar                                                           |
+| Infrastruktur         | ❌ Zusätzliche Goroutine, Lifecycle-Management, Health-Checks, Fehlerbehandlung bei Crashes   |
+| Skalierbarkeit        | ⚠️ Einzelner Worker — bei mehreren Instanzen braucht man Leader Election oder Partitionierung |
 
 **Fazit**: Der Background Worker bietet die **sauberste CQRS-Trennung**, hat aber einen gravierenden Nachteil für **operative Queries** (Balance, offene Positionen) im Kassenbetrieb: **Eventual Consistency**. In einem Kassensystem muss die Servicekraft unmittelbar nach dem Aufgeben einer Bestellung die korrekte Balance sehen. Ein Fenster von 100ms mag technisch akzeptabel erscheinen, ist aber architektonisch riskant — unter Last, bei Fehlern im Worker oder bei Neustarts kann dieses Fenster wachsen. Microsoft und Confluent betonen diese Problematik:
 
-> *"When the read databases and write databases are separated, the read data might not show the most recent changes immediately."* — Microsoft Azure Architecture Center
+> _"When the read databases and write databases are separated, the read data might not show the most recent changes immediately."_ — Microsoft Azure Architecture Center
 
 Für **analytische Projektionen** (Umsatzauswertungen, Produktstatistiken, Tagesabrechnung) ist der Background Worker hingegen die geeignete Wahl: Eventual Consistency ist für retrospektive Auswertungen akzeptabel, und der Worker bietet maximale Entkopplung ohne Einfluss auf den Write-Pfad. Abschnitt 7 beschreibt diese Unterscheidung im Detail.
 
 ### 6.5 Vergleich der Alternativen
 
-| Kriterium | Synchrone Projektion (Abschnitt 4) | A: DB-Trigger | B: Lazy Projection | C: Background Worker |
-|-----------|--------------------------------------|---------------|---------------------|-----------------------|
-| Command bleibt einfach (single INSERT) | ❌ Transaktion nötig | ✅ | ✅ | ✅ |
-| Keine C→Q-Abhängigkeit | ❌ Command kennt Read Model | ✅ | ✅ | ✅ |
-| Kein Backfill nötig | ❌ Einmaliger Backfill | ❌ Einmaliger Backfill | ✅ Self-healing | ⚠️ Worker-Initialisierung |
-| Starke Konsistenz | ✅ Gleiche Transaktion | ✅ Gleiche Transaktion | ✅ Read-Time-Konsistenz | ❌ Eventual Consistency¹ |
-| Snapshot-Eliminierung | ✅ | ✅ | ✅ | ✅ |
-| Wartbarkeit / Testbarkeit | ✅ Go-Code | ❌ PL/pgSQL | ✅ Go-Code | ✅ Go-Code |
-| JSONB-Varianten-Manipulation | ✅ Go-Logik | ❌ Komplex in SQL | ✅ Go-Logik | ✅ Go-Logik |
-| Infrastruktur-Overhead | Gering | Gering | Gering | Mittel (Worker-Lifecycle) |
-| Implementierungsaufwand | Mittel | Mittel | **Gering** | Hoch |
+| Kriterium                              | Synchrone Projektion (Abschnitt 4) | A: DB-Trigger          | B: Lazy Projection      | C: Background Worker      |
+| -------------------------------------- | ---------------------------------- | ---------------------- | ----------------------- | ------------------------- |
+| Command bleibt einfach (single INSERT) | ❌ Transaktion nötig               | ✅                     | ✅                      | ✅                        |
+| Keine C→Q-Abhängigkeit                 | ❌ Command kennt Read Model        | ✅                     | ✅                      | ✅                        |
+| Kein Backfill nötig                    | ❌ Einmaliger Backfill             | ❌ Einmaliger Backfill | ✅ Self-healing         | ⚠️ Worker-Initialisierung |
+| Starke Konsistenz                      | ✅ Gleiche Transaktion             | ✅ Gleiche Transaktion | ✅ Read-Time-Konsistenz | ❌ Eventual Consistency¹  |
+| Snapshot-Eliminierung                  | ✅                                 | ✅                     | ✅                      | ✅                        |
+| Wartbarkeit / Testbarkeit              | ✅ Go-Code                         | ❌ PL/pgSQL            | ✅ Go-Code              | ✅ Go-Code                |
+| JSONB-Varianten-Manipulation           | ✅ Go-Logik                        | ❌ Komplex in SQL      | ✅ Go-Logik             | ✅ Go-Logik               |
+| Infrastruktur-Overhead                 | Gering                             | Gering                 | Gering                  | Mittel (Worker-Lifecycle) |
+| Implementierungsaufwand                | Mittel                             | Mittel                 | **Gering**              | Hoch                      |
 
 > ¹ Eventual Consistency ist für **operative Queries** (Balance, offene Positionen) nicht akzeptabel. Für **analytische Projektionen** (Umsatzauswertungen, Tagesabrechnung) ist sie hingegen ausreichend — der Background Worker ist dort die empfohlene Variante (siehe Abschnitt 7).
 
@@ -1154,10 +1159,10 @@ Die bisherige Analyse bewertete alle CQRS-Varianten einheitlich anhand einer ein
 
 ### 7.1 Zwei Konsistenzklassen in jotti
 
-| Bereich | Anwendungsfälle | Konsistenz-Anforderung |
-|---------|-----------------|------------------------|
-| **A) Kernfunktionalität** | Tischbasiertes Kassensystem: Bestellungen aufgeben, Zahlungen registrieren, Stornierungen, Lieferungen, Tischbalance, offene Positionen | **Strong Consistency** (zwingend) |
-| **B) Zusatzfeatures** | Umsatzauswertungen, Tagesabrechnung, Lagerbestände, Produktstatistiken, Stornierungsraten | **Eventual Consistency** (ausreichend) |
+| Bereich                   | Anwendungsfälle                                                                                                                         | Konsistenz-Anforderung                 |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **A) Kernfunktionalität** | Tischbasiertes Kassensystem: Bestellungen aufgeben, Zahlungen registrieren, Stornierungen, Lieferungen, Tischbalance, offene Positionen | **Strong Consistency** (zwingend)      |
+| **B) Zusatzfeatures**     | Umsatzauswertungen, Tagesabrechnung, Lagerbestände, Produktstatistiken, Stornierungsraten                                               | **Eventual Consistency** (ausreichend) |
 
 Diese Unterscheidung entscheidet darüber, welche CQRS-Varianten für welchen Anwendungsfall geeignet sind — und erlaubt es, zuvor pauschal abgelehnte Ansätze für Bereich B neu zu bewerten.
 
@@ -1185,23 +1190,23 @@ Analytische Auswertungen (Bereich B) haben grundlegend andere Nutzungsmuster:
 - Lagerbestands-Tracking reagiert auf Bestellungen — ein kurzes Verzögerungsfenster beeinflusst keine operativen Entscheidungen im Kassenbetrieb.
 - Aggregierte Statistiken sind von Natur aus retrospektiv — eine leichte Verzögerung hat keinen Einfluss auf den laufenden Betrieb.
 
-Für Bereich B können **asynchrone Projektionen** (Background Worker, Abschnitt 6.4) bedenkenlos eingesetzt werden. Das Hauptargument gegen diesen Ansatz in Abschnitt 6.4 — *„Eventual Consistency ist für ein Kassensystem nicht akzeptabel"* — gilt für analytische Abfragen nicht.
+Für Bereich B können **asynchrone Projektionen** (Background Worker, Abschnitt 6.4) bedenkenlos eingesetzt werden. Das Hauptargument gegen diesen Ansatz in Abschnitt 6.4 — _„Eventual Consistency ist für ein Kassensystem nicht akzeptabel"_ — gilt für analytische Abfragen nicht.
 
 ### 7.4 Bezug zur bestehenden Domain-Architektur von jotti
 
 jotti unterscheidet bei der **Persistenz** bereits konsequent nach Domänen-Grenzen:
 
-| Subdomain | Persistenz-Strategie | Begründung |
-|-----------|---------------------|------------|
-| **Core Domain**: Kassensystem (Tisch-Operationen) | Event-Sourcing (append-only `events`-Tabelle) | Audit-Trail, vollständige Historie, Replay |
-| **Supporting/Generic Subdomains**: Auth, Usermanagement, Produktkatalog, Tisch-Stammdaten | CRUD (keine Historie, kein Audit-Log) | Einfachheit, direkte Abfragen |
+| Subdomain                                                                                 | Persistenz-Strategie                          | Begründung                                 |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------ |
+| **Core Domain**: Kassensystem (Tisch-Operationen)                                         | Event-Sourcing (append-only `events`-Tabelle) | Audit-Trail, vollständige Historie, Replay |
+| **Supporting/Generic Subdomains**: Auth, Usermanagement, Produktkatalog, Tisch-Stammdaten | CRUD (keine Historie, kein Audit-Log)         | Einfachheit, direkte Abfragen              |
 
 Diese Unterscheidung lässt sich auf die **Lese-Seite** der Core Domain übertragen. Aus dem Event Store entstehen zwei Kategorien von CQRS-Projektionen mit unterschiedlichen Anforderungen:
 
-| Projektion | Konsistenz-Anforderung | Geeignete CQRS-Variante |
-|-----------|------------------------|------------------------|
-| **Operative Projektion** — Balance, Unpaid, Undelivered je Tisch | Strong Consistency | Lazy Projection oder synchrone Projektion |
-| **Analytische Projektion** — Tagesumsatz, Produktstatistiken, Stornierungsraten | Eventual Consistency | Asynchroner Background Worker |
+| Projektion                                                                      | Konsistenz-Anforderung | Geeignete CQRS-Variante                   |
+| ------------------------------------------------------------------------------- | ---------------------- | ----------------------------------------- |
+| **Operative Projektion** — Balance, Unpaid, Undelivered je Tisch                | Strong Consistency     | Lazy Projection oder synchrone Projektion |
+| **Analytische Projektion** — Tagesumsatz, Produktstatistiken, Stornierungsraten | Eventual Consistency   | Asynchroner Background Worker             |
 
 ### 7.5 Architektur mit zwei Projektionspfaden
 
@@ -1250,9 +1255,9 @@ Diese Betrachtung ergänzt — nicht ersetzt — die Empfehlungen in Abschnitt 8
 
 ### 7.7 Bezug zu DDD: Konsistenz-Grenzen an Domänen-Grenzen
 
-Diese Zweiteilung entspricht einem etablierten DDD-Prinzip: **Konsistenz-Grenzen folgen Aggregat-Grenzen**. Der operative Tischzustand (Balance, offene Positionen) ist Teil des `Table`-Aggregats der Core Domain — er muss stark konsistent sein. Analytische Auswertungen aggregieren über Tisch-Grenzen hinweg und gehören konzeptuell zu einer separaten *Reporting-Subdomain*, für die Eventual Consistency eine natürliche Wahl ist.
+Diese Zweiteilung entspricht einem etablierten DDD-Prinzip: **Konsistenz-Grenzen folgen Aggregat-Grenzen**. Der operative Tischzustand (Balance, offene Positionen) ist Teil des `Table`-Aggregats der Core Domain — er muss stark konsistent sein. Analytische Auswertungen aggregieren über Tisch-Grenzen hinweg und gehören konzeptuell zu einer separaten _Reporting-Subdomain_, für die Eventual Consistency eine natürliche Wahl ist.
 
-> *„Strong consistency should be confined to within an Aggregate boundary. Between Aggregates and Bounded Contexts, eventual consistency is the norm."* — Vaughn Vernon, *Implementing Domain-Driven Design*
+> _„Strong consistency should be confined to within an Aggregate boundary. Between Aggregates and Bounded Contexts, eventual consistency is the norm."_ — Vaughn Vernon, _Implementing Domain-Driven Design_
 
 ---
 
@@ -1281,17 +1286,18 @@ Beide Ansätze nutzen die gleiche `table_state`-Tabelle und die gleiche `ApplyEv
 
 3. **Enabler für zukünftige Features**: Analytische Abfragen (Tagesabrechnung nach Benutzer, Umsatz pro Produkt) werden mit typisierten Projektionen erheblich einfacher implementierbar. Die `table_state`-Projektion ist der erste Schritt in diese Richtung.
 
-4. **Bewusstes Maßhalten**: Das Muster bleibt auf Stufe 2 (*Separate Read Models im selben Store*). Eine Trennung in separate Datenspeicher ist für jottis Größe nicht notwendig und würde mehr Komplexität einführen als lösen — wie Fowler warnt.
+4. **Bewusstes Maßhalten**: Das Muster bleibt auf Stufe 2 (_Separate Read Models im selben Store_). Eine Trennung in separate Datenspeicher ist für jottis Größe nicht notwendig und würde mehr Komplexität einführen als lösen — wie Fowler warnt.
 
 **Bevorzugter Ansatz für operative Projektionen (Kernfunktionalität)**: Wenn die Projektion umgesetzt wird, empfiehlt sich die **Lazy Projection** (Abschnitt 6.3), da sie alle Vorteile der synchronen Projektion bietet, ohne die drei Nachteile (Schreibkomplexität, C→Q-Abhängigkeit, Backfill) einzuführen. Die synchrone Projektion (Abschnitt 4) bleibt als Alternative, falls eine noch einfachere Implementierung bevorzugt wird.
 
 **Für analytische Projektionen (Zusatzfeatures)**: Der **Background Worker** (Abschnitt 6.4) ist die empfohlene Variante — Eventual Consistency ist für Umsatzauswertungen und Statistiken akzeptabel (siehe Abschnitt 7.3). Analytische Projektionstabellen (z.B. `daily_revenue`, `variant_sales`) liegen in derselben PostgreSQL-Datenbank und erfordern keine separate Infrastruktur.
 
 **Nicht empfohlen** wird:
+
 - Asynchrone Projektionen via Background Worker für **operative Queries** (Balance, offene Positionen): Eventual Consistency ist für den Kassenbetrieb nicht akzeptabel (für Analysen hingegen geeignet — siehe Abschnitt 7)
 - Separate Read-Datenbank (Overhead nicht gerechtfertigt)
 - PostgreSQL-Trigger-basierte Projektion (Business-Logik in PL/pgSQL schwer wartbar)
-- Vollständige Auflösung des Event Store zugunsten von CRUD (verliert Audit-Trail-Garantien — siehe [no-event-sourcing.md](no-event-sourcing.md))
+- Vollständige Auflösung des Event Store zugunsten von CRUD (verliert Audit-Trail-Garantien — siehe [ADR: Event-Sourcing](adr/event-sourcing.md))
 
 ### Fazit
 
@@ -1316,8 +1322,7 @@ Die Unterscheidung zwischen Kernfunktionalität (Strong Consistency, Lazy Projec
 - **Mia-Platform**: [Understanding Event Sourcing and CQRS](https://mia-platform.eu/blog/understanding-event-sourcing-and-cqrs-pattern/) — Zusammenspiel von Event Sourcing und CQRS
 - **GeeksforGeeks**: [CQRS vs. Event Sourcing](https://www.geeksforgeeks.org/system-design/difference-between-cqrs-and-event-sourcing/) — Unterschiede und Gemeinsamkeiten
 - **DEV Community**: [Event Sourcing vs. CRUD](https://dev.to/alex_aslam/event-sourcing-vs-crud-when-1000-database-writes-dont-matter-5bpj) — Hybride Ansätze und Entscheidungsframeworks
-- **Bertrand Meyer**: *Object-Oriented Software Construction* (1988) — Ursprung von CQS
-- **Vaughn Vernon**: *Implementing Domain-Driven Design* (2013) — Aggregat-Grenzen, Konsistenz-Grenzen, Eventual Consistency zwischen Bounded Contexts
-- **jotti intern**: [Event-Sourcing vs. CRUD](event-sourcing-vs-crud.md) — Hybride Architektur und Event-Sourcing-Details
-- **jotti intern**: [jotti ohne Event-Sourcing](no-event-sourcing.md) — CRUD-Alternative und Nachteile-Analyse
+- **Bertrand Meyer**: _Object-Oriented Software Construction_ (1988) — Ursprung von CQS
+- **Vaughn Vernon**: _Implementing Domain-Driven Design_ (2013) — Aggregat-Grenzen, Konsistenz-Grenzen, Eventual Consistency zwischen Bounded Contexts
+- **jotti intern**: [ADR: Event-Sourcing für Tisch-Operationen](adr/event-sourcing.md) — Entscheidung für Event-Sourcing, Vergleich mit CRUD
 - **jotti intern**: [ADR: Datenbankzugriff — Entscheidung für sqlc](adr/orm.md) — sqlc als Persistenz-Werkzeug
