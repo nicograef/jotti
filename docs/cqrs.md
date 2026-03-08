@@ -17,8 +17,9 @@ Dieses Dokument beschreibt das Architekturmuster **Command Query Responsibility 
 4. [Implementierungsplan: Synchrone Projektion (einfacher Ansatz)](#4-implementierungsplan-synchrone-projektion-einfacher-ansatz)
 5. [Vor- und Nachteile der synchronen Projektion](#5-vor--und-nachteile-der-synchronen-projektion)
 6. [Fortgeschrittene Alternativen: Ohne Snapshots und ohne C→Q-Abhängigkeit](#6-fortgeschrittene-alternativen-ohne-snapshots-und-ohne-cq-abhängigkeit)
-7. [Zusammenfassung und Empfehlung](#7-zusammenfassung-und-empfehlung)
-8. [Referenzen](#8-referenzen)
+7. [Domain-bezogene Konsistenz-Anforderungen: Kernfunktionalität vs. Zusatzfeatures](#7-domain-bezogene-konsistenz-anforderungen-kernfunktionalität-vs-zusatzfeatures)
+8. [Zusammenfassung und Empfehlung](#8-zusammenfassung-und-empfehlung)
+9. [Referenzen](#9-referenzen)
 
 ---
 
@@ -1097,11 +1098,11 @@ func projectNewEvents(ctx context.Context, eventRepo EventRepo,
 | Infrastruktur | ❌ Zusätzliche Goroutine, Lifecycle-Management, Health-Checks, Fehlerbehandlung bei Crashes |
 | Skalierbarkeit | ⚠️ Einzelner Worker — bei mehreren Instanzen braucht man Leader Election oder Partitionierung |
 
-**Fazit**: Der Background Worker bietet die **sauberste CQRS-Trennung**, hat aber einen gravierenden Nachteil für jotti: **Eventual Consistency**. In einem Kassensystem muss die Servicekraft unmittelbar nach dem Aufgeben einer Bestellung die korrekte Balance sehen. Ein Fenster von 100ms mag technisch akzeptabel erscheinen, ist aber architektonisch riskant — unter Last, bei Fehlern im Worker oder bei Neustarts kann dieses Fenster wachsen. Microsoft und Confluent betonen diese Problematik:
+**Fazit**: Der Background Worker bietet die **sauberste CQRS-Trennung**, hat aber einen gravierenden Nachteil für **operative Queries** (Balance, offene Positionen) im Kassenbetrieb: **Eventual Consistency**. In einem Kassensystem muss die Servicekraft unmittelbar nach dem Aufgeben einer Bestellung die korrekte Balance sehen. Ein Fenster von 100ms mag technisch akzeptabel erscheinen, ist aber architektonisch riskant — unter Last, bei Fehlern im Worker oder bei Neustarts kann dieses Fenster wachsen. Microsoft und Confluent betonen diese Problematik:
 
 > *"When the read databases and write databases are separated, the read data might not show the most recent changes immediately."* — Microsoft Azure Architecture Center
 
-Für jottis Kontext — wenige gleichzeitige Benutzer, keine Hochlast-Anforderungen — überwiegen die operativen Nachteile (Goroutine-Management, Eventual Consistency, Recovery nach Crashes) die architektonischen Vorteile.
+Für **analytische Projektionen** (Umsatzauswertungen, Produktstatistiken, Tagesabrechnung) ist der Background Worker hingegen die geeignete Wahl: Eventual Consistency ist für retrospektive Auswertungen akzeptabel, und der Worker bietet maximale Entkopplung ohne Einfluss auf den Write-Pfad. Abschnitt 7 beschreibt diese Unterscheidung im Detail.
 
 ### 6.5 Vergleich der Alternativen
 
@@ -1110,16 +1111,18 @@ Für jottis Kontext — wenige gleichzeitige Benutzer, keine Hochlast-Anforderun
 | Command bleibt einfach (single INSERT) | ❌ Transaktion nötig | ✅ | ✅ | ✅ |
 | Keine C→Q-Abhängigkeit | ❌ Command kennt Read Model | ✅ | ✅ | ✅ |
 | Kein Backfill nötig | ❌ Einmaliger Backfill | ❌ Einmaliger Backfill | ✅ Self-healing | ⚠️ Worker-Initialisierung |
-| Starke Konsistenz | ✅ Gleiche Transaktion | ✅ Gleiche Transaktion | ✅ Read-Time-Konsistenz | ❌ Eventual Consistency |
+| Starke Konsistenz | ✅ Gleiche Transaktion | ✅ Gleiche Transaktion | ✅ Read-Time-Konsistenz | ❌ Eventual Consistency¹ |
 | Snapshot-Eliminierung | ✅ | ✅ | ✅ | ✅ |
 | Wartbarkeit / Testbarkeit | ✅ Go-Code | ❌ PL/pgSQL | ✅ Go-Code | ✅ Go-Code |
 | JSONB-Varianten-Manipulation | ✅ Go-Logik | ❌ Komplex in SQL | ✅ Go-Logik | ✅ Go-Logik |
 | Infrastruktur-Overhead | Gering | Gering | Gering | Mittel (Worker-Lifecycle) |
 | Implementierungsaufwand | Mittel | Mittel | **Gering** | Hoch |
 
+> ¹ Eventual Consistency ist für **operative Queries** (Balance, offene Positionen) nicht akzeptabel. Für **analytische Projektionen** (Umsatzauswertungen, Tagesabrechnung) ist sie hingegen ausreichend — der Background Worker ist dort die empfohlene Variante (siehe Abschnitt 7).
+
 ### 6.6 Empfehlung für jotti
 
-Für jottis spezifischen Kontext — ein Kassensystem mit wenigen gleichzeitigen Benutzern, PostgreSQL als einziger Datenspeicher, Go als Backend-Sprache — ist **Alternative B (Lazy Projection)** die attraktivste Wahl, wenn die Nachteile der synchronen Projektion vermieden werden sollen:
+Für jottis spezifischen Kontext — ein Kassensystem mit wenigen gleichzeitigen Benutzern, PostgreSQL als einziger Datenspeicher, Go als Backend-Sprache — ist **Alternative B (Lazy Projection)** die attraktivste Wahl für **operative Projektionen** (Balance, offene Positionen), wenn die Nachteile der synchronen Projektion vermieden werden sollen:
 
 1. **Commands bleiben einfach**: Ein `INSERT INTO events` — kein transaktionaler Overhead, keine neue Abhängigkeit. Der Code in `command.go` bleibt unverändert.
 2. **Keine C→Q-Abhängigkeit**: Der Command-Service kennt weder die `table_state`-Tabelle noch das `TableStateRepo`. Die CQRS-Trennung bleibt rein.
@@ -1141,9 +1144,119 @@ Der einzige Trade-off — eine leicht erhöhte Latenz beim ersten Read nach mehr
 
 **Kein `command.go`-Refactoring nötig** — Commands bleiben unverändert.
 
+> **Hinweis**: Für **analytische Projektionen** (Umsatzauswertungen, Tagesabrechnung) ist der Background Worker (Alternative C, Abschnitt 6.4) die empfohlene Variante. Dort ist Eventual Consistency akzeptabel. Diese Unterscheidung wird in Abschnitt 7 ausführlich behandelt.
+
 ---
 
-## 7. Zusammenfassung und Empfehlung
+## 7. Domain-bezogene Konsistenz-Anforderungen: Kernfunktionalität vs. Zusatzfeatures
+
+Die bisherige Analyse bewertete alle CQRS-Varianten einheitlich anhand einer einzigen Konsistenz-Anforderung: Strong Consistency für das Kassensystem. Eine differenziertere Betrachtung der Domänen-Grenzen in jotti zeigt, dass nicht alle Projektion-Anwendungsfälle dieselbe Anforderung teilen — und damit unterschiedliche CQRS-Varianten geeignet sind.
+
+### 7.1 Zwei Konsistenzklassen in jotti
+
+| Bereich | Anwendungsfälle | Konsistenz-Anforderung |
+|---------|-----------------|------------------------|
+| **A) Kernfunktionalität** | Tischbasiertes Kassensystem: Bestellungen aufgeben, Zahlungen registrieren, Stornierungen, Lieferungen, Tischbalance, offene Positionen | **Strong Consistency** (zwingend) |
+| **B) Zusatzfeatures** | Umsatzauswertungen, Tagesabrechnung, Lagerbestände, Produktstatistiken, Stornierungsraten | **Eventual Consistency** (ausreichend) |
+
+Diese Unterscheidung entscheidet darüber, welche CQRS-Varianten für welchen Anwendungsfall geeignet sind — und erlaubt es, zuvor pauschal abgelehnte Ansätze für Bereich B neu zu bewerten.
+
+### 7.2 Warum Strong Consistency für den Kassenbetrieb zwingend ist
+
+Im Kassenbetrieb (Bereich A) sehen Servicekräfte unmittelbar nach jeder Aktion den aktualisierten Tischzustand:
+
+- Nach dem Aufgeben einer Bestellung muss die **Balance sofort korrekt** angezeigt werden.
+- Nach einer Zahlung müssen die **bezahlten Positionen sofort verschwinden**.
+- Nach einer Stornierung müssen die **stornierten Artikel sofort als storniert** gelten.
+
+Ein Verzögerungsfenster — selbst von wenigen Hundert Millisekunden — ist nicht akzeptabel:
+
+1. **Doppelt-Bezahlt-Risiko**: Zeigt die Projektion noch die alte Balance, könnte die Servicekraft irrtümlich eine zweite Zahlung auslösen.
+2. **Vertrauensverlust**: Servicekräfte auf mobilen Geräten müssen dem System vertrauen. Sichtbar veraltete Werte untergraben das Vertrauen unmittelbar.
+3. **Keine natürliche Toleranz für Verzögerungen**: Im Gegensatz zu analytischen Dashboards ist ein POS-System ein Echtzeit-Werkzeug mit operativen Konsequenzen.
+
+**Fazit**: Für Bereich A ist Strong Consistency obligatorisch — Lazy Projection (Abschnitt 6.3) und synchrone Projektion (Abschnitt 4) sind die richtigen Ansätze.
+
+### 7.3 Warum Eventual Consistency für Zusatzfeatures ausreicht
+
+Analytische Auswertungen (Bereich B) haben grundlegend andere Nutzungsmuster:
+
+- Der Admin öffnet den Umsatz-Report am Abend oder zwischen Schichten — Daten, die sekunden- bis minutenalt sind, sind vollständig akzeptabel.
+- Lagerbestands-Tracking reagiert auf Bestellungen — ein kurzes Verzögerungsfenster beeinflusst keine operativen Entscheidungen im Kassenbetrieb.
+- Aggregierte Statistiken sind von Natur aus retrospektiv — eine leichte Verzögerung hat keinen Einfluss auf den laufenden Betrieb.
+
+Für Bereich B können **asynchrone Projektionen** (Background Worker, Abschnitt 6.4) bedenkenlos eingesetzt werden. Das Hauptargument gegen diesen Ansatz in Abschnitt 6.4 — *„Eventual Consistency ist für ein Kassensystem nicht akzeptabel"* — gilt für analytische Abfragen nicht.
+
+### 7.4 Bezug zur bestehenden Domain-Architektur von jotti
+
+jotti unterscheidet bei der **Persistenz** bereits konsequent nach Domänen-Grenzen:
+
+| Subdomain | Persistenz-Strategie | Begründung |
+|-----------|---------------------|------------|
+| **Core Domain**: Kassensystem (Tisch-Operationen) | Event-Sourcing (append-only `events`-Tabelle) | Audit-Trail, vollständige Historie, Replay |
+| **Supporting/Generic Subdomains**: Auth, Usermanagement, Produktkatalog, Tisch-Stammdaten | CRUD (keine Historie, kein Audit-Log) | Einfachheit, direkte Abfragen |
+
+Diese Unterscheidung lässt sich auf die **Lese-Seite** der Core Domain übertragen. Aus dem Event Store entstehen zwei Kategorien von CQRS-Projektionen mit unterschiedlichen Anforderungen:
+
+| Projektion | Konsistenz-Anforderung | Geeignete CQRS-Variante |
+|-----------|------------------------|------------------------|
+| **Operative Projektion** — Balance, Unpaid, Undelivered je Tisch | Strong Consistency | Lazy Projection oder synchrone Projektion |
+| **Analytische Projektion** — Tagesumsatz, Produktstatistiken, Stornierungsraten | Eventual Consistency | Asynchroner Background Worker |
+
+### 7.5 Architektur mit zwei Projektionspfaden
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              Frontend                                   │
+└──────┬──────────────────────────────────────────┬───────────────────────┘
+       │ Commands (Schreiben)                     │ Queries (Lesen)
+       ▼                                          ▼
+┌──────────────────┐         ┌────────────────────────────────────────────┐
+│ Command Handler  │         │              Query Handler                 │
+│ (schreibt Events)│         │  A) Operativ (Strong)  B) Analytisch (Ev.) │
+└──────┬───────────┘         └───────────┬────────────────────┬───────────┘
+       │ INSERT                          │ SELECT             │ SELECT
+       ▼                                 ▼                    ▼
+┌──────────────────┐   ┌────────────────────┐   ┌────────────────────────┐
+│   events         │   │  table_state       │   │  daily_revenue         │
+│   (append-only)  │   │  (operative        │   │  variant_sales         │
+│                  │   │   Projektion,      │   │  (analytische          │
+│                  │   │   Strong           │   │   Projektionen,        │
+│                  │   │   Consistency)     │   │   Eventual             │
+└──────────────────┘   └────────────────────┘   │   Consistency)         │
+       │                        ▲               └────────────────────────┘
+       │    Lazy Projection      │                          ▲
+       │    (beim ersten Read)   │               ┌──────────────────────┐
+       └────────────────────────┘               │  Background Worker   │
+                                                │  (async, z.B. ~30s)  │
+                                                └──────────────────────┘
+```
+
+### 7.6 Aktualisierte Empfehlung nach Konsistenz-Klasse
+
+Diese Betrachtung ergänzt — nicht ersetzt — die Empfehlungen in Abschnitt 8. Sie präzisiert, welche CQRS-Variante für welche Projektion geeignet ist:
+
+**Für operative Projektionen (Bereich A — Strong Consistency):**
+
+- **Empfehlung: Lazy Projection** (Abschnitt 6.3) — Strong Consistency, Commands bleiben einfache Event-INSERTs, kein Backfill nötig, selbstheilend.
+- Alternative: Synchrone Projektion (Abschnitt 4) — ebenfalls stark konsistent, aber mit C→Q-Abhängigkeit und Backfill-Aufwand.
+
+**Für analytische Projektionen (Bereich B — Eventual Consistency):**
+
+- **Empfehlung: Background Worker** (Abschnitt 6.4) — da Eventual Consistency akzeptabel ist, entfällt das Hauptargument gegen diesen Ansatz. Der Worker pollt die `events`-Tabelle, projiziert neue Events auf analytische Tabellen (z.B. `daily_revenue`, `variant_sales`) und aktualisiert diese asynchron.
+- Ein Polling-Intervall von 30–60 Sekunden ist für Reports und Statistiken vollständig akzeptabel.
+- Commands bleiben einfache Event-INSERTs — keine C→Q-Abhängigkeit, vollständige Entkopplung.
+- **Kein separater Datenspeicher nötig**: Analytische Projektionstabellen liegen in derselben PostgreSQL-Datenbank — die Vorteile des Background Workers entstehen ohne Infrastruktur-Overhead eines separaten Read Stores.
+
+### 7.7 Bezug zu DDD: Konsistenz-Grenzen an Domänen-Grenzen
+
+Diese Zweiteilung entspricht einem etablierten DDD-Prinzip: **Konsistenz-Grenzen folgen Aggregat-Grenzen**. Der operative Tischzustand (Balance, offene Positionen) ist Teil des `Table`-Aggregats der Core Domain — er muss stark konsistent sein. Analytische Auswertungen aggregieren über Tisch-Grenzen hinweg und gehören konzeptuell zu einer separaten *Reporting-Subdomain*, für die Eventual Consistency eine natürliche Wahl ist.
+
+> *„Strong consistency should be confined to within an Aggregate boundary. Between Aggregates and Bounded Contexts, eventual consistency is the norm."* — Vaughn Vernon, *Implementing Domain-Driven Design*
+
+---
+
+## 8. Zusammenfassung und Empfehlung
 
 ### Zusammenfassung
 
@@ -1168,12 +1281,14 @@ Beide Ansätze nutzen die gleiche `table_state`-Tabelle und die gleiche `ApplyEv
 
 3. **Enabler für zukünftige Features**: Analytische Abfragen (Tagesabrechnung nach Benutzer, Umsatz pro Produkt) werden mit typisierten Projektionen erheblich einfacher implementierbar. Die `table_state`-Projektion ist der erste Schritt in diese Richtung.
 
-4. **Bewusstes Maßhalten**: Das Muster bleibt auf Stufe 2 (*Separate Read Models im selben Store*). Eine Trennung in separate Datenspeicher oder asynchrone Projektionen ist für jottis Größe nicht notwendig und würde mehr Komplexität einführen als lösen — wie Fowler warnt.
+4. **Bewusstes Maßhalten**: Das Muster bleibt auf Stufe 2 (*Separate Read Models im selben Store*). Eine Trennung in separate Datenspeicher ist für jottis Größe nicht notwendig und würde mehr Komplexität einführen als lösen — wie Fowler warnt.
 
-**Bevorzugter Ansatz**: Wenn die Projektion umgesetzt wird, empfiehlt sich die **Lazy Projection** (Abschnitt 6.3), da sie alle Vorteile der synchronen Projektion bietet, ohne die drei Nachteile (Schreibkomplexität, C→Q-Abhängigkeit, Backfill) einzuführen. Die synchrone Projektion (Abschnitt 4) bleibt als Alternative, falls eine noch einfachere Implementierung bevorzugt wird.
+**Bevorzugter Ansatz für operative Projektionen (Kernfunktionalität)**: Wenn die Projektion umgesetzt wird, empfiehlt sich die **Lazy Projection** (Abschnitt 6.3), da sie alle Vorteile der synchronen Projektion bietet, ohne die drei Nachteile (Schreibkomplexität, C→Q-Abhängigkeit, Backfill) einzuführen. Die synchrone Projektion (Abschnitt 4) bleibt als Alternative, falls eine noch einfachere Implementierung bevorzugt wird.
+
+**Für analytische Projektionen (Zusatzfeatures)**: Der **Background Worker** (Abschnitt 6.4) ist die empfohlene Variante — Eventual Consistency ist für Umsatzauswertungen und Statistiken akzeptabel (siehe Abschnitt 7.3). Analytische Projektionstabellen (z.B. `daily_revenue`, `variant_sales`) liegen in derselben PostgreSQL-Datenbank und erfordern keine separate Infrastruktur.
 
 **Nicht empfohlen** wird:
-- Asynchrone Projektionen via Background Worker (Eventual Consistency ist für ein Kassensystem nicht akzeptabel)
+- Asynchrone Projektionen via Background Worker für **operative Queries** (Balance, offene Positionen): Eventual Consistency ist für den Kassenbetrieb nicht akzeptabel (für Analysen hingegen geeignet — siehe Abschnitt 7)
 - Separate Read-Datenbank (Overhead nicht gerechtfertigt)
 - PostgreSQL-Trigger-basierte Projektion (Business-Logik in PL/pgSQL schwer wartbar)
 - Vollständige Auflösung des Event Store zugunsten von CRUD (verliert Audit-Trail-Garantien — siehe [no-event-sourcing.md](no-event-sourcing.md))
@@ -1182,9 +1297,11 @@ Beide Ansätze nutzen die gleiche `table_state`-Tabelle und die gleiche `ApplyEv
 
 CQRS ist in jotti bereits als Denkmodell verankert — die Benennung `Command`/`Query`, die Trennung der Structs und Handler zeigen das. Der nächste sinnvolle Schritt ist, dieses Muster mit einer konkreten Projektion zu vervollständigen und damit die bekannten Schwächen des aktuellen Ansatzes (Snapshot-Mechanismus, Lese-Komplexität) elegant zu lösen. Die Implementierung ist überschaubar, rückwärtskompatibel und bringt einen messbaren Gewinn in Sauberkeit und Wartbarkeit. Die sqlc-basierte Repository-Architektur (siehe [ADR: Datenbankzugriff](adr/orm.md)) bietet dabei eine solide Grundlage für die neuen Repository-Schichten.
 
+Die Unterscheidung zwischen Kernfunktionalität (Strong Consistency, Lazy Projection) und Zusatzfeatures (Eventual Consistency, Background Worker) — beschrieben in Abschnitt 7 — erlaubt es zudem, für zukünftige analytische Features die passende CQRS-Variante gezielt einzusetzen, ohne das operative Kassensystem zu belasten. Beide Projektion-Kategorien nutzen dieselbe `events`-Tabelle als Quelle der Wahrheit und arbeiten in derselben PostgreSQL-Datenbank — die Komplexität bleibt überschaubar.
+
 ---
 
-## 8. Referenzen
+## 9. Referenzen
 
 - **Martin Fowler**: [CQRS](https://martinfowler.com/bliki/CQRS.html) — Grundlegende Beschreibung des Musters, Warnung vor übermäßigem Einsatz
 - **Martin Fowler**: [CommandQuerySeparation](https://martinfowler.com/bliki/CommandQuerySeparation.html) — Das Grundprinzip hinter CQRS
@@ -1200,6 +1317,7 @@ CQRS ist in jotti bereits als Denkmodell verankert — die Benennung `Command`/`
 - **GeeksforGeeks**: [CQRS vs. Event Sourcing](https://www.geeksforgeeks.org/system-design/difference-between-cqrs-and-event-sourcing/) — Unterschiede und Gemeinsamkeiten
 - **DEV Community**: [Event Sourcing vs. CRUD](https://dev.to/alex_aslam/event-sourcing-vs-crud-when-1000-database-writes-dont-matter-5bpj) — Hybride Ansätze und Entscheidungsframeworks
 - **Bertrand Meyer**: *Object-Oriented Software Construction* (1988) — Ursprung von CQS
+- **Vaughn Vernon**: *Implementing Domain-Driven Design* (2013) — Aggregat-Grenzen, Konsistenz-Grenzen, Eventual Consistency zwischen Bounded Contexts
 - **jotti intern**: [Event-Sourcing vs. CRUD](event-sourcing-vs-crud.md) — Hybride Architektur und Event-Sourcing-Details
 - **jotti intern**: [jotti ohne Event-Sourcing](no-event-sourcing.md) — CRUD-Alternative und Nachteile-Analyse
 - **jotti intern**: [ADR: Datenbankzugriff — Entscheidung für sqlc](adr/orm.md) — sqlc als Persistenz-Werkzeug
