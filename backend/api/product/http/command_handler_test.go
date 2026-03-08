@@ -45,7 +45,7 @@ func TestCreateProductHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"name":"French Fries","category":"food"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/create-product", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/admin/create-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
@@ -60,7 +60,7 @@ func TestCreateProductHandler_Failure(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
 	body := `{"name":"French Fries","category":"food"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/create-product", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/admin/create-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
@@ -75,7 +75,7 @@ func TestUpdateProductHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"id":1,"name":"French Fries","category":"food"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/update-product", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/admin/update-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
@@ -90,7 +90,7 @@ func TestUpdateProductHandler_Failure(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
 	body := `{"id":1,"name":"French Fries","category":"food"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/update-product", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/admin/update-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
@@ -105,7 +105,7 @@ func TestCreateVariantHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"productId":1,"name":"Large","priceCents":999}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/create-variant", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/admin/create-variante", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
@@ -120,7 +120,7 @@ func TestCreateVariantHandler_Failure(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
 	body := `{"productId":1,"name":"Large","priceCents":999}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/create-variant", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/admin/create-variante", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
@@ -135,7 +135,7 @@ func TestActivateVariantHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/activate-variant", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/admin/activate-variante", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
@@ -150,7 +150,7 @@ func TestDeactivateVariantHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/deactivate-variant", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/admin/deactivate-variante", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 

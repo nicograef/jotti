@@ -132,7 +132,9 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte englische Feldnamen (`
 
 ---
 
-## Task 6: Backend Routen & Product API
+## Task 6: Backend Routen & Product API ✅
+
+**Status:** Abgeschlossen
 
 **Scope:** `backend/api/service.go`, `backend/api/senior_service.go`, `backend/api/admin.go`, `backend/api/product/`
 

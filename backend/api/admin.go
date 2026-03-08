@@ -23,24 +23,24 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/get-all-users", uq.GetAllUsersHandler())
 
 	pc := product.NewCommandHandler(db)
-	r.HandleFunc("/create-product", pc.CreateProductHandler())
-	r.HandleFunc("/update-product", pc.UpdateProductHandler())
-	r.HandleFunc("/create-variant", pc.CreateVariantHandler())
-	r.HandleFunc("/update-variant", pc.UpdateVariantHandler())
-	r.HandleFunc("/activate-variant", pc.ActivateVariantHandler())
-	r.HandleFunc("/deactivate-variant", pc.DeactivateVariantHandler())
+	r.HandleFunc("/create-produkt", pc.CreateProductHandler())
+	r.HandleFunc("/update-produkt", pc.UpdateProductHandler())
+	r.HandleFunc("/create-variante", pc.CreateVariantHandler())
+	r.HandleFunc("/update-variante", pc.UpdateVariantHandler())
+	r.HandleFunc("/activate-variante", pc.ActivateVariantHandler())
+	r.HandleFunc("/deactivate-variante", pc.DeactivateVariantHandler())
 
 	pq := product.NewQueryHandler(db)
-	r.HandleFunc("/get-all-products", pq.GetAllProductsHandler())
+	r.HandleFunc("/get-all-produkte", pq.GetAllProductsHandler())
 
 	tc := table.NewCommandHandler(db)
-	r.HandleFunc("/update-table", tc.UpdateTableHandler())
-	r.HandleFunc("/create-table", tc.CreateTableHandler())
-	r.HandleFunc("/activate-table", tc.ActivateTableHandler())
-	r.HandleFunc("/deactivate-table", tc.DeactivateTableHandler())
+	r.HandleFunc("/update-tisch", tc.TischAktualisierenHandler())
+	r.HandleFunc("/create-tisch", tc.TischErstellenHandler())
+	r.HandleFunc("/activate-tisch", tc.TischAktivierenHandler())
+	r.HandleFunc("/deactivate-tisch", tc.TischDeaktivierenHandler())
 
 	tq := table.NewQueryHandler(db)
-	r.HandleFunc("/get-all-tables", tq.GetAllTablesHandler())
+	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())
 
 	return r
 }
