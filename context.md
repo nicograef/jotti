@@ -671,7 +671,7 @@ Tracking analog zu `tasks.md`:
 - [x] Task 1: Database Migration
 - [x] Task 2: Backend Domain Layer
 - [x] Task 3: Backend Repository Layer
-- [ ] Task 4: Backend Application Layer (Commands & Queries)
+- [x] Task 4: Backend Application Layer (Commands & Queries)
 - [ ] Task 5: Backend HTTP Handler
 - [ ] Task 6: Backend Routen & Product API
 - [ ] Task 7: Frontend Service Types, Backend-Client & Hooks

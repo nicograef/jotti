@@ -92,7 +92,9 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte englische Feldnamen (`
 
 ---
 
-## Task 4: Backend Application Layer (Commands & Queries)
+## Task 4: Backend Application Layer (Commands & Queries) ✅
+
+**Status:** Abgeschlossen
 
 **Scope:** `backend/api/table/application/`
 

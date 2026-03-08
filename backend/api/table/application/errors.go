@@ -7,29 +7,29 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// ErrTableNotFound is returned when a table is not found.
-var ErrTableNotFound = errors.New("table not found")
+// ErrTischNotFound is returned when a tisch is not found.
+var ErrTischNotFound = errors.New("tisch not found")
 
-// ErrTableAlreadyExists is returned when a table already exists.
-var ErrTableAlreadyExists = errors.New("table already exists")
+// ErrTischAlreadyExists is returned when a tisch already exists.
+var ErrTischAlreadyExists = errors.New("tisch already exists")
 
 // ErrDatabase is returned when there is a database error.
 var ErrDatabase = db.ErrDatabase
 
-// ErrInvalidTableData is returned when the provided table data is invalid.
-var ErrInvalidTableData = errors.New("invalid table data")
+// ErrInvalidTischData is returned when the provided tisch data is invalid.
+var ErrInvalidTischData = errors.New("invalid tisch data")
 
 func fromRepositoryError(err error, log *zerolog.Logger, id int) error {
 	if errors.Is(err, db.ErrNotFound) {
-		log.Warn().Err(err).Int("table_id", id).Msg("Table not found")
-		return ErrTableNotFound
+		log.Warn().Err(err).Int("tisch_id", id).Msg("Tisch not found")
+		return ErrTischNotFound
 	}
 
 	if errors.Is(err, db.ErrAlreadyExists) {
-		log.Warn().Err(err).Msg("Table already exists")
-		return ErrTableAlreadyExists
+		log.Warn().Err(err).Msg("Tisch already exists")
+		return ErrTischAlreadyExists
 	}
 
-	log.Error().Err(err).Int("table_id", id).Msg("Database error")
+	log.Error().Err(err).Int("tisch_id", id).Msg("Database error")
 	return ErrDatabase
 }

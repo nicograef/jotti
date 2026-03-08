@@ -12,9 +12,9 @@ import (
 )
 
 type tableRepoQuery interface {
-	GetTable(ctx context.Context, id int) (t.Table, error)
-	GetAllTables(ctx context.Context) ([]t.Table, error)
-	GetActiveTables(ctx context.Context) ([]t.Table, error)
+	GetTable(ctx context.Context, id int) (t.Tisch, error)
+	GetAllTables(ctx context.Context) ([]t.Tisch, error)
+	GetActiveTables(ctx context.Context) ([]t.Tisch, error)
 }
 
 type eventRepoQuery interface {
@@ -27,127 +27,127 @@ type Query struct {
 	EventRepo eventRepoQuery
 }
 
-func (q Query) GetTable(ctx context.Context, id int) (t.Table, error) {
+func (q Query) GetTisch(ctx context.Context, id int) (t.Tisch, error) {
 	log := zerolog.Ctx(ctx)
 
-	table, err := q.TableRepo.GetTable(ctx, id)
+	tisch, err := q.TableRepo.GetTable(ctx, id)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("table_id", id).Msg("Table not found")
-			return t.Table{}, ErrTableNotFound
+			log.Warn().Int("tisch_id", id).Msg("Tisch not found")
+			return t.Tisch{}, ErrTischNotFound
 		} else {
-			log.Error().Err(err).Int("table_id", id).Msg("Failed to retrieve table")
-			return t.Table{}, ErrDatabase
+			log.Error().Err(err).Int("tisch_id", id).Msg("Failed to retrieve tisch")
+			return t.Tisch{}, ErrDatabase
 		}
 	}
 
-	log.Debug().Int("table_id", id).Msg("Table retrieved")
-	return table, nil
+	log.Debug().Int("tisch_id", id).Msg("Tisch retrieved")
+	return tisch, nil
 }
 
-func (q Query) GetAllTables(ctx context.Context) ([]t.Table, error) {
+func (q Query) GetAllTische(ctx context.Context) ([]t.Tisch, error) {
 	log := zerolog.Ctx(ctx)
 
-	tables, err := q.TableRepo.GetAllTables(ctx)
+	tische, err := q.TableRepo.GetAllTables(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve all tables")
+		log.Error().Err(err).Msg("Failed to retrieve all tische")
 		return nil, ErrDatabase
 	}
 
-	log.Debug().Int("count", len(tables)).Msg("Retrieved all tables")
-	return tables, nil
+	log.Debug().Int("count", len(tische)).Msg("Retrieved all tische")
+	return tische, nil
 }
 
-func (q Query) GetActiveTables(ctx context.Context) ([]t.Table, error) {
+func (q Query) GetAktiveTische(ctx context.Context) ([]t.Tisch, error) {
 	log := zerolog.Ctx(ctx)
 
-	tables, err := q.TableRepo.GetActiveTables(ctx)
+	tische, err := q.TableRepo.GetActiveTables(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve active tables")
+		log.Error().Err(err).Msg("Failed to retrieve active tische")
 		return nil, ErrDatabase
 	}
 
-	log.Info().Int("count", len(tables)).Msg("Retrieved active tables")
-	return tables, nil
+	log.Info().Int("count", len(tische)).Msg("Retrieved active tische")
+	return tische, nil
 }
 
-func (q Query) GetTableBalance(ctx context.Context, tableID int) (int, error) {
+func (q Query) GetTischSaldo(ctx context.Context, tischID int) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	subject := "table:" + strconv.Itoa(tableID)
+	subject := "tisch:" + strconv.Itoa(tischID)
 	events, err := q.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(t.EventTypeSnapshotV1))
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to read order events for table")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for tisch")
 		return 0, ErrDatabase
 	}
 
-	balanceCents, err := t.GetBalanceFromEvents(events)
+	saldoCents, err := t.GetSaldoFromEvents(events)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to calculate balance from events")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to calculate saldo from events")
 		return 0, err
 	}
 
-	log.Info().Int("table_id", tableID).Int("total_balance_cents", balanceCents).Msg("Calculated table balance")
-	return balanceCents, nil
+	log.Info().Int("tisch_id", tischID).Int("saldo_cents", saldoCents).Msg("Calculated tisch saldo")
+	return saldoCents, nil
 }
 
-func (q Query) GetTableHistory(ctx context.Context, tableID int) ([]any, error) {
+func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]any, error) {
 	log := zerolog.Ctx(ctx)
 
 	// Note: History needs all events, not just since snapshot, to show full timeline
-	subject := "table:" + strconv.Itoa(tableID)
+	subject := "tisch:" + strconv.Itoa(tischID)
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Msg("Failed to read events for table")
+		log.Error().Int("tisch_id", tischID).Msg("Failed to read events for tisch")
 		return nil, ErrDatabase
 	}
 
-	history, err := t.GetHistoryFromEvents(events)
+	historie, err := t.GetHistoryFromEvents(events)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build history from events")
+		log.Error().Int("tisch_id", tischID).Err(err).Msg("Failed to build historie from events")
 		return nil, err
 	}
 
-	log.Info().Int("table_id", tableID).Int("history_count", len(history)).Msg("Retrieved history for table")
-	return history, nil
+	log.Info().Int("tisch_id", tischID).Int("historie_count", len(historie)).Msg("Retrieved historie for tisch")
+	return historie, nil
 }
 
-func (q Query) GetTableUnpaidVariants(ctx context.Context, tableID int) ([]t.LineItem, error) {
+func (q Query) GetTischUnbezahlt(ctx context.Context, tischID int) ([]t.Position, error) {
 	log := zerolog.Ctx(ctx)
 
-	subject := "table:" + strconv.Itoa(tableID)
+	subject := "tisch:" + strconv.Itoa(tischID)
 	events, err := q.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(t.EventTypeSnapshotV1))
 	if err != nil {
-		log.Error().Int("table_id", tableID).Msg("Failed to read events for table")
+		log.Error().Int("tisch_id", tischID).Msg("Failed to read events for tisch")
 		return nil, ErrDatabase
 	}
 
-	unpaidVariants, err := t.GetUnpaidVariantsFromEvents(events)
+	unbezahltePositionen, err := t.GetUnbezahltePositionenFromEvents(events)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build unpaid variants from events")
+		log.Error().Int("tisch_id", tischID).Err(err).Msg("Failed to build unbezahlte positionen from events")
 		return nil, err
 	}
 
-	log.Info().Int("table_id", tableID).Int("unpaid_variant_count", len(unpaidVariants)).Msg("Retrieved unpaid variants for table")
-	return unpaidVariants, nil
+	log.Info().Int("tisch_id", tischID).Int("unbezahlt_count", len(unbezahltePositionen)).Msg("Retrieved unbezahlte positionen for tisch")
+	return unbezahltePositionen, nil
 }
 
-func (q Query) GetTableUndeliveredVariants(ctx context.Context, tableID int) ([]t.LineItem, error) {
+func (q Query) GetTischUngeliefert(ctx context.Context, tischID int) ([]t.Position, error) {
 	log := zerolog.Ctx(ctx)
 
-	subject := "table:" + strconv.Itoa(tableID)
+	subject := "tisch:" + strconv.Itoa(tischID)
 	events, err := q.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(t.EventTypeSnapshotV1))
 	if err != nil {
-		log.Error().Int("table_id", tableID).Msg("Failed to read events for table")
+		log.Error().Int("tisch_id", tischID).Msg("Failed to read events for tisch")
 		return nil, ErrDatabase
 	}
 
-	undeliveredVariants, err := t.GetUndeliveredVariantsFromEvents(events)
+	ungeliefertePositionen, err := t.GetUngeliefertePositionenFromEvents(events)
 	if err != nil {
-		log.Error().Int("table_id", tableID).Err(err).Msg("Failed to build undelivered variants from events")
+		log.Error().Int("tisch_id", tischID).Err(err).Msg("Failed to build ungelieferte positionen from events")
 		return nil, err
 	}
 
-	log.Info().Int("table_id", tableID).Int("undelivered_variant_count", len(undeliveredVariants)).Msg("Retrieved undelivered variants for table")
-	return undeliveredVariants, nil
+	log.Info().Int("tisch_id", tischID).Int("ungeliefert_count", len(ungeliefertePositionen)).Msg("Retrieved ungelieferte positionen for tisch")
+	return ungeliefertePositionen, nil
 }
