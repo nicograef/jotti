@@ -12,39 +12,39 @@ import (
 )
 
 type command interface {
-	CreateTable(ctx context.Context, name string) (int, error)
-	UpdateTable(ctx context.Context, id int, name string) error
-	ActivateTable(ctx context.Context, id int) error
-	DeactivateTable(ctx context.Context, id int) error
-	PlaceTableOrder(ctx context.Context, userID int, tableID int, variants []table.LineItem, comment string) error
-	RegisterTablePayment(ctx context.Context, userID int, tableID int, variants []table.LineItem, comment string) error
-	CancelTableVariants(ctx context.Context, userID int, tableID int, variants []table.LineItem, comment string) error
-	DeliverTableVariants(ctx context.Context, userID int, tableID int, variants []table.LineItem, comment string) error
+	TischErstellen(ctx context.Context, name string) (int, error)
+	TischAktualisieren(ctx context.Context, id int, name string) error
+	TischAktivieren(ctx context.Context, id int) error
+	TischDeaktivieren(ctx context.Context, id int) error
+	BestellungAufgeben(ctx context.Context, userID int, tischID int, positionen []table.Position, comment string) error
+	ZahlungRegistrieren(ctx context.Context, userID int, tischID int, positionen []table.Position, comment string) error
+	ProdukteStornieren(ctx context.Context, userID int, tischID int, positionen []table.Position, comment string) error
+	ProdukteLiefern(ctx context.Context, userID int, tischID int, positionen []table.Position, comment string) error
 }
 
 type CommandHandler struct {
 	Command command
 }
 
-type createTable struct {
+type createTisch struct {
 	Name string `json:"name"`
 }
 
-type createTableResponse struct {
+type createTischResponse struct {
 	ID int `json:"id"`
 }
 
-func (h *CommandHandler) CreateTableHandler() http.HandlerFunc {
+func (h *CommandHandler) TischErstellenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := createTable{}
+		body := createTisch{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		id, err := h.Command.CreateTable(r.Context(), body.Name)
+		id, err := h.Command.TischErstellen(r.Context(), body.Name)
 		if err != nil {
-			if errors.Is(err, application.ErrTableAlreadyExists) {
-				helper.SendClientError(w, "table_already_exists", nil)
+			if errors.Is(err, application.ErrTischAlreadyExists) {
+				helper.SendClientError(w, "tisch_already_exists", nil)
 				return
 			} else {
 				helper.SendServerError(w)
@@ -52,26 +52,26 @@ func (h *CommandHandler) CreateTableHandler() http.HandlerFunc {
 			}
 		}
 
-		helper.SendResponse(w, createTableResponse{ID: id})
+		helper.SendResponse(w, createTischResponse{ID: id})
 	}
 }
 
-type updateTable struct {
+type updateTisch struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
 
-func (h *CommandHandler) UpdateTableHandler() http.HandlerFunc {
+func (h *CommandHandler) TischAktualisierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := updateTable{}
+		body := updateTisch{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		err := h.Command.UpdateTable(r.Context(), body.ID, body.Name)
+		err := h.Command.TischAktualisieren(r.Context(), body.ID, body.Name)
 		if err != nil {
-			if errors.Is(err, application.ErrTableNotFound) {
-				helper.SendClientError(w, "table_not_found", nil)
+			if errors.Is(err, application.ErrTischNotFound) {
+				helper.SendClientError(w, "tisch_not_found", nil)
 				return
 			} else {
 				helper.SendServerError(w)
@@ -83,21 +83,21 @@ func (h *CommandHandler) UpdateTableHandler() http.HandlerFunc {
 	}
 }
 
-type activateTable struct {
+type activateTisch struct {
 	ID int `json:"id"`
 }
 
-func (h *CommandHandler) ActivateTableHandler() http.HandlerFunc {
+func (h *CommandHandler) TischAktivierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := activateTable{}
+		body := activateTisch{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		err := h.Command.ActivateTable(r.Context(), body.ID)
+		err := h.Command.TischAktivieren(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrTableNotFound) {
-				helper.SendClientError(w, "table_not_found", nil)
+			if errors.Is(err, application.ErrTischNotFound) {
+				helper.SendClientError(w, "tisch_not_found", nil)
 				return
 			} else {
 				helper.SendServerError(w)
@@ -109,21 +109,21 @@ func (h *CommandHandler) ActivateTableHandler() http.HandlerFunc {
 	}
 }
 
-type deactivateTable struct {
+type deactivateTisch struct {
 	ID int `json:"id"`
 }
 
-func (h *CommandHandler) DeactivateTableHandler() http.HandlerFunc {
+func (h *CommandHandler) TischDeaktivierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deactivateTable{}
+		body := deactivateTisch{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		err := h.Command.DeactivateTable(r.Context(), body.ID)
+		err := h.Command.TischDeaktivieren(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrTableNotFound) {
-				helper.SendClientError(w, "table_not_found", nil)
+			if errors.Is(err, application.ErrTischNotFound) {
+				helper.SendClientError(w, "tisch_not_found", nil)
 				return
 			} else {
 				helper.SendServerError(w)
@@ -135,15 +135,15 @@ func (h *CommandHandler) DeactivateTableHandler() http.HandlerFunc {
 	}
 }
 
-type placeTableOrder struct {
-	TableID  int              `json:"tableId"`
-	Variants []table.LineItem `json:"variants"`
-	Comment  string           `json:"comment"`
+type bestellungAufgeben struct {
+	TischID    int              `json:"tischId"`
+	Positionen []table.Position `json:"positionen"`
+	Comment    string           `json:"comment"`
 }
 
-func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
+func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := placeTableOrder{}
+		body := bestellungAufgeben{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -153,7 +153,7 @@ func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.PlaceTableOrder(r.Context(), userID, body.TableID, body.Variants, body.Comment)
+		err := h.Command.BestellungAufgeben(r.Context(), userID, body.TischID, body.Positionen, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -163,15 +163,15 @@ func (h *CommandHandler) PlaceTableOrderHandler() http.HandlerFunc {
 	}
 }
 
-type registerTablePayment struct {
-	TableID  int              `json:"tableId"`
-	Variants []table.LineItem `json:"variants"`
-	Comment  string           `json:"comment"`
+type zahlungRegistrieren struct {
+	TischID    int              `json:"tischId"`
+	Positionen []table.Position `json:"positionen"`
+	Comment    string           `json:"comment"`
 }
 
-func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
+func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := registerTablePayment{}
+		body := zahlungRegistrieren{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -181,7 +181,7 @@ func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.RegisterTablePayment(r.Context(), userID, body.TableID, body.Variants, body.Comment)
+		err := h.Command.ZahlungRegistrieren(r.Context(), userID, body.TischID, body.Positionen, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -191,15 +191,15 @@ func (h *CommandHandler) RegisterTablePaymentHandler() http.HandlerFunc {
 	}
 }
 
-type cancelTableVariants struct {
-	TableID  int              `json:"tableId"`
-	Variants []table.LineItem `json:"variants"`
-	Comment  string           `json:"comment"`
+type produkteStornieren struct {
+	TischID    int              `json:"tischId"`
+	Positionen []table.Position `json:"positionen"`
+	Comment    string           `json:"comment"`
 }
 
-func (h *CommandHandler) CancelTableVariantsHandler() http.HandlerFunc {
+func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := cancelTableVariants{}
+		body := produkteStornieren{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -209,7 +209,7 @@ func (h *CommandHandler) CancelTableVariantsHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.CancelTableVariants(r.Context(), userID, body.TableID, body.Variants, body.Comment)
+		err := h.Command.ProdukteStornieren(r.Context(), userID, body.TischID, body.Positionen, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -219,15 +219,15 @@ func (h *CommandHandler) CancelTableVariantsHandler() http.HandlerFunc {
 	}
 }
 
-type deliverTableVariants struct {
-	TableID  int              `json:"tableId"`
-	Variants []table.LineItem `json:"variants"`
-	Comment  string           `json:"comment"`
+type produkteLiefern struct {
+	TischID    int              `json:"tischId"`
+	Positionen []table.Position `json:"positionen"`
+	Comment    string           `json:"comment"`
 }
 
-func (h *CommandHandler) DeliverTableVariantsHandler() http.HandlerFunc {
+func (h *CommandHandler) ProdukteLiefernHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deliverTableVariants{}
+		body := produkteLiefern{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -237,7 +237,7 @@ func (h *CommandHandler) DeliverTableVariantsHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.DeliverTableVariants(r.Context(), userID, body.TableID, body.Variants, body.Comment)
+		err := h.Command.ProdukteLiefern(r.Context(), userID, body.TischID, body.Positionen, body.Comment)
 		if err != nil {
 			helper.SendServerError(w)
 			return

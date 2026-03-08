@@ -13,61 +13,61 @@ import (
 )
 
 type mockQuery struct {
-	table   table.Table
-	order   table.Order
-	variant table.LineItem
-	balance int
-	err     error
+	tisch    table.Tisch
+	order    table.Bestellung
+	position table.Position
+	balance  int
+	err      error
 }
 
-func (m mockQuery) GetTable(ctx context.Context, id int) (table.Table, error) {
-	return m.table, m.err
+func (m mockQuery) GetTisch(ctx context.Context, id int) (table.Tisch, error) {
+	return m.tisch, m.err
 }
 
-func (m mockQuery) GetAllTables(ctx context.Context) ([]table.Table, error) {
-	return []table.Table{m.table}, m.err
+func (m mockQuery) GetAllTische(ctx context.Context) ([]table.Tisch, error) {
+	return []table.Tisch{m.tisch}, m.err
 }
 
-func (m mockQuery) GetActiveTables(ctx context.Context) ([]table.Table, error) {
-	return []table.Table{m.table}, m.err
+func (m mockQuery) GetAktiveTische(ctx context.Context) ([]table.Tisch, error) {
+	return []table.Tisch{m.tisch}, m.err
 }
 
-func (m mockQuery) GetTableHistory(ctx context.Context, tableID int) ([]any, error) {
+func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]any, error) {
 	return []any{m.order}, m.err
 }
 
-func (m mockQuery) GetTableBalance(ctx context.Context, tableID int) (int, error) {
+func (m mockQuery) GetTischSaldo(ctx context.Context, tischID int) (int, error) {
 	return m.balance, m.err
 }
 
-func (m mockQuery) GetTableUnpaidVariants(ctx context.Context, tableID int) ([]table.LineItem, error) {
-	return []table.LineItem{m.variant}, m.err
+func (m mockQuery) GetTischUnbezahlt(ctx context.Context, tischID int) ([]table.Position, error) {
+	return []table.Position{m.position}, m.err
 }
 
-func (m mockQuery) GetTableUndeliveredVariants(ctx context.Context, tableID int) ([]table.LineItem, error) {
-	return []table.LineItem{m.variant}, m.err
+func (m mockQuery) GetTischUngeliefert(ctx context.Context, tischID int) ([]table.Position, error) {
+	return []table.Position{m.position}, m.err
 }
 
-func TestGetAllTablesHandler_Success(t *testing.T) {
+func TestGetAllTischeHandler_Success(t *testing.T) {
 	handler := &QueryHandler{Query: mockQuery{}}
 
-	req := httptest.NewRequest(http.MethodPost, "/get-all-tables", nil)
+	req := httptest.NewRequest(http.MethodPost, "/get-all-tische", nil)
 	rec := httptest.NewRecorder()
 
-	handler.GetAllTablesHandler().ServeHTTP(rec, req)
+	handler.GetAllTischeHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
 }
 
-func TestGetAllTablesHandler_Failure(t *testing.T) {
+func TestGetAllTischeHandler_Failure(t *testing.T) {
 	handler := &QueryHandler{Query: mockQuery{err: application.ErrDatabase}}
 
-	req := httptest.NewRequest(http.MethodPost, "/get-all-tables", nil)
+	req := httptest.NewRequest(http.MethodPost, "/get-all-tische", nil)
 	rec := httptest.NewRecorder()
 
-	handler.GetAllTablesHandler().ServeHTTP(rec, req)
+	handler.GetAllTischeHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Errorf("expected status 500, got %d", rec.Code)

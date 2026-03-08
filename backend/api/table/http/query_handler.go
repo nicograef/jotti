@@ -11,38 +11,38 @@ import (
 )
 
 type query interface {
-	GetTable(ctx context.Context, id int) (t.Table, error)
-	GetAllTables(ctx context.Context) ([]t.Table, error)
-	GetActiveTables(ctx context.Context) ([]t.Table, error)
-	GetTableHistory(ctx context.Context, tableID int) ([]any, error)
-	GetTableBalance(ctx context.Context, tableID int) (int, error)
-	GetTableUnpaidVariants(ctx context.Context, tableID int) ([]t.LineItem, error)
-	GetTableUndeliveredVariants(ctx context.Context, tableID int) ([]t.LineItem, error)
+	GetTisch(ctx context.Context, id int) (t.Tisch, error)
+	GetAllTische(ctx context.Context) ([]t.Tisch, error)
+	GetAktiveTische(ctx context.Context) ([]t.Tisch, error)
+	GetTischHistorie(ctx context.Context, tischID int) ([]any, error)
+	GetTischSaldo(ctx context.Context, tischID int) (int, error)
+	GetTischUnbezahlt(ctx context.Context, tischID int) ([]t.Position, error)
+	GetTischUngeliefert(ctx context.Context, tischID int) ([]t.Position, error)
 }
 
 type QueryHandler struct {
 	Query query
 }
 
-type getTable struct {
+type getTisch struct {
 	ID int `json:"id"`
 }
 
-type getTableResponse struct {
-	Table t.Table `json:"table"`
+type getTischResponse struct {
+	Tisch t.Tisch `json:"tisch"`
 }
 
-func (h QueryHandler) GetTableHandler() http.HandlerFunc {
+func (h QueryHandler) GetTischHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTable{}
+		body := getTisch{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		table, err := h.Query.GetTable(r.Context(), body.ID)
+		tisch, err := h.Query.GetTisch(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrTableNotFound) {
-				helper.SendClientError(w, "table_not_found", nil)
+			if errors.Is(err, application.ErrTischNotFound) {
+				helper.SendClientError(w, "tisch_not_found", nil)
 				return
 			} else {
 				helper.SendServerError(w)
@@ -50,151 +50,151 @@ func (h QueryHandler) GetTableHandler() http.HandlerFunc {
 			}
 		}
 
-		helper.SendResponse(w, getTableResponse{Table: table})
+		helper.SendResponse(w, getTischResponse{Tisch: tisch})
 	}
 }
 
-type getAllTablesResponse struct {
-	Tables []t.Table `json:"tables"`
+type getAllTischeResponse struct {
+	Tische []t.Tisch `json:"tische"`
 }
 
-func (h QueryHandler) GetAllTablesHandler() http.HandlerFunc {
+func (h QueryHandler) GetAllTischeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tables, err := h.Query.GetAllTables(r.Context())
+		tische, err := h.Query.GetAllTische(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, getAllTablesResponse{Tables: tables})
+		helper.SendResponse(w, getAllTischeResponse{Tische: tische})
 	}
 }
 
-type activeTable struct {
+type aktiverTisch struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
 
-type getActiveTablesResponse struct {
-	Tables []activeTable `json:"tables"`
+type getAktiveTischeResponse struct {
+	Tische []aktiverTisch `json:"tische"`
 }
 
-func (h QueryHandler) GetActiveTablesHandler() http.HandlerFunc {
+func (h QueryHandler) GetAktiveTischeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tables, err := h.Query.GetActiveTables(r.Context())
+		tische, err := h.Query.GetAktiveTische(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		activeTables := make([]activeTable, len(tables))
-		for i, table := range tables {
-			activeTables[i] = activeTable{
-				ID:   table.ID,
-				Name: table.Name,
+		aktiveTische := make([]aktiverTisch, len(tische))
+		for i, tisch := range tische {
+			aktiveTische[i] = aktiverTisch{
+				ID:   tisch.ID,
+				Name: tisch.Name,
 			}
 		}
 
-		helper.SendResponse(w, getActiveTablesResponse{Tables: activeTables})
+		helper.SendResponse(w, getAktiveTischeResponse{Tische: aktiveTische})
 	}
 }
 
-type getTableHistory struct {
-	TableID int `json:"tableId"`
+type getTischHistorie struct {
+	TischID int `json:"tischId"`
 }
 
-type getTableHistoryResponse struct {
-	History []any `json:"history"`
+type getTischHistorieResponse struct {
+	Historie []any `json:"historie"`
 }
 
-func (h QueryHandler) GetTableHistoryHandler() http.HandlerFunc {
+func (h QueryHandler) GetTischHistorieHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTableHistory{}
+		body := getTischHistorie{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		history, err := h.Query.GetTableHistory(r.Context(), body.TableID)
+		historie, err := h.Query.GetTischHistorie(r.Context(), body.TischID)
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, getTableHistoryResponse{History: history})
+		helper.SendResponse(w, getTischHistorieResponse{Historie: historie})
 	}
 }
 
-type getTableBalance struct {
-	TableID int `json:"tableId"`
+type getTischSaldo struct {
+	TischID int `json:"tischId"`
 }
 
-type getTableBalanceResponse struct {
-	BalanceCents int `json:"balanceCents"`
+type getTischSaldoResponse struct {
+	SaldoCents int `json:"saldoCents"`
 }
 
-func (h QueryHandler) GetTableBalanceHandler() http.HandlerFunc {
+func (h QueryHandler) GetTischSaldoHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTableBalance{}
+		body := getTischSaldo{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		balanceCents, err := h.Query.GetTableBalance(r.Context(), body.TableID)
+		saldoCents, err := h.Query.GetTischSaldo(r.Context(), body.TischID)
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, getTableBalanceResponse{BalanceCents: balanceCents})
+		helper.SendResponse(w, getTischSaldoResponse{SaldoCents: saldoCents})
 	}
 }
 
-type getTableUnpaidVariants struct {
-	TableID int `json:"tableId"`
+type getTischUnbezahlt struct {
+	TischID int `json:"tischId"`
 }
 
-type getTableUnpaidVariantsResponse struct {
-	Variants []t.LineItem `json:"variants"`
+type getTischUnbezahltResponse struct {
+	Positionen []t.Position `json:"positionen"`
 }
 
-func (h QueryHandler) GetTableUnpaidVariantsHandler() http.HandlerFunc {
+func (h QueryHandler) GetTischUnbezahltHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTableUnpaidVariants{}
+		body := getTischUnbezahlt{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		variants, err := h.Query.GetTableUnpaidVariants(r.Context(), body.TableID)
+		positionen, err := h.Query.GetTischUnbezahlt(r.Context(), body.TischID)
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, getTableUnpaidVariantsResponse{Variants: variants})
+		helper.SendResponse(w, getTischUnbezahltResponse{Positionen: positionen})
 	}
 }
 
-type getTableUndeliveredVariants struct {
-	TableID int `json:"tableId"`
+type getTischUngeliefert struct {
+	TischID int `json:"tischId"`
 }
 
-type getTableUndeliveredVariantsResponse struct {
-	Variants []t.LineItem `json:"variants"`
+type getTischUngeliefertResponse struct {
+	Positionen []t.Position `json:"positionen"`
 }
 
-func (h QueryHandler) GetTableUndeliveredVariantsHandler() http.HandlerFunc {
+func (h QueryHandler) GetTischUngeliefertHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTableUndeliveredVariants{}
+		body := getTischUngeliefert{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		variants, err := h.Query.GetTableUndeliveredVariants(r.Context(), body.TableID)
+		positionen, err := h.Query.GetTischUngeliefert(r.Context(), body.TischID)
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, getTableUndeliveredVariantsResponse{Variants: variants})
+		helper.SendResponse(w, getTischUngeliefertResponse{Positionen: positionen})
 	}
 }

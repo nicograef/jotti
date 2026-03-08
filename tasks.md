@@ -112,7 +112,9 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte englische Feldnamen (`
 
 ---
 
-## Task 5: Backend HTTP Handler
+## Task 5: Backend HTTP Handler ✅
+
+**Status:** Abgeschlossen
 
 **Scope:** `backend/api/table/http/`
 
