@@ -102,7 +102,7 @@ Preise werden in der Produktliste pro Variante angezeigt (`formatCents()`).
 
 > Als Servicekraft möchte ich die Menge einer Position über +/−-Buttons ändern und die Bestellung per Bestätigung abschließen.
 
-Implemented in `ProductList.tsx` mit Mengen-State und Bestätigung über `OrderDrawer`.
+Implemented in `ProductList.tsx` mit Mengen-State und Bestätigung über `BestellungDrawer`.
 
 #### 1.4 Positionen vor Abgabe entfernen ✅
 
@@ -114,7 +114,7 @@ Implemented in `ProductList.tsx` mit Mengen-State und Bestätigung über `OrderD
 
 > Als Servicekraft möchte ich eine laufende Bestellung komplett verwerfen können, nachdem ich den Abbruch bestätigt habe.
 
-Der OrderDrawer hat einen „Abbrechen"-Button; alternativ kann die Seite verlassen werden — Mengen liegen nur im lokalen React-State.
+Der BestellungDrawer hat einen „Abbrechen“-Button; alternativ kann die Seite verlassen werden — Mengen liegen nur im lokalen React-State.
 
 #### 1.6 Produktvarianten bestellen ✅
 
@@ -126,7 +126,7 @@ Vollständig umgesetzt: Produkt-Varianten-Modell in DB, Admin-CRUD, Variantenaus
 
 > Als Servicekraft möchte ich für einen Tisch beliebig viele Bestellungen aufgeben können.
 
-Jede Bestellung wird als eigenes Event (`table.order-placed:v1`) gespeichert; pro Tisch unbegrenzt möglich.
+Jede Bestellung wird als eigenes Event (`tisch.bestellung-aufgegeben:v1`) gespeichert; pro Tisch unbegrenzt möglich.
 
 #### 1.8 Kommentar/Notiz pro Bestellvorgang ✅
 
@@ -156,8 +156,8 @@ Umgesetzt: `ProductList.tsx` gruppiert Produkte nach Kategorie (`food` → „Es
 
 **Implementierungsvorschlag:**
 
-- Neuer Event-Typ `table.order-transferred:v1` mit Quell- und Ziel-Tisch-ID.
-- Backend: Neuer Endpunkt `POST /service/transfer-table-order` — erzeugt ein Storno-Event am Quell-Tisch und ein Order-Event am Ziel-Tisch (atomar in einer Transaktion).
+- Neuer Event-Typ `tisch.bestellung-umgebucht:v1` mit Quell- und Ziel-Tisch-ID.
+- Backend: Neuer Endpunkt `POST /service/bestellung-umbuchen` — erzeugt ein Storno-Event am Quell-Tisch und ein Bestellungs-Event am Ziel-Tisch (atomar in einer Transaktion).
 - Frontend: Aktion „Umbuchen" im Tisch-Menü, öffnet einen Drawer zur Tischauswahl.
 
 #### 1.12 Freibon mit freier Preiseingabe ❌
@@ -168,7 +168,7 @@ Umgesetzt: `ProductList.tsx` gruppiert Produkte nach Kategorie (`food` → „Es
 
 - Neue Produkt-Variante „Freibon" im System (oder spezielle Position ohne Produkt-Zuordnung).
 - In der Bestellansicht ein Button „Freibon hinzufügen", der ein Formular mit Bezeichnung + Preis (Euro-Eingabe → Cent) öffnet.
-- Backend: Freibon-Positionen als `LineItem` mit `variant_id = null` und eigenem Preis/Bezeichnung im Event-Data speichern. Alternativ: Spezielle „Freibon"-Variante, deren Preis pro Bestellung überschrieben wird.
+- Backend: Freibon-Positionen als `Position` mit `variant_id = null` und eigenem Preis/Bezeichnung im Event-Data speichern. Alternativ: Spezielle „Freibon“-Variante, deren Preis pro Bestellung überschrieben wird.
 
 #### 1.13 Freitext-Notiz pro Position ❌
 
@@ -176,9 +176,9 @@ Umgesetzt: `ProductList.tsx` gruppiert Produkte nach Kategorie (`food` → „Es
 
 **Implementierungsvorschlag:**
 
-- `LineItem`-Struct um optionales Feld `note: string` (max. 80 Zeichen) erweitern.
+- `Position`-Struct um optionales Feld `note: string` (max. 80 Zeichen) erweitern.
 - In `ProductList.tsx` pro Variante ein kleines Notiz-Icon, das ein Textfeld öffnet.
-- Backend: `note` in `OrderPlacedEvent.data.items[].note` mitführen, bei Bon-Druck ausgeben.
+- Backend: `note` in `BestellungAufgegebenEvent.data.positionen[].note` mitführen, bei Bon-Druck ausgeben.
 
 #### 1.14 Bezeichnung/Name pro Bestellung ❌
 
@@ -186,8 +186,8 @@ Umgesetzt: `ProductList.tsx` gruppiert Produkte nach Kategorie (`food` → „Es
 
 **Implementierungsvorschlag:**
 
-- Optionales Feld `label: string` in `OrderPlacedEvent.data` (z. B. „Familie Müller", „Gruppe links").
-- Im OrderDrawer ein optionales Textfeld oberhalb der Positionen.
+- Optionales Feld `label: string` in `BestellungAufgegebenEvent.data` (z. B. „Familie Müller“, „Gruppe links“).
+- Im BestellungDrawer ein optionales Textfeld oberhalb der Positionen.
 - In der Tisch-Historie und auf Bons das Label anzeigen, um Zuordnung zu erleichtern.
 
 ---
@@ -200,13 +200,13 @@ Kassiervorgang: Bezahlung registrieren, Teilzahlung, Rückgeld, Gesamtbeträge e
 
 > Als Servicekraft möchte ich den Gesamtbetrag pro Tisch / pro Bestellung einsehen, um korrekt abrechnen zu können.
 
-Tisch-Balance wird über `get-table-balance` berechnet und prominent auf der Tisch-Seite angezeigt. Einzelbeträge in der `Receipt`-Komponente.
+Tisch-Balance wird über `get-tisch-saldo` berechnet und prominent auf der Tisch-Seite angezeigt. Einzelbeträge in der `Receipt`-Komponente.
 
 #### 2.2 Einzelne Positionen bei Abrechnung auswählen (Teilzahlung) ✅
 
 > Als Servicekraft möchte ich bei der Abrechnung einzelne Positionen und Mengen auswählen können, die bezahlt werden sollen.
 
-`Payment.tsx` zeigt unbezahlte Varianten mit +/−-Mengenwahl. Nur ausgewählte Positionen werden als `register-table-payment` Event gespeichert.
+`Payment.tsx` zeigt unbezahlte Positionen mit +/−-Mengenwahl. Nur ausgewählte Positionen werden als `zahlung-registrieren` Event gespeichert.
 
 #### 2.3 Rückgeldberechnung ❌
 
@@ -214,7 +214,7 @@ Tisch-Balance wird über `get-table-balance` berechnet und prominent auf der Tis
 
 **Implementierungsvorschlag:**
 
-- Im `PaymentDrawer` ein zusätzliches Eingabefeld „Erhalten" (Euro-Betrag).
+- Im `ZahlungDrawer` ein zusätzliches Eingabefeld „Erhalten“ (Euro-Betrag).
 - Darunter die Anzeige: „Rückgeld: X,XX €" (Differenz zum Gesamtbetrag der ausgewählten Positionen).
 - Rein clientseitige Berechnung, kein Backend-Endpunkt nötig.
 
@@ -228,13 +228,13 @@ Wer darf stornieren, und unter welchen Bedingungen.
 
 > Als Servicekraft darf ich nach Aufgabe der Bestellung diese nicht mehr stornieren können. Nur ein Master/Admin soll dies nachträglich tun können.
 
-**Umgesetzt:** Der `cancel-table-variants`-Endpunkt läuft über eine eigene `NewSeniorServiceApi` (`api/senior_service.go`) mit separater Middleware, die nur die Rollen `admin` und `senior_service` (Serviceleitung) erlaubt. Die Rolle `service` hat keinen Zugriff. Im Frontend wird der Stornierungsbutton nur angezeigt, wenn `AuthSingleton.canCancel` (Admin oder Serviceleitung) `true` ist.
+**Umgesetzt:** Der `produkte-stornieren`-Endpunkt läuft über eine eigene `NewSeniorServiceApi` (`api/senior_service.go`) mit separater Middleware, die nur die Rollen `admin` und `senior_service` (Serviceleitung) erlaubt. Die Rolle `service` hat keinen Zugriff. Im Frontend wird der Stornierungsbutton nur angezeigt, wenn `AuthSingleton.canCancel` (Admin oder Serviceleitung) `true` ist.
 
 #### 3.2 Nachträgliche Stornierung durch Admin ✅
 
 > Ein Admin/Master soll Bestellungen nach Aufgabe stornieren können.
 
-Funktioniert — Admin-Rolle hat Zugriff auf `cancel-table-variants` im Service-Bereich.
+Funktioniert — Admin-Rolle hat Zugriff auf `produkte-stornieren` im Service-Bereich.
 
 ---
 
@@ -298,7 +298,7 @@ Admin-Funktionen für Produkte, Varianten und Preise.
 
 > Als zuständige Person möchte ich Artikelpreise zentral pflegen können, um kurzfristige Änderungen vorzunehmen.
 
-Admin-Endpunkte für Produkt- und Varianten-CRUD. Preise in Cent, änderbar über `update-variant`.
+Admin-Endpunkte für Produkt- und Varianten-CRUD. Preise in Cent, änderbar über `update-variante`.
 
 ---
 
@@ -335,7 +335,7 @@ Drucken, Formatieren und Verteilen von Bons an Ausgabestationen.
 
 - Bons nach Produktkategorie aufteilen: `beverage`-Positionen → Getränkedrucker, `food`-Positionen → Küchendrucker.
 - Konfiguration der Drucker-Zuordnung pro Kategorie in den Admin-Einstellungen.
-- Backend: Nach `order-placed`-Event automatisch Druckaufträge per Kategorie generieren.
+- Backend: Nach `bestellung-aufgegeben`-Event automatisch Druckaufträge per Kategorie generieren.
 - Setzt Drucker-Konfiguration (7.6) voraus.
 
 #### 7.4 Automatischer Essensbon an Essensausgabe ❌
@@ -371,7 +371,7 @@ Umsatzübersichten, Tagesabrechnungen und Datenexport.
 
 **Implementierungsvorschlag:**
 
-- Neuer Admin-Endpunkt `POST /admin/get-revenue-by-user`, der `payment-registered`-Events nach `user_id` aggregiert.
+- Neuer Admin-Endpunkt `POST /admin/get-revenue-by-user`, der `zahlung-registriert`-Events nach `user_id` aggregiert.
 - Zeitraum-Parameter (z. B. `date` oder `from`/`to`).
 - Frontend: Neue Admin-Seite „Tagesabrechnung" mit Tabelle: Bediener | Umsatz | Anzahl Zahlungen.
 
@@ -389,7 +389,7 @@ Gleiche Infrastruktur wie 8.1, aber als Live-Ansicht zugänglich (nicht nur am T
 
 - Erweitert 8.1 um eine Summenzeile über alle Bediener.
 - Alternativ: Eigener Endpunkt `POST /admin/get-daily-revenue`.
-- Aggregation aller `payment-registered`-Events des Tages.
+- Aggregation aller `zahlung-registriert`-Events des Tages.
 
 #### 8.4 Datenexport (CSV, Excel) ❌
 
@@ -407,7 +407,7 @@ Gleiche Infrastruktur wie 8.1, aber als Live-Ansicht zugänglich (nicht nur am T
 
 **Implementierungsvorschlag (falls doch gewünscht):**
 
-- Alle `variants-canceled`-Events abfragen, nach Zeitraum und Bediener filterbar.
+- Alle `produkte-storniert`-Events abfragen, nach Zeitraum und Bediener filterbar.
 - Admin-Seite mit Tabelle: Zeitpunkt, Bediener, Tisch, stornierte Positionen, Betrag.
 
 ---
@@ -432,7 +432,7 @@ Getränke- und Essensausgabe: Bestellstatus verwalten, Bons einsehen.
 
 **Implementierungsvorschlag:**
 
-- Neuer Event-Typ `table.variants-prepared:v1` (Zubereitung abgeschlossen, bereit zur Abholung).
+- Neuer Event-Typ `tisch.produkte-zubereitet:v1` (Zubereitung abgeschlossen, bereit zur Abholung).
 - Oder Nutzung des bestehenden `deliver`-Events, falls „fertig" gleichbedeutend mit „geliefert an Bediener" ist.
 
 #### 9.3 Essensausgabe: Status ändern ❌ _(Später)_
@@ -441,7 +441,7 @@ Getränke- und Essensausgabe: Bestellstatus verwalten, Bons einsehen.
 
 **Implementierungsvorschlag:**
 
-- Neuer Event-Typ `table.variants-status-changed:v1` mit Status-Feld (preparing/ready).
+- Neuer Event-Typ `tisch.produkte-status-geaendert:v1` mit Status-Feld (preparing/ready).
 - Analog zur Getränkeausgabe, aber für `food`-Kategorie.
 
 #### 9.4 Essensausgabe: Letzte Bestellungen einsehen ❌ _(Später)_
@@ -450,7 +450,7 @@ Getränke- und Essensausgabe: Bestellstatus verwalten, Bons einsehen.
 
 **Implementierungsvorschlag:**
 
-- Ansicht der letzten N `order-placed`-Events mit `food`-Positionen.
+- Ansicht der letzten N `bestellung-aufgegeben`-Events mit `food`-Positionen.
 - Filterbar nach Tisch oder Zeitraum.
 
 #### 9.5 Zubereitungsstatus für Servicekraft einsehen ❌
@@ -472,7 +472,7 @@ Push- oder In-App-Benachrichtigungen bei Statusänderungen.
 **Implementierungsvorschlag:**
 
 - Web Push Notifications (Service Worker + Push API) oder In-App-Banner.
-- Trigger: `variants-prepared`-Event (setzt 9.2/9.3 voraus).
+- Trigger: `produkte-zubereitet`-Event (setzt 9.2/9.3 voraus).
 - PWA-Manifest + Service Worker für Push-Fähigkeit hinzufügen.
 
 #### 10.2 Benachrichtigung, wenn Gast zahlen möchte ❌ _(Won't-have)_
@@ -543,7 +543,7 @@ Gegeben durch die einfache UI, +/−-Mengenauswahl, Bestätigungs-Drawer mit Zus
 
 > Als Gast möchte ich korrekt abgerechnet werden.
 
-Event-Sourcing garantiert konsistente Balance: Bestellungen − Bezahlungen − Stornierungen. Keine Rundungsfehler (Cent-Beträge).
+Event-Sourcing garantiert konsistente Balance: Bestellungen − Zahlungen − Stornierungen. Keine Rundungsfehler (Cent-Beträge).
 
 ---
 

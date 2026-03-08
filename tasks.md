@@ -249,7 +249,9 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte englische Feldnamen (`
 
 ---
 
-## Task 11: Dokumentation aktualisieren
+## Task 11: Dokumentation aktualisieren ✅
+
+**Status:** Abgeschlossen
 
 **Scope:** `AGENTS.md`, `docs/language.md`, `docs/requirements.md`, `docs/implementation-plan.md`, `docs/development.md`, `README.md`
 

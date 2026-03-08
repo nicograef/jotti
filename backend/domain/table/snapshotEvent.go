@@ -17,10 +17,10 @@ type snapshotV1Data struct {
 }
 
 var snapshotV1DataSchema = z.Struct(z.Shape{
-	"SaldoCents":             z.Int(),                   // Can be 0 (no outstanding balance)
-	"UnbezahltePositionen":   z.Slice(positionSchema),   // Can be empty slice
-	"UngeliefertePositionen": z.Slice(positionSchema),   // Can be empty slice
-	"GesamtZahlungenCents":   z.Int(),                   // Can be 0 (no payments yet)
+	"SaldoCents":             z.Int(),                 // Can be 0 (no outstanding balance)
+	"UnbezahltePositionen":   z.Slice(positionSchema), // Can be empty slice
+	"UngeliefertePositionen": z.Slice(positionSchema), // Can be empty slice
+	"GesamtZahlungenCents":   z.Int(),                 // Can be 0 (no payments yet)
 })
 
 // Snapshot represents the materialized state at a point in time

@@ -678,4 +678,4 @@ Tracking analog zu `tasks.md`:
 - [x] Task 8: Frontend Service-Komponenten
 - [x] Task 9: Frontend Admin-Bereich
 - [x] Task 10: Build verifizieren & Tests ausführen
-- [ ] Task 11: Dokumentation aktualisieren
+- [x] Task 11: Dokumentation aktualisieren

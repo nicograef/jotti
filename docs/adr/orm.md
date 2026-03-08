@@ -9,7 +9,7 @@
 jotti benötigt eine Persistenzschicht für zwei grundlegend verschiedene Strategien:
 
 1. **CRUD für Stammdaten** — Benutzer, Tische, Produkte und Produktvarianten werden in relationalen Tabellen gespeichert (Create/Read/Update mit Soft-Deletes via `status = 'deleted'`).
-2. **Event-Sourcing für Tisch-Operationen** — Bestellungen, Bezahlungen, Lieferungen und Stornierungen werden als unveränderliche Events in einer Append-Only-Tabelle (`events`) gespeichert. Der aktuelle Zustand wird durch Replay aller Events rekonstruiert.
+2. **Event-Sourcing für Tisch-Operationen** — Bestellungen, Zahlungen, Lieferungen und Stornierungen werden als unveränderliche Events in einer Append-Only-Tabelle (`events`) gespeichert. Der aktuelle Zustand wird durch Replay aller Events rekonstruiert.
 
 Die Persistenzschicht folgt dem **Repository-Pattern** mit klarer Schichtentrennung:
 
@@ -40,11 +40,11 @@ Das Schema wird durch SQL-Migrationsdateien unter `database/migrations/` definie
 
 ### Enums
 
-| Enum              | Werte                              | Verwendet in             |
-| ----------------- | ---------------------------------- | ------------------------ |
-| `UserRole`        | `admin`, `senior_service`, `service` | `users.role`           |
-| `EntityStatus`    | `active`, `inactive`, `deleted`    | `users.status`, `tables.status`, `product_variants.status` |
-| `ProductCategory` | `food`, `beverage`, `other`        | `products.category`    |
+| Enum              | Werte                                | Verwendet in                                               |
+| ----------------- | ------------------------------------ | ---------------------------------------------------------- |
+| `UserRole`        | `admin`, `senior_service`, `service` | `users.role`                                               |
+| `EntityStatus`    | `active`, `inactive`, `deleted`      | `users.status`, `tables.status`, `product_variants.status` |
+| `ProductCategory` | `food`, `beverage`, `other`          | `products.category`                                        |
 
 Enums sind PostgreSQL-Custom-Types (`CREATE TYPE ... AS ENUM`). Die Go-Domain-Modelle spiegeln diese als typisierte String-Konstanten wider (z. B. `user.AdminRole = "admin"`).
 
@@ -54,16 +54,16 @@ Enums sind PostgreSQL-Custom-Types (`CREATE TYPE ... AS ENUM`). Die Go-Domain-Mo
 
 System-Benutzer, die Aktionen in jotti ausführen.
 
-| Spalte                  | Typ             | Nullable | Beschreibung                                   |
-| ----------------------- | --------------- | -------- | ---------------------------------------------- |
-| `id`                    | `INT` (Identity)| Nein     | Primärschlüssel, automatisch generiert         |
-| `name`                  | `TEXT`          | Nein     | Vollständiger Name                              |
-| `username`              | `TEXT` (Unique) | Nein     | Eindeutiger Login-Name                          |
-| `password_hash`         | `TEXT`          | Ja       | Argon2id-Hash; NULL bis Passwort gesetzt       |
-| `onetime_password_hash` | `TEXT`          | Ja       | Einmalpasswort für Onboarding/Reset            |
-| `role`                  | `UserRole`      | Nein     | Zugriffsrolle: admin, senior_service oder service |
-| `status`                | `EntityStatus`  | Nein     | active, inactive oder deleted (Soft-Delete)    |
-| `created_at`            | `TIMESTAMPTZ`   | Nein     | Erstellungszeitpunkt (UTC)                     |
+| Spalte                  | Typ              | Nullable | Beschreibung                                      |
+| ----------------------- | ---------------- | -------- | ------------------------------------------------- |
+| `id`                    | `INT` (Identity) | Nein     | Primärschlüssel, automatisch generiert            |
+| `name`                  | `TEXT`           | Nein     | Vollständiger Name                                |
+| `username`              | `TEXT` (Unique)  | Nein     | Eindeutiger Login-Name                            |
+| `password_hash`         | `TEXT`           | Ja       | Argon2id-Hash; NULL bis Passwort gesetzt          |
+| `onetime_password_hash` | `TEXT`           | Ja       | Einmalpasswort für Onboarding/Reset               |
+| `role`                  | `UserRole`       | Nein     | Zugriffsrolle: admin, senior_service oder service |
+| `status`                | `EntityStatus`   | Nein     | active, inactive oder deleted (Soft-Delete)       |
+| `created_at`            | `TIMESTAMPTZ`    | Nein     | Erstellungszeitpunkt (UTC)                        |
 
 Indizes: `idx_users_username` (username), `idx_users_status` (status).
 
@@ -71,12 +71,12 @@ Indizes: `idx_users_username` (username), `idx_users_status` (status).
 
 Kunden sitzen an Tischen und bestellen von dort.
 
-| Spalte       | Typ             | Nullable | Beschreibung                               |
-| ------------ | --------------- | -------- | ------------------------------------------ |
-| `id`         | `INT` (Identity)| Nein     | Primärschlüssel, automatisch generiert     |
-| `name`       | `TEXT` (Unique) | Nein     | Name oder Nummer (z. B. „Tisch 1")        |
-| `status`     | `EntityStatus`  | Nein     | active, inactive oder deleted (Soft-Delete)|
-| `created_at` | `TIMESTAMPTZ`   | Nein     | Erstellungszeitpunkt (UTC)                 |
+| Spalte       | Typ              | Nullable | Beschreibung                                |
+| ------------ | ---------------- | -------- | ------------------------------------------- |
+| `id`         | `INT` (Identity) | Nein     | Primärschlüssel, automatisch generiert      |
+| `name`       | `TEXT` (Unique)  | Nein     | Name oder Nummer (z. B. „Tisch 1")          |
+| `status`     | `EntityStatus`   | Nein     | active, inactive oder deleted (Soft-Delete) |
+| `created_at` | `TIMESTAMPTZ`    | Nein     | Erstellungszeitpunkt (UTC)                  |
 
 Index: `idx_tables_status` (status).
 
@@ -84,12 +84,12 @@ Index: `idx_tables_status` (status).
 
 Produkte, die von Kunden bestellt werden können.
 
-| Spalte       | Typ              | Nullable | Beschreibung                         |
-| ------------ | ----------------- | -------- | ------------------------------------ |
-| `id`         | `INT` (Identity)  | Nein     | Primärschlüssel, automatisch generiert|
-| `name`       | `TEXT`            | Nein     | Produktname                           |
-| `category`   | `ProductCategory` | Nein     | food, beverage oder other             |
-| `created_at` | `TIMESTAMPTZ`     | Nein     | Erstellungszeitpunkt (UTC)            |
+| Spalte       | Typ               | Nullable | Beschreibung                           |
+| ------------ | ----------------- | -------- | -------------------------------------- |
+| `id`         | `INT` (Identity)  | Nein     | Primärschlüssel, automatisch generiert |
+| `name`       | `TEXT`            | Nein     | Produktname                            |
+| `category`   | `ProductCategory` | Nein     | food, beverage oder other              |
+| `created_at` | `TIMESTAMPTZ`     | Nein     | Erstellungszeitpunkt (UTC)             |
 
 Produkte haben keine Status-Spalte — ihre Sichtbarkeit wird durch den Status ihrer Varianten gesteuert.
 
@@ -97,14 +97,14 @@ Produkte haben keine Status-Spalte — ihre Sichtbarkeit wird durch den Status i
 
 Varianten von Produkten mit individuellen Preisen (z. B. „Cola 0,3L" und „Cola 0,5L").
 
-| Spalte       | Typ             | Nullable | Beschreibung                                   |
-| ------------ | --------------- | -------- | ---------------------------------------------- |
-| `id`         | `INT` (Identity)| Nein     | Primärschlüssel, automatisch generiert         |
-| `product_id` | `INT` (FK)      | Nein     | Referenz auf `products(id)`                    |
-| `name`       | `TEXT`          | Nein     | Variantenname (z. B. „0,5L")                  |
-| `price_cents`| `INT`           | Nein     | Preis in Cent (z. B. 299 für 2,99 €)          |
-| `status`     | `EntityStatus`  | Nein     | active, inactive oder deleted (Soft-Delete)    |
-| `created_at` | `TIMESTAMPTZ`   | Nein     | Erstellungszeitpunkt (UTC)                     |
+| Spalte        | Typ              | Nullable | Beschreibung                                |
+| ------------- | ---------------- | -------- | ------------------------------------------- |
+| `id`          | `INT` (Identity) | Nein     | Primärschlüssel, automatisch generiert      |
+| `product_id`  | `INT` (FK)       | Nein     | Referenz auf `products(id)`                 |
+| `name`        | `TEXT`           | Nein     | Variantenname (z. B. „0,5L")                |
+| `price_cents` | `INT`            | Nein     | Preis in Cent (z. B. 299 für 2,99 €)        |
+| `status`      | `EntityStatus`   | Nein     | active, inactive oder deleted (Soft-Delete) |
+| `created_at`  | `TIMESTAMPTZ`    | Nein     | Erstellungszeitpunkt (UTC)                  |
 
 Index: `idx_product_variants_status` (status).
 
@@ -112,14 +112,14 @@ Index: `idx_product_variants_status` (status).
 
 Die `events`-Tabelle ist der Kern des Event-Sourcing-Systems für Tisch-Operationen. Sie ist **append-only** — Zeilen werden nur eingefügt und gelesen, nie aktualisiert oder gelöscht.
 
-| Spalte      | Typ             | Nullable | Beschreibung                                    |
-| ----------- | --------------- | -------- | ----------------------------------------------- |
-| `id`        | `INT` (Identity)| Nein     | Primärschlüssel, für Sortierung verwendet       |
-| `user_id`   | `INT` (FK)      | Nein     | Referenz auf `users(id)` — der Akteur            |
-| `type`      | `TEXT`          | Nein     | Event-Typ (z. B. `table.order-placed:v1`)       |
-| `subject`   | `TEXT`          | Nein     | Aggregat-Schlüssel (z. B. `table:42`)           |
-| `timestamp` | `TIMESTAMPTZ`   | Nein     | Event-Zeitpunkt (UTC)                           |
-| `data`      | `JSONB`         | Nein     | Event-Payload, versioniert nach Typ             |
+| Spalte      | Typ              | Nullable | Beschreibung                                       |
+| ----------- | ---------------- | -------- | -------------------------------------------------- |
+| `id`        | `INT` (Identity) | Nein     | Primärschlüssel, für Sortierung verwendet          |
+| `user_id`   | `INT` (FK)       | Nein     | Referenz auf `users(id)` — der Akteur              |
+| `type`      | `TEXT`           | Nein     | Event-Typ (z. B. `tisch.bestellung-aufgegeben:v1`) |
+| `subject`   | `TEXT`           | Nein     | Aggregat-Schlüssel (z. B. `tisch:42`)              |
+| `timestamp` | `TIMESTAMPTZ`    | Nein     | Event-Zeitpunkt (UTC)                              |
+| `data`      | `JSONB`          | Nein     | Event-Payload, versioniert nach Typ                |
 
 **Indizes:** `idx_events_user_id`, `idx_events_subject`, `idx_events_type`, `idx_events_subject_type` (Komposit).
 
@@ -137,26 +137,26 @@ Alle drei Trigger rufen `prevent_event_mutation()` auf, die eine PostgreSQL-Exce
 
 **Event-Typen** (definiert in `domain/table/events.go`):
 
-| Event-Typ                           | Beschreibung                    |
-| ----------------------------------- | ------------------------------- |
-| `table.order-placed:v1`             | Eine Bestellung wurde aufgegeben|
-| `table.payment-registered:v1`       | Eine Bezahlung wurde registriert|
-| `table.variants-canceled:v1`        | Varianten wurden storniert      |
-| `table.variants-delivered:v1`       | Varianten wurden geliefert      |
-| `table.snapshot:v1`                 | Ein Zustands-Snapshot           |
+| Event-Typ                        | Beschreibung                     |
+| -------------------------------- | -------------------------------- |
+| `tisch.bestellung-aufgegeben:v1` | Eine Bestellung wurde aufgegeben |
+| `tisch.zahlung-registriert:v1`   | Eine Zahlung wurde registriert   |
+| `tisch.produkte-storniert:v1`    | Produkte wurden storniert        |
+| `tisch.produkte-geliefert:v1`    | Produkte wurden geliefert        |
+| `tisch.snapshot:v1`              | Ein Zustands-Snapshot            |
 
 ### Indizes
 
-| Index                        | Tabelle            | Spalte(n)        | Zweck                                        |
-| ---------------------------- | ------------------ | ---------------- | --------------------------------------------- |
-| `idx_users_username`         | `users`            | `username`       | Schnelle Suche nach Benutzername (Login)      |
-| `idx_users_status`           | `users`            | `status`         | Filterung aktiver/inaktiver Benutzer          |
-| `idx_tables_status`          | `tables`           | `status`         | Filterung aktiver/inaktiver Tische            |
-| `idx_product_variants_status`| `product_variants` | `status`         | Filterung aktiver/inaktiver Varianten         |
-| `idx_events_user_id`         | `events`           | `user_id`        | Events nach Akteur finden                     |
-| `idx_events_subject`         | `events`           | `subject`        | Events für ein bestimmtes Aggregat finden     |
-| `idx_events_type`            | `events`           | `type`           | Events nach Typ finden                        |
-| `idx_events_subject_type`    | `events`           | `subject`, `type`| Snapshots für ein bestimmtes Aggregat finden  |
+| Index                         | Tabelle            | Spalte(n)         | Zweck                                        |
+| ----------------------------- | ------------------ | ----------------- | -------------------------------------------- |
+| `idx_users_username`          | `users`            | `username`        | Schnelle Suche nach Benutzername (Login)     |
+| `idx_users_status`            | `users`            | `status`          | Filterung aktiver/inaktiver Benutzer         |
+| `idx_tables_status`           | `tables`           | `status`          | Filterung aktiver/inaktiver Tische           |
+| `idx_product_variants_status` | `product_variants` | `status`          | Filterung aktiver/inaktiver Varianten        |
+| `idx_events_user_id`          | `events`           | `user_id`         | Events nach Akteur finden                    |
+| `idx_events_subject`          | `events`           | `subject`         | Events für ein bestimmtes Aggregat finden    |
+| `idx_events_type`             | `events`           | `type`            | Events nach Typ finden                       |
+| `idx_events_subject_type`     | `events`           | `subject`, `type` | Snapshots für ein bestimmtes Aggregat finden |
 
 ### Migrationen
 
@@ -184,7 +184,7 @@ Die Funktion `db.Error(err)` übersetzt Low-Level-Datenbankfehler in domänenspe
 
 | Datenbankfehler                       | Abgebildet auf        |
 | ------------------------------------- | --------------------- |
-| PostgreSQL Unique Violation (`23505`)  | `db.ErrAlreadyExists` |
+| PostgreSQL Unique Violation (`23505`) | `db.ErrAlreadyExists` |
 | `sql.ErrNoRows`                       | `db.ErrNotFound`      |
 | Alle anderen Fehler                   | `db.ErrDatabase`      |
 
@@ -195,6 +195,7 @@ Diese Sentinel-Errors ermöglichen es Application-Services und HTTP-Handlern, zw
 ### NullTime-Helfer
 
 Der `db.NullTime`-Typ ist ein benutzerdefinierter Nullable-Time-Wrapper, der Folgendes implementiert:
+
 - `sql.Scanner` — zum Lesen von `TIMESTAMPTZ`-Spalten (behandelt sowohl `NULL`- als auch `time.Time`-Werte)
 - `driver.Valuer` — zum Schreiben von Zeitwerten in die Datenbank
 - `json.Unmarshaler` / `json.Marshaler` — zum Parsen und Kodieren von Zeitwerten in JSON
@@ -225,12 +226,12 @@ backend/repository/
 
 Jedes Repository-Paket enthielt:
 
-| Datei           | Zweck                                              |
-| --------------- | -------------------------------------------------- |
-| `types.go`      | Privater DB-Struct + `toDomain()`-Konverter        |
-| `repo.go`       | `Repository`-Struct + SQL-Query-Methoden           |
-| `mock.go`       | In-Memory-Mock für Unit-Tests                      |
-| `repo_test.go`  | Integrationstests (`//go:build integration`)       |
+| Datei          | Zweck                                        |
+| -------------- | -------------------------------------------- |
+| `types.go`     | Privater DB-Struct + `toDomain()`-Konverter  |
+| `repo.go`      | `Repository`-Struct + SQL-Query-Methoden     |
+| `mock.go`      | In-Memory-Mock für Unit-Tests                |
+| `repo_test.go` | Integrationstests (`//go:build integration`) |
 
 ### DB-zu-Domain-Mapping (vor sqlc)
 
@@ -266,6 +267,7 @@ func (dp *dbuser) toDomain() user.User {
 Die `db:"..."`-Struct-Tags waren rein dokumentarisch — sie wurden nicht von einem Reflection-basierten Mapper verwendet. Alle Spalten-Zuordnungen erfolgten über explizite `rows.Scan()`-Aufrufe mit positionalen Argumenten.
 
 **Richtung des Mappings:**
+
 - **Lesen (DB → Domain):** `Scan()` in DB-Struct → `toDomain()` → Domain-Modell zurückgeben
 - **Schreiben (Domain → DB):** Felder aus Domain-Modell extrahieren → direkt als SQL-Parameter übergeben
 
@@ -340,13 +342,13 @@ jotti verwendet zwei grundlegend verschiedene Persistenzstrategien:
 
 ### 2. Event-Sourcing für Tisch-Operationen
 
-**Bestellungen**, **Bezahlungen**, **Lieferungen** und **Stornierungen** werden als unveränderliche Events gespeichert. Der aktuelle Zustand eines Tisches wird durch Replay seiner Events rekonstruiert:
+**Bestellungen**, **Zahlungen**, **Lieferungen** und **Stornierungen** werden als unveränderliche Events gespeichert. Der aktuelle Zustand eines Tisches wird durch Replay seiner Events rekonstruiert:
 
 - **Saldo** = Σ(Bestellsummen) − Σ(Bezahlsummen) − Σ(Stornierungssummen)
 - **Unbezahlt** = bestellt − bezahlt − storniert
 - **Ungeliefert** = bestellt − geliefert − storniert
 
-Snapshots (`table.snapshot:v1`-Events) erfassen periodisch den vollständigen Zustand, sodass `ReadEventsWithSnapshot` das Replay älterer Events überspringen kann.
+Snapshots (`tisch.snapshot:v1`-Events) erfassen periodisch den vollständigen Zustand, sodass `ReadEventsWithSnapshot` das Replay älterer Events überspringen kann.
 
 ---
 
@@ -370,15 +372,15 @@ GORM (Go's populärstes ORM) wurde umfassend evaluiert. Die Kernprobleme:
 
 **Bewertungsmatrix (GORM):**
 
-| Kriterium | GORM-Bewertung | jotti-Passung |
-| --- | --- | --- |
-| CRUD-Boilerplate-Reduktion | ✅ Moderat | ⚠️ Einsparungen real aber gering |
-| JSON-Aggregation | ❌ Nicht ersetzbar | ❌ Erfordert `db.Raw()` |
-| Event-Sourcing | ❌ Fundamental inkompatibel | ❌ Widerspricht Lifecycle-Modell |
-| Domain-Trennung | ❌ Active Record vs. Data Mapper | ❌ Architekturkonflikt |
-| PostgreSQL-Features | ❌ Eingeschränkte Unterstützung | ❌ Rohes SQL für Enums, Trigger, JSONB |
-| Testing & Mocking | ❌ Komplexer | ❌ Interface-basiertes Mocking ist einfacher |
-| Abhängigkeiten | ❌ Große Abhängigkeit | ❌ jotti ist bewusst abhängigkeitsarm |
+| Kriterium                  | GORM-Bewertung                   | jotti-Passung                                |
+| -------------------------- | -------------------------------- | -------------------------------------------- |
+| CRUD-Boilerplate-Reduktion | ✅ Moderat                       | ⚠️ Einsparungen real aber gering             |
+| JSON-Aggregation           | ❌ Nicht ersetzbar               | ❌ Erfordert `db.Raw()`                      |
+| Event-Sourcing             | ❌ Fundamental inkompatibel      | ❌ Widerspricht Lifecycle-Modell             |
+| Domain-Trennung            | ❌ Active Record vs. Data Mapper | ❌ Architekturkonflikt                       |
+| PostgreSQL-Features        | ❌ Eingeschränkte Unterstützung  | ❌ Rohes SQL für Enums, Trigger, JSONB       |
+| Testing & Mocking          | ❌ Komplexer                     | ❌ Interface-basiertes Mocking ist einfacher |
+| Abhängigkeiten             | ❌ Große Abhängigkeit            | ❌ jotti ist bewusst abhängigkeitsarm        |
 
 ### sqlx — `database/sql`-Erweiterungsbibliothek
 
@@ -387,12 +389,14 @@ GORM (Go's populärstes ORM) wurde umfassend evaluiert. Die Kernprobleme:
 sqlx ist ein leichtgewichtiger Wrapper um `database/sql`, der automatisches Struct-Scanning via `db:"..."`-Tags bietet. Es ist kein ORM und kein Code-Generator.
 
 **Vorteile:**
+
 - Minimale Lernkurve (`database/sql`-Superset)
 - Drop-in-kompatibel, inkrementelle Migration möglich
 - Eliminiert `row.Scan()`-Boilerplate (~100 Zeilen Einsparung)
 - Voll kompatibel mit Data-Mapper-Pattern
 
 **Nachteile:**
+
 - Keine Compile-Time-Validierung (Fehler erst zur Laufzeit erkannt)
 - Keine Schema-Validierung
 - Runtime-Reflection für Struct-Scanning
@@ -401,13 +405,13 @@ sqlx ist ein leichtgewichtiger Wrapper um `database/sql`, der automatisches Stru
 
 **Bewertungsmatrix (sqlx):**
 
-| Kriterium | sqlx-Bewertung | jotti-Passung |
-| --- | --- | --- |
-| CRUD-Boilerplate-Reduktion | ✅ Moderat | ⚠️ ~100 Zeilen; Adapter-Structs bleiben |
-| Event-Sourcing | ✅ Keine Lifecycle-Annahmen | ✅ Funktioniert natürlich |
-| Domain-Trennung | ✅ Voll kompatibel | ✅ Data-Mapper-Pattern erhalten |
-| Compile-Time-Validierung | ❌ Keine Schema-Erkennung | ❌ Fehler nur zur Laufzeit |
-| Abhängigkeiten | ⚠️ Kleine Abhängigkeit | ⚠️ +1 Abhängigkeit für ~100 Zeilen |
+| Kriterium                  | sqlx-Bewertung              | jotti-Passung                           |
+| -------------------------- | --------------------------- | --------------------------------------- |
+| CRUD-Boilerplate-Reduktion | ✅ Moderat                  | ⚠️ ~100 Zeilen; Adapter-Structs bleiben |
+| Event-Sourcing             | ✅ Keine Lifecycle-Annahmen | ✅ Funktioniert natürlich               |
+| Domain-Trennung            | ✅ Voll kompatibel          | ✅ Data-Mapper-Pattern erhalten         |
+| Compile-Time-Validierung   | ❌ Keine Schema-Erkennung   | ❌ Fehler nur zur Laufzeit              |
+| Abhängigkeiten             | ⚠️ Kleine Abhängigkeit      | ⚠️ +1 Abhängigkeit für ~100 Zeilen      |
 
 ### sqlc — SQL-Compiler (Code-Generator)
 
@@ -447,18 +451,18 @@ sqlc ist **kein** ORM. Es ist ein **Code-Generator**, der einen fundamental ande
 
 **Bewertungsmatrix (sqlc):**
 
-| Kriterium | sqlc-Bewertung | jotti-Passung |
-| --- | --- | --- |
-| CRUD-Boilerplate-Reduktion | ✅ Eliminiert `Scan()`-Boilerplate | ✅ ~300 Zeilen Einsparung |
-| JSON-Aggregation | ✅ Voller PostgreSQL-Parser | ✅ CTE + `json_agg()` nativ |
-| Event-Sourcing | ✅ Keine Lifecycle-Annahmen | ✅ Nur definierte Queries generiert |
-| Domain-Trennung | ✅ Generierte Models sind plain Structs | ✅ Data-Mapper kompatibel |
-| PostgreSQL-Features | ✅ PostgreSQL-eigener Parser | ✅ Enums, JSONB, CTEs, Trigger |
-| Compile-Time-Validierung | ✅ Schema-Drift und Typos erkannt | ✅ Verhindert Laufzeitfehler |
-| Testing & Mocking | ✅ Standard-Go-Interfaces | ✅ Bestehende Strategie erhalten |
-| Abhängigkeiten | ✅ Zero Runtime-Dependency | ✅ Nur Build-Tool |
-| Go-Idiom-Alignment | ✅ Idiomatischer Go-Code | ✅ Passt zu Gos expliziter Philosophie |
-| Build-Workflow | ⚠️ `sqlc generate`-Schritt nötig | ⚠️ Muss in CI/CD integriert werden |
+| Kriterium                  | sqlc-Bewertung                          | jotti-Passung                          |
+| -------------------------- | --------------------------------------- | -------------------------------------- |
+| CRUD-Boilerplate-Reduktion | ✅ Eliminiert `Scan()`-Boilerplate      | ✅ ~300 Zeilen Einsparung              |
+| JSON-Aggregation           | ✅ Voller PostgreSQL-Parser             | ✅ CTE + `json_agg()` nativ            |
+| Event-Sourcing             | ✅ Keine Lifecycle-Annahmen             | ✅ Nur definierte Queries generiert    |
+| Domain-Trennung            | ✅ Generierte Models sind plain Structs | ✅ Data-Mapper kompatibel              |
+| PostgreSQL-Features        | ✅ PostgreSQL-eigener Parser            | ✅ Enums, JSONB, CTEs, Trigger         |
+| Compile-Time-Validierung   | ✅ Schema-Drift und Typos erkannt       | ✅ Verhindert Laufzeitfehler           |
+| Testing & Mocking          | ✅ Standard-Go-Interfaces               | ✅ Bestehende Strategie erhalten       |
+| Abhängigkeiten             | ✅ Zero Runtime-Dependency              | ✅ Nur Build-Tool                      |
+| Go-Idiom-Alignment         | ✅ Idiomatischer Go-Code                | ✅ Passt zu Gos expliziter Philosophie |
+| Build-Workflow             | ⚠️ `sqlc generate`-Schritt nötig        | ⚠️ Muss in CI/CD integriert werden     |
 
 ### Status Quo — Bare `database/sql` + `pgx/v5`
 
@@ -474,33 +478,33 @@ Der ursprüngliche Ansatz war sauber, explizit und funktional. Hauptschwächen:
 
 ## Gesamtvergleich
 
-| Feature | Status Quo | GORM | sqlc | sqlx |
-| --- | --- | --- | --- | --- |
-| **Query-Sprache** | Rohes SQL | Go-API + `db.Raw()` | Rohes SQL (annotiert) | Rohes SQL |
-| **Typsicherheit** | Laufzeit | Laufzeit (Reflection) | Compile-Time | Laufzeit (Reflection) |
-| **Schema-Validierung** | Keine | Teilweise | Vollständig | Keine |
-| **CTE-Unterstützung** | ✅ Natives SQL | ❌ Nur `db.Raw()` | ✅ Natives SQL | ✅ Natives SQL |
-| **`json_agg()`** | ✅ Natives SQL | ❌ Nur `db.Raw()` | ✅ Natives SQL | ✅ Natives SQL |
-| **Event-Sourcing** | ✅ Keine Annahmen | ❌ Veränderliches Lifecycle | ✅ Keine Annahmen | ✅ Keine Annahmen |
-| **Data-Mapper** | ✅ Aktuelles Pattern | ❌ Active Record | ✅ Generierte Models | ✅ Tag-basiert |
-| **Laufzeit-Abhängigkeiten** | 0 neue | +2 | 0 neue (Build-Tool) | +1 |
-| **Boilerplate-Reduktion** | Basis | ~170 Zeilen (nur CRUD) | ~300 Zeilen (alle Repos) | ~100 Zeilen (Scanning) |
-| **Framework-Lock-in** | Keiner | Hoch | Gering | Gering |
+| Feature                     | Status Quo           | GORM                        | sqlc                     | sqlx                   |
+| --------------------------- | -------------------- | --------------------------- | ------------------------ | ---------------------- |
+| **Query-Sprache**           | Rohes SQL            | Go-API + `db.Raw()`         | Rohes SQL (annotiert)    | Rohes SQL              |
+| **Typsicherheit**           | Laufzeit             | Laufzeit (Reflection)       | Compile-Time             | Laufzeit (Reflection)  |
+| **Schema-Validierung**      | Keine                | Teilweise                   | Vollständig              | Keine                  |
+| **CTE-Unterstützung**       | ✅ Natives SQL       | ❌ Nur `db.Raw()`           | ✅ Natives SQL           | ✅ Natives SQL         |
+| **`json_agg()`**            | ✅ Natives SQL       | ❌ Nur `db.Raw()`           | ✅ Natives SQL           | ✅ Natives SQL         |
+| **Event-Sourcing**          | ✅ Keine Annahmen    | ❌ Veränderliches Lifecycle | ✅ Keine Annahmen        | ✅ Keine Annahmen      |
+| **Data-Mapper**             | ✅ Aktuelles Pattern | ❌ Active Record            | ✅ Generierte Models     | ✅ Tag-basiert         |
+| **Laufzeit-Abhängigkeiten** | 0 neue               | +2                          | 0 neue (Build-Tool)      | +1                     |
+| **Boilerplate-Reduktion**   | Basis                | ~170 Zeilen (nur CRUD)      | ~300 Zeilen (alle Repos) | ~100 Zeilen (Scanning) |
+| **Framework-Lock-in**       | Keiner               | Hoch                        | Gering                   | Gering                 |
 
 ### Passung für jotti
 
-| jotti-Anforderung | Status Quo | GORM | sqlc | sqlx |
-| --- | --- | --- | --- | --- |
-| Event-Sourcing (Append-Only-Kern) | ✅ | ❌ | ✅ | ✅ |
-| PostgreSQL-spezifisches SQL | ✅ | ❌ | ✅ | ✅ |
-| Data-Mapper-Architektur | ✅ | ❌ | ✅ | ✅ |
-| Drei-Stufen-Soft-Deletes | ✅ | ⚠️ | ✅ | ✅ |
-| Abhängigkeitsarme Philosophie | ✅ | ❌ | ✅ | ⚠️ |
-| Compile-Time-Fehlererkennung | ❌ | ❌ | ✅ | ❌ |
-| Schema-Drift-Schutz | ❌ | ⚠️ | ✅ | ❌ |
-| Boilerplate-Reduktion | ❌ | ⚠️ | ✅ | ⚠️ |
-| Go-Idiom-Alignment | ✅ | ❌ | ✅ | ✅ |
-| **Bewertung** | **8 ✅, 2 ❌** | **1 ✅, 4 ❌, 5 ⚠️** | **9 ✅, 1 ⚠️** | **7 ✅, 2 ❌, 1 ⚠️** |
+| jotti-Anforderung                 | Status Quo     | GORM                 | sqlc           | sqlx                 |
+| --------------------------------- | -------------- | -------------------- | -------------- | -------------------- |
+| Event-Sourcing (Append-Only-Kern) | ✅             | ❌                   | ✅             | ✅                   |
+| PostgreSQL-spezifisches SQL       | ✅             | ❌                   | ✅             | ✅                   |
+| Data-Mapper-Architektur           | ✅             | ❌                   | ✅             | ✅                   |
+| Drei-Stufen-Soft-Deletes          | ✅             | ⚠️                   | ✅             | ✅                   |
+| Abhängigkeitsarme Philosophie     | ✅             | ❌                   | ✅             | ⚠️                   |
+| Compile-Time-Fehlererkennung      | ❌             | ❌                   | ✅             | ❌                   |
+| Schema-Drift-Schutz               | ❌             | ⚠️                   | ✅             | ❌                   |
+| Boilerplate-Reduktion             | ❌             | ⚠️                   | ✅             | ⚠️                   |
+| Go-Idiom-Alignment                | ✅             | ❌                   | ✅             | ✅                   |
+| **Bewertung**                     | **8 ✅, 2 ❌** | **1 ✅, 4 ❌, 5 ⚠️** | **9 ✅, 1 ⚠️** | **7 ✅, 2 ❌, 1 ⚠️** |
 
 ---
 

@@ -28,7 +28,7 @@ Umgesetzt und gemergt in `main` (Commit `6ee6751`). Produkte werden in `ProductL
 Umgesetzt auf Branch `feature/22-senior-service-role`. Neue Rolle `senior_service` (Serviceleitung) eingeführt:
 
 - **DB**: Migration `02_add_senior_service_role` fügt `senior_service` zum `UserRole`-Enum hinzu
-- **Backend**: `SeniorServiceRole` in Domain-Modell, eigene `NewSeniorServiceApi` in `api/senior_service.go` (analog zu `admin.go`/`service.go`) mit `cancel-table-variants`-Endpunkt, Service-Middleware erlaubt `admin`/`senior_service`/`service`, Cancel-Middleware nur `admin`/`senior_service`
+- **Backend**: `SeniorServiceRole` in Domain-Modell, eigene `NewSeniorServiceApi` in `api/senior_service.go` (analog zu `admin.go`/`service.go`) mit `produkte-stornieren`-Endpunkt, Service-Middleware erlaubt `admin`/`senior_service`/`service`, Cancel-Middleware nur `admin`/`senior_service`
 - **Frontend**: `isSeniorService` + `canCancel` Getter in Auth, `ServiceGuard` aktualisiert, Rollenauswahl „Serviceleitung" im Admin, `CancelationDrawer` nur bei `canCancel`, Star-Icon für Serviceleitung in UserItem
 - **Tests**: 3 neue Middleware-Tests für Rollenrestriktionen
 
@@ -43,7 +43,7 @@ Auf der Tischübersicht (`TableSelectionPage.tsx`) soll ein Suchfeld die Tischli
 ### Ist-Zustand
 
 - `TableSelectionPage.tsx` zeigt alle aktiven Tische als Karten-Grid.
-- Daten kommen von `useActiveTables()` → Tischliste.
+- Daten kommen von `useAktiveTische()` → Tischliste.
 - Keine Filterung vorhanden.
 
 ### Implementierung
@@ -60,7 +60,7 @@ import { Search } from "lucide-react";
 import { useState } from "react";
 
 export function TableSelectionPage() {
-  const { loading, tables } = useActiveTables();
+  const { loading, tables } = useAktiveTische();
   const [search, setSearch] = useState("");
 
   const filteredTables = tables.filter((table) =>
@@ -118,16 +118,16 @@ Im Bezahl-Drawer soll die Servicekraft den vom Gast erhaltenen Betrag eingeben k
 
 ### Ist-Zustand
 
-- `PaymentDrawer.tsx` zeigt Zusammenfassung und Gesamtbetrag.
+- `ZahlungDrawer.tsx` zeigt Zusammenfassung und Gesamtbetrag.
 - Kein Eingabefeld für den erhaltenen Betrag.
 
 ### Implementierung
 
 **Nur Frontend-Änderungen. Kein Backend.**
 
-#### 1. Eingabefeld im PaymentDrawer
+#### 1. Eingabefeld im ZahlungDrawer
 
-In `PaymentDrawer.tsx` nach der `Receipt`-Komponente ein Eingabefeld für den erhaltenen Betrag ergänzen:
+In `ZahlungDrawer.tsx` nach der `Receipt`-Komponente ein Eingabefeld für den erhaltenen Betrag ergänzen:
 
 ```tsx
 import { useState } from 'react'
@@ -166,7 +166,7 @@ Die Berechnung ist rein clientseitig. Der erhaltene Betrag wird nicht gespeicher
 
 ### Akzeptanzkriterien
 
-- [ ] Eingabefeld "Erhalten" im PaymentDrawer nach der Bon-Vorschau
+- [ ] Eingabefeld "Erhalten" im ZahlungDrawer nach der Bon-Vorschau
 - [ ] Rückgeld wird berechnet und angezeigt, wenn der eingegebene Betrag ≥ Gesamtbetrag
 - [ ] Keine Anzeige, wenn Feld leer oder Betrag zu niedrig
 - [ ] Komma und Punkt als Dezimaltrenner akzeptiert
@@ -178,7 +178,7 @@ Die Berechnung ist rein clientseitig. Der erhaltene Betrag wird nicht gespeicher
 
 ### Ziel
 
-Servicekräfte sollen ihre eigenen aufgegebenen Bestellungen, Bezahlungen und Lieferungen sehen können — chronologisch, mit Tisch, Zeitstempel und Status.
+Servicekräfte sollen ihre eigenen aufgegebenen Bestellungen, Zahlungen und Lieferungen sehen können — chronologisch, mit Tisch, Zeitstempel und Status.
 
 ### Implementierung
 
@@ -215,7 +215,7 @@ type UserOrderEntry struct {
     Type      string    `json:"type"`      // "order", "payment", "delivery", "cancelation"
     TableName string    `json:"tableName"` // Denormalisiert oder per JOIN
     Timestamp time.Time `json:"timestamp"`
-    Items     []LineItem `json:"items"`
+    Items     []Position `json:"positionen"`
     Comment   string    `json:"comment"`
     TotalCents int      `json:"totalCents"`
 }
@@ -247,7 +247,7 @@ r.HandleFunc("/get-user-orders", tq.GetUserOrdersHandler())
 
 ##### 5. Zod-Schema und Backend-Client
 
-Neues Schema für die Response. Backend-Client-Methode in `TableBackend.ts`:
+Neues Schema für die Response. Backend-Client-Methode in `TischBackend.ts`:
 
 ```typescript
 async getUserOrders(): Promise<UserOrderEntry[]> {
@@ -325,7 +325,7 @@ func (r *Repo) GetRevenueByUser(ctx context.Context, date time.Time) ([]RevenueB
          FROM events e
          JOIN users u ON u.id = e.user_id,
          jsonb_array_elements(e.data->'items') AS item
-         WHERE e.type = 'table.payment-registered:v1'
+         WHERE e.type = 'tisch.zahlung-registriert:v1'
            AND e.timestamp::date = $1
          GROUP BY e.user_id, u.name
          ORDER BY total_cents DESC`, date)
@@ -441,6 +441,6 @@ docker compose -f docker-compose.dev.yml up --build -d
 
 - **POST-only API.** Keine GET/PUT/DELETE.
 - **Geldbeträge in Cent (int).** Nie Floats.
-- **Deutsche UI, englischer Code.**
+- **Deutsche Ubiquitous Language.** Fachbegriffe sind deutsch (Bestellung, Zahlung, Tisch, Position). Infrastruktur bleibt englisch.
 - **Backend ist Single Source of Truth** für Datenfilterung — #23 (Tisch-Suche) ist eine der wenigen gerechtfertigten Frontend-Filterungen, da es sich um eine rein visuelle Filterung einer bereits vollständigen Liste handelt.
 - **Dokumentation synchron halten** nach jeder Änderung.
