@@ -9,6 +9,7 @@ jotti ist ein **Gastronomie-Kassensystem (POS)** für Vereine und Non-Profit-Ver
 jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo, kein Zahlungsgateway. Self-hosted, Open Source, Mobile-first.
 
 **Weiterführende Dokumentation:**
+
 - [POS-Einordnung](docs/pos.md) — Kontext, Zielgruppe, Abgrenzung zu kommerziellen Systemen
 - [Anforderungskatalog](docs/requirements.md) — 50 Anforderungen mit Status und Implementierungsvorschlägen
 - [Implementierungsplan](docs/implementation-plan.md) — Nächste Features mit Code-Snippets und Akzeptanzkriterien
@@ -17,12 +18,12 @@ jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo,
 
 ## Tech-Stack
 
-| Komponente    | Technologie                                                        | Versionen in             |
-| ------------- | ------------------------------------------------------------------ | ------------------------ |
+| Komponente    | Technologie                                                                | Versionen in             |
+| ------------- | -------------------------------------------------------------------------- | ------------------------ |
 | Backend       | Go, stdlib `net/http`, `pgx/v5`, `sqlc`, `zerolog`, `zog`, `golang-jwt/v5` | `backend/go.mod`         |
-| Frontend      | React, Vite, TypeScript (strict), Tailwind CSS, shadcn/ui, Zod     | `frontend/package.json`  |
-| Datenbank     | PostgreSQL, `golang-migrate`                                       | `docker-compose.dev.yml` |
-| Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                 |                          |
+| Frontend      | React, Vite, TypeScript (strict), Tailwind CSS, shadcn/ui, Zod             | `frontend/package.json`  |
+| Datenbank     | PostgreSQL, `golang-migrate`                                               | `docker-compose.dev.yml` |
+| Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                         |                          |
 
 ## Wichtige Regeln
 
@@ -31,7 +32,7 @@ jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo,
 3. **Event-Sourcing für Tisch-Operationen.** Events sind immutable (append-only). Nie Events updaten oder löschen.
 4. **CRUD für Stammdaten** (Benutzer, Produkte, Tische). Soft-Deletes via `status = 'deleted'`.
 5. **Validierung mit Schemas.** Backend: `zog`. Frontend: `Zod`. Beide Seiten validieren.
-6. **Deutsche UI, englischer Code.** Alle Benutzer-sichtbaren Strings auf Deutsch. Code, Variablen, Commits auf Englisch.
+6. **Deutsche Ubiquitous Language.** Fachbegriffe der Domäne sind deutsch (Bestellung, Zahlung, Lieferung, Stornierung, Tisch, Position). Infrastruktur-Code (Auth, Config, DB) bleibt englisch. Alle Benutzer-sichtbaren Strings auf Deutsch. Commits auf Englisch.
 7. **Kein globaler State-Store im Frontend.** Nur React Hooks + Singletons.
 8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
 9. **Dokumentation synchron halten.** Bei Änderungen diese Dateien aktualisieren, sofern betroffen: `AGENTS.md`, `README.md`, `docs/development.md`, `docs/requirements.md`, `docs/implementation-plan.md`, `docs/pos.md`, `docs/language.md`.
@@ -51,9 +52,9 @@ Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `a
 
 ### State-Rekonstruktion aus Events
 
-- Balance = Summe(Bestellungen) − Summe(Bezahlungen) − Summe(Stornierungen)
-- Unbezahlt = bestellt − bezahlt − storniert
-- Ungeliefert = bestellt − geliefert − storniert
+- Saldo = Summe(Bestellungen) − Summe(Zahlungen) − Summe(Stornierungen)
+- UnbezahltePositionen = bestellt − bezahlt − storniert
+- UngeliefertePositionen = bestellt − geliefert − storniert
 
 ## Frontend-Konventionen
 
@@ -67,7 +68,7 @@ Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `a
 ### Patterns
 
 - **401-Interceptor**: `Backend.post()` erkennt 401, loggt aus und leitet zu `/login` weiter — kein manuelles 401-Handling nötig
-- **Drawer-Pattern**: Bestellen, Bezahlen, Stornieren, Liefern öffnen Bottom-Sheet-Drawer mit Zusammenfassung. Hilfsfunktionen (`selectVariants`, `calculateTotalPrice`) in `src/service/components/table/drawerUtils.ts`
+- **Drawer-Pattern**: Bestellen, Bezahlen, Stornieren, Liefern öffnen Bottom-Sheet-Drawer mit Zusammenfassung. Hilfsfunktionen (`selectPositionen`, `calculateTotalPrice`) in `src/service/components/table/drawerUtils.ts`
 - **Geldbeträge anzeigen**: `formatCents()` aus `src/lib/utils.ts` — nie inline formatieren
 
 ### Styling
@@ -91,9 +92,9 @@ Verwaltung von Stammdaten. Nur für Administratoren zugänglich.
 
 Kassenbetrieb am Tisch.
 
-- **Backend**: Routen in `api/service.go` unter `/service/*`. Stornierung (`cancel-table-variants`) läuft über `api/senior_service.go` mit Middleware nur für `admin` und `senior_service`.
+- **Backend**: Routen in `api/service.go` unter `/service/*`. Stornierung (`/produkte-stornieren`) läuft über `api/senior_service.go` mit Middleware nur für `admin` und `senior_service`.
 - **Frontend**: Seiten unter `src/service/` mit `ServiceGuard` (React Router Loader)
-- **Funktionen**: Tisch auswählen, Bestellungen aufgeben, Lieferungen bestätigen, Bezahlungen registrieren, Stornierungen, Tisch-Verlauf einsehen
+- **Funktionen**: Tisch auswählen, Bestellungen aufgeben, Lieferungen bestätigen, Zahlungen registrieren, Stornierungen, Tisch-Historie einsehen
 
 ### Auth-Bereich (kein JWT erforderlich)
 
@@ -139,6 +140,7 @@ docs/
   development.md              # Entwicklung & Deployment
   requirements.md             # Anforderungskatalog
   implementation-plan.md      # Implementierungsplan Phase 1 & 2
+  language.md                 # Ubiquitous Language (Domain-Begriffe)
   adr/orm.md                  # ADR: ORM-Bewertung und Entscheidung für sqlc
 ```
 
@@ -164,7 +166,9 @@ docs/
 
 ## Event-Sourcing-Referenz
 
-Events für Tisch-Operationen. Subject-Format: `"table:<id>"`. State wird durch Replay aller Events rekonstruiert. Snapshots optimieren Lesezugriffe.
+Events für Tisch-Operationen. Subject-Format: `"tisch:<id>"`. State wird durch Replay aller Events rekonstruiert. Snapshots optimieren Lesezugriffe.
+
+Event-Typen: `tisch.bestellung-aufgegeben:v1`, `tisch.zahlung-registriert:v1`, `tisch.produkte-storniert:v1`, `tisch.produkte-geliefert:v1`, `tisch.snapshot:v1`
 
 Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/table/events.go` und die zugehörigen `*Event.go`-Dateien im selben Verzeichnis.
 

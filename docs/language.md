@@ -8,10 +8,10 @@ Dieses Dokument beschreibt die kanonische Fachsprache (Ubiquitous Language) von 
 
 jotti hat zwei klar abgegrenzte Fachbereiche:
 
-| Bounded Context | Deutsch | Inhalt |
-|---|---|---|
+| Bounded Context   | Deutsch   | Inhalt                                                      |
+| ----------------- | --------- | ----------------------------------------------------------- |
 | **Kassenbetrieb** | `service` | Tische, Bestellungen, Zahlungen, Lieferungen, Stornierungen |
-| **Stammdaten** | `admin` | Produkte, Varianten, Tische (Stammdaten), Benutzer |
+| **Stammdaten**    | `admin`   | Produkte, Varianten, Tische (Stammdaten), Benutzer          |
 
 Auth (`/auth/*`) ist technische Infrastruktur, kein eigenständiger Bounded Context.
 
@@ -21,29 +21,29 @@ Auth (`/auth/*`) ist technische Infrastruktur, kein eigenständiger Bounded Cont
 
 ### Kassenbetrieb (Bounded Context: service)
 
-| Fachbegriff (DE) | Code-Begriff (EN) | Beschreibung |
-|---|---|---|
-| **Tisch** | `table` | Abrechnungseinheit. Träger des Kassenjournals. |
-| **Bestellung** | `order` | Auftrag des Gastes, aufgenommen von der Servicekraft. |
-| **Position** | `line item` | Eine Produktvariante mit Menge und Preis innerhalb einer Bestellung. |
-| **Lieferung** | `delivery` | Bestätigung, dass bestellte Positionen ausgeliefert wurden. |
-| **Zahlung** | `payment` | Registrierung eines Zahlungseingangs (bar, Teilzahlung möglich). |
-| **Stornierung** | `cancelation` | Rücknahme bestellter Positionen (nur Serviceleitung/Admin). |
-| **Kassenjournal** | `event log` | Unveränderliche Folge aller Tischoperationen (Event Stream). |
-| **Saldo** | `balance` | Offener Betrag an einem Tisch: Bestellsumme − Zahlungen − Stornierungen. |
-| **Servicekraft** | `service user` | Rolle: nimmt Bestellungen auf, liefert aus, kassiert. |
-| **Serviceleitung** | `senior service` | Rolle: alle Rechte der Servicekraft + Stornierung. |
+| Fachbegriff (DE)   | Code-Begriff             | Beschreibung                                                                                       |
+| ------------------ | ------------------------ | -------------------------------------------------------------------------------------------------- |
+| **Tisch**          | `Tisch`                  | Abrechnungseinheit. Träger des Kassenjournals.                                                     |
+| **Bestellung**     | `Bestellung`             | Auftrag des Gastes, aufgenommen von der Servicekraft.                                              |
+| **Position**       | `Position`               | Eine Produktvariante mit Menge und Preis innerhalb einer Bestellung/Zahlung/Lieferung/Stornierung. |
+| **Lieferung**      | `Lieferung`              | Bestätigung, dass bestellte Positionen ausgeliefert wurden.                                        |
+| **Zahlung**        | `Zahlung`                | Registrierung eines Zahlungseingangs (bar, Teilzahlung möglich).                                   |
+| **Stornierung**    | `Stornierung`            | Rücknahme bestellter Positionen (nur Serviceleitung/Admin).                                        |
+| **Kassenjournal**  | Event Stream             | Unveränderliche Folge aller Tischoperationen (Event Stream).                                       |
+| **Saldo**          | `saldoCents`             | Offener Betrag an einem Tisch: Bestellsumme − Zahlungen − Stornierungen.                           |
+| **Servicekraft**   | `service` (Rolle)        | Rolle: nimmt Bestellungen auf, liefert aus, kassiert.                                              |
+| **Serviceleitung** | `senior_service` (Rolle) | Rolle: alle Rechte der Servicekraft + Stornierung.                                                 |
 
 ### Stammdaten (Bounded Context: admin)
 
-| Fachbegriff (DE) | Code-Begriff (EN) | Beschreibung |
-|---|---|---|
-| **Produkt** | `product` | Angebotener Artikel (z. B. „Cola", „Pommes"). |
-| **Variante** | `variant` | Ausprägung eines Produkts mit eigenem Preis (z. B. „Klein 0,3l", „Groß 0,5l"). |
-| **Kategorie** | `category` | Gruppierung von Produkten: Essen, Getränke, Sonstiges. |
-| **Tisch** | `table` | Physischer Tisch mit Name und Status (aktiv/inaktiv). |
-| **Benutzer** | `user` | Person mit Zugangsdaten und Rolle. |
-| **Admin** | `admin` | Rolle: voller Zugriff auf Stammdaten und Kassenbetrieb. |
+| Fachbegriff (DE) | Code-Begriff           | Beschreibung                                                                                                         |
+| ---------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Produkt**      | `Produkt` / `product`  | Angebotener Artikel (z. B. „Cola“, „Pommes“). DB-Tabelle bleibt `products`.                                          |
+| **Variante**     | `Variante` / `variant` | Ausprägung eines Produkts mit eigenem Preis (z. B. „Klein 0,3l“, „Groß 0,5l“). DB-Tabelle bleibt `product_variants`. |
+| **Kategorie**    | `category`             | Gruppierung von Produkten: Essen, Getränke, Sonstiges.                                                               |
+| **Tisch**        | `Tisch`                | Physischer Tisch mit Name und Status (aktiv/inaktiv). DB-Tabelle bleibt `tables`.                                    |
+| **Benutzer**     | `user`                 | Person mit Zugangsdaten und Rolle. Bleibt englisch (Infrastruktur).                                                  |
+| **Admin**        | `admin`                | Rolle: voller Zugriff auf Stammdaten und Kassenbetrieb.                                                              |
 
 ---
 
@@ -75,13 +75,13 @@ Auth (`/auth/*`) ist technische Infrastruktur, kein eigenständiger Bounded Cont
 
 **Empfehlung:**
 
-| Begriff | Bedeutung in jotti |
-|---|---|
-| **Bon** | Gedruckter Beleg für Küche/Ausgabe (Küchenbon) **oder** für den Gast (Kassenbon) |
-| **Kassenbon** | Gast-Beleg mit Zusammenfassung und Gesamtbetrag |
-| **Küchenbon** | Interner Bon für Küche/Getränkeausgabe |
-| **Quittung** | Nicht verwenden — kein etablierter Begriff in der Gastronomie |
-| **Rechnung** | Nicht verwenden — hat steuerrechtliche Bedeutung (MwSt.-Ausweis) |
+| Begriff       | Bedeutung in jotti                                                               |
+| ------------- | -------------------------------------------------------------------------------- |
+| **Bon**       | Gedruckter Beleg für Küche/Ausgabe (Küchenbon) **oder** für den Gast (Kassenbon) |
+| **Kassenbon** | Gast-Beleg mit Zusammenfassung und Gesamtbetrag                                  |
+| **Küchenbon** | Interner Bon für Küche/Getränkeausgabe                                           |
+| **Quittung**  | Nicht verwenden — kein etablierter Begriff in der Gastronomie                    |
+| **Rechnung**  | Nicht verwenden — hat steuerrechtliche Bedeutung (MwSt.-Ausweis)                 |
 
 ---
 
@@ -104,6 +104,7 @@ Auth (`/auth/*`) ist technische Infrastruktur, kein eigenständiger Bounded Cont
 ### 6. Event-Typ-Namensgebung
 
 **Problem:** Event-Typen im Code folgen dem Muster `table.<verb>-<noun>:<version>`. Das Verb-Nomen-Muster ist uneinheitlich:
+
 - `order-placed` → Nomen-Verb (Substantiv + Partizip Perfekt Passiv) ✅
 - `payment-registered` → Nomen-Verb ✅
 - `variants-canceled` → Nomen-Verb ✅
@@ -118,6 +119,7 @@ Das Muster `<subject>-<past-participle>` ist konsistent. **Keine Änderung nöti
 **Problem:** `table.snapshot:v1` ist kein Business-Event, sondern eine technische Optimierung. Es erscheint im gleichen Event-Stream wie fachliche Events.
 
 **Empfehlung:** In der Dokumentation klar unterscheiden zwischen:
+
 - **Domain Events** (fachlich): `order-placed`, `payment-registered`, `variants-canceled`, `variants-delivered`
 - **System Events** (technisch): `snapshot` — dient nur der Performance, hat keine fachliche Bedeutung
 
@@ -127,11 +129,12 @@ Das Muster `<subject>-<past-participle>` ist konsistent. **Keine Änderung nöti
 
 ### Aggregat-Grenzen
 
-Das `Table`-Aggregat (Tisch) ist korrekt abgegrenzt: Es kapselt den gesamten Kassenbetrieb an einem Tisch. Alle Tischoperationen laufen über den Event-Stream des Tisches.
+Das `Tisch`-Aggregat ist korrekt abgegrenzt: Es kapselt den gesamten Kassenbetrieb an einem Tisch. Alle Tischoperationen laufen über den Event-Stream des Tisches.
 
-**Empfehlung:** Das `Table`-Aggregat explizit dokumentieren:
-- **Aggregatwurzel**: `Table` (identifiziert durch `table:<id>`)
-- **Domain Events**: `OrderPlaced`, `PaymentRegistered`, `VariantsCanceled`, `VariantsDelivered`
+**Empfehlung:** Das `Tisch`-Aggregat explizit dokumentieren:
+
+- **Aggregatwurzel**: `Tisch` (identifiziert durch `tisch:<id>`)
+- **Domain Events**: `BestellungAufgegeben`, `ZahlungRegistriert`, `ProdukteStorniert`, `ProdukteGeliefert`
 - **Invarianten**: Saldo ≥ 0 nach Stornierung, Zahlung nur für bestellte Positionen
 
 ### Repository-Benennung
@@ -142,6 +145,6 @@ Aktuell: `table_repo`, `user_repo`, `product_repo`, `event_repo`
 
 ### Application-Service vs. Domain-Service
 
-Aktuell werden Queries wie `GetBalance`, `GetHistory` als freie Funktionen in `domain/table/events.go` implementiert. Das ist sinnvoll, da sie keinen Seiteneffekt haben.
+Aktuell werden Queries wie `GetSaldoFromEvents`, `GetHistoryFromEvents` als freie Funktionen in `domain/table/events.go` implementiert. Das ist sinnvoll, da sie keinen Seiteneffekt haben.
 
 **Empfehlung:** Diese Funktionen sind **Domain Services** im DDD-Sinne. Sie könnten explizit als solche dokumentiert werden, um die Abgrenzung zu Application Services (HTTP-Handler-nahe Orchestrierung) klarer zu machen.

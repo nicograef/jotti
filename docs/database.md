@@ -21,7 +21,7 @@ HTTP-Handler → Application-Service → Repository → PostgreSQL
 Es gibt zwei Persistenzstrategien:
 
 - **CRUD für Stammdaten** (Benutzer, Tische, Produkte, Varianten) → relationale Tabellen mit Soft-Deletes
-- **Event-Sourcing für Tisch-Operationen** (Bestellungen, Bezahlungen, Lieferungen, Stornierungen) → append-only `events`-Tabelle
+- **Event-Sourcing für Tisch-Operationen** (Bestellungen, Zahlungen, Lieferungen, Stornierungen) → append-only `events`-Tabelle
 
 ---
 
@@ -59,6 +59,7 @@ database/
 ## Workflow: Neue Query hinzufügen
 
 1. **SQL-Query schreiben** in `backend/sqlc/queries/<domain>.sql`:
+
    ```sql
    -- name: GetActiveUsers :many
    SELECT id, name, username, role, status, created_at
@@ -66,6 +67,7 @@ database/
    ```
 
 2. **Code generieren:**
+
    ```bash
    cd backend && sqlc generate
    ```
@@ -78,12 +80,12 @@ database/
 
 Jedes Repository-Paket enthält:
 
-| Datei           | Inhalt                                                              |
-| --------------- | ------------------------------------------------------------------- |
-| `types.go`      | `Repository`-Struct, `NewRepository()`-Konstruktor, Typ-Konverter  |
-| `repo.go`       | Repository-Methoden (wrappen sqlc-generierte Query-Funktionen)     |
-| `mock.go`       | In-Memory-Mock für Unit-Tests                                      |
-| `repo_test.go`  | Integrationstests (`//go:build integration`)                       |
+| Datei          | Inhalt                                                            |
+| -------------- | ----------------------------------------------------------------- |
+| `types.go`     | `Repository`-Struct, `NewRepository()`-Konstruktor, Typ-Konverter |
+| `repo.go`      | Repository-Methoden (wrappen sqlc-generierte Query-Funktionen)    |
+| `mock.go`      | In-Memory-Mock für Unit-Tests                                     |
+| `repo_test.go` | Integrationstests (`//go:build integration`)                      |
 
 **Beispiel** — Repository-Aufbau (siehe `backend/repository/user_repo/types.go`):
 

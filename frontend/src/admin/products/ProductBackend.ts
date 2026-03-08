@@ -47,7 +47,7 @@ export class ProductBackend {
   ): Promise<number> {
     const body = CreateProductSchema.parse(newProduct)
     const { id } = await this.backend.post(
-      'admin/create-product',
+      'admin/create-produkt',
       body,
       z.object({ id: ProductIdSchema }),
     )
@@ -58,16 +58,16 @@ export class ProductBackend {
     updatedProduct: z.infer<typeof UpdateProductSchema>,
   ): Promise<void> {
     const body = UpdateProductSchema.parse(updatedProduct)
-    await this.backend.post('admin/update-product', body)
+    await this.backend.post('admin/update-produkt', body)
   }
 
   public async getAllProducts(): Promise<Product[]> {
-    const { products } = await this.backend.post(
-      'admin/get-all-products',
+    const { produkte } = await this.backend.post(
+      'admin/get-all-produkte',
       {},
-      z.object({ products: z.array(ProductSchema) }),
+      z.object({ produkte: z.array(ProductSchema) }),
     )
-    return products
+    return produkte
   }
 
   // Variant methods
@@ -77,7 +77,7 @@ export class ProductBackend {
   ): Promise<number> {
     const body = CreateVariantSchema.parse(newVariant)
     const { id } = await this.backend.post(
-      'admin/create-variant',
+      'admin/create-variante',
       body,
       z.object({ id: VariantIdSchema }),
     )
@@ -88,16 +88,16 @@ export class ProductBackend {
     updatedVariant: z.infer<typeof UpdateVariantSchema>,
   ): Promise<void> {
     const body = UpdateVariantSchema.parse(updatedVariant)
-    await this.backend.post('admin/update-variant', body)
+    await this.backend.post('admin/update-variante', body)
   }
 
   public async activateVariant(id: number): Promise<void> {
     const body = { id: VariantIdSchema.parse(id) }
-    await this.backend.post('admin/activate-variant', body)
+    await this.backend.post('admin/activate-variante', body)
   }
 
   public async deactivateVariant(id: number): Promise<void> {
     const body = { id: VariantIdSchema.parse(id) }
-    await this.backend.post('admin/deactivate-variant', body)
+    await this.backend.post('admin/deactivate-variante', body)
   }
 }

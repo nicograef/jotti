@@ -12,11 +12,11 @@ export class ProductBackend {
   }
 
   public async getActiveProducts(): Promise<Product[]> {
-    const { products } = await this.backend.post(
-      'service/get-active-products',
+    const { produkte } = await this.backend.post(
+      'service/get-aktive-produkte',
       {},
-      z.object({ products: z.array(ProductSchema) }),
+      z.object({ produkte: z.array(ProductSchema) }),
     )
-    return products
+    return produkte
   }
 }

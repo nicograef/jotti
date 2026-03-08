@@ -11,7 +11,7 @@ func NewSeniorServiceApi(db *sql.DB) http.Handler {
 	r := http.NewServeMux()
 
 	tc := table.NewCommandHandler(db)
-	r.HandleFunc("/cancel-table-variants", tc.CancelTableVariantsHandler())
+	r.HandleFunc("/produkte-stornieren", tc.ProdukteStornierenHandler())
 
 	return r
 }

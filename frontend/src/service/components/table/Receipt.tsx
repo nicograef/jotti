@@ -1,31 +1,31 @@
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { formatCents } from '@/lib/utils'
-import type { LineItem } from '@/service/table/Order'
+import type { Position } from '@/service/table/Bestellung'
 
 export function Receipt({
-  variants,
+  positionen,
   totalPrice,
 }: {
-  variants: LineItem[]
+  positionen: Position[]
   totalPrice?: number
 }) {
   return (
     <>
       <ScrollArea
-        className={`inset-shadow-sm h-${Math.min(variants.length * 10, 50).toString()}`} // max height 50 units, 10 units per variant
+        className={`inset-shadow-sm h-${Math.min(positionen.length * 10, 50).toString()}`} // max height 50 units, 10 units per variant
       >
         <div className="px-4 pt-2 pb-0 space-y-2">
-          {variants.map((variant) => {
+          {positionen.map((position) => {
             return (
               <div
-                key={variant.id}
+                key={position.id}
                 className="flex justify-between border-b pb-2 last:border-0"
               >
                 <div>
-                  {variant.quantity} x {variant.name}
+                  {position.quantity} x {position.name}
                 </div>
                 <div>
-                  € {formatCents(variant.priceCents * variant.quantity)}
+                  € {formatCents(position.preisCents * position.quantity)}
                 </div>
               </div>
             )

@@ -1,17 +1,17 @@
 import { BackendSingleton } from '@/lib/Backend'
 import { useFetch } from '@/lib/useFetch'
 
-import type { Table } from './Table'
-import { TableBackend } from './TableBackend'
+import type { Tisch } from './Tisch'
+import { TischBackend } from './TischBackend'
 
-const tableBackend = new TableBackend(BackendSingleton)
+const tischBackend = new TischBackend(BackendSingleton)
 
 /** Custom hook to fetch all tables from backend. */
-export function useAllTables() {
+export function useAllTische() {
   const {
-    data: tables,
-    setData: setTables,
+    data: tische,
+    setData: setTische,
     ...rest
-  } = useFetch(() => tableBackend.getAllTables(), [] as Table[])
-  return { ...rest, tables, setTables }
+  } = useFetch(() => tischBackend.getAllTische(), [] as Tisch[])
+  return { ...rest, tische, setTische }
 }

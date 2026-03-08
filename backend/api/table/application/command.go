@@ -10,9 +10,9 @@ import (
 )
 
 type tableRepoCommand interface {
-	GetTable(ctx context.Context, id int) (table.Table, error)
-	CreateTable(ctx context.Context, t table.Table) (int, error)
-	UpdateTable(ctx context.Context, t table.Table) error
+	GetTable(ctx context.Context, id int) (table.Tisch, error)
+	CreateTable(ctx context.Context, t table.Tisch) (int, error)
+	UpdateTable(ctx context.Context, t table.Tisch) error
 }
 
 type eventRepoCommand interface {
@@ -25,207 +25,207 @@ type Command struct {
 	EventRepo eventRepoCommand
 }
 
-func (c Command) CreateTable(ctx context.Context, name string) (int, error) {
+func (c Command) TischErstellen(ctx context.Context, name string) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	table, err := table.NewTable(name)
+	tisch, err := table.NewTisch(name)
 	if err != nil {
-		log.Warn().Err(err).Str("table_name", name).Msg("Invalid table data")
-		return 0, ErrInvalidTableData
+		log.Warn().Err(err).Str("tisch_name", name).Msg("Invalid tisch data")
+		return 0, ErrInvalidTischData
 	}
 
-	id, err := c.TableRepo.CreateTable(ctx, table)
+	id, err := c.TableRepo.CreateTable(ctx, tisch)
 	if err != nil {
 		return 0, fromRepositoryError(err, log, 0)
 	}
 
-	log.Info().Int("table_id", id).Msg("Table created")
+	log.Info().Int("tisch_id", id).Msg("Tisch created")
 	return id, nil
 }
 
-func (c Command) UpdateTable(ctx context.Context, id int, name string) error {
+func (c Command) TischAktualisieren(ctx context.Context, id int, name string) error {
 	log := zerolog.Ctx(ctx)
 
-	table, err := c.TableRepo.GetTable(ctx, id)
+	tisch, err := c.TableRepo.GetTable(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
 
-	err = table.Rename(name)
+	err = tisch.Rename(name)
 	if err != nil {
-		log.Warn().Err(err).Int("table_id", id).Msg("Invalid table data for update")
-		return ErrInvalidTableData
+		log.Warn().Err(err).Int("tisch_id", id).Msg("Invalid tisch data for update")
+		return ErrInvalidTischData
 	}
 
-	err = c.TableRepo.UpdateTable(ctx, table)
+	err = c.TableRepo.UpdateTable(ctx, tisch)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
 
-	log.Info().Int("table_id", id).Msg("Table updated")
+	log.Info().Int("tisch_id", id).Msg("Tisch updated")
 	return nil
 }
 
-func (c Command) ActivateTable(ctx context.Context, id int) error {
+func (c Command) TischAktivieren(ctx context.Context, id int) error {
 	log := zerolog.Ctx(ctx)
 
-	table, err := c.TableRepo.GetTable(ctx, id)
+	tisch, err := c.TableRepo.GetTable(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
 
-	table.Activate()
+	tisch.Activate()
 
-	err = c.TableRepo.UpdateTable(ctx, table)
+	err = c.TableRepo.UpdateTable(ctx, tisch)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
 
-	log.Info().Int("table_id", id).Msg("Table activated")
+	log.Info().Int("tisch_id", id).Msg("Tisch activated")
 	return nil
 }
 
-func (c Command) DeactivateTable(ctx context.Context, id int) error {
+func (c Command) TischDeaktivieren(ctx context.Context, id int) error {
 	log := zerolog.Ctx(ctx)
-	table, err := c.TableRepo.GetTable(ctx, id)
+	tisch, err := c.TableRepo.GetTable(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
 
-	table.Deactivate()
+	tisch.Deactivate()
 
-	err = c.TableRepo.UpdateTable(ctx, table)
+	err = c.TableRepo.UpdateTable(ctx, tisch)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
 
-	log.Info().Int("table_id", id).Msg("Table deactivated")
+	log.Info().Int("tisch_id", id).Msg("Tisch deactivated")
 	return nil
 }
 
-func (c Command) PlaceTableOrder(ctx context.Context, userID, tableID int, variants []table.LineItem, comment string) error {
+func (c Command) BestellungAufgeben(ctx context.Context, userID, tischID int, positionen []table.Position, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewOrderPlacedEvent(userID, tableID, variants, comment)
+	event, err := table.NewBestellungAufgegebenEvent(userID, tischID, positionen, comment)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create order placed event")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create bestellung aufgegeben event")
 		return err
 	}
 
 	_, err = c.EventRepo.WriteEvent(ctx, event)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write order placed event to database")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung aufgegeben event to database")
 		return ErrDatabase
 	}
 
-	log.Info().Int("table_id", tableID).Msg("Order placed")
+	log.Info().Int("tisch_id", tischID).Msg("Bestellung aufgegeben")
 	return nil
 }
 
-func (c Command) RegisterTablePayment(ctx context.Context, userID, tableID int, variants []table.LineItem, comment string) error {
+func (c Command) ZahlungRegistrieren(ctx context.Context, userID, tischID int, positionen []table.Position, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewPaymentRegisteredEvent(userID, tableID, variants, comment)
+	event, err := table.NewZahlungRegistriertEvent(userID, tischID, positionen, comment)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create payment registered event")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create zahlung registriert event")
 		return err
 	}
 
 	_, err = c.EventRepo.WriteEvent(ctx, event)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write payment registered event to database")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write zahlung registriert event to database")
 		return ErrDatabase
 	}
 
-	log.Info().Int("table_id", tableID).Msg("Payment registered")
+	log.Info().Int("tisch_id", tischID).Msg("Zahlung registriert")
 	return nil
 }
 
-func (c Command) CancelTableVariants(ctx context.Context, userID, tableID int, variants []table.LineItem, comment string) error {
+func (c Command) ProdukteStornieren(ctx context.Context, userID, tischID int, positionen []table.Position, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewVariantsCanceledEvent(userID, tableID, variants, comment)
+	event, err := table.NewProdukteStorniertEvent(userID, tischID, positionen, comment)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create variants canceled event")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create produkte storniert event")
 		return err
 	}
 
 	_, err = c.EventRepo.WriteEvent(ctx, event)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write variants canceled event to database")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write produkte storniert event to database")
 		return ErrDatabase
 	}
 
-	log.Info().Int("table_id", tableID).Msg("Variants canceled")
+	log.Info().Int("tisch_id", tischID).Msg("Produkte storniert")
 	return nil
 }
 
-func (c Command) DeliverTableVariants(ctx context.Context, userID, tableID int, variants []table.LineItem, comment string) error {
+func (c Command) ProdukteLiefern(ctx context.Context, userID, tischID int, positionen []table.Position, comment string) error {
 	log := zerolog.Ctx(ctx)
 
-	event, err := table.NewVariantsDeliveredEvent(userID, tableID, variants, comment)
+	event, err := table.NewProdukteGeliefertEvent(userID, tischID, positionen, comment)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create variants delivered event")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create produkte geliefert event")
 		return err
 	}
 
 	_, err = c.EventRepo.WriteEvent(ctx, event)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write variants delivered event to database")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write produkte geliefert event to database")
 		return ErrDatabase
 	}
 
-	log.Info().Int("table_id", tableID).Msg("Variants delivered")
+	log.Info().Int("tisch_id", tischID).Msg("Produkte geliefert")
 	return nil
 }
 
-func (c Command) CreateTableSnapshot(ctx context.Context, userID, tableID int) error {
+func (c Command) TischSnapshotErstellen(ctx context.Context, userID, tischID int) error {
 	log := zerolog.Ctx(ctx)
 
-	subject := "table:" + strconv.Itoa(tableID)
+	subject := "tisch:" + strconv.Itoa(tischID)
 	events, err := c.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(table.EventTypeSnapshotV1))
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to read events for snapshot")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for snapshot")
 		return ErrDatabase
 	}
 
-	balance, err := table.GetBalanceFromEvents(events)
+	saldo, err := table.GetSaldoFromEvents(events)
 	if err != nil {
 		return err
 	}
-	unpaid, err := table.GetUnpaidVariantsFromEvents(events)
+	unbezahlt, err := table.GetUnbezahltePositionenFromEvents(events)
 	if err != nil {
 		return err
 	}
-	undelivered, err := table.GetUndeliveredVariantsFromEvents(events)
+	ungeliefert, err := table.GetUngeliefertePositionenFromEvents(events)
 	if err != nil {
 		return err
 	}
-	totalPayment, err := table.GetTotalPaymentsFromEvents(events)
+	gesamtZahlungen, err := table.GetGesamtZahlungenFromEvents(events)
 	if err != nil {
 		return err
 	}
 
 	log.Debug().
-		Int("table_id", tableID).
-		Int("balance", balance).
-		Int("unpaid_count", len(unpaid)).
-		Int("undelivered_count", len(undelivered)).
-		Int("total_payments", totalPayment).
+		Int("tisch_id", tischID).
+		Int("saldo", saldo).
+		Int("unbezahlt_count", len(unbezahlt)).
+		Int("ungeliefert_count", len(ungeliefert)).
+		Int("gesamt_zahlungen", gesamtZahlungen).
 		Msg("Creating snapshot with computed state")
 
-	snapshotEvent, err := table.NewSnapshotEvent(userID, tableID, balance, unpaid, undelivered, totalPayment)
+	snapshotEvent, err := table.NewSnapshotEvent(userID, tischID, saldo, unbezahlt, ungeliefert, gesamtZahlungen)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to create snapshot event")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create snapshot event")
 		return err
 	}
 
 	_, err = c.EventRepo.WriteEvent(ctx, snapshotEvent)
 	if err != nil {
-		log.Error().Err(err).Int("table_id", tableID).Msg("Failed to write snapshot event")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write snapshot event")
 		return ErrDatabase
 	}
 
-	log.Info().Int("table_id", tableID).Int("balance", balance).Msg("Snapshot created")
+	log.Info().Int("tisch_id", tischID).Int("saldo", saldo).Msg("Snapshot created")
 	return nil
 }

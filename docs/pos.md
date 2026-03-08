@@ -17,13 +17,13 @@ POS-Systeme sind breit aufgestellt — vom einfachen Einzelhandels-Terminal bis 
 
 Gastronomische POS-Systeme haben gegenüber Einzelhandels-Kassensystemen spezifische Anforderungen:
 
-| Merkmal | Beschreibung |
-|---|---|
+| Merkmal                     | Beschreibung                                                   |
+| --------------------------- | -------------------------------------------------------------- |
 | **Tischbasierter Workflow** | Bestellungen werden pro Tisch geführt, nicht pro Kassenvorgang |
-| **Offener Saldo** | Mehrere Bestellrunden, eine Endabrechnung pro Tisch |
-| **Rollen** | Servicekraft, Küche/Ausgabe, Kassierer, Admin |
-| **Bon-Druck** | Küchenbons, Quittungen, Tagesabschluss |
-| **Geschwindigkeit** | Bestellaufnahme in Sekunden, auch unter Stress |
+| **Offener Saldo**           | Mehrere Bestellrunden, eine Endabrechnung pro Tisch            |
+| **Rollen**                  | Servicekraft, Küche/Ausgabe, Kassierer, Admin                  |
+| **Bon-Druck**               | Küchenbons, Quittungen, Tagesabschluss                         |
+| **Geschwindigkeit**         | Bestellaufnahme in Sekunden, auch unter Stress                 |
 
 Verbreitete kommerzielle Gastro-POS-Systeme: **Lightspeed Restaurant**, **Orderbird**, **Toast**, **Square for Restaurants**.
 
@@ -53,22 +53,22 @@ jotti dagegen:
 
 ### Umfang und bewusste Grenzen
 
-| Funktion | Status |
-|---|---|
-| Bestellaufnahme per Smartphone | ✅ |
-| Mehrere Servicekräfte gleichzeitig | ✅ |
-| Produkte mit Varianten und Kategorien | ✅ |
-| Tischübersicht mit offenem Saldo | ✅ |
-| Lieferungen bestätigen | ✅ |
-| Bezahlungen (inkl. Teilzahlung) | ✅ |
-| Stornierungen (nur Serviceleitung/Admin) | ✅ |
-| Rollenverwaltung | ✅ |
-| Lückenloses Kassenjournal (Event Sourcing) | ✅ |
-| Bon-Druck | ❌ geplant |
-| Elektronische Zahlungsabwicklung (Karte/NFC) | ❌ nicht geplant |
-| Inventarverwaltung | ❌ nicht geplant |
-| Multi-Tenant (mehrere Vereine) | ❌ Single-Tenant |
-| TSE / GoBD-Zertifizierung | ❌ nicht relevant (Non-Profit) |
+| Funktion                                     | Status                         |
+| -------------------------------------------- | ------------------------------ |
+| Bestellaufnahme per Smartphone               | ✅                             |
+| Mehrere Servicekräfte gleichzeitig           | ✅                             |
+| Produkte mit Varianten und Kategorien        | ✅                             |
+| Tischübersicht mit offenem Saldo             | ✅                             |
+| Lieferungen bestätigen                       | ✅                             |
+| Zahlungen (inkl. Teilzahlung)                | ✅                             |
+| Stornierungen (nur Serviceleitung/Admin)     | ✅                             |
+| Rollenverwaltung                             | ✅                             |
+| Lückenloses Kassenjournal (Event Sourcing)   | ✅                             |
+| Bon-Druck                                    | ❌ geplant                     |
+| Elektronische Zahlungsabwicklung (Karte/NFC) | ❌ nicht geplant               |
+| Inventarverwaltung                           | ❌ nicht geplant               |
+| Multi-Tenant (mehrere Vereine)               | ❌ Single-Tenant               |
+| TSE / GoBD-Zertifizierung                    | ❌ nicht relevant (Non-Profit) |
 
 ### Technische Positionierung
 
@@ -84,13 +84,13 @@ Das Event-Sourcing-Modell für Tischoperationen bietet einen **lückenlosen Kass
 
 ## Ähnliche Produkte
 
-| Produkt | Typ | Besonderheit |
-|---|---|---|
-| [Orderbird](https://www.orderbird.com) | Kommerziell, SaaS | iPad-POS für Gastronomie, DE |
+| Produkt                                               | Typ               | Besonderheit                   |
+| ----------------------------------------------------- | ----------------- | ------------------------------ |
+| [Orderbird](https://www.orderbird.com)                | Kommerziell, SaaS | iPad-POS für Gastronomie, DE   |
 | [Lightspeed Restaurant](https://www.lightspeedhq.com) | Kommerziell, SaaS | Vollständiges Restaurantsystem |
-| [Toast POS](https://pos.toasttab.com) | Kommerziell, SaaS | Gastronomie (v.a. USA) |
-| [Square for Restaurants](https://squareup.com) | Kommerziell, SaaS | Flexibles Gastro-POS |
-| [UniCenta](https://unicenta.com) | Open Source | Allg. Einzelhandel/Gastronomie |
-| [Floreant POS](http://floreant.org) | Open Source | Restaurant-fokussiert |
+| [Toast POS](https://pos.toasttab.com)                 | Kommerziell, SaaS | Gastronomie (v.a. USA)         |
+| [Square for Restaurants](https://squareup.com)        | Kommerziell, SaaS | Flexibles Gastro-POS           |
+| [UniCenta](https://unicenta.com)                      | Open Source       | Allg. Einzelhandel/Gastronomie |
+| [Floreant POS](http://floreant.org)                   | Open Source       | Restaurant-fokussiert          |
 
 jotti unterscheidet sich von allen genannten durch seinen **spezifischen Fokus auf Vereinsveranstaltungen** und die **Freiheit von Hardware-Bindung und laufenden Kosten**.

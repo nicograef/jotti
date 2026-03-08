@@ -18,7 +18,7 @@ type QueryHandler struct {
 }
 
 type getAllProductsResponse struct {
-	Products []product.Product `json:"products"`
+	Produkte []product.Product `json:"produkte"`
 }
 
 func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
@@ -30,12 +30,12 @@ func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, getAllProductsResponse{Products: products})
+		helper.SendResponse(w, getAllProductsResponse{Produkte: products})
 	}
 }
 
 type getActiveProductsResponse struct {
-	Products []product.Product `json:"products"`
+	Produkte []product.Product `json:"produkte"`
 }
 
 func (h *QueryHandler) GetActiveProductsHandler() http.HandlerFunc {
@@ -47,6 +47,6 @@ func (h *QueryHandler) GetActiveProductsHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, getActiveProductsResponse{Products: products})
+		helper.SendResponse(w, getActiveProductsResponse{Produkte: products})
 	}
 }

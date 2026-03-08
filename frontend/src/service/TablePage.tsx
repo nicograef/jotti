@@ -13,32 +13,32 @@ import { AuthSingleton } from '@/lib/Auth'
 import { BackendSingleton } from '@/lib/Backend'
 import { formatCents } from '@/lib/utils'
 
-import { Delivery } from './components/table/Delivery'
-import { Order } from './components/table/Order'
-import { Payment } from './components/table/Payment'
-import { TableHistory } from './components/table/TableHistory'
-import { useTableBalance, useTableUndeliveredVariants } from './table/hooks'
-import { useTable } from './table/hooks'
-import { TableBackend } from './table/TableBackend'
+import { Bestellung } from './components/table/Bestellung'
+import { Lieferung } from './components/table/Lieferung'
+import { TischHistorie } from './components/table/TischHistorie'
+import { Zahlung } from './components/table/Zahlung'
+import { useTischSaldo, useTischUngeliefert } from './table/hooks'
+import { useTisch } from './table/hooks'
+import { TischBackend } from './table/TischBackend'
 
-const tableBackend = new TableBackend(BackendSingleton)
+const tischBackend = new TischBackend(BackendSingleton)
 
 export function TablePage() {
   const { tableId } = useParams<{ tableId: string }>()
-  const { loading: tableLoading, table } = useTable(Number(tableId))
+  const { loading: tischLoading, tisch } = useTisch(Number(tableId))
   const {
-    balanceCents,
-    loading: balanceLoading,
-    reload: reloadBalance,
-  } = useTableBalance(Number(tableId))
+    saldoCents,
+    loading: saldoLoading,
+    reload: reloadSaldo,
+  } = useTischSaldo(Number(tableId))
   const {
-    variants: undeliveredVariants,
-    loading: undeliveredVariantsLoading,
-    reload: reloadUndeliveredVariants,
-  } = useTableUndeliveredVariants(Number(tableId))
+    positionen: ungeliefertePositionen,
+    loading: ungeliefertePositionenLoading,
+    reload: reloadUngeliefertePositionen,
+  } = useTischUngeliefert(Number(tableId))
 
-  const openVariants = undeliveredVariants.reduce(
-    (sum, variant) => sum + variant.quantity,
+  const offenePositionen = ungeliefertePositionen.reduce(
+    (sum, position) => sum + position.quantity,
     0,
   )
 
@@ -47,18 +47,18 @@ export function TablePage() {
       <Item>
         <ItemContent>
           <ItemTitle className="text-2xl">
-            {tableLoading ? 'Tisch ??' : table?.name}{' '}
-            {!undeliveredVariantsLoading && openVariants > 0 && (
-              <Badge variant="destructive">{openVariants} offen</Badge>
+            {tischLoading ? 'Tisch ??' : tisch?.name}{' '}
+            {!ungeliefertePositionenLoading && offenePositionen > 0 && (
+              <Badge variant="destructive">{offenePositionen} offen</Badge>
             )}
-            {!undeliveredVariantsLoading && openVariants === 0 && (
+            {!ungeliefertePositionenLoading && offenePositionen === 0 && (
               <Badge>Alles geliefert!</Badge>
             )}
           </ItemTitle>
         </ItemContent>
         <ItemContent>
           <ItemDescription className="text-2xl">
-            {balanceLoading ? '?' : formatCents(balanceCents)} €
+            {saldoLoading ? '?' : formatCents(saldoCents)} €
           </ItemDescription>
         </ItemContent>
       </Item>
@@ -77,47 +77,47 @@ export function TablePage() {
           </TabsList>
         </div>
         <TabsContent value="order">
-          {table && (
+          {tisch && (
             <>
-              {openVariants > 0 && (
+              {offenePositionen > 0 && (
                 <Card className="p-2 gap-0 mb-4">
-                  <Delivery
-                    backend={tableBackend}
-                    table={table}
-                    onVariantsDelivered={() => {
-                      reloadUndeliveredVariants()
+                  <Lieferung
+                    backend={tischBackend}
+                    tisch={tisch}
+                    onProdukteGeliefert={() => {
+                      reloadUngeliefertePositionen()
                     }}
                   />
                 </Card>
               )}
-              <Order
-                backend={tableBackend}
-                table={table}
-                onOrderPlaced={() => {
-                  reloadBalance()
-                  reloadUndeliveredVariants()
+              <Bestellung
+                backend={tischBackend}
+                tisch={tisch}
+                onBestellungAufgegeben={() => {
+                  reloadSaldo()
+                  reloadUngeliefertePositionen()
                 }}
               />
             </>
           )}
         </TabsContent>
         <TabsContent value="payment">
-          {table && (
-            <Payment
-              backend={tableBackend}
-              table={table}
-              onPaymentRegistered={() => {
-                reloadBalance()
+          {tisch && (
+            <Zahlung
+              backend={tischBackend}
+              tisch={tisch}
+              onZahlungRegistriert={() => {
+                reloadSaldo()
               }}
-              onVariantsCanceled={() => {
-                reloadBalance()
+              onProdukteStorniert={() => {
+                reloadSaldo()
               }}
             />
           )}
         </TabsContent>
         <TabsContent value="history">
-          {table && (
-            <TableHistory tableId={table.id} userId={AuthSingleton.userId} />
+          {tisch && (
+            <TischHistorie tischId={tisch.id} userId={AuthSingleton.userId} />
           )}
         </TabsContent>
       </Tabs>

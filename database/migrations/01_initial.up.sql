@@ -1,7 +1,7 @@
 BEGIN;
 
 -- Enums
-CREATE TYPE UserRole AS ENUM ('admin', 'service');
+CREATE TYPE UserRole AS ENUM ('admin', 'senior_service', 'service');
 CREATE TYPE EntityStatus AS ENUM ('active', 'inactive', 'deleted');
 
 -- Users

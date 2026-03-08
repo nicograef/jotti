@@ -8,43 +8,43 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-func mustCreateOrderEvent(t *testing.T, userID, tableID int, products []LineItem) e.Event {
+func mustCreateOrderEvent(t *testing.T, userID, tableID int, products []Position) e.Event {
 	t.Helper()
-	event, err := NewOrderPlacedEvent(userID, tableID, products, "")
+	event, err := NewBestellungAufgegebenEvent(userID, tableID, products, "")
 	if err != nil {
 		t.Fatalf("failed to create order event: %v", err)
 	}
 	return event
 }
 
-func mustCreatePaymentEvent(t *testing.T, userID, tableID int, products []LineItem) e.Event {
+func mustCreatePaymentEvent(t *testing.T, userID, tableID int, products []Position) e.Event {
 	t.Helper()
-	event, err := NewPaymentRegisteredEvent(userID, tableID, products, "")
+	event, err := NewZahlungRegistriertEvent(userID, tableID, products, "")
 	if err != nil {
 		t.Fatalf("failed to create payment event: %v", err)
 	}
 	return event
 }
 
-func mustCreateCancelationEvent(t *testing.T, userID, tableID int, products []LineItem) e.Event {
+func mustCreateCancelationEvent(t *testing.T, userID, tableID int, products []Position) e.Event {
 	t.Helper()
-	event, err := NewVariantsCanceledEvent(userID, tableID, products, "")
+	event, err := NewProdukteStorniertEvent(userID, tableID, products, "")
 	if err != nil {
 		t.Fatalf("failed to create cancelation event: %v", err)
 	}
 	return event
 }
 
-func mustCreateDeliveryEvent(t *testing.T, userID, tableID int, products []LineItem) e.Event {
+func mustCreateDeliveryEvent(t *testing.T, userID, tableID int, products []Position) e.Event {
 	t.Helper()
-	event, err := NewVariantsDeliveredEvent(userID, tableID, products, "")
+	event, err := NewProdukteGeliefertEvent(userID, tableID, products, "")
 	if err != nil {
 		t.Fatalf("failed to create delivery event: %v", err)
 	}
 	return event
 }
 
-func mustCreateSnapshotEvent(t *testing.T, userID, tableID int, balance int, unpaid, undelivered []LineItem, totalPayments int) e.Event {
+func mustCreateSnapshotEvent(t *testing.T, userID, tableID int, balance int, unpaid, undelivered []Position, totalPayments int) e.Event {
 	t.Helper()
 	event, err := NewSnapshotEvent(userID, tableID, balance, unpaid, undelivered, totalPayments)
 	if err != nil {
@@ -53,8 +53,8 @@ func mustCreateSnapshotEvent(t *testing.T, userID, tableID int, balance int, unp
 	return event
 }
 
-func TestGetBalanceFromEvents_Empty(t *testing.T) {
-	balance, err := GetBalanceFromEvents([]e.Event{})
+func TestGetSaldoFromEvents_Empty(t *testing.T) {
+	balance, err := GetSaldoFromEvents([]e.Event{})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -63,15 +63,15 @@ func TestGetBalanceFromEvents_Empty(t *testing.T) {
 	}
 }
 
-func TestGetBalanceFromEvents_OrderOnly(t *testing.T) {
-	products := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2},
+func TestGetSaldoFromEvents_OrderOnly(t *testing.T) {
+	products := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, products),
 	}
 
-	balance, err := GetBalanceFromEvents(events)
+	balance, err := GetSaldoFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -80,19 +80,19 @@ func TestGetBalanceFromEvents_OrderOnly(t *testing.T) {
 	}
 }
 
-func TestGetBalanceFromEvents_OrderAndPayment(t *testing.T) {
-	products := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2},
+func TestGetSaldoFromEvents_OrderAndPayment(t *testing.T) {
+	products := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2},
 	}
-	paidProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 1},
+	paidProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 1},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, products),
 		mustCreatePaymentEvent(t, 1, 1, paidProducts),
 	}
 
-	balance, err := GetBalanceFromEvents(events)
+	balance, err := GetSaldoFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -101,15 +101,15 @@ func TestGetBalanceFromEvents_OrderAndPayment(t *testing.T) {
 	}
 }
 
-func TestGetBalanceFromEvents_OrderPaymentAndCancelation(t *testing.T) {
-	products := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2},
+func TestGetSaldoFromEvents_OrderPaymentAndCancelation(t *testing.T) {
+	products := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2},
 	}
-	paidProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 1},
+	paidProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 1},
 	}
-	canceledProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 1},
+	canceledProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 1},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, products),
@@ -117,7 +117,7 @@ func TestGetBalanceFromEvents_OrderPaymentAndCancelation(t *testing.T) {
 		mustCreateCancelationEvent(t, 1, 1, canceledProducts),
 	}
 
-	balance, err := GetBalanceFromEvents(events)
+	balance, err := GetSaldoFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -137,8 +137,8 @@ func TestGetHistoryFromEvents_Empty(t *testing.T) {
 }
 
 func TestGetHistoryFromEvents_ReturnsAllEventTypes(t *testing.T) {
-	products := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 1},
+	products := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 1},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, products),
@@ -157,8 +157,8 @@ func TestGetHistoryFromEvents_ReturnsAllEventTypes(t *testing.T) {
 }
 
 func TestGetHistoryFromEvents_ReversesOrder(t *testing.T) {
-	products := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 1},
+	products := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 1},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, products),
@@ -170,16 +170,16 @@ func TestGetHistoryFromEvents_ReversesOrder(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	// First item should be payment (last event), second should be order (first event)
-	if _, ok := history[0].(Payment); !ok {
-		t.Fatalf("expected first item to be Payment, got %T", history[0])
+	if _, ok := history[0].(Zahlung); !ok {
+		t.Fatalf("expected first item to be Zahlung, got %T", history[0])
 	}
-	if _, ok := history[1].(Order); !ok {
-		t.Fatalf("expected second item to be Order, got %T", history[1])
+	if _, ok := history[1].(Bestellung); !ok {
+		t.Fatalf("expected second item to be Bestellung, got %T", history[1])
 	}
 }
 
-func TestGetUnpaidVariantsFromEvents_Empty(t *testing.T) {
-	products, err := GetUnpaidVariantsFromEvents([]e.Event{})
+func TestGetUnbezahltePositionenFromEvents_Empty(t *testing.T) {
+	products, err := GetUnbezahltePositionenFromEvents([]e.Event{})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -188,16 +188,16 @@ func TestGetUnpaidVariantsFromEvents_Empty(t *testing.T) {
 	}
 }
 
-func TestGetUnpaidVariantsFromEvents_OrderOnly(t *testing.T) {
-	orderProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2},
-		{ID: 2, Name: "Fries", PriceCents: 300, Quantity: 1},
+func TestGetUnbezahltePositionenFromEvents_OrderOnly(t *testing.T) {
+	orderProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2},
+		{ID: 2, Name: "Fries", PreisCents: 300, Quantity: 1},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, orderProducts),
 	}
 
-	products, err := GetUnpaidVariantsFromEvents(events)
+	products, err := GetUnbezahltePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -209,19 +209,19 @@ func TestGetUnpaidVariantsFromEvents_OrderOnly(t *testing.T) {
 	}
 }
 
-func TestGetUnpaidVariantsFromEvents_PartialPayment(t *testing.T) {
-	orderProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 3},
+func TestGetUnbezahltePositionenFromEvents_PartialPayment(t *testing.T) {
+	orderProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 3},
 	}
-	paidProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 1},
+	paidProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 1},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, orderProducts),
 		mustCreatePaymentEvent(t, 1, 1, paidProducts),
 	}
 
-	products, err := GetUnpaidVariantsFromEvents(events)
+	products, err := GetUnbezahltePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -233,16 +233,16 @@ func TestGetUnpaidVariantsFromEvents_PartialPayment(t *testing.T) {
 	}
 }
 
-func TestGetUnpaidVariantsFromEvents_FullPayment(t *testing.T) {
-	orderProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2},
+func TestGetUnbezahltePositionenFromEvents_FullPayment(t *testing.T) {
+	orderProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, orderProducts),
 		mustCreatePaymentEvent(t, 1, 1, orderProducts),
 	}
 
-	products, err := GetUnpaidVariantsFromEvents(events)
+	products, err := GetUnbezahltePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -251,19 +251,19 @@ func TestGetUnpaidVariantsFromEvents_FullPayment(t *testing.T) {
 	}
 }
 
-func TestGetUnpaidVariantsFromEvents_WithCancelation(t *testing.T) {
-	orderProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 3},
+func TestGetUnbezahltePositionenFromEvents_WithCancelation(t *testing.T) {
+	orderProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 3},
 	}
-	canceledProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2},
+	canceledProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, orderProducts),
 		mustCreateCancelationEvent(t, 1, 1, canceledProducts),
 	}
 
-	products, err := GetUnpaidVariantsFromEvents(events)
+	products, err := GetUnbezahltePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -275,19 +275,19 @@ func TestGetUnpaidVariantsFromEvents_WithCancelation(t *testing.T) {
 	}
 }
 
-func TestGetUnpaidVariantsFromEvents_AccumulatesMultipleOrders(t *testing.T) {
-	products1 := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2},
+func TestGetUnbezahltePositionenFromEvents_AccumulatesMultipleOrders(t *testing.T) {
+	products1 := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2},
 	}
-	products2 := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 3},
+	products2 := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 3},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, products1),
 		mustCreateOrderEvent(t, 1, 1, products2),
 	}
 
-	products, err := GetUnpaidVariantsFromEvents(events)
+	products, err := GetUnbezahltePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -299,8 +299,8 @@ func TestGetUnpaidVariantsFromEvents_AccumulatesMultipleOrders(t *testing.T) {
 	}
 }
 
-func TestGetUndeliveredVariantsFromEvents_Empty(t *testing.T) {
-	products, err := GetUndeliveredVariantsFromEvents([]e.Event{})
+func TestGetUngeliefertePositionenFromEvents_Empty(t *testing.T) {
+	products, err := GetUngeliefertePositionenFromEvents([]e.Event{})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -309,15 +309,15 @@ func TestGetUndeliveredVariantsFromEvents_Empty(t *testing.T) {
 	}
 }
 
-func TestGetUndeliveredVariantsFromEvents_OrderOnly(t *testing.T) {
-	orderProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2},
+func TestGetUngeliefertePositionenFromEvents_OrderOnly(t *testing.T) {
+	orderProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, orderProducts),
 	}
 
-	products, err := GetUndeliveredVariantsFromEvents(events)
+	products, err := GetUngeliefertePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -329,19 +329,19 @@ func TestGetUndeliveredVariantsFromEvents_OrderOnly(t *testing.T) {
 	}
 }
 
-func TestGetUndeliveredVariantsFromEvents_PartialDelivery(t *testing.T) {
-	orderProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 3},
+func TestGetUngeliefertePositionenFromEvents_PartialDelivery(t *testing.T) {
+	orderProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 3},
 	}
-	deliveredProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 1},
+	deliveredProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 1},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, orderProducts),
 		mustCreateDeliveryEvent(t, 1, 1, deliveredProducts),
 	}
 
-	products, err := GetUndeliveredVariantsFromEvents(events)
+	products, err := GetUngeliefertePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -353,16 +353,16 @@ func TestGetUndeliveredVariantsFromEvents_PartialDelivery(t *testing.T) {
 	}
 }
 
-func TestGetUndeliveredVariantsFromEvents_FullDelivery(t *testing.T) {
-	orderProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2},
+func TestGetUngeliefertePositionenFromEvents_FullDelivery(t *testing.T) {
+	orderProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, orderProducts),
 		mustCreateDeliveryEvent(t, 1, 1, orderProducts),
 	}
 
-	products, err := GetUndeliveredVariantsFromEvents(events)
+	products, err := GetUngeliefertePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -371,19 +371,19 @@ func TestGetUndeliveredVariantsFromEvents_FullDelivery(t *testing.T) {
 	}
 }
 
-func TestGetUndeliveredVariantsFromEvents_WithCancelation(t *testing.T) {
-	orderProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 3},
+func TestGetUngeliefertePositionenFromEvents_WithCancelation(t *testing.T) {
+	orderProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 3},
 	}
-	canceledProducts := []LineItem{
-		{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2},
+	canceledProducts := []Position{
+		{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2},
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, orderProducts),
 		mustCreateCancelationEvent(t, 1, 1, canceledProducts),
 	}
 
-	products, err := GetUndeliveredVariantsFromEvents(events)
+	products, err := GetUngeliefertePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -395,19 +395,19 @@ func TestGetUndeliveredVariantsFromEvents_WithCancelation(t *testing.T) {
 	}
 }
 
-func TestGetBalanceFromEvents_WithSnapshot(t *testing.T) {
+func TestGetSaldoFromEvents_WithSnapshot(t *testing.T) {
 	// Snapshot represents state: balance = 500 cents
 	// Then new order adds 300 cents
-	unpaid := []LineItem{{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 1}}
-	undelivered := []LineItem{{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 1}}
-	newLineItems := []LineItem{{ID: 2, Name: "Fries", PriceCents: 300, Quantity: 1}}
+	unpaid := []Position{{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 1}}
+	undelivered := []Position{{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 1}}
+	newLineItems := []Position{{ID: 2, Name: "Fries", PreisCents: 300, Quantity: 1}}
 
 	events := []e.Event{
 		mustCreateSnapshotEvent(t, 1, 1, 500, unpaid, undelivered, 0),
 		mustCreateOrderEvent(t, 1, 1, newLineItems),
 	}
 
-	balance, err := GetBalanceFromEvents(events)
+	balance, err := GetSaldoFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -416,18 +416,18 @@ func TestGetBalanceFromEvents_WithSnapshot(t *testing.T) {
 	}
 }
 
-func TestGetBalanceFromEvents_SnapshotResetsBalance(t *testing.T) {
+func TestGetSaldoFromEvents_SnapshotResetsBalance(t *testing.T) {
 	// Old events before snapshot should be ignored
-	oldProducts := []LineItem{{ID: 1, Name: "Beer", PriceCents: 1000, Quantity: 1}}
-	unpaid := []LineItem{}
-	undelivered := []LineItem{}
+	oldProducts := []Position{{ID: 1, Name: "Beer", PreisCents: 1000, Quantity: 1}}
+	unpaid := []Position{}
+	undelivered := []Position{}
 
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, oldProducts), // This should be ignored
 		mustCreateSnapshotEvent(t, 1, 1, 0, unpaid, undelivered, 1000),
 	}
 
-	balance, err := GetBalanceFromEvents(events)
+	balance, err := GetSaldoFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -436,18 +436,18 @@ func TestGetBalanceFromEvents_SnapshotResetsBalance(t *testing.T) {
 	}
 }
 
-func TestGetUnpaidVariantsFromEvents_WithSnapshot(t *testing.T) {
+func TestGetUnbezahltePositionenFromEvents_WithSnapshot(t *testing.T) {
 	// Snapshot has 2 beers unpaid
 	// Then order adds 1 fries
-	snapshotUnpaid := []LineItem{{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2}}
-	newLineItems := []LineItem{{ID: 2, Name: "Fries", PriceCents: 300, Quantity: 1}}
+	snapshotUnpaid := []Position{{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2}}
+	newLineItems := []Position{{ID: 2, Name: "Fries", PreisCents: 300, Quantity: 1}}
 
 	events := []e.Event{
-		mustCreateSnapshotEvent(t, 1, 1, 1000, snapshotUnpaid, []LineItem{}, 0),
+		mustCreateSnapshotEvent(t, 1, 1, 1000, snapshotUnpaid, []Position{}, 0),
 		mustCreateOrderEvent(t, 1, 1, newLineItems),
 	}
 
-	products, err := GetUnpaidVariantsFromEvents(events)
+	products, err := GetUnbezahltePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -473,17 +473,17 @@ func TestGetUnpaidVariantsFromEvents_WithSnapshot(t *testing.T) {
 	}
 }
 
-func TestGetUnpaidVariantsFromEvents_SnapshotResetsState(t *testing.T) {
+func TestGetUnbezahltePositionenFromEvents_SnapshotResetsState(t *testing.T) {
 	// Old order before snapshot should be ignored
-	oldProducts := []LineItem{{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 10}}
-	snapshotUnpaid := []LineItem{{ID: 2, Name: "Fries", PriceCents: 300, Quantity: 1}}
+	oldProducts := []Position{{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 10}}
+	snapshotUnpaid := []Position{{ID: 2, Name: "Fries", PreisCents: 300, Quantity: 1}}
 
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, oldProducts), // This should be ignored
-		mustCreateSnapshotEvent(t, 1, 1, 300, snapshotUnpaid, []LineItem{}, 5000),
+		mustCreateSnapshotEvent(t, 1, 1, 300, snapshotUnpaid, []Position{}, 5000),
 	}
 
-	products, err := GetUnpaidVariantsFromEvents(events)
+	products, err := GetUnbezahltePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -495,18 +495,18 @@ func TestGetUnpaidVariantsFromEvents_SnapshotResetsState(t *testing.T) {
 	}
 }
 
-func TestGetUndeliveredVariantsFromEvents_WithSnapshot(t *testing.T) {
+func TestGetUngeliefertePositionenFromEvents_WithSnapshot(t *testing.T) {
 	// Snapshot has 3 beers undelivered
 	// Then order adds 2 fries
-	snapshotUndelivered := []LineItem{{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 3}}
-	newLineItems := []LineItem{{ID: 2, Name: "Fries", PriceCents: 300, Quantity: 2}}
+	snapshotUndelivered := []Position{{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 3}}
+	newLineItems := []Position{{ID: 2, Name: "Fries", PreisCents: 300, Quantity: 2}}
 
 	events := []e.Event{
-		mustCreateSnapshotEvent(t, 1, 1, 1500, []LineItem{}, snapshotUndelivered, 0),
+		mustCreateSnapshotEvent(t, 1, 1, 1500, []Position{}, snapshotUndelivered, 0),
 		mustCreateOrderEvent(t, 1, 1, newLineItems),
 	}
 
-	products, err := GetUndeliveredVariantsFromEvents(events)
+	products, err := GetUngeliefertePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -532,17 +532,17 @@ func TestGetUndeliveredVariantsFromEvents_WithSnapshot(t *testing.T) {
 	}
 }
 
-func TestGetUndeliveredVariantsFromEvents_SnapshotResetsState(t *testing.T) {
+func TestGetUngeliefertePositionenFromEvents_SnapshotResetsState(t *testing.T) {
 	// Old order before snapshot should be ignored
-	oldProducts := []LineItem{{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 10}}
-	snapshotUndelivered := []LineItem{{ID: 2, Name: "Fries", PriceCents: 300, Quantity: 2}}
+	oldProducts := []Position{{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 10}}
+	snapshotUndelivered := []Position{{ID: 2, Name: "Fries", PreisCents: 300, Quantity: 2}}
 
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, oldProducts), // This should be ignored
-		mustCreateSnapshotEvent(t, 1, 1, 0, []LineItem{}, snapshotUndelivered, 5000),
+		mustCreateSnapshotEvent(t, 1, 1, 0, []Position{}, snapshotUndelivered, 5000),
 	}
 
-	products, err := GetUndeliveredVariantsFromEvents(events)
+	products, err := GetUngeliefertePositionenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -554,17 +554,17 @@ func TestGetUndeliveredVariantsFromEvents_SnapshotResetsState(t *testing.T) {
 	}
 }
 
-func TestGetTotalPaymentsFromEvents_WithSnapshot(t *testing.T) {
+func TestGetGesamtZahlungenFromEvents_WithSnapshot(t *testing.T) {
 	// Snapshot has totalPayments = 1000
 	// Then payment adds 500
-	paidProducts := []LineItem{{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 1}}
+	paidProducts := []Position{{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 1}}
 
 	events := []e.Event{
-		mustCreateSnapshotEvent(t, 1, 1, 500, []LineItem{}, []LineItem{}, 1000),
+		mustCreateSnapshotEvent(t, 1, 1, 500, []Position{}, []Position{}, 1000),
 		mustCreatePaymentEvent(t, 1, 1, paidProducts),
 	}
 
-	totalPayments, err := GetTotalPaymentsFromEvents(events)
+	totalPayments, err := GetGesamtZahlungenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -573,16 +573,16 @@ func TestGetTotalPaymentsFromEvents_WithSnapshot(t *testing.T) {
 	}
 }
 
-func TestGetTotalPaymentsFromEvents_SnapshotResetsState(t *testing.T) {
+func TestGetGesamtZahlungenFromEvents_SnapshotResetsState(t *testing.T) {
 	// Old payment before snapshot should be ignored
-	oldPaidProducts := []LineItem{{ID: 1, Name: "Beer", PriceCents: 1000, Quantity: 10}}
+	oldPaidProducts := []Position{{ID: 1, Name: "Beer", PreisCents: 1000, Quantity: 10}}
 
 	events := []e.Event{
 		mustCreatePaymentEvent(t, 1, 1, oldPaidProducts), // This should be ignored
-		mustCreateSnapshotEvent(t, 1, 1, 0, []LineItem{}, []LineItem{}, 5000),
+		mustCreateSnapshotEvent(t, 1, 1, 0, []Position{}, []Position{}, 5000),
 	}
 
-	totalPayments, err := GetTotalPaymentsFromEvents(events)
+	totalPayments, err := GetGesamtZahlungenFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -592,8 +592,8 @@ func TestGetTotalPaymentsFromEvents_SnapshotResetsState(t *testing.T) {
 }
 
 func TestNewSnapshotEvent(t *testing.T) {
-	unpaid := []LineItem{{ID: 1, Name: "Beer", PriceCents: 500, Quantity: 2}}
-	undelivered := []LineItem{{ID: 2, Name: "Fries", PriceCents: 300, Quantity: 1}}
+	unpaid := []Position{{ID: 1, Name: "Beer", PreisCents: 500, Quantity: 2}}
+	undelivered := []Position{{ID: 2, Name: "Fries", PreisCents: 300, Quantity: 1}}
 
 	event, err := NewSnapshotEvent(1, 42, 1000, unpaid, undelivered, 500)
 	if err != nil {
@@ -602,8 +602,8 @@ func TestNewSnapshotEvent(t *testing.T) {
 	if event.Type != string(EventTypeSnapshotV1) {
 		t.Fatalf("expected type %s, got %s", EventTypeSnapshotV1, event.Type)
 	}
-	if event.Subject != "table:42" {
-		t.Fatalf("expected subject table:42, got %s", event.Subject)
+	if event.Subject != "tisch:42" {
+		t.Fatalf("expected subject tisch:42, got %s", event.Subject)
 	}
 	if event.UserID != 1 {
 		t.Fatalf("expected userID 1, got %d", event.UserID)

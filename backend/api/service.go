@@ -12,20 +12,20 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	r := http.NewServeMux()
 
 	pq := product.NewQueryHandler(db)
-	r.HandleFunc("/get-active-products", pq.GetActiveProductsHandler())
+	r.HandleFunc("/get-aktive-produkte", pq.GetActiveProductsHandler())
 
 	tc := table.NewCommandHandler(db)
-	r.HandleFunc("/place-table-order", tc.PlaceTableOrderHandler())
-	r.HandleFunc("/register-table-payment", tc.RegisterTablePaymentHandler())
-	r.HandleFunc("/deliver-table-variants", tc.DeliverTableVariantsHandler())
+	r.HandleFunc("/bestellung-aufgeben", tc.BestellungAufgebenHandler())
+	r.HandleFunc("/zahlung-registrieren", tc.ZahlungRegistrierenHandler())
+	r.HandleFunc("/produkte-liefern", tc.ProdukteLiefernHandler())
 
 	tq := table.NewQueryHandler(db)
-	r.HandleFunc("/get-table", tq.GetTableHandler())
-	r.HandleFunc("/get-active-tables", tq.GetActiveTablesHandler())
-	r.HandleFunc("/get-table-history", tq.GetTableHistoryHandler())
-	r.HandleFunc("/get-table-balance", tq.GetTableBalanceHandler())
-	r.HandleFunc("/get-table-unpaid-variants", tq.GetTableUnpaidVariantsHandler())
-	r.HandleFunc("/get-table-undelivered-variants", tq.GetTableUndeliveredVariantsHandler())
+	r.HandleFunc("/get-tisch", tq.GetTischHandler())
+	r.HandleFunc("/get-aktive-tische", tq.GetAktiveTischeHandler())
+	r.HandleFunc("/get-tisch-historie", tq.GetTischHistorieHandler())
+	r.HandleFunc("/get-tisch-saldo", tq.GetTischSaldoHandler())
+	r.HandleFunc("/get-tisch-unbezahlt", tq.GetTischUnbezahltHandler())
+	r.HandleFunc("/get-tisch-ungeliefert", tq.GetTischUngeliefertHandler())
 
 	return r
 }
