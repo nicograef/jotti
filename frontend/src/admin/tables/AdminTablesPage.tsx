@@ -3,52 +3,52 @@ import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
 
-import { EditTableDialog } from './EditTableDialog'
-import { useAllTables } from './hooks'
-import { NewTableDialog } from './NewTableDialog'
-import type { Table, TableStatus } from './Table'
-import { TableBackend } from './TableBackend'
-import { Tables } from './Tables'
+import { EditTischDialog } from './EditTischDialog'
+import { useAllTische } from './hooks'
+import { NewTischDialog } from './NewTischDialog'
+import type { Tisch, TischStatus } from './Tisch'
+import { TischBackend } from './TischBackend'
+import { Tische } from './Tische'
 
 const initialEditState = {
-  table: null as Table | null,
+  tisch: null as Tisch | null,
   open: false,
 }
 
-const tableBackend = new TableBackend(BackendSingleton)
+const tischBackend = new TischBackend(BackendSingleton)
 
 export function AdminTablesPage() {
-  const { loading, tables, setTables } = useAllTables()
+  const { loading, tische, setTische } = useAllTische()
   const [editState, setEditState] = useState(initialEditState)
 
-  const updateTable = (table: Table) => {
-    setTables((prevTables) =>
-      prevTables.map((t) => (t.id === table.id ? table : t)),
+  const updateTisch = (tisch: Tisch) => {
+    setTische((prevTische) =>
+      prevTische.map((t) => (t.id === tisch.id ? tisch : t)),
     )
   }
 
-  const onStatusChange = (tableId: number, status: TableStatus) => {
-    setTables((prevTables) =>
-      prevTables.map((t) => (t.id === tableId ? { ...t, status } : t)),
+  const onStatusChange = (tischId: number, status: TischStatus) => {
+    setTische((prevTische) =>
+      prevTische.map((t) => (t.id === tischId ? { ...t, status } : t)),
     )
   }
 
   return (
     <>
-      <NewTableDialog
-        backend={tableBackend}
-        created={(table) => {
-          setTables((prevTables) => [...prevTables, table])
-          toast.success(`Tisch "${table.name}" wurde angelegt.`)
+      <NewTischDialog
+        backend={tischBackend}
+        created={(tisch) => {
+          setTische((prevTische) => [...prevTische, tisch])
+          toast.success(`Tisch "${tisch.name}" wurde angelegt.`)
         }}
       />
-      {editState.table && (
-        <EditTableDialog
-          backend={tableBackend}
+      {editState.tisch && (
+        <EditTischDialog
+          backend={tischBackend}
           open={editState.open}
-          table={editState.table}
-          updated={(table) => {
-            updateTable(table)
+          tisch={editState.tisch}
+          updated={(tisch) => {
+            updateTisch(tisch)
           }}
           close={() => {
             setEditState(initialEditState)
@@ -56,13 +56,13 @@ export function AdminTablesPage() {
         />
       )}
       <h1 className="text-2xl font-bold">Tische verwalten</h1>
-      <Tables
+      <Tische
         loading={loading}
-        backend={tableBackend}
-        tables={tables}
-        onEdit={(tableId) => {
-          const tableToEdit = tables.find((t) => t.id === tableId) ?? null
-          setEditState({ table: tableToEdit, open: true })
+        backend={tischBackend}
+        tische={tische}
+        onEdit={(tischId) => {
+          const tischToEdit = tische.find((t) => t.id === tischId) ?? null
+          setEditState({ tisch: tischToEdit, open: true })
         }}
         onStatusChange={onStatusChange}
       />

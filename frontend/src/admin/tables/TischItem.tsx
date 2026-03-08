@@ -13,18 +13,18 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
-import { type Table, TableStatus } from './Table'
+import { type Tisch, TischStatus } from './Tisch'
 
-interface TableItemProps {
+interface TischItemProps {
   loading: boolean
-  table: Table
-  onEdit: (tableId: number) => void
-  onActivate: (tableId: number) => Promise<void>
-  onDeactivate: (tableId: number) => Promise<void>
+  tisch: Tisch
+  onEdit: (tischId: number) => void
+  onActivate: (tischId: number) => Promise<void>
+  onDeactivate: (tischId: number) => Promise<void>
 }
 
-export function TableItem(props: TableItemProps) {
-  const isActive = props.table.status === TableStatus.ACTIVE
+export function TischItem(props: TischItemProps) {
+  const isActive = props.tisch.status === TischStatus.ACTIVE
 
   return (
     <Item variant="outline">
@@ -38,9 +38,9 @@ export function TableItem(props: TableItemProps) {
                 checked={isActive}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    void props.onActivate(props.table.id)
+                    void props.onActivate(props.tisch.id)
                   } else {
-                    void props.onDeactivate(props.table.id)
+                    void props.onDeactivate(props.tisch.id)
                   }
                 }}
               />
@@ -52,9 +52,9 @@ export function TableItem(props: TableItemProps) {
         </Tooltip>
       </ItemMedia>
       <ItemContent>
-        <ItemTitle>{props.table.name}</ItemTitle>
+        <ItemTitle>{props.tisch.name}</ItemTitle>
         <ItemDescription>
-          Erstellt am {new Date(props.table.createdAt).toLocaleDateString()}
+          Erstellt am {new Date(props.tisch.createdAt).toLocaleDateString()}
         </ItemDescription>
       </ItemContent>
       <ItemActions>
@@ -66,7 +66,7 @@ export function TableItem(props: TableItemProps) {
               className="rounded-full cursor-pointer"
               aria-label="Edit Table"
               onClick={() => {
-                props.onEdit(props.table.id)
+                props.onEdit(props.tisch.id)
               }}
             >
               <Pencil />

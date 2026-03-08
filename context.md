@@ -676,6 +676,6 @@ Tracking analog zu `tasks.md`:
 - [x] Task 6: Backend Routen & Product API
 - [x] Task 7: Frontend Service Types, Backend-Client & Hooks
 - [x] Task 8: Frontend Service-Komponenten
-- [ ] Task 9: Frontend Admin-Bereich
+- [x] Task 9: Frontend Admin-Bereich
 - [ ] Task 10: Build verifizieren & Tests ausführen
 - [ ] Task 11: Dokumentation aktualisieren

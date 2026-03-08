@@ -1,8 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { DialogDescription } from '@radix-ui/react-dialog'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { NameField } from '@/components/common/FormFields'
@@ -11,68 +10,79 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
+import { BackendError } from '@/lib/Backend'
 
-import type { Table } from './Table'
-import { TableBackend, UpdateTableSchema } from './TableBackend'
+import type { Tisch } from './Tisch'
+import { CreateTischSchema, TischBackend } from './TischBackend'
 
-const FormDataSchema = UpdateTableSchema.omit({ id: true })
+const FormDataSchema = CreateTischSchema
 type FormData = z.infer<typeof FormDataSchema>
 
-interface EditTableDialogProps {
-  backend: Pick<TableBackend, 'updateTable'>
-  open: boolean
-  table: Table
-  updated: (table: Table) => void
-  close: () => void
+interface NewTischDialogProps {
+  backend: Pick<TischBackend, 'createTisch'>
+  created: (tisch: Tisch) => void
 }
 
-export function EditTableDialog(props: EditTableDialogProps) {
+export function NewTischDialog(props: NewTischDialogProps) {
+  const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
-    defaultValues: props.table,
+    defaultValues: { name: '' },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
-
-  const onOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      form.reset()
-      props.close()
-    }
-  }
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
 
     try {
-      await props.backend.updateTable({
-        id: props.table.id,
-        ...data,
-      })
+      const id = await props.backend.createTisch(data)
       form.reset()
-      props.updated({ ...props.table, ...data })
-      props.close()
+      setOpen(false)
+      props.created({
+        id,
+        ...data,
+        status: 'inactive',
+        createdAt: new Date().toISOString(),
+      })
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Aktion fehlgeschlagen')
+
+      if (error instanceof BackendError) {
+        if (error.code === 'tisch_already_exists') {
+          form.setError('name', {
+            type: 'custom',
+            message: 'Dieser Name ist bereits vergeben.',
+          })
+        }
+      }
     }
 
     setLoading(false)
   }
 
   return (
-    <Dialog open={props.open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <div className="fixed bottom-16 right-16 z-50">
+          <Button className="cursor-pointer hover:shadow-sm">
+            <Plus /> Neuer Tisch
+          </Button>
+        </div>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="mb-4">
-          <DialogTitle>{props.table.name}</DialogTitle>
+          <DialogTitle>Neuen Tisch anlegen</DialogTitle>
           <DialogDescription>
-            Du kannst Namen und Status des Tisches ändern.
+            Den Namen kannst du später jederzeit ändern.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -84,9 +94,10 @@ export function EditTableDialog(props: EditTableDialogProps) {
           }}
         >
           <FieldGroup>
-            <NameField form={form} withLabel />
+            <NameField form={form} withLabel placeholder="z.B. Tisch 34" />
           </FieldGroup>
         </form>
+
         <DialogFooter className="mt-4">
           <DialogClose asChild>
             <Button
@@ -104,7 +115,7 @@ export function EditTableDialog(props: EditTableDialogProps) {
             form="table-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Speichern
+            {loading ? <Spinner /> : <></>} Tisch anlegen
           </Button>
         </DialogFooter>
       </DialogContent>

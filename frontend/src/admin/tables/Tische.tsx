@@ -4,44 +4,44 @@ import { useState } from 'react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
 
-import { type Table, TableStatus } from './Table'
-import type { TableBackend } from './TableBackend'
-import { TableItem } from './TableItem'
+import { type Tisch, TischStatus } from './Tisch'
+import type { TischBackend } from './TischBackend'
+import { TischItem } from './TischItem'
 
-interface TablesProps {
+interface TischeProps {
   loading: boolean
-  backend: Pick<TableBackend, 'activateTable' | 'deactivateTable'>
-  tables: Table[]
-  onEdit: (tableId: number) => void
-  onStatusChange: (tableId: number, status: TableStatus) => void
+  backend: Pick<TischBackend, 'activateTisch' | 'deactivateTisch'>
+  tische: Tisch[]
+  onEdit: (tischId: number) => void
+  onStatusChange: (tischId: number, status: TischStatus) => void
 }
 
-export function Tables(props: TablesProps) {
+export function Tische(props: TischeProps) {
   const [loading, setLoading] = useState(props.loading)
 
-  const activateTable = async (tableId: number) => {
+  const activateTisch = async (tischId: number) => {
     setLoading(true)
     try {
-      await props.backend.activateTable(tableId)
-      props.onStatusChange(tableId, TableStatus.ACTIVE)
+      await props.backend.activateTisch(tischId)
+      props.onStatusChange(tischId, TischStatus.ACTIVE)
     } catch (error) {
       console.error('Error activating table:', error)
     }
     setLoading(false)
   }
 
-  const deactivateTable = async (tableId: number) => {
+  const deactivateTisch = async (tischId: number) => {
     setLoading(true)
     try {
-      await props.backend.deactivateTable(tableId)
-      props.onStatusChange(tableId, TableStatus.INACTIVE)
+      await props.backend.deactivateTisch(tischId)
+      props.onStatusChange(tischId, TischStatus.INACTIVE)
     } catch (error) {
       console.error('Error deactivating table:', error)
     }
     setLoading(false)
   }
 
-  if (props.tables.length === 0 && !props.loading) {
+  if (props.tische.length === 0 && !props.loading) {
     return (
       <EmptyState
         icon={LayoutGrid}
@@ -54,13 +54,13 @@ export function Tables(props: TablesProps) {
   return (
     <>
       <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-        {props.tables.map((table) => (
-          <TableItem
-            key={table.id}
+        {props.tische.map((tisch) => (
+          <TischItem
+            key={tisch.id}
             loading={loading || props.loading}
-            table={table}
-            onActivate={activateTable}
-            onDeactivate={deactivateTable}
+            tisch={tisch}
+            onActivate={activateTisch}
+            onDeactivate={deactivateTisch}
             onEdit={props.onEdit}
           />
         ))}

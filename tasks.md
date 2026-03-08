@@ -208,7 +208,9 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte englische Feldnamen (`
 
 ---
 
-## Task 9: Frontend Admin-Bereich
+## Task 9: Frontend Admin-Bereich ✅
+
+**Status:** Abgeschlossen
 
 **Scope:** `frontend/src/admin/tables/`, `frontend/src/admin/products/`
 
