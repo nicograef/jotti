@@ -231,7 +231,9 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte englische Feldnamen (`
 
 ---
 
-## Task 10: Build verifizieren & Tests ausführen
+## Task 10: Build verifizieren & Tests ausführen ✅
+
+**Status:** Abgeschlossen
 
 **Scope:** Gesamtprojekt
 
