@@ -1,12 +1,13 @@
-# Go Backend Architektur — Theorie und Anwendung in jotti
+# Go Backend Architektur — Theorie
 
-Dieses Dokument beschreibt die Architekturprinzipien des Go-Backends: Schichtenarchitektur, Dependency Injection, Fehlerbehandlung, Middleware und die spezifischen Patterns, die jotti für ein typsicheres, wartbares Backend einsetzt.
+Dieses Dokument beschreibt allgemeine Architekturprinzipien für Go-Backends: Schichtenarchitektur, Dependency Injection, Fehlerbehandlung, Middleware und Patterns für ein typsicheres, wartbares Backend. Projektspezifische Anwendungsbeispiele finden sich im [Appendix](#13-appendix-anwendungsbeispiel-jotti).
 
 > **Verwandte Dokumente:**
 >
 > - [DDD Theorie](ddd.md) — Domain-Driven Design Grundlagen
-> - [Event-Sourcing & CQRS](event-sourcing-cqrs.md) — Event-Sourcing und CQRS Theorie
-> - [PostgreSQL & sqlc](postgresql-sqlc.md) — Datenbankzugriff
+> - [Event-Sourcing Theorie](event-sourcing.md) — Event-Sourcing Grundlagen
+> - [CQRS Theorie](cqrs.md) — Command Query Responsibility Segregation
+> - [PostgreSQL](postgresql.md) — Datenbankzugriff
 > - [Entwicklung & Deployment](../development.md) — Setup, Tests, CI/CD
 > - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
 
@@ -26,7 +27,8 @@ Dieses Dokument beschreibt die Architekturprinzipien des Go-Backends: Schichtena
 10. [Authentifizierung und Autorisierung](#10-authentifizierung-und-autorisierung)
 11. [Testing-Strategie](#11-testing-strategie)
 12. [Go-spezifische Best Practices](#12-go-spezifische-best-practices)
-13. [Referenzen](#13-referenzen)
+13. [Appendix: Anwendungsbeispiel (jotti)](#13-appendix-anwendungsbeispiel-jotti)
+14. [Referenzen](#14-referenzen)
 
 ---
 
@@ -34,7 +36,7 @@ Dieses Dokument beschreibt die Architekturprinzipien des Go-Backends: Schichtena
 
 ### Minimalismus
 
-Go's Standardbibliothek (`net/http`, `encoding/json`, `context`) deckt den Großteil der Web-Infrastruktur ab. jotti vermeidet schwere Frameworks zugunsten von:
+Go's Standardbibliothek (`net/http`, `encoding/json`, `context`) deckt den Großteil der Web-Infrastruktur ab. Kleine bis mittelgroße Go-Webanwendungen kommen oft ohne schwere Frameworks aus und setzen stattdessen auf:
 
 - `net/http` — HTTP-Server und Routing
 - `pgx/v5` — PostgreSQL-Driver (direkt, kein ORM)
@@ -43,7 +45,7 @@ Go's Standardbibliothek (`net/http`, `encoding/json`, `context`) deckt den Groß
 - `zog` — Struct-Validierung
 - `golang-jwt/v5` — JWT-Handling
 
-**Kein Gin, Echo, Fiber, Chi.** Der Go-stdlib-Router (`http.ServeMux`) reicht aus — jottis API hat ~30 Endpunkte, alle POST.
+**Kein Gin, Echo, Fiber, Chi.** Der Go-stdlib-Router (`http.ServeMux`) reicht für APIs mit einigen Dutzend Endpunkten oft aus.
 
 ### Explizitheit über Magie
 
@@ -54,14 +56,9 @@ Go bevorzugt expliziten Code gegenüber Reflection-basierter Magie:
 - **Kein Struct-Tag-basiertes Routing** — Handler werden explizit registriert
 - **Kein globaler State** — Dependencies werden als Argumente durchgereicht
 
-### POST-only API
+### API-Design
 
-Alle API-Endpunkte verwenden HTTP POST. Keine GET/PUT/DELETE. Vorteile:
-
-- **Einheitliches Request-Format:** Immer JSON Body
-- **Keine URL-Parameter:** Keine Injection über URL-Encoding
-- **Cache-Busting:** POST-Responses werden nicht gecacht (kein Browser-Cache-Problem)
-- **Einfache Middleware:** Nur ein HTTP-Methoden-Check
+RESTful und RPC-ähnliche Designs sind beides gängige Optionen. Eine Variante ist eine **POST-only API**, bei der alle Endpunkte ausschließlich HTTP POST verwenden (siehe [Appendix](#post-only-api) für ein konkretes Beispiel). Wichtig ist ein konsistentes Request/Response-Format über alle Endpunkte.
 
 ---
 
@@ -106,52 +103,6 @@ Alle API-Endpunkte verwenden HTTP POST. Keine GET/PUT/DELETE. Vorteile:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Verzeichnisstruktur → Schichten
-
-```
-backend/
-├── main.go                          # Einstiegspunkt: Server starten
-├── app/app.go                       # Dependency Wiring (alle Handler/Services)
-├── config/config.go                 # Konfiguration aus Umgebungsvariablen
-├── db/db.go                         # DB-Verbindung und Connection Pool
-│
-├── domain/                          # Domain-Schicht (keine DB-Abhängigkeit)
-│   ├── event/event.go               # Event-Modell (CloudEvents-inspiriert)
-│   ├── table/                       # Tisch-Aggregat
-│   │   ├── tisch.go                 # Entity + Validierung
-│   │   ├── events.go                # Zustandsrekonstruktion (Domain Services)
-│   │   ├── bestellung.go            # Value Objects
-│   │   ├── zahlung.go
-│   │   ├── stornierung.go
-│   │   ├── lieferung.go
-│   │   └── *Event.go                # Event-Structs + Konstruktoren
-│   ├── product/product.go           # Entity + Varianten
-│   └── user/user.go                 # Entity + Password-Hashing
-│
-├── repository/                      # Repository-Schicht (sqlc-Wrapper)
-│   ├── event_repo/repo.go           # Append-only Event Store
-│   ├── table_repo/repo.go           # Tisch-CRUD
-│   ├── product_repo/repo.go         # Produkt+Varianten-CRUD
-│   └── user_repo/repo.go            # Benutzer-CRUD
-│
-├── api/                             # HTTP + Application Schicht
-│   ├── service.go                   # Service-Routen registrieren
-│   ├── admin.go                     # Admin-Routen registrieren
-│   ├── auth.go                      # Auth-Routen registrieren
-│   ├── senior_service.go            # Senior-Service-Routen
-│   ├── middleware/middleware.go      # JWT, Rate-Limit, Logging, etc.
-│   ├── helper/http.go               # JSON-Parsing, Response-Helper
-│   └── <domain>/
-│       ├── http/command.go           # HTTP Handler (Commands)
-│       ├── http/query.go            # HTTP Handler (Queries)
-│       ├── application/command.go   # Command Service
-│       └── application/query.go     # Query Service
-│
-└── sqlc/
-    ├── queries/*.sql                # SQL-Queries (Eingabe für sqlc)
-    └── dbgen/                       # Generierter Code (NICHT EDITIEREN)
-```
-
 ### Abhängigkeitsregel
 
 Abhängigkeiten zeigen **von außen nach innen**:
@@ -167,6 +118,8 @@ HTTP → Application → Domain ← Repository
 - **Application** importiert Domain und Repository
 - **HTTP** importiert Application und Helper
 
+Eine projektspezifische Verzeichnisstruktur, die diese Schichten abbildet, findet sich im [Appendix](#verzeichnisstruktur).
+
 ---
 
 ## 3. Dependency Injection und Wiring
@@ -178,15 +131,15 @@ Go verwendet keine DI-Frameworks. Dependencies werden über Konstruktoren injizi
 ```go
 // Repository erstellen
 eventRepo := event_repo.NewRepository(dbPool)
-tableRepo := table_repo.NewRepository(dbPool)
+orderRepo := order_repo.NewRepository(dbPool)
 
 // Service erstellen (mit Repository-Dependency)
-commandService := table_application.NewCommandService(eventRepo, tableRepo)
-queryService := table_application.NewQueryService(eventRepo, tableRepo)
+commandService := order_application.NewCommandService(eventRepo, orderRepo)
+queryService := order_application.NewQueryService(eventRepo, orderRepo)
 
 // Handler erstellen (mit Service-Dependency)
-commandHandler := table_http.NewCommandHandler(commandService)
-queryHandler := table_http.NewQueryHandler(queryService)
+commandHandler := order_http.NewCommandHandler(commandService)
+queryHandler := order_http.NewQueryHandler(queryService)
 ```
 
 ### App-Struct (Composition Root)
@@ -229,16 +182,15 @@ func New(cfg *config.Config) (*App, error) {
 Alle Routen werden in dedizierten Dateien registriert:
 
 ```go
-// api/service.go — Service-Routen
-func RegisterServiceRoutes(mux *http.ServeMux, ...) {
-    mux.Handle("/service/bestellung-aufgeben",
-        middleware.Chain(commandHandler.BestellungAufgeben,
-            middleware.JWT(jwtSecret, "admin", "senior_service", "service"),
+func RegisterRoutes(mux *http.ServeMux, ...) {
+    mux.Handle("/api/orders/create",
+        middleware.Chain(commandHandler.CreateOrder,
+            middleware.JWT(jwtSecret, "admin", "manager", "staff"),
         ))
 }
 ```
 
-**Konvention:** Route = `/bereich/aktion-als-verb` (z.B. `/service/bestellung-aufgeben`, `/admin/create-user`)
+**Konvention:** Route = `/bereich/aktion` (z.B. `/api/orders/create`, `/admin/create-user`)
 
 ### Middleware-Stack
 
@@ -261,9 +213,9 @@ Request → PostMethodOnly → RateLimit → CorrelationID → Logging → JWT �
 Jeder Handler folgt einem einheitlichen Muster:
 
 ```go
-func (h *Handler) BestellungAufgeben(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
     // 1. Request parsen (JSON → Struct)
-    var req BestellungAufgebenRequest
+    var req CreateOrderRequest
     if err := helper.ParseJSON(r, &req); err != nil {
         helper.WriteError(w, http.StatusBadRequest, "invalid_json")
         return
@@ -273,7 +225,7 @@ func (h *Handler) BestellungAufgeben(w http.ResponseWriter, r *http.Request) {
     userID, _ := r.Context().Value(middleware.UserIDKey).(int)
 
     // 3. Application Service aufrufen
-    err := h.service.BestellungAufgeben(r.Context(), userID, req.TischID, ...)
+    err := h.service.CreateOrder(r.Context(), userID, req.OrderID, ...)
     if err != nil {
         helper.HandleDomainError(w, err)
         return
@@ -296,7 +248,7 @@ func (h *Handler) BestellungAufgeben(w http.ResponseWriter, r *http.Request) {
 {"data": {...}}
 
 // Fehler
-{"code": "tisch_not_found"}
+{"code": "order_not_found"}
 {"code": "validation_error", "details": {...}}
 ```
 
@@ -311,18 +263,18 @@ Verantwortlich für **schreibende Operationen**. Orchestriert Domain-Logik und R
 ```go
 type CommandService struct {
     eventRepo EventRepository
-    tableRepo TableRepository
+    orderRepo OrderRepository
 }
 
-func (s *CommandService) BestellungAufgeben(ctx, userID, tischID, positionen, comment) error {
-    // 1. Tisch laden (existiert? aktiv?)
-    tisch, err := s.tableRepo.Get(ctx, tischID)
+func (s *CommandService) CreateOrder(ctx, userID, orderID, items, comment) error {
+    // 1. Order laden (existiert? aktiv?)
+    order, err := s.orderRepo.Get(ctx, orderID)
     // 2. Event erstellen (Domain-Logik)
-    event := table.NewBestellungAufgegebenEvent(userID, tischID, positionen, comment)
+    event := order.NewOrderCreatedEvent(userID, orderID, items, comment)
     // 3. Event persistieren
     _, err = s.eventRepo.WriteEvent(ctx, event)
     // 4. Snapshot aktualisieren
-    return s.TischSnapshotErstellen(ctx, userID, tischID)
+    return s.UpdateOrderSnapshot(ctx, userID, orderID)
 }
 ```
 
@@ -333,14 +285,14 @@ Verantwortlich für **lesende Operationen**. Liest Events und rekonstruiert Zust
 ```go
 type QueryService struct {
     eventRepo EventRepository
-    tableRepo TableRepository
+    orderRepo OrderRepository
 }
 
-func (s *QueryService) GetTischSaldo(ctx, tischID) (int, error) {
+func (s *QueryService) GetOrderBalance(ctx, orderID) (int, error) {
     // 1. Events ab letztem Snapshot laden
     events, err := s.eventRepo.ReadEventsWithSnapshot(ctx, subject, snapshotType)
     // 2. Zustand in Domain-Schicht rekonstruieren
-    return table.GetSaldoFromEvents(events), nil
+    return order.GetBalanceFromEvents(events), nil
 }
 ```
 
@@ -351,8 +303,8 @@ Services werden über Factory-Funktionen erstellt, die alle Dependencies injizie
 ```go
 func NewCommandHandler(db *pgxpool.Pool) *CommandHandler {
     eventRepo := event_repo.NewRepository(db)
-    tableRepo := table_repo.NewRepository(db)
-    service := NewCommandService(eventRepo, tableRepo)
+    orderRepo := order_repo.NewRepository(db)
+    service := NewCommandService(eventRepo, orderRepo)
     return &CommandHandler{service: service}
 }
 ```
@@ -371,13 +323,13 @@ func NewCommandHandler(db *pgxpool.Pool) *CommandHandler {
 ### Entities mit zog-Validierung
 
 ```go
-type Tisch struct {
+type Order struct {
     ID     int    `json:"id"`
     Name   string `json:"name"`
     Status string `json:"status"`
 }
 
-var tischSchema = zog.Struct(zog.Shape{
+var orderSchema = zog.Struct(zog.Shape{
     "name":   zog.String().Min(1).Max(100),
     "status": zog.String().OneOf("active", "inactive", "deleted"),
 })
@@ -388,15 +340,14 @@ var tischSchema = zog.Struct(zog.Shape{
 Zustandsrekonstruktion als zustandslose Funktionen:
 
 ```go
-// domain/table/events.go
-func GetSaldoFromEvents(events []event.Event) int { ... }
-func GetUnbezahltePositionenFromEvents(events []event.Event) []Position { ... }
-func GetUngeliefertePositionenFromEvents(events []event.Event) []Position { ... }
+// domain/order/events.go
+func GetBalanceFromEvents(events []event.Event) int { ... }
+func GetUnpaidItemsFromEvents(events []event.Event) []Item { ... }
+func GetUndeliveredItemsFromEvents(events []event.Event) []Item { ... }
 func GetHistoryFromEvents(events []event.Event) []any { ... }
 ```
 
 **Vorteile reiner Funktionen:**
-
 - Deterministisch (gleiche Eingabe → gleiches Ergebnis)
 - Keine Seiteneffekte
 - Einfach zu testen
@@ -488,7 +439,7 @@ Application Service
      ↓ return err
 HTTP Handler
      ↓ HandleDomainError()
-HTTP Response: {"code": "tisch_not_found"}
+HTTP Response: {"code": "order_not_found"}
 ```
 
 ### Fehler-Typen
@@ -526,14 +477,14 @@ Client (Zod) → HTTP (JSON Parsing) → Domain (zog Schema) → Database (Const
 ### zog im Backend
 
 ```go
-var bestellungSchema = zog.Struct(zog.Shape{
-    "tischId":    zog.Int().Min(1),
-    "positionen": zog.Slice(positionSchema).Min(1),
-    "comment":    zog.String().Max(500).Optional(),
+var orderSchema = zog.Struct(zog.Shape{
+    "orderId": zog.Int().Min(1),
+    "items":   zog.Slice(itemSchema).Min(1),
+    "comment": zog.String().Max(500).Optional(),
 })
 
 // Nutzung
-errs := bestellungSchema.Parse(data, &result)
+errs := orderSchema.Parse(data, &result)
 if errs != nil {
     return ValidationError(errs)
 }
@@ -572,13 +523,13 @@ Login → JWT (HS256, 12h) → Bearer Token im Header → Middleware validiert �
 Middleware prüft erlaubte Rollen pro Route:
 
 ```go
-// Nur Admin darf Stammdaten verwalten
+// Nur bestimmte Rolle
 middleware.JWT(secret, "admin")
 
-// Admin + Senior Service + Service für Kassenbetrieb
+// Mehrere Rollen erlaubt
 middleware.JWT(secret, "admin", "senior_service", "service")
 
-// Admin + Senior Service für Stornierung
+// Eingeschränkter Zugriff
 middleware.JWT(secret, "admin", "senior_service")
 ```
 
@@ -678,7 +629,188 @@ pool.Close()
 
 ---
 
-## 13. Referenzen
+## 13. Appendix: Anwendungsbeispiel (jotti)
+
+Die folgenden Abschnitte zeigen, wie die oben beschriebenen Prinzipien konkret im jotti-Projekt (Gastronomie-Kassensystem) angewendet werden.
+
+### Verzeichnisstruktur
+
+```
+backend/
+├── main.go                          # Einstiegspunkt: Server starten
+├── app/app.go                       # Dependency Wiring (alle Handler/Services)
+├── config/config.go                 # Konfiguration aus Umgebungsvariablen
+├── db/db.go                         # DB-Verbindung und Connection Pool
+│
+├── domain/                          # Domain-Schicht (keine DB-Abhängigkeit)
+│   ├── event/event.go               # Event-Modell (CloudEvents-inspiriert)
+│   ├── table/                       # Tisch-Aggregat
+│   │   ├── tisch.go                 # Entity + Validierung
+│   │   ├── events.go                # Zustandsrekonstruktion (Domain Services)
+│   │   ├── bestellung.go            # Value Objects
+│   │   ├── zahlung.go
+│   │   ├── stornierung.go
+│   │   ├── lieferung.go
+│   │   └── *Event.go                # Event-Structs + Konstruktoren
+│   ├── product/product.go           # Entity + Varianten
+│   └── user/user.go                 # Entity + Password-Hashing
+│
+├── repository/                      # Repository-Schicht (sqlc-Wrapper)
+│   ├── event_repo/repo.go           # Append-only Event Store
+│   ├── table_repo/repo.go           # Tisch-CRUD
+│   ├── product_repo/repo.go         # Produkt+Varianten-CRUD
+│   └── user_repo/repo.go            # Benutzer-CRUD
+│
+├── api/                             # HTTP + Application Schicht
+│   ├── service.go                   # Service-Routen registrieren
+│   ├── admin.go                     # Admin-Routen registrieren
+│   ├── auth.go                      # Auth-Routen registrieren
+│   ├── senior_service.go            # Senior-Service-Routen
+│   ├── middleware/middleware.go      # JWT, Rate-Limit, Logging, etc.
+│   ├── helper/http.go               # JSON-Parsing, Response-Helper
+│   └── <domain>/
+│       ├── http/command.go           # HTTP Handler (Commands)
+│       ├── http/query.go            # HTTP Handler (Queries)
+│       ├── application/command.go   # Command Service
+│       └── application/query.go     # Query Service
+│
+└── sqlc/
+    ├── queries/*.sql                # SQL-Queries (Eingabe für sqlc)
+    └── dbgen/                       # Generierter Code (NICHT EDITIEREN)
+```
+
+### POST-only API
+
+Alle API-Endpunkte in jotti verwenden HTTP POST. Keine GET/PUT/DELETE. Vorteile:
+
+- **Einheitliches Request-Format:** Immer JSON Body
+- **Keine URL-Parameter:** Keine Injection über URL-Encoding
+- **Cache-Busting:** POST-Responses werden nicht gecacht (kein Browser-Cache-Problem)
+- **Einfache Middleware:** Nur ein HTTP-Methoden-Check
+
+### Service-Routen
+
+```go
+// api/service.go — Service-Routen
+func RegisterServiceRoutes(mux *http.ServeMux, ...) {
+    mux.Handle("/service/bestellung-aufgeben",
+        middleware.Chain(commandHandler.BestellungAufgeben,
+            middleware.JWT(jwtSecret, "admin", "senior_service", "service"),
+        ))
+}
+```
+
+### Handler-Pattern (BestellungAufgeben)
+
+```go
+func (h *Handler) BestellungAufgeben(w http.ResponseWriter, r *http.Request) {
+    // 1. Request parsen (JSON → Struct)
+    var req BestellungAufgebenRequest
+    if err := helper.ParseJSON(r, &req); err != nil {
+        helper.WriteError(w, http.StatusBadRequest, "invalid_json")
+        return
+    }
+
+    // 2. UserID aus JWT-Context extrahieren
+    userID, _ := r.Context().Value(middleware.UserIDKey).(int)
+
+    // 3. Application Service aufrufen
+    err := h.service.BestellungAufgeben(r.Context(), userID, req.TischID, ...)
+    if err != nil {
+        helper.HandleDomainError(w, err)
+        return
+    }
+
+    // 4. Erfolgsresponse
+    helper.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+```
+
+### Command Service
+
+```go
+type CommandService struct {
+    eventRepo EventRepository
+    tableRepo TableRepository
+}
+
+func (s *CommandService) BestellungAufgeben(ctx, userID, tischID, positionen, comment) error {
+    // 1. Tisch laden (existiert? aktiv?)
+    tisch, err := s.tableRepo.Get(ctx, tischID)
+    // 2. Event erstellen (Domain-Logik)
+    event := table.NewBestellungAufgegebenEvent(userID, tischID, positionen, comment)
+    // 3. Event persistieren
+    _, err = s.eventRepo.WriteEvent(ctx, event)
+    // 4. Snapshot aktualisieren
+    return s.TischSnapshotErstellen(ctx, userID, tischID)
+}
+```
+
+### Query Service
+
+```go
+type QueryService struct {
+    eventRepo EventRepository
+    tableRepo TableRepository
+}
+
+func (s *QueryService) GetTischSaldo(ctx, tischID) (int, error) {
+    // 1. Events ab letztem Snapshot laden
+    events, err := s.eventRepo.ReadEventsWithSnapshot(ctx, subject, snapshotType)
+    // 2. Zustand in Domain-Schicht rekonstruieren
+    return table.GetSaldoFromEvents(events), nil
+}
+```
+
+### Factory-Pattern
+
+```go
+func NewCommandHandler(db *pgxpool.Pool) *CommandHandler {
+    eventRepo := event_repo.NewRepository(db)
+    tableRepo := table_repo.NewRepository(db)
+    service := NewCommandService(eventRepo, tableRepo)
+    return &CommandHandler{service: service}
+}
+```
+
+### Domain-Modell (Tisch)
+
+```go
+type Tisch struct {
+    ID     int    `json:"id"`
+    Name   string `json:"name"`
+    Status string `json:"status"`
+}
+
+var tischSchema = zog.Struct(zog.Shape{
+    "name":   zog.String().Min(1).Max(100),
+    "status": zog.String().OneOf("active", "inactive", "deleted"),
+})
+```
+
+### Domain Services (Zustandsrekonstruktion)
+
+```go
+// domain/table/events.go
+func GetSaldoFromEvents(events []event.Event) int { ... }
+func GetUnbezahltePositionenFromEvents(events []event.Event) []Position { ... }
+func GetUngeliefertePositionenFromEvents(events []event.Event) []Position { ... }
+func GetHistoryFromEvents(events []event.Event) []any { ... }
+```
+
+### Validierungs-Schema (Bestellung)
+
+```go
+var bestellungSchema = zog.Struct(zog.Shape{
+    "tischId":    zog.Int().Min(1),
+    "positionen": zog.Slice(positionSchema).Min(1),
+    "comment":    zog.String().Max(500).Optional(),
+})
+```
+
+---
+
+## 14. Referenzen
 
 ### Go-Architektur
 
@@ -696,8 +828,3 @@ pool.Close()
 - [sqlc Dokumentation](https://docs.sqlc.dev/) — SQL → Go Code-Generator
 - [zerolog](https://pkg.go.dev/github.com/rs/zerolog) — Structured Logging
 - [golang-jwt/v5](https://pkg.go.dev/github.com/golang-jwt/jwt/v5) — JWT-Handling
-
-### Projekt-intern
-
-- [Entwicklung & Deployment](../development.md) — Konkrete Setup-Anweisungen
-- [ADR: sqlc](../adr/orm.md) — Warum sqlc statt GORM/sqlx

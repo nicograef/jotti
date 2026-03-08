@@ -17,11 +17,17 @@ Strategisches und taktisches Design: Bounded Contexts, Aggregates, Entities, Val
 
 **Lesenswert wenn:** Neue Domain-Konzepte modelliert werden, Aggregate-Grenzen unklar sind, die Ubiquitous Language erweitert wird.
 
-### [Event-Sourcing & CQRS](event-sourcing-cqrs.md)
+### [Event-Sourcing](event-sourcing.md)
 
-Theorie beider Muster, ihre Kombination, Ausbaustufen (Stufe 0–3), Projektionsstrategien (synchron/asynchron/hybrid), Entscheidungsmatrix Event-Sourcing vs. CRUD. Beschreibt den Ist-Zustand in jotti und den empfohlenen Ausbauplan.
+Event-Sourcing-Theorie: Grundkonzepte (Event Store, Replay, Snapshots), Entscheidungsmatrix Event-Sourcing vs. CRUD, Patterns und Anti-Patterns. Im Appendix: Anwendungsbeispiel jotti.
 
-**Lesenswert wenn:** Event-Typen hinzugefügt werden, CQRS erweitert wird (Projektionen), die Balance zwischen Event-Sourcing und CRUD hinterfragt wird.
+**Lesenswert wenn:** Event-Typen hinzugefügt werden, die Balance zwischen Event-Sourcing und CRUD hinterfragt wird.
+
+### [CQRS](cqrs.md)
+
+CQRS-Theorie: Command/Query Separation auf System-Ebene, Ausbaustufen (Stufe 0–3), Projektionsstrategien (synchron/asynchron/hybrid), Kombination mit Event-Sourcing. Im Appendix: Anwendungsbeispiel jotti.
+
+**Lesenswert wenn:** CQRS erweitert wird (Projektionen), Read Models optimiert werden.
 
 ### [Go Backend Architektur](go-backend.md)
 
@@ -29,7 +35,7 @@ Schichtenarchitektur (HTTP → Application → Domain → Repository), Middlewar
 
 **Lesenswert wenn:** Neue Endpunkte gebaut werden, die Schichtentrennung unklar ist, Fehlerbehandlung oder Middleware erweitert wird.
 
-### [PostgreSQL & sqlc](postgresql-sqlc.md)
+### [PostgreSQL](postgresql.md)
 
 PostgreSQL-spezifische Features (JSONB, Trigger, Enums, IDENTITY), sqlc-Workflow (SQL → Go), hybride Persistenz (CRUD + Event Store), Performance-Optimierung, Migrations-Strategie.
 
