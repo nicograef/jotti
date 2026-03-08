@@ -10,33 +10,33 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import { useActiveTables } from './table/hooks'
-import { type Table } from './table/Table'
+import { useAktiveTische } from './table/hooks'
+import { type Tisch } from './table/Tisch'
 
 export function TableSelectionPage() {
-  const { loading, tables } = useActiveTables()
+  const { loading, tische } = useAktiveTische()
 
   return (
     <>
       <h1 className="text-2xl font-bold">Tisch auswählen</h1>
-      {loading ? <TableListSkeleton /> : <TableList tables={tables} />}
+      {loading ? <TischListSkeleton /> : <TischList tische={tische} />}
     </>
   )
 }
 
-interface TableListComponentProps {
-  tables: Table[]
+interface TischListComponentProps {
+  tische: Tisch[]
 }
 
-function TableList(props: TableListComponentProps) {
+function TischList(props: TischListComponentProps) {
   return (
     <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-      {props.tables.map((table) => (
-        <Item key={table.id} variant="outline" asChild>
-          <Link to={`/service/tables/${table.id.toString()}`}>
+      {props.tische.map((tisch) => (
+        <Item key={tisch.id} variant="outline" asChild>
+          <Link to={`/service/tables/${tisch.id.toString()}`}>
             <ItemContent>
               <ItemTitle className="text-lg">
-                <Lamp /> {table.name}
+                <Lamp /> {tisch.name}
               </ItemTitle>
             </ItemContent>
             <ItemActions>
@@ -49,7 +49,7 @@ function TableList(props: TableListComponentProps) {
   )
 }
 
-function TableListSkeleton() {
+function TischListSkeleton() {
   return (
     <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
       {Array.from({ length: 6 }).map((_, index) => (

@@ -15,52 +15,52 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
-import { useTableUnpaidVariants } from '../../table/hooks'
-import type { LineItem } from '../../table/Order'
-import type { Table } from '../../table/Table'
-import type { TableBackend } from '../../table/TableBackend'
-import { CancelationDrawer } from './CancelationDrawer'
-import { PaymentDrawer } from './PaymentDrawer'
+import type { Position } from '../../table/Bestellung'
+import { useTischUnbezahlt } from '../../table/hooks'
+import type { Tisch } from '../../table/Tisch'
+import type { TischBackend } from '../../table/TischBackend'
+import { StornierungDrawer } from './StornierungDrawer'
+import { ZahlungDrawer } from './ZahlungDrawer'
 
-interface PaymentProps {
-  backend: Pick<TableBackend, 'registerTablePayment' | 'cancelTableVariants'>
-  table: Table
-  onPaymentRegistered: () => void
-  onVariantsCanceled: () => void
+interface ZahlungProps {
+  backend: Pick<TischBackend, 'zahlungRegistrieren' | 'produkteStornieren'>
+  tisch: Tisch
+  onZahlungRegistriert: () => void
+  onProdukteStorniert: () => void
 }
 
-export function Payment({
-  table,
+export function Zahlung({
+  tisch,
   backend,
-  onPaymentRegistered,
-  onVariantsCanceled,
-}: PaymentProps) {
-  const { variants, loading, reload } = useTableUnpaidVariants(table.id)
+  onZahlungRegistriert,
+  onProdukteStorniert,
+}: ZahlungProps) {
+  const { positionen, loading, reload } = useTischUnbezahlt(tisch.id)
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
   const unpaidQuantities: Record<number, number> = {}
-  variants.forEach((variant) => {
-    unpaidQuantities[variant.id] = variant.quantity
+  positionen.forEach((position) => {
+    unpaidQuantities[position.id] = position.quantity
   })
 
-  const onAdd = (variantId: number) => {
+  const onAdd = (positionId: number) => {
     setQuantities((prev) => {
-      const currentQuantity = prev[variantId] || 0
-      if (currentQuantity >= (unpaidQuantities[variantId] || 0)) return prev
+      const currentQuantity = prev[positionId] || 0
+      if (currentQuantity >= (unpaidQuantities[positionId] || 0)) return prev
       return {
         ...prev,
-        [variantId]: currentQuantity + 1,
+        [positionId]: currentQuantity + 1,
       }
     })
   }
 
-  const onRemove = (variantId: number) => {
+  const onRemove = (positionId: number) => {
     setQuantities((prev) => {
-      const currentQuantity = prev[variantId] || 0
+      const currentQuantity = prev[positionId] || 0
       if (currentQuantity <= 0) return prev
       return {
         ...prev,
-        [variantId]: currentQuantity - 1,
+        [positionId]: currentQuantity - 1,
       }
     })
   }
@@ -70,30 +70,30 @@ export function Payment({
       <div className="flex gap-2">
         {AuthSingleton.canCancel && (
           <div className="flex-1">
-            <CancelationDrawer
+            <StornierungDrawer
               backend={backend}
-              table={table}
-              unpaidVariants={variants}
+              tisch={tisch}
+              unbezahltePositionen={positionen}
               quantities={quantities}
-              variantsCanceled={() => {
+              produkteStorniert={() => {
                 setQuantities({})
                 toast.success(`Stornierung erfolgreich.`)
-                onVariantsCanceled()
+                onProdukteStorniert()
                 reload()
               }}
             />
           </div>
         )}
         <div className="flex-1">
-          <PaymentDrawer
+          <ZahlungDrawer
             backend={backend}
-            table={table}
-            unpaidVariants={variants}
+            tisch={tisch}
+            unbezahltePositionen={positionen}
             quantities={quantities}
-            paymentRegistered={() => {
+            zahlungRegistriert={() => {
               setQuantities({})
               toast.success(`Zahlung erfolgreich.`)
-              onPaymentRegistered()
+              onZahlungRegistriert()
               reload()
             }}
           />
@@ -103,19 +103,19 @@ export function Payment({
         {loading
           ? Array.from({ length: 6 }).map((_, index) => (
               // eslint-disable-next-line react-x/no-array-index-key
-              <VariantItemSkeleton key={index} />
+              <PositionItemSkeleton key={index} />
             ))
-          : variants.map((variant) => (
-              <VariantItem
-                key={variant.id}
-                variant={variant}
-                quantity={quantities[variant.id] || 0}
-                unpaidQuantity={unpaidQuantities[variant.id] || 0}
+          : positionen.map((position) => (
+              <PositionItem
+                key={position.id}
+                position={position}
+                quantity={quantities[position.id] || 0}
+                unpaidQuantity={unpaidQuantities[position.id] || 0}
                 onAdd={() => {
-                  onAdd(variant.id)
+                  onAdd(position.id)
                 }}
                 onRemove={() => {
-                  onRemove(variant.id)
+                  onRemove(position.id)
                 }}
               />
             ))}
@@ -124,28 +124,28 @@ export function Payment({
   )
 }
 
-interface VariantItemProps {
-  variant: LineItem
+interface PositionItemProps {
+  position: Position
   quantity: number
   unpaidQuantity: number
   onAdd: () => void
   onRemove: () => void
 }
 
-function VariantItem({
-  variant,
+function PositionItem({
+  position,
   quantity,
   unpaidQuantity,
   onAdd,
   onRemove,
-}: VariantItemProps) {
+}: PositionItemProps) {
   return (
-    <Item key={variant.id} variant="outline">
+    <Item key={position.id} variant="outline">
       <ItemContent>
-        <ItemTitle>{variant.name}</ItemTitle>
+        <ItemTitle>{position.name}</ItemTitle>
         <ItemDescription>
           <span className="font-bold">
-            {formatCents(variant.priceCents)}&nbsp;€
+            {formatCents(position.preisCents)}&nbsp;€
           </span>
           &nbsp; &ndash; &nbsp;noch {unpaidQuantity - quantity} unbezahlt
         </ItemDescription>
@@ -155,7 +155,7 @@ function VariantItem({
           size="icon-sm"
           variant="outline"
           className="rounded-full"
-          aria-label="Variante entfernen"
+          aria-label="Produkt entfernen"
           onClick={onRemove}
         >
           <Minus />
@@ -165,7 +165,7 @@ function VariantItem({
           size="icon-sm"
           variant="outline"
           className="rounded-full"
-          aria-label="Variante hinzufügen"
+          aria-label="Produkt hinzufügen"
           onClick={onAdd}
         >
           <Plus />
@@ -175,7 +175,7 @@ function VariantItem({
   )
 }
 
-function VariantItemSkeleton() {
+function PositionItemSkeleton() {
   return (
     <Item variant="outline">
       <ItemContent>

@@ -13,50 +13,50 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 
-import { useTableUndeliveredVariants } from '../../table/hooks'
-import type { LineItem } from '../../table/Order'
-import type { Table } from '../../table/Table'
-import type { TableBackend } from '../../table/TableBackend'
-import { DeliveryDrawer } from './DeliveryDrawer'
+import type { Position } from '../../table/Bestellung'
+import { useTischUngeliefert } from '../../table/hooks'
+import type { Tisch } from '../../table/Tisch'
+import type { TischBackend } from '../../table/TischBackend'
+import { LieferungDrawer } from './LieferungDrawer'
 
-interface DeliveryProps {
-  backend: Pick<TableBackend, 'deliverTableVariants'>
-  table: Table
-  onVariantsDelivered: () => void
+interface LieferungProps {
+  backend: Pick<TischBackend, 'produkteLiefern'>
+  tisch: Tisch
+  onProdukteGeliefert: () => void
 }
 
-export function Delivery({
-  table,
+export function Lieferung({
+  tisch,
   backend,
-  onVariantsDelivered,
-}: DeliveryProps) {
-  const { variants, loading, reload } = useTableUndeliveredVariants(table.id)
+  onProdukteGeliefert,
+}: LieferungProps) {
+  const { positionen, loading, reload } = useTischUngeliefert(tisch.id)
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
   const undeliveredQuantities: Record<number, number> = {}
-  variants.forEach((variant) => {
-    undeliveredQuantities[variant.id] = variant.quantity
+  positionen.forEach((position) => {
+    undeliveredQuantities[position.id] = position.quantity
   })
 
-  const onAdd = (variantId: number) => {
+  const onAdd = (positionId: number) => {
     setQuantities((prev) => {
-      const currentQuantity = prev[variantId] || 0
-      if (currentQuantity >= (undeliveredQuantities[variantId] || 0))
+      const currentQuantity = prev[positionId] || 0
+      if (currentQuantity >= (undeliveredQuantities[positionId] || 0))
         return prev
       return {
         ...prev,
-        [variantId]: currentQuantity + 1,
+        [positionId]: currentQuantity + 1,
       }
     })
   }
 
-  const onRemove = (variantId: number) => {
+  const onRemove = (positionId: number) => {
     setQuantities((prev) => {
-      const currentQuantity = prev[variantId] || 0
+      const currentQuantity = prev[positionId] || 0
       if (currentQuantity <= 0) return prev
       return {
         ...prev,
-        [variantId]: currentQuantity - 1,
+        [positionId]: currentQuantity - 1,
       }
     })
   }
@@ -64,15 +64,15 @@ export function Delivery({
   return (
     <>
       {' '}
-      <DeliveryDrawer
+      <LieferungDrawer
         backend={backend}
-        table={table}
-        undeliveredVariants={variants}
+        tisch={tisch}
+        ungeliefertePositionen={positionen}
         quantities={quantities}
-        variantsDelivered={() => {
+        produkteGeliefert={() => {
           setQuantities({})
           toast.success(`Lieferung wurde registriert.`)
-          onVariantsDelivered()
+          onProdukteGeliefert()
           reload()
         }}
       />
@@ -80,19 +80,19 @@ export function Delivery({
         {loading
           ? Array.from({ length: 6 }).map((_, index) => (
               // eslint-disable-next-line react-x/no-array-index-key
-              <VariantItemSkeleton key={index} />
+              <PositionItemSkeleton key={index} />
             ))
-          : variants.map((variant) => (
-              <VariantItem
-                key={variant.id}
-                variant={variant}
-                quantity={quantities[variant.id] || 0}
-                undeliveredQuantity={undeliveredQuantities[variant.id] || 0}
+          : positionen.map((position) => (
+              <PositionItem
+                key={position.id}
+                position={position}
+                quantity={quantities[position.id] || 0}
+                undeliveredQuantity={undeliveredQuantities[position.id] || 0}
                 onAdd={() => {
-                  onAdd(variant.id)
+                  onAdd(position.id)
                 }}
                 onRemove={() => {
-                  onRemove(variant.id)
+                  onRemove(position.id)
                 }}
               />
             ))}
@@ -101,25 +101,25 @@ export function Delivery({
   )
 }
 
-interface VariantItemProps {
-  variant: LineItem
+interface PositionItemProps {
+  position: Position
   quantity: number
   undeliveredQuantity: number
   onAdd: () => void
   onRemove: () => void
 }
 
-function VariantItem({
-  variant,
+function PositionItem({
+  position,
   quantity,
   undeliveredQuantity,
   onAdd,
   onRemove,
-}: VariantItemProps) {
+}: PositionItemProps) {
   return (
-    <Item key={variant.id} variant="outline">
+    <Item key={position.id} variant="outline">
       <ItemContent>
-        <ItemTitle>{variant.name}</ItemTitle>
+        <ItemTitle>{position.name}</ItemTitle>
         <ItemDescription>
           noch {undeliveredQuantity - quantity} zu liefern
         </ItemDescription>
@@ -129,7 +129,7 @@ function VariantItem({
           size="icon-sm"
           variant="outline"
           className="rounded-full"
-          aria-label="Variante entfernen"
+          aria-label="Produkt entfernen"
           onClick={onRemove}
         >
           <Minus />
@@ -139,7 +139,7 @@ function VariantItem({
           size="icon-sm"
           variant="outline"
           className="rounded-full"
-          aria-label="Variante hinzufügen"
+          aria-label="Produkt hinzufügen"
           onClick={onAdd}
         >
           <Plus />
@@ -149,7 +149,7 @@ function VariantItem({
   )
 }
 
-function VariantItemSkeleton() {
+function PositionItemSkeleton() {
   return (
     <Item variant="outline">
       <ItemContent>

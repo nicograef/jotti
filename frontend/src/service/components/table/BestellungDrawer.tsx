@@ -14,42 +14,40 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { LineItem } from '../../table/Order'
-import type { Table } from '../../table/Table'
-import type { TableBackend } from '../../table/TableBackend'
+import type { Product, Variant } from '../../product/Product'
+import type { Position } from '../../table/Bestellung'
+import type { Tisch } from '../../table/Tisch'
+import type { TischBackend } from '../../table/TischBackend'
 import { CommentField } from './CommentField'
-import { calculateTotalPrice, selectVariants } from './drawerUtils'
+import { calculateTotalPrice } from './drawerUtils'
 import { Receipt } from './Receipt'
 
-interface CancelationDrawerProps {
-  backend: Pick<TableBackend, 'cancelTableVariants'>
-  table: Table
-  unpaidVariants: LineItem[]
+interface BestellungDrawerProps {
+  backend: Pick<TischBackend, 'bestellungAufgeben'>
+  tisch: Tisch
+  products: Product[]
   quantities: Record<number, number>
-  variantsCanceled: () => void
+  bestellungAufgegeben: () => void
 }
 
-export function CancelationDrawer(props: CancelationDrawerProps) {
+export function BestellungDrawer(props: BestellungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [comment, setComment] = useState('')
-  const variantsToCancel = selectVariants(
-    props.unpaidVariants,
-    props.quantities,
-  )
-  const totalPrice = calculateTotalPrice(variantsToCancel)
-  const noVariantsSelected = variantsToCancel.length === 0
+  const orderedPositionen = toPositionen(props.products, props.quantities)
+  const totalPrice = calculateTotalPrice(orderedPositionen)
+  const noPositionenSelected = orderedPositionen.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
 
     try {
-      await props.backend.cancelTableVariants({
-        tableId: props.table.id,
-        variants: variantsToCancel,
+      await props.backend.bestellungAufgeben({
+        tischId: props.tisch.id,
+        positionen: orderedPositionen,
         comment: comment,
       })
-      props.variantsCanceled()
+      props.bestellungAufgegeben()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -60,7 +58,7 @@ export function CancelationDrawer(props: CancelationDrawerProps) {
   }
 
   const onOpenChange = (isOpen: boolean) => {
-    if (noVariantsSelected) {
+    if (noPositionenSelected) {
       setOpen(false)
     } else {
       setOpen(isOpen)
@@ -70,23 +68,24 @@ export function CancelationDrawer(props: CancelationDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
-        <Button
-          variant="destructive"
-          disabled={noVariantsSelected}
-          className="cursor-pointer hover:shadow-sm w-full"
-        >
-          Stornierung
-        </Button>
+        <div className="text-center">
+          <Button
+            className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
+            disabled={noPositionenSelected}
+          >
+            Bestellung überprüfen
+          </Button>
+        </div>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Stornierung für {props.table.name}</DrawerTitle>
+            <DrawerTitle>Bestellung für {props.tisch.name}</DrawerTitle>
             <DrawerDescription>
-              Sollen diese Varianten wirklich storniert werden?
+              Überprüfe deine Bestellung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt variants={variantsToCancel} totalPrice={totalPrice} />
+          <Receipt positionen={orderedPositionen} totalPrice={totalPrice} />
           <div className="px-4">
             <CommentField
               onChange={(value) => {
@@ -96,13 +95,12 @@ export function CancelationDrawer(props: CancelationDrawerProps) {
           </div>
           <DrawerFooter>
             <Button
-              variant="destructive"
               disabled={loading}
               onClick={() => {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Varianten stornieren
+              {loading ? <Spinner /> : <></>} Bestellung aufgeben
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>
@@ -114,4 +112,19 @@ export function CancelationDrawer(props: CancelationDrawerProps) {
       </DrawerContent>
     </Drawer>
   )
+}
+
+function toPositionen(
+  products: Product[],
+  selectedQuantity: Record<number, number>,
+): Position[] {
+  const allVariants: Variant[] = products.flatMap((p) => p.variants)
+  return allVariants
+    .map((variant) => ({
+      id: variant.id,
+      name: variant.name,
+      preisCents: variant.priceCents,
+      quantity: selectedQuantity[variant.id] || 0,
+    }))
+    .filter((variant) => variant.quantity > 0)
 }

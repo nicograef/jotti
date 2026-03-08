@@ -14,39 +14,42 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { LineItem } from '../../table/Order'
-import type { Table } from '../../table/Table'
-import type { TableBackend } from '../../table/TableBackend'
+import type { Position } from '../../table/Bestellung'
+import type { Tisch } from '../../table/Tisch'
+import type { TischBackend } from '../../table/TischBackend'
 import { CommentField } from './CommentField'
-import { calculateTotalPrice, selectVariants } from './drawerUtils'
+import { calculateTotalPrice, selectPositionen } from './drawerUtils'
 import { Receipt } from './Receipt'
 
-interface PaymentDrawerProps {
-  backend: Pick<TableBackend, 'registerTablePayment'>
-  table: Table
-  unpaidVariants: LineItem[]
+interface StornierungDrawerProps {
+  backend: Pick<TischBackend, 'produkteStornieren'>
+  tisch: Tisch
+  unbezahltePositionen: Position[]
   quantities: Record<number, number>
-  paymentRegistered: () => void
+  produkteStorniert: () => void
 }
 
-export function PaymentDrawer(props: PaymentDrawerProps) {
+export function StornierungDrawer(props: StornierungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [comment, setComment] = useState('')
-  const variantsToPay = selectVariants(props.unpaidVariants, props.quantities)
-  const totalPrice = calculateTotalPrice(variantsToPay)
-  const noVariantsSelected = variantsToPay.length === 0
+  const positionenToCancel = selectPositionen(
+    props.unbezahltePositionen,
+    props.quantities,
+  )
+  const totalPrice = calculateTotalPrice(positionenToCancel)
+  const noPositionenSelected = positionenToCancel.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
 
     try {
-      await props.backend.registerTablePayment({
-        tableId: props.table.id,
-        variants: variantsToPay,
+      await props.backend.produkteStornieren({
+        tischId: props.tisch.id,
+        positionen: positionenToCancel,
         comment: comment,
       })
-      props.paymentRegistered()
+      props.produkteStorniert()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -57,7 +60,7 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
   }
 
   const onOpenChange = (isOpen: boolean) => {
-    if (noVariantsSelected) {
+    if (noPositionenSelected) {
       setOpen(false)
     } else {
       setOpen(isOpen)
@@ -68,21 +71,22 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
         <Button
-          disabled={noVariantsSelected}
+          variant="destructive"
+          disabled={noPositionenSelected}
           className="cursor-pointer hover:shadow-sm w-full"
         >
-          Zahlung
+          Stornierung
         </Button>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Zahlung für {props.table.name}</DrawerTitle>
+            <DrawerTitle>Stornierung für {props.tisch.name}</DrawerTitle>
             <DrawerDescription>
-              Überprüfe deine Zahlung vor dem Absenden.
+              Sollen diese Produkte wirklich storniert werden?
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt variants={variantsToPay} totalPrice={totalPrice} />
+          <Receipt positionen={positionenToCancel} totalPrice={totalPrice} />
           <div className="px-4">
             <CommentField
               onChange={(value) => {
@@ -92,12 +96,13 @@ export function PaymentDrawer(props: PaymentDrawerProps) {
           </div>
           <DrawerFooter>
             <Button
+              variant="destructive"
               disabled={loading}
               onClick={() => {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Zahlung registrieren
+              {loading ? <Spinner /> : <></>} Produkte stornieren
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>

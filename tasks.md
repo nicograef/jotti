@@ -179,7 +179,9 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte englische Feldnamen (`
 
 ---
 
-## Task 8: Frontend Service-Komponenten
+## Task 8: Frontend Service-Komponenten ✅
+
+**Status:** Abgeschlossen
 
 **Scope:** `frontend/src/service/components/table/`, `frontend/src/service/TablePage.tsx`, `frontend/src/service/TableSelectionPage.tsx`
 

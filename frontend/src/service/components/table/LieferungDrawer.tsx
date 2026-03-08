@@ -14,41 +14,41 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { LineItem } from '../../table/Order'
-import type { Table } from '../../table/Table'
-import type { TableBackend } from '../../table/TableBackend'
+import type { Position } from '../../table/Bestellung'
+import type { Tisch } from '../../table/Tisch'
+import type { TischBackend } from '../../table/TischBackend'
 import { CommentField } from './CommentField'
-import { selectVariants } from './drawerUtils'
+import { selectPositionen } from './drawerUtils'
 import { Receipt } from './Receipt'
 
-interface DeliveryDrawerProps {
-  backend: Pick<TableBackend, 'deliverTableVariants'>
-  table: Table
-  undeliveredVariants: LineItem[]
+interface LieferungDrawerProps {
+  backend: Pick<TischBackend, 'produkteLiefern'>
+  tisch: Tisch
+  ungeliefertePositionen: Position[]
   quantities: Record<number, number>
-  variantsDelivered: () => void
+  produkteGeliefert: () => void
 }
 
-export function DeliveryDrawer(props: DeliveryDrawerProps) {
+export function LieferungDrawer(props: LieferungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [comment, setComment] = useState('')
-  const variantsToDeliver = selectVariants(
-    props.undeliveredVariants,
+  const positionenToDeliver = selectPositionen(
+    props.ungeliefertePositionen,
     props.quantities,
   )
-  const noVariantsSelected = variantsToDeliver.length === 0
+  const noPositionenSelected = positionenToDeliver.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
 
     try {
-      await props.backend.deliverTableVariants({
-        tableId: props.table.id,
-        variants: variantsToDeliver,
+      await props.backend.produkteLiefern({
+        tischId: props.tisch.id,
+        positionen: positionenToDeliver,
         comment: comment,
       })
-      props.variantsDelivered()
+      props.produkteGeliefert()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -59,7 +59,7 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
   }
 
   const onOpenChange = (isOpen: boolean) => {
-    if (noVariantsSelected) {
+    if (noPositionenSelected) {
       setOpen(false)
     } else {
       setOpen(isOpen)
@@ -71,22 +71,22 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
       <DrawerTrigger asChild>
         <div className="text-center">
           <Button
-            disabled={noVariantsSelected}
+            disabled={noPositionenSelected}
             className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
           >
-            Varianten liefern
+            Produkte liefern
           </Button>
         </div>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Lieferung für {props.table.name}</DrawerTitle>
+            <DrawerTitle>Lieferung für {props.tisch.name}</DrawerTitle>
             <DrawerDescription>
-              Wurden diese Varianten an den Tisch ausgeliefert?
+              Wurden diese Produkte an den Tisch ausgeliefert?
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt variants={variantsToDeliver} />
+          <Receipt positionen={positionenToDeliver} />
           <div className="px-4">
             <CommentField
               onChange={(value) => {
@@ -101,7 +101,7 @@ export function DeliveryDrawer(props: DeliveryDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Varianten liefern
+              {loading ? <Spinner /> : <></>} Produkte liefern
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>

@@ -22,57 +22,57 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCents } from '@/lib/utils'
 
-import type { Cancelation } from '../../table/Cancelation'
-import type { Delivery } from '../../table/Delivery'
-import { useTableHistory } from '../../table/hooks'
-import type { LineItem, Order } from '../../table/Order'
-import type { Payment } from '../../table/Payment'
+import type { Bestellung, Position } from '../../table/Bestellung'
+import { useTischHistorie } from '../../table/hooks'
+import type { Lieferung } from '../../table/Lieferung'
+import type { Stornierung } from '../../table/Stornierung'
+import type { Zahlung } from '../../table/Zahlung'
 import { Comment } from './CommentField'
 import { Receipt } from './Receipt'
 
-interface TableHistoryProps {
-  tableId: number
+interface TischHistorieProps {
+  tischId: number
   userId: number | null
 }
 
-const initialOrderState: {
-  order: Order | null
+const initialBestellungState: {
+  bestellung: Bestellung | null
   open: boolean
 } = {
-  order: null,
+  bestellung: null,
   open: false,
 }
 
-const initialPaymentState: {
-  payment: Payment | null
+const initialZahlungState: {
+  zahlung: Zahlung | null
   open: boolean
 } = {
-  payment: null,
+  zahlung: null,
   open: false,
 }
 
-const initialCancelationState: {
-  cancelation: Cancelation | null
+const initialStornierungState: {
+  stornierung: Stornierung | null
   open: boolean
 } = {
-  cancelation: null,
+  stornierung: null,
   open: false,
 }
 
-const initialDeliveryState: {
-  delivery: Delivery | null
+const initialLieferungState: {
+  lieferung: Lieferung | null
   open: boolean
 } = {
-  delivery: null,
+  lieferung: null,
   open: false,
 }
 
-export function TableHistory({ tableId, userId }: TableHistoryProps) {
-  const { loading, history } = useTableHistory(tableId)
-  const [order, setOrder] = useState(initialOrderState)
-  const [payment, setPayment] = useState(initialPaymentState)
-  const [cancelation, setCancelation] = useState(initialCancelationState)
-  const [delivery, setDelivery] = useState(initialDeliveryState)
+export function TischHistorie({ tischId, userId }: TischHistorieProps) {
+  const { loading, historie } = useTischHistorie(tischId)
+  const [bestellung, setBestellung] = useState(initialBestellungState)
+  const [zahlung, setZahlung] = useState(initialZahlungState)
+  const [stornierung, setStornierung] = useState(initialStornierungState)
+  const [lieferung, setLieferung] = useState(initialLieferungState)
 
   return (
     <>
@@ -82,66 +82,66 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
               // eslint-disable-next-line react-x/no-array-index-key
               <ItemSkeleton key={index} />
             ))
-          : history.map((item) => {
-              if (Object.prototype.hasOwnProperty.call(item, 'registeredAt')) {
-                const payment = item as Payment
+          : historie.map((item) => {
+              if (Object.prototype.hasOwnProperty.call(item, 'registriertAm')) {
+                const zahlung = item as Zahlung
                 return (
                   <HistoryItem
                     key={item.id}
-                    title={`Zahlung -${formatCents(payment.totalPaymentCents)} €`}
-                    date={payment.registeredAt}
-                    isFromUser={userId === payment.userId}
-                    comment={payment.comment}
+                    title={`Zahlung -${formatCents(zahlung.gesamtZahlungCents)} €`}
+                    date={zahlung.registriertAm}
+                    isFromUser={userId === zahlung.userId}
+                    comment={zahlung.comment}
                     onClick={() => {
-                      setPayment({ payment, open: true })
+                      setZahlung({ zahlung, open: true })
                     }}
                   />
                 )
               } else if (
-                Object.prototype.hasOwnProperty.call(item, 'placedAt')
+                Object.prototype.hasOwnProperty.call(item, 'aufgegebenAm')
               ) {
-                const order = item as Order
+                const bestellung = item as Bestellung
                 return (
                   <HistoryItem
                     key={item.id}
-                    title={`Bestellung +${formatCents(order.totalPriceCents)} €`}
-                    date={order.placedAt}
-                    isFromUser={userId === order.userId}
-                    comment={order.comment}
+                    title={`Bestellung +${formatCents(bestellung.gesamtPreisCents)} €`}
+                    date={bestellung.aufgegebenAm}
+                    isFromUser={userId === bestellung.userId}
+                    comment={bestellung.comment}
                     onClick={() => {
-                      setOrder({ order, open: true })
+                      setBestellung({ bestellung, open: true })
                     }}
                   />
                 )
               } else if (
-                Object.prototype.hasOwnProperty.call(item, 'canceledAt')
+                Object.prototype.hasOwnProperty.call(item, 'storniertAm')
               ) {
-                const cancelation = item as Cancelation
+                const stornierung = item as Stornierung
                 return (
                   <HistoryItem
                     key={item.id}
-                    title={`Stornierung -${formatCents(cancelation.totalCancelationCents)} €`}
-                    date={cancelation.canceledAt}
-                    isFromUser={userId === cancelation.userId}
-                    comment={cancelation.comment}
+                    title={`Stornierung -${formatCents(stornierung.gesamtStornierungCents)} €`}
+                    date={stornierung.storniertAm}
+                    isFromUser={userId === stornierung.userId}
+                    comment={stornierung.comment}
                     onClick={() => {
-                      setCancelation({ cancelation, open: true })
+                      setStornierung({ stornierung, open: true })
                     }}
                   />
                 )
               } else if (
-                Object.prototype.hasOwnProperty.call(item, 'deliveredAt')
+                Object.prototype.hasOwnProperty.call(item, 'geliefertAm')
               ) {
-                const delivery = item as Delivery
+                const lieferung = item as Lieferung
                 return (
                   <HistoryItem
                     key={item.id}
                     title="Auslieferung"
-                    date={delivery.deliveredAt}
-                    isFromUser={userId === delivery.userId}
-                    comment={delivery.comment}
+                    date={lieferung.geliefertAm}
+                    isFromUser={userId === lieferung.userId}
+                    comment={lieferung.comment}
                     onClick={() => {
-                      setDelivery({ delivery, open: true })
+                      setLieferung({ lieferung, open: true })
                     }}
                   />
                 )
@@ -150,63 +150,63 @@ export function TableHistory({ tableId, userId }: TableHistoryProps) {
               }
             })}
       </ItemGroup>
-      {order.order && (
+      {bestellung.bestellung && (
         <Details
           title="Bestellung"
-          id={order.order.id}
-          isFromUser={userId === order.order.userId}
-          open={order.open}
+          id={bestellung.bestellung.id}
+          isFromUser={userId === bestellung.bestellung.userId}
+          open={bestellung.open}
           onClose={() => {
-            setOrder(initialOrderState)
+            setBestellung(initialBestellungState)
           }}
-          date={order.order.placedAt}
-          comment={order.order.comment}
-          variants={order.order.variants}
-          totalPrice={order.order.totalPriceCents}
+          date={bestellung.bestellung.aufgegebenAm}
+          comment={bestellung.bestellung.comment}
+          positionen={bestellung.bestellung.positionen}
+          totalPrice={bestellung.bestellung.gesamtPreisCents}
         />
       )}
-      {payment.payment && (
+      {zahlung.zahlung && (
         <Details
           title="Zahlung"
-          id={payment.payment.id}
-          isFromUser={userId === payment.payment.userId}
-          open={payment.open}
+          id={zahlung.zahlung.id}
+          isFromUser={userId === zahlung.zahlung.userId}
+          open={zahlung.open}
           onClose={() => {
-            setPayment(initialPaymentState)
+            setZahlung(initialZahlungState)
           }}
-          date={payment.payment.registeredAt}
-          comment={payment.payment.comment}
-          variants={payment.payment.variants}
-          totalPrice={payment.payment.totalPaymentCents}
+          date={zahlung.zahlung.registriertAm}
+          comment={zahlung.zahlung.comment}
+          positionen={zahlung.zahlung.positionen}
+          totalPrice={zahlung.zahlung.gesamtZahlungCents}
         />
       )}
-      {cancelation.cancelation && (
+      {stornierung.stornierung && (
         <Details
           title="Stornierung"
-          id={cancelation.cancelation.id}
-          isFromUser={userId === cancelation.cancelation.userId}
-          open={cancelation.open}
+          id={stornierung.stornierung.id}
+          isFromUser={userId === stornierung.stornierung.userId}
+          open={stornierung.open}
           onClose={() => {
-            setCancelation(initialCancelationState)
+            setStornierung(initialStornierungState)
           }}
-          date={cancelation.cancelation.canceledAt}
-          comment={cancelation.cancelation.comment}
-          variants={cancelation.cancelation.variants}
-          totalPrice={cancelation.cancelation.totalCancelationCents}
+          date={stornierung.stornierung.storniertAm}
+          comment={stornierung.stornierung.comment}
+          positionen={stornierung.stornierung.positionen}
+          totalPrice={stornierung.stornierung.gesamtStornierungCents}
         />
       )}
-      {delivery.delivery && (
+      {lieferung.lieferung && (
         <Details
           title="Auslieferung"
-          id={delivery.delivery.id}
-          isFromUser={userId === delivery.delivery.userId}
-          open={delivery.open}
+          id={lieferung.lieferung.id}
+          isFromUser={userId === lieferung.lieferung.userId}
+          open={lieferung.open}
           onClose={() => {
-            setDelivery(initialDeliveryState)
+            setLieferung(initialLieferungState)
           }}
-          date={delivery.delivery.deliveredAt}
-          comment={delivery.delivery.comment}
-          variants={delivery.delivery.variants}
+          date={lieferung.lieferung.geliefertAm}
+          comment={lieferung.lieferung.comment}
+          positionen={lieferung.lieferung.positionen}
         />
       )}
     </>
@@ -279,7 +279,7 @@ function Details({
   date,
   isFromUser,
   comment,
-  variants,
+  positionen,
   totalPrice,
 }: {
   open: boolean
@@ -289,7 +289,7 @@ function Details({
   date: string
   isFromUser: boolean
   comment: string
-  variants: LineItem[]
+  positionen: Position[]
   totalPrice?: number
 }) {
   return (
@@ -311,7 +311,7 @@ function Details({
               {new Date(date).toLocaleTimeString()} Uhr
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt variants={variants} totalPrice={totalPrice} />
+          <Receipt positionen={positionen} totalPrice={totalPrice} />
           {comment && (
             <div className="px-4">
               <Comment value={comment} />

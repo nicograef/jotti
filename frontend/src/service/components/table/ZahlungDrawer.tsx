@@ -14,40 +14,42 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { Product, Variant } from '../../product/Product'
-import type { LineItem } from '../../table/Order'
-import type { Table } from '../../table/Table'
-import type { TableBackend } from '../../table/TableBackend'
+import type { Position } from '../../table/Bestellung'
+import type { Tisch } from '../../table/Tisch'
+import type { TischBackend } from '../../table/TischBackend'
 import { CommentField } from './CommentField'
-import { calculateTotalPrice } from './drawerUtils'
+import { calculateTotalPrice, selectPositionen } from './drawerUtils'
 import { Receipt } from './Receipt'
 
-interface OrderDrawerProps {
-  backend: Pick<TableBackend, 'placeTableOrder'>
-  table: Table
-  products: Product[]
+interface ZahlungDrawerProps {
+  backend: Pick<TischBackend, 'zahlungRegistrieren'>
+  tisch: Tisch
+  unbezahltePositionen: Position[]
   quantities: Record<number, number>
-  orderPlaced: () => void
+  zahlungRegistriert: () => void
 }
 
-export function OrderDrawer(props: OrderDrawerProps) {
+export function ZahlungDrawer(props: ZahlungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [comment, setComment] = useState('')
-  const orderedVariants = lineItems(props.products, props.quantities)
-  const totalPrice = calculateTotalPrice(orderedVariants)
-  const noVariantsSelected = orderedVariants.length === 0
+  const positionenToPay = selectPositionen(
+    props.unbezahltePositionen,
+    props.quantities,
+  )
+  const totalPrice = calculateTotalPrice(positionenToPay)
+  const noPositionenSelected = positionenToPay.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
 
     try {
-      await props.backend.placeTableOrder({
-        tableId: props.table.id,
-        variants: orderedVariants,
+      await props.backend.zahlungRegistrieren({
+        tischId: props.tisch.id,
+        positionen: positionenToPay,
         comment: comment,
       })
-      props.orderPlaced()
+      props.zahlungRegistriert()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -58,7 +60,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
   }
 
   const onOpenChange = (isOpen: boolean) => {
-    if (noVariantsSelected) {
+    if (noPositionenSelected) {
       setOpen(false)
     } else {
       setOpen(isOpen)
@@ -68,24 +70,22 @@ export function OrderDrawer(props: OrderDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
-        <div className="text-center">
-          <Button
-            className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
-            disabled={noVariantsSelected}
-          >
-            Bestellung überprüfen
-          </Button>
-        </div>
+        <Button
+          disabled={noPositionenSelected}
+          className="cursor-pointer hover:shadow-sm w-full"
+        >
+          Zahlung
+        </Button>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Bestellung für {props.table.name}</DrawerTitle>
+            <DrawerTitle>Zahlung für {props.tisch.name}</DrawerTitle>
             <DrawerDescription>
-              Überprüfe deine Bestellung vor dem Absenden.
+              Überprüfe deine Zahlung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt variants={orderedVariants} totalPrice={totalPrice} />
+          <Receipt positionen={positionenToPay} totalPrice={totalPrice} />
           <div className="px-4">
             <CommentField
               onChange={(value) => {
@@ -100,7 +100,7 @@ export function OrderDrawer(props: OrderDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Bestellung aufgeben
+              {loading ? <Spinner /> : <></>} Zahlung registrieren
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>
@@ -112,19 +112,4 @@ export function OrderDrawer(props: OrderDrawerProps) {
       </DrawerContent>
     </Drawer>
   )
-}
-
-function lineItems(
-  products: Product[],
-  selectedQuantity: Record<number, number>,
-): LineItem[] {
-  const allVariants: Variant[] = products.flatMap((p) => p.variants)
-  return allVariants
-    .map((variant) => ({
-      id: variant.id,
-      name: variant.name,
-      priceCents: variant.priceCents,
-      quantity: selectedQuantity[variant.id] || 0,
-    }))
-    .filter((variant) => variant.quantity > 0)
 }

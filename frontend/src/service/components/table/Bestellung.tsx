@@ -2,20 +2,24 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { useActiveProducts } from '../../product/hooks'
-import type { Table } from '../../table/Table'
-import type { TableBackend } from '../../table/TableBackend'
-import { OrderDrawer } from './OrderDrawer'
+import type { Tisch } from '../../table/Tisch'
+import type { TischBackend } from '../../table/TischBackend'
+import { BestellungDrawer } from './BestellungDrawer'
 import { ProductList, ProductListSkeleton } from './ProductList'
 
-interface OrderProps {
-  backend: Pick<TableBackend, 'placeTableOrder'>
-  table: Table
-  onOrderPlaced: () => void
+interface BestellungProps {
+  backend: Pick<TischBackend, 'bestellungAufgeben'>
+  tisch: Tisch
+  onBestellungAufgegeben: () => void
 }
 
 type VariantQuantityMap = Record<number, number>
 
-export function Order({ backend, table, onOrderPlaced }: OrderProps) {
+export function Bestellung({
+  backend,
+  tisch,
+  onBestellungAufgegeben,
+}: BestellungProps) {
   const { loading, products } = useActiveProducts()
   const [quantities, setQuantities] = useState<VariantQuantityMap>({})
 
@@ -25,15 +29,15 @@ export function Order({ backend, table, onOrderPlaced }: OrderProps) {
 
   return (
     <>
-      <OrderDrawer
+      <BestellungDrawer
         backend={backend}
-        table={table}
+        tisch={tisch}
         products={products}
         quantities={quantities}
-        orderPlaced={() => {
+        bestellungAufgegeben={() => {
           setQuantities({})
           toast.success(`Bestellung wurde aufgegeben.`)
-          onOrderPlaced()
+          onBestellungAufgegeben()
         }}
       />
       <ProductList
