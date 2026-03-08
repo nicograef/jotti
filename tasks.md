@@ -153,7 +153,9 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte englische Feldnamen (`
 
 ---
 
-## Task 7: Frontend Service Types, Backend-Client & Hooks
+## Task 7: Frontend Service Types, Backend-Client & Hooks ✅
+
+**Status:** Abgeschlossen
 
 **Scope:** `frontend/src/service/table/`, `frontend/src/service/product/`
 

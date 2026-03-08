@@ -1,67 +1,67 @@
 import { BackendSingleton } from '@/lib/Backend'
 import { useFetch } from '@/lib/useFetch'
 
-import type { Cancelation } from './Cancelation'
-import type { Delivery } from './Delivery'
-import type { LineItem, Order } from './Order'
-import type { Payment } from './Payment'
-import type { Table } from './Table'
-import { TableBackend } from './TableBackend'
+import type { Bestellung, Position } from './Bestellung'
+import type { Lieferung } from './Lieferung'
+import type { Stornierung } from './Stornierung'
+import type { Tisch } from './Tisch'
+import { TischBackend } from './TischBackend'
+import type { Zahlung } from './Zahlung'
 
-const tableBackend = new TableBackend(BackendSingleton)
+const tischBackend = new TischBackend(BackendSingleton)
 
 /** Custom hook to fetch a single table from backend. */
-export function useTable(id: number) {
-  const { data: table, ...rest } = useFetch(
-    () => tableBackend.getTable(id),
-    null as Table | null,
+export function useTisch(id: number) {
+  const { data: tisch, ...rest } = useFetch(
+    () => tischBackend.getTisch(id),
+    null as Tisch | null,
     [id],
   )
-  return { ...rest, table }
+  return { ...rest, tisch }
 }
 
 /** Custom hook to fetch active tables from backend. */
-export function useActiveTables() {
-  const { data: tables, ...rest } = useFetch(
-    () => tableBackend.getActiveTables(),
-    [] as Table[],
+export function useAktiveTische() {
+  const { data: tische, ...rest } = useFetch(
+    () => tischBackend.getAktiveTische(),
+    [] as Tisch[],
   )
-  return { ...rest, tables }
+  return { ...rest, tische }
 }
 
 /** Custom hook to fetch the history for a specific table from backend. */
-export function useTableHistory(tableId: number) {
-  const { data: history, ...rest } = useFetch(
-    () => tableBackend.getTableHistory(tableId),
-    [] as (Order | Payment | Cancelation | Delivery)[],
-    [tableId],
+export function useTischHistorie(tischId: number) {
+  const { data: historie, ...rest } = useFetch(
+    () => tischBackend.getTischHistorie(tischId),
+    [] as (Bestellung | Zahlung | Stornierung | Lieferung)[],
+    [tischId],
   )
-  return { ...rest, history }
+  return { ...rest, historie }
 }
 
-export function useTableBalance(tableId: number) {
-  const { data: balanceCents, ...rest } = useFetch(
-    () => tableBackend.getTableBalance(tableId),
+export function useTischSaldo(tischId: number) {
+  const { data: saldoCents, ...rest } = useFetch(
+    () => tischBackend.getTischSaldo(tischId),
     0,
-    [tableId],
+    [tischId],
   )
-  return { ...rest, balanceCents }
+  return { ...rest, saldoCents }
 }
 
-export function useTableUnpaidVariants(tableId: number) {
-  const { data: variants, ...rest } = useFetch(
-    () => tableBackend.getTableUnpaidVariants(tableId),
-    [] as LineItem[],
-    [tableId],
+export function useTischUnbezahlt(tischId: number) {
+  const { data: positionen, ...rest } = useFetch(
+    () => tischBackend.getTischUnbezahlt(tischId),
+    [] as Position[],
+    [tischId],
   )
-  return { ...rest, variants }
+  return { ...rest, positionen }
 }
 
-export function useTableUndeliveredVariants(tableId: number) {
-  const { data: variants, ...rest } = useFetch(
-    () => tableBackend.getTableUndeliveredVariants(tableId),
-    [] as LineItem[],
-    [tableId],
+export function useTischUngeliefert(tischId: number) {
+  const { data: positionen, ...rest } = useFetch(
+    () => tischBackend.getTischUngeliefert(tischId),
+    [] as Position[],
+    [tischId],
   )
-  return { ...rest, variants }
+  return { ...rest, positionen }
 }

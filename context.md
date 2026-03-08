@@ -674,7 +674,7 @@ Tracking analog zu `tasks.md`:
 - [x] Task 4: Backend Application Layer (Commands & Queries)
 - [x] Task 5: Backend HTTP Handler
 - [x] Task 6: Backend Routen & Product API
-- [ ] Task 7: Frontend Service Types, Backend-Client & Hooks
+- [x] Task 7: Frontend Service Types, Backend-Client & Hooks
 - [ ] Task 8: Frontend Service-Komponenten
 - [ ] Task 9: Frontend Admin-Bereich
 - [ ] Task 10: Build verifizieren & Tests ausführen
