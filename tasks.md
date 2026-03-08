@@ -40,7 +40,9 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte englische Feldnamen (`
 
 ---
 
-## Task 2: Backend Domain Layer — Structs & Events
+## Task 2: Backend Domain Layer — Structs & Events ✅
+
+**Status:** Abgeschlossen
 
 **Scope:** `backend/domain/table/` (12 Dateien)
 

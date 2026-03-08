@@ -10,35 +10,35 @@ import (
 )
 
 type snapshotV1Data struct {
-	BalanceCents        int        `json:"balanceCents"`
-	UnpaidVariants      []LineItem `json:"unpaidVariants"`
-	UndeliveredVariants []LineItem `json:"undeliveredVariants"`
-	TotalPaymentsCents  int        `json:"totalPaymentsCents"`
+	SaldoCents             int        `json:"saldoCents"`
+	UnbezahltePositionen   []Position `json:"unbezahltePositionen"`
+	UngeliefertePositionen []Position `json:"ungeliefertePositionen"`
+	GesamtZahlungenCents   int        `json:"gesamtZahlungenCents"`
 }
 
 var snapshotV1DataSchema = z.Struct(z.Shape{
-	"BalanceCents":        z.Int(),                 // Can be 0 (no outstanding balance)
-	"UnpaidVariants":      z.Slice(lineItemSchema), // Can be empty slice
-	"UndeliveredVariants": z.Slice(lineItemSchema), // Can be empty slice
-	"TotalPaymentsCents":  z.Int(),                 // Can be 0 (no payments yet)
+	"SaldoCents":             z.Int(),                   // Can be 0 (no outstanding balance)
+	"UnbezahltePositionen":   z.Slice(positionSchema),   // Can be empty slice
+	"UngeliefertePositionen": z.Slice(positionSchema),   // Can be empty slice
+	"GesamtZahlungenCents":   z.Int(),                   // Can be 0 (no payments yet)
 })
 
 // Snapshot represents the materialized state at a point in time
 type Snapshot struct {
-	TableID             int
-	BalanceCents        int
-	UnpaidVariants      []LineItem
-	UndeliveredVariants []LineItem
-	TotalPaymentsCents  int
-	CreatedAt           time.Time
+	TischID                int
+	SaldoCents             int
+	UnbezahltePositionen   []Position
+	UngeliefertePositionen []Position
+	GesamtZahlungenCents   int
+	CreatedAt              time.Time
 }
 
-func NewSnapshotEvent(userID, tableID int, balance int, unpaid, undelivered []LineItem, totalPayments int) (e.Event, error) {
+func NewSnapshotEvent(userID, tischID int, saldo int, unbezahlt, ungeliefert []Position, gesamtZahlungen int) (e.Event, error) {
 	data := snapshotV1Data{
-		BalanceCents:        balance,
-		UnpaidVariants:      unpaid,
-		UndeliveredVariants: undelivered,
-		TotalPaymentsCents:  totalPayments,
+		SaldoCents:             saldo,
+		UnbezahltePositionen:   unbezahlt,
+		UngeliefertePositionen: ungeliefert,
+		GesamtZahlungenCents:   gesamtZahlungen,
 	}
 
 	if err := snapshotV1DataSchema.Validate(&data); err != nil {
@@ -46,7 +46,7 @@ func NewSnapshotEvent(userID, tableID int, balance int, unpaid, undelivered []Li
 		return e.Event{}, fmt.Errorf("snapshot data validation failed: %v", issues)
 	}
 
-	return e.New(userID, string(EventTypeSnapshotV1), "table:"+strconv.Itoa(tableID), data)
+	return e.New(userID, string(EventTypeSnapshotV1), "tisch:"+strconv.Itoa(tischID), data)
 }
 
 func buildSnapshotFromEvent(event e.Event) (Snapshot, error) {
@@ -54,7 +54,7 @@ func buildSnapshotFromEvent(event e.Event) (Snapshot, error) {
 		return Snapshot{}, fmt.Errorf("unsupported event type: %s", event.Type)
 	}
 
-	tableID, err := parseTableIDFromSubject(event.Subject)
+	tischID, err := parseTischIDFromSubject(event.Subject)
 	if err != nil {
 		return Snapshot{}, err
 	}
@@ -65,11 +65,11 @@ func buildSnapshotFromEvent(event e.Event) (Snapshot, error) {
 	}
 
 	return Snapshot{
-		TableID:             tableID,
-		BalanceCents:        data.BalanceCents,
-		UnpaidVariants:      data.UnpaidVariants,
-		UndeliveredVariants: data.UndeliveredVariants,
-		TotalPaymentsCents:  data.TotalPaymentsCents,
-		CreatedAt:           event.Time,
+		TischID:                tischID,
+		SaldoCents:             data.SaldoCents,
+		UnbezahltePositionen:   data.UnbezahltePositionen,
+		UngeliefertePositionen: data.UngeliefertePositionen,
+		GesamtZahlungenCents:   data.GesamtZahlungenCents,
+		CreatedAt:              event.Time,
 	}, nil
 }

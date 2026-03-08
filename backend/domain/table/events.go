@@ -11,28 +11,28 @@ import (
 type EventType string
 
 const (
-	EventTypeOrderPlacedV1       EventType = "table.order-placed:v1"
-	EventTypePaymentRegisteredV1 EventType = "table.payment-registered:v1"
-	EventTypeVariantsCanceledV1  EventType = "table.variants-canceled:v1"
-	EventTypeVariantsDeliveredV1 EventType = "table.variants-delivered:v1"
-	EventTypeSnapshotV1          EventType = "table.snapshot:v1"
+	EventTypeBestellungAufgegebenV1 EventType = "tisch.bestellung-aufgegeben:v1"
+	EventTypeZahlungRegistriertV1   EventType = "tisch.zahlung-registriert:v1"
+	EventTypeProdukteStorniertV1    EventType = "tisch.produkte-storniert:v1"
+	EventTypeProdukteGeliefertV1    EventType = "tisch.produkte-geliefert:v1"
+	EventTypeSnapshotV1             EventType = "tisch.snapshot:v1"
 )
 
-// parseTableIDFromSubject extracts the table ID from an event subject like "table:42".
-func parseTableIDFromSubject(subject string) (int, error) {
-	const prefix = "table:"
+// parseTischIDFromSubject extracts the table ID from an event subject like "tisch:42".
+func parseTischIDFromSubject(subject string) (int, error) {
+	const prefix = "tisch:"
 	if len(subject) <= len(prefix) || subject[:len(prefix)] != prefix {
 		return 0, fmt.Errorf("invalid event subject format: %s", subject)
 	}
 	id, err := strconv.Atoi(subject[len(prefix):])
 	if err != nil {
-		return 0, fmt.Errorf("invalid table ID in event subject: %w", err)
+		return 0, fmt.Errorf("invalid tisch ID in event subject: %w", err)
 	}
 	return id, nil
 }
 
-func GetBalanceFromEvents(events []e.Event) (int, error) {
-	balanceCents := 0
+func GetSaldoFromEvents(events []e.Event) (int, error) {
+	saldoCents := 0
 
 	for _, event := range events {
 		switch event.Type {
@@ -41,30 +41,30 @@ func GetBalanceFromEvents(events []e.Event) (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			balanceCents = snapshot.BalanceCents
+			saldoCents = snapshot.SaldoCents
 
-		case string(EventTypeOrderPlacedV1):
-			order, err := buildOrderFromEvent(event)
+		case string(EventTypeBestellungAufgegebenV1):
+			bestellung, err := buildBestellungFromEvent(event)
 			if err != nil {
 				return 0, err
 			}
-			balanceCents += order.TotalPriceCents
-		case string(EventTypePaymentRegisteredV1):
-			payment, err := buildPaymentFromEvent(event)
+			saldoCents += bestellung.GesamtPreisCents
+		case string(EventTypeZahlungRegistriertV1):
+			zahlung, err := buildZahlungFromEvent(event)
 			if err != nil {
 				return 0, err
 			}
-			balanceCents -= payment.TotalPaymentCents
-		case string(EventTypeVariantsCanceledV1):
-			cancelation, err := buildCancelationFromEvent(event)
+			saldoCents -= zahlung.GesamtZahlungCents
+		case string(EventTypeProdukteStorniertV1):
+			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
 				return 0, err
 			}
-			balanceCents -= cancelation.TotalCancelationCents
+			saldoCents -= stornierung.GesamtStornierungCents
 		}
 	}
 
-	return balanceCents, nil
+	return saldoCents, nil
 }
 
 func GetHistoryFromEvents(events []e.Event) ([]any, error) {
@@ -72,31 +72,31 @@ func GetHistoryFromEvents(events []e.Event) ([]any, error) {
 
 	for _, event := range events {
 		switch event.Type {
-		case string(EventTypeOrderPlacedV1):
-			order, err := buildOrderFromEvent(event)
+		case string(EventTypeBestellungAufgegebenV1):
+			bestellung, err := buildBestellungFromEvent(event)
 			if err != nil {
 				return []any{}, err
 			}
-			history = append(history, order)
-		case string(EventTypePaymentRegisteredV1):
-			payment, err := buildPaymentFromEvent(event)
+			history = append(history, bestellung)
+		case string(EventTypeZahlungRegistriertV1):
+			zahlung, err := buildZahlungFromEvent(event)
 			if err != nil {
 				return []any{}, err
 			}
-			history = append(history, payment)
-		case string(EventTypeVariantsCanceledV1):
-			cancelation, err := buildCancelationFromEvent(event)
+			history = append(history, zahlung)
+		case string(EventTypeProdukteStorniertV1):
+			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
 				return []any{}, err
 			}
-			history = append(history, cancelation)
+			history = append(history, stornierung)
 
-		case string(EventTypeVariantsDeliveredV1):
-			delivery, err := buildDeliveryFromEvent(event)
+		case string(EventTypeProdukteGeliefertV1):
+			lieferung, err := buildLieferungFromEvent(event)
 			if err != nil {
 				return []any{}, err
 			}
-			history = append(history, delivery)
+			history = append(history, lieferung)
 		}
 	}
 
@@ -106,31 +106,31 @@ func GetHistoryFromEvents(events []e.Event) ([]any, error) {
 	return history, nil
 }
 
-// accumulateVariants adds variants to a list, merging quantities for matching variants
-func accumulateVariants(list []LineItem, variants []LineItem) []LineItem {
-	for _, variant := range variants {
+// accumulatePositionen adds positions to a list, merging quantities for matching positions
+func accumulatePositionen(list []Position, positionen []Position) []Position {
+	for _, pos := range positionen {
 		found := false
 		for i, existing := range list {
-			if existing.ID == variant.ID && existing.PriceCents == variant.PriceCents {
-				list[i].Quantity += variant.Quantity
+			if existing.ID == pos.ID && existing.PreisCents == pos.PreisCents {
+				list[i].Quantity += pos.Quantity
 				found = true
 				break
 			}
 		}
 		if !found {
-			list = append(list, variant)
+			list = append(list, pos)
 		}
 	}
 	return list
 }
 
-// reduceVariants subtracts variants from a list, removing entries when quantity reaches zero
-func reduceVariants(list []LineItem, variants []LineItem) []LineItem {
-	for _, variant := range variants {
+// reducePositionen subtracts positions from a list, removing entries when quantity reaches zero
+func reducePositionen(list []Position, positionen []Position) []Position {
+	for _, pos := range positionen {
 		for i := 0; i < len(list); i++ {
-			if list[i].ID == variant.ID && list[i].PriceCents == variant.PriceCents {
-				if list[i].Quantity > variant.Quantity {
-					list[i].Quantity -= variant.Quantity
+			if list[i].ID == pos.ID && list[i].PreisCents == pos.PreisCents {
+				if list[i].Quantity > pos.Quantity {
+					list[i].Quantity -= pos.Quantity
 				} else {
 					list = append(list[:i], list[i+1:]...)
 					i--
@@ -142,8 +142,8 @@ func reduceVariants(list []LineItem, variants []LineItem) []LineItem {
 	return list
 }
 
-func GetUnpaidVariantsFromEvents(events []e.Event) ([]LineItem, error) {
-	unpaidVariants := []LineItem{}
+func GetUnbezahltePositionenFromEvents(events []e.Event) ([]Position, error) {
+	unbezahltePositionen := []Position{}
 
 	for _, event := range events {
 		switch event.Type {
@@ -152,36 +152,36 @@ func GetUnpaidVariantsFromEvents(events []e.Event) ([]LineItem, error) {
 			if err != nil {
 				return nil, err
 			}
-			unpaidVariants = snapshot.UnpaidVariants
+			unbezahltePositionen = snapshot.UnbezahltePositionen
 
-		case string(EventTypeOrderPlacedV1):
-			order, err := buildOrderFromEvent(event)
+		case string(EventTypeBestellungAufgegebenV1):
+			bestellung, err := buildBestellungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
-			unpaidVariants = accumulateVariants(unpaidVariants, order.Variants)
+			unbezahltePositionen = accumulatePositionen(unbezahltePositionen, bestellung.Positionen)
 
-		case string(EventTypePaymentRegisteredV1):
-			payment, err := buildPaymentFromEvent(event)
+		case string(EventTypeZahlungRegistriertV1):
+			zahlung, err := buildZahlungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
-			unpaidVariants = reduceVariants(unpaidVariants, payment.Variants)
+			unbezahltePositionen = reducePositionen(unbezahltePositionen, zahlung.Positionen)
 
-		case string(EventTypeVariantsCanceledV1):
-			cancelation, err := buildCancelationFromEvent(event)
+		case string(EventTypeProdukteStorniertV1):
+			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
-			unpaidVariants = reduceVariants(unpaidVariants, cancelation.Variants)
+			unbezahltePositionen = reducePositionen(unbezahltePositionen, stornierung.Positionen)
 		}
 	}
 
-	return unpaidVariants, nil
+	return unbezahltePositionen, nil
 }
 
-func GetUndeliveredVariantsFromEvents(events []e.Event) ([]LineItem, error) {
-	undeliveredVariants := []LineItem{}
+func GetUngeliefertePositionenFromEvents(events []e.Event) ([]Position, error) {
+	ungeliefertePositionen := []Position{}
 
 	for _, event := range events {
 		switch event.Type {
@@ -190,36 +190,36 @@ func GetUndeliveredVariantsFromEvents(events []e.Event) ([]LineItem, error) {
 			if err != nil {
 				return nil, err
 			}
-			undeliveredVariants = snapshot.UndeliveredVariants
+			ungeliefertePositionen = snapshot.UngeliefertePositionen
 
-		case string(EventTypeOrderPlacedV1):
-			order, err := buildOrderFromEvent(event)
+		case string(EventTypeBestellungAufgegebenV1):
+			bestellung, err := buildBestellungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
-			undeliveredVariants = accumulateVariants(undeliveredVariants, order.Variants)
+			ungeliefertePositionen = accumulatePositionen(ungeliefertePositionen, bestellung.Positionen)
 
-		case string(EventTypeVariantsDeliveredV1):
-			delivery, err := buildDeliveryFromEvent(event)
+		case string(EventTypeProdukteGeliefertV1):
+			lieferung, err := buildLieferungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
-			undeliveredVariants = reduceVariants(undeliveredVariants, delivery.Variants)
+			ungeliefertePositionen = reducePositionen(ungeliefertePositionen, lieferung.Positionen)
 
-		case string(EventTypeVariantsCanceledV1):
-			cancelation, err := buildCancelationFromEvent(event)
+		case string(EventTypeProdukteStorniertV1):
+			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
-			undeliveredVariants = reduceVariants(undeliveredVariants, cancelation.Variants)
+			ungeliefertePositionen = reducePositionen(ungeliefertePositionen, stornierung.Positionen)
 		}
 	}
 
-	return undeliveredVariants, nil
+	return ungeliefertePositionen, nil
 }
 
-func GetTotalPaymentsFromEvents(events []e.Event) (int, error) {
-	totalPaymentsCents := 0
+func GetGesamtZahlungenFromEvents(events []e.Event) (int, error) {
+	gesamtZahlungenCents := 0
 
 	for _, event := range events {
 		switch event.Type {
@@ -228,16 +228,16 @@ func GetTotalPaymentsFromEvents(events []e.Event) (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			totalPaymentsCents = snapshot.TotalPaymentsCents
+			gesamtZahlungenCents = snapshot.GesamtZahlungenCents
 
-		case string(EventTypePaymentRegisteredV1):
-			payment, err := buildPaymentFromEvent(event)
+		case string(EventTypeZahlungRegistriertV1):
+			zahlung, err := buildZahlungFromEvent(event)
 			if err != nil {
 				return 0, err
 			}
-			totalPaymentsCents += payment.TotalPaymentCents
+			gesamtZahlungenCents += zahlung.GesamtZahlungCents
 		}
 	}
 
-	return totalPaymentsCents, nil
+	return gesamtZahlungenCents, nil
 }

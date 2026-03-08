@@ -669,7 +669,7 @@ Die bestehenden Events haben in ihrer `data`-JSONB-Spalte Felder wie `orderId`, 
 - [x] Codebase-Analyse abgeschlossen
 - [x] Plan erstellt und dokumentiert
 - [x] Database Migration (Option A: JSONB migrieren)
-- [ ] Backend Domain Layer
+- [x] Backend Domain Layer
 - [ ] Backend API Layer (Application)
 - [ ] Backend API Layer (HTTP Handler)
 - [ ] Backend API Routes
