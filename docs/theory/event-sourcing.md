@@ -1,10 +1,10 @@
 # Event-Sourcing — Theorie
 
-Dieses Dokument dient als theoretisches Nachschlagewerk für Event-Sourcing. Es erklärt das Muster, seine Kernkonzepte, Entscheidungskriterien gegenüber CRUD, Patterns und Anti-Patterns. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#appendix-anwendungsbeispiel-jotti).
+Dieses Dokument dient als theoretisches Nachschlagewerk für Event-Sourcing. Es erklärt das Muster, seine Kernkonzepte, Technologieoptionen, fortgeschrittene Patterns und Entscheidungskriterien gegenüber CRUD. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#appendix-anwendungsbeispiel-jotti).
 
 > **Verwandte Dokumente:**
 >
-> - [CQRS Theorie](cqrs.md) — Command Query Responsibility Segregation
+> - [CQRS Theorie](cqrs.md) — Command Query Responsibility Segregation (natürliche Ergänzung zu ES)
 > - [DDD Theorie](ddd.md) — Domain-Driven Design Grundlagen
 > - [ADR: Event-Sourcing](../adr/event-sourcing.md) — Entscheidung für Event-Sourcing vs. CRUD
 > - [Event-Sourcing vs. CRUD (Vergleich)](../event-sourcing-vs-crud.md) — Detaillierter Alternativenvergleich
@@ -14,231 +14,579 @@ Dieses Dokument dient als theoretisches Nachschlagewerk für Event-Sourcing. Es 
 
 ## Inhaltsverzeichnis
 
-1. [Event-Sourcing — Grundlagen](#1-event-sourcing--grundlagen)
-2. [Event-Sourcing vs. CRUD: Entscheidungsmatrix](#2-event-sourcing-vs-crud-entscheidungsmatrix)
-3. [Kombination mit CQRS](#3-kombination-mit-cqrs)
-4. [Patterns und Best Practices](#4-patterns-und-best-practices)
-5. [Anti-Patterns](#5-anti-patterns)
-6. [Appendix: Anwendungsbeispiel (jotti)](#appendix-anwendungsbeispiel-jotti)
-7. [Referenzen](#7-referenzen)
+1. [Grundidee & Paradigmenwechsel](#1-grundidee--paradigmenwechsel)
+2. [Event Store: Konzept und Technologien](#2-event-store-konzept-und-technologien)
+3. [Event Design](#3-event-design)
+4. [State Reconstruction (Replay)](#4-state-reconstruction-replay)
+5. [Snapshots](#5-snapshots)
+6. [Event-Schema-Evolution](#6-event-schema-evolution)
+7. [Fortgeschrittene Patterns](#7-fortgeschrittene-patterns)
+8. [Event-Sourcing vs. CRUD: Entscheidungsmatrix](#8-event-sourcing-vs-crud-entscheidungsmatrix)
+9. [Reale Fallstudien](#9-reale-fallstudien)
+10. [Kombination mit CQRS](#10-kombination-mit-cqrs)
+11. [Anti-Patterns](#11-anti-patterns)
+12. [Appendix: Anwendungsbeispiel (jotti)](#appendix-anwendungsbeispiel-jotti)
+13. [Referenzen](#13-referenzen)
 
 ---
 
-## 1. Event-Sourcing — Grundlagen
+## 1. Grundidee & Paradigmenwechsel
 
-### 1.1 Grundidee
+### 1.1 Von Snapshot zu Narration
 
 Event-Sourcing ist ein Persistenzmuster, bei dem **nicht der aktuelle Zustand**, sondern die **Folge aller Zustandsänderungen** (Events) gespeichert wird. Der aktuelle Zustand wird durch Abspielen (Replay) aller Events rekonstruiert.
 
 > **Greg Young:** _"Instead of storing just the current state of the data in a domain, use an append-only store to record the full series of actions taken on that data."_
+>
+> **Martin Fowler:** _"Capture all changes to an application state as a sequence of events."_
 
-**Analogie:** Ein Bankkonto speichert nicht nur den Kontostand (500€), sondern die vollständige Transaktionshistorie (+1000€ Einzahlung, -300€ Abhebung, -200€ Überweisung). Der Kontostand ist eine **Projektion** der Events.
+**Analogie Buchführung (Accounting Ledger):** Ein Buchhalter erfasst alle Buchungen als unveränderliche Einträge im Hauptbuch — niemals werden Einträge gelöscht, Korrekturen sind neue Gegenbuchungen. Der Kontostand ist jederzeit aus den Buchungen rekonstruierbar. Traditionelle Datenbanken gleichen dagegen einer Tafel, die immer wieder überschrieben wird: Der aktuelle Stand ist sichtbar, die Geschichte ist verloren.
 
-### 1.2 Kernkonzepte
+| Paradigma                 | Speicherinhalt                       | Frage                               |
+| ------------------------- | ------------------------------------ | ----------------------------------- |
+| **CRUD (State-Oriented)** | Aktueller Zustand (überschreibend)   | _Wie ist der Zustand jetzt?_        |
+| **Event-Sourcing**        | Vollständige Ereignishistorie        | _Wie ist der Zustand entstanden?_   |
 
-#### Event Store
+### 1.2 Paradigmenwechsel im Schreiben
 
-Der Event Store ist eine **append-only** Datenbank (oder Tabelle). Events werden nur eingefügt, nie geändert oder gelöscht. Diese Unveränderlichkeit ist die stärkste Garantie des Musters.
-
-```
-Event Store (append-only):
-┌────┬────────────────────────────┬────────────┬──────────────────────┐
-│ ID │ Type                       │ Subject    │ Data (JSONB)         │
-├────┼────────────────────────────┼────────────┼──────────────────────┤
-│  1 │ order.placed:v1            │ order:101  │ {items: [...]}       │
-│  2 │ order.placed:v1            │ order:102  │ {items: [...]}       │
-│  3 │ order.payment-received:v1  │ order:101  │ {amount: 4200}       │
-│  4 │ order.items-shipped:v1     │ order:101  │ {items: [...]}       │
-│  5 │ order.item-returned:v1     │ order:102  │ {items: [...]}       │
-└────┴────────────────────────────┴────────────┴──────────────────────┘
-```
-
-#### Event
-
-Ein Event beschreibt eine **vergangene Tatsache**. Es ist immutable und enthält alle Daten, die nötig sind, um die Zustandsänderung zu reproduzieren.
-
-**Eigenschaften eines guten Events:**
-
-| Eigenschaft            | Beschreibung                                                           |
-| ---------------------- | ---------------------------------------------------------------------- |
-| **Vergangenheitsform** | `OrderPlaced`, nicht `PlaceOrder`                                      |
-| **Self-contained**     | Alle Daten im Event, keine externen Referenzen auf veränderliche Daten |
-| **Versioniert**        | Schema-Evolution durch Versionsnummer (`:v1`, `:v2`)                   |
-| **Geordnet**           | Sequenzielle ID oder Zeitstempel für kausale Ordnung                   |
-| **Kleinstmöglich**     | Nur die relevante Zustandsänderung, kein redundanter Kontext           |
-
-#### State Reconstruction (Replay)
-
-Der aktuelle Zustand wird durch **Abspielen aller Events** in Reihenfolge berechnet:
-
-```
-State₀ = Anfangszustand (leer)
-State₁ = apply(State₀, Event₁)   // Bestellung: +50€
-State₂ = apply(State₁, Event₂)   // Zahlung: -30€
-State₃ = apply(State₂, Event₃)   // Stornierung: -10€
-→ Aktueller Zustand: Saldo = 10€
-```
-
-#### Snapshots
-
-Problem: Bei vielen Events wird das Replay langsam. Lösung: **Snapshots** speichern einen komprimierten Zustand zu einem bestimmten Zeitpunkt. Beim Replay muss nur ab dem letzten Snapshot abgespielt werden.
-
-```
-Events:  [1] [2] [3] [4] [5] [SNAPSHOT@5] [6] [7] [8]
-                                    ↑
-                            Zustand nach Event 5
-                            (komprimiert gespeichert)
-
-Replay für aktuellen Zustand:
-  Statt: Event 1→2→3→4→5→6→7→8  (8 Events)
-  Nur:   SNAPSHOT@5 → 6→7→8      (Snapshot + 3 Events)
-```
-
-### 1.3 Vorteile von Event-Sourcing
-
-| Vorteil                           | Beschreibung                                             |
-| --------------------------------- | -------------------------------------------------------- |
-| **Vollständiger Audit Trail**     | Jede Aktion ist dokumentiert — wer, was, wann            |
-| **Zeitreisen (Temporal Queries)** | Zustand zu jedem Zeitpunkt rekonstruierbar               |
-| **Keine Daten gehen verloren**    | Events werden nie gelöscht oder überschrieben            |
-| **Einfache Schreiboperationen**   | Ein einzelnes INSERT pro Aktion                          |
-| **Schema-Flexibilität**           | Neue Event-Typen hinzufügen, ohne bestehende zu ändern   |
-| **Debugging**                     | Event-Stream zeigt exakt, wie ein Zustand entstanden ist |
-| **Natürliche CQRS-Basis**         | Events als Write Model, Projektionen als Read Model      |
-
-### 1.4 Nachteile von Event-Sourcing
-
-| Nachteil                     | Beschreibung                                                            |
-| ---------------------------- | ----------------------------------------------------------------------- |
-| **Leseperformance**          | Replay ist langsamer als ein direkter DB-Select                         |
-| **Snapshots nötig**          | Ohne Snapshots skaliert Replay nicht                                    |
-| **Eventual Consistency**     | Read Models können veraltet sein                                        |
-| **Komplexität**              | Mehr Code für Zustandsrekonstruktion                                    |
-| **Event-Schema-Evolution**   | Alte Events müssen mit neuer Logik kompatibel bleiben                   |
-| **Kein einfaches Reporting** | SQL-Queries über Events sind komplex                                    |
-| **DSGVO/Datenlöschung**      | Events sind immutable — personenbezogene Daten sind schwer zu entfernen |
+Event-Sourcing transformiert den kritischsten Datenbankvorgang: Ein potenziell komplexes `UPDATE`, das Locks erfordert und Konflikte erzeugt, wird zu einem einfachen, nicht-destruktiven `INSERT` in ein Append-only-Log. Das reduziert Write-Contention dramatisch und vereinfacht die Transaktionslogik auf der Schreibseite — auf Kosten erhöhter Komplexität auf der Leseseite.
 
 ---
 
-## 2. Event-Sourcing vs. CRUD: Entscheidungsmatrix
+## 2. Event Store: Konzept und Technologien
 
-### Wann Event-Sourcing?
+### 2.1 Konzept
 
-| Kriterium                   | Event-Sourcing bevorzugen        | CRUD bevorzugen                      |
-| --------------------------- | -------------------------------- | ------------------------------------ |
-| **Audit Trail**             | Pflicht (wer, was, wann)         | Nicht relevant                       |
-| **Geschäftsregeln**         | Komplex, zeitabhängig            | Einfach, statisch                    |
-| **Datenhistorie**           | Zustand zu jedem Zeitpunkt nötig | Nur aktueller Zustand relevant       |
-| **Schreibmuster**           | Append-only, Events              | CRUD (Create, Read, Update, Delete)  |
-| **Lesemuster**              | Aggregationen, Zeitreihen        | Einfache Lookups, Filtern, Sortieren |
-| **Schema-Evolution**        | Häufig, neue Event-Typen         | Selten, stabile Tabellen             |
-| **Datenmenge pro Aggregat** | Überschaubar (< 10.000 Events)   | Unbegrenzt                           |
-| **Team-Erfahrung**          | Event-Sourcing bekannt           | CRUD-Erfahrung                       |
+Der **Event Store** ist das Herzstück eines event-gesourcten Systems. Er ist ein Append-only-Log mit drei fundamentalen Garantien:
 
-### Typische Anwendung
+1. **Immutability** — Einmal geschriebene Events können nicht geändert oder gelöscht werden
+2. **Ordering** — Events innerhalb eines Streams sind streng chronologisch geordnet
+3. **Append-Only** — Neue Einträge werden nur angefügt, nie überschrieben
 
-| Bereich                      | Muster         | Begründung                                                   |
-| ---------------------------- | -------------- | ------------------------------------------------------------ |
-| **Transaktionsoperationen**  | Event-Sourcing | Audit Trail, Zustandsrekonstruktion, fachliche Events        |
-| **Benutzerverwaltung**       | CRUD           | Einfache Entität, kein Audit nötig                           |
-| **Stammdaten (Katalog)**     | CRUD           | Stammdaten, selten geändert                                  |
-| **Finanztransaktionen**      | Event-Sourcing | Nachvollziehbarkeit und Compliance                           |
-| **Konfiguration/Einstellung**| CRUD           | Einfacher Zustand, keine Historie nötig                      |
+```
+Event Store — Stream "order:101":
+┌────┬────────────────────────────┬──────────────────────────────┐
+│ ID │ Type                       │ Data (JSONB)                 │
+├────┼────────────────────────────┼──────────────────────────────┤
+│  1 │ order.placed:v1            │ {items: [...], total: 4200}  │
+│  2 │ order.payment-received:v1  │ {amount: 4200}               │
+│  3 │ order.items-shipped:v1     │ {items: [...], tracking: "1Z999AA1"}│
+└────┴────────────────────────────┴──────────────────────────────┘
+```
+
+### 2.2 Event Store-Technologien im Vergleich
+
+| Technologie        | Typ                       | Stärken                                                                    | Schwächen                                             | Geeignet für                                    |
+| ------------------ | ------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------- |
+| **EventStoreDB**   | Spezialisierter ES-Store  | Native Streams, Subscriptions, Projektions-Engine, Optimistic Concurrency  | Eigenes Betriebsmodell, Community Edition limitiert   | Dedizierte ES-Systeme, Microservices             |
+| **PostgreSQL**     | Relationale DB (generisch)| Bekannt, ACID, JSONB, Trigger für Immutability, keine neue Infrastruktur   | Keine native Stream-Abstraktion, manuelle Partitions  | Monolithen, Teams mit SQL-Expertise              |
+| **Apache Kafka**   | Distributed Log / Broker  | Extreme Skalierbarkeit, Retention, Consumer Groups, Replay                 | Kein primärer ES-Store, keine Aggregate-Granularität  | Event Streaming, Microservices mit hohem Volumen |
+| **DynamoDB**       | NoSQL (AWS)               | Serverless, skalierbar, niedrige Latenz bei einfachen Zugriffen            | Kein natürliches Ordering über Partitionen, Vendor Lock-in | AWS-native Systeme, globale Skalierung       |
+| **Marten (.NET)**  | PostgreSQL-Wrapper        | PostgreSQL-basiert, LINQ-Queries, Document Store + ES kombiniert           | .NET-only, kein Go-Support                            | .NET-Systeme auf PostgreSQL                      |
+| **Axon (Java)**    | ES-Framework (Java)       | Vollständiges ES+CQRS+Saga-Framework, Command Bus, Event Bus               | Stark opinionated, Java-only, Lizenzkosten möglich    | Java/Spring-Enterprise-Anwendungen               |
+
+**Entscheidungsregel:** Für den Einstieg und Teams ohne ES-Infrastruktur ist **PostgreSQL als Event Store** der pragmatischste Ansatz. EventStoreDB lohnt sich ab dem Punkt, wo die erweiterten Features (persistente Subscriptions, Server-side Projektionen) den Betriebsaufwand rechtfertigen. Kafka ist kein primärer Event Store, sondern ein Event-Transport — eignet sich aber als sekundärer Kanal für Integration Events.
 
 ---
 
-## 3. Kombination mit CQRS
+## 3. Event Design
 
-Event-Sourcing allein hat ein Performance-Problem beim Lesen: Jede Query muss den Event-Stream replayed. **CQRS (Command Query Responsibility Segregation)** löst dieses Problem durch separate Read Models (Projektionen), die aus dem Event-Stream aktualisiert werden.
+### 3.1 Thin Events vs. Fat Events
 
-```
-Command Side: Client → Command Handler → Event Store (append-only)
-                                              │
-                                    Projektion (sync/async)
-                                              │
-Query Side:   Client ← Query Handler  ← Read Store (Projektions-Tabellen)
-```
+Ein fundamentales Designproblem ist die Granularität des Event-Inhalts:
 
-Die Kombination von Event-Sourcing und CQRS ist das gängigste Einsatzmuster: Events bilden das Write Model, Projektionen bilden optimierte Read Models.
+| Typ             | Inhalt                                           | Vorteile                             | Nachteile                                        |
+| --------------- | ------------------------------------------------ | ------------------------------------ | ------------------------------------------------ |
+| **Thin Event**  | Nur das Notwendigste (z.B. IDs, Schlüsselwerte)  | Kleiner, weniger Kopplung            | Consumer müssen Daten nachladen (Join-Problem)   |
+| **Fat Event**   | Alle relevanten Kontextdaten eingebettet         | Self-contained, kein Nachladen nötig | Größer, Redundanz bei Duplikaten                 |
 
-**→ Ausführliche Darstellung in [CQRS — Theorie](cqrs.md)**
-
----
-
-## 4. Patterns und Best Practices
-
-### 4.1 Event Design
-
-**Self-contained Events:** Events kopieren alle relevanten Daten (z.B. Produktname, Preis) zum Zeitpunkt der Aktion. Keine Referenzen auf veränderliche Stammdaten.
+**Empfehlung für Domain Events:** Fat Events — alle relevanten Daten (Name, Preis, Status) werden zum Zeitpunkt der Aktion eingebettet. Bei **Integration Events** (systemübergreifend) kann Thin sinnvoll sein, wenn der Consumer sowieso die aktuelle Version braucht.
 
 ```go
-// RICHTIG: Preis und Name im Event eingebettet
+// Fat Event (RICHTIG für Domain Events)
+type OrderPlacedEvent struct {
+    OrderID    int
+    CustomerID int
+    Items      []OrderItem  // Name + Preis eingebettet
+    TotalCents int
+    PlacedAt   time.Time
+}
+
 type OrderItem struct {
-    ID         int    // Artikel-ID (für Referenz)
-    Name       string // "Espresso" — zum Zeitpunkt der Bestellung
-    PriceCents int    // 350 — zum Zeitpunkt der Bestellung
+    ProductID  int
+    Name       string  // "Espresso" — zum Zeitpunkt der Bestellung
+    PriceCents int     // 350 — zum Zeitpunkt der Bestellung
     Quantity   int
 }
 
-// FALSCH: Nur ID referenzieren
-type OrderItem struct {
-    ProductID int  // Was, wenn der Preis sich ändert?
-    Quantity  int
+// Thin Event (problematisch: Was wenn Preis sich ändert?)
+type OrderPlacedEventThin struct {
+    OrderID    int
+    ProductIDs []int  // Consumer muss Preise separat nachladen
 }
 ```
 
-### 4.2 Event-Versionierung
+### 3.2 Domain Events vs. Integration Events
 
-Events sind versioniert (`:v1`-Suffix). Bei Schema-Änderungen:
+| Typ                    | Scope                          | Lebensdauer | Consumer              | Beispiel                          |
+| ---------------------- | ------------------------------ | ----------- | --------------------- | --------------------------------- |
+| **Domain Event**       | Innerhalb eines Bounded Context| Dauerhaft   | Gleicher BC, interne Projektionen | `OrderPlaced`, `PaymentReceived` |
+| **Integration Event**  | Systemübergreifend             | Kurzlebig   | Andere Services/BCs   | `OrderConfirmed` (an Logistics)   |
 
-1. **Neue Version definieren** (`:v2`) mit neuem Schema
-2. **Upcaster schreiben** — transformiert `:v1`-Events in `:v2`-Format beim Replay
-3. **Alte Events niemals ändern** — sie sind immutable
+Domain Events sind die Grundlage des Event Stores. Integration Events werden typischerweise aus Domain Events abgeleitet und über einen Message Broker veröffentlicht — über das **Outbox Pattern** (→ Abschnitt 7.2).
 
-```go
-// Upcaster-Beispiel
-func upcastV1toV2(event Event) Event {
-    if event.Type == "order.placed:v1" {
-        // V1 hatte kein "comment"-Feld → Default setzen
-        data := event.Data
-        data["comment"] = ""
-        return Event{...event, Type: "order.placed:v2", Data: data}
-    }
-    return event
-}
-```
+### 3.3 Eigenschaften eines guten Events
 
-### 4.3 Idempotenz
-
-Commands sollten idempotent sein — mehrfaches Ausführen desselben Commands hat den gleichen Effekt wie einmaliges Ausführen. Strategien:
-
-- **Idempotency Key** im Request (Client-generierte UUID)
-- **Deduplizierung** im Event Store (vor INSERT prüfen)
-- **Natürliche Idempotenz** (z.B. "Setze Status auf aktiv" statt "Aktiviere")
-
-### 4.4 Concurrency Control
-
-Bei konkurrierenden Schreibzugriffen auf denselben Event-Stream:
-
-- **Optimistic Concurrency:** Expected Version beim Schreiben prüfen
-- **Pessimistic Locking:** `SELECT ... FOR UPDATE` auf Aggregate-Ebene
-- **Last-Writer-Wins:** Akzeptabel bei unabhängigen Events (z.B. zwei unabhängige Bestellungen am selben Aggregat = beide gültig)
-
-### 4.5 Event Store-Optimierung
-
-| Optimierung         | Beschreibung                         |
-| ------------------- | ------------------------------------ |
-| **Snapshots**       | Komprimierter Zustand nach N Events  |
-| **Partitionierung** | Events nach Subject partitionieren   |
-| **Archivierung**    | Alte Events in Cold Storage          |
-| **Indexierung**     | Index auf `(subject, type)`          |
-| **Batch-Reads**     | Events in einem Query laden          |
+| Eigenschaft            | Beschreibung                                                            |
+| ---------------------- | ----------------------------------------------------------------------- |
+| **Vergangenheitsform** | `OrderPlaced`, nicht `PlaceOrder`                                       |
+| **Self-contained**     | Alle Daten im Event, keine Referenzen auf veränderliche Stammdaten      |
+| **Versioniert**        | Schema-Evolution durch Versionsnummer (`:v1`, `:v2`)                    |
+| **Geordnet**           | Sequenzielle ID oder Zeitstempel für kausale Ordnung                    |
+| **Granular**           | Nur die relevante Zustandsänderung, kein gesamter Aggregat-Zustand      |
+| **Fachlich sinnvoll**  | Beschreibt Geschäftsereignis, kein technisches Implementierungsdetail   |
 
 ---
 
-## 5. Anti-Patterns
+## 4. State Reconstruction (Replay)
 
-### 5.1 Event als Command
+### 4.1 Das Apply/Fold-Pattern
+
+Zustandsrekonstruktion folgt dem funktionalen **Fold/Reduce-Pattern**: Ein leerer Anfangszustand wird schrittweise durch Anwendung jedes Events transformiert.
+
+```
+State₀ = Anfangszustand (leer)
+State₁ = apply(State₀, Event₁)
+State₂ = apply(State₁, Event₂)
+...
+Stateₙ = fold(State₀, [Event₁, Event₂, ..., Eventₙ])
+```
+
+**Go-Implementierung:**
+
+```go
+// Apply-Funktion: reine Funktion ohne Seiteneffekte
+// Fehlerbehandlung für json.Unmarshal aus Kürze weggelassen
+func Apply(state OrderState, event Event) OrderState {
+    switch event.Type {
+    case "order.placed:v1":
+        var data OrderPlacedData
+        _ = json.Unmarshal(event.Data, &data)
+        state.Items = data.Items
+        state.TotalCents = data.TotalCents
+        state.Status = "pending"
+    case "order.payment-received:v1":
+        state.Status = "paid"
+    case "order.items-shipped:v1":
+        state.Status = "shipped"
+    }
+    return state
+}
+
+// Fold: Aggregation aller Events
+func Rehydrate(events []Event) OrderState {
+    state := OrderState{}  // leerer Anfangszustand
+    for _, e := range events {
+        state = Apply(state, e)
+    }
+    return state
+}
+```
+
+**Schlüsselprinzip:** Die `Apply`-Funktion ist eine **reine Funktion** — kein I/O, keine Seiteneffekte. Das macht sie einfach testbar und deterministisch.
+
+### 4.2 Commands vs. Events
+
+```
+Command (Absicht):    PlaceOrder → Validierung → Ablehnen (falls ungültig)
+                                                ↓ (falls gültig)
+Event (Tatsache):                         OrderPlaced → Event Store
+```
+
+Commands können abgelehnt werden. Events sind unveränderliche Tatsachen und werden nie abgelehnt.
+
+---
+
+## 5. Snapshots
+
+### 5.1 Notwendigkeit
+
+Bei langen Event-Streams wird das Replay teuer. Ein Aggregat mit 10.000 Events muss bei jeder Operation alle 10.000 Events laden und verarbeiten.
+
+```
+Ohne Snapshot:  [1] [2] [3] ... [9999] [10000]  → 10.000 Events laden
+Mit Snapshot:   [SNAPSHOT@9990] [9991] ... [10000]  → Snapshot + 10 Events
+```
+
+### 5.2 Snapshot-Strategien
+
+| Strategie                  | Beschreibung                                              | Geeignet für                                    |
+| -------------------------- | --------------------------------------------------------- | ----------------------------------------------- |
+| **N-Events-Strategie**     | Snapshot nach jedem N-ten Event (z.B. alle 100 Events)    | Stabile, vorhersehbare Aggregat-Größen          |
+| **Zeitbasiert**            | Snapshot in festen Zeitintervallen (z.B. täglich)         | Langlebige Aggregates mit regelmäßiger Aktivität|
+| **Bei jedem Write**        | Snapshot nach jeder Schreiboperation                      | Häufig gelesene, selten geschriebene Aggregates |
+| **On-Demand**              | Snapshot manuell oder bei Bedarf (z.B. nach Migration)    | Einmalige Optimierungen                         |
+
+### 5.3 Snapshot als Event vs. separater Store
+
+**Option A — Snapshot als eigener Event-Typ:**
+- Snapshot wird als normales Event in den Event Store geschrieben
+- Keine separate Infrastruktur nötig
+- Nachvollziehbar in der Event-Historie
+
+**Option B — Separater Snapshot-Store:**
+- Snapshots in eigener Tabelle/Collection
+- Event Store bleibt „sauber" mit nur Domain Events
+- Flexiblere Snapshot-Strategie ohne Stream-Pollution
+
+---
+
+## 6. Event-Schema-Evolution
+
+Das schwierigste Problem in event-gesourcten Systemen: Events sind immutable und können jahrelang im Store liegen. Business-Anforderungen ändern sich — Event-Schemas müssen sich anpassen.
+
+### 6.1 Strategien im Überblick
+
+| Strategie                  | Beschreibung                                                          | Aufwand   | Eignung                              |
+| -------------------------- | --------------------------------------------------------------------- | --------- | ------------------------------------ |
+| **Weak Schema**            | Optionale Felder, Defaults für fehlende Werte                         | Gering    | Kleine, additive Änderungen          |
+| **Upcasting**              | Alte Events werden beim Lesen on-the-fly in neuere Version konvertiert| Mittel    | Nicht-breaking Schema-Änderungen     |
+| **Event Versioning**       | Neue Versionen parallel (`:v1`, `:v2`), Handler für beide             | Mittel    | Breaking Changes mit Migration       |
+| **Lazy Migration**         | Events werden beim Lesen migriert und zurückgeschrieben               | Hoch      | Schrittweise Migration langer Streams|
+| **Stream Transformation**  | Komplette Neuschreibung aller Events in neues Format                  | Sehr hoch | Fundamental andere Datenstruktur     |
+
+### 6.2 Upcasting (empfohlen für die meisten Fälle)
+
+Beim Upcasting transformiert eine Upcaster-Funktion ein altes Event-Format beim Lesen in das neue Format — ohne die gespeicherten Events zu ändern.
+
+```go
+// Event-Versionierung: v1 → v2
+// v1: kein "comment"-Feld
+// v2: "comment"-Feld hinzugefügt
+
+func upcastOrderPlaced(event Event) Event {
+    if event.Type == "order.placed:v1" {
+        var data map[string]interface{}
+        _ = json.Unmarshal(event.Data, &data) // Fehlerbehandlung aus Kürze weggelassen
+
+        // Fehlendes Feld mit Default befüllen
+        if _, ok := data["comment"]; !ok {
+            data["comment"] = ""
+        }
+
+        newData, _ := json.Marshal(data) // Fehlerbehandlung aus Kürze weggelassen
+        return Event{
+            ID:        event.ID,
+            Type:      "order.placed:v2",  // hochgestuft
+            Subject:   event.Subject,
+            Timestamp: event.Timestamp,
+            Data:      newData,
+        }
+    }
+    return event
+}
+
+// Upcaster in der Read-Pipeline registrieren
+func ReadAndUpcast(events []Event) []Event {
+    result := make([]Event, len(events))
+    for i, e := range events {
+        result[i] = upcastOrderPlaced(e)
+    }
+    return result
+}
+```
+
+**Grundregel:** Alte Events niemals direkt ändern. Upcaster laufen beim Lesen — transparent für den Rest der Anwendung.
+
+### 6.3 Backward/Forward Compatibility
+
+| Kompatibilität          | Beschreibung                                           | Mittel                                    |
+| ----------------------- | ------------------------------------------------------ | ----------------------------------------- |
+| **Backward Compatible** | Neuer Code kann alte Events verarbeiten                | Optionale Felder, Defaults, Upcasting     |
+| **Forward Compatible**  | Alter Code kann neue Events ignorieren/überspringen    | Unbekannte Felder ignorieren              |
+
+**Schema Registry:** In verteilten Systemen mit vielen Services und Event-Typen verwaltet eine **Schema Registry** (z.B. Confluent Schema Registry für Avro/Protobuf) die Schemas zentral und erzwingt Kompatibilitätschecks vor dem Deployment.
+
+### 6.4 Serialisierungsformate
+
+| Format       | Typ       | Vorteile                                    | Nachteile                              |
+| ------------ | --------- | ------------------------------------------- | -------------------------------------- |
+| **JSON**     | Text      | Lesbar, flexibel, weit verbreitet           | Kein eingebautes Schema, größer        |
+| **JSONB**    | Binär-JSON| JSON-Features + PostgreSQL-native Indexierung| PostgreSQL-spezifisch                  |
+| **Protobuf** | Binär     | Kompakt, typsicher, Schema-Evolution        | Binär (nicht direkt lesbar), Build-Step|
+| **Avro**     | Binär     | Schema Registry, gute Kafka-Integration     | Komplexer Setup                        |
+
+---
+
+## 7. Fortgeschrittene Patterns
+
+### 7.1 Saga Pattern (Process Manager)
+
+**Problem:** Komplexe Geschäftsvorgänge umfassen mehrere Aggregates oder Services. Eine atomare Transaktion über Servicegrenzen ist mit 2PC nicht praktikabel.
+
+**Lösung:** Eine **Saga** zerlegt den Vorgang in eine Sequenz lokaler Transaktionen. Jede lokale Transaktion veröffentlicht ein Event, das den nächsten Schritt auslöst. Bei einem Fehler werden **Kompensations-Transaktionen** ausgeführt.
+
+```
+Saga: Bestellung aufgeben (Order → Payment → Inventory)
+
+1. OrderService:      Order.Placed  →  Event: OrderCreated
+2. PaymentService:    Payment.Reserved  →  Event: PaymentReserved
+3. InventoryService:  Stock.Reserved  →  Event: StockReserved
+4. OrderService:      Order.Confirmed  →  Event: OrderConfirmed
+
+Bei Fehler in Schritt 3 (kein Lager):
+3b. InventoryService:   →  Event: StockReservationFailed
+4b. PaymentService:     Kompensation: Payment.Released
+5b. OrderService:       Kompensation: Order.Cancelled
+```
+
+**Choreography vs. Orchestration:**
+
+| Ansatz              | Beschreibung                                                     | Vorteile                    | Nachteile                           |
+| ------------------- | ---------------------------------------------------------------- | --------------------------- | ----------------------------------- |
+| **Choreography**    | Jeder Service reagiert auf Events anderer Services               | Kein zentraler Coordinator  | Schwer zu debuggen, impliziter Flow |
+| **Orchestration**   | Zentraler Process Manager steuert den Ablauf (Commands senden)   | Expliziter Flow, leicht zu debuggen | Single Point of Failure möglich |
+
+### 7.2 Outbox Pattern
+
+**Problem:** Beim Verarbeiten eines Commands muss der Service zwei Aktionen atomisch ausführen:
+1. Datenbank aktualisieren (Event speichern)
+2. Event an Message Broker senden
+
+Schlägt eine der beiden Aktionen fehl, entsteht Inkonsistenz.
+
+**Lösung:** Das **Outbox Pattern** speichert das zu sendende Event als Teil derselben DB-Transaktion in einer `outbox`-Tabelle. Ein separater Prozess (Message Relay) liest die Outbox und sendet die Events an den Broker.
+
+```
+Transaktion (atomar):
+  INSERT INTO events (type, subject, data) VALUES (...)
+  INSERT INTO outbox (event_id, destination, payload) VALUES (...)
+
+Message Relay (asynchron):
+  SELECT * FROM outbox WHERE sent_at IS NULL
+  → Events an Message Broker senden
+  → UPDATE outbox SET sent_at = now() WHERE id = ...
+```
+
+```
+┌───────────────────────────────────────────────┐
+│ Datenbank                                     │
+│  events (Event Store)                         │
+│  outbox (zu sendende Nachrichten)             │
+└───────────────────────────┬───────────────────┘
+                            │ Message Relay (Polling/CDC)
+                            ▼
+                    ┌──────────────┐
+                    │ Message Broker│
+                    │ (Kafka, NATS) │
+                    └──────────────┘
+```
+
+**Implementierungsvarianten:**
+- **Polling Publisher:** Relay fragt regelmäßig die Outbox-Tabelle ab
+- **Transaction Log Tailing / CDC:** Relay liest das Datenbank-WAL (Write-Ahead Log) via Debezium oder ähnlichen Tools
+
+### 7.3 Inbox Pattern
+
+**Problem:** Message Broker liefern Nachrichten mindestens einmal (**at-least-once delivery**). Event-Handler müssen idempotent sein, oder doppelte Events führen zu Fehlverhalten.
+
+**Lösung:** Das **Inbox Pattern** verwaltet eine `inbox`-Tabelle, die bereits verarbeitete Event-IDs speichert. Vor der Verarbeitung wird geprüft, ob das Event bereits verarbeitet wurde.
+
+```sql
+-- Inbox-Tabelle
+CREATE TABLE inbox (
+    message_id  TEXT PRIMARY KEY,  -- eindeutige ID vom Broker
+    processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Idempotente Verarbeitung
+INSERT INTO inbox (message_id)
+VALUES ($1)
+ON CONFLICT (message_id) DO NOTHING
+RETURNING message_id;
+-- Wenn kein Row zurückgegeben: Event bereits verarbeitet → überspringen
+```
+
+### 7.4 Idempotenz & Concurrency Control
+
+**Idempotenz-Strategien:**
+
+| Strategie              | Beschreibung                                                     |
+| ---------------------- | ---------------------------------------------------------------- |
+| **Idempotency Key**    | Client sendet UUID im Request; Server prüft auf Duplikat         |
+| **Natural Idempotency**| „Setze Status auf X" statt „Erhöhe Status um 1"                  |
+| **Inbox Pattern**      | Message-ID in Inbox-Tabelle tracken (→ 7.3)                      |
+
+**Concurrency Control:**
+
+| Strategie                   | Beschreibung                                                                  |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| **Optimistic Concurrency**  | Expected Version beim Schreiben prüfen; Conflict → Retry                      |
+| **Pessimistic Locking**     | `SELECT ... FOR UPDATE` auf Aggregat-Ebene vor dem Schreiben                  |
+| **Last-Writer-Wins**        | Letzter Write gewinnt (akzeptabel bei unabhängigen Events am selben Aggregat) |
+
+```go
+// Optimistic Concurrency: Erwartete Version mitschicken
+func WriteEvent(subject string, expectedVersion int, event Event) error {
+    result, err := db.Exec(`
+        INSERT INTO events (subject, type, data, version)
+        SELECT $1, $2, $3, $4
+        WHERE (SELECT MAX(version) FROM events WHERE subject = $1) = $4 - 1
+    `, subject, event.Type, event.Data, expectedVersion+1)
+    if err != nil {
+        return err
+    }
+
+    rowsAffected, _ := result.RowsAffected()
+    if rowsAffected == 0 {
+        return ErrConcurrencyConflict  // Version hat sich geändert → Retry
+    }
+    return nil
+}
+```
+
+---
+
+## 8. Event-Sourcing vs. CRUD: Entscheidungsmatrix
+
+### 8.1 Ausführliche Entscheidungsmatrix
+
+| Kriterium                     | Event-Sourcing bevorzugen                        | CRUD bevorzugen                                  |
+| ----------------------------- | ------------------------------------------------ | ------------------------------------------------ |
+| **Audit Trail**               | Pflicht (Compliance, wer/was/wann)               | Nicht relevant                                   |
+| **Temporal Queries**          | Zustand zu beliebigem Zeitpunkt nötig            | Nur aktueller Zustand relevant                   |
+| **Geschäftsregeln**           | Komplex, zeitabhängig, regelbasiert              | Einfach, statisch                                |
+| **Schreibmuster**             | Append-only, viele kleine Änderungen             | Full Updates, seltene Änderungen                 |
+| **Lesemuster**                | Aggregationen, Zeitreihen, Projektionen          | Einfache Lookups, Filtern, Sortieren             |
+| **Debugging & Fehleranalyse** | Exakter Replay von Produktionsproblemen nötig    | Log-Dateien ausreichend                          |
+| **Schema-Evolution**          | Häufig, fachlich getrieben                       | Selten, stabile Tabellen                         |
+| **Eventual Consistency**      | Akzeptabel / gewünscht                           | Strenge Konsistenz erforderlich                  |
+| **Datenmenge pro Aggregat**   | Überschaubar (< 10.000 Events, mit Snapshots)    | Unbegrenzt                                       |
+| **Undo/Redo**                 | Erforderlich (Stornierungen, Korrekturen)        | Nicht benötigt                                   |
+| **Event-Streaming**           | Integration mit anderen Services über Events     | Kein Event-Streaming geplant                     |
+| **Team-Erfahrung**            | Team kennt ES-Patterns                           | CRUD-Erfahrung, keine ES-Lernbereitschaft        |
+| **Systemkomplexität**         | Komplexes Domain-Modell rechtfertigt ES-Overhead | Einfaches System, ES wäre Over-Engineering       |
+| **DSGVO/Datenlöschung**       | Kryptografisches Erasure implementierbar         | Standard-DELETE ausreichend                      |
+
+### 8.2 Hybridstrategie (empfohlen)
+
+In den meisten Systemen ist **kein Entweder-oder** notwendig. Die optimale Strategie kombiniert beide Muster:
+
+| Domäne                          | Muster         | Begründung                                                    |
+| ------------------------------- | -------------- | ------------------------------------------------------------- |
+| **Finanztransaktionen**         | Event-Sourcing | Nachvollziehbarkeit, Compliance, unveränderliche Ledger       |
+| **Bestellverwaltung**           | Event-Sourcing | Audit Trail, Statusübergänge, Undo/Redo                       |
+| **Komplexe Workflows**          | Event-Sourcing | Zeitabhängige Geschäftsregeln, Saga-Integration               |
+| **Benutzerverwaltung**          | CRUD           | Einfache Entität, kein Audit Trail nötig                      |
+| **Stammdaten (Katalog)**        | CRUD           | Selten geändert, stabile Tabellen                             |
+| **Konfiguration/Einstellungen** | CRUD           | Einfacher Zustand, keine Historisierung nötig                 |
+
+### 8.3 Entscheidungsfluss
+
+```
+Ist ein vollständiger Audit Trail Pflicht?
+  → Ja: Event-Sourcing
+  → Nein: Weiter ↓
+
+Ist Zeitreise (historischer Zustand) notwendig?
+  → Ja: Event-Sourcing
+  → Nein: Weiter ↓
+
+Gibt es komplexe, zeitabhängige Geschäftsregeln?
+  → Ja: Event-Sourcing evaluieren
+  → Nein: CRUD
+
+Hat das Team ES-Erfahrung?
+  → Nein + einfaches System: CRUD
+  → Ja oder Lernbereitschaft + geschäftlicher Mehrwert: Event-Sourcing
+```
+
+---
+
+## 9. Reale Fallstudien
+
+### 9.1 Banking & Finanzsysteme
+
+**Kontext:** Kernbankensysteme verwalten Konten und Transaktionen.
+
+**Warum Event-Sourcing?**
+- Regulatorische Anforderungen verlangen lückenlose Audit Trails
+- Kontostand ist korrekturdurchführbar: falsche Buchung wird durch Gegenbuchung korrigiert, nie überschrieben
+- Zeitreise: Kontoauszug zum Stichtag muss exakt rekonstruierbar sein
+
+**Muster:** Jede Kontobewegung (Einzahlung, Auszahlung, Überweisung) ist ein unveränderlicher Event. Der Kontostand ist eine Projektion (CQRS). Sagas koordinieren mehrstufige Überweisungen über Service-Grenzen.
+
+### 9.2 E-Commerce (Bestellverwaltung)
+
+**Kontext:** Plattformen wie Amazon verarbeiten Millionen von Bestellungen.
+
+**Warum Event-Sourcing?**
+- Bestellstatus durchläuft viele Zustände: `Placed → Paid → Shipped → Delivered → Returned`
+- Jeder Schritt muss nachvollziehbar sein (Kundenservice, Compliance)
+- Stornierungen und Rücksendungen sind Kompensations-Events, keine Deletes
+- Sagas koordinieren: Bestellung → Zahlung → Lager → Versand
+
+**Muster:** Outbox Pattern für zuverlässige Event-Veröffentlichung zwischen Microservices. Projektionen für Kundenbereich (Bestellhistorie), Reporting, Analytics.
+
+### 9.3 Logistik & Supply Chain
+
+**Kontext:** Tracking von Paketen, Container, Sendungen.
+
+**Warum Event-Sourcing?**
+- Positionshistorie ist intrinsisch event-basiert: jeder Scan ist ein Event
+- SLA-Überwachung benötigt exakte Zeitstempel jedes Zustandswechsels
+- Debugging: bei Lieferproblemen muss exakter Weg rekonstruiert werden
+
+**Muster:** Event-Stream pro Sendungs-ID. Projektionen für aktuelle Position (Read Model). Temporal Queries für SLA-Reports.
+
+### 9.4 Non-Profit POS (jotti)
+
+**Kontext:** Kassensystem für Vereinsfeste.
+
+**Warum Event-Sourcing?**
+- Tisch-Zustand (Bestellungen, Zahlungen, Stornierungen) ist natürlich event-basiert
+- Kassenbericht muss am Ende nachvollziehbar sein
+- Stornierungen sind explizite Ereignisse, keine Löschungen
+
+→ Detailliertes Beispiel im [Appendix](#appendix-anwendungsbeispiel-jotti)
+
+---
+
+## 10. Kombination mit CQRS
+
+Event-Sourcing und CQRS ergänzen sich natürlich: Event-Sourcing löst das Write-Problem optimal (append-only, immutable), aber erzeugt ein Leseproblem (Replay für jeden Query). CQRS löst das Leseproblem durch separate Read Models (Projektionen).
+
+```
+Write Side (Event-Sourcing):
+  Command → Command Handler → Aggregate rehydrieren
+                            → Business Rules prüfen
+                            → Event(s) in Event Store schreiben
+
+Event Store → Projektion (synchron oder asynchron) → Read Store
+
+Read Side (CQRS):
+  Query → Query Handler → Read Store (optimiertes Read Model) → Response
+```
+
+**Warum sie zusammenpassen:**
+
+| Event-Sourcing Problem               | CQRS-Lösung                                     |
+| ------------------------------------ | ----------------------------------------------- |
+| Replay für jeden Read-Zugriff        | Read Store mit materialisierten Projektionen     |
+| Events sind kein Query-freundliches Format | Denormalisierte Read Models für schnelle Queries |
+| Eventual Consistency auf der Leseseite | Explizites Read/Write-Modell macht Tradeoff sichtbar |
+
+**→ Ausführliche Darstellung in [CQRS — Theorie](cqrs.md)**, insbesondere:
+- Ausbaustufen (Stufe 0–3)
+- Projektionsstrategien (synchron, asynchron, CDC)
+- Eventual Consistency Strategien
+- Read Model Design (Denormalisierung, Materialized Views)
+
+---
+
+## 11. Anti-Patterns
+
+### 11.1 Event als Command
 
 **Problem:** Events beschreiben, was **passieren soll**, statt was **passiert ist**.
 
@@ -250,7 +598,7 @@ type PlaceOrderEvent struct { ... }  // "Platziere Bestellung" — Imperativ
 type OrderPlacedEvent struct { ... }  // "Bestellung platziert" — Vergangenheit
 ```
 
-### 5.2 Zu große Events
+### 11.2 Zu große Events (God Events)
 
 **Problem:** Ein Event enthält den gesamten Aggregat-Zustand statt nur die Änderung.
 
@@ -263,38 +611,44 @@ type OrderUpdatedEvent struct {
 }
 
 // RICHTIG: Nur die Änderung
-type OrderPlacedEvent struct {
-    Items      []Item
-    TotalCents int
+type ItemAddedToOrderEvent struct {
+    Item       Item
+    NewTotalCents int
 }
 ```
 
-### 5.3 Events mutieren
+### 11.3 Events mutieren
 
-**Problem:** Bestehende Events nachträglich ändern (z.B. Preis korrigieren).
+**Problem:** Bestehende Events nachträglich ändern (z.B. Preis korrigieren, Typo im Event-Typ fixen).
 
-**Lösung:** Korrekturen als **neue Events** modellieren (z.B. `ItemCancelledEvent` + neues `OrderPlacedEvent`).
+**Lösung:** Korrekturen als **neue Kompensations-Events** modellieren. Schema-Änderungen über Upcasting handhaben (→ Abschnitt 6.2).
 
-### 5.4 CRUD getarnt als Event-Sourcing
+### 11.4 CRUD getarnt als Event-Sourcing
 
 **Problem:** Nur CRUD-Operationen in Events verpacken, ohne fachlichen Mehrwert.
 
 ```go
 // FALSCH: CRUD als Events — kein fachlicher Gewinn
-type UserCreatedEvent { Name, Role }
-type UserUpdatedEvent { Name, Role }
-type UserDeletedEvent { ID }
+type UserCreatedEvent struct { Name, Role string }
+type UserUpdatedEvent struct { Name, Role string }
+type UserDeletedEvent struct { ID int }
 
-// RICHTIG: Für User reicht CRUD
+// RICHTIG: Für einfache Entitäten reicht CRUD
 INSERT INTO users (name, role) VALUES (...);
 UPDATE users SET name = ... WHERE id = ...;
 ```
 
-### 5.5 Fehlende Snapshot-Strategie
+### 11.5 Fehlende Snapshot-Strategie
 
-**Problem:** Replay über tausende Events bei jeder Query.
+**Problem:** Replay über tausende Events bei jeder Query; akzeptable Latenz nur bei kurzen Streams.
 
-**Lösung:** Snapshots nach N Events oder nach jeder Schreiboperation erstellen.
+**Lösung:** Explizite Snapshot-Strategie von Anfang an definieren — auch wenn sie zunächst „bei jedem Write" ist.
+
+### 11.6 Event-Sourcing überall erzwingen
+
+**Problem:** ES für alle Entitäten im System einsetzen, auch wenn kein Mehrwert.
+
+**Lösung:** Hybridstrategie — ES nur dort wo Audit Trail, Zeitreise oder komplexe Geschäftsregeln einen echten Mehrwert bieten (→ Abschnitt 8.2).
 
 ---
 
@@ -331,16 +685,16 @@ CREATE TABLE events (
 
 ### Zustandsrekonstruktion
 
-Die Rekonstruktion erfolgt in Go-Code (`domain/table/events.go`):
+Die Rekonstruktion erfolgt in Go-Code (`domain/table/events.go`) nach dem Fold-Pattern:
 
 ```go
-// Saldo berechnen
+// Saldo berechnen — reine Fold-Funktion
 func GetSaldoFromEvents(events []event.Event) int {
     saldo := 0
     for _, e := range events {
         switch e.Type {
         case EventTypeSnapshotV1:
-            saldo = snapshot.SaldoCents  // Snapshot als Basis
+            saldo = snapshot.SaldoCents  // Snapshot als Startpunkt
         case EventTypeBestellungAufgegebenV1:
             saldo += bestellung.GesamtPreisCents
         case EventTypeZahlungRegistriertV1:
@@ -353,11 +707,11 @@ func GetSaldoFromEvents(events []event.Event) int {
 }
 ```
 
-**Muster:** Accumulate + Reduce über den Event-Stream. Snapshots setzen den Startwert.
+**Muster:** Accumulate + Reduce über den Event-Stream. Snapshots setzen den Startwert für effizientes Replay.
 
 ### Snapshot-Strategie
 
-- Snapshots sind **selbst Events** (Typ `tisch.snapshot:v1`)
+- Snapshots sind **selbst Events** (Typ `tisch.snapshot:v1`) — Option A aus Abschnitt 5.3
 - Werden bei **jedem Command** erstellt (nach Event-Schreiben)
 - `ReadEventsWithSnapshot()` liest Events ab dem letzten Snapshot
 - Snapshot enthält: SaldoCents, UnbezahltePositionen, UngeliefertePositionen, GesamtZahlungenCents
@@ -373,7 +727,7 @@ func GetSaldoFromEvents(events []event.Event) int {
 
 ### Concurrency Control in jotti
 
-Derzeit Last-Writer-Wins — bei einem Vereinsfest mit wenigen gleichzeitigen Servicekräften pro Tisch ist das akzeptabel.
+Derzeit **Last-Writer-Wins** — bei einem Vereinsfest mit wenigen gleichzeitigen Servicekräften pro Tisch ist das akzeptabel und der Implementierungsaufwand für Optimistic Concurrency nicht gerechtfertigt.
 
 ### Event Store-Optimierung in jotti
 
@@ -387,18 +741,22 @@ Derzeit Last-Writer-Wins — bei einem Vereinsfest mit wenigen gleichzeitigen Se
 
 ---
 
-## 7. Referenzen
+## 13. Referenzen
 
 ### Primärquellen
 
-- **Greg Young** (2010): _CQRS Documents_ — cqrs.wordpress.com — Ursprung von CQRS + Event-Sourcing
-- **Martin Fowler**: [Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html)
+- **Greg Young** (2010): _CQRS Documents_ — [cqrs.wordpress.com](https://cqrs.wordpress.com/) — Ursprung von CQRS + Event-Sourcing
+- **Martin Fowler** (2005): [Event Sourcing](https://martinfowler.com/eaaDev/EventSourcing.html) — Grundlegende Definition und Konzepte
+- **Martin Kleppmann** (2017): _Designing Data-Intensive Applications_ — Kapitel zu Event Sourcing, Immutability und Stream Processing
 
 ### Praxisquellen
 
+- [Event Sourcing Explained (BayTech 2025)](https://www.baytechconsulting.com/blog/event-sourcing-explained-2025) — Paradigm Shift, Core Mechanics, Event Store Anatomy, Snapshots
+- [Event Sourcing vs. CRUD (dev.to)](https://dev.to/alex_aslam/event-sourcing-vs-crud-when-1000-database-writes-dont-matter-5bpj) — Entscheidungsmatrix, Praxisbeispiele
 - [Event-Driven Architecture in Golang](https://github.com/PacktPublishing/Event-Driven-Architecture-in-Golang) — Event-Sourcing + CQRS in Go-Microservices
-- [Event Sourcing Explained (2025)](https://www.baytechconsulting.com/blog/event-sourcing-explained-2025) — Write-Store als Single Source of Truth
-- [Event Sourcing vs. CRUD](https://dev.to/alex_aslam/event-sourcing-vs-crud-when-1000-database-writes-dont-matter-5bpj) — Entscheidungsmatrix
+- [Oskar Dudycz: Event-Driven.io](https://event-driven.io/en/) — Praxis-Blog: Outbox, Snapshots, Schema-Evolution, Upcasting
+- [Chris Richardson: Microservices Patterns](https://microservices.io/patterns/) — Saga, Outbox, Inbox Pattern
+- [EventStoreDB Docs](https://developers.eventstore.com/) — Spezialisierter Event Store, Subscriptions
 
 ### Projekt-intern
 
