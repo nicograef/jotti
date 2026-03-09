@@ -24,7 +24,7 @@ docs/theory/
 ├── react-frontend.md        # React Frontend Architektur, Patterns, Testing
 ├── security.md              # Security & Authentifizierung
 ├── devops.md                # DevOps, Deployment & Infrastruktur
-└── pos.md                   # POS-Systeme & Gastronomie-Domäne (geplant)
+└── pos.md                   # POS-Systeme & Gastronomie-Domäne
 ```
 
 ---
@@ -79,11 +79,11 @@ DevOps-Kultur & CALMS-Framework. 12-Factor App Methodology. Containerisierung: D
 
 **Lesenswert wenn:** Deployment-Infrastruktur aufgebaut oder geändert wird, CI/CD-Pipelines konfiguriert werden, Monitoring eingerichtet wird, oder Entscheidungen zur Orchestrierung anstehen.
 
-### POS-Systeme & Gastronomie-Domäne _(geplant: pos.md)_
+### [POS-Systeme & Gastronomie-Domäne](pos.md)
 
-Geschichte und Entwicklung von POS-Systemen (Registrierkasse → ECR → Cloud-POS → mPOS). POS-Architektur-Patterns: On-Premise, Cloud-POS (SaaS), Hybrid, Mobile POS. Gastronomie-POS: Order Lifecycle, tischbasierter Workflow, Kitchen Display Systems, Split Bills. Datenmodelle: tischbasierter offener Saldo, transaktionsbasiert, Event-Sourcing im POS-Kontext. Fiskalgesetzgebung: TSE/KassenSichV (Deutschland), RKSV (Österreich), Non-Profit-Ausnahmen. Payment Integration: Gateway-Architektur, SumUp/Square/Zettle, NFC/Contactless. Non-Profit vs. Commercial POS: Feature-Abgrenzung, TCO, Setup-Aufwand. POS-Marktlandschaft: kommerzielle Systeme vs. Open-Source-Alternativen. Im Appendix: Anwendungsbeispiel jotti.
+Geschichte und Entwicklung von POS-Systemen (Registrierkasse → ECR → Cloud-POS → mPOS). POS-Architektur-Patterns: On-Premise, Cloud-POS (SaaS), Hybrid, Mobile POS, Self-Hosted. Gastronomie-POS: Order Lifecycle, tischbasierter Workflow, Kitchen Display Systems (KDS), Split Bills, Floor Management. Datenmodelle: transaktionsbasiert, journal-basiert, Event-Sourcing im POS-Kontext. Fiskalgesetzgebung: TSE/KassenSichV (Deutschland), RKSV (Österreich), GoBD, Non-Profit-Ausnahmen. Payment Integration: Gateway-Architektur, SumUp/Zettle/Square, NFC/Contactless, PCI-DSS. Non-Profit vs. Commercial POS: Feature-Abgrenzung, TCO-Vergleich, Setup-Aufwand. POS-Marktlandschaft: kommerzielle Systeme vs. Open-Source-Alternativen. Entscheidungsmatrix nach Anwendungsfall. Im Appendix: Anwendungsbeispiel jotti.
 
-**Lesenswert wenn:** Neue Gastro-Workflows modelliert werden, Fragen zur Fiskalkonformität aufkommen, oder POS-Architekturentscheidungen anstehen.
+**Lesenswert wenn:** Neue Gastro-Workflows modelliert werden, Fragen zur Fiskalkonformität aufkommen, POS-Architekturentscheidungen anstehen, oder der Unterschied zwischen Non-Profit- und kommerziellen POS-Anforderungen verstanden werden soll.
 
 ---
 
@@ -125,7 +125,7 @@ Je nach Einstiegspunkt empfehlen sich unterschiedliche Lesereihenfolgen:
 6. [React Frontend Architektur](react-frontend.md) — UI-Architektur
 7. [Security](security.md) — Querschnittsthema
 8. [DevOps](devops.md) — Betrieb und Deployment
-9. POS-Systeme _(geplant)_ — Fachdomäne vertiefen
+9. [POS-Systeme & Gastronomie-Domäne](pos.md) — Fachdomäne vertiefen
 
 ---
 
@@ -196,9 +196,14 @@ Die Theorie-Dokumente basieren auf folgenden externen Quellen:
 
 ### POS-Systeme _(für pos.md)_
 
-23. [Wikipedia: Point of Sale](https://en.wikipedia.org/wiki/Point_of_sale) — POS-Geschichte, Terminologie
-24. [Square Developer Docs](https://developer.squareup.com/docs) — Payment Integration, POS-API-Design
-25. [Toast Developer Platform](https://doc.toasttab.com/) — Restaurant POS API, KDS Integration
+23. [Wikipedia: Point of Sale](https://en.wikipedia.org/wiki/Point_of_sale) — POS-Geschichte, Terminologie, Systemtypen
+24. [Wikipedia: Cash Register](https://en.wikipedia.org/wiki/Cash_register) — Entstehung der Registrierkasse (James Ritty, NCR)
+25. [Square Developer Docs](https://developer.squareup.com/docs) — Payment Integration, POS-API-Design, mPOS-Patterns
+26. [Toast Developer Platform](https://doc.toasttab.com/) — Restaurant POS API, KDS Integration
+27. [SumUp Developer Docs](https://developer.sumup.com/) — SumUp API, Kartenleser-SDK
+28. [Zettle Developer Portal](https://developer.zettle.com/) — Zettle SDK, Payment-Integration
+29. [PCI Security Standards Council](https://www.pcisecuritystandards.org/) — PCI-DSS Anforderungen, SAQ-Formulare
+30. [EMVCo Contactless Specifications](https://www.emvco.com/emv-technologies/contactless/) — EMV Contactless, NFC-Standards
 
 ### Standardwerke
 
