@@ -43,9 +43,9 @@ PostgreSQL-Architektur-Grundlagen (MVCC, WAL, Autovacuum), Features (JSONB, Trig
 
 ### [React Frontend Architektur](react-frontend.md)
 
-Komponentenstruktur (Atomic Design), State-Management (Hooks + Singletons, kein Redux), Backend-Integration (BackendClient), Routing und Guards, Zod-Validierung, UI-Patterns (Drawers, Toasts), Tailwind Styling.
+Frontend Architecture Patterns (Monolithic, Modular, Micro-Frontend, Flux), State-Management Landscape (TanStack Query, Zustand, React Hook Form), 15+ React Design Patterns (Component Composition, Custom Hook, Control Props, Provider, Container/Presentational, Compound Components, Headless Components, Render Props, Props Getters, Error Boundary, Portal, HOC, MVVM, Dependency Injection, SOLID), Testing (Vitest, React Testing Library, MSW, Playwright), Performance (memo, lazy/Suspense, Virtualization), Accessibility (ARIA, Keyboard Navigation, Focus Management), TypeScript-Patterns (Discriminated Unions, Generic Components, Branded Types). Im Appendix: Anwendungsbeispiel jotti.
 
-**Lesenswert wenn:** Neue Seiten/Komponenten gebaut werden, State-Management-Fragen aufkommen, UI-Patterns konsistent bleiben sollen.
+**Lesenswert wenn:** Neue Seiten/Komponenten gebaut werden, State-Management-Fragen aufkommen, UI-Patterns konsistent bleiben sollen, Testing-Strategien gesucht werden, Performance-Probleme auftreten.
 
 ---
 
