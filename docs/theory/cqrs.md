@@ -617,7 +617,7 @@ Nicht alle Read Models brauchen starke Konsistenz:
 | **Tagesabrechnung**      | Eventual (asynchron) | Wird nicht in Echtzeit benötigt                          |
 | **Umsatzstatistiken**    | Eventual (asynchron) | Aggregierte Daten, keine Echtzeitanforderung             |
 
-Siehe [Event-Sourcing — Theorie](event-sourcing.md) für die Grundlagen von Event-Sourcing und Snapshots.
+Siehe [Event-Sourcing Theorie](event-sourcing.md#10-kombination-mit-cqrs) für die Grundlagen von Event-Sourcing und Snapshots.
 
 ---
 

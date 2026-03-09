@@ -7,7 +7,7 @@ Dieses Dokument dient als theoretisches Nachschlagewerk für Event-Sourcing. Es 
 > - [CQRS Theorie](cqrs.md) — Command Query Responsibility Segregation (natürliche Ergänzung zu ES)
 > - [DDD Theorie](ddd.md) — Domain-Driven Design Grundlagen
 > - [ADR: Event-Sourcing](../adr/event-sourcing.md) — Entscheidung für Event-Sourcing vs. CRUD
-> - [Event-Sourcing vs. CRUD (Vergleich)](../event-sourcing-vs-crud.md) — Detaillierter Alternativenvergleich
+> - [Event-Sourcing vs. CRUD: Entscheidungsmatrix](#8-event-sourcing-vs-crud-entscheidungsmatrix) — Entscheidungsmatrix und Hybridstrategie (Abschnitt 8 in diesem Dokument)
 > - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
 
 ---
@@ -576,7 +576,7 @@ Read Side (CQRS):
 | Events sind kein Query-freundliches Format | Denormalisierte Read Models für schnelle Queries |
 | Eventual Consistency auf der Leseseite | Explizites Read/Write-Modell macht Tradeoff sichtbar |
 
-**→ Ausführliche Darstellung in [CQRS — Theorie](cqrs.md)**, insbesondere:
+**→ Ausführliche Darstellung in [CQRS Theorie](cqrs.md#6-kombination-mit-event-sourcing)**, insbesondere:
 - Ausbaustufen (Stufe 0–3)
 - Projektionsstrategien (synchron, asynchron, CDC)
 - Eventual Consistency Strategien
@@ -762,4 +762,4 @@ Derzeit **Last-Writer-Wins** — bei einem Vereinsfest mit wenigen gleichzeitige
 
 - [CQRS Theorie](cqrs.md) — Command Query Responsibility Segregation
 - [ADR: Event-Sourcing](../adr/event-sourcing.md) — Architekturbewertung pro/contra
-- [Event-Sourcing vs. CRUD](../event-sourcing-vs-crud.md) — 8-Tabellen-CRUD-Alternative
+- [Event-Sourcing vs. CRUD: Entscheidungsmatrix](#8-event-sourcing-vs-crud-entscheidungsmatrix) — Entscheidungsmatrix und Hybridstrategie

@@ -1,6 +1,6 @@
 # Go Backend Architektur — Theorie
 
-Dieses Dokument ist ein allgemeiner Architektur-Guide für Go-Backends: Architektur-Patterns, HTTP-Ökosystem, API-Design, Concurrency, Fehlerbehandlung, Resilienz, Observability, Datenbankzugriff und Testing. Projektspezifische Anwendungsbeispiele finden sich im [Appendix](#15-appendix-anwendungsbeispiel-jotti).
+Dieses Dokument ist ein allgemeiner Architektur-Guide für Go-Backends: Architektur-Patterns, HTTP-Ökosystem, API-Design, Concurrency, Fehlerbehandlung, Resilienz, Observability, Datenbankzugriff und Testing. Projektspezifische Anwendungsbeispiele finden sich im [Appendix](#16-appendix-anwendungsbeispiel-jotti).
 
 > **Verwandte Dokumente:**
 >
