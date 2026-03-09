@@ -37,9 +37,9 @@ Schichtenarchitektur (HTTP → Application → Domain → Repository), Middlewar
 
 ### [PostgreSQL](postgresql.md)
 
-PostgreSQL-spezifische Features (JSONB, Trigger, Enums, IDENTITY), sqlc-Workflow (SQL → Go), hybride Persistenz (CRUD + Event Store), Performance-Optimierung, Migrations-Strategie.
+PostgreSQL-Architektur-Grundlagen (MVCC, WAL, Autovacuum), Features (JSONB, Trigger, Enums, IDENTITY), Indexing Deep Dive (B-Tree, GIN, GiST, BRIN, Partial, Covering), Query Optimization (EXPLAIN ANALYZE, CTEs, Window Functions), Advanced Features (LISTEN/NOTIFY, Partitioning, Materialized Views, RLS), Connection Management (pgxpool, PgBouncer), PostgreSQL als Event Store, Zero-Downtime Migration-Strategien, Vergleich mit MySQL, MongoDB und NewSQL.
 
-**Lesenswert wenn:** SQL-Queries geschrieben werden, neue Tabellen/Migrationen erstellt werden, Performance-Probleme untersucht werden.
+**Lesenswert wenn:** SQL-Queries geschrieben werden, neue Tabellen/Migrationen erstellt werden, Performance-Probleme untersucht werden, Infrastrukturentscheidungen (Datenbankwahl, Connection Pooling) getroffen werden.
 
 ### [React Frontend Architektur](react-frontend.md)
 
