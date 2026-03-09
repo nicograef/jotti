@@ -1,6 +1,6 @@
 # React Frontend Architektur — Theorie
 
-Dieses Dokument beschreibt allgemeine Architekturprinzipien für React-Frontends: Komponentenstruktur, State-Management, Backend-Integration, UI-Patterns und Design-Entscheidungen für wartbare, mobile-first Single-Page-Applications.
+Dieses Dokument beschreibt allgemeine Architekturprinzipien für React-Frontends: Komponentenstruktur, State-Management, Backend-Integration, UI-Patterns und Design-Entscheidungen für wartbare, mobile-first Single-Page-Applications. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#17-appendix-anwendungsbeispiel-jotti).
 
 > **Verwandte Dokumente:**
 >
@@ -28,7 +28,7 @@ Dieses Dokument beschreibt allgemeine Architekturprinzipien für React-Frontends
 14. [TypeScript-Patterns für React](#14-typescript-patterns-für-react)
 15. [Fehlerbehandlung im Frontend](#15-fehlerbehandlung-im-frontend)
 16. [Anti-Patterns](#16-anti-patterns)
-17. [Appendix: Anwendungsbeispiel (jotti)](#appendix-anwendungsbeispiel-jotti)
+17. [Appendix: Anwendungsbeispiel (jotti)](#17-appendix-anwendungsbeispiel-jotti)
 18. [Referenzen](#18-referenzen)
 
 ---
@@ -2038,7 +2038,7 @@ const { data: orders } = useFetch(() => backend.getOrders());
 
 ---
 
-## Appendix: Anwendungsbeispiel (jotti)
+## 17. Appendix: Anwendungsbeispiel (jotti)
 
 Dieser Anhang zeigt, wie die oben beschriebenen Prinzipien im **jotti**-Projekt (POS-System für Vereinsfeste) konkret umgesetzt werden.
 

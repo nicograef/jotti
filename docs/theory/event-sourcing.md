@@ -1,6 +1,6 @@
 # Event-Sourcing — Theorie
 
-Dieses Dokument dient als theoretisches Nachschlagewerk für Event-Sourcing. Es erklärt das Muster, seine Kernkonzepte, Technologieoptionen, fortgeschrittene Patterns und Entscheidungskriterien gegenüber CRUD. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#appendix-anwendungsbeispiel-jotti).
+Dieses Dokument dient als theoretisches Nachschlagewerk für Event-Sourcing. Es erklärt das Muster, seine Kernkonzepte, Technologieoptionen, fortgeschrittene Patterns und Entscheidungskriterien gegenüber CRUD. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#12-appendix-anwendungsbeispiel-jotti).
 
 > **Verwandte Dokumente:**
 >
@@ -25,7 +25,7 @@ Dieses Dokument dient als theoretisches Nachschlagewerk für Event-Sourcing. Es 
 9. [Reale Fallstudien](#9-reale-fallstudien)
 10. [Kombination mit CQRS](#10-kombination-mit-cqrs)
 11. [Anti-Patterns](#11-anti-patterns)
-12. [Appendix: Anwendungsbeispiel (jotti)](#appendix-anwendungsbeispiel-jotti)
+12. [Appendix: Anwendungsbeispiel (jotti)](#12-appendix-anwendungsbeispiel-jotti)
 13. [Referenzen](#13-referenzen)
 
 ---
@@ -548,7 +548,7 @@ Hat das Team ES-Erfahrung?
 - Kassenbericht muss am Ende nachvollziehbar sein
 - Stornierungen sind explizite Ereignisse, keine Löschungen
 
-→ Detailliertes Beispiel im [Appendix](#appendix-anwendungsbeispiel-jotti)
+→ Detailliertes Beispiel im [Appendix](#12-appendix-anwendungsbeispiel-jotti)
 
 ---
 
@@ -652,7 +652,7 @@ UPDATE users SET name = ... WHERE id = ...;
 
 ---
 
-## Appendix: Anwendungsbeispiel (jotti)
+## 12. Appendix: Anwendungsbeispiel (jotti)
 
 Dieser Abschnitt zeigt, wie Event-Sourcing konkret in jotti — einem Non-Profit-POS-System für Vereinsfeste — eingesetzt wird.
 
