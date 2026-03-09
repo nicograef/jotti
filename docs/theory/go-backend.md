@@ -9,6 +9,7 @@ Dieses Dokument ist ein allgemeiner Architektur-Guide für Go-Backends: Architek
 > - [CQRS Theorie](cqrs.md) — Command Query Responsibility Segregation
 > - [PostgreSQL](postgresql.md) — Datenbankzugriff und SQL-Grundlagen
 > - [Entwicklung & Deployment](../development.md) — Setup, Tests, CI/CD
+> - [Security & Authentifizierung](security.md) — Authentifizierung, OWASP, Middleware-Security
 > - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
 
 ---
@@ -462,6 +463,8 @@ Request → RateLimit → CorrelationID → Logging → JWT → Handler → Resp
 | `LoggingMiddleware`       | Loggt Path, Status, Duration, Correlation-ID       |
 | `JWTMiddleware`           | Validiert JWT, extrahiert UserID + Role in Context |
 | `RecoveryMiddleware`      | Fängt Panics, gibt 500 zurück                      |
+
+> Für Authentifizierungs-Middleware, JWT-Validierung und Security-Patterns siehe [Security & Authentifizierung](security.md).
 
 ### Handler-Pattern
 

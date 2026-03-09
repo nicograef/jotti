@@ -9,6 +9,7 @@ Dieses Dokument ist ein allgemeiner Guide für PostgreSQL: Architektur-Grundlage
 > - [Go Backend Architektur](go-backend.md) — SQL-Tooling, sqlc Deep Dive, Repository-Schicht
 > - [Event-Sourcing Theorie](event-sourcing.md) — Event-Sourcing Grundlagen
 > - [CQRS Theorie](cqrs.md) — Command Query Responsibility Segregation
+> - [DevOps & Deployment](devops.md) — Containerisierung, Zero-Downtime Deployment, Backup & Disaster Recovery
 > - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
 
 ---
@@ -727,6 +728,8 @@ PostgreSQL öffnet pro Verbindung einen eigenen Prozess (~5–10 MB RAM). Zu vie
 ---
 
 ## 10. PostgreSQL als Event Store
+
+> Zero-Downtime Deployment-Strategien und Backup-Automation werden in [DevOps & Deployment](devops.md) vertieft.
 
 ### Vergleich: PostgreSQL vs. spezialisierte Event Stores
 

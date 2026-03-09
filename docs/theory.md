@@ -946,4 +946,4 @@ Die Überarbeitung folgt einer iterativen Reihenfolge. Jeder Schritt baut auf de
 - [x] **Step 9 — `security.md` erstellen:** Authentication-Patterns (JWT, Session, OAuth2), Authorization (RBAC, ABAC, ReBAC), OWASP Top 10, API-Security, Frontend-Security, Secrets Management, TLS, Security Testing.
 - [x] **Step 10 — `devops.md` erstellen:** Containerisierung (Docker, Compose), Orchestrierung, Reverse Proxy (nginx, Traefik, Caddy), CI/CD Pipeline Design, Deployment-Strategien, Zero-Downtime, Monitoring, Backup, Self-Hosting.
 - [x] **Step 11 — `pos.md` erstellen:** `docs/pos.md` als Grundlage. POS-Geschichte, Architektur-Patterns, Gastro-Workflows, Datenmodelle, Fiskalgesetzgebung, Payment Integration, Non-Profit vs. Commercial, Marktlandschaft.
-- [ ] **Step 12 — Abschluss-Review:** Alle 10 Dateien. Cross-Referenzen (Security↔Go-Backend, DevOps↔PostgreSQL, POS↔ES), Link-Check, Duplikat-Elimination, Querschnittsthemen konsistent.
+- [x] **Step 12 — Abschluss-Review:** Alle 10 Dateien. Cross-Referenzen (Security↔Go-Backend, DevOps↔PostgreSQL, POS↔ES), Link-Check, Duplikat-Elimination, Querschnittsthemen konsistent.

@@ -8,6 +8,7 @@ Dieses Dokument dient als theoretisches Nachschlagewerk für Event-Sourcing. Es 
 > - [DDD Theorie](ddd.md) — Domain-Driven Design Grundlagen
 > - [ADR: Event-Sourcing](../adr/event-sourcing.md) — Entscheidung für Event-Sourcing vs. CRUD
 > - [Event-Sourcing vs. CRUD: Entscheidungsmatrix](#8-event-sourcing-vs-crud-entscheidungsmatrix) — Entscheidungsmatrix und Hybridstrategie (Abschnitt 8 in diesem Dokument)
+> - [POS-Systeme & Gastronomie-Domäne](pos.md) — Event-Sourcing im POS-Kontext, Kassenjournal
 > - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
 
 ---
@@ -549,6 +550,8 @@ Hat das Team ES-Erfahrung?
 - Stornierungen sind explizite Ereignisse, keine Löschungen
 
 → Detailliertes Beispiel im [Appendix](#12-appendix-anwendungsbeispiel-jotti)
+
+> Für ein konkretes Beispiel eines Event-Sourcing-basierten POS-Systems (Gastronomie) siehe [POS-Systeme & Gastronomie-Domäne](pos.md).
 
 ---
 
