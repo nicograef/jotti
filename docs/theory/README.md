@@ -23,7 +23,7 @@ docs/theory/
 ├── postgresql.md            # PostgreSQL — Architektur, Indexing, Optimierung
 ├── react-frontend.md        # React Frontend Architektur, Patterns, Testing
 ├── security.md              # Security & Authentifizierung
-├── devops.md                # DevOps, Deployment & Infrastruktur (geplant)
+├── devops.md                # DevOps, Deployment & Infrastruktur
 └── pos.md                   # POS-Systeme & Gastronomie-Domäne (geplant)
 ```
 
@@ -73,9 +73,9 @@ Authentication-Patterns (Session, JWT, OAuth2/OIDC, Passkeys/WebAuthn). Authoriz
 
 **Lesenswert wenn:** Authentifizierungs- oder Autorisierungsmechanismen implementiert oder überarbeitet werden, Security-Reviews durchgeführt werden, oder Fragen zu OWASP-Risiken aufkommen.
 
-### DevOps, Deployment & Infrastruktur _(geplant: devops.md)_
+### [DevOps, Deployment & Infrastruktur](devops.md)
 
-DevOps-Kultur & CALMS-Framework. Containerisierung: Docker (Multi-Stage Builds, Image-Optimierung, Container Security). Orchestrierung: Docker Compose vs. Kubernetes vs. K3s — Entscheidungsmatrix. Reverse Proxy & Load Balancing: nginx, Traefik, Caddy — Vergleich. CI/CD Pipeline Design: Lint → Test → Build → Publish → Deploy, GitHub Actions. Deployment-Strategien: Recreate, Rolling Update, Blue/Green, Canary. Zero-Downtime Deployment: Health Checks, Graceful Shutdown, DB-Migrations. Monitoring & Observability: Prometheus, Grafana, Loki (RED/USE Method). Backup & Disaster Recovery: pg_dump, Restic, RTO/RPO. Self-Hosting Patterns: VM-Provisionierung, DNS, Firewall, automatische Zertifikate.
+DevOps-Kultur & CALMS-Framework. 12-Factor App Methodology. Containerisierung: Docker (Multi-Stage Builds, Layer-Caching, .dockerignore, Container Security, Image-Minimierung). Orchestrierung: Docker Compose, Kubernetes, K3s — Entscheidungsmatrix. Reverse Proxy & Load Balancing: nginx, Traefik, Caddy — Vergleich. CI/CD Pipeline Design: Lint → Test → Build → Publish → Deploy, GitHub Actions (Path-based Filtering, Caching, Secrets). Deployment-Strategien: Recreate, Rolling Update, Blue/Green, Canary. Zero-Downtime Deployment: Graceful Shutdown, Health Checks (Liveness/Readiness), Expand/Contract für DB-Migrations. Monitoring & Observability: 4 Golden Signals, RED/USE Method, Prometheus, Grafana, Loki. Backup & Disaster Recovery: RTO/RPO, pg_dump, pg_basebackup, Restic, 3-2-1-Regel, Restore-Verifizierung. Self-Hosting: VM-Provisionierung, Firewall, DNS, automatische TLS-Zertifikate (Let's Encrypt, Certbot). Im Appendix: Anwendungsbeispiel jotti.
 
 **Lesenswert wenn:** Deployment-Infrastruktur aufgebaut oder geändert wird, CI/CD-Pipelines konfiguriert werden, Monitoring eingerichtet wird, oder Entscheidungen zur Orchestrierung anstehen.
 
@@ -109,9 +109,9 @@ Je nach Einstiegspunkt empfehlen sich unterschiedliche Lesereihenfolgen:
 2. [DDD](ddd.md) — Domain-Begriffe verstehen
 3. [CQRS](cqrs.md) — Warum die API so aufgebaut ist (Read vs. Write)
 
-### Einstieg: Infrastruktur & Betrieb _(sobald Dokumente verfügbar)_
+### Einstieg: Infrastruktur & Betrieb
 
-1. DevOps & Deployment — Container, CI/CD, Monitoring
+1. [DevOps & Deployment](devops.md) — Container, CI/CD, Monitoring
 2. [Security](security.md) — Auth, OWASP, TLS
 3. [PostgreSQL](postgresql.md) — Connection Pooling, Backup
 
@@ -124,7 +124,7 @@ Je nach Einstiegspunkt empfehlen sich unterschiedliche Lesereihenfolgen:
 5. [PostgreSQL](postgresql.md) — Datenbank-Grundlagen
 6. [React Frontend Architektur](react-frontend.md) — UI-Architektur
 7. [Security](security.md) — Querschnittsthema
-8. DevOps _(geplant)_ — Betrieb und Deployment
+8. [DevOps](devops.md) — Betrieb und Deployment
 9. POS-Systeme _(geplant)_ — Fachdomäne vertiefen
 
 ---
