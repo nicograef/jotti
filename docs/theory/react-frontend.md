@@ -6,6 +6,7 @@ Dieses Dokument beschreibt allgemeine Architekturprinzipien für React-Frontends
 >
 > - [Go Backend Architektur](go-backend.md) — Backend-Architektur, API-Format
 > - [DDD Theorie](ddd.md) — Domain-Driven Design (Bounded Contexts)
+> - [Security & Authentifizierung](security.md) — Token-Handling, XSS-Prävention, Frontend-Security
 > - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
 
 ---
@@ -1111,6 +1112,8 @@ Der `Backend.post()`-Interceptor fängt 401-Responses ab und leitet automatisch 
 ---
 
 ## 7. Routing und Guards
+
+> Für Token-Handling, XSS-Prävention und Frontend-Security-Patterns siehe [Security & Authentifizierung](security.md).
 
 ### Route-Struktur
 
