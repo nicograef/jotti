@@ -22,7 +22,7 @@ docs/theory/
 ├── go-backend.md            # Go Backend Architektur + SQL-Tooling + Testing
 ├── postgresql.md            # PostgreSQL — Architektur, Indexing, Optimierung
 ├── react-frontend.md        # React Frontend Architektur, Patterns, Testing
-├── security.md              # Security & Authentifizierung (geplant)
+├── security.md              # Security & Authentifizierung
 ├── devops.md                # DevOps, Deployment & Infrastruktur (geplant)
 └── pos.md                   # POS-Systeme & Gastronomie-Domäne (geplant)
 ```
@@ -67,9 +67,9 @@ Frontend Architecture Patterns: Monolithic, Modular, Micro-Frontend, Flux. State
 
 **Lesenswert wenn:** Neue Seiten oder Komponenten gebaut werden, State-Management-Fragen aufkommen, UI-Patterns konsistent bleiben sollen, Testing-Strategien gesucht werden, oder Performance-Probleme auftreten.
 
-### Security & Authentifizierung _(geplant: security.md)_
+### [Security & Authentifizierung](security.md)
 
-Authentication-Patterns (Session, JWT, OAuth2/OIDC, Passkeys/WebAuthn). Authorization-Modelle: RBAC, ABAC, ReBAC (Google Zanzibar, OpenFGA). Passwort-Sicherheit: Argon2id, bcrypt, NIST-Empfehlungen. OWASP Top 10. API-Security: Input Validation, CORS, CSRF, Rate Limiting, Security Headers. Frontend-Security: XSS-Prävention, sicheres Token-Handling. Secrets Management. TLS & Certificate Management. Security Testing (SAST, DAST, Dependency Scanning). Entscheidungsmatrix: Auth-Pattern vs. Anwendungsfall.
+Authentication-Patterns (Session, JWT, OAuth2/OIDC, Passkeys/WebAuthn). Authorization-Modelle: RBAC, ABAC, ReBAC (Google Zanzibar, OpenFGA). Passwort-Sicherheit: Argon2id, bcrypt, NIST-Empfehlungen. OWASP Top 10. API-Security: Input Validation, CORS, CSRF, Rate Limiting, Security Headers. Frontend-Security: XSS-Prävention, sicheres Token-Handling. Secrets Management. TLS & Certificate Management. Security Testing (SAST, DAST, Dependency Scanning). Entscheidungsmatrix: Auth-Pattern vs. Anwendungsfall. Im Appendix: Anwendungsbeispiel jotti.
 
 **Lesenswert wenn:** Authentifizierungs- oder Autorisierungsmechanismen implementiert oder überarbeitet werden, Security-Reviews durchgeführt werden, oder Fragen zu OWASP-Risiken aufkommen.
 
@@ -112,7 +112,7 @@ Je nach Einstiegspunkt empfehlen sich unterschiedliche Lesereihenfolgen:
 ### Einstieg: Infrastruktur & Betrieb _(sobald Dokumente verfügbar)_
 
 1. DevOps & Deployment — Container, CI/CD, Monitoring
-2. Security — Auth, OWASP, TLS
+2. [Security](security.md) — Auth, OWASP, TLS
 3. [PostgreSQL](postgresql.md) — Connection Pooling, Backup
 
 ### Vollständige Lesereihenfolge (empfohlen für Onboarding)
@@ -123,7 +123,7 @@ Je nach Einstiegspunkt empfehlen sich unterschiedliche Lesereihenfolgen:
 4. [Go Backend Architektur](go-backend.md) — Implementierungsschichten
 5. [PostgreSQL](postgresql.md) — Datenbank-Grundlagen
 6. [React Frontend Architektur](react-frontend.md) — UI-Architektur
-7. Security _(geplant)_ — Querschnittsthema
+7. [Security](security.md) — Querschnittsthema
 8. DevOps _(geplant)_ — Betrieb und Deployment
 9. POS-Systeme _(geplant)_ — Fachdomäne vertiefen
 
