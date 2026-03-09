@@ -14,6 +14,7 @@ jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo,
 - [Implementierungsplan](docs/implementation-plan.md) — Nächste Features mit Code-Snippets und Akzeptanzkriterien
 - [Entwicklung & Deployment](docs/development.md) — Setup, Tests, CI/CD, Deployment
 - [Ubiquitous Language](docs/language.md) — Domain-Begriffe und DDD-Empfehlungen
+- [Event Storming](docs/event-storming.md) — Simulierte Event-Storming-Session: Domain Events, Aggregate, Bounded Contexts
 
 ## Tech-Stack
 
