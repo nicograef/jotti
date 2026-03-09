@@ -10,7 +10,6 @@ jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo,
 
 **Weiterführende Dokumentation:**
 
-- [POS-Einordnung](docs/pos.md) — Kontext, Zielgruppe, Abgrenzung zu kommerziellen Systemen
 - [Anforderungskatalog](docs/requirements.md) — 50 Anforderungen mit Status und Implementierungsvorschlägen
 - [Implementierungsplan](docs/implementation-plan.md) — Nächste Features mit Code-Snippets und Akzeptanzkriterien
 - [Entwicklung & Deployment](docs/development.md) — Setup, Tests, CI/CD, Deployment
@@ -35,7 +34,7 @@ jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo,
 6. **Deutsche Ubiquitous Language.** Fachbegriffe der Domäne sind deutsch (Bestellung, Zahlung, Lieferung, Stornierung, Tisch, Position). Infrastruktur-Code (Auth, Config, DB) bleibt englisch. Alle Benutzer-sichtbaren Strings auf Deutsch. Commits auf Englisch.
 7. **Kein globaler State-Store im Frontend.** Nur React Hooks + Singletons.
 8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
-9. **Dokumentation synchron halten.** Bei Änderungen diese Dateien aktualisieren, sofern betroffen: `AGENTS.md`, `README.md`, `docs/development.md`, `docs/requirements.md`, `docs/implementation-plan.md`, `docs/pos.md`, `docs/language.md`.
+9. **Dokumentation synchron halten.** Bei Änderungen diese Dateien aktualisieren, sofern betroffen: `AGENTS.md`, `README.md`, `docs/development.md`, `docs/requirements.md`, `docs/implementation-plan.md`, `docs/language.md`.
 10. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend. Das Frontend zeigt an, was das Backend liefert. Vor dem Hinzufügen von Frontend-Filtern prüfen, ob das Backend die Daten bereits korrekt aufbereitet.
 
 ## Backend-Konventionen
