@@ -44,6 +44,7 @@ Tisch-Operationen (Bestellungen, Zahlungen, Lieferungen, Stornierungen) werden v
 | [docs/requirements.md](docs/requirements.md)               | Vollständiger Anforderungskatalog (50 Anforderungen)          |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Implementierungsplan für die nächsten Features                |
 | [docs/language.md](docs/language.md)                       | Ubiquitous Language: Domain-Begriffe und DDD-Empfehlungen     |
+| [docs/event-storming.md](docs/event-storming.md)           | Event-Storming-Session: Domain Events, Aggregate, Bounded Contexts |
 | [docs/database.md](docs/database.md)                       | Datenbank & Persistenz (sqlc, Repository-Layer)               |
 | [docs/theory/](docs/theory/README.md)                      | Architektur-Theorie (DDD, Event-Sourcing, CQRS, …)            |
 | [docs/adr/orm.md](docs/adr/orm.md)                         | ADR: Bewertung von ORM-Alternativen und Entscheidung für sqlc |
