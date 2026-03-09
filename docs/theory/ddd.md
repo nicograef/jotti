@@ -1,6 +1,6 @@
 # Domain-Driven Design (DDD) — Theorie
 
-Dieses Dokument ist ein theoretisches Nachschlagewerk für Domain-Driven Design. Es erklärt die zentralen DDD-Konzepte, zeigt typische Muster und Anti-Patterns und gibt eine Entscheidungshilfe, wann DDD sinnvoll ist. Ein konkretes Anwendungsbeispiel findet sich im [Appendix](#appendix-anwendungsbeispiel-jotti).
+Dieses Dokument ist ein theoretisches Nachschlagewerk für Domain-Driven Design. Es erklärt die zentralen DDD-Konzepte, zeigt typische Muster und Anti-Patterns und gibt eine Entscheidungshilfe, wann DDD sinnvoll ist. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#8-appendix-anwendungsbeispiel-jotti).
 
 > **Verwandte Dokumente:**
 >
@@ -21,7 +21,7 @@ Dieses Dokument ist ein theoretisches Nachschlagewerk für Domain-Driven Design.
 5. [DDD-Lifecycle](#5-ddd-lifecycle)
 6. [Anti-Patterns und Fallstricke](#6-anti-patterns-und-fallstricke)
 7. [Entscheidungshilfe: Wann lohnt sich DDD?](#7-entscheidungshilfe-wann-lohnt-sich-ddd)
-8. [Appendix: Anwendungsbeispiel (jotti)](#appendix-anwendungsbeispiel-jotti)
+8. [Appendix: Anwendungsbeispiel (jotti)](#8-appendix-anwendungsbeispiel-jotti)
 9. [Referenzen](#9-referenzen)
 
 ---
@@ -770,7 +770,7 @@ Ist die Domäne komplex (viele Geschäftsregeln)?
 
 ---
 
-## Appendix: Anwendungsbeispiel (jotti)
+## 8. Appendix: Anwendungsbeispiel (jotti)
 
 Die folgenden Abschnitte zeigen, wie die oben beschriebenen DDD-Konzepte konkret im jotti-Projekt (einem Non-Profit-POS-System für Vereinsfeste) umgesetzt werden.
 

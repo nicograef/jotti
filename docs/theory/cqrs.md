@@ -1,6 +1,6 @@
 # CQRS — Theorie
 
-Dieses Dokument dient als theoretisches Nachschlagewerk für Command Query Responsibility Segregation (CQRS). Es erklärt das Muster, seine Ausbaustufen, Read Model Design, Projektionsstrategien, Eventual Consistency und Entscheidungskriterien. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#appendix-anwendungsbeispiel-jotti).
+Dieses Dokument dient als theoretisches Nachschlagewerk für Command Query Responsibility Segregation (CQRS). Es erklärt das Muster, seine Ausbaustufen, Read Model Design, Projektionsstrategien, Eventual Consistency und Entscheidungskriterien. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#9-appendix-anwendungsbeispiel-jotti).
 
 > **Verwandte Dokumente:**
 >
@@ -21,7 +21,7 @@ Dieses Dokument dient als theoretisches Nachschlagewerk für Command Query Respo
 6. [Kombination mit Event-Sourcing](#6-kombination-mit-event-sourcing)
 7. [Entscheidungsmatrix: CQRS vs. CRUD](#7-entscheidungsmatrix-cqrs-vs-crud)
 8. [Anti-Patterns](#8-anti-patterns)
-9. [Appendix: Anwendungsbeispiel (jotti)](#appendix-anwendungsbeispiel-jotti)
+9. [Appendix: Anwendungsbeispiel (jotti)](#9-appendix-anwendungsbeispiel-jotti)
 10. [Referenzen](#10-referenzen)
 
 ---
@@ -617,7 +617,7 @@ Nicht alle Read Models brauchen starke Konsistenz:
 | **Tagesabrechnung**      | Eventual (asynchron) | Wird nicht in Echtzeit benötigt                          |
 | **Umsatzstatistiken**    | Eventual (asynchron) | Aggregierte Daten, keine Echtzeitanforderung             |
 
-Siehe [Event-Sourcing — Theorie](event-sourcing.md) für die Grundlagen von Event-Sourcing und Snapshots.
+Siehe [Event-Sourcing Theorie](event-sourcing.md#10-kombination-mit-cqrs) für die Grundlagen von Event-Sourcing und Snapshots.
 
 ---
 
@@ -741,7 +741,7 @@ func (p *Projektor) Handle(event Event) {
 
 ---
 
-## Appendix: Anwendungsbeispiel (jotti)
+## 9. Appendix: Anwendungsbeispiel (jotti)
 
 Dieser Abschnitt zeigt, wie CQRS konkret in jotti — einem Non-Profit-POS-System für Vereinsfeste — eingesetzt wird.
 
