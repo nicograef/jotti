@@ -4,51 +4,18 @@ Ein leichtgewichtiges **Gastronomie-Kassensystem (POS)** für Vereine und Non-Pr
 
 Servicekräfte nehmen auf Smartphones Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer über einen eigenen Admin-Bereich.
 
-> **Grundsatz:** Höchste Qualität statt umfangreichem Featureset. Keine Hardware-Bindung, keine laufenden Kosten, kein Cloud-Abo.
+> **Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. Self-hosted, Open Source, Mobile-first.**
 
-## Features
+## Was jotti kann
 
-### ✅ Umgesetzt (23 von 50 Anforderungen)
-
-- **Bestellungen** auf Tische buchen (Produkte mit Varianten, Mengen, Kategorien)
+- **Bestellungen** auf Tische buchen — mit Produkten, Varianten und Kommentaren
 - **Lieferungen** als ausgeliefert markieren
-- **Zahlungen** registrieren (Teilzahlung möglich)
-- **Stornierungen** (nur Admin und Serviceleitung)
-- **Tisch-Übersicht**: offener Saldo, unbezahlte/ungelieferte Positionen, Historie
-- **Admin-Bereich**: Produkte, Tische und Benutzer verwalten
-- **Rollen**: `admin`, `senior_service` (Service + Stornierung), `service`
-- **Authentifizierung**: JWT (12h), Einmalpasswort-Onboarding, Argon2id-Hashing
-- **Kommentar/Notiz** pro Bestellvorgang (max. 100 Zeichen)
-
-### ❌ Nächste Schritte
-
-Siehe [Implementierungsplan](docs/implementation-plan.md) und vollständigen [Anforderungskatalog](docs/requirements.md) (50 Anforderungen).
-
-## Architektur
-
-Single-Tenant, deployed via Docker Compose auf einer VM.
-
-| Komponente    | Technologie                                           |
-| ------------- | ----------------------------------------------------- |
-| Frontend      | React 19, Vite, Tailwind CSS 4, shadcn/ui, TypeScript |
-| Backend       | Go 1.26, stdlib `net/http`, pgx/v5                    |
-| Datenbank     | PostgreSQL 17                                         |
-| Reverse Proxy | nginx (HTTPS via Let's Encrypt)                       |
-
-- Stammdaten (Benutzer, Produkte, Tische) → relationale Tabellen (CRUD)
-- Tisch-Operationen (Bestellungen, Zahlungen, Lieferungen, Stornierungen) → **Event Sourcing** (append-only)
-- Alle API-Endpunkte sind ausschließlich `POST`
-- Frontend validiert Request/Response mit Zod-Schemas
-
-## Projektstruktur
-
-```
-backend/          Go-Backend (HTTP → Application → Domain → Repository)
-frontend/         React-SPA (admin/, service/, components/, lib/)
-database/         SQL-Migrationen (golang-migrate)
-reverse-proxy/    nginx-Konfigurationen (dev, staging, production)
-docs/             Dokumentation
-```
+- **Zahlungen** registrieren (Teilzahlungen möglich)
+- **Stornierungen** mit Rollen-Kontrolle (Admin & Serviceleitung)
+- **Tisch-Übersicht** mit offenem Saldo, Positionen und Bestellhistorie
+- **Admin-Bereich** für Produkte, Tische und Benutzer
+- **Rollenmodell** mit `admin`, `senior_service` und `service`
+- **Sicheres Onboarding** per Einmalpasswort, Argon2id-Hashing, JWT-Auth
 
 ## Schnellstart
 
@@ -58,23 +25,26 @@ make dev
 # Frontend: http://localhost | API: http://localhost/api
 ```
 
-Ausführliche Anleitungen: [Entwicklung & Deployment](docs/development.md)
+## Tech-Stack
+
+| Komponente    | Technologie                                           |
+| ------------- | ----------------------------------------------------- |
+| Frontend      | React 19, Vite, Tailwind CSS 4, shadcn/ui, TypeScript |
+| Backend       | Go 1.26, stdlib `net/http`, pgx/v5                    |
+| Datenbank     | PostgreSQL 17                                         |
+| Reverse Proxy | nginx (HTTPS via Let's Encrypt)                       |
+
+Tisch-Operationen (Bestellungen, Zahlungen, Lieferungen, Stornierungen) werden via **Event Sourcing** (append-only) persistiert. Stammdaten nutzen klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
 
 ## Dokumentation
 
 | Dokument                                                   | Inhalt                                                        |
 | ---------------------------------------------------------- | ------------------------------------------------------------- |
-| [docs/pos.md](docs/pos.md)                                 | POS-Einordnung: Kontext, Zielgruppe, Abgrenzung               |
 | [docs/development.md](docs/development.md)                 | Lokale Entwicklung, Tests, Deployment, CI/CD                  |
 | [docs/requirements.md](docs/requirements.md)               | Vollständiger Anforderungskatalog (50 Anforderungen)          |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Implementierungsplan für die nächsten Features                |
-| [docs/database.md](docs/database.md)                       | Datenbank & Persistenz (sqlc, Repository-Layer)               |
 | [docs/language.md](docs/language.md)                       | Ubiquitous Language: Domain-Begriffe und DDD-Empfehlungen     |
+| [docs/database.md](docs/database.md)                       | Datenbank & Persistenz (sqlc, Repository-Layer)               |
+| [docs/theory/](docs/theory/README.md)                      | Architektur-Theorie (DDD, Event-Sourcing, CQRS, …)            |
 | [docs/adr/orm.md](docs/adr/orm.md)                         | ADR: Bewertung von ORM-Alternativen und Entscheidung für sqlc |
 | [AGENTS.md](AGENTS.md)                                     | Instruktionen für KI-Coding-Agenten                           |
-
-## Offene Fragen
-
-- Steuern/Mehrwertsteuer: mehrere Sätze pro Produkt? Brutto/Netto-Preise, Rundung?
-- Dynamische Preise (Happy Hour, Event-spezifisch), Rabatte/Aktionen, Gratisartikel?
-- Ausverkauft: manuell gesetzt vs. Bestandsführung?
