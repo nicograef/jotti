@@ -1,5 +1,6 @@
 {
   "name": "jotti",
+  "description": "Gastronomie-Kassensystem (POS) für Vereine und Non-Profit-Veranstaltungen. Self-hosted, Mobile-first, kein Cloud-Abo.",
   "private": true,
   "version": "0.0.0",
   "type": "module",

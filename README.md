@@ -38,14 +38,31 @@ Tisch-Operationen (Bestellungen, Zahlungen, Lieferungen, Stornierungen) werden v
 
 ## Dokumentation
 
-| Dokument                                                   | Inhalt                                                        |
-| ---------------------------------------------------------- | ------------------------------------------------------------- |
-| [docs/development.md](docs/development.md)                 | Lokale Entwicklung, Tests, Deployment, CI/CD                  |
-| [docs/requirements.md](docs/requirements.md)               | Vollständiger Anforderungskatalog (50 Anforderungen)          |
-| [docs/implementation-plan.md](docs/implementation-plan.md) | Implementierungsplan für die nächsten Features                |
-| [docs/language.md](docs/language.md)                       | Ubiquitous Language: Domain-Begriffe und DDD-Empfehlungen     |
+| Dokument                                                   | Inhalt                                                             |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| [docs/development.md](docs/development.md)                 | Lokale Entwicklung, Tests, Deployment, CI/CD                       |
+| [docs/requirements.md](docs/requirements.md)               | Vollständiger Anforderungskatalog (50 Anforderungen)               |
+| [docs/implementation-plan.md](docs/implementation-plan.md) | Implementierungsplan für die nächsten Features                     |
+| [docs/language.md](docs/language.md)                       | Ubiquitous Language: Domain-Begriffe und DDD-Empfehlungen          |
 | [docs/event-storming.md](docs/event-storming.md)           | Event-Storming-Session: Domain Events, Aggregate, Bounded Contexts |
-| [docs/database.md](docs/database.md)                       | Datenbank & Persistenz (sqlc, Repository-Layer)               |
-| [docs/theory/](docs/theory/README.md)                      | Architektur-Theorie (DDD, Event-Sourcing, CQRS, …)            |
-| [docs/adr/orm.md](docs/adr/orm.md)                         | ADR: Bewertung von ORM-Alternativen und Entscheidung für sqlc |
-| [AGENTS.md](AGENTS.md)                                     | Instruktionen für KI-Coding-Agenten                           |
+| [docs/database.md](docs/database.md)                       | Datenbank & Persistenz (sqlc, Repository-Layer)                    |
+| [docs/theory/](docs/theory/README.md)                      | Architektur-Theorie (DDD, Event-Sourcing, CQRS, …)                 |
+| [docs/adr/orm.md](docs/adr/orm.md)                         | ADR: Bewertung von ORM-Alternativen und Entscheidung für sqlc      |
+| [docs/lizenz-und-nutzung.md](docs/lizenz-und-nutzung.md)   | Lizenz, Nutzungsvereinbarung, IP, DSGVO, Kommerzialisierung        |
+| [AGENTS.md](AGENTS.md)                                     | Instruktionen für KI-Coding-Agenten                                |
+
+## Lizenz & Urheberrecht
+
+**Copyright (c) 2025 Nico Gräf. Alle Rechte vorbehalten.**
+
+jotti ist lizenziert unter der [AGPL-3.0-or-later](LICENSE) (GNU Affero General Public License v3).
+
+**Was das bedeutet:**
+
+- ✅ **Vereine und Non-Profits** dürfen jotti kostenlos nutzen, installieren und betreiben (Self-Hosted).
+- ✅ **Quellcode einsehen, modifizieren und beitragen** ist erlaubt und erwünscht.
+- ⚠️ **Wer jotti modifiziert und als Netzwerkservice (SaaS) anbietet**, muss den vollständigen Quellcode aller Änderungen unter AGPL-3.0 veröffentlichen.
+- ❌ **Proprietäre Abspaltungen sind nicht erlaubt.** Niemand darf jotti oder Teile davon in ein geschlossenes kommerzielles Produkt überführen, ohne die AGPL-Pflichten zu erfüllen.
+- 💼 **Kommerzielle Lizenzierung:** Für die Nutzung ohne AGPL-Pflichten (z.B. proprietäres SaaS, White-Label) ist eine kommerzielle Lizenz vom Urheber erforderlich — Kontakt über GitHub.
+
+Ausführliche Informationen: [docs/lizenz-und-nutzung.md](docs/lizenz-und-nutzung.md)
