@@ -153,6 +153,6 @@ Nur geänderte Pfade werden getestet (via `dorny/paths-filter`).
 
 ## Anforderungen & Roadmap
 
-Der vollständige Anforderungskatalog mit 50 Anforderungen (23 umgesetzt, 27 offen) liegt in [docs/requirements.md](requirements.md). Dort finden sich auch konkrete Implementierungsvorschläge für jede offene Anforderung.
+Der vollständige Anforderungskatalog liegt in [docs/anforderungen.md](anforderungen.md).
 
 Für Kodier-Agenten sind die wichtigsten Architekturhinweise und offenen Features in [AGENTS.md](../AGENTS.md) zusammengefasst.

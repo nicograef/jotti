@@ -6,7 +6,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellung
 
 **Bewusst NICHT enthalten:** Kartenzahlung, TSE/KassenSichV, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM, Kiosk-Modus. Diese Reduktion ist gewollt — jedes zusätzliche Feature erhöht Komplexität für ehrenamtliche Teams.
 
-Weiterführende Docs: [Produktbeschreibung](docs/produktbeschreibung.md) · [Anforderungen](docs/requirements.md) · [Implementierungsplan](docs/implementation-plan.md) · [Entwicklung](docs/development.md) · [Ubiquitous Language](docs/language.md) · [Event Storming](docs/event-storming.md) · [Lizenz](docs/lizenz-und-nutzung.md)
+Weiterführende Docs: [Produktbeschreibung](docs/produktbeschreibung.md) · [Anforderungen](docs/requirements.md) · [Entwicklung](docs/development.md) · [Ubiquitous Language](docs/language.md) · [Event Storming](docs/event-storming.md) · [Lizenz](docs/lizenz-und-nutzung.md)
 
 ## Tech-Stack
 
@@ -27,7 +27,7 @@ Weiterführende Docs: [Produktbeschreibung](docs/produktbeschreibung.md) · [Anf
 6. **Deutsche Ubiquitous Language.** Fachbegriffe der Domäne sind deutsch (Bestellung, Zahlung, Lieferung, Stornierung, Tisch, Position). Infrastruktur-Code (Auth, Config, DB) bleibt englisch. Alle Benutzer-sichtbaren Strings auf Deutsch. Commits auf Englisch.
 7. **Kein globaler State-Store im Frontend.** Nur React Hooks + Singletons.
 8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
-9. **Dokumentation synchron halten.** Bei Änderungen diese Dateien aktualisieren, sofern betroffen: `AGENTS.md`, `README.md`, `docs/development.md`, `docs/requirements.md`, `docs/implementation-plan.md`, `docs/language.md`.
+9. **Dokumentation synchron halten.** Bei Änderungen diese Dateien aktualisieren, sofern betroffen: `AGENTS.md`, `README.md`, `docs/development.md`, `docs/requirements.md`, `docs/language.md`.
 10. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend. Das Frontend zeigt an, was das Backend liefert.
 
 ## Bereiche

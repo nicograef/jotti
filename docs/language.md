@@ -63,7 +63,7 @@ Auth (`/auth/*`) ist technische Infrastruktur, kein eigenständiger Bounded Cont
 
 ### 2. „Bediener" vs. „Servicekraft"
 
-**Problem:** Im Anforderungskatalog (`docs/requirements.md`) wird die Rolle als „Bediener" bezeichnet. In Code, AGENTS.md und allen anderen Dokumenten heißt dieselbe Rolle „Servicekraft".
+**Problem:** Im Anforderungskatalog (`docs/anforderungen.md`) wird die Rolle als „Bediener" bezeichnet. In Code, AGENTS.md und allen anderen Dokumenten heißt dieselbe Rolle „Servicekraft".
 
 **Empfehlung:** Kanonisch ist **„Servicekraft"** (Service-Kontext) und **„Bediener"** als informeller Oberbegriff in der Tagesabrechnung. Die Rollenspalte im Anforderungskatalog sollte auf „Servicekraft" umgestellt werden.
 
