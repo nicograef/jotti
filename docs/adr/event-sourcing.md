@@ -207,10 +207,3 @@ Die Application-Schicht trennt Schreib- und Leseoperationen:
 - **Commands** erstellen Events: `PlaceTableOrder`, `RegisterTablePayment`, `CancelTableVariants`, `DeliverTableVariants`, `CreateTableSnapshot`
 - **Queries** rekonstruieren Zustand: `GetTableBalance`, `GetTableHistory`, `GetTableUnpaidVariants`, `GetTableUndeliveredVariants`, `GetTableTotalPayments`
 
----
-
-## Referenzen
-
-- [Was ist Event-Sourcing?](https://nicograef.com/articles/was-ist-event-sourcing)
-- [Event-Sourcing am Beispiel Warenkorb erklärt](https://nicograef.com/articles/event-sourcing-am-beispiel-warenkorb-erklaert)
-- [CloudEvents-Spezifikation](https://cloudevents.io/)
