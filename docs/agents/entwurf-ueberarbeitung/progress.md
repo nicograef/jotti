@@ -123,7 +123,7 @@ Referenzdateien: `docs/design/event-storming.md` (Phase 5.1, 5.3).
 - [x] Kapitel 9.4 — Optimistic Concurrency Control schreiben: Version-Mechanismus und Retry-Pattern bei Konflikten erklären
 - [x] Kapitel 9 — Snapshot-Speicherung ergänzen: separate Speicherung (nicht im Event Stream), automatisch nach N Events oder auf Admin-Anfrage
 
-## Abschnitt 5: Architekturprinzipien und Infrastruktur
+## Abschnitt 5: Architekturprinzipien und Infrastruktur 🔒
 
 Referenzdateien: aktueller `docs/design/entwurf.md` (Kapitel 5–10), `docs/anforderungen.md` (Q-01…Q-08).
 
