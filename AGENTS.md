@@ -1,30 +1,21 @@
 # Agent Instructions — jotti
 
-Dieses Dokument richtet sich an KI-Coding-Agenten (Copilot, Cursor, Cline, Aider, etc.).
+jotti ist ein **kostenloses, quelloffenes Mobile-Kassensystem (mPOS)** für Vereine und gemeinnützige Organisationen. Zielgruppe: eingetragene Vereine (e.V.), gGmbH, gUG, Stiftungen, kirchliche Träger — für temporäre Gastronomie-Veranstaltungen (Vereinsfeste, Weihnachtsmärkte, Maihocks, Konzerte, 2–3 Mal pro Jahr, 5–50 Tische, 5–30 ehrenamtliche Helfer).
 
-## Projektübersicht
+Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer. Self-hosted per Docker Compose, Source-Available (AGPL-3.0 + Non-Commercial), Mobile-first.
 
-jotti ist ein **Gastronomie-Kassensystem (POS)** für Vereine und Non-Profit-Veranstaltungen (Vereinsfeste, Weihnachtsmärkte, Konzerte, Maihocks). Servicekräfte nehmen auf Smartphones Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer.
+**Bewusst NICHT enthalten:** Kartenzahlung, TSE/KassenSichV, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM, Kiosk-Modus. Diese Reduktion ist gewollt — jedes zusätzliche Feature erhöht Komplexität für ehrenamtliche Teams.
 
-jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo, kein Zahlungsgateway. Self-hosted, Source-Available (AGPL-3.0 + Non-Commercial), Mobile-first.
-
-**Weiterführende Dokumentation:**
-
-- [Anforderungskatalog](docs/requirements.md) — 50 Anforderungen mit Status und Implementierungsvorschlägen
-- [Implementierungsplan](docs/implementation-plan.md) — Nächste Features mit Code-Snippets und Akzeptanzkriterien
-- [Entwicklung & Deployment](docs/development.md) — Setup, Tests, CI/CD, Deployment
-- [Ubiquitous Language](docs/language.md) — Domain-Begriffe und DDD-Empfehlungen
-- [Event Storming](docs/event-storming.md) — Simulierte Event-Storming-Session: Domain Events, Aggregate, Bounded Contexts
-- [Lizenz & Nutzung](docs/lizenz-und-nutzung.md) — Lizenz (AGPL-3.0 + Zusatzbedingungen, Non-Commercial), IP, Nutzungsvereinbarung, Kommerzialisierung
+Weiterführende Docs: [Produktbeschreibung](docs/produktbeschreibung.md) · [Anforderungen](docs/requirements.md) · [Implementierungsplan](docs/implementation-plan.md) · [Entwicklung](docs/development.md) · [Ubiquitous Language](docs/language.md) · [Event Storming](docs/event-storming.md) · [Lizenz](docs/lizenz-und-nutzung.md)
 
 ## Tech-Stack
 
-| Komponente    | Technologie                                                                | Versionen in             |
-| ------------- | -------------------------------------------------------------------------- | ------------------------ |
-| Backend       | Go, stdlib `net/http`, `pgx/v5`, `sqlc`, `zerolog`, `zog`, `golang-jwt/v5` | `backend/go.mod`         |
-| Frontend      | React, Vite, TypeScript (strict), Tailwind CSS, shadcn/ui, Zod             | `frontend/package.json`  |
-| Datenbank     | PostgreSQL, `golang-migrate`                                               | `docker-compose.dev.yml` |
-| Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                         |                          |
+| Komponente    | Technologie                                                                |
+| ------------- | -------------------------------------------------------------------------- |
+| Backend       | Go, stdlib `net/http`, `pgx/v5`, `sqlc`, `zerolog`, `zog`, `golang-jwt/v5` |
+| Frontend      | React, Vite, TypeScript (strict), Tailwind CSS 4, shadcn/ui, Zod           |
+| Datenbank     | PostgreSQL, `golang-migrate`                                               |
+| Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                         |
 
 ## Wichtige Regeln
 
@@ -37,151 +28,15 @@ jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo,
 7. **Kein globaler State-Store im Frontend.** Nur React Hooks + Singletons.
 8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
 9. **Dokumentation synchron halten.** Bei Änderungen diese Dateien aktualisieren, sofern betroffen: `AGENTS.md`, `README.md`, `docs/development.md`, `docs/requirements.md`, `docs/implementation-plan.md`, `docs/language.md`.
-10. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend. Das Frontend zeigt an, was das Backend liefert. Vor dem Hinzufügen von Frontend-Filtern prüfen, ob das Backend die Daten bereits korrekt aufbereitet.
+10. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend. Das Frontend zeigt an, was das Backend liefert.
 
-## Backend-Konventionen
+## Bereiche
 
-### Fehlerformat
+- **Admin** (`admin`): Routen `/admin/*` (`api/admin.go`), Frontend `src/admin/`, `AdminGuard`. Produkte, Tische, Benutzer verwalten.
+- **Service** (`admin` + `senior_service` + `service`): Routen `/service/*` (`api/service.go`), Stornierung über `api/senior_service.go`. Frontend `src/service/`, `ServiceGuard`. Bestellen, Liefern, Kassieren, Stornieren.
+- **Auth** (kein JWT): Routen `/auth/*` (`api/auth.go`). Login, Passwort setzen.
 
-Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `api/helper/http.go`).
-
-### Auth
-
-- JWT HS256, 12h Gültigkeit, Claims: `sub` (userID), `role` (admin|senior_service|service)
-- Middleware extrahiert `userID` und `role` aus JWT in Request-Context
-- Passwörter: Argon2id-Hashing (`domain/user/password.go`)
-
-### State-Rekonstruktion aus Events
-
-- Saldo = Summe(Bestellungen) − Summe(Zahlungen) − Summe(Stornierungen)
-- UnbezahltePositionen = bestellt − bezahlt − storniert
-- UngeliefertePositionen = bestellt − geliefert − storniert
-
-## Frontend-Konventionen
-
-### UI-Bibliotheken
-
-- **shadcn/ui** (Stil: `new-york`, Radix-basiert)
-- **Lucide React** (Icons)
-- **Sonner** (Toasts) — alle mutativen Aktionen zeigen `toast.error(...)` bei Fehlern
-- **Vaul** (Drawers)
-
-### Patterns
-
-- **401-Interceptor**: `Backend.post()` erkennt 401, loggt aus und leitet zu `/login` weiter — kein manuelles 401-Handling nötig
-- **Drawer-Pattern**: Bestellen, Bezahlen, Stornieren, Liefern öffnen Bottom-Sheet-Drawer mit Zusammenfassung. Hilfsfunktionen (`selectPositionen`, `calculateTotalPrice`) in `src/service/components/table/drawerUtils.ts`
-- **Geldbeträge anzeigen**: `formatCents()` aus `src/lib/utils.ts` — nie inline formatieren
-
-### Styling
-
-- Tailwind CSS 4 via `@tailwindcss/vite` (keine `tailwind.config.js`)
-- CSS-Variablen in `src/index.css` (Violet/Indigo-Schema, Dark Mode via `.dark`-Klasse)
-- `cn()` Utility aus `src/lib/utils.ts` (`clsx` + `tailwind-merge`)
-- Path-Alias: `@/` → `./src/`
-
-## Bereiche: Admin vs. Service
-
-### Admin-Bereich (Rolle: `admin`)
-
-Verwaltung von Stammdaten. Nur für Administratoren zugänglich.
-
-- **Backend**: Routen in `api/admin.go` unter `/admin/*`, JWT-Middleware erlaubt nur Rolle `admin`
-- **Frontend**: Seiten unter `src/admin/` mit `AdminGuard` (React Router Loader)
-- **Funktionen**: Produkte + Varianten erstellen/bearbeiten/aktivieren/deaktivieren, Tische verwalten, Benutzer anlegen/bearbeiten/Passwort zurücksetzen
-
-### Service-Bereich (Rollen: `admin` + `senior_service` + `service`)
-
-Kassenbetrieb am Tisch.
-
-- **Backend**: Routen in `api/service.go` unter `/service/*`. Stornierung (`/produkte-stornieren`) läuft über `api/senior_service.go` mit Middleware nur für `admin` und `senior_service`.
-- **Frontend**: Seiten unter `src/service/` mit `ServiceGuard` (React Router Loader)
-- **Funktionen**: Tisch auswählen, Bestellungen aufgeben, Lieferungen bestätigen, Zahlungen registrieren, Stornierungen, Tisch-Historie einsehen
-
-### Auth-Bereich (kein JWT erforderlich)
-
-- **Backend**: Routen in `api/auth.go` unter `/auth/*`
-
-## Verzeichnisstruktur
-
-```
-backend/
-  main.go                       # Einstiegspunkt
-  sqlc.yaml                     # sqlc-Konfiguration
-  sqlc/queries/                 # SQL-Queries für sqlc
-  sqlc/dbgen/                   # Generierter Code (NICHT EDITIEREN)
-  api/service.go                # Service-Routen (Kassenbetrieb)
-  api/senior_service.go         # Senior-Service-Routen (Stornierung)
-  api/admin.go                  # Admin-Routen (Verwaltung)
-  api/auth.go                   # Auth-Routen (Login, Passwort setzen)
-  api/<domain>/http/            # HTTP-Handler
-  api/<domain>/application/     # Application-Services
-  api/middleware/               # JWT-Auth, Rate-Limiting, Logging
-  api/helper/                   # HTTP-Hilfsfunktionen (JSON-Parsing, Response)
-  domain/<domain>/              # Domain-Modelle und Business-Logik
-  repository/<domain>_repo/     # Datenbank-Zugriff (sqlc-basiert)
-  config/                       # Konfiguration aus Umgebungsvariablen
-  app/                          # App-Struct (Dependency Wiring)
-  db/                           # Datenbank-Verbindung und Fehler-Mapping
-
-frontend/
-  src/routes.ts                 # Alle Routen + Guards
-  src/App.tsx                   # Root-Komponente
-  src/lib/                      # Auth, Backend-Client, useFetch-Hook, Utilities
-  src/admin/                    # Admin-Bereich (Produkte, Tische, Benutzer)
-  src/service/                  # Service-Bereich (Tisch-Workflow)
-  src/pages/                    # Login, Passwort setzen
-  src/components/ui/            # shadcn/ui-Komponenten
-  src/components/common/        # Gemeinsame Komponenten
-
-database/
-  migrations/                   # SQL-Migrationen (up/down)
-
-docs/
-  database.md                 # Datenbank & Persistenz (Einstieg)
-  development.md              # Entwicklung & Deployment
-  requirements.md             # Anforderungskatalog
-  implementation-plan.md      # Implementierungsplan Phase 1 & 2
-  language.md                 # Ubiquitous Language (Domain-Begriffe)
-  adr/orm.md                  # ADR: ORM-Bewertung und Entscheidung für sqlc
-```
-
-## Wie füge ich ein neues Feature hinzu?
-
-### Backend (neuer Endpunkt)
-
-1. Domain-Modell + zog-Schema in `domain/<domain>/`
-2. SQL-Query in `sqlc/queries/<domain>.sql` definieren, dann `sqlc generate` ausführen
-3. Repository-Interface + Implementierung in `repository/<domain>_repo/` (wraps sqlc-generierte Funktionen)
-4. Application-Service in `api/<domain>/application/`
-5. HTTP-Handler in `api/<domain>/http/`
-6. Route registrieren in `api/admin.go` oder `api/service.go`
-7. Unit-Test mit `//go:build unit` Tag
-
-### Frontend (neue Seite)
-
-1. Zod-Schema + TypeScript-Typen in Feature-Verzeichnis
-2. Backend-Client-Klasse (nutzt `BackendClient`-Interface aus `@/lib/Backend`)
-3. Custom Hook via `useFetch<T>()` aus `@/lib/useFetch`
-4. React-Komponenten
-5. Route in `src/routes.ts` registrieren
-
-## Event-Sourcing-Referenz
-
-Events für Tisch-Operationen. Subject-Format: `"tisch:<id>"`. State wird durch Replay aller Events rekonstruiert. Snapshots optimieren Lesezugriffe.
-
-Event-Typen: `tisch.bestellung-aufgegeben:v1`, `tisch.zahlung-registriert:v1`, `tisch.produkte-storniert:v1`, `tisch.produkte-geliefert:v1`, `tisch.snapshot:v1`
-
-Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/table/events.go` und die zugehörigen `*Event.go`-Dateien im selben Verzeichnis.
-
-## Datenbank-Schema
-
-Tabellen: `users`, `tables`, `products`, `product_variants`, `events` (append-only).
-
-Aktuelles Schema: siehe SQL-Migrationen in `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge).
-
-Neue Migration: `database/migrations/<nr>_<name>.up.sql` + `.down.sql`
-
-## Tests ausführen
+## Tests
 
 ```bash
 cd backend && go test -tags=unit -race ./...   # Unit-Tests
