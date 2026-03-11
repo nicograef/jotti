@@ -8,6 +8,16 @@ argument-hint: "Pfad zur progress.md (z.B. docs/agents/theory-cleanup/progress.m
 
 Lies die referenzierte progress.md und arbeite **einen Abschnitt** ab.
 
+## Kontext laden
+
+Bevor du einen Abschnitt beanspruchst, verschaffe dir den nötigen Kontext:
+
+1. **Lies `plan.md`** im selben Verzeichnis wie die progress.md — sie enthält den Gesamtplan, relevante Datei-Referenzen und Kontext-Informationen.
+2. **Lies Referenzdateien**, die in der plan.md genannt werden und für die anstehende Arbeit relevant sind.
+3. **Lies bereits erstellte/geänderte Dateien** aus vorherigen Abschnitten, um nahtlos anzuknüpfen.
+
+Dieser Schritt ist in jeder neuen Session nötig, da Kontext zwischen Sessions nicht erhalten bleibt.
+
 ## Abschnitt auswählen und beanspruchen
 
 1. **Lies die gesamte progress.md** — insbesondere den Parallelisierungs-Abschnitt und alle Abschnitts-Überschriften.

@@ -64,11 +64,12 @@ Jeder Agent beansprucht automatisch den nächsten freien Abschnitt per 🔒-Mark
 Jeder Agent:
 
 1. Liest die progress.md
-2. Sieht, welche Abschnitte ✅ (fertig) oder 🔒 (in Arbeit) sind
-3. Prüft Abhängigkeiten im Parallelisierungs-Abschnitt
-4. Markiert den nächsten freien Abschnitt mit 🔒
-5. Arbeitet die Tasks ab
-6. Ersetzt 🔒 durch ✅ wenn fertig
+2. **Lädt Kontext** — liest plan.md und relevante Referenzdateien (passiert in jeder Session neu)
+3. Sieht, welche Abschnitte ✅ (fertig) oder 🔒 (in Arbeit) sind
+4. Prüft Abhängigkeiten im Parallelisierungs-Abschnitt
+5. Markiert den nächsten freien Abschnitt mit 🔒
+6. Arbeitet die Tasks ab
+7. Ersetzt 🔒 durch ✅ wenn fertig
 
 ### Abschnitt-Marker
 
@@ -89,6 +90,7 @@ Da jedes Feature sein eigenes Verzeichnis hat, können auch verschiedene Feature
 
 ## Hinweise
 
+- **Kontext pro Session:** Jede `/implement`-Session lädt ihren eigenen Kontext (plan.md + Referenzdateien) — es gibt keine separaten „Kontext-Lade-Abschnitte". Jeder Abschnitt muss echten Output produzieren.
 - **Automatische Koordination:** Agents koordinieren sich über die 🔒/✅-Marker in der progress.md. Kein manuelles Zuweisen nötig.
 - **Abhängigkeiten:** Agents prüfen selbst, ob Vorgänger-Abschnitte ✅ sind, bevor sie einen Abschnitt beanspruchen.
 - **Race Condition:** Bei gleichzeitigem Start kann es vorkommen, dass zwei Agents denselben Abschnitt beanspruchen wollen. Die Datei-Edit-Operation schlägt dann bei einem fehl (Überschrift bereits geändert). Der Agent erkennt das und wählt den nächsten freien.

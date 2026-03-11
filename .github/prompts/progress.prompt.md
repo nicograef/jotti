@@ -21,6 +21,7 @@ Erzeuge aus dem referenzierten Plan eine **progress.md** im selben Verzeichnis. 
 - **Führe KEINE Code-Änderungen durch.** Nur progress.md erstellen/schreiben.
 - **Tasks müssen atomar sein** — ein Task = eine klar abgrenzbare Aktion (eine Datei erstellen, eine Funktion schreiben, einen Test hinzufügen)
 - **Jeder Task muss unabhängig prüfbar sein** — nach Abschluss muss klar sein, ob er erledigt ist oder nicht
+- **Keine reinen Kontext-Lade-Abschnitte.** Abschnitte, deren Tasks nur aus "Datei X lesen" oder "Kontext erfassen" bestehen, sind verboten. Kontext-Laden gehört in den Block `### Kontext laden` der Agent-Anweisungen (siehe Template unten) — nicht in einen eigenen Abschnitt. Jeder Abschnitt muss Output produzieren (Dateien erstellen/ändern, Code schreiben, Dokumentation schreiben).
 
 ## Struktur von progress.md
 
@@ -32,6 +33,16 @@ Details siehe plan.md
 ## Agent Anweisungen
 
 > **Lies diese Anweisungen vollständig, bevor du mit der Arbeit beginnst.**
+
+### Kontext laden (vor jedem Abschnitt)
+
+Bevor du einen Abschnitt beanspruchst, lies **immer** diese Dateien:
+
+1. `plan.md` (im selben Verzeichnis) — Gesamtplan, Kontext und Referenzen
+2. Alle in plan.md genannten Referenzdateien, die für den Abschnitt relevant sind
+3. Bereits erstellte/geänderte Dateien aus vorherigen Abschnitten (um nahtlos anzuknüpfen)
+
+Diese Dateien werden in jeder neuen Session erneut gelesen — die Kontext-Beschaffung ist kein eigener Abschnitt, sondern Pflicht vor jeder Arbeit.
 
 ### Abschnitt beanspruchen
 
