@@ -1,21 +1,40 @@
-# jotti
+# jotti — Das kostenlose Kassensystem für Vereinsfeste.
 
-Ein leichtgewichtiges **Gastronomie-Kassensystem (POS)** für Vereine und Non-Profit-Organisationen bei Veranstaltungen — Vereinsfeste, Weihnachtsmärkte, Konzerte, Maihocks, Sommerfeste.
+Ein kostenloses, quelloffenes **Gastronomie-Kassensystem (mPOS)** für Vereine und gemeinnützige Organisationen — Vereinsfeste, Weihnachtsmärkte, Konzerte, Maihocks, Sommerfeste.
 
-Servicekräfte nehmen auf Smartphones Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer über einen eigenen Admin-Bereich.
+Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer über einen eigenen Admin-Bereich.
 
-> **Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. Self-hosted, Source-Available, Mobile-first.**
+> **Kostenlos. Self-hosted. Open Source.**
+> Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. Kein Zahlungsgateway.
 
 ## Was jotti kann
 
-- **Bestellungen** auf Tische buchen — mit Produkten, Varianten und Kommentaren
-- **Lieferungen** als ausgeliefert markieren
-- **Zahlungen** registrieren (Teilzahlungen möglich)
-- **Stornierungen** mit Rollen-Kontrolle (Admin & Serviceleitung)
-- **Tisch-Übersicht** mit offenem Saldo, Positionen und Bestellhistorie
-- **Admin-Bereich** für Produkte, Tische und Benutzer
-- **Rollenmodell** mit `admin`, `senior_service` und `service`
-- **Sicheres Onboarding** per Einmalpasswort, Argon2id-Hashing, JWT-Auth
+### Kassenbetrieb
+
+- 📱 **Bestellungen** auf Tische buchen — mit Produkten, Varianten und Kommentaren
+- 🚚 **Lieferungen** als ausgeliefert markieren
+- 💰 **Zahlungen** registrieren (Teilzahlungen möglich)
+- ↩️ **Stornierungen** mit Rollen-Kontrolle (Admin & Serviceleitung)
+- 📋 **Tisch-Übersicht** mit offenem Saldo, Positionen und Bestellhistorie
+
+### Küche & Ausgabe
+
+- 🖥️ **Küchendisplay (KDS)** — eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe
+- 🖨️ **Bon-Druck** — Bestell- und Küchenbons direkt an einen Bondrucker senden
+
+### Abrechnung & Reporting
+
+- 📊 **Tagesabrechnung** — Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge
+- 🧾 **Abrechnung pro Tisch** — detaillierte Aufstellung je Tisch
+- 👤 **Abrechnung pro Servicekraft** — Umsatz und Transaktionen pro Person
+- 📈 **Reporting** — Produktumsätze, meistverkaufte Varianten, Gesamteinnahmen
+
+### Verwaltung & Sicherheit
+
+- ⚙️ **Admin-Bereich** für Produkte (mit Varianten), Tische und Benutzer
+- 🔐 **Rollenmodell** mit `admin`, `senior_service` und `service`
+- 🔑 **Sicheres Onboarding** per Einmalpasswort, Argon2id-Hashing, JWT-Auth
+- 📜 **Event-Sourcing** — lückenlose, unveränderliche Bestellhistorie (GoBD-Grundsätze durch Append-only-Architektur)
 
 ## Schnellstart
 
@@ -36,20 +55,20 @@ make dev
 
 Tisch-Operationen (Bestellungen, Zahlungen, Lieferungen, Stornierungen) werden via **Event Sourcing** (append-only) persistiert. Stammdaten nutzen klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
 
-## Dokumentation
+## Für wen ist jotti?
 
-| Dokument                                                   | Inhalt                                                             |
-| ---------------------------------------------------------- | ------------------------------------------------------------------ |
-| [docs/development.md](docs/development.md)                 | Lokale Entwicklung, Tests, Deployment, CI/CD                       |
-| [docs/requirements.md](docs/requirements.md)               | Vollständiger Anforderungskatalog (50 Anforderungen)               |
-| [docs/implementation-plan.md](docs/implementation-plan.md) | Implementierungsplan für die nächsten Features                     |
-| [docs/language.md](docs/language.md)                       | Ubiquitous Language: Domain-Begriffe und DDD-Empfehlungen          |
-| [docs/event-storming.md](docs/event-storming.md)           | Event-Storming-Session: Domain Events, Aggregate, Bounded Contexts |
-| [docs/database.md](docs/database.md)                       | Datenbank & Persistenz (sqlc, Repository-Layer)                    |
-| [docs/theory/](docs/theory/README.md)                      | Architektur-Theorie (DDD, Event-Sourcing, CQRS, …)                 |
-| [docs/adr/orm.md](docs/adr/orm.md)                         | ADR: Bewertung von ORM-Alternativen und Entscheidung für sqlc      |
-| [docs/lizenz-und-nutzung.md](docs/lizenz-und-nutzung.md)   | Lizenz, Nutzungsvereinbarung, IP, DSGVO, Kommerzialisierung        |
-| [AGENTS.md](AGENTS.md)                                     | Instruktionen für KI-Coding-Agenten                                |
+✅ **Geeignet für:**
+
+- Eingetragene Vereine (e.V.), gemeinnützige Organisationen, NPOs
+- Temporäre Veranstaltungen: Vereinsfeste, Sommerfeste, Weihnachtsmärkte, Maihocks, Konzerte
+- Ehrenamtliche Teams (5–30 Servicekräfte)
+- Bargeld-Betrieb ohne Kassenpflicht nach KassenSichV
+
+❌ **Nicht geeignet für:**
+
+- Dauerbetrieb (Restaurants, Cafés)
+- Kommerzielle Gastro-Betriebe mit TSE-Pflicht
+- Kartenzahlung / NFC / Online-Payment
 
 ## Lizenz & Urheberrecht
 

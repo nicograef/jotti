@@ -174,6 +174,8 @@ jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 | **Stornierungen**          | Falschbestellungen rückgängig machen (nur Serviceleitung/Admin)                          |
 | **Tisch-Übersicht**        | Offener Saldo, bestellte/gelieferte/bezahlte Positionen, Bestellhistorie auf einen Blick |
 | **Tischauswahl**           | Alle Tische mit Status und offenem Betrag — sofort den richtigen Tisch finden            |
+| **Küchendisplay (KDS)**    | Eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe anzeigen  |
+| **Bon-Druck**              | Bestell- und Küchenbons direkt an einen Bondrucker senden                                |
 
 ### 6.2 Verwaltung (Admin-Bereich)
 
@@ -184,7 +186,16 @@ jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 | **Benutzerverwaltung** | Accounts erstellen, Rollen zuweisen, Passwörter zurücksetzen |
 | **Rollenmodell**       | Drei Rollen: Admin, Serviceleitung, Servicekraft             |
 
-### 6.3 Sicherheit und Zuverlässigkeit
+### 6.3 Abrechnung und Reporting
+
+| Feature                         | Beschreibung                                                                        |
+| ------------------------------- | ----------------------------------------------------------------------------------- |
+| **Tagesabrechnung**             | Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge am Ende des Tages      |
+| **Abrechnung pro Tisch**        | Detaillierte Aufstellung aller Bestellungen, Zahlungen und Stornierungen je Tisch   |
+| **Abrechnung pro Servicekraft** | Umsatz und Transaktionen pro Servicekraft — für Transparenz und Nachvollziehbarkeit |
+| **Reporting**                   | Auswertungen über Produktumsätze, meistverkaufte Varianten und Gesamteinnahmen      |
+
+### 6.4 Sicherheit und Zuverlässigkeit
 
 | Feature                              | Beschreibung                                                                 |
 | ------------------------------------ | ---------------------------------------------------------------------------- |
@@ -200,28 +211,30 @@ jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 
 ### 7.1 jotti vs. kommerzielle POS-Systeme
 
-| Eigenschaft           | jotti                                 | Orderbird / Toast / Zettle          |
-| --------------------- | ------------------------------------- | ----------------------------------- |
-| **Preis**             | Kostenlos                             | 30–100 €/Monat + Hardware           |
-| **Hardware**          | Keine — eigenes Smartphone (BYOD)     | Dedizierte Terminals, iPad, Drucker |
-| **Hosting**           | Self-hosted (Docker)                  | Cloud-SaaS                          |
-| **Zielgruppe**        | Vereine, gemeinnützige Organisationen | Gastronomie-Betriebe, Restaurants   |
-| **Zahlungsarten**     | Bargeld-Tracking                      | Karte, NFC, Online-Payment          |
-| **Fiskalkonformität** | Nicht erforderlich (Non-Profit)       | TSE, GoBD, KassenSichV              |
-| **Offline-Modus**     | Server-basiert (lokales WLAN reicht)  | Cloud-abhängig oder Hybrid          |
-| **Einrichtungszeit**  | Minuten (Docker Compose)              | Tage bis Wochen                     |
-| **Schulung**          | Keine — intuitive Mobile-UI           | Oft erforderlich                    |
-| **Vertragslaufzeit**  | Keine                                 | 12–24 Monate                        |
-| **Datenhoheit**       | Volle Kontrolle (eigener Server)      | Daten beim Anbieter                 |
-| **Quellcode**         | Einsehbar (Source-Available)          | Proprietär                          |
+| Eigenschaft           | jotti                                            | Orderbird / Toast / Zettle           |
+| --------------------- | ------------------------------------------------ | ------------------------------------ |
+| **Preis**             | Kostenlos                                        | 30–100 €/Monat + Hardware            |
+| **Hardware**          | Keine — eigenes Smartphone (BYOD)                | Dedizierte Terminals, iPad, Drucker  |
+| **Hosting**           | Self-hosted (Docker)                             | Cloud-SaaS                           |
+| **Zielgruppe**        | Vereine, gemeinnützige Organisationen            | Gastronomie-Betriebe, Restaurants    |
+| **Zahlungsarten**     | Bargeld-Tracking                                 | Karte, NFC, Online-Payment           |
+| **Fiskalkonformität** | GoBD-Grundsätze durch Event-Sourcing (keine TSE) | Zertifizierte TSE, GoBD, KassenSichV |
+| **Offline-Modus**     | Server-basiert (lokales WLAN reicht)             | Cloud-abhängig oder Hybrid           |
+| **Einrichtungszeit**  | Minuten (Docker Compose)                         | Tage bis Wochen                      |
+| **Schulung**          | Keine — intuitive Mobile-UI                      | Oft erforderlich                     |
+| **Vertragslaufzeit**  | Keine                                            | 12–24 Monate                         |
+| **Datenhoheit**       | Volle Kontrolle (eigener Server)                 | Daten beim Anbieter                  |
+| **Quellcode**         | Einsehbar (Source-Available)                     | Proprietär                           |
+| **Küchendisplay**     | Integriertes KDS                                 | Meist kostenpflichtiges Add-on       |
+| **Bon-Druck**         | Bondrucker-Anbindung                             | Standard (oft proprietär)            |
+| **Abrechnung**        | Tagesabrechnung, pro Tisch & Servicekraft        | Umfangreiche Reporting-Suites        |
 
 ### 7.2 Was jotti bewusst NICHT ist
 
 jotti ist kein Allzweck-Kassensystem. Folgende Features sind bewusst **nicht** enthalten:
 
 - ❌ Kartenzahlung / Zahlungsgateway
-- ❌ Bondrucker / Küchendrucker
-- ❌ Fiskalkonformität (TSE, GoBD)
+- ❌ Zertifizierte TSE (kryptografische Technische Sicherheitseinrichtung)
 - ❌ Reservierungssystem
 - ❌ Inventory / Warenwirtschaft
 - ❌ Lieferservice-Integration
@@ -232,17 +245,32 @@ jotti ist kein Allzweck-Kassensystem. Folgende Features sind bewusst **nicht** e
 
 Diese bewusste Reduktion ist ein Feature, kein Mangel. Jedes zusätzliche Feature erhöht Komplexität, Wartungsaufwand und Einarbeitungszeit — alles, was ein ehrenamtliches Team bei einem Vereinsfest nicht braucht.
 
-### 7.3 Einsatzprofil
+### 7.3 Fiskalkonformität im Detail
 
-| Kriterium                | jotti geeignet für                            | jotti NICHT geeignet für               |
-| ------------------------ | --------------------------------------------- | -------------------------------------- |
-| Betriebsart              | Temporäre Veranstaltungen (1–3 Tage)          | Dauerbetrieb (Restaurant, Café)        |
-| Organisation             | Vereine, gemeinnützige Orgs, NPOs             | Kommerzielle Gastro-Betriebe           |
-| Zahlungsart              | Bargeld                                       | Kartenzahlung, NFC, Online             |
-| Team                     | Ehrenamtliche Helfer (5–30 Personen)          | Professionelles Gastro-Personal        |
-| Buchungspflichten        | Keine TSE/GoBD-Pflicht                        | Steuerlich buchungspflichtige Betriebe |
-| Veranstaltungsgröße      | Klein bis mittel (5–50 Tische)                | Großveranstaltungen mit 100+ Tischen   |
-| Technische Infrastruktur | WLAN + ein Server (auch Raspberry Pi möglich) | Kein Server oder kein WLAN verfügbar   |
+jotti enthält keine zertifizierte TSE (Technische Sicherheitseinrichtung) und ist damit nicht für steuerlich buchungspflichtige Dauerbetriebe geeignet. Allerdings erfüllt jotti durch sein architektonisches Fundament viele der GoBD-Grundsätze:
+
+| GoBD-Grundsatz                       | Umsetzung in jotti                                                                    |
+| ------------------------------------ | ------------------------------------------------------------------------------------- |
+| **Unveränderbarkeit**                | Event-Sourcing: alle Transaktionen sind append-only, nachträgliche Änderung unmöglich |
+| **Nachvollziehbarkeit**              | Lückenloses Kassenjournal pro Tisch mit vollständiger Bestellhistorie                 |
+| **Vollständigkeit**                  | Jede Bestellung, Zahlung, Lieferung und Stornierung wird als Event erfasst            |
+| **Zeitgerechte Buchung**             | Events werden in Echtzeit mit Zeitstempel gespeichert                                 |
+| **Ordnungsmäßigkeit**                | Strukturiertes Datenmodell, typisierte Events, klare Zuordnung zu Tisch und Benutzer  |
+| **Kryptografische Verkettung (TSE)** | ❌ Nicht vorhanden — keine zertifizierte Sicherheitseinrichtung                       |
+
+Für gemeinnützige Vereine, die keine Kassenpflicht nach KassenSichV haben, bietet jotti damit ein hohes Maß an Transparenz und Nachvollziehbarkeit — ohne den Overhead einer zertifizierten TSE.
+
+### 7.4 Einsatzprofil
+
+| Kriterium                | jotti geeignet für                             | jotti NICHT geeignet für                               |
+| ------------------------ | ---------------------------------------------- | ------------------------------------------------------ |
+| Betriebsart              | Temporäre Veranstaltungen (1–3 Tage)           | Dauerbetrieb (Restaurant, Café)                        |
+| Organisation             | Vereine, gemeinnützige Orgs, NPOs              | Kommerzielle Gastro-Betriebe                           |
+| Zahlungsart              | Bargeld                                        | Kartenzahlung, NFC, Online                             |
+| Team                     | Ehrenamtliche Helfer (5–30 Personen)           | Professionelles Gastro-Personal                        |
+| Buchungspflichten        | GoBD-Grundsätze weitgehend erfüllt (keine TSE) | Steuerlich buchungspflichtige Betriebe mit TSE-Pflicht |
+| Veranstaltungsgröße      | Klein bis mittel (5–50 Tische)                 | Großveranstaltungen mit 100+ Tischen                   |
+| Technische Infrastruktur | WLAN + ein Server (auch Raspberry Pi möglich)  | Kein Server oder kein WLAN verfügbar                   |
 
 ---
 
