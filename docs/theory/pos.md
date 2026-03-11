@@ -1,6 +1,6 @@
 # POS-Systeme & Gastronomie-Domäne — Theorie
 
-Dieses Dokument ist ein theoretisches Nachschlagewerk für Point-of-Sale-Systeme mit Schwerpunkt auf der Gastronomie. Es erklärt die Geschichte von POS-Systemen, gängige Architektur-Patterns, gastronomiespezifische Workflows, Datenmodelle, Fiskalgesetzgebung, Payment Integration sowie den Unterschied zwischen Non-Profit- und kommerziellen POS-Lösungen. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#12-appendix-anwendungsbeispiel-jotti).
+Dieses Dokument ist ein theoretisches Nachschlagewerk für Point-of-Sale-Systeme mit Schwerpunkt auf der Gastronomie. Es erklärt die Geschichte von POS-Systemen, gängige Architektur-Patterns, gastronomiespezifische Workflows, Datenmodelle, Fiskalgesetzgebung, Payment Integration sowie den Unterschied zwischen Non-Profit- und kommerziellen POS-Lösungen.
 
 ---
 
@@ -16,8 +16,7 @@ Dieses Dokument ist ein theoretisches Nachschlagewerk für Point-of-Sale-Systeme
 8. [Non-Profit vs. Commercial POS](#8-non-profit-vs-commercial-pos)
 9. [POS-Marktlandschaft](#9-pos-marktlandschaft)
 10. [Entscheidungsmatrix: POS-Architektur nach Anwendungsfall](#10-entscheidungsmatrix-pos-architektur-nach-anwendungsfall)
-11. [Appendix: Anwendungsbeispiel (jotti)](#11-appendix-anwendungsbeispiel-jotti)
-12. [Referenzen](#12-referenzen)
+11. [Referenzen](#11-referenzen)
 
 ---
 
@@ -501,21 +500,21 @@ Der aktuelle Tisch-Saldo wird durch Aggregation (SUM über alle Einträge) berec
 Das vollständige Event-Sourcing-Modell speichert alle Zustandsänderungen als **immutable Events**:
 
 ```
-Subject: "tisch:42"
+Subject: "table:42"
 
-Event 1: tisch.bestellung-aufgegeben:v1
+Event 1: table.order-placed:v1
   { positionen: [{produkt_id: "...", menge: 2, preis: 1200}] }
 
-Event 2: tisch.bestellung-aufgegeben:v1
+Event 2: table.order-placed:v1
   { positionen: [{produkt_id: "...", menge: 1, preis: 800}] }
 
-Event 3: tisch.produkte-geliefert:v1
+Event 3: table.items-delivered:v1
   { positionen: [{produkt_id: "...", menge: 2}] }
 
-Event 4: tisch.zahlung-registriert:v1
+Event 4: table.payment-registered:v1
   { betrag: 2000 }
 
-Event 5: tisch.produkte-storniert:v1
+Event 5: table.items-cancelled:v1
   { positionen: [{produkt_id: "...", menge: 1}] }
 ```
 
@@ -802,7 +801,7 @@ Gast          Kartenleser         Acquiring Bank
 | Transaktionsgebühren (1,5–2%)  | je nach Umsatz         |
 | **Gesamt (laufend)**           | ~700–1.400 EUR/Jahr    |
 
-**Self-hosted Open-Source-POS (z. B. jotti):**
+**Self-hosted Open-Source-POS:**
 
 | Position                            | Kosten/Jahr      |
 | ----------------------------------- | ---------------- |
@@ -931,100 +930,25 @@ Herausforderung: Bestellungen aus mehreren Kanälen (Lieferdienst + Vor-Ort) in 
 - **Dauergastronomie (Restaurant)**: Cloud-POS oder Hybrid → Orderbird, Lightspeed, Toast
 - **Einzelhändler**: Cloud-POS → Square, Lightspeed Retail
 - **Enterprise / Multi-Standort**: On-Premise oder Hybrid → NCR, Revel, Lightspeed Enterprise
-- **Vereinsveranstaltungen / Non-Profit**: Self-Hosted mPOS → jotti oder ähnliche Open-Source-Lösungen
+- **Vereinsveranstaltungen / Non-Profit**: Self-Hosted mPOS → Open-Source-Lösungen oder eigene Entwicklung
 - **Foodtruck / Marktstand**: Cloud-mPOS → Square, Zettle, SumUp mit App
 
 ---
 
-## 11. Appendix: Anwendungsbeispiel (jotti)
-
-### Positionierung
-
-jotti ist ein **leichtgewichtiges, self-hosted Gastronomie-POS für Vereinsveranstaltungen**. Es implementiert das mPOS/Self-Hosted-Architektur-Pattern aus Abschnitt 3 und adressiert explizit die Non-Profit-Anforderungen aus Abschnitt 8.
-
-### Architektur-Entscheidungen im POS-Kontext
-
-| POS-Konzept             | jotti-Implementierung                                           |
-| ----------------------- | --------------------------------------------------------------- |
-| **Architektur-Pattern** | Self-Hosted mPOS (Abschnitt 3.5)                                |
-| **Datenmodell**         | Event-Sourcing für Tisch-Operationen (Abschnitt 5.3)            |
-| **Fiskalkonformität**   | Non-Profit-Ausnahme (Abschnitt 6.4) — keine TSE erforderlich    |
-| **Payment**             | Bargeld-only — keine Kartenleser-Integration                    |
-| **Hardware**            | BYOD-Smartphones — keine proprietäre Hardware                   |
-| **KDS**                 | Kein KDS — kein getrennter Küchenbereich im Vereinsfest-Kontext |
-| **Split Bills**         | Teilzahlungen möglich — kein Item-Split (Scope-Entscheidung)    |
-| **Offline**             | Nicht offline-fähig — WLAN vorausgesetzt                        |
-
-### Event-Sourcing im POS-Kontext
-
-jotti nutzt Event-Sourcing für alle Tisch-Operationen — ein natürlicher Fit für das POS-Kassenjournal (siehe Abschnitt 5.3):
-
-```go
-// domain/table/events.go
-const (
-    EventTypeBestellungAufgegeben = "tisch.bestellung-aufgegeben:v1"
-    EventTypeZahlungRegistriert   = "tisch.zahlung-registriert:v1"
-    EventTypeProdukteStorniert    = "tisch.produkte-storniert:v1"
-    EventTypeProdukteGeliefert    = "tisch.produkte-geliefert:v1"
-    EventTypeSnapshot             = "tisch.snapshot:v1"
-)
-```
-
-**State-Rekonstruktion:**
-
-```
-Saldo = Σ(bestellung-aufgegeben.betrag)
-      − Σ(zahlung-registriert.betrag)
-      − Σ(storniert.positionen.preis)
-```
-
-Diese append-only Struktur erfüllt GoBD-Anforderungen an Unveränderbarkeit und Protokollierung — auch wenn jotti als Non-Profit-System keine TSE-Pflicht hat.
-
-### Bewusste Grenzen (Scope-Entscheidungen)
-
-jotti implementiert gezielt **nicht**:
-
-- **KDS / Bondrucker**: Für Vereinsfeste nicht notwendig, erhöht Betriebskomplexität
-- **Kartenleser-Integration**: Vereinsfeste funktionieren typisch mit Bargeld; Karten-Integration bedeutet PCI-DSS-Compliance und Transaktionsgebühren
-- **Inventory-Management**: Veranstaltungsbezogener Einkauf wird manuell geplant
-- **Multi-Tenant**: Eine Instanz pro Verein — bewusste Vereinfachung
-
-> **Grundsatz:** Höchste Qualität statt umfangreichem Featureset.
-
-### Technische Positionierung
-
-```
-                 POS-Spektrum
-                      │
-    Kommerziell ◄──────┼──────► Open Source
-                      │
-       Dauerbetrieb ◄─┼─► Gelegentliche Events
-                      │
-    Feature-Vollständig◄┼─► Feature-Minimal
-                      │
-         Hardware-gebunden◄┼─► BYOD/Mobile
-                      │
-                      ▼
-                   jotti ──── Self-Hosted, Mobile-First,
-                              Event-Sourcing, Non-Profit
-```
-
----
-
-## 12. Referenzen
+## 11. Referenzen
 
 ### POS-Geschichte & Grundlagen
 
 1. [Wikipedia: Point of Sale](https://en.wikipedia.org/wiki/Point_of_sale) — Geschichte, Terminologie, Systemtypen
 2. [Wikipedia: Cash Register](https://en.wikipedia.org/wiki/Cash_register) — Entstehung der Registrierkasse (James Ritty, NCR)
-3. [Square Developer Docs](https://developer.squareup.com/docs) — Payment Integration, POS-API-Design, mPOS-Patterns
+3. [Square Developer Docs](https://developer.squareup.com/) — Payment Integration, POS-API-Design, mPOS-Patterns
 4. [Toast Developer Platform](https://doc.toasttab.com/) — Restaurant POS API, KDS-Integration, Order Lifecycle
 
 ### Fiskalgesetzgebung
 
-5. [Bundeszentralamt für Steuern: KassenSichV](https://www.bzst.de/DE/Unternehmen/Kassensysteme/kassensysteme_node.html) — Kassensicherungsverordnung, TSE-Anforderungen
-6. [BMF: FAQ Registrierkassenpflicht Österreich](https://www.bmf.gv.at/themen/steuern/selbstaendige-unternehmen/registrierkassen-und-belegpflicht.html) — RKSV, Ausnahmen für Vereine
-7. [GoBD — BMF-Schreiben](https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.pdf) — Grundsätze ordnungsmäßiger Buchführung
+5. [KassenSichV — Kassensicherungsverordnung](https://dejure.org/gesetze/KassenSichV) — TSE-Anforderungen, Manipulationsschutz
+6. [RKSV — Registrierkassensicherheitsverordnung Österreich](https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20009390) — Registrierkassenpflicht, Ausnahmen für Vereine
+7. [Abgabenordnung (AO)](https://dejure.org/gesetze/AO) — Rechtsgrundlage für GoBD (Grundsätze ordnungsmäßiger Buchführung)
 
 ### Payment Integration
 
@@ -1040,7 +964,7 @@ jotti implementiert gezielt **nicht**:
 14. [Toast POS](https://pos.toasttab.com) — Gastronomie-POS (v.a. USA)
 15. [Square for Restaurants](https://squareup.com/gb/en/restaurants) — Flexibles Gastro-POS
 16. [UniCenta oPOS](https://unicenta.com) — Open-Source POS (Einzelhandel/Gastronomie)
-17. [Floreant POS](http://floreant.org) — Open-Source Restaurant-POS
+17. [Floreant POS](https://floreant.org) — Open-Source Restaurant-POS
 
 ### Weiterführende Literatur
 

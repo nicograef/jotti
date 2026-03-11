@@ -1,6 +1,6 @@
 # Go Backend Architektur — Theorie
 
-Dieses Dokument ist ein allgemeiner Architektur-Guide für Go-Backends: Architektur-Patterns, HTTP-Ökosystem, API-Design, Concurrency, Fehlerbehandlung, Resilienz, Observability, Datenbankzugriff und Testing. Projektspezifische Anwendungsbeispiele finden sich im [Appendix](#16-appendix-anwendungsbeispiel-jotti).
+Dieses Dokument ist ein allgemeiner Architektur-Guide für Go-Backends: Architektur-Patterns, HTTP-Ökosystem, API-Design, Concurrency, Fehlerbehandlung, Resilienz, Observability, Datenbankzugriff und Testing.
 
 ---
 
@@ -21,8 +21,7 @@ Dieses Dokument ist ein allgemeiner Architektur-Guide für Go-Backends: Architek
 13. [Observability](#13-observability)
 14. [Datenbankzugriff / SQL-Tooling](#14-datenbankzugriff--sql-tooling)
 15. [Testing in Go](#15-testing-in-go)
-16. [Appendix: Anwendungsbeispiel (jotti)](#16-appendix-anwendungsbeispiel-jotti)
-17. [Referenzen](#17-referenzen)
+16. [Referenzen](#16-referenzen)
 
 ---
 
@@ -1521,156 +1520,13 @@ func BenchmarkCalculateDiscount(b *testing.B) {
 
 ---
 
-## 16. Appendix: Anwendungsbeispiel (jotti)
-
-Die folgenden Abschnitte zeigen, wie die oben beschriebenen Prinzipien konkret im jotti-Projekt (Gastronomie-Kassensystem für Vereine) angewendet werden.
-
-### Verzeichnisstruktur
-
-```
-backend/
-├── main.go                          # Einstiegspunkt: Server starten
-├── app/app.go                       # Dependency Wiring (alle Handler/Services)
-├── config/config.go                 # Konfiguration aus Umgebungsvariablen
-├── db/db.go                         # DB-Verbindung und Connection Pool
-│
-├── domain/                          # Domain-Schicht (keine DB-Abhängigkeit)
-│   ├── event/event.go               # Event-Modell (CloudEvents-inspiriert)
-│   ├── table/                       # Tisch-Aggregat
-│   │   ├── tisch.go                 # Entity + Validierung
-│   │   ├── events.go                # Zustandsrekonstruktion (Domain Services)
-│   │   ├── bestellung.go            # Value Objects
-│   │   ├── zahlung.go
-│   │   ├── stornierung.go
-│   │   ├── lieferung.go
-│   │   └── *Event.go                # Event-Structs + Konstruktoren
-│   ├── product/product.go           # Entity + Varianten
-│   └── user/user.go                 # Entity + Password-Hashing
-│
-├── repository/                      # Repository-Schicht (sqlc-Wrapper)
-│   ├── event_repo/repo.go           # Append-only Event Store
-│   ├── table_repo/repo.go           # Tisch-CRUD
-│   ├── product_repo/repo.go         # Produkt+Varianten-CRUD
-│   └── user_repo/repo.go            # Benutzer-CRUD
-│
-├── api/                             # HTTP + Application Schicht
-│   ├── service.go                   # Service-Routen registrieren
-│   ├── admin.go                     # Admin-Routen registrieren
-│   ├── auth.go                      # Auth-Routen registrieren
-│   ├── senior_service.go            # Senior-Service-Routen
-│   ├── middleware/middleware.go      # JWT, Rate-Limit, Logging, etc.
-│   ├── helper/http.go               # JSON-Parsing, Response-Helper
-│   └── <domain>/
-│       ├── http/command.go          # HTTP Handler (Commands)
-│       ├── http/query.go            # HTTP Handler (Queries)
-│       ├── application/command.go   # Command Service
-│       └── application/query.go    # Query Service
-│
-└── sqlc/
-    ├── queries/*.sql                # SQL-Queries (Eingabe für sqlc)
-    └── dbgen/                       # Generierter Code (NICHT EDITIEREN)
-```
-
-### POST-only API
-
-Alle API-Endpunkte in jotti verwenden HTTP POST. Keine GET/PUT/DELETE. Vorteile:
-
-- **Einheitliches Request-Format:** Immer JSON Body
-- **Keine URL-Parameter:** Keine Injection über URL-Encoding
-- **Cache-Busting:** POST-Responses werden nicht gecacht
-- **Einfache Middleware:** Nur ein HTTP-Methoden-Check
-
-### Service-Routen
-
-```go
-// api/service.go — Service-Routen
-func RegisterServiceRoutes(mux *http.ServeMux, ...) {
-    mux.Handle("/service/bestellung-aufgeben",
-        middleware.Chain(commandHandler.BestellungAufgeben,
-            middleware.JWT(jwtSecret, "admin", "senior_service", "service"),
-        ))
-}
-```
-
-### Handler-Pattern (BestellungAufgeben)
-
-```go
-func (h *Handler) BestellungAufgeben(w http.ResponseWriter, r *http.Request) {
-    var req BestellungAufgebenRequest
-    if err := helper.ParseJSON(r, &req); err != nil {
-        helper.WriteError(w, http.StatusBadRequest, "invalid_json")
-        return
-    }
-
-    userID, _ := r.Context().Value(middleware.UserIDKey).(int)
-
-    err := h.service.BestellungAufgeben(r.Context(), userID, req.TischID, req.Positionen, req.Comment)
-    if err != nil {
-        helper.HandleDomainError(w, err)
-        return
-    }
-
-    helper.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-```
-
-### Authentifizierung und Autorisierung
-
-```
-Login → JWT (HS256, 12h) → Bearer Token im Header → Middleware validiert → Context
-```
-
-| Claim  | Wert                             | Beschreibung            |
-| ------ | -------------------------------- | ----------------------- |
-| `sub`  | UserID (int)                     | Benutzer-Identifikation |
-| `role` | admin / senior_service / service | Berechtigung            |
-| `exp`  | Unix Timestamp                   | Ablaufzeit (12 Stunden) |
-
-```go
-// Nur bestimmte Rolle
-middleware.JWT(secret, "admin")
-
-// Mehrere Rollen erlaubt
-middleware.JWT(secret, "admin", "senior_service", "service")
-```
-
-Passwort-Hashing mit Argon2id (aktuell empfohlener Algorithmus):
-
-```go
-// domain/user/password.go
-func HashPassword(password string) (string, error) { ... }
-func VerifyPassword(hash, password string) bool    { ... }
-```
-
-### Domain Services (Zustandsrekonstruktion)
-
-```go
-// domain/table/events.go — Event-Sourcing: State aus Events rekonstruieren
-func GetSaldoFromEvents(events []event.Event) int                      { ... }
-func GetUnbezahltePositionenFromEvents(events []event.Event) []Position { ... }
-func GetUngeliefertePositionenFromEvents(events []event.Event) []Position { ... }
-func GetHistoryFromEvents(events []event.Event) []any                  { ... }
-```
-
-### Validierungs-Schema (Bestellung)
-
-```go
-var bestellungSchema = zog.Struct(zog.Shape{
-    "tischId":    zog.Int().Min(1),
-    "positionen": zog.Slice(positionSchema).Min(1),
-    "comment":    zog.String().Max(500).Optional(),
-})
-```
-
----
-
-## 17. Referenzen
+## 16. Referenzen
 
 ### Architektur-Patterns
 
 - [Alistair Cockburn: Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture/) — Ports & Adapters Originalquelle
 - [Robert C. Martin: Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) — Clean Architecture Blog Post
-- [Standard Go Project Layout](https://github.com/golang-standards/project-layout) — Verzeichnisstruktur-Konventionen
+- [Standard Go Project Layout](https://github.com/golang-standards/project-layout) — Community-Konventionen für Verzeichnisstruktur (kein offizieller Go-Standard; siehe auch [Organizing a Go module](https://go.dev/doc/modules/layout))
 - [Event-Driven Architecture in Golang](https://github.com/PacktPublishing/Event-Driven-Architecture-in-Golang) — DDD + ES + CQRS in Go
 
 ### Go-Spezifisch

@@ -1,6 +1,6 @@
 # React Frontend Architektur — Theorie
 
-Dieses Dokument beschreibt allgemeine Architekturprinzipien für React-Frontends: Komponentenstruktur, State-Management, Backend-Integration, UI-Patterns und Design-Entscheidungen für wartbare, mobile-first Single-Page-Applications. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#17-appendix-anwendungsbeispiel-jotti).
+Dieses Dokument beschreibt allgemeine Architekturprinzipien für React-Frontends: Komponentenstruktur, State-Management, Backend-Integration, UI-Patterns und Design-Entscheidungen für wartbare, mobile-first Single-Page-Applications.
 
 ---
 
@@ -22,8 +22,7 @@ Dieses Dokument beschreibt allgemeine Architekturprinzipien für React-Frontends
 14. [TypeScript-Patterns für React](#14-typescript-patterns-für-react)
 15. [Fehlerbehandlung im Frontend](#15-fehlerbehandlung-im-frontend)
 16. [Anti-Patterns](#16-anti-patterns)
-17. [Appendix: Anwendungsbeispiel (jotti)](#17-appendix-anwendungsbeispiel-jotti)
-18. [Referenzen](#18-referenzen)
+17. [Referenzen](#17-referenzen)
 
 ---
 
@@ -475,7 +474,7 @@ const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
 **Auth State** als Singleton (kein Re-Render nötig):
 
 ```tsx
-// src/lib/Auth.ts
+// lib/auth.ts
 class Auth {
     getToken(): string | null { ... }
     getRole(): string | null { ... }
@@ -1095,7 +1094,7 @@ function Button({ variant, className, children, ...props }: ButtonProps) {
 Alle Backend-Aufrufe laufen über das `BackendClient`-Interface — niemals direkt `fetch()`:
 
 ```tsx
-// src/lib/Backend.ts
+// lib/backend.ts
 interface BackendClient {
   post<T>(path: string, body?: unknown): Promise<T>;
 }
@@ -1305,10 +1304,10 @@ Alle mutativen Aktionen zeigen bei Fehler einen Toast:
 import { toast } from "sonner";
 
 try {
-  await backend.submitOrder(orderId, items);
-  toast.success("Bestellung aufgegeben");
+  await backend.saveChanges(payload);
+  toast.success("Änderungen gespeichert");
 } catch (error) {
-  toast.error("Bestellung fehlgeschlagen");
+  toast.error("Vorgang fehlgeschlagen");
 }
 ```
 
@@ -1433,7 +1432,7 @@ React-Frontends werden auf mehreren Ebenen getestet. Die Test-Pyramide gilt auch
 **Vitest** ist der Vite-native Test-Runner — schnell, ESM-native, Jest-kompatibel:
 
 ```tsx
-// src/lib/utils.test.ts
+// lib/utils.test.ts
 import { describe, it, expect } from "vitest";
 import { formatCents } from "./utils";
 
@@ -1474,29 +1473,29 @@ describe("useCounter", () => {
 React Testing Library (RTL) testet Komponenten aus Nutzer-Perspektive:
 
 ```tsx
-// src/components/OrderCard.test.tsx
+// src/components/ProductCard.test.tsx
 import { render, screen, fireEvent } from "@testing-library/react";
-import { OrderCard } from "./OrderCard";
+import { ProductCard } from "./ProductCard";
 
-const mockOrder = { id: 1, name: "Tisch 1", totalCents: 1250 };
+const mockProduct = { id: 1, name: "Espresso", priceCents: 350 };
 
-describe("OrderCard", () => {
-  it("zeigt den Tisch-Namen an", () => {
-    render(<OrderCard order={mockOrder} onSelect={() => {}} />);
-    expect(screen.getByText("Tisch 1")).toBeInTheDocument();
+describe("ProductCard", () => {
+  it("zeigt den Produkt-Namen an", () => {
+    render(<ProductCard product={mockProduct} onSelect={() => {}} />);
+    expect(screen.getByText("Espresso")).toBeInTheDocument();
   });
 
   it("zeigt den formatierten Preis an", () => {
-    render(<OrderCard order={mockOrder} onSelect={() => {}} />);
-    expect(screen.getByText("12,50 €")).toBeInTheDocument();
+    render(<ProductCard product={mockProduct} onSelect={() => {}} />);
+    expect(screen.getByText("3,50 €")).toBeInTheDocument();
   });
 
   it("ruft onSelect beim Klick auf", async () => {
     const handleSelect = vi.fn();
-    render(<OrderCard order={mockOrder} onSelect={handleSelect} />);
+    render(<ProductCard product={mockProduct} onSelect={handleSelect} />);
 
-    await userEvent.click(screen.getByRole("button", { name: /tisch 1/i }));
-    expect(handleSelect).toHaveBeenCalledWith(mockOrder);
+    await userEvent.click(screen.getByRole("button", { name: /espresso/i }));
+    expect(handleSelect).toHaveBeenCalledWith(mockProduct);
   });
 });
 ```
@@ -1516,14 +1515,14 @@ MSW interceptiert echte Netzwerk-Anfragen im Test-Environment:
 import { http, HttpResponse } from "msw";
 
 export const handlers = [
-  http.post("/api/get-order", ({ request }) => {
-    return HttpResponse.json({ id: 1, name: "Tisch 1", totalCents: 1250 });
+  http.post("/api/get-product", ({ request }) => {
+    return HttpResponse.json({ id: 1, name: "Espresso", priceCents: 350 });
   }),
 
-  http.post("/api/submit-order", async ({ request }) => {
+  http.post("/api/create-order", async ({ request }) => {
     const body = await request.json();
     if (!body.items?.length) {
-      return HttpResponse.json({ code: "EMPTY_ORDER" }, { status: 400 });
+      return HttpResponse.json({ code: "EMPTY_CART" }, { status: 400 });
     }
     return HttpResponse.json({ success: true });
   }),
@@ -1537,25 +1536,25 @@ export const server = setupServer(...handlers);
 import { render, screen, waitFor } from "@testing-library/react";
 import { server } from "../mocks/server";
 
-describe("OrderPage Integration", () => {
-  it("lädt und zeigt Bestellung an", async () => {
-    render(<OrderPage orderId={1} />);
+describe("ProductPage Integration", () => {
+  it("lädt und zeigt Produkt an", async () => {
+    render(<ProductPage productId={1} />);
 
     await waitFor(() => {
-      expect(screen.getByText("Tisch 1")).toBeInTheDocument();
-      expect(screen.getByText("12,50 €")).toBeInTheDocument();
+      expect(screen.getByText("Espresso")).toBeInTheDocument();
+      expect(screen.getByText("3,50 €")).toBeInTheDocument();
     });
   });
 
   it("zeigt Fehler bei leerem Warenkorb", async () => {
     server.use(
-      http.post("/api/submit-order", () =>
-        HttpResponse.json({ code: "EMPTY_ORDER" }, { status: 400 }),
+      http.post("/api/create-order", () =>
+        HttpResponse.json({ code: "EMPTY_CART" }, { status: 400 }),
       ),
     );
 
-    render(<OrderPage orderId={1} />);
-    await userEvent.click(screen.getByText("Bestellen"));
+    render(<ProductPage productId={1} />);
+    await userEvent.click(screen.getByText("Hinzufügen"));
     await waitFor(() => {
       expect(screen.getByText(/leerer warenkorb/i)).toBeInTheDocument();
     });
@@ -1568,27 +1567,27 @@ describe("OrderPage Integration", () => {
 Playwright testet die echte Anwendung im Browser:
 
 ```typescript
-// e2e/order-flow.spec.ts
+// e2e/checkout-flow.spec.ts
 import { test, expect } from "@playwright/test";
 
-test("Bestellungsworkflow", async ({ page }) => {
+test("Checkout-Workflow", async ({ page }) => {
   // Login
   await page.goto("/login");
-  await page.fill('[name="username"]', "service");
+  await page.fill('[name="username"]', "cashier");
   await page.fill('[name="password"]', "password");
   await page.click('button[type="submit"]');
 
-  // Tisch auswählen
-  await expect(page).toHaveURL("/service");
-  await page.click("text=Tisch 1");
+  // Kategorie auswählen
+  await expect(page).toHaveURL("/dashboard");
+  await page.click("text=Getränke");
 
-  // Produkt bestellen
-  await page.click("text=Bestellen");
-  await page.click('[data-testid="product-cola"]');
+  // Produkt hinzufügen
+  await page.click("text=Zur Kasse");
+  await page.click('[data-testid="product-espresso"]');
   await page.click("text=Bestätigen");
 
   // Bestellung bestätigt
-  await expect(page.locator("text=Bestellung aufgegeben")).toBeVisible();
+  await expect(page.locator("text=Änderungen gespeichert")).toBeVisible();
 });
 ```
 
@@ -1759,7 +1758,7 @@ ARIA (Accessible Rich Internet Applications) ergänzt HTML-Semantik für komplex
 <div
   role="button"
   tabIndex={0}
-  aria-label="Bestellung löschen"
+  aria-label="Eintrag löschen"
   onClick={handleDelete}
   onKeyDown={e => e.key === 'Enter' && handleDelete()}
 >
@@ -2122,304 +2121,14 @@ const { data: orders } = useFetch(() => backend.getOrders());
 
 ---
 
-## 17. Appendix: Anwendungsbeispiel (jotti)
-
-Dieser Anhang zeigt, wie die oben beschriebenen Prinzipien im **jotti**-Projekt (POS-System für Vereinsfeste) konkret umgesetzt werden.
-
-### A.1 Architekturprinzipien in jotti
-
-**Mobile-first:** jotti ist ein POS-System für Smartphones. Servicekräfte nehmen Bestellungen **auf dem Handy** auf.
-
-**Kein globaler State-Store:** jotti verzichtet bewusst auf Redux/Zustand/MobX — die App hat ~10 Seiten mit überschaubarem State. Server-State (Tisch-Daten) wird bei jeder Navigation frisch geladen.
-
-**Backend ist Single Source of Truth:** Regel #10 aus AGENTS.md: Filterung, Aggregation und Aufbereitung gehören ins Backend.
-
-```
-❌ Frontend: fetch('/events') → filter → sort → aggregate → display
-✅ Frontend: fetch('/get-tisch-unbezahlt') → display
-```
-
-### A.2 Komponentenarchitektur in jotti
-
-#### Verzeichnisstruktur
-
-```
-┌───────────────────────────────────────────────────────────┐
-│  Seiten (Pages)                                           │
-│  src/service/pages/, src/admin/pages/                     │
-│  ┌─────────────────────────────────────────────────────┐  │
-│  │  Features (Organisms)                                │  │
-│  │  src/service/components/, src/admin/components/      │  │
-│  │  ┌───────────────────────────────────────────────┐   │  │
-│  │  │  Gemeinsame Komponenten (Molecules)            │   │  │
-│  │  │  src/components/common/                        │   │  │
-│  │  │  ┌─────────────────────────────────────────┐   │   │  │
-│  │  │  │  UI-Primitives (Atoms)                   │   │   │  │
-│  │  │  │  src/components/ui/ (shadcn/ui)          │   │   │  │
-│  │  │  └─────────────────────────────────────────┘   │   │  │
-│  │  └───────────────────────────────────────────────┘   │  │
-│  └─────────────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────────────┘
-```
-
-#### Ebenen in jotti
-
-| Ebene         | Atomic Design          | jotti-Pfad                | Beispiele                     |
-| ------------- | ---------------------- | ------------------------- | ----------------------------- |
-| **Atoms**     | UI-Primitives          | `src/components/ui/`      | Button, Input, Badge, Card    |
-| **Molecules** | Gemeinsame Komponenten | `src/components/common/`  | LoadingSpinner, ErrorDisplay  |
-| **Organisms** | Feature-Komponenten    | `src/service/components/` | TischKarte, BestellungDrawer  |
-| **Pages**     | Seiten                 | `src/service/pages/`      | TischÜbersicht, TischDetail   |
-| **Templates** | Layouts                | `src/App.tsx`             | Root-Layout mit ThemeProvider |
-
-#### Komponenten-Beispiele
-
-```tsx
-<TischKarte tisch={tisch} onSelect={handleSelect} />
-<BestellungDrawer positionen={positionen} onSubmit={handleSubmit} />
-
-<Drawer>
-  <DrawerContent>
-    <PositionenListe positionen={positionen} />
-    <GesamtPreisAnzeige cents={total} />
-    <BestätigenButton onClick={onConfirm} />
-  </DrawerContent>
-</Drawer>
-```
-
-### A.3 State-Management in jotti
-
-| Kategorie         | Lösung                     | jotti-Beispiele                 |
-| ----------------- | -------------------------- | ------------------------------- |
-| **Server-State**  | `useFetch` Hook            | Tisch-Daten, Produkte, Benutzer |
-| **Auth-State**    | Singleton (`Auth.ts`)      | JWT-Token, Rolle, UserID        |
-| **UI-State**      | `useState`                 | Drawer offen/zu, Formular-Werte |
-| **Derived State** | Berechnung aus Props/State | Gesamtpreis, gefilterte Listen  |
-
-```tsx
-const {
-  data: tisch,
-  loading,
-  error,
-  reload,
-} = useFetch(() => tischBackend.getTisch(tischId));
-```
-
-### A.4 Backend-Integration in jotti
-
-Domain-Backend-Klasse für den Tisch-Workflow:
-
-```tsx
-// src/service/TischBackend.ts
-class TischBackend {
-  constructor(private client: BackendClient) {}
-
-  getTisch(id: number) {
-    return this.client.post<Tisch>("/service/get-tisch", { tischId: id });
-  }
-
-  bestellungAufgeben(
-    tischId: number,
-    positionen: Position[],
-    comment?: string,
-  ) {
-    return this.client.post("/service/bestellung-aufgeben", {
-      tischId,
-      positionen,
-      comment,
-    });
-  }
-}
-```
-
-### A.5 Routing in jotti
-
-#### Route-Struktur
-
-```tsx
-// src/routes.ts
-const routes = [
-  // Auth (öffentlich)
-  { path: "/login", element: <LoginPage /> },
-  { path: "/set-password", element: <SetPasswordPage /> },
-
-  // Admin (nur admin)
-  {
-    path: "/admin/*",
-    loader: AdminGuard,
-    children: [
-      { path: "produkte", element: <ProduktePage /> },
-      { path: "tische", element: <TischePage /> },
-      { path: "benutzer", element: <BenutzerPage /> },
-    ],
-  },
-
-  // Service (admin, senior_service, service)
-  {
-    path: "/service/*",
-    loader: ServiceGuard,
-    children: [
-      { path: "", element: <TischÜbersicht /> },
-      { path: ":tischId", element: <TischDetail /> },
-    ],
-  },
-];
-```
-
-#### Guards
-
-```tsx
-function AdminGuard() {
-  if (!Auth.isAuthenticated()) redirect("/login");
-  if (Auth.getRole() !== "admin") redirect("/service");
-  return null;
-}
-
-function ServiceGuard() {
-  if (!Auth.isAuthenticated()) redirect("/login");
-  return null;
-}
-```
-
-#### Rollenbasiertes Routing
-
-| Rolle            | Zugriff                     | Redirect nach Login      |
-| ---------------- | --------------------------- | ------------------------ |
-| `admin`          | Admin + Service             | `/admin` oder `/service` |
-| `senior_service` | Service (inkl. Stornierung) | `/service`               |
-| `service`        | Service (ohne Stornierung)  | `/service`               |
-
-### A.6 Validierung in jotti
-
-```tsx
-const BestellungSchema = z.object({
-  tischId: z.number().min(1),
-  positionen: z
-    .array(
-      z.object({
-        id: z.number(),
-        name: z.string(),
-        preisCents: z.number().min(0),
-        quantity: z.number().min(1),
-      }),
-    )
-    .min(1, "Mindestens eine Position"),
-  comment: z.string().max(500).optional(),
-});
-
-type Bestellung = z.infer<typeof BestellungSchema>;
-```
-
-### A.7 Drawer-Pattern in jotti
-
-Bestellen, Bezahlen, Stornieren und Liefern öffnen Bottom-Sheet-Drawers mit Zusammenfassung.
-
-Hilfsfunktionen in `src/service/components/table/drawerUtils.ts`:
-
-- `selectPositionen()` — Positionen auswählen/abwählen
-- `calculateTotalPrice()` — Gesamtpreis berechnen
-
-### A.8 Design Patterns in jotti
-
-#### Container/Presentational
-
-```tsx
-function TischDetailContainer({ tischId }: { tischId: number }) {
-  const { data: tisch, loading } = useFetch(() => backend.getTisch(tischId));
-  if (loading) return <LoadingSpinner />;
-  return <TischDetailView tisch={tisch!} />;
-}
-
-function TischDetailView({ tisch }: { tisch: Tisch }) {
-  return (
-    <Card>
-      <CardHeader>{tisch.name}</CardHeader>
-      <CardContent>Saldo: {formatCents(tisch.saldoCents)}</CardContent>
-    </Card>
-  );
-}
-```
-
-#### Custom Hook
-
-```tsx
-function useBestellung(tischId: number) {
-    const [positionen, setPositionen] = useState<Position[]>([]);
-
-    const addPosition = (variante: Variante, quantity: number) => { ... };
-    const removePosition = (variantId: number) => { ... };
-    const submit = async () => {
-        await backend.bestellungAufgeben(tischId, positionen);
-    };
-    const totalCents = positionen.reduce(
-        (sum, p) => sum + p.preisCents * p.quantity, 0
-    );
-
-    return { positionen, addPosition, removePosition, submit, totalCents };
-}
-```
-
-#### Weitere Beispiele
-
-```tsx
-// Render Props
-<DataLoader fetcher={() => backend.getTische()}>
-  {(tische) => <TischGrid tische={tische} onSelect={handleSelect} />}
-</DataLoader>
-
-// Compound Components
-<Card>
-  <CardHeader>
-    <CardTitle>Tisch 1</CardTitle>
-  </CardHeader>
-  <CardContent>
-    <PositionenListe positionen={positionen} />
-  </CardContent>
-  <CardFooter>
-    <Button>Bestellen</Button>
-  </CardFooter>
-</Card>
-```
-
-### A.9 Anti-Patterns (jotti-Beispiele)
-
-```tsx
-// FALSCH: Direkt fetch()
-const response = await fetch('/service/get-tisch', { ... });
-// RICHTIG: Über Backend-Klasse
-const tisch = await tischBackend.getTisch(tischId);
-
-// FALSCH: Im Frontend filtern
-const unbezahlt = allePositionen.filter((p) => !p.bezahlt);
-// RICHTIG: Backend liefert bereits gefiltert
-const unbezahlt = await backend.getTischUnbezahlt(tischId);
-
-// FALSCH: Redux/Zustand für wenige Seiten
-const store = createStore({ tische: [], produkte: [], user: null, ... });
-// RICHTIG: Lokale Hooks + useFetch + Singletons
-const { data: tische } = useFetch(() => backend.getTische());
-```
-
-```tsx
-// Sonner-Toasts in jotti
-try {
-  await backend.bestellungAufgeben(tischId, positionen);
-  toast.success("Bestellung aufgegeben");
-} catch (error) {
-  toast.error("Bestellung fehlgeschlagen");
-}
-```
-
----
-
-## 18. Referenzen
+## 17. Referenzen
 
 ### React-Architektur
 
 - [21 Fantastic React Design Patterns](https://www.perssondennis.com/articles/21-fantastic-react-design-patterns-and-when-to-use-them) — 21 Patterns mit Code-Beispielen (Dennis Persson)
 - [Guide to Modern Frontend Architecture Patterns](https://blog.logrocket.com/guide-modern-frontend-architecture-patterns/) — Monolithic, Modular, Micro-Frontend, Flux (LogRocket)
 - [Mastering Atomic Design in React](https://javascript.plainenglish.io/mastering-atomic-design-a-step-by-step-guide-to-building-scalable-ui-components-60b0d2a94cc3) — Atomic Design Step-by-Step
-- [Brad Frost: Atomic Web Design](https://bradfrost.com/blog/post/atomic-web-design/) — Original Atomic Design Artikel
+- [Brad Frost: Atomic Design](https://atomicdesign.bradfrost.com/) — Original Atomic Design Methodik
 - [Kent C. Dodds: Application State Management](https://kentcdodds.com/blog/application-state-management-with-react) — State ohne Redux
 - [Feature-Sliced Design](https://feature-sliced.design/) — Modular Frontend Architecture
 - [Dan Abramov: Writing Resilient Components](https://overreacted.io/writing-resilient-components/) — React Best Practices
@@ -2455,14 +2164,7 @@ try {
 - [shadcn/ui](https://ui.shadcn.com/) — UI-Komponenten (Radix + Tailwind)
 - [Zod](https://zod.dev/) — TypeScript-first Schema-Validierung
 - [React Router](https://reactrouter.com/) — Client-Side Routing
-- [Sonner](https://sonner.emilkowal.dev/) — Toast-Notifications
-- [Vaul](https://vaul.emilkowal.dev/) — Drawer-Komponente
+- [Sonner](https://github.com/emilkowalski/sonner) — Toast-Notifications
+- [Vaul](https://github.com/emilkowalski/vaul) — Drawer-Komponente
 - [Lucide](https://lucide.dev/) — Icon-Library
 - [Tailwind CSS](https://tailwindcss.com/) — Utility-first CSS
-
-### Projekt-intern
-
-- `src/lib/Backend.ts` — BackendClient-Interface und 401-Interceptor
-- `src/lib/useFetch.ts` — Generischer Daten-Hook
-- `src/lib/utils.ts` — `cn()` und `formatCents()`
-- `src/lib/Auth.ts` — Auth-Singleton

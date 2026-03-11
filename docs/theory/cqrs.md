@@ -1,6 +1,6 @@
 # CQRS — Theorie
 
-Dieses Dokument dient als theoretisches Nachschlagewerk für Command Query Responsibility Segregation (CQRS). Es erklärt das Muster, seine Ausbaustufen, Read Model Design, Projektionsstrategien, Eventual Consistency und Entscheidungskriterien. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#9-appendix-anwendungsbeispiel-jotti).
+Dieses Dokument dient als theoretisches Nachschlagewerk für Command Query Responsibility Segregation (CQRS). Es erklärt das Muster, seine Ausbaustufen, Read Model Design, Projektionsstrategien, Eventual Consistency und Entscheidungskriterien.
 
 ---
 
@@ -14,8 +14,7 @@ Dieses Dokument dient als theoretisches Nachschlagewerk für Command Query Respo
 6. [Kombination mit Event-Sourcing](#6-kombination-mit-event-sourcing)
 7. [Entscheidungsmatrix: CQRS vs. CRUD](#7-entscheidungsmatrix-cqrs-vs-crud)
 8. [Anti-Patterns](#8-anti-patterns)
-9. [Appendix: Anwendungsbeispiel (jotti)](#9-appendix-anwendungsbeispiel-jotti)
-10. [Referenzen](#10-referenzen)
+9. [Referenzen](#9-referenzen)
 
 ---
 
@@ -737,67 +736,7 @@ func (p *Projektor) Handle(event Event) {
 
 ---
 
-## 9. Appendix: Anwendungsbeispiel (jotti)
-
-Dieser Abschnitt zeigt, wie CQRS konkret in jotti — einem Non-Profit-POS-System für Vereinsfeste — eingesetzt wird.
-
-### Ist-Zustand: Stufe 1 (Logische Trennung)
-
-jotti implementiert CQRS auf **Stufe 1** — logische Trennung in Command und Query Handler:
-
-```
-api/table/application/
-├── command.go    // BestellungAufgeben, ZahlungRegistrieren, ...
-└── query.go      // GetTischSaldo, GetTischUnbezahlt, ...
-
-api/table/http/
-├── command.go    // HTTP Handler für Commands
-└── query.go      // HTTP Handler für Queries
-```
-
-**Was funktioniert:** Commands und Queries sind klar getrennt. Commands schreiben Events. Queries replayed Events (mit Snapshot-Optimierung).
-
-**Was fehlt:** Es gibt kein separates Read Model. Queries müssen immer den Event-Stream replayed — selbst mit Snapshots ist das aufwändiger als ein einfacher `SELECT`.
-
-### Nächste Stufe: Stufe 2 (Synchrone Projektion)
-
-Empfohlen für jotti. Details siehe [CQRS in jotti (operativ)](../cqrs.md).
-
-**Konzept:** Bei jedem Command wird zusätzlich zum Event ein Read Model (Projektions-Tabelle) in derselben Transaktion aktualisiert:
-
-```sql
-CREATE TABLE tisch_zustand (
-    tisch_id                  INT PRIMARY KEY REFERENCES tables(id),
-    saldo_cents               INT NOT NULL DEFAULT 0,
-    gesamt_zahlungen_cents    INT NOT NULL DEFAULT 0,
-    unbezahlte_positionen     JSONB NOT NULL DEFAULT '[]',
-    ungelieferte_positionen   JSONB NOT NULL DEFAULT '[]',
-    last_event_id             INT REFERENCES events(id),
-    updated_at                TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
-**Vorteile:**
-
-- Queries werden zu einfachen `SELECT`-Statements
-- Keine Snapshot-Logik in Go nötig
-- Event-Stream bleibt Single Source of Truth
-- Bei Inkonsistenz: Read Model aus Events neu aufbauen (Projektion-Rebuild)
-
-### Konsistenzanforderungen in jotti
-
-| Feature                     | Konsistenz           | Begründung                                       |
-| --------------------------- | -------------------- | ------------------------------------------------ |
-| **Saldo**                   | Stark (synchron)     | Fehlerhafte Saldo-Anzeige führt zu Fehlzahlungen |
-| **Unbezahlte Positionen**   | Stark (synchron)     | Kassiervorgang muss korrekt sein                 |
-| **Ungelieferte Positionen** | Stark (synchron)     | Lieferung muss vollständig sein                  |
-| **Tisch-Historie**          | Eventual (asynchron) | Historische Ansicht verträgt kurze Verzögerung   |
-| **Tagesabrechnung**         | Eventual (asynchron) | Wird nicht in Echtzeit benötigt                  |
-| **Umsatzstatistiken**       | Eventual (asynchron) | Aggregierte Daten, keine Echtzeitanforderung     |
-
----
-
-## 10. Referenzen
+## 9. Referenzen
 
 ### Primärquellen
 
@@ -828,7 +767,6 @@ CREATE TABLE tisch_zustand (
 - **Martin Kleppmann** (2017): _Designing Data-Intensive Applications_ — Consistency Models, Derived Data, Stream Processing als Read Model
 - **Vaughn Vernon** (2013): _Implementing Domain-Driven Design_ — CQRS + DDD, Command/Query-Trennung auf Aggregate-Ebene
 
-### Projekt-intern
+### Cross-Referenzen
 
 - [Event-Sourcing Theorie](event-sourcing.md) — Event-Sourcing Grundlagen, Snapshots, Outbox
-- [CQRS in jotti (operativ)](../cqrs.md) — Detaillierter Implementierungsplan für jotti

@@ -1,6 +1,6 @@
 # Security & Authentifizierung — Theorie
 
-Dieses Dokument ist ein theoretisches Nachschlagewerk für Web-Application-Security. Es erklärt Authentifizierungs- und Autorisierungspatterns, Passwort-Sicherheit, die OWASP Top 10, API- und Frontend-Security, Secrets Management, TLS und Security Testing. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#12-appendix-anwendungsbeispiel-jotti).
+Dieses Dokument ist ein theoretisches Nachschlagewerk für Web-Application-Security. Es erklärt Authentifizierungs- und Autorisierungspatterns, Passwort-Sicherheit, die OWASP Top 10, API- und Frontend-Security, Secrets Management, TLS und Security Testing.
 
 ---
 
@@ -17,8 +17,7 @@ Dieses Dokument ist ein theoretisches Nachschlagewerk für Web-Application-Secur
 9. [TLS & Certificate Management](#9-tls--certificate-management)
 10. [Security Testing](#10-security-testing)
 11. [Entscheidungsmatrix: Auth-Pattern nach Anwendungsfall](#11-entscheidungsmatrix-auth-pattern-nach-anwendungsfall)
-12. [Appendix: Anwendungsbeispiel (jotti)](#12-appendix-anwendungsbeispiel-jotti)
-13. [Referenzen](#13-referenzen)
+12. [Referenzen](#12-referenzen)
 
 ---
 
@@ -375,7 +374,7 @@ Das National Institute of Standards and Technology (NIST) hat seine Passwort-Gui
 
 ## 5. OWASP Top 10 (2021)
 
-Das Open Web Application Security Project (OWASP) veröffentlicht regelmäßig die zehn kritischsten Sicherheitsrisiken für Web-Anwendungen. Die aktuelle Version stammt von 2021 (eine aktualisierte 2025-Version ist in Vorbereitung).
+Das Open Web Application Security Project (OWASP) veröffentlicht regelmäßig die zehn kritischsten Sicherheitsrisiken für Web-Anwendungen. Die Versionen von 2021 und 2025 bilden die aktuelle Grundlage.
 
 ### A01 — Broken Access Control
 
@@ -802,62 +801,12 @@ Penetration Testing ist der manuelle oder semi-automatische Versuch, eine Anwend
 
 ---
 
-## 12. Appendix: Anwendungsbeispiel (jotti)
-
-Dieser Abschnitt beschreibt, wie die oben erläuterten Security-Konzepte in jotti konkret angewendet werden.
-
-### Authentifizierung in jotti
-
-jotti verwendet **JWT (HS256)** mit einer Laufzeit von 12 Stunden. Es gibt keine Refresh-Tokens — nach 12 Stunden muss sich der Nutzer erneut einloggen. Für ein Vereinsfest-Kassensystem, das typischerweise an einem Tag betrieben wird, ist das ausreichend.
-
-**JWT-Claims:**
-
-```json
-{
-  "sub": "42",
-  "role": "senior_service",
-  "iat": 1700000000,
-  "exp": 1700043200
-}
-```
-
-**Token-Handling:** Der Token wird im Frontend im Memory gespeichert (kein localStorage, kein Cookie). Bei einem Seiten-Reload wird der Nutzer ausgeloggt. Für den Eventbetrieb ist das akzeptabel.
-
-### Autorisierung: RBAC in jotti
-
-jotti implementiert ein einfaches dreistufiges RBAC-Modell:
-
-| Rolle            | Berechtigungen                                        |
-| ---------------- | ----------------------------------------------------- |
-| `admin`          | Alle Operationen (Stammdaten + Service + Stornierung) |
-| `senior_service` | Service-Operationen + Stornierung                     |
-| `service`        | Service-Operationen (Bestellen, Liefern, Kassieren)   |
-
-Die Rollen-Prüfung erfolgt in JWT-Middleware im Backend (`api/middleware/`).
-
-### Passwort-Sicherheit in jotti
-
-Passwörter werden mit **Argon2id** gehasht (`domain/user/password.go`), entsprechend der OWASP-Empfehlung. Die Hash-Parameter folgen den aktuellen Empfehlungen (Memory, Iterationen, Parallelismus).
-
-### Was jotti (bewusst) nicht implementiert
-
-| Feature                 | Begründung                                                    |
-| ----------------------- | ------------------------------------------------------------- |
-| Refresh Tokens          | Vereinsfest-Kontext: 12h-Token ausreichend                    |
-| OAuth2 / OIDC           | Keine externe IdP-Abhängigkeit erwünscht (Self-Hosted)        |
-| MFA                     | Kein kritisches System; Vereinsmitglieder wären überfordert   |
-| Rate Limiting (Login)   | Ausstehend — sinnvoll für öffentlich zugängliche Instanzen    |
-| CSRF-Schutz             | JWT im Authorization-Header, keine Cookies → kein CSRF-Risiko |
-| Content Security Policy | Ausstehend — sinnvolle Ergänzung für XSS-Mitigation           |
-
----
-
-## 13. Referenzen
+## 12. Referenzen
 
 ### OWASP
 
 - [OWASP Top 10 (2021)](https://owasp.org/Top10/2021/) — Die zehn kritischsten Web-Security-Risiken
-- [OWASP Top 10 (2025)](https://owasp.org/Top10/2025/) — Aktuelle Version (in Finalisierung)
+- [OWASP Top 10 (2025)](https://owasp.org/Top10/2025/) — Aktuelle Version
 - [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/) — Praxis-Checklisten für jeden Security-Aspekt
 - [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) — Argon2id, bcrypt, Salting, Peppering
 - [OWASP API Security Top 10](https://owasp.org/API-Security/) — API-spezifische Risiken

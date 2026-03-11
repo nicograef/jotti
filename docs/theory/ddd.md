@@ -1,6 +1,6 @@
 # Domain-Driven Design (DDD) — Theorie
 
-Dieses Dokument ist ein theoretisches Nachschlagewerk für Domain-Driven Design. Es erklärt die zentralen DDD-Konzepte, zeigt typische Muster und Anti-Patterns und gibt eine Entscheidungshilfe, wann DDD sinnvoll ist. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#8-appendix-anwendungsbeispiel-jotti).
+Dieses Dokument ist ein theoretisches Nachschlagewerk für Domain-Driven Design. Es erklärt die zentralen DDD-Konzepte, zeigt typische Muster und Anti-Patterns und gibt eine Entscheidungshilfe, wann DDD sinnvoll ist.
 
 ---
 
@@ -13,8 +13,7 @@ Dieses Dokument ist ein theoretisches Nachschlagewerk für Domain-Driven Design.
 5. [DDD-Lifecycle](#5-ddd-lifecycle)
 6. [Anti-Patterns und Fallstricke](#6-anti-patterns-und-fallstricke)
 7. [Entscheidungshilfe: Wann lohnt sich DDD?](#7-entscheidungshilfe-wann-lohnt-sich-ddd)
-8. [Appendix: Anwendungsbeispiel (jotti)](#8-appendix-anwendungsbeispiel-jotti)
-9. [Referenzen](#9-referenzen)
+8. [Referenzen](#8-referenzen)
 
 ---
 
@@ -762,223 +761,7 @@ Ist die Domäne komplex (viele Geschäftsregeln)?
 
 ---
 
-## 8. Appendix: Anwendungsbeispiel (jotti)
-
-Die folgenden Abschnitte zeigen, wie die oben beschriebenen DDD-Konzepte konkret im jotti-Projekt (einem Non-Profit-POS-System für Vereinsfeste) umgesetzt werden.
-
-### Warum DDD für jotti?
-
-jotti ist kein triviales CRUD-System. Die Tisch-Operationen (Bestellungen, Zahlungen, Stornierungen, Lieferungen) haben fachliche Regeln, die über einfaches Speichern hinausgehen:
-
-- Saldo-Berechnung als Invariante
-- Nur bestellte Positionen können bezahlt, geliefert oder storniert werden
-- Stornierung erfordert eine erhöhte Berechtigung (Serviceleitung/Admin)
-- Jede Aktion erzeugt ein unveränderliches Event (Audit Trail)
-
-Diese Komplexität rechtfertigt ein bewusstes Domain-Modell — aber kein Enterprise-Grade DDD mit Dutzenden Aggregaten. jotti nutzt DDD **pragmatisch und selektiv**.
-
-### Strategisches Design in jotti
-
-#### Ubiquitous Language
-
-Fachbegriffe der Domäne sind deutsch (Bestellung, Zahlung, Tisch, Stornierung). Infrastruktur-Code bleibt englisch (Auth, Config, DB). Die kanonischen Begriffe sind in [docs/language.md](../language.md) dokumentiert.
-
-#### Bounded Contexts
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                         jotti (System)                               │
-│                                                                      │
-│  ┌─────────────────────────┐     ┌──────────────────────────────┐   │
-│  │   Kassenbetrieb          │     │   Stammdaten                  │   │
-│  │   (Bounded Context)      │     │   (Bounded Context)           │   │
-│  │                          │     │                               │   │
-│  │  Tisch = Abrechnungs-    │     │  Tisch = Physischer Tisch     │   │
-│  │         einheit           │     │         mit Name + Status     │   │
-│  │  Bestellung              │     │  Produkt + Variante           │   │
-│  │  Zahlung                 │     │  Benutzer                     │   │
-│  │  Lieferung               │     │                               │   │
-│  │  Stornierung             │     │                               │   │
-│  │                          │     │                               │   │
-│  │  Persistenz: Events      │     │  Persistenz: CRUD             │   │
-│  └─────────────────────────┘     └──────────────────────────────┘   │
-│                                                                      │
-│  ┌─────────────────────────┐                                        │
-│  │   Auth (Infrastruktur)   │  ← Kein eigenständiger                │
-│  │   Login, JWT, Rollen     │    Bounded Context                    │
-│  └─────────────────────────┘                                        │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-| Bounded Context   | Backend-Pfad                                     | API-Prefix   | Persistenz     |
-| ----------------- | ------------------------------------------------ | ------------ | -------------- |
-| **Kassenbetrieb** | `api/table/`                                     | `/service/*` | Event-Sourcing |
-| **Stammdaten**    | `api/product/`, `api/user/`, `api/table/` (CRUD) | `/admin/*`   | CRUD           |
-| **Auth**          | `api/auth/`                                      | `/auth/*`    | CRUD (Users)   |
-
-#### Context Mapping
-
-| Beziehungstyp             | Relevanz für jotti                                                                     |
-| ------------------------- | -------------------------------------------------------------------------------------- |
-| **Shared Kernel**         | `Position`-Struct wird in Kassenbetrieb und Events geteilt                             |
-| **Customer/Supplier**     | Stammdaten (Supplier) → Kassenbetrieb (Customer): Produkt-IDs, Varianten-Namen, Preise |
-| **Conformist**            | Kassenbetrieb übernimmt Varianten-IDs und Preise aus Stammdaten                        |
-| **Anti-Corruption Layer** | Nicht nötig — jotti ist ein Monolith mit geteilter DB                                  |
-| **Published Language**    | Event-Format (CloudEvents-inspiriert) mit Versionierung                                |
-
-Die Beziehung zwischen Kassenbetrieb und Stammdaten ist ein **Customer/Supplier**-Verhältnis. Der Kassenbetrieb referenziert Produkt-IDs und kopiert Name + Preis **zum Zeitpunkt der Bestellung** in das Event. Dadurch sind Events historisch korrekt, selbst wenn der Produktpreis später geändert wird.
-
-### Taktisches Design in jotti
-
-#### Entities
-
-| Entity     | ID                    | Veränderlicher Zustand       |
-| ---------- | --------------------- | ---------------------------- |
-| `User`     | `users.id`            | Name, Username, Role, Status |
-| `Tisch`    | `tables.id`           | Name, Status                 |
-| `Produkt`  | `products.id`         | Name, Kategorie, Status      |
-| `Variante` | `product_variants.id` | Name, Preis, Status          |
-
-#### Value Objects
-
-| Value Object  | Attribute                      | Kontext                                |
-| ------------- | ------------------------------ | -------------------------------------- |
-| `Position`    | ID, Name, PreisCents, Quantity | Eine Zeile in einer Bestellung/Zahlung |
-| `Geldbeträge` | Wert in Cents (int)            | Immer als Cent-Integer, nie Float      |
-| `Rolle`       | admin, senior_service, service | Enum, keine eigene Identität           |
-| `Kategorie`   | food, beverage, other          | Enum, keine eigene Identität           |
-
-#### Das Tisch-Aggregat
-
-```
-┌─────────────────────────────────────────────────────┐
-│              Tisch-Aggregat                          │
-│              (Aggregate Root: Tisch)                 │
-│                                                     │
-│  Events (Value Objects, immutable):                 │
-│  ┌──────────────────────────────────────────────┐   │
-│  │ BestellungAufgegeben  ← Positionen           │   │
-│  │ ZahlungRegistriert    ← Positionen           │   │
-│  │ ProdukteGeliefert     ← Positionen           │   │
-│  │ ProdukteStorniert     ← Positionen           │   │
-│  └──────────────────────────────────────────────┘   │
-│                                                     │
-│  Rekonstruierter Zustand:                           │
-│  ┌──────────────────────────────────────────────┐   │
-│  │ SaldoCents            (Invariante: berechnet) │   │
-│  │ UnbezahltePositionen  (abgeleitet)           │   │
-│  │ UngeliefertePositionen (abgeleitet)          │   │
-│  └──────────────────────────────────────────────┘   │
-│                                                     │
-│  Invarianten:                                       │
-│  • Saldo = Σ Bestellungen − Σ Zahlungen − Σ Storno │
-│  • Nur bestellte Positionen können bezahlt werden   │
-│  • Nur bestellte Positionen können storniert werden │
-│  • Event-Stream ist append-only (immutable)         │
-└─────────────────────────────────────────────────────┘
-```
-
-**Warum ist der Tisch die Aggregate Root?**
-
-- Alle Kassenbetrieb-Operationen beziehen sich auf **einen Tisch**
-- Der Event-Stream wird über das Subject `"tisch:<id>"` identifiziert
-- Alle Invarianten (Saldo, unbezahlte/ungelieferte Positionen) sind tisch-bezogen
-- Konkurrierende Zugriffe auf denselben Tisch müssen konsistent aufgelöst werden
-
-#### Domain Events
-
-| Domain Event           | Typ-String                       | Bedeutung                          |
-| ---------------------- | -------------------------------- | ---------------------------------- |
-| `BestellungAufgegeben` | `tisch.bestellung-aufgegeben:v1` | Gast hat Positionen bestellt       |
-| `ZahlungRegistriert`   | `tisch.zahlung-registriert:v1`   | Zahlung für Positionen eingegangen |
-| `ProdukteStorniert`    | `tisch.produkte-storniert:v1`    | Positionen wurden storniert        |
-| `ProdukteGeliefert`    | `tisch.produkte-geliefert:v1`    | Positionen wurden ausgeliefert     |
-
-**Zusätzlich (technisch, kein Domain Event):**
-
-| System Event | Typ-String          | Bedeutung                                      |
-| ------------ | ------------------- | ---------------------------------------------- |
-| `Snapshot`   | `tisch.snapshot:v1` | Technische Optimierung — komprimierter Zustand |
-
-#### Domain Services
-
-```go
-// Domain Service: Zustandsrekonstruktion aus Events
-// In: domain/table/events.go
-func GetSaldoFromEvents(events []event.Event) int { ... }
-func GetUnbezahltePositionenFromEvents(events []event.Event) []Position { ... }
-func GetUngeliefertePositionenFromEvents(events []event.Event) []Position { ... }
-```
-
-Diese Funktionen sind **reine Funktionen** (keine Seiteneffekte, deterministisch) und gehören zur Domain-Schicht, nicht zur Application-Schicht.
-
-#### Application Services
-
-```go
-// Application Service: Bestellung aufgeben
-// In: api/table/application/command.go
-func (s *CommandService) BestellungAufgeben(ctx, userID, tischID, positionen, comment) {
-    // 1. Tisch aus DB laden (Repository)
-    // 2. Event erstellen (Domain)
-    // 3. Event speichern (Repository)
-    // 4. Optional: Snapshot erstellen
-}
-```
-
-#### Repositories
-
-| Repository     | Aggregat             | Muster                              |
-| -------------- | -------------------- | ----------------------------------- |
-| `event_repo`   | Events (Event Store) | Append-only: WriteEvent, ReadEvents |
-| `table_repo`   | Tisch (CRUD)         | CRUD: Get, GetAll, Create, Update   |
-| `product_repo` | Produkt + Varianten  | CRUD mit Nested Entities            |
-| `user_repo`    | Benutzer             | CRUD + Password-Hash                |
-
-### DDD-Mapping: Was nutzt jotti von DDD?
-
-| DDD-Konzept           | Genutzt?     | Umsetzung in jotti                                   |
-| --------------------- | ------------ | ---------------------------------------------------- |
-| Ubiquitous Language   | ✅ Ja        | Deutsche Fachbegriffe, dokumentiert in `language.md` |
-| Bounded Contexts      | ✅ Ja        | Kassenbetrieb vs. Stammdaten vs. Auth                |
-| Context Mapping       | ✅ Implizit  | Customer/Supplier (Stammdaten → Kassenbetrieb)       |
-| Entities              | ✅ Ja        | User, Tisch, Produkt, Variante                       |
-| Value Objects         | ✅ Ja        | Position, Geldbeträge (Cents), Rollen, Kategorien    |
-| Aggregates            | ✅ Ja        | Tisch-Aggregat mit Event Stream                      |
-| Domain Events         | ✅ Ja        | 4 Event-Typen + Snapshot                             |
-| Domain Services       | ✅ Ja        | Zustandsrekonstruktion (reine Funktionen)            |
-| Application Services  | ✅ Ja        | Command/Query Handler                                |
-| Repositories          | ✅ Ja        | Repository-Pattern mit sqlc                          |
-| Factories             | ⚠️ Teilweise | `New*`-Funktionen für Handler/Services               |
-| Specifications        | ❌ Nein      | Nicht kompliziert genug                              |
-| Sagas/Process Manager | ❌ Nein      | Keine verteilten Transaktionen                       |
-| Module Mapping        | ✅ Ja        | Verzeichnisstruktur = Bounded Context                |
-
-### Was jotti bewusst weglässt
-
-**Specifications:** Das Specification-Pattern (komplexe Geschäftsregeln als Objekte) ist für jottis Regeln überdimensioniert. Die Validierung erfolgt direkt in `zog`-Schemas.
-
-**Sagas:** Sagas koordinieren verteilte Transaktionen über mehrere Aggregaten hinweg. jotti ist ein Monolith — alle Operationen laufen in derselben Datenbank.
-
-**CQRS mit separaten Datenbanken:** jotti nutzt eine einzelne PostgreSQL-Instanz für Write Store (Events) und Read Store (CRUD). Eine separate Read-DB ist für die aktuelle Last (Vereinsfeste) nicht nötig.
-
-### Anti-Patterns in jotti
-
-**Anemic Domain Model:** Teilweise vorhanden — die Zustandsrekonstruktion erfolgt in Domain Services (`events.go`), nicht in den Event-Structs selbst. Das ist akzeptabel, weil Event-Sourcing naturgemäß den Zustand extern rekonstruiert. Die Events selbst sind Value Objects und **sollten** keine Methoden haben.
-
-**Big Ball of Mud:** Vermeidung durch klare Verzeichnisstruktur (`domain/`, `repository/`, `api/`), Bounded Contexts als separate Pfade, Repository-Pattern als Abstraktion.
-
-**Premature Abstraction:** Bewusst vermieden. CRUD-Entities (User, Produkt) haben keine Domain Events, keine Aggregates, kein Event-Sourcing. Nur der Kassenbetrieb rechtfertigt die zusätzliche Komplexität.
-
-**Shared Kernel Creep:** Der Shared Kernel ist minimal: `Position`-Struct und `event.Event`. Diese Typen sind stabil und ändern sich selten.
-
-### Anwendung der Entscheidungsmatrix auf jotti
-
-- **Stammdaten** → Einfaches CRUD. Keine DDD-Patterns nötig (außer Repository).
-- **Kassenbetrieb** → DDD sinnvoll. Geschäftsregeln, Event-Sourcing, Audit Trail, fachliche Sprache.
-
----
-
-## 9. Referenzen
+## 8. Referenzen
 
 ### Bücher
 
@@ -987,6 +770,7 @@ func (s *CommandService) BestellungAufgeben(ctx, userID, tischID, positionen, co
 - **Vaughn Vernon** (2016): _Domain-Driven Design Distilled_ — Kurzfassung für Einsteiger und Manager
 - **Scott Millett & Nick Tune** (2015): _Patterns, Principles, and Practices of Domain-Driven Design_ — Umfangreicher Muster-Katalog
 - **Martin Kleppmann** (2017): _Designing Data-Intensive Applications_ — Vertiefung zu Event-Sourcing, Immutability und Stream Processing
+- **Vlad Khononov** (2021): _Learning Domain-Driven Design_ — Moderner Einstieg: Strategic und Tactical Design mit Praxisbeispielen, Event Storming, Bounded Context Integration
 
 ### Online-Quellen
 
@@ -1001,10 +785,7 @@ func (s *CommandService) BestellungAufgeben(ctx, userID, tischID, positionen, co
 - [Event-Driven Architecture in Golang (PacktPublishing)](https://github.com/PacktPublishing/Event-Driven-Architecture-in-Golang) — DDD + ES + CQRS in Go, Aggregate-Design, Domain Event Patterns
 - [Nick Tune: Domain-Driven Architecture Blog](https://medium.com/nick-tune-tech-strategy-blog) — Strategic DDD und Context Mapping in der Praxis
 
-### Projekt-intern
+### Verwandte Theorie-Dokumente
 
-- [Ubiquitous Language](../language.md) — Kanonische Fachbegriffe des jotti-Projekts
 - [Event-Sourcing Theorie](event-sourcing.md) — Event-Sourcing Grundlagen
 - [CQRS Theorie](cqrs.md) — Command Query Responsibility Segregation
-- [ADR: Event-Sourcing](../adr/event-sourcing.md) — Entscheidung für Event-Sourcing in jotti
-- [ADR: sqlc](../adr/orm.md) — Entscheidung für sqlc als ORM-Alternative

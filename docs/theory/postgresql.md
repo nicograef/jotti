@@ -1,6 +1,6 @@
 # PostgreSQL — Theorie und Anwendung
 
-Dieses Dokument ist ein allgemeiner Guide für PostgreSQL: Architektur-Grundlagen, Features, Indexierung, Query-Optimierung, Connection Management, Migration-Strategien und den Vergleich mit Alternativen. Projektspezifische Anwendungsbeispiele finden sich im [Appendix](#15-appendix-anwendungsbeispiel-jotti).
+Dieses Dokument ist ein allgemeiner Guide für PostgreSQL: Architektur-Grundlagen, Features, Indexierung, Query-Optimierung, Connection Management, Migration-Strategien und den Vergleich mit Alternativen.
 
 ---
 
@@ -20,8 +20,7 @@ Dieses Dokument ist ein allgemeiner Guide für PostgreSQL: Architektur-Grundlage
 12. [Schema-Migration-Strategien](#12-schema-migration-strategien)
 13. [PostgreSQL vs. Alternativen](#13-postgresql-vs-alternativen)
 14. [Anti-Patterns und Fallstricke](#14-anti-patterns-und-fallstricke)
-15. [Appendix: Anwendungsbeispiel (jotti)](#15-appendix-anwendungsbeispiel-jotti)
-16. [Referenzen](#16-referenzen)
+15. [Referenzen](#15-referenzen)
 
 ---
 
@@ -146,7 +145,7 @@ PostgreSQL eignet sich besonders für Anwendungen mit Event-Sourcing und struktu
 PostgreSQL-Enums für typsichere Status-Werte:
 
 ```sql
-CREATE TYPE UserRole AS ENUM ('admin', 'senior_service', 'service');
+CREATE TYPE UserRole AS ENUM ('admin', 'manager', 'staff');
 CREATE TYPE EntityStatus AS ENUM ('active', 'inactive', 'deleted');
 CREATE TYPE ProductCategory AS ENUM ('food', 'beverage', 'other');
 ```
@@ -1045,87 +1044,7 @@ var pool *pgxpool.Pool  // globaler Singleton
 
 ---
 
-## 15. Appendix: Anwendungsbeispiel (jotti)
-
-Dieser Appendix zeigt, wie die oben beschriebenen Konzepte konkret im jotti-Projekt (Gastronomie-Kassensystem für Vereinsfeste) umgesetzt werden.
-
-### PostgreSQL-Feature-Relevanz in jotti
-
-| Feature               | Relevanz für jotti                      |
-| --------------------- | --------------------------------------- |
-| **JSONB**             | Event-Daten als JSONB gespeichert       |
-| **Custom Enums**      | UserRole, EntityStatus, ProductCategory |
-| **Trigger**           | Append-only-Garantie für Events         |
-| **IDENTITY Columns**  | Standard-SQL-konforme IDs               |
-| **Partielle Indexes** | Potenziell für Status-Filter            |
-| **CTEs (WITH)**       | Komplexe Event-Queries (Snapshot-Suche) |
-| **BRIN-Index**        | Potenziell für große Event-Tabellen     |
-
-### Hybride Persistenz in jotti
-
-jotti kombiniert CRUD und Event Store in einer PostgreSQL-Instanz:
-
-- **CRUD-Tabellen:** `users`, `tables`, `products`, `product_variants`
-- **Event Store:** `events` (append-only)
-- **Referenzielle Integrität:** `events.user_id → users.id`, `product_variants.product_id → products.id`
-- **Stammdaten:** Benutzer, Produkte, Tische (CRUD mit Soft-Deletes)
-- **Event-Operationen:** Bestellungen, Zahlungen, Lieferungen, Stornierungen pro Tisch
-
-### JSONB Event-Daten in jotti
-
-```sql
-INSERT INTO events (user_id, type, subject, data)
-VALUES (1, 'tisch.bestellung-aufgegeben:v1', 'tisch:42',
-  '{"positionen": [{"id": 1, "name": "Cola 0.5l", "preisCents": 350, "quantity": 2}],
-    "comment": "mit Eis",
-    "gesamtPreisCents": 700}'
-);
-
--- Events mit bestimmtem Produkt finden
-SELECT * FROM events
-WHERE data @> '{"positionen": [{"id": 42}]}';
-
--- Gesamtpreis aus Event extrahieren
-SELECT data->>'gesamtPreisCents' FROM events
-WHERE type = 'tisch.bestellung-aufgegeben:v1';
-```
-
-### Event-Schema-Evolution in jotti
-
-```sql
--- V1 Event
-INSERT INTO events (type, data)
-VALUES ('tisch.bestellung-aufgegeben:v1', '{"positionen": [...]}');
-
--- V2 Event (neues Schema)
-INSERT INTO events (type, data)
-VALUES ('tisch.bestellung-aufgegeben:v2', '{"positionen": [...], "neuesFeld": "..."}');
-```
-
-### Index-Strategie in jotti
-
-- Composite-Index `(subject, type)` für Event-Lookups pro Tisch + Snapshot-Suche
-- Subject-Format: `"tisch:<id>"`
-
-### Performance-Hinweis
-
-Bei jottis typischer Last (Vereinsfest, ~50-200 Events pro Tisch pro Abend) sind Snapshots optional aber empfohlen. Connection Pooling mit pgxpool ist Standard.
-
-### Validierung mit zog
-
-JSONB-Validierung in jotti erfolgt vor dem INSERT in Go-Code mit zog-Schemas:
-
-```go
-event, err := table.NewBestellungAufgegebenEvent(userID, tischID, positionen, comment)
-if err != nil {
-    return err  // Validierungsfehler
-}
-eventRepo.WriteEvent(ctx, event)  // Nur gültige Events speichern
-```
-
----
-
-## 16. Referenzen
+## 15. Referenzen
 
 ### PostgreSQL-Dokumentation
 
@@ -1155,7 +1074,4 @@ eventRepo.WriteEvent(ctx, event)  // Nur gültige Events speichern
 
 ### Projekt-intern
 
-- [ADR: sqlc](../adr/orm.md) — Entscheidung für sqlc (detaillierte Bewertung)
-- [Datenbank & Persistenz](../database.md) — Operative Dokumentation
 - [Go Backend Architektur](go-backend.md) — sqlc-Workflow, SQL-Tooling-Vergleich
-- [Entwicklung & Deployment](../development.md) — Setup mit Docker Compose

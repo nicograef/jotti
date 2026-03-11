@@ -1,6 +1,6 @@
 # DevOps, Deployment & Infrastruktur — Theorie
 
-Dieses Dokument ist ein theoretisches Nachschlagewerk für DevOps-Praktiken, Containerisierung, CI/CD, Deployment-Strategien und Betriebskonzepte. Es erklärt Grundlagen von Docker über Orchestrierung und Reverse Proxies bis zu Monitoring, Backup und Self-Hosting. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#12-appendix-anwendungsbeispiel-jotti).
+Dieses Dokument ist ein theoretisches Nachschlagewerk für DevOps-Praktiken, Containerisierung, CI/CD, Deployment-Strategien und Betriebskonzepte. Es erklärt Grundlagen von Docker über Orchestrierung und Reverse Proxies bis zu Monitoring, Backup und Self-Hosting.
 
 ---
 
@@ -17,8 +17,7 @@ Dieses Dokument ist ein theoretisches Nachschlagewerk für DevOps-Praktiken, Con
 9. [Monitoring & Observability](#9-monitoring--observability)
 10. [Backup & Disaster Recovery](#10-backup--disaster-recovery)
 11. [Self-Hosting Patterns](#11-self-hosting-patterns)
-12. [Appendix: Anwendungsbeispiel (jotti)](#12-appendix-anwendungsbeispiel-jotti)
-13. [Referenzen](#13-referenzen)
+12. [Referenzen](#12-referenzen)
 
 ---
 
@@ -932,11 +931,11 @@ Für gute Observability müssen Logs maschinenlesbar sein:
   "time": "2024-01-15T10:30:00Z",
   "service": "backend",
   "method": "POST",
-  "path": "/bestellung",
+  "path": "/api/create-order",
   "status": 200,
   "duration_ms": 45,
   "user_id": "42",
-  "tisch_id": "7"
+  "order_id": "7"
 }
 ```
 
@@ -1203,101 +1202,7 @@ services:
 
 ---
 
-## 12. Appendix: Anwendungsbeispiel (jotti)
-
-Dieser Abschnitt beschreibt, wie die oben erläuterten DevOps-Konzepte in jotti konkret angewendet werden.
-
-### Docker-Setup in jotti
-
-jotti verwendet **Multi-Stage Builds** für beide Services:
-
-**Backend (Go):**
-
-```
-Stage 1 (builder): golang:1.26.0-alpine → Go Binary kompilieren
-Stage 2 (runner):  alpine:latest → Nur Binary kopieren
-```
-
-Ergebnis: Sehr kleines Produktions-Image (~10 MB vs. ~250 MB mit Go-SDK).
-
-**Frontend (React/Vite):**
-
-```
-Stage 1 (build):  node:24-alpine → pnpm install + pnpm build → /app/dist
-Stage 2 (runner): nginx:1.27-alpine → dist-Ordner ausliefern
-```
-
-### Network-Isolation in jotti
-
-jotti trennt Netzwerke nach Sicherheitsbedürfnis:
-
-```yaml
-networks:
-  app-network: # Frontend ↔ Backend ↔ Reverse Proxy
-    driver: bridge
-  db-network: # Backend ↔ PostgreSQL (intern)
-    driver: bridge
-    internal: true # Kein Internetzugriff möglich
-```
-
-Die Datenbank ist **nur vom Backend** erreichbar — nicht vom Reverse Proxy oder Frontend.
-
-### Docker Compose Environments in jotti
-
-jotti hat vier Compose-Konfigurationen:
-
-| Datei                             | Zweck                                   |
-| --------------------------------- | --------------------------------------- |
-| `docker-compose.dev.yml`          | Lokale Entwicklung (Hot Reload, go run) |
-| `docker-compose.yml`              | Produktion (gebaute Images, TLS)        |
-| `docker-compose.staging.yml`      | Staging (wie Produktion, andere Domain) |
-| `docker-compose.initial-cert.yml` | Nur für initialen Let's Encrypt-Request |
-
-### CI/CD in jotti
-
-jotti nutzt **GitHub Actions** mit Path-based Filtering:
-
-```
-Changes in backend/**  → Backend CI (vet, format, build, unit tests, golangci-lint, integration tests)
-Changes in frontend/** → Frontend CI (lint, format, tests, build)
-Changes in database/** → Integrationstests mit Datenbank
-```
-
-Dies verhindert unnötige Runs — wenn nur Frontend-Code geändert wird, läuft kein Backend-Build.
-
-### Reverse Proxy in jotti
-
-jotti verwendet **nginx** als Reverse Proxy mit:
-
-- **TLS-Terminierung** via Let's Encrypt (Certbot-Container für automatische Erneuerung)
-- **HTTP → HTTPS Redirect**
-- **www → non-www Redirect**
-- **Rate Limiting:** 10 Requests/s pro IP, Burst 20 (für `/api/`)
-- **Security Headers:** HSTS, X-Frame-Options, Content-Security-Policy, etc.
-- **API-Routing:** `/api/*` → Backend (Port Strip), `/*` → Frontend
-
-### Deployment-Strategie in jotti
-
-jotti verwendet die **Recreate-Strategie** (Stop → Start):
-
-- Vereinsfest-Betrieb: kurze Downtime (< 30s) bei Deployment ist akzeptabel
-- Keine parallelen Instanzen nötig (kein Horizontal Scaling)
-- Initialer Deploy via `scripts/prod-init.sh` (automatisiert: DNS-Check, Zertifikat, Stack-Start)
-- Updates: `docker compose pull && docker compose up -d`
-
-### Was jotti (noch) nicht implementiert
-
-| Feature                  | Begründung / Hinweis                                                             |
-| ------------------------ | -------------------------------------------------------------------------------- |
-| Health Check Endpoints   | Ausstehend — sinnvoll für Health-aware Orchestratoren                            |
-| Prometheus/Grafana       | Zu viel Overhead für Vereinssoftware; strukturiertes Logging vorhanden (zerolog) |
-| Automatisches Deployment | Kein CD-Pipeline; manuelles `docker compose pull` auf Server                     |
-| Restic Backups           | Ausstehend — `pg_dump` manuell oder per Cron empfohlen                           |
-| Horizontal Scaling       | Nicht nötig; Single-Instance reicht für Vereinsfeste                             |
-
----
-
-## 13. Referenzen
+## 12. Referenzen
 
 ### Docker & Container
 
