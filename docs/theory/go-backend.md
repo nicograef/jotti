@@ -2,16 +2,6 @@
 
 Dieses Dokument ist ein allgemeiner Architektur-Guide für Go-Backends: Architektur-Patterns, HTTP-Ökosystem, API-Design, Concurrency, Fehlerbehandlung, Resilienz, Observability, Datenbankzugriff und Testing. Projektspezifische Anwendungsbeispiele finden sich im [Appendix](#16-appendix-anwendungsbeispiel-jotti).
 
-> **Verwandte Dokumente:**
->
-> - [DDD Theorie](ddd.md) — Domain-Driven Design Grundlagen
-> - [Event-Sourcing Theorie](event-sourcing.md) — Event-Sourcing Grundlagen
-> - [CQRS Theorie](cqrs.md) — Command Query Responsibility Segregation
-> - [PostgreSQL](postgresql.md) — Datenbankzugriff und SQL-Grundlagen
-> - [Entwicklung & Deployment](../development.md) — Setup, Tests, CI/CD
-> - [Security & Authentifizierung](security.md) — Authentifizierung, OWASP, Middleware-Security
-> - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
-
 ---
 
 ## Inhaltsverzeichnis
@@ -139,12 +129,12 @@ Robert C. Martin: Vier konzentrische Ringe, wobei die **Dependency Rule** gilt: 
          └──────────────────────────────────────────┘
 ```
 
-| Ring                    | Inhalt                                    | Änderungsfrequenz |
-| ----------------------- | ----------------------------------------- | ----------------- |
-| Entities                | Enterprise-Geschäftsregeln, Domain-Modelle | Sehr selten       |
-| Use Cases               | Anwendungs-Geschäftsregeln                | Selten            |
-| Interface Adapters      | Controller, Gateway, Presenter            | Gelegentlich      |
-| Frameworks & Drivers    | HTTP, DB, UI                              | Häufig            |
+| Ring                 | Inhalt                                     | Änderungsfrequenz |
+| -------------------- | ------------------------------------------ | ----------------- |
+| Entities             | Enterprise-Geschäftsregeln, Domain-Modelle | Sehr selten       |
+| Use Cases            | Anwendungs-Geschäftsregeln                 | Selten            |
+| Interface Adapters   | Controller, Gateway, Presenter             | Gelegentlich      |
+| Frameworks & Drivers | HTTP, DB, UI                               | Häufig            |
 
 **Konsequenz:** Entities kennen keine Use Cases; Use Cases kennen keine HTTP-Adapter; keine Framework-Imports im Domain-Code.
 
@@ -166,12 +156,12 @@ Jeffrey Palermo (2008): Ähnlich wie Clean Architecture, betont aber explizit de
 
 ### 1.5 Vergleichstabelle
 
-| Pattern              | Hauptprinzip                     | Go-Umsetzung                          | Empfohlen wenn...                              |
-| -------------------- | -------------------------------- | ------------------------------------- | ---------------------------------------------- |
-| Layered              | Schichten oben → unten           | Pakete je Schicht (`api/`, `domain/`) | Einfache APIs, gute Einsteiger-Eignung         |
-| Hexagonal            | Core + Ports + Adapters          | Interfaces + Pakete je Adapter        | Viele externe Systeme, hohe Testanforderungen  |
-| Clean Architecture   | Dependency Rule, konzentrisch    | Wie Hexagonal, strenger               | Komplexe Domains mit langer Lebensdauer        |
-| Onion                | Domain im Zentrum, kein Adapter  | Wie Hexagonal, Domain-first           | DDD-intensive Projekte                         |
+| Pattern            | Hauptprinzip                    | Go-Umsetzung                          | Empfohlen wenn...                             |
+| ------------------ | ------------------------------- | ------------------------------------- | --------------------------------------------- |
+| Layered            | Schichten oben → unten          | Pakete je Schicht (`api/`, `domain/`) | Einfache APIs, gute Einsteiger-Eignung        |
+| Hexagonal          | Core + Ports + Adapters         | Interfaces + Pakete je Adapter        | Viele externe Systeme, hohe Testanforderungen |
+| Clean Architecture | Dependency Rule, konzentrisch   | Wie Hexagonal, strenger               | Komplexe Domains mit langer Lebensdauer       |
+| Onion              | Domain im Zentrum, kein Adapter | Wie Hexagonal, Domain-first           | DDD-intensive Projekte                        |
 
 > **Praxis-Empfehlung:** Für Go-Services beginnt man oft mit einer einfachen Layered Architecture und extrahiert bei Bedarf Ports (Interfaces) für testbare Boundaries — das entspricht einer pragmatischen Hexagonal Architecture ohne strikte Framework-Grenzen.
 
@@ -226,20 +216,20 @@ r.Route("/orders", func(r chi.Router) {
 
 ### 2.3 Echo, Gin, Fiber
 
-| Framework | Stars (2024) | Philosophie                    | Besonderheiten                              |
-| --------- | ------------ | ------------------------------ | ------------------------------------------- |
-| **Echo**  | ~29k         | Minimalismus, gute Middleware  | Binder für JSON/XML/Form, Validator-Hookups |
-| **Gin**   | ~77k         | Performance, einfaches API     | Eigenes Context-Objekt, schnelles Routing   |
-| **Fiber** | ~32k         | Express-Inspiration, Fasthttp  | Nicht stdlib-kompatibel (Fasthttp-Context)  |
+| Framework | Stars (2024) | Philosophie                   | Besonderheiten                              |
+| --------- | ------------ | ----------------------------- | ------------------------------------------- |
+| **Echo**  | ~29k         | Minimalismus, gute Middleware | Binder für JSON/XML/Form, Validator-Hookups |
+| **Gin**   | ~77k         | Performance, einfaches API    | Eigenes Context-Objekt, schnelles Routing   |
+| **Fiber** | ~32k         | Express-Inspiration, Fasthttp | Nicht stdlib-kompatibel (Fasthttp-Context)  |
 
 ### 2.4 Entscheidungshilfe
 
-| Situation                                          | Empfehlung                          |
-| -------------------------------------------------- | ----------------------------------- |
-| Neues Projekt, wenige Routes, kein Framework-Lock  | stdlib `net/http` (Go 1.22+)       |
-| Middleware-heavy, Sub-Router, `http.Handler`-kompatibel | Chi                            |
-| Schneller Einstieg, viel Dokumentation, große Community | Gin oder Echo                  |
-| Migration von Express (Node.js), Performance-kritisch | Fiber (aber Vorsicht: kein stdlib) |
+| Situation                                               | Empfehlung                         |
+| ------------------------------------------------------- | ---------------------------------- |
+| Neues Projekt, wenige Routes, kein Framework-Lock       | stdlib `net/http` (Go 1.22+)       |
+| Middleware-heavy, Sub-Router, `http.Handler`-kompatibel | Chi                                |
+| Schneller Einstieg, viel Dokumentation, große Community | Gin oder Echo                      |
+| Migration von Express (Node.js), Performance-kritisch   | Fiber (aber Vorsicht: kein stdlib) |
 
 ---
 
@@ -297,8 +287,14 @@ query {
   order(id: 42) {
     id
     status
-    items { name quantity }
-    customer { name email }
+    items {
+      name
+      quantity
+    }
+    customer {
+      name
+      email
+    }
   }
 }
 ```
@@ -308,12 +304,12 @@ query {
 
 ### 3.5 API-Versionierung
 
-| Strategie          | Beispiel                              | Bewertung                                    |
-| ------------------ | ------------------------------------- | -------------------------------------------- |
-| URL-Pfad           | `/v1/orders`, `/v2/orders`            | Einfachste, am weitesten verbreitet          |
-| HTTP-Header        | `Accept: application/vnd.api.v2+json` | Sauber, aber unsichtbar für Browser          |
-| Query-Parameter    | `/orders?version=2`                   | Einfach, aber URL-Verschmutzung              |
-| Subdomain          | `v2.api.example.com`                  | DNS-Overhead, selten empfohlen               |
+| Strategie       | Beispiel                              | Bewertung                           |
+| --------------- | ------------------------------------- | ----------------------------------- |
+| URL-Pfad        | `/v1/orders`, `/v2/orders`            | Einfachste, am weitesten verbreitet |
+| HTTP-Header     | `Accept: application/vnd.api.v2+json` | Sauber, aber unsichtbar für Browser |
+| Query-Parameter | `/orders?version=2`                   | Einfach, aber URL-Verschmutzung     |
+| Subdomain       | `v2.api.example.com`                  | DNS-Overhead, selten empfohlen      |
 
 ### 3.6 Paginierung
 
@@ -337,12 +333,12 @@ GET /orders?cursor=eyJpZCI6NDJ9&limit=25
 
 ### 3.7 Rate Limiting
 
-| Algorithmus       | Charakteristik                                      | Geeignet für                  |
-| ----------------- | --------------------------------------------------- | ----------------------------- |
-| **Token Bucket**  | Erlaubt Bursts bis zur Bucket-Kapazität             | APIs mit gelegentlichen Bursts |
-| **Leaky Bucket**  | Konstanter Outflow, glättet Bursts                  | Upstream-Schutz               |
-| **Fixed Window**  | Zählt Anfragen in fixen Zeitfenstern (z.B. 1 Minute) | Einfach, aber Grenzfall-Problem |
-| **Sliding Window**| Gleitendes Zeitfenster, kein Grenzfall-Problem      | Präzises Rate Limiting        |
+| Algorithmus        | Charakteristik                                       | Geeignet für                    |
+| ------------------ | ---------------------------------------------------- | ------------------------------- |
+| **Token Bucket**   | Erlaubt Bursts bis zur Bucket-Kapazität              | APIs mit gelegentlichen Bursts  |
+| **Leaky Bucket**   | Konstanter Outflow, glättet Bursts                   | Upstream-Schutz                 |
+| **Fixed Window**   | Zählt Anfragen in fixen Zeitfenstern (z.B. 1 Minute) | Einfach, aber Grenzfall-Problem |
+| **Sliding Window** | Gleitendes Zeitfenster, kein Grenzfall-Problem       | Präzises Rate Limiting          |
 
 ---
 
@@ -368,7 +364,7 @@ queryHandler   := order_http.NewQueryHandler(queryService)
 
 ### Composition Root
 
-Das Wiring aller Dependencies erfolgt zentral an einem einzigen Ort (*Composition Root*, oft `app/app.go` oder `main.go`):
+Das Wiring aller Dependencies erfolgt zentral an einem einzigen Ort (_Composition Root_, oft `app/app.go` oder `main.go`):
 
 ```go
 type App struct {
@@ -402,13 +398,13 @@ func New(cfg *config.Config) (*App, error) {
 
 ### Vorteile Manual Wiring
 
-| Vorteil                 | Beschreibung                              |
-| ----------------------- | ----------------------------------------- |
-| **Compile-Time Safety** | Fehlende Dependencies → Compile-Fehler    |
-| **Keine Reflection**    | Kein Runtime-Overhead                     |
-| **Explizit**            | Jede Abhängigkeit ist im Code sichtbar    |
-| **Testbar**             | Mocks über Interfaces injizierbar         |
-| **Debuggbar**           | Stack Traces führen direkt zur Ursache    |
+| Vorteil                 | Beschreibung                           |
+| ----------------------- | -------------------------------------- |
+| **Compile-Time Safety** | Fehlende Dependencies → Compile-Fehler |
+| **Keine Reflection**    | Kein Runtime-Overhead                  |
+| **Explizit**            | Jede Abhängigkeit ist im Code sichtbar |
+| **Testbar**             | Mocks über Interfaces injizierbar      |
+| **Debuggbar**           | Stack Traces führen direkt zur Ursache |
 
 ---
 
@@ -761,12 +757,12 @@ func mapError(err error) error {
 Client (Zod/Yup) → HTTP (JSON Parsing) → Domain (Schema) → Database (Constraints)
 ```
 
-| Schicht      | Tool                   | Prüft                                      |
-| ------------ | ---------------------- | ------------------------------------------ |
-| Frontend     | Zod / Yup / Valibot    | UI-Validierung, sofortiges Feedback        |
-| HTTP-Handler | JSON-Decoder           | JSON-Syntax, bekannte Felder               |
-| Domain       | zog / go-playground/validator | Geschäftsregeln (Min/Max, OneOf)  |
-| Database     | PostgreSQL Constraints | Eindeutigkeit, Fremdschlüssel, NOT NULL    |
+| Schicht      | Tool                          | Prüft                                   |
+| ------------ | ----------------------------- | --------------------------------------- |
+| Frontend     | Zod / Yup / Valibot           | UI-Validierung, sofortiges Feedback     |
+| HTTP-Handler | JSON-Decoder                  | JSON-Syntax, bekannte Felder            |
+| Domain       | zog / go-playground/validator | Geschäftsregeln (Min/Max, OneOf)        |
+| Database     | PostgreSQL Constraints        | Eindeutigkeit, Fremdschlüssel, NOT NULL |
 
 ### Striktes JSON-Parsing
 
@@ -938,12 +934,12 @@ func main() {
 
 Die [12-Factor App](https://12factor.net/) ist eine Methodologie für portable, cloud-native Services. Relevante Faktoren für Go-Backends:
 
-| Faktor           | Prinzip                                             | Go-Umsetzung                             |
-| ---------------- | --------------------------------------------------- | ---------------------------------------- |
-| **III. Config**  | Config aus Umgebungsvariablen, nie im Code          | `os.Getenv`, envconfig, Viper            |
-| **VI. Processes**| Zustandslose, horizontalskalierende Prozesse        | Kein In-Memory-State zwischen Requests  |
-| **IX. Disposability** | Schneller Start, Graceful Shutdown             | `context.WithTimeout`, `signal.Notify`  |
-| **XI. Logs**     | Logs als Eventstream (stdout), keine Log-Dateien    | `zerolog`, `slog`, Ausgabe auf stdout    |
+| Faktor                | Prinzip                                          | Go-Umsetzung                           |
+| --------------------- | ------------------------------------------------ | -------------------------------------- |
+| **III. Config**       | Config aus Umgebungsvariablen, nie im Code       | `os.Getenv`, envconfig, Viper          |
+| **VI. Processes**     | Zustandslose, horizontalskalierende Prozesse     | Kein In-Memory-State zwischen Requests |
+| **IX. Disposability** | Schneller Start, Graceful Shutdown               | `context.WithTimeout`, `signal.Notify` |
+| **XI. Logs**          | Logs als Eventstream (stdout), keine Log-Dateien | `zerolog`, `slog`, Ausgabe auf stdout  |
 
 ### 11.2 Configuration Pattern
 
@@ -970,11 +966,11 @@ func Load() (*Config, error) {
 
 ### 11.3 Config-Libraries im Vergleich
 
-| Library      | Ansatz                              | Stärken                               |
-| ------------ | ----------------------------------- | ------------------------------------- |
-| **envconfig** | Struct-Tags, nur Env-Vars          | Einfach, keine externe Dependency     |
-| **Viper**    | Env-Vars + Config-Files + Flags     | Flexibel, Hierarchie, Hot Reload      |
-| **koanf**    | Modular (Env, YAML, JSON, Vault)    | Composable, Typsicher, kein `interface{}` |
+| Library       | Ansatz                           | Stärken                                   |
+| ------------- | -------------------------------- | ----------------------------------------- |
+| **envconfig** | Struct-Tags, nur Env-Vars        | Einfach, keine externe Dependency         |
+| **Viper**     | Env-Vars + Config-Files + Flags  | Flexibel, Hierarchie, Hot Reload          |
+| **koanf**     | Modular (Env, YAML, JSON, Vault) | Composable, Typsicher, kein `interface{}` |
 
 ---
 
@@ -1113,12 +1109,12 @@ slog.Info("request completed",
 
 **Library-Vergleich:**
 
-| Library      | Allokationen | API-Stil      | Empfehlen für                    |
-| ------------ | ------------ | ------------- | -------------------------------- |
-| **zerolog**  | Null         | Fluent Chain  | Performance-kritische Dienste    |
-| **zap**      | Minimal      | Strongly typed| Hochlastsysteme                  |
-| **slog**     | Niedrig      | stdlib, stabil| Neue Projekte (kein extra Import) |
-| **logrus**   | Moderat      | Classic       | Legacy-Projekte                  |
+| Library     | Allokationen | API-Stil       | Empfehlen für                     |
+| ----------- | ------------ | -------------- | --------------------------------- |
+| **zerolog** | Null         | Fluent Chain   | Performance-kritische Dienste     |
+| **zap**     | Minimal      | Strongly typed | Hochlastsysteme                   |
+| **slog**    | Niedrig      | stdlib, stabil | Neue Projekte (kein extra Import) |
+| **logrus**  | Moderat      | Classic        | Legacy-Projekte                   |
 
 ### 13.2 Distributed Tracing mit OpenTelemetry
 
@@ -1184,13 +1180,13 @@ mux.Handle("GET /metrics", promhttp.Handler())
 
 ### 14.1 SQL-Tooling Landschaft in Go
 
-| Tool        | Ansatz                    | Code-Generierung | Typsicherheit | Lernkurve | Flexibilität |
-| ----------- | ------------------------- | ---------------- | ------------- | --------- | ------------ |
-| **sqlc**    | SQL-first, Code-Gen       | Ja (aus SQL)     | Sehr hoch     | Niedrig   | Sehr hoch    |
-| **sqlx**    | SQL-first, kein Code-Gen  | Nein             | Mittel        | Niedrig   | Sehr hoch    |
-| **GORM**    | ORM, Convention-over-Conf | Nein             | Niedrig       | Mittel    | Mittel       |
-| **ent**     | Graph-Schema, Code-Gen    | Ja (aus Schema)  | Sehr hoch     | Hoch      | Hoch         |
-| **Jet**     | SQL-Builder, Code-Gen     | Ja (aus DB)      | Sehr hoch     | Mittel    | Hoch         |
+| Tool     | Ansatz                    | Code-Generierung | Typsicherheit | Lernkurve | Flexibilität |
+| -------- | ------------------------- | ---------------- | ------------- | --------- | ------------ |
+| **sqlc** | SQL-first, Code-Gen       | Ja (aus SQL)     | Sehr hoch     | Niedrig   | Sehr hoch    |
+| **sqlx** | SQL-first, kein Code-Gen  | Nein             | Mittel        | Niedrig   | Sehr hoch    |
+| **GORM** | ORM, Convention-over-Conf | Nein             | Niedrig       | Mittel    | Mittel       |
+| **ent**  | Graph-Schema, Code-Gen    | Ja (aus Schema)  | Sehr hoch     | Hoch      | Hoch         |
+| **Jet**  | SQL-Builder, Code-Gen     | Ja (aus DB)      | Sehr hoch     | Mittel    | Hoch         |
 
 ### 14.2 sqlc Deep Dive
 
@@ -1237,11 +1233,11 @@ VALUES ($1, $2, $3, $4);
 
 ### 14.3 ORM vs. SQL-first vs. Query Builder
 
-| Ansatz         | Wann verwenden                                      | Wann vermeiden                              |
-| -------------- | --------------------------------------------------- | ------------------------------------------- |
-| **ORM (GORM)** | Rapid Prototyping, CRUD-lastige Apps                | Performance-kritische Queries, komplexe SQL |
-| **SQL-first (sqlc, sqlx)** | Wenn SQL-Kontrolle wichtig ist, explizite Queries | Wenn Datenbankschema noch sehr fluide |
-| **Query Builder (Jet)** | Dynamische Queries mit Typsicherheit        | Wenn einfache statische SQL reicht          |
+| Ansatz                     | Wann verwenden                                    | Wann vermeiden                              |
+| -------------------------- | ------------------------------------------------- | ------------------------------------------- |
+| **ORM (GORM)**             | Rapid Prototyping, CRUD-lastige Apps              | Performance-kritische Queries, komplexe SQL |
+| **SQL-first (sqlc, sqlx)** | Wenn SQL-Kontrolle wichtig ist, explizite Queries | Wenn Datenbankschema noch sehr fluide       |
+| **Query Builder (Jet)**    | Dynamische Queries mit Typsicherheit              | Wenn einfache statische SQL reicht          |
 
 > **Go-Empfehlung:** SQL-first-Ansatz (sqlc oder sqlx) ist idiomatischer Go — er vermeidet "N+1 durch ORM"-Überraschungen und ist besser inspizierbar.
 
@@ -1293,12 +1289,12 @@ func (m *mockOrderRepository) FindByID(ctx context.Context, id int) (Order, erro
 
 ### 14.5 Migration-Tooling
 
-| Tool                  | Ansatz                   | Besonderheiten                                 |
-| --------------------- | ------------------------ | ---------------------------------------------- |
-| **golang-migrate**    | SQL-Dateien (up/down)    | Einfach, viele Driver, kein Schema-Inferencing |
-| **Atlas**             | Deklarativ (HCL/SQL)     | Schema-Diff, CI-Integration, Cloud-Service     |
-| **goose**             | SQL oder Go-Migrations   | Flexibel, Go-basierte Migrationen möglich      |
-| **Flyway / Liquibase**| SQL-Dateien (JVM-Tools)  | Ausgereift, aber JVM-Dependency                |
+| Tool                   | Ansatz                  | Besonderheiten                                 |
+| ---------------------- | ----------------------- | ---------------------------------------------- |
+| **golang-migrate**     | SQL-Dateien (up/down)   | Einfach, viele Driver, kein Schema-Inferencing |
+| **Atlas**              | Deklarativ (HCL/SQL)    | Schema-Diff, CI-Integration, Cloud-Service     |
+| **goose**              | SQL oder Go-Migrations  | Flexibel, Go-basierte Migrationen möglich      |
+| **Flyway / Liquibase** | SQL-Dateien (JVM-Tools) | Ausgereift, aber JVM-Dependency                |
 
 **Zero-Downtime Migration (Expand/Contract Pattern):**
 

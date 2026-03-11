@@ -2,11 +2,6 @@
 
 Dieses Dokument beschreibt das Architekturmuster **Command Query Responsibility Segregation (CQRS)**, analysiert dessen aktuelle Nutzung in jotti und zeigt, wie eine vollständige CQRS-Implementierung die bekannten Schwächen des Event-Sourcing-Ansatzes in jotti mindern kann.
 
-> **Verwandte Dokumente:**
->
-> - [ADR: Event-Sourcing für Tisch-Operationen](adr/event-sourcing.md) — Entscheidung für Event-Sourcing, Vergleich mit CRUD
-> - [ADR: Datenbankzugriff — Entscheidung für sqlc](adr/orm.md) — sqlc als Persistenz-Werkzeug
-
 ---
 
 ## Inhaltsverzeichnis

@@ -2,13 +2,6 @@
 
 Dieses Dokument beschreibt allgemeine Architekturprinzipien für React-Frontends: Komponentenstruktur, State-Management, Backend-Integration, UI-Patterns und Design-Entscheidungen für wartbare, mobile-first Single-Page-Applications. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#17-appendix-anwendungsbeispiel-jotti).
 
-> **Verwandte Dokumente:**
->
-> - [Go Backend Architektur](go-backend.md) — Backend-Architektur, API-Format
-> - [DDD Theorie](ddd.md) — Domain-Driven Design (Bounded Contexts)
-> - [Security & Authentifizierung](security.md) — Token-Handling, XSS-Prävention, Frontend-Security
-> - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
-
 ---
 
 ## Inhaltsverzeichnis
@@ -99,13 +92,13 @@ Atomic Design strukturiert UI-Komponenten in fünf Ebenen, von klein (Atom) nach
 
 ### Ebenen im Atomic Design
 
-| Ebene         | Atomic Design          | Typischer Pfad             | Beispiele                     |
-| ------------- | ---------------------- | -------------------------- | ----------------------------- |
-| **Atoms**     | UI-Primitives          | `src/components/ui/`       | Button, Input, Badge, Card    |
-| **Molecules** | Gemeinsame Komponenten | `src/components/common/`   | LoadingSpinner, ErrorDisplay  |
-| **Organisms** | Feature-Komponenten    | `src/features/*/components/` | OrderCard, OrderDrawer      |
-| **Pages**     | Seiten                 | `src/features/*/pages/`    | OrderOverview, OrderDetail    |
-| **Templates** | Layouts                | `src/App.tsx`              | Root-Layout mit ThemeProvider |
+| Ebene         | Atomic Design          | Typischer Pfad               | Beispiele                     |
+| ------------- | ---------------------- | ---------------------------- | ----------------------------- |
+| **Atoms**     | UI-Primitives          | `src/components/ui/`         | Button, Input, Badge, Card    |
+| **Molecules** | Gemeinsame Komponenten | `src/components/common/`     | LoadingSpinner, ErrorDisplay  |
+| **Organisms** | Feature-Komponenten    | `src/features/*/components/` | OrderCard, OrderDrawer        |
+| **Pages**     | Seiten                 | `src/features/*/pages/`      | OrderOverview, OrderDetail    |
+| **Templates** | Layouts                | `src/App.tsx`                | Root-Layout mit ThemeProvider |
 
 ### Komponenten-Prinzipien
 
@@ -250,12 +243,12 @@ View → dispatch(action) → Reducer → Store → View
 
 ### 3.6 Vergleichsmatrix
 
-| Architektur       | Teamgröße | Komplexität | Skalierbarkeit | Deployment   | Empfehlung                      |
-| ----------------- | --------- | ----------- | -------------- | ------------ | ------------------------------- |
-| **Monolithic**    | Klein     | Niedrig     | Mittel         | Einfach      | Startpunkt, kleine Apps         |
-| **Modular (FSD)** | Mittel    | Mittel      | Hoch           | Einfach      | Empfohlen für wachsende Teams   |
-| **Micro-Frontend**| Groß      | Hoch        | Sehr hoch      | Unabhängig   | Enterprise mit vielen Teams     |
-| **Flux/Redux**    | Beliebig  | Mittel-hoch | Hoch           | Einfach      | Komplexer globaler State nötig  |
+| Architektur        | Teamgröße | Komplexität | Skalierbarkeit | Deployment | Empfehlung                     |
+| ------------------ | --------- | ----------- | -------------- | ---------- | ------------------------------ |
+| **Monolithic**     | Klein     | Niedrig     | Mittel         | Einfach    | Startpunkt, kleine Apps        |
+| **Modular (FSD)**  | Mittel    | Mittel      | Hoch           | Einfach    | Empfohlen für wachsende Teams  |
+| **Micro-Frontend** | Groß      | Hoch        | Sehr hoch      | Unabhängig | Enterprise mit vielen Teams    |
+| **Flux/Redux**     | Beliebig  | Mittel-hoch | Hoch           | Einfach    | Komplexer globaler State nötig |
 
 ---
 
@@ -265,14 +258,14 @@ State-Management ist eines der komplexesten Themen in React. Die richtige Lösun
 
 ### 4.1 State-Kategorien
 
-| Kategorie          | Definition                       | Lösung                           | Beispiele                           |
-| ------------------ | -------------------------------- | -------------------------------- | ----------------------------------- |
-| **Server State**   | Remote-Daten, async, cacheable   | TanStack Query, SWR, useFetch    | API-Daten, Listen, Einzel-Objekte   |
-| **Client State**   | Lokaler UI-State                 | useState, useReducer, Zustand    | Drawer offen, Formular-Werte        |
-| **Auth State**     | Nutzer-Session, Token, Rollen    | Singleton, Context               | JWT-Token, Rolle, UserID            |
-| **Form State**     | Formular-Eingaben, Validierung   | React Hook Form, Formik, useState| Eingabefelder, Fehler-Anzeige       |
-| **URL State**      | State in der URL (navigierbar)   | React Router, nuqs               | Filter, Tabs, Pagination            |
-| **Derived State**  | Berechnet aus anderem State      | Berechnung in Render/useMemo     | Gesamtpreis, gefilterte Listen      |
+| Kategorie         | Definition                     | Lösung                            | Beispiele                         |
+| ----------------- | ------------------------------ | --------------------------------- | --------------------------------- |
+| **Server State**  | Remote-Daten, async, cacheable | TanStack Query, SWR, useFetch     | API-Daten, Listen, Einzel-Objekte |
+| **Client State**  | Lokaler UI-State               | useState, useReducer, Zustand     | Drawer offen, Formular-Werte      |
+| **Auth State**    | Nutzer-Session, Token, Rollen  | Singleton, Context                | JWT-Token, Rolle, UserID          |
+| **Form State**    | Formular-Eingaben, Validierung | React Hook Form, Formik, useState | Eingabefelder, Fehler-Anzeige     |
+| **URL State**     | State in der URL (navigierbar) | React Router, nuqs                | Filter, Tabs, Pagination          |
+| **Derived State** | Berechnet aus anderem State    | Berechnung in Render/useMemo      | Gesamtpreis, gefilterte Listen    |
 
 ### 4.2 Server State: TanStack Query vs. SWR vs. useFetch
 
@@ -281,12 +274,12 @@ Für Remote-Daten ist spezialisiertes Tooling besser als rohes `useState` + `use
 **TanStack Query (React Query)** — der Standard für Server-State in React:
 
 ```tsx
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // Daten laden mit Caching, Refetch, Loading/Error-States
 function useOrders() {
   return useQuery({
-    queryKey: ['orders'],
+    queryKey: ["orders"],
     queryFn: () => orderBackend.getOrders(),
     staleTime: 5 * 60 * 1000, // 5 Minuten cached
   });
@@ -299,7 +292,7 @@ function useSubmitOrder() {
   return useMutation({
     mutationFn: (data: OrderInput) => orderBackend.submitOrder(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
   });
 }
@@ -319,10 +312,10 @@ function OrdersPage() {
 **SWR** — leichtgewichtige Alternative von Vercel:
 
 ```tsx
-import useSWR from 'swr';
+import useSWR from "swr";
 
 function useOrder(id: number) {
-  return useSWR(['order', id], () => orderBackend.getOrder(id));
+  return useSWR(["order", id], () => orderBackend.getOrder(id));
 }
 ```
 
@@ -367,15 +360,18 @@ const [count, setCount] = useState(0);
 
 ```tsx
 type Action =
-  | { type: 'ADD_ITEM'; item: CartItem }
-  | { type: 'REMOVE_ITEM'; id: number }
-  | { type: 'CLEAR' };
+  | { type: "ADD_ITEM"; item: CartItem }
+  | { type: "REMOVE_ITEM"; id: number }
+  | { type: "CLEAR" };
 
 function cartReducer(state: CartItem[], action: Action): CartItem[] {
   switch (action.type) {
-    case 'ADD_ITEM': return [...state, action.item];
-    case 'REMOVE_ITEM': return state.filter(i => i.id !== action.id);
-    case 'CLEAR': return [];
+    case "ADD_ITEM":
+      return [...state, action.item];
+    case "REMOVE_ITEM":
+      return state.filter((i) => i.id !== action.id);
+    case "CLEAR":
+      return [];
   }
 }
 
@@ -385,7 +381,7 @@ const [cart, dispatch] = useReducer(cartReducer, []);
 **Zustand** — minimaler globaler State-Store ohne Provider:
 
 ```tsx
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface CartStore {
   items: CartItem[];
@@ -409,7 +405,7 @@ function CartButton() {
 **Jotai** — atomarer State nach Recoil-Muster:
 
 ```tsx
-import { atom, useAtom } from 'jotai';
+import { atom, useAtom } from "jotai";
 
 const countAtom = atom(0);
 const doubleCountAtom = atom((get) => get(countAtom) * 2);
@@ -417,7 +413,11 @@ const doubleCountAtom = atom((get) => get(countAtom) * 2);
 function Counter() {
   const [count, setCount] = useAtom(countAtom);
   const [double] = useAtom(doubleCountAtom);
-  return <div>{count} × 2 = {double}</div>;
+  return (
+    <div>
+      {count} × 2 = {double}
+    </div>
+  );
 }
 ```
 
@@ -426,11 +426,15 @@ function Counter() {
 **React Hook Form** — performant, wenig Re-Renders, uncontrolled by default:
 
 ```tsx
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 function LoginForm() {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
     resolver: zodResolver(LoginSchema),
   });
 
@@ -438,7 +442,7 @@ function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <input {...register('email')} />
+      <input {...register("email")} />
       {errors.email && <span>{errors.email.message}</span>}
       <button type="submit">Login</button>
     </form>
@@ -451,7 +455,7 @@ function LoginForm() {
 **Native (useState + Zod)** — ausreichend für einfache Formulare:
 
 ```tsx
-const [value, setValue] = useState('');
+const [value, setValue] = useState("");
 const result = Schema.safeParse({ value });
 ```
 
@@ -462,10 +466,10 @@ const result = Schema.safeParse({ value });
 ```tsx
 // React Router v6
 const [searchParams, setSearchParams] = useSearchParams();
-const filter = searchParams.get('filter') ?? 'all';
+const filter = searchParams.get("filter") ?? "all";
 
 // nuqs (typsichere URL-Parameter)
-const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1));
+const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
 ```
 
 **Auth State** als Singleton (kein Re-Render nötig):
@@ -483,24 +487,24 @@ class Auth {
 
 ### 4.6 Entscheidungsmatrix: Welches Tool für welchen State?
 
-| State-Art          | Kleines Projekt       | Mittleres Projekt     | Großes Projekt        |
-| ------------------ | --------------------- | --------------------- | --------------------- |
-| **Server State**   | useFetch (custom)     | TanStack Query        | TanStack Query + RTK  |
-| **Client State**   | useState              | useState / Zustand    | Zustand / Redux Tk.   |
-| **Auth State**     | Singleton / Context   | Singleton / Context   | Context + Provider    |
-| **Form State**     | useState + Zod        | React Hook Form + Zod | React Hook Form + Zod |
-| **URL State**      | React Router params   | React Router / nuqs   | nuqs                  |
+| State-Art        | Kleines Projekt     | Mittleres Projekt     | Großes Projekt        |
+| ---------------- | ------------------- | --------------------- | --------------------- |
+| **Server State** | useFetch (custom)   | TanStack Query        | TanStack Query + RTK  |
+| **Client State** | useState            | useState / Zustand    | Zustand / Redux Tk.   |
+| **Auth State**   | Singleton / Context | Singleton / Context   | Context + Provider    |
+| **Form State**   | useState + Zod      | React Hook Form + Zod | React Hook Form + Zod |
+| **URL State**    | React Router params | React Router / nuqs   | nuqs                  |
 
 ### 4.7 Wann Context, wann nicht?
 
-| Szenario                   | Lösung                 | Begründung                             |
-| -------------------------- | ---------------------- | -------------------------------------- |
-| Globales Theme (Dark Mode) | Context/Provider       | Muss den gesamten Baum durchdringen    |
-| Auth-Token                 | Singleton              | Kein Re-Render bei Token-Refresh nötig |
-| Formular-State             | `useState` im Formular | Lokal, nicht geteilt                   |
-| Server-Daten               | TanStack Query/useFetch| Bei Navigation frisch laden            |
-| Drawer-Zustand             | `useState` in Parent   | Lokal, 1-2 Ebenen tief                 |
-| Globaler App-State         | Zustand / Jotai        | Kein Provider, kein Context-Hell       |
+| Szenario                   | Lösung                  | Begründung                             |
+| -------------------------- | ----------------------- | -------------------------------------- |
+| Globales Theme (Dark Mode) | Context/Provider        | Muss den gesamten Baum durchdringen    |
+| Auth-Token                 | Singleton               | Kein Re-Render bei Token-Refresh nötig |
+| Formular-State             | `useState` im Formular  | Lokal, nicht geteilt                   |
+| Server-Daten               | TanStack Query/useFetch | Bei Navigation frisch laden            |
+| Drawer-Zustand             | `useState` in Parent    | Lokal, 1-2 Ebenen tief                 |
+| Globaler App-State         | Zustand / Jotai         | Kein Provider, kein Context-Hell       |
 
 > **Wichtig:** React Context ist kein State-Management-Tool — es ist ein Dependency-Injection-Tool. Context-Wertänderungen lösen Re-Renders aller Consumer aus. Für häufig wechselnden State lieber Zustand oder Jotai nutzen.
 
@@ -544,7 +548,10 @@ const PostsComponent = () => {
   const [posts, setPosts] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    fetch('/api/posts').then(r => r.json()).then(setPosts).finally(() => setLoading(false));
+    fetch("/api/posts")
+      .then((r) => r.json())
+      .then(setPosts)
+      .finally(() => setLoading(false));
   }, []);
   // ...
 };
@@ -554,7 +561,10 @@ const usePosts = () => {
   const [posts, setPosts] = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    fetch('/api/posts').then(r => r.json()).then(setPosts).finally(() => setLoading(false));
+    fetch("/api/posts")
+      .then((r) => r.json())
+      .then(setPosts)
+      .finally(() => setLoading(false));
   }, []);
   return { posts, loading };
 };
@@ -574,21 +584,24 @@ Entscheidung, ob eine Komponente ihren eigenen State verwaltet (uncontrolled) od
 ```tsx
 // Uncontrolled — verwaltet eigenen State
 const UncontrolledInput = () => {
-  const [value, setValue] = useState('');
-  return <input value={value} onChange={e => setValue(e.target.value)} />;
+  const [value, setValue] = useState("");
+  return <input value={value} onChange={(e) => setValue(e.target.value)} />;
 };
 
 // Controlled — State kommt vom Parent
-const ControlledInput = ({ value, onChange }: {
+const ControlledInput = ({
+  value,
+  onChange,
+}: {
   value: string;
   onChange: (value: string) => void;
 }) => {
-  return <input value={value} onChange={e => onChange(e.target.value)} />;
+  return <input value={value} onChange={(e) => onChange(e.target.value)} />;
 };
 
 // Nutzung: Parent kontrolliert den State
-const [name, setName] = useState('');
-<ControlledInput value={name} onChange={setName} />
+const [name, setName] = useState("");
+<ControlledInput value={name} onChange={setName} />;
 ```
 
 Controlled Components sind besser für Wiederverwendbarkeit und das Open/Closed-Prinzip: Sie müssen nicht modifiziert werden, um von außen gesteuert zu werden.
@@ -600,10 +613,13 @@ Controlled Components sind besser für Wiederverwendbarkeit und das Open/Closed-
 React Context als Dependency-Injection-System für Konfigurationen, die den gesamten Komponentenbaum durchdringen:
 
 ```tsx
-const ThemeContext = createContext<{ theme: string; setTheme: (t: string) => void } | null>(null);
+const ThemeContext = createContext<{
+  theme: string;
+  setTheme: (t: string) => void;
+} | null>(null);
 
 const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState("light");
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
@@ -614,7 +630,7 @@ const ThemeProvider = ({ children }: { children: ReactNode }) => {
 // Custom Hook für sicheren Context-Zugriff
 const useTheme = () => {
   const context = useContext(ThemeContext);
-  if (!context) throw new Error('useTheme must be used within ThemeProvider');
+  if (!context) throw new Error("useTheme must be used within ThemeProvider");
   return context;
 };
 
@@ -638,29 +654,33 @@ Trennung von Datenlogik (Container) und reiner UI (Presentational):
 ```tsx
 // Container: Holt Daten, verwaltet State, enthält Logik
 function OrderDetailContainer({ orderId }: { orderId: number }) {
-  const { data: order, loading, error } = useFetch(() => backend.getOrder(orderId));
+  const {
+    data: order,
+    loading,
+    error,
+  } = useFetch(() => backend.getOrder(orderId));
   const navigate = useNavigate();
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorDisplay error={error} />;
 
-  return (
-    <OrderDetailView
-      order={order!}
-      onBack={() => navigate(-1)}
-    />
-  );
+  return <OrderDetailView order={order!} onBack={() => navigate(-1)} />;
 }
 
 // Presentational: Reines UI, keine Side Effects, gut testbar
-function OrderDetailView({ order, onBack }: {
+function OrderDetailView({
+  order,
+  onBack,
+}: {
   order: Order;
   onBack: () => void;
 }) {
   return (
     <Card>
       <CardHeader>
-        <Button variant="ghost" onClick={onBack}>← Zurück</Button>
+        <Button variant="ghost" onClick={onBack}>
+          ← Zurück
+        </Button>
         <CardTitle>{order.name}</CardTitle>
       </CardHeader>
       <CardContent>Saldo: {formatCents(order.totalCents)}</CardContent>
@@ -719,28 +739,39 @@ const useDropdown = (items: string[]) => {
   };
   const getItemProps = (index: number) => ({
     onClick: () => select(index),
-    'aria-selected': selectedIndex === index,
+    "aria-selected": selectedIndex === index,
   });
 
-  return { isOpen, selectedIndex, toggle, getItemProps, selected: items[selectedIndex] };
+  return {
+    isOpen,
+    selectedIndex,
+    toggle,
+    getItemProps,
+    selected: items[selectedIndex],
+  };
 };
 
 // Consumer: Vollständige Kontrolle über Styling
 function StyledDropdown({ items }: { items: string[] }) {
-  const { isOpen, selectedIndex, toggle, getItemProps, selected } = useDropdown(items);
+  const { isOpen, selectedIndex, toggle, getItemProps, selected } =
+    useDropdown(items);
 
   return (
     <div className="relative">
       <button onClick={toggle} className="border rounded px-3 py-2">
-        {selected ?? 'Auswählen'} ▾
+        {selected ?? "Auswählen"} ▾
       </button>
       {isOpen && (
         <ul className="absolute border rounded shadow-lg bg-white">
           {items.map((item, i) => (
-            <li key={i} {...getItemProps(i)} className={cn(
-              "px-3 py-2 cursor-pointer hover:bg-gray-100",
-              i === selectedIndex && "bg-blue-50 font-medium"
-            )}>
+            <li
+              key={i}
+              {...getItemProps(i)}
+              className={cn(
+                "px-3 py-2 cursor-pointer hover:bg-gray-100",
+                i === selectedIndex && "bg-blue-50 font-medium",
+              )}
+            >
               {item}
             </li>
           ))}
@@ -785,7 +816,7 @@ function DataLoader<T>({ fetcher, children, fallback }: DataLoaderProps<T>) {
       <Button onClick={reload}>Aktualisieren</Button>
     </div>
   )}
-</DataLoader>
+</DataLoader>;
 ```
 
 **Hinweis:** Mit Hooks sind Render Props oft ersetzbar durch Custom Hooks. Render Props sind aber weiterhin nützlich für Logik, die direkt mit JSX verbunden ist.
@@ -802,7 +833,7 @@ const useToggle = (initialValue = false) => {
   const [isOn, setIsOn] = useState(initialValue);
 
   const getToggleProps = (props = {}) => ({
-    'aria-pressed': isOn,
+    "aria-pressed": isOn,
     onClick: () => setIsOn(!isOn),
     ...props, // Consumer kann Props überschreiben/erweitern
   });
@@ -816,10 +847,10 @@ function ToggleButton() {
   return (
     <button
       {...getToggleProps({
-        className: cn('rounded', isOn ? 'bg-blue-500' : 'bg-gray-200'),
+        className: cn("rounded", isOn ? "bg-blue-500" : "bg-gray-200"),
       })}
     >
-      {isOn ? 'An' : 'Aus'}
+      {isOn ? "An" : "Aus"}
     </button>
   );
 }
@@ -843,19 +874,21 @@ class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('Fehler abgefangen:', error, info);
+    console.error("Fehler abgefangen:", error, info);
     // Optional: Error-Reporting (Sentry etc.)
   }
 
   render() {
     if (this.state.hasError) {
-      return this.props.fallback ?? (
-        <div role="alert">
-          <h2>Etwas ist schiefgelaufen.</h2>
-          <button onClick={() => this.setState({ hasError: false })}>
-            Erneut versuchen
-          </button>
-        </div>
+      return (
+        this.props.fallback ?? (
+          <div role="alert">
+            <h2>Etwas ist schiefgelaufen.</h2>
+            <button onClick={() => this.setState({ hasError: false })}>
+              Erneut versuchen
+            </button>
+          </div>
+        )
       );
     }
     return this.props.children;
@@ -884,9 +917,13 @@ const App = () => (
 Rendert Kinder in einem DOM-Knoten außerhalb der Komponenten-Hierarchie — löst z-Index- und overflow-Probleme:
 
 ```tsx
-import { createPortal } from 'react-dom';
+import { createPortal } from "react-dom";
 
-const Modal = ({ isOpen, onClose, children }: {
+const Modal = ({
+  isOpen,
+  onClose,
+  children,
+}: {
   isOpen: boolean;
   onClose: () => void;
   children: ReactNode;
@@ -897,7 +934,9 @@ const Modal = ({ isOpen, onClose, children }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-lg p-6 z-10">
-        <button onClick={onClose} className="absolute top-4 right-4">✕</button>
+        <button onClick={onClose} className="absolute top-4 right-4">
+          ✕
+        </button>
         {children}
       </div>
     </div>,
@@ -928,6 +967,7 @@ const ProtectedDashboard = withAuth(Dashboard);
 ```
 
 **Legacy-Pattern:** HOCs haben in modernem React meist bessere Alternativen:
+
 - Auth-Guard → React Router Loader
 - Data Fetching → Custom Hook
 - Feature-Flag → Custom Hook oder Context
@@ -940,7 +980,11 @@ Model-View-ViewModel: Hooks übernehmen die ViewModel-Rolle:
 
 ```tsx
 // Model: Datenstruktur
-interface Order { id: number; items: OrderItem[]; totalCents: number; }
+interface Order {
+  id: number;
+  items: OrderItem[];
+  totalCents: number;
+}
 
 // ViewModel (Custom Hook): Logik und State
 function useOrderViewModel(orderId: number) {
@@ -948,25 +992,27 @@ function useOrderViewModel(orderId: number) {
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
 
   const toggleItem = (id: number) => {
-    setSelectedItems(prev =>
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    setSelectedItems((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
-  const selectedTotal = order?.items
-    .filter(i => selectedItems.includes(i.id))
-    .reduce((sum, i) => sum + i.priceCents, 0) ?? 0;
+  const selectedTotal =
+    order?.items
+      .filter((i) => selectedItems.includes(i.id))
+      .reduce((sum, i) => sum + i.priceCents, 0) ?? 0;
 
   return { order, loading, selectedItems, toggleItem, selectedTotal };
 }
 
 // View: Reines Rendering
 function OrderView({ orderId }: { orderId: number }) {
-  const { order, loading, selectedItems, toggleItem, selectedTotal } = useOrderViewModel(orderId);
+  const { order, loading, selectedItems, toggleItem, selectedTotal } =
+    useOrderViewModel(orderId);
   if (loading) return <LoadingSpinner />;
   return (
     <div>
-      {order!.items.map(item => (
+      {order!.items.map((item) => (
         <ItemRow
           key={item.id}
           item={item}
@@ -1013,13 +1059,13 @@ const useBackend = () => {
 
 #### 5.15 SOLID-Prinzipien in React
 
-| Prinzip | React-Anwendung | Beispiel |
-| ------- | --------------- | -------- |
-| **S**ingle Responsibility | Eine Komponente = eine Aufgabe | `OrderCard` zeigt nur, `useOrder` lädt nur |
-| **O**pen/Closed | Erweiterbar ohne Änderung | Controlled Components, Render Props |
-| **L**iskov Substitution | Komponenten sind austauschbar wenn Props passen | `Button` vs. `IconButton` |
-| **I**nterface Segregation | Kleine, spezifische Props-Interfaces | Nicht alle Props in einen Typ packen |
-| **D**ependency Inversion | Abhängig von Abstraktionen | `BackendClient`-Interface statt konkreter Klasse |
+| Prinzip                   | React-Anwendung                                 | Beispiel                                         |
+| ------------------------- | ----------------------------------------------- | ------------------------------------------------ |
+| **S**ingle Responsibility | Eine Komponente = eine Aufgabe                  | `OrderCard` zeigt nur, `useOrder` lädt nur       |
+| **O**pen/Closed           | Erweiterbar ohne Änderung                       | Controlled Components, Render Props              |
+| **L**iskov Substitution   | Komponenten sind austauschbar wenn Props passen | `Button` vs. `IconButton`                        |
+| **I**nterface Segregation | Kleine, spezifische Props-Interfaces            | Nicht alle Props in einen Typ packen             |
+| **D**ependency Inversion  | Abhängig von Abstraktionen                      | `BackendClient`-Interface statt konkreter Klasse |
 
 ```tsx
 // S — Single Responsibility
@@ -1166,10 +1212,10 @@ function AppGuard() {
 
 ### Rollenbasiertes Routing
 
-| Rolle      | Zugriff              | Redirect nach Login  |
-| ---------- | -------------------- | -------------------- |
-| `admin`    | Admin + Hauptbereich | `/admin` oder `/app` |
-| `user`     | Hauptbereich         | `/app`               |
+| Rolle   | Zugriff              | Redirect nach Login  |
+| ------- | -------------------- | -------------------- |
+| `admin` | Admin + Hauptbereich | `/admin` oder `/app` |
+| `user`  | Hauptbereich         | `/app`               |
 
 ---
 
@@ -1388,34 +1434,34 @@ React-Frontends werden auf mehreren Ebenen getestet. Die Test-Pyramide gilt auch
 
 ```tsx
 // src/lib/utils.test.ts
-import { describe, it, expect } from 'vitest';
-import { formatCents } from './utils';
+import { describe, it, expect } from "vitest";
+import { formatCents } from "./utils";
 
-describe('formatCents', () => {
-  it('formatiert 350 Cent korrekt', () => {
-    expect(formatCents(350)).toBe('3,50 €');
+describe("formatCents", () => {
+  it("formatiert 350 Cent korrekt", () => {
+    expect(formatCents(350)).toBe("3,50 €");
   });
 
-  it('formatiert 0 korrekt', () => {
-    expect(formatCents(0)).toBe('0,00 €');
+  it("formatiert 0 korrekt", () => {
+    expect(formatCents(0)).toBe("0,00 €");
   });
 
-  it('formatiert negative Beträge', () => {
-    expect(formatCents(-100)).toBe('-1,00 €');
+  it("formatiert negative Beträge", () => {
+    expect(formatCents(-100)).toBe("-1,00 €");
   });
 });
 
 // Custom Hook testen
-import { renderHook, act } from '@testing-library/react';
-import { useCounter } from './useCounter';
+import { renderHook, act } from "@testing-library/react";
+import { useCounter } from "./useCounter";
 
-describe('useCounter', () => {
-  it('startet bei 0', () => {
+describe("useCounter", () => {
+  it("startet bei 0", () => {
     const { result } = renderHook(() => useCounter());
     expect(result.current.count).toBe(0);
   });
 
-  it('erhöht den Wert', () => {
+  it("erhöht den Wert", () => {
     const { result } = renderHook(() => useCounter());
     act(() => result.current.increment());
     expect(result.current.count).toBe(1);
@@ -1429,33 +1475,34 @@ React Testing Library (RTL) testet Komponenten aus Nutzer-Perspektive:
 
 ```tsx
 // src/components/OrderCard.test.tsx
-import { render, screen, fireEvent } from '@testing-library/react';
-import { OrderCard } from './OrderCard';
+import { render, screen, fireEvent } from "@testing-library/react";
+import { OrderCard } from "./OrderCard";
 
-const mockOrder = { id: 1, name: 'Tisch 1', totalCents: 1250 };
+const mockOrder = { id: 1, name: "Tisch 1", totalCents: 1250 };
 
-describe('OrderCard', () => {
-  it('zeigt den Tisch-Namen an', () => {
+describe("OrderCard", () => {
+  it("zeigt den Tisch-Namen an", () => {
     render(<OrderCard order={mockOrder} onSelect={() => {}} />);
-    expect(screen.getByText('Tisch 1')).toBeInTheDocument();
+    expect(screen.getByText("Tisch 1")).toBeInTheDocument();
   });
 
-  it('zeigt den formatierten Preis an', () => {
+  it("zeigt den formatierten Preis an", () => {
     render(<OrderCard order={mockOrder} onSelect={() => {}} />);
-    expect(screen.getByText('12,50 €')).toBeInTheDocument();
+    expect(screen.getByText("12,50 €")).toBeInTheDocument();
   });
 
-  it('ruft onSelect beim Klick auf', async () => {
+  it("ruft onSelect beim Klick auf", async () => {
     const handleSelect = vi.fn();
     render(<OrderCard order={mockOrder} onSelect={handleSelect} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /tisch 1/i }));
+    await userEvent.click(screen.getByRole("button", { name: /tisch 1/i }));
     expect(handleSelect).toHaveBeenCalledWith(mockOrder);
   });
 });
 ```
 
 **Prinzipien:**
+
 - **Kein Test von Implementierungsdetails** — nicht `wrapper.find('.order-card')`, sondern `screen.getByRole('button')`
 - **Queries in Priorität:** `getByRole` > `getByLabelText` > `getByText` > `getByTestId`
 - **User Interactions:** `userEvent` statt `fireEvent` (simuliert echtes User-Verhalten)
@@ -1466,49 +1513,49 @@ MSW interceptiert echte Netzwerk-Anfragen im Test-Environment:
 
 ```tsx
 // src/mocks/handlers.ts
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse } from "msw";
 
 export const handlers = [
-  http.post('/api/get-order', ({ request }) => {
-    return HttpResponse.json({ id: 1, name: 'Tisch 1', totalCents: 1250 });
+  http.post("/api/get-order", ({ request }) => {
+    return HttpResponse.json({ id: 1, name: "Tisch 1", totalCents: 1250 });
   }),
 
-  http.post('/api/submit-order', async ({ request }) => {
+  http.post("/api/submit-order", async ({ request }) => {
     const body = await request.json();
     if (!body.items?.length) {
-      return HttpResponse.json({ code: 'EMPTY_ORDER' }, { status: 400 });
+      return HttpResponse.json({ code: "EMPTY_ORDER" }, { status: 400 });
     }
     return HttpResponse.json({ success: true });
   }),
 ];
 
 // src/mocks/server.ts (für Node/Jest/Vitest)
-import { setupServer } from 'msw/node';
+import { setupServer } from "msw/node";
 export const server = setupServer(...handlers);
 
 // Integrations-Test
-import { render, screen, waitFor } from '@testing-library/react';
-import { server } from '../mocks/server';
+import { render, screen, waitFor } from "@testing-library/react";
+import { server } from "../mocks/server";
 
-describe('OrderPage Integration', () => {
-  it('lädt und zeigt Bestellung an', async () => {
+describe("OrderPage Integration", () => {
+  it("lädt und zeigt Bestellung an", async () => {
     render(<OrderPage orderId={1} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Tisch 1')).toBeInTheDocument();
-      expect(screen.getByText('12,50 €')).toBeInTheDocument();
+      expect(screen.getByText("Tisch 1")).toBeInTheDocument();
+      expect(screen.getByText("12,50 €")).toBeInTheDocument();
     });
   });
 
-  it('zeigt Fehler bei leerem Warenkorb', async () => {
+  it("zeigt Fehler bei leerem Warenkorb", async () => {
     server.use(
-      http.post('/api/submit-order', () =>
-        HttpResponse.json({ code: 'EMPTY_ORDER' }, { status: 400 })
-      )
+      http.post("/api/submit-order", () =>
+        HttpResponse.json({ code: "EMPTY_ORDER" }, { status: 400 }),
+      ),
     );
 
     render(<OrderPage orderId={1} />);
-    await userEvent.click(screen.getByText('Bestellen'));
+    await userEvent.click(screen.getByText("Bestellen"));
     await waitFor(() => {
       expect(screen.getByText(/leerer warenkorb/i)).toBeInTheDocument();
     });
@@ -1522,26 +1569,26 @@ Playwright testet die echte Anwendung im Browser:
 
 ```typescript
 // e2e/order-flow.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test('Bestellungsworkflow', async ({ page }) => {
+test("Bestellungsworkflow", async ({ page }) => {
   // Login
-  await page.goto('/login');
-  await page.fill('[name="username"]', 'service');
-  await page.fill('[name="password"]', 'password');
+  await page.goto("/login");
+  await page.fill('[name="username"]', "service");
+  await page.fill('[name="password"]', "password");
   await page.click('button[type="submit"]');
 
   // Tisch auswählen
-  await expect(page).toHaveURL('/service');
-  await page.click('text=Tisch 1');
+  await expect(page).toHaveURL("/service");
+  await page.click("text=Tisch 1");
 
   // Produkt bestellen
-  await page.click('text=Bestellen');
+  await page.click("text=Bestellen");
   await page.click('[data-testid="product-cola"]');
-  await page.click('text=Bestätigen');
+  await page.click("text=Bestätigen");
 
   // Bestellung bestätigt
-  await expect(page.locator('text=Bestellung aufgegeben')).toBeVisible();
+  await expect(page.locator("text=Bestellung aufgegeben")).toBeVisible();
 });
 ```
 
@@ -1556,16 +1603,29 @@ Verhindert unnötige Re-Renders von funktionalen Komponenten:
 ```tsx
 // Ohne memo: Re-rendert bei jedem Parent-Re-Render
 function ExpensiveList({ items }: { items: Item[] }) {
-  return <ul>{items.map(item => <li key={item.id}>{item.name}</li>)}</ul>;
+  return (
+    <ul>
+      {items.map((item) => (
+        <li key={item.id}>{item.name}</li>
+      ))}
+    </ul>
+  );
 }
 
 // Mit memo: Re-rendert nur wenn items sich ändert
 const ExpensiveList = React.memo(({ items }: { items: Item[] }) => {
-  return <ul>{items.map(item => <li key={item.id}>{item.name}</li>)}</ul>;
+  return (
+    <ul>
+      {items.map((item) => (
+        <li key={item.id}>{item.name}</li>
+      ))}
+    </ul>
+  );
 });
 ```
 
 **Wann memo verwenden:**
+
 - ✅ Teure Render-Operationen (große Listen, komplexe Berechnungen)
 - ✅ Komponenten die oft re-rendern obwohl Props sich nicht ändern
 - ❌ Nicht für jede Komponente — Overhead durch Vergleich
@@ -1574,7 +1634,13 @@ const ExpensiveList = React.memo(({ items }: { items: Item[] }) => {
 ### 12.2 useMemo und useCallback
 
 ```tsx
-function OrderSummary({ items, discount }: { items: OrderItem[]; discount: number }) {
+function OrderSummary({
+  items,
+  discount,
+}: {
+  items: OrderItem[];
+  discount: number;
+}) {
   // useMemo: Teure Berechnung nur bei Änderung der Dependencies
   const subtotal = useMemo(
     () => items.reduce((sum, item) => sum + item.priceCents * item.quantity, 0),
@@ -1588,7 +1654,7 @@ function OrderSummary({ items, discount }: { items: OrderItem[]; discount: numbe
 
   // useCallback: Stabile Funktionsreferenz für memo-Kinder
   const handleRemove = useCallback((itemId: number) => {
-    setItems(prev => prev.filter(i => i.id !== itemId));
+    setItems((prev) => prev.filter((i) => i.id !== itemId));
   }, []); // Keine Dependencies → immer stabile Referenz
 
   return (
@@ -1606,8 +1672,8 @@ function OrderSummary({ items, discount }: { items: OrderItem[]; discount: numbe
 
 ```tsx
 // Lazy Loading: Komponente wird erst beim ersten Rendern geladen
-const AdminPage = React.lazy(() => import('./admin/AdminPage'));
-const ServicePage = React.lazy(() => import('./service/ServicePage'));
+const AdminPage = React.lazy(() => import("./admin/AdminPage"));
+const ServicePage = React.lazy(() => import("./service/ServicePage"));
 
 function App() {
   return (
@@ -1628,7 +1694,7 @@ function App() {
 Für sehr lange Listen (100+ Einträge) werden nur die sichtbaren Elemente gerendert:
 
 ```tsx
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 function VirtualList({ items }: { items: Product[] }) {
   const parentRef = useRef<HTMLDivElement>(null);
@@ -1640,12 +1706,17 @@ function VirtualList({ items }: { items: Product[] }) {
   });
 
   return (
-    <div ref={parentRef} style={{ height: '400px', overflow: 'auto' }}>
-      <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
-        {virtualizer.getVirtualItems().map(virtualItem => (
+    <div ref={parentRef} style={{ height: "400px", overflow: "auto" }}>
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          position: "relative",
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualItem) => (
           <div
             key={virtualItem.key}
-            style={{ position: 'absolute', top: virtualItem.start }}
+            style={{ position: "absolute", top: virtualItem.start }}
           >
             <ProductCard product={items[virtualItem.index]} />
           </div>
@@ -1725,7 +1796,7 @@ function Modal({ isOpen, onClose, children }: ModalProps) {
   }, [isOpen]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') onClose();
+    if (e.key === "Escape") onClose();
   };
 
   return isOpen ? (
@@ -1749,7 +1820,7 @@ function DeleteButton({ item, onDelete }: Props) {
   const handleDelete = async () => {
     await onDelete(item.id);
     // Nach dem Löschen: Focus auf sinnvolles Element
-    document.querySelector<HTMLElement>('[data-first-item]')?.focus();
+    document.querySelector<HTMLElement>("[data-first-item]")?.focus();
   };
 
   return (
@@ -1763,7 +1834,7 @@ function DeleteButton({ item, onDelete }: Props) {
 // In Tailwind: focus-visible:ring-2 focus-visible:ring-primary
 <button className="rounded px-4 py-2 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none">
   Bestellen
-</button>
+</button>;
 ```
 
 ### 13.4 Farbe und Kontrast
@@ -1793,9 +1864,9 @@ npm install --save-dev @axe-core/react
 
 ```tsx
 // Automatische Accessibility-Checks in Tests
-import { axe } from 'jest-axe';
+import { axe } from "jest-axe";
 
-it('hat keine Accessibility-Fehler', async () => {
+it("hat keine Accessibility-Fehler", async () => {
   const { container } = render(<OrderForm />);
   const results = await axe(container);
   expect(results).toHaveNoViolations();
@@ -1823,17 +1894,17 @@ TypeScript erhöht die Sicherheit und Wartbarkeit von React-Code erheblich.
 ```tsx
 // Verschiedene Varianten einer Komponente typsicher modellieren
 type ButtonProps =
-  | { variant: 'primary'; onClick: () => void; children: ReactNode }
-  | { variant: 'link'; href: string; children: ReactNode }
-  | { variant: 'icon'; icon: ReactNode; label: string; onClick: () => void };
+  | { variant: "primary"; onClick: () => void; children: ReactNode }
+  | { variant: "link"; href: string; children: ReactNode }
+  | { variant: "icon"; icon: ReactNode; label: string; onClick: () => void };
 
 function Button(props: ButtonProps) {
   switch (props.variant) {
-    case 'primary':
+    case "primary":
       return <button onClick={props.onClick}>{props.children}</button>;
-    case 'link':
+    case "link":
       return <a href={props.href}>{props.children}</a>;
-    case 'icon':
+    case "icon":
       return (
         <button onClick={props.onClick} aria-label={props.label}>
           {props.icon}
@@ -1844,9 +1915,9 @@ function Button(props: ButtonProps) {
 
 // State mit Discriminated Union
 type FetchState<T> =
-  | { status: 'loading' }
-  | { status: 'error'; error: Error }
-  | { status: 'success'; data: T };
+  | { status: "loading" }
+  | { status: "error"; error: Error }
+  | { status: "success"; data: T };
 
 function useOrderState(id: number): FetchState<Order> {
   // TypeScript weiß: wenn status === 'success', gibt es data
@@ -1864,13 +1935,18 @@ interface DataListProps<T> {
   emptyMessage?: string;
 }
 
-function DataList<T>({ items, getKey, renderItem, emptyMessage }: DataListProps<T>) {
+function DataList<T>({
+  items,
+  getKey,
+  renderItem,
+  emptyMessage,
+}: DataListProps<T>) {
   if (items.length === 0) {
-    return <p>{emptyMessage ?? 'Keine Einträge'}</p>;
+    return <p>{emptyMessage ?? "Keine Einträge"}</p>;
   }
   return (
     <ul>
-      {items.map(item => (
+      {items.map((item) => (
         <li key={getKey(item)}>{renderItem(item)}</li>
       ))}
     </ul>
@@ -1880,9 +1956,9 @@ function DataList<T>({ items, getKey, renderItem, emptyMessage }: DataListProps<
 // Nutzung — vollständig typsicher
 <DataList
   items={orders}
-  getKey={order => order.id}
-  renderItem={order => <OrderCard order={order} />}
-/>
+  getKey={(order) => order.id}
+  renderItem={(order) => <OrderCard order={order} />}
+/>;
 ```
 
 ### 14.3 Branded Types für IDs
@@ -1912,13 +1988,18 @@ getOrder(productId); // ❌ TypeScript-Fehler — korrekt!
 
 ```tsx
 // ComponentProps: Props einer Komponente extrahieren und erweitern
-import { ComponentProps } from 'react';
+import { ComponentProps } from "react";
 
-type CustomButtonProps = ComponentProps<'button'> & {
+type CustomButtonProps = ComponentProps<"button"> & {
   isLoading?: boolean;
 };
 
-function LoadingButton({ isLoading, children, disabled, ...props }: CustomButtonProps) {
+function LoadingButton({
+  isLoading,
+  children,
+  disabled,
+  ...props
+}: CustomButtonProps) {
   return (
     <button disabled={disabled || isLoading} {...props}>
       {isLoading ? <Spinner /> : children}
@@ -1927,8 +2008,8 @@ function LoadingButton({ isLoading, children, disabled, ...props }: CustomButton
 }
 
 // Ref Forwarding mit korrekten Typen
-const Input = forwardRef<HTMLInputElement, ComponentProps<'input'>>(
-  (props, ref) => <input ref={ref} {...props} />
+const Input = forwardRef<HTMLInputElement, ComponentProps<"input">>(
+  (props, ref) => <input ref={ref} {...props} />,
 );
 ```
 
@@ -1936,11 +2017,11 @@ const Input = forwardRef<HTMLInputElement, ComponentProps<'input'>>(
 
 ```tsx
 // Typsichere Event-Handler-Namen
-type EventName = 'click' | 'focus' | 'blur' | 'change';
+type EventName = "click" | "focus" | "blur" | "change";
 type HandlerName = `on${Capitalize<EventName>}`; // 'onClick' | 'onFocus' | 'onBlur' | 'onChange'
 
 // Typsichere Zustandsübergänge
-type OrderStatus = 'pending' | 'confirmed' | 'delivered' | 'cancelled';
+type OrderStatus = "pending" | "confirmed" | "delivered" | "cancelled";
 type StatusTransition = `${OrderStatus}To${Capitalize<OrderStatus>}`;
 // 'pendingToConfirmed' | 'confirmedToDelivered' | ...
 ```
@@ -1951,13 +2032,13 @@ type StatusTransition = `${OrderStatus}To${Capitalize<OrderStatus>}`;
 
 ### Fehler-Strategien
 
-| Fehlerart              | Strategie                 | UI-Feedback                                |
-| ---------------------- | ------------------------- | ------------------------------------------ |
-| **401 Unauthorized**   | Automatisch (Interceptor) | Redirect zu `/login`                       |
-| **Validierungsfehler** | Inline-Anzeige            | Feld-basierte Fehlermeldungen              |
-| **Netzwerkfehler**     | Toast + Retry             | `toast.error('Netzwerkfehler')`            |
-| **Backend-Fehler**     | Toast                     | `toast.error('Aktion fehlgeschlagen')`     |
-| **Unerwartete Fehler** | Error Boundary            | Fallback-UI                                |
+| Fehlerart              | Strategie                 | UI-Feedback                            |
+| ---------------------- | ------------------------- | -------------------------------------- |
+| **401 Unauthorized**   | Automatisch (Interceptor) | Redirect zu `/login`                   |
+| **Validierungsfehler** | Inline-Anzeige            | Feld-basierte Fehlermeldungen          |
+| **Netzwerkfehler**     | Toast + Retry             | `toast.error('Netzwerkfehler')`        |
+| **Backend-Fehler**     | Toast                     | `toast.error('Aktion fehlgeschlagen')` |
+| **Unerwartete Fehler** | Error Boundary            | Fallback-UI                            |
 
 ### Error Boundary (React)
 

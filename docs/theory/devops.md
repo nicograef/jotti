@@ -2,13 +2,6 @@
 
 Dieses Dokument ist ein theoretisches Nachschlagewerk für DevOps-Praktiken, Containerisierung, CI/CD, Deployment-Strategien und Betriebskonzepte. Es erklärt Grundlagen von Docker über Orchestrierung und Reverse Proxies bis zu Monitoring, Backup und Self-Hosting. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#12-appendix-anwendungsbeispiel-jotti).
 
-> **Verwandte Dokumente:**
->
-> - [Security & Authentifizierung](security.md) — TLS, Secrets Management, Container Security
-> - [PostgreSQL](postgresql.md) — Connection Pooling, Zero-Downtime Migrations, Backup
-> - [Go Backend Architektur](go-backend.md) — Schichtenarchitektur, Observability, Graceful Shutdown
-> - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
-
 ---
 
 ## Inhaltsverzeichnis
@@ -37,13 +30,13 @@ DevOps ist keine Technologie — es ist eine **Kultur und Praxis**, die Entwickl
 
 Das CALMS-Framework beschreibt die fünf Säulen einer DevOps-Kultur:
 
-| Buchstabe | Prinzip        | Bedeutung                                                                 |
-| --------- | -------------- | ------------------------------------------------------------------------- |
-| **C**     | Culture        | Gemeinsame Verantwortung für Entwicklung und Betrieb                      |
-| **A**     | Automation     | Manuelle Prozesse automatisieren (Tests, Builds, Deployments)             |
-| **L**     | Lean           | Verschwendung eliminieren, kontinuierliche Verbesserung                   |
-| **M**     | Measurement    | Metriken erheben, Hypothesen validieren, datengetrieben entscheiden       |
-| **S**     | Sharing        | Wissen, Verantwortung und Werkzeuge über Team-Grenzen hinweg teilen       |
+| Buchstabe | Prinzip     | Bedeutung                                                           |
+| --------- | ----------- | ------------------------------------------------------------------- |
+| **C**     | Culture     | Gemeinsame Verantwortung für Entwicklung und Betrieb                |
+| **A**     | Automation  | Manuelle Prozesse automatisieren (Tests, Builds, Deployments)       |
+| **L**     | Lean        | Verschwendung eliminieren, kontinuierliche Verbesserung             |
+| **M**     | Measurement | Metriken erheben, Hypothesen validieren, datengetrieben entscheiden |
+| **S**     | Sharing     | Wissen, Verantwortung und Werkzeuge über Team-Grenzen hinweg teilen |
 
 ### 1.2 Three Ways of DevOps
 
@@ -80,20 +73,20 @@ Die [12-Factor App](https://12factor.net/) ist ein Regelwerk für den Bau von cl
 
 ### Die zwölf Faktoren
 
-| # | Faktor               | Prinzip                                                                   |
-| - | -------------------- | ------------------------------------------------------------------------- |
-| I | **Codebase**         | Ein Codebase in Versionskontrolle, viele Deploys                          |
-| II | **Dependencies**    | Abhängigkeiten explizit deklarieren und isolieren                         |
-| III | **Config**         | Konfiguration in Umgebungsvariablen speichern (nie im Code)               |
-| IV | **Backing Services**| Backing Services (DB, Cache) als austauschbare Ressourcen behandeln       |
-| V | **Build/Release/Run** | Build- und Run-Stage strikt trennen                                     |
-| VI | **Processes**       | App als zustandslose Prozesse ausführen                                   |
-| VII | **Port Binding**   | Services via Port-Binding exportieren                                     |
-| VIII | **Concurrency**   | Horizontal skalieren via Prozessmodell                                    |
-| IX | **Disposability**   | Robustheit durch schnellen Start und Graceful Shutdown                    |
-| X | **Dev/Prod Parity** | Entwicklung, Staging und Produktion so ähnlich wie möglich halten        |
-| XI | **Logs**            | Logs als Event-Streams behandeln (nach stdout schreiben)                  |
-| XII | **Admin Processes** | Verwaltungsaufgaben als einmalige Prozesse ausführen                     |
+| #    | Faktor                | Prinzip                                                             |
+| ---- | --------------------- | ------------------------------------------------------------------- |
+| I    | **Codebase**          | Ein Codebase in Versionskontrolle, viele Deploys                    |
+| II   | **Dependencies**      | Abhängigkeiten explizit deklarieren und isolieren                   |
+| III  | **Config**            | Konfiguration in Umgebungsvariablen speichern (nie im Code)         |
+| IV   | **Backing Services**  | Backing Services (DB, Cache) als austauschbare Ressourcen behandeln |
+| V    | **Build/Release/Run** | Build- und Run-Stage strikt trennen                                 |
+| VI   | **Processes**         | App als zustandslose Prozesse ausführen                             |
+| VII  | **Port Binding**      | Services via Port-Binding exportieren                               |
+| VIII | **Concurrency**       | Horizontal skalieren via Prozessmodell                              |
+| IX   | **Disposability**     | Robustheit durch schnellen Start und Graceful Shutdown              |
+| X    | **Dev/Prod Parity**   | Entwicklung, Staging und Produktion so ähnlich wie möglich halten   |
+| XI   | **Logs**              | Logs als Event-Streams behandeln (nach stdout schreiben)            |
+| XII  | **Admin Processes**   | Verwaltungsaufgaben als einmalige Prozesse ausführen                |
 
 ### Besonders wichtige Faktoren für self-hosted Apps
 
@@ -156,13 +149,13 @@ ENTRYPOINT ["server"]
 
 **Vergleich Image-Größen (Go-Backend):**
 
-| Base Image           | Größe (typisch) | Anmerkung                            |
-| -------------------- | --------------- | ------------------------------------ |
-| `golang:1.24`        | ~800 MB         | Komplettes Go-SDK, für Build geeignet|
-| `golang:1.24-alpine` | ~250 MB         | Alpine-basiert, für Build geeignet   |
-| `alpine:3.21`        | ~8 MB           | Minimales Runtime-Image              |
+| Base Image           | Größe (typisch) | Anmerkung                                 |
+| -------------------- | --------------- | ----------------------------------------- |
+| `golang:1.24`        | ~800 MB         | Komplettes Go-SDK, für Build geeignet     |
+| `golang:1.24-alpine` | ~250 MB         | Alpine-basiert, für Build geeignet        |
+| `alpine:3.21`        | ~8 MB           | Minimales Runtime-Image                   |
 | `scratch`            | 0 MB            | Leeres Image (nur für statische Binaries) |
-| `distroless`         | ~5 MB           | Google, kein Shell — sehr sicher     |
+| `distroless`         | ~5 MB           | Google, kein Shell — sehr sicher          |
 
 ### 3.3 Layer-Caching optimieren
 
@@ -229,11 +222,11 @@ Docker erstellt virtuelle Netzwerke zwischen Containern:
 
 ```yaml
 networks:
-  app-network:     # Frontend ↔ Backend ↔ Reverse Proxy
+  app-network: # Frontend ↔ Backend ↔ Reverse Proxy
     driver: bridge
-  db-network:      # Backend ↔ Datenbank (intern, kein externer Zugriff)
+  db-network: # Backend ↔ Datenbank (intern, kein externer Zugriff)
     driver: bridge
-    internal: true  # Kein Internetzugriff aus diesem Netzwerk
+    internal: true # Kein Internetzugriff aus diesem Netzwerk
 ```
 
 **Network Isolation:** Datenbankcontainer sollten in einem `internal`-Netzwerk liegen, das nur der Backend-Container erreichen kann. Der Reverse Proxy liegt im `app-network`.
@@ -281,15 +274,15 @@ Kubernetes (K8s) ist der De-facto-Standard für Container-Orchestrierung in der 
 
 **Kernkonzepte:**
 
-| Objekt          | Beschreibung                                                      |
-| --------------- | ----------------------------------------------------------------- |
-| **Pod**         | Kleinste Einheit: ein oder mehrere Container + geteiltes Netzwerk |
-| **Deployment**  | Deklarativer Ist-Zustand für Pods (Rolling Updates, Replicas)     |
-| **Service**     | Stabiler Endpunkt für eine Gruppe von Pods (Load Balancing)       |
-| **Ingress**     | HTTP/HTTPS-Routing von außen in Services                          |
-| **ConfigMap**   | Konfiguration (nicht-sensitiv)                                    |
-| **Secret**      | Sensible Konfiguration (base64-kodiert, idealerweise verschlüsselt)|
-| **PVC**         | Persistente Volumes für Stateful Workloads                        |
+| Objekt         | Beschreibung                                                        |
+| -------------- | ------------------------------------------------------------------- |
+| **Pod**        | Kleinste Einheit: ein oder mehrere Container + geteiltes Netzwerk   |
+| **Deployment** | Deklarativer Ist-Zustand für Pods (Rolling Updates, Replicas)       |
+| **Service**    | Stabiler Endpunkt für eine Gruppe von Pods (Load Balancing)         |
+| **Ingress**    | HTTP/HTTPS-Routing von außen in Services                            |
+| **ConfigMap**  | Konfiguration (nicht-sensitiv)                                      |
+| **Secret**     | Sensible Konfiguration (base64-kodiert, idealerweise verschlüsselt) |
+| **PVC**        | Persistente Volumes für Stateful Workloads                          |
 
 **Kubernetes-Architektur:**
 
@@ -318,15 +311,15 @@ Unterschiede zu Standard-K8s: etcd durch SQLite ersetzt, viele optionale Kompone
 
 ### 4.4 Entscheidungsmatrix: Orchestrierung
 
-| Kriterium                | Docker Compose       | K3s                   | Kubernetes             |
-| ------------------------ | -------------------- | --------------------- | ---------------------- |
-| **Einstiegshürde**       | Sehr gering          | Mittel                | Hoch                   |
-| **Ressourcenbedarf**     | Minimal              | ~512 MB RAM           | ~2 GB RAM (Control Plane) |
-| **Hochverfügbarkeit**    | ❌ Single Host        | ✓ (mit HA-Modus)      | ✓ (Multi-Node)          |
-| **Auto-Healing**         | ✓ restart: unless-stopped | ✓                | ✓                      |
-| **Rolling Updates**      | Manuell              | ✓                     | ✓                      |
-| **Horizontal Scaling**   | Manuell              | ✓                     | ✓                      |
-| **Zielgruppe**           | Solo/Klein-Teams, Dev | Edge, Self-Hosted     | Cloud, Enterprise       |
+| Kriterium              | Docker Compose            | K3s               | Kubernetes                |
+| ---------------------- | ------------------------- | ----------------- | ------------------------- |
+| **Einstiegshürde**     | Sehr gering               | Mittel            | Hoch                      |
+| **Ressourcenbedarf**   | Minimal                   | ~512 MB RAM       | ~2 GB RAM (Control Plane) |
+| **Hochverfügbarkeit**  | ❌ Single Host            | ✓ (mit HA-Modus)  | ✓ (Multi-Node)            |
+| **Auto-Healing**       | ✓ restart: unless-stopped | ✓                 | ✓                         |
+| **Rolling Updates**    | Manuell                   | ✓                 | ✓                         |
+| **Horizontal Scaling** | Manuell                   | ✓                 | ✓                         |
+| **Zielgruppe**         | Solo/Klein-Teams, Dev     | Edge, Self-Hosted | Cloud, Enterprise         |
 
 **Empfehlung für Self-Hosted Vereinssoftware:** Docker Compose. Einfach, wartbar, keine Kubernetes-Expertise nötig. Erst bei Multi-Node oder Hochverfügbarkeitsanforderungen wechseln.
 
@@ -463,16 +456,16 @@ example.com {
 
 ### 5.5 Entscheidungsmatrix: Reverse Proxy
 
-| Kriterium                       | nginx                | Traefik               | Caddy                  |
-| ------------------------------- | -------------------- | --------------------- | ---------------------- |
-| **Einstiegshürde**              | Mittel               | Mittel-Hoch           | Gering                 |
-| **Automatisches TLS**           | ❌ (Certbot nötig)   | ✓                     | ✓                      |
-| **Service-Discovery**           | ❌                   | ✓ (Docker-Labels)     | ❌                     |
-| **Performance**                 | ★★★★★               | ★★★★                  | ★★★★                   |
-| **Konfigurationskomplexität**   | Mittel               | Hoch                  | Gering                 |
-| **Community & Dokumentation**   | Sehr groß            | Groß                  | Mittel                 |
-| **Ressourcenverbrauch**         | Sehr gering          | Mittel                | Gering                 |
-| **Zielgruppe**                  | Erfahrene Ops-Teams  | Container-Umgebungen  | Entwickler, Self-Hosted|
+| Kriterium                     | nginx               | Traefik              | Caddy                   |
+| ----------------------------- | ------------------- | -------------------- | ----------------------- |
+| **Einstiegshürde**            | Mittel              | Mittel-Hoch          | Gering                  |
+| **Automatisches TLS**         | ❌ (Certbot nötig)  | ✓                    | ✓                       |
+| **Service-Discovery**         | ❌                  | ✓ (Docker-Labels)    | ❌                      |
+| **Performance**               | ★★★★★               | ★★★★                 | ★★★★                    |
+| **Konfigurationskomplexität** | Mittel              | Hoch                 | Gering                  |
+| **Community & Dokumentation** | Sehr groß           | Groß                 | Mittel                  |
+| **Ressourcenverbrauch**       | Sehr gering         | Mittel               | Gering                  |
+| **Zielgruppe**                | Erfahrene Ops-Teams | Container-Umgebungen | Entwickler, Self-Hosted |
 
 ---
 
@@ -505,35 +498,35 @@ GitHub Actions ist eine Cloud-native CI/CD-Plattform, die direkt in GitHub integ
 ```yaml
 name: CI Pipeline
 
-on:                          # Trigger
+on: # Trigger
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
-jobs:                        # Parallele oder sequenzielle Jobs
+jobs: # Parallele oder sequenzielle Jobs
   test:
-    runs-on: ubuntu-latest   # Runner-Umgebung
+    runs-on: ubuntu-latest # Runner-Umgebung
     steps:
-      - uses: actions/checkout@v5        # Repo auschecken
-      - uses: actions/setup-go@v6        # Go installieren
+      - uses: actions/checkout@v5 # Repo auschecken
+      - uses: actions/setup-go@v6 # Go installieren
         with:
           go-version: 1.24.0
-      - run: go test ./...               # Befehl ausführen
+      - run: go test ./... # Befehl ausführen
 ```
 
 **Key Concepts:**
 
-| Konzept       | Beschreibung                                                         |
-| ------------- | -------------------------------------------------------------------- |
-| **Workflow**  | Automatisierter Prozess (YAML-Datei in `.github/workflows/`)         |
-| **Event**     | Trigger: `push`, `pull_request`, `schedule`, `workflow_dispatch`, …  |
-| **Job**       | Gruppe von Steps, läuft auf einem Runner (standardmäßig parallel)    |
-| **Step**      | Einzelner Befehl oder Action                                         |
-| **Action**    | Wiederverwendbare Komponente (`uses: actions/checkout@v5`)           |
-| **Runner**    | Virtuelle Maschine, auf der Jobs laufen (`ubuntu-latest`, self-hosted)|
-| **Artifact**  | Dateien, die zwischen Jobs oder Workflows geteilt werden             |
-| **Secret**    | Verschlüsselte Umgebungsvariable (Passwörter, Tokens)                |
+| Konzept      | Beschreibung                                                           |
+| ------------ | ---------------------------------------------------------------------- |
+| **Workflow** | Automatisierter Prozess (YAML-Datei in `.github/workflows/`)           |
+| **Event**    | Trigger: `push`, `pull_request`, `schedule`, `workflow_dispatch`, …    |
+| **Job**      | Gruppe von Steps, läuft auf einem Runner (standardmäßig parallel)      |
+| **Step**     | Einzelner Befehl oder Action                                           |
+| **Action**   | Wiederverwendbare Komponente (`uses: actions/checkout@v5`)             |
+| **Runner**   | Virtuelle Maschine, auf der Jobs laufen (`ubuntu-latest`, self-hosted) |
+| **Artifact** | Dateien, die zwischen Jobs oder Workflows geteilt werden               |
+| **Secret**   | Verschlüsselte Umgebungsvariable (Passwörter, Tokens)                  |
 
 **Path-based Filtering (Build nur was sich geändert hat):**
 
@@ -571,6 +564,7 @@ jobs:
 ```
 
 **Secrets sichern:**
+
 - Secrets nie in Logs ausgeben
 - Minimale Permissions für Tokens (Principle of Least Privilege)
 - `GITHUB_TOKEN` für interne Operationen, keine langlebigen Personal Access Tokens
@@ -629,6 +623,7 @@ v1 ████████████  STOP
 **Downtime:** Ja — zwischen Stop und Start (Sekunden bis Minuten)
 
 **Wann sinnvoll:**
+
 - Kleine Teams, kein 24/7-Betrieb
 - Nicht rückwärtskompatible Änderungen (DB-Schema-Break)
 - Einfachste Variante, am einfachsten zu debuggen
@@ -646,6 +641,7 @@ v2       ████        ████  ████  ████
 **Downtime:** Keine (bei korrekter Implementierung)
 
 **Voraussetzungen:**
+
 - v1 und v2 müssen gleichzeitig betreibbar sein (API-Kompatibilität)
 - Load Balancer muss Traffic auf verbleibende gesunde Instanzen umleiten
 - DB-Migrations müssen rückwärtskompatibel sein (Expand/Contract Pattern)
@@ -665,10 +661,12 @@ v2       ████        ████  ████  ████
 **Downtime:** Keine (Umleitung ist sofort)
 
 **Stärken:**
+
 - Sofortiges Rollback: Router zurück auf Blue umleiten
 - Neue Version kann in Produktionsumgebung getestet werden, bevor Traffic umgeleitet wird
 
 **Schwächen:**
+
 - Doppelter Infrastruktur-Aufwand (zwei komplette Environments)
 - DB-State muss synchronisiert werden oder geteilt werden
 
@@ -685,22 +683,24 @@ v2       ████        ████  ████  ████
 **Vorgehen:** Neue Version erhält zunächst nur einen kleinen Prozentsatz des Traffics. Bei guten Metriken wird der Anteil schrittweise erhöht.
 
 **Stärken:**
+
 - Risikominimierung: Fehler betreffen nur wenige Nutzer
 - Real-World-Validierung mit echten Daten
 - Schrittweises Rollout möglich
 
 **Schwächen:**
+
 - Erfordert Feature Flags oder Traffic-Splitting-Fähigkeit des Load Balancers
 - Monitoring muss gut genug sein, um Probleme zu erkennen
 
 ### 7.5 Entscheidungsmatrix
 
-| Strategie      | Downtime | Rollback        | Ressourcen | Komplexität | Wann empfohlen           |
-| -------------- | -------- | --------------- | ---------- | ----------- | ------------------------ |
-| **Recreate**   | Ja       | Einfach (Revert) | Niedrig   | Gering      | Kleine Systeme, akzeptable Downtime |
-| **Rolling**    | Nein     | Mittel          | Mittel     | Mittel      | Standard für die meisten Apps |
-| **Blue/Green** | Nein     | Sofort          | Hoch       | Mittel-Hoch | Kritische Systeme, Zero-Downtime |
-| **Canary**     | Nein     | Schrittweise    | Mittel     | Hoch        | Große Nutzerbasis, Risikominimierung |
+| Strategie      | Downtime | Rollback         | Ressourcen | Komplexität | Wann empfohlen                       |
+| -------------- | -------- | ---------------- | ---------- | ----------- | ------------------------------------ |
+| **Recreate**   | Ja       | Einfach (Revert) | Niedrig    | Gering      | Kleine Systeme, akzeptable Downtime  |
+| **Rolling**    | Nein     | Mittel           | Mittel     | Mittel      | Standard für die meisten Apps        |
+| **Blue/Green** | Nein     | Sofort           | Hoch       | Mittel-Hoch | Kritische Systeme, Zero-Downtime     |
+| **Canary**     | Nein     | Schrittweise     | Mittel     | Hoch        | Große Nutzerbasis, Risikominimierung |
 
 ---
 
@@ -748,11 +748,11 @@ Health Checks ermöglichen Orchestratoren (Docker, Kubernetes) zu erkennen, wann
 
 **Zwei Typen:**
 
-| Typ             | Frage                                         | Aktion bei Fehler                    |
-| --------------- | --------------------------------------------- | ------------------------------------ |
-| **Liveness**    | Läuft der Prozess noch? (nicht blockiert)      | Container neu starten                |
-| **Readiness**   | Kann der Container Traffic empfangen?          | Aus Load-Balancer-Rotation entfernen |
-| **Startup**     | Hat die App gestartet? (für langsame Starts)   | Wartet, bis OK (vor Liveness)        |
+| Typ           | Frage                                        | Aktion bei Fehler                    |
+| ------------- | -------------------------------------------- | ------------------------------------ |
+| **Liveness**  | Läuft der Prozess noch? (nicht blockiert)    | Container neu starten                |
+| **Readiness** | Kann der Container Traffic empfangen?        | Aus Load-Balancer-Rotation entfernen |
+| **Startup**   | Hat die App gestartet? (für langsame Starts) | Wartet, bis OK (vor Liveness)        |
 
 **HTTP Health Check Endpoint:**
 
@@ -829,12 +829,12 @@ Observability besteht aus drei Säulen: **Logs, Metriken und Traces**.
 
 Das Google SRE-Buch definiert vier Signale, die jedes System überwachen sollte:
 
-| Signal       | Beschreibung                                              | Beispiel                           |
-| ------------ | --------------------------------------------------------- | ---------------------------------- |
-| **Latency**  | Wie lange dauern Requests?                                | p50/p95/p99 Response Time          |
-| **Traffic**  | Wie viel Last hat das System?                             | Requests/Sekunde, DB-Queries/Min   |
-| **Errors**   | Wie viele Requests schlagen fehl?                         | HTTP 5xx Rate, Exception Rate      |
-| **Saturation** | Wie ausgelastet sind die Ressourcen?                    | CPU%, Memory%, Disk I/O%           |
+| Signal         | Beschreibung                         | Beispiel                         |
+| -------------- | ------------------------------------ | -------------------------------- |
+| **Latency**    | Wie lange dauern Requests?           | p50/p95/p99 Response Time        |
+| **Traffic**    | Wie viel Last hat das System?        | Requests/Sekunde, DB-Queries/Min |
+| **Errors**     | Wie viele Requests schlagen fehl?    | HTTP 5xx Rate, Exception Rate    |
+| **Saturation** | Wie ausgelastet sind die Ressourcen? | CPU%, Memory%, Disk I/O%         |
 
 ### 9.2 RED und USE Method
 
@@ -868,12 +868,12 @@ Prometheus Server
 
 **Metrik-Typen:**
 
-| Typ         | Beschreibung                           | Beispiel                        |
-| ----------- | -------------------------------------- | ------------------------------- |
-| **Counter** | Monoton wachsender Wert                | `http_requests_total`           |
-| **Gauge**   | Wert kann steigen und fallen           | `memory_usage_bytes`            |
-| **Histogram**| Verteilung von Werten (Buckets)       | `http_request_duration_seconds` |
-| **Summary** | Wie Histogram, aber mit Quantilen     | `rpc_duration_seconds`          |
+| Typ           | Beschreibung                      | Beispiel                        |
+| ------------- | --------------------------------- | ------------------------------- |
+| **Counter**   | Monoton wachsender Wert           | `http_requests_total`           |
+| **Gauge**     | Wert kann steigen und fallen      | `memory_usage_bytes`            |
+| **Histogram** | Verteilung von Werten (Buckets)   | `http_request_duration_seconds` |
+| **Summary**   | Wie Histogram, aber mit Quantilen | `rpc_duration_seconds`          |
 
 **PromQL-Beispiele:**
 
@@ -893,6 +893,7 @@ rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m])
 [Grafana](https://grafana.com/) ist das Standard-Visualisierungs-Tool für Prometheus-Metriken.
 
 **Features:**
+
 - Dashboards aus PromQL-Queries
 - Alerting auf Basis von Grafana-Panels
 - Unterstützt viele Datasources (Prometheus, Loki, PostgreSQL, Elasticsearch, …)
@@ -909,12 +910,14 @@ Promtail (Log Collector)  →  Loki (Speicher)  →  Grafana (Visualisierung)
 ```
 
 **Funktionsweise:**
+
 - Promtail läuft auf jedem Server und sendet Logs an Loki
 - Loki indiziert nur Labels (wie Prometheus), nicht den Log-Inhalt
 - Sehr ressourcensparend im Vergleich zu Elasticsearch
 - LogQL (ähnlich PromQL) für Queries
 
 **Alternativen:**
+
 - **ELK Stack** (Elasticsearch, Logstash, Kibana): Mächtiger, aber ressourcenintensiv
 - **OpenSearch**: Open-Source Fork von Elasticsearch
 - **Vector**: Hochperformanter Log-Kollektor (Rust), Alternative zu Promtail
@@ -948,9 +951,11 @@ Backup ist kein Selbstzweck — es geht darum, im Ernstfall **innerhalb eines de
 ### 10.1 RTO und RPO
 
 **Recovery Time Objective (RTO):** Wie lange darf das System ausfallen?
+
 - Beispiel: „Wir müssen innerhalb von 4 Stunden wieder online sein"
 
 **Recovery Point Objective (RPO):** Wie viel Datenverlust ist akzeptabel?
+
 - Beispiel: „Wir dürfen maximal 1 Stunde Daten verlieren"
 
 **Tradeoff:** Niedrigeres RTO/RPO = höhere Kosten (häufigere Backups, Replikation, schnelleres Restore-Verfahren).
@@ -982,18 +987,19 @@ pg_basebackup -h localhost -U admin -D /backups/base -Ft -z -P
 
 **Backup-Strategie:**
 
-| Backup-Typ      | Frequenz     | Aufbewahrung | Zweck                        |
-| --------------- | ------------ | ------------ | ---------------------------- |
-| Full Dump       | Täglich      | 7 Tage       | Einfachste Wiederherstellung |
-| Full Dump       | Wöchentlich  | 4 Wochen     | Langzeit-Archiv              |
-| Full Dump       | Monatlich    | 12 Monate    | Compliance-Archiv            |
-| WAL-Archivierung| Kontinuierlich| 7 Tage      | PITR (Point-in-Time Recovery)|
+| Backup-Typ       | Frequenz       | Aufbewahrung | Zweck                         |
+| ---------------- | -------------- | ------------ | ----------------------------- |
+| Full Dump        | Täglich        | 7 Tage       | Einfachste Wiederherstellung  |
+| Full Dump        | Wöchentlich    | 4 Wochen     | Langzeit-Archiv               |
+| Full Dump        | Monatlich      | 12 Monate    | Compliance-Archiv             |
+| WAL-Archivierung | Kontinuierlich | 7 Tage       | PITR (Point-in-Time Recovery) |
 
 ### 10.3 Restic — Deduplizierendes Backup
 
 [Restic](https://restic.net/) ist ein modernes, verschlüsseltes Backup-Tool.
 
 **Stärken:**
+
 - **Deduplizierung:** Gleiche Daten werden nur einmal gespeichert
 - **Verschlüsselung:** AES-256 (Backups sind immer verschlüsselt)
 - **Viele Backend-Optionen:** Lokal, S3, Backblaze B2, SFTP, Azure, GCS
@@ -1016,6 +1022,7 @@ restic restore latest --target /tmp/restore
 ```
 
 **3-2-1-Backup-Regel:**
+
 - **3** Kopien der Daten
 - auf **2** verschiedenen Medientypen
 - davon **1** offsite (extern, Cloud)
@@ -1045,21 +1052,21 @@ Self-Hosting bedeutet, eine Anwendung auf eigener Infrastruktur zu betreiben —
 
 **Minimale Produktionsanforderungen:**
 
-| Ressource  | Minimum      | Empfohlen        |
-| ---------- | ------------ | ---------------- |
-| vCPUs      | 1            | 2                |
-| RAM        | 1 GB         | 2–4 GB           |
-| Disk       | 20 GB SSD    | 50 GB SSD        |
-| Netzwerk   | 100 Mbit/s   | 1 Gbit/s         |
+| Ressource | Minimum    | Empfohlen |
+| --------- | ---------- | --------- |
+| vCPUs     | 1          | 2         |
+| RAM       | 1 GB       | 2–4 GB    |
+| Disk      | 20 GB SSD  | 50 GB SSD |
+| Netzwerk  | 100 Mbit/s | 1 Gbit/s  |
 
 **Anbieter-Vergleich (VPS):**
 
-| Anbieter     | Einstiegspaket | Besonderheiten                          |
-| ------------ | -------------- | --------------------------------------- |
-| Hetzner      | ~4 €/Monat     | Deutsch, DSGVO-konform, sehr gut        |
-| DigitalOcean | ~6 $/Monat     | Gute Dokumentation, App Platform        |
-| Linode/Akamai| ~5 $/Monat     | Solide, globale Präsenz                 |
-| Contabo      | ~5 €/Monat     | Viel Ressourcen für wenig Geld          |
+| Anbieter      | Einstiegspaket | Besonderheiten                   |
+| ------------- | -------------- | -------------------------------- |
+| Hetzner       | ~4 €/Monat     | Deutsch, DSGVO-konform, sehr gut |
+| DigitalOcean  | ~6 $/Monat     | Gute Dokumentation, App Platform |
+| Linode/Akamai | ~5 $/Monat     | Solide, globale Präsenz          |
+| Contabo       | ~5 €/Monat     | Viel Ressourcen für wenig Geld   |
 
 **OS-Wahl:** Ubuntu LTS (Long-Term Support) ist die Standard-Wahl — stabiler Kernel, gute Docker-Unterstützung, große Community.
 
@@ -1115,11 +1122,11 @@ Let's Encrypt stellt kostenlose TLS-Zertifikate via ACME-Protokoll aus. Zertifik
 
 **ACME-Challenges:**
 
-| Challenge    | Anforderung                          | Wann nutzen?                        |
-| ------------ | ------------------------------------ | ----------------------------------- |
-| **HTTP-01**  | Port 80 erreichbar                   | Standardfall (Webserver läuft)      |
-| **DNS-01**   | DNS-API-Zugriff                      | Wildcard-Zertifikate, kein Port 80  |
-| **TLS-ALPN** | Port 443 erreichbar                  | Wenn kein HTTP möglich              |
+| Challenge    | Anforderung         | Wann nutzen?                       |
+| ------------ | ------------------- | ---------------------------------- |
+| **HTTP-01**  | Port 80 erreichbar  | Standardfall (Webserver läuft)     |
+| **DNS-01**   | DNS-API-Zugriff     | Wildcard-Zertifikate, kein Port 80 |
+| **TLS-ALPN** | Port 443 erreichbar | Wenn kein HTTP möglich             |
 
 **Certbot mit nginx:**
 
@@ -1143,8 +1150,8 @@ certbot renew --dry-run  # Test
 services:
   nginx:
     volumes:
-      - certbot-challenges:/var/www/certbot  # ACME-Challenge-Files
-      - letsencrypt:/etc/letsencrypt         # Zertifikate
+      - certbot-challenges:/var/www/certbot # ACME-Challenge-Files
+      - letsencrypt:/etc/letsencrypt # Zertifikate
 
   certbot:
     image: certbot/certbot
@@ -1226,11 +1233,11 @@ jotti trennt Netzwerke nach Sicherheitsbedürfnis:
 
 ```yaml
 networks:
-  app-network:          # Frontend ↔ Backend ↔ Reverse Proxy
+  app-network: # Frontend ↔ Backend ↔ Reverse Proxy
     driver: bridge
-  db-network:           # Backend ↔ PostgreSQL (intern)
+  db-network: # Backend ↔ PostgreSQL (intern)
     driver: bridge
-    internal: true      # Kein Internetzugriff möglich
+    internal: true # Kein Internetzugriff möglich
 ```
 
 Die Datenbank ist **nur vom Backend** erreichbar — nicht vom Reverse Proxy oder Frontend.
@@ -1239,11 +1246,11 @@ Die Datenbank ist **nur vom Backend** erreichbar — nicht vom Reverse Proxy ode
 
 jotti hat vier Compose-Konfigurationen:
 
-| Datei                           | Zweck                                     |
-| ------------------------------- | ----------------------------------------- |
-| `docker-compose.dev.yml`        | Lokale Entwicklung (Hot Reload, go run)   |
-| `docker-compose.yml`            | Produktion (gebaute Images, TLS)          |
-| `docker-compose.staging.yml`    | Staging (wie Produktion, andere Domain)   |
+| Datei                             | Zweck                                   |
+| --------------------------------- | --------------------------------------- |
+| `docker-compose.dev.yml`          | Lokale Entwicklung (Hot Reload, go run) |
+| `docker-compose.yml`              | Produktion (gebaute Images, TLS)        |
+| `docker-compose.staging.yml`      | Staging (wie Produktion, andere Domain) |
 | `docker-compose.initial-cert.yml` | Nur für initialen Let's Encrypt-Request |
 
 ### CI/CD in jotti
@@ -1280,13 +1287,13 @@ jotti verwendet die **Recreate-Strategie** (Stop → Start):
 
 ### Was jotti (noch) nicht implementiert
 
-| Feature                     | Begründung / Hinweis                                              |
-| --------------------------- | ----------------------------------------------------------------- |
-| Health Check Endpoints      | Ausstehend — sinnvoll für Health-aware Orchestratoren             |
-| Prometheus/Grafana          | Zu viel Overhead für Vereinssoftware; strukturiertes Logging vorhanden (zerolog) |
-| Automatisches Deployment    | Kein CD-Pipeline; manuelles `docker compose pull` auf Server     |
-| Restic Backups              | Ausstehend — `pg_dump` manuell oder per Cron empfohlen           |
-| Horizontal Scaling          | Nicht nötig; Single-Instance reicht für Vereinsfeste             |
+| Feature                  | Begründung / Hinweis                                                             |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| Health Check Endpoints   | Ausstehend — sinnvoll für Health-aware Orchestratoren                            |
+| Prometheus/Grafana       | Zu viel Overhead für Vereinssoftware; strukturiertes Logging vorhanden (zerolog) |
+| Automatisches Deployment | Kein CD-Pipeline; manuelles `docker compose pull` auf Server                     |
+| Restic Backups           | Ausstehend — `pg_dump` manuell oder per Cron empfohlen                           |
+| Horizontal Scaling       | Nicht nötig; Single-Instance reicht für Vereinsfeste                             |
 
 ---
 

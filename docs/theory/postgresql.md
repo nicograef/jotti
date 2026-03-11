@@ -2,16 +2,6 @@
 
 Dieses Dokument ist ein allgemeiner Guide für PostgreSQL: Architektur-Grundlagen, Features, Indexierung, Query-Optimierung, Connection Management, Migration-Strategien und den Vergleich mit Alternativen. Projektspezifische Anwendungsbeispiele finden sich im [Appendix](#15-appendix-anwendungsbeispiel-jotti).
 
-> **Verwandte Dokumente:**
->
-> - [ADR: sqlc](../adr/orm.md) — Entscheidung für sqlc (vs. GORM, sqlx)
-> - [Datenbank & Persistenz](../database.md) — Operative Datenbankdokumentation
-> - [Go Backend Architektur](go-backend.md) — SQL-Tooling, sqlc Deep Dive, Repository-Schicht
-> - [Event-Sourcing Theorie](event-sourcing.md) — Event-Sourcing Grundlagen
-> - [CQRS Theorie](cqrs.md) — Command Query Responsibility Segregation
-> - [DevOps & Deployment](devops.md) — Containerisierung, Zero-Downtime Deployment, Backup & Disaster Recovery
-> - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
-
 ---
 
 ## Inhaltsverzeichnis
@@ -50,6 +40,7 @@ Transaction C (started after commit):    SELECT sieht version 2
 ```
 
 **Vorteile:**
+
 - Reads blockieren nie Writes, Writes blockieren nie Reads
 - Konsistente Snapshots ohne Locks
 - Serializable Snapshot Isolation (SSI) für strikteste Isolation
@@ -65,6 +56,7 @@ Transaktion commit → WAL-Record flushed → Commit bestätigt → Datapage-Flu
 ```
 
 **Vorteile:**
+
 - Crash Recovery: WAL replay stellt den Zustand nach einem Absturz wieder her
 - Weniger Disk-I/O: Sequentielle Writes ins WAL statt random Writes in Datapages
 - Grundlage für Streaming Replication (WAL an Replicas senden)
@@ -74,12 +66,12 @@ Transaktion commit → WAL-Record flushed → Commit bestätigt → Datapage-Flu
 
 Da MVCC alte Versionen (Dead Tuples) zurücklässt, braucht PostgreSQL regelmäßiges Aufräumen:
 
-| Aufgabe                   | Beschreibung                                              |
-| ------------------------- | --------------------------------------------------------- |
-| **Dead Tuples entfernen** | Gibt Disk-Space frei (aber nicht ans OS zurück)           |
-| **Statistiken updaten**   | Query-Planner braucht aktuelle Statistiken für `ANALYZE`  |
-| **Visibility Map updaten**| Beschleunigt Index-Only Scans                             |
-| **XID Wraparound**        | Verhindert Transaction-ID Overflow (kritisch!)            |
+| Aufgabe                    | Beschreibung                                             |
+| -------------------------- | -------------------------------------------------------- |
+| **Dead Tuples entfernen**  | Gibt Disk-Space frei (aber nicht ans OS zurück)          |
+| **Statistiken updaten**    | Query-Planner braucht aktuelle Statistiken für `ANALYZE` |
+| **Visibility Map updaten** | Beschleunigt Index-Only Scans                            |
+| **XID Wraparound**         | Verhindert Transaction-ID Overflow (kritisch!)           |
 
 ```sql
 -- Autovacuum-Aktivität beobachten
@@ -97,13 +89,13 @@ VACUUM ANALYZE events;
 
 Die wichtigsten Memory-Parameter in `postgresql.conf`:
 
-| Parameter               | Default | Empfehlung     | Beschreibung                              |
-| ----------------------- | ------- | -------------- | ----------------------------------------- |
-| `shared_buffers`        | 128 MB  | 25% RAM        | Shared Cache für alle Verbindungen        |
-| `work_mem`              | 4 MB    | 4–64 MB        | Pro Sort/Hash-Operation, pro Verbindung   |
-| `effective_cache_size`  | 4 GB    | 50–75% RAM     | Planner-Hint: wie viel Cache verfügbar?   |
-| `maintenance_work_mem`  | 64 MB   | 256 MB–1 GB    | VACUUM, CREATE INDEX, ALTER TABLE         |
-| `wal_buffers`           | auto    | 64 MB          | WAL-Puffer vor dem Flush                  |
+| Parameter              | Default | Empfehlung  | Beschreibung                            |
+| ---------------------- | ------- | ----------- | --------------------------------------- |
+| `shared_buffers`       | 128 MB  | 25% RAM     | Shared Cache für alle Verbindungen      |
+| `work_mem`             | 4 MB    | 4–64 MB     | Pro Sort/Hash-Operation, pro Verbindung |
+| `effective_cache_size` | 4 GB    | 50–75% RAM  | Planner-Hint: wie viel Cache verfügbar? |
+| `maintenance_work_mem` | 64 MB   | 256 MB–1 GB | VACUUM, CREATE INDEX, ALTER TABLE       |
+| `wal_buffers`          | auto    | 64 MB       | WAL-Puffer vor dem Flush                |
 
 ---
 
@@ -113,19 +105,19 @@ Die wichtigsten Memory-Parameter in `postgresql.conf`:
 
 PostgreSQL eignet sich besonders für Anwendungen mit Event-Sourcing und strukturierten Stammdaten:
 
-| Feature               | PostgreSQL                            | MySQL                    | Typischer Einsatz                       |
-| --------------------- | ------------------------------------- | ------------------------ | --------------------------------------- |
-| **JSONB**             | Nativ, indizierbar                    | JSON (nicht indizierbar) | Event-Daten als JSONB speichern         |
-| **Custom Enums**      | `CREATE TYPE ... AS ENUM`             | ENUM als Spaltentyp      | Rollen, Status-Werte, Kategorien        |
-| **Trigger**           | Vollständig (BEFORE/AFTER/INSTEAD OF) | Eingeschränkt            | Append-only-Garantie für Event Stores   |
-| **ACID**              | Vollständig                           | Vollständig (InnoDB)     | Transaktionale Konsistenz               |
-| **IDENTITY Columns**  | `GENERATED BY DEFAULT AS IDENTITY`    | AUTO_INCREMENT           | Standard-SQL-konforme IDs               |
-| **Partielle Indexes** | `WHERE`-Klausel im Index              | Nicht unterstützt        | Status-Filter, Archivierung             |
-| **CTEs (WITH)**       | Vollständig, rekursiv                 | Seit MySQL 8             | Komplexe Event-Queries                  |
-| **LISTEN/NOTIFY**     | Nativ                                 | Nicht vorhanden          | Asynchrone Benachrichtigungen           |
-| **Partitioning**      | Declarative (Range, List, Hash)       | Eingeschränkt            | Große Event-Tabellen aufteilen          |
-| **Window Functions**  | Vollständig                           | Seit MySQL 8 (begrenzt)  | Analytische Queries                     |
-| **RLS**               | Row-Level Security                    | Nicht nativ              | Multi-Tenant-Datenisolation             |
+| Feature               | PostgreSQL                            | MySQL                    | Typischer Einsatz                     |
+| --------------------- | ------------------------------------- | ------------------------ | ------------------------------------- |
+| **JSONB**             | Nativ, indizierbar                    | JSON (nicht indizierbar) | Event-Daten als JSONB speichern       |
+| **Custom Enums**      | `CREATE TYPE ... AS ENUM`             | ENUM als Spaltentyp      | Rollen, Status-Werte, Kategorien      |
+| **Trigger**           | Vollständig (BEFORE/AFTER/INSTEAD OF) | Eingeschränkt            | Append-only-Garantie für Event Stores |
+| **ACID**              | Vollständig                           | Vollständig (InnoDB)     | Transaktionale Konsistenz             |
+| **IDENTITY Columns**  | `GENERATED BY DEFAULT AS IDENTITY`    | AUTO_INCREMENT           | Standard-SQL-konforme IDs             |
+| **Partielle Indexes** | `WHERE`-Klausel im Index              | Nicht unterstützt        | Status-Filter, Archivierung           |
+| **CTEs (WITH)**       | Vollständig, rekursiv                 | Seit MySQL 8             | Komplexe Event-Queries                |
+| **LISTEN/NOTIFY**     | Nativ                                 | Nicht vorhanden          | Asynchrone Benachrichtigungen         |
+| **Partitioning**      | Declarative (Range, List, Hash)       | Eingeschränkt            | Große Event-Tabellen aufteilen        |
+| **Window Functions**  | Vollständig                           | Seit MySQL 8 (begrenzt)  | Analytische Queries                   |
+| **RLS**               | Row-Level Security                    | Nicht nativ              | Multi-Tenant-Datenisolation           |
 
 ### PostgreSQL-Stärken für Event-Sourcing
 
@@ -320,14 +312,14 @@ created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 ### 6.1 Index-Typen im Überblick
 
-| Index-Typ   | Algorithmus         | Ideal für                                | Beispiel                               |
-| ----------- | ------------------- | ---------------------------------------- | -------------------------------------- |
-| **B-Tree**  | Balanced Tree       | Gleichheit, Ranges, Sortierung           | `WHERE id = $1`, `ORDER BY created_at` |
-| **Hash**    | Hash-Tabelle        | Nur Gleichheit (`=`)                     | Selten nötig (B-Tree deckt alles ab)   |
-| **GIN**     | Inverted Index      | JSONB, Arrays, Volltextsuche             | `WHERE data @> '{"id": 42}'`           |
-| **GiST**    | Generalized Search  | Geometrie, Volltext, Range-Typen         | PostGIS, `tsvector`, `tsrange`         |
-| **BRIN**    | Block Range Index   | Sehr große Tabellen, natürlich geordnet  | `WHERE timestamp BETWEEN $1 AND $2`    |
-| **SP-GiST** | Space-Partitioned   | Nicht-balancierte Strukturen (Quadtrees) | Selten in Standard-Anwendungen         |
+| Index-Typ   | Algorithmus        | Ideal für                                | Beispiel                               |
+| ----------- | ------------------ | ---------------------------------------- | -------------------------------------- |
+| **B-Tree**  | Balanced Tree      | Gleichheit, Ranges, Sortierung           | `WHERE id = $1`, `ORDER BY created_at` |
+| **Hash**    | Hash-Tabelle       | Nur Gleichheit (`=`)                     | Selten nötig (B-Tree deckt alles ab)   |
+| **GIN**     | Inverted Index     | JSONB, Arrays, Volltextsuche             | `WHERE data @> '{"id": 42}'`           |
+| **GiST**    | Generalized Search | Geometrie, Volltext, Range-Typen         | PostGIS, `tsvector`, `tsrange`         |
+| **BRIN**    | Block Range Index  | Sehr große Tabellen, natürlich geordnet  | `WHERE timestamp BETWEEN $1 AND $2`    |
+| **SP-GiST** | Space-Partitioned  | Nicht-balancierte Strukturen (Quadtrees) | Selten in Standard-Anwendungen         |
 
 #### B-Tree (Standard)
 
@@ -410,13 +402,13 @@ SELECT username FROM users WHERE id = $1;
 
 ### 6.5 Composite vs. Single-Column Indexes
 
-| Szenario                                      | Empfehlung                                         |
-| --------------------------------------------- | -------------------------------------------------- |
-| `WHERE a = $1`                                | Single-Column Index auf `a`                        |
-| `WHERE a = $1 AND b = $2`                     | Composite `(a, b)` — führende Spalte = selektivste |
-| `WHERE a = $1 ORDER BY b`                     | Composite `(a, b)` — vermeidet Sort                |
-| `WHERE a = $1` und `WHERE b = $1` (getrennt)  | Zwei Single-Column Indexes                         |
-| `WHERE b = $1` (ohne `a`)                     | Separate Index auf `b` (Composite hilft nicht)     |
+| Szenario                                     | Empfehlung                                         |
+| -------------------------------------------- | -------------------------------------------------- |
+| `WHERE a = $1`                               | Single-Column Index auf `a`                        |
+| `WHERE a = $1 AND b = $2`                    | Composite `(a, b)` — führende Spalte = selektivste |
+| `WHERE a = $1 ORDER BY b`                    | Composite `(a, b)` — vermeidet Sort                |
+| `WHERE a = $1` und `WHERE b = $1` (getrennt) | Zwei Single-Column Indexes                         |
+| `WHERE b = $1` (ohne `a`)                    | Separate Index auf `b` (Composite hilft nicht)     |
 
 ---
 
@@ -445,16 +437,16 @@ Planning Time: 0.121 ms
 Execution Time: 0.063 ms
 ```
 
-| Begriff           | Bedeutung                                          |
-| ----------------- | -------------------------------------------------- |
-| `cost=X..Y`       | Planner-Schätzung: Startkosten..Gesamtkosten       |
-| `rows=N`          | Geschätzte Zeilenanzahl (vs. `actual rows=N`)      |
-| `loops=N`         | Wie oft wurde dieser Node ausgeführt               |
-| `Buffers: hit=N`  | N Pages aus Shared-Buffer-Cache (gut!)             |
-| `Buffers: read=N` | N Pages von Disk gelesen (teuer!)                  |
-| `Seq Scan`        | Tabellensequenz-Scan (kein Index genutzt)          |
-| `Index Scan`      | Index + Heap-Fetch                                 |
-| `Index Only Scan` | Nur Index, kein Heap-Fetch (optimal)               |
+| Begriff           | Bedeutung                                     |
+| ----------------- | --------------------------------------------- |
+| `cost=X..Y`       | Planner-Schätzung: Startkosten..Gesamtkosten  |
+| `rows=N`          | Geschätzte Zeilenanzahl (vs. `actual rows=N`) |
+| `loops=N`         | Wie oft wurde dieser Node ausgeführt          |
+| `Buffers: hit=N`  | N Pages aus Shared-Buffer-Cache (gut!)        |
+| `Buffers: read=N` | N Pages von Disk gelesen (teuer!)             |
+| `Seq Scan`        | Tabellensequenz-Scan (kein Index genutzt)     |
+| `Index Scan`      | Index + Heap-Fetch                            |
+| `Index Only Scan` | Nur Index, kein Heap-Fetch (optimal)          |
 
 ### 7.2 Common Table Expressions (CTEs)
 
@@ -568,6 +560,7 @@ for {
 ```
 
 **Anwendungsfälle:**
+
 - Asynchrone Read-Model-Projektionen (CQRS Stufe 2)
 - Cache-Invalidierung bei Stammdaten-Änderungen
 - Real-Time Dashboard Updates
@@ -600,6 +593,7 @@ CREATE TABLE events_large_1 PARTITION OF events_large FOR VALUES WITH (MODULUS 4
 ```
 
 **Wann Partitioning?**
+
 - Tabelle > physischer RAM (Faustregel: > 10 Mio. Zeilen)
 - Häufige Queries filtern nach Partitions-Key (Partition Pruning)
 - Ältere Daten regelmäßig archivieren/löschen (`DETACH PARTITION` ist sofortig)
@@ -676,6 +670,7 @@ defer pool.Close()
 ```
 
 **Best Practices:**
+
 - Pool einmal erstellen, überall teilen (Singleton)
 - `pool.Query()` / `pool.QueryRow()` nutzen, nie `pool.Acquire()` manuell
 - Connection-Anzahl: `(Anzahl CPU-Cores * 2) + 1` als Startpunkt
@@ -691,13 +686,14 @@ App (1000 connections) → PgBouncer (20 DB-Connections) → PostgreSQL
 
 **Modi:**
 
-| Modus           | Beschreibung                                      | Einsatz                         |
-| --------------- | ------------------------------------------------- | ------------------------------- |
-| **Session**     | Verbindung für gesamte Client-Session             | Mit Prepared Statements         |
-| **Transaction** | Verbindung nur während Transaktion                | Höchste Effizienz (kein LISTEN) |
-| **Statement**   | Verbindung pro Statement (kein Multi-Statement)   | Selten sinnvoll                 |
+| Modus           | Beschreibung                                    | Einsatz                         |
+| --------------- | ----------------------------------------------- | ------------------------------- |
+| **Session**     | Verbindung für gesamte Client-Session           | Mit Prepared Statements         |
+| **Transaction** | Verbindung nur während Transaktion              | Höchste Effizienz (kein LISTEN) |
+| **Statement**   | Verbindung pro Statement (kein Multi-Statement) | Selten sinnvoll                 |
 
 **Wann PgBouncer?**
+
 - Viele kurzlebige Verbindungen (z. B. Serverless, PHP ohne Persistent Connections)
 - PostgreSQL `max_connections` wird überschritten
 - Mehrere App-Instanzen teilen eine PostgreSQL-Instanz
@@ -733,20 +729,21 @@ PostgreSQL öffnet pro Verbindung einen eigenen Prozess (~5–10 MB RAM). Zu vie
 
 ### Vergleich: PostgreSQL vs. spezialisierte Event Stores
 
-| Kriterium                    | PostgreSQL                          | EventStoreDB                           | Kafka                                  |
-| ---------------------------- | ----------------------------------- | -------------------------------------- | -------------------------------------- |
-| **Primärer Zweck**           | Relationale DB + Event Store        | Dedizierter Event Store                | Message Broker + Log                   |
-| **Setup-Komplexität**        | Gering (bekanntes Tool)             | Mittel                                 | Hoch (Zookeeper/KRaft)                 |
-| **Ordering**                 | Global (IDENTITY) oder pro Subject  | Per Stream nativ                       | Per Partition                          |
-| **Replay**                   | SQL-Query                           | Stream Subscription                    | Consumer Group Offset                  |
-| **Projections**              | Polling oder LISTEN/NOTIFY          | Nativ (Catch-Up Subscriptions)         | Consumer Groups                        |
-| **Retention**                | Manuell (Archivierung)              | Konfigurierbar ($MaxCount, $MaxAge)    | Log Compaction, Retention Policy       |
-| **Schema-Evolution**         | JSONB + Upcasting in App-Code       | JSONB + Upcasting                      | Schema Registry (Avro, Protobuf)       |
-| **Throughput**               | Mittel (10k–100k Events/s)          | Hoch (100k+ Events/s)                  | Sehr hoch (Millionen/s)                |
-| **Operational Overhead**     | Gering (gemeinsam mit CRUD-Daten)   | Mittel                                 | Hoch                                   |
-| **Transaktionale Garantien** | Vollständig (ACID)                  | Optimistic Concurrency Control         | At-least-once / Exactly-once (komplex) |
+| Kriterium                    | PostgreSQL                         | EventStoreDB                        | Kafka                                  |
+| ---------------------------- | ---------------------------------- | ----------------------------------- | -------------------------------------- |
+| **Primärer Zweck**           | Relationale DB + Event Store       | Dedizierter Event Store             | Message Broker + Log                   |
+| **Setup-Komplexität**        | Gering (bekanntes Tool)            | Mittel                              | Hoch (Zookeeper/KRaft)                 |
+| **Ordering**                 | Global (IDENTITY) oder pro Subject | Per Stream nativ                    | Per Partition                          |
+| **Replay**                   | SQL-Query                          | Stream Subscription                 | Consumer Group Offset                  |
+| **Projections**              | Polling oder LISTEN/NOTIFY         | Nativ (Catch-Up Subscriptions)      | Consumer Groups                        |
+| **Retention**                | Manuell (Archivierung)             | Konfigurierbar ($MaxCount, $MaxAge) | Log Compaction, Retention Policy       |
+| **Schema-Evolution**         | JSONB + Upcasting in App-Code      | JSONB + Upcasting                   | Schema Registry (Avro, Protobuf)       |
+| **Throughput**               | Mittel (10k–100k Events/s)         | Hoch (100k+ Events/s)               | Sehr hoch (Millionen/s)                |
+| **Operational Overhead**     | Gering (gemeinsam mit CRUD-Daten)  | Mittel                              | Hoch                                   |
+| **Transaktionale Garantien** | Vollständig (ACID)                 | Optimistic Concurrency Control      | At-least-once / Exactly-once (komplex) |
 
 **Empfehlung:** PostgreSQL als Event Store ist optimal für Systeme, die:
+
 - PostgreSQL ohnehin für Stammdaten nutzen
 - Moderate Event-Volumina haben (< 1 Mio. Events/Tag)
 - Kein separates Infrastruktur-Tool einführen wollen
@@ -813,13 +810,13 @@ ORDER BY dead_pct DESC;
 
 ### 12.1 Migration-Tools im Vergleich
 
-| Tool               | Sprache | Ansatz              | Highlights                                    |
-| ------------------ | ------- | ------------------- | --------------------------------------------- |
-| **golang-migrate** | Go      | Up/Down SQL-Dateien | Einfach, direkte SQL-Kontrolle, CLI + Library |
-| **Atlas**          | Go      | Deklarativ (HCL/SQL)| Schema Diff, Lint, CI-Integration             |
-| **goose**          | Go      | Up/Down SQL/Go      | Go-Migrations für komplexe Datentransformationen |
-| **Flyway**         | Java    | Versioniert (SQL)   | Enterprise-Features, breite DB-Unterstützung  |
-| **Liquibase**      | Java    | XML/YAML/SQL        | Multi-DB, Rollback-Unterstützung              |
+| Tool               | Sprache | Ansatz               | Highlights                                       |
+| ------------------ | ------- | -------------------- | ------------------------------------------------ |
+| **golang-migrate** | Go      | Up/Down SQL-Dateien  | Einfach, direkte SQL-Kontrolle, CLI + Library    |
+| **Atlas**          | Go      | Deklarativ (HCL/SQL) | Schema Diff, Lint, CI-Integration                |
+| **goose**          | Go      | Up/Down SQL/Go       | Go-Migrations für komplexe Datentransformationen |
+| **Flyway**         | Java    | Versioniert (SQL)    | Enterprise-Features, breite DB-Unterstützung     |
+| **Liquibase**      | Java    | XML/YAML/SQL         | Multi-DB, Rollback-Unterstützung                 |
 
 **Für Go-Backends empfohlen:** golang-migrate (einfach, stabil) oder Atlas (moderner, mehr Features).
 
@@ -869,12 +866,14 @@ ALTER TABLE users DROP COLUMN IF EXISTS email;
 ```
 
 **Backward-compatible Änderungen (sicher):**
+
 - Neue Tabelle/Spalte hinzufügen
 - Spalte nullable machen
 - Neue Enum-Werte hinzufügen
 - Index erstellen (CONCURRENTLY)
 
 **Breaking Changes (brauchen Expand/Contract):**
+
 - Spalte umbenennen/löschen
 - Spalte NOT NULL machen
 - Datentyp ändern
@@ -920,33 +919,34 @@ case "order.placed:v2":
 
 ### 13.1 PostgreSQL vs. MySQL/MariaDB
 
-| Aspekt                  | PostgreSQL                          | MySQL/MariaDB                       |
-| ----------------------- | ----------------------------------- | ----------------------------------- |
-| **JSONB**               | Nativ, indizierbar, GIN-Index       | JSON-Typ, kein Index                |
-| **SQL-Compliance**      | SQL-Standard konform                | Historisch viele Abweichungen       |
-| **ACID**                | Vollständig (inkl. DDL)             | Vollständig (InnoDB), DDL implicit  |
-| **Replication**         | Logical + Physical                  | Binlog-basiert (Physical)           |
-| **Erweiterungen**       | PostGIS, TimescaleDB, pgvector...   | Weniger Ecosystem                   |
-| **Volltextsuche**       | `tsvector`, `tsquery`               | `FULLTEXT` Index (schwächer)        |
-| **Partitioning**        | Declarative (Range, List, Hash)     | Eingeschränkt                       |
-| **Window Functions**    | Vollständig                         | Seit MySQL 8 (begrenzt)             |
-| **Lizenz**              | PostgreSQL License (sehr permissiv) | GPL + proprietäres Oracle-Modell    |
+| Aspekt               | PostgreSQL                          | MySQL/MariaDB                      |
+| -------------------- | ----------------------------------- | ---------------------------------- |
+| **JSONB**            | Nativ, indizierbar, GIN-Index       | JSON-Typ, kein Index               |
+| **SQL-Compliance**   | SQL-Standard konform                | Historisch viele Abweichungen      |
+| **ACID**             | Vollständig (inkl. DDL)             | Vollständig (InnoDB), DDL implicit |
+| **Replication**      | Logical + Physical                  | Binlog-basiert (Physical)          |
+| **Erweiterungen**    | PostGIS, TimescaleDB, pgvector...   | Weniger Ecosystem                  |
+| **Volltextsuche**    | `tsvector`, `tsquery`               | `FULLTEXT` Index (schwächer)       |
+| **Partitioning**     | Declarative (Range, List, Hash)     | Eingeschränkt                      |
+| **Window Functions** | Vollständig                         | Seit MySQL 8 (begrenzt)            |
+| **Lizenz**           | PostgreSQL License (sehr permissiv) | GPL + proprietäres Oracle-Modell   |
 
 **Empfehlung:** PostgreSQL für neue Projekte. MySQL wenn bestehende Infrastruktur oder spezifisches Tooling es erfordert.
 
 ### 13.2 PostgreSQL vs. MongoDB
 
-| Aspekt                  | PostgreSQL                          | MongoDB                              |
-| ----------------------- | ----------------------------------- | ------------------------------------ |
-| **Datenmodell**         | Relational + JSONB                  | Dokument-orientiert                  |
-| **Schema**              | Explizit (mit JSONB-Flexibilität)   | Schema-less (optional Validation)    |
-| **ACID**                | Multi-Row, Cross-Table Transactions | Multi-Document Transactions (v4.0+)  |
-| **Joins**               | Nativ, effizient                    | `$lookup` (teuer, limitiert)         |
-| **Indexierung**         | B-Tree, GIN, GiST, BRIN             | B-Tree, Compound, Text, Geo          |
-| **Horizontal Scaling**  | Vertical + Citus (Extension)        | Nativ (Sharded Cluster)              |
-| **Query-Sprache**       | SQL (Standard)                      | MQL (proprietär)                     |
+| Aspekt                 | PostgreSQL                          | MongoDB                             |
+| ---------------------- | ----------------------------------- | ----------------------------------- |
+| **Datenmodell**        | Relational + JSONB                  | Dokument-orientiert                 |
+| **Schema**             | Explizit (mit JSONB-Flexibilität)   | Schema-less (optional Validation)   |
+| **ACID**               | Multi-Row, Cross-Table Transactions | Multi-Document Transactions (v4.0+) |
+| **Joins**              | Nativ, effizient                    | `$lookup` (teuer, limitiert)        |
+| **Indexierung**        | B-Tree, GIN, GiST, BRIN             | B-Tree, Compound, Text, Geo         |
+| **Horizontal Scaling** | Vertical + Citus (Extension)        | Nativ (Sharded Cluster)             |
+| **Query-Sprache**      | SQL (Standard)                      | MQL (proprietär)                    |
 
 **Wann MongoDB bevorzugen:**
+
 - Vollständig schema-lose Daten ohne relationale Verknüpfungen
 - Horizontales Sharding nativ benötigt (> 1 TB Daten)
 - Team-Präferenz für dokumentenorientiertes Modell
@@ -955,13 +955,13 @@ case "order.placed:v2":
 
 NewSQL kombiniert SQL-Semantik mit horizontaler Skalierung:
 
-| Aspekt                    | PostgreSQL                     | CockroachDB / YugabyteDB            |
-| ------------------------- | ------------------------------ | ----------------------------------- |
-| **Kompatibilität**        | Referenz-Implementierung       | PostgreSQL-kompatibles Wire-Protocol|
-| **Horizontal Scaling**    | Vertical + Citus               | Nativ (geo-distributed)             |
-| **Konsistenz**            | ACID (single-node)             | Serializable (distributed)          |
-| **Latenz**                | Niedrig (lokal)                | Höher (Consensus-Protokoll)         |
-| **Operational Complexity**| Gering                         | Hoch                                |
+| Aspekt                     | PostgreSQL               | CockroachDB / YugabyteDB             |
+| -------------------------- | ------------------------ | ------------------------------------ |
+| **Kompatibilität**         | Referenz-Implementierung | PostgreSQL-kompatibles Wire-Protocol |
+| **Horizontal Scaling**     | Vertical + Citus         | Nativ (geo-distributed)              |
+| **Konsistenz**             | ACID (single-node)       | Serializable (distributed)           |
+| **Latenz**                 | Niedrig (lokal)          | Höher (Consensus-Protokoll)          |
+| **Operational Complexity** | Gering                   | Hoch                                 |
 
 **Empfehlung:** PostgreSQL für ~99% der Anwendungen. NewSQL nur wenn horizontale Skalierung über mehrere Regionen zwingend nötig ist.
 
@@ -1051,15 +1051,15 @@ Dieser Appendix zeigt, wie die oben beschriebenen Konzepte konkret im jotti-Proj
 
 ### PostgreSQL-Feature-Relevanz in jotti
 
-| Feature               | Relevanz für jotti                       |
-| --------------------- | ---------------------------------------- |
-| **JSONB**             | Event-Daten als JSONB gespeichert        |
-| **Custom Enums**      | UserRole, EntityStatus, ProductCategory  |
-| **Trigger**           | Append-only-Garantie für Events          |
-| **IDENTITY Columns**  | Standard-SQL-konforme IDs                |
-| **Partielle Indexes** | Potenziell für Status-Filter             |
-| **CTEs (WITH)**       | Komplexe Event-Queries (Snapshot-Suche)  |
-| **BRIN-Index**        | Potenziell für große Event-Tabellen      |
+| Feature               | Relevanz für jotti                      |
+| --------------------- | --------------------------------------- |
+| **JSONB**             | Event-Daten als JSONB gespeichert       |
+| **Custom Enums**      | UserRole, EntityStatus, ProductCategory |
+| **Trigger**           | Append-only-Garantie für Events         |
+| **IDENTITY Columns**  | Standard-SQL-konforme IDs               |
+| **Partielle Indexes** | Potenziell für Status-Filter            |
+| **CTEs (WITH)**       | Komplexe Event-Queries (Snapshot-Suche) |
+| **BRIN-Index**        | Potenziell für große Event-Tabellen     |
 
 ### Hybride Persistenz in jotti
 

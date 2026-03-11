@@ -2,13 +2,6 @@
 
 Dieses Dokument dient als theoretisches Nachschlagewerk für Command Query Responsibility Segregation (CQRS). Es erklärt das Muster, seine Ausbaustufen, Read Model Design, Projektionsstrategien, Eventual Consistency und Entscheidungskriterien. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#9-appendix-anwendungsbeispiel-jotti).
 
-> **Verwandte Dokumente:**
->
-> - [Event-Sourcing Theorie](event-sourcing.md) — Event-Sourcing Grundlagen
-> - [DDD Theorie](ddd.md) — Domain-Driven Design Grundlagen
-> - [CQRS in jotti (operativ)](../cqrs.md) — Ist-Zustand und Implementierungsplan
-> - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
-
 ---
 
 ## Inhaltsverzeichnis
@@ -160,13 +153,13 @@ Query Handler   ← Redis / Elasticsearch / Read-Replica / separate PostgreSQL-I
 | **Task-basierte UIs**                   | Commands spiegeln Benutzerintentionen wider (keine CRUD-Maske) |
 | **Vertical Slices**                     | Jeder Handler ist ein unabhängiger Code-Silo                   |
 
-| Nachteil                          | Beschreibung                                              |
-| --------------------------------- | --------------------------------------------------------- |
-| **Eventual Consistency**          | Read Model kann kurzzeitig veraltet sein                  |
-| **Mehr Code**                     | Separate Handler, Modelle, Projektionen                   |
-| **Synchronisationskomplexität**   | Projektion muss zuverlässig synchron bleiben              |
-| **Overkill für einfache Domains** | CRUD-Entities profitieren nicht von CQRS                  |
-| **Mentaler Overhead**             | Entwickler müssen das Muster vollständig verstehen        |
+| Nachteil                          | Beschreibung                                       |
+| --------------------------------- | -------------------------------------------------- |
+| **Eventual Consistency**          | Read Model kann kurzzeitig veraltet sein           |
+| **Mehr Code**                     | Separate Handler, Modelle, Projektionen            |
+| **Synchronisationskomplexität**   | Projektion muss zuverlässig synchron bleiben       |
+| **Overkill für einfache Domains** | CRUD-Entities profitieren nicht von CQRS           |
+| **Mentaler Overhead**             | Entwickler müssen das Muster vollständig verstehen |
 
 ---
 
@@ -176,7 +169,7 @@ Query Handler   ← Redis / Elasticsearch / Read-Replica / separate PostgreSQL-I
 
 Ein **Read Model** (auch: View Model, Projection, Query Model) ist eine Datenstruktur, die **speziell für eine Abfrage oder eine Gruppe von Abfragen** optimiert wurde. Im Gegensatz zum Write Model, das auf Konsistenz und Geschäftsregeln optimiert ist, ist das Read Model auf **Leseperformance und Einfachheit** optimiert.
 
-> **Udi Dahan:** _"Create an additional data store whose structure mirrors the view model. One table for each view. Then our client could simply SELECT * FROM MyViewTable and bind the result to the screen."_
+> **Udi Dahan:** _"Create an additional data store whose structure mirrors the view model. One table for each view. Then our client could simply SELECT \* FROM MyViewTable and bind the result to the screen."_
 
 Das Grundprinzip: Statt Joins und Transformationen zur Abfragezeit vorab zu berechnen und zu materialisieren.
 
@@ -363,11 +356,13 @@ PostgreSQL WAL → Debezium (CDC Connector) → Kafka Topic → Projektor → Re
 ```
 
 **Vorteile:**
+
 - Keine Änderungen an der Anwendung nötig (DB-agnostisch)
 - Erfasst auch DDL-Änderungen
 - Garantierte Delivery (at-least-once via Kafka)
 
 **Nachteile:**
+
 - Komplexe Infrastruktur (Kafka, Debezium Connector)
 - Erfordert PostgreSQL Logical Replication aktiviert
 - Bindet an DB-Schema (strukturelle Änderungen = Breaking Changes)
@@ -458,6 +453,7 @@ func (h *QueryHandler) GetOrderSummary(ctx context.Context, q GetOrderSummaryQue
 **Causal Consistency:** Wenn Aktion B kausal von Aktion A abhängt, sieht jeder Client B erst nachdem er A gesehen hat.
 
 **Praktische Umsetzung:**
+
 - Client speichert den letzten bekannten Write-Token (Sequenznummer, Timestamp)
 - Server-seitig: Sticky Sessions zu einer Replica oder Read-Model-Version prüfen
 
@@ -477,13 +473,13 @@ Das Compensation-Muster ist zentral in **Sagas** (verteilten Transaktionen ohne 
 
 Das Frontend kann Eventual Consistency durch UX-Tricks unsichtbar machen:
 
-| Strategie                  | Beschreibung                                                                    | Beispiel                                        |
-| -------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------- |
-| **Optimistic Update**      | UI zeigt sofort den erwarteten Zustand, rollt bei Fehler zurück                 | Like-Button springt sofort auf "Liked"          |
-| **Stale-While-Revalidate** | Sofort gecachte Daten zeigen, im Hintergrund aktualisieren                      | Produktliste lädt sofort, aktualisiert sich still |
-| **Polling**                | Nach einem Command regelmäßig abfragen, bis neuer Zustand sichtbar ist          | Nach Zahlung alle 2s neu laden bis "Bezahlt"    |
-| **WebSocket-Push**         | Server benachrichtigt Client wenn Read Model aktualisiert                       | Echtzeit-Dashboard                              |
-| **Pending State anzeigen** | "Ihre Bestellung wird verarbeitet..." bis Projektion abgeschlossen              | Task-basierte UI mit Fortschrittsanzeige        |
+| Strategie                  | Beschreibung                                                           | Beispiel                                          |
+| -------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------- |
+| **Optimistic Update**      | UI zeigt sofort den erwarteten Zustand, rollt bei Fehler zurück        | Like-Button springt sofort auf "Liked"            |
+| **Stale-While-Revalidate** | Sofort gecachte Daten zeigen, im Hintergrund aktualisieren             | Produktliste lädt sofort, aktualisiert sich still |
+| **Polling**                | Nach einem Command regelmäßig abfragen, bis neuer Zustand sichtbar ist | Nach Zahlung alle 2s neu laden bis "Bezahlt"      |
+| **WebSocket-Push**         | Server benachrichtigt Client wenn Read Model aktualisiert              | Echtzeit-Dashboard                                |
+| **Pending State anzeigen** | "Ihre Bestellung wird verarbeitet..." bis Projektion abgeschlossen     | Task-basierte UI mit Fortschrittsanzeige          |
 
 ---
 
@@ -608,14 +604,14 @@ Ein einzigartiger Vorteil der ES+CQRS-Kombination: Read Models können jederzeit
 
 Nicht alle Read Models brauchen starke Konsistenz:
 
-| Feature                  | Konsistenz           | Begründung                                               |
-| ------------------------ | -------------------- | -------------------------------------------------------- |
-| **Kontostand/Saldo**     | Stark (synchron)     | Fehlerhafte Anzeige führt zu Fehlbuchungen               |
-| **Offene Positionen**    | Stark (synchron)     | Abrechnungsvorgang muss korrekt sein                     |
-| **Lieferstatus**         | Stark (synchron)     | Lieferung muss vollständig sein                          |
-| **Transaktions-Historie**| Eventual (asynchron) | Historische Ansicht verträgt kurze Verzögerung           |
-| **Tagesabrechnung**      | Eventual (asynchron) | Wird nicht in Echtzeit benötigt                          |
-| **Umsatzstatistiken**    | Eventual (asynchron) | Aggregierte Daten, keine Echtzeitanforderung             |
+| Feature                   | Konsistenz           | Begründung                                     |
+| ------------------------- | -------------------- | ---------------------------------------------- |
+| **Kontostand/Saldo**      | Stark (synchron)     | Fehlerhafte Anzeige führt zu Fehlbuchungen     |
+| **Offene Positionen**     | Stark (synchron)     | Abrechnungsvorgang muss korrekt sein           |
+| **Lieferstatus**          | Stark (synchron)     | Lieferung muss vollständig sein                |
+| **Transaktions-Historie** | Eventual (asynchron) | Historische Ansicht verträgt kurze Verzögerung |
+| **Tagesabrechnung**       | Eventual (asynchron) | Wird nicht in Echtzeit benötigt                |
+| **Umsatzstatistiken**     | Eventual (asynchron) | Aggregierte Daten, keine Echtzeitanforderung   |
 
 Siehe [Event-Sourcing Theorie](event-sourcing.md#10-kombination-mit-cqrs) für die Grundlagen von Event-Sourcing und Snapshots.
 
@@ -625,16 +621,16 @@ Siehe [Event-Sourcing Theorie](event-sourcing.md#10-kombination-mit-cqrs) für d
 
 ### 7.1 Wann CQRS sinnvoll ist
 
-| Kriterium                                       | CRUD          | CQRS Stufe 1  | CQRS Stufe 2+  |
-| ----------------------------------------------- | ------------- | ------------- | -------------- |
-| Einfache CRUD-Entities ohne Geschäftslogik      | ✅ Bevorzugt  | ❌ Overkill   | ❌ Overkill    |
-| Komplexe Domäne mit vielen Geschäftsregeln      | ⚠️ Möglich    | ✅ Empfohlen  | ✅ Empfohlen   |
-| Lese-/Schreiblast sehr unterschiedlich          | ⚠️ Möglich    | ✅ Empfohlen  | ✅ Empfohlen   |
-| Reporting/Analytics neben operativem Betrieb    | ⚠️ Kompromiss | ⚠️ Besser     | ✅ Ideal       |
-| Event-Sourcing im Einsatz                       | ❌ Aufwändig  | ✅ Empfohlen  | ✅ Empfohlen   |
-| Multiple Clients mit unterschiedlichen Sichten  | ⚠️ Möglich    | ✅ Empfohlen  | ✅ Ideal       |
-| Team ohne CQRS-Erfahrung                        | ✅ Bevorzugt  | ⚠️ Lernkurve  | ❌ Riskant     |
-| Startup / MVP / wenig Traffic                   | ✅ Bevorzugt  | ⚠️ Optional   | ❌ Premature   |
+| Kriterium                                      | CRUD          | CQRS Stufe 1 | CQRS Stufe 2+ |
+| ---------------------------------------------- | ------------- | ------------ | ------------- |
+| Einfache CRUD-Entities ohne Geschäftslogik     | ✅ Bevorzugt  | ❌ Overkill  | ❌ Overkill   |
+| Komplexe Domäne mit vielen Geschäftsregeln     | ⚠️ Möglich    | ✅ Empfohlen | ✅ Empfohlen  |
+| Lese-/Schreiblast sehr unterschiedlich         | ⚠️ Möglich    | ✅ Empfohlen | ✅ Empfohlen  |
+| Reporting/Analytics neben operativem Betrieb   | ⚠️ Kompromiss | ⚠️ Besser    | ✅ Ideal      |
+| Event-Sourcing im Einsatz                      | ❌ Aufwändig  | ✅ Empfohlen | ✅ Empfohlen  |
+| Multiple Clients mit unterschiedlichen Sichten | ⚠️ Möglich    | ✅ Empfohlen | ✅ Ideal      |
+| Team ohne CQRS-Erfahrung                       | ✅ Bevorzugt  | ⚠️ Lernkurve | ❌ Riskant    |
+| Startup / MVP / wenig Traffic                  | ✅ Bevorzugt  | ⚠️ Optional  | ❌ Premature  |
 
 ### 7.2 Entscheidungs-Flowchart
 

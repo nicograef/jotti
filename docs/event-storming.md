@@ -3,14 +3,6 @@
 Dieses Dokument protokolliert das Ergebnis einer simulierten Event-Storming-Session für jotti. Ziel war es, die gesamte Fachdomäne eines Vereins-Gastronomie-POS-Systems gemeinsam zu erkunden, Domain Events zu identifizieren, Bounded Contexts abzugrenzen und eine gemeinsame Sprache zu entwickeln.
 
 > **Methode:** Event Storming nach Alberto Brandolini — vom Big Picture über Process Modelling bis zum Software Design Level.
->
-> **Verwandte Dokumente:**
->
-> - [Ubiquitous Language](language.md) — Kanonische Fachbegriffe
-> - [Anforderungskatalog](requirements.md) — 50 Anforderungen mit Status
-> - [DDD Theorie](theory/ddd.md) — Bounded Contexts, Aggregates, Domain Events
-> - [POS-Systeme & Gastronomie-Domäne](theory/pos.md) — Gastronomieworkflows
-> - [Event-Sourcing Theorie](theory/event-sourcing.md) — Event-Sourcing-Grundlagen
 
 ---
 

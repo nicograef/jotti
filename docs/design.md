@@ -2,17 +2,6 @@
 
 Dieses Dokument beschreibt das vollständige System Design von jotti: ein Self-hosted, Open-Source, Mobile-first Gastronomie-Kassensystem für Vereine und Non-Profit-Veranstaltungen. Es ist die zentrale Referenz für Architektur-, Domain- und Implementierungsentscheidungen.
 
-> **Verwandte Dokumente:**
->
-> - [AGENTS.md](../AGENTS.md) — Regeln für KI-Coding-Agenten
-> - [Ubiquitous Language](language.md) — Kanonische Fachbegriffe
-> - [Event Storming](event-storming.md) — Domain Events, Aggregate, Bounded Contexts
-> - [Anforderungskatalog](requirements.md) — Funktionale Anforderungen mit Status
-> - [Implementierungsplan](implementation-plan.md) — Nächste Features
-> - [ADR: Event-Sourcing](adr/event-sourcing.md) — Entscheidung für Event-Sourcing
-> - [ADR: sqlc](adr/orm.md) — Entscheidung für sqlc
-> - [CQRS in jotti](cqrs.md) — CQRS Ist-Zustand und Projektionsplan
-
 ---
 
 ## Inhaltsverzeichnis

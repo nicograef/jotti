@@ -2,14 +2,6 @@
 
 Dieses Dokument ist ein theoretisches Nachschlagewerk für Domain-Driven Design. Es erklärt die zentralen DDD-Konzepte, zeigt typische Muster und Anti-Patterns und gibt eine Entscheidungshilfe, wann DDD sinnvoll ist. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#8-appendix-anwendungsbeispiel-jotti).
 
-> **Verwandte Dokumente:**
->
-> - [Ubiquitous Language](../language.md) — Kanonische Fachbegriffe
-> - [Event-Sourcing Theorie](event-sourcing.md) — Event-Sourcing Grundlagen
-> - [CQRS Theorie](cqrs.md) — Command Query Responsibility Segregation
-> - [Go Backend Architektur](go-backend.md) — Schichtenarchitektur im Backend
-> - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
-
 ---
 
 ## Inhaltsverzeichnis
@@ -56,13 +48,13 @@ DDD adressiert primär **accidental complexity** — Komplexität, die nicht aus
 
 ### 1.3 Abgrenzung zu anderen Ansätzen
 
-| Ansatz                   | Fokus                                    | Wenn sinnvoll                                  |
-| ------------------------ | ---------------------------------------- | ---------------------------------------------- |
-| **Transaction Script**   | Prozeduraler Ablauf, direkt auf DB       | Einfache CRUD-Operationen ohne Geschäftsregeln |
-| **Table Module**         | Eine Klasse pro DB-Tabelle               | Datenbankzentrierte Anwendungen                |
-| **Active Record**        | Domain-Objekte kennen ihre Persistenz    | Web-Frameworks (Rails, Django) mit einfacher Logik |
-| **Domain Model (DDD)**   | Reiches Modell, persistenzunabhängig     | Komplexe Geschäftslogik, die sich weiterentwickelt |
-| **Anemic Domain Model**  | Domain-Objekte ohne Verhalten (Anti-Pattern) | Nicht empfohlen — führt zu verstreuter Logik |
+| Ansatz                  | Fokus                                        | Wenn sinnvoll                                      |
+| ----------------------- | -------------------------------------------- | -------------------------------------------------- |
+| **Transaction Script**  | Prozeduraler Ablauf, direkt auf DB           | Einfache CRUD-Operationen ohne Geschäftsregeln     |
+| **Table Module**        | Eine Klasse pro DB-Tabelle                   | Datenbankzentrierte Anwendungen                    |
+| **Active Record**       | Domain-Objekte kennen ihre Persistenz        | Web-Frameworks (Rails, Django) mit einfacher Logik |
+| **Domain Model (DDD)**  | Reiches Modell, persistenzunabhängig         | Komplexe Geschäftslogik, die sich weiterentwickelt |
+| **Anemic Domain Model** | Domain-Objekte ohne Verhalten (Anti-Pattern) | Nicht empfohlen — führt zu verstreuter Logik       |
 
 **Faustregel:** DDD lohnt sich, wenn die **Geschäftslogik** die **Persistenzlogik** an Komplexität übersteigt. Für einfache CRUD-Anwendungen ist DDD Overkill.
 
@@ -116,11 +108,11 @@ In einem monolithischen Modell entsteht schnell ein „Big Ball of Mud" — ein 
 
 Nicht alle Teile einer Fachdomäne sind gleich wichtig. DDD unterscheidet drei Typen von Sub-Domains:
 
-| Sub-Domain-Typ          | Beschreibung                                                      | Beispiele                                       | Empfehlung                                  |
-| ----------------------- | ----------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------- |
-| **Core Domain**         | Alleinstellungsmerkmal des Unternehmens; höchster strategischer Wert | Preisalgorithmus (Amazon), Empfehlungs-Engine (Netflix) | Eigene Entwicklung, bestes Team, DDD vollständig anwenden |
-| **Supporting Sub-Domain** | Notwendig, aber kein Wettbewerbsvorteil                          | Bestellverwaltung, Inventar, Reporting          | Eigene Entwicklung mit einfacherem Ansatz   |
-| **Generic Sub-Domain**  | Standardfunktionalität, die jedes System braucht                  | Authentifizierung, E-Mail-Versand, PDF-Generierung | Standardsoftware oder Open-Source einsetzen |
+| Sub-Domain-Typ            | Beschreibung                                                         | Beispiele                                               | Empfehlung                                                |
+| ------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
+| **Core Domain**           | Alleinstellungsmerkmal des Unternehmens; höchster strategischer Wert | Preisalgorithmus (Amazon), Empfehlungs-Engine (Netflix) | Eigene Entwicklung, bestes Team, DDD vollständig anwenden |
+| **Supporting Sub-Domain** | Notwendig, aber kein Wettbewerbsvorteil                              | Bestellverwaltung, Inventar, Reporting                  | Eigene Entwicklung mit einfacherem Ansatz                 |
+| **Generic Sub-Domain**    | Standardfunktionalität, die jedes System braucht                     | Authentifizierung, E-Mail-Versand, PDF-Generierung      | Standardsoftware oder Open-Source einsetzen               |
 
 **Entscheidungshilfe:**
 
@@ -143,25 +135,25 @@ Context Mapping beschreibt, wie Bounded Contexts miteinander interagieren. DDD d
 
 **Team-Beziehungen:**
 
-| Beziehung               | Beschreibung                                                                               |
-| ----------------------- | ------------------------------------------------------------------------------------------ |
-| **Mutually Dependent**  | Beide Teams müssen gemeinsam liefern; enge Koordination erforderlich (→ Partnership)       |
-| **Upstream/Downstream** | Das Upstream-Team beeinflusst das Downstream-Team; umgekehrt nicht wesentlich              |
-| **Free**                | Unabhängige Teams ohne organisatorische oder technische Verknüpfung                        |
+| Beziehung               | Beschreibung                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| **Mutually Dependent**  | Beide Teams müssen gemeinsam liefern; enge Koordination erforderlich (→ Partnership) |
+| **Upstream/Downstream** | Das Upstream-Team beeinflusst das Downstream-Team; umgekehrt nicht wesentlich        |
+| **Free**                | Unabhängige Teams ohne organisatorische oder technische Verknüpfung                  |
 
 **Context Map Patterns:**
 
-| Pattern                    | Richtung         | Beschreibung                                                                                        | Typisches Beispiel                                               |
-| -------------------------- | ---------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| **Partnership**            | Bidirektional    | Zwei Teams koordinieren sich eng, um gemeinsam zu liefern                                           | Frontend- und Backend-Team einer Feature-Gruppe                  |
-| **Shared Kernel**          | Bidirektional    | Explizit geteilter Code/Modell zwischen Kontexten; Änderungen nur mit Zustimmung beider Teams       | `Money`-Typ in Bestellwesen und Buchhaltung                      |
-| **Customer/Supplier**      | Upstream → Downstream | Downstream-Prioritäten fließen in Upstream-Planung ein; Upstream liefert nach Absprache       | Produktkatalog (Supplier) → Bestellwesen (Customer)              |
-| **Conformist**             | Upstream → Downstream | Downstream übernimmt exakt das Modell des Upstream — keine Verhandlung                        | Microservice übernimmt das Modell eines Legacy-Systems           |
-| **Anti-Corruption Layer**  | Upstream → Downstream | Downstream isoliert sich durch eine Übersetzungsschicht                                        | Übersetzung zwischen internem Modell und externer Zahlungs-API   |
-| **Open Host Service**      | Upstream → Downstream | Upstream veröffentlicht ein stabiles, gut dokumentiertes Protokoll für alle Consumer           | REST-API mit versionierten Endpunkten                            |
-| **Published Language**     | Upstream → Downstream | Standardisiertes, dokumentiertes Format für den Datenaustausch                                 | Event-Schema mit Versionierung (CloudEvents, Avro)               |
-| **Separate Ways**          | Keine Verbindung | Kontexte haben keine sinnvolle Integration; Eigenentwicklung in beiden                             | Buchhaltung und Marketing ohne gemeinsame Daten                  |
-| **Big Ball of Mud**        | Unstrukturiert   | Bestehende chaotische Systeme — abgrenzen, nicht imitieren                                          | Legacy-Monolith ohne klare Grenzen                               |
+| Pattern                   | Richtung              | Beschreibung                                                                                  | Typisches Beispiel                                             |
+| ------------------------- | --------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **Partnership**           | Bidirektional         | Zwei Teams koordinieren sich eng, um gemeinsam zu liefern                                     | Frontend- und Backend-Team einer Feature-Gruppe                |
+| **Shared Kernel**         | Bidirektional         | Explizit geteilter Code/Modell zwischen Kontexten; Änderungen nur mit Zustimmung beider Teams | `Money`-Typ in Bestellwesen und Buchhaltung                    |
+| **Customer/Supplier**     | Upstream → Downstream | Downstream-Prioritäten fließen in Upstream-Planung ein; Upstream liefert nach Absprache       | Produktkatalog (Supplier) → Bestellwesen (Customer)            |
+| **Conformist**            | Upstream → Downstream | Downstream übernimmt exakt das Modell des Upstream — keine Verhandlung                        | Microservice übernimmt das Modell eines Legacy-Systems         |
+| **Anti-Corruption Layer** | Upstream → Downstream | Downstream isoliert sich durch eine Übersetzungsschicht                                       | Übersetzung zwischen internem Modell und externer Zahlungs-API |
+| **Open Host Service**     | Upstream → Downstream | Upstream veröffentlicht ein stabiles, gut dokumentiertes Protokoll für alle Consumer          | REST-API mit versionierten Endpunkten                          |
+| **Published Language**    | Upstream → Downstream | Standardisiertes, dokumentiertes Format für den Datenaustausch                                | Event-Schema mit Versionierung (CloudEvents, Avro)             |
+| **Separate Ways**         | Keine Verbindung      | Kontexte haben keine sinnvolle Integration; Eigenentwicklung in beiden                        | Buchhaltung und Marketing ohne gemeinsame Daten                |
+| **Big Ball of Mud**       | Unstrukturiert        | Bestehende chaotische Systeme — abgrenzen, nicht imitieren                                    | Legacy-Monolith ohne klare Grenzen                             |
 
 **Praktischer Tipp:** Nicht alle Muster müssen in einer einzigen Context Map abgebildet werden. Für komplexe Systeme empfehlen sich mehrere spezialisierte Maps mit je einem Fokus (z.B. eine für Datenpropagation, eine für Team-Verantwortlichkeiten).
 
@@ -171,23 +163,23 @@ Event Storming ist eine kollaborative Modellierungsmethode, die von **Alberto Br
 
 **Drei Styles:**
 
-| Style                      | Ziel                                                                              | Teilnehmer                           | Dauer        |
-| -------------------------- | --------------------------------------------------------------------------------- | ------------------------------------ | ------------ |
-| **Big Picture Event Storming** | Gesamten Geschäftsprozess verstehen; Domänengrenzen identifizieren            | Alle Stakeholder                     | 1–2 Tage     |
-| **Process Level Event Storming** | Einzelnen Prozess im Detail modellieren; Bounded Contexts verfeinern        | Domänenexperten + Entwickler         | 4–8 Stunden  |
-| **Design Level Event Storming** | Software-Design ableiten; Aggregate und Commands definieren                  | Entwicklerteam                       | 2–4 Stunden  |
+| Style                            | Ziel                                                                 | Teilnehmer                   | Dauer       |
+| -------------------------------- | -------------------------------------------------------------------- | ---------------------------- | ----------- |
+| **Big Picture Event Storming**   | Gesamten Geschäftsprozess verstehen; Domänengrenzen identifizieren   | Alle Stakeholder             | 1–2 Tage    |
+| **Process Level Event Storming** | Einzelnen Prozess im Detail modellieren; Bounded Contexts verfeinern | Domänenexperten + Entwickler | 4–8 Stunden |
+| **Design Level Event Storming**  | Software-Design ableiten; Aggregate und Commands definieren          | Entwicklerteam               | 2–4 Stunden |
 
 **Klebezettel-Legende (Standard):**
 
-| Farbe           | Element          | Beschreibung                                           |
-| --------------- | ---------------- | ------------------------------------------------------ |
-| 🟧 Orange        | **Domain Event** | Etwas ist passiert: `OrderPlaced`, `PaymentReceived`   |
-| 🟦 Blau          | **Command**      | Auslöser eines Events: `PlaceOrder`, `RegisterPayment` |
-| 🟨 Gelb          | **Actor**        | Wer führt den Command aus: `Kunde`, `System`           |
-| 🟪 Lila          | **Policy**       | Reaktion auf ein Event: „Wenn X dann Y"                |
-| 🟩 Grün          | **Read Model**   | Welche Daten der Actor zum Entscheiden braucht         |
-| 🩷 Pink          | **External System** | Außenstehende Systeme: Zahlungsanbieter, E-Mail     |
-| 🔴 Rot           | **Problem/Frage** | Offene Fragen oder Konflikte                          |
+| Farbe     | Element             | Beschreibung                                           |
+| --------- | ------------------- | ------------------------------------------------------ |
+| 🟧 Orange | **Domain Event**    | Etwas ist passiert: `OrderPlaced`, `PaymentReceived`   |
+| 🟦 Blau   | **Command**         | Auslöser eines Events: `PlaceOrder`, `RegisterPayment` |
+| 🟨 Gelb   | **Actor**           | Wer führt den Command aus: `Kunde`, `System`           |
+| 🟪 Lila   | **Policy**          | Reaktion auf ein Event: „Wenn X dann Y"                |
+| 🟩 Grün   | **Read Model**      | Welche Daten der Actor zum Entscheiden braucht         |
+| 🩷 Pink   | **External System** | Außenstehende Systeme: Zahlungsanbieter, E-Mail        |
+| 🔴 Rot    | **Problem/Frage**   | Offene Fragen oder Konflikte                           |
 
 **Ablauf (Big Picture):**
 
@@ -242,12 +234,12 @@ Ein Value Object hat **keine eigene Identität**. Es wird vollständig durch sei
 
 **Beispiele:**
 
-| Value Object | Attribute                      | Kontext                                |
-| ------------ | ------------------------------ | -------------------------------------- |
-| `OrderItem`  | ProduktID, Name, Preis, Menge  | Eine Zeile in einer Bestellung         |
-| `Money`      | Betrag, Währung                | Geldbeträge als Cent-Integer           |
-| `Address`    | Straße, PLZ, Ort, Land         | Liefer- oder Rechnungsadresse          |
-| `DateRange`  | Von, Bis                       | Zeitraum, z.B. Gültigkeitsdauer        |
+| Value Object | Attribute                     | Kontext                         |
+| ------------ | ----------------------------- | ------------------------------- |
+| `OrderItem`  | ProduktID, Name, Preis, Menge | Eine Zeile in einer Bestellung  |
+| `Money`      | Betrag, Währung               | Geldbeträge als Cent-Integer    |
+| `Address`    | Straße, PLZ, Ort, Land        | Liefer- oder Rechnungsadresse   |
+| `DateRange`  | Von, Bis                      | Zeitraum, z.B. Gültigkeitsdauer |
 
 **Warum sind Geldbeträge Value Objects?**
 
@@ -328,14 +320,14 @@ Ein Domain Event beschreibt etwas, das in der Domäne **passiert ist** — in de
 
 Ein häufiges Missverständnis ist die Unterscheidung zwischen Domain Services und Application Services:
 
-| Aspekt                  | Domain Service                                              | Application Service                                          |
-| ----------------------- | ----------------------------------------------------------- | ------------------------------------------------------------ |
-| **Enthält**             | Geschäftslogik (Was ist erlaubt? Was gilt?)                 | Orchestrierungslogik (Was passiert in welcher Reihenfolge?)  |
-| **Zustand**             | Zustandslos                                                 | Zustandslos                                                  |
-| **Abhängigkeiten**      | Nur Domain-Objekte und Domain-Interfaces                    | Repositories, Domain Services, externe Services              |
-| **Fachsprache**         | Verwendet Ubiquitous Language                               | Verwendet Ubiquitous Language                                |
-| **Beispiele**           | `CalculateOrderTotal`, `ApplyTaxRules`, `ValidateDiscount`  | `PlaceOrderUseCase`, `ProcessPaymentUseCase`                 |
-| **Schicht**             | Domain                                                      | Application                                                  |
+| Aspekt             | Domain Service                                             | Application Service                                         |
+| ------------------ | ---------------------------------------------------------- | ----------------------------------------------------------- |
+| **Enthält**        | Geschäftslogik (Was ist erlaubt? Was gilt?)                | Orchestrierungslogik (Was passiert in welcher Reihenfolge?) |
+| **Zustand**        | Zustandslos                                                | Zustandslos                                                 |
+| **Abhängigkeiten** | Nur Domain-Objekte und Domain-Interfaces                   | Repositories, Domain Services, externe Services             |
+| **Fachsprache**    | Verwendet Ubiquitous Language                              | Verwendet Ubiquitous Language                               |
+| **Beispiele**      | `CalculateOrderTotal`, `ApplyTaxRules`, `ValidateDiscount` | `PlaceOrderUseCase`, `ProcessPaymentUseCase`                |
+| **Schicht**        | Domain                                                     | Application                                                 |
 
 **Entscheidungsregel:** Enthält die Logik **Geschäftsregeln** (Was darf passieren? Was ist der korrekte Wert?)? → Domain Service. Orchestriert sie nur den **Ablauf** (Lade → Verarbeite → Speichere)? → Application Service.
 
@@ -401,12 +393,12 @@ Factories kapseln die **komplexe Erstellung** von Aggregaten und Domain-Objekten
 
 **DDD-Fabrikmuster im Vergleich:**
 
-| Muster                   | Beschreibung                                                         | Beispiel                                           |
-| ------------------------ | -------------------------------------------------------------------- | -------------------------------------------------- |
-| **Factory Method**       | Statische Methode im Aggregat oder Value Object                      | `Order.NewDraftOrder(customerID, items)`           |
-| **Factory Class**        | Eigene Klasse für komplexe Erstellung                                | `OrderFactory.CreateFromCheckout(basket, address)` |
-| **Builder**              | Schrittweise Konfiguration, `Build()` gibt fertiges Objekt zurück    | `NewOrderBuilder().WithItems(...).Build()`         |
-| **Reconstitution**       | Aggregate aus gespeichertem Zustand wiederherstellen (keine Validierung) | `Order.Reconstitute(events)`                   |
+| Muster             | Beschreibung                                                             | Beispiel                                           |
+| ------------------ | ------------------------------------------------------------------------ | -------------------------------------------------- |
+| **Factory Method** | Statische Methode im Aggregat oder Value Object                          | `Order.NewDraftOrder(customerID, items)`           |
+| **Factory Class**  | Eigene Klasse für komplexe Erstellung                                    | `OrderFactory.CreateFromCheckout(basket, address)` |
+| **Builder**        | Schrittweise Konfiguration, `Build()` gibt fertiges Objekt zurück        | `NewOrderBuilder().WithItems(...).Build()`         |
+| **Reconstitution** | Aggregate aus gespeichertem Zustand wiederherstellen (keine Validierung) | `Order.Reconstitute(events)`                       |
 
 **Beispiel (Factory Method in Go):**
 
@@ -487,11 +479,11 @@ Module (oder Packages) strukturieren Bounded Contexts im Code. Das Ziel ist **ho
 
 **Zwei Ansätze im Vergleich:**
 
-| Ansatz                   | Struktur                                         | Stärken                                  | Schwächen                             |
-| ------------------------ | ------------------------------------------------ | ---------------------------------------- | ------------------------------------- |
-| **Package by Layer**     | `controllers/`, `services/`, `repositories/`     | Technische Trennung klar                 | Features über viele Ordner verteilt   |
-| **Package by Feature**   | `order/`, `customer/`, `payment/`                | Bounded Context = Ordner; Features isoliert | Kann zu doppeltem Code führen      |
-| **Package by Component** | Feature-Ordner mit internen Schichten            | Balance aus beiden Ansätzen              | Etwas mehr Struktur erforderlich      |
+| Ansatz                   | Struktur                                     | Stärken                                     | Schwächen                           |
+| ------------------------ | -------------------------------------------- | ------------------------------------------- | ----------------------------------- |
+| **Package by Layer**     | `controllers/`, `services/`, `repositories/` | Technische Trennung klar                    | Features über viele Ordner verteilt |
+| **Package by Feature**   | `order/`, `customer/`, `payment/`            | Bounded Context = Ordner; Features isoliert | Kann zu doppeltem Code führen       |
+| **Package by Component** | Feature-Ordner mit internen Schichten        | Balance aus beiden Ansätzen                 | Etwas mehr Struktur erforderlich    |
 
 **Empfehlung für DDD:** Package by Feature oder Package by Component. Jeder Bounded Context bekommt einen eigenen Top-Level-Ordner:
 
@@ -553,13 +545,13 @@ Microservices-Landschaft
 
 **Vergleich:**
 
-| Aspekt                       | Monolith                              | Microservices                              |
-| ---------------------------- | ------------------------------------- | ------------------------------------------ |
-| **DDD-Eignung**              | ✅ Gut — einfachere Umsetzung         | ✅ Gut — Bounded Contexts als Services     |
-| **Betriebskomplexität**      | Niedrig                               | Hoch (Deployment, Monitoring, Networking)  |
-| **Datenkonsistenz**          | Einfach (shared DB, Transaktionen)    | Schwierig (Eventual Consistency)           |
-| **Team-Skalierung**          | Begrenzt (gemeinsamer Codebase)       | Gut (Teams pro Service)                    |
-| **Empfehlung (Start)**       | ✅ Modularer Monolith                 | Nur wenn Teams und Last es erfordern       |
+| Aspekt                  | Monolith                           | Microservices                             |
+| ----------------------- | ---------------------------------- | ----------------------------------------- |
+| **DDD-Eignung**         | ✅ Gut — einfachere Umsetzung      | ✅ Gut — Bounded Contexts als Services    |
+| **Betriebskomplexität** | Niedrig                            | Hoch (Deployment, Monitoring, Networking) |
+| **Datenkonsistenz**     | Einfach (shared DB, Transaktionen) | Schwierig (Eventual Consistency)          |
+| **Team-Skalierung**     | Begrenzt (gemeinsamer Codebase)    | Gut (Teams pro Service)                   |
+| **Empfehlung (Start)**  | ✅ Modularer Monolith              | Nur wenn Teams und Last es erfordern      |
 
 ### 4.2 DDD mit Event-Sourcing
 
@@ -676,12 +668,12 @@ Ein **Breakthrough** tritt auf, wenn ein tiefes Domänenverständnis das Modell 
 
 **Praktische Empfehlungen:**
 
-| Empfehlung                      | Beschreibung                                                                          |
-| ------------------------------- | ------------------------------------------------------------------------------------- |
-| **Regelmäßige Model-Reviews**   | Monatliche Workshops mit Domänenexperten, um das Modell zu validieren                |
-| **Living Documentation**        | Das Modell in Code (Klassen, Tests) spiegelt die aktuelle Realität wider             |
-| **Ubiquitous Language pflegen** | Neue Begriffe sofort dokumentieren; veraltete Begriffe konsequent umbenennen          |
-| **Event Storming wiederholen**  | Bei größeren Änderungen der Geschäftsprozesse erneutes Event Storming durchführen    |
+| Empfehlung                       | Beschreibung                                                                                  |
+| -------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Regelmäßige Model-Reviews**    | Monatliche Workshops mit Domänenexperten, um das Modell zu validieren                         |
+| **Living Documentation**         | Das Modell in Code (Klassen, Tests) spiegelt die aktuelle Realität wider                      |
+| **Ubiquitous Language pflegen**  | Neue Begriffe sofort dokumentieren; veraltete Begriffe konsequent umbenennen                  |
+| **Event Storming wiederholen**   | Bei größeren Änderungen der Geschäftsprozesse erneutes Event Storming durchführen             |
 | **Anti-Corruption Layer nutzen** | Bei Legacy-Systemintegration verhindern, dass schlechte Modelle die Core Domain verunreinigen |
 
 ### 5.4 Bounded Context Evolution
@@ -732,17 +724,17 @@ Mit wachsender Systemgröße können sich Bounded Contexts aufteilen, zusammenwa
 
 ### Entscheidungsmatrix
 
-| Kriterium                    | Einfaches CRUD              | DDD sinnvoll                        |
-| ---------------------------- | --------------------------- | ----------------------------------- |
-| Geschäftsregeln              | Wenige, offensichtlich      | Komplex, sich entwickelnd           |
-| Datenmodell                  | 1:1 mit DB-Schema           | Abweichend von DB-Schema            |
-| Team-Kommunikation           | Technisch geprägt           | Fachlich geprägt                    |
-| Änderungsrate Fachlogik      | Niedrig                     | Hoch                                |
-| Audit/Compliance             | Nicht relevant              | Kritisch                            |
-| Persistenzmuster             | Standard CRUD               | Event-Sourcing, CQRS                |
-| Domain-Experten verfügbar    | Nein / nicht nötig          | Ja und involviert                   |
-| Teamgröße                    | 1–3 Entwickler              | 5+ Entwickler, mehrere Teams        |
-| Systemlebensdauer            | Kurz (Wegwerfprojekt)       | Lang (strategisches System)         |
+| Kriterium                 | Einfaches CRUD         | DDD sinnvoll                 |
+| ------------------------- | ---------------------- | ---------------------------- |
+| Geschäftsregeln           | Wenige, offensichtlich | Komplex, sich entwickelnd    |
+| Datenmodell               | 1:1 mit DB-Schema      | Abweichend von DB-Schema     |
+| Team-Kommunikation        | Technisch geprägt      | Fachlich geprägt             |
+| Änderungsrate Fachlogik   | Niedrig                | Hoch                         |
+| Audit/Compliance          | Nicht relevant         | Kritisch                     |
+| Persistenzmuster          | Standard CRUD          | Event-Sourcing, CQRS         |
+| Domain-Experten verfügbar | Nein / nicht nötig     | Ja und involviert            |
+| Teamgröße                 | 1–3 Entwickler         | 5+ Entwickler, mehrere Teams |
+| Systemlebensdauer         | Kurz (Wegwerfprojekt)  | Lang (strategisches System)  |
 
 **Entscheidungsfluss:**
 
@@ -760,7 +752,7 @@ Ist die Domäne komplex (viele Geschäftsregeln)?
 
 **Faustregel:** DDD dort einsetzen, wo die Geschäftslogik die Persistenzlogik an Komplexität übersteigt.
 
-### Wann DDD *nicht* sinnvoll ist
+### Wann DDD _nicht_ sinnvoll ist
 
 - **Admin-Panels und CRUD-Backends:** Einfache Datenverwaltung ohne Businessregeln
 - **Reporting-Services:** Primär Read-Only, keine Domain-Logik

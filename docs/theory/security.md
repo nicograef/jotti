@@ -2,13 +2,6 @@
 
 Dieses Dokument ist ein theoretisches Nachschlagewerk für Web-Application-Security. Es erklärt Authentifizierungs- und Autorisierungspatterns, Passwort-Sicherheit, die OWASP Top 10, API- und Frontend-Security, Secrets Management, TLS und Security Testing. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#12-appendix-anwendungsbeispiel-jotti).
 
-> **Verwandte Dokumente:**
->
-> - [Go Backend Architektur](go-backend.md) — Middleware, Fehlerbehandlung, Schichtenarchitektur
-> - [React Frontend Architektur](react-frontend.md) — Token-Handling, State-Management
-> - [DDD Theorie](ddd.md) — Domain-Modellierung, Bounded Contexts
-> - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
-
 ---
 
 ## Inhaltsverzeichnis
@@ -46,13 +39,13 @@ Das klassische Modell betrachtet Security als „Afterthought" — man baut die 
 
 ```
 ┌──────────────────────────────────────────┐
-│  Anwendungsschicht (Input Validation,     │
+│  Anwendungsschicht (Input Validation,    │
 │  Auth, AuthZ, Business Logic Security)   │
 ├──────────────────────────────────────────┤
-│  API-Schicht (Rate Limiting, CORS,        │
+│  API-Schicht (Rate Limiting, CORS,       │
 │  Security Headers, TLS)                  │
 ├──────────────────────────────────────────┤
-│  Infrastruktur (Firewall, VPN,            │
+│  Infrastruktur (Firewall, VPN,           │
 │  Netzwerk-Segmentierung)                 │
 ├──────────────────────────────────────────┤
 │  Betriebssystem & Container              │
@@ -64,14 +57,14 @@ Das klassische Modell betrachtet Security als „Afterthought" — man baut die 
 
 Threat Modeling ist der strukturierte Prozess, potenzielle Bedrohungen frühzeitig zu identifizieren. Das **STRIDE-Modell** kategorisiert Bedrohungen nach sechs Typen:
 
-| Buchstabe | Bedrohung                  | Beschreibung                                               | Gegenmittel                              |
-| --------- | -------------------------- | ---------------------------------------------------------- | ---------------------------------------- |
-| **S**     | Spoofing                   | Vortäuschen einer anderen Identität                        | Authentifizierung, MFA                   |
-| **T**     | Tampering                  | Manipulation von Daten in Transit oder at Rest             | Integritätsprüfung, HMAC, TLS            |
-| **R**     | Repudiation                | Abstreiten einer Handlung ohne Nachweis                    | Audit Logging, digitale Signaturen       |
-| **I**     | Information Disclosure     | Unberechtigter Zugriff auf vertrauliche Daten              | Verschlüsselung, Access Control          |
-| **D**     | Denial of Service          | Störung der Verfügbarkeit                                  | Rate Limiting, WAF, Auto-Scaling         |
-| **E**     | Elevation of Privilege     | Unberechtiger Zugewinn höherer Rechte                      | Least Privilege, RBAC, Input Validation  |
+| Buchstabe | Bedrohung              | Beschreibung                                   | Gegenmittel                             |
+| --------- | ---------------------- | ---------------------------------------------- | --------------------------------------- |
+| **S**     | Spoofing               | Vortäuschen einer anderen Identität            | Authentifizierung, MFA                  |
+| **T**     | Tampering              | Manipulation von Daten in Transit oder at Rest | Integritätsprüfung, HMAC, TLS           |
+| **R**     | Repudiation            | Abstreiten einer Handlung ohne Nachweis        | Audit Logging, digitale Signaturen      |
+| **I**     | Information Disclosure | Unberechtigter Zugriff auf vertrauliche Daten  | Verschlüsselung, Access Control         |
+| **D**     | Denial of Service      | Störung der Verfügbarkeit                      | Rate Limiting, WAF, Auto-Scaling        |
+| **E**     | Elevation of Privilege | Unberechtiger Zugewinn höherer Rechte          | Least Privilege, RBAC, Input Validation |
 
 **STRIDE-Prozess:**
 
@@ -112,12 +105,12 @@ Client                    Server
 
 **Charakteristika:**
 
-| Aspekt           | Beschreibung                                                              |
-| ---------------- | ------------------------------------------------------------------------- |
-| **Stateful**     | Server speichert Session-State (DB, Redis, In-Memory)                     |
-| **Revozierbar**  | Session kann serverseitig sofort ungültig gemacht werden                  |
-| **Skalierung**   | Sticky Sessions oder zentraler Session-Store (Redis) nötig                |
-| **Cookies**      | httpOnly + Secure + SameSite=Strict empfohlen                             |
+| Aspekt          | Beschreibung                                               |
+| --------------- | ---------------------------------------------------------- |
+| **Stateful**    | Server speichert Session-State (DB, Redis, In-Memory)      |
+| **Revozierbar** | Session kann serverseitig sofort ungültig gemacht werden   |
+| **Skalierung**  | Sticky Sessions oder zentraler Session-Store (Redis) nötig |
+| **Cookies**     | httpOnly + Secure + SameSite=Strict empfohlen              |
 
 **Schwächen:** Session-Hijacking (wenn Cookie gestohlen), CSRF (Cookie wird automatisch mitgesendet), horizontale Skalierung erfordert Session-Sharing.
 
@@ -139,11 +132,11 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9   ← Header (Base64url)
 
 **HS256 vs. RS256:**
 
-| Algorithmus | Signierung          | Verifikation        | Wann sinnvoll                                   |
-| ----------- | ------------------- | ------------------- | ----------------------------------------------- |
-| **HS256**   | Shared Secret (HMAC)| Shared Secret       | Monolith, alle Services kennen das Secret       |
-| **RS256**   | Private Key (RSA)   | Public Key          | Microservices, externe Token-Validierung        |
-| **ES256**   | Private Key (ECDSA) | Public Key          | Wie RS256, kleinere Schlüssel                   |
+| Algorithmus | Signierung           | Verifikation  | Wann sinnvoll                             |
+| ----------- | -------------------- | ------------- | ----------------------------------------- |
+| **HS256**   | Shared Secret (HMAC) | Shared Secret | Monolith, alle Services kennen das Secret |
+| **RS256**   | Private Key (RSA)    | Public Key    | Microservices, externe Token-Validierung  |
+| **ES256**   | Private Key (ECDSA)  | Public Key    | Wie RS256, kleinere Schlüssel             |
 
 **Access + Refresh Token Pattern:**
 
@@ -199,11 +192,11 @@ Browser          Auth-Server         Resource-Server
 
 **Tokens in OIDC:**
 
-| Token           | Format   | Inhalt                                          | Verwendung                    |
-| --------------- | -------- | ----------------------------------------------- | ----------------------------- |
-| **Access Token**| JWT/Opaque| Berechtigungen (Scopes)                         | API-Zugriff                   |
-| **ID Token**    | JWT      | Nutzeridentität (sub, email, name)              | Authentifizierungs-Nachweis   |
-| **Refresh Token**| Opaque  | Token-Erneuerung                                | Neues Access Token holen      |
+| Token             | Format     | Inhalt                             | Verwendung                  |
+| ----------------- | ---------- | ---------------------------------- | --------------------------- |
+| **Access Token**  | JWT/Opaque | Berechtigungen (Scopes)            | API-Zugriff                 |
+| **ID Token**      | JWT        | Nutzeridentität (sub, email, name) | Authentifizierungs-Nachweis |
+| **Refresh Token** | Opaque     | Token-Erneuerung                   | Neues Access Token holen    |
 
 ### 2.4 API Keys
 
@@ -290,11 +283,11 @@ Check (Anfrage):
 
 **Open-Source-Implementierungen:**
 
-| Tool        | Beschreibung                              | Verwendungskontext                    |
-| ----------- | ----------------------------------------- | ------------------------------------- |
-| **OpenFGA** | Open-Source Zanzibar, von Auth0/Okta      | Google Docs-ähnliche Sharing-Modelle  |
-| **SpiceDB** | Zanzibar-Implementierung von Authzed      | Konsistente, globale Autorisierung    |
-| **Ory Keto**| Permission Service nach Zanzibar          | Microservices-Autorisierung           |
+| Tool         | Beschreibung                         | Verwendungskontext                   |
+| ------------ | ------------------------------------ | ------------------------------------ |
+| **OpenFGA**  | Open-Source Zanzibar, von Auth0/Okta | Google Docs-ähnliche Sharing-Modelle |
+| **SpiceDB**  | Zanzibar-Implementierung von Authzed | Konsistente, globale Autorisierung   |
+| **Ory Keto** | Permission Service nach Zanzibar     | Microservices-Autorisierung          |
 
 **Wann ReBAC:** Kollaborationsplattformen, Dokument-Sharing, Multi-Tenant-Systeme, komplexe Ressourcen-Hierarchien.
 
@@ -337,22 +330,22 @@ Passwörter müssen **gehasht**, nicht verschlüsselt werden. Hashing ist eine E
 
 **Empfehlung (OWASP Password Storage Cheat Sheet):**
 
-| Priorität | Algorithmus  | Minimale Parameter                                          | Wann wählen                                |
-| --------- | ------------ | ----------------------------------------------------------- | ------------------------------------------ |
-| ✅ 1.     | **Argon2id** | 19 MiB Memory, 2 Iterationen, 1 Parallelismus-Grad         | Standard-Empfehlung (Memory-Hard)          |
-| ✅ 2.     | **scrypt**   | CPU/Memory-Cost ≥ 2^17, Block-Size 8, Parallelismus 1      | Wenn Argon2id nicht verfügbar              |
-| ✅ 3.     | **bcrypt**   | Work Factor ≥ 10, Passwort-Limit 72 Bytes beachten         | Legacy-Systeme, breite Framework-Unterstützung |
-| ✅ 4.     | **PBKDF2**   | HMAC-SHA-256, ≥ 600.000 Iterationen                         | FIPS-140-Compliance erforderlich           |
-| ❌        | MD5, SHA-1   | —                                                           | Nie für Passwörter — zu schnell            |
-| ❌        | SHA-256/512  | —                                                           | Nie für Passwörter ohne Work Factor        |
+| Priorität | Algorithmus  | Minimale Parameter                                    | Wann wählen                                    |
+| --------- | ------------ | ----------------------------------------------------- | ---------------------------------------------- |
+| ✅ 1.     | **Argon2id** | 19 MiB Memory, 2 Iterationen, 1 Parallelismus-Grad    | Standard-Empfehlung (Memory-Hard)              |
+| ✅ 2.     | **scrypt**   | CPU/Memory-Cost ≥ 2^17, Block-Size 8, Parallelismus 1 | Wenn Argon2id nicht verfügbar                  |
+| ✅ 3.     | **bcrypt**   | Work Factor ≥ 10, Passwort-Limit 72 Bytes beachten    | Legacy-Systeme, breite Framework-Unterstützung |
+| ✅ 4.     | **PBKDF2**   | HMAC-SHA-256, ≥ 600.000 Iterationen                   | FIPS-140-Compliance erforderlich               |
+| ❌        | MD5, SHA-1   | —                                                     | Nie für Passwörter — zu schnell                |
+| ❌        | SHA-256/512  | —                                                     | Nie für Passwörter ohne Work Factor            |
 
 **Argon2-Varianten:**
 
-| Variante     | Schutz gegen           | Empfehlung        |
-| ------------ | ---------------------- | ----------------- |
-| Argon2d      | GPU-Angriffe           | Für Kryptowährungen |
-| Argon2i      | Side-Channel-Angriffe  | Für Passwort-Hashing in einigen Kontexten |
-| **Argon2id** | Beide                  | **Standard-Empfehlung** |
+| Variante     | Schutz gegen          | Empfehlung                                |
+| ------------ | --------------------- | ----------------------------------------- |
+| Argon2d      | GPU-Angriffe          | Für Kryptowährungen                       |
+| Argon2i      | Side-Channel-Angriffe | Für Passwort-Hashing in einigen Kontexten |
+| **Argon2id** | Beide                 | **Standard-Empfehlung**                   |
 
 ### 4.3 Salting & Peppering
 
@@ -436,14 +429,14 @@ SELECT * FROM users WHERE username = $1
 
 **Security Headers-Checkliste:**
 
-| Header                          | Zweck                                              |
-| ------------------------------- | -------------------------------------------------- |
-| `Strict-Transport-Security`     | Erzwingt HTTPS (HSTS)                              |
-| `Content-Security-Policy`       | Verhindert XSS, steuert erlaubte Quellen           |
-| `X-Content-Type-Options: nosniff` | Verhindert MIME-Sniffing                          |
-| `X-Frame-Options: DENY`         | Verhindert Clickjacking                            |
-| `Referrer-Policy`               | Steuert Referrer-Header                            |
-| `Permissions-Policy`            | Beschränkt Browser-APIs (Kamera, Mikrofon, etc.)   |
+| Header                            | Zweck                                            |
+| --------------------------------- | ------------------------------------------------ |
+| `Strict-Transport-Security`       | Erzwingt HTTPS (HSTS)                            |
+| `Content-Security-Policy`         | Verhindert XSS, steuert erlaubte Quellen         |
+| `X-Content-Type-Options: nosniff` | Verhindert MIME-Sniffing                         |
+| `X-Frame-Options: DENY`           | Verhindert Clickjacking                          |
+| `Referrer-Policy`                 | Steuert Referrer-Header                          |
+| `Permissions-Policy`              | Beschränkt Browser-APIs (Kamera, Mikrofon, etc.) |
 
 ### A06 — Vulnerable and Outdated Components
 
@@ -513,13 +506,13 @@ CORS ist ein Browser-Sicherheitsmechanismus basierend auf der **Same-Origin-Poli
 
 **CORS-Header:**
 
-| Header                             | Bedeutung                                              |
-| ---------------------------------- | ------------------------------------------------------ |
-| `Access-Control-Allow-Origin`      | Erlaubte Origins (nie `*` für authentifizierte APIs!)  |
-| `Access-Control-Allow-Methods`     | Erlaubte HTTP-Methoden                                 |
-| `Access-Control-Allow-Headers`     | Erlaubte Request-Header                                |
-| `Access-Control-Allow-Credentials` | Ob Cookies mitgesendet werden dürfen (`true`)          |
-| `Access-Control-Max-Age`           | Wie lange Preflight-Ergebnis gecacht werden darf       |
+| Header                             | Bedeutung                                             |
+| ---------------------------------- | ----------------------------------------------------- |
+| `Access-Control-Allow-Origin`      | Erlaubte Origins (nie `*` für authentifizierte APIs!) |
+| `Access-Control-Allow-Methods`     | Erlaubte HTTP-Methoden                                |
+| `Access-Control-Allow-Headers`     | Erlaubte Request-Header                               |
+| `Access-Control-Allow-Credentials` | Ob Cookies mitgesendet werden dürfen (`true`)         |
+| `Access-Control-Max-Age`           | Wie lange Preflight-Ergebnis gecacht werden darf      |
 
 **Sicherheitsregel:** Wenn `Allow-Credentials: true` gesetzt wird, darf `Allow-Origin` **nicht** `*` sein. Mit `*` und Credentials werden alle Cookies und Auth-Headers exponiert.
 
@@ -529,12 +522,12 @@ CSRF nutzt aus, dass Browser Cookies automatisch mitsenden. Eine bösartige Webs
 
 **Schutzmaßnahmen:**
 
-| Methode                 | Beschreibung                                                               | Wann sinnvoll                         |
-| ----------------------- | -------------------------------------------------------------------------- | ------------------------------------- |
-| **SameSite Cookies**    | `SameSite=Strict` oder `Lax` — Browser sendet Cookie nicht bei CSRF       | Einfachste, modernste Lösung          |
-| **CSRF-Token**          | Server erzeugt zufälliges Token, das im Request-Body mitgesendet wird      | Wenn SameSite nicht ausreicht         |
-| **Double Submit Cookie**| CSRF-Token als Cookie + Request-Header — beide müssen übereinstimmen       | Stateless CSRF-Schutz                 |
-| **Origin-Header prüfen**| Server prüft `Origin` oder `Referer` Header                               | Ergänzende Maßnahme                   |
+| Methode                  | Beschreibung                                                          | Wann sinnvoll                 |
+| ------------------------ | --------------------------------------------------------------------- | ----------------------------- |
+| **SameSite Cookies**     | `SameSite=Strict` oder `Lax` — Browser sendet Cookie nicht bei CSRF   | Einfachste, modernste Lösung  |
+| **CSRF-Token**           | Server erzeugt zufälliges Token, das im Request-Body mitgesendet wird | Wenn SameSite nicht ausreicht |
+| **Double Submit Cookie** | CSRF-Token als Cookie + Request-Header — beide müssen übereinstimmen  | Stateless CSRF-Schutz         |
+| **Origin-Header prüfen** | Server prüft `Origin` oder `Referer` Header                           | Ergänzende Maßnahme           |
 
 **Wichtig:** Token-basierte APIs (JWT im `Authorization`-Header, nicht als Cookie) sind von CSRF nicht betroffen, weil Browser den `Authorization`-Header nicht automatisch setzen.
 
@@ -544,12 +537,12 @@ Rate Limiting schützt vor Brute-Force-Angriffen, Credential Stuffing und DoS.
 
 **Strategien:**
 
-| Strategie              | Beschreibung                                                              |
-| ---------------------- | ------------------------------------------------------------------------- |
-| **Fixed Window**       | X Requests pro Zeitfenster (z.B. 100 req/min)                            |
-| **Sliding Window**     | Wie Fixed, aber rollierende Berechnung — gleichmäßigerer Schutz           |
-| **Token Bucket**       | Token werden kontinuierlich hinzugefügt, jeder Request verbraucht einen  |
-| **Leaky Bucket**       | Requests werden in gleichmäßigem Tempo verarbeitet                       |
+| Strategie          | Beschreibung                                                            |
+| ------------------ | ----------------------------------------------------------------------- |
+| **Fixed Window**   | X Requests pro Zeitfenster (z.B. 100 req/min)                           |
+| **Sliding Window** | Wie Fixed, aber rollierende Berechnung — gleichmäßigerer Schutz         |
+| **Token Bucket**   | Token werden kontinuierlich hinzugefügt, jeder Request verbraucht einen |
+| **Leaky Bucket**   | Requests werden in gleichmäßigem Tempo verarbeitet                      |
 
 **Granularität:** Nach IP, nach Nutzer-ID, nach API-Key, nach Endpoint-Typ (Login-Endpoints strenger als normale APIs).
 
@@ -563,11 +556,11 @@ XSS-Angriffe injizieren ausführbares JavaScript in eine Webseite, das im Browse
 
 **Typen:**
 
-| Typ                   | Beschreibung                                                        |
-| --------------------- | ------------------------------------------------------------------- |
-| **Reflected XSS**     | Script im Request, direkt in Response gespiegelt                    |
-| **Stored XSS**        | Script in Datenbank gespeichert, bei jedem Seitenaufruf ausgeführt  |
-| **DOM-based XSS**     | Manipulation des DOM durch JavaScript ohne Server-Beteiligung       |
+| Typ               | Beschreibung                                                       |
+| ----------------- | ------------------------------------------------------------------ |
+| **Reflected XSS** | Script im Request, direkt in Response gespiegelt                   |
+| **Stored XSS**    | Script in Datenbank gespeichert, bei jedem Seitenaufruf ausgeführt |
+| **DOM-based XSS** | Manipulation des DOM durch JavaScript ohne Server-Beteiligung      |
 
 **React und XSS:** React escapt Output standardmäßig beim Rendern von JSX. `{userInput}` wird sicher gerendert. Risiko entsteht nur durch `dangerouslySetInnerHTML` — explizit benannt als Warnung.
 
@@ -590,12 +583,12 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'
 
 Wo Tokens im Browser gespeichert werden, hat erhebliche Security-Implikationen:
 
-| Speicherort         | XSS-Schutz  | CSRF-Schutz | Persistenz   | Empfehlung                            |
-| ------------------- | ----------- | ----------- | ------------ | ------------------------------------- |
-| **httpOnly Cookie** | ✅ Ja       | ⚠️ Nein (→ SameSite) | ✅ Ja | Beste Option mit `SameSite=Strict` + `Secure` |
-| **localStorage**    | ❌ Nein     | ✅ Ja       | ✅ Ja        | Vermeiden für Auth-Tokens             |
-| **sessionStorage**  | ❌ Nein     | ✅ Ja       | Tab-Session  | Besser als localStorage, aber noch XSS-anfällig |
-| **Memory (JS-Var)** | ✅ Ja       | ✅ Ja       | ❌ Nein      | Sicherste Option, aber kein Page Reload |
+| Speicherort         | XSS-Schutz | CSRF-Schutz          | Persistenz  | Empfehlung                                      |
+| ------------------- | ---------- | -------------------- | ----------- | ----------------------------------------------- |
+| **httpOnly Cookie** | ✅ Ja      | ⚠️ Nein (→ SameSite) | ✅ Ja       | Beste Option mit `SameSite=Strict` + `Secure`   |
+| **localStorage**    | ❌ Nein    | ✅ Ja                | ✅ Ja       | Vermeiden für Auth-Tokens                       |
+| **sessionStorage**  | ❌ Nein    | ✅ Ja                | Tab-Session | Besser als localStorage, aber noch XSS-anfällig |
+| **Memory (JS-Var)** | ✅ Ja      | ✅ Ja                | ❌ Nein     | Sicherste Option, aber kein Page Reload         |
 
 **Empfehlung:** httpOnly Cookie mit `SameSite=Strict`, `Secure` und CSRF-Schutz.
 
@@ -635,13 +628,13 @@ Das [12-Factor App](https://12factor.net/config)-Prinzip besagt: Konfiguration (
 
 ### 8.3 Secrets Management Tools
 
-| Tool                  | Beschreibung                                           | Wann sinnvoll                              |
-| --------------------- | ------------------------------------------------------ | ------------------------------------------ |
-| **HashiCorp Vault**   | Enterprise Secret Store, Dynamic Secrets, Audit Logs  | Komplexe Infrastruktur, viele Services     |
-| **SOPS**              | Verschlüsselte Secret-Dateien im Git (KMS/PGP/Age)    | GitOps-Workflows, kleinere Teams           |
-| **Sealed Secrets**    | Kubernetes-nativer Ansatz, verschlüsselte Secrets im Cluster | Kubernetes-Deployments                |
-| **AWS Secrets Manager / Parameter Store** | Cloud-nativer Secret Store          | AWS-Umgebungen                             |
-| **1Password Secrets Automation** | API-basierter Zugriff auf 1Password Vaults | Teams die 1Password bereits nutzen    |
+| Tool                                      | Beschreibung                                                 | Wann sinnvoll                          |
+| ----------------------------------------- | ------------------------------------------------------------ | -------------------------------------- |
+| **HashiCorp Vault**                       | Enterprise Secret Store, Dynamic Secrets, Audit Logs         | Komplexe Infrastruktur, viele Services |
+| **SOPS**                                  | Verschlüsselte Secret-Dateien im Git (KMS/PGP/Age)           | GitOps-Workflows, kleinere Teams       |
+| **Sealed Secrets**                        | Kubernetes-nativer Ansatz, verschlüsselte Secrets im Cluster | Kubernetes-Deployments                 |
+| **AWS Secrets Manager / Parameter Store** | Cloud-nativer Secret Store                                   | AWS-Umgebungen                         |
+| **1Password Secrets Automation**          | API-basierter Zugriff auf 1Password Vaults                   | Teams die 1Password bereits nutzen     |
 
 ### 8.4 Secret Scanning in CI/CD
 
@@ -681,21 +674,21 @@ Client                        Server
 
 **TLS-Versionen:**
 
-| Version | Status         | Anmerkung                                              |
-| ------- | -------------- | ------------------------------------------------------ |
-| TLS 1.0 | ❌ Deprecated  | Anfällig für BEAST, POODLE — nicht mehr verwenden      |
-| TLS 1.1 | ❌ Deprecated  | Ebenfalls veraltet                                     |
-| TLS 1.2 | ⚠️ Akzeptabel  | Noch weit verbreitet, sichere Cipher-Suites nötig      |
-| TLS 1.3 | ✅ Empfohlen   | Schneller Handshake, Forward Secrecy standardmäßig     |
+| Version | Status        | Anmerkung                                          |
+| ------- | ------------- | -------------------------------------------------- |
+| TLS 1.0 | ❌ Deprecated | Anfällig für BEAST, POODLE — nicht mehr verwenden  |
+| TLS 1.1 | ❌ Deprecated | Ebenfalls veraltet                                 |
+| TLS 1.2 | ⚠️ Akzeptabel | Noch weit verbreitet, sichere Cipher-Suites nötig  |
+| TLS 1.3 | ✅ Empfohlen  | Schneller Handshake, Forward Secrecy standardmäßig |
 
 ### 9.2 Zertifikat-Typen
 
-| Typ                     | Validierungstiefe     | Ausstellzeit   | Wann sinnvoll                          |
-| ----------------------- | --------------------- | -------------- | -------------------------------------- |
-| **DV (Domain Validated)**| Domainbesitz          | Minuten-Stunden| Meiste Webanwendungen, Entwicklung     |
-| **OV (Organization Validated)** | Organisation  | Tage           | Unternehmens-Websites                  |
-| **EV (Extended Validated)**| Ausführliche Prüfung | Wochen         | Banken, E-Commerce (Grüner Browser-Balken obsolet) |
-| **Wildcard**            | Domain + alle Subdomains | Minuten (LE) | Viele Subdomains                     |
+| Typ                             | Validierungstiefe        | Ausstellzeit    | Wann sinnvoll                                      |
+| ------------------------------- | ------------------------ | --------------- | -------------------------------------------------- |
+| **DV (Domain Validated)**       | Domainbesitz             | Minuten-Stunden | Meiste Webanwendungen, Entwicklung                 |
+| **OV (Organization Validated)** | Organisation             | Tage            | Unternehmens-Websites                              |
+| **EV (Extended Validated)**     | Ausführliche Prüfung     | Wochen          | Banken, E-Commerce (Grüner Browser-Balken obsolet) |
+| **Wildcard**                    | Domain + alle Subdomains | Minuten (LE)    | Viele Subdomains                                   |
 
 ### 9.3 Let's Encrypt & ACME
 
@@ -703,11 +696,11 @@ Let's Encrypt ist eine kostenlose Certificate Authority (CA), die DV-Zertifikate
 
 **Zertifikat-Herausforderungen:**
 
-| Challenge-Typ   | Beschreibung                                          | Wann geeignet                           |
-| --------------- | ----------------------------------------------------- | --------------------------------------- |
-| **HTTP-01**     | Datei unter `/.well-known/acme-challenge/` bereitstellen | Standard, einfach                   |
-| **DNS-01**      | TXT-Record in DNS setzen                              | Wildcard-Zertifikate, kein HTTP-Port 80 |
-| **TLS-ALPN-01** | Spezielle TLS-Verbindung                             | Wenn nur Port 443 verfügbar             |
+| Challenge-Typ   | Beschreibung                                             | Wann geeignet                           |
+| --------------- | -------------------------------------------------------- | --------------------------------------- |
+| **HTTP-01**     | Datei unter `/.well-known/acme-challenge/` bereitstellen | Standard, einfach                       |
+| **DNS-01**      | TXT-Record in DNS setzen                                 | Wildcard-Zertifikate, kein HTTP-Port 80 |
+| **TLS-ALPN-01** | Spezielle TLS-Verbindung                                 | Wenn nur Port 443 verfügbar             |
 
 **Automatische Erneuerung:** Let's Encrypt-Zertifikate sind 90 Tage gültig. Certbot, Traefik, Caddy und nginx mit Plugins erneuern automatisch.
 
@@ -733,12 +726,12 @@ SAST analysiert den **Quellcode** auf Sicherheitslücken ohne die Anwendung ausz
 
 **Tools:**
 
-| Tool            | Sprachen               | Beschreibung                                |
-| --------------- | ---------------------- | ------------------------------------------- |
-| **CodeQL**      | Go, JS, Java, Python   | GitHub-native, semantische Analyse          |
-| **Semgrep**     | Viele Sprachen         | Pattern-basiert, anpassbare Regeln          |
-| **gosec**       | Go                     | Go-spezifische Sicherheitsregeln            |
-| **ESLint (security plugins)** | TypeScript | Plugin-basiert, XSS, eval-Erkennung       |
+| Tool                          | Sprachen             | Beschreibung                        |
+| ----------------------------- | -------------------- | ----------------------------------- |
+| **CodeQL**                    | Go, JS, Java, Python | GitHub-native, semantische Analyse  |
+| **Semgrep**                   | Viele Sprachen       | Pattern-basiert, anpassbare Regeln  |
+| **gosec**                     | Go                   | Go-spezifische Sicherheitsregeln    |
+| **ESLint (security plugins)** | TypeScript           | Plugin-basiert, XSS, eval-Erkennung |
 
 **Integration:** SAST sollte in der CI/CD-Pipeline als eigener Job laufen und bei neuen Findings den Build blockieren (oder PR-Review erzwingen).
 
@@ -748,11 +741,11 @@ DAST testet die **laufende Anwendung** von außen — wie ein Angreifer.
 
 **Tools:**
 
-| Tool           | Typ           | Beschreibung                                           |
-| -------------- | ------------- | ------------------------------------------------------ |
-| **OWASP ZAP**  | Open Source   | Automatisierter Web-Scanner, Proxy-Modus               |
-| **Burp Suite** | Commercial    | Mächtiges Penetration-Testing-Tool                    |
-| **Nikto**      | Open Source   | Schneller Web-Server-Scanner                           |
+| Tool           | Typ         | Beschreibung                             |
+| -------------- | ----------- | ---------------------------------------- |
+| **OWASP ZAP**  | Open Source | Automatisierter Web-Scanner, Proxy-Modus |
+| **Burp Suite** | Commercial  | Mächtiges Penetration-Testing-Tool       |
+| **Nikto**      | Open Source | Schneller Web-Server-Scanner             |
 
 **Einsatz:** In einer Test-/Staging-Umgebung nach jedem Deployment ausführen. DAST findet Lücken, die SAST übersieht (Konfigurationsfehler, Runtime-Verhalten).
 
@@ -762,13 +755,13 @@ Bibliotheken und Dependencies enthalten bekannte Schwachstellen (CVEs). Dependen
 
 **Tools:**
 
-| Tool            | Ökosystem         | Integration                           |
-| --------------- | ----------------- | ------------------------------------- |
-| **Dependabot**  | npm, Go, pip, etc.| GitHub-native, automatische PRs       |
-| **Snyk**        | Viele             | CI/CD + IDE + Container               |
-| **Trivy**       | Container, IaC    | Aqua Security, sehr schnell           |
-| **govulncheck** | Go                | Offizielles Go Vulnerability Tool     |
-| **npm audit**   | Node.js           | In npm eingebaut                      |
+| Tool            | Ökosystem          | Integration                       |
+| --------------- | ------------------ | --------------------------------- |
+| **Dependabot**  | npm, Go, pip, etc. | GitHub-native, automatische PRs   |
+| **Snyk**        | Viele              | CI/CD + IDE + Container           |
+| **Trivy**       | Container, IaC     | Aqua Security, sehr schnell       |
+| **govulncheck** | Go                 | Offizielles Go Vulnerability Tool |
+| **npm audit**   | Node.js            | In npm eingebaut                  |
 
 ### 10.4 Penetration Testing
 
@@ -788,24 +781,24 @@ Penetration Testing ist der manuelle oder semi-automatische Versuch, eine Anwend
 
 ## 11. Entscheidungsmatrix: Auth-Pattern nach Anwendungsfall
 
-| Anwendungsfall                      | Empfehlung                  | Begründung                                                    |
-| ----------------------------------- | --------------------------- | ------------------------------------------------------------- |
-| **Klassische Web-App (SSR)**        | Session + httpOnly Cookie   | Server-State einfach, gutes CSRF-Schutzpotenzial              |
-| **SPA (React, Vue, Angular)**       | JWT (Access + Refresh Token) oder httpOnly Cookie | Stateless Backend; JWT im httpOnly Cookie empfohlen |
-| **Mobile App (iOS, Android)**       | OAuth2 PKCE + Token-Rotation | Keine Cookies, sichere Token-Speicherung im Keychain/Keystore |
-| **API (M2M, keine Nutzer)**         | API Keys oder Client Credentials Flow | Kein interaktiver Login nötig                       |
-| **Multi-Tenant SaaS**               | OIDC (externe IdP-Integration) | Delegierung an IdP, SSO für Enterprise-Kunden              |
-| **Kritische interne Apps (Admin)** | OIDC + MFA erzwingen        | Höchste Sicherheitsanforderungen, SSO-Integration             |
-| **Non-Profit / Vereinssoftware**    | JWT HS256, einfache RBAC    | Einfachheit über Komplexität; keine externe IdP-Abhängigkeit  |
+| Anwendungsfall                     | Empfehlung                                        | Begründung                                                    |
+| ---------------------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
+| **Klassische Web-App (SSR)**       | Session + httpOnly Cookie                         | Server-State einfach, gutes CSRF-Schutzpotenzial              |
+| **SPA (React, Vue, Angular)**      | JWT (Access + Refresh Token) oder httpOnly Cookie | Stateless Backend; JWT im httpOnly Cookie empfohlen           |
+| **Mobile App (iOS, Android)**      | OAuth2 PKCE + Token-Rotation                      | Keine Cookies, sichere Token-Speicherung im Keychain/Keystore |
+| **API (M2M, keine Nutzer)**        | API Keys oder Client Credentials Flow             | Kein interaktiver Login nötig                                 |
+| **Multi-Tenant SaaS**              | OIDC (externe IdP-Integration)                    | Delegierung an IdP, SSO für Enterprise-Kunden                 |
+| **Kritische interne Apps (Admin)** | OIDC + MFA erzwingen                              | Höchste Sicherheitsanforderungen, SSO-Integration             |
+| **Non-Profit / Vereinssoftware**   | JWT HS256, einfache RBAC                          | Einfachheit über Komplexität; keine externe IdP-Abhängigkeit  |
 
 **Zusätzliche Kriterien:**
 
-| Kriterium                  | Session                      | JWT                          | OIDC                           |
-| -------------------------- | ---------------------------- | ---------------------------- | ------------------------------ |
-| **Skalierung**             | Session-Store nötig          | Stateless — einfach          | Abhängig vom IdP               |
-| **Revokierung**            | Sofort möglich               | Erst bei Token-Ablauf (→ kurze Laufzeit) | Token Introspection möglich |
-| **Implementierungsaufwand**| Gering                       | Mittel                       | Hoch (IdP-Integration)         |
-| **Externe Dependencies**   | Keine (außer Session-Store)  | JWT-Library                  | IdP (Auth0, Keycloak, etc.)    |
+| Kriterium                   | Session                     | JWT                                      | OIDC                        |
+| --------------------------- | --------------------------- | ---------------------------------------- | --------------------------- |
+| **Skalierung**              | Session-Store nötig         | Stateless — einfach                      | Abhängig vom IdP            |
+| **Revokierung**             | Sofort möglich              | Erst bei Token-Ablauf (→ kurze Laufzeit) | Token Introspection möglich |
+| **Implementierungsaufwand** | Gering                      | Mittel                                   | Hoch (IdP-Integration)      |
+| **Externe Dependencies**    | Keine (außer Session-Store) | JWT-Library                              | IdP (Auth0, Keycloak, etc.) |
 
 ---
 
@@ -834,11 +827,11 @@ jotti verwendet **JWT (HS256)** mit einer Laufzeit von 12 Stunden. Es gibt keine
 
 jotti implementiert ein einfaches dreistufiges RBAC-Modell:
 
-| Rolle               | Berechtigungen                                             |
-| ------------------- | ---------------------------------------------------------- |
-| `admin`             | Alle Operationen (Stammdaten + Service + Stornierung)      |
-| `senior_service`    | Service-Operationen + Stornierung                          |
-| `service`           | Service-Operationen (Bestellen, Liefern, Kassieren)        |
+| Rolle            | Berechtigungen                                        |
+| ---------------- | ----------------------------------------------------- |
+| `admin`          | Alle Operationen (Stammdaten + Service + Stornierung) |
+| `senior_service` | Service-Operationen + Stornierung                     |
+| `service`        | Service-Operationen (Bestellen, Liefern, Kassieren)   |
 
 Die Rollen-Prüfung erfolgt in JWT-Middleware im Backend (`api/middleware/`).
 
@@ -848,14 +841,14 @@ Passwörter werden mit **Argon2id** gehasht (`domain/user/password.go`), entspre
 
 ### Was jotti (bewusst) nicht implementiert
 
-| Feature                  | Begründung                                                        |
-| ------------------------ | ----------------------------------------------------------------- |
-| Refresh Tokens           | Vereinsfest-Kontext: 12h-Token ausreichend                       |
-| OAuth2 / OIDC            | Keine externe IdP-Abhängigkeit erwünscht (Self-Hosted)           |
-| MFA                      | Kein kritisches System; Vereinsmitglieder wären überfordert      |
-| Rate Limiting (Login)    | Ausstehend — sinnvoll für öffentlich zugängliche Instanzen       |
-| CSRF-Schutz              | JWT im Authorization-Header, keine Cookies → kein CSRF-Risiko    |
-| Content Security Policy  | Ausstehend — sinnvolle Ergänzung für XSS-Mitigation              |
+| Feature                 | Begründung                                                    |
+| ----------------------- | ------------------------------------------------------------- |
+| Refresh Tokens          | Vereinsfest-Kontext: 12h-Token ausreichend                    |
+| OAuth2 / OIDC           | Keine externe IdP-Abhängigkeit erwünscht (Self-Hosted)        |
+| MFA                     | Kein kritisches System; Vereinsmitglieder wären überfordert   |
+| Rate Limiting (Login)   | Ausstehend — sinnvoll für öffentlich zugängliche Instanzen    |
+| CSRF-Schutz             | JWT im Authorization-Header, keine Cookies → kein CSRF-Risiko |
+| Content Security Policy | Ausstehend — sinnvolle Ergänzung für XSS-Mitigation           |
 
 ---
 

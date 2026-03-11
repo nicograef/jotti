@@ -2,14 +2,6 @@
 
 Dieses Dokument ist ein theoretisches Nachschlagewerk für Point-of-Sale-Systeme mit Schwerpunkt auf der Gastronomie. Es erklärt die Geschichte von POS-Systemen, gängige Architektur-Patterns, gastronomiespezifische Workflows, Datenmodelle, Fiskalgesetzgebung, Payment Integration sowie den Unterschied zwischen Non-Profit- und kommerziellen POS-Lösungen. Ein projektspezifisches Anwendungsbeispiel findet sich im [Appendix](#12-appendix-anwendungsbeispiel-jotti).
 
-> **Verwandte Dokumente:**
->
-> - [Event-Sourcing](event-sourcing.md) — Kassenjournal als unveränderliche Event-Sequenz
-> - [CQRS](cqrs.md) — Trennung von Bestell- und Abfrage-Operationen
-> - [DDD Theorie](ddd.md) — Domain-Modellierung, Bounded Contexts
-> - [Security & Authentifizierung](security.md) — Rollen, JWT, Zugriffskontrolle
-> - [Architektur-Übersicht](README.md) — Index aller Theorie-Dokumente
-
 ---
 
 ## Inhaltsverzeichnis
@@ -37,14 +29,14 @@ Ein Point-of-Sale-System ist das **operative Herzstück** jedes Gastronomiebetri
 
 POS-Systeme haben ungewöhnliche Anforderungen, die sie von typischen Web-Applikationen unterscheiden:
 
-| Anforderung             | Erläuterung                                                            |
-| ----------------------- | ---------------------------------------------------------------------- |
-| **Hochverfügbarkeit**   | Ein Ausfall während des Betriebs kostet direkt Umsatz                 |
-| **Offline-Fähigkeit**   | Netzwerkunterbrechungen dürfen den Kassenbetrieb nicht blockieren      |
-| **Datenintegrität**     | Buchungsfehler bei Transaktionen sind geschäftskritisch               |
-| **Skalierbarkeit**      | Stoßzeiten (Mittagsrush, Events) erzeugen Lastspitzen                  |
-| **Fiskalkonformität**   | Gesetzliche Aufbewahrungspflichten, Manipulationsschutz               |
-| **Usability under Stress** | Bedienoberflächen müssen unter Stress in Sekunden bedienbar sein   |
+| Anforderung                | Erläuterung                                                       |
+| -------------------------- | ----------------------------------------------------------------- |
+| **Hochverfügbarkeit**      | Ein Ausfall während des Betriebs kostet direkt Umsatz             |
+| **Offline-Fähigkeit**      | Netzwerkunterbrechungen dürfen den Kassenbetrieb nicht blockieren |
+| **Datenintegrität**        | Buchungsfehler bei Transaktionen sind geschäftskritisch           |
+| **Skalierbarkeit**         | Stoßzeiten (Mittagsrush, Events) erzeugen Lastspitzen             |
+| **Fiskalkonformität**      | Gesetzliche Aufbewahrungspflichten, Manipulationsschutz           |
+| **Usability under Stress** | Bedienoberflächen müssen unter Stress in Sekunden bedienbar sein  |
 
 ### 1.2 POS als Domänen-Schnittpunkt
 
@@ -73,6 +65,7 @@ Diese Komplexität erklärt, warum kommerzielle POS-Systeme teuer sind und warum
 **1879** erfand James Ritty — Saloon-Besitzer in Dayton, Ohio — die erste mechanische Registrierkasse, um Kassenbetrug durch Angestellte zu verhindern. Das Gerät zählte Transaktionen mechanisch und erzeugte am Tagesende eine Summe. 1884 übernahm John H. Patterson das Unternehmen und gründete die **National Cash Register Company (NCR)** — bis heute einer der bedeutendsten POS-Hersteller.
 
 Frühe Registrierkassen:
+
 - Rein mechanisch, keine Quittungen
 - Öffnung der Geldschublade mit Klingelton als Verkaufsnachweis
 - Summendruck erst durch Papierolle (Patterson-Innovation)
@@ -101,6 +94,7 @@ Nachteile des Windows-POS-Zeitalters: enge Hardware-Bindung, proprietäre Softwa
 **Square** (gegründet 2009) demokratisierte den Kartenzahlungsmarkt für Kleinunternehmer mit einem einfachen Dongle am Smartphone. Daraus entwickelte sich eine vollständige Cloud-POS-Plattform.
 
 Merkmale der Cloud-POS-Ära:
+
 - **SaaS-Modell**: monatliche Gebühren statt Einmalkauf
 - **iPad/Tablet** als günstige Kassen-Hardware
 - **Echtzeit-Berichte** aus der Cloud
@@ -161,11 +155,13 @@ Wichtige Cloud-POS-Systeme: Square, Toast, Lightspeed, Orderbird, Zettle (by Pay
 ```
 
 **Vorteile:**
+
 - Funktioniert ohne Internet
 - Geringe Latenz (lokales Netzwerk)
 - Volle Datenkontrolle
 
 **Nachteile:**
+
 - Hardware-Investition und Wartung
 - Keine zentralen Updates
 - Schwierige Multi-Standort-Verwaltung
@@ -191,12 +187,14 @@ Wichtige Cloud-POS-Systeme: Square, Toast, Lightspeed, Orderbird, Zettle (by Pay
 ```
 
 **Vorteile:**
+
 - Keine lokale Server-Infrastruktur
 - Automatische Updates
 - Zentrales Reporting über alle Standorte
 - Schneller Einstieg (SaaS)
 
 **Nachteile:**
+
 - Abhängigkeit von Internetverbindung
 - Monatliche Abo-Kosten
 - Datenschutz: Transaktionsdaten beim Anbieter
@@ -226,6 +224,7 @@ Hybrid-Systeme kombinieren lokale Verarbeitung mit Cloud-Synchronisation:
 ```
 
 **Vorteile:**
+
 - Offline-Betrieb möglich (lokaler Cache)
 - Zentrale Verwaltung und Reporting
 - Resilienz gegen Netzwerkausfälle
@@ -251,12 +250,14 @@ mPOS nutzt Smartphones als vollwertige POS-Terminals:
 ```
 
 **Vorteile:**
+
 - Keine proprietäre Kassen-Hardware
 - Servicekräfte nutzen eigene oder günstige Smartphones
 - Schnelle Inbetriebnahme
 - Mobile Bestellaufnahme direkt am Tisch
 
 **Nachteile:**
+
 - Kartenzahlungs-Hardware separat nötig (Bluetooth-Reader)
 - Abhängigkeit von WLAN-Qualität
 - Kleine Displays, eingeschränkte Ergonomie
@@ -287,12 +288,14 @@ Self-Hosting kombiniert die Kontrolle eines On-Premise-Systems mit moderner Web-
 ```
 
 **Vorteile:**
+
 - Vollständige Datenkontrolle
 - Keine laufenden SaaS-Kosten
 - Anpassbar (Open Source)
 - Kein Vendor Lock-in
 
 **Nachteile:**
+
 - Server-Infrastruktur und Betrieb selbst verantwortlich
 - Updates müssen manuell oder per CI/CD eingespielt werden
 - Kein professioneller Support
@@ -339,13 +342,13 @@ Tisch freigeben / Reinigen
 
 Der entscheidende Unterschied zwischen Einzel- und Restaurantkasse ist der **offene Tisch-Saldo**:
 
-| Merkmal                | Einzelhandels-POS                | Gastronomie-POS                        |
-| ---------------------- | -------------------------------- | -------------------------------------- |
-| **Transaktionsmodel**  | Eine Transaktion = ein Kauf      | Mehrere Bestellrunden auf einem Tisch  |
-| **Saldo**              | Sofort abgerechnet               | Offener Saldo über mehrere Bestellrunden|
-| **Rollen**             | Kassiererin                      | Service, Küche, Kassierer, Manager     |
-| **Produkte**           | SKU-basiert, Barcode             | Menü-Items, Varianten, Modifikationen  |
-| **Stornierung**        | Nachkauf-Rückgabe                | Positions-Stornierung im laufenden Tab |
+| Merkmal               | Einzelhandels-POS           | Gastronomie-POS                          |
+| --------------------- | --------------------------- | ---------------------------------------- |
+| **Transaktionsmodel** | Eine Transaktion = ein Kauf | Mehrere Bestellrunden auf einem Tisch    |
+| **Saldo**             | Sofort abgerechnet          | Offener Saldo über mehrere Bestellrunden |
+| **Rollen**            | Kassiererin                 | Service, Küche, Kassierer, Manager       |
+| **Produkte**          | SKU-basiert, Barcode        | Menü-Items, Varianten, Modifikationen    |
+| **Stornierung**       | Nachkauf-Rückgabe           | Positions-Stornierung im laufenden Tab   |
 
 **Tischzustands-Modell:**
 
@@ -356,6 +359,7 @@ FREI → BESETZT → [BESTELLUNGEN...] → ABZURECHNEN → FREI
 ```
 
 Zugehörige Operationen je Zustand:
+
 - **BESETZT**: Bestellung aufnehmen, Lieferung bestätigen, Stornierung
 - **ABZURECHNEN**: Zahlung (ganz/teilweise), Rechnung drucken
 
@@ -378,12 +382,14 @@ Service-Tablet          KDS (Küchendisplay)
 ```
 
 **KDS-Vorteile gegenüber Bondrucker:**
+
 - Echtzeit-Statusanzeige (ausstehend / in Bearbeitung / fertig)
 - Priorisierung nach Tisch und Wartezeit
 - Kein Papierstau, kein Rollenwechsel
 - Metriken: Durchschnittliche Zubereitungszeit, Rückstandsanzeige
 
 **KDS-Implementierungsstrategien:**
+
 1. **Polling**: KDS fragt regelmäßig neue Bestellungen ab (einfach, leichte Latenz)
 2. **WebSocket/SSE**: Server-Push für Echtzeit-Updates (geringe Latenz, komplexer)
 3. **LISTEN/NOTIFY (PostgreSQL)**: DB-seitige Events → Backend → KDS
@@ -393,12 +399,14 @@ Service-Tablet          KDS (Küchendisplay)
 Getrennte Abrechnung ist eine häufige Anforderung in der Gastronomie:
 
 **Split-Strategien:**
+
 - **Equal Split**: Gesamtbetrag durch Personenzahl
 - **Item Split**: Jede Person zahlt ihre Positionen
 - **Custom Split**: Beliebige Aufteilung (z. B. Paare)
 - **Teilzahlung**: Betrag X jetzt, Rest später
 
 **Datenmodell für Split:**
+
 ```
 Tisch hat offene Positionen
   ├── Position A (Hauptgericht Gast 1)  → Zahlung 1
@@ -453,6 +461,7 @@ CREATE TABLE bestellungen (
 **Vorteile:** Einfach, geringe Datenmenge.
 
 **Nachteile:**
+
 - Keine Nachvollziehbarkeit (wer hat was wann geändert?)
 - Stornierungen und Korrekturen verändern historische Daten
 - Manipulationsanfällig (fiscalrechtlich problematisch)
@@ -477,11 +486,13 @@ CREATE TABLE kassenjournal (
 Der aktuelle Tisch-Saldo wird durch Aggregation (SUM über alle Einträge) berechnet.
 
 **Vorteile:**
+
 - Vollständiger Audit-Trail
 - Manipulationssicher (kein DELETE/UPDATE)
 - Basis für Kassenberichte
 
 **Nachteile:**
+
 - Saldo-Berechnung via Aggregation (teuer bei großem Journal)
 - Optimierung durch Snapshots notwendig
 
@@ -528,14 +539,14 @@ Event 101-110: [neuere Events seit Snapshot]
 
 **Vergleich der Modelle:**
 
-| Eigenschaft            | Transaktional  | Journal-basiert | Event-Sourcing     |
-| ---------------------- | -------------- | --------------- | ------------------ |
-| **Manipulationsschutz**| ❌             | ✅ (append-only)| ✅ (immutable)     |
-| **Audit-Trail**        | ❌             | ✅ (partiell)   | ✅ (vollständig)   |
-| **Komplexität**        | Gering         | Mittel          | Hoch               |
-| **Query-Performance**  | Hoch           | Mittel          | Erfordert Snapshots|
-| **Fiskalkonformität**  | Problematisch  | Geeignet        | Ideal              |
-| **State-Rekonstruktion**| Direkt        | Via Aggregation | Via Replay         |
+| Eigenschaft              | Transaktional | Journal-basiert  | Event-Sourcing      |
+| ------------------------ | ------------- | ---------------- | ------------------- |
+| **Manipulationsschutz**  | ❌            | ✅ (append-only) | ✅ (immutable)      |
+| **Audit-Trail**          | ❌            | ✅ (partiell)    | ✅ (vollständig)    |
+| **Komplexität**          | Gering        | Mittel           | Hoch                |
+| **Query-Performance**    | Hoch          | Mittel           | Erfordert Snapshots |
+| **Fiskalkonformität**    | Problematisch | Geeignet         | Ideal               |
+| **State-Rekonstruktion** | Direkt        | Via Aggregation  | Via Replay          |
 
 ### 5.4 Produktkatalog und Varianten
 
@@ -603,10 +614,12 @@ TSE speichert:
 ```
 
 **TSE-Typen:**
+
 - **Hardware-TSE**: USB-Stick oder SD-Karte mit Secure Element (z. B. Swissbit, Epson)
 - **Cloud-TSE**: TSE-Dienst über das Internet (z. B. Deutsche Fiskal, fiskaly)
 
 **Anbieter zertifizierter TSE-Lösungen:**
+
 - Swissbit TSE (Hardware)
 - Epson TSE (Hardware, in Bondrucker integriert)
 - fiskaly (Cloud-TSE)
@@ -716,12 +729,12 @@ SumUp-Zahlungsablauf (SDK):
 
 **PCI-DSS Level-System:**
 
-| Level | Transaktionen/Jahr | Anforderung                                    |
-| ----- | ------------------ | ---------------------------------------------- |
-| 1     | > 6 Mio.           | Jährliches Audit durch QSA (externe Prüfer)    |
-| 2     | 1–6 Mio.           | Jährlicher SAQ + vierteljährl. Vulnerability Scan|
-| 3     | 20.000–1 Mio.      | Jährlicher SAQ + vierteljährl. Vulnerability Scan|
-| 4     | < 20.000           | Jährlicher SAQ                                 |
+| Level | Transaktionen/Jahr | Anforderung                                       |
+| ----- | ------------------ | ------------------------------------------------- |
+| 1     | > 6 Mio.           | Jährliches Audit durch QSA (externe Prüfer)       |
+| 2     | 1–6 Mio.           | Jährlicher SAQ + vierteljährl. Vulnerability Scan |
+| 3     | 20.000–1 Mio.      | Jährlicher SAQ + vierteljährl. Vulnerability Scan |
+| 4     | < 20.000           | Jährlicher SAQ                                    |
 
 **Wichtigstes Prinzip:** Kartendaten **nie selbst speichern**. Durch Nutzung eines Payment-Gateways (SumUp, Stripe, Zettle) übernimmt der Anbieter die PCI-Compliance für die Kartendatenverarbeitung.
 
@@ -751,6 +764,7 @@ Gast          Kartenleser         Acquiring Bank
 ```
 
 **Aktuelle Standards:**
+
 - **EMV Contactless**: Europäischer Standard (Chip + PIN für > 50 EUR)
 - **Apple Pay / Google Pay**: Tokenisierte NFC-Zahlung via Wallet
 - **Limit ohne PIN**: Je nach Bank/Land 50–100 EUR
@@ -761,47 +775,48 @@ Gast          Kartenleser         Acquiring Bank
 
 ### 8.1 Anforderungsvergleich
 
-| Anforderung                        | Kommerziell (Dauerbetrieb)       | Non-Profit (Gelegentliche Events) |
-| ---------------------------------- | -------------------------------- | --------------------------------- |
-| **Verfügbarkeit**                  | 365/24/7                         | Nur während Events                |
-| **Skalierung**                     | Wachsend, Multi-Standort         | Feste, kleine Teams               |
-| **Fiskalkonformität**              | TSE, GoBD, volle Compliance      | Oft vereinfacht / ausgenommen     |
-| **Payment**                        | Karte, NFC, EC, QR-Code          | Oft nur Bargeld                   |
-| **Inventar**                       | Echtzeit-Lagerverwaltung         | Nicht relevant                    |
-| **CRM/Loyalty**                    | Kundenprofile, Bonuspunkte       | Nicht relevant                    |
-| **Reporting**                      | Umsatz, Trends, Prognosen        | Tagesumsatz, Abrechnung           |
-| **Hardware**                       | Kassen-Terminal, Bondrucker, KDS | Smartphones (BYOD)                |
-| **Setup-Aufwand**                  | Wochen–Monate                    | Stunden                           |
-| **Support**                        | SLA, 24/7-Hotline                | Community / Selbsthilfe           |
+| Anforderung           | Kommerziell (Dauerbetrieb)       | Non-Profit (Gelegentliche Events) |
+| --------------------- | -------------------------------- | --------------------------------- |
+| **Verfügbarkeit**     | 365/24/7                         | Nur während Events                |
+| **Skalierung**        | Wachsend, Multi-Standort         | Feste, kleine Teams               |
+| **Fiskalkonformität** | TSE, GoBD, volle Compliance      | Oft vereinfacht / ausgenommen     |
+| **Payment**           | Karte, NFC, EC, QR-Code          | Oft nur Bargeld                   |
+| **Inventar**          | Echtzeit-Lagerverwaltung         | Nicht relevant                    |
+| **CRM/Loyalty**       | Kundenprofile, Bonuspunkte       | Nicht relevant                    |
+| **Reporting**         | Umsatz, Trends, Prognosen        | Tagesumsatz, Abrechnung           |
+| **Hardware**          | Kassen-Terminal, Bondrucker, KDS | Smartphones (BYOD)                |
+| **Setup-Aufwand**     | Wochen–Monate                    | Stunden                           |
+| **Support**           | SLA, 24/7-Hotline                | Community / Selbsthilfe           |
 
 ### 8.2 Total Cost of Ownership (TCO)
 
 **Kommerzielles POS-System (beispielhaft: 1 Kasse, 1 Jahr, DE):**
 
-| Position                         | Kosten/Jahr     |
-| -------------------------------- | --------------- |
-| Software-Abo (z. B. Orderbird)   | 600–1.200 EUR   |
-| Hardware (iPad + Halterung)      | 400–800 EUR (einmalig)|
-| Bondrucker                       | 150–400 EUR (einmalig)|
-| TSE (Cloud-TSE Jahresgebühr)     | 60–120 EUR      |
-| Kartenleser                      | 30–80 EUR (einmalig)|
-| Transaktionsgebühren (1,5–2%)    | je nach Umsatz  |
-| **Gesamt (laufend)**             | ~700–1.400 EUR/Jahr |
+| Position                       | Kosten/Jahr            |
+| ------------------------------ | ---------------------- |
+| Software-Abo (z. B. Orderbird) | 600–1.200 EUR          |
+| Hardware (iPad + Halterung)    | 400–800 EUR (einmalig) |
+| Bondrucker                     | 150–400 EUR (einmalig) |
+| TSE (Cloud-TSE Jahresgebühr)   | 60–120 EUR             |
+| Kartenleser                    | 30–80 EUR (einmalig)   |
+| Transaktionsgebühren (1,5–2%)  | je nach Umsatz         |
+| **Gesamt (laufend)**           | ~700–1.400 EUR/Jahr    |
 
 **Self-hosted Open-Source-POS (z. B. jotti):**
 
-| Position                         | Kosten/Jahr     |
-| -------------------------------- | --------------- |
-| VPS (kleinste Instanz)           | 60–100 EUR      |
-| Domain + TLS (Let's Encrypt)     | 10–15 EUR       |
-| Entwicklung/Wartung (Eigenleistung)| — (ehrenamtlich)|
-| **Gesamt (laufend)**             | ~70–115 EUR/Jahr|
+| Position                            | Kosten/Jahr      |
+| ----------------------------------- | ---------------- |
+| VPS (kleinste Instanz)              | 60–100 EUR       |
+| Domain + TLS (Let's Encrypt)        | 10–15 EUR        |
+| Entwicklung/Wartung (Eigenleistung) | — (ehrenamtlich) |
+| **Gesamt (laufend)**                | ~70–115 EUR/Jahr |
 
 ### 8.3 Feature-Abgrenzung: Was Non-Profit-POS braucht
 
 Ein Non-Profit-POS für Vereinsveranstaltungen benötigt:
 
 **✅ Kern-Features:**
+
 - Produkte und Kategorien verwalten
 - Tischbasierte Bestellaufnahme per Smartphone
 - Lieferung bestätigen
@@ -811,6 +826,7 @@ Ein Non-Profit-POS für Vereinsveranstaltungen benötigt:
 - Rollenverwaltung (Admin, Service, Serviceleitung)
 
 **❌ Nicht nötig:**
+
 - Kartenleserzahlung (oft aus Kostengründen)
 - Inventarverwaltung
 - CRM und Kundenbindung
@@ -819,6 +835,7 @@ Ein Non-Profit-POS für Vereinsveranstaltungen benötigt:
 - Multi-Tenant
 
 **❌ Nicht relevant:**
+
 - TSE/KassenSichV (Non-Profit-Ausnahme)
 - Jahresabschluss, DATEV-Export
 
@@ -830,33 +847,34 @@ Ein Non-Profit-POS für Vereinsveranstaltungen benötigt:
 
 #### Tablet/iPad-POS (Europa)
 
-| System         | Fokus           | Besonderheit                              | Preis (ca.)         |
-| -------------- | --------------- | ----------------------------------------- | ------------------- |
-| **Orderbird**  | Gastronomie (DE)| iPad-POS, DATEV-Integration, TSE inklusive| ab 49 EUR/Monat     |
-| **Lightspeed** | Restaurant/Retail| Vollständiges System, Multi-Standort     | ab 69 EUR/Monat     |
-| **Gastrofix**  | Gastronomie (DE)| Fokus auf Deutsche Steuergesetzgebung    | Auf Anfrage         |
-| **Flyt POS**   | Gastronomie (UK)| Open API, Lieferdienst-Integration       | Auf Anfrage         |
+| System         | Fokus             | Besonderheit                               | Preis (ca.)     |
+| -------------- | ----------------- | ------------------------------------------ | --------------- |
+| **Orderbird**  | Gastronomie (DE)  | iPad-POS, DATEV-Integration, TSE inklusive | ab 49 EUR/Monat |
+| **Lightspeed** | Restaurant/Retail | Vollständiges System, Multi-Standort       | ab 69 EUR/Monat |
+| **Gastrofix**  | Gastronomie (DE)  | Fokus auf Deutsche Steuergesetzgebung      | Auf Anfrage     |
+| **Flyt POS**   | Gastronomie (UK)  | Open API, Lieferdienst-Integration         | Auf Anfrage     |
 
 #### Amerikanische Systeme (int. verfügbar)
 
-| System                    | Fokus             | Besonderheit                             |
-| ------------------------- | ----------------- | ---------------------------------------- |
-| **Toast**                 | Restaurants (USA) | Android-basiert, umfangreiches Ökosystem |
-| **Square for Restaurants**| Gastronomie       | Einfacher Einstieg, günstig              |
-| **Revel Systems**         | Enterprise Restaurant| iPad-POS, Franchise-Fähig             |
-| **NCR Aloha**             | Gastronomie (Enterprise)| Marktführer USA, sehr umfangreich   |
+| System                     | Fokus                    | Besonderheit                             |
+| -------------------------- | ------------------------ | ---------------------------------------- |
+| **Toast**                  | Restaurants (USA)        | Android-basiert, umfangreiches Ökosystem |
+| **Square for Restaurants** | Gastronomie              | Einfacher Einstieg, günstig              |
+| **Revel Systems**          | Enterprise Restaurant    | iPad-POS, Franchise-Fähig                |
+| **NCR Aloha**              | Gastronomie (Enterprise) | Marktführer USA, sehr umfangreich        |
 
 ### 9.2 Open-Source-Systeme
 
-| System             | Sprache/Stack  | Fokus              | Besonderheit                          |
-| ------------------ | -------------- | ------------------ | ------------------------------------- |
-| **UniCenta oPOS**  | Java           | Einzelhandel + Gastro| Aktives Projekt, freie Installation  |
-| **Floreant POS**   | Java           | Restaurant         | Fokus auf Restaurant-Workflows        |
-| **OpenBravo POS**  | Java           | Einzelhandel       | Veraltet, kaum Weiterentwicklung      |
-| **OpenPOS**        | Angular/Spring | Enterprise         | Moderner Tech-Stack                   |
-| **GNU Cash Register**| Diverse     | Basic              | Sehr einfach, Community-Projekt       |
+| System                | Sprache/Stack  | Fokus                 | Besonderheit                        |
+| --------------------- | -------------- | --------------------- | ----------------------------------- |
+| **UniCenta oPOS**     | Java           | Einzelhandel + Gastro | Aktives Projekt, freie Installation |
+| **Floreant POS**      | Java           | Restaurant            | Fokus auf Restaurant-Workflows      |
+| **OpenBravo POS**     | Java           | Einzelhandel          | Veraltet, kaum Weiterentwicklung    |
+| **OpenPOS**           | Angular/Spring | Enterprise            | Moderner Tech-Stack                 |
+| **GNU Cash Register** | Diverse        | Basic                 | Sehr einfach, Community-Projekt     |
 
 **Bewertung Open-Source-Systeme:**
+
 - Meist Java-basiert, ältere Tech-Stacks
 - Installation erfordert technisches Know-how
 - Fehlende moderne mPOS-Unterstützung
@@ -895,18 +913,18 @@ Herausforderung: Bestellungen aus mehreren Kanälen (Lieferdienst + Vor-Ort) in 
 
 ## 10. Entscheidungsmatrix: POS-Architektur nach Anwendungsfall
 
-| Kriterium                    | On-Premise | Cloud-POS | Hybrid | mPOS/Self-Hosted |
-| ---------------------------- | ---------- | --------- | ------ | ---------------- |
-| **Internet-unabhängig**      | ✅         | ❌        | ✅     | ❌               |
-| **Geringe Initialkosten**    | ❌         | ✅        | ❌     | ✅               |
-| **Keine laufenden SaaS-Kosten** | ✅      | ❌        | ❌     | ✅               |
-| **Automatische Updates**     | ❌         | ✅        | ✅     | ❌               |
-| **Keine Hardware nötig**     | ❌         | Teilw.    | Teilw. | ✅               |
-| **Vollständige Datenkontrolle** | ✅      | ❌        | Teilw. | ✅               |
-| **Multi-Standort**           | ❌         | ✅        | ✅     | ❌               |
-| **TSE/KassenSichV bereit**   | ✅         | ✅        | ✅     | Offen            |
-| **Einfache Einrichtung**     | ❌         | ✅        | ❌     | Mittel           |
-| **Ideal für Vereinsevents**  | ❌         | ❌        | ❌     | ✅               |
+| Kriterium                       | On-Premise | Cloud-POS | Hybrid | mPOS/Self-Hosted |
+| ------------------------------- | ---------- | --------- | ------ | ---------------- |
+| **Internet-unabhängig**         | ✅         | ❌        | ✅     | ❌               |
+| **Geringe Initialkosten**       | ❌         | ✅        | ❌     | ✅               |
+| **Keine laufenden SaaS-Kosten** | ✅         | ❌        | ❌     | ✅               |
+| **Automatische Updates**        | ❌         | ✅        | ✅     | ❌               |
+| **Keine Hardware nötig**        | ❌         | Teilw.    | Teilw. | ✅               |
+| **Vollständige Datenkontrolle** | ✅         | ❌        | Teilw. | ✅               |
+| **Multi-Standort**              | ❌         | ✅        | ✅     | ❌               |
+| **TSE/KassenSichV bereit**      | ✅         | ✅        | ✅     | Offen            |
+| **Einfache Einrichtung**        | ❌         | ✅        | ❌     | Mittel           |
+| **Ideal für Vereinsevents**     | ❌         | ❌        | ❌     | ✅               |
 
 **Empfehlungen:**
 
@@ -926,16 +944,16 @@ jotti ist ein **leichtgewichtiges, self-hosted Gastronomie-POS für Vereinsveran
 
 ### Architektur-Entscheidungen im POS-Kontext
 
-| POS-Konzept                  | jotti-Implementierung                                          |
-| ---------------------------- | -------------------------------------------------------------- |
-| **Architektur-Pattern**      | Self-Hosted mPOS (Abschnitt 3.5)                               |
-| **Datenmodell**              | Event-Sourcing für Tisch-Operationen (Abschnitt 5.3)           |
-| **Fiskalkonformität**        | Non-Profit-Ausnahme (Abschnitt 6.4) — keine TSE erforderlich  |
-| **Payment**                  | Bargeld-only — keine Kartenleser-Integration                  |
-| **Hardware**                 | BYOD-Smartphones — keine proprietäre Hardware                 |
-| **KDS**                      | Kein KDS — kein getrennter Küchenbereich im Vereinsfest-Kontext|
-| **Split Bills**              | Teilzahlungen möglich — kein Item-Split (Scope-Entscheidung)  |
-| **Offline**                  | Nicht offline-fähig — WLAN vorausgesetzt                      |
+| POS-Konzept             | jotti-Implementierung                                           |
+| ----------------------- | --------------------------------------------------------------- |
+| **Architektur-Pattern** | Self-Hosted mPOS (Abschnitt 3.5)                                |
+| **Datenmodell**         | Event-Sourcing für Tisch-Operationen (Abschnitt 5.3)            |
+| **Fiskalkonformität**   | Non-Profit-Ausnahme (Abschnitt 6.4) — keine TSE erforderlich    |
+| **Payment**             | Bargeld-only — keine Kartenleser-Integration                    |
+| **Hardware**            | BYOD-Smartphones — keine proprietäre Hardware                   |
+| **KDS**                 | Kein KDS — kein getrennter Küchenbereich im Vereinsfest-Kontext |
+| **Split Bills**         | Teilzahlungen möglich — kein Item-Split (Scope-Entscheidung)    |
+| **Offline**             | Nicht offline-fähig — WLAN vorausgesetzt                        |
 
 ### Event-Sourcing im POS-Kontext
 
