@@ -55,14 +55,15 @@ Tisch-Operationen (Bestellungen, Zahlungen, Lieferungen, Stornierungen) werden v
 
 **Copyright (c) 2025 Nico Gräf. Alle Rechte vorbehalten.**
 
-jotti ist lizenziert unter der [AGPL-3.0-or-later](LICENSE) (GNU Affero General Public License v3).
+jotti ist lizenziert unter der **AGPL-3.0-or-later mit Zusatzbedingungen** (Source-Available, Non-Commercial) — siehe [LICENSE](LICENSE). Das vollständige Lizenzmodell besteht aus dem AGPL-3.0-Text **und** den verbindlichen Additional Conditions in derselben Datei.
 
 **Was das bedeutet:**
 
 - ✅ **Eingetragene Vereine (e.V.), gemeinnützige Stiftungen und NGOs/NPOs** dürfen jotti kostenlos nutzen, installieren und betreiben.
-- ✅ **Quellcode einsehen, modifizieren und beitragen** ist erlaubt und erwünscht.
-- ⚠️ **Wer jotti modifiziert und als Netzwerkservice (SaaS) anbietet**, muss den vollständigen Quellcode aller Änderungen unter AGPL-3.0 veröffentlichen.
-- ❌ **Proprietäre Abspaltungen sind nicht erlaubt.** Niemand darf jotti oder Teile davon in ein geschlossenes kommerzielles Produkt überführen, ohne die AGPL-Pflichten zu erfüllen.
-- 💼 **Kommerzielle Lizenzierung:** Für die Nutzung ohne AGPL-Pflichten (z.B. proprietäres SaaS, White-Label) ist eine kommerzielle Lizenz vom Urheber erforderlich — Kontakt über GitHub.
+- ✅ **Nicht-kommerzielle Open-Source-Projekte** dürfen jotti forken, modifizieren und einsetzen — aber das Ergebnis muss unter **denselben Lizenzbedingungen** (AGPL-3.0 + Zusatzbedingungen) veröffentlicht und betrieben werden.
+- ⚠️ **Wer jotti modifiziert und als Netzwerkservice (SaaS) anbietet**, muss den vollständigen Quellcode aller Änderungen unter denselben Lizenzbedingungen veröffentlichen.
+- ❌ **Kommerzielle Nutzung ist ohne separate Lizenz nicht erlaubt** — auch nicht, wenn der Quellcode unter AGPL offengelegt wird. Niemand darf jotti oder Ableitungen davon gewerblich verwerten, ohne eine kommerzielle Lizenz des Urhebers zu besitzen.
+- ❌ **Proprietäre Abspaltungen sind nicht erlaubt.** Ableitungen dürfen nicht unter restriktiveren oder permissiveren Bedingungen veröffentlicht werden, die die Nicht-Kommerziell-Einschränkung oder das AGPL-Copyleft aufheben.
+- 💼 **Kommerzielle Lizenzierung:** Für gewerbliche Nutzung (z.B. kostenpflichtiges SaaS, White-Label, Integration in kommerzielle Produkte) ist eine separate kommerzielle Lizenz vom Urheber erforderlich — Kontakt über GitHub.
 
 Ausführliche Informationen: [docs/lizenz-und-nutzung.md](docs/lizenz-und-nutzung.md)

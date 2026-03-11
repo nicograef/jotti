@@ -6,7 +6,7 @@ Dieses Dokument richtet sich an KI-Coding-Agenten (Copilot, Cursor, Cline, Aider
 
 jotti ist ein **Gastronomie-Kassensystem (POS)** für Vereine und Non-Profit-Veranstaltungen (Vereinsfeste, Weihnachtsmärkte, Konzerte, Maihocks). Servicekräfte nehmen auf Smartphones Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer.
 
-jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo, kein Zahlungsgateway. Self-hosted, Open Source (AGPL-3.0), Mobile-first.
+jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo, kein Zahlungsgateway. Self-hosted, Source-Available (AGPL-3.0 + Non-Commercial), Mobile-first.
 
 **Weiterführende Dokumentation:**
 
@@ -15,7 +15,7 @@ jotti ist kein kommerzielles Gastro-POS: keine Hardware-Bindung, kein Cloud-Abo,
 - [Entwicklung & Deployment](docs/development.md) — Setup, Tests, CI/CD, Deployment
 - [Ubiquitous Language](docs/language.md) — Domain-Begriffe und DDD-Empfehlungen
 - [Event Storming](docs/event-storming.md) — Simulierte Event-Storming-Session: Domain Events, Aggregate, Bounded Contexts
-- [Lizenz & Nutzung](docs/lizenz-und-nutzung.md) — Lizenz (AGPL-3.0), IP, Nutzungsvereinbarung, Kommerzialisierung
+- [Lizenz & Nutzung](docs/lizenz-und-nutzung.md) — Lizenz (AGPL-3.0 + Zusatzbedingungen, Non-Commercial), IP, Nutzungsvereinbarung, Kommerzialisierung
 
 ## Tech-Stack
 

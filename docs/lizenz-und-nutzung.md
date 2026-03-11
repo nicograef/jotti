@@ -9,7 +9,7 @@ Dieses Dokument regelt die rechtliche und organisatorische Grundlage für die En
 ## Inhaltsverzeichnis
 
 1. [Eigentumsverhältnisse](#1-eigentumsverhältnisse)
-2. [Open-Source-Lizenz](#2-open-source-lizenz)
+2. [Lizenzmodell](#2-lizenzmodell)
 3. [Berechtigte Nutzer und kostenlose Nutzung](#3-berechtigte-nutzer-und-kostenlose-nutzung)
 4. [Hosting und Betrieb](#4-hosting-und-betrieb)
 5. [Datenschutz (DSGVO)](#5-datenschutz-dsgvo)
@@ -34,7 +34,7 @@ Die Software **jotti** — einschließlich Quellcode, Dokumentation, Architektur
 | Urheberrecht               | Nico Gräf, seit Projektbeginn 2025                               |
 | IP (Intellectual Property) | Alle Rechte vorbehalten                                          |
 | Repository                 | [github.com/nicograef/jotti](https://github.com/nicograef/jotti) |
-| Lizenz                     | AGPL-3.0-or-later (siehe [Abschnitt 2](#2-open-source-lizenz))   |
+| Lizenz                     | AGPL-3.0-or-later + Zusatzbedingungen (Source-Available, Non-Commercial) — siehe [Abschnitt 2](#2-lizenzmodell) |
 
 - Nico Gräf entscheidet allein über Lizenzierung, Weiterentwicklung und Verbreitung.
 - Kein Nutzer (Verein, Organisation, Person) erwirbt durch die Nutzung Rechte an der Software.
@@ -43,26 +43,44 @@ Die Software **jotti** — einschließlich Quellcode, Dokumentation, Architektur
 
 ---
 
-## 2. Open-Source-Lizenz
+## 2. Lizenzmodell
 
-### Lizenz: AGPL-3.0-or-later
+### Lizenz: AGPL-3.0-or-later mit Zusatzbedingungen (Source-Available, Non-Commercial)
 
-jotti steht seit März 2026 unter der **AGPL-3.0-or-later** (GNU Affero General Public License v3). Zuvor war das Projekt unter MIT lizenziert; der Wechsel wurde vom alleinigen Urheber (Nico Gräf) durchgeführt. Bereits unter MIT veröffentlichte Versionen bleiben unter MIT; alle neuen Versionen stehen unter AGPL-3.0.
+jotti steht seit März 2026 unter der **AGPL-3.0-or-later**, ergänzt durch verbindliche Zusatzbedingungen (Additional Conditions) aus der `LICENSE`-Datei. Zuvor war das Projekt unter MIT lizenziert; der Wechsel wurde vom alleinigen Urheber (Nico Gräf) durchgeführt. Bereits unter MIT veröffentlichte Versionen bleiben unter MIT; alle neuen Versionen stehen unter diesem kombinierten Lizenzmodell.
 
-### Kernaussagen der AGPL-3.0
+> **Wichtiger Hinweis:** Aufgrund der Nicht-Kommerziell-Einschränkung (Zusatzbedingung 1) ist jotti **keine** standard-AGPL-3.0-Lizenz im OSI-Sinne und gilt nicht als „Open Source" nach der OSI-Definition. Es handelt sich um eine **source-available, nicht-kommerzielle, Copyleft-Lizenz**.
 
-| Kriterium                                                   | Regelung                                                                                                                 |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Nutzung durch berechtigte Organisationen (self-hosted)      | ✅ Kostenlos und uneingeschränkt                                                                                          |
-| Jemand forkt jotti und bietet es als SaaS an                | ⚠️ Erlaubt, aber alle Änderungen müssen unter AGPL-3.0 veröffentlicht werden. Proprietäre Abspaltung ist nicht möglich. |
-| Schutz vor proprietärer Abspaltung                          | ✅ Copyleft — wer jotti nutzt oder modifiziert und als Netzwerkservice anbietet, muss den Quellcode offenlegen           |
-| Dual Licensing (kommerziell + Open Source) möglich          | ✅ Nur der Urheber kann eine kommerzielle Alternative anbieten                                                           |
-| SaaS-Hosting ohne Code-Offenlegung                          | ❌ Nicht AGPL-konform (§ 13 AGPL — „Remote Network Interaction")                                                         |
-| Beiträge der Community fließen zurück                       | ✅ Pflicht (Copyleft)                                                                                                    |
+### Das vollständige Lizenzmodell: AGPL-3.0 + Zusatzbedingungen
+
+jotti wird unter der **AGPL-3.0-or-later** veröffentlicht, ergänzt durch **verbindliche Zusatzbedingungen** (Additional Conditions), die in der `LICENSE`-Datei festgelegt sind. Die Zusatzbedingungen **beschränken** den Umfang der durch AGPL-3.0 gewährten Rechte — der Urheber räumt AGPL-3.0-Rechte nur **vorbehaltlich** dieser Einschränkungen ein. Die Zusatzbedingungen regeln insbesondere die **Nicht-Kommerziell-Einschränkung** und die **Share-Alike-Pflicht für Ableitungen**.
+
+### Kernaussagen des Lizenzmodells
+
+| Kriterium                                                                          | Regelung                                                                                                                                                                                       |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nutzung durch berechtigte Organisationen (self-hosted)                             | ✅ Kostenlos und uneingeschränkt                                                                                                                                                                |
+| Jemand forkt jotti und betreibt es als **kostenloses**, nicht-kommerzielles SaaS   | ⚠️ Erlaubt, aber nur wenn: (1) keine Gewinnerzielungsabsicht, (2) alle Änderungen unter **denselben Lizenzbedingungen** (AGPL-3.0 + Zusatzbedingungen) veröffentlicht und betrieben werden.   |
+| Jemand forkt jotti und betreibt es als **kostenpflichtiges oder gewerbliches** SaaS | ❌ Nicht erlaubt — auch nicht bei Offenlegung des Quellcodes unter AGPL. Erfordert zwingend eine separate **kommerzielle Lizenz** vom Urheber (Zusatzbedingung 1).                             |
+| Schutz vor proprietärer Abspaltung                                                 | ✅ AGPL-Copyleft + Zusatzbedingungen — Derivate müssen unter denselben Bedingungen (inkl. Nicht-Kommerziell) veröffentlicht werden                                                             |
+| Schutz vor kommerziellem Missbrauch trotz Quelloffenlegung                         | ✅ Nicht-Kommerziell-Einschränkung (Zusatzbedingung 1) — der Urheber räumt das AGPL-3.0-Nutzungsrecht nur für nicht-kommerzielle Zwecke ein                                                   |
+| Dual Licensing (kommerziell + Source-Available) möglich                            | ✅ Nur der Urheber kann eine kommerzielle Lizenz vergeben                                                                                                                                      |
+| SaaS-Hosting ohne Code-Offenlegung                                                 | ❌ Nicht AGPL-konform (§ 13 AGPL — „Remote Network Interaction")                                                                                                                               |
+| Beiträge der Community fließen zurück                                              | ✅ Pflicht (Copyleft)                                                                                                                                                                          |
+
+### Bedingungen für Forks und Ableitungen
+
+Wer jotti forkt, modifiziert oder anderweitig ableitet, muss folgende Bedingungen einhalten (Zusatzbedingung 2 der `LICENSE`-Datei):
+
+1. **Gleiche Lizenz (Share-Alike):** Die Ableitung muss vollständig unter denselben Lizenzbedingungen veröffentlicht werden — d.h. AGPL-3.0-or-later **und** den unveränderten Zusatzbedingungen aus der `LICENSE`-Datei.
+2. **Keine Aufweichung der Nicht-Kommerziell-Einschränkung:** Die Ableitung darf nicht unter Bedingungen veröffentlicht oder betrieben werden, die gewerbliche Nutzung ohne kommerzielle Lizenz des Urhebers ermöglichen.
+3. **Keine restriktivere oder permissivere Lizenz:** Weder eine proprietäre Schließung noch eine permissivere Relizenzierung (z.B. MIT oder Apache) sind zulässig.
+
+**Kurz gesagt:** Wer jotti nutzen und daraus etwas bauen möchte, muss das Ergebnis ebenfalls kostenlos, nicht-kommerziell und quelloffen unter denselben Bedingungen betreiben. Eine kommerzielle Verwertung ist nur mit einer gesonderten Lizenz des Urhebers möglich.
 
 ### Auswirkungen auf berechtigte Organisationen
 
-AGPL-3.0 erlaubt die kostenlose Nutzung, Installation und Modifikation. Solange die Organisation die Software für eigene Zwecke betreibt (nicht als Dienst für Dritte anbietet), bestehen keinerlei Pflichten außer der Beibehaltung des Copyright-Hinweises.
+Das Lizenzmodell erlaubt die kostenlose Nutzung, Installation und Modifikation durch berechtigte (nicht-kommerzielle) Organisationen. Solange die Organisation die Software für eigene interne Zwecke betreibt (nicht als Dienst für Dritte oder mit Gewinnerzielungsabsicht anbietet), bestehen keinerlei Pflichten außer der Beibehaltung des Copyright-Hinweises.
 
 ---
 
@@ -70,15 +88,16 @@ AGPL-3.0 erlaubt die kostenlose Nutzung, Installation und Modifikation. Solange 
 
 ### Wer darf jotti kostenlos nutzen?
 
-Die kostenlose Nutzungslizenz gilt ausschließlich für folgende **offiziell eingetragene und nicht-gewinnorientierte Organisationen**:
+Die kostenlose Nutzungslizenz gilt für folgende **Personengruppen und Organisationen ohne Gewinnerzielungsabsicht**:
 
-| Organisationsform                              | Voraussetzung                                                                           |
+| Gruppe / Organisationsform                     | Voraussetzung                                                                           |
 | ---------------------------------------------- | --------------------------------------------------------------------------------------- |
 | **Eingetragene Vereine (e.V.)**                | Eintragung im Vereinsregister gemäß §§ 21 ff. BGB                                      |
 | **Eingetragene gemeinnützige Stiftungen**      | Eintragung im Stiftungsregister, Anerkennung der Gemeinnützigkeit durch Finanzbehörden  |
 | **Gemeinnützige GmbH (gGmbH)**                 | Eintragung im Handelsregister, steuerliche Anerkennung der Gemeinnützigkeit             |
 | **Gemeinnützige UG (gUG)**                     | Eintragung im Handelsregister, steuerliche Anerkennung der Gemeinnützigkeit             |
 | **Sonstige eingetragene NGOs / NPOs**          | Nachweisbare Eintragung in einem öffentlichen Register und fehlende Gewinnerzielungsabsicht |
+| **Nicht-kommerzielle Open-Source-Projekte**    | Projekt ist öffentlich zugänglich, verfolgt keine Gewinnerzielungsabsicht, und das Ergebnis wird unter denselben Lizenzbedingungen veröffentlicht und betrieben (AGPL-3.0 + Zusatzbedingungen) |
 
 Kommerzielle Betriebe, Unternehmen ohne gemeinnützigen Status sowie Einzelpersonen, die jotti gewerblich einsetzen möchten, fallen nicht unter die kostenlose Nutzungslizenz und benötigen eine [kommerzielle Lizenz](#7-kommerzialisierung-und-dual-licensing).
 
@@ -181,10 +200,10 @@ Die Nutzungsvereinbarung bekräftigt:
 
 Als alleiniger Urheber besitzt Nico Gräf das Recht, jotti unter beliebig vielen Lizenzen gleichzeitig zu veröffentlichen (**Dual-Licensing-Modell**):
 
-| Pfad            | Lizenz             | Zielgruppe                                                             | Kosten          |
-| --------------- | ------------------ | ---------------------------------------------------------------------- | --------------- |
-| **Open Source** | AGPL-3.0           | Eingetragene Vereine (e.V.), gemeinnützige Stiftungen und NGOs/NPOs    | Kostenlos       |
-| **Kommerziell** | Proprietäre Lizenz | Unternehmen, SaaS-Anbieter, gewerbliche Betriebe                       | Kostenpflichtig |
+| Pfad                        | Lizenz                              | Zielgruppe                                                                   | Kosten          |
+| --------------------------- | ----------------------------------- | ---------------------------------------------------------------------------- | --------------- |
+| **Non-Profit / Open Source** | AGPL-3.0 + Zusatzbedingungen        | Eingetragene Vereine (e.V.), gemeinnützige Stiftungen, NGOs/NPOs; nicht-kommerzielle Open-Source-Projekte (unter denselben Bedingungen) | Kostenlos |
+| **Kommerziell**             | Proprietäre / kommerzielle Lizenz   | Unternehmen, gewerbliche SaaS-Anbieter, kommerzielle Betriebe                | Kostenpflichtig |
 
 ### Vorbehaltene Rechte
 
@@ -198,8 +217,10 @@ Nico Gräf behält sich ausdrücklich folgende Rechte vor:
 ### Warum das Modell funktioniert
 
 - **AGPL-Copyleft** verlangt, dass jeder, der jotti als Netzwerkservice (SaaS) anbietet, den vollständigen Quellcode aller Änderungen unter AGPL veröffentlichen muss.
-- **Einziger Ausweg für kommerzielle Nutzung ohne Offenlegungspflicht:** Eine kommerzielle Lizenz vom Urheber erwerben.
-- **Berechtigte Organisationen, die selbst oder über einen Drittanbieter hosten, sind nicht betroffen.** Interne Nutzung löst die Copyleft-Pflicht nicht aus.
+- **Nicht-Kommerziell-Einschränkung (Zusatzbedingung 1):** Selbst wer den Quellcode unter AGPL offenlegt, darf jotti oder eine Ableitung davon **nicht kommerziell** betreiben oder vermarkten — auch nicht als kostenpflichtiges SaaS mit offenem Quellcode. Die Offenlegung des Quellcodes ist eine notwendige, aber keine hinreichende Bedingung für erlaubte Nutzung.
+- **Share-Alike (Zusatzbedingung 2):** Wer jotti forkt und daraus ein Open-Source-Projekt macht, muss das Ergebnis unter denselben Bedingungen (AGPL-3.0 + Nicht-Kommerziell + Share-Alike) veröffentlichen. Damit wird verhindert, dass die Nutzungsbeschränkung durch eine Kette von Ableitungen aufgeweicht wird.
+- **Einzige legale Möglichkeit zur kommerziellen Nutzung:** Eine separate kommerzielle Lizenz vom Urheber erwerben.
+- **Berechtigte Organisationen, die selbst oder über einen Drittanbieter hosten, sind nicht betroffen.** Interne Nutzung ohne Gewinnerzielungsabsicht löst weder die Copyleft-Pflicht noch die Offenlegungspflicht aus.
 
 ### Mögliche Kommerzialisierungsmodelle
 
@@ -208,7 +229,7 @@ Nico Gräf behält sich ausdrücklich folgende Rechte vor:
 | **Hosting-as-a-Service** | jotti als gehostete Lösung für Organisationen (monatliches Abo). Dann: Auftragsverarbeiter → AV-Vertrag nötig. |
 | **Setup-Pakete**         | Einmalige Einrichtung + Einweisung gegen Festpreis.                                                     |
 | **Support-Verträge**     | Garantierte Reaktionszeiten, Hotline am Festtag.                                                        |
-| **Enterprise-Lizenz**    | Gewerbliche Betriebe zahlen eine Lizenzgebühr für die Nutzung ohne AGPL-Pflichten.                      |
+| **Enterprise-Lizenz**    | Gewerbliche Betriebe zahlen eine Lizenzgebühr für die Nutzung ohne AGPL- und Nicht-Kommerziell-Beschränkungen. |
 | **White-Label-Lizenz**   | Dritte dürfen jotti unter eigenem Namen anbieten — nur mit kommerzieller Lizenz.                        |
 
 ### Community-Beiträge

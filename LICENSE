@@ -16,12 +16,72 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-                          ADDITIONAL NOTICE
+                          ADDITIONAL CONDITIONS
 
-jotti is the sole intellectual property of Nico Gräf.
+jotti is the sole intellectual property of Nico Gräf ("Author").
 
-All rights not explicitly granted by the AGPL-3.0 license are reserved.
-Commercial licensing options are available — contact the author for details.
+These Additional Conditions restrict and limit the rights granted under the
+GNU Affero General Public License v3 ("AGPL-3.0"). The Author's license grant
+to you consists of the AGPL-3.0 rights SUBJECT TO the restrictions set out
+below. The AGPL-3.0 text is not modified; rather, these conditions narrow the
+scope of the rights the Author grants to you.
+
+NOTE: As a result of these Additional Conditions, this software is NOT licensed
+under a standard AGPL-3.0 license and is NOT certified as "Open Source" under
+the OSI definition. It is a source-available, non-commercial, copyleft license.
+
+1. NON-COMMERCIAL USE RESTRICTION
+
+   The Author does not grant you the right to use the Software or any Covered
+   Work derived from it for Commercial Purposes. Any exercise of AGPL-3.0 rights
+   for Commercial Purposes requires a separate written commercial license from
+   the Author.
+
+   "Commercial Purposes" means any use primarily intended for or directed
+   toward commercial advantage or private monetary compensation. This includes,
+   without limitation:
+
+     a) Selling access to the Software or any derivative work as a paid service
+        (e.g., Software-as-a-Service, hosted solution, subscription model);
+     b) Incorporating the Software into a paid product or service offering;
+     c) Using the Software within a for-profit commercial business context to
+        generate revenue directly or indirectly from the Software; or
+     d) Providing the Software as a service to third parties for a fee or any
+        other commercial consideration.
+
+   The following are NOT considered Commercial Purposes and are therefore
+   permitted without a commercial license, subject to condition 2 below:
+
+     - Use by registered non-profit organisations (e.g., eingetragene Vereine
+       e.V., gemeinnützige Stiftungen, gGmbH, gUG, NGOs/NPOs) for their own
+       internal operations, provided no revenue is generated from the Software.
+     - Use in a non-commercial open-source project, provided the resulting work
+       is published and operated under these same license terms (see condition 2).
+
+2. SHARE-ALIKE REQUIREMENT FOR DERIVATIVE WORKS
+
+   If you fork, modify, or distribute the Software or any Covered Work for
+   non-commercial purposes, all derivative works must:
+
+     a) Be published as open-source under these exact same license terms,
+        i.e., AGPL-3.0-or-later together with these Additional Conditions,
+        without modification or omission of either part;
+     b) Not impose any additional permissions that would permit Commercial
+        Purposes without a commercial license from the Author; and
+     c) Not be relicensed under more permissive terms that remove the
+        non-commercial restriction or the AGPL copyleft obligation.
+
+   You may not create or distribute derivative works under any terms that
+   permit Commercial Purposes without a commercial license from the Author.
+
+3. COMMERCIAL LICENSING
+
+   To use the Software or any Covered Work for Commercial Purposes, you must
+   obtain a separate written commercial license from the Author. For enquiries,
+   contact the Author via: https://github.com/nicograef/jotti
+
+All rights not explicitly granted by the AGPL-3.0 and these Additional
+Conditions are reserved by the Author.
 
 For the full AGPL-3.0 license text, see:
 https://www.gnu.org/licenses/agpl-3.0.html
