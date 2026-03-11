@@ -1,6 +1,6 @@
 # Anforderungen — jotti
 
-Dieses Dokument beschreibt alle funktionalen und querschnittlichen Anforderungen an jotti, gegliedert nach Bounded Contexts. Es ersetzt das bisherige `requirements.md` und dient als zentrale Referenz für Entwicklung und Priorisierung.
+Dieses Dokument beschreibt alle funktionalen und querschnittlichen Anforderungen an jotti, gegliedert nach Bounded Contexts, und dient als zentrale Referenz für Entwicklung und Priorisierung.
 
 Für Produktidentität, Zielgruppe und Abgrenzung siehe [Produktbeschreibung](produktbeschreibung.md). Für Architektur, Domänenmodell und technische Designentscheidungen siehe [System Design](design.md). Für die kanonischen Fachbegriffe siehe [Ubiquitous Language](language.md).
 
@@ -150,6 +150,88 @@ Jeder Tisch führt ein unveränderliches Kassenjournal (Event Stream), das alle 
 - Die Historie ist pro Tisch chronologisch einsehbar
 - Der aktuelle Tischzustand (Saldo, unbezahlte/ungelieferte Positionen) wird aus dem Event Stream berechnet
 - Snapshots werden zur Performance-Optimierung erstellt, haben aber keine fachliche Bedeutung
+
+### K-07 · Bezeichnung pro Bestellung
+
+> **ID:** K-07 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **Status:** 🔲 Offen · **Prio:** Nice-to-have
+
+Einer Bestellung kann ein optionaler Name oder eine Bezeichnung zugewiesen werden (z. B. „Familie Müller", „Gruppe links"), um mehrere Gruppen an einem Tisch unterscheiden zu können. Die Bezeichnung wird in der Tisch-Historie und bei der Abrechnung angezeigt.
+
+**Akzeptanzkriterien:**
+
+- Bestellung kann mit optionalem Namen versehen werden (z. B. „Familie Müller", „Gruppe links")
+- Bezeichnung wird in der Tisch-Historie angezeigt
+- Bezeichnung wird bei der Abrechnung angezeigt
+
+### K-08 · Bestellungen umbuchen
+
+> **ID:** K-08 · **Rolle:** Serviceleitung · Admin
+> **Status:** 🔲 Offen · **Prio:** Nice-to-have
+
+Serviceleitung oder Admin können eine Bestellung nachträglich auf einen anderen Tisch umbuchen, um Eingabefehler zu korrigieren. Das Umbuchen erzeugt eine Stornierung am Quell-Tisch und eine neue Bestellung am Ziel-Tisch in einer atomaren Operation.
+
+**Akzeptanzkriterien:**
+
+- Bestellung kann auf einen anderen Tisch umgebucht werden
+- Umbuchung erzeugt eine Stornierung am Quell-Tisch und eine neue Bestellung am Ziel-Tisch
+- Umbuchung erfolgt atomar (beide Operationen in einer Transaktion)
+
+### K-09 · Rückgeldberechnung
+
+> **ID:** K-09 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **Status:** 🔲 Offen · **Prio:** Nice-to-have
+
+Bei der Zahlung kann die Servicekraft den vom Gast erhaltenen Bargeldbetrag eingeben. Das System berechnet und zeigt das Rückgeld an. Die Berechnung erfolgt rein clientseitig.
+
+**Akzeptanzkriterien:**
+
+- Eingabefeld für den erhaltenen Bargeldbetrag bei der Zahlung
+- System berechnet und zeigt das Rückgeld an
+- Berechnung erfolgt rein clientseitig (kein Backend-Aufruf)
+
+### K-10 · Tisch-Schnellsuche
+
+> **ID:** K-10 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **Status:** 🔲 Offen · **Prio:** Nice-to-have
+
+Auf der Tischübersicht kann die Servicekraft über ein Suchfeld oder Nummernpad direkt eine Tischnummer eingeben, um schnell zum gewünschten Tisch zu navigieren — ohne durch die Karten scrollen zu müssen.
+
+**Akzeptanzkriterien:**
+
+- Suchfeld oder Nummernpad auf der Tischübersicht
+- Direkte Navigation zum gesuchten Tisch per Eingabe der Tischnummer
+
+### K-11 · Bondruck
+
+> **ID:** K-11 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **Status:** 🔲 Offen · **Prio:** Should-have
+
+Bons werden automatisch oder manuell gedruckt, damit Ausgabestationen (Küche, Getränketheke) die bestellten Positionen erhalten. Bons enthalten alle relevanten Informationen: Tisch, Servicekraft, Positionen mit Mengen, Zeitstempel und optionalen Kommentar. Freibons mit freier Preiseingabe ermöglichen Sonderpositionen außerhalb des Produktkatalogs.
+
+**Akzeptanzkriterien:**
+
+- Bons sind übersichtlich formatiert (Tisch, Servicekraft, Positionen, Mengen, Gesamtpreis, Uhrzeit, Kommentar)
+- Separater Bon pro Position druckbar (z. B. bei Fehlbon Nachdruck einer einzelnen Position)
+- Getränkepositionen werden automatisch an den Getränkedrucker gesendet
+- Essenspositionen werden automatisch an den Küchendrucker gesendet
+- Freibon mit freier Bezeichnung und Preiseingabe möglich (Sonderpositionen)
+- Drucker sind vom Admin konfigurierbar (Zuordnung Drucker zu Kategorie)
+
+### K-12 · Ausgabestationen
+
+> **ID:** K-12 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **Status:** 🔲 Offen · **Prio:** Nice-to-have
+
+Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eigenen Bildschirm die offenen Bestellungen ihrer Kategorie. Sie können Bestellungen als „in Zubereitung" und „fertig" markieren. Servicekräfte sehen den Zubereitungsstatus und wissen, wann Positionen abholbereit sind.
+
+**Akzeptanzkriterien:**
+
+- Getränkeausgabe sieht offene Getränkebestellungen, gruppiert nach Tisch
+- Essensausgabe sieht offene Essensbestellungen, gruppiert nach Tisch
+- Ausgabestationen können Positionen als „in Zubereitung" und „fertig" markieren
+- Servicekraft kann den Zubereitungsstatus ihrer Bestellungen einsehen
+- Letzte Bestellungen sind an der Ausgabestation einsehbar (bei Bon-Verlust)
 
 ---
 
@@ -307,44 +389,9 @@ Alle Datenänderungen sind transaktionssicher. Das Kassenjournal ist unveränder
 - Soft-Deletes für Stammdaten (Produkte, Varianten, Tische, Benutzer) — kein physisches Löschen
 - Der Tischzustand wird ausschließlich aus dem Event Stream berechnet (Event-Sourcing)
 
----
+### Q-05 · Offline-Fähigkeit
 
-## 5 · Geplante Erweiterungen
-
-### E-01 · Reporting und Tagesabrechnung
-
-> **ID:** E-01 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Should-have
-
-Der Admin kann am Ende einer Veranstaltung oder jederzeit zwischendurch eine Tagesabrechnung einsehen. Diese zeigt den Gesamtumsatz, den Umsatz pro Servicekraft sowie eine Übersicht aller Stornierungen. Damit erhalten Verantwortliche ein vollständiges Bild über Einnahmen und Korrekturen des Tages.
-
-**Akzeptanzkriterien:**
-
-- Gesamtumsatz des Tages einsehbar (Summe aller registrierten Zahlungen)
-- Umsatz pro Servicekraft einsehbar (aufgeschlüsselt nach Benutzer)
-- Übersicht aller Stornierungen mit Zeitpunkt, Tisch, stornierten Positionen und Betrag
-- Abruf jederzeit möglich (nicht nur bei Tagesabschluss)
-- Servicekraft kann eigene Bestellungen und deren Status einsehen (bestellt, geliefert, bezahlt, storniert)
-
-### E-02 · Bondruck
-
-> **ID:** E-02 · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Should-have
-
-Bons werden automatisch oder manuell gedruckt, damit Ausgabestationen (Küche, Getränketheke) die bestellten Positionen erhalten. Bons enthalten alle relevanten Informationen: Tisch, Servicekraft, Positionen mit Mengen, Zeitstempel und optionalen Kommentar. Freibons mit freier Preiseingabe ermöglichen Sonderpositionen außerhalb des Produktkatalogs.
-
-**Akzeptanzkriterien:**
-
-- Bons sind übersichtlich formatiert (Tisch, Servicekraft, Positionen, Mengen, Gesamtpreis, Uhrzeit, Kommentar)
-- Separater Bon pro Position druckbar (z. B. bei Fehlbon Nachdruck einer einzelnen Position)
-- Getränkepositionen werden automatisch an den Getränkedrucker gesendet
-- Essenspositionen werden automatisch an den Küchendrucker gesendet
-- Freibon mit freier Bezeichnung und Preiseingabe möglich (Sonderpositionen)
-- Drucker sind vom Admin konfigurierbar (Zuordnung Drucker zu Kategorie)
-
-### E-03 · Offline-Fähigkeit
-
-> **ID:** E-03 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **ID:** Q-05 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
 Bei einem Internetausfall während der Veranstaltung soll die Bestellaufnahme weiterhin möglich sein. Bestellungen werden lokal zwischengespeichert und bei Wiederherstellung der Verbindung automatisch synchronisiert. Auch laufende, noch nicht abgesendete Bestellungen sollen bei einem App-Absturz oder Stromausfall erhalten bleiben.
@@ -358,59 +405,36 @@ Bei einem Internetausfall während der Veranstaltung soll die Bestellaufnahme we
 - Noch nicht abgesendete Bestellungen überleben einen App-Neustart (lokale Persistierung)
 - Der Benutzer wird sichtbar über den Offline-Zustand informiert
 
-### E-04 · Ausgabestationen
+---
 
-> **ID:** E-04 · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Nice-to-have
+## 5 · Reporting und Auswertung
 
-Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eigenen Bildschirm die offenen Bestellungen ihrer Kategorie. Sie können Bestellungen als „in Zubereitung" und „fertig" markieren. Servicekräfte sehen den Zubereitungsstatus und wissen, wann Positionen abholbereit sind.
+### R-01 · Tagesabrechnung
+
+> **ID:** R-01 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Should-have
+
+Der Admin kann am Ende einer Veranstaltung oder jederzeit zwischendurch eine Tagesabrechnung einsehen. Diese zeigt den Gesamtumsatz, den Umsatz pro Servicekraft sowie eine Übersicht aller Stornierungen. Damit erhalten Verantwortliche ein vollständiges Bild über Einnahmen und Korrekturen des Tages.
 
 **Akzeptanzkriterien:**
 
-- Getränkeausgabe sieht offene Getränkebestellungen, gruppiert nach Tisch
-- Essensausgabe sieht offene Essensbestellungen, gruppiert nach Tisch
-- Ausgabestationen können Positionen als „in Zubereitung" und „fertig" markieren
-- Servicekraft kann den Zubereitungsstatus ihrer Bestellungen einsehen
-- Letzte Bestellungen sind an der Ausgabestation einsehbar (bei Bon-Verlust)
+- Gesamtumsatz des Tages einsehbar (Summe aller registrierten Zahlungen)
+- Umsatz pro Servicekraft einsehbar (aufgeschlüsselt nach Benutzer)
+- Übersicht aller Stornierungen mit Zeitpunkt, Tisch, stornierten Positionen und Betrag
+- Abruf jederzeit möglich (nicht nur bei Tagesabschluss)
+- Servicekraft kann eigene Bestellungen und deren Status einsehen (bestellt, geliefert, bezahlt, storniert)
 
-### E-05 · Weitere
+### R-02 · Datenexport
 
-Die folgenden Erweiterungen sind als einzelne Komfortfunktionen geplant, die den Betrieb erleichtern.
-
-#### E-05a · Tisch-Schnellsuche
-
-> **ID:** E-05a · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Nice-to-have
-
-Auf der Tischübersicht kann die Servicekraft über ein Suchfeld oder Nummernpad direkt eine Tischnummer eingeben, um schnell zum gewünschten Tisch zu navigieren — ohne durch die Karten scrollen zu müssen.
-
-#### E-05b · Bestellungen umbuchen
-
-> **ID:** E-05b · **Rolle:** Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Nice-to-have
-
-Serviceleitung oder Admin können eine Bestellung nachträglich auf einen anderen Tisch umbuchen, um Eingabefehler zu korrigieren. Das Umbuchen erzeugt eine Stornierung am Quell-Tisch und eine neue Bestellung am Ziel-Tisch in einer atomaren Operation.
-
-#### E-05c · Rückgeldberechnung
-
-> **ID:** E-05c · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Nice-to-have
-
-Bei der Zahlung kann die Servicekraft den vom Gast erhaltenen Bargeldbetrag eingeben. Das System berechnet und zeigt das Rückgeld an. Die Berechnung erfolgt rein clientseitig.
-
-#### E-05d · Bezeichnung pro Bestellung
-
-> **ID:** E-05d · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Nice-to-have
-
-Einer Bestellung kann ein optionaler Name oder eine Bezeichnung zugewiesen werden (z. B. „Familie Müller", „Gruppe links"), um mehrere Gruppen an einem Tisch unterscheiden zu können. Die Bezeichnung wird in der Tisch-Historie und bei der Abrechnung angezeigt.
-
-#### E-05e · Datenexport
-
-> **ID:** E-05e · **Rolle:** Admin
+> **ID:** R-02 · **Rolle:** Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
 Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um sie extern weiterverarbeiten zu können (z. B. für die Vereinsbuchhaltung).
+
+**Akzeptanzkriterien:**
+
+- Export von Umsätzen, Bestellungen und Artikeldaten als CSV
+- Export jederzeit durch den Admin auslösbar
 
 ---
 
