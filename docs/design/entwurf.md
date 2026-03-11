@@ -767,17 +767,113 @@ Das Einmalpasswort ist bewusst kurz (6 Zeichen) — es dient nur der einmaligen 
 
 ## 8. Read Models
 
+Read Models sind aufbereitete Lese-Ansichten, die aus den Domain Events oder den Stammdaten zusammengebaut werden. Sie enthalten genau die Informationen, die ein bestimmter Akteur in einer bestimmten Situation braucht. Read Models werden nicht geschrieben — sie sind reine Projektionen über vorhandene Daten.
+
 ### 8.1 Service-Ansichten
 
-<!-- Abschnitt 4 -->
+#### Tischübersicht (K-05)
+
+| Eigenschaft  | Beschreibung                                                      |
+| ------------ | ----------------------------------------------------------------- |
+| **Quelle**   | Tisch-Events + Tisch-Stammdaten                                   |
+| **Inhalt**   | Pro aktivem Tisch: Name, aktueller Saldo, Anzahl unbezahlter Positionen, Anzahl ungelieferter Positionen |
+| **Anzeige**  | Karten-Layout, alle aktiven Tische; Schnellsuche nach Tischname (K-10) |
+| **Akteure**  | Servicekraft, Serviceleitung, Admin                               |
+
+Die Tischübersicht ist die Startseite des Service-Bereichs. Auf einen Blick sieht die Servicekraft, welche Tische aktiv sind und wo noch offene Bestellungen oder ausstehende Zahlungen vorliegen.
+
+#### Tischdetails (K-05)
+
+| Eigenschaft  | Beschreibung                                                      |
+| ------------ | ----------------------------------------------------------------- |
+| **Quelle**   | Tisch-Events (Event-Stream des jeweiligen Tisches)                |
+| **Inhalt**   | Alle Positionen mit Status (bestellt / geliefert / bezahlt / storniert), gruppiert nach Bestellung (mit opt. Bezeichnung aus K-07), aktueller Saldo, unbezahlte Positionen, ungelieferte Positionen |
+| **Anzeige**  | Tabs: Übersicht, Bestellen, Liefern, Bezahlen, Stornieren, Historie |
+| **Akteure**  | Servicekraft, Serviceleitung, Admin                               |
+
+Die Tischdetail-Ansicht ist der zentrale Arbeitsplatz der Servicekraft. Alle Tischoperationen (Bestellung aufgeben, Lieferung bestätigen, Zahlung registrieren, Stornierung) werden als Drawer von dieser Ansicht aus geöffnet.
+
+#### Produktkatalog
+
+| Eigenschaft  | Beschreibung                                                      |
+| ------------ | ----------------------------------------------------------------- |
+| **Quelle**   | Produkt-Stammdaten                                                |
+| **Inhalt**   | Alle aktiven Produkte mit ihren aktiven Varianten, nach Kategorie gruppiert (Speisen, Getränke, Sonstiges), jeweils mit Name und Preis |
+| **Anzeige**  | Kategorie-Tabs, Produkte als auswählbare Karten, Plus/Minus für Mengenauswahl |
+| **Akteure**  | Servicekraft, Serviceleitung, Admin (beim Bestellen)              |
+
+Der Produktkatalog ist kein eigenständiges Navigations-Ziel, sondern wird im Kontext des Bestellvorgangs (Tab „Bestellen" im Tischdetail) geladen. Er zeigt immer den aktuellen Stand der Stammdaten.
+
+#### Kassenjournal (K-06)
+
+| Eigenschaft  | Beschreibung                                                      |
+| ------------ | ----------------------------------------------------------------- |
+| **Quelle**   | Tisch-Events (Event-Stream des jeweiligen Tisches)                |
+| **Inhalt**   | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ (Bestellung / Lieferung / Zahlung / Stornierung / Freibon), Positionen, Betrag, Servicekraft, Kommentar |
+| **Anzeige**  | Timeline / Liste im Tab „Historie" der Tischdetail-Ansicht        |
+| **Akteure**  | Servicekraft, Serviceleitung, Admin                               |
+
+Das Kassenjournal ist die menschenlesbare Darstellung des Event-Streams. Es ist unveränderlich — jeder Vorgang am Tisch erscheint hier in der Reihenfolge, in der er eingetreten ist.
 
 ### 8.2 Admin-Ansichten (Reporting)
 
-<!-- Abschnitt 4 -->
+Alle Reporting-Ansichten sind Read Models, die aus den Tisch-Events über alle Tische hinweg aggregiert werden. Sie sind nur für Admins zugänglich.
+
+#### Tagesabrechnung (R-01)
+
+| Eigenschaft  | Beschreibung                                                      |
+| ------------ | ----------------------------------------------------------------- |
+| **Quelle**   | Tisch-Events (tischübergreifend)                                  |
+| **Inhalt**   | Gesamtumsatz (Summe aller Zahlungen), Umsatz pro Servicekraft (Übersichtswerte), Übersicht aller Stornierungen (Zeitpunkt, Tisch, Positionen, Betrag), offene Beträge |
+| **Akteure**  | Admin                                                             |
+
+#### Abrechnung pro Tisch (R-03)
+
+| Eigenschaft  | Beschreibung                                                      |
+| ------------ | ----------------------------------------------------------------- |
+| **Quelle**   | Tisch-Events (einzelner Tisch)                                    |
+| **Inhalt**   | Alle Bestellungen, Zahlungen, Lieferungen, Stornierungen in chronologischer Reihenfolge; Gesamt-Saldo (bestellt, bezahlt, offen, storniert) |
+| **Akteure**  | Admin                                                             |
+
+#### Abrechnung pro Servicekraft (R-04)
+
+| Eigenschaft  | Beschreibung                                                      |
+| ------------ | ----------------------------------------------------------------- |
+| **Quelle**   | Tisch-Events (tischübergreifend, gruppiert nach Servicekraft)     |
+| **Inhalt**   | Umsatz pro Servicekraft (Summe registrierter Zahlungen), Anzahl aufgegebener Bestellungen, Anzahl und Betrag der Stornierungen |
+| **Akteure**  | Admin                                                             |
+
+#### Produktumsatz (R-05)
+
+| Eigenschaft  | Beschreibung                                                      |
+| ------------ | ----------------------------------------------------------------- |
+| **Quelle**   | Tisch-Events (tischübergreifend, gruppiert nach Produkt/Variante) |
+| **Inhalt**   | Verkaufte Menge pro Produkt und Variante (abzüglich Stornierungen), Ranking der meistverkauften Varianten, Gesamteinnahmen pro Produkt/Variante |
+| **Akteure**  | Admin                                                             |
 
 ### 8.3 Ausgabe-Ansichten
 
-<!-- Abschnitt 4 -->
+#### KDS-Ansicht (K-12)
+
+| Eigenschaft  | Beschreibung                                                      |
+| ------------ | ----------------------------------------------------------------- |
+| **Quelle**   | Tisch-Events (`BestellungAufgegeben`), gefiltert nach Kategorie   |
+| **Inhalt**   | Offene (ungelieferte) Positionen einer Kategorie (Speisen oder Getränke), gruppiert nach Tisch; pro Position: Produkt, Variante, Menge, Zeitpunkt der Bestellung |
+| **Anzeige**  | Echtzeit-Updates, große Schrift (für Monitore in Küche/Ausgabe)   |
+| **Akteure**  | Ausgabe-Mitarbeiter, Servicekraft (lesend)                        |
+
+Jede Ausgabestation sieht nur die Positionen ihrer eigenen Kategorie. Die technische Umsetzung der Echtzeit-Aktualisierung ist offen (→ H4).
+
+#### Zubereitungsstatus (K-13)
+
+| Eigenschaft  | Beschreibung                                                      |
+| ------------ | ----------------------------------------------------------------- |
+| **Quelle**   | Tisch-Events (`BestellungAufgegeben`) + Zubereitungsstatus-Daten  |
+| **Inhalt**   | Offene Positionen mit Status: „offen" → „in Zubereitung" → „fertig", gruppiert nach Tisch, Zeitpunkt des letzten Statuswechsels |
+| **Anzeige**  | Farbcodierung nach Status; auf KDS und Servicekraft-Ansicht       |
+| **Akteure**  | Ausgabe-Mitarbeiter (Status ändern), Servicekraft (Status einsehen) |
+
+Die Modellierung des Zubereitungsstatus ist offen: Domain Events im Tisch-Aggregat, eigenes Aggregat oder transienter State sind alle denkbare Optionen (→ H5).
 
 ---
 
@@ -785,19 +881,57 @@ Das Einmalpasswort ist bewusst kurz (6 Zeichen) — es dient nur der einmaligen 
 
 ### 9.1 Zwei Strategien, eine Datenbank
 
-<!-- Abschnitt 4 -->
+jotti verwendet zwei Persistenzstrategien in einer einzigen PostgreSQL-Datenbank:
+
+| Bereich                    | Strategie       | Begründung                                                  |
+| -------------------------- | --------------- | ----------------------------------------------------------- |
+| Kassenbetrieb (Tisch)      | Event-Sourcing  | Geschichte ist fachlich relevant (Kassenjournal, Buchhaltung); lückenlose Nachvollziehbarkeit ist ein Kernziel |
+| Stammdaten (Produkt, Tisch, Benutzer) | CRUD | Nur aktueller Zustand benötigt; historische Stammdaten-Änderungen irrelevant (Fat Events decken das ab) |
+| Auth                       | CRUD            | Infrastruktur ohne fachliche Event-Semantik                 |
+
+Die Trennung ist klar: Überall dort, wo die Geschichte eines Objekts fachlich relevant ist, wird Event-Sourcing eingesetzt. Für reine Konfigurationsdaten reicht klassisches CRUD.
 
 ### 9.2 Event Store
 
-<!-- Abschnitt 4 -->
+Der Event Store ist das Herzstück des Kassenbetriebs. Er speichert alle Domain Events als unveränderliche, append-only Einträge.
+
+**Prinzipien:**
+
+- **Append-only:** Events werden niemals geändert oder gelöscht. Jeder Geschäftsvorfall hinterlässt einen dauerhaften Eintrag.
+- **Subjekt-Format:** Events sind einem Tisch zugeordnet, Schlüssel `tisch:<id>`.
+- **Optimistic Concurrency Control:** Jedes Event trägt eine `version`-Nummer. Die Kombination `(tisch_id, version)` ist eindeutig (UNIQUE Constraint in der Datenbank). Ein Schreibversuch mit einer bereits vergebenen Version schlägt fehl — so werden parallele Schreibkonflikte erkannt.
+- **Keine Lösch-Operation:** Selbst fehlerhafte Events bleiben erhalten. Korrekturen erfolgen durch Kompensations-Events (z. B. `ProdukteStorniert` als Reaktion auf eine fehlerhafte `BestellungAufgegeben`).
+
+**Snapshot-Speicherung:**
+
+Snapshots sind rein technische Optimierungen ohne fachliche Bedeutung. Sie werden **separat** vom Event Stream gespeichert — in einer eigenen Tabelle oder als markierter Datensatz — und nicht als Event in den Stream geschrieben. Snapshots beschleunigen das Laden langer Event-Streams: Statt den gesamten Stream von Anfang an zu replizieren, wird der letzte Snapshot geladen und nur die darauf folgenden Events angewendet.
+
+Snapshots werden automatisch nach einer konfigurierbaren Anzahl neuer Events oder auf Admin-Anfrage erstellt. Die Wahrheit bleibt immer der Event-Stream — ein Snapshot ist jederzeit aus dem Stream reproduzierbar.
+
+_Verworfene Alternative: `SnapshotErstellt` als Event im Stream zu speichern würde fachliche und technische Concerns vermischen und den Stream unübersichtlicher machen._
 
 ### 9.3 Stammdaten (CRUD-Prinzipien)
 
-<!-- Abschnitt 4 -->
+Produkte, Tische (Stammdaten) und Benutzer werden mit klassischem CRUD verwaltet. Dabei gelten folgende Prinzipien:
+
+- **Soft-Delete:** Entitäten werden nie physisch gelöscht, sondern auf `status = 'deleted'` gesetzt. Dadurch bleiben historische Referenzen in den Tisch-Events gültig. Deaktivierte Produkte erscheinen nicht mehr im Bestellvorgang, aber ihre Daten sind noch nachvollziehbar.
+- **Timestamps:** Jede Entität trägt Erstellungs- und Änderungszeitpunkte.
+- **Referenzielle Integrität:** Varianten gehören zu einem Produkt. Wenn ein Produkt gelöscht (Soft-Delete) wird, werden seine Varianten ebenfalls deaktiviert.
+- **Fat Events decken Preishistorie ab:** Da die `BestellungAufgegeben`-Events den Produktnamen, den Variantennamen und den Einzelpreis zum Zeitpunkt der Bestellung einbetten, ist eine separate Preishistorie für Stammdaten nicht nötig.
 
 ### 9.4 Optimistic Concurrency Control
 
-<!-- Abschnitt 4 -->
+Mehrere Servicekräfte können gleichzeitig an verschiedenen Tischen arbeiten — dabei entstehen keine Konflikte. Arbeiten jedoch zwei Servicekräfte gleichzeitig am **selben** Tisch (z. B. zwei Zahlungsvorgänge parallel), kann ein Schreibkonflikt entstehen.
+
+**Mechanismus:**
+
+1. Beim Laden eines Tisches wird die aktuelle `event_version` mitgegeben.
+2. Beim Schreiben eines neuen Events wird die erwartete Version mitgeschickt.
+3. Die Datenbank prüft via UNIQUE Constraint `(tisch_id, version)`, ob die Version noch frei ist.
+4. Ist die Version bereits vergeben (ein anderer Schreibvorgang war schneller), schlägt die Operation mit einem Konflikt-Fehler fehl.
+5. Die Anwendungsschicht führt einen **Retry** durch: Tischzustand neu laden, Operation erneut anwenden, neuen Schreibversuch starten.
+
+Dieser Mechanismus stellt sicher, dass der Tisch-Zustand immer konsistent ist, ohne Datenbankzeilen sperren zu müssen. Der Retry ist für die meisten Konfliktfälle bei einer Veranstaltung ausreichend — echte Konkurrenz am selben Tisch ist die Ausnahme.
 
 ---
 

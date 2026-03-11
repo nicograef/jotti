@@ -110,18 +110,18 @@ Referenzdateien: `docs/design/event-storming.md` (Phase 4.2, 4.3, 4.4, 5.1, 5.3)
 - [x] Kapitel 7.2 — Autorisierung schreiben: Drei Rollen (admin, senior_service, service) mit Berechtigungsmatrix aus anforderungen.md
 - [x] Kapitel 7.3 — Sicheres Onboarding schreiben: Einmalpasswort (6-stellig) → Eigenes Passwort bei Erstanmeldung
 
-## Abschnitt 4: Read Models und Persistenzstrategie
+## Abschnitt 4: Read Models und Persistenzstrategie ✅
 
 Referenzdateien: `docs/design/event-storming.md` (Phase 5.1, 5.3).
 
-- [ ] Kapitel 8.1 — Service-Ansichten schreiben: Tischübersicht, Tischdetails, Produktkatalog (NEU), Kassenjournal — jeweils mit Datenquelle, Inhalt, Akteure
-- [ ] Kapitel 8.2 — Admin-Ansichten (Reporting) schreiben: Tagesabrechnung, Abrechnung pro Tisch, pro Servicekraft, Produktumsatz — jeweils mit Datenquelle, Inhalt, Akteure
-- [ ] Kapitel 8.3 — Ausgabe-Ansichten schreiben: KDS-Ansicht, Zubereitungsstatus — jeweils mit Datenquelle, Inhalt, Akteure
-- [ ] Kapitel 9.1 — Zwei Strategien, eine Datenbank schreiben: Übersichtstabelle (Kassenbetrieb → Event-Sourcing, Stammdaten/Auth → CRUD)
-- [ ] Kapitel 9.2 — Event Store schreiben: Append-only-Prinzip, Optimistic Concurrency Control (UNIQUE tisch_id + version), keine SQL-DDL
-- [ ] Kapitel 9.3 — Stammdaten (CRUD-Prinzipien) schreiben: Soft-Delete, Timestamps, referenzielle Integrität, keine SQL-DDL
-- [ ] Kapitel 9.4 — Optimistic Concurrency Control schreiben: Version-Mechanismus und Retry-Pattern bei Konflikten erklären
-- [ ] Kapitel 9 — Snapshot-Speicherung ergänzen: separate Speicherung (nicht im Event Stream), automatisch nach N Events oder auf Admin-Anfrage
+- [x] Kapitel 8.1 — Service-Ansichten schreiben: Tischübersicht, Tischdetails, Produktkatalog (NEU), Kassenjournal — jeweils mit Datenquelle, Inhalt, Akteure
+- [x] Kapitel 8.2 — Admin-Ansichten (Reporting) schreiben: Tagesabrechnung, Abrechnung pro Tisch, pro Servicekraft, Produktumsatz — jeweils mit Datenquelle, Inhalt, Akteure
+- [x] Kapitel 8.3 — Ausgabe-Ansichten schreiben: KDS-Ansicht, Zubereitungsstatus — jeweils mit Datenquelle, Inhalt, Akteure
+- [x] Kapitel 9.1 — Zwei Strategien, eine Datenbank schreiben: Übersichtstabelle (Kassenbetrieb → Event-Sourcing, Stammdaten/Auth → CRUD)
+- [x] Kapitel 9.2 — Event Store schreiben: Append-only-Prinzip, Optimistic Concurrency Control (UNIQUE tisch_id + version), keine SQL-DDL
+- [x] Kapitel 9.3 — Stammdaten (CRUD-Prinzipien) schreiben: Soft-Delete, Timestamps, referenzielle Integrität, keine SQL-DDL
+- [x] Kapitel 9.4 — Optimistic Concurrency Control schreiben: Version-Mechanismus und Retry-Pattern bei Konflikten erklären
+- [x] Kapitel 9 — Snapshot-Speicherung ergänzen: separate Speicherung (nicht im Event Stream), automatisch nach N Events oder auf Admin-Anfrage
 
 ## Abschnitt 5: Architekturprinzipien und Infrastruktur
 
