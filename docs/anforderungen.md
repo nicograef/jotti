@@ -38,18 +38,22 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen:
 
 ### Berechtigungsmatrix
 
-| Aktion                  | Admin | Serviceleitung | Servicekraft |
-| ----------------------- | :---: | :------------: | :----------: |
-| Produkte verwalten      |   ✔   |                |              |
-| Tische verwalten        |   ✔   |                |              |
-| Benutzer verwalten      |   ✔   |                |              |
-| Passwort zurücksetzen   |   ✔   |                |              |
-| Bestellung aufgeben     |   ✔   |       ✔        |      ✔       |
-| Lieferung bestätigen    |   ✔   |       ✔        |      ✔       |
-| Zahlung registrieren    |   ✔   |       ✔        |      ✔       |
-| Stornierung durchführen |   ✔   |       ✔        |              |
-| Tischübersicht einsehen |   ✔   |       ✔        |      ✔       |
-| Kassenjournal einsehen  |   ✔   |       ✔        |      ✔       |
+| Aktion                   | Admin | Serviceleitung | Servicekraft |
+| ------------------------ | :---: | :------------: | :----------: |
+| Produkte verwalten       |   ✔   |                |              |
+| Tische verwalten         |   ✔   |                |              |
+| Benutzer verwalten       |   ✔   |                |              |
+| Passwort zurücksetzen    |   ✔   |                |              |
+| Bestellung aufgeben      |   ✔   |       ✔        |      ✔       |
+| Lieferung bestätigen     |   ✔   |       ✔        |      ✔       |
+| Zahlung registrieren     |   ✔   |       ✔        |      ✔       |
+| Stornierung durchführen  |   ✔   |       ✔        |              |
+| Tischübersicht einsehen  |   ✔   |       ✔        |      ✔       |
+| Kassenjournal einsehen   |   ✔   |       ✔        |      ✔       |
+| Abmelden                 |   ✔   |       ✔        |      ✔       |
+| Tagesabrechnung einsehen |   ✔   |                |              |
+| Datenexport              |   ✔   |                |              |
+| Tagesabschluss einleiten |   ✔   |                |              |
 
 ---
 
@@ -218,20 +222,30 @@ Bons werden automatisch oder manuell gedruckt, damit Ausgabestationen (Küche, G
 - Freibon mit freier Bezeichnung und Preiseingabe möglich (Sonderpositionen)
 - Drucker sind vom Admin konfigurierbar (Zuordnung Drucker zu Kategorie)
 
-### K-12 · Ausgabestationen
+### K-12 · Küchendisplay (KDS)
 
 > **ID:** K-12 · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Nice-to-have
+> **Status:** 🔲 Offen · **Prio:** Should-have
 
-Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eigenen Bildschirm die offenen Bestellungen ihrer Kategorie. Sie können Bestellungen als „in Zubereitung" und „fertig" markieren. Servicekräfte sehen den Zubereitungsstatus und wissen, wann Positionen abholbereit sind.
+Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eigenen Bildschirm in Echtzeit die eingehenden Bestellungen ihrer Kategorie. Das Display dient als passive Anzeige — es zeigt offene Bestellungen gruppiert nach Tisch, sodass Ausgabestationen auch bei Bon-Verlust die Bestellungen nachvollziehen können.
 
 **Akzeptanzkriterien:**
 
-- Getränkeausgabe sieht offene Getränkebestellungen, gruppiert nach Tisch
-- Essensausgabe sieht offene Essensbestellungen, gruppiert nach Tisch
-- Ausgabestationen können Positionen als „in Zubereitung" und „fertig" markieren
+- Echtzeit-Anzeige offener Bestellungen nach Kategorie (Essen, Getränke), gruppiert nach Tisch
+- Getränkeausgabe sieht offene Getränkebestellungen, Essensausgabe sieht offene Essensbestellungen
+- Letzte Bestellungen sind einsehbar (bei Bon-Verlust)
+
+### K-13 · Ausgabestationen mit Zubereitungsstatus
+
+> **ID:** K-13 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **Status:** 🔲 Offen · **Prio:** Nice-to-have
+
+Aufbauend auf dem Küchendisplay (K-12) können Mitarbeiter an Ausgabestationen den Zubereitungsstatus einzelner Positionen verwalten. Servicekräfte sehen den Zubereitungsstatus und wissen, wann Positionen abholbereit sind.
+
+**Akzeptanzkriterien:**
+
+- Positionen können als „in Zubereitung" und „fertig" markiert werden
 - Servicekraft kann den Zubereitungsstatus ihrer Bestellungen einsehen
-- Letzte Bestellungen sind an der Ausgabestation einsehbar (bei Bon-Verlust)
 
 ---
 
@@ -326,6 +340,20 @@ Neue Benutzer erhalten vom Admin ein 6-stelliges Einmalpasswort. Bei der Erstanm
 - Nach Passwort-Reset durch den Admin wird erneut ein Einmalpasswort generiert
 - Nach erfolgreichem Setzen des Passworts kann sich der Benutzer normal anmelden
 
+### A-03 · Logout
+
+> **ID:** A-03 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **Status:** ✅ Umgesetzt · **Prio:** Must-have
+
+Alle Benutzer können sich über einen „Abmelden"-Button aktiv ausloggen. Der Logout entfernt das JWT aus dem Speicher und leitet auf die Login-Seite weiter. Die Funktion ist sowohl im Service- als auch im Admin-Bereich verfügbar.
+
+**Akzeptanzkriterien:**
+
+- Benutzer kann sich über einen „Abmelden"-Button aktiv ausloggen
+- Logout entfernt den JWT aus dem Speicher
+- Nach dem Logout wird der Benutzer auf die Login-Seite weitergeleitet
+- Logout ist in Service- und Admin-Bereich verfügbar
+
 ---
 
 ## 4 · Querschnittsanforderungen
@@ -405,6 +433,48 @@ Bei einem Internetausfall während der Veranstaltung soll die Bestellaufnahme we
 - Noch nicht abgesendete Bestellungen überleben einen App-Neustart (lokale Persistierung)
 - Der Benutzer wird sichtbar über den Offline-Zustand informiert
 
+### Q-06 · HTTPS / TLS
+
+> **ID:** Q-06 · **Rolle:** —
+> **Status:** ✅ Umgesetzt · **Prio:** Must-have
+
+Alle Kommunikation zwischen Client und Server ist TLS-verschlüsselt. Der Reverse Proxy (nginx) terminiert TLS, und Zertifikate werden automatisch über Let's Encrypt bezogen und erneuert. HTTP-Anfragen werden auf HTTPS umgeleitet.
+
+**Akzeptanzkriterien:**
+
+- Alle Kommunikation zwischen Client und Server ist TLS-verschlüsselt (HTTPS)
+- TLS-Zertifikate werden automatisch über Let's Encrypt bezogen und erneuert
+- HTTP-Anfragen werden auf HTTPS umgeleitet
+- Der Reverse Proxy (nginx) terminiert TLS
+
+### Q-07 · Rate Limiting
+
+> **ID:** Q-07 · **Rolle:** —
+> **Status:** 🔲 Offen · **Prio:** Should-have
+
+Der Login-Endpunkt ist durch Rate Limiting geschützt, um Brute-Force-Angriffe zu erschweren. Bei Überschreitung des Limits wird eine entsprechende HTTP-Antwort zurückgegeben.
+
+**Akzeptanzkriterien:**
+
+- Login-Endpunkt ist durch Rate Limiting geschützt (z. B. max. 10 Versuche pro Minute pro IP)
+- Bei Überschreitung wird ein HTTP 429 (Too Many Requests) zurückgegeben
+- Rate Limiting ist serverseitig implementiert (nicht clientseitig)
+
+### Q-08 · Security Headers
+
+> **ID:** Q-08 · **Rolle:** —
+> **Status:** 🔲 Offen · **Prio:** Should-have
+
+Sicherheitsrelevante HTTP-Header werden gesetzt, um gängige Angriffsvektoren (XSS, Clickjacking, MIME-Sniffing) zu mitigieren. Die Header werden vom Reverse Proxy oder Backend gesetzt.
+
+**Akzeptanzkriterien:**
+
+- Content Security Policy (CSP) Header wird gesetzt
+- X-Content-Type-Options: nosniff
+- X-Frame-Options: DENY
+- Strict-Transport-Security (HSTS) Header wird gesetzt
+- Headers werden vom Reverse Proxy oder Backend gesetzt
+
 ---
 
 ## 5 · Reporting und Auswertung
@@ -419,7 +489,7 @@ Der Admin kann am Ende einer Veranstaltung oder jederzeit zwischendurch eine Tag
 **Akzeptanzkriterien:**
 
 - Gesamtumsatz des Tages einsehbar (Summe aller registrierten Zahlungen)
-- Umsatz pro Servicekraft einsehbar (aufgeschlüsselt nach Benutzer)
+- Umsatz pro Servicekraft als Übersichtswert (Details siehe R-04)
 - Übersicht aller Stornierungen mit Zeitpunkt, Tisch, stornierten Positionen und Betrag
 - Abruf jederzeit möglich (nicht nur bei Tagesabschluss)
 - Servicekraft kann eigene Bestellungen und deren Status einsehen (bestellt, geliefert, bezahlt, storniert)
@@ -435,6 +505,62 @@ Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um s
 
 - Export von Umsätzen, Bestellungen und Artikeldaten als CSV
 - Export jederzeit durch den Admin auslösbar
+
+### R-03 · Abrechnung pro Tisch
+
+> **ID:** R-03 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Should-have
+
+Der Admin kann eine detaillierte Abrechnung pro Tisch einsehen. Diese enthält alle Bestellungen, Zahlungen, Lieferungen und Stornierungen des jeweiligen Tisches in chronologischer Reihenfolge sowie einen Gesamt-Saldo.
+
+**Akzeptanzkriterien:**
+
+- Detaillierte Aufstellung aller Bestellungen, Zahlungen, Lieferungen und Stornierungen eines Tisches
+- Anzeige des Gesamt-Saldos (bestellt, bezahlt, offen, storniert)
+- Abrufbar für jeden einzelnen Tisch durch den Admin
+- Chronologische Reihenfolge der Ereignisse
+
+### R-04 · Abrechnung pro Servicekraft
+
+> **ID:** R-04 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Should-have
+
+Der Admin kann eine personenbezogene Abrechnung pro Servicekraft einsehen. Diese zeigt den Umsatz, die Anzahl der aufgegebenen Bestellungen sowie Stornierungen der jeweiligen Person — für Transparenz und Nachvollziehbarkeit.
+
+**Akzeptanzkriterien:**
+
+- Umsatz pro Servicekraft einsehbar (Summe aller registrierten Zahlungen durch diese Person)
+- Anzahl der aufgegebenen Bestellungen pro Servicekraft
+- Anzahl und Betrag der Stornierungen pro Servicekraft
+- Nur durch Admin einsehbar
+
+### R-05 · Produktumsatz-Reporting
+
+> **ID:** R-05 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Should-have
+
+Der Admin kann Auswertungen über Produktumsätze einsehen: verkaufte Mengen pro Produkt und Variante, ein Ranking der meistverkauften Varianten sowie Gesamteinnahmen pro Produkt.
+
+**Akzeptanzkriterien:**
+
+- Übersicht über verkaufte Mengen pro Produkt und Variante
+- Ranking der meistverkauften Varianten
+- Gesamteinnahmen pro Produkt/Variante
+- Nur durch Admin einsehbar
+
+### R-06 · Tagesabschluss
+
+> **ID:** R-06 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Nice-to-have
+
+Der Admin kann einen Tagesabschluss einleiten, der offene Tische prüft, einen Abschlussbericht generiert und das System optional für die nächste Veranstaltung zurücksetzt. **Hinweis:** Das Zurücksetzen des Systems wirft eine offene Frage zur Event-Sourcing-Kompatibilität auf — sollen Events gelöscht (widerspricht dem Append-only-Prinzip) oder archiviert werden? Wie wird mit offenen Saldi umgegangen?
+
+**Akzeptanzkriterien:**
+
+- Admin kann einen Tagesabschluss einleiten
+- Offene Tische (Saldo ≠ 0) werden vor Abschluss angezeigt
+- Abschlussbericht wird generiert (vgl. R-01)
+- Optional: System kann für die nächste Veranstaltung zurückgesetzt werden (Tisch-Events archivieren)
 
 ---
 
@@ -453,5 +579,6 @@ jotti ist kein Allzweck-Kassensystem. Folgende Features sind bewusst **nicht** e
 | 🚫 CRM / Kundendatenbank           | Vereinsfeste haben keine wiederkehrenden Kundenbeziehungen, die ein CRM rechtfertigen.                                          |
 | 🚫 Kiosk-Modus / Self-Order        | Self-Order erhöht die Systemkomplexität erheblich und widerspricht dem persönlichen Service durch ehrenamtliche Helfer.         |
 | 🚫 Gast-Benachrichtigung           | Gäste sitzen am Tisch und werden persönlich bedient — Push-Benachrichtigungen an Gäste sind im Vereinsfest-Kontext überflüssig. |
+| 🚫 Trinkgeld-Tracking              | Bei ehrenamtlichen Veranstaltungen ist Trinkgeld-Verwaltung unüblich und unnötig komplex.                                       |
 
 Für eine detaillierte Gegenüberstellung mit kommerziellen POS-Systemen siehe [Produktbeschreibung — Abgrenzung](produktbeschreibung.md#7-abgrenzung).
