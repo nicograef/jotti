@@ -59,7 +59,7 @@ jotti ist lizenziert unter der [AGPL-3.0-or-later](LICENSE) (GNU Affero General 
 
 **Was das bedeutet:**
 
-- ✅ **Vereine und Non-Profits** dürfen jotti kostenlos nutzen, installieren und betreiben (Self-Hosted).
+- ✅ **Eingetragene Vereine (e.V.), gemeinnützige Stiftungen und NGOs/NPOs** dürfen jotti kostenlos nutzen, installieren und betreiben.
 - ✅ **Quellcode einsehen, modifizieren und beitragen** ist erlaubt und erwünscht.
 - ⚠️ **Wer jotti modifiziert und als Netzwerkservice (SaaS) anbietet**, muss den vollständigen Quellcode aller Änderungen unter AGPL-3.0 veröffentlichen.
 - ❌ **Proprietäre Abspaltungen sind nicht erlaubt.** Niemand darf jotti oder Teile davon in ein geschlossenes kommerzielles Produkt überführen, ohne die AGPL-Pflichten zu erfüllen.
