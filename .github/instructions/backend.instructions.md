@@ -5,6 +5,14 @@ applyTo: "backend/**"
 
 # Backend-Konventionen
 
+## Befehle
+
+- **Build:** `make build-backend`
+- **Unit-Tests:** `make test`
+- **Lint:** `make lint-backend`
+- **Format:** `make fmt-backend`
+- **sqlc generieren:** `make sqlc` (nach Query-Änderungen)
+
 ## Verzeichnisstruktur
 
 ```
@@ -46,4 +54,104 @@ Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `a
 
 ## Tests
 
-Unit-Tests mit `//go:build unit` Tag. Ausführen: `go test -tags=unit -race ./...`
+Unit-Tests mit `//go:build unit` Tag. Ausführen: `make test`
+
+## Code-Beispiele
+
+### HTTP-Handler
+
+Pattern: Request-Struct definieren → Body lesen → Service aufrufen → Fehler mappen → Response senden.
+
+```go
+type createProduct struct {
+	Name     string           `json:"name"`
+	Category product.Category `json:"category"`
+}
+
+type createProductResponse struct {
+	ID int `json:"id"`
+}
+
+func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := createProduct{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		id, err := h.Command.CreateProduct(r.Context(), body.Name, body.Category)
+		if err != nil {
+			switch {
+			case errors.Is(err, application.ErrProduktAlreadyExists):
+				helper.SendClientError(w, "produkt_already_exists", nil)
+			case errors.Is(err, application.ErrInvalidProduktData):
+				helper.SendClientError(w, "invalid_produkt_data", nil)
+			default:
+				helper.SendServerError(w)
+			}
+			return
+		}
+
+		helper.SendResponse(w, createProductResponse{ID: id})
+	}
+}
+```
+
+### Application-Service
+
+Pattern: Logging → Domain-Modell aufbauen/validieren → Repository aufrufen → Fehler mappen.
+
+```go
+func (c Command) CreateProduct(ctx context.Context, name string, category product.Category) (int, error) {
+	log := zerolog.Ctx(ctx)
+
+	product, err := product.NewProduct(name, category)
+	if err != nil {
+		log.Warn().Err(err).Str("product_name", name).Msg("Invalid product data")
+		return 0, ErrInvalidProduktData
+	}
+
+	productID, err := c.ProductRepo.CreateProduct(ctx, product)
+	if err != nil {
+		if errors.Is(err, db.ErrAlreadyExists) {
+			log.Warn().Err(err).Str("name", product.Name).Msg("Product name already exists")
+			return 0, ErrProduktAlreadyExists
+		} else {
+			log.Error().Str("name", product.Name).Msg("Failed to create product")
+			return 0, ErrDatabase
+		}
+	}
+
+	log.Info().Int("product_id", productID).Msg("Product created")
+	return productID, nil
+}
+```
+
+### zog-Validierungsschema
+
+```go
+var NameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(100, z.Message("Name too long"))
+
+var CategorySchema = z.StringLike[Category]().OneOf(
+	[]Category{FoodCategory, BeverageCategory, OtherCategory},
+	z.Message("Invalid category"),
+)
+
+var ProductSchema = z.Struct(z.Shape{
+	"ID":        IDSchema.Required(),
+	"Name":      NameSchema.Required(),
+	"Category":  CategorySchema.Required(),
+	"Variants":  z.Slice(VariantSchema).Required(),
+	"CreatedAt": z.Time().Required(),
+})
+
+func NewProduct(name string, category Category) (Product, error) {
+	if issue := NameSchema.Validate(&name); issue != nil {
+		return Product{}, fmt.Errorf("invalid name")
+	}
+	if issue := CategorySchema.Validate(&category); issue != nil {
+		return Product{}, fmt.Errorf("invalid category")
+	}
+	return Product{Name: name, Category: category}, nil
+}
+```

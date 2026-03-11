@@ -5,6 +5,12 @@ applyTo: "database/**"
 
 # Datenbank-Konventionen
 
+## Befehle
+
+- **sqlc generieren:** `make sqlc` (nach Query-Änderungen)
+- **Dev-DB starten:** `make dev` (startet PostgreSQL im Docker-Stack)
+- **DB-Shell öffnen:** `make db-shell`
+
 ## Schema
 
 Tabellen: `users`, `tables`, `products`, `product_variants`, `events` (append-only).

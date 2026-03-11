@@ -6,16 +6,36 @@ Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellung
 
 **Bewusst NICHT enthalten:** Kartenzahlung, TSE/KassenSichV, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM, Kiosk-Modus. Diese Reduktion ist gewollt — jedes zusätzliche Feature erhöht Komplexität für ehrenamtliche Teams.
 
-Weiterführende Docs: [Produktbeschreibung](docs/produktbeschreibung.md) · [Anforderungen](docs/requirements.md) · [Entwicklung](docs/development.md) · [Ubiquitous Language](docs/language.md) · [Event Storming](docs/event-storming.md) · [Lizenz](docs/lizenz-und-nutzung.md)
+Weiterführende Docs: [Produktbeschreibung](docs/produktbeschreibung.md) · [Anforderungen](docs/anforderungen.md) · [Entwicklung](docs/development.md) · [Ubiquitous Language](docs/language.md) · [Event Storming](docs/event-storming.md) · [Lizenz](docs/lizenz-und-nutzung.md)
 
 ## Tech-Stack
 
-| Komponente    | Technologie                                                                |
-| ------------- | -------------------------------------------------------------------------- |
-| Backend       | Go, stdlib `net/http`, `pgx/v5`, `sqlc`, `zerolog`, `zog`, `golang-jwt/v5` |
-| Frontend      | React, Vite, TypeScript (strict), Tailwind CSS 4, shadcn/ui, Zod           |
-| Datenbank     | PostgreSQL, `golang-migrate`                                               |
-| Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                         |
+| Komponente    | Technologie                                                                     |
+| ------------- | ------------------------------------------------------------------------------- |
+| Backend       | Go 1.26, stdlib `net/http`, `pgx/v5`, `sqlc`, `zerolog`, `zog`, `golang-jwt/v5` |
+| Frontend      | React 19, Vite 7, TypeScript 5.9 (strict), Tailwind CSS 4, shadcn/ui, Zod 4     |
+| Datenbank     | PostgreSQL 17, `golang-migrate`                                                 |
+| Runtime       | Node 24+, pnpm 10+                                                              |
+| Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                              |
+
+## Befehle
+
+Alle Befehle werden über das **Makefile** im Projekt-Root ausgeführt:
+
+| Befehl                  | Beschreibung                                 |
+| ----------------------- | -------------------------------------------- |
+| `make test`             | Backend Unit-Tests                           |
+| `make test-frontend`    | Frontend Tests (Vitest)                      |
+| `make test-all`         | Alle Unit-Tests (Backend + Frontend)         |
+| `make test-integration` | Integrationstests                            |
+| `make lint`             | Backend + Frontend Linting                   |
+| `make fmt`              | Backend + Frontend Formatierung              |
+| `make build`            | Backend + Frontend kompilieren               |
+| `make sqlc`             | sqlc Code generieren (nach Query-Änderungen) |
+| `make dev`              | Dev-Stack starten (Docker Compose)           |
+| `make down`             | Dev-Stack stoppen                            |
+
+Siehe `make help` für die vollständige Liste.
 
 ## Wichtige Regeln
 
@@ -27,8 +47,7 @@ Weiterführende Docs: [Produktbeschreibung](docs/produktbeschreibung.md) · [Anf
 6. **Deutsche Ubiquitous Language.** Fachbegriffe der Domäne sind deutsch (Bestellung, Zahlung, Lieferung, Stornierung, Tisch, Position). Infrastruktur-Code (Auth, Config, DB) bleibt englisch. Alle Benutzer-sichtbaren Strings auf Deutsch. Commits auf Englisch.
 7. **Kein globaler State-Store im Frontend.** Nur React Hooks + Singletons.
 8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
-9. **Dokumentation synchron halten.** Bei Änderungen diese Dateien aktualisieren, sofern betroffen: `AGENTS.md`, `README.md`, `docs/development.md`, `docs/requirements.md`, `docs/language.md`.
-10. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend. Das Frontend zeigt an, was das Backend liefert.
+9. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend. Das Frontend zeigt an, was das Backend liefert.
 
 ## Bereiche
 
@@ -36,10 +55,20 @@ Weiterführende Docs: [Produktbeschreibung](docs/produktbeschreibung.md) · [Anf
 - **Service** (`admin` + `senior_service` + `service`): Routen `/service/*` (`api/service.go`), Stornierung über `api/senior_service.go`. Frontend `src/service/`, `ServiceGuard`. Bestellen, Liefern, Kassieren, Stornieren.
 - **Auth** (kein JWT): Routen `/auth/*` (`api/auth.go`). Login, Passwort setzen.
 
-## Tests
+## Grenzen
 
-```bash
-cd backend && go test -tags=unit -race ./...   # Unit-Tests
-./test-integration.sh                           # Integrationstests
-cd frontend && pnpm lint                        # Frontend-Lint
-```
+- ✅ **Immer:** Beide Seiten validieren (zog + Zod), Tests mitliefern, Events immutable behandeln
+- ✅ **Immer:** `make sqlc` nach Query-Änderungen, `make lint` nach Code-Änderungen
+- ⚠️ **Erst fragen:** Neue Dependencies hinzufügen, DB-Schema-Migrationen, Docker/Nginx-Konfiguration ändern
+- 🚫 **Niemals:** `sqlc/dbgen/` editieren (generierter Code)
+- 🚫 **Niemals:** Events updaten oder löschen
+- 🚫 **Niemals:** Floats für Geldbeträge verwenden
+- 🚫 **Niemals:** Direkt `fetch()` im Frontend verwenden
+- 🚫 **Niemals:** GET/PUT/DELETE-Endpunkte erstellen
+- 🚫 **Niemals:** Secrets oder Passwörter in Code committen
+
+## Git-Workflow
+
+- **Commit-Messages:** Conventional Commits auf Englisch (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`)
+- **Kein auto-commit.** Agent schlägt Commit-Message vor, User führt Commit durch.
+- **Kein `--force` push oder `--no-verify`.**
