@@ -5,7 +5,7 @@
 > Dieses Backlog trackt, welche davon die Tiefe eines eigenständigen ADRs benötigen (Alternativen, Trade-offs,
 > Revisionskriterien) und welche durch design.md bereits ausreichend abgedeckt sind.
 >
-> **Vorhandene ADRs:** [event-sourcing.md](event-sourcing.md), [orm.md](orm.md)
+> **Vorhandene ADRs:** [event-sourcing.md](event-sourcing.md), [orm.md](orm.md), [cqrs.md](cqrs.md)
 > **Designentscheidungen in design.md:** D1–D15 (§15.2), offene Fragen Q1–Q5 (§15.3)
 
 ---

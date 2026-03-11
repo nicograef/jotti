@@ -624,23 +624,12 @@ TSE speichert:
 - fiskaly (Cloud-TSE)
 - Deutsche Fiskal / Bundesdruckerei (Cloud-TSE)
 
-### 6.3 Österreich: RKSV
-
-Die österreichische **Registrierkassensicherheitsverordnung (RKSV)**, in Kraft seit 2016, nutzt einen ähnlichen Ansatz:
-
-- **Signaturerstellungseinheit (SEE)**: Entspricht der deutschen TSE
-- **Kassenidentifikationsnummer**: Eindeutige Kennung je Kasse
-- **Startbeleg**: Kasse wird zu Betriebsbeginn mit einem signierten Startbeleg registriert
-- **Jahresbeleg**: Jährliche Prüfung per FinanzOnline
-- **Belegaustauschformat**: Maschinenlesbare Quittungen (QR-Code)
-
 ### 6.4 Non-Profit-Ausnahmen
 
 Non-Profit-Organisationen und Vereine sind in der Regel **von der Registrierkassenpflicht befreit** oder haben vereinfachte Regelungen, wenn:
 
 - **Deutschland**: Jahresumsatz < 17.500 EUR (Kleinunternehmer, §19 UStG) oder ausschließlich steuerfreie Umsätze
 - **Vereinsfeste**: Gelegentliche Veranstaltungen mit vereinfachten Buchführungsregeln (§ 64 Abs. 5 AO — Vereinfachung für satzungszweckgemäßen Geschäftsbetrieb)
-- **Österreich**: Vereine mit Jahreseinnahmen < 15.000 EUR sind von der RKSV befreit
 
 **Wichtig:** Diese Ausnahmen müssen im Einzelfall geprüft werden. Steuerliche Beratung ist empfohlen.
 
@@ -947,8 +936,7 @@ Herausforderung: Bestellungen aus mehreren Kanälen (Lieferdienst + Vor-Ort) in 
 ### Fiskalgesetzgebung
 
 5. [KassenSichV — Kassensicherungsverordnung](https://dejure.org/gesetze/KassenSichV) — TSE-Anforderungen, Manipulationsschutz
-6. [RKSV — Registrierkassensicherheitsverordnung Österreich](https://www.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=20009390) — Registrierkassenpflicht, Ausnahmen für Vereine
-7. [Abgabenordnung (AO)](https://dejure.org/gesetze/AO) — Rechtsgrundlage für GoBD (Grundsätze ordnungsmäßiger Buchführung)
+6. [Abgabenordnung (AO)](https://dejure.org/gesetze/AO) — Rechtsgrundlage für GoBD (Grundsätze ordnungsmäßiger Buchführung)
 
 ### Payment Integration
 

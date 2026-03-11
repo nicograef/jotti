@@ -2,8 +2,6 @@
 
 Dieses Dokument beschreibt alle funktionalen und querschnittlichen Anforderungen an jotti, gegliedert nach Bounded Contexts, und dient als zentrale Referenz für Entwicklung und Priorisierung.
 
-Für Produktidentität, Zielgruppe und Abgrenzung siehe [Produktbeschreibung](produktbeschreibung.md). Für Architektur, Domänenmodell und technische Designentscheidungen siehe [System Design](design.md). Für die kanonischen Fachbegriffe siehe [Ubiquitous Language](language.md).
-
 ---
 
 ## Legende
