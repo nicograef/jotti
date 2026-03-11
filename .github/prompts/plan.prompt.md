@@ -13,7 +13,8 @@ Du bist in der **Planungsphase**. Deine Aufgabe ist es, die nachfolgende Aufgabe
 1. **Analysiere** die Aufgabenbeschreibung gründlich
 2. **Recherchiere** den relevanten Codebase-Kontext — lies betroffene Dateien, verstehe bestehende Patterns und Abhängigkeiten
 3. **Verifiziere** dein Verständnis — hinterfrage Annahmen, prüfe ob dein Plan mit den bestehenden Konventionen konsistent ist
-4. **Erstelle** den Plan als `plan.md` im Arbeitsverzeichnis (z.B. `docs/agents/plan.md`)
+4. **Leite einen kurzen, prägnanten Slug** aus der Aufgabenbeschreibung ab (z.B. `theory-cleanup`, `admin-dashboard`, `bestellung-storno`). Nur Kleinbuchstaben, Ziffern und Bindestriche.
+5. **Erstelle** den Plan als `docs/agents/<slug>/plan.md`
 
 ## Regeln
 
@@ -21,6 +22,7 @@ Du bist in der **Planungsphase**. Deine Aufgabe ist es, die nachfolgende Aufgabe
 - **Sei gründlich.** Nutze alle verfügbaren Tools um Kontext zu sammeln.
 - **Referenziere konkrete Dateien und Code-Stellen**, damit ein Agent in einer neuen Session direkt loslegen kann.
 - **Beschreibe das Was UND das Wie** — nicht nur "erstelle Handler", sondern welche Funktion, welche Parameter, welches Pattern (mit Verweis auf existierenden Code als Vorlage).
+- **Ein Thema = ein Verzeichnis.** Jedes Feature/Thema bekommt sein eigenes Unterverzeichnis unter `docs/agents/`. So können mehrere Pläne parallel existieren, ohne sich gegenseitig zu überschreiben.
 
 ## Struktur von plan.md
 
