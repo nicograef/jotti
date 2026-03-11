@@ -4,7 +4,7 @@ Ein leichtgewichtiges **Gastronomie-Kassensystem (POS)** für Vereine und Non-Pr
 
 Servicekräfte nehmen auf Smartphones Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer über einen eigenen Admin-Bereich.
 
-> **Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. Self-hosted, Open Source, Mobile-first.**
+> **Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. Self-hosted, Source-Available, Mobile-first.**
 
 ## Was jotti kann
 
