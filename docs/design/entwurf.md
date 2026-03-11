@@ -939,35 +939,149 @@ Dieser Mechanismus stellt sicher, dass der Tisch-Zustand immer konsistent ist, o
 
 ### 10.1 Schichtenarchitektur
 
-<!-- Abschnitt 5 -->
+Das Backend ist in vier Schichten gegliedert:
+
+```
+┌─────────────────────────────────────────────────┐
+│  HTTP-Schicht (Handler)                         │
+│  Routing, Request-Parsing, Response-Serialisier.│
+├─────────────────────────────────────────────────┤
+│  Application-Schicht (Services)                 │
+│  Use Cases, Orchestrierung, Fehler-Mapping      │
+├─────────────────────────────────────────────────┤
+│  Domain-Schicht                                 │
+│  Aggregat-Logik, Invarianten, Domain Events     │
+├─────────────────────────────────────────────────┤
+│  Repository / Infra-Schicht                     │
+│  Datenbankzugriff, Event Store, sqlc-Queries    │
+└─────────────────────────────────────────────────┘
+```
+
+**HTTP-Schicht:** Liest den Request-Body, validiert das Format und delegiert an den Application-Service. Gibt strukturierte Fehlerresponses zurück. Keine Business-Logik.
+
+**Application-Schicht:** Koordiniert den Use Case: validiert fachlich (zog-Schema), lädt Aggregat-State, ruft Domain-Logik auf und persistiert das Ergebnis. Übersetzt Domain-Fehler in anwendungsseitige Fehlercodes.
+
+**Domain-Schicht:** Enthält die fachlichen Regeln (Aggregat-Invarianten, Event-Konstruktion, Zustandsberechnung). Kennt keine Datenbank und kein HTTP.
+
+**Repository/Infra-Schicht:** Kapselt alle Datenbankzugriffe. Für das Tisch-Aggregat: Event Store (append-only). Für Stammdaten: CRUD. Implementiert auf Basis von sqlc-generierten Queries.
+
+**Beispiel — Request-Lebenszyklus „Bestellung aufgeben":**
+
+1. HTTP-Handler liest den Request-Body und prüft die JWT-Rolle.
+2. Application-Service validiert die Bestellung (Produkte bekannt, Mengen > 0).
+3. Application-Service lädt den aktuellen Tisch-State via Event-Replay aus dem Repository.
+4. Domain-Logik konstruiert den `BestellungAufgegeben`-Event und prüft alle Invarianten.
+5. Repository persistiert den Event im Event Store (mit Optimistic Concurrency Check).
+6. HTTP-Handler sendet `200 OK` mit der neuen Event-ID zurück.
 
 ### 10.2 API-Design-Prinzipien
 
-<!-- Abschnitt 5 -->
+**POST-only:** Alle API-Endpunkte sind POST-Endpunkte. Es gibt keine GET-, PUT- oder DELETE-Endpunkte. Jede Aktion wird explizit benannt (z. B. `/service/bestellung-aufgeben` statt `PUT /tables/5`).
+
+**JSON:** Request- und Response-Bodies sind JSON.
+
+**Authentifizierung:** Jeder Endpunkt (außer `/auth/*`) erwartet ein gültiges JWT im `Authorization: Bearer <token>`-Header. Die Middleware prüft Signatur und Gültigkeit.
+
+**Rollenprüfung:** Die Middleware extrahiert `userID` und `role` aus dem JWT und legt sie im Request-Context ab. Endpunkte prüfen die erforderliche Rolle — nicht im Handler, sondern in der Middleware oder im Application-Service.
+
+**Fehlerformat:** Alle Fehler-Responses haben die Form `{"code": "<string>", "details": "<optional>"}`. HTTP-Statuscodes: `400` für Client-Fehler, `401` für fehlende/ungültige Auth, `403` für unzureichende Rechte, `500` für Server-Fehler.
+
+**Bereichsgliederung:**
+
+| Bereich          | Pfad-Präfix          | Rolle(n)                            |
+| ---------------- | -------------------- | ----------------------------------- |
+| Auth             | `/auth/*`            | — (öffentlich)                      |
+| Admin            | `/admin/*`           | `admin`                             |
+| Service          | `/service/*`         | `service`, `senior_service`, `admin` |
+| Senior Service   | `/senior-service/*`  | `senior_service`, `admin`           |
 
 ### 10.3 Frontend-Architektur
 
-<!-- Abschnitt 5 -->
+**Single Page Application (Mobile-first):** Das Frontend ist eine SPA, die vom Backend als statisches Bundle ausgeliefert wird. Alle Seiten sind für Smartphone-Browser optimiert.
+
+**Route Guards:** Zwei Guards schützen die Bereiche:
+
+- `AdminGuard` — prüft, ob der eingeloggte Benutzer die Rolle `admin` hat.
+- `ServiceGuard` — prüft, ob der Benutzer eingeloggt ist (Rolle `service`, `senior_service` oder `admin`).
+
+Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
+
+**Seitenstruktur:**
+
+| Bereich  | Seiten                                                                             |
+| -------- | ---------------------------------------------------------------------------------- |
+| Service  | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Liefern, Bezahlen, Stornieren)     |
+| Admin    | Produkte verwalten · Tische verwalten · Benutzer verwalten                         |
+| Allgemein | Login · Passwort setzen (Erstanmeldung)                                           |
+
+**UI-Patterns:**
+
+- **Karten:** Produkte und Tische werden als Karten dargestellt.
+- **Drawer (Bottom-Sheet):** Bestellen, Liefern, Bezahlen und Stornieren öffnen einen Drawer von unten. Der Drawer zeigt eine Zusammenfassung der Aktion und eine Bestätigung.
+- **Tab-Navigation:** Im Tisch-Detail navigiert der Benutzer zwischen den Aktionen über Tabs.
+- **Kategorie-Tabs:** Die Produktliste ist nach Kategorien (Speisen, Getränke, Sonstiges) gefiltert.
+- **Plus/Minus:** Mengenauswahl über Plus/Minus-Buttons (Touch-optimiert).
+
+**Backend-Kommunikation:** Das Frontend kommuniziert ausschließlich über Backend-Klassen, die das `BackendClient`-Interface verwenden. Direktes `fetch()` ist verboten. Der `BackendClient` erkennt `401`-Antworten automatisch, loggt den Benutzer aus und leitet auf `/login` weiter.
 
 ### 10.4 Validierung
 
-<!-- Abschnitt 5 -->
+Alle Eingaben werden auf **beiden Seiten** unabhängig voneinander validiert (Q-03):
+
+| Seite    | Schema-Bibliothek | Zeitpunkt                                     |
+| -------- | ----------------- | --------------------------------------------- |
+| Frontend | Zod               | Vor dem Absenden — direktes Feedback am Feld  |
+| Backend  | zog               | Bei jedem Request — vor der Business-Logik    |
+
+**Das Backend ist die Single Source of Truth.** Das Frontend-Schema ist eine UX-Optimierung (sofortiges Feedback), aber keine Sicherheitsmaßnahme. Das Backend lehnt ungültige Anfragen unabhängig vom Frontend ab — auch bei manipulierten Requests.
+
+**Validierungsregeln** (Beispiele): Name nicht leer, Preis ≥ 0 Cent, Menge ≥ 1, Benutzername eindeutig, Rolle ist einer der erlaubten Werte. Konkrete Regeln sind an den Domain-Modellen definiert.
 
 ### 10.5 Geldbeträge
 
-<!-- Abschnitt 5 -->
+Alle Geldbeträge werden **durchgehend als ganzzahlige Cent-Werte** (Integer) gespeichert und verarbeitet (Q-04). Fließkommazahlen werden für Geldbeträge nirgendwo verwendet.
+
+| Ebene    | Datentyp     | Beispiel              |
+| -------- | ------------ | --------------------- |
+| Datenbank | `INTEGER`   | `350` (= 3,50 €)      |
+| Backend  | `int`        | `350`                 |
+| API      | JSON-Zahl    | `350`                 |
+| Frontend | `number` (int) | `350`               |
+| Events   | `int`        | `350`                 |
+
+Die Darstellung als „3,50 €" geschieht ausschließlich im Frontend als reine Formatierung (`formatCents()`). Rundungsfehler durch Fließkommazahlen sind damit strukturell ausgeschlossen.
 
 ### 10.6 Mehrbenutzerfähigkeit
 
-<!-- Abschnitt 5 -->
+Mehrere Servicekräfte arbeiten gleichzeitig mit dem System (Q-02). Das System unterscheidet zwei Konfliktszenarien:
+
+**Verschiedene Tische — kein Konflikt:** Jedes Tisch-Aggregat ist unabhängig. Gleichzeitige Schreibzugriffe auf verschiedene Tische führen nie zu Konflikten.
+
+**Gleicher Tisch — Optimistic Concurrency Control:** Wenn zwei Servicekräfte gleichzeitig auf denselben Tisch schreiben, erkennt das System den Konflikt über den Versionsmechanismus (→ [9.4 Optimistic Concurrency Control](#94-optimistic-concurrency-control)). Die zweite Schreiboperation schlägt fehl und muss wiederholt werden. Der Client erhält einen eindeutigen Fehlercode und kann den Request automatisch neu versuchen.
 
 ### 10.7 Mobile-first
 
-<!-- Abschnitt 5 -->
+Das gesamte UI ist für Smartphone-Browser konzipiert (Q-01):
+
+- **Mindestbreite:** ≥ 360 px — alle Layouts funktionieren auf gängigen Smartphones.
+- **Touch-optimiert:** Alle interaktiven Elemente (Buttons, Karten, Plus/Minus) haben ausreichend große Touch-Targets.
+- **Drawer-Konzept:** Aktionen öffnen als Bottom-Sheet-Drawer — kein Modal, kein Popup, keine Seitennavigation.
+- **Kein Hover:** Es gibt keine UI-Elemente, die Hover-Interaktionen erfordern.
+- **Kein App-Download:** Die Web-App läuft direkt im Browser — keine Installation, kein App Store.
+- **BYOD:** Servicekräfte verwenden ihre eigenen Smartphones (Bring Your Own Device). Das System stellt keine Hardware.
 
 ### 10.8 Sicherheit
 
-<!-- Abschnitt 5 -->
+| Maßnahme               | Umsetzung                                                                              | Anforderung |
+| ---------------------- | -------------------------------------------------------------------------------------- | ----------- |
+| HTTPS / TLS            | nginx terminiert TLS, Let's Encrypt-Zertifikat, HTTP → HTTPS-Redirect                 | Q-06        |
+| Rate Limiting          | Login-Endpunkt ist durch Rate Limiting geschützt (Brute-Force-Schutz)                 | Q-07        |
+| Security Headers       | Reverse Proxy setzt HSTS, X-Frame-Options, X-Content-Type-Options, CSP                | Q-08        |
+| Input-Validierung      | Frontend (Zod) + Backend (zog) — beide Seiten unabhängig voneinander                  | Q-03        |
+| Passwort-Hashing       | Argon2id mit zufälligem Salt                                                           | A-01        |
+| Generische Fehlermeldungen | Fehlgeschlagene Logins geben keine Auskunft, ob Benutzer oder Passwort falsch war  | A-01        |
+| Keine Secrets im Code  | Alle Secrets (JWT-Schlüssel, DB-Passwort) werden über Umgebungsvariablen konfiguriert | —           |
+| JWT-Gültigkeit         | Tokens sind 12 Stunden gültig — kurze Lebensdauer begrenzt den Schaden bei Verlust    | A-01        |
 
 ---
 
@@ -975,11 +1089,63 @@ Dieser Mechanismus stellt sicher, dass der Tisch-Zustand immer konsistent ist, o
 
 ### 11.1 Architekturüberblick
 
-<!-- Abschnitt 5 -->
+Das System wird als Docker-Compose-Stack betrieben:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Internet                                                │
+└──────────────────────┬───────────────────────────────────┘
+                       │ HTTPS :443
+┌──────────────────────▼───────────────────────────────────┐
+│  nginx (Reverse Proxy)                                   │
+│  - TLS-Terminierung (Let's Encrypt)                      │
+│  - HTTP → HTTPS Redirect                                 │
+│  - Security Headers                                      │
+│  - Statisches Frontend ausliefern                        │
+│  - API-Requests weiterleiten → Backend                   │
+└─────────┬────────────────────────┬────────────────────────┘
+          │ /api/*                 │ /*
+┌─────────▼──────────┐   ┌─────────▼──────────┐
+│  Backend (Go)      │   │  Frontend (Static) │
+│  - REST API        │   │  - SPA (React)     │
+│  - JWT-Auth        │   │  - vom Backend     │
+│  - Business-Logik  │   │    ausgeliefert    │
+└─────────┬──────────┘   └────────────────────┘
+          │ pgx/v5
+┌─────────▼──────────┐
+│  PostgreSQL        │
+│  - Event Store     │
+│  - Stammdaten      │
+│  - Snapshots       │
+└────────────────────┘
+
+Einmalig beim Start:
+┌────────────────────┐
+│  Migrate-Container │
+│  - DB-Migrationen  │
+│  - golang-migrate  │
+└────────────────────┘
+```
+
+Das Frontend wird als statisches Bundle in das Backend-Image eingebettet oder vom nginx-Container ausgeliefert. Es gibt keine separaten Container für Frontend und Backend zur Laufzeit.
 
 ### 11.2 Deployment-Modell
 
-<!-- Abschnitt 5 -->
+jotti ist self-hosted — keine Cloud-Abhängigkeit, kein SaaS.
+
+**Voraussetzungen:** Ein Linux-Server mit Docker und Docker Compose. Geeignet für VPS (z. B. Hetzner, Netcup) ab ca. 2 GB RAM oder einen Raspberry Pi 4/5.
+
+**Deployment-Prozess:**
+1. Repository clonen und `.env`-Datei mit Secrets befüllen.
+2. `docker compose up -d` starten.
+3. Der Migrate-Container läuft einmalig, führt alle Datenbankmigrationen durch und beendet sich.
+4. nginx, Backend und PostgreSQL laufen dauerhaft.
+
+**TLS:** Let's Encrypt-Zertifikate werden automatisch über einen ACME-Client (z. B. Certbot oder Caddy als Alternative) bezogen und erneuert. HTTP-Anfragen werden auf HTTPS umgeleitet.
+
+**Updates:** `docker compose pull && docker compose up -d`. Migrationen werden beim Start des neuen Containers automatisch angewendet.
+
+**Keine externe Abhängigkeit:** Das System funktioniert komplett ohne Internetzugang zur Laufzeit (außer für die initiale TLS-Zertifikatsausstellung und -Erneuerung).
 
 ---
 
