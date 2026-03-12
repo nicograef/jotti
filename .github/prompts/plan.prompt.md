@@ -24,6 +24,7 @@ Erzeuge aus der referenzierten Analyse eine **plan.md** im selben Verzeichnis. D
 - **Tasks müssen atomar sein** — ein Task = eine klar abgrenzbare Aktion (eine Datei erstellen, eine Funktion schreiben, einen Test hinzufügen)
 - **Jeder Task muss unabhängig prüfbar sein** — nach Abschluss muss klar sein, ob er erledigt ist oder nicht
 - **Keine reinen Kontext-Lade-Abschnitte.** Abschnitte, deren Tasks nur aus "Datei X lesen" oder "Kontext erfassen" bestehen, sind verboten. Kontext-Laden gehört in den Block `### Kontext laden` der Agent-Anweisungen (siehe Template unten) — nicht in einen eigenen Abschnitt. Jeder Abschnitt muss Output produzieren (Dateien erstellen/ändern, Code schreiben, Dokumentation schreiben).
+- **Breaking Changes erlaubt.** jotti ist in aktiver Entwicklung — Breaking Changes sind ausdrücklich erwünscht. Keine Migrations-Strategien planen, keine Backward-Kompatibilität berücksichtigen. Schema-Änderungen direkt in `database/migrations/01_initial.up.sql` vornehmen (keine neuen Migrationsdateien). API-Änderungen direkt durchführen. Event-Formate direkt ändern (kein Dual-Read, kein Custom UnmarshalJSON für alte Daten). Dev-DB wird bei Bedarf neu aufgesetzt (`make down && make dev`).
 
 ## Struktur von plan.md
 

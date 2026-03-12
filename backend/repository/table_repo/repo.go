@@ -50,6 +50,7 @@ func (r Repository) CreateTable(ctx context.Context, t table.Tisch) (int, error)
 		Name:      t.Name,
 		Status:    dbgen.Entitystatus(t.Status),
 		CreatedAt: t.CreatedAt,
+		UpdatedAt: t.UpdatedAt,
 	})
 	if err != nil {
 		return 0, db.Error(err)
@@ -60,9 +61,10 @@ func (r Repository) CreateTable(ctx context.Context, t table.Tisch) (int, error)
 
 func (r Repository) UpdateTable(ctx context.Context, t table.Tisch) error {
 	result, err := r.q.UpdateTable(ctx, dbgen.UpdateTableParams{
-		Name:   t.Name,
-		Status: dbgen.Entitystatus(t.Status),
-		ID:     t.ID,
+		Name:      t.Name,
+		Status:    dbgen.Entitystatus(t.Status),
+		UpdatedAt: t.UpdatedAt,
+		ID:        t.ID,
 	})
 	if err != nil {
 		return db.Error(err)

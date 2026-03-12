@@ -17,6 +17,7 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/update-user", uc.UpdateUserHandler())
 	r.HandleFunc("/activate-user", uc.ActivateUserHandler())
 	r.HandleFunc("/deactivate-user", uc.DeactivateUserHandler())
+	r.HandleFunc("/delete-user", uc.DeleteUserHandler())
 	r.HandleFunc("/reset-password", uc.ResetPasswordHandler())
 
 	uq := user.NewQueryHandler(db)
@@ -25,10 +26,14 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	pc := product.NewCommandHandler(db)
 	r.HandleFunc("/create-produkt", pc.CreateProductHandler())
 	r.HandleFunc("/update-produkt", pc.UpdateProductHandler())
+	r.HandleFunc("/activate-produkt", pc.ActivateProductHandler())
+	r.HandleFunc("/deactivate-produkt", pc.DeactivateProductHandler())
 	r.HandleFunc("/create-variante", pc.CreateVariantHandler())
 	r.HandleFunc("/update-variante", pc.UpdateVariantHandler())
 	r.HandleFunc("/activate-variante", pc.ActivateVariantHandler())
 	r.HandleFunc("/deactivate-variante", pc.DeactivateVariantHandler())
+	r.HandleFunc("/delete-produkt", pc.DeleteProduktHandler())
+	r.HandleFunc("/delete-variante", pc.DeleteVarianteHandler())
 
 	pq := product.NewQueryHandler(db)
 	r.HandleFunc("/get-all-produkte", pq.GetAllProductsHandler())
@@ -38,6 +43,8 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/create-tisch", tc.TischErstellenHandler())
 	r.HandleFunc("/activate-tisch", tc.TischAktivierenHandler())
 	r.HandleFunc("/deactivate-tisch", tc.TischDeaktivierenHandler())
+	r.HandleFunc("/delete-tisch", tc.TischLoeschenHandler())
+	r.HandleFunc("/create-tisch-snapshot", tc.TischSnapshotErstellenHandler())
 
 	tq := table.NewQueryHandler(db)
 	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())

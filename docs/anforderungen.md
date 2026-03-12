@@ -31,7 +31,7 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen:
 | Kurzbezeichnung    | Code-Rolle       | Beschreibung                                                                 |
 | ------------------ | ---------------- | ---------------------------------------------------------------------------- |
 | **Admin**          | `admin`          | Voller Zugriff auf Stammdaten (Produkte, Tische, Benutzer) und Kassenbetrieb |
-| **Serviceleitung** | `senior_service` | Kassenbetrieb einschließlich Stornierung                                     |
+| **Serviceleitung** | `serviceleitung` | Kassenbetrieb einschließlich Stornierung                                     |
 | **Servicekraft**   | `service`        | Kassenbetrieb ohne Stornierung                                               |
 
 ### Berechtigungsmatrix
@@ -115,7 +115,7 @@ Serviceleitung oder Admin können bestellte Positionen nachträglich stornieren.
 
 **Akzeptanzkriterien:**
 
-- Nur Serviceleitung (`senior_service`) und Admin (`admin`) dürfen stornieren
+- Nur Serviceleitung (`serviceleitung`) und Admin (`admin`) dürfen stornieren
 - Servicekraft (`service`) hat keinen Zugriff auf die Stornierungsfunktion
 - Mindestens eine Position muss ausgewählt werden
 - Kommentar optional (max. 100 Zeichen)
@@ -127,14 +127,15 @@ Serviceleitung oder Admin können bestellte Positionen nachträglich stornieren.
 > **ID:** K-05 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
-Die Servicekraft sieht auf der Startseite alle aktiven Tische als Karten und navigiert per Tap zum Tisch-Detail. Dort stehen alle Tischoperationen (Bestellen, Liefern, Bezahlen, Stornieren, Historie) als Tabs zur Verfügung. Tischoperationen öffnen als Drawer (Overlay von unten).
+Die Servicekraft sieht auf der Startseite alle aktiven Tische als Karten und navigiert per Tap zum Tisch-Detail. Dort stehen die Tischoperationen in drei Tabs zur Verfügung: Bestellen, Bezahlen und Historie. Liefern ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar. Tischoperationen öffnen als Drawer (Overlay von unten).
 
 **Akzeptanzkriterien:**
 
 - Alle aktiven Tische werden als Karten angezeigt
 - Tischkarte zeigt den aktuellen Saldo
 - Navigation per Tap zum Tisch-Detail
-- Tisch-Detail bietet Tabs für alle Operationen (Bestellung, Lieferung, Zahlung, Stornierung, Historie)
+- Tisch-Detail bietet drei Tabs: Bestellen, Bezahlen, Historie
+- Liefern ist in den Bestellen-Tab integriert, Stornieren für Serviceleitung/Admin im Bezahlen-Tab
 - Operationen öffnen als Drawer (Mobile-optimiertes Overlay)
 - Unbezahlte und ungelieferte Positionen sind auf dem Tisch-Detail sichtbar
 
@@ -156,15 +157,11 @@ Jeder Tisch führt ein unveränderliches Kassenjournal (Event Stream), das alle 
 ### K-07 · Bezeichnung pro Bestellung
 
 > **ID:** K-07 · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Nice-to-have
+> **Status:** � Won't-have · **Prio:** ~~Nice-to-have~~
 
-Einer Bestellung kann ein optionaler Name oder eine Bezeichnung zugewiesen werden (z. B. „Familie Müller", „Gruppe links"), um mehrere Gruppen an einem Tisch unterscheiden zu können. Die Bezeichnung wird in der Tisch-Historie und bei der Abrechnung angezeigt.
+~~Einer Bestellung kann ein optionaler Name oder eine Bezeichnung zugewiesen werden (z. B. „Familie Müller", „Gruppe links"), um mehrere Gruppen an einem Tisch unterscheiden zu können.~~
 
-**Akzeptanzkriterien:**
-
-- Bestellung kann mit optionalem Namen versehen werden (z. B. „Familie Müller", „Gruppe links")
-- Bezeichnung wird in der Tisch-Historie angezeigt
-- Bezeichnung wird bei der Abrechnung angezeigt
+**Entscheidung:** Wird über das bestehende Kommentarfeld der Bestellung gelöst (K-01, max. 100 Zeichen). Der Kommentar wird bereits in der Tisch-Historie (K-06) angezeigt. Ein eigenes Bezeichnungsfeld ist daher nicht notwendig.
 
 ### K-08 · Bestellungen umbuchen
 
@@ -209,7 +206,7 @@ Auf der Tischübersicht kann die Servicekraft über ein Suchfeld oder Nummernpad
 > **ID:** K-11 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Should-have
 
-Bons werden automatisch oder manuell gedruckt, damit Ausgabestationen (Küche, Getränketheke) die bestellten Positionen erhalten. Bons enthalten alle relevanten Informationen: Tisch, Servicekraft, Positionen mit Mengen, Zeitstempel und optionalen Kommentar. Freibons mit freier Preiseingabe ermöglichen Sonderpositionen außerhalb des Produktkatalogs.
+Bons werden automatisch oder manuell gedruckt, damit Ausgabestationen (Küche, Getränketheke) die bestellten Positionen erhalten. Bons enthalten alle relevanten Informationen: Tisch, Servicekraft, Positionen mit Mengen, Zeitstempel und optionalen Kommentar.
 
 **Akzeptanzkriterien:**
 
@@ -217,7 +214,6 @@ Bons werden automatisch oder manuell gedruckt, damit Ausgabestationen (Küche, G
 - Separater Bon pro Position druckbar (z. B. bei Fehlbon Nachdruck einer einzelnen Position)
 - Getränkepositionen werden automatisch an den Getränkedrucker gesendet
 - Essenspositionen werden automatisch an den Küchendrucker gesendet
-- Freibon mit freier Bezeichnung und Preiseingabe möglich (Sonderpositionen)
 - Drucker sind vom Admin konfigurierbar (Zuordnung Drucker zu Kategorie)
 
 ### K-12 · Küchendisplay (KDS)
@@ -293,7 +289,7 @@ Der Admin verwaltet die Benutzerkonten: Benutzer anlegen, bearbeiten, aktivieren
 
 **Akzeptanzkriterien:**
 
-- Benutzer anlegen mit Name, Benutzername und Rolle (`admin`, `senior_service`, `service`)
+- Benutzer anlegen mit Name, Benutzername und Rolle (`admin`, `serviceleitung`, `service`)
 - Benutzer bearbeiten (Name, Benutzername, Rolle ändern)
 - Benutzer aktivieren / deaktivieren
 - Benutzer entfernen (Soft-Delete — Status wird auf `deleted` gesetzt)
@@ -333,7 +329,7 @@ Neue Benutzer erhalten vom Admin ein 6-stelliges Einmalpasswort. Bei der Erstanm
 
 - Admin erstellt Benutzer → System generiert ein 6-stelliges Einmalpasswort
 - Erstanmeldung mit Einmalpasswort leitet automatisch zu „Passwort setzen" weiter
-- Benutzer vergibt eigenes Passwort (min. 8 Zeichen)
+- Benutzer vergibt eigenes Passwort (min. 6 Zeichen)
 - Neues Passwort wird mit Argon2id gehasht gespeichert
 - Nach Passwort-Reset durch den Admin wird erneut ein Einmalpasswort generiert
 - Nach erfolgreichem Setzen des Passworts kann sich der Benutzer normal anmelden

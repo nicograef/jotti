@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { Product, Variant } from '../../product/Product'
+import type { Produkt, Variante } from '../../product/Product'
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
@@ -25,7 +25,7 @@ import { Receipt } from './Receipt'
 interface BestellungDrawerProps {
   backend: Pick<TischBackend, 'bestellungAufgeben'>
   tisch: Tisch
-  products: Product[]
+  products: Produkt[]
   quantities: Record<number, number>
   bestellungAufgegeben: () => void
 }
@@ -45,7 +45,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
       await props.backend.bestellungAufgeben({
         tischId: props.tisch.id,
         positionen: orderedPositionen,
-        comment: comment,
+        kommentar: comment,
       })
       props.bestellungAufgegeben()
       setOpen(false)
@@ -115,16 +115,16 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
 }
 
 function toPositionen(
-  products: Product[],
+  products: Produkt[],
   selectedQuantity: Record<number, number>,
 ): Position[] {
-  const allVariants: Variant[] = products.flatMap((p) => p.variants)
+  const allVariants: Variante[] = products.flatMap((p) => p.variants)
   return allVariants
     .map((variant) => ({
       id: variant.id,
       name: variant.name,
-      preisCents: variant.priceCents,
-      quantity: selectedQuantity[variant.id] || 0,
+      preisCents: variant.preisCents,
+      menge: selectedQuantity[variant.id] || 0,
     }))
-    .filter((variant) => variant.quantity > 0)
+    .filter((variant) => variant.menge > 0)
 }

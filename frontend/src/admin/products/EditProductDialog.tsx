@@ -18,7 +18,7 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { Product } from './Product'
+import type { Produkt } from './Product'
 import { ProductBackend, UpdateProductSchema } from './ProductBackend'
 
 const FormDataSchema = UpdateProductSchema.omit({ id: true })
@@ -27,8 +27,8 @@ type FormData = z.infer<typeof FormDataSchema>
 interface EditProductDialogProps {
   backend: Pick<ProductBackend, 'updateProduct'>
   open: boolean
-  product: Product
-  updated: (product: Product) => void
+  product: Produkt
+  updated: (product: Produkt) => void
   close: () => void
 }
 

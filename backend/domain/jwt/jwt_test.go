@@ -9,7 +9,7 @@ import (
 )
 
 func TestGenerateJWTTokenForUser(t *testing.T) {
-	token, err := GenerateJWTTokenForUser(1, "admin", "test_secret")
+	token, err := GenerateJWTTokenForUser(1, "Test Admin", "admin", "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
@@ -26,24 +26,30 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 	if int(claims["sub"].(float64)) != 1 {
 		t.Errorf("Expected subject '1', got '%v'", int(claims["sub"].(float64)))
 	}
+	if claims["name"].(string) != "Test Admin" {
+		t.Errorf("Expected name 'Test Admin', got '%v'", claims["name"])
+	}
 	if claims["role"].(string) != "admin" {
 		t.Errorf("Expected role '%s', got '%v'", "admin", claims["role"])
 	}
 }
 
 func TestParseAndValidateJWTToken(t *testing.T) {
-	token, err := GenerateJWTTokenForUser(2, "service", "test_secret")
+	token, err := GenerateJWTTokenForUser(2, "Service User", "service", "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
 
-	userID, userRole, err := ParseAndValidateJWTToken(token, "test_secret")
+	userID, userName, userRole, err := ParseAndValidateJWTToken(token, "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to parse and validate JWT token: %v", err)
 	}
 
 	if userID != 2 {
 		t.Errorf("Expected UserID '%d', got '%d'", 2, userID)
+	}
+	if userName != "Service User" {
+		t.Errorf("Expected UserName '%s', got '%s'", "Service User", userName)
 	}
 	if userRole != "service" {
 		t.Errorf("Expected Role '%s', got '%s'", "service", userRole)

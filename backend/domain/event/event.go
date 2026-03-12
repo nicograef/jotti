@@ -16,34 +16,52 @@ type Event struct {
 	ID int `json:"id"`
 	// The ID of the user associated with the event.
 	UserID int `json:"userId"`
+	// The name of the user who triggered the event.
+	UserName string `json:"userName"`
 	// The type of event related to the source system and subject. E.g. com.library.book.borrowed:v1
 	Type string `json:"type"`
 	// The timestamp of when the event occurred.
 	Time time.Time `json:"time"`
 	// The subject of the event in the context of the event producer (identified by source). E.g. the entity to which the event is primarily related. E.g. /users/12345
 	Subject string `json:"subject"`
+	// The version of the event for optimistic concurrency control.
+	Version int `json:"version"`
 	// The event payload.
 	Data json.RawMessage `json:"data"`
 }
 
-// New creates a new Event with the given parameters and automatically sets the ID and Time fields.
+// New creates a new Event with the given parameters and automatically sets the Time field.
+// Version is NOT set here — it is assigned by the OCC mechanism in the application layer.
 // It returns an error if any of the required fields are invalid.
-func New(userID int, eventType string, subject string, data any) (Event, error) {
+func New(userID int, userName string, eventType string, subject string, data any) (Event, error) {
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		return Event{}, err
 	}
 
-	event := Event{
-		UserID:  userID,
-		Type:    eventType,
-		Time:    time.Now().UTC(),
-		Subject: subject,
-		Data:    dataJSON,
+	if userID <= 0 {
+		return Event{}, errors.New("user ID must be a positive integer")
+	}
+	if len(strings.TrimSpace(userName)) == 0 {
+		return Event{}, errors.New("user name must be a non-empty string")
+	}
+	if len(strings.TrimSpace(eventType)) < 5 {
+		return Event{}, errors.New("event type must be at least 5 characters long")
+	}
+	if len(strings.TrimSpace(subject)) < 3 {
+		return Event{}, errors.New("event subject must be a non-empty string")
+	}
+	if len(dataJSON) == 0 {
+		return Event{}, errors.New("event data cannot be empty")
 	}
 
-	if err := event.Validate(); err != nil {
-		return Event{}, err
+	event := Event{
+		UserID:   userID,
+		UserName: userName,
+		Type:     eventType,
+		Time:     time.Now().UTC(),
+		Subject:  subject,
+		Data:     dataJSON,
 	}
 
 	return event, nil
@@ -53,6 +71,10 @@ func New(userID int, eventType string, subject string, data any) (Event, error) 
 func (e *Event) Validate() error {
 	if e.UserID <= 0 {
 		return errors.New("user ID must be a positive integer")
+	}
+
+	if len(strings.TrimSpace(e.UserName)) == 0 {
+		return errors.New("user name must be a non-empty string")
 	}
 
 	if len(strings.TrimSpace(e.Type)) < 5 {
@@ -65,6 +87,10 @@ func (e *Event) Validate() error {
 
 	if len(strings.TrimSpace(e.Subject)) < 3 {
 		return errors.New("event subject must be a non-empty string")
+	}
+
+	if e.Version < 1 {
+		return errors.New("event version must be >= 1")
 	}
 
 	if len(e.Data) == 0 {

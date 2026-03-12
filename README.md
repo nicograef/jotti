@@ -32,7 +32,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, liefern au
 ### Verwaltung & Sicherheit
 
 - ⚙️ **Admin-Bereich** für Produkte (mit Varianten), Tische und Benutzer
-- 🔐 **Rollenmodell** mit `admin`, `senior_service` und `service`
+- 🔐 **Rollenmodell** mit `admin`, `serviceleitung` und `service`
 - 🔑 **Sicheres Onboarding** per Einmalpasswort, Argon2id-Hashing, JWT-Auth
 - 📜 **Event-Sourcing** — lückenlose, unveränderliche Bestellhistorie (GoBD-Grundsätze durch Append-only-Architektur)
 

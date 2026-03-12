@@ -6,17 +6,17 @@ import { calculateTotalPrice, selectPositionen } from './drawerUtils'
 
 describe('selectPositionen', () => {
   const positionen: Position[] = [
-    { id: 1, name: 'Bratwurst', preisCents: 350, quantity: 5 },
-    { id: 2, name: 'Pommes', preisCents: 250, quantity: 3 },
-    { id: 3, name: 'Cola 0,3l', preisCents: 200, quantity: 2 },
+    { id: 1, name: 'Bratwurst', preisCents: 350, menge: 5 },
+    { id: 2, name: 'Pommes', preisCents: 250, menge: 3 },
+    { id: 3, name: 'Cola 0,3l', preisCents: 200, menge: 2 },
   ]
 
   it('returns only positionen with selected quantity > 0', () => {
     const result = selectPositionen(positionen, { 1: 2, 3: 1 })
 
     expect(result).toEqual([
-      { id: 1, name: 'Bratwurst', preisCents: 350, quantity: 2 },
-      { id: 3, name: 'Cola 0,3l', preisCents: 200, quantity: 1 },
+      { id: 1, name: 'Bratwurst', preisCents: 350, menge: 2 },
+      { id: 3, name: 'Cola 0,3l', preisCents: 200, menge: 1 },
     ])
   })
 
@@ -32,7 +32,7 @@ describe('selectPositionen', () => {
     const result = selectPositionen(positionen, { 2: 1 })
 
     expect(result).toEqual([
-      { id: 2, name: 'Pommes', preisCents: 250, quantity: 1 },
+      { id: 2, name: 'Pommes', preisCents: 250, menge: 1 },
     ])
   })
 
@@ -46,7 +46,7 @@ describe('selectPositionen', () => {
     const result = selectPositionen(positionen, { 1: 0, 2: 3 })
 
     expect(result).toEqual([
-      { id: 2, name: 'Pommes', preisCents: 250, quantity: 3 },
+      { id: 2, name: 'Pommes', preisCents: 250, menge: 3 },
     ])
   })
 })
@@ -54,8 +54,8 @@ describe('selectPositionen', () => {
 describe('calculateTotalPrice', () => {
   it('calculates total for multiple items', () => {
     const items: Position[] = [
-      { id: 1, name: 'Bratwurst', preisCents: 350, quantity: 2 },
-      { id: 2, name: 'Pommes', preisCents: 250, quantity: 1 },
+      { id: 1, name: 'Bratwurst', preisCents: 350, menge: 2 },
+      { id: 2, name: 'Pommes', preisCents: 250, menge: 1 },
     ]
 
     expect(calculateTotalPrice(items)).toBe(950)
@@ -67,7 +67,7 @@ describe('calculateTotalPrice', () => {
 
   it('handles single item', () => {
     const items: Position[] = [
-      { id: 1, name: 'Cola', preisCents: 200, quantity: 3 },
+      { id: 1, name: 'Cola', preisCents: 200, menge: 3 },
     ]
 
     expect(calculateTotalPrice(items)).toBe(600)
@@ -75,16 +75,16 @@ describe('calculateTotalPrice', () => {
 
   it('handles zero-cent positionen', () => {
     const items: Position[] = [
-      { id: 1, name: 'Wasser', preisCents: 0, quantity: 5 },
-      { id: 2, name: 'Cola', preisCents: 200, quantity: 1 },
+      { id: 1, name: 'Wasser', preisCents: 0, menge: 5 },
+      { id: 2, name: 'Cola', preisCents: 200, menge: 1 },
     ]
 
     expect(calculateTotalPrice(items)).toBe(200)
   })
 
-  it('handles quantity of 1', () => {
+  it('handles menge of 1', () => {
     const items: Position[] = [
-      { id: 1, name: 'Bier', preisCents: 300, quantity: 1 },
+      { id: 1, name: 'Bier', preisCents: 300, menge: 1 },
     ]
 
     expect(calculateTotalPrice(items)).toBe(300)

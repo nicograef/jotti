@@ -18,17 +18,17 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { Variant } from './Product'
-import { type ProductBackend, UpdateVariantSchema } from './ProductBackend'
+import type { Variante } from './Product'
+import { type ProductBackend, UpdateVarianteSchema } from './ProductBackend'
 
-const FormDataSchema = UpdateVariantSchema.omit({ id: true })
+const FormDataSchema = UpdateVarianteSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface EditVariantDialogProps {
   open: boolean
-  variant: Variant
+  variant: Variante
   backend: Pick<ProductBackend, 'updateVariant'>
-  updated: (variant: Variant) => void
+  updated: (variant: Variante) => void
   close: () => void
 }
 
@@ -37,7 +37,7 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
   const form = useForm<FormData>({
     defaultValues: {
       name: props.variant.name,
-      priceCents: props.variant.priceCents,
+      preisCents: props.variant.preisCents,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
@@ -47,7 +47,7 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
     if (!isOpen) {
       form.reset({
         name: props.variant.name,
-        priceCents: props.variant.priceCents,
+        preisCents: props.variant.preisCents,
       })
       props.close()
     }

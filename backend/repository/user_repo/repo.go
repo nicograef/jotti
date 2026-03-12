@@ -50,6 +50,7 @@ func (r Repository) CreateUser(ctx context.Context, u user.User) (int, error) {
 		PasswordHash:        sql.NullString{String: u.PasswordHash, Valid: u.PasswordHash != ""},
 		OnetimePasswordHash: sql.NullString{String: u.OnetimePasswordHash, Valid: u.OnetimePasswordHash != ""},
 		CreatedAt:           u.CreatedAt,
+		UpdatedAt:           u.UpdatedAt,
 	})
 	if err != nil {
 		return 0, db.Error(err)
@@ -66,6 +67,7 @@ func (r Repository) UpdateUser(ctx context.Context, u user.User) error {
 		Status:              dbgen.Entitystatus(u.Status),
 		PasswordHash:        sql.NullString{String: u.PasswordHash, Valid: u.PasswordHash != ""},
 		OnetimePasswordHash: sql.NullString{String: u.OnetimePasswordHash, Valid: u.OnetimePasswordHash != ""},
+		UpdatedAt:           u.UpdatedAt,
 		ID:                  u.ID,
 	})
 	if err != nil {

@@ -38,7 +38,7 @@ export function TablePage() {
   } = useTischUngeliefert(Number(tableId))
 
   const offenePositionen = ungeliefertePositionen.reduce(
-    (sum, position) => sum + position.quantity,
+    (sum, position) => sum + position.menge,
     0,
   )
 

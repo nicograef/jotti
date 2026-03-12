@@ -15,8 +15,8 @@ type Role string
 const (
 	// AdminRole: can do everything.
 	AdminRole Role = "admin"
-	// SeniorServiceRole: same as service, but can also cancel orders.
-	SeniorServiceRole Role = "senior_service"
+	// ServiceleitungRole: same as service, but can also cancel orders.
+	ServiceleitungRole Role = "serviceleitung"
 	// ServiceRole: can only see active tables and products and .
 	ServiceRole Role = "service"
 )
@@ -28,6 +28,8 @@ const (
 	ActiveStatus Status = "active"
 	// InactiveStatus: user is disabled and cannot authenticate.
 	InactiveStatus Status = "inactive"
+	// DeletedStatus: user has been soft-deleted.
+	DeletedStatus Status = "deleted"
 )
 
 type User struct {
@@ -39,6 +41,7 @@ type User struct {
 	PasswordHash        string    `json:"-"`
 	OnetimePasswordHash string    `json:"-"`
 	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
 }
 
 var IDSchema = z.Int().GTE(1, z.Message("Invalid user ID"))
@@ -51,12 +54,12 @@ var UsernameSchema = z.String().Trim().Min(3, z.Message("Username too short")).M
 )
 
 var RoleSchema = z.StringLike[Role]().OneOf(
-	[]Role{AdminRole, SeniorServiceRole, ServiceRole},
+	[]Role{AdminRole, ServiceleitungRole, ServiceRole},
 	z.Message("Invalid role"),
 )
 
 var StatusSchema = z.StringLike[Status]().OneOf(
-	[]Status{ActiveStatus, InactiveStatus},
+	[]Status{ActiveStatus, InactiveStatus, DeletedStatus},
 	z.Message("Invalid status"),
 )
 
@@ -69,6 +72,7 @@ var UserSchema = z.Struct(z.Shape{
 	"PasswordHash":        z.String(),
 	"OnetimePasswordHash": z.String(),
 	"CreatedAt":           z.Time().Required(),
+	"UpdatedAt":           z.Time().Required(),
 })
 
 var ErrNotActive = fmt.Errorf("user is not active")
@@ -112,6 +116,7 @@ func NewUser(name, username string, role Role) (User, string, error) {
 		PasswordHash:        "",
 		OnetimePasswordHash: onetimePasswordHash,
 		CreatedAt:           time.Now().UTC(),
+		UpdatedAt:           time.Now().UTC(),
 	}
 
 	return user, onetimePassword, nil
@@ -123,6 +128,10 @@ func (u *User) Activate() {
 
 func (u *User) Deactivate() {
 	u.Status = InactiveStatus
+}
+
+func (u *User) Delete() {
+	u.Status = DeletedStatus
 }
 
 func (u *User) UpdateDetails(name, username string, role Role) error {
@@ -195,5 +204,5 @@ func (u *User) GenerateJWTToken(password, secret string) (string, error) {
 		return "", err
 	}
 
-	return jwt.GenerateJWTTokenForUser(u.ID, string(u.Role), secret)
+	return jwt.GenerateJWTTokenForUser(u.ID, u.Name, string(u.Role), secret)
 }

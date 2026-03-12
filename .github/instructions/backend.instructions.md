@@ -22,7 +22,7 @@ backend/
   sqlc/queries/                 # SQL-Queries für sqlc
   sqlc/dbgen/                   # Generierter Code (NICHT EDITIEREN)
   api/service.go                # Service-Routen (Kassenbetrieb)
-  api/senior_service.go         # Senior-Service-Routen (Stornierung)
+  api/serviceleitung.go         # serviceleitung-Routen (Stornierung)
   api/admin.go                  # Admin-Routen (Verwaltung)
   api/auth.go                   # Auth-Routen (Login, Passwort setzen)
   api/<domain>/http/            # HTTP-Handler
@@ -42,7 +42,7 @@ Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `a
 
 ## Auth
 
-- JWT HS256, 12h Gültigkeit, Claims: `sub` (userID), `role` (admin|senior_service|service)
+- JWT HS256, 12h Gültigkeit, Claims: `sub` (userID), `role` (admin|serviceleitung|service)
 - Middleware extrahiert `userID` und `role` aus JWT in Request-Context
 - Passwörter: Argon2id-Hashing (`domain/user/password.go`)
 

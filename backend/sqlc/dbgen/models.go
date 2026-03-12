@@ -101,9 +101,9 @@ func (ns NullProductcategory) Value() (driver.Value, error) {
 type Userrole string
 
 const (
-	UserroleAdmin         Userrole = "admin"
-	UserroleService       Userrole = "service"
-	UserroleSeniorService Userrole = "senior_service"
+	UserroleAdmin          Userrole = "admin"
+	UserroleServiceleitung Userrole = "serviceleitung"
+	UserroleService        Userrole = "service"
 )
 
 func (e *Userrole) Scan(src interface{}) error {
@@ -144,12 +144,16 @@ func (ns NullUserrole) Value() (driver.Value, error) {
 // Event log for orders/payments and admin actions (event-sourcing)
 type Event struct {
 	ID int
-	// Actor who triggered the event (nullable)
+	// Actor who triggered the event
 	UserID int
+	// Display name of the actor at the time of the event
+	UserName string
 	// Event type identifier, e.g., bestellung-aufgegeben:v1
 	Type string
 	// Aggregate key, e.g. "table:42" for table ID 42
 	Subject string
+	// Optimistic concurrency version per subject (monotonically increasing)
+	Version int
 	// Event time (UTC)
 	Timestamp time.Time
 	// Event data (jsonb), versioned by type
@@ -163,8 +167,12 @@ type Product struct {
 	Name string
 	// Category of the product: food, beverage, or other
 	Category Productcategory
+	// Product status: active, inactive, or deleted
+	Status Entitystatus
 	// Creation timestamp (UTC)
 	CreatedAt time.Time
+	// Last modification timestamp (UTC)
+	UpdatedAt time.Time
 }
 
 // Variants of products that can be ordered by customers (different sizes, options, etc.).
@@ -179,6 +187,8 @@ type ProductVariant struct {
 	Status Entitystatus
 	// Creation timestamp (UTC)
 	CreatedAt time.Time
+	// Last modification timestamp (UTC)
+	UpdatedAt time.Time
 }
 
 // Customers sit at tables and place orders from there.
@@ -190,6 +200,8 @@ type Table struct {
 	Status Entitystatus
 	// Creation timestamp (UTC)
 	CreatedAt time.Time
+	// Last modification timestamp (UTC)
+	UpdatedAt time.Time
 }
 
 // System users who perform actions in jotti
@@ -209,4 +221,6 @@ type User struct {
 	Status Entitystatus
 	// Creation timestamp (UTC)
 	CreatedAt time.Time
+	// Last modification timestamp (UTC)
+	UpdatedAt time.Time
 }

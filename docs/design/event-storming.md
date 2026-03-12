@@ -61,7 +61,7 @@ Die Simulation folgt der Methode von Alberto Brandolini und durchläuft vier Pha
 | **DOM**  | Domänenexperte             | Rudi   | Langjähriger Vereinsvorstand, 15 Jahre Festorganisation                |
 | **SRV1** | Servicekraft               | Jonas  | Bedient seit 3 Jahren Tische beim Vereinsfest                          |
 | **SRV2** | Servicekraft               | Maria  | Neu dabei, erstes Vereinsfest als Servicekraft                         |
-| **SRL**  | Serviceleitung             | Felix  | Senior-Servicekraft, darf stornieren, koordiniert das Service-Team     |
+| **SRL**  | Serviceleitung             | Felix  | serviceleitungkraft, darf stornieren, koordiniert das Service-Team     |
 | **ADM**  | Administrator              | Thomas | Kümmert sich um Software und Hardware beim Verein                      |
 | **KAS**  | Kassenwart                 | Eva    | Zuständig für Finanzen, Tagesabrechnung, Vereinsbuchhaltung und Export |
 | **VER1** | Vereinsmitglied (Ausgabe)  | Klaus  | Aktiver Helfer, übernimmt oft die Getränkeausgabe und Küchenmitarbeit  |
@@ -258,16 +258,6 @@ _(Ergänzt:)_
 
 - 🟠 Position als „in Zubereitung" markiert _(K-13)_
 - 🟠 Position als „fertig" markiert _(K-13)_
-
-**SRL (Felix):** „Und Freibons? Manchmal gibt es Sonderwünsche, die nicht im Produktkatalog stehen. Da macht jemand einen freien Preis." _(K-11)_
-
-**KAS (Eva):** „Das brauchen wir, aber es muss in der Abrechnung klar als Freibon erkennbar sein."
-
-_(Ergänzt:)_
-
-- 🟠 Freibon ausgestellt _(K-11)_
-
-_(❤️ Hotspot: „Freibon — freie Preiseingabe ohne Produkt-Zuordnung")_
 
 ### 2.4 Diskussion: Stammdaten und Authentifizierung
 
@@ -583,11 +573,8 @@ _(Küche, Getränkeausgabe, begleitend zum Betrieb)_
 
 **DEV1 (Anna):** „Das sind eigentlich Reaktionen auf die Bestellungen aus Cluster B — wenn eine Bestellung aufgegeben wird, muss die Info an die richtige Ausgabestation fließen."
 
-**SRL (Felix):** „Und Freibons gehören auch hierher — die gehen ja auch an die Ausgabe."
-
 - 🟠 Küchenbon gedruckt _(K-11)_
 - 🟠 Getränkebon gedruckt _(K-11)_
-- 🟠 Freibon ausgestellt _(K-11)_
 - 🟠 Küchenbestellung auf Display angezeigt _(K-12)_
 - 🟠 Position als „in Zubereitung" markiert _(K-13)_
 - 🟠 Position als „fertig" markiert _(K-13)_
@@ -653,18 +640,6 @@ _(Tagesende und begleitend, Admin/Kassenwart)_
 **DOM (Rudi):** „Und der optionale Kommentar? Manchmal schreibt die Servicekraft ‚ohne Zwiebeln' dazu."
 
 **DEV2 (Tim):** „Der Kommentar ist optional, maximal 100 Zeichen, und wird im Event mit gespeichert."
-
-**SRV1 (Jonas):** „Und wenn zwei Gruppen am Tisch sitzen? Da möchte ich der Bestellung einen Namen geben — ‚Familie Müller' oder ‚Gruppe links'." _(K-07)_
-
-**DEV1 (Anna):** „Das ist die Bezeichnung pro Bestellung. Auch optional, wird im Event gespeichert und erscheint in der Historie und bei der Abrechnung."
-
-```
-👤 Servicekraft
-    🔵 Bestellung aufgeben
-        Eingabe: Positionen (Variante + Menge), opt. Kommentar, opt. Bezeichnung
-        → [Aggregate: min. 1 Position, Preise in Cent]
-            → 🟠 Bestellung aufgegeben (mit allen Positionen, Preisen, Bezeichnung)
-```
 
 **SRV2 (Maria):** „Und wenn ich mich vertippe und die Bestellung abbrechen will, bevor ich sie abschicke?"
 
@@ -756,7 +731,7 @@ _(Tagesende und begleitend, Admin/Kassenwart)_
             → 🟠 Positionen storniert (mit Positionen, Betrag)
 ```
 
-🟣 **Policy:** Stornierung nur durch Rollen `senior_service` und `admin`. Rolle `service` hat keinen Zugriff.
+🟣 **Policy:** Stornierung nur durch Rollen `serviceleitung` und `admin`. Rolle `service` hat keinen Zugriff.
 
 **DOM (Rudi):** „Kann man auch schon bezahlte Positionen stornieren?"
 
@@ -851,7 +826,7 @@ _(Tagesende und begleitend, Admin/Kassenwart)_
 ```
 👤 Admin
     🔵 Benutzer anlegen
-        Eingabe: Name, Benutzername, Rolle (admin / senior_service / service)
+        Eingabe: Name, Benutzername, Rolle (admin / serviceleitung / service)
         → 🟠 Benutzer angelegt
         → 🟠 Einmalpasswort ausgestellt
 
@@ -1050,31 +1025,6 @@ _(❤️ Hotspot: „Tagesabschluss mit offenen Tischen und System-Reset — Ver
 
 _(❤️ Hotspot: „Drucker-Integration — Hardware-Anbindung, Fehlerbehandlung bei Druckerproblemen")_
 
-#### Freibon (K-11)
-
-**SRL (Felix):** „Und dann gibt es Freibons. Manchmal kommt ein Sonderwunsch, der nicht im Produktkatalog steht — ein Kinderteller mit halber Portion oder ein Ehrenpreis für den Bürgermeister."
-
-**KAS (Eva):** „Der Freibon muss in der Abrechnung klar als solcher erkennbar sein — mit freier Bezeichnung und freiem Preis."
-
-**DOM (Rudi):** „Genau. Das ist keine reguläre Bestellung. Der Preis wird frei eingegeben."
-
-**DEV1 (Anna):** „Also ein spezieller Command: ‚Freibon erstellen' — mit freier Bezeichnung und freier Preiseingabe. Kein Produkt aus dem Katalog, sondern eine Sonderposition."
-
-```
-👤 Servicekraft / Serviceleitung / Admin
-    🔵 Freibon erstellen
-        Eingabe: Freie Bezeichnung, Preis (in Cent), opt. Kommentar
-        → [Aggregate: Bezeichnung und Preis dürfen nicht leer/null sein]
-            → 🟠 Freibon ausgestellt
-    → 🟣 Policy: Bon drucken (wie reguläre Bestellung)
-```
-
-**DEV2 (Tim):** „Der Freibon wird im Kassenjournal wie ein normales Event behandelt — auf den Tisch gebucht, im Saldo berücksichtigt, in der Abrechnung aufgeführt."
-
-**KAS (Eva):** „Gut. Dann taucht er in der Tagesabrechnung unter den regulären Umsätzen auf, ist aber als Freibon gekennzeichnet."
-
-_(❤️ Hotspot: „Freibon — Wie wird er im Produktkatalog und in den Events abgegrenzt?")_
-
 #### Küchendisplay / KDS (K-12)
 
 **VER1 (Klaus):** „Das Küchendisplay ist für mich das Wichtigste. Wenn ich an der Getränkeausgabe stehe, will ich auf einem Bildschirm sehen, welche Getränkebestellungen offen sind — gruppiert nach Tisch. Und die Küche braucht dasselbe für Essen."
@@ -1188,14 +1138,13 @@ _(❤️ Hotspot: „Zubereitungsstatus — eigene Events oder transienter UI-St
     - Nur bestellte Positionen können geliefert werden
     - Nur bestellte, nicht-stornierte Positionen können storniert werden
     - Nur bestellte, nicht-bezahlte Positionen können bezahlt werden
-    - Stornierung nur durch senior_service oder admin
+    - Stornierung nur durch serviceleitung oder admin
 
     Events:
     🟠 Bestellung aufgegeben (K-01, K-07)
     🟠 Produkte geliefert (K-03)
     🟠 Zahlung registriert (K-02)
     🟠 Produkte storniert (K-04)
-    🟠 Freibon ausgestellt (K-11)
 ```
 
 **FAC (Lisa):** „Gut. Was ist mit den Stammdaten — Cluster A?"
@@ -1227,7 +1176,7 @@ _(❤️ Hotspot: „Zubereitungsstatus — eigene Events oder transienter UI-St
 🟡 Aggregat: BENUTZER (Stammdaten)
     Invarianten:
     - Benutzername muss eindeutig sein
-    - Rolle muss gültig sein (admin, senior_service, service)
+    - Rolle muss gültig sein (admin, serviceleitung, service)
     - Passwort wird gehasht gespeichert
     - Soft-Delete: Status wird auf „deleted" gesetzt
 ```
@@ -1317,9 +1266,9 @@ CRUD (klassisch):
 
 **DEV1 (Anna):** _(notiert auf gelben und orangenen Stickies)_ „Die Events des Tisch-Aggregats aus Phase 3:"
 
-**SRL (Felix):** „‚Bestellung aufgegeben' — das ist klar. Da steckt alles drin: Tisch, Positionen, Mengen, Preise, Kommentar, Bezeichnung (K-07)."
+**SRL (Felix):** „‚Bestellung aufgegeben' — das ist klar. Da steckt alles drin: Tisch, Positionen, Mengen, Preise, Kommentar."
 
-**DEV2 (Tim):** „‚**BestellungAufgegeben**'. Enthält: Tisch-ID, Positionen mit Produkt, Variante, Menge, Einzelpreis; optionaler Kommentar, optionale Bezeichnung, Servicekraft, Zeitstempel."
+**DEV2 (Tim):** „‚**BestellungAufgegeben**'. Enthält: Tisch-ID, Positionen mit Produkt, Variante, Menge, Einzelpreis; optionaler Kommentar, Servicekraft, Zeitstempel."
 
 **SRV1 (Jonas):** „Dann die Lieferung: ‚**ProdukteGeliefert**'. Weil es immer mehrere Positionen auf einmal geliefert werden können."
 
@@ -1333,10 +1282,6 @@ CRUD (klassisch):
 
 **DEV1 (Anna):** „Enthält: Tisch-ID, stornierte Positionen mit Referenz auf die Bestellung, Stornobetrag in Cent, optionaler Kommentar, durchführende Person, Zeitstempel."
 
-**VER1 (Klaus):** „Und der Freibon: ‚**FreibonAusgestellt**'."
-
-**DEV2 (Tim):** „Enthält: Tisch-ID, freie Bezeichnung, Preis in Cent, optionaler Kommentar, Servicekraft, Zeitstempel."
-
 **FAC (Lisa):** „Gibt es weitere Events im Tisch-Aggregat?"
 
 **DEV1 (Anna):** „Wenn wir den Zubereitungsstatus als Events modellieren, kämen noch zwei dazu: ‚**PositionInZubereitungGesetzt**' und ‚**PositionFertigGemeldet**'. Aber das ist noch offen."
@@ -1348,7 +1293,7 @@ Event-Typen des Tisch-Aggregats:
 
 🟠 BestellungAufgegeben (K-01, K-07)
     Tisch-ID, Positionen [{Produkt, Variante, Menge, Einzelpreis}],
-    opt. Kommentar, opt. Bezeichnung, Servicekraft, Zeitstempel
+    opt. Kommentar, Servicekraft, Zeitstempel
 
 🟠 ProdukteGeliefert (K-03)
     Tisch-ID, gelieferte Positionen [{Referenz auf Bestellposition}],
@@ -1361,10 +1306,6 @@ Event-Typen des Tisch-Aggregats:
 🟠 ProdukteStorniert (K-04)
     Tisch-ID, stornierte Positionen [{Referenz auf Bestellposition}],
     Stornobetrag (Cent), opt. Kommentar, Person, Zeitstempel
-
-🟠 FreibonAusgestellt (K-11)
-    Tisch-ID, Bezeichnung, Preis (Cent),
-    opt. Kommentar, Servicekraft, Zeitstempel
 ```
 
 **KAS (Eva):** „Und was ist mit dem Tagesabschluss? Ist ‚TagesabschlussDurchgeführt' auch ein Event?"
@@ -1401,7 +1342,6 @@ Fachliche Domain Events (im Event-Stream):
     🟠 ProdukteGeliefert
     🟠 ZahlungRegistriert
     🟠 ProdukteStorniert
-    🟠 FreibonAusgestellt
     (optional: PositionInZubereitungGesetzt, PositionFertigGemeldet)
 
 Technische / Infrastruktur-Vorgänge (NICHT im Event-Stream):
@@ -1452,7 +1392,7 @@ Technische / Infrastruktur-Vorgänge (NICHT im Event-Stream):
     Quelle: Tisch-Events
     Inhalt:
     - Alle Positionen mit Status (bestellt / geliefert / bezahlt / storniert)
-    - Gruppiert nach Bestellung (mit opt. Bezeichnung aus K-07)
+    - Gruppiert nach Bestellung
     - Aktueller Saldo
     - Unbezahlte Positionen (für Zahlung)
     - Ungelieferte Positionen (für Lieferung)
@@ -1805,7 +1745,7 @@ Context-Map — Beziehungen:
 │  │  Aggregat: Tisch (Event-Sourcing)        │                                │
 │  │  Events: BestellungAufgegeben,           │                                │
 │  │  ProdukteGeliefert, ZahlungRegistriert,  │                                │
-│  │  ProdukteStorniert, FreibonAusgestellt   │                                │
+│  │  ProdukteStorniert                       │                                │
 │  └──────┬──────────────┬────────────────────┘                                │
 │         │              │                                                     │
 │         │ Published    │ Published                                            │
@@ -1893,38 +1833,7 @@ Context-Map — Beziehungen:
 
 ---
 
-### 7.2 Freibon (K-11)
-
-**FAC (Lisa):** „Zweiter Hotspot: Der Freibon — freie Preiseingabe ohne Produkt aus dem Katalog."
-
-**SRL (Felix):** „Klassisches Beispiel: halbe Portion für ein Kind, Sonderwunsch, Ehrenpreis. Alles, was nicht im Produktkatalog steht."
-
-**KAS (Eva):** „Für mich ist entscheidend, dass Freibons in der Abrechnung klar als solche erkennbar sind — getrennt von regulären Bestellungen. Sonst wird die Abrechnung undurchsichtig."
-
-**DEV1 (Anna):** „Im Event haben wir vorhin gesagt: Freibon hat eine freie Bezeichnung und einen freien Preis. Keine Variante aus dem Katalog. Die Frage ist: Wie grenzen wir das technisch ab?"
-
-**DEV2 (Tim):** „Eine Option: Das Bestell-Event bekommt ein Feld `ist_freibon` oder die Varianten-ID ist leer. Beides signalisiert: Das ist kein reguläres Produkt."
-
-**DOM (Rudi):** „Können Freibons missbraucht werden? Jemand gibt einfach 0 Cent ein?"
-
-**DEV1 (Anna):** „Gute Frage. Wir könnten eine Validierung einbauen: Preis muss größer als 0 sein. Oder wir lassen 0-Cent-Freibons zu, falls es bewusste Gratisleistungen gibt."
-
-**SRL (Felix):** „Sollte jede Servicekraft Freibons ausstellen dürfen, oder nur Serviceleitung und Admin?"
-
-**ADM (Thomas):** „Ich denke, alle dürfen das — manchmal muss es schnell gehen. Aber in der Abrechnung muss ich sehen, wer welchen Freibon erstellt hat."
-
-**Offene Fragen:**
-
-- Wie wird ein Freibon im Event von einer regulären Position unterschieden? (eigener Event-Typ oder Markierung im Bestell-Event)
-- Dürfen alle Rollen Freibons erstellen, oder nur Serviceleitung/Admin?
-- Mindestpreis-Validierung: Preis > 0, oder 0-Cent-Freibons zulässig?
-- Wie werden Freibons in der Abrechnung und im Reporting separat ausgewiesen?
-
-**Priorität:** Should-have (K-11)
-
----
-
-### 7.3 Bondruck und Drucker-Integration (K-11)
+### 7.2 Bondruck und Drucker-Integration (K-11)
 
 **FAC (Lisa):** „Dritter Hotspot: Bondruck und Drucker-Integration — die Hardware-Seite."
 
@@ -1955,7 +1864,7 @@ Context-Map — Beziehungen:
 
 ---
 
-### 7.4 KDS-Architektur (K-12)
+### 7.3 KDS-Architektur (K-12)
 
 **FAC (Lisa):** „Vierter Hotspot: Das Küchendisplay — wie kommen die Bestelldaten in Echtzeit zur Küche und zur Getränkeausgabe?"
 
@@ -1984,7 +1893,7 @@ Context-Map — Beziehungen:
 
 ---
 
-### 7.5 Zubereitungsstatus-Modellierung (K-13)
+### 7.4 Zubereitungsstatus-Modellierung (K-13)
 
 **FAC (Lisa):** „Fünfter Hotspot: Der Zubereitungsstatus — wie wird er technisch modelliert?"
 
@@ -2015,7 +1924,7 @@ Context-Map — Beziehungen:
 
 ---
 
-### 7.6 Offline-Fähigkeit (Q-05)
+### 7.5 Offline-Fähigkeit (Q-05)
 
 **FAC (Lisa):** „Sechster Hotspot: Offline-Fähigkeit — was passiert, wenn während des Festes das Netz ausfällt?"
 
@@ -2046,7 +1955,7 @@ Context-Map — Beziehungen:
 
 ---
 
-### 7.7 Tagesabschluss mit offenen Tischen (R-06)
+### 7.6 Tagesabschluss mit offenen Tischen (R-06)
 
 **FAC (Lisa):** „Siebter Hotspot: Der Tagesabschluss — was passiert, wenn am Ende des Abends noch Tische einen offenen Saldo haben?"
 
@@ -2081,7 +1990,7 @@ Context-Map — Beziehungen:
 
 ---
 
-### 7.8 Reporting-Aggregation (R-01 bis R-05)
+### 7.7 Reporting-Aggregation (R-01 bis R-05)
 
 **FAC (Lisa):** „Achter und letzter Hotspot: Wie werden die Reporting-Auswertungen aus den Rohdaten berechnet?"
 
@@ -2187,12 +2096,12 @@ Context-Map — Beziehungen:
 | **Must-have**    | K-01 | Bestellung aufgeben                     | Zentrales Command, erzeugt `BestellungAufgegeben`-Event im Tisch-Aggregat |
 | **Must-have**    | K-02 | Zahlung registrieren                    | Teilzahlung möglich, reduziert Saldo, Positionen einzeln auswählbar       |
 | **Must-have**    | K-03 | Lieferung bestätigen                    | Nachverfolgung offener Positionen, wichtig für Servicekräfte              |
-| **Must-have**    | K-04 | Stornierung                             | Nur `senior_service` / `admin`, mit Pflichtbegründung                     |
+| **Must-have**    | K-04 | Stornierung                             | Nur `serviceleitung` / `admin`, mit Pflichtbegründung                     |
 | **Must-have**    | K-05 | Tischübersicht und Navigation           | Startseite mit Tischkarten, Tap-Navigation zum Detail                     |
 | **Must-have**    | K-06 | Kassenjournal (Historie)                | Unveränderlicher Event Stream pro Tisch, Quelle der Wahrheit              |
 | **Must-have**    | S-01 | Produktverwaltung                       | CRUD mit Soft-Delete, Varianten mit Cent-Preisen                          |
 | **Must-have**    | S-02 | Tischverwaltung                         | CRUD mit Soft-Delete, nur aktive Tische im Service sichtbar               |
-| **Must-have**    | S-03 | Benutzerverwaltung                      | Drei Rollen (`admin`, `senior_service`, `service`), Soft-Delete           |
+| **Must-have**    | S-03 | Benutzerverwaltung                      | Drei Rollen (`admin`, `serviceleitung`, `service`), Soft-Delete           |
 | **Must-have**    | A-01 | Login                                   | JWT-basiert, Argon2id, generische Fehlermeldung                           |
 | **Must-have**    | A-02 | Passwort setzen                         | Einmalpasswort bei Erstanmeldung, dann eigenes Passwort                   |
 | **Must-have**    | A-03 | Logout                                  | Token entfernen, Weiterleitung auf Login                                  |
@@ -2201,7 +2110,7 @@ Context-Map — Beziehungen:
 | **Must-have**    | Q-03 | Validierung                             | Frontend (Zod) + Backend (zog), doppelte Absicherung                      |
 | **Must-have**    | Q-04 | Datenintegrität                         | Transaktionen, append-only Events, Cent-Beträge, Soft-Deletes             |
 | **Must-have**    | Q-06 | HTTPS / TLS                             | Let's Encrypt, nginx Reverse Proxy                                        |
-| **Should-have**  | K-11 | Bondruck (inkl. Freibon)                | Automatisch nach Bestellung, getrennt nach Kategorie, Freibon-Sonderfälle |
+| **Should-have**  | K-11 | Bondruck                                | Automatisch nach Bestellung, getrennt nach Kategorie                      |
 | **Should-have**  | K-12 | Küchendisplay (KDS)                     | Echtzeit-Anzeige nach Kategorie, gruppiert nach Tisch                     |
 | **Should-have**  | Q-07 | Rate Limiting                           | Login-Endpunkt absichern gegen Brute-Force                                |
 | **Should-have**  | Q-08 | Security Headers                        | CSP, HSTS, X-Frame-Options, X-Content-Type-Options                        |
@@ -2209,7 +2118,6 @@ Context-Map — Beziehungen:
 | **Should-have**  | R-03 | Abrechnung pro Tisch                    | Detaillierte Aufstellung pro Tisch, chronologisch                         |
 | **Should-have**  | R-04 | Abrechnung pro Servicekraft             | Umsatz und Stornierungen pro Person, Transparenz                          |
 | **Should-have**  | R-05 | Produktumsatz-Reporting                 | Verkaufte Mengen, Ranking, Einnahmen pro Produkt                          |
-| **Nice-to-have** | K-07 | Bezeichnung pro Bestellung              | Optionaler Name für Gruppen am selben Tisch                               |
 | **Nice-to-have** | K-08 | Bestellungen umbuchen                   | Hotspot: 2-Aggregat-Transaktion, Atomarität klären                        |
 | **Nice-to-have** | K-09 | Rückgeldberechnung                      | Reiner Anzeigeaspekt, clientseitige Berechnung                            |
 | **Nice-to-have** | K-10 | Tisch-Schnellsuche                      | Suchfeld/Nummernpad für schnelle Navigation                               |
@@ -2238,9 +2146,7 @@ Context-Map — Beziehungen:
 | **Stornierung**   | Die nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. Erzeugt ein `ProdukteStorniert`-Event.         |
 | **Saldo**         | Der offene Betrag eines Tisches: Summe der Bestellungen minus Summe der Zahlungen minus Summe der Stornierungen. Immer in Cent.        |
 | **Kassenjournal** | Der vollständige, unveränderliche Event Stream eines Tisches. Enthält alle Operationen in chronologischer Reihenfolge.                 |
-| **Bezeichnung**   | Optionaler Name einer Bestellung (z. B. „Familie Müller"), um Gruppen am selben Tisch zu unterscheiden.                                |
 | **Kommentar**     | Optionale Freitextnotiz zu einer Bestellung, Zahlung, Lieferung oder Stornierung (max. 100 Zeichen).                                   |
-| **Freibon**       | Sonderposition außerhalb des Produktkatalogs — mit freier Bezeichnung und Preiseingabe. Erzeugt ein `FreibonAusgestellt`-Event.        |
 
 #### Stammdaten (Supporting Sub-Domain)
 
@@ -2256,7 +2162,7 @@ Context-Map — Beziehungen:
 
 | Begriff            | Bedeutung                                                                                  |
 | ------------------ | ------------------------------------------------------------------------------------------ |
-| **Rolle**          | Berechtigungsstufe eines Benutzers: `admin`, `senior_service` oder `service`.              |
+| **Rolle**          | Berechtigungsstufe eines Benutzers: `admin`, `serviceleitung` oder `service`.              |
 | **Einmalpasswort** | Vom Admin generiertes 6-stelliges Passwort für die Erstanmeldung oder nach Passwort-Reset. |
 | **Token**          | JWT mit Benutzer-ID und Rolle, 12 Stunden gültig. Wird bei jedem API-Aufruf mitgesendet.   |
 
@@ -2326,16 +2232,15 @@ Diese Liste fasst alle in der Session identifizierten Domain Events, Commands, A
 | 1   | 🟠 **BestellungAufgegeben**        | Bestellung aufgeben                     | Servicekraft / Serviceleitung / Admin | K-01, K-07  | Bon-Druck nach Kategorie (K-11); KDS aktualisiert (K-12) |
 | 2   | 🟠 **ProdukteGeliefert**           | Lieferung bestätigen                    | Servicekraft / Serviceleitung / Admin | K-03        | Ungelieferte Positionen aktualisiert                     |
 | 3   | 🟠 **ZahlungRegistriert**          | Zahlung registrieren                    | Servicekraft / Serviceleitung / Admin | K-02        | Saldo aktualisiert; Tischkonto ggf. ausgeglichen         |
-| 4   | 🟠 **ProdukteStorniert**           | Positionen stornieren                   | Serviceleitung / Admin                | K-04        | 🟣 Nur `senior_service` / `admin`; Saldo aktualisiert    |
-| 5   | 🟠 **FreibonAusgestellt**          | Freibon erstellen                       | Servicekraft / Serviceleitung / Admin | K-11        | Saldo aktualisiert; Bon-Druck                            |
-| 6   | 🟠 PositionInZubereitungGesetzt ❤️ | Position als „in Zubereitung" markieren | Alle angemeldeten Benutzer            | K-13        | Hotspot: Domain Event oder UI-State?                     |
-| 7   | 🟠 PositionFertigGemeldet ❤️       | Position als „fertig" markieren         | Alle angemeldeten Benutzer            | K-13        | Hotspot: Domain Event oder UI-State?                     |
+| 4   | 🟠 **ProdukteStorniert**           | Positionen stornieren                   | Serviceleitung / Admin                | K-04        | 🟣 Nur `serviceleitung` / `admin`; Saldo aktualisiert    |
+| 5   | 🟠 PositionInZubereitungGesetzt ❤️ | Position als „in Zubereitung" markieren | Alle angemeldeten Benutzer            | K-13        | Hotspot: Domain Event oder UI-State?                     |
+| 6   | 🟠 PositionFertigGemeldet ❤️       | Position als „fertig" markieren         | Alle angemeldeten Benutzer            | K-13        | Hotspot: Domain Event oder UI-State?                     |
 
 **Invarianten des Tisch-Aggregats:**
 
-- Saldo = Σ(Bestellungen + Freibons) − Σ(Zahlungen) − Σ(Stornierungen)
+- Saldo = Σ(Bestellungen) − Σ(Zahlungen) − Σ(Stornierungen)
 - Nur bestellte Positionen können geliefert, bezahlt oder storniert werden
-- Stornierung nur durch Rollen `senior_service` und `admin`
+- Stornierung nur durch Rollen `serviceleitung` und `admin`
 - Alle Beträge in Cent (int), niemals Floats
 - Events sind append-only — nie ändern oder löschen
 
@@ -2398,7 +2303,6 @@ Diese Liste fasst alle in der Session identifizierten Domain Events, Commands, A
 | ----------- | ----------------------------- | ------------------------------------------------------------------------ |
 | K-05        | Tischübersicht und Navigation | 🟢 Read Model: Tischübersicht (Projektion aus Tisch-Events + Stammdaten) |
 | K-06        | Kassenjournal (Historie)      | 🟢 Read Model: Kassenjournal (Event-Stream in menschenlesbarer Form)     |
-| K-07        | Bezeichnung pro Bestellung    | Feld in BestellungAufgegeben (optionale Bezeichnung)                     |
 | K-08        | Bestellungen umbuchen         | ❤️ Hotspot: 2-Aggregat-Transaktion, noch nicht formalisiert              |
 | K-09        | Rückgeldberechnung            | Reine UI-Logik (Frontend), kein Backend-Event                            |
 | K-10        | Tisch-Schnellsuche            | UI-Filter auf Tischübersicht, kein Event                                 |
@@ -2415,14 +2319,14 @@ Diese Liste fasst alle in der Session identifizierten Domain Events, Commands, A
 
 ## Anhang B — Stickies-Legende
 
-| Farbe     | Symbol | Bedeutung                                                                | Verwendung in der Session                                                                                                     |
-| --------- | ------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| 🟠 Orange | —      | **Domain Event** — etwas, das in der Domäne passiert ist (Vergangenheit) | Zentral: Kassenjournal, Event-Sourcing, Bestellungen, Zahlungen, Stornierungen                                                |
-| 🔵 Blau   | —      | **Command** — Absicht, etwas zu tun (Imperativ)                          | Auslöser für Geschäftslogik: „Bestellung aufgeben", „Zahlung registrieren"                                                    |
-| 🟡 Gelb   | —      | **Aggregate** — transaktionale Grenze, schützt Geschäftsregeln           | Tisch-Aggregat (Kassenbetrieb), Produkt/Tisch/Benutzer (Stammdaten)                                                           |
-| 🟣 Lila   | —      | **Policy** — automatische Reaktion: „Wenn X, dann Y"                     | Bon-Druck nach Bestellung, KDS-Aktualisierung, Stornierungsberechtigung                                                       |
-| 🟢 Grün   | —      | **Read Model** — Lese-Sicht / Projektion für die Anzeige                 | Tischübersicht, Kassenjournal, KDS-Ansicht, Tagesabrechnung, Reporting                                                        |
-| ❤️ Rot    | —      | **Hotspot** — Unsicherheit, Diskussionsbedarf, offene Frage              | 8 Hotspots: Umbuchung, Freibon, Bondruck, KDS-Architektur, Zubereitungsstatus, Offline, Tagesabschluss, Reporting-Aggregation |
+| Farbe     | Symbol | Bedeutung                                                                | Verwendung in der Session                                                                                            |
+| --------- | ------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| 🟠 Orange | —      | **Domain Event** — etwas, das in der Domäne passiert ist (Vergangenheit) | Zentral: Kassenjournal, Event-Sourcing, Bestellungen, Zahlungen, Stornierungen                                       |
+| 🔵 Blau   | —      | **Command** — Absicht, etwas zu tun (Imperativ)                          | Auslöser für Geschäftslogik: „Bestellung aufgeben", „Zahlung registrieren"                                           |
+| 🟡 Gelb   | —      | **Aggregate** — transaktionale Grenze, schützt Geschäftsregeln           | Tisch-Aggregat (Kassenbetrieb), Produkt/Tisch/Benutzer (Stammdaten)                                                  |
+| 🟣 Lila   | —      | **Policy** — automatische Reaktion: „Wenn X, dann Y"                     | Bon-Druck nach Bestellung, KDS-Aktualisierung, Stornierungsberechtigung                                              |
+| 🟢 Grün   | —      | **Read Model** — Lese-Sicht / Projektion für die Anzeige                 | Tischübersicht, Kassenjournal, KDS-Ansicht, Tagesabrechnung, Reporting                                               |
+| ❤️ Rot    | —      | **Hotspot** — Unsicherheit, Diskussionsbedarf, offene Frage              | 7 Hotspots: Umbuchung, Bondruck, KDS-Architektur, Zubereitungsstatus, Offline, Tagesabschluss, Reporting-Aggregation |
 
 ---
 

@@ -70,7 +70,7 @@ export class TischBackend {
     stornierung: z.infer<typeof ProdukteStornierenSchema>,
   ): Promise<void> {
     const body = ProdukteStornierenSchema.parse(stornierung)
-    await this.backend.post('senior_service/produkte-stornieren', body)
+    await this.backend.post('serviceleitung/produkte-stornieren', body)
   }
 
   public async produkteLiefern(

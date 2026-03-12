@@ -40,7 +40,7 @@ export function Zahlung({
 
   const unpaidQuantities: Record<number, number> = {}
   positionen.forEach((position) => {
-    unpaidQuantities[position.id] = position.quantity
+    unpaidQuantities[position.id] = position.menge
   })
 
   const onAdd = (positionId: number) => {
@@ -109,7 +109,7 @@ export function Zahlung({
               <PositionItem
                 key={position.id}
                 position={position}
-                quantity={quantities[position.id] || 0}
+                menge={quantities[position.id] || 0}
                 unpaidQuantity={unpaidQuantities[position.id] || 0}
                 onAdd={() => {
                   onAdd(position.id)
@@ -126,7 +126,7 @@ export function Zahlung({
 
 interface PositionItemProps {
   position: Position
-  quantity: number
+  menge: number
   unpaidQuantity: number
   onAdd: () => void
   onRemove: () => void
@@ -134,7 +134,7 @@ interface PositionItemProps {
 
 function PositionItem({
   position,
-  quantity,
+  menge,
   unpaidQuantity,
   onAdd,
   onRemove,
@@ -147,7 +147,7 @@ function PositionItem({
           <span className="font-bold">
             {formatCents(position.preisCents)}&nbsp;€
           </span>
-          &nbsp; &ndash; &nbsp;noch {unpaidQuantity - quantity} unbezahlt
+          &nbsp; &ndash; &nbsp;noch {unpaidQuantity - menge} unbezahlt
         </ItemDescription>
       </ItemContent>
       <ItemActions>
@@ -160,7 +160,7 @@ function PositionItem({
         >
           <Minus />
         </Button>
-        <span className="text-lg mx-1">{quantity}</span>
+        <span className="text-lg mx-1">{menge}</span>
         <Button
           size="icon-sm"
           variant="outline"

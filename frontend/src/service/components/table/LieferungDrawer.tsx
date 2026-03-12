@@ -46,7 +46,7 @@ export function LieferungDrawer(props: LieferungDrawerProps) {
       await props.backend.produkteLiefern({
         tischId: props.tisch.id,
         positionen: positionenToDeliver,
-        comment: comment,
+        kommentar: comment,
       })
       props.produkteGeliefert()
       setOpen(false)

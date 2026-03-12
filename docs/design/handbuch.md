@@ -117,12 +117,10 @@ Tisch
 ├── event_version         (int — letzte Event-Version)
 └── bestellungen[]
     ├── bestellung_id     (UUID)
-    ├── bezeichnung?      (string, optional — z. B. „Familie Müller")
     ├── kommentar?        (string, optional — max. 100 Zeichen)
     ├── zeitstempel       (datetime)
     ├── benutzer_id       (UUID)
     ├── benutzer_name     (string)
-    ├── ist_freibon       (bool)
     └── positionen[]
         ├── position_id   (UUID)
         ├── variante_id   (UUID)
@@ -138,8 +136,6 @@ Tisch
 
 **Fat Events:** Produktdaten (Name, Variantenname, Kategorie, Einzelpreis) werden zum Bestellzeitpunkt im Event eingefroren. Spätere Stammdatenänderungen haben keinen Einfluss auf historische Bestellungen — der Kassenbetrieb schützt sich so per ACL vor dem Stammdaten-Context.
 
-**Freibon:** Ein Freibon ist eine Sonder-Bestellung mit freier Bezeichnung und freiem Preis, nicht aus dem Produktkatalog. Im Zustand wird er als Bestellung mit `ist_freibon = true` und genau einer Position dargestellt.
-
 ### 3.2 Invarianten
 
 $$\text{Saldo} = \sum \text{Bestellungen} - \sum \text{Zahlungen} - \sum \text{Stornierungen}$$
@@ -149,7 +145,7 @@ Alle Beträge in Cent (Integer). Saldo = 0 bedeutet: alle Positionen bezahlt ode
 - **Liefer-Invariante:** Nur bestellte, nicht-stornierte Positionen können geliefert werden. Bereits gelieferte Positionen nicht erneut lieferbar. Teillieferungen zulässig.
 - **Bezahl-Invariante:** Nur bestellte, nicht-stornierte, nicht-bezahlte Positionen können bezahlt werden. Der Zahlungsbetrag ergibt sich aus der Summe der gewählten Positionen — Überzahlung nicht möglich. Teilzahlungen zulässig.
 - **Stornierungsinvariante:** Nur bestellte, nicht-stornierte Positionen können storniert werden — **unabhängig vom Liefer- und Bezahlstatus**. Bei Stornierung bereits bezahlter Positionen kann der Saldo temporär negativ werden (bewusstes Design).
-- **Rolleninvariante:** Stornierungen nur durch `senior_service` und `admin`. Alle anderen Tischoperationen (Bestellen, Liefern, Bezahlen) stehen allen drei Rollen zur Verfügung.
+- **Rolleninvariante:** Stornierungen nur durch `serviceleitung` und `admin`. Alle anderen Tischoperationen (Bestellen, Liefern, Bezahlen) stehen allen drei Rollen zur Verfügung.
 - **Mindestmengen-Invariante:** Jede Operation erfordert mindestens eine Position. Bestellung, Lieferung, Zahlung oder Stornierung ohne Positionen sind ungültig.
 
 ### 3.3 Domain Events
@@ -175,7 +171,6 @@ Servicekraft gibt eine Bestellung am Tisch auf.
 BestellungAufgegeben
 ├── [Event-Metadaten]
 ├── bestellung_id     (UUID)
-├── bezeichnung?      (string, optional — z. B. „Familie Müller")
 ├── kommentar?        (string, optional — max. 100 Zeichen)
 └── positionen[]
     ├── position_id   (UUID)
@@ -225,20 +220,6 @@ ProdukteStorniert
 └── kommentar?        (string, optional — max. 100 Zeichen)
 ```
 
-#### FreibonAusgestellt
-
-Sonderposition mit freier Bezeichnung und freiem Preis, nicht aus dem Produktkatalog.
-
-```
-FreibonAusgestellt
-├── [Event-Metadaten]
-├── bestellung_id     (UUID)
-├── position_id       (UUID)
-├── bezeichnung       (string — freie Bezeichnung)
-├── einzelpreis       (int, Cent)
-└── kommentar?        (string, optional — max. 100 Zeichen)
-```
-
 ### 3.4 Event Replay und Snapshots
 
 Der Tisch-Zustand wird bei jedem Zugriff aus dem Event Stream berechnet:
@@ -262,7 +243,6 @@ Der Tisch-Zustand wird bei jedem Zugriff aus dem Event Stream berechnet:
 | Event-Typ            | Zustandsänderung                                                            |
 | -------------------- | --------------------------------------------------------------------------- |
 | BestellungAufgegeben | Neue Bestellung mit Positionen anlegen, Saldo erhöhen                       |
-| FreibonAusgestellt   | Neue Freibon-Bestellung mit einer Position anlegen, Saldo erhöhen           |
 | ProdukteGeliefert    | Referenzierte Positionen als `geliefert = true` markieren                   |
 | ZahlungRegistriert   | Referenzierte Positionen als `bezahlt = true` markieren, Saldo reduzieren   |
 | ProdukteStorniert    | Referenzierte Positionen als `storniert = true` markieren, Saldo reduzieren |
@@ -275,9 +255,9 @@ Der Tisch-Zustand wird bei jedem Zugriff aus dem Event Stream berechnet:
 
 ### 3.5 Policies
 
-- **Stornierungsberechtigung (K-04):** Nur `senior_service` und `admin` dürfen stornieren. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat geht.
-- **Automatischer Bon-Druck nach Kategorie (K-11):** Bei `BestellungAufgegeben` oder `FreibonAusgestellt` wird ein Bon pro Kategorie an die zugeordnete Ausgabestation gesendet (Essen → Küchenbon, Getränke → Thekenbon). Kategorie-Drucker-Zuordnung in den Stammdaten konfiguriert.
-- **Umbuchung (K-08):** Verschiebt eine Bestellung von Quell- auf Ziel-Tisch (= Stornierung + neue Bestellung). Cross-Aggregat-Transaktion — Atomarität auf Anwendungsebene sicherstellen. Nur `senior_service` und `admin`.
+- **Stornierungsberechtigung (K-04):** Nur `serviceleitung` und `admin` dürfen stornieren. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat geht.
+- **Automatischer Bon-Druck nach Kategorie (K-11):** Bei `BestellungAufgegeben` wird ein Bon pro Kategorie an die zugeordnete Ausgabestation gesendet (Essen → Küchenbon, Getränke → Thekenbon). Kategorie-Drucker-Zuordnung in den Stammdaten konfiguriert.
+- **Umbuchung (K-08):** Verschiebt eine Bestellung von Quell- auf Ziel-Tisch (= Stornierung + neue Bestellung). Cross-Aggregat-Transaktion — Atomarität auf Anwendungsebene sicherstellen. Nur `serviceleitung` und `admin`.
 
 ---
 
@@ -337,7 +317,7 @@ Benutzer
 ├── name                  (string — Anzeigename)
 ├── benutzername          (string — eindeutig, Login-Name)
 ├── passwort_hash         (string — Argon2id)
-├── rolle                 (admin | senior_service | service)
+├── rolle                 (admin | serviceleitung | service)
 ├── muss_passwort_setzen  (bool — true nach Erstanlage oder Passwort-Reset)
 └── status                (active | inactive | deleted)
 ```
@@ -345,7 +325,7 @@ Benutzer
 **Invarianten:**
 
 - Benutzername muss systemweit eindeutig sein.
-- Rolle muss ein gültiger Wert sein (`admin`, `senior_service`, `service`).
+- Rolle muss ein gültiger Wert sein (`admin`, `serviceleitung`, `service`).
 - Passwort wird mit Argon2id gehasht gespeichert — Klartext-Passwörter werden nie persistiert.
 - Soft-Delete: Benutzer werden durch Status-Änderung auf `deleted` entfernt. Deaktivierte (`inactive`) und entfernte (`deleted`) Benutzer können sich nicht anmelden.
 - Bei Neuanlage oder Passwort-Reset wird ein 6-stelliges Einmalpasswort generiert und `muss_passwort_setzen` auf `true` gesetzt. Bei der nächsten Anmeldung wird der Benutzer zur Passwort-Vergabe weitergeleitet (→ [5.2](#52-onboarding-ablauf)).
@@ -375,7 +355,7 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen. Die Rollenprüfung erfol
 | Rolle              | Code-Bezeichnung | Beschreibung                                                                 |
 | ------------------ | ---------------- | ---------------------------------------------------------------------------- |
 | **Admin**          | `admin`          | Voller Zugriff auf Stammdaten (Produkte, Tische, Benutzer) und Kassenbetrieb |
-| **Serviceleitung** | `senior_service` | Kassenbetrieb einschließlich Stornierung                                     |
+| **Serviceleitung** | `serviceleitung` | Kassenbetrieb einschließlich Stornierung                                     |
 | **Servicekraft**   | `service`        | Kassenbetrieb ohne Stornierung                                               |
 
 **Berechtigungsmatrix:**
@@ -461,25 +441,25 @@ HTTP-Statuscodes: `400` Client-Fehler, `401` fehlende/ungültige Auth, `403` unz
 | -------------- | ------------------- | ------------------------------------ |
 | Auth           | `/auth/*`           | — (öffentlich)                       |
 | Admin          | `/admin/*`          | `admin`                              |
-| Service        | `/service/*`        | `service`, `senior_service`, `admin` |
-| Senior Service | `/senior-service/*` | `senior_service`, `admin`            |
+| Service        | `/service/*`        | `service`, `serviceleitung`, `admin` |
+| Senior Service | `/serviceleitung/*` | `serviceleitung`, `admin`            |
 
 ### 6.3 Frontend-Architektur
 
 **Route Guards:** Zwei Guards schützen die Bereiche:
 
 - `AdminGuard` — prüft, ob der eingeloggte Benutzer die Rolle `admin` hat.
-- `ServiceGuard` — prüft, ob der Benutzer eingeloggt ist (Rolle `service`, `senior_service` oder `admin`).
+- `ServiceGuard` — prüft, ob der Benutzer eingeloggt ist (Rolle `service`, `serviceleitung` oder `admin`).
 
 Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 
 **Seitenstruktur:**
 
-| Bereich   | Seiten                                                                         |
-| --------- | ------------------------------------------------------------------------------ |
-| Service   | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Liefern, Bezahlen, Stornieren) |
-| Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten                     |
-| Allgemein | Login · Passwort setzen (Erstanmeldung)                                        |
+| Bereich   | Seiten                                                                                                                                                                                   |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Service   | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Bezahlen, Historie). Liefern ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar. |
+| Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten                                                                                                                               |
+| Allgemein | Login · Passwort setzen (Erstanmeldung)                                                                                                                                                  |
 
 **UI-Patterns:**
 
@@ -607,7 +587,7 @@ Drei Stufen: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wic
 
 | ID   | Anforderung                 |
 | ---- | --------------------------- |
-| K-11 | Bondruck (inkl. Freibon)    |
+| K-11 | Bondruck                    |
 | K-12 | Küchendisplay (KDS)         |
 | Q-07 | Rate Limiting               |
 | Q-08 | Security Headers            |
@@ -620,7 +600,6 @@ Drei Stufen: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wic
 
 | ID   | Anforderung                             |
 | ---- | --------------------------------------- |
-| K-07 | Bezeichnung pro Bestellung              |
 | K-08 | Bestellungen umbuchen                   |
 | K-09 | Rückgeldberechnung                      |
 | K-10 | Tisch-Schnellsuche                      |

@@ -91,7 +91,7 @@ func TestRateLimitMiddleware_BlocksExceedingLimit(t *testing.T) {
 
 func TestJwtMiddleware_ValidToken(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(1, "admin", secret)
+	token, err := jwt.GenerateJWTTokenForUser(1, "Admin User", "admin", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestJwtMiddleware_InvalidBearerFormat(t *testing.T) {
 
 func TestJwtMiddleware_ServiceRole(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
+	token, err := jwt.GenerateJWTTokenForUser(2, "Service User", "service", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestJwtMiddleware_ServiceRole(t *testing.T) {
 
 func TestServiceMiddleware_ValidToken(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
+	token, err := jwt.GenerateJWTTokenForUser(2, "Service User", "service", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -205,9 +205,9 @@ func TestServiceMiddleware_ValidToken(t *testing.T) {
 	}
 }
 
-func TestSeniorServiceRole_AllowedForServiceEndpoints(t *testing.T) {
+func TestServiceleitungRole_AllowedForServiceEndpoints(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(3, "senior_service", secret)
+	token, err := jwt.GenerateJWTTokenForUser(3, "SL User", "serviceleitung", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -216,7 +216,7 @@ func TestSeniorServiceRole_AllowedForServiceEndpoints(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin", "senior_service", "service"})(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung", "service"})(handler)
 	req := httptest.NewRequest(http.MethodGet, "/service", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -228,9 +228,9 @@ func TestSeniorServiceRole_AllowedForServiceEndpoints(t *testing.T) {
 	}
 }
 
-func TestSeniorServiceRole_AllowedForCancelEndpoint(t *testing.T) {
+func TestServiceleitungRole_AllowedForCancelEndpoint(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(3, "senior_service", secret)
+	token, err := jwt.GenerateJWTTokenForUser(3, "SL User", "serviceleitung", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -239,8 +239,39 @@ func TestSeniorServiceRole_AllowedForCancelEndpoint(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin", "senior_service"})(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"})(handler)
 	req := httptest.NewRequest(http.MethodGet, "/service/cancel", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+
+	middleware.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestJwtMiddleware_SetsUserNameInContext(t *testing.T) {
+	secret := "test-secret"
+	token, err := jwt.GenerateJWTTokenForUser(1, "Admin User", "admin", secret)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userName, ok := r.Context().Value(UserNameKey).(string)
+		if !ok || userName != "Admin User" {
+			t.Errorf("expected UserNameKey 'Admin User' in context, got '%s'", userName)
+		}
+		userID, ok := r.Context().Value(UserIDKey).(int)
+		if !ok || userID != 1 {
+			t.Errorf("expected UserIDKey 1 in context, got %d", userID)
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := NewJwtMiddleware(secret, []string{"admin"})(handler)
+	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 
@@ -253,7 +284,7 @@ func TestSeniorServiceRole_AllowedForCancelEndpoint(t *testing.T) {
 
 func TestServiceRole_DeniedForCancelEndpoint(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
+	token, err := jwt.GenerateJWTTokenForUser(2, "Service User", "service", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -262,7 +293,7 @@ func TestServiceRole_DeniedForCancelEndpoint(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin", "senior_service"})(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"})(handler)
 	req := httptest.NewRequest(http.MethodGet, "/service/cancel", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()

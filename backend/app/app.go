@@ -49,25 +49,24 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/health", healthCheck.Handler())
 
 	authApi := api.NewAuthApi(cfg, db)
-	r.Handle("/auth/", http.StripPrefix("/auth", authApi))
+	r.Handle("/auth/", middleware.RateLimitMiddleware(10)(http.StripPrefix("/auth", authApi)))
 
 	admin := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin"})
 	adminApi := api.NewAdminApi(db)
 	r.Handle("/admin/", admin(http.StripPrefix("/admin", adminApi)))
 
 	servicesApi := api.NewServiceApi(db)
-	service := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "senior_service", "service"})
+	service := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "serviceleitung", "service"})
 	r.Handle("/service/", service(http.StripPrefix("/service", servicesApi)))
 
-	seniorServiceApi := api.NewSeniorServiceApi(db)
-	seniorService := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "senior_service"})
-	r.Handle("/service/cancel-table-variants", seniorService(http.StripPrefix("/service", seniorServiceApi)))
+	serviceleitungApi := api.NewServiceleitungApi(db)
+	serviceleitung := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "serviceleitung"})
+	r.Handle("/serviceleitung/", serviceleitung(http.StripPrefix("/serviceleitung", serviceleitungApi)))
 
 	// Wrap the entire router with middleware chain
 	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by nginx
 	var handler http.Handler = r
 	handler = middleware.PostMethodOnlyMiddleware(handler) // Enforce POST method
-	handler = middleware.RateLimitMiddleware(10)(handler)  // Rate limiting
 	handler = middleware.LoggingMiddleware(handler)        // Logging
 	handler = middleware.CorrelationIDMiddleware(handler)  // Correlation ID
 

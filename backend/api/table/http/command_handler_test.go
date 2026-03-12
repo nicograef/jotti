@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/api/table/application"
 	"github.com/nicograef/jotti/backend/domain/table"
 )
@@ -33,19 +34,27 @@ func (m *mockCommand) TischDeaktivieren(ctx context.Context, id int) error {
 	return m.err
 }
 
-func (m *mockCommand) BestellungAufgeben(ctx context.Context, userID int, tischID int, positionen []table.Position, comment string) error {
+func (m *mockCommand) TischLoeschen(ctx context.Context, id int) error {
 	return m.err
 }
 
-func (m *mockCommand) ZahlungRegistrieren(ctx context.Context, userID int, tischID int, positionen []table.Position, comment string) error {
+func (m *mockCommand) TischSnapshotErstellen(ctx context.Context, userID int, userName string, tischID int) error {
 	return m.err
 }
 
-func (m *mockCommand) ProdukteStornieren(ctx context.Context, userID int, tischID int, positionen []table.Position, comment string) error {
+func (m *mockCommand) BestellungAufgeben(ctx context.Context, userID int, userName string, tischID int, positionen []application.BestellPositionInput, kommentar string) error {
 	return m.err
 }
 
-func (m *mockCommand) ProdukteLiefern(ctx context.Context, userID int, tischID int, positionen []table.Position, comment string) error {
+func (m *mockCommand) ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtZahlungCents int, kommentar string) error {
+	return m.err
+}
+
+func (m *mockCommand) ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtStornierungCents int, kommentar string) error {
+	return m.err
+}
+
+func (m *mockCommand) ProdukteLiefern(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
 	return m.err
 }
 
@@ -163,6 +172,74 @@ func TestTischDeaktivierenHandler_NotFound(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	handler.TischDeaktivierenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestBestellungAufgebenHandler_Conflict(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
+
+	body := `{"tischId":1,"positionen":[{"varianteId":1,"menge":2}],"kommentar":""}`
+	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufgeben", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+
+	handler.BestellungAufgebenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestZahlungRegistrierenHandler_Conflict(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
+
+	body := `{"tischId":1,"positionen":[{"positionId":"abc","menge":1}],"gesamtZahlungCents":500,"kommentar":""}`
+	req := httptest.NewRequest(http.MethodPost, "/zahlung-registrieren", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+
+	handler.ZahlungRegistrierenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestProdukteLiefernHandler_Conflict(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
+
+	body := `{"tischId":1,"positionen":[{"positionId":"abc","menge":1}],"kommentar":""}`
+	req := httptest.NewRequest(http.MethodPost, "/produkte-liefern", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+
+	handler.ProdukteLiefernHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestProdukteStornierenHandler_Conflict(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
+
+	body := `{"tischId":1,"positionen":[{"positionId":"abc","menge":1}],"gesamtStornierungCents":500,"kommentar":""}`
+	req := httptest.NewRequest(http.MethodPost, "/produkte-stornieren", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+
+	handler.ProdukteStornierenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected status 400, got %d", rec.Code)

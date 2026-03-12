@@ -15,35 +15,39 @@ const (
 	ActiveStatus Status = "active"
 	// InactiveStatus indicates the product variant is inactive and not currently in use.
 	InactiveStatus Status = "inactive"
+	// DeletedStatus indicates the product or variant has been soft-deleted.
+	DeletedStatus Status = "deleted"
 )
 
-type Variant struct {
+type Variante struct {
 	ID         int       `json:"id"`
 	Name       string    `json:"name"`
-	PriceCents int       `json:"priceCents"`
+	PreisCents int       `json:"preisCents"`
 	Status     Status    `json:"status"`
 	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
-// PriceCentsSchema defines the schema for a product variant's net price in cents.
-var PriceCentsSchema = z.Int().GTE(0, z.Message("Net price must be non-negative")).LTE(99999, z.Message("Net price too high"))
+// PreisCentsSchema defines the schema for a product variant's net price in cents.
+var PreisCentsSchema = z.Int().GTE(0, z.Message("Net price must be non-negative")).LTE(99999, z.Message("Net price too high"))
 
 // StatusSchema defines the schema for a product variant status.
 var StatusSchema = z.StringLike[Status]().OneOf(
-	[]Status{ActiveStatus, InactiveStatus},
+	[]Status{ActiveStatus, InactiveStatus, DeletedStatus},
 	z.Message("Invalid status"),
 )
 
-var VariantSchema = z.Struct(z.Shape{
+var VarianteSchema = z.Struct(z.Shape{
 	"ID":         IDSchema.Required(),
 	"Name":       NameSchema.Required(),
-	"PriceCents": PriceCentsSchema.Required(),
+	"PreisCents": PreisCentsSchema.Required(),
 	"Status":     StatusSchema.Required(),
 	"CreatedAt":  z.Time().Required(),
+	"UpdatedAt":  z.Time().Required(),
 })
 
-func (v Variant) Validate() error {
-	if errs := VariantSchema.Validate(&v); errs != nil {
+func (v Variante) Validate() error {
+	if errs := VarianteSchema.Validate(&v); errs != nil {
 		issues := z.Issues.FlattenAndCollect(errs)
 		return fmt.Errorf("invalid product variant: %v", issues)
 	}
@@ -52,44 +56,53 @@ func (v Variant) Validate() error {
 
 // NewVariant creates a new Variant instance after validating the input parameters.
 // The new Variant does not have an ID assigned; it is expected to be set by the persistence layer.
-func NewVariant(name string, priceCents int) (Variant, error) {
+func NewVariante(name string, preisCents int) (Variante, error) {
 	if issue := NameSchema.Validate(&name); issue != nil {
-		return Variant{}, fmt.Errorf("invalid name")
+		return Variante{}, fmt.Errorf("invalid name")
 	}
 
-	if issue := PriceCentsSchema.Validate(&priceCents); issue != nil {
-		return Variant{}, fmt.Errorf("invalid net price")
+	if issue := PreisCentsSchema.Validate(&preisCents); issue != nil {
+		return Variante{}, fmt.Errorf("invalid net price")
 	}
 
-	variant := Variant{
+	variante := Variante{
 		Name:       name,
-		PriceCents: priceCents,
+		PreisCents: preisCents,
 		Status:     InactiveStatus,
 		CreatedAt:  time.Now().UTC(),
+		UpdatedAt:  time.Now().UTC(),
 	}
 
-	return variant, nil
+	return variante, nil
 }
 
-func (v *Variant) Activate() {
+func (v *Variante) Activate() {
 	v.Status = ActiveStatus
+	v.UpdatedAt = time.Now().UTC()
 }
 
-func (v *Variant) Deactivate() {
+func (v *Variante) Deactivate() {
 	v.Status = InactiveStatus
+	v.UpdatedAt = time.Now().UTC()
 }
 
-func (v *Variant) UpdateDetails(name string, priceCents int) error {
+func (v *Variante) Delete() {
+	v.Status = DeletedStatus
+	v.UpdatedAt = time.Now().UTC()
+}
+
+func (v *Variante) UpdateDetails(name string, preisCents int) error {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return fmt.Errorf("invalid name")
 	}
 
-	if issue := PriceCentsSchema.Validate(&priceCents); issue != nil {
+	if issue := PreisCentsSchema.Validate(&preisCents); issue != nil {
 		return fmt.Errorf("invalid net price")
 	}
 
 	v.Name = name
-	v.PriceCents = priceCents
+	v.PreisCents = preisCents
+	v.UpdatedAt = time.Now().UTC()
 
 	return nil
 }

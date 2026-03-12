@@ -27,14 +27,27 @@ func (q *Queries) GetLastSnapshotID(ctx context.Context, arg GetLastSnapshotIDPa
 	return id, err
 }
 
+const getMaxVersion = `-- name: GetMaxVersion :one
+SELECT COALESCE(MAX(version), 0)::int AS version FROM events WHERE subject = $1
+`
+
+func (q *Queries) GetMaxVersion(ctx context.Context, subject string) (int, error) {
+	row := q.db.QueryRowContext(ctx, getMaxVersion, subject)
+	var version int
+	err := row.Scan(&version)
+	return version, err
+}
+
 const readEvent = `-- name: ReadEvent :one
-SELECT id, user_id, type, subject, data, timestamp
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM events WHERE id = $1
 `
 
 type ReadEventRow struct {
 	ID        int
 	UserID    int
+	UserName  string
+	Version   int
 	Type      string
 	Subject   string
 	Data      json.RawMessage
@@ -47,6 +60,8 @@ func (q *Queries) ReadEvent(ctx context.Context, id int) (ReadEventRow, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
+		&i.UserName,
+		&i.Version,
 		&i.Type,
 		&i.Subject,
 		&i.Data,
@@ -56,13 +71,15 @@ func (q *Queries) ReadEvent(ctx context.Context, id int) (ReadEventRow, error) {
 }
 
 const readEventsBySubject = `-- name: ReadEventsBySubject :many
-SELECT id, user_id, type, subject, data, timestamp 
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM events WHERE subject = $1 ORDER BY id ASC
 `
 
 type ReadEventsBySubjectRow struct {
 	ID        int
 	UserID    int
+	UserName  string
+	Version   int
 	Type      string
 	Subject   string
 	Data      json.RawMessage
@@ -81,6 +98,8 @@ func (q *Queries) ReadEventsBySubject(ctx context.Context, subject string) ([]Re
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
+			&i.UserName,
+			&i.Version,
 			&i.Type,
 			&i.Subject,
 			&i.Data,
@@ -100,7 +119,7 @@ func (q *Queries) ReadEventsBySubject(ctx context.Context, subject string) ([]Re
 }
 
 const readEventsSinceID = `-- name: ReadEventsSinceID :many
-SELECT id, user_id, type, subject, data, timestamp 
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM events WHERE subject = $1 AND id >= $2 ORDER BY id ASC
 `
 
@@ -112,6 +131,8 @@ type ReadEventsSinceIDParams struct {
 type ReadEventsSinceIDRow struct {
 	ID        int
 	UserID    int
+	UserName  string
+	Version   int
 	Type      string
 	Subject   string
 	Data      json.RawMessage
@@ -130,6 +151,8 @@ func (q *Queries) ReadEventsSinceID(ctx context.Context, arg ReadEventsSinceIDPa
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
+			&i.UserName,
+			&i.Version,
 			&i.Type,
 			&i.Subject,
 			&i.Data,
@@ -154,7 +177,7 @@ WITH last_snapshot AS (
     FROM events 
     WHERE events.subject = $1 AND events.type = $2
 )
-SELECT e.id, e.user_id, e.type, e.subject, e.data, e.timestamp
+SELECT e.id, e.user_id, e.user_name, e.version, e.type, e.subject, e.data, e.timestamp
 FROM events e, last_snapshot ls
 WHERE e.subject = $1 AND e.id >= ls.id
 ORDER BY e.id ASC
@@ -168,6 +191,8 @@ type ReadEventsWithSnapshotParams struct {
 type ReadEventsWithSnapshotRow struct {
 	ID        int
 	UserID    int
+	UserName  string
+	Version   int
 	Type      string
 	Subject   string
 	Data      json.RawMessage
@@ -186,6 +211,8 @@ func (q *Queries) ReadEventsWithSnapshot(ctx context.Context, arg ReadEventsWith
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
+			&i.UserName,
+			&i.Version,
 			&i.Type,
 			&i.Subject,
 			&i.Data,
@@ -205,14 +232,16 @@ func (q *Queries) ReadEventsWithSnapshot(ctx context.Context, arg ReadEventsWith
 }
 
 const writeEvent = `-- name: WriteEvent :one
-INSERT INTO events (user_id, type, subject, data, timestamp)
-VALUES ($1, $2, $3, $4, $5) RETURNING id
+INSERT INTO events (user_id, user_name, type, subject, version, data, timestamp)
+VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
 `
 
 type WriteEventParams struct {
 	UserID    int
+	UserName  string
 	Type      string
 	Subject   string
+	Version   int
 	Data      json.RawMessage
 	Timestamp time.Time
 }
@@ -220,8 +249,10 @@ type WriteEventParams struct {
 func (q *Queries) WriteEvent(ctx context.Context, arg WriteEventParams) (int, error) {
 	row := q.db.QueryRowContext(ctx, writeEvent,
 		arg.UserID,
+		arg.UserName,
 		arg.Type,
 		arg.Subject,
+		arg.Version,
 		arg.Data,
 		arg.Timestamp,
 	)

@@ -13,26 +13,34 @@ import (
 )
 
 const createProduct = `-- name: CreateProduct :one
-INSERT INTO products (name, category, created_at)
-VALUES ($1, $2, $3) RETURNING id
+INSERT INTO products (name, category, status, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5) RETURNING id
 `
 
 type CreateProductParams struct {
 	Name      string
 	Category  Productcategory
+	Status    Entitystatus
 	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (int, error) {
-	row := q.db.QueryRowContext(ctx, createProduct, arg.Name, arg.Category, arg.CreatedAt)
+	row := q.db.QueryRowContext(ctx, createProduct,
+		arg.Name,
+		arg.Category,
+		arg.Status,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
 	var id int
 	err := row.Scan(&id)
 	return id, err
 }
 
 const createVariant = `-- name: CreateVariant :one
-INSERT INTO product_variants (product_id, name, price_cents, status, created_at)
-VALUES ($1, $2, $3, $4, $5) RETURNING id
+INSERT INTO product_variants (product_id, name, price_cents, status, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
 `
 
 type CreateVariantParams struct {
@@ -41,6 +49,7 @@ type CreateVariantParams struct {
 	PriceCents int
 	Status     Entitystatus
 	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 func (q *Queries) CreateVariant(ctx context.Context, arg CreateVariantParams) (int, error) {
@@ -50,6 +59,7 @@ func (q *Queries) CreateVariant(ctx context.Context, arg CreateVariantParams) (i
 		arg.PriceCents,
 		arg.Status,
 		arg.CreatedAt,
+		arg.UpdatedAt,
 	)
 	var id int
 	err := row.Scan(&id)
@@ -66,7 +76,8 @@ WITH variant_json AS (
                 'name', name,
                 'price_cents', price_cents,
                 'status', status,
-                'created_at', created_at
+                'created_at', created_at,
+                'updated_at', updated_at
             )
         ) AS variants
     FROM product_variants
@@ -77,10 +88,13 @@ SELECT
     p.id,
     p.name,
     p.category,
+    p.status,
     p.created_at,
+    p.updated_at,
     vj.variants::json AS variants
 FROM products p
 INNER JOIN variant_json vj ON vj.product_id = p.id
+WHERE p.status = 'active'
 ORDER BY p.id ASC
 `
 
@@ -88,7 +102,9 @@ type GetActiveProductsRow struct {
 	ID        int
 	Name      string
 	Category  Productcategory
+	Status    Entitystatus
 	CreatedAt time.Time
+	UpdatedAt time.Time
 	Variants  json.RawMessage
 }
 
@@ -105,7 +121,9 @@ func (q *Queries) GetActiveProducts(ctx context.Context) ([]GetActiveProductsRow
 			&i.ID,
 			&i.Name,
 			&i.Category,
+			&i.Status,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.Variants,
 		); err != nil {
 			return nil, err
@@ -131,7 +149,8 @@ WITH variant_json AS (
                 'name', name,
                 'price_cents', price_cents,
                 'status', status,
-                'created_at', created_at
+                'created_at', created_at,
+                'updated_at', updated_at
             )
         ) AS variants
     FROM product_variants
@@ -142,10 +161,13 @@ SELECT
     p.id,
     p.name,
     p.category,
+    p.status,
     p.created_at,
+    p.updated_at,
     COALESCE(vj.variants, '[]')::json AS variants
 FROM products p
 LEFT JOIN variant_json vj ON vj.product_id = p.id
+WHERE p.status != 'deleted'
 ORDER BY p.id ASC
 `
 
@@ -153,7 +175,9 @@ type GetAllProductsRow struct {
 	ID        int
 	Name      string
 	Category  Productcategory
+	Status    Entitystatus
 	CreatedAt time.Time
+	UpdatedAt time.Time
 	Variants  json.RawMessage
 }
 
@@ -170,7 +194,9 @@ func (q *Queries) GetAllProducts(ctx context.Context) ([]GetAllProductsRow, erro
 			&i.ID,
 			&i.Name,
 			&i.Category,
+			&i.Status,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.Variants,
 		); err != nil {
 			return nil, err
@@ -191,7 +217,9 @@ SELECT
     p.id,
     p.name,
     p.category,
+    p.status,
     p.created_at,
+    p.updated_at,
     COALESCE(
         (SELECT json_agg(
             json_build_object(
@@ -199,7 +227,8 @@ SELECT
                 'name', pv.name,
                 'price_cents', pv.price_cents,
                 'status', pv.status,
-                'created_at', pv.created_at
+                'created_at', pv.created_at,
+                'updated_at', pv.updated_at
             )
         )
         FROM product_variants pv
@@ -207,14 +236,16 @@ SELECT
         '[]'
     )::json AS variants
 FROM products p
-WHERE p.id = $1
+WHERE p.id = $1 AND p.status != 'deleted'
 `
 
 type GetProductRow struct {
 	ID        int
 	Name      string
 	Category  Productcategory
+	Status    Entitystatus
 	CreatedAt time.Time
+	UpdatedAt time.Time
 	Variants  json.RawMessage
 }
 
@@ -225,14 +256,16 @@ func (q *Queries) GetProduct(ctx context.Context, id int) (GetProductRow, error)
 		&i.ID,
 		&i.Name,
 		&i.Category,
+		&i.Status,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 		&i.Variants,
 	)
 	return i, err
 }
 
 const getVariant = `-- name: GetVariant :one
-SELECT id, name, price_cents, status, created_at
+SELECT id, name, price_cents, status, created_at, updated_at
 FROM product_variants WHERE id = $1 AND status != 'deleted'
 `
 
@@ -242,6 +275,7 @@ type GetVariantRow struct {
 	PriceCents int
 	Status     Entitystatus
 	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 func (q *Queries) GetVariant(ctx context.Context, id int) (GetVariantRow, error) {
@@ -253,32 +287,42 @@ func (q *Queries) GetVariant(ctx context.Context, id int) (GetVariantRow, error)
 		&i.PriceCents,
 		&i.Status,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const updateProduct = `-- name: UpdateProduct :execresult
-UPDATE products SET name = $1, category = $2 WHERE id = $3
+UPDATE products SET name = $1, category = $2, status = $3, updated_at = $4 WHERE id = $5
 `
 
 type UpdateProductParams struct {
-	Name     string
-	Category Productcategory
-	ID       int
+	Name      string
+	Category  Productcategory
+	Status    Entitystatus
+	UpdatedAt time.Time
+	ID        int
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, updateProduct, arg.Name, arg.Category, arg.ID)
+	return q.db.ExecContext(ctx, updateProduct,
+		arg.Name,
+		arg.Category,
+		arg.Status,
+		arg.UpdatedAt,
+		arg.ID,
+	)
 }
 
 const updateVariant = `-- name: UpdateVariant :execresult
-UPDATE product_variants SET name = $1, price_cents = $2, status = $3 WHERE id = $4
+UPDATE product_variants SET name = $1, price_cents = $2, status = $3, updated_at = $4 WHERE id = $5
 `
 
 type UpdateVariantParams struct {
 	Name       string
 	PriceCents int
 	Status     Entitystatus
+	UpdatedAt  time.Time
 	ID         int
 }
 
@@ -287,6 +331,7 @@ func (q *Queries) UpdateVariant(ctx context.Context, arg UpdateVariantParams) (s
 		arg.Name,
 		arg.PriceCents,
 		arg.Status,
+		arg.UpdatedAt,
 		arg.ID,
 	)
 }

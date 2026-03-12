@@ -10,30 +10,25 @@ import (
 )
 
 type zahlungRegistriertV1Data struct {
-	ZahlungID          string     `json:"zahlungId"`
-	Positionen         []Position `json:"positionen"`
-	GesamtZahlungCents int        `json:"gesamtZahlungCents"`
-	Comment            string     `json:"comment"`
+	ZahlungID          string        `json:"zahlungId"`
+	Positionen         []PositionRef `json:"positionen"`
+	GesamtZahlungCents int           `json:"gesamtZahlungCents"`
+	Kommentar          string        `json:"kommentar"`
 }
 
 var zahlungRegistriertV1DataSchema = z.Struct(z.Shape{
 	"ZahlungID":          z.String().UUID().Required(),
-	"Positionen":         z.Slice(positionSchema).Min(1).Required(),
+	"Positionen":         z.Slice(positionRefSchema).Min(1).Required(),
 	"GesamtZahlungCents": z.Int().GTE(0).Required(),
-	"Comment":            z.String().Max(100),
+	"Kommentar":          z.String().Max(100),
 })
 
-func NewZahlungRegistriertEvent(userID, tischID int, positionen []Position, comment string) (e.Event, error) {
-	gesamtZahlungCents := 0
-	for _, pos := range positionen {
-		gesamtZahlungCents += pos.PreisCents * pos.Quantity
-	}
-
+func NewZahlungRegistriertEvent(userID int, userName string, tischID int, positionen []PositionRef, gesamtZahlungCents int, kommentar string) (e.Event, error) {
 	data := zahlungRegistriertV1Data{
 		ZahlungID:          uuid.New().String(),
 		Positionen:         positionen,
 		GesamtZahlungCents: gesamtZahlungCents,
-		Comment:            comment,
+		Kommentar:          kommentar,
 	}
 
 	if err := zahlungRegistriertV1DataSchema.Validate(&data); err != nil {
@@ -41,7 +36,7 @@ func NewZahlungRegistriertEvent(userID, tischID int, positionen []Position, comm
 		return e.Event{}, fmt.Errorf("zahlung registriert data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, string(EventTypeZahlungRegistriertV1), "tisch:"+strconv.Itoa(tischID), data)
+	event, err := e.New(userID, userName, string(EventTypeZahlungRegistriertV1), "tisch:"+strconv.Itoa(tischID), data)
 	if err != nil {
 		return e.Event{}, err
 	}
@@ -71,7 +66,7 @@ func buildZahlungFromEvent(event e.Event) (Zahlung, error) {
 		TischID:            tischID,
 		Positionen:         data.Positionen,
 		GesamtZahlungCents: data.GesamtZahlungCents,
-		Comment:            data.Comment,
+		Kommentar:          data.Kommentar,
 		RegistriertAm:      event.Time,
 	}
 

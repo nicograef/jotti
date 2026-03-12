@@ -15,6 +15,7 @@ type command interface {
 	UpdateUser(ctx context.Context, id int, name, username string, role user.Role) error
 	ActivateUser(ctx context.Context, id int) error
 	DeactivateUser(ctx context.Context, id int) error
+	DeleteUser(ctx context.Context, id int) error
 	ResetPassword(ctx context.Context, userID int) (string, error)
 }
 
@@ -157,6 +158,32 @@ func (h CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 		}
 
 		err := h.Command.DeactivateUser(r.Context(), body.ID)
+		if err != nil {
+			if errors.Is(err, application.ErrUserNotFound) {
+				helper.SendClientError(w, "user_not_found", nil)
+				return
+			} else {
+				helper.SendServerError(w)
+				return
+			}
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+type deleteUser struct {
+	ID int `json:"id"`
+}
+
+func (h CommandHandler) DeleteUserHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := deleteUser{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		err := h.Command.DeleteUser(r.Context(), body.ID)
 		if err != nil {
 			if errors.Is(err, application.ErrUserNotFound) {
 				helper.SendClientError(w, "user_not_found", nil)

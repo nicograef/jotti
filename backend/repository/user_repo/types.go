@@ -26,6 +26,7 @@ func userRowToDomain(row dbgen.GetUserRow) user.User {
 		PasswordHash:        row.PasswordHash.String,
 		OnetimePasswordHash: row.OnetimePasswordHash.String,
 		CreatedAt:           row.CreatedAt,
+		UpdatedAt:           row.UpdatedAt,
 	}
 }
 
@@ -39,6 +40,7 @@ func userByUsernameRowToDomain(row dbgen.GetUserByUsernameRow) user.User {
 		PasswordHash:        row.PasswordHash.String,
 		OnetimePasswordHash: row.OnetimePasswordHash.String,
 		CreatedAt:           row.CreatedAt,
+		UpdatedAt:           row.UpdatedAt,
 	}
 }
 
@@ -50,5 +52,6 @@ func allUsersRowToDomain(row dbgen.GetAllUsersRow) user.User {
 		Role:      user.Role(row.Role),
 		Status:    user.Status(row.Status),
 		CreatedAt: row.CreatedAt,
+		UpdatedAt: row.UpdatedAt,
 	}
 }

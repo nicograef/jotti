@@ -3,7 +3,7 @@ import { Package } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
 
-import { type Product, type Variant, VariantStatus } from './Product'
+import { type Produkt, type Variante, VarianteStatus } from './Product'
 import { type ProductBackend } from './ProductBackend'
 import { ProductItem } from './ProductItem'
 
@@ -13,14 +13,14 @@ interface ProductsProps {
     ProductBackend,
     'activateVariant' | 'deactivateVariant' | 'createVariant' | 'updateVariant'
   >
-  products: Product[]
+  products: Produkt[]
   onEdit: (productId: number) => void
-  onVariantCreated: (productId: number, variant: Variant) => void
-  onVariantUpdated: (productId: number, variant: Variant) => void
+  onVariantCreated: (productId: number, variant: Variante) => void
+  onVariantUpdated: (productId: number, variant: Variante) => void
   onVariantStatusChange: (
     productId: number,
     variantId: number,
-    status: VariantStatus,
+    status: VarianteStatus,
   ) => void
 }
 

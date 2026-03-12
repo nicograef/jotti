@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const UserRole = {
   ADMIN: 'admin',
-  SENIOR_SERVICE: 'senior_service',
+  serviceleitung: 'serviceleitung',
   SERVICE: 'service',
 } as const
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]

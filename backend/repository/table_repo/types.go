@@ -23,5 +23,6 @@ func tischRowToDomain(row dbgen.Table) table.Tisch {
 		Name:      row.Name,
 		Status:    table.Status(row.Status),
 		CreatedAt: row.CreatedAt,
+		UpdatedAt: row.UpdatedAt,
 	}
 }

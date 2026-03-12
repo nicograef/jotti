@@ -19,16 +19,16 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
-import { type Variant, VariantStatus } from './Product'
-import { CreateVariantSchema, type ProductBackend } from './ProductBackend'
+import { type Variante, VarianteStatus } from './Product'
+import { CreateVarianteSchema, type ProductBackend } from './ProductBackend'
 
-const FormDataSchema = CreateVariantSchema.omit({ productId: true })
+const FormDataSchema = CreateVarianteSchema.omit({ productId: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewVariantDialogProps {
   productId: number
   backend: Pick<ProductBackend, 'createVariant'>
-  created: (variant: Variant) => void
+  created: (variant: Variante) => void
   children: ReactNode
 }
 
@@ -38,7 +38,7 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
   const form = useForm<FormData>({
     defaultValues: {
       name: '',
-      priceCents: 0,
+      preisCents: 0,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
@@ -57,7 +57,7 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
       props.created({
         id,
         ...data,
-        status: VariantStatus.INACTIVE,
+        status: VarianteStatus.INACTIVE,
         createdAt: new Date().toISOString(),
       })
     } catch (error: unknown) {

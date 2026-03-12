@@ -5,7 +5,7 @@
        build-backend build-frontend build \
        sqlc \
        staging staging-down staging-logs \
-       prod-up prod-down init \
+       prod-up prod-down prod-reset-db init \
        db-shell \
        clean \
        help
@@ -114,6 +114,11 @@ prod-up: ## Produktions-Stack starten
 
 prod-down: ## Produktions-Stack stoppen
 	docker compose down
+
+prod-reset-db: ## Prod-DB zurücksetzen (Zertifikate bleiben erhalten)
+	docker compose down
+	docker volume rm $$(docker volume ls -q --filter name=_postgres-data | head -1)
+	docker compose up -d --build
 
 init: ## Ersteinrichtung Produktion (Zertifikate, Stack)
 	./scripts/prod-init.sh

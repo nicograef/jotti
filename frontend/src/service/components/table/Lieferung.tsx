@@ -35,7 +35,7 @@ export function Lieferung({
 
   const undeliveredQuantities: Record<number, number> = {}
   positionen.forEach((position) => {
-    undeliveredQuantities[position.id] = position.quantity
+    undeliveredQuantities[position.id] = position.menge
   })
 
   const onAdd = (positionId: number) => {
@@ -86,7 +86,7 @@ export function Lieferung({
               <PositionItem
                 key={position.id}
                 position={position}
-                quantity={quantities[position.id] || 0}
+                menge={quantities[position.id] || 0}
                 undeliveredQuantity={undeliveredQuantities[position.id] || 0}
                 onAdd={() => {
                   onAdd(position.id)
@@ -103,7 +103,7 @@ export function Lieferung({
 
 interface PositionItemProps {
   position: Position
-  quantity: number
+  menge: number
   undeliveredQuantity: number
   onAdd: () => void
   onRemove: () => void
@@ -111,7 +111,7 @@ interface PositionItemProps {
 
 function PositionItem({
   position,
-  quantity,
+  menge,
   undeliveredQuantity,
   onAdd,
   onRemove,
@@ -121,7 +121,7 @@ function PositionItem({
       <ItemContent>
         <ItemTitle>{position.name}</ItemTitle>
         <ItemDescription>
-          noch {undeliveredQuantity - quantity} zu liefern
+          noch {undeliveredQuantity - menge} zu liefern
         </ItemDescription>
       </ItemContent>
       <ItemActions>
@@ -134,7 +134,7 @@ function PositionItem({
         >
           <Minus />
         </Button>
-        <span className="text-lg mx-1">{quantity}</span>
+        <span className="text-lg mx-1">{menge}</span>
         <Button
           size="icon-sm"
           variant="outline"

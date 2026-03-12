@@ -10,22 +10,22 @@ import (
 )
 
 type produkteGeliefertV1Data struct {
-	LieferungID string     `json:"lieferungId"`
-	Positionen  []Position `json:"positionen"`
-	Comment     string     `json:"comment"`
+	LieferungID string        `json:"lieferungId"`
+	Positionen  []PositionRef `json:"positionen"`
+	Kommentar   string        `json:"kommentar"`
 }
 
 var produkteGeliefertV1DataSchema = z.Struct(z.Shape{
 	"LieferungID": z.String().UUID().Required(),
-	"Positionen":  z.Slice(positionSchema).Min(1).Required(),
-	"Comment":     z.String().Max(100),
+	"Positionen":  z.Slice(positionRefSchema).Min(1).Required(),
+	"Kommentar":   z.String().Max(100),
 })
 
-func NewProdukteGeliefertEvent(userID, tischID int, positionen []Position, comment string) (e.Event, error) {
+func NewProdukteGeliefertEvent(userID int, userName string, tischID int, positionen []PositionRef, kommentar string) (e.Event, error) {
 	data := produkteGeliefertV1Data{
 		LieferungID: uuid.New().String(),
 		Positionen:  positionen,
-		Comment:     comment,
+		Kommentar:   kommentar,
 	}
 
 	if err := produkteGeliefertV1DataSchema.Validate(&data); err != nil {
@@ -33,7 +33,7 @@ func NewProdukteGeliefertEvent(userID, tischID int, positionen []Position, comme
 		return e.Event{}, fmt.Errorf("produkte geliefert data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, string(EventTypeProdukteGeliefertV1), "tisch:"+strconv.Itoa(tischID), data)
+	event, err := e.New(userID, userName, string(EventTypeProdukteGeliefertV1), "tisch:"+strconv.Itoa(tischID), data)
 	if err != nil {
 		return e.Event{}, err
 	}
@@ -62,7 +62,7 @@ func buildLieferungFromEvent(event e.Event) (Lieferung, error) {
 		UserID:      event.UserID,
 		TischID:     tischID,
 		Positionen:  data.Positionen,
-		Comment:     data.Comment,
+		Kommentar:   data.Kommentar,
 		GeliefertAm: event.Time,
 	}
 

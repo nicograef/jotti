@@ -13,27 +13,32 @@ type bestellungAufgegebenV1Data struct {
 	BestellungID     string     `json:"bestellungId"`
 	Positionen       []Position `json:"positionen"`
 	GesamtPreisCents int        `json:"gesamtPreisCents"`
-	Comment          string     `json:"comment"`
+	Kommentar        string     `json:"kommentar"`
 }
 
 var bestellungAufgegebenV1DataSchema = z.Struct(z.Shape{
 	"BestellungID":     z.String().UUID().Required(),
 	"Positionen":       z.Slice(positionSchema).Min(1).Required(),
 	"GesamtPreisCents": z.Int().GTE(0).Required(),
-	"Comment":          z.String().Max(100),
+	"Kommentar":        z.String().Max(100),
 })
 
-func NewBestellungAufgegebenEvent(userID, tischID int, positionen []Position, comment string) (e.Event, error) {
+func NewBestellungAufgegebenEvent(userID int, userName string, tischID int, positionen []Position, kommentar string) (e.Event, error) {
+	// Generate PositionIDs for each position
+	for i := range positionen {
+		positionen[i].PositionID = uuid.New().String()
+	}
+
 	gesamtPreisCents := 0
 	for _, pos := range positionen {
-		gesamtPreisCents += pos.PreisCents * pos.Quantity
+		gesamtPreisCents += pos.Einzelpreis * pos.Menge
 	}
 
 	data := bestellungAufgegebenV1Data{
 		BestellungID:     uuid.New().String(),
 		Positionen:       positionen,
 		GesamtPreisCents: gesamtPreisCents,
-		Comment:          comment,
+		Kommentar:        kommentar,
 	}
 
 	if err := bestellungAufgegebenV1DataSchema.Validate(&data); err != nil {
@@ -41,7 +46,7 @@ func NewBestellungAufgegebenEvent(userID, tischID int, positionen []Position, co
 		return e.Event{}, fmt.Errorf("bestellung aufgegeben data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, string(EventTypeBestellungAufgegebenV1), "tisch:"+strconv.Itoa(tischID), data)
+	event, err := e.New(userID, userName, string(EventTypeBestellungAufgegebenV1), "tisch:"+strconv.Itoa(tischID), data)
 	if err != nil {
 		return e.Event{}, err
 	}
@@ -71,7 +76,7 @@ func buildBestellungFromEvent(event e.Event) (Bestellung, error) {
 		TischID:          tischID,
 		Positionen:       data.Positionen,
 		GesamtPreisCents: data.GesamtPreisCents,
-		Comment:          data.Comment,
+		Kommentar:        data.Kommentar,
 		AufgegebenAm:     event.Time,
 	}
 

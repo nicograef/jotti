@@ -8,21 +8,21 @@ import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatCents } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'
-import { type Variant, VariantStatus } from './Product'
+import { type Variante, VarianteStatus } from './Product'
 import type { ProductBackend } from './ProductBackend'
 
 interface VariantItemProps {
-  variant: Variant
+  variant: Variante
   loading: boolean
   backend: Pick<ProductBackend, 'updateVariant'>
   onActivate: (variantId: number) => Promise<void>
   onDeactivate: (variantId: number) => Promise<void>
-  onUpdated: (variant: Variant) => void
+  onUpdated: (variant: Variante) => void
 }
 
 export function VariantItem(props: VariantItemProps) {
   const [editOpen, setEditOpen] = useState(false)
-  const isActive = props.variant.status === VariantStatus.ACTIVE
+  const isActive = props.variant.status === VarianteStatus.ACTIVE
 
   return (
     <>
@@ -54,7 +54,7 @@ export function VariantItem(props: VariantItemProps) {
         </div>
 
         <span className="text-muted-foreground text-sm whitespace-nowrap">
-          {formatCents(props.variant.priceCents)} €
+          {formatCents(props.variant.preisCents)} €
         </span>
 
         <Tooltip>

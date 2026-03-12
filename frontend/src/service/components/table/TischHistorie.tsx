@@ -91,7 +91,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
                     title={`Zahlung -${formatCents(zahlung.gesamtZahlungCents)} €`}
                     date={zahlung.registriertAm}
                     isFromUser={userId === zahlung.userId}
-                    comment={zahlung.comment}
+                    kommentar={zahlung.kommentar}
                     onClick={() => {
                       setZahlung({ zahlung, open: true })
                     }}
@@ -107,7 +107,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
                     title={`Bestellung +${formatCents(bestellung.gesamtPreisCents)} €`}
                     date={bestellung.aufgegebenAm}
                     isFromUser={userId === bestellung.userId}
-                    comment={bestellung.comment}
+                    kommentar={bestellung.kommentar}
                     onClick={() => {
                       setBestellung({ bestellung, open: true })
                     }}
@@ -123,7 +123,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
                     title={`Stornierung -${formatCents(stornierung.gesamtStornierungCents)} €`}
                     date={stornierung.storniertAm}
                     isFromUser={userId === stornierung.userId}
-                    comment={stornierung.comment}
+                    kommentar={stornierung.kommentar}
                     onClick={() => {
                       setStornierung({ stornierung, open: true })
                     }}
@@ -139,7 +139,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
                     title="Auslieferung"
                     date={lieferung.geliefertAm}
                     isFromUser={userId === lieferung.userId}
-                    comment={lieferung.comment}
+                    kommentar={lieferung.kommentar}
                     onClick={() => {
                       setLieferung({ lieferung, open: true })
                     }}
@@ -160,7 +160,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
             setBestellung(initialBestellungState)
           }}
           date={bestellung.bestellung.aufgegebenAm}
-          comment={bestellung.bestellung.comment}
+          kommentar={bestellung.bestellung.kommentar}
           positionen={bestellung.bestellung.positionen}
           totalPrice={bestellung.bestellung.gesamtPreisCents}
         />
@@ -175,7 +175,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
             setZahlung(initialZahlungState)
           }}
           date={zahlung.zahlung.registriertAm}
-          comment={zahlung.zahlung.comment}
+          kommentar={zahlung.zahlung.kommentar}
           positionen={zahlung.zahlung.positionen}
           totalPrice={zahlung.zahlung.gesamtZahlungCents}
         />
@@ -190,7 +190,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
             setStornierung(initialStornierungState)
           }}
           date={stornierung.stornierung.storniertAm}
-          comment={stornierung.stornierung.comment}
+          kommentar={stornierung.stornierung.kommentar}
           positionen={stornierung.stornierung.positionen}
           totalPrice={stornierung.stornierung.gesamtStornierungCents}
         />
@@ -205,7 +205,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
             setLieferung(initialLieferungState)
           }}
           date={lieferung.lieferung.geliefertAm}
-          comment={lieferung.lieferung.comment}
+          kommentar={lieferung.lieferung.kommentar}
           positionen={lieferung.lieferung.positionen}
         />
       )}
@@ -217,13 +217,13 @@ function HistoryItem({
   title,
   date,
   isFromUser,
-  comment,
+  kommentar,
   onClick,
 }: {
   title: string
   date: string
   isFromUser: boolean
-  comment: string
+  kommentar: string
   onClick: () => void
 }) {
   return (
@@ -232,10 +232,10 @@ function HistoryItem({
         <ItemTitle>{title}</ItemTitle>
         <ItemDescription>
           {new Date(date).toLocaleString()}
-          {comment && (
+          {kommentar && (
             <>
               <br />
-              {comment}
+              {kommentar}
             </>
           )}
         </ItemDescription>
@@ -278,7 +278,7 @@ function Details({
   id,
   date,
   isFromUser,
-  comment,
+  kommentar,
   positionen,
   totalPrice,
 }: {
@@ -288,7 +288,7 @@ function Details({
   id: string
   date: string
   isFromUser: boolean
-  comment: string
+  kommentar: string
   positionen: Position[]
   totalPrice?: number
 }) {
@@ -312,9 +312,9 @@ function Details({
             </DrawerDescription>
           </DrawerHeader>
           <Receipt positionen={positionen} totalPrice={totalPrice} />
-          {comment && (
+          {kommentar && (
             <div className="px-4">
-              <Comment value={comment} />
+              <Comment value={kommentar} />
             </div>
           )}
           <DrawerFooter>

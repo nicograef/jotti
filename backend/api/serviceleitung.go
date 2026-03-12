@@ -7,7 +7,7 @@ import (
 	table "github.com/nicograef/jotti/backend/api/table/http"
 )
 
-func NewSeniorServiceApi(db *sql.DB) http.Handler {
+func NewServiceleitungApi(db *sql.DB) http.Handler {
 	r := http.NewServeMux()
 
 	tc := table.NewCommandHandler(db)

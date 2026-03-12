@@ -21,6 +21,7 @@ type ContextKey string
 
 const (
 	UserIDKey        ContextKey = "userid"
+	UserNameKey      ContextKey = "username"
 	CorrelationIDKey ContextKey = "correlation_id"
 )
 
@@ -60,21 +61,42 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// limiterEntry wraps a rate limiter with a last-seen timestamp for cleanup.
+type limiterEntry struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
+}
+
 // RateLimitMiddleware limits requests per IP address
 func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler {
 	var mu sync.Mutex
-	limiters := make(map[string]*rate.Limiter)
+	limiters := make(map[string]*limiterEntry)
+
+	// Cleanup goroutine: remove entries not seen for 10+ minutes
+	go func() {
+		for {
+			time.Sleep(5 * time.Minute)
+			mu.Lock()
+			for ip, entry := range limiters {
+				if time.Since(entry.lastSeen) > 10*time.Minute {
+					delete(limiters, ip)
+				}
+			}
+			mu.Unlock()
+		}
+	}()
 
 	getLimiter := func(ip string) *rate.Limiter {
 		mu.Lock()
 		defer mu.Unlock()
 
-		if limiter, exists := limiters[ip]; exists {
-			return limiter
+		if entry, exists := limiters[ip]; exists {
+			entry.lastSeen = time.Now()
+			return entry.limiter
 		}
 
 		limiter := rate.NewLimiter(rate.Limit(requestsPerSecond), requestsPerSecond*2)
-		limiters[ip] = limiter
+		limiters[ip] = &limiterEntry{limiter: limiter, lastSeen: time.Now()}
 		return limiter
 	}
 
@@ -147,7 +169,7 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler
 				return
 			}
 			token = token[len(bearerPrefix):]
-			userID, userRole, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
+			userID, userName, userRole, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
 			if err != nil {
 				logger.Error().Err(err).Msg("Invalid JWT token")
 				helper.SendClientError(w, "invalid_jwt", nil)
@@ -164,6 +186,7 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler
 
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, UserIDKey, userID)
+			ctx = context.WithValue(ctx, UserNameKey, userName)
 			h.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

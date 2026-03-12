@@ -63,6 +63,22 @@ Trade-off: Leicht erhöhte Latenz beim ersten Read nach mehreren Writes — für
 
 Für retrospektive Auswertungen (Tagesumsatz, Produktstatistiken, Stornierungsraten). Worker pollt `events`-Tabelle und projiziert neue Events asynchron auf analytische Tabellen (z.B. `daily_revenue`, `variant_sales`). Eventual Consistency ist hier akzeptabel.
 
+Konkret ergeben sich aus dem [Entwickler-Handbuch §7.2](../design/handbuch.md) folgende analytische Read Models:
+
+| Read Model                  | Anforderung                               | Projizierte Daten                                                                                     |
+| --------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Tagesabrechnung             | [R-01](../anforderungen.md) (Should-have) | Gesamtumsatz, Umsatz pro Servicekraft, Stornierungsübersicht, offene Beträge                          |
+| Abrechnung pro Tisch        | [R-03](../anforderungen.md) (Should-have) | Alle Operationen chronologisch (Bestellungen, Zahlungen, Lieferungen, Stornierungen) mit Gesamt-Saldo |
+| Abrechnung pro Servicekraft | [R-04](../anforderungen.md) (Should-have) | Umsatz, Bestellanzahl, Anzahl und Betrag der Stornierungen pro Person                                 |
+| Produktumsatz               | [R-05](../anforderungen.md) (Should-have) | Verkaufte Menge pro Variante (abzgl. Stornierungen), Ranking, Gesamteinnahmen                         |
+
+Alle Reporting-Ansichten aggregieren Tisch-Events tischübergreifend und sind nur für Admins zugänglich (vgl. [Anforderungen R-01–R-05](../anforderungen.md)).
+
+Laut [Bounded-Context-Map (Handbuch §2.1–2.2)](../design/handbuch.md) konsumieren zwei Downstream-Kontexte die Projektionen des Kassenbetriebs:
+
+- **Abrechnung** — Read-only-Projektionen der oben genannten analytischen Read Models. Kassenbetrieb → Abrechnung über Published Language (Event-driven): Tisch-Events werden zu Auswertungen projiziert.
+- **Ausgabe** — Event-getrieben für Bondruck und Küchendisplay (KDS). Braucht Echtzeit-Zugang zu Bestellungs-Events (Kassenbetrieb → Ausgabe über Published Language). Nicht Teil des MVP, aber architektonisch bereits als Downstream-Kontext vorgesehen.
+
 ### Architektur
 
 ```

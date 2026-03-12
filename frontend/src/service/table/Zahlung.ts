@@ -8,7 +8,7 @@ export const ZahlungSchema = z.object({
   tischId: z.number().int().min(1),
   positionen: PositionSchema.array().min(1),
   gesamtZahlungCents: z.number().int().min(0),
-  comment: z.string().max(100),
+  kommentar: z.string().max(100),
   registriertAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
     message: 'Invalid date format',
   }),
@@ -18,6 +18,6 @@ export type Zahlung = z.infer<typeof ZahlungSchema>
 export const ZahlungRegistrierenSchema = z.object({
   tischId: z.number().int().min(1),
   positionen: PositionSchema.array().min(1),
-  comment: z.string().max(100),
+  kommentar: z.string().max(100),
 })
 export type ZahlungRegistrieren = z.infer<typeof ZahlungRegistrierenSchema>

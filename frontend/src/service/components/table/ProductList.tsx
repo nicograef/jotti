@@ -14,14 +14,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatCents } from '@/lib/utils'
 
 import {
-  type Product,
-  ProductCategoryLabels,
-  ProductCategoryOrder,
-  type Variant,
+  KategorieLabels,
+  KategorieOrder,
+  type Produkt,
+  type Variante,
 } from '../../product/Product'
 
 interface ProductListComponentProps {
-  products: Product[]
+  products: Produkt[]
   variantQuantities: Record<number, number>
   onAdd: (variantId: number) => void
   onRemove: (variantId: number) => void
@@ -44,7 +44,7 @@ export function ProductList(props: ProductListComponentProps) {
     })
   }
 
-  const getProductTotal = (variants: Variant[]) => {
+  const getProductTotal = (variants: Variante[]) => {
     return variants.reduce(
       (sum, v) => sum + (props.variantQuantities[v.id] || 0),
       0,
@@ -53,7 +53,7 @@ export function ProductList(props: ProductListComponentProps) {
 
   return (
     <div className="my-4 space-y-6">
-      {ProductCategoryOrder.map((category) => {
+      {KategorieOrder.map((category) => {
         const categoryProducts = props.products.filter(
           (p) => p.category === category,
         )
@@ -62,7 +62,7 @@ export function ProductList(props: ProductListComponentProps) {
         return (
           <div key={category}>
             <h2 className="text-lg font-semibold mb-2">
-              {ProductCategoryLabels[category]}
+              {KategorieLabels[category]}
             </h2>
             <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
               {categoryProducts.map((product) => {
@@ -134,7 +134,7 @@ function VariantItem({
   onAdd,
   onRemove,
 }: {
-  variant: Variant
+  variant: Variante
   quantity: number
   onAdd: () => void
   onRemove: () => void
@@ -145,7 +145,7 @@ function VariantItem({
         <ItemTitle className="text-sm">{variant.name}</ItemTitle>
         <ItemDescription>
           <span className="font-bold">
-            {formatCents(variant.priceCents)}&nbsp;€
+            {formatCents(variant.preisCents)}&nbsp;€
           </span>
         </ItemDescription>
       </ItemContent>
@@ -183,7 +183,7 @@ function VariantItem({
 export function ProductListSkeleton() {
   return (
     <div className="my-4 space-y-6">
-      {ProductCategoryOrder.map((category) => (
+      {KategorieOrder.map((category) => (
         <div key={category}>
           <Skeleton className="h-5 w-24 mb-2" />
           <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">

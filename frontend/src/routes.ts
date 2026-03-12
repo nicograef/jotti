@@ -18,7 +18,7 @@ function AuthRedirect() {
     return redirect('/admin')
   } else if (
     AuthSingleton.isAuthenticated &&
-    (AuthSingleton.isService || AuthSingleton.isSeniorService)
+    (AuthSingleton.isService || AuthSingleton.isServiceleitung)
   ) {
     return redirect('/service')
   } else if (AuthSingleton.isAuthenticated) {
@@ -36,7 +36,7 @@ export function ServiceGuard() {
   const hasServiceAccess =
     AuthSingleton.isAuthenticated &&
     (AuthSingleton.isService ||
-      AuthSingleton.isSeniorService ||
+      AuthSingleton.isServiceleitung ||
       AuthSingleton.isAdmin)
 
   if (!hasServiceAccess) {
@@ -57,6 +57,7 @@ export const router = createBrowserRouter([
         Component: AdminLayout,
         loader: AdminGuard,
         children: [
+          { index: true, loader: () => redirect('products') },
           { path: 'products', Component: AdminProductsPage },
           { path: 'tables', Component: AdminTablesPage },
           { path: 'users', Component: AdminUsersPage },

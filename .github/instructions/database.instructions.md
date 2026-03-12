@@ -17,11 +17,9 @@ Tabellen: `users`, `tables`, `products`, `product_variants`, `events` (append-on
 
 Aktuelles Schema: siehe SQL-Migrationen in `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge).
 
-## Migrationen
+## Schema-Änderungen
 
-Neue Migration: `database/migrations/<nr>_<name>.up.sql` + `.down.sql`
-
-Immer reversible Migrationen erstellen — Rollback testen vor dem Merge.
+jotti befindet sich in aktiver Entwicklung — Breaking Changes sind erlaubt und erwünscht. Schema-Änderungen direkt in `database/migrations/01_initial.up.sql` vornehmen. Keine neuen Migrationsdateien erstellen, keine Down-Migrationen pflegen. Dev-Datenbank bei Bedarf neu aufsetzen (`make down && make dev`).
 
 ## sqlc
 

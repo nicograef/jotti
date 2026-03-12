@@ -106,13 +106,13 @@ func GetHistoryFromEvents(events []e.Event) ([]any, error) {
 	return history, nil
 }
 
-// accumulatePositionen adds positions to a list, merging quantities for matching positions
+// accumulatePositionen adds positions to a list, merging quantities for matching positions (by PositionID)
 func accumulatePositionen(list []Position, positionen []Position) []Position {
 	for _, pos := range positionen {
 		found := false
 		for i, existing := range list {
-			if existing.ID == pos.ID && existing.PreisCents == pos.PreisCents {
-				list[i].Quantity += pos.Quantity
+			if existing.PositionID == pos.PositionID {
+				list[i].Menge += pos.Menge
 				found = true
 				break
 			}
@@ -124,13 +124,13 @@ func accumulatePositionen(list []Position, positionen []Position) []Position {
 	return list
 }
 
-// reducePositionen subtracts positions from a list, removing entries when quantity reaches zero
-func reducePositionen(list []Position, positionen []Position) []Position {
-	for _, pos := range positionen {
+// reduceByRef subtracts position references from a list, removing entries when quantity reaches zero
+func reduceByRef(list []Position, refs []PositionRef) []Position {
+	for _, ref := range refs {
 		for i := 0; i < len(list); i++ {
-			if list[i].ID == pos.ID && list[i].PreisCents == pos.PreisCents {
-				if list[i].Quantity > pos.Quantity {
-					list[i].Quantity -= pos.Quantity
+			if list[i].PositionID == ref.PositionID {
+				if list[i].Menge > ref.Menge {
+					list[i].Menge -= ref.Menge
 				} else {
 					list = append(list[:i], list[i+1:]...)
 					i--
@@ -166,14 +166,14 @@ func GetUnbezahltePositionenFromEvents(events []e.Event) ([]Position, error) {
 			if err != nil {
 				return nil, err
 			}
-			unbezahltePositionen = reducePositionen(unbezahltePositionen, zahlung.Positionen)
+			unbezahltePositionen = reduceByRef(unbezahltePositionen, zahlung.Positionen)
 
 		case string(EventTypeProdukteStorniertV1):
 			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
-			unbezahltePositionen = reducePositionen(unbezahltePositionen, stornierung.Positionen)
+			unbezahltePositionen = reduceByRef(unbezahltePositionen, stornierung.Positionen)
 		}
 	}
 
@@ -204,14 +204,14 @@ func GetUngeliefertePositionenFromEvents(events []e.Event) ([]Position, error) {
 			if err != nil {
 				return nil, err
 			}
-			ungeliefertePositionen = reducePositionen(ungeliefertePositionen, lieferung.Positionen)
+			ungeliefertePositionen = reduceByRef(ungeliefertePositionen, lieferung.Positionen)
 
 		case string(EventTypeProdukteStorniertV1):
 			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
-			ungeliefertePositionen = reducePositionen(ungeliefertePositionen, stornierung.Positionen)
+			ungeliefertePositionen = reduceByRef(ungeliefertePositionen, stornierung.Positionen)
 		}
 	}
 

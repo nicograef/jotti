@@ -12,25 +12,31 @@ import (
 )
 
 const createTable = `-- name: CreateTable :one
-INSERT INTO tables (name, status, created_at)
-VALUES ($1, $2, $3) RETURNING id
+INSERT INTO tables (name, status, created_at, updated_at)
+VALUES ($1, $2, $3, $4) RETURNING id
 `
 
 type CreateTableParams struct {
 	Name      string
 	Status    Entitystatus
 	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (q *Queries) CreateTable(ctx context.Context, arg CreateTableParams) (int, error) {
-	row := q.db.QueryRowContext(ctx, createTable, arg.Name, arg.Status, arg.CreatedAt)
+	row := q.db.QueryRowContext(ctx, createTable,
+		arg.Name,
+		arg.Status,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
 	var id int
 	err := row.Scan(&id)
 	return id, err
 }
 
 const getActiveTables = `-- name: GetActiveTables :many
-SELECT id, name, status, created_at
+SELECT id, name, status, created_at, updated_at
 FROM tables WHERE status = 'active' ORDER BY id ASC
 `
 
@@ -48,6 +54,7 @@ func (q *Queries) GetActiveTables(ctx context.Context) ([]Table, error) {
 			&i.Name,
 			&i.Status,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -63,7 +70,7 @@ func (q *Queries) GetActiveTables(ctx context.Context) ([]Table, error) {
 }
 
 const getAllTables = `-- name: GetAllTables :many
-SELECT id, name, status, created_at
+SELECT id, name, status, created_at, updated_at
 FROM tables WHERE status != 'deleted' ORDER BY id ASC
 `
 
@@ -81,6 +88,7 @@ func (q *Queries) GetAllTables(ctx context.Context) ([]Table, error) {
 			&i.Name,
 			&i.Status,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -96,7 +104,7 @@ func (q *Queries) GetAllTables(ctx context.Context) ([]Table, error) {
 }
 
 const getTable = `-- name: GetTable :one
-SELECT id, name, status, created_at
+SELECT id, name, status, created_at, updated_at
 FROM tables WHERE id = $1 AND status != 'deleted'
 `
 
@@ -108,20 +116,27 @@ func (q *Queries) GetTable(ctx context.Context, id int) (Table, error) {
 		&i.Name,
 		&i.Status,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const updateTable = `-- name: UpdateTable :execresult
-UPDATE tables SET name = $1, status = $2 WHERE id = $3
+UPDATE tables SET name = $1, status = $2, updated_at = $3 WHERE id = $4
 `
 
 type UpdateTableParams struct {
-	Name   string
-	Status Entitystatus
-	ID     int
+	Name      string
+	Status    Entitystatus
+	UpdatedAt time.Time
+	ID        int
 }
 
 func (q *Queries) UpdateTable(ctx context.Context, arg UpdateTableParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, updateTable, arg.Name, arg.Status, arg.ID)
+	return q.db.ExecContext(ctx, updateTable,
+		arg.Name,
+		arg.Status,
+		arg.UpdatedAt,
+		arg.ID,
+	)
 }

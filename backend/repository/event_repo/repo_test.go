@@ -16,11 +16,18 @@ import (
 
 func createUser(db *sql.DB) (int, error) {
 	var userID int
-	err := db.QueryRow("INSERT INTO users (name, username, role, status, password_hash, onetime_password_hash, created_at) VALUES ($1, $2, $3, $4, $5, $6, now()) RETURNING id", "nico", "nico", "admin", "active", "hashedpassword", "onetimesethash").Scan(&userID)
+	err := db.QueryRow("INSERT INTO users (name, username, role, status, password_hash, onetime_password_hash, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, now(), now()) RETURNING id", "nico", "nico", "admin", "active", "hashedpassword", "onetimesethash").Scan(&userID)
 	if err != nil {
 		return 0, err
 	}
 	return userID, nil
+}
+
+// newTestEvent creates a test event with the given parameters and version.
+func newTestEvent(userID int, eventType, subject string, version int, data any) event.Event {
+	e, _ := event.New(userID, "nico", eventType, subject, data)
+	e.Version = version
+	return e
 }
 
 func setup(t *testing.T) (int, Repository, func(t *testing.T)) {
@@ -74,12 +81,9 @@ func TestWriteEvent(t *testing.T) {
 	userID, repo, teardown := setup(t)
 	defer teardown(t)
 
-	event, err := event.New(userID, "tisch.bestellung-aufgegeben:v1", "tisch:42", map[string]any{"k": "v"})
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
+	e := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:42", 1, map[string]any{"k": "v"})
 
-	eventID, err := repo.WriteEvent(context.Background(), event)
+	eventID, err := repo.WriteEvent(context.Background(), e)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -93,12 +97,9 @@ func TestReadEvent(t *testing.T) {
 	userID, repo, teardown := setup(t)
 	defer teardown(t)
 
-	event, err := event.New(userID, "tisch.bestellung-aufgegeben:v1", "tisch:42", map[string]any{"k": "v"})
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
+	e := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:42", 1, map[string]any{"k": "v"})
 
-	eventID, err := repo.WriteEvent(context.Background(), event)
+	eventID, err := repo.WriteEvent(context.Background(), e)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -110,17 +111,23 @@ func TestReadEvent(t *testing.T) {
 	if readEvent.ID != eventID {
 		t.Fatalf("Expected event ID %d, got %d", eventID, readEvent.ID)
 	}
-	if readEvent.UserID != event.UserID {
-		t.Fatalf("Expected user ID %d, got %d", event.UserID, readEvent.UserID)
+	if readEvent.UserID != e.UserID {
+		t.Fatalf("Expected user ID %d, got %d", e.UserID, readEvent.UserID)
 	}
-	if readEvent.Type != event.Type {
-		t.Fatalf("Expected event type %s, got %s", event.Type, readEvent.Type)
+	if readEvent.UserName != "nico" {
+		t.Fatalf("Expected user name 'nico', got %s", readEvent.UserName)
 	}
-	if readEvent.Subject != event.Subject {
-		t.Fatalf("Expected subject %s, got %s", event.Subject, readEvent.Subject)
+	if readEvent.Version != 1 {
+		t.Fatalf("Expected version 1, got %d", readEvent.Version)
 	}
-	if readEvent.Time.Unix() != event.Time.Unix() {
-		t.Fatalf("Expected time %v, got %v", event.Time, readEvent.Time)
+	if readEvent.Type != e.Type {
+		t.Fatalf("Expected event type %s, got %s", e.Type, readEvent.Type)
+	}
+	if readEvent.Subject != e.Subject {
+		t.Fatalf("Expected subject %s, got %s", e.Subject, readEvent.Subject)
+	}
+	if readEvent.Time.Unix() != e.Time.Unix() {
+		t.Fatalf("Expected time %v, got %v", e.Time, readEvent.Time)
 	}
 	var data map[string]any
 	err = json.Unmarshal(readEvent.Data, &data)
@@ -149,14 +156,8 @@ func TestReadEventsBySubject(t *testing.T) {
 	userID, repo, teardown := setup(t)
 	defer teardown(t)
 
-	event1, err := event.New(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", map[string]any{"k": "v"})
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	event2, err := event.New(userID, "tisch.bestellung-aufgegeben:v1", "tisch:42", map[string]any{"k": "v"})
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
+	event1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 1, map[string]any{"k": "v"})
+	event2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:42", 1, map[string]any{"k": "v"})
 	_, _ = repo.WriteEvent(context.Background(), event1)
 	_, _ = repo.WriteEvent(context.Background(), event2)
 
@@ -177,9 +178,9 @@ func TestReadEventsSinceID(t *testing.T) {
 	defer teardown(t)
 
 	// Create multiple events for the same subject
-	event1, _ := event.New(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", map[string]any{"order": 1})
-	event2, _ := event.New(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", map[string]any{"order": 2})
-	event3, _ := event.New(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", map[string]any{"order": 3})
+	event1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 1, map[string]any{"order": 1})
+	event2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 2, map[string]any{"order": 2})
+	event3 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 3, map[string]any{"order": 3})
 
 	id1, _ := repo.WriteEvent(context.Background(), event1)
 	id2, _ := repo.WriteEvent(context.Background(), event2)
@@ -212,9 +213,9 @@ func TestReadEventsSinceID_DifferentSubjects(t *testing.T) {
 	defer teardown(t)
 
 	// Events for tisch:1
-	event1, _ := event.New(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", map[string]any{"order": 1})
+	event1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 1, map[string]any{"order": 1})
 	// Events for tisch:2
-	event2, _ := event.New(userID, "tisch.bestellung-aufgegeben:v1", "tisch:2", map[string]any{"order": 2})
+	event2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:2", 1, map[string]any{"order": 2})
 
 	id1, _ := repo.WriteEvent(context.Background(), event1)
 	_, _ = repo.WriteEvent(context.Background(), event2)
@@ -249,11 +250,11 @@ func TestGetLastSnapshotID(t *testing.T) {
 	}
 
 	// Add some events
-	order1, _ := event.New(userID, orderType, "tisch:1", map[string]any{"order": 1})
-	snapshot1, _ := event.New(userID, snapshotType, "tisch:1", map[string]any{"balance": 100})
-	order2, _ := event.New(userID, orderType, "tisch:1", map[string]any{"order": 2})
-	snapshot2, _ := event.New(userID, snapshotType, "tisch:1", map[string]any{"balance": 200})
-	order3, _ := event.New(userID, orderType, "tisch:1", map[string]any{"order": 3})
+	order1 := newTestEvent(userID, orderType, "tisch:1", 1, map[string]any{"order": 1})
+	snapshot1 := newTestEvent(userID, snapshotType, "tisch:1", 2, map[string]any{"balance": 100})
+	order2 := newTestEvent(userID, orderType, "tisch:1", 3, map[string]any{"order": 2})
+	snapshot2 := newTestEvent(userID, snapshotType, "tisch:1", 4, map[string]any{"balance": 200})
+	order3 := newTestEvent(userID, orderType, "tisch:1", 5, map[string]any{"order": 3})
 
 	_, _ = repo.WriteEvent(context.Background(), order1)
 	snapshotID1, _ := repo.WriteEvent(context.Background(), snapshot1)
@@ -283,8 +284,8 @@ func TestGetLastSnapshotID_DifferentSubjects(t *testing.T) {
 	snapshotType := "tisch.snapshot:v1"
 
 	// Add snapshots for different tables
-	snapshot1, _ := event.New(userID, snapshotType, "tisch:1", map[string]any{"balance": 100})
-	snapshot2, _ := event.New(userID, snapshotType, "tisch:2", map[string]any{"balance": 200})
+	snapshot1 := newTestEvent(userID, snapshotType, "tisch:1", 1, map[string]any{"balance": 100})
+	snapshot2 := newTestEvent(userID, snapshotType, "tisch:2", 1, map[string]any{"balance": 200})
 
 	snapshotID1, _ := repo.WriteEvent(context.Background(), snapshot1)
 	snapshotID2, _ := repo.WriteEvent(context.Background(), snapshot2)
@@ -316,10 +317,10 @@ func TestReadEventsWithSnapshot(t *testing.T) {
 	orderType := "tisch.bestellung-aufgegeben:v1"
 
 	// Add events: order -> snapshot -> order -> order
-	order1, _ := event.New(userID, orderType, "tisch:1", map[string]any{"order": 1})
-	snapshot, _ := event.New(userID, snapshotType, "tisch:1", map[string]any{"balance": 100})
-	order2, _ := event.New(userID, orderType, "tisch:1", map[string]any{"order": 2})
-	order3, _ := event.New(userID, orderType, "tisch:1", map[string]any{"order": 3})
+	order1 := newTestEvent(userID, orderType, "tisch:1", 1, map[string]any{"order": 1})
+	snapshot := newTestEvent(userID, snapshotType, "tisch:1", 2, map[string]any{"balance": 100})
+	order2 := newTestEvent(userID, orderType, "tisch:1", 3, map[string]any{"order": 2})
+	order3 := newTestEvent(userID, orderType, "tisch:1", 4, map[string]any{"order": 3})
 
 	_, _ = repo.WriteEvent(context.Background(), order1)
 	snapshotID, _ := repo.WriteEvent(context.Background(), snapshot)
@@ -350,8 +351,8 @@ func TestReadEventsWithSnapshot_NoSnapshot(t *testing.T) {
 	orderType := "tisch.bestellung-aufgegeben:v1"
 
 	// Add only orders, no snapshot
-	order1, _ := event.New(userID, orderType, "tisch:1", map[string]any{"order": 1})
-	order2, _ := event.New(userID, orderType, "tisch:1", map[string]any{"order": 2})
+	order1 := newTestEvent(userID, orderType, "tisch:1", 1, map[string]any{"order": 1})
+	order2 := newTestEvent(userID, orderType, "tisch:1", 2, map[string]any{"order": 2})
 
 	_, _ = repo.WriteEvent(context.Background(), order1)
 	_, _ = repo.WriteEvent(context.Background(), order2)
@@ -363,5 +364,46 @@ func TestReadEventsWithSnapshot_NoSnapshot(t *testing.T) {
 	}
 	if len(events) != 2 {
 		t.Fatalf("Expected 2 events, got %d", len(events))
+	}
+}
+
+func TestGetMaxVersion(t *testing.T) {
+	userID, repo, teardown := setup(t)
+	defer teardown(t)
+
+	// No events yet
+	version, err := repo.GetMaxVersion(context.Background(), "tisch:1")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if version != 0 {
+		t.Fatalf("Expected version 0 for empty subject, got %d", version)
+	}
+
+	// Add events
+	e1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 1, map[string]any{"order": 1})
+	e2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 2, map[string]any{"order": 2})
+	e3 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:2", 1, map[string]any{"order": 3})
+
+	_, _ = repo.WriteEvent(context.Background(), e1)
+	_, _ = repo.WriteEvent(context.Background(), e2)
+	_, _ = repo.WriteEvent(context.Background(), e3)
+
+	// Should return max version for tisch:1
+	version, err = repo.GetMaxVersion(context.Background(), "tisch:1")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if version != 2 {
+		t.Fatalf("Expected version 2, got %d", version)
+	}
+
+	// Should return max version for tisch:2
+	version, err = repo.GetMaxVersion(context.Background(), "tisch:2")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if version != 1 {
+		t.Fatalf("Expected version 1, got %d", version)
 	}
 }

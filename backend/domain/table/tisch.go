@@ -15,6 +15,8 @@ const (
 	ActiveStatus Status = "active"
 	// InactiveStatus: not usable for service.
 	InactiveStatus Status = "inactive"
+	// DeletedStatus: soft-deleted, not visible.
+	DeletedStatus Status = "deleted"
 )
 
 type Tisch struct {
@@ -22,6 +24,7 @@ type Tisch struct {
 	Name      string    `json:"name"`
 	Status    Status    `json:"status"`
 	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 var TischIDSchema = z.Int().GTE(1, z.Message("Invalid table ID"))
@@ -29,7 +32,7 @@ var TischIDSchema = z.Int().GTE(1, z.Message("Invalid table ID"))
 var TischNameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(100, z.Message("Name too long"))
 
 var TischStatusSchema = z.StringLike[Status]().OneOf(
-	[]Status{ActiveStatus, InactiveStatus},
+	[]Status{ActiveStatus, InactiveStatus, DeletedStatus},
 	z.Message("Invalid status"),
 )
 
@@ -38,6 +41,7 @@ var TischSchema = z.Struct(z.Shape{
 	"Name":      TischNameSchema.Required(),
 	"Status":    TischStatusSchema.Required(),
 	"CreatedAt": z.Time().Required(),
+	"UpdatedAt": z.Time().Required(),
 })
 
 func (t Tisch) Validate() error {
@@ -57,6 +61,7 @@ func NewTisch(name string) (Tisch, error) {
 		Name:      name,
 		Status:    InactiveStatus,
 		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
 	}
 
 	return tisch, nil
@@ -64,10 +69,17 @@ func NewTisch(name string) (Tisch, error) {
 
 func (t *Tisch) Activate() {
 	t.Status = ActiveStatus
+	t.UpdatedAt = time.Now().UTC()
 }
 
 func (t *Tisch) Deactivate() {
 	t.Status = InactiveStatus
+	t.UpdatedAt = time.Now().UTC()
+}
+
+func (t *Tisch) Delete() {
+	t.Status = DeletedStatus
+	t.UpdatedAt = time.Now().UTC()
 }
 
 func (t *Tisch) Rename(newName string) error {
@@ -75,5 +87,6 @@ func (t *Tisch) Rename(newName string) error {
 		return errors.New("invalid name")
 	}
 	t.Name = newName
+	t.UpdatedAt = time.Now().UTC()
 	return nil
 }

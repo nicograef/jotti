@@ -9,81 +9,89 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-func (r Repository) GetProduct(ctx context.Context, id int) (product.Product, error) {
+func (r Repository) GetProduct(ctx context.Context, id int) (product.Produkt, error) {
 	row, err := r.q.GetProduct(ctx, id)
 	if err != nil {
-		return product.Product{}, db.Error(err)
+		return product.Produkt{}, db.Error(err)
 	}
 
 	variants, err := parseVariantsJSON(row.Variants)
 	if err != nil {
-		return product.Product{}, fmt.Errorf("failed to unmarshal variants: %w", err)
+		return product.Produkt{}, fmt.Errorf("failed to unmarshal variants: %w", err)
 	}
 
-	return product.Product{
+	return product.Produkt{
 		ID:        row.ID,
 		Name:      row.Name,
-		Category:  product.Category(row.Category),
+		Kategorie: product.Kategorie(row.Category),
+		Status:    product.Status(row.Status),
 		Variants:  variants,
 		CreatedAt: row.CreatedAt,
+		UpdatedAt: row.UpdatedAt,
 	}, nil
 }
 
-func (r Repository) GetAllProducts(ctx context.Context) ([]product.Product, error) {
+func (r Repository) GetAllProducts(ctx context.Context) ([]product.Produkt, error) {
 	rows, err := r.q.GetAllProducts(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	products := make([]product.Product, 0, len(rows))
-	for _, row := range rows {
-		variants, err := parseVariantsJSON(row.Variants)
+	products := make([]product.Produkt, 0, len(rows))
+	for i := range rows {
+		variants, err := parseVariantsJSON(rows[i].Variants)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal variants: %w", err)
 		}
 
-		products = append(products, product.Product{
-			ID:        row.ID,
-			Name:      row.Name,
-			Category:  product.Category(row.Category),
+		products = append(products, product.Produkt{
+			ID:        rows[i].ID,
+			Name:      rows[i].Name,
+			Kategorie: product.Kategorie(rows[i].Category),
+			Status:    product.Status(rows[i].Status),
 			Variants:  variants,
-			CreatedAt: row.CreatedAt,
+			CreatedAt: rows[i].CreatedAt,
+			UpdatedAt: rows[i].UpdatedAt,
 		})
 	}
 
 	return products, nil
 }
 
-func (r Repository) GetActiveProducts(ctx context.Context) ([]product.Product, error) {
+func (r Repository) GetActiveProducts(ctx context.Context) ([]product.Produkt, error) {
 	rows, err := r.q.GetActiveProducts(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	products := make([]product.Product, 0, len(rows))
-	for _, row := range rows {
-		variants, err := parseVariantsJSON(row.Variants)
+	products := make([]product.Produkt, 0, len(rows))
+	for i := range rows {
+		variants, err := parseVariantsJSON(rows[i].Variants)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal variants: %w", err)
 		}
 
-		products = append(products, product.Product{
-			ID:        row.ID,
-			Name:      row.Name,
-			Category:  product.Category(row.Category),
+		products = append(products, product.Produkt{
+			ID:        rows[i].ID,
+			Name:      rows[i].Name,
+			Kategorie: product.Kategorie(rows[i].Category),
+			Status:    product.Status(rows[i].Status),
 			Variants:  variants,
-			CreatedAt: row.CreatedAt,
+			CreatedAt: rows[i].CreatedAt,
+			UpdatedAt: rows[i].UpdatedAt,
 		})
 	}
 
 	return products, nil
 }
 
-func (r Repository) CreateProduct(ctx context.Context, p product.Product) (int, error) {
+func (r Repository) CreateProduct(ctx context.Context, p product.Produkt) (int, error) {
 	id, err := r.q.CreateProduct(ctx, dbgen.CreateProductParams{
 		Name:      p.Name,
-		Category:  dbgen.Productcategory(p.Category),
+		Category:  dbgen.Productcategory(p.Kategorie),
+		Status:    dbgen.Entitystatus(p.Status),
 		CreatedAt: p.CreatedAt,
+		UpdatedAt: p.UpdatedAt,
 	})
 	if err != nil {
 		return 0, db.Error(err)
@@ -92,11 +100,13 @@ func (r Repository) CreateProduct(ctx context.Context, p product.Product) (int, 
 	return id, nil
 }
 
-func (r Repository) UpdateProduct(ctx context.Context, p product.Product) error {
+func (r Repository) UpdateProduct(ctx context.Context, p product.Produkt) error {
 	result, err := r.q.UpdateProduct(ctx, dbgen.UpdateProductParams{
-		Name:     p.Name,
-		Category: dbgen.Productcategory(p.Category),
-		ID:       p.ID,
+		Name:      p.Name,
+		Category:  dbgen.Productcategory(p.Kategorie),
+		Status:    dbgen.Entitystatus(p.Status),
+		UpdatedAt: p.UpdatedAt,
+		ID:        p.ID,
 	})
 	if err != nil {
 		return db.Error(err)

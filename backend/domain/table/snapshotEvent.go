@@ -33,7 +33,7 @@ type Snapshot struct {
 	CreatedAt              time.Time
 }
 
-func NewSnapshotEvent(userID, tischID int, saldo int, unbezahlt, ungeliefert []Position, gesamtZahlungen int) (e.Event, error) {
+func NewSnapshotEvent(userID int, userName string, tischID int, saldo int, unbezahlt, ungeliefert []Position, gesamtZahlungen int) (e.Event, error) {
 	data := snapshotV1Data{
 		SaldoCents:             saldo,
 		UnbezahltePositionen:   unbezahlt,
@@ -46,7 +46,7 @@ func NewSnapshotEvent(userID, tischID int, saldo int, unbezahlt, ungeliefert []P
 		return e.Event{}, fmt.Errorf("snapshot data validation failed: %v", issues)
 	}
 
-	return e.New(userID, string(EventTypeSnapshotV1), "tisch:"+strconv.Itoa(tischID), data)
+	return e.New(userID, userName, string(EventTypeSnapshotV1), "tisch:"+strconv.Itoa(tischID), data)
 }
 
 func buildSnapshotFromEvent(event e.Event) (Snapshot, error) {

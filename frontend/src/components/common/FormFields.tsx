@@ -8,7 +8,7 @@ import {
   type UseFormReturn,
 } from 'react-hook-form'
 
-import type { ProductCategory } from '@/admin/products/Product'
+import type { Kategorie } from '@/admin/products/Product'
 import { toUsername, UserRole } from '@/admin/users/User'
 import { Button } from '@/components/ui/button'
 import {
@@ -234,14 +234,14 @@ export function RoleField<AllFormFields extends FieldValues>({
               Administratoren können alle Funktionen nutzen.
             </FieldDescription>
           )}
-          {field.value === 'senior_service' && (
+          {field.value === 'serviceleitung' && (
             <FieldDescription>
               Serviceleitung kann bestellen, kassieren und stornieren.
             </FieldDescription>
           )}
           {field.value === 'service' && (
             <FieldDescription>
-              Service kann Bestellungen und Bezahlungen verwalten.
+              Servicekräfte können bestellen, liefern und kassieren.
             </FieldDescription>
           )}
           <Select
@@ -254,7 +254,7 @@ export function RoleField<AllFormFields extends FieldValues>({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="admin">Administrator</SelectItem>
-              <SelectItem value="senior_service">Serviceleitung</SelectItem>
+              <SelectItem value="serviceleitung">Serviceleitung</SelectItem>
               <SelectItem value="service">Service</SelectItem>
             </SelectContent>
           </Select>
@@ -346,20 +346,20 @@ export function PriceField<AllFormFields extends FieldValues>({
   form,
   withLabel,
   placeholder,
-}: FieldProps<{ priceCents: number } & AllFormFields>) {
+}: FieldProps<{ preisCents: number } & AllFormFields>) {
   const [value, setValue] = useState<string>(() =>
-    centsToPrice(form.getValues().priceCents),
+    centsToPrice(form.getValues().preisCents),
   )
   const [debounceTimeout, setDebounceTimeout] = useState<number | null>(null)
 
   return (
     <Controller
-      name={'priceCents' as Path<{ priceCents: number } & AllFormFields>}
+      name={'preisCents' as Path<{ preisCents: number } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
           {withLabel && (
-            <FieldLabel htmlFor="form-priceCents">Preis</FieldLabel>
+            <FieldLabel htmlFor="form-preisCents">Preis</FieldLabel>
           )}
           <div className="flex">
             <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-background text-muted-foreground text-sm">
@@ -367,7 +367,7 @@ export function PriceField<AllFormFields extends FieldValues>({
             </span>
             <Input
               {...field}
-              id="form-priceCents"
+              id="form-preisCents"
               className="border-l-0"
               type="text"
               aria-invalid={fieldState.invalid}
@@ -377,22 +377,22 @@ export function PriceField<AllFormFields extends FieldValues>({
               onChange={(e) => {
                 const cleanedValue = cleanInput(e.target.value)
                 setValue(cleanedValue)
-                const priceCents = priceToCents(cleanedValue)
-                field.onChange(priceCents)
+                const preisCents = priceToCents(cleanedValue)
+                field.onChange(preisCents)
 
                 //  Debounce the conversion to avoid cursor jumping
                 if (debounceTimeout) clearTimeout(debounceTimeout)
                 const newTimeout = setTimeout(() => {
-                  setValue(centsToPrice(priceCents))
+                  setValue(centsToPrice(preisCents))
                 }, 1000)
                 setDebounceTimeout(newTimeout)
               }}
               onBlur={(e) => {
                 console.log('onBlur triggered')
                 if (debounceTimeout) clearTimeout(debounceTimeout)
-                const priceCents = priceToCents(e.target.value)
-                setValue(centsToPrice(priceCents))
-                field.onChange(priceCents)
+                const preisCents = priceToCents(e.target.value)
+                setValue(centsToPrice(preisCents))
+                field.onChange(preisCents)
               }}
             />
           </div>
@@ -407,10 +407,10 @@ export function CategoryField<AllFormFields extends FieldValues>({
   form,
   withLabel,
   placeholder,
-}: FieldProps<{ category: ProductCategory } & AllFormFields>) {
+}: FieldProps<{ category: Kategorie } & AllFormFields>) {
   return (
     <Controller
-      name={'category' as Path<{ category: ProductCategory } & AllFormFields>}
+      name={'category' as Path<{ category: Kategorie } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">

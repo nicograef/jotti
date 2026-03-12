@@ -34,16 +34,16 @@ Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktual
 
 Die folgende Tabelle dokumentiert Abweichungen zwischen den aktuellen Code-Bezeichnungen und den durch die Ubiquitous Language definierten Soll-Bezeichnungen.
 
-### Handlungsbedarf (Refactoring geplant)
+### Handlungsbedarf (Backend behoben, Frontend-Rename ausstehend)
 
-| Begriff   | Ist (Code)   | Soll         | Priorität | Scope                                                                      |
-| --------- | ------------ | ------------ | --------- | -------------------------------------------------------------------------- |
-| Produkt   | `Product`    | `Produkt`    | Mittel    | Go-Struct, TS-Typ, JSON-Keys. API-Pfade bereits korrekt.                   |
-| Variante  | `Variant`    | `Variante`   | Mittel    | Go-Struct, TS-Typ, JSON-Keys. API-Pfade bereits korrekt.                   |
-| Kategorie | `Category`   | `Kategorie`  | Mittel    | Go-Typ + Konstanten, TS-Typ.                                               |
-| Preis     | `PriceCents` | `PreisCents` | Mittel    | Go-Feld + JSON-Key in `Variant`. Position ist bereits korrekt.             |
-| Kommentar | `Comment`    | `Kommentar`  | Mittel    | Go-Feld, JSON-Key, TS-Feld in Bestellung, Zahlung, Lieferung, Stornierung. |
-| Menge     | `Quantity`   | `Menge`      | Mittel    | Go-Feld, JSON-Key, TS-Feld in Position.                                    |
+| Begriff   | Ist (Code)   | Soll         | Status                  | Scope                                            |
+| --------- | ------------ | ------------ | ----------------------- | ------------------------------------------------ |
+| Produkt   | `Product`    | `Produkt`    | ✅ Backend, ⏳ Frontend | Go-Struct, JSON-Keys behoben. TS-Typ noch offen. |
+| Variante  | `Variant`    | `Variante`   | ✅ Backend, ⏳ Frontend | Go-Struct, JSON-Keys behoben. TS-Typ noch offen. |
+| Kategorie | `Category`   | `Kategorie`  | ✅ Backend, ⏳ Frontend | Go-Typ + Konstanten behoben. TS-Typ noch offen.  |
+| Preis     | `PriceCents` | `PreisCents` | ✅ Backend, ⏳ Frontend | Go-Feld + JSON-Key behoben. TS-Feld noch offen.  |
+| Kommentar | `Comment`    | `Kommentar`  | ✅ Backend, ⏳ Frontend | Go-Feld, JSON-Key behoben. TS-Feld noch offen.   |
+| Menge     | `Quantity`   | `Menge`      | ✅ Backend, ⏳ Frontend | Go-Feld, JSON-Key behoben. TS-Feld noch offen.   |
 
 > **Hinweis:** Alle Änderungen sind Breaking Changes für die API (JSON-Keys ändern sich). Frontend und Backend müssen koordiniert umgestellt werden.
 
@@ -79,69 +79,69 @@ Zentrales Aggregat im Kassenbetrieb. Trägt einen Event Stream, aus dem sich der
 
 Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufgibt. Erzeugt ein `BestellungAufgegeben`-Event.
 
-| Schicht             | Repräsentation                                                                                                | Datei                              |
-| ------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| Go-Struct           | `Bestellung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `GesamtPreisCents`, `Comment`, `AufgegebenAm`) | `domain/table/bestellung.go`       |
-| Go-Event-Typ        | `EventTypeBestellungAufgegebenV1` = `"tisch.bestellung-aufgegeben:v1"`                                        | `domain/table/events.go`           |
-| Go-Command          | `BestellungAufgeben()`                                                                                        | `api/table/application/command.go` |
-| TypeScript-Typ      | `Bestellung`, `BestellungAufgeben`                                                                            | `src/service/table/Bestellung.ts`  |
-| API-Pfad            | `/service/bestellung-aufgeben`                                                                                | `api/service.go`                   |
-| Frontend-Komponente | `<Bestellung>`, `<BestellungDrawer>`                                                                          | `src/service/components/table/`    |
-| UI-Labels           | „Bestellen" (Tab), „Bestellung aufgeben" (Button), „Bestellung wurde aufgegeben." (Toast)                     |                                    |
+| Schicht             | Repräsentation                                                                                                  | Datei                              |
+| ------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Go-Struct           | `Bestellung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `GesamtPreisCents`, `Kommentar`, `AufgegebenAm`) | `domain/table/bestellung.go`       |
+| Go-Event-Typ        | `EventTypeBestellungAufgegebenV1` = `"tisch.bestellung-aufgegeben:v1"`                                          | `domain/table/events.go`           |
+| Go-Command          | `BestellungAufgeben()`                                                                                          | `api/table/application/command.go` |
+| TypeScript-Typ      | `Bestellung`, `BestellungAufgeben`                                                                              | `src/service/table/Bestellung.ts`  |
+| API-Pfad            | `/service/bestellung-aufgeben`                                                                                  | `api/service.go`                   |
+| Frontend-Komponente | `<Bestellung>`, `<BestellungDrawer>`                                                                            | `src/service/components/table/`    |
+| UI-Labels           | „Bestellen" (Tab), „Bestellung aufgeben" (Button), „Bestellung wurde aufgegeben." (Toast)                       |                                    |
 
 ### Position
 
 Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einzelpreis.
 
-| Schicht        | Repräsentation                                              | Datei                             |
-| -------------- | ----------------------------------------------------------- | --------------------------------- |
-| Go-Struct      | `Position` (Felder: `ID`, `Name`, `PreisCents`, `Quantity`) | `domain/table/bestellung.go`      |
-| JSON-Keys      | `"id"`, `"name"`, `"preisCents"`, `"quantity"`              | `domain/table/bestellung.go`      |
-| TypeScript-Typ | `Position`                                                  | `src/service/table/Bestellung.ts` |
+| Schicht        | Repräsentation                                                                                                      | Datei                             |
+| -------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Go-Struct      | `Position` (Felder: `PositionID`, `VarianteID`, `ProduktName`, `VarianteName`, `Kategorie`, `Einzelpreis`, `Menge`) | `domain/table/bestellung.go`      |
+| JSON-Keys      | `"positionId"`, `"varianteId"`, `"produktName"`, `"varianteName"`, `"kategorie"`, `"einzelpreis"`, `"menge"`        | `domain/table/bestellung.go`      |
+| TypeScript-Typ | `Position`                                                                                                          | `src/service/table/Bestellung.ts` |
 
-> **Soll-Hinweis:** Das Feld `Quantity` ist englisch — soll langfristig `Menge` heißen (Go-Feld, JSON-Key `"menge"`, TS-Feld). Das Feld `PreisCents` ist bereits korrekt deutsch.
+> **Hinweis:** Die Position wurde komplett redesigned (Fat Events). Alle Felder nutzen deutsche Ubiquitous Language.
 
 ### Lieferung
 
 Die Bestätigung, dass bestellte Positionen dem Gast übergeben wurden. Erzeugt ein `ProdukteGeliefert`-Event.
 
-| Schicht             | Repräsentation                                                                          | Datei                                        |
-| ------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Go-Struct           | `Lieferung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `Comment`, `GeliefertAm`) | `domain/table/lieferung.go`                  |
-| Go-Event-Typ        | `EventTypeProdukteGeliefertV1` = `"tisch.produkte-geliefert:v1"`                        | `domain/table/events.go`                     |
-| Go-Command          | `ProdukteLiefern()`                                                                     | `api/table/application/command.go`           |
-| TypeScript-Typ      | `Lieferung`, `ProdukteLiefern`                                                          | `src/service/table/Lieferung.ts`             |
-| API-Pfad            | `/service/produkte-liefern`                                                             | `api/service.go`                             |
-| Frontend-Komponente | `<Lieferung>`                                                                           | `src/service/components/table/Lieferung.tsx` |
-| UI-Labels           | „Produkte liefern" (Button), „Auslieferung" (Historie)                                  |                                              |
+| Schicht             | Repräsentation                                                                            | Datei                                        |
+| ------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Go-Struct           | `Lieferung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `Kommentar`, `GeliefertAm`) | `domain/table/lieferung.go`                  |
+| Go-Event-Typ        | `EventTypeProdukteGeliefertV1` = `"tisch.produkte-geliefert:v1"`                          | `domain/table/events.go`                     |
+| Go-Command          | `ProdukteLiefern()`                                                                       | `api/table/application/command.go`           |
+| TypeScript-Typ      | `Lieferung`, `ProdukteLiefern`                                                            | `src/service/table/Lieferung.ts`             |
+| API-Pfad            | `/service/produkte-liefern`                                                               | `api/service.go`                             |
+| Frontend-Komponente | `<Lieferung>`                                                                             | `src/service/components/table/Lieferung.tsx` |
+| UI-Labels           | „Produkte liefern" (Button), „Auslieferung" (Historie)                                    |                                              |
 
 ### Zahlung
 
 Die Registrierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen (Teilzahlung). Erzeugt ein `ZahlungRegistriert`-Event.
 
-| Schicht             | Repräsentation                                                                                                | Datei                              |
-| ------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| Go-Struct           | `Zahlung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `GesamtZahlungCents`, `Comment`, `RegistriertAm`) | `domain/table/zahlung.go`          |
-| Go-Event-Typ        | `EventTypeZahlungRegistriertV1` = `"tisch.zahlung-registriert:v1"`                                            | `domain/table/events.go`           |
-| Go-Command          | `ZahlungRegistrieren()`                                                                                       | `api/table/application/command.go` |
-| TypeScript-Typ      | `Zahlung`, `ZahlungRegistrieren`                                                                              | `src/service/table/Zahlung.ts`     |
-| API-Pfad            | `/service/zahlung-registrieren`                                                                               | `api/service.go`                   |
-| Frontend-Komponente | `<ZahlungDrawer>`                                                                                             | `src/service/components/table/`    |
-| UI-Labels           | „Bezahlen" (Tab), „Zahlung registrieren" (Button), „Zahlung erfolgreich." (Toast)                             |                                    |
+| Schicht             | Repräsentation                                                                                                  | Datei                              |
+| ------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Go-Struct           | `Zahlung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `GesamtZahlungCents`, `Kommentar`, `RegistriertAm`) | `domain/table/zahlung.go`          |
+| Go-Event-Typ        | `EventTypeZahlungRegistriertV1` = `"tisch.zahlung-registriert:v1"`                                              | `domain/table/events.go`           |
+| Go-Command          | `ZahlungRegistrieren()`                                                                                         | `api/table/application/command.go` |
+| TypeScript-Typ      | `Zahlung`, `ZahlungRegistrieren`                                                                                | `src/service/table/Zahlung.ts`     |
+| API-Pfad            | `/service/zahlung-registrieren`                                                                                 | `api/service.go`                   |
+| Frontend-Komponente | `<ZahlungDrawer>`                                                                                               | `src/service/components/table/`    |
+| UI-Labels           | „Bezahlen" (Tab), „Zahlung registrieren" (Button), „Zahlung erfolgreich." (Toast)                               |                                    |
 
 ### Stornierung
 
 Die nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. Erzeugt ein `ProdukteStorniert`-Event.
 
-| Schicht             | Repräsentation                                                                                                      | Datei                                                |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Go-Struct           | `Stornierung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `GesamtStornierungCents`, `Comment`, `StorniertAm`) | `domain/table/stornierung.go`                        |
-| Go-Event-Typ        | `EventTypeProdukteStorniertV1` = `"tisch.produkte-storniert:v1"`                                                    | `domain/table/events.go`                             |
-| Go-Command          | `ProdukteStornieren()`                                                                                              | `api/table/application/command.go`                   |
-| TypeScript-Typ      | `Stornierung`, `ProdukteStornieren`                                                                                 | `src/service/table/Stornierung.ts`                   |
-| API-Pfad            | `/senior_service/produkte-stornieren`                                                                               | `api/senior_service.go`                              |
-| Frontend-Komponente | `<StornierungDrawer>`                                                                                               | `src/service/components/table/StornierungDrawer.tsx` |
-| UI-Labels           | „Stornierung" (Drawer-Titel), „Produkte stornieren" (Button), „Stornierung erfolgreich." (Toast)                    |                                                      |
+| Schicht             | Repräsentation                                                                                                        | Datei                                                |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Go-Struct           | `Stornierung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `GesamtStornierungCents`, `Kommentar`, `StorniertAm`) | `domain/table/stornierung.go`                        |
+| Go-Event-Typ        | `EventTypeProdukteStorniertV1` = `"tisch.produkte-storniert:v1"`                                                      | `domain/table/events.go`                             |
+| Go-Command          | `ProdukteStornieren()`                                                                                                | `api/table/application/command.go`                   |
+| TypeScript-Typ      | `Stornierung`, `ProdukteStornieren`                                                                                   | `src/service/table/Stornierung.ts`                   |
+| API-Pfad            | `/serviceleitung/produkte-stornieren`                                                                                 | `api/serviceleitung.go`                              |
+| Frontend-Komponente | `<StornierungDrawer>`                                                                                                 | `src/service/components/table/StornierungDrawer.tsx` |
+| UI-Labels           | „Stornierung" (Drawer-Titel), „Produkte stornieren" (Button), „Stornierung erfolgreich." (Toast)                      |                                                      |
 
 ### Saldo
 
@@ -173,25 +173,25 @@ Der vollständige, unveränderliche Event Stream eines Tisches in chronologische
 
 Optionale Freitextnotiz zu einer Bestellung, Zahlung, Lieferung oder Stornierung (max. 100 Zeichen).
 
-| Schicht        | Repräsentation | Datei                                                                                                        |
-| -------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
-| Go-Feld (Ist)  | `Comment`      | `domain/table/bestellung.go`, `zahlung.go`, `lieferung.go`, `stornierung.go`, `bestellungAufgegebenEvent.go` |
-| JSON-Key (Ist) | `"comment"`    | (alle oben genannten Dateien)                                                                                |
-| TS-Feld (Ist)  | `comment`      | `src/service/table/Bestellung.ts`, `Zahlung.ts`, `Lieferung.ts`, `Stornierung.ts`                            |
+| Schicht       | Repräsentation | Datei                                                                                                        |
+| ------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
+| Go-Feld       | `Kommentar`    | `domain/table/bestellung.go`, `zahlung.go`, `lieferung.go`, `stornierung.go`, `bestellungAufgegebenEvent.go` |
+| JSON-Key      | `"kommentar"`  | (alle oben genannten Dateien)                                                                                |
+| TS-Feld (Ist) | `comment`      | `src/service/table/Bestellung.ts`, `Zahlung.ts`, `Lieferung.ts`, `Stornierung.ts`                            |
 
-> **Soll-Hinweis:** Im Code aktuell `Comment` (englisch) — soll langfristig `Kommentar` heißen (Go-Feld, JSON-Key `"kommentar"`, TS-Feld). Betrifft: `bestellung.go`, `zahlung.go`, `lieferung.go`, `stornierung.go`, `bestellungAufgegebenEvent.go` + alle TS-Typen.
+> **Hinweis:** Backend-Rename abgeschlossen (`Comment` → `Kommentar`). Frontend-Rename (`comment` → `kommentar`) ausstehend.
 
 ### Menge
 
 Anzahl einer Produktvariante innerhalb einer Position.
 
-| Schicht        | Repräsentation | Datei                             |
-| -------------- | -------------- | --------------------------------- |
-| Go-Feld (Ist)  | `Quantity`     | `domain/table/bestellung.go`      |
-| JSON-Key (Ist) | `"quantity"`   | `domain/table/bestellung.go`      |
-| TS-Feld (Ist)  | `quantity`     | `src/service/table/Bestellung.ts` |
+| Schicht       | Repräsentation | Datei                             |
+| ------------- | -------------- | --------------------------------- |
+| Go-Feld       | `Menge`        | `domain/table/bestellung.go`      |
+| JSON-Key      | `"menge"`      | `domain/table/bestellung.go`      |
+| TS-Feld (Ist) | `quantity`     | `src/service/table/Bestellung.ts` |
 
-> **Soll-Hinweis:** Im Code aktuell `Quantity` (englisch) — soll langfristig `Menge` heißen (Go-Feld, JSON-Key `"menge"`, TS-Feld). Betrifft: `bestellung.go` Position-Struct + TS Position-Typ.
+> **Hinweis:** Backend-Rename abgeschlossen (`Quantity` → `Menge`). Frontend-Rename (`quantity` → `menge`) ausstehend.
 
 ## Stammdaten (Supporting Sub-Domain)
 
@@ -199,14 +199,14 @@ Anzahl einer Produktvariante innerhalb einer Position.
 
 Artikel im Produktkatalog. Gehört zu genau einer Kategorie und enthält eine oder mehrere Varianten mit je eigenem Preis.
 
-| Schicht              | Repräsentation                                                        | Datei                                  |
-| -------------------- | --------------------------------------------------------------------- | -------------------------------------- |
-| Go-Struct (Ist)      | `Product` (Felder: `ID`, `Name`, `Category`, `Variants`, `CreatedAt`) | `domain/product/product.go`            |
-| DB-Tabelle           | `products`                                                            | `migrations/01_initial.up.sql`         |
-| TypeScript-Typ (Ist) | `Product`                                                             | `src/admin/products/ProductBackend.ts` |
-| API-Pfade            | `/create-produkt`, `/update-produkt`, `/get-all-produkte`             | `api/admin.go`                         |
+| Schicht              | Repräsentation                                                                                | Datei                                  |
+| -------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Go-Struct            | `Produkt` (Felder: `ID`, `Name`, `Kategorie`, `Status`, `Variants`, `CreatedAt`, `UpdatedAt`) | `domain/product/product.go`            |
+| DB-Tabelle           | `products`                                                                                    | `migrations/01_initial.up.sql`         |
+| TypeScript-Typ (Ist) | `Product`                                                                                     | `src/admin/products/ProductBackend.ts` |
+| API-Pfade            | `/create-produkt`, `/update-produkt`, `/get-all-produkte`                                     | `api/admin.go`                         |
 
-> **Soll-Hinweis:** Go-Struct und TS-Typ heißen aktuell `Product` (englisch). Da Produkte zur Domäne gehören, sollen sie langfristig `Produkt` heißen. Die API-Pfade verwenden bereits korrekt die deutsche Form.
+> **Hinweis:** Backend-Rename abgeschlossen (`Product` → `Produkt`). Frontend-Rename (`Product` → `Produkt`) ausstehend.
 
 ### Variante
 
@@ -214,24 +214,24 @@ Konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. P
 
 | Schicht              | Repräsentation                                                                       | Datei                                  |
 | -------------------- | ------------------------------------------------------------------------------------ | -------------------------------------- |
-| Go-Struct (Ist)      | `Variant` (Felder: `ID`, `Name`, `PriceCents`, `Status`, `CreatedAt`)                | `domain/product/variant.go`            |
+| Go-Struct            | `Variante` (Felder: `ID`, `Name`, `PreisCents`, `Status`, `CreatedAt`, `UpdatedAt`)  | `domain/product/variant.go`            |
 | DB-Tabelle           | `product_variants`                                                                   | `migrations/01_initial.up.sql`         |
 | TypeScript-Typ (Ist) | `Variant`                                                                            | `src/admin/products/ProductBackend.ts` |
 | API-Pfade            | `/create-variante`, `/update-variante`, `/activate-variante`, `/deactivate-variante` | `api/admin.go`                         |
 
-> **Soll-Hinweis:** Go-Struct und TS-Typ heißen aktuell `Variant` (englisch) — sollen langfristig `Variante` heißen. Feld `PriceCents` soll `PreisCents` heißen (Konsistenz mit `Position.PreisCents` im Kassenbetrieb).
+> **Hinweis:** Backend-Rename abgeschlossen (`Variant` → `Variante`, `PriceCents` → `PreisCents`). Frontend-Rename ausstehend.
 
 ### Kategorie
 
 Gruppierung von Produkten. Aktuell drei feste Kategorien: Essen, Getränke, Sonstiges.
 
-| Schicht         | Repräsentation                                                                | Datei                          |
-| --------------- | ----------------------------------------------------------------------------- | ------------------------------ |
-| Go-Typ (Ist)    | `Category` mit Konstanten `FoodCategory`, `BeverageCategory`, `OtherCategory` | `domain/product/product.go`    |
-| DB-Enum         | `ProductCategory` (`'food'`, `'beverage'`, `'other'`)                         | `migrations/01_initial.up.sql` |
-| Frontend-Labels | `'food'` → „Essen", `'beverage'` → „Getränke", `'other'` → „Sonstiges"        | `src/service/table/Product.ts` |
+| Schicht         | Repräsentation                                                                    | Datei                          |
+| --------------- | --------------------------------------------------------------------------------- | ------------------------------ |
+| Go-Typ          | `Kategorie` mit Konstanten `FoodKategorie`, `BeverageKategorie`, `OtherKategorie` | `domain/product/product.go`    |
+| DB-Enum         | `ProductCategory` (`'food'`, `'beverage'`, `'other'`)                             | `migrations/01_initial.up.sql` |
+| Frontend-Labels | `'food'` → „Essen“, `'beverage'` → „Getränke“, `'other'` → „Sonstiges“            | `src/service/table/Product.ts` |
 
-> **Soll-Hinweis:** Go-Typ heißt aktuell `Category` (englisch) — soll langfristig `Kategorie` heißen. Konstanten sollen `EssenKategorie`, `GetränkeKategorie`, `SonstigesKategorie` heißen.
+> **Hinweis:** Backend-Rename abgeschlossen (`Category` → `Kategorie`). Frontend-Rename ausstehend.
 
 ### Preis
 
@@ -239,7 +239,7 @@ Geldbeträge werden ausnahmslos als ganzzahlige Cent-Werte gespeichert — niema
 
 **Konvention:** Alle Preis-Felder tragen das Suffix `*Cents` (z. B. `PreisCents`, `GesamtPreisCents`, `SaldoCents`, `GesamtZahlungCents`, `GesamtStornierungCents`).
 
-> **Hinweis:** Im Kassenbetrieb wird durchgängig `PreisCents` (deutsch) verwendet. Bei Varianten heißt das Feld aktuell `PriceCents` (englisch) — diese Inkonsistenz ist in der Abweichungstabelle dokumentiert.
+> **Hinweis:** Im Kassenbetrieb und bei Varianten wird durchgängig `PreisCents` (deutsch) verwendet.
 
 ### Soft-Delete
 
@@ -278,14 +278,14 @@ Berechtigungsstufe eines Benutzers. Bestimmt, welche Aktionen im System verfügb
 | Rolle          | Code-Wert        | Berechtigungen                                        |
 | -------------- | ---------------- | ----------------------------------------------------- |
 | Admin          | `admin`          | Alles: Produkte, Tische, Benutzer verwalten + Service |
-| Serviceleitung | `senior_service` | Service-Funktionen + Stornierung                      |
+| Serviceleitung | `serviceleitung` | Service-Funktionen + Stornierung                      |
 | Servicekraft   | `service`        | Bestellen, Liefern, Kassieren                         |
 
-| Schicht  | Repräsentation                                             | Datei                          |
-| -------- | ---------------------------------------------------------- | ------------------------------ |
-| Go-Typ   | `Role` mit `AdminRole`, `SeniorServiceRole`, `ServiceRole` | `domain/user/user.go`          |
-| DB-Enum  | `UserRole` (`'admin'`, `'senior_service'`, `'service'`)    | `migrations/01_initial.up.sql` |
-| JWT-Feld | `role`                                                     | `src/lib/Auth.ts`              |
+| Schicht  | Repräsentation                                              | Datei                          |
+| -------- | ----------------------------------------------------------- | ------------------------------ |
+| Go-Typ   | `Role` mit `AdminRole`, `ServiceleitungRole`, `ServiceRole` | `domain/user/user.go`          |
+| DB-Enum  | `UserRole` (`'admin'`, `'serviceleitung'`, `'service'`)     | `migrations/01_initial.up.sql` |
+| JWT-Feld | `role`                                                      | `src/lib/Auth.ts`              |
 
 > **Hinweis:** Englisch im Code ist korrekt (Generic Sub-Domain).
 
@@ -339,13 +339,6 @@ Bring Your Own Device — Servicekräfte nutzen ihre eigenen Smartphones. Das Sy
 ## Geplant (nicht implementiert)
 
 Die folgenden Begriffe sind in der Ubiquitous Language definiert, aber noch nicht im Code implementiert.
-
-### Kassenbetrieb
-
-| Begriff         | Bedeutung                                                                                                                       |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Bezeichnung** | Optionaler Name einer Bestellung (z. B. „Familie Müller"), um Gruppen am selben Tisch zu unterscheiden. Geplant: K-07.          |
-| **Freibon**     | Sonderposition außerhalb des Produktkatalogs — mit freier Bezeichnung und Preiseingabe. Erzeugt ein `FreibonAusgestellt`-Event. |
 
 ### Ausgabe (Supporting Sub-Domain)
 

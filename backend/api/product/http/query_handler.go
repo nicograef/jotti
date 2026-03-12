@@ -9,8 +9,8 @@ import (
 )
 
 type query interface {
-	GetAllProducts(ctx context.Context) ([]product.Product, error)
-	GetActiveProducts(ctx context.Context) ([]product.Product, error)
+	GetAllProducts(ctx context.Context) ([]product.Produkt, error)
+	GetActiveProducts(ctx context.Context) ([]product.Produkt, error)
 }
 
 type QueryHandler struct {
@@ -18,7 +18,7 @@ type QueryHandler struct {
 }
 
 type getAllProductsResponse struct {
-	Produkte []product.Product `json:"produkte"`
+	Produkte []product.Produkt `json:"produkte"`
 }
 
 func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
@@ -35,7 +35,7 @@ func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
 }
 
 type getActiveProductsResponse struct {
-	Produkte []product.Product `json:"produkte"`
+	Produkte []product.Produkt `json:"produkte"`
 }
 
 func (h *QueryHandler) GetActiveProductsHandler() http.HandlerFunc {

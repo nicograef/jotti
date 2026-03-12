@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
 
-import { type Product, ProductSchema } from './Product'
+import { type Produkt, ProduktSchema } from './Product'
 
 export class ProductBackend {
   private readonly backend: BackendClient
@@ -11,11 +11,11 @@ export class ProductBackend {
     this.backend = backend
   }
 
-  public async getActiveProducts(): Promise<Product[]> {
+  public async getActiveProducts(): Promise<Produkt[]> {
     const { produkte } = await this.backend.post(
       'service/get-aktive-produkte',
       {},
-      z.object({ produkte: z.array(ProductSchema) }),
+      z.object({ produkte: z.array(ProduktSchema) }),
     )
     return produkte
   }

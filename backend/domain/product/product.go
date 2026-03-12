@@ -7,24 +7,26 @@ import (
 	z "github.com/Oudwins/zog"
 )
 
-// Category represents the category of a product.
-type Category string
+// Kategorie represents the category of a product.
+type Kategorie string
 
 const (
-	// FoodCategory indicates the product belongs to the food category.
-	FoodCategory Category = "food"
-	// BeverageCategory indicates the product belongs to the beverage category.
-	BeverageCategory Category = "beverage"
-	// OtherCategory indicates the product belongs to the other category.
-	OtherCategory Category = "other"
+	// FoodKategorie indicates the product belongs to the food category.
+	FoodKategorie Kategorie = "food"
+	// BeverageKategorie indicates the product belongs to the beverage category.
+	BeverageKategorie Kategorie = "beverage"
+	// OtherKategorie indicates the product belongs to the other category.
+	OtherKategorie Kategorie = "other"
 )
 
-type Product struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Category  Category  `json:"category"`
-	Variants  []Variant `json:"variants"`
-	CreatedAt time.Time `json:"createdAt"`
+type Produkt struct {
+	ID        int        `json:"id"`
+	Name      string     `json:"name"`
+	Kategorie Kategorie  `json:"kategorie"`
+	Status    Status     `json:"status"`
+	Variants  []Variante `json:"variants"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt"`
 }
 
 // IDSchema defines the schema for a product ID.
@@ -33,22 +35,24 @@ var IDSchema = z.Int().GTE(1, z.Message("Invalid product ID"))
 // NameSchema defines the schema for a product's name.
 var NameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(100, z.Message("Name too long"))
 
-// CategorySchema defines the schema for a product category.
-var CategorySchema = z.StringLike[Category]().OneOf(
-	[]Category{FoodCategory, BeverageCategory, OtherCategory},
+// KategorieSchema defines the schema for a product category.
+var KategorieSchema = z.StringLike[Kategorie]().OneOf(
+	[]Kategorie{FoodKategorie, BeverageKategorie, OtherKategorie},
 	z.Message("Invalid category"),
 )
 
-var ProductSchema = z.Struct(z.Shape{
+var ProduktSchema = z.Struct(z.Shape{
 	"ID":        IDSchema.Required(),
 	"Name":      NameSchema.Required(),
-	"Category":  CategorySchema.Required(),
-	"Variants":  z.Slice(VariantSchema).Required(),
+	"Kategorie": KategorieSchema.Required(),
+	"Status":    StatusSchema.Required(),
+	"Variants":  z.Slice(VarianteSchema).Required(),
 	"CreatedAt": z.Time().Required(),
+	"UpdatedAt": z.Time().Required(),
 })
 
-func (p Product) Validate() error {
-	if errs := ProductSchema.Validate(&p); errs != nil {
+func (p Produkt) Validate() error {
+	if errs := ProduktSchema.Validate(&p); errs != nil {
 		issues := z.Issues.FlattenAndCollect(errs)
 		return fmt.Errorf("invalid product: %v", issues)
 	}
@@ -57,36 +61,54 @@ func (p Product) Validate() error {
 
 // NewProduct creates a new Product instance after validating the input parameters.
 // The new Product does not have an ID assigned; it is expected to be set by the persistence layer.
-func NewProduct(name string, category Category) (Product, error) {
+func NewProdukt(name string, kategorie Kategorie) (Produkt, error) {
 	if issue := NameSchema.Validate(&name); issue != nil {
-		return Product{}, fmt.Errorf("invalid name")
+		return Produkt{}, fmt.Errorf("invalid name")
 	}
 
-	if issue := CategorySchema.Validate(&category); issue != nil {
-		return Product{}, fmt.Errorf("invalid category")
+	if issue := KategorieSchema.Validate(&kategorie); issue != nil {
+		return Produkt{}, fmt.Errorf("invalid category")
 	}
 
-	product := Product{
+	produkt := Produkt{
 		Name:      name,
-		Category:  category,
-		Variants:  []Variant{},
+		Kategorie: kategorie,
+		Status:    ActiveStatus,
+		Variants:  []Variante{},
 		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
 	}
 
-	return product, nil
+	return produkt, nil
 }
 
-func (p *Product) UpdateDetails(name string, category Category) error {
+func (p *Produkt) UpdateDetails(name string, kategorie Kategorie) error {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return fmt.Errorf("invalid name")
 	}
 
-	if issue := CategorySchema.Validate(&category); issue != nil {
+	if issue := KategorieSchema.Validate(&kategorie); issue != nil {
 		return fmt.Errorf("invalid category")
 	}
 
 	p.Name = name
-	p.Category = category
+	p.Kategorie = kategorie
+	p.UpdatedAt = time.Now().UTC()
 
 	return nil
+}
+
+func (p *Produkt) Activate() {
+	p.Status = ActiveStatus
+	p.UpdatedAt = time.Now().UTC()
+}
+
+func (p *Produkt) Deactivate() {
+	p.Status = InactiveStatus
+	p.UpdatedAt = time.Now().UTC()
+}
+
+func (p *Produkt) Delete() {
+	p.Status = DeletedStatus
+	p.UpdatedAt = time.Now().UTC()
 }

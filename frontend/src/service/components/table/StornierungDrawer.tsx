@@ -47,7 +47,7 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
       await props.backend.produkteStornieren({
         tischId: props.tisch.id,
         positionen: positionenToCancel,
-        comment: comment,
+        kommentar: comment,
       })
       props.produkteStorniert()
       setOpen(false)

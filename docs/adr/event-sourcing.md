@@ -36,22 +36,22 @@ Tisch-Operationen werden als immutable Events in einer `events`-Tabelle gespeich
 type Event struct {
     ID      int              `json:"id"`
     UserID  int              `json:"userId"`
-    Type    string           `json:"type"`      // z.B. "table.order-placed:v1"
+    Type    string           `json:"type"`      // z.B. "tisch.bestellung-aufgegeben:v1"
     Time    time.Time        `json:"time"`
-    Subject string           `json:"subject"`   // z.B. "table:42"
+    Subject string           `json:"subject"`   // z.B. "tisch:42"
     Data    json.RawMessage  `json:"data"`
 }
 ```
 
 ### Event-Typen
 
-| Event-Typ                     | Beschreibung          |
-| ----------------------------- | --------------------- |
-| `table.order-placed:v1`       | Bestellung aufgegeben |
-| `table.payment-registered:v1` | Zahlung registriert   |
-| `table.variants-canceled:v1`  | Positionen storniert  |
-| `table.variants-delivered:v1` | Positionen geliefert  |
-| `table.snapshot:v1`           | Zustandssnapshot      |
+| Event-Typ                        | Beschreibung          |
+| -------------------------------- | --------------------- |
+| `tisch.bestellung-aufgegeben:v1` | Bestellung aufgegeben |
+| `tisch.zahlung-registriert:v1`   | Zahlung registriert   |
+| `tisch.produkte-storniert:v1`    | Positionen storniert  |
+| `tisch.produkte-geliefert:v1`    | Positionen geliefert  |
+| `tisch.snapshot:v1`              | Zustandssnapshot      |
 
 ### Append-Only-Garantie
 
@@ -60,9 +60,11 @@ type Event struct {
 
 ### Snapshots
 
-Snapshots sind selbst Events (`table.snapshot:v1`) mit berechnetem Zustand. `ReadEventsWithSnapshot()` lädt den letzten Snapshot + nachfolgende Events in einer SQL-Abfrage.
+Snapshots sind selbst Events (`tisch.snapshot:v1`) mit berechnetem Zustand. `ReadEventsWithSnapshot()` lädt den letzten Snapshot + nachfolgende Events in einer SQL-Abfrage.
+
+Diese Snapshot-Implementierung als Event ist eine bewusste Vereinfachung (vgl. [Handbuch §3.4](../design/handbuch.md#34-event-replay-und-snapshots)). Das [ADR: CQRS](cqrs.md) plant die Ablösung durch Lazy Projection, bei der Snapshots automatisch als materialisierte Sicht verwaltet werden.
 
 ### CQRS
 
-- **Commands** erstellen Events: `PlaceTableOrder`, `RegisterTablePayment`, `CancelTableVariants`, `DeliverTableVariants`, `CreateTableSnapshot`
-- **Queries** rekonstruieren Zustand: `GetTableBalance`, `GetTableHistory`, `GetTableUnpaidVariants`, `GetTableUndeliveredVariants`, `GetTableTotalPayments`
+- **Commands** erstellen Events: `BestellungAufgeben`, `ZahlungRegistrieren`, `ProdukteStornieren`, `ProdukteLiefern`, `TischSnapshotErstellen`
+- **Queries** rekonstruieren Zustand: `GetTischSaldo`, `GetTischHistorie`, `GetTischUnbezahlt`, `GetTischUngeliefert`, `GetGesamtZahlungenFromEvents`

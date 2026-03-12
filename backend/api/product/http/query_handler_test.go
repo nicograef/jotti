@@ -16,25 +16,25 @@ type mockQuery struct {
 	err error
 }
 
-func (m *mockQuery) GetAllProducts(ctx context.Context) ([]product.Product, error) {
-	return []product.Product{{
-		ID:       1,
-		Name:     "French Fries",
-		Category: product.FoodCategory,
-		Variants: []product.Variant{
-			{ID: 1, Name: "Regular", PriceCents: 499, Status: product.ActiveStatus},
-			{ID: 2, Name: "Large", PriceCents: 699, Status: product.ActiveStatus},
+func (m *mockQuery) GetAllProducts(ctx context.Context) ([]product.Produkt, error) {
+	return []product.Produkt{{
+		ID:        1,
+		Name:      "French Fries",
+		Kategorie: product.FoodKategorie,
+		Variants: []product.Variante{
+			{ID: 1, Name: "Regular", PreisCents: 499, Status: product.ActiveStatus},
+			{ID: 2, Name: "Large", PreisCents: 699, Status: product.ActiveStatus},
 		},
 	}}, m.err
 }
 
-func (m *mockQuery) GetActiveProducts(ctx context.Context) ([]product.Product, error) {
-	return []product.Product{{
-		ID:       1,
-		Name:     "French Fries",
-		Category: product.FoodCategory,
-		Variants: []product.Variant{
-			{ID: 1, Name: "Regular", PriceCents: 499, Status: product.ActiveStatus},
+func (m *mockQuery) GetActiveProducts(ctx context.Context) ([]product.Produkt, error) {
+	return []product.Produkt{{
+		ID:        1,
+		Name:      "French Fries",
+		Kategorie: product.FoodKategorie,
+		Variants: []product.Variante{
+			{ID: 1, Name: "Regular", PreisCents: 499, Status: product.ActiveStatus},
 		},
 	}}, m.err
 }

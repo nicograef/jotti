@@ -22,25 +22,25 @@ import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 import { NewVariantDialog } from './NewVariantDialog'
 import {
-  type Product,
-  ProductCategory,
-  type Variant,
-  VariantStatus,
+  Kategorie,
+  type Produkt,
+  type Variante,
+  VarianteStatus,
 } from './Product'
 import type { ProductBackend } from './ProductBackend'
 import { VariantItem } from './VariantItem'
 
 interface ProductItemProps {
   loading: boolean
-  product: Product
+  product: Produkt
   backend: Pick<
     ProductBackend,
     'activateVariant' | 'deactivateVariant' | 'createVariant' | 'updateVariant'
   >
   onEdit: (productId: number) => void
-  onVariantCreated: (variant: Variant) => void
-  onVariantUpdated: (variant: Variant) => void
-  onVariantStatusChange: (variantId: number, status: VariantStatus) => void
+  onVariantCreated: (variant: Variante) => void
+  onVariantUpdated: (variant: Variante) => void
+  onVariantStatusChange: (variantId: number, status: VarianteStatus) => void
 }
 
 export function ProductItem(props: ProductItemProps) {
@@ -48,14 +48,14 @@ export function ProductItem(props: ProductItemProps) {
   const [variantLoading, setVariantLoading] = useState(false)
 
   const activeVariantsCount = props.product.variants.filter(
-    (v) => v.status === VariantStatus.ACTIVE,
+    (v) => v.status === VarianteStatus.ACTIVE,
   ).length
 
   const handleActivateVariant = async (variantId: number) => {
     setVariantLoading(true)
     try {
       await props.backend.activateVariant(variantId)
-      props.onVariantStatusChange(variantId, VariantStatus.ACTIVE)
+      props.onVariantStatusChange(variantId, VarianteStatus.ACTIVE)
     } catch (error) {
       console.error('Error activating variant:', error)
     }
@@ -66,7 +66,7 @@ export function ProductItem(props: ProductItemProps) {
     setVariantLoading(true)
     try {
       await props.backend.deactivateVariant(variantId)
-      props.onVariantStatusChange(variantId, VariantStatus.INACTIVE)
+      props.onVariantStatusChange(variantId, VarianteStatus.INACTIVE)
     } catch (error) {
       console.error('Error deactivating variant:', error)
     }
@@ -77,7 +77,7 @@ export function ProductItem(props: ProductItemProps) {
     <Item variant="outline" className="flex-col items-stretch">
       <div className="flex items-center gap-4">
         <div className="flex flex-col gap-3 shrink-0">
-          <ProductCategoryIcon category={props.product.category} />
+          <KategorieIcon category={props.product.category} />
         </div>
         <ItemContent className="self-start flex-1">
           <ItemTitle>{props.product.name}</ItemTitle>
@@ -162,9 +162,9 @@ export function ProductItem(props: ProductItemProps) {
   )
 }
 
-function ProductCategoryIcon(props: { category: ProductCategory }) {
+function KategorieIcon(props: { category: Kategorie }) {
   switch (props.category) {
-    case ProductCategory.FOOD:
+    case Kategorie.FOOD:
       return (
         <Tooltip>
           <TooltipTrigger>
@@ -173,7 +173,7 @@ function ProductCategoryIcon(props: { category: ProductCategory }) {
           <TooltipContent>Essen</TooltipContent>
         </Tooltip>
       )
-    case ProductCategory.BEVERAGE:
+    case Kategorie.BEVERAGE:
       return (
         <Tooltip>
           <TooltipTrigger>
@@ -182,7 +182,7 @@ function ProductCategoryIcon(props: { category: ProductCategory }) {
           <TooltipContent>Getränk</TooltipContent>
         </Tooltip>
       )
-    case ProductCategory.OTHER:
+    case Kategorie.OTHER:
       return (
         <Tooltip>
           <TooltipTrigger>

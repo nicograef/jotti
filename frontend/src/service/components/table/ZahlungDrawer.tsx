@@ -47,7 +47,7 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
       await props.backend.zahlungRegistrieren({
         tischId: props.tisch.id,
         positionen: positionenToPay,
-        comment: comment,
+        kommentar: comment,
       })
       props.zahlungRegistriert()
       setOpen(false)

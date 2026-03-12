@@ -99,19 +99,19 @@ describe('Auth', () => {
       AuthSingleton.validateAndSetToken(token)
 
       expect(AuthSingleton.isAdmin).toBe(true)
-      expect(AuthSingleton.isSeniorService).toBe(false)
+      expect(AuthSingleton.isServiceleitung).toBe(false)
       expect(AuthSingleton.isService).toBe(false)
       expect(AuthSingleton.canCancel).toBe(true)
     })
 
-    it('detects senior_service role', () => {
+    it('detects serviceleitung role', () => {
       const token = createMockToken(
-        validTokenPayload({ role: 'senior_service' }),
+        validTokenPayload({ role: 'serviceleitung' }),
       )
       AuthSingleton.validateAndSetToken(token)
 
       expect(AuthSingleton.isAdmin).toBe(false)
-      expect(AuthSingleton.isSeniorService).toBe(true)
+      expect(AuthSingleton.isServiceleitung).toBe(true)
       expect(AuthSingleton.canCancel).toBe(true)
     })
 

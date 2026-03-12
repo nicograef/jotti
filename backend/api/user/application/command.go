@@ -126,6 +126,32 @@ func (c Command) DeactivateUser(ctx context.Context, userID int) error {
 	return nil
 }
 
+func (c Command) DeleteUser(ctx context.Context, userID int) error {
+	log := zerolog.Ctx(ctx)
+
+	user, err := c.UserRepo.GetUser(ctx, userID)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn().Int("user_id", userID).Msg("User not found for deletion")
+			return ErrUserNotFound
+		} else {
+			log.Error().Int("user_id", userID).Msg("Failed to retrieve user for deletion")
+			return ErrDatabase
+		}
+	}
+
+	user.Delete()
+
+	err = c.UserRepo.UpdateUser(ctx, user)
+	if err != nil {
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to delete user")
+		return ErrDatabase
+	}
+
+	log.Info().Int("user_id", userID).Msg("User deleted successfully")
+	return nil
+}
+
 func (c Command) ResetPassword(ctx context.Context, userID int) (string, error) {
 	log := zerolog.Ctx(ctx)
 

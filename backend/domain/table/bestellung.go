@@ -8,17 +8,34 @@ import (
 )
 
 type Position struct {
-	ID         int    `json:"id"`
-	Name       string `json:"name"`
-	PreisCents int    `json:"preisCents"`
-	Quantity   int    `json:"quantity"`
+	PositionID   string `json:"positionId"`
+	VarianteID   int    `json:"varianteId"`
+	ProduktName  string `json:"produktName"`
+	VarianteName string `json:"varianteName"`
+	Kategorie    string `json:"kategorie"`
+	Einzelpreis  int    `json:"einzelpreis"`
+	Menge        int    `json:"menge"`
 }
 
 var positionSchema = z.Struct(z.Shape{
-	"ID":         product.IDSchema.Required(),
-	"Name":       product.NameSchema.Required(),
-	"PreisCents": product.PriceCentsSchema.Required(),
-	"Quantity":   z.Int().GTE(1, z.Message("Quantity must be at least 1")).Required(),
+	"PositionID":   z.String().UUID().Required(),
+	"VarianteID":   product.IDSchema.Required(),
+	"ProduktName":  product.NameSchema.Required(),
+	"VarianteName": product.NameSchema.Required(),
+	"Kategorie":    z.String().OneOf([]string{"food", "beverage", "other"}, z.Message("Invalid category")).Required(),
+	"Einzelpreis":  product.PreisCentsSchema.Required(),
+	"Menge":        z.Int().GTE(1, z.Message("Menge must be at least 1")).Required(),
+})
+
+// PositionRef is a lightweight reference to a position, used in delivery/payment/cancellation events.
+type PositionRef struct {
+	PositionID string `json:"positionId"`
+	Menge      int    `json:"menge"`
+}
+
+var positionRefSchema = z.Struct(z.Shape{
+	"PositionID": z.String().UUID().Required(),
+	"Menge":      z.Int().GTE(1, z.Message("Menge must be at least 1")).Required(),
 })
 
 type Bestellung struct {
@@ -27,7 +44,7 @@ type Bestellung struct {
 	TischID          int        `json:"tischId"`
 	Positionen       []Position `json:"positionen"`
 	GesamtPreisCents int        `json:"gesamtPreisCents"`
-	Comment          string     `json:"comment"`
+	Kommentar        string     `json:"kommentar"`
 	AufgegebenAm     time.Time  `json:"aufgegebenAm"`
 }
 
@@ -37,6 +54,6 @@ var bestellungSchema = z.Struct(z.Shape{
 	"TischID":          z.Int().GTE(1).Required(),
 	"Positionen":       z.Slice(positionSchema).Min(1).Required(),
 	"GesamtPreisCents": z.Int().GTE(0).Required(),
-	"Comment":          z.String().Max(100),
+	"Kommentar":        z.String().Max(100),
 	"AufgegebenAm":     z.Time().Required(),
 })

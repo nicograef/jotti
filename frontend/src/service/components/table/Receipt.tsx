@@ -22,10 +22,10 @@ export function Receipt({
                 className="flex justify-between border-b pb-2 last:border-0"
               >
                 <div>
-                  {position.quantity} x {position.name}
+                  {position.menge} x {position.name}
                 </div>
                 <div>
-                  € {formatCents(position.preisCents * position.quantity)}
+                  {formatCents(position.preisCents * position.menge)}&nbsp;€
                 </div>
               </div>
             )
@@ -36,7 +36,7 @@ export function Receipt({
         {totalPrice !== undefined && (
           <>
             <div>Gesamt</div>
-            <div>€ {formatCents(totalPrice)}</div>
+            <div>{formatCents(totalPrice)}&nbsp;€</div>
           </>
         )}
       </div>

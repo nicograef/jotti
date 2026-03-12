@@ -20,7 +20,7 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
-import { type Product, ProductCategory } from './Product'
+import { Kategorie, type Produkt } from './Product'
 import { CreateProductSchema, ProductBackend } from './ProductBackend'
 
 const FormDataSchema = CreateProductSchema
@@ -28,7 +28,7 @@ type FormData = z.infer<typeof FormDataSchema>
 
 interface NewProductDialogProps {
   backend: Pick<ProductBackend, 'createProduct'>
-  created: (product: Product) => void
+  created: (product: Produkt) => void
 }
 
 export function NewProductDialog(props: NewProductDialogProps) {
@@ -37,7 +37,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
   const form = useForm<FormData>({
     defaultValues: {
       name: '',
-      category: ProductCategory.FOOD,
+      category: Kategorie.FOOD,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',

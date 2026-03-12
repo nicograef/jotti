@@ -8,15 +8,15 @@ import (
 )
 
 type productRepoQuery interface {
-	GetAllProducts(ctx context.Context) ([]product.Product, error)
-	GetActiveProducts(ctx context.Context) ([]product.Product, error)
+	GetAllProducts(ctx context.Context) ([]product.Produkt, error)
+	GetActiveProducts(ctx context.Context) ([]product.Produkt, error)
 }
 
 type Query struct {
 	ProductRepo productRepoQuery
 }
 
-func (q Query) GetAllProducts(ctx context.Context) ([]product.Product, error) {
+func (q Query) GetAllProducts(ctx context.Context) ([]product.Produkt, error) {
 	log := zerolog.Ctx(ctx)
 
 	products, err := q.ProductRepo.GetAllProducts(ctx)
@@ -29,7 +29,7 @@ func (q Query) GetAllProducts(ctx context.Context) ([]product.Product, error) {
 	return products, nil
 }
 
-func (q Query) GetActiveProducts(ctx context.Context) ([]product.Product, error) {
+func (q Query) GetActiveProducts(ctx context.Context) ([]product.Produkt, error) {
 	log := zerolog.Ctx(ctx)
 
 	products, err := q.ProductRepo.GetActiveProducts(ctx)

@@ -8,13 +8,14 @@ import (
 
 const issuer = "jotti"
 
-func GenerateJWTTokenForUser(userID int, userRole string, secret string) (string, error) {
+func GenerateJWTTokenForUser(userID int, userName, userRole string, secret string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"alg":  jwt.SigningMethodHS256.Alg(),
 		"iss":  issuer,
 		"iat":  jwt.NewNumericDate(time.Now()),
 		"exp":  jwt.NewNumericDate(time.Now().Add(12 * time.Hour)), // 12 hours validity
 		"sub":  userID,
+		"name": userName,
 		"role": userRole,
 	})
 
@@ -27,7 +28,7 @@ func GenerateJWTTokenForUser(userID int, userRole string, secret string) (string
 	return stringToken, nil
 }
 
-func ParseAndValidateJWTToken(tokenString, secret string) (int, string, error) {
+func ParseAndValidateJWTToken(tokenString, secret string) (int, string, string, error) {
 	claims := jwt.MapClaims{}
 	keyFunc := func(token *jwt.Token) (any, error) {
 		return []byte(secret), nil
@@ -35,11 +36,12 @@ func ParseAndValidateJWTToken(tokenString, secret string) (int, string, error) {
 
 	_, err := jwt.ParseWithClaims(tokenString, claims, keyFunc, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithExpirationRequired(), jwt.WithIssuer(issuer))
 	if err != nil {
-		return 0, "", err
+		return 0, "", "", err
 	}
 
 	userID := int(claims["sub"].(float64))
+	userName, _ := claims["name"].(string)
 	userRole := claims["role"].(string)
 
-	return userID, userRole, nil
+	return userID, userName, userRole, nil
 }

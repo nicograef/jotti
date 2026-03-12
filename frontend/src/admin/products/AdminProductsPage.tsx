@@ -6,12 +6,12 @@ import { BackendSingleton } from '@/lib/Backend'
 import { EditProductDialog } from './EditProductDialog'
 import { useAllProducts } from './hooks'
 import { NewProductDialog } from './NewProductDialog'
-import type { Product, Variant } from './Product'
+import type { Produkt, Variante } from './Product'
 import { ProductBackend } from './ProductBackend'
 import { Products } from './Products'
 
 const initialProductEditState = {
-  product: null as Product | null,
+  product: null as Produkt | null,
   open: false,
 }
 
@@ -23,7 +23,7 @@ export function AdminProductsPage() {
     initialProductEditState,
   )
 
-  const updateProduct = (product: Product) => {
+  const updateProduct = (product: Produkt) => {
     setProducts((prevProducts) =>
       prevProducts.map((p) => (p.id === product.id ? product : p)),
     )
@@ -31,7 +31,7 @@ export function AdminProductsPage() {
 
   const updateVariantInProduct = (
     productId: number,
-    updater: (variants: Variant[]) => Variant[],
+    updater: (variants: Variante[]) => Variante[],
   ) => {
     setProducts((prevProducts) =>
       prevProducts.map((p) =>
@@ -40,12 +40,12 @@ export function AdminProductsPage() {
     )
   }
 
-  const onVariantCreated = (productId: number, variant: Variant) => {
+  const onVariantCreated = (productId: number, variant: Variante) => {
     updateVariantInProduct(productId, (variants) => [...variants, variant])
     toast.success(`Variante "${variant.name}" wurde angelegt.`)
   }
 
-  const onVariantUpdated = (productId: number, variant: Variant) => {
+  const onVariantUpdated = (productId: number, variant: Variante) => {
     updateVariantInProduct(productId, (variants) =>
       variants.map((v) => (v.id === variant.id ? variant : v)),
     )

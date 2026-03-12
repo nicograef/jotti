@@ -11,12 +11,16 @@ import (
 )
 
 type command interface {
-	CreateProduct(ctx context.Context, name string, category product.Category) (int, error)
-	UpdateProduct(ctx context.Context, id int, name string, category product.Category) error
-	CreateVariant(ctx context.Context, productID int, name string, priceCents int) (int, error)
-	UpdateVariant(ctx context.Context, variantID int, name string, priceCents int) error
+	CreateProduct(ctx context.Context, name string, kategorie product.Kategorie) (int, error)
+	UpdateProduct(ctx context.Context, id int, name string, kategorie product.Kategorie) error
+	ActivateProduct(ctx context.Context, productID int) error
+	DeactivateProduct(ctx context.Context, productID int) error
+	DeleteProdukt(ctx context.Context, productID int) error
+	CreateVariant(ctx context.Context, productID int, name string, preisCents int) (int, error)
+	UpdateVariant(ctx context.Context, variantID int, name string, preisCents int) error
 	ActivateVariant(ctx context.Context, variantID int) error
 	DeactivateVariant(ctx context.Context, variantID int) error
+	DeleteVariante(ctx context.Context, produktID int, variantID int) error
 }
 
 type CommandHandler struct {
@@ -26,8 +30,8 @@ type CommandHandler struct {
 // Product handlers
 
 type createProduct struct {
-	Name     string           `json:"name"`
-	Category product.Category `json:"category"`
+	Name      string            `json:"name"`
+	Kategorie product.Kategorie `json:"kategorie"`
 }
 
 type createProductResponse struct {
@@ -41,7 +45,7 @@ func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 			return
 		}
 
-		id, err := h.Command.CreateProduct(r.Context(), body.Name, body.Category)
+		id, err := h.Command.CreateProduct(r.Context(), body.Name, body.Kategorie)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrProduktAlreadyExists):
@@ -59,9 +63,9 @@ func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 }
 
 type updateProduct struct {
-	ID       int              `json:"id"`
-	Name     string           `json:"name"`
-	Category product.Category `json:"category"`
+	ID        int               `json:"id"`
+	Name      string            `json:"name"`
+	Kategorie product.Kategorie `json:"kategorie"`
 }
 
 func (h *CommandHandler) UpdateProductHandler() http.HandlerFunc {
@@ -71,7 +75,7 @@ func (h *CommandHandler) UpdateProductHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.UpdateProduct(r.Context(), body.ID, body.Name, body.Category)
+		err := h.Command.UpdateProduct(r.Context(), body.ID, body.Name, body.Kategorie)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrProduktNotFound):
@@ -88,12 +92,64 @@ func (h *CommandHandler) UpdateProductHandler() http.HandlerFunc {
 	}
 }
 
+type activateProduct struct {
+	ID int `json:"id"`
+}
+
+func (h *CommandHandler) ActivateProductHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := activateProduct{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		err := h.Command.ActivateProduct(r.Context(), body.ID)
+		if err != nil {
+			if errors.Is(err, application.ErrProduktNotFound) {
+				helper.SendClientError(w, "produkt_not_found", nil)
+				return
+			} else {
+				helper.SendServerError(w)
+				return
+			}
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+type deactivateProduct struct {
+	ID int `json:"id"`
+}
+
+func (h *CommandHandler) DeactivateProductHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := deactivateProduct{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		err := h.Command.DeactivateProduct(r.Context(), body.ID)
+		if err != nil {
+			if errors.Is(err, application.ErrProduktNotFound) {
+				helper.SendClientError(w, "produkt_not_found", nil)
+				return
+			} else {
+				helper.SendServerError(w)
+				return
+			}
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
 // Variant handlers
 
 type createVariant struct {
-	ProductID  int    `json:"productId"`
+	ProductID  int    `json:"produktId"`
 	Name       string `json:"name"`
-	PriceCents int    `json:"priceCents"`
+	PreisCents int    `json:"preisCents"`
 }
 
 type createVariantResponse struct {
@@ -107,7 +163,7 @@ func (h *CommandHandler) CreateVariantHandler() http.HandlerFunc {
 			return
 		}
 
-		id, err := h.Command.CreateVariant(r.Context(), body.ProductID, body.Name, body.PriceCents)
+		id, err := h.Command.CreateVariant(r.Context(), body.ProductID, body.Name, body.PreisCents)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrProduktNotFound):
@@ -127,7 +183,7 @@ func (h *CommandHandler) CreateVariantHandler() http.HandlerFunc {
 type updateVariant struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name"`
-	PriceCents int    `json:"priceCents"`
+	PreisCents int    `json:"preisCents"`
 }
 
 func (h *CommandHandler) UpdateVariantHandler() http.HandlerFunc {
@@ -137,7 +193,7 @@ func (h *CommandHandler) UpdateVariantHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.UpdateVariant(r.Context(), body.ID, body.Name, body.PriceCents)
+		err := h.Command.UpdateVariant(r.Context(), body.ID, body.Name, body.PreisCents)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrVarianteNotFound):
@@ -200,6 +256,61 @@ func (h *CommandHandler) DeactivateVariantHandler() http.HandlerFunc {
 				helper.SendServerError(w)
 				return
 			}
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+type deleteProdukt struct {
+	ID int `json:"id"`
+}
+
+func (h *CommandHandler) DeleteProduktHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := deleteProdukt{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		err := h.Command.DeleteProdukt(r.Context(), body.ID)
+		if err != nil {
+			if errors.Is(err, application.ErrProduktNotFound) {
+				helper.SendClientError(w, "produkt_not_found", nil)
+				return
+			} else {
+				helper.SendServerError(w)
+				return
+			}
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+type deleteVariante struct {
+	ProduktID int `json:"produktId"`
+	ID        int `json:"id"`
+}
+
+func (h *CommandHandler) DeleteVarianteHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := deleteVariante{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		err := h.Command.DeleteVariante(r.Context(), body.ProduktID, body.ID)
+		if err != nil {
+			switch {
+			case errors.Is(err, application.ErrProduktNotFound):
+				helper.SendClientError(w, "produkt_not_found", nil)
+			case errors.Is(err, application.ErrVarianteNotFound):
+				helper.SendClientError(w, "variante_not_found", nil)
+			default:
+				helper.SendServerError(w)
+			}
+			return
 		}
 
 		helper.SendEmptyResponse(w)

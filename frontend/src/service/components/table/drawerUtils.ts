@@ -7,14 +7,14 @@ export function selectPositionen(
   return positionen
     .map((position) => ({
       ...position,
-      quantity: selectedQuantity[position.id] || 0,
+      menge: selectedQuantity[position.id] || 0,
     }))
-    .filter((position) => position.quantity > 0)
+    .filter((position) => position.menge > 0)
 }
 
 export function calculateTotalPrice(positionen: Position[]): number {
   return positionen.reduce(
-    (total, position) => total + position.preisCents * position.quantity,
+    (total, position) => total + position.preisCents * position.menge,
     0,
   )
 }

@@ -22,8 +22,10 @@ func NewRepository(db *sql.DB) Repository {
 func (r Repository) WriteEvent(ctx context.Context, e event.Event) (int, error) {
 	id, err := r.q.WriteEvent(ctx, dbgen.WriteEventParams{
 		UserID:    e.UserID,
+		UserName:  e.UserName,
 		Type:      e.Type,
 		Subject:   e.Subject,
+		Version:   e.Version,
 		Data:      e.Data,
 		Timestamp: e.Time,
 	})
@@ -41,12 +43,14 @@ func (r Repository) ReadEvent(ctx context.Context, eventID int) (event.Event, er
 	}
 
 	return event.Event{
-		ID:      row.ID,
-		UserID:  row.UserID,
-		Type:    row.Type,
-		Subject: row.Subject,
-		Data:    row.Data,
-		Time:    row.Timestamp,
+		ID:       row.ID,
+		UserID:   row.UserID,
+		UserName: row.UserName,
+		Version:  row.Version,
+		Type:     row.Type,
+		Subject:  row.Subject,
+		Data:     row.Data,
+		Time:     row.Timestamp,
 	}, nil
 }
 
@@ -61,12 +65,14 @@ func (r Repository) ReadEventsBySubject(ctx context.Context, subject string) ([]
 	events := make([]event.Event, 0, len(rows))
 	for _, row := range rows {
 		events = append(events, event.Event{
-			ID:      row.ID,
-			UserID:  row.UserID,
-			Type:    row.Type,
-			Subject: row.Subject,
-			Data:    row.Data,
-			Time:    row.Timestamp,
+			ID:       row.ID,
+			UserID:   row.UserID,
+			UserName: row.UserName,
+			Version:  row.Version,
+			Type:     row.Type,
+			Subject:  row.Subject,
+			Data:     row.Data,
+			Time:     row.Timestamp,
 		})
 	}
 
@@ -87,12 +93,14 @@ func (r Repository) ReadEventsSinceID(ctx context.Context, subject string, fromI
 	events := make([]event.Event, 0, len(rows))
 	for _, row := range rows {
 		events = append(events, event.Event{
-			ID:      row.ID,
-			UserID:  row.UserID,
-			Type:    row.Type,
-			Subject: row.Subject,
-			Data:    row.Data,
-			Time:    row.Timestamp,
+			ID:       row.ID,
+			UserID:   row.UserID,
+			UserName: row.UserName,
+			Version:  row.Version,
+			Type:     row.Type,
+			Subject:  row.Subject,
+			Data:     row.Data,
+			Time:     row.Timestamp,
 		})
 	}
 
@@ -128,14 +136,27 @@ func (r Repository) ReadEventsWithSnapshot(ctx context.Context, subject string, 
 	events := make([]event.Event, 0, len(rows))
 	for _, row := range rows {
 		events = append(events, event.Event{
-			ID:      row.ID,
-			UserID:  row.UserID,
-			Type:    row.Type,
-			Subject: row.Subject,
-			Data:    row.Data,
-			Time:    row.Timestamp,
+			ID:       row.ID,
+			UserID:   row.UserID,
+			UserName: row.UserName,
+			Version:  row.Version,
+			Type:     row.Type,
+			Subject:  row.Subject,
+			Data:     row.Data,
+			Time:     row.Timestamp,
 		})
 	}
 
 	return events, nil
+}
+
+// GetMaxVersion returns the highest event version for the given subject.
+// Returns 0 if no events exist for the subject.
+func (r Repository) GetMaxVersion(ctx context.Context, subject string) (int, error) {
+	version, err := r.q.GetMaxVersion(ctx, subject)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+
+	return version, nil
 }

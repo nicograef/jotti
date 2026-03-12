@@ -10,30 +10,25 @@ import (
 )
 
 type produkteStorniertV1Data struct {
-	StornierungID          string     `json:"stornierungId"`
-	Positionen             []Position `json:"positionen"`
-	GesamtStornierungCents int        `json:"gesamtStornierungCents"`
-	Comment                string     `json:"comment"`
+	StornierungID          string        `json:"stornierungId"`
+	Positionen             []PositionRef `json:"positionen"`
+	GesamtStornierungCents int           `json:"gesamtStornierungCents"`
+	Kommentar              string        `json:"kommentar"`
 }
 
 var produkteStorniertV1DataSchema = z.Struct(z.Shape{
 	"StornierungID":          z.String().UUID().Required(),
-	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
+	"Positionen":             z.Slice(positionRefSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(0).Required(),
-	"Comment":                z.String().Max(100),
+	"Kommentar":              z.String().Max(100),
 })
 
-func NewProdukteStorniertEvent(userID, tischID int, positionen []Position, comment string) (e.Event, error) {
-	gesamtStornierungCents := 0
-	for _, pos := range positionen {
-		gesamtStornierungCents += pos.PreisCents * pos.Quantity
-	}
-
+func NewProdukteStorniertEvent(userID int, userName string, tischID int, positionen []PositionRef, gesamtStornierungCents int, kommentar string) (e.Event, error) {
 	data := produkteStorniertV1Data{
 		StornierungID:          uuid.New().String(),
 		Positionen:             positionen,
 		GesamtStornierungCents: gesamtStornierungCents,
-		Comment:                comment,
+		Kommentar:              kommentar,
 	}
 
 	if err := produkteStorniertV1DataSchema.Validate(&data); err != nil {
@@ -41,7 +36,7 @@ func NewProdukteStorniertEvent(userID, tischID int, positionen []Position, comme
 		return e.Event{}, fmt.Errorf("produkte storniert data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, string(EventTypeProdukteStorniertV1), "tisch:"+strconv.Itoa(tischID), data)
+	event, err := e.New(userID, userName, string(EventTypeProdukteStorniertV1), "tisch:"+strconv.Itoa(tischID), data)
 	if err != nil {
 		return e.Event{}, err
 	}
@@ -71,7 +66,7 @@ func buildStornierungFromEvent(event e.Event) (Stornierung, error) {
 		TischID:                tischID,
 		Positionen:             data.Positionen,
 		GesamtStornierungCents: data.GesamtStornierungCents,
-		Comment:                data.Comment,
+		Kommentar:              data.Kommentar,
 		StorniertAm:            event.Time,
 	}
 
