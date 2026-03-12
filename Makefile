@@ -6,7 +6,7 @@
        sqlc \
        staging staging-down staging-logs \
        prod-up prod-down prod-reset-db init \
-       db-shell \
+       db-shell seed \
        clean \
        help
 
@@ -129,6 +129,10 @@ init: ## Ersteinrichtung Produktion (Zertifikate, Stack)
 
 db-shell: ## psql-Shell im Dev-Postgres öffnen
 	docker exec -it jotti-postgres-dev psql -U $${POSTGRES_USER:-admin} -d jotti
+
+PG_CONTAINER ?= jotti-postgres-dev
+seed: ## Demo-Daten einspielen (PG_CONTAINER=jotti-postgres für Staging/Prod)
+	docker exec -i $(PG_CONTAINER) psql -U $${POSTGRES_USER:-admin} -d jotti < database/seed.sql
 
 # ──────────────────────────────────────────────
 # Aufräumen                                     
