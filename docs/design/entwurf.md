@@ -661,7 +661,7 @@ Der Tagesabschluss (R-06) ist ein administrativer Prozess am Ende einer Veransta
 
 **Umgang mit offenen Saldi:** Tische, an denen Gäste ohne Zahlung gegangen sind, müssen manuell behandelt werden — z. B. durch eine Stornierung des offenen Betrags mit Kommentar „Gast ohne Zahlung". Der Admin kann entscheiden, ob offene Beträge als Verlust verbucht werden.
 
-**Veranstaltungskonzept:** Das Event Storming wirft die Frage auf, ob ein übergreifendes Konzept „Veranstaltung" als logischer Rahmen nötig ist — um Event-Streams einer Veranstaltung zu kapseln und den Reset zu ermöglichen, ohne Events zu löschen (Append-only-Prinzip). Alternativen: Events archivieren, einen Veranstaltungs-Marker setzen, oder pro Veranstaltung eine frische Datenbankinstanz aufsetzen.
+**Veranstaltungskonzept:** Das Event Storming wirft die Frage auf, ob ein übergreifendes Konzept „Veranstaltung" als logischer Rahmen nötig ist — um Event Streams einer Veranstaltung zu kapseln und den Reset zu ermöglichen, ohne Events zu löschen (Append-only-Prinzip). Alternativen: Events archivieren, einen Veranstaltungs-Marker setzen, oder pro Veranstaltung eine frische Datenbankinstanz aufsetzen.
 
 Diese Fragen sind als offener Hotspot dokumentiert (→ [6.5 Offene Architekturentscheidungen](#65-offene-architekturentscheidungen), Hotspot H7).
 
@@ -716,6 +716,8 @@ Alle Benutzer melden sich mit Benutzername und Passwort an (A-01). Nach erfolgre
 **Generische Fehlermeldungen:** Bei ungültigen Zugangsdaten wird eine generische Fehlermeldung angezeigt — ohne Hinweis, ob Benutzername oder Passwort falsch ist. Dies erschwert das gezielte Erraten von Benutzernamen.
 
 **Deaktivierte Benutzer:** Benutzer mit Status `inactive` oder `deleted` können sich nicht anmelden, auch wenn Benutzername und Passwort korrekt sind.
+
+**Logout (A-03):** Alle Benutzer können sich über einen „Abmelden"-Button aktiv ausloggen. Der Logout entfernt das JWT aus dem Speicher und leitet auf die Login-Seite weiter. Die Funktion ist in Service- und Admin-Bereich verfügbar.
 
 ### 7.2 Autorisierung (Rollenmodell)
 
@@ -773,47 +775,47 @@ Read Models sind aufbereitete Lese-Ansichten, die aus den Domain Events oder den
 
 #### Tischübersicht (K-05)
 
-| Eigenschaft  | Beschreibung                                                      |
-| ------------ | ----------------------------------------------------------------- |
-| **Quelle**   | Tisch-Events + Tisch-Stammdaten                                   |
-| **Inhalt**   | Pro aktivem Tisch: Name, aktueller Saldo, Anzahl unbezahlter Positionen, Anzahl ungelieferter Positionen |
-| **Anzeige**  | Karten-Layout, alle aktiven Tische; Schnellsuche nach Tischname (K-10) |
-| **Akteure**  | Servicekraft, Serviceleitung, Admin                               |
+| Eigenschaft | Beschreibung                                                                                             |
+| ----------- | -------------------------------------------------------------------------------------------------------- |
+| **Quelle**  | Tisch-Events + Tisch-Stammdaten                                                                          |
+| **Inhalt**  | Pro aktivem Tisch: Name, aktueller Saldo, Anzahl unbezahlter Positionen, Anzahl ungelieferter Positionen |
+| **Anzeige** | Karten-Layout, alle aktiven Tische; Schnellsuche nach Tischname (K-10)                                   |
+| **Akteure** | Servicekraft, Serviceleitung, Admin                                                                      |
 
 Die Tischübersicht ist die Startseite des Service-Bereichs. Auf einen Blick sieht die Servicekraft, welche Tische aktiv sind und wo noch offene Bestellungen oder ausstehende Zahlungen vorliegen.
 
 #### Tischdetails (K-05)
 
-| Eigenschaft  | Beschreibung                                                      |
-| ------------ | ----------------------------------------------------------------- |
-| **Quelle**   | Tisch-Events (Event-Stream des jeweiligen Tisches)                |
-| **Inhalt**   | Alle Positionen mit Status (bestellt / geliefert / bezahlt / storniert), gruppiert nach Bestellung (mit opt. Bezeichnung aus K-07), aktueller Saldo, unbezahlte Positionen, ungelieferte Positionen |
-| **Anzeige**  | Tabs: Übersicht, Bestellen, Liefern, Bezahlen, Stornieren, Historie |
-| **Akteure**  | Servicekraft, Serviceleitung, Admin                               |
+| Eigenschaft | Beschreibung                                                                                                                                                                                        |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Quelle**  | Tisch-Events (Event Stream des jeweiligen Tisches)                                                                                                                                                  |
+| **Inhalt**  | Alle Positionen mit Status (bestellt / geliefert / bezahlt / storniert), gruppiert nach Bestellung (mit opt. Bezeichnung aus K-07), aktueller Saldo, unbezahlte Positionen, ungelieferte Positionen |
+| **Anzeige** | Tabs: Übersicht, Bestellen, Liefern, Bezahlen, Stornieren, Historie                                                                                                                                 |
+| **Akteure** | Servicekraft, Serviceleitung, Admin                                                                                                                                                                 |
 
 Die Tischdetail-Ansicht ist der zentrale Arbeitsplatz der Servicekraft. Alle Tischoperationen (Bestellung aufgeben, Lieferung bestätigen, Zahlung registrieren, Stornierung) werden als Drawer von dieser Ansicht aus geöffnet.
 
 #### Produktkatalog
 
-| Eigenschaft  | Beschreibung                                                      |
-| ------------ | ----------------------------------------------------------------- |
-| **Quelle**   | Produkt-Stammdaten                                                |
-| **Inhalt**   | Alle aktiven Produkte mit ihren aktiven Varianten, nach Kategorie gruppiert (Speisen, Getränke, Sonstiges), jeweils mit Name und Preis |
-| **Anzeige**  | Kategorie-Tabs, Produkte als auswählbare Karten, Plus/Minus für Mengenauswahl |
-| **Akteure**  | Servicekraft, Serviceleitung, Admin (beim Bestellen)              |
+| Eigenschaft | Beschreibung                                                                                                                           |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Quelle**  | Produkt-Stammdaten                                                                                                                     |
+| **Inhalt**  | Alle aktiven Produkte mit ihren aktiven Varianten, nach Kategorie gruppiert (Speisen, Getränke, Sonstiges), jeweils mit Name und Preis |
+| **Anzeige** | Kategorie-Tabs, Produkte als auswählbare Karten, Plus/Minus für Mengenauswahl                                                          |
+| **Akteure** | Servicekraft, Serviceleitung, Admin (beim Bestellen)                                                                                   |
 
 Der Produktkatalog ist kein eigenständiges Navigations-Ziel, sondern wird im Kontext des Bestellvorgangs (Tab „Bestellen" im Tischdetail) geladen. Er zeigt immer den aktuellen Stand der Stammdaten.
 
 #### Kassenjournal (K-06)
 
-| Eigenschaft  | Beschreibung                                                      |
-| ------------ | ----------------------------------------------------------------- |
-| **Quelle**   | Tisch-Events (Event-Stream des jeweiligen Tisches)                |
-| **Inhalt**   | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ (Bestellung / Lieferung / Zahlung / Stornierung / Freibon), Positionen, Betrag, Servicekraft, Kommentar |
-| **Anzeige**  | Timeline / Liste im Tab „Historie" der Tischdetail-Ansicht        |
-| **Akteure**  | Servicekraft, Serviceleitung, Admin                               |
+| Eigenschaft | Beschreibung                                                                                                                                                           |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Quelle**  | Tisch-Events (Event Stream des jeweiligen Tisches)                                                                                                                     |
+| **Inhalt**  | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ (Bestellung / Lieferung / Zahlung / Stornierung / Freibon), Positionen, Betrag, Servicekraft, Kommentar |
+| **Anzeige** | Timeline / Liste im Tab „Historie" der Tischdetail-Ansicht                                                                                                             |
+| **Akteure** | Servicekraft, Serviceleitung, Admin                                                                                                                                    |
 
-Das Kassenjournal ist die menschenlesbare Darstellung des Event-Streams. Es ist unveränderlich — jeder Vorgang am Tisch erscheint hier in der Reihenfolge, in der er eingetreten ist.
+Das Kassenjournal ist die menschenlesbare Darstellung des Event Streams. Es ist unveränderlich — jeder Vorgang am Tisch erscheint hier in der Reihenfolge, in der er eingetreten ist.
 
 ### 8.2 Admin-Ansichten (Reporting)
 
@@ -821,57 +823,57 @@ Alle Reporting-Ansichten sind Read Models, die aus den Tisch-Events über alle T
 
 #### Tagesabrechnung (R-01)
 
-| Eigenschaft  | Beschreibung                                                      |
-| ------------ | ----------------------------------------------------------------- |
-| **Quelle**   | Tisch-Events (tischübergreifend)                                  |
-| **Inhalt**   | Gesamtumsatz (Summe aller Zahlungen), Umsatz pro Servicekraft (Übersichtswerte), Übersicht aller Stornierungen (Zeitpunkt, Tisch, Positionen, Betrag), offene Beträge |
-| **Akteure**  | Admin                                                             |
+| Eigenschaft | Beschreibung                                                                                                                                                          |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Quelle**  | Tisch-Events (tischübergreifend)                                                                                                                                      |
+| **Inhalt**  | Gesamtumsatz (Summe aller Zahlungen), Umsatz pro Servicekraft (Übersichtswerte), Übersicht aller Stornierungen (Zeitpunkt, Tisch, Positionen, Betrag), offene Beträge |
+| **Akteure** | Admin                                                                                                                                                                 |
 
 #### Abrechnung pro Tisch (R-03)
 
-| Eigenschaft  | Beschreibung                                                      |
-| ------------ | ----------------------------------------------------------------- |
-| **Quelle**   | Tisch-Events (einzelner Tisch)                                    |
-| **Inhalt**   | Alle Bestellungen, Zahlungen, Lieferungen, Stornierungen in chronologischer Reihenfolge; Gesamt-Saldo (bestellt, bezahlt, offen, storniert) |
-| **Akteure**  | Admin                                                             |
+| Eigenschaft | Beschreibung                                                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Quelle**  | Tisch-Events (einzelner Tisch)                                                                                                              |
+| **Inhalt**  | Alle Bestellungen, Zahlungen, Lieferungen, Stornierungen in chronologischer Reihenfolge; Gesamt-Saldo (bestellt, bezahlt, offen, storniert) |
+| **Akteure** | Admin                                                                                                                                       |
 
 #### Abrechnung pro Servicekraft (R-04)
 
-| Eigenschaft  | Beschreibung                                                      |
-| ------------ | ----------------------------------------------------------------- |
-| **Quelle**   | Tisch-Events (tischübergreifend, gruppiert nach Servicekraft)     |
-| **Inhalt**   | Umsatz pro Servicekraft (Summe registrierter Zahlungen), Anzahl aufgegebener Bestellungen, Anzahl und Betrag der Stornierungen |
-| **Akteure**  | Admin                                                             |
+| Eigenschaft | Beschreibung                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Quelle**  | Tisch-Events (tischübergreifend, gruppiert nach Servicekraft)                                                                  |
+| **Inhalt**  | Umsatz pro Servicekraft (Summe registrierter Zahlungen), Anzahl aufgegebener Bestellungen, Anzahl und Betrag der Stornierungen |
+| **Akteure** | Admin                                                                                                                          |
 
 #### Produktumsatz (R-05)
 
-| Eigenschaft  | Beschreibung                                                      |
-| ------------ | ----------------------------------------------------------------- |
-| **Quelle**   | Tisch-Events (tischübergreifend, gruppiert nach Produkt/Variante) |
-| **Inhalt**   | Verkaufte Menge pro Produkt und Variante (abzüglich Stornierungen), Ranking der meistverkauften Varianten, Gesamteinnahmen pro Produkt/Variante |
-| **Akteure**  | Admin                                                             |
+| Eigenschaft | Beschreibung                                                                                                                                    |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Quelle**  | Tisch-Events (tischübergreifend, gruppiert nach Produkt/Variante)                                                                               |
+| **Inhalt**  | Verkaufte Menge pro Produkt und Variante (abzüglich Stornierungen), Ranking der meistverkauften Varianten, Gesamteinnahmen pro Produkt/Variante |
+| **Akteure** | Admin                                                                                                                                           |
 
 ### 8.3 Ausgabe-Ansichten
 
 #### KDS-Ansicht (K-12)
 
-| Eigenschaft  | Beschreibung                                                      |
-| ------------ | ----------------------------------------------------------------- |
-| **Quelle**   | Tisch-Events (`BestellungAufgegeben`), gefiltert nach Kategorie   |
-| **Inhalt**   | Offene (ungelieferte) Positionen einer Kategorie (Speisen oder Getränke), gruppiert nach Tisch; pro Position: Produkt, Variante, Menge, Zeitpunkt der Bestellung |
-| **Anzeige**  | Echtzeit-Updates, große Schrift (für Monitore in Küche/Ausgabe)   |
-| **Akteure**  | Ausgabe-Mitarbeiter, Servicekraft (lesend)                        |
+| Eigenschaft | Beschreibung                                                                                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Quelle**  | Tisch-Events (`BestellungAufgegeben`), gefiltert nach Kategorie                                                                                                  |
+| **Inhalt**  | Offene (ungelieferte) Positionen einer Kategorie (Speisen oder Getränke), gruppiert nach Tisch; pro Position: Produkt, Variante, Menge, Zeitpunkt der Bestellung |
+| **Anzeige** | Echtzeit-Updates, große Schrift (für Monitore in Küche/Ausgabe)                                                                                                  |
+| **Akteure** | Ausgabe-Mitarbeiter, Servicekraft (lesend)                                                                                                                       |
 
 Jede Ausgabestation sieht nur die Positionen ihrer eigenen Kategorie. Die technische Umsetzung der Echtzeit-Aktualisierung ist offen (→ H4).
 
 #### Zubereitungsstatus (K-13)
 
-| Eigenschaft  | Beschreibung                                                      |
-| ------------ | ----------------------------------------------------------------- |
-| **Quelle**   | Tisch-Events (`BestellungAufgegeben`) + Zubereitungsstatus-Daten  |
-| **Inhalt**   | Offene Positionen mit Status: „offen" → „in Zubereitung" → „fertig", gruppiert nach Tisch, Zeitpunkt des letzten Statuswechsels |
-| **Anzeige**  | Farbcodierung nach Status; auf KDS und Servicekraft-Ansicht       |
-| **Akteure**  | Ausgabe-Mitarbeiter (Status ändern), Servicekraft (Status einsehen) |
+| Eigenschaft | Beschreibung                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Quelle**  | Tisch-Events (`BestellungAufgegeben`) + Zubereitungsstatus-Daten                                                                |
+| **Inhalt**  | Offene Positionen mit Status: „offen" → „in Zubereitung" → „fertig", gruppiert nach Tisch, Zeitpunkt des letzten Statuswechsels |
+| **Anzeige** | Farbcodierung nach Status; auf KDS und Servicekraft-Ansicht                                                                     |
+| **Akteure** | Ausgabe-Mitarbeiter (Status ändern), Servicekraft (Status einsehen)                                                             |
 
 Die Modellierung des Zubereitungsstatus ist offen: Domain Events im Tisch-Aggregat, eigenes Aggregat oder transienter State sind alle denkbare Optionen (→ H5).
 
@@ -883,11 +885,11 @@ Die Modellierung des Zubereitungsstatus ist offen: Domain Events im Tisch-Aggreg
 
 jotti verwendet zwei Persistenzstrategien in einer einzigen PostgreSQL-Datenbank:
 
-| Bereich                    | Strategie       | Begründung                                                  |
-| -------------------------- | --------------- | ----------------------------------------------------------- |
-| Kassenbetrieb (Tisch)      | Event-Sourcing  | Geschichte ist fachlich relevant (Kassenjournal, Buchhaltung); lückenlose Nachvollziehbarkeit ist ein Kernziel |
-| Stammdaten (Produkt, Tisch, Benutzer) | CRUD | Nur aktueller Zustand benötigt; historische Stammdaten-Änderungen irrelevant (Fat Events decken das ab) |
-| Auth                       | CRUD            | Infrastruktur ohne fachliche Event-Semantik                 |
+| Bereich                               | Strategie      | Begründung                                                                                                     |
+| ------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| Kassenbetrieb (Tisch)                 | Event-Sourcing | Geschichte ist fachlich relevant (Kassenjournal, Buchhaltung); lückenlose Nachvollziehbarkeit ist ein Kernziel |
+| Stammdaten (Produkt, Tisch, Benutzer) | CRUD           | Nur aktueller Zustand benötigt; historische Stammdaten-Änderungen irrelevant (Fat Events decken das ab)        |
+| Auth                                  | CRUD           | Infrastruktur ohne fachliche Event-Semantik                                                                    |
 
 Die Trennung ist klar: Überall dort, wo die Geschichte eines Objekts fachlich relevant ist, wird Event-Sourcing eingesetzt. Für reine Konfigurationsdaten reicht klassisches CRUD.
 
@@ -904,9 +906,9 @@ Der Event Store ist das Herzstück des Kassenbetriebs. Er speichert alle Domain 
 
 **Snapshot-Speicherung:**
 
-Snapshots sind rein technische Optimierungen ohne fachliche Bedeutung. Sie werden **separat** vom Event Stream gespeichert — in einer eigenen Tabelle oder als markierter Datensatz — und nicht als Event in den Stream geschrieben. Snapshots beschleunigen das Laden langer Event-Streams: Statt den gesamten Stream von Anfang an zu replizieren, wird der letzte Snapshot geladen und nur die darauf folgenden Events angewendet.
+Snapshots sind rein technische Optimierungen ohne fachliche Bedeutung. Sie werden **separat** vom Event Stream gespeichert — in einer eigenen Tabelle oder als markierter Datensatz — und nicht als Event in den Stream geschrieben. Snapshots beschleunigen das Laden langer Event Streams: Statt den gesamten Stream von Anfang an zu replizieren, wird der letzte Snapshot geladen und nur die darauf folgenden Events angewendet.
 
-Snapshots werden automatisch nach einer konfigurierbaren Anzahl neuer Events oder auf Admin-Anfrage erstellt. Die Wahrheit bleibt immer der Event-Stream — ein Snapshot ist jederzeit aus dem Stream reproduzierbar.
+Snapshots werden automatisch nach einer konfigurierbaren Anzahl neuer Events oder auf Admin-Anfrage erstellt. Die Wahrheit bleibt immer der Event Stream — ein Snapshot ist jederzeit aus dem Stream reproduzierbar.
 
 _Verworfene Alternative: `SnapshotErstellt` als Event im Stream zu speichern würde fachliche und technische Concerns vermischen und den Stream unübersichtlicher machen._
 
@@ -988,12 +990,12 @@ Das Backend ist in vier Schichten gegliedert:
 
 **Bereichsgliederung:**
 
-| Bereich          | Pfad-Präfix          | Rolle(n)                            |
-| ---------------- | -------------------- | ----------------------------------- |
-| Auth             | `/auth/*`            | — (öffentlich)                      |
-| Admin            | `/admin/*`           | `admin`                             |
-| Service          | `/service/*`         | `service`, `senior_service`, `admin` |
-| Senior Service   | `/senior-service/*`  | `senior_service`, `admin`           |
+| Bereich        | Pfad-Präfix         | Rolle(n)                             |
+| -------------- | ------------------- | ------------------------------------ |
+| Auth           | `/auth/*`           | — (öffentlich)                       |
+| Admin          | `/admin/*`          | `admin`                              |
+| Service        | `/service/*`        | `service`, `senior_service`, `admin` |
+| Senior Service | `/senior-service/*` | `senior_service`, `admin`            |
 
 ### 10.3 Frontend-Architektur
 
@@ -1008,11 +1010,11 @@ Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 
 **Seitenstruktur:**
 
-| Bereich  | Seiten                                                                             |
-| -------- | ---------------------------------------------------------------------------------- |
-| Service  | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Liefern, Bezahlen, Stornieren)     |
-| Admin    | Produkte verwalten · Tische verwalten · Benutzer verwalten                         |
-| Allgemein | Login · Passwort setzen (Erstanmeldung)                                           |
+| Bereich   | Seiten                                                                         |
+| --------- | ------------------------------------------------------------------------------ |
+| Service   | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Liefern, Bezahlen, Stornieren) |
+| Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten                     |
+| Allgemein | Login · Passwort setzen (Erstanmeldung)                                        |
 
 **UI-Patterns:**
 
@@ -1028,26 +1030,26 @@ Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 
 Alle Eingaben werden auf **beiden Seiten** unabhängig voneinander validiert (Q-03):
 
-| Seite    | Schema-Bibliothek | Zeitpunkt                                     |
-| -------- | ----------------- | --------------------------------------------- |
-| Frontend | Zod               | Vor dem Absenden — direktes Feedback am Feld  |
-| Backend  | zog               | Bei jedem Request — vor der Business-Logik    |
+| Seite    | Schema-Bibliothek | Zeitpunkt                                    |
+| -------- | ----------------- | -------------------------------------------- |
+| Frontend | Zod               | Vor dem Absenden — direktes Feedback am Feld |
+| Backend  | zog               | Bei jedem Request — vor der Business-Logik   |
 
 **Das Backend ist die Single Source of Truth.** Das Frontend-Schema ist eine UX-Optimierung (sofortiges Feedback), aber keine Sicherheitsmaßnahme. Das Backend lehnt ungültige Anfragen unabhängig vom Frontend ab — auch bei manipulierten Requests.
 
-**Validierungsregeln** (Beispiele): Name nicht leer, Preis ≥ 0 Cent, Menge ≥ 1, Benutzername eindeutig, Rolle ist einer der erlaubten Werte. Konkrete Regeln sind an den Domain-Modellen definiert.
+**Validierungsregeln** (Beispiele): Name nicht leer, Preis > 0 Cent, Menge ≥ 1, Benutzername eindeutig, Rolle ist einer der erlaubten Werte. Konkrete Regeln sind an den Domain-Modellen definiert.
 
 ### 10.5 Geldbeträge
 
 Alle Geldbeträge werden **durchgehend als ganzzahlige Cent-Werte** (Integer) gespeichert und verarbeitet (Q-04). Fließkommazahlen werden für Geldbeträge nirgendwo verwendet.
 
-| Ebene    | Datentyp     | Beispiel              |
-| -------- | ------------ | --------------------- |
-| Datenbank | `INTEGER`   | `350` (= 3,50 €)      |
-| Backend  | `int`        | `350`                 |
-| API      | JSON-Zahl    | `350`                 |
-| Frontend | `number` (int) | `350`               |
-| Events   | `int`        | `350`                 |
+| Ebene     | Datentyp       | Beispiel         |
+| --------- | -------------- | ---------------- |
+| Datenbank | `INTEGER`      | `350` (= 3,50 €) |
+| Backend   | `int`          | `350`            |
+| API       | JSON-Zahl      | `350`            |
+| Frontend  | `number` (int) | `350`            |
+| Events    | `int`          | `350`            |
 
 Die Darstellung als „3,50 €" geschieht ausschließlich im Frontend als reine Formatierung (`formatCents()`). Rundungsfehler durch Fließkommazahlen sind damit strukturell ausgeschlossen.
 
@@ -1072,16 +1074,16 @@ Das gesamte UI ist für Smartphone-Browser konzipiert (Q-01):
 
 ### 10.8 Sicherheit
 
-| Maßnahme               | Umsetzung                                                                              | Anforderung |
-| ---------------------- | -------------------------------------------------------------------------------------- | ----------- |
-| HTTPS / TLS            | nginx terminiert TLS, Let's Encrypt-Zertifikat, HTTP → HTTPS-Redirect                 | Q-06        |
-| Rate Limiting          | Login-Endpunkt ist durch Rate Limiting geschützt (Brute-Force-Schutz)                 | Q-07        |
-| Security Headers       | Reverse Proxy setzt HSTS, X-Frame-Options, X-Content-Type-Options, CSP                | Q-08        |
-| Input-Validierung      | Frontend (Zod) + Backend (zog) — beide Seiten unabhängig voneinander                  | Q-03        |
-| Passwort-Hashing       | Argon2id mit zufälligem Salt                                                           | A-01        |
-| Generische Fehlermeldungen | Fehlgeschlagene Logins geben keine Auskunft, ob Benutzer oder Passwort falsch war  | A-01        |
-| Keine Secrets im Code  | Alle Secrets (JWT-Schlüssel, DB-Passwort) werden über Umgebungsvariablen konfiguriert | —           |
-| JWT-Gültigkeit         | Tokens sind 12 Stunden gültig — kurze Lebensdauer begrenzt den Schaden bei Verlust    | A-01        |
+| Maßnahme                   | Umsetzung                                                                             | Anforderung |
+| -------------------------- | ------------------------------------------------------------------------------------- | ----------- |
+| HTTPS / TLS                | nginx terminiert TLS, Let's Encrypt-Zertifikat, HTTP → HTTPS-Redirect                 | Q-06        |
+| Rate Limiting              | Login-Endpunkt ist durch Rate Limiting geschützt (Brute-Force-Schutz)                 | Q-07        |
+| Security Headers           | Reverse Proxy setzt HSTS, X-Frame-Options, X-Content-Type-Options, CSP                | Q-08        |
+| Input-Validierung          | Frontend (Zod) + Backend (zog) — beide Seiten unabhängig voneinander                  | Q-03        |
+| Passwort-Hashing           | Argon2id mit zufälligem Salt                                                          | A-01        |
+| Generische Fehlermeldungen | Fehlgeschlagene Logins geben keine Auskunft, ob Benutzer oder Passwort falsch war     | A-01        |
+| Keine Secrets im Code      | Alle Secrets (JWT-Schlüssel, DB-Passwort) werden über Umgebungsvariablen konfiguriert | —           |
+| JWT-Gültigkeit             | Tokens sind 12 Stunden gültig — kurze Lebensdauer begrenzt den Schaden bei Verlust    | A-01        |
 
 ---
 
@@ -1136,6 +1138,7 @@ jotti ist self-hosted — keine Cloud-Abhängigkeit, kein SaaS.
 **Voraussetzungen:** Ein Linux-Server mit Docker und Docker Compose. Geeignet für VPS (z. B. Hetzner, Netcup) ab ca. 2 GB RAM oder einen Raspberry Pi 4/5.
 
 **Deployment-Prozess:**
+
 1. Repository clonen und `.env`-Datei mit Secrets befüllen.
 2. `docker compose up -d` starten.
 3. Der Migrate-Container läuft einmalig, führt alle Datenbankmigrationen durch und beendet sich.
@@ -1151,26 +1154,145 @@ jotti ist self-hosted — keine Cloud-Abhängigkeit, kein SaaS.
 
 ## 12. Ubiquitous Language
 
-<!-- Abschnitt 6 -->
+Alle Fachbegriffe der Domäne sind deutsch — die Domäne ist deutsch, die Benutzer sind deutsch, die Sprache soll das widerspiegeln. Infrastruktur-Begriffe (Token, Login, JWT) bleiben englisch. Die folgende Terminologie ist im gesamten Team verbindlich — in Dokumentation, Code (Domänenschicht), UI und Kommunikation.
+
+### Kassenbetrieb (Core Domain)
+
+| Begriff           | Bedeutung                                                                                                                              |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tisch**         | Zentrales Aggregat im Kassenbetrieb. Trägt einen Event Stream, aus dem sich der aktuelle Zustand (Saldo, offene Positionen) berechnet. |
+| **Bestellung**    | Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufgibt. Erzeugt ein `BestellungAufgegeben`-Event.                   |
+| **Position**      | Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einzelpreis.                                                |
+| **Lieferung**     | Die Bestätigung, dass bestellte Positionen dem Gast übergeben wurden. Erzeugt ein `ProdukteGeliefert`-Event.                           |
+| **Zahlung**       | Die Registrierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen (Teilzahlung). Erzeugt ein `ZahlungRegistriert`-Event.  |
+| **Stornierung**   | Die nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. Erzeugt ein `ProdukteStorniert`-Event.         |
+| **Saldo**         | Der offene Betrag eines Tisches: Summe der Bestellungen − Summe der Zahlungen − Summe der Stornierungen. Immer in Cent.                |
+| **Kassenjournal** | Der vollständige, unveränderliche Event Stream eines Tisches. Enthält alle Operationen in chronologischer Reihenfolge.                 |
+| **Bezeichnung**   | Optionaler Name einer Bestellung (z. B. „Familie Müller"), um Gruppen am selben Tisch zu unterscheiden.                                |
+| **Kommentar**     | Optionale Freitextnotiz zu einer Bestellung, Zahlung, Lieferung oder Stornierung (max. 100 Zeichen).                                   |
+| **Freibon**       | Sonderposition außerhalb des Produktkatalogs — mit freier Bezeichnung und Preiseingabe. Erzeugt ein `FreibonAusgestellt`-Event.        |
+
+### Stammdaten (Supporting Sub-Domain)
+
+| Begriff         | Bedeutung                                                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Produkt**     | Ein Artikel im Produktkatalog (z. B. „Bratwurst", „Radler"). Gehört zu einer Kategorie.                                                |
+| **Variante**    | Eine konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. „Halbe 0,5 l" für 3,50 €).                          |
+| **Kategorie**   | Gruppierung von Produkten: Essen (`food`), Getränke (`beverage`) oder Sonstiges (`other`). Bestimmt die Zuordnung zu Ausgabestationen. |
+| **Preis**       | Immer ganzzahlig in Cent. Niemals Fließkommazahlen. 3,50 € = 350 Cent.                                                                 |
+| **Soft-Delete** | Logisches Löschen durch Status-Änderung auf `deleted`. Der Datensatz bleibt erhalten, ist aber im aktiven Betrieb unsichtbar.          |
+
+### Authentifizierung (Generic Sub-Domain)
+
+| Begriff            | Bedeutung                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| **Rolle**          | Berechtigungsstufe eines Benutzers: `admin`, `senior_service` oder `service`.              |
+| **Einmalpasswort** | Vom Admin generiertes 6-stelliges Passwort für die Erstanmeldung oder nach Passwort-Reset. |
+| **Token**          | JWT mit Benutzer-ID und Rolle, 12 Stunden gültig. Wird bei jedem API-Aufruf mitgesendet.   |
+
+### Ausgabe (Supporting Sub-Domain)
+
+| Begriff                 | Bedeutung                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Bon**                 | Gedruckter Beleg mit Tisch, Servicekraft, Positionen, Mengen, Zeitstempel und optionalem Kommentar.             |
+| **Küchendisplay (KDS)** | Echtzeit-Anzeige offener Bestellungen an der Ausgabestation, gruppiert nach Tisch und gefiltert nach Kategorie. |
+| **Zubereitungsstatus**  | Status einer Position an der Ausgabestation: offen → in Zubereitung → fertig.                                   |
+| **Ausgabestation**      | Physischer Ort (Küche, Getränketheke), an dem Positionen zubereitet und ausgegeben werden.                      |
+
+### Abrechnung (Supporting Sub-Domain)
+
+| Begriff             | Bedeutung                                                                                                                              |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tagesabrechnung** | Übersicht über Gesamtumsatz, Stornierungen und Umsatz pro Servicekraft — jederzeit vom Admin abrufbar.                                 |
+| **Umsatz**          | Summe aller registrierten Zahlungen in einem bestimmten Zeitraum. In Cent.                                                             |
+| **Stornoquote**     | Verhältnis von Stornierungsbetrag zu Bestellsumme. Indikator für Fehler oder Unregelmäßigkeiten.                                       |
+| **Tagesabschluss**  | Administrativer Vorgang zum Ende einer Veranstaltung: offene Tische prüfen, Abschlussbericht generieren, optional System zurücksetzen. |
+| **Export**          | CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Vereinsbuchhaltung.                                                   |
+
+### Übergreifende Prinzipien
+
+| Prinzip                         | Bedeutung                                                                                                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Event-Sourcing**              | Persistenzmuster für den Kassenbetrieb: Zustand wird nicht direkt gespeichert, sondern aus unveränderlichen Events berechnet.                             |
+| **Fat Event**                   | Event, das alle relevanten Daten zum Zeitpunkt der Aktion enthält (inkl. Produktname, Preis) — unabhängig von späteren Stammdaten-Änderungen.             |
+| **Anti-Corruption Layer (ACL)** | Schutzmechanismus zwischen Bounded Contexts: Der Kassenbetrieb friert Stammdaten in Events ein und ist damit unabhängig von nachträglichen Änderungen.    |
+| **Append-only**                 | Grundprinzip des Event Streams: Events werden nur hinzugefügt, nie geändert oder gelöscht.                                                                |
+| **Snapshot**                    | Vorberechneter Zwischenstand des Tisch-Zustands. Rein technische Performance-Optimierung ohne fachliche Bedeutung — separat vom Event Stream gespeichert. |
+| **BYOD**                        | Bring Your Own Device — Servicekräfte nutzen ihre eigenen Smartphones.                                                                                    |
 
 ---
 
 ## 13. Priorisierung und Ausbaustufen
 
+Die Priorisierung ordnet alle Anforderungen in drei Stufen ein: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wichtig, aber nicht blockierend) und Nice-to-have (Komfort, der iterativ wachsen kann). Die Zuordnung basiert auf den Ergebnissen des [Event Stormings](event-storming.md) und den [Anforderungen](../anforderungen.md). Innerhalb einer Stufe ist keine Implementierungsreihenfolge vorgegeben.
+
 ### 13.1 Stufe 1 — Must-have (MVP)
 
-<!-- Abschnitt 6 -->
+Kernfunktionen, ohne die das System nicht nutzbar ist.
+
+| ID   | Anforderung                 |
+| ---- | --------------------------- |
+| K-01 | Bestellung aufgeben         |
+| K-02 | Zahlung registrieren        |
+| K-03 | Lieferung bestätigen        |
+| K-04 | Stornierung                 |
+| K-05 | Tischübersicht / Navigation |
+| K-06 | Kassenjournal (Historie)    |
+| S-01 | Produktverwaltung           |
+| S-02 | Tischverwaltung             |
+| S-03 | Benutzerverwaltung          |
+| A-01 | Login                       |
+| A-02 | Passwort setzen             |
+| A-03 | Logout                      |
+| Q-01 | Usability und Mobile-first  |
+| Q-02 | Mehrbenutzerfähigkeit       |
+| Q-03 | Validierung                 |
+| Q-04 | Datenintegrität             |
+| Q-06 | HTTPS / TLS                 |
 
 ### 13.2 Stufe 2 — Should-have
 
-<!-- Abschnitt 6 -->
+Wichtig für einen runden Betrieb, aber nicht blockierend für den ersten Einsatz.
+
+| ID   | Anforderung                 |
+| ---- | --------------------------- |
+| K-11 | Bondruck (inkl. Freibon)    |
+| K-12 | Küchendisplay (KDS)         |
+| Q-07 | Rate Limiting               |
+| Q-08 | Security Headers            |
+| R-01 | Tagesabrechnung             |
+| R-03 | Abrechnung pro Tisch        |
+| R-04 | Abrechnung pro Servicekraft |
+| R-05 | Produktumsatz-Reporting     |
 
 ### 13.3 Stufe 3 — Nice-to-have
 
-<!-- Abschnitt 6 -->
+Komfortfunktionen, die den Alltag erleichtern und iterativ ergänzt werden können.
+
+| ID   | Anforderung                             |
+| ---- | --------------------------------------- |
+| K-07 | Bezeichnung pro Bestellung              |
+| K-08 | Bestellungen umbuchen                   |
+| K-09 | Rückgeldberechnung                      |
+| K-10 | Tisch-Schnellsuche                      |
+| K-13 | Ausgabestationen mit Zubereitungsstatus |
+| Q-05 | Offline-Fähigkeit                       |
+| R-02 | Datenexport                             |
+| R-06 | Tagesabschluss                          |
 
 ---
 
 ## 14. Offene Entwurfsfragen
 
-<!-- Abschnitt 6 -->
+Die folgenden Hotspots wurden im [Event Storming](event-storming.md) als offene Fragen identifiziert. Sie betreffen weiterführende Features oder Architekturentscheidungen, die iterativ — durch Prototypen, technische Spikes oder Priorisierungsentscheidungen — geklärt werden. Kein Hotspot blockiert den Start mit den Must-have-Features.
+
+| ID  | Thema                                 | Kernfrage                                                                                              | Priorität    | Offene Fragen                                                                                                                                                                                                                  |
+| --- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| H1  | Tischumbuchung (K-08)                 | Wie wird Atomarität über zwei Aggregate hinweg sichergestellt?                                         | Nice-to-have | Eigener Event-Typ oder Kombination aus Stornierung + Neubestellung? Automatischer Kommentar „umgebucht von/auf Tisch X"? Rollenbeschränkung auf Serviceleitung/Admin? → Abschnitt [3.6](#36-policies)                          |
+| H2  | Freibon (K-11)                        | Wie wird ein Freibon von einer regulären Position unterschieden?                                       | Should-have  | Eigener Event-Typ (`FreibonAusgestellt`) oder Markierung im Bestell-Event? Mindestpreis-Validierung (Preis > 0)? Alle Rollen oder nur Serviceleitung/Admin? Ausweisung in der Abrechnung? → Abschnitt [3.3](#33-domain-events) |
+| H3  | Bondruck / Drucker-Integration (K-11) | Welches Druckerprotokoll und wie wird die Drucker-Konfiguration verwaltet?                             | Should-have  | ESC/POS, WebUSB, lokaler Print-Agent oder Netzwerkdrucker? Fehlerbehandlung bei Druckerausfall (Retry-Logik)? Nachdruck einzelner Positionen oder ganzer Bons? → Abschnitt [5.1](#51-bondruck)                                 |
+| H4  | KDS-Architektur (K-12)                | Welcher Echtzeit-Mechanismus für das Küchendisplay?                                                    | Should-have  | Polling, WebSockets oder Server-Sent Events? Initialer Zustandsladevorgang? Reconnect-Verhalten bei Verbindungsabbruch? Performance bei vielen gleichzeitigen Bestellungen? → Abschnitt [5.2](#52-küchendisplay-kds)           |
+| H5  | Zubereitungsstatus (K-13)             | Domain Events oder transienter UI-State? Falls Events: eigenes Aggregat oder Teil des Tisch-Aggregats? | Nice-to-have | Wiederherstellung bei Seitenrefresh? Echtzeit-Benachrichtigung an Servicekräfte? Gleiche Infrastruktur wie KDS? → Abschnitt [5.3](#53-zubereitungsstatus)                                                                      |
+| H6  | Offline-Fähigkeit (Q-05)              | Echte Offline-Fähigkeit (PWA, IndexedDB, Sync) oder nur optimistisches UI mit Fehlermeldung?           | Nice-to-have | Konfliktauflösung bei Wiederverbindung (zwei Servicekräfte offline am selben Tisch)? Netzwerkstatus-Anzeige? Empfehlung für stabile lokale Netzwerk-Infrastruktur?                                                             |
+| H7  | Tagesabschluss (R-06)                 | Wie werden offene Saldi behandelt und wie wird das System für die nächste Veranstaltung zurückgesetzt? | Nice-to-have | Manuelle Stornierung, Differenz-Event oder Verlust-Buchung für offene Saldi? Braucht es ein Konzept „Veranstaltung" als logischen Rahmen? Append-only vs. Archivierung? → Abschnitt [6.3](#63-tagesabschluss)                  |
+| H8  | Reporting-Aggregation (R-01…R-05)     | On-the-fly-Aggregation oder vorberechnete Projektionen?                                                | Should-have  | Reicht SQL-Aggregation über die Event-Tabelle? Zeitraum-Definition (pro Tag, pro Veranstaltung, frei wählbar)? Performance-Schwellenwerte für den Wechsel zu Projektionen? → Abschnitt [6.2](#62-aggregationsstrategie)        |
