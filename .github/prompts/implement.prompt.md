@@ -1,26 +1,16 @@
 ---
-description: "Implementiert den nächsten offenen Abschnitt aus einer progress.md. Beansprucht den Abschnitt per 🔒-Marker, sodass parallele Agents sich nicht in die Quere kommen."
+description: "Implementiert den nächsten offenen Abschnitt aus einer plan.md. Beansprucht den Abschnitt per 🔒-Marker, sodass parallele Agents sich nicht in die Quere kommen."
 agent: "agent"
-argument-hint: "Pfad zur progress.md (z.B. docs/agents/theory-cleanup/progress.md)"
+argument-hint: "Pfad zur plan.md (z.B. docs/agents/theory-cleanup/plan.md)"
 ---
 
 # Implementierung
 
-Lies die referenzierte progress.md und arbeite **einen Abschnitt** ab.
-
-## Kontext laden
-
-Bevor du einen Abschnitt beanspruchst, verschaffe dir den nötigen Kontext:
-
-1. **Lies `plan.md`** im selben Verzeichnis wie die progress.md — sie enthält den Gesamtplan, relevante Datei-Referenzen und Kontext-Informationen.
-2. **Lies Referenzdateien**, die in der plan.md genannt werden und für die anstehende Arbeit relevant sind.
-3. **Lies bereits erstellte/geänderte Dateien** aus vorherigen Abschnitten, um nahtlos anzuknüpfen.
-
-Dieser Schritt ist in jeder neuen Session nötig, da Kontext zwischen Sessions nicht erhalten bleibt.
+Lies die referenzierte plan.md und arbeite **einen Abschnitt** ab.
 
 ## Abschnitt auswählen und beanspruchen
 
-1. **Lies die gesamte progress.md** — insbesondere den Parallelisierungs-Abschnitt und alle Abschnitts-Überschriften.
+1. **Lies die gesamte plan.md** — insbesondere den Parallelisierungs-Abschnitt und alle Abschnitts-Überschriften.
 2. **Finde den nächsten verfügbaren Abschnitt.** Ein Abschnitt ist verfügbar, wenn:
    - Er offene Tasks hat (`- [ ]`)
    - Er **nicht** mit 🔒 oder ✅ markiert ist
@@ -33,16 +23,18 @@ Dieser Schritt ist in jeder neuen Session nötig, da Kontext zwischen Sessions n
    - Welche Abschnitte noch offen sind (falls vorhanden)
    - Warum sie nicht bearbeitet werden können (🔒 = ein anderer Agent arbeitet daran, oder Abhängigkeiten noch nicht ✅)
    - Welche Vorgänger-Abschnitte zuerst abgeschlossen werden müssen
-   - **Führe keine Änderungen an Dateien durch — weder an der progress.md noch an anderen Dateien.**
+   - **Führe keine Änderungen an Dateien durch — weder an der plan.md noch an anderen Dateien.**
+
+## Kontext laden
+
+Nachdem du einen Abschnitt beansprucht hast, lade den Kontext:
+
+1. **Lies den `Kontext:`-Block des Abschnitts** — er listet exakt die Dateien und Zeilenbereiche auf, die du für diesen Abschnitt brauchst. Lies genau diese Stellen, nicht mehr.
+2. **Lies bereits erstellte/geänderte Dateien** aus vorherigen Abschnitten, um nahtlos anzuknüpfen.
 
 ## Abschnitt abarbeiten
 
-**Befolge die Agent-Anweisungen in der progress.md exakt.** Insbesondere:
-
-- Arbeite Tasks **sequentiell** von oben nach unten
-- Hake jeden Task **sofort** nach Erledigung ab (`- [ ]` → `- [x]`)
-- Verwende beim Abhaken immer die **Abschnitts-Überschrift + den vollständigen Task-Text** als Kontext, damit die Ersetzung in der Datei eindeutig ist
-- Nach Abschluss aller Tasks im Abschnitt: **Build, Lint, Tests** ausführen
+**Befolge die Agent-Anweisungen in der plan.md exakt.** Die plan.md enthält die vollständigen Regeln für Task-Abarbeitung, Abhaken und Abschluss — halte dich an diese.
 
 ## Abschnitt abschließen
 
