@@ -123,20 +123,20 @@ Referenzdateien: `docs/design/event-storming.md` (Phase 5.1, 5.3).
 - [x] Kapitel 9.4 — Optimistic Concurrency Control schreiben: Version-Mechanismus und Retry-Pattern bei Konflikten erklären
 - [x] Kapitel 9 — Snapshot-Speicherung ergänzen: separate Speicherung (nicht im Event Stream), automatisch nach N Events oder auf Admin-Anfrage
 
-## Abschnitt 5: Architekturprinzipien und Infrastruktur
+## Abschnitt 5: Architekturprinzipien und Infrastruktur ✅
 
 Referenzdateien: aktueller `docs/design/entwurf.md` (Kapitel 5–10), `docs/anforderungen.md` (Q-01…Q-08).
 
-- [ ] Kapitel 10.1 — Schichtenarchitektur schreiben: 4-Schichten-Diagramm (HTTP → Application → Domain → Repository/Infra), kurze Beschreibung jeder Schicht, Request-Lebenszyklus-Beispiel (Bestellung aufgeben)
-- [ ] Kapitel 10.2 — API-Design-Prinzipien schreiben: POST-only, JSON, JWT-Auth, Rollenprüfung in Middleware, Fehlerformat, Bereichsgliederung (Auth/Admin/Service/Senior Service) — keine vollständige Endpunkt-Liste
-- [ ] Kapitel 10.3 — Frontend-Architektur schreiben: Mobile-first SPA, Guards, Seitenstruktur nach Bereichen, UI-Patterns (Karten, Drawer, Tabs), BackendClient-Interface — keine Framework-Versionen
-- [ ] Kapitel 10.4 — Validierung schreiben: Frontend-Schema + Backend-Schema, Backend = Single Source of Truth
-- [ ] Kapitel 10.5 — Geldbeträge schreiben: Immer Cent (Integer), durchgehend DB/Backend/API/Frontend/Events
-- [ ] Kapitel 10.6 — Mehrbenutzerfähigkeit schreiben: Paralleler Zugriff verschiedene Tische (kein Konflikt), gleicher Tisch (Optimistic Concurrency)
-- [ ] Kapitel 10.7 — Mobile-first schreiben: ≥360px, Touch-optimiert, Drawer, kein Hover, kein App-Download
-- [ ] Kapitel 10.8 — Sicherheit schreiben: HTTPS, Rate Limiting, Security Headers, Input-Validierung, Passwort-Hashing, keine Secrets im Code
-- [ ] Kapitel 11.1 — Architekturüberblick schreiben: Docker-Compose-Diagramm (nginx, Backend, PostgreSQL, Frontend, Migrate-Container)
-- [ ] Kapitel 11.2 — Deployment-Modell schreiben: Self-hosted, VPS/Raspberry Pi, Let's Encrypt, keine externe Abhängigkeit
+- [x] Kapitel 10.1 — Schichtenarchitektur schreiben: 4-Schichten-Diagramm (HTTP → Application → Domain → Repository/Infra), kurze Beschreibung jeder Schicht, Request-Lebenszyklus-Beispiel (Bestellung aufgeben)
+- [x] Kapitel 10.2 — API-Design-Prinzipien schreiben: POST-only, JSON, JWT-Auth, Rollenprüfung in Middleware, Fehlerformat, Bereichsgliederung (Auth/Admin/Service/Senior Service) — keine vollständige Endpunkt-Liste
+- [x] Kapitel 10.3 — Frontend-Architektur schreiben: Mobile-first SPA, Guards, Seitenstruktur nach Bereichen, UI-Patterns (Karten, Drawer, Tabs), BackendClient-Interface — keine Framework-Versionen
+- [x] Kapitel 10.4 — Validierung schreiben: Frontend-Schema + Backend-Schema, Backend = Single Source of Truth
+- [x] Kapitel 10.5 — Geldbeträge schreiben: Immer Cent (Integer), durchgehend DB/Backend/API/Frontend/Events
+- [x] Kapitel 10.6 — Mehrbenutzerfähigkeit schreiben: Paralleler Zugriff verschiedene Tische (kein Konflikt), gleicher Tisch (Optimistic Concurrency)
+- [x] Kapitel 10.7 — Mobile-first schreiben: ≥360px, Touch-optimiert, Drawer, kein Hover, kein App-Download
+- [x] Kapitel 10.8 — Sicherheit schreiben: HTTPS, Rate Limiting, Security Headers, Input-Validierung, Passwort-Hashing, keine Secrets im Code
+- [x] Kapitel 11.1 — Architekturüberblick schreiben: Docker-Compose-Diagramm (nginx, Backend, PostgreSQL, Frontend, Migrate-Container)
+- [x] Kapitel 11.2 — Deployment-Modell schreiben: Self-hosted, VPS/Raspberry Pi, Let's Encrypt, keine externe Abhängigkeit
 
 ## Abschnitt 6: Ubiquitous Language, Priorisierung und Offene Fragen
 
