@@ -1,10 +1,13 @@
-import { Tooltip } from '@radix-ui/react-tooltip'
 import { Pen } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { formatCents } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'

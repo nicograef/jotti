@@ -1,4 +1,3 @@
-import { Tooltip } from '@radix-ui/react-tooltip'
 import { Pencil } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -11,7 +10,11 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Switch } from '@/components/ui/switch'
-import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 import { type Tisch, TischStatus } from './Tisch'
 

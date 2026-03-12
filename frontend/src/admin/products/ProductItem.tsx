@@ -1,4 +1,3 @@
-import { Tooltip } from '@radix-ui/react-tooltip'
 import {
   ChevronDown,
   ChevronUp,
@@ -18,7 +17,11 @@ import {
   ItemDescription,
   ItemTitle,
 } from '@/components/ui/item'
-import { TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 import { NewVariantDialog } from './NewVariantDialog'
 import {
