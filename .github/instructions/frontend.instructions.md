@@ -126,7 +126,7 @@ const NameSchema = z
   .min(3, { message: "Das sieht nicht nach einem echten Namen aus." })
   .max(50, { message: "Der Name ist zu lang." });
 
-const PriceCentsSchema = z
+const PreisCentsSchema = z
   .number()
   .int()
   .min(0, { message: "Preis muss mindestens 0 Cent sein." });

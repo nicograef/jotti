@@ -280,7 +280,7 @@ func TestUpdateVariant(t *testing.T) {
 	v := product.Variante{
 		ID:         variantID,
 		Name:       "1.0L",
-		PriceCents: 499,
+		PreisCents: 499,
 		Status:     product.InactiveStatus,
 	}
 	err := repo.UpdateVariant(ctx, v)
@@ -305,7 +305,7 @@ func TestUpdateVariant_NotFound(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	err := repo.UpdateVariant(ctx, product.Variante{ID: 999999, Name: "Test", PriceCents: 100, Status: product.ActiveStatus})
+	err := repo.UpdateVariant(ctx, product.Variante{ID: 999999, Name: "Test", PreisCents: 100, Status: product.ActiveStatus})
 
 	if err != dbpkg.ErrNotFound {
 		t.Fatalf("Expected ErrNotFound, got %v", err)
