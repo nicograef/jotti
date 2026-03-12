@@ -11,4 +11,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    // Proxy /api to Go backend (replaces nginx reverse proxy in dev)
+    proxy: {
+      '/api': {
+        target: `http://${process.env.BACKEND_HOST ?? 'localhost'}:3000`,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
 })

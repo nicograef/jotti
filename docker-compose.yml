@@ -1,9 +1,9 @@
-name: jotti-proxy
+name: jotti-dev
 
 services:
   postgres:
     image: postgres:17.8
-    container_name: jotti-postgres
+    container_name: jotti-postgres-dev
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -12,7 +12,9 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - db-network
+      - app-network
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d jotti"]
       interval: 5s
@@ -23,12 +25,12 @@ services:
     build:
       context: ./database/migrate
       dockerfile: Dockerfile
-    container_name: jotti-migrate
+    container_name: jotti-migrate-dev
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
-      - db-network
+      - app-network
     volumes:
       - ./database/migrations:/migrations
     depends_on:
@@ -36,12 +38,10 @@ services:
         condition: service_healthy
     restart: "no"
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: jotti-backend
-    restart: unless-stopped
+  backend-dev:
+    image: golang:1.26.0-alpine
+    container_name: jotti-backend-dev
+    working_dir: /src
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -49,81 +49,39 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DBNAME: jotti
       JWT_SECRET: ${JWT_SECRET}
+    command: sh -c "go mod download && go run ./main.go"
+    volumes:
+      - ./backend:/src
     networks:
       - app-network
-      - db-network
     depends_on:
       migrate:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: "1.0"
-    # No exposed ports; reachable only via reverse proxy
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: jotti-frontend
-    restart: unless-stopped
-    networks:
-      - app-network
-    depends_on:
-      backend:
-        condition: service_started
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: "0.5"
-    # No exposed ports; served via reverse proxy
-
-  reverse-proxy:
-    image: nginx:1.27-alpine
-    container_name: jotti-reverse-proxy
-    restart: unless-stopped
+  frontend-dev:
+    image: node:24-alpine
+    container_name: jotti-frontend-dev
+    working_dir: /app
+    environment:
+      NODE_ENV: development
+      CI: "true"
+      BACKEND_HOST: backend-dev
+    command: sh -c "corepack enable && pnpm install && pnpm run dev --host"
     ports:
-      - "80:80"
-      - "443:443"
+      - "80:5173"
     volumes:
-      - ./reverse-proxy/nginx.conf:/etc/nginx/conf.d/jotti.conf:ro
-      - certbot-challenges:/var/www/certbot
-      - letsencrypt:/etc/letsencrypt
+      - ./frontend:/app
     networks:
       - app-network
     depends_on:
-      frontend:
+      backend-dev:
         condition: service_started
-      backend:
-        condition: service_started
-
-  certbot:
-    image: certbot/certbot:v2.11.0
-    container_name: jotti-certbot
-    restart: unless-stopped
-    volumes:
-      - certbot-challenges:/var/www/certbot
-      - letsencrypt:/etc/letsencrypt
-    networks:
-      - app-network
-    depends_on:
-      reverse-proxy:
-        condition: service_started
-    entrypoint: /bin/sh
-    command: -c "while true; do certbot renew --webroot -w /var/www/certbot --quiet --deploy-hook 'nginx -s reload'; sleep 24h; done"
 
 networks:
   app-network:
     driver: bridge
-  db-network:
-    driver: bridge
-    internal: true
 
 volumes:
   postgres-data:
-  certbot-challenges:
-  letsencrypt:

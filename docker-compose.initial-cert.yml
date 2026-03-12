@@ -1,4 +1,4 @@
-name: jotti-proxy
+name: jotti
 
 services:
   reverse-proxy:

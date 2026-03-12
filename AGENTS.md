@@ -34,6 +34,9 @@ Alle Befehle werden über das **Makefile** im Projekt-Root ausgeführt:
 | `make sqlc`             | sqlc Code generieren (nach Query-Änderungen) |
 | `make dev`              | Dev-Stack starten (Docker Compose)           |
 | `make down`             | Dev-Stack stoppen                            |
+| `make prod-init`        | Ersteinrichtung Produktion (Zertifikate)     |
+| `make prod-up`          | Produktions-Stack starten                    |
+| `make prod-down`        | Produktions-Stack stoppen                    |
 
 Siehe `make help` für die vollständige Liste.
 

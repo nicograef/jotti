@@ -21,7 +21,7 @@ DOMAIN_WWW="www.jotti.rocks"
 EMAIL="graef.nico@gmail.com"
 
 COMPOSE_CERT="docker-compose.initial-cert.yml"
-COMPOSE_PROD="docker-compose.yml"
+COMPOSE_PROD="docker-compose.prod.yml"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -173,7 +173,7 @@ echo ""
 echo "  Useful commands:"
 echo "    make prod-up     — Rebuild & restart"
 echo "    make prod-down   — Stop all services"
-echo "    docker compose logs -f  — Follow logs"
+echo "    make prod-logs   — Follow logs"
 echo ""
 echo "  Certificates renew automatically every 24h."
 echo "=========================================="

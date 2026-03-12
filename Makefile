@@ -1,13 +1,13 @@
 .PHONY: dev dev-up down restart logs status \
-       test test-integration \
-       lint-backend lint-frontend lint \
+       test test-frontend test-integration test-all \
+       lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt \
        build-backend build-frontend build \
        sqlc \
-       staging staging-down staging-logs \
-       prod-up prod-down prod-reset-db init \
+       prod-init prod-up prod-down prod-logs prod-reset-db \
        db-shell seed \
        clean \
+       check-backend check-frontend check \
        help
 
 # ──────────────────────────────────────────────
@@ -15,21 +15,21 @@
 # ──────────────────────────────────────────────
 
 dev: ## Dev-Stack starten (docker compose, detached)
-	docker compose -f docker-compose.dev.yml up --build -d
+	docker compose up --build -d
 
 dev-up: ## Dev-Stack starten (Vordergrund, mit Logs)
-	docker compose -f docker-compose.dev.yml up --build
+	docker compose up --build
 
 down: ## Dev-Stack stoppen
-	docker compose -f docker-compose.dev.yml down
+	docker compose down
 
 restart: down dev ## Dev-Stack neu starten
 
 logs: ## Dev-Stack Logs folgen
-	docker compose -f docker-compose.dev.yml logs -f
+	docker compose logs -f
 
 status: ## Status aller Dev-Container anzeigen
-	docker compose -f docker-compose.dev.yml ps
+	docker compose ps
 
 # ──────────────────────────────────────────────
 # Tests                                         
@@ -93,35 +93,25 @@ sqlc: ## sqlc Code generieren (aus SQL-Queries)
 	cd backend && sqlc generate
 
 # ──────────────────────────────────────────────
-# Staging                                       
-# ──────────────────────────────────────────────
-
-staging: ## Staging-Stack starten (Vordergrund)
-	docker compose -f docker-compose.staging.yml up --build
-
-staging-down: ## Staging-Stack stoppen
-	docker compose -f docker-compose.staging.yml down
-
-staging-logs: ## Staging-Stack Logs folgen
-	docker compose -f docker-compose.staging.yml logs -f
-
-# ──────────────────────────────────────────────
 # Produktion                                    
 # ──────────────────────────────────────────────
 
+prod-init: ## Ersteinrichtung Produktion (Zertifikate, Stack)
+	./scripts/prod-init.sh
+
 prod-up: ## Produktions-Stack starten
-	docker compose up -d --build
+	docker compose -f docker-compose.prod.yml up -d --build
 
 prod-down: ## Produktions-Stack stoppen
-	docker compose down
+	docker compose -f docker-compose.prod.yml down
+
+prod-logs: ## Produktions-Stack Logs folgen
+	docker compose -f docker-compose.prod.yml logs -f
 
 prod-reset-db: ## Prod-DB zurücksetzen (Zertifikate bleiben erhalten)
-	docker compose down
+	docker compose -f docker-compose.prod.yml down
 	docker volume rm $$(docker volume ls -q --filter name=_postgres-data | head -1)
-	docker compose up -d --build
-
-init: ## Ersteinrichtung Produktion (Zertifikate, Stack)
-	./scripts/prod-init.sh
+	docker compose -f docker-compose.prod.yml up -d --build
 
 # ──────────────────────────────────────────────
 # Datenbank                                     
@@ -131,7 +121,7 @@ db-shell: ## psql-Shell im Dev-Postgres öffnen
 	docker exec -it jotti-postgres-dev psql -U $${POSTGRES_USER:-admin} -d jotti
 
 PG_CONTAINER ?= jotti-postgres-dev
-seed: ## Demo-Daten einspielen (PG_CONTAINER=jotti-postgres für Staging/Prod)
+seed: ## Demo-Daten einspielen (PG_CONTAINER=jotti-postgres für Prod)
 	docker exec -i $(PG_CONTAINER) psql -U $${POSTGRES_USER:-admin} -d jotti < database/seed.sql
 
 # ──────────────────────────────────────────────
@@ -139,7 +129,7 @@ seed: ## Demo-Daten einspielen (PG_CONTAINER=jotti-postgres für Staging/Prod)
 # ──────────────────────────────────────────────
 
 clean: down ## Dev-Stack stoppen und Volumes entfernen
-	docker compose -f docker-compose.dev.yml down -v
+	docker compose down -v
 
 # ──────────────────────────────────────────────
 # Qualitätsprüfung (CI-nah)                     
