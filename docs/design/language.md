@@ -28,6 +28,35 @@ Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktual
 | Frontend-Routen           | Englisch | kebab-case                 | `/service/tables`, `/admin/products`            |
 | Auth/Infrastruktur-Code   | Englisch | Sprachübliche Konventionen | `User`, `Role`, `Token`, `Config`               |
 
+> **Pfadkonvention:** Dateipfade in den Tabellen sind relativ angegeben — `domain/…` und `api/…` liegen unter `backend/`, `src/…` unter `frontend/`, `migrations/…` unter `database/`.
+
+## Abweichungen: Ist-Zustand vs. Soll-Zustand
+
+Die folgende Tabelle dokumentiert Abweichungen zwischen den aktuellen Code-Bezeichnungen und den durch die Ubiquitous Language definierten Soll-Bezeichnungen.
+
+### Handlungsbedarf (Refactoring geplant)
+
+| Begriff   | Ist (Code)   | Soll         | Priorität | Scope                                                                      |
+| --------- | ------------ | ------------ | --------- | -------------------------------------------------------------------------- |
+| Produkt   | `Product`    | `Produkt`    | Mittel    | Go-Struct, TS-Typ, JSON-Keys. API-Pfade bereits korrekt.                   |
+| Variante  | `Variant`    | `Variante`   | Mittel    | Go-Struct, TS-Typ, JSON-Keys. API-Pfade bereits korrekt.                   |
+| Kategorie | `Category`   | `Kategorie`  | Mittel    | Go-Typ + Konstanten, TS-Typ.                                               |
+| Preis     | `PriceCents` | `PreisCents` | Mittel    | Go-Feld + JSON-Key in `Variant`. Position ist bereits korrekt.             |
+| Kommentar | `Comment`    | `Kommentar`  | Mittel    | Go-Feld, JSON-Key, TS-Feld in Bestellung, Zahlung, Lieferung, Stornierung. |
+| Menge     | `Quantity`   | `Menge`      | Mittel    | Go-Feld, JSON-Key, TS-Feld in Position.                                    |
+
+> **Hinweis:** Alle Änderungen sind Breaking Changes für die API (JSON-Keys ändern sich). Frontend und Backend müssen koordiniert umgestellt werden.
+
+### Kein Handlungsbedarf (bewusst korrekt)
+
+| Bereich         | Ist (Code)                                        | Begründung                                                                                      |
+| --------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| DB-Tabellen     | `tables`, `products`, `users`, `product_variants` | Englisch ist korrekt — DB-Schicht ist Infrastruktur.                                            |
+| Frontend-Routen | `/admin/products`, `/service/tables`              | Englisch ist korrekt — Routen sind Infrastruktur.                                               |
+| Auth-Code       | `User`, `Role`, `OnetimePassword`                 | Englisch ist korrekt — Generic Sub-Domain.                                                      |
+| Status-Enums    | `active`, `inactive`, `deleted`                   | Englisch ist korrekt — DB-Enums sind Infrastruktur.                                             |
+| Kassenjournal   | `Historie` (Code) vs. `Kassenjournal` (Entwurf)   | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert. |
+
 ## Kassenbetrieb (Core Domain)
 
 ### Tisch
@@ -164,18 +193,6 @@ Anzahl einer Produktvariante innerhalb einer Position.
 
 > **Soll-Hinweis:** Im Code aktuell `Quantity` (englisch) — soll langfristig `Menge` heißen (Go-Feld, JSON-Key `"menge"`, TS-Feld). Betrifft: `bestellung.go` Position-Struct + TS Position-Typ.
 
-### Bezeichnung
-
-Optionaler Name einer Bestellung (z. B. „Familie Müller"), um Gruppen am selben Tisch zu unterscheiden.
-
-> **Hinweis:** Noch nicht implementiert (geplant für K-07).
-
-### Freibon
-
-Sonderposition außerhalb des Produktkatalogs — mit freier Bezeichnung und Preiseingabe. Erzeugt ein `FreibonAusgestellt`-Event.
-
-> **Hinweis:** Noch nicht implementiert.
-
 ## Stammdaten (Supporting Sub-Domain)
 
 ### Produkt
@@ -291,64 +308,6 @@ JWT (JSON Web Token) mit Benutzer-ID und Rolle, 12 Stunden gültig. Dient der Au
 
 Reiner Infrastruktur-Begriff — Englisch im Code ist korrekt.
 
-## Ausgabe (Supporting Sub-Domain)
-
-### Bon
-
-Gedruckter Beleg mit Tisch, Servicekraft, Positionen, Mengen, Zeitstempel und optionalem Kommentar.
-
-> **Hinweis:** Noch nicht implementiert.
-
-### Küchendisplay (KDS)
-
-Echtzeit-Anzeige offener Bestellungen an der Ausgabestation, gruppiert nach Tisch und gefiltert nach Kategorie.
-
-> **Hinweis:** Noch nicht implementiert.
-
-### Zubereitungsstatus
-
-Status einer Position an der Ausgabestation: offen → in Zubereitung → fertig.
-
-> **Hinweis:** Noch nicht implementiert.
-
-### Ausgabestation
-
-Physischer Ort (Küche, Getränketheke), an dem Positionen zubereitet und ausgegeben werden.
-
-> **Hinweis:** Noch nicht implementiert.
-
-## Abrechnung (Supporting Sub-Domain)
-
-### Tagesabrechnung
-
-Übersicht über Gesamtumsatz, Stornierungen und Umsatz pro Servicekraft — jederzeit vom Admin abrufbar.
-
-> **Hinweis:** Noch nicht implementiert.
-
-### Umsatz
-
-Summe aller registrierten Zahlungen in einem bestimmten Zeitraum. Immer in Cent.
-
-> **Hinweis:** Noch nicht implementiert.
-
-### Stornoquote
-
-Verhältnis von Stornierungsbetrag zu Bestellsumme. Indikator für Fehler oder Unregelmäßigkeiten.
-
-> **Hinweis:** Noch nicht implementiert.
-
-### Tagesabschluss
-
-Administrativer Vorgang zum Ende einer Veranstaltung: offene Tische prüfen, Abschlussbericht generieren, optional System zurücksetzen.
-
-> **Hinweis:** Noch nicht implementiert.
-
-### Export
-
-CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Vereinsbuchhaltung.
-
-> **Hinweis:** Noch nicht implementiert.
-
 ## Übergreifende Prinzipien
 
 ### Event-Sourcing
@@ -371,41 +330,45 @@ Grundprinzip des Event Streams: Events werden nur hinzugefügt, nie geändert od
 
 Vorberechneter Zwischenstand des Tisch-Zustands. Rein technische Performance-Optimierung ohne fachliche Bedeutung — beim Replay wird nur ab dem letzten Snapshot gelesen statt ab dem ersten Event.
 
-> **Hinweis:** Der Entwurf beschreibt Snapshots als „separat vom Event Stream gespeichert". In der Implementierung werden Snapshots als eigener Event-Typ (`tisch.snapshot:v1`) in der `events`-Tabelle gespeichert — also innerhalb des Event Streams. Diese Abweichung ist eine bewusste Vereinfachung der Persistenzschicht.
+> **Hinweis:** In der Implementierung werden Snapshots als eigener Event-Typ (`tisch.snapshot:v1`) in der `events`-Tabelle gespeichert — eine bewusste Vereinfachung der Persistenzschicht.
 
 ### BYOD
 
 Bring Your Own Device — Servicekräfte nutzen ihre eigenen Smartphones. Das System ist Mobile-first konzipiert und läuft vollständig im Browser, ohne App-Installation.
 
-## Abweichungen: Ist-Zustand vs. Soll-Zustand
+## Geplant (nicht implementiert)
 
-Die folgende Tabelle dokumentiert Abweichungen zwischen den aktuellen Code-Bezeichnungen und den durch die Ubiquitous Language definierten Soll-Bezeichnungen.
+Die folgenden Begriffe sind in der Ubiquitous Language definiert, aber noch nicht im Code implementiert.
 
-### Handlungsbedarf (Refactoring geplant)
+### Kassenbetrieb
 
-| Begriff   | Ist (Code)   | Soll         | Priorität | Scope                                                                      |
-| --------- | ------------ | ------------ | --------- | -------------------------------------------------------------------------- |
-| Produkt   | `Product`    | `Produkt`    | Mittel    | Go-Struct, TS-Typ, JSON-Keys. API-Pfade bereits korrekt.                   |
-| Variante  | `Variant`    | `Variante`   | Mittel    | Go-Struct, TS-Typ, JSON-Keys. API-Pfade bereits korrekt.                   |
-| Kategorie | `Category`   | `Kategorie`  | Mittel    | Go-Typ + Konstanten, TS-Typ.                                               |
-| Preis     | `PriceCents` | `PreisCents` | Mittel    | Go-Feld + JSON-Key in `Variant`. Position ist bereits korrekt.             |
-| Kommentar | `Comment`    | `Kommentar`  | Mittel    | Go-Feld, JSON-Key, TS-Feld in Bestellung, Zahlung, Lieferung, Stornierung. |
-| Menge     | `Quantity`   | `Menge`      | Mittel    | Go-Feld, JSON-Key, TS-Feld in Position.                                    |
+| Begriff         | Bedeutung                                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Bezeichnung** | Optionaler Name einer Bestellung (z. B. „Familie Müller"), um Gruppen am selben Tisch zu unterscheiden. Geplant: K-07.          |
+| **Freibon**     | Sonderposition außerhalb des Produktkatalogs — mit freier Bezeichnung und Preiseingabe. Erzeugt ein `FreibonAusgestellt`-Event. |
 
-> **Hinweis:** Alle Änderungen sind Breaking Changes für die API (JSON-Keys ändern sich). Frontend und Backend müssen koordiniert umgestellt werden.
+### Ausgabe (Supporting Sub-Domain)
 
-### Kein Handlungsbedarf (bewusst korrekt)
+| Begriff                 | Bedeutung                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Bon**                 | Gedruckter Beleg mit Tisch, Servicekraft, Positionen, Mengen, Zeitstempel und optionalem Kommentar.             |
+| **Küchendisplay (KDS)** | Echtzeit-Anzeige offener Bestellungen an der Ausgabestation, gruppiert nach Tisch und gefiltert nach Kategorie. |
+| **Zubereitungsstatus**  | Status einer Position an der Ausgabestation: offen → in Zubereitung → fertig.                                   |
+| **Ausgabestation**      | Physischer Ort (Küche, Getränketheke), an dem Positionen zubereitet und ausgegeben werden.                      |
 
-| Bereich         | Ist (Code)                                        | Begründung                                                                                      |
-| --------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| DB-Tabellen     | `tables`, `products`, `users`, `product_variants` | Englisch ist korrekt — DB-Schicht ist Infrastruktur.                                            |
-| Frontend-Routen | `/admin/products`, `/service/tables`              | Englisch ist korrekt — Routen sind Infrastruktur.                                               |
-| Auth-Code       | `User`, `Role`, `OnetimePassword`                 | Englisch ist korrekt — Generic Sub-Domain.                                                      |
-| Status-Enums    | `active`, `inactive`, `deleted`                   | Englisch ist korrekt — DB-Enums sind Infrastruktur.                                             |
-| Kassenjournal   | `Historie` (Code) vs. `Kassenjournal` (Entwurf)   | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert. |
+### Abrechnung (Supporting Sub-Domain)
+
+| Begriff             | Bedeutung                                                                                                                              |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tagesabrechnung** | Übersicht über Gesamtumsatz, Stornierungen und Umsatz pro Servicekraft — jederzeit vom Admin abrufbar.                                 |
+| **Umsatz**          | Summe aller registrierten Zahlungen in einem bestimmten Zeitraum. Immer in Cent.                                                       |
+| **Stornoquote**     | Verhältnis von Stornierungsbetrag zu Bestellsumme. Indikator für Fehler oder Unregelmäßigkeiten.                                       |
+| **Tagesabschluss**  | Administrativer Vorgang zum Ende einer Veranstaltung: offene Tische prüfen, Abschlussbericht generieren, optional System zurücksetzen. |
+| **Export**          | CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Vereinsbuchhaltung.                                                   |
 
 ## Änderungshistorie
 
-| Datum      | Änderung                                                             |
-| ---------- | -------------------------------------------------------------------- |
-| 2026-03-12 | Initiale Version erstellt aus Entwurf Abschnitt 12 und Code-Analyse. |
+| Datum      | Änderung                                                                        |
+| ---------- | ------------------------------------------------------------------------------- |
+| 2026-03-12 | Initiale Version erstellt aus Entwurf Abschnitt 12 und Code-Analyse.            |
+| 2026-03-12 | Restrukturierung: Abweichungstabelle nach oben, Geplant-Abschnitt konsolidiert. |

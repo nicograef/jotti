@@ -6,7 +6,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellung
 
 **Bewusst NICHT enthalten:** Kartenzahlung, TSE/KassenSichV, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM, Kiosk-Modus. Diese Reduktion ist gewollt — jedes zusätzliche Feature erhöht Komplexität für ehrenamtliche Teams.
 
-Weiterführende Docs: [Produktbeschreibung](docs/produktbeschreibung.md) · [Anforderungen](docs/anforderungen.md) · [Entwicklung](docs/development.md) · [Ubiquitous Language](docs/language.md) · [Event Storming](docs/event-storming.md) · [Lizenz](docs/lizenz-und-nutzung.md)
+Weiterführende Docs: [Entwickler-Handbuch](docs/design/handbuch.md) · [Ubiquitous Language](docs/design/language.md) · [Produktbeschreibung](docs/produktbeschreibung.md) · [Anforderungen](docs/anforderungen.md) · [Event Storming](docs/design/event-storming.md) · [Lizenz](docs/lizenz-und-nutzung.md)
 
 ## Tech-Stack
 

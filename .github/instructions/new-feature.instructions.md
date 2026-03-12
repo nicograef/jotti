@@ -21,3 +21,8 @@ description: "Use when adding a new feature, endpoint, API route, page, or imple
 3. Custom Hook via `useFetch<T>()` aus `@/lib/useFetch`
 4. React-Komponenten
 5. Route in `src/routes.ts` registrieren
+
+## Wichtige Referenzen
+
+- **Namenskonventionen pro Schicht (Deutsch/Englisch, Casing):** [docs/design/language.md](../../docs/design/language.md)
+- **Architektur, Invarianten, Read Models:** [docs/design/handbuch.md](../../docs/design/handbuch.md)

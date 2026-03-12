@@ -26,3 +26,8 @@ Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/table/events.g
 ## Event-Store
 
 Tabelle: `events` (append-only). Repository: `backend/repository/event_repo/`.
+
+## Weiterführende Dokumentation
+
+- **Invarianten, Event-Strukturen, Replay-Logik:** [docs/design/handbuch.md](../../docs/design/handbuch.md) Kap. 3 (Kassenbetrieb)
+- **Namenskonventionen für Events und Felder:** [docs/design/language.md](../../docs/design/language.md)

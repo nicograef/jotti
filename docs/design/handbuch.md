@@ -38,7 +38,7 @@
    - [6.7 Sicherheit](#67-sicherheit)
 7. [Read Models](#7-read-models)
 8. [Priorisierung](#8-priorisierung)
-9. [Ubiquitous Language](#9-ubiquitous-language)
+9. [Ubiquitous Language](#9-ubiquitous-language) → [language.md](language.md)
 
 ---
 
@@ -269,8 +269,8 @@ Der Tisch-Zustand wird bei jedem Zugriff aus dem Event Stream berechnet:
 
 **Snapshot-Regeln:**
 
-1. Snapshots werden **separat gespeichert** (nicht im Event Stream) — der Event Stream enthält ausschließlich fachliche Domain Events.
-2. Snapshots können **jederzeit gelöscht und neu berechnet** werden, ohne den Event Stream zu verändern.
+1. Snapshots werden als eigener Event-Typ (`tisch.snapshot:v1`) in der `events`-Tabelle gespeichert — eine bewusste Vereinfachung gegenüber dem ursprünglichen Entwurf, der separate Speicherung vorsah.
+2. Snapshots können **jederzeit gelöscht und neu berechnet** werden, ohne die fachlichen Events zu verändern.
 3. Erzeugung **nach N Events** oder **auf Admin-Anfrage**. Für die erwartete Größenordnung (< 200 Events pro Tisch) ist ein vollständiger Replay performant genug.
 
 ### 3.5 Policies
@@ -633,68 +633,4 @@ Drei Stufen: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wic
 
 ## 9. Ubiquitous Language
 
-Alle Fachbegriffe der Domäne sind deutsch. Infrastruktur-Begriffe (Token, Login, JWT) bleiben englisch. Diese Terminologie ist im gesamten Team verbindlich — in Dokumentation, Code (Domänenschicht), UI und Kommunikation.
-
-### Kassenbetrieb (Core Domain)
-
-| Begriff           | Bedeutung                                                                                                                              |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Tisch**         | Zentrales Aggregat im Kassenbetrieb. Trägt einen Event Stream, aus dem sich der aktuelle Zustand (Saldo, offene Positionen) berechnet. |
-| **Bestellung**    | Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufgibt. Erzeugt ein `BestellungAufgegeben`-Event.                   |
-| **Position**      | Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einzelpreis.                                                |
-| **Lieferung**     | Die Bestätigung, dass bestellte Positionen dem Gast übergeben wurden. Erzeugt ein `ProdukteGeliefert`-Event.                           |
-| **Zahlung**       | Die Registrierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen (Teilzahlung). Erzeugt ein `ZahlungRegistriert`-Event.  |
-| **Stornierung**   | Die nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. Erzeugt ein `ProdukteStorniert`-Event.         |
-| **Saldo**         | Der offene Betrag eines Tisches: Summe der Bestellungen − Summe der Zahlungen − Summe der Stornierungen. Immer in Cent.                |
-| **Kassenjournal** | Der vollständige, unveränderliche Event Stream eines Tisches. Enthält alle Operationen in chronologischer Reihenfolge.                 |
-| **Bezeichnung**   | Optionaler Name einer Bestellung (z. B. „Familie Müller"), um Gruppen am selben Tisch zu unterscheiden.                                |
-| **Kommentar**     | Optionale Freitextnotiz zu einer Bestellung, Zahlung, Lieferung oder Stornierung (max. 100 Zeichen).                                   |
-| **Freibon**       | Sonderposition außerhalb des Produktkatalogs — mit freier Bezeichnung und Preiseingabe. Erzeugt ein `FreibonAusgestellt`-Event.        |
-
-### Stammdaten (Supporting Sub-Domain)
-
-| Begriff         | Bedeutung                                                                                                                              |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Produkt**     | Ein Artikel im Produktkatalog (z. B. „Bratwurst", „Radler"). Gehört zu einer Kategorie.                                                |
-| **Variante**    | Eine konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. „Halbe 0,5 l" für 3,50 €).                          |
-| **Kategorie**   | Gruppierung von Produkten: Essen (`food`), Getränke (`beverage`) oder Sonstiges (`other`). Bestimmt die Zuordnung zu Ausgabestationen. |
-| **Preis**       | Immer ganzzahlig in Cent. Niemals Fließkommazahlen. 3,50 € = 350 Cent.                                                                 |
-| **Soft-Delete** | Logisches Löschen durch Status-Änderung auf `deleted`. Der Datensatz bleibt erhalten, ist aber im aktiven Betrieb unsichtbar.          |
-
-### Authentifizierung (Generic Sub-Domain)
-
-| Begriff            | Bedeutung                                                                                  |
-| ------------------ | ------------------------------------------------------------------------------------------ |
-| **Rolle**          | Berechtigungsstufe eines Benutzers: `admin`, `senior_service` oder `service`.              |
-| **Einmalpasswort** | Vom Admin generiertes 6-stelliges Passwort für die Erstanmeldung oder nach Passwort-Reset. |
-| **Token**          | JWT mit Benutzer-ID und Rolle, 12 Stunden gültig. Wird bei jedem API-Aufruf mitgesendet.   |
-
-### Ausgabe (Supporting Sub-Domain)
-
-| Begriff                 | Bedeutung                                                                                                       |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Bon**                 | Gedruckter Beleg mit Tisch, Servicekraft, Positionen, Mengen, Zeitstempel und optionalem Kommentar.             |
-| **Küchendisplay (KDS)** | Echtzeit-Anzeige offener Bestellungen an der Ausgabestation, gruppiert nach Tisch und gefiltert nach Kategorie. |
-| **Zubereitungsstatus**  | Status einer Position an der Ausgabestation: offen → in Zubereitung → fertig.                                   |
-| **Ausgabestation**      | Physischer Ort (Küche, Getränketheke), an dem Positionen zubereitet und ausgegeben werden.                      |
-
-### Abrechnung (Supporting Sub-Domain)
-
-| Begriff             | Bedeutung                                                                                                                              |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Tagesabrechnung** | Übersicht über Gesamtumsatz, Stornierungen und Umsatz pro Servicekraft — jederzeit vom Admin abrufbar.                                 |
-| **Umsatz**          | Summe aller registrierten Zahlungen in einem bestimmten Zeitraum. In Cent.                                                             |
-| **Stornoquote**     | Verhältnis von Stornierungsbetrag zu Bestellsumme. Indikator für Fehler oder Unregelmäßigkeiten.                                       |
-| **Tagesabschluss**  | Administrativer Vorgang zum Ende einer Veranstaltung: offene Tische prüfen, Abschlussbericht generieren, optional System zurücksetzen. |
-| **Export**          | CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Vereinsbuchhaltung.                                                   |
-
-### Übergreifende Prinzipien
-
-| Prinzip                         | Bedeutung                                                                                                                                                 |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Event-Sourcing**              | Persistenzmuster für den Kassenbetrieb: Zustand wird nicht direkt gespeichert, sondern aus unveränderlichen Events berechnet.                             |
-| **Fat Event**                   | Event, das alle relevanten Daten zum Zeitpunkt der Aktion enthält (inkl. Produktname, Preis) — unabhängig von späteren Stammdaten-Änderungen.             |
-| **Anti-Corruption Layer (ACL)** | Schutzmechanismus zwischen Bounded Contexts: Der Kassenbetrieb friert Stammdaten in Events ein und ist damit unabhängig von nachträglichen Änderungen.    |
-| **Append-only**                 | Grundprinzip des Event Streams: Events werden nur hinzugefügt, nie geändert oder gelöscht.                                                                |
-| **Snapshot**                    | Vorberechneter Zwischenstand des Tisch-Zustands. Rein technische Performance-Optimierung ohne fachliche Bedeutung — separat vom Event Stream gespeichert. |
-| **BYOD**                        | Bring Your Own Device — Servicekräfte nutzen ihre eigenen Smartphones.                                                                                    |
+Alle Fachbegriffe, Namenskonventionen pro Schicht, Code-Mappings und Ist-vs-Soll-Abweichungen: siehe **[Ubiquitous Language (language.md)](language.md)**.

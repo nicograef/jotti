@@ -56,6 +56,11 @@ Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `a
 
 Unit-Tests mit `//go:build unit` Tag. Ausführen: `make test`
 
+## Weiterführende Dokumentation
+
+- **Schichtenarchitektur, API-Design, Validierung, OCC:** [docs/design/handbuch.md](../../docs/design/handbuch.md) Kap. 6
+- **Namenskonventionen (Deutsch/Englisch pro Schicht, Ist vs. Soll):** [docs/design/language.md](../../docs/design/language.md)
+
 ## Code-Beispiele
 
 ### HTTP-Handler

@@ -47,6 +47,11 @@ frontend/
 - `cn()` Utility aus `src/lib/utils.ts` (`clsx` + `tailwind-merge`)
 - Path-Alias: `@/` → `./src/`
 
+## Weiterführende Dokumentation
+
+- **Namenskonventionen (UI-Labels deutsch, Code-Mappings, Ist vs. Soll):** [docs/design/language.md](../../docs/design/language.md)
+- **Architektur, Frontend-Patterns, Validierung:** [docs/design/handbuch.md](../../docs/design/handbuch.md) Kap. 6
+
 ## Code-Beispiele
 
 ### Backend-Client-Klasse
