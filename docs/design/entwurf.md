@@ -65,7 +65,7 @@ Der Entwurf beschreibt _was_ und _warum_ — keine Implementierungsdetails, kein
 11. [Infrastruktur und Deployment](#11-infrastruktur-und-deployment)
     - 11.1 [Architekturüberblick](#111-architekturüberblick)
     - 11.2 [Deployment-Modell](#112-deployment-modell)
-12. [Ubiquitous Language](#12-ubiquitous-language)
+12. [Ubiquitous Language](#12-ubiquitous-language) — vollständige Version: [language.md](language.md)
 13. [Priorisierung und Ausbaustufen](#13-priorisierung-und-ausbaustufen)
     - 13.1 [Stufe 1 — Must-have (MVP)](#131-stufe-1--must-have-mvp)
     - 13.2 [Stufe 2 — Should-have](#132-stufe-2--should-have)
@@ -1153,6 +1153,8 @@ jotti ist self-hosted — keine Cloud-Abhängigkeit, kein SaaS.
 ---
 
 ## 12. Ubiquitous Language
+
+> **Hinweis:** Dieser Abschnitt ist eine Zusammenfassung. Die vollständige und aktuelle Ubiquitous Language — inklusive Code-Mappings, Namenskonventionen pro Schicht und Abweichungstabelle — wird in [language.md](language.md) gepflegt.
 
 Alle Fachbegriffe der Domäne sind deutsch — die Domäne ist deutsch, die Benutzer sind deutsch, die Sprache soll das widerspiegeln. Infrastruktur-Begriffe (Token, Login, JWT) bleiben englisch. Die folgende Terminologie ist im gesamten Team verbindlich — in Dokumentation, Code (Domänenschicht), UI und Kommunikation.
 
