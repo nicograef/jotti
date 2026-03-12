@@ -25,7 +25,7 @@ const PreisCentsSchema = z
   .number()
   .int()
   .min(0, { message: 'Preis muss mindestens 0 Cent sein.' })
-const CategorySchema = z.enum(['food', 'beverage', 'other'])
+const KategorieSchema = z.enum(['food', 'beverage', 'other'])
 const VarianteStatusSchema = z.enum(['active', 'inactive'])
 const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {
   message: 'Ungültiges Datumsformat',
@@ -43,7 +43,7 @@ export type Variante = z.infer<typeof VarianteSchema>
 export const ProduktSchema = z.object({
   id: ProduktIdSchema,
   name: NameSchema,
-  category: CategorySchema,
+  kategorie: KategorieSchema,
   variants: z.array(VarianteSchema),
   createdAt: DateStringSchema,
 })

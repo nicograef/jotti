@@ -37,7 +37,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
   const form = useForm<FormData>({
     defaultValues: {
       name: props.product.name,
-      category: props.product.category,
+      kategorie: props.product.kategorie,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',

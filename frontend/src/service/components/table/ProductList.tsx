@@ -55,7 +55,7 @@ export function ProductList(props: ProductListComponentProps) {
     <div className="my-4 space-y-6">
       {KategorieOrder.map((category) => {
         const categoryProducts = props.products.filter(
-          (p) => p.category === category,
+          (p) => p.kategorie === category,
         )
         if (categoryProducts.length === 0) return null
 

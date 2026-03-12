@@ -80,7 +80,7 @@ export function ProductItem(props: ProductItemProps) {
     <Item variant="outline" className="flex-col items-stretch">
       <div className="flex items-center gap-4">
         <div className="flex flex-col gap-3 shrink-0">
-          <KategorieIcon category={props.product.category} />
+          <KategorieIcon category={props.product.kategorie} />
         </div>
         <ItemContent className="self-start flex-1">
           <ItemTitle>{props.product.name}</ItemTitle>

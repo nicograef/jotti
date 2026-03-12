@@ -27,7 +27,7 @@ const PreisCentsSchema = z
   .number()
   .int()
   .min(0, { message: 'Der Nettopreis muss positiv sein.' })
-const CategorySchema = z.enum(['food', 'beverage', 'other'])
+const KategorieSchema = z.enum(['food', 'beverage', 'other'])
 
 export const VarianteSchema = z.object({
   id: VariantIdSchema,
@@ -39,7 +39,7 @@ export type Variante = z.infer<typeof VarianteSchema>
 export const ProduktSchema = z.object({
   id: ProductIdSchema,
   name: NameSchema,
-  category: CategorySchema,
+  kategorie: KategorieSchema,
   variants: z.array(VarianteSchema),
 })
 export type Produkt = z.infer<typeof ProduktSchema>
