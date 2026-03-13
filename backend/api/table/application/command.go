@@ -262,7 +262,22 @@ func (c Command) BestellungAufgeben(ctx context.Context, userID int, userName st
 	return nil
 }
 
-func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtZahlungCents int, kommentar string) error {
+// calculateGesamtbetrag calculates the total amount in cents for the given position refs
+// by looking up the Einzelpreis from the available positions.
+func calculateGesamtbetrag(available []table.Position, refs []table.PositionRef) int {
+	total := 0
+	for _, ref := range refs {
+		for _, pos := range available {
+			if pos.PositionID == ref.PositionID {
+				total += pos.Einzelpreis * ref.Menge
+				break
+			}
+		}
+	}
+	return total
+}
+
+func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz, Status und State laden
@@ -276,6 +291,8 @@ func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName s
 		log.Warn().Int("tisch_id", tischID).Msg("Bezahl-Invariante verletzt: angeforderte Positionen nicht verfügbar")
 		return ErrPositionNichtBezahlbar
 	}
+
+	gesamtZahlungCents := calculateGesamtbetrag(state.UnbezahltePositionen, positionen)
 
 	event, err := table.NewZahlungRegistriertEvent(userID, userName, tischID, positionen, gesamtZahlungCents, kommentar)
 	if err != nil {
@@ -296,7 +313,7 @@ func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName s
 	return nil
 }
 
-func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtStornierungCents int, kommentar string) error {
+func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz, Status und State laden
@@ -310,6 +327,8 @@ func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName st
 		log.Warn().Int("tisch_id", tischID).Msg("Stornierungsinvariante verletzt: angeforderte Positionen nicht stornierbar")
 		return ErrPositionNichtStornierbar
 	}
+
+	gesamtStornierungCents := calculateGesamtbetrag(state.UnbezahltePositionen, positionen)
 
 	event, err := table.NewProdukteStorniertEvent(userID, userName, tischID, positionen, gesamtStornierungCents, kommentar)
 	if err != nil {

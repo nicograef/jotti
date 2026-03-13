@@ -180,6 +180,10 @@ func (u *User) SetPassword(onetimePassword, newPassword string) error {
 		return err
 	}
 
+	if issue := PasswordSchema.Validate(&newPassword); issue != nil {
+		return ErrPasswordTooWeak
+	}
+
 	passwordHash, err := createArgon2idHash(newPassword)
 	if err != nil {
 		return fmt.Errorf("failed to hash new password: %w", err)

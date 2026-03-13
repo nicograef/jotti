@@ -16,6 +16,8 @@ var ErrInvalidPassword = errors.New("invalid password")
 
 var ErrNoOnetimePassword = errors.New("no onetime password set")
 
+var ErrPasswordTooWeak = errors.New("password too weak")
+
 var ErrTokenGeneration = errors.New("token generation failed")
 
 var ErrDatabase = db.ErrDatabase

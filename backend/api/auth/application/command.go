@@ -71,10 +71,14 @@ func (c Command) SetNewPassword(ctx context.Context, username, newPassword, onet
 
 	err = u.SetPassword(onetimePassword, newPassword)
 	if err != nil {
-		if errors.Is(err, user.ErrNoPassword) {
+		switch {
+		case errors.Is(err, user.ErrNoPassword):
 			log.Warn().Str("username", username).Msg("No one-time password set for user during password reset")
 			return ErrNoOnetimePassword
-		} else {
+		case errors.Is(err, user.ErrPasswordTooWeak):
+			log.Warn().Str("username", username).Msg("Password too weak")
+			return ErrPasswordTooWeak
+		default:
 			log.Warn().Err(err).Str("username", username).Msg("One-time password validation failed")
 			return ErrInvalidPassword
 		}

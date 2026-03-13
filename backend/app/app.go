@@ -49,7 +49,7 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/health", healthCheck.Handler())
 
 	authApi := api.NewAuthApi(cfg, db)
-	r.Handle("/auth/", middleware.RateLimitMiddleware(10)(http.StripPrefix("/auth", authApi)))
+	r.Handle("/auth/", middleware.RateLimitMiddleware(5)(http.StripPrefix("/auth", authApi)))
 
 	admin := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin"})
 	adminApi := api.NewAdminApi(db)

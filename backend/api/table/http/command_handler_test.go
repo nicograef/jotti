@@ -42,11 +42,11 @@ func (m *mockCommand) BestellungAufgeben(ctx context.Context, userID int, userNa
 	return m.err
 }
 
-func (m *mockCommand) ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtZahlungCents int, kommentar string) error {
+func (m *mockCommand) ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
 	return m.err
 }
 
-func (m *mockCommand) ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtStornierungCents int, kommentar string) error {
+func (m *mockCommand) ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
 	return m.err
 }
 
@@ -194,7 +194,7 @@ func TestBestellungAufgebenHandler_Conflict(t *testing.T) {
 func TestZahlungRegistrierenHandler_Conflict(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
 
-	body := `{"tischId":1,"positionen":[{"positionId":"abc","menge":1}],"gesamtZahlungCents":500,"kommentar":""}`
+	body := `{"tischId":1,"positionen":[{"positionId":"abc","menge":1}],"kommentar":""}`
 	req := httptest.NewRequest(http.MethodPost, "/zahlung-registrieren", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
@@ -228,7 +228,7 @@ func TestProdukteLiefernHandler_Conflict(t *testing.T) {
 func TestProdukteStornierenHandler_Conflict(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
 
-	body := `{"tischId":1,"positionen":[{"positionId":"abc","menge":1}],"gesamtStornierungCents":500,"kommentar":""}`
+	body := `{"tischId":1,"positionen":[{"positionId":"abc","menge":1}],"kommentar":""}`
 	req := httptest.NewRequest(http.MethodPost, "/produkte-stornieren", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)

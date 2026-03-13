@@ -8,15 +8,13 @@ import (
 	"fmt"
 	"strings"
 
+	z "github.com/Oudwins/zog"
 	"golang.org/x/crypto/argon2"
 )
 
-// var PasswordSchema = z.String().Trim().Min(6, z.Message("Password too short")).Max(20, z.Message("Password too long"))
+var PasswordSchema = z.String().Trim().Min(6, z.Message("Password too short")).Max(72, z.Message("Password too long"))
 
-// var OnetimePasswordSchema = z.String().Trim().Len(6, z.Message("Onetime password must be 6 digits")).Match(
-// 	regexp.MustCompile(`^[0-9]{6}$`),
-// 	z.Message("Onetime password must be 6 digits"),
-// )
+var ErrPasswordTooWeak = errors.New("password too weak")
 
 var ErrInvalidPassword = errors.New("invalid password")
 

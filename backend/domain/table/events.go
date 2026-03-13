@@ -200,8 +200,7 @@ func GetGesamtZahlungenFromEvents(events []e.Event) (int, error) {
 	gesamtZahlungenCents := 0
 
 	for _, event := range events {
-		switch event.Type {
-		case string(EventTypeZahlungRegistriertV1):
+		if event.Type == string(EventTypeZahlungRegistriertV1) {
 			zahlung, err := buildZahlungFromEvent(event)
 			if err != nil {
 				return 0, err

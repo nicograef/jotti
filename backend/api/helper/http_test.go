@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -75,6 +76,33 @@ func TestReadBody_InvalidJSON(t *testing.T) {
 	}
 	if resp.Code != "invalid_json" {
 		t.Errorf("expected code invalid_json, got %s", resp.Code)
+	}
+}
+
+func TestReadBody_TooLarge(t *testing.T) {
+	rec := httptest.NewRecorder()
+	type testStruct struct {
+		Foo string
+	}
+
+	// Create a body larger than 1 MB
+	largeBody := `{"Foo":"` + strings.Repeat("x", 1<<20+1) + `"}`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(largeBody))
+	var dest testStruct
+	ok := ReadBody(rec, req, &dest)
+
+	if ok {
+		t.Errorf("expected failure for too-large body")
+	}
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("expected 413, got %d", rec.Code)
+	}
+	var resp errorResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Errorf("failed to decode response: %v", err)
+	}
+	if resp.Code != "request_too_large" {
+		t.Errorf("expected code request_too_large, got %s", resp.Code)
 	}
 }
 

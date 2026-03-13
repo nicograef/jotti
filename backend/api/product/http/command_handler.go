@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/product/application"
 	"github.com/nicograef/jotti/backend/domain/product"
@@ -96,10 +97,14 @@ type activateProduct struct {
 	ID int `json:"id"`
 }
 
+var activateProductSchema = z.Struct(z.Shape{
+	"ID": product.IDSchema.Required(),
+})
+
 func (h *CommandHandler) ActivateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := activateProduct{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, activateProductSchema) {
 			return
 		}
 
@@ -122,10 +127,14 @@ type deactivateProduct struct {
 	ID int `json:"id"`
 }
 
+var deactivateProductSchema = z.Struct(z.Shape{
+	"ID": product.IDSchema.Required(),
+})
+
 func (h *CommandHandler) DeactivateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deactivateProduct{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, deactivateProductSchema) {
 			return
 		}
 
@@ -214,10 +223,14 @@ type activateVariant struct {
 	ID int `json:"id"`
 }
 
+var activateVariantSchema = z.Struct(z.Shape{
+	"ID": product.IDSchema.Required(),
+})
+
 func (h *CommandHandler) ActivateVariantHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := activateVariant{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, activateVariantSchema) {
 			return
 		}
 
@@ -240,10 +253,14 @@ type deactivateVariant struct {
 	ID int `json:"id"`
 }
 
+var deactivateVariantSchema = z.Struct(z.Shape{
+	"ID": product.IDSchema.Required(),
+})
+
 func (h *CommandHandler) DeactivateVariantHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deactivateVariant{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, deactivateVariantSchema) {
 			return
 		}
 
@@ -266,10 +283,14 @@ type deleteProdukt struct {
 	ID int `json:"id"`
 }
 
+var deleteProduktSchema = z.Struct(z.Shape{
+	"ID": product.IDSchema.Required(),
+})
+
 func (h *CommandHandler) DeleteProduktHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deleteProdukt{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, deleteProduktSchema) {
 			return
 		}
 
@@ -293,10 +314,15 @@ type deleteVariante struct {
 	ID        int `json:"id"`
 }
 
+var deleteVarianteSchema = z.Struct(z.Shape{
+	"ProduktID": product.IDSchema.Required(),
+	"ID":        product.IDSchema.Required(),
+})
+
 func (h *CommandHandler) DeleteVarianteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deleteVariante{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, deleteVarianteSchema) {
 			return
 		}
 

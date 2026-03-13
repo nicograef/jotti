@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/user/application"
 	"github.com/nicograef/jotti/backend/domain/user"
@@ -91,6 +92,10 @@ type resetPassword struct {
 	ID int `json:"id"`
 }
 
+var resetPasswordSchema = z.Struct(z.Shape{
+	"ID": user.IDSchema.Required(),
+})
+
 type resetPasswordResponse struct {
 	OnetimePassword string `json:"onetimePassword"`
 }
@@ -99,7 +104,7 @@ type resetPasswordResponse struct {
 func (h CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := resetPassword{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, resetPasswordSchema) {
 			return
 		}
 
@@ -122,11 +127,15 @@ type activateUser struct {
 	ID int `json:"id"`
 }
 
+var activateUserSchema = z.Struct(z.Shape{
+	"ID": user.IDSchema.Required(),
+})
+
 // ActivateUserHandler handles requests to activate a user.
 func (h CommandHandler) ActivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := activateUser{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, activateUserSchema) {
 			return
 		}
 
@@ -149,11 +158,15 @@ type deactivateUser struct {
 	ID int `json:"id"`
 }
 
+var deactivateUserSchema = z.Struct(z.Shape{
+	"ID": user.IDSchema.Required(),
+})
+
 // DeactivateUserHandler handles requests to deactivate a user.
 func (h CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deactivateUser{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, deactivateUserSchema) {
 			return
 		}
 
@@ -176,10 +189,14 @@ type deleteUser struct {
 	ID int `json:"id"`
 }
 
+var deleteUserSchema = z.Struct(z.Shape{
+	"ID": user.IDSchema.Required(),
+})
+
 func (h CommandHandler) DeleteUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deleteUser{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, deleteUserSchema) {
 			return
 		}
 

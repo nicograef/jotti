@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -30,7 +31,7 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event) (int, error) 
 	if err != nil {
 		return 0, db.Error(err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
 
 	qtx := r.q.WithTx(tx)
 
@@ -104,7 +105,7 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event) (int, error) 
 func (r Repository) ReadTableState(ctx context.Context, tischID int) (table.TischState, error) {
 	row, err := r.q.GetTableState(ctx, tischID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return table.TischState{}, nil
 		}
 		return table.TischState{}, db.Error(err)
@@ -144,7 +145,7 @@ func parseTischID(subject string) (int, error) {
 func getTableStateInTx(ctx context.Context, qtx *dbgen.Queries, tischID int) (table.TischState, error) {
 	row, err := qtx.GetTableState(ctx, tischID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return table.TischState{}, nil
 		}
 		return table.TischState{}, db.Error(err)

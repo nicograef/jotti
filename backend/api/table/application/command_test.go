@@ -58,6 +58,31 @@ var testInactiveTisch = table.Tisch{
 	UpdatedAt: time.Now().UTC(),
 }
 
+func TestCalculateGesamtbetrag(t *testing.T) {
+	available := []table.Position{
+		{PositionID: "pos-1", Einzelpreis: 500, Menge: 3},
+		{PositionID: "pos-2", Einzelpreis: 400, Menge: 2},
+	}
+
+	refs := []table.PositionRef{
+		{PositionID: "pos-1", Menge: 2},
+		{PositionID: "pos-2", Menge: 1},
+	}
+
+	total := calculateGesamtbetrag(available, refs)
+	// 500*2 + 400*1 = 1400
+	if total != 1400 {
+		t.Fatalf("expected 1400, got %d", total)
+	}
+}
+
+func TestCalculateGesamtbetrag_Empty(t *testing.T) {
+	total := calculateGesamtbetrag(nil, nil)
+	if total != 0 {
+		t.Fatalf("expected 0, got %d", total)
+	}
+}
+
 func TestTischErstellen(t *testing.T) {
 	ctx := context.Background()
 	command := newTestCommand(nil, nil)
@@ -248,7 +273,7 @@ func TestZahlungRegistrieren_NonOrderedPosition(t *testing.T) {
 		{PositionID: "00000000-0000-0000-0000-000000000001", Menge: 1},
 	}
 
-	err := command.ZahlungRegistrieren(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, 350, "")
+	err := command.ZahlungRegistrieren(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -274,7 +299,7 @@ func TestZahlungRegistrieren_DoublePayment(t *testing.T) {
 	}
 
 	// Try to pay again — should fail
-	err := command.ZahlungRegistrieren(ctx, 1, "Test User", testActiveTisch.ID, refs, 350, "")
+	err := command.ZahlungRegistrieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -318,7 +343,7 @@ func TestProdukteStornieren_AlreadyPaidPosition(t *testing.T) {
 	}
 
 	// Stornierung of already-paid position should fail (unbezahlt is empty)
-	err := command.ProdukteStornieren(ctx, 1, "Test User", testActiveTisch.ID, refs, 350, "")
+	err := command.ProdukteStornieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtStornierbar {
 		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
@@ -347,7 +372,7 @@ func TestZahlungRegistrieren_ExceedsAvailableMenge(t *testing.T) {
 		{PositionID: "pos-1", Menge: 2},
 	}
 
-	err := command.ZahlungRegistrieren(ctx, 1, "Test User", testActiveTisch.ID, refs, 700, "")
+	err := command.ZahlungRegistrieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}

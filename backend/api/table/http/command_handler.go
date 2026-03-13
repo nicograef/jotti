@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/api/table/application"
@@ -18,8 +19,8 @@ type command interface {
 	TischDeaktivieren(ctx context.Context, id int) error
 	TischLoeschen(ctx context.Context, id int) error
 	BestellungAufgeben(ctx context.Context, userID int, userName string, tischID int, positionen []application.BestellPositionInput, kommentar string) error
-	ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtZahlungCents int, kommentar string) error
-	ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtStornierungCents int, kommentar string) error
+	ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
+	ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
 	ProdukteLiefern(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
 }
 
@@ -44,16 +45,15 @@ func (h *CommandHandler) TischErstellenHandler() http.HandlerFunc {
 
 		id, err := h.Command.TischErstellen(r.Context(), body.Name)
 		if err != nil {
-			if errors.Is(err, application.ErrTischAlreadyExists) {
+			switch {
+			case errors.Is(err, application.ErrTischAlreadyExists):
 				helper.SendClientError(w, "tisch_already_exists", nil)
-				return
-			} else if errors.Is(err, application.ErrInvalidTischData) {
+			case errors.Is(err, application.ErrInvalidTischData):
 				helper.SendClientError(w, "invalid_tisch_data", nil)
-				return
-			} else {
+			default:
 				helper.SendServerError(w)
-				return
 			}
+			return
 		}
 
 		helper.SendResponse(w, createTischResponse{ID: id})
@@ -74,16 +74,15 @@ func (h *CommandHandler) TischAktualisierenHandler() http.HandlerFunc {
 
 		err := h.Command.TischAktualisieren(r.Context(), body.ID, body.Name)
 		if err != nil {
-			if errors.Is(err, application.ErrTischNotFound) {
+			switch {
+			case errors.Is(err, application.ErrTischNotFound):
 				helper.SendClientError(w, "tisch_not_found", nil)
-				return
-			} else if errors.Is(err, application.ErrInvalidTischData) {
+			case errors.Is(err, application.ErrInvalidTischData):
 				helper.SendClientError(w, "invalid_tisch_data", nil)
-				return
-			} else {
+			default:
 				helper.SendServerError(w)
-				return
 			}
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -94,10 +93,14 @@ type activateTisch struct {
 	ID int `json:"id"`
 }
 
+var activateTischSchema = z.Struct(z.Shape{
+	"ID": table.TischIDSchema.Required(),
+})
+
 func (h *CommandHandler) TischAktivierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := activateTisch{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, activateTischSchema) {
 			return
 		}
 
@@ -120,10 +123,14 @@ type deactivateTisch struct {
 	ID int `json:"id"`
 }
 
+var deactivateTischSchema = z.Struct(z.Shape{
+	"ID": table.TischIDSchema.Required(),
+})
+
 func (h *CommandHandler) TischDeaktivierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deactivateTisch{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, deactivateTischSchema) {
 			return
 		}
 
@@ -146,10 +153,14 @@ type deleteTisch struct {
 	ID int `json:"id"`
 }
 
+var deleteTischSchema = z.Struct(z.Shape{
+	"ID": table.TischIDSchema.Required(),
+})
+
 func (h *CommandHandler) TischLoeschenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deleteTisch{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, deleteTischSchema) {
 			return
 		}
 
@@ -207,10 +218,9 @@ func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
 }
 
 type zahlungRegistrieren struct {
-	TischID            int                 `json:"tischId"`
-	Positionen         []table.PositionRef `json:"positionen"`
-	GesamtZahlungCents int                 `json:"gesamtZahlungCents"`
-	Kommentar          string              `json:"kommentar"`
+	TischID    int                 `json:"tischId"`
+	Positionen []table.PositionRef `json:"positionen"`
+	Kommentar  string              `json:"kommentar"`
 }
 
 func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
@@ -226,7 +236,7 @@ func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
 			return
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-		err := h.Command.ZahlungRegistrieren(r.Context(), userID, userName, body.TischID, body.Positionen, body.GesamtZahlungCents, body.Kommentar)
+		err := h.Command.ZahlungRegistrieren(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrTischNotFound):
@@ -248,10 +258,9 @@ func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
 }
 
 type produkteStornieren struct {
-	TischID                int                 `json:"tischId"`
-	Positionen             []table.PositionRef `json:"positionen"`
-	GesamtStornierungCents int                 `json:"gesamtStornierungCents"`
-	Kommentar              string              `json:"kommentar"`
+	TischID    int                 `json:"tischId"`
+	Positionen []table.PositionRef `json:"positionen"`
+	Kommentar  string              `json:"kommentar"`
 }
 
 func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
@@ -267,7 +276,7 @@ func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
 			return
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-		err := h.Command.ProdukteStornieren(r.Context(), userID, userName, body.TischID, body.Positionen, body.GesamtStornierungCents, body.Kommentar)
+		err := h.Command.ProdukteStornieren(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrTischNotFound):

@@ -77,6 +77,8 @@ func (h *CommandHandler) SetPasswordHandler() http.HandlerFunc {
 				helper.SendClientError(w, "invalid_credentials", nil)
 			case errors.Is(err, application.ErrNoOnetimePassword):
 				helper.SendClientError(w, "already_has_password", "No one-time password set for user. User probably already has a password.")
+			case errors.Is(err, application.ErrPasswordTooWeak):
+				helper.SendClientError(w, "password_too_weak", nil)
 			default:
 				helper.SendServerError(w)
 			}
