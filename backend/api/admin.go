@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	product "github.com/nicograef/jotti/backend/api/product/http"
+	reporting "github.com/nicograef/jotti/backend/api/reporting/http"
 	table "github.com/nicograef/jotti/backend/api/table/http"
 	user "github.com/nicograef/jotti/backend/api/user/http"
 )
@@ -47,6 +48,10 @@ func NewAdminApi(db *sql.DB) http.Handler {
 
 	tq := table.NewQueryHandler(db)
 	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())
+
+	rq := reporting.NewQueryHandler(db)
+	r.HandleFunc("/get-dashboard", rq.GetDashboardHandler())
+	r.HandleFunc("/get-tagesabrechnung", rq.GetTagesabrechnungHandler())
 
 	return r
 }

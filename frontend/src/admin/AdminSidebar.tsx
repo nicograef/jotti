@@ -1,4 +1,11 @@
-import { Lamp, LogOut, Users, Utensils } from 'lucide-react'
+import {
+  Lamp,
+  LayoutDashboard,
+  LogOut,
+  Receipt,
+  Users,
+  Utensils,
+} from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router'
 import { useLocation } from 'react-router'
 
@@ -16,6 +23,19 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { AuthSingleton } from '@/lib/Auth'
+
+const reportingItems = [
+  {
+    title: 'Dashboard',
+    url: '/admin/dashboard',
+    icon: LayoutDashboard,
+  },
+  {
+    title: 'Tagesabrechnung',
+    url: '/admin/tagesabrechnung',
+    icon: Receipt,
+  },
+]
 
 const adminItems = [
   {
@@ -58,6 +78,26 @@ export function AdminSidebar() {
         <h1 className="text-4xl text-center font-extrabold">jotti</h1>
       </SidebarHeader>
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Auswertungen</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {reportingItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === item.url}
+                  >
+                    <NavLink to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Verwaltung</SidebarGroupLabel>
           <SidebarGroupContent>

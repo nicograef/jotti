@@ -479,7 +479,7 @@ Sicherheitsrelevante HTTP-Header werden gesetzt, um gängige Angriffsvektoren (X
 ### R-00 · Admin-Dashboard
 
 > **ID:** R-00 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Should-have
+> **Status:** ✅ Umgesetzt · **Prio:** Should-have
 
 Der Admin-Bereich besitzt ein Dashboard als Startseite, das einen kompakten Live-Überblick über die laufende Veranstaltung bietet. Die angezeigten Kennzahlen müssen nicht streng konsistent sein (Eventually Consistent ist ausreichend) — es geht um einen schnellen Orientierungsblick, nicht um eine exakte Abrechnung.
 
@@ -497,7 +497,7 @@ Der Admin-Bereich besitzt ein Dashboard als Startseite, das einen kompakten Live
 ### R-01 · Tagesabrechnung
 
 > **ID:** R-01 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Should-have
+> **Status:** ✅ Umgesetzt · **Prio:** Should-have
 
 Der Admin kann jederzeit eine Tagesabrechnung für einen wählbaren Abrechnungszeitraum einsehen. Diese zeigt den Gesamtumsatz, eine Aufschlüsselung pro Servicekraft sowie eine Übersicht aller Stornierungen. Die Tagesabrechnung ist die zentrale Auswertung für die Vereinsbuchhaltung.
 

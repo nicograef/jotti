@@ -30,35 +30,6 @@ func parseTischIDFromSubject(subject string) (int, error) {
 	return id, nil
 }
 
-func GetSaldoFromEvents(events []e.Event) (int, error) {
-	saldoCents := 0
-
-	for _, event := range events {
-		switch event.Type {
-		case string(EventTypeBestellungAufgegebenV1):
-			bestellung, err := buildBestellungFromEvent(event)
-			if err != nil {
-				return 0, err
-			}
-			saldoCents += bestellung.GesamtPreisCents
-		case string(EventTypeZahlungRegistriertV1):
-			zahlung, err := buildZahlungFromEvent(event)
-			if err != nil {
-				return 0, err
-			}
-			saldoCents -= zahlung.GesamtZahlungCents
-		case string(EventTypeProdukteStorniertV1):
-			stornierung, err := buildStornierungFromEvent(event)
-			if err != nil {
-				return 0, err
-			}
-			saldoCents -= stornierung.GesamtStornierungCents
-		}
-	}
-
-	return saldoCents, nil
-}
-
 func GetHistoryFromEvents(events []e.Event) ([]any, error) {
 	history := []any{}
 
@@ -132,82 +103,4 @@ func reduceByPosition(list []Position, reductions []Position) []Position {
 		}
 	}
 	return list
-}
-
-func GetUnbezahltePositionenFromEvents(events []e.Event) ([]Position, error) {
-	unbezahltePositionen := []Position{}
-
-	for _, event := range events {
-		switch event.Type {
-		case string(EventTypeBestellungAufgegebenV1):
-			bestellung, err := buildBestellungFromEvent(event)
-			if err != nil {
-				return nil, err
-			}
-			unbezahltePositionen = accumulatePositionen(unbezahltePositionen, bestellung.Positionen)
-
-		case string(EventTypeZahlungRegistriertV1):
-			zahlung, err := buildZahlungFromEvent(event)
-			if err != nil {
-				return nil, err
-			}
-			unbezahltePositionen = reduceByPosition(unbezahltePositionen, zahlung.Positionen)
-
-		case string(EventTypeProdukteStorniertV1):
-			stornierung, err := buildStornierungFromEvent(event)
-			if err != nil {
-				return nil, err
-			}
-			unbezahltePositionen = reduceByPosition(unbezahltePositionen, stornierung.Positionen)
-		}
-	}
-
-	return unbezahltePositionen, nil
-}
-
-func GetUngeliefertePositionenFromEvents(events []e.Event) ([]Position, error) {
-	ungeliefertePositionen := []Position{}
-
-	for _, event := range events {
-		switch event.Type {
-		case string(EventTypeBestellungAufgegebenV1):
-			bestellung, err := buildBestellungFromEvent(event)
-			if err != nil {
-				return nil, err
-			}
-			ungeliefertePositionen = accumulatePositionen(ungeliefertePositionen, bestellung.Positionen)
-
-		case string(EventTypeProdukteGeliefertV1):
-			lieferung, err := buildLieferungFromEvent(event)
-			if err != nil {
-				return nil, err
-			}
-			ungeliefertePositionen = reduceByPosition(ungeliefertePositionen, lieferung.Positionen)
-
-		case string(EventTypeProdukteStorniertV1):
-			stornierung, err := buildStornierungFromEvent(event)
-			if err != nil {
-				return nil, err
-			}
-			ungeliefertePositionen = reduceByPosition(ungeliefertePositionen, stornierung.Positionen)
-		}
-	}
-
-	return ungeliefertePositionen, nil
-}
-
-func GetGesamtZahlungenFromEvents(events []e.Event) (int, error) {
-	gesamtZahlungenCents := 0
-
-	for _, event := range events {
-		if event.Type == string(EventTypeZahlungRegistriertV1) {
-			zahlung, err := buildZahlungFromEvent(event)
-			if err != nil {
-				return 0, err
-			}
-			gesamtZahlungenCents += zahlung.GesamtZahlungCents
-		}
-	}
-
-	return gesamtZahlungenCents, nil
 }

@@ -27,16 +27,12 @@ var positionSchema = z.Struct(z.Shape{
 	"Menge":        z.Int().GTE(1, z.Message("Menge must be at least 1")).Required(),
 })
 
-// PositionRef is a lightweight reference to a position, used in delivery/payment/cancellation events.
+// PositionRef is a lightweight reference used in API request commands for payment/delivery/cancellation.
+// Enriched to Position (fat) in the command layer before being stored in events.
 type PositionRef struct {
 	PositionID string `json:"positionId"`
 	Menge      int    `json:"menge"`
 }
-
-var positionRefSchema = z.Struct(z.Shape{
-	"PositionID": z.String().UUID().Required(),
-	"Menge":      z.Int().GTE(1, z.Message("Menge must be at least 1")).Required(),
-})
 
 type Bestellung struct {
 	ID               string     `json:"id"`
