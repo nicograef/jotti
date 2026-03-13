@@ -17,7 +17,7 @@ import { Spinner } from '@/components/ui/spinner'
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
-import { CommentField } from './CommentField'
+import { KommentarField } from './CommentField'
 import { calculateTotalPrice, selectPositionen } from './drawerUtils'
 import { Receipt } from './Receipt'
 
@@ -25,17 +25,17 @@ interface StornierungDrawerProps {
   backend: Pick<TischBackend, 'produkteStornieren'>
   tisch: Tisch
   unbezahltePositionen: Position[]
-  quantities: Record<number, number>
+  mengen: Record<number, number>
   produkteStorniert: () => void
 }
 
 export function StornierungDrawer(props: StornierungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [comment, setComment] = useState('')
+  const [kommentar, setKommentar] = useState('')
   const positionenToCancel = selectPositionen(
     props.unbezahltePositionen,
-    props.quantities,
+    props.mengen,
   )
   const totalPrice = calculateTotalPrice(positionenToCancel)
   const noPositionenSelected = positionenToCancel.length === 0
@@ -47,7 +47,7 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
       await props.backend.produkteStornieren({
         tischId: props.tisch.id,
         positionen: positionenToCancel,
-        kommentar: comment,
+        kommentar,
       })
       props.produkteStorniert()
       setOpen(false)
@@ -88,9 +88,9 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
           </DrawerHeader>
           <Receipt positionen={positionenToCancel} totalPrice={totalPrice} />
           <div className="px-4">
-            <CommentField
+            <KommentarField
               onChange={(value) => {
-                setComment(value)
+                setKommentar(value)
               }}
             />
           </div>

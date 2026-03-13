@@ -60,7 +60,7 @@ func (m *mockCommand) DeleteVariante(ctx context.Context, produktID int, variant
 func TestCreateProductHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
-	body := `{"name":"French Fries","kategorie":"food"}`
+	body := `{"name":"French Fries","kategorie":"essen"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/create-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -75,7 +75,7 @@ func TestCreateProductHandler_Success(t *testing.T) {
 func TestCreateProductHandler_Failure(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
-	body := `{"name":"French Fries","kategorie":"food"}`
+	body := `{"name":"French Fries","kategorie":"essen"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/create-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -90,7 +90,7 @@ func TestCreateProductHandler_Failure(t *testing.T) {
 func TestUpdateProductHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
-	body := `{"id":1,"name":"French Fries","kategorie":"food"}`
+	body := `{"id":1,"name":"French Fries","kategorie":"essen"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/update-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -105,7 +105,7 @@ func TestUpdateProductHandler_Success(t *testing.T) {
 func TestUpdateProductHandler_Failure(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
-	body := `{"id":1,"name":"French Fries","kategorie":"food"}`
+	body := `{"id":1,"name":"French Fries","kategorie":"essen"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/update-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()

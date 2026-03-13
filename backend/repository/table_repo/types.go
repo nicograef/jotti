@@ -17,7 +17,7 @@ func NewRepository(db *sql.DB) Repository {
 	return Repository{DB: db, q: dbgen.New(db)}
 }
 
-func tischRowToDomain(row dbgen.Table) table.Tisch {
+func tischRowToDomain(row dbgen.Tische) table.Tisch {
 	return table.Tisch{
 		ID:        row.ID,
 		Name:      row.Name,

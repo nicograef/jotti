@@ -1,6 +1,6 @@
 # Entwickler-Handbuch — jotti
 
-> **Quelle:** `docs/design/entwurf.md`. Bei Abweichungen gilt der Entwurf.
+> **Hinweis:** Dieses Handbuch ist die **verbindliche Architektur-Referenz** für jotti. Die ursprünglichen Entwurfsdokumente (`entwurf.md`, `event-storming.md`) sind historische Artefakte der Entwurfsphase und werden nicht aktuell gehalten.
 
 ---
 
@@ -126,7 +126,7 @@ Tisch
         ├── variante_id   (UUID)
         ├── produkt_name  (string — Fat Event)
         ├── variante_name (string — Fat Event)
-        ├── kategorie     (food | beverage | other — Fat Event)
+        ├── kategorie     (essen | getraenk | sonstiges — Fat Event)
         ├── einzelpreis   (int, Cent — Fat Event)
         ├── menge         (int, ≥ 1)
         ├── geliefert     (bool)
@@ -177,7 +177,7 @@ BestellungAufgegeben
     ├── variante_id   (UUID)
     ├── produkt_name  (string — Fat Event)
     ├── variante_name (string — Fat Event)
-    ├── kategorie     (food | beverage | other — Fat Event)
+    ├── kategorie     (essen | getraenk | sonstiges — Fat Event)
     ├── einzelpreis   (int, Cent — Fat Event)
     └── menge         (int, ≥ 1)
 ```
@@ -271,7 +271,7 @@ Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produ
 Produkt
 ├── produkt_id       (UUID)
 ├── name             (string — nicht leer)
-├── kategorie        (food | beverage | other)
+├── kategorie        (essen | getraenk | sonstiges)
 ├── status           (active | deleted)
 └── varianten[]
     ├── variante_id  (UUID)
@@ -283,7 +283,7 @@ Produkt
 **Invarianten:**
 
 - Produktname darf nicht leer sein.
-- Kategorie muss ein gültiger Wert sein (`food`, `beverage`, `other`).
+- Kategorie muss ein gültiger Wert sein (`essen`, `getraenk`, `sonstiges`).
 - Jede Variante benötigt einen nicht-leeren Namen und einen Preis > 0 (in Cent).
 - Soft-Delete: Produkte und Varianten werden durch Status-Änderung auf `deleted` entfernt, nicht physisch gelöscht. Historische Bestellungen bleiben valide, weil die Events die Produktdaten zum Bestellzeitpunkt enthalten (Fat Events).
 - Varianten können unabhängig vom Produkt deaktiviert werden (`inactive`). Inaktive Varianten erscheinen nicht im Service-Katalog.

@@ -50,7 +50,7 @@ export function ProductItem(props: ProductItemProps) {
   const [expanded, setExpanded] = useState(false)
   const [variantLoading, setVariantLoading] = useState(false)
 
-  const activeVariantsCount = props.product.variants.filter(
+  const activeVariantsCount = props.product.varianten.filter(
     (v) => v.status === VarianteStatus.ACTIVE,
   ).length
 
@@ -85,8 +85,8 @@ export function ProductItem(props: ProductItemProps) {
         <ItemContent className="self-start flex-1">
           <ItemTitle>{props.product.name}</ItemTitle>
           <ItemDescription>
-            {props.product.variants.length} Variante
-            {props.product.variants.length !== 1 ? 'n' : ''} (
+            {props.product.varianten.length} Variante
+            {props.product.varianten.length !== 1 ? 'n' : ''} (
             {activeVariantsCount} aktiv)
           </ItemDescription>
           <ItemDescription>
@@ -140,13 +140,13 @@ export function ProductItem(props: ProductItemProps) {
               </Button>
             </NewVariantDialog>
           </div>
-          {props.product.variants.length === 0 ? (
+          {props.product.varianten.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">
               Keine Varianten vorhanden
             </p>
           ) : (
             <div className="space-y-2">
-              {props.product.variants.map((variant) => (
+              {props.product.varianten.map((variant) => (
                 <VariantItem
                   key={variant.id}
                   variant={variant}
@@ -167,7 +167,7 @@ export function ProductItem(props: ProductItemProps) {
 
 function KategorieIcon(props: { category: Kategorie }) {
   switch (props.category) {
-    case Kategorie.FOOD:
+    case Kategorie.ESSEN:
       return (
         <Tooltip>
           <TooltipTrigger>
@@ -176,7 +176,7 @@ function KategorieIcon(props: { category: Kategorie }) {
           <TooltipContent>Essen</TooltipContent>
         </Tooltip>
       )
-    case Kategorie.BEVERAGE:
+    case Kategorie.GETRAENK:
       return (
         <Tooltip>
           <TooltipTrigger>
@@ -185,7 +185,7 @@ function KategorieIcon(props: { category: Kategorie }) {
           <TooltipContent>Getränk</TooltipContent>
         </Tooltip>
       )
-    case Kategorie.OTHER:
+    case Kategorie.SONSTIGES:
       return (
         <Tooltip>
           <TooltipTrigger>

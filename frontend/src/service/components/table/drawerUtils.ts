@@ -2,12 +2,12 @@ import type { Position } from '../../table/Bestellung'
 
 export function selectPositionen(
   positionen: Position[],
-  selectedQuantity: Record<number, number>,
+  ausgewaehlteMengen: Record<number, number>,
 ): Position[] {
   return positionen
     .map((position) => ({
       ...position,
-      menge: selectedQuantity[position.id] || 0,
+      menge: ausgewaehlteMengen[position.id] || 0,
     }))
     .filter((position) => position.menge > 0)
 }

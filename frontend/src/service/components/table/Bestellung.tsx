@@ -13,7 +13,7 @@ interface BestellungProps {
   onBestellungAufgegeben: () => void
 }
 
-type VariantQuantityMap = Record<number, number>
+type VariantMengenMap = Record<number, number>
 
 export function Bestellung({
   backend,
@@ -21,7 +21,7 @@ export function Bestellung({
   onBestellungAufgegeben,
 }: BestellungProps) {
   const { loading, products } = useActiveProducts()
-  const [quantities, setQuantities] = useState<VariantQuantityMap>({})
+  const [mengen, setMengen] = useState<VariantMengenMap>({})
 
   if (loading) {
     return <ProductListSkeleton />
@@ -33,29 +33,29 @@ export function Bestellung({
         backend={backend}
         tisch={tisch}
         products={products}
-        quantities={quantities}
+        mengen={mengen}
         bestellungAufgegeben={() => {
-          setQuantities({})
+          setMengen({})
           toast.success(`Bestellung wurde aufgegeben.`)
           onBestellungAufgegeben()
         }}
       />
       <ProductList
         products={products}
-        variantQuantities={quantities}
+        variantMengen={mengen}
         onAdd={(variantId) => {
-          setQuantities((prev) => ({
+          setMengen((prev) => ({
             ...prev,
             [variantId]: (prev[variantId] || 0) + 1,
           }))
         }}
         onRemove={(variantId) => {
-          setQuantities((prev) => {
-            const currentQuantity = prev[variantId] || 0
-            if (currentQuantity <= 0) return prev
+          setMengen((prev) => {
+            const aktuelleMenge = prev[variantId] || 0
+            if (aktuelleMenge <= 0) return prev
             return {
               ...prev,
-              [variantId]: currentQuantity - 1,
+              [variantId]: aktuelleMenge - 1,
             }
           })
         }}

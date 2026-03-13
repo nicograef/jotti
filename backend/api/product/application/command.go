@@ -259,11 +259,11 @@ func (c Command) DeleteProdukt(ctx context.Context, productID int) error {
 		}
 	}
 
-	for i := range produkt.Variants {
-		produkt.Variants[i].Delete()
-		err = c.ProductRepo.UpdateVariant(ctx, produkt.Variants[i])
+	for i := range produkt.Varianten {
+		produkt.Varianten[i].Delete()
+		err = c.ProductRepo.UpdateVariant(ctx, produkt.Varianten[i])
 		if err != nil {
-			log.Error().Err(err).Int("variant_id", produkt.Variants[i].ID).Msg("Failed to delete variant")
+			log.Error().Err(err).Int("variant_id", produkt.Varianten[i].ID).Msg("Failed to delete variant")
 			return ErrDatabase
 		}
 	}

@@ -55,47 +55,47 @@ func (ns NullEntitystatus) Value() (driver.Value, error) {
 	return string(ns.Entitystatus), nil
 }
 
-type Productcategory string
+type Produktkategorie string
 
 const (
-	ProductcategoryFood     Productcategory = "food"
-	ProductcategoryBeverage Productcategory = "beverage"
-	ProductcategoryOther    Productcategory = "other"
+	ProduktkategorieEssen     Produktkategorie = "essen"
+	ProduktkategorieGetraenk  Produktkategorie = "getraenk"
+	ProduktkategorieSonstiges Produktkategorie = "sonstiges"
 )
 
-func (e *Productcategory) Scan(src interface{}) error {
+func (e *Produktkategorie) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = Productcategory(s)
+		*e = Produktkategorie(s)
 	case string:
-		*e = Productcategory(s)
+		*e = Produktkategorie(s)
 	default:
-		return fmt.Errorf("unsupported scan type for Productcategory: %T", src)
+		return fmt.Errorf("unsupported scan type for Produktkategorie: %T", src)
 	}
 	return nil
 }
 
-type NullProductcategory struct {
-	Productcategory Productcategory
-	Valid           bool // Valid is true if Productcategory is not NULL
+type NullProduktkategorie struct {
+	Produktkategorie Produktkategorie
+	Valid            bool // Valid is true if Produktkategorie is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullProductcategory) Scan(value interface{}) error {
+func (ns *NullProduktkategorie) Scan(value interface{}) error {
 	if value == nil {
-		ns.Productcategory, ns.Valid = "", false
+		ns.Produktkategorie, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.Productcategory.Scan(value)
+	return ns.Produktkategorie.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullProductcategory) Value() (driver.Value, error) {
+func (ns NullProduktkategorie) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.Productcategory), nil
+	return string(ns.Produktkategorie), nil
 }
 
 type Userrole string
@@ -160,30 +160,15 @@ type Event struct {
 	Data json.RawMessage
 }
 
-// Products that can be ordered by customers.
-type Product struct {
-	ID int
-	// Name of the product
-	Name string
-	// Category of the product: food, beverage, or other
-	Category Productcategory
-	// Product status: active, inactive, or deleted
-	Status Entitystatus
-	// Creation timestamp (UTC)
-	CreatedAt time.Time
-	// Last modification timestamp (UTC)
-	UpdatedAt time.Time
-}
-
-// Variants of products that can be ordered by customers (different sizes, options, etc.).
-type ProductVariant struct {
+// Varianten von Produkten (verschiedene Größen, Optionen, etc.).
+type ProduktVarianten struct {
 	ID        int
-	ProductID int
-	// Name of the product variant
+	ProduktID int
+	// Name der Produktvariante
 	Name string
-	// Price in cents (e.g., 199 for €1.99)
-	PriceCents int
-	// Product variant status: active, inactive, or deleted
+	// Preis in Cent (z.B. 199 für 1,99 €)
+	PreisCents int
+	// Varianten-Status: active, inactive oder deleted
 	Status Entitystatus
 	// Creation timestamp (UTC)
 	CreatedAt time.Time
@@ -191,12 +176,27 @@ type ProductVariant struct {
 	UpdatedAt time.Time
 }
 
-// Customers sit at tables and place orders from there.
-type Table struct {
+// Produkte, die von Gästen bestellt werden können.
+type Produkte struct {
 	ID int
-	// Name or number of the table (e.g., "Table 1")
+	// Name des Produkts
 	Name string
-	// Table status: active, inactive, or deleted
+	// Kategorie des Produkts: essen, getraenk oder sonstiges
+	Kategorie Produktkategorie
+	// Produkt-Status: active, inactive oder deleted
+	Status Entitystatus
+	// Creation timestamp (UTC)
+	CreatedAt time.Time
+	// Last modification timestamp (UTC)
+	UpdatedAt time.Time
+}
+
+// Gäste sitzen an Tischen und geben dort Bestellungen auf.
+type Tische struct {
+	ID int
+	// Name oder Nummer des Tisches (z.B. "Tisch 1")
+	Name string
+	// Tisch-Status: active, inactive oder deleted
 	Status Entitystatus
 	// Creation timestamp (UTC)
 	CreatedAt time.Time

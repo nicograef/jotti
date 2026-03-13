@@ -2,13 +2,13 @@
 
 Dieses Dokument ist die **verbindliche Referenz** für die Ubiquitous Language des jotti-Projekts — für Entwickler, Agenten und alle Projektbeteiligten. Es definiert die Fachbegriffe der Domäne, ihre Code-Repräsentationen und die Sprachkonventionen pro Schicht.
 
-Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktualisiert, wenn sich Begriffe, Strukturen oder Konventionen ändern. Ursprung ist [Entwurf Abschnitt 12 „Ubiquitous Language"](entwurf.md#12-ubiquitous-language), der eine Zusammenfassung enthält. Die vollständige und aktuelle Definition wird hier gepflegt.
+Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktualisiert, wenn sich Begriffe, Strukturen oder Konventionen ändern. Die vollständige und aktuelle Definition wird hier gepflegt.
 
 ## Sprachkonventionen
 
 1. **Domänenbegriffe sind deutsch.** Alle Fachbegriffe des Kassenbetriebs, der Stammdaten und der Gastronomie-Domäne werden auf Deutsch benannt — in Code, Dokumentation und Kommunikation. Beispiele: `Bestellung`, `Tisch`, `Zahlung`, `Position`, `Lieferung`, `Stornierung`, `Saldo`.
 
-2. **Infrastruktur-Code bleibt englisch.** Authentifizierung, Konfiguration, Datenbank-Schicht, HTTP-Framework und generische Sub-Domains verwenden englische Bezeichnungen. Beispiele: `User`, `Role`, `Token`, `Config`, `Middleware`.
+2. **Infrastruktur-Code bleibt englisch.** Authentifizierung, Konfiguration, HTTP-Framework und generische Sub-Domains verwenden englische Bezeichnungen. Beispiele: `User`, `Role`, `Token`, `Config`, `Middleware`. Technische Felder (z. B. `created_at`, `status`, `id`) bleiben in allen Schichten englisch.
 
 3. **Benutzer-sichtbare Strings sind deutsch.** Alle UI-Labels, Fehlermeldungen, Platzhalter und Hilfetexte werden auf Deutsch formuliert. Im UI heißt es „Benutzer" (nicht „User"), „Einmalpasswort" (nicht „OnetimePassword"), „Getränke" (nicht „beverage").
 
@@ -23,8 +23,10 @@ Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktual
 | TypeScript-Typen (Domäne) | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Zahlung`                |
 | JSON-Keys (Domäne)        | Deutsch  | camelCase                  | `"gesamtPreisCents"`, `"saldoCents"`            |
 | API-Pfade (Domäne)        | Deutsch  | kebab-case                 | `/bestellung-aufgeben`, `/zahlung-registrieren` |
-| DB-Tabellen               | Englisch | snake_case                 | `tables`, `products`, `events`                  |
-| DB-Spalten                | Englisch | snake_case                 | `price_cents`, `created_at`                     |
+| DB-Tabellen (Domäne)      | Deutsch  | snake_case                 | `tische`, `produkte`, `produkt_varianten`       |
+| DB-Tabellen (Infrastr.)   | Englisch | snake_case                 | `users`, `events`                               |
+| DB-Spalten (Domäne)       | Deutsch  | snake_case                 | `kategorie`, `preis_cents`, `produkt_id`        |
+| DB-Spalten (Infrastr.)    | Englisch | snake_case                 | `created_at`, `updated_at`, `status`, `id`      |
 | Frontend-Routen           | Englisch | kebab-case                 | `/service/tables`, `/admin/products`            |
 | Auth/Infrastruktur-Code   | Englisch | Sprachübliche Konventionen | `User`, `Role`, `Token`, `Config`               |
 
@@ -49,13 +51,14 @@ Die folgende Tabelle dokumentiert Abweichungen zwischen den aktuellen Code-Bezei
 
 ### Kein Handlungsbedarf (bewusst korrekt)
 
-| Bereich         | Ist (Code)                                        | Begründung                                                                                      |
-| --------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| DB-Tabellen     | `tables`, `products`, `users`, `product_variants` | Englisch ist korrekt — DB-Schicht ist Infrastruktur.                                            |
-| Frontend-Routen | `/admin/products`, `/service/tables`              | Englisch ist korrekt — Routen sind Infrastruktur.                                               |
-| Auth-Code       | `User`, `Role`, `OnetimePassword`                 | Englisch ist korrekt — Generic Sub-Domain.                                                      |
-| Status-Enums    | `active`, `inactive`, `deleted`                   | Englisch ist korrekt — DB-Enums sind Infrastruktur.                                             |
-| Kassenjournal   | `Historie` (Code) vs. `Kassenjournal` (Entwurf)   | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert. |
+| Bereich              | Ist (Code)                                      | Begründung                                                                                      |
+| -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| DB-Tabellen (Infra)  | `users`, `events`                               | Englisch ist korrekt — Infrastruktur / Generic Sub-Domain.                                      |
+| DB-Tabellen (Domain) | `tische`, `produkte`, `produkt_varianten`       | Deutsch ist korrekt — Domänenbegriffe sind vertikal konsistent.                                 |
+| Frontend-Routen      | `/admin/products`, `/service/tables`            | Englisch ist korrekt — Routen sind Infrastruktur.                                               |
+| Auth-Code            | `User`, `Role`, `OnetimePassword`               | Englisch ist korrekt — Generic Sub-Domain.                                                      |
+| Status-Enums         | `active`, `inactive`, `deleted`                 | Englisch ist korrekt — technische Lifecycle-States, kein Domänenbegriff.                        |
+| Kassenjournal        | `Historie` (Code) vs. `Kassenjournal` (Entwurf) | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert. |
 
 ## Kassenbetrieb (Core Domain)
 
@@ -199,39 +202,40 @@ Anzahl einer Produktvariante innerhalb einer Position.
 
 Artikel im Produktkatalog. Gehört zu genau einer Kategorie und enthält eine oder mehrere Varianten mit je eigenem Preis.
 
-| Schicht              | Repräsentation                                                                                | Datei                                  |
-| -------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------- |
-| Go-Struct            | `Produkt` (Felder: `ID`, `Name`, `Kategorie`, `Status`, `Variants`, `CreatedAt`, `UpdatedAt`) | `domain/product/product.go`            |
-| DB-Tabelle           | `products`                                                                                    | `migrations/01_initial.up.sql`         |
-| TypeScript-Typ (Ist) | `Product`                                                                                     | `src/admin/products/ProductBackend.ts` |
-| API-Pfade            | `/create-produkt`, `/update-produkt`, `/get-all-produkte`                                     | `api/admin.go`                         |
+| Schicht        | Repräsentation                                                                                 | Datei                           |
+| -------------- | ---------------------------------------------------------------------------------------------- | ------------------------------- |
+| Go-Struct      | `Produkt` (Felder: `ID`, `Name`, `Kategorie`, `Status`, `Varianten`, `CreatedAt`, `UpdatedAt`) | `domain/product/product.go`     |
+| DB-Tabelle     | `produkte`                                                                                     | `migrations/01_initial.up.sql`  |
+| TypeScript-Typ | `Produkt`                                                                                      | `src/admin/products/Product.ts` |
+| API-Pfade      | `/create-produkt`, `/update-produkt`, `/get-all-produkte`                                      | `api/admin.go`                  |
 
-> **Hinweis:** Backend-Rename abgeschlossen (`Product` → `Produkt`). Frontend-Rename (`Product` → `Produkt`) ausstehend.
+> **Hinweis:** Backend- und DB-Rename abgeschlossen. Frontend-Typ-Rename (`Product` → `Produkt`) ausstehend.
 
 ### Variante
 
 Konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. Produkt „Cola" → Varianten „0,3 l" und „0,5 l").
 
-| Schicht              | Repräsentation                                                                       | Datei                                  |
-| -------------------- | ------------------------------------------------------------------------------------ | -------------------------------------- |
-| Go-Struct            | `Variante` (Felder: `ID`, `Name`, `PreisCents`, `Status`, `CreatedAt`, `UpdatedAt`)  | `domain/product/variant.go`            |
-| DB-Tabelle           | `product_variants`                                                                   | `migrations/01_initial.up.sql`         |
-| TypeScript-Typ (Ist) | `Variant`                                                                            | `src/admin/products/ProductBackend.ts` |
-| API-Pfade            | `/create-variante`, `/update-variante`, `/activate-variante`, `/deactivate-variante` | `api/admin.go`                         |
+| Schicht        | Repräsentation                                                                       | Datei                           |
+| -------------- | ------------------------------------------------------------------------------------ | ------------------------------- |
+| Go-Struct      | `Variante` (Felder: `ID`, `Name`, `PreisCents`, `Status`, `CreatedAt`, `UpdatedAt`)  | `domain/product/variant.go`     |
+| DB-Tabelle     | `produkt_varianten`                                                                  | `migrations/01_initial.up.sql`  |
+| TypeScript-Typ | `Variante`                                                                           | `src/admin/products/Product.ts` |
+| API-Pfade      | `/create-variante`, `/update-variante`, `/activate-variante`, `/deactivate-variante` | `api/admin.go`                  |
 
-> **Hinweis:** Backend-Rename abgeschlossen (`Variant` → `Variante`, `PriceCents` → `PreisCents`). Frontend-Rename ausstehend.
+> **Hinweis:** Backend- und DB-Rename abgeschlossen. Frontend-Typ-Rename (`Variant` → `Variante`) ausstehend.
 
 ### Kategorie
 
 Gruppierung von Produkten. Aktuell drei feste Kategorien: Essen, Getränke, Sonstiges.
 
-| Schicht         | Repräsentation                                                                    | Datei                          |
-| --------------- | --------------------------------------------------------------------------------- | ------------------------------ |
-| Go-Typ          | `Kategorie` mit Konstanten `FoodKategorie`, `BeverageKategorie`, `OtherKategorie` | `domain/product/product.go`    |
-| DB-Enum         | `ProductCategory` (`'food'`, `'beverage'`, `'other'`)                             | `migrations/01_initial.up.sql` |
-| Frontend-Labels | `'food'` → „Essen“, `'beverage'` → „Getränke“, `'other'` → „Sonstiges“            | `src/service/table/Product.ts` |
+| Schicht         | Repräsentation                                                                         | Datei                            |
+| --------------- | -------------------------------------------------------------------------------------- | -------------------------------- |
+| Go-Typ          | `Kategorie` mit Konstanten `EssenKategorie`, `GetraenkKategorie`, `SonstigesKategorie` | `domain/product/product.go`      |
+| DB-Enum         | `ProduktKategorie` (`'essen'`, `'getraenk'`, `'sonstiges'`)                            | `migrations/01_initial.up.sql`   |
+| Frontend-Werte  | `Kategorie.ESSEN`, `Kategorie.GETRAENK`, `Kategorie.SONSTIGES`                         | `src/admin/products/Product.ts`  |
+| Frontend-Labels | `'essen'` → „Essen", `'getraenk'` → „Getränke", `'sonstiges'` → „Sonstiges"            | `src/service/product/Product.ts` |
 
-> **Hinweis:** Backend-Rename abgeschlossen (`Category` → `Kategorie`). Frontend-Rename ausstehend.
+> **Hinweis:** Backend-, DB- und Frontend-Werte-Rename abgeschlossen.
 
 ### Preis
 

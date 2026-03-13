@@ -18,7 +18,7 @@ import type { Produkt, Variante } from '../../product/Product'
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
-import { CommentField } from './CommentField'
+import { KommentarField } from './CommentField'
 import { calculateTotalPrice } from './drawerUtils'
 import { Receipt } from './Receipt'
 
@@ -26,15 +26,15 @@ interface BestellungDrawerProps {
   backend: Pick<TischBackend, 'bestellungAufgeben'>
   tisch: Tisch
   products: Produkt[]
-  quantities: Record<number, number>
+  mengen: Record<number, number>
   bestellungAufgegeben: () => void
 }
 
 export function BestellungDrawer(props: BestellungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [comment, setComment] = useState('')
-  const orderedPositionen = toPositionen(props.products, props.quantities)
+  const [kommentar, setKommentar] = useState('')
+  const orderedPositionen = toPositionen(props.products, props.mengen)
   const totalPrice = calculateTotalPrice(orderedPositionen)
   const noPositionenSelected = orderedPositionen.length === 0
 
@@ -45,7 +45,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
       await props.backend.bestellungAufgeben({
         tischId: props.tisch.id,
         positionen: orderedPositionen,
-        kommentar: comment,
+        kommentar,
       })
       props.bestellungAufgegeben()
       setOpen(false)
@@ -87,9 +87,9 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
           </DrawerHeader>
           <Receipt positionen={orderedPositionen} totalPrice={totalPrice} />
           <div className="px-4">
-            <CommentField
+            <KommentarField
               onChange={(value) => {
-                setComment(value)
+                setKommentar(value)
               }}
             />
           </div>
@@ -116,15 +116,15 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
 
 function toPositionen(
   products: Produkt[],
-  selectedQuantity: Record<number, number>,
+  ausgewaehlteMengen: Record<number, number>,
 ): Position[] {
-  const allVariants: Variante[] = products.flatMap((p) => p.variants)
-  return allVariants
-    .map((variant) => ({
-      id: variant.id,
-      name: variant.name,
-      preisCents: variant.preisCents,
-      menge: selectedQuantity[variant.id] || 0,
+  const alleVarianten: Variante[] = products.flatMap((p) => p.varianten)
+  return alleVarianten
+    .map((variante) => ({
+      id: variante.id,
+      name: variante.name,
+      preisCents: variante.preisCents,
+      menge: ausgewaehlteMengen[variante.id] || 0,
     }))
-    .filter((variant) => variant.menge > 0)
+    .filter((variante) => variante.menge > 0)
 }

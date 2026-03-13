@@ -15,15 +15,15 @@ import (
 func setup(t *testing.T) (Repository, func(t *testing.T)) {
 	db := dbpkg.OpenTestDatabase()
 
-	_, err := db.Exec("DELETE FROM tables")
+	_, err := db.Exec("DELETE FROM tische")
 	if err != nil {
-		t.Fatalf("Failed to clean tables table: %v", err)
+		t.Fatalf("Failed to clean tische table: %v", err)
 	}
 
 	return NewRepository(db), func(t *testing.T) {
-		_, err = db.Exec("DELETE FROM tables")
+		_, err = db.Exec("DELETE FROM tische")
 		if err != nil {
-			t.Fatalf("Failed to clean tables table: %v", err)
+			t.Fatalf("Failed to clean tische table: %v", err)
 		}
 
 		db.Close()

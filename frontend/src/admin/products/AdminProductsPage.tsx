@@ -31,23 +31,23 @@ export function AdminProductsPage() {
 
   const updateVariantInProduct = (
     productId: number,
-    updater: (variants: Variante[]) => Variante[],
+    updater: (varianten: Variante[]) => Variante[],
   ) => {
     setProducts((prevProducts) =>
       prevProducts.map((p) =>
-        p.id === productId ? { ...p, variants: updater(p.variants) } : p,
+        p.id === productId ? { ...p, varianten: updater(p.varianten) } : p,
       ),
     )
   }
 
   const onVariantCreated = (productId: number, variant: Variante) => {
-    updateVariantInProduct(productId, (variants) => [...variants, variant])
+    updateVariantInProduct(productId, (varianten) => [...varianten, variant])
     toast.success(`Variante "${variant.name}" wurde angelegt.`)
   }
 
   const onVariantUpdated = (productId: number, variant: Variante) => {
-    updateVariantInProduct(productId, (variants) =>
-      variants.map((v) => (v.id === variant.id ? variant : v)),
+    updateVariantInProduct(productId, (varianten) =>
+      varianten.map((v) => (v.id === variant.id ? variant : v)),
     )
   }
 
@@ -56,8 +56,8 @@ export function AdminProductsPage() {
     variantId: number,
     status: 'active' | 'inactive',
   ) => {
-    updateVariantInProduct(productId, (variants) =>
-      variants.map((v) => (v.id === variantId ? { ...v, status } : v)),
+    updateVariantInProduct(productId, (varianten) =>
+      varianten.map((v) => (v.id === variantId ? { ...v, status } : v)),
     )
   }
 

@@ -10,12 +10,12 @@ import (
 )
 
 func (r Repository) GetProduct(ctx context.Context, id int) (product.Produkt, error) {
-	row, err := r.q.GetProduct(ctx, id)
+	row, err := r.q.GetProdukt(ctx, id)
 	if err != nil {
 		return product.Produkt{}, db.Error(err)
 	}
 
-	variants, err := parseVariantsJSON(row.Variants)
+	varianten, err := parseVariantsJSON(row.Varianten)
 	if err != nil {
 		return product.Produkt{}, fmt.Errorf("failed to unmarshal variants: %w", err)
 	}
@@ -23,23 +23,23 @@ func (r Repository) GetProduct(ctx context.Context, id int) (product.Produkt, er
 	return product.Produkt{
 		ID:        row.ID,
 		Name:      row.Name,
-		Kategorie: product.Kategorie(row.Category),
+		Kategorie: product.Kategorie(row.Kategorie),
 		Status:    product.Status(row.Status),
-		Variants:  variants,
+		Varianten: varianten,
 		CreatedAt: row.CreatedAt,
 		UpdatedAt: row.UpdatedAt,
 	}, nil
 }
 
 func (r Repository) GetAllProducts(ctx context.Context) ([]product.Produkt, error) {
-	rows, err := r.q.GetAllProducts(ctx)
+	rows, err := r.q.GetAlleProdukte(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
 	products := make([]product.Produkt, 0, len(rows))
 	for i := range rows {
-		variants, err := parseVariantsJSON(rows[i].Variants)
+		varianten, err := parseVariantsJSON(rows[i].Varianten)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal variants: %w", err)
 		}
@@ -47,9 +47,9 @@ func (r Repository) GetAllProducts(ctx context.Context) ([]product.Produkt, erro
 		products = append(products, product.Produkt{
 			ID:        rows[i].ID,
 			Name:      rows[i].Name,
-			Kategorie: product.Kategorie(rows[i].Category),
+			Kategorie: product.Kategorie(rows[i].Kategorie),
 			Status:    product.Status(rows[i].Status),
-			Variants:  variants,
+			Varianten: varianten,
 			CreatedAt: rows[i].CreatedAt,
 			UpdatedAt: rows[i].UpdatedAt,
 		})
@@ -59,14 +59,14 @@ func (r Repository) GetAllProducts(ctx context.Context) ([]product.Produkt, erro
 }
 
 func (r Repository) GetActiveProducts(ctx context.Context) ([]product.Produkt, error) {
-	rows, err := r.q.GetActiveProducts(ctx)
+	rows, err := r.q.GetAktiveProdukte(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
 	products := make([]product.Produkt, 0, len(rows))
 	for i := range rows {
-		variants, err := parseVariantsJSON(rows[i].Variants)
+		varianten, err := parseVariantsJSON(rows[i].Varianten)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal variants: %w", err)
 		}
@@ -74,9 +74,9 @@ func (r Repository) GetActiveProducts(ctx context.Context) ([]product.Produkt, e
 		products = append(products, product.Produkt{
 			ID:        rows[i].ID,
 			Name:      rows[i].Name,
-			Kategorie: product.Kategorie(rows[i].Category),
+			Kategorie: product.Kategorie(rows[i].Kategorie),
 			Status:    product.Status(rows[i].Status),
-			Variants:  variants,
+			Varianten: varianten,
 			CreatedAt: rows[i].CreatedAt,
 			UpdatedAt: rows[i].UpdatedAt,
 		})
@@ -86,9 +86,9 @@ func (r Repository) GetActiveProducts(ctx context.Context) ([]product.Produkt, e
 }
 
 func (r Repository) CreateProduct(ctx context.Context, p product.Produkt) (int, error) {
-	id, err := r.q.CreateProduct(ctx, dbgen.CreateProductParams{
+	id, err := r.q.CreateProdukt(ctx, dbgen.CreateProduktParams{
 		Name:      p.Name,
-		Category:  dbgen.Productcategory(p.Kategorie),
+		Kategorie: dbgen.Produktkategorie(p.Kategorie),
 		Status:    dbgen.Entitystatus(p.Status),
 		CreatedAt: p.CreatedAt,
 		UpdatedAt: p.UpdatedAt,
@@ -101,9 +101,9 @@ func (r Repository) CreateProduct(ctx context.Context, p product.Produkt) (int, 
 }
 
 func (r Repository) UpdateProduct(ctx context.Context, p product.Produkt) error {
-	result, err := r.q.UpdateProduct(ctx, dbgen.UpdateProductParams{
+	result, err := r.q.UpdateProdukt(ctx, dbgen.UpdateProduktParams{
 		Name:      p.Name,
-		Category:  dbgen.Productcategory(p.Kategorie),
+		Kategorie: dbgen.Produktkategorie(p.Kategorie),
 		Status:    dbgen.Entitystatus(p.Status),
 		UpdatedAt: p.UpdatedAt,
 		ID:        p.ID,

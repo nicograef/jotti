@@ -36,31 +36,31 @@ export function Zahlung({
   onProdukteStorniert,
 }: ZahlungProps) {
   const { positionen, loading, reload } = useTischUnbezahlt(tisch.id)
-  const [quantities, setQuantities] = useState<Record<number, number>>({})
+  const [mengen, setMengen] = useState<Record<number, number>>({})
 
-  const unpaidQuantities: Record<number, number> = {}
+  const unbezahlteMengen: Record<number, number> = {}
   positionen.forEach((position) => {
-    unpaidQuantities[position.id] = position.menge
+    unbezahlteMengen[position.id] = position.menge
   })
 
   const onAdd = (positionId: number) => {
-    setQuantities((prev) => {
-      const currentQuantity = prev[positionId] || 0
-      if (currentQuantity >= (unpaidQuantities[positionId] || 0)) return prev
+    setMengen((prev) => {
+      const aktuelleMenge = prev[positionId] || 0
+      if (aktuelleMenge >= (unbezahlteMengen[positionId] || 0)) return prev
       return {
         ...prev,
-        [positionId]: currentQuantity + 1,
+        [positionId]: aktuelleMenge + 1,
       }
     })
   }
 
   const onRemove = (positionId: number) => {
-    setQuantities((prev) => {
-      const currentQuantity = prev[positionId] || 0
-      if (currentQuantity <= 0) return prev
+    setMengen((prev) => {
+      const aktuelleMenge = prev[positionId] || 0
+      if (aktuelleMenge <= 0) return prev
       return {
         ...prev,
-        [positionId]: currentQuantity - 1,
+        [positionId]: aktuelleMenge - 1,
       }
     })
   }
@@ -74,9 +74,9 @@ export function Zahlung({
               backend={backend}
               tisch={tisch}
               unbezahltePositionen={positionen}
-              quantities={quantities}
+              mengen={mengen}
               produkteStorniert={() => {
-                setQuantities({})
+                setMengen({})
                 toast.success(`Stornierung erfolgreich.`)
                 onProdukteStorniert()
                 reload()
@@ -89,9 +89,9 @@ export function Zahlung({
             backend={backend}
             tisch={tisch}
             unbezahltePositionen={positionen}
-            quantities={quantities}
+            mengen={mengen}
             zahlungRegistriert={() => {
-              setQuantities({})
+              setMengen({})
               toast.success(`Zahlung erfolgreich.`)
               onZahlungRegistriert()
               reload()
@@ -109,8 +109,8 @@ export function Zahlung({
               <PositionItem
                 key={position.id}
                 position={position}
-                menge={quantities[position.id] || 0}
-                unpaidQuantity={unpaidQuantities[position.id] || 0}
+                menge={mengen[position.id] || 0}
+                unbezahlteMenge={unbezahlteMengen[position.id] || 0}
                 onAdd={() => {
                   onAdd(position.id)
                 }}
@@ -127,7 +127,7 @@ export function Zahlung({
 interface PositionItemProps {
   position: Position
   menge: number
-  unpaidQuantity: number
+  unbezahlteMenge: number
   onAdd: () => void
   onRemove: () => void
 }
@@ -135,7 +135,7 @@ interface PositionItemProps {
 function PositionItem({
   position,
   menge,
-  unpaidQuantity,
+  unbezahlteMenge,
   onAdd,
   onRemove,
 }: PositionItemProps) {
@@ -147,7 +147,7 @@ function PositionItem({
           <span className="font-bold">
             {formatCents(position.preisCents)}&nbsp;€
           </span>
-          &nbsp; &ndash; &nbsp;noch {unpaidQuantity - menge} unbezahlt
+          &nbsp; &ndash; &nbsp;noch {unbezahlteMenge - menge} unbezahlt
         </ItemDescription>
       </ItemContent>
       <ItemActions>

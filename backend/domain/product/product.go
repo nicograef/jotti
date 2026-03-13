@@ -11,12 +11,12 @@ import (
 type Kategorie string
 
 const (
-	// FoodKategorie indicates the product belongs to the food category.
-	FoodKategorie Kategorie = "food"
-	// BeverageKategorie indicates the product belongs to the beverage category.
-	BeverageKategorie Kategorie = "beverage"
-	// OtherKategorie indicates the product belongs to the other category.
-	OtherKategorie Kategorie = "other"
+	// EssenKategorie indicates the product belongs to the food category.
+	EssenKategorie Kategorie = "essen"
+	// GetraenkKategorie indicates the product belongs to the beverage category.
+	GetraenkKategorie Kategorie = "getraenk"
+	// SonstigesKategorie indicates the product belongs to the other category.
+	SonstigesKategorie Kategorie = "sonstiges"
 )
 
 type Produkt struct {
@@ -24,7 +24,7 @@ type Produkt struct {
 	Name      string     `json:"name"`
 	Kategorie Kategorie  `json:"kategorie"`
 	Status    Status     `json:"status"`
-	Variants  []Variante `json:"variants"`
+	Varianten []Variante `json:"varianten"`
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
 }
@@ -37,7 +37,7 @@ var NameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(100, 
 
 // KategorieSchema defines the schema for a product category.
 var KategorieSchema = z.StringLike[Kategorie]().OneOf(
-	[]Kategorie{FoodKategorie, BeverageKategorie, OtherKategorie},
+	[]Kategorie{EssenKategorie, GetraenkKategorie, SonstigesKategorie},
 	z.Message("Invalid category"),
 )
 
@@ -46,7 +46,7 @@ var ProduktSchema = z.Struct(z.Shape{
 	"Name":      NameSchema.Required(),
 	"Kategorie": KategorieSchema.Required(),
 	"Status":    StatusSchema.Required(),
-	"Variants":  z.Slice(VarianteSchema).Required(),
+	"Varianten": z.Slice(VarianteSchema).Required(),
 	"CreatedAt": z.Time().Required(),
 	"UpdatedAt": z.Time().Required(),
 })
@@ -74,7 +74,7 @@ func NewProdukt(name string, kategorie Kategorie) (Produkt, error) {
 		Name:      name,
 		Kategorie: kategorie,
 		Status:    ActiveStatus,
-		Variants:  []Variante{},
+		Varianten: []Variante{},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	}

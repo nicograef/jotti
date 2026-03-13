@@ -22,7 +22,7 @@ import {
 
 interface ProductListComponentProps {
   products: Produkt[]
-  variantQuantities: Record<number, number>
+  variantMengen: Record<number, number>
   onAdd: (variantId: number) => void
   onRemove: (variantId: number) => void
 }
@@ -44,9 +44,9 @@ export function ProductList(props: ProductListComponentProps) {
     })
   }
 
-  const getProductTotal = (variants: Variante[]) => {
-    return variants.reduce(
-      (sum, v) => sum + (props.variantQuantities[v.id] || 0),
+  const getProductTotal = (varianten: Variante[]) => {
+    return varianten.reduce(
+      (sum, v) => sum + (props.variantMengen[v.id] || 0),
       0,
     )
   }
@@ -67,7 +67,7 @@ export function ProductList(props: ProductListComponentProps) {
             <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
               {categoryProducts.map((product) => {
                 const isExpanded = expandedProducts.has(product.id)
-                const productTotal = getProductTotal(product.variants)
+                const productTotal = getProductTotal(product.varianten)
 
                 return (
                   <div key={product.id} className="space-y-1">
@@ -88,8 +88,8 @@ export function ProductList(props: ProductListComponentProps) {
                           {product.name}
                         </ItemTitle>
                         <ItemDescription>
-                          {product.variants.length} Variante
-                          {product.variants.length !== 1 ? 'n' : ''}
+                          {product.varianten.length} Variante
+                          {product.varianten.length !== 1 ? 'n' : ''}
                         </ItemDescription>
                       </ItemContent>
                       {productTotal > 0 && (
@@ -102,11 +102,11 @@ export function ProductList(props: ProductListComponentProps) {
                     </Item>
                     {isExpanded && (
                       <div className="ml-4 space-y-1">
-                        {product.variants.map((variant) => (
+                        {product.varianten.map((variant) => (
                           <VariantItem
                             key={variant.id}
                             variant={variant}
-                            quantity={props.variantQuantities[variant.id] || 0}
+                            menge={props.variantMengen[variant.id] || 0}
                             onAdd={() => {
                               props.onAdd(variant.id)
                             }}
@@ -130,12 +130,12 @@ export function ProductList(props: ProductListComponentProps) {
 
 function VariantItem({
   variant,
-  quantity,
+  menge,
   onAdd,
   onRemove,
 }: {
   variant: Variante
-  quantity: number
+  menge: number
   onAdd: () => void
   onRemove: () => void
 }) {
@@ -162,7 +162,7 @@ function VariantItem({
         >
           <Minus />
         </Button>
-        <span className="text-lg mx-1">{quantity}</span>
+        <span className="text-lg mx-1">{menge}</span>
         <Button
           size="icon-sm"
           variant="outline"

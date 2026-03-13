@@ -12,23 +12,23 @@ import (
 	"time"
 )
 
-const createProduct = `-- name: CreateProduct :one
-INSERT INTO products (name, category, status, created_at, updated_at)
+const createProdukt = `-- name: CreateProdukt :one
+INSERT INTO produkte (name, kategorie, status, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5) RETURNING id
 `
 
-type CreateProductParams struct {
+type CreateProduktParams struct {
 	Name      string
-	Category  Productcategory
+	Kategorie Produktkategorie
 	Status    Entitystatus
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
-func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (int, error) {
-	row := q.db.QueryRowContext(ctx, createProduct,
+func (q *Queries) CreateProdukt(ctx context.Context, arg CreateProduktParams) (int, error) {
+	row := q.db.QueryRowContext(ctx, createProdukt,
 		arg.Name,
-		arg.Category,
+		arg.Kategorie,
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -38,25 +38,25 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (i
 	return id, err
 }
 
-const createVariant = `-- name: CreateVariant :one
-INSERT INTO product_variants (product_id, name, price_cents, status, created_at, updated_at)
+const createVariante = `-- name: CreateVariante :one
+INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
 `
 
-type CreateVariantParams struct {
-	ProductID  int
+type CreateVarianteParams struct {
+	ProduktID  int
 	Name       string
-	PriceCents int
+	PreisCents int
 	Status     Entitystatus
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
 
-func (q *Queries) CreateVariant(ctx context.Context, arg CreateVariantParams) (int, error) {
-	row := q.db.QueryRowContext(ctx, createVariant,
-		arg.ProductID,
+func (q *Queries) CreateVariante(ctx context.Context, arg CreateVarianteParams) (int, error) {
+	row := q.db.QueryRowContext(ctx, createVariante,
+		arg.ProduktID,
 		arg.Name,
-		arg.PriceCents,
+		arg.PreisCents,
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -66,65 +66,65 @@ func (q *Queries) CreateVariant(ctx context.Context, arg CreateVariantParams) (i
 	return id, err
 }
 
-const getActiveProducts = `-- name: GetActiveProducts :many
-WITH variant_json AS (
+const getAktiveProdukte = `-- name: GetAktiveProdukte :many
+WITH varianten_json AS (
     SELECT 
-        product_id,
+        produkt_id,
         json_agg(
             json_build_object(
                 'id', id,
                 'name', name,
-                'price_cents', price_cents,
+                'preisCents', preis_cents,
                 'status', status,
-                'created_at', created_at,
-                'updated_at', updated_at
+                'createdAt', created_at,
+                'updatedAt', updated_at
             )
-        ) AS variants
-    FROM product_variants
+        ) AS varianten
+    FROM produkt_varianten
     WHERE status = 'active'
-    GROUP BY product_id
+    GROUP BY produkt_id
 )
 SELECT 
     p.id,
     p.name,
-    p.category,
+    p.kategorie,
     p.status,
     p.created_at,
     p.updated_at,
-    vj.variants::json AS variants
-FROM products p
-INNER JOIN variant_json vj ON vj.product_id = p.id
+    vj.varianten::json AS varianten
+FROM produkte p
+INNER JOIN varianten_json vj ON vj.produkt_id = p.id
 WHERE p.status = 'active'
 ORDER BY p.id ASC
 `
 
-type GetActiveProductsRow struct {
+type GetAktiveProdukteRow struct {
 	ID        int
 	Name      string
-	Category  Productcategory
+	Kategorie Produktkategorie
 	Status    Entitystatus
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	Variants  json.RawMessage
+	Varianten json.RawMessage
 }
 
-func (q *Queries) GetActiveProducts(ctx context.Context) ([]GetActiveProductsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getActiveProducts)
+func (q *Queries) GetAktiveProdukte(ctx context.Context) ([]GetAktiveProdukteRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAktiveProdukte)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetActiveProductsRow{}
+	items := []GetAktiveProdukteRow{}
 	for rows.Next() {
-		var i GetActiveProductsRow
+		var i GetAktiveProdukteRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.Category,
+			&i.Kategorie,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Variants,
+			&i.Varianten,
 		); err != nil {
 			return nil, err
 		}
@@ -139,65 +139,65 @@ func (q *Queries) GetActiveProducts(ctx context.Context) ([]GetActiveProductsRow
 	return items, nil
 }
 
-const getAllProducts = `-- name: GetAllProducts :many
-WITH variant_json AS (
+const getAlleProdukte = `-- name: GetAlleProdukte :many
+WITH varianten_json AS (
     SELECT 
-        product_id,
+        produkt_id,
         json_agg(
             json_build_object(
                 'id', id,
                 'name', name,
-                'price_cents', price_cents,
+                'preisCents', preis_cents,
                 'status', status,
-                'created_at', created_at,
-                'updated_at', updated_at
+                'createdAt', created_at,
+                'updatedAt', updated_at
             )
-        ) AS variants
-    FROM product_variants
+        ) AS varianten
+    FROM produkt_varianten
     WHERE status != 'deleted'
-    GROUP BY product_id
+    GROUP BY produkt_id
 )
 SELECT 
     p.id,
     p.name,
-    p.category,
+    p.kategorie,
     p.status,
     p.created_at,
     p.updated_at,
-    COALESCE(vj.variants, '[]')::json AS variants
-FROM products p
-LEFT JOIN variant_json vj ON vj.product_id = p.id
+    COALESCE(vj.varianten, '[]')::json AS varianten
+FROM produkte p
+LEFT JOIN varianten_json vj ON vj.produkt_id = p.id
 WHERE p.status != 'deleted'
 ORDER BY p.id ASC
 `
 
-type GetAllProductsRow struct {
+type GetAlleProdukteRow struct {
 	ID        int
 	Name      string
-	Category  Productcategory
+	Kategorie Produktkategorie
 	Status    Entitystatus
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	Variants  json.RawMessage
+	Varianten json.RawMessage
 }
 
-func (q *Queries) GetAllProducts(ctx context.Context) ([]GetAllProductsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllProducts)
+func (q *Queries) GetAlleProdukte(ctx context.Context) ([]GetAlleProdukteRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAlleProdukte)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetAllProductsRow{}
+	items := []GetAlleProdukteRow{}
 	for rows.Next() {
-		var i GetAllProductsRow
+		var i GetAlleProdukteRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
-			&i.Category,
+			&i.Kategorie,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Variants,
+			&i.Varianten,
 		); err != nil {
 			return nil, err
 		}
@@ -212,11 +212,11 @@ func (q *Queries) GetAllProducts(ctx context.Context) ([]GetAllProductsRow, erro
 	return items, nil
 }
 
-const getProduct = `-- name: GetProduct :one
+const getProdukt = `-- name: GetProdukt :one
 SELECT 
     p.id,
     p.name,
-    p.category,
+    p.kategorie,
     p.status,
     p.created_at,
     p.updated_at,
@@ -225,66 +225,66 @@ SELECT
             json_build_object(
                 'id', pv.id,
                 'name', pv.name,
-                'price_cents', pv.price_cents,
+                'preisCents', pv.preis_cents,
                 'status', pv.status,
-                'created_at', pv.created_at,
-                'updated_at', pv.updated_at
+                'createdAt', pv.created_at,
+                'updatedAt', pv.updated_at
             )
         )
-        FROM product_variants pv
-        WHERE pv.product_id = p.id AND pv.status != 'deleted'),
+        FROM produkt_varianten pv
+        WHERE pv.produkt_id = p.id AND pv.status != 'deleted'),
         '[]'
-    )::json AS variants
-FROM products p
+    )::json AS varianten
+FROM produkte p
 WHERE p.id = $1 AND p.status != 'deleted'
 `
 
-type GetProductRow struct {
+type GetProduktRow struct {
 	ID        int
 	Name      string
-	Category  Productcategory
+	Kategorie Produktkategorie
 	Status    Entitystatus
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	Variants  json.RawMessage
+	Varianten json.RawMessage
 }
 
-func (q *Queries) GetProduct(ctx context.Context, id int) (GetProductRow, error) {
-	row := q.db.QueryRowContext(ctx, getProduct, id)
-	var i GetProductRow
+func (q *Queries) GetProdukt(ctx context.Context, id int) (GetProduktRow, error) {
+	row := q.db.QueryRowContext(ctx, getProdukt, id)
+	var i GetProduktRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.Category,
+		&i.Kategorie,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Variants,
+		&i.Varianten,
 	)
 	return i, err
 }
 
-const getVariant = `-- name: GetVariant :one
-SELECT id, name, price_cents, status, created_at, updated_at
-FROM product_variants WHERE id = $1 AND status != 'deleted'
+const getVariante = `-- name: GetVariante :one
+SELECT id, name, preis_cents, status, created_at, updated_at
+FROM produkt_varianten WHERE id = $1 AND status != 'deleted'
 `
 
-type GetVariantRow struct {
+type GetVarianteRow struct {
 	ID         int
 	Name       string
-	PriceCents int
+	PreisCents int
 	Status     Entitystatus
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
 
-func (q *Queries) GetVariant(ctx context.Context, id int) (GetVariantRow, error) {
-	row := q.db.QueryRowContext(ctx, getVariant, id)
-	var i GetVariantRow
+func (q *Queries) GetVariante(ctx context.Context, id int) (GetVarianteRow, error) {
+	row := q.db.QueryRowContext(ctx, getVariante, id)
+	var i GetVarianteRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
-		&i.PriceCents,
+		&i.PreisCents,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -292,44 +292,44 @@ func (q *Queries) GetVariant(ctx context.Context, id int) (GetVariantRow, error)
 	return i, err
 }
 
-const updateProduct = `-- name: UpdateProduct :execresult
-UPDATE products SET name = $1, category = $2, status = $3, updated_at = $4 WHERE id = $5
+const updateProdukt = `-- name: UpdateProdukt :execresult
+UPDATE produkte SET name = $1, kategorie = $2, status = $3, updated_at = $4 WHERE id = $5
 `
 
-type UpdateProductParams struct {
+type UpdateProduktParams struct {
 	Name      string
-	Category  Productcategory
+	Kategorie Produktkategorie
 	Status    Entitystatus
 	UpdatedAt time.Time
 	ID        int
 }
 
-func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, updateProduct,
+func (q *Queries) UpdateProdukt(ctx context.Context, arg UpdateProduktParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateProdukt,
 		arg.Name,
-		arg.Category,
+		arg.Kategorie,
 		arg.Status,
 		arg.UpdatedAt,
 		arg.ID,
 	)
 }
 
-const updateVariant = `-- name: UpdateVariant :execresult
-UPDATE product_variants SET name = $1, price_cents = $2, status = $3, updated_at = $4 WHERE id = $5
+const updateVariante = `-- name: UpdateVariante :execresult
+UPDATE produkt_varianten SET name = $1, preis_cents = $2, status = $3, updated_at = $4 WHERE id = $5
 `
 
-type UpdateVariantParams struct {
+type UpdateVarianteParams struct {
 	Name       string
-	PriceCents int
+	PreisCents int
 	Status     Entitystatus
 	UpdatedAt  time.Time
 	ID         int
 }
 
-func (q *Queries) UpdateVariant(ctx context.Context, arg UpdateVariantParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, updateVariant,
+func (q *Queries) UpdateVariante(ctx context.Context, arg UpdateVarianteParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateVariante,
 		arg.Name,
-		arg.PriceCents,
+		arg.PreisCents,
 		arg.Status,
 		arg.UpdatedAt,
 		arg.ID,

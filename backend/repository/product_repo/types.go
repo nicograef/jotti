@@ -21,10 +21,10 @@ func NewRepository(db *sql.DB) Repository {
 type jsonVariant struct {
 	ID         int         `json:"id"`
 	Name       string      `json:"name"`
-	PreisCents int         `json:"price_cents"`
+	PreisCents int         `json:"preisCents"`
 	Status     string      `json:"status"`
-	CreatedAt  db.NullTime `json:"created_at"`
-	UpdatedAt  db.NullTime `json:"updated_at"`
+	CreatedAt  db.NullTime `json:"createdAt"`
+	UpdatedAt  db.NullTime `json:"updatedAt"`
 }
 
 func (jv *jsonVariant) toDomain() product.Variante {
@@ -52,11 +52,11 @@ func parseVariantsJSON(data json.RawMessage) ([]product.Variante, error) {
 	return result, nil
 }
 
-func variantRowToDomain(row dbgen.GetVariantRow) product.Variante {
+func variantRowToDomain(row dbgen.GetVarianteRow) product.Variante {
 	return product.Variante{
 		ID:         row.ID,
 		Name:       row.Name,
-		PreisCents: row.PriceCents,
+		PreisCents: row.PreisCents,
 		Status:     product.Status(row.Status),
 		CreatedAt:  row.CreatedAt,
 		UpdatedAt:  row.UpdatedAt,

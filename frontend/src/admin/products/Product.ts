@@ -1,9 +1,9 @@
 import { z } from 'zod'
 
 export const Kategorie = {
-  FOOD: 'food',
-  BEVERAGE: 'beverage',
-  OTHER: 'other',
+  ESSEN: 'essen',
+  GETRAENK: 'getraenk',
+  SONSTIGES: 'sonstiges',
 } as const
 export type Kategorie = (typeof Kategorie)[keyof typeof Kategorie]
 
@@ -25,7 +25,7 @@ const PreisCentsSchema = z
   .number()
   .int()
   .min(0, { message: 'Preis muss mindestens 0 Cent sein.' })
-const KategorieSchema = z.enum(['food', 'beverage', 'other'])
+const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
 const VarianteStatusSchema = z.enum(['active', 'inactive'])
 const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {
   message: 'Ungültiges Datumsformat',
@@ -44,7 +44,7 @@ export const ProduktSchema = z.object({
   id: ProduktIdSchema,
   name: NameSchema,
   kategorie: KategorieSchema,
-  variants: z.array(VarianteSchema),
+  varianten: z.array(VarianteSchema),
   createdAt: DateStringSchema,
 })
 export type Produkt = z.infer<typeof ProduktSchema>

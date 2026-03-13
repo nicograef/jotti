@@ -1,11 +1,11 @@
 import { Field } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 
-interface CommentFieldProps {
+interface KommentarFieldProps {
   onChange: (value: string) => void
 }
 
-export function CommentField({ onChange }: CommentFieldProps) {
+export function KommentarField({ onChange }: KommentarFieldProps) {
   return (
     <Field>
       <Textarea
@@ -22,7 +22,7 @@ export function CommentField({ onChange }: CommentFieldProps) {
   )
 }
 
-export function Comment({ value }: { value: string }) {
+export function Kommentar({ value }: { value: string }) {
   return (
     <Field>
       <Textarea

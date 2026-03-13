@@ -92,7 +92,7 @@ func TestGetSaldoFromEvents_Empty(t *testing.T) {
 
 func TestGetSaldoFromEvents_OrderOnly(t *testing.T) {
 	products := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 2),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, products),
@@ -109,7 +109,7 @@ func TestGetSaldoFromEvents_OrderOnly(t *testing.T) {
 
 func TestGetSaldoFromEvents_OrderAndPayment(t *testing.T) {
 	products := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 2),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
 	paymentRefs := positionRefsFromOrder(t, orderEvent, 1)
@@ -130,7 +130,7 @@ func TestGetSaldoFromEvents_OrderAndPayment(t *testing.T) {
 
 func TestGetSaldoFromEvents_OrderPaymentAndCancelation(t *testing.T) {
 	products := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 2),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
 	refs := positionRefsFromOrder(t, orderEvent, 1)
@@ -162,7 +162,7 @@ func TestGetHistoryFromEvents_Empty(t *testing.T) {
 
 func TestGetHistoryFromEvents_ReturnsAllEventTypes(t *testing.T) {
 	products := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 1),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
 	refs := positionRefsFromOrder(t, orderEvent, 1)
@@ -185,7 +185,7 @@ func TestGetHistoryFromEvents_ReturnsAllEventTypes(t *testing.T) {
 
 func TestGetHistoryFromEvents_ReversesOrder(t *testing.T) {
 	products := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 1),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
 	refs := positionRefsFromOrder(t, orderEvent, 1)
@@ -220,8 +220,8 @@ func TestGetUnbezahltePositionenFromEvents_Empty(t *testing.T) {
 
 func TestGetUnbezahltePositionenFromEvents_OrderOnly(t *testing.T) {
 	orderProducts := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 2),
-		testPosition(2, "Fries", "Pommes", "food", 300, 1),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
+		testPosition(2, "Fries", "Pommes", "essen", 300, 1),
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, orderProducts),
@@ -241,7 +241,7 @@ func TestGetUnbezahltePositionenFromEvents_OrderOnly(t *testing.T) {
 
 func TestGetUnbezahltePositionenFromEvents_PartialPayment(t *testing.T) {
 	orderProducts := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 3),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
 	paymentRefs := positionRefsFromOrder(t, orderEvent, 1)
@@ -265,7 +265,7 @@ func TestGetUnbezahltePositionenFromEvents_PartialPayment(t *testing.T) {
 
 func TestGetUnbezahltePositionenFromEvents_FullPayment(t *testing.T) {
 	orderProducts := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 2),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
 	paymentRefs := positionRefsFromOrder(t, orderEvent, 2)
@@ -286,7 +286,7 @@ func TestGetUnbezahltePositionenFromEvents_FullPayment(t *testing.T) {
 
 func TestGetUnbezahltePositionenFromEvents_WithCancelation(t *testing.T) {
 	orderProducts := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 3),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
 	cancelRefs := positionRefsFromOrder(t, orderEvent, 2)
@@ -310,10 +310,10 @@ func TestGetUnbezahltePositionenFromEvents_WithCancelation(t *testing.T) {
 
 func TestGetUnbezahltePositionenFromEvents_AccumulatesMultipleOrders(t *testing.T) {
 	products1 := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 2),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
 	products2 := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 3),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 	}
 	order1 := mustCreateOrderEvent(t, 1, 1, products1)
 	order2 := mustCreateOrderEvent(t, 1, 1, products2)
@@ -341,7 +341,7 @@ func TestGetUngeliefertePositionenFromEvents_Empty(t *testing.T) {
 
 func TestGetUngeliefertePositionenFromEvents_OrderOnly(t *testing.T) {
 	orderProducts := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 2),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, orderProducts),
@@ -361,7 +361,7 @@ func TestGetUngeliefertePositionenFromEvents_OrderOnly(t *testing.T) {
 
 func TestGetUngeliefertePositionenFromEvents_PartialDelivery(t *testing.T) {
 	orderProducts := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 3),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
 	deliveryRefs := positionRefsFromOrder(t, orderEvent, 1)
@@ -385,7 +385,7 @@ func TestGetUngeliefertePositionenFromEvents_PartialDelivery(t *testing.T) {
 
 func TestGetUngeliefertePositionenFromEvents_FullDelivery(t *testing.T) {
 	orderProducts := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 2),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
 	deliveryRefs := positionRefsFromOrder(t, orderEvent, 2)
@@ -406,7 +406,7 @@ func TestGetUngeliefertePositionenFromEvents_FullDelivery(t *testing.T) {
 
 func TestGetUngeliefertePositionenFromEvents_WithCancelation(t *testing.T) {
 	orderProducts := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "beverage", 500, 3),
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
 	cancelRefs := positionRefsFromOrder(t, orderEvent, 2)
@@ -431,9 +431,9 @@ func TestGetUngeliefertePositionenFromEvents_WithCancelation(t *testing.T) {
 func TestGetSaldoFromEvents_WithSnapshot(t *testing.T) {
 	// Snapshot represents state: balance = 500 cents
 	// Then new order adds 300 cents
-	unpaid := []Position{{PositionID: "00000000-0000-0000-0000-000000000001", VarianteID: 1, ProduktName: "Beer", VarianteName: "Pils", Kategorie: "beverage", Einzelpreis: 500, Menge: 1}}
-	undelivered := []Position{{PositionID: "00000000-0000-0000-0000-000000000001", VarianteID: 1, ProduktName: "Beer", VarianteName: "Pils", Kategorie: "beverage", Einzelpreis: 500, Menge: 1}}
-	newLineItems := []Position{testPosition(2, "Fries", "Pommes", "food", 300, 1)}
+	unpaid := []Position{{PositionID: "00000000-0000-0000-0000-000000000001", VarianteID: 1, ProduktName: "Beer", VarianteName: "Pils", Kategorie: "getraenk", Einzelpreis: 500, Menge: 1}}
+	undelivered := []Position{{PositionID: "00000000-0000-0000-0000-000000000001", VarianteID: 1, ProduktName: "Beer", VarianteName: "Pils", Kategorie: "getraenk", Einzelpreis: 500, Menge: 1}}
+	newLineItems := []Position{testPosition(2, "Fries", "Pommes", "essen", 300, 1)}
 
 	events := []e.Event{
 		mustCreateSnapshotEvent(t, 1, 1, 500, unpaid, undelivered, 0),
@@ -450,7 +450,7 @@ func TestGetSaldoFromEvents_WithSnapshot(t *testing.T) {
 }
 
 func TestGetSaldoFromEvents_SnapshotResetsBalance(t *testing.T) {
-	oldProducts := []Position{testPosition(1, "Beer", "Pils", "beverage", 1000, 1)}
+	oldProducts := []Position{testPosition(1, "Beer", "Pils", "getraenk", 1000, 1)}
 	unpaid := []Position{}
 	undelivered := []Position{}
 
@@ -469,8 +469,8 @@ func TestGetSaldoFromEvents_SnapshotResetsBalance(t *testing.T) {
 }
 
 func TestGetUnbezahltePositionenFromEvents_WithSnapshot(t *testing.T) {
-	snapshotUnpaid := []Position{{PositionID: "00000000-0000-0000-0000-000000000002", VarianteID: 1, ProduktName: "Beer", VarianteName: "Pils", Kategorie: "beverage", Einzelpreis: 500, Menge: 2}}
-	newLineItems := []Position{testPosition(2, "Fries", "Pommes", "food", 300, 1)}
+	snapshotUnpaid := []Position{{PositionID: "00000000-0000-0000-0000-000000000002", VarianteID: 1, ProduktName: "Beer", VarianteName: "Pils", Kategorie: "getraenk", Einzelpreis: 500, Menge: 2}}
+	newLineItems := []Position{testPosition(2, "Fries", "Pommes", "essen", 300, 1)}
 
 	events := []e.Event{
 		mustCreateSnapshotEvent(t, 1, 1, 1000, snapshotUnpaid, []Position{}, 0),
@@ -487,8 +487,8 @@ func TestGetUnbezahltePositionenFromEvents_WithSnapshot(t *testing.T) {
 }
 
 func TestGetUnbezahltePositionenFromEvents_SnapshotResetsState(t *testing.T) {
-	oldProducts := []Position{testPosition(1, "Beer", "Pils", "beverage", 500, 10)}
-	snapshotUnpaid := []Position{{PositionID: "00000000-0000-0000-0000-000000000003", VarianteID: 2, ProduktName: "Fries", VarianteName: "Pommes", Kategorie: "food", Einzelpreis: 300, Menge: 1}}
+	oldProducts := []Position{testPosition(1, "Beer", "Pils", "getraenk", 500, 10)}
+	snapshotUnpaid := []Position{{PositionID: "00000000-0000-0000-0000-000000000003", VarianteID: 2, ProduktName: "Fries", VarianteName: "Pommes", Kategorie: "essen", Einzelpreis: 300, Menge: 1}}
 
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, oldProducts),
@@ -508,8 +508,8 @@ func TestGetUnbezahltePositionenFromEvents_SnapshotResetsState(t *testing.T) {
 }
 
 func TestGetUngeliefertePositionenFromEvents_WithSnapshot(t *testing.T) {
-	snapshotUndelivered := []Position{{PositionID: "00000000-0000-0000-0000-000000000004", VarianteID: 1, ProduktName: "Beer", VarianteName: "Pils", Kategorie: "beverage", Einzelpreis: 500, Menge: 3}}
-	newLineItems := []Position{testPosition(2, "Fries", "Pommes", "food", 300, 2)}
+	snapshotUndelivered := []Position{{PositionID: "00000000-0000-0000-0000-000000000004", VarianteID: 1, ProduktName: "Beer", VarianteName: "Pils", Kategorie: "getraenk", Einzelpreis: 500, Menge: 3}}
+	newLineItems := []Position{testPosition(2, "Fries", "Pommes", "essen", 300, 2)}
 
 	events := []e.Event{
 		mustCreateSnapshotEvent(t, 1, 1, 1500, []Position{}, snapshotUndelivered, 0),
@@ -526,8 +526,8 @@ func TestGetUngeliefertePositionenFromEvents_WithSnapshot(t *testing.T) {
 }
 
 func TestGetUngeliefertePositionenFromEvents_SnapshotResetsState(t *testing.T) {
-	oldProducts := []Position{testPosition(1, "Beer", "Pils", "beverage", 500, 10)}
-	snapshotUndelivered := []Position{{PositionID: "00000000-0000-0000-0000-000000000005", VarianteID: 2, ProduktName: "Fries", VarianteName: "Pommes", Kategorie: "food", Einzelpreis: 300, Menge: 2}}
+	oldProducts := []Position{testPosition(1, "Beer", "Pils", "getraenk", 500, 10)}
+	snapshotUndelivered := []Position{{PositionID: "00000000-0000-0000-0000-000000000005", VarianteID: 2, ProduktName: "Fries", VarianteName: "Pommes", Kategorie: "essen", Einzelpreis: 300, Menge: 2}}
 
 	events := []e.Event{
 		mustCreateOrderEvent(t, 1, 1, oldProducts),
@@ -547,7 +547,7 @@ func TestGetUngeliefertePositionenFromEvents_SnapshotResetsState(t *testing.T) {
 }
 
 func TestGetGesamtZahlungenFromEvents_WithSnapshot(t *testing.T) {
-	products := []Position{testPosition(1, "Beer", "Pils", "beverage", 500, 1)}
+	products := []Position{testPosition(1, "Beer", "Pils", "getraenk", 500, 1)}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
 	refs := positionRefsFromOrder(t, orderEvent, 1)
 
@@ -566,7 +566,7 @@ func TestGetGesamtZahlungenFromEvents_WithSnapshot(t *testing.T) {
 }
 
 func TestGetGesamtZahlungenFromEvents_SnapshotResetsState(t *testing.T) {
-	products := []Position{testPosition(1, "Beer", "Pils", "beverage", 1000, 10)}
+	products := []Position{testPosition(1, "Beer", "Pils", "getraenk", 1000, 10)}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
 	refs := positionRefsFromOrder(t, orderEvent, 10)
 
@@ -586,8 +586,8 @@ func TestGetGesamtZahlungenFromEvents_SnapshotResetsState(t *testing.T) {
 }
 
 func TestNewSnapshotEvent(t *testing.T) {
-	unpaid := []Position{{PositionID: "00000000-0000-0000-0000-000000000006", VarianteID: 1, ProduktName: "Beer", VarianteName: "Pils", Kategorie: "beverage", Einzelpreis: 500, Menge: 2}}
-	undelivered := []Position{{PositionID: "00000000-0000-0000-0000-000000000007", VarianteID: 2, ProduktName: "Fries", VarianteName: "Pommes", Kategorie: "food", Einzelpreis: 300, Menge: 1}}
+	unpaid := []Position{{PositionID: "00000000-0000-0000-0000-000000000006", VarianteID: 1, ProduktName: "Beer", VarianteName: "Pils", Kategorie: "getraenk", Einzelpreis: 500, Menge: 2}}
+	undelivered := []Position{{PositionID: "00000000-0000-0000-0000-000000000007", VarianteID: 2, ProduktName: "Fries", VarianteName: "Pommes", Kategorie: "essen", Einzelpreis: 300, Menge: 1}}
 
 	event, err := NewSnapshotEvent(1, "TestUser", 42, 1000, unpaid, undelivered, 500)
 	if err != nil {
@@ -613,7 +613,7 @@ func TestPositionWithFatEventFields(t *testing.T) {
 		VarianteID:   42,
 		ProduktName:  "Beer",
 		VarianteName: "Pils 0.5l",
-		Kategorie:    "beverage",
+		Kategorie:    "getraenk",
 		Einzelpreis:  500,
 		Menge:        3,
 	}

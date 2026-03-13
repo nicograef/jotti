@@ -22,7 +22,7 @@ var positionSchema = z.Struct(z.Shape{
 	"VarianteID":   product.IDSchema.Required(),
 	"ProduktName":  product.NameSchema.Required(),
 	"VarianteName": product.NameSchema.Required(),
-	"Kategorie":    z.String().OneOf([]string{"food", "beverage", "other"}, z.Message("Invalid category")).Required(),
+	"Kategorie":    z.String().OneOf([]string{"essen", "getraenk", "sonstiges"}, z.Message("Invalid category")).Required(),
 	"Einzelpreis":  product.PreisCentsSchema.Required(),
 	"Menge":        z.Int().GTE(1, z.Message("Menge must be at least 1")).Required(),
 })

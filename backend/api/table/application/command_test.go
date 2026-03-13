@@ -28,9 +28,9 @@ func newTestCommand(tables []table.Tisch, products []product.Produkt) Command {
 var testProduct = product.Produkt{
 	ID:        1,
 	Name:      "Cola",
-	Kategorie: product.BeverageKategorie,
+	Kategorie: product.GetraenkKategorie,
 	Status:    product.ActiveStatus,
-	Variants:  []product.Variante{},
+	Varianten: []product.Variante{},
 	CreatedAt: time.Now().UTC(),
 	UpdatedAt: time.Now().UTC(),
 }
@@ -322,7 +322,7 @@ func TestZahlungRegistrieren_NonOrderedPosition(t *testing.T) {
 func TestZahlungRegistrieren_DoublePayment(t *testing.T) {
 	ctx := context.Background()
 	positions := []table.Position{
-		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "beverage", Einzelpreis: 350, Menge: 1},
+		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
 	}
 	orderEvent := createOrderEvent(t, testActiveTisch.ID, positions)
 	refs := extractPositionRefs(t, orderEvent, 1)
@@ -362,7 +362,7 @@ func TestProdukteLiefern_NonOrderedPosition(t *testing.T) {
 func TestProdukteStornieren_AlreadyPaidPosition(t *testing.T) {
 	ctx := context.Background()
 	positions := []table.Position{
-		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "beverage", Einzelpreis: 350, Menge: 1},
+		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
 	}
 	orderEvent := createOrderEvent(t, testActiveTisch.ID, positions)
 	refs := extractPositionRefs(t, orderEvent, 1)
@@ -384,7 +384,7 @@ func TestProdukteStornieren_AlreadyPaidPosition(t *testing.T) {
 func TestZahlungRegistrieren_ExceedsAvailableMenge(t *testing.T) {
 	ctx := context.Background()
 	positions := []table.Position{
-		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "beverage", Einzelpreis: 350, Menge: 1},
+		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
 	}
 	orderEvent := createOrderEvent(t, testActiveTisch.ID, positions)
 	// Try to pay for Menge 2 when only 1 was ordered

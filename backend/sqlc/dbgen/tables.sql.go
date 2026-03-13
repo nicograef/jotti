@@ -11,20 +11,20 @@ import (
 	"time"
 )
 
-const createTable = `-- name: CreateTable :one
-INSERT INTO tables (name, status, created_at, updated_at)
+const createTisch = `-- name: CreateTisch :one
+INSERT INTO tische (name, status, created_at, updated_at)
 VALUES ($1, $2, $3, $4) RETURNING id
 `
 
-type CreateTableParams struct {
+type CreateTischParams struct {
 	Name      string
 	Status    Entitystatus
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
-func (q *Queries) CreateTable(ctx context.Context, arg CreateTableParams) (int, error) {
-	row := q.db.QueryRowContext(ctx, createTable,
+func (q *Queries) CreateTisch(ctx context.Context, arg CreateTischParams) (int, error) {
+	row := q.db.QueryRowContext(ctx, createTisch,
 		arg.Name,
 		arg.Status,
 		arg.CreatedAt,
@@ -35,20 +35,20 @@ func (q *Queries) CreateTable(ctx context.Context, arg CreateTableParams) (int, 
 	return id, err
 }
 
-const getActiveTables = `-- name: GetActiveTables :many
+const getAktiveTische = `-- name: GetAktiveTische :many
 SELECT id, name, status, created_at, updated_at
-FROM tables WHERE status = 'active' ORDER BY id ASC
+FROM tische WHERE status = 'active' ORDER BY id ASC
 `
 
-func (q *Queries) GetActiveTables(ctx context.Context) ([]Table, error) {
-	rows, err := q.db.QueryContext(ctx, getActiveTables)
+func (q *Queries) GetAktiveTische(ctx context.Context) ([]Tische, error) {
+	rows, err := q.db.QueryContext(ctx, getAktiveTische)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Table{}
+	items := []Tische{}
 	for rows.Next() {
-		var i Table
+		var i Tische
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -69,20 +69,20 @@ func (q *Queries) GetActiveTables(ctx context.Context) ([]Table, error) {
 	return items, nil
 }
 
-const getAllTables = `-- name: GetAllTables :many
+const getAlleTische = `-- name: GetAlleTische :many
 SELECT id, name, status, created_at, updated_at
-FROM tables WHERE status != 'deleted' ORDER BY id ASC
+FROM tische WHERE status != 'deleted' ORDER BY id ASC
 `
 
-func (q *Queries) GetAllTables(ctx context.Context) ([]Table, error) {
-	rows, err := q.db.QueryContext(ctx, getAllTables)
+func (q *Queries) GetAlleTische(ctx context.Context) ([]Tische, error) {
+	rows, err := q.db.QueryContext(ctx, getAlleTische)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Table{}
+	items := []Tische{}
 	for rows.Next() {
-		var i Table
+		var i Tische
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -103,14 +103,14 @@ func (q *Queries) GetAllTables(ctx context.Context) ([]Table, error) {
 	return items, nil
 }
 
-const getTable = `-- name: GetTable :one
+const getTisch = `-- name: GetTisch :one
 SELECT id, name, status, created_at, updated_at
-FROM tables WHERE id = $1 AND status != 'deleted'
+FROM tische WHERE id = $1 AND status != 'deleted'
 `
 
-func (q *Queries) GetTable(ctx context.Context, id int) (Table, error) {
-	row := q.db.QueryRowContext(ctx, getTable, id)
-	var i Table
+func (q *Queries) GetTisch(ctx context.Context, id int) (Tische, error) {
+	row := q.db.QueryRowContext(ctx, getTisch, id)
+	var i Tische
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -121,19 +121,19 @@ func (q *Queries) GetTable(ctx context.Context, id int) (Table, error) {
 	return i, err
 }
 
-const updateTable = `-- name: UpdateTable :execresult
-UPDATE tables SET name = $1, status = $2, updated_at = $3 WHERE id = $4
+const updateTisch = `-- name: UpdateTisch :execresult
+UPDATE tische SET name = $1, status = $2, updated_at = $3 WHERE id = $4
 `
 
-type UpdateTableParams struct {
+type UpdateTischParams struct {
 	Name      string
 	Status    Entitystatus
 	UpdatedAt time.Time
 	ID        int
 }
 
-func (q *Queries) UpdateTable(ctx context.Context, arg UpdateTableParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, updateTable,
+func (q *Queries) UpdateTisch(ctx context.Context, arg UpdateTischParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateTisch,
 		arg.Name,
 		arg.Status,
 		arg.UpdatedAt,

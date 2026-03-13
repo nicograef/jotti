@@ -1,5 +1,9 @@
 # Software-Entwurf — jotti
 
+> **⚠️ HISTORISCHES DOKUMENT — NICHT ALS REFERENZ VERWENDEN**
+>
+> Dieses Dokument ist ein Artefakt der Entwurfsphase und spiegelt **nicht** den aktuellen Stand des Projekts wider. Es wird nicht aktuell gehalten. Coding Agents sollen dieses Dokument **ignorieren** und stattdessen das [Entwickler-Handbuch](handbuch.md) als verbindliche Architektur-Referenz verwenden.
+
 Dieses Dokument beschreibt den high-level Software-Entwurf für jotti — ein kostenloses, quelloffenes Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Der Entwurf ist unvoreingenommen und basiert ausschließlich auf den Ergebnissen des [Event Stormings](event-storming.md), den [Anforderungen](../anforderungen.md) und der [Produktbeschreibung](../produktbeschreibung.md).
 
 Der Entwurf beschreibt _was_ und _warum_ — keine Implementierungsdetails, keine SQL-DDL, keine vollständigen Endpunkt-Listen, keine Framework-Versionen.
@@ -221,7 +225,7 @@ Tisch
         ├── variante_id   (UUID)
         ├── produkt_name  (string — Fat Event)
         ├── variante_name (string — Fat Event)
-        ├── kategorie     (food | beverage | other — Fat Event)
+        ├── kategorie     (essen | getraenk | sonstiges — Fat Event)
         ├── einzelpreis   (int, Cent — Fat Event)
         ├── menge         (int, ≥ 1)
         ├── geliefert     (bool)
@@ -286,7 +290,7 @@ BestellungAufgegeben
     ├── variante_id   (UUID — Referenz auf Produktvariante)
     ├── produkt_name  (string — Fat Event)
     ├── variante_name (string — Fat Event)
-    ├── kategorie     (food | beverage | other — Fat Event)
+    ├── kategorie     (essen | getraenk | sonstiges — Fat Event)
     ├── einzelpreis   (int, Cent — Fat Event)
     └── menge         (int, ≥ 1)
 ```
@@ -403,7 +407,7 @@ Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produ
 Produkt
 ├── produkt_id       (UUID)
 ├── name             (string — nicht leer)
-├── kategorie        (food | beverage | other)
+├── kategorie        (essen | getraenk | sonstiges)
 ├── status           (active | deleted)
 └── varianten[]
     ├── variante_id  (UUID)
@@ -415,7 +419,7 @@ Produkt
 **Invarianten:**
 
 - Produktname darf nicht leer sein.
-- Kategorie muss ein gültiger Wert sein (`food`, `beverage`, `other`).
+- Kategorie muss ein gültiger Wert sein (`essen`, `getraenk`, `sonstiges`).
 - Jede Variante benötigt einen nicht-leeren Namen und einen Preis > 0 (in Cent).
 - Soft-Delete: Produkte und Varianten werden durch Status-Änderung auf `deleted` entfernt, nicht physisch gelöscht. Entfernte Produkte erscheinen nicht im Service-Produktkatalog, bleiben aber in der Datenbank erhalten — historische Bestellungen bleiben valide, weil die Events die Produktdaten zum Bestellzeitpunkt enthalten (Fat Events).
 - Varianten können unabhängig vom Produkt deaktiviert werden (`inactive`). Inaktive Varianten erscheinen nicht im Service-Katalog, sind aber weiterhin in historischen Events referenziert.
@@ -484,9 +488,9 @@ Bons informieren Ausgabestationen (Küche, Getränketheke) über eingehende Best
 
 **Policy: Automatischer Bon-Druck nach Kategorie (K-11).** Wenn ein `BestellungAufgegeben`-Event entsteht, werden automatisch Bons pro Kategorie an die zugeordnete Ausgabestation gesendet:
 
-- Essenspositionen (`food`) → Küchenbon
-- Getränkepositionen (`beverage`) → Thekenbon
-- Sonstige Positionen (`other`) → konfigurierbar
+- Essenspositionen (`essen`) → Küchenbon
+- Getränkepositionen (`getraenk`) → Thekenbon
+- Sonstige Positionen (`sonstiges`) → konfigurierbar
 
 Die Zuordnung (Kategorie → Drucker) wird in den Stammdaten durch den Admin konfiguriert.
 
@@ -1148,13 +1152,13 @@ Alle Fachbegriffe der Domäne sind deutsch — die Domäne ist deutsch, die Benu
 
 ### Stammdaten (Supporting Sub-Domain)
 
-| Begriff         | Bedeutung                                                                                                                              |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Produkt**     | Ein Artikel im Produktkatalog (z. B. „Bratwurst", „Radler"). Gehört zu einer Kategorie.                                                |
-| **Variante**    | Eine konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. „Halbe 0,5 l" für 3,50 €).                          |
-| **Kategorie**   | Gruppierung von Produkten: Essen (`food`), Getränke (`beverage`) oder Sonstiges (`other`). Bestimmt die Zuordnung zu Ausgabestationen. |
-| **Preis**       | Immer ganzzahlig in Cent. Niemals Fließkommazahlen. 3,50 € = 350 Cent.                                                                 |
-| **Soft-Delete** | Logisches Löschen durch Status-Änderung auf `deleted`. Der Datensatz bleibt erhalten, ist aber im aktiven Betrieb unsichtbar.          |
+| Begriff         | Bedeutung                                                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Produkt**     | Ein Artikel im Produktkatalog (z. B. „Bratwurst", „Radler"). Gehört zu einer Kategorie.                                                     |
+| **Variante**    | Eine konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. „Halbe 0,5 l" für 3,50 €).                               |
+| **Kategorie**   | Gruppierung von Produkten: Essen (`essen`), Getränke (`getraenk`) oder Sonstiges (`sonstiges`). Bestimmt die Zuordnung zu Ausgabestationen. |
+| **Preis**       | Immer ganzzahlig in Cent. Niemals Fließkommazahlen. 3,50 € = 350 Cent.                                                                      |
+| **Soft-Delete** | Logisches Löschen durch Status-Änderung auf `deleted`. Der Datensatz bleibt erhalten, ist aber im aktiven Betrieb unsichtbar.               |
 
 ### Authentifizierung (Generic Sub-Domain)
 

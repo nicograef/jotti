@@ -20,8 +20,8 @@ func (m *mockQuery) GetAllProducts(ctx context.Context) ([]product.Produkt, erro
 	return []product.Produkt{{
 		ID:        1,
 		Name:      "French Fries",
-		Kategorie: product.FoodKategorie,
-		Variants: []product.Variante{
+		Kategorie: product.EssenKategorie,
+		Varianten: []product.Variante{
 			{ID: 1, Name: "Regular", PreisCents: 499, Status: product.ActiveStatus},
 			{ID: 2, Name: "Large", PreisCents: 699, Status: product.ActiveStatus},
 		},
@@ -32,8 +32,8 @@ func (m *mockQuery) GetActiveProducts(ctx context.Context) ([]product.Produkt, e
 	return []product.Produkt{{
 		ID:        1,
 		Name:      "French Fries",
-		Kategorie: product.FoodKategorie,
-		Variants: []product.Variante{
+		Kategorie: product.EssenKategorie,
+		Varianten: []product.Variante{
 			{ID: 1, Name: "Regular", PreisCents: 499, Status: product.ActiveStatus},
 		},
 	}}, m.err

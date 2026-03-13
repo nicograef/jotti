@@ -27,7 +27,7 @@ import { useTischHistorie } from '../../table/hooks'
 import type { Lieferung } from '../../table/Lieferung'
 import type { Stornierung } from '../../table/Stornierung'
 import type { Zahlung } from '../../table/Zahlung'
-import { Comment } from './CommentField'
+import { Kommentar } from './CommentField'
 import { Receipt } from './Receipt'
 
 interface TischHistorieProps {
@@ -314,7 +314,7 @@ function Details({
           <Receipt positionen={positionen} totalPrice={totalPrice} />
           {kommentar && (
             <div className="px-4">
-              <Comment value={kommentar} />
+              <Kommentar value={kommentar} />
             </div>
           )}
           <DrawerFooter>

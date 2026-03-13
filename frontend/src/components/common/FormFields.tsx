@@ -407,10 +407,10 @@ export function CategoryField<AllFormFields extends FieldValues>({
   form,
   withLabel,
   placeholder,
-}: FieldProps<{ category: Kategorie } & AllFormFields>) {
+}: FieldProps<{ kategorie: Kategorie } & AllFormFields>) {
   return (
     <Controller
-      name={'category' as Path<{ category: Kategorie } & AllFormFields>}
+      name={'kategorie' as Path<{ kategorie: Kategorie } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
@@ -426,9 +426,9 @@ export function CategoryField<AllFormFields extends FieldValues>({
               <SelectValue placeholder={placeholder ?? 'Auswählen'} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="food">Essen</SelectItem>
-              <SelectItem value="beverage">Getränk</SelectItem>
-              <SelectItem value="other">Sonstiges</SelectItem>
+              <SelectItem value="essen">Essen</SelectItem>
+              <SelectItem value="getraenk">Getränk</SelectItem>
+              <SelectItem value="sonstiges">Sonstiges</SelectItem>
             </SelectContent>
           </Select>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

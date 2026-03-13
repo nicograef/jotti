@@ -37,7 +37,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
   const form = useForm<FormData>({
     defaultValues: {
       name: '',
-      kategorie: Kategorie.FOOD,
+      kategorie: Kategorie.ESSEN,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
@@ -53,7 +53,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
       props.created({
         id,
         ...data,
-        variants: [],
+        varianten: [],
         createdAt: new Date().toISOString(),
       })
     } catch (error: unknown) {

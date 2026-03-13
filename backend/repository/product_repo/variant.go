@@ -9,7 +9,7 @@ import (
 )
 
 func (r Repository) GetVariant(ctx context.Context, id int) (product.Variante, error) {
-	row, err := r.q.GetVariant(ctx, id)
+	row, err := r.q.GetVariante(ctx, id)
 	if err != nil {
 		return product.Variante{}, db.Error(err)
 	}
@@ -18,10 +18,10 @@ func (r Repository) GetVariant(ctx context.Context, id int) (product.Variante, e
 }
 
 func (r Repository) CreateVariant(ctx context.Context, productID int, v product.Variante) (int, error) {
-	id, err := r.q.CreateVariant(ctx, dbgen.CreateVariantParams{
-		ProductID:  productID,
+	id, err := r.q.CreateVariante(ctx, dbgen.CreateVarianteParams{
+		ProduktID:  productID,
 		Name:       v.Name,
-		PriceCents: v.PreisCents,
+		PreisCents: v.PreisCents,
 		Status:     dbgen.Entitystatus(v.Status),
 		CreatedAt:  v.CreatedAt,
 		UpdatedAt:  v.UpdatedAt,
@@ -34,9 +34,9 @@ func (r Repository) CreateVariant(ctx context.Context, productID int, v product.
 }
 
 func (r Repository) UpdateVariant(ctx context.Context, v product.Variante) error {
-	result, err := r.q.UpdateVariant(ctx, dbgen.UpdateVariantParams{
+	result, err := r.q.UpdateVariante(ctx, dbgen.UpdateVarianteParams{
 		Name:       v.Name,
-		PriceCents: v.PreisCents,
+		PreisCents: v.PreisCents,
 		Status:     dbgen.Entitystatus(v.Status),
 		UpdatedAt:  v.UpdatedAt,
 		ID:         v.ID,

@@ -17,7 +17,7 @@ import { Spinner } from '@/components/ui/spinner'
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
-import { CommentField } from './CommentField'
+import { KommentarField } from './CommentField'
 import { selectPositionen } from './drawerUtils'
 import { Receipt } from './Receipt'
 
@@ -25,17 +25,17 @@ interface LieferungDrawerProps {
   backend: Pick<TischBackend, 'produkteLiefern'>
   tisch: Tisch
   ungeliefertePositionen: Position[]
-  quantities: Record<number, number>
+  mengen: Record<number, number>
   produkteGeliefert: () => void
 }
 
 export function LieferungDrawer(props: LieferungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [comment, setComment] = useState('')
+  const [kommentar, setKommentar] = useState('')
   const positionenToDeliver = selectPositionen(
     props.ungeliefertePositionen,
-    props.quantities,
+    props.mengen,
   )
   const noPositionenSelected = positionenToDeliver.length === 0
 
@@ -46,7 +46,7 @@ export function LieferungDrawer(props: LieferungDrawerProps) {
       await props.backend.produkteLiefern({
         tischId: props.tisch.id,
         positionen: positionenToDeliver,
-        kommentar: comment,
+        kommentar,
       })
       props.produkteGeliefert()
       setOpen(false)
@@ -88,9 +88,9 @@ export function LieferungDrawer(props: LieferungDrawerProps) {
           </DrawerHeader>
           <Receipt positionen={positionenToDeliver} />
           <div className="px-4">
-            <CommentField
+            <KommentarField
               onChange={(value) => {
-                setComment(value)
+                setKommentar(value)
               }}
             />
           </div>

@@ -31,32 +31,31 @@ export function Lieferung({
   onProdukteGeliefert,
 }: LieferungProps) {
   const { positionen, loading, reload } = useTischUngeliefert(tisch.id)
-  const [quantities, setQuantities] = useState<Record<number, number>>({})
+  const [mengen, setMengen] = useState<Record<number, number>>({})
 
-  const undeliveredQuantities: Record<number, number> = {}
+  const ungelieferteMengen: Record<number, number> = {}
   positionen.forEach((position) => {
-    undeliveredQuantities[position.id] = position.menge
+    ungelieferteMengen[position.id] = position.menge
   })
 
   const onAdd = (positionId: number) => {
-    setQuantities((prev) => {
-      const currentQuantity = prev[positionId] || 0
-      if (currentQuantity >= (undeliveredQuantities[positionId] || 0))
-        return prev
+    setMengen((prev) => {
+      const aktuelleMenge = prev[positionId] || 0
+      if (aktuelleMenge >= (ungelieferteMengen[positionId] || 0)) return prev
       return {
         ...prev,
-        [positionId]: currentQuantity + 1,
+        [positionId]: aktuelleMenge + 1,
       }
     })
   }
 
   const onRemove = (positionId: number) => {
-    setQuantities((prev) => {
-      const currentQuantity = prev[positionId] || 0
-      if (currentQuantity <= 0) return prev
+    setMengen((prev) => {
+      const aktuelleMenge = prev[positionId] || 0
+      if (aktuelleMenge <= 0) return prev
       return {
         ...prev,
-        [positionId]: currentQuantity - 1,
+        [positionId]: aktuelleMenge - 1,
       }
     })
   }
@@ -68,9 +67,9 @@ export function Lieferung({
         backend={backend}
         tisch={tisch}
         ungeliefertePositionen={positionen}
-        quantities={quantities}
+        mengen={mengen}
         produkteGeliefert={() => {
-          setQuantities({})
+          setMengen({})
           toast.success(`Lieferung wurde registriert.`)
           onProdukteGeliefert()
           reload()
@@ -86,8 +85,8 @@ export function Lieferung({
               <PositionItem
                 key={position.id}
                 position={position}
-                menge={quantities[position.id] || 0}
-                undeliveredQuantity={undeliveredQuantities[position.id] || 0}
+                menge={mengen[position.id] || 0}
+                ungelieferteMenge={ungelieferteMengen[position.id] || 0}
                 onAdd={() => {
                   onAdd(position.id)
                 }}
@@ -104,7 +103,7 @@ export function Lieferung({
 interface PositionItemProps {
   position: Position
   menge: number
-  undeliveredQuantity: number
+  ungelieferteMenge: number
   onAdd: () => void
   onRemove: () => void
 }
@@ -112,7 +111,7 @@ interface PositionItemProps {
 function PositionItem({
   position,
   menge,
-  undeliveredQuantity,
+  ungelieferteMenge,
   onAdd,
   onRemove,
 }: PositionItemProps) {
@@ -121,7 +120,7 @@ function PositionItem({
       <ItemContent>
         <ItemTitle>{position.name}</ItemTitle>
         <ItemDescription>
-          noch {undeliveredQuantity - menge} zu liefern
+          noch {ungelieferteMenge - menge} zu liefern
         </ItemDescription>
       </ItemContent>
       <ItemActions>

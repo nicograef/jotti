@@ -1,5 +1,9 @@
 # Event Storming — jotti
 
+> **⚠️ HISTORISCHES DOKUMENT — NICHT ALS REFERENZ VERWENDEN**
+>
+> Dieses Dokument ist ein Artefakt der Entwurfsphase und spiegelt **nicht** den aktuellen Stand des Projekts wider. Es wird nicht aktuell gehalten. Coding Agents sollen dieses Dokument **ignorieren** und stattdessen das [Entwickler-Handbuch](handbuch.md) als verbindliche Architektur-Referenz verwenden.
+
 Dieses Dokument protokolliert das Ergebnis einer simulierten Event-Storming-Session für jotti — ein kostenloses, quelloffenes Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Ziel der Session war es, die gesamte Fachdomäne eines Vereins-Gastronomie-Kassensystems gemeinsam zu erkunden, Domain Events zu identifizieren, Bounded Contexts abzugrenzen und eine gemeinsame Sprache (Ubiquitous Language) zu entwickeln.
 
 Die Simulation folgt der Methode von Alberto Brandolini und durchläuft vier Phasen: Big Picture (chaotische Exploration), Clustering (Ordnung und Timeline), Process Modelling (Commands, Akteure, Policies) und Software Design (Aggregate, Read Models, Bounded Contexts).

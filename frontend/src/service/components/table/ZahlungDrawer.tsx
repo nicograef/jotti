@@ -17,7 +17,7 @@ import { Spinner } from '@/components/ui/spinner'
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
-import { CommentField } from './CommentField'
+import { KommentarField } from './CommentField'
 import { calculateTotalPrice, selectPositionen } from './drawerUtils'
 import { Receipt } from './Receipt'
 
@@ -25,17 +25,17 @@ interface ZahlungDrawerProps {
   backend: Pick<TischBackend, 'zahlungRegistrieren'>
   tisch: Tisch
   unbezahltePositionen: Position[]
-  quantities: Record<number, number>
+  mengen: Record<number, number>
   zahlungRegistriert: () => void
 }
 
 export function ZahlungDrawer(props: ZahlungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [comment, setComment] = useState('')
+  const [kommentar, setKommentar] = useState('')
   const positionenToPay = selectPositionen(
     props.unbezahltePositionen,
-    props.quantities,
+    props.mengen,
   )
   const totalPrice = calculateTotalPrice(positionenToPay)
   const noPositionenSelected = positionenToPay.length === 0
@@ -47,7 +47,7 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
       await props.backend.zahlungRegistrieren({
         tischId: props.tisch.id,
         positionen: positionenToPay,
-        kommentar: comment,
+        kommentar,
       })
       props.zahlungRegistriert()
       setOpen(false)
@@ -87,9 +87,9 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
           </DrawerHeader>
           <Receipt positionen={positionenToPay} totalPrice={totalPrice} />
           <div className="px-4">
-            <CommentField
+            <KommentarField
               onChange={(value) => {
-                setComment(value)
+                setKommentar(value)
               }}
             />
           </div>

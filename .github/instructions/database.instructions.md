@@ -3,7 +3,7 @@ description: "Use when working on database migrations, SQL queries, sqlc configu
 applyTo: "database/**,backend/sqlc/**,backend/sqlc.yaml"
 ---
 
-> **Referenz:** Für Stammdaten-Schema (Produkte, Tische, Benutzer) → `docs/design/handbuch.md` §4. Für Event-Store-Schema → `docs/design/handbuch.md` §3.4. Für DB-Spalten-Konventionen (englisch, snake_case) → `docs/design/language.md`.
+> **Referenz:** Für Stammdaten-Schema (Produkte, Tische, Benutzer) → `docs/design/handbuch.md` §4. Für Event-Store-Schema → `docs/design/handbuch.md` §3.4. Für DB-Spalten-Konventionen → `docs/design/language.md`.
 
 # Datenbank-Konventionen
 
@@ -15,7 +15,10 @@ applyTo: "database/**,backend/sqlc/**,backend/sqlc.yaml"
 
 ## Schema
 
-Tabellen: `users`, `tables`, `products`, `product_variants`, `events` (append-only).
+Domain-Tabellen: `tische`, `produkte`, `produkt_varianten` (deutsch, snake_case).
+Infrastruktur-Tabellen: `users`, `events` (englisch, snake_case).
+
+Domain-Spalten sind deutsch (`kategorie`, `preis_cents`, `produkt_id`), technische Spalten englisch (`created_at`, `updated_at`, `status`, `id`).
 
 Aktuelles Schema: siehe SQL-Migrationen in `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge).
 
