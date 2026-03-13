@@ -130,7 +130,8 @@ export function ProductItem(props: ProductItemProps) {
             {activeVariantsCount} aktiv)
           </ItemDescription>
           <ItemDescription>
-            Erstellt am {new Date(props.product.createdAt).toLocaleDateString()}
+            Erstellt am{' '}
+            {new Date(props.product.createdAt).toLocaleDateString('de-DE')}
           </ItemDescription>
         </ItemContent>
         <ItemActions className="flex gap-2">

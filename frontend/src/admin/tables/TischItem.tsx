@@ -69,7 +69,8 @@ export function TischItem(props: TischItemProps) {
       <ItemContent>
         <ItemTitle>{props.tisch.name}</ItemTitle>
         <ItemDescription>
-          Erstellt am {new Date(props.tisch.createdAt).toLocaleDateString()}
+          Erstellt am{' '}
+          {new Date(props.tisch.createdAt).toLocaleDateString('de-DE')}
         </ItemDescription>
       </ItemContent>
       <ItemActions>

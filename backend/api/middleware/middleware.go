@@ -43,7 +43,7 @@ func CorrelationIDMiddleware(next http.Handler) http.Handler {
 // LoggingMiddleware logs HTTP requests with correlation ID
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+		start := time.Now().UTC()
 
 		correlationID, _ := r.Context().Value(CorrelationIDKey).(string)
 		logger := log.With().Str("correlation", correlationID).Logger()
@@ -91,12 +91,12 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 		defer mu.Unlock()
 
 		if entry, exists := limiters[ip]; exists {
-			entry.lastSeen = time.Now()
+			entry.lastSeen = time.Now().UTC()
 			return entry.limiter
 		}
 
 		limiter := rate.NewLimiter(rate.Limit(requestsPerSecond), requestsPerSecond*2)
-		limiters[ip] = &limiterEntry{limiter: limiter, lastSeen: time.Now()}
+		limiters[ip] = &limiterEntry{limiter: limiter, lastSeen: time.Now().UTC()}
 		return limiter
 	}
 

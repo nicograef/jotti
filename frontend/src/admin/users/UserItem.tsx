@@ -96,7 +96,8 @@ export function UserItem(props: UserItemProps) {
           </Tooltip>
         </ItemTitle>
         <ItemDescription>
-          Erstellt am {new Date(props.user.createdAt).toLocaleDateString()}
+          Erstellt am{' '}
+          {new Date(props.user.createdAt).toLocaleDateString('de-DE')}
         </ItemDescription>
       </ItemContent>
       <ItemActions>

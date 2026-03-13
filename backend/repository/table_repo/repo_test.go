@@ -35,7 +35,7 @@ func TestGetAllTablesDB(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	now := time.Now()
+	now := time.Now().UTC()
 	_, _ = repo.CreateTable(ctx, table.Tisch{Name: "GetAll Test 1", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 	_, _ = repo.CreateTable(ctx, table.Tisch{Name: "GetAll Test 2", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
@@ -53,7 +53,7 @@ func TestGetActiveTablesDB(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	now := time.Now()
+	now := time.Now().UTC()
 	_, _ = repo.CreateTable(ctx, table.Tisch{Name: "GetAll Test 1", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 	_, _ = repo.CreateTable(ctx, table.Tisch{Name: "GetAll Test 2", Status: table.InactiveStatus, CreatedAt: now, UpdatedAt: now})
 
@@ -71,7 +71,7 @@ func TestCreateTableInDB(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	now := time.Now()
+	now := time.Now().UTC()
 	tableID, err := repo.CreateTable(ctx, table.Tisch{Name: "Integration Test Table", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -86,7 +86,7 @@ func TestUpdateTableDB(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	now := time.Now()
+	now := time.Now().UTC()
 	tableID, _ := repo.CreateTable(ctx, table.Tisch{Name: "Update Test Table", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
 	err := repo.UpdateTable(ctx, table.Tisch{ID: tableID, Name: "Updated Table Name", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
@@ -108,7 +108,7 @@ func TestUpdateTableDB_NotFound(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	now := time.Now()
+	now := time.Now().UTC()
 	err := repo.UpdateTable(ctx, table.Tisch{ID: 999999, Name: "New Name", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
 	if err != dbpkg.ErrNotFound {

@@ -43,7 +43,7 @@ func (h *HealthCheck) Handler() http.HandlerFunc {
 
 		response := HealthResponse{
 			Status:    status,
-			Timestamp: time.Now().Format(time.RFC3339),
+			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		}
 
 		helper.SendJSONResponse(w, response, statusCode)

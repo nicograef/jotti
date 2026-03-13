@@ -232,7 +232,7 @@ function HistoryItem({
       <ItemContent>
         <ItemTitle>{title}</ItemTitle>
         <ItemDescription>
-          {new Date(date).toLocaleString()}
+          {new Date(date).toLocaleString('de-DE')}
           {kommentar && (
             <>
               <br />
@@ -310,8 +310,8 @@ function Details({
             </DrawerTitle>
             <DrawerDescription>
               {isFromUser ? 'Du am ' : ''}
-              {new Date(date).toLocaleDateString()} um{' '}
-              {new Date(date).toLocaleTimeString()} Uhr
+              {new Date(date).toLocaleDateString('de-DE')} um{' '}
+              {new Date(date).toLocaleTimeString('de-DE')} Uhr
             </DrawerDescription>
           </DrawerHeader>
           {positionen ? (
