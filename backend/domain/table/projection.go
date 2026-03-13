@@ -39,7 +39,7 @@ func ApplyEvent(state TischState, evt e.Event) (TischState, error) {
 		}
 		state.SaldoCents -= data.GesamtZahlungCents
 		state.GesamtZahlungenCents += data.GesamtZahlungCents
-		state.UnbezahltePositionen = reduceByRef(state.UnbezahltePositionen, data.Positionen)
+		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, data.Positionen)
 
 	case string(EventTypeProdukteStorniertV1):
 		var data produkteStorniertV1Data
@@ -47,15 +47,15 @@ func ApplyEvent(state TischState, evt e.Event) (TischState, error) {
 			return state, fmt.Errorf("unmarshal stornierung data: %w", err)
 		}
 		state.SaldoCents -= data.GesamtStornierungCents
-		state.UnbezahltePositionen = reduceByRef(state.UnbezahltePositionen, data.Positionen)
-		state.UngeliefertePositionen = reduceByRef(state.UngeliefertePositionen, data.Positionen)
+		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, data.Positionen)
+		state.UngeliefertePositionen = reduceByPosition(state.UngeliefertePositionen, data.Positionen)
 
 	case string(EventTypeProdukteGeliefertV1):
 		var data produkteGeliefertV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal lieferung data: %w", err)
 		}
-		state.UngeliefertePositionen = reduceByRef(state.UngeliefertePositionen, data.Positionen)
+		state.UngeliefertePositionen = reduceByPosition(state.UngeliefertePositionen, data.Positionen)
 
 	default:
 		return state, fmt.Errorf("unknown event type: %s", evt.Type)

@@ -10,20 +10,20 @@ import (
 )
 
 type zahlungRegistriertV1Data struct {
-	ZahlungID          string        `json:"zahlungId"`
-	Positionen         []PositionRef `json:"positionen"`
-	GesamtZahlungCents int           `json:"gesamtZahlungCents"`
-	Kommentar          string        `json:"kommentar"`
+	ZahlungID          string     `json:"zahlungId"`
+	Positionen         []Position `json:"positionen"`
+	GesamtZahlungCents int        `json:"gesamtZahlungCents"`
+	Kommentar          string     `json:"kommentar"`
 }
 
 var zahlungRegistriertV1DataSchema = z.Struct(z.Shape{
 	"ZahlungID":          z.String().UUID().Required(),
-	"Positionen":         z.Slice(positionRefSchema).Min(1).Required(),
+	"Positionen":         z.Slice(positionSchema).Min(1).Required(),
 	"GesamtZahlungCents": z.Int().GTE(0).Required(),
 	"Kommentar":          z.String().Max(100),
 })
 
-func NewZahlungRegistriertEvent(userID int, userName string, tischID int, positionen []PositionRef, gesamtZahlungCents int, kommentar string) (e.Event, error) {
+func NewZahlungRegistriertEvent(userID int, userName string, tischID int, positionen []Position, gesamtZahlungCents int, kommentar string) (e.Event, error) {
 	data := zahlungRegistriertV1Data{
 		ZahlungID:          uuid.New().String(),
 		Positionen:         positionen,

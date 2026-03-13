@@ -177,7 +177,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
           }}
           date={zahlung.zahlung.registriertAm}
           kommentar={zahlung.zahlung.kommentar}
-          summary={`${zahlung.zahlung.positionen.length.toString()} Positionen`}
+          positionen={toReceiptItems(zahlung.zahlung.positionen)}
           totalPrice={zahlung.zahlung.gesamtZahlungCents}
         />
       )}
@@ -192,7 +192,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
           }}
           date={stornierung.stornierung.storniertAm}
           kommentar={stornierung.stornierung.kommentar}
-          summary={`${stornierung.stornierung.positionen.length.toString()} Positionen`}
+          positionen={toReceiptItems(stornierung.stornierung.positionen)}
           totalPrice={stornierung.stornierung.gesamtStornierungCents}
         />
       )}
@@ -207,7 +207,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
           }}
           date={lieferung.lieferung.geliefertAm}
           kommentar={lieferung.lieferung.kommentar}
-          summary={`${lieferung.lieferung.positionen.length.toString()} Positionen ausgeliefert`}
+          positionen={toReceiptItems(lieferung.lieferung.positionen)}
         />
       )}
     </>

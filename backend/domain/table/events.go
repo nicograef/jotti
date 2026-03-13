@@ -116,13 +116,13 @@ func accumulatePositionen(list []Position, positionen []Position) []Position {
 	return list
 }
 
-// reduceByRef subtracts position references from a list, removing entries when quantity reaches zero
-func reduceByRef(list []Position, refs []PositionRef) []Position {
-	for _, ref := range refs {
+// reduceByPosition subtracts positions from a list, removing entries when quantity reaches zero
+func reduceByPosition(list []Position, reductions []Position) []Position {
+	for _, red := range reductions {
 		for i := 0; i < len(list); i++ {
-			if list[i].PositionID == ref.PositionID {
-				if list[i].Menge > ref.Menge {
-					list[i].Menge -= ref.Menge
+			if list[i].PositionID == red.PositionID {
+				if list[i].Menge > red.Menge {
+					list[i].Menge -= red.Menge
 				} else {
 					list = append(list[:i], list[i+1:]...)
 					i--
@@ -151,14 +151,14 @@ func GetUnbezahltePositionenFromEvents(events []e.Event) ([]Position, error) {
 			if err != nil {
 				return nil, err
 			}
-			unbezahltePositionen = reduceByRef(unbezahltePositionen, zahlung.Positionen)
+			unbezahltePositionen = reduceByPosition(unbezahltePositionen, zahlung.Positionen)
 
 		case string(EventTypeProdukteStorniertV1):
 			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
-			unbezahltePositionen = reduceByRef(unbezahltePositionen, stornierung.Positionen)
+			unbezahltePositionen = reduceByPosition(unbezahltePositionen, stornierung.Positionen)
 		}
 	}
 
@@ -182,14 +182,14 @@ func GetUngeliefertePositionenFromEvents(events []e.Event) ([]Position, error) {
 			if err != nil {
 				return nil, err
 			}
-			ungeliefertePositionen = reduceByRef(ungeliefertePositionen, lieferung.Positionen)
+			ungeliefertePositionen = reduceByPosition(ungeliefertePositionen, lieferung.Positionen)
 
 		case string(EventTypeProdukteStorniertV1):
 			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
-			ungeliefertePositionen = reduceByRef(ungeliefertePositionen, stornierung.Positionen)
+			ungeliefertePositionen = reduceByPosition(ungeliefertePositionen, stornierung.Positionen)
 		}
 	}
 

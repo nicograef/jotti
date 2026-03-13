@@ -262,19 +262,29 @@ func (c Command) BestellungAufgeben(ctx context.Context, userID int, userName st
 	return nil
 }
 
-// calculateGesamtbetrag calculates the total amount in cents for the given position refs
-// by looking up the Einzelpreis from the available positions.
-func calculateGesamtbetrag(available []table.Position, refs []table.PositionRef) int {
-	total := 0
+// resolvePositions resolves PositionRefs to full Positions using available positions.
+// Returns resolved positions and total amount in cents.
+func resolvePositions(available []table.Position, refs []table.PositionRef) ([]table.Position, int) {
+	resolved := make([]table.Position, 0, len(refs))
+	totalCents := 0
 	for _, ref := range refs {
 		for _, pos := range available {
 			if pos.PositionID == ref.PositionID {
-				total += pos.Einzelpreis * ref.Menge
+				resolved = append(resolved, table.Position{
+					PositionID:   pos.PositionID,
+					VarianteID:   pos.VarianteID,
+					ProduktName:  pos.ProduktName,
+					VarianteName: pos.VarianteName,
+					Kategorie:    pos.Kategorie,
+					Einzelpreis:  pos.Einzelpreis,
+					Menge:        ref.Menge,
+				})
+				totalCents += pos.Einzelpreis * ref.Menge
 				break
 			}
 		}
 	}
-	return total
+	return resolved, totalCents
 }
 
 func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
@@ -292,9 +302,9 @@ func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName s
 		return ErrPositionNichtBezahlbar
 	}
 
-	gesamtZahlungCents := calculateGesamtbetrag(state.UnbezahltePositionen, positionen)
+	resolvedPositionen, gesamtZahlungCents := resolvePositions(state.UnbezahltePositionen, positionen)
 
-	event, err := table.NewZahlungRegistriertEvent(userID, userName, tischID, positionen, gesamtZahlungCents, kommentar)
+	event, err := table.NewZahlungRegistriertEvent(userID, userName, tischID, resolvedPositionen, gesamtZahlungCents, kommentar)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create zahlung registriert event")
 		return err
@@ -328,9 +338,9 @@ func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName st
 		return ErrPositionNichtStornierbar
 	}
 
-	gesamtStornierungCents := calculateGesamtbetrag(state.UnbezahltePositionen, positionen)
+	resolvedPositionen, gesamtStornierungCents := resolvePositions(state.UnbezahltePositionen, positionen)
 
-	event, err := table.NewProdukteStorniertEvent(userID, userName, tischID, positionen, gesamtStornierungCents, kommentar)
+	event, err := table.NewProdukteStorniertEvent(userID, userName, tischID, resolvedPositionen, gesamtStornierungCents, kommentar)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create produkte storniert event")
 		return err
@@ -364,7 +374,9 @@ func (c Command) ProdukteLiefern(ctx context.Context, userID int, userName strin
 		return ErrPositionNichtLieferbar
 	}
 
-	event, err := table.NewProdukteGeliefertEvent(userID, userName, tischID, positionen, kommentar)
+	resolvedPositionen, _ := resolvePositions(state.UngeliefertePositionen, positionen)
+
+	event, err := table.NewProdukteGeliefertEvent(userID, userName, tischID, resolvedPositionen, kommentar)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create produkte geliefert event")
 		return err

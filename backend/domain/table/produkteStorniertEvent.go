@@ -10,20 +10,20 @@ import (
 )
 
 type produkteStorniertV1Data struct {
-	StornierungID          string        `json:"stornierungId"`
-	Positionen             []PositionRef `json:"positionen"`
-	GesamtStornierungCents int           `json:"gesamtStornierungCents"`
-	Kommentar              string        `json:"kommentar"`
+	StornierungID          string     `json:"stornierungId"`
+	Positionen             []Position `json:"positionen"`
+	GesamtStornierungCents int        `json:"gesamtStornierungCents"`
+	Kommentar              string     `json:"kommentar"`
 }
 
 var produkteStorniertV1DataSchema = z.Struct(z.Shape{
 	"StornierungID":          z.String().UUID().Required(),
-	"Positionen":             z.Slice(positionRefSchema).Min(1).Required(),
+	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(0).Required(),
 	"Kommentar":              z.String().Max(100),
 })
 
-func NewProdukteStorniertEvent(userID int, userName string, tischID int, positionen []PositionRef, gesamtStornierungCents int, kommentar string) (e.Event, error) {
+func NewProdukteStorniertEvent(userID int, userName string, tischID int, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
 	data := produkteStorniertV1Data{
 		StornierungID:          uuid.New().String(),
 		Positionen:             positionen,

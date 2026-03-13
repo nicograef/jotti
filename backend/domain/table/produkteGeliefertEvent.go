@@ -10,18 +10,18 @@ import (
 )
 
 type produkteGeliefertV1Data struct {
-	LieferungID string        `json:"lieferungId"`
-	Positionen  []PositionRef `json:"positionen"`
-	Kommentar   string        `json:"kommentar"`
+	LieferungID string     `json:"lieferungId"`
+	Positionen  []Position `json:"positionen"`
+	Kommentar   string     `json:"kommentar"`
 }
 
 var produkteGeliefertV1DataSchema = z.Struct(z.Shape{
 	"LieferungID": z.String().UUID().Required(),
-	"Positionen":  z.Slice(positionRefSchema).Min(1).Required(),
+	"Positionen":  z.Slice(positionSchema).Min(1).Required(),
 	"Kommentar":   z.String().Max(100),
 })
 
-func NewProdukteGeliefertEvent(userID int, userName string, tischID int, positionen []PositionRef, kommentar string) (e.Event, error) {
+func NewProdukteGeliefertEvent(userID int, userName string, tischID int, positionen []Position, kommentar string) (e.Event, error) {
 	data := produkteGeliefertV1Data{
 		LieferungID: uuid.New().String(),
 		Positionen:  positionen,

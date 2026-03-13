@@ -61,8 +61,8 @@ func TestApplyEvent_ZahlungReducesSaldoAndUnbezahlt(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	refs := positionRefsFromOrder(t, orderEvent, 1)
-	paymentEvent := mustCreatePaymentEvent(t, 1, 1, refs, 500)
+	positions := positionsFromOrder(t, orderEvent, 1)
+	paymentEvent := mustCreatePaymentEvent(t, 1, 1, positions, 500)
 	paymentEvent.ID = 2
 	paymentEvent.Version = 2
 
@@ -101,8 +101,8 @@ func TestApplyEvent_StornierungReducesSaldoAndUnbezahlt(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	refs := positionRefsFromOrder(t, orderEvent, 1)
-	cancelEvent := mustCreateCancelationEvent(t, 1, 1, refs, 500)
+	positions := positionsFromOrder(t, orderEvent, 1)
+	cancelEvent := mustCreateCancelationEvent(t, 1, 1, positions, 500)
 	cancelEvent.ID = 2
 	cancelEvent.Version = 2
 
@@ -142,8 +142,8 @@ func TestApplyEvent_LieferungReducesOnlyUngeliefert(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	refs := positionRefsFromOrder(t, orderEvent, 2)
-	deliveryEvent := mustCreateDeliveryEvent(t, 1, 1, refs)
+	positions := positionsFromOrder(t, orderEvent, 2)
+	deliveryEvent := mustCreateDeliveryEvent(t, 1, 1, positions)
 	deliveryEvent.ID = 2
 	deliveryEvent.Version = 2
 
@@ -192,8 +192,9 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to build bestellung: %v", err)
 	}
-	beerRef := []PositionRef{{PositionID: bestellung.Positionen[0].PositionID, Menge: 3}}
-	deliveryEvent := mustCreateDeliveryEvent(t, 1, 1, beerRef)
+	beerPos := []Position{bestellung.Positionen[0]}
+	beerPos[0].Menge = 3
+	deliveryEvent := mustCreateDeliveryEvent(t, 1, 1, beerPos)
 	deliveryEvent.ID = 2
 	deliveryEvent.Version = 2
 
@@ -211,8 +212,9 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 	}
 
 	// Pay for 1 beer (500)
-	beerPayRef := []PositionRef{{PositionID: bestellung.Positionen[0].PositionID, Menge: 1}}
-	paymentEvent := mustCreatePaymentEvent(t, 1, 1, beerPayRef, 500)
+	beerPayPos := []Position{bestellung.Positionen[0]}
+	beerPayPos[0].Menge = 1
+	paymentEvent := mustCreatePaymentEvent(t, 1, 1, beerPayPos, 500)
 	paymentEvent.ID = 3
 	paymentEvent.Version = 3
 
@@ -228,8 +230,9 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 	}
 
 	// Cancel 1 wurst (400)
-	wurstRef := []PositionRef{{PositionID: bestellung.Positionen[1].PositionID, Menge: 1}}
-	cancelEvent := mustCreateCancelationEvent(t, 1, 1, wurstRef, 400)
+	wurstPos := []Position{bestellung.Positionen[1]}
+	wurstPos[0].Menge = 1
+	cancelEvent := mustCreateCancelationEvent(t, 1, 1, wurstPos, 400)
 	cancelEvent.ID = 4
 	cancelEvent.Version = 4
 

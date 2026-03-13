@@ -17,27 +17,27 @@ func mustCreateOrderEvent(t *testing.T, userID, tableID int, products []Position
 	return event
 }
 
-func mustCreatePaymentEvent(t *testing.T, userID, tableID int, refs []PositionRef, gesamtZahlungCents int) e.Event {
+func mustCreatePaymentEvent(t *testing.T, userID, tableID int, positions []Position, gesamtZahlungCents int) e.Event {
 	t.Helper()
-	event, err := NewZahlungRegistriertEvent(userID, "TestUser", tableID, refs, gesamtZahlungCents, "")
+	event, err := NewZahlungRegistriertEvent(userID, "TestUser", tableID, positions, gesamtZahlungCents, "")
 	if err != nil {
 		t.Fatalf("failed to create payment event: %v", err)
 	}
 	return event
 }
 
-func mustCreateCancelationEvent(t *testing.T, userID, tableID int, refs []PositionRef, gesamtStornierungCents int) e.Event {
+func mustCreateCancelationEvent(t *testing.T, userID, tableID int, positions []Position, gesamtStornierungCents int) e.Event {
 	t.Helper()
-	event, err := NewProdukteStorniertEvent(userID, "TestUser", tableID, refs, gesamtStornierungCents, "")
+	event, err := NewProdukteStorniertEvent(userID, "TestUser", tableID, positions, gesamtStornierungCents, "")
 	if err != nil {
 		t.Fatalf("failed to create cancelation event: %v", err)
 	}
 	return event
 }
 
-func mustCreateDeliveryEvent(t *testing.T, userID, tableID int, refs []PositionRef) e.Event {
+func mustCreateDeliveryEvent(t *testing.T, userID, tableID int, positions []Position) e.Event {
 	t.Helper()
-	event, err := NewProdukteGeliefertEvent(userID, "TestUser", tableID, refs, "")
+	event, err := NewProdukteGeliefertEvent(userID, "TestUser", tableID, positions, "")
 	if err != nil {
 		t.Fatalf("failed to create delivery event: %v", err)
 	}
@@ -57,18 +57,19 @@ func testPosition(varianteID int, produktName, varianteName, kategorie string, e
 	}
 }
 
-// positionRefsFromOrder extracts PositionRefs from an order event's positions
-func positionRefsFromOrder(t *testing.T, orderEvent e.Event, menge int) []PositionRef {
+// positionsFromOrder extracts full Positions from an order event with adjusted menge
+func positionsFromOrder(t *testing.T, orderEvent e.Event, menge int) []Position {
 	t.Helper()
 	bestellung, err := buildBestellungFromEvent(orderEvent)
 	if err != nil {
 		t.Fatalf("failed to build bestellung from event: %v", err)
 	}
-	refs := make([]PositionRef, len(bestellung.Positionen))
+	positions := make([]Position, len(bestellung.Positionen))
 	for i, pos := range bestellung.Positionen {
-		refs[i] = PositionRef{PositionID: pos.PositionID, Menge: menge}
+		positions[i] = pos
+		positions[i].Menge = menge
 	}
-	return refs
+	return positions
 }
 
 func TestGetSaldoFromEvents_Empty(t *testing.T) {
@@ -103,11 +104,11 @@ func TestGetSaldoFromEvents_OrderAndPayment(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
-	paymentRefs := positionRefsFromOrder(t, orderEvent, 1)
+	paymentPositions := positionsFromOrder(t, orderEvent, 1)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreatePaymentEvent(t, 1, 1, paymentRefs, 500),
+		mustCreatePaymentEvent(t, 1, 1, paymentPositions, 500),
 	}
 
 	balance, err := GetSaldoFromEvents(events)
@@ -124,12 +125,12 @@ func TestGetSaldoFromEvents_OrderPaymentAndCancelation(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
-	refs := positionRefsFromOrder(t, orderEvent, 1)
+	positions := positionsFromOrder(t, orderEvent, 1)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreatePaymentEvent(t, 1, 1, refs, 500),
-		mustCreateCancelationEvent(t, 1, 1, refs, 500),
+		mustCreatePaymentEvent(t, 1, 1, positions, 500),
+		mustCreateCancelationEvent(t, 1, 1, positions, 500),
 	}
 
 	balance, err := GetSaldoFromEvents(events)
@@ -156,13 +157,13 @@ func TestGetHistoryFromEvents_ReturnsAllEventTypes(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
-	refs := positionRefsFromOrder(t, orderEvent, 1)
+	positions := positionsFromOrder(t, orderEvent, 1)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreatePaymentEvent(t, 1, 1, refs, 500),
-		mustCreateCancelationEvent(t, 1, 1, refs, 500),
-		mustCreateDeliveryEvent(t, 1, 1, refs),
+		mustCreatePaymentEvent(t, 1, 1, positions, 500),
+		mustCreateCancelationEvent(t, 1, 1, positions, 500),
+		mustCreateDeliveryEvent(t, 1, 1, positions),
 	}
 
 	history, err := GetHistoryFromEvents(events)
@@ -179,11 +180,11 @@ func TestGetHistoryFromEvents_ReversesOrder(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
-	refs := positionRefsFromOrder(t, orderEvent, 1)
+	positions := positionsFromOrder(t, orderEvent, 1)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreatePaymentEvent(t, 1, 1, refs, 500),
+		mustCreatePaymentEvent(t, 1, 1, positions, 500),
 	}
 
 	history, err := GetHistoryFromEvents(events)
@@ -235,11 +236,11 @@ func TestGetUnbezahltePositionenFromEvents_PartialPayment(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
-	paymentRefs := positionRefsFromOrder(t, orderEvent, 1)
+	paymentPositions := positionsFromOrder(t, orderEvent, 1)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreatePaymentEvent(t, 1, 1, paymentRefs, 500),
+		mustCreatePaymentEvent(t, 1, 1, paymentPositions, 500),
 	}
 
 	products, err := GetUnbezahltePositionenFromEvents(events)
@@ -259,11 +260,11 @@ func TestGetUnbezahltePositionenFromEvents_FullPayment(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
-	paymentRefs := positionRefsFromOrder(t, orderEvent, 2)
+	paymentPositions := positionsFromOrder(t, orderEvent, 2)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreatePaymentEvent(t, 1, 1, paymentRefs, 1000),
+		mustCreatePaymentEvent(t, 1, 1, paymentPositions, 1000),
 	}
 
 	products, err := GetUnbezahltePositionenFromEvents(events)
@@ -280,11 +281,11 @@ func TestGetUnbezahltePositionenFromEvents_WithCancelation(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
-	cancelRefs := positionRefsFromOrder(t, orderEvent, 2)
+	cancelPositions := positionsFromOrder(t, orderEvent, 2)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreateCancelationEvent(t, 1, 1, cancelRefs, 1000),
+		mustCreateCancelationEvent(t, 1, 1, cancelPositions, 1000),
 	}
 
 	products, err := GetUnbezahltePositionenFromEvents(events)
@@ -355,11 +356,11 @@ func TestGetUngeliefertePositionenFromEvents_PartialDelivery(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
-	deliveryRefs := positionRefsFromOrder(t, orderEvent, 1)
+	deliveryPositions := positionsFromOrder(t, orderEvent, 1)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreateDeliveryEvent(t, 1, 1, deliveryRefs),
+		mustCreateDeliveryEvent(t, 1, 1, deliveryPositions),
 	}
 
 	products, err := GetUngeliefertePositionenFromEvents(events)
@@ -379,11 +380,11 @@ func TestGetUngeliefertePositionenFromEvents_FullDelivery(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
-	deliveryRefs := positionRefsFromOrder(t, orderEvent, 2)
+	deliveryPositions := positionsFromOrder(t, orderEvent, 2)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreateDeliveryEvent(t, 1, 1, deliveryRefs),
+		mustCreateDeliveryEvent(t, 1, 1, deliveryPositions),
 	}
 
 	products, err := GetUngeliefertePositionenFromEvents(events)
@@ -400,11 +401,11 @@ func TestGetUngeliefertePositionenFromEvents_WithCancelation(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 	}
 	orderEvent := mustCreateOrderEvent(t, 1, 1, orderProducts)
-	cancelRefs := positionRefsFromOrder(t, orderEvent, 2)
+	cancelPositions := positionsFromOrder(t, orderEvent, 2)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreateCancelationEvent(t, 1, 1, cancelRefs, 1000),
+		mustCreateCancelationEvent(t, 1, 1, cancelPositions, 1000),
 	}
 
 	products, err := GetUngeliefertePositionenFromEvents(events)
