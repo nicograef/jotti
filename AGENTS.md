@@ -138,3 +138,37 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 - **Commit-Messages:** Conventional Commits auf Englisch (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`)
 - **Kein auto-commit.** Agent schlägt Commit-Message vor, User führt Commit durch.
 - **Kein `--force` push oder `--no-verify`.**
+
+## Lokale Qualitaetspruefung
+
+Fuer reproduzierbare lokale Checks (CI-nah):
+
+```bash
+bash scripts/setup-dev-tools.sh
+make check
+make verify
+```
+
+- `make check`: schneller Gesamt-Check ohne Integrationstests
+- `make verify`: voller Check inkl. Integrationstests
+
+### Troubleshooting fehlende Tools
+
+Wenn `make check` oder `make verify` frueh mit `Fehlendes Tool: ...` abbricht:
+
+1. `bash scripts/setup-dev-tools.sh` erneut ausfuehren.
+2. Sicherstellen, dass Go-Bin-Verzeichnis im `PATH` liegt:
+
+```bash
+export PATH="$(go env GOPATH)/bin:$PATH"
+```
+
+3. Tool-Versionen pruefen:
+
+```bash
+go version
+node --version
+pnpm --version
+goimports -V
+golangci-lint --version
+```

@@ -13,6 +13,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -52,7 +53,16 @@ export function LieferungDrawer(props: LieferungDrawerProps) {
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Aktion fehlgeschlagen')
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'Lieferung registrieren',
+          error,
+          byCode: {
+            position_nicht_lieferbar:
+              'Mindestens eine Position ist nicht mehr lieferbar. Bitte Auswahl aktualisieren.',
+          },
+        }),
+      )
     }
 
     setLoading(false)

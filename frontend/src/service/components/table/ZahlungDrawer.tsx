@@ -13,6 +13,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -58,7 +59,16 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Aktion fehlgeschlagen')
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'Zahlung registrieren',
+          error,
+          byCode: {
+            position_nicht_bezahlbar:
+              'Mindestens eine Position ist nicht mehr bezahlbar. Bitte Auswahl aktualisieren.',
+          },
+        }),
+      )
     }
 
     setLoading(false)

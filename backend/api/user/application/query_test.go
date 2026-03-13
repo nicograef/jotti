@@ -13,9 +13,8 @@ import (
 
 func TestGetAllUsers_Success(t *testing.T) {
 	repo := user_repo.NewMock([]user.User{{ID: 1, Name: "Test User", Username: "testuser", Role: user.ServiceRole}}, nil)
-	userQuery := Query{UserRepo: repo}
 
-	users, err := userQuery.GetAllUsers(context.Background())
+	users, err := GetAllUsers(context.Background(), repo)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -29,9 +28,9 @@ func TestGetAllUsers_Success(t *testing.T) {
 }
 
 func TestGetAllUsers_Error(t *testing.T) {
-	userQuery := Query{UserRepo: user_repo.NewMock([]user.User{}, db.ErrDatabase)}
+	repo := user_repo.NewMock([]user.User{}, db.ErrDatabase)
 
-	_, err := userQuery.GetAllUsers(context.Background())
+	_, err := GetAllUsers(context.Background(), repo)
 
 	if err != ErrDatabase {
 		t.Fatalf("expected database error, got %v", err)

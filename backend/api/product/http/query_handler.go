@@ -5,16 +5,17 @@ import (
 	"net/http"
 
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/api/product/application"
 	"github.com/nicograef/jotti/backend/domain/product"
 )
 
-type query interface {
+type productReader interface {
 	GetAllProducts(ctx context.Context) ([]product.Produkt, error)
 	GetActiveProducts(ctx context.Context) ([]product.Produkt, error)
 }
 
 type QueryHandler struct {
-	Query query
+	ProductRepo productReader
 }
 
 type getAllProductsResponse struct {
@@ -24,7 +25,7 @@ type getAllProductsResponse struct {
 func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		products, err := h.Query.GetAllProducts(ctx)
+		products, err := application.GetAllProducts(ctx, h.ProductRepo)
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -41,7 +42,7 @@ type getActiveProductsResponse struct {
 func (h *QueryHandler) GetActiveProductsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		products, err := h.Query.GetActiveProducts(ctx)
+		products, err := application.GetActiveProducts(ctx, h.ProductRepo)
 		if err != nil {
 			helper.SendServerError(w)
 			return

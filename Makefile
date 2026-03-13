@@ -7,7 +7,7 @@
        prod-init prod-up prod-down prod-logs prod-reset-db \
        db-shell seed rebuild-projections \
        clean \
-	check-backend check-frontend check-integration check check-full verify \
+	check-tools check-backend check-frontend check-integration check check-full verify \
        help
 
 # ──────────────────────────────────────────────
@@ -140,6 +140,15 @@ clean: down ## Dev-Stack stoppen und Volumes entfernen
 # Qualitätsprüfung (CI-nah)                     
 # ──────────────────────────────────────────────
 
+check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
+	@for tool in golangci-lint goimports pnpm; do \
+		if ! command -v $$tool >/dev/null 2>&1; then \
+			echo "Fehlendes Tool: $$tool"; \
+			echo "Installiere es mit scripts/setup-dev-tools.sh oder folge der README-Anleitung."; \
+			exit 1; \
+		fi; \
+	done
+
 check-backend: ## Backend komplett prüfen (Deps, Format, Lint, Test, Build)
 	cd backend && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -tags=unit -count=1 -race ./... && go build ./...
 
@@ -149,11 +158,11 @@ check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
 check-integration: ## Integrationstests gegen echte Datenbank ausführen
 	./test-integration.sh
 
-check: check-backend check-frontend ## Schnelle Komplettprüfung ohne DB-Integration
+check: check-tools check-backend check-frontend ## Schnelle Komplettprüfung ohne DB-Integration
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 
-verify: check-full ## Alias für vollständige Repo-Prüfung
+verify: check-tools check-full ## Alias für vollständige Repo-Prüfung
 
 # ──────────────────────────────────────────────
 # Hilfe                                         

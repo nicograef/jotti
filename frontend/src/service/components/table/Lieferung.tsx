@@ -128,19 +128,19 @@ function PositionItem({
       </ItemContent>
       <ItemActions>
         <Button
-          size="icon-sm"
+          size="icon"
           variant="outline"
-          className="rounded-full"
+          className="rounded-full min-h-10 min-w-10"
           aria-label="Produkt entfernen"
           onClick={onRemove}
         >
           <Minus />
         </Button>
-        <span className="text-lg mx-1">{menge}</span>
+        <span className="text-lg mx-2">{menge}</span>
         <Button
-          size="icon-sm"
+          size="icon"
           variant="outline"
-          className="rounded-full"
+          className="rounded-full min-h-10 min-w-10"
           aria-label="Produkt hinzufügen"
           onClick={onAdd}
         >
@@ -159,7 +159,7 @@ function PositionItemSkeleton() {
       </ItemContent>
       <ItemActions>
         <Minus />
-        <span className="text-lg mx-1">&nbsp;</span>
+        <span className="text-lg mx-2">&nbsp;</span>
         <Plus />
       </ItemActions>
     </Item>

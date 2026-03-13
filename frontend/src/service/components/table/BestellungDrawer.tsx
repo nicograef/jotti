@@ -13,6 +13,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import type { Produkt } from '../../product/Product'
 import type { BestellPositionInput } from '../../table/Bestellung'
@@ -54,7 +55,16 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Aktion fehlgeschlagen')
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'Bestellung aufgeben',
+          error,
+          byCode: {
+            produkt_not_found:
+              'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
+          },
+        }),
+      )
     }
 
     setLoading(false)

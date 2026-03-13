@@ -7,14 +7,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Query struct {
-	UserRepo userRepo
+type userQueryRepo interface {
+	GetAllUsers(ctx context.Context) ([]user.User, error)
 }
 
-func (q Query) GetAllUsers(ctx context.Context) ([]user.User, error) {
+func GetAllUsers(ctx context.Context, repo userQueryRepo) ([]user.User, error) {
 	log := zerolog.Ctx(ctx)
 
-	users, err := q.UserRepo.GetAllUsers(ctx)
+	users, err := repo.GetAllUsers(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve all users")
 		return nil, ErrDatabase

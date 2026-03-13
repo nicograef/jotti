@@ -43,6 +43,7 @@ export function TablePage() {
     (sum, position) => sum + position.menge,
     0,
   )
+  const tabsLocked = stateLoading || historieLoading
 
   return (
     <>
@@ -65,15 +66,20 @@ export function TablePage() {
         </ItemContent>
       </Item>
       <Tabs defaultValue="order">
-        <div className="w-full fixed bottom-4 left-0 z-50 flex justify-center">
+        <div className="w-full fixed bottom-4 left-0 z-50 flex flex-col items-center gap-2">
+          {tabsLocked && (
+            <p className="text-xs text-muted-foreground bg-background/90 px-3 py-1 rounded-md border">
+              Lade Tischdaten. Tabs sind kurzzeitig deaktiviert.
+            </p>
+          )}
           <TabsList>
-            <TabsTrigger value="order" className="p-4">
+            <TabsTrigger value="order" className="p-4" disabled={tabsLocked}>
               Bestellen
             </TabsTrigger>
-            <TabsTrigger value="payment" className="p-4">
+            <TabsTrigger value="payment" className="p-4" disabled={tabsLocked}>
               Bezahlen
             </TabsTrigger>
-            <TabsTrigger value="history" className="p-4">
+            <TabsTrigger value="history" className="p-4" disabled={tabsLocked}>
               Historie
             </TabsTrigger>
           </TabsList>

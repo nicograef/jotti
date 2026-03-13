@@ -6,11 +6,11 @@ import z from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { FieldGroup } from '@/components/ui/field'
+import { FieldError, FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { AuthSingleton } from '@/lib/Auth'
 import { type AuthBackend, LoginSchema } from '@/lib/AuthBackend'
-import { BackendError } from '@/lib/Backend'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { PasswordField, UsernameField } from './FormFields'
 
@@ -32,6 +32,7 @@ export function LoginForm(props: LoginFormProps) {
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
+    form.clearErrors('root')
 
     try {
       const token = await props.backend.login(data.username, data.password)
@@ -43,37 +44,22 @@ export function LoginForm(props: LoginFormProps) {
       }
     } catch (error: unknown) {
       console.error(error)
-
-      if (error instanceof BackendError) {
-        if (error.code === 'invalid_credentials') {
-          form.setError('username', {
-            type: 'manual',
-            message: 'Benutzername oder Passwort ungültig.',
-          })
-          form.setError('password', {
-            type: 'manual',
-            message: 'Benutzername oder Passwort ungültig.',
-          })
-        } else if (error.code === 'no_password_set') {
-          form.setError('username', {
-            type: 'manual',
-            message: 'Für dieses Konto wurde noch kein Passwort festgelegt.',
-          })
-        } else if (error.code === 'user_inactive') {
-          form.setError('username', {
-            type: 'manual',
-            message: 'Dieses Konto ist deaktiviert.',
-          })
-        } else {
-          form.setError('username', {
-            type: 'manual',
-            message: 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.',
-          })
-        }
-      }
+      form.setError('root', {
+        type: 'manual',
+        message: getActionErrorMessage({
+          actionLabel: 'Anmeldung',
+          error,
+          byCode: {
+            invalid_credentials: 'Benutzername oder Passwort ungültig.',
+            no_password_set:
+              'Für dieses Konto wurde noch kein Passwort festgelegt.',
+            user_inactive: 'Dieses Konto ist deaktiviert.',
+          },
+        }),
+      })
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (
@@ -91,6 +77,7 @@ export function LoginForm(props: LoginFormProps) {
           }}
         >
           <FieldGroup className="gap-2">
+            <FieldError>{form.formState.errors.root?.message}</FieldError>
             <UsernameField form={form} />
             <PasswordField form={form} />
           </FieldGroup>

@@ -13,6 +13,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -58,7 +59,16 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Aktion fehlgeschlagen')
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'Stornierung ausführen',
+          error,
+          byCode: {
+            position_nicht_stornierbar:
+              'Mindestens eine Position ist nicht mehr stornierbar. Bitte Auswahl aktualisieren.',
+          },
+        }),
+      )
     }
 
     setLoading(false)

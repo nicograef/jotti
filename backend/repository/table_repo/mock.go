@@ -1,3 +1,5 @@
+//go:build unit
+
 package table_repo
 
 import (

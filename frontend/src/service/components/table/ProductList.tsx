@@ -151,9 +151,9 @@ function VariantItem({
       </ItemContent>
       <ItemActions>
         <Button
-          size="icon-sm"
+          size="icon"
           variant="outline"
-          className="rounded-full"
+          className="rounded-full min-h-10 min-w-10"
           aria-label="Variante entfernen"
           onClick={(e) => {
             e.stopPropagation()
@@ -162,11 +162,11 @@ function VariantItem({
         >
           <Minus />
         </Button>
-        <span className="text-lg mx-1">{menge}</span>
+        <span className="text-lg mx-2">{menge}</span>
         <Button
-          size="icon-sm"
+          size="icon"
           variant="outline"
-          className="rounded-full"
+          className="rounded-full min-h-10 min-w-10"
           aria-label="Variante hinzufügen"
           onClick={(e) => {
             e.stopPropagation()

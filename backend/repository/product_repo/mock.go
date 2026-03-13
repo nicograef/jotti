@@ -1,3 +1,5 @@
+//go:build unit
+
 package product_repo
 
 import (

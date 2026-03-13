@@ -81,54 +81,60 @@ func (c Command) UpdateProduct(ctx context.Context, productID int, name string, 
 }
 
 func (c Command) ActivateProduct(ctx context.Context, productID int) error {
-	log := zerolog.Ctx(ctx)
-
-	produkt, err := c.ProductRepo.GetProduct(ctx, productID)
-	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("product_id", productID).Msg("Product not found for activation")
-			return ErrProduktNotFound
-		} else {
-			log.Error().Int("product_id", productID).Msg("Failed to retrieve product for activation")
-			return ErrDatabase
-		}
-	}
-
-	produkt.Activate()
-
-	err = c.ProductRepo.UpdateProduct(ctx, produkt)
-	if err != nil {
-		log.Error().Err(err).Int("product_id", productID).Msg("Failed to update product")
-		return ErrDatabase
-	}
-
-	log.Info().Int("product_id", productID).Msg("Product activated")
-	return nil
+	return c.applyProduktStatusChange(
+		ctx,
+		productID,
+		"Product not found for activation",
+		"Failed to retrieve product for activation",
+		"Failed to update product",
+		"Product activated",
+		func(p *product.Produkt) { p.Activate() },
+	)
 }
 
 func (c Command) DeactivateProduct(ctx context.Context, productID int) error {
+	return c.applyProduktStatusChange(
+		ctx,
+		productID,
+		"Product not found for deactivation",
+		"Failed to retrieve product for deactivation",
+		"Failed to update product",
+		"Product deactivated",
+		func(p *product.Produkt) { p.Deactivate() },
+	)
+}
+
+func (c Command) applyProduktStatusChange(
+	ctx context.Context,
+	productID int,
+	notFoundMsg string,
+	loadFailedMsg string,
+	updateFailedMsg string,
+	successMsg string,
+	action func(*product.Produkt),
+) error {
 	log := zerolog.Ctx(ctx)
 
 	produkt, err := c.ProductRepo.GetProduct(ctx, productID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("product_id", productID).Msg("Product not found for deactivation")
+			log.Warn().Int("product_id", productID).Msg(notFoundMsg)
 			return ErrProduktNotFound
 		} else {
-			log.Error().Int("product_id", productID).Msg("Failed to retrieve product for deactivation")
+			log.Error().Int("product_id", productID).Msg(loadFailedMsg)
 			return ErrDatabase
 		}
 	}
 
-	produkt.Deactivate()
+	action(&produkt)
 
 	err = c.ProductRepo.UpdateProduct(ctx, produkt)
 	if err != nil {
-		log.Error().Err(err).Int("product_id", productID).Msg("Failed to update product")
+		log.Error().Err(err).Int("product_id", productID).Msg(updateFailedMsg)
 		return ErrDatabase
 	}
 
-	log.Info().Int("product_id", productID).Msg("Product deactivated")
+	log.Info().Int("product_id", productID).Msg(successMsg)
 	return nil
 }
 
@@ -196,54 +202,60 @@ func (c Command) UpdateVariant(ctx context.Context, variantID int, name string, 
 }
 
 func (c Command) ActivateVariant(ctx context.Context, variantID int) error {
-	log := zerolog.Ctx(ctx)
-
-	variante, err := c.ProductRepo.GetVariant(ctx, variantID)
-	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("variant_id", variantID).Msg("Variant not found for activation")
-			return ErrVarianteNotFound
-		} else {
-			log.Error().Int("variant_id", variantID).Msg("Failed to retrieve variant for activation")
-			return ErrDatabase
-		}
-	}
-
-	variante.Activate()
-
-	err = c.ProductRepo.UpdateVariant(ctx, variante)
-	if err != nil {
-		log.Error().Err(err).Int("variant_id", variantID).Msg("Failed to update variant")
-		return ErrDatabase
-	}
-
-	log.Info().Int("variant_id", variantID).Msg("Variant activated")
-	return nil
+	return c.applyVarianteStatusChange(
+		ctx,
+		variantID,
+		"Variant not found for activation",
+		"Failed to retrieve variant for activation",
+		"Failed to update variant",
+		"Variant activated",
+		func(v *product.Variante) { v.Activate() },
+	)
 }
 
 func (c Command) DeactivateVariant(ctx context.Context, variantID int) error {
+	return c.applyVarianteStatusChange(
+		ctx,
+		variantID,
+		"Variant not found for deactivation",
+		"Failed to retrieve variant for deactivation",
+		"Failed to update variant",
+		"Variant deactivated",
+		func(v *product.Variante) { v.Deactivate() },
+	)
+}
+
+func (c Command) applyVarianteStatusChange(
+	ctx context.Context,
+	variantID int,
+	notFoundMsg string,
+	loadFailedMsg string,
+	updateFailedMsg string,
+	successMsg string,
+	action func(*product.Variante),
+) error {
 	log := zerolog.Ctx(ctx)
 
 	variante, err := c.ProductRepo.GetVariant(ctx, variantID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("variant_id", variantID).Msg("Variant not found for deactivation")
+			log.Warn().Int("variant_id", variantID).Msg(notFoundMsg)
 			return ErrVarianteNotFound
 		} else {
-			log.Error().Int("variant_id", variantID).Msg("Failed to retrieve variant for deactivation")
+			log.Error().Int("variant_id", variantID).Msg(loadFailedMsg)
 			return ErrDatabase
 		}
 	}
 
-	variante.Deactivate()
+	action(&variante)
 
 	err = c.ProductRepo.UpdateVariant(ctx, variante)
 	if err != nil {
-		log.Error().Err(err).Int("variant_id", variantID).Msg("Failed to update variant")
+		log.Error().Err(err).Int("variant_id", variantID).Msg(updateFailedMsg)
 		return ErrDatabase
 	}
 
-	log.Info().Int("variant_id", variantID).Msg("Variant deactivated")
+	log.Info().Int("variant_id", variantID).Msg(successMsg)
 	return nil
 }
 
