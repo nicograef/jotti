@@ -72,8 +72,8 @@ func toProduktDTO(p product.Produkt) produktDTO {
 
 func toProduktDTOs(produkte []product.Produkt) []produktDTO {
 	produktDTOs := make([]produktDTO, 0, len(produkte))
-	for _, produkt := range produkte {
-		produktDTOs = append(produktDTOs, toProduktDTO(produkt))
+	for i := range produkte {
+		produktDTOs = append(produktDTOs, toProduktDTO(produkte[i]))
 	}
 
 	return produktDTOs

@@ -46,8 +46,8 @@ func toUserDTO(u user.User) userDTO {
 
 func toUserDTOs(users []user.User) []userDTO {
 	userDTOs := make([]userDTO, 0, len(users))
-	for _, u := range users {
-		userDTOs = append(userDTOs, toUserDTO(u))
+	for i := range users {
+		userDTOs = append(userDTOs, toUserDTO(users[i]))
 	}
 
 	return userDTOs
