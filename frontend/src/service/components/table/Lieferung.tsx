@@ -31,14 +31,14 @@ export function Lieferung({
   onProdukteGeliefert,
 }: LieferungProps) {
   const { positionen, loading, reload } = useTischUngeliefert(tisch.id)
-  const [mengen, setMengen] = useState<Record<number, number>>({})
+  const [mengen, setMengen] = useState<Record<string, number>>({})
 
-  const ungelieferteMengen: Record<number, number> = {}
+  const ungelieferteMengen: Record<string, number> = {}
   positionen.forEach((position) => {
-    ungelieferteMengen[position.id] = position.menge
+    ungelieferteMengen[position.positionId] = position.menge
   })
 
-  const onAdd = (positionId: number) => {
+  const onAdd = (positionId: string) => {
     setMengen((prev) => {
       const aktuelleMenge = prev[positionId] || 0
       if (aktuelleMenge >= (ungelieferteMengen[positionId] || 0)) return prev
@@ -49,7 +49,7 @@ export function Lieferung({
     })
   }
 
-  const onRemove = (positionId: number) => {
+  const onRemove = (positionId: string) => {
     setMengen((prev) => {
       const aktuelleMenge = prev[positionId] || 0
       if (aktuelleMenge <= 0) return prev
@@ -83,15 +83,15 @@ export function Lieferung({
             ))
           : positionen.map((position) => (
               <PositionItem
-                key={position.id}
+                key={position.positionId}
                 position={position}
-                menge={mengen[position.id] || 0}
-                ungelieferteMenge={ungelieferteMengen[position.id] || 0}
+                menge={mengen[position.positionId] || 0}
+                ungelieferteMenge={ungelieferteMengen[position.positionId] || 0}
                 onAdd={() => {
-                  onAdd(position.id)
+                  onAdd(position.positionId)
                 }}
                 onRemove={() => {
-                  onRemove(position.id)
+                  onRemove(position.positionId)
                 }}
               />
             ))}
@@ -116,9 +116,11 @@ function PositionItem({
   onRemove,
 }: PositionItemProps) {
   return (
-    <Item key={position.id} variant="outline">
+    <Item key={position.positionId} variant="outline">
       <ItemContent>
-        <ItemTitle>{position.name}</ItemTitle>
+        <ItemTitle>
+          {position.produktName} {position.varianteName}
+        </ItemTitle>
         <ItemDescription>
           noch {ungelieferteMenge - menge} zu liefern
         </ItemDescription>

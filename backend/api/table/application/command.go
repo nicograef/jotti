@@ -20,7 +20,7 @@ type tableRepoCommand interface {
 
 type eventRepoCommand interface {
 	WriteEvent(ctx context.Context, event event.Event) (int, error)
-	ReadEventsWithSnapshot(ctx context.Context, subject string, snapshotEventType string) ([]event.Event, error)
+	ReadTableState(ctx context.Context, tischID int) (table.TischState, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 }
 
@@ -69,29 +69,28 @@ func writeEvent(ctx context.Context, eventRepo eventRepoCommand, e event.Event, 
 	return nil
 }
 
-// loadTischState loads and validates the tisch, then reads its events.
+// loadTischState loads and validates the tisch, then reads its projected state.
 // Returns ErrTischNotFound if the tisch doesn't exist, ErrTischNotActive if not active.
-func (c Command) loadTischState(ctx context.Context, tischID int) ([]event.Event, error) {
+func (c Command) loadTischState(ctx context.Context, tischID int) (table.TischState, error) {
 	log := zerolog.Ctx(ctx)
 
 	tisch, err := c.TableRepo.GetTable(ctx, tischID)
 	if err != nil {
-		return nil, fromRepositoryError(err, log, tischID)
+		return table.TischState{}, fromRepositoryError(err, log, tischID)
 	}
 
 	if tisch.Status != table.ActiveStatus {
 		log.Warn().Int("tisch_id", tischID).Str("status", string(tisch.Status)).Msg("Tisch is not active")
-		return nil, ErrTischNotActive
+		return table.TischState{}, ErrTischNotActive
 	}
 
-	subject := "tisch:" + strconv.Itoa(tischID)
-	events, err := c.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(table.EventTypeSnapshotV1))
+	state, err := c.EventRepo.ReadTableState(ctx, tischID)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for tisch state")
-		return nil, ErrDatabase
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table state")
+		return table.TischState{}, ErrDatabase
 	}
 
-	return events, nil
+	return state, nil
 }
 
 // validatePositionRefs checks that every requested PositionRef exists in the available positions
@@ -266,20 +265,14 @@ func (c Command) BestellungAufgeben(ctx context.Context, userID int, userName st
 func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtZahlungCents int, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	// Tisch-Existenz, Status und Events laden
-	events, err := c.loadTischState(ctx, tischID)
+	// Tisch-Existenz, Status und State laden
+	state, err := c.loadTischState(ctx, tischID)
 	if err != nil {
 		return err
 	}
 
 	// Bezahl-Invariante: nur unbezahlte Positionen können bezahlt werden
-	unbezahlt, err := table.GetUnbezahltePositionenFromEvents(events)
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to compute unbezahlte positionen")
-		return ErrDatabase
-	}
-
-	if !validatePositionRefs(unbezahlt, positionen) {
+	if !validatePositionRefs(state.UnbezahltePositionen, positionen) {
 		log.Warn().Int("tisch_id", tischID).Msg("Bezahl-Invariante verletzt: angeforderte Positionen nicht verfügbar")
 		return ErrPositionNichtBezahlbar
 	}
@@ -306,20 +299,14 @@ func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName s
 func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtStornierungCents int, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	// Tisch-Existenz, Status und Events laden
-	events, err := c.loadTischState(ctx, tischID)
+	// Tisch-Existenz, Status und State laden
+	state, err := c.loadTischState(ctx, tischID)
 	if err != nil {
 		return err
 	}
 
 	// Stornierungsinvariante: nur unbezahlte, nicht-stornierte Positionen können storniert werden
-	unbezahlt, err := table.GetUnbezahltePositionenFromEvents(events)
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to compute unbezahlte positionen for stornierung")
-		return ErrDatabase
-	}
-
-	if !validatePositionRefs(unbezahlt, positionen) {
+	if !validatePositionRefs(state.UnbezahltePositionen, positionen) {
 		log.Warn().Int("tisch_id", tischID).Msg("Stornierungsinvariante verletzt: angeforderte Positionen nicht stornierbar")
 		return ErrPositionNichtStornierbar
 	}
@@ -346,20 +333,14 @@ func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName st
 func (c Command) ProdukteLiefern(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	// Tisch-Existenz, Status und Events laden
-	events, err := c.loadTischState(ctx, tischID)
+	// Tisch-Existenz, Status und State laden
+	state, err := c.loadTischState(ctx, tischID)
 	if err != nil {
 		return err
 	}
 
 	// Liefer-Invariante: nur ungelieferte Positionen können geliefert werden
-	ungeliefert, err := table.GetUngeliefertePositionenFromEvents(events)
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to compute ungelieferte positionen")
-		return ErrDatabase
-	}
-
-	if !validatePositionRefs(ungeliefert, positionen) {
+	if !validatePositionRefs(state.UngeliefertePositionen, positionen) {
 		log.Warn().Int("tisch_id", tischID).Msg("Liefer-Invariante verletzt: angeforderte Positionen nicht lieferbar")
 		return ErrPositionNichtLieferbar
 	}
@@ -380,58 +361,5 @@ func (c Command) ProdukteLiefern(ctx context.Context, userID int, userName strin
 	}
 
 	log.Info().Int("tisch_id", tischID).Msg("Produkte geliefert")
-	return nil
-}
-
-func (c Command) TischSnapshotErstellen(ctx context.Context, userID int, userName string, tischID int) error {
-	log := zerolog.Ctx(ctx)
-
-	subject := "tisch:" + strconv.Itoa(tischID)
-	events, err := c.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(table.EventTypeSnapshotV1))
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for snapshot")
-		return ErrDatabase
-	}
-
-	saldo, err := table.GetSaldoFromEvents(events)
-	if err != nil {
-		return err
-	}
-	unbezahlt, err := table.GetUnbezahltePositionenFromEvents(events)
-	if err != nil {
-		return err
-	}
-	ungeliefert, err := table.GetUngeliefertePositionenFromEvents(events)
-	if err != nil {
-		return err
-	}
-	gesamtZahlungen, err := table.GetGesamtZahlungenFromEvents(events)
-	if err != nil {
-		return err
-	}
-
-	log.Debug().
-		Int("tisch_id", tischID).
-		Int("saldo", saldo).
-		Int("unbezahlt_count", len(unbezahlt)).
-		Int("ungeliefert_count", len(ungeliefert)).
-		Int("gesamt_zahlungen", gesamtZahlungen).
-		Msg("Creating snapshot with computed state")
-
-	snapshotEvent, err := table.NewSnapshotEvent(userID, userName, tischID, saldo, unbezahlt, ungeliefert, gesamtZahlungen)
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create snapshot event")
-		return err
-	}
-
-	if err := writeEvent(ctx, c.EventRepo, snapshotEvent, subject); err != nil {
-		if errors.Is(err, ErrConflict) {
-			return ErrConflict
-		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write snapshot event")
-		return ErrDatabase
-	}
-
-	log.Info().Int("tisch_id", tischID).Int("saldo", saldo).Msg("Snapshot created")
 	return nil
 }

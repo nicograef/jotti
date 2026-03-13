@@ -14,13 +14,13 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { Produkt, Variante } from '../../product/Product'
-import type { Position } from '../../table/Bestellung'
+import type { Produkt } from '../../product/Product'
+import type { BestellPositionInput } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { KommentarField } from './CommentField'
 import { calculateTotalPrice } from './drawerUtils'
-import { Receipt } from './Receipt'
+import { Receipt, type ReceiptPosition } from './Receipt'
 
 interface BestellungDrawerProps {
   backend: Pick<TischBackend, 'bestellungAufgeben'>
@@ -34,9 +34,12 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [kommentar, setKommentar] = useState('')
-  const orderedPositionen = toPositionen(props.products, props.mengen)
-  const totalPrice = calculateTotalPrice(orderedPositionen)
-  const noPositionenSelected = orderedPositionen.length === 0
+  const { receiptItems, inputItems } = toBestellungData(
+    props.products,
+    props.mengen,
+  )
+  const totalPrice = calculateTotalPrice(receiptItems)
+  const noPositionenSelected = inputItems.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
@@ -44,7 +47,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
     try {
       await props.backend.bestellungAufgeben({
         tischId: props.tisch.id,
-        positionen: orderedPositionen,
+        positionen: inputItems,
         kommentar,
       })
       props.bestellungAufgegeben()
@@ -85,7 +88,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
               Überprüfe deine Bestellung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt positionen={orderedPositionen} totalPrice={totalPrice} />
+          <Receipt positionen={receiptItems} totalPrice={totalPrice} />
           <div className="px-4">
             <KommentarField
               onChange={(value) => {
@@ -114,17 +117,32 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
   )
 }
 
-function toPositionen(
+function toBestellungData(
   products: Produkt[],
   ausgewaehlteMengen: Record<number, number>,
-): Position[] {
-  const alleVarianten: Variante[] = products.flatMap((p) => p.varianten)
-  return alleVarianten
-    .map((variante) => ({
-      id: variante.id,
-      name: variante.name,
-      preisCents: variante.preisCents,
-      menge: ausgewaehlteMengen[variante.id] || 0,
-    }))
-    .filter((variante) => variante.menge > 0)
+): { receiptItems: ReceiptPosition[]; inputItems: BestellPositionInput[] } {
+  const items = products.flatMap((p) =>
+    p.varianten
+      .filter((v) => (ausgewaehlteMengen[v.id] || 0) > 0)
+      .map((v) => ({
+        produktId: p.id,
+        varianteId: v.id,
+        name: v.name,
+        einzelpreis: v.preisCents,
+        menge: ausgewaehlteMengen[v.id],
+      })),
+  )
+
+  return {
+    receiptItems: items.map((i) => ({
+      name: i.name,
+      einzelpreis: i.einzelpreis,
+      menge: i.menge,
+    })),
+    inputItems: items.map((i) => ({
+      produktId: i.produktId,
+      varianteId: i.varianteId,
+      menge: i.menge,
+    })),
+  }
 }

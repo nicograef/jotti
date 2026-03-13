@@ -17,7 +17,6 @@ type command interface {
 	TischAktivieren(ctx context.Context, id int) error
 	TischDeaktivieren(ctx context.Context, id int) error
 	TischLoeschen(ctx context.Context, id int) error
-	TischSnapshotErstellen(ctx context.Context, userID int, userName string, tischID int) error
 	BestellungAufgeben(ctx context.Context, userID int, userName string, tischID int, positionen []application.BestellPositionInput, kommentar string) error
 	ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtZahlungCents int, kommentar string) error
 	ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, gesamtStornierungCents int, kommentar string) error
@@ -322,34 +321,6 @@ func (h *CommandHandler) ProdukteLiefernHandler() http.HandlerFunc {
 			default:
 				helper.SendServerError(w)
 			}
-			return
-		}
-
-		helper.SendEmptyResponse(w)
-	}
-}
-
-type createTischSnapshot struct {
-	TischID int `json:"tischId"`
-}
-
-func (h *CommandHandler) TischSnapshotErstellenHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body := createTischSnapshot{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
-		if !ok {
-			helper.SendServerError(w)
-			return
-		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-
-		err := h.Command.TischSnapshotErstellen(r.Context(), userID, userName, body.TischID)
-		if err != nil {
-			helper.SendServerError(w)
 			return
 		}
 

@@ -134,9 +134,9 @@ ORDER BY created_at ASC;
 
 **Gesamtbewertung:** Technisch machbar. Für jottis Domäne (Kassensystem mit Buchführungs-Charakter) erzwingt CRUD ein zustandsbasiertes Modell auf eine vorgangsbasierte Domäne. Die Vereinfachung auf SQL-Ebene wird durch Audit-Komplexität, OCC-Probleme und Schema-Fragmentierung an anderer Stelle erkauft.
 
-### Option B: Event Sourcing ohne Projektion (Ist-Zustand)
+### Option B: Event Sourcing ohne Projektion (vorheriger Ist-Zustand)
 
-**Schema:** 1 Events-Tabelle (`events`) mit JSONB-Payload. Event-Typen: `BestellungAufgegeben`, `ZahlungRegistriert`, `ProdukteGeliefert`, `ProdukteStorniert`, `tisch.snapshot`.
+**Schema:** 1 Events-Tabelle (`events`) mit JSONB-Payload. Event-Typen: `BestellungAufgegeben`, `ZahlungRegistriert`, `ProdukteGeliefert`, `ProdukteStorniert`. (Ehemals auch `tisch.snapshot` — abgelöst durch synchrone Projektion, siehe [ADR: CQRS](cqrs.md).)
 
 | Aspekt               | Implementierung                                                                   |
 | -------------------- | --------------------------------------------------------------------------------- |
@@ -162,7 +162,7 @@ ORDER BY created_at ASC;
 - ❌ **Event Replay bei jedem Read.** K-05 (Tischübersicht mit 50 Tischen) = 50 separate Replays pro Seitenaufruf.
 - ❌ **Snapshot-as-Event ist ein Anti-Pattern.** Infrastruktur-Artefakt (`tisch.snapshot:v1`) im fachlichen Event Stream. Vermischt Domänen-Events mit Optimierungs-Artefakten.
 - ❌ **Ad-hoc-SQL-Analysen** erfordern JSONB-Parsing. Nicht trivial für Reporting.
-- ❌ **Höhere Einstiegshürde.** Event Replay, Snapshots, OCC-Versionierung — Konzepte, die über Standard-CRUD hinausgehen.
+- ❌ **Höhere Einstiegshürde.** Event Replay, OCC-Versionierung — Konzepte, die über Standard-CRUD hinausgehen.
 - ❌ **Keine referentielle Integrität** auf DB-Ebene.
 
 **Gesamtbewertung:** Fachlich richtig, Read-Seite hat praktische Schwächen. Der Snapshot-as-Event-Mechanismus ist ein konzeptuelles Problem, das die Klarheit des Event Streams untergräbt.
@@ -346,7 +346,7 @@ type Event struct {
 | `tisch.produkte-storniert:v1`    | Positionen storniert  |
 | `tisch.produkte-geliefert:v1`    | Positionen geliefert  |
 
-> **Deprecated:** `tisch.snapshot:v1` wird durch die synchrone `table_state`-Projektion abgelöst. Bestehende Snapshot-Events im Stream bleiben erhalten (append-only), werden aber nicht mehr erzeugt.
+> **Entfernt:** `tisch.snapshot:v1` wurde durch die synchrone `table_state`-Projektion abgelöst (siehe [ADR: CQRS](cqrs.md)). Der Snapshot-Event-Typ wird nicht mehr erzeugt und der zugehörige Code wurde vollständig entfernt.
 
 ### Append-Only-Garantie
 

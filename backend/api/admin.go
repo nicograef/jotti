@@ -44,7 +44,6 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/activate-tisch", tc.TischAktivierenHandler())
 	r.HandleFunc("/deactivate-tisch", tc.TischDeaktivierenHandler())
 	r.HandleFunc("/delete-tisch", tc.TischLoeschenHandler())
-	r.HandleFunc("/create-tisch-snapshot", tc.TischSnapshotErstellenHandler())
 
 	tq := table.NewQueryHandler(db)
 	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())

@@ -63,7 +63,7 @@ INSERT INTO tische (id, name, status, created_at) VALUES
   (21, 'Reserviert', 'inactive', now()),
   (22, 'Alter Tisch', 'deleted', now());
 
-SELECT setval(pg_get_serial_sequence('tische', 'id'), (SELECT MAX(id) FROM tables));
+SELECT setval(pg_get_serial_sequence('tische', 'id'), (SELECT MAX(id) FROM tische));
 
 
 -- =============================================================================
@@ -152,8 +152,8 @@ INSERT INTO produkt_varianten (id, produkt_id, name, preis_cents, status, create
   (53, 22, 'mit Knoblauch', 400, 'deleted', now()),
   (54, 22, 'mit Käse', 500, 'deleted', now());
 
-SELECT setval(pg_get_serial_sequence('produkte', 'id'), (SELECT MAX(id) FROM products));
-SELECT setval(pg_get_serial_sequence('produkt_varianten', 'id'), (SELECT MAX(id) FROM product_variants));
+SELECT setval(pg_get_serial_sequence('produkte', 'id'), (SELECT MAX(id) FROM produkte));
+SELECT setval(pg_get_serial_sequence('produkt_varianten', 'id'), (SELECT MAX(id) FROM produkt_varianten));
 
 
 -- =============================================================================

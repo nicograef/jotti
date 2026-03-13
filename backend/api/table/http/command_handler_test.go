@@ -38,10 +38,6 @@ func (m *mockCommand) TischLoeschen(ctx context.Context, id int) error {
 	return m.err
 }
 
-func (m *mockCommand) TischSnapshotErstellen(ctx context.Context, userID int, userName string, tischID int) error {
-	return m.err
-}
-
 func (m *mockCommand) BestellungAufgeben(ctx context.Context, userID int, userName string, tischID int, positionen []application.BestellPositionInput, kommentar string) error {
 	return m.err
 }

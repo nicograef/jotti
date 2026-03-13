@@ -30,7 +30,7 @@ Die folgenden Eigenschaften sind im Entwickler-Handbuch (§3, §4, §6) festgele
 1. **Fat Events (JSONB):** Produktdaten (Name, Preis, Kategorie) werden zum Bestellzeitpunkt im Event eingefroren. Das Event enthält alles, was Consumer brauchen — keine JOINs gegen Stammdaten nötig. Spätere Preisänderungen haben keinen Einfluss auf historische Bestellungen (Anti-Corruption Layer).
 2. **Append-Only Events:** DB-Trigger verhindern UPDATE, DELETE und TRUNCATE auf der `events`-Tabelle. Events sind immutable.
 3. **OCC per INSERT:** `UNIQUE(subject, version)` — Optimistic Concurrency Control erfolgt über eine aufsteigende Versionsnummer pro Tisch-Aggregat. Bei Konflikt schlägt der INSERT fehl, die Applikation löst einen Retry aus.
-4. **State-Rekonstruktion per Replay:** Der Tisch-Zustand wird nicht aus der Datenbank gelesen, sondern aus dem Event Stream berechnet: `state = fold(apply, events)`. Snapshots optimieren die Ladezeit.
+4. **Synchrone Projektion + Event Replay:** Der operative Tisch-Zustand wird über eine synchrone Projektion in `table_state` vorgehalten (UPSERT in derselben TX wie das Event-INSERT). Das Kassenjournal liest weiterhin den vollständigen Event Stream. Details: [ADR: CQRS](cqrs.md).
 5. **Soft-Deletes:** CRUD-Tabellen nutzen `status = 'deleted'` statt physischer Löschung — historische Events bleiben referenziell konsistent.
 6. **PostgreSQL-spezifische Features:** Custom Enums (`UserRole`, `EntityStatus`, `ProduktKategorie`), JSONB mit `json_agg()` und `json_build_object()`, CTEs, Trigger.
 7. **Geldbeträge in Cent (int):** Niemals Floats für Geldbeträge.
@@ -177,7 +177,7 @@ func (r Repository) GetUser(ctx context.Context, id int) (user.User, error) {
 
 **Konkrete Stärken im jotti-Code:**
 
-- **Event-Store-Queries** funktionieren exzellent — `ReadEventsWithSnapshot` nutzt eine CTE, die automatisch den letzten Snapshot findet und alle folgenden Events lädt. Das wäre in keinem ORM oder Query Builder so elegant ausdrückbar.
+- **Event-Store-Queries** funktionieren exzellent — `INSERT INTO events` mit OCC, `ReadEventsBySubject` für das Kassenjournal, `table_state`-Queries für operative Reads. Das wäre in keinem ORM oder Query Builder so elegant ausdrückbar.
 - **Produkt-Queries** mit `json_agg(json_build_object(...))` aggregieren Varianten direkt in der DB-Query — ein einzelner Round-Trip statt N+1.
 - **Schema-Drift-Schutz** ist das Killer-Feature für die Pre-Release-Phase: Schema in `01_initial.up.sql` ändern → `make sqlc` → Build-Fehler zeigen genau, welche Queries angepasst werden müssen.
 
@@ -226,7 +226,7 @@ stmt := SELECT(
 
 **Schwächen für jotti:**
 
-- **Event-Store-Queries werden umständlicher:** Die CTE in `ReadEventsWithSnapshot` (die den letzten Snapshot findet und alle Events seit diesem lädt) ist in nativem SQL 15 Zeilen — in einer Query-Builder-DSL wäre sie deutlich länger und schwerer lesbar.
+- **Event-Store-Queries werden umständlicher:** Event-INSERT mit synchronem `table_state`-UPSERT und `ReadEventsBySubject` für das Kassenjournal sind in nativem SQL klar und kompakt — in einer Query-Builder-DSL wäre das deutlich länger und schwerer lesbar.
 - **`json_agg(json_build_object(...))`** ist in der DSL nicht nativ ausdrückbar — man fällt auf Raw SQL zurück, was den Zweck des Query Builders unterminiert.
 - **Löst ein Problem, das jotti kaum hat:** Dynamische Filter kommen in jottis statischen Queries (alle Tische laden, alle aktiven Produkte laden) nicht vor.
 
@@ -357,7 +357,7 @@ Events sind keine mutable Objekte. Der Tisch-Zustand wird nicht aus DB-Rows reko
 
 **2. Hybrid-Modell braucht ein Tool für beide Welten.**
 
-sqlc bedient Event-Store-Queries (`INSERT INTO events ... RETURNING *`, CTE-basierter Snapshot-Replay) und CRUD-Queries (`SELECT p.*, json_agg(...) FROM produkte p`) gleich gut. Kein Tool-Wechsel zwischen Bounded Contexts.
+sqlc bedient Event-Store-Queries (`INSERT INTO events ... RETURNING *`, `UPSERT INTO table_state`, `ReadEventsBySubject`) und CRUD-Queries (`SELECT p.*, json_agg(...) FROM produkte p`) gleich gut. Kein Tool-Wechsel zwischen Bounded Contexts.
 
 **3. Schema-Drift-Schutz in der Pre-Release-Phase.**
 

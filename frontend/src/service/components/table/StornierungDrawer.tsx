@@ -18,14 +18,19 @@ import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { KommentarField } from './CommentField'
-import { calculateTotalPrice, selectPositionen } from './drawerUtils'
+import {
+  calculateTotalPrice,
+  selectPositionen,
+  toPositionRefs,
+  toReceiptItems,
+} from './drawerUtils'
 import { Receipt } from './Receipt'
 
 interface StornierungDrawerProps {
   backend: Pick<TischBackend, 'produkteStornieren'>
   tisch: Tisch
   unbezahltePositionen: Position[]
-  mengen: Record<number, number>
+  mengen: Record<string, number>
   produkteStorniert: () => void
 }
 
@@ -46,7 +51,7 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
     try {
       await props.backend.produkteStornieren({
         tischId: props.tisch.id,
-        positionen: positionenToCancel,
+        positionen: toPositionRefs(positionenToCancel),
         kommentar,
       })
       props.produkteStorniert()
@@ -86,7 +91,10 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
               Sollen diese Produkte wirklich storniert werden?
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt positionen={positionenToCancel} totalPrice={totalPrice} />
+          <Receipt
+            positionen={toReceiptItems(positionenToCancel)}
+            totalPrice={totalPrice}
+          />
           <div className="px-4">
             <KommentarField
               onChange={(value) => {

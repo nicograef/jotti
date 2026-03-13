@@ -4,12 +4,10 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/nicograef/jotti/backend/repository/event_repo"
@@ -218,69 +216,6 @@ func TestBestellungAufgeben_Conflict(t *testing.T) {
 
 // --- Invariant Tests ---
 
-// createOrderEvent creates an order event and assigns it an ID for use in mock repos.
-func createOrderEvent(t *testing.T, tischID int, positions []table.Position) event.Event {
-	t.Helper()
-	e, err := table.NewBestellungAufgegebenEvent(1, "TestUser", tischID, positions, "")
-	if err != nil {
-		t.Fatalf("failed to create order event: %v", err)
-	}
-	return e
-}
-
-// extractPositionRefs parses the event data to get PositionRefs with the generated UUIDs.
-func extractPositionRefs(t *testing.T, orderEvent event.Event, menge int) []table.PositionRef {
-	t.Helper()
-	var data struct {
-		Positionen []struct {
-			PositionID string `json:"positionId"`
-		} `json:"positionen"`
-	}
-	if err := json.Unmarshal(orderEvent.Data, &data); err != nil {
-		t.Fatalf("failed to parse order event data: %v", err)
-	}
-	refs := make([]table.PositionRef, len(data.Positionen))
-	for i, p := range data.Positionen {
-		refs[i] = table.PositionRef{PositionID: p.PositionID, Menge: menge}
-	}
-	return refs
-}
-
-func createPaymentEvent(t *testing.T, tischID int, refs []table.PositionRef, amountCents int) event.Event {
-	t.Helper()
-	e, err := table.NewZahlungRegistriertEvent(1, "TestUser", tischID, refs, amountCents, "")
-	if err != nil {
-		t.Fatalf("failed to create payment event: %v", err)
-	}
-	return e
-}
-
-func createDeliveryEvent(t *testing.T, tischID int, refs []table.PositionRef) event.Event {
-	t.Helper()
-	e, err := table.NewProdukteGeliefertEvent(1, "TestUser", tischID, refs, "")
-	if err != nil {
-		t.Fatalf("failed to create delivery event: %v", err)
-	}
-	return e
-}
-
-func createCancelEvent(t *testing.T, tischID int, refs []table.PositionRef, amountCents int) event.Event {
-	t.Helper()
-	e, err := table.NewProdukteStorniertEvent(1, "TestUser", tischID, refs, amountCents, "")
-	if err != nil {
-		t.Fatalf("failed to create cancel event: %v", err)
-	}
-	return e
-}
-
-// assignIDs assigns sequential IDs to events for use in mock repos.
-func assignIDs(events []event.Event) []event.Event {
-	for i := range events {
-		events[i].ID = i + 1
-	}
-	return events
-}
-
 func TestBestellungAufgeben_InactiveTisch(t *testing.T) {
 	ctx := context.Background()
 	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
@@ -321,17 +256,21 @@ func TestZahlungRegistrieren_NonOrderedPosition(t *testing.T) {
 
 func TestZahlungRegistrieren_DoublePayment(t *testing.T) {
 	ctx := context.Background()
-	positions := []table.Position{
-		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
-	}
-	orderEvent := createOrderEvent(t, testActiveTisch.ID, positions)
-	refs := extractPositionRefs(t, orderEvent, 1)
-	paymentEvent := createPaymentEvent(t, testActiveTisch.ID, refs, 350)
-
-	events := assignIDs([]event.Event{orderEvent, paymentEvent})
+	// After order + payment, unbezahlt is empty
+	eventMock := event_repo.NewMock(nil, nil)
+	eventMock.SetTableState(testActiveTisch.ID, table.TischState{
+		SaldoCents:             0,
+		UnbezahltePositionen:   []table.Position{},
+		UngeliefertePositionen: []table.Position{},
+		GesamtZahlungenCents:   350,
+	})
 	command := Command{
 		TableRepo: table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
-		EventRepo: event_repo.NewMock(events, nil),
+		EventRepo: eventMock,
+	}
+
+	refs := []table.PositionRef{
+		{PositionID: "00000000-0000-0000-0000-000000000001", Menge: 1},
 	}
 
 	// Try to pay again — should fail
@@ -361,17 +300,21 @@ func TestProdukteLiefern_NonOrderedPosition(t *testing.T) {
 
 func TestProdukteStornieren_AlreadyPaidPosition(t *testing.T) {
 	ctx := context.Background()
-	positions := []table.Position{
-		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
-	}
-	orderEvent := createOrderEvent(t, testActiveTisch.ID, positions)
-	refs := extractPositionRefs(t, orderEvent, 1)
-	paymentEvent := createPaymentEvent(t, testActiveTisch.ID, refs, 350)
-
-	events := assignIDs([]event.Event{orderEvent, paymentEvent})
+	// After order + payment, unbezahlt is empty
+	eventMock := event_repo.NewMock(nil, nil)
+	eventMock.SetTableState(testActiveTisch.ID, table.TischState{
+		SaldoCents:             0,
+		UnbezahltePositionen:   []table.Position{},
+		UngeliefertePositionen: []table.Position{},
+		GesamtZahlungenCents:   350,
+	})
 	command := Command{
 		TableRepo: table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
-		EventRepo: event_repo.NewMock(events, nil),
+		EventRepo: eventMock,
+	}
+
+	refs := []table.PositionRef{
+		{PositionID: "00000000-0000-0000-0000-000000000001", Menge: 1},
 	}
 
 	// Stornierung of already-paid position should fail (unbezahlt is empty)
@@ -383,17 +326,25 @@ func TestProdukteStornieren_AlreadyPaidPosition(t *testing.T) {
 
 func TestZahlungRegistrieren_ExceedsAvailableMenge(t *testing.T) {
 	ctx := context.Background()
-	positions := []table.Position{
-		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
-	}
-	orderEvent := createOrderEvent(t, testActiveTisch.ID, positions)
-	// Try to pay for Menge 2 when only 1 was ordered
-	refs := extractPositionRefs(t, orderEvent, 2)
-
-	events := assignIDs([]event.Event{orderEvent})
+	// State has 1 position with Menge 1
+	eventMock := event_repo.NewMock(nil, nil)
+	eventMock.SetTableState(testActiveTisch.ID, table.TischState{
+		SaldoCents: 350,
+		UnbezahltePositionen: []table.Position{
+			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+		},
+		UngeliefertePositionen: []table.Position{
+			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+		},
+	})
 	command := Command{
 		TableRepo: table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
-		EventRepo: event_repo.NewMock(events, nil),
+		EventRepo: eventMock,
+	}
+
+	// Try to pay for Menge 2 when only 1 was ordered
+	refs := []table.PositionRef{
+		{PositionID: "pos-1", Menge: 2},
 	}
 
 	err := command.ZahlungRegistrieren(ctx, 1, "Test User", testActiveTisch.ID, refs, 700, "")

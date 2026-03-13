@@ -19,7 +19,7 @@ type tableRepoQuery interface {
 
 type eventRepoQuery interface {
 	ReadEventsBySubject(ctx context.Context, subject string) ([]e.Event, error)
-	ReadEventsWithSnapshot(ctx context.Context, subject string, snapshotEventType string) ([]e.Event, error)
+	ReadTableState(ctx context.Context, tischID int) (t.TischState, error)
 }
 
 type Query struct {
@@ -74,21 +74,14 @@ func (q Query) GetAktiveTische(ctx context.Context) ([]t.Tisch, error) {
 func (q Query) GetTischSaldo(ctx context.Context, tischID int) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	subject := "tisch:" + strconv.Itoa(tischID)
-	events, err := q.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(t.EventTypeSnapshotV1))
+	state, err := q.EventRepo.ReadTableState(ctx, tischID)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for tisch")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table state")
 		return 0, ErrDatabase
 	}
 
-	saldoCents, err := t.GetSaldoFromEvents(events)
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to calculate saldo from events")
-		return 0, err
-	}
-
-	log.Info().Int("tisch_id", tischID).Int("saldo_cents", saldoCents).Msg("Calculated tisch saldo")
-	return saldoCents, nil
+	log.Info().Int("tisch_id", tischID).Int("saldo_cents", state.SaldoCents).Msg("Retrieved tisch saldo")
+	return state.SaldoCents, nil
 }
 
 func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]any, error) {
@@ -115,39 +108,25 @@ func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]any, error)
 func (q Query) GetTischUnbezahlt(ctx context.Context, tischID int) ([]t.Position, error) {
 	log := zerolog.Ctx(ctx)
 
-	subject := "tisch:" + strconv.Itoa(tischID)
-	events, err := q.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(t.EventTypeSnapshotV1))
+	state, err := q.EventRepo.ReadTableState(ctx, tischID)
 	if err != nil {
-		log.Error().Int("tisch_id", tischID).Msg("Failed to read events for tisch")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table state")
 		return nil, ErrDatabase
 	}
 
-	unbezahltePositionen, err := t.GetUnbezahltePositionenFromEvents(events)
-	if err != nil {
-		log.Error().Int("tisch_id", tischID).Err(err).Msg("Failed to build unbezahlte positionen from events")
-		return nil, err
-	}
-
-	log.Info().Int("tisch_id", tischID).Int("unbezahlt_count", len(unbezahltePositionen)).Msg("Retrieved unbezahlte positionen for tisch")
-	return unbezahltePositionen, nil
+	log.Info().Int("tisch_id", tischID).Int("unbezahlt_count", len(state.UnbezahltePositionen)).Msg("Retrieved unbezahlte positionen for tisch")
+	return state.UnbezahltePositionen, nil
 }
 
 func (q Query) GetTischUngeliefert(ctx context.Context, tischID int) ([]t.Position, error) {
 	log := zerolog.Ctx(ctx)
 
-	subject := "tisch:" + strconv.Itoa(tischID)
-	events, err := q.EventRepo.ReadEventsWithSnapshot(ctx, subject, string(t.EventTypeSnapshotV1))
+	state, err := q.EventRepo.ReadTableState(ctx, tischID)
 	if err != nil {
-		log.Error().Int("tisch_id", tischID).Msg("Failed to read events for tisch")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table state")
 		return nil, ErrDatabase
 	}
 
-	ungeliefertePositionen, err := t.GetUngeliefertePositionenFromEvents(events)
-	if err != nil {
-		log.Error().Int("tisch_id", tischID).Err(err).Msg("Failed to build ungelieferte positionen from events")
-		return nil, err
-	}
-
-	log.Info().Int("tisch_id", tischID).Int("ungeliefert_count", len(ungeliefertePositionen)).Msg("Retrieved ungelieferte positionen for tisch")
-	return ungeliefertePositionen, nil
+	log.Info().Int("tisch_id", tischID).Int("ungeliefert_count", len(state.UngeliefertePositionen)).Msg("Retrieved ungelieferte positionen for tisch")
+	return state.UngeliefertePositionen, nil
 }

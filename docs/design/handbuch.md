@@ -17,7 +17,7 @@
    - [3.1 Tisch-Aggregat](#31-tisch-aggregat)
    - [3.2 Invarianten](#32-invarianten)
    - [3.3 Domain Events](#33-domain-events)
-   - [3.4 Event Replay und Snapshots](#34-event-replay-und-snapshots)
+   - [3.4 Synchrone Projektion und Event Replay](#34-synchrone-projektion-und-event-replay)
    - [3.5 Policies](#35-policies)
 4. [Stammdaten](#4-stammdaten)
    - [4.1 Produkt-Aggregat](#41-produkt-aggregat)
@@ -108,30 +108,41 @@ Der Kassenbetrieb schützt sich über eine **Anti-Corruption Layer (ACL)** vor S
 
 ### 3.1 Tisch-Aggregat
 
-Das Tisch-Aggregat ist die zentrale transaktionale Grenze im Kassenbetrieb. Der Zustand wird nicht direkt gespeichert, sondern aus dem Event Stream berechnet (→ [3.4](#34-event-replay-und-snapshots)). Der Tisch-Zustand folgt einer zweistufigen Modellierung: Tisch → Bestellungen → Positionen.
+Das Tisch-Aggregat ist die zentrale transaktionale Grenze im Kassenbetrieb. Der Zustand wird über eine synchrone Projektion in der `table_state`-Tabelle vorgehalten, die in derselben Transaktion wie das Event-INSERT aktualisiert wird (→ [3.4](#34-synchrone-projektion-und-event-replay)).
+
+**Event-Stream-Modell:** Der Event Stream enthält die vollständige Historie: Tisch → Bestellungen → Positionen.
 
 ```
-Tisch
-├── tisch_id              (UUID)
+Tisch (Event Stream)
+├── tisch_id              (int — DB-generiert)
 ├── saldo                 (int, Cent — berechnet)
 ├── event_version         (int — letzte Event-Version)
 └── bestellungen[]
-    ├── bestellung_id     (UUID)
+    ├── bestellung_id     (UUID — im Event generiert)
     ├── kommentar?        (string, optional — max. 100 Zeichen)
     ├── zeitstempel       (datetime)
-    ├── benutzer_id       (UUID)
+    ├── benutzer_id       (int)
     ├── benutzer_name     (string)
     └── positionen[]
-        ├── position_id   (UUID)
-        ├── variante_id   (UUID)
+        ├── position_id   (UUID — im Event generiert)
+        ├── variante_id   (int)
         ├── produkt_name  (string — Fat Event)
         ├── variante_name (string — Fat Event)
         ├── kategorie     (essen | getraenk | sonstiges — Fat Event)
         ├── einzelpreis   (int, Cent — Fat Event)
-        ├── menge         (int, ≥ 1)
-        ├── geliefert     (bool)
-        ├── bezahlt       (bool)
-        └── storniert     (bool)
+        └── menge         (int, ≥ 1)
+```
+
+**Projektions-Modell (`TischState`):** Die synchrone Projektion ist eine flache Struktur — keine Bestellungs-Hierarchie, sondern mengenbasierte Positionslisten. Lieferung, Bezahlung und Stornierung reduzieren die Menge in diesen Listen (statt Boolean-Flags zu setzen).
+
+```
+TischState (Projektion)
+├── saldo_cents                (int, Cent — berechnet)
+├── unbezahlte_positionen[]    (Position mit verbleibender Menge)
+├── ungelieferte_positionen[]  (Position mit verbleibender Menge)
+├── gesamt_zahlungen_cents     (int, Cent)
+├── last_event_id              (int)
+└── last_event_version         (int)
 ```
 
 **Fat Events:** Produktdaten (Name, Variantenname, Kategorie, Einzelpreis) werden zum Bestellzeitpunkt im Event eingefroren. Spätere Stammdatenänderungen haben keinen Einfluss auf historische Bestellungen — der Kassenbetrieb schützt sich so per ACL vor dem Stammdaten-Context.
@@ -150,14 +161,14 @@ Alle Beträge in Cent (Integer). Saldo = 0 bedeutet: alle Positionen bezahlt ode
 
 ### 3.3 Domain Events
 
-Fünf unveränderliche (append-only) Event-Typen. Namenskonvention: deutsch, Vergangenheitsform, PascalCase.
+Vier unveränderliche (append-only) Event-Typen. Namenskonvention: deutsch, Vergangenheitsform, PascalCase.
 
 **Gemeinsame Event-Metadaten:**
 
 ```
-event_id          (UUID — eindeutige Event-ID)
-tisch_id          (UUID — Aggregat-ID)
-benutzer_id       (UUID — wer hat die Aktion ausgeführt)
+event_id          (int — DB-generiert, eindeutige Event-ID)
+tisch_id          (int — Aggregat-ID, abgeleitet aus subject "tisch:<id>")
+benutzer_id       (int — wer hat die Aktion ausgeführt)
 benutzer_name     (string — Fat Event: Name zum Zeitpunkt der Aktion)
 zeitstempel       (datetime — Zeitpunkt der Erzeugung)
 version           (int — aufsteigende Versionsnummer pro Tisch, für OCC)
@@ -170,16 +181,17 @@ Servicekraft gibt eine Bestellung am Tisch auf.
 ```
 BestellungAufgegeben
 ├── [Event-Metadaten]
-├── bestellung_id     (UUID)
-├── kommentar?        (string, optional — max. 100 Zeichen)
+├── bestellung_id        (UUID)
+├── gesamt_preis_cents   (int, Cent — Summe aller Positionen)
+├── kommentar?           (string, optional — max. 100 Zeichen)
 └── positionen[]
-    ├── position_id   (UUID)
-    ├── variante_id   (UUID)
-    ├── produkt_name  (string — Fat Event)
-    ├── variante_name (string — Fat Event)
-    ├── kategorie     (essen | getraenk | sonstiges — Fat Event)
-    ├── einzelpreis   (int, Cent — Fat Event)
-    └── menge         (int, ≥ 1)
+    ├── position_id      (UUID)
+    ├── variante_id      (int)
+    ├── produkt_name     (string — Fat Event)
+    ├── variante_name    (string — Fat Event)
+    ├── kategorie        (essen | getraenk | sonstiges — Fat Event)
+    ├── einzelpreis      (int, Cent — Fat Event)
+    └── menge            (int, ≥ 1)
 ```
 
 #### ProdukteGeliefert
@@ -189,8 +201,10 @@ Bestellte Positionen werden als geliefert markiert. Teillieferungen möglich.
 ```
 ProdukteGeliefert
 ├── [Event-Metadaten]
-├── positionen[]
-│   └── position_id   (UUID)
+├── lieferung_id      (UUID)
+├── positionen[]      (PositionRef)
+│   ├── position_id   (UUID)
+│   └── menge         (int, ≥ 1)
 └── kommentar?        (string, optional — max. 100 Zeichen)
 ```
 
@@ -201,10 +215,12 @@ Barzahlung wird registriert. Betrag = Summe der gewählten Positionen. Teilzahlu
 ```
 ZahlungRegistriert
 ├── [Event-Metadaten]
-├── positionen[]
-│   └── position_id   (UUID)
-├── betrag            (int, Cent)
-└── kommentar?        (string, optional — max. 100 Zeichen)
+├── zahlung_id            (UUID)
+├── positionen[]          (PositionRef)
+│   ├── position_id       (UUID)
+│   └── menge             (int, ≥ 1)
+├── gesamt_zahlung_cents  (int, Cent — Summe der gewählten Positionen)
+└── kommentar?            (string, optional — max. 100 Zeichen)
 ```
 
 #### ProdukteStorniert
@@ -214,44 +230,54 @@ Serviceleitung oder Admin storniert Positionen. Unabhängig vom Liefer-/Bezahlst
 ```
 ProdukteStorniert
 ├── [Event-Metadaten]
-├── positionen[]
-│   └── position_id   (UUID)
-├── stornobetrag      (int, Cent)
-└── kommentar?        (string, optional — max. 100 Zeichen)
+├── stornierung_id             (UUID)
+├── positionen[]               (PositionRef)
+│   ├── position_id            (UUID)
+│   └── menge                  (int, ≥ 1)
+├── gesamt_stornierung_cents   (int, Cent — Summe der stornierten Positionen)
+└── kommentar?                 (string, optional — max. 100 Zeichen)
 ```
 
-### 3.4 Event Replay und Snapshots
+### 3.4 Synchrone Projektion und Event Replay
 
-Der Tisch-Zustand wird bei jedem Zugriff aus dem Event Stream berechnet:
+Der Tisch-Zustand wird über eine synchrone Projektion in der `table_state`-Tabelle vorgehalten. Die Projektion wird in derselben Transaktion wie das Event-INSERT aktualisiert (Write-Through):
 
 ```
-1. snapshot ← lade_snapshot(tisch_id)
-2. if snapshot existiert:
-       zustand ← snapshot.zustand
-       ab_version ← snapshot.version
-   else:
-       zustand ← leerer Tisch-Zustand
-       ab_version ← 0
-3. events ← lade_events(tisch_id, ab_version)
-4. for event in events:
-       zustand ← apply(zustand, event)
-5. return zustand
+BEGIN TX
+  1. event ← INSERT INTO events (...)          → event_id
+  2. zustand ← SELECT * FROM table_state       → aktueller Zustand (oder Zero-Value)
+  3. zustand ← ApplyEvent(zustand, event)      → neuer Zustand (reine Go-Funktion)
+  4. UPSERT INTO table_state (zustand)         → neuer Zustand persistiert
+COMMIT TX
 ```
+
+Die `ApplyEvent()`-Funktion (`backend/domain/table/projection.go`) ist eine reine Funktion in der Domain-Schicht — kein DB-Zugriff. Sie nimmt einen `TischState` und ein `Event` entgegen und gibt den neuen `TischState` zurück. Der Projektor ist ein internes Detail des Event-Repositories; der Command-Service ruft weiterhin nur `WriteEvent()` auf.
+
+**`table_state`-Schema:**
+
+| Spalte                    | Typ          | Beschreibung                                    |
+| ------------------------- | ------------ | ----------------------------------------------- |
+| `tisch_id`                | INT (PK, FK) | Referenz auf `tische.id`                        |
+| `saldo_cents`             | INT          | Aktueller Tisch-Saldo in Cent                   |
+| `unbezahlte_positionen`   | JSONB        | `[]Position` — noch nicht bezahlte Positionen   |
+| `ungelieferte_positionen` | JSONB        | `[]Position` — noch nicht gelieferte Positionen |
+| `gesamt_zahlungen_cents`  | INT          | Summe aller Zahlungen in Cent                   |
+| `last_event_id`           | INT (FK)     | ID des zuletzt verarbeiteten Events             |
+| `last_event_version`      | INT          | Version des zuletzt verarbeiteten Events        |
+| `updated_at`              | TIMESTAMPTZ  | Zeitpunkt der letzten Aktualisierung            |
+
+**Lesezugriff (Queries):** Operative Queries (Saldo, unbezahlte/ungelieferte Positionen) lesen direkt aus `table_state` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`.
 
 **Apply-Tabelle:**
 
-| Event-Typ            | Zustandsänderung                                                            |
-| -------------------- | --------------------------------------------------------------------------- |
-| BestellungAufgegeben | Neue Bestellung mit Positionen anlegen, Saldo erhöhen                       |
-| ProdukteGeliefert    | Referenzierte Positionen als `geliefert = true` markieren                   |
-| ZahlungRegistriert   | Referenzierte Positionen als `bezahlt = true` markieren, Saldo reduzieren   |
-| ProdukteStorniert    | Referenzierte Positionen als `storniert = true` markieren, Saldo reduzieren |
+| Event-Typ            | Zustandsänderung                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- |
+| BestellungAufgegeben | Positionen zu `unbezahlte_positionen` und `ungelieferte_positionen` hinzufügen, Saldo erhöhen                 |
+| ProdukteGeliefert    | Referenzierte Mengen aus `ungelieferte_positionen` subtrahieren (Eintrag entfernen bei Menge 0)               |
+| ZahlungRegistriert   | Referenzierte Mengen aus `unbezahlte_positionen` subtrahieren, Saldo und `gesamt_zahlungen_cents` anpassen    |
+| ProdukteStorniert    | Referenzierte Mengen aus `unbezahlte_positionen` und `ungelieferte_positionen` subtrahieren, Saldo reduzieren |
 
-**Snapshot-Regeln:**
-
-1. Snapshots werden als eigener Event-Typ (`tisch.snapshot:v1`) in der `events`-Tabelle gespeichert — eine bewusste Vereinfachung gegenüber dem ursprünglichen Entwurf, der separate Speicherung vorsah.
-2. Snapshots können **jederzeit gelöscht und neu berechnet** werden, ohne die fachlichen Events zu verändern.
-3. Erzeugung **nach N Events** oder **auf Admin-Anfrage**. Für die erwartete Größenordnung (< 200 Events pro Tisch) ist ein vollständiger Replay performant genug.
+**Selbstheilung:** Bei Inkonsistenz kann `table_state` jederzeit aus allen Events reberechnet werden — der Event Stream bleibt die Single Source of Truth. Details zur Projektionsarchitektur: [ADR: CQRS](../adr/cqrs.md).
 
 ### 3.5 Policies
 
@@ -269,14 +295,14 @@ Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produ
 
 ```
 Produkt
-├── produkt_id       (UUID)
+├── produkt_id       (int — DB-generiert)
 ├── name             (string — nicht leer)
 ├── kategorie        (essen | getraenk | sonstiges)
-├── status           (active | deleted)
+├── status           (active | inactive | deleted)
 └── varianten[]
-    ├── variante_id  (UUID)
+    ├── variante_id  (int — DB-generiert)
     ├── name         (string — nicht leer)
-    ├── preis        (int, Cent — > 0)
+    ├── preis        (int, Cent — ≥ 0)
     └── status       (active | inactive | deleted)
 ```
 
@@ -284,7 +310,7 @@ Produkt
 
 - Produktname darf nicht leer sein.
 - Kategorie muss ein gültiger Wert sein (`essen`, `getraenk`, `sonstiges`).
-- Jede Variante benötigt einen nicht-leeren Namen und einen Preis > 0 (in Cent).
+- Jede Variante benötigt einen nicht-leeren Namen und einen Preis ≥ 0 (in Cent).
 - Soft-Delete: Produkte und Varianten werden durch Status-Änderung auf `deleted` entfernt, nicht physisch gelöscht. Historische Bestellungen bleiben valide, weil die Events die Produktdaten zum Bestellzeitpunkt enthalten (Fat Events).
 - Varianten können unabhängig vom Produkt deaktiviert werden (`inactive`). Inaktive Varianten erscheinen nicht im Service-Katalog.
 
@@ -294,7 +320,7 @@ Das Tisch-Stammdaten-Aggregat verwaltet die Basisdaten eines Tisches: seinen Nam
 
 ```
 Tisch (Stammdaten)
-├── tisch_id    (UUID)
+├── tisch_id    (int — DB-generiert)
 ├── name        (string — nicht leer, z. B. „Tisch 1", „Stehtisch Eingang")
 └── status      (active | inactive | deleted)
 ```
@@ -313,13 +339,13 @@ Das Benutzer-Aggregat verwaltet die Zugangsdaten und Rollen der Helfer und Admin
 
 ```
 Benutzer
-├── benutzer_id           (UUID)
-├── name                  (string — Anzeigename)
-├── benutzername          (string — eindeutig, Login-Name)
-├── passwort_hash         (string — Argon2id)
-├── rolle                 (admin | serviceleitung | service)
-├── muss_passwort_setzen  (bool — true nach Erstanlage oder Passwort-Reset)
-└── status                (active | inactive | deleted)
+├── benutzer_id                (int — DB-generiert)
+├── name                       (string — Anzeigename)
+├── benutzername               (string — eindeutig, Login-Name)
+├── passwort_hash              (string — Argon2id, NULL bei Neuanlage)
+├── einmalpasswort_hash        (string — Argon2id, NULL nach Passwort-Vergabe)
+├── rolle                      (admin | serviceleitung | service)
+└── status                     (active | inactive | deleted)
 ```
 
 **Invarianten:**
@@ -328,7 +354,8 @@ Benutzer
 - Rolle muss ein gültiger Wert sein (`admin`, `serviceleitung`, `service`).
 - Passwort wird mit Argon2id gehasht gespeichert — Klartext-Passwörter werden nie persistiert.
 - Soft-Delete: Benutzer werden durch Status-Änderung auf `deleted` entfernt. Deaktivierte (`inactive`) und entfernte (`deleted`) Benutzer können sich nicht anmelden.
-- Bei Neuanlage oder Passwort-Reset wird ein 6-stelliges Einmalpasswort generiert und `muss_passwort_setzen` auf `true` gesetzt. Bei der nächsten Anmeldung wird der Benutzer zur Passwort-Vergabe weitergeleitet (→ [5.2](#52-onboarding-ablauf)).
+- Neue Benutzer werden initial mit Status `inactive` angelegt und müssen durch den Admin aktiviert werden.
+- Bei Neuanlage oder Passwort-Reset wird ein 6-stelliges Einmalpasswort generiert und als `einmalpasswort_hash` gespeichert. Der reguläre `passwort_hash` wird geleert. Das System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL`, dass der Benutzer ein eigenes Passwort vergeben muss (→ [5.2](#52-onboarding-ablauf)).
 
 ### 4.4 Persistenz (CRUD)
 
@@ -383,12 +410,12 @@ Die Rollenhierarchie ist inklusiv: Admin kann alles, was Serviceleitung kann. Se
 
 Neue Benutzer durchlaufen einen zweistufigen Onboarding-Prozess, der sicherstellt, dass nur der Benutzer sein eigenes Passwort kennt:
 
-1. **Benutzer anlegen:** Der Admin erstellt einen Benutzer mit Name, Benutzername und Rolle. Das System generiert ein 6-stelliges Einmalpasswort, das der Admin dem Benutzer mitteilt (z. B. mündlich oder auf einem Zettel).
-2. **Erstanmeldung:** Der Benutzer meldet sich mit Benutzername und Einmalpasswort an. Das System erkennt `muss_passwort_setzen = true` und leitet zur Seite „Passwort setzen" weiter.
-3. **Eigenes Passwort setzen:** Der Benutzer vergibt ein eigenes Passwort (min. 8 Zeichen). Das neue Passwort wird mit Argon2id gehasht gespeichert. `muss_passwort_setzen` wird auf `false` gesetzt.
+1. **Benutzer anlegen:** Der Admin erstellt einen Benutzer mit Name, Benutzername und Rolle. Das System generiert ein 6-stelliges Einmalpasswort, das der Admin dem Benutzer mitteilt (z. B. mündlich oder auf einem Zettel). Der Benutzer wird mit Status `inactive` angelegt und muss vom Admin aktiviert werden.
+2. **Erstanmeldung:** Der Benutzer meldet sich mit Benutzername und Einmalpasswort an. Das System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL`, dass noch kein eigenes Passwort vergeben wurde, und leitet zur Seite „Passwort setzen" weiter.
+3. **Eigenes Passwort setzen:** Der Benutzer vergibt ein eigenes Passwort (min. 8 Zeichen). Das Einmalpasswort wird gegen den gespeicherten Hash verifiziert. Das neue Passwort wird mit Argon2id gehasht als `passwort_hash` gespeichert, der `einmalpasswort_hash` wird geleert.
 4. **Normale Anmeldung:** Ab jetzt meldet sich der Benutzer mit seinem selbst gewählten Passwort an.
 
-**Passwort-Reset:** Bei einem Admin-Reset wird ein neues 6-stelliges Einmalpasswort generiert und `muss_passwort_setzen` wieder auf `true` gesetzt. Der Benutzer durchläuft beim nächsten Login erneut Schritt 2 und 3.
+**Passwort-Reset:** Bei einem Admin-Reset wird ein neues 6-stelliges Einmalpasswort generiert und als `einmalpasswort_hash` gespeichert. Der reguläre `passwort_hash` wird geleert. Der Benutzer durchläuft beim nächsten Login erneut Schritt 2 und 3.
 
 ---
 
@@ -508,7 +535,7 @@ Mehrere Servicekräfte arbeiten gleichzeitig — Schreibkonflikte am selben Tisc
 
 1. Beim Laden eines Tisches wird die aktuelle `event_version` mitgegeben.
 2. Beim Schreiben eines neuen Events wird die erwartete Version mitgeschickt.
-3. Die Datenbank prüft via UNIQUE Constraint `(tisch_id, version)`, ob die Version noch frei ist.
+3. Die Datenbank prüft via UNIQUE Constraint `(subject, version)`, ob die Version noch frei ist.
 4. Ist die Version bereits vergeben, schlägt die Operation mit einem Konflikt-Fehler fehl.
 5. Die Anwendungsschicht führt einen Retry durch: Tischzustand neu laden, Operation erneut anwenden, neuen Schreibversuch starten.
 
@@ -529,20 +556,22 @@ Mehrere Servicekräfte arbeiten gleichzeitig — Schreibkonflikte am selben Tisc
 
 ## 7. Read Models
 
-Read Models sind aufbereitete Lese-Ansichten — reine Projektionen über vorhandene Daten (Events oder Stammdaten). Sie werden nicht geschrieben.
+Read Models sind aufbereitete Lese-Ansichten — reine Projektionen über vorhandene Daten (Events, Projektionstabelle oder Stammdaten). Sie werden nicht direkt geschrieben, sondern durch Events oder CRUD-Operationen aktualisiert.
 
 ### 7.1 Service-Ansichten
 
-| Name           | ID   | Quelle                      | Inhalt (Kurzfassung)                                                                                                         |
-| -------------- | ---- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Tischübersicht | K-05 | Tisch-Events + Stammdaten   | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ungelieferter Positionen. Startseite des Service-Bereichs.            |
-| Tischdetails   | K-05 | Tisch-Events                | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Liefern, Bezahlen, Stornieren, Historie.  |
-| Produktkatalog | —    | Produkt-Stammdaten          | Aktive Produkte und Varianten, nach Kategorie gruppiert. Im Bestellvorgang geladen (kein eigenes Navigationsziel).           |
-| Kassenjournal  | K-06 | Tisch-Events (Event Stream) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich. |
+| Name           | ID   | Quelle                              | Inhalt (Kurzfassung)                                                                                                         |
+| -------------- | ---- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Tischübersicht | K-05 | `table_state` + Stammdaten          | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ungelieferter Positionen. Startseite des Service-Bereichs.            |
+| Tischdetails   | K-05 | `table_state`                       | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Liefern, Bezahlen, Stornieren, Historie.  |
+| Produktkatalog | —    | Produkt-Stammdaten                  | Aktive Produkte und Varianten, nach Kategorie gruppiert. Im Bestellvorgang geladen (kein eigenes Navigationsziel).           |
+| Kassenjournal  | K-06 | Tisch-Events (Event Stream, Replay) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich. |
+
+Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchronen Projektionstabelle `table_state` — kein Event-Replay nötig. Das Kassenjournal liest weiterhin den vollständigen Event Stream, da die Historie _der_ Event Stream ist. Details zur Projektionsarchitektur: [ADR: CQRS](../adr/cqrs.md).
 
 ### 7.2 Admin-Ansichten (Reporting)
 
-Alle Reporting-Ansichten aggregieren Tisch-Events tischübergreifend und sind nur für Admins zugänglich.
+Alle Reporting-Ansichten aggregieren Daten aus `events` und `table_state` tischübergreifend und sind nur für Admins zugänglich. Die Berechnung erfolgt on-demand per SQL-Aggregation (kein Background Worker, kein Eventual Consistency).
 
 | Name                        | ID   | Inhalt (Kurzfassung)                                                                               |
 | --------------------------- | ---- | -------------------------------------------------------------------------------------------------- |

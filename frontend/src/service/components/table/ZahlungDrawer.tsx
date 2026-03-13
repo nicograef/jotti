@@ -18,14 +18,19 @@ import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { KommentarField } from './CommentField'
-import { calculateTotalPrice, selectPositionen } from './drawerUtils'
+import {
+  calculateTotalPrice,
+  selectPositionen,
+  toPositionRefs,
+  toReceiptItems,
+} from './drawerUtils'
 import { Receipt } from './Receipt'
 
 interface ZahlungDrawerProps {
   backend: Pick<TischBackend, 'zahlungRegistrieren'>
   tisch: Tisch
   unbezahltePositionen: Position[]
-  mengen: Record<number, number>
+  mengen: Record<string, number>
   zahlungRegistriert: () => void
 }
 
@@ -46,7 +51,7 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
     try {
       await props.backend.zahlungRegistrieren({
         tischId: props.tisch.id,
-        positionen: positionenToPay,
+        positionen: toPositionRefs(positionenToPay),
         kommentar,
       })
       props.zahlungRegistriert()
@@ -85,7 +90,10 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
               Überprüfe deine Zahlung vor dem Absenden.
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt positionen={positionenToPay} totalPrice={totalPrice} />
+          <Receipt
+            positionen={toReceiptItems(positionenToPay)}
+            totalPrice={totalPrice}
+          />
           <div className="px-4">
             <KommentarField
               onChange={(value) => {

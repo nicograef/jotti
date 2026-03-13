@@ -2,134 +2,168 @@
 
 ## Status
 
-**Entschieden** — Lazy Projection für operative Queries, Background Worker für analytische Queries.
+**Accepted** — Synchrone Projektion für operative Queries, On-Demand SQL für Reporting. Ersetzt vorherige ADR (Lazy Projection + Background Worker).
 
 ## Kontext
 
-jotti implementiert CQRS bereits auf der logischen Ebene: Die Application-Schicht trennt `Command`- und `Query`-Structs konsequent, HTTP-Handler sind aufgeteilt, und Repository-Interfaces sind nach Lese-/Schreibzugriff getrennt (Interface Segregation).
+### Ausgangslage (vor dieser ADR)
 
-| Aspekt                                        | Status       | Anmerkung                               |
-| --------------------------------------------- | ------------ | --------------------------------------- |
-| Logische Command/Query-Trennung (Application) | ✅ Vorhanden | `Command`- und `Query`-Structs getrennt |
-| Separate HTTP-Handler                         | ✅ Vorhanden | `CommandHandler` und `QueryHandler`     |
-| Interface Segregation                         | ✅ Vorhanden | Separate Repo-Interfaces                |
-| Separates Read Model                          | ❌ Fehlt     | Queries lesen denselben Event Store     |
-| Event-getriebene Projektionen                 | ❌ Fehlt     | Kein automatisches Projektion-Update    |
-| Separate Datenspeicher                        | ❌ Fehlt     | Single DB für Read und Write            |
+jotti implementierte CQRS Stufe 1 (logische Trennung): Getrennte Command-/Query-Services, separate HTTP-Handler und segregierte Repository-Interfaces. Der Tisch-Zustand wurde bei jedem Lesezugriff durch Event-Replay berechnet, optimiert durch einen Snapshot-as-Event-Mechanismus (`tisch.snapshot:v1`).
 
-jotti befindet sich auf CQRS-Stufe 1 (_Logische Trennung_) und hat klare Ansatzpunkte, um auf Stufe 2 (_Separate Read Models_) zu migrieren. Das [ADR: Event-Sourcing für Tisch-Operationen](event-sourcing.md) identifiziert leseseitige Nachteile, die durch Projektionen adressiert werden.
+### Problemstellung
+
+1. **Snapshot-as-Event ist ein Anti-Pattern.** Das Snapshot-Event (`tisch.snapshot:v1`) war ein Infrastruktur-Artefakt im fachlichen Event Stream. Es vermischte Domänen-Events mit Optimierungs-Artefakten und untergrub die Klarheit des Kassenjournals.
+2. **N Replays für Tischübersicht.** Die Tischübersicht (K-05) erforderte bei 50 Tischen 50 separate Event-Replays für die Saldo-Berechnung — konzeptionell unbefriedigend, auch wenn bei jottis Lastprofil (< 200 Events/Tisch) die Performance ausreichte.
+3. **Kein Reporting-Pfad.** Tischübergreifende Auswertungen (R-01 bis R-05) erforderten JSONB-Parsing über alle Events — keine vorberechneten Aggregate vorhanden.
 
 ## Bewertete Alternativen
 
-| Kriterium                              | Synchrone Projektion   | DB-Trigger             | Lazy Projection         | Background Worker         |
-| -------------------------------------- | ---------------------- | ---------------------- | ----------------------- | ------------------------- |
-| Command bleibt einfach (single INSERT) | ❌ Transaktion nötig   | ✅                     | ✅                      | ✅                        |
-| Keine C→Q-Abhängigkeit                 | ❌ Command kennt RM    | ✅                     | ✅                      | ✅                        |
-| Kein Backfill nötig                    | ❌ Einmaliger Backfill | ❌ Einmaliger Backfill | ✅ Self-healing         | ⚠️ Worker-Initialisierung |
-| Starke Konsistenz                      | ✅ Gleiche Transaktion | ✅ Gleiche Transaktion | ✅ Read-Time-Konsistenz | ❌ Eventual Consistency¹  |
-| Snapshot-Eliminierung                  | ✅                     | ✅                     | ✅                      | ✅                        |
-| Wartbarkeit / Testbarkeit              | ✅ Go-Code             | ❌ PL/pgSQL            | ✅ Go-Code              | ✅ Go-Code                |
-| JSONB-Varianten-Manipulation           | ✅ Go-Logik            | ❌ Komplex in SQL      | ✅ Go-Logik             | ✅ Go-Logik               |
-| Infrastruktur-Overhead                 | Gering                 | Gering                 | Gering                  | Mittel (Worker-Lifecycle) |
-| Implementierungsaufwand                | Mittel                 | Mittel                 | **Gering**              | Hoch                      |
+### A: Status quo (Snapshot + Event-Replay)
 
-> ¹ Eventual Consistency ist für **operative Queries** (Saldo, offene Positionen) nicht akzeptabel. Für **analytische Projektionen** (Umsatzauswertungen, Tagesabrechnung) ist sie hingegen ausreichend.
+| +                               | -                                          |
+| ------------------------------- | ------------------------------------------ |
+| Kein Aufwand, existiert bereits | Snapshot-as-Event bleibt unrein            |
+| Minimal komplex                 | Tischübersicht = N Replays                 |
+| Strong Consistency              | Reporting-SQL wird komplex (JSONB-Parsing) |
 
-**DB-Trigger** verlagern Business-Logik (Event-Auswertung, JSONB-Varianten-Mapping) nach PL/pgSQL — schwer wartbar und testbar.
+### B: Synchrone Projektion (gewählt)
+
+`table_state`-Tabelle, UPSERT in derselben Transaktion wie Event-INSERT.
+
+| +                                                   | -                                              |
+| --------------------------------------------------- | ---------------------------------------------- |
+| Löst Snapshot-as-Event-Problem                      | Write wird minimal langsamer (ein UPSERT mehr) |
+| Vorhersagbare Latenz (Read = 1 SELECT)              | Apply-Funktion muss konsistent mit Events sein |
+| Tischübersicht trivial: `SELECT * FROM table_state` | Neuer Code (~150 Zeilen Apply-Funktion)        |
+| Strong Consistency ohne Tricks                      |                                                |
+| Reporting-Enabler (Saldo vorberechnet)              |                                                |
+
+### C: Lazy Projection
+
+Read-Through-Cache: Beim Lesezugriff prüfen, ob Projektion aktuell ist, fehlende Events bei Bedarf replayed.
+
+| +                                     | -                                       |
+| ------------------------------------- | --------------------------------------- |
+| Command bleibt „rein" (single INSERT) | Unvorhersagbare Read-Latenz             |
+| Self-healing                          | Fast identisch zum Snapshot-Mechanismus |
+|                                       | Staleness-Logik, Cache-Invalidierung    |
+
+**Verworfen:** Löst konzeptionell dasselbe Problem wie der bestehende Snapshot-Mechanismus — statt „lade Snapshot + replay Delta" wird es „lade Projektion + prüfe Aktualität + replay Delta". Der Architekturgewinn gegenüber dem Status quo ist marginal.
+
+### D: Background Worker (für Analytik)
+
+Worker pollt `events`-Tabelle und projiziert asynchron auf analytische Tabellen.
+
+| +                                 | -                                     |
+| --------------------------------- | ------------------------------------- |
+| Skaliert für große Event-Volumina | Over-Engineering für < 10k Events     |
+|                                   | Worker-Lifecycle, Checkpoint-Tracking |
+|                                   | Eventual Consistency unnötig          |
+|                                   | Widerspricht „Radikale Einfachheit"   |
+
+**Verworfen:** Bei max. ~10.000 Events (50 Tische × 200 Events) kann jede Reporting-Query on-demand in Millisekunden berechnet werden. Ein Background Worker mit Checkpoint-Tabelle und Polling-Intervall ist unverhältnismäßig für ein System, das 2–3 Mal pro Jahr für wenige Stunden läuft.
+
+### E: DB-Trigger
+
+Business-Logik (Event-Auswertung, JSONB-Varianten-Mapping) in PL/pgSQL.
+
+**Verworfen:** Schwer wartbar und testbar. Domänenlogik gehört in Go-Code, nicht in SQL-Prozeduren.
 
 ## Entscheidung
 
-Zwei Projektionspfade, passend zur Konsistenz-Anforderung:
+**Synchrone Projektion (`table_state`) für operative Queries. On-Demand SQL-Aggregation für Reporting. Kein Background Worker.**
 
-| Projektion                                                      | Konsistenz           | Ansatz            |
-| --------------------------------------------------------------- | -------------------- | ----------------- |
-| **Operativ** — Saldo, Unbezahlt, Ungeliefert je Tisch           | Strong Consistency   | Lazy Projection   |
-| **Analytisch** — Tagesumsatz, Produktstatistiken, Stornierungen | Eventual Consistency | Background Worker |
+### Operative Projektionen — Synchrone Projektion (Write-Through)
 
-### Operative Projektionen — Lazy Projection
+Die `table_state`-Tabelle wird in derselben Transaktion wie das Event-INSERT aktualisiert:
 
-Read-Through-Cache: Beim Lesezugriff prüft die Query-Seite, ob die Projektion aktuell ist (`last_event_id`), und replayed fehlende Events bei Bedarf.
+```
+BEGIN TX
+  INSERT INTO events (...)           → event_id
+  SELECT * FROM table_state          → aktueller Zustand (oder Zero-Value)
+  ApplyEvent(zustand, event)         → neuer Zustand (reine Go-Funktion)
+  UPSERT INTO table_state (...)      → neuer Zustand persistiert
+COMMIT TX
+```
 
-**Begründung:**
+Die `ApplyEvent()`-Funktion (`backend/domain/table/projection.go`) ist eine reine Funktion in der Domain-Schicht ohne DB-Zugriff. Sie verarbeitet die vier Domänen-Event-Typen und berechnet den neuen `TischState` (Saldo, unbezahlte/ungelieferte Positionen, Gesamtzahlungen).
 
-- **Commands bleiben einfach** — Ein `INSERT INTO events`, kein transaktionaler Overhead. `command.go` bleibt unverändert.
-- **Keine C→Q-Abhängigkeit** — Der Command-Service kennt weder `table_state` noch `TableStateRepo`. CQRS-Trennung bleibt rein.
-- **Kein Backfill nötig** — Projektion befüllt sich beim ersten Lesezugriff selbst.
-- **Selbstheilend** — Fehlerhafte Projektionen werden beim nächsten Read automatisch korrigiert.
+**Warum synchron statt lazy?**
 
-Trade-off: Leicht erhöhte Latenz beim ersten Read nach mehreren Writes — für jottis Lastprofil (wenige Events pro Tisch) vernachlässigbar.
+- **Vorhersagbare Latenz** für alle Reads — kein implizites Write-on-Read
+- **Gleiche Komplexität** wie Lazy (beide brauchen `ApplyEvent()`), aber einfacheres Konsistenzmodell
+- **Strong Consistency** ohne Staleness-Detection oder Rebuild-Pfad
 
-### Analytische Projektionen — Background Worker
+**CQRS-Trennung bleibt intakt:** Der Projektor ist ein internes Detail von `EventRepo.WriteEvent()`. Der Command-Service ruft weiterhin nur `WriteEvent()` auf — das UPSERT auf `table_state` ist transparent. Der Query-Service liest direkt aus `table_state` über `ReadTableState()`.
 
-Für retrospektive Auswertungen (Tagesumsatz, Produktstatistiken, Stornierungsraten). Worker pollt `events`-Tabelle und projiziert neue Events asynchron auf analytische Tabellen (z.B. `daily_revenue`, `variant_sales`). Eventual Consistency ist hier akzeptabel.
+### Kassenjournal (Historie) — Event-Replay (Stufe 1)
 
-Konkret ergeben sich aus dem [Entwickler-Handbuch §7.2](../design/handbuch.md) folgende analytische Read Models:
+Die Historie _ist_ der Event Stream. `GetTischHistorie()` liest weiterhin alle Events via `ReadEventsBySubject()` und formatiert sie über `GetHistoryFromEvents()`. Kein Read Model nötig.
 
-| Read Model                  | Anforderung                               | Projizierte Daten                                                                                     |
-| --------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Tagesabrechnung             | [R-01](../anforderungen.md) (Should-have) | Gesamtumsatz, Umsatz pro Servicekraft, Stornierungsübersicht, offene Beträge                          |
-| Abrechnung pro Tisch        | [R-03](../anforderungen.md) (Should-have) | Alle Operationen chronologisch (Bestellungen, Zahlungen, Lieferungen, Stornierungen) mit Gesamt-Saldo |
-| Abrechnung pro Servicekraft | [R-04](../anforderungen.md) (Should-have) | Umsatz, Bestellanzahl, Anzahl und Betrag der Stornierungen pro Person                                 |
-| Produktumsatz               | [R-05](../anforderungen.md) (Should-have) | Verkaufte Menge pro Variante (abzgl. Stornierungen), Ranking, Gesamteinnahmen                         |
+### Reporting (R-01–R-05) — On-Demand SQL-Aggregation
 
-Alle Reporting-Ansichten aggregieren Tisch-Events tischübergreifend und sind nur für Admins zugänglich (vgl. [Anforderungen R-01–R-05](../anforderungen.md)).
+| Aspekt     | Entscheidung                                                      |
+| ---------- | ----------------------------------------------------------------- |
+| Strategie  | SQL-Queries über `events`-Tabelle + `table_state`                 |
+| Konsistenz | Strong (immer aktuell, on-demand berechnet)                       |
+| Fallback   | Materialized Views bei Bedarf (unwahrscheinlich bei < 10k Events) |
 
-Laut [Bounded-Context-Map (Handbuch §2.1–2.2)](../design/handbuch.md) konsumieren zwei Downstream-Kontexte die Projektionen des Kassenbetriebs:
+Bei ~10.000 Events ist jede Aggregation in < 100ms erledigt. Kein Background Worker, keine Eventual Consistency, keine Checkpoint-Tabelle.
 
-- **Abrechnung** — Read-only-Projektionen der oben genannten analytischen Read Models. Kassenbetrieb → Abrechnung über Published Language (Event-driven): Tisch-Events werden zu Auswertungen projiziert.
-- **Ausgabe** — Event-getrieben für Bondruck und Küchendisplay (KDS). Braucht Echtzeit-Zugang zu Bestellungs-Events (Kassenbetrieb → Ausgabe über Published Language). Nicht Teil des MVP, aber architektonisch bereits als Downstream-Kontext vorgesehen.
+### CQRS-Stufen im Überblick
+
+| Bereich                  | CQRS-Stufe                         | Strategie                         | Konsistenz |
+| ------------------------ | ---------------------------------- | --------------------------------- | ---------- |
+| Kassenbetrieb (operativ) | **Stufe 2** — Synchrone Projektion | `table_state`, UPSERT in Event-TX | Strong     |
+| Kassenjournal (Historie) | **Stufe 1** — Event-Replay         | Event Stream = Read Model         | Strong     |
+| Reporting (R-01–R-05)    | **Stufe 1** — On-Demand SQL        | `events` + `table_state`          | Strong     |
+| Stammdaten (CRUD)        | **Stufe 0** — Kein CQRS            | Kein Event-Sourcing               | Strong     |
 
 ### Architektur
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              Frontend                                   │
-└──────┬──────────────────────────────────────────┬───────────────────────┘
-       │ Commands (Schreiben)                     │ Queries (Lesen)
-       ▼                                          ▼
-┌──────────────────┐         ┌────────────────────────────────────────────┐
-│ Command Handler  │         │              Query Handler                 │
-│ (schreibt Events)│         │  A) Operativ (Strong)  B) Analytisch (Ev.) │
-└──────┬───────────┘         └───────────┬────────────────────┬───────────┘
-       │ INSERT                          │ SELECT             │ SELECT
-       ▼                                 ▼                    ▼
-┌──────────────────┐   ┌────────────────────┐   ┌────────────────────────┐
-│   events         │   │  table_state       │   │  daily_revenue         │
-│   (append-only)  │   │  (operative        │   │  variant_sales         │
-│                  │   │   Projektion,      │   │  (analytische          │
-│                  │   │   Strong           │   │   Projektionen,        │
-│                  │   │   Consistency)     │   │   Eventual             │
-└──────────────────┘   └────────────────────┘   │   Consistency)         │
-       │                        ▲               └────────────────────────┘
-       │    Lazy Projection      │                          ▲
-       │    (beim ersten Read)   │               ┌──────────────────────┐
-       └────────────────────────┘               │  Background Worker   │
-                                                │  (async, z.B. ~30s)  │
-                                                └──────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                          Frontend                             │
+└──────┬──────────────────────────────────┬────────────────────┘
+       │ Commands (Schreiben)             │ Queries (Lesen)
+       ▼                                  ▼
+┌──────────────────┐         ┌───────────────────────────────┐
+│ Command Handler  │         │        Query Handler          │
+│ (schreibt Events)│         │  Operativ      │   Historie   │
+└──────┬───────────┘         └──────┬─────────┴──────┬───────┘
+       │                            │                │
+       ▼                            ▼                ▼
+┌──────────────────────┐   ┌──────────────┐   ┌────────────┐
+│   EventRepo.         │   │ table_state  │   │  events    │
+│   WriteEvent()       │   │ (Projektion) │   │  (Stream)  │
+│                      │   └──────────────┘   └────────────┘
+│   BEGIN TX           │          ▲
+│    INSERT event  ────┼──────────┤
+│    ApplyEvent()      │   synchron in
+│    UPSERT state  ────┘   selber TX
+│   COMMIT TX          │
+└──────────────────────┘
 ```
-
-### Nicht empfohlen
-
-- **Trigger-basierte Projektion** — Business-Logik in PL/pgSQL schwer wartbar
-- **Separate Read-Datenbank** — Overhead nicht gerechtfertigt bei jottis Größe
-- **Auflösung des Event Store zugunsten von CRUD** — verliert Audit-Trail-Garantien (siehe [ADR: Event-Sourcing](event-sourcing.md))
 
 ## Konsequenzen
 
-**Positiv:** Vereinfachte Query-Seite mit vorberechnetem Zustand, Snapshot-Mechanismus wird durch sauberere Projektion abgelöst, typisierte Projektionen als Enabler für Analytics.
+### Positiv
 
-**Negativ:** Zusätzliche Tabelle `table_state` mit Upsert-Logik, leicht erhöhte Read-Latenz beim ersten Zugriff nach Writes, zwei Projektionsmechanismen zu pflegen (Lazy + Worker).
+- **Strong Consistency überall** — Projektion in derselben TX wie Event-INSERT, kein Stale State, kein Eventual-Consistency-Problem.
+- **Ein Projektionsmechanismus** — Nur synchrone Projektion, kein zweiter Mechanismus (Lazy, Worker) zu pflegen.
+- **Snapshot-Ablösung** — `tisch.snapshot:v1` wird nicht mehr erzeugt. Der Event Stream enthält nur noch fachliche Domänen-Events. Das Kassenjournal ist konzeptionell sauber.
+- **Triviale Reads** — Tischübersicht = 1 SELECT auf `table_state`. Saldo, unbezahlte/ungelieferte Positionen direkt verfügbar.
+- **Reporting-Enabler** — Vorberechneter Saldo und Positionen in `table_state` vereinfachen tischübergreifende Aggregation.
+- **Selbstheilend** — Bei Inkonsistenz kann `table_state` jederzeit aus Events reberechnet werden (alle Events bleiben append-only erhalten).
 
-### Priorität
+### Negativ
 
-**Mittel** — Kein unmittelbarer Performance-Engpass (Snapshots reichen aktuell), aber klarer Architektur-Gewinn: Snapshot-as-Event ist konzeptuell fragwürdig, eine echte Projektion ist sauberer. Enabler für Zusatzfeatures (Tagesabrechnung, Umsatz pro Produkt).
+- **Write-Pfad minimal komplexer** — 1 INSERT + 1 UPSERT pro Transaktion (statt nur 1 INSERT).
+- **Apply-Funktion muss konsistent sein** — `ApplyEvent()` und die Event-Replay-Funktionen (`GetSaldoFromEvents()` etc.) berechnen denselben Zustand auf zwei Wegen. Testabdeckung ist essenziell.
+- **JSONB in Projektionstabelle** — `unbezahlte_positionen` und `ungelieferte_positionen` sind JSONB-Spalten. Typsicherheit nur auf Go-Ebene, nicht auf DB-Ebene.
 
-## Umsetzungsschritte
+## Referenzen
 
-1. **Migration: `table_state`-Tabelle anlegen** — `database/migrations/XX_table_state.up.sql`
-2. **sqlc-Queries definieren** — `UpsertTableState`, `GetTableState` in `backend/sqlc/queries/table_state.sql`, danach `make sqlc`
-3. **Repository anlegen** — `backend/repository/table_state_repo/` (Interface + Implementierung, analog zu `event_repo`)
-4. **Domain-Logik: `ApplyEventToState()`** — Reine Funktion in `backend/domain/table/projection.go`, kein DB-Zugriff
-5. **Query-Umbau: `ensureProjectionUpToDate()`** — In `backend/api/table/application/query.go`: State laden → fehlende Events replayed → State persistieren → zurückgeben
-6. **Snapshot ablösen** — `TischSnapshotErstellen()` aus Command-Service entfernen; Snapshot-Event-Typ bleibt für historische Kompatibilität
-7. **Tests** — Unit-Tests für `ApplyEventToState()`, Integrationstests für Lazy-Projection-Pfad
+- [ADR: Event-Sourcing für Tisch-Operationen](event-sourcing.md) — Persistenz-Strategie, Event-Modell, Append-Only-Garantie
+- [Handbuch §3](../design/handbuch.md) — Domain-Modell, Tisch-Aggregat, Invarianten
+- [Anforderungen](../anforderungen.md) — K-05 (Tischübersicht), K-06 (Kassenjournal), R-01–R-05 (Reporting)

@@ -22,13 +22,14 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCents } from '@/lib/utils'
 
-import type { Bestellung, Position } from '../../table/Bestellung'
+import type { Bestellung } from '../../table/Bestellung'
 import { useTischHistorie } from '../../table/hooks'
 import type { Lieferung } from '../../table/Lieferung'
 import type { Stornierung } from '../../table/Stornierung'
 import type { Zahlung } from '../../table/Zahlung'
 import { Kommentar } from './CommentField'
-import { Receipt } from './Receipt'
+import { toReceiptItems } from './drawerUtils'
+import { Receipt, type ReceiptPosition } from './Receipt'
 
 interface TischHistorieProps {
   tischId: number
@@ -161,7 +162,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
           }}
           date={bestellung.bestellung.aufgegebenAm}
           kommentar={bestellung.bestellung.kommentar}
-          positionen={bestellung.bestellung.positionen}
+          positionen={toReceiptItems(bestellung.bestellung.positionen)}
           totalPrice={bestellung.bestellung.gesamtPreisCents}
         />
       )}
@@ -176,7 +177,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
           }}
           date={zahlung.zahlung.registriertAm}
           kommentar={zahlung.zahlung.kommentar}
-          positionen={zahlung.zahlung.positionen}
+          summary={`${zahlung.zahlung.positionen.length.toString()} Positionen`}
           totalPrice={zahlung.zahlung.gesamtZahlungCents}
         />
       )}
@@ -191,7 +192,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
           }}
           date={stornierung.stornierung.storniertAm}
           kommentar={stornierung.stornierung.kommentar}
-          positionen={stornierung.stornierung.positionen}
+          summary={`${stornierung.stornierung.positionen.length.toString()} Positionen`}
           totalPrice={stornierung.stornierung.gesamtStornierungCents}
         />
       )}
@@ -206,7 +207,7 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
           }}
           date={lieferung.lieferung.geliefertAm}
           kommentar={lieferung.lieferung.kommentar}
-          positionen={lieferung.lieferung.positionen}
+          summary={`${lieferung.lieferung.positionen.length.toString()} Positionen ausgeliefert`}
         />
       )}
     </>
@@ -281,6 +282,7 @@ function Details({
   kommentar,
   positionen,
   totalPrice,
+  summary,
 }: {
   open: boolean
   onClose: () => void
@@ -289,8 +291,9 @@ function Details({
   date: string
   isFromUser: boolean
   kommentar: string
-  positionen: Position[]
+  positionen?: ReceiptPosition[]
   totalPrice?: number
+  summary?: string
 }) {
   return (
     <Drawer
@@ -311,7 +314,16 @@ function Details({
               {new Date(date).toLocaleTimeString()} Uhr
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt positionen={positionen} totalPrice={totalPrice} />
+          {positionen ? (
+            <Receipt positionen={positionen} totalPrice={totalPrice} />
+          ) : (
+            <div className="px-4 py-2 space-y-1">
+              {summary && <p className="text-muted-foreground">{summary}</p>}
+              {totalPrice !== undefined && (
+                <p className="font-bold">{formatCents(totalPrice)}&nbsp;€</p>
+              )}
+            </div>
+          )}
           {kommentar && (
             <div className="px-4">
               <Kommentar value={kommentar} />

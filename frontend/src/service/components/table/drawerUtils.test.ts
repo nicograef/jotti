@@ -6,17 +6,44 @@ import { calculateTotalPrice, selectPositionen } from './drawerUtils'
 
 describe('selectPositionen', () => {
   const positionen: Position[] = [
-    { id: 1, name: 'Bratwurst', preisCents: 350, menge: 5 },
-    { id: 2, name: 'Pommes', preisCents: 250, menge: 3 },
-    { id: 3, name: 'Cola 0,3l', preisCents: 200, menge: 2 },
+    {
+      positionId: 'aaa-001',
+      varianteId: 1,
+      produktName: 'Bratwurst',
+      varianteName: 'Normal',
+      kategorie: 'essen',
+      einzelpreis: 350,
+      menge: 5,
+    },
+    {
+      positionId: 'aaa-002',
+      varianteId: 4,
+      produktName: 'Pommes',
+      varianteName: 'Klein',
+      kategorie: 'essen',
+      einzelpreis: 250,
+      menge: 3,
+    },
+    {
+      positionId: 'aaa-003',
+      varianteId: 31,
+      produktName: 'Softdrinks',
+      varianteName: 'Cola',
+      kategorie: 'getraenk',
+      einzelpreis: 200,
+      menge: 2,
+    },
   ]
 
   it('returns only positionen with selected quantity > 0', () => {
-    const result = selectPositionen(positionen, { 1: 2, 3: 1 })
+    const result = selectPositionen(positionen, {
+      'aaa-001': 2,
+      'aaa-003': 1,
+    })
 
     expect(result).toEqual([
-      { id: 1, name: 'Bratwurst', preisCents: 350, menge: 2 },
-      { id: 3, name: 'Cola 0,3l', preisCents: 200, menge: 1 },
+      { ...positionen[0], menge: 2 },
+      { ...positionen[2], menge: 1 },
     ])
   })
 
@@ -29,33 +56,32 @@ describe('selectPositionen', () => {
   })
 
   it('handles single item selection', () => {
-    const result = selectPositionen(positionen, { 2: 1 })
+    const result = selectPositionen(positionen, { 'aaa-002': 1 })
 
-    expect(result).toEqual([
-      { id: 2, name: 'Pommes', preisCents: 250, menge: 1 },
-    ])
+    expect(result).toEqual([{ ...positionen[1], menge: 1 }])
   })
 
   it('ignores selection keys that do not match any position', () => {
-    const result = selectPositionen(positionen, { 999: 5 })
+    const result = selectPositionen(positionen, { 'zzz-999': 5 })
 
     expect(result).toEqual([])
   })
 
   it('filters out positionen where selected quantity is 0', () => {
-    const result = selectPositionen(positionen, { 1: 0, 2: 3 })
+    const result = selectPositionen(positionen, {
+      'aaa-001': 0,
+      'aaa-002': 3,
+    })
 
-    expect(result).toEqual([
-      { id: 2, name: 'Pommes', preisCents: 250, menge: 3 },
-    ])
+    expect(result).toEqual([{ ...positionen[1], menge: 3 }])
   })
 })
 
 describe('calculateTotalPrice', () => {
   it('calculates total for multiple items', () => {
-    const items: Position[] = [
-      { id: 1, name: 'Bratwurst', preisCents: 350, menge: 2 },
-      { id: 2, name: 'Pommes', preisCents: 250, menge: 1 },
+    const items = [
+      { einzelpreis: 350, menge: 2 },
+      { einzelpreis: 250, menge: 1 },
     ]
 
     expect(calculateTotalPrice(items)).toBe(950)
@@ -66,26 +92,22 @@ describe('calculateTotalPrice', () => {
   })
 
   it('handles single item', () => {
-    const items: Position[] = [
-      { id: 1, name: 'Cola', preisCents: 200, menge: 3 },
-    ]
+    const items = [{ einzelpreis: 200, menge: 3 }]
 
     expect(calculateTotalPrice(items)).toBe(600)
   })
 
   it('handles zero-cent positionen', () => {
-    const items: Position[] = [
-      { id: 1, name: 'Wasser', preisCents: 0, menge: 5 },
-      { id: 2, name: 'Cola', preisCents: 200, menge: 1 },
+    const items = [
+      { einzelpreis: 0, menge: 5 },
+      { einzelpreis: 200, menge: 1 },
     ]
 
     expect(calculateTotalPrice(items)).toBe(200)
   })
 
   it('handles menge of 1', () => {
-    const items: Position[] = [
-      { id: 1, name: 'Bier', preisCents: 300, menge: 1 },
-    ]
+    const items = [{ einzelpreis: 300, menge: 1 }]
 
     expect(calculateTotalPrice(items)).toBe(300)
   })

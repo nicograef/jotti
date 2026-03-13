@@ -191,6 +191,18 @@ type Produkte struct {
 	UpdatedAt time.Time
 }
 
+// Synchronous CQRS projection of per-table state, updated within the event-write transaction
+type TableState struct {
+	TischID                int
+	SaldoCents             int
+	UnbezahltePositionen   json.RawMessage
+	UngeliefertePositionen json.RawMessage
+	GesamtZahlungenCents   int
+	LastEventID            int
+	LastEventVersion       int
+	UpdatedAt              time.Time
+}
+
 // Gäste sitzen an Tischen und geben dort Bestellungen auf.
 type Tische struct {
 	ID int

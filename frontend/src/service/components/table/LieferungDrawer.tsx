@@ -18,14 +18,14 @@ import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { KommentarField } from './CommentField'
-import { selectPositionen } from './drawerUtils'
+import { selectPositionen, toPositionRefs, toReceiptItems } from './drawerUtils'
 import { Receipt } from './Receipt'
 
 interface LieferungDrawerProps {
   backend: Pick<TischBackend, 'produkteLiefern'>
   tisch: Tisch
   ungeliefertePositionen: Position[]
-  mengen: Record<number, number>
+  mengen: Record<string, number>
   produkteGeliefert: () => void
 }
 
@@ -45,7 +45,7 @@ export function LieferungDrawer(props: LieferungDrawerProps) {
     try {
       await props.backend.produkteLiefern({
         tischId: props.tisch.id,
-        positionen: positionenToDeliver,
+        positionen: toPositionRefs(positionenToDeliver),
         kommentar,
       })
       props.produkteGeliefert()
@@ -86,7 +86,7 @@ export function LieferungDrawer(props: LieferungDrawerProps) {
               Wurden diese Produkte an den Tisch ausgeliefert?
             </DrawerDescription>
           </DrawerHeader>
-          <Receipt positionen={positionenToDeliver} />
+          <Receipt positionen={toReceiptItems(positionenToDeliver)} />
           <div className="px-4">
             <KommentarField
               onChange={(value) => {

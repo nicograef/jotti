@@ -1,12 +1,17 @@
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { formatCents } from '@/lib/utils'
-import type { Position } from '@/service/table/Bestellung'
+
+export interface ReceiptPosition {
+  name: string
+  einzelpreis: number
+  menge: number
+}
 
 export function Receipt({
   positionen,
   totalPrice,
 }: {
-  positionen: Position[]
+  positionen: ReceiptPosition[]
   totalPrice?: number
 }) {
   return (
@@ -18,14 +23,14 @@ export function Receipt({
           {positionen.map((position) => {
             return (
               <div
-                key={position.id}
+                key={`${position.name}-${position.einzelpreis.toString()}`}
                 className="flex justify-between border-b pb-2 last:border-0"
               >
                 <div>
                   {position.menge} x {position.name}
                 </div>
                 <div>
-                  {formatCents(position.preisCents * position.menge)}&nbsp;€
+                  {formatCents(position.einzelpreis * position.menge)}&nbsp;€
                 </div>
               </div>
             )

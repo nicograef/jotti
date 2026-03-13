@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/domain/table"
 )
 
 // NewMock creates a new mock repository with the given events and error.
@@ -33,9 +34,11 @@ func NewMockWithWriteErr(events []event.Event, writeErr error) *mockRepo {
 }
 
 type mockRepo struct {
-	events   map[int]event.Event
-	err      error
-	writeErr error // separate error for WriteEvent
+	events        map[int]event.Event
+	err           error
+	writeErr      error // separate error for WriteEvent
+	tableState    map[int]table.TischState
+	tableStateErr error
 }
 
 func (m *mockRepo) WriteEvent(ctx context.Context, e event.Event) (int, error) {
@@ -82,6 +85,25 @@ func (m *mockRepo) ReadEventsBySubject(ctx context.Context, subject string) ([]e
 	return events, m.err
 }
 
-func (m *mockRepo) ReadEventsWithSnapshot(ctx context.Context, subject string, snapshotEventType string) ([]event.Event, error) {
-	return m.ReadEventsBySubject(ctx, subject)
+func (m *mockRepo) ReadTableState(ctx context.Context, tischID int) (table.TischState, error) {
+	if m.tableStateErr != nil {
+		return table.TischState{}, m.tableStateErr
+	}
+	if m.err != nil {
+		return table.TischState{}, m.err
+	}
+	if m.tableState != nil {
+		if state, ok := m.tableState[tischID]; ok {
+			return state, nil
+		}
+	}
+	return table.TischState{}, nil
+}
+
+// SetTableState sets the projected state for a given tisch ID in the mock.
+func (m *mockRepo) SetTableState(tischID int, state table.TischState) {
+	if m.tableState == nil {
+		m.tableState = make(map[int]table.TischState)
+	}
+	m.tableState[tischID] = state
 }

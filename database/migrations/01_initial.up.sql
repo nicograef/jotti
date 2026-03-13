@@ -146,4 +146,20 @@ COMMENT ON COLUMN events.subject IS 'Aggregate key, e.g. "table:42" for table ID
 COMMENT ON COLUMN events.timestamp IS 'Event time (UTC)';
 COMMENT ON COLUMN events.data IS 'Event data (jsonb), versioned by type';
 
+-- ============================================================
+-- Table: table_state (CQRS projection of per-table state)
+-- ============================================================
+CREATE TABLE table_state (
+    tisch_id INTEGER PRIMARY KEY REFERENCES tische(id),
+    saldo_cents INTEGER NOT NULL DEFAULT 0,
+    unbezahlte_positionen JSONB NOT NULL DEFAULT '[]'::jsonb,
+    ungelieferte_positionen JSONB NOT NULL DEFAULT '[]'::jsonb,
+    gesamt_zahlungen_cents INTEGER NOT NULL DEFAULT 0,
+    last_event_id INTEGER NOT NULL REFERENCES events(id),
+    last_event_version INTEGER NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE table_state IS 'Synchronous CQRS projection of per-table state, updated within the event-write transaction';
+
 COMMIT;

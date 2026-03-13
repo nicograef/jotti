@@ -36,14 +36,14 @@ export function Zahlung({
   onProdukteStorniert,
 }: ZahlungProps) {
   const { positionen, loading, reload } = useTischUnbezahlt(tisch.id)
-  const [mengen, setMengen] = useState<Record<number, number>>({})
+  const [mengen, setMengen] = useState<Record<string, number>>({})
 
-  const unbezahlteMengen: Record<number, number> = {}
+  const unbezahlteMengen: Record<string, number> = {}
   positionen.forEach((position) => {
-    unbezahlteMengen[position.id] = position.menge
+    unbezahlteMengen[position.positionId] = position.menge
   })
 
-  const onAdd = (positionId: number) => {
+  const onAdd = (positionId: string) => {
     setMengen((prev) => {
       const aktuelleMenge = prev[positionId] || 0
       if (aktuelleMenge >= (unbezahlteMengen[positionId] || 0)) return prev
@@ -54,7 +54,7 @@ export function Zahlung({
     })
   }
 
-  const onRemove = (positionId: number) => {
+  const onRemove = (positionId: string) => {
     setMengen((prev) => {
       const aktuelleMenge = prev[positionId] || 0
       if (aktuelleMenge <= 0) return prev
@@ -107,15 +107,15 @@ export function Zahlung({
             ))
           : positionen.map((position) => (
               <PositionItem
-                key={position.id}
+                key={position.positionId}
                 position={position}
-                menge={mengen[position.id] || 0}
-                unbezahlteMenge={unbezahlteMengen[position.id] || 0}
+                menge={mengen[position.positionId] || 0}
+                unbezahlteMenge={unbezahlteMengen[position.positionId] || 0}
                 onAdd={() => {
-                  onAdd(position.id)
+                  onAdd(position.positionId)
                 }}
                 onRemove={() => {
-                  onRemove(position.id)
+                  onRemove(position.positionId)
                 }}
               />
             ))}
@@ -140,12 +140,14 @@ function PositionItem({
   onRemove,
 }: PositionItemProps) {
   return (
-    <Item key={position.id} variant="outline">
+    <Item key={position.positionId} variant="outline">
       <ItemContent>
-        <ItemTitle>{position.name}</ItemTitle>
+        <ItemTitle>
+          {position.produktName} {position.varianteName}
+        </ItemTitle>
         <ItemDescription>
           <span className="font-bold">
-            {formatCents(position.preisCents)}&nbsp;€
+            {formatCents(position.einzelpreis)}&nbsp;€
           </span>
           &nbsp; &ndash; &nbsp;noch {unbezahlteMenge - menge} unbezahlt
         </ItemDescription>

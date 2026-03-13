@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -23,6 +24,26 @@ func createUser(db *sql.DB) (int, error) {
 	return userID, nil
 }
 
+func createTisch(db *sql.DB, name string) (int, error) {
+	var tischID int
+	err := db.QueryRow("INSERT INTO tische (name, status, created_at, updated_at) VALUES ($1, 'active', now(), now()) RETURNING id", name).Scan(&tischID)
+	if err != nil {
+		return 0, err
+	}
+	return tischID, nil
+}
+
+// insertEventRaw inserts an event directly via SQL, bypassing WriteEvent and the projection.
+// Use this for test setup where the projection is not relevant.
+func insertEventRaw(db *sql.DB, e event.Event) (int, error) {
+	var id int
+	err := db.QueryRow(
+		"INSERT INTO events (user_id, user_name, type, subject, version, data, timestamp) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+		e.UserID, e.UserName, e.Type, e.Subject, e.Version, e.Data, e.Time,
+	).Scan(&id)
+	return id, err
+}
+
 // newTestEvent creates a test event with the given parameters and version.
 func newTestEvent(userID int, eventType, subject string, version int, data any) event.Event {
 	e, _ := event.New(userID, "nico", eventType, subject, data)
@@ -30,10 +51,47 @@ func newTestEvent(userID int, eventType, subject string, version int, data any) 
 	return e
 }
 
-func setup(t *testing.T) (int, Repository, func(t *testing.T)) {
-	db := dbpkg.OpenTestDatabase()
+// validBestellungData returns valid bestellungAufgegebenV1 event data for testing.
+func validBestellungData(positionID string, einzelpreis, menge int) map[string]any {
+	return map[string]any{
+		"bestellungId": "b0000000-0000-0000-0000-000000000001",
+		"positionen": []map[string]any{
+			{
+				"positionId":   positionID,
+				"varianteId":   1,
+				"produktName":  "Bier",
+				"varianteName": "0.5L",
+				"kategorie":    "getraenk",
+				"einzelpreis":  einzelpreis,
+				"menge":        menge,
+			},
+		},
+		"gesamtPreisCents": einzelpreis * menge,
+		"kommentar":        "",
+	}
+}
 
-	_, err := db.Exec("ALTER TABLE events DISABLE TRIGGER events_no_delete")
+// validZahlungData returns valid zahlungRegistriertV1 event data for testing.
+func validZahlungData(positionID string, menge, gesamtCents int) map[string]any {
+	return map[string]any{
+		"zahlungId": "z0000000-0000-0000-0000-000000000001",
+		"positionen": []map[string]any{
+			{
+				"positionId": positionID,
+				"menge":      menge,
+			},
+		},
+		"gesamtZahlungCents": gesamtCents,
+		"kommentar":          "",
+	}
+}
+
+func cleanDB(t *testing.T, db *sql.DB) {
+	_, err := db.Exec("DELETE FROM table_state")
+	if err != nil {
+		t.Fatalf("Failed to clean table_state: %v", err)
+	}
+	_, err = db.Exec("ALTER TABLE events DISABLE TRIGGER events_no_delete")
 	if err != nil {
 		t.Fatalf("Failed to disable events_no_delete trigger: %v", err)
 	}
@@ -45,10 +103,20 @@ func setup(t *testing.T) (int, Repository, func(t *testing.T)) {
 	if err != nil {
 		t.Fatalf("Failed to enable events_no_delete trigger: %v", err)
 	}
+	_, err = db.Exec("DELETE FROM tische")
+	if err != nil {
+		t.Fatalf("Failed to clean tische table: %v", err)
+	}
 	_, err = db.Exec("DELETE FROM users")
 	if err != nil {
 		t.Fatalf("Failed to clean users table: %v", err)
 	}
+}
+
+func setup(t *testing.T) (int, Repository, func(t *testing.T)) {
+	db := dbpkg.OpenTestDatabase()
+
+	cleanDB(t, db)
 
 	userID, err := createUser(db)
 	if err != nil {
@@ -56,23 +124,7 @@ func setup(t *testing.T) (int, Repository, func(t *testing.T)) {
 	}
 
 	return userID, NewRepository(db), func(t *testing.T) {
-		_, err = db.Exec("ALTER TABLE events DISABLE TRIGGER events_no_delete")
-		if err != nil {
-			t.Fatalf("Failed to disable events_no_delete trigger: %v", err)
-		}
-		_, err = db.Exec("DELETE FROM events")
-		if err != nil {
-			t.Fatalf("Failed to clean events table: %v", err)
-		}
-		_, err = db.Exec("ALTER TABLE events ENABLE TRIGGER events_no_delete")
-		if err != nil {
-			t.Fatalf("Failed to enable events_no_delete trigger: %v", err)
-		}
-		_, err = db.Exec("DELETE FROM users")
-		if err != nil {
-			t.Fatalf("Failed to clean users table: %v", err)
-		}
-
+		cleanDB(t, db)
 		db.Close()
 	}
 }
@@ -81,7 +133,14 @@ func TestWriteEvent(t *testing.T) {
 	userID, repo, teardown := setup(t)
 	defer teardown(t)
 
-	e := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:42", 1, map[string]any{"k": "v"})
+	tischID, err := createTisch(repo.DB, "Tisch 1")
+	if err != nil {
+		t.Fatalf("Failed to create tisch: %v", err)
+	}
+
+	subject := fmt.Sprintf("tisch:%d", tischID)
+	data := validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 2)
+	e := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject, 1, data)
 
 	eventID, err := repo.WriteEvent(context.Background(), e)
 
@@ -99,7 +158,7 @@ func TestReadEvent(t *testing.T) {
 
 	e := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:42", 1, map[string]any{"k": "v"})
 
-	eventID, err := repo.WriteEvent(context.Background(), e)
+	eventID, err := insertEventRaw(repo.DB, e)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -158,8 +217,8 @@ func TestReadEventsBySubject(t *testing.T) {
 
 	event1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 1, map[string]any{"k": "v"})
 	event2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:42", 1, map[string]any{"k": "v"})
-	_, _ = repo.WriteEvent(context.Background(), event1)
-	_, _ = repo.WriteEvent(context.Background(), event2)
+	_, _ = insertEventRaw(repo.DB, event1)
+	_, _ = insertEventRaw(repo.DB, event2)
 
 	events, err := repo.ReadEventsBySubject(context.Background(), "tisch:42")
 	if err != nil {
@@ -170,200 +229,6 @@ func TestReadEventsBySubject(t *testing.T) {
 	}
 	if events[0].Subject != "tisch:42" {
 		t.Fatalf("Expected subject tisch:42, got %s", events[0].Subject)
-	}
-}
-
-func TestReadEventsSinceID(t *testing.T) {
-	userID, repo, teardown := setup(t)
-	defer teardown(t)
-
-	// Create multiple events for the same subject
-	event1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 1, map[string]any{"order": 1})
-	event2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 2, map[string]any{"order": 2})
-	event3 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 3, map[string]any{"order": 3})
-
-	id1, _ := repo.WriteEvent(context.Background(), event1)
-	id2, _ := repo.WriteEvent(context.Background(), event2)
-	_, _ = repo.WriteEvent(context.Background(), event3)
-
-	// Read events since id2 (should return event2 and event3)
-	events, err := repo.ReadEventsSinceID(context.Background(), "tisch:1", id2)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if len(events) != 2 {
-		t.Fatalf("Expected 2 events, got %d", len(events))
-	}
-	if events[0].ID != id2 {
-		t.Fatalf("Expected first event ID %d, got %d", id2, events[0].ID)
-	}
-
-	// Read events since id1 (should return all 3)
-	events, err = repo.ReadEventsSinceID(context.Background(), "tisch:1", id1)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if len(events) != 3 {
-		t.Fatalf("Expected 3 events, got %d", len(events))
-	}
-}
-
-func TestReadEventsSinceID_DifferentSubjects(t *testing.T) {
-	userID, repo, teardown := setup(t)
-	defer teardown(t)
-
-	// Events for tisch:1
-	event1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 1, map[string]any{"order": 1})
-	// Events for tisch:2
-	event2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:2", 1, map[string]any{"order": 2})
-
-	id1, _ := repo.WriteEvent(context.Background(), event1)
-	_, _ = repo.WriteEvent(context.Background(), event2)
-
-	// Read events for tisch:1 since id1 (should only return tisch:1 events)
-	events, err := repo.ReadEventsSinceID(context.Background(), "tisch:1", id1)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if len(events) != 1 {
-		t.Fatalf("Expected 1 event, got %d", len(events))
-	}
-	if events[0].Subject != "tisch:1" {
-		t.Fatalf("Expected subject tisch:1, got %s", events[0].Subject)
-	}
-}
-
-func TestGetLastSnapshotID(t *testing.T) {
-	userID, repo, teardown := setup(t)
-	defer teardown(t)
-
-	snapshotType := "tisch.snapshot:v1"
-	orderType := "tisch.bestellung-aufgegeben:v1"
-
-	// No snapshot exists yet
-	id, err := repo.GetLastSnapshotID(context.Background(), "tisch:1", snapshotType)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if id != 0 {
-		t.Fatalf("Expected 0 when no snapshot exists, got %d", id)
-	}
-
-	// Add some events
-	order1 := newTestEvent(userID, orderType, "tisch:1", 1, map[string]any{"order": 1})
-	snapshot1 := newTestEvent(userID, snapshotType, "tisch:1", 2, map[string]any{"balance": 100})
-	order2 := newTestEvent(userID, orderType, "tisch:1", 3, map[string]any{"order": 2})
-	snapshot2 := newTestEvent(userID, snapshotType, "tisch:1", 4, map[string]any{"balance": 200})
-	order3 := newTestEvent(userID, orderType, "tisch:1", 5, map[string]any{"order": 3})
-
-	_, _ = repo.WriteEvent(context.Background(), order1)
-	snapshotID1, _ := repo.WriteEvent(context.Background(), snapshot1)
-	_, _ = repo.WriteEvent(context.Background(), order2)
-	snapshotID2, _ := repo.WriteEvent(context.Background(), snapshot2)
-	_, _ = repo.WriteEvent(context.Background(), order3)
-
-	// Should return the ID of the most recent snapshot
-	id, err = repo.GetLastSnapshotID(context.Background(), "tisch:1", snapshotType)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if id != snapshotID2 {
-		t.Fatalf("Expected snapshot ID %d, got %d", snapshotID2, id)
-	}
-
-	// Verify first snapshot ID is lower
-	if snapshotID1 >= snapshotID2 {
-		t.Fatalf("Expected snapshotID1 < snapshotID2, got %d >= %d", snapshotID1, snapshotID2)
-	}
-}
-
-func TestGetLastSnapshotID_DifferentSubjects(t *testing.T) {
-	userID, repo, teardown := setup(t)
-	defer teardown(t)
-
-	snapshotType := "tisch.snapshot:v1"
-
-	// Add snapshots for different tables
-	snapshot1 := newTestEvent(userID, snapshotType, "tisch:1", 1, map[string]any{"balance": 100})
-	snapshot2 := newTestEvent(userID, snapshotType, "tisch:2", 1, map[string]any{"balance": 200})
-
-	snapshotID1, _ := repo.WriteEvent(context.Background(), snapshot1)
-	snapshotID2, _ := repo.WriteEvent(context.Background(), snapshot2)
-
-	// Get snapshot for tisch:1
-	id, err := repo.GetLastSnapshotID(context.Background(), "tisch:1", snapshotType)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if id != snapshotID1 {
-		t.Fatalf("Expected snapshot ID %d for tisch:1, got %d", snapshotID1, id)
-	}
-
-	// Get snapshot for tisch:2
-	id, err = repo.GetLastSnapshotID(context.Background(), "tisch:2", snapshotType)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if id != snapshotID2 {
-		t.Fatalf("Expected snapshot ID %d for tisch:2, got %d", snapshotID2, id)
-	}
-}
-
-func TestReadEventsWithSnapshot(t *testing.T) {
-	userID, repo, teardown := setup(t)
-	defer teardown(t)
-
-	snapshotType := "tisch.snapshot:v1"
-	orderType := "tisch.bestellung-aufgegeben:v1"
-
-	// Add events: order -> snapshot -> order -> order
-	order1 := newTestEvent(userID, orderType, "tisch:1", 1, map[string]any{"order": 1})
-	snapshot := newTestEvent(userID, snapshotType, "tisch:1", 2, map[string]any{"balance": 100})
-	order2 := newTestEvent(userID, orderType, "tisch:1", 3, map[string]any{"order": 2})
-	order3 := newTestEvent(userID, orderType, "tisch:1", 4, map[string]any{"order": 3})
-
-	_, _ = repo.WriteEvent(context.Background(), order1)
-	snapshotID, _ := repo.WriteEvent(context.Background(), snapshot)
-	_, _ = repo.WriteEvent(context.Background(), order2)
-	_, _ = repo.WriteEvent(context.Background(), order3)
-
-	// Should return snapshot + 2 orders (3 events total, not including order1)
-	events, err := repo.ReadEventsWithSnapshot(context.Background(), "tisch:1", snapshotType)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if len(events) != 3 {
-		t.Fatalf("Expected 3 events (snapshot + 2 orders), got %d", len(events))
-	}
-	if events[0].ID != snapshotID {
-		t.Fatalf("Expected first event to be snapshot (ID %d), got ID %d", snapshotID, events[0].ID)
-	}
-	if events[0].Type != snapshotType {
-		t.Fatalf("Expected first event type %s, got %s", snapshotType, events[0].Type)
-	}
-}
-
-func TestReadEventsWithSnapshot_NoSnapshot(t *testing.T) {
-	userID, repo, teardown := setup(t)
-	defer teardown(t)
-
-	snapshotType := "tisch.snapshot:v1"
-	orderType := "tisch.bestellung-aufgegeben:v1"
-
-	// Add only orders, no snapshot
-	order1 := newTestEvent(userID, orderType, "tisch:1", 1, map[string]any{"order": 1})
-	order2 := newTestEvent(userID, orderType, "tisch:1", 2, map[string]any{"order": 2})
-
-	_, _ = repo.WriteEvent(context.Background(), order1)
-	_, _ = repo.WriteEvent(context.Background(), order2)
-
-	// Should return all events when no snapshot exists
-	events, err := repo.ReadEventsWithSnapshot(context.Background(), "tisch:1", snapshotType)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if len(events) != 2 {
-		t.Fatalf("Expected 2 events, got %d", len(events))
 	}
 }
 
@@ -385,9 +250,9 @@ func TestGetMaxVersion(t *testing.T) {
 	e2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 2, map[string]any{"order": 2})
 	e3 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:2", 1, map[string]any{"order": 3})
 
-	_, _ = repo.WriteEvent(context.Background(), e1)
-	_, _ = repo.WriteEvent(context.Background(), e2)
-	_, _ = repo.WriteEvent(context.Background(), e3)
+	_, _ = insertEventRaw(repo.DB, e1)
+	_, _ = insertEventRaw(repo.DB, e2)
+	_, _ = insertEventRaw(repo.DB, e3)
 
 	// Should return max version for tisch:1
 	version, err = repo.GetMaxVersion(context.Background(), "tisch:1")
@@ -405,5 +270,175 @@ func TestGetMaxVersion(t *testing.T) {
 	}
 	if version != 1 {
 		t.Fatalf("Expected version 1, got %d", version)
+	}
+}
+
+// --- Projection integration tests ---
+
+func TestWriteEvent_WithProjection(t *testing.T) {
+	userID, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischID, err := createTisch(repo.DB, "Tisch Proj")
+	if err != nil {
+		t.Fatalf("Failed to create tisch: %v", err)
+	}
+
+	subject := fmt.Sprintf("tisch:%d", tischID)
+	posID := "p0000000-0000-0000-0000-000000000001"
+	data := validBestellungData(posID, 350, 2)
+	e := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject, 1, data)
+
+	eventID, err := repo.WriteEvent(context.Background(), e)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	state, err := repo.ReadTableState(context.Background(), tischID)
+	if err != nil {
+		t.Fatalf("Expected no error reading table state, got %v", err)
+	}
+
+	if state.SaldoCents != 700 {
+		t.Fatalf("Expected SaldoCents 700, got %d", state.SaldoCents)
+	}
+	if len(state.UnbezahltePositionen) != 1 {
+		t.Fatalf("Expected 1 unbezahlte position, got %d", len(state.UnbezahltePositionen))
+	}
+	if state.UnbezahltePositionen[0].PositionID != posID {
+		t.Fatalf("Expected position ID %s, got %s", posID, state.UnbezahltePositionen[0].PositionID)
+	}
+	if state.UnbezahltePositionen[0].Menge != 2 {
+		t.Fatalf("Expected Menge 2, got %d", state.UnbezahltePositionen[0].Menge)
+	}
+	if len(state.UngeliefertePositionen) != 1 {
+		t.Fatalf("Expected 1 ungelieferte position, got %d", len(state.UngeliefertePositionen))
+	}
+	if state.LastEventID != eventID {
+		t.Fatalf("Expected LastEventID %d, got %d", eventID, state.LastEventID)
+	}
+	if state.LastEventVersion != 1 {
+		t.Fatalf("Expected LastEventVersion 1, got %d", state.LastEventVersion)
+	}
+}
+
+func TestReadTableState_NotFound(t *testing.T) {
+	_, repo, teardown := setup(t)
+	defer teardown(t)
+
+	state, err := repo.ReadTableState(context.Background(), 99999)
+	if err != nil {
+		t.Fatalf("Expected no error for non-existent tisch, got %v", err)
+	}
+
+	if state.SaldoCents != 0 {
+		t.Fatalf("Expected SaldoCents 0, got %d", state.SaldoCents)
+	}
+	if state.GesamtZahlungenCents != 0 {
+		t.Fatalf("Expected GesamtZahlungenCents 0, got %d", state.GesamtZahlungenCents)
+	}
+	if len(state.UnbezahltePositionen) != 0 {
+		t.Fatalf("Expected empty unbezahlte positionen, got %d", len(state.UnbezahltePositionen))
+	}
+	if len(state.UngeliefertePositionen) != 0 {
+		t.Fatalf("Expected empty ungelieferte positionen, got %d", len(state.UngeliefertePositionen))
+	}
+}
+
+func TestWriteEvent_MultipleEvents_ProjectionCorrect(t *testing.T) {
+	userID, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischID, err := createTisch(repo.DB, "Tisch Multi")
+	if err != nil {
+		t.Fatalf("Failed to create tisch: %v", err)
+	}
+
+	subject := fmt.Sprintf("tisch:%d", tischID)
+	posID := "p0000000-0000-0000-0000-000000000002"
+
+	// Write a Bestellung (2x Bier @ 350 = 700 cents)
+	bestellungData := validBestellungData(posID, 350, 2)
+	e1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject, 1, bestellungData)
+	_, err = repo.WriteEvent(context.Background(), e1)
+	if err != nil {
+		t.Fatalf("Expected no error writing bestellung, got %v", err)
+	}
+
+	// Write a Zahlung (pay for 1x Bier = 350 cents)
+	zahlungData := validZahlungData(posID, 1, 350)
+	e2 := newTestEvent(userID, "tisch.zahlung-registriert:v1", subject, 2, zahlungData)
+	_, err = repo.WriteEvent(context.Background(), e2)
+	if err != nil {
+		t.Fatalf("Expected no error writing zahlung, got %v", err)
+	}
+
+	state, err := repo.ReadTableState(context.Background(), tischID)
+	if err != nil {
+		t.Fatalf("Expected no error reading table state, got %v", err)
+	}
+
+	// Saldo: 700 - 350 = 350
+	if state.SaldoCents != 350 {
+		t.Fatalf("Expected SaldoCents 350, got %d", state.SaldoCents)
+	}
+	// GesamtZahlungen: 350
+	if state.GesamtZahlungenCents != 350 {
+		t.Fatalf("Expected GesamtZahlungenCents 350, got %d", state.GesamtZahlungenCents)
+	}
+	// Unbezahlt: 1 position with Menge 1 (original 2, paid 1)
+	if len(state.UnbezahltePositionen) != 1 {
+		t.Fatalf("Expected 1 unbezahlte position, got %d", len(state.UnbezahltePositionen))
+	}
+	if state.UnbezahltePositionen[0].Menge != 1 {
+		t.Fatalf("Expected remaining Menge 1, got %d", state.UnbezahltePositionen[0].Menge)
+	}
+	// Ungeliefert: still 1 position with Menge 2 (no delivery yet)
+	if len(state.UngeliefertePositionen) != 1 {
+		t.Fatalf("Expected 1 ungelieferte position, got %d", len(state.UngeliefertePositionen))
+	}
+	if state.UngeliefertePositionen[0].Menge != 2 {
+		t.Fatalf("Expected ungeliefert Menge 2, got %d", state.UngeliefertePositionen[0].Menge)
+	}
+	if state.LastEventVersion != 2 {
+		t.Fatalf("Expected LastEventVersion 2, got %d", state.LastEventVersion)
+	}
+}
+
+func TestWriteEvent_InvalidData_Rollback(t *testing.T) {
+	userID, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischID, err := createTisch(repo.DB, "Tisch Rollback")
+	if err != nil {
+		t.Fatalf("Failed to create tisch: %v", err)
+	}
+
+	subject := fmt.Sprintf("tisch:%d", tischID)
+
+	// Use an unknown event type that ApplyEvent cannot handle → triggers rollback
+	e := newTestEvent(userID, "tisch.unknown-event:v1", subject, 1, map[string]any{"k": "v"})
+
+	_, err = repo.WriteEvent(context.Background(), e)
+	if err == nil {
+		t.Fatalf("Expected error for unknown event type, got nil")
+	}
+
+	// Verify no event was written (transaction rolled back)
+	events, err := repo.ReadEventsBySubject(context.Background(), subject)
+	if err != nil {
+		t.Fatalf("Expected no error reading events, got %v", err)
+	}
+	if len(events) != 0 {
+		t.Fatalf("Expected 0 events after rollback, got %d", len(events))
+	}
+
+	// Verify no table_state was written
+	state, err := repo.ReadTableState(context.Background(), tischID)
+	if err != nil {
+		t.Fatalf("Expected no error reading table state, got %v", err)
+	}
+	if state.SaldoCents != 0 {
+		t.Fatalf("Expected SaldoCents 0 after rollback, got %d", state.SaldoCents)
 	}
 }

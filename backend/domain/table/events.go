@@ -15,7 +15,6 @@ const (
 	EventTypeZahlungRegistriertV1   EventType = "tisch.zahlung-registriert:v1"
 	EventTypeProdukteStorniertV1    EventType = "tisch.produkte-storniert:v1"
 	EventTypeProdukteGeliefertV1    EventType = "tisch.produkte-geliefert:v1"
-	EventTypeSnapshotV1             EventType = "tisch.snapshot:v1"
 )
 
 // parseTischIDFromSubject extracts the table ID from an event subject like "tisch:42".
@@ -36,13 +35,6 @@ func GetSaldoFromEvents(events []e.Event) (int, error) {
 
 	for _, event := range events {
 		switch event.Type {
-		case string(EventTypeSnapshotV1):
-			snapshot, err := buildSnapshotFromEvent(event)
-			if err != nil {
-				return 0, err
-			}
-			saldoCents = snapshot.SaldoCents
-
 		case string(EventTypeBestellungAufgegebenV1):
 			bestellung, err := buildBestellungFromEvent(event)
 			if err != nil {
@@ -147,13 +139,6 @@ func GetUnbezahltePositionenFromEvents(events []e.Event) ([]Position, error) {
 
 	for _, event := range events {
 		switch event.Type {
-		case string(EventTypeSnapshotV1):
-			snapshot, err := buildSnapshotFromEvent(event)
-			if err != nil {
-				return nil, err
-			}
-			unbezahltePositionen = snapshot.UnbezahltePositionen
-
 		case string(EventTypeBestellungAufgegebenV1):
 			bestellung, err := buildBestellungFromEvent(event)
 			if err != nil {
@@ -185,13 +170,6 @@ func GetUngeliefertePositionenFromEvents(events []e.Event) ([]Position, error) {
 
 	for _, event := range events {
 		switch event.Type {
-		case string(EventTypeSnapshotV1):
-			snapshot, err := buildSnapshotFromEvent(event)
-			if err != nil {
-				return nil, err
-			}
-			ungeliefertePositionen = snapshot.UngeliefertePositionen
-
 		case string(EventTypeBestellungAufgegebenV1):
 			bestellung, err := buildBestellungFromEvent(event)
 			if err != nil {
@@ -223,13 +201,6 @@ func GetGesamtZahlungenFromEvents(events []e.Event) (int, error) {
 
 	for _, event := range events {
 		switch event.Type {
-		case string(EventTypeSnapshotV1):
-			snapshot, err := buildSnapshotFromEvent(event)
-			if err != nil {
-				return 0, err
-			}
-			gesamtZahlungenCents = snapshot.GesamtZahlungenCents
-
 		case string(EventTypeZahlungRegistriertV1):
 			zahlung, err := buildZahlungFromEvent(event)
 			if err != nil {
