@@ -187,8 +187,9 @@ func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
 				helper.SendConflictError(w)
 			} else {
 				helper.MapError(w, err, map[error]string{
-					application.ErrTischNotFound:  "tisch_not_found",
-					application.ErrTischNotActive: "tisch_not_active",
+					application.ErrTischNotFound:   "tisch_not_found",
+					application.ErrTischNotActive:  "tisch_not_active",
+					application.ErrProduktNotFound: "produkt_not_found",
 				})
 			}
 			return

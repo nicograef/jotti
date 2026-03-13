@@ -78,7 +78,7 @@ export function TablePage() {
             </TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="order">
+        <TabsContent value="order" className="pb-24">
           {!stateLoading && (
             <>
               {offenePositionen > 0 && (
@@ -108,7 +108,7 @@ export function TablePage() {
             </>
           )}
         </TabsContent>
-        <TabsContent value="payment">
+        <TabsContent value="payment" className="pb-24">
           {!stateLoading && (
             <Zahlung
               backend={tischBackend}
@@ -126,7 +126,7 @@ export function TablePage() {
             />
           )}
         </TabsContent>
-        <TabsContent value="history">
+        <TabsContent value="history" className="pb-24">
           {!stateLoading && (
             <TischHistorie
               historie={historie}
