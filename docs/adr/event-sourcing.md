@@ -138,13 +138,13 @@ ORDER BY created_at ASC;
 
 **Schema:** 1 Events-Tabelle (`events`) mit JSONB-Payload. Event-Typen: `BestellungAufgegeben`, `ZahlungRegistriert`, `ProdukteGeliefert`, `ProdukteStorniert`. (Ehemals auch `tisch.snapshot` — abgelöst durch synchrone Projektion, siehe [ADR: CQRS](cqrs.md).)
 
-| Aspekt               | Implementierung                                                                   |
-| -------------------- | --------------------------------------------------------------------------------- |
-| State Reconstruction | Event Replay: `GetSaldoFromEvents()`, `GetUnbezahltePositionenFromEvents()`, etc. |
-| OCC                  | UNIQUE Constraint `(subject, version)` + `GetMaxVersion()` + Retry bei Conflict   |
-| Snapshot             | `tisch.snapshot:v1` als Event-Typ im Event Stream                                 |
-| Read-Optimization    | `ReadEventsWithSnapshot()` — lädt letzten Snapshot + nachfolgende Events          |
-| Kassenjournal        | `ReadEventsBySubject()` — 1 Query, chronologisch sortiert                         |
+| Aspekt               | Implementierung                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| State Reconstruction | Synchrone Projektion via `ApplyEvent()` in `table_state` (siehe [ADR: CQRS](cqrs.md)) |
+| OCC                  | UNIQUE Constraint `(subject, version)` + `GetMaxVersion()` + Retry bei Conflict       |
+| Snapshot             | `tisch.snapshot:v1` als Event-Typ im Event Stream                                     |
+| Read-Optimization    | `ReadEventsWithSnapshot()` — lädt letzten Snapshot + nachfolgende Events              |
+| Kassenjournal        | `ReadEventsBySubject()` — 1 Query, chronologisch sortiert                             |
 
 **Vorteile:**
 

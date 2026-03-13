@@ -15,7 +15,7 @@ Dieses Projekt ist ein Mobile-Kassensystem (mPOS) für Vereine. Vollständige Ag
 
 ## Befehle
 
-Alle Befehle über **Makefile** im Root: `make test`, `make lint`, `make build`, `make sqlc`, `make dev`. Siehe `make help`.
+Alle Befehle über **Makefile** im Root: `make test`, `make lint`, `make build`, `make check`, `make check-full`, `make verify`, `make sqlc`, `make dev`. Siehe `make help`.
 
 ## Referenzdokumente
 

@@ -112,16 +112,17 @@ Die Servicekraft markiert bestellte Positionen als geliefert, nachdem sie dem Ga
 > **ID:** K-04 · **Rolle:** Serviceleitung · Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
-Serviceleitung oder Admin können bestellte Positionen nachträglich stornieren. Einfache Servicekräfte haben kein Stornierungsrecht. Die Stornierung reduziert den offenen Saldo des Tisches.
+Serviceleitung oder Admin können bestellte Positionen nachträglich stornieren — unabhängig vom Liefer- und Bezahlstatus. Einfache Servicekräfte haben kein Stornierungsrecht. Die Stornierung reduziert den Saldo des Tisches; bei Stornierung bereits bezahlter Positionen kann der Saldo negativ werden.
 
 **Akzeptanzkriterien:**
 
 - Nur Serviceleitung (`serviceleitung`) und Admin (`admin`) dürfen stornieren
 - Servicekraft (`service`) hat keinen Zugriff auf die Stornierungsfunktion
+- Alle bestellten, nicht-stornierten Positionen sind stornierbar — unabhängig davon, ob sie bereits bezahlt oder geliefert wurden
 - Mindestens eine Position muss ausgewählt werden
 - Kommentar optional (max. 100 Zeichen)
 - Stornierung wird als unveränderliches Event im Kassenjournal gespeichert
-- Saldo des Tisches wird nach Stornierung korrekt reduziert
+- Saldo des Tisches wird nach Stornierung korrekt reduziert (kann dabei negativ werden)
 
 ### K-05 · Tischübersicht und Navigation
 

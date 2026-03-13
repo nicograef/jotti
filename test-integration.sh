@@ -1,11 +1,32 @@
 #!/bin/bash
 
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONTAINER_NAME="jotti-postgres-test"
+DATABASE_URL="postgres://admin:admin@localhost:5432/jotti?sslmode=disable"
+
+cleanup() {
+  echo ""
+  echo "🧹 Cleaning up..."
+
+  if [[ -x "$ROOT_DIR/database/migrate/migrate" ]]; then
+    "$ROOT_DIR/database/migrate/migrate" -path "$ROOT_DIR/database/migrations" -database "$DATABASE_URL" down -all >/dev/null 2>&1 || true
+  fi
+
+  docker stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
+  docker rm "$CONTAINER_NAME" >/dev/null 2>&1 || true
+}
+
+trap cleanup EXIT
+
 echo "🧪 Starting integration test environment..."
 
-# Start PostgreSQL container
+docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+
 echo "🐘 Starting PostgreSQL..."
 docker run -d \
-  --name jotti-postgres-test \
+  --name "$CONTAINER_NAME" \
   -e POSTGRES_USER=admin \
   -e POSTGRES_PASSWORD=admin \
   -e POSTGRES_DB=jotti \
@@ -16,48 +37,29 @@ docker run -d \
   --health-retries 10 \
   postgres:17
 
-# Wait for PostgreSQL to be healthy
 echo "⏳ Waiting for PostgreSQL to be ready..."
-until docker exec jotti-postgres-test pg_isready -U admin -d jotti > /dev/null 2>&1; do
+until docker exec "$CONTAINER_NAME" pg_isready -U admin -d jotti >/dev/null 2>&1; do
   sleep 2
 done
 
 echo "✅ PostgreSQL ready!"
-sleep 2
 
-# Run database migrations
 echo "🔄 Running database migrations..."
-cd database
-chmod +x migrate/migrate || true
-./migrate/migrate -path ./migrations -database "postgres://admin:admin@localhost:5432/jotti?sslmode=disable" up
-cd ..
+chmod +x "$ROOT_DIR/database/migrate/migrate" || true
+"$ROOT_DIR/database/migrate/migrate" -path "$ROOT_DIR/database/migrations" -database "$DATABASE_URL" up
 
 echo "✅ Migrations complete!"
 echo ""
-sleep 2
 
 echo "🏃 Running integration tests..."
-
-# Run integration tests
-cd backend
+cd "$ROOT_DIR/backend"
 POSTGRES_HOST=localhost \
 POSTGRES_PORT=5432 \
 POSTGRES_USER=admin \
 POSTGRES_PASSWORD=admin \
 POSTGRES_DBNAME=jotti \
 JWT_SECRET=test-secret \
-go test -tags=integration -count=1 -race ./... || true
+go test -tags=integration -count=1 -race ./...
 
-echo ""
-echo "🧹 Cleaning up..."
-cd ..
-
-# Run migrations down
-cd database
-./migrate/migrate -path ./migrations -database "postgres://admin:admin@localhost:5432/jotti?sslmode=disable" down -all || true
-cd ..
-
-# Stop and remove container
-docker stop jotti-postgres-test > /dev/null 2>&1
-docker rm jotti-postgres-test > /dev/null 2>&1
+echo "✅ Integration tests passed!"
 

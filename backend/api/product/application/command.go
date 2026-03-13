@@ -9,17 +9,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type commandProductRepo interface {
+type productRepo interface {
 	GetProduct(ctx context.Context, productID int) (product.Produkt, error)
 	CreateProduct(ctx context.Context, product product.Produkt) (int, error)
 	UpdateProduct(ctx context.Context, product product.Produkt) error
 	GetVariant(ctx context.Context, variantID int) (product.Variante, error)
 	CreateVariant(ctx context.Context, productID int, variant product.Variante) (int, error)
 	UpdateVariant(ctx context.Context, variant product.Variante) error
+	GetAllProducts(ctx context.Context) ([]product.Produkt, error)
+	GetActiveProducts(ctx context.Context) ([]product.Produkt, error)
 }
 
 type Command struct {
-	ProductRepo commandProductRepo
+	ProductRepo productRepo
 }
 
 // Product commands

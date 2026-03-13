@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { useActiveProducts } from '../../product/hooks'
+import type { Produkt } from '../../product/Product'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { BestellungDrawer } from './BestellungDrawer'
@@ -10,6 +10,8 @@ import { ProductList, ProductListSkeleton } from './ProductList'
 interface BestellungProps {
   backend: Pick<TischBackend, 'bestellungAufgeben'>
   tisch: Tisch
+  products: Produkt[]
+  productsLoading: boolean
   onBestellungAufgegeben: () => void
 }
 
@@ -18,12 +20,13 @@ type VariantMengenMap = Record<number, number>
 export function Bestellung({
   backend,
   tisch,
+  products,
+  productsLoading,
   onBestellungAufgegeben,
 }: BestellungProps) {
-  const { loading, products } = useActiveProducts()
   const [mengen, setMengen] = useState<VariantMengenMap>({})
 
-  if (loading) {
+  if (productsLoading) {
     return <ProductListSkeleton />
   }
 

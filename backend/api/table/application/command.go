@@ -12,19 +12,22 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type tableRepoCommand interface {
+type tableRepo interface {
 	GetTable(ctx context.Context, id int) (table.Tisch, error)
 	CreateTable(ctx context.Context, t table.Tisch) (int, error)
 	UpdateTable(ctx context.Context, t table.Tisch) error
+	GetAllTables(ctx context.Context) ([]table.Tisch, error)
+	GetActiveTables(ctx context.Context) ([]table.Tisch, error)
 }
 
-type eventRepoCommand interface {
+type eventRepo interface {
 	WriteEvent(ctx context.Context, event event.Event) (int, error)
 	ReadTableState(ctx context.Context, tischID int) (table.TischState, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
+	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 }
 
-type productRepoCommand interface {
+type productRepo interface {
 	GetProduct(ctx context.Context, productID int) (product.Produkt, error)
 	GetVariant(ctx context.Context, variantID int) (product.Variante, error)
 }
@@ -38,23 +41,23 @@ type BestellPositionInput struct {
 }
 
 type Command struct {
-	TableRepo   tableRepoCommand
-	EventRepo   eventRepoCommand
-	ProductRepo productRepoCommand
+	TableRepo   tableRepo
+	EventRepo   eventRepo
+	ProductRepo productRepo
 }
 
 // writeEvent writes an event with optimistic concurrency control.
 // It reads the current max version for the subject, sets event.Version = maxVersion + 1,
 // and writes the event. Returns ErrConflict on UNIQUE constraint violation (version conflict).
-func writeEvent(ctx context.Context, eventRepo eventRepoCommand, e event.Event, subject string) error {
-	maxVersion, err := eventRepo.GetMaxVersion(ctx, subject)
+func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string) error {
+	maxVersion, err := repo.GetMaxVersion(ctx, subject)
 	if err != nil {
 		return err
 	}
 
 	e.Version = maxVersion + 1
 
-	_, err = eventRepo.WriteEvent(ctx, e)
+	_, err = repo.WriteEvent(ctx, e)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			zerolog.Ctx(ctx).Warn().
@@ -91,6 +94,18 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (table.TischSt
 	}
 
 	return state, nil
+}
+
+// computeNichtStorniertePositionen replays all events for a subject to compute
+// the list of positions that have been ordered but not yet cancelled.
+// This is used for stornierung validation (on-demand, not stored in projection).
+func (c Command) computeNichtStorniertePositionen(ctx context.Context, subject string) ([]table.Position, error) {
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		return nil, err
+	}
+
+	return table.ComputeNichtStorniertePositionen(events)
 }
 
 // validatePositionRefs checks that every requested PositionRef exists in the available positions
@@ -326,19 +341,26 @@ func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName s
 func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	// Tisch-Existenz, Status und State laden
-	state, err := c.loadTischState(ctx, tischID)
-	if err != nil {
+	// Tisch-Existenz und Status prüfen
+	if _, err := c.loadTischState(ctx, tischID); err != nil {
 		return err
 	}
 
-	// Stornierungsinvariante: nur unbezahlte, nicht-stornierte Positionen können storniert werden
-	if !validatePositionRefs(state.UnbezahltePositionen, positionen) {
+	// Stornierungsinvariante: Nur bestellte, nicht-stornierte Positionen können storniert werden
+	// (unabhängig vom Bezahlstatus). On-demand event replay to compute nicht-stornierte Positionen.
+	subject := "tisch:" + strconv.Itoa(tischID)
+	nichtStorniert, err := c.computeNichtStorniertePositionen(ctx, subject)
+	if err != nil {
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to compute nicht-stornierte Positionen")
+		return ErrDatabase
+	}
+
+	if !validatePositionRefs(nichtStorniert, positionen) {
 		log.Warn().Int("tisch_id", tischID).Msg("Stornierungsinvariante verletzt: angeforderte Positionen nicht stornierbar")
 		return ErrPositionNichtStornierbar
 	}
 
-	resolvedPositionen, gesamtStornierungCents := resolvePositions(state.UnbezahltePositionen, positionen)
+	resolvedPositionen, gesamtStornierungCents := resolvePositions(nichtStorniert, positionen)
 
 	event, err := table.NewProdukteStorniertEvent(userID, userName, tischID, resolvedPositionen, gesamtStornierungCents, kommentar)
 	if err != nil {
@@ -346,7 +368,6 @@ func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName st
 		return err
 	}
 
-	subject := "tisch:" + strconv.Itoa(tischID)
 	if err := writeEvent(ctx, c.EventRepo, event, subject); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict

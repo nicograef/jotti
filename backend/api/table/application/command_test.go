@@ -4,6 +4,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -335,9 +336,28 @@ func TestProdukteLiefern_NonOrderedPosition(t *testing.T) {
 	}
 }
 
-func TestProdukteStornieren_AlreadyPaidPosition(t *testing.T) {
+func TestProdukteStornieren_AlreadyPaidPosition_Succeeds(t *testing.T) {
 	ctx := context.Background()
-	// After order + payment, unbezahlt is empty
+	orderEvent, _ := table.NewBestellungAufgegebenEvent(1, "Test User", testActiveTisch.ID,
+		[]table.Position{
+			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+		}, "")
+
+	var orderData struct {
+		Positionen []struct {
+			PositionID string `json:"positionId"`
+		} `json:"positionen"`
+	}
+	if err := json.Unmarshal(orderEvent.Data, &orderData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	posID := orderData.Positionen[0].PositionID
+
+	paymentEvent, _ := table.NewZahlungRegistriertEvent(1, "Test User", testActiveTisch.ID,
+		[]table.Position{
+			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+		}, 350, "")
+
 	eventMock := event_repo.NewMock(nil, nil)
 	eventMock.SetTableState(testActiveTisch.ID, table.TischState{
 		SaldoCents:             0,
@@ -345,16 +365,65 @@ func TestProdukteStornieren_AlreadyPaidPosition(t *testing.T) {
 		UngeliefertePositionen: []table.Position{},
 		GesamtZahlungenCents:   350,
 	})
+	orderEvent.Subject = "tisch:1"
+	paymentEvent.Subject = "tisch:1"
+	eventMock.AddEvent(orderEvent)
+	eventMock.AddEvent(paymentEvent)
+
 	command := Command{
 		TableRepo: table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
 		EventRepo: eventMock,
 	}
 
-	refs := []table.PositionRef{
-		{PositionID: "00000000-0000-0000-0000-000000000001", Menge: 1},
+	refs := []table.PositionRef{{PositionID: posID, Menge: 1}}
+
+	err := command.ProdukteStornieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "Reklamation")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestProdukteStornieren_AlreadyCancelledPosition_Fails(t *testing.T) {
+	ctx := context.Background()
+	orderEvent, _ := table.NewBestellungAufgegebenEvent(1, "Test User", testActiveTisch.ID,
+		[]table.Position{
+			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+		}, "")
+
+	var orderData struct {
+		Positionen []struct {
+			PositionID string `json:"positionId"`
+		} `json:"positionen"`
+	}
+	if err := json.Unmarshal(orderEvent.Data, &orderData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	posID := orderData.Positionen[0].PositionID
+
+	cancelEvent, _ := table.NewProdukteStorniertEvent(1, "Test User", testActiveTisch.ID,
+		[]table.Position{
+			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+		}, 350, "")
+
+	eventMock := event_repo.NewMock(nil, nil)
+	eventMock.SetTableState(testActiveTisch.ID, table.TischState{
+		SaldoCents:             0,
+		UnbezahltePositionen:   []table.Position{},
+		UngeliefertePositionen: []table.Position{},
+		GesamtZahlungenCents:   350,
+	})
+	orderEvent.Subject = "tisch:1"
+	cancelEvent.Subject = "tisch:1"
+	eventMock.AddEvent(orderEvent)
+	eventMock.AddEvent(cancelEvent)
+
+	command := Command{
+		TableRepo: table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo: eventMock,
 	}
 
-	// Stornierung of already-paid position should fail (unbezahlt is empty)
+	refs := []table.PositionRef{{PositionID: posID, Menge: 1}}
+
 	err := command.ProdukteStornieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtStornierbar {
 		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)

@@ -38,12 +38,12 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [kommentar, setKommentar] = useState('')
-  const positionenToCancel = selectPositionen(
+  const selectedPositionen = selectPositionen(
     props.unbezahltePositionen,
     props.mengen,
   )
-  const totalPrice = calculateTotalPrice(positionenToCancel)
-  const noPositionenSelected = positionenToCancel.length === 0
+  const totalPrice = calculateTotalPrice(selectedPositionen)
+  const noPositionenSelected = selectedPositionen.length === 0
 
   const onSubmit = async () => {
     setLoading(true)
@@ -51,7 +51,7 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
     try {
       await props.backend.produkteStornieren({
         tischId: props.tisch.id,
-        positionen: toPositionRefs(positionenToCancel),
+        positionen: toPositionRefs(selectedPositionen),
         kommentar,
       })
       props.produkteStorniert()
@@ -65,10 +65,9 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
   }
 
   const onOpenChange = (isOpen: boolean) => {
-    if (noPositionenSelected) {
-      setOpen(false)
-    } else {
-      setOpen(isOpen)
+    setOpen(isOpen)
+    if (!isOpen) {
+      setKommentar('')
     }
   }
 
@@ -88,11 +87,11 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
           <DrawerHeader>
             <DrawerTitle>Stornierung für {props.tisch.name}</DrawerTitle>
             <DrawerDescription>
-              Sollen diese Produkte wirklich storniert werden?
+              Positionen prüfen und stornieren.
             </DrawerDescription>
           </DrawerHeader>
           <Receipt
-            positionen={toReceiptItems(positionenToCancel)}
+            positionen={toReceiptItems(selectedPositionen)}
             totalPrice={totalPrice}
           />
           <div className="px-4">
@@ -105,7 +104,7 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
           <DrawerFooter>
             <Button
               variant="destructive"
-              disabled={loading}
+              disabled={loading || noPositionenSelected}
               onClick={() => {
                 void onSubmit()
               }}

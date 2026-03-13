@@ -9,14 +9,15 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type commandUserRepo interface {
+type userRepo interface {
 	GetUser(ctx context.Context, userID int) (user.User, error)
 	CreateUser(ctx context.Context, u user.User) (int, error)
 	UpdateUser(ctx context.Context, u user.User) error
+	GetAllUsers(ctx context.Context) ([]user.User, error)
 }
 
 type Command struct {
-	UserRepo commandUserRepo
+	UserRepo userRepo
 }
 
 func (c Command) CreateUser(ctx context.Context, name, username string, role user.Role) (int, string, error) {

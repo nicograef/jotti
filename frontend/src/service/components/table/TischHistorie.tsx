@@ -1,4 +1,4 @@
-import { Eye } from 'lucide-react'
+import { Eye, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -20,20 +20,27 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
 import type { Bestellung } from '../../table/Bestellung'
-import { useTischHistorie } from '../../table/hooks'
 import type { Lieferung } from '../../table/Lieferung'
 import type { Stornierung } from '../../table/Stornierung'
+import type { Tisch } from '../../table/Tisch'
+import type { TischBackend } from '../../table/TischBackend'
 import type { Zahlung } from '../../table/Zahlung'
 import { Kommentar } from './CommentField'
 import { toReceiptItems } from './drawerUtils'
+import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { Receipt, type ReceiptPosition } from './Receipt'
 
 interface TischHistorieProps {
-  tischId: number
+  historie: (Bestellung | Zahlung | Stornierung | Lieferung)[]
+  historieLoading: boolean
   userId: number | null
+  tisch: Tisch
+  backend: Pick<TischBackend, 'produkteStornieren'>
+  onProdukteStorniert: () => void
 }
 
 const initialBestellungState: {
@@ -68,17 +75,25 @@ const initialLieferungState: {
   open: false,
 }
 
-export function TischHistorie({ tischId, userId }: TischHistorieProps) {
-  const { loading, historie } = useTischHistorie(tischId)
+export function TischHistorie({
+  historie,
+  historieLoading,
+  userId,
+  tisch,
+  backend,
+  onProdukteStorniert,
+}: TischHistorieProps) {
   const [bestellung, setBestellung] = useState(initialBestellungState)
   const [zahlung, setZahlung] = useState(initialZahlungState)
   const [stornierung, setStornierung] = useState(initialStornierungState)
   const [lieferung, setLieferung] = useState(initialLieferungState)
+  const [stornierenBestellung, setStornierenBestellung] =
+    useState<Bestellung | null>(null)
 
   return (
     <>
       <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-        {loading
+        {historieLoading
           ? Array.from({ length: 6 }).map((_, index) => (
               // eslint-disable-next-line react-x/no-array-index-key
               <ItemSkeleton key={index} />
@@ -112,6 +127,14 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
                     onClick={() => {
                       setBestellung({ bestellung, open: true })
                     }}
+                    onStornieren={
+                      AuthSingleton.canCancel &&
+                      getStornierbarePositionen(bestellung, historie).length > 0
+                        ? () => {
+                            setStornierenBestellung(bestellung)
+                          }
+                        : undefined
+                    }
                   />
                 )
               } else if (
@@ -210,8 +233,53 @@ export function TischHistorie({ tischId, userId }: TischHistorieProps) {
           positionen={toReceiptItems(lieferung.lieferung.positionen)}
         />
       )}
+      {stornierenBestellung && (
+        <HistorieStornierungDrawer
+          backend={backend}
+          tisch={tisch}
+          bestellung={stornierenBestellung}
+          positionen={getStornierbarePositionen(stornierenBestellung, historie)}
+          onClose={() => {
+            setStornierenBestellung(null)
+          }}
+          onProdukteStorniert={() => {
+            setStornierenBestellung(null)
+            onProdukteStorniert()
+          }}
+        />
+      )}
     </>
   )
+}
+
+function getStornierbarePositionen(
+  bestellung: Bestellung,
+  historie: (Bestellung | Zahlung | Stornierung | Lieferung)[],
+) {
+  const stornierteMengen = new Map<string, number>()
+
+  historie.forEach((item) => {
+    if (Object.prototype.hasOwnProperty.call(item, 'storniertAm')) {
+      const stornierung = item as Stornierung
+      stornierung.positionen.forEach((position) => {
+        const bisherigeMenge = stornierteMengen.get(position.positionId) || 0
+        stornierteMengen.set(
+          position.positionId,
+          bisherigeMenge + position.menge,
+        )
+      })
+    }
+  })
+
+  return bestellung.positionen.flatMap((position) => {
+    const verbleibendeMenge =
+      position.menge - (stornierteMengen.get(position.positionId) || 0)
+    if (verbleibendeMenge <= 0) {
+      return []
+    }
+
+    return [{ ...position, menge: verbleibendeMenge }]
+  })
 }
 
 function HistoryItem({
@@ -220,12 +288,14 @@ function HistoryItem({
   isFromUser,
   kommentar,
   onClick,
+  onStornieren,
 }: {
   title: string
   date: string
   isFromUser: boolean
   kommentar: string
   onClick: () => void
+  onStornieren?: () => void
 }) {
   return (
     <Item variant="outline" className={isFromUser ? 'border-primary' : ''}>
@@ -242,6 +312,17 @@ function HistoryItem({
         </ItemDescription>
       </ItemContent>
       <ItemActions>
+        {onStornieren && (
+          <Button
+            size="icon-sm"
+            variant="destructive"
+            className="rounded-full cursor-pointer"
+            aria-label="Stornieren"
+            onClick={onStornieren}
+          >
+            <X />
+          </Button>
+        )}
         <Button
           size="icon-sm"
           variant="outline"

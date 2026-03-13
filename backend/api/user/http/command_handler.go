@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	z "github.com/Oudwins/zog"
@@ -45,13 +44,10 @@ func (h CommandHandler) CreateUserHandler() http.HandlerFunc {
 
 		userID, onetimePassword, err := h.Command.CreateUser(r.Context(), body.Name, body.Username, body.Role)
 		if err != nil {
-			if errors.Is(err, application.ErrUsernameAlreadyExists) {
-				helper.SendClientError(w, "username_already_exists", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrUsernameAlreadyExists: "username_already_exists",
+			})
+			return
 		}
 
 		helper.SendResponse(w, createUserResponse{ID: userID, OnetimePassword: onetimePassword})
@@ -74,14 +70,10 @@ func (h CommandHandler) UpdateUserHandler() http.HandlerFunc {
 
 		err := h.Command.UpdateUser(r.Context(), body.ID, body.Name, body.Username, body.Role)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrUserNotFound):
-				helper.SendClientError(w, "user_not_found", nil)
-			case errors.Is(err, application.ErrUsernameAlreadyExists):
-				helper.SendClientError(w, "username_already_exists", nil)
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrUserNotFound:          "user_not_found",
+				application.ErrUsernameAlreadyExists: "username_already_exists",
+			})
 			return
 		}
 
@@ -111,13 +103,10 @@ func (h CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 
 		onetimePassword, err := h.Command.ResetPassword(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrUserNotFound) {
-				helper.SendClientError(w, "user_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrUserNotFound: "user_not_found",
+			})
+			return
 		}
 
 		helper.SendResponse(w, resetPasswordResponse{OnetimePassword: onetimePassword})
@@ -142,13 +131,10 @@ func (h CommandHandler) ActivateUserHandler() http.HandlerFunc {
 
 		err := h.Command.ActivateUser(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrUserNotFound) {
-				helper.SendClientError(w, "user_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrUserNotFound: "user_not_found",
+			})
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -173,13 +159,10 @@ func (h CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 
 		err := h.Command.DeactivateUser(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrUserNotFound) {
-				helper.SendClientError(w, "user_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrUserNotFound: "user_not_found",
+			})
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -213,13 +196,10 @@ func (h CommandHandler) DeleteUserHandler() http.HandlerFunc {
 
 		err := h.Command.DeleteUser(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrUserNotFound) {
-				helper.SendClientError(w, "user_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrUserNotFound: "user_not_found",
+			})
+			return
 		}
 
 		helper.SendEmptyResponse(w)

@@ -4,16 +4,27 @@ import (
 	"database/sql"
 	"net/http"
 
-	product "github.com/nicograef/jotti/backend/api/product/http"
-	reporting "github.com/nicograef/jotti/backend/api/reporting/http"
-	table "github.com/nicograef/jotti/backend/api/table/http"
-	user "github.com/nicograef/jotti/backend/api/user/http"
+	productApp "github.com/nicograef/jotti/backend/api/product/application"
+	productHTTP "github.com/nicograef/jotti/backend/api/product/http"
+	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
+	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
+	tableApp "github.com/nicograef/jotti/backend/api/table/application"
+	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
+	userApp "github.com/nicograef/jotti/backend/api/user/application"
+	userHTTP "github.com/nicograef/jotti/backend/api/user/http"
+	"github.com/nicograef/jotti/backend/repository/event_repo"
+	"github.com/nicograef/jotti/backend/repository/product_repo"
+	"github.com/nicograef/jotti/backend/repository/reporting_repo"
+	"github.com/nicograef/jotti/backend/repository/table_repo"
+	"github.com/nicograef/jotti/backend/repository/user_repo"
 )
 
 func NewAdminApi(db *sql.DB) http.Handler {
 	r := http.NewServeMux()
 
-	uc := user.NewCommandHandler(db)
+	userRepo := user_repo.NewRepository(db)
+	uc := userHTTP.CommandHandler{}
+	uc.Command = userApp.Command{UserRepo: userRepo}
 	r.HandleFunc("/create-user", uc.CreateUserHandler())
 	r.HandleFunc("/update-user", uc.UpdateUserHandler())
 	r.HandleFunc("/activate-user", uc.ActivateUserHandler())
@@ -21,10 +32,13 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/delete-user", uc.DeleteUserHandler())
 	r.HandleFunc("/reset-password", uc.ResetPasswordHandler())
 
-	uq := user.NewQueryHandler(db)
+	uq := userHTTP.QueryHandler{}
+	uq.Query = userApp.Query{UserRepo: userRepo}
 	r.HandleFunc("/get-all-users", uq.GetAllUsersHandler())
 
-	pc := product.NewCommandHandler(db)
+	productRepo := product_repo.NewRepository(db)
+	pc := productHTTP.CommandHandler{}
+	pc.Command = productApp.Command{ProductRepo: productRepo}
 	r.HandleFunc("/create-produkt", pc.CreateProductHandler())
 	r.HandleFunc("/update-produkt", pc.UpdateProductHandler())
 	r.HandleFunc("/activate-produkt", pc.ActivateProductHandler())
@@ -36,20 +50,31 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/delete-produkt", pc.DeleteProduktHandler())
 	r.HandleFunc("/delete-variante", pc.DeleteVarianteHandler())
 
-	pq := product.NewQueryHandler(db)
+	pq := productHTTP.QueryHandler{}
+	pq.Query = productApp.Query{ProductRepo: productRepo}
 	r.HandleFunc("/get-all-produkte", pq.GetAllProductsHandler())
 
-	tc := table.NewCommandHandler(db)
+	tableRepo := table_repo.NewRepository(db)
+	eventRepo := event_repo.NewRepository(db)
+	tc := tableHTTP.CommandHandler{}
+	tc.Command = tableApp.Command{
+		TableRepo:   tableRepo,
+		EventRepo:   eventRepo,
+		ProductRepo: productRepo,
+	}
 	r.HandleFunc("/update-tisch", tc.TischAktualisierenHandler())
 	r.HandleFunc("/create-tisch", tc.TischErstellenHandler())
 	r.HandleFunc("/activate-tisch", tc.TischAktivierenHandler())
 	r.HandleFunc("/deactivate-tisch", tc.TischDeaktivierenHandler())
 	r.HandleFunc("/delete-tisch", tc.TischLoeschenHandler())
 
-	tq := table.NewQueryHandler(db)
+	tq := tableHTTP.QueryHandler{}
+	tq.Query = tableApp.Query{TableRepo: tableRepo, EventRepo: eventRepo}
 	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())
 
-	rq := reporting.NewQueryHandler(db)
+	reportingRepo := reporting_repo.NewRepository(db)
+	rq := reportingHTTP.QueryHandler{}
+	rq.Query = reportingApp.Query{ReportingRepo: reportingRepo}
 	r.HandleFunc("/get-dashboard", rq.GetDashboardHandler())
 	r.HandleFunc("/get-tagesabrechnung", rq.GetTagesabrechnungHandler())
 

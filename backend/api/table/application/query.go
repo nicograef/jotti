@@ -6,25 +6,13 @@ import (
 	"strconv"
 
 	"github.com/nicograef/jotti/backend/db"
-	e "github.com/nicograef/jotti/backend/domain/event"
 	t "github.com/nicograef/jotti/backend/domain/table"
 	"github.com/rs/zerolog"
 )
 
-type tableRepoQuery interface {
-	GetTable(ctx context.Context, id int) (t.Tisch, error)
-	GetAllTables(ctx context.Context) ([]t.Tisch, error)
-	GetActiveTables(ctx context.Context) ([]t.Tisch, error)
-}
-
-type eventRepoQuery interface {
-	ReadEventsBySubject(ctx context.Context, subject string) ([]e.Event, error)
-	ReadTableState(ctx context.Context, tischID int) (t.TischState, error)
-}
-
 type Query struct {
-	TableRepo tableRepoQuery
-	EventRepo eventRepoQuery
+	TableRepo tableRepo
+	EventRepo eventRepo
 }
 
 func (q Query) GetAllTische(ctx context.Context) ([]t.Tisch, error) {

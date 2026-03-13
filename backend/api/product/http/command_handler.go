@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	z "github.com/Oudwins/zog"
@@ -48,14 +47,10 @@ func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 
 		id, err := h.Command.CreateProduct(r.Context(), body.Name, body.Kategorie)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrProduktAlreadyExists):
-				helper.SendClientError(w, "produkt_already_exists", nil)
-			case errors.Is(err, application.ErrInvalidProduktData):
-				helper.SendClientError(w, "invalid_produkt_data", nil)
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrProduktAlreadyExists: "produkt_already_exists",
+				application.ErrInvalidProduktData:   "invalid_produkt_data",
+			})
 			return
 		}
 
@@ -78,14 +73,10 @@ func (h *CommandHandler) UpdateProductHandler() http.HandlerFunc {
 
 		err := h.Command.UpdateProduct(r.Context(), body.ID, body.Name, body.Kategorie)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrProduktNotFound):
-				helper.SendClientError(w, "produkt_not_found", nil)
-			case errors.Is(err, application.ErrInvalidProduktData):
-				helper.SendClientError(w, "invalid_produkt_data", nil)
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrProduktNotFound:    "produkt_not_found",
+				application.ErrInvalidProduktData: "invalid_produkt_data",
+			})
 			return
 		}
 
@@ -110,13 +101,10 @@ func (h *CommandHandler) ActivateProductHandler() http.HandlerFunc {
 
 		err := h.Command.ActivateProduct(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrProduktNotFound) {
-				helper.SendClientError(w, "produkt_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrProduktNotFound: "produkt_not_found",
+			})
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -140,13 +128,10 @@ func (h *CommandHandler) DeactivateProductHandler() http.HandlerFunc {
 
 		err := h.Command.DeactivateProduct(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrProduktNotFound) {
-				helper.SendClientError(w, "produkt_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrProduktNotFound: "produkt_not_found",
+			})
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -174,14 +159,10 @@ func (h *CommandHandler) CreateVariantHandler() http.HandlerFunc {
 
 		id, err := h.Command.CreateVariant(r.Context(), body.ProductID, body.Name, body.PreisCents)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrProduktNotFound):
-				helper.SendClientError(w, "produkt_not_found", nil)
-			case errors.Is(err, application.ErrInvalidVarianteData):
-				helper.SendClientError(w, "invalid_variante_data", nil)
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrProduktNotFound:     "produkt_not_found",
+				application.ErrInvalidVarianteData: "invalid_variante_data",
+			})
 			return
 		}
 
@@ -204,14 +185,10 @@ func (h *CommandHandler) UpdateVariantHandler() http.HandlerFunc {
 
 		err := h.Command.UpdateVariant(r.Context(), body.ID, body.Name, body.PreisCents)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrVarianteNotFound):
-				helper.SendClientError(w, "variante_not_found", nil)
-			case errors.Is(err, application.ErrInvalidVarianteData):
-				helper.SendClientError(w, "invalid_variante_data", nil)
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrVarianteNotFound:    "variante_not_found",
+				application.ErrInvalidVarianteData: "invalid_variante_data",
+			})
 			return
 		}
 
@@ -236,13 +213,10 @@ func (h *CommandHandler) ActivateVariantHandler() http.HandlerFunc {
 
 		err := h.Command.ActivateVariant(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrVarianteNotFound) {
-				helper.SendClientError(w, "variante_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrVarianteNotFound: "variante_not_found",
+			})
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -266,13 +240,10 @@ func (h *CommandHandler) DeactivateVariantHandler() http.HandlerFunc {
 
 		err := h.Command.DeactivateVariant(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrVarianteNotFound) {
-				helper.SendClientError(w, "variante_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrVarianteNotFound: "variante_not_found",
+			})
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -296,13 +267,10 @@ func (h *CommandHandler) DeleteProduktHandler() http.HandlerFunc {
 
 		err := h.Command.DeleteProdukt(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrProduktNotFound) {
-				helper.SendClientError(w, "produkt_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrProduktNotFound: "produkt_not_found",
+			})
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -328,14 +296,10 @@ func (h *CommandHandler) DeleteVarianteHandler() http.HandlerFunc {
 
 		err := h.Command.DeleteVariante(r.Context(), body.ProduktID, body.ID)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrProduktNotFound):
-				helper.SendClientError(w, "produkt_not_found", nil)
-			case errors.Is(err, application.ErrVarianteNotFound):
-				helper.SendClientError(w, "variante_not_found", nil)
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrProduktNotFound:  "produkt_not_found",
+				application.ErrVarianteNotFound: "variante_not_found",
+			})
 			return
 		}
 

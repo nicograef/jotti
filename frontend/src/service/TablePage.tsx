@@ -17,7 +17,8 @@ import { Bestellung } from './components/table/Bestellung'
 import { Lieferung } from './components/table/Lieferung'
 import { TischHistorie } from './components/table/TischHistorie'
 import { Zahlung } from './components/table/Zahlung'
-import { useTischState } from './table/hooks'
+import { useActiveProducts } from './product/hooks'
+import { useTischHistorie, useTischState } from './table/hooks'
 import { TischBackend } from './table/TischBackend'
 
 const tischBackend = new TischBackend(BackendSingleton)
@@ -29,6 +30,12 @@ export function TablePage() {
     loading: stateLoading,
     reload: reloadState,
   } = useTischState(Number(tableId))
+  const { loading: productsLoading, products } = useActiveProducts()
+  const {
+    loading: historieLoading,
+    historie,
+    reload: reloadHistorie,
+  } = useTischHistorie(Number(tableId))
 
   const tisch = { id: state.tischId, name: state.tischName }
 
@@ -83,6 +90,7 @@ export function TablePage() {
                     loading={stateLoading}
                     onProdukteGeliefert={() => {
                       reloadState()
+                      reloadHistorie()
                     }}
                   />
                 </Card>
@@ -90,8 +98,11 @@ export function TablePage() {
               <Bestellung
                 backend={tischBackend}
                 tisch={tisch}
+                products={products}
+                productsLoading={productsLoading}
                 onBestellungAufgegeben={() => {
                   reloadState()
+                  reloadHistorie()
                 }}
               />
             </>
@@ -106,16 +117,28 @@ export function TablePage() {
               loading={stateLoading}
               onZahlungRegistriert={() => {
                 reloadState()
+                reloadHistorie()
               }}
               onProdukteStorniert={() => {
                 reloadState()
+                reloadHistorie()
               }}
             />
           )}
         </TabsContent>
         <TabsContent value="history">
           {!stateLoading && (
-            <TischHistorie tischId={tisch.id} userId={AuthSingleton.userId} />
+            <TischHistorie
+              historie={historie}
+              historieLoading={historieLoading}
+              userId={AuthSingleton.userId}
+              tisch={tisch}
+              backend={tischBackend}
+              onProdukteStorniert={() => {
+                reloadState()
+                reloadHistorie()
+              }}
+            />
           )}
         </TabsContent>
       </Tabs>

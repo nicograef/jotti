@@ -45,14 +45,10 @@ func (h *CommandHandler) TischErstellenHandler() http.HandlerFunc {
 
 		id, err := h.Command.TischErstellen(r.Context(), body.Name)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrTischAlreadyExists):
-				helper.SendClientError(w, "tisch_already_exists", nil)
-			case errors.Is(err, application.ErrInvalidTischData):
-				helper.SendClientError(w, "invalid_tisch_data", nil)
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrTischAlreadyExists: "tisch_already_exists",
+				application.ErrInvalidTischData:   "invalid_tisch_data",
+			})
 			return
 		}
 
@@ -74,14 +70,10 @@ func (h *CommandHandler) TischAktualisierenHandler() http.HandlerFunc {
 
 		err := h.Command.TischAktualisieren(r.Context(), body.ID, body.Name)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrTischNotFound):
-				helper.SendClientError(w, "tisch_not_found", nil)
-			case errors.Is(err, application.ErrInvalidTischData):
-				helper.SendClientError(w, "invalid_tisch_data", nil)
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrTischNotFound:    "tisch_not_found",
+				application.ErrInvalidTischData: "invalid_tisch_data",
+			})
 			return
 		}
 
@@ -106,13 +98,10 @@ func (h *CommandHandler) TischAktivierenHandler() http.HandlerFunc {
 
 		err := h.Command.TischAktivieren(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrTischNotFound) {
-				helper.SendClientError(w, "tisch_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrTischNotFound: "tisch_not_found",
+			})
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -136,13 +125,10 @@ func (h *CommandHandler) TischDeaktivierenHandler() http.HandlerFunc {
 
 		err := h.Command.TischDeaktivieren(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrTischNotFound) {
-				helper.SendClientError(w, "tisch_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrTischNotFound: "tisch_not_found",
+			})
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -166,13 +152,10 @@ func (h *CommandHandler) TischLoeschenHandler() http.HandlerFunc {
 
 		err := h.Command.TischLoeschen(r.Context(), body.ID)
 		if err != nil {
-			if errors.Is(err, application.ErrTischNotFound) {
-				helper.SendClientError(w, "tisch_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
+			helper.MapError(w, err, map[error]string{
+				application.ErrTischNotFound: "tisch_not_found",
+			})
+			return
 		}
 
 		helper.SendEmptyResponse(w)
@@ -200,15 +183,13 @@ func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.BestellungAufgeben(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrTischNotFound):
-				helper.SendClientError(w, "tisch_not_found", nil)
-			case errors.Is(err, application.ErrTischNotActive):
-				helper.SendClientError(w, "tisch_not_active", nil)
-			case errors.Is(err, application.ErrConflict):
+			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)
-			default:
-				helper.SendServerError(w)
+			} else {
+				helper.MapError(w, err, map[error]string{
+					application.ErrTischNotFound:  "tisch_not_found",
+					application.ErrTischNotActive: "tisch_not_active",
+				})
 			}
 			return
 		}
@@ -238,17 +219,14 @@ func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.ZahlungRegistrieren(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrTischNotFound):
-				helper.SendClientError(w, "tisch_not_found", nil)
-			case errors.Is(err, application.ErrTischNotActive):
-				helper.SendClientError(w, "tisch_not_active", nil)
-			case errors.Is(err, application.ErrPositionNichtBezahlbar):
-				helper.SendClientError(w, "position_nicht_bezahlbar", nil)
-			case errors.Is(err, application.ErrConflict):
+			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)
-			default:
-				helper.SendServerError(w)
+			} else {
+				helper.MapError(w, err, map[error]string{
+					application.ErrTischNotFound:          "tisch_not_found",
+					application.ErrTischNotActive:         "tisch_not_active",
+					application.ErrPositionNichtBezahlbar: "position_nicht_bezahlbar",
+				})
 			}
 			return
 		}
@@ -278,17 +256,14 @@ func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.ProdukteStornieren(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrTischNotFound):
-				helper.SendClientError(w, "tisch_not_found", nil)
-			case errors.Is(err, application.ErrTischNotActive):
-				helper.SendClientError(w, "tisch_not_active", nil)
-			case errors.Is(err, application.ErrPositionNichtStornierbar):
-				helper.SendClientError(w, "position_nicht_stornierbar", nil)
-			case errors.Is(err, application.ErrConflict):
+			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)
-			default:
-				helper.SendServerError(w)
+			} else {
+				helper.MapError(w, err, map[error]string{
+					application.ErrTischNotFound:            "tisch_not_found",
+					application.ErrTischNotActive:           "tisch_not_active",
+					application.ErrPositionNichtStornierbar: "position_nicht_stornierbar",
+				})
 			}
 			return
 		}
@@ -318,17 +293,14 @@ func (h *CommandHandler) ProdukteLiefernHandler() http.HandlerFunc {
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.ProdukteLiefern(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrTischNotFound):
-				helper.SendClientError(w, "tisch_not_found", nil)
-			case errors.Is(err, application.ErrTischNotActive):
-				helper.SendClientError(w, "tisch_not_active", nil)
-			case errors.Is(err, application.ErrPositionNichtLieferbar):
-				helper.SendClientError(w, "position_nicht_lieferbar", nil)
-			case errors.Is(err, application.ErrConflict):
+			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)
-			default:
-				helper.SendServerError(w)
+			} else {
+				helper.MapError(w, err, map[error]string{
+					application.ErrTischNotFound:          "tisch_not_found",
+					application.ErrTischNotActive:         "tisch_not_active",
+					application.ErrPositionNichtLieferbar: "position_nicht_lieferbar",
+				})
 			}
 			return
 		}

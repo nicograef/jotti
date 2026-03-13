@@ -150,13 +150,13 @@ Die nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung ode
 
 Der offene Betrag eines Tisches: Summe der Bestellungen − Summe der Zahlungen − Summe der Stornierungen. Immer in Cent.
 
-| Schicht          | Repräsentation             | Datei                           |
-| ---------------- | -------------------------- | ------------------------------- |
-| Go-Funktion      | `GetSaldoFromEvents()`     | `domain/table/events.go`        |
-| Go-Snapshot-Feld | `SaldoCents`               | `domain/table/snapshotEvent.go` |
-| API-Pfad         | `/service/get-tisch-saldo` | `api/service.go`                |
-| Frontend-Hook    | `useTischSaldo()`          | `src/service/table/hooks.ts`    |
-| UI-Label         | „offen" (Badge)            |                                 |
+| Schicht          | Repräsentation                | Datei                        |
+| ---------------- | ----------------------------- | ---------------------------- |
+| Go-Projektion    | `ApplyEvent()` → `TischState` | `domain/table/projection.go` |
+| Go-Snapshot-Feld | `SaldoCents`                  | `domain/table/projection.go` |
+| API-Pfad         | `/service/get-tisch-state`    | `api/service.go`             |
+| Frontend-Hook    | `useTischState()`             | `src/service/table/hooks.ts` |
+| UI-Label         | „offen" (Badge)               |                              |
 
 ### Historie
 

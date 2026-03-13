@@ -7,12 +7,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type queryPersistence interface {
-	GetAllUsers(ctx context.Context) ([]user.User, error)
-}
-
 type Query struct {
-	UserRepo queryPersistence
+	UserRepo userRepo
 }
 
 func (q Query) GetAllUsers(ctx context.Context) ([]user.User, error) {

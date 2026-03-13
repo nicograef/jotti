@@ -1,20 +1,21 @@
 package http
 
 import (
-	"database/sql"
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/api/reporting/application"
+	"github.com/nicograef/jotti/backend/domain/reporting"
 )
 
-type QueryHandler struct {
-	Query application.Query
+type query interface {
+	GetDashboardData(ctx context.Context) (reporting.DashboardData, error)
+	GetTagesabrechnung(ctx context.Context, von, bis time.Time) (reporting.TagesabrechnungData, error)
 }
 
-func NewQueryHandler(db *sql.DB) QueryHandler {
-	return QueryHandler{Query: application.NewQuery(db)}
+type QueryHandler struct {
+	Query query
 }
 
 func (h QueryHandler) GetDashboardHandler() http.HandlerFunc {

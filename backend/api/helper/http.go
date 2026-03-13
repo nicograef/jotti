@@ -79,3 +79,17 @@ func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T,
 	}
 	return true
 }
+
+// MapError maps a domain/application error to an HTTP error response.
+// It checks the error against each entry in the provided error-to-code map.
+// If a match is found, it sends a client error with the corresponding code.
+// If no match is found, it sends a generic server error.
+func MapError(w http.ResponseWriter, err error, codeMap map[error]string) {
+	for target, code := range codeMap {
+		if errors.Is(err, target) {
+			SendClientError(w, code, nil)
+			return
+		}
+	}
+	SendServerError(w)
+}

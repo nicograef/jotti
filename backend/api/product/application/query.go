@@ -7,13 +7,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type productRepoQuery interface {
-	GetAllProducts(ctx context.Context) ([]product.Produkt, error)
-	GetActiveProducts(ctx context.Context) ([]product.Produkt, error)
-}
-
 type Query struct {
-	ProductRepo productRepoQuery
+	ProductRepo productRepo
 }
 
 func (q Query) GetAllProducts(ctx context.Context) ([]product.Produkt, error) {

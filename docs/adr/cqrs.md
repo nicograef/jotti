@@ -159,7 +159,7 @@ Bei ~10.000 Events ist jede Aggregation in < 100ms erledigt. Kein Background Wor
 ### Negativ
 
 - **Write-Pfad minimal komplexer** — 1 INSERT + 1 UPSERT pro Transaktion (statt nur 1 INSERT).
-- **Apply-Funktion muss konsistent sein** — `ApplyEvent()` und die Event-Replay-Funktionen (`GetSaldoFromEvents()` etc.) berechnen denselben Zustand auf zwei Wegen. Testabdeckung ist essenziell.
+- **Apply-Funktion muss konsistent sein** — `ApplyEvent()` ist die einzige Zustandsberechnung. Testabdeckung ist essenziell.
 - **JSONB in Projektionstabelle** — `unbezahlte_positionen` und `ungelieferte_positionen` sind JSONB-Spalten. Typsicherheit nur auf Go-Ebene, nicht auf DB-Ebene.
 
 ## Referenzen

@@ -77,3 +77,21 @@ func (m *mockRepo) UpdateVariant(ctx context.Context, v product.Variante) error 
 	}
 	return m.err
 }
+
+func (m *mockRepo) GetAllProducts(ctx context.Context) ([]product.Produkt, error) {
+	products := make([]product.Produkt, 0, len(m.products))
+	for _, p := range m.products {
+		products = append(products, p)
+	}
+	return products, m.err
+}
+
+func (m *mockRepo) GetActiveProducts(ctx context.Context) ([]product.Produkt, error) {
+	products := make([]product.Produkt, 0)
+	for _, p := range m.products {
+		if p.Status == product.ActiveStatus {
+			products = append(products, p)
+		}
+	}
+	return products, m.err
+}

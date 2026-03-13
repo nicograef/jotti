@@ -66,3 +66,35 @@ func ApplyEvent(state TischState, evt e.Event) (TischState, error) {
 
 	return state, nil
 }
+
+// ComputeNichtStorniertePositionen replays events to compute all positions that were ordered
+// but not yet cancelled. Used on-demand for stornierung validation.
+func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
+	var nichtStorniert []Position
+
+	for _, evt := range events {
+		switch evt.Type {
+		case string(EventTypeBestellungAufgegebenV1):
+			var data bestellungAufgegebenV1Data
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal bestellung data: %w", err)
+			}
+			nichtStorniert = accumulatePositionen(nichtStorniert, data.Positionen)
+
+		case string(EventTypeProdukteStorniertV1):
+			var data produkteStorniertV1Data
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal stornierung data: %w", err)
+			}
+			nichtStorniert = reduceByPosition(nichtStorniert, data.Positionen)
+
+		case string(EventTypeZahlungRegistriertV1), string(EventTypeProdukteGeliefertV1):
+			continue
+
+		default:
+			return nil, fmt.Errorf("unknown event type: %s", evt.Type)
+		}
+	}
+
+	return nichtStorniert, nil
+}

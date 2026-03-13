@@ -1,5 +1,5 @@
 .PHONY: dev dev-up down restart logs status \
-       test test-frontend test-integration test-all \
+	test test-frontend test-integration test-all \
        lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt \
        build-backend build-frontend build \
@@ -7,7 +7,7 @@
        prod-init prod-up prod-down prod-logs prod-reset-db \
        db-shell seed rebuild-projections \
        clean \
-       check-backend check-frontend check \
+	check-backend check-frontend check-integration check check-full verify \
        help
 
 # ──────────────────────────────────────────────
@@ -140,13 +140,20 @@ clean: down ## Dev-Stack stoppen und Volumes entfernen
 # Qualitätsprüfung (CI-nah)                     
 # ──────────────────────────────────────────────
 
-check-backend: ## Backend komplett prüfen (tidy, lint, test, build)
-	cd backend && go mod tidy && golangci-lint run && goimports -w . && go vet ./... && go test -tags=unit -count=1 ./... && go build ./...
+check-backend: ## Backend komplett prüfen (Deps, Format, Lint, Test, Build)
+	cd backend && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -tags=unit -count=1 -race ./... && go build ./...
 
-check-frontend: ## Frontend komplett prüfen (format, lint, build)
-	cd frontend && pnpm format && pnpm lint && pnpm build
+check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
+	cd frontend && pnpm format:check && pnpm lint && pnpm test && pnpm build
 
-check: check-backend check-frontend ## Alles prüfen (Backend + Frontend)
+check-integration: ## Integrationstests gegen echte Datenbank ausführen
+	./test-integration.sh
+
+check: check-backend check-frontend ## Schnelle Komplettprüfung ohne DB-Integration
+
+check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
+
+verify: check-full ## Alias für vollständige Repo-Prüfung
 
 # ──────────────────────────────────────────────
 # Hilfe                                         

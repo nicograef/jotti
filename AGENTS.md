@@ -82,6 +82,9 @@ Alle Befehle werden über das **Makefile** im Projekt-Root ausgeführt:
 | `make lint`             | Backend + Frontend Linting                   |
 | `make fmt`              | Backend + Frontend Formatierung              |
 | `make build`            | Backend + Frontend kompilieren               |
+| `make check`            | Schnelle Repo-Prüfung ohne DB-Integration    |
+| `make check-full`       | Vollständige Prüfung inkl. Integrationstests |
+| `make verify`           | Alias für `make check-full`                  |
 | `make sqlc`             | sqlc Code generieren (nach Query-Änderungen) |
 | `make dev`              | Dev-Stack starten (Docker Compose)           |
 | `make down`             | Dev-Stack stoppen                            |

@@ -2,6 +2,7 @@ package event_repo
 
 import (
 	"context"
+	"sort"
 
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/table"
@@ -82,6 +83,9 @@ func (m *mockRepo) ReadEventsBySubject(ctx context.Context, subject string) ([]e
 			events = append(events, e)
 		}
 	}
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].ID < events[j].ID
+	})
 	return events, m.err
 }
 
@@ -106,4 +110,11 @@ func (m *mockRepo) SetTableState(tischID int, state table.TischState) {
 		m.tableState = make(map[int]table.TischState)
 	}
 	m.tableState[tischID] = state
+}
+
+// AddEvent adds an event to the mock for ReadEventsBySubject.
+func (m *mockRepo) AddEvent(e event.Event) {
+	newID := len(m.events) + 1
+	e.ID = newID
+	m.events[newID] = e
 }
