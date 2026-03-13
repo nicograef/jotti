@@ -4,7 +4,7 @@
        fmt-backend fmt-frontend fmt \
        build-backend build-frontend build \
        sqlc \
-       prod-init prod-up prod-down prod-logs prod-reset-db \
+       prod-init prod-up prod-down prod-logs prod-reset-db prod-reset-and-seed \
        db-shell seed rebuild-projections \
        clean \
 	check-tools check-backend check-frontend check-integration check check-full verify \
@@ -112,6 +112,9 @@ prod-reset-db: ## Prod-DB zurücksetzen (Zertifikate bleiben erhalten)
 	docker compose -f docker-compose.prod.yml down
 	docker volume rm $$(docker volume ls -q --filter name=_postgres-data | head -1)
 	docker compose -f docker-compose.prod.yml up -d --build
+
+prod-reset-and-seed: ## Prod-DB resetten, Seed importieren, Projektionen neu aufbauen (SSL bleibt erhalten)
+	./scripts/prod-reset-and-seed.sh --yes
 
 # ──────────────────────────────────────────────
 # Datenbank                                     
