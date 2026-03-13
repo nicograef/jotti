@@ -46,6 +46,7 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen:
 | Lieferung bestätigen     |   ✔   |       ✔        |      ✔       |
 | Zahlung registrieren     |   ✔   |       ✔        |      ✔       |
 | Stornierung durchführen  |   ✔   |       ✔        |              |
+| Umbuchung durchführen    |   ✔   |       ✔        |      ✔       |
 | Tischübersicht einsehen  |   ✔   |       ✔        |      ✔       |
 | Kassenjournal einsehen   |   ✔   |       ✔        |      ✔       |
 | Abmelden                 |   ✔   |       ✔        |      ✔       |
@@ -165,7 +166,7 @@ Jeder Tisch führt ein unveränderliches Kassenjournal (Event Stream), das alle 
 
 ### K-08 · Bestellungen umbuchen
 
-> **ID:** K-08 · **Rolle:** Serviceleitung · Admin
+> **ID:** K-08 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
 Serviceleitung oder Admin können eine Bestellung nachträglich auf einen anderen Tisch umbuchen, um Eingabefehler zu korrigieren. Das Umbuchen erzeugt eine Stornierung am Quell-Tisch und eine neue Bestellung am Ziel-Tisch in einer atomaren Operation.
@@ -444,7 +445,7 @@ Alle Kommunikation zwischen Client und Server ist TLS-verschlüsselt. Der Revers
 ### Q-07 · Rate Limiting
 
 > **ID:** Q-07 · **Rolle:** —
-> **Status:** 🔲 Offen · **Prio:** Should-have
+> **Status:** ✅ Umgesetzt · **Prio:** Should-have
 
 Der Login-Endpunkt ist durch Rate Limiting geschützt, um Brute-Force-Angriffe zu erschweren. Bei Überschreitung des Limits wird eine entsprechende HTTP-Antwort zurückgegeben.
 
@@ -457,7 +458,7 @@ Der Login-Endpunkt ist durch Rate Limiting geschützt, um Brute-Force-Angriffe z
 ### Q-08 · Security Headers
 
 > **ID:** Q-08 · **Rolle:** —
-> **Status:** 🔲 Offen · **Prio:** Should-have
+> **Status:** ✅ Umgesetzt · **Prio:** Should-have
 
 Sicherheitsrelevante HTTP-Header werden gesetzt, um gängige Angriffsvektoren (XSS, Clickjacking, MIME-Sniffing) zu mitigieren. Die Header werden vom Reverse Proxy oder Backend gesetzt.
 
@@ -473,31 +474,53 @@ Sicherheitsrelevante HTTP-Header werden gesetzt, um gängige Angriffsvektoren (X
 
 ## 5 · Reporting und Auswertung
 
+> **Abrechnungszeitraum:** Vereinsfeste enden häufig nach Mitternacht (z. B. 17:00–03:00). Ein „Tag" im Sinne der Abrechnung entspricht daher **nicht** zwingend dem Kalendertag 0:00–24:00. Alle zeitraumbezogenen Auswertungen (R-01, R-03–R-05) beziehen sich auf einen vom Admin wählbaren **Abrechnungszeitraum** (Von–Bis). Standardmäßig wird der Zeitraum seit dem letzten Tagesabschluss (R-07) vorgeschlagen; der Admin kann ihn jederzeit manuell anpassen.
+
+### R-00 · Admin-Dashboard
+
+> **ID:** R-00 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Should-have
+
+Der Admin-Bereich besitzt ein Dashboard als Startseite, das einen kompakten Live-Überblick über die laufende Veranstaltung bietet. Die angezeigten Kennzahlen müssen nicht streng konsistent sein (Eventually Consistent ist ausreichend) — es geht um einen schnellen Orientierungsblick, nicht um eine exakte Abrechnung.
+
+**Akzeptanzkriterien:**
+
+- Dashboard ist die Startseite des Admin-Bereichs (`/admin`)
+- Anzeige der wichtigsten Kennzahlen auf einen Blick:
+  - Gesamtumsatz (Summe aller Zahlungen im Abrechnungszeitraum)
+  - Anzahl offener Tische (Saldo > 0)
+  - Anzahl Bestellungen und Stornierungen im Abrechnungszeitraum
+- Schnellzugriff auf Detail-Auswertungen (R-01, R-03–R-05) und auf den Tagesabschluss (R-07)
+- Daten dürfen eventually consistent sein (kein Echtzeit-Zwang)
+- Nur durch Admin einsehbar
+
 ### R-01 · Tagesabrechnung
 
 > **ID:** R-01 · **Rolle:** Admin
 > **Status:** 🔲 Offen · **Prio:** Should-have
 
-Der Admin kann am Ende einer Veranstaltung oder jederzeit zwischendurch eine Tagesabrechnung einsehen. Diese zeigt den Gesamtumsatz, den Umsatz pro Servicekraft sowie eine Übersicht aller Stornierungen. Damit erhalten Verantwortliche ein vollständiges Bild über Einnahmen und Korrekturen des Tages.
+Der Admin kann jederzeit eine Tagesabrechnung für einen wählbaren Abrechnungszeitraum einsehen. Diese zeigt den Gesamtumsatz, eine Aufschlüsselung pro Servicekraft sowie eine Übersicht aller Stornierungen. Die Tagesabrechnung ist die zentrale Auswertung für die Vereinsbuchhaltung.
 
 **Akzeptanzkriterien:**
 
-- Gesamtumsatz des Tages einsehbar (Summe aller registrierten Zahlungen)
-- Umsatz pro Servicekraft als Übersichtswert (Details siehe R-04)
+- Abrechnungszeitraum ist wählbar (Von–Bis als Datum + Uhrzeit); Default: seit letztem Tagesabschluss
+- Gesamtumsatz im gewählten Zeitraum (Summe aller registrierten Zahlungen)
+- Gesamtbetrag der Bestellungen, der Stornierungen und offener Saldi im Zeitraum
+- Umsatz pro Servicekraft als Übersichtsliste (Details siehe R-04)
 - Übersicht aller Stornierungen mit Zeitpunkt, Tisch, stornierten Positionen und Betrag
 - Abruf jederzeit möglich (nicht nur bei Tagesabschluss)
-- Servicekraft kann eigene Bestellungen und deren Status einsehen (bestellt, geliefert, bezahlt, storniert)
 
 ### R-02 · Datenexport
 
 > **ID:** R-02 · **Rolle:** Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
-Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um sie extern weiterverarbeiten zu können (z. B. für die Vereinsbuchhaltung).
+Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um sie extern weiterverarbeiten zu können (z. B. für die Vereinsbuchhaltung). Der Export bezieht sich auf den gewählten Abrechnungszeitraum.
 
 **Akzeptanzkriterien:**
 
 - Export von Umsätzen, Bestellungen und Artikeldaten als CSV
+- Export bezieht sich auf den gewählten Abrechnungszeitraum
 - Export jederzeit durch den Admin auslösbar
 
 ### R-03 · Abrechnung pro Tisch
@@ -505,11 +528,11 @@ Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um s
 > **ID:** R-03 · **Rolle:** Admin
 > **Status:** 🔲 Offen · **Prio:** Should-have
 
-Der Admin kann eine detaillierte Abrechnung pro Tisch einsehen. Diese enthält alle Bestellungen, Zahlungen, Lieferungen und Stornierungen des jeweiligen Tisches in chronologischer Reihenfolge sowie einen Gesamt-Saldo.
+Der Admin kann eine detaillierte Abrechnung pro Tisch einsehen. Diese enthält alle Bestellungen, Zahlungen, Lieferungen und Stornierungen des jeweiligen Tisches in chronologischer Reihenfolge sowie einen Gesamt-Saldo — gefiltert auf den gewählten Abrechnungszeitraum.
 
 **Akzeptanzkriterien:**
 
-- Detaillierte Aufstellung aller Bestellungen, Zahlungen, Lieferungen und Stornierungen eines Tisches
+- Detaillierte Aufstellung aller Bestellungen, Zahlungen, Lieferungen und Stornierungen eines Tisches im Abrechnungszeitraum
 - Anzeige des Gesamt-Saldos (bestellt, bezahlt, offen, storniert)
 - Abrufbar für jeden einzelnen Tisch durch den Admin
 - Chronologische Reihenfolge der Ereignisse
@@ -519,13 +542,14 @@ Der Admin kann eine detaillierte Abrechnung pro Tisch einsehen. Diese enthält a
 > **ID:** R-04 · **Rolle:** Admin
 > **Status:** 🔲 Offen · **Prio:** Should-have
 
-Der Admin kann eine personenbezogene Abrechnung pro Servicekraft einsehen. Diese zeigt den Umsatz, die Anzahl der aufgegebenen Bestellungen sowie Stornierungen der jeweiligen Person — für Transparenz und Nachvollziehbarkeit.
+Der Admin kann eine personenbezogene Abrechnung pro Servicekraft für den gewählten Abrechnungszeitraum einsehen. Diese zeigt den kassieren Umsatz, die Anzahl und Summe der aufgegebenen Bestellungen, Stornierungen sowie den Vergleich Bestellt vs. Kassiert — für die Endabrechnung und Nachvollziehbarkeit.
 
 **Akzeptanzkriterien:**
 
-- Umsatz pro Servicekraft einsehbar (Summe aller registrierten Zahlungen durch diese Person)
-- Anzahl der aufgegebenen Bestellungen pro Servicekraft
+- Umsatz pro Servicekraft im Abrechnungszeitraum (Summe aller von dieser Person registrierten Zahlungen)
+- Bestellvolumen pro Servicekraft (Anzahl und Summe der aufgegebenen Bestellungen)
 - Anzahl und Betrag der Stornierungen pro Servicekraft
+- Gegenüberstellung: Bestellsumme vs. kassierte Summe pro Person (Differenz = offene Beträge)
 - Nur durch Admin einsehbar
 
 ### R-05 · Produktumsatz-Reporting
@@ -533,28 +557,45 @@ Der Admin kann eine personenbezogene Abrechnung pro Servicekraft einsehen. Diese
 > **ID:** R-05 · **Rolle:** Admin
 > **Status:** 🔲 Offen · **Prio:** Should-have
 
-Der Admin kann Auswertungen über Produktumsätze einsehen: verkaufte Mengen pro Produkt und Variante, ein Ranking der meistverkauften Varianten sowie Gesamteinnahmen pro Produkt.
+Der Admin kann Auswertungen über Produktumsätze im gewählten Abrechnungszeitraum einsehen: verkaufte Mengen pro Produkt und Variante, ein Ranking der meistverkauften Varianten sowie Gesamteinnahmen pro Produkt.
 
 **Akzeptanzkriterien:**
 
-- Übersicht über verkaufte Mengen pro Produkt und Variante
+- Übersicht über verkaufte Mengen pro Produkt und Variante im Abrechnungszeitraum
 - Ranking der meistverkauften Varianten
 - Gesamteinnahmen pro Produkt/Variante
 - Nur durch Admin einsehbar
 
-### R-06 · Tagesabschluss
+### R-06 · Eigene Übersicht (Servicekraft)
 
-> **ID:** R-06 · **Rolle:** Admin
+> **ID:** R-06 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
-Der Admin kann einen Tagesabschluss einleiten, der offene Tische prüft, einen Abschlussbericht generiert und das System optional für die nächste Veranstaltung zurücksetzt. **Hinweis:** Das Zurücksetzen des Systems wirft eine offene Frage zur Event-Sourcing-Kompatibilität auf — sollen Events gelöscht (widerspricht dem Append-only-Prinzip) oder archiviert werden? Wie wird mit offenen Saldi umgegangen?
+Jede Servicekraft kann eine Übersicht über die eigenen Aktivitäten einsehen: aufgegebene Bestellungen, registrierte Zahlungen und deren Status. Dies gibt dem Helfer einen persönlichen Überblick über den eigenen Beitrag, ohne dass ein Admin benötigt wird.
+
+**Akzeptanzkriterien:**
+
+- Servicekraft kann eigene Bestellungen und deren Status einsehen (bestellt, geliefert, bezahlt, storniert)
+- Anzeige des eigenen kassieren Umsatzes (Summe der selbst registrierten Zahlungen)
+- Nur eigene Daten sichtbar — kein Einblick in Daten anderer Servicekräfte
+
+### R-07 · Tagesabschluss
+
+> **ID:** R-07 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Should-have
+
+Der Admin leitet am Ende einer Veranstaltung einen Tagesabschluss ein. Dabei wird der aktuelle Abrechnungszeitraum abgeschlossen, ein Abschlussbericht generiert und das System für den nächsten Veranstaltungstag vorbereitet. Der Tagesabschluss dient als Schnittstelle zur Vereinsbuchhaltung und als Grundlage für die Auszahlung an Servicekräfte.
+
+**Hinweis:** Das Zurücksetzen wirft eine offene Frage zur Event-Sourcing-Kompatibilität auf — Events werden nicht gelöscht (Append-only-Prinzip), sondern der Tagesabschluss markiert eine logische Zäsur im Event Stream.
 
 **Akzeptanzkriterien:**
 
 - Admin kann einen Tagesabschluss einleiten
-- Offene Tische (Saldo ≠ 0) werden vor Abschluss angezeigt
-- Abschlussbericht wird generiert (vgl. R-01)
-- Optional: System kann für die nächste Veranstaltung zurückgesetzt werden (Tisch-Events archivieren)
+- Offene Tische (Saldo ≠ 0) werden vor Abschluss angezeigt und müssen bestätigt werden
+- Abschlussbericht wird generiert (entspricht Tagesabrechnung R-01 für den abgeschlossenen Zeitraum)
+- Tagesabschluss setzt den Default-Abrechnungszeitraum für nachfolgende Auswertungen auf „ab jetzt"
+- Abgeschlossene Zeiträume bleiben über R-01 weiterhin abrufbar (Archiv)
+- Optional: Tisch-Saldi können auf 0 zurückgesetzt werden (erzeugt ein Abschluss-Event pro Tisch, kein Löschen)
 
 ---
 
