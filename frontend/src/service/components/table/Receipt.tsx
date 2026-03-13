@@ -16,9 +16,7 @@ export function Receipt({
 }) {
   return (
     <>
-      <ScrollArea
-        className={`inset-shadow-sm h-${Math.min(positionen.length * 10, 50).toString()}`} // max height 50 units, 10 units per variant
-      >
+      <ScrollArea className="inset-shadow-sm max-h-96">
         <div className="px-4 pt-2 pb-0 space-y-2">
           {positionen.map((position) => {
             return (

@@ -156,7 +156,7 @@ function PositionItem({
         <Button
           size="icon"
           variant="outline"
-          className="rounded-full min-h-10 min-w-10"
+          className="rounded-full min-h-12 min-w-12"
           aria-label="Produkt entfernen"
           onClick={onRemove}
         >
@@ -166,7 +166,7 @@ function PositionItem({
         <Button
           size="icon"
           variant="outline"
-          className="rounded-full min-h-10 min-w-10"
+          className="rounded-full min-h-12 min-w-12"
           aria-label="Produkt hinzufügen"
           onClick={onAdd}
         >

@@ -1,6 +1,7 @@
 import { ChevronRightIcon, Lamp } from 'lucide-react'
 import { Link } from 'react-router'
 
+import { EmptyState } from '@/components/common/EmptyState'
 import {
   Item,
   ItemActions,
@@ -29,6 +30,16 @@ interface TischListComponentProps {
 }
 
 function TischList(props: TischListComponentProps) {
+  if (props.tische.length === 0) {
+    return (
+      <EmptyState
+        icon={Lamp}
+        title="Keine aktiven Tische"
+        description="Bitte im Admin-Bereich mindestens einen Tisch aktivieren."
+      />
+    )
+  }
+
   return (
     <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
       {props.tische.map((tisch) => (

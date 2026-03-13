@@ -1,6 +1,7 @@
-import { ChevronDown, ChevronRight, Minus, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Minus, Package, Plus } from 'lucide-react'
 import { useState } from 'react'
 
+import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import {
   Item,
@@ -48,6 +49,16 @@ export function ProductList(props: ProductListComponentProps) {
     return varianten.reduce(
       (sum, v) => sum + (props.variantMengen[v.id] || 0),
       0,
+    )
+  }
+
+  if (props.products.length === 0) {
+    return (
+      <EmptyState
+        icon={Package}
+        title="Keine Produkte verfügbar"
+        description="Bitte im Admin-Bereich mindestens eine aktive Variante anlegen."
+      />
     )
   }
 
@@ -153,7 +164,7 @@ function VariantItem({
         <Button
           size="icon"
           variant="outline"
-          className="rounded-full min-h-10 min-w-10"
+          className="rounded-full min-h-12 min-w-12"
           aria-label="Variante entfernen"
           onClick={(e) => {
             e.stopPropagation()
@@ -166,7 +177,7 @@ function VariantItem({
         <Button
           size="icon"
           variant="outline"
-          className="rounded-full min-h-10 min-w-10"
+          className="rounded-full min-h-12 min-w-12"
           aria-label="Variante hinzufügen"
           onClick={(e) => {
             e.stopPropagation()
