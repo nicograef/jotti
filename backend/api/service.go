@@ -23,9 +23,7 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/get-tisch", tq.GetTischHandler())
 	r.HandleFunc("/get-aktive-tische", tq.GetAktiveTischeHandler())
 	r.HandleFunc("/get-tisch-historie", tq.GetTischHistorieHandler())
-	r.HandleFunc("/get-tisch-saldo", tq.GetTischSaldoHandler())
-	r.HandleFunc("/get-tisch-unbezahlt", tq.GetTischUnbezahltHandler())
-	r.HandleFunc("/get-tisch-ungeliefert", tq.GetTischUngeliefertHandler())
+	r.HandleFunc("/get-tisch-state", tq.GetTischStateHandler())
 
 	return r
 }

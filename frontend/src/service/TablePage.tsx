@@ -17,7 +17,7 @@ import { Bestellung } from './components/table/Bestellung'
 import { Lieferung } from './components/table/Lieferung'
 import { TischHistorie } from './components/table/TischHistorie'
 import { Zahlung } from './components/table/Zahlung'
-import { useTischSaldo, useTischUngeliefert } from './table/hooks'
+import { useTischState } from './table/hooks'
 import { useTisch } from './table/hooks'
 import { TischBackend } from './table/TischBackend'
 
@@ -27,17 +27,12 @@ export function TablePage() {
   const { tableId } = useParams<{ tableId: string }>()
   const { loading: tischLoading, tisch } = useTisch(Number(tableId))
   const {
-    saldoCents,
-    loading: saldoLoading,
-    reload: reloadSaldo,
-  } = useTischSaldo(Number(tableId))
-  const {
-    positionen: ungeliefertePositionen,
-    loading: ungeliefertePositionenLoading,
-    reload: reloadUngeliefertePositionen,
-  } = useTischUngeliefert(Number(tableId))
+    state,
+    loading: stateLoading,
+    reload: reloadState,
+  } = useTischState(Number(tableId))
 
-  const offenePositionen = ungeliefertePositionen.reduce(
+  const offenePositionen = state.ungeliefertePositionen.reduce(
     (sum, position) => sum + position.menge,
     0,
   )
@@ -48,17 +43,17 @@ export function TablePage() {
         <ItemContent>
           <ItemTitle className="text-2xl">
             {tischLoading ? 'Tisch ??' : tisch?.name}{' '}
-            {!ungeliefertePositionenLoading && offenePositionen > 0 && (
+            {!stateLoading && offenePositionen > 0 && (
               <Badge variant="destructive">{offenePositionen} offen</Badge>
             )}
-            {!ungeliefertePositionenLoading && offenePositionen === 0 && (
+            {!stateLoading && offenePositionen === 0 && (
               <Badge>Alles geliefert!</Badge>
             )}
           </ItemTitle>
         </ItemContent>
         <ItemContent>
           <ItemDescription className="text-2xl">
-            {saldoLoading ? '?' : formatCents(saldoCents)} €
+            {stateLoading ? '?' : formatCents(state.saldoCents)} €
           </ItemDescription>
         </ItemContent>
       </Item>
@@ -84,8 +79,10 @@ export function TablePage() {
                   <Lieferung
                     backend={tischBackend}
                     tisch={tisch}
+                    positionen={state.ungeliefertePositionen}
+                    loading={stateLoading}
                     onProdukteGeliefert={() => {
-                      reloadUngeliefertePositionen()
+                      reloadState()
                     }}
                   />
                 </Card>
@@ -94,8 +91,7 @@ export function TablePage() {
                 backend={tischBackend}
                 tisch={tisch}
                 onBestellungAufgegeben={() => {
-                  reloadSaldo()
-                  reloadUngeliefertePositionen()
+                  reloadState()
                 }}
               />
             </>
@@ -106,11 +102,13 @@ export function TablePage() {
             <Zahlung
               backend={tischBackend}
               tisch={tisch}
+              positionen={state.unbezahltePositionen}
+              loading={stateLoading}
               onZahlungRegistriert={() => {
-                reloadSaldo()
+                reloadState()
               }}
               onProdukteStorniert={() => {
-                reloadSaldo()
+                reloadState()
               }}
             />
           )}

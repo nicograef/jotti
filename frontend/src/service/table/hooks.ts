@@ -1,10 +1,11 @@
 import { BackendSingleton } from '@/lib/Backend'
 import { useFetch } from '@/lib/useFetch'
 
-import type { Bestellung, Position } from './Bestellung'
+import type { Bestellung } from './Bestellung'
 import type { Lieferung } from './Lieferung'
 import type { Stornierung } from './Stornierung'
 import type { Tisch } from './Tisch'
+import type { TischState } from './Tisch'
 import { TischBackend } from './TischBackend'
 import type { Zahlung } from './Zahlung'
 
@@ -39,29 +40,16 @@ export function useTischHistorie(tischId: number) {
   return { ...rest, historie }
 }
 
-export function useTischSaldo(tischId: number) {
-  const { data: saldoCents, ...rest } = useFetch(
-    () => tischBackend.getTischSaldo(tischId),
-    0,
+export function useTischState(tischId: number) {
+  const { data: state, ...rest } = useFetch(
+    () => tischBackend.getTischState(tischId),
+    {
+      saldoCents: 0,
+      unbezahltePositionen: [],
+      ungeliefertePositionen: [],
+      gesamtZahlungenCents: 0,
+    } as TischState,
     [tischId],
   )
-  return { ...rest, saldoCents }
-}
-
-export function useTischUnbezahlt(tischId: number) {
-  const { data: positionen, ...rest } = useFetch(
-    () => tischBackend.getTischUnbezahlt(tischId),
-    [] as Position[],
-    [tischId],
-  )
-  return { ...rest, positionen }
-}
-
-export function useTischUngeliefert(tischId: number) {
-  const { data: positionen, ...rest } = useFetch(
-    () => tischBackend.getTischUngeliefert(tischId),
-    [] as Position[],
-    [tischId],
-  )
-  return { ...rest, positionen }
+  return { ...rest, state }
 }

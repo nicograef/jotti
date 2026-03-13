@@ -6,8 +6,6 @@ import {
   type Bestellung,
   BestellungAufgebenSchema,
   BestellungSchema,
-  type Position,
-  PositionSchema,
 } from './Bestellung'
 import {
   type Lieferung,
@@ -19,7 +17,13 @@ import {
   type Stornierung,
   StornierungSchema,
 } from './Stornierung'
-import { type Tisch, TischIdSchema, TischSchema } from './Tisch'
+import {
+  type Tisch,
+  TischIdSchema,
+  TischSchema,
+  type TischState,
+  TischStateSchema,
+} from './Tisch'
 import {
   type Zahlung,
   ZahlungRegistrierenSchema,
@@ -101,33 +105,8 @@ export class TischBackend {
     return historie
   }
 
-  public async getTischSaldo(tischId: number): Promise<number> {
+  public async getTischState(tischId: number): Promise<TischState> {
     const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
-    const { saldoCents } = await this.backend.post(
-      'service/get-tisch-saldo',
-      body,
-      z.object({ saldoCents: z.number().int() }),
-    )
-    return saldoCents
-  }
-
-  public async getTischUnbezahlt(tischId: number): Promise<Position[]> {
-    const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
-    const { positionen } = await this.backend.post(
-      'service/get-tisch-unbezahlt',
-      body,
-      z.object({ positionen: z.array(PositionSchema) }),
-    )
-    return positionen
-  }
-
-  public async getTischUngeliefert(tischId: number): Promise<Position[]> {
-    const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
-    const { positionen } = await this.backend.post(
-      'service/get-tisch-ungeliefert',
-      body,
-      z.object({ positionen: z.array(PositionSchema) }),
-    )
-    return positionen
+    return this.backend.post('service/get-tisch-state', body, TischStateSchema)
   }
 }

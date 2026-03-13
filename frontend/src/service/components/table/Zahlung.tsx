@@ -16,7 +16,6 @@ import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
-import { useTischUnbezahlt } from '../../table/hooks'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { StornierungDrawer } from './StornierungDrawer'
@@ -25,6 +24,8 @@ import { ZahlungDrawer } from './ZahlungDrawer'
 interface ZahlungProps {
   backend: Pick<TischBackend, 'zahlungRegistrieren' | 'produkteStornieren'>
   tisch: Tisch
+  positionen: Position[]
+  loading: boolean
   onZahlungRegistriert: () => void
   onProdukteStorniert: () => void
 }
@@ -32,10 +33,11 @@ interface ZahlungProps {
 export function Zahlung({
   tisch,
   backend,
+  positionen,
+  loading,
   onZahlungRegistriert,
   onProdukteStorniert,
 }: ZahlungProps) {
-  const { positionen, loading, reload } = useTischUnbezahlt(tisch.id)
   const [mengen, setMengen] = useState<Record<string, number>>({})
 
   const unbezahlteMengen: Record<string, number> = {}
@@ -79,7 +81,6 @@ export function Zahlung({
                 setMengen({})
                 toast.success(`Stornierung erfolgreich.`)
                 onProdukteStorniert()
-                reload()
               }}
             />
           </div>
@@ -94,7 +95,6 @@ export function Zahlung({
               setMengen({})
               toast.success(`Zahlung erfolgreich.`)
               onZahlungRegistriert()
-              reload()
             }}
           />
         </div>

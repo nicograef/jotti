@@ -71,17 +71,17 @@ func (q Query) GetAktiveTische(ctx context.Context) ([]t.Tisch, error) {
 	return tische, nil
 }
 
-func (q Query) GetTischSaldo(ctx context.Context, tischID int) (int, error) {
+func (q Query) GetTischState(ctx context.Context, tischID int) (t.TischState, error) {
 	log := zerolog.Ctx(ctx)
 
 	state, err := q.EventRepo.ReadTableState(ctx, tischID)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table state")
-		return 0, ErrDatabase
+		return t.TischState{}, ErrDatabase
 	}
 
-	log.Info().Int("tisch_id", tischID).Int("saldo_cents", state.SaldoCents).Msg("Retrieved tisch saldo")
-	return state.SaldoCents, nil
+	log.Info().Int("tisch_id", tischID).Int("saldo_cents", state.SaldoCents).Msg("Retrieved tisch state")
+	return state, nil
 }
 
 func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]any, error) {
@@ -103,30 +103,4 @@ func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]any, error)
 
 	log.Info().Int("tisch_id", tischID).Int("historie_count", len(historie)).Msg("Retrieved historie for tisch")
 	return historie, nil
-}
-
-func (q Query) GetTischUnbezahlt(ctx context.Context, tischID int) ([]t.Position, error) {
-	log := zerolog.Ctx(ctx)
-
-	state, err := q.EventRepo.ReadTableState(ctx, tischID)
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table state")
-		return nil, ErrDatabase
-	}
-
-	log.Info().Int("tisch_id", tischID).Int("unbezahlt_count", len(state.UnbezahltePositionen)).Msg("Retrieved unbezahlte positionen for tisch")
-	return state.UnbezahltePositionen, nil
-}
-
-func (q Query) GetTischUngeliefert(ctx context.Context, tischID int) ([]t.Position, error) {
-	log := zerolog.Ctx(ctx)
-
-	state, err := q.EventRepo.ReadTableState(ctx, tischID)
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table state")
-		return nil, ErrDatabase
-	}
-
-	log.Info().Int("tisch_id", tischID).Int("ungeliefert_count", len(state.UngeliefertePositionen)).Msg("Retrieved ungelieferte positionen for tisch")
-	return state.UngeliefertePositionen, nil
 }

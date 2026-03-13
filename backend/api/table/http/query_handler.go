@@ -15,9 +15,7 @@ type query interface {
 	GetAllTische(ctx context.Context) ([]t.Tisch, error)
 	GetAktiveTische(ctx context.Context) ([]t.Tisch, error)
 	GetTischHistorie(ctx context.Context, tischID int) ([]any, error)
-	GetTischSaldo(ctx context.Context, tischID int) (int, error)
-	GetTischUnbezahlt(ctx context.Context, tischID int) ([]t.Position, error)
-	GetTischUngeliefert(ctx context.Context, tischID int) ([]t.Position, error)
+	GetTischState(ctx context.Context, tischID int) (t.TischState, error)
 }
 
 type QueryHandler struct {
@@ -124,77 +122,35 @@ func (h QueryHandler) GetTischHistorieHandler() http.HandlerFunc {
 	}
 }
 
-type getTischSaldo struct {
+type getTischState struct {
 	TischID int `json:"tischId"`
 }
 
-type getTischSaldoResponse struct {
-	SaldoCents int `json:"saldoCents"`
+type getTischStateResponse struct {
+	SaldoCents             int          `json:"saldoCents"`
+	UnbezahltePositionen   []t.Position `json:"unbezahltePositionen"`
+	UngeliefertePositionen []t.Position `json:"ungeliefertePositionen"`
+	GesamtZahlungenCents   int          `json:"gesamtZahlungenCents"`
 }
 
-func (h QueryHandler) GetTischSaldoHandler() http.HandlerFunc {
+func (h QueryHandler) GetTischStateHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTischSaldo{}
+		body := getTischState{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		saldoCents, err := h.Query.GetTischSaldo(r.Context(), body.TischID)
+		state, err := h.Query.GetTischState(r.Context(), body.TischID)
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, getTischSaldoResponse{SaldoCents: saldoCents})
-	}
-}
-
-type getTischUnbezahlt struct {
-	TischID int `json:"tischId"`
-}
-
-type getTischUnbezahltResponse struct {
-	Positionen []t.Position `json:"positionen"`
-}
-
-func (h QueryHandler) GetTischUnbezahltHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTischUnbezahlt{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-
-		positionen, err := h.Query.GetTischUnbezahlt(r.Context(), body.TischID)
-		if err != nil {
-			helper.SendServerError(w)
-			return
-		}
-
-		helper.SendResponse(w, getTischUnbezahltResponse{Positionen: positionen})
-	}
-}
-
-type getTischUngeliefert struct {
-	TischID int `json:"tischId"`
-}
-
-type getTischUngeliefertResponse struct {
-	Positionen []t.Position `json:"positionen"`
-}
-
-func (h QueryHandler) GetTischUngeliefertHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTischUngeliefert{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-
-		positionen, err := h.Query.GetTischUngeliefert(r.Context(), body.TischID)
-		if err != nil {
-			helper.SendServerError(w)
-			return
-		}
-
-		helper.SendResponse(w, getTischUngeliefertResponse{Positionen: positionen})
+		helper.SendResponse(w, getTischStateResponse{
+			SaldoCents:             state.SaldoCents,
+			UnbezahltePositionen:   state.UnbezahltePositionen,
+			UngeliefertePositionen: state.UngeliefertePositionen,
+			GesamtZahlungenCents:   state.GesamtZahlungenCents,
+		})
 	}
 }

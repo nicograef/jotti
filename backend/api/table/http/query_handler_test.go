@@ -36,16 +36,12 @@ func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]any, er
 	return []any{m.order}, m.err
 }
 
-func (m mockQuery) GetTischSaldo(ctx context.Context, tischID int) (int, error) {
-	return m.balance, m.err
-}
-
-func (m mockQuery) GetTischUnbezahlt(ctx context.Context, tischID int) ([]table.Position, error) {
-	return []table.Position{m.position}, m.err
-}
-
-func (m mockQuery) GetTischUngeliefert(ctx context.Context, tischID int) ([]table.Position, error) {
-	return []table.Position{m.position}, m.err
+func (m mockQuery) GetTischState(ctx context.Context, tischID int) (table.TischState, error) {
+	return table.TischState{
+		SaldoCents:             m.balance,
+		UnbezahltePositionen:   []table.Position{m.position},
+		UngeliefertePositionen: []table.Position{m.position},
+	}, m.err
 }
 
 func TestGetAllTischeHandler_Success(t *testing.T) {

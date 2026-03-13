@@ -14,7 +14,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 import type { Position } from '../../table/Bestellung'
-import { useTischUngeliefert } from '../../table/hooks'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { LieferungDrawer } from './LieferungDrawer'
@@ -22,15 +21,18 @@ import { LieferungDrawer } from './LieferungDrawer'
 interface LieferungProps {
   backend: Pick<TischBackend, 'produkteLiefern'>
   tisch: Tisch
+  positionen: Position[]
+  loading: boolean
   onProdukteGeliefert: () => void
 }
 
 export function Lieferung({
   tisch,
   backend,
+  positionen,
+  loading,
   onProdukteGeliefert,
 }: LieferungProps) {
-  const { positionen, loading, reload } = useTischUngeliefert(tisch.id)
   const [mengen, setMengen] = useState<Record<string, number>>({})
 
   const ungelieferteMengen: Record<string, number> = {}
@@ -72,7 +74,6 @@ export function Lieferung({
           setMengen({})
           toast.success(`Lieferung wurde registriert.`)
           onProdukteGeliefert()
-          reload()
         }}
       />
       <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 mt-4">

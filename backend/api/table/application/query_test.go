@@ -28,120 +28,58 @@ func TestGetAllTische(t *testing.T) {
 	}
 }
 
-func TestGetTischSaldo(t *testing.T) {
-	eventMock := event_repo.NewMock(nil, nil)
-	eventMock.SetTableState(1, table.TischState{
-		SaldoCents:           700,
-		GesamtZahlungenCents: 0,
-	})
-	query := Query{
-		TableRepo: table_repo.NewMock(nil, nil),
-		EventRepo: eventMock,
-	}
-
-	saldo, err := query.GetTischSaldo(context.Background(), 1)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if saldo != 700 {
-		t.Errorf("expected saldo 700, got %d", saldo)
-	}
-}
-
-func TestGetTischSaldo_NoState(t *testing.T) {
-	query := Query{
-		TableRepo: table_repo.NewMock(nil, nil),
-		EventRepo: event_repo.NewMock(nil, nil),
-	}
-
-	saldo, err := query.GetTischSaldo(context.Background(), 999)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if saldo != 0 {
-		t.Errorf("expected saldo 0, got %d", saldo)
-	}
-}
-
-func TestGetTischUnbezahlt(t *testing.T) {
+func TestGetTischState(t *testing.T) {
 	positions := []table.Position{
 		{PositionID: "p1", ProduktName: "Cola", VarianteName: "0,5l", Einzelpreis: 350, Menge: 2},
 	}
 	eventMock := event_repo.NewMock(nil, nil)
 	eventMock.SetTableState(1, table.TischState{
-		SaldoCents:           700,
-		UnbezahltePositionen: positions,
-	})
-	query := Query{
-		TableRepo: table_repo.NewMock(nil, nil),
-		EventRepo: eventMock,
-	}
-
-	unbezahlt, err := query.GetTischUnbezahlt(context.Background(), 1)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if len(unbezahlt) != 1 {
-		t.Fatalf("expected 1 position, got %d", len(unbezahlt))
-	}
-	if unbezahlt[0].Menge != 2 {
-		t.Errorf("expected menge 2, got %d", unbezahlt[0].Menge)
-	}
-}
-
-func TestGetTischUnbezahlt_NoState(t *testing.T) {
-	query := Query{
-		TableRepo: table_repo.NewMock(nil, nil),
-		EventRepo: event_repo.NewMock(nil, nil),
-	}
-
-	unbezahlt, err := query.GetTischUnbezahlt(context.Background(), 999)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if unbezahlt != nil {
-		t.Errorf("expected nil, got %v", unbezahlt)
-	}
-}
-
-func TestGetTischUngeliefert(t *testing.T) {
-	positions := []table.Position{
-		{PositionID: "p1", ProduktName: "Pommes", VarianteName: "groß", Einzelpreis: 500, Menge: 1},
-	}
-	eventMock := event_repo.NewMock(nil, nil)
-	eventMock.SetTableState(1, table.TischState{
-		SaldoCents:             500,
+		SaldoCents:             700,
+		UnbezahltePositionen:   positions,
 		UngeliefertePositionen: positions,
+		GesamtZahlungenCents:   0,
 	})
 	query := Query{
 		TableRepo: table_repo.NewMock(nil, nil),
 		EventRepo: eventMock,
 	}
 
-	ungeliefert, err := query.GetTischUngeliefert(context.Background(), 1)
+	state, err := query.GetTischState(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if len(ungeliefert) != 1 {
-		t.Fatalf("expected 1 position, got %d", len(ungeliefert))
+	if state.SaldoCents != 700 {
+		t.Errorf("expected saldo 700, got %d", state.SaldoCents)
 	}
-	if ungeliefert[0].ProduktName != "Pommes" {
-		t.Errorf("expected ProduktName 'Pommes', got %s", ungeliefert[0].ProduktName)
+	if len(state.UnbezahltePositionen) != 1 {
+		t.Fatalf("expected 1 unbezahlte position, got %d", len(state.UnbezahltePositionen))
+	}
+	if state.UnbezahltePositionen[0].Menge != 2 {
+		t.Errorf("expected menge 2, got %d", state.UnbezahltePositionen[0].Menge)
+	}
+	if len(state.UngeliefertePositionen) != 1 {
+		t.Fatalf("expected 1 ungelieferte position, got %d", len(state.UngeliefertePositionen))
 	}
 }
 
-func TestGetTischUngeliefert_NoState(t *testing.T) {
+func TestGetTischState_NoState(t *testing.T) {
 	query := Query{
 		TableRepo: table_repo.NewMock(nil, nil),
 		EventRepo: event_repo.NewMock(nil, nil),
 	}
 
-	ungeliefert, err := query.GetTischUngeliefert(context.Background(), 999)
+	state, err := query.GetTischState(context.Background(), 999)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if ungeliefert != nil {
-		t.Errorf("expected nil, got %v", ungeliefert)
+	if state.SaldoCents != 0 {
+		t.Errorf("expected saldo 0, got %d", state.SaldoCents)
+	}
+	if state.UnbezahltePositionen != nil {
+		t.Errorf("expected nil unbezahlt, got %v", state.UnbezahltePositionen)
+	}
+	if state.UngeliefertePositionen != nil {
+		t.Errorf("expected nil ungeliefert, got %v", state.UngeliefertePositionen)
 	}
 }
 
