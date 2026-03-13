@@ -33,6 +33,10 @@ func SendClientError(w http.ResponseWriter, code string, details any) {
 	SendJSONResponse(w, errorResponse{Code: code, Details: details}, http.StatusBadRequest)
 }
 
+func SendConflictError(w http.ResponseWriter) {
+	SendJSONResponse(w, errorResponse{Code: "conflict"}, http.StatusConflict)
+}
+
 func SendServerError(w http.ResponseWriter) {
 	SendJSONResponse(w, errorResponse{Code: "internal_server_error"}, http.StatusInternalServerError)
 }

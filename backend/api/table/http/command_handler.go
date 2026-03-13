@@ -196,7 +196,7 @@ func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrTischNotActive):
 				helper.SendClientError(w, "tisch_not_active", nil)
 			case errors.Is(err, application.ErrConflict):
-				helper.SendClientError(w, "conflict", nil)
+				helper.SendConflictError(w)
 			default:
 				helper.SendServerError(w)
 			}
@@ -237,7 +237,7 @@ func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrPositionNichtBezahlbar):
 				helper.SendClientError(w, "position_nicht_bezahlbar", nil)
 			case errors.Is(err, application.ErrConflict):
-				helper.SendClientError(w, "conflict", nil)
+				helper.SendConflictError(w)
 			default:
 				helper.SendServerError(w)
 			}
@@ -278,7 +278,7 @@ func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrPositionNichtStornierbar):
 				helper.SendClientError(w, "position_nicht_stornierbar", nil)
 			case errors.Is(err, application.ErrConflict):
-				helper.SendClientError(w, "conflict", nil)
+				helper.SendConflictError(w)
 			default:
 				helper.SendServerError(w)
 			}
@@ -318,7 +318,7 @@ func (h *CommandHandler) ProdukteLiefernHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrPositionNichtLieferbar):
 				helper.SendClientError(w, "position_nicht_lieferbar", nil)
 			case errors.Is(err, application.ErrConflict):
-				helper.SendClientError(w, "conflict", nil)
+				helper.SendConflictError(w)
 			default:
 				helper.SendServerError(w)
 			}

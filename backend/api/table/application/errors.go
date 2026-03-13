@@ -19,7 +19,7 @@ var ErrDatabase = db.ErrDatabase
 // ErrInvalidTischData is returned when the provided tisch data is invalid.
 var ErrInvalidTischData = errors.New("invalid tisch data")
 
-// ErrConflict is returned when an optimistic concurrency conflict cannot be resolved after retries.
+// ErrConflict is returned when a concurrent write conflicts with this operation.
 var ErrConflict = errors.New("conflict")
 
 // ErrProduktNotFound is returned when a product or variant is not found during enrichment.

@@ -19,31 +19,27 @@ func NewMock(events []event.Event, err error) *mockRepo {
 	}
 }
 
-// NewMockWithWriteErr creates a mock that returns writeErr on the first failCount
-// WriteEvent calls, then succeeds. Useful for testing OCC retry logic.
-func NewMockWithWriteErr(events []event.Event, writeErr error, failCount int) *mockRepo {
+// NewMockWithWriteErr creates a mock that always returns writeErr on WriteEvent calls.
+func NewMockWithWriteErr(events []event.Event, writeErr error) *mockRepo {
 	eventMap := make(map[int]event.Event)
 	for _, e := range events {
 		eventMap[e.ID] = e
 	}
 
 	return &mockRepo{
-		events:       eventMap,
-		writeErr:     writeErr,
-		writeErrLeft: failCount,
+		events:   eventMap,
+		writeErr: writeErr,
 	}
 }
 
 type mockRepo struct {
-	events       map[int]event.Event
-	err          error
-	writeErr     error // separate error for WriteEvent (used in OCC tests)
-	writeErrLeft int   // number of times WriteEvent should return writeErr before succeeding
+	events   map[int]event.Event
+	err      error
+	writeErr error // separate error for WriteEvent
 }
 
 func (m *mockRepo) WriteEvent(ctx context.Context, e event.Event) (int, error) {
-	if m.writeErr != nil && m.writeErrLeft > 0 {
-		m.writeErrLeft--
+	if m.writeErr != nil {
 		return 0, m.writeErr
 	}
 	if m.err != nil {

@@ -43,38 +43,30 @@ type Command struct {
 	ProductRepo productRepoCommand
 }
 
-const maxOCCRetries = 3
-
-// writeEventWithOCC writes an event using optimistic concurrency control.
+// writeEvent writes an event with optimistic concurrency control.
 // It reads the current max version for the subject, sets event.Version = maxVersion + 1,
-// and writes the event. On UNIQUE constraint violation (version conflict), it retries
-// up to maxOCCRetries times. Returns ErrConflict if all retries fail.
-func writeEventWithOCC(ctx context.Context, eventRepo eventRepoCommand, e event.Event, subject string) error {
-	for attempt := range maxOCCRetries {
-		maxVersion, err := eventRepo.GetMaxVersion(ctx, subject)
-		if err != nil {
-			return err
-		}
-
-		e.Version = maxVersion + 1
-
-		_, err = eventRepo.WriteEvent(ctx, e)
-		if err == nil {
-			return nil
-		}
-
-		if !errors.Is(err, db.ErrAlreadyExists) {
-			return err
-		}
-
-		zerolog.Ctx(ctx).Warn().
-			Int("attempt", attempt+1).
-			Int("version", e.Version).
-			Str("subject", subject).
-			Msg("OCC conflict, retrying")
+// and writes the event. Returns ErrConflict on UNIQUE constraint violation (version conflict).
+func writeEvent(ctx context.Context, eventRepo eventRepoCommand, e event.Event, subject string) error {
+	maxVersion, err := eventRepo.GetMaxVersion(ctx, subject)
+	if err != nil {
+		return err
 	}
 
-	return ErrConflict
+	e.Version = maxVersion + 1
+
+	_, err = eventRepo.WriteEvent(ctx, e)
+	if err != nil {
+		if errors.Is(err, db.ErrAlreadyExists) {
+			zerolog.Ctx(ctx).Warn().
+				Int("version", e.Version).
+				Str("subject", subject).
+				Msg("OCC conflict")
+			return ErrConflict
+		}
+		return err
+	}
+
+	return nil
 }
 
 // loadTischState loads and validates the tisch, then reads its events.
@@ -259,9 +251,8 @@ func (c Command) BestellungAufgeben(ctx context.Context, userID int, userName st
 	}
 
 	subject := "tisch:" + strconv.Itoa(tischID)
-	if err := writeEventWithOCC(ctx, c.EventRepo, event, subject); err != nil {
+	if err := writeEvent(ctx, c.EventRepo, event, subject); err != nil {
 		if errors.Is(err, ErrConflict) {
-			log.Warn().Int("tisch_id", tischID).Msg("OCC conflict for bestellung aufgegeben")
 			return ErrConflict
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung aufgegeben event to database")
@@ -300,9 +291,8 @@ func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName s
 	}
 
 	subject := "tisch:" + strconv.Itoa(tischID)
-	if err := writeEventWithOCC(ctx, c.EventRepo, event, subject); err != nil {
+	if err := writeEvent(ctx, c.EventRepo, event, subject); err != nil {
 		if errors.Is(err, ErrConflict) {
-			log.Warn().Int("tisch_id", tischID).Msg("OCC conflict for zahlung registriert")
 			return ErrConflict
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write zahlung registriert event to database")
@@ -341,9 +331,8 @@ func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName st
 	}
 
 	subject := "tisch:" + strconv.Itoa(tischID)
-	if err := writeEventWithOCC(ctx, c.EventRepo, event, subject); err != nil {
+	if err := writeEvent(ctx, c.EventRepo, event, subject); err != nil {
 		if errors.Is(err, ErrConflict) {
-			log.Warn().Int("tisch_id", tischID).Msg("OCC conflict for produkte storniert")
 			return ErrConflict
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write produkte storniert event to database")
@@ -382,9 +371,8 @@ func (c Command) ProdukteLiefern(ctx context.Context, userID int, userName strin
 	}
 
 	subject := "tisch:" + strconv.Itoa(tischID)
-	if err := writeEventWithOCC(ctx, c.EventRepo, event, subject); err != nil {
+	if err := writeEvent(ctx, c.EventRepo, event, subject); err != nil {
 		if errors.Is(err, ErrConflict) {
-			log.Warn().Int("tisch_id", tischID).Msg("OCC conflict for produkte geliefert")
 			return ErrConflict
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write produkte geliefert event to database")
@@ -436,9 +424,8 @@ func (c Command) TischSnapshotErstellen(ctx context.Context, userID int, userNam
 		return err
 	}
 
-	if err := writeEventWithOCC(ctx, c.EventRepo, snapshotEvent, subject); err != nil {
+	if err := writeEvent(ctx, c.EventRepo, snapshotEvent, subject); err != nil {
 		if errors.Is(err, ErrConflict) {
-			log.Warn().Int("tisch_id", tischID).Msg("OCC conflict for snapshot")
 			return ErrConflict
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write snapshot event")

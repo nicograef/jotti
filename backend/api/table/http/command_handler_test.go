@@ -190,8 +190,8 @@ func TestBestellungAufgebenHandler_Conflict(t *testing.T) {
 
 	handler.BestellungAufgebenHandler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected status 409, got %d", rec.Code)
 	}
 }
 
@@ -207,8 +207,8 @@ func TestZahlungRegistrierenHandler_Conflict(t *testing.T) {
 
 	handler.ZahlungRegistrierenHandler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected status 409, got %d", rec.Code)
 	}
 }
 
@@ -224,8 +224,8 @@ func TestProdukteLiefernHandler_Conflict(t *testing.T) {
 
 	handler.ProdukteLiefernHandler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected status 409, got %d", rec.Code)
 	}
 }
 
@@ -241,7 +241,7 @@ func TestProdukteStornierenHandler_Conflict(t *testing.T) {
 
 	handler.ProdukteStornierenHandler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected status 409, got %d", rec.Code)
 	}
 }

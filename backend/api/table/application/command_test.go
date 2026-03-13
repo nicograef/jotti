@@ -195,34 +195,11 @@ func TestBestellungAufgeben_WithOCC(t *testing.T) {
 	}
 }
 
-func TestBestellungAufgeben_OCCRetrySuccess(t *testing.T) {
+func TestBestellungAufgeben_Conflict(t *testing.T) {
 	ctx := context.Background()
 	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
 	productMock.AddVariant(testProduct.ID, testVariant)
-	// First WriteEvent call fails with ErrAlreadyExists, second succeeds
-	eventMock := event_repo.NewMockWithWriteErr(nil, db.ErrAlreadyExists, 1)
-	command := Command{
-		TableRepo:   table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
-		EventRepo:   eventMock,
-		ProductRepo: productMock,
-	}
-
-	inputs := []BestellPositionInput{
-		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
-	}
-
-	err := command.BestellungAufgeben(ctx, 1, "Test User", 1, inputs, "")
-	if err != nil {
-		t.Fatalf("expected no error after OCC retry, got %v", err)
-	}
-}
-
-func TestBestellungAufgeben_OCCConflictAfterRetries(t *testing.T) {
-	ctx := context.Background()
-	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
-	productMock.AddVariant(testProduct.ID, testVariant)
-	// All WriteEvent calls fail with ErrAlreadyExists
-	eventMock := event_repo.NewMockWithWriteErr(nil, db.ErrAlreadyExists, 10)
+	eventMock := event_repo.NewMockWithWriteErr(nil, db.ErrAlreadyExists)
 	command := Command{
 		TableRepo:   table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
 		EventRepo:   eventMock,
