@@ -32,3 +32,9 @@ Tabelle: `events` (append-only). Repository: `backend/repository/event_repo/`.
 
 - **Invarianten, Event-Strukturen, Replay-Logik:** [docs/design/handbuch.md](../../docs/design/handbuch.md) Kap. 3 (Kassenbetrieb)
 - **Namenskonventionen für Events und Felder:** [docs/design/language.md](../../docs/design/language.md)
+
+## JSON-Tags in Event-Data-Structs
+
+Event-Data-Structs (zum Beispiel `bestellungAufgegebenV1Data`, `zahlungRegistriertV1Data`, `produkteStorniertV1Data`, `produkteGeliefertV1Data`) behalten `json`-Tags fuer `json.Marshal` und `json.Unmarshal` im Event Store. Das ist Persistenz-Serialisierung und kein HTTP-Concern.
+
+Dies ist die einzige erlaubte Ausnahme von der Regel "keine `json`-Tags in `domain/`".

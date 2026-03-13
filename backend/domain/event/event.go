@@ -13,21 +13,21 @@ import (
 // Event represents a CNCF Cloudevent with additional fields for user association.
 // Identifies the event. Must be unique within the scope of the producer/source.
 type Event struct {
-	ID int `json:"id"`
+	ID int
 	// The ID of the user associated with the event.
-	UserID int `json:"userId"`
+	UserID int
 	// The name of the user who triggered the event.
-	UserName string `json:"userName"`
+	UserName string
 	// The type of event related to the source system and subject. E.g. com.library.book.borrowed:v1
-	Type string `json:"type"`
+	Type string
 	// The timestamp of when the event occurred.
-	Time time.Time `json:"time"`
+	Time time.Time
 	// The subject of the event in the context of the event producer (identified by source). E.g. the entity to which the event is primarily related. E.g. /users/12345
-	Subject string `json:"subject"`
+	Subject string
 	// The version of the event for optimistic concurrency control.
-	Version int `json:"version"`
+	Version int
 	// The event payload.
-	Data json.RawMessage `json:"data"`
+	Data json.RawMessage
 }
 
 // New creates a new Event with the given parameters and automatically sets the Time field.

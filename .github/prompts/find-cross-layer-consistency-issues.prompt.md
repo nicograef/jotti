@@ -97,6 +97,7 @@ When a finding clearly belongs elsewhere, say so briefly and point it to the rig
 - Do not suggest direct `fetch()` in the frontend.
 - Do not flag event sourcing or the synchronous `table_state` projection as architectural mistakes.
 - Do not recommend backwards-compatibility shims. Breaking changes are acceptable in this repo.
+- When proposing fixes, prefer simple, explicit, idiomatic alignment changes over clever or optimization-driven rewrites.
 
 ## Output Format
 

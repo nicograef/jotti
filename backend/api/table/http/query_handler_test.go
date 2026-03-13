@@ -28,8 +28,8 @@ func (m mockQuery) GetAktiveTische(ctx context.Context) ([]table.Tisch, error) {
 	return []table.Tisch{m.tisch}, m.err
 }
 
-func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]any, error) {
-	return []any{m.order}, m.err
+func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]table.HistorieEintrag, error) {
+	return []table.HistorieEintrag{{Kind: table.HistorieEintragBestellung, Bestellung: &m.order}}, m.err
 }
 
 func (m mockQuery) GetTischState(ctx context.Context, tischID int) (table.TischState, error) {

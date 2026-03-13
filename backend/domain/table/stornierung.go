@@ -7,13 +7,13 @@ import (
 )
 
 type Stornierung struct {
-	ID                     string     `json:"id"`
-	UserID                 int        `json:"userId"`
-	TischID                int        `json:"tischId"`
-	Positionen             []Position `json:"positionen"`
-	GesamtStornierungCents int        `json:"gesamtStornierungCents"`
-	Kommentar              string     `json:"kommentar"`
-	StorniertAm            time.Time  `json:"storniertAm"`
+	ID                     string
+	UserID                 int
+	TischID                int
+	Positionen             []Position
+	GesamtStornierungCents int
+	Kommentar              string
+	StorniertAm            time.Time
 }
 
 var stornierungSchema = z.Struct(z.Shape{

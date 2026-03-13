@@ -67,7 +67,7 @@ func (q Query) GetTischState(ctx context.Context, tischID int) (t.TischState, er
 	return state, nil
 }
 
-func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]any, error) {
+func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]t.HistorieEintrag, error) {
 	log := zerolog.Ctx(ctx)
 
 	// Note: History needs all events, not just since snapshot, to show full timeline

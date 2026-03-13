@@ -20,11 +20,11 @@ const (
 )
 
 type Tisch struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Status    Status    `json:"status"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        int
+	Name      string
+	Status    Status
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 var TischIDSchema = z.Int().GTE(1, z.Message("Invalid table ID"))

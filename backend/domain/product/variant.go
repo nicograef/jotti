@@ -20,12 +20,12 @@ const (
 )
 
 type Variante struct {
-	ID         int       `json:"id"`
-	Name       string    `json:"name"`
-	PreisCents int       `json:"preisCents"`
-	Status     Status    `json:"status"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	ID         int
+	Name       string
+	PreisCents int
+	Status     Status
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // PreisCentsSchema defines the schema for a product variant's net price in cents.

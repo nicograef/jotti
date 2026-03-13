@@ -12,6 +12,7 @@ Dieses Projekt ist ein Mobile-Kassensystem (mPOS) für Vereine. Vollständige Ag
 6. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()`. Alle Domain-Backend-Klassen nutzen `BackendClient` aus `src/lib/Backend.ts`.
 7. **`sqlc/dbgen/` nie editieren** — generierter Code.
 8. **Keine Secrets oder Passwörter in Code committen.**
+9. **Domain-Modelle ohne `json`-Tags.** Domain-Structs in `domain/` tragen keine `json`-Tags. HTTP-Responses verwenden dedizierte DTOs in `api/<domain>/http/` mit Mapper-Funktionen. Einzige Ausnahme: Event-Data-Structs fuer Event-Store-Serialisierung.
 
 ## Befehle
 

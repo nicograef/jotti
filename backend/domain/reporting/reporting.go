@@ -3,52 +3,52 @@ package reporting
 import "time"
 
 type Zeitraum struct {
-	Von time.Time `json:"von"`
-	Bis time.Time `json:"bis"`
+	Von time.Time
+	Bis time.Time
 }
 
 type UmsatzServicekraft struct {
-	UserID          int    `json:"userId"`
-	UserName        string `json:"userName"`
-	ZahlungenCents  int    `json:"zahlungenCents"`
-	AnzahlZahlungen int    `json:"anzahlZahlungen"`
+	UserID          int
+	UserName        string
+	ZahlungenCents  int
+	AnzahlZahlungen int
 }
 
 type StornierungPosition struct {
-	ProduktName  string `json:"produktName"`
-	VarianteName string `json:"varianteName"`
-	Menge        int    `json:"menge"`
-	Einzelpreis  int    `json:"einzelpreis"`
+	ProduktName  string
+	VarianteName string
+	Menge        int
+	Einzelpreis  int
 }
 
 type StornierungDetail struct {
-	Zeitpunkt   time.Time             `json:"zeitpunkt"`
-	TischID     int                   `json:"tischId"`
-	TischName   string                `json:"tischName"`
-	UserID      int                   `json:"userId"`
-	UserName    string                `json:"userName"`
-	BetragCents int                   `json:"betragCents"`
-	Kommentar   string                `json:"kommentar"`
-	Positionen  []StornierungPosition `json:"positionen"`
+	Zeitpunkt   time.Time
+	TischID     int
+	TischName   string
+	UserID      int
+	UserName    string
+	BetragCents int
+	Kommentar   string
+	Positionen  []StornierungPosition
 }
 
 type DashboardData struct {
-	GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
-	AnzahlOffeneTische       int `json:"anzahlOffeneTische"`
-	AnzahlBestellungen       int `json:"anzahlBestellungen"`
-	AnzahlStornierungen      int `json:"anzahlStornierungen"`
-	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
-	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
+	GesamtUmsatzCents        int
+	AnzahlOffeneTische       int
+	AnzahlBestellungen       int
+	AnzahlStornierungen      int
+	GesamtBestellungenCents  int
+	GesamtStornierungenCents int
 }
 
 type TagesabrechnungData struct {
-	Zeitraum                 Zeitraum             `json:"zeitraum"`
-	GesamtUmsatzCents        int                  `json:"gesamtUmsatzCents"`
-	GesamtBestellungenCents  int                  `json:"gesamtBestellungenCents"`
-	GesamtStornierungenCents int                  `json:"gesamtStornierungenCents"`
-	OffeneSaldiCents         int                  `json:"offeneSaldiCents"`
-	AnzahlBestellungen       int                  `json:"anzahlBestellungen"`
-	AnzahlStornierungen      int                  `json:"anzahlStornierungen"`
-	UmsatzProServicekraft    []UmsatzServicekraft `json:"umsatzProServicekraft"`
-	Stornierungen            []StornierungDetail  `json:"stornierungen"`
+	Zeitraum                 Zeitraum
+	GesamtUmsatzCents        int
+	GesamtBestellungenCents  int
+	GesamtStornierungenCents int
+	OffeneSaldiCents         int
+	AnzahlBestellungen       int
+	AnzahlStornierungen      int
+	UmsatzProServicekraft    []UmsatzServicekraft
+	Stornierungen            []StornierungDetail
 }

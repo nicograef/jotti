@@ -23,6 +23,7 @@ Du bist in der **Analysephase**. Deine Aufgabe ist es, die nachfolgende Aufgaben
 - **Präzise Referenzen sind Pflicht.** Jede Erkenntnis muss mit Dateipfad, Abschnitt und Zeilennummern belegt sein (z.B. `backend/api/product/http/handler.go:42-58`). Ein Agent in einer neuen Session muss ohne eigene Recherche direkt die richtige Stelle finden können.
 - **Keine Implementierungsplanung.** Beschreibe den Ist-Zustand, Patterns und Abhängigkeiten — aber keine konkreten Implementierungsschritte. Das ist Aufgabe der Planungsphase (`/plan`).
 - **Ein Thema = ein Verzeichnis.** Jedes Feature/Thema bekommt sein eigenes Unterverzeichnis unter `docs/agents/`. So können mehrere Analysen parallel existieren, ohne sich gegenseitig zu überschreiben.
+- **Readability-first Perspektive.** Markiere Stellen, an denen Lesbarkeit, Konsistenz oder idiomatischer Stil leiden. Performance-Optimierung, Cleverness oder aggressives DRYing sind kein Selbstzweck.
 
 ## Struktur von analyze.md
 

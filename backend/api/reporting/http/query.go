@@ -18,6 +18,144 @@ type QueryHandler struct {
 	Query query
 }
 
+type zeitraumDTO struct {
+	Von time.Time `json:"von"`
+	Bis time.Time `json:"bis"`
+}
+
+type umsatzServicekraftDTO struct {
+	UserID          int    `json:"userId"`
+	UserName        string `json:"userName"`
+	ZahlungenCents  int    `json:"zahlungenCents"`
+	AnzahlZahlungen int    `json:"anzahlZahlungen"`
+}
+
+type stornierungPositionDTO struct {
+	ProduktName  string `json:"produktName"`
+	VarianteName string `json:"varianteName"`
+	Menge        int    `json:"menge"`
+	Einzelpreis  int    `json:"einzelpreis"`
+}
+
+type stornierungDetailDTO struct {
+	Zeitpunkt   time.Time                `json:"zeitpunkt"`
+	TischID     int                      `json:"tischId"`
+	TischName   string                   `json:"tischName"`
+	UserID      int                      `json:"userId"`
+	UserName    string                   `json:"userName"`
+	BetragCents int                      `json:"betragCents"`
+	Kommentar   string                   `json:"kommentar"`
+	Positionen  []stornierungPositionDTO `json:"positionen"`
+}
+
+type dashboardDataDTO struct {
+	GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
+	AnzahlOffeneTische       int `json:"anzahlOffeneTische"`
+	AnzahlBestellungen       int `json:"anzahlBestellungen"`
+	AnzahlStornierungen      int `json:"anzahlStornierungen"`
+	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
+	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
+}
+
+type tagesabrechnungDataDTO struct {
+	Zeitraum                 zeitraumDTO             `json:"zeitraum"`
+	GesamtUmsatzCents        int                     `json:"gesamtUmsatzCents"`
+	GesamtBestellungenCents  int                     `json:"gesamtBestellungenCents"`
+	GesamtStornierungenCents int                     `json:"gesamtStornierungenCents"`
+	OffeneSaldiCents         int                     `json:"offeneSaldiCents"`
+	AnzahlBestellungen       int                     `json:"anzahlBestellungen"`
+	AnzahlStornierungen      int                     `json:"anzahlStornierungen"`
+	UmsatzProServicekraft    []umsatzServicekraftDTO `json:"umsatzProServicekraft"`
+	Stornierungen            []stornierungDetailDTO  `json:"stornierungen"`
+}
+
+func toZeitraumDTO(z reporting.Zeitraum) zeitraumDTO {
+	return zeitraumDTO{
+		Von: z.Von,
+		Bis: z.Bis,
+	}
+}
+
+func toUmsatzServicekraftDTO(u reporting.UmsatzServicekraft) umsatzServicekraftDTO {
+	return umsatzServicekraftDTO{
+		UserID:          u.UserID,
+		UserName:        u.UserName,
+		ZahlungenCents:  u.ZahlungenCents,
+		AnzahlZahlungen: u.AnzahlZahlungen,
+	}
+}
+
+func toUmsatzServicekraftDTOs(umsatz []reporting.UmsatzServicekraft) []umsatzServicekraftDTO {
+	out := make([]umsatzServicekraftDTO, len(umsatz))
+	for i := range umsatz {
+		out[i] = toUmsatzServicekraftDTO(umsatz[i])
+	}
+	return out
+}
+
+func toStornierungPositionDTO(p reporting.StornierungPosition) stornierungPositionDTO {
+	return stornierungPositionDTO{
+		ProduktName:  p.ProduktName,
+		VarianteName: p.VarianteName,
+		Menge:        p.Menge,
+		Einzelpreis:  p.Einzelpreis,
+	}
+}
+
+func toStornierungPositionDTOs(positionen []reporting.StornierungPosition) []stornierungPositionDTO {
+	out := make([]stornierungPositionDTO, len(positionen))
+	for i := range positionen {
+		out[i] = toStornierungPositionDTO(positionen[i])
+	}
+	return out
+}
+
+func toStornierungDetailDTO(d reporting.StornierungDetail) stornierungDetailDTO {
+	return stornierungDetailDTO{
+		Zeitpunkt:   d.Zeitpunkt,
+		TischID:     d.TischID,
+		TischName:   d.TischName,
+		UserID:      d.UserID,
+		UserName:    d.UserName,
+		BetragCents: d.BetragCents,
+		Kommentar:   d.Kommentar,
+		Positionen:  toStornierungPositionDTOs(d.Positionen),
+	}
+}
+
+func toStornierungDetailDTOs(details []reporting.StornierungDetail) []stornierungDetailDTO {
+	out := make([]stornierungDetailDTO, len(details))
+	for i := range details {
+		out[i] = toStornierungDetailDTO(details[i])
+	}
+	return out
+}
+
+func toDashboardDataDTO(d reporting.DashboardData) dashboardDataDTO {
+	return dashboardDataDTO{
+		GesamtUmsatzCents:        d.GesamtUmsatzCents,
+		AnzahlOffeneTische:       d.AnzahlOffeneTische,
+		AnzahlBestellungen:       d.AnzahlBestellungen,
+		AnzahlStornierungen:      d.AnzahlStornierungen,
+		GesamtBestellungenCents:  d.GesamtBestellungenCents,
+		GesamtStornierungenCents: d.GesamtStornierungenCents,
+	}
+}
+
+func toTagesabrechnungDataDTO(d reporting.TagesabrechnungData) tagesabrechnungDataDTO {
+	return tagesabrechnungDataDTO{
+		Zeitraum:                 toZeitraumDTO(d.Zeitraum),
+		GesamtUmsatzCents:        d.GesamtUmsatzCents,
+		GesamtBestellungenCents:  d.GesamtBestellungenCents,
+		GesamtStornierungenCents: d.GesamtStornierungenCents,
+		OffeneSaldiCents:         d.OffeneSaldiCents,
+		AnzahlBestellungen:       d.AnzahlBestellungen,
+		AnzahlStornierungen:      d.AnzahlStornierungen,
+		UmsatzProServicekraft:    toUmsatzServicekraftDTOs(d.UmsatzProServicekraft),
+		Stornierungen:            toStornierungDetailDTOs(d.Stornierungen),
+	}
+}
+
 func (h QueryHandler) GetDashboardHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data, err := h.Query.GetDashboardData(r.Context())
@@ -25,7 +163,7 @@ func (h QueryHandler) GetDashboardHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		helper.SendResponse(w, data)
+		helper.SendResponse(w, toDashboardDataDTO(data))
 	}
 }
 
@@ -51,6 +189,6 @@ func (h QueryHandler) GetTagesabrechnungHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		helper.SendResponse(w, data)
+		helper.SendResponse(w, toTagesabrechnungDataDTO(data))
 	}
 }

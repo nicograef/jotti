@@ -8,13 +8,13 @@ import (
 )
 
 type Position struct {
-	PositionID   string `json:"positionId"`
-	VarianteID   int    `json:"varianteId"`
-	ProduktName  string `json:"produktName"`
-	VarianteName string `json:"varianteName"`
-	Kategorie    string `json:"kategorie"`
-	Einzelpreis  int    `json:"einzelpreis"`
-	Menge        int    `json:"menge"`
+	PositionID   string
+	VarianteID   int
+	ProduktName  string
+	VarianteName string
+	Kategorie    string
+	Einzelpreis  int
+	Menge        int
 }
 
 var positionSchema = z.Struct(z.Shape{
@@ -30,18 +30,18 @@ var positionSchema = z.Struct(z.Shape{
 // PositionRef is a lightweight reference used in API request commands for payment/delivery/cancellation.
 // Enriched to Position (fat) in the command layer before being stored in events.
 type PositionRef struct {
-	PositionID string `json:"positionId"`
-	Menge      int    `json:"menge"`
+	PositionID string
+	Menge      int
 }
 
 type Bestellung struct {
-	ID               string     `json:"id"`
-	UserID           int        `json:"userId"`
-	TischID          int        `json:"tischId"`
-	Positionen       []Position `json:"positionen"`
-	GesamtPreisCents int        `json:"gesamtPreisCents"`
-	Kommentar        string     `json:"kommentar"`
-	AufgegebenAm     time.Time  `json:"aufgegebenAm"`
+	ID               string
+	UserID           int
+	TischID          int
+	Positionen       []Position
+	GesamtPreisCents int
+	Kommentar        string
+	AufgegebenAm     time.Time
 }
 
 var bestellungSchema = z.Struct(z.Shape{

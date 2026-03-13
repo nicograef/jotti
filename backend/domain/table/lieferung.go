@@ -7,12 +7,12 @@ import (
 )
 
 type Lieferung struct {
-	ID          string     `json:"id"`
-	UserID      int        `json:"userId"`
-	TischID     int        `json:"tischId"`
-	Positionen  []Position `json:"positionen"`
-	Kommentar   string     `json:"kommentar"`
-	GeliefertAm time.Time  `json:"geliefertAm"`
+	ID          string
+	UserID      int
+	TischID     int
+	Positionen  []Position
+	Kommentar   string
+	GeliefertAm time.Time
 }
 
 var lieferungSchema = z.Struct(z.Shape{

@@ -1,5 +1,5 @@
 ---
-description: "Run the full staged jotti repo-quality audit in the recommended order: cross-layer consistency, KISS simplification review, executable verification, and mobile UX review."
+description: "Run the full staged jotti repo-quality audit in the recommended order: cross-layer consistency, readability-first simplification review, executable verification, and mobile UX review."
 argument-hint: "Optional scope, e.g. whole repo, auth, admin CRUD, service flow, reporting, or start at a specific stage"
 agent: "agent"
 ---
@@ -39,11 +39,11 @@ Use [.github/prompts/find-kiss-simplifications.prompt.md](.github/prompts/find-k
 
 Goal:
 
-- find stale abstractions, redundant round-trips, low-value indirection, dead code, and structural complexity that can be removed safely
+- find readability and consistency improvements: stale abstractions, low-value indirection, dead code, and structural complexity that can be removed safely
 
 Ask here:
 
-- what is more complicated than it needs to be?
+- what is harder to read or reason about than it should be?
 
 ### Stage 3: Full Repo Verification
 
@@ -85,7 +85,7 @@ For each stage:
 ### Handoff rules
 
 - If Stage 1 finds correctness or alignment issues, keep them in Stage 1 even if they also create complexity.
-- If Stage 2 finds redundant but still correct structures, keep them in Stage 2.
+- If Stage 2 finds readability or maintainability issues in otherwise correct structures, keep them in Stage 2.
 - If Stage 3 finds failing commands, report them there rather than restating them as architecture or UX issues.
 - If Stage 4 notices a likely payload mismatch or stale abstraction, note it briefly as out-of-scope and point it back to the right earlier stage.
 
@@ -114,7 +114,7 @@ For each stage summary:
 For **Recommended Next Actions**, prioritize:
 
 1. correctness bugs first
-2. then simplification wins
+2. then readability/consistency simplification wins
 3. then failing verification steps
 4. then UX improvements
 
@@ -124,3 +124,4 @@ For **Recommended Next Actions**, prioritize:
 - Do not repeat the same finding across multiple stages unless the user explicitly asks for overlap.
 - Prefer the existing stage prompts over inventing a new taxonomy.
 - Keep the workflow easy to run again later with the same expectations.
+- In Stage 2, do not prioritize performance-only optimization or cleverness over readability and idiomatic simplicity.

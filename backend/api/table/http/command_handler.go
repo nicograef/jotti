@@ -168,6 +168,27 @@ type bestellungAufgeben struct {
 	Kommentar  string                             `json:"kommentar"`
 }
 
+type positionRefRequest struct {
+	PositionID string `json:"positionId"`
+	Menge      int    `json:"menge"`
+}
+
+func toPositionRef(p positionRefRequest) table.PositionRef {
+	return table.PositionRef{
+		PositionID: p.PositionID,
+		Menge:      p.Menge,
+	}
+}
+
+func toPositionRefs(refs []positionRefRequest) []table.PositionRef {
+	positionRefs := make([]table.PositionRef, 0, len(refs))
+	for _, ref := range refs {
+		positionRefs = append(positionRefs, toPositionRef(ref))
+	}
+
+	return positionRefs
+}
+
 func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := bestellungAufgeben{}
@@ -200,9 +221,9 @@ func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
 }
 
 type zahlungRegistrieren struct {
-	TischID    int                 `json:"tischId"`
-	Positionen []table.PositionRef `json:"positionen"`
-	Kommentar  string              `json:"kommentar"`
+	TischID    int                  `json:"tischId"`
+	Positionen []positionRefRequest `json:"positionen"`
+	Kommentar  string               `json:"kommentar"`
 }
 
 func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
@@ -218,7 +239,7 @@ func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
 			return
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-		err := h.Command.ZahlungRegistrieren(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
+		err := h.Command.ZahlungRegistrieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)
@@ -237,9 +258,9 @@ func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
 }
 
 type produkteStornieren struct {
-	TischID    int                 `json:"tischId"`
-	Positionen []table.PositionRef `json:"positionen"`
-	Kommentar  string              `json:"kommentar"`
+	TischID    int                  `json:"tischId"`
+	Positionen []positionRefRequest `json:"positionen"`
+	Kommentar  string               `json:"kommentar"`
 }
 
 func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
@@ -255,7 +276,7 @@ func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
 			return
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-		err := h.Command.ProdukteStornieren(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
+		err := h.Command.ProdukteStornieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)
@@ -274,9 +295,9 @@ func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
 }
 
 type produkteLiefern struct {
-	TischID    int                 `json:"tischId"`
-	Positionen []table.PositionRef `json:"positionen"`
-	Kommentar  string              `json:"kommentar"`
+	TischID    int                  `json:"tischId"`
+	Positionen []positionRefRequest `json:"positionen"`
+	Kommentar  string               `json:"kommentar"`
 }
 
 func (h *CommandHandler) ProdukteLiefernHandler() http.HandlerFunc {
@@ -292,7 +313,7 @@ func (h *CommandHandler) ProdukteLiefernHandler() http.HandlerFunc {
 			return
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-		err := h.Command.ProdukteLiefern(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
+		err := h.Command.ProdukteLiefern(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)

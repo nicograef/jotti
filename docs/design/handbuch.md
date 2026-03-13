@@ -441,9 +441,9 @@ Das Backend ist in vier Schichten gegliedert:
 └─────────────────────────────────────────────────┘
 ```
 
-- **HTTP-Schicht:** Liest den Request-Body, validiert das Format und delegiert an den Application-Service. Gibt strukturierte Fehlerresponses zurück. Keine Business-Logik.
+- **HTTP-Schicht:** Liest den Request-Body, validiert das Format und delegiert an den Application-Service. Definiert eigene Request- und Response-DTOs mit `json`-Tags. Domain-Modelle werden nie direkt serialisiert - dedizierte Mapper-Funktionen übersetzen zwischen Domain und HTTP. Gibt strukturierte Fehlerresponses zurück. Keine Business-Logik.
 - **Application-Schicht:** Koordiniert den Use Case: validiert fachlich (zog-Schema), lädt Aggregat-State, ruft Domain-Logik auf und persistiert das Ergebnis. Übersetzt Domain-Fehler in anwendungsseitige Fehlercodes.
-- **Domain-Schicht:** Enthält die fachlichen Regeln (Aggregat-Invarianten, Event-Konstruktion, Zustandsberechnung). Kennt keine Datenbank und kein HTTP.
+- **Domain-Schicht:** Enthält die fachlichen Regeln (Aggregat-Invarianten, Event-Konstruktion, Zustandsberechnung). Kennt keine Datenbank, kein HTTP und keine JSON-Serialisierung. Domain-Structs tragen keine `json`-Tags (Ausnahme: Event-Data-Structs für Event-Store-Persistenz).
 - **Repository/Infra-Schicht:** Kapselt alle Datenbankzugriffe. Für das Tisch-Aggregat: Event Store (append-only). Für Stammdaten: CRUD. Implementiert auf Basis von sqlc-generierten Queries.
 
 ### 6.2 API-Design

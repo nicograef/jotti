@@ -20,13 +20,13 @@ const (
 )
 
 type Produkt struct {
-	ID        int        `json:"id"`
-	Name      string     `json:"name"`
-	Kategorie Kategorie  `json:"kategorie"`
-	Status    Status     `json:"status"`
-	Varianten []Variante `json:"varianten"`
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt time.Time  `json:"updatedAt"`
+	ID        int
+	Name      string
+	Kategorie Kategorie
+	Status    Status
+	Varianten []Variante
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // IDSchema defines the schema for a product ID.

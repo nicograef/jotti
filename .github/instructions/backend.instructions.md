@@ -48,6 +48,65 @@ Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `a
 - Middleware extrahiert `userID` und `role` aus JWT in Request-Context
 - Passwörter: Argon2id-Hashing (`domain/user/password.go`)
 
+## Schichtentrennung: Domain vs. HTTP
+
+- Domain-Structs in `domain/` tragen keine `json`-Tags. Die Domain kennt kein HTTP.
+- Die HTTP-Schicht (`api/<domain>/http/`) definiert eigene Request- und Response-DTOs mit `json`-Tags.
+- Query-Handler mappen Domain-Modelle in Response-DTOs, bevor sie `helper.SendResponse` aufrufen.
+- Command-Handler nutzen Request-DTOs fuer Request-Bodies und geben Response-DTOs zurueck.
+- Ausnahme: Event-Data-Structs fuer Event-Store-Persistenz duerfen `json`-Tags tragen.
+
+Beispiel fuer Response-DTO und Mapper in der HTTP-Schicht:
+
+```go
+type varianteDTO struct {
+	ID         int       `json:"id"`
+	Name       string    `json:"name"`
+	PreisCents int       `json:"preisCents"`
+	Status     string    `json:"status"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+}
+
+func toVarianteDTO(v product.Variante) varianteDTO {
+	return varianteDTO{
+		ID:         v.ID,
+		Name:       v.Name,
+		PreisCents: v.PreisCents,
+		Status:     string(v.Status),
+		CreatedAt:  v.CreatedAt,
+		UpdatedAt:  v.UpdatedAt,
+	}
+}
+
+type produktDTO struct {
+	ID        int           `json:"id"`
+	Name      string        `json:"name"`
+	Kategorie string        `json:"kategorie"`
+	Status    string        `json:"status"`
+	Varianten []varianteDTO `json:"varianten"`
+	CreatedAt time.Time     `json:"createdAt"`
+	UpdatedAt time.Time     `json:"updatedAt"`
+}
+
+func toProduktDTO(p product.Produkt) produktDTO {
+	varianten := make([]varianteDTO, 0, len(p.Varianten))
+	for _, variante := range p.Varianten {
+		varianten = append(varianten, toVarianteDTO(variante))
+	}
+
+	return produktDTO{
+		ID:        p.ID,
+		Name:      p.Name,
+		Kategorie: string(p.Kategorie),
+		Status:    string(p.Status),
+		Varianten: varianten,
+		CreatedAt: p.CreatedAt,
+		UpdatedAt: p.UpdatedAt,
+	}
+}
+```
+
 ## Tests
 
 Unit-Tests mit `//go:build unit` Tag. Ausführen: `make test`
@@ -62,6 +121,8 @@ Unit-Tests mit `//go:build unit` Tag. Ausführen: `make test`
 ### HTTP-Handler
 
 Pattern: Request-Struct definieren → Body lesen → Service aufrufen → Fehler mappen → Response senden.
+
+Hinweis: Query-Handler senden keine Domain-Modelle direkt, sondern mappen immer auf Response-DTOs.
 
 ```go
 type createProduct struct {
@@ -93,6 +154,7 @@ func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 			return
 		}
 
+		// Query-Handler folgen demselben Prinzip: Domain -> Response-DTO vor SendResponse.
 		helper.SendResponse(w, createProductResponse{ID: id})
 	}
 }

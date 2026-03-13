@@ -36,6 +36,12 @@ Nachdem du einen Abschnitt beansprucht hast, lade den Kontext:
 
 **Befolge die Agent-Anweisungen in der plan.md exakt.** Die plan.md enthält die vollständigen Regeln für Task-Abarbeitung, Abhaken und Abschluss — halte dich an diese.
 
+Zusätzlicher Leitfaden für die Umsetzung:
+
+- Bevorzuge einfache, klare, idiomatische Lösungen gegenüber cleveren oder stark abstrahierten Konstruktionen.
+- Optimiere nicht primär auf Performance, wenn dadurch Lesbarkeit oder Konsistenz leidet.
+- Erzwinge kein DRY um jeden Preis; kleine lokale Duplikation ist erlaubt, wenn sie den Code verständlicher macht.
+
 ## Abschnitt abschließen
 
 Wenn alle Tasks `[x]` sind und Build/Lint/Tests erfolgreich:

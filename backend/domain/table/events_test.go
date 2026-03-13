@@ -122,11 +122,11 @@ func TestGetHistoryFromEvents_ReversesOrder(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	// First item should be payment (last event), second should be order (first event)
-	if _, ok := history[0].(Zahlung); !ok {
-		t.Fatalf("expected first item to be Zahlung, got %T", history[0])
+	if history[0].Kind != HistorieEintragZahlung || history[0].Zahlung == nil {
+		t.Fatalf("expected first item to be Zahlung, got kind %q", history[0].Kind)
 	}
-	if _, ok := history[1].(Bestellung); !ok {
-		t.Fatalf("expected second item to be Bestellung, got %T", history[1])
+	if history[1].Kind != HistorieEintragBestellung || history[1].Bestellung == nil {
+		t.Fatalf("expected second item to be Bestellung, got kind %q", history[1].Kind)
 	}
 }
 

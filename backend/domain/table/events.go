@@ -10,6 +10,23 @@ import (
 
 type EventType string
 
+type HistorieEintragKind string
+
+const (
+	HistorieEintragBestellung  HistorieEintragKind = "bestellung"
+	HistorieEintragZahlung     HistorieEintragKind = "zahlung"
+	HistorieEintragStornierung HistorieEintragKind = "stornierung"
+	HistorieEintragLieferung   HistorieEintragKind = "lieferung"
+)
+
+type HistorieEintrag struct {
+	Kind        HistorieEintragKind
+	Bestellung  *Bestellung
+	Zahlung     *Zahlung
+	Stornierung *Stornierung
+	Lieferung   *Lieferung
+}
+
 const (
 	EventTypeBestellungAufgegebenV1 EventType = "tisch.bestellung-aufgegeben:v1"
 	EventTypeZahlungRegistriertV1   EventType = "tisch.zahlung-registriert:v1"
@@ -30,36 +47,36 @@ func parseTischIDFromSubject(subject string) (int, error) {
 	return id, nil
 }
 
-func GetHistoryFromEvents(events []e.Event) ([]any, error) {
-	history := []any{}
+func GetHistoryFromEvents(events []e.Event) ([]HistorieEintrag, error) {
+	history := []HistorieEintrag{}
 
 	for _, event := range events {
 		switch event.Type {
 		case string(EventTypeBestellungAufgegebenV1):
 			bestellung, err := buildBestellungFromEvent(event)
 			if err != nil {
-				return []any{}, err
+				return []HistorieEintrag{}, err
 			}
-			history = append(history, bestellung)
+			history = append(history, HistorieEintrag{Kind: HistorieEintragBestellung, Bestellung: &bestellung})
 		case string(EventTypeZahlungRegistriertV1):
 			zahlung, err := buildZahlungFromEvent(event)
 			if err != nil {
-				return []any{}, err
+				return []HistorieEintrag{}, err
 			}
-			history = append(history, zahlung)
+			history = append(history, HistorieEintrag{Kind: HistorieEintragZahlung, Zahlung: &zahlung})
 		case string(EventTypeProdukteStorniertV1):
 			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
-				return []any{}, err
+				return []HistorieEintrag{}, err
 			}
-			history = append(history, stornierung)
+			history = append(history, HistorieEintrag{Kind: HistorieEintragStornierung, Stornierung: &stornierung})
 
 		case string(EventTypeProdukteGeliefertV1):
 			lieferung, err := buildLieferungFromEvent(event)
 			if err != nil {
-				return []any{}, err
+				return []HistorieEintrag{}, err
 			}
-			history = append(history, lieferung)
+			history = append(history, HistorieEintrag{Kind: HistorieEintragLieferung, Lieferung: &lieferung})
 		}
 	}
 

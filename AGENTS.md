@@ -114,6 +114,7 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 7. **Kein globaler State-Store im Frontend.** Nur React Hooks + Singletons.
 8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
 9. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend. Das Frontend zeigt an, was das Backend liefert.
+10. **Domain-Modelle tragen keine `json`-Tags.** Die Domain-Schicht (`domain/`) kennt kein HTTP und keine Serialisierung. `json`-Tags gehören ausschließlich in Response-DTOs der HTTP-Schicht (`api/<domain>/http/`) und in Event-Data-Structs (für Event-Store-Persistenz). Domain-Structs werden nie direkt als API-Response serialisiert.
 
 ## Bereiche
 
@@ -125,10 +126,13 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 
 - ✅ **Immer:** Beide Seiten validieren (zog + Zod), Tests mitliefern, Events immutable behandeln
 - ✅ **Immer:** `make sqlc` nach Query-Änderungen, `make lint` nach Code-Änderungen
+- ✅ **Immer:** Response-DTOs in der HTTP-Schicht definieren, Domain-Modelle nie direkt serialisieren
 - ⚠️ **Erst fragen:** Neue Dependencies hinzufügen, Docker/Nginx-Konfiguration ändern
 - 🚫 **Niemals:** `sqlc/dbgen/` editieren (generierter Code)
 - 🚫 **Niemals:** Events updaten oder löschen
 - 🚫 **Niemals:** Floats für Geldbeträge verwenden
+- 🚫 **Niemals:** `json`-Tags auf Domain-Structs in `domain/` setzen (Ausnahme: Event-Data-Structs für Event Store)
+- 🚫 **Niemals:** Domain-Modelle direkt als HTTP-Response durchschleusen
 - 🚫 **Niemals:** Direkt `fetch()` im Frontend verwenden
 - 🚫 **Niemals:** GET/PUT/DELETE-Endpunkte erstellen
 - 🚫 **Niemals:** Secrets oder Passwörter in Code committen
