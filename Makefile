@@ -5,7 +5,7 @@
        build-backend build-frontend build \
        sqlc \
        prod-init prod-up prod-down prod-logs prod-reset-db \
-       db-shell seed \
+       db-shell seed rebuild-projections \
        clean \
        check-backend check-frontend check \
        help
@@ -121,8 +121,13 @@ db-shell: ## psql-Shell im Dev-Postgres öffnen
 	docker exec -it jotti-postgres-dev psql -U $${POSTGRES_USER:-admin} -d jotti
 
 PG_CONTAINER ?= jotti-postgres-dev
-seed: ## Demo-Daten einspielen (PG_CONTAINER=jotti-postgres für Prod)
+BACKEND_CONTAINER ?= jotti-backend-dev
+seed: ## Demo-Daten einspielen und Projektionen aufbauen
 	docker exec -i $(PG_CONTAINER) psql -U $${POSTGRES_USER:-admin} -d jotti < database/seed.sql
+	@$(MAKE) rebuild-projections
+
+rebuild-projections: ## table_state-Projektionen aus Events neu aufbauen
+	docker exec $(BACKEND_CONTAINER) go run ./main.go rebuild-projections
 
 # ──────────────────────────────────────────────
 # Aufräumen                                     

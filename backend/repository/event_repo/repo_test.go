@@ -442,3 +442,161 @@ func TestWriteEvent_InvalidData_Rollback(t *testing.T) {
 		t.Fatalf("Expected SaldoCents 0 after rollback, got %d", state.SaldoCents)
 	}
 }
+
+// --- Projection rebuild integration tests ---
+
+func TestRebuildAllProjections_EmptyDB(t *testing.T) {
+	_, repo, teardown := setup(t)
+	defer teardown(t)
+
+	count, err := repo.RebuildAllProjections(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("Expected 0 rebuilt subjects, got %d", count)
+	}
+}
+
+func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
+	userID, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischID, err := createTisch(repo.DB, "Tisch Rebuild")
+	if err != nil {
+		t.Fatalf("Failed to create tisch: %v", err)
+	}
+
+	subject := fmt.Sprintf("tisch:%d", tischID)
+	posID := "p0000000-0000-0000-0000-000000000099"
+
+	// Write events through normal path (creates projection)
+	bestellungData := validBestellungData(posID, 500, 3) // 3x 500 = 1500
+	e1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject, 1, bestellungData)
+	_, err = repo.WriteEvent(context.Background(), e1)
+	if err != nil {
+		t.Fatalf("Expected no error writing bestellung, got %v", err)
+	}
+
+	zahlungData := validZahlungData(posID, 1, 500) // pay 1x 500
+	e2 := newTestEvent(userID, "tisch.zahlung-registriert:v1", subject, 2, zahlungData)
+	_, err = repo.WriteEvent(context.Background(), e2)
+	if err != nil {
+		t.Fatalf("Expected no error writing zahlung, got %v", err)
+	}
+
+	// Read expected state before rebuild
+	expectedState, err := repo.ReadTableState(context.Background(), tischID)
+	if err != nil {
+		t.Fatalf("Expected no error reading state, got %v", err)
+	}
+
+	// Delete projection manually to simulate seed scenario
+	_, err = repo.DB.Exec("DELETE FROM table_state")
+	if err != nil {
+		t.Fatalf("Failed to delete table_state: %v", err)
+	}
+
+	// Verify projection is gone
+	emptyState, err := repo.ReadTableState(context.Background(), tischID)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if emptyState.SaldoCents != 0 {
+		t.Fatalf("Expected SaldoCents 0 after delete, got %d", emptyState.SaldoCents)
+	}
+
+	// Rebuild
+	count, err := repo.RebuildAllProjections(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("Expected 1 rebuilt subject, got %d", count)
+	}
+
+	// Read rebuilt state
+	rebuiltState, err := repo.ReadTableState(context.Background(), tischID)
+	if err != nil {
+		t.Fatalf("Expected no error reading rebuilt state, got %v", err)
+	}
+
+	// Verify it matches the expected state
+	if rebuiltState.SaldoCents != expectedState.SaldoCents {
+		t.Fatalf("Expected SaldoCents %d, got %d", expectedState.SaldoCents, rebuiltState.SaldoCents)
+	}
+	if rebuiltState.GesamtZahlungenCents != expectedState.GesamtZahlungenCents {
+		t.Fatalf("Expected GesamtZahlungenCents %d, got %d", expectedState.GesamtZahlungenCents, rebuiltState.GesamtZahlungenCents)
+	}
+	if len(rebuiltState.UnbezahltePositionen) != len(expectedState.UnbezahltePositionen) {
+		t.Fatalf("Expected %d unbezahlte positionen, got %d", len(expectedState.UnbezahltePositionen), len(rebuiltState.UnbezahltePositionen))
+	}
+	if len(rebuiltState.UngeliefertePositionen) != len(expectedState.UngeliefertePositionen) {
+		t.Fatalf("Expected %d ungelieferte positionen, got %d", len(expectedState.UngeliefertePositionen), len(rebuiltState.UngeliefertePositionen))
+	}
+	if rebuiltState.LastEventID != expectedState.LastEventID {
+		t.Fatalf("Expected LastEventID %d, got %d", expectedState.LastEventID, rebuiltState.LastEventID)
+	}
+	if rebuiltState.LastEventVersion != expectedState.LastEventVersion {
+		t.Fatalf("Expected LastEventVersion %d, got %d", expectedState.LastEventVersion, rebuiltState.LastEventVersion)
+	}
+}
+
+func TestRebuildAllProjections_MultipleSubjects(t *testing.T) {
+	userID, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tisch1ID, err := createTisch(repo.DB, "Tisch R1")
+	if err != nil {
+		t.Fatalf("Failed to create tisch 1: %v", err)
+	}
+	tisch2ID, err := createTisch(repo.DB, "Tisch R2")
+	if err != nil {
+		t.Fatalf("Failed to create tisch 2: %v", err)
+	}
+
+	subject1 := fmt.Sprintf("tisch:%d", tisch1ID)
+	subject2 := fmt.Sprintf("tisch:%d", tisch2ID)
+
+	// Write events via raw insert (bypassing projection, simulating seed.sql)
+	e1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject1, 1,
+		validBestellungData("p1-1", 200, 2)) // 400
+	_, err = insertEventRaw(repo.DB, e1)
+	if err != nil {
+		t.Fatalf("Failed to insert event: %v", err)
+	}
+
+	e2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject2, 1,
+		validBestellungData("p2-1", 300, 1)) // 300
+	_, err = insertEventRaw(repo.DB, e2)
+	if err != nil {
+		t.Fatalf("Failed to insert event: %v", err)
+	}
+
+	// No projections exist (raw insert bypasses them)
+
+	// Rebuild
+	count, err := repo.RebuildAllProjections(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if count != 2 {
+		t.Fatalf("Expected 2 rebuilt subjects, got %d", count)
+	}
+
+	state1, err := repo.ReadTableState(context.Background(), tisch1ID)
+	if err != nil {
+		t.Fatalf("Expected no error reading state1, got %v", err)
+	}
+	if state1.SaldoCents != 400 {
+		t.Fatalf("Expected SaldoCents 400 for tisch1, got %d", state1.SaldoCents)
+	}
+
+	state2, err := repo.ReadTableState(context.Background(), tisch2ID)
+	if err != nil {
+		t.Fatalf("Expected no error reading state2, got %v", err)
+	}
+	if state2.SaldoCents != 300 {
+		t.Fatalf("Expected SaldoCents 300 for tisch2, got %d", state2.SaldoCents)
+	}
+}

@@ -16,6 +16,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/app"
 	"github.com/nicograef/jotti/backend/config"
+	"github.com/nicograef/jotti/backend/repository/event_repo"
 )
 
 func main() {
@@ -40,6 +41,14 @@ func main() {
 	}
 
 	log.Info().Msg("Connected to database")
+
+	// Check for subcommands
+	if len(os.Args) > 1 && os.Args[1] == "rebuild-projections" {
+		if err := rebuildProjections(db); err != nil {
+			log.Fatal().Err(err).Msg("Failed to rebuild projections")
+		}
+		return
+	}
 
 	if err := run(cfg, db); err != nil {
 		log.Fatal().Err(err).Msg("Application error")
@@ -72,4 +81,24 @@ func run(cfg config.Config, db *sql.DB) error {
 
 	// Run application
 	return a.Run(ctx)
+}
+
+func rebuildProjections(db *sql.DB) error {
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Error().Err(err).Msg("Failed to close database connection")
+		}
+	}()
+
+	repo := event_repo.NewRepository(db)
+
+	log.Info().Msg("Rebuilding all table_state projections from events...")
+
+	count, err := repo.RebuildAllProjections(context.Background())
+	if err != nil {
+		return fmt.Errorf("rebuild projections: %w", err)
+	}
+
+	log.Info().Int("subjects", count).Msg("Projections rebuilt successfully")
+	return nil
 }

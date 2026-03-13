@@ -11,6 +11,33 @@ import (
 	"time"
 )
 
+const getDistinctSubjects = `-- name: GetDistinctSubjects :many
+SELECT DISTINCT subject FROM events ORDER BY subject ASC
+`
+
+func (q *Queries) GetDistinctSubjects(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getDistinctSubjects)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var subject string
+		if err := rows.Scan(&subject); err != nil {
+			return nil, err
+		}
+		items = append(items, subject)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getMaxVersion = `-- name: GetMaxVersion :one
 SELECT COALESCE(MAX(version), 0)::int AS version FROM events WHERE subject = $1
 `

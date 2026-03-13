@@ -13,3 +13,6 @@ ON CONFLICT (tisch_id) DO UPDATE SET
 -- name: GetTableState :one
 SELECT tisch_id, saldo_cents, unbezahlte_positionen, ungelieferte_positionen, gesamt_zahlungen_cents, last_event_id, last_event_version, updated_at
 FROM table_state WHERE tisch_id = $1;
+
+-- name: DeleteAllTableState :exec
+DELETE FROM table_state;

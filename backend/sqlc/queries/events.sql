@@ -12,3 +12,6 @@ FROM events WHERE subject = $1 ORDER BY id ASC;
 
 -- name: GetMaxVersion :one
 SELECT COALESCE(MAX(version), 0)::int AS version FROM events WHERE subject = $1;
+
+-- name: GetDistinctSubjects :many
+SELECT DISTINCT subject FROM events ORDER BY subject ASC;

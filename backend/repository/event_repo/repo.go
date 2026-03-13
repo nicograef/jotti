@@ -224,3 +224,87 @@ func (r Repository) GetMaxVersion(ctx context.Context, subject string) (int, err
 
 	return version, nil
 }
+
+// RebuildAllProjections replays all events and rebuilds the table_state projection from scratch.
+// Runs in a single transaction: deletes all existing table_state rows, then replays all events
+// per subject and upserts the resulting state. Returns the number of subjects rebuilt.
+func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
+	qtx := r.q.WithTx(tx)
+
+	// 1. Delete all existing projections
+	if err := qtx.DeleteAllTableState(ctx); err != nil {
+		return 0, fmt.Errorf("delete all table state: %w", err)
+	}
+
+	// 2. Get all distinct subjects
+	subjects, err := qtx.GetDistinctSubjects(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("get distinct subjects: %w", err)
+	}
+
+	// 3. Replay events for each subject
+	for _, subject := range subjects {
+		tischID, err := parseTischID(subject)
+		if err != nil {
+			return 0, fmt.Errorf("parse tisch ID from subject %q: %w", subject, err)
+		}
+
+		rows, err := qtx.ReadEventsBySubject(ctx, subject)
+		if err != nil {
+			return 0, fmt.Errorf("read events for subject %q: %w", subject, err)
+		}
+
+		state := table.TischState{}
+		for _, row := range rows {
+			evt := event.Event{
+				ID:       row.ID,
+				UserID:   row.UserID,
+				UserName: row.UserName,
+				Version:  row.Version,
+				Type:     row.Type,
+				Subject:  row.Subject,
+				Data:     row.Data,
+				Time:     row.Timestamp,
+			}
+			state, err = table.ApplyEvent(state, evt)
+			if err != nil {
+				return 0, fmt.Errorf("apply event %d to subject %q: %w", row.ID, subject, err)
+			}
+		}
+
+		unbezahltJSON, err := json.Marshal(state.UnbezahltePositionen)
+		if err != nil {
+			return 0, fmt.Errorf("marshal unbezahlte positionen for subject %q: %w", subject, err)
+		}
+		ungeliefertJSON, err := json.Marshal(state.UngeliefertePositionen)
+		if err != nil {
+			return 0, fmt.Errorf("marshal ungelieferte positionen for subject %q: %w", subject, err)
+		}
+
+		err = qtx.UpsertTableState(ctx, dbgen.UpsertTableStateParams{
+			TischID:                tischID,
+			SaldoCents:             state.SaldoCents,
+			UnbezahltePositionen:   unbezahltJSON,
+			UngeliefertePositionen: ungeliefertJSON,
+			GesamtZahlungenCents:   state.GesamtZahlungenCents,
+			LastEventID:            state.LastEventID,
+			LastEventVersion:       state.LastEventVersion,
+		})
+		if err != nil {
+			return 0, fmt.Errorf("upsert table state for subject %q: %w", subject, err)
+		}
+	}
+
+	// 4. Commit transaction
+	if err := tx.Commit(); err != nil {
+		return 0, db.Error(err)
+	}
+
+	return len(subjects), nil
+}
