@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const UserRole = {
   ADMIN: 'admin',
-  serviceleitung: 'serviceleitung',
+  SERVICELEITUNG: 'serviceleitung',
   SERVICE: 'service',
 } as const
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]
@@ -27,7 +27,7 @@ export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus]
 export const UserIdSchema = z.number().int().min(1)
 const NameSchema = z
   .string()
-  .min(5, { message: 'Das sieht nicht nach einem echten Namen aus.' })
+  .min(3, { message: 'Das sieht nicht nach einem echten Namen aus.' })
   .max(50, { message: 'Der Name ist zu lang.' })
 const UsernameSchema = z
   .string()

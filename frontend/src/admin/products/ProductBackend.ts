@@ -20,7 +20,7 @@ export const UpdateProductSchema = ProduktSchema.pick({
 })
 
 export const CreateVarianteSchema = z.object({
-  productId: ProduktIdSchema,
+  produktId: ProduktIdSchema,
   name: VarianteSchema.shape.name,
   preisCents: VarianteSchema.shape.preisCents,
 })

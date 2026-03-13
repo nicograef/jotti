@@ -22,7 +22,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { type Variante, VarianteStatus } from './Product'
 import { CreateVarianteSchema, type ProductBackend } from './ProductBackend'
 
-const FormDataSchema = CreateVarianteSchema.omit({ productId: true })
+const FormDataSchema = CreateVarianteSchema.omit({ produktId: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewVariantDialogProps {
@@ -49,7 +49,7 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
 
     try {
       const id = await props.backend.createVariant({
-        productId: props.productId,
+        produktId: props.productId,
         ...data,
       })
       form.reset()

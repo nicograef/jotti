@@ -146,10 +146,19 @@ func (h QueryHandler) GetTischStateHandler() http.HandlerFunc {
 			return
 		}
 
+		unbezahlt := state.UnbezahltePositionen
+		if unbezahlt == nil {
+			unbezahlt = []t.Position{}
+		}
+		ungeliefert := state.UngeliefertePositionen
+		if ungeliefert == nil {
+			ungeliefert = []t.Position{}
+		}
+
 		helper.SendResponse(w, getTischStateResponse{
 			SaldoCents:             state.SaldoCents,
-			UnbezahltePositionen:   state.UnbezahltePositionen,
-			UngeliefertePositionen: state.UngeliefertePositionen,
+			UnbezahltePositionen:   unbezahlt,
+			UngeliefertePositionen: ungeliefert,
 			GesamtZahlungenCents:   state.GesamtZahlungenCents,
 		})
 	}
