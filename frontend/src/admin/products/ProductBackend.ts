@@ -100,4 +100,17 @@ export class ProductBackend {
     const body = { id: VarianteIdSchema.parse(id) }
     await this.backend.post('admin/deactivate-variante', body)
   }
+
+  public async deleteProduct(id: number): Promise<void> {
+    const body = { id: ProduktIdSchema.parse(id) }
+    await this.backend.post('admin/delete-produkt', body)
+  }
+
+  public async deleteVariant(produktId: number, id: number): Promise<void> {
+    const body = {
+      produktId: ProduktIdSchema.parse(produktId),
+      id: VarianteIdSchema.parse(id),
+    }
+    await this.backend.post('admin/delete-variante', body)
+  }
 }

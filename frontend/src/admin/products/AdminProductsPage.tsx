@@ -61,6 +61,19 @@ export function AdminProductsPage() {
     )
   }
 
+  const onProductDelete = async (productId: number) => {
+    await productBackend.deleteProduct(productId)
+    setProducts((prev) => prev.filter((p) => p.id !== productId))
+    toast.success('Produkt wurde gelöscht.')
+  }
+
+  const onVariantDeleted = (productId: number, variantId: number) => {
+    updateVariantInProduct(productId, (varianten) =>
+      varianten.filter((v) => v.id !== variantId),
+    )
+    toast.success('Variante wurde gelöscht.')
+  }
+
   return (
     <>
       <NewProductDialog
@@ -92,8 +105,10 @@ export function AdminProductsPage() {
           const productToEdit = products.find((p) => p.id === productId) ?? null
           setProductEditState({ product: productToEdit, open: true })
         }}
+        onDelete={onProductDelete}
         onVariantCreated={onVariantCreated}
         onVariantUpdated={onVariantUpdated}
+        onVariantDeleted={onVariantDeleted}
         onVariantStatusChange={onVariantStatusChange}
       />
     </>

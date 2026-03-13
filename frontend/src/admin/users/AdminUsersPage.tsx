@@ -95,6 +95,10 @@ export function AdminUsersPage() {
             prevUsers.map((u) => (u.id === userId ? { ...u, status } : u)),
           )
         }}
+        onDeleted={(userId) => {
+          setUsers((prev) => prev.filter((u) => u.id !== userId))
+          toast.success('Benutzer wurde gelöscht.')
+        }}
       />
     </>
   )

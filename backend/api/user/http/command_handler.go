@@ -7,6 +7,7 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/api/user/application"
 	"github.com/nicograef/jotti/backend/domain/user"
 )
@@ -197,6 +198,16 @@ func (h CommandHandler) DeleteUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deleteUser{}
 		if !helper.ReadAndValidateBody(w, r, &body, deleteUserSchema) {
+			return
+		}
+
+		currentUserID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+		if body.ID == currentUserID {
+			helper.SendClientError(w, "cannot_delete_self", nil)
 			return
 		}
 

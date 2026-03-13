@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
+import { AuthSingleton } from '@/lib/Auth'
 
 import { type User, UserStatus } from './User'
 import type { UserBackend } from './UserBackend'
@@ -10,10 +11,11 @@ import { UserItem } from './UserItem'
 
 interface UsersProps {
   loading: boolean
-  backend: Pick<UserBackend, 'activateUser' | 'deactivateUser'>
+  backend: Pick<UserBackend, 'activateUser' | 'deactivateUser' | 'deleteUser'>
   users: User[]
   onEdit: (userId: number) => void
   onStatusChange: (userId: number, status: UserStatus) => void
+  onDeleted: (userId: number) => void
 }
 
 export function Users(props: UsersProps) {
@@ -41,6 +43,17 @@ export function Users(props: UsersProps) {
     setLoading(false)
   }
 
+  const deleteUser = async (userId: number) => {
+    setLoading(true)
+    try {
+      await props.backend.deleteUser(userId)
+      props.onDeleted(userId)
+    } catch (error) {
+      console.error('Error deleting user:', error)
+    }
+    setLoading(false)
+  }
+
   if (props.users.length === 0 && !props.loading) {
     return (
       <EmptyState
@@ -59,8 +72,10 @@ export function Users(props: UsersProps) {
             key={user.id}
             loading={loading || props.loading}
             user={user}
+            isSelf={user.id === AuthSingleton.userId}
             onActivate={activateUser}
             onDeactivate={deactivateUser}
+            onDelete={deleteUser}
             onEdit={props.onEdit}
           />
         ))}

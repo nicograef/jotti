@@ -11,12 +11,18 @@ interface ProductsProps {
   loading: boolean
   backend: Pick<
     ProductBackend,
-    'activateVariant' | 'deactivateVariant' | 'createVariant' | 'updateVariant'
+    | 'activateVariant'
+    | 'deactivateVariant'
+    | 'createVariant'
+    | 'updateVariant'
+    | 'deleteVariant'
   >
   products: Produkt[]
   onEdit: (productId: number) => void
+  onDelete: (productId: number) => Promise<void>
   onVariantCreated: (productId: number, variant: Variante) => void
   onVariantUpdated: (productId: number, variant: Variante) => void
+  onVariantDeleted: (productId: number, variantId: number) => void
   onVariantStatusChange: (
     productId: number,
     variantId: number,
@@ -44,11 +50,15 @@ export function Products(props: ProductsProps) {
           product={product}
           backend={props.backend}
           onEdit={props.onEdit}
+          onDelete={props.onDelete}
           onVariantCreated={(variant) => {
             props.onVariantCreated(product.id, variant)
           }}
           onVariantUpdated={(variant) => {
             props.onVariantUpdated(product.id, variant)
+          }}
+          onVariantDeleted={(variantId) => {
+            props.onVariantDeleted(product.id, variantId)
           }}
           onVariantStatusChange={(variantId, status) => {
             props.onVariantStatusChange(product.id, variantId, status)

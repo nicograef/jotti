@@ -68,6 +68,11 @@ export class UserBackend {
     await this.backend.post('admin/deactivate-user', body)
   }
 
+  public async deleteUser(id: number): Promise<void> {
+    const body = UserSchema.pick({ id: true }).parse({ id })
+    await this.backend.post('admin/delete-user', body)
+  }
+
   public async resetPassword(id: number): Promise<string> {
     const body = UserSchema.pick({ id: true }).parse({ id })
     const { onetimePassword } = await this.backend.post(

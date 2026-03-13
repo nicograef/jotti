@@ -1,5 +1,16 @@
-import { Pen, Star } from 'lucide-react'
+import { Pen, Star, Trash2 } from 'lucide-react'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Item,
@@ -21,9 +32,11 @@ import { type User, UserRole, UserStatus } from './User'
 interface UserItemProps {
   loading: boolean
   user: User
+  isSelf: boolean
   onEdit: (userId: number) => void
   onActivate: (userId: number) => Promise<void>
   onDeactivate: (userId: number) => Promise<void>
+  onDelete: (userId: number) => Promise<void>
 }
 
 export function UserItem(props: UserItemProps) {
@@ -103,6 +116,42 @@ export function UserItem(props: UserItemProps) {
           </TooltipTrigger>
           <TooltipContent>Bearbeiten</TooltipContent>
         </Tooltip>
+        {!props.isSelf && (
+          <AlertDialog>
+            <Tooltip>
+              <AlertDialogTrigger asChild>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon-sm"
+                    variant="outline"
+                    className="rounded-full cursor-pointer text-destructive"
+                  >
+                    <Trash2 />
+                  </Button>
+                </TooltipTrigger>
+              </AlertDialogTrigger>
+              <TooltipContent>Löschen</TooltipContent>
+            </Tooltip>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Benutzer löschen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Der Benutzer &ldquo;{props.user.name}&rdquo; wird
+                  unwiderruflich gelöscht.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  onClick={() => void props.onDelete(props.user.id)}
+                >
+                  Löschen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </ItemActions>
     </Item>
   )

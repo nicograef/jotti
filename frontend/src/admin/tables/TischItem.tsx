@@ -1,5 +1,16 @@
-import { Pencil } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Item,
@@ -24,6 +35,7 @@ interface TischItemProps {
   onEdit: (tischId: number) => void
   onActivate: (tischId: number) => Promise<void>
   onDeactivate: (tischId: number) => Promise<void>
+  onDelete: (tischId: number) => Promise<void>
 }
 
 export function TischItem(props: TischItemProps) {
@@ -77,6 +89,40 @@ export function TischItem(props: TischItemProps) {
           </TooltipTrigger>
           <TooltipContent>Bearbeiten</TooltipContent>
         </Tooltip>
+        <AlertDialog>
+          <Tooltip>
+            <AlertDialogTrigger asChild>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon-sm"
+                  variant="outline"
+                  className="rounded-full cursor-pointer text-destructive"
+                >
+                  <Trash2 />
+                </Button>
+              </TooltipTrigger>
+            </AlertDialogTrigger>
+            <TooltipContent>Löschen</TooltipContent>
+          </Tooltip>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Tisch löschen?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Der Tisch &ldquo;{props.tisch.name}&rdquo; wird unwiderruflich
+                gelöscht.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-white hover:bg-destructive/90"
+                onClick={() => void props.onDelete(props.tisch.id)}
+              >
+                Löschen
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </ItemActions>
     </Item>
   )

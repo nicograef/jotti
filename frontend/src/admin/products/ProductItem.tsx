@@ -5,10 +5,22 @@ import {
   Pen,
   Plus,
   Shell,
+  Trash2,
   Wine,
 } from 'lucide-react'
 import { useState } from 'react'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Item,
@@ -38,17 +50,34 @@ interface ProductItemProps {
   product: Produkt
   backend: Pick<
     ProductBackend,
-    'activateVariant' | 'deactivateVariant' | 'createVariant' | 'updateVariant'
+    | 'activateVariant'
+    | 'deactivateVariant'
+    | 'createVariant'
+    | 'updateVariant'
+    | 'deleteVariant'
   >
   onEdit: (productId: number) => void
+  onDelete: (productId: number) => Promise<void>
   onVariantCreated: (variant: Variante) => void
   onVariantUpdated: (variant: Variante) => void
+  onVariantDeleted: (variantId: number) => void
   onVariantStatusChange: (variantId: number, status: VarianteStatus) => void
 }
 
 export function ProductItem(props: ProductItemProps) {
   const [expanded, setExpanded] = useState(false)
   const [variantLoading, setVariantLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
+  const handleDelete = async () => {
+    setDeleteLoading(true)
+    try {
+      await props.onDelete(props.product.id)
+    } catch (error) {
+      console.error('Error deleting product:', error)
+    }
+    setDeleteLoading(false)
+  }
 
   const activeVariantsCount = props.product.varianten.filter(
     (v) => v.status === VarianteStatus.ACTIVE,
@@ -72,6 +101,17 @@ export function ProductItem(props: ProductItemProps) {
       props.onVariantStatusChange(variantId, VarianteStatus.INACTIVE)
     } catch (error) {
       console.error('Error deactivating variant:', error)
+    }
+    setVariantLoading(false)
+  }
+
+  const handleDeleteVariant = async (variantId: number) => {
+    setVariantLoading(true)
+    try {
+      await props.backend.deleteVariant(props.product.id, variantId)
+      props.onVariantDeleted(variantId)
+    } catch (error) {
+      console.error('Error deleting variant:', error)
     }
     setVariantLoading(false)
   }
@@ -110,6 +150,41 @@ export function ProductItem(props: ProductItemProps) {
             </TooltipTrigger>
             <TooltipContent>Bearbeiten</TooltipContent>
           </Tooltip>
+          <AlertDialog>
+            <Tooltip>
+              <AlertDialogTrigger asChild>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon-sm"
+                    variant="outline"
+                    className="rounded-full cursor-pointer text-destructive"
+                  >
+                    <Trash2 />
+                  </Button>
+                </TooltipTrigger>
+              </AlertDialogTrigger>
+              <TooltipContent>Löschen</TooltipContent>
+            </Tooltip>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Produkt löschen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Das Produkt &quot;{props.product.name}&quot; und alle
+                  zugehörigen Varianten werden unwiderruflich gelöscht.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  onClick={() => void handleDelete()}
+                  disabled={deleteLoading}
+                >
+                  Löschen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button
             size="sm"
             variant="ghost"
@@ -154,6 +229,7 @@ export function ProductItem(props: ProductItemProps) {
                   backend={props.backend}
                   onActivate={handleActivateVariant}
                   onDeactivate={handleDeactivateVariant}
+                  onDelete={handleDeleteVariant}
                   onUpdated={props.onVariantUpdated}
                 />
               ))}

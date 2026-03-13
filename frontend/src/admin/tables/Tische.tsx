@@ -10,10 +10,14 @@ import { TischItem } from './TischItem'
 
 interface TischeProps {
   loading: boolean
-  backend: Pick<TischBackend, 'activateTisch' | 'deactivateTisch'>
+  backend: Pick<
+    TischBackend,
+    'activateTisch' | 'deactivateTisch' | 'deleteTisch'
+  >
   tische: Tisch[]
   onEdit: (tischId: number) => void
   onStatusChange: (tischId: number, status: TischStatus) => void
+  onDeleted: (tischId: number) => void
 }
 
 export function Tische(props: TischeProps) {
@@ -41,6 +45,17 @@ export function Tische(props: TischeProps) {
     setLoading(false)
   }
 
+  const deleteTisch = async (tischId: number) => {
+    setLoading(true)
+    try {
+      await props.backend.deleteTisch(tischId)
+      props.onDeleted(tischId)
+    } catch (error) {
+      console.error('Error deleting table:', error)
+    }
+    setLoading(false)
+  }
+
   if (props.tische.length === 0 && !props.loading) {
     return (
       <EmptyState
@@ -62,6 +77,7 @@ export function Tische(props: TischeProps) {
             onActivate={activateTisch}
             onDeactivate={deactivateTisch}
             onEdit={props.onEdit}
+            onDelete={deleteTisch}
           />
         ))}
       </ItemGroup>

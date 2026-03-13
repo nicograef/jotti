@@ -65,6 +65,10 @@ export function AdminTablesPage() {
           setEditState({ tisch: tischToEdit, open: true })
         }}
         onStatusChange={onStatusChange}
+        onDeleted={(tischId) => {
+          setTische((prev) => prev.filter((t) => t.id !== tischId))
+          toast.success('Tisch wurde gelöscht.')
+        }}
       />
     </>
   )

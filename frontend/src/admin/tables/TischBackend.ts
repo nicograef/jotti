@@ -57,4 +57,9 @@ export class TischBackend {
     const body = TischSchema.pick({ id: true }).parse({ id })
     await this.backend.post('admin/deactivate-tisch', body)
   }
+
+  public async deleteTisch(id: number): Promise<void> {
+    const body = TischSchema.pick({ id: true }).parse({ id })
+    await this.backend.post('admin/delete-tisch', body)
+  }
 }
