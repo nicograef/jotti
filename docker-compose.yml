@@ -73,6 +73,8 @@ services:
       - "80:5173"
     volumes:
       - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+      - frontend-pnpm-store:/app/.pnpm-store
     networks:
       - app-network
     depends_on:
@@ -85,3 +87,5 @@ networks:
 
 volumes:
   postgres-data:
+  frontend-node-modules:
+  frontend-pnpm-store:
