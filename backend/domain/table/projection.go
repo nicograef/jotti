@@ -10,6 +10,8 @@ import (
 // TischState represents the projected state of a table, derived from applying events.
 // Zero-value represents a table with no events (Saldo 0, empty lists).
 type TischState struct {
+	TischID                int        `json:"tischId"`
+	TischName              string     `json:"tischName"`
 	SaldoCents             int        `json:"saldoCents"`
 	UnbezahltePositionen   []Position `json:"unbezahltePositionen"`
 	UngeliefertePositionen []Position `json:"ungeliefertePositionen"`

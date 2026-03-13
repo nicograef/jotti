@@ -46,16 +46,6 @@ export class TischBackend {
     return tische
   }
 
-  public async getTisch(id: number): Promise<Tisch> {
-    const body = TischSchema.pick({ id: true }).parse({ id })
-    const { tisch } = await this.backend.post(
-      'service/get-tisch',
-      body,
-      z.object({ tisch: TischSchema }),
-    )
-    return tisch
-  }
-
   public async bestellungAufgeben(
     bestellung: z.infer<typeof BestellungAufgebenSchema>,
   ): Promise<void> {

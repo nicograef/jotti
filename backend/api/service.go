@@ -20,7 +20,6 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/produkte-liefern", tc.ProdukteLiefernHandler())
 
 	tq := table.NewQueryHandler(db)
-	r.HandleFunc("/get-tisch", tq.GetTischHandler())
 	r.HandleFunc("/get-aktive-tische", tq.GetAktiveTischeHandler())
 	r.HandleFunc("/get-tisch-historie", tq.GetTischHistorieHandler())
 	r.HandleFunc("/get-tisch-state", tq.GetTischStateHandler())

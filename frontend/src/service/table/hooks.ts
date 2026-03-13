@@ -11,16 +11,6 @@ import type { Zahlung } from './Zahlung'
 
 const tischBackend = new TischBackend(BackendSingleton)
 
-/** Custom hook to fetch a single table from backend. */
-export function useTisch(id: number) {
-  const { data: tisch, ...rest } = useFetch(
-    () => tischBackend.getTisch(id),
-    null as Tisch | null,
-    [id],
-  )
-  return { ...rest, tisch }
-}
-
 /** Custom hook to fetch active tables from backend. */
 export function useAktiveTische() {
   const { data: tische, ...rest } = useFetch(
@@ -44,6 +34,8 @@ export function useTischState(tischId: number) {
   const { data: state, ...rest } = useFetch(
     () => tischBackend.getTischState(tischId),
     {
+      tischId: 0,
+      tischName: '',
       saldoCents: 0,
       unbezahltePositionen: [],
       ungeliefertePositionen: [],

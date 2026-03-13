@@ -2,16 +2,13 @@ package http
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/api/table/application"
 	t "github.com/nicograef/jotti/backend/domain/table"
 )
 
 type query interface {
-	GetTisch(ctx context.Context, id int) (t.Tisch, error)
 	GetAllTische(ctx context.Context) ([]t.Tisch, error)
 	GetAktiveTische(ctx context.Context) ([]t.Tisch, error)
 	GetTischHistorie(ctx context.Context, tischID int) ([]any, error)
@@ -20,36 +17,6 @@ type query interface {
 
 type QueryHandler struct {
 	Query query
-}
-
-type getTisch struct {
-	ID int `json:"id"`
-}
-
-type getTischResponse struct {
-	Tisch t.Tisch `json:"tisch"`
-}
-
-func (h QueryHandler) GetTischHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTisch{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-
-		tisch, err := h.Query.GetTisch(r.Context(), body.ID)
-		if err != nil {
-			if errors.Is(err, application.ErrTischNotFound) {
-				helper.SendClientError(w, "tisch_not_found", nil)
-				return
-			} else {
-				helper.SendServerError(w)
-				return
-			}
-		}
-
-		helper.SendResponse(w, getTischResponse{Tisch: tisch})
-	}
 }
 
 type getAllTischeResponse struct {
@@ -127,6 +94,8 @@ type getTischState struct {
 }
 
 type getTischStateResponse struct {
+	TischID                int          `json:"tischId"`
+	TischName              string       `json:"tischName"`
 	SaldoCents             int          `json:"saldoCents"`
 	UnbezahltePositionen   []t.Position `json:"unbezahltePositionen"`
 	UngeliefertePositionen []t.Position `json:"ungeliefertePositionen"`
@@ -156,6 +125,8 @@ func (h QueryHandler) GetTischStateHandler() http.HandlerFunc {
 		}
 
 		helper.SendResponse(w, getTischStateResponse{
+			TischID:                state.TischID,
+			TischName:              state.TischName,
 			SaldoCents:             state.SaldoCents,
 			UnbezahltePositionen:   unbezahlt,
 			UngeliefertePositionen: ungeliefert,

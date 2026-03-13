@@ -20,10 +20,6 @@ type mockQuery struct {
 	err      error
 }
 
-func (m mockQuery) GetTisch(ctx context.Context, id int) (table.Tisch, error) {
-	return m.tisch, m.err
-}
-
 func (m mockQuery) GetAllTische(ctx context.Context) ([]table.Tisch, error) {
 	return []table.Tisch{m.tisch}, m.err
 }

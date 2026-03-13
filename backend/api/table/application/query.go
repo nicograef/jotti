@@ -27,24 +27,6 @@ type Query struct {
 	EventRepo eventRepoQuery
 }
 
-func (q Query) GetTisch(ctx context.Context, id int) (t.Tisch, error) {
-	log := zerolog.Ctx(ctx)
-
-	tisch, err := q.TableRepo.GetTable(ctx, id)
-	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("tisch_id", id).Msg("Tisch not found")
-			return t.Tisch{}, ErrTischNotFound
-		} else {
-			log.Error().Err(err).Int("tisch_id", id).Msg("Failed to retrieve tisch")
-			return t.Tisch{}, ErrDatabase
-		}
-	}
-
-	log.Debug().Int("tisch_id", id).Msg("Tisch retrieved")
-	return tisch, nil
-}
-
 func (q Query) GetAllTische(ctx context.Context) ([]t.Tisch, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -74,11 +56,24 @@ func (q Query) GetAktiveTische(ctx context.Context) ([]t.Tisch, error) {
 func (q Query) GetTischState(ctx context.Context, tischID int) (t.TischState, error) {
 	log := zerolog.Ctx(ctx)
 
+	tisch, err := q.TableRepo.GetTable(ctx, tischID)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn().Int("tisch_id", tischID).Msg("Tisch not found")
+			return t.TischState{}, ErrTischNotFound
+		}
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to retrieve tisch")
+		return t.TischState{}, ErrDatabase
+	}
+
 	state, err := q.EventRepo.ReadTableState(ctx, tischID)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table state")
 		return t.TischState{}, ErrDatabase
 	}
+
+	state.TischID = tisch.ID
+	state.TischName = tisch.Name
 
 	log.Info().Int("tisch_id", tischID).Int("saldo_cents", state.SaldoCents).Msg("Retrieved tisch state")
 	return state, nil

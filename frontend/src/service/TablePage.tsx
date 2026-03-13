@@ -18,19 +18,19 @@ import { Lieferung } from './components/table/Lieferung'
 import { TischHistorie } from './components/table/TischHistorie'
 import { Zahlung } from './components/table/Zahlung'
 import { useTischState } from './table/hooks'
-import { useTisch } from './table/hooks'
 import { TischBackend } from './table/TischBackend'
 
 const tischBackend = new TischBackend(BackendSingleton)
 
 export function TablePage() {
   const { tableId } = useParams<{ tableId: string }>()
-  const { loading: tischLoading, tisch } = useTisch(Number(tableId))
   const {
     state,
     loading: stateLoading,
     reload: reloadState,
   } = useTischState(Number(tableId))
+
+  const tisch = { id: state.tischId, name: state.tischName }
 
   const offenePositionen = state.ungeliefertePositionen.reduce(
     (sum, position) => sum + position.menge,
@@ -42,7 +42,7 @@ export function TablePage() {
       <Item>
         <ItemContent>
           <ItemTitle className="text-2xl">
-            {tischLoading ? 'Tisch ??' : tisch?.name}{' '}
+            {stateLoading ? 'Tisch ??' : tisch.name}{' '}
             {!stateLoading && offenePositionen > 0 && (
               <Badge variant="destructive">{offenePositionen} offen</Badge>
             )}
@@ -72,7 +72,7 @@ export function TablePage() {
           </TabsList>
         </div>
         <TabsContent value="order">
-          {tisch && (
+          {!stateLoading && (
             <>
               {offenePositionen > 0 && (
                 <Card className="p-2 gap-0 mb-4">
@@ -98,7 +98,7 @@ export function TablePage() {
           )}
         </TabsContent>
         <TabsContent value="payment">
-          {tisch && (
+          {!stateLoading && (
             <Zahlung
               backend={tischBackend}
               tisch={tisch}
@@ -114,7 +114,7 @@ export function TablePage() {
           )}
         </TabsContent>
         <TabsContent value="history">
-          {tisch && (
+          {!stateLoading && (
             <TischHistorie tischId={tisch.id} userId={AuthSingleton.userId} />
           )}
         </TabsContent>

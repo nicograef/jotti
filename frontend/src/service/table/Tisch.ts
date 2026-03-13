@@ -15,6 +15,8 @@ export const TischSchema = z.object({
 export type Tisch = z.infer<typeof TischSchema>
 
 export const TischStateSchema = z.object({
+  tischId: TischIdSchema,
+  tischName: z.string(),
   saldoCents: z.number().int(),
   unbezahltePositionen: z.array(PositionSchema),
   ungeliefertePositionen: z.array(PositionSchema),
