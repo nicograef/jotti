@@ -1,7 +1,9 @@
 ---
 description: "Use when working on database migrations, SQL queries, sqlc configuration, schema changes, or data model design."
-applyTo: "database/**"
+applyTo: "database/**,backend/sqlc/**,backend/sqlc.yaml"
 ---
+
+> **Referenz:** Für Stammdaten-Schema (Produkte, Tische, Benutzer) → `docs/design/handbuch.md` §4. Für Event-Store-Schema → `docs/design/handbuch.md` §3.4. Für DB-Spalten-Konventionen (englisch, snake_case) → `docs/design/language.md`.
 
 # Datenbank-Konventionen
 

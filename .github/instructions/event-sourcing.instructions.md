@@ -1,5 +1,6 @@
 ---
 description: "Use when working on event sourcing, domain events, table operations, event replay, snapshots, or tisch-aggregate state."
+applyTo: "backend/domain/table/**,backend/repository/event_repo/**"
 ---
 
 # Event-Sourcing-Referenz

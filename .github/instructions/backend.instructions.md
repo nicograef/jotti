@@ -3,6 +3,8 @@ description: "Use when working on Go backend code, API handlers, middleware, rep
 applyTo: "backend/**"
 ---
 
+> **Referenz:** Für Ubiquitous Language und Namenskonventionen pro Schicht → `docs/design/language.md`. Für Architektur, Invarianten und Schichtenarchitektur → `docs/design/handbuch.md` §6.
+
 # Backend-Konventionen
 
 ## Befehle
@@ -45,12 +47,6 @@ Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `a
 - JWT HS256, 12h Gültigkeit, Claims: `sub` (userID), `role` (admin|serviceleitung|service)
 - Middleware extrahiert `userID` und `role` aus JWT in Request-Context
 - Passwörter: Argon2id-Hashing (`domain/user/password.go`)
-
-## State-Rekonstruktion aus Events
-
-- Saldo = Summe(Bestellungen) − Summe(Zahlungen) − Summe(Stornierungen)
-- UnbezahltePositionen = bestellt − bezahlt − storniert
-- UngeliefertePositionen = bestellt − geliefert − storniert
 
 ## Tests
 

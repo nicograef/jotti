@@ -6,7 +6,58 @@ Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellung
 
 **Bewusst NICHT enthalten:** Kartenzahlung, TSE/KassenSichV, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM, Kiosk-Modus. Diese Reduktion ist gewollt — jedes zusätzliche Feature erhöht Komplexität für ehrenamtliche Teams.
 
-Weiterführende Docs: [Entwickler-Handbuch](docs/design/handbuch.md) · [Ubiquitous Language](docs/design/language.md) · [Produktbeschreibung](docs/produktbeschreibung.md) · [Anforderungen](docs/anforderungen.md)
+## Referenzdokumente
+
+Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht automatisch geladen** (zu groß). Bevor du eine Aufgabe beginnst, prüfe ob du Kontext aus einem dieser Dokumente brauchst — und lies dann gezielt den relevanten Abschnitt per `read_file`, nicht das ganze Dokument.
+
+### Anforderungen — `docs/anforderungen.md`
+
+Alle funktionalen und querschnittlichen Anforderungen mit Akzeptanzkriterien, Priorisierung (Must/Should/Nice-to-have) und Status (✅/🔲/🚫).
+
+- **§1 Kassenbetrieb:** K-01 Bestellung aufgeben, K-02 Zahlung registrieren, K-03 Lieferung bestätigen, K-04 Stornierung, K-05 Tischübersicht, K-06 Kassenjournal, K-07–K-13 (Umbuchung, Rückgeld, Schnellsuche, Bondruck, KDS, Ausgabestationen)
+- **§2 Stammdaten:** S-01 Produktverwaltung, S-02 Tischverwaltung, S-03 Benutzerverwaltung
+- **§3 Auth:** A-01 Login, A-02 Passwort setzen, A-03 Logout
+- **§4 Querschnitt:** Q-01 Mobile-first, Q-02 Mehrbenutzerfähigkeit, Q-03 Validierung, Q-04 Datenintegrität, Q-05–Q-08 (Offline, HTTPS, Rate Limiting, Security Headers)
+- **§5 Reporting:** Tagesabrechnung, Abrechnung pro Tisch/Servicekraft, Datenexport
+- **§6 Bewusste Abgrenzung:** Won't-haves mit Begründung
+
+→ Lesen bei: neue Features implementieren, Akzeptanzkriterien prüfen, Rollen/Berechtigungen klären.
+
+### Entwickler-Handbuch — `docs/design/handbuch.md`
+
+Architektur, Bounded Contexts, Domain-Modelle, Invarianten, Event-Sourcing-Details.
+
+- **§1 Überblick:** Systemvision, Designziele, bewusste Abgrenzung
+- **§2 Bounded Contexts:** Kontextübersicht (Kassenbetrieb, Stammdaten, Ausgabe, Abrechnung, Auth), Beziehungen (ACL, Fat Events)
+- **§3 Kassenbetrieb (Core Domain):** Tisch-Aggregat, Invarianten (Saldo, Liefer-, Bezahl-, Stornierungsinvariante), Domain Events (BestellungAufgegeben, ProdukteGeliefert, ZahlungRegistriert, ProdukteStorniert), Event Replay + Snapshots, Policies
+- **§4 Stammdaten:** Produkt-Aggregat (Varianten, Kategorien), Tisch-Stammdaten, Benutzer-Aggregat, CRUD-Persistenz
+- **§5 Auth und Rollen:** Berechtigungsmatrix, Onboarding-Ablauf
+- **§6 Architekturprinzipien:** Schichtenarchitektur, API-Design, Frontend-Architektur, Validierung, Geldbeträge, OCC, Sicherheit
+- **§7 Read Models:** Service-Read-Models (Tisch-Saldo, Unbezahlt, Ungeliefert, Historie)
+
+→ Lesen bei: Architekturentscheidungen, Invarianten prüfen, Event-Strukturen verstehen, neue Schichten/Endpunkte entwerfen.
+
+### Ubiquitous Language — `docs/design/language.md`
+
+Verbindliche Referenz für Fachbegriffe, Code-Repräsentationen und Namenskonventionen.
+
+- **Sprachkonventionen:** Domänenbegriffe deutsch, Infrastruktur englisch, UI deutsch, Commits englisch
+- **Namenskonventionen pro Schicht:** Go-Structs, TS-Typen, JSON-Keys, API-Pfade, DB-Tabellen, Frontend-Routen
+- **Abweichungen Ist/Soll:** Aktueller Rename-Status (Backend ✅, Frontend ⏳)
+- **Begriffsdefinitionen:** Tisch, Bestellung, Position, Lieferung, Zahlung, Stornierung — jeweils mit Go-Struct, TS-Typ, JSON-Keys, API-Pfad, Frontend-Komponente, UI-Labels
+
+→ Lesen bei: Benennungen klären, neue Felder/Typen benennen, Ist/Soll-Abweichungen prüfen.
+
+### Produktbeschreibung — `docs/produktbeschreibung.md`
+
+Produktidentität, Positionierung, Zielgruppe, Abgrenzung, Marketingtexte.
+
+- **§1–§3:** Claim, Positionierung, Zielgruppe (Personas: Thomas/Admin, Maria/Service, Felix/Serviceleitung)
+- **§4–§5:** Problemstellung, Lösung
+- **§6–§8:** Kernfeatures, Abgrenzung vs. kommerzielle POS, USPs
+- **§9–§10:** Lizenz/Kosten, Marketingtexte
+
+→ Lesen bei: README/Docs/Marketing-Texte anpassen, Abgrenzungsfragen, Zielgruppe verstehen.
 
 ## Tech-Stack
 

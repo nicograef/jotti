@@ -3,6 +3,8 @@ description: "Use when working on React frontend code, components, pages, hooks,
 applyTo: "frontend/**"
 ---
 
+> **Referenz:** Für Ubiquitous Language, Namenskonventionen und Ist/Soll-Abweichungen (Rename-Status) → `docs/design/language.md`. Für Frontend-Architektur → `docs/design/handbuch.md` §6.3.
+
 # Frontend-Konventionen
 
 ## Befehle

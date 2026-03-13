@@ -16,3 +16,14 @@ Dieses Projekt ist ein Mobile-Kassensystem (mPOS) für Vereine. Vollständige Ag
 ## Befehle
 
 Alle Befehle über **Makefile** im Root: `make test`, `make lint`, `make build`, `make sqlc`, `make dev`. Siehe `make help`.
+
+## Referenzdokumente
+
+Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht automatisch geladen** (zu groß). Bevor du eine Aufgabe beginnst, prüfe ob du Kontext aus einem dieser Dokumente brauchst — und lies dann gezielt den relevanten Abschnitt, nicht das ganze Dokument.
+
+| Dokument                | Pfad                          | Wann lesen?                                                                                 |
+| ----------------------- | ----------------------------- | ------------------------------------------------------------------------------------------- |
+| **Anforderungen**       | `docs/anforderungen.md`       | Neue Features implementieren, Akzeptanzkriterien prüfen, Rollen/Berechtigungen klären       |
+| **Handbuch**            | `docs/design/handbuch.md`     | Architekturentscheidungen, Invarianten, Event-Strukturen, Schichtenarchitektur, Read Models |
+| **Ubiquitous Language** | `docs/design/language.md`     | Benennungen, Namenskonventionen pro Schicht, Ist/Soll-Abweichungen, Begriffsklärung         |
+| **Produktbeschreibung** | `docs/produktbeschreibung.md` | Positionierung, Zielgruppe, Abgrenzung, README/Marketing-Texte                              |
