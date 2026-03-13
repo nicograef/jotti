@@ -262,7 +262,7 @@ function getStornierbarePositionen(
     if (Object.prototype.hasOwnProperty.call(item, 'storniertAm')) {
       const stornierung = item as Stornierung
       stornierung.positionen.forEach((position) => {
-        const bisherigeMenge = stornierteMengen.get(position.positionId) || 0
+        const bisherigeMenge = stornierteMengen.get(position.positionId) ?? 0
         stornierteMengen.set(
           position.positionId,
           bisherigeMenge + position.menge,
@@ -273,7 +273,7 @@ function getStornierbarePositionen(
 
   return bestellung.positionen.flatMap((position) => {
     const verbleibendeMenge =
-      position.menge - (stornierteMengen.get(position.positionId) || 0)
+      position.menge - (stornierteMengen.get(position.positionId) ?? 0)
     if (verbleibendeMenge <= 0) {
       return []
     }
