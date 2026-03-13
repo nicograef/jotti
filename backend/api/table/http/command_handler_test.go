@@ -191,6 +191,23 @@ func TestBestellungAufgebenHandler_Conflict(t *testing.T) {
 	}
 }
 
+func TestBestellungAufgebenHandler_ProduktNotFound(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrProduktNotFound}}
+
+	body := `{"tischId":1,"positionen":[{"varianteId":1,"menge":2}],"kommentar":""}`
+	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufgeben", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+
+	handler.BestellungAufgebenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
 func TestZahlungRegistrierenHandler_Conflict(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
 

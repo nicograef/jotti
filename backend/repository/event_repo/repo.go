@@ -111,24 +111,7 @@ func (r Repository) ReadTableState(ctx context.Context, tischID int) (table.Tisc
 		return table.TischState{}, db.Error(err)
 	}
 
-	var unbezahlt []table.Position
-	if err := json.Unmarshal(row.UnbezahltePositionen, &unbezahlt); err != nil {
-		return table.TischState{}, fmt.Errorf("unmarshal unbezahlte positionen: %w", err)
-	}
-
-	var ungeliefert []table.Position
-	if err := json.Unmarshal(row.UngeliefertePositionen, &ungeliefert); err != nil {
-		return table.TischState{}, fmt.Errorf("unmarshal ungelieferte positionen: %w", err)
-	}
-
-	return table.TischState{
-		SaldoCents:             row.SaldoCents,
-		UnbezahltePositionen:   unbezahlt,
-		UngeliefertePositionen: ungeliefert,
-		GesamtZahlungenCents:   row.GesamtZahlungenCents,
-		LastEventID:            row.LastEventID,
-		LastEventVersion:       row.LastEventVersion,
-	}, nil
+	return toTischState(row)
 }
 
 // parseTischID extracts the table ID from a subject string (format: "tisch:<id>").
@@ -151,6 +134,10 @@ func getTableStateInTx(ctx context.Context, qtx *dbgen.Queries, tischID int) (ta
 		return table.TischState{}, db.Error(err)
 	}
 
+	return toTischState(row)
+}
+
+func toTischState(row dbgen.TableState) (table.TischState, error) {
 	var unbezahlt []table.Position
 	if err := json.Unmarshal(row.UnbezahltePositionen, &unbezahlt); err != nil {
 		return table.TischState{}, fmt.Errorf("unmarshal unbezahlte positionen: %w", err)

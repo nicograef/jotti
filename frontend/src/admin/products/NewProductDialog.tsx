@@ -67,7 +67,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <div className="fixed bottom-16 right-16 z-50">
+        <div className="fixed bottom-4 right-4 md:bottom-16 md:right-16 z-50">
           <Button className="cursor-pointer hover:shadow-sm">
             <Plus /> Neues Produkt
           </Button>
