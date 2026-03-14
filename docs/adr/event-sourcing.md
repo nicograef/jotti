@@ -318,8 +318,6 @@ Ein UNIQUE Constraint `(subject, version)` auf einer Tabelle. Bei CRUD bräuchte
 | **Stammdaten** (Produkte, Tische, Benutzer) | CRUD                          | Einfache Entities, kein Audit Trail im Domänenmodell nötig, stabile Schemata |
 | **Auth** (Login, Passwort)                  | CRUD                          | Infrastruktur, kein Domänen-Audit-Wert                                       |
 
-Diese Hybrid-Strategie ist konsistent mit [Theorie: Event Sourcing §8.2](../theory/event-sourcing.md) (Hybrid Strategy).
-
 ---
 
 ## Implementierungshinweise
@@ -382,5 +380,3 @@ Bei jottis aktuellem Scope (4 fachliche Event-Typen, < 10k Events, bewusster Fea
 - [ADR: CQRS](cqrs.md) — Projektionsarchitektur, Stufen-Modell, `table_state`-Details
 - [Handbuch §3](../design/handbuch.md) — Domain-Modell, Tisch-Aggregat, Invarianten, Event Replay
 - [Anforderungen](../anforderungen.md) — K-01–K-06, Q-02, Q-04, R-01–R-05
-- [Theorie: Event Sourcing](../theory/event-sourcing.md) — Grundlagen, Hybrid Strategy, Entscheidungsfluss
-- [Neubewertungs-Analyse](../../plan-event-sourcing-adr.md) — Vollständige Analyse mit Kritik der vorherigen ADR
