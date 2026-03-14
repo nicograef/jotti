@@ -8,13 +8,13 @@ import (
 )
 
 type Position struct {
-	PositionID   string
-	VarianteID   int
-	ProduktName  string
-	VarianteName string
-	Kategorie    string
-	Einzelpreis  int
-	Menge        int
+	PositionID   string `json:"positionId"`
+	VarianteID   int    `json:"varianteId"`
+	ProduktName  string `json:"produktName"`
+	VarianteName string `json:"varianteName"`
+	Kategorie    string `json:"kategorie"`
+	Einzelpreis  int    `json:"einzelpreis"`
+	Menge        int    `json:"menge"`
 }
 
 var positionSchema = z.Struct(z.Shape{

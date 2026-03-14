@@ -28,13 +28,13 @@ type variante struct {
 }
 
 type produkt struct {
-	ID        int           `json:"id"`
-	Name      string        `json:"name"`
-	Kategorie string        `json:"kategorie"`
-	Status    string        `json:"status"`
-	Varianten []variante    `json:"varianten"`
-	CreatedAt time.Time     `json:"createdAt"`
-	UpdatedAt time.Time     `json:"updatedAt"`
+	ID        int        `json:"id"`
+	Name      string     `json:"name"`
+	Kategorie string     `json:"kategorie"`
+	Status    string     `json:"status"`
+	Varianten []variante `json:"varianten"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt"`
 }
 
 type getAllProductsResponse struct {

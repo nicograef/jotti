@@ -132,13 +132,13 @@ func toPositionen(positionen []t.Position) []position {
 }
 
 type bestellung struct {
-	ID               string        `json:"id"`
-	UserID           int           `json:"userId"`
-	TischID          int           `json:"tischId"`
-	Positionen       []position    `json:"positionen"`
-	GesamtPreisCents int           `json:"gesamtPreisCents"`
-	Kommentar        string        `json:"kommentar"`
-	AufgegebenAm     time.Time     `json:"aufgegebenAm"`
+	ID               string     `json:"id"`
+	UserID           int        `json:"userId"`
+	TischID          int        `json:"tischId"`
+	Positionen       []position `json:"positionen"`
+	GesamtPreisCents int        `json:"gesamtPreisCents"`
+	Kommentar        string     `json:"kommentar"`
+	AufgegebenAm     time.Time  `json:"aufgegebenAm"`
 }
 
 func toBestellung(b t.Bestellung) bestellung {
@@ -154,12 +154,12 @@ func toBestellung(b t.Bestellung) bestellung {
 }
 
 type lieferung struct {
-	ID          string        `json:"id"`
-	UserID      int           `json:"userId"`
-	TischID     int           `json:"tischId"`
-	Positionen  []position    `json:"positionen"`
-	Kommentar   string        `json:"kommentar"`
-	GeliefertAm time.Time     `json:"geliefertAm"`
+	ID          string     `json:"id"`
+	UserID      int        `json:"userId"`
+	TischID     int        `json:"tischId"`
+	Positionen  []position `json:"positionen"`
+	Kommentar   string     `json:"kommentar"`
+	GeliefertAm time.Time  `json:"geliefertAm"`
 }
 
 func toLieferung(l t.Lieferung) lieferung {
@@ -174,13 +174,13 @@ func toLieferung(l t.Lieferung) lieferung {
 }
 
 type zahlung struct {
-	ID                 string        `json:"id"`
-	UserID             int           `json:"userId"`
-	TischID            int           `json:"tischId"`
-	Positionen         []position    `json:"positionen"`
-	GesamtZahlungCents int           `json:"gesamtZahlungCents"`
-	Kommentar          string        `json:"kommentar"`
-	RegistriertAm      time.Time     `json:"registriertAm"`
+	ID                 string     `json:"id"`
+	UserID             int        `json:"userId"`
+	TischID            int        `json:"tischId"`
+	Positionen         []position `json:"positionen"`
+	GesamtZahlungCents int        `json:"gesamtZahlungCents"`
+	Kommentar          string     `json:"kommentar"`
+	RegistriertAm      time.Time  `json:"registriertAm"`
 }
 
 func toZahlung(z t.Zahlung) zahlung {
@@ -196,13 +196,13 @@ func toZahlung(z t.Zahlung) zahlung {
 }
 
 type stornierung struct {
-	ID                     string        `json:"id"`
-	UserID                 int           `json:"userId"`
-	TischID                int           `json:"tischId"`
-	Positionen             []position    `json:"positionen"`
-	GesamtStornierungCents int           `json:"gesamtStornierungCents"`
-	Kommentar              string        `json:"kommentar"`
-	StorniertAm            time.Time     `json:"storniertAm"`
+	ID                     string     `json:"id"`
+	UserID                 int        `json:"userId"`
+	TischID                int        `json:"tischId"`
+	Positionen             []position `json:"positionen"`
+	GesamtStornierungCents int        `json:"gesamtStornierungCents"`
+	Kommentar              string     `json:"kommentar"`
+	StorniertAm            time.Time  `json:"storniertAm"`
 }
 
 func toStornierung(s t.Stornierung) stornierung {
@@ -265,12 +265,12 @@ type getTischStateRequest struct {
 }
 
 type getTischStateResponse struct {
-	TischID                int           `json:"tischId"`
-	TischName              string        `json:"tischName"`
-	SaldoCents             int           `json:"saldoCents"`
+	TischID                int        `json:"tischId"`
+	TischName              string     `json:"tischName"`
+	SaldoCents             int        `json:"saldoCents"`
 	UnbezahltePositionen   []position `json:"unbezahltePositionen"`
 	UngeliefertePositionen []position `json:"ungeliefertePositionen"`
-	GesamtZahlungenCents   int           `json:"gesamtZahlungenCents"`
+	GesamtZahlungenCents   int        `json:"gesamtZahlungenCents"`
 }
 
 func (h QueryHandler) GetTischStateHandler() http.HandlerFunc {

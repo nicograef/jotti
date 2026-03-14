@@ -10,17 +10,85 @@ import (
 )
 
 type query interface {
-	GetDashboardData(ctx context.Context) (reporting.DashboardData, error)
-	GetTagesabrechnung(ctx context.Context, von, bis time.Time) (reporting.TagesabrechnungData, error)
+	GetReporting(ctx context.Context, zeitraum reporting.Zeitraum) (reporting.ReportingData, error)
 }
 
 type QueryHandler struct {
 	Query query
 }
 
+type getReportingRequest struct {
+	Von time.Time `json:"von"`
+	Bis time.Time `json:"bis"`
+}
+
+type reportingResponse struct {
+	Zeitraum      zeitraum            `json:"zeitraum"`
+	Summary       summaryResponse     `json:"summary"`
+	Breakdowns    breakdownsResponse  `json:"breakdowns"`
+	Stornierungen []stornierungDetail `json:"stornierungen"`
+}
+
+func (h QueryHandler) GetReportingHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := getReportingRequest{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		if body.Von.IsZero() || body.Bis.IsZero() {
+			helper.SendClientError(w, "invalid_zeitraum", "von_und_bis_sind_erforderlich")
+			return
+		}
+
+		if !isUTC(body.Von) || !isUTC(body.Bis) {
+			helper.SendClientError(w, "invalid_timezone", "von_und_bis_muessen_utc_sein")
+			return
+		}
+
+		if !body.Von.Before(body.Bis) {
+			helper.SendClientError(w, "invalid_zeitraum", "von_muss_kleiner_als_bis_sein")
+			return
+		}
+
+		zeitraum := reporting.Zeitraum{
+			Von: body.Von,
+			Bis: body.Bis,
+		}
+
+		data, err := h.Query.GetReporting(r.Context(), zeitraum)
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		helper.SendResponse(w, toReportingResponse(data))
+	}
+}
+
+func isUTC(ts time.Time) bool {
+	_, offset := ts.Zone()
+	return offset == 0
+}
+
 type zeitraum struct {
 	Von time.Time `json:"von"`
 	Bis time.Time `json:"bis"`
+}
+
+type summaryResponse struct {
+	GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
+	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
+	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
+	OffeneSaldiCents         int `json:"offeneSaldiCents"`
+	AnzahlOffeneTische       int `json:"anzahlOffeneTische"`
+	AnzahlBestellungen       int `json:"anzahlBestellungen"`
+	AnzahlStornierungen      int `json:"anzahlStornierungen"`
+}
+
+type breakdownsResponse struct {
+	UmsatzProServicekraft []umsatzServicekraft `json:"umsatzProServicekraft"`
+	UmsatzProTisch        []umsatzTisch        `json:"umsatzProTisch"`
 }
 
 type umsatzServicekraft struct {
@@ -53,28 +121,6 @@ type stornierungDetail struct {
 	BetragCents int                   `json:"betragCents"`
 	Kommentar   string                `json:"kommentar"`
 	Positionen  []stornierungPosition `json:"positionen"`
-}
-
-type dashboardResponse struct {
-	GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
-	AnzahlOffeneTische       int `json:"anzahlOffeneTische"`
-	AnzahlBestellungen       int `json:"anzahlBestellungen"`
-	AnzahlStornierungen      int `json:"anzahlStornierungen"`
-	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
-	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
-}
-
-type tagesabrechnungResponse struct {
-	Zeitraum                 zeitraum             `json:"zeitraum"`
-	GesamtUmsatzCents        int                  `json:"gesamtUmsatzCents"`
-	GesamtBestellungenCents  int                  `json:"gesamtBestellungenCents"`
-	GesamtStornierungenCents int                  `json:"gesamtStornierungenCents"`
-	OffeneSaldiCents         int                  `json:"offeneSaldiCents"`
-	AnzahlBestellungen       int                  `json:"anzahlBestellungen"`
-	AnzahlStornierungen      int                  `json:"anzahlStornierungen"`
-	UmsatzProServicekraft    []umsatzServicekraft `json:"umsatzProServicekraft"`
-	UmsatzProTisch           []umsatzTisch        `json:"umsatzProTisch"`
-	Stornierungen            []stornierungDetail  `json:"stornierungen"`
 }
 
 func toZeitraum(z reporting.Zeitraum) zeitraum {
@@ -156,65 +202,22 @@ func toStornierungDetails(details []reporting.StornierungDetail) []stornierungDe
 	return out
 }
 
-func toDashboardResponse(d reporting.DashboardData) dashboardResponse {
-	return dashboardResponse{
-		GesamtUmsatzCents:        d.GesamtUmsatzCents,
-		AnzahlOffeneTische:       d.AnzahlOffeneTische,
-		AnzahlBestellungen:       d.AnzahlBestellungen,
-		AnzahlStornierungen:      d.AnzahlStornierungen,
-		GesamtBestellungenCents:  d.GesamtBestellungenCents,
-		GesamtStornierungenCents: d.GesamtStornierungenCents,
-	}
-}
-
-func toTagesabrechnungResponse(d reporting.TagesabrechnungData) tagesabrechnungResponse {
-	return tagesabrechnungResponse{
-		Zeitraum:                 toZeitraum(d.Zeitraum),
-		GesamtUmsatzCents:        d.GesamtUmsatzCents,
-		GesamtBestellungenCents:  d.GesamtBestellungenCents,
-		GesamtStornierungenCents: d.GesamtStornierungenCents,
-		OffeneSaldiCents:         d.OffeneSaldiCents,
-		AnzahlBestellungen:       d.AnzahlBestellungen,
-		AnzahlStornierungen:      d.AnzahlStornierungen,
-		UmsatzProServicekraft:    toUmsatzServicekraftList(d.UmsatzProServicekraft),
-		UmsatzProTisch:           toUmsatzTischList(d.UmsatzProTisch),
-		Stornierungen:            toStornierungDetails(d.Stornierungen),
-	}
-}
-
-func (h QueryHandler) GetDashboardHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		data, err := h.Query.GetDashboardData(r.Context())
-		if err != nil {
-			helper.SendServerError(w)
-			return
-		}
-		helper.SendResponse(w, toDashboardResponse(data))
-	}
-}
-
-type getTagesabrechnungRequest struct {
-	Von time.Time `json:"von"`
-	Bis time.Time `json:"bis"`
-}
-
-func (h QueryHandler) GetTagesabrechnungHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTagesabrechnungRequest{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-
-		if body.Von.IsZero() || body.Bis.IsZero() || !body.Von.Before(body.Bis) {
-			helper.SendClientError(w, "invalid_zeitraum", nil)
-			return
-		}
-
-		data, err := h.Query.GetTagesabrechnung(r.Context(), body.Von, body.Bis)
-		if err != nil {
-			helper.SendServerError(w)
-			return
-		}
-		helper.SendResponse(w, toTagesabrechnungResponse(data))
+func toReportingResponse(d reporting.ReportingData) reportingResponse {
+	return reportingResponse{
+		Zeitraum: toZeitraum(d.Zeitraum),
+		Summary: summaryResponse{
+			GesamtUmsatzCents:        d.Summary.GesamtUmsatzCents,
+			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
+			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
+			OffeneSaldiCents:         d.Summary.OffeneSaldiCents,
+			AnzahlOffeneTische:       d.Summary.AnzahlOffeneTische,
+			AnzahlBestellungen:       d.Summary.AnzahlBestellungen,
+			AnzahlStornierungen:      d.Summary.AnzahlStornierungen,
+		},
+		Breakdowns: breakdownsResponse{
+			UmsatzProServicekraft: toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),
+			UmsatzProTisch:        toUmsatzTischList(d.Breakdowns.UmsatzProTisch),
+		},
+		Stornierungen: toStornierungDetails(d.Stornierungen),
 	}
 }

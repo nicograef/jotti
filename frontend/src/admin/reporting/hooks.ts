@@ -1,43 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
-import { useFetch } from '@/lib/useFetch'
 
 import { ReportingBackend } from './ReportingBackend'
-import type { Dashboard, Tagesabrechnung } from './types'
+import type { Reporting } from './types'
 
 const reportingBackend = new ReportingBackend(BackendSingleton)
-
-const emptyDashboard: Dashboard = {
-  gesamtUmsatzCents: 0,
-  anzahlOffeneTische: 0,
-  anzahlBestellungen: 0,
-  anzahlStornierungen: 0,
-  gesamtBestellungenCents: 0,
-  gesamtStornierungenCents: 0,
-}
-
-/** Fetches dashboard data on mount and auto-refreshes every 60 seconds. */
-export function useDashboard() {
-  const result = useFetch(() => reportingBackend.getDashboard(), emptyDashboard)
-
-  const reloadRef = useRef(result.reload)
-  useEffect(() => {
-    reloadRef.current = result.reload
-  }, [result.reload])
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      reloadRef.current()
-    }, 60_000)
-    return () => {
-      clearInterval(interval)
-    }
-  }, [])
-
-  return result
-}
 
 function initTodayMidnight(): Date {
   const d = new Date()
@@ -51,7 +20,10 @@ function initNowTime(): string {
   return `${pad(now.getHours())}:${pad(now.getMinutes())}`
 }
 
-function combineDateTime(date: Date | undefined, time: string): Date | null {
+export function combineDateTime(
+  date: Date | undefined,
+  time: string,
+): Date | null {
   if (!date) return null
   const [hours, minutes] = time.split(':').map(Number)
   const result = new Date(date)
@@ -59,8 +31,8 @@ function combineDateTime(date: Date | undefined, time: string): Date | null {
   return result
 }
 
-/** Manages Tagesabrechnung filter state and fetches data on mount. */
-export function useTagesabrechnung() {
+/** Manages reporting filter state and fetches data on mount. */
+export function useReporting() {
   const [vonDate, setVonDate] = useState<Date | undefined>(initTodayMidnight)
   const [vonTime, setVonTime] = useState('00:00')
   const [vonOpen, setVonOpen] = useState(false)
@@ -68,7 +40,7 @@ export function useTagesabrechnung() {
   const [bisTime, setBisTime] = useState(initNowTime)
   const [bisOpen, setBisOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<Tagesabrechnung | null>(null)
+  const [result, setResult] = useState<Reporting | null>(null)
 
   const auswerten = useCallback(async () => {
     const vonDT = combineDateTime(vonDate, vonTime)
@@ -89,10 +61,10 @@ export function useTagesabrechnung() {
 
     setLoading(true)
     try {
-      const data = await reportingBackend.getTagesabrechnung(vonUTC, bisUTC)
+      const data = await reportingBackend.getReporting(vonUTC, bisUTC)
       setResult(data)
     } catch {
-      toast.error('Fehler beim Laden der Tagesabrechnung.')
+      toast.error('Fehler beim Laden des Reportings.')
     } finally {
       setLoading(false)
     }

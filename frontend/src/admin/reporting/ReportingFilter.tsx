@@ -1,11 +1,6 @@
 import { format } from 'date-fns'
 import { de } from 'date-fns/locale'
-import {
-  CalendarIcon,
-  ChevronDownIcon,
-  ClipboardList,
-  Loader2,
-} from 'lucide-react'
+import { ChevronDownIcon, ClipboardList, Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -17,7 +12,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 
-export function TagesabrechnungFilter({
+export function ReportingFilter({
   vonDate,
   vonTime,
   vonOpen,
@@ -100,10 +95,7 @@ export function TagesabrechnungFilter({
       {/* Bis */}
       <div className="flex items-end gap-2">
         <div>
-          <Label>
-            <CalendarIcon className="mr-1 inline size-3.5 align-text-bottom" />
-            Bis
-          </Label>
+          <Label>Bis</Label>
           <Popover open={bisOpen} onOpenChange={onBisOpenChange}>
             <PopoverTrigger asChild>
               <Button

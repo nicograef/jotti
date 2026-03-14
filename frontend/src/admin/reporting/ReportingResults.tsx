@@ -1,4 +1,4 @@
-import { Ban, ChartBar, TableIcon, Users } from 'lucide-react'
+import { Ban, ChartBar, InfoIcon, TableIcon, Users } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,9 +18,15 @@ import {
 } from '@/components/ui/item'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { formatCents } from '@/lib/utils'
 
-import type { Tagesabrechnung } from './types'
+import type { Reporting } from './types'
 
 function SummaryCard({
   title,
@@ -52,11 +58,10 @@ function formatLocalTime(utcString: string): string {
   return new Date(utcString).toLocaleString('de-DE')
 }
 
-export function TagesabrechnungResults({
-  result,
-}: {
-  result: Tagesabrechnung
-}) {
+export function ReportingResults({ result }: { result: Reporting }) {
+  const summary = result.summary
+  const breakdowns = result.breakdowns
+
   return (
     <Tabs defaultValue="uebersicht">
       <div className="overflow-x-auto -mx-4 px-4">
@@ -68,27 +73,51 @@ export function TagesabrechnungResults({
           <TabsTrigger value="servicekraefte">
             <Users className="size-4" />
             Servicekräfte
-            {result.umsatzProServicekraft.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <InfoIcon className="size-3 cursor-help opacity-60" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Summe der registrierten Zahlungen pro Servicekraft.
+                  <br />
+                  Rückzahlungen werden aktuell nicht berücksichtigt.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {breakdowns.umsatzProServicekraft.length > 0 && (
               <Badge variant="secondary" className="ml-1">
-                {result.umsatzProServicekraft.length}
+                {breakdowns.umsatzProServicekraft.length}
               </Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="tische">
             <TableIcon className="size-4" />
             Tische
-            {result.umsatzProTisch.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <InfoIcon className="size-3 cursor-help opacity-60" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Summe der registrierten Zahlungen pro Tisch.
+                  <br />
+                  Rückzahlungen werden aktuell nicht berücksichtigt.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {breakdowns.umsatzProTisch.length > 0 && (
               <Badge variant="secondary" className="ml-1">
-                {result.umsatzProTisch.length}
+                {breakdowns.umsatzProTisch.length}
               </Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="stornierungen">
             <Ban className="size-4" />
             Stornierungen
-            {result.anzahlStornierungen > 0 && (
+            {summary.anzahlStornierungen > 0 && (
               <Badge variant="destructive" className="ml-1">
-                {result.anzahlStornierungen}
+                {summary.anzahlStornierungen}
               </Badge>
             )}
           </TabsTrigger>
@@ -98,30 +127,56 @@ export function TagesabrechnungResults({
       {/* Übersicht */}
       <TabsContent value="uebersicht" className="mt-4">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-1 text-sm text-muted-foreground">
+                Gesamtumsatz
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <InfoIcon className="size-3.5 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Summe aller registrierten Zahlungen im Zeitraum.
+                      <br />
+                      Rückzahlungen werden aktuell nicht berücksichtigt.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xl font-bold">
+                {formatCents(summary.gesamtUmsatzCents)} €
+              </p>
+            </CardContent>
+          </Card>
           <SummaryCard
-            title="Gesamtumsatz"
-            value={`${formatCents(result.gesamtUmsatzCents)} €`}
+            title="Offene Tische"
+            value={String(summary.anzahlOffeneTische)}
+            sub="Aktueller Stand"
           />
           <SummaryCard
             title="Bestellungen"
-            value={String(result.anzahlBestellungen)}
-            sub={`${formatCents(result.gesamtBestellungenCents)} €`}
+            value={String(summary.anzahlBestellungen)}
+            sub={`${formatCents(summary.gesamtBestellungenCents)} €`}
           />
           <SummaryCard
             title="Stornierungen"
-            value={String(result.anzahlStornierungen)}
-            sub={`${formatCents(result.gesamtStornierungenCents)} €`}
+            value={String(summary.anzahlStornierungen)}
+            sub={`${formatCents(summary.gesamtStornierungenCents)} €`}
           />
           <SummaryCard
             title="Offene Saldi"
-            value={`${formatCents(result.offeneSaldiCents)} €`}
+            value={`${formatCents(summary.offeneSaldiCents)} €`}
+            sub="Aktueller Stand"
           />
         </div>
       </TabsContent>
 
       {/* Servicekräfte */}
       <TabsContent value="servicekraefte" className="mt-4">
-        {result.umsatzProServicekraft.length === 0 ? (
+        {breakdowns.umsatzProServicekraft.length === 0 ? (
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
@@ -135,12 +190,12 @@ export function TagesabrechnungResults({
           </Empty>
         ) : (
           <ItemGroup>
-            {result.umsatzProServicekraft.map((sk) => (
+            {breakdowns.umsatzProServicekraft.map((sk) => (
               <Item key={sk.userId} variant="outline" size="sm">
                 <ItemContent>
                   <ItemTitle>{sk.userName}</ItemTitle>
                   <Progress
-                    value={pct(sk.zahlungenCents, result.gesamtUmsatzCents)}
+                    value={pct(sk.zahlungenCents, summary.gesamtUmsatzCents)}
                     className="mt-1 h-1.5"
                   />
                 </ItemContent>
@@ -160,7 +215,7 @@ export function TagesabrechnungResults({
 
       {/* Tische */}
       <TabsContent value="tische" className="mt-4">
-        {result.umsatzProTisch.length === 0 ? (
+        {breakdowns.umsatzProTisch.length === 0 ? (
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
@@ -174,12 +229,12 @@ export function TagesabrechnungResults({
           </Empty>
         ) : (
           <ItemGroup>
-            {result.umsatzProTisch.map((t) => (
+            {breakdowns.umsatzProTisch.map((t) => (
               <Item key={t.tischId} variant="outline" size="sm">
                 <ItemContent>
                   <ItemTitle>{t.tischName}</ItemTitle>
                   <Progress
-                    value={pct(t.zahlungenCents, result.gesamtUmsatzCents)}
+                    value={pct(t.zahlungenCents, summary.gesamtUmsatzCents)}
                     className="mt-1 h-1.5"
                   />
                 </ItemContent>

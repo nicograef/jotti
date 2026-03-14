@@ -4,7 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
@@ -18,27 +19,6 @@ func NewRepository(db *sql.DB) Repository {
 	return Repository{q: dbgen.New(db)}
 }
 
-func (r Repository) GetDashboardData(ctx context.Context) (reporting.DashboardData, error) {
-	stats, err := r.q.GetDashboardStats(ctx)
-	if err != nil {
-		return reporting.DashboardData{}, err
-	}
-
-	offeneTische, err := r.q.GetOffeneTische(ctx)
-	if err != nil {
-		return reporting.DashboardData{}, err
-	}
-
-	return reporting.DashboardData{
-		GesamtUmsatzCents:        stats.GesamtUmsatzCents,
-		AnzahlOffeneTische:       offeneTische,
-		AnzahlBestellungen:       stats.AnzahlBestellungen,
-		AnzahlStornierungen:      stats.AnzahlStornierungen,
-		GesamtBestellungenCents:  stats.GesamtBestellungenCents,
-		GesamtStornierungenCents: stats.GesamtStornierungenCents,
-	}, nil
-}
-
 // stornierungEventData represents the JSONB structure of a fat stornierung event.
 type stornierungEventData struct {
 	GesamtStornierungCents int                             `json:"gesamtStornierungCents"`
@@ -46,40 +26,79 @@ type stornierungEventData struct {
 	Positionen             []reporting.StornierungPosition `json:"positionen"`
 }
 
-func (r Repository) GetTagesabrechnung(ctx context.Context, von, bis time.Time) (reporting.TagesabrechnungData, error) {
-	stats, err := r.q.GetAbrechnungStats(ctx, dbgen.GetAbrechnungStatsParams{Von: von, Bis: bis})
-	if err != nil {
-		return reporting.TagesabrechnungData{}, err
+func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitraum) (reporting.ReportingData, error) {
+	var (
+		stats        dbgen.GetReportingStatsRow
+		offeneSaldi  int
+		offeneTische int
+		umsatzRows   []dbgen.GetUmsatzProServicekraftRow
+		tischRows    []dbgen.GetUmsatzProTischRow
+		stornoRows   []dbgen.GetStornierungenRow
+	)
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		var err error
+		stats, err = r.q.GetReportingStats(ctx, dbgen.GetReportingStatsParams{Von: zeitraum.Von, Bis: zeitraum.Bis})
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		offeneSaldi, err = r.q.GetOffeneSaldi(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		offeneTische, err = r.q.GetOffeneTische(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		umsatzRows, err = r.q.GetUmsatzProServicekraft(ctx, dbgen.GetUmsatzProServicekraftParams{Von: zeitraum.Von, Bis: zeitraum.Bis})
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		tischRows, err = r.q.GetUmsatzProTisch(ctx, dbgen.GetUmsatzProTischParams{Von: zeitraum.Von, Bis: zeitraum.Bis})
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		stornoRows, err = r.q.GetStornierungen(ctx, dbgen.GetStornierungenParams{Von: zeitraum.Von, Bis: zeitraum.Bis})
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
+		return reporting.ReportingData{}, err
 	}
 
-	offeneSaldi, err := r.q.GetOffeneSaldi(ctx)
-	if err != nil {
-		return reporting.TagesabrechnungData{}, err
-	}
-
-	umsatzRows, err := r.q.GetUmsatzProServicekraft(ctx, dbgen.GetUmsatzProServicekraftParams{Von: von, Bis: bis})
-	if err != nil {
-		return reporting.TagesabrechnungData{}, err
-	}
 	umsatz := make([]reporting.UmsatzServicekraft, len(umsatzRows))
 	for i, row := range umsatzRows {
+		userName, _ := row.UserName.(string)
 		umsatz[i] = reporting.UmsatzServicekraft{
 			UserID:          row.UserID,
-			UserName:        row.UserName,
+			UserName:        userName,
 			ZahlungenCents:  row.ZahlungenCents,
 			AnzahlZahlungen: row.AnzahlZahlungen,
 		}
 	}
 
-	stornoRows, err := r.q.GetStornierungen(ctx, dbgen.GetStornierungenParams{Von: von, Bis: bis})
-	if err != nil {
-		return reporting.TagesabrechnungData{}, err
+	tische := make([]reporting.UmsatzTisch, len(tischRows))
+	for i, row := range tischRows {
+		tische[i] = reporting.UmsatzTisch{
+			TischID:         row.TischID,
+			TischName:       row.TischName,
+			ZahlungenCents:  row.ZahlungenCents,
+			AnzahlZahlungen: row.AnzahlZahlungen,
+		}
 	}
+
 	stornierungen := make([]reporting.StornierungDetail, len(stornoRows))
 	for i, row := range stornoRows {
 		var data stornierungEventData
 		if err := json.Unmarshal(row.Data, &data); err != nil {
-			return reporting.TagesabrechnungData{}, err
+			return reporting.ReportingData{}, err
 		}
 		positionen := data.Positionen
 		if positionen == nil {
@@ -97,30 +116,21 @@ func (r Repository) GetTagesabrechnung(ctx context.Context, von, bis time.Time) 
 		}
 	}
 
-	tischRows, err := r.q.GetUmsatzProTisch(ctx, dbgen.GetUmsatzProTischParams{Von: von, Bis: bis})
-	if err != nil {
-		return reporting.TagesabrechnungData{}, err
-	}
-	tische := make([]reporting.UmsatzTisch, len(tischRows))
-	for i, row := range tischRows {
-		tische[i] = reporting.UmsatzTisch{
-			TischID:         row.TischID,
-			TischName:       row.TischName,
-			ZahlungenCents:  row.ZahlungenCents,
-			AnzahlZahlungen: row.AnzahlZahlungen,
-		}
-	}
-
-	return reporting.TagesabrechnungData{
-		Zeitraum:                 reporting.Zeitraum{Von: von, Bis: bis},
-		GesamtUmsatzCents:        stats.GesamtUmsatzCents,
-		GesamtBestellungenCents:  stats.GesamtBestellungenCents,
-		GesamtStornierungenCents: stats.GesamtStornierungenCents,
-		OffeneSaldiCents:         offeneSaldi,
-		AnzahlBestellungen:       stats.AnzahlBestellungen,
-		AnzahlStornierungen:      stats.AnzahlStornierungen,
-		UmsatzProServicekraft:    umsatz,
-		UmsatzProTisch:           tische,
-		Stornierungen:            stornierungen,
+	return reporting.ReportingData{
+		Zeitraum: zeitraum,
+		Summary: reporting.Summary{
+			GesamtUmsatzCents:        stats.GesamtUmsatzCents,
+			GesamtBestellungenCents:  stats.GesamtBestellungenCents,
+			GesamtStornierungenCents: stats.GesamtStornierungenCents,
+			OffeneSaldiCents:         offeneSaldi,
+			AnzahlOffeneTische:       offeneTische,
+			AnzahlBestellungen:       stats.AnzahlBestellungen,
+			AnzahlStornierungen:      stats.AnzahlStornierungen,
+		},
+		Breakdowns: reporting.Breakdowns{
+			UmsatzProServicekraft: umsatz,
+			UmsatzProTisch:        tische,
+		},
+		Stornierungen: stornierungen,
 	}, nil
 }

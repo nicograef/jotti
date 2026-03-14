@@ -1,43 +1,35 @@
-import { Separator } from '@/components/ui/separator'
-
-import { DashboardKpiCards } from './DashboardKpiCards'
-import { useDashboard, useTagesabrechnung } from './hooks'
-import { TagesabrechnungFilter } from './TagesabrechnungFilter'
-import { TagesabrechnungResults } from './TagesabrechnungResults'
+import { useReporting } from './hooks'
+import { ReportingFilter } from './ReportingFilter'
+import { ReportingResults } from './ReportingResults'
 
 export function AdminDashboardPage() {
-  const dashboard = useDashboard()
-  const tagesabrechnung = useTagesabrechnung()
+  const reporting = useReporting()
 
   return (
     <>
-      <DashboardKpiCards data={dashboard.data} loading={dashboard.loading} />
-
-      <Separator className="mt-8" />
-
-      <h2 className="mt-6 text-lg font-semibold">Tagesabrechnung</h2>
+      <h1 className="text-2xl font-bold">Reporting</h1>
       <div className="mt-4">
-        <TagesabrechnungFilter
-          vonDate={tagesabrechnung.vonDate}
-          vonTime={tagesabrechnung.vonTime}
-          vonOpen={tagesabrechnung.vonOpen}
-          bisDate={tagesabrechnung.bisDate}
-          bisTime={tagesabrechnung.bisTime}
-          bisOpen={tagesabrechnung.bisOpen}
-          loading={tagesabrechnung.loading}
-          onVonDateChange={tagesabrechnung.setVonDate}
-          onVonTimeChange={tagesabrechnung.setVonTime}
-          onVonOpenChange={tagesabrechnung.setVonOpen}
-          onBisDateChange={tagesabrechnung.setBisDate}
-          onBisTimeChange={tagesabrechnung.setBisTime}
-          onBisOpenChange={tagesabrechnung.setBisOpen}
-          onAuswerten={tagesabrechnung.auswerten}
+        <ReportingFilter
+          vonDate={reporting.vonDate}
+          vonTime={reporting.vonTime}
+          vonOpen={reporting.vonOpen}
+          bisDate={reporting.bisDate}
+          bisTime={reporting.bisTime}
+          bisOpen={reporting.bisOpen}
+          loading={reporting.loading}
+          onVonDateChange={reporting.setVonDate}
+          onVonTimeChange={reporting.setVonTime}
+          onVonOpenChange={reporting.setVonOpen}
+          onBisDateChange={reporting.setBisDate}
+          onBisTimeChange={reporting.setBisTime}
+          onBisOpenChange={reporting.setBisOpen}
+          onAuswerten={reporting.auswerten}
         />
       </div>
 
-      {tagesabrechnung.result && (
+      {reporting.result && (
         <div className="mt-6">
-          <TagesabrechnungResults result={tagesabrechnung.result} />
+          <ReportingResults result={reporting.result} />
         </div>
       )}
     </>

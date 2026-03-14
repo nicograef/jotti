@@ -1,11 +1,6 @@
 import type { BackendClient } from '@/lib/Backend'
 
-import {
-  type Dashboard,
-  DashboardSchema,
-  type Tagesabrechnung,
-  TagesabrechnungSchema,
-} from './types'
+import { type Reporting, ReportingSchema } from './types'
 
 export class ReportingBackend {
   private readonly backend: BackendClient
@@ -14,18 +9,11 @@ export class ReportingBackend {
     this.backend = backend
   }
 
-  public async getDashboard(): Promise<Dashboard> {
-    return this.backend.post('admin/get-dashboard', {}, DashboardSchema)
-  }
-
-  public async getTagesabrechnung(
-    von: string,
-    bis: string,
-  ): Promise<Tagesabrechnung> {
+  public async getReporting(von: string, bis: string): Promise<Reporting> {
     return this.backend.post(
-      'admin/get-tagesabrechnung',
+      'admin/get-reporting',
       { von, bis },
-      TagesabrechnungSchema,
+      ReportingSchema,
     )
   }
 }

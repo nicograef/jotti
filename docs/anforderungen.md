@@ -45,7 +45,7 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen:
 | Bestellung aufgeben      |   ✔   |       ✔        |      ✔       |
 | Lieferung bestätigen     |   ✔   |       ✔        |      ✔       |
 | Zahlung registrieren     |   ✔   |       ✔        |      ✔       |
-| Stornierung durchführen  |   ✔   |       ✔        |              |
+| Stornierung (K-04a/b)    |   ✔   |       ✔        |              |
 | Umbuchung durchführen    |   ✔   |       ✔        |      ✔       |
 | Tischübersicht einsehen  |   ✔   |       ✔        |      ✔       |
 | Kassenjournal einsehen   |   ✔   |       ✔        |      ✔       |
@@ -107,22 +107,38 @@ Die Servicekraft markiert bestellte Positionen als geliefert, nachdem sie dem Ga
 - Lieferung wird als unveränderliches Event im Kassenjournal gespeichert
 - Gelieferte Positionen werden in der Tischübersicht als geliefert angezeigt
 
-### K-04 · Stornierung
+### K-04a · Stornierung nicht-bezahlter Positionen
 
-> **ID:** K-04 · **Rolle:** Serviceleitung · Admin
+> **ID:** K-04a · **Rolle:** Serviceleitung · Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
-Serviceleitung oder Admin können bestellte Positionen nachträglich stornieren — unabhängig vom Liefer- und Bezahlstatus. Einfache Servicekräfte haben kein Stornierungsrecht. Die Stornierung reduziert den Saldo des Tisches; bei Stornierung bereits bezahlter Positionen kann der Saldo negativ werden.
+Serviceleitung oder Admin können unbezahlte bestellte Positionen nachträglich stornieren — unabhängig vom Lieferstatus. Einfache Servicekräfte haben kein Stornierungsrecht. Die Stornierung reduziert den offenen Saldo des Tisches.
 
 **Akzeptanzkriterien:**
 
 - Nur Serviceleitung (`serviceleitung`) und Admin (`admin`) dürfen stornieren
 - Servicekraft (`service`) hat keinen Zugriff auf die Stornierungsfunktion
-- Alle bestellten, nicht-stornierten Positionen sind stornierbar — unabhängig davon, ob sie bereits bezahlt oder geliefert wurden
+- Unbezahlte, nicht-stornierte Positionen sind stornierbar — unabhängig davon, ob sie bereits geliefert wurden
 - Mindestens eine Position muss ausgewählt werden
 - Kommentar optional (max. 100 Zeichen)
-- Stornierung wird als unveränderliches Event im Kassenjournal gespeichert
-- Saldo des Tisches wird nach Stornierung korrekt reduziert (kann dabei negativ werden)
+- Stornierung wird als unveränderliches `ProdukteStorniert`-Event im Kassenjournal gespeichert
+- Saldo des Tisches wird nach Stornierung korrekt reduziert
+
+### K-04b · Stornierung bereits bezahlter Positionen (Rückzahlung)
+
+> **ID:** K-04b · **Rolle:** Serviceleitung · Admin
+> **Status:** 🔲 Offen · **Prio:** Should-have
+
+Serviceleitung oder Admin können auch bereits bezahlte Positionen nachträglich stornieren. Da der Gast bereits gezahlt hat, entsteht ein negativer Saldo am Tisch — das System registriert die Rückzahlung als eigenes Event und korrigiert den Umsatz im Reporting entsprechend.
+
+**Akzeptanzkriterien:**
+
+- Bereits bezahlte, nicht-stornierte Positionen sind stornierbar (wie K-04a)
+- Die Stornierung erzeugt zusätzlich ein `RueckzahlungRegistriert`-Event, das den zurückzuzahlenden Betrag festhält
+- Saldo des Tisches wird nach Stornierung korrekt angepasst (kann negativ werden, bis die Rückzahlung quittiert wird)
+- Rückzahlungsbetrag ist im Kassenjournal des Tisches sichtbar
+- Reporting: `GetReportingStats`, `GetUmsatzProServicekraft` und `GetUmsatzProTisch` berücksichtigen Rückzahlungen korrekt (Umsatz = Zahlungen − Rückzahlungen)
+- Frontend-Tooltips weisen nicht mehr auf fehlende Rückzahlungsberücksichtigung hin
 
 ### K-05 · Tischübersicht und Navigation
 
@@ -477,39 +493,24 @@ Sicherheitsrelevante HTTP-Header werden gesetzt, um gängige Angriffsvektoren (X
 
 > **Abrechnungszeitraum:** Vereinsfeste enden häufig nach Mitternacht (z. B. 17:00–03:00). Ein „Tag" im Sinne der Abrechnung entspricht daher **nicht** zwingend dem Kalendertag 0:00–24:00. Alle zeitraumbezogenen Auswertungen (R-01, R-03–R-05) beziehen sich auf einen vom Admin wählbaren **Abrechnungszeitraum** (Von–Bis). Standardmäßig wird der Zeitraum seit dem letzten Tagesabschluss (R-07) vorgeschlagen; der Admin kann ihn jederzeit manuell anpassen.
 
-### R-00 · Admin-Dashboard
-
-> **ID:** R-00 · **Rolle:** Admin
-> **Status:** ✅ Umgesetzt · **Prio:** Should-have
-
-Der Admin-Bereich besitzt ein Dashboard als Startseite, das einen kompakten Live-Überblick über die laufende Veranstaltung bietet. Die angezeigten Kennzahlen müssen nicht streng konsistent sein (Eventually Consistent ist ausreichend) — es geht um einen schnellen Orientierungsblick, nicht um eine exakte Abrechnung.
-
-**Akzeptanzkriterien:**
-
-- Dashboard ist die Startseite des Admin-Bereichs (`/admin`)
-- Anzeige der wichtigsten Kennzahlen auf einen Blick:
-  - Gesamtumsatz (Summe aller Zahlungen im Abrechnungszeitraum)
-  - Anzahl offener Tische (Saldo > 0)
-  - Anzahl Bestellungen und Stornierungen im Abrechnungszeitraum
-- Schnellzugriff auf Detail-Auswertungen (R-01, R-03–R-05) und auf den Tagesabschluss (R-07)
-- Daten dürfen eventually consistent sein (kein Echtzeit-Zwang)
-- Nur durch Admin einsehbar
-
 ### R-01 · Tagesabrechnung
 
 > **ID:** R-01 · **Rolle:** Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Should-have
 
-Der Admin kann jederzeit eine Tagesabrechnung für einen wählbaren Abrechnungszeitraum einsehen. Diese zeigt den Gesamtumsatz, eine Aufschlüsselung pro Servicekraft sowie eine Übersicht aller Stornierungen. Die Tagesabrechnung ist die zentrale Auswertung für die Vereinsbuchhaltung.
+Der Admin kann jederzeit ein einheitliches Reporting für einen wählbaren Abrechnungszeitraum einsehen. Die Ansicht kombiniert KPIs, Aufschlüsselungen und Stornierungsdetails in einem Datenmodell und ist die zentrale Auswertung für die Vereinsbuchhaltung.
 
 **Akzeptanzkriterien:**
 
-- Abrechnungszeitraum ist wählbar (Von–Bis als Datum + Uhrzeit); Default: seit letztem Tagesabschluss
-- Gesamtumsatz im gewählten Zeitraum (Summe aller registrierten Zahlungen)
+- Ein Endpoint liefert das Reporting als einheitliches Datenmodell (KPIs, Breakdown-Sektionen, Stornierungen)
+- Abrechnungszeitraum ist wählbar (Von–Bis als Datum + Uhrzeit); Default im UI: heute 00:00 bis jetzt
+- Zeitraumsemantik ist eindeutig: `von` inklusiv, `bis` exklusiv, UTC-only
+- Anzeige der wichtigsten Kennzahlen auf einen Blick: Gesamtumsatz, Anzahl offener Tische, Anzahl Bestellungen und Stornierungen
 - Gesamtbetrag der Bestellungen, der Stornierungen und offener Saldi im Zeitraum
-- Umsatz pro Servicekraft als Übersichtsliste (Details siehe R-04)
+- Umsatz pro Servicekraft und Umsatz pro Tisch als Übersichtslisten
 - Übersicht aller Stornierungen mit Zeitpunkt, Tisch, stornierten Positionen und Betrag
-- Abruf jederzeit möglich (nicht nur bei Tagesabschluss)
+- Kein Live-Dashboard und kein Auto-Refresh erforderlich; Auswertung erfolgt bewusst on-demand
+- Nur durch Admin einsehbar
 
 ### R-02 · Datenexport
 

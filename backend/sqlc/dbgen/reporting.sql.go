@@ -11,92 +11,6 @@ import (
 	"time"
 )
 
-const getAbrechnungStats = `-- name: GetAbrechnungStats :one
-SELECT
-    COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-registriert:v1'
-        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS gesamt_umsatz_cents,
-    COALESCE(SUM(CASE WHEN type = 'tisch.bestellung-aufgegeben:v1'
-        THEN (data->>'gesamtPreisCents')::int END), 0)::int AS gesamt_bestellungen_cents,
-    COALESCE(SUM(CASE WHEN type = 'tisch.produkte-storniert:v1'
-        THEN (data->>'gesamtStornierungCents')::int END), 0)::int AS gesamt_stornierungen_cents,
-    COALESCE(COUNT(CASE WHEN type = 'tisch.bestellung-aufgegeben:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
-    COALESCE(COUNT(CASE WHEN type = 'tisch.produkte-storniert:v1' THEN 1 END), 0)::int AS anzahl_stornierungen
-FROM events
-WHERE type IN (
-    'tisch.bestellung-aufgegeben:v1',
-    'tisch.zahlung-registriert:v1',
-    'tisch.produkte-storniert:v1'
-)
-AND timestamp >= $1 AND timestamp < $2
-`
-
-type GetAbrechnungStatsParams struct {
-	Von time.Time
-	Bis time.Time
-}
-
-type GetAbrechnungStatsRow struct {
-	GesamtUmsatzCents        int
-	GesamtBestellungenCents  int
-	GesamtStornierungenCents int
-	AnzahlBestellungen       int
-	AnzahlStornierungen      int
-}
-
-// Tagesabrechnung: Aggregierte Kennzahlen im Abrechnungszeitraum.
-func (q *Queries) GetAbrechnungStats(ctx context.Context, arg GetAbrechnungStatsParams) (GetAbrechnungStatsRow, error) {
-	row := q.db.QueryRowContext(ctx, getAbrechnungStats, arg.Von, arg.Bis)
-	var i GetAbrechnungStatsRow
-	err := row.Scan(
-		&i.GesamtUmsatzCents,
-		&i.GesamtBestellungenCents,
-		&i.GesamtStornierungenCents,
-		&i.AnzahlBestellungen,
-		&i.AnzahlStornierungen,
-	)
-	return i, err
-}
-
-const getDashboardStats = `-- name: GetDashboardStats :one
-SELECT
-    COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-registriert:v1'
-        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS gesamt_umsatz_cents,
-    COALESCE(SUM(CASE WHEN type = 'tisch.bestellung-aufgegeben:v1'
-        THEN (data->>'gesamtPreisCents')::int END), 0)::int AS gesamt_bestellungen_cents,
-    COALESCE(SUM(CASE WHEN type = 'tisch.produkte-storniert:v1'
-        THEN (data->>'gesamtStornierungCents')::int END), 0)::int AS gesamt_stornierungen_cents,
-    COALESCE(COUNT(CASE WHEN type = 'tisch.bestellung-aufgegeben:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
-    COALESCE(COUNT(CASE WHEN type = 'tisch.produkte-storniert:v1' THEN 1 END), 0)::int AS anzahl_stornierungen
-FROM events
-WHERE type IN (
-    'tisch.bestellung-aufgegeben:v1',
-    'tisch.zahlung-registriert:v1',
-    'tisch.produkte-storniert:v1'
-)
-`
-
-type GetDashboardStatsRow struct {
-	GesamtUmsatzCents        int
-	GesamtBestellungenCents  int
-	GesamtStornierungenCents int
-	AnzahlBestellungen       int
-	AnzahlStornierungen      int
-}
-
-// Dashboard: Gesamtumsatz (Zahlungen), Bestellungen, Stornierungen — alle Daten (kein Zeitraumfilter).
-func (q *Queries) GetDashboardStats(ctx context.Context) (GetDashboardStatsRow, error) {
-	row := q.db.QueryRowContext(ctx, getDashboardStats)
-	var i GetDashboardStatsRow
-	err := row.Scan(
-		&i.GesamtUmsatzCents,
-		&i.GesamtBestellungenCents,
-		&i.GesamtStornierungenCents,
-		&i.AnzahlBestellungen,
-		&i.AnzahlStornierungen,
-	)
-	return i, err
-}
-
 const getOffeneSaldi = `-- name: GetOffeneSaldi :one
 SELECT COALESCE(SUM(saldo_cents), 0)::int AS offene_saldi_cents
 FROM table_state WHERE saldo_cents > 0
@@ -121,6 +35,52 @@ func (q *Queries) GetOffeneTische(ctx context.Context) (int, error) {
 	var anzahl int
 	err := row.Scan(&anzahl)
 	return anzahl, err
+}
+
+const getReportingStats = `-- name: GetReportingStats :one
+SELECT
+    COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-registriert:v1'
+        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS gesamt_umsatz_cents,
+    COALESCE(SUM(CASE WHEN type = 'tisch.bestellung-aufgegeben:v1'
+        THEN (data->>'gesamtPreisCents')::int END), 0)::int AS gesamt_bestellungen_cents,
+    COALESCE(SUM(CASE WHEN type = 'tisch.produkte-storniert:v1'
+        THEN (data->>'gesamtStornierungCents')::int END), 0)::int AS gesamt_stornierungen_cents,
+    COALESCE(COUNT(CASE WHEN type = 'tisch.bestellung-aufgegeben:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
+    COALESCE(COUNT(CASE WHEN type = 'tisch.produkte-storniert:v1' THEN 1 END), 0)::int AS anzahl_stornierungen
+FROM events
+WHERE type IN (
+    'tisch.bestellung-aufgegeben:v1',
+    'tisch.zahlung-registriert:v1',
+    'tisch.produkte-storniert:v1'
+)
+AND timestamp >= $1 AND timestamp < $2
+`
+
+type GetReportingStatsParams struct {
+	Von time.Time
+	Bis time.Time
+}
+
+type GetReportingStatsRow struct {
+	GesamtUmsatzCents        int
+	GesamtBestellungenCents  int
+	GesamtStornierungenCents int
+	AnzahlBestellungen       int
+	AnzahlStornierungen      int
+}
+
+// Reporting: Aggregierte Kennzahlen im gewaehlten Abrechnungszeitraum.
+func (q *Queries) GetReportingStats(ctx context.Context, arg GetReportingStatsParams) (GetReportingStatsRow, error) {
+	row := q.db.QueryRowContext(ctx, getReportingStats, arg.Von, arg.Bis)
+	var i GetReportingStatsRow
+	err := row.Scan(
+		&i.GesamtUmsatzCents,
+		&i.GesamtBestellungenCents,
+		&i.GesamtStornierungenCents,
+		&i.AnzahlBestellungen,
+		&i.AnzahlStornierungen,
+	)
+	return i, err
 }
 
 const getStornierungen = `-- name: GetStornierungen :many
@@ -152,7 +112,7 @@ type GetStornierungenRow struct {
 	Data      json.RawMessage
 }
 
-// Tagesabrechnung: Stornierungsevents mit Tischname im Zeitraum.
+// Reporting: Stornierungsevents mit Tischname im Zeitraum.
 // Events contain fat positions (produktName, varianteName, einzelpreis, menge) — parse in Go.
 func (q *Queries) GetStornierungen(ctx context.Context, arg GetStornierungenParams) ([]GetStornierungenRow, error) {
 	rows, err := q.db.QueryContext(ctx, getStornierungen, arg.Von, arg.Bis)
@@ -187,13 +147,13 @@ func (q *Queries) GetStornierungen(ctx context.Context, arg GetStornierungenPara
 const getUmsatzProServicekraft = `-- name: GetUmsatzProServicekraft :many
 SELECT
     user_id,
-    user_name,
+    MAX(user_name) AS user_name,
     COALESCE(SUM((data->>'gesamtZahlungCents')::int), 0)::int AS zahlungen_cents,
     COUNT(*)::int AS anzahl_zahlungen
 FROM events
 WHERE type = 'tisch.zahlung-registriert:v1'
 AND timestamp >= $1 AND timestamp < $2
-GROUP BY user_id, user_name
+GROUP BY user_id
 ORDER BY zahlungen_cents DESC
 `
 
@@ -204,12 +164,13 @@ type GetUmsatzProServicekraftParams struct {
 
 type GetUmsatzProServicekraftRow struct {
 	UserID          int
-	UserName        string
+	UserName        interface{}
 	ZahlungenCents  int
 	AnzahlZahlungen int
 }
 
 // Tagesabrechnung: Zahlungen gruppiert nach Servicekraft im Zeitraum.
+// MAX(user_name) nimmt den lexikographisch letzten Namen bei Namensaenderungen.
 func (q *Queries) GetUmsatzProServicekraft(ctx context.Context, arg GetUmsatzProServicekraftParams) ([]GetUmsatzProServicekraftRow, error) {
 	rows, err := q.db.QueryContext(ctx, getUmsatzProServicekraft, arg.Von, arg.Bis)
 	if err != nil {

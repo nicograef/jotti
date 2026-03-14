@@ -1,28 +1,10 @@
--- name: GetDashboardStats :one
--- Dashboard: Gesamtumsatz (Zahlungen), Bestellungen, Stornierungen — alle Daten (kein Zeitraumfilter).
-SELECT
-    COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-registriert:v1'
-        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS gesamt_umsatz_cents,
-    COALESCE(SUM(CASE WHEN type = 'tisch.bestellung-aufgegeben:v1'
-        THEN (data->>'gesamtPreisCents')::int END), 0)::int AS gesamt_bestellungen_cents,
-    COALESCE(SUM(CASE WHEN type = 'tisch.produkte-storniert:v1'
-        THEN (data->>'gesamtStornierungCents')::int END), 0)::int AS gesamt_stornierungen_cents,
-    COALESCE(COUNT(CASE WHEN type = 'tisch.bestellung-aufgegeben:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
-    COALESCE(COUNT(CASE WHEN type = 'tisch.produkte-storniert:v1' THEN 1 END), 0)::int AS anzahl_stornierungen
-FROM events
-WHERE type IN (
-    'tisch.bestellung-aufgegeben:v1',
-    'tisch.zahlung-registriert:v1',
-    'tisch.produkte-storniert:v1'
-);
-
 -- name: GetOffeneTische :one
 -- Dashboard: Anzahl Tische mit offenem Saldo > 0.
 SELECT COALESCE(COUNT(*), 0)::int AS anzahl
 FROM table_state WHERE saldo_cents > 0;
 
--- name: GetAbrechnungStats :one
--- Tagesabrechnung: Aggregierte Kennzahlen im Abrechnungszeitraum.
+-- name: GetReportingStats :one
+-- Reporting: Aggregierte Kennzahlen im gewaehlten Abrechnungszeitraum.
 SELECT
     COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-registriert:v1'
         THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS gesamt_umsatz_cents,
@@ -47,19 +29,20 @@ FROM table_state WHERE saldo_cents > 0;
 
 -- name: GetUmsatzProServicekraft :many
 -- Tagesabrechnung: Zahlungen gruppiert nach Servicekraft im Zeitraum.
+-- MAX(user_name) nimmt den lexikographisch letzten Namen bei Namensaenderungen.
 SELECT
     user_id,
-    user_name,
+    MAX(user_name) AS user_name,
     COALESCE(SUM((data->>'gesamtZahlungCents')::int), 0)::int AS zahlungen_cents,
     COUNT(*)::int AS anzahl_zahlungen
 FROM events
 WHERE type = 'tisch.zahlung-registriert:v1'
 AND timestamp >= @von AND timestamp < @bis
-GROUP BY user_id, user_name
+GROUP BY user_id
 ORDER BY zahlungen_cents DESC;
 
 -- name: GetStornierungen :many
--- Tagesabrechnung: Stornierungsevents mit Tischname im Zeitraum.
+-- Reporting: Stornierungsevents mit Tischname im Zeitraum.
 -- Events contain fat positions (produktName, varianteName, einzelpreis, menge) — parse in Go.
 SELECT
     e.timestamp,

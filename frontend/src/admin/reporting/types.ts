@@ -1,62 +1,57 @@
 import { z } from 'zod'
 
-// === Dashboard ===
-export const DashboardSchema = z.object({
-  gesamtUmsatzCents: z.number(),
-  anzahlOffeneTische: z.number(),
-  anzahlBestellungen: z.number(),
-  anzahlStornierungen: z.number(),
-  gesamtBestellungenCents: z.number(),
-  gesamtStornierungenCents: z.number(),
+export const ReportingSummarySchema = z.object({
+  gesamtUmsatzCents: z.number().int(),
+  gesamtBestellungenCents: z.number().int(),
+  gesamtStornierungenCents: z.number().int(),
+  offeneSaldiCents: z.number().int(),
+  anzahlOffeneTische: z.number().int(),
+  anzahlBestellungen: z.number().int(),
+  anzahlStornierungen: z.number().int(),
 })
-export type Dashboard = z.infer<typeof DashboardSchema>
 
-// === Tagesabrechnung ===
 export const UmsatzServicekraftSchema = z.object({
-  userId: z.number(),
+  userId: z.number().int(),
   userName: z.string(),
-  zahlungenCents: z.number(),
-  anzahlZahlungen: z.number(),
+  zahlungenCents: z.number().int(),
+  anzahlZahlungen: z.number().int(),
 })
 export type UmsatzServicekraft = z.infer<typeof UmsatzServicekraftSchema>
 
 export const StornierungPositionSchema = z.object({
   produktName: z.string(),
   varianteName: z.string(),
-  menge: z.number(),
-  einzelpreis: z.number(),
+  menge: z.number().int(),
+  einzelpreis: z.number().int(),
 })
 
 export const StornierungDetailSchema = z.object({
   zeitpunkt: z.string(),
-  tischId: z.number(),
+  tischId: z.number().int(),
   tischName: z.string(),
-  userId: z.number(),
+  userId: z.number().int(),
   userName: z.string(),
-  betragCents: z.number(),
+  betragCents: z.number().int(),
   kommentar: z.string(),
   positionen: z.array(StornierungPositionSchema),
 })
 export type StornierungDetail = z.infer<typeof StornierungDetailSchema>
 
 export const UmsatzTischSchema = z.object({
-  tischId: z.number(),
+  tischId: z.number().int(),
   tischName: z.string(),
-  zahlungenCents: z.number(),
-  anzahlZahlungen: z.number(),
+  zahlungenCents: z.number().int(),
+  anzahlZahlungen: z.number().int(),
 })
 export type UmsatzTisch = z.infer<typeof UmsatzTischSchema>
 
-export const TagesabrechnungSchema = z.object({
+export const ReportingSchema = z.object({
   zeitraum: z.object({ von: z.string(), bis: z.string() }),
-  gesamtUmsatzCents: z.number(),
-  gesamtBestellungenCents: z.number(),
-  gesamtStornierungenCents: z.number(),
-  offeneSaldiCents: z.number(),
-  anzahlBestellungen: z.number(),
-  anzahlStornierungen: z.number(),
-  umsatzProServicekraft: z.array(UmsatzServicekraftSchema),
-  umsatzProTisch: z.array(UmsatzTischSchema),
+  summary: ReportingSummarySchema,
+  breakdowns: z.object({
+    umsatzProServicekraft: z.array(UmsatzServicekraftSchema),
+    umsatzProTisch: z.array(UmsatzTischSchema),
+  }),
   stornierungen: z.array(StornierungDetailSchema),
 })
-export type Tagesabrechnung = z.infer<typeof TagesabrechnungSchema>
+export type Reporting = z.infer<typeof ReportingSchema>

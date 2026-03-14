@@ -112,6 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_events_user_id ON events(user_id);
 CREATE INDEX IF NOT EXISTS idx_events_subject ON events(subject);
 CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
 CREATE INDEX IF NOT EXISTS idx_events_subject_type ON events(subject, type);
+CREATE INDEX IF NOT EXISTS idx_events_type_timestamp ON events(type, timestamp);
 
 -- Restrict public role to SELECT + INSERT only (defense-in-depth for non-owner roles)
 REVOKE ALL ON TABLE events FROM PUBLIC;

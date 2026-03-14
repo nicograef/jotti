@@ -75,8 +75,7 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	reportingRepo := reporting_repo.NewRepository(db)
 	rq := reportingHTTP.QueryHandler{}
 	rq.Query = reportingApp.Query{ReportingRepo: reportingRepo}
-	r.HandleFunc("/get-dashboard", rq.GetDashboardHandler())
-	r.HandleFunc("/get-tagesabrechnung", rq.GetTagesabrechnungHandler())
+	r.HandleFunc("/get-reporting", rq.GetReportingHandler())
 
 	return r
 }

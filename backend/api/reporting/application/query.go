@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"time"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/reporting"
@@ -12,36 +11,22 @@ import (
 var ErrDatabase = db.ErrDatabase
 
 type reportingRepo interface {
-	GetDashboardData(ctx context.Context) (reporting.DashboardData, error)
-	GetTagesabrechnung(ctx context.Context, von, bis time.Time) (reporting.TagesabrechnungData, error)
+	GetReporting(ctx context.Context, zeitraum reporting.Zeitraum) (reporting.ReportingData, error)
 }
 
 type Query struct {
 	ReportingRepo reportingRepo
 }
 
-func (q Query) GetDashboardData(ctx context.Context) (reporting.DashboardData, error) {
+func (q Query) GetReporting(ctx context.Context, zeitraum reporting.Zeitraum) (reporting.ReportingData, error) {
 	log := zerolog.Ctx(ctx)
 
-	data, err := q.ReportingRepo.GetDashboardData(ctx)
+	data, err := q.ReportingRepo.GetReporting(ctx, zeitraum)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get dashboard data")
-		return reporting.DashboardData{}, ErrDatabase
+		log.Error().Err(err).Msg("Failed to get reporting")
+		return reporting.ReportingData{}, ErrDatabase
 	}
 
-	log.Info().Msg("Retrieved dashboard data")
-	return data, nil
-}
-
-func (q Query) GetTagesabrechnung(ctx context.Context, von, bis time.Time) (reporting.TagesabrechnungData, error) {
-	log := zerolog.Ctx(ctx)
-
-	data, err := q.ReportingRepo.GetTagesabrechnung(ctx, von, bis)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to get tagesabrechnung")
-		return reporting.TagesabrechnungData{}, ErrDatabase
-	}
-
-	log.Info().Msg("Retrieved tagesabrechnung")
+	log.Info().Msg("Retrieved reporting")
 	return data, nil
 }

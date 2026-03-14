@@ -22,10 +22,10 @@ type UmsatzTisch struct {
 }
 
 type StornierungPosition struct {
-	ProduktName  string
-	VarianteName string
-	Menge        int
-	Einzelpreis  int
+	ProduktName  string `json:"produktName"`
+	VarianteName string `json:"varianteName"`
+	Menge        int    `json:"menge"`
+	Einzelpreis  int    `json:"einzelpreis"`
 }
 
 type StornierungDetail struct {
@@ -39,24 +39,24 @@ type StornierungDetail struct {
 	Positionen  []StornierungPosition
 }
 
-type DashboardData struct {
-	GesamtUmsatzCents        int
-	AnzahlOffeneTische       int
-	AnzahlBestellungen       int
-	AnzahlStornierungen      int
-	GesamtBestellungenCents  int
-	GesamtStornierungenCents int
-}
-
-type TagesabrechnungData struct {
-	Zeitraum                 Zeitraum
+type Summary struct {
 	GesamtUmsatzCents        int
 	GesamtBestellungenCents  int
 	GesamtStornierungenCents int
 	OffeneSaldiCents         int
+	AnzahlOffeneTische       int
 	AnzahlBestellungen       int
 	AnzahlStornierungen      int
-	UmsatzProServicekraft    []UmsatzServicekraft
-	UmsatzProTisch           []UmsatzTisch
-	Stornierungen            []StornierungDetail
+}
+
+type Breakdowns struct {
+	UmsatzProServicekraft []UmsatzServicekraft
+	UmsatzProTisch        []UmsatzTisch
+}
+
+type ReportingData struct {
+	Zeitraum      Zeitraum
+	Summary       Summary
+	Breakdowns    Breakdowns
+	Stornierungen []StornierungDetail
 }

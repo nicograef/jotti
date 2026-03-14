@@ -571,11 +571,15 @@ Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchrone
 
 ### 7.2 Admin-Ansichten (Reporting)
 
-Alle Reporting-Ansichten aggregieren Daten aus `events` und `table_state` tischübergreifend und sind nur für Admins zugänglich. Die Berechnung erfolgt on-demand per SQL-Aggregation (kein Background Worker, kein Eventual Consistency).
+Alle Reporting-Ansichten aggregieren Daten aus `events` und `table_state` tischuebergreifend und sind nur fuer Admins zugaenglich. Die Berechnung erfolgt on-demand per SQL-Aggregation (kein Background Worker, kein Eventual Consistency).
+
+Der Zugriff erfolgt ueber den konsolidierten Endpoint `POST /admin/get-reporting`. Request und Response bilden ein einheitliches Modell mit den Sektionen `summary`, `breakdowns` und `stornierungen`. Zeitraumsemantik: `von` inklusiv, `bis` exklusiv, UTC-only.
+
+Es gibt kein separates Live-Dashboard und kein Polling; das Reporting wird gezielt bei Seitenaufruf oder Filteraenderung geladen.
 
 | Name                        | ID   | Inhalt (Kurzfassung)                                                                               |
 | --------------------------- | ---- | -------------------------------------------------------------------------------------------------- |
-| Tagesabrechnung             | R-01 | Gesamtumsatz, Umsatz pro Servicekraft, Stornierungsübersicht, offene Beträge                       |
+| Reporting (Unified)         | R-01 | KPIs (inkl. offene Tische), Umsatz pro Servicekraft/Tisch, Stornierungsübersicht, offene Betraege  |
 | Abrechnung pro Tisch        | R-03 | Alle Bestellungen, Zahlungen, Lieferungen, Stornierungen chronologisch; Gesamt-Saldo pro Tisch     |
 | Abrechnung pro Servicekraft | R-04 | Umsatz pro Servicekraft, Anzahl Bestellungen, Anzahl und Betrag der Stornierungen                  |
 | Produktumsatz               | R-05 | Verkaufte Menge pro Produkt/Variante (abzgl. Stornierungen), Ranking, Gesamteinnahmen pro Variante |
