@@ -39,6 +39,14 @@ export const StornierungDetailSchema = z.object({
 })
 export type StornierungDetail = z.infer<typeof StornierungDetailSchema>
 
+export const UmsatzTischSchema = z.object({
+  tischId: z.number(),
+  tischName: z.string(),
+  zahlungenCents: z.number(),
+  anzahlZahlungen: z.number(),
+})
+export type UmsatzTisch = z.infer<typeof UmsatzTischSchema>
+
 export const TagesabrechnungSchema = z.object({
   zeitraum: z.object({ von: z.string(), bis: z.string() }),
   gesamtUmsatzCents: z.number(),
@@ -48,6 +56,7 @@ export const TagesabrechnungSchema = z.object({
   anzahlBestellungen: z.number(),
   anzahlStornierungen: z.number(),
   umsatzProServicekraft: z.array(UmsatzServicekraftSchema),
+  umsatzProTisch: z.array(UmsatzTischSchema),
   stornierungen: z.array(StornierungDetailSchema),
 })
 export type Tagesabrechnung = z.infer<typeof TagesabrechnungSchema>

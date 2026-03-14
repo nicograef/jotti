@@ -97,6 +97,20 @@ func (r Repository) GetTagesabrechnung(ctx context.Context, von, bis time.Time) 
 		}
 	}
 
+	tischRows, err := r.q.GetUmsatzProTisch(ctx, dbgen.GetUmsatzProTischParams{Von: von, Bis: bis})
+	if err != nil {
+		return reporting.TagesabrechnungData{}, err
+	}
+	tische := make([]reporting.UmsatzTisch, len(tischRows))
+	for i, row := range tischRows {
+		tische[i] = reporting.UmsatzTisch{
+			TischID:         row.TischID,
+			TischName:       row.TischName,
+			ZahlungenCents:  row.ZahlungenCents,
+			AnzahlZahlungen: row.AnzahlZahlungen,
+		}
+	}
+
 	return reporting.TagesabrechnungData{
 		Zeitraum:                 reporting.Zeitraum{Von: von, Bis: bis},
 		GesamtUmsatzCents:        stats.GesamtUmsatzCents,
@@ -106,6 +120,7 @@ func (r Repository) GetTagesabrechnung(ctx context.Context, von, bis time.Time) 
 		AnzahlBestellungen:       stats.AnzahlBestellungen,
 		AnzahlStornierungen:      stats.AnzahlStornierungen,
 		UmsatzProServicekraft:    umsatz,
+		UmsatzProTisch:           tische,
 		Stornierungen:            stornierungen,
 	}, nil
 }

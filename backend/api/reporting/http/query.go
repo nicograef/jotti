@@ -30,6 +30,13 @@ type umsatzServicekraftDTO struct {
 	AnzahlZahlungen int    `json:"anzahlZahlungen"`
 }
 
+type umsatzTischDTO struct {
+	TischID         int    `json:"tischId"`
+	TischName       string `json:"tischName"`
+	ZahlungenCents  int    `json:"zahlungenCents"`
+	AnzahlZahlungen int    `json:"anzahlZahlungen"`
+}
+
 type stornierungPositionDTO struct {
 	ProduktName  string `json:"produktName"`
 	VarianteName string `json:"varianteName"`
@@ -66,6 +73,7 @@ type tagesabrechnungDataDTO struct {
 	AnzahlBestellungen       int                     `json:"anzahlBestellungen"`
 	AnzahlStornierungen      int                     `json:"anzahlStornierungen"`
 	UmsatzProServicekraft    []umsatzServicekraftDTO `json:"umsatzProServicekraft"`
+	UmsatzProTisch           []umsatzTischDTO        `json:"umsatzProTisch"`
 	Stornierungen            []stornierungDetailDTO  `json:"stornierungen"`
 }
 
@@ -89,6 +97,23 @@ func toUmsatzServicekraftDTOs(umsatz []reporting.UmsatzServicekraft) []umsatzSer
 	out := make([]umsatzServicekraftDTO, len(umsatz))
 	for i := range umsatz {
 		out[i] = toUmsatzServicekraftDTO(umsatz[i])
+	}
+	return out
+}
+
+func toUmsatzTischDTO(u reporting.UmsatzTisch) umsatzTischDTO {
+	return umsatzTischDTO{
+		TischID:         u.TischID,
+		TischName:       u.TischName,
+		ZahlungenCents:  u.ZahlungenCents,
+		AnzahlZahlungen: u.AnzahlZahlungen,
+	}
+}
+
+func toUmsatzTischDTOs(tische []reporting.UmsatzTisch) []umsatzTischDTO {
+	out := make([]umsatzTischDTO, len(tische))
+	for i := range tische {
+		out[i] = toUmsatzTischDTO(tische[i])
 	}
 	return out
 }
@@ -152,6 +177,7 @@ func toTagesabrechnungDataDTO(d reporting.TagesabrechnungData) tagesabrechnungDa
 		AnzahlBestellungen:       d.AnzahlBestellungen,
 		AnzahlStornierungen:      d.AnzahlStornierungen,
 		UmsatzProServicekraft:    toUmsatzServicekraftDTOs(d.UmsatzProServicekraft),
+		UmsatzProTisch:           toUmsatzTischDTOs(d.UmsatzProTisch),
 		Stornierungen:            toStornierungDetailDTOs(d.Stornierungen),
 	}
 }

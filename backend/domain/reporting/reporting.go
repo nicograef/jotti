@@ -14,6 +14,13 @@ type UmsatzServicekraft struct {
 	AnzahlZahlungen int
 }
 
+type UmsatzTisch struct {
+	TischID         int
+	TischName       string
+	ZahlungenCents  int
+	AnzahlZahlungen int
+}
+
 type StornierungPosition struct {
 	ProduktName  string
 	VarianteName string
@@ -50,5 +57,6 @@ type TagesabrechnungData struct {
 	AnzahlBestellungen       int
 	AnzahlStornierungen      int
 	UmsatzProServicekraft    []UmsatzServicekraft
+	UmsatzProTisch           []UmsatzTisch
 	Stornierungen            []StornierungDetail
 }

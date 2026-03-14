@@ -73,3 +73,17 @@ JOIN tische t ON t.id = CAST(SPLIT_PART(e.subject, ':', 2) AS INTEGER)
 WHERE e.type = 'tisch.produkte-storniert:v1'
 AND e.timestamp >= @von AND e.timestamp < @bis
 ORDER BY e.timestamp DESC;
+
+-- name: GetUmsatzProTisch :many
+-- Tagesabrechnung: Zahlungen gruppiert nach Tisch im Zeitraum.
+SELECT
+    t.id AS tisch_id,
+    t.name AS tisch_name,
+    COALESCE(SUM((e.data->>'gesamtZahlungCents')::int), 0)::int AS zahlungen_cents,
+    COUNT(*)::int AS anzahl_zahlungen
+FROM events e
+JOIN tische t ON t.id = CAST(SPLIT_PART(e.subject, ':', 2) AS INTEGER)
+WHERE e.type = 'tisch.zahlung-registriert:v1'
+AND e.timestamp >= @von AND e.timestamp < @bis
+GROUP BY t.id, t.name
+ORDER BY zahlungen_cents DESC;

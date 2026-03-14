@@ -237,3 +237,58 @@ func (q *Queries) GetUmsatzProServicekraft(ctx context.Context, arg GetUmsatzPro
 	}
 	return items, nil
 }
+
+const getUmsatzProTisch = `-- name: GetUmsatzProTisch :many
+SELECT
+    t.id AS tisch_id,
+    t.name AS tisch_name,
+    COALESCE(SUM((e.data->>'gesamtZahlungCents')::int), 0)::int AS zahlungen_cents,
+    COUNT(*)::int AS anzahl_zahlungen
+FROM events e
+JOIN tische t ON t.id = CAST(SPLIT_PART(e.subject, ':', 2) AS INTEGER)
+WHERE e.type = 'tisch.zahlung-registriert:v1'
+AND e.timestamp >= $1 AND e.timestamp < $2
+GROUP BY t.id, t.name
+ORDER BY zahlungen_cents DESC
+`
+
+type GetUmsatzProTischParams struct {
+	Von time.Time
+	Bis time.Time
+}
+
+type GetUmsatzProTischRow struct {
+	TischID         int
+	TischName       string
+	ZahlungenCents  int
+	AnzahlZahlungen int
+}
+
+// Tagesabrechnung: Zahlungen gruppiert nach Tisch im Zeitraum.
+func (q *Queries) GetUmsatzProTisch(ctx context.Context, arg GetUmsatzProTischParams) ([]GetUmsatzProTischRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUmsatzProTisch, arg.Von, arg.Bis)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUmsatzProTischRow{}
+	for rows.Next() {
+		var i GetUmsatzProTischRow
+		if err := rows.Scan(
+			&i.TischID,
+			&i.TischName,
+			&i.ZahlungenCents,
+			&i.AnzahlZahlungen,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
