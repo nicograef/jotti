@@ -32,6 +32,14 @@ interface TokenGetter {
   getToken(): string | null
 }
 
+function parseJsonSafely(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
 export interface BackendClient {
   post<TResponse>(
     endpoint: string,
@@ -40,7 +48,7 @@ export interface BackendClient {
   ): Promise<TResponse>
 }
 
-class Backend implements BackendClient {
+export class Backend implements BackendClient {
   private readonly baseUrl: string
   private readonly tokenGetter: TokenGetter
 
@@ -71,19 +79,22 @@ class Backend implements BackendClient {
         throw new BackendError(401, 'unauthorized')
       }
 
-      try {
-        const { code, details } = ErrorResponseSchema.parse(
-          await response.json(),
-        )
-        throw new BackendError(response.status, code, details)
-      } catch (error) {
-        if (error instanceof BackendError) throw error
+      const responseText = await response.text()
+      const parsedError = ErrorResponseSchema.safeParse(
+        parseJsonSafely(responseText),
+      )
 
-        console.error('Failed to parse error response:', error)
-        const responseText = await response.text()
-        console.log('Response text:', responseText)
-        throw new BackendError(response.status, 'unknown', responseText)
+      if (parsedError.success) {
+        throw new BackendError(
+          response.status,
+          parsedError.data.code,
+          parsedError.data.details,
+        )
       }
+
+      console.error('Failed to parse error response:', parsedError.error)
+      console.log('Response text:', responseText)
+      throw new BackendError(response.status, 'unknown', responseText)
     }
 
     if (!responseSchema) {

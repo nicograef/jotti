@@ -1,4 +1,8 @@
-import { createBrowserRouter, redirect } from 'react-router'
+import {
+  createBrowserRouter,
+  type LoaderFunctionArgs,
+  redirect,
+} from 'react-router'
 
 import { AuthSingleton } from '@/lib/Auth'
 
@@ -45,6 +49,13 @@ export function ServiceGuard() {
   }
 }
 
+export function ServiceTableGuard({ params }: LoaderFunctionArgs) {
+  const tableId = Number(params.tableId)
+  if (!Number.isInteger(tableId) || tableId <= 0) {
+    return redirect('/service/tables')
+  }
+}
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -72,7 +83,11 @@ export const router = createBrowserRouter([
         children: [
           { index: true, loader: () => redirect('tables') },
           { path: 'tables', Component: TableSelectionPage },
-          { path: 'tables/:tableId', Component: TablePage },
+          {
+            path: 'tables/:tableId',
+            Component: TablePage,
+            loader: ServiceTableGuard,
+          },
           { path: '', loader: () => redirect('tables') },
         ],
       },
