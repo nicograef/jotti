@@ -133,13 +133,13 @@ Tisch (Event Stream)
         └── menge         (int, ≥ 1)
 ```
 
-**Projektions-Modell (`TischState`):** Die synchrone Projektion ist eine flache Struktur — keine Bestellungs-Hierarchie, sondern mengenbasierte Positionslisten. Lieferung, Bezahlung und Stornierung reduzieren die Menge in diesen Listen (statt Boolean-Flags zu setzen).
+**Projektions-Modell (`TischState`):** Die synchrone Projektion ist eine flache Struktur — keine Bestellungs-Hierarchie, sondern mengenbasierte Positionslisten. Ausgabe, Bezahlung und Stornierung reduzieren die Menge in diesen Listen (statt Boolean-Flags zu setzen).
 
 ```
 TischState (Projektion)
 ├── saldo_cents                (int, Cent — berechnet)
 ├── unbezahlte_positionen[]    (Position mit verbleibender Menge)
-├── ungelieferte_positionen[]  (Position mit verbleibender Menge)
+├── ausstehende_positionen[]   (Position mit verbleibender Menge)
 ├── gesamt_zahlungen_cents     (int, Cent)
 ├── last_event_id              (int)
 └── last_event_version         (int)
@@ -153,11 +153,11 @@ $$\text{Saldo} = \sum \text{Bestellungen} - \sum \text{Zahlungen} - \sum \text{S
 
 Alle Beträge in Cent (Integer). Saldo = 0 bedeutet: alle Positionen bezahlt oder storniert.
 
-- **Liefer-Invariante:** Nur bestellte, nicht-stornierte Positionen können geliefert werden. Bereits gelieferte Positionen nicht erneut lieferbar. Teillieferungen zulässig.
+- **Ausgabe-Invariante:** Nur bestellte, nicht-stornierte Positionen können ausgegeben werden. Bereits ausgegebene Positionen nicht erneut ausgebbar. Teilausgaben zulässig.
 - **Bezahl-Invariante:** Nur bestellte, nicht-stornierte, nicht-bezahlte Positionen können bezahlt werden. Der Zahlungsbetrag ergibt sich aus der Summe der gewählten Positionen — Überzahlung nicht möglich. Teilzahlungen zulässig.
 - **Stornierungsinvariante:** Nur bestellte, nicht-stornierte Positionen können storniert werden — **unabhängig vom Liefer- und Bezahlstatus**. Bei Stornierung bereits bezahlter Positionen kann der Saldo temporär negativ werden (bewusstes Design).
 - **Rolleninvariante:** Stornierungen nur durch `serviceleitung` und `admin`. Alle anderen Tischoperationen (Bestellen, Liefern, Bezahlen) stehen allen drei Rollen zur Verfügung.
-- **Mindestmengen-Invariante:** Jede Operation erfordert mindestens eine Position. Bestellung, Lieferung, Zahlung oder Stornierung ohne Positionen sind ungültig.
+- **Mindestmengen-Invariante:** Jede Operation erfordert mindestens eine Position. Bestellung, Ausgabe, Zahlung oder Stornierung ohne Positionen sind ungültig.
 
 ### 3.3 Domain Events
 
@@ -174,12 +174,12 @@ zeitstempel       (datetime — Zeitpunkt der Erzeugung)
 version           (int — aufsteigende Versionsnummer pro Tisch, für OCC)
 ```
 
-#### BestellungAufgegeben
+#### BestellungAufgenommen
 
-Servicekraft gibt eine Bestellung am Tisch auf.
+Servicekraft nimmt eine Bestellung am Tisch auf.
 
 ```
-BestellungAufgegeben
+BestellungAufgenommen
 ├── [Event-Metadaten]
 ├── bestellung_id        (UUID)
 ├── gesamt_preis_cents   (int, Cent — Summe aller Positionen)
@@ -194,26 +194,26 @@ BestellungAufgegeben
     └── menge            (int, ≥ 1)
 ```
 
-#### ProdukteGeliefert
+#### AusgabeBestaetigt
 
-Bestellte Positionen werden als geliefert markiert. Teillieferungen möglich.
+Bestellte Positionen werden als ausgegeben markiert. Teilausgaben möglich.
 
 ```
-ProdukteGeliefert
+AusgabeBestaetigt
 ├── [Event-Metadaten]
-├── lieferung_id      (UUID)
+├── ausgabe_id        (UUID)
 ├── positionen[]      (PositionRef)
 │   ├── position_id   (UUID)
 │   └── menge         (int, ≥ 1)
 └── kommentar?        (string, optional — max. 100 Zeichen)
 ```
 
-#### ZahlungRegistriert
+#### ZahlungKassiert
 
-Barzahlung wird registriert. Betrag = Summe der gewählten Positionen. Teilzahlungen möglich.
+Barzahlung wird kassiert. Betrag = Summe der gewählten Positionen. Teilzahlungen möglich.
 
 ```
-ZahlungRegistriert
+ZahlungKassiert
 ├── [Event-Metadaten]
 ├── zahlung_id            (UUID)
 ├── positionen[]          (PositionRef)
@@ -223,12 +223,12 @@ ZahlungRegistriert
 └── kommentar?            (string, optional — max. 100 Zeichen)
 ```
 
-#### ProdukteStorniert
+#### StornierungErteilt
 
-Serviceleitung oder Admin storniert Positionen. Unabhängig vom Liefer-/Bezahlstatus.
+Serviceleitung oder Admin erteilt eine Stornierung. Unabhängig vom Ausgabe-/Bezahlstatus.
 
 ```
-ProdukteStorniert
+StornierungErteilt
 ├── [Event-Metadaten]
 ├── stornierung_id             (UUID)
 ├── positionen[]               (PositionRef)
@@ -260,29 +260,29 @@ Die `ApplyEvent()`-Funktion (`backend/domain/table/projection.go`) ist eine rein
 | `tisch_id`                | INT (PK, FK) | Referenz auf `tische.id`                        |
 | `saldo_cents`             | INT          | Aktueller Tisch-Saldo in Cent                   |
 | `unbezahlte_positionen`   | JSONB        | `[]Position` — noch nicht bezahlte Positionen   |
-| `ungelieferte_positionen` | JSONB        | `[]Position` — noch nicht gelieferte Positionen |
+| `ausstehende_positionen`  | JSONB        | `[]Position` — noch nicht ausgegebene Positionen |
 | `gesamt_zahlungen_cents`  | INT          | Summe aller Zahlungen in Cent                   |
 | `last_event_id`           | INT (FK)     | ID des zuletzt verarbeiteten Events             |
 | `last_event_version`      | INT          | Version des zuletzt verarbeiteten Events        |
 | `updated_at`              | TIMESTAMPTZ  | Zeitpunkt der letzten Aktualisierung            |
 
-**Lesezugriff (Queries):** Operative Queries (Saldo, unbezahlte/ungelieferte Positionen) lesen direkt aus `table_state` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`.
+**Lesezugriff (Queries):** Operative Queries (Saldo, unbezahlte/ausstehende Positionen) lesen direkt aus `table_state` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`.
 
 **Apply-Tabelle:**
 
-| Event-Typ            | Zustandsänderung                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------- |
-| BestellungAufgegeben | Positionen zu `unbezahlte_positionen` und `ungelieferte_positionen` hinzufügen, Saldo erhöhen                 |
-| ProdukteGeliefert    | Referenzierte Mengen aus `ungelieferte_positionen` subtrahieren (Eintrag entfernen bei Menge 0)               |
-| ZahlungRegistriert   | Referenzierte Mengen aus `unbezahlte_positionen` subtrahieren, Saldo und `gesamt_zahlungen_cents` anpassen    |
-| ProdukteStorniert    | Referenzierte Mengen aus `unbezahlte_positionen` und `ungelieferte_positionen` subtrahieren, Saldo reduzieren |
+| Event-Typ              | Zustandsänderung                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------- |
+| BestellungAufgenommen  | Positionen zu `unbezahlte_positionen` und `ausstehende_positionen` hinzufügen, Saldo erhöhen                   |
+| AusgabeBestaetigt      | Referenzierte Mengen aus `ausstehende_positionen` subtrahieren (Eintrag entfernen bei Menge 0)                  |
+| ZahlungKassiert        | Referenzierte Mengen aus `unbezahlte_positionen` subtrahieren, Saldo und `gesamt_zahlungen_cents` anpassen     |
+| StornierungErteilt     | Referenzierte Mengen aus `unbezahlte_positionen` und `ausstehende_positionen` subtrahieren, Saldo reduzieren   |
 
 **Selbstheilung:** Bei Inkonsistenz kann `table_state` jederzeit aus allen Events reberechnet werden — der Event Stream bleibt die Single Source of Truth. Details zur Projektionsarchitektur: [ADR: CQRS](../adr/cqrs.md).
 
 ### 3.5 Policies
 
-- **Stornierungsberechtigung (K-04):** Nur `serviceleitung` und `admin` dürfen stornieren. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat geht.
-- **Automatischer Bon-Druck nach Kategorie (K-11):** Bei `BestellungAufgegeben` wird ein Bon pro Kategorie an die zugeordnete Ausgabestation gesendet (Essen → Küchenbon, Getränke → Thekenbon). Kategorie-Drucker-Zuordnung in den Stammdaten konfiguriert.
+- **Stornierungsberechtigung (K-04):** Nur `serviceleitung` und `admin` dürfen `StornierungErteilen`. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat geht.
+- **Automatischer Bon-Druck nach Kategorie (K-11):** Bei `BestellungAufgenommen` wird ein Bon pro Kategorie an die zugeordnete Ausgabestation gesendet (Essen → Küchenbon, Getränke → Thekenbon). Kategorie-Drucker-Zuordnung in den Stammdaten konfiguriert.
 - **Umbuchung (K-08):** Verschiebt eine Bestellung von Quell- auf Ziel-Tisch (= Stornierung + neue Bestellung). Cross-Aggregat-Transaktion — Atomarität auf Anwendungsebene sicherstellen. Nur `serviceleitung` und `admin`.
 
 ---
@@ -393,10 +393,10 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen. Die Rollenprüfung erfol
 | Tische verwalten         |   ✔   |                |              |
 | Benutzer verwalten       |   ✔   |                |              |
 | Passwort zurücksetzen    |   ✔   |                |              |
-| Bestellung aufgeben      |   ✔   |       ✔        |      ✔       |
-| Lieferung bestätigen     |   ✔   |       ✔        |      ✔       |
-| Zahlung registrieren     |   ✔   |       ✔        |      ✔       |
-| Stornierung durchführen  |   ✔   |       ✔        |              |
+| Bestellung aufnehmen     |   ✔   |       ✔        |      ✔       |
+| Ausgabe bestätigen       |   ✔   |       ✔        |      ✔       |
+| Zahlung kassieren        |   ✔   |       ✔        |      ✔       |
+| Stornierung erteilen     |   ✔   |       ✔        |              |
 | Tischübersicht einsehen  |   ✔   |       ✔        |      ✔       |
 | Kassenjournal einsehen   |   ✔   |       ✔        |      ✔       |
 | Tagesabrechnung einsehen |   ✔   |                |              |
@@ -562,8 +562,8 @@ Read Models sind aufbereitete Lese-Ansichten — reine Projektionen über vorhan
 
 | Name           | ID   | Quelle                              | Inhalt (Kurzfassung)                                                                                                         |
 | -------------- | ---- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Tischübersicht | K-05 | `table_state` + Stammdaten          | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ungelieferter Positionen. Startseite des Service-Bereichs.            |
-| Tischdetails   | K-05 | `table_state`                       | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Liefern, Bezahlen, Stornieren, Historie.  |
+| Tischübersicht | K-05 | `table_state` + Stammdaten          | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ausstehender Positionen. Startseite des Service-Bereichs.            |
+| Tischdetails   | K-05 | `table_state`                       | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren, Historie. |
 | Produktkatalog | —    | Produkt-Stammdaten                  | Aktive Produkte und Varianten, nach Kategorie gruppiert. Im Bestellvorgang geladen (kein eigenes Navigationsziel).           |
 | Kassenjournal  | K-06 | Tisch-Events (Event Stream, Replay) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich. |
 
@@ -580,7 +580,7 @@ Es gibt kein separates Live-Dashboard und kein Polling; das Reporting wird gezie
 | Name                        | ID   | Inhalt (Kurzfassung)                                                                               |
 | --------------------------- | ---- | -------------------------------------------------------------------------------------------------- |
 | Reporting (Unified)         | R-01 | KPIs (inkl. offene Tische), Umsatz pro Servicekraft/Tisch, Stornierungsübersicht, offene Betraege  |
-| Abrechnung pro Tisch        | R-03 | Alle Bestellungen, Zahlungen, Lieferungen, Stornierungen chronologisch; Gesamt-Saldo pro Tisch     |
+| Abrechnung pro Tisch        | R-03 | Alle Bestellungen, Zahlungen, Ausgaben, Stornierungen chronologisch; Gesamt-Saldo pro Tisch     |
 | Abrechnung pro Servicekraft | R-04 | Umsatz pro Servicekraft, Anzahl Bestellungen, Anzahl und Betrag der Stornierungen                  |
 | Produktumsatz               | R-05 | Verkaufte Menge pro Produkt/Variante (abzgl. Stornierungen), Ranking, Gesamteinnahmen pro Variante |
 
@@ -600,7 +600,7 @@ Drei Stufen: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wic
 | ---- | --------------------------- |
 | K-01 | Bestellung aufgeben         |
 | K-02 | Zahlung registrieren        |
-| K-03 | Lieferung bestätigen        |
+| K-03 | Ausgabe bestätigen          |
 | K-04 | Stornierung                 |
 | K-05 | Tischübersicht / Navigation |
 | K-06 | Kassenjournal (Historie)    |

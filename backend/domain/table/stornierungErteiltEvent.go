@@ -9,34 +9,34 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-type produkteStorniertV1Data struct {
+type stornierungErteiltV1Data struct {
 	StornierungID          string     `json:"stornierungId"`
 	Positionen             []Position `json:"positionen"`
 	GesamtStornierungCents int        `json:"gesamtStornierungCents"`
 	Kommentar              string     `json:"kommentar"`
 }
 
-var produkteStorniertV1DataSchema = z.Struct(z.Shape{
+var stornierungErteiltV1DataSchema = z.Struct(z.Shape{
 	"StornierungID":          z.String().UUID().Required(),
 	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(0).Required(),
 	"Kommentar":              z.String().Max(100),
 })
 
-func NewProdukteStorniertEvent(userID int, userName string, tischID int, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
-	data := produkteStorniertV1Data{
+func NewStornierungErteiltEvent(userID int, userName string, tischID int, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
+	data := stornierungErteiltV1Data{
 		StornierungID:          uuid.New().String(),
 		Positionen:             positionen,
 		GesamtStornierungCents: gesamtStornierungCents,
 		Kommentar:              kommentar,
 	}
 
-	if err := produkteStorniertV1DataSchema.Validate(&data); err != nil {
+	if err := stornierungErteiltV1DataSchema.Validate(&data); err != nil {
 		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("produkte storniert data validation failed: %v", issues)
+		return e.Event{}, fmt.Errorf("stornierung erteilt data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeProdukteStorniertV1), "tisch:"+strconv.Itoa(tischID), data)
+	event, err := e.New(userID, userName, string(EventTypeStornierungErteiltV1), "tisch:"+strconv.Itoa(tischID), data)
 	if err != nil {
 		return e.Event{}, err
 	}
@@ -45,7 +45,7 @@ func NewProdukteStorniertEvent(userID int, userName string, tischID int, positio
 }
 
 func buildStornierungFromEvent(event e.Event) (Stornierung, error) {
-	if event.Type != string(EventTypeProdukteStorniertV1) {
+	if event.Type != string(EventTypeStornierungErteiltV1) {
 		return Stornierung{}, fmt.Errorf("unsupported event type: %s", event.Type)
 	}
 
@@ -54,8 +54,8 @@ func buildStornierungFromEvent(event e.Event) (Stornierung, error) {
 		return Stornierung{}, err
 	}
 
-	data := produkteStorniertV1Data{}
-	err = e.ParseData(event, &data, produkteStorniertV1DataSchema)
+	data := stornierungErteiltV1Data{}
+	err = e.ParseData(event, &data, stornierungErteiltV1DataSchema)
 	if err != nil {
 		return Stornierung{}, err
 	}

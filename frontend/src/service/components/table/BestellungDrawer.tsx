@@ -24,11 +24,11 @@ import { calculateTotalPrice } from './drawerUtils'
 import { Receipt, type ReceiptPosition } from './Receipt'
 
 interface BestellungDrawerProps {
-  backend: Pick<TischBackend, 'bestellungAufgeben'>
+  backend: Pick<TischBackend, 'bestellungAufnehmen'>
   tisch: Tisch
   products: Produkt[]
   mengen: Record<number, number>
-  bestellungAufgegeben: () => void
+  bestellungAufgenommen: () => void
 }
 
 export function BestellungDrawer(props: BestellungDrawerProps) {
@@ -46,18 +46,18 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
     setLoading(true)
 
     try {
-      await props.backend.bestellungAufgeben({
+      await props.backend.bestellungAufnehmen({
         tischId: props.tisch.id,
         positionen: inputItems,
         kommentar,
       })
-      props.bestellungAufgegeben()
+      props.bestellungAufgenommen()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
       toast.error(
         getActionErrorMessage({
-          actionLabel: 'Bestellung aufgeben',
+          actionLabel: 'Bestellung aufnehmen',
           error,
           byCode: {
             produkt_not_found:
@@ -113,7 +113,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Bestellung aufgeben
+              {loading ? <Spinner /> : <></>} Bestellung aufnehmen
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>

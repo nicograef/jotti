@@ -8,11 +8,11 @@ import { BestellungDrawer } from './BestellungDrawer'
 import { ProductList, ProductListSkeleton } from './ProductList'
 
 interface BestellungProps {
-  backend: Pick<TischBackend, 'bestellungAufgeben'>
+  backend: Pick<TischBackend, 'bestellungAufnehmen'>
   tisch: Tisch
   products: Produkt[]
   productsLoading: boolean
-  onBestellungAufgegeben: () => void
+  onBestellungAufgenommen: () => void
 }
 
 type VariantMengenMap = Record<number, number>
@@ -22,7 +22,7 @@ export function Bestellung({
   tisch,
   products,
   productsLoading,
-  onBestellungAufgegeben,
+  onBestellungAufgenommen,
 }: BestellungProps) {
   const [mengen, setMengen] = useState<VariantMengenMap>({})
 
@@ -37,10 +37,10 @@ export function Bestellung({
         tisch={tisch}
         products={products}
         mengen={mengen}
-        bestellungAufgegeben={() => {
+        bestellungAufgenommen={() => {
           setMengen({})
-          toast.success(`Bestellung wurde aufgegeben.`)
-          onBestellungAufgegeben()
+          toast.success(`Bestellung wurde aufgenommen.`)
+          onBestellungAufgenommen()
         }}
       />
       <ProductList

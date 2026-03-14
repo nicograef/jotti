@@ -22,12 +22,12 @@ import { StornierungDrawer } from './StornierungDrawer'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
 interface ZahlungProps {
-  backend: Pick<TischBackend, 'zahlungRegistrieren' | 'produkteStornieren'>
+  backend: Pick<TischBackend, 'zahlungKassieren' | 'stornierungErteilen'>
   tisch: Tisch
   positionen: Position[]
   loading: boolean
-  onZahlungRegistriert: () => void
-  onProdukteStorniert: () => void
+  onZahlungKassiert: () => void
+  onStornierungErteilt: () => void
 }
 
 export function Zahlung({
@@ -35,8 +35,8 @@ export function Zahlung({
   backend,
   positionen,
   loading,
-  onZahlungRegistriert,
-  onProdukteStorniert,
+  onZahlungKassiert,
+  onStornierungErteilt,
 }: ZahlungProps) {
   const [mengen, setMengen] = useState<Record<string, number>>({})
 
@@ -77,10 +77,10 @@ export function Zahlung({
               tisch={tisch}
               unbezahltePositionen={positionen}
               mengen={mengen}
-              produkteStorniert={() => {
+              stornierungErteilt={() => {
                 setMengen({})
                 toast.success(`Stornierung erfolgreich.`)
-                onProdukteStorniert()
+                onStornierungErteilt()
               }}
             />
           </div>
@@ -91,10 +91,10 @@ export function Zahlung({
             tisch={tisch}
             unbezahltePositionen={positionen}
             mengen={mengen}
-            zahlungRegistriert={() => {
+            zahlungKassiert={() => {
               setMengen({})
               toast.success(`Zahlung erfolgreich.`)
-              onZahlungRegistriert()
+              onZahlungKassiert()
             }}
           />
         </div>

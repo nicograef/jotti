@@ -15,9 +15,9 @@ export const StornierungSchema = z.object({
 })
 export type Stornierung = z.infer<typeof StornierungSchema>
 
-export const ProdukteStornierenSchema = z.object({
+export const StornierungErteilenSchema = z.object({
   tischId: z.number().int().min(1),
   positionen: PositionRefSchema.array().min(1),
   kommentar: z.string().max(100),
 })
-export type ProdukteStornieren = z.infer<typeof ProdukteStornierenSchema>
+export type StornierungErteilen = z.infer<typeof StornierungErteilenSchema>

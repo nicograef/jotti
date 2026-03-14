@@ -1,8 +1,8 @@
 import { BackendSingleton } from '@/lib/Backend'
 import { useFetch } from '@/lib/useFetch'
 
+import type { Ausgabe } from './Ausgabe'
 import type { Bestellung } from './Bestellung'
-import type { Lieferung } from './Lieferung'
 import type { Stornierung } from './Stornierung'
 import type { Tisch } from './Tisch'
 import type { TischState } from './Tisch'
@@ -24,7 +24,7 @@ export function useAktiveTische() {
 export function useTischHistorie(tischId: number) {
   const { data: historie, ...rest } = useFetch(
     () => tischBackend.getTischHistorie(tischId),
-    [] as (Bestellung | Zahlung | Stornierung | Lieferung)[],
+    [] as (Bestellung | Zahlung | Stornierung | Ausgabe)[],
     [tischId],
   )
   return { ...rest, historie }
@@ -38,7 +38,7 @@ export function useTischState(tischId: number) {
       tischName: '',
       saldoCents: 0,
       unbezahltePositionen: [],
-      ungeliefertePositionen: [],
+      ausstehendePositionen: [],
       gesamtZahlungenCents: 0,
     } as TischState,
     [tischId],

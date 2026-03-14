@@ -23,7 +23,7 @@ func NewServiceleitungApi(db *sql.DB) http.Handler {
 		EventRepo:   eventRepo,
 		ProductRepo: productRepo,
 	}
-	r.HandleFunc("/produkte-stornieren", tc.ProdukteStornierenHandler())
+	r.HandleFunc("/stornierung-erteilen", tc.StornierungErteilenHandler())
 
 	return r
 }

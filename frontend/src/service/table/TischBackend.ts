@@ -3,18 +3,18 @@ import { z } from 'zod'
 import type { BackendClient } from '@/lib/Backend'
 
 import {
+  type Ausgabe,
+  AusgabeBestaetigenSchema,
+  AusgabeSchema,
+} from './Ausgabe'
+import {
   type Bestellung,
-  BestellungAufgebenSchema,
+  BestellungAufnehmenSchema,
   BestellungSchema,
 } from './Bestellung'
 import {
-  type Lieferung,
-  LieferungSchema,
-  ProdukteLiefernSchema,
-} from './Lieferung'
-import {
-  ProdukteStornierenSchema,
   type Stornierung,
+  StornierungErteilenSchema,
   StornierungSchema,
 } from './Stornierung'
 import {
@@ -24,11 +24,7 @@ import {
   type TischState,
   TischStateSchema,
 } from './Tisch'
-import {
-  type Zahlung,
-  ZahlungRegistrierenSchema,
-  ZahlungSchema,
-} from './Zahlung'
+import { type Zahlung, ZahlungKassierenSchema, ZahlungSchema } from './Zahlung'
 
 export class TischBackend {
   private readonly backend: BackendClient
@@ -46,37 +42,37 @@ export class TischBackend {
     return tische
   }
 
-  public async bestellungAufgeben(
-    bestellung: z.infer<typeof BestellungAufgebenSchema>,
+  public async bestellungAufnehmen(
+    bestellung: z.infer<typeof BestellungAufnehmenSchema>,
   ): Promise<void> {
-    const body = BestellungAufgebenSchema.parse(bestellung)
-    await this.backend.post('service/bestellung-aufgeben', body)
+    const body = BestellungAufnehmenSchema.parse(bestellung)
+    await this.backend.post('service/bestellung-aufnehmen', body)
   }
 
-  public async zahlungRegistrieren(
-    zahlung: z.infer<typeof ZahlungRegistrierenSchema>,
+  public async zahlungKassieren(
+    zahlung: z.infer<typeof ZahlungKassierenSchema>,
   ): Promise<void> {
-    const body = ZahlungRegistrierenSchema.parse(zahlung)
-    await this.backend.post('service/zahlung-registrieren', body)
+    const body = ZahlungKassierenSchema.parse(zahlung)
+    await this.backend.post('service/zahlung-kassieren', body)
   }
 
-  public async produkteStornieren(
-    stornierung: z.infer<typeof ProdukteStornierenSchema>,
+  public async stornierungErteilen(
+    stornierung: z.infer<typeof StornierungErteilenSchema>,
   ): Promise<void> {
-    const body = ProdukteStornierenSchema.parse(stornierung)
-    await this.backend.post('serviceleitung/produkte-stornieren', body)
+    const body = StornierungErteilenSchema.parse(stornierung)
+    await this.backend.post('serviceleitung/stornierung-erteilen', body)
   }
 
-  public async produkteLiefern(
-    lieferung: z.infer<typeof ProdukteLiefernSchema>,
+  public async ausgabeBestaetigen(
+    ausgabe: z.infer<typeof AusgabeBestaetigenSchema>,
   ): Promise<void> {
-    const body = ProdukteLiefernSchema.parse(lieferung)
-    await this.backend.post('service/produkte-liefern', body)
+    const body = AusgabeBestaetigenSchema.parse(ausgabe)
+    await this.backend.post('service/ausgabe-bestaetigen', body)
   }
 
   public async getTischHistorie(
     tischId: number,
-  ): Promise<(Bestellung | Zahlung | Stornierung | Lieferung)[]> {
+  ): Promise<(Bestellung | Zahlung | Stornierung | Ausgabe)[]> {
     const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
     const { historie } = await this.backend.post(
       'service/get-tisch-historie',
@@ -87,7 +83,7 @@ export class TischBackend {
             BestellungSchema,
             ZahlungSchema,
             StornierungSchema,
-            LieferungSchema,
+            AusgabeSchema,
           ]),
         ),
       }),

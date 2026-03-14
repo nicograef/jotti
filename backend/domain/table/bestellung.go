@@ -41,7 +41,7 @@ type Bestellung struct {
 	Positionen       []Position
 	GesamtPreisCents int
 	Kommentar        string
-	AufgegebenAm     time.Time
+	AufgenommenAm    time.Time
 }
 
 var bestellungSchema = z.Struct(z.Shape{
@@ -51,5 +51,5 @@ var bestellungSchema = z.Struct(z.Shape{
 	"Positionen":       z.Slice(positionSchema).Min(1).Required(),
 	"GesamtPreisCents": z.Int().GTE(0).Required(),
 	"Kommentar":        z.String().Max(100),
-	"AufgegebenAm":     z.Time().Required(),
+	"AufgenommenAm":    z.Time().Required(),
 })

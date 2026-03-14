@@ -24,12 +24,12 @@ export const BestellPositionInputSchema = z.object({
 })
 export type BestellPositionInput = z.infer<typeof BestellPositionInputSchema>
 
-export const BestellungAufgebenSchema = z.object({
+export const BestellungAufnehmenSchema = z.object({
   tischId: z.number().int().min(1),
   positionen: BestellPositionInputSchema.array().min(1),
   kommentar: z.string().max(100),
 })
-export type BestellungAufgeben = z.infer<typeof BestellungAufgebenSchema>
+export type BestellungAufnehmen = z.infer<typeof BestellungAufnehmenSchema>
 
 export const BestellungSchema = z.object({
   id: z.uuid(),
@@ -38,7 +38,7 @@ export const BestellungSchema = z.object({
   positionen: PositionSchema.array().min(1),
   gesamtPreisCents: z.number().int().min(0),
   kommentar: z.string().max(100),
-  aufgegebenAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
+  aufgenommenAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
     message: 'Invalid date format',
   }),
 })

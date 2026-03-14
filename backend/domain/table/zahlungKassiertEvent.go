@@ -9,34 +9,34 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-type zahlungRegistriertV1Data struct {
+type zahlungKassiertV1Data struct {
 	ZahlungID          string     `json:"zahlungId"`
 	Positionen         []Position `json:"positionen"`
 	GesamtZahlungCents int        `json:"gesamtZahlungCents"`
 	Kommentar          string     `json:"kommentar"`
 }
 
-var zahlungRegistriertV1DataSchema = z.Struct(z.Shape{
+var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
 	"ZahlungID":          z.String().UUID().Required(),
 	"Positionen":         z.Slice(positionSchema).Min(1).Required(),
 	"GesamtZahlungCents": z.Int().GTE(0).Required(),
 	"Kommentar":          z.String().Max(100),
 })
 
-func NewZahlungRegistriertEvent(userID int, userName string, tischID int, positionen []Position, gesamtZahlungCents int, kommentar string) (e.Event, error) {
-	data := zahlungRegistriertV1Data{
+func NewZahlungKassiertEvent(userID int, userName string, tischID int, positionen []Position, gesamtZahlungCents int, kommentar string) (e.Event, error) {
+	data := zahlungKassiertV1Data{
 		ZahlungID:          uuid.New().String(),
 		Positionen:         positionen,
 		GesamtZahlungCents: gesamtZahlungCents,
 		Kommentar:          kommentar,
 	}
 
-	if err := zahlungRegistriertV1DataSchema.Validate(&data); err != nil {
+	if err := zahlungKassiertV1DataSchema.Validate(&data); err != nil {
 		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("zahlung registriert data validation failed: %v", issues)
+		return e.Event{}, fmt.Errorf("zahlung kassiert data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeZahlungRegistriertV1), "tisch:"+strconv.Itoa(tischID), data)
+	event, err := e.New(userID, userName, string(EventTypeZahlungKassiertV1), "tisch:"+strconv.Itoa(tischID), data)
 	if err != nil {
 		return e.Event{}, err
 	}
@@ -45,7 +45,7 @@ func NewZahlungRegistriertEvent(userID int, userName string, tischID int, positi
 }
 
 func buildZahlungFromEvent(event e.Event) (Zahlung, error) {
-	if event.Type != string(EventTypeZahlungRegistriertV1) {
+	if event.Type != string(EventTypeZahlungKassiertV1) {
 		return Zahlung{}, fmt.Errorf("unsupported event type: %s", event.Type)
 	}
 
@@ -54,8 +54,8 @@ func buildZahlungFromEvent(event e.Event) (Zahlung, error) {
 		return Zahlung{}, err
 	}
 
-	data := zahlungRegistriertV1Data{}
-	err = e.ParseData(event, &data, zahlungRegistriertV1DataSchema)
+	data := zahlungKassiertV1Data{}
+	err = e.ParseData(event, &data, zahlungKassiertV1DataSchema)
 	if err != nil {
 		return Zahlung{}, err
 	}
@@ -67,7 +67,7 @@ func buildZahlungFromEvent(event e.Event) (Zahlung, error) {
 		Positionen:         data.Positionen,
 		GesamtZahlungCents: data.GesamtZahlungCents,
 		Kommentar:          data.Kommentar,
-		RegistriertAm:      event.Time,
+		KassiertAm:         event.Time,
 	}
 
 	if err := zahlungSchema.Validate(&zahlung); err != nil {

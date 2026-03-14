@@ -14,7 +14,7 @@ Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht autom
 
 Alle funktionalen und querschnittlichen Anforderungen mit Akzeptanzkriterien, Priorisierung (Must/Should/Nice-to-have) und Status (✅/🔲/🚫).
 
-- **§1 Kassenbetrieb:** K-01 Bestellung aufgeben, K-02 Zahlung registrieren, K-03 Lieferung bestätigen, K-04 Stornierung, K-05 Tischübersicht, K-06 Kassenjournal, K-07–K-13 (Umbuchung, Rückgeld, Schnellsuche, Bondruck, KDS, Ausgabestationen)
+- **§1 Kassenbetrieb:** K-01 Bestellung aufnehmen, K-02 Zahlung kassieren, K-03 Ausgabe bestätigen, K-04 Stornierung, K-05 Tischübersicht, K-06 Kassenjournal, K-07–K-13 (Umbuchung, Rückgeld, Schnellsuche, Bondruck, KDS, Ausgabestationen)
 - **§2 Stammdaten:** S-01 Produktverwaltung, S-02 Tischverwaltung, S-03 Benutzerverwaltung
 - **§3 Auth:** A-01 Login, A-02 Passwort setzen, A-03 Logout
 - **§4 Querschnitt:** Q-01 Mobile-first, Q-02 Mehrbenutzerfähigkeit, Q-03 Validierung, Q-04 Datenintegrität, Q-05–Q-08 (Offline, HTTPS, Rate Limiting, Security Headers)
@@ -29,7 +29,7 @@ Architektur, Bounded Contexts, Domain-Modelle, Invarianten, Event-Sourcing-Detai
 
 - **§1 Überblick:** Systemvision, Designziele, bewusste Abgrenzung
 - **§2 Bounded Contexts:** Kontextübersicht (Kassenbetrieb, Stammdaten, Ausgabe, Abrechnung, Auth), Beziehungen (ACL, Fat Events)
-- **§3 Kassenbetrieb (Core Domain):** Tisch-Aggregat, Invarianten (Saldo, Liefer-, Bezahl-, Stornierungsinvariante), Domain Events (BestellungAufgegeben, ProdukteGeliefert, ZahlungRegistriert, ProdukteStorniert), Event Replay + Snapshots, Policies
+- **§3 Kassenbetrieb (Core Domain):** Tisch-Aggregat, Invarianten (Saldo, Ausgabe-, Bezahl-, Stornierungsinvariante), Domain Events (BestellungAufgenommen, AusgabeBestaetigt, ZahlungKassiert, StornierungErteilt), Event Replay + Snapshots, Policies
 - **§4 Stammdaten:** Produkt-Aggregat (Varianten, Kategorien), Tisch-Stammdaten, Benutzer-Aggregat, CRUD-Persistenz
 - **§5 Auth und Rollen:** Berechtigungsmatrix, Onboarding-Ablauf
 - **§6 Architekturprinzipien:** Schichtenarchitektur, API-Design, Frontend-Architektur, Validierung, Geldbeträge, OCC, Sicherheit
@@ -44,7 +44,7 @@ Verbindliche Referenz für Fachbegriffe, Code-Repräsentationen und Namenskonven
 - **Sprachkonventionen:** Domänenbegriffe deutsch, Infrastruktur englisch, UI deutsch, Commits englisch
 - **Namenskonventionen pro Schicht:** Go-Structs, TS-Typen, JSON-Keys, API-Pfade, DB-Tabellen, Frontend-Routen
 - **Abweichungen Ist/Soll:** Aktueller Rename-Status (Backend ✅, Frontend ⏳)
-- **Begriffsdefinitionen:** Tisch, Bestellung, Position, Lieferung, Zahlung, Stornierung — jeweils mit Go-Struct, TS-Typ, JSON-Keys, API-Pfad, Frontend-Komponente, UI-Labels
+- **Begriffsdefinitionen:** Tisch, Bestellung, Position, Ausgabe, Zahlung, Stornierung — jeweils mit Go-Struct, TS-Typ, JSON-Keys, API-Pfad, Frontend-Komponente, UI-Labels
 
 → Lesen bei: Benennungen klären, neue Felder/Typen benennen, Ist/Soll-Abweichungen prüfen.
 
@@ -110,7 +110,7 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 3. **Event-Sourcing für Tisch-Operationen.** Events sind immutable (append-only). Nie Events updaten oder löschen.
 4. **CRUD für Stammdaten** (Benutzer, Produkte, Tische). Soft-Deletes via `status = 'deleted'`.
 5. **Validierung mit Schemas.** Backend: `zog`. Frontend: `Zod`. Beide Seiten validieren.
-6. **Deutsche Ubiquitous Language.** Fachbegriffe der Domäne sind deutsch (Bestellung, Zahlung, Lieferung, Stornierung, Tisch, Position). Infrastruktur-Code (Auth, Config, DB) bleibt englisch. Alle Benutzer-sichtbaren Strings auf Deutsch. Commits auf Englisch.
+6. **Deutsche Ubiquitous Language.** Fachbegriffe der Domäne sind deutsch (Bestellung, Zahlung, Ausgabe, Stornierung, Tisch, Position). Infrastruktur-Code (Auth, Config, DB) bleibt englisch. Alle Benutzer-sichtbaren Strings auf Deutsch. Commits auf Englisch.
 7. **Kein globaler State-Store im Frontend.** Nur React Hooks + Singletons.
 8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()` verwenden. Alle Domain-Backend-Klassen nutzen das `BackendClient`-Interface aus `src/lib/Backend.ts`.
 9. **Backend ist die Single Source of Truth für Daten-Filterung.** Filterung, Aggregation und Aufbereitung gehören ins Backend. Das Frontend zeigt an, was das Backend liefert.
@@ -119,7 +119,7 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 ## Bereiche
 
 - **Admin** (`admin`): Routen `/admin/*` (`api/admin.go`), Frontend `src/admin/`, `AdminGuard`. Produkte, Tische, Benutzer verwalten.
-- **Service** (`admin` + `serviceleitung` + `service`): Routen `/service/*` (`api/service.go`), Stornierung über `api/serviceleitung.go`. Frontend `src/service/`, `ServiceGuard`. Bestellen, Liefern, Kassieren, Stornieren.
+- **Service** (`admin` + `serviceleitung` + `service`): Routen `/service/*` (`api/service.go`), Stornierung über `api/serviceleitung.go`. Frontend `src/service/`, `ServiceGuard`. Bestellen, Ausgabe bestätigen, Kassieren, Stornieren.
 - **Auth** (kein JWT): Routen `/auth/*` (`api/auth.go`). Login, Passwort setzen.
 
 ## Grenzen

@@ -138,7 +138,7 @@ type bestellung struct {
 	Positionen       []position `json:"positionen"`
 	GesamtPreisCents int        `json:"gesamtPreisCents"`
 	Kommentar        string     `json:"kommentar"`
-	AufgegebenAm     time.Time  `json:"aufgegebenAm"`
+	AufgenommenAm    time.Time  `json:"aufgenommenAm"`
 }
 
 func toBestellung(b t.Bestellung) bestellung {
@@ -149,27 +149,27 @@ func toBestellung(b t.Bestellung) bestellung {
 		Positionen:       toPositionen(b.Positionen),
 		GesamtPreisCents: b.GesamtPreisCents,
 		Kommentar:        b.Kommentar,
-		AufgegebenAm:     b.AufgegebenAm,
+		AufgenommenAm:    b.AufgenommenAm,
 	}
 }
 
-type lieferung struct {
-	ID          string     `json:"id"`
-	UserID      int        `json:"userId"`
-	TischID     int        `json:"tischId"`
-	Positionen  []position `json:"positionen"`
-	Kommentar   string     `json:"kommentar"`
-	GeliefertAm time.Time  `json:"geliefertAm"`
+type ausgabe struct {
+	ID           string     `json:"id"`
+	UserID       int        `json:"userId"`
+	TischID      int        `json:"tischId"`
+	Positionen   []position `json:"positionen"`
+	Kommentar    string     `json:"kommentar"`
+	AusgegebenAm time.Time  `json:"ausgegebenAm"`
 }
 
-func toLieferung(l t.Lieferung) lieferung {
-	return lieferung{
-		ID:          l.ID,
-		UserID:      l.UserID,
-		TischID:     l.TischID,
-		Positionen:  toPositionen(l.Positionen),
-		Kommentar:   l.Kommentar,
-		GeliefertAm: l.GeliefertAm,
+func toAusgabe(a t.Ausgabe) ausgabe {
+	return ausgabe{
+		ID:           a.ID,
+		UserID:       a.UserID,
+		TischID:      a.TischID,
+		Positionen:   toPositionen(a.Positionen),
+		Kommentar:    a.Kommentar,
+		AusgegebenAm: a.AusgegebenAm,
 	}
 }
 
@@ -180,7 +180,7 @@ type zahlung struct {
 	Positionen         []position `json:"positionen"`
 	GesamtZahlungCents int        `json:"gesamtZahlungCents"`
 	Kommentar          string     `json:"kommentar"`
-	RegistriertAm      time.Time  `json:"registriertAm"`
+	KassiertAm         time.Time  `json:"kassiertAm"`
 }
 
 func toZahlung(z t.Zahlung) zahlung {
@@ -191,7 +191,7 @@ func toZahlung(z t.Zahlung) zahlung {
 		Positionen:         toPositionen(z.Positionen),
 		GesamtZahlungCents: z.GesamtZahlungCents,
 		Kommentar:          z.Kommentar,
-		RegistriertAm:      z.RegistriertAm,
+		KassiertAm:         z.KassiertAm,
 	}
 }
 
@@ -220,14 +220,14 @@ func toStornierung(s t.Stornierung) stornierung {
 func toHistorie(eintraege []t.HistorieEintrag) []any {
 	historieResponse := make([]any, 0, len(eintraege))
 	for _, eintrag := range eintraege {
-		switch eintrag.Kind {
+		switch eintrag.Art {
 		case t.HistorieEintragBestellung:
 			if eintrag.Bestellung != nil {
 				historieResponse = append(historieResponse, toBestellung(*eintrag.Bestellung))
 			}
-		case t.HistorieEintragLieferung:
-			if eintrag.Lieferung != nil {
-				historieResponse = append(historieResponse, toLieferung(*eintrag.Lieferung))
+		case t.HistorieEintragAusgabe:
+			if eintrag.Ausgabe != nil {
+				historieResponse = append(historieResponse, toAusgabe(*eintrag.Ausgabe))
 			}
 		case t.HistorieEintragZahlung:
 			if eintrag.Zahlung != nil {
@@ -265,12 +265,12 @@ type getTischStateRequest struct {
 }
 
 type getTischStateResponse struct {
-	TischID                int        `json:"tischId"`
-	TischName              string     `json:"tischName"`
-	SaldoCents             int        `json:"saldoCents"`
-	UnbezahltePositionen   []position `json:"unbezahltePositionen"`
-	UngeliefertePositionen []position `json:"ungeliefertePositionen"`
-	GesamtZahlungenCents   int        `json:"gesamtZahlungenCents"`
+	TischID               int        `json:"tischId"`
+	TischName             string     `json:"tischName"`
+	SaldoCents            int        `json:"saldoCents"`
+	UnbezahltePositionen  []position `json:"unbezahltePositionen"`
+	AusstehendePositionen []position `json:"ausstehendePositionen"`
+	GesamtZahlungenCents  int        `json:"gesamtZahlungenCents"`
 }
 
 func (h QueryHandler) GetTischStateHandler() http.HandlerFunc {
@@ -290,18 +290,18 @@ func (h QueryHandler) GetTischStateHandler() http.HandlerFunc {
 		if unbezahlt == nil {
 			unbezahlt = []position{}
 		}
-		ungeliefert := toPositionen(state.UngeliefertePositionen)
-		if ungeliefert == nil {
-			ungeliefert = []position{}
+		ausstehend := toPositionen(state.AusstehendePositionen)
+		if ausstehend == nil {
+			ausstehend = []position{}
 		}
 
 		helper.SendResponse(w, getTischStateResponse{
-			TischID:                state.TischID,
-			TischName:              state.TischName,
-			SaldoCents:             state.SaldoCents,
-			UnbezahltePositionen:   unbezahlt,
-			UngeliefertePositionen: ungeliefert,
-			GesamtZahlungenCents:   state.GesamtZahlungenCents,
+			TischID:               state.TischID,
+			TischName:             state.TischName,
+			SaldoCents:            state.SaldoCents,
+			UnbezahltePositionen:  unbezahlt,
+			AusstehendePositionen: ausstehend,
+			GesamtZahlungenCents:  state.GesamtZahlungenCents,
 		})
 	}
 }

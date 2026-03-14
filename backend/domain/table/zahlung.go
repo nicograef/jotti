@@ -13,7 +13,7 @@ type Zahlung struct {
 	Positionen         []Position
 	GesamtZahlungCents int
 	Kommentar          string
-	RegistriertAm      time.Time
+	KassiertAm         time.Time
 }
 
 var zahlungSchema = z.Struct(z.Shape{
@@ -23,5 +23,5 @@ var zahlungSchema = z.Struct(z.Shape{
 	"Positionen":         z.Slice(positionSchema).Min(1).Required(),
 	"GesamtZahlungCents": z.Int().GTE(0).Required(),
 	"Kommentar":          z.String().Max(100),
-	"RegistriertAm":      z.Time().Required(),
+	"KassiertAm":         z.Time().Required(),
 })

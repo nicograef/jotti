@@ -29,9 +29,9 @@ func NewServiceApi(db *sql.DB) http.Handler {
 		EventRepo:   eventRepo,
 		ProductRepo: productRepo,
 	}
-	r.HandleFunc("/bestellung-aufgeben", tc.BestellungAufgebenHandler())
-	r.HandleFunc("/zahlung-registrieren", tc.ZahlungRegistrierenHandler())
-	r.HandleFunc("/produkte-liefern", tc.ProdukteLiefernHandler())
+	r.HandleFunc("/bestellung-aufnehmen", tc.BestellungAufnehmenHandler())
+	r.HandleFunc("/zahlung-kassieren", tc.ZahlungKassierenHandler())
+	r.HandleFunc("/ausgabe-bestaetigen", tc.AusgabeBestaetigenHandler())
 
 	tq := tableHTTP.QueryHandler{}
 	tq.Query = tableApp.Query{TableRepo: tableRepo, EventRepo: eventRepo}

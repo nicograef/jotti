@@ -23,12 +23,12 @@ import { KommentarField } from './CommentField'
 import { calculateTotalPrice, toPositionRefs } from './drawerUtils'
 
 interface HistorieStornierungDrawerProps {
-  backend: Pick<TischBackend, 'produkteStornieren'>
+  backend: Pick<TischBackend, 'stornierungErteilen'>
   tisch: Tisch
   bestellung: Bestellung
   positionen: Position[]
   onClose: () => void
-  onProdukteStorniert: () => void
+  onStornierungErteilt: () => void
 }
 
 export function HistorieStornierungDrawer({
@@ -37,7 +37,7 @@ export function HistorieStornierungDrawer({
   bestellung,
   positionen,
   onClose,
-  onProdukteStorniert,
+  onStornierungErteilt,
 }: HistorieStornierungDrawerProps) {
   const [loading, setLoading] = useState(false)
   const [kommentar, setKommentar] = useState('')
@@ -72,12 +72,12 @@ export function HistorieStornierungDrawer({
     setLoading(true)
 
     try {
-      await backend.produkteStornieren({
+      await backend.stornierungErteilen({
         tischId: tisch.id,
         positionen: toPositionRefs(selectedPositionen),
         kommentar,
       })
-      onProdukteStorniert()
+      onStornierungErteilt()
     } catch (error: unknown) {
       console.error(error)
       toast.error('Stornierung fehlgeschlagen')
@@ -176,7 +176,7 @@ export function HistorieStornierungDrawer({
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Produkte stornieren
+              {loading ? <Spinner /> : <></>} Stornierung erteilen
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>

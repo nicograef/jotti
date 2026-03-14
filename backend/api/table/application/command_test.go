@@ -211,7 +211,7 @@ func TestTischDeaktivieren_NotFound(t *testing.T) {
 	}
 }
 
-func TestBestellungAufgeben_WithOCC(t *testing.T) {
+func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 	ctx := context.Background()
 	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
 	productMock.AddVariant(testProduct.ID, testVariant)
@@ -225,13 +225,13 @@ func TestBestellungAufgeben_WithOCC(t *testing.T) {
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2},
 	}
 
-	err := command.BestellungAufgeben(ctx, 1, "Test User", 1, inputs, "Testkommentar")
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", 1, inputs, "Testkommentar")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 }
 
-func TestBestellungAufgeben_Conflict(t *testing.T) {
+func TestBestellungAufnehmen_Conflict(t *testing.T) {
 	ctx := context.Background()
 	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
 	productMock.AddVariant(testProduct.ID, testVariant)
@@ -246,7 +246,7 @@ func TestBestellungAufgeben_Conflict(t *testing.T) {
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
 	}
 
-	err := command.BestellungAufgeben(ctx, 1, "Test User", 1, inputs, "")
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", 1, inputs, "")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
@@ -254,7 +254,7 @@ func TestBestellungAufgeben_Conflict(t *testing.T) {
 
 // --- Invariant Tests ---
 
-func TestBestellungAufgeben_InactiveTisch(t *testing.T) {
+func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {
 	ctx := context.Background()
 	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
 	productMock.AddVariant(testProduct.ID, testVariant)
@@ -268,13 +268,13 @@ func TestBestellungAufgeben_InactiveTisch(t *testing.T) {
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
 	}
 
-	err := command.BestellungAufgeben(ctx, 1, "Test User", testInactiveTisch.ID, inputs, "")
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", testInactiveTisch.ID, inputs, "")
 	if err != ErrTischNotActive {
 		t.Fatalf("expected ErrTischNotActive, got %v", err)
 	}
 }
 
-func TestZahlungRegistrieren_NonOrderedPosition(t *testing.T) {
+func TestZahlungKassieren_NonOrderedPosition(t *testing.T) {
 	ctx := context.Background()
 	// No order events exist — paying a non-existent position should fail
 	command := Command{
@@ -286,21 +286,21 @@ func TestZahlungRegistrieren_NonOrderedPosition(t *testing.T) {
 		{PositionID: "00000000-0000-0000-0000-000000000001", Menge: 1},
 	}
 
-	err := command.ZahlungRegistrieren(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "")
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
 
-func TestZahlungRegistrieren_DoublePayment(t *testing.T) {
+func TestZahlungKassieren_DoublePayment(t *testing.T) {
 	ctx := context.Background()
 	// After order + payment, unbezahlt is empty
 	eventMock := event_repo.NewMock(nil, nil)
 	eventMock.SetTableState(testActiveTisch.ID, table.TischState{
-		SaldoCents:             0,
-		UnbezahltePositionen:   []table.Position{},
-		UngeliefertePositionen: []table.Position{},
-		GesamtZahlungenCents:   350,
+		SaldoCents:            0,
+		UnbezahltePositionen:  []table.Position{},
+		AusstehendePositionen: []table.Position{},
+		GesamtZahlungenCents:  350,
 	})
 	command := Command{
 		TableRepo: table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
@@ -312,15 +312,15 @@ func TestZahlungRegistrieren_DoublePayment(t *testing.T) {
 	}
 
 	// Try to pay again — should fail
-	err := command.ZahlungRegistrieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
 
-func TestProdukteLiefern_NonOrderedPosition(t *testing.T) {
+func TestAusgabeBestaetigen_NonOrderedPosition(t *testing.T) {
 	ctx := context.Background()
-	// No order events exist — delivering a non-existent position should fail
+	// No order events exist — issuing a non-existent position should fail
 	command := Command{
 		TableRepo: table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
 		EventRepo: event_repo.NewMock(nil, nil),
@@ -330,15 +330,15 @@ func TestProdukteLiefern_NonOrderedPosition(t *testing.T) {
 		{PositionID: "00000000-0000-0000-0000-000000000001", Menge: 1},
 	}
 
-	err := command.ProdukteLiefern(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "")
-	if err != ErrPositionNichtLieferbar {
-		t.Fatalf("expected ErrPositionNichtLieferbar, got %v", err)
+	err := command.AusgabeBestaetigen(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "")
+	if err != ErrPositionNichtAusgebbar {
+		t.Fatalf("expected ErrPositionNichtAusgebbar, got %v", err)
 	}
 }
 
-func TestProdukteStornieren_AlreadyPaidPosition_Succeeds(t *testing.T) {
+func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 	ctx := context.Background()
-	orderEvent, _ := table.NewBestellungAufgegebenEvent(1, "Test User", testActiveTisch.ID,
+	orderEvent, _ := table.NewBestellungAufgenommenEvent(1, "Test User", testActiveTisch.ID,
 		[]table.Position{
 			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
 		}, "")
@@ -353,17 +353,17 @@ func TestProdukteStornieren_AlreadyPaidPosition_Succeeds(t *testing.T) {
 	}
 	posID := orderData.Positionen[0].PositionID
 
-	paymentEvent, _ := table.NewZahlungRegistriertEvent(1, "Test User", testActiveTisch.ID,
+	paymentEvent, _ := table.NewZahlungKassiertEvent(1, "Test User", testActiveTisch.ID,
 		[]table.Position{
 			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
 		}, 350, "")
 
 	eventMock := event_repo.NewMock(nil, nil)
 	eventMock.SetTableState(testActiveTisch.ID, table.TischState{
-		SaldoCents:             0,
-		UnbezahltePositionen:   []table.Position{},
-		UngeliefertePositionen: []table.Position{},
-		GesamtZahlungenCents:   350,
+		SaldoCents:            0,
+		UnbezahltePositionen:  []table.Position{},
+		AusstehendePositionen: []table.Position{},
+		GesamtZahlungenCents:  350,
 	})
 	orderEvent.Subject = "tisch:1"
 	paymentEvent.Subject = "tisch:1"
@@ -377,15 +377,15 @@ func TestProdukteStornieren_AlreadyPaidPosition_Succeeds(t *testing.T) {
 
 	refs := []table.PositionRef{{PositionID: posID, Menge: 1}}
 
-	err := command.ProdukteStornieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "Reklamation")
+	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "Reklamation")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 }
 
-func TestProdukteStornieren_AlreadyCancelledPosition_Fails(t *testing.T) {
+func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 	ctx := context.Background()
-	orderEvent, _ := table.NewBestellungAufgegebenEvent(1, "Test User", testActiveTisch.ID,
+	orderEvent, _ := table.NewBestellungAufgenommenEvent(1, "Test User", testActiveTisch.ID,
 		[]table.Position{
 			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
 		}, "")
@@ -400,17 +400,17 @@ func TestProdukteStornieren_AlreadyCancelledPosition_Fails(t *testing.T) {
 	}
 	posID := orderData.Positionen[0].PositionID
 
-	cancelEvent, _ := table.NewProdukteStorniertEvent(1, "Test User", testActiveTisch.ID,
+	cancelEvent, _ := table.NewStornierungErteiltEvent(1, "Test User", testActiveTisch.ID,
 		[]table.Position{
 			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
 		}, 350, "")
 
 	eventMock := event_repo.NewMock(nil, nil)
 	eventMock.SetTableState(testActiveTisch.ID, table.TischState{
-		SaldoCents:             0,
-		UnbezahltePositionen:   []table.Position{},
-		UngeliefertePositionen: []table.Position{},
-		GesamtZahlungenCents:   350,
+		SaldoCents:            0,
+		UnbezahltePositionen:  []table.Position{},
+		AusstehendePositionen: []table.Position{},
+		GesamtZahlungenCents:  350,
 	})
 	orderEvent.Subject = "tisch:1"
 	cancelEvent.Subject = "tisch:1"
@@ -424,13 +424,13 @@ func TestProdukteStornieren_AlreadyCancelledPosition_Fails(t *testing.T) {
 
 	refs := []table.PositionRef{{PositionID: posID, Menge: 1}}
 
-	err := command.ProdukteStornieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
+	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtStornierbar {
 		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
 }
 
-func TestZahlungRegistrieren_ExceedsAvailableMenge(t *testing.T) {
+func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 	ctx := context.Background()
 	// State has 1 position with Menge 1
 	eventMock := event_repo.NewMock(nil, nil)
@@ -439,7 +439,7 @@ func TestZahlungRegistrieren_ExceedsAvailableMenge(t *testing.T) {
 		UnbezahltePositionen: []table.Position{
 			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
 		},
-		UngeliefertePositionen: []table.Position{
+		AusstehendePositionen: []table.Position{
 			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
 		},
 	})
@@ -453,7 +453,7 @@ func TestZahlungRegistrieren_ExceedsAvailableMenge(t *testing.T) {
 		{PositionID: "pos-1", Menge: 2},
 	}
 
-	err := command.ZahlungRegistrieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}

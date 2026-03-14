@@ -154,7 +154,7 @@ CREATE TABLE table_state (
     tisch_id INTEGER PRIMARY KEY REFERENCES tische(id),
     saldo_cents INTEGER NOT NULL DEFAULT 0,
     unbezahlte_positionen JSONB NOT NULL DEFAULT '[]'::jsonb,
-    ungelieferte_positionen JSONB NOT NULL DEFAULT '[]'::jsonb,
+    ausstehende_positionen JSONB NOT NULL DEFAULT '[]'::jsonb,
     gesamt_zahlungen_cents INTEGER NOT NULL DEFAULT 0,
     last_event_id INTEGER NOT NULL REFERENCES events(id),
     last_event_version INTEGER NOT NULL,

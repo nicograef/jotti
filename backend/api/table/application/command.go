@@ -221,7 +221,7 @@ func (c Command) applyTischStatusChange(
 	return nil
 }
 
-func (c Command) BestellungAufgeben(ctx context.Context, userID int, userName string, tischID int, inputs []BestellPositionInput, kommentar string) error {
+func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string, tischID int, inputs []BestellPositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz und Status prüfen (Bestellungen brauchen keinen Invarianten-Check)
@@ -254,9 +254,9 @@ func (c Command) BestellungAufgeben(ctx context.Context, userID int, userName st
 		})
 	}
 
-	event, err := table.NewBestellungAufgegebenEvent(userID, userName, tischID, positionen, kommentar)
+	event, err := table.NewBestellungAufgenommenEvent(userID, userName, tischID, positionen, kommentar)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create bestellung aufgegeben event")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create bestellung aufgenommen event")
 		return err
 	}
 
@@ -265,11 +265,11 @@ func (c Command) BestellungAufgeben(ctx context.Context, userID int, userName st
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung aufgegeben event to database")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung aufgenommen event to database")
 		return ErrDatabase
 	}
 
-	log.Info().Int("tisch_id", tischID).Msg("Bestellung aufgegeben")
+	log.Info().Int("tisch_id", tischID).Msg("Bestellung aufgenommen")
 	return nil
 }
 
@@ -298,7 +298,7 @@ func resolvePositions(available []table.Position, refs []table.PositionRef) ([]t
 	return resolved, totalCents
 }
 
-func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
+func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz, Status und State laden
@@ -315,9 +315,9 @@ func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName s
 
 	resolvedPositionen, gesamtZahlungCents := resolvePositions(state.UnbezahltePositionen, positionen)
 
-	event, err := table.NewZahlungRegistriertEvent(userID, userName, tischID, resolvedPositionen, gesamtZahlungCents, kommentar)
+	event, err := table.NewZahlungKassiertEvent(userID, userName, tischID, resolvedPositionen, gesamtZahlungCents, kommentar)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create zahlung registriert event")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create zahlung kassiert event")
 		return err
 	}
 
@@ -326,15 +326,15 @@ func (c Command) ZahlungRegistrieren(ctx context.Context, userID int, userName s
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write zahlung registriert event to database")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write zahlung kassiert event to database")
 		return ErrDatabase
 	}
 
-	log.Info().Int("tisch_id", tischID).Msg("Zahlung registriert")
+	log.Info().Int("tisch_id", tischID).Msg("Zahlung kassiert")
 	return nil
 }
 
-func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
+func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz und Status prüfen
@@ -358,9 +358,9 @@ func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName st
 
 	resolvedPositionen, gesamtStornierungCents := resolvePositions(nichtStorniert, positionen)
 
-	event, err := table.NewProdukteStorniertEvent(userID, userName, tischID, resolvedPositionen, gesamtStornierungCents, kommentar)
+	event, err := table.NewStornierungErteiltEvent(userID, userName, tischID, resolvedPositionen, gesamtStornierungCents, kommentar)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create produkte storniert event")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create stornierung erteilt event")
 		return err
 	}
 
@@ -368,15 +368,15 @@ func (c Command) ProdukteStornieren(ctx context.Context, userID int, userName st
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write produkte storniert event to database")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write stornierung erteilt event to database")
 		return ErrDatabase
 	}
 
-	log.Info().Int("tisch_id", tischID).Msg("Produkte storniert")
+	log.Info().Int("tisch_id", tischID).Msg("Stornierung erteilt")
 	return nil
 }
 
-func (c Command) ProdukteLiefern(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
+func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz, Status und State laden
@@ -385,17 +385,17 @@ func (c Command) ProdukteLiefern(ctx context.Context, userID int, userName strin
 		return err
 	}
 
-	// Liefer-Invariante: nur ungelieferte Positionen können geliefert werden
-	if !validatePositionRefs(state.UngeliefertePositionen, positionen) {
-		log.Warn().Int("tisch_id", tischID).Msg("Liefer-Invariante verletzt: angeforderte Positionen nicht lieferbar")
-		return ErrPositionNichtLieferbar
+	// Ausgabe-Invariante: nur ausstehende Positionen können ausgegeben werden
+	if !validatePositionRefs(state.AusstehendePositionen, positionen) {
+		log.Warn().Int("tisch_id", tischID).Msg("Ausgabe-Invariante verletzt: angeforderte Positionen nicht ausgebbar")
+		return ErrPositionNichtAusgebbar
 	}
 
-	resolvedPositionen, _ := resolvePositions(state.UngeliefertePositionen, positionen)
+	resolvedPositionen, _ := resolvePositions(state.AusstehendePositionen, positionen)
 
-	event, err := table.NewProdukteGeliefertEvent(userID, userName, tischID, resolvedPositionen, kommentar)
+	event, err := table.NewAusgabeBestaetigtEvent(userID, userName, tischID, resolvedPositionen, kommentar)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create produkte geliefert event")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create ausgabe bestaetigt event")
 		return err
 	}
 
@@ -404,10 +404,10 @@ func (c Command) ProdukteLiefern(ctx context.Context, userID int, userName strin
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write produkte geliefert event to database")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write ausgabe bestaetigt event to database")
 		return ErrDatabase
 	}
 
-	log.Info().Int("tisch_id", tischID).Msg("Produkte geliefert")
+	log.Info().Int("tisch_id", tischID).Msg("Ausgabe bestätigt")
 	return nil
 }

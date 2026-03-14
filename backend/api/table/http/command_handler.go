@@ -18,10 +18,10 @@ type command interface {
 	TischAktivieren(ctx context.Context, id int) error
 	TischDeaktivieren(ctx context.Context, id int) error
 	TischLoeschen(ctx context.Context, id int) error
-	BestellungAufgeben(ctx context.Context, userID int, userName string, tischID int, positionen []application.BestellPositionInput, kommentar string) error
-	ZahlungRegistrieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
-	ProdukteStornieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
-	ProdukteLiefern(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
+	BestellungAufnehmen(ctx context.Context, userID int, userName string, tischID int, positionen []application.BestellPositionInput, kommentar string) error
+	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
+	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
+	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
 }
 
 type CommandHandler struct {
@@ -162,7 +162,7 @@ func (h *CommandHandler) TischLoeschenHandler() http.HandlerFunc {
 	}
 }
 
-type bestellungAufgebenRequest struct {
+type bestellungAufnehmenRequest struct {
 	TischID    int                                `json:"tischId"`
 	Positionen []application.BestellPositionInput `json:"positionen"`
 	Kommentar  string                             `json:"kommentar"`
@@ -189,9 +189,9 @@ func toPositionRefs(refs []positionRefRequest) []table.PositionRef {
 	return positionRefs
 }
 
-func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
+func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := bestellungAufgebenRequest{}
+		body := bestellungAufnehmenRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -202,7 +202,7 @@ func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
 			return
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-		err := h.Command.BestellungAufgeben(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
+		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
 		if err != nil {
 			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)
@@ -220,15 +220,15 @@ func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
 	}
 }
 
-type zahlungRegistrierenRequest struct {
+type zahlungKassierenRequest struct {
 	TischID    int                  `json:"tischId"`
 	Positionen []positionRefRequest `json:"positionen"`
 	Kommentar  string               `json:"kommentar"`
 }
 
-func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
+func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := zahlungRegistrierenRequest{}
+		body := zahlungKassierenRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -239,7 +239,7 @@ func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
 			return
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-		err := h.Command.ZahlungRegistrieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)
@@ -257,15 +257,15 @@ func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
 	}
 }
 
-type produkteStornierenRequest struct {
+type stornierungErteilenRequest struct {
 	TischID    int                  `json:"tischId"`
 	Positionen []positionRefRequest `json:"positionen"`
 	Kommentar  string               `json:"kommentar"`
 }
 
-func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
+func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := produkteStornierenRequest{}
+		body := stornierungErteilenRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -276,7 +276,7 @@ func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
 			return
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-		err := h.Command.ProdukteStornieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.StornierungErteilen(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)
@@ -294,15 +294,15 @@ func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
 	}
 }
 
-type produkteLiefernRequest struct {
+type ausgabeBestaetigenRequest struct {
 	TischID    int                  `json:"tischId"`
 	Positionen []positionRefRequest `json:"positionen"`
 	Kommentar  string               `json:"kommentar"`
 }
 
-func (h *CommandHandler) ProdukteLiefernHandler() http.HandlerFunc {
+func (h *CommandHandler) AusgabeBestaetigenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := produkteLiefernRequest{}
+		body := ausgabeBestaetigenRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -313,7 +313,7 @@ func (h *CommandHandler) ProdukteLiefernHandler() http.HandlerFunc {
 			return
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-		err := h.Command.ProdukteLiefern(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.AusgabeBestaetigen(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)
@@ -321,7 +321,7 @@ func (h *CommandHandler) ProdukteLiefernHandler() http.HandlerFunc {
 				helper.MapError(w, err, map[error]string{
 					application.ErrTischNotFound:          "tisch_not_found",
 					application.ErrTischNotActive:         "tisch_not_active",
-					application.ErrPositionNichtLieferbar: "position_nicht_lieferbar",
+					application.ErrPositionNichtAusgebbar: "position_nicht_ausgebbar",
 				})
 			}
 			return

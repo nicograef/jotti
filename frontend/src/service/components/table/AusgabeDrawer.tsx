@@ -22,20 +22,20 @@ import { KommentarField } from './CommentField'
 import { selectPositionen, toPositionRefs, toReceiptItems } from './drawerUtils'
 import { Receipt } from './Receipt'
 
-interface LieferungDrawerProps {
-  backend: Pick<TischBackend, 'produkteLiefern'>
+interface AusgabeDrawerProps {
+  backend: Pick<TischBackend, 'ausgabeBestaetigen'>
   tisch: Tisch
-  ungeliefertePositionen: Position[]
+  ausstehendePositionen: Position[]
   mengen: Record<string, number>
-  produkteGeliefert: () => void
+  ausgabeBestaetigt: () => void
 }
 
-export function LieferungDrawer(props: LieferungDrawerProps) {
+export function AusgabeDrawer(props: AusgabeDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [kommentar, setKommentar] = useState('')
   const positionenToDeliver = selectPositionen(
-    props.ungeliefertePositionen,
+    props.ausstehendePositionen,
     props.mengen,
   )
   const noPositionenSelected = positionenToDeliver.length === 0
@@ -44,22 +44,22 @@ export function LieferungDrawer(props: LieferungDrawerProps) {
     setLoading(true)
 
     try {
-      await props.backend.produkteLiefern({
+      await props.backend.ausgabeBestaetigen({
         tischId: props.tisch.id,
         positionen: toPositionRefs(positionenToDeliver),
         kommentar,
       })
-      props.produkteGeliefert()
+      props.ausgabeBestaetigt()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
       toast.error(
         getActionErrorMessage({
-          actionLabel: 'Lieferung registrieren',
+          actionLabel: 'Ausgabe bestätigen',
           error,
           byCode: {
-            position_nicht_lieferbar:
-              'Mindestens eine Position ist nicht mehr lieferbar. Bitte Auswahl aktualisieren.',
+            position_nicht_ausgebbar:
+              'Mindestens eine Position ist nicht mehr ausgebbar. Bitte Auswahl aktualisieren.',
           },
         }),
       )
@@ -84,16 +84,16 @@ export function LieferungDrawer(props: LieferungDrawerProps) {
             disabled={noPositionenSelected}
             className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
           >
-            Produkte liefern
+            Ausgabe bestätigen
           </Button>
         </div>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Lieferung für {props.tisch.name}</DrawerTitle>
+            <DrawerTitle>Ausgabe für {props.tisch.name}</DrawerTitle>
             <DrawerDescription>
-              Wurden diese Produkte an den Tisch ausgeliefert?
+              Wurden diese Produkte an den Tisch übergeben?
             </DrawerDescription>
           </DrawerHeader>
           <Receipt positionen={toReceiptItems(positionenToDeliver)} />
@@ -111,7 +111,7 @@ export function LieferungDrawer(props: LieferungDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Produkte liefern
+              {loading ? <Spinner /> : <></>} Ausgabe bestätigen
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>

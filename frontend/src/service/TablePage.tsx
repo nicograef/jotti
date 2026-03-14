@@ -14,8 +14,8 @@ import { AuthSingleton } from '@/lib/Auth'
 import { BackendSingleton } from '@/lib/Backend'
 import { formatCents } from '@/lib/utils'
 
+import { Ausgabe } from './components/table/Ausgabe'
 import { Bestellung } from './components/table/Bestellung'
-import { Lieferung } from './components/table/Lieferung'
 import { TischHistorie } from './components/table/TischHistorie'
 import { Zahlung } from './components/table/Zahlung'
 import { useActiveProducts } from './product/hooks'
@@ -41,7 +41,7 @@ export function TablePage() {
 
   const tisch = { id: state.tischId, name: state.tischName }
 
-  const offenePositionen = state.ungeliefertePositionen.reduce(
+  const offenePositionen = state.ausstehendePositionen.reduce(
     (sum, position) => sum + position.menge,
     0,
   )
@@ -57,7 +57,7 @@ export function TablePage() {
               <Badge variant="destructive">{offenePositionen} offen</Badge>
             )}
             {!stateLoading && offenePositionen === 0 && (
-              <Badge>Alles geliefert!</Badge>
+              <Badge>Alles ausgegeben!</Badge>
             )}
           </ItemTitle>
         </ItemContent>
@@ -97,12 +97,12 @@ export function TablePage() {
             <>
               {offenePositionen > 0 && (
                 <Card className="p-2 gap-0 mb-4">
-                  <Lieferung
+                  <Ausgabe
                     backend={tischBackend}
                     tisch={tisch}
-                    positionen={state.ungeliefertePositionen}
+                    positionen={state.ausstehendePositionen}
                     loading={stateLoading}
-                    onProdukteGeliefert={() => {
+                    onAusgabeBestaetigt={() => {
                       reloadState()
                       reloadHistorie()
                     }}
@@ -114,7 +114,7 @@ export function TablePage() {
                 tisch={tisch}
                 products={products}
                 productsLoading={productsLoading}
-                onBestellungAufgegeben={() => {
+                onBestellungAufgenommen={() => {
                   reloadState()
                   reloadHistorie()
                 }}
@@ -129,11 +129,11 @@ export function TablePage() {
               tisch={tisch}
               positionen={state.unbezahltePositionen}
               loading={stateLoading}
-              onZahlungRegistriert={() => {
+              onZahlungKassiert={() => {
                 reloadState()
                 reloadHistorie()
               }}
-              onProdukteStorniert={() => {
+              onStornierungErteilt={() => {
                 reloadState()
                 reloadHistorie()
               }}
@@ -148,7 +148,7 @@ export function TablePage() {
               userId={AuthSingleton.userId}
               tisch={tisch}
               backend={tischBackend}
-              onProdukteStorniert={() => {
+              onStornierungErteilt={() => {
                 reloadState()
                 reloadHistorie()
               }}

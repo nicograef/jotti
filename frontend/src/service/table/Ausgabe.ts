@@ -2,21 +2,21 @@ import { z } from 'zod'
 
 import { PositionRefSchema, PositionSchema } from './Bestellung'
 
-export const LieferungSchema = z.object({
+export const AusgabeSchema = z.object({
   id: z.uuid(),
   userId: z.number().int().min(1),
   tischId: z.number().int().min(1),
   positionen: PositionSchema.array().min(1),
   kommentar: z.string().max(100),
-  geliefertAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
+  ausgegebenAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
     message: 'Invalid date format',
   }),
 })
-export type Lieferung = z.infer<typeof LieferungSchema>
+export type Ausgabe = z.infer<typeof AusgabeSchema>
 
-export const ProdukteLiefernSchema = z.object({
+export const AusgabeBestaetigenSchema = z.object({
   tischId: z.number().int().min(1),
   positionen: PositionRefSchema.array().min(1),
   kommentar: z.string().max(100),
 })
-export type ProdukteLiefern = z.infer<typeof ProdukteLiefernSchema>
+export type AusgabeBestaetigen = z.infer<typeof AusgabeBestaetigenSchema>

@@ -73,20 +73,20 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event) (int, error) 
 	if err != nil {
 		return 0, fmt.Errorf("marshal unbezahlte positionen: %w", err)
 	}
-	ungeliefertJSON, err := json.Marshal(newState.UngeliefertePositionen)
+	ungeliefertJSON, err := json.Marshal(newState.AusstehendePositionen)
 	if err != nil {
-		return 0, fmt.Errorf("marshal ungelieferte positionen: %w", err)
+		return 0, fmt.Errorf("marshal ausstehende positionen: %w", err)
 	}
 
 	// 6. Upsert table_state
 	err = qtx.UpsertTableState(ctx, dbgen.UpsertTableStateParams{
-		TischID:                tischID,
-		SaldoCents:             newState.SaldoCents,
-		UnbezahltePositionen:   unbezahltJSON,
-		UngeliefertePositionen: ungeliefertJSON,
-		GesamtZahlungenCents:   newState.GesamtZahlungenCents,
-		LastEventID:            newState.LastEventID,
-		LastEventVersion:       newState.LastEventVersion,
+		TischID:               tischID,
+		SaldoCents:            newState.SaldoCents,
+		UnbezahltePositionen:  unbezahltJSON,
+		AusstehendePositionen: ungeliefertJSON,
+		GesamtZahlungenCents:  newState.GesamtZahlungenCents,
+		LastEventID:           newState.LastEventID,
+		LastEventVersion:      newState.LastEventVersion,
 	})
 	if err != nil {
 		return 0, db.Error(err)
@@ -144,17 +144,17 @@ func toTischState(row dbgen.TableState) (table.TischState, error) {
 	}
 
 	var ungeliefert []table.Position
-	if err := json.Unmarshal(row.UngeliefertePositionen, &ungeliefert); err != nil {
-		return table.TischState{}, fmt.Errorf("unmarshal ungelieferte positionen: %w", err)
+	if err := json.Unmarshal(row.AusstehendePositionen, &ungeliefert); err != nil {
+		return table.TischState{}, fmt.Errorf("unmarshal ausstehende positionen: %w", err)
 	}
 
 	return table.TischState{
-		SaldoCents:             row.SaldoCents,
-		UnbezahltePositionen:   unbezahlt,
-		UngeliefertePositionen: ungeliefert,
-		GesamtZahlungenCents:   row.GesamtZahlungenCents,
-		LastEventID:            row.LastEventID,
-		LastEventVersion:       row.LastEventVersion,
+		SaldoCents:            row.SaldoCents,
+		UnbezahltePositionen:  unbezahlt,
+		AusstehendePositionen: ungeliefert,
+		GesamtZahlungenCents:  row.GesamtZahlungenCents,
+		LastEventID:           row.LastEventID,
+		LastEventVersion:      row.LastEventVersion,
 	}, nil
 }
 
@@ -269,19 +269,19 @@ func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
 		if err != nil {
 			return 0, fmt.Errorf("marshal unbezahlte positionen for subject %q: %w", subject, err)
 		}
-		ungeliefertJSON, err := json.Marshal(state.UngeliefertePositionen)
+		ungeliefertJSON, err := json.Marshal(state.AusstehendePositionen)
 		if err != nil {
-			return 0, fmt.Errorf("marshal ungelieferte positionen for subject %q: %w", subject, err)
+			return 0, fmt.Errorf("marshal ausstehende positionen for subject %q: %w", subject, err)
 		}
 
 		err = qtx.UpsertTableState(ctx, dbgen.UpsertTableStateParams{
-			TischID:                tischID,
-			SaldoCents:             state.SaldoCents,
-			UnbezahltePositionen:   unbezahltJSON,
-			UngeliefertePositionen: ungeliefertJSON,
-			GesamtZahlungenCents:   state.GesamtZahlungenCents,
-			LastEventID:            state.LastEventID,
-			LastEventVersion:       state.LastEventVersion,
+			TischID:               tischID,
+			SaldoCents:            state.SaldoCents,
+			UnbezahltePositionen:  unbezahltJSON,
+			AusstehendePositionen: ungeliefertJSON,
+			GesamtZahlungenCents:  state.GesamtZahlungenCents,
+			LastEventID:           state.LastEventID,
+			LastEventVersion:      state.LastEventVersion,
 		})
 		if err != nil {
 			return 0, fmt.Errorf("upsert table state for subject %q: %w", subject, err)

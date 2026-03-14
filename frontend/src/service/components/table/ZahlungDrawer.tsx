@@ -28,11 +28,11 @@ import {
 import { Receipt } from './Receipt'
 
 interface ZahlungDrawerProps {
-  backend: Pick<TischBackend, 'zahlungRegistrieren'>
+  backend: Pick<TischBackend, 'zahlungKassieren'>
   tisch: Tisch
   unbezahltePositionen: Position[]
   mengen: Record<string, number>
-  zahlungRegistriert: () => void
+  zahlungKassiert: () => void
 }
 
 export function ZahlungDrawer(props: ZahlungDrawerProps) {
@@ -50,18 +50,18 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
     setLoading(true)
 
     try {
-      await props.backend.zahlungRegistrieren({
+      await props.backend.zahlungKassieren({
         tischId: props.tisch.id,
         positionen: toPositionRefs(positionenToPay),
         kommentar,
       })
-      props.zahlungRegistriert()
+      props.zahlungKassiert()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
       toast.error(
         getActionErrorMessage({
-          actionLabel: 'Zahlung registrieren',
+          actionLabel: 'Zahlung kassieren',
           error,
           byCode: {
             position_nicht_bezahlbar:
@@ -118,7 +118,7 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Zahlung registrieren
+              {loading ? <Spinner /> : <></>} Kassieren
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>

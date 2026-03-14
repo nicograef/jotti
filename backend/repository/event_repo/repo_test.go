@@ -140,7 +140,7 @@ func TestWriteEvent(t *testing.T) {
 
 	subject := fmt.Sprintf("tisch:%d", tischID)
 	data := validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 2)
-	e := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject, 1, data)
+	e := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", subject, 1, data)
 
 	eventID, err := repo.WriteEvent(context.Background(), e)
 
@@ -156,7 +156,7 @@ func TestReadEvent(t *testing.T) {
 	userID, repo, teardown := setup(t)
 	defer teardown(t)
 
-	e := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:42", 1, map[string]any{"k": "v"})
+	e := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", "tisch:42", 1, map[string]any{"k": "v"})
 
 	eventID, err := insertEventRaw(repo.DB, e)
 	if err != nil {
@@ -215,8 +215,8 @@ func TestReadEventsBySubject(t *testing.T) {
 	userID, repo, teardown := setup(t)
 	defer teardown(t)
 
-	event1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 1, map[string]any{"k": "v"})
-	event2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:42", 1, map[string]any{"k": "v"})
+	event1 := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", "tisch:1", 1, map[string]any{"k": "v"})
+	event2 := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", "tisch:42", 1, map[string]any{"k": "v"})
 	_, _ = insertEventRaw(repo.DB, event1)
 	_, _ = insertEventRaw(repo.DB, event2)
 
@@ -246,9 +246,9 @@ func TestGetMaxVersion(t *testing.T) {
 	}
 
 	// Add events
-	e1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 1, map[string]any{"order": 1})
-	e2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:1", 2, map[string]any{"order": 2})
-	e3 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", "tisch:2", 1, map[string]any{"order": 3})
+	e1 := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", "tisch:1", 1, map[string]any{"order": 1})
+	e2 := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", "tisch:1", 2, map[string]any{"order": 2})
+	e3 := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", "tisch:2", 1, map[string]any{"order": 3})
 
 	_, _ = insertEventRaw(repo.DB, e1)
 	_, _ = insertEventRaw(repo.DB, e2)
@@ -287,7 +287,7 @@ func TestWriteEvent_WithProjection(t *testing.T) {
 	subject := fmt.Sprintf("tisch:%d", tischID)
 	posID := "p0000000-0000-0000-0000-000000000001"
 	data := validBestellungData(posID, 350, 2)
-	e := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject, 1, data)
+	e := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", subject, 1, data)
 
 	eventID, err := repo.WriteEvent(context.Background(), e)
 	if err != nil {
@@ -311,8 +311,8 @@ func TestWriteEvent_WithProjection(t *testing.T) {
 	if state.UnbezahltePositionen[0].Menge != 2 {
 		t.Fatalf("Expected Menge 2, got %d", state.UnbezahltePositionen[0].Menge)
 	}
-	if len(state.UngeliefertePositionen) != 1 {
-		t.Fatalf("Expected 1 ungelieferte position, got %d", len(state.UngeliefertePositionen))
+	if len(state.AusstehendePositionen) != 1 {
+		t.Fatalf("Expected 1 ungelieferte position, got %d", len(state.AusstehendePositionen))
 	}
 	if state.LastEventID != eventID {
 		t.Fatalf("Expected LastEventID %d, got %d", eventID, state.LastEventID)
@@ -340,8 +340,8 @@ func TestReadTableState_NotFound(t *testing.T) {
 	if len(state.UnbezahltePositionen) != 0 {
 		t.Fatalf("Expected empty unbezahlte positionen, got %d", len(state.UnbezahltePositionen))
 	}
-	if len(state.UngeliefertePositionen) != 0 {
-		t.Fatalf("Expected empty ungelieferte positionen, got %d", len(state.UngeliefertePositionen))
+	if len(state.AusstehendePositionen) != 0 {
+		t.Fatalf("Expected empty ausstehende positionen, got %d", len(state.AusstehendePositionen))
 	}
 }
 
@@ -359,7 +359,7 @@ func TestWriteEvent_MultipleEvents_ProjectionCorrect(t *testing.T) {
 
 	// Write a Bestellung (2x Bier @ 350 = 700 cents)
 	bestellungData := validBestellungData(posID, 350, 2)
-	e1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject, 1, bestellungData)
+	e1 := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", subject, 1, bestellungData)
 	_, err = repo.WriteEvent(context.Background(), e1)
 	if err != nil {
 		t.Fatalf("Expected no error writing bestellung, got %v", err)
@@ -367,7 +367,7 @@ func TestWriteEvent_MultipleEvents_ProjectionCorrect(t *testing.T) {
 
 	// Write a Zahlung (pay for 1x Bier = 350 cents)
 	zahlungData := validZahlungData(posID, 1, 350)
-	e2 := newTestEvent(userID, "tisch.zahlung-registriert:v1", subject, 2, zahlungData)
+	e2 := newTestEvent(userID, "tisch.zahlung-kassiert:v1", subject, 2, zahlungData)
 	_, err = repo.WriteEvent(context.Background(), e2)
 	if err != nil {
 		t.Fatalf("Expected no error writing zahlung, got %v", err)
@@ -394,11 +394,11 @@ func TestWriteEvent_MultipleEvents_ProjectionCorrect(t *testing.T) {
 		t.Fatalf("Expected remaining Menge 1, got %d", state.UnbezahltePositionen[0].Menge)
 	}
 	// Ungeliefert: still 1 position with Menge 2 (no delivery yet)
-	if len(state.UngeliefertePositionen) != 1 {
-		t.Fatalf("Expected 1 ungelieferte position, got %d", len(state.UngeliefertePositionen))
+	if len(state.AusstehendePositionen) != 1 {
+		t.Fatalf("Expected 1 ungelieferte position, got %d", len(state.AusstehendePositionen))
 	}
-	if state.UngeliefertePositionen[0].Menge != 2 {
-		t.Fatalf("Expected ungeliefert Menge 2, got %d", state.UngeliefertePositionen[0].Menge)
+	if state.AusstehendePositionen[0].Menge != 2 {
+		t.Fatalf("Expected ausstehend Menge 2, got %d", state.AusstehendePositionen[0].Menge)
 	}
 	if state.LastEventVersion != 2 {
 		t.Fatalf("Expected LastEventVersion 2, got %d", state.LastEventVersion)
@@ -472,14 +472,14 @@ func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
 
 	// Write events through normal path (creates projection)
 	bestellungData := validBestellungData(posID, 500, 3) // 3x 500 = 1500
-	e1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject, 1, bestellungData)
+	e1 := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", subject, 1, bestellungData)
 	_, err = repo.WriteEvent(context.Background(), e1)
 	if err != nil {
 		t.Fatalf("Expected no error writing bestellung, got %v", err)
 	}
 
 	zahlungData := validZahlungData(posID, 1, 500) // pay 1x 500
-	e2 := newTestEvent(userID, "tisch.zahlung-registriert:v1", subject, 2, zahlungData)
+	e2 := newTestEvent(userID, "tisch.zahlung-kassiert:v1", subject, 2, zahlungData)
 	_, err = repo.WriteEvent(context.Background(), e2)
 	if err != nil {
 		t.Fatalf("Expected no error writing zahlung, got %v", err)
@@ -531,8 +531,8 @@ func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
 	if len(rebuiltState.UnbezahltePositionen) != len(expectedState.UnbezahltePositionen) {
 		t.Fatalf("Expected %d unbezahlte positionen, got %d", len(expectedState.UnbezahltePositionen), len(rebuiltState.UnbezahltePositionen))
 	}
-	if len(rebuiltState.UngeliefertePositionen) != len(expectedState.UngeliefertePositionen) {
-		t.Fatalf("Expected %d ungelieferte positionen, got %d", len(expectedState.UngeliefertePositionen), len(rebuiltState.UngeliefertePositionen))
+	if len(rebuiltState.AusstehendePositionen) != len(expectedState.AusstehendePositionen) {
+		t.Fatalf("Expected %d ausstehende positionen, got %d", len(expectedState.AusstehendePositionen), len(rebuiltState.AusstehendePositionen))
 	}
 	if rebuiltState.LastEventID != expectedState.LastEventID {
 		t.Fatalf("Expected LastEventID %d, got %d", expectedState.LastEventID, rebuiltState.LastEventID)
@@ -559,14 +559,14 @@ func TestRebuildAllProjections_MultipleSubjects(t *testing.T) {
 	subject2 := fmt.Sprintf("tisch:%d", tisch2ID)
 
 	// Write events via raw insert (bypassing projection, simulating seed.sql)
-	e1 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject1, 1,
+	e1 := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", subject1, 1,
 		validBestellungData("p1-1", 200, 2)) // 400
 	_, err = insertEventRaw(repo.DB, e1)
 	if err != nil {
 		t.Fatalf("Failed to insert event: %v", err)
 	}
 
-	e2 := newTestEvent(userID, "tisch.bestellung-aufgegeben:v1", subject2, 1,
+	e2 := newTestEvent(userID, "tisch.bestellung-aufgenommen:v1", subject2, 1,
 		validBestellungData("p2-1", 300, 1)) // 300
 	_, err = insertEventRaw(repo.DB, e2)
 	if err != nil {

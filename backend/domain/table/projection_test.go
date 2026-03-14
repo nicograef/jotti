@@ -31,11 +31,11 @@ func TestApplyEvent_BestellungOnEmptyTable(t *testing.T) {
 	if state.UnbezahltePositionen[0].Menge != 2 {
 		t.Fatalf("expected Menge 2, got %d", state.UnbezahltePositionen[0].Menge)
 	}
-	if len(state.UngeliefertePositionen) != 1 {
-		t.Fatalf("expected 1 ungelieferte position, got %d", len(state.UngeliefertePositionen))
+	if len(state.AusstehendePositionen) != 1 {
+		t.Fatalf("expected 1 ungelieferte position, got %d", len(state.AusstehendePositionen))
 	}
-	if state.UngeliefertePositionen[0].Menge != 2 {
-		t.Fatalf("expected Menge 2, got %d", state.UngeliefertePositionen[0].Menge)
+	if state.AusstehendePositionen[0].Menge != 2 {
+		t.Fatalf("expected Menge 2, got %d", state.AusstehendePositionen[0].Menge)
 	}
 	if state.GesamtZahlungenCents != 0 {
 		t.Fatalf("expected GesamtZahlungenCents 0, got %d", state.GesamtZahlungenCents)
@@ -120,16 +120,16 @@ func TestApplyEvent_StornierungReducesSaldoAndUnbezahlt(t *testing.T) {
 	if state.UnbezahltePositionen[0].Menge != 1 {
 		t.Fatalf("expected Menge 1, got %d", state.UnbezahltePositionen[0].Menge)
 	}
-	// Stornierung also reduces ungelieferte
-	if len(state.UngeliefertePositionen) != 1 {
-		t.Fatalf("expected 1 ungelieferte position, got %d", len(state.UngeliefertePositionen))
+	// Stornierung also reduces ausstehende
+	if len(state.AusstehendePositionen) != 1 {
+		t.Fatalf("expected 1 ungelieferte position, got %d", len(state.AusstehendePositionen))
 	}
-	if state.UngeliefertePositionen[0].Menge != 1 {
-		t.Fatalf("expected Menge 1, got %d", state.UngeliefertePositionen[0].Menge)
+	if state.AusstehendePositionen[0].Menge != 1 {
+		t.Fatalf("expected Menge 1, got %d", state.AusstehendePositionen[0].Menge)
 	}
 }
 
-func TestApplyEvent_LieferungReducesOnlyUngeliefert(t *testing.T) {
+func TestApplyEvent_AusgabeReducesOnlyAusstehend(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
@@ -164,8 +164,8 @@ func TestApplyEvent_LieferungReducesOnlyUngeliefert(t *testing.T) {
 		t.Fatalf("expected Menge 2, got %d", state.UnbezahltePositionen[0].Menge)
 	}
 	// Ungeliefert reduced to 0
-	if len(state.UngeliefertePositionen) != 0 {
-		t.Fatalf("expected 0 ungelieferte positionen, got %d", len(state.UngeliefertePositionen))
+	if len(state.AusstehendePositionen) != 0 {
+		t.Fatalf("expected 0 ungelieferte positionen, got %d", len(state.AusstehendePositionen))
 	}
 }
 
@@ -206,9 +206,9 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 	if state.SaldoCents != 2300 {
 		t.Fatalf("expected SaldoCents 2300, got %d", state.SaldoCents)
 	}
-	// 2 ungelieferte (only wurst remaining)
-	if len(state.UngeliefertePositionen) != 1 {
-		t.Fatalf("expected 1 ungelieferte position, got %d", len(state.UngeliefertePositionen))
+	// 2 ausstehende (only wurst remaining)
+	if len(state.AusstehendePositionen) != 1 {
+		t.Fatalf("expected 1 ungelieferte position, got %d", len(state.AusstehendePositionen))
 	}
 
 	// Pay for 1 beer (500)

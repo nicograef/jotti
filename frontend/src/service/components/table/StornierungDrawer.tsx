@@ -28,11 +28,11 @@ import {
 import { Receipt } from './Receipt'
 
 interface StornierungDrawerProps {
-  backend: Pick<TischBackend, 'produkteStornieren'>
+  backend: Pick<TischBackend, 'stornierungErteilen'>
   tisch: Tisch
   unbezahltePositionen: Position[]
   mengen: Record<string, number>
-  produkteStorniert: () => void
+  stornierungErteilt: () => void
 }
 
 export function StornierungDrawer(props: StornierungDrawerProps) {
@@ -50,12 +50,12 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
     setLoading(true)
 
     try {
-      await props.backend.produkteStornieren({
+      await props.backend.stornierungErteilen({
         tischId: props.tisch.id,
         positionen: toPositionRefs(selectedPositionen),
         kommentar,
       })
-      props.produkteStorniert()
+      props.stornierungErteilt()
       setOpen(false)
     } catch (error: unknown) {
       console.error(error)
@@ -119,7 +119,7 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Produkte stornieren
+              {loading ? <Spinner /> : <></>} Stornierung erteilen
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>

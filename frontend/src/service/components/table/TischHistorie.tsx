@@ -23,8 +23,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
+import type { Ausgabe } from '../../table/Ausgabe'
 import type { Bestellung } from '../../table/Bestellung'
-import type { Lieferung } from '../../table/Lieferung'
 import type { Stornierung } from '../../table/Stornierung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
@@ -35,12 +35,12 @@ import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { Receipt, type ReceiptPosition } from './Receipt'
 
 interface TischHistorieProps {
-  historie: (Bestellung | Zahlung | Stornierung | Lieferung)[]
+  historie: (Bestellung | Zahlung | Stornierung | Ausgabe)[]
   historieLoading: boolean
   userId: number | null
   tisch: Tisch
-  backend: Pick<TischBackend, 'produkteStornieren'>
-  onProdukteStorniert: () => void
+  backend: Pick<TischBackend, 'stornierungErteilen'>
+  onStornierungErteilt: () => void
 }
 
 const initialBestellungState: {
@@ -67,11 +67,11 @@ const initialStornierungState: {
   open: false,
 }
 
-const initialLieferungState: {
-  lieferung: Lieferung | null
+const initialAusgabeState: {
+  ausgabe: Ausgabe | null
   open: boolean
 } = {
-  lieferung: null,
+  ausgabe: null,
   open: false,
 }
 
@@ -81,12 +81,12 @@ export function TischHistorie({
   userId,
   tisch,
   backend,
-  onProdukteStorniert,
+  onStornierungErteilt,
 }: TischHistorieProps) {
   const [bestellung, setBestellung] = useState(initialBestellungState)
   const [zahlung, setZahlung] = useState(initialZahlungState)
   const [stornierung, setStornierung] = useState(initialStornierungState)
-  const [lieferung, setLieferung] = useState(initialLieferungState)
+  const [ausgabe, setAusgabe] = useState(initialAusgabeState)
   const [stornierenBestellung, setStornierenBestellung] =
     useState<Bestellung | null>(null)
 
@@ -99,13 +99,13 @@ export function TischHistorie({
               <ItemSkeleton key={index} />
             ))
           : historie.map((item) => {
-              if (Object.prototype.hasOwnProperty.call(item, 'registriertAm')) {
+              if (Object.prototype.hasOwnProperty.call(item, 'kassiertAm')) {
                 const zahlung = item as Zahlung
                 return (
                   <HistoryItem
                     key={item.id}
                     title={`Zahlung -${formatCents(zahlung.gesamtZahlungCents)} €`}
-                    date={zahlung.registriertAm}
+                    date={zahlung.kassiertAm}
                     isFromUser={userId === zahlung.userId}
                     kommentar={zahlung.kommentar}
                     onClick={() => {
@@ -114,14 +114,14 @@ export function TischHistorie({
                   />
                 )
               } else if (
-                Object.prototype.hasOwnProperty.call(item, 'aufgegebenAm')
+                Object.prototype.hasOwnProperty.call(item, 'aufgenommenAm')
               ) {
                 const bestellung = item as Bestellung
                 return (
                   <HistoryItem
                     key={item.id}
                     title={`Bestellung +${formatCents(bestellung.gesamtPreisCents)} €`}
-                    date={bestellung.aufgegebenAm}
+                    date={bestellung.aufgenommenAm}
                     isFromUser={userId === bestellung.userId}
                     kommentar={bestellung.kommentar}
                     onClick={() => {
@@ -154,18 +154,18 @@ export function TischHistorie({
                   />
                 )
               } else if (
-                Object.prototype.hasOwnProperty.call(item, 'geliefertAm')
+                Object.prototype.hasOwnProperty.call(item, 'ausgegebenAm')
               ) {
-                const lieferung = item as Lieferung
+                const ausgabe = item as Ausgabe
                 return (
                   <HistoryItem
                     key={item.id}
-                    title="Auslieferung"
-                    date={lieferung.geliefertAm}
-                    isFromUser={userId === lieferung.userId}
-                    kommentar={lieferung.kommentar}
+                    title="Ausgabe"
+                    date={ausgabe.ausgegebenAm}
+                    isFromUser={userId === ausgabe.userId}
+                    kommentar={ausgabe.kommentar}
                     onClick={() => {
-                      setLieferung({ lieferung, open: true })
+                      setAusgabe({ ausgabe, open: true })
                     }}
                   />
                 )
@@ -183,7 +183,7 @@ export function TischHistorie({
           onClose={() => {
             setBestellung(initialBestellungState)
           }}
-          date={bestellung.bestellung.aufgegebenAm}
+          date={bestellung.bestellung.aufgenommenAm}
           kommentar={bestellung.bestellung.kommentar}
           positionen={toReceiptItems(bestellung.bestellung.positionen)}
           totalPrice={bestellung.bestellung.gesamtPreisCents}
@@ -198,7 +198,7 @@ export function TischHistorie({
           onClose={() => {
             setZahlung(initialZahlungState)
           }}
-          date={zahlung.zahlung.registriertAm}
+          date={zahlung.zahlung.kassiertAm}
           kommentar={zahlung.zahlung.kommentar}
           positionen={toReceiptItems(zahlung.zahlung.positionen)}
           totalPrice={zahlung.zahlung.gesamtZahlungCents}
@@ -219,18 +219,18 @@ export function TischHistorie({
           totalPrice={stornierung.stornierung.gesamtStornierungCents}
         />
       )}
-      {lieferung.lieferung && (
+      {ausgabe.ausgabe && (
         <Details
-          title="Auslieferung"
-          id={lieferung.lieferung.id}
-          isFromUser={userId === lieferung.lieferung.userId}
-          open={lieferung.open}
+          title="Ausgabe"
+          id={ausgabe.ausgabe.id}
+          isFromUser={userId === ausgabe.ausgabe.userId}
+          open={ausgabe.open}
           onClose={() => {
-            setLieferung(initialLieferungState)
+            setAusgabe(initialAusgabeState)
           }}
-          date={lieferung.lieferung.geliefertAm}
-          kommentar={lieferung.lieferung.kommentar}
-          positionen={toReceiptItems(lieferung.lieferung.positionen)}
+          date={ausgabe.ausgabe.ausgegebenAm}
+          kommentar={ausgabe.ausgabe.kommentar}
+          positionen={toReceiptItems(ausgabe.ausgabe.positionen)}
         />
       )}
       {stornierenBestellung && (
@@ -242,9 +242,9 @@ export function TischHistorie({
           onClose={() => {
             setStornierenBestellung(null)
           }}
-          onProdukteStorniert={() => {
+          onStornierungErteilt={() => {
             setStornierenBestellung(null)
-            onProdukteStorniert()
+            onStornierungErteilt()
           }}
         />
       )}
@@ -254,7 +254,7 @@ export function TischHistorie({
 
 function getStornierbarePositionen(
   bestellung: Bestellung,
-  historie: (Bestellung | Zahlung | Stornierung | Lieferung)[],
+  historie: (Bestellung | Zahlung | Stornierung | Ausgabe)[],
 ) {
   const stornierteMengen = new Map<string, number>()
 

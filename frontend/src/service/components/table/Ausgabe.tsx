@@ -16,34 +16,34 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
-import { LieferungDrawer } from './LieferungDrawer'
+import { AusgabeDrawer } from './AusgabeDrawer'
 
-interface LieferungProps {
-  backend: Pick<TischBackend, 'produkteLiefern'>
+interface AusgabeProps {
+  backend: Pick<TischBackend, 'ausgabeBestaetigen'>
   tisch: Tisch
   positionen: Position[]
   loading: boolean
-  onProdukteGeliefert: () => void
+  onAusgabeBestaetigt: () => void
 }
 
-export function Lieferung({
+export function Ausgabe({
   tisch,
   backend,
   positionen,
   loading,
-  onProdukteGeliefert,
-}: LieferungProps) {
+  onAusgabeBestaetigt,
+}: AusgabeProps) {
   const [mengen, setMengen] = useState<Record<string, number>>({})
 
-  const ungelieferteMengen: Record<string, number> = {}
+  const ausstehendeMengen: Record<string, number> = {}
   positionen.forEach((position) => {
-    ungelieferteMengen[position.positionId] = position.menge
+    ausstehendeMengen[position.positionId] = position.menge
   })
 
   const onAdd = (positionId: string) => {
     setMengen((prev) => {
       const aktuelleMenge = prev[positionId] || 0
-      if (aktuelleMenge >= (ungelieferteMengen[positionId] || 0)) return prev
+      if (aktuelleMenge >= (ausstehendeMengen[positionId] || 0)) return prev
       return {
         ...prev,
         [positionId]: aktuelleMenge + 1,
@@ -65,15 +65,15 @@ export function Lieferung({
   return (
     <>
       {' '}
-      <LieferungDrawer
+      <AusgabeDrawer
         backend={backend}
         tisch={tisch}
-        ungeliefertePositionen={positionen}
+        ausstehendePositionen={positionen}
         mengen={mengen}
-        produkteGeliefert={() => {
+        ausgabeBestaetigt={() => {
           setMengen({})
-          toast.success(`Lieferung wurde registriert.`)
-          onProdukteGeliefert()
+          toast.success(`Ausgabe wurde bestätigt.`)
+          onAusgabeBestaetigt()
         }}
       />
       <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 mt-4">
@@ -87,7 +87,7 @@ export function Lieferung({
                 key={position.positionId}
                 position={position}
                 menge={mengen[position.positionId] || 0}
-                ungelieferteMenge={ungelieferteMengen[position.positionId] || 0}
+                ausstehendeMenge={ausstehendeMengen[position.positionId] || 0}
                 onAdd={() => {
                   onAdd(position.positionId)
                 }}
@@ -104,7 +104,7 @@ export function Lieferung({
 interface PositionItemProps {
   position: Position
   menge: number
-  ungelieferteMenge: number
+  ausstehendeMenge: number
   onAdd: () => void
   onRemove: () => void
 }
@@ -112,7 +112,7 @@ interface PositionItemProps {
 function PositionItem({
   position,
   menge,
-  ungelieferteMenge,
+  ausstehendeMenge,
   onAdd,
   onRemove,
 }: PositionItemProps) {
@@ -123,7 +123,7 @@ function PositionItem({
           {position.produktName} {position.varianteName}
         </ItemTitle>
         <ItemDescription>
-          noch {ungelieferteMenge - menge} zu liefern
+          noch {ausstehendeMenge - menge} ausstehend
         </ItemDescription>
       </ItemContent>
       <ItemActions>

@@ -10,28 +10,28 @@ import (
 
 type EventType string
 
-type HistorieEintragKind string
+type HistorieEintragArt string
 
 const (
-	HistorieEintragBestellung  HistorieEintragKind = "bestellung"
-	HistorieEintragZahlung     HistorieEintragKind = "zahlung"
-	HistorieEintragStornierung HistorieEintragKind = "stornierung"
-	HistorieEintragLieferung   HistorieEintragKind = "lieferung"
+	HistorieEintragBestellung  HistorieEintragArt = "bestellung"
+	HistorieEintragZahlung     HistorieEintragArt = "zahlung"
+	HistorieEintragStornierung HistorieEintragArt = "stornierung"
+	HistorieEintragAusgabe     HistorieEintragArt = "ausgabe"
 )
 
 type HistorieEintrag struct {
-	Kind        HistorieEintragKind
+	Art         HistorieEintragArt
 	Bestellung  *Bestellung
 	Zahlung     *Zahlung
 	Stornierung *Stornierung
-	Lieferung   *Lieferung
+	Ausgabe     *Ausgabe
 }
 
 const (
-	EventTypeBestellungAufgegebenV1 EventType = "tisch.bestellung-aufgegeben:v1"
-	EventTypeZahlungRegistriertV1   EventType = "tisch.zahlung-registriert:v1"
-	EventTypeProdukteStorniertV1    EventType = "tisch.produkte-storniert:v1"
-	EventTypeProdukteGeliefertV1    EventType = "tisch.produkte-geliefert:v1"
+	EventTypeBestellungAufgenommenV1 EventType = "tisch.bestellung-aufgenommen:v1"
+	EventTypeZahlungKassiertV1       EventType = "tisch.zahlung-kassiert:v1"
+	EventTypeStornierungErteiltV1    EventType = "tisch.stornierung-erteilt:v1"
+	EventTypeAusgabeBestaetigtV1     EventType = "tisch.ausgabe-bestaetigt:v1"
 )
 
 // parseTischIDFromSubject extracts the table ID from an event subject like "tisch:42".
@@ -52,31 +52,31 @@ func GetHistoryFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 
 	for _, event := range events {
 		switch event.Type {
-		case string(EventTypeBestellungAufgegebenV1):
+		case string(EventTypeBestellungAufgenommenV1):
 			bestellung, err := buildBestellungFromEvent(event)
 			if err != nil {
 				return []HistorieEintrag{}, err
 			}
-			history = append(history, HistorieEintrag{Kind: HistorieEintragBestellung, Bestellung: &bestellung})
-		case string(EventTypeZahlungRegistriertV1):
+			history = append(history, HistorieEintrag{Art: HistorieEintragBestellung, Bestellung: &bestellung})
+		case string(EventTypeZahlungKassiertV1):
 			zahlung, err := buildZahlungFromEvent(event)
 			if err != nil {
 				return []HistorieEintrag{}, err
 			}
-			history = append(history, HistorieEintrag{Kind: HistorieEintragZahlung, Zahlung: &zahlung})
-		case string(EventTypeProdukteStorniertV1):
+			history = append(history, HistorieEintrag{Art: HistorieEintragZahlung, Zahlung: &zahlung})
+		case string(EventTypeStornierungErteiltV1):
 			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
 				return []HistorieEintrag{}, err
 			}
-			history = append(history, HistorieEintrag{Kind: HistorieEintragStornierung, Stornierung: &stornierung})
+			history = append(history, HistorieEintrag{Art: HistorieEintragStornierung, Stornierung: &stornierung})
 
-		case string(EventTypeProdukteGeliefertV1):
-			lieferung, err := buildLieferungFromEvent(event)
+		case string(EventTypeAusgabeBestaetigtV1):
+			ausgabe, err := buildAusgabeFromEvent(event)
 			if err != nil {
 				return []HistorieEintrag{}, err
 			}
-			history = append(history, HistorieEintrag{Kind: HistorieEintragLieferung, Lieferung: &lieferung})
+			history = append(history, HistorieEintrag{Art: HistorieEintragAusgabe, Ausgabe: &ausgabe})
 		}
 	}
 

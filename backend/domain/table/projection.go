@@ -10,30 +10,30 @@ import (
 // TischState represents the projected state of a table, derived from applying events.
 // Zero-value represents a table with no events (Saldo 0, empty lists).
 type TischState struct {
-	TischID                int
-	TischName              string
-	SaldoCents             int
-	UnbezahltePositionen   []Position
-	UngeliefertePositionen []Position
-	GesamtZahlungenCents   int
-	LastEventID            int
-	LastEventVersion       int
+	TischID               int
+	TischName             string
+	SaldoCents            int
+	UnbezahltePositionen  []Position
+	AusstehendePositionen []Position
+	GesamtZahlungenCents  int
+	LastEventID           int
+	LastEventVersion      int
 }
 
 // ApplyEvent applies a single domain event to the current TischState and returns the new state.
 func ApplyEvent(state TischState, evt e.Event) (TischState, error) {
 	switch evt.Type {
-	case string(EventTypeBestellungAufgegebenV1):
-		var data bestellungAufgegebenV1Data
+	case string(EventTypeBestellungAufgenommenV1):
+		var data bestellungAufgenommenV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal bestellung data: %w", err)
 		}
 		state.SaldoCents += data.GesamtPreisCents
 		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, data.Positionen)
-		state.UngeliefertePositionen = accumulatePositionen(state.UngeliefertePositionen, data.Positionen)
+		state.AusstehendePositionen = accumulatePositionen(state.AusstehendePositionen, data.Positionen)
 
-	case string(EventTypeZahlungRegistriertV1):
-		var data zahlungRegistriertV1Data
+	case string(EventTypeZahlungKassiertV1):
+		var data zahlungKassiertV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal zahlung data: %w", err)
 		}
@@ -41,21 +41,21 @@ func ApplyEvent(state TischState, evt e.Event) (TischState, error) {
 		state.GesamtZahlungenCents += data.GesamtZahlungCents
 		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, data.Positionen)
 
-	case string(EventTypeProdukteStorniertV1):
-		var data produkteStorniertV1Data
+	case string(EventTypeStornierungErteiltV1):
+		var data stornierungErteiltV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal stornierung data: %w", err)
 		}
 		state.SaldoCents -= data.GesamtStornierungCents
 		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, data.Positionen)
-		state.UngeliefertePositionen = reduceByPosition(state.UngeliefertePositionen, data.Positionen)
+		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, data.Positionen)
 
-	case string(EventTypeProdukteGeliefertV1):
-		var data produkteGeliefertV1Data
+	case string(EventTypeAusgabeBestaetigtV1):
+		var data ausgabeBestaetigtV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return state, fmt.Errorf("unmarshal lieferung data: %w", err)
+			return state, fmt.Errorf("unmarshal ausgabe data: %w", err)
 		}
-		state.UngeliefertePositionen = reduceByPosition(state.UngeliefertePositionen, data.Positionen)
+		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, data.Positionen)
 
 	default:
 		return state, fmt.Errorf("unknown event type: %s", evt.Type)
@@ -74,21 +74,21 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 
 	for _, evt := range events {
 		switch evt.Type {
-		case string(EventTypeBestellungAufgegebenV1):
-			var data bestellungAufgegebenV1Data
+		case string(EventTypeBestellungAufgenommenV1):
+			var data bestellungAufgenommenV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal bestellung data: %w", err)
 			}
 			nichtStorniert = accumulatePositionen(nichtStorniert, data.Positionen)
 
-		case string(EventTypeProdukteStorniertV1):
-			var data produkteStorniertV1Data
+		case string(EventTypeStornierungErteiltV1):
+			var data stornierungErteiltV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal stornierung data: %w", err)
 			}
 			nichtStorniert = reduceByPosition(nichtStorniert, data.Positionen)
 
-		case string(EventTypeZahlungRegistriertV1), string(EventTypeProdukteGeliefertV1):
+		case string(EventTypeZahlungKassiertV1), string(EventTypeAusgabeBestaetigtV1):
 			continue
 
 		default:

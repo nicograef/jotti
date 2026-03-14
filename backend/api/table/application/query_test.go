@@ -34,10 +34,10 @@ func TestGetTischState(t *testing.T) {
 	}
 	eventMock := event_repo.NewMock(nil, nil)
 	eventMock.SetTableState(1, table.TischState{
-		SaldoCents:             700,
-		UnbezahltePositionen:   positions,
-		UngeliefertePositionen: positions,
-		GesamtZahlungenCents:   0,
+		SaldoCents:            700,
+		UnbezahltePositionen:  positions,
+		AusstehendePositionen: positions,
+		GesamtZahlungenCents:  0,
 	})
 	query := Query{
 		TableRepo: table_repo.NewMock(nil, nil),
@@ -57,8 +57,8 @@ func TestGetTischState(t *testing.T) {
 	if state.UnbezahltePositionen[0].Menge != 2 {
 		t.Errorf("expected menge 2, got %d", state.UnbezahltePositionen[0].Menge)
 	}
-	if len(state.UngeliefertePositionen) != 1 {
-		t.Fatalf("expected 1 ungelieferte position, got %d", len(state.UngeliefertePositionen))
+	if len(state.AusstehendePositionen) != 1 {
+		t.Fatalf("expected 1 ausstehende position, got %d", len(state.AusstehendePositionen))
 	}
 }
 
@@ -78,8 +78,8 @@ func TestGetTischState_NoState(t *testing.T) {
 	if state.UnbezahltePositionen != nil {
 		t.Errorf("expected nil unbezahlt, got %v", state.UnbezahltePositionen)
 	}
-	if state.UngeliefertePositionen != nil {
-		t.Errorf("expected nil ungeliefert, got %v", state.UngeliefertePositionen)
+	if state.AusstehendePositionen != nil {
+		t.Errorf("expected nil ausstehend, got %v", state.AusstehendePositionen)
 	}
 }
 
