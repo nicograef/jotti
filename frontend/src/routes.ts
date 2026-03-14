@@ -3,9 +3,8 @@ import { createBrowserRouter, redirect } from 'react-router'
 import { AuthSingleton } from '@/lib/Auth'
 
 import { AdminLayout } from './admin/AdminLayout'
-import { AdminDashboardPage } from './admin/dashboard/AdminDashboardPage'
 import { AdminProductsPage } from './admin/products/AdminProductsPage'
-import { TagesabrechnungPage } from './admin/reporting/TagesabrechnungPage'
+import { AdminDashboardPage } from './admin/reporting/AdminDashboardPage'
 import { AdminTablesPage } from './admin/tables/AdminTablesPage'
 import { AdminUsersPage } from './admin/users/AdminUsersPage'
 import App from './App'
@@ -59,12 +58,11 @@ export const router = createBrowserRouter([
         Component: AdminLayout,
         loader: AdminGuard,
         children: [
-          { index: true, loader: () => redirect('dashboard') },
-          { path: 'dashboard', Component: AdminDashboardPage },
+          { index: true, loader: () => redirect('reporting') },
+          { path: 'reporting', Component: AdminDashboardPage },
           { path: 'products', Component: AdminProductsPage },
           { path: 'tables', Component: AdminTablesPage },
           { path: 'users', Component: AdminUsersPage },
-          { path: 'tagesabrechnung', Component: TagesabrechnungPage },
         ],
       },
       {

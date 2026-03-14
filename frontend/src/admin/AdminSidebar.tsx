@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   LogOut,
   Moon,
-  Receipt,
   Sun,
   Users,
   Utensils,
@@ -30,13 +29,8 @@ import { AuthSingleton } from '@/lib/Auth'
 const reportingItems = [
   {
     title: 'Dashboard',
-    url: '/admin/dashboard',
+    url: '/admin/reporting',
     icon: LayoutDashboard,
-  },
-  {
-    title: 'Tagesabrechnung',
-    url: '/admin/tagesabrechnung',
-    icon: Receipt,
   },
 ]
 

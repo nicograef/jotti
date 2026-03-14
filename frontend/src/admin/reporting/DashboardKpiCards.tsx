@@ -1,28 +1,17 @@
 import {
-  ClipboardList,
   LayoutDashboard,
   Receipt,
   RefreshCw,
   ShoppingCart,
   TriangleAlert,
 } from 'lucide-react'
-import { Link } from 'react-router'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from '@/components/ui/item'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCents } from '@/lib/utils'
 
-import { useDashboard } from '../reporting/hooks'
+import type { Dashboard } from './types'
 
 function KpiCard({
   title,
@@ -65,9 +54,13 @@ function KpiSkeleton() {
   )
 }
 
-export function AdminDashboardPage() {
-  const { data, loading } = useDashboard()
-
+export function DashboardKpiCards({
+  data,
+  loading,
+}: {
+  data: Dashboard
+  loading: boolean
+}) {
   return (
     <>
       <div className="flex items-center gap-3">
@@ -91,47 +84,28 @@ export function AdminDashboardPage() {
             <KpiCard
               title="Gesamtumsatz"
               value={`${formatCents(data.gesamtUmsatzCents)} €`}
-              icon={<Receipt className="h-4 w-4" />}
+              icon={<Receipt className="size-4" />}
             />
             <KpiCard
               title="Offene Tische"
               value={String(data.anzahlOffeneTische)}
-              icon={<LayoutDashboard className="h-4 w-4" />}
+              icon={<LayoutDashboard className="size-4" />}
             />
             <KpiCard
               title="Bestellungen"
               value={String(data.anzahlBestellungen)}
               sub={`${formatCents(data.gesamtBestellungenCents)} €`}
-              icon={<ShoppingCart className="h-4 w-4" />}
+              icon={<ShoppingCart className="size-4" />}
             />
             <KpiCard
               title="Stornierungen"
               value={String(data.anzahlStornierungen)}
               sub={`${formatCents(data.gesamtStornierungenCents)} €`}
-              icon={<TriangleAlert className="h-4 w-4" />}
+              icon={<TriangleAlert className="size-4" />}
             />
           </>
         )}
       </div>
-
-      <Separator className="mt-8" />
-
-      <h2 className="mt-6 text-lg font-semibold">Schnellzugriff</h2>
-      <ItemGroup className="mt-3">
-        <Item asChild variant="outline" size="sm">
-          <Link to="/admin/tagesabrechnung">
-            <ItemMedia variant="icon">
-              <ClipboardList />
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle>Tagesabrechnung</ItemTitle>
-              <ItemDescription>
-                Umsatzübersicht für einen Zeitraum
-              </ItemDescription>
-            </ItemContent>
-          </Link>
-        </Item>
-      </ItemGroup>
     </>
   )
 }
