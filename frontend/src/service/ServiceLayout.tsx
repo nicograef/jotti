@@ -1,19 +1,83 @@
-import { Outlet } from 'react-router'
+import { ChevronLeft, LogOut, Moon, Sun, User } from 'lucide-react'
+import { Link, Outlet, useMatch, useNavigate } from 'react-router'
 
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { useTheme } from '@/components/theme-provider'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { AuthSingleton } from '@/lib/Auth'
 
-import { ServiceSidebar } from './ServiceSidebar'
+function UserDropdown() {
+  const navigate = useNavigate()
+  const { theme, setTheme } = useTheme()
+
+  const logout = () => {
+    AuthSingleton.logout()
+    void navigate('/login')
+  }
+
+  const nextThemeLabel =
+    theme === 'light' ? 'Dunkel' : theme === 'dark' ? 'System' : 'Hell'
+  const NextThemeIcon = theme === 'light' ? Moon : theme === 'dark' ? Sun : Sun
+  const nextThemeValue =
+    theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <User className="h-5 w-5" />
+          <span className="sr-only">Benutzermenü</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          onClick={() => {
+            setTheme(nextThemeValue)
+          }}
+        >
+          <NextThemeIcon className="mr-2 h-4 w-4" />
+          {nextThemeLabel}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={logout}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Abmelden
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
 export function ServiceLayout() {
+  const onTableDetail = useMatch('/service/tables/:tableId')
+
   return (
-    <SidebarProvider>
-      <ServiceSidebar />
-      <main className="min-h-screen max-h-screen w-full">
-        <SidebarTrigger />
-        <div className="px-4 py-2 md:px-8 md:py-4 xl:px-12 xl:py-6">
-          <Outlet />
+    <div className="min-h-screen flex flex-col">
+      <header className="sticky top-0 h-14 border-b bg-background z-40 flex items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          {onTableDetail ? (
+            <Link
+              to="/service/tables"
+              className="flex items-center gap-1 text-sm font-medium"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Tischauswahl
+            </Link>
+          ) : (
+            <span className="text-sm font-bold">Tischauswahl</span>
+          )}
         </div>
+        <UserDropdown />
+      </header>
+      <main className="flex-1 px-4 py-2 md:px-8 md:py-4 xl:px-12 xl:py-6">
+        <Outlet />
       </main>
-    </SidebarProvider>
+    </div>
   )
 }

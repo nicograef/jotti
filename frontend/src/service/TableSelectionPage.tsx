@@ -17,12 +17,7 @@ import { type Tisch } from './table/Tisch'
 export function TableSelectionPage() {
   const { loading, tische } = useAktiveTische()
 
-  return (
-    <>
-      <h1 className="text-2xl font-bold">Tisch auswählen</h1>
-      {loading ? <TischListSkeleton /> : <TischList tische={tische} />}
-    </>
-  )
+  return <>{loading ? <TischListSkeleton /> : <TischList tische={tische} />}</>
 }
 
 interface TischListComponentProps {

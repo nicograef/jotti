@@ -22,6 +22,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { AuthSingleton } from '@/lib/Auth'
 
 const reportingItems = [
@@ -66,6 +67,7 @@ const serviceItems = [
 export function AdminSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
 
   const logout = () => {
     AuthSingleton.logout()
@@ -73,7 +75,7 @@ export function AdminSidebar() {
   }
 
   return (
-    <Sidebar>
+    <Sidebar collapsible={isMobile ? 'offcanvas' : 'none'}>
       <SidebarHeader>
         <h1 className="text-4xl text-center font-extrabold">jotti</h1>
       </SidebarHeader>
