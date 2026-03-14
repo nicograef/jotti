@@ -59,39 +59,41 @@ export function TagesabrechnungResults({
 }) {
   return (
     <Tabs defaultValue="uebersicht">
-      <TabsList variant="line">
-        <TabsTrigger value="uebersicht">
-          <ChartBar className="size-4" />
-          Übersicht
-        </TabsTrigger>
-        <TabsTrigger value="servicekraefte">
-          <Users className="size-4" />
-          Servicekräfte
-          {result.umsatzProServicekraft.length > 0 && (
-            <Badge variant="secondary" className="ml-1">
-              {result.umsatzProServicekraft.length}
-            </Badge>
-          )}
-        </TabsTrigger>
-        <TabsTrigger value="tische">
-          <TableIcon className="size-4" />
-          Tische
-          {result.umsatzProTisch.length > 0 && (
-            <Badge variant="secondary" className="ml-1">
-              {result.umsatzProTisch.length}
-            </Badge>
-          )}
-        </TabsTrigger>
-        <TabsTrigger value="stornierungen">
-          <Ban className="size-4" />
-          Stornierungen
-          {result.anzahlStornierungen > 0 && (
-            <Badge variant="destructive" className="ml-1">
-              {result.anzahlStornierungen}
-            </Badge>
-          )}
-        </TabsTrigger>
-      </TabsList>
+      <div className="overflow-x-auto -mx-4 px-4">
+        <TabsList variant="line">
+          <TabsTrigger value="uebersicht">
+            <ChartBar className="size-4" />
+            Übersicht
+          </TabsTrigger>
+          <TabsTrigger value="servicekraefte">
+            <Users className="size-4" />
+            Servicekräfte
+            {result.umsatzProServicekraft.length > 0 && (
+              <Badge variant="secondary" className="ml-1">
+                {result.umsatzProServicekraft.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="tische">
+            <TableIcon className="size-4" />
+            Tische
+            {result.umsatzProTisch.length > 0 && (
+              <Badge variant="secondary" className="ml-1">
+                {result.umsatzProTisch.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="stornierungen">
+            <Ban className="size-4" />
+            Stornierungen
+            {result.anzahlStornierungen > 0 && (
+              <Badge variant="destructive" className="ml-1">
+                {result.anzahlStornierungen}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+      </div>
 
       {/* Übersicht */}
       <TabsContent value="uebersicht" className="mt-4">
