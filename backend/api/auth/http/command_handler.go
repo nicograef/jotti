@@ -18,7 +18,7 @@ type CommandHandler struct {
 	Command authCommand
 }
 
-type login struct {
+type loginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
@@ -31,7 +31,7 @@ func (h *CommandHandler) LoginHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		body := login{}
+		body := loginRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -55,7 +55,7 @@ func (h *CommandHandler) LoginHandler() http.HandlerFunc {
 	}
 }
 
-type setPassword struct {
+type setPasswordRequest struct {
 	Username        string `json:"username"`
 	Password        string `json:"password"`
 	OnetimePassword string `json:"onetimePassword"`
@@ -65,7 +65,7 @@ func (h *CommandHandler) SetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		body := setPassword{}
+		body := setPasswordRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}

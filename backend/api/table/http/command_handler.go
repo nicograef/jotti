@@ -28,7 +28,7 @@ type CommandHandler struct {
 	Command command
 }
 
-type createTisch struct {
+type createTischRequest struct {
 	Name string `json:"name"`
 }
 
@@ -38,7 +38,7 @@ type createTischResponse struct {
 
 func (h *CommandHandler) TischErstellenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := createTisch{}
+		body := createTischRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -56,14 +56,14 @@ func (h *CommandHandler) TischErstellenHandler() http.HandlerFunc {
 	}
 }
 
-type updateTisch struct {
+type updateTischRequest struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
 
 func (h *CommandHandler) TischAktualisierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := updateTisch{}
+		body := updateTischRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -81,7 +81,7 @@ func (h *CommandHandler) TischAktualisierenHandler() http.HandlerFunc {
 	}
 }
 
-type activateTisch struct {
+type activateTischRequest struct {
 	ID int `json:"id"`
 }
 
@@ -91,7 +91,7 @@ var activateTischSchema = z.Struct(z.Shape{
 
 func (h *CommandHandler) TischAktivierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := activateTisch{}
+		body := activateTischRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, activateTischSchema) {
 			return
 		}
@@ -108,7 +108,7 @@ func (h *CommandHandler) TischAktivierenHandler() http.HandlerFunc {
 	}
 }
 
-type deactivateTisch struct {
+type deactivateTischRequest struct {
 	ID int `json:"id"`
 }
 
@@ -118,7 +118,7 @@ var deactivateTischSchema = z.Struct(z.Shape{
 
 func (h *CommandHandler) TischDeaktivierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deactivateTisch{}
+		body := deactivateTischRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, deactivateTischSchema) {
 			return
 		}
@@ -135,7 +135,7 @@ func (h *CommandHandler) TischDeaktivierenHandler() http.HandlerFunc {
 	}
 }
 
-type deleteTisch struct {
+type deleteTischRequest struct {
 	ID int `json:"id"`
 }
 
@@ -145,7 +145,7 @@ var deleteTischSchema = z.Struct(z.Shape{
 
 func (h *CommandHandler) TischLoeschenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deleteTisch{}
+		body := deleteTischRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, deleteTischSchema) {
 			return
 		}
@@ -162,7 +162,7 @@ func (h *CommandHandler) TischLoeschenHandler() http.HandlerFunc {
 	}
 }
 
-type bestellungAufgeben struct {
+type bestellungAufgebenRequest struct {
 	TischID    int                                `json:"tischId"`
 	Positionen []application.BestellPositionInput `json:"positionen"`
 	Kommentar  string                             `json:"kommentar"`
@@ -191,7 +191,7 @@ func toPositionRefs(refs []positionRefRequest) []table.PositionRef {
 
 func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := bestellungAufgeben{}
+		body := bestellungAufgebenRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -220,7 +220,7 @@ func (h *CommandHandler) BestellungAufgebenHandler() http.HandlerFunc {
 	}
 }
 
-type zahlungRegistrieren struct {
+type zahlungRegistrierenRequest struct {
 	TischID    int                  `json:"tischId"`
 	Positionen []positionRefRequest `json:"positionen"`
 	Kommentar  string               `json:"kommentar"`
@@ -228,7 +228,7 @@ type zahlungRegistrieren struct {
 
 func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := zahlungRegistrieren{}
+		body := zahlungRegistrierenRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -257,7 +257,7 @@ func (h *CommandHandler) ZahlungRegistrierenHandler() http.HandlerFunc {
 	}
 }
 
-type produkteStornieren struct {
+type produkteStornierenRequest struct {
 	TischID    int                  `json:"tischId"`
 	Positionen []positionRefRequest `json:"positionen"`
 	Kommentar  string               `json:"kommentar"`
@@ -265,7 +265,7 @@ type produkteStornieren struct {
 
 func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := produkteStornieren{}
+		body := produkteStornierenRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -294,7 +294,7 @@ func (h *CommandHandler) ProdukteStornierenHandler() http.HandlerFunc {
 	}
 }
 
-type produkteLiefern struct {
+type produkteLiefernRequest struct {
 	TischID    int                  `json:"tischId"`
 	Positionen []positionRefRequest `json:"positionen"`
 	Kommentar  string               `json:"kommentar"`
@@ -302,7 +302,7 @@ type produkteLiefern struct {
 
 func (h *CommandHandler) ProdukteLiefernHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := produkteLiefern{}
+		body := produkteLiefernRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}

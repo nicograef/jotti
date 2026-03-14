@@ -18,7 +18,7 @@ type QueryHandler struct {
 	Query query
 }
 
-type varianteDTO struct {
+type variante struct {
 	ID         int       `json:"id"`
 	Name       string    `json:"name"`
 	PreisCents int       `json:"preisCents"`
@@ -27,22 +27,22 @@ type varianteDTO struct {
 	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
-type produktDTO struct {
+type produkt struct {
 	ID        int           `json:"id"`
 	Name      string        `json:"name"`
 	Kategorie string        `json:"kategorie"`
 	Status    string        `json:"status"`
-	Varianten []varianteDTO `json:"varianten"`
+	Varianten []variante    `json:"varianten"`
 	CreatedAt time.Time     `json:"createdAt"`
 	UpdatedAt time.Time     `json:"updatedAt"`
 }
 
 type getAllProductsResponse struct {
-	Produkte []produktDTO `json:"produkte"`
+	Produkte []produkt `json:"produkte"`
 }
 
-func toVarianteDTO(v product.Variante) varianteDTO {
-	return varianteDTO{
+func toVariante(v product.Variante) variante {
+	return variante{
 		ID:         v.ID,
 		Name:       v.Name,
 		PreisCents: v.PreisCents,
@@ -52,13 +52,13 @@ func toVarianteDTO(v product.Variante) varianteDTO {
 	}
 }
 
-func toProduktDTO(p product.Produkt) produktDTO {
-	varianten := make([]varianteDTO, 0, len(p.Varianten))
+func toProdukt(p product.Produkt) produkt {
+	varianten := make([]variante, 0, len(p.Varianten))
 	for _, variante := range p.Varianten {
-		varianten = append(varianten, toVarianteDTO(variante))
+		varianten = append(varianten, toVariante(variante))
 	}
 
-	return produktDTO{
+	return produkt{
 		ID:        p.ID,
 		Name:      p.Name,
 		Kategorie: string(p.Kategorie),
@@ -69,13 +69,13 @@ func toProduktDTO(p product.Produkt) produktDTO {
 	}
 }
 
-func toProduktDTOs(produkte []product.Produkt) []produktDTO {
-	produktDTOs := make([]produktDTO, 0, len(produkte))
+func toProdukte(produkte []product.Produkt) []produkt {
+	produkteResponse := make([]produkt, 0, len(produkte))
 	for i := range produkte {
-		produktDTOs = append(produktDTOs, toProduktDTO(produkte[i]))
+		produkteResponse = append(produkteResponse, toProdukt(produkte[i]))
 	}
 
-	return produktDTOs
+	return produkteResponse
 }
 
 func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
@@ -86,12 +86,12 @@ func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, getAllProductsResponse{Produkte: toProduktDTOs(products)})
+		helper.SendResponse(w, getAllProductsResponse{Produkte: toProdukte(products)})
 	}
 }
 
 type getActiveProductsResponse struct {
-	Produkte []produktDTO `json:"produkte"`
+	Produkte []produkt `json:"produkte"`
 }
 
 func (h *QueryHandler) GetActiveProductsHandler() http.HandlerFunc {
@@ -102,6 +102,6 @@ func (h *QueryHandler) GetActiveProductsHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, getActiveProductsResponse{Produkte: toProduktDTOs(products)})
+		helper.SendResponse(w, getActiveProductsResponse{Produkte: toProdukte(products)})
 	}
 }

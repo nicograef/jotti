@@ -24,7 +24,7 @@ type CommandHandler struct {
 	Command command
 }
 
-type createUser struct {
+type createUserRequest struct {
 	Name     string    `json:"name"`
 	Username string    `json:"username"`
 	Role     user.Role `json:"role"`
@@ -37,7 +37,7 @@ type createUserResponse struct {
 
 func (h CommandHandler) CreateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := createUser{}
+		body := createUserRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -54,7 +54,7 @@ func (h CommandHandler) CreateUserHandler() http.HandlerFunc {
 	}
 }
 
-type updateUser struct {
+type updateUserRequest struct {
 	ID       int       `json:"id"`
 	Name     string    `json:"name"`
 	Username string    `json:"username"`
@@ -63,7 +63,7 @@ type updateUser struct {
 
 func (h CommandHandler) UpdateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := updateUser{}
+		body := updateUserRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -81,7 +81,7 @@ func (h CommandHandler) UpdateUserHandler() http.HandlerFunc {
 	}
 }
 
-type resetPassword struct {
+type resetPasswordRequest struct {
 	ID int `json:"id"`
 }
 
@@ -96,7 +96,7 @@ type resetPasswordResponse struct {
 // ResetPasswordHandler handles requests to reset a user's password.
 func (h CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := resetPassword{}
+		body := resetPasswordRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, resetPasswordSchema) {
 			return
 		}
@@ -113,7 +113,7 @@ func (h CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 	}
 }
 
-type activateUser struct {
+type activateUserRequest struct {
 	ID int `json:"id"`
 }
 
@@ -124,7 +124,7 @@ var activateUserSchema = z.Struct(z.Shape{
 // ActivateUserHandler handles requests to activate a user.
 func (h CommandHandler) ActivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := activateUser{}
+		body := activateUserRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, activateUserSchema) {
 			return
 		}
@@ -141,7 +141,7 @@ func (h CommandHandler) ActivateUserHandler() http.HandlerFunc {
 	}
 }
 
-type deactivateUser struct {
+type deactivateUserRequest struct {
 	ID int `json:"id"`
 }
 
@@ -152,7 +152,7 @@ var deactivateUserSchema = z.Struct(z.Shape{
 // DeactivateUserHandler handles requests to deactivate a user.
 func (h CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deactivateUser{}
+		body := deactivateUserRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, deactivateUserSchema) {
 			return
 		}
@@ -169,7 +169,7 @@ func (h CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 	}
 }
 
-type deleteUser struct {
+type deleteUserRequest struct {
 	ID int `json:"id"`
 }
 
@@ -179,7 +179,7 @@ var deleteUserSchema = z.Struct(z.Shape{
 
 func (h CommandHandler) DeleteUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deleteUser{}
+		body := deleteUserRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, deleteUserSchema) {
 			return
 		}

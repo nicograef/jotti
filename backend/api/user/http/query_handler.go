@@ -17,7 +17,7 @@ type QueryHandler struct {
 	Query query
 }
 
-type userDTO struct {
+type benutzer struct {
 	ID        int       `json:"id"`
 	Name      string    `json:"name"`
 	Username  string    `json:"username"`
@@ -27,12 +27,12 @@ type userDTO struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-type getUsersResponse = struct {
-	Users []userDTO `json:"users"`
+type getUsersResponse struct {
+	Users []benutzer `json:"users"`
 }
 
-func toUserDTO(u user.User) userDTO {
-	return userDTO{
+func toUser(u user.User) benutzer {
+	return benutzer{
 		ID:        u.ID,
 		Name:      u.Name,
 		Username:  u.Username,
@@ -43,13 +43,13 @@ func toUserDTO(u user.User) userDTO {
 	}
 }
 
-func toUserDTOs(users []user.User) []userDTO {
-	userDTOs := make([]userDTO, 0, len(users))
+func toUsers(users []user.User) []benutzer {
+	usersResponse := make([]benutzer, 0, len(users))
 	for i := range users {
-		userDTOs = append(userDTOs, toUserDTO(users[i]))
+		usersResponse = append(usersResponse, toUser(users[i]))
 	}
 
-	return userDTOs
+	return usersResponse
 }
 
 func (h *QueryHandler) GetAllUsersHandler() http.HandlerFunc {
@@ -60,6 +60,6 @@ func (h *QueryHandler) GetAllUsersHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, getUsersResponse{Users: toUserDTOs(users)})
+		helper.SendResponse(w, getUsersResponse{Users: toUsers(users)})
 	}
 }

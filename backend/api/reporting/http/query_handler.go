@@ -18,44 +18,44 @@ type QueryHandler struct {
 	Query query
 }
 
-type zeitraumDTO struct {
+type zeitraum struct {
 	Von time.Time `json:"von"`
 	Bis time.Time `json:"bis"`
 }
 
-type umsatzServicekraftDTO struct {
+type umsatzServicekraft struct {
 	UserID          int    `json:"userId"`
 	UserName        string `json:"userName"`
 	ZahlungenCents  int    `json:"zahlungenCents"`
 	AnzahlZahlungen int    `json:"anzahlZahlungen"`
 }
 
-type umsatzTischDTO struct {
+type umsatzTisch struct {
 	TischID         int    `json:"tischId"`
 	TischName       string `json:"tischName"`
 	ZahlungenCents  int    `json:"zahlungenCents"`
 	AnzahlZahlungen int    `json:"anzahlZahlungen"`
 }
 
-type stornierungPositionDTO struct {
+type stornierungPosition struct {
 	ProduktName  string `json:"produktName"`
 	VarianteName string `json:"varianteName"`
 	Menge        int    `json:"menge"`
 	Einzelpreis  int    `json:"einzelpreis"`
 }
 
-type stornierungDetailDTO struct {
-	Zeitpunkt   time.Time                `json:"zeitpunkt"`
-	TischID     int                      `json:"tischId"`
-	TischName   string                   `json:"tischName"`
-	UserID      int                      `json:"userId"`
-	UserName    string                   `json:"userName"`
-	BetragCents int                      `json:"betragCents"`
-	Kommentar   string                   `json:"kommentar"`
-	Positionen  []stornierungPositionDTO `json:"positionen"`
+type stornierungDetail struct {
+	Zeitpunkt   time.Time             `json:"zeitpunkt"`
+	TischID     int                   `json:"tischId"`
+	TischName   string                `json:"tischName"`
+	UserID      int                   `json:"userId"`
+	UserName    string                `json:"userName"`
+	BetragCents int                   `json:"betragCents"`
+	Kommentar   string                `json:"kommentar"`
+	Positionen  []stornierungPosition `json:"positionen"`
 }
 
-type dashboardDataDTO struct {
+type dashboardResponse struct {
 	GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
 	AnzahlOffeneTische       int `json:"anzahlOffeneTische"`
 	AnzahlBestellungen       int `json:"anzahlBestellungen"`
@@ -64,28 +64,28 @@ type dashboardDataDTO struct {
 	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
 }
 
-type tagesabrechnungDataDTO struct {
-	Zeitraum                 zeitraumDTO             `json:"zeitraum"`
-	GesamtUmsatzCents        int                     `json:"gesamtUmsatzCents"`
-	GesamtBestellungenCents  int                     `json:"gesamtBestellungenCents"`
-	GesamtStornierungenCents int                     `json:"gesamtStornierungenCents"`
-	OffeneSaldiCents         int                     `json:"offeneSaldiCents"`
-	AnzahlBestellungen       int                     `json:"anzahlBestellungen"`
-	AnzahlStornierungen      int                     `json:"anzahlStornierungen"`
-	UmsatzProServicekraft    []umsatzServicekraftDTO `json:"umsatzProServicekraft"`
-	UmsatzProTisch           []umsatzTischDTO        `json:"umsatzProTisch"`
-	Stornierungen            []stornierungDetailDTO  `json:"stornierungen"`
+type tagesabrechnungResponse struct {
+	Zeitraum                 zeitraum             `json:"zeitraum"`
+	GesamtUmsatzCents        int                  `json:"gesamtUmsatzCents"`
+	GesamtBestellungenCents  int                  `json:"gesamtBestellungenCents"`
+	GesamtStornierungenCents int                  `json:"gesamtStornierungenCents"`
+	OffeneSaldiCents         int                  `json:"offeneSaldiCents"`
+	AnzahlBestellungen       int                  `json:"anzahlBestellungen"`
+	AnzahlStornierungen      int                  `json:"anzahlStornierungen"`
+	UmsatzProServicekraft    []umsatzServicekraft `json:"umsatzProServicekraft"`
+	UmsatzProTisch           []umsatzTisch        `json:"umsatzProTisch"`
+	Stornierungen            []stornierungDetail  `json:"stornierungen"`
 }
 
-func toZeitraumDTO(z reporting.Zeitraum) zeitraumDTO {
-	return zeitraumDTO{
+func toZeitraum(z reporting.Zeitraum) zeitraum {
+	return zeitraum{
 		Von: z.Von,
 		Bis: z.Bis,
 	}
 }
 
-func toUmsatzServicekraftDTO(u reporting.UmsatzServicekraft) umsatzServicekraftDTO {
-	return umsatzServicekraftDTO{
+func toUmsatzServicekraft(u reporting.UmsatzServicekraft) umsatzServicekraft {
+	return umsatzServicekraft{
 		UserID:          u.UserID,
 		UserName:        u.UserName,
 		ZahlungenCents:  u.ZahlungenCents,
@@ -93,16 +93,16 @@ func toUmsatzServicekraftDTO(u reporting.UmsatzServicekraft) umsatzServicekraftD
 	}
 }
 
-func toUmsatzServicekraftDTOs(umsatz []reporting.UmsatzServicekraft) []umsatzServicekraftDTO {
-	out := make([]umsatzServicekraftDTO, len(umsatz))
+func toUmsatzServicekraftList(umsatz []reporting.UmsatzServicekraft) []umsatzServicekraft {
+	out := make([]umsatzServicekraft, len(umsatz))
 	for i := range umsatz {
-		out[i] = toUmsatzServicekraftDTO(umsatz[i])
+		out[i] = toUmsatzServicekraft(umsatz[i])
 	}
 	return out
 }
 
-func toUmsatzTischDTO(u reporting.UmsatzTisch) umsatzTischDTO {
-	return umsatzTischDTO{
+func toUmsatzTisch(u reporting.UmsatzTisch) umsatzTisch {
+	return umsatzTisch{
 		TischID:         u.TischID,
 		TischName:       u.TischName,
 		ZahlungenCents:  u.ZahlungenCents,
@@ -110,16 +110,16 @@ func toUmsatzTischDTO(u reporting.UmsatzTisch) umsatzTischDTO {
 	}
 }
 
-func toUmsatzTischDTOs(tische []reporting.UmsatzTisch) []umsatzTischDTO {
-	out := make([]umsatzTischDTO, len(tische))
+func toUmsatzTischList(tische []reporting.UmsatzTisch) []umsatzTisch {
+	out := make([]umsatzTisch, len(tische))
 	for i := range tische {
-		out[i] = toUmsatzTischDTO(tische[i])
+		out[i] = toUmsatzTisch(tische[i])
 	}
 	return out
 }
 
-func toStornierungPositionDTO(p reporting.StornierungPosition) stornierungPositionDTO {
-	return stornierungPositionDTO{
+func toStornierungPosition(p reporting.StornierungPosition) stornierungPosition {
+	return stornierungPosition{
 		ProduktName:  p.ProduktName,
 		VarianteName: p.VarianteName,
 		Menge:        p.Menge,
@@ -127,16 +127,16 @@ func toStornierungPositionDTO(p reporting.StornierungPosition) stornierungPositi
 	}
 }
 
-func toStornierungPositionDTOs(positionen []reporting.StornierungPosition) []stornierungPositionDTO {
-	out := make([]stornierungPositionDTO, len(positionen))
+func toStornierungPositionen(positionen []reporting.StornierungPosition) []stornierungPosition {
+	out := make([]stornierungPosition, len(positionen))
 	for i := range positionen {
-		out[i] = toStornierungPositionDTO(positionen[i])
+		out[i] = toStornierungPosition(positionen[i])
 	}
 	return out
 }
 
-func toStornierungDetailDTO(d reporting.StornierungDetail) stornierungDetailDTO {
-	return stornierungDetailDTO{
+func toStornierungDetail(d reporting.StornierungDetail) stornierungDetail {
+	return stornierungDetail{
 		Zeitpunkt:   d.Zeitpunkt,
 		TischID:     d.TischID,
 		TischName:   d.TischName,
@@ -144,20 +144,20 @@ func toStornierungDetailDTO(d reporting.StornierungDetail) stornierungDetailDTO 
 		UserName:    d.UserName,
 		BetragCents: d.BetragCents,
 		Kommentar:   d.Kommentar,
-		Positionen:  toStornierungPositionDTOs(d.Positionen),
+		Positionen:  toStornierungPositionen(d.Positionen),
 	}
 }
 
-func toStornierungDetailDTOs(details []reporting.StornierungDetail) []stornierungDetailDTO {
-	out := make([]stornierungDetailDTO, len(details))
+func toStornierungDetails(details []reporting.StornierungDetail) []stornierungDetail {
+	out := make([]stornierungDetail, len(details))
 	for i := range details {
-		out[i] = toStornierungDetailDTO(details[i])
+		out[i] = toStornierungDetail(details[i])
 	}
 	return out
 }
 
-func toDashboardDataDTO(d reporting.DashboardData) dashboardDataDTO {
-	return dashboardDataDTO{
+func toDashboardResponse(d reporting.DashboardData) dashboardResponse {
+	return dashboardResponse{
 		GesamtUmsatzCents:        d.GesamtUmsatzCents,
 		AnzahlOffeneTische:       d.AnzahlOffeneTische,
 		AnzahlBestellungen:       d.AnzahlBestellungen,
@@ -167,18 +167,18 @@ func toDashboardDataDTO(d reporting.DashboardData) dashboardDataDTO {
 	}
 }
 
-func toTagesabrechnungDataDTO(d reporting.TagesabrechnungData) tagesabrechnungDataDTO {
-	return tagesabrechnungDataDTO{
-		Zeitraum:                 toZeitraumDTO(d.Zeitraum),
+func toTagesabrechnungResponse(d reporting.TagesabrechnungData) tagesabrechnungResponse {
+	return tagesabrechnungResponse{
+		Zeitraum:                 toZeitraum(d.Zeitraum),
 		GesamtUmsatzCents:        d.GesamtUmsatzCents,
 		GesamtBestellungenCents:  d.GesamtBestellungenCents,
 		GesamtStornierungenCents: d.GesamtStornierungenCents,
 		OffeneSaldiCents:         d.OffeneSaldiCents,
 		AnzahlBestellungen:       d.AnzahlBestellungen,
 		AnzahlStornierungen:      d.AnzahlStornierungen,
-		UmsatzProServicekraft:    toUmsatzServicekraftDTOs(d.UmsatzProServicekraft),
-		UmsatzProTisch:           toUmsatzTischDTOs(d.UmsatzProTisch),
-		Stornierungen:            toStornierungDetailDTOs(d.Stornierungen),
+		UmsatzProServicekraft:    toUmsatzServicekraftList(d.UmsatzProServicekraft),
+		UmsatzProTisch:           toUmsatzTischList(d.UmsatzProTisch),
+		Stornierungen:            toStornierungDetails(d.Stornierungen),
 	}
 }
 
@@ -189,7 +189,7 @@ func (h QueryHandler) GetDashboardHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		helper.SendResponse(w, toDashboardDataDTO(data))
+		helper.SendResponse(w, toDashboardResponse(data))
 	}
 }
 
@@ -215,6 +215,6 @@ func (h QueryHandler) GetTagesabrechnungHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		helper.SendResponse(w, toTagesabrechnungDataDTO(data))
+		helper.SendResponse(w, toTagesabrechnungResponse(data))
 	}
 }

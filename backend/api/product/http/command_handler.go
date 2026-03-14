@@ -29,7 +29,7 @@ type CommandHandler struct {
 
 // Product handlers
 
-type createProduct struct {
+type createProductRequest struct {
 	Name      string            `json:"name"`
 	Kategorie product.Kategorie `json:"kategorie"`
 }
@@ -40,7 +40,7 @@ type createProductResponse struct {
 
 func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := createProduct{}
+		body := createProductRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -58,7 +58,7 @@ func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 	}
 }
 
-type updateProduct struct {
+type updateProductRequest struct {
 	ID        int               `json:"id"`
 	Name      string            `json:"name"`
 	Kategorie product.Kategorie `json:"kategorie"`
@@ -66,7 +66,7 @@ type updateProduct struct {
 
 func (h *CommandHandler) UpdateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := updateProduct{}
+		body := updateProductRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -84,7 +84,7 @@ func (h *CommandHandler) UpdateProductHandler() http.HandlerFunc {
 	}
 }
 
-type activateProduct struct {
+type activateProductRequest struct {
 	ID int `json:"id"`
 }
 
@@ -94,7 +94,7 @@ var activateProductSchema = z.Struct(z.Shape{
 
 func (h *CommandHandler) ActivateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := activateProduct{}
+		body := activateProductRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, activateProductSchema) {
 			return
 		}
@@ -111,7 +111,7 @@ func (h *CommandHandler) ActivateProductHandler() http.HandlerFunc {
 	}
 }
 
-type deactivateProduct struct {
+type deactivateProductRequest struct {
 	ID int `json:"id"`
 }
 
@@ -121,7 +121,7 @@ var deactivateProductSchema = z.Struct(z.Shape{
 
 func (h *CommandHandler) DeactivateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deactivateProduct{}
+		body := deactivateProductRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, deactivateProductSchema) {
 			return
 		}
@@ -140,7 +140,7 @@ func (h *CommandHandler) DeactivateProductHandler() http.HandlerFunc {
 
 // Variant handlers
 
-type createVariant struct {
+type createVariantRequest struct {
 	ProductID  int    `json:"produktId"`
 	Name       string `json:"name"`
 	PreisCents int    `json:"preisCents"`
@@ -152,7 +152,7 @@ type createVariantResponse struct {
 
 func (h *CommandHandler) CreateVariantHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := createVariant{}
+		body := createVariantRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -170,7 +170,7 @@ func (h *CommandHandler) CreateVariantHandler() http.HandlerFunc {
 	}
 }
 
-type updateVariant struct {
+type updateVariantRequest struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name"`
 	PreisCents int    `json:"preisCents"`
@@ -178,7 +178,7 @@ type updateVariant struct {
 
 func (h *CommandHandler) UpdateVariantHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := updateVariant{}
+		body := updateVariantRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -196,7 +196,7 @@ func (h *CommandHandler) UpdateVariantHandler() http.HandlerFunc {
 	}
 }
 
-type activateVariant struct {
+type activateVariantRequest struct {
 	ID int `json:"id"`
 }
 
@@ -206,7 +206,7 @@ var activateVariantSchema = z.Struct(z.Shape{
 
 func (h *CommandHandler) ActivateVariantHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := activateVariant{}
+		body := activateVariantRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, activateVariantSchema) {
 			return
 		}
@@ -223,7 +223,7 @@ func (h *CommandHandler) ActivateVariantHandler() http.HandlerFunc {
 	}
 }
 
-type deactivateVariant struct {
+type deactivateVariantRequest struct {
 	ID int `json:"id"`
 }
 
@@ -233,7 +233,7 @@ var deactivateVariantSchema = z.Struct(z.Shape{
 
 func (h *CommandHandler) DeactivateVariantHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deactivateVariant{}
+		body := deactivateVariantRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, deactivateVariantSchema) {
 			return
 		}
@@ -250,7 +250,7 @@ func (h *CommandHandler) DeactivateVariantHandler() http.HandlerFunc {
 	}
 }
 
-type deleteProdukt struct {
+type deleteProduktRequest struct {
 	ID int `json:"id"`
 }
 
@@ -260,7 +260,7 @@ var deleteProduktSchema = z.Struct(z.Shape{
 
 func (h *CommandHandler) DeleteProduktHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deleteProdukt{}
+		body := deleteProduktRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, deleteProduktSchema) {
 			return
 		}
@@ -277,7 +277,7 @@ func (h *CommandHandler) DeleteProduktHandler() http.HandlerFunc {
 	}
 }
 
-type deleteVariante struct {
+type deleteVarianteRequest struct {
 	ProduktID int `json:"produktId"`
 	ID        int `json:"id"`
 }
@@ -289,7 +289,7 @@ var deleteVarianteSchema = z.Struct(z.Shape{
 
 func (h *CommandHandler) DeleteVarianteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deleteVariante{}
+		body := deleteVarianteRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, deleteVarianteSchema) {
 			return
 		}

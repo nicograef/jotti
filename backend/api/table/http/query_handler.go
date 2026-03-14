@@ -20,7 +20,7 @@ type QueryHandler struct {
 	Query query
 }
 
-type tischDTO struct {
+type tisch struct {
 	ID        int       `json:"id"`
 	Name      string    `json:"name"`
 	Status    string    `json:"status"`
@@ -29,26 +29,26 @@ type tischDTO struct {
 }
 
 type getAllTischeResponse struct {
-	Tische []tischDTO `json:"tische"`
+	Tische []tisch `json:"tische"`
 }
 
-func toTischDTO(tisch t.Tisch) tischDTO {
-	return tischDTO{
-		ID:        tisch.ID,
-		Name:      tisch.Name,
-		Status:    string(tisch.Status),
-		CreatedAt: tisch.CreatedAt,
-		UpdatedAt: tisch.UpdatedAt,
+func toTisch(src t.Tisch) tisch {
+	return tisch{
+		ID:        src.ID,
+		Name:      src.Name,
+		Status:    string(src.Status),
+		CreatedAt: src.CreatedAt,
+		UpdatedAt: src.UpdatedAt,
 	}
 }
 
-func toTischDTOs(tische []t.Tisch) []tischDTO {
-	tischDTOs := make([]tischDTO, 0, len(tische))
+func toTische(tische []t.Tisch) []tisch {
+	tischeResponse := make([]tisch, 0, len(tische))
 	for _, tisch := range tische {
-		tischDTOs = append(tischDTOs, toTischDTO(tisch))
+		tischeResponse = append(tischeResponse, toTisch(tisch))
 	}
 
-	return tischDTOs
+	return tischeResponse
 }
 
 func (h QueryHandler) GetAllTischeHandler() http.HandlerFunc {
@@ -59,7 +59,7 @@ func (h QueryHandler) GetAllTischeHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, getAllTischeResponse{Tische: toTischDTOs(tische)})
+		helper.SendResponse(w, getAllTischeResponse{Tische: toTische(tische)})
 	}
 }
 
@@ -92,7 +92,7 @@ func (h QueryHandler) GetAktiveTischeHandler() http.HandlerFunc {
 	}
 }
 
-type getTischHistorie struct {
+type getTischHistorieRequest struct {
 	TischID int `json:"tischId"`
 }
 
@@ -100,7 +100,7 @@ type getTischHistorieResponse struct {
 	Historie []any `json:"historie"`
 }
 
-type positionDTO struct {
+type position struct {
 	PositionID   string `json:"positionId"`
 	VarianteID   int    `json:"varianteId"`
 	ProduktName  string `json:"produktName"`
@@ -110,8 +110,8 @@ type positionDTO struct {
 	Menge        int    `json:"menge"`
 }
 
-func toPositionDTO(p t.Position) positionDTO {
-	return positionDTO{
+func toPosition(p t.Position) position {
+	return position{
 		PositionID:   p.PositionID,
 		VarianteID:   p.VarianteID,
 		ProduktName:  p.ProduktName,
@@ -122,130 +122,130 @@ func toPositionDTO(p t.Position) positionDTO {
 	}
 }
 
-func toPositionDTOs(positionen []t.Position) []positionDTO {
-	positionDTOs := make([]positionDTO, 0, len(positionen))
+func toPositionen(positionen []t.Position) []position {
+	positionenResponse := make([]position, 0, len(positionen))
 	for _, position := range positionen {
-		positionDTOs = append(positionDTOs, toPositionDTO(position))
+		positionenResponse = append(positionenResponse, toPosition(position))
 	}
 
-	return positionDTOs
+	return positionenResponse
 }
 
-type bestellungDTO struct {
+type bestellung struct {
 	ID               string        `json:"id"`
 	UserID           int           `json:"userId"`
 	TischID          int           `json:"tischId"`
-	Positionen       []positionDTO `json:"positionen"`
+	Positionen       []position    `json:"positionen"`
 	GesamtPreisCents int           `json:"gesamtPreisCents"`
 	Kommentar        string        `json:"kommentar"`
 	AufgegebenAm     time.Time     `json:"aufgegebenAm"`
 }
 
-func toBestellungDTO(b t.Bestellung) bestellungDTO {
-	return bestellungDTO{
+func toBestellung(b t.Bestellung) bestellung {
+	return bestellung{
 		ID:               b.ID,
 		UserID:           b.UserID,
 		TischID:          b.TischID,
-		Positionen:       toPositionDTOs(b.Positionen),
+		Positionen:       toPositionen(b.Positionen),
 		GesamtPreisCents: b.GesamtPreisCents,
 		Kommentar:        b.Kommentar,
 		AufgegebenAm:     b.AufgegebenAm,
 	}
 }
 
-type lieferungDTO struct {
+type lieferung struct {
 	ID          string        `json:"id"`
 	UserID      int           `json:"userId"`
 	TischID     int           `json:"tischId"`
-	Positionen  []positionDTO `json:"positionen"`
+	Positionen  []position    `json:"positionen"`
 	Kommentar   string        `json:"kommentar"`
 	GeliefertAm time.Time     `json:"geliefertAm"`
 }
 
-func toLieferungDTO(l t.Lieferung) lieferungDTO {
-	return lieferungDTO{
+func toLieferung(l t.Lieferung) lieferung {
+	return lieferung{
 		ID:          l.ID,
 		UserID:      l.UserID,
 		TischID:     l.TischID,
-		Positionen:  toPositionDTOs(l.Positionen),
+		Positionen:  toPositionen(l.Positionen),
 		Kommentar:   l.Kommentar,
 		GeliefertAm: l.GeliefertAm,
 	}
 }
 
-type zahlungDTO struct {
+type zahlung struct {
 	ID                 string        `json:"id"`
 	UserID             int           `json:"userId"`
 	TischID            int           `json:"tischId"`
-	Positionen         []positionDTO `json:"positionen"`
+	Positionen         []position    `json:"positionen"`
 	GesamtZahlungCents int           `json:"gesamtZahlungCents"`
 	Kommentar          string        `json:"kommentar"`
 	RegistriertAm      time.Time     `json:"registriertAm"`
 }
 
-func toZahlungDTO(z t.Zahlung) zahlungDTO {
-	return zahlungDTO{
+func toZahlung(z t.Zahlung) zahlung {
+	return zahlung{
 		ID:                 z.ID,
 		UserID:             z.UserID,
 		TischID:            z.TischID,
-		Positionen:         toPositionDTOs(z.Positionen),
+		Positionen:         toPositionen(z.Positionen),
 		GesamtZahlungCents: z.GesamtZahlungCents,
 		Kommentar:          z.Kommentar,
 		RegistriertAm:      z.RegistriertAm,
 	}
 }
 
-type stornierungDTO struct {
+type stornierung struct {
 	ID                     string        `json:"id"`
 	UserID                 int           `json:"userId"`
 	TischID                int           `json:"tischId"`
-	Positionen             []positionDTO `json:"positionen"`
+	Positionen             []position    `json:"positionen"`
 	GesamtStornierungCents int           `json:"gesamtStornierungCents"`
 	Kommentar              string        `json:"kommentar"`
 	StorniertAm            time.Time     `json:"storniertAm"`
 }
 
-func toStornierungDTO(s t.Stornierung) stornierungDTO {
-	return stornierungDTO{
+func toStornierung(s t.Stornierung) stornierung {
+	return stornierung{
 		ID:                     s.ID,
 		UserID:                 s.UserID,
 		TischID:                s.TischID,
-		Positionen:             toPositionDTOs(s.Positionen),
+		Positionen:             toPositionen(s.Positionen),
 		GesamtStornierungCents: s.GesamtStornierungCents,
 		Kommentar:              s.Kommentar,
 		StorniertAm:            s.StorniertAm,
 	}
 }
 
-func toHistorieDTO(eintraege []t.HistorieEintrag) []any {
-	historieDTO := make([]any, 0, len(eintraege))
+func toHistorie(eintraege []t.HistorieEintrag) []any {
+	historieResponse := make([]any, 0, len(eintraege))
 	for _, eintrag := range eintraege {
 		switch eintrag.Kind {
 		case t.HistorieEintragBestellung:
 			if eintrag.Bestellung != nil {
-				historieDTO = append(historieDTO, toBestellungDTO(*eintrag.Bestellung))
+				historieResponse = append(historieResponse, toBestellung(*eintrag.Bestellung))
 			}
 		case t.HistorieEintragLieferung:
 			if eintrag.Lieferung != nil {
-				historieDTO = append(historieDTO, toLieferungDTO(*eintrag.Lieferung))
+				historieResponse = append(historieResponse, toLieferung(*eintrag.Lieferung))
 			}
 		case t.HistorieEintragZahlung:
 			if eintrag.Zahlung != nil {
-				historieDTO = append(historieDTO, toZahlungDTO(*eintrag.Zahlung))
+				historieResponse = append(historieResponse, toZahlung(*eintrag.Zahlung))
 			}
 		case t.HistorieEintragStornierung:
 			if eintrag.Stornierung != nil {
-				historieDTO = append(historieDTO, toStornierungDTO(*eintrag.Stornierung))
+				historieResponse = append(historieResponse, toStornierung(*eintrag.Stornierung))
 			}
 		}
 	}
 
-	return historieDTO
+	return historieResponse
 }
 
 func (h QueryHandler) GetTischHistorieHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTischHistorie{}
+		body := getTischHistorieRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -256,11 +256,11 @@ func (h QueryHandler) GetTischHistorieHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, getTischHistorieResponse{Historie: toHistorieDTO(historie)})
+		helper.SendResponse(w, getTischHistorieResponse{Historie: toHistorie(historie)})
 	}
 }
 
-type getTischState struct {
+type getTischStateRequest struct {
 	TischID int `json:"tischId"`
 }
 
@@ -268,14 +268,14 @@ type getTischStateResponse struct {
 	TischID                int           `json:"tischId"`
 	TischName              string        `json:"tischName"`
 	SaldoCents             int           `json:"saldoCents"`
-	UnbezahltePositionen   []positionDTO `json:"unbezahltePositionen"`
-	UngeliefertePositionen []positionDTO `json:"ungeliefertePositionen"`
+	UnbezahltePositionen   []position `json:"unbezahltePositionen"`
+	UngeliefertePositionen []position `json:"ungeliefertePositionen"`
 	GesamtZahlungenCents   int           `json:"gesamtZahlungenCents"`
 }
 
 func (h QueryHandler) GetTischStateHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := getTischState{}
+		body := getTischStateRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
@@ -286,13 +286,13 @@ func (h QueryHandler) GetTischStateHandler() http.HandlerFunc {
 			return
 		}
 
-		unbezahlt := toPositionDTOs(state.UnbezahltePositionen)
+		unbezahlt := toPositionen(state.UnbezahltePositionen)
 		if unbezahlt == nil {
-			unbezahlt = []positionDTO{}
+			unbezahlt = []position{}
 		}
-		ungeliefert := toPositionDTOs(state.UngeliefertePositionen)
+		ungeliefert := toPositionen(state.UngeliefertePositionen)
 		if ungeliefert == nil {
-			ungeliefert = []positionDTO{}
+			ungeliefert = []position{}
 		}
 
 		helper.SendResponse(w, getTischStateResponse{
