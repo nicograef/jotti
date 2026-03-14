@@ -6,17 +6,16 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/api/product/application"
 	"github.com/nicograef/jotti/backend/domain/product"
 )
 
-type productReader interface {
+type query interface {
 	GetAllProducts(ctx context.Context) ([]product.Produkt, error)
 	GetActiveProducts(ctx context.Context) ([]product.Produkt, error)
 }
 
 type QueryHandler struct {
-	ProductRepo productReader
+	Query query
 }
 
 type varianteDTO struct {
@@ -81,8 +80,7 @@ func toProduktDTOs(produkte []product.Produkt) []produktDTO {
 
 func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		products, err := application.GetAllProducts(ctx, h.ProductRepo)
+		products, err := h.Query.GetAllProducts(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -98,8 +96,7 @@ type getActiveProductsResponse struct {
 
 func (h *QueryHandler) GetActiveProductsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		products, err := application.GetActiveProducts(ctx, h.ProductRepo)
+		products, err := h.Query.GetActiveProducts(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return

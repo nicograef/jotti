@@ -12,10 +12,14 @@ type productQueryRepo interface {
 	GetActiveProducts(ctx context.Context) ([]product.Produkt, error)
 }
 
-func GetAllProducts(ctx context.Context, repo productQueryRepo) ([]product.Produkt, error) {
+type Query struct {
+	ProductRepo productQueryRepo
+}
+
+func (q Query) GetAllProducts(ctx context.Context) ([]product.Produkt, error) {
 	log := zerolog.Ctx(ctx)
 
-	products, err := repo.GetAllProducts(ctx)
+	products, err := q.ProductRepo.GetAllProducts(ctx)
 	if err != nil {
 		log.Error().Msg("Failed to retrieve all products")
 		return nil, ErrDatabase
@@ -25,10 +29,10 @@ func GetAllProducts(ctx context.Context, repo productQueryRepo) ([]product.Produ
 	return products, nil
 }
 
-func GetActiveProducts(ctx context.Context, repo productQueryRepo) ([]product.Produkt, error) {
+func (q Query) GetActiveProducts(ctx context.Context) ([]product.Produkt, error) {
 	log := zerolog.Ctx(ctx)
 
-	products, err := repo.GetActiveProducts(ctx)
+	products, err := q.ProductRepo.GetActiveProducts(ctx)
 	if err != nil {
 		log.Error().Msg("Failed to retrieve active products")
 		return nil, ErrDatabase

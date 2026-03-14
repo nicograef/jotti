@@ -6,16 +6,15 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/api/user/application"
 	"github.com/nicograef/jotti/backend/domain/user"
 )
 
-type userReader interface {
+type query interface {
 	GetAllUsers(ctx context.Context) ([]user.User, error)
 }
 
 type QueryHandler struct {
-	UserRepo userReader
+	Query query
 }
 
 type userDTO struct {
@@ -55,7 +54,7 @@ func toUserDTOs(users []user.User) []userDTO {
 
 func (h *QueryHandler) GetAllUsersHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		users, err := application.GetAllUsers(r.Context(), h.UserRepo)
+		users, err := h.Query.GetAllUsers(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return

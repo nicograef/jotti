@@ -33,7 +33,7 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/reset-password", uc.ResetPasswordHandler())
 
 	uq := userHTTP.QueryHandler{}
-	uq.UserRepo = userRepo
+	uq.Query = userApp.Query{UserRepo: userRepo}
 	r.HandleFunc("/get-all-users", uq.GetAllUsersHandler())
 
 	productRepo := product_repo.NewRepository(db)
@@ -51,7 +51,7 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/delete-variante", pc.DeleteVarianteHandler())
 
 	pq := productHTTP.QueryHandler{}
-	pq.ProductRepo = productRepo
+	pq.Query = productApp.Query{ProductRepo: productRepo}
 	r.HandleFunc("/get-all-produkte", pq.GetAllProductsHandler())
 
 	tableRepo := table_repo.NewRepository(db)

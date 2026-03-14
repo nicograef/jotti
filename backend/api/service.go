@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 
+	productApp "github.com/nicograef/jotti/backend/api/product/application"
 	productHTTP "github.com/nicograef/jotti/backend/api/product/http"
 	tableApp "github.com/nicograef/jotti/backend/api/table/application"
 	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
@@ -17,7 +18,7 @@ func NewServiceApi(db *sql.DB) http.Handler {
 
 	productRepo := product_repo.NewRepository(db)
 	pq := productHTTP.QueryHandler{}
-	pq.ProductRepo = productRepo
+	pq.Query = productApp.Query{ProductRepo: productRepo}
 	r.HandleFunc("/get-aktive-produkte", pq.GetActiveProductsHandler())
 
 	tableRepo := table_repo.NewRepository(db)
