@@ -1,5 +1,5 @@
-import { LogOut, Moon, Sun, User } from 'lucide-react'
-import { useNavigate } from 'react-router'
+import { LayoutDashboard, LogOut, Moon, Sun, User } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router'
 
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,7 @@ import { AuthSingleton } from '@/lib/Auth'
 
 export function UserDropdown() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { theme, setTheme } = useTheme()
 
   const logout = () => {
@@ -35,6 +36,15 @@ export function UserDropdown() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        {AuthSingleton.isAdmin && !location.pathname.startsWith('/admin') && (
+          <>
+            <DropdownMenuItem onClick={() => void navigate('/admin')}>
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              Verwaltung
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem
           onClick={() => {
             setTheme(isDark ? 'light' : 'dark')
