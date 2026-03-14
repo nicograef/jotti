@@ -21,11 +21,10 @@ function UserDropdown() {
     void navigate('/login')
   }
 
-  const nextThemeLabel =
-    theme === 'light' ? 'Dunkel' : theme === 'dark' ? 'System' : 'Hell'
-  const NextThemeIcon = theme === 'light' ? Moon : theme === 'dark' ? Sun : Sun
-  const nextThemeValue =
-    theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
+  const isDark =
+    theme === 'dark' ||
+    (theme === 'system' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches)
 
   return (
     <DropdownMenu>
@@ -38,11 +37,15 @@ function UserDropdown() {
       <DropdownMenuContent align="end">
         <DropdownMenuItem
           onClick={() => {
-            setTheme(nextThemeValue)
+            setTheme(isDark ? 'light' : 'dark')
           }}
         >
-          <NextThemeIcon className="mr-2 h-4 w-4" />
-          {nextThemeLabel}
+          {isDark ? (
+            <Sun className="mr-2 h-4 w-4" />
+          ) : (
+            <Moon className="mr-2 h-4 w-4" />
+          )}
+          {isDark ? 'Hell' : 'Dunkel'}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={logout}>

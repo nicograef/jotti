@@ -2,14 +2,16 @@ import {
   Lamp,
   LayoutDashboard,
   LogOut,
+  Moon,
   Receipt,
+  Sun,
   Users,
   Utensils,
 } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router'
 import { useLocation } from 'react-router'
 
-import { ModeToggle } from '@/components/mode-toggle'
+import { useTheme } from '@/components/theme-provider'
 import {
   Sidebar,
   SidebarContent,
@@ -68,6 +70,14 @@ export function AdminSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
+  const { theme, setTheme } = useTheme()
+  const isDark =
+    theme === 'dark' ||
+    (theme === 'system' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const toggleTheme = () => {
+    setTheme(isDark ? 'light' : 'dark')
+  }
 
   const logout = () => {
     AuthSingleton.logout()
@@ -145,7 +155,10 @@ export function AdminSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <ModeToggle />
+                <SidebarMenuButton onClick={toggleTheme}>
+                  {isDark ? <Sun /> : <Moon />}
+                  <span>{isDark ? 'Hell' : 'Dunkel'}</span>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
