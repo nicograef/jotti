@@ -9,6 +9,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { AuthSingleton } from '@/lib/Auth'
 import { BackendSingleton } from '@/lib/Backend'
 import { formatCents } from '@/lib/utils'
@@ -25,6 +26,7 @@ const tischBackend = new TischBackend(BackendSingleton)
 
 export function TablePage() {
   const { tableId } = useParams<{ tableId: string }>()
+  const isMobile = useIsMobile()
   const {
     state,
     loading: stateLoading,
@@ -66,7 +68,13 @@ export function TablePage() {
         </ItemContent>
       </Item>
       <Tabs defaultValue="order">
-        <div className="w-full fixed bottom-4 left-0 z-50 flex flex-col items-center gap-2">
+        <div
+          className={
+            isMobile
+              ? 'w-full fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-0 z-50 flex flex-col items-center gap-2'
+              : 'mb-4 flex flex-col items-start gap-2'
+          }
+        >
           {tabsLocked && (
             <p className="text-xs text-muted-foreground bg-background/90 px-3 py-1 rounded-md border">
               Lade Tischdaten. Tabs sind kurzzeitig deaktiviert.
@@ -84,7 +92,7 @@ export function TablePage() {
             </TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="order" className="pb-24">
+        <TabsContent value="order" className={isMobile ? 'pb-24' : ''}>
           {!stateLoading && (
             <>
               {offenePositionen > 0 && (
@@ -114,7 +122,7 @@ export function TablePage() {
             </>
           )}
         </TabsContent>
-        <TabsContent value="payment" className="pb-24">
+        <TabsContent value="payment" className={isMobile ? 'pb-24' : ''}>
           {!stateLoading && (
             <Zahlung
               backend={tischBackend}
@@ -132,7 +140,7 @@ export function TablePage() {
             />
           )}
         </TabsContent>
-        <TabsContent value="history" className="pb-24">
+        <TabsContent value="history" className={isMobile ? 'pb-24' : ''}>
           {!stateLoading && (
             <TischHistorie
               historie={historie}

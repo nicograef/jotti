@@ -49,7 +49,7 @@ export function TagesabrechnungFilter({
   onAuswerten: () => void
 }) {
   return (
-    <div className="flex items-end gap-8">
+    <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
       {/* Von */}
       <div className="flex items-end gap-2">
         <div>

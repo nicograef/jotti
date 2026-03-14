@@ -23,7 +23,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useIsCompact } from '@/hooks/use-mobile'
 import { AuthSingleton } from '@/lib/Auth'
 
 const reportingItems = [
@@ -63,7 +63,7 @@ const serviceItems = [
 export function AdminSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const isCompact = useIsCompact()
   const { theme, setTheme } = useTheme()
   const isDark =
     theme === 'dark' ||
@@ -79,7 +79,7 @@ export function AdminSidebar() {
   }
 
   return (
-    <Sidebar collapsible={isMobile ? 'offcanvas' : 'none'}>
+    <Sidebar collapsible={isCompact ? 'offcanvas' : 'none'}>
       <SidebarHeader>
         <h1 className="text-4xl text-center font-extrabold">jotti</h1>
       </SidebarHeader>

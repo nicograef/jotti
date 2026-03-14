@@ -118,7 +118,7 @@ export function ProductItem(props: ProductItemProps) {
 
   return (
     <Item variant="outline" className="flex-col items-stretch">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <div className="flex flex-col gap-3 shrink-0">
           <KategorieIcon category={props.product.kategorie} />
         </div>
@@ -134,7 +134,7 @@ export function ProductItem(props: ProductItemProps) {
             {new Date(props.product.createdAt).toLocaleDateString('de-DE')}
           </ItemDescription>
         </ItemContent>
-        <ItemActions className="flex gap-2">
+        <ItemActions className="flex gap-2 w-full sm:w-auto justify-end">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

@@ -83,7 +83,7 @@ export function NewUserDialog(props: NewUserDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <div className="fixed bottom-4 right-4 md:bottom-16 md:right-16 z-50">
+        <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-4 md:bottom-16 md:right-16 z-50">
           <Button className="cursor-pointer hover:shadow-sm">
             <Plus /> Neuer Benutzer
           </Button>
