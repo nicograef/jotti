@@ -389,9 +389,9 @@ Policies sind automatische Reaktionen auf Domain Events oder Geschäftsregeln, d
 
 **Stornierungsberechtigung (K-04):** Stornierungen dürfen nur durch die Rollen `serviceleitung` und `admin` durchgeführt werden. Diese Einschränkung ist eine bewusste organisatorische Entscheidung: Beim letzten Vereinsfest hat eine unerfahrene Servicekraft versehentlich einen ganzen Tisch storniert. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat weitergegeben wird.
 
-**Automatischer Bon-Druck nach Kategorie (K-11):** Wenn eine `BestellungAufgegeben` entsteht, wird automatisch ein Bon pro Kategorie an die zugeordnete Ausgabestation gesendet. Essenspositionen erzeugen einen Küchenbon, Getränkepositionen einen Thekenbon. Die Zuordnung (Kategorie → Drucker) wird in den Stammdaten konfiguriert. Details zur Ausgabe-Architektur → [5.1 Bondruck](#51-bondruck).
+**Automatischer Bon-Druck nach Kategorie (K-12):** Wenn eine `BestellungAufgegeben` entsteht, wird automatisch ein Bon pro Kategorie an die zugeordnete Ausgabestation gesendet. Essenspositionen erzeugen einen Küchenbon, Getränkepositionen einen Thekenbon. Die Zuordnung (Kategorie → Drucker) wird in den Stammdaten konfiguriert. Details zur Ausgabe-Architektur → [5.1 Bondruck](#51-bondruck).
 
-**Umbuchung (K-08) — Cross-Aggregat-Transaktion:** Eine Umbuchung verschiebt eine Bestellung von einem Quell-Tisch auf einen Ziel-Tisch. Fachlich setzt sie sich aus einer Stornierung am Quell-Tisch und einer neuen Bestellung am Ziel-Tisch zusammen. Da dies zwei verschiedene Aggregate betrifft, muss die Atomarität auf Anwendungsebene sichergestellt werden (z. B. über eine Datenbank-Transaktion, die beide Events in einem Schritt persistiert). Die Umbuchung ist nur für `serviceleitung` und `admin` zugänglich.
+**Umbuchung (K-09) — Cross-Aggregat-Transaktion:** Eine Umbuchung verschiebt eine Bestellung von einem Quell-Tisch auf einen Ziel-Tisch. Fachlich setzt sie sich aus einer Stornierung am Quell-Tisch und einer neuen Bestellung am Ziel-Tisch zusammen. Da dies zwei verschiedene Aggregate betrifft, muss die Atomarität auf Anwendungsebene sichergestellt werden (z. B. über eine Datenbank-Transaktion, die beide Events in einem Schritt persistiert). Die Umbuchung ist nur für `serviceleitung` und `admin` zugänglich.
 
 > **Offene Fragen (→ Hotspot H1):** Soll die Umbuchung einen eigenen Event-Typ erhalten, oder wird sie als Kombination aus `ProdukteStorniert` + `BestellungAufgegeben` mit einem Umbuchungs-Verweis modelliert? Wird der Kommentar „umgebucht von/auf Tisch X" automatisch gesetzt? → [14. Offene Entwurfsfragen](#14-offene-entwurfsfragen)
 
@@ -486,7 +486,7 @@ Stammdaten (Produkte, Tische, Benutzer) werden mit klassischem CRUD verwaltet �
 
 Bons informieren Ausgabestationen (Küche, Getränketheke) über eingehende Bestellungen. Der Druck wird automatisch durch eine Policy ausgelöst.
 
-**Policy: Automatischer Bon-Druck nach Kategorie (K-11).** Wenn ein `BestellungAufgegeben`-Event entsteht, werden automatisch Bons pro Kategorie an die zugeordnete Ausgabestation gesendet:
+**Policy: Automatischer Bon-Druck nach Kategorie (K-12).** Wenn ein `BestellungAufgegeben`-Event entsteht, werden automatisch Bons pro Kategorie an die zugeordnete Ausgabestation gesendet:
 
 - Essenspositionen (`essen`) → Küchenbon
 - Getränkepositionen (`getraenk`) → Thekenbon
@@ -504,7 +504,7 @@ Die Zuordnung (Kategorie → Drucker) wird in den Stammdaten durch den Admin kon
 
 ### 5.2 Küchendisplay (KDS)
 
-Das Küchendisplay (K-12) ist ein Read Model, das in Echtzeit die offenen (ungelieferten) Positionen an Ausgabestationen anzeigt — gefiltert nach Kategorie und gruppiert nach Tisch.
+Das Küchendisplay (K-13) ist ein Read Model, das in Echtzeit die offenen (ungelieferten) Positionen an Ausgabestationen anzeigt — gefiltert nach Kategorie und gruppiert nach Tisch.
 
 **Datenquelle:** `BestellungAufgegeben`- und `ProdukteGeliefert`-Events aus dem Kassenbetrieb.
 
@@ -524,7 +524,7 @@ Das Küchendisplay (K-12) ist ein Read Model, das in Echtzeit die offenen (ungel
 
 ### 5.3 Zubereitungsstatus
 
-Aufbauend auf dem KDS (K-12) können Mitarbeiter an Ausgabestationen den Zubereitungsstatus einzelner Positionen verwalten (K-13). Servicekräfte sehen den Status und wissen, wann Positionen abholbereit sind.
+Aufbauend auf dem KDS (K-13) können Mitarbeiter an Ausgabestationen den Zubereitungsstatus einzelner Positionen verwalten (K-14). Servicekräfte sehen den Status und wissen, wann Positionen abholbereit sind.
 
 **Workflow:**
 
@@ -550,7 +550,7 @@ Der Zubereitungsstatus hat **keinen Einfluss auf den Saldo** und ist für die Ab
 
 Der Ausgabe-Context enthält drei offene Architekturentscheidungen, die im [Event Storming](event-storming.md) als Hotspots identifiziert wurden.
 
-**Hotspot H3 — Drucker-Integration (K-11):**
+**Hotspot H3 — Drucker-Integration (K-12):**
 
 Die konkrete Hardware-Anbindung für den Bondruck ist offen. Optionen:
 
@@ -562,7 +562,7 @@ Die konkrete Hardware-Anbindung für den Bondruck ist offen. Optionen:
 
 Unabhängig von der Lösung gilt: Bon-Druck darf den Bestellvorgang nie blockieren (Fire-and-Forget).
 
-**Hotspot H4 — KDS-Echtzeit (K-12):**
+**Hotspot H4 — KDS-Echtzeit (K-13):**
 
 Wie werden neue Bestellungen in Echtzeit an das Küchendisplay übertragen? Optionen:
 
@@ -574,7 +574,7 @@ Wie werden neue Bestellungen in Echtzeit an das Küchendisplay übertragen? Opti
 
 Server-Sent Events sind der vielversprechendste Kompromiss: unidirektionale Push-Updates über bestehende HTTP-Infrastruktur.
 
-**Hotspot H5 — Zubereitungsstatus-Modellierung (K-13):**
+**Hotspot H5 — Zubereitungsstatus-Modellierung (K-14):**
 
 Wie wird der Zubereitungsstatus technisch modelliert? Die drei Optionen (Domain Events im Tisch-Aggregat, eigenes Aggregat, transienter State) sind in [5.3 Zubereitungsstatus](#53-zubereitungsstatus) beschrieben. Die Entscheidung hängt davon ab, ob Persistenz und Nachvollziehbarkeit oder Einfachheit priorisiert werden.
 
@@ -751,18 +751,18 @@ Read Models sind aufbereitete Lese-Ansichten, die aus den Domain Events oder den
 
 ### 8.1 Service-Ansichten
 
-#### Tischübersicht (K-05)
+#### Tischübersicht (K-06)
 
 | Eigenschaft | Beschreibung                                                                                             |
 | ----------- | -------------------------------------------------------------------------------------------------------- |
 | **Quelle**  | Tisch-Events + Tisch-Stammdaten                                                                          |
 | **Inhalt**  | Pro aktivem Tisch: Name, aktueller Saldo, Anzahl unbezahlter Positionen, Anzahl ungelieferter Positionen |
-| **Anzeige** | Karten-Layout, alle aktiven Tische; Schnellsuche nach Tischname (K-10)                                   |
+| **Anzeige** | Karten-Layout, alle aktiven Tische; Schnellsuche nach Tischname (K-11)                                   |
 | **Akteure** | Servicekraft, Serviceleitung, Admin                                                                      |
 
 Die Tischübersicht ist die Startseite des Service-Bereichs. Auf einen Blick sieht die Servicekraft, welche Tische aktiv sind und wo noch offene Bestellungen oder ausstehende Zahlungen vorliegen.
 
-#### Tischdetails (K-05)
+#### Tischdetails (K-06)
 
 | Eigenschaft | Beschreibung                                                                                                                                                                             |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -784,7 +784,7 @@ Die Tischdetail-Ansicht ist der zentrale Arbeitsplatz der Servicekraft. Alle Tis
 
 Der Produktkatalog ist kein eigenständiges Navigations-Ziel, sondern wird im Kontext des Bestellvorgangs (Tab „Bestellen" im Tischdetail) geladen. Er zeigt immer den aktuellen Stand der Stammdaten.
 
-#### Kassenjournal (K-06)
+#### Kassenjournal (K-07)
 
 | Eigenschaft | Beschreibung                                                                                                                                                 |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -833,7 +833,7 @@ Alle Reporting-Ansichten sind Read Models, die aus den Tisch-Events über alle T
 
 ### 8.3 Ausgabe-Ansichten
 
-#### KDS-Ansicht (K-12)
+#### KDS-Ansicht (K-13)
 
 | Eigenschaft | Beschreibung                                                                                                                                                     |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -844,7 +844,7 @@ Alle Reporting-Ansichten sind Read Models, die aus den Tisch-Events über alle T
 
 Jede Ausgabestation sieht nur die Positionen ihrer eigenen Kategorie. Die technische Umsetzung der Echtzeit-Aktualisierung ist offen (→ H4).
 
-#### Zubereitungsstatus (K-13)
+#### Zubereitungsstatus (K-14)
 
 | Eigenschaft | Beschreibung                                                                                                                    |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -1214,8 +1214,8 @@ Kernfunktionen, ohne die das System nicht nutzbar ist.
 | K-02 | Zahlung registrieren        |
 | K-03 | Lieferung bestätigen        |
 | K-04 | Stornierung                 |
-| K-05 | Tischübersicht / Navigation |
-| K-06 | Kassenjournal (Historie)    |
+| K-06 | Tischübersicht / Navigation |
+| K-07 | Kassenjournal (Historie)    |
 | S-01 | Produktverwaltung           |
 | S-02 | Tischverwaltung             |
 | S-03 | Benutzerverwaltung          |
@@ -1234,8 +1234,9 @@ Wichtig für einen runden Betrieb, aber nicht blockierend für den ersten Einsat
 
 | ID   | Anforderung                 |
 | ---- | --------------------------- |
-| K-11 | Bondruck                    |
-| K-12 | Küchendisplay (KDS)         |
+| K-05 | Auszahlung leisten          |
+| K-12 | Bondruck                    |
+| K-13 | Küchendisplay (KDS)         |
 | Q-07 | Rate Limiting               |
 | Q-08 | Security Headers            |
 | R-01 | Tagesabrechnung             |
@@ -1249,10 +1250,10 @@ Komfortfunktionen, die den Alltag erleichtern und iterativ ergänzt werden könn
 
 | ID   | Anforderung                             |
 | ---- | --------------------------------------- |
-| K-08 | Bestellungen umbuchen                   |
-| K-09 | Rückgeldberechnung                      |
-| K-10 | Tisch-Schnellsuche                      |
-| K-13 | Ausgabestationen mit Zubereitungsstatus |
+| K-09 | Bestellungen umbuchen                   |
+| K-10 | Rückgeldberechnung                      |
+| K-11 | Tisch-Schnellsuche                      |
+| K-14 | Ausgabestationen mit Zubereitungsstatus |
 | Q-05 | Offline-Fähigkeit                       |
 | R-02 | Datenexport                             |
 | R-06 | Tagesabschluss                          |
@@ -1265,10 +1266,10 @@ Die folgenden Hotspots wurden im [Event Storming](event-storming.md) als offene 
 
 | ID  | Thema                                 | Kernfrage                                                                                              | Priorität    | Offene Fragen                                                                                                                                                                                                           |
 | --- | ------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| H1  | Tischumbuchung (K-08)                 | Wie wird Atomarität über zwei Aggregate hinweg sichergestellt?                                         | Nice-to-have | Eigener Event-Typ oder Kombination aus Stornierung + Neubestellung? Automatischer Kommentar „umgebucht von/auf Tisch X"? Rollenbeschränkung auf Serviceleitung/Admin? → Abschnitt [3.6](#36-policies)                   |
-| H3  | Bondruck / Drucker-Integration (K-11) | Welches Druckerprotokoll und wie wird die Drucker-Konfiguration verwaltet?                             | Should-have  | ESC/POS, WebUSB, lokaler Print-Agent oder Netzwerkdrucker? Fehlerbehandlung bei Druckerausfall (Retry-Logik)? Nachdruck einzelner Positionen oder ganzer Bons? → Abschnitt [5.1](#51-bondruck)                          |
-| H4  | KDS-Architektur (K-12)                | Welcher Echtzeit-Mechanismus für das Küchendisplay?                                                    | Should-have  | Polling, WebSockets oder Server-Sent Events? Initialer Zustandsladevorgang? Reconnect-Verhalten bei Verbindungsabbruch? Performance bei vielen gleichzeitigen Bestellungen? → Abschnitt [5.2](#52-küchendisplay-kds)    |
-| H5  | Zubereitungsstatus (K-13)             | Domain Events oder transienter UI-State? Falls Events: eigenes Aggregat oder Teil des Tisch-Aggregats? | Nice-to-have | Wiederherstellung bei Seitenrefresh? Echtzeit-Benachrichtigung an Servicekräfte? Gleiche Infrastruktur wie KDS? → Abschnitt [5.3](#53-zubereitungsstatus)                                                               |
+| H1  | Tischumbuchung (K-09)                 | Wie wird Atomarität über zwei Aggregate hinweg sichergestellt?                                         | Nice-to-have | Eigener Event-Typ oder Kombination aus Stornierung + Neubestellung? Automatischer Kommentar „umgebucht von/auf Tisch X"? Rollenbeschränkung auf Serviceleitung/Admin? → Abschnitt [3.6](#36-policies)                   |
+| H3  | Bondruck / Drucker-Integration (K-12) | Welches Druckerprotokoll und wie wird die Drucker-Konfiguration verwaltet?                             | Should-have  | ESC/POS, WebUSB, lokaler Print-Agent oder Netzwerkdrucker? Fehlerbehandlung bei Druckerausfall (Retry-Logik)? Nachdruck einzelner Positionen oder ganzer Bons? → Abschnitt [5.1](#51-bondruck)                          |
+| H4  | KDS-Architektur (K-13)                | Welcher Echtzeit-Mechanismus für das Küchendisplay?                                                    | Should-have  | Polling, WebSockets oder Server-Sent Events? Initialer Zustandsladevorgang? Reconnect-Verhalten bei Verbindungsabbruch? Performance bei vielen gleichzeitigen Bestellungen? → Abschnitt [5.2](#52-küchendisplay-kds)    |
+| H5  | Zubereitungsstatus (K-14)             | Domain Events oder transienter UI-State? Falls Events: eigenes Aggregat oder Teil des Tisch-Aggregats? | Nice-to-have | Wiederherstellung bei Seitenrefresh? Echtzeit-Benachrichtigung an Servicekräfte? Gleiche Infrastruktur wie KDS? → Abschnitt [5.3](#53-zubereitungsstatus)                                                               |
 | H6  | Offline-Fähigkeit (Q-05)              | Echte Offline-Fähigkeit (PWA, IndexedDB, Sync) oder nur optimistisches UI mit Fehlermeldung?           | Nice-to-have | Konfliktauflösung bei Wiederverbindung (zwei Servicekräfte offline am selben Tisch)? Netzwerkstatus-Anzeige? Empfehlung für stabile lokale Netzwerk-Infrastruktur?                                                      |
 | H7  | Tagesabschluss (R-06)                 | Wie werden offene Saldi behandelt und wie wird das System für die nächste Veranstaltung zurückgesetzt? | Nice-to-have | Manuelle Stornierung, Differenz-Event oder Verlust-Buchung für offene Saldi? Braucht es ein Konzept „Veranstaltung" als logischen Rahmen? Append-only vs. Archivierung? → Abschnitt [6.3](#63-tagesabschluss)           |
 | H8  | Reporting-Aggregation (R-01…R-05)     | On-the-fly-Aggregation oder vorberechnete Projektionen?                                                | Should-have  | Reicht SQL-Aggregation über die Event-Tabelle? Zeitraum-Definition (pro Tag, pro Veranstaltung, frei wählbar)? Performance-Schwellenwerte für den Wechsel zu Projektionen? → Abschnitt [6.2](#62-aggregationsstrategie) |

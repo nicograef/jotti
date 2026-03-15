@@ -170,20 +170,20 @@ _(Alle nehmen sich Haftnotizen und Marker. Für die nächsten 20 Minuten wird ge
 
 _(Ergänzt:)_
 
-- 🟠 Tisch ausgewählt _(K-05)_
+- 🟠 Tisch ausgewählt _(K-06)_
 
 **KAS (Eva):** „Teilzahlungen sind entscheidend. Wenn drei Leute am Tisch sitzen, zahlt oft jeder separat. Das muss gehen." _(K-02)_
 
 **SRV1 (Jonas):** „Ja, und ich muss sehen, was noch offen ist — damit ich dem Gast sagen kann, wie viel er noch schuldig ist."
 
-**DOM (Rudi):** „Und das Kassenjournal? Wir brauchen eine lückenlose Historie, was an jedem Tisch passiert ist — für den Fall, dass es Unstimmigkeiten gibt." _(K-06)_
+**DOM (Rudi):** „Und das Kassenjournal? Wir brauchen eine lückenlose Historie, was an jedem Tisch passiert ist — für den Fall, dass es Unstimmigkeiten gibt." _(K-07)_
 
 **DEV1 (Anna):** „Das Kassenjournal ist die Grundidee hinter Event-Sourcing. Jede Aktion am Tisch — Bestellung, Lieferung, Zahlung, Stornierung — wird als unveränderliches Ereignis gespeichert. Daraus ergibt sich der aktuelle Zustand."
 
 _(Ergänzte Events:)_
 
 - 🟠 Tischkonto ausgeglichen _(K-02 — wenn Saldo = 0)_
-- 🟠 Kassenjournal eingesehen _(K-06)_
+- 🟠 Kassenjournal eingesehen _(K-07)_
 
 **SRL (Felix):** „Stornierung ist wichtig. Wenn eine Servicekraft falsch bestellt, muss ich das rückgängig machen können. Aber nicht jeder darf das — nur ich als Serviceleitung oder Thomas als Admin." _(K-04)_
 
@@ -197,35 +197,35 @@ _(🟣 Policy: Stornierung nur für Serviceleitung und Admin — K-04)_
 
 **FAC (Lisa):** „Ich sehe noch einige Events, die nicht zum Kernprozess gehören, aber den Betrieb erleichtern würden. Jonas, du hast ‚Tisch bezahlt' — gibt es noch mehr solche Komfort-Dinge?"
 
-**SRV1 (Jonas):** „Was mir im Alltag auffällt: Manchmal bediene ich einen Tisch, an dem zwei Gruppen sitzen. Da wäre es super, wenn ich der Bestellung einen Namen geben könnte — ‚Familie Müller' oder ‚Gruppe links'." _(K-07)_
+**SRV1 (Jonas):** „Was mir im Alltag auffällt: Manchmal bediene ich einen Tisch, an dem zwei Gruppen sitzen. Da wäre es super, wenn ich der Bestellung einen Namen geben könnte — ‚Familie Müller' oder ‚Gruppe links'." _(K-08)_
 
 _(Ergänzt:)_
 
-- 🟠 Bestellung benannt _(K-07)_
+- 🟠 Bestellung benannt _(K-08)_
 
 **SRV2 (Maria):** „Und was, wenn man den falschen Tisch erwischt hat? Beim letzten Fest habe ich auf den falschen Tisch bestellt."
 
-**SRL (Felix):** „Dann müssen wir die Bestellung umbuchen — stornieren am einen Tisch, neu aufgeben am anderen. Das mache ich als Serviceleitung." _(K-08)_
+**SRL (Felix):** „Dann müssen wir die Bestellung umbuchen — stornieren am einen Tisch, neu aufgeben am anderen. Das mache ich als Serviceleitung." _(K-09)_
 
 _(Ergänzt:)_
 
-- 🟠 Bestellung auf anderen Tisch umgebucht _(K-08)_
+- 🟠 Bestellung auf anderen Tisch umgebucht _(K-09)_
 
 _(❤️ Hotspot: „Tischumbuchung — zwei Events atomar in einer Transaktion")_
 
-**SRV1 (Jonas):** „Wenn wir 30 Tische haben und ich Tisch 27 suche, will ich nicht durch alle scrollen. Eine Schnellsuche wäre toll." _(K-10)_
+**SRV1 (Jonas):** „Wenn wir 30 Tische haben und ich Tisch 27 suche, will ich nicht durch alle scrollen. Eine Schnellsuche wäre toll." _(K-11)_
 
 _(Ergänzt:)_
 
-- 🟠 Tisch über Schnellsuche gefunden _(K-10)_
+- 🟠 Tisch über Schnellsuche gefunden _(K-11)_
 
 **KAS (Eva):** „Und Rückgeld: Der Gast gibt mir 50 Euro, der Tisch kostet 23,50. Klar rechne ich das im Kopf, aber eine Anzeige wäre nett."
 
-**DEV2 (Tim):** „Das ist reine Frontend-Logik — ein Eingabefeld ‚Gegeben', und wir zeigen die Differenz live an. Kein Backend-Aufruf nötig." _(K-09)_
+**DEV2 (Tim):** „Das ist reine Frontend-Logik — ein Eingabefeld ‚Gegeben', und wir zeigen die Differenz live an. Kein Backend-Aufruf nötig." _(K-10)_
 
 _(Ergänzt:)_
 
-- 🟠 Rückgeld berechnet _(K-09)_
+- 🟠 Rückgeld berechnet _(K-10)_
 
 ### 2.3 Diskussion: Bons und Ausgabestationen
 
@@ -233,35 +233,35 @@ _(Ergänzt:)_
 
 **DOM (Rudi):** „Die Getränkeausgabe braucht einen Bon, die Küche braucht einen Bon. Am besten automatisch nach jeder Bestellung."
 
-**SRL (Felix):** „Genau. Wenn eine Bestellung aufgegeben wird, sollen Getränke automatisch an die Getränkeausgabe und Essen an die Küche gehen." _(K-11)_
+**SRL (Felix):** „Genau. Wenn eine Bestellung aufgegeben wird, sollen Getränke automatisch an die Getränkeausgabe und Essen an die Küche gehen." _(K-12)_
 
 **ADM (Thomas):** „Wir haben beim letzten Fest einen alten Thermodrucker gefunden. Der könnte funktionieren — aber ich müsste konfigurieren können, welcher Drucker welche Kategorie bekommt."
 
 _(Ergänzte Events:)_
 
-- 🟠 Küchenbon gedruckt _(K-11)_
-- 🟠 Getränkebon gedruckt _(K-11)_
+- 🟠 Küchenbon gedruckt _(K-12)_
+- 🟠 Getränkebon gedruckt _(K-12)_
 
 **VER1 (Klaus):** „Und was, wenn der Drucker mal ausfällt? Das passiert. Dann brauche ich eine andere Möglichkeit, die Bestellungen zu sehen."
 
-**DEV1 (Anna):** „Dafür könnte ein Küchendisplay dienen — ein Bildschirm in der Küche oder an der Getränkeausgabe, der in Echtzeit die offenen Bestellungen anzeigt. Gruppiert nach Tisch, getrennt nach Kategorie." _(K-12)_
+**DEV1 (Anna):** „Dafür könnte ein Küchendisplay dienen — ein Bildschirm in der Küche oder an der Getränkeausgabe, der in Echtzeit die offenen Bestellungen anzeigt. Gruppiert nach Tisch, getrennt nach Kategorie." _(K-13)_
 
 **VER1 (Klaus):** „Das wäre perfekt! Dann sehe ich immer, was noch offen ist — auch wenn ein Bon verloren geht."
 
 _(Ergänzt:)_
 
-- 🟠 Küchenbestellung auf Display angezeigt _(K-12)_
+- 🟠 Küchenbestellung auf Display angezeigt _(K-13)_
 
 **DOM (Rudi):** „Und wenn Klaus die Getränke fertig hat, muss die Servicekraft das wissen — damit sie abholen kommt."
 
-**VER1 (Klaus):** „Genau. Ich markiere eine Position als ‚in Zubereitung' und dann als ‚fertig'. Dann weiß Jonas, dass er abholen kann." _(K-13)_
+**VER1 (Klaus):** „Genau. Ich markiere eine Position als ‚in Zubereitung' und dann als ‚fertig'. Dann weiß Jonas, dass er abholen kann." _(K-14)_
 
 **SRV1 (Jonas):** „Das wäre super. Dann muss ich nicht mehr in die Küche laufen und fragen, ob's schon fertig ist."
 
 _(Ergänzt:)_
 
-- 🟠 Position als „in Zubereitung" markiert _(K-13)_
-- 🟠 Position als „fertig" markiert _(K-13)_
+- 🟠 Position als „in Zubereitung" markiert _(K-14)_
+- 🟠 Position als „fertig" markiert _(K-14)_
 
 ### 2.4 Diskussion: Stammdaten und Authentifizierung
 
@@ -546,17 +546,17 @@ _(während des Fests, Service-Bereich)_
 
 **SRL (Felix):** „Kassenjournal auch. Das gehört zum laufenden Betrieb — jederzeit nachschauen, was am Tisch passiert ist."
 
-- 🟠 Tisch ausgewählt _(K-05)_
-- 🟠 Tisch über Schnellsuche gefunden _(K-10)_
+- 🟠 Tisch ausgewählt _(K-06)_
+- 🟠 Tisch über Schnellsuche gefunden _(K-11)_
 - 🟠 Bestellung aufgegeben _(K-01)_
-- 🟠 Bestellung benannt _(K-07)_
+- 🟠 Bestellung benannt _(K-08)_
 - 🟠 Bestellung abgebrochen _(K-01)_
 - 🟠 Produkte ausgeliefert _(K-03)_
 - 🟠 Zahlung registriert _(K-02)_
 - 🟠 Teilzahlung registriert _(K-02)_
-- 🟠 Rückgeld berechnet _(K-09)_
+- 🟠 Rückgeld berechnet _(K-10)_
 - 🟠 Tischkonto ausgeglichen _(K-02)_
-- 🟠 Kassenjournal eingesehen _(K-06)_
+- 🟠 Kassenjournal eingesehen _(K-07)_
 
 #### Cluster C — Stornierung & Umbuchung
 
@@ -567,7 +567,7 @@ _(Service-Bereich, erhöhte Berechtigung)_
 **DOM (Rudi):** „Und beides darf nicht jeder. Nur Felix oder Thomas."
 
 - 🟠 Stornierung durchgeführt _(K-04)_
-- 🟠 Bestellung auf anderen Tisch umgebucht ❤️ _(K-08)_
+- 🟠 Bestellung auf anderen Tisch umgebucht ❤️ _(K-09)_
 
 #### Cluster D — Ausgabestationen & Bons
 
@@ -577,11 +577,11 @@ _(Küche, Getränkeausgabe, begleitend zum Betrieb)_
 
 **DEV1 (Anna):** „Das sind eigentlich Reaktionen auf die Bestellungen aus Cluster B — wenn eine Bestellung aufgegeben wird, muss die Info an die richtige Ausgabestation fließen."
 
-- 🟠 Küchenbon gedruckt _(K-11)_
-- 🟠 Getränkebon gedruckt _(K-11)_
-- 🟠 Küchenbestellung auf Display angezeigt _(K-12)_
-- 🟠 Position als „in Zubereitung" markiert _(K-13)_
-- 🟠 Position als „fertig" markiert _(K-13)_
+- 🟠 Küchenbon gedruckt _(K-12)_
+- 🟠 Getränkebon gedruckt _(K-12)_
+- 🟠 Küchenbestellung auf Display angezeigt _(K-13)_
+- 🟠 Position als „in Zubereitung" markiert _(K-14)_
+- 🟠 Position als „fertig" markiert _(K-14)_
 
 #### Cluster E — Abrechnung & Reporting
 
@@ -618,7 +618,7 @@ _(Tagesende und begleitend, Admin/Kassenwart)_
 
 ### 4.1 Kassenbetrieb — Bestellung bis Zahlung
 
-#### Bestellung aufnehmen (K-01, K-07)
+#### Bestellung aufnehmen (K-01, K-08)
 
 **FAC (Lisa):** „Fangen wir mit dem Kernprozess an: Eine Bestellung wird aufgegeben. Jonas, beschreib mal deinen typischen Ablauf."
 
@@ -679,7 +679,7 @@ _(Tagesende und begleitend, Admin/Kassenwart)_
 
 **DEV1 (Anna):** „Genau. Der Tischzustand wird aus allen Events berechnet: Wenn für jede bestellte Position ein Liefer-Event existiert, sind alle Positionen geliefert. Es gibt kein separates ‚Tisch fertig'-Event."
 
-#### Zahlung registrieren (K-02, K-09)
+#### Zahlung registrieren (K-02, K-10)
 
 **FAC (Lisa):** „Kommen wir zum Bezahlen."
 
@@ -703,7 +703,7 @@ _(Tagesende und begleitend, Admin/Kassenwart)_
 
 **SRV1 (Jonas):** „Dann muss ich Rückgeld rausgeben. Wäre praktisch, wenn das System mir anzeigt, wie viel."
 
-**DEV2 (Tim):** „Das ist die Rückgeldberechnung. Ein Eingabefeld ‚Gegeben' — die Servicekraft tippt den erhaltenen Betrag ein, und das Frontend zeigt die Differenz live an. Das ist reine UI-Logik, kein Backend-Aufruf." _(K-09)_
+**DEV2 (Tim):** „Das ist die Rückgeldberechnung. Ein Eingabefeld ‚Gegeben' — die Servicekraft tippt den erhaltenen Betrag ein, und das Frontend zeigt die Differenz live an. Das ist reine UI-Logik, kein Backend-Aufruf." _(K-10)_
 
 **DEV1 (Anna):** „Wichtig: Der ‚Gegeben'-Betrag wird **nicht** im Event gespeichert. Das Event enthält nur den Zahlungsbetrag — die Summe der gewählten Positionen. Die Rückgeldanzeige ist eine Hilfe für die Servicekraft, mehr nicht."
 
@@ -998,7 +998,7 @@ _(❤️ Hotspot: „Tagesabschluss mit offenen Tischen und System-Reset — Ver
 
 ### 4.4 Bondruck und Ausgabestationen
 
-#### Bon-Druck (K-11)
+#### Bon-Druck (K-12)
 
 **FAC (Lisa):** „Jetzt zum Cluster D: Bons und Ausgabestationen. Klaus, das ist dein Bereich."
 
@@ -1029,7 +1029,7 @@ _(❤️ Hotspot: „Tagesabschluss mit offenen Tischen und System-Reset — Ver
 
 _(❤️ Hotspot: „Drucker-Integration — Hardware-Anbindung, Fehlerbehandlung bei Druckerproblemen")_
 
-#### Küchendisplay / KDS (K-12)
+#### Küchendisplay / KDS (K-13)
 
 **VER1 (Klaus):** „Das Küchendisplay ist für mich das Wichtigste. Wenn ich an der Getränkeausgabe stehe, will ich auf einem Bildschirm sehen, welche Getränkebestellungen offen sind — gruppiert nach Tisch. Und die Küche braucht dasselbe für Essen."
 
@@ -1058,7 +1058,7 @@ _(❤️ Hotspot: „KDS-Architektur — Echtzeit-Datenfluss zur Küche/Ausgabe"
 
 **DEV2 (Tim):** „Genau. Das KDS ist eine eigene Ansicht im Browser, die per URL-Parameter oder Einstellung auf eine Kategorie gefiltert wird. Kein eigener Server, keine eigene App."
 
-#### Zubereitungsstatus (K-13)
+#### Zubereitungsstatus (K-14)
 
 **VER1 (Klaus):** „Jetzt kommt mein Wunsch: Wenn ich ein Getränk zubereite, will ich es als ‚in Zubereitung' markieren. Und wenn es fertig ist, als ‚fertig'. Dann weiß die Servicekraft, dass sie es abholen kann."
 
@@ -1145,7 +1145,7 @@ _(❤️ Hotspot: „Zubereitungsstatus — eigene Events oder transienter UI-St
     - Stornierung nur durch serviceleitung oder admin
 
     Events:
-    🟠 Bestellung aufgegeben (K-01, K-07)
+    🟠 Bestellung aufgegeben (K-01, K-08)
     🟠 Produkte geliefert (K-03)
     🟠 Zahlung registriert (K-02)
     🟠 Produkte storniert (K-04)
@@ -1207,7 +1207,7 @@ _(❤️ Hotspot: „Zubereitungsstatus — Teil des Tisch-Aggregats oder eigens
 
 **SRV2 (Maria):** „Warum nicht einfach den aktuellen Stand speichern?"
 
-**DEV1 (Anna):** „Gute Frage. Beim Tisch ist die Geschichte wichtig. Thomas will wissen: Wann hat wer was bestellt, wann bezahlt, wann storniert. Das Kassenjournal **ist** die Liste der Events (K-06). Wenn wir nur den aktuellen Saldo speichern würden, wäre die gesamte Historie verloren."
+**DEV1 (Anna):** „Gute Frage. Beim Tisch ist die Geschichte wichtig. Thomas will wissen: Wann hat wer was bestellt, wann bezahlt, wann storniert. Das Kassenjournal **ist** die Liste der Events (K-07). Wenn wir nur den aktuellen Saldo speichern würden, wäre die gesamte Historie verloren."
 
 **KAS (Eva):** „Aus Buchhaltungssicht ist das unverzichtbar. Ich muss jeden einzelnen Vorgang nachvollziehen können — für den Verein und eventuell fürs Finanzamt."
 
@@ -1230,7 +1230,7 @@ EVENT-SOURCING (append-only):
     🟡 Tisch (Kassenbetrieb) — Bestellungen, Lieferungen, Zahlungen, Stornierungen
     → Jede Operation wird als unveränderliches Event gespeichert
     → Der aktuelle Tischzustand wird aus dem Event-Stream berechnet
-    → Das Kassenjournal (K-06) IST der Event-Stream
+    → Das Kassenjournal (K-07) IST der Event-Stream
 
 CRUD (klassisch):
     🟡 Produkt — Anlegen, Bearbeiten, Deaktivieren (Soft-Delete)
@@ -1290,12 +1290,12 @@ CRUD (klassisch):
 
 **DEV1 (Anna):** „Wenn wir den Zubereitungsstatus als Events modellieren, kämen noch zwei dazu: ‚**PositionInZubereitungGesetzt**' und ‚**PositionFertigGemeldet**'. Aber das ist noch offen."
 
-**DEV2 (Tim):** „Und bei der Umbuchung (K-08): Da entstehen zwei Events — eine Stornierung am Quell-Tisch und eine Bestellung am Ziel-Tisch. Kein eigener Event-Typ, sondern eine Kombination bestehender Typen in einer atomaren Transaktion."
+**DEV2 (Tim):** „Und bei der Umbuchung (K-09): Da entstehen zwei Events — eine Stornierung am Quell-Tisch und eine Bestellung am Ziel-Tisch. Kein eigener Event-Typ, sondern eine Kombination bestehender Typen in einer atomaren Transaktion."
 
 ```
 Event-Typen des Tisch-Aggregats:
 
-🟠 BestellungAufgegeben (K-01, K-07)
+🟠 BestellungAufgegeben (K-01, K-08)
     Tisch-ID, Positionen [{Produkt, Variante, Menge, Einzelpreis}],
     opt. Kommentar, Servicekraft, Zeitstempel
 
@@ -1371,12 +1371,12 @@ Technische / Infrastruktur-Vorgänge (NICHT im Event-Stream):
 
 **FAC (Lisa):** „Fangen wir bei den Servicekräften an. Jonas, Maria, Felix — was braucht ihr auf dem Bildschirm?"
 
-**SRV1 (Jonas):** „Als erstes: Die Tischübersicht (K-05). Alle Tische auf einen Blick — wie Karten. Ich will sofort sehen, welcher Tisch offen ist und wie hoch der Saldo ist."
+**SRV1 (Jonas):** „Als erstes: Die Tischübersicht (K-06). Alle Tische auf einen Blick — wie Karten. Ich will sofort sehen, welcher Tisch offen ist und wie hoch der Saldo ist."
 
 **DEV2 (Tim):** _(klebt ein grünes Sticky)_ „Read Model: **Tischübersicht**."
 
 ```
-🟢 Read Model: TISCHÜBERSICHT (K-05)
+🟢 Read Model: TISCHÜBERSICHT (K-06)
     Quelle: Tisch-Events + Tisch-Stammdaten
     Inhalt pro Tisch:
     - Tischname
@@ -1392,7 +1392,7 @@ Technische / Infrastruktur-Vorgänge (NICHT im Event-Stream):
 **DEV1 (Anna):** „Read Model: **Tischdetails**."
 
 ```
-🟢 Read Model: TISCHDETAILS (K-05)
+🟢 Read Model: TISCHDETAILS (K-06)
     Quelle: Tisch-Events
     Inhalt:
     - Alle Positionen mit Status (bestellt / geliefert / bezahlt / storniert)
@@ -1404,16 +1404,16 @@ Technische / Infrastruktur-Vorgänge (NICHT im Event-Stream):
     Akteure: Servicekraft, Serviceleitung, Admin
 ```
 
-**SRL (Felix):** „Ich brauche auch die Schnellsuche (K-10). Wenn 30 Tische da sind, will ich nicht scrollen, sondern direkt die Nummer eingeben."
+**SRL (Felix):** „Ich brauche auch die Schnellsuche (K-11). Wenn 30 Tische da sind, will ich nicht scrollen, sondern direkt die Nummer eingeben."
 
 **DEV2 (Tim):** „Das ist kein eigenes Read Model, sondern ein Filter auf der Tischübersicht. Aber notieren wir es als Anforderung an die Ansicht."
 
-**KAS (Eva):** „Und das Kassenjournal (K-06)? Das hatten wir in Phase 3 als die vollständige Historie eines Tisches."
+**KAS (Eva):** „Und das Kassenjournal (K-07)? Das hatten wir in Phase 3 als die vollständige Historie eines Tisches."
 
 **DEV1 (Anna):** „Read Model: **Kassenjournal**. Das zeigt alle Events eines Tisches in chronologischer Reihenfolge — im Grunde der Event-Stream in menschenlesbarer Form."
 
 ```
-🟢 Read Model: KASSENJOURNAL (K-06)
+🟢 Read Model: KASSENJOURNAL (K-07)
     Quelle: Tisch-Events (Event-Stream)
     Inhalt:
     - Chronologische Liste aller Vorgänge am Tisch
@@ -1495,7 +1495,7 @@ Technische / Infrastruktur-Vorgänge (NICHT im Event-Stream):
 
 **DEV1 (Anna):** „Der Tagesabschluss ist weniger ein Read Model als ein Prozess: Offene Tische prüfen, Abschlussbericht generieren, optional das System zurücksetzen. Der Bericht selbst ist im Grunde die Tagesabrechnung (R-01) — aber mit einem formellen Abschluss-Charakter."
 
-#### Küchen- und Ausgabe-Ansichten (K-12, K-13)
+#### Küchen- und Ausgabe-Ansichten (K-13, K-14)
 
 **FAC (Lisa):** „Und jetzt die Ansichten für die Ausgabestationen. Klaus, was brauchst du?"
 
@@ -1504,7 +1504,7 @@ Technische / Infrastruktur-Vorgänge (NICHT im Event-Stream):
 **DEV2 (Tim):** „Read Model: **KDS-Ansicht** — gefiltert nach Kategorie."
 
 ```
-🟢 Read Model: KDS-ANSICHT (K-12)
+🟢 Read Model: KDS-ANSICHT (K-13)
     Quelle: Tisch-Events (BestellungAufgegeben), gefiltert nach Kategorie
     Inhalt:
     - Offene (ungelieferte) Positionen einer Kategorie (Essen ODER Getränke)
@@ -1514,12 +1514,12 @@ Technische / Infrastruktur-Vorgänge (NICHT im Event-Stream):
     Akteure: Ausgabe-Mitarbeiter (VER1), Servicekraft (Einsicht)
 ```
 
-**VER1 (Klaus):** „Und wenn wir den Zubereitungsstatus dazunehmen (K-13): Ich markiere eine Position als ‚in Zubereitung', und wenn sie fertig ist, als ‚fertig'. Dann sieht Jonas auf seinem Handy, dass er die Cola abholen kann."
+**VER1 (Klaus):** „Und wenn wir den Zubereitungsstatus dazunehmen (K-14): Ich markiere eine Position als ‚in Zubereitung', und wenn sie fertig ist, als ‚fertig'. Dann sieht Jonas auf seinem Handy, dass er die Cola abholen kann."
 
 **DEV1 (Anna):** „Dann brauchen wir eine erweiterte Ansicht — die KDS-Ansicht plus Zubereitungsstatus."
 
 ```
-🟢 Read Model: ZUBEREITUNGSSTATUS (K-13)
+🟢 Read Model: ZUBEREITUNGSSTATUS (K-14)
     Quelle: Tisch-Events (BestellungAufgegeben) + Zubereitungsstatus-Events
     Inhalt:
     - Offene Positionen mit Status: „offen" → „in Zubereitung" → „fertig"
@@ -1808,7 +1808,7 @@ Context-Map — Beziehungen:
 
 **FAC (Lisa):** „Genau. Gehen wir sie der Reihe nach durch."
 
-### 7.1 Tischumbuchung (K-08)
+### 7.1 Tischumbuchung (K-09)
 
 **FAC (Lisa):** „Der erste Hotspot kam in Phase 1 auf: Tischumbuchung — eine Bestellung nachträglich auf einen anderen Tisch umbuchen."
 
@@ -1833,11 +1833,11 @@ Context-Map — Beziehungen:
 - Wird der Kommentar „umgebucht von/auf Tisch X" automatisch gesetzt?
 - Nur Serviceleitung und Admin, oder auch Servicekraft?
 
-**Priorität:** Nice-to-have (K-08)
+**Priorität:** Nice-to-have (K-09)
 
 ---
 
-### 7.2 Bondruck und Drucker-Integration (K-11)
+### 7.2 Bondruck und Drucker-Integration (K-12)
 
 **FAC (Lisa):** „Dritter Hotspot: Bondruck und Drucker-Integration — die Hardware-Seite."
 
@@ -1864,11 +1864,11 @@ Context-Map — Beziehungen:
 - Fehlerbehandlung: Was passiert bei Druckerausfall? (Retry-Logik, Fehlermeldung an Servicekraft)
 - Nachdruck einzelner Positionen oder ganzer Bons?
 
-**Priorität:** Should-have (K-11)
+**Priorität:** Should-have (K-12)
 
 ---
 
-### 7.3 KDS-Architektur (K-12)
+### 7.3 KDS-Architektur (K-13)
 
 **FAC (Lisa):** „Vierter Hotspot: Das Küchendisplay — wie kommen die Bestelldaten in Echtzeit zur Küche und zur Getränkeausgabe?"
 
@@ -1893,11 +1893,11 @@ Context-Map — Beziehungen:
 - Reconnect-Verhalten bei Verbindungsabbruch?
 - Performance bei vielen gleichzeitigen Bestellungen?
 
-**Priorität:** Should-have (K-12)
+**Priorität:** Should-have (K-13)
 
 ---
 
-### 7.4 Zubereitungsstatus-Modellierung (K-13)
+### 7.4 Zubereitungsstatus-Modellierung (K-14)
 
 **FAC (Lisa):** „Fünfter Hotspot: Der Zubereitungsstatus — wie wird er technisch modelliert?"
 
@@ -1924,7 +1924,7 @@ Context-Map — Beziehungen:
 - Wie wird der Status beim Seitenrefresh wiederhergestellt? (nur relevant bei Event-Lösung)
 - Echtzeit-Benachrichtigung an Servicekräfte, wenn Status sich ändert? (gleiche Infrastruktur wie KDS)
 
-**Priorität:** Nice-to-have (K-13)
+**Priorität:** Nice-to-have (K-14)
 
 ---
 
@@ -2101,8 +2101,8 @@ Context-Map — Beziehungen:
 | **Must-have**    | K-02 | Zahlung registrieren                    | Teilzahlung möglich, reduziert Saldo, Positionen einzeln auswählbar       |
 | **Must-have**    | K-03 | Lieferung bestätigen                    | Nachverfolgung offener Positionen, wichtig für Servicekräfte              |
 | **Must-have**    | K-04 | Stornierung                             | Nur `serviceleitung` / `admin`, mit Pflichtbegründung                     |
-| **Must-have**    | K-05 | Tischübersicht und Navigation           | Startseite mit Tischkarten, Tap-Navigation zum Detail                     |
-| **Must-have**    | K-06 | Kassenjournal (Historie)                | Unveränderlicher Event Stream pro Tisch, Quelle der Wahrheit              |
+| **Must-have**    | K-06 | Tischübersicht und Navigation           | Startseite mit Tischkarten, Tap-Navigation zum Detail                     |
+| **Must-have**    | K-07 | Kassenjournal (Historie)                | Unveränderlicher Event Stream pro Tisch, Quelle der Wahrheit              |
 | **Must-have**    | S-01 | Produktverwaltung                       | CRUD mit Soft-Delete, Varianten mit Cent-Preisen                          |
 | **Must-have**    | S-02 | Tischverwaltung                         | CRUD mit Soft-Delete, nur aktive Tische im Service sichtbar               |
 | **Must-have**    | S-03 | Benutzerverwaltung                      | Drei Rollen (`admin`, `serviceleitung`, `service`), Soft-Delete           |
@@ -2114,18 +2114,18 @@ Context-Map — Beziehungen:
 | **Must-have**    | Q-03 | Validierung                             | Frontend (Zod) + Backend (zog), doppelte Absicherung                      |
 | **Must-have**    | Q-04 | Datenintegrität                         | Transaktionen, append-only Events, Cent-Beträge, Soft-Deletes             |
 | **Must-have**    | Q-06 | HTTPS / TLS                             | Let's Encrypt, nginx Reverse Proxy                                        |
-| **Should-have**  | K-11 | Bondruck                                | Automatisch nach Bestellung, getrennt nach Kategorie                      |
-| **Should-have**  | K-12 | Küchendisplay (KDS)                     | Echtzeit-Anzeige nach Kategorie, gruppiert nach Tisch                     |
+| **Should-have**  | K-12 | Bondruck                                | Automatisch nach Bestellung, getrennt nach Kategorie                      |
+| **Should-have**  | K-13 | Küchendisplay (KDS)                     | Echtzeit-Anzeige nach Kategorie, gruppiert nach Tisch                     |
 | **Should-have**  | Q-07 | Rate Limiting                           | Login-Endpunkt absichern gegen Brute-Force                                |
 | **Should-have**  | Q-08 | Security Headers                        | CSP, HSTS, X-Frame-Options, X-Content-Type-Options                        |
 | **Should-have**  | R-01 | Tagesabrechnung                         | Gesamtumsatz, Stornierungen, jederzeit abrufbar                           |
 | **Should-have**  | R-03 | Abrechnung pro Tisch                    | Detaillierte Aufstellung pro Tisch, chronologisch                         |
 | **Should-have**  | R-04 | Abrechnung pro Servicekraft             | Umsatz und Stornierungen pro Person, Transparenz                          |
 | **Should-have**  | R-05 | Produktumsatz-Reporting                 | Verkaufte Mengen, Ranking, Einnahmen pro Produkt                          |
-| **Nice-to-have** | K-08 | Bestellungen umbuchen                   | Hotspot: 2-Aggregat-Transaktion, Atomarität klären                        |
-| **Nice-to-have** | K-09 | Rückgeldberechnung                      | Reiner Anzeigeaspekt, clientseitige Berechnung                            |
-| **Nice-to-have** | K-10 | Tisch-Schnellsuche                      | Suchfeld/Nummernpad für schnelle Navigation                               |
-| **Nice-to-have** | K-13 | Ausgabestationen mit Zubereitungsstatus | Hotspot: Domain Events oder UI-State? Aggregat-Zuordnung klären           |
+| **Nice-to-have** | K-09 | Bestellungen umbuchen                   | Hotspot: 2-Aggregat-Transaktion, Atomarität klären                        |
+| **Nice-to-have** | K-10 | Rückgeldberechnung                      | Reiner Anzeigeaspekt, clientseitige Berechnung                            |
+| **Nice-to-have** | K-11 | Tisch-Schnellsuche                      | Suchfeld/Nummernpad für schnelle Navigation                               |
+| **Nice-to-have** | K-14 | Ausgabestationen mit Zubereitungsstatus | Hotspot: Domain Events oder UI-State? Aggregat-Zuordnung klären           |
 | **Nice-to-have** | Q-05 | Offline-Fähigkeit                       | Hotspot: PWA, lokale Persistierung, Synchronisation                       |
 | **Nice-to-have** | R-02 | Datenexport                             | CSV-Export für Vereinsbuchhaltung                                         |
 | **Nice-to-have** | R-06 | Tagesabschluss                          | Hotspot: Offene Tische, Archivierung, Veranstaltungs-Konzept              |
@@ -2233,12 +2233,12 @@ Diese Liste fasst alle in der Session identifizierten Domain Events, Commands, A
 
 | #   | Domain Event                       | Command                                 | Akteur                                | Anforderung | Policy / Nachfolge                                       |
 | --- | ---------------------------------- | --------------------------------------- | ------------------------------------- | ----------- | -------------------------------------------------------- |
-| 1   | 🟠 **BestellungAufgegeben**        | Bestellung aufgeben                     | Servicekraft / Serviceleitung / Admin | K-01, K-07  | Bon-Druck nach Kategorie (K-11); KDS aktualisiert (K-12) |
+| 1   | 🟠 **BestellungAufgegeben**        | Bestellung aufgeben                     | Servicekraft / Serviceleitung / Admin | K-01, K-08  | Bon-Druck nach Kategorie (K-12); KDS aktualisiert (K-13) |
 | 2   | 🟠 **ProdukteGeliefert**           | Lieferung bestätigen                    | Servicekraft / Serviceleitung / Admin | K-03        | Ungelieferte Positionen aktualisiert                     |
 | 3   | 🟠 **ZahlungRegistriert**          | Zahlung registrieren                    | Servicekraft / Serviceleitung / Admin | K-02        | Saldo aktualisiert; Tischkonto ggf. ausgeglichen         |
 | 4   | 🟠 **ProdukteStorniert**           | Positionen stornieren                   | Serviceleitung / Admin                | K-04        | 🟣 Nur `serviceleitung` / `admin`; Saldo aktualisiert    |
-| 5   | 🟠 PositionInZubereitungGesetzt ❤️ | Position als „in Zubereitung" markieren | Alle angemeldeten Benutzer            | K-13        | Hotspot: Domain Event oder UI-State?                     |
-| 6   | 🟠 PositionFertigGemeldet ❤️       | Position als „fertig" markieren         | Alle angemeldeten Benutzer            | K-13        | Hotspot: Domain Event oder UI-State?                     |
+| 5   | 🟠 PositionInZubereitungGesetzt ❤️ | Position als „in Zubereitung" markieren | Alle angemeldeten Benutzer            | K-14        | Hotspot: Domain Event oder UI-State?                     |
+| 6   | 🟠 PositionFertigGemeldet ❤️       | Position als „fertig" markieren         | Alle angemeldeten Benutzer            | K-14        | Hotspot: Domain Event oder UI-State?                     |
 
 **Invarianten des Tisch-Aggregats:**
 
@@ -2255,7 +2255,7 @@ Diese Liste fasst alle in der Session identifizierten Domain Events, Commands, A
 
 **Nicht formalisiert (Hotspot):**
 
-- Bestellung umgebucht (K-08) — 2-Aggregat-Transaktion: Storno am Quell-Tisch + Bestellung am Ziel-Tisch
+- Bestellung umgebucht (K-09) — 2-Aggregat-Transaktion: Storno am Quell-Tisch + Bestellung am Ziel-Tisch
 
 ### Stammdaten (Supporting Sub-Domain) — CRUD, kein Event-Sourcing
 
@@ -2278,9 +2278,9 @@ Diese Liste fasst alle in der Session identifizierten Domain Events, Commands, A
 
 | #   | Vorgang                  | Auslöser                             | Akteur | Anforderung | Anmerkung                                              |
 | --- | ------------------------ | ------------------------------------ | ------ | ----------- | ------------------------------------------------------ |
-| 20  | Küchenbon gedruckt       | 🟣 Policy: nach BestellungAufgegeben | System | K-11        | Essenspositionen → Küchendrucker                       |
-| 21  | Getränkebon gedruckt     | 🟣 Policy: nach BestellungAufgegeben | System | K-11        | Getränkepositionen → Getränkedrucker                   |
-| 22  | KDS-Ansicht aktualisiert | 🟣 Policy: nach BestellungAufgegeben | System | K-12        | Offene Positionen nach Kategorie, gruppiert nach Tisch |
+| 20  | Küchenbon gedruckt       | 🟣 Policy: nach BestellungAufgegeben | System | K-12        | Essenspositionen → Küchendrucker                       |
+| 21  | Getränkebon gedruckt     | 🟣 Policy: nach BestellungAufgegeben | System | K-12        | Getränkepositionen → Getränkedrucker                   |
+| 22  | KDS-Ansicht aktualisiert | 🟣 Policy: nach BestellungAufgegeben | System | K-13        | Offene Positionen nach Kategorie, gruppiert nach Tisch |
 
 ### Abrechnung (Supporting Sub-Domain) — Read-only, Projektionen über Kassenbetrieb-Events
 
@@ -2305,11 +2305,11 @@ Diese Liste fasst alle in der Session identifizierten Domain Events, Commands, A
 
 | Anforderung | Beschreibung                  | Abdeckung in der Session                                                 |
 | ----------- | ----------------------------- | ------------------------------------------------------------------------ |
-| K-05        | Tischübersicht und Navigation | 🟢 Read Model: Tischübersicht (Projektion aus Tisch-Events + Stammdaten) |
-| K-06        | Kassenjournal (Historie)      | 🟢 Read Model: Kassenjournal (Event-Stream in menschenlesbarer Form)     |
-| K-08        | Bestellungen umbuchen         | ❤️ Hotspot: 2-Aggregat-Transaktion, noch nicht formalisiert              |
-| K-09        | Rückgeldberechnung            | Reine UI-Logik (Frontend), kein Backend-Event                            |
-| K-10        | Tisch-Schnellsuche            | UI-Filter auf Tischübersicht, kein Event                                 |
+| K-06        | Tischübersicht und Navigation | 🟢 Read Model: Tischübersicht (Projektion aus Tisch-Events + Stammdaten) |
+| K-07        | Kassenjournal (Historie)      | 🟢 Read Model: Kassenjournal (Event-Stream in menschenlesbarer Form)     |
+| K-09        | Bestellungen umbuchen         | ❤️ Hotspot: 2-Aggregat-Transaktion, noch nicht formalisiert              |
+| K-10        | Rückgeldberechnung            | Reine UI-Logik (Frontend), kein Backend-Event                            |
+| K-11        | Tisch-Schnellsuche            | UI-Filter auf Tischübersicht, kein Event                                 |
 | Q-01        | Mobile-first / BYOD           | Architektur-Prinzip — kein Event                                         |
 | Q-02        | Mehrbenutzerfähigkeit         | Architektur-Prinzip — parallele Zugriffe auf Tisch-Aggregat              |
 | Q-03        | Validierung (Zod + zog)       | Querschnittliche Regel — Frontend + Backend                              |

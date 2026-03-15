@@ -31,7 +31,7 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen:
 | Kurzbezeichnung    | Code-Rolle       | Beschreibung                                                                 |
 | ------------------ | ---------------- | ---------------------------------------------------------------------------- |
 | **Admin**          | `admin`          | Voller Zugriff auf Stammdaten (Produkte, Tische, Benutzer) und Kassenbetrieb |
-| **Serviceleitung** | `serviceleitung` | Kassenbetrieb einschließlich Stornierung                                     |
+| **Serviceleitung** | `serviceleitung` | Kassenbetrieb einschließlich Stornierung und Auszahlung                      |
 | **Servicekraft**   | `service`        | Kassenbetrieb ohne Stornierung                                               |
 
 ### Berechtigungsmatrix
@@ -45,7 +45,8 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen:
 | Bestellung aufgeben      |   ✔   |       ✔        |      ✔       |
 | Lieferung bestätigen     |   ✔   |       ✔        |      ✔       |
 | Zahlung registrieren     |   ✔   |       ✔        |      ✔       |
-| Stornierung (K-04a/b)    |   ✔   |       ✔        |              |
+| Stornierung erteilen (K-04) |   ✔   |       ✔        |              |
+| Auszahlung leisten (K-05)  |   ✔   |       ✔        |              |
 | Umbuchung durchführen    |   ✔   |       ✔        |      ✔       |
 | Tischübersicht einsehen  |   ✔   |       ✔        |      ✔       |
 | Kassenjournal einsehen   |   ✔   |       ✔        |      ✔       |
@@ -107,45 +108,45 @@ Die Servicekraft markiert bestellte Positionen als geliefert, nachdem sie dem Ga
 - Lieferung wird als unveränderliches Event im Kassenjournal gespeichert
 - Gelieferte Positionen werden in der Tischübersicht als geliefert angezeigt
 
-### K-04a · Stornierung nicht-bezahlter Positionen
+### K-04 · Stornierung erteilen
 
-> **ID:** K-04a · **Rolle:** Serviceleitung · Admin
+> **ID:** K-04 · **Rolle:** Serviceleitung · Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
-Serviceleitung oder Admin können unbezahlte bestellte Positionen nachträglich stornieren — unabhängig vom Lieferstatus. Einfache Servicekräfte haben kein Stornierungsrecht. Die Stornierung reduziert den offenen Saldo des Tisches.
+Serviceleitung oder Admin können bestellte Positionen nachträglich stornieren — unabhängig davon, ob die Positionen bereits ausgegeben oder bezahlt wurden. Einfache Servicekräfte haben kein Stornierungsrecht. Die Stornierung reduziert den Saldo des Tisches; bei bereits bezahlten Positionen kann der Saldo temporär negativ werden.
 
 **Akzeptanzkriterien:**
 
 - Nur Serviceleitung (`serviceleitung`) und Admin (`admin`) dürfen stornieren
 - Servicekraft (`service`) hat keinen Zugriff auf die Stornierungsfunktion
-- Unbezahlte, nicht-stornierte Positionen sind stornierbar — unabhängig davon, ob sie bereits geliefert wurden
+- Alle nicht-stornierten Positionen sind stornierbar — unabhängig vom Ausgabe- und Bezahlstatus
 - Mindestens eine Position muss ausgewählt werden
 - Kommentar **erforderlich** (mind. 3, max. 100 Zeichen)
-- Stornierung wird als unveränderliches `ProdukteStorniert`-Event im Kassenjournal gespeichert
+- Stornierung wird als unveränderliches `StornierungErteilt`-Event im Kassenjournal gespeichert
 - Saldo des Tisches wird nach Stornierung korrekt reduziert
+- Negativer Saldo (bei Stornierung bereits bezahlter Positionen) ist ein erwarteter Zustand und wird in der UI prominent hervorgehoben
 
-### K-04b · Stornierung bereits bezahlter Positionen (Rückzahlung)
+### K-05 · Auszahlung leisten
 
-> **ID:** K-04b · **Rolle:** Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Should-have
+> **ID:** K-05 · **Rolle:** Serviceleitung · Admin
+> **Status:** ✅ Umgesetzt · **Prio:** Should-have
 
-Serviceleitung oder Admin können auch bereits bezahlte Positionen nachträglich stornieren. Da der Gast bereits gezahlt hat, entsteht ein negativer Saldo am Tisch — das System registriert die Rückzahlung als eigenes Event und korrigiert den Umsatz im Reporting entsprechend.
+Serviceleitung oder Admin können eine Auszahlung leisten, um einen negativen Tischsaldo auszugleichen. Die Auszahlung ist eine eigenständige Operation ohne Positionsbezug — sie ist unabhängig von der Stornierung (K-04) und kann jederzeit durchgeführt werden.
 
 **Akzeptanzkriterien:**
 
-- Bereits bezahlte, nicht-stornierte Positionen sind stornierbar (wie K-04a)
-- Kommentar für die Stornierung **erforderlich** (mind. 3, max. 100 Zeichen)
-- Auszahlung ist eine eigenständige, von der Stornierung unabhängige Operation
-- Auszahlungsbetrag ist frei wählbar (≥ 1 Cent); bei negativem Tischsaldo wird der Betrag im UI vorausgefüllt
-- Kommentar für die Auszahlung **erforderlich** (mind. 3, max. 100 Zeichen)
+- Nur Serviceleitung (`serviceleitung`) und Admin (`admin`) dürfen Auszahlungen leisten
+- Auszahlung ist positionsunabhängig — kein Bezug zu einzelnen Bestellpositionen
+- Auszahlungsbetrag frei wählbar (≥ 1 Cent, kein Float); bei negativem Tischsaldo wird der Absolutbetrag im UI vorausgefüllt
+- Kommentar **erforderlich** (mind. 3, max. 100 Zeichen)
 - Auszahlung wird als unveränderliches `AuszahlungGeleistet`-Event im Kassenjournal gespeichert
 - Saldo des Tisches wird nach Auszahlung korrekt erhöht (kann positiv, null oder weiterhin negativ sein)
 - Negativer Saldo wird in der UI prominent hervorgehoben (Tischkarte + Tisch-Detail + Bezahlen-Tab)
 - Reporting: `GetReportingStats`, `GetUmsatzProServicekraft`, `GetUmsatzProTisch` berücksichtigen Auszahlungen korrekt
 
-### K-05 · Tischübersicht und Navigation
+### K-06 · Tischübersicht und Navigation
 
-> **ID:** K-05 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **ID:** K-06 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
 Die Servicekraft sieht auf der Startseite alle aktiven Tische als Karten und navigiert per Tap zum Tisch-Detail. Dort stehen die Tischoperationen in drei Tabs zur Verfügung: Bestellen, Bezahlen und Historie. Liefern ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar. Tischoperationen öffnen als Drawer (Overlay von unten).
@@ -160,9 +161,9 @@ Die Servicekraft sieht auf der Startseite alle aktiven Tische als Karten und nav
 - Operationen öffnen als Drawer (Mobile-optimiertes Overlay)
 - Unbezahlte und ungelieferte Positionen sind auf dem Tisch-Detail sichtbar
 
-### K-06 · Kassenjournal (Historie)
+### K-07 · Kassenjournal (Historie)
 
-> **ID:** K-06 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **ID:** K-07 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
 Jeder Tisch führt ein unveränderliches Kassenjournal (Event Stream), das alle Operationen chronologisch protokolliert. Das Journal ist die einzige Quelle der Wahrheit für den Zustand eines Tisches (Event-Sourcing). Snapshots optimieren die Ladezeit bei langen Journalen.
@@ -175,18 +176,18 @@ Jeder Tisch führt ein unveränderliches Kassenjournal (Event Stream), das alle 
 - Der aktuelle Tischzustand (Saldo, unbezahlte/ungelieferte Positionen) wird aus dem Event Stream berechnet
 - Snapshots werden zur Performance-Optimierung erstellt, haben aber keine fachliche Bedeutung
 
-### K-07 · Bezeichnung pro Bestellung
+### K-08 · Bezeichnung pro Bestellung
 
-> **ID:** K-07 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **ID:** K-08 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** � Won't-have · **Prio:** ~~Nice-to-have~~
 
 ~~Einer Bestellung kann ein optionaler Name oder eine Bezeichnung zugewiesen werden (z. B. „Familie Müller", „Gruppe links"), um mehrere Gruppen an einem Tisch unterscheiden zu können.~~
 
-**Entscheidung:** Wird über das bestehende Kommentarfeld der Bestellung gelöst (K-01, max. 100 Zeichen). Der Kommentar wird bereits in der Tisch-Historie (K-06) angezeigt. Ein eigenes Bezeichnungsfeld ist daher nicht notwendig.
+**Entscheidung:** Wird über das bestehende Kommentarfeld der Bestellung gelöst (K-01, max. 100 Zeichen). Der Kommentar wird bereits in der Tisch-Historie (K-07) angezeigt. Ein eigenes Bezeichnungsfeld ist daher nicht notwendig.
 
-### K-08 · Bestellungen umbuchen
+### K-09 · Bestellungen umbuchen
 
-> **ID:** K-08 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **ID:** K-09 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
 Serviceleitung oder Admin können eine Bestellung nachträglich auf einen anderen Tisch umbuchen, um Eingabefehler zu korrigieren. Das Umbuchen erzeugt eine Stornierung am Quell-Tisch und eine neue Bestellung am Ziel-Tisch in einer atomaren Operation.
@@ -197,9 +198,9 @@ Serviceleitung oder Admin können eine Bestellung nachträglich auf einen andere
 - Umbuchung erzeugt eine Stornierung am Quell-Tisch und eine neue Bestellung am Ziel-Tisch
 - Umbuchung erfolgt atomar (beide Operationen in einer Transaktion)
 
-### K-09 · Rückgeldberechnung
+### K-10 · Rückgeldberechnung
 
-> **ID:** K-09 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **ID:** K-10 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
 Bei der Zahlung kann die Servicekraft den vom Gast erhaltenen Bargeldbetrag eingeben. Das System berechnet und zeigt das Rückgeld an. Die Berechnung erfolgt rein clientseitig.
@@ -210,9 +211,9 @@ Bei der Zahlung kann die Servicekraft den vom Gast erhaltenen Bargeldbetrag eing
 - System berechnet und zeigt das Rückgeld an
 - Berechnung erfolgt rein clientseitig (kein Backend-Aufruf)
 
-### K-10 · Tisch-Schnellsuche
+### K-11 · Tisch-Schnellsuche
 
-> **ID:** K-10 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **ID:** K-11 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
 Auf der Tischübersicht kann die Servicekraft über ein Suchfeld oder Nummernpad direkt eine Tischnummer eingeben, um schnell zum gewünschten Tisch zu navigieren — ohne durch die Karten scrollen zu müssen.
@@ -222,9 +223,9 @@ Auf der Tischübersicht kann die Servicekraft über ein Suchfeld oder Nummernpad
 - Suchfeld oder Nummernpad auf der Tischübersicht
 - Direkte Navigation zum gesuchten Tisch per Eingabe der Tischnummer
 
-### K-11 · Bondruck
+### K-12 · Bondruck
 
-> **ID:** K-11 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **ID:** K-12 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Should-have
 
 Bons werden automatisch oder manuell gedruckt, damit Ausgabestationen (Küche, Getränketheke) die bestellten Positionen erhalten. Bons enthalten alle relevanten Informationen: Tisch, Servicekraft, Positionen mit Mengen, Zeitstempel und optionalen Kommentar.
@@ -237,9 +238,9 @@ Bons werden automatisch oder manuell gedruckt, damit Ausgabestationen (Küche, G
 - Essenspositionen werden automatisch an den Küchendrucker gesendet
 - Drucker sind vom Admin konfigurierbar (Zuordnung Drucker zu Kategorie)
 
-### K-12 · Küchendisplay (KDS)
+### K-13 · Küchendisplay (KDS)
 
-> **ID:** K-12 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **ID:** K-13 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Should-have
 
 Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eigenen Bildschirm in Echtzeit die eingehenden Bestellungen ihrer Kategorie. Das Display dient als passive Anzeige — es zeigt offene Bestellungen gruppiert nach Tisch, sodass Ausgabestationen auch bei Bon-Verlust die Bestellungen nachvollziehen können.
@@ -250,12 +251,12 @@ Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eig
 - Getränkeausgabe sieht offene Getränkebestellungen, Essensausgabe sieht offene Essensbestellungen
 - Letzte Bestellungen sind einsehbar (bei Bon-Verlust)
 
-### K-13 · Ausgabestationen mit Zubereitungsstatus
+### K-14 · Ausgabestationen mit Zubereitungsstatus
 
-> **ID:** K-13 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **ID:** K-14 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
-Aufbauend auf dem Küchendisplay (K-12) können Mitarbeiter an Ausgabestationen den Zubereitungsstatus einzelner Positionen verwalten. Servicekräfte sehen den Zubereitungsstatus und wissen, wann Positionen abholbereit sind.
+Aufbauend auf dem Küchendisplay (K-13) können Mitarbeiter an Ausgabestationen den Zubereitungsstatus einzelner Positionen verwalten. Servicekräfte sehen den Zubereitungsstatus und wissen, wann Positionen abholbereit sind.
 
 **Akzeptanzkriterien:**
 

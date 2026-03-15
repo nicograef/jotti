@@ -28,7 +28,7 @@ Servicekräfte nehmen Bestellungen auf, liefern aus, kassieren und stornieren �
 | Anforderung                                                                                                             | Relevanz                                                                                                         |
 | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | **K-01–K-04** (Bestellen, Zahlen, Liefern, Stornieren) — „wird als unveränderliches Event im Kassenjournal gespeichert" | Alle vier Kernoperationen fordern unveränderliche Persistenz.                                                    |
-| **K-06** (Kassenjournal) — „Events sind unveränderlich, Tischzustand wird aus Event Stream berechnet"                   | K-06 setzt Event Sourcing als Implementierung voraus (→ siehe Transparenzhinweis unten).                         |
+| **K-07** (Kassenjournal) — „Events sind unveränderlich, Tischzustand wird aus Event Stream berechnet"                   | K-07 setzt Event Sourcing als Implementierung voraus (→ siehe Transparenzhinweis unten).                         |
 | **Q-04** (Datenintegrität) — „Tischzustand ausschließlich aus Event Stream berechnet"                                   | Setzt ES als Implementierung voraus (→ siehe Transparenzhinweis unten).                                          |
 | **Q-02** (Mehrbenutzerfähigkeit) — „Gleichzeitige Operationen am selben Tisch ohne Datenverlust"                        | Erfordert Concurrency Control. ES: OCC über `(subject, version)`. CRUD: Multi-Table-Locking oder Row-Versioning. |
 
@@ -36,10 +36,10 @@ Servicekräfte nehmen Bestellungen auf, liefern aus, kassieren und stornieren �
 
 | Anforderung                                                                  | Auswirkung                                                                                                                |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **K-05** (Tischübersicht) — Saldo und Zähler für alle aktiven Tische         | ES ohne Projektion: N separate Event-Replays. CRUD: 1 aggregierendes SELECT. ES + Projektion: 1 SELECT auf `table_state`. |
+| **K-06** (Tischübersicht) — Saldo und Zähler für alle aktiven Tische         | ES ohne Projektion: N separate Event-Replays. CRUD: 1 aggregierendes SELECT. ES + Projektion: 1 SELECT auf `table_state`. |
 | **R-01–R-05** (Reporting) — Tagesabrechnung, Umsatz pro Produkt/Servicekraft | ES: JSONB-Parsing über alle Events. CRUD: Standard-SQL-Aggregation. ES + Projektion: Hybrid.                              |
 
-> **Transparenzhinweis — Zirkuläre Abhängigkeit:** Die Anforderungen K-06 und Q-04 formulieren Event Sourcing als _Anforderung_, nicht als _Lösung_. Diese ADR begründet die Entscheidung unter anderem mit diesen Anforderungen. Das ist zirkulär. Die Entscheidung stützt sich daher primär auf die fachliche Analyse (§ Begründung), nicht auf K-06/Q-04. Diese beiden Anforderungen werden als _konsistent mit_ der Entscheidung gewertet, nicht als _Treiber_ der Entscheidung.
+> **Transparenzhinweis — Zirkuläre Abhängigkeit:** Die Anforderungen K-07 und Q-04 formulieren Event Sourcing als _Anforderung_, nicht als _Lösung_. Diese ADR begründet die Entscheidung unter anderem mit diesen Anforderungen. Das ist zirkulär. Die Entscheidung stützt sich daher primär auf die fachliche Analyse (§ Begründung), nicht auf K-07/Q-04. Diese beiden Anforderungen werden als _konsistent mit_ der Entscheidung gewertet, nicht als _Treiber_ der Entscheidung.
 
 ### ACL-Problem (Anti-Corruption Layer)
 
@@ -96,7 +96,7 @@ JOIN positionen p ON p.bestellung_id = b.id
 WHERE b.tisch_id = 42;
 ```
 
-**Kassenjournal (K-06) als UNION:**
+**Kassenjournal (K-07) als UNION:**
 
 ```sql
 SELECT 'bestellung' AS typ, b.created_at, b.user_name, ...
@@ -130,7 +130,7 @@ ORDER BY created_at ASC;
 - ❌ **OCC über mehrere Tabellen.** Kein natürlicher Serialisierungspunkt pro Tisch.
 - ❌ **8+ Tabellen** statt 1. Mehr Schema, mehr Migrations, mehr Repository-Code, mehr sqlc-Queries.
 - ❌ **Denormalisierte Produktdaten** (Fat Data) funktional identisch zu Fat Events, aber weniger explizit als Architekturentscheidung.
-- ❌ **Widerspricht K-06 und Q-04 direkt.** Die Anforderungen müssten umformuliert werden.
+- ❌ **Widerspricht K-07 und Q-04 direkt.** Die Anforderungen müssten umformuliert werden.
 
 **Gesamtbewertung:** Technisch machbar. Für jottis Domäne (Kassensystem mit Buchführungs-Charakter) erzwingt CRUD ein zustandsbasiertes Modell auf eine vorgangsbasierte Domäne. Die Vereinfachung auf SQL-Ebene wird durch Audit-Komplexität, OCC-Probleme und Schema-Fragmentierung an anderer Stelle erkauft.
 
@@ -159,7 +159,7 @@ ORDER BY created_at ASC;
 **Nachteile:**
 
 - ❌ **JSONB ohne DB-Typsicherheit.** Event-Payloads sind unstrukturiert auf DB-Ebene. Validierung nur in der Anwendung (zog).
-- ❌ **Event Replay bei jedem Read.** K-05 (Tischübersicht mit 50 Tischen) = 50 separate Replays pro Seitenaufruf.
+- ❌ **Event Replay bei jedem Read.** K-06 (Tischübersicht mit 50 Tischen) = 50 separate Replays pro Seitenaufruf.
 - ❌ **Snapshot-as-Event ist ein Anti-Pattern.** Infrastruktur-Artefakt (`tisch.snapshot:v1`) im fachlichen Event Stream. Vermischt Domänen-Events mit Optimierungs-Artefakten.
 - ❌ **Ad-hoc-SQL-Analysen** erfordern JSONB-Parsing. Nicht trivial für Reporting.
 - ❌ **Höhere Einstiegshürde.** Event Replay, OCC-Versionierung — Konzepte, die über Standard-CRUD hinausgehen.
@@ -214,7 +214,7 @@ CREATE TABLE table_state (
 **Vorteile:**
 
 - ✅ **Alle ES-Vorteile bleiben erhalten** (Audit Trail, Immutabilität, natürliches Domänenmodell, OCC, Fat Events)
-- ✅ **K-05 (Tischübersicht) wird trivial:** `SELECT * FROM table_state` statt N Event-Replays
+- ✅ **K-06 (Tischübersicht) wird trivial:** `SELECT * FROM table_state` statt N Event-Replays
 - ✅ **Snapshot-as-Event wird eliminiert** — `tisch.snapshot:v1` muss nicht mehr erzeugt werden
 - ✅ **Reporting profitiert** — Saldo und Positionen sind vorberechnet, kombinierbar mit `events`-Tabelle
 - ✅ **Strong Consistency** — Projektion in derselben TX wie Event-INSERT, kein Stale State
@@ -244,7 +244,7 @@ Konvergiert strukturell auf Event Sourcing — ohne dessen Vorteile (einheitlich
 | Fachliche Passung     |  **Hoch**   |    ⭐⭐    | ⭐⭐⭐⭐⭐  |     ⭐⭐⭐⭐⭐     |     ⭐⭐⭐     |
 | Audit-Trail           |  **Hoch**   |    ⭐⭐    | ⭐⭐⭐⭐⭐  |     ⭐⭐⭐⭐⭐     |    ⭐⭐⭐⭐    |
 | Unveränderlichkeit    |  **Hoch**   |   ⭐⭐⭐   | ⭐⭐⭐⭐⭐  |     ⭐⭐⭐⭐⭐     |    ⭐⭐⭐⭐    |
-| Read-Performance K-05 | **Mittel**  | ⭐⭐⭐⭐⭐ |    ⭐⭐     |     ⭐⭐⭐⭐⭐     |    ⭐⭐⭐⭐    |
+| Read-Performance K-06 | **Mittel**  | ⭐⭐⭐⭐⭐ |    ⭐⭐     |     ⭐⭐⭐⭐⭐     |    ⭐⭐⭐⭐    |
 | Reporting R-01–R-05   | **Mittel**  | ⭐⭐⭐⭐⭐ |    ⭐⭐     |      ⭐⭐⭐⭐      |    ⭐⭐⭐⭐    |
 | Schema-Einfachheit    | **Mittel**  |    ⭐⭐    | ⭐⭐⭐⭐⭐  |      ⭐⭐⭐⭐      |      ⭐⭐      |
 | OCC-Einfachheit       | **Mittel**  |    ⭐⭐    | ⭐⭐⭐⭐⭐  |     ⭐⭐⭐⭐⭐     |      ⭐⭐      |
@@ -280,7 +280,7 @@ Wenn Geldbeträge im Spiel sind, muss Manipulation auf DB-Ebene verhindert werde
 
 ### 3. Audit Trail = Event Stream — ein Mechanismus
 
-Der Event Stream IST das Kassenjournal (K-06). Bei CRUD müsste man einen separaten Audit-Mechanismus bauen, der funktional dasselbe leistet, aber ohne die Garantie, dass der Audit Trail die _einzige_ Wahrheitsquelle ist.
+Der Event Stream IST das Kassenjournal (K-07). Bei CRUD müsste man einen separaten Audit-Mechanismus bauen, der funktional dasselbe leistet, aber ohne die Garantie, dass der Audit Trail die _einzige_ Wahrheitsquelle ist.
 
 ### 4. Fat Events lösen das ACL-Problem explizit
 
@@ -379,4 +379,4 @@ Bei jottis aktuellem Scope (4 fachliche Event-Typen, < 10k Events, bewusster Fea
 
 - [ADR: CQRS](cqrs.md) — Projektionsarchitektur, Stufen-Modell, `table_state`-Details
 - [Handbuch §3](../design/handbuch.md) — Domain-Modell, Tisch-Aggregat, Invarianten, Event Replay
-- [Anforderungen](../anforderungen.md) — K-01–K-06, Q-02, Q-04, R-01–R-05
+- [Anforderungen](../anforderungen.md) — K-01–K-07, Q-02, Q-04, R-01–R-05

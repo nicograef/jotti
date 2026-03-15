@@ -241,7 +241,7 @@ StornierungErteilt
 
 #### AuszahlungGeleistet
 
-Serviceleitung oder Admin leistet eine Auszahlung, um einen negativen Saldo auszugleichen (K-04b). Freier Betrag, kein Positionsbezug.
+Serviceleitung oder Admin leistet eine Auszahlung, um einen negativen Saldo auszugleichen (K-05). Freier Betrag, kein Positionsbezug.
 
 ```
 AuszahlungGeleistet
@@ -296,8 +296,8 @@ Die `ApplyEvent()`-Funktion (`backend/domain/table/projection.go`) ist eine rein
 ### 3.5 Policies
 
 - **Stornierungsberechtigung (K-04):** Nur `serviceleitung` und `admin` dürfen `StornierungErteilen`. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat geht.
-- **Automatischer Bon-Druck nach Kategorie (K-11):** Bei `BestellungAufgenommen` wird ein Bon pro Kategorie an die zugeordnete Ausgabestation gesendet (Essen → Küchenbon, Getränke → Thekenbon). Kategorie-Drucker-Zuordnung in den Stammdaten konfiguriert.
-- **Umbuchung (K-08):** Verschiebt eine Bestellung von Quell- auf Ziel-Tisch (= Stornierung + neue Bestellung). Cross-Aggregat-Transaktion — Atomarität auf Anwendungsebene sicherstellen. Nur `serviceleitung` und `admin`.
+- **Automatischer Bon-Druck nach Kategorie (K-12):** Bei `BestellungAufgenommen` wird ein Bon pro Kategorie an die zugeordnete Ausgabestation gesendet (Essen → Küchenbon, Getränke → Thekenbon). Kategorie-Drucker-Zuordnung in den Stammdaten konfiguriert.
+- **Umbuchung (K-09):** Verschiebt eine Bestellung von Quell- auf Ziel-Tisch (= Stornierung + neue Bestellung). Cross-Aggregat-Transaktion — Atomarität auf Anwendungsebene sicherstellen. Nur `serviceleitung` und `admin`.
 
 ---
 
@@ -577,10 +577,10 @@ Read Models sind aufbereitete Lese-Ansichten — reine Projektionen über vorhan
 
 | Name           | ID   | Quelle                              | Inhalt (Kurzfassung)                                                                                                         |
 | -------------- | ---- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Tischübersicht | K-05 | `table_state` + Stammdaten          | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ausstehender Positionen. Startseite des Service-Bereichs.            |
-| Tischdetails   | K-05 | `table_state`                       | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren, Historie. |
+| Tischübersicht | K-06 | `table_state` + Stammdaten          | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ausstehender Positionen. Startseite des Service-Bereichs.            |
+| Tischdetails   | K-06 | `table_state`                       | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren, Historie. |
 | Produktkatalog | —    | Produkt-Stammdaten                  | Aktive Produkte und Varianten, nach Kategorie gruppiert. Im Bestellvorgang geladen (kein eigenes Navigationsziel).           |
-| Kassenjournal  | K-06 | Tisch-Events (Event Stream, Replay) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich. |
+| Kassenjournal  | K-07 | Tisch-Events (Event Stream, Replay) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich. |
 
 Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchronen Projektionstabelle `table_state` — kein Event-Replay nötig. Das Kassenjournal liest weiterhin den vollständigen Event Stream, da die Historie _der_ Event Stream ist. Details zur Projektionsarchitektur: [ADR: CQRS](../adr/cqrs.md).
 
@@ -601,7 +601,7 @@ Es gibt kein separates Live-Dashboard und kein Polling; das Reporting wird gezie
 
 ### 7.3 Ausgabe-Ansichten
 
-KDS-Ansicht (K-12) und Zubereitungsstatus (K-13) sind nicht Teil des MVP. Details in `entwurf.md` Kap. 8.3.
+KDS-Ansicht (K-13) und Zubereitungsstatus (K-14) sind nicht Teil des MVP. Details in `entwurf.md` Kap. 8.3.
 
 ---
 
@@ -617,8 +617,8 @@ Drei Stufen: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wic
 | K-02 | Zahlung kassieren           |
 | K-03 | Ausgabe bestätigen          |
 | K-04 | Stornierung                 |
-| K-05 | Tischübersicht / Navigation |
-| K-06 | Kassenjournal (Historie)    |
+| K-06 | Tischübersicht / Navigation |
+| K-07 | Kassenjournal (Historie)    |
 | S-01 | Produktverwaltung           |
 | S-02 | Tischverwaltung             |
 | S-03 | Benutzerverwaltung          |
@@ -635,8 +635,9 @@ Drei Stufen: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wic
 
 | ID   | Anforderung                 |
 | ---- | --------------------------- |
-| K-11 | Bondruck                    |
-| K-12 | Küchendisplay (KDS)         |
+| K-05 | Auszahlung leisten          |
+| K-12 | Bondruck                    |
+| K-13 | Küchendisplay (KDS)         |
 | Q-07 | Rate Limiting               |
 | Q-08 | Security Headers            |
 | R-01 | Tagesabrechnung             |
@@ -648,10 +649,10 @@ Drei Stufen: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wic
 
 | ID   | Anforderung                             |
 | ---- | --------------------------------------- |
-| K-08 | Bestellungen umbuchen                   |
-| K-09 | Rückgeldberechnung                      |
-| K-10 | Tisch-Schnellsuche                      |
-| K-13 | Ausgabestationen mit Zubereitungsstatus |
+| K-09 | Bestellungen umbuchen                   |
+| K-10 | Rückgeldberechnung                      |
+| K-11 | Tisch-Schnellsuche                      |
+| K-14 | Ausgabestationen mit Zubereitungsstatus |
 | Q-05 | Offline-Fähigkeit                       |
 | R-02 | Datenexport                             |
 | R-06 | Tagesabschluss                          |

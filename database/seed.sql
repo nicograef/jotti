@@ -3252,7 +3252,7 @@ COMMIT;
 --   Stehtisch Eingang         |  78 Events | Abgeschlossen (Saldo = 0)
 --   Stehtisch Terrasse        |  50 Events | Offener Saldo (1500 Cent = 15.00 EUR)
 --
--- SZENARIEN FÜR NEUE FEATURES (K-04a/K-04b):
+-- SZENARIEN FÜR NEUE FEATURES (K-04/K-05):
 --   Tisch 4:  Stornierung (v4, Gulasch, Kind) → Auszahlung (v58, sofort)
 --   Tisch 5:  Stornierung (v13, Flammkuchen kalt) → Auszahlung AUSSTEHEND (-750ct)
 --   Tisch 9:  Stornierung (v85, Brezel hart) → Auszahlung (v86, sofort)

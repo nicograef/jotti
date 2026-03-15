@@ -150,7 +150,7 @@ Die nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung ode
 
 ### Auszahlung
 
-Auszahlung eines Betrags an den Gast, um einen negativen Saldo auszugleichen — entsteht, wenn bereits kassierte Positionen nachträglich storniert werden (K-04b). Kein Positionsbezug; freier Betrag (≥ 1 Cent). Erzeugt ein `AuszahlungGeleistet`-Event.
+Auszahlung eines Betrags an den Gast, um einen negativen Saldo auszugleichen — entsteht, wenn bereits kassierte Positionen nachträglich storniert werden (K-05). Kein Positionsbezug; freier Betrag (≥ 1 Cent). Erzeugt ein `AuszahlungGeleistet`-Event.
 
 | Schicht             | Repräsentation                                                                                 | Datei                                              |
 | ------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------- |

@@ -14,7 +14,7 @@ Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht autom
 
 Alle funktionalen und querschnittlichen Anforderungen mit Akzeptanzkriterien, Priorisierung (Must/Should/Nice-to-have) und Status (✅/🔲/🚫).
 
-- **§1 Kassenbetrieb:** K-01 Bestellung aufnehmen, K-02 Zahlung kassieren, K-03 Ausgabe bestätigen, K-04 Stornierung, K-05 Tischübersicht, K-06 Kassenjournal, K-07–K-13 (Umbuchung, Rückgeld, Schnellsuche, Bondruck, KDS, Ausgabestationen)
+- **§1 Kassenbetrieb:** K-01 Bestellung aufnehmen, K-02 Zahlung kassieren, K-03 Ausgabe bestätigen, K-04 Stornierung, K-05 Auszahlung, K-06 Tischübersicht, K-07 Kassenjournal, K-08–K-14 (Umbuchung, Rückgeld, Schnellsuche, Bondruck, KDS, Ausgabestationen)
 - **§2 Stammdaten:** S-01 Produktverwaltung, S-02 Tischverwaltung, S-03 Benutzerverwaltung
 - **§3 Auth:** A-01 Login, A-02 Passwort setzen, A-03 Logout
 - **§4 Querschnitt:** Q-01 Mobile-first, Q-02 Mehrbenutzerfähigkeit, Q-03 Validierung, Q-04 Datenintegrität, Q-05–Q-08 (Offline, HTTPS, Rate Limiting, Security Headers)
