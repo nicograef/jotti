@@ -1,0 +1,41 @@
+{
+  "name": "jotti",
+  "short_name": "jotti",
+  "description": "Das kostenlose Kassensystem für Vereinsfeste.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#7c3aed",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "/icons/jotti-icon-light-16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/jotti-icon-light-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/jotti-icon-light-64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/jotti-logo-icon-light.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/jotti-logo-icon-dark.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
