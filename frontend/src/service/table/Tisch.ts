@@ -24,3 +24,21 @@ export const TischStateSchema = z.object({
   gesamtZahlungenCents: z.number().int(),
 })
 export type TischState = z.infer<typeof TischStateSchema>
+
+export const AktiverTischMitFavoritSchema = z.object({
+  id: TischIdSchema,
+  name: z.string(),
+  saldoCents: z.number().int(),
+  istFavorit: z.boolean(),
+})
+export type AktiverTischMitFavorit = z.infer<
+  typeof AktiverTischMitFavoritSchema
+>
+
+export const EigeneUebersichtSchema = z.object({
+  anzahlBestellungen: z.number().int(),
+  bestellungenCents: z.number().int(),
+  anzahlZahlungen: z.number().int(),
+  zahlungenCents: z.number().int(),
+})
+export type EigeneUebersicht = z.infer<typeof EigeneUebersichtSchema>

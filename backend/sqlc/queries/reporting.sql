@@ -87,3 +87,16 @@ ORDER BY zahlungen_cents DESC;
 SELECT COALESCE(SUM(ABS(saldo_cents)), 0)::int AS ausstehend_auszahlungen_cents
 FROM table_state
 WHERE saldo_cents < 0;
+
+-- name: GetEigeneUebersicht :one
+-- Service-Dashboard: Eigene KPIs der eingeloggten Servicekraft (allzeit).
+SELECT
+    COALESCE(COUNT(CASE WHEN type = 'tisch.bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
+    COALESCE(SUM(CASE WHEN type = 'tisch.bestellung-aufgenommen:v1'
+        THEN (data->>'gesamtPreisCents')::int END), 0)::int AS bestellungen_cents,
+    COALESCE(COUNT(CASE WHEN type = 'tisch.zahlung-kassiert:v1' THEN 1 END), 0)::int AS anzahl_zahlungen,
+    COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-kassiert:v1'
+        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents
+FROM events
+WHERE type IN ('tisch.bestellung-aufgenommen:v1', 'tisch.zahlung-kassiert:v1')
+AND user_id = @user_id;

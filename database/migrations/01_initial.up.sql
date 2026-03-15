@@ -163,4 +163,18 @@ CREATE TABLE table_state (
 
 COMMENT ON TABLE table_state IS 'Synchronous CQRS projection of per-table state, updated within the event-write transaction';
 
+-- ============================================================
+-- Table: tisch_favoriten (per-user favorite tables)
+-- ============================================================
+CREATE TABLE tisch_favoriten (
+    user_id INT REFERENCES users(id) NOT NULL,
+    tisch_id INT REFERENCES tische(id) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, tisch_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_tisch_favoriten_user_id ON tisch_favoriten(user_id);
+
+COMMENT ON TABLE tisch_favoriten IS 'Per-user favourite tables; each service user can mark tables they are responsible for.';
+
 COMMIT;

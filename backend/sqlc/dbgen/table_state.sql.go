@@ -8,6 +8,8 @@ package dbgen
 import (
 	"context"
 	"encoding/json"
+
+	"github.com/lib/pq"
 )
 
 const deleteAllTableState = `-- name: DeleteAllTableState :exec
@@ -38,6 +40,43 @@ func (q *Queries) GetTableState(ctx context.Context, tischID int) (TableState, e
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getTableStatesByTischIDs = `-- name: GetTableStatesByTischIDs :many
+SELECT tisch_id, saldo_cents, unbezahlte_positionen, ausstehende_positionen, gesamt_zahlungen_cents, last_event_id, last_event_version, updated_at
+FROM table_state WHERE tisch_id = ANY($1::int[])
+`
+
+func (q *Queries) GetTableStatesByTischIDs(ctx context.Context, dollar_1 []int) ([]TableState, error) {
+	rows, err := q.db.QueryContext(ctx, getTableStatesByTischIDs, pq.Array(dollar_1))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TableState{}
+	for rows.Next() {
+		var i TableState
+		if err := rows.Scan(
+			&i.TischID,
+			&i.SaldoCents,
+			&i.UnbezahltePositionen,
+			&i.AusstehendePositionen,
+			&i.GesamtZahlungenCents,
+			&i.LastEventID,
+			&i.LastEventVersion,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const upsertTableState = `-- name: UpsertTableState :exec

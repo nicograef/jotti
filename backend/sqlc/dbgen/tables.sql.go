@@ -72,6 +72,50 @@ func (q *Queries) GetAktiveTische(ctx context.Context) ([]GetAktiveTischeRow, er
 	return items, nil
 }
 
+const getAktiveTischeMitFavoriten = `-- name: GetAktiveTischeMitFavoriten :many
+SELECT t.id, t.name, COALESCE(ts.saldo_cents, 0)::integer AS saldo_cents, (f.user_id IS NOT NULL) AS ist_favorit
+FROM tische t
+LEFT JOIN table_state ts ON ts.tisch_id = t.id
+LEFT JOIN tisch_favoriten f ON f.tisch_id = t.id AND f.user_id = $1
+WHERE t.status = 'active'
+ORDER BY t.id ASC
+`
+
+type GetAktiveTischeMitFavoritenRow struct {
+	ID         int
+	Name       string
+	SaldoCents int
+	IstFavorit interface{}
+}
+
+func (q *Queries) GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]GetAktiveTischeMitFavoritenRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAktiveTischeMitFavoriten, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetAktiveTischeMitFavoritenRow{}
+	for rows.Next() {
+		var i GetAktiveTischeMitFavoritenRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.SaldoCents,
+			&i.IstFavorit,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAlleTische = `-- name: GetAlleTische :many
 SELECT id, name, status, created_at, updated_at
 FROM tische WHERE status != 'deleted' ORDER BY id ASC

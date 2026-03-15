@@ -4,8 +4,12 @@ import { useFetch } from '@/lib/useFetch'
 import type { Ausgabe } from './Ausgabe'
 import type { Bestellung } from './Bestellung'
 import type { Stornierung } from './Stornierung'
-import type { Tisch } from './Tisch'
-import type { TischState } from './Tisch'
+import type {
+  AktiverTischMitFavorit,
+  EigeneUebersicht,
+  Tisch,
+  TischState,
+} from './Tisch'
 import { TischBackend } from './TischBackend'
 import type { Zahlung } from './Zahlung'
 
@@ -44,4 +48,33 @@ export function useTischState(tischId: number) {
     [tischId],
   )
   return { ...rest, state }
+}
+
+export function useAktiveTischeMitFavoriten() {
+  const { data: tische, ...rest } = useFetch(
+    () => tischBackend.getAktiveTischeMitFavoriten(),
+    [] as AktiverTischMitFavorit[],
+  )
+  return { ...rest, tische }
+}
+
+export function useMeineTischeState() {
+  const { data: tische, ...rest } = useFetch(
+    () => tischBackend.getMeineTischeState(),
+    [] as TischState[],
+  )
+  return { ...rest, tische }
+}
+
+export function useEigeneUebersicht() {
+  const { data: uebersicht, ...rest } = useFetch(
+    () => tischBackend.getEigeneUebersicht(),
+    {
+      anzahlBestellungen: 0,
+      bestellungenCents: 0,
+      anzahlZahlungen: 0,
+      zahlungenCents: 0,
+    } as EigeneUebersicht,
+  )
+  return { ...rest, uebersicht }
 }

@@ -23,6 +23,8 @@ type command interface {
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
 	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
 	AuszahlungLeisten(ctx context.Context, userID int, userName string, tischID int, betragCents int, kommentar string) error
+	FavoritHinzufuegen(ctx context.Context, userID, tischID int) error
+	FavoritEntfernen(ctx context.Context, userID, tischID int) error
 }
 
 type CommandHandler struct {
@@ -75,6 +77,59 @@ func (h *CommandHandler) TischAktualisierenHandler() http.HandlerFunc {
 				application.ErrTischNotFound:    "tisch_not_found",
 				application.ErrInvalidTischData: "invalid_tisch_data",
 			})
+			return
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+type favoritRequest struct {
+	TischID int `json:"tischId"`
+}
+
+func (h *CommandHandler) FavoritHinzufuegenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := favoritRequest{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+
+		err := h.Command.FavoritHinzufuegen(r.Context(), userID, body.TischID)
+		if err != nil {
+			helper.MapError(w, err, map[error]string{
+				application.ErrTischNotFound:  "tisch_not_found",
+				application.ErrTischNotActive: "tisch_not_active",
+			})
+			return
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+func (h *CommandHandler) FavoritEntfernenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := favoritRequest{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+
+		err := h.Command.FavoritEntfernen(r.Context(), userID, body.TischID)
+		if err != nil {
+			helper.MapError(w, err, map[error]string{})
 			return
 		}
 

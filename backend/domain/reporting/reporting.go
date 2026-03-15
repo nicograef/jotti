@@ -64,3 +64,10 @@ type ReportingData struct {
 	Breakdowns    Breakdowns
 	Stornierungen []StornierungDetail
 }
+
+type EigeneUebersicht struct {
+	AnzahlBestellungen int
+	BestellungenCents  int
+	AnzahlZahlungen    int
+	ZahlungenCents     int
+}

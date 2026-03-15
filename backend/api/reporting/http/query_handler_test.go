@@ -24,6 +24,10 @@ func (m mockQuery) GetReporting(_ context.Context, _ reporting.Zeitraum) (report
 	return m.data, m.err
 }
 
+func (m mockQuery) GetEigeneUebersicht(_ context.Context, _ int) (reporting.EigeneUebersicht, error) {
+	return reporting.EigeneUebersicht{}, m.err
+}
+
 func TestGetReportingHandler_InvalidJSON(t *testing.T) {
 	handler := QueryHandler{}
 

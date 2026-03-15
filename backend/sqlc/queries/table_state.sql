@@ -14,5 +14,9 @@ ON CONFLICT (tisch_id) DO UPDATE SET
 SELECT tisch_id, saldo_cents, unbezahlte_positionen, ausstehende_positionen, gesamt_zahlungen_cents, last_event_id, last_event_version, updated_at
 FROM table_state WHERE tisch_id = $1;
 
+-- name: GetTableStatesByTischIDs :many
+SELECT tisch_id, saldo_cents, unbezahlte_positionen, ausstehende_positionen, gesamt_zahlungen_cents, last_event_id, last_event_version, updated_at
+FROM table_state WHERE tisch_id = ANY($1::int[]);
+
 -- name: DeleteAllTableState :exec
 DELETE FROM table_state;

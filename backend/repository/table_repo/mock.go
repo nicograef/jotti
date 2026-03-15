@@ -63,3 +63,11 @@ func (m mockRepo) UpdateTable(ctx context.Context, t table.Tisch) error {
 	m.tables[t.ID] = t
 	return m.err
 }
+
+func (m mockRepo) GetActiveTablesWithFavorites(_ context.Context, _ int) ([]table.AktiverTischMitFavorit, error) {
+	return nil, m.err
+}
+
+func (m mockRepo) GetTableStatesByIDs(_ context.Context, _ []int) ([]table.TischState, error) {
+	return nil, m.err
+}

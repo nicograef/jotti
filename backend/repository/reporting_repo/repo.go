@@ -144,3 +144,17 @@ func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitrau
 		Stornierungen: stornierungen,
 	}, nil
 }
+
+func (r Repository) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.EigeneUebersicht, error) {
+	row, err := r.q.GetEigeneUebersicht(ctx, userID)
+	if err != nil {
+		return reporting.EigeneUebersicht{}, err
+	}
+
+	return reporting.EigeneUebersicht{
+		AnzahlBestellungen: row.AnzahlBestellungen,
+		BestellungenCents:  row.BestellungenCents,
+		AnzahlZahlungen:    row.AnzahlZahlungen,
+		ZahlungenCents:     row.ZahlungenCents,
+	}, nil
+}

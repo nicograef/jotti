@@ -16,10 +16,10 @@ export function ServiceLayout() {
               className="flex items-center gap-1 text-sm font-medium"
             >
               <ChevronLeft className="h-4 w-4" />
-              Tischauswahl
+              Meine Tische
             </Link>
           ) : (
-            <span className="text-sm font-bold">Tischauswahl</span>
+            <span className="text-sm font-bold">Meine Tische</span>
           )}
         </div>
         <UserDropdown />

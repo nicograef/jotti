@@ -2,6 +2,8 @@ package table_repo
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/table"
@@ -47,6 +49,58 @@ func (r Repository) GetActiveTables(ctx context.Context) ([]table.AktiverTisch, 
 	}
 
 	return tables, nil
+}
+
+func (r Repository) GetActiveTablesWithFavorites(ctx context.Context, userID int) ([]table.AktiverTischMitFavorit, error) {
+	rows, err := r.q.GetAktiveTischeMitFavoriten(ctx, userID)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	tables := make([]table.AktiverTischMitFavorit, 0, len(rows))
+	for _, row := range rows {
+		istFavorit, _ := row.IstFavorit.(bool)
+		tables = append(tables, table.AktiverTischMitFavorit{
+			ID:         row.ID,
+			Name:       row.Name,
+			SaldoCents: row.SaldoCents,
+			IstFavorit: istFavorit,
+		})
+	}
+
+	return tables, nil
+}
+
+func (r Repository) GetTableStatesByIDs(ctx context.Context, tischIDs []int) ([]table.TischState, error) {
+	rows, err := r.q.GetTableStatesByTischIDs(ctx, tischIDs)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	states := make([]table.TischState, 0, len(rows))
+	for _, row := range rows {
+		var unbezahlt []table.Position
+		if err := json.Unmarshal(row.UnbezahltePositionen, &unbezahlt); err != nil {
+			return nil, fmt.Errorf("unmarshal unbezahlte positionen: %w", err)
+		}
+
+		var ausstehend []table.Position
+		if err := json.Unmarshal(row.AusstehendePositionen, &ausstehend); err != nil {
+			return nil, fmt.Errorf("unmarshal ausstehende positionen: %w", err)
+		}
+
+		states = append(states, table.TischState{
+			TischID:               row.TischID,
+			SaldoCents:            row.SaldoCents,
+			UnbezahltePositionen:  unbezahlt,
+			AusstehendePositionen: ausstehend,
+			GesamtZahlungenCents:  row.GesamtZahlungenCents,
+			LastEventID:           row.LastEventID,
+			LastEventVersion:      row.LastEventVersion,
+		})
+	}
+
+	return states, nil
 }
 
 func (r Repository) CreateTable(ctx context.Context, t table.Tisch) (int, error) {

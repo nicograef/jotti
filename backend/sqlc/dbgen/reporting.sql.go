@@ -25,6 +25,39 @@ func (q *Queries) GetAusstehendAuszahlungen(ctx context.Context) (int, error) {
 	return ausstehend_auszahlungen_cents, err
 }
 
+const getEigeneUebersicht = `-- name: GetEigeneUebersicht :one
+SELECT
+    COALESCE(COUNT(CASE WHEN type = 'tisch.bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
+    COALESCE(SUM(CASE WHEN type = 'tisch.bestellung-aufgenommen:v1'
+        THEN (data->>'gesamtPreisCents')::int END), 0)::int AS bestellungen_cents,
+    COALESCE(COUNT(CASE WHEN type = 'tisch.zahlung-kassiert:v1' THEN 1 END), 0)::int AS anzahl_zahlungen,
+    COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-kassiert:v1'
+        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents
+FROM events
+WHERE type IN ('tisch.bestellung-aufgenommen:v1', 'tisch.zahlung-kassiert:v1')
+AND user_id = $1
+`
+
+type GetEigeneUebersichtRow struct {
+	AnzahlBestellungen int
+	BestellungenCents  int
+	AnzahlZahlungen    int
+	ZahlungenCents     int
+}
+
+// Service-Dashboard: Eigene KPIs der eingeloggten Servicekraft (allzeit).
+func (q *Queries) GetEigeneUebersicht(ctx context.Context, userID int) (GetEigeneUebersichtRow, error) {
+	row := q.db.QueryRowContext(ctx, getEigeneUebersicht, userID)
+	var i GetEigeneUebersichtRow
+	err := row.Scan(
+		&i.AnzahlBestellungen,
+		&i.BestellungenCents,
+		&i.AnzahlZahlungen,
+		&i.ZahlungenCents,
+	)
+	return i, err
+}
+
 const getOffeneSaldi = `-- name: GetOffeneSaldi :one
 SELECT COALESCE(SUM(saldo_cents), 0)::int AS offene_saldi_cents
 FROM table_state WHERE saldo_cents > 0

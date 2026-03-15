@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/api/middleware"
 	t "github.com/nicograef/jotti/backend/domain/table"
 )
 
@@ -14,6 +15,8 @@ type query interface {
 	GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error)
 	GetTischHistorie(ctx context.Context, tischID int) ([]t.HistorieEintrag, error)
 	GetTischState(ctx context.Context, tischID int) (t.TischState, error)
+	GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]t.AktiverTischMitFavorit, error)
+	GetMeineTischeState(ctx context.Context, userID int) ([]t.TischState, error)
 }
 
 type QueryHandler struct {
@@ -329,5 +332,95 @@ func (h QueryHandler) GetTischStateHandler() http.HandlerFunc {
 			AusstehendePositionen: ausstehend,
 			GesamtZahlungenCents:  state.GesamtZahlungenCents,
 		})
+	}
+}
+
+type aktiverTischMitFavorit struct {
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	SaldoCents int    `json:"saldoCents"`
+	IstFavorit bool   `json:"istFavorit"`
+}
+
+type getAktiveTischeMitFavoritenResponse struct {
+	Tische []aktiverTischMitFavorit `json:"tische"`
+}
+
+func (h QueryHandler) GetAktiveTischeMitFavoritenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+
+		tische, err := h.Query.GetAktiveTischeMitFavoriten(r.Context(), userID)
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		dtos := make([]aktiverTischMitFavorit, len(tische))
+		for i, tisch := range tische {
+			dtos[i] = aktiverTischMitFavorit{
+				ID:         tisch.ID,
+				Name:       tisch.Name,
+				SaldoCents: tisch.SaldoCents,
+				IstFavorit: tisch.IstFavorit,
+			}
+		}
+
+		helper.SendResponse(w, getAktiveTischeMitFavoritenResponse{Tische: dtos})
+	}
+}
+
+type meinTischState struct {
+	TischID               int        `json:"tischId"`
+	TischName             string     `json:"tischName"`
+	SaldoCents            int        `json:"saldoCents"`
+	UnbezahltePositionen  []position `json:"unbezahltePositionen"`
+	AusstehendePositionen []position `json:"ausstehendePositionen"`
+	GesamtZahlungenCents  int        `json:"gesamtZahlungenCents"`
+}
+
+type getMeineTischeStateResponse struct {
+	Tische []meinTischState `json:"tische"`
+}
+
+func (h QueryHandler) GetMeineTischeStateHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+
+		tische, err := h.Query.GetMeineTischeState(r.Context(), userID)
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		dtos := make([]meinTischState, len(tische))
+		for i, state := range tische {
+			unbezahlt := toPositionen(state.UnbezahltePositionen)
+			if unbezahlt == nil {
+				unbezahlt = []position{}
+			}
+			ausstehend := toPositionen(state.AusstehendePositionen)
+			if ausstehend == nil {
+				ausstehend = []position{}
+			}
+			dtos[i] = meinTischState{
+				TischID:               state.TischID,
+				TischName:             state.TischName,
+				SaldoCents:            state.SaldoCents,
+				UnbezahltePositionen:  unbezahlt,
+				AusstehendePositionen: ausstehend,
+				GesamtZahlungenCents:  state.GesamtZahlungenCents,
+			}
+		}
+
+		helper.SendResponse(w, getMeineTischeStateResponse{Tische: dtos})
 	}
 }

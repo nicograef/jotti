@@ -18,6 +18,8 @@ type tableRepo interface {
 	UpdateTable(ctx context.Context, t table.Tisch) error
 	GetAllTables(ctx context.Context) ([]table.Tisch, error)
 	GetActiveTables(ctx context.Context) ([]table.AktiverTisch, error)
+	GetActiveTablesWithFavorites(ctx context.Context, userID int) ([]table.AktiverTischMitFavorit, error)
+	GetTableStatesByIDs(ctx context.Context, tischIDs []int) ([]table.TischState, error)
 }
 
 type eventRepo interface {
@@ -32,6 +34,12 @@ type productRepo interface {
 	GetVariant(ctx context.Context, variantID int) (product.Variante, error)
 }
 
+type favoritRepo interface {
+	Add(ctx context.Context, userID, tischID int) error
+	Remove(ctx context.Context, userID, tischID int) error
+	GetByUser(ctx context.Context, userID int) ([]int, error)
+}
+
 // BestellPositionInput represents the input for a single position in an order.
 // The application layer enriches this with product/variant details (fat events).
 type BestellPositionInput struct {
@@ -44,6 +52,7 @@ type Command struct {
 	TableRepo   tableRepo
 	EventRepo   eventRepo
 	ProductRepo productRepo
+	FavoritRepo favoritRepo
 }
 
 // writeEvent writes an event with optimistic concurrency control.
@@ -127,6 +136,40 @@ func validatePositionRefs(available []table.Position, requested []table.Position
 		}
 	}
 	return true
+}
+
+func (c Command) FavoritHinzufuegen(ctx context.Context, userID, tischID int) error {
+	log := zerolog.Ctx(ctx)
+
+	tisch, err := c.TableRepo.GetTable(ctx, tischID)
+	if err != nil {
+		return fromRepositoryError(err, log, tischID)
+	}
+
+	if tisch.Status != table.ActiveStatus {
+		log.Warn().Int("tisch_id", tischID).Str("status", string(tisch.Status)).Msg("Tisch is not active")
+		return ErrTischNotActive
+	}
+
+	if err := c.FavoritRepo.Add(ctx, userID, tischID); err != nil {
+		log.Error().Err(err).Int("user_id", userID).Int("tisch_id", tischID).Msg("Failed to add favorit")
+		return ErrDatabase
+	}
+
+	log.Info().Int("user_id", userID).Int("tisch_id", tischID).Msg("Favorit added")
+	return nil
+}
+
+func (c Command) FavoritEntfernen(ctx context.Context, userID, tischID int) error {
+	log := zerolog.Ctx(ctx)
+
+	if err := c.FavoritRepo.Remove(ctx, userID, tischID); err != nil {
+		log.Error().Err(err).Int("user_id", userID).Int("tisch_id", tischID).Msg("Failed to remove favorit")
+		return ErrDatabase
+	}
+
+	log.Info().Int("user_id", userID).Int("tisch_id", tischID).Msg("Favorit removed")
+	return nil
 }
 
 func (c Command) TischErstellen(ctx context.Context, name string) (int, error) {

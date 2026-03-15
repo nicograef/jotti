@@ -34,6 +34,14 @@ type AktiverTisch struct {
 	SaldoCents int
 }
 
+// AktiverTischMitFavorit extends AktiverTisch with the favorite status for a specific service user.
+type AktiverTischMitFavorit struct {
+	ID         int
+	Name       string
+	SaldoCents int
+	IstFavorit bool
+}
+
 var TischIDSchema = z.Int().GTE(1, z.Message("Invalid table ID"))
 
 var TischNameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(100, z.Message("Name too long"))

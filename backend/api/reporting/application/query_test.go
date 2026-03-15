@@ -20,6 +20,10 @@ func (m mockReportingRepo) GetReporting(_ context.Context, _ reporting.Zeitraum)
 	return m.data, m.err
 }
 
+func (m mockReportingRepo) GetEigeneUebersicht(_ context.Context, _ int) (reporting.EigeneUebersicht, error) {
+	return reporting.EigeneUebersicht{}, m.err
+}
+
 var testZeitraum = reporting.Zeitraum{
 	Von: time.Date(2026, 3, 14, 0, 0, 0, 0, time.UTC),
 	Bis: time.Date(2026, 3, 14, 23, 59, 0, 0, time.UTC),

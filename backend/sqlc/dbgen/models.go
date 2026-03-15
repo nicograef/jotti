@@ -203,6 +203,13 @@ type TableState struct {
 	UpdatedAt             time.Time
 }
 
+// Per-user favourite tables; each service user can mark tables they are responsible for.
+type TischFavoriten struct {
+	UserID    int
+	TischID   int
+	CreatedAt time.Time
+}
+
 // Gäste sitzen an Tischen und geben dort Bestellungen auf.
 type Tische struct {
 	ID int

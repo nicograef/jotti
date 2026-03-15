@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 )
 
 type query interface {
 	GetReporting(ctx context.Context, zeitraum reporting.Zeitraum) (reporting.ReportingData, error)
+	GetEigeneUebersicht(ctx context.Context, userID int) (reporting.EigeneUebersicht, error)
 }
 
 type QueryHandler struct {
@@ -227,5 +229,35 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 			UmsatzProTisch:        toUmsatzTischList(d.Breakdowns.UmsatzProTisch),
 		},
 		Stornierungen: toStornierungDetails(d.Stornierungen),
+	}
+}
+
+type eigeneUebersichtResponse struct {
+	AnzahlBestellungen int `json:"anzahlBestellungen"`
+	BestellungenCents  int `json:"bestellungenCents"`
+	AnzahlZahlungen    int `json:"anzahlZahlungen"`
+	ZahlungenCents     int `json:"zahlungenCents"`
+}
+
+func (h QueryHandler) GetEigeneUebersichtHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+
+		data, err := h.Query.GetEigeneUebersicht(r.Context(), userID)
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		helper.SendResponse(w, eigeneUebersichtResponse{
+			AnzahlBestellungen: data.AnzahlBestellungen,
+			BestellungenCents:  data.BestellungenCents,
+			AnzahlZahlungen:    data.AnzahlZahlungen,
+			ZahlungenCents:     data.ZahlungenCents,
+		})
 	}
 }

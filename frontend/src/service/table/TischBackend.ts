@@ -23,6 +23,10 @@ import {
   StornierungSchema,
 } from './Stornierung'
 import {
+  type AktiverTischMitFavorit,
+  AktiverTischMitFavoritSchema,
+  type EigeneUebersicht,
+  EigeneUebersichtSchema,
   type Tisch,
   TischIdSchema,
   TischSchema,
@@ -107,5 +111,43 @@ export class TischBackend {
   public async getTischState(tischId: number): Promise<TischState> {
     const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
     return this.backend.post('service/get-tisch-state', body, TischStateSchema)
+  }
+
+  public async favoritHinzufuegen(tischId: number): Promise<void> {
+    const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
+    await this.backend.post('service/favorit-hinzufuegen', body)
+  }
+
+  public async favoritEntfernen(tischId: number): Promise<void> {
+    const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
+    await this.backend.post('service/favorit-entfernen', body)
+  }
+
+  public async getAktiveTischeMitFavoriten(): Promise<
+    AktiverTischMitFavorit[]
+  > {
+    const { tische } = await this.backend.post(
+      'service/get-aktive-tische-mit-favoriten',
+      {},
+      z.object({ tische: z.array(AktiverTischMitFavoritSchema) }),
+    )
+    return tische
+  }
+
+  public async getMeineTischeState(): Promise<TischState[]> {
+    const { tische } = await this.backend.post(
+      'service/get-meine-tische-state',
+      {},
+      z.object({ tische: z.array(TischStateSchema) }),
+    )
+    return tische
+  }
+
+  public async getEigeneUebersicht(): Promise<EigeneUebersicht> {
+    return this.backend.post(
+      'service/get-eigene-uebersicht',
+      {},
+      EigeneUebersichtSchema,
+    )
   }
 }

@@ -40,6 +40,14 @@ func (m mockQuery) GetTischState(ctx context.Context, tischID int) (table.TischS
 	}, m.err
 }
 
+func (m mockQuery) GetAktiveTischeMitFavoriten(_ context.Context, _ int) ([]table.AktiverTischMitFavorit, error) {
+	return nil, m.err
+}
+
+func (m mockQuery) GetMeineTischeState(_ context.Context, _ int) ([]table.TischState, error) {
+	return nil, m.err
+}
+
 func TestGetAllTischeHandler_Success(t *testing.T) {
 	handler := &QueryHandler{Query: mockQuery{}}
 

@@ -58,6 +58,14 @@ func (m *mockCommand) AuszahlungLeisten(ctx context.Context, userID int, userNam
 	return m.err
 }
 
+func (m *mockCommand) FavoritHinzufuegen(_ context.Context, _, _ int) error {
+	return m.err
+}
+
+func (m *mockCommand) FavoritEntfernen(_ context.Context, _, _ int) error {
+	return m.err
+}
+
 func TestTischErstellenHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 

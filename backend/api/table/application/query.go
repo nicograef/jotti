@@ -11,8 +11,9 @@ import (
 )
 
 type Query struct {
-	TableRepo tableRepo
-	EventRepo eventRepo
+	TableRepo   tableRepo
+	EventRepo   eventRepo
+	FavoritRepo favoritRepo
 }
 
 func (q Query) GetAllTische(ctx context.Context) ([]t.Tisch, error) {
@@ -65,6 +66,52 @@ func (q Query) GetTischState(ctx context.Context, tischID int) (t.TischState, er
 
 	log.Info().Int("tisch_id", tischID).Int("saldo_cents", state.SaldoCents).Msg("Retrieved tisch state")
 	return state, nil
+}
+
+func (q Query) GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]t.AktiverTischMitFavorit, error) {
+	log := zerolog.Ctx(ctx)
+
+	tische, err := q.TableRepo.GetActiveTablesWithFavorites(ctx, userID)
+	if err != nil {
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve active tische mit favoriten")
+		return nil, ErrDatabase
+	}
+
+	log.Info().Int("user_id", userID).Int("count", len(tische)).Msg("Retrieved active tische mit favoriten")
+	return tische, nil
+}
+
+func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]t.TischState, error) {
+	log := zerolog.Ctx(ctx)
+
+	favoritIDs, err := q.FavoritRepo.GetByUser(ctx, userID)
+	if err != nil {
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve favorit IDs")
+		return nil, ErrDatabase
+	}
+
+	if len(favoritIDs) == 0 {
+		log.Debug().Int("user_id", userID).Msg("No favoriten for user")
+		return []t.TischState{}, nil
+	}
+
+	states, err := q.TableRepo.GetTableStatesByIDs(ctx, favoritIDs)
+	if err != nil {
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve tisch states by IDs")
+		return nil, ErrDatabase
+	}
+
+	for i, state := range states {
+		tisch, err := q.TableRepo.GetTable(ctx, state.TischID)
+		if err != nil {
+			log.Error().Err(err).Int("tisch_id", state.TischID).Msg("Failed to resolve tisch name")
+			return nil, ErrDatabase
+		}
+		states[i].TischName = tisch.Name
+	}
+
+	log.Info().Int("user_id", userID).Int("count", len(states)).Msg("Retrieved meine tische state")
+	return states, nil
 }
 
 func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]t.HistorieEintrag, error) {
