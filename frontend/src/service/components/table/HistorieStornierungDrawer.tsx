@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/drawer'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 import { formatCents } from '@/lib/utils'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
@@ -41,6 +42,7 @@ export function HistorieStornierungDrawer({
 }: HistorieStornierungDrawerProps) {
   const [loading, setLoading] = useState(false)
   const [kommentar, setKommentar] = useState('')
+  const [kommentarTouched, setKommentarTouched] = useState(false)
   const [mengen, setMengen] = useState<Record<string, number>>({})
 
   const selectedPositionen = positionen
@@ -51,6 +53,7 @@ export function HistorieStornierungDrawer({
     .filter((position) => position.menge > 0)
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
+  const kommentarInvalid = kommentar.trim().length < 3
 
   const onAdd = (positionId: string, maxMenge: number) => {
     setMengen((prev) => {
@@ -80,7 +83,16 @@ export function HistorieStornierungDrawer({
       onStornierungErteilt()
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Stornierung fehlgeschlagen')
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'Stornierung ausführen',
+          error,
+          byCode: {
+            position_nicht_stornierbar:
+              'Mindestens eine Position ist nicht mehr stornierbar. Bitte Auswahl aktualisieren.',
+          },
+        }),
+      )
     }
 
     setLoading(false)
@@ -165,13 +177,19 @@ export function HistorieStornierungDrawer({
             <KommentarField
               onChange={(value) => {
                 setKommentar(value)
+                setKommentarTouched(true)
               }}
             />
+            {kommentarTouched && kommentarInvalid && (
+              <p className="text-sm text-destructive mt-1">
+                Kommentar ist erforderlich (mind. 3 Zeichen).
+              </p>
+            )}
           </div>
           <DrawerFooter>
             <Button
               variant="destructive"
-              disabled={loading || noPositionenSelected}
+              disabled={loading || noPositionenSelected || kommentarInvalid}
               onClick={() => {
                 void onSubmit()
               }}

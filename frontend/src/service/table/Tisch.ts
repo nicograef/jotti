@@ -11,6 +11,7 @@ const TischNameSchema = z
 export const TischSchema = z.object({
   id: TischIdSchema,
   name: TischNameSchema,
+  saldoCents: z.number().int(),
 })
 export type Tisch = z.infer<typeof TischSchema>
 

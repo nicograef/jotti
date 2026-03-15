@@ -39,12 +39,14 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [kommentar, setKommentar] = useState('')
+  const [kommentarTouched, setKommentarTouched] = useState(false)
   const selectedPositionen = selectPositionen(
     props.unbezahltePositionen,
     props.mengen,
   )
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
+  const kommentarInvalid = kommentar.trim().length < 3
 
   const onSubmit = async () => {
     setLoading(true)
@@ -78,6 +80,7 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
     setOpen(isOpen)
     if (!isOpen) {
       setKommentar('')
+      setKommentarTouched(false)
     }
   }
 
@@ -108,13 +111,19 @@ export function StornierungDrawer(props: StornierungDrawerProps) {
             <KommentarField
               onChange={(value) => {
                 setKommentar(value)
+                setKommentarTouched(true)
               }}
             />
+            {kommentarTouched && kommentarInvalid && (
+              <p className="text-sm text-destructive mt-1">
+                Kommentar ist erforderlich (mind. 3 Zeichen).
+              </p>
+            )}
           </div>
           <DrawerFooter>
             <Button
               variant="destructive"
-              disabled={loading || noPositionenSelected}
+              disabled={loading || noPositionenSelected || kommentarInvalid}
               onClick={() => {
                 void onSubmit()
               }}

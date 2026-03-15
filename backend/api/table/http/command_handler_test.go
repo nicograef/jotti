@@ -54,6 +54,10 @@ func (m *mockCommand) AusgabeBestaetigen(ctx context.Context, userID int, userNa
 	return m.err
 }
 
+func (m *mockCommand) AuszahlungLeisten(ctx context.Context, userID int, userName string, tischID int, betragCents int, kommentar string) error {
+	return m.err
+}
+
 func TestTischErstellenHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 

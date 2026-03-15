@@ -120,7 +120,7 @@ Serviceleitung oder Admin können unbezahlte bestellte Positionen nachträglich 
 - Servicekraft (`service`) hat keinen Zugriff auf die Stornierungsfunktion
 - Unbezahlte, nicht-stornierte Positionen sind stornierbar — unabhängig davon, ob sie bereits geliefert wurden
 - Mindestens eine Position muss ausgewählt werden
-- Kommentar optional (max. 100 Zeichen)
+- Kommentar **erforderlich** (mind. 3, max. 100 Zeichen)
 - Stornierung wird als unveränderliches `ProdukteStorniert`-Event im Kassenjournal gespeichert
 - Saldo des Tisches wird nach Stornierung korrekt reduziert
 
@@ -134,11 +134,14 @@ Serviceleitung oder Admin können auch bereits bezahlte Positionen nachträglich
 **Akzeptanzkriterien:**
 
 - Bereits bezahlte, nicht-stornierte Positionen sind stornierbar (wie K-04a)
-- Die Stornierung erzeugt zusätzlich ein `RueckzahlungRegistriert`-Event, das den zurückzuzahlenden Betrag festhält
-- Saldo des Tisches wird nach Stornierung korrekt angepasst (kann negativ werden, bis die Rückzahlung quittiert wird)
-- Rückzahlungsbetrag ist im Kassenjournal des Tisches sichtbar
-- Reporting: `GetReportingStats`, `GetUmsatzProServicekraft` und `GetUmsatzProTisch` berücksichtigen Rückzahlungen korrekt (Umsatz = Zahlungen − Rückzahlungen)
-- Frontend-Tooltips weisen nicht mehr auf fehlende Rückzahlungsberücksichtigung hin
+- Kommentar für die Stornierung **erforderlich** (mind. 3, max. 100 Zeichen)
+- Auszahlung ist eine eigenständige, von der Stornierung unabhängige Operation
+- Auszahlungsbetrag ist frei wählbar (≥ 1 Cent); bei negativem Tischsaldo wird der Betrag im UI vorausgefüllt
+- Kommentar für die Auszahlung **erforderlich** (mind. 3, max. 100 Zeichen)
+- Auszahlung wird als unveränderliches `AuszahlungGeleistet`-Event im Kassenjournal gespeichert
+- Saldo des Tisches wird nach Auszahlung korrekt erhöht (kann positiv, null oder weiterhin negativ sein)
+- Negativer Saldo wird in der UI prominent hervorgehoben (Tischkarte + Tisch-Detail + Bezahlen-Tab)
+- Reporting: `GetReportingStats`, `GetUmsatzProServicekraft`, `GetUmsatzProTisch` berücksichtigen Auszahlungen korrekt
 
 ### K-05 · Tischübersicht und Navigation
 

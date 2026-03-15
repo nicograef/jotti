@@ -7,7 +7,11 @@ FROM table_state WHERE saldo_cents > 0;
 -- Reporting: Aggregierte Kennzahlen im gewaehlten Abrechnungszeitraum.
 SELECT
     COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-kassiert:v1'
-        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS gesamt_umsatz_cents,
+        THEN (data->>'gesamtZahlungCents')::int END), 0)::int
+        - COALESCE(SUM(CASE WHEN type = 'tisch.auszahlung-geleistet:v1'
+        THEN (data->>'betragCents')::int END), 0)::int AS gesamt_umsatz_cents,
+    COALESCE(SUM(CASE WHEN type = 'tisch.auszahlung-geleistet:v1'
+        THEN (data->>'betragCents')::int END), 0)::int AS gesamt_auszahlungen_cents,
     COALESCE(SUM(CASE WHEN type = 'tisch.bestellung-aufgenommen:v1'
         THEN (data->>'gesamtPreisCents')::int END), 0)::int AS gesamt_bestellungen_cents,
     COALESCE(SUM(CASE WHEN type = 'tisch.stornierung-erteilt:v1'
@@ -18,7 +22,8 @@ FROM events
 WHERE type IN (
     'tisch.bestellung-aufgenommen:v1',
     'tisch.zahlung-kassiert:v1',
-    'tisch.stornierung-erteilt:v1'
+    'tisch.stornierung-erteilt:v1',
+    'tisch.auszahlung-geleistet:v1'
 )
 AND timestamp >= @von AND timestamp < @bis;
 
@@ -28,15 +33,18 @@ SELECT COALESCE(SUM(saldo_cents), 0)::int AS offene_saldi_cents
 FROM table_state WHERE saldo_cents > 0;
 
 -- name: GetUmsatzProServicekraft :many
--- Tagesabrechnung: Zahlungen gruppiert nach Servicekraft im Zeitraum.
+-- Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Servicekraft im Zeitraum.
 -- MAX(user_name) nimmt den lexikographisch letzten Namen bei Namensaenderungen.
 SELECT
     user_id,
     MAX(user_name) AS user_name,
-    COALESCE(SUM((data->>'gesamtZahlungCents')::int), 0)::int AS zahlungen_cents,
-    COUNT(*)::int AS anzahl_zahlungen
+    COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-kassiert:v1'
+        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents,
+    COALESCE(SUM(CASE WHEN type = 'tisch.auszahlung-geleistet:v1'
+        THEN (data->>'betragCents')::int END), 0)::int AS auszahlungen_cents,
+    COUNT(CASE WHEN type = 'tisch.zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
 FROM events
-WHERE type = 'tisch.zahlung-kassiert:v1'
+WHERE type IN ('tisch.zahlung-kassiert:v1', 'tisch.auszahlung-geleistet:v1')
 AND timestamp >= @von AND timestamp < @bis
 GROUP BY user_id
 ORDER BY zahlungen_cents DESC;
@@ -58,15 +66,24 @@ AND e.timestamp >= @von AND e.timestamp < @bis
 ORDER BY e.timestamp DESC;
 
 -- name: GetUmsatzProTisch :many
--- Tagesabrechnung: Zahlungen gruppiert nach Tisch im Zeitraum.
+-- Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Tisch im Zeitraum.
 SELECT
     t.id AS tisch_id,
     t.name AS tisch_name,
-    COALESCE(SUM((e.data->>'gesamtZahlungCents')::int), 0)::int AS zahlungen_cents,
-    COUNT(*)::int AS anzahl_zahlungen
+    COALESCE(SUM(CASE WHEN e.type = 'tisch.zahlung-kassiert:v1'
+        THEN (e.data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents,
+    COALESCE(SUM(CASE WHEN e.type = 'tisch.auszahlung-geleistet:v1'
+        THEN (e.data->>'betragCents')::int END), 0)::int AS auszahlungen_cents,
+    COUNT(CASE WHEN e.type = 'tisch.zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
 FROM events e
 JOIN tische t ON t.id = CAST(SPLIT_PART(e.subject, ':', 2) AS INTEGER)
-WHERE e.type = 'tisch.zahlung-kassiert:v1'
+WHERE e.type IN ('tisch.zahlung-kassiert:v1', 'tisch.auszahlung-geleistet:v1')
 AND e.timestamp >= @von AND e.timestamp < @bis
 GROUP BY t.id, t.name
 ORDER BY zahlungen_cents DESC;
+
+-- name: GetAusstehendAuszahlungen :one
+-- Aktuelle Schulden: Summe aller negativen Tischsaldi (zeitraumunabhaengig).
+SELECT COALESCE(SUM(ABS(saldo_cents)), 0)::int AS ausstehend_auszahlungen_cents
+FROM table_state
+WHERE saldo_cents < 0;

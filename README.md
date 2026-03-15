@@ -2,7 +2,7 @@
 
 Ein kostenloses, quelloffenes **Gastronomie-Kassensystem (mPOS)** für Vereine und gemeinnützige Organisationen — Vereinsfeste, Weihnachtsmärkte, Konzerte, Maihocks, Sommerfeste.
 
-Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer über einen eigenen Admin-Bereich.
+Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer über einen eigenen Admin-Bereich.
 
 > **Kostenlos. Self-hosted. Open Source.**
 > Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. Kein Zahlungsgateway.
@@ -12,9 +12,10 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, liefern au
 ### Kassenbetrieb
 
 - 📱 **Bestellungen** auf Tische buchen — mit Produkten, Varianten und Kommentaren
-- 🚚 **Lieferungen** als ausgeliefert markieren
-- 💰 **Zahlungen** registrieren (Teilzahlungen möglich)
-- ↩️ **Stornierungen** mit Rollen-Kontrolle (Admin & Serviceleitung)
+- 🚚 **Ausgabe** bestätigen
+- 💰 **Zahlung** kassieren (Teilzahlungen möglich)
+- ↩️ **Stornierungen** mit Rollen-Kontrolle (Admin & Serviceleitung) — mit Pflichtkommentar
+- 💸 **Auszahlung leisten** — negativen Saldo ausgleichen (z. B. nach Stornierung bereits kassierter Positionen)
 - 📋 **Tisch-Übersicht** mit offenem Saldo, Positionen und Bestellhistorie
 
 ### Küche & Ausgabe
@@ -53,7 +54,7 @@ make dev
 | Datenbank     | PostgreSQL 17                                         |
 | Reverse Proxy | nginx (HTTPS via Let's Encrypt)                       |
 
-Tisch-Operationen (Bestellungen, Zahlungen, Lieferungen, Stornierungen) werden via **Event Sourcing** (append-only) persistiert. Stammdaten nutzen klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
+Tisch-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlungen) werden via **Event Sourcing** (append-only) persistiert. Stammdaten nutzen klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
 
 ## Für wen ist jotti?
 

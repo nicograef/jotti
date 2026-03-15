@@ -2,9 +2,11 @@ import { z } from 'zod'
 
 export const ReportingSummarySchema = z.object({
   gesamtUmsatzCents: z.number().int(),
+  gesamtAuszahlungenCents: z.number().int(),
   gesamtBestellungenCents: z.number().int(),
   gesamtStornierungenCents: z.number().int(),
   offeneSaldiCents: z.number().int(),
+  ausstehendAuszahlungenCents: z.number().int(),
   anzahlOffeneTische: z.number().int(),
   anzahlBestellungen: z.number().int(),
   anzahlStornierungen: z.number().int(),
@@ -14,6 +16,7 @@ export const UmsatzServicekraftSchema = z.object({
   userId: z.number().int(),
   userName: z.string(),
   zahlungenCents: z.number().int(),
+  auszahlungenCents: z.number().int(),
   anzahlZahlungen: z.number().int(),
 })
 export type UmsatzServicekraft = z.infer<typeof UmsatzServicekraftSchema>
@@ -41,6 +44,7 @@ export const UmsatzTischSchema = z.object({
   tischId: z.number().int(),
   tischName: z.string(),
   zahlungenCents: z.number().int(),
+  auszahlungenCents: z.number().int(),
   anzahlZahlungen: z.number().int(),
 })
 export type UmsatzTisch = z.infer<typeof UmsatzTischSchema>

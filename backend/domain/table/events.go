@@ -17,6 +17,7 @@ const (
 	HistorieEintragZahlung     HistorieEintragArt = "zahlung"
 	HistorieEintragStornierung HistorieEintragArt = "stornierung"
 	HistorieEintragAusgabe     HistorieEintragArt = "ausgabe"
+	HistorieEintragAuszahlung  HistorieEintragArt = "auszahlung"
 )
 
 type HistorieEintrag struct {
@@ -25,6 +26,7 @@ type HistorieEintrag struct {
 	Zahlung     *Zahlung
 	Stornierung *Stornierung
 	Ausgabe     *Ausgabe
+	Auszahlung  *Auszahlung
 }
 
 const (
@@ -32,6 +34,7 @@ const (
 	EventTypeZahlungKassiertV1       EventType = "tisch.zahlung-kassiert:v1"
 	EventTypeStornierungErteiltV1    EventType = "tisch.stornierung-erteilt:v1"
 	EventTypeAusgabeBestaetigtV1     EventType = "tisch.ausgabe-bestaetigt:v1"
+	EventTypeAuszahlungGeleistetV1   EventType = "tisch.auszahlung-geleistet:v1"
 )
 
 // parseTischIDFromSubject extracts the table ID from an event subject like "tisch:42".
@@ -77,6 +80,13 @@ func GetHistoryFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 				return []HistorieEintrag{}, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragAusgabe, Ausgabe: &ausgabe})
+
+		case string(EventTypeAuszahlungGeleistetV1):
+			auszahlung, err := buildAuszahlungFromEvent(event)
+			if err != nil {
+				return []HistorieEintrag{}, err
+			}
+			history = append(history, HistorieEintrag{Art: HistorieEintragAuszahlung, Auszahlung: &auszahlung})
 		}
 	}
 

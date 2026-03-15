@@ -18,25 +18,30 @@ import { formatCents } from '@/lib/utils'
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import { AuszahlungDrawer } from './AuszahlungDrawer'
 import { StornierungDrawer } from './StornierungDrawer'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
 interface ZahlungProps {
-  backend: Pick<TischBackend, 'zahlungKassieren' | 'stornierungErteilen'>
+  backend: Pick<TischBackend, 'zahlungKassieren' | 'stornierungErteilen' | 'auszahlungLeisten'>
   tisch: Tisch
   positionen: Position[]
+  saldoCents: number
   loading: boolean
   onZahlungKassiert: () => void
   onStornierungErteilt: () => void
+  onAuszahlungGeleistet: () => void
 }
 
 export function Zahlung({
   tisch,
   backend,
   positionen,
+  saldoCents,
   loading,
   onZahlungKassiert,
   onStornierungErteilt,
+  onAuszahlungGeleistet,
 }: ZahlungProps) {
   const [mengen, setMengen] = useState<Record<string, number>>({})
 
@@ -69,6 +74,11 @@ export function Zahlung({
 
   return (
     <>
+      {saldoCents < 0 && (
+        <div className="rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive mb-2">
+          Auszahlung ausstehend: {formatCents(Math.abs(saldoCents))} €
+        </div>
+      )}
       <div className="flex gap-2">
         {AuthSingleton.canCancel && (
           <div className="flex-1">
@@ -81,6 +91,19 @@ export function Zahlung({
                 setMengen({})
                 toast.success(`Stornierung erfolgreich.`)
                 onStornierungErteilt()
+              }}
+            />
+          </div>
+        )}
+        {AuthSingleton.canCancel && (
+          <div className="flex-1">
+            <AuszahlungDrawer
+              backend={backend}
+              tisch={tisch}
+              saldoCents={saldoCents}
+              auszahlungGeleistet={() => {
+                toast.success(`Auszahlung erfolgreich.`)
+                onAuszahlungGeleistet()
               }}
             />
           </div>

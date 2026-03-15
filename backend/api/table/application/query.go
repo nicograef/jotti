@@ -28,7 +28,7 @@ func (q Query) GetAllTische(ctx context.Context) ([]t.Tisch, error) {
 	return tische, nil
 }
 
-func (q Query) GetAktiveTische(ctx context.Context) ([]t.Tisch, error) {
+func (q Query) GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error) {
 	log := zerolog.Ctx(ctx)
 
 	tische, err := q.TableRepo.GetActiveTables(ctx)

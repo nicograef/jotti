@@ -28,12 +28,13 @@ type stornierungEventData struct {
 
 func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitraum) (reporting.ReportingData, error) {
 	var (
-		stats        dbgen.GetReportingStatsRow
-		offeneSaldi  int
-		offeneTische int
-		umsatzRows   []dbgen.GetUmsatzProServicekraftRow
-		tischRows    []dbgen.GetUmsatzProTischRow
-		stornoRows   []dbgen.GetStornierungenRow
+		stats                  dbgen.GetReportingStatsRow
+		offeneSaldi            int
+		offeneTische           int
+		ausstehendAuszahlungen int
+		umsatzRows             []dbgen.GetUmsatzProServicekraftRow
+		tischRows              []dbgen.GetUmsatzProTischRow
+		stornoRows             []dbgen.GetStornierungenRow
 	)
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -51,6 +52,11 @@ func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitrau
 	g.Go(func() error {
 		var err error
 		offeneTische, err = r.q.GetOffeneTische(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		ausstehendAuszahlungen, err = r.q.GetAusstehendAuszahlungen(ctx)
 		return err
 	})
 	g.Go(func() error {
@@ -77,20 +83,22 @@ func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitrau
 	for i, row := range umsatzRows {
 		userName, _ := row.UserName.(string)
 		umsatz[i] = reporting.UmsatzServicekraft{
-			UserID:          row.UserID,
-			UserName:        userName,
-			ZahlungenCents:  row.ZahlungenCents,
-			AnzahlZahlungen: row.AnzahlZahlungen,
+			UserID:            row.UserID,
+			UserName:          userName,
+			ZahlungenCents:    row.ZahlungenCents,
+			AuszahlungenCents: row.AuszahlungenCents,
+			AnzahlZahlungen:   row.AnzahlZahlungen,
 		}
 	}
 
 	tische := make([]reporting.UmsatzTisch, len(tischRows))
 	for i, row := range tischRows {
 		tische[i] = reporting.UmsatzTisch{
-			TischID:         row.TischID,
-			TischName:       row.TischName,
-			ZahlungenCents:  row.ZahlungenCents,
-			AnzahlZahlungen: row.AnzahlZahlungen,
+			TischID:           row.TischID,
+			TischName:         row.TischName,
+			ZahlungenCents:    row.ZahlungenCents,
+			AuszahlungenCents: row.AuszahlungenCents,
+			AnzahlZahlungen:   row.AnzahlZahlungen,
 		}
 	}
 
@@ -119,13 +127,15 @@ func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitrau
 	return reporting.ReportingData{
 		Zeitraum: zeitraum,
 		Summary: reporting.Summary{
-			GesamtUmsatzCents:        stats.GesamtUmsatzCents,
-			GesamtBestellungenCents:  stats.GesamtBestellungenCents,
-			GesamtStornierungenCents: stats.GesamtStornierungenCents,
-			OffeneSaldiCents:         offeneSaldi,
-			AnzahlOffeneTische:       offeneTische,
-			AnzahlBestellungen:       stats.AnzahlBestellungen,
-			AnzahlStornierungen:      stats.AnzahlStornierungen,
+			GesamtUmsatzCents:           int(stats.GesamtUmsatzCents),
+			GesamtAuszahlungenCents:     stats.GesamtAuszahlungenCents,
+			GesamtBestellungenCents:     stats.GesamtBestellungenCents,
+			GesamtStornierungenCents:    stats.GesamtStornierungenCents,
+			OffeneSaldiCents:            offeneSaldi,
+			AusstehendAuszahlungenCents: ausstehendAuszahlungen,
+			AnzahlOffeneTische:          offeneTische,
+			AnzahlBestellungen:          stats.AnzahlBestellungen,
+			AnzahlStornierungen:         stats.AnzahlStornierungen,
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: umsatz,

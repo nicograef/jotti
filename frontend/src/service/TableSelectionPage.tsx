@@ -2,6 +2,7 @@ import { ChevronRightIcon, Lamp } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { EmptyState } from '@/components/common/EmptyState'
+import { Badge } from '@/components/ui/badge'
 import {
   Item,
   ItemActions,
@@ -10,6 +11,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatCents } from '@/lib/utils'
 
 import { useAktiveTische } from './table/hooks'
 import { type Tisch } from './table/Tisch'
@@ -44,6 +46,11 @@ function TischList(props: TischListComponentProps) {
               <ItemTitle className="text-lg">
                 <Lamp /> {tisch.name}
               </ItemTitle>
+              {tisch.saldoCents < 0 && (
+                <Badge variant="destructive" className="mt-1">
+                  Auszahlung ausstehend: {formatCents(Math.abs(tisch.saldoCents))} €
+                </Badge>
+              )}
             </ItemContent>
             <ItemActions>
               <ChevronRightIcon />

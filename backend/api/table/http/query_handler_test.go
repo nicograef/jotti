@@ -24,8 +24,8 @@ func (m mockQuery) GetAllTische(ctx context.Context) ([]table.Tisch, error) {
 	return []table.Tisch{m.tisch}, m.err
 }
 
-func (m mockQuery) GetAktiveTische(ctx context.Context) ([]table.Tisch, error) {
-	return []table.Tisch{m.tisch}, m.err
+func (m mockQuery) GetAktiveTische(ctx context.Context) ([]table.AktiverTisch, error) {
+	return []table.AktiverTisch{{ID: m.tisch.ID, Name: m.tisch.Name, SaldoCents: 0}}, m.err
 }
 
 func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]table.HistorieEintrag, error) {

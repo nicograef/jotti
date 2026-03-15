@@ -27,6 +27,13 @@ type Tisch struct {
 	UpdatedAt time.Time
 }
 
+// AktiverTisch is a lightweight read model combining table master data and current saldo.
+type AktiverTisch struct {
+	ID         int
+	Name       string
+	SaldoCents int
+}
+
 var TischIDSchema = z.Int().GTE(1, z.Message("Invalid table ID"))
 
 var TischNameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(100, z.Message("Name too long"))

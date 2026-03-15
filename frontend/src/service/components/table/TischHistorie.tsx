@@ -24,6 +24,7 @@ import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
 import type { Ausgabe } from '../../table/Ausgabe'
+import type { Auszahlung } from '../../table/Auszahlung'
 import type { Bestellung } from '../../table/Bestellung'
 import type { Stornierung } from '../../table/Stornierung'
 import type { Tisch } from '../../table/Tisch'
@@ -35,7 +36,7 @@ import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { Receipt, type ReceiptPosition } from './Receipt'
 
 interface TischHistorieProps {
-  historie: (Bestellung | Zahlung | Stornierung | Ausgabe)[]
+  historie: (Bestellung | Zahlung | Stornierung | Ausgabe | Auszahlung)[]
   historieLoading: boolean
   userId: number | null
   tisch: Tisch
@@ -75,6 +76,14 @@ const initialAusgabeState: {
   open: false,
 }
 
+const initialAuszahlungState: {
+  auszahlung: Auszahlung | null
+  open: boolean
+} = {
+  auszahlung: null,
+  open: false,
+}
+
 export function TischHistorie({
   historie,
   historieLoading,
@@ -87,6 +96,7 @@ export function TischHistorie({
   const [zahlung, setZahlung] = useState(initialZahlungState)
   const [stornierung, setStornierung] = useState(initialStornierungState)
   const [ausgabe, setAusgabe] = useState(initialAusgabeState)
+  const [auszahlung, setAuszahlung] = useState(initialAuszahlungState)
   const [stornierenBestellung, setStornierenBestellung] =
     useState<Bestellung | null>(null)
 
@@ -169,6 +179,22 @@ export function TischHistorie({
                     }}
                   />
                 )
+              } else if (
+                Object.prototype.hasOwnProperty.call(item, 'geleistetAm')
+              ) {
+                const az = item as Auszahlung
+                return (
+                  <HistoryItem
+                    key={az.id}
+                    title={`Auszahlung -${formatCents(az.betragCents)} €`}
+                    date={az.geleistetAm}
+                    isFromUser={userId === az.userId}
+                    kommentar={az.kommentar}
+                    onClick={() => {
+                      setAuszahlung({ auszahlung: az, open: true })
+                    }}
+                  />
+                )
               } else {
                 return null
               }
@@ -233,6 +259,20 @@ export function TischHistorie({
           positionen={toReceiptItems(ausgabe.ausgabe.positionen)}
         />
       )}
+      {auszahlung.auszahlung && (
+        <Details
+          title="Auszahlung"
+          id={auszahlung.auszahlung.id}
+          isFromUser={userId === auszahlung.auszahlung.userId}
+          open={auszahlung.open}
+          onClose={() => {
+            setAuszahlung(initialAuszahlungState)
+          }}
+          date={auszahlung.auszahlung.geleistetAm}
+          kommentar={auszahlung.auszahlung.kommentar}
+          totalPrice={auszahlung.auszahlung.betragCents}
+        />
+      )}
       {stornierenBestellung && (
         <HistorieStornierungDrawer
           backend={backend}
@@ -254,7 +294,7 @@ export function TischHistorie({
 
 function getStornierbarePositionen(
   bestellung: Bestellung,
-  historie: (Bestellung | Zahlung | Stornierung | Ausgabe)[],
+  historie: (Bestellung | Zahlung | Stornierung | Ausgabe | Auszahlung)[],
 ) {
   const stornierteMengen = new Map<string, number>()
 

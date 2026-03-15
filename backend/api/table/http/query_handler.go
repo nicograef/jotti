@@ -11,7 +11,7 @@ import (
 
 type query interface {
 	GetAllTische(ctx context.Context) ([]t.Tisch, error)
-	GetAktiveTische(ctx context.Context) ([]t.Tisch, error)
+	GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error)
 	GetTischHistorie(ctx context.Context, tischID int) ([]t.HistorieEintrag, error)
 	GetTischState(ctx context.Context, tischID int) (t.TischState, error)
 }
@@ -64,8 +64,9 @@ func (h QueryHandler) GetAllTischeHandler() http.HandlerFunc {
 }
 
 type aktiverTisch struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	SaldoCents int    `json:"saldoCents"`
 }
 
 type getAktiveTischeResponse struct {
@@ -83,8 +84,9 @@ func (h QueryHandler) GetAktiveTischeHandler() http.HandlerFunc {
 		aktiveTische := make([]aktiverTisch, len(tische))
 		for i, tisch := range tische {
 			aktiveTische[i] = aktiverTisch{
-				ID:   tisch.ID,
-				Name: tisch.Name,
+				ID:         tisch.ID,
+				Name:       tisch.Name,
+				SaldoCents: tisch.SaldoCents,
 			}
 		}
 
@@ -217,6 +219,26 @@ func toStornierung(s t.Stornierung) stornierung {
 	}
 }
 
+type auszahlung struct {
+	ID          string    `json:"id"`
+	UserID      int       `json:"userId"`
+	TischID     int       `json:"tischId"`
+	BetragCents int       `json:"betragCents"`
+	Kommentar   string    `json:"kommentar"`
+	GeleistetAm time.Time `json:"geleistetAm"`
+}
+
+func toAuszahlung(a t.Auszahlung) auszahlung {
+	return auszahlung{
+		ID:          a.ID,
+		UserID:      a.UserID,
+		TischID:     a.TischID,
+		BetragCents: a.BetragCents,
+		Kommentar:   a.Kommentar,
+		GeleistetAm: a.GeleistetAm,
+	}
+}
+
 func toHistorie(eintraege []t.HistorieEintrag) []any {
 	historieResponse := make([]any, 0, len(eintraege))
 	for _, eintrag := range eintraege {
@@ -236,6 +258,10 @@ func toHistorie(eintraege []t.HistorieEintrag) []any {
 		case t.HistorieEintragStornierung:
 			if eintrag.Stornierung != nil {
 				historieResponse = append(historieResponse, toStornierung(*eintrag.Stornierung))
+			}
+		case t.HistorieEintragAuszahlung:
+			if eintrag.Auszahlung != nil {
+				historieResponse = append(historieResponse, toAuszahlung(*eintrag.Auszahlung))
 			}
 		}
 	}

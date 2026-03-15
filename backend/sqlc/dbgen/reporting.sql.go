@@ -11,6 +11,20 @@ import (
 	"time"
 )
 
+const getAusstehendAuszahlungen = `-- name: GetAusstehendAuszahlungen :one
+SELECT COALESCE(SUM(ABS(saldo_cents)), 0)::int AS ausstehend_auszahlungen_cents
+FROM table_state
+WHERE saldo_cents < 0
+`
+
+// Aktuelle Schulden: Summe aller negativen Tischsaldi (zeitraumunabhaengig).
+func (q *Queries) GetAusstehendAuszahlungen(ctx context.Context) (int, error) {
+	row := q.db.QueryRowContext(ctx, getAusstehendAuszahlungen)
+	var ausstehend_auszahlungen_cents int
+	err := row.Scan(&ausstehend_auszahlungen_cents)
+	return ausstehend_auszahlungen_cents, err
+}
+
 const getOffeneSaldi = `-- name: GetOffeneSaldi :one
 SELECT COALESCE(SUM(saldo_cents), 0)::int AS offene_saldi_cents
 FROM table_state WHERE saldo_cents > 0
@@ -40,7 +54,11 @@ func (q *Queries) GetOffeneTische(ctx context.Context) (int, error) {
 const getReportingStats = `-- name: GetReportingStats :one
 SELECT
     COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-kassiert:v1'
-        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS gesamt_umsatz_cents,
+        THEN (data->>'gesamtZahlungCents')::int END), 0)::int
+        - COALESCE(SUM(CASE WHEN type = 'tisch.auszahlung-geleistet:v1'
+        THEN (data->>'betragCents')::int END), 0)::int AS gesamt_umsatz_cents,
+    COALESCE(SUM(CASE WHEN type = 'tisch.auszahlung-geleistet:v1'
+        THEN (data->>'betragCents')::int END), 0)::int AS gesamt_auszahlungen_cents,
     COALESCE(SUM(CASE WHEN type = 'tisch.bestellung-aufgenommen:v1'
         THEN (data->>'gesamtPreisCents')::int END), 0)::int AS gesamt_bestellungen_cents,
     COALESCE(SUM(CASE WHEN type = 'tisch.stornierung-erteilt:v1'
@@ -51,7 +69,8 @@ FROM events
 WHERE type IN (
     'tisch.bestellung-aufgenommen:v1',
     'tisch.zahlung-kassiert:v1',
-    'tisch.stornierung-erteilt:v1'
+    'tisch.stornierung-erteilt:v1',
+    'tisch.auszahlung-geleistet:v1'
 )
 AND timestamp >= $1 AND timestamp < $2
 `
@@ -62,7 +81,8 @@ type GetReportingStatsParams struct {
 }
 
 type GetReportingStatsRow struct {
-	GesamtUmsatzCents        int
+	GesamtUmsatzCents        int32
+	GesamtAuszahlungenCents  int
 	GesamtBestellungenCents  int
 	GesamtStornierungenCents int
 	AnzahlBestellungen       int
@@ -75,6 +95,7 @@ func (q *Queries) GetReportingStats(ctx context.Context, arg GetReportingStatsPa
 	var i GetReportingStatsRow
 	err := row.Scan(
 		&i.GesamtUmsatzCents,
+		&i.GesamtAuszahlungenCents,
 		&i.GesamtBestellungenCents,
 		&i.GesamtStornierungenCents,
 		&i.AnzahlBestellungen,
@@ -148,10 +169,13 @@ const getUmsatzProServicekraft = `-- name: GetUmsatzProServicekraft :many
 SELECT
     user_id,
     MAX(user_name) AS user_name,
-    COALESCE(SUM((data->>'gesamtZahlungCents')::int), 0)::int AS zahlungen_cents,
-    COUNT(*)::int AS anzahl_zahlungen
+    COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-kassiert:v1'
+        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents,
+    COALESCE(SUM(CASE WHEN type = 'tisch.auszahlung-geleistet:v1'
+        THEN (data->>'betragCents')::int END), 0)::int AS auszahlungen_cents,
+    COUNT(CASE WHEN type = 'tisch.zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
 FROM events
-WHERE type = 'tisch.zahlung-kassiert:v1'
+WHERE type IN ('tisch.zahlung-kassiert:v1', 'tisch.auszahlung-geleistet:v1')
 AND timestamp >= $1 AND timestamp < $2
 GROUP BY user_id
 ORDER BY zahlungen_cents DESC
@@ -163,13 +187,14 @@ type GetUmsatzProServicekraftParams struct {
 }
 
 type GetUmsatzProServicekraftRow struct {
-	UserID          int
-	UserName        interface{}
-	ZahlungenCents  int
-	AnzahlZahlungen int
+	UserID            int
+	UserName          interface{}
+	ZahlungenCents    int
+	AuszahlungenCents int
+	AnzahlZahlungen   int
 }
 
-// Tagesabrechnung: Zahlungen gruppiert nach Servicekraft im Zeitraum.
+// Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Servicekraft im Zeitraum.
 // MAX(user_name) nimmt den lexikographisch letzten Namen bei Namensaenderungen.
 func (q *Queries) GetUmsatzProServicekraft(ctx context.Context, arg GetUmsatzProServicekraftParams) ([]GetUmsatzProServicekraftRow, error) {
 	rows, err := q.db.QueryContext(ctx, getUmsatzProServicekraft, arg.Von, arg.Bis)
@@ -184,6 +209,7 @@ func (q *Queries) GetUmsatzProServicekraft(ctx context.Context, arg GetUmsatzPro
 			&i.UserID,
 			&i.UserName,
 			&i.ZahlungenCents,
+			&i.AuszahlungenCents,
 			&i.AnzahlZahlungen,
 		); err != nil {
 			return nil, err
@@ -203,11 +229,14 @@ const getUmsatzProTisch = `-- name: GetUmsatzProTisch :many
 SELECT
     t.id AS tisch_id,
     t.name AS tisch_name,
-    COALESCE(SUM((e.data->>'gesamtZahlungCents')::int), 0)::int AS zahlungen_cents,
-    COUNT(*)::int AS anzahl_zahlungen
+    COALESCE(SUM(CASE WHEN e.type = 'tisch.zahlung-kassiert:v1'
+        THEN (e.data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents,
+    COALESCE(SUM(CASE WHEN e.type = 'tisch.auszahlung-geleistet:v1'
+        THEN (e.data->>'betragCents')::int END), 0)::int AS auszahlungen_cents,
+    COUNT(CASE WHEN e.type = 'tisch.zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
 FROM events e
 JOIN tische t ON t.id = CAST(SPLIT_PART(e.subject, ':', 2) AS INTEGER)
-WHERE e.type = 'tisch.zahlung-kassiert:v1'
+WHERE e.type IN ('tisch.zahlung-kassiert:v1', 'tisch.auszahlung-geleistet:v1')
 AND e.timestamp >= $1 AND e.timestamp < $2
 GROUP BY t.id, t.name
 ORDER BY zahlungen_cents DESC
@@ -219,13 +248,14 @@ type GetUmsatzProTischParams struct {
 }
 
 type GetUmsatzProTischRow struct {
-	TischID         int
-	TischName       string
-	ZahlungenCents  int
-	AnzahlZahlungen int
+	TischID           int
+	TischName         string
+	ZahlungenCents    int
+	AuszahlungenCents int
+	AnzahlZahlungen   int
 }
 
-// Tagesabrechnung: Zahlungen gruppiert nach Tisch im Zeitraum.
+// Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Tisch im Zeitraum.
 func (q *Queries) GetUmsatzProTisch(ctx context.Context, arg GetUmsatzProTischParams) ([]GetUmsatzProTischRow, error) {
 	rows, err := q.db.QueryContext(ctx, getUmsatzProTisch, arg.Von, arg.Bis)
 	if err != nil {
@@ -239,6 +269,7 @@ func (q *Queries) GetUmsatzProTisch(ctx context.Context, arg GetUmsatzProTischPa
 			&i.TischID,
 			&i.TischName,
 			&i.ZahlungenCents,
+			&i.AuszahlungenCents,
 			&i.AnzahlZahlungen,
 		); err != nil {
 			return nil, err

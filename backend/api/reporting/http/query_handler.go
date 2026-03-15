@@ -77,13 +77,15 @@ type zeitraum struct {
 }
 
 type summaryResponse struct {
-	GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
-	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
-	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
-	OffeneSaldiCents         int `json:"offeneSaldiCents"`
-	AnzahlOffeneTische       int `json:"anzahlOffeneTische"`
-	AnzahlBestellungen       int `json:"anzahlBestellungen"`
-	AnzahlStornierungen      int `json:"anzahlStornierungen"`
+	GesamtUmsatzCents           int `json:"gesamtUmsatzCents"`
+	GesamtAuszahlungenCents     int `json:"gesamtAuszahlungenCents"`
+	GesamtBestellungenCents     int `json:"gesamtBestellungenCents"`
+	GesamtStornierungenCents    int `json:"gesamtStornierungenCents"`
+	OffeneSaldiCents            int `json:"offeneSaldiCents"`
+	AusstehendAuszahlungenCents int `json:"ausstehendAuszahlungenCents"`
+	AnzahlOffeneTische          int `json:"anzahlOffeneTische"`
+	AnzahlBestellungen          int `json:"anzahlBestellungen"`
+	AnzahlStornierungen         int `json:"anzahlStornierungen"`
 }
 
 type breakdownsResponse struct {
@@ -92,17 +94,19 @@ type breakdownsResponse struct {
 }
 
 type umsatzServicekraft struct {
-	UserID          int    `json:"userId"`
-	UserName        string `json:"userName"`
-	ZahlungenCents  int    `json:"zahlungenCents"`
-	AnzahlZahlungen int    `json:"anzahlZahlungen"`
+	UserID            int    `json:"userId"`
+	UserName          string `json:"userName"`
+	ZahlungenCents    int    `json:"zahlungenCents"`
+	AuszahlungenCents int    `json:"auszahlungenCents"`
+	AnzahlZahlungen   int    `json:"anzahlZahlungen"`
 }
 
 type umsatzTisch struct {
-	TischID         int    `json:"tischId"`
-	TischName       string `json:"tischName"`
-	ZahlungenCents  int    `json:"zahlungenCents"`
-	AnzahlZahlungen int    `json:"anzahlZahlungen"`
+	TischID           int    `json:"tischId"`
+	TischName         string `json:"tischName"`
+	ZahlungenCents    int    `json:"zahlungenCents"`
+	AuszahlungenCents int    `json:"auszahlungenCents"`
+	AnzahlZahlungen   int    `json:"anzahlZahlungen"`
 }
 
 type stornierungPosition struct {
@@ -132,10 +136,11 @@ func toZeitraum(z reporting.Zeitraum) zeitraum {
 
 func toUmsatzServicekraft(u reporting.UmsatzServicekraft) umsatzServicekraft {
 	return umsatzServicekraft{
-		UserID:          u.UserID,
-		UserName:        u.UserName,
-		ZahlungenCents:  u.ZahlungenCents,
-		AnzahlZahlungen: u.AnzahlZahlungen,
+		UserID:            u.UserID,
+		UserName:          u.UserName,
+		ZahlungenCents:    u.ZahlungenCents,
+		AuszahlungenCents: u.AuszahlungenCents,
+		AnzahlZahlungen:   u.AnzahlZahlungen,
 	}
 }
 
@@ -149,10 +154,11 @@ func toUmsatzServicekraftList(umsatz []reporting.UmsatzServicekraft) []umsatzSer
 
 func toUmsatzTisch(u reporting.UmsatzTisch) umsatzTisch {
 	return umsatzTisch{
-		TischID:         u.TischID,
-		TischName:       u.TischName,
-		ZahlungenCents:  u.ZahlungenCents,
-		AnzahlZahlungen: u.AnzahlZahlungen,
+		TischID:           u.TischID,
+		TischName:         u.TischName,
+		ZahlungenCents:    u.ZahlungenCents,
+		AuszahlungenCents: u.AuszahlungenCents,
+		AnzahlZahlungen:   u.AnzahlZahlungen,
 	}
 }
 
@@ -206,13 +212,15 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 	return reportingResponse{
 		Zeitraum: toZeitraum(d.Zeitraum),
 		Summary: summaryResponse{
-			GesamtUmsatzCents:        d.Summary.GesamtUmsatzCents,
-			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
-			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
-			OffeneSaldiCents:         d.Summary.OffeneSaldiCents,
-			AnzahlOffeneTische:       d.Summary.AnzahlOffeneTische,
-			AnzahlBestellungen:       d.Summary.AnzahlBestellungen,
-			AnzahlStornierungen:      d.Summary.AnzahlStornierungen,
+			GesamtUmsatzCents:           d.Summary.GesamtUmsatzCents,
+			GesamtAuszahlungenCents:     d.Summary.GesamtAuszahlungenCents,
+			GesamtBestellungenCents:     d.Summary.GesamtBestellungenCents,
+			GesamtStornierungenCents:    d.Summary.GesamtStornierungenCents,
+			OffeneSaldiCents:            d.Summary.OffeneSaldiCents,
+			AusstehendAuszahlungenCents: d.Summary.AusstehendAuszahlungenCents,
+			AnzahlOffeneTische:          d.Summary.AnzahlOffeneTische,
+			AnzahlBestellungen:          d.Summary.AnzahlBestellungen,
+			AnzahlStornierungen:         d.Summary.AnzahlStornierungen,
 		},
 		Breakdowns: breakdownsResponse{
 			UmsatzProServicekraft: toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),

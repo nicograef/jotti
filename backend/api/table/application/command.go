@@ -17,7 +17,7 @@ type tableRepo interface {
 	CreateTable(ctx context.Context, t table.Tisch) (int, error)
 	UpdateTable(ctx context.Context, t table.Tisch) error
 	GetAllTables(ctx context.Context) ([]table.Tisch, error)
-	GetActiveTables(ctx context.Context) ([]table.Tisch, error)
+	GetActiveTables(ctx context.Context) ([]table.AktiverTisch, error)
 }
 
 type eventRepo interface {
@@ -409,5 +409,32 @@ func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName st
 	}
 
 	log.Info().Int("tisch_id", tischID).Msg("Ausgabe bestätigt")
+	return nil
+}
+
+func (c Command) AuszahlungLeisten(ctx context.Context, userID int, userName string, tischID int, betragCents int, kommentar string) error {
+	log := zerolog.Ctx(ctx)
+
+	// Tisch-Existenz und Status prüfen (kein Saldo-Precondition-Check)
+	if _, err := c.loadTischState(ctx, tischID); err != nil {
+		return err
+	}
+
+	event, err := table.NewAuszahlungGeleistetEvent(userID, userName, tischID, betragCents, kommentar)
+	if err != nil {
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create auszahlung geleistet event")
+		return err
+	}
+
+	subject := "tisch:" + strconv.Itoa(tischID)
+	if err := writeEvent(ctx, c.EventRepo, event, subject); err != nil {
+		if errors.Is(err, ErrConflict) {
+			return ErrConflict
+		}
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write auszahlung geleistet event to database")
+		return ErrDatabase
+	}
+
+	log.Info().Int("tisch_id", tischID).Msg("Auszahlung geleistet")
 	return nil
 }

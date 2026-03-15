@@ -310,3 +310,80 @@ func TestApplyEvent_StornierungAfterPayment_NegativeSaldo(t *testing.T) {
 		t.Fatalf("expected 0 unbezahlte positionen, got %d", len(state.UnbezahltePositionen))
 	}
 }
+
+func TestApplyEvent_AuszahlungIncreasesSaldo(t *testing.T) {
+	products := []Position{
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
+	}
+	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
+	orderEvent.ID = 1
+	orderEvent.Version = 1
+
+	state, err := ApplyEvent(TischState{}, orderEvent)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Pay for all 2 beers
+	payPositions := positionsFromOrder(t, orderEvent, 2)
+	payEvent := mustCreatePaymentEvent(t, 1, 1, payPositions, 1000)
+	payEvent.ID = 2
+	payEvent.Version = 2
+
+	state, err = ApplyEvent(state, payEvent)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if state.SaldoCents != 0 {
+		t.Fatalf("expected SaldoCents 0, got %d", state.SaldoCents)
+	}
+
+	// Cancel 1 beer after payment — negative saldo
+	cancelPositions := positionsFromOrder(t, orderEvent, 1)
+	cancelEvent := mustCreateCancelationEvent(t, 1, 1, cancelPositions, 500)
+	cancelEvent.ID = 3
+	cancelEvent.Version = 3
+
+	state, err = ApplyEvent(state, cancelEvent)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if state.SaldoCents != -500 {
+		t.Fatalf("expected SaldoCents -500, got %d", state.SaldoCents)
+	}
+
+	// Auszahlung: pay out 500 cents
+	auszahlungEvent := mustCreateAuszahlungEvent(t, 1, 1, 500, "Rueckzahlung")
+	auszahlungEvent.ID = 4
+	auszahlungEvent.Version = 4
+
+	state, err = ApplyEvent(state, auszahlungEvent)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if state.SaldoCents != 0 {
+		t.Fatalf("expected SaldoCents 0 after auszahlung, got %d", state.SaldoCents)
+	}
+	if state.LastEventID != 4 {
+		t.Fatalf("expected LastEventID 4, got %d", state.LastEventID)
+	}
+}
+
+func TestComputeNichtStorniertePositionen_IgnoresAuszahlung(t *testing.T) {
+	products := []Position{
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
+	}
+	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
+	positions := positionsFromOrder(t, orderEvent, 2)
+	payEvent := mustCreatePaymentEvent(t, 1, 1, positions, 1000)
+	auszahlungEvent := mustCreateAuszahlungEvent(t, 1, 1, 500, "Rueckzahlung")
+
+	nichtStorniert, err := ComputeNichtStorniertePositionen([]e.Event{orderEvent, payEvent, auszahlungEvent})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	// 2 beers still not cancelled
+	if len(nichtStorniert) != 1 || nichtStorniert[0].Menge != 2 {
+		t.Fatalf("expected 2 beers not cancelled, got %v", nichtStorniert)
+	}
+}

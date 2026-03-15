@@ -1,4 +1,4 @@
-import { Ban, ChartBar, InfoIcon, TableIcon, Users } from 'lucide-react'
+import { Ban, ChartBar, TableIcon, Users } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,12 +18,6 @@ import {
 } from '@/components/ui/item'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { formatCents } from '@/lib/utils'
 
 import type { Reporting } from './types'
@@ -73,18 +67,6 @@ export function ReportingResults({ result }: { result: Reporting }) {
           <TabsTrigger value="servicekraefte">
             <Users className="size-4" />
             Servicekräfte
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <InfoIcon className="size-3 cursor-help opacity-60" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  Summe der registrierten Zahlungen pro Servicekraft.
-                  <br />
-                  Rückzahlungen werden aktuell nicht berücksichtigt.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
             {breakdowns.umsatzProServicekraft.length > 0 && (
               <Badge variant="secondary" className="ml-1">
                 {breakdowns.umsatzProServicekraft.length}
@@ -94,18 +76,6 @@ export function ReportingResults({ result }: { result: Reporting }) {
           <TabsTrigger value="tische">
             <TableIcon className="size-4" />
             Tische
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <InfoIcon className="size-3 cursor-help opacity-60" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  Summe der registrierten Zahlungen pro Tisch.
-                  <br />
-                  Rückzahlungen werden aktuell nicht berücksichtigt.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
             {breakdowns.umsatzProTisch.length > 0 && (
               <Badge variant="secondary" className="ml-1">
                 {breakdowns.umsatzProTisch.length}
@@ -127,30 +97,11 @@ export function ReportingResults({ result }: { result: Reporting }) {
       {/* Übersicht */}
       <TabsContent value="uebersicht" className="mt-4">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-1 text-sm text-muted-foreground">
-                Gesamtumsatz
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <InfoIcon className="size-3.5 cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Summe aller registrierten Zahlungen im Zeitraum.
-                      <br />
-                      Rückzahlungen werden aktuell nicht berücksichtigt.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl font-bold">
-                {formatCents(summary.gesamtUmsatzCents)} €
-              </p>
-            </CardContent>
-          </Card>
+          <SummaryCard
+            title="Gesamtumsatz"
+            value={`${formatCents(summary.gesamtUmsatzCents)} €`}
+            sub="Kassierungen − Auszahlungen"
+          />
           <SummaryCard
             title="Offene Tische"
             value={String(summary.anzahlOffeneTische)}
@@ -169,6 +120,15 @@ export function ReportingResults({ result }: { result: Reporting }) {
           <SummaryCard
             title="Offene Saldi"
             value={`${formatCents(summary.offeneSaldiCents)} €`}
+            sub="Aktueller Stand"
+          />
+          <SummaryCard
+            title="Auszahlungen"
+            value={`${formatCents(summary.gesamtAuszahlungenCents)} €`}
+          />
+          <SummaryCard
+            title="Ausstehende Auszahlungen"
+            value={`${formatCents(summary.ausstehendAuszahlungenCents)} €`}
             sub="Aktueller Stand"
           />
         </div>
@@ -203,9 +163,16 @@ export function ReportingResults({ result }: { result: Reporting }) {
                   <Badge variant="secondary">
                     {sk.anzahlZahlungen} Zahlungen
                   </Badge>
-                  <span className="min-w-24 text-right text-sm font-semibold">
-                    {formatCents(sk.zahlungenCents)} €
-                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className="min-w-24 text-right text-sm font-semibold">
+                      {formatCents(sk.zahlungenCents)} €
+                    </span>
+                    {sk.auszahlungenCents > 0 && (
+                      <span className="text-right text-xs text-muted-foreground">
+                        {formatCents(sk.auszahlungenCents)} € Auszahlungen
+                      </span>
+                    )}
+                  </div>
                 </ItemActions>
               </Item>
             ))}
@@ -242,9 +209,16 @@ export function ReportingResults({ result }: { result: Reporting }) {
                   <Badge variant="secondary">
                     {t.anzahlZahlungen} Zahlungen
                   </Badge>
-                  <span className="min-w-24 text-right text-sm font-semibold">
-                    {formatCents(t.zahlungenCents)} €
-                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className="min-w-24 text-right text-sm font-semibold">
+                      {formatCents(t.zahlungenCents)} €
+                    </span>
+                    {t.auszahlungenCents > 0 && (
+                      <span className="text-right text-xs text-muted-foreground">
+                        {formatCents(t.auszahlungenCents)} € Auszahlungen
+                      </span>
+                    )}
+                  </div>
                 </ItemActions>
               </Item>
             ))}

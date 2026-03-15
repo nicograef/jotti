@@ -22,6 +22,7 @@ type command interface {
 	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
 	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
+	AuszahlungLeisten(ctx context.Context, userID int, userName string, tischID int, betragCents int, kommentar string) error
 }
 
 type CommandHandler struct {
@@ -300,6 +301,12 @@ type ausgabeBestaetigenRequest struct {
 	Kommentar  string               `json:"kommentar"`
 }
 
+type auszahlungLeistenRequest struct {
+	TischID     int    `json:"tischId"`
+	BetragCents int    `json:"betragCents"`
+	Kommentar   string `json:"kommentar"`
+}
+
 func (h *CommandHandler) AusgabeBestaetigenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := ausgabeBestaetigenRequest{}
@@ -322,6 +329,36 @@ func (h *CommandHandler) AusgabeBestaetigenHandler() http.HandlerFunc {
 					application.ErrTischNotFound:          "tisch_not_found",
 					application.ErrTischNotActive:         "tisch_not_active",
 					application.ErrPositionNichtAusgebbar: "position_nicht_ausgebbar",
+				})
+			}
+			return
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+func (h *CommandHandler) AuszahlungLeistenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := auszahlungLeistenRequest{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
+		err := h.Command.AuszahlungLeisten(r.Context(), userID, userName, body.TischID, body.BetragCents, body.Kommentar)
+		if err != nil {
+			if errors.Is(err, application.ErrConflict) {
+				helper.SendConflictError(w)
+			} else {
+				helper.MapError(w, err, map[error]string{
+					application.ErrTischNotFound:  "tisch_not_found",
+					application.ErrTischNotActive: "tisch_not_active",
 				})
 			}
 			return

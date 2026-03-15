@@ -8,17 +8,19 @@ type Zeitraum struct {
 }
 
 type UmsatzServicekraft struct {
-	UserID          int
-	UserName        string
-	ZahlungenCents  int
-	AnzahlZahlungen int
+	UserID            int
+	UserName          string
+	ZahlungenCents    int
+	AuszahlungenCents int
+	AnzahlZahlungen   int
 }
 
 type UmsatzTisch struct {
-	TischID         int
-	TischName       string
-	ZahlungenCents  int
-	AnzahlZahlungen int
+	TischID           int
+	TischName         string
+	ZahlungenCents    int
+	AuszahlungenCents int
+	AnzahlZahlungen   int
 }
 
 type StornierungPosition struct {
@@ -40,13 +42,15 @@ type StornierungDetail struct {
 }
 
 type Summary struct {
-	GesamtUmsatzCents        int
-	GesamtBestellungenCents  int
-	GesamtStornierungenCents int
-	OffeneSaldiCents         int
-	AnzahlOffeneTische       int
-	AnzahlBestellungen       int
-	AnzahlStornierungen      int
+	GesamtUmsatzCents           int
+	GesamtAuszahlungenCents     int
+	GesamtBestellungenCents     int
+	GesamtStornierungenCents    int
+	OffeneSaldiCents            int
+	AusstehendAuszahlungenCents int
+	AnzahlOffeneTische          int
+	AnzahlBestellungen          int
+	AnzahlStornierungen         int
 }
 
 type Breakdowns struct {

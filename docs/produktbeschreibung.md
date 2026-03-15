@@ -31,11 +31,11 @@ Dieses Dokument definiert die Produktidentität von jotti: Positionierung, Zielg
 
 ### 1.3 Kurzbeschreibung (3 Sätze)
 
-> jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfeste, Weihnachtsmärkte, Konzerte und andere Non-Profit-Veranstaltungen. Servicekräfte nehmen Bestellungen direkt auf ihrem Smartphone auf, liefern aus, kassieren und stornieren — alles pro Tisch, alles im Browser. Kein Cloud-Abo, keine spezielle Hardware, kein Zahlungsgateway — einfach auf dem eigenen Server installieren und loslegen.
+> jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfeste, Weihnachtsmärkte, Konzerte und andere Non-Profit-Veranstaltungen. Servicekräfte nehmen Bestellungen direkt auf ihrem Smartphone auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch, alles im Browser. Kein Cloud-Abo, keine spezielle Hardware, kein Zahlungsgateway — einfach auf dem eigenen Server installieren und loslegen.
 
 ### 1.4 Elevator Pitch
 
-> Euer Verein plant ein Sommerfest und braucht ein Kassensystem? Vergesst teure POS-Software mit monatlichen Gebühren. jotti ist ein kostenloses, Open-Source-Kassensystem, das auf jedem Smartphone läuft. Eure Servicekräfte öffnen einfach den Browser, nehmen Bestellungen auf, liefern aus und kassieren — pro Tisch, übersichtlich und schnell. Keine Installation auf dem Handy, keine spezielle Hardware, keine laufenden Kosten. Self-hosted per Docker, in Minuten einsatzbereit. Für Vereine und gemeinnützige Organisationen — kostenlos, für immer.
+> Euer Verein plant ein Sommerfest und braucht ein Kassensystem? Vergesst teure POS-Software mit monatlichen Gebühren. jotti ist ein kostenloses, Open-Source-Kassensystem, das auf jedem Smartphone läuft. Eure Servicekräfte öffnen einfach den Browser, nehmen Bestellungen auf, bestätigen die Ausgabe und kassieren — pro Tisch, übersichtlich und schnell. Keine Installation auf dem Handy, keine spezielle Hardware, keine laufenden Kosten. Self-hosted per Docker, in Minuten einsatzbereit. Für Vereine und gemeinnützige Organisationen — kostenlos, für immer.
 
 ---
 
@@ -92,7 +92,7 @@ jotti positioniert sich bewusst **unterhalb** kommerzieller Kassensysteme: wenig
 
 #### Maria, 23 — Servicekraft (Service)
 
-> „Ich helfe beim Vereinsfest mit und bediene Tische. Ich will einfach auf meinem Handy sehen, was bestellt wurde, die Bestellung aufgeben, die Getränke bringen und am Tisch kassieren. Mehr brauche ich nicht."
+> „Ich helfe beim Vereinsfest mit und bediene Tische. Ich will einfach auf meinem Handy sehen, was bestellt wurde, die Bestellung aufnehmen, die Getränke bringen und am Tisch kassieren. Mehr brauche ich nicht.“
 
 - Nutzt ihr eigenes Smartphone (BYOD)
 - Erwartet intuitive Bedienung ohne Schulung
@@ -152,8 +152,8 @@ jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 1. Admin richtet ein          2. Team meldet sich an        3. Loslegen
 ┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
 │ • Produkte &     │         │ • Browser öffnen │         │ • Bestellungen   │
-│   Varianten      │   ───►  │ • Einmalpasswort │   ───►  │   aufgeben       │
-│   anlegen        │         │   eingeben       │         │ • Liefern        │
+│   Varianten      │   ───►  │ • Einmalpasswort │   ───►  │   aufnehmen      │
+│   anlegen        │         │   eingeben       │         │ • Ausgabe        │
 │ • Tische anlegen │         │ • Eigenes        │         │ • Kassieren      │
 │ • Benutzer       │         │   Passwort       │         │ • Stornieren     │
 │   erstellen      │         │   setzen         │         │ • Saldo prüfen   │
@@ -168,11 +168,12 @@ jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 
 | Feature                    | Beschreibung                                                                             |
 | -------------------------- | ---------------------------------------------------------------------------------------- |
-| **Bestellungen aufgeben**  | Produkte und Varianten auswählen, Menge wählen, auf den Tisch buchen                     |
-| **Lieferungen bestätigen** | Ausgelieferte Positionen als geliefert markieren                                         |
-| **Zahlungen registrieren** | Am Tisch kassieren — Teilzahlung möglich                                                 |
-| **Stornierungen**          | Falschbestellungen rückgängig machen (nur Serviceleitung/Admin)                          |
-| **Tisch-Übersicht**        | Offener Saldo, bestellte/gelieferte/bezahlte Positionen, Bestellhistorie auf einen Blick |
+| **Bestellungen aufnehmen** | Produkte und Varianten auswählen, Menge wählen, auf den Tisch buchen                     |
+| **Ausgabe bestätigen**     | Bestellte Positionen als ausgegeben markieren                                            |
+| **Zahlung kassieren**      | Am Tisch kassieren — Teilzahlung möglich                                                 |
+| **Stornierungen**          | Falschbestellungen rückgängig machen (nur Serviceleitung/Admin, Pflichtkommentar)         |
+| **Auszahlung leisten**     | Negativen Saldo ausgleichen — z. B. nach Stornierung bereits kassierter Positionen (nur Serviceleitung/Admin) |
+| **Tisch-Übersicht**        | Offener Saldo, bestellte/ausgegebene/bezahlte Positionen, Bestellhistorie auf einen Blick |
 | **Tischauswahl**           | Alle Tische mit Status und offenem Betrag — sofort den richtigen Tisch finden            |
 | **Küchendisplay (KDS)**    | Eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe anzeigen  |
 | **Bon-Druck**              | Bestell- und Küchenbons direkt an einen Bondrucker senden                                |
@@ -253,7 +254,7 @@ jotti enthält keine zertifizierte TSE (Technische Sicherheitseinrichtung) und i
 | ------------------------------------ | ------------------------------------------------------------------------------------- |
 | **Unveränderbarkeit**                | Event-Sourcing: alle Transaktionen sind append-only, nachträgliche Änderung unmöglich |
 | **Nachvollziehbarkeit**              | Lückenloses Kassenjournal pro Tisch mit vollständiger Bestellhistorie                 |
-| **Vollständigkeit**                  | Jede Bestellung, Zahlung, Lieferung und Stornierung wird als Event erfasst            |
+| **Vollständigkeit**                  | Jede Bestellung, Ausgabe, Zahlung und Stornierung wird als Event erfasst              |
 | **Zeitgerechte Buchung**             | Events werden in Echtzeit mit Zeitstempel gespeichert                                 |
 | **Ordnungsmäßigkeit**                | Strukturiertes Datenmodell, typisierte Events, klare Zuordnung zu Tisch und Benutzer  |
 | **Kryptografische Verkettung (TSE)** | ❌ Nicht vorhanden — keine zertifizierte Sicherheitseinrichtung                       |
@@ -332,14 +333,14 @@ Die einzigen Kosten, die entstehen, sind Infrastrukturkosten für das Hosting �
 
 > ### Das kostenlose Kassensystem für euer Vereinsfest.
 >
-> jotti ist ein quelloffenes Mobile-Kassensystem für Vereine und gemeinnützige Organisationen. Bestellungen aufnehmen, ausliefern, kassieren — direkt auf dem Smartphone, pro Tisch, ohne spezielle Hardware.
+> jotti ist ein quelloffenes Mobile-Kassensystem für Vereine und gemeinnützige Organisationen. Bestellungen aufnehmen, Ausgabe bestätigen, kassieren — direkt auf dem Smartphone, pro Tisch, ohne spezielle Hardware.
 >
 > **Kostenlos. Self-hosted. Open Source.**
 
 ### 10.2 Feature-Teaser (Social Media / Flyer)
 
 > 📱 **Euer Smartphone wird zur Kasse.**
-> Bestellungen aufnehmen, Lieferungen bestätigen, am Tisch kassieren — alles im Browser, auf jedem Handy.
+> Bestellungen aufnehmen, Ausgabe bestätigen, am Tisch kassieren — alles im Browser, auf jedem Handy.
 >
 > 💰 **Kostenlos für Vereine.**
 > Kein Abo, kein Kleingedrucktes. jotti ist quelloffen und für gemeinnützige Organisationen dauerhaft kostenlos.
@@ -360,7 +361,7 @@ Die einzigen Kosten, die entstehen, sind Infrastrukturkosten für das Hosting �
 | Technisch       | Mobile-first POS mit Event-Sourcing, Go-Backend, React-Frontend — self-hosted per Docker Compose.             |
 | Nicht-technisch | Das kostenlose Kassensystem für Vereinsfeste — auf jedem Smartphone, ohne Abo, ohne Hardware.                 |
 | Vereinsvorstand | Einfach Produkte und Tische anlegen, Team einladen, loslegen. Abrechnung auf Knopfdruck.                      |
-| Servicekraft    | Browser öffnen, Tisch wählen, bestellen, liefern, kassieren. Fertig.                                          |
+| Servicekraft    | Browser öffnen, Tisch wählen, bestellen, Ausgabe bestätigen, kassieren. Fertig.                              |
 
 ### 10.5 SEO-Keywords
 

@@ -7,8 +7,11 @@ SELECT id, name, status, created_at, updated_at
 FROM tische WHERE status != 'deleted' ORDER BY id ASC;
 
 -- name: GetAktiveTische :many
-SELECT id, name, status, created_at, updated_at
-FROM tische WHERE status = 'active' ORDER BY id ASC;
+SELECT t.id, t.name, COALESCE(ts.saldo_cents, 0)::integer AS saldo_cents
+FROM tische t
+LEFT JOIN table_state ts ON ts.tisch_id = t.id
+WHERE t.status = 'active'
+ORDER BY t.id ASC;
 
 -- name: CreateTisch :one
 INSERT INTO tische (name, status, created_at, updated_at)

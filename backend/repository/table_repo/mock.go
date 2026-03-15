@@ -42,11 +42,11 @@ func (m mockRepo) GetAllTables(ctx context.Context) ([]table.Tisch, error) {
 	return result, m.err
 }
 
-func (m mockRepo) GetActiveTables(ctx context.Context) ([]table.Tisch, error) {
-	var result []table.Tisch
+func (m mockRepo) GetActiveTables(ctx context.Context) ([]table.AktiverTisch, error) {
+	var result []table.AktiverTisch
 	for _, t := range m.tables {
 		if t.Status == table.ActiveStatus {
-			result = append(result, t)
+			result = append(result, table.AktiverTisch{ID: t.ID, Name: t.Name, SaldoCents: 0})
 		}
 	}
 	return result, m.err

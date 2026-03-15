@@ -146,9 +146,26 @@ Die nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung ode
 | Frontend-Komponente | `<StornierungDrawer>`                                                                                                 | `src/service/components/table/StornierungDrawer.tsx` |
 | UI-Labels           | „Stornierung" (Drawer-Titel), „Stornierung erteilen" (Button), „Stornierung erfolgreich." (Toast)                     |                                                      |
 
+> **Hinweis:** `Kommentar` ist bei Stornierungen **Pflichtfeld** (min. 3, max. 100 Zeichen).
+
+### Auszahlung
+
+Auszahlung eines Betrags an den Gast, um einen negativen Saldo auszugleichen — entsteht, wenn bereits kassierte Positionen nachträglich storniert werden (K-04b). Kein Positionsbezug; freier Betrag (≥ 1 Cent). Erzeugt ein `AuszahlungGeleistet`-Event.
+
+| Schicht             | Repräsentation                                                                                 | Datei                                              |
+| ------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Go-Struct           | `Auszahlung` (Felder: `ID`, `UserID`, `TischID`, `BetragCents`, `Kommentar`, `GeleistetAm`)     | `domain/table/auszahlungGeleistetEvent.go`         |
+| Go-Event-Typ        | `EventTypeAuszahlungGeleistetV1` = `"tisch.auszahlung-geleistet:v1"`                            | `domain/table/events.go`                           |
+| Go-Command          | `AuszahlungLeisten()`                                                                           | `api/table/application/command.go`                 |
+| API-Pfad            | `/serviceleitung/auszahlung-leisten`                                                            | `api/serviceleitung.go`                            |
+| Frontend-Komponente | `<AuszahlungDrawer>`                                                                            | `src/service/components/table/AuszahlungDrawer.tsx`|
+| UI-Labels           | „Auszahlung leisten“ (Button), negativer Saldo-Badge in Tischkarte und Tischseite             |                                                    |
+
+> **Hinweis:** `Kommentar` ist Pflichtfeld (min. 3, max. 100 Zeichen). Das UI befüllt den Betrag vor, wenn der Saldo negativ ist.
+
 ### Saldo
 
-Der offene Betrag eines Tisches: Summe der Bestellungen − Summe der Zahlungen − Summe der Stornierungen. Immer in Cent.
+Der offene Betrag eines Tisches: Summe der Bestellungen − Summe der Zahlungen − Summe der Stornierungen + Summe der Auszahlungen. Immer in Cent.
 
 | Schicht          | Repräsentation                | Datei                        |
 | ---------------- | ----------------------------- | ---------------------------- |
@@ -174,7 +191,7 @@ Der vollständige, unveränderliche Event Stream eines Tisches in chronologische
 
 ### Kommentar
 
-Optionale Freitextnotiz zu einer Bestellung, Zahlung, Lieferung oder Stornierung (max. 100 Zeichen).
+Freitextnotiz zu Tischoperationen. Pflichtfeld bei Stornierung und Auszahlung (min. 3 Zeichen), optional bei Bestellung, Ausgabe und Zahlung. Max. 100 Zeichen.
 
 | Schicht       | Repräsentation | Datei                                                                                                        |
 | ------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -283,7 +300,7 @@ Berechtigungsstufe eines Benutzers. Bestimmt, welche Aktionen im System verfügb
 | -------------- | ---------------- | ----------------------------------------------------- |
 | Admin          | `admin`          | Alles: Produkte, Tische, Benutzer verwalten + Service |
 | Serviceleitung | `serviceleitung` | Service-Funktionen + Stornierung                      |
-| Servicekraft   | `service`        | Bestellen, Liefern, Kassieren                         |
+| Servicekraft   | `service`        | Bestellen, Ausgabe bestätigen, Kassieren              |
 
 | Schicht  | Repräsentation                                              | Datei                          |
 | -------- | ----------------------------------------------------------- | ------------------------------ |

@@ -31,15 +31,19 @@ func (r Repository) GetAllTables(ctx context.Context) ([]table.Tisch, error) {
 	return tables, nil
 }
 
-func (r Repository) GetActiveTables(ctx context.Context) ([]table.Tisch, error) {
+func (r Repository) GetActiveTables(ctx context.Context) ([]table.AktiverTisch, error) {
 	rows, err := r.q.GetAktiveTische(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	tables := make([]table.Tisch, 0, len(rows))
+	tables := make([]table.AktiverTisch, 0, len(rows))
 	for _, row := range rows {
-		tables = append(tables, tischRowToDomain(row))
+		tables = append(tables, table.AktiverTisch{
+			ID:         row.ID,
+			Name:       row.Name,
+			SaldoCents: row.SaldoCents,
+		})
 	}
 
 	return tables, nil

@@ -20,7 +20,7 @@ var stornierungErteiltV1DataSchema = z.Struct(z.Shape{
 	"StornierungID":          z.String().UUID().Required(),
 	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(0).Required(),
-	"Kommentar":              z.String().Max(100),
+	"Kommentar":              z.String().Min(3).Max(100).Required(),
 })
 
 func NewStornierungErteiltEvent(userID int, userName string, tischID int, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {

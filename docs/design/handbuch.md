@@ -46,7 +46,7 @@
 
 ### 1.1 Systemvision
 
-jotti ist ein Mobile-Point-of-Sale-System für temporäre Gastronomie-Veranstaltungen gemeinnütziger Organisationen. Ehrenamtliche Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer. Das System ist self-hosted per Docker Compose.
+jotti ist ein Mobile-Point-of-Sale-System für temporäre Gastronomie-Veranstaltungen gemeinnütziger Organisationen. Ehrenamtliche Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer. Das System ist self-hosted per Docker Compose.
 
 ### 1.2 Designziele
 
@@ -82,7 +82,7 @@ Folgende Features sind **bewusst nicht enthalten** — jedes zusätzliche Featur
 
 | Context           | Typ                   | Beschreibung                                                          | Persistenz      |
 | ----------------- | --------------------- | --------------------------------------------------------------------- | --------------- |
-| **Kassenbetrieb** | Core Domain           | Tisch-basierte Vorgänge: Bestellen, Liefern, Bezahlen, Stornieren     | Event-Sourcing  |
+| **Kassenbetrieb** | Core Domain           | Tisch-basierte Vorgänge: Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren | Event-Sourcing  |
 | **Stammdaten**    | Supporting Sub-Domain | Verwaltung von Produkten, Tischen, Benutzern (CRUD)                   | CRUD            |
 | **Ausgabe**       | Supporting Sub-Domain | Bondruck, Küchendisplay (KDS), Zubereitungsstatus                     | Event-getrieben |
 | **Abrechnung**    | Supporting Sub-Domain | Tagesabrechnung, Umsatzberichte, Datenexport (Read-only-Projektionen) | Read-only       |
@@ -149,15 +149,16 @@ TischState (Projektion)
 
 ### 3.2 Invarianten
 
-$$\text{Saldo} = \sum \text{Bestellungen} - \sum \text{Zahlungen} - \sum \text{Stornierungen}$$
+$$\text{Saldo} = \sum \text{Bestellungen} - \sum \text{Zahlungen} - \sum \text{Stornierungen} + \sum \text{Auszahlungen}$$
 
-Alle Beträge in Cent (Integer). Saldo = 0 bedeutet: alle Positionen bezahlt oder storniert.
+Alle Beträge in Cent (Integer). Saldo = 0 bedeutet: alle Positionen bezahlt oder storniert. Ein Saldo < 0 entsteht, wenn bereits kassierte Positionen nachträglich storniert werden; `AuszahlungGeleistet` gleicht diesen negativen Saldo wieder aus.
 
 - **Ausgabe-Invariante:** Nur bestellte, nicht-stornierte Positionen können ausgegeben werden. Bereits ausgegebene Positionen nicht erneut ausgebbar. Teilausgaben zulässig.
 - **Bezahl-Invariante:** Nur bestellte, nicht-stornierte, nicht-bezahlte Positionen können bezahlt werden. Der Zahlungsbetrag ergibt sich aus der Summe der gewählten Positionen — Überzahlung nicht möglich. Teilzahlungen zulässig.
-- **Stornierungsinvariante:** Nur bestellte, nicht-stornierte Positionen können storniert werden — **unabhängig vom Liefer- und Bezahlstatus**. Bei Stornierung bereits bezahlter Positionen kann der Saldo temporär negativ werden (bewusstes Design).
-- **Rolleninvariante:** Stornierungen nur durch `serviceleitung` und `admin`. Alle anderen Tischoperationen (Bestellen, Liefern, Bezahlen) stehen allen drei Rollen zur Verfügung.
-- **Mindestmengen-Invariante:** Jede Operation erfordert mindestens eine Position. Bestellung, Ausgabe, Zahlung oder Stornierung ohne Positionen sind ungültig.
+- **Stornierungsinvariante:** Nur bestellte, nicht-stornierte Positionen können storniert werden — **unabhängig vom Ausgabe- und Bezahlstatus**. Bei Stornierung bereits bezahlter Positionen kann der Saldo temporär negativ werden (bewusstes Design). Kommentar ist **Pflichtfeld** (min. 3 Zeichen).
+- **Auszahlungs-Invariante:** Betrag muss ≥ 1 Cent sein. Kommentar ist **Pflichtfeld** (min. 3, max. 100 Zeichen). Es gibt keine Ober-grenze für den Auszahlungsbetrag (Freifeld). Nur `serviceleitung` und `admin` dürfen Auszahlungen leisten.
+- **Rolleninvariante:** Stornierungen und Auszahlungen nur durch `serviceleitung` und `admin`. Alle anderen Tischoperationen (Bestellen, Ausgabe bestätigen, Bezahlen) stehen allen drei Rollen zur Verfügung.
+- **Mindestmengen-Invariante:** Jede positionsbasierte Operation erfordert mindestens eine Position. Bestellung, Ausgabe, Zahlung oder Stornierung ohne Positionen sind ungültig.
 
 ### 3.3 Domain Events
 
@@ -235,7 +236,19 @@ StornierungErteilt
 │   ├── position_id            (UUID)
 │   └── menge                  (int, ≥ 1)
 ├── gesamt_stornierung_cents   (int, Cent — Summe der stornierten Positionen)
-└── kommentar?                 (string, optional — max. 100 Zeichen)
+└── kommentar                  (string, Pflichtfeld — min. 3, max. 100 Zeichen)
+```
+
+#### AuszahlungGeleistet
+
+Serviceleitung oder Admin leistet eine Auszahlung, um einen negativen Saldo auszugleichen (K-04b). Freier Betrag, kein Positionsbezug.
+
+```
+AuszahlungGeleistet
+├── [Event-Metadaten]
+├── auszahlung_id   (UUID)
+├── betrag_cents    (int, Cent — ≥ 1, kein Positionsbezug)
+└── kommentar       (string, Pflichtfeld — min. 3, max. 100 Zeichen)
 ```
 
 ### 3.4 Synchrone Projektion und Event Replay
@@ -276,6 +289,7 @@ Die `ApplyEvent()`-Funktion (`backend/domain/table/projection.go`) ist eine rein
 | AusgabeBestaetigt      | Referenzierte Mengen aus `ausstehende_positionen` subtrahieren (Eintrag entfernen bei Menge 0)                  |
 | ZahlungKassiert        | Referenzierte Mengen aus `unbezahlte_positionen` subtrahieren, Saldo und `gesamt_zahlungen_cents` anpassen     |
 | StornierungErteilt     | Referenzierte Mengen aus `unbezahlte_positionen` und `ausstehende_positionen` subtrahieren, Saldo reduzieren   |
+| AuszahlungGeleistet    | Saldo um `betrag_cents` erhöhen (negativen Saldo ausgleichen) — keine Positionslisten-Änderung                 |
 
 **Selbstheilung:** Bei Inkonsistenz kann `table_state` jederzeit aus allen Events reberechnet werden — der Event Stream bleibt die Single Source of Truth. Details zur Projektionsarchitektur: [ADR: CQRS](../adr/cqrs.md).
 
@@ -397,6 +411,7 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen. Die Rollenprüfung erfol
 | Ausgabe bestätigen       |   ✔   |       ✔        |      ✔       |
 | Zahlung kassieren        |   ✔   |       ✔        |      ✔       |
 | Stornierung erteilen     |   ✔   |       ✔        |              |
+| Auszahlung leisten       |   ✔   |       ✔        |              |
 | Tischübersicht einsehen  |   ✔   |       ✔        |      ✔       |
 | Kassenjournal einsehen   |   ✔   |       ✔        |      ✔       |
 | Tagesabrechnung einsehen |   ✔   |                |              |
@@ -448,7 +463,7 @@ Das Backend ist in vier Schichten gegliedert:
 
 ### 6.2 API-Design
 
-**POST-only:** Alle API-Endpunkte sind POST-Endpunkte. Jede Aktion wird explizit benannt (z. B. `/service/bestellung-aufgeben` statt `PUT /tables/5`).
+**POST-only:** Alle API-Endpunkte sind POST-Endpunkte. Jede Aktion wird explizit benannt (z. B. `/service/bestellung-aufnehmen` statt `PUT /tables/5`).
 
 **JSON:** Request- und Response-Bodies sind JSON.
 
@@ -484,14 +499,14 @@ Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 
 | Bereich   | Seiten                                                                                                                                                                                   |
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Service   | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Bezahlen, Historie). Liefern ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar. |
+| Service   | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Bezahlen, Historie). Ausgabe bestätigen ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar. |
 | Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten                                                                                                                               |
 | Allgemein | Login · Passwort setzen (Erstanmeldung)                                                                                                                                                  |
 
 **UI-Patterns:**
 
 - **Karten:** Produkte und Tische werden als Karten dargestellt.
-- **Drawer (Bottom-Sheet):** Bestellen, Liefern, Bezahlen und Stornieren öffnen einen Drawer von unten mit Zusammenfassung und Bestätigung.
+- **Drawer (Bottom-Sheet):** Bestellen, Ausgabe bestätigen, Bezahlen und Stornieren öffnen einen Drawer von unten mit Zusammenfassung und Bestätigung.
 - **Tab-Navigation:** Im Tisch-Detail navigiert der Benutzer zwischen den Aktionen über Tabs.
 - **Plus/Minus:** Mengenauswahl über Plus/Minus-Buttons (Touch-optimiert).
 
@@ -598,8 +613,8 @@ Drei Stufen: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wic
 
 | ID   | Anforderung                 |
 | ---- | --------------------------- |
-| K-01 | Bestellung aufgeben         |
-| K-02 | Zahlung registrieren        |
+| K-01 | Bestellung aufnehmen        |
+| K-02 | Zahlung kassieren           |
 | K-03 | Ausgabe bestätigen          |
 | K-04 | Stornierung                 |
 | K-05 | Tischübersicht / Navigation |

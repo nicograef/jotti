@@ -28,7 +28,7 @@ func mustCreatePaymentEvent(t *testing.T, userID, tableID int, positions []Posit
 
 func mustCreateCancelationEvent(t *testing.T, userID, tableID int, positions []Position, gesamtStornierungCents int) e.Event {
 	t.Helper()
-	event, err := NewStornierungErteiltEvent(userID, "TestUser", tableID, positions, gesamtStornierungCents, "")
+	event, err := NewStornierungErteiltEvent(userID, "TestUser", tableID, positions, gesamtStornierungCents, "Test")
 	if err != nil {
 		t.Fatalf("failed to create cancelation event: %v", err)
 	}
@@ -40,6 +40,15 @@ func mustCreateDeliveryEvent(t *testing.T, userID, tableID int, positions []Posi
 	event, err := NewAusgabeBestaetigtEvent(userID, "TestUser", tableID, positions, "")
 	if err != nil {
 		t.Fatalf("failed to create delivery event: %v", err)
+	}
+	return event
+}
+
+func mustCreateAuszahlungEvent(t *testing.T, userID, tableID, betragCents int, kommentar string) e.Event {
+	t.Helper()
+	event, err := NewAuszahlungGeleistetEvent(userID, "TestUser", tableID, betragCents, kommentar)
+	if err != nil {
+		t.Fatalf("failed to create auszahlung event: %v", err)
 	}
 	return event
 }
@@ -146,5 +155,52 @@ func TestPositionWithFatEventFields(t *testing.T) {
 	}
 	if pos.Einzelpreis*pos.Menge != 1500 {
 		t.Errorf("expected total 1500, got %d", pos.Einzelpreis*pos.Menge)
+	}
+}
+
+func TestGetHistoryFromEvents_IncludesAuszahlung(t *testing.T) {
+	products := []Position{
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
+	}
+	orderEvent := mustCreateOrderEvent(t, 1, 1, products)
+	positions := positionsFromOrder(t, orderEvent, 1)
+
+	events := []e.Event{
+		orderEvent,
+		mustCreatePaymentEvent(t, 1, 1, positions, 500),
+		mustCreateCancelationEvent(t, 1, 1, positions, 500),
+		mustCreateAuszahlungEvent(t, 1, 1, 500, "Rueckzahlung"),
+	}
+
+	history, err := GetHistoryFromEvents(events)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(history) != 4 {
+		t.Fatalf("expected 4 history items, got %d", len(history))
+	}
+	// Most recent first: auszahlung should be at index 0
+	if history[0].Art != HistorieEintragAuszahlung || history[0].Auszahlung == nil {
+		t.Fatalf("expected first item to be Auszahlung, got kind %q", history[0].Art)
+	}
+	if history[0].Auszahlung.BetragCents != 500 {
+		t.Fatalf("expected BetragCents 500, got %d", history[0].Auszahlung.BetragCents)
+	}
+	if history[0].Auszahlung.Kommentar != "Rueckzahlung" {
+		t.Fatalf("expected Kommentar Rueckzahlung, got %s", history[0].Auszahlung.Kommentar)
+	}
+}
+
+func TestNewAuszahlungGeleistetEvent_InvalidBetrag(t *testing.T) {
+	_, err := NewAuszahlungGeleistetEvent(1, "TestUser", 1, 0, "Rueckzahlung")
+	if err == nil {
+		t.Fatal("expected error for betragCents=0, got nil")
+	}
+}
+
+func TestNewAuszahlungGeleistetEvent_InvalidKommentar(t *testing.T) {
+	_, err := NewAuszahlungGeleistetEvent(1, "TestUser", 1, 500, "ab")
+	if err == nil {
+		t.Fatal("expected error for kommentar too short, got nil")
 	}
 }

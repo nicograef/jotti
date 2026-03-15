@@ -403,7 +403,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 	cancelEvent, _ := table.NewStornierungErteiltEvent(1, "Test User", testActiveTisch.ID,
 		[]table.Position{
 			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
-		}, 350, "")
+		}, 350, "Test")
 
 	eventMock := event_repo.NewMock(nil, nil)
 	eventMock.SetTableState(testActiveTisch.ID, table.TischState{

@@ -36,26 +36,29 @@ func (q *Queries) CreateTisch(ctx context.Context, arg CreateTischParams) (int, 
 }
 
 const getAktiveTische = `-- name: GetAktiveTische :many
-SELECT id, name, status, created_at, updated_at
-FROM tische WHERE status = 'active' ORDER BY id ASC
+SELECT t.id, t.name, COALESCE(ts.saldo_cents, 0)::integer AS saldo_cents
+FROM tische t
+LEFT JOIN table_state ts ON ts.tisch_id = t.id
+WHERE t.status = 'active'
+ORDER BY t.id ASC
 `
 
-func (q *Queries) GetAktiveTische(ctx context.Context) ([]Tische, error) {
+type GetAktiveTischeRow struct {
+	ID         int
+	Name       string
+	SaldoCents int
+}
+
+func (q *Queries) GetAktiveTische(ctx context.Context) ([]GetAktiveTischeRow, error) {
 	rows, err := q.db.QueryContext(ctx, getAktiveTische)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Tische{}
+	items := []GetAktiveTischeRow{}
 	for rows.Next() {
-		var i Tische
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Status,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
+		var i GetAktiveTischeRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.SaldoCents); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
