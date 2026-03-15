@@ -39,7 +39,7 @@ export function TablePage() {
     reload: reloadHistorie,
   } = useTischHistorie(Number(tableId))
 
-  const tisch = { id: state.tischId, name: state.tischName }
+  const tisch = { id: state.tischId, name: state.tischName, saldoCents: state.saldoCents }
 
   const offenePositionen = state.ausstehendePositionen.reduce(
     (sum, position) => sum + position.menge,
