@@ -213,6 +213,19 @@ Anzahl einer Produktvariante innerhalb einer Position.
 
 > **Hinweis:** Backend-Rename abgeschlossen (`Quantity` → `Menge`). Frontend-Rename (`quantity` → `menge`) ausstehend.
 
+### EigeneUebersicht
+
+Kompakte KPI-Übersicht einer Servicekraft über ihre eigenen Aktivitäten: Anzahl und Summe eigener Bestellungen sowie Anzahl und Summe eigener kassierten Zahlungen. Read Model — berechnet aus dem Event Store, gefiltert auf `user_id`.
+
+| Schicht             | Repräsentation                                                                                              | Datei                                         |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Go-Struct           | `EigeneUebersicht` (Felder: `AnzahlBestellungen`, `BestellungenCents`, `AnzahlZahlungen`, `ZahlungenCents`) | `domain/reporting/reporting.go`               |
+| JSON-Keys           | `"anzahlBestellungen"`, `"bestellungenCents"`, `"anzahlZahlungen"`, `"zahlungenCents"`                      | Response-DTO in `api/reporting/http/`         |
+| TypeScript-Typ      | `EigeneUebersicht`                                                                                          | `src/service/table/Tisch.ts`                  |
+| API-Pfad            | `/service/get-eigene-uebersicht`                                                                            | `api/service.go`                              |
+| Frontend-Komponente | `<EigeneUebersicht>`                                                                                        | `src/service/components/EigeneUebersicht.tsx` |
+| UI-Label            | „Meine Übersicht" (Sektion), „Bestellungen" / „Kassiert" (Karten)                                          |                                               |
+
 ## Stammdaten (Supporting Sub-Domain)
 
 ### Produkt
@@ -274,6 +287,18 @@ Logisches Löschen: Datensätze werden nicht physisch entfernt, sondern durch de
 | Go-Domain (User)     | Konstanten `ActiveStatus`, `InactiveStatus`            | `domain/user/user.go`          |
 
 > **Hinweis:** In den Go-Domain-Modellen existieren nur `active` und `inactive` als Konstanten. Der Status `deleted` wird ausschließlich auf DB-Ebene verwendet und ist in der Domain nicht als Konstante abgebildet.
+
+### Favorit
+
+Eine benutzerspezifische Markierung, die eine Servicekraft für einen Tisch setzt, um diesen auf dem Service-Dashboard als Rich Card anzuzeigen ("Meine Tische"). Kein Aggregat, keine Events — einfache CRUD-Relation in der DB (`tisch_favoriten`: `user_id` + `tisch_id` als Composite PK).
+
+| Schicht        | Repräsentation                                                                                                        | Datei                                      |
+| -------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Go-Package     | `backend/repository/favorit_repo/`                                                                                    | `repository/favorit_repo/repo.go`          |
+| DB-Tabelle     | `tisch_favoriten`                                                                                                     | `migrations/01_initial.up.sql`             |
+| TypeScript-Typ | (kein eigener Typ — als `istFavorit: boolean` in `AktiverTischMitFavorit`)                                             | `src/service/table/Tisch.ts`               |
+| API-Pfade      | `/service/favorit-hinzufuegen`, `/service/favorit-entfernen`                                                          | `api/service.go`                           |
+| UI-Label       | „Meine Tische" (Dashboard-Überschrift), Stern-Toggle (★ / ☆) im Alle-Tische-Drawer                                    |                                            |
 
 ## Authentifizierung (Generic Sub-Domain)
 

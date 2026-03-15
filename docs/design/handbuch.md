@@ -23,8 +23,9 @@
    - [4.1 Produkt-Aggregat](#41-produkt-aggregat)
    - [4.2 Tisch-Stammdaten](#42-tisch-stammdaten)
    - [4.3 Benutzer-Aggregat](#43-benutzer-aggregat)
-   - [4.4 Persistenz (CRUD)](#44-persistenz-crud)
-   - [4.5 Ausgabe und Abrechnung](#45-ausgabe-und-abrechnung)
+   - [4.4 Tisch-Favoriten](#44-tisch-favoriten)
+   - [4.5 Persistenz (CRUD)](#45-persistenz-crud)
+   - [4.6 Ausgabe und Abrechnung](#46-ausgabe-und-abrechnung)
 5. [Auth und Rollen](#5-auth-und-rollen)
    - [5.1 Rollen und Berechtigungsmatrix](#51-rollen-und-berechtigungsmatrix)
    - [5.2 Onboarding-Ablauf](#52-onboarding-ablauf)
@@ -371,7 +372,31 @@ Benutzer
 - Neue Benutzer werden initial mit Status `inactive` angelegt und müssen durch den Admin aktiviert werden.
 - Bei Neuanlage oder Passwort-Reset wird ein 6-stelliges Einmalpasswort generiert und als `einmalpasswort_hash` gespeichert. Der reguläre `passwort_hash` wird geleert. Das System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL`, dass der Benutzer ein eigenes Passwort vergeben muss (→ [5.2](#52-onboarding-ablauf)).
 
-### 4.4 Persistenz (CRUD)
+### 4.4 Tisch-Favoriten
+
+Tisch-Favoriten sind eine einfache CRUD-Relation im Stammdaten-Kontext. Sie verknüpfen einen Benutzer mit einem oder mehreren Tischen und steuern, welche Tische auf dem Service-Dashboard als "Meine Tische" angezeigt werden.
+
+```
+tisch_favoriten
+├── user_id     (int — FK users(id), NOT NULL)
+├── tisch_id    (int — FK tische(id), NOT NULL)
+└── created_at  (timestamptz — DEFAULT NOW())
+
+PRIMARY KEY (user_id, tisch_id)
+INDEX idx_tisch_favoriten_user_id ON tisch_favoriten(user_id)
+```
+
+**Eigenschaften:**
+
+- **Kein Aggregat, keine Events:** Favoriten werden direkt als Zeilen in der DB gespeichert. Es gibt keinen Event Stream.
+- **Benutzerspezifisch:** Jeder Benutzer hat seine eigene unabhängige Liste von Favoriten.
+- **Idempotente Operationen:** Hinzufügen eines bereits vorhandenen Favoriten (ON CONFLICT DO NOTHING) und Entfernen eines nicht vorhandenen Favoriten verursachen keinen Fehler.
+- **Nur aktive Tische:** Das Backend prüft vor dem Hinzufügen, ob der Tisch aktiv ist (`status = 'active'`).
+- **Referenzielle Integrität:** Fremdschlüssel auf `users(id)` und `tische(id)` sichern Konsistenz. Physisches Löschen von Benutzern oder Tischen ist durch Soft-Delete ausgeschlossen.
+
+**Persistenz:** Direktes CRUD ohne Event-Sourcing. Repository `favorit_repo` kapselt drei Operationen: `Add`, `Remove`, `GetByUser`.
+
+### 4.5 Persistenz (CRUD)
 
 Stammdaten (Produkte, Tische, Benutzer) werden mit klassischem CRUD verwaltet. Event-Sourcing ist hier nicht nötig — die historischen Daten stecken bereits in den Fat Events des Kassenbetrieb-Context.
 
@@ -379,7 +404,7 @@ Stammdaten (Produkte, Tische, Benutzer) werden mit klassischem CRUD verwaltet. E
 - **Timestamps:** Alle Stammdaten tragen `erstellt_am` und `aktualisiert_am` Zeitstempel.
 - **Referenzielle Integrität:** Produkte und Varianten werden nie physisch gelöscht, damit Fremdschlüssel-Referenzen aus dem Event Store valide bleiben.
 
-### 4.5 Ausgabe und Abrechnung
+### 4.6 Ausgabe und Abrechnung
 
 **Ausgabe (Supporting Sub-Domain):** Der Ausgabe-Context umfasst Bondruck, Küchendisplay (KDS) und Zubereitungsstatus. Bons werden automatisch bei Bestellungen nach Kategorie an Ausgabestationen gesendet (Essen → Küche, Getränke → Theke). Der Ausgabe-Context ist nicht Teil des MVP — Details in `entwurf.md` Kap. 5.
 

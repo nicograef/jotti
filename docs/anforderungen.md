@@ -42,7 +42,7 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen:
 | Tische verwalten         |   ✔   |                |              |
 | Benutzer verwalten       |   ✔   |                |              |
 | Passwort zurücksetzen    |   ✔   |                |              |
-| Bestellung aufgeben      |   ✔   |       ✔        |      ✔       |
+| Bestellung aufnehmen      |   ✔   |       ✔        |      ✔       |
 | Lieferung bestätigen     |   ✔   |       ✔        |      ✔       |
 | Zahlung registrieren     |   ✔   |       ✔        |      ✔       |
 | Stornierung erteilen (K-04) |   ✔   |       ✔        |              |
@@ -59,7 +59,7 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen:
 
 ## 1 · Kassenbetrieb (Core Domain)
 
-### K-01 · Bestellung aufgeben
+### K-01 · Bestellung aufnehmen
 
 > **ID:** K-01 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Must-have
@@ -147,15 +147,16 @@ Serviceleitung oder Admin können eine Auszahlung leisten, um einen negativen Ti
 ### K-06 · Tischübersicht und Navigation
 
 > **ID:** K-06 · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** ✅ Umgesetzt · **Prio:** Must-have
+> **Status:** ✅ Teilweise umgesetzt · **Prio:** Must-have
 
-Die Servicekraft sieht auf der Startseite alle aktiven Tische als Karten und navigiert per Tap zum Tisch-Detail. Dort stehen die Tischoperationen in drei Tabs zur Verfügung: Bestellen, Bezahlen und Historie. Liefern ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar. Tischoperationen öffnen als Drawer (Overlay von unten).
+Das Service-Dashboard zeigt primär die eigenen Tische der Servicekraft als Rich Cards (→ K-14 Tisch-Favoriten). Über einen Drawer sind alle aktiven Tische erreichbar. Per Tap auf eine Tischkarte navigiert die Servicekraft zum Tisch-Detail mit drei Tabs: Bestellen, Bezahlen, Historie. Liefern ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar.
 
 **Akzeptanzkriterien:**
 
-- Alle aktiven Tische werden als Karten angezeigt
-- Tischkarte zeigt den aktuellen Saldo
-- Navigation per Tap zum Tisch-Detail
+- Dashboard zeigt "Meine Tische" (Favoriten, K-14) als Rich Cards mit Saldo, ausstehenden Lieferungen, unbezahlten Positionen und Auszahlungsbedarf
+- Leerer Zustand (keine Favoriten): Hinweis "Du hast noch keine Tische markiert" mit Button zum Alle-Tische-Drawer
+- Alle aktiven Tische sind über einen Drawer ("Alle Tische") erreichbar
+- Navigation per Tap auf Tischkarte zum Tisch-Detail
 - Tisch-Detail bietet drei Tabs: Bestellen, Bezahlen, Historie
 - Liefern ist in den Bestellen-Tab integriert, Stornieren für Serviceleitung/Admin im Bezahlen-Tab
 - Operationen öffnen als Drawer (Mobile-optimiertes Overlay)
@@ -216,12 +217,14 @@ Bei der Zahlung kann die Servicekraft den vom Gast erhaltenen Bargeldbetrag eing
 > **ID:** K-11 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
-Auf der Tischübersicht kann die Servicekraft über ein Suchfeld oder Nummernpad direkt eine Tischnummer eingeben, um schnell zum gewünschten Tisch zu navigieren — ohne durch die Karten scrollen zu müssen.
+Im Alle-Tische-Drawer (K-06) kann die Servicekraft über ein Suchfeld Tische nach Name oder Nummer filtern, um schnell zum gewünschten Tisch zu navigieren oder Favoriten zu verwalten — ohne durch die gesamte Liste scrollen zu müssen.
 
 **Akzeptanzkriterien:**
 
-- Suchfeld oder Nummernpad auf der Tischübersicht
-- Direkte Navigation zum gesuchten Tisch per Eingabe der Tischnummer
+- Suchfeld am Anfang des Alle-Tische-Drawers
+- Clientseitige Filterung der Tischliste nach Tischname/-nummer (case-insensitive)
+- Filtereingabe reduziert die angezeigte Tischliste in Echtzeit
+- Bei leerem Suchfeld werden alle aktiven Tische angezeigt
 
 ### K-12 · Bondruck
 
@@ -251,9 +254,26 @@ Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eig
 - Getränkeausgabe sieht offene Getränkebestellungen, Essensausgabe sieht offene Essensbestellungen
 - Letzte Bestellungen sind einsehbar (bei Bon-Verlust)
 
-### K-14 · Ausgabestationen mit Zubereitungsstatus
+### K-14 · Tisch-Favoriten
 
 > **ID:** K-14 · **Rolle:** Servicekraft · Serviceleitung · Admin
+> **Status:** 🔲 Offen · **Prio:** Must-have
+
+Jede Servicekraft kann Tische als Favoriten markieren ("Meine Tische"). Favoriten sind serverseitig pro Benutzer gespeichert und bleiben über Browser-Sessions hinweg erhalten. Die markierten Tische erscheinen als Rich Cards auf dem Service-Dashboard (K-06).
+
+**Akzeptanzkriterien:**
+
+- Servicekraft kann einen aktiven Tisch als Favorit hinzufügen (Stern-Toggle im Alle-Tische-Drawer)
+- Servicekraft kann einen Favoriten entfernen (Stern-Toggle im Alle-Tische-Drawer)
+- Favoriten sind benutzerspezifisch und unabhängig von anderen Servicekräften
+- Favoriten werden serverseitig in der DB gespeichert (`tisch_favoriten`-Tabelle, `user_id` + `tisch_id` als Composite PK)
+- Das Hinzufügen eines bereits vorhandenen Favoriten ist idempotent (kein Fehler)
+- Das Entfernen eines nicht vorhandenen Favoriten ist idempotent (kein Fehler)
+- Nur aktive Tische können als Favorit markiert werden
+
+### K-15 · Ausgabestationen mit Zubereitungsstatus
+
+> **ID:** K-15 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
 Aufbauend auf dem Küchendisplay (K-13) können Mitarbeiter an Ausgabestationen den Zubereitungsstatus einzelner Positionen verwalten. Servicekräfte sehen den Zubereitungsstatus und wissen, wann Positionen abholbereit sind.
@@ -577,13 +597,15 @@ Der Admin kann Auswertungen über Produktumsätze im gewählten Abrechnungszeitr
 > **ID:** R-06 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** 🔲 Offen · **Prio:** Nice-to-have
 
-Jede Servicekraft kann eine Übersicht über die eigenen Aktivitäten einsehen: aufgegebene Bestellungen, registrierte Zahlungen und deren Status. Dies gibt dem Helfer einen persönlichen Überblick über den eigenen Beitrag, ohne dass ein Admin benötigt wird.
+Jede Servicekraft sieht auf dem Service-Dashboard eine kompakte KPI-Sektion mit ihren eigenen Aktivitäten: Anzahl und Summe der eigenen Bestellungen sowie Anzahl und Summe der eigenen kassierten Zahlungen. Die Karten bieten einen schnellen persönlichen Überblick über den eigenen Beitrag, ohne dass ein Admin benötigt wird.
 
 **Akzeptanzkriterien:**
 
-- Servicekraft kann eigene Bestellungen und deren Status einsehen (bestellt, geliefert, bezahlt, storniert)
-- Anzeige des eigenen kassieren Umsatzes (Summe der selbst registrierten Zahlungen)
+- KPI-Sektion direkt auf dem Service-Dashboard sichtbar (unterhalb des Headers, oberhalb der Tischkarten)
+- Karte "Bestellungen": Anzahl eigener Bestellungen + Gesamtsumme in Euro
+- Karte "Kassiert": Anzahl eigener Zahlungen + Gesamtsumme in Euro
 - Nur eigene Daten sichtbar — kein Einblick in Daten anderer Servicekräfte
+- Werte werden aus den Events der Servicekraft berechnet (Event-Store-Query gefiltert auf `user_id`)
 
 ### R-07 · Tagesabschluss
 
