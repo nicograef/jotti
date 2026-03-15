@@ -197,7 +197,7 @@ INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data)
 (4, 'Maria Schmidt', 'tisch.ausgabe-bestaetigt:v1', 'tisch:1', 8, now() - interval '46 hours 10 minutes', '{"ausgabeId":"c0001000-4000-8000-a000-000000000003","positionen":[{"positionId":"b0001000-4000-8000-a000-000000000006","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":4}],"kommentar":""}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
-(4, 'Maria Schmidt', 'tisch.zahlung-kassiert:v1', 'tisch:1', 9, now() - interval '45 hours 59 minutes', '{"zahlungId":"d0001000-4000-8000-a000-000000000003","positionen":[{"positionId":"b0001000-4000-8000-a000-000000000006","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":4}],"gesamtZahlungCents":1800,"kommentar":""}');
+(4, 'Maria Schmidt', 'tisch.zahlung-kassiert:v1', 'tisch:1', 9, now() - interval '45 hours 59 minutes', '{"zahlungId":"d0001000-4000-8000-a000-000000000003","positionen":[{"positionId":"b0001000-4000-8000-a000-000000000006","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":4}],"gesamtZahlungCents":1800,"kommentar":"Prost! Auf einen sch\u00f6nen Freitagabend!"}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
 (5, 'Lisa Braun', 'tisch.bestellung-aufgenommen:v1', 'tisch:1', 10, now() - interval '45 hours 29 minutes', '{"bestellungId": "a0001000-4000-8000-a000-000000000004","positionen": [{"positionId": "b0001000-4000-8000-a000-000000000007","varianteId": 16,"produktName": "Kuchen","varianteName": "Stück","kategorie": "essen","einzelpreis": 250,"menge": 3},{"positionId": "b0001000-4000-8000-a000-000000000008","varianteId": 45,"produktName": "Kaffee","varianteName": "Tasse","kategorie": "getraenk","einzelpreis": 200,"menge": 3}],"gesamtPreisCents": 1350,"kommentar": "Nachtisch"}');
@@ -248,7 +248,7 @@ INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data)
 (8, 'Markus Lehmann', 'tisch.ausgabe-bestaetigt:v1', 'tisch:1', 25, now() - interval '24 hours 27 minutes', '{"ausgabeId":"c0001000-4000-8000-a000-000000000009","positionen":[{"positionId":"b0001000-4000-8000-a000-000000000022","varianteId":16,"produktName":"Kuchen","varianteName":"Stück","kategorie":"essen","einzelpreis":250,"menge":4},{"positionId":"b0001000-4000-8000-a000-000000000023","varianteId":45,"produktName":"Kaffee","varianteName":"Tasse","kategorie":"getraenk","einzelpreis":200,"menge":4}],"kommentar":""}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
-(8, 'Markus Lehmann', 'tisch.zahlung-kassiert:v1', 'tisch:1', 26, now() - interval '24 hours 3 minutes', '{"zahlungId":"d0001000-4000-8000-a000-000000000008","positionen":[{"positionId":"b0001000-4000-8000-a000-000000000022","varianteId":16,"produktName":"Kuchen","varianteName":"Stück","kategorie":"essen","einzelpreis":250,"menge":4},{"positionId":"b0001000-4000-8000-a000-000000000023","varianteId":45,"produktName":"Kaffee","varianteName":"Tasse","kategorie":"getraenk","einzelpreis":200,"menge":4}],"gesamtZahlungCents":1800,"kommentar":""}');
+(8, 'Markus Lehmann', 'tisch.zahlung-kassiert:v1', 'tisch:1', 26, now() - interval '24 hours 3 minutes', '{"zahlungId":"d0001000-4000-8000-a000-000000000008","positionen":[{"positionId":"b0001000-4000-8000-a000-000000000022","varianteId":16,"produktName":"Kuchen","varianteName":"Stück","kategorie":"essen","einzelpreis":250,"menge":4},{"positionId":"b0001000-4000-8000-a000-000000000023","varianteId":45,"produktName":"Kaffee","varianteName":"Tasse","kategorie":"getraenk","einzelpreis":200,"menge":4}],"gesamtZahlungCents":1800,"kommentar":"Alles zusammen bitte"}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
 (5, 'Lisa Braun', 'tisch.bestellung-aufgenommen:v1', 'tisch:1', 27, now() - interval '23 hours 43 minutes', '{"bestellungId": "a0001000-4000-8000-a000-000000000010","positionen": [{"positionId": "b0001000-4000-8000-a000-000000000024","varianteId": 24,"produktName": "Bier","varianteName": "0,5l","kategorie": "getraenk","einzelpreis": 450,"menge": 6},{"positionId": "b0001000-4000-8000-a000-000000000025","varianteId": 25,"produktName": "Bier","varianteName": "Maß 1,0l","kategorie": "getraenk","einzelpreis": 850,"menge": 2}],"gesamtPreisCents": 4400,"kommentar": ""}');
@@ -751,7 +751,7 @@ INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data)
 (9, 'Anna Krause', 'tisch.zahlung-kassiert:v1', 'tisch:3', 18, now() - interval '18 hours 37 minutes', '{"zahlungId":"d0003000-4000-8000-a000-000000000006","positionen":[{"positionId":"b0003000-4000-8000-a000-000000000014","varianteId":46,"produktName":"Kaffee","varianteName":"Espresso","kategorie":"getraenk","einzelpreis":180,"menge":2}],"gesamtZahlungCents":360,"kommentar":""}');
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- TISCH 4: Großfamilie — Tag 2, große Bestellungen (57 Events)
+-- TISCH 4: Großfamilie — Tag 2, große Bestellungen + Auszahlung (58 Events)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
@@ -923,7 +923,11 @@ INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data)
 (7, 'Sophie Becker', 'tisch.zahlung-kassiert:v1', 'tisch:4', 56, now() - interval '17 hours 25 minutes', '{"zahlungId":"d0004000-4000-8000-a000-000000000014","positionen":[{"positionId":"b0004000-4000-8000-a000-000000000048","varianteId":10,"produktName":"Tagesgericht","varianteName":"Sa: Gulasch mit Spätzle","kategorie":"essen","einzelpreis":1150,"menge":2},{"positionId":"b0004000-4000-8000-a000-000000000049","varianteId":34,"produktName":"Softdrinks","varianteName":"Sprite","kategorie":"getraenk","einzelpreis":280,"menge":1},{"positionId":"b0004000-4000-8000-a000-000000000050","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":3}],"gesamtZahlungCents":3930,"kommentar":""}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
-(8, 'Markus Lehmann', 'tisch.zahlung-kassiert:v1', 'tisch:4', 57, now() - interval '17 hours 22 minutes', '{"zahlungId":"d0004000-4000-8000-a000-000000000006","positionen":[{"positionId":"b0004000-4000-8000-a000-000000000023","varianteId":17,"produktName":"Waffeln","varianteName":"mit Puderzucker","kategorie":"essen","einzelpreis":300,"menge":2},{"positionId":"b0004000-4000-8000-a000-000000000024","varianteId":5,"produktName":"Pommes","varianteName":"Groß","kategorie":"essen","einzelpreis":350,"menge":2},{"positionId":"b0004000-4000-8000-a000-000000000025","varianteId":42,"produktName":"Wein","varianteName":"Weißwein 0,2l","kategorie":"getraenk","einzelpreis":400,"menge":4},{"positionId":"b0004000-4000-8000-a000-000000000026","varianteId":35,"produktName":"Softdrinks","varianteName":"Mezzo Mix","kategorie":"getraenk","einzelpreis":280,"menge":4}],"gesamtZahlungCents":4020,"kommentar":""}');
+(8, 'Markus Lehmann', 'tisch.zahlung-kassiert:v1', 'tisch:4', 57, now() - interval '17 hours 22 minutes', '{"zahlungId":"d0004000-4000-8000-a000-000000000006","positionen":[{"positionId":"b0004000-4000-8000-a000-000000000023","varianteId":17,"produktName":"Waffeln","varianteName":"mit Puderzucker","kategorie":"essen","einzelpreis":300,"menge":2},{"positionId":"b0004000-4000-8000-a000-000000000024","varianteId":5,"produktName":"Pommes","varianteName":"Groß","kategorie":"essen","einzelpreis":350,"menge":2},{"positionId":"b0004000-4000-8000-a000-000000000025","varianteId":42,"produktName":"Wein","varianteName":"Weißwein 0,2l","kategorie":"getraenk","einzelpreis":400,"menge":4},{"positionId":"b0004000-4000-8000-a000-000000000026","varianteId":35,"produktName":"Softdrinks","varianteName":"Mezzo Mix","kategorie":"getraenk","einzelpreis":280,"menge":4}],"gesamtZahlungCents":4020,"kommentar":"War ein langer, schöner Samstag!"}');
+
+-- Negativer Saldo durch storniertes Gulasch (v4, -1150ct) wird durch Auszahlung ausgeglichen
+INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
+(3, 'Felix Weber', 'tisch.auszahlung-geleistet:v1', 'tisch:4', 58, now() - interval '17 hours 5 minutes', '{"auszahlungId":"f0004000-4000-8000-a000-000000000001","betragCents":1150,"kommentar":"Kind konnte Gulasch nicht essen, Erstattung bar"}');
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- TISCH 5: VIP/Vorstand — alle 3 Tage, gehobene Bestellungen (95 Events)
@@ -963,7 +967,7 @@ INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data)
 (7, 'Sophie Becker', 'tisch.ausgabe-bestaetigt:v1', 'tisch:5', 11, now() - interval '44 hours 56 minutes', '{"ausgabeId":"c0005000-4000-8000-a000-000000000004","positionen":[{"positionId":"b0005000-4000-8000-a000-000000000011","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":4},{"positionId":"b0005000-4000-8000-a000-000000000012","varianteId":25,"produktName":"Bier","varianteName":"Maß 1,0l","kategorie":"getraenk","einzelpreis":850,"menge":2}],"kommentar":""}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
-(7, 'Sophie Becker', 'tisch.zahlung-kassiert:v1', 'tisch:5', 12, now() - interval '44 hours 35 minutes', '{"zahlungId":"d0005000-4000-8000-a000-000000000004","positionen":[{"positionId":"b0005000-4000-8000-a000-000000000011","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":4},{"positionId":"b0005000-4000-8000-a000-000000000012","varianteId":25,"produktName":"Bier","varianteName":"Maß 1,0l","kategorie":"getraenk","einzelpreis":850,"menge":2}],"gesamtZahlungCents":3500,"kommentar":""}');
+(7, 'Sophie Becker', 'tisch.zahlung-kassiert:v1', 'tisch:5', 12, now() - interval '44 hours 35 minutes', '{"zahlungId":"d0005000-4000-8000-a000-000000000004","positionen":[{"positionId":"b0005000-4000-8000-a000-000000000011","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":4},{"positionId":"b0005000-4000-8000-a000-000000000012","varianteId":25,"produktName":"Bier","varianteName":"Maß 1,0l","kategorie":"getraenk","einzelpreis":850,"menge":2}],"gesamtZahlungCents":3500,"kommentar":"VIP-Service, bitte schnell"}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
 (3, 'Felix Weber', 'tisch.stornierung-erteilt:v1', 'tisch:5', 13, now() - interval '44 hours 26 minutes', '{"stornierungId":"e0005000-4000-8000-a000-000000000001","positionen":[{"positionId":"b0005000-4000-8000-a000-000000000002","varianteId":8,"produktName":"Flammkuchen","varianteName":"Mediterran","kategorie":"essen","einzelpreis":750,"menge":1}],"gesamtStornierungCents":750,"kommentar":"Flammkuchen war kalt — Geld zurück"}');
@@ -975,7 +979,7 @@ INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data)
 (7, 'Sophie Becker', 'tisch.ausgabe-bestaetigt:v1', 'tisch:5', 15, now() - interval '26 hours 11 minutes', '{"ausgabeId":"c0005000-4000-8000-a000-000000000005","positionen":[{"positionId":"b0005000-4000-8000-a000-000000000013","varianteId":13,"produktName":"Grillplatte","varianteName":"Groß","kategorie":"essen","einzelpreis":1400,"menge":3},{"positionId":"b0005000-4000-8000-a000-000000000014","varianteId":7,"produktName":"Flammkuchen","varianteName":"Speck & Zwiebel","kategorie":"essen","einzelpreis":700,"menge":3},{"positionId":"b0005000-4000-8000-a000-000000000015","varianteId":10,"produktName":"Tagesgericht","varianteName":"Sa: Gulasch mit Spätzle","kategorie":"essen","einzelpreis":1150,"menge":2},{"positionId":"b0005000-4000-8000-a000-000000000016","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":6},{"positionId":"b0005000-4000-8000-a000-000000000017","varianteId":42,"produktName":"Wein","varianteName":"Weißwein 0,2l","kategorie":"getraenk","einzelpreis":400,"menge":4}],"kommentar":""}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
-(7, 'Sophie Becker', 'tisch.zahlung-kassiert:v1', 'tisch:5', 16, now() - interval '25 hours 52 minutes', '{"zahlungId":"d0005000-4000-8000-a000-000000000005","positionen":[{"positionId":"b0005000-4000-8000-a000-000000000013","varianteId":13,"produktName":"Grillplatte","varianteName":"Groß","kategorie":"essen","einzelpreis":1400,"menge":3},{"positionId":"b0005000-4000-8000-a000-000000000014","varianteId":7,"produktName":"Flammkuchen","varianteName":"Speck & Zwiebel","kategorie":"essen","einzelpreis":700,"menge":3},{"positionId":"b0005000-4000-8000-a000-000000000015","varianteId":10,"produktName":"Tagesgericht","varianteName":"Sa: Gulasch mit Spätzle","kategorie":"essen","einzelpreis":1150,"menge":2},{"positionId":"b0005000-4000-8000-a000-000000000016","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":6},{"positionId":"b0005000-4000-8000-a000-000000000017","varianteId":42,"produktName":"Wein","varianteName":"Weißwein 0,2l","kategorie":"getraenk","einzelpreis":400,"menge":4}],"gesamtZahlungCents":12900,"kommentar":""}');
+(7, 'Sophie Becker', 'tisch.zahlung-kassiert:v1', 'tisch:5', 16, now() - interval '25 hours 52 minutes', '{"zahlungId":"d0005000-4000-8000-a000-000000000005","positionen":[{"positionId":"b0005000-4000-8000-a000-000000000013","varianteId":13,"produktName":"Grillplatte","varianteName":"Groß","kategorie":"essen","einzelpreis":1400,"menge":3},{"positionId":"b0005000-4000-8000-a000-000000000014","varianteId":7,"produktName":"Flammkuchen","varianteName":"Speck & Zwiebel","kategorie":"essen","einzelpreis":700,"menge":3},{"positionId":"b0005000-4000-8000-a000-000000000015","varianteId":10,"produktName":"Tagesgericht","varianteName":"Sa: Gulasch mit Spätzle","kategorie":"essen","einzelpreis":1150,"menge":2},{"positionId":"b0005000-4000-8000-a000-000000000016","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":6},{"positionId":"b0005000-4000-8000-a000-000000000017","varianteId":42,"produktName":"Wein","varianteName":"Weißwein 0,2l","kategorie":"getraenk","einzelpreis":400,"menge":4}],"gesamtZahlungCents":12900,"kommentar":"Vorstandsabend — danke f\u00fcr den tollen Service!"}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
 (7, 'Sophie Becker', 'tisch.bestellung-aufgenommen:v1', 'tisch:5', 17, now() - interval '25 hours 34 minutes', '{"bestellungId": "a0005000-4000-8000-a000-000000000006","positionen": [{"positionId": "b0005000-4000-8000-a000-000000000018","varianteId": 49,"produktName": "Hugo/Aperol","varianteName": "Aperol Spritz","kategorie": "getraenk","einzelpreis": 550,"menge": 4},{"positionId": "b0005000-4000-8000-a000-000000000019","varianteId": 48,"produktName": "Hugo/Aperol","varianteName": "Hugo","kategorie": "getraenk","einzelpreis": 550,"menge": 2}],"gesamtPreisCents": 3300,"kommentar": ""}');
@@ -1629,7 +1633,7 @@ INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data)
 (8, 'Markus Lehmann', 'tisch.ausgabe-bestaetigt:v1', 'tisch:8', 102, now() - interval '3 hours 3 minutes', '{"ausgabeId":"c0008000-4000-8000-a000-000000000015","positionen":[{"positionId":"b0008000-4000-8000-a000-000000000041","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":2},{"positionId":"b0008000-4000-8000-a000-000000000042","varianteId":40,"produktName":"Saftschorle","varianteName":"Johannisbeerschorle 0,5l","kategorie":"getraenk","einzelpreis":300,"menge":2}],"kommentar":""}');
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- TISCH 9: Kegelclub — Tag 1+2 bezahlt, Tag 3 offen (83 Events)
+-- TISCH 9: Kegelclub — Tag 1+2 bezahlt, Tag 3 komplett inkl. Stornierung+Auszahlung (86 Events)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
@@ -1873,7 +1877,7 @@ INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data)
 (6, 'Jan Hoffmann', 'tisch.ausgabe-bestaetigt:v1', 'tisch:9', 80, now() - interval '4 hours 11 minutes', '{"ausgabeId":"c0009000-4000-8000-a000-000000000010","positionen":[{"positionId":"b0009000-4000-8000-a000-000000000024","varianteId":11,"produktName":"Tagesgericht","varianteName":"So: Hähnchen mit Reis","kategorie":"essen","einzelpreis":1050,"menge":3},{"positionId":"b0009000-4000-8000-a000-000000000025","varianteId":14,"produktName":"Salat","varianteName":"Gemischter Salat","kategorie":"essen","einzelpreis":550,"menge":2},{"positionId":"b0009000-4000-8000-a000-000000000026","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":4},{"positionId":"b0009000-4000-8000-a000-000000000027","varianteId":40,"produktName":"Saftschorle","varianteName":"Johannisbeerschorle 0,5l","kategorie":"getraenk","einzelpreis":300,"menge":2}],"kommentar":""}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
-(8, 'Markus Lehmann', 'tisch.bestellung-aufgenommen:v1', 'tisch:9', 81, now() - interval '3 hours 48 minutes', '{"bestellungId": "a0009000-4000-8000-a000-000000000011","positionen": [{"positionId": "b0009000-4000-8000-a000-000000000028","varianteId": 20,"produktName": "Brezel","varianteName": "Normal","kategorie": "essen","einzelpreis": 200,"menge": 4},{"positionId": "b0009000-4000-8000-a000-000000000029","varianteId": 21,"produktName": "Brezel","varianteName": "mit Butter","kategorie": "essen","einzelpreis": 300,"menge": 2},{"positionId": "b0009000-4000-8000-a000-000000000030","varianteId": 45,"produktName": "Kaffee","varianteName": "Tasse","kategorie": "getraenk","einzelpreis": 200,"menge": 3}],"gesamtPreisCents": 2000,"kommentar": ""}');
+(8, 'Markus Lehmann', 'tisch.bestellung-aufgenommen:v1', 'tisch:9', 81, now() - interval '3 hours 48 minutes', '{"bestellungId": "a0009000-4000-8000-a000-000000000011","positionen": [{"positionId": "b0009000-4000-8000-a000-000000000028","varianteId": 20,"produktName": "Brezel","varianteName": "Normal","kategorie": "essen","einzelpreis": 200,"menge": 4},{"positionId": "b0009000-4000-8000-a000-000000000029","varianteId": 21,"produktName": "Brezel","varianteName": "mit Butter","kategorie": "essen","einzelpreis": 300,"menge": 2},{"positionId": "b0009000-4000-8000-a000-000000000030","varianteId": 45,"produktName": "Kaffee","varianteName": "Tasse","kategorie": "getraenk","einzelpreis": 200,"menge": 3}],"gesamtPreisCents": 2000,"kommentar": "Zum Abschluss noch Brezel und Kaffee"}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
 (8, 'Markus Lehmann', 'tisch.ausgabe-bestaetigt:v1', 'tisch:9', 82, now() - interval '3 hours 34 minutes', '{"ausgabeId":"c0009000-4000-8000-a000-000000000011","positionen":[{"positionId":"b0009000-4000-8000-a000-000000000028","varianteId":20,"produktName":"Brezel","varianteName":"Normal","kategorie":"essen","einzelpreis":200,"menge":4},{"positionId":"b0009000-4000-8000-a000-000000000029","varianteId":21,"produktName":"Brezel","varianteName":"mit Butter","kategorie":"essen","einzelpreis":300,"menge":2},{"positionId":"b0009000-4000-8000-a000-000000000030","varianteId":45,"produktName":"Kaffee","varianteName":"Tasse","kategorie":"getraenk","einzelpreis":200,"menge":3}],"kommentar":""}');
@@ -1881,8 +1885,20 @@ INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data)
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
 (6, 'Jan Hoffmann', 'tisch.zahlung-kassiert:v1', 'tisch:9', 83, now() - interval '3 hours 24 minutes', '{"zahlungId":"d0009000-4000-8000-a000-000000000010","positionen":[{"positionId":"b0009000-4000-8000-a000-000000000024","varianteId":11,"produktName":"Tagesgericht","varianteName":"So: Hähnchen mit Reis","kategorie":"essen","einzelpreis":1050,"menge":3},{"positionId":"b0009000-4000-8000-a000-000000000025","varianteId":14,"produktName":"Salat","varianteName":"Gemischter Salat","kategorie":"essen","einzelpreis":550,"menge":2},{"positionId":"b0009000-4000-8000-a000-000000000026","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":4},{"positionId":"b0009000-4000-8000-a000-000000000027","varianteId":40,"produktName":"Saftschorle","varianteName":"Johannisbeerschorle 0,5l","kategorie":"getraenk","einzelpreis":300,"menge":2}],"gesamtZahlungCents":6650,"kommentar":"Essen bezahlt"}');
 
+-- Abschlussrunde: Brezel + Kaffee bezahlen
+INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
+(6, 'Jan Hoffmann', 'tisch.zahlung-kassiert:v1', 'tisch:9', 84, now() - interval '2 hours 56 minutes', '{"zahlungId":"d0009000-4000-8000-a000-000000000012","positionen":[{"positionId":"b0009000-4000-8000-a000-000000000028","varianteId":20,"produktName":"Brezel","varianteName":"Normal","kategorie":"essen","einzelpreis":200,"menge":4},{"positionId":"b0009000-4000-8000-a000-000000000029","varianteId":21,"produktName":"Brezel","varianteName":"mit Butter","kategorie":"essen","einzelpreis":300,"menge":2},{"positionId":"b0009000-4000-8000-a000-000000000030","varianteId":45,"produktName":"Kaffee","varianteName":"Tasse","kategorie":"getraenk","einzelpreis":200,"menge":3}],"gesamtZahlungCents":2000,"kommentar":"Abschluss Kegelclub — Prost auf morgen!"}');
+
+-- Reklamation: beide Brezel mit Butter waren nicht frisch, bereits bezahlt → negativer Saldo -600ct
+INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
+(3, 'Felix Weber', 'tisch.stornierung-erteilt:v1', 'tisch:9', 85, now() - interval '2 hours 41 minutes', '{"stornierungId":"e0009000-4000-8000-a000-000000000001","positionen":[{"positionId":"b0009000-4000-8000-a000-000000000029","varianteId":21,"produktName":"Brezel","varianteName":"mit Butter","kategorie":"essen","einzelpreis":300,"menge":2}],"gesamtStornierungCents":600,"kommentar":"Beide Brezel mit Butter waren hart und nicht frisch"}');
+
+-- Auszahlung: negativer Saldo (v85) wird sofort in bar ausgeglichen
+INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
+(3, 'Felix Weber', 'tisch.auszahlung-geleistet:v1', 'tisch:9', 86, now() - interval '2 hours 33 minutes', '{"auszahlungId":"f0009000-4000-8000-a000-000000000001","betragCents":600,"kommentar":"Vollerstattung für beanstandete Brezel mit Butter"}');
+
 -- ─────────────────────────────────────────────────────────────────────────────
--- TISCH 10: Stornierung nach Bezahlung — Tag 2, negativer Saldo (12 Events)
+-- TISCH 10: Stornierung nach Bezahlung + Auszahlung — Tag 2, abgeschlossen (13 Events)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
@@ -1892,7 +1908,7 @@ INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data)
 (5, 'Lisa Braun', 'tisch.ausgabe-bestaetigt:v1', 'tisch:10', 2, now() - interval '23 hours 8 minutes', '{"ausgabeId":"c0010000-4000-8000-a000-000000000001","positionen":[{"positionId":"b0010000-4000-8000-a000-000000000001","varianteId":1,"produktName":"Bratwurst","varianteName":"Normal","kategorie":"essen","einzelpreis":350,"menge":3},{"positionId":"b0010000-4000-8000-a000-000000000002","varianteId":5,"produktName":"Pommes","varianteName":"Groß","kategorie":"essen","einzelpreis":350,"menge":2},{"positionId":"b0010000-4000-8000-a000-000000000003","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":4},{"positionId":"b0010000-4000-8000-a000-000000000004","varianteId":33,"produktName":"Softdrinks","varianteName":"Spezi","kategorie":"getraenk","einzelpreis":280,"menge":2}],"kommentar":""}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
-(5, 'Lisa Braun', 'tisch.zahlung-kassiert:v1', 'tisch:10', 3, now() - interval '22 hours 48 minutes', '{"zahlungId":"d0010000-4000-8000-a000-000000000001","positionen":[{"positionId":"b0010000-4000-8000-a000-000000000001","varianteId":1,"produktName":"Bratwurst","varianteName":"Normal","kategorie":"essen","einzelpreis":350,"menge":3},{"positionId":"b0010000-4000-8000-a000-000000000002","varianteId":5,"produktName":"Pommes","varianteName":"Groß","kategorie":"essen","einzelpreis":350,"menge":2},{"positionId":"b0010000-4000-8000-a000-000000000003","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":4},{"positionId":"b0010000-4000-8000-a000-000000000004","varianteId":33,"produktName":"Softdrinks","varianteName":"Spezi","kategorie":"getraenk","einzelpreis":280,"menge":2}],"gesamtZahlungCents":4110,"kommentar":""}');
+(5, 'Lisa Braun', 'tisch.zahlung-kassiert:v1', 'tisch:10', 3, now() - interval '22 hours 48 minutes', '{"zahlungId":"d0010000-4000-8000-a000-000000000001","positionen":[{"positionId":"b0010000-4000-8000-a000-000000000001","varianteId":1,"produktName":"Bratwurst","varianteName":"Normal","kategorie":"essen","einzelpreis":350,"menge":3},{"positionId":"b0010000-4000-8000-a000-000000000002","varianteId":5,"produktName":"Pommes","varianteName":"Groß","kategorie":"essen","einzelpreis":350,"menge":2},{"positionId":"b0010000-4000-8000-a000-000000000003","varianteId":24,"produktName":"Bier","varianteName":"0,5l","kategorie":"getraenk","einzelpreis":450,"menge":4},{"positionId":"b0010000-4000-8000-a000-000000000004","varianteId":33,"produktName":"Softdrinks","varianteName":"Spezi","kategorie":"getraenk","einzelpreis":280,"menge":2}],"gesamtZahlungCents":4110,"kommentar":"Zahlen bitte"}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
 (2, 'Thomas Müller', 'tisch.stornierung-erteilt:v1', 'tisch:10', 4, now() - interval '22 hours 33 minutes', '{"stornierungId":"e0010000-4000-8000-a000-000000000001","positionen":[{"positionId":"b0010000-4000-8000-a000-000000000001","varianteId":1,"produktName":"Bratwurst","varianteName":"Normal","kategorie":"essen","einzelpreis":350,"menge":2}],"gesamtStornierungCents":700,"kommentar":"Bratwurst war nicht in Ordnung, Erstattung"}');
@@ -1919,7 +1935,11 @@ INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data)
 (7, 'Sophie Becker', 'tisch.stornierung-erteilt:v1', 'tisch:10', 11, now() - interval '21 hours 13 minutes', '{"stornierungId":"e0010000-4000-8000-a000-000000000003","positionen":[{"positionId":"b0010000-4000-8000-a000-000000000007","varianteId":23,"produktName":"Bier","varianteName":"0,3l","kategorie":"getraenk","einzelpreis":300,"menge":1}],"gesamtStornierungCents":300,"kommentar":"Falsches Getränk gebracht"}');
 
 INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
-(5, 'Lisa Braun', 'tisch.zahlung-kassiert:v1', 'tisch:10', 12, now() - interval '21 hours 8 minutes', '{"zahlungId":"d0010000-4000-8000-a000-000000000003","positionen":[{"positionId":"b0010000-4000-8000-a000-000000000007","varianteId":23,"produktName":"Bier","varianteName":"0,3l","kategorie":"getraenk","einzelpreis":300,"menge":2},{"positionId":"b0010000-4000-8000-a000-000000000008","varianteId":20,"produktName":"Brezel","varianteName":"Normal","kategorie":"essen","einzelpreis":200,"menge":2}],"gesamtZahlungCents":1000,"kommentar":""}');
+(5, 'Lisa Braun', 'tisch.zahlung-kassiert:v1', 'tisch:10', 12, now() - interval '21 hours 8 minutes', '{"zahlungId":"d0010000-4000-8000-a000-000000000003","positionen":[{"positionId":"b0010000-4000-8000-a000-000000000007","varianteId":23,"produktName":"Bier","varianteName":"0,3l","kategorie":"getraenk","einzelpreis":300,"menge":2},{"positionId":"b0010000-4000-8000-a000-000000000008","varianteId":20,"produktName":"Brezel","varianteName":"Normal","kategorie":"essen","einzelpreis":200,"menge":2}],"gesamtZahlungCents":1000,"kommentar":"Tschüss, hat trotzdem geschmeckt!"}');
+
+-- Auszahlung: Negativer Saldo aus Stornierungen v4+v5 (-1050ct) wird erstattet
+INSERT INTO events (user_id, user_name, type, subject, version, timestamp, data) VALUES
+(7, 'Sophie Becker', 'tisch.auszahlung-geleistet:v1', 'tisch:10', 13, now() - interval '20 hours 45 minutes', '{"auszahlungId":"f0010000-4000-8000-a000-000000000001","betragCents":1050,"kommentar":"Erstattung mangelhafte Qualität: Bratwurst + Pommes kalt"}');
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- TISCH 11: Gerade dazugekommen — Tag 3, minimal (3 Events)
@@ -3198,11 +3218,12 @@ COMMIT;
 -- =============================================================================
 -- ZUSAMMENFASSUNG
 -- =============================================================================
--- Gesamt-Events: 980
+-- Gesamt-Events: 985
 --   bestellung-aufgenommen: 333
---   ausgabe-bestaetigt: 331
---   stornierung-erteilt: 8
---   zahlung-kassiert: 308
+--   ausgabe-bestaetigt:     331
+--   stornierung-erteilt:      9  (+1 Tisch 9 Brezel-Reklamation)
+--   zahlung-kassiert:       309  (+1 Tisch 9 Abschluss-Zahlung)
+--   auszahlung-geleistet:     3  (NEU: Tisch 4, Tisch 9, Tisch 10)
 --
 -- Benutzer:  11 (inkl. Admin aus Migration)
 -- Tische:    22 (20 aktiv, 1 inaktiv, 1 gelöscht)
@@ -3213,13 +3234,13 @@ COMMIT;
 --   Tisch 1                   |  99 Events | Offener Saldo (1750 Cent = 17.50 EUR)
 --   Tisch 2                   |  73 Events | Offener Saldo (1950 Cent = 19.50 EUR)
 --   Tisch 3                   |  18 Events | Abgeschlossen (Saldo = 0)
---   Tisch 4                   |  57 Events | Negativer Saldo (-1150 Cent)
---   Tisch 5                   |  95 Events | Negativer Saldo (-750 Cent)
+--   Tisch 4                   |  58 Events | Abgeschlossen (Saldo = 0, Stornierung + Auszahlung kompensiert)
+--   Tisch 5                   |  95 Events | Negativer Saldo (-750 Cent, offene Erstattung VIP-Tisch)
 --   Tisch 6                   |   9 Events | Offener Saldo (3390 Cent = 33.90 EUR)
 --   Tisch 7                   |  23 Events | Offener Saldo (1350 Cent = 13.50 EUR)
 --   Tisch 8                   | 102 Events | Offener Saldo (1500 Cent = 15.00 EUR)
---   Tisch 9                   |  83 Events | Offener Saldo (2000 Cent = 20.00 EUR)
---   Tisch 10                  |  12 Events | Negativer Saldo (-1050 Cent)
+--   Tisch 9                   |  86 Events | Abgeschlossen (Saldo = 0, nach Kegelabschluss + Brezel-Reklamation)
+--   Tisch 10                  |  13 Events | Abgeschlossen (Saldo = 0, Stornierung + Auszahlung)
 --   Tisch 11                  |   3 Events | Offener Saldo (4460 Cent = 44.60 EUR)
 --   Tisch 12                  |  63 Events | Abgeschlossen (Saldo = 0)
 --   Tisch 13                  |  18 Events | Abgeschlossen (Saldo = 0)
@@ -3231,3 +3252,8 @@ COMMIT;
 --   Stehtisch Eingang         |  78 Events | Abgeschlossen (Saldo = 0)
 --   Stehtisch Terrasse        |  50 Events | Offener Saldo (1500 Cent = 15.00 EUR)
 --
+-- SZENARIEN FÜR NEUE FEATURES (K-04a/K-04b):
+--   Tisch 4:  Stornierung (v4, Gulasch, Kind) → Auszahlung (v58, sofort)
+--   Tisch 5:  Stornierung (v13, Flammkuchen kalt) → Auszahlung AUSSTEHEND (-750ct)
+--   Tisch 9:  Stornierung (v85, Brezel hart) → Auszahlung (v86, sofort)
+--   Tisch 10: Stornierung (v4+v5, Bratwurst+Pommes) → Auszahlung (v13, zeitversetzt)
