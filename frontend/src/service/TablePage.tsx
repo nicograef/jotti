@@ -63,13 +63,17 @@ export function TablePage() {
         </ItemContent>
         <ItemContent>
           <ItemDescription className="text-2xl">
-            {stateLoading ? '?' : (
+            {stateLoading ? (
+              '?'
+            ) : (
               <span className={state.saldoCents < 0 ? 'text-destructive' : ''}>
                 {formatCents(state.saldoCents)} €
               </span>
             )}
             {!stateLoading && state.saldoCents < 0 && (
-              <Badge variant="destructive" className="ml-2">Auszahlung ausstehend</Badge>
+              <Badge variant="destructive" className="ml-2">
+                Auszahlung ausstehend
+              </Badge>
             )}
           </ItemDescription>
         </ItemContent>

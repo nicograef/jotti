@@ -23,7 +23,10 @@ import { StornierungDrawer } from './StornierungDrawer'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
 interface ZahlungProps {
-  backend: Pick<TischBackend, 'zahlungKassieren' | 'stornierungErteilen' | 'auszahlungLeisten'>
+  backend: Pick<
+    TischBackend,
+    'zahlungKassieren' | 'stornierungErteilen' | 'auszahlungLeisten'
+  >
   tisch: Tisch
   positionen: Position[]
   saldoCents: number

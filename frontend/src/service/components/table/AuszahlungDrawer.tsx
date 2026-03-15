@@ -33,9 +33,7 @@ export function AuszahlungDrawer(props: AuszahlungDrawerProps) {
   const [loading, setLoading] = useState(false)
 
   const initialBetragEuro =
-    props.saldoCents < 0
-      ? String(Math.abs(props.saldoCents) / 100)
-      : ''
+    props.saldoCents < 0 ? String(Math.abs(props.saldoCents) / 100) : ''
   const [betragEuro, setBetragEuro] = useState(initialBetragEuro)
   const [kommentar, setKommentar] = useState('')
   const [kommentarTouched, setKommentarTouched] = useState(false)
@@ -72,9 +70,7 @@ export function AuszahlungDrawer(props: AuszahlungDrawerProps) {
     setOpen(isOpen)
     if (!isOpen) {
       const reset =
-        props.saldoCents < 0
-          ? String(Math.abs(props.saldoCents) / 100)
-          : ''
+        props.saldoCents < 0 ? String(Math.abs(props.saldoCents) / 100) : ''
       setBetragEuro(reset)
       setKommentar('')
       setKommentarTouched(false)

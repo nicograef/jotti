@@ -48,7 +48,8 @@ function TischList(props: TischListComponentProps) {
               </ItemTitle>
               {tisch.saldoCents < 0 && (
                 <Badge variant="destructive" className="mt-1">
-                  Auszahlung ausstehend: {formatCents(Math.abs(tisch.saldoCents))} €
+                  Auszahlung ausstehend:{' '}
+                  {formatCents(Math.abs(tisch.saldoCents))} €
                 </Badge>
               )}
             </ItemContent>
