@@ -1,5 +1,33 @@
 # Bondruck
 
+Diese wichtigen Quellen müssen zuallererst intensiv recherchiert werden:
+
+Hier ist die aktualisierte Liste der Top 5 Quellen, diesmal mit den direkten URLs und relativen Pfaden, die du deinem GitHub Copilot Coding Agent als Kontext zum Fetchen übergeben kannst:
+
+**1. Entwickler-Handbuch**
+*   **Pfad (relativ):** `jotti/docs/handbuch.md`
+*   *Relevanz:* Dieses Dokument ist essenziell für das Verständnis der Go-Architektur von jotti. Dein Agent lernt hier den exakten Aufbau der Schichtenarchitektur (HTTP, Application, Domain, Repository) sowie das Prinzip des Event-Sourcings. Besonders wichtig für die transaktionssichere Speicherung der Druckaufträge (Outbox Pattern) ist der Abschnitt zur synchronen Projektion und wie Events per `Write-Through` in derselben Datenbanktransaktion verarbeitet werden.
+
+**2. Anforderungsdokument**
+*   **Pfad (relativ):** `jotti/docs/anforderungen.md`
+*   *Relevanz:* Hieraus kann der Agent die exakten Geschäftsregeln und Randbedingungen extrahieren. Für dein Feature sind insbesondere die Anforderungen **K-12** (Automatischer Bondruck basierend auf Kategorien) sowie **Q-04** (Datenintegrität: Geldbeträge immer in Integer/Cent, Append-only-Architektur) relevant. Auch die Anforderungen an die Offline-Fähigkeit (**Q-05**) geben dem Agenten Kontext für das Design der lokalen Relay-Queue.
+
+**3. Offizielle Support-Dokumentation & Handbücher (MUNBYN ITPP047P)**
+*   **URLs:** 
+    *   `https://support.munbyn.com/hc/en-us/categories/4601562900243-Receipt-Printer-ITPP047`
+    *   `https://munbyn.biz/047Software`
+*   *Relevanz:* Dies liefert dem Agenten die originalen Herstellerdaten zum industriellen **ESC/POS-Befehlssatz** von Epson. Es beschreibt außerdem die LED-Status-Signale und Fehlerbehebung (z. B. rotes Blinken bei Papierende), was für die Implementierung der Hardware-Statusabfrage (ACK/NACK) im lokalen Relay-Client entscheidend ist.
+
+**4. Ubiquitous Language**
+*   **Pfad (relativ):** `jotti/docs/language.md`
+*   *Relevanz:* Damit der Agent konsistenten und architekturkonformen Code generiert, muss er deine Namenskonventionen kennen. Dieses Dokument instruiert Copilot strikt, Domänen-Structs auf Deutsch im PascalCase (z. B. `Bestellung`, `PreisCents`, `Menge`) zu benennen, während Infrastruktur-Code auf Englisch bleibt. Es spezifiziert auch die exakten Namen der auslösenden Go-Events, wie `EventTypeBestellungAufgenommenV1`.
+
+**5. P047 Thermal Receipt Bill Printer - Product Parameters**
+*   **URL:** `https://pos.munbyn.com/munbyn-itpp047-series-thermal-receipt-printer/`
+*   *Relevanz:* Diese Spezifikationstabelle liefert die harten technischen Limits für die Datenübertragung. Copilot kann hieraus ablesen, dass der Drucker über einen internen Puffer von 256 Kbytes verfügt, auf Port-Ebene ESC/POS emuliert und die Hardware-Funktionen wie Auto-Cutter und Beeper unterstützt. Zudem liefert es Metriken für das Bon-Layouting im Go-Code (203 DPI, 576 dots/line, 80mm Papierbreite).
+
+---
+
 ***
 
 ```text
