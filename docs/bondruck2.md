@@ -3,13 +3,14 @@
 ## Inhaltsverzeichnis
 
 1. [Überblick](#1-überblick)
-2. [Hardware: MUNBYN ITPP047P-UE](#2-hardware-munbyn-itpp047p-ue)
-3. [Systemarchitektur](#3-systemarchitektur)
-4. [Cloud-Backend-Komponente](#4-cloud-backend-komponente)
-5. [Print-Relay-Komponente (lokal)](#5-print-relay-komponente-lokal)
-6. [ESC/POS Bon-Format](#6-escpos-bon-format)
-7. [Kategorie-Drucker-Konfiguration](#7-kategorie-drucker-konfiguration)
-8. [Verworfene Alternativen](#8-verworfene-alternativen)
+2. [Evaluation des Vorentwurfs](#2-evaluation-des-vorentwurfs)
+3. [Hardware: MUNBYN ITPP047P-UE](#3-hardware-munbyn-itpp047p-ue)
+4. [Systemarchitektur](#4-systemarchitektur)
+5. [Cloud-Backend-Komponente](#5-cloud-backend-komponente)
+6. [Print-Relay-Komponente (lokal)](#6-print-relay-komponente-lokal)
+7. [ESC/POS Bon-Format](#7-escpos-bon-format)
+8. [Kategorie-Drucker-Konfiguration](#8-kategorie-drucker-konfiguration)
+9. [Verworfene Alternativen](#9-verworfene-alternativen)
 
 ---
 
@@ -23,13 +24,47 @@ Anforderung **K-12** erfordert, dass beim Aufnehmen einer Bestellung automatisch
 |---|---|---|
 | Netzwerk-Brücke | Print-Relay-Client (lokales Binary) | Einfachste Lösung für NAT-Problem, kein VPN-Setup nötig |
 | Transport | HTTP-Polling (POST) | Passt zur POST-only-Architektur, keine zusätzlichen Protokolle |
-| Zustellgarantie | Transactional Outbox + lokale Idempotenz | Kein Bonverlust und kein Doppeldruck |
+| Datenquelle | Cursor-basiertes Event-Polling | Events sind die einzige Source of Truth — kein Outbox-Pattern, keine zusätzliche Tabelle |
 | Protokoll | ESC/POS via TCP 9100 | Herstellerstandard, treiberfrei, universell |
-| Bon-Aufteilung | Ein Bon pro Kategorie | Küche und Theke erhalten nur ihre relevanten Positionen |
+| Bon-Aufteilung | Ein Bon pro Position (Standard) | Jede Position ist ein eigener Arbeitsauftrag für die Ausgabestation |
+| Bonmodus-Option | Ein Bon pro Bestellung (Admin-Einstellung) | Für Vereine, die lieber einen Sammelbon pro Bestellung drucken |
 
 ---
 
-## 2. Hardware: MUNBYN ITPP047P-UE
+## 2. Evaluation des Vorentwurfs
+
+Der ursprüngliche Entwurf sah ein **Transactional Outbox Pattern** vor: Eine `print_jobs`-Tabelle wird in derselben Transaktion wie das Event beschrieben, das Relay pollt diese Tabelle, und ein ACK-Endpunkt markiert Jobs als erledigt. Diese Architektur wurde nach kritischer Evaluation durch einen einfacheren Ansatz ersetzt.
+
+### 2.1 Probleme des Outbox-Ansatzes
+
+| Problem | Beschreibung |
+|---|---|
+| **Kopplung an WriteEvent** | `WriteEvent()` müsste einen TxHook-Mechanismus erhalten, damit die Application-Schicht innerhalb derselben Transaktion weitere Writes ausführen kann. Das verschmutzt die Signatur der zentralen Event-Store-Methode und koppelt Infrastruktur (Drucken) an die Core Domain. |
+| **Unnötige `print_jobs`-Tabelle** | Die Tabelle dupliziert Informationen, die bereits vollständig in den Fat Events vorhanden sind (Positionen, Kategorie, Tischname, Servicekraft, Zeitstempel, Kommentar). |
+| **IP-Adresse beim Schreiben festgelegt** | Die Drucker-IP wird zum Zeitpunkt der Bestellung in `print_jobs.drucker_ip` gespeichert. Ändert der Admin die Druckerkonfiguration, zeigen bereits erstellte (aber noch nicht gedruckte) Jobs auf die alte IP. |
+| **Pre-Rendered Payload** | Der ESC/POS-Payload wird beim Schreiben als Base64 generiert und gespeichert. Formatfehler können nicht nachträglich korrigiert werden, ohne die Tabelle zu manipulieren. |
+| **Zusätzlicher ACK-Endpunkt** | Ein separater `POST /relay/ack-job` ist nötig, um Jobs als erledigt zu markieren — zusätzliche Komplexität ohne Mehrwert. |
+| **Nicht isolierbar** | Durch den TxHook ist Bondruck in den Write-Pfad der Core Domain eingebettet. Das Feature kann nicht entfernt oder deaktiviert werden, ohne WriteEvent anzufassen. |
+
+### 2.2 Verbesserter Ansatz: Cursor-basiertes Event-Polling
+
+**Kernidee:** Die `events`-Tabelle IST bereits die Outbox. Bestellungs-Events enthalten als Fat Events alle Informationen, die ein Bon benötigt. Das Relay muss nur wissen: „Welche Bestellungen sind seit meinem letzten Poll neu?"
+
+| Eigenschaft | Outbox-Ansatz (alt) | Cursor-Polling (neu) |
+|---|---|---|
+| Änderungen an `WriteEvent` | TxHook-Mechanismus nötig | Keine |
+| Zusätzliche Tabellen | `print_jobs` (6+ Spalten) | Keine |
+| Kopplung an Core Domain | Ja (TxHook in Transaktion) | Nein (reines Read Model) |
+| Drucker-IP aufgelöst | Beim Schreiben (stale möglich) | Beim Lesen (immer aktuell) |
+| ESC/POS generiert | Beim Schreiben (nicht korrigierbar) | Beim Lesen (Format jederzeit änderbar) |
+| Feature abschaltbar | Nein (in Transaktion eingebettet) | Ja (Relay-Endpunkte sind komplett isoliert) |
+| Doppeldruck-Schutz | `print_jobs.status` + lokale Idempotenz | Cursor-Position + lokale Idempotenz |
+
+**Ablauf:** Das Relay sendet bei jedem Poll seinen Cursor (`lastEventId`) mit. Das Backend liest neue `BestellungAufgenommen`-Events ab diesem Cursor, löst die Drucker-IP per JOIN auf `kategorie_drucker` zur Lesezeit auf, generiert den ESC/POS-Payload on-the-fly und gibt die Druck-Aufträge zurück. Das Relay druckt, speichert den neuen Cursor lokal und sendet ihn beim nächsten Poll.
+
+---
+
+## 3. Hardware: MUNBYN ITPP047P-UE
 
 Das „UE" im Modellnamen steht für **USB + Ethernet**. Dieses konkrete Modell hat kein WLAN und kein Bluetooth — Verbindung ausschließlich per LAN-Kabel.
 
@@ -88,7 +123,7 @@ const StatusPaper = "\x10\x04\x04" // DLE EOT 4 — liefert 1 Byte zurück
 
 ---
 
-## 3. Systemarchitektur
+## 4. Systemarchitektur
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -98,12 +133,10 @@ const StatusPaper = "\x10\x04\x04" // DLE EOT 4 — liefert 1 Byte zurück
 │  │   Frontend    │   │  Go Backend     │   │    PostgreSQL       │ │
 │  │  (Browser,    │──▶│  POST /service/ │──▶│  events (append)   │ │
 │  │   Smartphone) │   │  bestellung-    │   │  table_state       │ │
-│  │               │   │  aufnehmen      │   │  print_jobs        │ │
-│  └───────────────┘   │                 │   │  kategorie_drucker │ │
-│                      │  POST /relay/   │   └─────────────────────┘ │
-│                      │  get-jobs       │                            │
+│  │               │   │  aufnehmen      │   │  kategorie_drucker │ │
+│  └───────────────┘   │                 │   └─────────────────────┘ │
 │                      │  POST /relay/   │                            │
-│                      │  ack-job        │                            │
+│                      │  poll           │ ← einziger Relay-Endpunkt │
 │                      └────────┬────────┘                            │
 └───────────────────────────────┼─────────────────────────────────────┘
                                 │ HTTPS (ausgehende Verbindung vom
@@ -139,197 +172,296 @@ Servicekraft tippt Bestellung ab
         ▼
 POST /service/bestellung-aufnehmen
         │
-        ▼ (eine Datenbanktransaktion)
+        ▼ (bestehende Transaktion — keine Änderung)
 ┌───────────────────────────────────────┐
 │ 1. events INSERT                      │
 │    (BestellungAufgenommenV1)          │
 │ 2. table_state UPSERT (Projektion)    │
-│ 3. print_jobs INSERT                  │
-│    (ein Eintrag pro Kategorie,        │
-│     Status = QUEUED)                  │
 └───────────────────────────────────────┘
         │ COMMIT
         ▼
-Relay pollt POST /relay/get-jobs alle ~2 Sekunden
+Relay pollt POST /relay/poll alle ~2 Sekunden
+  → sendet lastEventId (Cursor-Position)
         │
         ▼
-Relay empfängt QUEUED-Jobs
+Backend: SELECT neue Bestellungs-Events seit lastEventId
+  → JOIN kategorie_drucker für Drucker-IPs
+  → Generiert ESC/POS on-the-fly
+  → Gibt Druck-Aufträge + neuen Cursor zurück
         │
         ▼
-Pro Job: Idempotenzcheck → Hardware-Check → TCP 9100 → ACK
-        │
-        ▼
-POST /relay/ack-job → print_jobs Status = ACKNOWLEDGED
+Relay druckt Bons → speichert neuen Cursor lokal
 ```
+
+**Kernunterschied zum Vorentwurf:** Die Bestellungstransaktion bleibt unverändert. Es gibt kein Outbox-Pattern, keine `print_jobs`-Tabelle und keinen ACK-Endpunkt. Das Backend erzeugt Druck-Aufträge dynamisch als Read Model beim Polling.
 
 ---
 
-## 4. Cloud-Backend-Komponente
+## 5. Cloud-Backend-Komponente
 
-### 4.1 Datenbankschema
+### 5.1 Datenbankschema
 
-Die `print_jobs`-Tabelle wird **in derselben Transaktion** wie das Event geschrieben (Outbox Pattern). Damit ist garantiert: Es gibt kein Event ohne Druckauftrag und keinen Druckauftrag ohne Event.
+Es wird **keine `print_jobs`-Tabelle** benötigt. Die bestehende `events`-Tabelle enthält als Fat Events bereits alle Informationen für den Bondruck. Es wird lediglich eine Konfigurationstabelle für die Drucker-Zuordnung ergänzt:
 
 ```sql
 -- In database/migrations/01_initial.up.sql ergänzen
 
-CREATE TYPE print_job_status AS ENUM ('QUEUED', 'ACKNOWLEDGED');
-
-CREATE TABLE print_jobs (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id    INT NOT NULL REFERENCES events(id),
-    tisch_id    INT NOT NULL,
-    kategorie   TEXT NOT NULL CHECK (kategorie IN ('essen', 'getraenk', 'sonstiges')),
-    drucker_ip  VARCHAR(50) NOT NULL,
-    payload     TEXT NOT NULL,         -- Base64-kodierter ESC/POS-Byte-String
-    status      print_job_status NOT NULL DEFAULT 'QUEUED',
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Index für schnelles Polling der offenen Jobs
-CREATE INDEX idx_print_jobs_queued ON print_jobs(created_at)
-    WHERE status = 'QUEUED';
-
 CREATE TABLE kategorie_drucker (
-    kategorie   TEXT PRIMARY KEY CHECK (kategorie IN ('essen', 'getraenk', 'sonstiges')),
+    kategorie   ProduktKategorie PRIMARY KEY,
     drucker_ip  VARCHAR(50) NOT NULL DEFAULT '',
+    bonmodus    TEXT NOT NULL DEFAULT 'pro_position'
+                CHECK (bonmodus IN ('pro_position', 'pro_bestellung')),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 INSERT INTO kategorie_drucker (kategorie) VALUES ('essen'), ('getraenk'), ('sonstiges');
 ```
 
-**Hinweis zu DELIVERED:** Die bondruck.md schlägt einen zusätzlichen Status `DELIVERED` vor (zwischen QUEUED und ACKNOWLEDGED). Dieser Zwischenstatus bringt bei HTTP-Polling keinen Mehrwert: Der Relay-Client weiß durch seine lokale Idempotenzprüfung selbst, ob ein Job bereits bearbeitet wurde. `DELIVERED` entfällt damit.
+Die `events`-Tabelle hat bereits den benötigten Index (`idx_events_type` auf `type`) und auto-increment `id` für effiziente Cursor-Abfragen.
 
-### 4.2 Outbox-Integration in WriteEvent
+**Warum keine `print_jobs`-Tabelle:**
+- Die `events`-Tabelle IST bereits die Outbox — `BestellungAufgenommenV1`-Events enthalten alle Daten, die ein Bon braucht (Positionen, Kategorie, Tischname, Servicekraft, Zeitstempel, Kommentar).
+- Drucker-IPs werden beim Lesen per JOIN aufgelöst → Konfigurationsänderungen wirken sofort.
+- ESC/POS-Payloads werden on-the-fly generiert → Formatänderungen wirken sofort.
 
-Die bestehende `WriteEvent`-Methode im `event_repo` startet bereits eine Transaktion für Event + Projektion. Sie wird um einen optionalen Hook erweitert, damit die Application-Schicht innerhalb derselben Transaktion weitere Writes ausführen kann:
+### 5.2 Keine Änderungen an WriteEvent
+
+`WriteEvent()` im `event_repo` bleibt **vollständig unverändert**. Es gibt keinen TxHook, keinen zusätzlichen Parameter und keine Kopplung zum Bondruck. Der Bestellungs-Write-Pfad kennt keinen Bondruck.
 
 ```go
-// backend/repository/event_repo/repo.go
+// backend/repository/event_repo/repo.go — UNVERÄNDERT
+func (r Repository) WriteEvent(ctx context.Context, e event.Event) (int, error) {
+    // bestehende Logik: BEGIN TX → INSERT event → APPLY to state → UPSERT projection → COMMIT
+    // Keine Änderung nötig.
+}
+```
 
-// TxHook ist ein optionaler Callback, der innerhalb der WriteEvent-Transaktion aufgerufen wird.
-// Wird für das Outbox-Pattern genutzt (z.B. print_jobs INSERT).
-type TxHook func(ctx context.Context, tx *sql.Tx, eventID int) error
+### 5.3 Relay-Query: Neue Events seit Cursor
 
-// WriteEvent speichert ein Event und aktualisiert synchron die table_state-Projektion.
-// Optionale TxHooks laufen in derselben Transaktion (Outbox Pattern).
-func (r Repository) WriteEvent(ctx context.Context, e event.Event, hooks ...TxHook) (int, error) {
-    tx, err := r.DB.BeginTx(ctx, nil)
-    // ... (bestehende Logik unverändert)
+Eine neue Query liest `BestellungAufgenommenV1`-Events ab einem gegebenen Cursor:
 
-    // NEU: Hooks in derselben Transaktion ausführen
-    for _, hook := range hooks {
-        if err := hook(ctx, tx, id); err != nil {
-            return 0, err
+```sql
+-- backend/sqlc/queries/relay.sql
+
+-- name: GetBestellungEventsSinceCursor :many
+SELECT id, user_name, subject, data, timestamp
+FROM events
+WHERE type = 'tisch.bestellung-aufgenommen:v1'
+  AND id > $1
+ORDER BY id ASC
+LIMIT 50;
+
+-- name: GetKategorieDrucker :many
+SELECT kategorie, drucker_ip
+FROM kategorie_drucker
+WHERE drucker_ip != '';
+
+-- name: UpsertKategorieDrucker :exec
+INSERT INTO kategorie_drucker (kategorie, drucker_ip, updated_at)
+VALUES ($1, $2, NOW())
+ON CONFLICT (kategorie) DO UPDATE SET
+    drucker_ip = EXCLUDED.drucker_ip,
+    updated_at = NOW();
+```
+
+### 5.4 Application-Schicht: Relay-Service
+
+Der Relay-Service ist ein reines Read Model — er liest Events und erzeugt daraus Druck-Aufträge. Er ist vollständig isoliert vom Kassenbetrieb.
+
+```go
+// backend/api/relay/application/query.go
+
+type Query struct {
+    EventRepo   eventRepo
+    DruckerRepo druckerRepo
+}
+
+type eventRepo interface {
+    GetBestellungEventsSinceCursor(ctx context.Context, cursor int) ([]event.Event, error)
+}
+
+type druckerRepo interface {
+    GetKategorieDrucker(ctx context.Context) (map[string]string, error) // kategorie → drucker_ip
+}
+
+// DruckAuftrag ist das DTO, das an das Relay gesendet wird.
+type DruckAuftrag struct {
+    EventID   int    // Für Cursor-Tracking
+    DruckerIP string // Zur Lesezeit aufgelöst
+    Payload   string // Base64-kodierter ESC/POS-Byte-String
+}
+
+// GetDruckAuftraege liest neue Bestellungs-Events seit dem Cursor
+// und erzeugt daraus Druck-Aufträge (1 pro Position oder 1 pro Bestellung je nach Bonmodus).
+func (q Query) GetDruckAuftraege(ctx context.Context, lastEventID int) ([]DruckAuftrag, error) {
+    log := zerolog.Ctx(ctx)
+
+    // 1. Neue Events lesen
+    events, err := q.EventRepo.GetBestellungEventsSinceCursor(ctx, lastEventID)
+    if err != nil {
+        return nil, err
+    }
+
+    if len(events) == 0 {
+        return nil, nil
+    }
+
+    // 2. Druckerkonfiguration lesen (zur Lesezeit — immer aktuell)
+    druckerConfig, err := q.DruckerRepo.GetKategorieDrucker(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    // 3. Pro Event Druck-Aufträge erzeugen
+    var auftraege []DruckAuftrag
+    for _, evt := range events {
+        jobs := createDruckAuftraegeFromEvent(evt, druckerConfig)
+        auftraege = append(auftraege, jobs...)
+    }
+
+    log.Debug().Int("cursor", lastEventID).Int("new_events", len(events)).
+        Int("auftraege", len(auftraege)).Msg("Relay poll")
+
+    return auftraege, nil
+}
+```
+
+### 5.5 HTTP-Endpunkt für das Relay
+
+Es gibt **einen einzigen Endpunkt** für das Relay — kein separater ACK-Endpunkt nötig, da der Cursor selbst die Bestätigung ist.
+
+```go
+// backend/api/relay/http/handler.go
+
+// POST /relay/poll
+// Request:  {"token": "...", "lastEventId": 42}
+// Response: {"auftraege": [...], "cursor": 55}
+type pollRequest struct {
+    Token       string `json:"token"`
+    LastEventID int    `json:"lastEventId"`
+}
+
+type pollResponse struct {
+    Auftraege []druckAuftragDTO `json:"auftraege"`
+    Cursor    int               `json:"cursor"`
+}
+
+type druckAuftragDTO struct {
+    EventID   int    `json:"eventId"`
+    DruckerIP string `json:"druckerIp"`
+    Payload   string `json:"payload"` // Base64 ESC/POS
+}
+
+func (h *Handler) PollHandler() http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        body := pollRequest{}
+        if !helper.ReadBody(w, r, &body) {
+            return
         }
-    }
 
-    if err := tx.Commit(); err != nil {
-        return 0, db.Error(err)
+        // Token-Prüfung (statischer RELAY_AUTH_TOKEN aus .env)
+        if body.Token != h.RelayToken {
+            helper.SendClientError(w, "unauthorized", nil)
+            return
+        }
+
+        auftraege, err := h.Query.GetDruckAuftraege(r.Context(), body.LastEventID)
+        if err != nil {
+            helper.SendServerError(w)
+            return
+        }
+
+        // Cursor = höchste Event-ID in der Response (oder lastEventId wenn keine neuen)
+        cursor := body.LastEventID
+        if len(auftraege) > 0 {
+            cursor = auftraege[len(auftraege)-1].EventID
+        }
+
+        dtos := make([]druckAuftragDTO, 0, len(auftraege))
+        for _, a := range auftraege {
+            dtos = append(dtos, druckAuftragDTO{
+                EventID:   a.EventID,
+                DruckerIP: a.DruckerIP,
+                Payload:   a.Payload,
+            })
+        }
+
+        helper.SendResponse(w, pollResponse{
+            Auftraege: dtos,
+            Cursor:    cursor,
+        })
     }
-    return id, nil
 }
 ```
 
-**Warum Hooks statt direkte Kopplung:** Das `event_repo` kennt weiterhin nichts über Bondruck. Die Application-Schicht entscheidet, welche Hooks (falls überhaupt) übergeben werden. Events die kein Printing auslösen (z.B. `ZahlungKassiert`) erhalten keine Hooks.
+**Warum kein ACK-Endpunkt:** Der Cursor IST die Bestätigung. Beim nächsten Poll sendet das Relay den Cursor der letzten erfolgreich verarbeiteten Event-ID. Das Backend liefert nur Events ab diesem Cursor. Wenn das Relay abstürzt, startet es mit dem letzten lokal gespeicherten Cursor — nicht verarbeitete Events werden automatisch erneut geliefert.
 
-### 4.3 Application-Schicht: BestellungAufnehmen
+### 5.6 Routing-Integration
+
+Der Relay-Endpunkt wird als eigenes Modul registriert — vollständig isoliert von Admin-, Service- und Auth-Routen:
 
 ```go
-// backend/api/table/application/command.go (Auszug)
+// backend/api/relay.go
 
-func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string,
-    tischID int, inputs []BestellPositionInput, kommentar string) error {
+func NewRelayApi(relayToken string, eventRepo ..., druckerRepo ...) http.Handler {
+    r := http.NewServeMux()
 
-    // ... (bestehende Logik: Positionen anreichern, Event erstellen, OCC) ...
+    query := relay_app.Query{EventRepo: eventRepo, DruckerRepo: druckerRepo}
+    handler := relay_http.Handler{Query: query, RelayToken: relayToken}
 
-    // Outbox-Hook: print_jobs in derselben Transaktion schreiben
-    printHook := c.PrintJobRepo.CreateJobsHook(ctx, tischName, event)
+    r.HandleFunc("POST /poll", handler.PollHandler())
 
-    subject := "tisch:" + strconv.Itoa(tischID)
-    if err := writeEvent(ctx, c.EventRepo, event, subject, printHook); err != nil {
-        return err
-    }
-
-    return nil
+    return r
 }
 ```
 
 ```go
-// backend/api/table/application/print_job_repo.go
-
-type PrintJobRepo interface {
-    // CreateJobsHook gibt einen TxHook zurück, der für jede Kategorie in der Bestellung
-    // einen print_jobs-Eintrag schreibt (sofern ein Drucker konfiguriert ist).
-    CreateJobsHook(ctx context.Context, tischName string, event event.Event) event_repo.TxHook
-    // GetQueuedJobs gibt alle offenen Druckaufträge zurück.
-    GetQueuedJobs(ctx context.Context) ([]PrintJob, error)
-    // AckJob markiert einen Job als ACKNOWLEDGED.
-    AckJob(ctx context.Context, jobID string) error
-}
-
-type PrintJob struct {
-    ID        string
-    TischID   int
-    Kategorie string
-    DruckerIP string
-    Payload   string // Base64 ESC/POS
-    CreatedAt time.Time
-}
+// main.go — Registrierung
+mux.Handle("/relay/", http.StripPrefix("/relay", relayApi))
+// Kein JWT-Middleware — der Relay-Token wird im Handler geprüft
 ```
 
-### 4.4 HTTP-Endpunkte für den Relay-Client
-
-Alle Endpunkte sind POST-only und werden durch einen statischen `RELAY_AUTH_TOKEN` (`.env`) gesichert — unabhängig von der regulären JWT-Authentifizierung der Servicekräfte.
-
-**`POST /relay/get-jobs`**
-- Request: `{"token": "..."}` 
-- Response: `{"jobs": [{"id": "...", "drucker_ip": "192.168.1.50", "payload": "<base64>"}]}`
-- Gibt alle Jobs mit `status = QUEUED` zurück (maximal 50 pro Anfrage)
-
-**`POST /relay/ack-job`**
-- Request: `{"token": "...", "job_id": "..."}`
-- Response: `{"ok": true}`
-- Setzt `status = ACKNOWLEDGED`, `updated_at = NOW()`
-
-**Keine explizite NACK-Logik nötig:** Jobs in `QUEUED` werden beim nächsten Poll automatisch erneut ausgeliefert, bis ein ACK erfolgt. Das Relay entscheidet lokal über Idempotenz.
+**Isolation:** Der gesamte Bondruck-Code lebt in `api/relay/` und `api/relay/application/`. Er liest nur aus der bestehenden `events`-Tabelle und `kategorie_drucker`. Kein Import aus `api/table/`, kein Einfluss auf den Bestellungs-Write-Pfad.
 
 ---
 
-## 5. Print-Relay-Komponente (lokal)
+## 6. Print-Relay-Komponente (lokal)
 
-### 5.1 Design-Prinzipien
+### 6.1 Design-Prinzipien
 
 Das Relay ist ein schlankes Go-Binary ohne externe Abhängigkeiten. Es:
-- ist **nicht stateless** (entgegen der ursprünglichen Annahme) — es führt eine lokale Idempotenzliste
+- ist **stateful** — es speichert nur einen einzigen Integer (Cursor-Position) und optional eine Idempotenzliste
 - kennt **keine Domänenbegriffe** (kein "Tisch", kein "Bestellung") — es verarbeitet nur Bytes
 - läuft **ohne Konfigurationsdatei** — alle Parameter kommen als Flags oder Umgebungsvariablen
-- überlebt **Neustarts** — der lokale State ist persistent (JSON-Datei)
+- überlebt **Neustarts** — der Cursor ist persistent (JSON-Datei)
 
-### 5.2 Dreistufige Sicherheitsschleife (Exactly-Once Delivery)
+### 6.2 Sicherheitsschleife (At-Least-Once Delivery)
 
 Pro empfangenem Druckauftrag:
 
 ```
-Job erhalten
+Aufträge erhalten (via POST /relay/poll mit lastEventId)
     │
-    ├─ 1. Idempotenzcheck: Ist job.ID bereits in relay_state.json?
-    │      JA  → Nur ACK senden, nicht drucken (Doppeldruck-Schutz)
-    │      NEIN → weiter
+    ├─ Pro Auftrag:
+    │   │
+    │   ├─ 1. Hardware-Check: Sende DLE EOT 4 (\x10\x04\x04) an TCP 9100
+    │   │      Kein TCP-Connect → warten (5s), erneut prüfen
+    │   │      Drucker antwortet mit "Papier leer" → warten (5s)
+    │   │      Drucker bereit → weiter
+    │   │
+    │   └─ 2. Drucken: Base64 dekodieren, ESC/POS-Bytes an TCP 9100 senden
+    │          Erfolg → weiter zum nächsten Auftrag
+    │          Fehler → Abbruch, Cursor NICHT vorrücken
     │
-    ├─ 2. Hardware-Check: Sende DLE EOT 4 (\x10\x04\x04) an TCP 9100
-    │      Kein TCP-Connect → warten (5s), erneut prüfen
-    │      Drucker antwortet mit "Papier leer" (Bit 5+6 gesetzt) → warten (5s)
-    │      Drucker bereit → weiter
-    │
-    └─ 3. Drucken: Base64 dekodieren, ESC/POS-Bytes an TCP 9100 senden
-           Erfolg → Job-ID in relay_state.json speichern → ACK senden
-           Fehler → nicht ACKen (Backend liefert beim nächsten Poll erneut)
+    └─ Alle Aufträge gedruckt → Cursor lokal speichern
+       Nächster Poll mit neuem Cursor
 ```
 
-### 5.3 Implementierung (main.go)
+**Doppeldruck-Schutz:** Da das Relay seinen Cursor erst nach erfolgreichem Druck aller Aufträge eines Polls vorrückt, ist Doppeldruck bei einem Absturz während des Druckens möglich. Das ist akzeptabel:
+- Bei einem Vereinsfest ist ein gelegentlicher Doppelbon kein Problem (die Küche erkennt Duplikate am Zeitstempel).
+- Falls gewünscht, kann eine optionale lokale Idempotenzliste (Event-IDs) hinzugefügt werden.
+
+### 6.3 Implementierung (main.go)
 
 ```go
 package main
@@ -347,15 +479,15 @@ import (
     "time"
 )
 
-// RelayState speichert IDs bereits gedruckter Jobs (Idempotenz)
+// RelayState speichert den Cursor (letzte verarbeitete Event-ID)
 type RelayState struct {
-    ProcessedIDs []string `json:"processed_ids"` // Rolling window, max 2000
+    LastEventID int `json:"last_event_id"`
 }
 
-// PrintJob ist das DTO vom jotti-Backend
-type PrintJob struct {
-    ID        string `json:"id"`
-    DruckerIP string `json:"drucker_ip"`
+// DruckAuftrag ist das DTO vom jotti-Backend
+type DruckAuftrag struct {
+    EventID   int    `json:"eventId"`
+    DruckerIP string `json:"druckerIp"`
     Payload   string `json:"payload"` // Base64 ESC/POS
 }
 
@@ -378,12 +510,21 @@ func main() {
     client := &http.Client{Timeout: 10 * time.Second}
 
     for {
-        jobs, err := fetchJobs(client)
+        auftraege, newCursor, err := poll(client, state.LastEventID)
         if err != nil {
-            log.Printf("Fehler beim Abrufen der Jobs: %v", err)
-        } else {
-            for _, job := range jobs {
-                processJob(client, state, job)
+            log.Printf("Fehler beim Poll: %v", err)
+        } else if len(auftraege) > 0 {
+            allOK := true
+            for _, a := range auftraege {
+                if err := printAuftrag(a); err != nil {
+                    log.Printf("Druckfehler (Event %d): %v — stoppe Poll-Verarbeitung", a.EventID, err)
+                    allOK = false
+                    break
+                }
+                log.Printf("Event %d erfolgreich gedruckt auf %s", a.EventID, a.DruckerIP)
+            }
+            if allOK {
+                state.LastEventID = newCursor
                 saveState(*stateFile, state)
             }
         }
@@ -391,40 +532,45 @@ func main() {
     }
 }
 
-func processJob(client *http.Client, state *RelayState, job PrintJob) {
-    // 1. Idempotenzcheck
-    if hasProcessed(state, job.ID) {
-        log.Printf("Job %s bereits gedruckt — sende nur ACK", job.ID)
-        ackJob(client, job.ID)
-        return
-    }
-
-    // 2. Hardware-Check (Wiederholungsschleife)
+func printAuftrag(a DruckAuftrag) error {
+    // 1. Hardware-Check (Wiederholungsschleife)
     for {
-        if err := checkPrinter(job.DruckerIP); err != nil {
-            log.Printf("Drucker %s nicht bereit: %v — warte 5s", job.DruckerIP, err)
+        if err := checkPrinter(a.DruckerIP); err != nil {
+            log.Printf("Drucker %s nicht bereit: %v — warte 5s", a.DruckerIP, err)
             time.Sleep(5 * time.Second)
             continue
         }
         break
     }
 
-    // 3. Drucken
-    escpos, err := base64.StdEncoding.DecodeString(job.Payload)
+    // 2. Drucken
+    escpos, err := base64.StdEncoding.DecodeString(a.Payload)
     if err != nil {
-        log.Printf("Job %s: ungültiges Base64: %v", job.ID, err)
-        return
+        return fmt.Errorf("ungültiges Base64: %w", err)
     }
 
-    if err := sendToPrinter(job.DruckerIP, escpos); err != nil {
-        log.Printf("Job %s: Druckfehler: %v", job.ID, err)
-        return // Kein ACK → Backend liefert erneut
-    }
+    return sendToPrinter(a.DruckerIP, escpos)
+}
 
-    // 4. Als erfolgreich markieren
-    markProcessed(state, job.ID)
-    ackJob(client, job.ID)
-    log.Printf("Job %s erfolgreich gedruckt auf %s", job.ID, job.DruckerIP)
+func poll(client *http.Client, lastEventID int) ([]DruckAuftrag, int, error) {
+    reqBody, _ := json.Marshal(map[string]any{
+        "token":       *token,
+        "lastEventId": lastEventID,
+    })
+    resp, err := client.Post(*backendURL+"/relay/poll", "application/json", bytes.NewReader(reqBody))
+    if err != nil {
+        return nil, lastEventID, err
+    }
+    defer resp.Body.Close()
+
+    var result struct {
+        Auftraege []DruckAuftrag `json:"auftraege"`
+        Cursor    int            `json:"cursor"`
+    }
+    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+        return nil, lastEventID, err
+    }
+    return result.Auftraege, result.Cursor, nil
 }
 
 func checkPrinter(ip string) error {
@@ -467,33 +613,6 @@ func sendToPrinter(ip string, data []byte) error {
     return err
 }
 
-func fetchJobs(client *http.Client) ([]PrintJob, error) {
-    body, _ := json.Marshal(map[string]string{"token": *token})
-    resp, err := client.Post(*backendURL+"/relay/get-jobs", "application/json", bytes.NewReader(body))
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
-
-    var result struct {
-        Jobs []PrintJob `json:"jobs"`
-    }
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        return nil, err
-    }
-    return result.Jobs, nil
-}
-
-func ackJob(client *http.Client, jobID string) {
-    body, _ := json.Marshal(map[string]string{"token": *token, "job_id": jobID})
-    resp, err := client.Post(*backendURL+"/relay/ack-job", "application/json", bytes.NewReader(body))
-    if err != nil {
-        log.Printf("ACK für %s fehlgeschlagen: %v", jobID, err)
-        return
-    }
-    resp.Body.Close()
-}
-
 // --- State-Verwaltung ---
 
 func loadState(path string) *RelayState {
@@ -511,29 +630,12 @@ func loadState(path string) *RelayState {
 func saveState(path string, s *RelayState) {
     data, _ := json.Marshal(s)
     if err := os.WriteFile(path, data, 0600); err != nil {
-        log.Printf("WARNUNG: Relay-State konnte nicht gespeichert werden: %v (Doppeldruck möglich nach Neustart)", err)
-    }
-}
-
-func hasProcessed(s *RelayState, id string) bool {
-    for _, v := range s.ProcessedIDs {
-        if v == id {
-            return true
-        }
-    }
-    return false
-}
-
-func markProcessed(s *RelayState, id string) {
-    s.ProcessedIDs = append(s.ProcessedIDs, id)
-    // Rolling window: maximal 2000 IDs vorhalten (reicht für ein Vereinsfest)
-    if len(s.ProcessedIDs) > 2000 {
-        s.ProcessedIDs = s.ProcessedIDs[len(s.ProcessedIDs)-2000:]
+        log.Printf("WARNUNG: Relay-State konnte nicht gespeichert werden: %v", err)
     }
 }
 ```
 
-### 5.4 Deployment (Cross-Compilation)
+### 6.4 Deployment (Cross-Compilation)
 
 Das Relay hat **keine externen Abhängigkeiten** (nur Go-Stdlib). Ein einzelnes Binary:
 
@@ -555,36 +657,80 @@ Das Binary ist vollständig portabel — keine Runtime, keine Konfigurationsdate
 
 ---
 
-## 6. ESC/POS Bon-Format
+## 7. ESC/POS Bon-Format
 
-### 6.1 Bon-Struktur
+### 7.1 Bonmodus
+
+**Standard: 1 Bon pro Position.** Jede Position einer Bestellung erzeugt einen eigenen Bon. Das entspricht dem Arbeitsablauf in der Küche: Jeder Bon ist ein Arbeitsauftrag.
+
+Beispiel: Eine Bestellung mit „3x Pommes, 2x Hefeweizen, 1x Bratwurst" erzeugt:
+- **Küchendrucker:** 1 Bon „3x Pommes" + 1 Bon „1x Bratwurst"
+- **Getränkedrucker:** 1 Bon „2x Hefeweizen"
+
+**Optionaler Modus: 1 Bon pro Bestellung** (Admin-Einstellung). Alle Positionen einer Kategorie werden auf einem Sammelbon zusammengefasst:
+- **Küchendrucker:** 1 Bon „3x Pommes, 1x Bratwurst"
+- **Getränkedrucker:** 1 Bon „2x Hefeweizen"
+
+Die Einstellung wird in der `kategorie_drucker`-Tabelle als Spalte `bonmodus` gespeichert (siehe Schema in §5.1):
+
+```
+kategorie_drucker.bonmodus = 'pro_position'   → Standard (1 Bon pro Position)
+kategorie_drucker.bonmodus = 'pro_bestellung' → Sammelbon (1 Bon pro Kategorie)
+```
+
+### 7.2 Bon-Struktur (1 Bon pro Position — Standard)
+
+Der Bon ist auf maximale Lesbarkeit in der Küche optimiert. Auf den ersten Blick muss erkennbar sein: **Was, wie oft, für welchen Tisch, von wem, und gibt es einen Sonderwunsch?**
 
 ```
 ┌────────────────────────────────────────────────┐ ← 48 Zeichen (Font A, 80mm)
-│              VEREINSFEST 2026                  │ fett, zentriert
-│================================================│ 48 ×  '='
-│                  Tisch 7                       │ doppelte Größe, zentriert
-│  02.08.2026 19:34      Bedienung: Maria        │ normal
+│                                                │
+│               ══ Tisch 7 ══                    │ doppelte Größe, fett, zentriert
+│                                                │
+│              3x Pommes (groß)                  │ doppelte Höhe, fett, zentriert
+│                                                │
+│  ohne Ketchup, extra Salz                      │ normal, fett (nur wenn Kommentar)
+│                                                │
 │------------------------------------------------│ 48 × '-'
-│  2 x Hefeweizen (0,5l)           5.00 EUR     │ linksbündig + rechtsbündig Preis
-│  1 x Bratwurst (mit Brot)        2.50 EUR     │
-│------------------------------------------------│
-│                            GESAMT:  7.50 EUR   │ doppelte Höhe, rechtsbündig
-│                                                │
-│ HINWEIS:                                       │ (nur wenn Kommentar vorhanden)
-│ Bitte scharf für Tisch 7                       │
-│                                                │
-│           Vielen Dank!                         │ zentriert
+│  19:34  Bedienung: Maria                       │ normal, klein
 │                                                │
 │                                                │ ← 5 Leerzeilen vor Cut
 └────────────────────────────────────────────────┘
       ✂ (Partial Cut)
 ```
 
-### 6.2 Go-Implementierung
+**Designentscheidungen:**
+- **Kein Gesamtpreis** — die Küche braucht keine Preise, nur Arbeitsaufträge.
+- **Kein Header „VEREINSFEST"** — spart Papier und Lesezeit.
+- **Tisch dominant** — doppelte Größe, fett, sofort erkennbar beim Aufhängen.
+- **Position dominant** — Menge + Artikel + Variante in doppelter Höhe.
+- **Kommentar prominent** — falls vorhanden, fett und direkt unter der Position.
+- **Metadaten unten** — Zeitstempel und Servicekraft sind sekundäre Information.
+
+### 7.3 Bon-Struktur (1 Bon pro Bestellung — optionaler Modus)
+
+```
+┌────────────────────────────────────────────────┐ ← 48 Zeichen (Font A, 80mm)
+│                                                │
+│               ══ Tisch 7 ══                    │ doppelte Größe, fett, zentriert
+│                                                │
+│  3x Pommes (groß)                              │ doppelte Höhe, fett
+│  1x Bratwurst (mit Brot)                       │ doppelte Höhe, fett
+│                                                │
+│  ohne Ketchup für die Pommes                   │ normal, fett (Kommentar)
+│                                                │
+│------------------------------------------------│
+│  19:34  Bedienung: Maria                       │ normal, klein
+│                                                │
+│                                                │ ← 5 Leerzeilen vor Cut
+└────────────────────────────────────────────────┘
+      ✂ (Partial Cut)
+```
+
+### 7.4 Go-Implementierung
 
 ```go
-// backend/api/table/application/escpos/formatter.go
+// backend/api/relay/application/escpos/formatter.go
 package escpos
 
 import (
@@ -598,13 +744,12 @@ import (
 
 const lineWidth = 48 // Font A, 12×24 Dots bei 576 dots/line → 48 Zeichen
 
-// FormatBestellungBon generiert den ESC/POS-Byte-Payload für eine Kategorie.
-// Es werden nur die Positionen der übergebenen Kategorie gedruckt.
-func FormatBestellungBon(
-    positionen []table.Position,
+// FormatPositionBon generiert einen Bon für eine einzelne Position (Standard-Bonmodus).
+func FormatPositionBon(
+    pos table.Position,
     tischName string,
     userName string,
-    aufgenommenAm time.Time,
+    zeitpunkt time.Time,
     kommentar string,
     withBeep bool,
 ) []byte {
@@ -613,76 +758,105 @@ func FormatBestellungBon(
     if withBeep {
         buf.WriteString(Beep)
     }
-
     buf.WriteString(Init)
+
+    // Tisch — groß und fett
     buf.WriteString(AlignCenter)
-    buf.WriteString(BoldOn)
-    buf.WriteString("VEREINSFEST 2026\n")
-    buf.WriteString(strings.Repeat("=", lineWidth) + "\n")
-    buf.WriteString(BoldOff)
-
-    // Tischnummer groß
     buf.WriteString(TextDoubleAll)
-    buf.WriteString(fmt.Sprintf("%s\n", tischName))
+    buf.WriteString(BoldOn)
+    buf.WriteString(fmt.Sprintf("== %s ==\n", tischName))
+    buf.WriteString(BoldOff)
     buf.WriteString(TextNormal)
+    buf.WriteString("\n")
 
-    buf.WriteString(fmt.Sprintf(
-        "%-24s%24s\n",
-        aufgenommenAm.Format("02.01.2006 15:04"),
-        "Bedienung: "+truncate(userName, 14),
-    ))
-    buf.WriteString(strings.Repeat("-", lineWidth) + "\n")
-
-    // Positionen
-    buf.WriteString(AlignLeft)
-    gesamtCents := 0
-
-    for _, pos := range positionen {
-        gesamtCents += pos.Einzelpreis * pos.Menge
-
-        // Artikelzeile: "2 x Hefeweizen (0,5l)"
-        artikel := fmt.Sprintf("%d x %s (%s)", pos.Menge, pos.ProduktName, pos.VarianteName)
-        // Preisanzeige ohne float: Integer-Arithmetik (Q-04 konform)
-        preis := formatCents(pos.Einzelpreis * pos.Menge)
-
-        // Padding damit Preis rechtsbündig steht
-        padding := lineWidth - len(artikel) - len(preis)
-        if padding < 1 {
-            artikel = truncate(artikel, lineWidth-len(preis)-1)
-            padding = 1
-        }
-        buf.WriteString(artikel + strings.Repeat(" ", padding) + preis + "\n")
-    }
-
-    buf.WriteString(strings.Repeat("-", lineWidth) + "\n")
-
-    // Gesamtpreis rechtsbündig, doppelte Höhe
-    gesamt := "GESAMT: " + formatCents(gesamtCents)
+    // Position — doppelte Höhe, fett
     buf.WriteString(TextDoubleHigh)
-    buf.WriteString(AlignRight)
-    buf.WriteString(gesamt + "\n")
+    buf.WriteString(BoldOn)
+    artikel := fmt.Sprintf("%dx %s (%s)", pos.Menge, pos.ProduktName, pos.VarianteName)
+    buf.WriteString(artikel + "\n")
+    buf.WriteString(BoldOff)
     buf.WriteString(TextNormal)
-    buf.WriteString(AlignLeft)
 
-    // Kommentar (optional)
+    // Kommentar (optional) — fett
     if kommentar != "" {
-        buf.WriteString("\n" + BoldOn + "HINWEIS:\n" + BoldOff)
+        buf.WriteString("\n")
+        buf.WriteString(AlignLeft)
+        buf.WriteString(BoldOn)
         buf.WriteString(wrapLine(kommentar, lineWidth) + "\n")
+        buf.WriteString(BoldOff)
     }
+
+    // Trennlinie + Metadaten
+    buf.WriteString(AlignLeft)
+    buf.WriteString(strings.Repeat("-", lineWidth) + "\n")
+    buf.WriteString(fmt.Sprintf("  %s  Bedienung: %s\n",
+        zeitpunkt.Format("15:04"),
+        truncate(userName, 24),
+    ))
 
     // Abschluss
-    buf.WriteString(AlignCenter)
-    buf.WriteString("\n    Vielen Dank!    \n")
     buf.WriteString(strings.Repeat("\n", 5)) // 5 Leerzeilen vor dem Schnitt
     buf.WriteString(CutPaper)
 
     return buf.Bytes()
 }
 
-// formatCents formatiert Cent-Beträge als "X.YY EUR" ohne float-Arithmetik.
-// Beispiel: 550 → "5.50 EUR"
-func formatCents(cents int) string {
-    return fmt.Sprintf("%d.%02d EUR", cents/100, cents%100)
+// FormatSammelBon generiert einen Bon für alle Positionen einer Kategorie (optionaler Bonmodus).
+func FormatSammelBon(
+    positionen []table.Position,
+    tischName string,
+    userName string,
+    zeitpunkt time.Time,
+    kommentar string,
+    withBeep bool,
+) []byte {
+    var buf bytes.Buffer
+
+    if withBeep {
+        buf.WriteString(Beep)
+    }
+    buf.WriteString(Init)
+
+    // Tisch — groß und fett
+    buf.WriteString(AlignCenter)
+    buf.WriteString(TextDoubleAll)
+    buf.WriteString(BoldOn)
+    buf.WriteString(fmt.Sprintf("== %s ==\n", tischName))
+    buf.WriteString(BoldOff)
+    buf.WriteString(TextNormal)
+    buf.WriteString("\n")
+
+    // Positionen — doppelte Höhe, fett
+    buf.WriteString(AlignLeft)
+    buf.WriteString(TextDoubleHigh)
+    buf.WriteString(BoldOn)
+    for _, pos := range positionen {
+        artikel := fmt.Sprintf("%dx %s (%s)", pos.Menge, pos.ProduktName, pos.VarianteName)
+        buf.WriteString(artikel + "\n")
+    }
+    buf.WriteString(BoldOff)
+    buf.WriteString(TextNormal)
+
+    // Kommentar (optional) — fett
+    if kommentar != "" {
+        buf.WriteString("\n")
+        buf.WriteString(BoldOn)
+        buf.WriteString(wrapLine(kommentar, lineWidth) + "\n")
+        buf.WriteString(BoldOff)
+    }
+
+    // Trennlinie + Metadaten
+    buf.WriteString(strings.Repeat("-", lineWidth) + "\n")
+    buf.WriteString(fmt.Sprintf("  %s  Bedienung: %s\n",
+        zeitpunkt.Format("15:04"),
+        truncate(userName, 24),
+    ))
+
+    // Abschluss
+    buf.WriteString(strings.Repeat("\n", 5)) // 5 Leerzeilen vor dem Schnitt
+    buf.WriteString(CutPaper)
+
+    return buf.Bytes()
 }
 
 // truncate kürzt einen String auf maxLen Zeichen.
@@ -720,126 +894,162 @@ func wrapLine(s string, width int) string {
 }
 ```
 
-**Wichtig:** `formatCents` arbeitet ausschließlich mit Integer-Arithmetik (`cents/100` und `cents%100`), um die jotti-Regel „keine Floats für Geldbeträge" auch bei der Anzeige konsequent einzuhalten.
-
-### 6.3 Bon-Aufteiler (Kategorie-Routing)
+### 7.5 Druck-Auftrags-Generator
 
 ```go
-// backend/api/table/application/print.go
+// backend/api/relay/application/print.go
 
-// CreatePrintJobsForBestellung teilt die Positionen nach Kategorie auf
-// und erstellt für jede Kategorie einen ESC/POS-Payload.
-func CreatePrintJobsForBestellung(
-    ctx context.Context,
-    bestellung table.Bestellung,
-    tischName string,
-    druckerConfig map[string]string, // kategorie → drucker_ip
-) []PrintJobDraft {
+// DruckerKonfig enthält die Konfiguration eines Druckers für eine Kategorie.
+type DruckerKonfig struct {
+    IP       string // z.B. "192.168.1.51", leer = kein Drucker
+    Bonmodus string // "pro_position" (Standard) oder "pro_bestellung"
+}
+
+// bestellungEventData spiegelt die Event-Data-Struktur von BestellungAufgenommenV1.
+type bestellungEventData struct {
+    Positionen []table.Position `json:"positionen"`
+    Kommentar  string           `json:"kommentar"`
+}
+
+// createDruckAuftraegeFromEvent erzeugt Druck-Aufträge aus einem BestellungAufgenommen-Event.
+// Im Standard-Bonmodus (pro_position) wird pro Position ein eigener Bon erzeugt.
+// Im Sammel-Bonmodus (pro_bestellung) wird pro Kategorie ein Sammelbon erzeugt.
+func createDruckAuftraegeFromEvent(
+    evt event.Event,
+    druckerConfig map[string]DruckerKonfig, // kategorie → DruckerKonfig
+) []DruckAuftrag {
+
+    data, err := event.ParseData[bestellungEventData](evt)
+    if err != nil {
+        return nil
+    }
+
+    tischName := parseTischName(evt.Subject) // "tisch:7" → "Tisch 7"
+
+    var auftraege []DruckAuftrag
+
     // Positionen nach Kategorie gruppieren
     byKategorie := map[string][]table.Position{}
-    for _, pos := range bestellung.Positionen {
+    for _, pos := range data.Positionen {
         byKategorie[pos.Kategorie] = append(byKategorie[pos.Kategorie], pos)
     }
 
-    var jobs []PrintJobDraft
     for kategorie, positionen := range byKategorie {
-        ip, ok := druckerConfig[kategorie]
-        if !ok || ip == "" {
-            continue // Kein Drucker für diese Kategorie konfiguriert
+        konfig, ok := druckerConfig[kategorie]
+        if !ok || konfig.IP == "" {
+            continue // Kein Drucker für diese Kategorie
         }
 
         withBeep := kategorie == "essen" // Küche: Piepser an
-        payload := escpos.FormatBestellungBon(
-            positionen,
-            tischName,
-            bestellung.UserName,
-            bestellung.AufgenommenAm,
-            bestellung.Kommentar,
-            withBeep,
-        )
 
-        jobs = append(jobs, PrintJobDraft{
-            Kategorie: kategorie,
-            DruckerIP: ip,
-            Payload:   base64.StdEncoding.EncodeToString(payload),
-        })
+        if konfig.Bonmodus == "pro_position" {
+            // Standard: 1 Bon pro Position
+            for _, pos := range positionen {
+                payload := escpos.FormatPositionBon(
+                    pos, tischName, evt.UserName, evt.Time,
+                    data.Kommentar, withBeep,
+                )
+                auftraege = append(auftraege, DruckAuftrag{
+                    EventID:   evt.ID,
+                    DruckerIP: konfig.IP,
+                    Payload:   base64.StdEncoding.EncodeToString(payload),
+                })
+                withBeep = false // Nur beim ersten Bon piepsen
+            }
+        } else {
+            // Sammelbon: 1 Bon pro Bestellung (pro Kategorie)
+            payload := escpos.FormatSammelBon(
+                positionen, tischName, evt.UserName, evt.Time,
+                data.Kommentar, withBeep,
+            )
+            auftraege = append(auftraege, DruckAuftrag{
+                EventID:   evt.ID,
+                DruckerIP: konfig.IP,
+                Payload:   base64.StdEncoding.EncodeToString(payload),
+            })
+        }
     }
-    return jobs
+
+    return auftraege
 }
 ```
 
 ---
 
-## 7. Kategorie-Drucker-Konfiguration
+## 8. Kategorie-Drucker-Konfiguration
 
-Drucker werden pro Kategorie konfiguriert. Der Admin trägt im Frontend die IP-Adresse des jeweiligen Druckers ein.
+Drucker werden pro Kategorie konfiguriert. Der Admin trägt im Frontend die IP-Adresse des jeweiligen Druckers ein und wählt den Bonmodus.
 
 **Backend-Endpunkte (Admin):**
 
 - `POST /admin/get-drucker-config` → gibt aktuelle Konfiguration zurück
-- `POST /admin/update-drucker-config` → speichert neue IP per UPSERT
+- `POST /admin/update-drucker-config` → speichert neue Konfiguration per UPSERT
 
 **Validierung:**
-- Backend (zog): IPv4-Regex oder leer (leer = kein Drucker für diese Kategorie)
-- Frontend (Zod): Gleiche Regel, live beim Eingeben
+- Backend (zog): IPv4-Regex oder leer (leer = kein Drucker für diese Kategorie). Bonmodus: `pro_position` oder `pro_bestellung`.
+- Frontend (Zod): Gleiche Regel, live beim Eingeben.
 
 **Verhalten bei unkonfiguriertem Drucker:**
-- Ist `drucker_ip` leer oder nicht gesetzt, wird für diese Kategorie kein `print_job` erstellt
-- Keine Fehlermeldung an die Servicekraft — Bondruck ist ein "Best Effort"-Feature im laufenden Betrieb
-- Der Admin sieht im Druckerkonfigurationsbereich den Status
+- Ist `drucker_ip` leer, wird für diese Kategorie kein Druck-Auftrag erzeugt.
+- Keine Fehlermeldung an die Servicekraft — Bondruck ist ein "Best Effort"-Feature im laufenden Betrieb.
+- Der Admin sieht im Druckerkonfigurationsbereich den Status.
 
 **Datenmodell:**
 
 ```
-┌─────────────────────────────────────────────┐
-│             kategorie_drucker               │
-├─────────────┬──────────────┬────────────────┤
-│ kategorie   │ drucker_ip   │ updated_at     │
-├─────────────┼──────────────┼────────────────┤
-│ essen       │ 192.168.1.51 │ 2026-08-02 ... │
-│ getraenk    │ 192.168.1.50 │ 2026-08-02 ... │
-│ sonstiges   │              │ 2026-08-02 ... │
-└─────────────┴──────────────┴────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                     kategorie_drucker                         │
+├─────────────┬──────────────┬────────────────┬─────────────────┤
+│ kategorie   │ drucker_ip   │ bonmodus       │ updated_at      │
+├─────────────┼──────────────┼────────────────┼─────────────────┤
+│ essen       │ 192.168.1.51 │ pro_position   │ 2026-08-02 ...  │
+│ getraenk    │ 192.168.1.50 │ pro_position   │ 2026-08-02 ...  │
+│ sonstiges   │              │ pro_position   │ 2026-08-02 ...  │
+└─────────────┴──────────────┴────────────────┴─────────────────┘
 ```
 
 ---
 
-## 8. Verworfene Alternativen
+## 9. Verworfene Alternativen
 
-### 8.1 WebSocket statt HTTP-Polling
+### 9.1 Transactional Outbox Pattern mit `print_jobs`-Tabelle
 
-**bondruck.md empfiehlt WebSocket (gorilla/websocket).**
+Der Vorentwurf (und die erste bondruck.md) schlagen vor, `print_jobs` in derselben Transaktion wie das Event zu schreiben. Abgelehnt, weil:
+
+- **Unnötige Kopplung:** `WriteEvent()` müsste einen Hook-Mechanismus erhalten, der die Signatur verschmutzt und die Core Domain mit dem Bondruck-Concern koppelt.
+- **Unnötige Duplikation:** Die `events`-Tabelle enthält bereits alle benötigten Daten (Fat Events). Eine zweite Tabelle dupliziert Information.
+- **Stale Drucker-IPs:** Die Drucker-IP wird zum Schreibzeitpunkt festgelegt. Konfigurationsänderungen wirken erst auf zukünftige Bestellungen.
+- **Stale Payloads:** Der ESC/POS-Payload wird pre-rendered. Formatfehler sind nicht korrigierbar.
+- **Nicht isolierbar:** Durch den TxHook ist Bondruck in den Write-Pfad eingebettet und kann nicht ohne Code-Änderung am Event-Store entfernt werden.
+
+Das Cursor-basierte Event-Polling nutzt die `events`-Tabelle als natürliche Outbox und vermeidet all diese Probleme.
+
+### 9.2 WebSocket statt HTTP-Polling
 
 Gründe dagegen:
-- **Architektur-Mismatch:** jotti verwendet ausschließlich POST-Endpunkte; WebSocket erfordert einen HTTP-Upgrade-Handler und bricht dieses Prinzip auf.
-- **Komplexität:** WebSocket-Hub mit `sync.Mutex`, Goroutinen, Ping/Pong, Reconnect-Logik im Backend sind erheblich mehr Code als zwei POST-Endpunkte.
-- **gorilla/websocket ist seit 2022 archiviert** und wird nicht mehr aktiv gepflegt. Alternativen (nhooyr.io/websocket, gobwas/ws) haben keinen klaren Community-Konsens.
-- **Latenz ist nicht kritisch:** Für Küche und Theke ist ein 2-Sekunden-Versatz beim Bondruck vollkommen akzeptabel.
+- **Architektur-Mismatch:** jotti verwendet ausschließlich POST-Endpunkte; WebSocket erfordert einen HTTP-Upgrade-Handler.
+- **Komplexität:** WebSocket-Hub mit `sync.Mutex`, Goroutinen, Ping/Pong, Reconnect-Logik.
+- **gorilla/websocket ist seit 2022 archiviert** und wird nicht mehr aktiv gepflegt.
+- **Latenz ist nicht kritisch:** 2-Sekunden-Versatz beim Bondruck ist für Küche und Theke vollkommen akzeptabel.
 
-HTTP-Polling mit 2-Sekunden-Intervall ist zuverlässiger, einfacher zu debuggen und vollständig jotti-konform.
-
-### 8.2 VPN (WireGuard / Tailscale) statt Print-Relay
+### 9.3 VPN (WireGuard / Tailscale) statt Print-Relay
 
 Würde eine direkte TCP-Verbindung vom Cloud-Backend zum Drucker ermöglichen. Abgelehnt, weil:
 - Hoher Setup-Aufwand für ehrenamtliche Helfer
 - Nicht für wechselnde Netze (LTE) geeignet
 - Erfordert Zugriff auf den Router des Vereinsfests
 
-### 8.3 Browser-Druck (Print CSS / HTML)
+### 9.4 Browser-Druck (Print CSS / HTML)
 
 Servicekraft druckt manuell aus dem Browser via Ctrl+P. Abgelehnt, weil:
 - Nicht automatisch (K-12 fordert automatischen Druck)
 - Schlechte Kontrolle über Layout und Papiervorschub
 - Kein ESC/POS-Zugriff aus dem Browser möglich
 
-### 8.4 Relay mit externer Datenbank (SQLite/bbolt) statt JSON-State
+### 9.5 Relay mit externer Datenbank (SQLite/bbolt)
 
-bondruck.md schlägt SQLite oder bbolt für die lokale Idempotenzliste vor. Für maximal ~2.000 Jobs pro Vereinsfest ist eine einfache JSON-Datei vollkommen ausreichend, deutlich einfacher und erfordert keine zusätzliche Dependency.
+Für einen einzigen Integer (Cursor-Position) und optional ~2.000 Event-IDs pro Vereinsfest ist eine JSON-Datei vollkommen ausreichend, deutlich einfacher und erfordert keine zusätzliche Dependency.
 
-### 8.5 DELIVERED-Status in print_jobs
+### 9.6 Float-Formatierung für Centbeträge
 
-bondruck.md sieht drei Status vor: `QUEUED → DELIVERED → ACKNOWLEDGED`. Bei HTTP-Polling ist `DELIVERED` nicht sinnvoll: Es gibt keinen Moment, an dem das Backend "zugestellt hat" ohne das der Relay-Client gleichzeitig die Kontrolle übernommen hat. Die lokale Idempotenzliste des Relay-Clients übernimmt diese Funktion vollständig. Zwei Status (`QUEUED` und `ACKNOWLEDGED`) reichen.
-
-### 8.6 Float-Formatierung für Centbeträge
-
-bondruck.md nutzt `float64(cents) / 100.0` für die Anzeige. Obwohl dies technisch korrekt wäre (display-only), widerspricht es dem Spirit der jotti-Regel. `fmt.Sprintf("%d.%02d EUR", cents/100, cents%100)` ist äquivalent und ausnahmslos integer-basiert.
+bondruck.md nutzt `float64(cents) / 100.0` für die Anzeige. Obwohl dies technisch korrekt wäre (display-only), widerspricht es dem Spirit der jotti-Regel. `fmt.Sprintf("%d.%02d EUR", cents/100, cents%100)` ist äquivalent und ausnahmslos integer-basiert. Der neue Entwurf zeigt keine Preise auf dem Bon (Küche braucht keine Preise), daher entfällt die Frage.
