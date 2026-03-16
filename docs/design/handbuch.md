@@ -1,9 +1,5 @@
 # Entwickler-Handbuch — jotti
 
-> **Hinweis:** Dieses Handbuch ist die **verbindliche Architektur-Referenz** für jotti. Die ursprünglichen Entwurfsdokumente (`entwurf.md`, `event-storming.md`) sind historische Artefakte der Entwurfsphase und werden nicht aktuell gehalten.
-
----
-
 ## Inhaltsverzeichnis
 
 1. [Überblick](#1-überblick)
@@ -406,9 +402,9 @@ Stammdaten (Produkte, Tische, Benutzer) werden mit klassischem CRUD verwaltet. E
 
 ### 4.6 Ausgabe und Abrechnung
 
-**Ausgabe (Supporting Sub-Domain):** Der Ausgabe-Context umfasst Bondruck, Küchendisplay (KDS) und Zubereitungsstatus. Bons werden automatisch bei Bestellungen nach Kategorie an Ausgabestationen gesendet (Essen → Küche, Getränke → Theke). Der Ausgabe-Context ist nicht Teil des MVP — Details in `entwurf.md` Kap. 5.
+**Ausgabe (Supporting Sub-Domain):** Der Ausgabe-Context umfasst Bondruck, Küchendisplay (KDS) und Zubereitungsstatus. Bons werden automatisch bei Bestellungen nach Kategorie an Ausgabestationen gesendet (Essen → Küche, Getränke → Theke). Der Ausgabe-Context ist nicht Teil des MVP.
 
-**Abrechnung (Supporting Sub-Domain):** Der Abrechnung-Context konsumiert Tisch-Events und projiziert sie in Read-only-Auswertungen: Tagesabrechnung, Abrechnung pro Tisch/Servicekraft, Produktumsatz und CSV-Datenexport. Alle Reporting-Ansichten sind reine Read Models ohne eigene Events. Die Abrechnung ist nicht Teil des MVP — Details in `entwurf.md` Kap. 6.
+**Abrechnung (Supporting Sub-Domain):** Der Abrechnung-Context konsumiert Tisch-Events und projiziert sie in Read-only-Auswertungen: Tagesabrechnung, Abrechnung pro Tisch/Servicekraft, Produktumsatz und CSV-Datenexport. Alle Reporting-Ansichten sind reine Read Models ohne eigene Events. Die Abrechnung ist nicht Teil des MVP.
 
 ---
 
@@ -626,7 +622,7 @@ Es gibt kein separates Live-Dashboard und kein Polling; das Reporting wird gezie
 
 ### 7.3 Ausgabe-Ansichten
 
-KDS-Ansicht (K-13) und Zubereitungsstatus (K-14) sind nicht Teil des MVP. Details in `entwurf.md` Kap. 8.3.
+KDS-Ansicht (K-13) und Zubereitungsstatus (K-14) sind nicht Teil des MVP.
 
 ---
 
