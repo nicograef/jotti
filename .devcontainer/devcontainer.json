@@ -7,8 +7,8 @@
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "24"
-    },
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    }
+    // "ghcr.io/devcontainers/features/docker-in-docker:2": {}
   },
   "postCreateCommand": "bash scripts/setup-dev-tools.sh",
   "customizations": {
