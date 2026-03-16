@@ -14,7 +14,7 @@ Bondruck ermöglicht das automatische Drucken von Bestell-Bons an Ausgabestation
 - Statischer `RELAY_AUTH_TOKEN` statt JWT (das Relay ist kein Benutzer)
 - Ein einziger Endpunkt (`POST /relay/poll`) — der Cursor selbst ist die Bestätigung
 
-**ADR:** `docs/adr/bondruck.md`
+**ADR:** [docs/adr/bondruck.md](../adr/bondruck.md)
 
 ---
 
