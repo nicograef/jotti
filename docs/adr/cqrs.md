@@ -165,5 +165,5 @@ Bei ~10.000 Events ist jede Aggregation in < 100ms erledigt. Kein Background Wor
 ## Referenzen
 
 - [ADR: Event-Sourcing für Tisch-Operationen](event-sourcing.md) — Persistenz-Strategie, Event-Modell, Append-Only-Garantie
-- [Handbuch §3](../design/handbuch.md) — Domain-Modell, Tisch-Aggregat, Invarianten
+- [Handbuch §3](../handbuch.md) — Domain-Modell, Tisch-Aggregat, Invarianten
 - [Anforderungen](../anforderungen.md) — K-05 (Tischübersicht), K-06 (Kassenjournal), R-01–R-05 (Reporting)

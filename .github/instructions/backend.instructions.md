@@ -3,7 +3,7 @@ description: "Use when working on Go backend code, API handlers, middleware, rep
 applyTo: "backend/**"
 ---
 
-> **Referenz:** Für Ubiquitous Language und Namenskonventionen pro Schicht → `docs/design/language.md`. Für Architektur, Invarianten und Schichtenarchitektur → `docs/design/handbuch.md` §6.
+> **Referenz:** Für Ubiquitous Language und Namenskonventionen pro Schicht → `docs/language.md`. Für Architektur, Invarianten und Schichtenarchitektur → `docs/handbuch.md` §6.
 
 # Backend-Konventionen
 
@@ -113,8 +113,8 @@ Unit-Tests mit `//go:build unit` Tag. Ausführen: `make test`
 
 ## Weiterführende Dokumentation
 
-- **Schichtenarchitektur, API-Design, Validierung, OCC:** [docs/design/handbuch.md](../../docs/design/handbuch.md) Kap. 6
-- **Namenskonventionen (Deutsch/Englisch pro Schicht, Ist vs. Soll):** [docs/design/language.md](../../docs/design/language.md)
+- **Schichtenarchitektur, API-Design, Validierung, OCC:** [docs/handbuch.md](../../docs/handbuch.md) Kap. 6
+- **Namenskonventionen (Deutsch/Englisch pro Schicht, Ist vs. Soll):** [docs/language.md](../../docs/language.md)
 
 ## Code-Beispiele
 

@@ -3,7 +3,7 @@ description: "Use when working on database migrations, SQL queries, sqlc configu
 applyTo: "database/**,backend/sqlc/**,backend/sqlc.yaml"
 ---
 
-> **Referenz:** Für Stammdaten-Schema (Produkte, Tische, Benutzer) → `docs/design/handbuch.md` §4. Für Event-Store-Schema → `docs/design/handbuch.md` §3.4. Für DB-Spalten-Konventionen → `docs/design/language.md`.
+> **Referenz:** Für Stammdaten-Schema (Produkte, Tische, Benutzer) → `docs/handbuch.md` §4. Für Event-Store-Schema → `docs/handbuch.md` §3.4. Für DB-Spalten-Konventionen → `docs/language.md`.
 
 # Datenbank-Konventionen
 

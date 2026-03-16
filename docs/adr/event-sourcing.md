@@ -13,7 +13,7 @@ Servicekräfte nehmen Bestellungen auf, liefern aus, kassieren und stornieren �
 | Kennzahl                         | Wert           | Quelle                                              |
 | -------------------------------- | -------------- | --------------------------------------------------- |
 | Tische pro Veranstaltung         | 5–50           | [Produktbeschreibung §3](../produktbeschreibung.md) |
-| Events pro Tisch (geschätzt)     | ~50–200        | [Handbuch §3.4](../design/handbuch.md)              |
+| Events pro Tisch (geschätzt)     | ~50–200        | [Handbuch §3.4](../handbuch.md)              |
 | Gesamte Events pro Veranstaltung | < 10.000       | Berechnung: 50 × 200                                |
 | Gleichzeitige Benutzer           | 5–30           | [Produktbeschreibung §3](../produktbeschreibung.md) |
 | Veranstaltungen pro Jahr         | 2–3            | [Produktbeschreibung §3](../produktbeschreibung.md) |
@@ -302,7 +302,7 @@ Ein UNIQUE Constraint `(subject, version)` auf einer Tabelle. Bei CRUD bräuchte
 
 2. **Keine referentielle Integrität für Tisch-Operationen.** Eine `PositionRef` im Zahlungs-Event kann theoretisch auf eine nicht-existierende Position verweisen. _Mitigation:_ Invarianten-Prüfung in der Application-Schicht (`validatePositionRefs()`).
 
-3. **Höhere Einstiegshürde.** Contributors müssen Event Replay, OCC-Versionierung und die Apply-Funktion verstehen. _Mitigation:_ Gut dokumentierte Domain-Schicht, [Handbuch §3](../design/handbuch.md).
+3. **Höhere Einstiegshürde.** Contributors müssen Event Replay, OCC-Versionierung und die Apply-Funktion verstehen. _Mitigation:_ Gut dokumentierte Domain-Schicht, [Handbuch §3](..//handbuch.md).
 
 4. **Ad-hoc-SQL-Analyse erschwert.** JSONB-Parsing statt Standard-SQL. _Mitigation:_ `table_state` enthält vorberechnete Werte; für tiefergehende Analyse existieren die JSONB-Operatoren.
 
@@ -378,5 +378,5 @@ Bei jottis aktuellem Scope (4 fachliche Event-Typen, < 10k Events, bewusster Fea
 ## Referenzen
 
 - [ADR: CQRS](cqrs.md) — Projektionsarchitektur, Stufen-Modell, `table_state`-Details
-- [Handbuch §3](../design/handbuch.md) — Domain-Modell, Tisch-Aggregat, Invarianten, Event Replay
+- [Handbuch §3](..//handbuch.md) — Domain-Modell, Tisch-Aggregat, Invarianten, Event Replay
 - [Anforderungen](../anforderungen.md) — K-01–K-07, Q-02, Q-04, R-01–R-05

@@ -25,6 +25,6 @@ Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht autom
 | Dokument                | Pfad                          | Wann lesen?                                                                                 |
 | ----------------------- | ----------------------------- | ------------------------------------------------------------------------------------------- |
 | **Anforderungen**       | `docs/anforderungen.md`       | Neue Features implementieren, Akzeptanzkriterien prüfen, Rollen/Berechtigungen klären       |
-| **Handbuch**            | `docs/design/handbuch.md`     | Architekturentscheidungen, Invarianten, Event-Strukturen, Schichtenarchitektur, Read Models |
-| **Ubiquitous Language** | `docs/design/language.md`     | Benennungen, Namenskonventionen pro Schicht, Ist/Soll-Abweichungen, Begriffsklärung         |
+| **Handbuch**            | `docs/handbuch.md`     | Architekturentscheidungen, Invarianten, Event-Strukturen, Schichtenarchitektur, Read Models |
+| **Ubiquitous Language** | `docs/language.md`     | Benennungen, Namenskonventionen pro Schicht, Ist/Soll-Abweichungen, Begriffsklärung         |
 | **Produktbeschreibung** | `docs/produktbeschreibung.md` | Positionierung, Zielgruppe, Abgrenzung, README/Marketing-Texte                              |

@@ -30,8 +30,8 @@ Tabelle: `events` (append-only). Repository: `backend/repository/event_repo/`.
 
 ## Weiterführende Dokumentation
 
-- **Invarianten, Event-Strukturen, Replay-Logik:** [docs/design/handbuch.md](../../docs/design/handbuch.md) Kap. 3 (Kassenbetrieb)
-- **Namenskonventionen für Events und Felder:** [docs/design/language.md](../../docs/design/language.md)
+- **Invarianten, Event-Strukturen, Replay-Logik:** [docs/handbuch.md](../../docs/handbuch.md) Kap. 3 (Kassenbetrieb)
+- **Namenskonventionen für Events und Felder:** [docs/language.md](../../docs/language.md)
 
 ## JSON-Tags in Event-Data-Structs
 

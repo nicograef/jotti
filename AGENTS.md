@@ -23,7 +23,7 @@ Alle funktionalen und querschnittlichen Anforderungen mit Akzeptanzkriterien, Pr
 
 → Lesen bei: neue Features implementieren, Akzeptanzkriterien prüfen, Rollen/Berechtigungen klären.
 
-### Entwickler-Handbuch — `docs/design/handbuch.md`
+### Entwickler-Handbuch — `docs/handbuch.md`
 
 Architektur, Bounded Contexts, Domain-Modelle, Invarianten, Event-Sourcing-Details.
 
@@ -37,7 +37,7 @@ Architektur, Bounded Contexts, Domain-Modelle, Invarianten, Event-Sourcing-Detai
 
 → Lesen bei: Architekturentscheidungen, Invarianten prüfen, Event-Strukturen verstehen, neue Schichten/Endpunkte entwerfen.
 
-### Ubiquitous Language — `docs/design/language.md`
+### Ubiquitous Language — `docs/language.md`
 
 Verbindliche Referenz für Fachbegriffe, Code-Repräsentationen und Namenskonventionen.
 

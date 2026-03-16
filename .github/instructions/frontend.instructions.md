@@ -3,7 +3,7 @@ description: "Use when working on React frontend code, components, pages, hooks,
 applyTo: "frontend/**"
 ---
 
-> **Referenz:** Für Ubiquitous Language, Namenskonventionen und Ist/Soll-Abweichungen (Rename-Status) → `docs/design/language.md`. Für Frontend-Architektur → `docs/design/handbuch.md` §6.3.
+> **Referenz:** Für Ubiquitous Language, Namenskonventionen und Ist/Soll-Abweichungen (Rename-Status) → `docs/language.md`. Für Frontend-Architektur → `docs/handbuch.md` §6.3.
 
 # Frontend-Konventionen
 
@@ -52,8 +52,8 @@ frontend/
 
 ## Weiterführende Dokumentation
 
-- **Namenskonventionen (UI-Labels deutsch, Code-Mappings, Ist vs. Soll):** [docs/design/language.md](../../docs/design/language.md)
-- **Architektur, Frontend-Patterns, Validierung:** [docs/design/handbuch.md](../../docs/design/handbuch.md) Kap. 6
+- **Namenskonventionen (UI-Labels deutsch, Code-Mappings, Ist vs. Soll):** [docs/language.md](../../docs/language.md)
+- **Architektur, Frontend-Patterns, Validierung:** [docs/handbuch.md](../../docs/handbuch.md) Kap. 6
 
 ## Code-Beispiele
 
