@@ -18,6 +18,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+          cpus: "2.0"
 
   migrate:
     build:
@@ -60,8 +65,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: "1.0"
+          memory: 384M
+          cpus: "1.5"
     # No exposed ports; reachable only via reverse proxy
 
   frontend:
@@ -100,6 +105,11 @@ services:
         condition: service_started
       backend:
         condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
 
   certbot:
     image: certbot/certbot:v2.11.0
@@ -115,6 +125,11 @@ services:
         condition: service_started
     entrypoint: /bin/sh
     command: -c "while true; do certbot renew --webroot -w /var/www/certbot --quiet --deploy-hook 'nginx -s reload'; sleep 24h; done"
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.25"
 
 networks:
   app-network:
