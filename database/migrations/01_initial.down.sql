@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS table_state;
 DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS produkt_varianten;
 DROP TABLE IF EXISTS produkte;
+DROP TABLE IF EXISTS tisch_favoriten;
 DROP TABLE IF EXISTS tische;
 DROP TABLE IF EXISTS users;
 
