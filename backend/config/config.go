@@ -17,9 +17,10 @@ type postgresConfig struct {
 
 // Config holds application configuration values loaded from environment variables.
 type Config struct {
-	Port      int // Port for the HTTP server
-	Postgres  postgresConfig
-	JWTSecret string // Secret key for JWT signing
+	Port       int // Port for the HTTP server
+	Postgres   postgresConfig
+	JWTSecret  string // Secret key for JWT signing
+	RelayToken string // Statischer Token für das Print-Relay
 }
 
 // Load reads configuration from environment variables and returns a Config struct.
@@ -36,9 +37,10 @@ func Load() Config {
 	jwtSecret := parseEnvString("JWT_SECRET", "")
 
 	return Config{
-		Port:      port,
-		Postgres:  postgres,
-		JWTSecret: jwtSecret,
+		Port:       port,
+		Postgres:   postgres,
+		JWTSecret:  jwtSecret,
+		RelayToken: os.Getenv("RELAY_AUTH_TOKEN"),
 	}
 }
 

@@ -120,3 +120,19 @@ func (m *mockRepo) AddEvent(e event.Event) {
 	e.ID = newID
 	m.events[newID] = e
 }
+
+func (m *mockRepo) GetBestellungEventsSinceCursor(ctx context.Context, cursor int) ([]event.Event, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	var result []event.Event
+	for _, e := range m.events {
+		if e.ID > cursor {
+			result = append(result, e)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ID < result[j].ID
+	})
+	return result, nil
+}

@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   LogOut,
   Moon,
+  Printer,
   Sun,
   Users,
   Utensils,
@@ -49,6 +50,11 @@ const adminItems = [
     title: 'Benutzer',
     url: '/admin/users',
     icon: Users,
+  },
+  {
+    title: 'Drucker',
+    url: '/admin/drucker',
+    icon: Printer,
   },
 ]
 

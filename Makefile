@@ -81,6 +81,9 @@ fmt: fmt-backend fmt-frontend ## Backend + Frontend formatieren
 build-backend: ## Backend kompilieren
 	cd backend && go build ./...
 
+build-relay: ## Print-Relay-Binary kompilieren
+	cd cmd/relay && go build ./...
+
 build-frontend: ## Frontend kompilieren
 	cd frontend && pnpm build
 

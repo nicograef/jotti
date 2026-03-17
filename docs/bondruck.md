@@ -45,10 +45,10 @@ Preise werden auf dem Bon bewusst nicht angezeigt — die Küche braucht Arbeits
 
 Der Admin kann pro Kategorie zwischen zwei Modi wählen:
 
-| Modus | Beschreibung | Empfohlen für |
-|---|---|---|
-| **Pro Position** (Standard) | Jede Position erzeugt einen eigenen Bon | Küche mit mehreren Köchen — jeder Bon ist ein Arbeitsauftrag |
-| **Pro Bestellung** | Alle Positionen einer Kategorie auf einem Sammelbon | Kleinere Teams, die lieber einen Überblick pro Bestellung haben |
+| Modus                       | Beschreibung                                        | Empfohlen für                                                   |
+| --------------------------- | --------------------------------------------------- | --------------------------------------------------------------- |
+| **Pro Position** (Standard) | Jede Position erzeugt einen eigenen Bon             | Küche mit mehreren Köchen — jeder Bon ist ein Arbeitsauftrag    |
+| **Pro Bestellung**          | Alle Positionen einer Kategorie auf einem Sammelbon | Kleinere Teams, die lieber einen Überblick pro Bestellung haben |
 
 **Beispiel:** Eine Bestellung mit „3x Pommes, 2x Hefeweizen, 1x Bratwurst":
 
@@ -99,12 +99,12 @@ Kategorien ohne IP-Adresse erzeugen keine Bons (z.B. „Sonstiges" ohne Drucker 
   --poll=2
 ```
 
-| Parameter | Beschreibung | Standard |
-|---|---|---|
-| `--backend` | URL des jotti-Servers | (erforderlich) |
-| `--token` | Authentifizierungs-Token (aus der `.env`-Datei des Servers) | (erforderlich) |
-| `--poll` | Abfrageintervall in Sekunden | 2 |
-| `--state` | Pfad zur lokalen State-Datei | `relay_state.json` |
+| Parameter   | Beschreibung                                                | Standard           |
+| ----------- | ----------------------------------------------------------- | ------------------ |
+| `--backend` | URL des jotti-Servers                                       | (erforderlich)     |
+| `--token`   | Authentifizierungs-Token (aus der `.env`-Datei des Servers) | (erforderlich)     |
+| `--poll`    | Abfrageintervall in Sekunden                                | 2                  |
+| `--state`   | Pfad zur lokalen State-Datei                                | `relay_state.json` |
 
 Das Relay loggt jeden gedruckten Bon in die Konsole. Wenn kein Drucker erreichbar ist, wartet es und versucht es automatisch erneut.
 
@@ -113,6 +113,19 @@ Das Relay loggt jeden gedruckten Bon in die Konsole. Wenn kein Drucker erreichba
 1. Bestellung im Service-Bereich aufnehmen
 2. Innerhalb von wenigen Sekunden sollte der Bon gedruckt werden
 3. Im Relay-Log erscheint eine Bestätigungsmeldung
+
+Optionaler API-Schnelltest fuer den Relay-Endpunkt:
+
+```bash
+curl -X POST http://localhost:3000/relay/poll \
+        -H "Content-Type: application/json" \
+        -d '{"token":"<RELAY_AUTH_TOKEN>","lastEventId":0}'
+```
+
+Erwartung:
+
+- Bei gueltigem Token liefert der Endpunkt `200` mit `auftraege` und `cursor`.
+- Bei ungueltigem Token liefert der Endpunkt einen `401`-Fehler.
 
 ---
 

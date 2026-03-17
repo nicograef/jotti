@@ -63,6 +63,10 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	serviceleitung := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "serviceleitung"})
 	r.Handle("/serviceleitung/", serviceleitung(http.StripPrefix("/serviceleitung", serviceleitungApi)))
 
+	// Relay — kein JWT, Token-Prüfung im Handler
+	relayApi := api.NewRelayApi(db, cfg.RelayToken)
+	r.Handle("/relay/", http.StripPrefix("/relay", relayApi))
+
 	// Wrap the entire router with middleware chain
 	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by nginx
 	var handler http.Handler = r

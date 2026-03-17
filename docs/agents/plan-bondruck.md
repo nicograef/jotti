@@ -53,10 +53,10 @@ Bondruck ermöglicht das automatische Drucken von Bestell-Bons an Ausgabestation
 
 ## Phase 1: Datenbank + Repository
 
-### 1.1 · Schema: `kategorie_drucker`-Tabelle
+### 1.1 · Schema: `kategorie_drucker`-Tabelle ✅
 
-- [ ] `kategorie_drucker`-Tabelle in `database/migrations/01_initial.up.sql` ergänzen
-- [ ] Drei Kategorien vorbelegen: `essen`, `getraenk`, `sonstiges`
+- [x] `kategorie_drucker`-Tabelle in `database/migrations/01_initial.up.sql` ergänzen
+- [x] Drei Kategorien vorbelegen: `essen`, `getraenk`, `sonstiges`
 
 **Kontext:**
 
@@ -78,11 +78,11 @@ CREATE TABLE kategorie_drucker (
 INSERT INTO kategorie_drucker (kategorie) VALUES ('essen'), ('getraenk'), ('sonstiges');
 ```
 
-### 1.2 · sqlc-Queries für Relay und Admin
+### 1.2 · sqlc-Queries für Relay und Admin ✅
 
-- [ ] Neue Query-Datei `backend/sqlc/queries/relay.sql` erstellen
-- [ ] Neue Query-Datei `backend/sqlc/queries/drucker.sql` erstellen (Admin-Queries)
-- [ ] `make sqlc` ausführen und generierten Code prüfen
+- [x] Neue Query-Datei `backend/sqlc/queries/relay.sql` erstellen
+- [x] Neue Query-Datei `backend/sqlc/queries/drucker.sql` erstellen (Admin-Queries)
+- [x] `make sqlc` ausführen und generierten Code prüfen
 
 **Kontext:**
 
@@ -122,11 +122,11 @@ ON CONFLICT (kategorie) DO UPDATE SET
     updated_at = NOW();
 ```
 
-### 1.3 · Repository: Drucker-Konfiguration
+### 1.3 · Repository: Drucker-Konfiguration ✅
 
-- [ ] `backend/repository/drucker_repo/repo.go` erstellen
-- [ ] Interface-Definition und Implementierung basierend auf sqlc-generierten Queries
-- [ ] Unit-Tests für Repository-Methoden
+- [x] `backend/repository/drucker_repo/repo.go` erstellen
+- [x] Interface-Definition und Implementierung basierend auf sqlc-generierten Queries
+- [x] Unit-Tests für Repository-Methoden
 
 **Kontext:**
 
@@ -205,9 +205,9 @@ func (r Repository) UpsertKategorieDrucker(ctx context.Context, kategorie, druck
 }
 ```
 
-### 1.4 · Repository: Event-Repo um GetBestellungEventsSinceCursor erweitern
+### 1.4 · Repository: Event-Repo um GetBestellungEventsSinceCursor erweitern ✅
 
-- [ ] Neue Methode `GetBestellungEventsSinceCursor` in `backend/repository/event_repo/repo.go` ergänzen
+- [x] Neue Methode `GetBestellungEventsSinceCursor` in `backend/repository/event_repo/repo.go` ergänzen
 
 **Implementierungsvorlage (an bestehendes `event_repo/repo.go` anfügen):**
 
@@ -238,12 +238,12 @@ func (r Repository) GetBestellungEventsSinceCursor(ctx context.Context, cursor i
 
 ## Phase 2: ESC/POS-Formatter (Domain-nah, reine Funktionen)
 
-### 2.1 · ESC/POS-Konstanten und Bon-Formatierung
+### 2.1 · ESC/POS-Konstanten und Bon-Formatierung ✅
 
-- [ ] Package `backend/api/relay/application/escpos/` erstellen
-- [ ] `constants.go` mit allen ESC/POS-Befehlen
-- [ ] `formatter.go` mit `FormatPositionBon()` und `FormatSammelBon()`
-- [ ] Unit-Tests für Formatter-Funktionen
+- [x] Package `backend/api/relay/application/escpos/` erstellen
+- [x] `constants.go` mit allen ESC/POS-Befehlen
+- [x] `formatter.go` mit `FormatPositionBon()` und `FormatSammelBon()`
+- [x] Unit-Tests für Formatter-Funktionen
 
 **Kontext:**
 
@@ -499,12 +499,12 @@ func wrapLine(s string, width int) string {
 
 ## Phase 3: Backend-Relay-Endpunkt
 
-### 3.1 · Application-Schicht: Relay-Query-Service
+### 3.1 · Application-Schicht: Relay-Query-Service ✅
 
-- [ ] Package `backend/api/relay/application/` erstellen
-- [ ] `query.go` mit `Query`-Struct, Interfaces und `GetDruckAuftraege(ctx, lastEventID)`
-- [ ] `print.go` mit `DruckerKonfig`, `createDruckAuftraegeFromEvent()` und `parseTischName()`
-- [ ] Unit-Tests für Query-Service und Druck-Auftrags-Generator
+- [x] Package `backend/api/relay/application/` erstellen
+- [x] `query.go` mit `Query`-Struct, Interfaces und `GetDruckAuftraege(ctx, lastEventID)`
+- [x] `print.go` mit `DruckerKonfig`, `createDruckAuftraegeFromEvent()` und `parseTischName()`
+- [x] Unit-Tests für Query-Service und Druck-Auftrags-Generator
 
 **Kontext:**
 
@@ -685,12 +685,12 @@ func parseTischName(subject string) string {
 }
 ```
 
-### 3.2 · HTTP-Handler: Relay-Poll-Endpunkt
+### 3.2 · HTTP-Handler: Relay-Poll-Endpunkt ✅
 
-- [ ] Package `backend/api/relay/http/` erstellen
-- [ ] `handler.go` mit `Handler`-Struct und `PollHandler()` — `POST /relay/poll`
-- [ ] Token-Prüfung gegen `RelayToken` aus Konfiguration (kein JWT)
-- [ ] Request/Response-DTOs mit `json`-Tags
+- [x] Package `backend/api/relay/http/` erstellen
+- [x] `handler.go` mit `Handler`-Struct und `PollHandler()` — `POST /relay/poll`
+- [x] Token-Prüfung gegen `RelayToken` aus Konfiguration (kein JWT)
+- [x] Request/Response-DTOs mit `json`-Tags
 
 **Kontext:**
 
@@ -775,11 +775,11 @@ func (h *Handler) PollHandler() http.HandlerFunc {
 }
 ```
 
-### 3.3 · Routing-Integration
+### 3.3 · Routing-Integration ✅
 
-- [ ] `backend/api/relay.go` erstellen — `NewRelayApi()` Factory-Funktion
-- [ ] In `backend/app/app.go` `SetupRoutes()` unter `/relay/` mounten — **kein** JWT-Middleware
-- [ ] `RelayToken` als neue Konfigurationsvariable in `backend/config/config.go` ergänzen
+- [x] `backend/api/relay.go` erstellen — `NewRelayApi()` Factory-Funktion
+- [x] In `backend/app/app.go` `SetupRoutes()` unter `/relay/` mounten — **kein** JWT-Middleware
+- [x] `RelayToken` als neue Konfigurationsvariable in `backend/config/config.go` ergänzen
 
 **Kontext:**
 
@@ -857,15 +857,15 @@ RELAY_AUTH_TOKEN=<zufälliger Token, z.B. openssl rand -hex 32>
 
 ## Phase 4: Admin-Druckerkonfiguration
 
-### 4.1 · Backend: Admin-Endpunkte für Druckerkonfiguration
+### 4.1 · Backend: Admin-Endpunkte für Druckerkonfiguration ✅
 
-- [ ] Package `backend/api/drucker/http/` erstellen — `handler.go` mit `CommandHandler` und `QueryHandler`
-- [ ] Package `backend/api/drucker/application/` erstellen — `command.go` und `query.go`
-- [ ] `POST /admin/get-drucker-config` — gibt aktuelle Konfiguration aller Kategorien zurück
-- [ ] `POST /admin/update-drucker-config` — speichert Drucker-IP und Bonmodus per UPSERT
-- [ ] zog-Validierung: IPv4-Regex oder leer, Bonmodus `pro_position`/`pro_bestellung`
-- [ ] In `backend/api/admin.go` `NewAdminApi()` registrieren
-- [ ] Unit-Tests für Validierung
+- [x] Package `backend/api/drucker/http/` erstellen — `handler.go` mit `CommandHandler` und `QueryHandler`
+- [x] Package `backend/api/drucker/application/` erstellen — `command.go` und `query.go`
+- [x] `POST /admin/get-drucker-config` — gibt aktuelle Konfiguration aller Kategorien zurück
+- [x] `POST /admin/update-drucker-config` — speichert Drucker-IP und Bonmodus per UPSERT
+- [x] zog-Validierung: IPv4-Regex oder leer, Bonmodus `pro_position`/`pro_bestellung`
+- [x] In `backend/api/admin.go` `NewAdminApi()` registrieren
+- [x] Unit-Tests für Validierung
 
 **Kontext:**
 
@@ -910,14 +910,14 @@ r.HandleFunc("/get-drucker-config", dq.GetDruckerConfigHandler())
 r.HandleFunc("/update-drucker-config", dc.UpdateDruckerConfigHandler())
 ```
 
-### 4.2 · Frontend: Druckerkonfiguration im Admin-Bereich
+### 4.2 · Frontend: Druckerkonfiguration im Admin-Bereich ✅
 
-- [ ] `frontend/src/admin/DruckerConfigPage.tsx` erstellen
-- [ ] Pro Kategorie: Input-Feld für IP-Adresse, Dropdown für Bonmodus
-- [ ] Zod-Validierung: IPv4-Format oder leer, Bonmodus `pro_position`/`pro_bestellung`
-- [ ] `frontend/src/lib/DruckerBackend.ts` — Backend-Klasse mit `BackendClient`
-- [ ] Route in `frontend/src/routes.ts` ergänzen
-- [ ] In Admin-Navigation (`frontend/src/admin/`) verlinken
+- [x] `frontend/src/admin/DruckerConfigPage.tsx` erstellen
+- [x] Pro Kategorie: Input-Feld für IP-Adresse, Dropdown für Bonmodus
+- [x] Zod-Validierung: IPv4-Format oder leer, Bonmodus `pro_position`/`pro_bestellung`
+- [x] `frontend/src/lib/DruckerBackend.ts` — Backend-Klasse mit `BackendClient`
+- [x] Route in `frontend/src/routes.ts` ergänzen
+- [x] In Admin-Navigation (`frontend/src/admin/`) verlinken
 
 **Kontext:**
 
@@ -950,12 +950,12 @@ const druckerConfigSchema = z.object({
 
 ## Phase 5: Print-Relay (eigenständiges Go-Binary)
 
-### 5.1 · Relay-Binary: Grundstruktur
+### 5.1 · Relay-Binary: Grundstruktur ✅
 
-- [ ] `cmd/relay/main.go` erstellen (im Workspace-Root, nicht unter `backend/`)
-- [ ] CLI-Flags: `--backend`, `--token`, `--state`, `--poll`
-- [ ] Poll-Loop: HTTP-POST an `/relay/poll`, Druck-Aufträge verarbeiten
-- [ ] Graceful Shutdown (SIGTERM/SIGINT)
+- [x] `cmd/relay/main.go` erstellen (im Workspace-Root, nicht unter `backend/`)
+- [x] CLI-Flags: `--backend`, `--token`, `--state`, `--poll`
+- [x] Poll-Loop: HTTP-POST an `/relay/poll`, Druck-Aufträge verarbeiten
+- [x] Graceful Shutdown (SIGTERM/SIGINT)
 
 **Kontext:**
 
@@ -963,7 +963,7 @@ const druckerConfigSchema = z.object({
 - Nur Go-Stdlib (`net/http`, `net`, `encoding/json`, `encoding/base64`, `flag`, `os`, `log`, `time`)
 - Kein `go.mod` unter `cmd/relay/` — eigenes Modul `jotti-relay` anlegen
 
-### 5.2 · Relay: Exactly-Once Delivery
+### 5.2 · Relay: Exactly-Once Delivery ✅
 
 Der Relay implementiert robustes Exactly-Once Delivery durch **zwei** Mechanismen:
 
@@ -973,9 +973,9 @@ Nach jedem einzelnen erfolgreich gedruckten Auftrag wird der Cursor sofort lokal
 **Mechanismus 2 — Lokale Idempotenzliste:**
 Das Relay führt eine lokale Liste der zuletzt gedruckten Event-IDs (max. 2000). Vor jedem Druckvorgang wird geprüft, ob die Event-ID bereits bekannt ist. Fängt den Edge-Case ab, dass der Cursor nach erfolgreichem Druck aber vor dem Persistieren nicht gespeichert wurde.
 
-- [ ] Per-Event Cursor-Inkrement (Cursor nach jedem erfolgreichen Druck speichern, nicht nach Batch)
-- [ ] Lokale Idempotenzliste (`printed_event_ids` im State, max. 2000 Einträge, älteste rausrotieren)
-- [ ] Atomare State-Datei-Schreibvorgänge (Write-to-Temp + `os.Rename`, verhindert Korruption bei Absturz)
+- [x] Per-Event Cursor-Inkrement (Cursor nach jedem erfolgreichen Druck speichern, nicht nach Batch)
+- [x] Lokale Idempotenzliste (`printed_event_ids` im State, max. 2000 Einträge, älteste rausrotieren)
+- [x] Atomare State-Datei-Schreibvorgänge (Write-to-Temp + `os.Rename`, verhindert Korruption bei Absturz)
 
 **State-Datei `relay_state.json`:**
 
@@ -986,12 +986,12 @@ Das Relay führt eine lokale Liste der zuletzt gedruckten Event-IDs (max. 2000).
 }
 ```
 
-### 5.3 · Relay: Drucker-Kommunikation
+### 5.3 · Relay: Drucker-Kommunikation ✅
 
-- [ ] `checkPrinter(ip string) error` — DLE EOT 4 Statusabfrage via TCP:9100
-- [ ] `sendToPrinter(ip string, data []byte) error` — ESC/POS-Bytes an Drucker senden
-- [ ] Retry-Schleife: Max. 60 Versuche (~5 Min.) bei Drucker nicht erreichbar, dann überspringen und loggen
-- [ ] Write-Deadline auf TCP-Verbindung setzen (10s)
+- [x] `checkPrinter(ip string) error` — DLE EOT 4 Statusabfrage via TCP:9100
+- [x] `sendToPrinter(ip string, data []byte) error` — ESC/POS-Bytes an Drucker senden
+- [x] Retry-Schleife: Max. 60 Versuche (~5 Min.) bei Drucker nicht erreichbar, dann überspringen und loggen
+- [x] Write-Deadline auf TCP-Verbindung setzen (10s)
 
 **Statusabfrage-Protokoll:**
 
@@ -999,12 +999,12 @@ Das Relay führt eine lokale Liste der zuletzt gedruckten Event-IDs (max. 2000).
 - Antwort: 1 Byte; Bit 5 (0x20) = Papier fast leer, Bit 6 (0x40) = Papier leer
 - Manche Drucker antworten nicht → `Read`-Timeout akzeptieren, kein Fehler
 
-### 5.4 · Relay: Robustheit
+### 5.4 · Relay: Robustheit ✅
 
-- [ ] Graceful Shutdown (SIGTERM/SIGINT): laufenden Druckjob abschließen, dann State speichern und beenden
-- [ ] HTTP-Statuscode vor JSON-Decode prüfen (401, 500, etc. → loggen, Retry-Backoff)
-- [ ] Poll-Fehler loggen, aber weiterlaufen (kein `log.Fatal` bei transienten Netzwerkfehlern)
-- [ ] Periodischer Statuslog (alle 5 Min. `„Relay aktiv, Cursor bei X, keine neuen Aufträge"`)
+- [x] Graceful Shutdown (SIGTERM/SIGINT): laufenden Druckjob abschließen, dann State speichern und beenden
+- [x] HTTP-Statuscode vor JSON-Decode prüfen (401, 500, etc. → loggen, Retry-Backoff)
+- [x] Poll-Fehler loggen, aber weiterlaufen (kein `log.Fatal` bei transienten Netzwerkfehlern)
+- [x] Periodischer Statuslog (alle 5 Min. `„Relay aktiv, Cursor bei X, keine neuen Aufträge"`)
 
 ### 5.5 · Implementierungsvorlage `cmd/relay/main.go`
 
@@ -1253,10 +1253,10 @@ func appendWithLimit(ids []int, id int, limit int) []int {
 }
 ```
 
-### 5.6 · Relay: Cross-Compilation und Deployment
+### 5.6 · Relay: Cross-Compilation und Deployment ✅
 
-- [ ] `go.mod` für `cmd/relay/` anlegen: `go mod init jotti-relay`
-- [ ] Makefile-Target für Relay-Build ergänzen (optional)
+- [x] `go.mod` für `cmd/relay/` anlegen: `go mod init jotti-relay`
+- [x] Makefile-Target für Relay-Build ergänzen (optional)
 
 **Build-Befehle:**
 
@@ -1277,26 +1277,29 @@ GOOS=linux GOARCH=arm64 go build -o jotti-relay .
 
 ## Phase 6: Integration + Tests
 
-### 6.1 · Integrationstests
+### 6.1 · Integrationstests ✅
 
-- [ ] Integrationstest: Bestellung aufnehmen → Relay-Endpoint pollt → erhält korrekte Druck-Aufträge
-- [ ] Integrationstest: Cursor-Fortschritt (zweiter Poll mit gleichem Cursor liefert keine Duplikate)
-- [ ] Integrationstest: Druckerkonfiguration ändern → nächster Poll nutzt neue IPs
-- [ ] Integrationstest: Kein Drucker konfiguriert (leere `drucker_ip`) → `auftraege: []`
-- [ ] Integrationstest: `401` bei falschem Token
+- [x] Integrationstest: Bestellung aufnehmen → Relay-Endpoint pollt → erhält korrekte Druck-Aufträge
+- [x] Integrationstest: Cursor-Fortschritt (zweiter Poll mit gleichem Cursor liefert keine Duplikate)
+- [x] Integrationstest: Druckerkonfiguration ändern → nächster Poll nutzt neue IPs
+- [x] Integrationstest: Kein Drucker konfiguriert (leere `drucker_ip`) → `auftraege: []`
+- [x] Integrationstest: `401` bei falschem Token
 
 **Kontext:**
 
 - `backend/api/health/health_integration_test.go` — als Referenz für Integrationstest-Muster
 - `test-integration.sh` — Skript das Integrationstests startet
 
-### 6.2 · End-to-End-Validierung
+### 6.2 · End-to-End-Validierung 🔒
 
-- [ ] `make sqlc` — nach Query-Änderungen (sqlc-Code regenerieren)
-- [ ] `make check` läuft durch (lint + unit tests)
-- [ ] `make lint` läuft durch
+- [x] `make sqlc` — nach Query-Änderungen (sqlc-Code regenerieren)
+- [x] `make check` läuft durch (lint + unit tests)
+- [x] `make lint` läuft durch
 - [ ] Manueller Test: Dev-Stack starten, Bestellung aufnehmen, `POST /relay/poll` mit `curl` testen
-- [ ] `docs/bondruck.md` aktualisiert
+- [x] `docs/bondruck.md` aktualisiert
+
+Hinweis: Manueller Dev-Stack-Test ist in dieser Umgebung aktuell blockiert, da `make dev` mit
+`Cannot connect to the Docker daemon at unix:///var/run/docker.sock` fehlschlägt.
 
 **Manueller curl-Test:**
 

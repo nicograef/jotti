@@ -7,6 +7,7 @@ import {
 import { AuthSingleton } from '@/lib/Auth'
 
 import { AdminLayout } from './admin/AdminLayout'
+import { DruckerConfigPage } from './admin/DruckerConfigPage'
 import { AdminProductsPage } from './admin/products/AdminProductsPage'
 import { AdminDashboardPage } from './admin/reporting/AdminDashboardPage'
 import { AdminTablesPage } from './admin/tables/AdminTablesPage'
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
           { path: 'products', Component: AdminProductsPage },
           { path: 'tables', Component: AdminTablesPage },
           { path: 'users', Component: AdminUsersPage },
+          { path: 'drucker', Component: DruckerConfigPage },
         ],
       },
       {

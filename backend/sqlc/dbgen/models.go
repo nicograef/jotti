@@ -160,6 +160,16 @@ type Event struct {
 	Data json.RawMessage
 }
 
+// Drucker-IP und Bonmodus pro Produkt-Kategorie für den Bondruck.
+type KategorieDrucker struct {
+	Kategorie Produktkategorie
+	// IPv4-Adresse des Bondruckers (leer = kein Drucker konfiguriert)
+	DruckerIp string
+	// Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon)
+	Bonmodus  string
+	UpdatedAt time.Time
+}
+
 // Varianten von Produkten (verschiedene Größen, Optionen, etc.).
 type ProduktVarianten struct {
 	ID        int

@@ -295,3 +295,24 @@ func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
 
 	return len(subjects), nil
 }
+
+// GetBestellungEventsSinceCursor liest BestellungAufgenommenV1-Events ab dem
+// angegebenen Cursor (exklusive). Wird vom Relay-Service für das Bondruck-
+// Polling verwendet.
+func (r Repository) GetBestellungEventsSinceCursor(ctx context.Context, cursor int) ([]event.Event, error) {
+	rows, err := r.q.GetBestellungEventsSinceCursor(ctx, cursor)
+	if err != nil {
+		return nil, err
+	}
+	events := make([]event.Event, 0, len(rows))
+	for _, row := range rows {
+		events = append(events, event.Event{
+			ID:       row.ID,
+			UserName: row.UserName,
+			Subject:  row.Subject,
+			Data:     row.Data,
+			Time:     row.Timestamp,
+		})
+	}
+	return events, nil
+}

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"net/http"
 
+	druckerApp "github.com/nicograef/jotti/backend/api/drucker/application"
+	druckerHTTP "github.com/nicograef/jotti/backend/api/drucker/http"
 	productApp "github.com/nicograef/jotti/backend/api/product/application"
 	productHTTP "github.com/nicograef/jotti/backend/api/product/http"
 	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
@@ -12,6 +14,7 @@ import (
 	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
 	userApp "github.com/nicograef/jotti/backend/api/user/application"
 	userHTTP "github.com/nicograef/jotti/backend/api/user/http"
+	"github.com/nicograef/jotti/backend/repository/drucker_repo"
 	"github.com/nicograef/jotti/backend/repository/event_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
@@ -76,6 +79,14 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	rq := reportingHTTP.QueryHandler{}
 	rq.Query = reportingApp.Query{ReportingRepo: reportingRepo}
 	r.HandleFunc("/get-reporting", rq.GetReportingHandler())
+
+	druckerRepo := drucker_repo.NewRepository(db)
+	dc := druckerHTTP.CommandHandler{}
+	dc.Command = druckerApp.Command{DruckerRepo: druckerRepo}
+	dq := druckerHTTP.QueryHandler{}
+	dq.Query = druckerApp.Query{DruckerRepo: druckerRepo}
+	r.HandleFunc("/get-drucker-config", dq.GetDruckerConfigHandler())
+	r.HandleFunc("/update-drucker-config", dc.UpdateDruckerConfigHandler())
 
 	return r
 }
