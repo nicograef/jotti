@@ -118,18 +118,30 @@
     <!-- ============ HEADER / NAV ============ -->
     <header class="site-header">
       <div class="container header-inner">
-        <a href="#" class="logo-link" aria-label="jotti Startseite">
-          <img
-            src="img/jotti-logo-full-light-transparent.png"
-            alt="jotti Logo"
-            class="logo"
-          />
-        </a>
+        <div class="header-brand">
+          <a href="#" class="logo-link" aria-label="jotti Startseite">
+            <img
+              src="img/jotti-logo-full-light-transparent.png"
+              alt="jotti Logo"
+              class="logo"
+            />
+          </a>
+          <span class="header-byline">
+            Entwickelt von
+            <a
+              href="https://nicograef.de"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Nico Gräf</a
+            >
+          </span>
+        </div>
         <nav class="main-nav" aria-label="Hauptnavigation">
           <a href="#features">Features</a>
           <a href="#so-funktionierts">So geht's</a>
           <a href="#vergleich">Vergleich</a>
           <a href="#technik">Technik</a>
+          <a href="#bereit">Bereit?</a>
           <a
             href="https://github.com/nicograef/jotti"
             target="_blank"
@@ -155,6 +167,7 @@
         <a href="#so-funktionierts">So geht's</a>
         <a href="#vergleich">Vergleich</a>
         <a href="#technik">Technik</a>
+        <a href="#bereit">Bereit?</a>
         <a
           href="https://github.com/nicograef/jotti"
           target="_blank"
@@ -274,7 +287,6 @@
                 src="img/jotti-admin-products.webp"
                 alt="jotti Admin-Bereich: Produktverwaltung mit Varianten und Preisen"
                 class="split-screenshot"
-                width="390"
                 loading="lazy"
               />
             </div>
@@ -409,17 +421,17 @@
       </section>
 
       <!-- ============ SCREENSHOT-SHOWCASE ============ -->
-      <section class="section showcase">
+      <!-- <section class="section showcase">
         <div class="container">
           <h2 class="section-title">So sieht jotti aus.</h2>
-          <div class="showcase-grid">
-            <!-- PLATZHALTER: 3–4 Screenshots nebeneinander auf Smartphone-Mockups.
+          <div class="showcase-grid"> -->
+      <!-- PLATZHALTER: 3–4 Screenshots nebeneinander auf Smartphone-Mockups.
                  1. Produktauswahl / Bestellung aufnehmen
                  2. Tischübersicht mit offenen Saldi
                  3. Tisch-Detail: Positionen, Ausgabe, Zahlung
                  4. Admin: Produktverwaltung
                  Alle auf hellem Hintergrund, Smartphones leicht versetzt. -->
-            <div class="placeholder-img showcase-item" aria-hidden="true">
+      <!-- <div class="placeholder-img showcase-item" aria-hidden="true">
               <div class="placeholder-icon">📱</div>
               <span>Screenshot: Produktauswahl bei Bestellaufnahme</span>
             </div>
@@ -437,7 +449,7 @@
             </div>
           </div>
         </div>
-      </section>
+      </section> -->
 
       <!-- ============ VERGLEICH ============ -->
       <section class="section comparison" id="vergleich">
@@ -596,16 +608,11 @@
               </ul>
             </div>
             <div class="split-visual">
-              <!-- PLATZHALTER: Illustration oder Screenshot vom Kassenjournal / Reporting-Übersicht.
-                   Zeigt die Tagesabrechnung mit Gesamtumsatz, Zahlungen, offene Beträge.
-                   Evtl. auf Tablet-Mockup. -->
-              <div class="placeholder-img" aria-hidden="true">
-                <div class="placeholder-icon">📊</div>
-                <span
-                  >Screenshot: Tagesabrechnung / Reporting mit
-                  Gesamtübersicht</span
-                >
-              </div>
+              <img
+                src="img/jotti-admin-reporting.webp"
+                alt="Screenshot: Tagesabrechnung / Reporting mit Gesamtübersicht"
+                class="screenshot"
+              />
             </div>
           </div>
         </div>
@@ -747,7 +754,7 @@ make prod-up            <span class="code-comment"># Starten</span></code></pre>
       </section>
 
       <!-- ============ CTA ============ -->
-      <section class="section cta-section">
+      <section class="section cta-section" id="bereit">
         <div class="container cta-inner">
           <img
             src="img/jotti-symbol.png"
