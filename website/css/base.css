@@ -354,6 +354,13 @@ body.nav-open .mobile-menu-toggle span:nth-child(3) {
   align-items: center;
 }
 
+.hero-screenshot {
+  max-width: 320px;
+  width: 100%;
+  filter: drop-shadow(16px 32px 8px rgba(0, 0, 0, 0.22));
+  transform: rotate(6deg);
+}
+
 /* ===========================
    Sections (general)
    =========================== */
@@ -451,6 +458,12 @@ body.nav-open .mobile-menu-toggle span:nth-child(3) {
 
 .split-content.reverse > * {
   direction: ltr;
+}
+
+.split-screenshot {
+  max-width: 100%;
+  filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.18))
+    drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
 }
 
 .split-text h2 {
@@ -942,10 +955,10 @@ body.nav-open .mobile-menu-toggle span:nth-child(3) {
     order: -1;
   }
 
-  .hero-visual .placeholder-img {
-    min-height: 220px;
-    max-width: 320px;
-    margin: 0 auto;
+  .hero-screenshot {
+    max-width: 260px;
+    transform: rotate(3deg);
+    filter: drop-shadow(8px 16px 4px rgba(0, 0, 0, 0.22));
   }
 
   .card-grid.three-col {
