@@ -18,6 +18,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 DOMAIN="jotti.rocks"
 DOMAIN_WWW="www.jotti.rocks"
+DOMAIN_DEMO="demo.jotti.rocks"
 EMAIL="graef.nico@gmail.com"
 
 COMPOSE_CERT="docker-compose.initial-cert.yml"
@@ -93,6 +94,13 @@ else
   DOMAIN_WWW=""
 fi
 
+if host "$DOMAIN_DEMO" &>/dev/null 2>&1 || dig +short "$DOMAIN_DEMO" 2>/dev/null | grep -q .; then
+  info "DNS resolution for $DOMAIN_DEMO: OK"
+else
+  warn "DNS resolution for $DOMAIN_DEMO failed. demo subdomain will not be included in the certificate."
+  DOMAIN_DEMO=""
+fi
+
 # ---------------------------------------------------------------------------
 # Step 3 — Request initial Let's Encrypt certificate
 # ---------------------------------------------------------------------------
@@ -107,6 +115,9 @@ info "Requesting certificate from Let's Encrypt..."
 CERTBOT_DOMAINS="-d $DOMAIN"
 if [[ -n "$DOMAIN_WWW" ]]; then
   CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_WWW"
+fi
+if [[ -n "$DOMAIN_DEMO" ]]; then
+  CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_DEMO"
 fi
 
 if ! docker compose -f "$COMPOSE_CERT" run --rm --entrypoint certbot certbot certonly \
@@ -167,8 +178,9 @@ echo "=========================================="
 printf "${GREEN} jotti — Deployment Complete${NC}\n"
 echo "=========================================="
 echo ""
-echo "  Domain:  https://$DOMAIN"
-echo "  Status:  HTTPS $HTTPS_STATUS"
+echo "  Landing:  https://$DOMAIN"
+echo "  App:      https://demo.$DOMAIN"
+echo "  Status:   HTTPS $HTTPS_STATUS"
 echo ""
 echo "  Useful commands:"
 echo "    make prod-up     — Rebuild & restart"
