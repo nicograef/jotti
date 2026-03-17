@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="description"
+      content="jotti ist ein kostenloses, quelloffenes Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Self-hosted, Mobile-first, kein Cloud-Abo."
+    />
+    <meta name="author" content="Nico Gräf" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="Kassensystem Verein, Kassensystem Vereinsfest, POS Verein, kostenloses Kassensystem, mPOS Non-Profit, Open-Source Kassensystem, Mobile Kasse Verein, Self-hosted POS"
+    />
+
+    <title>jotti — Das kostenlose Kassensystem für Vereinsfeste</title>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="jotti — Das kostenlose Kassensystem für Vereinsfeste"
+    />
+    <meta
+      property="og:description"
+      content="Kostenloses, quelloffenes Mobile-Kassensystem für Vereine und gemeinnützige Organisationen. Self-hosted, ohne Abo, ohne Hardware."
+    />
+    <meta property="og:site_name" content="jotti" />
+    <meta property="og:locale" content="de_DE" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="jotti — Das kostenlose Kassensystem für Vereinsfeste"
+    />
+    <meta
+      name="twitter:description"
+      content="Kostenloses, quelloffenes Mobile-Kassensystem für Vereine und gemeinnützige Organisationen."
+    />
+
+    <!-- Favicons: light mode -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="icons/jotti-icon-light-16.png"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="icons/jotti-icon-light-32.png"
+      media="(prefers-color-scheme: light)"
+    />
+    <!-- Favicons: dark mode -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="icons/jotti-icon-dark-16.png"
+      media="(prefers-color-scheme: dark)"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="icons/jotti-icon-dark-32.png"
+      media="(prefers-color-scheme: dark)"
+    />
+    <!-- Fallback favicon -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="icons/jotti-icon-light-32.png"
+    />
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="icons/jotti-logo-icon-light.png" />
+
+    <!-- Browser-Chrome-Farbe -->
+    <meta
+      name="theme-color"
+      content="#7c3aed"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#020617"
+      media="(prefers-color-scheme: dark)"
+    />
+
+    <!-- Fonts & Styles -->
+    <link
+      rel="preload"
+      href="fonts/Montserrat-Regular.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="fonts/Montserrat-Bold.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <link rel="stylesheet" href="css/base.css" />
+  </head>
+
+  <body>
+    <!-- ============ HEADER / NAV ============ -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="#" class="logo-link" aria-label="jotti Startseite">
+          <img
+            src="img/jotti-logo-full-light.png"
+            alt="jotti Logo"
+            class="logo"
+          />
+        </a>
+        <nav class="main-nav" aria-label="Hauptnavigation">
+          <a href="#features">Features</a>
+          <a href="#so-funktionierts">So geht's</a>
+          <a href="#vergleich">Vergleich</a>
+          <a href="#technik">Technik</a>
+          <a
+            href="https://github.com/nicograef/jotti"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-sm btn-outline"
+            >GitHub</a
+          >
+        </nav>
+        <button
+          class="mobile-menu-toggle"
+          aria-label="Menü öffnen"
+          aria-expanded="false"
+        >
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Mobile Nav Overlay -->
+    <div class="mobile-nav-overlay" aria-hidden="true">
+      <nav class="mobile-nav" aria-label="Mobile Navigation">
+        <a href="#features">Features</a>
+        <a href="#so-funktionierts">So geht's</a>
+        <a href="#vergleich">Vergleich</a>
+        <a href="#technik">Technik</a>
+        <a
+          href="https://github.com/nicograef/jotti"
+          target="_blank"
+          rel="noopener noreferrer"
+          >GitHub</a
+        >
+      </nav>
+    </div>
+
+    <main>
+      <!-- ============ HERO ============ -->
+      <section class="hero">
+        <div class="container hero-inner">
+          <div class="hero-text">
+            <h1>
+              Das kostenlose Kassensystem
+              <span class="highlight">für euer Vereinsfest.</span>
+            </h1>
+            <p class="hero-sub">
+              Bestellungen aufnehmen, Ausgabe bestätigen, kassieren — direkt auf
+              dem Smartphone, pro Tisch, ohne spezielle Hardware. Für Vereine
+              und gemeinnützige Organisationen.
+            </p>
+            <p class="hero-tags">Kostenlos. Self-hosted. Open&nbsp;Source.</p>
+            <div class="hero-actions">
+              <a
+                href="https://github.com/nicograef/jotti"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-primary"
+                >Auf GitHub ansehen</a
+              >
+              <a href="#features" class="btn btn-ghost">Features entdecken</a>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <!-- PLATZHALTER: Screenshot der jotti Service-Ansicht auf einem Smartphone-Mockup.
+                 Zeigt die Tischübersicht mit offenen Saldi und farbigen Status-Badges.
+                 Smartphone im Hochformat, leicht nach rechts geneigt, mit Schatten. -->
+            <div class="placeholder-img" aria-hidden="true">
+              <div class="placeholder-icon">📱</div>
+              <span
+                >Screenshot: Tischübersicht auf Smartphone — offene Saldi,
+                farbige Status-Badges</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PROBLEM ============ -->
+      <section class="section problem" id="problem">
+        <div class="container">
+          <h2 class="section-title">Kennt ihr das?</h2>
+          <p class="section-subtitle">
+            Die meisten Vereine bewirtschaften ihre Feste mit einem dieser drei
+            Ansätze — und stoßen dabei immer wieder an dieselben Grenzen.
+          </p>
+          <div class="card-grid three-col">
+            <div class="card">
+              <div class="card-icon">📝</div>
+              <h3>Stift &amp; Papier</h3>
+              <p>
+                Unleserliche Handschrift, verlorene Bonblöcke, keine
+                Echtzeit-Übersicht. Am Ende sitzt ihr stundenlang zusammen, um
+                die Abrechnung hinzubekommen.
+              </p>
+            </div>
+            <div class="card">
+              <div class="card-icon">📊</div>
+              <h3>Excel-Tabelle</h3>
+              <p>
+                Nicht echtzeitfähig, kein Mehrbenutzerbetrieb, keine
+                Tisch-Zuordnung. Einer tippt, alle anderen warten.
+              </p>
+            </div>
+            <div class="card">
+              <div class="card-icon">💸</div>
+              <h3>Kommerzielles POS</h3>
+              <p>
+                30–100&nbsp;€ pro Monat plus Hardware. Für 2–3 Feste im Jahr
+                völlig überdimensioniert — und viel zu teuer.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SOLUTION ============ -->
+      <section class="section solution">
+        <div class="container">
+          <div class="split-content">
+            <div class="split-text">
+              <h2>jotti löst genau diese Probleme.</h2>
+              <ul class="check-list">
+                <li>
+                  <strong>Kostenlos</strong> — keine Lizenzgebühren, kein Abo,
+                  keine versteckten Kosten
+                </li>
+                <li>
+                  <strong>Keine Hardware</strong> — jedes Smartphone wird zur
+                  Kasse (BYOD)
+                </li>
+                <li>
+                  <strong>Einfach</strong> — nur die Features, die ein
+                  Vereinsfest wirklich braucht
+                </li>
+                <li>
+                  <strong>Eigener Server</strong> — volle Datenkontrolle, keine
+                  fremde Cloud
+                </li>
+                <li>
+                  <strong>Transparente Abrechnung</strong> — Echtzeit-Saldo pro
+                  Tisch, lückenlose Bestellhistorie
+                </li>
+              </ul>
+            </div>
+            <div class="split-visual">
+              <!-- PLATZHALTER: Screenshot der Tisch-Detailansicht.
+                   Zeigt offene Positionen, Saldo, Bestellhistorie eines Tisches.
+                   Auf einem Smartphone-Mockup, heller Hintergrund. -->
+              <div class="placeholder-img" aria-hidden="true">
+                <div class="placeholder-icon">🧾</div>
+                <span
+                  >Screenshot: Tisch-Detailansicht mit Positionen, Saldo und
+                  Bestellhistorie</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FEATURES ============ -->
+      <section class="section features" id="features">
+        <div class="container">
+          <h2 class="section-title">Alles, was euer Vereinsfest braucht.</h2>
+          <p class="section-subtitle">
+            Nicht mehr, nicht weniger. jotti konzentriert sich auf die
+            Kernfunktionen — damit sich euer Team auf die Gäste konzentrieren
+            kann.
+          </p>
+
+          <div class="card-grid three-col">
+            <div class="card feature-card">
+              <div class="card-icon">📱</div>
+              <h3>Bestellungen aufnehmen</h3>
+              <p>
+                Produkte und Varianten auswählen, Menge und Kommentare angeben,
+                auf den Tisch buchen — alles im Browser.
+              </p>
+            </div>
+            <div class="card feature-card">
+              <div class="card-icon">🚚</div>
+              <h3>Ausgabe bestätigen</h3>
+              <p>
+                Bestellte Positionen als ausgegeben markieren. Jeder weiß, was
+                raus ist und was noch fehlt.
+              </p>
+            </div>
+            <div class="card feature-card">
+              <div class="card-icon">💰</div>
+              <h3>Kassieren</h3>
+              <p>
+                Am Tisch kassieren — Teilzahlungen möglich. Offener Saldo immer
+                im Blick.
+              </p>
+            </div>
+            <div class="card feature-card">
+              <div class="card-icon">↩️</div>
+              <h3>Stornieren</h3>
+              <p>
+                Falschbestellungen rückgängig machen. Nur Serviceleitung und
+                Admin — mit Pflichtkommentar für volle Nachvollziehbarkeit.
+              </p>
+            </div>
+            <div class="card feature-card">
+              <div class="card-icon">📋</div>
+              <h3>Tischübersicht</h3>
+              <p>
+                Alle Tische mit Status und offenem Betrag auf einen Blick.
+                Sofort den richtigen Tisch finden.
+              </p>
+            </div>
+            <div class="card feature-card">
+              <div class="card-icon">📊</div>
+              <h3>Abrechnung</h3>
+              <p>
+                Tagesabrechnung, pro Tisch und pro Servicekraft. Kein
+                Rätselraten am Ende des Abends.
+              </p>
+            </div>
+            <div class="card feature-card">
+              <div class="card-icon">🖥️</div>
+              <h3>Küchendisplay (KDS)</h3>
+              <p>
+                Eingehende Bestellungen in Echtzeit auf einem Bildschirm in der
+                Küche oder an der Ausgabe.
+              </p>
+            </div>
+            <div class="card feature-card">
+              <div class="card-icon">🖨️</div>
+              <h3>Bon-Druck</h3>
+              <p>
+                Bestellbons automatisch an ESC/POS-Bondrucker senden — Küche und
+                Theke getrennt.
+              </p>
+            </div>
+            <div class="card feature-card">
+              <div class="card-icon">🔐</div>
+              <h3>Rollen &amp; Rechte</h3>
+              <p>
+                Drei Rollen: Admin, Serviceleitung, Servicekraft. Jeder sieht
+                und darf nur, was er braucht.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SO FUNKTIONIERT'S ============ -->
+      <section class="section how-it-works" id="so-funktionierts">
+        <div class="container">
+          <h2 class="section-title">In drei Schritten startklar.</h2>
+          <p class="section-subtitle">
+            Keine wochenlange Einrichtung. Kein Schulungsbedarf. Einfach
+            loslegen.
+          </p>
+          <div class="steps">
+            <div class="step">
+              <div class="step-number">1</div>
+              <h3>Admin richtet ein</h3>
+              <p>
+                Produkte mit Varianten und Preisen anlegen, Tische erstellen,
+                Benutzer einladen — alles über den Admin-Bereich.
+              </p>
+            </div>
+            <div class="step-arrow" aria-hidden="true"></div>
+            <div class="step">
+              <div class="step-number">2</div>
+              <h3>Team meldet sich an</h3>
+              <p>
+                Jeder Helfer öffnet den Browser auf dem eigenen Smartphone, gibt
+                das Einmalpasswort ein und setzt ein eigenes Passwort.
+              </p>
+            </div>
+            <div class="step-arrow" aria-hidden="true"></div>
+            <div class="step">
+              <div class="step-number">3</div>
+              <h3>Loslegen</h3>
+              <p>
+                Bestellungen aufnehmen, Ausgabe bestätigen, kassieren, Saldo
+                prüfen — alles vom Smartphone.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SCREENSHOT-SHOWCASE ============ -->
+      <section class="section showcase">
+        <div class="container">
+          <h2 class="section-title">So sieht jotti aus.</h2>
+          <div class="showcase-grid">
+            <!-- PLATZHALTER: 3–4 Screenshots nebeneinander auf Smartphone-Mockups.
+                 1. Produktauswahl / Bestellung aufnehmen
+                 2. Tischübersicht mit offenen Saldi
+                 3. Tisch-Detail: Positionen, Ausgabe, Zahlung
+                 4. Admin: Produktverwaltung
+                 Alle auf hellem Hintergrund, Smartphones leicht versetzt. -->
+            <div class="placeholder-img showcase-item" aria-hidden="true">
+              <div class="placeholder-icon">📱</div>
+              <span>Screenshot: Produktauswahl bei Bestellaufnahme</span>
+            </div>
+            <div class="placeholder-img showcase-item" aria-hidden="true">
+              <div class="placeholder-icon">📋</div>
+              <span>Screenshot: Tischübersicht mit Saldi</span>
+            </div>
+            <div class="placeholder-img showcase-item" aria-hidden="true">
+              <div class="placeholder-icon">🧾</div>
+              <span>Screenshot: Tisch-Detail mit Positionen</span>
+            </div>
+            <div class="placeholder-img showcase-item" aria-hidden="true">
+              <div class="placeholder-icon">⚙️</div>
+              <span>Screenshot: Admin — Produktverwaltung</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VERGLEICH ============ -->
+      <section class="section comparison" id="vergleich">
+        <div class="container">
+          <h2 class="section-title">jotti vs. die Alternativen.</h2>
+          <div class="table-wrapper">
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th class="highlight-col">jotti</th>
+                  <th>Stift &amp; Papier</th>
+                  <th>Kommerzielles POS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Kosten</td>
+                  <td class="highlight-col"><strong>Kostenlos</strong></td>
+                  <td>~0 €</td>
+                  <td>30–100 €/Monat + Hardware</td>
+                </tr>
+                <tr>
+                  <td>Hardware</td>
+                  <td class="highlight-col">
+                    <strong>Eigenes Smartphone</strong>
+                  </td>
+                  <td>Stifte, Bonblöcke</td>
+                  <td>Terminal, iPad, Drucker</td>
+                </tr>
+                <tr>
+                  <td>Echtzeit-Übersicht</td>
+                  <td class="highlight-col">✓</td>
+                  <td>✗</td>
+                  <td>✓</td>
+                </tr>
+                <tr>
+                  <td>Mehrbenutzerbetrieb</td>
+                  <td class="highlight-col">✓</td>
+                  <td>✗</td>
+                  <td>✓</td>
+                </tr>
+                <tr>
+                  <td>Abrechnung</td>
+                  <td class="highlight-col">
+                    <strong>Automatisch</strong>
+                  </td>
+                  <td>Stundenlang manuell</td>
+                  <td>Automatisch</td>
+                </tr>
+                <tr>
+                  <td>Einrichtung</td>
+                  <td class="highlight-col"><strong>Minuten</strong></td>
+                  <td>Sofort</td>
+                  <td>Tage bis Wochen</td>
+                </tr>
+                <tr>
+                  <td>Datenhoheit</td>
+                  <td class="highlight-col">
+                    <strong>Eigener Server</strong>
+                  </td>
+                  <td>Zettelwirtschaft</td>
+                  <td>Beim Anbieter</td>
+                </tr>
+                <tr>
+                  <td>Vertragslaufzeit</td>
+                  <td class="highlight-col"><strong>Keine</strong></td>
+                  <td>Keine</td>
+                  <td>12–24 Monate</td>
+                </tr>
+                <tr>
+                  <td>Nachvollziehbarkeit</td>
+                  <td class="highlight-col">
+                    <strong>Lückenloses Journal</strong>
+                  </td>
+                  <td>Fehleranfällig</td>
+                  <td>Ja</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FÜR WEN ============ -->
+      <section class="section target-audience">
+        <div class="container">
+          <h2 class="section-title">Für wen ist jotti gedacht?</h2>
+          <p class="section-subtitle">
+            jotti ist für alle gemeinnützigen Organisationen, die temporäre
+            Gastronomie-Veranstaltungen durchführen.
+          </p>
+          <div class="card-grid two-col">
+            <div class="card">
+              <h3>Vereine (e.V.)</h3>
+              <p>
+                Sportvereine, Musikvereine, Schützenvereine, Karnevalsvereine,
+                Fördervereine — jeder eingetragene Verein, der Feste
+                veranstaltet.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Gemeinnützige Organisationen</h3>
+              <p>
+                gGmbH, gUG, Stiftungen, kirchliche Träger, NGOs — alle, die
+                unter das Gemeinnützigkeitsrecht fallen.
+              </p>
+            </div>
+          </div>
+
+          <h3 class="subsection-title">Typische Veranstaltungen</h3>
+          <div class="tag-cloud">
+            <span class="tag">Vereinsfeste</span>
+            <span class="tag">Sommerfeste</span>
+            <span class="tag">Weihnachtsmärkte</span>
+            <span class="tag">Maihocks</span>
+            <span class="tag">Straßenfeste</span>
+            <span class="tag">Konzerte</span>
+            <span class="tag">Sportevents</span>
+            <span class="tag">Fasching</span>
+            <span class="tag">Jubiläen</span>
+            <span class="tag">Kulturveranstaltungen</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SICHERHEIT ============ -->
+      <section class="section security">
+        <div class="container">
+          <div class="split-content reverse">
+            <div class="split-text">
+              <h2>Euer Vereinsfest. Eure Daten.</h2>
+              <p>
+                jotti speichert jede Bestellung, jede Zahlung und jede
+                Stornierung als unveränderliches Event. Nachträgliche
+                Manipulation ist technisch ausgeschlossen. Das schafft Vertrauen
+                — gegenüber dem Vorstand, den Helfern und dem Finanzamt.
+              </p>
+              <ul class="check-list">
+                <li>
+                  <strong>Event-Sourcing</strong> — lückenlose, unveränderbare
+                  Bestellhistorie
+                </li>
+                <li>
+                  <strong>Rollenmodell</strong> — Admin, Serviceleitung,
+                  Servicekraft mit abgestuften Rechten
+                </li>
+                <li>
+                  <strong>Self-hosted</strong> — Daten auf eurem eigenen Server,
+                  keine fremde Cloud
+                </li>
+                <li>
+                  <strong>HTTPS</strong> — verschlüsselte Kommunikation per
+                  Let's Encrypt
+                </li>
+              </ul>
+            </div>
+            <div class="split-visual">
+              <!-- PLATZHALTER: Illustration oder Screenshot vom Kassenjournal / Reporting-Übersicht.
+                   Zeigt die Tagesabrechnung mit Gesamtumsatz, Zahlungen, offene Beträge.
+                   Evtl. auf Tablet-Mockup. -->
+              <div class="placeholder-img" aria-hidden="true">
+                <div class="placeholder-icon">📊</div>
+                <span
+                  >Screenshot: Tagesabrechnung / Reporting mit
+                  Gesamtübersicht</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ KOSTEN ============ -->
+      <section class="section pricing">
+        <div class="container">
+          <h2 class="section-title">Kostenlos. Für immer.</h2>
+          <p class="section-subtitle">
+            Kein Abo, kein Kleingedrucktes, keine versteckte Paywall. Der volle
+            Funktionsumfang — ohne Limits bei Tischen, Produkten oder Benutzern.
+          </p>
+          <div class="pricing-card">
+            <div class="pricing-header">
+              <span class="pricing-label"
+                >Für gemeinnützige Organisationen</span
+              >
+              <div class="pricing-price">
+                0&nbsp;€
+                <span class="pricing-period">/ für immer</span>
+              </div>
+            </div>
+            <ul class="check-list pricing-features">
+              <li>Alle Features inklusive</li>
+              <li>Keine Nutzungslimits</li>
+              <li>Keine Werbung, kein Tracking</li>
+              <li>Quellcode einsehbar</li>
+              <li>Keine Vertragslaufzeit</li>
+            </ul>
+            <div class="pricing-note">
+              <p>
+                <strong>Einzige Kosten:</strong> Hosting-Infrastruktur für euren
+                Server — unabhängig von jotti.
+              </p>
+              <div class="hosting-options">
+                <span class="hosting-option"
+                  >🖥️ VPS ab ~3 €/Monat (z.B. Hetzner, Netcup)</span
+                >
+                <span class="hosting-option"
+                  >🍓 Raspberry Pi ~50 € einmalig</span
+                >
+                <span class="hosting-option"
+                  >🏢 Vereinseigener Server — 0 €</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ TECHNIK ============ -->
+      <section class="section tech" id="technik">
+        <div class="container">
+          <h2 class="section-title">Für IT-Verantwortliche.</h2>
+          <p class="section-subtitle">
+            jotti ist self-hosted per Docker Compose. Wer Docker starten kann,
+            kann jotti betreiben.
+          </p>
+
+          <div class="card-grid two-col">
+            <div class="card tech-card">
+              <h3>Tech-Stack</h3>
+              <div class="tech-stack">
+                <div class="tech-row">
+                  <span class="tech-label">Frontend</span>
+                  <span>React, TypeScript, Tailwind CSS</span>
+                </div>
+                <div class="tech-row">
+                  <span class="tech-label">Backend</span>
+                  <span>Go, stdlib net/http, pgx</span>
+                </div>
+                <div class="tech-row">
+                  <span class="tech-label">Datenbank</span>
+                  <span>PostgreSQL</span>
+                </div>
+                <div class="tech-row">
+                  <span class="tech-label">Infrastruktur</span>
+                  <span>Docker Compose, nginx, Let's Encrypt</span>
+                </div>
+              </div>
+            </div>
+            <div class="card tech-card">
+              <h3>Anforderungen</h3>
+              <div class="tech-stack">
+                <div class="tech-row">
+                  <span class="tech-label">Server</span>
+                  <span>1 vCPU, 1 GB RAM, 10 GB SSD</span>
+                </div>
+                <div class="tech-row">
+                  <span class="tech-label">OS</span>
+                  <span>Linux (Ubuntu, Debian o.ä.)</span>
+                </div>
+                <div class="tech-row">
+                  <span class="tech-label">Software</span>
+                  <span>Docker + Docker Compose</span>
+                </div>
+                <div class="tech-row">
+                  <span class="tech-label">Netzwerk</span>
+                  <span>Domain + Port 80/443 offen</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quickstart-box">
+            <h3>Schnellstart</h3>
+            <pre><code>cp .env.example .env    <span class="code-comment"># Konfiguration anpassen</span>
+make prod-init          <span class="code-comment"># SSL-Zertifikat erstellen</span>
+make prod-up            <span class="code-comment"># Starten</span></code></pre>
+          </div>
+
+          <div class="card tech-card architecture-card">
+            <h3>Architektur-Highlights</h3>
+            <ul class="check-list">
+              <li>
+                <strong>Event-Sourcing</strong> für den Kassenbetrieb —
+                lückenlose, unveränderliche Bestellhistorie
+              </li>
+              <li>
+                <strong>CRUD</strong> für Stammdaten — einfache Verwaltung von
+                Produkten, Tischen, Benutzern
+              </li>
+              <li>
+                <strong>JWT-Authentifizierung</strong> — sichere, tokenbasierte
+                Anmeldung mit Argon2id-Hashing
+              </li>
+              <li>
+                <strong>Mobile-first</strong> — optimiert für
+                Smartphone-Browser, Touch-Bedienung
+              </li>
+              <li>
+                <strong>AGPL-3.0</strong> — quelloffen, Quellcode auf GitHub
+                einsehbar
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CTA ============ -->
+      <section class="section cta-section">
+        <div class="container cta-inner">
+          <img
+            src="img/jotti-symbol.png"
+            alt="jotti"
+            class="cta-icon"
+            width="80"
+            height="80"
+          />
+          <h2>Bereit für euer nächstes Fest?</h2>
+          <p>
+            jotti ist quelloffen auf GitHub verfügbar. Schaut euch den Code an,
+            richtet euren Server ein und legt los.
+          </p>
+          <a
+            href="https://github.com/nicograef/jotti"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-primary btn-lg"
+            >Auf GitHub ansehen</a
+          >
+        </div>
+      </section>
+    </main>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">
+          <img src="img/jotti-symbol.png" alt="jotti" width="28" height="28" />
+          <span>jotti — Das kostenlose Kassensystem für Vereinsfeste.</span>
+        </div>
+        <div class="footer-links">
+          <a
+            href="https://github.com/nicograef/jotti"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          >
+          <a
+            href="https://github.com/nicograef/jotti/blob/main/LICENSE"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Lizenz (AGPL-3.0)</a
+          >
+        </div>
+        <p class="footer-copy">
+          Entwickelt von
+          <a
+            href="https://nicograef.de"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Nico Gräf</a
+          >
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      // Mobile menu toggle
+      const toggle = document.querySelector(".mobile-menu-toggle");
+      const overlay = document.querySelector(".mobile-nav-overlay");
+      if (toggle && overlay) {
+        toggle.addEventListener("click", () => {
+          const open = toggle.getAttribute("aria-expanded") === "true";
+          toggle.setAttribute("aria-expanded", String(!open));
+          overlay.setAttribute("aria-hidden", String(open));
+          document.body.classList.toggle("nav-open", !open);
+        });
+        overlay.querySelectorAll("a").forEach((link) => {
+          link.addEventListener("click", () => {
+            toggle.setAttribute("aria-expanded", "false");
+            overlay.setAttribute("aria-hidden", "true");
+            document.body.classList.remove("nav-open");
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

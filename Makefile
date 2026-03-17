@@ -8,6 +8,7 @@
        db-shell seed rebuild-projections \
        clean \
 	check-tools check-backend check-frontend check-integration check check-full verify \
+       website \
        help
 
 # ──────────────────────────────────────────────
@@ -166,6 +167,13 @@ check: check-tools check-backend check-frontend ## Schnelle Komplettprüfung ohn
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 
 verify: check-tools check-full ## Alias für vollständige Repo-Prüfung
+
+# ──────────────────────────────────────────────
+# Website                                       
+# ──────────────────────────────────────────────
+
+website: ## Website Dev-Server starten (http://localhost:8080)
+	npx -y serve website -l 8080
 
 # ──────────────────────────────────────────────
 # Hilfe                                         
