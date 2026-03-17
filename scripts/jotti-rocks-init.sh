@@ -2,26 +2,28 @@
 set -euo pipefail
 
 # =============================================================================
-# jotti — First-Deploy Automation Script
+# jotti.rocks — First-Deploy Script for the project website
 #
-# Performs the initial production deployment:
-# 1. Validates prerequisites (.env, DNS, Docker)
-# 2. Requests the first Let's Encrypt certificate via HTTP-01 challenge
-# 3. Starts the full production stack
-# 4. Verifies HTTPS is working
+# Deploys the jotti.rocks dual-domain setup:
+#   - https://jotti.rocks        → static landing page
+#   - https://demo.jotti.rocks   → demo app (frontend + backend API)
 #
-# Usage: ./scripts/prod-init.sh
+# Uses docker-compose.prod.yml + docker-compose.jotti-rocks.yml override.
+# Self-hosters should use scripts/prod-init.sh instead.
+#
+# Usage: ./scripts/jotti-rocks-init.sh
 # =============================================================================
 
 # ---------------------------------------------------------------------------
-# Configuration — adjust these if the domain or email changes
+# Configuration
 # ---------------------------------------------------------------------------
 DOMAIN="jotti.rocks"
 DOMAIN_WWW="www.jotti.rocks"
+DOMAIN_DEMO="demo.jotti.rocks"
 EMAIL="graef.nico@gmail.com"
 
 COMPOSE_CERT="docker-compose.initial-cert.yml"
-COMPOSE_PROD="docker-compose.prod.yml"
+COMPOSE_PROD="-f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -37,7 +39,7 @@ error() { printf "${RED}[ERROR]${NC} %s\n" "$1" >&2; }
 fatal() { error "$1"; exit 1; }
 
 # ---------------------------------------------------------------------------
-# Step 0 — Change to project root (script may be called from anywhere)
+# Step 0 — Change to project root
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -50,27 +52,26 @@ info "Project root: $PROJECT_ROOT"
 # ---------------------------------------------------------------------------
 info "Checking prerequisites..."
 
-# .env must exist
 if [[ ! -f .env ]]; then
   fatal ".env file not found. Copy .env.example to .env and configure it first."
 fi
 
-# Docker must be available
 if ! command -v docker &>/dev/null; then
   fatal "docker is not installed or not on PATH."
 fi
 
-# Docker Compose must be available (v2 plugin)
 if ! docker compose version &>/dev/null; then
   fatal "docker compose (v2) is not available."
 fi
 
-# Compose files must exist
 if [[ ! -f "$COMPOSE_CERT" ]]; then
   fatal "Missing compose file: $COMPOSE_CERT"
 fi
-if [[ ! -f "$COMPOSE_PROD" ]]; then
-  fatal "Missing compose file: $COMPOSE_PROD"
+if [[ ! -f docker-compose.prod.yml ]]; then
+  fatal "Missing compose file: docker-compose.prod.yml"
+fi
+if [[ ! -f docker-compose.jotti-rocks.yml ]]; then
+  fatal "Missing compose file: docker-compose.jotti-rocks.yml"
 fi
 
 info "Prerequisites OK."
@@ -86,11 +87,20 @@ fi
 
 info "DNS resolution for $DOMAIN: OK"
 
+CERTBOT_DOMAINS="-d $DOMAIN"
+
 if host "$DOMAIN_WWW" &>/dev/null 2>&1 || dig +short "$DOMAIN_WWW" 2>/dev/null | grep -q .; then
   info "DNS resolution for $DOMAIN_WWW: OK"
+  CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_WWW"
 else
-  warn "DNS resolution for $DOMAIN_WWW failed. www subdomain will not be included in the certificate."
-  DOMAIN_WWW=""
+  warn "DNS resolution for $DOMAIN_WWW failed. www will not be included in the certificate."
+fi
+
+if host "$DOMAIN_DEMO" &>/dev/null 2>&1 || dig +short "$DOMAIN_DEMO" 2>/dev/null | grep -q .; then
+  info "DNS resolution for $DOMAIN_DEMO: OK"
+  CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_DEMO"
+else
+  warn "DNS resolution for $DOMAIN_DEMO failed. demo will not be included in the certificate."
 fi
 
 # ---------------------------------------------------------------------------
@@ -99,15 +109,9 @@ fi
 info "Starting nginx for ACME challenge..."
 docker compose -f "$COMPOSE_CERT" up -d reverse-proxy
 
-# Wait for nginx to be ready
 sleep 3
 
 info "Requesting certificate from Let's Encrypt..."
-
-CERTBOT_DOMAINS="-d $DOMAIN"
-if [[ -n "$DOMAIN_WWW" ]]; then
-  CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_WWW"
-fi
 
 if ! docker compose -f "$COMPOSE_CERT" run --rm --entrypoint certbot certbot certonly \
   --webroot -w /var/www/certbot \
@@ -127,12 +131,11 @@ info "Stopping initial certificate stack..."
 docker compose -f "$COMPOSE_CERT" down
 
 # ---------------------------------------------------------------------------
-# Step 5 — Start full production stack
+# Step 5 — Start full production stack with jotti.rocks override
 # ---------------------------------------------------------------------------
 info "Building and starting production stack..."
-docker compose -f "$COMPOSE_PROD" up -d --build
+docker compose $COMPOSE_PROD up -d --build
 
-# Wait for services to come up
 info "Waiting for services to start..."
 sleep 10
 
@@ -141,16 +144,25 @@ sleep 10
 # ---------------------------------------------------------------------------
 info "Verifying deployment..."
 
+# Check landing page
 HTTPS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN" 2>/dev/null || echo "000")
 
 if [[ "$HTTPS_STATUS" == "200" || "$HTTPS_STATUS" == "301" || "$HTTPS_STATUS" == "302" ]]; then
-  info "HTTPS check: OK (HTTP $HTTPS_STATUS)"
+  info "Landing page HTTPS check: OK (HTTP $HTTPS_STATUS)"
 else
-  warn "HTTPS check returned HTTP $HTTPS_STATUS — the site may not be fully ready yet."
-  warn "Check logs with: docker compose logs -f"
+  warn "Landing page HTTPS check returned HTTP $HTTPS_STATUS — may not be fully ready yet."
 fi
 
-# Verify HTTP→HTTPS redirect
+# Check demo app
+DEMO_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN_DEMO" 2>/dev/null || echo "000")
+
+if [[ "$DEMO_STATUS" == "200" || "$DEMO_STATUS" == "301" || "$DEMO_STATUS" == "302" ]]; then
+  info "Demo app HTTPS check: OK (HTTP $DEMO_STATUS)"
+else
+  warn "Demo app HTTPS check returned HTTP $DEMO_STATUS — may not be fully ready yet."
+fi
+
+# Check HTTP→HTTPS redirect
 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "http://$DOMAIN" 2>/dev/null || echo "000")
 
 if [[ "$HTTP_STATUS" == "301" ]]; then
@@ -164,16 +176,16 @@ fi
 # ---------------------------------------------------------------------------
 echo ""
 echo "=========================================="
-printf "${GREEN} jotti — Deployment Complete${NC}\n"
+printf "${GREEN} jotti.rocks — Deployment Complete${NC}\n"
 echo "=========================================="
 echo ""
-echo "  Domain:  https://$DOMAIN"
-echo "  Status:  HTTPS $HTTPS_STATUS"
+echo "  Landing page:  https://$DOMAIN"
+echo "  Demo app:      https://$DOMAIN_DEMO"
 echo ""
 echo "  Useful commands:"
-echo "    make prod-up     — Rebuild & restart"
-echo "    make prod-down   — Stop all services"
-echo "    make prod-logs   — Follow logs"
+echo "    make jotti-rocks-up     — Rebuild & restart"
+echo "    make jotti-rocks-down   — Stop all services"
+echo "    make jotti-rocks-logs   — Follow logs"
 echo ""
 echo "  Certificates renew automatically every 24h."
 echo "=========================================="

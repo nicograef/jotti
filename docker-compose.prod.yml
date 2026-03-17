@@ -96,7 +96,6 @@ services:
       - "443:443"
     volumes:
       - ./reverse-proxy/nginx.conf:/etc/nginx/conf.d/jotti.conf:ro
-      - ./website:/usr/share/nginx/html/landing:ro
       - certbot-challenges:/var/www/certbot
       - letsencrypt:/etc/letsencrypt
     networks:

@@ -5,6 +5,7 @@
        build-backend build-frontend build \
        sqlc \
        prod-init prod-up prod-down prod-logs prod-reset-db prod-reset-and-seed \
+       jotti-rocks-init jotti-rocks-up jotti-rocks-down jotti-rocks-logs \
        db-shell seed rebuild-projections \
        clean \
 	check-tools check-backend check-frontend check-integration check check-full verify \
@@ -119,6 +120,22 @@ prod-reset-db: ## Prod-DB zurücksetzen (Zertifikate bleiben erhalten)
 
 prod-reset-and-seed: ## Prod-DB resetten, Seed importieren, Projektionen neu aufbauen (SSL bleibt erhalten)
 	./scripts/prod-reset-and-seed.sh --yes
+
+# ──────────────────────────────────────────────
+# jotti.rocks Deployment                        
+# ──────────────────────────────────────────────
+
+jotti-rocks-init: ## jotti.rocks Ersteinrichtung (Zertifikate für alle Domains, Stack)
+	./scripts/jotti-rocks-init.sh
+
+jotti-rocks-up: ## jotti.rocks Stack starten (Landing + Demo App)
+	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml up -d --build
+
+jotti-rocks-down: ## jotti.rocks Stack stoppen
+	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml down
+
+jotti-rocks-logs: ## jotti.rocks Stack Logs folgen
+	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml logs -f
 
 # ──────────────────────────────────────────────
 # Datenbank                                     
