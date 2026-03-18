@@ -138,14 +138,13 @@ Die Belegausgabepflicht gilt für **jeden** Nutzer eines elektronischen Aufzeich
 § 4 KassenSichV verlangt eine **einheitliche digitale Schnittstelle**, über die die gespeicherten Daten für die Finanzverwaltung exportiert werden können. Die DSFinV-K definiert das genaue Format dieses Exports.
 
 *(Quelle: BZSt — DSFinV-K — https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html)*
-*(Quelle: DSFinV-K Technische Spezifikation v2.1 — https://kassensichv.com/downloads/DSFinV-K-Vers-2-1.pdf)*
 
 ### 3.6 Elektronische Kassenmeldepflicht (§ 146a Abs. 4 AO)
 
 Ab dem 1. Januar 2025 müssen elektronische Aufzeichnungssysteme dem zuständigen Finanzamt **elektronisch** gemeldet werden. Die Meldung erfolgt über das ELSTER-System unter Verwendung der ERiC-Schnittstelle (ELSTER Rich Client).
 
 *(Quelle: § 146a Abs. 4 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)*
-*(Quelle: ELSTER Kassenmeldung — https://www.kassensystemevergleich.com/elster-kassensystem-meldung/)*
+*(Quelle: ELSTER für Entwickler — https://www.elster.de/elsterweb/infoseite/entwickler)*
 
 ---
 
@@ -287,7 +286,7 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 - **Stornierungen:** Müssen als neue Buchungssätze (mit neuem Zeitstempel und neuer TSE-Signatur) erzeugt werden, die den alten Wert ausgleichen.
 - **Verfahrensdokumentation:** Es muss dokumentiert sein, wie das System Daten erzeugt, verarbeitet und archiviert.
 
-*(Quelle: GoBD — https://www.fiskaly.com/de/blog/gobd-konforme-archivierung-verstehen)*
+*(Quelle: GoBD — BMF-Schreiben vom 28.11.2019 — https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html)*
 
 ### 6.3 Handlungsbedarf
 
@@ -439,7 +438,7 @@ Alternativ bieten TSE-Anbieter wie fiskaly eine **Submission-API** als Abstrakti
 - **Nachteil:** Keine Vorab-Validierung; die Verantwortung für korrekte Daten liegt bei der Software
 - **Abhängigkeit:** Vendor-Lock-in zum TSE-Anbieter
 
-*(Quelle: ELSTER Kassenmeldung — https://www.kassensystemevergleich.com/elster-kassensystem-meldung/)*
+*(Quelle: ELSTER für Entwickler — https://www.elster.de/elsterweb/infoseite/entwickler)*
 
 ### 9.4 Meldepflichtige Daten (Payload)
 
@@ -616,11 +615,9 @@ type TSEData struct {
 | 2 | KassenSichV — Kassensicherungsverordnung | https://www.gesetze-im-internet.de/kassensichv/BJNR351500017.html |
 | 3 | BSI TR-03153 — Technische Richtlinie für Technische Sicherheitseinrichtungen | https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03153/TR-03153.pdf?__blob=publicationFile&v=3 |
 | 4 | GoBD — BMF-Schreiben zur ordnungsmäßigen Führung elektronischer Bücher | https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html |
-| 5 | GoBD-konforme Archivierung (fiskaly) | https://www.fiskaly.com/de/blog/gobd-konforme-archivierung-verstehen |
-| 6 | DSFinV-K — Digitale Schnittstelle der Finanzverwaltung für Kassensysteme (BZSt) | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html |
-| 7 | DSFinV-K Technische Spezifikation v2.1 | https://kassensichv.com/downloads/DSFinV-K-Vers-2-1.pdf |
-| 8 | ELSTER Kassensystem-Meldung | https://www.kassensystemevergleich.com/elster-kassensystem-meldung/ |
-| 9 | § 14 AO — Wirtschaftlicher Geschäftsbetrieb | https://www.gesetze-im-internet.de/ao_1977/__14.html |
-| 10 | § 64 AO — Steuerpflicht wirtschaftlicher Geschäftsbetriebe | https://www.gesetze-im-internet.de/ao_1977/__64.html |
-| 11 | § 67a AO — Sportliche Veranstaltungen (Zweckbetrieb) | https://www.gesetze-im-internet.de/ao_1977/__67a.html |
-| 12 | § 19 UStG — Kleinunternehmerregelung | https://www.gesetze-im-internet.de/ustg_1980/__19.html |
+| 5 | DSFinV-K — Digitale Schnittstelle der Finanzverwaltung für Kassensysteme (BZSt) | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html |
+| 6 | ELSTER für Entwickler — Offizielle Entwickler-Dokumentation | https://www.elster.de/elsterweb/infoseite/entwickler |
+| 7 | § 14 AO — Wirtschaftlicher Geschäftsbetrieb | https://www.gesetze-im-internet.de/ao_1977/__14.html |
+| 8 | § 64 AO — Steuerpflicht wirtschaftlicher Geschäftsbetriebe | https://www.gesetze-im-internet.de/ao_1977/__64.html |
+| 9 | § 67a AO — Sportliche Veranstaltungen (Zweckbetrieb) | https://www.gesetze-im-internet.de/ao_1977/__67a.html |
+| 10 | § 19 UStG — Kleinunternehmerregelung | https://www.gesetze-im-internet.de/ustg_1980/__19.html |
