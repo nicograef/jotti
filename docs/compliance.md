@@ -1,8 +1,8 @@
 # Compliance-Analyse: Fiskalische Anforderungen an jotti
 
 > **Status:** Analyse & Anforderungsbeschreibung (kein Feature implementiert)
-> **Autor:** CIO-Analyse
-> **Datum:** 2026-03-18
+> **Autor:** CTO-Analyse
+> **Datum:** 2026-03-19
 > **Betrifft:** KassenSichV, TSE, GoBD, Belegausgabepflicht, DSFinV-K, ERiC/ELSTER
 
 ---
@@ -108,7 +108,10 @@ Die KassenSichV konkretisiert die Anforderungen aus § 146a AO. § 1 KassenSichV
 
 jotti ist ein „computergestütztes Kassensystem" im Sinne dieser Definition. Es erfasst Geschäftsvorfälle elektronisch (Bestellungen, Zahlungen, Stornierungen) und berechnet Zahlungsbeträge.
 
+Für **mobile Geräte** (Smartphones als Browser-Clients in jottis BYOD-Modell) gilt: Wenn ein Gerät technisch in der Lage ist, Zahlungsvorgänge eigenständig zu erfassen und offline zu betreiben, muss es selbst an eine TSE angebunden sein. Fungiert es ausschließlich als Eingabeterminal, das sofort an ein TSE-gesichertes Backend weiterleitet, genügt die Backend-seitige TSE-Anbindung. Entscheidend ist die technische Fähigkeit zur selbständigen Offline-Erfassung, nicht die tatsächliche Nutzung.
+
 *(Quelle: KassenSichV — https://www.gesetze-im-internet.de/kassensichv/BJNR351500017.html)*
+*(Quelle: BMF-FAQ zu § 146a AO, Frage zur Abgrenzung von Eingabegeräten und eigenständigen Aufzeichnungssystemen — https://www.bundesfinanzministerium.de/)*
 
 ### 3.3 GoBD (Grundsätze zur ordnungsmäßigen Führung und Aufbewahrung von Büchern, Aufzeichnungen und Unterlagen in elektronischer Form)
 
@@ -135,16 +138,16 @@ Die Belegausgabepflicht gilt für **jeden** Nutzer eines elektronischen Aufzeich
 
 ### 3.5 DSFinV-K (Digitale Schnittstelle der Finanzverwaltung für Kassensysteme)
 
-§ 4 KassenSichV verlangt eine **einheitliche digitale Schnittstelle**, über die die gespeicherten Daten für die Finanzverwaltung exportiert werden können. Die DSFinV-K definiert das genaue Format dieses Exports.
+§ 4 KassenSichV verlangt eine **einheitliche digitale Schnittstelle**, über die die gespeicherten Daten für die Finanzverwaltung exportiert werden können. Die DSFinV-K (aktuell Version 2.4, Stand Januar 2024) definiert das genaue Format dieses Exports: eine Sammlung von CSV-Dateien mit fest vorgeschriebenen deutschen Dateinamen, Spaltenreihenfolge und Semikolon-Trennung, verpackt in einem ZIP-Archiv mit `index.xml`.
 
 *(Quelle: BZSt — DSFinV-K — https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html)*
 
 ### 3.6 Elektronische Kassenmeldepflicht (§ 146a Abs. 4 AO)
 
-Ab dem 1. Januar 2025 müssen elektronische Aufzeichnungssysteme dem zuständigen Finanzamt **elektronisch** gemeldet werden. Die Meldung erfolgt über das ELSTER-System unter Verwendung der ERiC-Schnittstelle (ELSTER Rich Client).
+Ab dem 1. Januar 2025 müssen elektronische Aufzeichnungssysteme dem zuständigen Finanzamt **elektronisch** gemeldet werden. Die Meldung erfolgt über das ELSTER-System, wahlweise direkt im Portal oder programmatisch über die ERiC-Schnittstelle (ELSTER Rich Client). Genauere Fristen: siehe Abschnitt 9.
 
 *(Quelle: § 146a Abs. 4 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)*
-*(Quelle: ELSTER für Entwickler — https://www.elster.de/elsterweb/infoseite/entwickler)*
+*(Quelle: BMF-FAQ — https://www.bundesfinanzministerium.de/)*
 
 ---
 
@@ -167,7 +170,7 @@ Die Pflicht zur Verwendung einer TSE entsteht durch die **Nutzung eines elektron
 - Vereinsfeste
 - Nicht-kommerzielle Zwecke
 
-Die **einzige** Möglichkeit, der TSE-Pflicht zu entgehen, besteht darin, **kein elektronisches Aufzeichnungssystem** zu verwenden — also z.B. eine offene Ladenkasse mit handschriftlicher Aufzeichnung.
+Die **einzige** Möglichkeit, der TSE-Pflicht zu entgehen, besteht darin, **kein elektronisches Aufzeichnungssystem** zu verwenden — also z.B. eine offene Ladenkasse mit handschriftlichen Aufzeichnungen (Kassenbuch) zu führen.
 
 #### b) Vereine haben wirtschaftliche Geschäftsbetriebe
 
@@ -205,34 +208,44 @@ Die TSE ist das kryptografische Herzstück eines konformen Kassensystems. Sie be
 2. **Speichermedium:** Lokale Sicherung der signierten Transaktionsdaten
 3. **Einheitliche Digitale Schnittstelle (EDS):** Standardisierte Exportschnittstelle
 
-*(Quelle: BSI TR-03153 — https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03153/TR-03153.pdf?__blob=publicationFile&v=3)*
+*(Quelle: BSI TR-03153 — https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03153/TR-03153.pdf?__blob=publicationFile)*
 
 ### 5.2 Protokollierungs-Ablauf (Transaktions-Lebenszyklus)
 
-Jeder Kassiervorgang muss in drei strikt aufeinanderfolgenden Phasen mit der TSE kommunizieren:
+Jeder abzusichernde Vorgang kommuniziert mit der TSE über drei Operationen:
 
 #### Phase 1: `StartTransaction`
 
-Sobald ein neuer Vorgang beginnt (z.B. erster Artikel wird gebucht oder ein Tisch wird geöffnet), muss **unmittelbar** `StartTransaction` aufgerufen werden.
+Sobald ein neuer Vorgang beginnt (z.B. eine Bestellung aufgenommen wird oder ein Kassenbon geöffnet wird), muss **unmittelbar** `StartTransaction` aufgerufen werden. „Unmittelbar" ist eine Ordnungsanforderung — es gibt keine maximale Transaktionsdauer in BSI TR-03153.
 
-- **Request-Payload:** Seriennummer des Aufzeichnungssystems (Kassen-ID), Art des Vorgangs (`processType`, z.B. `"Kassenbeleg-V1"` oder `"Bestellung-V1"`), initiale Vorgangsdaten (`processData`)
-- **Response:** Eindeutige fortlaufende Transaktionsnummer, Zeitpunkt des Vorgangsbeginns, Seriennummer der TSE, aktueller Signaturzähler
+- **Request-Payload:** Seriennummer des Aufzeichnungssystems (Kassen-ID), Art des Vorgangs (`processType`), initiale Vorgangsdaten (`processData`)
+- **Response:** Eindeutige fortlaufende Transaktionsnummer, Zeitpunkt des Vorgangsbeginns (`logTime`), Seriennummer der TSE, aktueller Signaturzähler
 
-#### Phase 2: `UpdateTransaction`
+#### Phase 2: `UpdateTransaction` (optional, nur für bestimmte processTypes)
 
-Wenn während des Kassiervorgangs neue Artikel hinzugefügt werden, muss die Transaktion aktualisiert werden.
+`UpdateTransaction` darf ausschließlich für die `processType`-Werte `Bestellung-V1` und `SonstigerVorgang-V1` verwendet werden. **Für `Kassenbeleg-V1` ist `UpdateTransaction` ausdrücklich verboten**, da die `processData` beim Kassenbeleg erst mit dem Abschluss des Vorgangs bekannt ist (Quelle: BMF-FAQ zu § 146a AO, Fragen zu Transaktionsabläufen beim processType „Kassenbeleg").
 
-- **45-Sekunden-Regel:** `UpdateTransaction` muss spätestens **45 Sekunden** nach einer Änderung der Vorgangsdaten aufgerufen werden. Bei Gastronomie-Systemen (Tische stundenlang offen) müssen laufend Updates gesendet werden.
 - **Request-Payload:** Kassen-ID, Transaktionsnummer aus Phase 1, aktualisierte `processData`
+- **Verwendungsfall:** Stufenweises Hinzufügen von Bestellpositionen zu einem noch laufenden `Bestellung-V1`-Vorgang
 
 #### Phase 3: `FinishTransaction`
 
-Wird der Vorgang abgeschlossen (Zahlung) oder abgebrochen (Storno vor Zahlung), muss die Transaktion abgeschlossen werden.
+Wird der Vorgang abgeschlossen (Zahlung, Ausgabe von Beleg) oder abgebrochen (Storno vor Abschluss), muss die Transaktion beendet werden.
 
 - **Request-Payload:** Transaktionsnummer, finale `processData` (Summen aufgeteilt nach Steuersätzen und Zahlungsarten)
 - **Response:** Kryptografische Signatur (Prüfwert), Zeitpunkt der Vorgangsbeendigung, finaler Signaturzähler
 
-### 5.3 Datenformat-Vorgaben (`processData`)
+### 5.3 Offizielle processType-Werte
+
+Die `processType`-Werte sind im AEAO zu § 146a AO, Anhang I, festgelegt und in DSFinV-K Anhang I referenziert. Die **-V1-Endung ist Bestandteil des offiziellen Strings** und muss exakt so an die TSE übergeben werden.
+
+| processType | Verwendung |
+| --- | --- |
+| `Kassenbeleg-V1` | Zahlungsbeleg (Rechnung), der dem Kunden ausgehändigt wird |
+| `Bestellung-V1` | Zwischenabsicherung einer Bestellung ohne sofortige Zahlung (Gastronomie) |
+| `SonstigerVorgang-V1` | Alle anderen abzusichernden Vorgänge (Tagesabschluss, TSE-Selbsttest, ...) |
+
+### 5.4 Datenformat-Vorgaben (`processData`)
 
 Die Formatierung der `processData` ist streng reguliert:
 
@@ -241,8 +254,9 @@ Die Formatierung der `processData` ist streng reguliert:
 - **Verboten:** Tausendertrennzeichen, Exponentialschreibweise, `+` vor positiven Werten
 - **Mindestens eine Stelle vor dem Dezimaltrennzeichen:** `0.5` statt `.5`
 - **Format-String für `Kassenbeleg-V1`:** `Beleg^<Betrag_Normal>_<Betrag_Ermaessigt>_<Betrag_Null>_<Betrag_Besonderer_Satz>_<Betrag_Befreit>^<Zahlbetrag>:<Zahlungsart>`
+- **Format-String für `Bestellung-V1`:** Positionen als strukturierter Text (z.B. `4x Maß Bier_2x Weißwurst`) — genaues Format gemäß AEAO § 146a Anhang I
 
-### 5.4 TSE-Varianten
+### 5.5 TSE-Varianten
 
 Es gibt zwei grundlegende Integrationsansätze:
 
@@ -251,15 +265,72 @@ Es gibt zwei grundlegende Integrationsansätze:
 | **Hardware-TSE** | Physisches Gerät (USB-Stick, SD-Karte, Smartcard) | Swissbit, Epson, Diebold Nixdorf |
 | **Cloud-TSE** | TSE als Cloud-Service, Kommunikation via HTTPS-API | fiskaly, Deutsche Fiskal |
 
-Für jotti als Self-hosted-System wäre eine **Cloud-TSE** naheliegend, da sie keine zusätzliche Hardware erfordert und über HTTP-POST-Requests angesprochen wird.
+Für jotti als Self-hosted-System wäre eine **Cloud-TSE** naheliegend, da sie keine zusätzliche Hardware erfordert und über HTTP-POST-Requests angesprochen wird. Eine Hardware-TSE scheidet für BYOD-Smartphone-Setups im Festzelt praktisch aus.
 
-### 5.5 Architektonische Anforderungen an jotti
+### 5.6 Das Festzelt-Muster: Atomare TSE-Transaktionen (Empfehlung)
+
+#### Das Problem langer Tischvorgänge
+
+Im Festzelt-Betrieb (Oktoberfest, Vereinsfest, Maihock) sitzen an Tisch 42 über den ganzen Tag wechselnde Gästegruppen. Bestellt wird in mehreren Runden, gezahlt wird in Teilbeträgen zu verschiedenen Zeitpunkten. Eine einzige TSE-Transaktion über den gesamten Tischvorgang offenzuhalten wäre technisch riskant (Timeouts, Systemfehler) und laut BMF-FAQ auch nicht erforderlich.
+
+#### Die offizielle Lösung: Zwei-Schichten-Ansatz (DSFinV-K Nr. 2.7)
+
+Die Finanzverwaltung hat in DSFinV-K Nr. 2.7 und Anhang H eine **Vereinfachungsregelung für langanhaltende Bestellvorgänge** dokumentiert (oft auch „Erleichterungsregelung beim Durchbedienen" genannt). Der Kern: Jede atomare Aktion (Bestellung, Teilzahlung, Storno) ist eine **eigene, sofort geschlossene** TSE-Transaktion.
+
+**Schicht 1 — Bestellabsicherung** (für jede Bestellrunde):
+```
+StartTransaction(processType="Bestellung-V1") → sofort → FinishTransaction
+```
+Jede Bestellrunde wird sofort als vollständige `Bestellung-V1`-Transaktion abgesichert und geschlossen. Die `processData` enthält die bestellten Positionen.
+
+**Schicht 2 — Zahlungsabsicherung** (bei jeder Teil- oder Vollzahlung):
+```
+StartTransaction(processType="Kassenbeleg-V1") → sofort → FinishTransaction
+```
+Die `processData` enthält Gesamtbetrag, Steuersätze und Zahlungsart. Diese Transaktion ist ebenfalls sofort geschlossen.
+
+**Verknüpfung**: Alle Bestellungen und Zahlungen eines Tisches werden im DSFinV-K-Export über das Feld `ABRECHNUNGSKREIS` (z.B. `"Tisch-42"`) zusammengeführt (siehe Abschnitt 8).
+
+#### Konkretes Szenario: Maihock, Tisch 42
+
+```
+18:00 — Gruppe A setzt sich (4 Personen)
+18:01 — Bestellung: 4x Maß Bier, 2x Weißwurst
+        → StartTransaction(Bestellung-V1) + FinishTransaction
+          → TSE-Signatur S1, transactionNumber=1001
+        → ABRECHNUNGSKREIS = "Tisch-42-20260501"
+
+19:30 — Bestellung: 4x Maß Bier (Nachbestellung)
+        → StartTransaction(Bestellung-V1) + FinishTransaction
+          → TSE-Signatur S2, transactionNumber=1002
+        → ABRECHNUNGSKREIS = "Tisch-42-20260501"
+
+20:00 — 2 Gäste zahlen: 2x Bier = 14,00 €, bar
+        → StartTransaction(Kassenbeleg-V1) + FinishTransaction
+          → TSE-Signatur S3, transactionNumber=1003
+          → Bon: enthält zusätzlich "Erste Bestellung: 18:01 Uhr" (s. §7)
+        → ABRECHNUNGSKREIS = "Tisch-42-20260501"
+
+21:00 — Restliche 2 Gäste zahlen: 2x Bier + 2x Weißwurst = 18,00 €, bar
+        → StartTransaction(Kassenbeleg-V1) + FinishTransaction
+          → TSE-Signatur S4, transactionNumber=1004
+          → Bon: enthält zusätzlich "Erste Bestellung: 18:01 Uhr"
+        → ABRECHNUNGSKREIS = "Tisch-42-20260501"
+
+22:00 — Gruppe B setzt sich (neue Gäste, neuer ABRECHNUNGSKREIS)
+        → ABRECHNUNGSKREIS = "Tisch-42-20260501-B"
+```
+
+Der Betriebsprüfer sieht im DSFinV-K-Export alle vier Transaktionen mit demselben `ABRECHNUNGSKREIS` und kann den vollständigen Tischverlauf nachvollziehen, obwohl jede Transaktion sofort geschlossen wurde.
+
+### 5.7 Architektonische Anforderungen an jotti
 
 1. **TSE-Abstraktionsschicht:** Ein Interface `TSEClient` im Backend, das die drei Phasen (`StartTransaction`, `UpdateTransaction`, `FinishTransaction`) abstrahiert
-2. **Transaktions-Lifecycle-Management:** Mapping von jotti-Tischvorgängen auf TSE-Transaktionen
-3. **Signatur-Speicherung:** TSE-Rückgabewerte (Transaktionsnummer, Signaturzähler, Prüfwert, Zeitstempel) müssen als Event-Daten persistiert werden
-4. **Fehlerbehandlung:** Verhalten bei TSE-Nicht-Erreichbarkeit (Cloud-TSE offline, Timeout)
+2. **Atomares Transaktionsmodell:** Für jeden jotti-Vorgang (Bestellung, Zahlung, Storno) wird eine eigenständige, sofort geschlossene TSE-Transaktion erstellt
+3. **Signatur-Speicherung:** TSE-Rückgabewerte (Transaktionsnummer, Signaturzähler, Prüfwert, `logTime`) müssen als Event-Daten persistiert werden
+4. **Fehlerbehandlung:** Verhalten bei TSE-Nicht-Erreichbarkeit (Cloud-TSE offline, Timeout) — z.B. Offline-Queue mit späterer Nachsignierung
 5. **Konfiguration:** TSE-Anbieter, Kassen-ID, API-Credentials als Umgebungsvariablen
+6. **ABRECHNUNGSKREIS-Verwaltung:** Eindeutige, persistente Tisch-Session-ID für die DSFinV-K-Verknüpfung
 
 ---
 
@@ -283,7 +354,7 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 
 - **Aufbewahrungspflicht:** Alle steuerlich relevanten Daten müssen **10 Jahre** aufbewahrt werden, jederzeit verfügbar, unverzüglich lesbar, vollständig und absolut unveränderbar.
 - **Elektronisches Radierverbot:** Datensätze dürfen nach der Erfassung nicht per `UPDATE` oder `DELETE` überschrieben oder gelöscht werden.
-- **Stornierungen:** Müssen als neue Buchungssätze (mit neuem Zeitstempel und neuer TSE-Signatur) erzeugt werden, die den alten Wert ausgleichen.
+- **Stornierungen:** Müssen als neue Buchungssätze (mit neuem Zeitstempel und neuer TSE-Signatur) erzeugt werden, die den alten Wert ausgleichen — niemals als nachträgliche Änderung.
 - **Verfahrensdokumentation:** Es muss dokumentiert sein, wie das System Daten erzeugt, verarbeitet und archiviert.
 
 *(Quelle: GoBD — BMF-Schreiben vom 28.11.2019 — https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html)*
@@ -319,7 +390,7 @@ Ein konformer Beleg muss mindestens folgende Angaben enthalten:
 - Transaktionsnummer (Bonnummer)
 
 **TSE-Pflichtdaten (§ 6 KassenSichV):**
-- Zeitpunkt des Vorgangsbeginns (von TSE `StartTransaction`)
+- Zeitpunkt des Vorgangsbeginns (von TSE `StartTransaction`, entspricht dem Start der `Kassenbeleg-V1`-Transaktion)
 - Zeitpunkt der Vorgangsbeendigung (von TSE `FinishTransaction`)
 - Seriennummer des elektronischen Aufzeichnungssystems (Kassen-ID)
 - Seriennummer der TSE
@@ -327,17 +398,49 @@ Ein konformer Beleg muss mindestens folgende Angaben enthalten:
 - Signaturzähler
 - Kryptografischer Prüfwert (TSE-Signatur)
 
-### 7.3 QR-Code-Format
+### 7.3 Besondere Anforderung beim Festzelt-Muster (Durchbedienen)
+
+Wenn die Tisch-Bestellungen mit `Bestellung-V1`-Transaktionen abgesichert wurden und erst später bezahlt wird (atomares Transaktionsmodell gemäß Abschnitt 5.6), gilt laut BMF-FAQ:
+
+> „Zusätzlich ist auf den Bon der **Startzeitpunkt der ersten Bestellung in Klarschrift aufzudrucken**."
+> *(Quelle: BMF-FAQ zu § 146a AO; DSFinV-K Nr. 2.7 sowie Anhang H)*
+
+Der Zahlungsbeleg muss also **zwei Zeitstempel** enthalten:
+1. Den TSE-`logTime` der aktuellen `Kassenbeleg-V1`-Transaktion (§ 6 KassenSichV-Pflicht)
+2. Den `logTime` der **allerersten `Bestellung-V1`-Transaktion** für diesen Tisch/Session in Klarschrift (DSFinV-K-Pflicht beim Durchbedienen)
+
+**Beispiel** (Tisch 42, Maihock):
+```
+Volksverein Musterstadt e.V.
+Vereinsfest Maihock 2026
+Tisch: 42
+Erste Bestellung: 01.05.2026, 18:01 Uhr   ← Pflichtfeld beim Durchbedienen
+Bon-Nr.: 1003
+---
+2x Maß Bier        14,00 €
+---
+Gesamt:            14,00 €
+Bar erhalten:      14,00 €
+---
+TSE-Start: 01.05.2026, 20:00:12 Uhr
+TSE-Ende:  01.05.2026, 20:00:14 Uhr
+TSE-ID: SW-TSE-SN-0042
+TSE-Nr.: 1003, Signatur-Zähler: 5871
+[QR-Code mit TSE-Daten]
+```
+
+### 7.4 QR-Code-Format
 
 Um Platz auf dem Beleg zu sparen, können die TSE-Daten in einen standardisierten **QR-Code** verpackt werden. Das Format muss den Vorgaben der DSFinV-K (Anhang I) entsprechen.
 
-### 7.4 Architektonische Anforderungen an jotti
+### 7.5 Architektonische Anforderungen an jotti
 
 1. **Beleg-Generator:** Komponente, die aus einem abgeschlossenen Kassiervorgang einen konformen Beleg (PDF oder Druckformat) erzeugt
 2. **TSE-Daten auf dem Beleg:** Alle TSE-Rückgabewerte müssen auf dem Beleg erscheinen
-3. **QR-Code-Generierung:** TSE-Daten als QR-Code im DSFinV-K-Format
-4. **Beleg-Ausgabekanal:** Druck (über bestehende Bondrucker-Anbindung) und/oder elektronisch (QR-Code auf dem Smartphone der Servicekraft)
-5. **Beleg-Archivierung:** Belegdaten müssen für den DSFinV-K-Export persistiert werden
+3. **Erste-Bestellung-Zeitstempel:** Das Backend muss den `logTime` der ersten `Bestellung-V1`-Transaktion einer Tisch-Session persistieren und beim Beleg-Druck abrufen
+4. **QR-Code-Generierung:** TSE-Daten als QR-Code im DSFinV-K-Format
+5. **Beleg-Ausgabekanal:** Druck (über bestehende Bondrucker-Anbindung) und/oder elektronisch (QR-Code auf dem Smartphone der Servicekraft)
+6. **Beleg-Archivierung:** Belegdaten müssen für den DSFinV-K-Export persistiert werden
 
 ---
 
@@ -345,10 +448,9 @@ Um Platz auf dem Beleg zu sparen, können die TSE-Daten in einen standardisierte
 
 ### 8.1 Übersicht
 
-Die Finanzverwaltung verlangt bei einer Kassen-Nachschau oder Betriebsprüfung einen genormten, maschinenlesbaren Datenexport. Dieser Export folgt der **DSFinV-K-Spezifikation** und muss von der Prüfsoftware IDEA gelesen werden können.
+Die Finanzverwaltung verlangt bei einer Kassen-Nachschau oder Betriebsprüfung einen genormten, maschinenlesbaren Datenexport. Dieser Export folgt der **DSFinV-K-Spezifikation** (Version 2.4, Stand Januar 2024) und muss von der Prüfsoftware IDEA der Finanzämter gelesen werden können.
 
 *(Quelle: BZSt — https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html)*
-*(Quelle: DSFinV-K v2.1 — https://kassensichv.com/downloads/DSFinV-K-Vers-2-1.pdf)*
 
 ### 8.2 Dateiformat und Grundregeln
 
@@ -359,9 +461,12 @@ Die Finanzverwaltung verlangt bei einer Kassen-Nachschau oder Betriebsprüfung e
 - **Zeilenumbrüche:** CRLF (`\r\n`)
 - **Zahlenformate:** Keine Tausendertrennzeichen, Punkt als Dezimaltrennzeichen, mindestens eine Stelle vor dem Dezimaltrennzeichen (`0.5`, nicht `.5`), keine führenden Nullen
 - **Spaltenreihenfolge:** Exakt wie in der Spezifikation vorgegeben
+- **Dateinamen:** Die Dateinamen sind in der DSFinV-K-Spezifikation auf Deutsch vorgegeben (z.B. `Bonkopf.csv`, `Bonpos.csv`) und dürfen nicht abgeändert werden
 - **Custom-Felder:** Zusätzliche Spalten am Ende erlaubt, müssen aber in `index.xml` definiert werden
 
-### 8.3 Modul-Struktur
+> **Achtung:** Manche TSE-Anbieter (z.B. fiskaly/fiskaltrust) stellen interne Export-Zwischenschichten mit abweichenden Dateinamen bereit (z.B. `transactions.csv`, `allocation_groups.csv`, `references.csv`). Diese sind **kein offizieller DSFinV-K-Standard** und müssen vor der Abgabe an das Finanzamt in das offizielle Format konvertiert werden.
+
+### 8.3 Modul-Struktur und offizielle Dateinamen
 
 Der Export gliedert sich in drei Module:
 
@@ -369,86 +474,132 @@ Der Export gliedert sich in drei Module:
 
 | Datei | Inhalt |
 | --- | --- |
-| `cashpointclosing.csv` | Metadaten zum Z-Bon (Kassenabschluss): Unternehmensname, Steuernummer, Start-/End-IDs |
-| `location.csv` | Standortdaten der Betriebsstätte |
-| `cashregister.csv` | Kassen-Hardware: Hersteller, Seriennummer, Software-Version |
-| `slaves.csv` | Angeschlossene Terminals (falls vorhanden) |
-| `vat.csv` | Mapping interner Steuer-IDs auf Prozentsätze (z.B. 1 = 19%, 2 = 7%) |
-| `tse.csv` | TSE-Daten: Zertifikats-ID, Signaturalgorithmus (z.B. `ecdsa-plain-SHA256`), Public Key (Base64) |
+| `Stamm_Abschluss.csv` | Metadaten zum Z-Bon (Kassenabschluss): Unternehmensname, Steuernummer, Start-/End-Zeitpunkt |
+| `Stamm_Orte.csv` | Standortdaten der Betriebsstätte |
+| `Stamm_Kassen.csv` | Kassen-Hardware: Hersteller, Seriennummer, Software-Typ und -Version |
+| `Stamm_TSE.csv` | TSE-Daten: Zertifikats-ID, Signaturalgorithmus (z.B. `ecdsa-plain-SHA256`), TSE-Seriennummer (64-stelliger Hexadezimalstring, 0–9 und A–F), Public Key (Base64-kodiert) |
+| `Z_GV_Typ.csv` | Aggregierte Beträge pro Geschäftsvorfall-Typ nach Steuersätzen |
+| `Z_Zahlart.csv` | Aggregierte Summen der Zahlungsarten (Bar vs. unbar) |
 
 #### B. Einzelaufzeichnungsmodul (Transactions / Lines)
 
 | Datei | Inhalt |
 | --- | --- |
-| `transactions.csv` (Bonkopf) | Ein Datensatz pro Kassenbon: `BON_NR`, `BON_TYP` (z.B. `"Beleg"`, `"AVBelegstorno"`), `BON_START`, `BON_ENDE` (ISO 8601), Gesamtbruttoumsatz |
-| `lines.csv` (Bonpos) | Einzelne Artikel: `POS_ZEILE`, `ART_NR`, `MENGE` (Dezimal, 3 Nachstellen), `EINHEIT` (z.B. Stück), `STK_BR` (Stückpreis brutto) |
-| `transactions_vat.csv` | USt-Aufschlüsselung pro Bon nach Steuerschlüsseln (Brutto, Netto, USt) |
-| `lines_vat.csv` | USt-Aufschlüsselung pro Artikelzeile |
-| `datapayment.csv` (Bonkopf_Zahlarten) | Zahlungsarten pro Bon (Bar, EC-Karte, Kreditkarte) |
-| `transactions_tse.csv` (TSE_Transaktionen) | **Kritisch:** TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`) |
+| `Bonkopf.csv` | Ein Datensatz pro Kassenbon: `BON_ID`, `BON_NR`, `BON_TYP`, `BON_START`, `BON_ENDE` (ISO 8601), Gesamtbruttoumsatz, `ABRECHNUNGSKREIS`, `BON_STORNO`, `REF_BON_ID` |
+| `Bonkopf_USt.csv` | USt-Aufschlüsselung pro Bon nach Steuerschlüsseln (Brutto, Netto, USt) |
+| `Bonkopf_Zahlarten.csv` | Zahlungsarten pro Bon (Bar, EC-Karte, Kreditkarte) |
+| `Bonpos.csv` | Einzelne Artikel: `POS_ZEILE`, `ART_NR`, `MENGE` (Dezimal, 3 Nachstellen), `EINHEIT`, `STK_BR` (Stückpreis brutto) |
+| `Bonpos_USt.csv` | USt-Aufschlüsselung pro Artikelzeile |
+| `TSE_Transaktionen.csv` | **Kritisch:** TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`) |
 
-#### C. Kassenabschlussmodul (Cashpoint Closing / Z-Bon)
+#### C. Kassenabschlussmodul (Z-Bon)
 
-| Datei | Inhalt |
-| --- | --- |
-| `businesscases.csv` (Z_GV_TYP) | Aufsummierte Beträge pro Geschäftsvorfall (Umsatz, Trinkgeld, etc.), getrennt nach Steuersätzen |
-| `payment.csv` (Z_Zahlart) | Aggregierte Summen der Zahlungsarten (Bar vs. Unbar) |
+Die aggregierten Tages-/Schicht-Abrechnungen werden in `Z_GV_Typ.csv` und `Z_Zahlart.csv` des Stammdatenmoduls abgebildet.
 
-### 8.4 Relationale Verknüpfung (Primärschlüssel)
+### 8.4 Schlüsselfelder in Bonkopf.csv (Relationale Verknüpfung)
 
 Fast jede CSV-Datei muss folgende Schlüssel in den ersten Spalten mitführen:
 
 1. **`Z_KASSE_ID`** — Eindeutige Kassen-ID
 2. **`Z_ERSTELLUNG`** — Zeitstempel des zugehörigen Kassenabschlusses
 3. **`Z_NR`** — Fortlaufende Z-Bon-Nummer
-4. **`BON_ID`** — (auf Belegebene) Eindeutige Vorgangs-ID des Bons
+4. **`BON_ID`** — Eindeutige Vorgangs-ID des Bons
 
-### 8.5 Architektonische Anforderungen an jotti
+### 8.5 ABRECHNUNGSKREIS — Tisch-Verknüpfung für Festzelt
 
-1. **CSV-Generator:** Komponente, die aus den Event-Store-Daten und Stammdaten die DSFinV-K-CSV-Struktur erzeugt
+Das Feld `ABRECHNUNGSKREIS` in `Bonkopf.csv` verknüpft mehrere Bons (Bestellungen + Zahlungen) zu einer logischen Einheit. Im Festzelt-Betrieb trägt jede Bestellung und jede Zahlung für denselben Tisch und dieselbe Gästegruppe denselben `ABRECHNUNGSKREIS`-Wert:
+
+```
+BON_ID | BON_TYP      | BON_START            | ABRECHNUNGSKREIS
+-------|--------------|----------------------|--------------------
+1001   | Bestellung   | 2026-05-01T18:01:00  | Tisch-42-20260501
+1002   | Bestellung   | 2026-05-01T19:30:00  | Tisch-42-20260501
+1003   | Beleg        | 2026-05-01T20:00:12  | Tisch-42-20260501
+1004   | Beleg        | 2026-05-01T21:00:05  | Tisch-42-20260501
+```
+
+Die Prüfsoftware IDEA der Finanzämter kann so den vollständigen Tischverlauf rekonstruieren, auch wenn jede Transaktion für sich als sofort geschlossen registriert ist.
+
+### 8.6 Storno-Handling in DSFinV-K
+
+#### Positions-Storno (Storno vor Zahlung)
+
+Ein falsch gebuchtes Produkt (z.B. 5 statt 4 Maß Bier) wird als neuer Bon mit **negativer Menge** gebucht:
+- Neuer Bon mit `BON_TYP = "AVBelegstorno"` oder negativen Positionsmengen
+- **`BON_STORNO = 1`** in `Bonkopf.csv`
+- **`REF_BON_ID`** in `Bonkopf.csv` = `BON_ID` des fehlerhaften Ursprungsbons
+- Eigene TSE-Signatur (`Kassenbeleg-V1` oder `Bestellung-V1` mit negativen Werten)
+- `ABRECHNUNGSKREIS` identisch mit dem stornierten Vorgang
+
+#### Bon-Storno (Storno nach Zahlung)
+
+Eine bereits bezahlte Rechnung wird mit einem neuen Beleg mit negativen Beträgen storniert:
+- Neuer Bon mit negativem Gesamtbetrag
+- **`BON_STORNO = 1`** in `Bonkopf.csv`
+- **`REF_BON_ID`** = `BON_ID` des Original-Zahlungsbelegs
+- Eigene TSE-Transaktion (`Kassenbeleg-V1` mit negativem Betrag)
+
+> **GoBD-Grundsatz:** Datensätze dürfen niemals per `UPDATE` oder `DELETE` aus der Datenbank entfernt werden. Stornierungen erzeugen immer neue Datensätze, die den Ursprungswert ausgleichen (Append-Only-Prinzip).
+
+### 8.7 Architektonische Anforderungen an jotti
+
+1. **CSV-Generator:** Komponente, die aus den Event-Store-Daten und Stammdaten die DSFinV-K-CSV-Struktur erzeugt (mit korrekten deutschen Dateinamen)
 2. **`index.xml`-Generator:** Metadaten-Datei für die Prüfsoftware
 3. **Z-Bon-Logik:** Kassenabschluss-Funktion, die Tagessummen aggregiert und einen Z-Bon erzeugt
-4. **Admin-Endpunkt:** API-Endpunkt zum Auslösen des Exports (z.B. `POST /admin/dsfinvk-export`)
-5. **ZIP-Generierung:** Alle CSVs + `index.xml` in ein ZIP-Archiv verpacken
-6. **Steuersatz-Verwaltung:** USt-Sätze müssen als Stammdaten gepflegt werden (aktuell nicht vorhanden)
+4. **ABRECHNUNGSKREIS-Verwaltung:** Tisch-Session-ID persistieren und in allen zugehörigen Bons mitführen
+5. **Admin-Endpunkt:** API-Endpunkt zum Auslösen des Exports (z.B. `POST /admin/dsfinvk-export`)
+6. **ZIP-Generierung:** Alle CSVs + `index.xml` in ein ZIP-Archiv verpacken
+7. **Steuersatz-Verwaltung:** USt-Sätze müssen als Stammdaten gepflegt werden (aktuell nicht vorhanden)
 
 ---
 
 ## 9. Anforderung 5: Elektronische Meldepflicht (ERiC / ELSTER)
 
-### 9.1 Gesetzliche Grundlage
+### 9.1 Gesetzliche Grundlage und Fristen
 
-Nach § 146a Abs. 4 AO müssen elektronische Aufzeichnungssysteme beim zuständigen Finanzamt gemeldet werden. Seit dem 1. Januar 2025 erfolgt diese Meldung **elektronisch** über das ELSTER-System.
+Nach § 146a Abs. 4 AO müssen elektronische Aufzeichnungssysteme beim zuständigen Finanzamt gemeldet werden. Das Mitteilungsverfahren ist seit dem 1. Januar 2025 aktiv.
+
+| Datum | Ereignis |
+| --- | --- |
+| 1. Januar 2025 | Meldeportal öffnet; Mitteilungsverfahren ist aktiv |
+| 31. Juli 2025 | Abgabefrist für alle Systeme, die **vor dem 1. Juli 2025** angeschafft wurden |
+| Innerhalb 1 Monat nach Anschaffung | Abgabefrist für Systeme, die **ab dem 1. Juli 2025** neu angeschafft werden |
+| Innerhalb 1 Monat nach Außerbetriebnahme | Abgabefrist bei Stilllegung eines Systems |
+
+Systeme, die bereits vor dem 1. Juli 2025 außer Betrieb genommen wurden, müssen nicht gemeldet werden.
 
 *(Quelle: § 146a Abs. 4 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)*
+*(Quelle: BMF-Schreiben 28. Juni 2024 — Meldepflicht)*
 
-### 9.2 ERiC (ELSTER Rich Client) — Die offizielle Schnittstelle
+### 9.2 Drei Übermittlungswege
 
-ERiC ist die offizielle Softwarekomponente der deutschen Finanzverwaltung für die elektronische Kassenmeldung.
+1. **Direkteingabe im ELSTER-Web-Portal** (`www.elster.de`, „Mein ELSTER") — manuell, für Einzelfälle
+2. **XML-Dateiupload** im ELSTER-Portal — semi-automatisch
+3. **Programmatische Übermittlung über ERiC** (ELSTER Rich Client) — vollautomatisch aus der Kassensoftware heraus
 
-- **Funktionsweise:** Client-Bibliothek, die nativ in die POS-Software integriert wird
-- **Validierung:** ERiC prüft lokal die Vollständigkeit und Plausibilität der Daten, bevor sie an das Finanzamt übermittelt werden
-- **Übertragungsprotokoll:** Nach erfolgreicher Übermittlung wird ein offizielles Bestätigungsprotokoll generiert
+ERiC ist die offizielle Softwarekomponente der Finanzverwaltung für die maschinelle Übermittlung. Sie validiert die Daten lokal, bevor sie an das Finanzamt übermittelt werden, und erzeugt bei Erfolg ein offizielles Bestätigungsprotokoll.
+
+*(Quelle: ELSTER für Entwickler — https://www.elster.de/elsterweb/infoseite/entwickler)*
 
 ### 9.3 Submission-API (kommerzielle Alternative)
 
 Alternativ bieten TSE-Anbieter wie fiskaly eine **Submission-API** als Abstraktionsschicht an:
 
 - **Vorteil:** Keine direkte ERiC-Integration nötig; Kommunikation über Cloud-API
-- **Nachteil:** Keine Vorab-Validierung; die Verantwortung für korrekte Daten liegt bei der Software
+- **Nachteil:** Keine staatliche Vorab-Validierung; Verantwortung für Datenqualität liegt bei der Software
 - **Abhängigkeit:** Vendor-Lock-in zum TSE-Anbieter
-
-*(Quelle: ELSTER für Entwickler — https://www.elster.de/elsterweb/infoseite/entwickler)*
 
 ### 9.4 Meldepflichtige Daten (Payload)
 
-Die Kassenmeldung umfasst:
+Die Kassenmeldung umfasst je Kassensystem:
 
+- Name und Steuernummer des Steuerpflichtigen
+- Art des Kassensystems (Softwaretyp, Versionsnummer)
 - Seriennummer des Kassensystems
-- Typ und Zertifizierungs-ID der TSE
+- Zertifizierungs-ID der TSE (Format: `BSI-K-TR-nnnn-yyyy`)
+- Seriennummer der TSE (64-stelliger Hexadezimalstring, ausschließlich 0–9 und A–F; **nicht** Base64 — Hinweis: in `Stamm_TSE.csv` für den DSFinV-K-Export wird zusätzlich der Public Key als Base64-Wert gespeichert, hierbei handelt es sich um ein anderes Feld)
 - Anschaffungs- bzw. Inbetriebnahmedatum
-- Angaben zur Betriebsstätte
-- Angaben zum Steuerpflichtigen
+- Betriebsstättenadresse
 
 ### 9.5 Architektonische Anforderungen an jotti
 
@@ -490,32 +641,40 @@ Die Kassenmeldung umfasst:
 ```go
 type TSEClient interface {
     StartTransaction(ctx context.Context, kassenID string, processType string, processData string) (StartResult, error)
+    // UpdateTransaction nur für processType="Bestellung-V1" und "SonstigerVorgang-V1" zulässig.
+    // Für "Kassenbeleg-V1" verboten (BMF-FAQ).
     UpdateTransaction(ctx context.Context, kassenID string, transactionNumber int, processData string) error
-    FinishTransaction(ctx context.Context, kassenID string, transactionNumber int, processData string) (FinishResult, error)
+    FinishTransaction(ctx context.Context, kassenID string, transactionNumber int, processType string, processData string) (FinishResult, error)
 }
 
 type StartResult struct {
     TransactionNumber int
-    StartTime         time.Time
+    LogTime           time.Time // TSE-interner Zeitstempel
     SerialNumberTSE   string
     SignatureCounter  int
 }
 
 type FinishResult struct {
     Signature        string
-    EndTime          time.Time
+    LogTime          time.Time
     SignatureCounter int
 }
 ```
 
-### 10.2 Mapping: jotti-Vorgänge → TSE-Transaktionen
+### 10.2 Mapping: jotti-Vorgänge → TSE-Transaktionen (Atomares Modell)
 
-| jotti-Vorgang | TSE-Phase | Anmerkung |
-| --- | --- | --- |
-| Bestellung aufnehmen | `StartTransaction` | Eröffnet TSE-Transaktion für den Tisch |
-| Weitere Bestellung am Tisch | `UpdateTransaction` | Innerhalb 45s nach Änderung |
-| Zahlung kassieren | `FinishTransaction` | Schließt TSE-Transaktion mit Zahlungsdaten |
-| Stornierung | Neue `Start` + `Finish` | Eigenständiger Storno-Vorgang mit negativen Beträgen |
+Für das Festzelt-Muster (Abschnitt 5.6) gilt: Jeder Vorgang ist eine **eigenständige, sofort geschlossene** TSE-Transaktion.
+
+| jotti-Vorgang | TSE-Operation | processType | Anmerkung |
+| --- | --- | --- | --- |
+| Bestellung aufnehmen | `Start` + sofort `Finish` | `Bestellung-V1` | Positionen in processData |
+| Zahlung kassieren (Teilzahlung) | `Start` + sofort `Finish` | `Kassenbeleg-V1` | Betrag + Zahlungsart in processData; **kein** UpdateTransaction |
+| Zahlung kassieren (Vollzahlung) | `Start` + sofort `Finish` | `Kassenbeleg-V1` | Wie oben |
+| Positions-Storno | `Start` + sofort `Finish` | `Kassenbeleg-V1` | Negative Menge/Betrag; BON_STORNO=1 im DSFinV-K |
+| Bon-Storno (nach Zahlung) | `Start` + sofort `Finish` | `Kassenbeleg-V1` | Negativer Gesamtbetrag; BON_STORNO=1, REF_BON_ID gesetzt |
+| Tagesabschluss (Z-Bon) | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Tagesaggregat in processData |
+
+**Alle Transaktionen eines Tisches** teilen denselben `ABRECHNUNGSKREIS`-Wert im DSFinV-K-Export.
 
 ### 10.3 Event-Store-Erweiterung
 
@@ -525,11 +684,18 @@ Die TSE-Rückgabewerte müssen in den bestehenden Event-Daten persistiert werden
 // Erweiterung der Event-Data-Structs um TSE-Felder
 type TSEData struct {
     TransactionNumber int    `json:"tseTransactionNumber"`
-    StartTime         string `json:"tseStartTime"`
-    EndTime           string `json:"tseEndTime"`
+    LogTimeStart      string `json:"tseLogTimeStart"`  // logTime von StartTransaction
+    LogTimeEnd        string `json:"tseLogTimeEnd"`    // logTime von FinishTransaction
     SignatureCounter  int    `json:"tseSignatureCounter"`
     Signature         string `json:"tseSignature"`
     SerialNumberTSE   string `json:"tseSerialNumber"`
+    ProcessType       string `json:"tseProcessType"`
+}
+
+// Zusätzlich in TischSession-Daten:
+type TischSession struct {
+    AbrechnungskreisID    string    // z.B. "Tisch-42-20260501"
+    ErsteBestellungLogTime time.Time // logTime der ersten Bestellung-V1 für den Bon-Aufdruck
 }
 ```
 
@@ -540,33 +706,36 @@ type TSEData struct {
 │              DSFinV-K Exporter                │
 │                                               │
 │  ┌────────────┐  ┌────────────┐  ┌────────┐ │
-│  │ Stammdaten- │  │ Einzelauf- │  │ Kassen-│ │
-│  │ modul       │  │ zeichnungs-│  │ ab-    │ │
-│  │             │  │ modul      │  │ schluss│ │
+│  │ Stammdaten- │  │ Einzelauf- │  │ Z-Bon- │ │
+│  │ modul       │  │ zeichnungs-│  │ Modul  │ │
+│  │             │  │ modul      │  │        │ │
 │  └──────┬─────┘  └──────┬─────┘  └───┬────┘ │
 │         │               │             │       │
 │  ┌──────▼───────────────▼─────────────▼────┐ │
-│  │        CSV-Generator + index.xml        │ │
+│  │   CSV-Generator (offizielle Dateinamen) │ │
+│  │   Bonkopf.csv, Bonpos.csv, Stamm_*.csv  │ │
 │  └──────────────────┬──────────────────────┘ │
 │                     │                         │
 │  ┌──────────────────▼──────────────────────┐ │
-│  │            ZIP-Archiv-Builder           │ │
+│  │     index.xml Generator + ZIP-Builder  │ │
 │  └─────────────────────────────────────────┘ │
 └──────────────────────────────────────────────┘
 ```
 
-### 10.5 Cloud-TSE vs. Submission-API — Entscheidungsmatrix
+### 10.5 Cloud-TSE vs. ERiC — Entscheidungsmatrix für jotti
 
-| Kriterium | ERiC (direkt) | Submission-API (fiskaly) |
+| Kriterium | ERiC (direkt, für Kassenmeldung) | Submission-API (fiskaly o.ä.) |
 | --- | --- | --- |
 | Vorab-Validierung | ✅ Ja (staatlich) | ❌ Nein |
-| Implementierungsaufwand | Hoch (native C-Lib) | Niedrig (REST-API) |
-| Vendor-Lock-in | Keiner | Ja (fiskaly) |
+| Implementierungsaufwand | Hoch (native C-Bibliothek) | Niedrig (REST-API) |
+| Vendor-Lock-in | Keiner | Ja (TSE-Anbieter) |
 | Kosten | Kostenlos | Kostenpflichtig |
 | Offline-Fähigkeit | ✅ (lokale Lib) | ❌ (Cloud-abhängig) |
 | Passt zu jotti-Philosophie | ✅ (Self-hosted, keine Cloud) | ⚠️ (externe Abhängigkeit) |
 
-**Empfehlung:** Für die Kassenmeldung ist ERiC langfristig vorzuziehen (keine Cloud-Abhängigkeit, kostenlos, staatliche Validierung). Für die TSE selbst ist eine Cloud-TSE pragmatisch, da Hardware-TSEs für ehrenamtliche Teams unpraktisch sind.
+**Empfehlung:**
+- Für die **TSE** (Transaktionssignierung): Cloud-TSE ist für BYOD-Festzelt-Szenarien pragmatisch, da Hardware-TSEs in Smartphones unpraktisch sind.
+- Für die **Kassenmeldung** (§ 146a Abs. 4 AO): ERiC langfristig vorzuziehen — kostenlos, keine Cloud-Abhängigkeit, staatliche Validierung.
 
 ---
 
@@ -585,14 +754,15 @@ type TSEData struct {
 | --- | --- | --- | --- |
 | 1.1 | TSE-Interface definieren | Mittel | `TSEClient`-Interface im Backend, Adapter-Pattern für verschiedene TSE-Anbieter |
 | 1.2 | Cloud-TSE-Adapter implementieren | Hoch | Integration mit einem Cloud-TSE-Anbieter (z.B. fiskaly) |
-| 1.3 | Event-Daten um TSE-Felder erweitern | Mittel | TSE-Rückgabewerte in Event-Data-Structs integrieren |
-| 1.4 | Belegausgabe implementieren | Mittel | Beleg-Generator mit allen Pflichtfeldern (inkl. TSE-Daten) |
+| 1.3 | Event-Daten um TSE-Felder erweitern | Mittel | TSE-Rückgabewerte (`LogTimeStart`, `LogTimeEnd`, Signatur, Zähler) in Event-Data-Structs integrieren |
+| 1.4 | ABRECHNUNGSKREIS in Tisch-Session | Mittel | Session-ID für DSFinV-K und erste-Bestellung-Zeitstempel persistieren |
+| 1.5 | Belegausgabe implementieren | Mittel | Beleg-Generator mit allen Pflichtfeldern (inkl. TSE-Daten und erster Bestellzeitstempel) |
 
 ### 11.3 Mittelfristige Maßnahmen (Phase 2)
 
 | # | Maßnahme | Aufwand | Beschreibung |
 | --- | --- | --- | --- |
-| 2.1 | DSFinV-K Export implementieren | Hoch | CSV-Generator für alle drei Module + `index.xml` + ZIP |
+| 2.1 | DSFinV-K Export implementieren | Hoch | CSV-Generator für alle drei Module mit korrekten deutschen Dateinamen + `index.xml` + ZIP |
 | 2.2 | Z-Bon-Logik (Kassenabschluss) | Mittel | Tagesabschluss mit aggregierten Summen |
 | 2.3 | USt-Satz-Verwaltung | Mittel | Steuersätze als Stammdaten (7%, 19%, befreit, etc.) |
 | 2.4 | QR-Code auf Beleg | Gering | TSE-Daten als QR-Code im DSFinV-K-Format |
@@ -601,7 +771,7 @@ type TSEData struct {
 
 | # | Maßnahme | Aufwand | Beschreibung |
 | --- | --- | --- | --- |
-| 3.1 | ERiC-Integration / Kassenmeldung | Hoch | Elektronische Kassenmeldung beim Finanzamt |
+| 3.1 | ERiC-Integration / Kassenmeldung | Hoch | Elektronische Kassenmeldung beim Finanzamt über ERiC-Schnittstelle |
 | 3.2 | Archivierungsstrategie (10 Jahre) | Mittel | GoBD-konforme Langzeitarchivierung |
 | 3.3 | Verfahrensdokumentation | Gering | Dokumentation des Kassensystems für Betriebsprüfung |
 
@@ -613,7 +783,7 @@ type TSEData struct {
 | --- | --- | --- |
 | 1 | § 146a AO — Ordnungsvorschrift für die Buchführung und für Aufzeichnungen mittels elektronischer Aufzeichnungssysteme | https://www.gesetze-im-internet.de/ao_1977/__146a.html |
 | 2 | KassenSichV — Kassensicherungsverordnung | https://www.gesetze-im-internet.de/kassensichv/BJNR351500017.html |
-| 3 | BSI TR-03153 — Technische Richtlinie für Technische Sicherheitseinrichtungen | https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03153/TR-03153.pdf?__blob=publicationFile&v=3 |
+| 3 | BSI TR-03153 — Technische Richtlinie für Technische Sicherheitseinrichtungen | https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03153/TR-03153.pdf?__blob=publicationFile |
 | 4 | GoBD — BMF-Schreiben zur ordnungsmäßigen Führung elektronischer Bücher | https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html |
 | 5 | DSFinV-K — Digitale Schnittstelle der Finanzverwaltung für Kassensysteme (BZSt) | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html |
 | 6 | ELSTER für Entwickler — Offizielle Entwickler-Dokumentation | https://www.elster.de/elsterweb/infoseite/entwickler |
@@ -621,3 +791,7 @@ type TSEData struct {
 | 8 | § 64 AO — Steuerpflicht wirtschaftlicher Geschäftsbetriebe | https://www.gesetze-im-internet.de/ao_1977/__64.html |
 | 9 | § 67a AO — Sportliche Veranstaltungen (Zweckbetrieb) | https://www.gesetze-im-internet.de/ao_1977/__67a.html |
 | 10 | § 19 UStG — Kleinunternehmerregelung | https://www.gesetze-im-internet.de/ustg_1980/__19.html |
+| 11 | BMF-FAQ zu § 146a AO (Stand Januar 2026) — Meldepflicht und processType-Erläuterungen | https://www.bundesfinanzministerium.de/ |
+| 12 | BMF-Schreiben 28. Juni 2024 — Elektronische Kassenmeldepflicht nach § 146a Abs. 4 AO | https://www.bundesfinanzministerium.de/ |
+| 13 | DSFinV-K Nr. 2.7 und Anhang H — Vereinfachungen für langanhaltende Bestellvorgänge (Festzelt-/Durchbedienen-Muster) | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html |
+| 14 | § 379 AO — Steuergefährdung (bis 25.000 € Bußgeld) | https://www.gesetze-im-internet.de/ao_1977/__379.html |
