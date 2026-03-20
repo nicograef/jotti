@@ -39,6 +39,7 @@ Die Pflicht zur Nutzung einer zertifizierten TSE (Technische Sicherheitseinricht
 | **Belegausgabepflicht**   | ❌ Nicht vorhanden                    | **Pflicht** — Beleg muss bei jedem Kassiervorgang erzeugt werden können         |
 | **DSFinV-K Export**       | ❌ Nicht vorhanden                    | **Pflicht** — maschinenlesbarer Datenexport für Finanzverwaltung                |
 | **ERiC / ELSTER Meldung** | ❌ Nicht vorhanden                    | **Pflicht** ab 2025 — elektronische Kassenmeldung beim Finanzamt                |
+| **Seriennummer**          | ❌ Nicht generiert                    | **Pflicht** — UUID muss beim ersten Start generiert, dauerhaft gespeichert und im Admin-Bereich angezeigt werden |
 | **Dokumentation im Repo** | ❌ Fehlerhafte Aussagen               | Mehrere Stellen behaupten fälschlich, Vereine seien von TSE/KassenSichV befreit |
 
 ### Grundsatzentscheidungen (2026-03-19)
@@ -52,6 +53,9 @@ Auf Basis dieser Analyse wurden folgende Grundsatzentscheidungen getroffen:
 | **ABRECHNUNGSKREIS-Session**         | Phase 1: tagesbasiert (neuer `ABRECHNUNGSKREIS` bei jedem Tagesabschluss); Phase 2: manuelle Freigabe durch Servicekraft |
 | **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                     |
 | **Kassenmeldung (§ 146a Abs. 4 AO)** | Phase 1: manuell über ELSTER-Webportal; Phase 2: ERiC oder fiskaly-Submission-API                                        |
+| **Seriennummer**                     | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern, im Admin-Dashboard anzeigen                       |
+| **Belegausgabe BYOD**                | Phase 1: zentraler Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); Phase 2 (optional): digitaler eBeleg via QR-Code als Download-Link |
+| **Rechtliche Rollenverteilung**      | jotti ist Open-Source-Software (kein SaaS); Entwickler implementiert TSE-Schnittstellen; Betreiber (Verein) trägt Betriebspflichten und ELSTER-Meldepflicht |
 
 ---
 
@@ -122,8 +126,14 @@ jotti ist ein „computergestütztes Kassensystem" im Sinne dieser Definition. E
 
 Für **mobile Geräte** (Smartphones als Browser-Clients in jottis BYOD-Modell) gilt: Wenn ein Gerät technisch in der Lage ist, Zahlungsvorgänge eigenständig zu erfassen und offline zu betreiben, muss es selbst an eine TSE angebunden sein. Fungiert es ausschließlich als Eingabeterminal, das sofort an ein TSE-gesichertes Backend weiterleitet, genügt die Backend-seitige TSE-Anbindung. Entscheidend ist die technische Fähigkeit zur selbständigen Offline-Erfassung, nicht die tatsächliche Nutzung.
 
+**Einordnung für jotti:** In jottis Architektur fungieren die Smartphones der Servicekräfte als **reine „Eingabegeräte"** — ihre Funktion geht rechtlich nicht über die einer einfachen Tastatur hinaus. Dies hat zwei unmittelbare Konsequenzen:
+
+1. Die Smartphones benötigen **keine eigene TSE**. Die gesamte TSE-Absicherung, Protokollierung und Datenspeicherung (DSFinV-K) erfolgt zentral im Backend.
+2. **Architektonische Pflicht:** Die Webapp muss bei einem Internetausfall **sofort blockieren** und jede Offline-Erfassung von Barzahlungen technisch verhindern. Sobald die Servicekraft keine direkte Verbindung zum Backend herstellen kann, darf keine Zahlung erfasst werden. Nur so ist die Einordnung als reines Eingabegerät rechtlich haltbar.
+
 _(Quelle: KassenSichV — https://www.gesetze-im-internet.de/kassensichv/BJNR351500017.html)_
 _(Quelle: BMF-FAQ zu § 146a AO, Frage zur Abgrenzung von Eingabegeräten und eigenständigen Aufzeichnungssystemen — https://www.bundesfinanzministerium.de/)_
+_(Quelle: AEAO zu § 146a AO — Klarstellung zur Mitteilungspflicht für verbundene Eingabegeräte — https://www.bundesfinanzministerium.de/)_
 
 ### 3.3 GoBD (Grundsätze zur ordnungsmäßigen Führung und Aufbewahrung von Büchern, Aufzeichnungen und Unterlagen in elektronischer Form)
 
@@ -160,6 +170,32 @@ Ab dem 1. Januar 2025 müssen elektronische Aufzeichnungssysteme dem zuständige
 
 _(Quelle: § 146a Abs. 4 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
 _(Quelle: BMF-FAQ — https://www.bundesfinanzministerium.de/)_
+
+### 3.7 Sonderfall: Open-Source Self-hosted System — Pflichten des Entwicklers und der Betreiber
+
+jotti unterscheidet sich von kommerziellen SaaS-Kassensystemen fundamental: Es wird als quelloffene Software auf GitHub bereitgestellt, und die Vereine betreiben das System eigenverantwortlich auf ihrem eigenen Server (VPS via Docker). Diese Konstellation schafft eine klare Rollentrennung zwischen dem **Entwickler (Hersteller)** und den **Betreibern (Vereine)** — mit jeweils unterschiedlichen Rechtspflichten.
+
+#### a) Pflichten des Entwicklers (Hersteller)
+
+Nach **§ 146a Abs. 1 Satz 5 AO** i.V.m. **§ 379 AO** ist es verboten, Kassensoftware in Verkehr zu bringen oder zu bewerben, die nicht über die **Möglichkeit** verfügt, eine zertifizierte TSE anzubinden. Das kostenlose Bereitstellen von Code auf GitHub gilt als „In-Verkehr-Bringen" — der Open-Source-Charakter des Projekts ändert daran nichts.
+
+**Kernpflichten des Entwicklers:**
+
+- Die **TSE-Schnittstelle** (z.B. `TSEClient`-Interface) und der **DSFinV-K-Export** müssen im Code vorhanden und nutzbar sein.
+- Wenn der Code diese Schnittstelle enthält, der Verein bei der Docker-Installation aber entscheidet, keinen TSE-API-Key einzutragen und die Kasse ohne TSE zu nutzen, liegt das rechtliche Risiko **ausschließlich beim Verein**.
+- Der Entwickler hat **keine Meldepflicht** gegenüber dem Finanzamt für die durch Dritte betriebenen Installationen. Mitteilungspflichtig ist immer nur die juristische Person, die das System tatsächlich verwendet.
+- Eine **Muster-Verfahrensdokumentation** im GitHub-Repository ist empfehlenswert: Sie beschreibt für Betriebsprüfer, wie die Architektur funktioniert, wie die Datenbank geschützt ist und wie die TSE-Anbindung technisch erfolgt.
+
+#### b) Pflichten der Betreiber (Vereine)
+
+Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung:
+
+- **TSE-Beschaffung (Bring Your Own TSE):** Da auf einem Cloud-VPS keine Hardware-TSE eingesteckt werden kann, müssen die Vereine selbst einen Vertrag mit einem Cloud-TSE-Anbieter (wie fiskaly oder D-Trust) abschließen. Sie erhalten API-Keys, die über Umgebungsvariablen (`.env`-Datei) in den Docker-Container injiziert werden.
+- **ELSTER-Meldung:** Jede Kassen-Instanz, die auf dem VPS des Vereins läuft, muss innerhalb eines Monats nach Inbetriebnahme über das eigene ELSTER-Portal beim Finanzamt angemeldet werden (§ 146a Abs. 4 AO). Die hierfür benötigte Seriennummer wird von jotti bei der ersten Inbetriebnahme automatisch generiert und im Admin-Bereich angezeigt (siehe Abschnitt 5.8).
+- **Server-Betrieb:** Der Verein ist für Verfügbarkeit, Datensicherung, Zugriffskontrolle und die 10-jährige GoBD-konforme Aufbewahrung der Daten verantwortlich.
+
+_(Quelle: § 146a Abs. 1 Satz 5 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
+_(Quelle: § 379 AO — Steuergefährdung — https://www.gesetze-im-internet.de/ao_1977/__379.html)_
 
 ---
 
@@ -355,9 +391,43 @@ Der Betriebsprüfer sieht im DSFinV-K-Export alle vier Transaktionen mit demselb
 1. **TSE-Abstraktionsschicht:** Ein Interface `TSEClient` im Backend, das die drei Phasen (`StartTransaction`, `UpdateTransaction`, `FinishTransaction`) abstrahiert
 2. **Atomares Transaktionsmodell:** Für jeden jotti-Vorgang (Bestellung, Zahlung, Storno) wird eine eigenständige, sofort geschlossene TSE-Transaktion erstellt
 3. **Signatur-Speicherung:** TSE-Rückgabewerte (Transaktionsnummer, Signaturzähler, Prüfwert, `logTime`) müssen als Event-Daten persistiert werden
-4. **Fehlerbehandlung:** Verhalten bei TSE-Nicht-Erreichbarkeit (Cloud-TSE offline, Timeout) — z.B. Offline-Queue mit späterer Nachsignierung
+4. **Fehlerbehandlung:** Verhalten bei TSE-Nicht-Erreichbarkeit (Cloud-TSE offline, Timeout) — z.B. Offline-Queue mit späterer Nachsignierung; zwingender Hinweis „TSE ausgefallen" auf dem Bon bei Ausfall
 5. **Konfiguration:** TSE-Anbieter, Kassen-ID, API-Credentials als Umgebungsvariablen
 6. **ABRECHNUNGSKREIS-Verwaltung:** Eindeutige, persistente Tisch-Session-ID für die DSFinV-K-Verknüpfung
+
+### 5.8 Seriennummer-Generierung bei Self-hosted Docker-Instanzen
+
+Da jotti auf einem VPS ohne physische Kassenhardware betrieben wird, gibt es kein Typenschild mit aufgedruckter Seriennummer. Die gesetzliche Anforderung (§ 146a AO, DSFinV-K, § 6 KassenSichV) nach einer eindeutigen Seriennummer des elektronischen Aufzeichnungssystems muss softwareseitig erfüllt werden.
+
+#### Anforderung
+
+- **Beim allerersten Start** des Docker-Containers (Datenbank-Initialisierung) generiert jotti automatisch eine eindeutige UUID als Kassen-Seriennummer.
+- Die UUID wird dauerhaft in der Datenbank gespeichert und **nie überschrieben** (auch nicht bei Updates oder Neustart des Containers).
+- Die Seriennummer wird im **Admin-Dashboard** prominent angezeigt, damit der Betreiber (Verein) sie bei der ELSTER-Meldung eintragen und für den DSFinV-K-Export verwenden kann.
+- **Disaster Recovery:** Bei einem Verlust der Datenbank (z.B. Server-Ausfall ohne Backup) muss die alte Seriennummer beim Finanzamt abgemeldet und eine neue Instanz mit neuer Seriennummer angemeldet werden. Das Backup der Datenbank ist daher zwingend notwendig, um die Seriennummerenkontinuität zu wahren.
+
+#### Verwendung der Seriennummer
+
+| Verwendungsort                               | Feld / Kontext                                                        |
+| -------------------------------------------- | --------------------------------------------------------------------- |
+| ELSTER-Meldung                               | „Seriennummer des elektronischen Aufzeichnungssystems"                |
+| DSFinV-K Export (`Stamm_Kassen.csv`)         | Feld `KASSE_SERIENNR`                                                 |
+| Kassenbon (Pflichtfeld nach § 6 KassenSichV) | Angedruckter String, z.B. `Kassen-ID: 7f3a9d12-...`                  |
+| TSE-Kommunikation (`StartTransaction`)       | Parameter `kassenID`                                                  |
+
+#### Beispiel-Format
+
+```
+Kassen-ID: 7f3a9d12-84e1-4b2c-9f6a-1234567890ab
+```
+
+Die UUID ist herstellerunabhängig, weltweit eindeutig und erfordert keine zentrale Registrierung — ideal für ein Self-hosted Open-Source-System, bei dem der Entwickler keine Kontrolle über die Anzahl der laufenden Instanzen hat.
+
+#### Architektonische Anforderungen
+
+1. **DB-Initialisierungsscript:** Bei der ersten Inbetriebnahme wird ein Eintrag `kassen_seriennr` mit einer frisch generierten UUID in den System-Stammdaten angelegt.
+2. **Admin-Endpunkt:** `POST /admin/system-info` liefert u.a. die `kassenSeriennr` für die Anzeige im Admin-Dashboard und für die ELSTER-Meldung.
+3. **Beleg-Generator und DSFinV-K-Exporter** lesen die Seriennummer aus den Stammdaten (nie hart kodiert).
 
 ---
 
@@ -470,8 +540,41 @@ Um Platz auf dem Beleg zu sparen, können die TSE-Daten in einen standardisierte
 2. **TSE-Daten auf dem Beleg:** Alle TSE-Rückgabewerte müssen auf dem Beleg erscheinen
 3. **Erste-Bestellung-Zeitstempel:** Das Backend muss den `logTime` der ersten `Bestellung-V1`-Transaktion einer Tisch-Session persistieren und beim Beleg-Druck abrufen
 4. **QR-Code-Generierung:** TSE-Daten als QR-Code im DSFinV-K-Format
-5. **Beleg-Ausgabekanal:** Druck (über bestehende Bondrucker-Anbindung) und/oder elektronisch (QR-Code auf dem Smartphone der Servicekraft)
+5. **Beleg-Ausgabekanal:** Primär über stationären Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); optional als digitaler eBeleg via QR-Code (Download-Link) — Details siehe §7.6
 6. **Beleg-Archivierung:** Belegdaten müssen für den DSFinV-K-Export persistiert werden
+
+### 7.6 Umsetzung der Belegausgabepflicht im BYOD-Setup
+
+Da die Servicekräfte private Smartphones ohne mobile Bondrucker verwenden, erfordert die Belegausgabe nach § 146a Abs. 2 AO in jottis BYOD-Setup besondere architektonische Überlegungen.
+
+#### Variante A: Zentraler Bondrucker an der Theke (Primärlösung)
+
+**Ablauf:**
+
+1. Die Servicekraft kassiert auf ihrem Smartphone (Webapp).
+2. Die `Kassenbeleg-V1`-Transaktion wird **vollständig abgeschlossen** (TSE `FinishTransaction` aufgerufen). Erst jetzt stehen alle kryptografischen Prüfwerte für den Beleg fest.
+3. Erst nach erfolgreicher TSE-Signatur sendet die Webapp über das Backend einen Druckbefehl an den stationären Bondrucker an der Theke.
+4. Die Servicekraft nimmt den gedruckten Bon von der Theke und bietet ihn dem Gast an.
+5. **Der Gast ist gesetzlich nicht verpflichtet, den Bon anzunehmen.** Lehnt der Gast ab, ist die Belegausgabepflicht dennoch erfüllt — § 146a Abs. 2 AO verlangt das „Ausstellen und Zur-Verfügung-Stellen", nicht die Annahme; der Papierbon kann vernichtet werden.
+
+> **Hinweis:** Die Reihenfolge TSE-Abschluss **vor** Drucken ist rechtlich zwingend. Der Bon darf erst gedruckt werden, wenn `FinishTransaction` erfolgreich zurückgekehrt ist.
+
+#### Variante B: Digitaler eBeleg via QR-Code (Optionale Erweiterung)
+
+Als ergänzende oder alternative Lösung (insbesondere wenn kein Bondrucker an der Theke vorhanden ist) können digitale eBelege ausgegeben werden. Dabei gelten folgende gesetzliche Anforderungen:
+
+- **Bildschirmanzeige allein ist unzulässig:** Es reicht nicht aus, den Kassenbon lediglich als Bild auf dem Kellner-Smartphone anzuzeigen. Der Gast muss die Möglichkeit haben, den Beleg **elektronisch entgegenzunehmen**.
+- **QR-Code als Download-Link:** jotti zeigt nach dem Kassiervorgang auf dem Kellner-Smartphone einen QR-Code an. Dieser Code ist ein Download-Link zu einem Beleg im standardisierten Format (PDF, JPG oder PNG), der auf dem Backend-Server abrufbar ist. Der Gast scannt diesen Code mit seinem eigenen Smartphone.
+- **Zustimmung des Gastes:** Ein elektronischer Beleg darf nur mit Zustimmung des Empfängers ausgegeben werden. Diese gilt als konkludent (stillschweigend) erteilt, sobald der Gast den QR-Code scannt (§ 146a Abs. 2 AO i.V.m. dem Grundsatz der konkludenten Einwilligung; vgl. auch BMF-FAQ zu § 146a AO zum elektronischen Beleg).
+- **Aufbewahrung:** Die generierten eBelege müssen für den DSFinV-K-Export und die GoBD-konforme Archivierung gespeichert werden.
+
+**Umsetzungsreihenfolge:**
+
+- **Phase 1:** Zentraler Bondrucker an der Theke (geringerer Entwicklungsaufwand, sofortige Rechtskonformität)
+- **Phase 2 (optional):** Digitaler eBeleg via QR-Code als Ergänzung oder Alternative
+
+_(Quelle: § 146a Abs. 2 AO — Belegausgabepflicht)_
+_(Quelle: KassenSichV § 6 — Inhalt des Belegs)_
 
 ---
 
@@ -663,9 +766,40 @@ Die Kassenmeldung umfasst je Kassensystem:
 ### 9.5 Architektonische Anforderungen an jotti
 
 1. **Konfiguration:** Vereinsdaten, Betriebsstätte, Steuernummer als Stammdaten (bereits für Phase-1-Meldung nötig)
-2. **Admin-Datenanzeige (Phase 1):** Admin-Bereich zeigt alle meldepflichtigen Felder strukturiert an, damit der Admin die manuelle ELSTER-Meldung ohne Suche durchführen kann; kein API-Aufruf, nur Datenanzeige
+2. **Admin-Datenanzeige (Phase 1):** Admin-Bereich zeigt alle meldepflichtigen Felder strukturiert an, damit der Admin die manuelle ELSTER-Meldung ohne Suche durchführen kann; kein API-Aufruf, nur Datenanzeige — inkl. der automatisch generierten Kassen-Seriennummer (siehe Abschnitt 5.8)
 3. **Meldestatus (Phase 1):** Manuell setzbarer Status in der Admin-UI (z.B. „ausstehend / gemeldet am TT.MM.JJJJ / Fehler") — persistiert in den Stammdaten
 4. **Automatisierte Übermittlung (Phase 2, optional):** Entweder ERiC-Integration oder fiskaly-Submission-API; Entscheidung bei Implementierungsbeginn
+
+### 9.6 Verantwortungsverteilung im Open-Source-Self-hosted-Modell
+
+Die Meldepflicht nach § 146a Abs. 4 AO liegt **ausschließlich beim Betreiber (Verein)**, nicht beim Entwickler der Software. Dies hat folgende praktische Konsequenzen:
+
+#### BYOD-Smartphones: Keine Meldepflicht
+
+Die Smartphones der Servicekräfte müssen dem Finanzamt **nicht gemeldet** werden. Der Anwendungserlass zur Abgabenordnung (AEAO) zu § 146a AO stellt klar: Wenn Systeme ohne eigene Kassenfunktion (Smartphones als Eingabegeräte) mit einem elektronischen Aufzeichnungssystem mit Kassenfunktion (jotti Backend) verbunden sind, ist ausschließlich das **Hauptsystem** mitteilungspflichtig. Das bedeutet: Vereine müssen nicht hunderte wechselnde private Handys von Aushilfskellnern beim Finanzamt an- und abmelden.
+
+#### Self-hosted Docker-Instanz: Verein meldet eigenständig
+
+- Jeder Verein, der jotti in eigener Regie auf einem VPS betreibt, meldet **seine Docker-Instanz** (die Seriennummer der Kasse) beim Finanzamt an.
+- Die für die Meldung benötigte Seriennummer wird von jotti automatisch generiert und im Admin-Bereich angezeigt (siehe Abschnitt 5.8).
+- **Der Entwickler hat keine Meldepflicht** — er stellt nur das gesetzeskonforme Werkzeug bereit.
+
+#### Zusammenfassung der Verantwortlichkeiten
+
+| Pflicht                                        | Entwickler (jotti) | Verein (Betreiber)          |
+| ---------------------------------------------- | ------------------ | --------------------------- |
+| TSE-Schnittstelle im Code implementieren        | ✅ Pflicht          | —                           |
+| DSFinV-K-Export im Code implementieren          | ✅ Pflicht          | —                           |
+| Muster-Verfahrensdokumentation bereitstellen    | Empfohlen           | —                           |
+| Cloud-TSE-Vertrag abschließen                   | —                  | ✅ Pflicht                   |
+| TSE-API-Keys konfigurieren (`.env`)             | —                  | ✅ Pflicht                   |
+| ELSTER-Meldung (§ 146a Abs. 4 AO)              | ❌ Keine Pflicht    | ✅ Pflicht (Frist: 1 Monat)  |
+| BYOD-Smartphones melden                         | —                  | ❌ Nicht erforderlich        |
+| 10-Jahres-Archivierung (GoBD)                   | —                  | ✅ Pflicht                   |
+| Server-Betrieb und Datensicherung               | —                  | ✅ Pflicht                   |
+
+_(Quelle: AEAO zu § 146a AO — Klarstellung zur Mitteilungspflicht für verbundene Eingabegeräte — https://www.bundesfinanzministerium.de/)_
+_(Quelle: § 146a Abs. 1 Satz 5 AO — Verbot des In-Verkehr-Bringens nicht-TSE-fähiger Kassensoftware — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
 
 ---
 
@@ -814,6 +948,7 @@ type TischSession struct {
 | 0.1 | Dokumentation korrigieren         | Gering  | Falsche Aussagen in README.md, docs/produktbeschreibung.md, docs/anforderungen.md, docs/handbuch.md und AGENTS.md korrigieren                                                            |
 | 0.2 | Compliance-Status kommunizieren   | Gering  | README erhält klaren Hinweis: jotti ist aktuell kein TSE-konformes System; Compliance-Roadmap ist geplant                                                                                |
 | 0.3 | Admin-Kassenmeldungs-Datenanzeige | Gering  | Admin-Bereich zeigt alle Felder für manuelle ELSTER-Meldung an (Vereinsname, Steuernummer, Kassen-ID, TSE-Seriennummer, Inbetriebnahmedatum) — damit Nutzer sofort manuell melden können |
+| 0.4 | Seriennummer-Generierung          | Gering  | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern und prominent im Admin-Dashboard anzeigen (für ELSTER-Meldung, DSFinV-K-Export und Kassenbon)                      |
 
 ### 11.2 Kurzfristige Maßnahmen (Phase 1)
 
@@ -823,8 +958,9 @@ type TischSession struct {
 | 1.2 | fiskaly-Adapter implementieren      | Hoch    | Integration mit fiskaly Cloud-TSE API (StartTransaction / FinishTransaction für alle Vorgangstypen)    |
 | 1.3 | Event-Daten um TSE-Felder erweitern | Mittel  | TSE-Rückgabewerte (`LogTimeStart`, `LogTimeEnd`, Signatur, Zähler) in Event-Data-Structs integrieren   |
 | 1.4 | ABRECHNUNGSKREIS Phase 1            | Mittel  | Tagesbasierte Session-ID (`Tisch-{Nr}-{YYYYMMDD}`) persistieren und in alle zugehörigen Bons schreiben |
-| 1.5 | Belegausgabe implementieren         | Mittel  | Beleg-Generator mit allen Pflichtfeldern (inkl. TSE-Daten und erstem Bestellzeitstempel)               |
+| 1.5 | Belegausgabe implementieren         | Mittel  | Beleg-Generator mit allen Pflichtfeldern (inkl. TSE-Daten und erstem Bestellzeitstempel); Backend steuert Bondrucker an der Theke nach TSE-Abschluss (Variante A gemäß §7.6) |
 | 1.6 | Steuersatz-Stammdaten               | Mittel  | 19 %, 7 %, 0 % / steuerbefreit als konfigurierbare Sätze; Produkte erhalten Steuersatz-Schlüssel       |
+| 1.7 | Muster-Verfahrensdokumentation      | Gering  | Markdown-Datei im Repository, die für Betriebsprüfer die Systemarchitektur, Datenbankschutz und TSE-Anbindung beschreibt (Pflicht gemäß GoBD, hilfreich für Vereine bei Betriebsprüfung) |
 
 ### 11.3 Mittelfristige Maßnahmen (Phase 2)
 
@@ -834,6 +970,7 @@ type TischSession struct {
 | 2.2 | Z-Bon-Logik (Kassenabschluss)  | Mittel  | Tagesabschluss mit aggregierten Summen; setzt gleichzeitig neuen ABRECHNUNGSKREIS (Phase 1)        |
 | 2.3 | QR-Code auf Beleg              | Gering  | TSE-Daten als QR-Code im DSFinV-K-Format                                                           |
 | 2.4 | ABRECHNUNGSKREIS Phase 2       | Mittel  | Manuelle Tischfreigabe ("Tisch freimachen") durch Servicekraft; neue Session mit Buchstaben-Suffix |
+| 2.5 | Digitaler eBeleg (optional)    | Mittel  | QR-Code als Download-Link für Gast (PDF/JPG/PNG); nur als Ergänzung oder Alternative zu Bondrucker — Regeln gemäß §7.6 Variante B |
 
 ### 11.4 Langfristige Maßnahmen (Phase 3)
 
@@ -841,7 +978,6 @@ type TischSession struct {
 | --- | --------------------------------- | ------- | ------------------------------------------------------------------------------------- |
 | 3.1 | Automatisierte Kassenmeldung      | Hoch    | ERiC-Integration oder fiskaly-Submission-API; Entscheidung bei Implementierungsbeginn |
 | 3.2 | Archivierungsstrategie (10 Jahre) | Mittel  | GoBD-konforme Langzeitarchivierung der Ereignisdaten                                  |
-| 3.3 | Verfahrensdokumentation           | Gering  | Dokumentation des Kassensystems für Betriebsprüfung (gemäß GoBD)                      |
 
 ---
 
@@ -863,3 +999,4 @@ type TischSession struct {
 | 12  | BMF-Schreiben 28. Juni 2024 — Elektronische Kassenmeldepflicht nach § 146a Abs. 4 AO                                  | https://www.bundesfinanzministerium.de/                                                                                             |
 | 13  | DSFinV-K Nr. 2.7 und Anhang H — Vereinfachungen für langanhaltende Bestellvorgänge (Festzelt-/Durchbedienen-Muster)   | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html                   |
 | 14  | § 379 AO — Steuergefährdung (bis 25.000 € Bußgeld)                                                                    | https://www.gesetze-im-internet.de/ao_1977/__379.html                                                                               |
+| 15  | AEAO zu § 146a AO — Anwendungserlass zur Abgabenordnung, Klarstellungen zu Eingabegeräten, Meldepflicht und Seriennummer | https://www.bundesfinanzministerium.de/                                                                                             |
