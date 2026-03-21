@@ -9,13 +9,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta
       name="description"
-      content="jotti ist ein kostenloses, quelloffenes Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Self-hosted, Mobile-first, kein Cloud-Abo."
+      content="jotti ist ein kostenloses Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Fiskalkonform mit TSE-Anbindung und DSFinV-K-Export. Self-hosted, Mobile-first, kein Cloud-Abo. Quellcode einsehbar (Source-Available)."
     />
     <meta name="author" content="Nico Gräf" />
     <meta name="robots" content="index, follow" />
     <meta
       name="keywords"
-      content="Kassensystem Verein, Kassensystem Vereinsfest, POS Verein, kostenloses Kassensystem, mPOS Non-Profit, Open-Source Kassensystem, Mobile Kasse Verein, Self-hosted POS"
+      content="Kassensystem Verein, Kassensystem Vereinsfest, POS Verein, kostenloses Kassensystem, mPOS Non-Profit, Source-Available Kassensystem, Mobile Kasse Verein, Self-hosted POS, Kassensystem KassenSichV, Kassensystem TSE, DSFinV-K Export, Kassensystem fiskalkonform, Kassensystem ehrenamtlich"
     />
 
     <title>jotti — Das kostenlose Kassensystem für Vereinsfeste</title>
@@ -28,7 +28,7 @@
     />
     <meta
       property="og:description"
-      content="Kostenloses, quelloffenes Mobile-Kassensystem für Vereine und gemeinnützige Organisationen. Self-hosted, ohne Abo, ohne Hardware."
+      content="Kostenloses Mobile-Kassensystem für Vereine und gemeinnützige Organisationen. Fiskalkonform mit TSE und DSFinV-K. Self-hosted, ohne Abo, ohne Hardware. Quellcode einsehbar."
     />
     <meta property="og:site_name" content="jotti" />
     <meta property="og:locale" content="de_DE" />
@@ -41,7 +41,7 @@
     />
     <meta
       name="twitter:description"
-      content="Kostenloses, quelloffenes Mobile-Kassensystem für Vereine und gemeinnützige Organisationen."
+      content="Kostenloses, fiskalkonformes Mobile-Kassensystem für Vereine und gemeinnützige Organisationen. TSE-Anbindung, DSFinV-K-Export, Belegausgabe."
     />
 
     <!-- Favicons: light mode -->
@@ -138,6 +138,7 @@
         </div>
         <nav class="main-nav" aria-label="Hauptnavigation">
           <a href="#features">Features</a>
+          <a href="#fiskalkonform">Fiskalkonform</a>
           <a href="#so-funktionierts">So geht's</a>
           <a href="#vergleich">Vergleich</a>
           <a href="#technik">Technik</a>
@@ -164,6 +165,7 @@
     <div class="mobile-nav-overlay" aria-hidden="true">
       <nav class="mobile-nav" aria-label="Mobile Navigation">
         <a href="#features">Features</a>
+        <a href="#fiskalkonform">Fiskalkonform</a>
         <a href="#so-funktionierts">So geht's</a>
         <a href="#vergleich">Vergleich</a>
         <a href="#technik">Technik</a>
@@ -188,10 +190,11 @@
             </h1>
             <p class="hero-sub">
               Bestellungen aufnehmen, Ausgabe bestätigen, kassieren — direkt auf
-              dem Smartphone, pro Tisch, ohne spezielle Hardware. Für Vereine
-              und gemeinnützige Organisationen.
+              dem Smartphone, pro Tisch, ohne spezielle Hardware. Fiskalkonform
+              mit TSE-Anbindung und DSFinV-K-Export. Für Vereine und
+              gemeinnützige Organisationen.
             </p>
-            <p class="hero-tags">Kostenlos. Self-hosted. Open&nbsp;Source.</p>
+            <p class="hero-tags">Kostenlos. Self-hosted. Fiskalkonform.</p>
             <div class="hero-actions">
               <a
                 href="https://github.com/nicograef/jotti"
@@ -230,7 +233,8 @@
               <p>
                 Unleserliche Handschrift, verlorene Bonblöcke, keine
                 Echtzeit-Übersicht. Am Ende sitzt ihr stundenlang zusammen, um
-                die Abrechnung hinzubekommen.
+                die Abrechnung hinzubekommen. Und die KassenSichV? Damit nicht
+                zu erfüllen.
               </p>
             </div>
             <div class="card">
@@ -238,15 +242,16 @@
               <h3>Excel-Tabelle</h3>
               <p>
                 Nicht echtzeitfähig, kein Mehrbenutzerbetrieb, keine
-                Tisch-Zuordnung. Einer tippt, alle anderen warten.
+                Tisch-Zuordnung. Einer tippt, alle anderen warten. Keine
+                TSE-Anbindung, keine Fiskalkonformität.
               </p>
             </div>
             <div class="card">
               <div class="card-icon">💸</div>
               <h3>Kommerzielles POS</h3>
               <p>
-                30–100&nbsp;€ pro Monat plus Hardware. Für 2–3 Feste im Jahr
-                völlig überdimensioniert — und viel zu teuer.
+                30–100&nbsp;€ pro Monat plus Hardware. Fiskalkonform, aber für
+                2–3 Feste im Jahr völlig überdimensioniert — und viel zu teuer.
               </p>
             </div>
           </div>
@@ -278,7 +283,12 @@
                 </li>
                 <li>
                   <strong>Transparente Abrechnung</strong> — Echtzeit-Saldo pro
-                  Tisch, lückenlose Bestellhistorie
+                  Tisch, lückenlose Bestellhistorie, CSV- und DSFinV-K-Export
+                </li>
+                <li>
+                  <strong>Fiskalkonform</strong> — TSE-Anbindung,
+                  DSFinV-K-Export, Belegausgabe, Tagesabschluss —
+                  KassenSichV-konform ab Werk
                 </li>
               </ul>
             </div>
@@ -304,79 +314,228 @@
             kann.
           </p>
 
+          <!-- Kassenbetrieb -->
+          <div class="feature-group">
+            <h3 class="feature-group-title">Kassenbetrieb</h3>
+            <div class="card-grid three-col">
+              <div class="card feature-card">
+                <div class="card-icon">📱</div>
+                <h3>Bestellungen aufnehmen</h3>
+                <p>
+                  Produkte mit Varianten und Steuersätzen auswählen, Menge und
+                  Kommentare angeben, auf den Tisch buchen — alles im Browser.
+                </p>
+              </div>
+              <div class="card feature-card">
+                <div class="card-icon">🚚</div>
+                <h3>Ausgabe bestätigen</h3>
+                <p>
+                  Bestellte Positionen als ausgegeben markieren. Jeder weiß, was
+                  raus ist und was noch fehlt.
+                </p>
+              </div>
+              <div class="card feature-card">
+                <div class="card-icon">💰</div>
+                <h3>Kassieren</h3>
+                <p>
+                  Am Tisch kassieren — Teilzahlungen und automatische
+                  Rückgeldberechnung. Offener Saldo immer im Blick.
+                </p>
+              </div>
+              <div class="card feature-card">
+                <div class="card-icon">↩️</div>
+                <h3>Stornieren &amp; Auszahlung</h3>
+                <p>
+                  Falschbestellungen rückgängig machen (Serviceleitung/Admin,
+                  Pflichtkommentar). Negativen Saldo nach Stornierung
+                  ausgleichen.
+                </p>
+              </div>
+              <div class="card feature-card">
+                <div class="card-icon">🔄</div>
+                <h3>Umbuchen</h3>
+                <p>
+                  Bestellungen auf einen anderen Tisch verschieben — eine
+                  atomare Operation, lückenlos nachvollziehbar.
+                </p>
+              </div>
+              <div class="card feature-card">
+                <div class="card-icon">📋</div>
+                <h3>Tischübersicht</h3>
+                <p>
+                  Alle Tische mit Saldo und Status auf einen Blick. Eigene
+                  Tische als Favoriten markieren, Schnellsuche per Name oder
+                  Nummer.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Küche & Ausgabe -->
+          <div class="feature-group">
+            <h3 class="feature-group-title">Küche &amp; Ausgabe</h3>
+            <div class="card-grid three-col">
+              <div class="card feature-card">
+                <div class="card-icon">🖥️</div>
+                <h3>Küchendisplay (KDS)</h3>
+                <p>
+                  Eingehende Bestellungen in Echtzeit auf einem Bildschirm in
+                  der Küche oder an der Ausgabe.
+                </p>
+              </div>
+              <div class="card feature-card">
+                <div class="card-icon">🍳</div>
+                <h3>Ausgabestationen</h3>
+                <p>
+                  Zubereitungsstatus verwalten — Servicekräfte sehen, wann
+                  Positionen abholbereit sind.
+                </p>
+              </div>
+              <div class="card feature-card">
+                <div class="card-icon">🖨️</div>
+                <h3>Bon-Druck</h3>
+                <p>
+                  Bestell- und Küchenbons automatisch an ESC/POS-Bondrucker
+                  senden — pro Kategorie konfigurierbar.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kassenführung -->
+          <div class="feature-group">
+            <h3 class="feature-group-title">Kassenführung</h3>
+            <div class="card-grid three-col">
+              <div class="card feature-card">
+                <div class="card-icon">📂</div>
+                <h3>Abrechnungskreis</h3>
+                <p>
+                  Fortlaufend nummerierte Kassensitzungen eröffnen und
+                  schließen. Anfangsbestand (Wechselgeld) zu Beginn erfassen.
+                </p>
+              </div>
+              <div class="card feature-card">
+                <div class="card-icon">💵</div>
+                <h3>Kassenbestand &amp; Bewegungen</h3>
+                <p>
+                  Soll-Bestand jederzeit einsehen. Geldtransit, Privatentnahmen
+                  und Privateinlagen buchen.
+                </p>
+              </div>
+              <div class="card feature-card">
+                <div class="card-icon">✅</div>
+                <h3>Kassensturz &amp; Z-Bon</h3>
+                <p>
+                  Ist-Bestand eingeben, Differenz berechnen. Formaler
+                  Tagesabschluss mit fortlaufender Nummer und
+                  Stammdaten-Snapshot.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Abrechnung & Reporting -->
+          <div class="feature-group">
+            <h3 class="feature-group-title">Abrechnung &amp; Reporting</h3>
+            <div class="card-grid three-col">
+              <div class="card feature-card">
+                <div class="card-icon">📊</div>
+                <h3>Tagesabrechnung</h3>
+                <p>
+                  Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge —
+                  nach Steuersatz aufgeschlüsselt.
+                </p>
+              </div>
+              <div class="card feature-card">
+                <div class="card-icon">👤</div>
+                <h3>Pro Tisch &amp; Servicekraft</h3>
+                <p>
+                  Detaillierte Aufstellung je Tisch. Umsatz und Transaktionen
+                  pro Servicekraft. Produktumsatz-Ranking.
+                </p>
+              </div>
+              <div class="card feature-card">
+                <div class="card-icon">📥</div>
+                <h3>Datenexport</h3>
+                <p>
+                  CSV-Export für die Vereinsbuchhaltung. DSFinV-K-Export als
+                  ZIP-Archiv für die Finanzverwaltung.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FISKALKONFORMITÄT ============ -->
+      <section class="section compliance" id="fiskalkonform">
+        <div class="container">
+          <h2 class="section-title">Finanzamtssicher. Ab Werk.</h2>
+          <p class="section-subtitle">
+            jotti ist ein elektronisches Aufzeichnungssystem nach KassenSichV
+            und erfüllt die TSE-Pflicht nach § 146a AO — fiskalkonform, ohne
+            Zusatzkosten für die Software.
+          </p>
+
           <div class="card-grid three-col">
             <div class="card feature-card">
-              <div class="card-icon">📱</div>
-              <h3>Bestellungen aufnehmen</h3>
+              <div class="card-icon">🛡️</div>
+              <h3>TSE-Anbindung</h3>
               <p>
-                Produkte und Varianten auswählen, Menge und Kommentare angeben,
-                auf den Tisch buchen — alles im Browser.
+                Integrierte Cloud-TSE-Schnittstelle (fiskaly). Jeder Vorgang
+                wird signiert und kryptografisch abgesichert.
               </p>
             </div>
             <div class="card feature-card">
-              <div class="card-icon">🚚</div>
-              <h3>Ausgabe bestätigen</h3>
+              <div class="card-icon">🔗</div>
+              <h3>Kryptografische Hash-Chain</h3>
               <p>
-                Bestellte Positionen als ausgegeben markieren. Jeder weiß, was
-                raus ist und was noch fehlt.
+                SHA-256-Verkettung aller Events. Nachträgliche Manipulation ist
+                mathematisch nachweisbar.
               </p>
             </div>
             <div class="card feature-card">
-              <div class="card-icon">💰</div>
-              <h3>Kassieren</h3>
+              <div class="card-icon">🧾</div>
+              <h3>Belegausgabe</h3>
               <p>
-                Am Tisch kassieren — Teilzahlungen möglich. Offener Saldo immer
-                im Blick.
+                Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersätzen
+                und Betreiberadresse — nach § 6 KassenSichV.
               </p>
             </div>
             <div class="card feature-card">
-              <div class="card-icon">↩️</div>
-              <h3>Stornieren</h3>
+              <div class="card-icon">📜</div>
+              <h3>Event-Sourcing</h3>
               <p>
-                Falschbestellungen rückgängig machen. Nur Serviceleitung und
-                Admin — mit Pflichtkommentar für volle Nachvollziehbarkeit.
+                Lückenlose, unveränderliche Bestellhistorie. GoBD-konform durch
+                Append-only-Architektur — kein nachträgliches Löschen.
               </p>
             </div>
             <div class="card feature-card">
-              <div class="card-icon">📋</div>
-              <h3>Tischübersicht</h3>
+              <div class="card-icon">📦</div>
+              <h3>DSFinV-K-Export</h3>
               <p>
-                Alle Tische mit Status und offenem Betrag auf einen Blick.
-                Sofort den richtigen Tisch finden.
+                Maschinenlesbarer Export aller Kassendaten für die
+                Finanzverwaltung — ZIP-Archiv nach DSFinV-K v2.4.
               </p>
             </div>
             <div class="card feature-card">
-              <div class="card-icon">📊</div>
-              <h3>Abrechnung</h3>
+              <div class="card-icon">📄</div>
+              <h3>Tagesabschluss (Z-Bon)</h3>
               <p>
-                Tagesabrechnung, pro Tisch und pro Servicekraft. Kein
-                Rätselraten am Ende des Abends.
+                Immutables Abschlussdokument mit fortlaufender Nummer,
+                Umsatzaggregation und Stammdaten-Snapshot.
               </p>
             </div>
-            <div class="card feature-card">
-              <div class="card-icon">🖥️</div>
-              <h3>Küchendisplay (KDS)</h3>
-              <p>
-                Eingehende Bestellungen in Echtzeit auf einem Bildschirm in der
-                Küche oder an der Ausgabe.
-              </p>
-            </div>
-            <div class="card feature-card">
-              <div class="card-icon">🖨️</div>
-              <h3>Bon-Druck</h3>
-              <p>
-                Bestellbons automatisch an ESC/POS-Bondrucker senden — Küche und
-                Theke getrennt.
-              </p>
-            </div>
-            <div class="card feature-card">
-              <div class="card-icon">🔐</div>
-              <h3>Rollen &amp; Rechte</h3>
-              <p>
-                Drei Rollen: Admin, Serviceleitung, Servicekraft. Jeder sieht
-                und darf nur, was er braucht.
-              </p>
-            </div>
+          </div>
+
+          <div class="compliance-note">
+            <p>
+              <strong>Bring Your Own TSE (BYOT):</strong> Da jotti self-hosted
+              betrieben wird, schließen Betreiber selbst einen Vertrag mit einem
+              Cloud-TSE-Anbieter (z.&nbsp;B. fiskaly) ab und konfigurieren die
+              API-Schlüssel über die <code>.env</code>-Datei. Seriennummer,
+              Steuersätze (19 %, 7 %, 0 %) und ELSTER-Meldung sind dokumentiert.
+            </p>
           </div>
         </div>
       </section>
@@ -394,8 +553,8 @@
               <div class="step-number">1</div>
               <h3>Admin richtet ein</h3>
               <p>
-                Produkte mit Varianten und Preisen anlegen, Tische erstellen,
-                Benutzer einladen — alles über den Admin-Bereich.
+                Produkte mit Varianten, Preisen und Steuersätzen anlegen, Tische
+                erstellen, Benutzer einladen, Betreiber-Stammdaten pflegen.
               </p>
             </div>
             <div class="step-arrow" aria-hidden="true"></div>
@@ -412,44 +571,13 @@
               <div class="step-number">3</div>
               <h3>Loslegen</h3>
               <p>
-                Bestellungen aufnehmen, Ausgabe bestätigen, kassieren, Saldo
-                prüfen — alles vom Smartphone.
+                Bestellungen aufnehmen, Ausgabe bestätigen, kassieren —
+                Tagesabschluss und Z-Bon am Ende des Abends.
               </p>
             </div>
           </div>
         </div>
       </section>
-
-      <!-- ============ SCREENSHOT-SHOWCASE ============ -->
-      <!-- <section class="section showcase">
-        <div class="container">
-          <h2 class="section-title">So sieht jotti aus.</h2>
-          <div class="showcase-grid"> -->
-      <!-- PLATZHALTER: 3–4 Screenshots nebeneinander auf Smartphone-Mockups.
-                 1. Produktauswahl / Bestellung aufnehmen
-                 2. Tischübersicht mit offenen Saldi
-                 3. Tisch-Detail: Positionen, Ausgabe, Zahlung
-                 4. Admin: Produktverwaltung
-                 Alle auf hellem Hintergrund, Smartphones leicht versetzt. -->
-      <!-- <div class="placeholder-img showcase-item" aria-hidden="true">
-              <div class="placeholder-icon">📱</div>
-              <span>Screenshot: Produktauswahl bei Bestellaufnahme</span>
-            </div>
-            <div class="placeholder-img showcase-item" aria-hidden="true">
-              <div class="placeholder-icon">📋</div>
-              <span>Screenshot: Tischübersicht mit Saldi</span>
-            </div>
-            <div class="placeholder-img showcase-item" aria-hidden="true">
-              <div class="placeholder-icon">🧾</div>
-              <span>Screenshot: Tisch-Detail mit Positionen</span>
-            </div>
-            <div class="placeholder-img showcase-item" aria-hidden="true">
-              <div class="placeholder-icon">⚙️</div>
-              <span>Screenshot: Admin — Produktverwaltung</span>
-            </div>
-          </div>
-        </div>
-      </section> -->
 
       <!-- ============ VERGLEICH ============ -->
       <section class="section comparison" id="vergleich">
@@ -481,6 +609,16 @@
                   <td>Terminal, iPad, Drucker</td>
                 </tr>
                 <tr>
+                  <td>Fiskalkonformität</td>
+                  <td class="highlight-col">
+                    <strong
+                      >KassenSichV-konform (TSE&nbsp;+&nbsp;DSFinV-K)</strong
+                    >
+                  </td>
+                  <td>✗</td>
+                  <td>✓</td>
+                </tr>
+                <tr>
                   <td>Echtzeit-Übersicht</td>
                   <td class="highlight-col">✓</td>
                   <td>✗</td>
@@ -493,9 +631,17 @@
                   <td>✓</td>
                 </tr>
                 <tr>
+                  <td>Kassenführung</td>
+                  <td class="highlight-col">
+                    <strong>Z-Bon, Kassensturz, Bewegungen</strong>
+                  </td>
+                  <td>✗</td>
+                  <td>✓</td>
+                </tr>
+                <tr>
                   <td>Abrechnung</td>
                   <td class="highlight-col">
-                    <strong>Automatisch</strong>
+                    <strong>Automatisch + CSV + DSFinV-K</strong>
                   </td>
                   <td>Stundenlang manuell</td>
                   <td>Automatisch</td>
@@ -523,7 +669,7 @@
                 <tr>
                   <td>Nachvollziehbarkeit</td>
                   <td class="highlight-col">
-                    <strong>Lückenloses Journal</strong>
+                    <strong>Hash-Chain + Event-Sourcing</strong>
                   </td>
                   <td>Fehleranfällig</td>
                   <td>Ja</td>
@@ -540,7 +686,8 @@
           <h2 class="section-title">Für wen ist jotti gedacht?</h2>
           <p class="section-subtitle">
             jotti ist für alle gemeinnützigen Organisationen, die temporäre
-            Gastronomie-Veranstaltungen durchführen.
+            Gastronomie-Veranstaltungen durchführen — mit voller
+            Fiskalkonformität, unabhängig von der Rechtsform.
           </p>
           <div class="card-grid two-col">
             <div class="card">
@@ -584,14 +731,15 @@
               <h2>Euer Vereinsfest. Eure Daten.</h2>
               <p>
                 jotti speichert jede Bestellung, jede Zahlung und jede
-                Stornierung als unveränderliches Event. Nachträgliche
-                Manipulation ist technisch ausgeschlossen. Das schafft Vertrauen
-                — gegenüber dem Vorstand, den Helfern und dem Finanzamt.
+                Stornierung als unveränderliches Event — kryptografisch
+                verkettet und per TSE signiert. Nachträgliche Manipulation ist
+                technisch ausgeschlossen. Das schafft Vertrauen — gegenüber dem
+                Vorstand, den Helfern und dem Finanzamt.
               </p>
               <ul class="check-list">
                 <li>
-                  <strong>Event-Sourcing</strong> — lückenlose, unveränderbare
-                  Bestellhistorie
+                  <strong>Event-Sourcing + Hash-Chain</strong> — lückenlose,
+                  kryptografisch gesicherte Bestellhistorie
                 </li>
                 <li>
                   <strong>Rollenmodell</strong> — Admin, Serviceleitung,
@@ -605,13 +753,18 @@
                   <strong>HTTPS</strong> — verschlüsselte Kommunikation per
                   Let's Encrypt
                 </li>
+                <li>
+                  <strong>Sicheres Onboarding</strong> — Einmalpasswort +
+                  Argon2id-Hashing, keine unsicheren Account-Versände
+                </li>
               </ul>
             </div>
             <div class="split-visual">
               <img
                 src="img/jotti-admin-reporting.webp"
-                alt="Screenshot: Tagesabrechnung / Reporting mit Gesamtübersicht"
+                alt="jotti Reporting: Tagesabrechnung mit Gesamtübersicht, Umsätzen und Servicekraft-Auswertung"
                 class="screenshot"
+                loading="lazy"
               />
             </div>
           </div>
@@ -637,16 +790,19 @@
               </div>
             </div>
             <ul class="check-list pricing-features">
-              <li>Alle Features inklusive</li>
+              <li>Alle Features inklusive — inkl. Fiskalkonformität</li>
               <li>Keine Nutzungslimits</li>
               <li>Keine Werbung, kein Tracking</li>
-              <li>Quellcode einsehbar</li>
+              <li>Quellcode einsehbar (Source-Available)</li>
               <li>Keine Vertragslaufzeit</li>
+              <li>
+                Kostenlose Nutzungsvereinbarung vor erster Nutzung erforderlich
+              </li>
             </ul>
             <div class="pricing-note">
               <p>
-                <strong>Einzige Kosten:</strong> Hosting-Infrastruktur für euren
-                Server — unabhängig von jotti.
+                <strong>Einzige Kosten:</strong> Hosting-Infrastruktur und ggf.
+                Cloud-TSE — unabhängig von jotti.
               </p>
               <div class="hosting-options">
                 <span class="hosting-option"
@@ -657,6 +813,9 @@
                 >
                 <span class="hosting-option"
                   >🏢 Vereinseigener Server — 0 €</span
+                >
+                <span class="hosting-option"
+                  >🛡️ Cloud-TSE (z.B. fiskaly) — je nach Anbieter (BYOT)</span
                 >
               </div>
             </div>
@@ -690,6 +849,10 @@
                   <span>PostgreSQL</span>
                 </div>
                 <div class="tech-row">
+                  <span class="tech-label">TSE</span>
+                  <span>Cloud-TSE via fiskaly (Adapter-Pattern)</span>
+                </div>
+                <div class="tech-row">
                   <span class="tech-label">Infrastruktur</span>
                   <span>Docker Compose, nginx, Let's Encrypt</span>
                 </div>
@@ -714,13 +877,17 @@
                   <span class="tech-label">Netzwerk</span>
                   <span>Domain + Port 80/443 offen</span>
                 </div>
+                <div class="tech-row">
+                  <span class="tech-label">TSE</span>
+                  <span>Cloud-TSE-Vertrag (z.B. fiskaly)</span>
+                </div>
               </div>
             </div>
           </div>
 
           <div class="quickstart-box">
             <h3>Schnellstart</h3>
-            <pre><code>cp .env.example .env    <span class="code-comment"># Konfiguration anpassen</span>
+            <pre><code>cp .env.example .env    <span class="code-comment"># Konfiguration + TSE-API-Keys</span>
 make prod-init          <span class="code-comment"># SSL-Zertifikat erstellen</span>
 make prod-up            <span class="code-comment"># Starten</span></code></pre>
           </div>
@@ -733,20 +900,28 @@ make prod-up            <span class="code-comment"># Starten</span></code></pre>
                 lückenlose, unveränderliche Bestellhistorie
               </li>
               <li>
+                <strong>Hash-Chain</strong> — SHA-256-Verkettung aller Events,
+                GoBD-konforme Unveränderbarkeit
+              </li>
+              <li>
+                <strong>TSE-Integration</strong> — Cloud-TSE via
+                Adapter-Pattern, jeder Vorgang signiert
+              </li>
+              <li>
                 <strong>CRUD</strong> für Stammdaten — einfache Verwaltung von
                 Produkten, Tischen, Benutzern
               </li>
               <li>
-                <strong>JWT-Authentifizierung</strong> — sichere, tokenbasierte
-                Anmeldung mit Argon2id-Hashing
+                <strong>JWT + Argon2id</strong> — sichere, tokenbasierte
+                Anmeldung
               </li>
               <li>
                 <strong>Mobile-first</strong> — optimiert für
                 Smartphone-Browser, Touch-Bedienung
               </li>
               <li>
-                <strong>AGPL-3.0</strong> — quelloffen, Quellcode auf GitHub
-                einsehbar
+                <strong>Source-Available</strong> — Quellcode auf GitHub
+                einsehbar, proprietäre Lizenz
               </li>
             </ul>
           </div>
@@ -765,8 +940,9 @@ make prod-up            <span class="code-comment"># Starten</span></code></pre>
           />
           <h2>Bereit für euer nächstes Fest?</h2>
           <p>
-            jotti ist quelloffen auf GitHub verfügbar. Schaut euch den Code an,
-            richtet euren Server ein und legt los.
+            jotti ist auf GitHub verfügbar — kostenlos für gemeinnützige
+            Organisationen, fiskalkonform und in Minuten einsatzbereit.
+            Quellcode einsehbar, Nutzung mit kostenloser Vereinbarung.
           </p>
           <a
             href="https://github.com/nicograef/jotti"
@@ -797,7 +973,7 @@ make prod-up            <span class="code-comment"># Starten</span></code></pre>
             href="https://github.com/nicograef/jotti/blob/main/LICENSE"
             target="_blank"
             rel="noopener noreferrer"
-            >Lizenz (AGPL-3.0)</a
+            >Lizenz</a
           >
         </div>
         <p class="footer-copy">

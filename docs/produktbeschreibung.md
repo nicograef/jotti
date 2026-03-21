@@ -47,13 +47,13 @@ Dieses Dokument definiert die Produktidentität von jotti: Positionierung, Zielg
 
 ### 2.2 Marktkategorie
 
-| Dimension       | Einordnung                                                                                      |
-| --------------- | ----------------------------------------------------------------------------------------------- |
-| Kategorie       | Mobile Point of Sale (mPOS) / Gastronomie-Kassensystem                                          |
-| Segment         | Non-Profit / Vereinsgastronomie / Event-Catering                                                |
-| Architektur     | Self-hosted, Source-Available, Mobile-first Web-App                                             |
-| Preismodell     | Kostenlos für gemeinnützige Organisationen (AGPL-3.0 + Non-Commercial)                          |
-| Wettbewerbsfeld | Vereinfacht: Stift & Papier → Excel → jotti. Kommerzielles Äquivalent: Orderbird, Toast, Zettle |
+| Dimension       | Einordnung                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Kategorie       | Mobile Point of Sale (mPOS) / Gastronomie-Kassensystem                                                              |
+| Segment         | Non-Profit / Vereinsgastronomie / Event-Catering                                                                    |
+| Architektur     | Self-hosted, Source-Available, Mobile-first Web-App                                                                 |
+| Preismodell     | Kostenlos für gemeinnützige Organisationen (proprietäre Source-Available-Lizenz, Nutzungsvereinbarung erforderlich) |
+| Wettbewerbsfeld | Vereinfacht: Stift & Papier → Excel → jotti. Kommerzielles Äquivalent: Orderbird, Toast, Zettle                     |
 
 jotti positioniert sich bewusst **unterhalb** kommerzieller Kassensysteme: weniger Features, dafür null Kosten, null Komplexität und exakt der Funktionsumfang, den ein Vereinsfest braucht — bei voller Fiskalkonformität.
 
@@ -139,14 +139,14 @@ Die meisten Vereine in Deutschland bewirtschaften ihre Veranstaltungen mit einem
 
 jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 
-| Problem              | jotti-Lösung                                                                              |
-| -------------------- | ----------------------------------------------------------------------------------------- |
-| Kosten               | Kostenlos und quelloffen — dauerhaft, keine versteckten Kosten                            |
-| Hardware             | Keine — läuft auf jedem Smartphone mit Browser (BYOD)                                     |
-| Komplexität          | Nur die Features, die ein Vereinsfest braucht — nicht mehr                                |
-| Abhängigkeit         | Self-hosted auf dem eigenen Server — volle Datenkontrolle                                 |
-| Abrechnung           | Echtzeit-Saldo pro Tisch, lückenlose Bestellhistorie, transparente Abrechnung             |
-| Fiskalkonformität    | TSE-Anbindung, DSFinV-K-Export, Belegausgabe, Tagesabschluss — KassenSichV-konform        |
+| Problem           | jotti-Lösung                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| Kosten            | Kostenlos und quelloffen — dauerhaft, keine versteckten Kosten                     |
+| Hardware          | Keine — läuft auf jedem Smartphone mit Browser (BYOD)                              |
+| Komplexität       | Nur die Features, die ein Vereinsfest braucht — nicht mehr                         |
+| Abhängigkeit      | Self-hosted auf dem eigenen Server — volle Datenkontrolle                          |
+| Abrechnung        | Echtzeit-Saldo pro Tisch, lückenlose Bestellhistorie, transparente Abrechnung      |
+| Fiskalkonformität | TSE-Anbindung, DSFinV-K-Export, Belegausgabe, Tagesabschluss — KassenSichV-konform |
 
 ### 5.2 So funktioniert's
 
@@ -170,52 +170,52 @@ jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 
 ### 6.1 Kassenbetrieb (Service-Bereich)
 
-| Feature                       | Beschreibung                                                                                                  |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Bestellungen aufnehmen**    | Produkte und Varianten auswählen, Menge wählen, Steuersatz je Variante, auf den Tisch buchen                  |
-| **Ausgabe bestätigen**        | Bestellte Positionen als ausgegeben markieren                                                                 |
-| **Zahlung kassieren**         | Am Tisch kassieren — Teilzahlung und Rückgeldberechnung                                                       |
-| **Stornierungen**             | Falschbestellungen rückgängig machen (nur Serviceleitung/Admin, Pflichtkommentar)                             |
-| **Auszahlung leisten**        | Negativen Saldo ausgleichen — z. B. nach Stornierung bereits kassierter Positionen (nur Serviceleitung/Admin) |
-| **Bestellungen umbuchen**     | Bestellung auf einen anderen Tisch umbuchen (atomare Stornierung + Neubestellung)                             |
-| **Tisch-Übersicht**           | Offener Saldo, bestellte/ausgegebene/bezahlte Positionen, Bestellhistorie auf einen Blick                     |
-| **Tisch-Favoriten**           | Eigene Tische markieren — „Meine Tische" als Rich Cards auf dem Dashboard                                     |
-| **Tisch-Schnellsuche**        | Tische per Name oder Nummer filtern — sofort den richtigen Tisch finden                                       |
-| **Küchendisplay (KDS)**       | Eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe anzeigen                       |
-| **Ausgabestationen**          | Zubereitungsstatus verwalten — Servicekräfte sehen, wann Positionen abholbereit sind                          |
-| **Bon-Druck**                 | Bestell- und Küchenbons automatisch an zugeordnete Bondrucker senden (pro Kategorie konfigurierbar)           |
+| Feature                    | Beschreibung                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Bestellungen aufnehmen** | Produkte und Varianten auswählen, Menge wählen, Steuersatz je Variante, auf den Tisch buchen                  |
+| **Ausgabe bestätigen**     | Bestellte Positionen als ausgegeben markieren                                                                 |
+| **Zahlung kassieren**      | Am Tisch kassieren — Teilzahlung und Rückgeldberechnung                                                       |
+| **Stornierungen**          | Falschbestellungen rückgängig machen (nur Serviceleitung/Admin, Pflichtkommentar)                             |
+| **Auszahlung leisten**     | Negativen Saldo ausgleichen — z. B. nach Stornierung bereits kassierter Positionen (nur Serviceleitung/Admin) |
+| **Bestellungen umbuchen**  | Bestellung auf einen anderen Tisch umbuchen (atomare Stornierung + Neubestellung)                             |
+| **Tisch-Übersicht**        | Offener Saldo, bestellte/ausgegebene/bezahlte Positionen, Bestellhistorie auf einen Blick                     |
+| **Tisch-Favoriten**        | Eigene Tische markieren — „Meine Tische" als Rich Cards auf dem Dashboard                                     |
+| **Tisch-Schnellsuche**     | Tische per Name oder Nummer filtern — sofort den richtigen Tisch finden                                       |
+| **Küchendisplay (KDS)**    | Eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe anzeigen                       |
+| **Ausgabestationen**       | Zubereitungsstatus verwalten — Servicekräfte sehen, wann Positionen abholbereit sind                          |
+| **Bon-Druck**              | Bestell- und Küchenbons automatisch an zugeordnete Bondrucker senden (pro Kategorie konfigurierbar)           |
 
 ### 6.2 Verwaltung (Admin-Bereich)
 
-| Feature                       | Beschreibung                                                                                           |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Produktverwaltung**         | Produkte mit Varianten (Größe, Preis, Steuersatz) anlegen und bearbeiten                               |
-| **Tischverwaltung**           | Tische anlegen, benennen, aktivieren/deaktivieren                                                      |
-| **Benutzerverwaltung**        | Accounts erstellen, Rollen zuweisen, Passwörter zurücksetzen                                           |
-| **Betreiber-Stammdaten**      | Vereinsname, Adresse und Steuernummer pflegen — für Belege, Z-Bons und DSFinV-K                        |
-| **Rollenmodell**              | Drei Rollen: Admin, Serviceleitung, Servicekraft                                                       |
+| Feature                  | Beschreibung                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| **Produktverwaltung**    | Produkte mit Varianten (Größe, Preis, Steuersatz) anlegen und bearbeiten        |
+| **Tischverwaltung**      | Tische anlegen, benennen, aktivieren/deaktivieren                               |
+| **Benutzerverwaltung**   | Accounts erstellen, Rollen zuweisen, Passwörter zurücksetzen                    |
+| **Betreiber-Stammdaten** | Vereinsname, Adresse und Steuernummer pflegen — für Belege, Z-Bons und DSFinV-K |
+| **Rollenmodell**         | Drei Rollen: Admin, Serviceleitung, Servicekraft                                |
 
 ### 6.3 Kassenführung (Admin-Bereich)
 
-| Feature                       | Beschreibung                                                                                           |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Abrechnungskreis**          | Fortlaufend nummerierte Kassensitzungen eröffnen und schließen                                         |
-| **Anfangsbestand**            | Wechselgeld zu Beginn einer Veranstaltung erfassen                                                     |
-| **Kassenbestand**             | Soll-Kassenbestand jederzeit einsehen — aufgeschlüsselt nach Komponenten                               |
-| **Kassenbewegungen**          | Geldtransit, Privatentnahmen und Privateinlagen buchen                                                 |
-| **Kassensturz**               | Ist-Bestand eingeben, Differenz zum Soll berechnen, Abweichung automatisch buchen                      |
-| **Tagesabschluss (Z-Bon)**    | Formaler Tagesabschluss mit fortlaufender Nummer, Umsatzaggregation und Stammdaten-Snapshot            |
+| Feature                    | Beschreibung                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| **Abrechnungskreis**       | Fortlaufend nummerierte Kassensitzungen eröffnen und schließen                              |
+| **Anfangsbestand**         | Wechselgeld zu Beginn einer Veranstaltung erfassen                                          |
+| **Kassenbestand**          | Soll-Kassenbestand jederzeit einsehen — aufgeschlüsselt nach Komponenten                    |
+| **Kassenbewegungen**       | Geldtransit, Privatentnahmen und Privateinlagen buchen                                      |
+| **Kassensturz**            | Ist-Bestand eingeben, Differenz zum Soll berechnen, Abweichung automatisch buchen           |
+| **Tagesabschluss (Z-Bon)** | Formaler Tagesabschluss mit fortlaufender Nummer, Umsatzaggregation und Stammdaten-Snapshot |
 
 ### 6.4 Abrechnung und Reporting
 
-| Feature                         | Beschreibung                                                                                           |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Tagesabrechnung**             | Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge — nach Steuersatz aufgeschlüsselt         |
-| **Abrechnung pro Tisch**        | Detaillierte Aufstellung aller Bestellungen, Zahlungen und Stornierungen je Tisch                      |
-| **Abrechnung pro Servicekraft** | Umsatz und Transaktionen pro Servicekraft — für Transparenz und Nachvollziehbarkeit                    |
-| **Produktumsatz-Reporting**     | Verkaufte Mengen pro Variante, Ranking der meistverkauften Artikel, Gesamteinnahmen pro Produkt        |
-| **Datenexport (CSV)**           | Umsätze, Bestellungen und Artikeldaten als CSV exportieren — für die Vereinsbuchhaltung                |
-| **DSFinV-K-Export**             | Maschinenlesbarer Export aller Kassendaten für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.4)    |
+| Feature                         | Beschreibung                                                                                        |
+| ------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Tagesabrechnung**             | Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge — nach Steuersatz aufgeschlüsselt      |
+| **Abrechnung pro Tisch**        | Detaillierte Aufstellung aller Bestellungen, Zahlungen und Stornierungen je Tisch                   |
+| **Abrechnung pro Servicekraft** | Umsatz und Transaktionen pro Servicekraft — für Transparenz und Nachvollziehbarkeit                 |
+| **Produktumsatz-Reporting**     | Verkaufte Mengen pro Variante, Ranking der meistverkauften Artikel, Gesamteinnahmen pro Produkt     |
+| **Datenexport (CSV)**           | Umsätze, Bestellungen und Artikeldaten als CSV exportieren — für die Vereinsbuchhaltung             |
+| **DSFinV-K-Export**             | Maschinenlesbarer Export aller Kassendaten für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.4) |
 
 ### 6.5 Sicherheit und Compliance
 
@@ -225,9 +225,9 @@ jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 | **JWT-Authentifizierung**            | Sichere, tokenbasierte Anmeldung                                                                |
 | **Rollenbasierte Zugriffskontrolle** | Jede Rolle sieht nur, was sie darf                                                              |
 | **Event-Sourcing**                   | Lückenlose, unveränderliche Bestellhistorie — GoBD-konform durch Append-only-Architektur        |
-| **Kryptografische Hash-Chain**       | SHA-256-Verkettung aller Events — nachträgliche Manipulation ist nachweisbar                     |
+| **Kryptografische Hash-Chain**       | SHA-256-Verkettung aller Events — nachträgliche Manipulation ist nachweisbar                    |
 | **TSE-Anbindung (Cloud-TSE)**        | Integrierte TSE-Schnittstelle mit fiskaly-Adapter — jeder Vorgang wird signiert und abgesichert |
-| **Belegausgabe**                     | Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse               |
+| **Belegausgabe**                     | Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse              |
 | **Seriennummer der Kasse**           | Automatisch generierte UUID — für ELSTER-Meldung und DSFinV-K                                   |
 | **HTTPS**                            | Verschlüsselte Kommunikation per Let's Encrypt                                                  |
 
@@ -237,24 +237,24 @@ jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 
 ### 7.1 jotti vs. kommerzielle POS-Systeme
 
-| Eigenschaft           | jotti                                                                      | Orderbird / Toast / Zettle           |
-| --------------------- | -------------------------------------------------------------------------- | ------------------------------------ |
-| **Preis**             | Kostenlos                                                                  | 30–100 €/Monat + Hardware            |
-| **Hardware**          | Keine — eigenes Smartphone (BYOD)                                          | Dedizierte Terminals, iPad, Drucker  |
-| **Hosting**           | Self-hosted (Docker)                                                       | Cloud-SaaS                           |
-| **Zielgruppe**        | Vereine, gemeinnützige Organisationen                                      | Gastronomie-Betriebe, Restaurants    |
-| **Zahlungsarten**     | Bargeld                                                                    | Karte, NFC, Online-Payment           |
-| **Fiskalkonformität** | KassenSichV-konform: TSE (Cloud-TSE via fiskaly), DSFinV-K, Belegausgabe   | Zertifizierte TSE, GoBD, KassenSichV |
-| **Offline-Modus**     | Server-basiert (lokales WLAN reicht)                                       | Cloud-abhängig oder Hybrid           |
-| **Einrichtungszeit**  | Minuten (Docker Compose)                                                   | Tage bis Wochen                      |
-| **Schulung**          | Keine — intuitive Mobile-UI                                                | Oft erforderlich                     |
-| **Vertragslaufzeit**  | Keine                                                                      | 12–24 Monate                         |
-| **Datenhoheit**       | Volle Kontrolle (eigener Server)                                           | Daten beim Anbieter                  |
-| **Quellcode**         | Einsehbar (Source-Available)                                               | Proprietär                           |
-| **Küchendisplay**     | Integriertes KDS mit Zubereitungsstatus                                    | Meist kostenpflichtiges Add-on       |
-| **Bon-Druck**         | Bondrucker-Anbindung (pro Kategorie konfigurierbar)                        | Standard (oft proprietär)            |
-| **Kassenführung**     | Abrechnungskreis, Kassensturz, Z-Bon, Kassenbewegungen                    | Vergleichbare Funktionen             |
-| **Abrechnung**        | Tagesabrechnung, pro Tisch, pro Servicekraft, Produktumsätze, CSV-Export   | Umfangreiche Reporting-Suites        |
+| Eigenschaft           | jotti                                                                    | Orderbird / Toast / Zettle           |
+| --------------------- | ------------------------------------------------------------------------ | ------------------------------------ |
+| **Preis**             | Kostenlos                                                                | 30–100 €/Monat + Hardware            |
+| **Hardware**          | Keine — eigenes Smartphone (BYOD)                                        | Dedizierte Terminals, iPad, Drucker  |
+| **Hosting**           | Self-hosted (Docker)                                                     | Cloud-SaaS                           |
+| **Zielgruppe**        | Vereine, gemeinnützige Organisationen                                    | Gastronomie-Betriebe, Restaurants    |
+| **Zahlungsarten**     | Bargeld                                                                  | Karte, NFC, Online-Payment           |
+| **Fiskalkonformität** | KassenSichV-konform: TSE (Cloud-TSE via fiskaly), DSFinV-K, Belegausgabe | Zertifizierte TSE, GoBD, KassenSichV |
+| **Offline-Modus**     | Server-basiert (lokales WLAN reicht)                                     | Cloud-abhängig oder Hybrid           |
+| **Einrichtungszeit**  | Minuten (Docker Compose)                                                 | Tage bis Wochen                      |
+| **Schulung**          | Keine — intuitive Mobile-UI                                              | Oft erforderlich                     |
+| **Vertragslaufzeit**  | Keine                                                                    | 12–24 Monate                         |
+| **Datenhoheit**       | Volle Kontrolle (eigener Server)                                         | Daten beim Anbieter                  |
+| **Quellcode**         | Einsehbar (Source-Available)                                             | Proprietär                           |
+| **Küchendisplay**     | Integriertes KDS mit Zubereitungsstatus                                  | Meist kostenpflichtiges Add-on       |
+| **Bon-Druck**         | Bondrucker-Anbindung (pro Kategorie konfigurierbar)                      | Standard (oft proprietär)            |
+| **Kassenführung**     | Abrechnungskreis, Kassensturz, Z-Bon, Kassenbewegungen                   | Vergleichbare Funktionen             |
+| **Abrechnung**        | Tagesabrechnung, pro Tisch, pro Servicekraft, Produktumsätze, CSV-Export | Umfangreiche Reporting-Suites        |
 
 ### 7.2 Was jotti bewusst NICHT ist
 
@@ -274,19 +274,19 @@ Diese bewusste Reduktion ist ein Feature, kein Mangel. Jedes zusätzliche Featur
 
 jotti ist ein **elektronisches Aufzeichnungssystem** im Sinne von § 1 KassenSichV und erfüllt die TSE-Pflicht nach § 146a AO — unabhängig von der Rechtsform des Betreibers (e.V., gGmbH, Stiftung) oder dem temporären Charakter einer Veranstaltung.
 
-| Anforderung                            | Umsetzung                                                                                         |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Event-Sourcing (Unveränderbarkeit)** | Append-Only-Architektur — nachträgliche Änderung ist technisch unmöglich                          |
-| **Kryptografische Hash-Chain**         | SHA-256-Verkettung aller Events — jede Manipulation ist nachweisbar (GoBD)                         |
-| **Kassenjournal**                      | Lückenlose, chronologische Transaktionshistorie                                                   |
-| **TSE-Anbindung**                      | Integrierte Cloud-TSE-Schnittstelle (fiskaly) — jeder Vorgang wird signiert                       |
+| Anforderung                            | Umsetzung                                                                                            |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Event-Sourcing (Unveränderbarkeit)** | Append-Only-Architektur — nachträgliche Änderung ist technisch unmöglich                             |
+| **Kryptografische Hash-Chain**         | SHA-256-Verkettung aller Events — jede Manipulation ist nachweisbar (GoBD)                           |
+| **Kassenjournal**                      | Lückenlose, chronologische Transaktionshistorie                                                      |
+| **TSE-Anbindung**                      | Integrierte Cloud-TSE-Schnittstelle (fiskaly) — jeder Vorgang wird signiert                          |
 | **Belegausgabe**                       | Gesetzeskonforme Belege mit allen Pflichtfeldern nach § 6 KassenSichV inkl. TSE-Signatur und QR-Code |
-| **Seriennummer der Kasse**             | UUID wird beim ersten Start generiert und dauerhaft gespeichert                                   |
-| **Steuersätze**                        | 19 % (Standard), 7 % (ermäßigt), 0 % (steuerbefreit) — konfigurierbar pro Produktvariante         |
-| **Abrechnungskreis**                   | Fortlaufend nummerierte Kassensitzungen mit Eröffnung und Tagesabschluss                          |
-| **Tagesabschluss (Z-Bon)**             | Immutables Dokument mit fortlaufender Nummer, Umsatzaggregation und Stammdaten-Snapshot           |
-| **DSFinV-K-Export**                    | Vollständiger Export als ZIP-Archiv (CSV + index.xml) nach DSFinV-K v2.4                          |
-| **ELSTER-Meldepflicht**               | Dokumentierte Anleitung für die manuelle Meldung; Seriennummer im Admin-Dashboard                  |
+| **Seriennummer der Kasse**             | UUID wird beim ersten Start generiert und dauerhaft gespeichert                                      |
+| **Steuersätze**                        | 19 % (Standard), 7 % (ermäßigt), 0 % (steuerbefreit) — konfigurierbar pro Produktvariante            |
+| **Abrechnungskreis**                   | Fortlaufend nummerierte Kassensitzungen mit Eröffnung und Tagesabschluss                             |
+| **Tagesabschluss (Z-Bon)**             | Immutables Dokument mit fortlaufender Nummer, Umsatzaggregation und Stammdaten-Snapshot              |
+| **DSFinV-K-Export**                    | Vollständiger Export als ZIP-Archiv (CSV + index.xml) nach DSFinV-K v2.4                             |
+| **ELSTER-Meldepflicht**                | Dokumentierte Anleitung für die manuelle Meldung; Seriennummer im Admin-Dashboard                    |
 
 **Architekturprinzip:** Die Smartphones der Servicekräfte fungieren als reine Eingabegeräte — die TSE-Anbindung, Protokollierung und DSFinV-K-Persistenz erfolgen zentral im Backend. Die Webapp blockiert bei Verbindungsunterbrechung sofort (kein Offline-Kassieren), damit diese Einordnung rechtlich haltbar bleibt.
 
@@ -296,15 +296,15 @@ jotti ist ein **elektronisches Aufzeichnungssystem** im Sinne von § 1 KassenSic
 
 ### 7.4 Einsatzprofil
 
-| Kriterium                | jotti geeignet für                                    | jotti NICHT geeignet für                        |
-| ------------------------ | ----------------------------------------------------- | ----------------------------------------------- |
-| Betriebsart              | Temporäre Veranstaltungen (1–3 Tage)                  | Dauerbetrieb (Restaurant, Café)                 |
-| Organisation             | Vereine, gemeinnützige Orgs, NPOs                     | Kommerzielle Gastro-Betriebe                    |
-| Zahlungsart              | Bargeld                                               | Kartenzahlung, NFC, Online                      |
-| Team                     | Ehrenamtliche Helfer (5–30 Personen)                  | Professionelles Gastro-Personal                 |
-| Fiskalkonformität        | KassenSichV-konform (TSE, DSFinV-K, Belegausgabe)     | —                                               |
-| Veranstaltungsgröße      | Klein bis mittel (5–50 Tische)                        | Großveranstaltungen mit 100+ Tischen            |
-| Technische Infrastruktur | WLAN + ein Server (auch Raspberry Pi möglich)         | Kein Server oder kein WLAN verfügbar            |
+| Kriterium                | jotti geeignet für                                | jotti NICHT geeignet für             |
+| ------------------------ | ------------------------------------------------- | ------------------------------------ |
+| Betriebsart              | Temporäre Veranstaltungen (1–3 Tage)              | Dauerbetrieb (Restaurant, Café)      |
+| Organisation             | Vereine, gemeinnützige Orgs, NPOs                 | Kommerzielle Gastro-Betriebe         |
+| Zahlungsart              | Bargeld                                           | Kartenzahlung, NFC, Online           |
+| Team                     | Ehrenamtliche Helfer (5–30 Personen)              | Professionelles Gastro-Personal      |
+| Fiskalkonformität        | KassenSichV-konform (TSE, DSFinV-K, Belegausgabe) | —                                    |
+| Veranstaltungsgröße      | Klein bis mittel (5–50 Tische)                    | Großveranstaltungen mit 100+ Tischen |
+| Technische Infrastruktur | WLAN + ein Server (auch Raspberry Pi möglich)     | Kein Server oder kein WLAN verfügbar |
 
 ---
 
@@ -319,7 +319,7 @@ jotti ist ein **elektronisches Aufzeichnungssystem** im Sinne von § 1 KassenSic
 | 3   | **In Minuten einsatzbereit** | Docker Compose starten, Produkte anlegen, Team einladen — fertig. Keine wochenlange Einrichtung.                              |
 | 4   | **Lückenlose Transparenz**   | Event-Sourcing garantiert eine unveränderliche Bestellhistorie. Jede Bestellung, Zahlung und Stornierung ist nachvollziehbar. |
 | 5   | **Volle Datenhoheit**        | Self-hosted auf dem eigenen Server. Keine Daten in fremden Clouds. Der Verein behält die volle Kontrolle.                     |
-| 6   | **Fiskalkonform ab Werk**    | TSE-Anbindung, DSFinV-K-Export, Belegausgabe und Tagesabschluss — KassenSichV-konform, ohne Zusatzkosten für die Software.   |
+| 6   | **Fiskalkonform ab Werk**    | TSE-Anbindung, DSFinV-K-Export, Belegausgabe und Tagesabschluss — KassenSichV-konform, ohne Zusatzkosten für die Software.    |
 
 ### 8.2 Der jotti-Vorteil in einem Satz
 
@@ -331,15 +331,17 @@ jotti ist ein **elektronisches Aufzeichnungssystem** im Sinne von § 1 KassenSic
 
 ### 9.1 Lizenzmodell
 
-jotti ist lizenziert unter **AGPL-3.0-or-later mit Zusatzbedingungen** (Source-Available, Non-Commercial).
+jotti steht unter einer **proprietären Source-Available-Lizenz**. Der Quellcode ist öffentlich einsehbar, aber es werden keine Nutzungsrechte automatisch gewährt. Jede Nutzung erfordert eine vorherige schriftliche **Nutzungsvereinbarung** mit dem Autor (Nico Gräf).
 
 | Nutzungsfall                                                | Erlaubt?                          |
 | ----------------------------------------------------------- | --------------------------------- |
-| Eingetragene Vereine (e.V.) für eigene Veranstaltungen      | ✅ Kostenlos                      |
-| Gemeinnützige Organisationen (gGmbH, gUG, Stiftungen, NGOs) | ✅ Kostenlos                      |
-| Nicht-kommerzieller Fork unter gleichen Lizenzbedingungen   | ✅ Kostenlos                      |
+| Quellcode lesen (Lernen, Evaluation, Sicherheitsaudit)      | ✅ Ohne Vereinbarung              |
+| Pull Requests an das offizielle Repo (unter CLA)            | ✅ Ohne Vereinbarung              |
+| Eingetragene Vereine (e.V.) für eigene Veranstaltungen      | ✅ Kostenlos (mit Vereinbarung)   |
+| Gemeinnützige Organisationen (gGmbH, gUG, Stiftungen, NGOs) | ✅ Kostenlos (mit Vereinbarung)   |
+| Nutzung ohne Vereinbarung                                   | ❌ Nicht erlaubt                  |
+| Forks, Modifikation, Weitergabe                             | ❌ Nicht erlaubt                  |
 | Kommerzielles SaaS oder gewerbliche Nutzung                 | ❌ Nicht ohne kommerzielle Lizenz |
-| Proprietäre Abspaltung                                      | ❌ Nicht erlaubt                  |
 
 ### 9.2 Was „kostenlos" bedeutet
 
@@ -353,12 +355,12 @@ jotti ist lizenziert unter **AGPL-3.0-or-later mit Zusatzbedingungen** (Source-A
 
 Die einzigen Kosten, die entstehen, sind Infrastrukturkosten für das Hosting und ggf. die Cloud-TSE — diese fallen unabhängig von jotti an:
 
-| Kostenart                   | Geschätzte Kosten                               |
-| --------------------------- | ----------------------------------------------- |
-| VPS (z. B. Hetzner, Netcup) | ~3–5 €/Monat                                    |
-| Raspberry Pi (selbst)       | ~50 € einmalig                                  |
-| Vereinseigener Server       | 0 € (bereits vorhanden)                         |
-| Cloud-TSE (z. B. fiskaly)   | Abhängig vom Anbieter (BYOT — eigener Vertrag)  |
+| Kostenart                   | Geschätzte Kosten                              |
+| --------------------------- | ---------------------------------------------- |
+| VPS (z. B. Hetzner, Netcup) | ~3–5 €/Monat                                   |
+| Raspberry Pi (selbst)       | ~50 € einmalig                                 |
+| Vereinseigener Server       | 0 € (bereits vorhanden)                        |
+| Cloud-TSE (z. B. fiskaly)   | Abhängig vom Anbieter (BYOT — eigener Vertrag) |
 
 ---
 
@@ -392,14 +394,14 @@ Die einzigen Kosten, die entstehen, sind Infrastrukturkosten für das Hosting un
 
 ### 10.4 Einzeiler für verschiedene Kontexte
 
-| Kontext         | Text                                                                                                                                  |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| GitHub Topics   | `pos`, `point-of-sale`, `mpos`, `gastro`, `non-profit`, `volunteer`, `festival`, `source-available`, `self-hosted`, `kassensichv`     |
-| GitHub About    | Free, source-available mobile POS for non-profit events. Self-hosted, mobile-first, fiscally compliant. No hardware needed.           |
-| Technisch       | Mobile-first POS mit Event-Sourcing, TSE-Integration, Go-Backend, React-Frontend — self-hosted per Docker Compose.                    |
-| Nicht-technisch | Das kostenlose Kassensystem für Vereinsfeste — auf jedem Smartphone, ohne Abo, ohne Hardware, finanzamtssicher.                       |
-| Vereinsvorstand | Produkte und Tische anlegen, Team einladen, loslegen. Abrechnung, Tagesabschluss und DSFinV-K-Export auf Knopfdruck.                  |
-| Servicekraft    | Browser öffnen, Tisch wählen, bestellen, Ausgabe bestätigen, kassieren. Fertig.                                                       |
+| Kontext         | Text                                                                                                                              |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub Topics   | `pos`, `point-of-sale`, `mpos`, `gastro`, `non-profit`, `volunteer`, `festival`, `source-available`, `self-hosted`, `kassensichv` |
+| GitHub About    | Free, source-available mobile POS for non-profit events. Self-hosted, mobile-first, fiscally compliant. No hardware needed.       |
+| Technisch       | Mobile-first POS mit Event-Sourcing, TSE-Integration, Go-Backend, React-Frontend — self-hosted per Docker Compose.                |
+| Nicht-technisch | Das kostenlose Kassensystem für Vereinsfeste — auf jedem Smartphone, ohne Abo, ohne Hardware, finanzamtssicher.                   |
+| Vereinsvorstand | Produkte und Tische anlegen, Team einladen, loslegen. Abrechnung, Tagesabschluss und DSFinV-K-Export auf Knopfdruck.              |
+| Servicekraft    | Browser öffnen, Tisch wählen, bestellen, Ausgabe bestätigen, kassieren. Fertig.                                                   |
 
 ### 10.5 SEO-Keywords
 

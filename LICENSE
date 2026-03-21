@@ -1,87 +1,216 @@
-                    GNU AFFERO GENERAL PUBLIC LICENSE
-                       Version 3, 19 November 2007
+             JOTTI — PROPRIETARY SOURCE-AVAILABLE LICENSE
 
-Copyright (c) 2025 Nico Gräf
+                    Version 1.0, 21 March 2026
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published
-by the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+Copyright (c) 2025-2026 Nico Gräf, Freiburg im Breisgau, Germany.
+All rights reserved.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
+This software, including all source code, documentation, architecture, design,
+and associated artifacts ("Software"), is the sole intellectual property of
+Nico Gräf ("Author").
 
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
+The source code is made publicly available for transparency, trust, and
+security auditing. Publication of the source code does NOT constitute a grant
+of any rights. This is NOT an open-source license. This is NOT a free software
+license. All rights are expressly reserved unless granted by a separate written
+license agreement.
 
-                          ADDITIONAL CONDITIONS
+===========================================================================
 
-jotti is the sole intellectual property of Nico Gräf ("Author").
+1. NO AUTOMATIC RIGHTS GRANTED
 
-These Additional Conditions restrict and limit the rights granted under the
-GNU Affero General Public License v3 ("AGPL-3.0"). The Author's license grant
-to you consists of the AGPL-3.0 rights SUBJECT TO the restrictions set out
-below. The AGPL-3.0 text is not modified; rather, these conditions narrow the
-scope of the rights the Author grants to you.
+   No rights are granted by the mere publication or availability of the source
+   code. All rights — including but not limited to use, copying, modification,
+   distribution, sublicensing, display, performance, and creating derivative
+   works — are expressly reserved by the Author.
 
-NOTE: As a result of these Additional Conditions, this software is NOT licensed
-under a standard AGPL-3.0 license and is NOT certified as "Open Source" under
-the OSI definition. It is a source-available, non-commercial, copyleft license.
+2. PERMITTED ACTIVITIES WITHOUT A LICENSE AGREEMENT
 
-1. NON-COMMERCIAL USE RESTRICTION
+   The following activities are permitted without a license agreement:
 
-   The Author does not grant you the right to use the Software or any Covered
-   Work derived from it for Commercial Purposes. Any exercise of AGPL-3.0 rights
-   for Commercial Purposes requires a separate written commercial license from
+   a) Viewing and reading the source code for personal educational purposes,
+   technical evaluation, or security auditing;
+   b) Submitting contributions (Pull Requests) to the Author's official
+   repository, subject to the Contributor License Agreement (CLA)
+   published in the repository.
+
+   These permissions do NOT include the right to use, deploy, host, run,
+   install, copy, modify, or distribute the Software or any part thereof.
+
+3. USE REQUIRES A WRITTEN LICENSE AGREEMENT
+
+   Any use of the Software — including but not limited to installation,
+   deployment, hosting, running, operating, or making available to users —
+   requires a prior written license agreement with the Author.
+
+   The Author offers free-of-charge license agreements for non-commercial
+   use by qualifying non-profit organizations, in particular:
+   - Registered associations (eingetragene Vereine, e.V.) under
+     German civil law (§§ 21 ff. BGB);
+   - Registered charitable foundations (gemeinnützige Stiftungen);
+   - Charitable limited liability companies (gGmbH) and charitable
+     entrepreneurial companies (gUG);
+   - Other registered non-profit organizations (NGOs/NPOs) without
+     profit motive and with verifiable charitable status.
+
+   To request a license agreement, contact the Author via:
+
+   https://github.com/nicograef/jotti
+
+4. PROHIBITION OF COMMERCIAL USE
+
+   Commercial use of the Software is strictly prohibited without a separate
+   written commercial license from the Author.
+
+   "Commercial use" means any use primarily intended for or directed toward
+   commercial advantage or monetary compensation, including but not limited to:
+
+   a) Selling or offering access to the Software or any part thereof as a
+   paid service (SaaS, hosted solution, subscription model, managed
+   service);
+   b) Incorporating the Software or any part thereof into a commercial
+   product or paid service offering;
+   c) Using the Software within a for-profit business to generate revenue
+   directly or indirectly;
+   d) Providing the Software as a service to third parties for a fee or
+   any other form of commercial consideration;
+   e) Offering consulting, setup, hosting, or support services based on
+   the Software for a fee, unless separately authorized in writing by
    the Author.
 
-   "Commercial Purposes" means any use primarily intended for or directed
-   toward commercial advantage or private monetary compensation. This includes,
-   without limitation:
+5. PROHIBITION OF MODIFICATION AND DISTRIBUTION
 
-     a) Selling access to the Software or any derivative work as a paid service
-        (e.g., Software-as-a-Service, hosted solution, subscription model);
-     b) Incorporating the Software into a paid product or service offering;
-     c) Using the Software within a for-profit commercial business context to
-        generate revenue directly or indirectly from the Software; or
-     d) Providing the Software as a service to third parties for a fee or any
-        other commercial consideration.
+   You may not modify, adapt, translate, reverse-engineer, or create
+   derivative works based on the Software.
 
-   The following are NOT considered Commercial Purposes and are therefore
-   permitted without a commercial license, subject to condition 2 below:
+   You may not distribute, sublicense, sell, rent, lease, or otherwise make
+   the Software or any part thereof available to third parties — whether in
+   original or modified form, in source or compiled form.
 
-     - Use by registered non-profit organisations (e.g., eingetragene Vereine
-       e.V., gemeinnützige Stiftungen, gGmbH, gUG, NGOs/NPOs) for their own
-       internal operations, provided no revenue is generated from the Software.
-     - Use in a non-commercial open-source project, provided the resulting work
-       is published and operated under these same license terms (see condition 2).
+   Forking the repository for the sole purpose of submitting a Pull Request
+   to the Author's official repository is permitted under section 2(b).
 
-2. SHARE-ALIKE REQUIREMENT FOR DERIVATIVE WORKS
+6. CONTRIBUTOR LICENSE AGREEMENT (CLA)
 
-   If you fork, modify, or distribute the Software or any Covered Work for
-   non-commercial purposes, all derivative works must:
+   By submitting a contribution (Pull Request, patch, or other code
+   submission) to the Author's official repository, the contributor agrees
+   to the Contributor License Agreement (CLA) published in the repository.
 
-     a) Be published as open-source under these exact same license terms,
-        i.e., AGPL-3.0-or-later together with these Additional Conditions,
-        without modification or omission of either part;
-     b) Not impose any additional permissions that would permit Commercial
-        Purposes without a commercial license from the Author; and
-     c) Not be relicensed under more permissive terms that remove the
-        non-commercial restriction or the AGPL copyleft obligation.
+   Under the CLA, contributors grant the Author an irrevocable, perpetual,
+   worldwide, royalty-free, non-exclusive license to use, reproduce, modify,
+   sublicense, relicense, and distribute the contribution under any terms
+   the Author chooses — including proprietary and commercial licenses.
 
-   You may not create or distribute derivative works under any terms that
-   permit Commercial Purposes without a commercial license from the Author.
+   The contributor retains copyright to their contribution but may not
+   revoke the rights granted to the Author.
 
-3. COMMERCIAL LICENSING
+7. DISCLAIMER OF WARRANTY
 
-   To use the Software or any Covered Work for Commercial Purposes, you must
-   obtain a separate written commercial license from the Author. For enquiries,
-   contact the Author via: https://github.com/nicograef/jotti
+   THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTY OF
+   ANY KIND, WHETHER EXPRESS, IMPLIED, OR STATUTORY. THE AUTHOR MAKES NO
+   REPRESENTATIONS OR WARRANTIES REGARDING THE SOFTWARE'S FITNESS FOR ANY
+   PARTICULAR PURPOSE, MERCHANTABILITY, ACCURACY, COMPLETENESS, RELIABILITY,
+   AVAILABILITY, OR COMPLIANCE WITH ANY LAW OR REGULATION.
 
-All rights not explicitly granted by the AGPL-3.0 and these Additional
-Conditions are reserved by the Author.
+   Without limiting the foregoing, the Author specifically disclaims any
+   warranty or representation regarding compliance with fiscal regulations,
+   including but not limited to the German Kassensicherungsverordnung
+   (KassenSichV), Abgabenordnung (§ 146a AO), GoBD, DSFinV-K, or any
+   TSE (Technische Sicherheitseinrichtung) requirements.
 
-For the full AGPL-3.0 license text, see:
-https://www.gnu.org/licenses/agpl-3.0.html
+   The Author provides source code only. The Author does not operate a
+   SaaS product, does not distribute compiled software, does not provide
+   a turnkey solution, and does not guarantee regulatory compliance of any
+   kind. Any organization deploying the Software is solely and exclusively
+   responsible for ensuring compliance with all applicable laws and
+   regulations.
+
+8. LIMITATION OF LIABILITY
+
+   To the maximum extent permitted by applicable law, the Author shall not
+   be liable for any direct, indirect, incidental, special, consequential,
+   or exemplary damages arising from or related to the use, deployment, or
+   inability to use the Software — including but not limited to loss of data,
+   loss of revenue, business interruption, regulatory penalties, or tax
+   assessments.
+
+   Under German law, the following mandatory provisions apply:
+
+   a) The Author's liability is limited to intent (Vorsatz) and gross
+   negligence (grobe Fahrlässigkeit), in accordance with the principles
+   of gratuitous provision (§ 521 BGB — Haftung des Schenkers);
+   b) Liability for injury to life, body, or health remains unaffected
+   (§ 309 Nr. 7a BGB);
+   c) Liability under the German Product Liability Act
+   (Produkthaftungsgesetz) remains unaffected, to the extent applicable.
+
+   The Author is not the operator, distributor, or manufacturer of the
+   Software in any regulatory or product-liability sense. The Author merely
+   makes source code publicly available.
+
+9. INDEMNIFICATION
+
+   Any licensee agrees to indemnify, defend, and hold harmless the Author
+   from and against any and all claims, damages, losses, costs, liabilities,
+   and expenses (including reasonable legal fees and court costs) arising
+   from or related to:
+
+   a) The licensee's use, deployment, operation, or modification of the
+   Software;
+   b) The licensee's failure to comply with applicable laws, regulations,
+   or this license;
+   c) Any claims by third parties (including but not limited to tax
+   authorities, regulatory bodies, employees, customers, or end users)
+   arising from the licensee's use of the Software;
+   d) Any data protection violations resulting from the licensee's
+   operation of the Software.
+
+10. NO SUPPORT, NO MAINTENANCE
+
+    The Author is under no obligation to provide support, maintenance,
+    updates, bug fixes, security patches, or any other services related
+    to the Software. Any assistance provided by the Author is voluntary,
+    non-binding, and does not create any contractual obligation or
+    expectation of continued support.
+
+11. GOVERNING LAW AND JURISDICTION
+
+    This license is governed by and construed in accordance with the laws
+    of the Federal Republic of Germany, excluding the United Nations
+    Convention on Contracts for the International Sale of Goods (CISG).
+
+    The exclusive place of jurisdiction for all disputes arising from or
+    in connection with this license is Freiburg im Breisgau, Germany,
+    to the extent permitted by applicable procedural law.
+
+12. SEVERABILITY
+
+    If any provision of this license is held to be invalid, illegal, or
+    unenforceable by a court of competent jurisdiction, such provision
+    shall be modified to the minimum extent necessary to make it valid
+    and enforceable, or if modification is not possible, shall be severed.
+    The remaining provisions shall continue in full force and effect.
+
+13. ENTIRE AGREEMENT
+
+    This license, together with any written license agreement entered
+    into between the Author and a licensee, constitutes the entire
+    agreement between the parties with respect to the Software. No oral
+    or written representations outside of these documents shall be binding.
+
+14. CONTACT
+
+    For license inquiries, commercial licensing, or questions:
+
+    Repository: https://github.com/nicograef/jotti
+    Author: Nico Gräf, Freiburg im Breisgau, Germany
+
+===========================================================================
+
+HISTORICAL NOTE:
+
+Versions of jotti released prior to 21 March 2026 were published under
+different license terms (MIT, later AGPL-3.0-or-later with Additional
+Conditions). Those historical releases retain their respective original
+license terms. All versions from 21 March 2026 onward are governed
+exclusively by this Proprietary Source-Available License.

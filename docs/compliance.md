@@ -41,16 +41,16 @@ Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Comp
 
 ### Grundsatzentscheidungen (2026-03-19)
 
-| Thema                                | Entscheidung                                                                                                                                                |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Strategische Richtung**            | Compliance-Roadmap: KassenSichV/TSE schrittweise implementieren                                                                                             |
-| **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                                                   |
-| **ABRECHNUNGSKREIS-Session**         | Phase 1: tagesbasiert (neuer `ABRECHNUNGSKREIS` bei jedem Tagesabschluss); Phase 2: manuelle Freigabe durch Servicekraft                                    |
-| **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                                                        |
-| **Kassenmeldung (§ 146a Abs. 4 AO)** | Phase 1: manuell über ELSTER-Webportal; Phase 2: ERiC oder fiskaly-Submission-API                                                                           |
-| **Seriennummer**                     | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern, im Admin-Dashboard anzeigen                                                          |
-| **Belegausgabe BYOD**                | Phase 1: zentraler Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); Phase 2 (optional): digitaler eBeleg via QR-Code als Download-Link |
-| **Rechtliche Rollenverteilung**      | jotti ist Open-Source-Software (kein SaaS); Entwickler implementiert TSE-Schnittstellen; Betreiber (Verein) trägt Betriebspflichten und ELSTER-Meldepflicht |
+| Thema                                | Entscheidung                                                                                                                                                     |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Strategische Richtung**            | Compliance-Roadmap: KassenSichV/TSE schrittweise implementieren                                                                                                  |
+| **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                                                        |
+| **ABRECHNUNGSKREIS-Session**         | Phase 1: tagesbasiert (neuer `ABRECHNUNGSKREIS` bei jedem Tagesabschluss); Phase 2: manuelle Freigabe durch Servicekraft                                         |
+| **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                                                             |
+| **Kassenmeldung (§ 146a Abs. 4 AO)** | Phase 1: manuell über ELSTER-Webportal; Phase 2: ERiC oder fiskaly-Submission-API                                                                                |
+| **Seriennummer**                     | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern, im Admin-Dashboard anzeigen                                                               |
+| **Belegausgabe BYOD**                | Phase 1: zentraler Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); Phase 2 (optional): digitaler eBeleg via QR-Code als Download-Link      |
+| **Rechtliche Rollenverteilung**      | jotti ist Source-Available-Software (kein SaaS); Entwickler implementiert TSE-Schnittstellen; Betreiber (Verein) trägt Betriebspflichten und ELSTER-Meldepflicht |
 
 ---
 
@@ -124,13 +124,13 @@ Ab dem 1. Januar 2025 müssen elektronische Aufzeichnungssysteme dem zuständige
 _(Quelle: § 146a Abs. 4 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
 _(Quelle: BMF-FAQ — https://www.bundesfinanzministerium.de/)_
 
-### 3.7 Sonderfall: Open-Source Self-hosted System — Pflichten des Entwicklers und der Betreiber
+### 3.7 Sonderfall: Source-Available Self-hosted System — Pflichten des Entwicklers und der Betreiber
 
 jotti unterscheidet sich von kommerziellen SaaS-Kassensystemen fundamental: Es wird als quelloffene Software auf GitHub bereitgestellt, und die Vereine betreiben das System eigenverantwortlich auf ihrem eigenen Server (VPS via Docker). Diese Konstellation schafft eine klare Rollentrennung zwischen dem **Entwickler (Hersteller)** und den **Betreibern (Vereine)** — mit jeweils unterschiedlichen Rechtspflichten.
 
 #### a) Pflichten des Entwicklers (Hersteller)
 
-Nach **§ 146a Abs. 1 Satz 5 AO** i.V.m. **§ 379 AO** ist es verboten, Kassensoftware in Verkehr zu bringen oder zu bewerben, die nicht über die **Möglichkeit** verfügt, eine zertifizierte TSE anzubinden. Das kostenlose Bereitstellen von Code auf GitHub gilt als „In-Verkehr-Bringen" — der Open-Source-Charakter des Projekts ändert daran nichts.
+Nach **§ 146a Abs. 1 Satz 5 AO** i.V.m. **§ 379 AO** ist es verboten, Kassensoftware in Verkehr zu bringen oder zu bewerben, die nicht über die **Möglichkeit** verfügt, eine zertifizierte TSE anzubinden. Das kostenlose Bereitstellen von Code auf GitHub gilt als „In-Verkehr-Bringen“ — der Source-Available-Charakter des Projekts ändert daran nichts.
 
 **Kernpflichten des Entwicklers:**
 
@@ -327,7 +327,7 @@ Da jotti auf einem VPS ohne physische Kassenhardware betrieben wird, gibt es kei
 Kassen-ID: 7f3a9d12-84e1-4b2c-9f6a-1234567890ab
 ```
 
-Die UUID ist herstellerunabhängig, weltweit eindeutig und erfordert keine zentrale Registrierung — ideal für ein Self-hosted Open-Source-System, bei dem der Entwickler keine Kontrolle über die Anzahl der laufenden Instanzen hat.
+Die UUID ist herstellerunabhängig, weltweit eindeutig und erfordert keine zentrale Registrierung — ideal für ein Self-hosted Source-Available-System, bei dem der Entwickler keine Kontrolle über die Anzahl der laufenden Instanzen hat.
 
 #### Architektonische Anforderungen
 
@@ -676,7 +676,7 @@ Die Kassenmeldung umfasst je Kassensystem:
 3. **Meldestatus (Phase 1):** Manuell setzbarer Status in der Admin-UI (z.B. „ausstehend / gemeldet am TT.MM.JJJJ / Fehler") — persistiert in den Stammdaten
 4. **Automatisierte Übermittlung (Phase 2, optional):** Entweder ERiC-Integration oder fiskaly-Submission-API; Entscheidung bei Implementierungsbeginn
 
-### 9.6 Verantwortungsverteilung im Open-Source-Self-hosted-Modell
+### 9.6 Verantwortungsverteilung im Source-Available-Self-hosted-Modell
 
 Die Meldepflicht nach § 146a Abs. 4 AO liegt **ausschließlich beim Betreiber (Verein)**, nicht beim Entwickler der Software. Dies hat folgende praktische Konsequenzen:
 
