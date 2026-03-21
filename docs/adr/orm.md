@@ -14,12 +14,11 @@ jotti ist ein Mobile-Point-of-Sale-System für temporäre Gastronomie-Veranstalt
 
 jotti kombiniert bewusst **zwei unterschiedliche Persistenzstrategien** in einer PostgreSQL-Instanz:
 
-| Bounded Context       | Persistenz         | Tabellen                                           | Zugriffsmuster                               |
-| --------------------- | ------------------ | -------------------------------------------------- | -------------------------------------------- |
-| **Kassenbetrieb**     | Event-Sourcing     | `events` (append-only)                             | INSERT + SELECT, JSONB-Payloads, OCC         |
-| **Stammdaten**        | CRUD + Soft-Delete | `users`, `tische`, `produkte`, `produkt_varianten` | Standard-CRUD, Enum-Filter, JSON-Aggregation |
-| **Ausgabe** (MVP2)    | Event-getrieben    | Projektionen über `events`                         | LISTEN/NOTIFY, Read-only                     |
-| **Abrechnung** (MVP2) | Read-only          | Materialized Views                                 | SQL-Aggregationen, Window Functions          |
+| Bounded Context   | Persistenz                      | Tabellen                                                        | Zugriffsmuster                               |
+| ----------------- | ------------------------------- | --------------------------------------------------------------- | -------------------------------------------- |
+| **Kassenbetrieb** | Event-Sourcing                  | `events` (append-only), `table_state`                           | INSERT + SELECT, JSONB-Payloads, OCC         |
+| **Stammdaten**    | CRUD + Soft-Delete              | `users`, `tische`, `produkte`, `produkt_varianten`              | Standard-CRUD, Enum-Filter, JSON-Aggregation |
+| **Kassenführung** | Immutable Records + Read Models | `kassenbewegungen`, `z_bons`, `kassensturz`, `abrechnungskreis` | INSERT-only, SQL-Aggregationen, CTEs         |
 
 Diese Hybridität ist die **zentrale Constraint** für die Toolwahl: Es gibt keine Gesamtlösung „ein ORM für alles".
 
@@ -377,13 +376,12 @@ SQL + Go-Structs kennt jeder Go-Entwickler. Kein proprietäres Schema-DSL (ent),
 
 ### 4.2 Differenzierung pro Bounded Context
 
-| Bounded Context       | Tool | Begründung                                                                          |
-| --------------------- | ---- | ----------------------------------------------------------------------------------- |
-| **Kassenbetrieb**     | sqlc | Append-only INSERT, CTE-Replay, JSONB-Payloads, OCC-Version                         |
-| **Stammdaten**        | sqlc | Konsistenz mit Event Store, Soft-Delete explizit in SQL, `json_agg()` für Varianten |
-| **Ausgabe** (MVP2)    | sqlc | LISTEN/NOTIFY + Event-Projektion — gleiche Query-Patterns                           |
-| **Abrechnung** (MVP2) | sqlc | Materialized Views, Window Functions, CTEs — PostgreSQL-nativ                       |
-| **Validierung**       | zog  | Unabhängig von Persistenz — Backend validiert vor DB-Zugriff                        |
+| Bounded Context   | Tool | Begründung                                                                          |
+| ----------------- | ---- | ----------------------------------------------------------------------------------- |
+| **Kassenbetrieb** | sqlc | Append-only INSERT, JSONB-Payloads, OCC-Version, synchrone Projektion               |
+| **Stammdaten**    | sqlc | Konsistenz mit Event Store, Soft-Delete explizit in SQL, `json_agg()` für Varianten |
+| **Kassenführung** | sqlc | INSERT-only Records, SQL-Aggregationen für Kassenbestand und Z-Bon, CTEs            |
+| **Validierung**   | zog  | Unabhängig von Persistenz — Backend validiert vor DB-Zugriff                        |
 
 ---
 

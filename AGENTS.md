@@ -31,12 +31,13 @@ Alle funktionalen und querschnittlichen Anforderungen mit Akzeptanzkriterien, Pr
 Architektur, Bounded Contexts, Domain-Modelle, Invarianten, Event-Sourcing-Details.
 
 - **§1 Überblick:** Systemvision, Designziele, bewusste Abgrenzung
-- **§2 Bounded Contexts:** Kontextübersicht (Kassenbetrieb, Stammdaten, Ausgabe, Abrechnung, Auth), Beziehungen (ACL, Fat Events)
+- **§2 Bounded Contexts:** Kontextsübersicht (Kassenbetrieb, Kassenführung, Stammdaten, Auth), Beziehungen (ACL, Fat Events)
 - **§3 Kassenbetrieb (Core Domain):** Tisch-Aggregat, Invarianten (Saldo, Ausgabe-, Bezahl-, Stornierungsinvariante), Domain Events (BestellungAufgenommen, AusgabeBestaetigt, ZahlungKassiert, StornierungErteilt), Event Replay + Snapshots, Policies
 - **§4 Stammdaten:** Produkt-Aggregat (Varianten, Kategorien), Tisch-Stammdaten, Benutzer-Aggregat, CRUD-Persistenz
-- **§5 Auth und Rollen:** Berechtigungsmatrix, Onboarding-Ablauf
-- **§6 Architekturprinzipien:** Schichtenarchitektur, API-Design, Frontend-Architektur, Validierung, Geldbeträge, OCC, Sicherheit
-- **§7 Read Models:** Service-Read-Models (Tisch-Saldo, Unbezahlt, Ausstehend, Historie)
+- **§5 Kassenführung (Supporting Sub-Domain):** Abrechnungskreis, Anfangsbestand, Kassenbestand, Kassenbewegungen, Kassensturz, Tagesabschluss (Z-Bon), Abrechnung/Reporting
+- **§6 Auth und Rollen:** Berechtigungsmatrix, Onboarding-Ablauf
+- **§7 Architekturprinzipien:** Schichtenarchitektur, API-Design, Frontend-Architektur, Validierung, Geldbeträge, OCC, Sicherheit
+- **§8 Read Models:** Service-Read-Models (Tisch-Saldo, Unbezahlt, Ausstehend, Historie)
 
 → Lesen bei: Architekturentscheidungen, Invarianten prüfen, Event-Strukturen verstehen, neue Schichten/Endpunkte entwerfen.
 

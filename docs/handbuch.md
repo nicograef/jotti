@@ -22,7 +22,7 @@
    - [4.4 Tisch-Favoriten](#44-tisch-favoriten)
    - [4.5 Persistenz (CRUD)](#45-persistenz-crud)
    - [4.6 Ausgabe — Bondruck (K-12)](#46-ausgabe--bondruck-k-12)
-5. [Kassenführung (Core Domain)](#5-kassenführung-core-domain)
+5. [Kassenführung (Supporting Sub-Domain)](#5-kassenführung-supporting-sub-domain)
    - [5.1 Persistenzstrategie: Immutable Records](#51-persistenzstrategie-immutable-records)
    - [5.2 Abrechnungskreis](#52-abrechnungskreis)
    - [5.3 Anfangsbestand](#53-anfangsbestand)
@@ -85,34 +85,29 @@ Folgende Features sind **bewusst nicht enthalten** — jedes zusätzliche Featur
 
 ### 2.1 Kontextübersicht
 
-| Context           | Typ                   | Beschreibung                                                                                      | Persistenz        |
-| ----------------- | --------------------- | ------------------------------------------------------------------------------------------------- | ----------------- |
-| **Kassenbetrieb** | Core Domain           | Tisch-basierte Vorgänge: Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren                      | Event-Sourcing    |
-| **Kassenführung** | Core Domain           | Kassenbestandsführung, Kassensturz, Z-Bon, Geldtransit, Privatentnahme/-einlage, Abrechnungskreis | Immutable Records |
-| **Stammdaten**    | Supporting Sub-Domain | Verwaltung von Produkten, Tischen, Benutzern, Betreiber-Stammdaten (CRUD)                         | CRUD              |
-| **Ausgabe**       | Supporting Sub-Domain | Bondruck, Küchendisplay (KDS), Zubereitungsstatus                                                 | Event-getrieben   |
-| **Abrechnung**    | Supporting Sub-Domain | Tagesabrechnung, Umsatzberichte, Datenexport (Read-only-Projektionen)                             | Read-only         |
-| **Auth**          | Generic Sub-Domain    | Login, Logout, Passwort-Management, Token-Verwaltung                                              | Infrastruktur     |
+| Context           | Typ                   | Beschreibung                                                                                                                                  | Persistenz                      |
+| ----------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| **Kassenbetrieb** | Core Domain           | Tisch-basierte Vorgänge: Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren                                                                  | Event-Sourcing                  |
+| **Kassenführung** | Supporting Sub-Domain | Kassenbestandsführung, Kassensturz, Z-Bon, Geldtransit, Privatentnahme/-einlage, Abrechnungskreis; Tagesabrechnung und Reporting-Projektionen | Immutable Records + Read Models |
+| **Stammdaten**    | Supporting Sub-Domain | Verwaltung von Produkten, Tischen, Benutzern, Betreiber-Stammdaten (CRUD)                                                                     | CRUD                            |
+| **Auth**          | Generic Sub-Domain    | Login, Logout, Passwort-Management, Token-Verwaltung                                                                                          | Infrastruktur                   |
+
+> **Bondruck** (K-12) ist kein eigenständiger Bounded Context, sondern eine **Policy** innerhalb des Kassenbetrieb-Context (→ [3.5 Policies](#35-policies)). Abrechnung/Reporting sind Read Models innerhalb der Kassenführung — kein eigener Context.
 
 ### 2.2 Beziehungen zwischen Kontexten
 
-| Upstream      | Downstream    | Beziehungstyp                     | Beschreibung                                                                             |
-| ------------- | ------------- | --------------------------------- | ---------------------------------------------------------------------------------------- |
-| Stammdaten    | Kassenbetrieb | Customer/Supplier + ACL           | Kassenbetrieb liest Produkte/Tische, friert Daten zum Bestellzeitpunkt in Fat Events ein |
-| Kassenbetrieb | Ausgabe       | Published Language (Event-driven) | Bestellungs-Events triggern KDS-Anzeige und Bon-Druck                                    |
-| Kassenbetrieb | Kassenführung | Published Language (Event-driven) | Zahlungs-/Storno-/Auszahlungs-Events fließen in Kassenbestand-Berechnung ein             |
-| Kassenbetrieb | Abrechnung    | Published Language (Event-driven) | Tisch-Events werden zu Auswertungen projiziert                                           |
-| Stammdaten    | Kassenführung | Customer/Supplier + ACL           | Stammdaten-Snapshots werden im Z-Bon eingefroren (Betreiber, Steuersätze, Kassen-ID)     |
-| Kassenführung | Abrechnung    | Published Language                | Z-Bon-Daten fließen in DSFinV-K Export und historische Auswertungen                      |
-| Auth          | Kassenbetrieb | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                          |
-| Auth          | Kassenführung | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                          |
-| Auth          | Stammdaten    | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                          |
-| Auth          | Ausgabe       | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                          |
-| Auth          | Abrechnung    | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                          |
+| Upstream      | Downstream    | Beziehungstyp                     | Beschreibung                                                                                            |
+| ------------- | ------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Stammdaten    | Kassenbetrieb | Customer/Supplier + ACL           | Kassenbetrieb liest Produkte/Tische, friert Daten zum Bestellzeitpunkt in Fat Events ein                |
+| Kassenbetrieb | Kassenführung | Published Language (Event-driven) | Zahlungs-/Storno-/Auszahlungs-Events fließen in Kassenbestand-Berechnung und Reporting-Projektionen ein |
+| Stammdaten    | Kassenführung | Customer/Supplier + ACL           | Stammdaten-Snapshots werden im Z-Bon eingefroren (Betreiber, Steuersätze, Kassen-ID)                    |
+| Auth          | Kassenbetrieb | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                                         |
+| Auth          | Kassenführung | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                                         |
+| Auth          | Stammdaten    | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                                         |
 
 Der Kassenbetrieb schützt sich über eine **Anti-Corruption Layer (ACL)** vor Stammdaten-Änderungen: Bestellungs-Events enthalten alle relevanten Produktdaten zum Zeitpunkt der Bestellung (Fat Events). Spätere Preisänderungen haben keinen Einfluss auf historische Bestellungen.
 
-Die Kassenführung konsumiert **Zahlungs-, Storno- und Auszahlungs-Events** des Kassenbetrieb-Context zur Kassenbestand-Berechnung (Read Model). Der Z-Bon friert **Stammdaten per ACL** ein (Betreiber-Stammdaten, Steuersätze, Kassen-ID) — ein Stammdaten-Snapshot zum Zeitpunkt des Abschlusses.
+Die Kassenführung konsumiert **Zahlungs-, Storno- und Auszahlungs-Events** des Kassenbetrieb-Context sowohl für die Kassenbestand-Berechnung als auch für Reporting-Projektionen (Tagesabrechnung, Umsatz pro Tisch/Servicekraft). Der Z-Bon friert **Stammdaten per ACL** ein (Betreiber-Stammdaten, Steuersätze, Kassen-ID) — ein Stammdaten-Snapshot zum Zeitpunkt des Abschlusses.
 
 > **Stammdaten-Änderungen während eines offenen Abrechnungskreises:** Da die Kassenführung Stammdaten per ACL im Z-Bon-Snapshot einfriert (analog zu Fat Events im Kassenbetrieb), sind Stammdaten-Änderungen während eines offenen Abrechnungskreises grundsätzlich unproblematisch — sie wirken erst im nächsten Z-Bon. Eine erzwungene Änderungssperre ist nicht nötig; eine Warnung im Admin-UI ist ausreichend.
 
@@ -475,13 +470,13 @@ Ein eigenständiges Go-Binary (`jotti-relay`) ohne Webserver und ohne Installati
 
 Fehlerverhalten: Unerreichbare Drucker werden bis zu `maxRetries` (60) Mal wiederholt. Nach Ablauf der Versuche wird der Auftrag übersprungen und im Log vermerkt. Andere Drucker werden nicht blockiert.
 
-**Abrechnung (Supporting Sub-Domain):** Der Abrechnung-Context konsumiert Tisch-Events und projiziert sie in Read-only-Auswertungen: Tagesabrechnung, Abrechnung pro Tisch/Servicekraft, Produktumsatz und CSV-Datenexport. Alle Reporting-Ansichten sind reine Read Models ohne eigene Events.
+**Abrechnung/Reporting (Teil der Kassenführung):** Tisch-Events werden zu Read-only-Auswertungen projiziert: Tagesabrechnung, Abrechnung pro Tisch/Servicekraft, Produktumsatz und CSV-Datenexport. Alle Reporting-Ansichten sind reine Read Models ohne eigene Events — kein eigenständiger Bounded Context.
 
 ---
 
-## 5. Kassenführung (Core Domain)
+## 5. Kassenführung (Supporting Sub-Domain)
 
-Die Kassenführung umfasst den vollständigen Lifecycle der Registerkasse — von der Eröffnung eines Abrechnungskreises über die laufende Kassenbestandsüberwachung bis zum formellen Tagesabschluss (Z-Bon). Dieser Bounded Context ist gesetzlich zwingend (GoBD, DSFinV-K) und bildet zusammen mit dem Kassenbetrieb (§3) die Core Domain.
+Die Kassenführung umfasst den vollständigen Lifecycle der Registerkasse — von der Eröffnung eines Abrechnungskreises über die laufende Kassenbestandsführung bis zum formellen Tagesabschluss (Z-Bon), einschließlich aller Reporting-Projektionen über Kassenbetrieb-Events. Dieser Bounded Context ist gesetzlich zwingend (GoBD, DSFinV-K) und dient als Compliance-Infrastruktur, die den einzigen Core-Domain-Context (Kassenbetrieb §3) umrahmt.
 
 ### 5.1 Persistenzstrategie: Immutable Records
 

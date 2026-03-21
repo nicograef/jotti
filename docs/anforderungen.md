@@ -794,9 +794,9 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 
 ---
 
-## 8 · Kassenführung (Core Domain)
+## 8 · Kassenführung (Supporting Sub-Domain)
 
-> **Kontext:** Die Kassenführung umfasst den vollständigen Lifecycle der Registerkasse — von der Eröffnung eines Abrechnungskreises über die laufende Kassenbestandsüberwachung bis zum formellen Tagesabschluss (Z-Bon). Dieser Bounded Context ist gesetzlich zwingend (GoBD, DSFinV-K) und bildet zusammen mit dem Tischbetrieb (§1) die Core Domain.
+> **Kontext:** Die Kassenführung umfasst den vollständigen Lifecycle der Registerkasse — von der Eröffnung eines Abrechnungskreises über die laufende Kassenbestandsführung bis zum formellen Tagesabschluss (Z-Bon). Dieser Bounded Context ist gesetzlich zwingend (GoBD, DSFinV-K) und dient als Compliance-Infrastruktur, die den einzigen Core-Domain-Context (Kassenbetrieb §1) umrahmt.
 >
 > **Persistenzstrategie:** Immutable Records (INSERT-only, geschützt durch DB-Trigger gegen UPDATE/DELETE) — kein Event-Sourcing, da keine OCC-Konflikte und kein Replay-Bedarf bestehen.
 >
