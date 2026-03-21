@@ -1,218 +1,295 @@
-# Compliance-Roadmap — jotti
+# Roadmap — jotti
 
-> **Status:** Aktiv — Phasenweise Umsetzung der KassenSichV/TSE-Anforderungen
-> **Zuletzt aktualisiert:** 2026-03-21
-> **Basis:** [docs/compliance.md](compliance.md), [docs/anforderungen.md §7](anforderungen.md#7--fiskalkonformität)
-
-jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt der TSE-Pflicht nach § 146a AO. Die Compliance-Anforderungen werden phasenweise in vier Phasen umgesetzt.
+> Geordnete Aufgabenliste für die Fertigstellung von jotti.
+> Jeder Task ist ein abgeschlossener, einzeln abarbeitbarer Schritt.
+> Referenz: [anforderungen.md](anforderungen.md), [handbuch.md](handbuch.md), [compliance-roadmap.md](compliance-roadmap.md)
 
 ---
 
-## Phase 0 — Baseline (aktuell implementiert)
+## 1 · Codebase-Bereinigung
 
-Diese Phase beschreibt den **aktuellen Stand** des Systems. Grundlegende Compliance-Bausteine sind bereits vorhanden.
-
-| #   | Feature                          | Anforderung                                 | Status                     |
-| --- | -------------------------------- | ------------------------------------------- | -------------------------- |
-| 0.1 | **Event-Sourcing (Append-Only)** | GoBD — Unveränderbarkeit                    | ✅                         |
-| 0.2 | **Kassenjournal**                | GoBD — Nachvollziehbarkeit, Vollständigkeit | ✅                         |
-| 0.3 | **Belegausgabe via Bondrucker**  | F-03, § 146a Abs. 2 AO                      | ✅ Basis (ohne TSE-Felder) |
-| 0.4 | **Tagesabrechnung / Reporting**  | § 5 Anforderungen                           | ✅                         |
-| 0.5 | **Rollenbasierter Zugriff**      | Security, GoBD                              | ✅                         |
-
-**Offene Phase-0-Punkte:**
-
-| #   | Feature                       | Anforderung                  | Status                   |
-| --- | ----------------------------- | ---------------------------- | ------------------------ |
-| 0.6 | **Dokumentation korrigieren** | (Compliance, Positionierung) | ✅ Erledigt (2026-03-21) |
+- [ ] Frontend: TS-Typen und Zod-Schemas auf Ubiquitous Language umbenennen (`Product`→`Produkt`, `Variant`→`Variante`, `Category`→`Kategorie`, `PriceCents`→`PreisCents`, `Comment`→`Kommentar`, `Quantity`→`Menge`)
+- [ ] `language.md` aktualisieren — Ist/Soll-Abweichungen als erledigt markieren
 
 ---
 
-## Phase 1 — Compliance-Grundlage
+## 2 · Seriennummer (F-01)
 
-Diese Phase legt die **rechtlich notwendige Grundlage** für den Betrieb: Seriennummer, Steuersätze, ABRECHNUNGSKREIS und ELSTER-Anleitung. Phase 1 muss abgeschlossen sein, bevor Phase 2 beginnt.
-
-### Features
-
-| ID   | Feature                             | Anforderung                       | Priorität   | Aufwand |
-| ---- | ----------------------------------- | --------------------------------- | ----------- | ------- |
-| F-01 | **Seriennummer der Kasse**          | § 146a AO, DSFinV-K, Kassenbeleg  | Must        | Gering  |
-| F-07 | **Steuersätze (19 % / 7 % / 0 %)**  | KassenSichV, DSFinV-K             | Must        | Mittel  |
-| F-06 | **ABRECHNUNGSKREIS (tagesbasiert)** | DSFinV-K Nr. 2.7                  | Should      | Mittel  |
-| F-03 | **Belegausgabe — Pflichtfelder**    | § 146a Abs. 2 AO, § 6 KassenSichV | Must        | Mittel  |
-| F-05 | **ELSTER-Anleitung**                | § 146a Abs. 4 AO                  | Must (Doku) | Gering  |
-| —    | **Verfahrensdokumentation**         | GoBD                              | Empfohlen   | Gering  |
-
-### Details
-
-#### F-01 Seriennummer der Kasse
-
-- UUID-v4 beim ersten Containerstart generieren
-- Dauerhaft in `system_config` (Schlüssel `kassen_id`) speichern — nie überschreiben
-- Im Admin-Dashboard prominent anzeigen (Kopierbutton)
-- API-Endpunkt `/admin/kasse/seriennummer` für programmatischen Abruf
-- Auf Kassenbeleg und im DSFinV-K-Export (`Stamm_Kassen.csv`, Feld `KASSE_SERIENNR`) verwenden
-
-#### F-07 Steuersätze
-
-- Pflichtfeld `steuersatz` für Produkte: Enum `standard` (19 %), `ermaessigt` (7 %), `befreit` (0 %)
-- Im Admin-Bereich bei Produktanlage/-bearbeitung auswählbar
-- Als Fat Event in `BestellungAufgenommen` einfrieren (für historische Korrektheit)
-- Tagesabrechnung weist Umsätze nach Steuersatz aufgeschlüsselt aus
-
-#### F-06 ABRECHNUNGSKREIS (Phase 1: tagesbasiert)
-
-- DB-Tabelle `abrechnungskreis` mit fortlaufender Nummer, Start- und Endzeitpunkt
-- Beim Tagesabschluss automatisch neuer `ABRECHNUNGSKREIS` eröffnet
-- Format der Session-ID: `Tisch-{Nr}-{YYYYMMDD}`
-- Alle Events eines Tisches sind einem `ABRECHNUNGSKREIS` zugeordnet
-
-#### F-03 Belegausgabe — Pflichtfelder
-
-- Beleg enthält alle Pflichtfelder nach § 6 KassenSichV:
-  - Datum/Uhrzeit des Vorgangs
-  - Betrag, Steuersatz, Steuerbetrag pro Position
-  - Zahlungsart (Bar)
-  - Seriennummer der Kasse (F-01)
-- TSE-Pflichtfelder (Signatur, Zähler) werden in Phase 2 ergänzt
-
-#### F-05 ELSTER-Anleitung
-
-- Datei `docs/betrieb/elster-meldung.md` mit Schritt-für-Schritt-Anleitung für manuelle ELSTER-Meldung
-- Admin-Dashboard zeigt Meldepflicht-Hinweis mit Link zur Anleitung und der Seriennummer an
-- Manuell setzbarer Meldestatus in der Admin-UI: `ausstehend` / `gemeldet am TT.MM.JJJJ`
-
-#### Verfahrensdokumentation
-
-- Datei `docs/betrieb/verfahrensdokumentation.md`
-- Beschreibt für Betriebsprüfer: Systemarchitektur, Datenbankschutz, TSE-Anbindung, Zugriffskontrollen
-- Vorlage, die Betreiber mit ihren Vereinsdaten ergänzen
+- [ ] DB: `system_config`-Tabelle anlegen
+- [ ] Backend: UUID-v4 beim ersten Start generieren und persistieren, API-Endpunkt `/admin/kasse/seriennummer`
+- [ ] Frontend: Seriennummer im Admin-Dashboard anzeigen (mit Kopierbutton)
 
 ---
 
-## Phase 2 — TSE-Integration
+## 3 · Steuersätze (F-07)
 
-Diese Phase integriert eine **zertifizierte Cloud-TSE** (fiskaly) und schafft den DSFinV-K-Export. Nach Abschluss ist jotti vollständig KassenSichV-konform.
-
-### Features
-
-| ID   | Feature                                          | Anforderung             | Priorität | Aufwand |
-| ---- | ------------------------------------------------ | ----------------------- | --------- | ------- |
-| F-02 | **TSEClient-Interface + fiskaly-Adapter**        | § 146a AO, BSI TR-03153 | Should    | Hoch    |
-| —    | **TSE-Hooks auf Zahlungsfluss**                  | § 146a AO               | Should    | Hoch    |
-| —    | **Event-Daten um TSE-Felder erweitern**          | DSFinV-K                | Should    | Mittel  |
-| F-04 | **DSFinV-K-Export**                              | § 4 KassenSichV         | Should    | Hoch    |
-| —    | **Z-Bon-Logik (Kassenführung KF-07)**            | DSFinV-K                | Must      | Mittel  |
-| —    | **TSE-Felder auf Beleg (ergänzt F-03)**          | § 6 KassenSichV         | Should    | Gering  |
-| —    | **QR-Code auf Beleg**                            | DSFinV-K Anhang I       | Nice      | Gering  |
-| —    | **ABRECHNUNGSKREIS Phase 2** (manuelle Freigabe) | DSFinV-K                | Nice      | Mittel  |
-
-### Details
-
-#### F-02 TSEClient-Interface + fiskaly-Adapter
-
-- Go-Interface `TSEClient` mit Methoden: `StartTransaction`, `UpdateTransaction`, `FinishTransaction`
-- `FiskalyTSEClient` als erster Anbieter (REST-API, Cloud-TSE, BSI-zertifiziert)
-- Konfiguration über Umgebungsvariablen: `TSE_PROVIDER`, `FISKALY_API_KEY`, `FISKALY_API_SECRET`
-- Betriebsmodus `strict` (Fehler bei fehlender TSE) / `bypass` (nur für Entwicklung/Tests)
-
-#### TSE-Hooks auf Zahlungsfluss (Atomares Transaktionsmodell)
-
-Jeder jotti-Vorgang ist eine eigenständige, sofort geschlossene TSE-Transaktion:
-
-| jotti-Vorgang        | TSE-Operation             | processType                |
-| -------------------- | ------------------------- | -------------------------- |
-| Bestellung aufnehmen | `Start` + sofort `Finish` | `Bestellung-V1`            |
-| Zahlung kassieren    | `Start` + sofort `Finish` | `Kassenbeleg-V1`           |
-| Stornierung          | `Start` + sofort `Finish` | `Kassenbeleg-V1` (negativ) |
-| Tagesabschluss       | `Start` + sofort `Finish` | `SonstigerVorgang-V1`      |
-
-#### F-04 DSFinV-K-Export
-
-- Adminendpunkt `POST /admin/export/dsfinvk` — ZIP-Archiv mit:
-  - `Stamm_Abschluss.csv`, `Stamm_Kassen.csv`, `Stamm_TSE.csv`, `Stamm_Orte.csv`
-  - `Bonkopf.csv`, `Bonkopf_USt.csv`, `Bonkopf_Zahlarten.csv`
-  - `Bonpos.csv`, `Bonpos_USt.csv`, `TSE_Transaktionen.csv`
-  - `Z_GV_Typ.csv`, `Z_Zahlart.csv`
-  - `index.xml`
-- Alle Dateinamen nach DSFinV-K-Spezifikation v2.4 (deutsch, exakt)
-- Steuersatz-Aufschlüsselung korrekt pro Position und Bon
+- [ ] DB: Spalte `steuersatz` auf `produkt_varianten` ergänzen (`standard` / `ermaessigt` / `befreit`)
+- [ ] Backend: Steuersatz-Enum, Validierung, Produkt-CRUD anpassen
+- [ ] Frontend: Steuersatz-Auswahl bei Produktanlage und -bearbeitung
+- [ ] Backend: Steuersatz in `BestellungAufgenommen`-Fat-Event einfrieren
+- [ ] Backend: Tagesabrechnung nach Steuersatz aufschlüsseln
+- [ ] Frontend: Steuersatz-Aufschlüsselung im Reporting anzeigen
 
 ---
 
-## Phase 3 — Erweiterungen
+## 4 · Betreiber-Stammdaten (KF-09)
 
-Optional / Nice-to-have — kein harter Compliance-Bedarf, aber sinnvolle Verbesserungen.
-
-| ID   | Feature                                       | Anforderung                          | Priorität | Aufwand |
-| ---- | --------------------------------------------- | ------------------------------------ | --------- | ------- |
-| —    | **Digitaler eBeleg (QR-Code / Downloadlink)** | § 146a Abs. 2 AO                     | Nice      | Mittel  |
-| —    | **Automatisierte ELSTER-Meldung**             | § 146a Abs. 4 AO                     | Nice      | Hoch    |
-| F-08 | **GoBD-Hash-Chain auf Events**                | GoBD — Unveränderbarkeit (erweitert) | Nice      | Mittel  |
-| —    | **10-Jahres-Archivierungsstrategie**          | GoBD, §§ 146/147 AO                  | Nice      | Mittel  |
-
-### Details
-
-#### Digitaler eBeleg
-
-- Nach TSE-`FinishTransaction` QR-Code anzeigen (Download-Link zu PDF/PNG)
-- Beleg abrufbar auf Backend-Server für konfigurierbaren Zeitraum
-- Gilt als Belegausgabe mit konkludenter Einwilligung des Gastes (BMF-FAQ)
-- Primär: Bondrucker bleibt Standardweg; eBeleg als Alternative/Ergänzung
-- Speicherung für DSFinV-K-Archiv
-
-#### Automatisierte ELSTER-Meldung
-
-- ERiC-Integration (native C-Library, kein Vendor-Lock-in) — oder —
-- fiskaly-Submission-API (einfacher, aber Cloud-Abhängigkeit)
-- Entscheidung bei Implementierungsbeginn: Aufwands-/Kosten-Abwägung
-
-#### F-08 GoBD-Hash-Chain
-
-- Jedes Event in `events`-Tabelle speichert SHA-256-Hash des vorherigen Events (`previous_hash`)
-- Erstes Event jedes `ABRECHNUNGSKREIS` verwendet definierten Genesis-Hash
-- Integritätsprüfungs-Endpunkt `POST /admin/integrity/check` validiert vollständige Hash-Chain
-- Ergänzt TSE-Signatur — unabhängige Manipulationssicherheit
+- [ ] DB: `betreiber_stammdaten`-Tabelle anlegen (Name, Adresse, Steuernummer)
+- [ ] Backend: CRUD — Repository, Service, Handler
+- [ ] Frontend: Admin-Seite Betreiber-Stammdaten pflegen
 
 ---
 
-## Übersicht aller Compliance-Anforderungen
+## 5 · Belegausgabe — Pflichtfelder (F-03)
 
-| ID   | Anforderung               | Phase | Priorität   | Status   |
-| ---- | ------------------------- | ----- | ----------- | -------- |
-| F-01 | Seriennummer der Kasse    | 1     | Must        | 🔲       |
-| F-02 | TSE-Adapter-Schnittstelle | 2     | Should      | 🔲       |
-| F-03 | Belegausgabepflicht       | 0/1/2 | Must        | ✅ Basis |
-| F-04 | DSFinV-K-Export           | 2     | Should      | 🔲       |
-| F-05 | ELSTER-Meldung            | 1     | Must (Doku) | 🔲       |
-| F-06 | ABRECHNUNGSKREIS          | 1/2   | Should      | 🔲       |
-| F-07 | Steuersätze               | 1     | Must        | 🔲       |
-| F-08 | GoBD-Hash-Chain           | 3     | Nice        | 🔲       |
-
-**Legende:** ✅ Implementiert · 🔲 Offen · ⏳ In Arbeit
+- [ ] Backend: Beleg um Pflichtfelder erweitern (Steuersatz, Steuerbetrag pro Position, Seriennummer der Kasse, Betreiberadresse, Zahlungsart)
+- [ ] ESC/POS-Bonformat aktualisieren
+- [ ] Dokumentation: Bonformat-Beschreibung in `docs/bondruck.md` anpassen
 
 ---
 
-## Betreiber-Hinweise
+## 6 · Kassenführung — DB-Schema
 
-> Diese Abschnitte richten sich an Vereinsvorstände und IT-Verantwortliche, die jotti betreiben.
-
-### Pflichten vor dem ersten Einsatz
-
-1. **Cloud-TSE-Vertrag:** Vertrag mit fiskaly (oder anderem BSI-zertifizierten Cloud-TSE-Anbieter) abschließen. API-Schlüssel als Umgebungsvariablen in die `.env`-Datei eintragen.
-2. **ELSTER-Meldung:** Nach der ersten Inbetriebnahme innerhalb von **einem Monat** die jotti-Instanz beim zuständigen Finanzamt über [ELSTER](https://www.elster.de) anmelden. Benötigte Daten: Seriennummer der Kasse (im Admin-Dashboard), Softwarename „jotti", Inbetriebnahmedatum.
-3. **Seriennummer sichern:** Die Kassen-UUID in den System-Stammdaten ist die rechtliche Identität der Kasse. Das Datenbank-Backup muss diese enthalten. Bei Verlust: alte Seriennummer abmelden, neue Instanz mit neuer Seriennummer neu anmelden.
-
-### Laufende Pflichten
-
-- **10-Jahres-Aufbewahrung:** Alle Kassendaten (Events, DSFinV-K-Exporte) sind 10 Jahre aufzubewahren (§§ 146, 147 AO, GoBD). Sicherstellen, dass Backups entsprechend archiviert und jederzeit lesbar sind.
-- **Regelmäßige Backups:** Tägliche Datenbank-Backups sind Pflicht — nicht nur für die Compliance, sondern auch zur Seriennummern-Sicherung.
-- **Außerbetriebnahme melden:** Wenn eine jotti-Instanz dauerhaft stillgelegt wird, muss dies innerhalb von einem Monat bei ELSTER gemeldet werden.
+- [ ] DB: Tabellen `abrechnungskreis`, `kassenbewegungen`, `kassensturz`, `zbons` anlegen
+- [ ] DB: Immutability-Trigger (UPDATE/DELETE blockieren) für Kassenführungs-Tabellen
+- [ ] `make sqlc` — Queries generieren
 
 ---
 
-## Referenzen
+## 7 · Abrechnungskreis eröffnen (KF-01)
 
-- [docs/compliance.md](compliance.md) — Vollständige rechtliche Grundlagen und technische Anforderungsdetails
-- [docs/anforderungen.md §7](anforderungen.md#7--fiskalkonformität) — Anforderungen F-01 bis F-08 mit Akzeptanzkriterien
-- [docs/language.md — Fiskalkonformität](language.md#fiskalkonformität-compliance-sub-domain) — Terminologie-Definitionen
+- [ ] Backend: Repository, Application Service, HTTP Handler
+- [ ] Frontend: Admin-Seite — Abrechnungskreis mit Bezeichnung eröffnen
+- [ ] Tests
+
+---
+
+## 8 · Anfangsbestand setzen (KF-02)
+
+- [ ] Backend: Repository, Service, Handler (Betrag pro Abrechnungskreis, einmalig)
+- [ ] Frontend: Anfangsbestand-Eingabe im Admin
+- [ ] Tests
+
+---
+
+## 9 · Kassenbewegungen (KF-04 / KF-05 / KF-06)
+
+- [ ] Backend: Geldtransit buchen — Repository, Service, Handler
+- [ ] Backend: Privatentnahme buchen
+- [ ] Backend: Privateinlage buchen
+- [ ] Frontend: Kassenbewegungen-UI im Admin (einheitliches Formular mit Bewegungsart-Auswahl)
+- [ ] Tests
+
+---
+
+## 10 · Kassenbestand (KF-03)
+
+- [ ] Backend: Kassenbestand-Read-Model (SQL-Aggregation über Anfangsbestand + Events + Bewegungen)
+- [ ] Frontend: Kassenbestand-Anzeige mit Aufschlüsselung nach Komponenten
+- [ ] Tests
+
+---
+
+## 11 · Kassensturz (KF-08)
+
+- [ ] Backend: Ist-Bestand-Eingabe, Differenzberechnung, automatische `DifferenzSollIst`-Buchung
+- [ ] Frontend: Kassensturz-Dialog im Admin (Soll vs. Ist, Differenz-Anzeige)
+- [ ] Tests
+
+---
+
+## 12 · Tagesabschluss / Z-Bon (KF-07)
+
+- [ ] Backend: Z-Bon-Generierung (Aggregation aller Vorgänge, Stammdaten-Snapshot, fortlaufende `z_nr`)
+- [ ] Backend: Abrechnungskreis beim Tagesabschluss schließen
+- [ ] Frontend: Tagesabschluss-Workflow im Admin (offene Tische anzeigen, Kassensturz-Voraussetzung prüfen, Bestätigung)
+- [ ] Tests
+- [ ] `handbuch.md` — Kassenführungs-Abschnitt mit Implementierungsdetails ergänzen
+
+---
+
+## 13 · Admin-Dashboard: Kassenführung
+
+- [ ] Frontend: Kassenführungs-Übersichtsseite im Admin (aktiver Abrechnungskreis, Kassenbestand, letzte Bewegungen, Z-Bon-Historie)
+- [ ] Frontend: Navigation und Routing für alle Kassenführungs-Funktionen
+
+---
+
+## 14 · ELSTER-Dokumentation (F-05)
+
+- [ ] `docs/betrieb/elster-meldung.md` — Schritt-für-Schritt-Anleitung für manuelle ELSTER-Meldung
+- [ ] Frontend: Meldepflicht-Hinweis im Admin-Dashboard mit Link zur Anleitung und Seriennummer
+- [ ] Frontend: Manuell setzbarer Meldestatus (`ausstehend` / `gemeldet am TT.MM.JJJJ`)
+
+---
+
+## 15 · Verfahrensdokumentation
+
+- [ ] `docs/betrieb/verfahrensdokumentation.md` — Vorlage für Betriebsprüfer erstellen (Systemarchitektur, Datenbankschutz, Zugriffskontrollen)
+
+---
+
+## 16 · Dokumentation nach Phase 1
+
+- [ ] `anforderungen.md` — Status aller Kassenführungs- und Compliance-Features aktualisieren
+- [ ] `compliance-roadmap.md` — Phase 1 als abgeschlossen markieren
+- [ ] `handbuch.md` — Kassenführungs-Code-Referenzen ergänzen
+
+---
+
+## 17 · Reporting: Abrechnung pro Tisch (R-03)
+
+- [ ] Backend: Detaillierte Tisch-Abrechnung (alle Events chronologisch mit Saldo)
+- [ ] Frontend: Tisch-Detail-Abrechnung im Admin-Reporting
+- [ ] Tests
+
+---
+
+## 18 · Reporting: Produktumsatz (R-05)
+
+- [ ] Backend: Produktumsatz-Aggregation (Mengen pro Variante, Ranking, Einnahmen)
+- [ ] Frontend: Produktumsatz-Ansicht im Admin-Reporting
+- [ ] Tests
+
+---
+
+## 19 · Küchendisplay / KDS (K-13)
+
+- [ ] Backend: Endpunkte für offene Bestellungen nach Kategorie (gruppiert nach Tisch)
+- [ ] Frontend: KDS-Ansicht als eigene Route (Echtzeit-Polling oder SSE)
+- [ ] Dokumentation: KDS-Setup-Anleitung
+- [ ] Tests
+
+---
+
+## 20 · TSE-Integration — Interface & Adapter (F-02)
+
+- [ ] Backend: `TSEClient` Go-Interface definieren (`StartTransaction`, `UpdateTransaction`, `FinishTransaction`)
+- [ ] Backend: `FiskalyTSEClient` implementieren (REST-Adapter für fiskaly Cloud-TSE)
+- [ ] Backend: Betriebsmodus `strict` / `bypass` konfigurierbar
+- [ ] Backend: TSE-Mock für Unit- und Integrationstests
+- [ ] Konfiguration: Umgebungsvariablen `TSE_PROVIDER`, `FISKALY_API_KEY`, `FISKALY_API_SECRET`
+
+---
+
+## 21 · TSE-Hooks auf Zahlungsfluss
+
+- [ ] Backend: TSE-Transaktion bei `BestellungAufnehmen`
+- [ ] Backend: TSE-Transaktion bei `ZahlungKassieren` und `StornierungErteilen`
+- [ ] Backend: TSE-Transaktion bei Tagesabschluss und Kassenbewegungen
+- [ ] Backend: Event-Daten um TSE-Felder erweitern (Signatur, Transaktionsnummer, Signaturzähler, TSE-Seriennummer)
+- [ ] Tests
+
+---
+
+## 22 · TSE-Felder auf Beleg
+
+- [ ] Beleg um TSE-Pflichtfelder erweitern (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
+- [ ] QR-Code auf Beleg generieren (DSFinV-K Anhang I)
+
+---
+
+## 23 · DSFinV-K-Export (F-04)
+
+- [ ] Backend: `POST /admin/export/dsfinvk` — ZIP-Archiv mit allen Pflicht-CSV-Dateien
+- [ ] `Stamm_Abschluss.csv`, `Stamm_Kassen.csv`, `Stamm_TSE.csv`, `Stamm_Orte.csv`
+- [ ] `Bonkopf.csv`, `Bonkopf_USt.csv`, `Bonkopf_Zahlarten.csv`, `Bonpos.csv`, `Bonpos_USt.csv`
+- [ ] `TSE_Transaktionen.csv`, `Z_GV_Typ.csv`, `Z_Zahlart.csv`, `index.xml`
+- [ ] Frontend: Export-Button im Admin-Bereich
+- [ ] Tests
+
+---
+
+## 24 · Dokumentation nach Phase 2
+
+- [ ] `compliance-roadmap.md` — Phase 2 als abgeschlossen markieren
+- [ ] `anforderungen.md` — F-02, F-04 Status aktualisieren
+- [ ] `handbuch.md` — TSE-Architektur und DSFinV-K-Export dokumentieren
+
+---
+
+## 25 · Rückgeldberechnung (K-10)
+
+- [ ] Frontend: Eingabefeld für erhaltenen Bargeldbetrag bei Zahlung, clientseitige Rückgeld-Anzeige
+
+---
+
+## 26 · Tisch-Schnellsuche (K-11)
+
+- [ ] Frontend: Suchfeld im Alle-Tische-Drawer (clientseitige Filterung nach Name/Nummer)
+
+---
+
+## 27 · Datenexport CSV (R-02)
+
+- [ ] Backend: `POST /admin/export/csv` — Umsätze, Bestellungen, Artikeldaten als CSV
+- [ ] Frontend: Export-Button im Reporting (Abrechnungszeitraum wählbar)
+
+---
+
+## 28 · Bestellungen umbuchen (K-09)
+
+- [ ] Backend: Umbuchungs-Command (atomare Stornierung am Quell-Tisch + Neubestellung am Ziel-Tisch)
+- [ ] Frontend: Umbuchung-UI (Ziel-Tisch auswählen)
+- [ ] Tests
+
+---
+
+## 29 · Ausgabestationen / Zubereitungsstatus (K-15)
+
+- [ ] Backend: Zubereitungsstatus-Endpunkte (in Zubereitung → fertig)
+- [ ] Frontend: Status-Verwaltung auf KDS-Ansicht
+- [ ] Frontend: Zubereitungsstatus-Anzeige für Servicekräfte
+- [ ] Tests
+
+---
+
+## 30 · ABRECHNUNGSKREIS Phase 2 — Manuelle Freigabe
+
+- [ ] Backend: Manuelle Eröffnung/Schließung durch Serviceleitung (statt nur automatisch bei Tagesabschluss)
+- [ ] Frontend: Abrechnungskreis-Steuerung erweitern
+
+---
+
+## 31 · Compliance Phase 3 — eBeleg
+
+- [ ] Backend: Digitaler Beleg als Download-Link (PDF oder HTML)
+- [ ] Backend: QR-Code mit Download-URL generieren
+- [ ] Frontend: QR-Code-Anzeige nach Zahlung
+
+---
+
+## 32 · Compliance Phase 3 — Automatisierte ELSTER-Meldung
+
+- [ ] Backend: Programmatische Meldung über ERiC-Schnittstelle oder fiskaly Submission API
+- [ ] Frontend: ELSTER-Meldung direkt aus Admin-Dashboard auslösen
+
+---
+
+## 33 · GoBD Hash-Chain (F-08)
+
+- [ ] Backend: SHA-256-Verkettung aller Events (`previous_hash` pro Event)
+- [ ] Backend: Genesis-Hash pro Abrechnungskreis
+- [ ] Backend: Integritätsprüfungs-Endpunkt `POST /admin/integrity/check`
+- [ ] Tests
+
+---
+
+## 34 · Offline-Fähigkeit (Q-05)
+
+- [ ] Frontend: Service Worker für App-Shell-Caching
+- [ ] Frontend: Lokale Bestellungs-Speicherung bei Verbindungsverlust
+- [ ] Frontend: Automatische Synchronisierung bei Reconnect
+- [ ] Frontend: Offline-Indikator in der UI
+
+---
+
+## 35 · Dokumentation & Release
+
+- [ ] `README.md` aktualisieren (Kassenführung, Compliance-Status, aktuelle Features)
+- [ ] Website (`website/`) aktualisieren (Featureliste, Screenshots)
+- [ ] `docs/hosting.md` vervollständigen (Setup-Anleitung, Backup, Updates)
+- [ ] Changelog / Release Notes erstellen
+- [ ] `anforderungen.md` — alle Status finalisieren
+- [ ] `compliance-roadmap.md` — Gesamtstatus finalisieren
+- [ ] `produktbeschreibung.md` — Marketingtexte an finalen Funktionsumfang anpassen
