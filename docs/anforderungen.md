@@ -36,24 +36,24 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen:
 
 ### Berechtigungsmatrix
 
-| Aktion                   | Admin | Serviceleitung | Servicekraft |
-| ------------------------ | :---: | :------------: | :----------: |
-| Produkte verwalten       |   ✔   |                |              |
-| Tische verwalten         |   ✔   |                |              |
-| Benutzer verwalten       |   ✔   |                |              |
-| Passwort zurücksetzen    |   ✔   |                |              |
-| Bestellung aufnehmen      |   ✔   |       ✔        |      ✔       |
-| Lieferung bestätigen     |   ✔   |       ✔        |      ✔       |
-| Zahlung registrieren     |   ✔   |       ✔        |      ✔       |
+| Aktion                      | Admin | Serviceleitung | Servicekraft |
+| --------------------------- | :---: | :------------: | :----------: |
+| Produkte verwalten          |   ✔   |                |              |
+| Tische verwalten            |   ✔   |                |              |
+| Benutzer verwalten          |   ✔   |                |              |
+| Passwort zurücksetzen       |   ✔   |                |              |
+| Bestellung aufnehmen        |   ✔   |       ✔        |      ✔       |
+| Lieferung bestätigen        |   ✔   |       ✔        |      ✔       |
+| Zahlung registrieren        |   ✔   |       ✔        |      ✔       |
 | Stornierung erteilen (K-04) |   ✔   |       ✔        |              |
-| Auszahlung leisten (K-05)  |   ✔   |       ✔        |              |
-| Umbuchung durchführen    |   ✔   |       ✔        |      ✔       |
-| Tischübersicht einsehen  |   ✔   |       ✔        |      ✔       |
-| Kassenjournal einsehen   |   ✔   |       ✔        |      ✔       |
-| Abmelden                 |   ✔   |       ✔        |      ✔       |
-| Tagesabrechnung einsehen |   ✔   |                |              |
-| Datenexport              |   ✔   |                |              |
-| Tagesabschluss einleiten |   ✔   |                |              |
+| Auszahlung leisten (K-05)   |   ✔   |       ✔        |              |
+| Umbuchung durchführen       |   ✔   |       ✔        |      ✔       |
+| Tischübersicht einsehen     |   ✔   |       ✔        |      ✔       |
+| Kassenjournal einsehen      |   ✔   |       ✔        |      ✔       |
+| Abmelden                    |   ✔   |       ✔        |      ✔       |
+| Tagesabrechnung einsehen    |   ✔   |                |              |
+| Datenexport                 |   ✔   |                |              |
+| Tagesabschluss einleiten    |   ✔   |                |              |
 
 ---
 
@@ -229,17 +229,20 @@ Im Alle-Tische-Drawer (K-06) kann die Servicekraft über ein Suchfeld Tische nac
 ### K-12 · Bondruck
 
 > **ID:** K-12 · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Should-have
+> **Status:** ✅ Umgesetzt · **Prio:** Should-have
 
-Bons werden automatisch oder manuell gedruckt, damit Ausgabestationen (Küche, Getränketheke) die bestellten Positionen erhalten. Bons enthalten alle relevanten Informationen: Tisch, Servicekraft, Positionen mit Mengen, Zeitstempel und optionalen Kommentar.
+Bons werden automatisch bei Bestellaufnahme an die zugeordneten Ausgabestationen (Küche, Getränketheke) gesendet.
 
 **Akzeptanzkriterien:**
 
-- Bons sind übersichtlich formatiert (Tisch, Servicekraft, Positionen, Mengen, Gesamtpreis, Uhrzeit, Kommentar)
-- Separater Bon pro Position druckbar (z. B. bei Fehlbon Nachdruck einer einzelnen Position)
-- Getränkepositionen werden automatisch an den Getränkedrucker gesendet
-- Essenspositionen werden automatisch an den Küchendrucker gesendet
-- Drucker sind vom Admin konfigurierbar (Zuordnung Drucker zu Kategorie)
+- Bons werden automatisch bei Bestellaufnahme gedruckt (kein manueller Schritt)
+- Bon enthält: Tischname, Servicekraft, Positionen mit Mengen, Uhrzeit, optionaler Kommentar — Preise bewusst nicht (Arbeitsauftrag, keine Rechnung)
+- Essenspositionen gehen an den Küchendrucker, Getränkepositionen an den Thekendrucker
+- Kategorien ohne konfigurierten Drucker erzeugen keinen Bon (kein Fehler)
+- Bonmodus wählbar pro Kategorie: **Pro Position** (Standard, 1 Bon je Position) oder **Pro Bestellung** (1 Sammelbon je Kategorie)
+- Drucker sind im Admin-Bereich konfigurierbar (IP-Adresse und Bonmodus pro Kategorie)
+- Kein Doppeldruck bei Neustart des Print-Relay
+- Bei unerreichbarem Drucker wird automatisch wiederholt; andere Drucker werden nicht blockiert
 
 ### K-13 · Küchendisplay (KDS)
 

@@ -21,7 +21,7 @@
    - [4.3 Benutzer-Aggregat](#43-benutzer-aggregat)
    - [4.4 Tisch-Favoriten](#44-tisch-favoriten)
    - [4.5 Persistenz (CRUD)](#45-persistenz-crud)
-   - [4.6 Ausgabe und Abrechnung](#46-ausgabe-und-abrechnung)
+   - [4.6 Ausgabe — Bondruck (K-12)](#46-ausgabe--bondruck-k-12)
 5. [Auth und Rollen](#5-auth-und-rollen)
    - [5.1 Rollen und Berechtigungsmatrix](#51-rollen-und-berechtigungsmatrix)
    - [5.2 Onboarding-Ablauf](#52-onboarding-ablauf)
@@ -77,13 +77,13 @@ Folgende Features sind **bewusst nicht enthalten** — jedes zusätzliche Featur
 
 ### 2.1 Kontextübersicht
 
-| Context           | Typ                   | Beschreibung                                                          | Persistenz      |
-| ----------------- | --------------------- | --------------------------------------------------------------------- | --------------- |
+| Context           | Typ                   | Beschreibung                                                                 | Persistenz      |
+| ----------------- | --------------------- | ---------------------------------------------------------------------------- | --------------- |
 | **Kassenbetrieb** | Core Domain           | Tisch-basierte Vorgänge: Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren | Event-Sourcing  |
-| **Stammdaten**    | Supporting Sub-Domain | Verwaltung von Produkten, Tischen, Benutzern (CRUD)                   | CRUD            |
-| **Ausgabe**       | Supporting Sub-Domain | Bondruck, Küchendisplay (KDS), Zubereitungsstatus                     | Event-getrieben |
-| **Abrechnung**    | Supporting Sub-Domain | Tagesabrechnung, Umsatzberichte, Datenexport (Read-only-Projektionen) | Read-only       |
-| **Auth**          | Generic Sub-Domain    | Login, Logout, Passwort-Management, Token-Verwaltung                  | Infrastruktur   |
+| **Stammdaten**    | Supporting Sub-Domain | Verwaltung von Produkten, Tischen, Benutzern (CRUD)                          | CRUD            |
+| **Ausgabe**       | Supporting Sub-Domain | Bondruck, Küchendisplay (KDS), Zubereitungsstatus                            | Event-getrieben |
+| **Abrechnung**    | Supporting Sub-Domain | Tagesabrechnung, Umsatzberichte, Datenexport (Read-only-Projektionen)        | Read-only       |
+| **Auth**          | Generic Sub-Domain    | Login, Logout, Passwort-Management, Token-Verwaltung                         | Infrastruktur   |
 
 ### 2.2 Beziehungen zwischen Kontexten
 
@@ -265,35 +265,35 @@ Die `ApplyEvent()`-Funktion (`backend/domain/table/projection.go`) ist eine rein
 
 **`table_state`-Schema:**
 
-| Spalte                    | Typ          | Beschreibung                                    |
-| ------------------------- | ------------ | ----------------------------------------------- |
-| `tisch_id`                | INT (PK, FK) | Referenz auf `tische.id`                        |
-| `saldo_cents`             | INT          | Aktueller Tisch-Saldo in Cent                   |
-| `unbezahlte_positionen`   | JSONB        | `[]Position` — noch nicht bezahlte Positionen   |
-| `ausstehende_positionen`  | JSONB        | `[]Position` — noch nicht ausgegebene Positionen |
-| `gesamt_zahlungen_cents`  | INT          | Summe aller Zahlungen in Cent                   |
-| `last_event_id`           | INT (FK)     | ID des zuletzt verarbeiteten Events             |
-| `last_event_version`      | INT          | Version des zuletzt verarbeiteten Events        |
-| `updated_at`              | TIMESTAMPTZ  | Zeitpunkt der letzten Aktualisierung            |
+| Spalte                   | Typ          | Beschreibung                                     |
+| ------------------------ | ------------ | ------------------------------------------------ |
+| `tisch_id`               | INT (PK, FK) | Referenz auf `tische.id`                         |
+| `saldo_cents`            | INT          | Aktueller Tisch-Saldo in Cent                    |
+| `unbezahlte_positionen`  | JSONB        | `[]Position` — noch nicht bezahlte Positionen    |
+| `ausstehende_positionen` | JSONB        | `[]Position` — noch nicht ausgegebene Positionen |
+| `gesamt_zahlungen_cents` | INT          | Summe aller Zahlungen in Cent                    |
+| `last_event_id`          | INT (FK)     | ID des zuletzt verarbeiteten Events              |
+| `last_event_version`     | INT          | Version des zuletzt verarbeiteten Events         |
+| `updated_at`             | TIMESTAMPTZ  | Zeitpunkt der letzten Aktualisierung             |
 
 **Lesezugriff (Queries):** Operative Queries (Saldo, unbezahlte/ausstehende Positionen) lesen direkt aus `table_state` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`.
 
 **Apply-Tabelle:**
 
-| Event-Typ              | Zustandsänderung                                                                                               |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------- |
-| BestellungAufgenommen  | Positionen zu `unbezahlte_positionen` und `ausstehende_positionen` hinzufügen, Saldo erhöhen                   |
-| AusgabeBestaetigt      | Referenzierte Mengen aus `ausstehende_positionen` subtrahieren (Eintrag entfernen bei Menge 0)                  |
-| ZahlungKassiert        | Referenzierte Mengen aus `unbezahlte_positionen` subtrahieren, Saldo und `gesamt_zahlungen_cents` anpassen     |
-| StornierungErteilt     | Referenzierte Mengen aus `unbezahlte_positionen` und `ausstehende_positionen` subtrahieren, Saldo reduzieren   |
-| AuszahlungGeleistet    | Saldo um `betrag_cents` erhöhen (negativen Saldo ausgleichen) — keine Positionslisten-Änderung                 |
+| Event-Typ             | Zustandsänderung                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| BestellungAufgenommen | Positionen zu `unbezahlte_positionen` und `ausstehende_positionen` hinzufügen, Saldo erhöhen                 |
+| AusgabeBestaetigt     | Referenzierte Mengen aus `ausstehende_positionen` subtrahieren (Eintrag entfernen bei Menge 0)               |
+| ZahlungKassiert       | Referenzierte Mengen aus `unbezahlte_positionen` subtrahieren, Saldo und `gesamt_zahlungen_cents` anpassen   |
+| StornierungErteilt    | Referenzierte Mengen aus `unbezahlte_positionen` und `ausstehende_positionen` subtrahieren, Saldo reduzieren |
+| AuszahlungGeleistet   | Saldo um `betrag_cents` erhöhen (negativen Saldo ausgleichen) — keine Positionslisten-Änderung               |
 
 **Selbstheilung:** Bei Inkonsistenz kann `table_state` jederzeit aus allen Events reberechnet werden — der Event Stream bleibt die Single Source of Truth. Details zur Projektionsarchitektur: [ADR: CQRS](../adr/cqrs.md).
 
 ### 3.5 Policies
 
 - **Stornierungsberechtigung (K-04):** Nur `serviceleitung` und `admin` dürfen `StornierungErteilen`. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat geht.
-- **Automatischer Bon-Druck nach Kategorie (K-12):** Bei `BestellungAufgenommen` wird ein Bon pro Kategorie an die zugeordnete Ausgabestation gesendet (Essen → Küchenbon, Getränke → Thekenbon). Kategorie-Drucker-Zuordnung in den Stammdaten konfiguriert.
+- **Automatischer Bon-Druck nach Kategorie (K-12):** Jedes `BestellungAufgenommenV1`-Event löst Druck-Aufträge im Ausgabe-Context aus. Das Print-Relay holt via `POST /relay/poll` neue Events seit dem letzten Cursor ab. Pro Event werden Positionen nach Kategorie gruppiert; für jede Kategorie mit konfigurierter Drucker-IP wird ein ESC/POS-Payload erzeugt. Bonmodus (`pro_position` oder `pro_bestellung`) und IP werden zur Lesezeit aus der `kategorie_drucker`-Tabelle gelesen — Änderungen der Konfiguration wirken sofort für alle künftigen Polls.
 - **Umbuchung (K-09):** Verschiebt eine Bestellung von Quell- auf Ziel-Tisch (= Stornierung + neue Bestellung). Cross-Aggregat-Transaktion — Atomarität auf Anwendungsebene sicherstellen. Nur `serviceleitung` und `admin`.
 
 ---
@@ -400,11 +400,65 @@ Stammdaten (Produkte, Tische, Benutzer) werden mit klassischem CRUD verwaltet. E
 - **Timestamps:** Alle Stammdaten tragen `erstellt_am` und `aktualisiert_am` Zeitstempel.
 - **Referenzielle Integrität:** Produkte und Varianten werden nie physisch gelöscht, damit Fremdschlüssel-Referenzen aus dem Event Store valide bleiben.
 
-### 4.6 Ausgabe und Abrechnung
+### 4.6 Ausgabe — Bondruck (K-12)
 
-**Ausgabe (Supporting Sub-Domain):** Der Ausgabe-Context umfasst Bondruck, Küchendisplay (KDS) und Zubereitungsstatus. Bons werden automatisch bei Bestellungen nach Kategorie an Ausgabestationen gesendet (Essen → Küche, Getränke → Theke). Der Ausgabe-Context ist nicht Teil des MVP.
+Der Bondruck-Teil des Ausgabe-Contexts ist implementiert. KDS (K-13) und Zubereitungsstatus (K-15) sind noch offen.
 
-**Abrechnung (Supporting Sub-Domain):** Der Abrechnung-Context konsumiert Tisch-Events und projiziert sie in Read-only-Auswertungen: Tagesabrechnung, Abrechnung pro Tisch/Servicekraft, Produktumsatz und CSV-Datenexport. Alle Reporting-Ansichten sind reine Read Models ohne eigene Events. Die Abrechnung ist nicht Teil des MVP.
+**Druckerkonfiguration (`kategorie_drucker`-Tabelle):**
+
+Für jede der drei Produktkategorien (`essen`, `getraenk`, `sonstiges`) wird eine Drucker-IP und ein Bonmodus gespeichert. Leere IP = kein Druck für diese Kategorie.
+
+```
+kategorie_drucker
+├── kategorie   (essen | getraenk | sonstiges — PK)
+├── drucker_ip  (string — IPv4, leer = kein Drucker)
+├── bonmodus    (pro_position | pro_bestellung)
+└── updated_at  (timestamptz)
+```
+
+Die Tabelle enthält immer genau drei Zeilen (Per Seed-Insert angelegt). Der Admin aktualisiert sie über `/admin/update-drucker-config`; lesen kann er sie über `/admin/get-drucker-config`. Validierung: IPv4-Regex im Backend (zog), identische Validierung im Frontend (Zod).
+
+**Relay-Polling-Endpunkt (`POST /relay/poll`):**
+
+Das Print-Relay pollt diesen Endpunkt im konfigurierten Intervall. Authentifizierung erfolgt über einen statischen Token im Request-Body (kein JWT). Dieser Token wird über die Umgebungsvariable `RELAY_AUTH_TOKEN` konfiguriert.
+
+```
+Request:  { "token": "<RELAY_AUTH_TOKEN>", "lastEventId": 42 }
+Response: { "auftraege": [...], "cursor": 55 }
+
+DruckAuftrag:
+├── eventId    (int — für Cursor-/Idempotenz-Tracking)
+├── druckerIp  (string — zur Lesezeit aus kategorie_drucker aufgelöst)
+└── payload    (string — Base64-kodierter ESC/POS-Byte-String)
+```
+
+Das Backend liest `BestellungAufgenommenV1`-Events seit dem übergebenen Cursor (max. 50 pro Poll), gruppiert Positionen nach Kategorie, schlägt die Drucker-IP und den Bonmodus aus `kategorie_drucker` nach und erzeugt ESC/POS-Payloads. Kategorien ohne IP werden still übersprungen.
+
+**ESC/POS-Formatierung (`backend/api/relay/application/escpos/`):**
+
+Zwei Bonformate, optimiert auf 80mm-Thermodrucker (48 Zeichen/Zeile, Font A):
+
+| Bonmodus         | Format                | Inhalt                                                                                                    |
+| ---------------- | --------------------- | --------------------------------------------------------------------------------------------------------- |
+| `pro_position`   | `FormatPositionBon`   | Tischname (doppelt groß, fett, zentriert) + 1 Position (doppelt hoch) + Kommentar + Metadaten + Abschnitt |
+| `pro_bestellung` | `FormatBestellungBon` | Tischname + alle Positionen der Kategorie + Kommentar + Metadaten + Abschnitt                             |
+
+Preise erscheinen auf keinem Bonformat — der Bon ist ein Arbeitsauftrag, keine Rechnung.
+
+**Print-Relay (`cmd/relay/main.go`):**
+
+Ein eigenständiges Go-Binary (`jotti-relay`) ohne Webserver und ohne Installation. Es speichert den Cursor und eine Idempotenz-Liste (`printed_event_ids`) atomar in einer lokalen JSON-State-Datei. Bei Neustart setzt es direkt am letzten Cursor fort.
+
+| Parameter   | Beschreibung               | Standard           |
+| ----------- | -------------------------- | ------------------ |
+| `--backend` | URL des jotti-Servers      | (erforderlich)     |
+| `--token`   | `RELAY_AUTH_TOKEN`         | (erforderlich)     |
+| `--poll`    | Poll-Intervall in Sekunden | 2                  |
+| `--state`   | Pfad zur State-Datei       | `relay_state.json` |
+
+Fehlerverhalten: Unerreichbare Drucker werden bis zu `maxRetries` (60) Mal wiederholt. Nach Ablauf der Versuche wird der Auftrag übersprungen und im Log vermerkt. Andere Drucker werden nicht blockiert.
+
+**Abrechnung (Supporting Sub-Domain):** Der Abrechnung-Context konsumiert Tisch-Events und projiziert sie in Read-only-Auswertungen: Tagesabrechnung, Abrechnung pro Tisch/Servicekraft, Produktumsatz und CSV-Datenexport. Alle Reporting-Ansichten sind reine Read Models ohne eigene Events.
 
 ---
 
@@ -500,12 +554,15 @@ HTTP-Statuscodes: `400` Client-Fehler, `401` fehlende/ungültige Auth, `403` unz
 
 **Bereichsgliederung:**
 
-| Bereich        | Pfad-Präfix         | Rolle(n)                             |
-| -------------- | ------------------- | ------------------------------------ |
-| Auth           | `/auth/*`           | — (öffentlich)                       |
-| Admin          | `/admin/*`          | `admin`                              |
-| Service        | `/service/*`        | `service`, `serviceleitung`, `admin` |
-| Senior Service | `/serviceleitung/*` | `serviceleitung`, `admin`            |
+| Bereich        | Pfad-Präfix         | Auth                                                     |
+| -------------- | ------------------- | -------------------------------------------------------- |
+| Auth           | `/auth/*`           | — (öffentlich)                                           |
+| Admin          | `/admin/*`          | JWT, Rolle `admin`                                       |
+| Service        | `/service/*`        | JWT, Rolle `service`/`serviceleitung`/`admin`            |
+| Senior Service | `/serviceleitung/*` | JWT, Rolle `serviceleitung`/`admin`                      |
+| Relay          | `/relay/*`          | Statischer Token im Body (`RELAY_AUTH_TOKEN`) — kein JWT |
+
+Der Relay-Endpunkt (`POST /relay/poll`) verwendet keine JWT-Middleware, da das Print-Relay kein Benutzer ist. Die Authentifizierung erfolgt über einen statischen Token im Request-Body, der serverseitig als konstanter String-Vergleich geprüft wird.
 
 ### 6.3 Frontend-Architektur
 
@@ -518,11 +575,11 @@ Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 
 **Seitenstruktur:**
 
-| Bereich   | Seiten                                                                                                                                                                                   |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bereich   | Seiten                                                                                                                                                                                              |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Service   | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Bezahlen, Historie). Ausgabe bestätigen ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar. |
-| Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten                                                                                                                               |
-| Allgemein | Login · Passwort setzen (Erstanmeldung)                                                                                                                                                  |
+| Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten · **Druckerkonfiguration** (`DruckerConfigPage` — IP und Bonmodus pro Kategorie konfigurieren)                                           |
+| Allgemein | Login · Passwort setzen (Erstanmeldung)                                                                                                                                                             |
 
 **UI-Patterns:**
 
@@ -577,16 +634,17 @@ Mehrere Servicekräfte arbeiten gleichzeitig — Schreibkonflikte am selben Tisc
 
 ### 6.7 Sicherheit
 
-| Maßnahme                   | Umsetzung                                                                             | Anforderung |
-| -------------------------- | ------------------------------------------------------------------------------------- | ----------- |
-| HTTPS / TLS                | nginx terminiert TLS, Let's Encrypt-Zertifikat, HTTP → HTTPS-Redirect                 | Q-06        |
-| Rate Limiting              | Login-Endpunkt ist durch Rate Limiting geschützt (Brute-Force-Schutz)                 | Q-07        |
-| Security Headers           | Reverse Proxy setzt HSTS, X-Frame-Options, X-Content-Type-Options, CSP                | Q-08        |
-| Input-Validierung          | Frontend (Zod) + Backend (zog) — beide Seiten unabhängig voneinander                  | Q-03        |
-| Passwort-Hashing           | Argon2id mit zufälligem Salt                                                          | A-01        |
-| Generische Fehlermeldungen | Fehlgeschlagene Logins geben keine Auskunft, ob Benutzer oder Passwort falsch war     | A-01        |
-| Keine Secrets im Code      | Alle Secrets (JWT-Schlüssel, DB-Passwort) werden über Umgebungsvariablen konfiguriert | —           |
-| JWT-Gültigkeit             | Tokens sind 12 Stunden gültig — kurze Lebensdauer begrenzt den Schaden bei Verlust    | A-01        |
+| Maßnahme                   | Umsetzung                                                                                                 | Anforderung |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- | ----------- |
+| HTTPS / TLS                | nginx terminiert TLS, Let's Encrypt-Zertifikat, HTTP → HTTPS-Redirect                                     | Q-06        |
+| Rate Limiting              | Login-Endpunkt ist durch Rate Limiting geschützt (Brute-Force-Schutz)                                     | Q-07        |
+| Security Headers           | Reverse Proxy setzt HSTS, X-Frame-Options, X-Content-Type-Options, CSP                                    | Q-08        |
+| Input-Validierung          | Frontend (Zod) + Backend (zog) — beide Seiten unabhängig voneinander                                      | Q-03        |
+| Passwort-Hashing           | Argon2id mit zufälligem Salt                                                                              | A-01        |
+| Generische Fehlermeldungen | Fehlgeschlagene Logins geben keine Auskunft, ob Benutzer oder Passwort falsch war                         | A-01        |
+| Keine Secrets im Code      | Alle Secrets (JWT-Schlüssel, DB-Passwort, `RELAY_AUTH_TOKEN`) werden über Umgebungsvariablen konfiguriert | —           |
+| JWT-Gültigkeit             | Tokens sind 12 Stunden gültig — kurze Lebensdauer begrenzt den Schaden bei Verlust                        | A-01        |
+| Relay-Token                | Statischer Token für `POST /relay/poll` — kein JWT, kein Benutzerkontext. Relay ist kein Benutzer.        | K-12        |
 
 ---
 
@@ -596,12 +654,12 @@ Read Models sind aufbereitete Lese-Ansichten — reine Projektionen über vorhan
 
 ### 7.1 Service-Ansichten
 
-| Name           | ID   | Quelle                              | Inhalt (Kurzfassung)                                                                                                         |
-| -------------- | ---- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Tischübersicht | K-06 | `table_state` + Stammdaten          | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ausstehender Positionen. Startseite des Service-Bereichs.            |
+| Name           | ID   | Quelle                              | Inhalt (Kurzfassung)                                                                                                                   |
+| -------------- | ---- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Tischübersicht | K-06 | `table_state` + Stammdaten          | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ausstehender Positionen. Startseite des Service-Bereichs.                       |
 | Tischdetails   | K-06 | `table_state`                       | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren, Historie. |
-| Produktkatalog | —    | Produkt-Stammdaten                  | Aktive Produkte und Varianten, nach Kategorie gruppiert. Im Bestellvorgang geladen (kein eigenes Navigationsziel).           |
-| Kassenjournal  | K-07 | Tisch-Events (Event Stream, Replay) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich. |
+| Produktkatalog | —    | Produkt-Stammdaten                  | Aktive Produkte und Varianten, nach Kategorie gruppiert. Im Bestellvorgang geladen (kein eigenes Navigationsziel).                     |
+| Kassenjournal  | K-07 | Tisch-Events (Event Stream, Replay) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich.           |
 
 Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchronen Projektionstabelle `table_state` — kein Event-Replay nötig. Das Kassenjournal liest weiterhin den vollständigen Event Stream, da die Historie _der_ Event Stream ist. Details zur Projektionsarchitektur: [ADR: CQRS](../adr/cqrs.md).
 
@@ -616,13 +674,13 @@ Es gibt kein separates Live-Dashboard und kein Polling; das Reporting wird gezie
 | Name                        | ID   | Inhalt (Kurzfassung)                                                                               |
 | --------------------------- | ---- | -------------------------------------------------------------------------------------------------- |
 | Reporting (Unified)         | R-01 | KPIs (inkl. offene Tische), Umsatz pro Servicekraft/Tisch, Stornierungsübersicht, offene Betraege  |
-| Abrechnung pro Tisch        | R-03 | Alle Bestellungen, Zahlungen, Ausgaben, Stornierungen chronologisch; Gesamt-Saldo pro Tisch     |
+| Abrechnung pro Tisch        | R-03 | Alle Bestellungen, Zahlungen, Ausgaben, Stornierungen chronologisch; Gesamt-Saldo pro Tisch        |
 | Abrechnung pro Servicekraft | R-04 | Umsatz pro Servicekraft, Anzahl Bestellungen, Anzahl und Betrag der Stornierungen                  |
 | Produktumsatz               | R-05 | Verkaufte Menge pro Produkt/Variante (abzgl. Stornierungen), Ranking, Gesamteinnahmen pro Variante |
 
 ### 7.3 Ausgabe-Ansichten
 
-KDS-Ansicht (K-13) und Zubereitungsstatus (K-14) sind nicht Teil des MVP.
+Der Relay-Poll-Endpunkt (`POST /relay/poll`) liefert `DruckAuftrag`-DTOs und ist ein internes Read Model des Ausgabe-Contexts für das Print-Relay. KDS-Ansicht (K-13) und Zubereitungsstatus (K-15) sind noch offen.
 
 ---
 
