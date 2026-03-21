@@ -1,107 +1,60 @@
-# Compliance-Analyse: Fiskalische Anforderungen an jotti
+# Compliance-Anforderungen: Fiskalische Grundlagen für jotti
 
-> **Status:** Analyse & Anforderungsbeschreibung (kein Feature implementiert) — Grundsatzentscheidungen getroffen 2026-03-19
-> **Autor:** CTO-Analyse
-> **Datum:** 2026-03-19
+> **Status:** Verbindliche Anforderungsdefinition — Grundsatzentscheidungen getroffen 2026-03-19
 > **Betrifft:** KassenSichV, TSE, GoBD, Belegausgabepflicht, DSFinV-K, ERiC/ELSTER
 
 ---
 
 ## Inhaltsverzeichnis
 
-1. [Zusammenfassung](#1-zusammenfassung)
-2. [Aktueller Stand im Repository — Fehlerhafte Annahmen](#2-aktueller-stand-im-repository--fehlerhafte-annahmen)
-3. [Rechtliche Grundlagen](#3-rechtliche-grundlagen)
-4. [Analyse: Warum die Ausnahme nicht greift](#4-analyse-warum-die-ausnahme-nicht-greift)
-5. [Anforderung 1: TSE-Integration (Technische Sicherheitseinrichtung)](#5-anforderung-1-tse-integration-technische-sicherheitseinrichtung)
-6. [Anforderung 2: GoBD-Konformität](#6-anforderung-2-gobd-konformität)
-7. [Anforderung 3: Belegausgabepflicht](#7-anforderung-3-belegausgabepflicht)
-8. [Anforderung 4: DSFinV-K Export-Schnittstelle](#8-anforderung-4-dsfinv-k-export-schnittstelle)
-9. [Anforderung 5: Elektronische Meldepflicht (ERiC / ELSTER)](#9-anforderung-5-elektronische-meldepflicht-eric--elster)
-10. [Architektonische Lösungsansätze](#10-architektonische-lösungsansätze)
-11. [Handlungsempfehlungen und Priorisierung](#11-handlungsempfehlungen-und-priorisierung)
-12. [Quellenverzeichnis](#12-quellenverzeichnis)
+1. [Einleitung](#1-einleitung)
+2. [Rechtliche Grundlagen](#2-rechtliche-grundlagen)
+3. [TSE-Integration (Technische Sicherheitseinrichtung)](#3-tse-integration-technische-sicherheitseinrichtung)
+4. [GoBD-Konformität](#4-gobd-konformität)
+5. [Belegausgabepflicht](#5-belegausgabepflicht)
+6. [DSFinV-K Export-Schnittstelle](#6-dsfinv-k-export-schnittstelle)
+7. [Elektronische Meldepflicht (ERiC / ELSTER)](#7-elektronische-meldepflicht-eric--elster)
+8. [Betreiberpflichten](#8-betreiberpflichten)
+9. [Architekturprinzipien](#9-architekturprinzipien)
+10. [Quellenverzeichnis](#10-quellenverzeichnis)
 
 ---
 
-## 1. Zusammenfassung
+## 1. Einleitung
 
-jotti wird aktuell im Repository als Kassensystem positioniert, das **keine fiskalischen Anforderungen** (KassenSichV, TSE) erfüllen muss, weil es für gemeinnützige Vereine und temporäre Veranstaltungen konzipiert ist. **Diese Annahme ist falsch.**
+jotti ist ein **elektronisches Aufzeichnungssystem** im Sinne von § 1 KassenSichV. Als solches unterliegt es der Pflicht zur Nutzung einer zertifizierten technischen Sicherheitseinrichtung (TSE) nach § 146a AO — unabhängig von der Rechtsform des Betreibers (e.V., gGmbH, Stiftung) oder dem temporären Charakter der Veranstaltungen.
 
-Die Pflicht zur Nutzung einer zertifizierten TSE (Technische Sicherheitseinrichtung) nach § 146a AO i.V.m. der KassenSichV knüpft **nicht** an die Rechtsform des Betreibers (e.V., gGmbH) oder die Gemeinnützigkeit an, sondern an die **Verwendung eines elektronischen Aufzeichnungssystems**. Sobald ein Verein eine Software wie jotti einsetzt, um Bareinnahmen aufzuzeichnen, unterliegt er denselben Pflichten wie ein kommerzieller Gastronomiebetrieb.
+Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Compliance-Anforderungen an den Entwickler (Hersteller) sowie die Pflichten der Betreiber (Vereine). Die technische Umsetzung erfolgt phasenweise — siehe [docs/roadmap.md](roadmap.md).
 
-### Kernbefunde
+### Compliance-Status
 
-| Bereich                   | Aktueller Stand                       | Bewertung                                                                       |
-| ------------------------- | ------------------------------------- | ------------------------------------------------------------------------------- |
-| **TSE-Integration**       | ❌ Nicht vorhanden                    | **Pflicht** bei Einsatz eines elektronischen Aufzeichnungssystems               |
-| **GoBD-Konformität**      | ✅ Teilweise erfüllt (Event-Sourcing) | Append-Only-Architektur gut, aber kryptografische Verkettung fehlt              |
-| **Belegausgabepflicht**   | ❌ Nicht vorhanden                    | **Pflicht** — Beleg muss bei jedem Kassiervorgang erzeugt werden können         |
-| **DSFinV-K Export**       | ❌ Nicht vorhanden                    | **Pflicht** — maschinenlesbarer Datenexport für Finanzverwaltung                |
-| **ERiC / ELSTER Meldung** | ❌ Nicht vorhanden                    | **Pflicht** ab 2025 — elektronische Kassenmeldung beim Finanzamt                |
-| **Seriennummer**          | ❌ Nicht generiert                    | **Pflicht** — UUID muss beim ersten Start generiert, dauerhaft gespeichert und im Admin-Bereich angezeigt werden |
-| **Dokumentation im Repo** | ❌ Fehlerhafte Aussagen               | Mehrere Stellen behaupten fälschlich, Vereine seien von TSE/KassenSichV befreit |
+| Bereich                 | Status                                | Priorität   |
+| ----------------------- | ------------------------------------- | ----------- |
+| **TSE-Integration**     | 🔲 Phase 2 — TSEClient + fiskaly      | Should      |
+| **GoBD-Konformität**    | ✅ Teilweise — Event-Sourcing (Basis) | Laufend     |
+| **Belegausgabepflicht** | ✅ Phase 0 — Bondrucker implementiert | Must        |
+| **Seriennummer**        | 🔲 Phase 1 — UUID + Admin-Anzeige     | Must        |
+| **Steuersätze**         | 🔲 Phase 1 — 19 % / 7 % / 0 %         | Must        |
+| **ABRECHNUNGSKREIS**    | 🔲 Phase 1 — Tagesbasiert             | Should      |
+| **DSFinV-K Export**     | 🔲 Phase 2 — CSV-ZIP                  | Should      |
+| **ELSTER-Meldung**      | 🔲 Phase 1 — Anleitung für Betreiber  | Must (Doku) |
 
 ### Grundsatzentscheidungen (2026-03-19)
 
-Auf Basis dieser Analyse wurden folgende Grundsatzentscheidungen getroffen:
-
-| Thema                                | Entscheidung                                                                                                             |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| **Strategische Richtung**            | Compliance-Roadmap: KassenSichV/TSE schrittweise implementieren                                                          |
-| **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                |
-| **ABRECHNUNGSKREIS-Session**         | Phase 1: tagesbasiert (neuer `ABRECHNUNGSKREIS` bei jedem Tagesabschluss); Phase 2: manuelle Freigabe durch Servicekraft |
-| **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                     |
-| **Kassenmeldung (§ 146a Abs. 4 AO)** | Phase 1: manuell über ELSTER-Webportal; Phase 2: ERiC oder fiskaly-Submission-API                                        |
-| **Seriennummer**                     | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern, im Admin-Dashboard anzeigen                       |
+| Thema                                | Entscheidung                                                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Strategische Richtung**            | Compliance-Roadmap: KassenSichV/TSE schrittweise implementieren                                                                                             |
+| **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                                                   |
+| **ABRECHNUNGSKREIS-Session**         | Phase 1: tagesbasiert (neuer `ABRECHNUNGSKREIS` bei jedem Tagesabschluss); Phase 2: manuelle Freigabe durch Servicekraft                                    |
+| **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                                                        |
+| **Kassenmeldung (§ 146a Abs. 4 AO)** | Phase 1: manuell über ELSTER-Webportal; Phase 2: ERiC oder fiskaly-Submission-API                                                                           |
+| **Seriennummer**                     | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern, im Admin-Dashboard anzeigen                                                          |
 | **Belegausgabe BYOD**                | Phase 1: zentraler Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); Phase 2 (optional): digitaler eBeleg via QR-Code als Download-Link |
 | **Rechtliche Rollenverteilung**      | jotti ist Open-Source-Software (kein SaaS); Entwickler implementiert TSE-Schnittstellen; Betreiber (Verein) trägt Betriebspflichten und ELSTER-Meldepflicht |
 
 ---
 
-## 2. Aktueller Stand im Repository — Fehlerhafte Annahmen
-
-An folgenden Stellen im Repository werden **falsche oder irreführende Aussagen** zur Anwendbarkeit fiskalischer Vorschriften getroffen:
-
-### 2.1 README.md
-
-> ✅ Geeignet für: Bargeld-Betrieb **ohne Kassenpflicht nach KassenSichV**
-
-> ❌ Nicht geeignet für: Kommerzielle Gastro-Betriebe **mit TSE-Pflicht**
-
-**Problem:** Die Formulierung suggeriert, dass es Bargeld-Betriebe gibt, für die die KassenSichV nicht gilt, und dass die TSE-Pflicht nur für „kommerzielle" Betriebe relevant ist. Das ist falsch — die TSE-Pflicht knüpft an das verwendete Aufzeichnungssystem, nicht an die Rechtsform.
-
-### 2.2 docs/anforderungen.md (§ 6 Bewusste Abgrenzung)
-
-> 🚫 TSE / KassenSichV — Gemeinnützige Vereine unterliegen **in der Regel keiner TSE-Pflicht**. Event-Sourcing erfüllt die GoBD-Grundsätze bereits.
-
-**Problem:** Die Aussage „in der Regel keiner TSE-Pflicht" ist falsch. Gemeinnützige Vereine, die ein elektronisches Aufzeichnungssystem einsetzen, unterliegen derselben TSE-Pflicht wie jeder andere Nutzer eines solchen Systems. Die einzige Möglichkeit, der TSE-Pflicht zu entgehen, wäre der vollständige Verzicht auf ein elektronisches Aufzeichnungssystem (z.B. Nutzung einer offenen Ladenkasse mit handschriftlicher Aufzeichnung).
-
-### 2.3 docs/produktbeschreibung.md (§ 7.3 Fiskalkonformität im Detail)
-
-> Für gemeinnützige Vereine, die **keine Kassenpflicht nach KassenSichV haben**, bietet jotti damit ein hohes Maß an Transparenz und Nachvollziehbarkeit — ohne den Overhead einer zertifizierten TSE.
-
-**Problem:** Die Aussage impliziert, dass gemeinnützige Vereine von der KassenSichV befreit sind. Das trifft nicht zu, sobald ein elektronisches Aufzeichnungssystem verwendet wird.
-
-### 2.4 docs/handbuch.md (§ 1.3 Bewusste Abgrenzung)
-
-> Zertifizierte TSE (KassenSichV) — [bewusst nicht enthalten]
-
-**Problem:** Die TSE wird als optionales Feature dargestellt, das „bewusst nicht enthalten" ist. In Wirklichkeit handelt es sich um eine gesetzliche Pflicht, deren Nichteinhaltung einen Rechtsverstoß darstellt.
-
-### 2.5 AGENTS.md
-
-> Bewusst NICHT enthalten: Kartenzahlung, **TSE/KassenSichV**, Reservierungen [...]
-
-**Problem:** Dieselbe fehlerhafte Einordnung wie oben — TSE wird als optionale Funktionalität eingestuft.
-
-### 2.6 Bewertung
-
-Alle genannten Stellen gehen von einer **fehlerhaften Prämisse** aus: dass die Gemeinnützigkeit oder der temporäre Charakter einer Veranstaltung eine Befreiung von der TSE-Pflicht begründet. Das ist rechtlich nicht zutreffend. Die TSE-Pflicht entsteht durch die **Nutzung eines elektronischen Aufzeichnungssystems** — und jotti ist genau das.
-
----
-
-## 3. Rechtliche Grundlagen
+## 2. Rechtliche Grundlagen
 
 ### 3.1 Abgabenordnung (AO) — § 146a
 
@@ -199,54 +152,7 @@ _(Quelle: § 379 AO — Steuergefährdung — https://www.gesetze-im-internet.de
 
 ---
 
-## 4. Analyse: Warum die Ausnahme nicht greift
-
-### 4.1 Der Irrtum: „Gemeinnützige Vereine sind befreit"
-
-Die im Repository verbreitete Annahme lässt sich so zusammenfassen:
-
-> „Gemeinnützige Vereine, die temporäre Veranstaltungen durchführen, unterliegen nicht der KassenSichV und brauchen keine TSE."
-
-Diese Annahme ist aus folgenden Gründen **falsch**:
-
-#### a) Die KassenSichV knüpft an das Aufzeichnungssystem, nicht an den Betreiber
-
-Die Pflicht zur Verwendung einer TSE entsteht durch die **Nutzung eines elektronischen Aufzeichnungssystems** (§ 146a Abs. 1 AO). Es gibt keine Befreiung für:
-
-- Gemeinnützige Organisationen
-- Temporäre Veranstaltungen
-- Vereinsfeste
-- Nicht-kommerzielle Zwecke
-
-Die **einzige** Möglichkeit, der TSE-Pflicht zu entgehen, besteht darin, **kein elektronisches Aufzeichnungssystem** zu verwenden — also z.B. eine offene Ladenkasse mit handschriftlichen Aufzeichnungen (Kassenbuch) zu führen.
-
-#### b) Vereine haben wirtschaftliche Geschäftsbetriebe
-
-Auch gemeinnützige Vereine können **wirtschaftliche Geschäftsbetriebe** unterhalten (§ 14 AO). Der Verkauf von Speisen und Getränken auf einem Vereinsfest ist in der Regel ein wirtschaftlicher Geschäftsbetrieb, sofern:
-
-- Die Einnahmen die Besteuerungsgrenze überschreiten (§ 64 Abs. 3 AO: 45.000 € brutto pro Jahr), oder
-- Die Veranstaltung nicht als Zweckbetrieb nach § 67a AO eingestuft wird (z.B. weil bezahlte Arbeitskräfte eingesetzt werden oder die Veranstaltung nicht der Satzung dient).
-
-In vielen Fällen sind Vereinsfeste als **wirtschaftlicher Geschäftsbetrieb** einzuordnen, für den volle Aufzeichnungspflichten gelten.
-
-#### c) Aufzeichnungspflicht besteht unabhängig von der Steuerpflicht
-
-Selbst wenn ein Verein keine Umsatzsteuer abführen muss (Kleinunternehmerregelung, § 19 UStG), besteht die **Einzelaufzeichnungspflicht** nach § 146 Abs. 1 AO für alle Geschäftsvorfälle. Die KassenSichV gilt zusätzlich, sobald ein elektronisches Aufzeichnungssystem eingesetzt wird.
-
-### 4.2 Die korrekte Aussage
-
-> Wer jotti (oder jedes andere elektronische Kassensystem) einsetzt, um Bareinnahmen bei einer Vereinsveranstaltung aufzuzeichnen, unterliegt der Pflicht zur Verwendung einer zertifizierten TSE gemäß § 146a AO i.V.m. KassenSichV — unabhängig von Rechtsform, Gemeinnützigkeit oder Dauer der Veranstaltung.
-
-### 4.3 Die einzige echte Ausnahme
-
-Eine Befreiung gibt es nur, wenn **kein elektronisches Aufzeichnungssystem** verwendet wird. Vereine können also:
-
-1. **Ohne Software:** Eine offene Ladenkasse mit handschriftlichen Aufzeichnungen (Kassenbuch) führen — dann gilt die KassenSichV nicht.
-2. **Mit Software (wie jotti):** Dann gelten alle Pflichten der KassenSichV, einschließlich TSE, Belegausgabe und DSFinV-K.
-
----
-
-## 5. Anforderung 1: TSE-Integration (Technische Sicherheitseinrichtung)
+## 3. TSE-Integration (Technische Sicherheitseinrichtung)
 
 ### 5.1 Hintergrund
 
@@ -408,12 +314,12 @@ Da jotti auf einem VPS ohne physische Kassenhardware betrieben wird, gibt es kei
 
 #### Verwendung der Seriennummer
 
-| Verwendungsort                               | Feld / Kontext                                                        |
-| -------------------------------------------- | --------------------------------------------------------------------- |
-| ELSTER-Meldung                               | „Seriennummer des elektronischen Aufzeichnungssystems"                |
-| DSFinV-K Export (`Stamm_Kassen.csv`)         | Feld `KASSE_SERIENNR`                                                 |
-| Kassenbon (Pflichtfeld nach § 6 KassenSichV) | Angedruckter String, z.B. `Kassen-ID: 7f3a9d12-...`                  |
-| TSE-Kommunikation (`StartTransaction`)       | Parameter `kassenID`                                                  |
+| Verwendungsort                               | Feld / Kontext                                         |
+| -------------------------------------------- | ------------------------------------------------------ |
+| ELSTER-Meldung                               | „Seriennummer des elektronischen Aufzeichnungssystems" |
+| DSFinV-K Export (`Stamm_Kassen.csv`)         | Feld `KASSE_SERIENNR`                                  |
+| Kassenbon (Pflichtfeld nach § 6 KassenSichV) | Angedruckter String, z.B. `Kassen-ID: 7f3a9d12-...`    |
+| TSE-Kommunikation (`StartTransaction`)       | Parameter `kassenID`                                   |
 
 #### Beispiel-Format
 
@@ -431,7 +337,7 @@ Die UUID ist herstellerunabhängig, weltweit eindeutig und erfordert keine zentr
 
 ---
 
-## 6. Anforderung 2: GoBD-Konformität
+## 4. GoBD-Konformität
 
 ### 6.1 Aktueller Stand
 
@@ -467,7 +373,7 @@ _(Quelle: GoBD — BMF-Schreiben vom 28.11.2019 — https://www.bundesfinanzmini
 
 ---
 
-## 7. Anforderung 3: Belegausgabepflicht
+## 5. Belegausgabepflicht
 
 ### 7.1 Gesetzliche Grundlage
 
@@ -578,7 +484,7 @@ _(Quelle: KassenSichV § 6 — Inhalt des Belegs)_
 
 ---
 
-## 8. Anforderung 4: DSFinV-K Export-Schnittstelle
+## 6. DSFinV-K Export-Schnittstelle
 
 ### 8.1 Übersicht
 
@@ -708,7 +614,7 @@ Eine bereits bezahlte Rechnung wird mit einem neuen Beleg mit negativen Beträge
 
 ---
 
-## 9. Anforderung 5: Elektronische Meldepflicht (ERiC / ELSTER)
+## 7. Elektronische Meldepflicht (ERiC / ELSTER)
 
 ### 9.1 Gesetzliche Grundlage und Fristen
 
@@ -786,24 +692,35 @@ Die Smartphones der Servicekräfte müssen dem Finanzamt **nicht gemeldet** werd
 
 #### Zusammenfassung der Verantwortlichkeiten
 
-| Pflicht                                        | Entwickler (jotti) | Verein (Betreiber)          |
-| ---------------------------------------------- | ------------------ | --------------------------- |
-| TSE-Schnittstelle im Code implementieren        | ✅ Pflicht          | —                           |
-| DSFinV-K-Export im Code implementieren          | ✅ Pflicht          | —                           |
-| Muster-Verfahrensdokumentation bereitstellen    | Empfohlen           | —                           |
-| Cloud-TSE-Vertrag abschließen                   | —                  | ✅ Pflicht                   |
-| TSE-API-Keys konfigurieren (`.env`)             | —                  | ✅ Pflicht                   |
-| ELSTER-Meldung (§ 146a Abs. 4 AO)              | ❌ Keine Pflicht    | ✅ Pflicht (Frist: 1 Monat)  |
-| BYOD-Smartphones melden                         | —                  | ❌ Nicht erforderlich        |
-| 10-Jahres-Archivierung (GoBD)                   | —                  | ✅ Pflicht                   |
-| Server-Betrieb und Datensicherung               | —                  | ✅ Pflicht                   |
+| Pflicht                                      | Entwickler (jotti) | Verein (Betreiber)          |
+| -------------------------------------------- | ------------------ | --------------------------- |
+| TSE-Schnittstelle im Code implementieren     | ✅ Pflicht         | —                           |
+| DSFinV-K-Export im Code implementieren       | ✅ Pflicht         | —                           |
+| Muster-Verfahrensdokumentation bereitstellen | Empfohlen          | —                           |
+| Cloud-TSE-Vertrag abschließen                | —                  | ✅ Pflicht                  |
+| TSE-API-Keys konfigurieren (`.env`)          | —                  | ✅ Pflicht                  |
+| ELSTER-Meldung (§ 146a Abs. 4 AO)            | ❌ Keine Pflicht   | ✅ Pflicht (Frist: 1 Monat) |
+| BYOD-Smartphones melden                      | —                  | ❌ Nicht erforderlich       |
+| 10-Jahres-Archivierung (GoBD)                | —                  | ✅ Pflicht                  |
+| Server-Betrieb und Datensicherung            | —                  | ✅ Pflicht                  |
 
 _(Quelle: AEAO zu § 146a AO — Klarstellung zur Mitteilungspflicht für verbundene Eingabegeräte — https://www.bundesfinanzministerium.de/)_
 _(Quelle: § 146a Abs. 1 Satz 5 AO — Verbot des In-Verkehr-Bringens nicht-TSE-fähiger Kassensoftware — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
 
 ---
 
-## 10. Architektonische Lösungsansätze
+## 8. Betreiberpflichten
+
+Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung für ihre jotti-Instanz. Eine detaillierte Verantwortlichkeitstabelle findet sich in §7.6.
+
+- **TSE-Beschaffung (BYOT):** Vertrag mit Cloud-TSE-Anbieter (z. B. fiskaly oder D-Trust); API-Keys über `.env`-Datei in Docker-Container injizieren.
+- **ELSTER-Meldung:** Jede Instanz innerhalb eines Monats nach Inbetriebnahme über das eigene ELSTER-Webportal anmelden (§ 146a Abs. 4 AO). Die Seriennummer wird von jotti automatisch generiert und im Admin-Bereich angezeigt.
+- **Server-Betrieb:** Verfügbarkeit, Datensicherung, Zugriffsschutz und 10-jährige GoBD-konforme Aufbewahrung der Daten liegen beim Verein.
+- **BYOD-Smartphones:** Müssen dem Finanzamt **nicht** gemeldet werden (AEAO zu § 146a AO: Eingabegeräte ohne eigenständige Kassenfunktion).
+
+---
+
+## 9. Architekturprinzipien
 
 ### 10.1 TSE-Integration (empfohlener Ansatz)
 
@@ -939,49 +856,7 @@ type TischSession struct {
 
 ---
 
-## 11. Handlungsempfehlungen und Priorisierung
-
-### 11.1 Sofortmaßnahmen (Phase 0)
-
-| #   | Maßnahme                          | Aufwand | Beschreibung                                                                                                                                                                             |
-| --- | --------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.1 | Dokumentation korrigieren         | Gering  | Falsche Aussagen in README.md, docs/produktbeschreibung.md, docs/anforderungen.md, docs/handbuch.md und AGENTS.md korrigieren                                                            |
-| 0.2 | Compliance-Status kommunizieren   | Gering  | README erhält klaren Hinweis: jotti ist aktuell kein TSE-konformes System; Compliance-Roadmap ist geplant                                                                                |
-| 0.3 | Admin-Kassenmeldungs-Datenanzeige | Gering  | Admin-Bereich zeigt alle Felder für manuelle ELSTER-Meldung an (Vereinsname, Steuernummer, Kassen-ID, TSE-Seriennummer, Inbetriebnahmedatum) — damit Nutzer sofort manuell melden können |
-| 0.4 | Seriennummer-Generierung          | Gering  | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern und prominent im Admin-Dashboard anzeigen (für ELSTER-Meldung, DSFinV-K-Export und Kassenbon)                      |
-
-### 11.2 Kurzfristige Maßnahmen (Phase 1)
-
-| #   | Maßnahme                            | Aufwand | Beschreibung                                                                                           |
-| --- | ----------------------------------- | ------- | ------------------------------------------------------------------------------------------------------ |
-| 1.1 | TSE-Interface definieren            | Mittel  | `TSEClient`-Interface im Backend, Adapter-Pattern für fiskaly und künftige Anbieter                    |
-| 1.2 | fiskaly-Adapter implementieren      | Hoch    | Integration mit fiskaly Cloud-TSE API (StartTransaction / FinishTransaction für alle Vorgangstypen)    |
-| 1.3 | Event-Daten um TSE-Felder erweitern | Mittel  | TSE-Rückgabewerte (`LogTimeStart`, `LogTimeEnd`, Signatur, Zähler) in Event-Data-Structs integrieren   |
-| 1.4 | ABRECHNUNGSKREIS Phase 1            | Mittel  | Tagesbasierte Session-ID (`Tisch-{Nr}-{YYYYMMDD}`) persistieren und in alle zugehörigen Bons schreiben |
-| 1.5 | Belegausgabe implementieren         | Mittel  | Beleg-Generator mit allen Pflichtfeldern (inkl. TSE-Daten und erstem Bestellzeitstempel); Backend steuert Bondrucker an der Theke nach TSE-Abschluss (Variante A gemäß §7.6) |
-| 1.6 | Steuersatz-Stammdaten               | Mittel  | 19 %, 7 %, 0 % / steuerbefreit als konfigurierbare Sätze; Produkte erhalten Steuersatz-Schlüssel       |
-| 1.7 | Muster-Verfahrensdokumentation      | Gering  | Markdown-Datei im Repository, die für Betriebsprüfer die Systemarchitektur, Datenbankschutz und TSE-Anbindung beschreibt (Pflicht gemäß GoBD, hilfreich für Vereine bei Betriebsprüfung) |
-
-### 11.3 Mittelfristige Maßnahmen (Phase 2)
-
-| #   | Maßnahme                       | Aufwand | Beschreibung                                                                                       |
-| --- | ------------------------------ | ------- | -------------------------------------------------------------------------------------------------- |
-| 2.1 | DSFinV-K Export implementieren | Hoch    | CSV-Generator für alle drei Module mit korrekten deutschen Dateinamen + `index.xml` + ZIP          |
-| 2.2 | Z-Bon-Logik (Kassenabschluss)  | Mittel  | Tagesabschluss mit aggregierten Summen; setzt gleichzeitig neuen ABRECHNUNGSKREIS (Phase 1)        |
-| 2.3 | QR-Code auf Beleg              | Gering  | TSE-Daten als QR-Code im DSFinV-K-Format                                                           |
-| 2.4 | ABRECHNUNGSKREIS Phase 2       | Mittel  | Manuelle Tischfreigabe ("Tisch freimachen") durch Servicekraft; neue Session mit Buchstaben-Suffix |
-| 2.5 | Digitaler eBeleg (optional)    | Mittel  | QR-Code als Download-Link für Gast (PDF/JPG/PNG); nur als Ergänzung oder Alternative zu Bondrucker — Regeln gemäß §7.6 Variante B |
-
-### 11.4 Langfristige Maßnahmen (Phase 3)
-
-| #   | Maßnahme                          | Aufwand | Beschreibung                                                                          |
-| --- | --------------------------------- | ------- | ------------------------------------------------------------------------------------- |
-| 3.1 | Automatisierte Kassenmeldung      | Hoch    | ERiC-Integration oder fiskaly-Submission-API; Entscheidung bei Implementierungsbeginn |
-| 3.2 | Archivierungsstrategie (10 Jahre) | Mittel  | GoBD-konforme Langzeitarchivierung der Ereignisdaten                                  |
-
----
-
-## 12. Quellenverzeichnis
+## 10. Quellenverzeichnis
 
 | #   | Quelle                                                                                                                | URL                                                                                                                                 |
 | --- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -996,7 +871,21 @@ type TischSession struct {
 | 9   | § 67a AO — Sportliche Veranstaltungen (Zweckbetrieb)                                                                  | https://www.gesetze-im-internet.de/ao_1977/__67a.html                                                                               |
 | 10  | § 19 UStG — Kleinunternehmerregelung                                                                                  | https://www.gesetze-im-internet.de/ustg_1980/__19.html                                                                              |
 | 11  | BMF-FAQ zu § 146a AO (Stand Januar 2026) — Meldepflicht und processType-Erläuterungen                                 | https://www.bundesfinanzministerium.de/                                                                                             |
-| 12  | BMF-Schreiben 28. Juni 2024 — Elektronische Kassenmeldepflicht nach § 146a Abs. 4 AO                                  | https://www.bundesfinanzministerium.de/                                                                                             |
-| 13  | DSFinV-K Nr. 2.7 und Anhang H — Vereinfachungen für langanhaltende Bestellvorgänge (Festzelt-/Durchbedienen-Muster)   | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html                   |
-| 14  | § 379 AO — Steuergefährdung (bis 25.000 € Bußgeld)                                                                    | https://www.gesetze-im-internet.de/ao_1977/__379.html                                                                               |
+
+| #   | Quelle                                                                                                                   | URL                                                                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | § 146a AO — Ordnungsvorschrift für die Buchführung und für Aufzeichnungen mittels elektronischer Aufzeichnungssysteme    | https://www.gesetze-im-internet.de/ao_1977/__146a.html                                                                              |
+| 2   | KassenSichV — Kassensicherungsverordnung                                                                                 | https://www.gesetze-im-internet.de/kassensichv/BJNR351500017.html                                                                   |
+| 3   | BSI TR-03153 — Technische Richtlinie für Technische Sicherheitseinrichtungen                                             | https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03153/TR-03153.pdf?__blob=publicationFile |
+| 4   | GoBD — BMF-Schreiben zur ordnungsmäßigen Führung elektronischer Bücher                                                   | https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html  |
+| 5   | DSFinV-K — Digitale Schnittstelle der Finanzverwaltung für Kassensysteme (BZSt)                                          | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html                   |
+| 6   | ELSTER für Entwickler — Offizielle Entwickler-Dokumentation                                                              | https://www.elster.de/elsterweb/infoseite/entwickler                                                                                |
+| 7   | § 14 AO — Wirtschaftlicher Geschäftsbetrieb                                                                              | https://www.gesetze-im-internet.de/ao_1977/__14.html                                                                                |
+| 8   | § 64 AO — Steuerpflicht wirtschaftlicher Geschäftsbetriebe                                                               | https://www.gesetze-im-internet.de/ao_1977/__64.html                                                                                |
+| 9   | § 67a AO — Sportliche Veranstaltungen (Zweckbetrieb)                                                                     | https://www.gesetze-im-internet.de/ao_1977/__67a.html                                                                               |
+| 10  | § 19 UStG — Kleinunternehmerregelung                                                                                     | https://www.gesetze-im-internet.de/ustg_1980/__19.html                                                                              |
+| 11  | BMF-FAQ zu § 146a AO (Stand Januar 2026) — Meldepflicht und processType-Erläuterungen                                    | https://www.bundesfinanzministerium.de/                                                                                             |
+| 12  | BMF-Schreiben 28. Juni 2024 — Elektronische Kassenmeldepflicht nach § 146a Abs. 4 AO                                     | https://www.bundesfinanzministerium.de/                                                                                             |
+| 13  | DSFinV-K Nr. 2.7 und Anhang H — Vereinfachungen für langanhaltende Bestellvorgänge (Festzelt-/Durchbedienen-Muster)      | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html                   |
+| 14  | § 379 AO — Steuergefährdung (bis 25.000 € Bußgeld)                                                                       | https://www.gesetze-im-internet.de/ao_1977/__379.html                                                                               |
 | 15  | AEAO zu § 146a AO — Anwendungserlass zur Abgabenordnung, Klarstellungen zu Eingabegeräten, Meldepflicht und Seriennummer | https://www.bundesfinanzministerium.de/                                                                                             |

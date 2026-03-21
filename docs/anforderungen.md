@@ -635,16 +635,165 @@ Der Admin leitet am Ende einer Veranstaltung einen Tagesabschluss ein. Dabei wir
 jotti ist kein Allzweck-Kassensystem. Folgende Features sind bewusst **nicht** enthalten — jedes zusätzliche Feature erhöht Komplexität, Wartungsaufwand und Einarbeitungszeit für ehrenamtliche Teams.
 
 | Feature                            | Kurzbegründung                                                                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --- |
 | 🚫 Kartenzahlung / Zahlungsgateway | Vereinsfeste arbeiten mit Bargeld. Kartenterminals verursachen Kosten, Verträge und technische Abhängigkeiten.                  |
-| 🚫 TSE / KassenSichV               | Gemeinnützige Vereine unterliegen in der Regel keiner TSE-Pflicht. Event-Sourcing erfüllt die GoBD-Grundsätze bereits.          |
 | 🚫 Reservierungssystem             | Vereinsfeste haben keine Tischreservierungen — Gäste setzen sich, wo Platz ist.                                                 |
 | 🚫 Warenwirtschaft / Inventory     | Bestandsverwaltung ist für temporäre Veranstaltungen mit überschaubarem Sortiment unverhältnismäßig aufwändig.                  |
 | 🚫 Lieferservice-Integration       | jotti deckt ausschließlich Vor-Ort-Gastronomie ab, nicht Liefer- oder Abholservice.                                             |
 | 🚫 Multi-Standort-Verwaltung       | Jede Veranstaltung betreibt eine eigene jotti-Instanz. Eine standortübergreifende Verwaltung wird nicht benötigt.               |
 | 🚫 CRM / Kundendatenbank           | Vereinsfeste haben keine wiederkehrenden Kundenbeziehungen, die ein CRM rechtfertigen.                                          |
 | 🚫 Kiosk-Modus / Self-Order        | Self-Order erhöht die Systemkomplexität erheblich und widerspricht dem persönlichen Service durch ehrenamtliche Helfer.         |
-| 🚫 Gast-Benachrichtigung           | Gäste sitzen am Tisch und werden persönlich bedient — Push-Benachrichtigungen an Gäste sind im Vereinsfest-Kontext überflüssig. |
-| 🚫 Trinkgeld-Tracking              | Bei ehrenamtlichen Veranstaltungen ist Trinkgeld-Verwaltung unüblich und unnötig komplex.                                       |
+| 🚫 Gast-Benachrichtigung           | Gäste sitzen am Tisch und werden persönlich bedient — Push-Benachrichtigungen an Gäste sind im Vereinsfest-Kontext überflüssig. |     |
+
+> **TSE / KassenSichV:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt der TSE-Pflicht nach § 146a AO. Die Compliance-Anforderungen sind **nicht** abgegrenzt, sondern in §7 als verbindliche Anforderungen definiert und werden über eine Roadmap phasenweise umgesetzt.
 
 Für eine detaillierte Gegenüberstellung mit kommerziellen POS-Systemen siehe [Produktbeschreibung — Abgrenzung](produktbeschreibung.md#7-abgrenzung).
+
+---
+
+## 7 · Fiskalkonformität
+
+jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht nach § 146a AO. Die folgenden Anforderungen sind **verbindlich** und werden phasenweise implementiert. Detaillierte Hintergründe: [docs/compliance.md](compliance.md), Implementierungsplan: [docs/roadmap.md](roadmap.md).
+
+### Legende
+
+| Symbol | Bedeutung         |
+| ------ | ----------------- |
+| ✅     | Implementiert     |
+| 🔲     | Offen             |
+| ⏳     | In Arbeit / Phase |
+
+---
+
+### F-01 · Seriennummer der Kasse
+
+**Priorität:** Must  
+**Phase:** 1  
+**Status:** 🔲 Offen
+
+**Beschreibung:** jotti generiert beim ersten Containerstart eine eindeutige UUID als Seriennummer der Kasse (`KassenID`). Diese wird dauerhaft in der Datenbank gespeichert und ist im Admin-Bereich jederzeit einsehbar. Die Seriennummer wird für die ELSTER-Meldung (§ 146a Abs. 4 AO) und für das TSE-Protokoll benötigt.
+
+**Akzeptanzkriterien:**
+
+- [ ] Beim ersten Start wird eine UUID-v4 generiert und in `system_config` (Schlüssel `kassen_id`) gespeichert
+- [ ] Bei jedem weiteren Start wird die bestehende UUID geladen — keine Neugenerierung
+- [ ] Im Admin-Dashboard wird die Seriennummer prominent angezeigt (Kopierbutton vorhanden)
+- [ ] Die Seriennummer ist über einen eigenen API-Endpunkt abrufbar (`/admin/kasse/seriennummer`)
+
+---
+
+### F-02 · TSE-Adapter-Schnittstelle
+
+**Priorität:** Should  
+**Phase:** 2  
+**Status:** 🔲 Offen
+
+**Beschreibung:** Das Backend exponiert ein `TSEClient`-Interface, das für die Kommunikation mit einer zertifizierten Cloud-TSE (primär: fiskaly) verantwortlich ist. Das Interface abstrahiert den TSE-Anbieter, sodass andere Anbieter als Alternative eingebunden werden können. Die TSE-API-Schlüssel werden über Umgebungsvariablen injiziert (BYOT-Modell).
+
+**Akzeptanzkriterien:**
+
+- [ ] Interface `TSEClient` mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction` ist definiert
+- [ ] Eine fiskaly-Implementierung des Interfaces (`FiskalyTSEClient`) ist vorhanden
+- [ ] Bei fehlender TSE-Konfiguration (kein API-Key) wird jeder Kassiervorgang mit einem konfigurierbaren Modus behandelt: `strict` (Fehler) oder `bypass` (nur Entwicklung)
+- [ ] TSE-Transaktionsnummer und Signaturzähler werden auf dem Beleg ausgegeben
+
+---
+
+### F-03 · Belegausgabepflicht
+
+**Priorität:** Must  
+**Phase:** 1 (Bondrucker bereits vorhanden; TSE-Daten auf Beleg: Phase 2)  
+**Status:** ✅ Teilweise — Bondrucker implementiert; TSE-Signaturfelder noch ausstehend
+
+**Beschreibung:** Bei jedem Kassiervorgang muss dem Gast ein Beleg ausgestellt werden (§ 146a Abs. 2 AO, § 6 KassenSichV). Der Beleg kann in Papierform (Bondrucker) oder — mit Zustimmung des Gastes — digital ausgegeben werden. Ab Phase 2 enthält der Beleg zusätzlich TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt).
+
+**Akzeptanzkriterien:**
+
+- [x] Beleg wird nach jeder Zahlung automatisch an den Bondrucker gesendet
+- [ ] Beleg enthält alle Pflichtfelder nach § 6 KassenSichV: Datum/Uhrzeit, Betrag, Steuersatz, Zahlungsart, Seriennummer der Kasse
+- [ ] Ab Phase 2: Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer)
+
+---
+
+### F-04 · DSFinV-K-Export
+
+**Priorität:** Should  
+**Phase:** 2  
+**Status:** 🔲 Offen
+
+**Beschreibung:** Das Backend stellt einen maschinenlesbaren Export der Kassendaten im DSFinV-K-Format (Version 2.4) bereit. Der Export besteht aus einer Sammlung von CSV-Dateien mit vorgeschriebenen deutschen Dateinamen, Semikolon-Trennung und einer `index.xml`, verpackt in einem ZIP-Archiv. Der Export wird von Betriebsprüfern der Finanzverwaltung verwendet.
+
+**Akzeptanzkriterien:**
+
+- [ ] Admin-Endpunkt `/admin/export/dsfinvk` erzeugt ein ZIP-Archiv im DSFinV-K-Format v2.4
+- [ ] Alle Pflicht-CSV-Dateien sind vorhanden: `transactions.csv`, `cash_register.csv`, `cashier.csv`, `items.csv` u. a.
+- [ ] `index.xml` ist korrekt befüllt (Kassenseriennummer, Zeitraum, Version)
+- [ ] Steuersätze und Betragsaufschlüsselung sind korrekt pro Transaktion ausgewiesen
+
+---
+
+### F-05 · ELSTER-Meldepflicht
+
+**Priorität:** Must (manuelle Anleitung), Nice-to-have (programmatisch)  
+**Phase:** 1 (Anleitung), 3 (ERiC/fiskaly-API)  
+**Status:** 🔲 Offen
+
+**Beschreibung:** Jede jotti-Instanz muss innerhalb eines Monats nach Inbetriebnahme beim zuständigen Finanzamt über ELSTER gemeldet werden (§ 146a Abs. 4 AO). Phase 1 liefert eine schriftliche Anleitung für die manuelle Meldung über das ELSTER-Webportal sowie die dafür benötigte Seriennummer aus F-01. Phase 3 implementiert optional die Meldung über die ERiC-Schnittstelle oder die fiskaly-Submission-API.
+
+**Akzeptanzkriterien:**
+
+- [ ] Dokumentation `docs/betrieb/elster-meldung.md` beschreibt die manuelle Meldung Schritt für Schritt
+- [ ] Admin-Dashboard zeigt Hinweis auf Meldepflicht mit Link zur Anleitung und der Seriennummer an
+- [ ] (Phase 3) Programmatische Meldung über ERiC oder fiskaly ist optional konfigurierbar
+
+---
+
+### F-06 · ABRECHNUNGSKREIS
+
+**Priorität:** Should  
+**Phase:** 1 (tagesbasiert), 2 (manuelle Freigabe)  
+**Status:** 🔲 Offen
+
+**Beschreibung:** Ein `ABRECHNUNGSKREIS` ist eine fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Phase 1: ein neuer `ABRECHNUNGSKREIS` wird automatisch bei jedem Tagesabschluss erzeugt. Phase 2: manuelle Freigabe durch die Serviceleitung.
+
+**Akzeptanzkriterien:**
+
+- [ ] Datenbank-Tabelle `abrechnungskreis` mit fortlaufender Nummer, Start- und Endzeitpunkt
+- [ ] Beim Tagesabschluss wird automatisch ein neuer `ABRECHNUNGSKREIS` eröffnet
+- [ ] Alle TSE-Transaktionen sind einem `ABRECHNUNGSKREIS` zugeordnet
+- [ ] Im DSFinV-K-Export ist der `ABRECHNUNGSKREIS` korrekt ausgewiesen
+
+---
+
+### F-07 · Steuersätze
+
+**Priorität:** Must  
+**Phase:** 1  
+**Status:** 🔲 Offen
+
+**Beschreibung:** Jedes Produkt wird einem Steuersatz zugeordnet. jotti unterstützt die in Deutschland relevanten Steuersätze: 19 % (Standardsatz, z. B. Getränke), 7 % (ermäßigt, z. B. Speisen), 0 % / steuerbefreit (Zweckbetrieb). Der Steuersatz wird im Kassenbeleg, in der Tagesabrechnung und im DSFinV-K-Export ausgewiesen.
+
+**Akzeptanzkriterien:**
+
+- [ ] Produkte haben ein Pflichtfeld `steuersatz` mit Enum-Werten: `standard` (19 %), `ermaessigt` (7 %), `befreit` (0 %)
+- [ ] Steuersatz wird im Admin-Bereich bei der Produktanlage/-bearbeitung auswählbar angezeigt
+- [ ] Steuersatz wird in BestellungAufgenommen-Events als Fat Event mitgespeichert (unveränderlich für historische Auswertungen)
+- [ ] Tagesabrechnung weist Umsätze nach Steuersatz aufgeschlüsselt aus
+- [ ] Kassenbeleg zeigt Nettobetrag, Steuersatz und Steuerbetrag pro Position
+
+---
+
+### F-08 · GoBD-kryptografische Hash-Chain
+
+**Priorität:** Nice-to-have  
+**Phase:** 3  
+**Status:** 🔲 Offen
+
+**Beschreibung:** Zur Erfüllung der GoBD-Anforderung der Unveränderbarkeit wird jedes Event mit einem kryptografischen Hash (SHA-256) des vorherigen Events verkettet. Dadurch ist jede nachträgliche Manipulation der Event-History nachweisbar. Als ergänzende Maßnahme zur TSE-Signatur (F-02).
+
+**Akzeptanzkriterien:**
+
+- [ ] Jedes Event in der `events`-Tabelle speichert den SHA-256-Hash des vorherigen Events (`previous_hash`)
+- [ ] Das erste Event jedes `ABRECHNUNGSKREIS` verwendet einen definierten Genesis-Hash
+- [ ] Ein Integritätsprüfungs-Endpunkt (`/admin/integrity/check`) validiert die vollständige Hash-Chain
+- [ ] Die Hash-Chain ist unabhängig von der TSE-Signatur und ergänzt diese

@@ -16,19 +16,19 @@ Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktual
 
 ## Namenskonventionen pro Schicht
 
-| Schicht                   | Sprache  | Konvention                 | Beispiel                                        |
-| ------------------------- | -------- | -------------------------- | ----------------------------------------------- |
-| Go-Domain-Structs         | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Position`               |
-| Go-Felder (Domäne)        | Deutsch  | PascalCase                 | `GesamtPreisCents`, `SaldoCents`                |
-| TypeScript-Typen (Domäne) | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Zahlung`                |
-| JSON-Keys (Domäne)        | Deutsch  | camelCase                  | `"gesamtPreisCents"`, `"saldoCents"`            |
-| API-Pfade (Domäne)        | Deutsch  | kebab-case                 | `/bestellung-aufnehmen`, `/zahlung-kassieren`   |
-| DB-Tabellen (Domäne)      | Deutsch  | snake_case                 | `tische`, `produkte`, `produkt_varianten`       |
-| DB-Tabellen (Infrastr.)   | Englisch | snake_case                 | `users`, `events`                               |
-| DB-Spalten (Domäne)       | Deutsch  | snake_case                 | `kategorie`, `preis_cents`, `produkt_id`        |
-| DB-Spalten (Infrastr.)    | Englisch | snake_case                 | `created_at`, `updated_at`, `status`, `id`      |
-| Frontend-Routen           | Englisch | kebab-case                 | `/service/tables`, `/admin/products`            |
-| Auth/Infrastruktur-Code   | Englisch | Sprachübliche Konventionen | `User`, `Role`, `Token`, `Config`               |
+| Schicht                   | Sprache  | Konvention                 | Beispiel                                      |
+| ------------------------- | -------- | -------------------------- | --------------------------------------------- |
+| Go-Domain-Structs         | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Position`             |
+| Go-Felder (Domäne)        | Deutsch  | PascalCase                 | `GesamtPreisCents`, `SaldoCents`              |
+| TypeScript-Typen (Domäne) | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Zahlung`              |
+| JSON-Keys (Domäne)        | Deutsch  | camelCase                  | `"gesamtPreisCents"`, `"saldoCents"`          |
+| API-Pfade (Domäne)        | Deutsch  | kebab-case                 | `/bestellung-aufnehmen`, `/zahlung-kassieren` |
+| DB-Tabellen (Domäne)      | Deutsch  | snake_case                 | `tische`, `produkte`, `produkt_varianten`     |
+| DB-Tabellen (Infrastr.)   | Englisch | snake_case                 | `users`, `events`                             |
+| DB-Spalten (Domäne)       | Deutsch  | snake_case                 | `kategorie`, `preis_cents`, `produkt_id`      |
+| DB-Spalten (Infrastr.)    | Englisch | snake_case                 | `created_at`, `updated_at`, `status`, `id`    |
+| Frontend-Routen           | Englisch | kebab-case                 | `/service/tables`, `/admin/products`          |
+| Auth/Infrastruktur-Code   | Englisch | Sprachübliche Konventionen | `User`, `Role`, `Token`, `Config`             |
 
 > **Pfadkonvention:** Dateipfade in den Tabellen sind relativ angegeben — `domain/…` und `api/…` liegen unter `backend/`, `src/…` unter `frontend/`, `migrations/…` unter `database/`.
 
@@ -66,15 +66,15 @@ Die folgende Tabelle dokumentiert Abweichungen zwischen den aktuellen Code-Bezei
 
 Zentrales Aggregat im Kassenbetrieb. Trägt einen Event Stream, aus dem sich der aktuelle Zustand (Saldo, offene Positionen) berechnet.
 
-| Schicht             | Repräsentation                                                                                                                  | Datei                          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Go-Struct           | `Tisch` (Felder: `ID`, `Name`, `Status`, `CreatedAt`)                                                                           | `domain/table/tisch.go`        |
-| TypeScript-Typ      | `Tisch`                                                                                                                         | `src/service/table/Tisch.ts`   |
-| DB-Tabelle          | `tables`                                                                                                                        | `migrations/01_initial.up.sql` |
-| API-Pfade (Admin)   | `/create-tisch`, `/update-tisch`, `/activate-tisch`, `/deactivate-tisch`, `/get-all-tische`                                     | `api/admin.go`                 |
+| Schicht             | Repräsentation                                                                                                                 | Datei                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| Go-Struct           | `Tisch` (Felder: `ID`, `Name`, `Status`, `CreatedAt`)                                                                          | `domain/table/tisch.go`        |
+| TypeScript-Typ      | `Tisch`                                                                                                                        | `src/service/table/Tisch.ts`   |
+| DB-Tabelle          | `tables`                                                                                                                       | `migrations/01_initial.up.sql` |
+| API-Pfade (Admin)   | `/create-tisch`, `/update-tisch`, `/activate-tisch`, `/deactivate-tisch`, `/get-all-tische`                                    | `api/admin.go`                 |
 | API-Pfade (Service) | `/get-tisch`, `/get-aktive-tische`, `/get-tisch-historie`, `/get-tisch-saldo`, `/get-tisch-unbezahlt`, `/get-tisch-ausstehend` | `api/service.go`               |
 | Frontend-Hooks      | `useTisch()`, `useAktiveTische()`, `useTischHistorie()`, `useTischSaldo()`, `useTischUnbezahlt()`, `useTischAusstehend()`      | `src/service/table/hooks.ts`   |
-| Frontend-Route      | `/service/tables/:tableId`                                                                                                      | `src/routes.ts`                |
+| Frontend-Route      | `/service/tables/:tableId`                                                                                                     | `src/routes.ts`                |
 
 > **Hinweis:** DB-Tabelle (`tables`) und Frontend-Route (`/service/tables`) verwenden Englisch — korrekt per Infrastruktur-Konvention.
 
@@ -82,15 +82,15 @@ Zentrales Aggregat im Kassenbetrieb. Trägt einen Event Stream, aus dem sich der
 
 Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt. Erzeugt ein `BestellungAufgenommen`-Event.
 
-| Schicht             | Repräsentation                                                                                                    | Datei                              |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Schicht             | Repräsentation                                                                                                   | Datei                              |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | Go-Struct           | `Bestellung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `GesamtPreisCents`, `Kommentar`, `AufgenommenAm`) | `domain/table/bestellung.go`       |
-| Go-Event-Typ        | `EventTypeBestellungAufgenommenV1` = `"tisch.bestellung-aufgenommen:v1"`                                          | `domain/table/events.go`           |
-| Go-Command          | `BestellungAufnehmen()`                                                                                           | `api/table/application/command.go` |
-| TypeScript-Typ      | `Bestellung`, `BestellungAufnehmen`                                                                               | `src/service/table/Bestellung.ts`  |
-| API-Pfad            | `/service/bestellung-aufnehmen`                                                                                   | `api/service.go`                   |
-| Frontend-Komponente | `<Bestellung>`, `<BestellungDrawer>`                                                                              | `src/service/components/table/`    |
-| UI-Labels           | „Bestellen" (Tab), „Bestellung aufnehmen" (Button), „Bestellung wurde aufgenommen." (Toast)                       |                                    |
+| Go-Event-Typ        | `EventTypeBestellungAufgenommenV1` = `"tisch.bestellung-aufgenommen:v1"`                                         | `domain/table/events.go`           |
+| Go-Command          | `BestellungAufnehmen()`                                                                                          | `api/table/application/command.go` |
+| TypeScript-Typ      | `Bestellung`, `BestellungAufnehmen`                                                                              | `src/service/table/Bestellung.ts`  |
+| API-Pfad            | `/service/bestellung-aufnehmen`                                                                                  | `api/service.go`                   |
+| Frontend-Komponente | `<Bestellung>`, `<BestellungDrawer>`                                                                             | `src/service/components/table/`    |
+| UI-Labels           | „Bestellen" (Tab), „Bestellung aufnehmen" (Button), „Bestellung wurde aufgenommen." (Toast)                      |                                    |
 
 ### Position
 
@@ -108,29 +108,29 @@ Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einze
 
 Die Bestätigung, dass bestellte Positionen dem Gast übergeben wurden. Erzeugt ein `AusgabeBestaetigt`-Event.
 
-| Schicht             | Repräsentation                                                                          | Datei                                      |
-| ------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Schicht             | Repräsentation                                                                           | Datei                                      |
+| ------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------ |
 | Go-Struct           | `Ausgabe` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `Kommentar`, `AusgegebenAm`) | `domain/table/ausgabe.go`                  |
-| Go-Event-Typ        | `EventTypeAusgabeBestaetigtV1` = `"tisch.ausgabe-bestaetigt:v1"`                        | `domain/table/events.go`                   |
-| Go-Command          | `AusgabeBestaetigen()`                                                                  | `api/table/application/command.go`         |
-| TypeScript-Typ      | `Ausgabe`, `AusgabeBestaetigen`                                                         | `src/service/table/Ausgabe.ts`             |
-| API-Pfad            | `/service/ausgabe-bestaetigen`                                                          | `api/service.go`                           |
-| Frontend-Komponente | `<Ausgabe>`                                                                             | `src/service/components/table/Ausgabe.tsx` |
-| UI-Labels           | „Ausgabe bestätigen" (Button), „Ausgabe" (Historie)                                     |                                            |
+| Go-Event-Typ        | `EventTypeAusgabeBestaetigtV1` = `"tisch.ausgabe-bestaetigt:v1"`                         | `domain/table/events.go`                   |
+| Go-Command          | `AusgabeBestaetigen()`                                                                   | `api/table/application/command.go`         |
+| TypeScript-Typ      | `Ausgabe`, `AusgabeBestaetigen`                                                          | `src/service/table/Ausgabe.ts`             |
+| API-Pfad            | `/service/ausgabe-bestaetigen`                                                           | `api/service.go`                           |
+| Frontend-Komponente | `<Ausgabe>`                                                                              | `src/service/components/table/Ausgabe.tsx` |
+| UI-Labels           | „Ausgabe bestätigen" (Button), „Ausgabe" (Historie)                                      |                                            |
 
 ### Zahlung
 
 Die Kassierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen (Teilzahlung). Erzeugt ein `ZahlungKassiert`-Event.
 
-| Schicht             | Repräsentation                                                                                                | Datei                              |
-| ------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Schicht             | Repräsentation                                                                                               | Datei                              |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
 | Go-Struct           | `Zahlung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `GesamtZahlungCents`, `Kommentar`, `KassiertAm`) | `domain/table/zahlung.go`          |
-| Go-Event-Typ        | `EventTypeZahlungKassiertV1` = `"tisch.zahlung-kassiert:v1"`                                                  | `domain/table/events.go`           |
-| Go-Command          | `ZahlungKassieren()`                                                                                          | `api/table/application/command.go` |
-| TypeScript-Typ      | `Zahlung`, `ZahlungKassieren`                                                                                 | `src/service/table/Zahlung.ts`     |
-| API-Pfad            | `/service/zahlung-kassieren`                                                                                  | `api/service.go`                   |
-| Frontend-Komponente | `<ZahlungDrawer>`                                                                                             | `src/service/components/table/`    |
-| UI-Labels           | „Bezahlen" (Tab), „Kassieren" (Button), „Zahlung kassieren" (actionLabel)                                     |                                    |
+| Go-Event-Typ        | `EventTypeZahlungKassiertV1` = `"tisch.zahlung-kassiert:v1"`                                                 | `domain/table/events.go`           |
+| Go-Command          | `ZahlungKassieren()`                                                                                         | `api/table/application/command.go` |
+| TypeScript-Typ      | `Zahlung`, `ZahlungKassieren`                                                                                | `src/service/table/Zahlung.ts`     |
+| API-Pfad            | `/service/zahlung-kassieren`                                                                                 | `api/service.go`                   |
+| Frontend-Komponente | `<ZahlungDrawer>`                                                                                            | `src/service/components/table/`    |
+| UI-Labels           | „Bezahlen" (Tab), „Kassieren" (Button), „Zahlung kassieren" (actionLabel)                                    |                                    |
 
 ### Stornierung
 
@@ -152,14 +152,14 @@ Die nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung ode
 
 Auszahlung eines Betrags an den Gast, um einen negativen Saldo auszugleichen — entsteht, wenn bereits kassierte Positionen nachträglich storniert werden (K-05). Kein Positionsbezug; freier Betrag (≥ 1 Cent). Erzeugt ein `AuszahlungGeleistet`-Event.
 
-| Schicht             | Repräsentation                                                                                 | Datei                                              |
-| ------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| Go-Struct           | `Auszahlung` (Felder: `ID`, `UserID`, `TischID`, `BetragCents`, `Kommentar`, `GeleistetAm`)     | `domain/table/auszahlungGeleistetEvent.go`         |
-| Go-Event-Typ        | `EventTypeAuszahlungGeleistetV1` = `"tisch.auszahlung-geleistet:v1"`                            | `domain/table/events.go`                           |
-| Go-Command          | `AuszahlungLeisten()`                                                                           | `api/table/application/command.go`                 |
-| API-Pfad            | `/serviceleitung/auszahlung-leisten`                                                            | `api/serviceleitung.go`                            |
-| Frontend-Komponente | `<AuszahlungDrawer>`                                                                            | `src/service/components/table/AuszahlungDrawer.tsx`|
-| UI-Labels           | „Auszahlung leisten“ (Button), negativer Saldo-Badge in Tischkarte und Tischseite             |                                                    |
+| Schicht             | Repräsentation                                                                              | Datei                                               |
+| ------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Go-Struct           | `Auszahlung` (Felder: `ID`, `UserID`, `TischID`, `BetragCents`, `Kommentar`, `GeleistetAm`) | `domain/table/auszahlungGeleistetEvent.go`          |
+| Go-Event-Typ        | `EventTypeAuszahlungGeleistetV1` = `"tisch.auszahlung-geleistet:v1"`                        | `domain/table/events.go`                            |
+| Go-Command          | `AuszahlungLeisten()`                                                                       | `api/table/application/command.go`                  |
+| API-Pfad            | `/serviceleitung/auszahlung-leisten`                                                        | `api/serviceleitung.go`                             |
+| Frontend-Komponente | `<AuszahlungDrawer>`                                                                        | `src/service/components/table/AuszahlungDrawer.tsx` |
+| UI-Labels           | „Auszahlung leisten“ (Button), negativer Saldo-Badge in Tischkarte und Tischseite           |                                                     |
 
 > **Hinweis:** `Kommentar` ist Pflichtfeld (min. 3, max. 100 Zeichen). Das UI befüllt den Betrag vor, wenn der Saldo negativ ist.
 
@@ -193,8 +193,8 @@ Der vollständige, unveränderliche Event Stream eines Tisches in chronologische
 
 Freitextnotiz zu Tischoperationen. Pflichtfeld bei Stornierung und Auszahlung (min. 3 Zeichen), optional bei Bestellung, Ausgabe und Zahlung. Max. 100 Zeichen.
 
-| Schicht       | Repräsentation | Datei                                                                                                        |
-| ------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
+| Schicht       | Repräsentation | Datei                                                                                                       |
+| ------------- | -------------- | ----------------------------------------------------------------------------------------------------------- |
 | Go-Feld       | `Kommentar`    | `domain/table/bestellung.go`, `zahlung.go`, `ausgabe.go`, `stornierung.go`, `bestellungAufgenommenEvent.go` |
 | JSON-Key      | `"kommentar"`  | (alle oben genannten Dateien)                                                                               |
 | TS-Feld (Ist) | `comment`      | `src/service/table/Bestellung.ts`, `Zahlung.ts`, `Ausgabe.ts`, `Stornierung.ts`                             |
@@ -224,7 +224,7 @@ Kompakte KPI-Übersicht einer Servicekraft über ihre eigenen Aktivitäten: Anza
 | TypeScript-Typ      | `EigeneUebersicht`                                                                                          | `src/service/table/Tisch.ts`                  |
 | API-Pfad            | `/service/get-eigene-uebersicht`                                                                            | `api/service.go`                              |
 | Frontend-Komponente | `<EigeneUebersicht>`                                                                                        | `src/service/components/EigeneUebersicht.tsx` |
-| UI-Label            | „Meine Übersicht" (Sektion), „Bestellungen" / „Kassiert" (Karten)                                          |                                               |
+| UI-Label            | „Meine Übersicht" (Sektion), „Bestellungen" / „Kassiert" (Karten)                                           |                                               |
 
 ## Stammdaten (Supporting Sub-Domain)
 
@@ -292,13 +292,13 @@ Logisches Löschen: Datensätze werden nicht physisch entfernt, sondern durch de
 
 Eine benutzerspezifische Markierung, die eine Servicekraft für einen Tisch setzt, um diesen auf dem Service-Dashboard als Rich Card anzuzeigen ("Meine Tische"). Kein Aggregat, keine Events — einfache CRUD-Relation in der DB (`tisch_favoriten`: `user_id` + `tisch_id` als Composite PK).
 
-| Schicht        | Repräsentation                                                                                                        | Datei                                      |
-| -------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Go-Package     | `backend/repository/favorit_repo/`                                                                                    | `repository/favorit_repo/repo.go`          |
-| DB-Tabelle     | `tisch_favoriten`                                                                                                     | `migrations/01_initial.up.sql`             |
-| TypeScript-Typ | (kein eigener Typ — als `istFavorit: boolean` in `AktiverTischMitFavorit`)                                             | `src/service/table/Tisch.ts`               |
-| API-Pfade      | `/service/favorit-hinzufuegen`, `/service/favorit-entfernen`                                                          | `api/service.go`                           |
-| UI-Label       | „Meine Tische" (Dashboard-Überschrift), Stern-Toggle (★ / ☆) im Alle-Tische-Drawer                                    |                                            |
+| Schicht        | Repräsentation                                                                     | Datei                             |
+| -------------- | ---------------------------------------------------------------------------------- | --------------------------------- |
+| Go-Package     | `backend/repository/favorit_repo/`                                                 | `repository/favorit_repo/repo.go` |
+| DB-Tabelle     | `tisch_favoriten`                                                                  | `migrations/01_initial.up.sql`    |
+| TypeScript-Typ | (kein eigener Typ — als `istFavorit: boolean` in `AktiverTischMitFavorit`)         | `src/service/table/Tisch.ts`      |
+| API-Pfade      | `/service/favorit-hinzufuegen`, `/service/favorit-entfernen`                       | `api/service.go`                  |
+| UI-Label       | „Meine Tische" (Dashboard-Überschrift), Stern-Toggle (★ / ☆) im Alle-Tische-Drawer |                                   |
 
 ## Authentifizierung (Generic Sub-Domain)
 
@@ -405,10 +405,45 @@ Die folgenden Begriffe sind in der Ubiquitous Language definiert, aber noch nich
 | **Tagesabschluss**  | Administrativer Vorgang zum Ende einer Veranstaltung: offene Tische prüfen, Abschlussbericht generieren, optional System zurücksetzen. |
 | **Export**          | CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Vereinsbuchhaltung.                                                   |
 
-## Änderungshistorie
+---
 
-| Datum      | Änderung                                                                        |
-| ---------- | ------------------------------------------------------------------------------- |
-| 2026-03-12 | Initiale Version erstellt aus Entwurf Abschnitt 12 und Code-Analyse.            |
-| 2026-03-12 | Restrukturierung: Abweichungstabelle nach oben, Geplant-Abschnitt konsolidiert. |
-| 2026-03-15 | Events, Entitäten und Bezeichnungen umbenannt: `BestellungAufgegeben` → `BestellungAufgenommen`, `ZahlungRegistriert` → `ZahlungKassiert`, `ProdukteGeliefert`/`Lieferung` → `AusgabeBestaetigt`/`Ausgabe`, `ProdukteStorniert` → `StornierungErteilt`, `ungelieferte_positionen` → `ausstehende_positionen`. |
+## Fiskalkonformität (Compliance Sub-Domain)
+
+Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und KassenSichV. Diese Sub-Domain wird phasenweise implementiert — siehe `docs/roadmap.md`.
+
+> **Sprachkonvention:** Fiskal-Fachbegriffe folgen der deutschen Gesetzessprache und DSFinV-K-Spezifikation. Technische Interface-Namen bleiben englisch (Go-Konvention).
+
+### Kasse und Identifikation
+
+| Begriff                                         | Go-Struct / Go-Typ    | DB-Tabelle / -Feld                      | JSON-Key            | Bedeutung                                                                                                                                                                    |
+| ----------------------------------------------- | --------------------- | --------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Seriennummer** / **KassenID**                 | `KassenID` (`string`) | `system_config.value` (key=`kassen_id`) | `kassen_id`         | Eindeutige UUID-v4 der jotti-Instanz. Beim ersten Containerstart generiert, dauerhaft gespeichert. Wird für ELSTER-Meldung und TSE-Protokoll benötigt.                       |
+| **TSE** / **Technische Sicherheitseinrichtung** | Interface `TSEClient` | —                                       | —                   | Zertifiziertes Sicherheitsmodul nach BSI TR-03153. Signiert und protokolliert jeden Kassiervorgang kryptografisch. In jotti über ein Adapter-Pattern eingebunden (BYOT).     |
+| **TSEClient**                                   | Interface (Go)        | —                                       | —                   | Go-Interface mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. Wird von anbieter-spezifischen Implementierungen (z. B. `FiskalyTSEClient`) erfüllt. |
+| **Signaturzähler**                              | `uint64`              | —                                       | `signature_counter` | Fortlaufender Zähler der TSE für jede signierte Transaktion. Pflichtfeld auf dem Kassenbeleg.                                                                                |
+
+### Abrechnungsstruktur
+
+| Begriff              | Go-Struct            | DB-Tabelle         | JSON-Key           | Bedeutung                                                                                                                               |
+| -------------------- | -------------------- | ------------------ | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **ABRECHNUNGSKREIS** | `Abrechnungskreis`   | `abrechnungskreis` | `abrechnungskreis` | Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typisch: einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld. |
+| **Tagesabschluss**   | (s. Abrechnung oben) | —                  | —                  | Administrativer Abschluss eines ABRECHNUNGSKREIS. Erzeugt DSFinV-K-exportierbaren Datensatz.                                            |
+
+### Steuern
+
+| Begriff          | Go-Typ              | DB-Feld      | JSON-Key       | Bedeutung                                                                                                                                          |
+| ---------------- | ------------------- | ------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Steuersatz**   | `Steuersatz` (Enum) | `steuersatz` | `steuersatz`   | Steuerklasse eines Produkts. Enum-Werte: `standard` (19 %), `ermaessigt` (7 %), `befreit` (0 %). Wird als Fat Event in die Bestellung eingefroren. |
+| **Steuerbetrag** | `int` (Cent)        | —            | `steuerbetrag` | Berechneter Steuerbetrag in Cent für eine Position oder einen Vorgang. Immer in Cent, niemals als Float.                                           |
+| **Nettobetrag**  | `int` (Cent)        | —            | `nettobetrag`  | Betrag vor Steuerabzug. Immer in Cent.                                                                                                             |
+
+### Export und Meldung
+
+| Begriff         | Bedeutung                                                                                                                                                                                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DSFinV-K**    | „Digitale Schnittstelle der Finanzverwaltung für Kassensysteme" — standardisiertes CSV-ZIP-Exportformat (Version 2.4) für Betriebsprüfungen durch die Finanzverwaltung.                                                                                                                               |
+| **ELSTER**      | Elektronisches Steuerportal der deutschen Finanzverwaltung. Jede jotti-Instanz muss innerhalb eines Monats nach Inbetriebnahme über ELSTER gemeldet werden (§ 146a Abs. 4 AO).                                                                                                                        |
+| **ERiC**        | „ELSTER Rich Client" — Programmierschnittstelle (API) für die automatisierte ELSTER-Kommunikation. Phase-3-Feature.                                                                                                                                                                                   |
+| **Kassenbeleg** | Pflichtbeleg, der nach jedem Kassiervorgang ausgestellt werden muss (§ 146a Abs. 2 AO). In jotti: Bondruck via ESC/POS + (Phase 2) TSE-Signaturfelder.                                                                                                                                                |
+| **BYOT**        | „Bring Your Own TSE" — Betreiber schließen selbst einen Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly) ab und injizieren API-Schlüssel via `.env`-Datei.                                                                                                                                        |
+| **GoBD**        | „Grundsätze zur ordnungsmäßigen Führung und Aufbewahrung von Büchern, Aufzeichnungen und Unterlagen in elektronischer Form" — Bundesfinanzministerium-Schreiben zu elektronischer Buchführung. Event-Sourcing erfüllt die Unveränderbarkeitsanforderung. Kryptografische Verkettung folgt in Phase 3. |

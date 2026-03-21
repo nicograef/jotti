@@ -63,13 +63,15 @@ Tisch-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlunge
 - Eingetragene Vereine (e.V.), gemeinnützige Organisationen, NPOs
 - Temporäre Veranstaltungen: Vereinsfeste, Sommerfeste, Weihnachtsmärkte, Maihocks, Konzerte
 - Ehrenamtliche Teams (5–30 Servicekräfte)
-- Bargeld-Betrieb ohne Kassenpflicht nach KassenSichV
+- Bargeld-Betrieb mit schrittweiser Compliance-Roadmap (TSE/KassenSichV)
 
 ❌ **Nicht geeignet für:**
 
 - Dauerbetrieb (Restaurants, Cafés)
-- Kommerzielle Gastro-Betriebe mit TSE-Pflicht
+- Betriebe, die **sofort** eine vollständig zertifizierte TSE-Lösung benötigen
 - Kartenzahlung / NFC / Online-Payment
+
+> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt der TSE-Pflicht nach § 146a AO. Die TSE-Integration wird schrittweise implementiert — der Betreiber ist verpflichtet, eine Cloud-TSE (BYOT) einzubinden, sobald die entsprechende Phase der Roadmap umgesetzt ist. Siehe [docs/roadmap.md](docs/roadmap.md) und [docs/compliance.md](docs/compliance.md).
 
 ## Lizenz & Urheberrecht
 

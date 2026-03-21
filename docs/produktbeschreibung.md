@@ -166,17 +166,17 @@ jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 
 ### 6.1 Kassenbetrieb (Service-Bereich)
 
-| Feature                    | Beschreibung                                                                             |
-| -------------------------- | ---------------------------------------------------------------------------------------- |
-| **Bestellungen aufnehmen** | Produkte und Varianten auswählen, Menge wählen, auf den Tisch buchen                     |
-| **Ausgabe bestätigen**     | Bestellte Positionen als ausgegeben markieren                                            |
-| **Zahlung kassieren**      | Am Tisch kassieren — Teilzahlung möglich                                                 |
-| **Stornierungen**          | Falschbestellungen rückgängig machen (nur Serviceleitung/Admin, Pflichtkommentar)         |
+| Feature                    | Beschreibung                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Bestellungen aufnehmen** | Produkte und Varianten auswählen, Menge wählen, auf den Tisch buchen                                          |
+| **Ausgabe bestätigen**     | Bestellte Positionen als ausgegeben markieren                                                                 |
+| **Zahlung kassieren**      | Am Tisch kassieren — Teilzahlung möglich                                                                      |
+| **Stornierungen**          | Falschbestellungen rückgängig machen (nur Serviceleitung/Admin, Pflichtkommentar)                             |
 | **Auszahlung leisten**     | Negativen Saldo ausgleichen — z. B. nach Stornierung bereits kassierter Positionen (nur Serviceleitung/Admin) |
-| **Tisch-Übersicht**        | Offener Saldo, bestellte/ausgegebene/bezahlte Positionen, Bestellhistorie auf einen Blick |
-| **Tischauswahl**           | Alle Tische mit Status und offenem Betrag — sofort den richtigen Tisch finden            |
-| **Küchendisplay (KDS)**    | Eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe anzeigen  |
-| **Bon-Druck**              | Bestell- und Küchenbons direkt an einen Bondrucker senden                                |
+| **Tisch-Übersicht**        | Offener Saldo, bestellte/ausgegebene/bezahlte Positionen, Bestellhistorie auf einen Blick                     |
+| **Tischauswahl**           | Alle Tische mit Status und offenem Betrag — sofort den richtigen Tisch finden                                 |
+| **Küchendisplay (KDS)**    | Eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe anzeigen                       |
+| **Bon-Druck**              | Bestell- und Küchenbons direkt an einen Bondrucker senden                                                     |
 
 ### 6.2 Verwaltung (Admin-Bereich)
 
@@ -212,66 +212,74 @@ jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 
 ### 7.1 jotti vs. kommerzielle POS-Systeme
 
-| Eigenschaft           | jotti                                            | Orderbird / Toast / Zettle           |
-| --------------------- | ------------------------------------------------ | ------------------------------------ |
-| **Preis**             | Kostenlos                                        | 30–100 €/Monat + Hardware            |
-| **Hardware**          | Keine — eigenes Smartphone (BYOD)                | Dedizierte Terminals, iPad, Drucker  |
-| **Hosting**           | Self-hosted (Docker)                             | Cloud-SaaS                           |
-| **Zielgruppe**        | Vereine, gemeinnützige Organisationen            | Gastronomie-Betriebe, Restaurants    |
-| **Zahlungsarten**     | Bargeld-Tracking                                 | Karte, NFC, Online-Payment           |
-| **Fiskalkonformität** | GoBD-Grundsätze durch Event-Sourcing (keine TSE) | Zertifizierte TSE, GoBD, KassenSichV |
-| **Offline-Modus**     | Server-basiert (lokales WLAN reicht)             | Cloud-abhängig oder Hybrid           |
-| **Einrichtungszeit**  | Minuten (Docker Compose)                         | Tage bis Wochen                      |
-| **Schulung**          | Keine — intuitive Mobile-UI                      | Oft erforderlich                     |
-| **Vertragslaufzeit**  | Keine                                            | 12–24 Monate                         |
-| **Datenhoheit**       | Volle Kontrolle (eigener Server)                 | Daten beim Anbieter                  |
-| **Quellcode**         | Einsehbar (Source-Available)                     | Proprietär                           |
-| **Küchendisplay**     | Integriertes KDS                                 | Meist kostenpflichtiges Add-on       |
-| **Bon-Druck**         | Bondrucker-Anbindung                             | Standard (oft proprietär)            |
-| **Abrechnung**        | Tagesabrechnung, pro Tisch & Servicekraft        | Umfangreiche Reporting-Suites        |
+| Eigenschaft           | jotti                                                                             | Orderbird / Toast / Zettle           |
+| --------------------- | --------------------------------------------------------------------------------- | ------------------------------------ |
+| **Preis**             | Kostenlos                                                                         | 30–100 €/Monat + Hardware            |
+| **Hardware**          | Keine — eigenes Smartphone (BYOD)                                                 | Dedizierte Terminals, iPad, Drucker  |
+| **Hosting**           | Self-hosted (Docker)                                                              | Cloud-SaaS                           |
+| **Zielgruppe**        | Vereine, gemeinnützige Organisationen                                             | Gastronomie-Betriebe, Restaurants    |
+| **Zahlungsarten**     | Bargeld-Tracking                                                                  | Karte, NFC, Online-Payment           |
+| **Fiskalkonformität** | Compliance-Roadmap: TSE via Adapter-Pattern (BYOT), DSFinV-K-Export — phasenweise | Zertifizierte TSE, GoBD, KassenSichV |
+| **Offline-Modus**     | Server-basiert (lokales WLAN reicht)                                              | Cloud-abhängig oder Hybrid           |
+| **Einrichtungszeit**  | Minuten (Docker Compose)                                                          | Tage bis Wochen                      |
+| **Schulung**          | Keine — intuitive Mobile-UI                                                       | Oft erforderlich                     |
+| **Vertragslaufzeit**  | Keine                                                                             | 12–24 Monate                         |
+| **Datenhoheit**       | Volle Kontrolle (eigener Server)                                                  | Daten beim Anbieter                  |
+| **Quellcode**         | Einsehbar (Source-Available)                                                      | Proprietär                           |
+| **Küchendisplay**     | Integriertes KDS                                                                  | Meist kostenpflichtiges Add-on       |
+| **Bon-Druck**         | Bondrucker-Anbindung                                                              | Standard (oft proprietär)            |
+| **Abrechnung**        | Tagesabrechnung, pro Tisch & Servicekraft                                         | Umfangreiche Reporting-Suites        |
 
 ### 7.2 Was jotti bewusst NICHT ist
 
 jotti ist kein Allzweck-Kassensystem. Folgende Features sind bewusst **nicht** enthalten:
 
 - ❌ Kartenzahlung / Zahlungsgateway
-- ❌ Zertifizierte TSE (kryptografische Technische Sicherheitseinrichtung)
 - ❌ Reservierungssystem
 - ❌ Inventory / Warenwirtschaft
 - ❌ Lieferservice-Integration
 - ❌ Multi-Standort-Verwaltung
 - ❌ Kundenverwaltung / CRM
 - ❌ Selbstbedienungs-Kiosk
-- ❌ Trinkgeld-Tracking
 
 Diese bewusste Reduktion ist ein Feature, kein Mangel. Jedes zusätzliche Feature erhöht Komplexität, Wartungsaufwand und Einarbeitungszeit — alles, was ein ehrenamtliches Team bei einem Vereinsfest nicht braucht.
 
-### 7.3 Fiskalkonformität im Detail
+### 7.3 Fiskalkonformität
 
-jotti enthält keine zertifizierte TSE (Technische Sicherheitseinrichtung) und ist damit nicht für steuerlich buchungspflichtige Dauerbetriebe geeignet. Allerdings erfüllt jotti durch sein architektonisches Fundament viele der GoBD-Grundsätze:
+jotti ist ein **elektronisches Aufzeichnungssystem** im Sinne von § 1 KassenSichV und unterliegt als solches der TSE-Pflicht nach § 146a AO — unabhängig von der Rechtsform des Betreibers (e.V., gGmbH, Stiftung) oder dem temporären Charakter einer Veranstaltung. Diese Pflicht gilt für alle, die ein elektronisches Kassensystem einsetzen.
 
-| GoBD-Grundsatz                       | Umsetzung in jotti                                                                    |
-| ------------------------------------ | ------------------------------------------------------------------------------------- |
-| **Unveränderbarkeit**                | Event-Sourcing: alle Transaktionen sind append-only, nachträgliche Änderung unmöglich |
-| **Nachvollziehbarkeit**              | Lückenloses Kassenjournal pro Tisch mit vollständiger Bestellhistorie                 |
-| **Vollständigkeit**                  | Jede Bestellung, Ausgabe, Zahlung und Stornierung wird als Event erfasst              |
-| **Zeitgerechte Buchung**             | Events werden in Echtzeit mit Zeitstempel gespeichert                                 |
-| **Ordnungsmäßigkeit**                | Strukturiertes Datenmodell, typisierte Events, klare Zuordnung zu Tisch und Benutzer  |
-| **Kryptografische Verkettung (TSE)** | ❌ Nicht vorhanden — keine zertifizierte Sicherheitseinrichtung                       |
+jotti begegnet dieser Verpflichtung mit einer **Compliance-Roadmap**, die die gesetzlichen Anforderungen phasenweise umsetzt:
 
-Für gemeinnützige Vereine, die keine Kassenpflicht nach KassenSichV haben, bietet jotti damit ein hohes Maß an Transparenz und Nachvollziehbarkeit — ohne den Overhead einer zertifizierten TSE.
+| Anforderung                            | Status                                                       | Phase   |
+| -------------------------------------- | ------------------------------------------------------------ | ------- |
+| **Event-Sourcing (Unveränderbarkeit)** | ✅ Umgesetzt — Append-Only, nachträgliche Änderung unmöglich | Phase 0 |
+| **Kassenjournal**                      | ✅ Umgesetzt — lückenlose Transaktionshistorie               | Phase 0 |
+| **Belegausgabe (§ 146a Abs. 2 AO)**    | ✅ Umgesetzt — Bondrucker-Anbindung (ESC/POS)                | Phase 0 |
+| **Seriennummer der Kasse**             | ⏳ Phase 1 — UUID bei erstem Start, Admin-Anzeige            | Phase 1 |
+| **Steuersätze (19 % / 7 % / 0 %)**     | ⏳ Phase 1 — konfigurierbar pro Produkt                      | Phase 1 |
+| **ABRECHNUNGSKREIS**                   | ⏳ Phase 1 — tagesbasierte Session                           | Phase 1 |
+| **ELSTER-Meldepflicht**                | ⏳ Phase 1 — Anleitung für manuelle Meldung                  | Phase 1 |
+| **TSE-Adapter (fiskaly Cloud-TSE)**    | ⏳ Phase 2 — `TSEClient`-Interface + fiskaly-Implementierung | Phase 2 |
+| **DSFinV-K-Export**                    | ⏳ Phase 2 — CSV-ZIP-Archiv für Finanzbehörden               | Phase 2 |
+| **GoBD-kryptografische Hash-Chain**    | ⏳ Phase 3 — kryptografische Verkettung der Events           | Phase 3 |
+
+**Architekturprinzip:** Die Smartphones der Servicekräfte fungieren als reine Eingabegeräte — die TSE-Anbindung, Protokollierung und DSFinV-K-Persistenz erfolgen zentral im Backend. Daraus folgt eine architektonische Pflicht: Die Webapp muss bei Verbindungsunterbrechung sofort blockieren (kein Offline-Kassieren).
+
+**Bring Your Own TSE (BYOT):** Da jotti auf einem Cloud-VPS betrieben wird, auf dem keine Hardware-TSE eingesteckt werden kann, schließen Betreiber selbst einen Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly) ab und injizieren die API-Schlüssel über die `.env`-Datei in den Docker-Container.
+
+Details zur rechtlichen Grundlage und den Betreiberpflichten: [docs/compliance.md](../docs/compliance.md). Implementierungs-Roadmap: [docs/roadmap.md](../docs/roadmap.md).
 
 ### 7.4 Einsatzprofil
 
-| Kriterium                | jotti geeignet für                             | jotti NICHT geeignet für                               |
-| ------------------------ | ---------------------------------------------- | ------------------------------------------------------ |
-| Betriebsart              | Temporäre Veranstaltungen (1–3 Tage)           | Dauerbetrieb (Restaurant, Café)                        |
-| Organisation             | Vereine, gemeinnützige Orgs, NPOs              | Kommerzielle Gastro-Betriebe                           |
-| Zahlungsart              | Bargeld                                        | Kartenzahlung, NFC, Online                             |
-| Team                     | Ehrenamtliche Helfer (5–30 Personen)           | Professionelles Gastro-Personal                        |
-| Buchungspflichten        | GoBD-Grundsätze weitgehend erfüllt (keine TSE) | Steuerlich buchungspflichtige Betriebe mit TSE-Pflicht |
-| Veranstaltungsgröße      | Klein bis mittel (5–50 Tische)                 | Großveranstaltungen mit 100+ Tischen                   |
-| Technische Infrastruktur | WLAN + ein Server (auch Raspberry Pi möglich)  | Kein Server oder kein WLAN verfügbar                   |
+| Kriterium                | jotti geeignet für                                    | jotti NICHT geeignet für                                         |
+| ------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------- |
+| Betriebsart              | Temporäre Veranstaltungen (1–3 Tage)                  | Dauerbetrieb (Restaurant, Café)                                  |
+| Organisation             | Vereine, gemeinnützige Orgs, NPOs                     | Kommerzielle Gastro-Betriebe                                     |
+| Zahlungsart              | Bargeld                                               | Kartenzahlung, NFC, Online                                       |
+| Team                     | Ehrenamtliche Helfer (5–30 Personen)                  | Professionelles Gastro-Personal                                  |
+| Buchungspflichten        | Compliance-Roadmap: TSE (Phase 2), DSFinV-K (Phase 2) | Steuerlich buchungspflichtige Betriebe mit sofortigem TSE-Bedarf |
+| Veranstaltungsgröße      | Klein bis mittel (5–50 Tische)                        | Großveranstaltungen mit 100+ Tischen                             |
+| Technische Infrastruktur | WLAN + ein Server (auch Raspberry Pi möglich)         | Kein Server oder kein WLAN verfügbar                             |
 
 ---
 
@@ -361,7 +369,7 @@ Die einzigen Kosten, die entstehen, sind Infrastrukturkosten für das Hosting �
 | Technisch       | Mobile-first POS mit Event-Sourcing, Go-Backend, React-Frontend — self-hosted per Docker Compose.             |
 | Nicht-technisch | Das kostenlose Kassensystem für Vereinsfeste — auf jedem Smartphone, ohne Abo, ohne Hardware.                 |
 | Vereinsvorstand | Einfach Produkte und Tische anlegen, Team einladen, loslegen. Abrechnung auf Knopfdruck.                      |
-| Servicekraft    | Browser öffnen, Tisch wählen, bestellen, Ausgabe bestätigen, kassieren. Fertig.                              |
+| Servicekraft    | Browser öffnen, Tisch wählen, bestellen, Ausgabe bestätigen, kassieren. Fertig.                               |
 
 ### 10.5 SEO-Keywords
 

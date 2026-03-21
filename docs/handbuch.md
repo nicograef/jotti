@@ -62,14 +62,14 @@ jotti ist ein Mobile-Point-of-Sale-System für temporäre Gastronomie-Veranstalt
 Folgende Features sind **bewusst nicht enthalten** — jedes zusätzliche Feature erhöht Komplexität für ehrenamtliche Teams:
 
 - Kartenzahlung / Zahlungsgateway
-- Zertifizierte TSE (KassenSichV)
 - Reservierungssystem
 - Warenwirtschaft / Inventory
 - Lieferservice-Integration
 - Multi-Standort-Verwaltung
 - Kundenverwaltung / CRM
 - Selbstbedienungs-Kiosk
-- Trinkgeld-Tracking
+
+> **TSE / KassenSichV:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt der TSE-Pflicht nach § 146a AO. Die TSE-Integration ist **keine optionale Funktion**, sondern eine gesetzliche Pflicht, die über eine Compliance-Roadmap phasenweise implementiert wird. Siehe [docs/roadmap.md](roadmap.md) und [docs/compliance.md](compliance.md).
 
 ---
 

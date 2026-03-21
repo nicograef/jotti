@@ -4,7 +4,9 @@ jotti ist ein **kostenloses, quelloffenes Mobile-Kassensystem (mPOS)** für Vere
 
 Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer. Self-hosted per Docker Compose, Source-Available (AGPL-3.0 + Non-Commercial), Mobile-first.
 
-**Bewusst NICHT enthalten:** Kartenzahlung, TSE/KassenSichV, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM, Kiosk-Modus. Diese Reduktion ist gewollt — jedes zusätzliche Feature erhöht Komplexität für ehrenamtliche Teams.
+**Bewusst NICHT enthalten:** Kartenzahlung, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM, Kiosk-Modus. Diese Reduktion ist gewollt — jedes zusätzliche Feature erhöht Komplexität für ehrenamtliche Teams.
+
+**Compliance-Roadmap (TSE/KassenSichV):** jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die TSE-Integration (fiskaly Cloud-TSE, DSFinV-K-Export, ELSTER-Meldepflicht) wird schrittweise implementiert — siehe `docs/roadmap.md` und `docs/compliance.md`.
 
 ## Referenzdokumente
 
@@ -20,8 +22,9 @@ Alle funktionalen und querschnittlichen Anforderungen mit Akzeptanzkriterien, Pr
 - **§4 Querschnitt:** Q-01 Mobile-first, Q-02 Mehrbenutzerfähigkeit, Q-03 Validierung, Q-04 Datenintegrität, Q-05–Q-08 (Offline, HTTPS, Rate Limiting, Security Headers)
 - **§5 Reporting:** Tagesabrechnung, Abrechnung pro Tisch/Servicekraft, Datenexport
 - **§6 Bewusste Abgrenzung:** Won't-haves mit Begründung
+- **§7 Fiskalkonformität:** F-01–F-08 (Seriennummer, TSE-Adapter, Belegausgabe, DSFinV-K, ELSTER, ABRECHNUNGSKREIS, Steuersätze, GoBD Hash-Chain)
 
-→ Lesen bei: neue Features implementieren, Akzeptanzkriterien prüfen, Rollen/Berechtigungen klären.
+→ Lesen bei: neue Features implementieren, Akzeptanzkriterien prüfen, Rollen/Berechtigungen klären, Compliance-Anforderungen umsetzen.
 
 ### Entwickler-Handbuch — `docs/handbuch.md`
 
@@ -58,6 +61,29 @@ Produktidentität, Positionierung, Zielgruppe, Abgrenzung, Marketingtexte.
 - **§9–§10:** Lizenz/Kosten, Marketingtexte
 
 → Lesen bei: README/Docs/Marketing-Texte anpassen, Abgrenzungsfragen, Zielgruppe verstehen.
+
+### Compliance — `docs/compliance.md`
+
+Rechtliche Grundlagen, Compliance-Anforderungen und Betreiberpflichten.
+
+- **§1 Einleitung:** Rollentrennung Entwickler/Betreiber, Pflichten nach § 146a AO
+- **§2 Rechtliche Grundlagen:** KassenSichV, GoBD, DSFinV-K, ELSTER/ERiC
+- **§3 Anforderungen an den Entwickler:** TSE-Adapter-Interface, DSFinV-K, Seriennummer, Steuersätze
+- **§4 Betreiberpflichten:** BYOT (Cloud-TSE), ELSTER-Meldung, GoBD-Aufbewahrung
+- **§5 Architekturprinzipien:** Adapter-Pattern, BYOD-Offline-Blocking
+
+→ Lesen bei: Compliance-Features implementieren, Betreiber-Dokumentation schreiben, rechtliche Anforderungen prüfen.
+
+### Roadmap — `docs/roadmap.md`
+
+Phasenplan für die schrittweise Compliance-Implementierung.
+
+- **Phase 0 — Baseline:** Aktueller Stand (Event-Sourcing, Kassenjournal, Bondrucker)
+- **Phase 1 — Compliance-Grundlage:** Seriennummer, Steuersätze, ABRECHNUNGSKREIS, Belegausgabe, ELSTER-Anleitung
+- **Phase 2 — TSE-Integration:** TSEClient (fiskaly), StartTransaction/FinishTransaction, DSFinV-K-Export
+- **Phase 3 — Erweiterungen:** eBeleg, ERiC-Schnittstelle, GoBD Hash-Chain
+
+→ Lesen bei: nächste Compliance-Schritte planen, Feature-Priorisierung, Implementation von F-01 bis F-08.
 
 ## Tech-Stack
 
