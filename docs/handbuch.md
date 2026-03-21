@@ -22,20 +22,28 @@
    - [4.4 Tisch-Favoriten](#44-tisch-favoriten)
    - [4.5 Persistenz (CRUD)](#45-persistenz-crud)
    - [4.6 Ausgabe — Bondruck (K-12)](#46-ausgabe--bondruck-k-12)
-5. [Auth und Rollen](#5-auth-und-rollen)
-   - [5.1 Rollen und Berechtigungsmatrix](#51-rollen-und-berechtigungsmatrix)
-   - [5.2 Onboarding-Ablauf](#52-onboarding-ablauf)
-6. [Architekturprinzipien](#6-architekturprinzipien)
-   - [6.1 Schichtenarchitektur](#61-schichtenarchitektur)
-   - [6.2 API-Design](#62-api-design)
-   - [6.3 Frontend-Architektur](#63-frontend-architektur)
-   - [6.4 Validierung](#64-validierung)
-   - [6.5 Geldbeträge](#65-geldbeträge)
-   - [6.6 Mehrbenutzerfähigkeit (OCC)](#66-mehrbenutzerfähigkeit-occ)
-   - [6.7 Sicherheit](#67-sicherheit)
-7. [Read Models](#7-read-models)
-8. [Priorisierung](#8-priorisierung)
-9. [Ubiquitous Language](#9-ubiquitous-language) → [language.md](language.md)
+5. [Kassenführung (Core Domain)](#5-kassenführung-core-domain)
+   - [5.1 Persistenzstrategie: Immutable Records](#51-persistenzstrategie-immutable-records)
+   - [5.2 Abrechnungskreis](#52-abrechnungskreis)
+   - [5.3 Anfangsbestand](#53-anfangsbestand)
+   - [5.4 Kassenbestand (Read Model)](#54-kassenbestand-read-model)
+   - [5.5 Kassenbewegungen](#55-kassenbewegungen)
+   - [5.6 Kassensturz](#56-kassensturz)
+   - [5.7 Tagesabschluss (Z-Bon)](#57-tagesabschluss-z-bon)
+6. [Auth und Rollen](#6-auth-und-rollen)
+   - [6.1 Rollen und Berechtigungsmatrix](#61-rollen-und-berechtigungsmatrix)
+   - [6.2 Onboarding-Ablauf](#62-onboarding-ablauf)
+7. [Architekturprinzipien](#7-architekturprinzipien)
+   - [7.1 Schichtenarchitektur](#71-schichtenarchitektur)
+   - [7.2 API-Design](#72-api-design)
+   - [7.3 Frontend-Architektur](#73-frontend-architektur)
+   - [7.4 Validierung](#74-validierung)
+   - [7.5 Geldbeträge](#75-geldbeträge)
+   - [7.6 Mehrbenutzerfähigkeit (OCC)](#76-mehrbenutzerfähigkeit-occ)
+   - [7.7 Sicherheit](#77-sicherheit)
+8. [Read Models](#8-read-models)
+9. [Priorisierung](#9-priorisierung)
+10. [Ubiquitous Language](#10-ubiquitous-language) → [language.md](language.md)
 
 ---
 
@@ -77,13 +85,14 @@ Folgende Features sind **bewusst nicht enthalten** — jedes zusätzliche Featur
 
 ### 2.1 Kontextübersicht
 
-| Context           | Typ                   | Beschreibung                                                                 | Persistenz      |
-| ----------------- | --------------------- | ---------------------------------------------------------------------------- | --------------- |
-| **Kassenbetrieb** | Core Domain           | Tisch-basierte Vorgänge: Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren | Event-Sourcing  |
-| **Stammdaten**    | Supporting Sub-Domain | Verwaltung von Produkten, Tischen, Benutzern (CRUD)                          | CRUD            |
-| **Ausgabe**       | Supporting Sub-Domain | Bondruck, Küchendisplay (KDS), Zubereitungsstatus                            | Event-getrieben |
-| **Abrechnung**    | Supporting Sub-Domain | Tagesabrechnung, Umsatzberichte, Datenexport (Read-only-Projektionen)        | Read-only       |
-| **Auth**          | Generic Sub-Domain    | Login, Logout, Passwort-Management, Token-Verwaltung                         | Infrastruktur   |
+| Context           | Typ                   | Beschreibung                                                                                      | Persistenz        |
+| ----------------- | --------------------- | ------------------------------------------------------------------------------------------------- | ----------------- |
+| **Kassenbetrieb** | Core Domain           | Tisch-basierte Vorgänge: Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren                      | Event-Sourcing    |
+| **Kassenführung** | Core Domain           | Kassenbestandsführung, Kassensturz, Z-Bon, Geldtransit, Privatentnahme/-einlage, Abrechnungskreis | Immutable Records |
+| **Stammdaten**    | Supporting Sub-Domain | Verwaltung von Produkten, Tischen, Benutzern, Betreiber-Stammdaten (CRUD)                         | CRUD              |
+| **Ausgabe**       | Supporting Sub-Domain | Bondruck, Küchendisplay (KDS), Zubereitungsstatus                                                 | Event-getrieben   |
+| **Abrechnung**    | Supporting Sub-Domain | Tagesabrechnung, Umsatzberichte, Datenexport (Read-only-Projektionen)                             | Read-only         |
+| **Auth**          | Generic Sub-Domain    | Login, Logout, Passwort-Management, Token-Verwaltung                                              | Infrastruktur     |
 
 ### 2.2 Beziehungen zwischen Kontexten
 
@@ -91,13 +100,21 @@ Folgende Features sind **bewusst nicht enthalten** — jedes zusätzliche Featur
 | ------------- | ------------- | --------------------------------- | ---------------------------------------------------------------------------------------- |
 | Stammdaten    | Kassenbetrieb | Customer/Supplier + ACL           | Kassenbetrieb liest Produkte/Tische, friert Daten zum Bestellzeitpunkt in Fat Events ein |
 | Kassenbetrieb | Ausgabe       | Published Language (Event-driven) | Bestellungs-Events triggern KDS-Anzeige und Bon-Druck                                    |
+| Kassenbetrieb | Kassenführung | Published Language (Event-driven) | Zahlungs-/Storno-/Auszahlungs-Events fließen in Kassenbestand-Berechnung ein             |
 | Kassenbetrieb | Abrechnung    | Published Language (Event-driven) | Tisch-Events werden zu Auswertungen projiziert                                           |
+| Stammdaten    | Kassenführung | Customer/Supplier + ACL           | Stammdaten-Snapshots werden im Z-Bon eingefroren (Betreiber, Steuersätze, Kassen-ID)     |
+| Kassenführung | Abrechnung    | Published Language                | Z-Bon-Daten fließen in DSFinV-K Export und historische Auswertungen                      |
 | Auth          | Kassenbetrieb | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                          |
+| Auth          | Kassenführung | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                          |
 | Auth          | Stammdaten    | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                          |
 | Auth          | Ausgabe       | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                          |
 | Auth          | Abrechnung    | Open Host Service                 | Token mit Benutzer-ID und Rolle                                                          |
 
 Der Kassenbetrieb schützt sich über eine **Anti-Corruption Layer (ACL)** vor Stammdaten-Änderungen: Bestellungs-Events enthalten alle relevanten Produktdaten zum Zeitpunkt der Bestellung (Fat Events). Spätere Preisänderungen haben keinen Einfluss auf historische Bestellungen.
+
+Die Kassenführung konsumiert **Zahlungs-, Storno- und Auszahlungs-Events** des Kassenbetrieb-Context zur Kassenbestand-Berechnung (Read Model). Der Z-Bon friert **Stammdaten per ACL** ein (Betreiber-Stammdaten, Steuersätze, Kassen-ID) — ein Stammdaten-Snapshot zum Zeitpunkt des Abschlusses.
+
+> **Stammdaten-Änderungen während eines offenen Abrechnungskreises:** Da die Kassenführung Stammdaten per ACL im Z-Bon-Snapshot einfriert (analog zu Fat Events im Kassenbetrieb), sind Stammdaten-Änderungen während eines offenen Abrechnungskreises grundsätzlich unproblematisch — sie wirken erst im nächsten Z-Bon. Eine erzwungene Änderungssperre ist nicht nötig; eine Warnung im Admin-UI ist ausreichend.
 
 ---
 
@@ -366,7 +383,7 @@ Benutzer
 - Passwort wird mit Argon2id gehasht gespeichert — Klartext-Passwörter werden nie persistiert.
 - Soft-Delete: Benutzer werden durch Status-Änderung auf `deleted` entfernt. Deaktivierte (`inactive`) und entfernte (`deleted`) Benutzer können sich nicht anmelden.
 - Neue Benutzer werden initial mit Status `inactive` angelegt und müssen durch den Admin aktiviert werden.
-- Bei Neuanlage oder Passwort-Reset wird ein 6-stelliges Einmalpasswort generiert und als `einmalpasswort_hash` gespeichert. Der reguläre `passwort_hash` wird geleert. Das System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL`, dass der Benutzer ein eigenes Passwort vergeben muss (→ [5.2](#52-onboarding-ablauf)).
+- Bei Neuanlage oder Passwort-Reset wird ein 6-stelliges Einmalpasswort generiert und als `einmalpasswort_hash` gespeichert. Der reguläre `passwort_hash` wird geleert. Das System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL`, dass der Benutzer ein eigenes Passwort vergeben muss (→ [6.2](#62-onboarding-ablauf)).
 
 ### 4.4 Tisch-Favoriten
 
@@ -462,9 +479,137 @@ Fehlerverhalten: Unerreichbare Drucker werden bis zu `maxRetries` (60) Mal wiede
 
 ---
 
-## 5. Auth und Rollen
+## 5. Kassenführung (Core Domain)
 
-### 5.1 Rollen und Berechtigungsmatrix
+Die Kassenführung umfasst den vollständigen Lifecycle der Registerkasse — von der Eröffnung eines Abrechnungskreises über die laufende Kassenbestandsüberwachung bis zum formellen Tagesabschluss (Z-Bon). Dieser Bounded Context ist gesetzlich zwingend (GoBD, DSFinV-K) und bildet zusammen mit dem Kassenbetrieb (§3) die Core Domain.
+
+### 5.1 Persistenzstrategie: Immutable Records
+
+Die Kassenführung verwendet **Immutable Records** (INSERT-only, geschützt durch DB-Trigger gegen UPDATE/DELETE) — kein Event-Sourcing. Begründung:
+
+- **Kein OCC-Bedarf:** Alle Kassenführungs-Operationen sind Admin-only. Es gibt keine gleichzeitigen Schreiber am selben Aggregat.
+- **Kein Replay-Bedarf:** Der Zustand (Kassenbestand) ist ein einfaches Read Model über die Kassenbetrieb-Events plus eigene Immutable Records.
+- **Einfachheit:** Immutable Records sind konzeptionell einfacher als Event-Sourcing und für die hier vorliegenden Anforderungen ausreichend.
+
+### 5.2 Abrechnungskreis
+
+Ein `Abrechnungskreis` ist eine fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt.
+
+```
+Abrechnungskreis
+├── id                    (int — DB-generiert)
+├── nr                    (int — fortlaufend, lückenlos, nie zurücksetzbar)
+├── bezeichnung           (string — z. B. „Sommerfest 2026 Tag 1")
+├── beginn                (datetime)
+├── ende                  (datetime — NULL wenn offen)
+├── status                (offen | abgeschlossen)
+├── anfangsbestand_cents  (int — Wechselgeld, NULL bis gesetzt)
+├── erstellt_von          (int — User-ID)
+└── erstellt_am           (datetime)
+```
+
+**Invarianten:**
+
+- Maximal ein Abrechnungskreis darf gleichzeitig `offen` sein.
+- Nummer ist fortlaufend und lückenlos (nie zurücksetzbar).
+- Wird durch Tagesabschluss (Z-Bon) geschlossen.
+
+### 5.3 Anfangsbestand
+
+Vor Beginn einer Veranstaltung gibt der Admin den Anfangsbestand (Wechselgeld) ein. Dieser Betrag ist die Basis für die Kassenbestandsführung.
+
+**Invarianten:**
+
+- Pro Abrechnungskreis darf genau ein Anfangsbestand gesetzt werden.
+- Nachträgliche Änderungen erfolgen über Privateinlage/Privatentnahme.
+
+### 5.4 Kassenbestand (Read Model)
+
+Der Kassenbestand ist ein berechnetes Read Model, das den erwarteten Bargeldbestand zu jedem Zeitpunkt anzeigt.
+
+$$\text{Soll} = \text{Anfangsbestand} + \sum\text{Zahlungen} - \sum\text{Auszahlungen} - \sum\text{Geldtransit} - \sum\text{Privatentnahmen} + \sum\text{Privateinlagen}$$
+
+Die Zahlungs- und Auszahlungs-Summen stammen aus den `ZahlungKassiert`- und `AuszahlungGeleistet`-Events des Kassenbetrieb-Context. Geldtransit, Privatentnahme und Privateinlage sind eigene Immutable Records der Kassenführung.
+
+### 5.5 Kassenbewegungen (Geldtransit, Privatentnahme, Privateinlage)
+
+```
+Kassenbewegung (Immutable Record)
+├── id             (int — DB-generiert)
+├── art            (geldtransit | privatentnahme | privateinlage)
+├── betrag_cents   (int — ≥ 1)
+├── kommentar      (string — Pflicht, min. 3, max. 200 Zeichen)
+├── user_id        (int — wer hat die Operation ausgeführt)
+├── abrechnungskreis_id  (int — FK zum offenen Abrechnungskreis)
+└── erstellt_am    (datetime)
+```
+
+**Invarianten:**
+
+- Nur Admin darf Kassenbewegungen buchen.
+- Betrag ≥ 1 Cent, Kommentar ist Pflichtfeld.
+- Geldtransit und Privatentnahme dürfen den Soll-Bestand nicht unter 0 bringen.
+- Privateinlage erhöht den Soll-Bestand.
+- DSFinV-K: Jede Bewegungsart hat einen eigenen Geschäftsvorfalltyp (`Geldtransit`, `Privatentnahme`, `Privateinlage`).
+
+### 5.6 Kassensturz
+
+Am Ende einer Schicht vergleicht der Admin den errechneten Soll-Bestand mit dem physisch gezählten Ist-Bestand.
+
+```
+Kassensturz (Immutable Record)
+├── id                    (int — DB-generiert)
+├── abrechnungskreis_id   (int — FK)
+├── soll_bestand_cents    (int — errechneter Soll)
+├── ist_bestand_cents     (int — gezählter Ist)
+├── differenz_cents       (int — Soll - Ist)
+├── user_id               (int)
+└── erstellt_am           (datetime)
+```
+
+**Fachlogik:** Bei `differenz_cents ≠ 0` wird automatisch ein `DifferenzSollIst`-Vorgang als Immutable Record gebucht. Der Kassensturz ist Voraussetzung für den Tagesabschluss (Z-Bon).
+
+### 5.7 Tagesabschluss (Z-Bon)
+
+Der Z-Bon ist ein **immutables Dokument** — er aggregiert alle Geschäftsvorfälle eines Abrechnungszeitraums, erstellt einen Stammdaten-Snapshot und erhält eine fortlaufende, nie zurücksetzbare Nummer. Er ist kein Aggregat mit Lifecycle, sondern ein einmalig erzeugtes, unveränderliches Dokument.
+
+```
+Z-Bon (Immutable Record)
+├── id                           (int — DB-generiert)
+├── z_nr                         (int — fortlaufend, lückenlos, nie zurücksetzbar)
+├── abrechnungskreis_id          (int — FK)
+├── zeitraum_von                 (datetime)
+├── zeitraum_bis                 (datetime)
+├── erstellt_am                  (datetime)
+├── erstellt_von                 (int — User-ID)
+│
+├── soll_bestand_cents           (int)
+├── ist_bestand_cents            (int)
+├── differenz_cents              (int)
+│
+├── umsatz_gesamt_cents          (int — aggregiert aus Zahlungen)
+├── stornierungen_gesamt_cents   (int)
+├── auszahlungen_gesamt_cents    (int)
+├── geldtransit_gesamt_cents     (int)
+│
+├── stammdaten_snapshot          (JSON — Kassen-ID, Betreiber, Steuersätze)
+└── offene_tische                (JSON — Tisch-IDs mit Saldo ≠ 0)
+```
+
+**Invarianten:**
+
+- `z_nr` ist strikt aufsteigend und lückenlos.
+- Voraussetzung: Kassensturz muss durchgeführt sein.
+- Offene Tische (Saldo ≠ 0) werden protokolliert, blockieren den Abschluss aber nicht.
+- Der aktive Abrechnungskreis wird geschlossen.
+- Z-Bons sind unveränderlich — kein Update, kein Delete.
+- Z-Bons müssen 10 Jahre aufbewahrt werden (GoBD-Aufbewahrungspflicht).
+
+---
+
+## 6. Auth und Rollen
+
+### 6.1 Rollen und Berechtigungsmatrix
 
 jotti kennt drei Rollen mit abgestuften Berechtigungen. Die Rollenprüfung erfolgt serverseitig anhand des JWT.
 
@@ -476,27 +621,40 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen. Die Rollenprüfung erfol
 
 **Berechtigungsmatrix:**
 
-| Aktion                   | Admin | Serviceleitung | Servicekraft |
-| ------------------------ | :---: | :------------: | :----------: |
-| Produkte verwalten       |   ✔   |                |              |
-| Tische verwalten         |   ✔   |                |              |
-| Benutzer verwalten       |   ✔   |                |              |
-| Passwort zurücksetzen    |   ✔   |                |              |
-| Bestellung aufnehmen     |   ✔   |       ✔        |      ✔       |
-| Ausgabe bestätigen       |   ✔   |       ✔        |      ✔       |
-| Zahlung kassieren        |   ✔   |       ✔        |      ✔       |
-| Stornierung erteilen     |   ✔   |       ✔        |              |
-| Auszahlung leisten       |   ✔   |       ✔        |              |
-| Tischübersicht einsehen  |   ✔   |       ✔        |      ✔       |
-| Kassenjournal einsehen   |   ✔   |       ✔        |      ✔       |
-| Tagesabrechnung einsehen |   ✔   |                |              |
-| Datenexport              |   ✔   |                |              |
-| Tagesabschluss einleiten |   ✔   |                |              |
-| Abmelden                 |   ✔   |       ✔        |      ✔       |
+| Aktion                         | Admin | Serviceleitung | Servicekraft |
+| ------------------------------ | :---: | :------------: | :----------: |
+| _Stammdaten_                   |       |                |              |
+| Produkte verwalten             |   ✔   |                |              |
+| Tische verwalten               |   ✔   |                |              |
+| Benutzer verwalten             |   ✔   |                |              |
+| Passwort zurücksetzen          |   ✔   |                |              |
+| Betreiber-Stammdaten verwalten |   ✔   |                |              |
+| _Kassenbetrieb_                |       |                |              |
+| Bestellung aufnehmen           |   ✔   |       ✔        |      ✔       |
+| Ausgabe bestätigen             |   ✔   |       ✔        |      ✔       |
+| Zahlung kassieren              |   ✔   |       ✔        |      ✔       |
+| Stornierung erteilen           |   ✔   |       ✔        |              |
+| Auszahlung leisten             |   ✔   |       ✔        |              |
+| Tischübersicht einsehen        |   ✔   |       ✔        |      ✔       |
+| Kassenjournal einsehen         |   ✔   |       ✔        |      ✔       |
+| _Kassenführung_                |       |                |              |
+| Abrechnungskreis eröffnen      |   ✔   |                |              |
+| Anfangsbestand setzen          |   ✔   |                |              |
+| Kassenbestand einsehen         |   ✔   |                |              |
+| Geldtransit buchen             |   ✔   |                |              |
+| Privatentnahme buchen          |   ✔   |                |              |
+| Privateinlage buchen           |   ✔   |                |              |
+| Kassensturz durchführen        |   ✔   |                |              |
+| Tagesabschluss (Z-Bon)         |   ✔   |                |              |
+| _Abrechnung_                   |       |                |              |
+| Tagesabrechnung einsehen       |   ✔   |                |              |
+| Datenexport                    |   ✔   |                |              |
+| _Allgemein_                    |       |                |              |
+| Abmelden                       |   ✔   |       ✔        |      ✔       |
 
 Die Rollenhierarchie ist inklusiv: Admin kann alles, was Serviceleitung kann. Serviceleitung kann alles, was Servicekraft kann — plus Stornierung.
 
-### 5.2 Onboarding-Ablauf
+### 6.2 Onboarding-Ablauf
 
 Neue Benutzer durchlaufen einen zweistufigen Onboarding-Prozess, der sicherstellt, dass nur der Benutzer sein eigenes Passwort kennt:
 
@@ -509,9 +667,9 @@ Neue Benutzer durchlaufen einen zweistufigen Onboarding-Prozess, der sicherstell
 
 ---
 
-## 6. Architekturprinzipien
+## 7. Architekturprinzipien
 
-### 6.1 Schichtenarchitektur
+### 7.1 Schichtenarchitektur
 
 Das Backend ist in vier Schichten gegliedert:
 
@@ -536,7 +694,7 @@ Das Backend ist in vier Schichten gegliedert:
 - **Domain-Schicht:** Enthält die fachlichen Regeln (Aggregat-Invarianten, Event-Konstruktion, Zustandsberechnung). Kennt keine Datenbank, kein HTTP und keine JSON-Serialisierung. Domain-Structs tragen keine `json`-Tags (Ausnahme: Event-Data-Structs für Event-Store-Persistenz).
 - **Repository/Infra-Schicht:** Kapselt alle Datenbankzugriffe. Für das Tisch-Aggregat: Event Store (append-only). Für Stammdaten: CRUD. Implementiert auf Basis von sqlc-generierten Queries.
 
-### 6.2 API-Design
+### 7.2 API-Design
 
 **POST-only:** Alle API-Endpunkte sind POST-Endpunkte. Jede Aktion wird explizit benannt (z. B. `/service/bestellung-aufnehmen` statt `PUT /tables/5`).
 
@@ -564,7 +722,7 @@ HTTP-Statuscodes: `400` Client-Fehler, `401` fehlende/ungültige Auth, `403` unz
 
 Der Relay-Endpunkt (`POST /relay/poll`) verwendet keine JWT-Middleware, da das Print-Relay kein Benutzer ist. Die Authentifizierung erfolgt über einen statischen Token im Request-Body, der serverseitig als konstanter String-Vergleich geprüft wird.
 
-### 6.3 Frontend-Architektur
+### 7.3 Frontend-Architektur
 
 **Route Guards:** Zwei Guards schützen die Bereiche:
 
@@ -590,7 +748,7 @@ Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 
 **BackendClient:** Das Frontend kommuniziert ausschließlich über Backend-Klassen, die das `BackendClient`-Interface verwenden. Direktes `fetch()` ist verboten.
 
-### 6.4 Validierung
+### 7.4 Validierung
 
 Alle Eingaben werden auf beiden Seiten unabhängig voneinander validiert:
 
@@ -601,7 +759,7 @@ Alle Eingaben werden auf beiden Seiten unabhängig voneinander validiert:
 
 Das Backend ist die Single Source of Truth. Das Frontend-Schema ist eine UX-Optimierung (sofortiges Feedback), aber keine Sicherheitsmaßnahme — das Backend lehnt ungültige Anfragen unabhängig vom Frontend ab.
 
-### 6.5 Geldbeträge
+### 7.5 Geldbeträge
 
 Alle Geldbeträge werden durchgehend als ganzzahlige Cent-Werte (Integer) gespeichert und verarbeitet. Fließkommazahlen werden für Geldbeträge nirgendwo verwendet.
 
@@ -615,14 +773,15 @@ Alle Geldbeträge werden durchgehend als ganzzahlige Cent-Werte (Integer) gespei
 
 Die Darstellung als „3,50 €" geschieht ausschließlich im Frontend als reine Formatierung (`formatCents()`).
 
-### 6.6 Mehrbenutzerfähigkeit (OCC)
+### 7.6 Mehrbenutzerfähigkeit (OCC)
 
-Das System verwendet zwei Persistenzstrategien:
+Das System verwendet drei Persistenzstrategien:
 
-| Bereich                               | Strategie      | Begründung                                                             |
-| ------------------------------------- | -------------- | ---------------------------------------------------------------------- |
-| Kassenbetrieb (Tisch)                 | Event-Sourcing | Geschichte ist fachlich relevant (Kassenjournal, Buchhaltung)          |
-| Stammdaten (Produkt, Tisch, Benutzer) | CRUD           | Nur aktueller Zustand benötigt; Fat Events decken historische Daten ab |
+| Bereich                               | Strategie         | Begründung                                                                         |
+| ------------------------------------- | ----------------- | ---------------------------------------------------------------------------------- |
+| Kassenbetrieb (Tisch)                 | Event-Sourcing    | Geschichte ist fachlich relevant (Kassenjournal, Buchhaltung)                      |
+| Kassenführung (Z-Bon, Kassenbewegung) | Immutable Records | Admin-only, kein OCC-Bedarf; INSERT-only mit DB-Trigger-Schutz gegen UPDATE/DELETE |
+| Stammdaten (Produkt, Tisch, Benutzer) | CRUD              | Nur aktueller Zustand benötigt; Fat Events decken historische Daten ab             |
 
 Mehrere Servicekräfte arbeiten gleichzeitig — Schreibkonflikte am selben Tisch werden über Optimistic Concurrency Control gelöst:
 
@@ -632,7 +791,7 @@ Mehrere Servicekräfte arbeiten gleichzeitig — Schreibkonflikte am selben Tisc
 4. Ist die Version bereits vergeben, schlägt die Operation mit einem Konflikt-Fehler fehl.
 5. Die Anwendungsschicht führt einen Retry durch: Tischzustand neu laden, Operation erneut anwenden, neuen Schreibversuch starten.
 
-### 6.7 Sicherheit
+### 7.7 Sicherheit
 
 | Maßnahme                   | Umsetzung                                                                                                 | Anforderung |
 | -------------------------- | --------------------------------------------------------------------------------------------------------- | ----------- |
@@ -648,11 +807,11 @@ Mehrere Servicekräfte arbeiten gleichzeitig — Schreibkonflikte am selben Tisc
 
 ---
 
-## 7. Read Models
+## 8. Read Models
 
 Read Models sind aufbereitete Lese-Ansichten — reine Projektionen über vorhandene Daten (Events, Projektionstabelle oder Stammdaten). Sie werden nicht direkt geschrieben, sondern durch Events oder CRUD-Operationen aktualisiert.
 
-### 7.1 Service-Ansichten
+### 8.1 Service-Ansichten
 
 | Name           | ID   | Quelle                              | Inhalt (Kurzfassung)                                                                                                                   |
 | -------------- | ---- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -663,7 +822,7 @@ Read Models sind aufbereitete Lese-Ansichten — reine Projektionen über vorhan
 
 Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchronen Projektionstabelle `table_state` — kein Event-Replay nötig. Das Kassenjournal liest weiterhin den vollständigen Event Stream, da die Historie _der_ Event Stream ist. Details zur Projektionsarchitektur: [ADR: CQRS](../adr/cqrs.md).
 
-### 7.2 Admin-Ansichten (Reporting)
+### 8.2 Admin-Ansichten (Reporting)
 
 Alle Reporting-Ansichten aggregieren Daten aus `events` und `table_state` tischuebergreifend und sind nur fuer Admins zugaenglich. Die Berechnung erfolgt on-demand per SQL-Aggregation (kein Background Worker, kein Eventual Consistency).
 
@@ -678,39 +837,48 @@ Es gibt kein separates Live-Dashboard und kein Polling; das Reporting wird gezie
 | Abrechnung pro Servicekraft | R-04 | Umsatz pro Servicekraft, Anzahl Bestellungen, Anzahl und Betrag der Stornierungen                  |
 | Produktumsatz               | R-05 | Verkaufte Menge pro Produkt/Variante (abzgl. Stornierungen), Ranking, Gesamteinnahmen pro Variante |
 
-### 7.3 Ausgabe-Ansichten
+### 8.3 Ausgabe-Ansichten
 
 Der Relay-Poll-Endpunkt (`POST /relay/poll`) liefert `DruckAuftrag`-DTOs und ist ein internes Read Model des Ausgabe-Contexts für das Print-Relay. KDS-Ansicht (K-13) und Zubereitungsstatus (K-15) sind noch offen.
 
 ---
 
-## 8. Priorisierung
+## 9. Priorisierung
 
 Drei Stufen: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wichtig, nicht blockierend) und Nice-to-have (iterativ ergänzbar). Innerhalb einer Stufe ist keine Reihenfolge vorgegeben.
 
-### 8.1 Stufe 1 — Must-have (MVP)
+### 9.1 Stufe 1 — Must-have (MVP)
 
-| ID   | Anforderung                 |
-| ---- | --------------------------- |
-| K-01 | Bestellung aufnehmen        |
-| K-02 | Zahlung kassieren           |
-| K-03 | Ausgabe bestätigen          |
-| K-04 | Stornierung                 |
-| K-06 | Tischübersicht / Navigation |
-| K-07 | Kassenjournal (Historie)    |
-| S-01 | Produktverwaltung           |
-| S-02 | Tischverwaltung             |
-| S-03 | Benutzerverwaltung          |
-| A-01 | Login                       |
-| A-02 | Passwort setzen             |
-| A-03 | Logout                      |
-| Q-01 | Usability und Mobile-first  |
-| Q-02 | Mehrbenutzerfähigkeit       |
-| Q-03 | Validierung                 |
-| Q-04 | Datenintegrität             |
-| Q-06 | HTTPS / TLS                 |
+| ID    | Anforderung                    |
+| ----- | ------------------------------ |
+| K-01  | Bestellung aufnehmen           |
+| K-02  | Zahlung kassieren              |
+| K-03  | Ausgabe bestätigen             |
+| K-04  | Stornierung                    |
+| K-06  | Tischübersicht / Navigation    |
+| K-07  | Kassenjournal (Historie)       |
+| KF-01 | Abrechnungskreis verwalten     |
+| KF-02 | Anfangsbestand setzen          |
+| KF-03 | Kassenbestand einsehen         |
+| KF-04 | Geldtransit buchen             |
+| KF-05 | Privatentnahme buchen          |
+| KF-06 | Privateinlage buchen           |
+| KF-07 | Tagesabschluss (Z-Bon)         |
+| KF-08 | Kassensturz durchführen        |
+| KF-09 | Betreiber-Stammdaten verwalten |
+| S-01  | Produktverwaltung              |
+| S-02  | Tischverwaltung                |
+| S-03  | Benutzerverwaltung             |
+| A-01  | Login                          |
+| A-02  | Passwort setzen                |
+| A-03  | Logout                         |
+| Q-01  | Usability und Mobile-first     |
+| Q-02  | Mehrbenutzerfähigkeit          |
+| Q-03  | Validierung                    |
+| Q-04  | Datenintegrität                |
+| Q-06  | HTTPS / TLS                    |
 
-### 8.2 Stufe 2 — Should-have
+### 9.2 Stufe 2 — Should-have
 
 | ID   | Anforderung                 |
 | ---- | --------------------------- |
@@ -724,7 +892,7 @@ Drei Stufen: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wic
 | R-04 | Abrechnung pro Servicekraft |
 | R-05 | Produktumsatz-Reporting     |
 
-### 8.3 Stufe 3 — Nice-to-have
+### 9.3 Stufe 3 — Nice-to-have
 
 | ID   | Anforderung                             |
 | ---- | --------------------------------------- |
@@ -734,10 +902,9 @@ Drei Stufen: Must-have (unverzichtbar für den ersten Einsatz), Should-have (wic
 | K-14 | Ausgabestationen mit Zubereitungsstatus |
 | Q-05 | Offline-Fähigkeit                       |
 | R-02 | Datenexport                             |
-| R-06 | Tagesabschluss                          |
 
 ---
 
-## 9. Ubiquitous Language
+## 10. Ubiquitous Language
 
 Alle Fachbegriffe, Namenskonventionen pro Schicht, Code-Mappings und Ist-vs-Soll-Abweichungen: siehe **[Ubiquitous Language (language.md)](language.md)**.

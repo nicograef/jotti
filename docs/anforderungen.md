@@ -43,17 +43,25 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen:
 | Benutzer verwalten          |   ✔   |                |              |
 | Passwort zurücksetzen       |   ✔   |                |              |
 | Bestellung aufnehmen        |   ✔   |       ✔        |      ✔       |
-| Lieferung bestätigen        |   ✔   |       ✔        |      ✔       |
+| Ausgabe bestätigen          |   ✔   |       ✔        |      ✔       |
 | Zahlung registrieren        |   ✔   |       ✔        |      ✔       |
 | Stornierung erteilen (K-04) |   ✔   |       ✔        |              |
 | Auszahlung leisten (K-05)   |   ✔   |       ✔        |              |
-| Umbuchung durchführen       |   ✔   |       ✔        |      ✔       |
+| Umbuchung durchführen       |   ✔   |       ✔        |              |
 | Tischübersicht einsehen     |   ✔   |       ✔        |      ✔       |
 | Kassenjournal einsehen      |   ✔   |       ✔        |      ✔       |
 | Abmelden                    |   ✔   |       ✔        |      ✔       |
 | Tagesabrechnung einsehen    |   ✔   |                |              |
 | Datenexport                 |   ✔   |                |              |
-| Tagesabschluss einleiten    |   ✔   |                |              |
+| Abrechnungskreis eröffnen   |   ✔   |                |              |
+| Anfangsbestand setzen       |   ✔   |                |              |
+| Kassenbestand einsehen      |   ✔   |                |              |
+| Geldtransit buchen          |   ✔   |                |              |
+| Privatentnahme buchen       |   ✔   |                |              |
+| Privateinlage buchen        |   ✔   |                |              |
+| Kassensturz durchführen     |   ✔   |                |              |
+| Tagesabschluss (Z-Bon)      |   ✔   |                |              |
+| Betreiber-Daten verwalten   |   ✔   |                |              |
 
 ---
 
@@ -94,19 +102,19 @@ Die Servicekraft registriert eine Barzahlung an einem Tisch. Dabei können einze
 - Zahlung wird als unveränderliches Event im Kassenjournal gespeichert
 - Saldo des Tisches wird nach Zahlung korrekt aktualisiert
 
-### K-03 · Lieferung bestätigen
+### K-03 · Ausgabe bestätigen
 
 > **ID:** K-03 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
-Die Servicekraft markiert bestellte Positionen als geliefert, nachdem sie dem Gast übergeben wurden. Dies dient der Nachverfolgung, welche Positionen noch offen sind.
+Die Servicekraft markiert bestellte Positionen als ausgegeben, nachdem sie dem Gast übergeben wurden. Dies dient der Nachverfolgung, welche Positionen noch ausstehend sind.
 
 **Akzeptanzkriterien:**
 
-- Mindestens eine ungelieferte Position muss ausgewählt werden
+- Mindestens eine ausstehende (nicht ausgegebene) Position muss ausgewählt werden
 - Kommentar optional (max. 100 Zeichen)
-- Lieferung wird als unveränderliches Event im Kassenjournal gespeichert
-- Gelieferte Positionen werden in der Tischübersicht als geliefert angezeigt
+- Ausgabe wird als unveränderliches `AusgabeBestaetigt`-Event im Kassenjournal gespeichert
+- Ausgegebene Positionen werden in der Tischübersicht als ausgegeben angezeigt
 
 ### K-04 · Stornierung erteilen
 
@@ -149,18 +157,18 @@ Serviceleitung oder Admin können eine Auszahlung leisten, um einen negativen Ti
 > **ID:** K-06 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** ✅ Teilweise umgesetzt · **Prio:** Must-have
 
-Das Service-Dashboard zeigt primär die eigenen Tische der Servicekraft als Rich Cards (→ K-14 Tisch-Favoriten). Über einen Drawer sind alle aktiven Tische erreichbar. Per Tap auf eine Tischkarte navigiert die Servicekraft zum Tisch-Detail mit drei Tabs: Bestellen, Bezahlen, Historie. Liefern ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar.
+Das Service-Dashboard zeigt primär die eigenen Tische der Servicekraft als Rich Cards (→ K-14 Tisch-Favoriten). Über einen Drawer sind alle aktiven Tische erreichbar. Per Tap auf eine Tischkarte navigiert die Servicekraft zum Tisch-Detail mit drei Tabs: Bestellen, Bezahlen, Historie. Ausgabe bestätigen ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar.
 
 **Akzeptanzkriterien:**
 
-- Dashboard zeigt "Meine Tische" (Favoriten, K-14) als Rich Cards mit Saldo, ausstehenden Lieferungen, unbezahlten Positionen und Auszahlungsbedarf
+- Dashboard zeigt "Meine Tische" (Favoriten, K-14) als Rich Cards mit Saldo, ausstehenden Ausgaben, unbezahlten Positionen und Auszahlungsbedarf
 - Leerer Zustand (keine Favoriten): Hinweis "Du hast noch keine Tische markiert" mit Button zum Alle-Tische-Drawer
 - Alle aktiven Tische sind über einen Drawer ("Alle Tische") erreichbar
 - Navigation per Tap auf Tischkarte zum Tisch-Detail
 - Tisch-Detail bietet drei Tabs: Bestellen, Bezahlen, Historie
-- Liefern ist in den Bestellen-Tab integriert, Stornieren für Serviceleitung/Admin im Bezahlen-Tab
+- Ausgabe bestätigen ist in den Bestellen-Tab integriert, Stornieren für Serviceleitung/Admin im Bezahlen-Tab
 - Operationen öffnen als Drawer (Mobile-optimiertes Overlay)
-- Unbezahlte und ungelieferte Positionen sind auf dem Tisch-Detail sichtbar
+- Unbezahlte und ausstehende (nicht ausgegebene) Positionen sind auf dem Tisch-Detail sichtbar
 
 ### K-07 · Kassenjournal (Historie)
 
@@ -171,10 +179,10 @@ Jeder Tisch führt ein unveränderliches Kassenjournal (Event Stream), das alle 
 
 **Akzeptanzkriterien:**
 
-- Alle Tischoperationen (Bestellung, Zahlung, Lieferung, Stornierung) werden als Events gespeichert
+- Alle Tischoperationen (Bestellung, Zahlung, Ausgabe, Stornierung) werden als Events gespeichert
 - Events sind unveränderlich (append-only) — kein Update oder Löschen
 - Die Historie ist pro Tisch chronologisch einsehbar
-- Der aktuelle Tischzustand (Saldo, unbezahlte/ungelieferte Positionen) wird aus dem Event Stream berechnet
+- Der aktuelle Tischzustand (Saldo, unbezahlte/ausstehende Positionen) wird aus dem Event Stream berechnet
 - Snapshots werden zur Performance-Optimierung erstellt, haben aber keine fachliche Bedeutung
 
 ### K-08 · Bezeichnung pro Bestellung
@@ -402,7 +410,7 @@ Alle Benutzer können sich über einen „Abmelden"-Button aktiv ausloggen. Der 
 > **ID:** Q-01 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
-jotti wird auf den eigenen Smartphones der ehrenamtlichen Helfer bedient (BYOD — Bring Your Own Device). Die gesamte Oberfläche ist für Smartphone-Browser und Touch-Bedienung optimiert. Tischoperationen (Bestellen, Liefern, Bezahlen, Stornieren) öffnen als Drawer (Overlay von unten), um auf kleinen Bildschirmen eine fokussierte Eingabe zu ermöglichen.
+jotti wird auf den eigenen Smartphones der ehrenamtlichen Helfer bedient (BYOD — Bring Your Own Device). Die gesamte Oberfläche ist für Smartphone-Browser und Touch-Bedienung optimiert. Tischoperationen (Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren) öffnen als Drawer (Overlay von unten), um auf kleinen Bildschirmen eine fokussierte Eingabe zu ermöglichen.
 
 **Akzeptanzkriterien:**
 
@@ -557,11 +565,11 @@ Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um s
 > **ID:** R-03 · **Rolle:** Admin
 > **Status:** 🔲 Offen · **Prio:** Should-have
 
-Der Admin kann eine detaillierte Abrechnung pro Tisch einsehen. Diese enthält alle Bestellungen, Zahlungen, Lieferungen und Stornierungen des jeweiligen Tisches in chronologischer Reihenfolge sowie einen Gesamt-Saldo — gefiltert auf den gewählten Abrechnungszeitraum.
+Der Admin kann eine detaillierte Abrechnung pro Tisch einsehen. Diese enthält alle Bestellungen, Zahlungen, Ausgaben und Stornierungen des jeweiligen Tisches in chronologischer Reihenfolge sowie einen Gesamt-Saldo — gefiltert auf den gewählten Abrechnungszeitraum.
 
 **Akzeptanzkriterien:**
 
-- Detaillierte Aufstellung aller Bestellungen, Zahlungen, Lieferungen und Stornierungen eines Tisches im Abrechnungszeitraum
+- Detaillierte Aufstellung aller Bestellungen, Zahlungen, Ausgaben und Stornierungen eines Tisches im Abrechnungszeitraum
 - Anzeige des Gesamt-Saldos (bestellt, bezahlt, offen, storniert)
 - Abrufbar für jeden einzelnen Tisch durch den Admin
 - Chronologische Reihenfolge der Ereignisse
@@ -610,23 +618,9 @@ Jede Servicekraft sieht auf dem Service-Dashboard eine kompakte KPI-Sektion mit 
 - Nur eigene Daten sichtbar — kein Einblick in Daten anderer Servicekräfte
 - Werte werden aus den Events der Servicekraft berechnet (Event-Store-Query gefiltert auf `user_id`)
 
-### R-07 · Tagesabschluss
+### R-07 · Tagesabschluss _(verschoben → KF-07)_
 
-> **ID:** R-07 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Should-have
-
-Der Admin leitet am Ende einer Veranstaltung einen Tagesabschluss ein. Dabei wird der aktuelle Abrechnungszeitraum abgeschlossen, ein Abschlussbericht generiert und das System für den nächsten Veranstaltungstag vorbereitet. Der Tagesabschluss dient als Schnittstelle zur Vereinsbuchhaltung und als Grundlage für die Auszahlung an Servicekräfte.
-
-**Hinweis:** Das Zurücksetzen wirft eine offene Frage zur Event-Sourcing-Kompatibilität auf — Events werden nicht gelöscht (Append-only-Prinzip), sondern der Tagesabschluss markiert eine logische Zäsur im Event Stream.
-
-**Akzeptanzkriterien:**
-
-- Admin kann einen Tagesabschluss einleiten
-- Offene Tische (Saldo ≠ 0) werden vor Abschluss angezeigt und müssen bestätigt werden
-- Abschlussbericht wird generiert (entspricht Tagesabrechnung R-01 für den abgeschlossenen Zeitraum)
-- Tagesabschluss setzt den Default-Abrechnungszeitraum für nachfolgende Auswertungen auf „ab jetzt"
-- Abgeschlossene Zeiträume bleiben über R-01 weiterhin abrufbar (Archiv)
-- Optional: Tisch-Saldi können auf 0 zurückgesetzt werden (erzeugt ein Abschluss-Event pro Tisch, kein Löschen)
+> **Hinweis:** Diese Anforderung wurde als eigenständige Kernfunktion in den neuen Abschnitt **§8 · Kassenführung** verschoben (→ KF-07). Der Tagesabschluss ist kein Report, sondern eine transaktionale Operation mit eigenen Invarianten (fortlaufende Z_NR, Stammdaten-Snapshot, Kassensturz als Voraussetzung). Er ist gesetzlich vorgeschrieben (GoBD, DSFinV-K).
 
 ---
 
@@ -750,11 +744,11 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 
 ### F-06 · ABRECHNUNGSKREIS
 
-**Priorität:** Should  
+**Priorität:** Must  
 **Phase:** 1 (tagesbasiert), 2 (manuelle Freigabe)  
 **Status:** 🔲 Offen
 
-**Beschreibung:** Ein `ABRECHNUNGSKREIS` ist eine fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Phase 1: ein neuer `ABRECHNUNGSKREIS` wird automatisch bei jedem Tagesabschluss erzeugt. Phase 2: manuelle Freigabe durch die Serviceleitung.
+**Beschreibung:** Ein `ABRECHNUNGSKREIS` ist eine fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Phase 1: ein neuer `ABRECHNUNGSKREIS` wird automatisch bei jedem Tagesabschluss erzeugt. Phase 2: manuelle Freigabe durch die Serviceleitung. Operative Aspekte (Eröffnung, Schließung, Invarianten) sind in KF-01 definiert; F-06 beschreibt die DSFinV-K-Export-Aspekte.
 
 **Akzeptanzkriterien:**
 
@@ -797,3 +791,164 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 - [ ] Das erste Event jedes `ABRECHNUNGSKREIS` verwendet einen definierten Genesis-Hash
 - [ ] Ein Integritätsprüfungs-Endpunkt (`/admin/integrity/check`) validiert die vollständige Hash-Chain
 - [ ] Die Hash-Chain ist unabhängig von der TSE-Signatur und ergänzt diese
+
+---
+
+## 8 · Kassenführung (Core Domain)
+
+> **Kontext:** Die Kassenführung umfasst den vollständigen Lifecycle der Registerkasse — von der Eröffnung eines Abrechnungskreises über die laufende Kassenbestandsüberwachung bis zum formellen Tagesabschluss (Z-Bon). Dieser Bounded Context ist gesetzlich zwingend (GoBD, DSFinV-K) und bildet zusammen mit dem Tischbetrieb (§1) die Core Domain.
+>
+> **Persistenzstrategie:** Immutable Records (INSERT-only, geschützt durch DB-Trigger gegen UPDATE/DELETE) — kein Event-Sourcing, da keine OCC-Konflikte und kein Replay-Bedarf bestehen.
+>
+> **Domänenanalyse:** Siehe [docs/agents/analyse-domaenenmodell.md](agents/analyse-domaenenmodell.md) für die vollständige fachliche Herleitung.
+
+### KF-01 · Abrechnungskreis verwalten
+
+> **ID:** KF-01 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+
+Ein `Abrechnungskreis` ist eine fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Der Admin eröffnet einen Abrechnungskreis zu Beginn einer Veranstaltung.
+
+**Akzeptanzkriterien:**
+
+- [ ] Maximal ein Abrechnungskreis kann gleichzeitig `offen` sein
+- [ ] Abrechnungskreis-Nummer ist fortlaufend und lückenlos (nie zurücksetzbar)
+- [ ] Admin kann einen Abrechnungskreis mit Bezeichnung (z. B. „Sommerfest 2026 Tag 1") eröffnen
+- [ ] Beim Tagesabschluss (KF-07) wird der aktive Abrechnungskreis geschlossen
+- [ ] Alle Kassenvorgänge (Zahlungen, Stornierungen, Geldtransit etc.) sind einem Abrechnungskreis zugeordnet
+
+### KF-02 · Anfangsbestand setzen
+
+> **ID:** KF-02 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+
+Vor Beginn einer Veranstaltung gibt der Admin den Anfangsbestand (Wechselgeld) ein. Dieser Betrag ist die Basis für die Kassenbestandsführung und die Kassensturzfähigkeit.
+
+**Akzeptanzkriterien:**
+
+- [ ] Admin kann den Anfangsbestand in Cent eingeben (≥ 0)
+- [ ] Pro Abrechnungskreis wird genau ein Anfangsbestand gesetzt
+- [ ] Der Anfangsbestand ist nach dem Setzen nicht änderbar (Korrekturen über Privateinlage/Privatentnahme)
+- [ ] Der Anfangsbestand fließt in die Soll-Berechnung des Kassenbestands ein
+
+### KF-03 · Kassenbestand einsehen
+
+> **ID:** KF-03 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+
+Der Admin kann jederzeit den aktuellen Soll-Kassenbestand einsehen.
+
+**Formel:** $\text{Soll} = \text{Anfangsbestand} + \sum\text{Zahlungen} - \sum\text{Auszahlungen} - \sum\text{Geldtransit} - \sum\text{Privatentnahmen} + \sum\text{Privateinlagen}$
+
+**Akzeptanzkriterien:**
+
+- [ ] Soll-Bestand wird aus den gebuchten Vorgängen berechnet (Read Model)
+- [ ] Aufschlüsselung nach Komponenten sichtbar (Anfangsbestand, Einnahmen, Ausgaben, Transit)
+- [ ] Nur durch Admin einsehbar
+
+### KF-04 · Geldtransit buchen
+
+> **ID:** KF-04 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+
+Der Admin kann eine Entnahme von Bargeld aus der Kasse buchen (z. B. Einzahlung in Tresor oder Bank). Die Buchung reduziert den Soll-Kassenbestand und wird als immutable Record protokolliert.
+
+**Akzeptanzkriterien:**
+
+- [ ] Admin kann einen Geldtransit-Betrag in Cent eingeben (≥ 1)
+- [ ] Kommentar ist Pflichtfeld (min. 3, max. 200 Zeichen)
+- [ ] Geldtransit reduziert den Soll-Kassenbestand
+- [ ] Geldtransit darf den Soll-Bestand nicht unter 0 bringen
+- [ ] DSFinV-K: Geschäftsvorfalltyp `Geldtransit`
+- [ ] Phase 2: TSE-Signatur (eigene Transaktion, `SonstigerVorgang-V1`)
+
+### KF-05 · Privatentnahme buchen
+
+> **ID:** KF-05 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+
+Der Admin kann eine Privatentnahme buchen (Bargeld geht in den privaten Bereich des Vereins, nicht zur Bank). Fachlich analog zu Geldtransit, aber anderer DSFinV-K-Geschäftsvorfalltyp (`Privatentnahme`).
+
+**Akzeptanzkriterien:**
+
+- [ ] Analog zu KF-04, aber GV_TYP = `Privatentnahme`
+- [ ] Kommentar ist Pflichtfeld
+
+### KF-06 · Privateinlage buchen
+
+> **ID:** KF-06 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+
+Der Admin kann eine Privateinlage buchen (z. B. Nachfüllen von Wechselgeld während der Veranstaltung). Die Buchung erhöht den Soll-Kassenbestand.
+
+**Akzeptanzkriterien:**
+
+- [ ] Admin kann einen Privateinlage-Betrag in Cent eingeben (≥ 1)
+- [ ] Kommentar ist Pflichtfeld
+- [ ] Privateinlage erhöht den Soll-Kassenbestand
+- [ ] DSFinV-K: Geschäftsvorfalltyp `Privateinlage`
+
+### KF-07 · Tagesabschluss / Z-Bon erstellen
+
+> **ID:** KF-07 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+> **Ersetzt:** R-07
+
+Der Admin erstellt am Ende einer Veranstaltung/Schicht einen formalen Tagesabschluss (Z-Bon). Der Z-Bon ist ein **immutables Dokument** — er aggregiert alle Geschäftsvorfälle des Abrechnungszeitraums, erstellt einen Stammdaten-Snapshot und erhält eine fortlaufende, nie zurücksetzbare Nummer.
+
+**Akzeptanzkriterien:**
+
+- [ ] Admin kann einen Tagesabschluss einleiten
+- [ ] Voraussetzung: Kassensturz (KF-08) muss durchgeführt sein
+- [ ] Offene Tische (Saldo ≠ 0) werden angezeigt, blockieren den Abschluss aber nicht (offene Bestellungen fließen erst bei Bezahlung im nächsten Zeitraum ein)
+- [ ] Z-Bon erhält eine fortlaufende `z_nr` (aufsteigend, lückenlos, nie zurücksetzbar)
+- [ ] Z-Bon enthält: Zeitraum, aggregierte Umsätze nach Steuersätzen, Zahlungsarten, Stornierungen, Kassenbestand (Soll/Ist/Differenz)
+- [ ] Stammdaten-Snapshot wird eingefroren (Kassen-ID, Steuersätze, Betreiber-Info)
+- [ ] Der aktive Abrechnungskreis wird geschlossen
+- [ ] Z-Bons sind unveränderlich nach Erstellung — kein Update, kein Delete
+- [ ] Z-Bons müssen 10 Jahre aufbewahrt werden (Hinweis an Betreiber)
+- [ ] Phase 2: Z-Bon wird als TSE-Transaktion signiert (`SonstigerVorgang-V1`)
+
+### KF-08 · Kassensturz durchführen
+
+> **ID:** KF-08 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+
+Am Ende einer Schicht führt der Admin einen Kassensturz durch: Er gibt den physisch gezählten Bargeldbestand (Ist-Bestand) ein, und das System vergleicht diesen mit dem errechneten Soll-Bestand. Bei Abweichung wird automatisch ein `DifferenzSollIst`-Vorgang gebucht.
+
+**Akzeptanzkriterien:**
+
+- [ ] Admin gibt den gezählten Ist-Bestand in Cent ein (≥ 0)
+- [ ] System zeigt Soll-Bestand, Ist-Bestand und Differenz an
+- [ ] Bei Differenz ≠ 0: automatische Buchung eines `DifferenzSollIst`-Vorgangs (immutable Record)
+- [ ] Kassensturz ist Voraussetzung für den Tagesabschluss (KF-07)
+
+### KF-09 · Betreiber-Stammdaten verwalten
+
+> **ID:** KF-09 · **Rolle:** Admin
+> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+> **Context:** Stammdaten (Supporting Sub-Domain)
+
+Der Admin pflegt die Stammdaten des Betreibers (Verein): Name, Adresse und optional Steuernummer. Diese Daten werden auf dem Kassenbeleg, im Z-Bon-Stammdaten-Snapshot und im DSFinV-K-Export verwendet.
+
+**Akzeptanzkriterien:**
+
+- [ ] Admin kann Vereinsname, Straße, PLZ, Ort eingeben
+- [ ] Optional: Steuernummer und/oder USt-ID
+- [ ] Betreiber-Daten erscheinen auf dem Kassenbeleg (§ 6 KassenSichV: „Name und Anschrift des leistenden Unternehmens")
+- [ ] Betreiber-Daten werden im Stammdaten-Snapshot des Z-Bons eingefroren
+- [ ] Betreiber-Daten fließen in den DSFinV-K-Export ein
+
+### Berechtigungsmatrix — Kassenführung
+
+| Aktion                       | Admin | Serviceleitung | Servicekraft |
+| ---------------------------- | :---: | :------------: | :----------: |
+| Abrechnungskreis eröffnen    |   ✔   |                |              |
+| Anfangsbestand setzen        |   ✔   |                |              |
+| Kassenbestand einsehen       |   ✔   |                |              |
+| Geldtransit buchen           |   ✔   |                |              |
+| Privatentnahme buchen        |   ✔   |                |              |
+| Privateinlage buchen         |   ✔   |                |              |
+| Kassensturz durchführen      |   ✔   |                |              |
+| Tagesabschluss (Z-Bon)       |   ✔   |                |              |
+| Betreiber-Stammdaten pflegen |   ✔   |                |              |

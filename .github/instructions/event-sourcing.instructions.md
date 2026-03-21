@@ -9,20 +9,20 @@ Events für Tisch-Operationen. Subject-Format: `"tisch:<id>"`. State wird durch 
 
 ## Event-Typen
 
-- `tisch.bestellung-aufgegeben:v1`
-- `tisch.zahlung-registriert:v1`
-- `tisch.produkte-storniert:v1`
-- `tisch.produkte-geliefert:v1`
-- `tisch.snapshot:v1`
+- `tisch.bestellung-aufgenommen:v1`
+- `tisch.zahlung-kassiert:v1`
+- `tisch.stornierung-erteilt:v1`
+- `tisch.ausgabe-bestaetigt:v1`
+- `tisch.auszahlung-geleistet:v1`
 
 Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/table/events.go` und die zugehörigen `*Event.go`-Dateien im selben Verzeichnis.
 
 ## State-Rekonstruktion
 
 - Events sind immutable (append-only). Nie Events updaten oder löschen.
-- Saldo = Summe(Bestellungen) − Summe(Zahlungen) − Summe(Stornierungen)
+- Saldo = Summe(Bestellungen) − Summe(Zahlungen) − Summe(Stornierungen) + Summe(Auszahlungen)
 - UnbezahltePositionen = bestellt − bezahlt − storniert
-- UngeliefertePositionen = bestellt − geliefert − storniert
+- AusstehendePositionen = bestellt − ausgegeben − storniert
 
 ## Event-Store
 
@@ -35,6 +35,6 @@ Tabelle: `events` (append-only). Repository: `backend/repository/event_repo/`.
 
 ## JSON-Tags in Event-Data-Structs
 
-Event-Data-Structs (zum Beispiel `bestellungAufgegebenV1Data`, `zahlungRegistriertV1Data`, `produkteStorniertV1Data`, `produkteGeliefertV1Data`) behalten `json`-Tags fuer `json.Marshal` und `json.Unmarshal` im Event Store. Das ist Persistenz-Serialisierung und kein HTTP-Concern.
+Event-Data-Structs (zum Beispiel `bestellungAufgenommenV1Data`, `zahlungKassiertV1Data`, `stornierungErteiltV1Data`, `ausgabeBestaetigtV1Data`, `auszahlungGeleistetV1Data`) behalten `json`-Tags fuer `json.Marshal` und `json.Unmarshal` im Event Store. Das ist Persistenz-Serialisierung und kein HTTP-Concern.
 
 Dies ist die einzige erlaubte Ausnahme von der Regel "keine `json`-Tags in `domain/`".

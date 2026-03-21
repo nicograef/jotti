@@ -220,6 +220,86 @@ Kompakte KPI-Übersicht einer Servicekraft: Anzahl und Summe eigener Bestellunge
 
 ---
 
+### Kassenführung (Core Domain)
+
+Die Kassenführung umfasst den vollständigen Lifecycle der Registerkasse — von der Eröffnung eines Abrechnungskreises über die laufende Kassenbestandsüberwachung bis zum formellen Tagesabschluss (Z-Bon). **Persistenzstrategie:** Immutable Records (INSERT-only, DB-Trigger-geschützt).
+
+#### Abrechnungskreis
+
+Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld. Maximal ein Abrechnungskreis kann gleichzeitig `offen` sein.
+
+| Go-Struct (geplant) | DB-Tabelle (geplant) | JSON-Key           | API-Pfade (geplant)                 |
+| ------------------- | -------------------- | ------------------ | ----------------------------------- |
+| `Abrechnungskreis`  | `abrechnungskreis`   | `abrechnungskreis` | `/admin/abrechnungskreis-eroeffnen` |
+
+#### Anfangsbestand
+
+Wechselgeld zu Beginn einer Veranstaltung/Schicht. Pro Abrechnungskreis darf genau ein Anfangsbestand gesetzt werden. Basis für die Kassenbestandsführung.
+
+Go-Feld (geplant): `AnfangsbestandCents` · JSON-Key: `anfangsbestandCents`
+
+#### Kassenbestand
+
+Read Model über den erwarteten Bargeldbestand zu jedem Zeitpunkt. Berechnung: Anfangsbestand + Zahlungen − Auszahlungen − Geldtransit − Privatentnahmen + Privateinlagen.
+
+| Go-Struct (geplant) | JSON-Keys (geplant)                                                                              | API-Pfad (geplant)         |
+| ------------------- | ------------------------------------------------------------------------------------------------ | -------------------------- |
+| `Kassenbestand`     | `anfangsbestandCents`, `einnahmenCents`, `ausgabenCents`, `geldtransitCents`, `sollBestandCents` | `/admin/get-kassenbestand` |
+
+#### Kassenbewegung
+
+Oberbegriff für Geldtransit, Privatentnahme und Privateinlage — Bargeld-Bewegungen außerhalb des Tisch-Verkehrs. Immutable Record.
+
+| Go-Struct (geplant) | DB-Tabelle (geplant) | JSON-Key         | Werte für `art`                                  |
+| ------------------- | -------------------- | ---------------- | ------------------------------------------------ |
+| `Kassenbewegung`    | `kassenbewegungen`   | `kassenbewegung` | `geldtransit`, `privatentnahme`, `privateinlage` |
+
+#### Geldtransit
+
+Entnahme von Bargeld aus der Kasse zur Einzahlung bei Bank oder Tresor. Reduziert den Soll-Kassenbestand. DSFinV-K-Geschäftsvorfalltyp: `Geldtransit`.
+
+API-Pfad (geplant): `/admin/geldtransit-buchen`
+
+#### Privatentnahme
+
+Entnahme von Bargeld in den privaten Bereich des Vereins (nicht Bank). Fachlich analog zu Geldtransit, aber anderer DSFinV-K-Geschäftsvorfalltyp: `Privatentnahme`.
+
+API-Pfad (geplant): `/admin/privatentnahme-buchen`
+
+#### Privateinlage
+
+Einlage von Bargeld in die Kasse (z. B. Nachfüllen von Wechselgeld). Erhöht den Soll-Kassenbestand. DSFinV-K-Geschäftsvorfalltyp: `Privateinlage`.
+
+API-Pfad (geplant): `/admin/privateinlage-buchen`
+
+#### Kassensturz
+
+Vergleich des errechneten Soll-Bestands mit dem physisch gezählten Ist-Bestand. Bei Abweichung wird automatisch ein `DifferenzSollIst`-Vorgang gebucht. Voraussetzung für den Tagesabschluss (Z-Bon).
+
+| Go-Struct (geplant) | DB-Tabelle (geplant) | JSON-Keys (geplant)                                     | API-Pfad (geplant)   |
+| ------------------- | -------------------- | ------------------------------------------------------- | -------------------- |
+| `Kassensturz`       | `kassensturz`        | `sollBestandCents`, `istBestandCents`, `differenzCents` | `/admin/kassensturz` |
+
+#### DifferenzSollIst
+
+Automatisch gebuchter Geschäftsvorfall beim Kassensturz, wenn Soll-Bestand ≠ Ist-Bestand. DSFinV-K-Pflicht-Geschäftsvorfalltyp.
+
+#### Z-Bon (Tagesabschluss)
+
+Formeller Tagesabschlussbon: aggregiert alle Transaktionen eines Abrechnungskreises nach Steuersätzen und Zahlarten, erstellt einen Stammdaten-Snapshot und erhält eine fortlaufende, nie zurücksetzbare `z_nr`. **Immutables Dokument** — kein Aggregat mit Lifecycle.
+
+| Go-Struct (geplant) | DB-Tabelle (geplant) | JSON-Keys (geplant)                                                        | API-Pfad (geplant)      |
+| ------------------- | -------------------- | -------------------------------------------------------------------------- | ----------------------- |
+| `ZBon`              | `z_bons`             | `zNr`, `zeitraumVon`, `zeitraumBis`, `sollBestandCents`, `istBestandCents` | `/admin/tagesabschluss` |
+
+> **Abgrenzung:** Der Z-Bon ersetzt die bisherige R-07-Anforderung. Er ist kein Report, sondern eine transaktionale Operation der Core Domain.
+
+#### X-Bon
+
+Zwischenbericht: informativer Abruf des aktuellen Kassenstands ohne Rücksetzen. Kein Tagesabschluss im Rechtssinne. Nicht gesetzlich vorgeschrieben.
+
+---
+
 ### Stammdaten (Supporting Sub-Domain)
 
 #### Produkt
@@ -353,13 +433,13 @@ Die TSE-Kommunikation folgt einem strikten Lifecycle. Jeder Kassiervorgang durch
 
 #### Abrechnungsstruktur
 
-| Begriff              | Go-Struct / Go-Typ | DB-Feld / -Tabelle | JSON-Key           | Bedeutung                                                                                                                                                                                  |
-| -------------------- | ------------------ | ------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **ABRECHNUNGSKREIS** | `Abrechnungskreis` | `abrechnungskreis` | `abrechnungskreis` | Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typisch: einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld. Verbindet logisch zusammengehörige Tisch-Vorgänge. |
-| **Tagesabschluss**   | —                  | —                  | —                  | Administrativer Abschluss eines ABRECHNUNGSKREIS. Erzeugt DSFinV-K-exportierbaren Datensatz.                                                                                               |
-| **Z-Bon**            | —                  | —                  | —                  | Tagesabschlussbon: aggregiert alle Transaktionen nach Steuersätzen und Zahlarten (`businesscases.csv`). Setzt den internen Tagesspeicher zurück.                                           |
-| **X-Bon**            | —                  | —                  | —                  | Zwischenbericht: informativer Abruf des aktuellen Kassenstands ohne Rücksetzen. Kein Tagesabschluss im Rechtssinne.                                                                        |
-| **Bonkopf / Bonpos** | —                  | —                  | —                  | DSFinV-K-Aufteilung: Bonkopf enthält Metadaten und Gesamtsummen des Belegs; Bonpos listet die einzelnen Artikelzeilen (`lines.csv`).                                                       |
+| Begriff              | Go-Struct / Go-Typ | DB-Feld / -Tabelle | JSON-Key           | Bedeutung                                                                                                                                                                                                         |
+| -------------------- | ------------------ | ------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ABRECHNUNGSKREIS** | `Abrechnungskreis` | `abrechnungskreis` | `abrechnungskreis` | Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typisch: einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld. Verbindet logisch zusammengehörige Tisch-Vorgänge. Siehe → Kassenführung. |
+| **Tagesabschluss**   | `ZBon` (geplant)   | `z_bons` (geplant) | `zNr`              | Formaler Abschluss eines ABRECHNUNGSKREIS. Erzeugt ein immutables Dokument (Z-Bon) mit fortlaufender `z_nr`. Gehört zur Kassenführung (Core Domain), nicht zum Reporting.                                         |
+| **Z-Bon**            | `ZBon` (geplant)   | `z_bons` (geplant) | `zNr`              | Tagesabschlussbon: aggregiert alle Transaktionen nach Steuersätzen und Zahlarten (`businesscases.csv`). Immutables Dokument — kein Reset von Events.                                                              |
+| **X-Bon**            | —                  | —                  | —                  | Zwischenbericht: informativer Abruf des aktuellen Kassenstands ohne Rücksetzen. Kein Tagesabschluss im Rechtssinne.                                                                                               |
+| **Bonkopf / Bonpos** | —                  | —                  | —                  | DSFinV-K-Aufteilung: Bonkopf enthält Metadaten und Gesamtsummen des Belegs; Bonpos listet die einzelnen Artikelzeilen (`lines.csv`).                                                                              |
 
 #### Steuern
 
@@ -411,13 +491,14 @@ Die folgenden Begriffe sind in der Ubiquitous Language definiert, aber noch nich
 
 ### Abrechnung (Supporting Sub-Domain)
 
-| Begriff             | Bedeutung                                                                                                                              |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Tagesabrechnung** | Übersicht über Gesamtumsatz, Stornierungen und Umsatz pro Servicekraft — jederzeit vom Admin abrufbar.                                 |
-| **Umsatz**          | Summe aller registrierten Zahlungen in einem bestimmten Zeitraum. Immer in Cent.                                                       |
-| **Stornoquote**     | Verhältnis von Stornierungsbetrag zu Bestellsumme. Indikator für Fehler oder Unregelmäßigkeiten.                                       |
-| **Tagesabschluss**  | Administrativer Vorgang zum Ende einer Veranstaltung: offene Tische prüfen, Abschlussbericht generieren, optional System zurücksetzen. |
-| **Export**          | CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Vereinsbuchhaltung.                                                   |
+| Begriff             | Bedeutung                                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Tagesabrechnung** | Übersicht über Gesamtumsatz, Stornierungen und Umsatz pro Servicekraft — jederzeit vom Admin abrufbar. |
+| **Umsatz**          | Summe aller registrierten Zahlungen in einem bestimmten Zeitraum. Immer in Cent.                       |
+| **Stornoquote**     | Verhältnis von Stornierungsbetrag zu Bestellsumme. Indikator für Fehler oder Unregelmäßigkeiten.       |
+| **Export**          | CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Vereinsbuchhaltung.                   |
+
+> **Hinweis:** Der Tagesabschluss (Z-Bon) ist kein Reporting-Vorgang, sondern eine transaktionale Operation der Kassenführung (Core Domain). Siehe → Kassenführung.
 
 ---
 

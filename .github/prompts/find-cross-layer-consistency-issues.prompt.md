@@ -60,7 +60,7 @@ The question here is not "is this overly complex?" but "are these layers still s
 ### 4. Cross-Layer Invariants
 
 - Money represented anywhere other than cents / integers
-- Tisch, Bestellung, Lieferung, Zahlung, Stornierung terminology drift
+- Tisch, Bestellung, Ausgabe, Zahlung, Stornierung, Auszahlung terminology drift
 - Backend-only filtering or aggregation that the frontend silently reimplements differently
 - Validation rules enforced on one side but not the other
 

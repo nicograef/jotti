@@ -102,7 +102,7 @@ Diese Phase integriert eine **zertifizierte Cloud-TSE** (fiskaly) und schafft de
 | —    | **TSE-Hooks auf Zahlungsfluss**                  | § 146a AO               | Should    | Hoch    |
 | —    | **Event-Daten um TSE-Felder erweitern**          | DSFinV-K                | Should    | Mittel  |
 | F-04 | **DSFinV-K-Export**                              | § 4 KassenSichV         | Should    | Hoch    |
-| —    | **Z-Bon-Logik (Kassenabschluss)**                | DSFinV-K                | Should    | Mittel  |
+| —    | **Z-Bon-Logik (Kassenführung KF-07)**            | DSFinV-K                | Must      | Mittel  |
 | —    | **TSE-Felder auf Beleg (ergänzt F-03)**          | § 6 KassenSichV         | Should    | Gering  |
 | —    | **QR-Code auf Beleg**                            | DSFinV-K Anhang I       | Nice      | Gering  |
 | —    | **ABRECHNUNGSKREIS Phase 2** (manuelle Freigabe) | DSFinV-K                | Nice      | Mittel  |
