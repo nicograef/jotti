@@ -2,7 +2,7 @@
 
 Dieses Dokument ist die **verbindliche Referenz** für die Ubiquitous Language des jotti-Projekts — für Entwickler, Agenten und alle Projektbeteiligten. Es definiert die Fachbegriffe der Domäne, ihre Code-Repräsentationen und die Sprachkonventionen pro Schicht.
 
-Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktualisiert, wenn sich Begriffe, Strukturen oder Konventionen ändern. Die vollständige und aktuelle Definition wird hier gepflegt.
+Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktualisiert, wenn sich Begriffe, Strukturen oder Konventionen ändern.
 
 ## Sprachkonventionen
 
@@ -30,7 +30,7 @@ Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktual
 | Frontend-Routen           | Englisch | kebab-case                 | `/service/tables`, `/admin/products`          |
 | Auth/Infrastruktur-Code   | Englisch | Sprachübliche Konventionen | `User`, `Role`, `Token`, `Config`             |
 
-> **Pfadkonvention:** Dateipfade in den Tabellen sind relativ angegeben — `domain/…` und `api/…` liegen unter `backend/`, `src/…` unter `frontend/`, `migrations/…` unter `database/`.
+> **Pfadkonvention:** Dateipfade sind relativ angegeben — `domain/…` und `api/…` liegen unter `backend/`, `src/…` unter `frontend/`, `migrations/…` unter `database/`.
 
 ## Abweichungen: Ist-Zustand vs. Soll-Zustand
 
@@ -60,327 +60,341 @@ Die folgende Tabelle dokumentiert Abweichungen zwischen den aktuellen Code-Bezei
 | Status-Enums         | `active`, `inactive`, `deleted`                 | Englisch ist korrekt — technische Lifecycle-States, kein Domänenbegriff.                        |
 | Kassenjournal        | `Historie` (Code) vs. `Kassenjournal` (Entwurf) | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert. |
 
-## Kassenbetrieb (Core Domain)
+---
 
-### Tisch
+## Begriffsdefinitionen
 
-Zentrales Aggregat im Kassenbetrieb. Trägt einen Event Stream, aus dem sich der aktuelle Zustand (Saldo, offene Positionen) berechnet.
+### Vereinswesen & Steuerliche Sphären
 
-| Schicht             | Repräsentation                                                                                                                 | Datei                          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
-| Go-Struct           | `Tisch` (Felder: `ID`, `Name`, `Status`, `CreatedAt`)                                                                          | `domain/table/tisch.go`        |
-| TypeScript-Typ      | `Tisch`                                                                                                                        | `src/service/table/Tisch.ts`   |
-| DB-Tabelle          | `tables`                                                                                                                       | `migrations/01_initial.up.sql` |
-| API-Pfade (Admin)   | `/create-tisch`, `/update-tisch`, `/activate-tisch`, `/deactivate-tisch`, `/get-all-tische`                                    | `api/admin.go`                 |
-| API-Pfade (Service) | `/get-tisch`, `/get-aktive-tische`, `/get-tisch-historie`, `/get-tisch-saldo`, `/get-tisch-unbezahlt`, `/get-tisch-ausstehend` | `api/service.go`               |
-| Frontend-Hooks      | `useTisch()`, `useAktiveTische()`, `useTischHistorie()`, `useTischSaldo()`, `useTischUnbezahlt()`, `useTischAusstehend()`      | `src/service/table/hooks.ts`   |
-| Frontend-Route      | `/service/tables/:tableId`                                                                                                     | `src/routes.ts`                |
+Das Finanzamt betrachtet einen Verein in vier steuerliche Bereiche (Sphären). Diese bestimmen Buchführungspflichten und Steuersätze — und damit direkt die korrekte Konfiguration von jotti.
 
-> **Hinweis:** DB-Tabelle (`tables`) und Frontend-Route (`/service/tables`) verwenden Englisch — korrekt per Infrastruktur-Konvention.
+- **Gemeinnützigkeit:** Steuerbegünstigter Status eines Vereins, der voraussetzt, dass die Tätigkeit der Allgemeinheit selbstlos zugutekommt und in der Satzung verankert ist.
+- **Ideeller Bereich:** Steuerfreier Kernbereich des Vereins ohne wirtschaftliche Tätigkeit (finanziert durch Spenden und Mitgliedsbeiträge).
+- **Wirtschaftlicher Geschäftsbetrieb (WGB):** In der Regel steuerpflichtiger Bereich, in dem der Verein wie ein normales Unternehmen agiert — z. B. Getränke- und Essensverkauf auf einem Vereinsfest. jotti ist primär für diesen Bereich konzipiert.
+- **Zweckbetrieb:** Wirtschaftlicher Geschäftsbetrieb, der steuerbegünstigt ist, weil er unmittelbar dem gemeinnützigen Zweck dient (z. B. Eintrittsgelder für ein Sportturnier).
+- **Vermögensverwaltung:** Steuerfreie, passive Einnahmen aus Vereinsvermögen (z. B. Zinsen, Mieteinnahmen).
+- **Kleinunternehmerregelung (§ 19 UStG):** Vereine mit geringen Umsätzen können von der Umsatzsteuerpflicht befreit sein. Hat direkte Auswirkungen auf die korrekte Konfiguration des `Steuersatz` im System.
 
-### Bestellung
+### Akteure & Rollen
 
-Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt. Erzeugt ein `BestellungAufgenommen`-Event.
+> **Sprachkonvention:** Systemrollen verwenden englische Code-Bezeichnungen — Auth ist eine Generic Sub-Domain. Benutzer-sichtbare Strings im UI sind deutsch.
 
-| Schicht             | Repräsentation                                                                                                   | Datei                              |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| Go-Struct           | `Bestellung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `GesamtPreisCents`, `Kommentar`, `AufgenommenAm`) | `domain/table/bestellung.go`       |
-| Go-Event-Typ        | `EventTypeBestellungAufgenommenV1` = `"tisch.bestellung-aufgenommen:v1"`                                         | `domain/table/events.go`           |
-| Go-Command          | `BestellungAufnehmen()`                                                                                          | `api/table/application/command.go` |
-| TypeScript-Typ      | `Bestellung`, `BestellungAufnehmen`                                                                              | `src/service/table/Bestellung.ts`  |
-| API-Pfad            | `/service/bestellung-aufnehmen`                                                                                  | `api/service.go`                   |
-| Frontend-Komponente | `<Bestellung>`, `<BestellungDrawer>`                                                                             | `src/service/components/table/`    |
-| UI-Labels           | „Bestellen" (Tab), „Bestellung aufnehmen" (Button), „Bestellung wurde aufgenommen." (Toast)                      |                                    |
+**Fachliche Akteure (kein Code-Mapping):**
 
-### Position
+- **Servicekraft / Bedienung:** Freiwillige Helfer, die im Festzeltbetrieb Bestellungen aufnehmen, kassieren und Ausgaben bestätigen. Entspricht der Systemrolle `service`.
+- **Serviceleitung:** Erfahrene Servicekraft mit erweiterten Rechten für Stornierungen und Auszahlungen. Entspricht der Systemrolle `serviceleitung`.
+- **Kassenwart / Schatzmeister:** Vorstandsmitglied, das für Finanzen, Buchhaltung und den korrekten DSFinV-K-Export sowie Steuererklärungen verantwortlich ist. Entspricht typischerweise der Systemrolle `admin`.
+- **Vorstand:** Gesetzliches Vertretungsorgan des Vereins. Haftet persönlich für die Einhaltung steuerlicher Pflichten (GoBD, KassenSichV). Entspricht typischerweise der Systemrolle `admin`.
 
-Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einzelpreis.
+**Systemrollen (mit Code-Mapping):**
 
-| Schicht        | Repräsentation                                                                                                      | Datei                             |
-| -------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| Go-Struct      | `Position` (Felder: `PositionID`, `VarianteID`, `ProduktName`, `VarianteName`, `Kategorie`, `Einzelpreis`, `Menge`) | `domain/table/bestellung.go`      |
-| JSON-Keys      | `"positionId"`, `"varianteId"`, `"produktName"`, `"varianteName"`, `"kategorie"`, `"einzelpreis"`, `"menge"`        | `domain/table/bestellung.go`      |
-| TypeScript-Typ | `Position`                                                                                                          | `src/service/table/Bestellung.ts` |
-
-> **Hinweis:** Die Position wurde komplett redesigned (Fat Events). Alle Felder nutzen deutsche Ubiquitous Language.
-
-### Ausgabe
-
-Die Bestätigung, dass bestellte Positionen dem Gast übergeben wurden. Erzeugt ein `AusgabeBestaetigt`-Event.
-
-| Schicht             | Repräsentation                                                                           | Datei                                      |
-| ------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Go-Struct           | `Ausgabe` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `Kommentar`, `AusgegebenAm`) | `domain/table/ausgabe.go`                  |
-| Go-Event-Typ        | `EventTypeAusgabeBestaetigtV1` = `"tisch.ausgabe-bestaetigt:v1"`                         | `domain/table/events.go`                   |
-| Go-Command          | `AusgabeBestaetigen()`                                                                   | `api/table/application/command.go`         |
-| TypeScript-Typ      | `Ausgabe`, `AusgabeBestaetigen`                                                          | `src/service/table/Ausgabe.ts`             |
-| API-Pfad            | `/service/ausgabe-bestaetigen`                                                           | `api/service.go`                           |
-| Frontend-Komponente | `<Ausgabe>`                                                                              | `src/service/components/table/Ausgabe.tsx` |
-| UI-Labels           | „Ausgabe bestätigen" (Button), „Ausgabe" (Historie)                                      |                                            |
-
-### Zahlung
-
-Die Kassierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen (Teilzahlung). Erzeugt ein `ZahlungKassiert`-Event.
-
-| Schicht             | Repräsentation                                                                                               | Datei                              |
-| ------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
-| Go-Struct           | `Zahlung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `GesamtZahlungCents`, `Kommentar`, `KassiertAm`) | `domain/table/zahlung.go`          |
-| Go-Event-Typ        | `EventTypeZahlungKassiertV1` = `"tisch.zahlung-kassiert:v1"`                                                 | `domain/table/events.go`           |
-| Go-Command          | `ZahlungKassieren()`                                                                                         | `api/table/application/command.go` |
-| TypeScript-Typ      | `Zahlung`, `ZahlungKassieren`                                                                                | `src/service/table/Zahlung.ts`     |
-| API-Pfad            | `/service/zahlung-kassieren`                                                                                 | `api/service.go`                   |
-| Frontend-Komponente | `<ZahlungDrawer>`                                                                                            | `src/service/components/table/`    |
-| UI-Labels           | „Bezahlen" (Tab), „Kassieren" (Button), „Zahlung kassieren" (actionLabel)                                    |                                    |
-
-### Stornierung
-
-Die nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. Erzeugt ein `StornierungErteilt`-Event.
-
-| Schicht             | Repräsentation                                                                                                        | Datei                                                |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Go-Struct           | `Stornierung` (Felder: `ID`, `UserID`, `TischID`, `Positionen`, `GesamtStornierungCents`, `Kommentar`, `StorniertAm`) | `domain/table/stornierung.go`                        |
-| Go-Event-Typ        | `EventTypeStornierungErteiltV1` = `"tisch.stornierung-erteilt:v1"`                                                    | `domain/table/events.go`                             |
-| Go-Command          | `StornierungErteilen()`                                                                                               | `api/table/application/command.go`                   |
-| TypeScript-Typ      | `Stornierung`, `StornierungErteilen`                                                                                  | `src/service/table/Stornierung.ts`                   |
-| API-Pfad            | `/serviceleitung/stornierung-erteilen`                                                                                | `api/serviceleitung.go`                              |
-| Frontend-Komponente | `<StornierungDrawer>`                                                                                                 | `src/service/components/table/StornierungDrawer.tsx` |
-| UI-Labels           | „Stornierung" (Drawer-Titel), „Stornierung erteilen" (Button), „Stornierung erfolgreich." (Toast)                     |                                                      |
-
-> **Hinweis:** `Kommentar` ist bei Stornierungen **Pflichtfeld** (min. 3, max. 100 Zeichen).
-
-### Auszahlung
-
-Auszahlung eines Betrags an den Gast, um einen negativen Saldo auszugleichen — entsteht, wenn bereits kassierte Positionen nachträglich storniert werden (K-05). Kein Positionsbezug; freier Betrag (≥ 1 Cent). Erzeugt ein `AuszahlungGeleistet`-Event.
-
-| Schicht             | Repräsentation                                                                              | Datei                                               |
-| ------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Go-Struct           | `Auszahlung` (Felder: `ID`, `UserID`, `TischID`, `BetragCents`, `Kommentar`, `GeleistetAm`) | `domain/table/auszahlungGeleistetEvent.go`          |
-| Go-Event-Typ        | `EventTypeAuszahlungGeleistetV1` = `"tisch.auszahlung-geleistet:v1"`                        | `domain/table/events.go`                            |
-| Go-Command          | `AuszahlungLeisten()`                                                                       | `api/table/application/command.go`                  |
-| API-Pfad            | `/serviceleitung/auszahlung-leisten`                                                        | `api/serviceleitung.go`                             |
-| Frontend-Komponente | `<AuszahlungDrawer>`                                                                        | `src/service/components/table/AuszahlungDrawer.tsx` |
-| UI-Labels           | „Auszahlung leisten“ (Button), negativer Saldo-Badge in Tischkarte und Tischseite           |                                                     |
-
-> **Hinweis:** `Kommentar` ist Pflichtfeld (min. 3, max. 100 Zeichen). Das UI befüllt den Betrag vor, wenn der Saldo negativ ist.
-
-### Saldo
-
-Der offene Betrag eines Tisches: Summe der Bestellungen − Summe der Zahlungen − Summe der Stornierungen + Summe der Auszahlungen. Immer in Cent.
-
-| Schicht          | Repräsentation                | Datei                        |
-| ---------------- | ----------------------------- | ---------------------------- |
-| Go-Projektion    | `ApplyEvent()` → `TischState` | `domain/table/projection.go` |
-| Go-Snapshot-Feld | `SaldoCents`                  | `domain/table/projection.go` |
-| API-Pfad         | `/service/get-tisch-state`    | `api/service.go`             |
-| Frontend-Hook    | `useTischState()`             | `src/service/table/hooks.ts` |
-| UI-Label         | „offen" (Badge)               |                              |
-
-### Historie
-
-Der vollständige, unveränderliche Event Stream eines Tisches in chronologischer Reihenfolge.
-
-**Synonym: Kassenjournal.** „Kassenjournal" ist der formale Fachbegriff aus dem Entwurf. „Historie" ist der im Code und UI verwendete Begriff und für ehrenamtliche Helfer verständlicher. Beide Begriffe bezeichnen denselben Sachverhalt.
-
-| Schicht               | Repräsentation                | Datei                                            |
-| --------------------- | ----------------------------- | ------------------------------------------------ |
-| Go-Funktion           | `GetHistoryFromEvents()`      | `domain/table/events.go`                         |
-| Go-Query              | `GetTischHistorie()`          | `api/table/application/query.go`                 |
-| API-Pfad              | `/service/get-tisch-historie` | `api/service.go`                                 |
-| TypeScript-Komponente | `<TischHistorie>`             | `src/service/components/table/TischHistorie.tsx` |
-| UI-Label              | „Historie" (Tab)              |                                                  |
-
-### Kommentar
-
-Freitextnotiz zu Tischoperationen. Pflichtfeld bei Stornierung und Auszahlung (min. 3 Zeichen), optional bei Bestellung, Ausgabe und Zahlung. Max. 100 Zeichen.
-
-| Schicht       | Repräsentation | Datei                                                                                                       |
-| ------------- | -------------- | ----------------------------------------------------------------------------------------------------------- |
-| Go-Feld       | `Kommentar`    | `domain/table/bestellung.go`, `zahlung.go`, `ausgabe.go`, `stornierung.go`, `bestellungAufgenommenEvent.go` |
-| JSON-Key      | `"kommentar"`  | (alle oben genannten Dateien)                                                                               |
-| TS-Feld (Ist) | `comment`      | `src/service/table/Bestellung.ts`, `Zahlung.ts`, `Ausgabe.ts`, `Stornierung.ts`                             |
-
-> **Hinweis:** Backend-Rename abgeschlossen (`Comment` → `Kommentar`). Frontend-Rename (`comment` → `kommentar`) ausstehend.
-
-### Menge
-
-Anzahl einer Produktvariante innerhalb einer Position.
-
-| Schicht       | Repräsentation | Datei                             |
-| ------------- | -------------- | --------------------------------- |
-| Go-Feld       | `Menge`        | `domain/table/bestellung.go`      |
-| JSON-Key      | `"menge"`      | `domain/table/bestellung.go`      |
-| TS-Feld (Ist) | `quantity`     | `src/service/table/Bestellung.ts` |
-
-> **Hinweis:** Backend-Rename abgeschlossen (`Quantity` → `Menge`). Frontend-Rename (`quantity` → `menge`) ausstehend.
-
-### EigeneUebersicht
-
-Kompakte KPI-Übersicht einer Servicekraft über ihre eigenen Aktivitäten: Anzahl und Summe eigener Bestellungen sowie Anzahl und Summe eigener kassierten Zahlungen. Read Model — berechnet aus dem Event Store, gefiltert auf `user_id`.
-
-| Schicht             | Repräsentation                                                                                              | Datei                                         |
-| ------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| Go-Struct           | `EigeneUebersicht` (Felder: `AnzahlBestellungen`, `BestellungenCents`, `AnzahlZahlungen`, `ZahlungenCents`) | `domain/reporting/reporting.go`               |
-| JSON-Keys           | `"anzahlBestellungen"`, `"bestellungenCents"`, `"anzahlZahlungen"`, `"zahlungenCents"`                      | Response-DTO in `api/reporting/http/`         |
-| TypeScript-Typ      | `EigeneUebersicht`                                                                                          | `src/service/table/Tisch.ts`                  |
-| API-Pfad            | `/service/get-eigene-uebersicht`                                                                            | `api/service.go`                              |
-| Frontend-Komponente | `<EigeneUebersicht>`                                                                                        | `src/service/components/EigeneUebersicht.tsx` |
-| UI-Label            | „Meine Übersicht" (Sektion), „Bestellungen" / „Kassiert" (Karten)                                           |                                               |
-
-## Stammdaten (Supporting Sub-Domain)
-
-### Produkt
-
-Artikel im Produktkatalog. Gehört zu genau einer Kategorie und enthält eine oder mehrere Varianten mit je eigenem Preis.
-
-| Schicht        | Repräsentation                                                                                 | Datei                           |
-| -------------- | ---------------------------------------------------------------------------------------------- | ------------------------------- |
-| Go-Struct      | `Produkt` (Felder: `ID`, `Name`, `Kategorie`, `Status`, `Varianten`, `CreatedAt`, `UpdatedAt`) | `domain/product/product.go`     |
-| DB-Tabelle     | `produkte`                                                                                     | `migrations/01_initial.up.sql`  |
-| TypeScript-Typ | `Produkt`                                                                                      | `src/admin/products/Product.ts` |
-| API-Pfade      | `/create-produkt`, `/update-produkt`, `/get-all-produkte`                                      | `api/admin.go`                  |
-
-> **Hinweis:** Backend- und DB-Rename abgeschlossen. Frontend-Typ-Rename (`Product` → `Produkt`) ausstehend.
-
-### Variante
-
-Konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. Produkt „Cola" → Varianten „0,3 l" und „0,5 l").
-
-| Schicht        | Repräsentation                                                                       | Datei                           |
-| -------------- | ------------------------------------------------------------------------------------ | ------------------------------- |
-| Go-Struct      | `Variante` (Felder: `ID`, `Name`, `PreisCents`, `Status`, `CreatedAt`, `UpdatedAt`)  | `domain/product/variant.go`     |
-| DB-Tabelle     | `produkt_varianten`                                                                  | `migrations/01_initial.up.sql`  |
-| TypeScript-Typ | `Variante`                                                                           | `src/admin/products/Product.ts` |
-| API-Pfade      | `/create-variante`, `/update-variante`, `/activate-variante`, `/deactivate-variante` | `api/admin.go`                  |
-
-> **Hinweis:** Backend- und DB-Rename abgeschlossen. Frontend-Typ-Rename (`Variant` → `Variante`) ausstehend.
-
-### Kategorie
-
-Gruppierung von Produkten. Aktuell drei feste Kategorien: Essen, Getränke, Sonstiges.
-
-| Schicht         | Repräsentation                                                                         | Datei                            |
-| --------------- | -------------------------------------------------------------------------------------- | -------------------------------- |
-| Go-Typ          | `Kategorie` mit Konstanten `EssenKategorie`, `GetraenkKategorie`, `SonstigesKategorie` | `domain/product/product.go`      |
-| DB-Enum         | `ProduktKategorie` (`'essen'`, `'getraenk'`, `'sonstiges'`)                            | `migrations/01_initial.up.sql`   |
-| Frontend-Werte  | `Kategorie.ESSEN`, `Kategorie.GETRAENK`, `Kategorie.SONSTIGES`                         | `src/admin/products/Product.ts`  |
-| Frontend-Labels | `'essen'` → „Essen", `'getraenk'` → „Getränke", `'sonstiges'` → „Sonstiges"            | `src/service/product/Product.ts` |
-
-> **Hinweis:** Backend-, DB- und Frontend-Werte-Rename abgeschlossen.
-
-### Preis
-
-Geldbeträge werden ausnahmslos als ganzzahlige Cent-Werte gespeichert — niemals als Fließkommazahlen. 3,50 € = 350 Cent.
-
-**Konvention:** Alle Preis-Felder tragen das Suffix `*Cents` (z. B. `PreisCents`, `GesamtPreisCents`, `SaldoCents`, `GesamtZahlungCents`, `GesamtStornierungCents`).
-
-> **Hinweis:** Im Kassenbetrieb und bei Varianten wird durchgängig `PreisCents` (deutsch) verwendet.
-
-### Soft-Delete
-
-Logisches Löschen: Datensätze werden nicht physisch entfernt, sondern durch den Status `deleted` als gelöscht markiert. Der Datensatz bleibt für Referenzintegrität und historische Auswertungen erhalten.
-
-| Schicht              | Repräsentation                                         | Datei                          |
-| -------------------- | ------------------------------------------------------ | ------------------------------ |
-| DB-Enum              | `EntityStatus` (`'active'`, `'inactive'`, `'deleted'`) | `migrations/01_initial.up.sql` |
-| Go-Domain (Tisch)    | Konstanten `ActiveStatus`, `InactiveStatus`            | `domain/table/tisch.go`        |
-| Go-Domain (Variante) | Konstanten `ActiveStatus`, `InactiveStatus`            | `domain/product/variant.go`    |
-| Go-Domain (User)     | Konstanten `ActiveStatus`, `InactiveStatus`            | `domain/user/user.go`          |
-
-> **Hinweis:** In den Go-Domain-Modellen existieren nur `active` und `inactive` als Konstanten. Der Status `deleted` wird ausschließlich auf DB-Ebene verwendet und ist in der Domain nicht als Konstante abgebildet.
-
-### Favorit
-
-Eine benutzerspezifische Markierung, die eine Servicekraft für einen Tisch setzt, um diesen auf dem Service-Dashboard als Rich Card anzuzeigen ("Meine Tische"). Kein Aggregat, keine Events — einfache CRUD-Relation in der DB (`tisch_favoriten`: `user_id` + `tisch_id` als Composite PK).
-
-| Schicht        | Repräsentation                                                                     | Datei                             |
-| -------------- | ---------------------------------------------------------------------------------- | --------------------------------- |
-| Go-Package     | `backend/repository/favorit_repo/`                                                 | `repository/favorit_repo/repo.go` |
-| DB-Tabelle     | `tisch_favoriten`                                                                  | `migrations/01_initial.up.sql`    |
-| TypeScript-Typ | (kein eigener Typ — als `istFavorit: boolean` in `AktiverTischMitFavorit`)         | `src/service/table/Tisch.ts`      |
-| API-Pfade      | `/service/favorit-hinzufuegen`, `/service/favorit-entfernen`                       | `api/service.go`                  |
-| UI-Label       | „Meine Tische" (Dashboard-Überschrift), Stern-Toggle (★ / ☆) im Alle-Tische-Drawer |                                   |
-
-## Authentifizierung (Generic Sub-Domain)
-
-> **Grundregel:** Auth ist eine Generic Sub-Domain — der Code verwendet bewusst englische Bezeichnungen, konform mit AGENTS.md Regel 6 („Infrastruktur-Code bleibt englisch"). Benutzer-sichtbare Strings im UI sind deutsch.
-
-### Benutzer
+#### Benutzer
 
 Person mit Zugang zum System, identifiziert durch einen eindeutigen Benutzernamen.
 
-| Schicht    | Repräsentation                                                                                                  | Datei                          |
-| ---------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Go-Struct  | `User` (Felder: `ID`, `Name`, `Username`, `Role`, `Status`, `PasswordHash`, `OnetimePasswordHash`, `CreatedAt`) | `domain/user/user.go`          |
-| DB-Tabelle | `users`                                                                                                         | `migrations/01_initial.up.sql` |
-| API-Pfade  | `/create-user`, `/update-user`, `/activate-user`, `/deactivate-user`, `/reset-password`, `/get-all-users`       | `api/admin.go`                 |
-| UI-Label   | „Benutzer verwalten", „Benutzer"                                                                                | `src/admin/users/`             |
+| Go-Struct | TS-Typ | DB-Tabelle | API-Pfade (Admin)                                                                                         |
+| --------- | ------ | ---------- | --------------------------------------------------------------------------------------------------------- |
+| `User`    | `User` | `users`    | `/create-user`, `/update-user`, `/activate-user`, `/deactivate-user`, `/reset-password`, `/get-all-users` |
 
-> **Hinweis:** Code verwendet bewusst `User` (englisch), da Auth eine Generic Sub-Domain ist. Im UI wird korrekt „Benutzer" angezeigt.
-
-### Rolle
+#### Rolle
 
 Berechtigungsstufe eines Benutzers. Bestimmt, welche Aktionen im System verfügbar sind.
 
-| Rolle          | Code-Wert        | Berechtigungen                                        |
-| -------------- | ---------------- | ----------------------------------------------------- |
-| Admin          | `admin`          | Alles: Produkte, Tische, Benutzer verwalten + Service |
-| Serviceleitung | `serviceleitung` | Service-Funktionen + Stornierung                      |
-| Servicekraft   | `service`        | Bestellen, Ausgabe bestätigen, Kassieren              |
+| Rolle          | Code-Wert        | Berechtigungen                                 |
+| -------------- | ---------------- | ---------------------------------------------- |
+| Admin          | `admin`          | Produkte, Tische, Benutzer verwalten + Service |
+| Serviceleitung | `serviceleitung` | Service-Funktionen + Stornierung + Auszahlung  |
+| Servicekraft   | `service`        | Bestellen, Ausgabe bestätigen, Kassieren       |
 
-| Schicht  | Repräsentation                                              | Datei                          |
-| -------- | ----------------------------------------------------------- | ------------------------------ |
-| Go-Typ   | `Role` mit `AdminRole`, `ServiceleitungRole`, `ServiceRole` | `domain/user/user.go`          |
-| DB-Enum  | `UserRole` (`'admin'`, `'serviceleitung'`, `'service'`)     | `migrations/01_initial.up.sql` |
-| JWT-Feld | `role`                                                      | `src/lib/Auth.ts`              |
+Go-Typ: `Role` mit `AdminRole`, `ServiceleitungRole`, `ServiceRole` · DB-Enum: `UserRole` (`'admin'`, `'serviceleitung'`, `'service'`)
 
-> **Hinweis:** Englisch im Code ist korrekt (Generic Sub-Domain).
+#### Einmalpasswort
 
-### Einmalpasswort
+Vom Admin generiertes 6-stelliges numerisches Passwort für die Erstanmeldung oder das Zurücksetzen eines Passworts.
 
-Vom Admin generiertes 6-stelliges numerisches Passwort für die Erstanmeldung oder das Zurücksetzen des Passworts eines Benutzers.
+Go-Feld: `OnetimePasswordHash` · DB-Spalte: `onetime_password_hash` · TS-Schema: `OnetimePasswordSchema`
 
-| Schicht         | Repräsentation          | Datei                          |
-| --------------- | ----------------------- | ------------------------------ |
-| Go-Feld         | `OnetimePasswordHash`   | `domain/user/user.go`          |
-| DB-Spalte       | `onetime_password_hash` | `migrations/01_initial.up.sql` |
-| Frontend-Schema | `OnetimePasswordSchema` | `src/lib/AuthBackend.ts`       |
-| UI-Label        | „Einmalpasswort"        | `src/admin/users/`             |
+#### Token
 
-> **Hinweis:** Englisch im Code ist korrekt (Infrastruktur). Im UI wird „Einmalpasswort" angezeigt.
+JWT (JSON Web Token) mit Benutzer-ID und Rolle. 12 Stunden gültig. Reiner Infrastruktur-Begriff — Englisch im Code ist korrekt.
 
-### Token
+---
 
-JWT (JSON Web Token) mit Benutzer-ID und Rolle, 12 Stunden gültig. Dient der Authentifizierung bei API-Aufrufen.
+### Kassenbetrieb (Core Domain)
 
-Reiner Infrastruktur-Begriff — Englisch im Code ist korrekt.
+#### Tisch
 
-## Übergreifende Prinzipien
+Zentrales Aggregat im Kassenbetrieb. Trägt einen Event Stream, aus dem sich der aktuelle Zustand (Saldo, offene Positionen) berechnet. Im Festzeltbetrieb entspricht ein Tisch einer Gästegruppe, die über die gesamte Veranstaltung offen bleiben kann.
 
-### Event-Sourcing
+| Go-Struct | TS-Typ  | DB-Tabelle | API-Pfade (Admin)                                                                           | API-Pfade (Service)                                                                                                            |
+| --------- | ------- | ---------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `Tisch`   | `Tisch` | `tables`   | `/create-tisch`, `/update-tisch`, `/activate-tisch`, `/deactivate-tisch`, `/get-all-tische` | `/get-tisch`, `/get-aktive-tische`, `/get-tisch-historie`, `/get-tisch-saldo`, `/get-tisch-unbezahlt`, `/get-tisch-ausstehend` |
 
-Persistenzmuster für den Kassenbetrieb: Zustand wird nicht direkt gespeichert, sondern aus unveränderlichen Events berechnet. Jeder Tisch hat einen eigenen Event Stream. Der aktuelle Zustand (Saldo, offene Positionen) ergibt sich aus dem Replay aller Events.
+> DB-Tabelle (`tables`) und Frontend-Route (`/service/tables`) verwenden Englisch — korrekt per Infrastruktur-Konvention.
 
-### Fat Event
+#### Bestellung
 
-Event, das alle relevanten Daten zum Zeitpunkt der Aktion enthält — inklusive Produktname und Preis. Damit ist das Event unabhängig von späteren Stammdaten-Änderungen auswertbar.
+Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt. Erzeugt ein `BestellungAufgenommen`-Event.
 
-### Anti-Corruption Layer (ACL)
+| Go-Struct    | TS-Typ       | Event-Typ                         | API-Pfad                        |
+| ------------ | ------------ | --------------------------------- | ------------------------------- |
+| `Bestellung` | `Bestellung` | `tisch.bestellung-aufgenommen:v1` | `/service/bestellung-aufnehmen` |
 
-Schutzmechanismus zwischen Bounded Contexts: Der Kassenbetrieb friert Stammdaten (Produktname, Preis) in Events ein und ist damit unabhängig von nachträglichen Änderungen an Produkten oder Varianten.
+#### Position
 
-### Append-only
+Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einzelpreis. Alle Felder werden als Fat Event eingefroren.
 
-Grundprinzip des Event Streams: Events werden nur hinzugefügt, nie geändert oder gelöscht. Dies gilt ohne Ausnahme — auch nicht für Korrekturen. Falsche Aktionen werden durch kompensierende Events (z. B. Stornierung) aufgehoben.
+| Go-Struct  | TS-Typ     | JSON-Keys (Schlüsselfelder)                                                                    |
+| ---------- | ---------- | ---------------------------------------------------------------------------------------------- |
+| `Position` | `Position` | `positionId`, `varianteId`, `produktName`, `varianteName`, `kategorie`, `einzelpreis`, `menge` |
 
-### Snapshot
+#### Ausgabe
 
-Vorberechneter Zwischenstand des Tisch-Zustands. Rein technische Performance-Optimierung ohne fachliche Bedeutung — beim Replay wird nur ab dem letzten Snapshot gelesen statt ab dem ersten Event.
+Bestätigung, dass bestellte Positionen dem Gast übergeben wurden. Erzeugt ein `AusgabeBestaetigt`-Event.
 
-> **Hinweis:** In der Implementierung werden Snapshots als eigener Event-Typ (`tisch.snapshot:v1`) in der `events`-Tabelle gespeichert — eine bewusste Vereinfachung der Persistenzschicht.
+| Go-Struct | TS-Typ    | Event-Typ                     | API-Pfad                       |
+| --------- | --------- | ----------------------------- | ------------------------------ |
+| `Ausgabe` | `Ausgabe` | `tisch.ausgabe-bestaetigt:v1` | `/service/ausgabe-bestaetigen` |
 
-### BYOD
+#### Zahlung
 
-Bring Your Own Device — Servicekräfte nutzen ihre eigenen Smartphones. Das System ist Mobile-first konzipiert und läuft vollständig im Browser, ohne App-Installation.
+Kassierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen. Erzeugt ein `ZahlungKassiert`-Event.
+
+| Go-Struct | TS-Typ    | Event-Typ                   | API-Pfad                     |
+| --------- | --------- | --------------------------- | ---------------------------- |
+| `Zahlung` | `Zahlung` | `tisch.zahlung-kassiert:v1` | `/service/zahlung-kassieren` |
+
+#### Stornierung
+
+Nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. `Kommentar` ist Pflichtfeld (min. 3, max. 100 Zeichen). Erzeugt ein `StornierungErteilt`-Event.
+
+| Go-Struct     | TS-Typ        | Event-Typ                      | API-Pfad                               |
+| ------------- | ------------- | ------------------------------ | -------------------------------------- |
+| `Stornierung` | `Stornierung` | `tisch.stornierung-erteilt:v1` | `/serviceleitung/stornierung-erteilen` |
+
+#### Auszahlung
+
+Auszahlung an den Gast, um einen negativen Saldo auszugleichen — entsteht, wenn bereits kassierte Positionen nachträglich storniert wurden (K-05). Kein Positionsbezug; freier Betrag (≥ 1 Cent). `Kommentar` ist Pflichtfeld (min. 3, max. 100 Zeichen). Erzeugt ein `AuszahlungGeleistet`-Event.
+
+| Go-Struct    | Event-Typ                       | API-Pfad                             |
+| ------------ | ------------------------------- | ------------------------------------ |
+| `Auszahlung` | `tisch.auszahlung-geleistet:v1` | `/serviceleitung/auszahlung-leisten` |
+
+#### Saldo
+
+Offener Betrag eines Tisches: Bestellungen − Zahlungen − Stornierungen + Auszahlungen. Immer in Cent.
+
+Go-Snapshot-Feld: `SaldoCents` · Go-Projektion: `ApplyEvent()` → `TischState` · API: `/service/get-tisch-state`
+
+#### Splitrechnung / Teilzahlung
+
+Kassiervorgang, bei dem der Gesamtsaldo eines Tisches auf mehrere Gäste aufgeteilt wird. In jotti über positionsbezogene Zahlungen abgebildet: Eine `Zahlung` kann sich auf eine Teilmenge der offenen Positionen beziehen.
+
+#### Historie
+
+Vollständiger, unveränderlicher Event Stream eines Tisches in chronologischer Reihenfolge.
+
+**Synonym: Kassenjournal.** „Kassenjournal" ist der formale Fachbegriff; „Historie" ist der im Code und UI etablierte Begriff. Beide bezeichnen denselben Sachverhalt.
+
+Go-Funktion: `GetHistoryFromEvents()` · Go-Query: `GetTischHistorie()` · API: `/service/get-tisch-historie`
+
+#### Kommentar
+
+Freitextnotiz zu Tischoperationen. Pflichtfeld bei Stornierung und Auszahlung (min. 3 Zeichen), optional bei Bestellung, Ausgabe und Zahlung. Max. 100 Zeichen.
+
+Go-Feld: `Kommentar` · JSON-Key: `"kommentar"` · TS-Feld (Ist): `comment` ⚠️ Frontend-Rename ausstehend
+
+#### Menge
+
+Anzahl einer Produktvariante innerhalb einer Position.
+
+Go-Feld: `Menge` · JSON-Key: `"menge"` · TS-Feld (Ist): `quantity` ⚠️ Frontend-Rename ausstehend
+
+#### EigeneUebersicht
+
+Kompakte KPI-Übersicht einer Servicekraft: Anzahl und Summe eigener Bestellungen sowie kassierter Zahlungen. Read Model, berechnet aus dem Event Store gefiltert auf `user_id`.
+
+| Go-Struct          | TS-Typ             | JSON-Keys                                                                      | API-Pfad                         |
+| ------------------ | ------------------ | ------------------------------------------------------------------------------ | -------------------------------- |
+| `EigeneUebersicht` | `EigeneUebersicht` | `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` | `/service/get-eigene-uebersicht` |
+
+---
+
+### Stammdaten (Supporting Sub-Domain)
+
+#### Produkt
+
+Artikel im Produktkatalog. Gehört zu genau einer Kategorie und enthält eine oder mehrere Varianten mit je eigenem Preis.
+
+| Go-Struct | TS-Typ    | DB-Tabelle | API-Pfade                                                 |
+| --------- | --------- | ---------- | --------------------------------------------------------- |
+| `Produkt` | `Produkt` | `produkte` | `/create-produkt`, `/update-produkt`, `/get-all-produkte` |
+
+> ⚠️ Frontend-Typ-Rename (`Product` → `Produkt`) ausstehend.
+
+#### Variante
+
+Konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. Produkt „Cola" → Varianten „0,3 l" / „0,5 l").
+
+| Go-Struct  | TS-Typ     | DB-Tabelle          | API-Pfade                                                                            |
+| ---------- | ---------- | ------------------- | ------------------------------------------------------------------------------------ |
+| `Variante` | `Variante` | `produkt_varianten` | `/create-variante`, `/update-variante`, `/activate-variante`, `/deactivate-variante` |
+
+> ⚠️ Frontend-Typ-Rename (`Variant` → `Variante`) ausstehend.
+
+#### Kategorie
+
+Gruppierung von Produkten. Aktuell drei feste Kategorien.
+
+| Go-Typ      | DB-Enum (`ProduktKategorie`)           | Go-Konstanten                                               |
+| ----------- | -------------------------------------- | ----------------------------------------------------------- |
+| `Kategorie` | `'essen'`, `'getraenk'`, `'sonstiges'` | `EssenKategorie`, `GetraenkKategorie`, `SonstigesKategorie` |
+
+> ⚠️ Frontend-Typ-Rename (`Category` → `Kategorie`) ausstehend.
+
+#### Preis
+
+Geldbeträge werden ausnahmslos als ganzzahlige Cent-Werte gespeichert — niemals als Fließkommazahlen. 3,50 € = 350 Cent.
+
+**Konvention:** Alle Preis-Felder tragen das Suffix `*Cents` — z. B. `PreisCents`, `GesamtPreisCents`, `SaldoCents`, `GesamtZahlungCents`, `GesamtStornierungCents`.
+
+> ⚠️ Frontend-Feld-Rename (`PriceCents` → `PreisCents`) ausstehend.
+
+#### Soft-Delete
+
+Logisches Löschen: Datensätze werden nicht physisch entfernt, sondern durch den Status `deleted` markiert. Ermöglicht Referenzintegrität und historische Auswertung.
+
+DB-Enum: `EntityStatus` (`'active'`, `'inactive'`, `'deleted'`) · Go-Konstanten: `ActiveStatus`, `InactiveStatus` (in `domain/table`, `domain/product`, `domain/user`)
+
+#### Favorit
+
+Benutzerspezifische Markierung einer Servicekraft für einen Tisch ("Meine Tische"). Kein Aggregat, keine Events — einfache CRUD-Relation.
+
+| Go-Package                 | DB-Tabelle        | API-Pfade                                                    |
+| -------------------------- | ----------------- | ------------------------------------------------------------ |
+| `repository/favorit_repo/` | `tisch_favoriten` | `/service/favorit-hinzufuegen`, `/service/favorit-entfernen` |
+
+TS-Repräsentation: `istFavorit: boolean` in `AktiverTischMitFavorit` (kein eigener Typ).
+
+---
+
+### Gastronomie & Betrieb
+
+Operative Fachbegriffe aus dem Gastronomie- und Festzeltbetrieb, die für Konfiguration, Buchführung und Compliance in jotti relevant sind.
+
+- **Inhaus / Außerhaus:** Gesetzlich vorgeschriebene Unterscheidung, ob Speisen vor Ort verzehrt werden (voller MwSt.-Satz, 19 %) oder mitgenommen werden (ermäßigter Satz, 7 %). In jotti über den `Steuersatz` pro Produkt konfiguriert.
+
+- **Trinkgeld:** Zuzahlung des Gastes. Buchhalterisch relevant: Trinkgeld an den Verein ist voll steuerpflichtig; Trinkgeld direkt an die Servicekraft ist in der Regel steuerfrei. jotti unterscheidet dies aktuell nicht — Hinweis für Betreiber in `docs/compliance.md`.
+
+- **BYOD (Bring Your Own Device):** Servicekräfte nutzen ihre eigenen Smartphones. Das System ist Mobile-first konzipiert und läuft vollständig im Browser — keine App-Installation nötig.
+
+- **Geldkatze / Kellnerportemonnaie:** Physische Geldtasche, die Servicekräfte im mobilen Festzeltbetrieb bei sich tragen, um direkt am Tisch kassieren zu können. Kein Code-Bezug — betriebliche Infrastruktur des Betreibers.
+
+- **Belegausgabepflicht (Bonpflicht):** Gesetzliche Pflicht nach § 146a Abs. 2 AO, bei jedem abgeschlossenen Kassiervorgang einen Beleg auszustellen. In jotti: Bondruck via ESC/POS (Phase 1) + TSE-Signaturfelder (Phase 2). Siehe → **Kassenbeleg**.
+
+- **eBeleg:** Digitaler Kassenbon (z. B. als PDF über QR-Code) als rechtskonformer, papierloser Ersatz für den Ausdruck. Phase-3-Feature in jotti — siehe `docs/roadmap.md`.
+
+- **Kassensturzfähigkeit:** Anforderung, dass der berechnete Soll-Bestand an Bargeld jederzeit mit dem physisch vorhandenen Ist-Bestand übereinstimmt. Voraussetzung für GoBD-Konformität.
+
+- **DifferenzSollIst:** Geschäftsvorfalltyp (`GV_TYP` im DSFinV-K), mit dem Fehlbeträge oder Überschüsse beim Kassensturz zwingend ausgebucht werden müssen.
+
+- **Geldtransit / Privatentnahme:** Geschäftsvorfalltypen für Barentnahmen aus der Kasse (z. B. Bankeinzahlung), die gebucht werden müssen, um die Kassensturzfähigkeit aufrechtzuerhalten.
+
+---
+
+### Fiskalkonformität (Compliance Sub-Domain)
+
+Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und KassenSichV. Diese Sub-Domain wird phasenweise implementiert — siehe `docs/roadmap.md`.
+
+> **Sprachkonvention:** Fiskal-Fachbegriffe folgen der deutschen Gesetzessprache und DSFinV-K-Spezifikation. Technische Interface-Namen bleiben englisch (Go-Konvention).
+
+#### Gesetzliche Grundlagen
+
+- **AO (Abgabenordnung):** Zentrales deutsches Steuergesetz. § 146a AO regelt die Pflichten (TSE, Belegausgabe, Kassenmeldung) für alle Betreiber elektronischer Aufzeichnungssysteme — und damit für jeden jotti-Betreiber.
+
+- **KassenSichV (Kassensicherungsverordnung):** Auf der AO basierende Verordnung, die technische Detailanforderungen an manipulationssichere Kassen, TSE und Belege vorschreibt.
+
+- **GoBD:** „Grundsätze zur ordnungsmäßigen Führung und Aufbewahrung von Büchern, Aufzeichnungen und Unterlagen in elektronischer Form" — Bundesfinanzministerium-Schreiben. Steuerrelevante Daten müssen 10 Jahre lang lückenlos und unveränderbar gespeichert werden. jottis Event-Sourcing-Architektur (Append-only) erfüllt diese Unveränderbarkeitsanforderung strukturell.
+
+- **BSI (Bundesamt für Sicherheit in der Informationstechnik):** Deutsche Bundesbehörde, die technische Richtlinien (TR-03153) und Schutzprofile für die TSE-Zertifizierung definiert.
+
+#### TSE & Kryptografie
+
+- **TSE (Technische Sicherheitseinrichtung):** Zwingend vorgeschriebenes, vom BSI zertifiziertes Sicherheitsmodul, das jeden Kassiervorgang kryptografisch signiert. In jotti über ein Adapter-Pattern eingebunden (`TSEClient`-Interface, BYOT-Modell).
+
+- **Cloud-TSE / Hardware-TSE:** Zwei Bereitstellungsformen: Eine Hardware-TSE ist ein physisches Speichermedium (USB/SD) an der Kasse; bei der Cloud-TSE werden Transaktionen über eine API in einem zertifizierten Rechenzentrum signiert. jotti unterstützt Cloud-TSE (z. B. fiskaly) über das BYOT-Modell.
+
+- **SMAERS (Security Module Application for Electronic Record Keeping System):** Software-Komponente der TSE, die Kassendaten aufbereitet, den Signatur-Input zusammenstellt und mit dem kryptografischen Provider kommuniziert.
+
+- **CSP (Cryptographic Service Provider):** Hardware- oder Cloud-Einheit innerhalb der TSE, die die eigentliche kryptografische Signatur vornimmt.
+
+- **Transaktionsnummer (TSE_TANR):** Eindeutige, fortlaufende Nummer der TSE für jeden Kassiervorgang. Dient der Lückenerkennung.
+
+- **Signaturzähler (TSE_TA_SIGZ):** Stetig ansteigender Zähler, der bei jedem Signaturvorgang hochgezählt wird — beweist die lückenlose kryptografische Kette. Go-Typ: `uint64` · JSON-Key: `signature_counter` · Pflichtfeld auf dem Kassenbeleg.
+
+- **Prüfwert / Signatur:** Kryptografischer Hash-Wert (z. B. ECDSA-SHA256), der den Vorgang absiegelt und auf dem Kassenbeleg abgedruckt werden muss.
+
+#### Kasse & Identifikation
+
+| Begriff                     | Go-Typ                | DB-Feld / -Tabelle                      | JSON-Key    | Bedeutung                                                                                                                                                                         |
+| --------------------------- | --------------------- | --------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **KassenID / Seriennummer** | `KassenID` (`string`) | `system_config.value` (key=`kassen_id`) | `kassen_id` | Eindeutige UUID-v4 der jotti-Instanz. Beim ersten Containerstart generiert. Für ELSTER-Meldung und TSE-Protokoll.                                                                 |
+| **TSEClient**               | Interface (Go)        | —                                       | —           | Go-Interface mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. Anbieter-spezifische Implementierungen (z. B. `FiskalyTSEClient`) erfüllen das Interface. |
+
+#### Transaktions-Lifecycle
+
+Die TSE-Kommunikation folgt einem strikten Lifecycle. Jeder Kassiervorgang durchläuft diese Schritte:
+
+- **StartTransaction:** API-Aufruf an die TSE bei Beginn eines neuen Vorgangs. Eröffnet die Transaktion und gibt die `TSE_TANR` zurück.
+- **UpdateTransaction:** Optionaler API-Aufruf, um einer offenen Transaktion neue Daten hinzuzufügen. Nur bei bestimmten Vorgangsarten erlaubt.
+- **FinishTransaction:** Zwingender Abschluss-Aufruf, der die finale Signatur (Prüfwert) der TSE generiert.
+- **processType:** Strikt normierter String, der der TSE die Art des Vorgangs mitteilt (z. B. `Kassenbeleg-V1`, `Bestellung-V1`, `SonstigerVorgang-V1`).
+- **processData:** Payload-String im BSI-Format (UTF-8, Punkt als Dezimaltrenner) mit Beträgen, Mengen und Steuersätzen.
+
+#### Abrechnungsstruktur
+
+| Begriff              | Go-Struct / Go-Typ | DB-Feld / -Tabelle | JSON-Key           | Bedeutung                                                                                                                                                                                  |
+| -------------------- | ------------------ | ------------------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **ABRECHNUNGSKREIS** | `Abrechnungskreis` | `abrechnungskreis` | `abrechnungskreis` | Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typisch: einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld. Verbindet logisch zusammengehörige Tisch-Vorgänge. |
+| **Tagesabschluss**   | —                  | —                  | —                  | Administrativer Abschluss eines ABRECHNUNGSKREIS. Erzeugt DSFinV-K-exportierbaren Datensatz.                                                                                               |
+| **Z-Bon**            | —                  | —                  | —                  | Tagesabschlussbon: aggregiert alle Transaktionen nach Steuersätzen und Zahlarten (`businesscases.csv`). Setzt den internen Tagesspeicher zurück.                                           |
+| **X-Bon**            | —                  | —                  | —                  | Zwischenbericht: informativer Abruf des aktuellen Kassenstands ohne Rücksetzen. Kein Tagesabschluss im Rechtssinne.                                                                        |
+| **Bonkopf / Bonpos** | —                  | —                  | —                  | DSFinV-K-Aufteilung: Bonkopf enthält Metadaten und Gesamtsummen des Belegs; Bonpos listet die einzelnen Artikelzeilen (`lines.csv`).                                                       |
+
+#### Steuern
+
+| Begriff          | Go-Typ              | DB-Feld      | JSON-Key       | Bedeutung                                                                                                                                          |
+| ---------------- | ------------------- | ------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Steuersatz**   | `Steuersatz` (Enum) | `steuersatz` | `steuersatz`   | Steuerklasse eines Produkts. Enum-Werte: `standard` (19 %), `ermaessigt` (7 %), `befreit` (0 %). Wird als Fat Event in die Bestellung eingefroren. |
+| **Steuerbetrag** | `int` (Cent)        | —            | `steuerbetrag` | Berechneter Steuerbetrag in Cent für eine Position oder einen Vorgang. Immer in Cent, niemals als Float.                                           |
+| **Nettobetrag**  | `int` (Cent)        | —            | `nettobetrag`  | Betrag vor Steuerabzug. Immer in Cent.                                                                                                             |
+
+#### Export & Meldung
+
+| Begriff                    | Bedeutung                                                                                                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DSFinV-K**               | „Digitale Schnittstelle der Finanzverwaltung für Kassensysteme" — standardisiertes CSV-ZIP-Exportformat (Version 2.4) für Betriebsprüfungen durch die Finanzverwaltung. |
+| **TAR-Archiv**             | Gesetzlich vorgeschriebenes Dateiformat für den Export der rohen, kryptografisch gesicherten TSE-Log-Nachrichten.                                                       |
+| **Kassenmeldung / ELSTER** | Pflicht nach § 146a Abs. 4 AO: Jede jotti-Instanz muss innerhalb eines Monats nach Inbetriebnahme über das ELSTER-Portal gemeldet werden.                               |
+| **ERiC**                   | „ELSTER Rich Client" — Programmierschnittstelle für die automatisierte ELSTER-Kommunikation. Phase-3-Feature.                                                           |
+| **Kassenbeleg**            | Pflichtbeleg nach § 146a Abs. 2 AO nach jedem Kassiervorgang. In jotti: Bondruck via ESC/POS + (Phase 2) TSE-Signaturfelder.                                            |
+| **BYOT**                   | „Bring Your Own TSE" — Betreiber schließen selbst einen Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly) und injizieren API-Schlüssel via `.env`.                   |
+
+---
+
+### Architekturprinzipien
+
+- **Event-Sourcing:** Persistenzmuster für den Kassenbetrieb: Zustand wird nicht direkt gespeichert, sondern aus unveränderlichen Events berechnet. Jeder Tisch hat einen eigenen Event Stream.
+
+- **Fat Event:** Event, das alle relevanten Daten zum Zeitpunkt der Aktion enthält — inklusive Produktname und Preis. Damit ist das Event unabhängig von späteren Stammdaten-Änderungen auswertbar.
+
+- **Anti-Corruption Layer (ACL):** Schutzmechanismus zwischen Bounded Contexts: Der Kassenbetrieb friert Stammdaten (Produktname, Preis) in Events ein und ist damit unabhängig von nachträglichen Änderungen an Produkten oder Varianten.
+
+- **Append-only:** Grundprinzip des Event Streams: Events werden nur hinzugefügt, nie geändert oder gelöscht. Falsche Aktionen werden durch kompensierende Events (z. B. Stornierung) aufgehoben. Entspricht dem GoBD-Radierverbot für steuerrelevante Daten.
+
+- **Snapshot:** Vorberechneter Zwischenstand des Tisch-Zustands als Performance-Optimierung. Beim Replay wird nur ab dem letzten Snapshot gelesen. Gespeichert als eigener Event-Typ (`tisch.snapshot:v1`) in der `events`-Tabelle.
+
+---
 
 ## Geplant (nicht implementiert)
 
@@ -407,43 +421,27 @@ Die folgenden Begriffe sind in der Ubiquitous Language definiert, aber noch nich
 
 ---
 
-## Fiskalkonformität (Compliance Sub-Domain)
+## Erweitertes Fach-Glossar
 
-Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und KassenSichV. Diese Sub-Domain wird phasenweise implementiert — siehe `docs/roadmap.md`.
+Begriffe aus dem POS/Gastronomie-Umfeld, die **nicht im Scope von jotti** sind (bewusste Abgrenzung — siehe `docs/anforderungen.md` §6). Für die Einarbeitung neuer Teammitglieder in den Fachkontext.
 
-> **Sprachkonvention:** Fiskal-Fachbegriffe folgen der deutschen Gesetzessprache und DSFinV-K-Spezifikation. Technische Interface-Namen bleiben englisch (Go-Konvention).
+**Vereinswesen:**
 
-### Kasse und Identifikation
+- **Zuwendungsbestätigung (Spendenbescheinigung):** Amtliches Dokument, das nur gemeinnützige Vereine ausstellen dürfen, damit Spender ihre Zahlungen ohne Gegenleistung steuerlich absetzen können.
+- **Sponsoring:** Leistungsaustausch (kein Spendencharakter): Unternehmen zahlt Geld oder Sachmittel, Verein erbringt als Gegenleistung Werbung.
+- **Aufwandsspende:** Helfer verzichtet auf Kostenerstattung (z. B. Fahrtkosten) und überlässt den Betrag dem Verein als Spende.
+- **Rückspende:** Verzicht auf vertraglich vereinbartes Honorar (z. B. Übungsleiterpauschale) zugunsten des Vereins; der Helfer erhält dafür eine Spendenbescheinigung.
 
-| Begriff                                         | Go-Struct / Go-Typ    | DB-Tabelle / -Feld                      | JSON-Key            | Bedeutung                                                                                                                                                                    |
-| ----------------------------------------------- | --------------------- | --------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Seriennummer** / **KassenID**                 | `KassenID` (`string`) | `system_config.value` (key=`kassen_id`) | `kassen_id`         | Eindeutige UUID-v4 der jotti-Instanz. Beim ersten Containerstart generiert, dauerhaft gespeichert. Wird für ELSTER-Meldung und TSE-Protokoll benötigt.                       |
-| **TSE** / **Technische Sicherheitseinrichtung** | Interface `TSEClient` | —                                       | —                   | Zertifiziertes Sicherheitsmodul nach BSI TR-03153. Signiert und protokolliert jeden Kassiervorgang kryptografisch. In jotti über ein Adapter-Pattern eingebunden (BYOT).     |
-| **TSEClient**                                   | Interface (Go)        | —                                       | —                   | Go-Interface mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. Wird von anbieter-spezifischen Implementierungen (z. B. `FiskalyTSEClient`) erfüllt. |
-| **Signaturzähler**                              | `uint64`              | —                                       | `signature_counter` | Fortlaufender Zähler der TSE für jede signierte Transaktion. Pflichtfeld auf dem Kassenbeleg.                                                                                |
+**Warenwirtschaft:**
 
-### Abrechnungsstruktur
+- **Warenwirtschaft (WaWi):** An die Kasse angebundenes System, das Lagerbestände führt und bei jedem Verkauf automatisch Artikel abbucht.
+- **Inventur:** Physische Zählung von Lagerartikeln zum Abgleich von System-Soll-Bestand und realem Ist-Bestand.
+- **Warengruppe:** Logische Artikelgruppierung für zentrale Steuersatzverwaltung und betriebswirtschaftliche Auswertung.
+- **Pfand / Pfandrückzahlung:** Gesondert gebuchte Nebenleistung für Mehrwegbehälter (Aufschlag beim Verkauf, Erstattung als negativer Betrag bei Rückgabe).
+- **Einzweck- / Mehrzweckgutschein:** Umsatzsteuerlich wichtige Unterscheidung: Einzweckgutscheine werden beim Verkauf versteuert, Mehrzweckgutscheine erst bei Einlösung.
 
-| Begriff              | Go-Struct            | DB-Tabelle         | JSON-Key           | Bedeutung                                                                                                                               |
-| -------------------- | -------------------- | ------------------ | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **ABRECHNUNGSKREIS** | `Abrechnungskreis`   | `abrechnungskreis` | `abrechnungskreis` | Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typisch: einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld. |
-| **Tagesabschluss**   | (s. Abrechnung oben) | —                  | —                  | Administrativer Abschluss eines ABRECHNUNGSKREIS. Erzeugt DSFinV-K-exportierbaren Datensatz.                                            |
+**Hardware:**
 
-### Steuern
-
-| Begriff          | Go-Typ              | DB-Feld      | JSON-Key       | Bedeutung                                                                                                                                          |
-| ---------------- | ------------------- | ------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Steuersatz**   | `Steuersatz` (Enum) | `steuersatz` | `steuersatz`   | Steuerklasse eines Produkts. Enum-Werte: `standard` (19 %), `ermaessigt` (7 %), `befreit` (0 %). Wird als Fat Event in die Bestellung eingefroren. |
-| **Steuerbetrag** | `int` (Cent)        | —            | `steuerbetrag` | Berechneter Steuerbetrag in Cent für eine Position oder einen Vorgang. Immer in Cent, niemals als Float.                                           |
-| **Nettobetrag**  | `int` (Cent)        | —            | `nettobetrag`  | Betrag vor Steuerabzug. Immer in Cent.                                                                                                             |
-
-### Export und Meldung
-
-| Begriff         | Bedeutung                                                                                                                                                                                                                                                                                             |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **DSFinV-K**    | „Digitale Schnittstelle der Finanzverwaltung für Kassensysteme" — standardisiertes CSV-ZIP-Exportformat (Version 2.4) für Betriebsprüfungen durch die Finanzverwaltung.                                                                                                                               |
-| **ELSTER**      | Elektronisches Steuerportal der deutschen Finanzverwaltung. Jede jotti-Instanz muss innerhalb eines Monats nach Inbetriebnahme über ELSTER gemeldet werden (§ 146a Abs. 4 AO).                                                                                                                        |
-| **ERiC**        | „ELSTER Rich Client" — Programmierschnittstelle (API) für die automatisierte ELSTER-Kommunikation. Phase-3-Feature.                                                                                                                                                                                   |
-| **Kassenbeleg** | Pflichtbeleg, der nach jedem Kassiervorgang ausgestellt werden muss (§ 146a Abs. 2 AO). In jotti: Bondruck via ESC/POS + (Phase 2) TSE-Signaturfelder.                                                                                                                                                |
-| **BYOT**        | „Bring Your Own TSE" — Betreiber schließen selbst einen Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly) ab und injizieren API-Schlüssel via `.env`-Datei.                                                                                                                                        |
-| **GoBD**        | „Grundsätze zur ordnungsmäßigen Führung und Aufbewahrung von Büchern, Aufzeichnungen und Unterlagen in elektronischer Form" — Bundesfinanzministerium-Schreiben zu elektronischer Buchführung. Event-Sourcing erfüllt die Unveränderbarkeitsanforderung. Kryptografische Verkettung folgt in Phase 3. |
+- **Kartenterminal (EFT-Terminal):** Gerät für bargeldlose Zahlungen (EC-/Kreditkarte) mit ZVT- oder O.P.I.-Schnittstelle zur Kassensoftware.
+- **Kassenlade (Geldlade):** Physische Geldschublade, die über den Bondrucker elektronisch angesteuert wird und sich bei Bar-Abschlüssen öffnet.
+- **Gangsteuerung:** Softwarefunktion, mit der Servicekräfte der Küche die Reihenfolge der Gänge (Vorspeise → Hauptgang → Dessert) mitteilen.
