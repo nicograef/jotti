@@ -526,6 +526,18 @@ body.nav-open {
   background: linear-gradient(135deg, var(--primary-light) 0%, #e0e7ff 100%);
 }
 
+.bon-visual {
+  margin-top: 3rem;
+  border-radius: calc(var(--radius) * 2);
+  overflow: hidden;
+
+  & img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+}
+
 .compliance-note {
   margin-top: 2rem;
   background: var(--card);
