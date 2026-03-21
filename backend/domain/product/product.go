@@ -30,15 +30,15 @@ type Produkt struct {
 }
 
 // IDSchema defines the schema for a product ID.
-var IDSchema = z.Int().GTE(1, z.Message("Invalid product ID"))
+var IDSchema = z.Int().GTE(1, z.Message("Ungültige Produkt-ID"))
 
 // NameSchema defines the schema for a product's name.
-var NameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(100, z.Message("Name too long"))
+var NameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(100, z.Message("Name zu lang"))
 
 // KategorieSchema defines the schema for a product category.
 var KategorieSchema = z.StringLike[Kategorie]().OneOf(
 	[]Kategorie{EssenKategorie, GetraenkKategorie, SonstigesKategorie},
-	z.Message("Invalid category"),
+	z.Message("Ungültige Kategorie"),
 )
 
 var ProduktSchema = z.Struct(z.Shape{

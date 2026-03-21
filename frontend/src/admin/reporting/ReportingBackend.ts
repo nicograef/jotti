@@ -11,7 +11,7 @@ export class ReportingBackend {
 
   public async getReporting(von: string, bis: string): Promise<Reporting> {
     return this.backend.post(
-      'admin/get-reporting',
+      'admin/get-abrechnung',
       { von, bis },
       ReportingSchema,
     )

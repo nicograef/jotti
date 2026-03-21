@@ -29,12 +29,12 @@ type Variante struct {
 }
 
 // PreisCentsSchema defines the schema for a product variant's net price in cents.
-var PreisCentsSchema = z.Int().GTE(0, z.Message("Net price must be non-negative")).LTE(99999, z.Message("Net price too high"))
+var PreisCentsSchema = z.Int().GTE(0, z.Message("Preis darf nicht negativ sein")).LTE(99999, z.Message("Preis zu hoch"))
 
 // StatusSchema defines the schema for a product variant status.
 var StatusSchema = z.StringLike[Status]().OneOf(
 	[]Status{ActiveStatus, InactiveStatus, DeletedStatus},
-	z.Message("Invalid status"),
+	z.Message("Ungültiger Status"),
 )
 
 var VarianteSchema = z.Struct(z.Shape{

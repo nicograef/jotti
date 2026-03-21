@@ -123,7 +123,7 @@ export function PasswordField<AllFormFields extends FieldValues>({
             <Button
               variant="outline"
               size="icon"
-              aria-label="Show password"
+              aria-label="Passwort anzeigen"
               className="rounded-l-none"
               type="button"
               onClick={() => {
@@ -164,7 +164,7 @@ export function NewPasswordField<AllFormFields extends FieldValues>({
             <Button
               variant="outline"
               size="icon"
-              aria-label="Show password"
+              aria-label="Passwort anzeigen"
               className="rounded-l-none"
               type="button"
               onClick={() => {

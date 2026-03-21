@@ -10,10 +10,10 @@ import (
 )
 
 type zahlungKassiertV1Data struct {
-	ZahlungID          string     `json:"zahlungId"`
-	Positionen         []Position `json:"positionen"`
-	GesamtZahlungCents int        `json:"gesamtZahlungCents"`
-	Kommentar          string     `json:"kommentar"`
+	ZahlungID          string              `json:"zahlungId"`
+	Positionen         []positionEventData `json:"positionen"`
+	GesamtZahlungCents int                 `json:"gesamtZahlungCents"`
+	Kommentar          string              `json:"kommentar"`
 }
 
 var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
@@ -26,7 +26,7 @@ var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
 func NewZahlungKassiertEvent(userID int, userName string, tischID int, positionen []Position, gesamtZahlungCents int, kommentar string) (e.Event, error) {
 	data := zahlungKassiertV1Data{
 		ZahlungID:          uuid.New().String(),
-		Positionen:         positionen,
+		Positionen:         toPositionenEventData(positionen),
 		GesamtZahlungCents: gesamtZahlungCents,
 		Kommentar:          kommentar,
 	}
@@ -64,7 +64,7 @@ func buildZahlungFromEvent(event e.Event) (Zahlung, error) {
 		ID:                 data.ZahlungID,
 		UserID:             event.UserID,
 		TischID:            tischID,
-		Positionen:         data.Positionen,
+		Positionen:         fromPositionenEventData(data.Positionen),
 		GesamtZahlungCents: data.GesamtZahlungCents,
 		Kommentar:          data.Kommentar,
 		KassiertAm:         event.Time,

@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-var PasswordSchema = z.String().Trim().Min(6, z.Message("Password too short")).Max(72, z.Message("Password too long"))
+var PasswordSchema = z.String().Trim().Min(6, z.Message("Passwort zu kurz")).Max(72, z.Message("Passwort zu lang"))
 
 var ErrPasswordTooWeak = errors.New("password too weak")
 

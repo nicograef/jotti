@@ -10,10 +10,10 @@ import (
 )
 
 type bestellungAufgenommenV1Data struct {
-	BestellungID     string     `json:"bestellungId"`
-	Positionen       []Position `json:"positionen"`
-	GesamtPreisCents int        `json:"gesamtPreisCents"`
-	Kommentar        string     `json:"kommentar"`
+	BestellungID     string              `json:"bestellungId"`
+	Positionen       []positionEventData `json:"positionen"`
+	GesamtPreisCents int                 `json:"gesamtPreisCents"`
+	Kommentar        string              `json:"kommentar"`
 }
 
 var bestellungAufgenommenV1DataSchema = z.Struct(z.Shape{
@@ -36,7 +36,7 @@ func NewBestellungAufgenommenEvent(userID int, userName string, tischID int, pos
 
 	data := bestellungAufgenommenV1Data{
 		BestellungID:     uuid.New().String(),
-		Positionen:       positionen,
+		Positionen:       toPositionenEventData(positionen),
 		GesamtPreisCents: gesamtPreisCents,
 		Kommentar:        kommentar,
 	}
@@ -74,7 +74,7 @@ func buildBestellungFromEvent(event e.Event) (Bestellung, error) {
 		ID:               data.BestellungID,
 		UserID:           event.UserID,
 		TischID:          tischID,
-		Positionen:       data.Positionen,
+		Positionen:       fromPositionenEventData(data.Positionen),
 		GesamtPreisCents: data.GesamtPreisCents,
 		Kommentar:        data.Kommentar,
 		AufgenommenAm:    event.Time,

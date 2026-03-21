@@ -9,7 +9,7 @@ export const AusgabeSchema = z.object({
   positionen: PositionSchema.array().min(1),
   kommentar: z.string().max(100),
   ausgegebenAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Invalid date format',
+    message: 'Ungültiges Datumsformat',
   }),
 })
 export type Ausgabe = z.infer<typeof AusgabeSchema>

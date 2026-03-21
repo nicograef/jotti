@@ -10,7 +10,7 @@ export const StornierungSchema = z.object({
   gesamtStornierungCents: z.number().int().min(0),
   kommentar: z.string().min(3).max(100),
   storniertAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Invalid date format',
+    message: 'Ungültiges Datumsformat',
   }),
 })
 export type Stornierung = z.infer<typeof StornierungSchema>

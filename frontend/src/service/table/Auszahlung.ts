@@ -7,7 +7,7 @@ export const AuszahlungSchema = z.object({
   betragCents: z.number().int().min(1),
   kommentar: z.string().min(3).max(100),
   geleistetAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Invalid date format',
+    message: 'Ungültiges Datumsformat',
   }),
 })
 export type Auszahlung = z.infer<typeof AuszahlungSchema>

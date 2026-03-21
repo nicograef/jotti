@@ -24,10 +24,10 @@ type UmsatzTisch struct {
 }
 
 type StornierungPosition struct {
-	ProduktName  string `json:"produktName"`
-	VarianteName string `json:"varianteName"`
-	Menge        int    `json:"menge"`
-	Einzelpreis  int    `json:"einzelpreis"`
+	ProduktName  string
+	VarianteName string
+	Menge        int
+	Einzelpreis  int
 }
 
 type StornierungDetail struct {

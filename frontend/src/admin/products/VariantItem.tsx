@@ -78,7 +78,7 @@ export function VariantItem(props: VariantItemProps) {
               size="icon-sm"
               variant="ghost"
               className="rounded-full cursor-pointer shrink-0"
-              aria-label="Edit Variant"
+              aria-label="Variante bearbeiten"
               onClick={() => {
                 setEditOpen(true)
               }}

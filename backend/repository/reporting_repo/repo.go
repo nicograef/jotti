@@ -19,11 +19,19 @@ func NewRepository(db *sql.DB) Repository {
 	return Repository{q: dbgen.New(db)}
 }
 
+// stornierungPositionJSON is used for deserializing position data from the stornierung event JSONB.
+type stornierungPositionJSON struct {
+	ProduktName  string `json:"produktName"`
+	VarianteName string `json:"varianteName"`
+	Menge        int    `json:"menge"`
+	Einzelpreis  int    `json:"einzelpreis"`
+}
+
 // stornierungEventData represents the JSONB structure of a fat stornierung event.
 type stornierungEventData struct {
-	GesamtStornierungCents int                             `json:"gesamtStornierungCents"`
-	Kommentar              string                          `json:"kommentar"`
-	Positionen             []reporting.StornierungPosition `json:"positionen"`
+	GesamtStornierungCents int                       `json:"gesamtStornierungCents"`
+	Kommentar              string                    `json:"kommentar"`
+	Positionen             []stornierungPositionJSON `json:"positionen"`
 }
 
 func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitraum) (reporting.ReportingData, error) {
@@ -108,7 +116,7 @@ func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitrau
 		if err := json.Unmarshal(row.Data, &data); err != nil {
 			return reporting.ReportingData{}, err
 		}
-		positionen := data.Positionen
+		positionen := toStornierungPositionen(data.Positionen)
 		if positionen == nil {
 			positionen = []reporting.StornierungPosition{}
 		}
@@ -143,6 +151,23 @@ func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitrau
 		},
 		Stornierungen: stornierungen,
 	}, nil
+}
+
+func toStornierungPosition(p stornierungPositionJSON) reporting.StornierungPosition {
+	return reporting.StornierungPosition{
+		ProduktName:  p.ProduktName,
+		VarianteName: p.VarianteName,
+		Menge:        p.Menge,
+		Einzelpreis:  p.Einzelpreis,
+	}
+}
+
+func toStornierungPositionen(positionen []stornierungPositionJSON) []reporting.StornierungPosition {
+	out := make([]reporting.StornierungPosition, len(positionen))
+	for i, p := range positionen {
+		out[i] = toStornierungPosition(p)
+	}
+	return out
 }
 
 func (r Repository) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.EigeneUebersicht, error) {

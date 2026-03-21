@@ -39,7 +39,7 @@ export const BestellungSchema = z.object({
   gesamtPreisCents: z.number().int().min(0),
   kommentar: z.string().max(100),
   aufgenommenAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Invalid date format',
+    message: 'Ungültiges Datumsformat',
   }),
 })
 export type Bestellung = z.infer<typeof BestellungSchema>

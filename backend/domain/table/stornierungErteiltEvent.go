@@ -10,10 +10,10 @@ import (
 )
 
 type stornierungErteiltV1Data struct {
-	StornierungID          string     `json:"stornierungId"`
-	Positionen             []Position `json:"positionen"`
-	GesamtStornierungCents int        `json:"gesamtStornierungCents"`
-	Kommentar              string     `json:"kommentar"`
+	StornierungID          string              `json:"stornierungId"`
+	Positionen             []positionEventData `json:"positionen"`
+	GesamtStornierungCents int                 `json:"gesamtStornierungCents"`
+	Kommentar              string              `json:"kommentar"`
 }
 
 var stornierungErteiltV1DataSchema = z.Struct(z.Shape{
@@ -26,7 +26,7 @@ var stornierungErteiltV1DataSchema = z.Struct(z.Shape{
 func NewStornierungErteiltEvent(userID int, userName string, tischID int, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
 	data := stornierungErteiltV1Data{
 		StornierungID:          uuid.New().String(),
-		Positionen:             positionen,
+		Positionen:             toPositionenEventData(positionen),
 		GesamtStornierungCents: gesamtStornierungCents,
 		Kommentar:              kommentar,
 	}
@@ -64,7 +64,7 @@ func buildStornierungFromEvent(event e.Event) (Stornierung, error) {
 		ID:                     data.StornierungID,
 		UserID:                 event.UserID,
 		TischID:                tischID,
-		Positionen:             data.Positionen,
+		Positionen:             fromPositionenEventData(data.Positionen),
 		GesamtStornierungCents: data.GesamtStornierungCents,
 		Kommentar:              data.Kommentar,
 		StorniertAm:            event.Time,

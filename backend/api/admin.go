@@ -78,15 +78,15 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	reportingRepo := reporting_repo.NewRepository(db)
 	rq := reportingHTTP.QueryHandler{}
 	rq.Query = reportingApp.Query{ReportingRepo: reportingRepo}
-	r.HandleFunc("/get-reporting", rq.GetReportingHandler())
+	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
 
 	druckerRepo := drucker_repo.NewRepository(db)
 	dc := druckerHTTP.CommandHandler{}
 	dc.Command = druckerApp.Command{DruckerRepo: druckerRepo}
 	dq := druckerHTTP.QueryHandler{}
 	dq.Query = druckerApp.Query{DruckerRepo: druckerRepo}
-	r.HandleFunc("/get-drucker-config", dq.GetDruckerConfigHandler())
-	r.HandleFunc("/update-drucker-config", dc.UpdateDruckerConfigHandler())
+	r.HandleFunc("/get-drucker-konfiguration", dq.GetDruckerConfigHandler())
+	r.HandleFunc("/update-drucker-konfiguration", dc.UpdateDruckerConfigHandler())
 
 	return r
 }

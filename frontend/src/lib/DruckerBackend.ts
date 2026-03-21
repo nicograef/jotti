@@ -34,7 +34,7 @@ export class DruckerBackend {
 
   public async getDruckerConfig(): Promise<DruckerKonfig[]> {
     const { drucker } = await this.backend.post(
-      'admin/get-drucker-config',
+      'admin/get-drucker-konfiguration',
       {},
       z.object({ drucker: z.array(DruckerKonfigSchema) }),
     )
@@ -43,6 +43,6 @@ export class DruckerBackend {
 
   public async updateDruckerConfig(config: UpdateDruckerConfig): Promise<void> {
     const body = UpdateDruckerConfigSchema.parse(config)
-    await this.backend.post('admin/update-drucker-config', body)
+    await this.backend.post('admin/update-drucker-konfiguration', body)
   }
 }

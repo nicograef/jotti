@@ -44,23 +44,23 @@ type User struct {
 	UpdatedAt           time.Time
 }
 
-var IDSchema = z.Int().GTE(1, z.Message("Invalid user ID"))
+var IDSchema = z.Int().GTE(1, z.Message("Ungültige Benutzer-ID"))
 
-var NameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(50, z.Message("Name too long"))
+var NameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(50, z.Message("Name zu lang"))
 
-var UsernameSchema = z.String().Trim().Min(3, z.Message("Username too short")).Max(20, z.Message("Username too long")).Match(
+var UsernameSchema = z.String().Trim().Min(3, z.Message("Benutzername zu kurz")).Max(20, z.Message("Benutzername zu lang")).Match(
 	regexp.MustCompile(`^[a-z0-9]+$`),
-	z.Message("Only lowercase alphanumerical usernames allowed"),
+	z.Message("Nur Kleinbuchstaben und Ziffern erlaubt"),
 )
 
 var RoleSchema = z.StringLike[Role]().OneOf(
 	[]Role{AdminRole, ServiceleitungRole, ServiceRole},
-	z.Message("Invalid role"),
+	z.Message("Ungültige Rolle"),
 )
 
 var StatusSchema = z.StringLike[Status]().OneOf(
 	[]Status{ActiveStatus, InactiveStatus, DeletedStatus},
-	z.Message("Invalid status"),
+	z.Message("Ungültiger Status"),
 )
 
 var UserSchema = z.Struct(z.Shape{

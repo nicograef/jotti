@@ -10,9 +10,9 @@ import (
 )
 
 type ausgabeBestaetigtV1Data struct {
-	AusgabeID  string     `json:"ausgabeId"`
-	Positionen []Position `json:"positionen"`
-	Kommentar  string     `json:"kommentar"`
+	AusgabeID  string              `json:"ausgabeId"`
+	Positionen []positionEventData `json:"positionen"`
+	Kommentar  string              `json:"kommentar"`
 }
 
 var ausgabeBestaetigtV1DataSchema = z.Struct(z.Shape{
@@ -24,7 +24,7 @@ var ausgabeBestaetigtV1DataSchema = z.Struct(z.Shape{
 func NewAusgabeBestaetigtEvent(userID int, userName string, tischID int, positionen []Position, kommentar string) (e.Event, error) {
 	data := ausgabeBestaetigtV1Data{
 		AusgabeID:  uuid.New().String(),
-		Positionen: positionen,
+		Positionen: toPositionenEventData(positionen),
 		Kommentar:  kommentar,
 	}
 
@@ -61,7 +61,7 @@ func buildAusgabeFromEvent(event e.Event) (Ausgabe, error) {
 		ID:           data.AusgabeID,
 		UserID:       event.UserID,
 		TischID:      tischID,
-		Positionen:   data.Positionen,
+		Positionen:   fromPositionenEventData(data.Positionen),
 		Kommentar:    data.Kommentar,
 		AusgegebenAm: event.Time,
 	}

@@ -29,8 +29,8 @@ func ApplyEvent(state TischState, evt e.Event) (TischState, error) {
 			return state, fmt.Errorf("unmarshal bestellung data: %w", err)
 		}
 		state.SaldoCents += data.GesamtPreisCents
-		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, data.Positionen)
-		state.AusstehendePositionen = accumulatePositionen(state.AusstehendePositionen, data.Positionen)
+		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
+		state.AusstehendePositionen = accumulatePositionen(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
 
 	case string(EventTypeZahlungKassiertV1):
 		var data zahlungKassiertV1Data
@@ -39,7 +39,7 @@ func ApplyEvent(state TischState, evt e.Event) (TischState, error) {
 		}
 		state.SaldoCents -= data.GesamtZahlungCents
 		state.GesamtZahlungenCents += data.GesamtZahlungCents
-		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, data.Positionen)
+		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
 
 	case string(EventTypeStornierungErteiltV1):
 		var data stornierungErteiltV1Data
@@ -47,15 +47,15 @@ func ApplyEvent(state TischState, evt e.Event) (TischState, error) {
 			return state, fmt.Errorf("unmarshal stornierung data: %w", err)
 		}
 		state.SaldoCents -= data.GesamtStornierungCents
-		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, data.Positionen)
-		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, data.Positionen)
+		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
+		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
 
 	case string(EventTypeAusgabeBestaetigtV1):
 		var data ausgabeBestaetigtV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal ausgabe data: %w", err)
 		}
-		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, data.Positionen)
+		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
 
 	case string(EventTypeAuszahlungGeleistetV1):
 		var data auszahlungGeleistetV1Data
@@ -86,14 +86,14 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal bestellung data: %w", err)
 			}
-			nichtStorniert = accumulatePositionen(nichtStorniert, data.Positionen)
+			nichtStorniert = accumulatePositionen(nichtStorniert, fromPositionenEventData(data.Positionen))
 
 		case string(EventTypeStornierungErteiltV1):
 			var data stornierungErteiltV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal stornierung data: %w", err)
 			}
-			nichtStorniert = reduceByPosition(nichtStorniert, data.Positionen)
+			nichtStorniert = reduceByPosition(nichtStorniert, fromPositionenEventData(data.Positionen))
 
 		case string(EventTypeZahlungKassiertV1), string(EventTypeAusgabeBestaetigtV1), string(EventTypeAuszahlungGeleistetV1):
 			continue

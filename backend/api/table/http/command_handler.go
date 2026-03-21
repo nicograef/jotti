@@ -218,10 +218,32 @@ func (h *CommandHandler) TischLoeschenHandler() http.HandlerFunc {
 	}
 }
 
+type bestellPositionInput struct {
+	ProduktID  int `json:"produktId"`
+	VarianteID int `json:"varianteId"`
+	Menge      int `json:"menge"`
+}
+
+func toBestellPositionInput(p bestellPositionInput) application.BestellPositionInput {
+	return application.BestellPositionInput{
+		ProduktID:  p.ProduktID,
+		VarianteID: p.VarianteID,
+		Menge:      p.Menge,
+	}
+}
+
+func toBestellPositionInputs(positionen []bestellPositionInput) []application.BestellPositionInput {
+	out := make([]application.BestellPositionInput, len(positionen))
+	for i, p := range positionen {
+		out[i] = toBestellPositionInput(p)
+	}
+	return out
+}
+
 type bestellungAufnehmenRequest struct {
-	TischID    int                                `json:"tischId"`
-	Positionen []application.BestellPositionInput `json:"positionen"`
-	Kommentar  string                             `json:"kommentar"`
+	TischID    int                    `json:"tischId"`
+	Positionen []bestellPositionInput `json:"positionen"`
+	Kommentar  string                 `json:"kommentar"`
 }
 
 type positionRefRequest struct {
@@ -258,7 +280,7 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 			return
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.TischID, body.Positionen, body.Kommentar)
+		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.TischID, toBestellPositionInputs(body.Positionen), body.Kommentar)
 		if err != nil {
 			if errors.Is(err, application.ErrConflict) {
 				helper.SendConflictError(w)

@@ -107,7 +107,7 @@ export function UserItem(props: UserItemProps) {
               size="icon-sm"
               variant="outline"
               className="rounded-full cursor-pointer"
-              aria-label="Edit User"
+              aria-label="Benutzer bearbeiten"
               onClick={() => {
                 props.onEdit(props.user.id)
               }}

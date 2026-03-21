@@ -43,9 +43,9 @@ type favoritRepo interface {
 // BestellPositionInput represents the input for a single position in an order.
 // The application layer enriches this with product/variant details (fat events).
 type BestellPositionInput struct {
-	ProduktID  int `json:"produktId"`
-	VarianteID int `json:"varianteId"`
-	Menge      int `json:"menge"`
+	ProduktID  int
+	VarianteID int
+	Menge      int
 }
 
 type Command struct {

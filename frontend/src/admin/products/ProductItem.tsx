@@ -141,7 +141,7 @@ export function ProductItem(props: ProductItemProps) {
                 size="icon-sm"
                 variant="outline"
                 className="rounded-full cursor-pointer"
-                aria-label="Edit Product"
+                aria-label="Produkt bearbeiten"
                 onClick={() => {
                   props.onEdit(props.product.id)
                 }}

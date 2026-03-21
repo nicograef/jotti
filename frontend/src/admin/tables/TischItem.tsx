@@ -80,7 +80,7 @@ export function TischItem(props: TischItemProps) {
               size="icon-sm"
               variant="outline"
               className="rounded-full cursor-pointer"
-              aria-label="Edit Table"
+              aria-label="Tisch bearbeiten"
               onClick={() => {
                 props.onEdit(props.tisch.id)
               }}
