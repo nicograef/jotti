@@ -2,40 +2,57 @@
 
 Ein kostenloses, quelloffenes **Gastronomie-Kassensystem (mPOS)** für Vereine und gemeinnützige Organisationen — Vereinsfeste, Weihnachtsmärkte, Konzerte, Maihocks, Sommerfeste.
 
-Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer über einen eigenen Admin-Bereich.
+Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer, führen den Kassenbestand und erstellen den Tagesabschluss.
 
-> **Kostenlos. Self-hosted. Open Source.**
-> Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. Kein Zahlungsgateway.
+> **Kostenlos. Self-hosted. Fiskalkonform.**
+> Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. KassenSichV-konform mit TSE-Anbindung und DSFinV-K-Export.
 
 ## Was jotti kann
 
 ### Kassenbetrieb
 
-- 📱 **Bestellungen** auf Tische buchen — mit Produkten, Varianten und Kommentaren
+- 📱 **Bestellungen** auf Tische buchen — mit Produkten, Varianten, Steuersätzen und Kommentaren
 - 🚚 **Ausgabe** bestätigen
-- 💰 **Zahlung** kassieren (Teilzahlungen möglich)
+- 💰 **Zahlung** kassieren (Teilzahlungen und Rückgeldberechnung)
 - ↩️ **Stornierungen** mit Rollen-Kontrolle (Admin & Serviceleitung) — mit Pflichtkommentar
-- 💸 **Auszahlung leisten** — negativen Saldo ausgleichen (z. B. nach Stornierung bereits kassierter Positionen)
+- 💸 **Auszahlung** leisten — negativen Saldo ausgleichen (z. B. nach Stornierung bereits kassierter Positionen)
+- 🔄 **Umbuchung** — Bestellungen auf einen anderen Tisch verschieben
 - 📋 **Tisch-Übersicht** mit offenem Saldo, Positionen und Bestellhistorie
+- ⭐ **Meine Tische** — Favoriten als Rich Cards auf dem Dashboard, Schnellsuche per Name/Nummer
 
 ### Küche & Ausgabe
 
 - 🖥️ **Küchendisplay (KDS)** — eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe
-- 🖨️ **Bon-Druck** — Bestell- und Küchenbons direkt an einen Bondrucker senden
+- 🍳 **Ausgabestationen** — Zubereitungsstatus verwalten, Servicekräfte sehen, wann Positionen abholbereit sind
+- 🖨️ **Bon-Druck** — Bestell- und Küchenbons automatisch an zugeordnete Bondrucker senden (pro Kategorie konfigurierbar)
+
+### Kassenführung
+
+- 📂 **Abrechnungskreis** — fortlaufend nummerierte Kassensitzungen eröffnen und schließen
+- 💵 **Anfangsbestand** — Wechselgeld zu Beginn einer Veranstaltung erfassen
+- 📊 **Kassenbestand** — Soll-Bestand jederzeit einsehen, aufgeschlüsselt nach Komponenten
+- 🔃 **Kassenbewegungen** — Geldtransit, Privatentnahmen und Privateinlagen buchen
+- ✅ **Kassensturz** — Ist-Bestand eingeben, Differenz berechnen, Abweichung automatisch buchen
+- 📄 **Tagesabschluss (Z-Bon)** — formaler Abschluss mit fortlaufender Nummer und Stammdaten-Snapshot
 
 ### Abrechnung & Reporting
 
-- 📊 **Tagesabrechnung** — Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge
+- 📊 **Tagesabrechnung** — Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge, nach Steuersatz aufgeschlüsselt
 - 🧾 **Abrechnung pro Tisch** — detaillierte Aufstellung je Tisch
 - 👤 **Abrechnung pro Servicekraft** — Umsatz und Transaktionen pro Person
-- 📈 **Reporting** — Produktumsätze, meistverkaufte Varianten, Gesamteinnahmen
+- 📈 **Produktumsatz-Reporting** — meistverkaufte Varianten, Mengen und Einnahmen pro Produkt
+- 📥 **Datenexport (CSV)** — Umsätze, Bestellungen und Artikeldaten für die Vereinsbuchhaltung
+- 📦 **DSFinV-K-Export** — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.4)
 
 ### Verwaltung & Sicherheit
 
-- ⚙️ **Admin-Bereich** für Produkte (mit Varianten), Tische und Benutzer
+- ⚙️ **Admin-Bereich** für Produkte (mit Varianten und Steuersätzen), Tische, Benutzer und Betreiber-Stammdaten
 - 🔐 **Rollenmodell** mit `admin`, `serviceleitung` und `service`
 - 🔑 **Sicheres Onboarding** per Einmalpasswort, Argon2id-Hashing, JWT-Auth
-- 📜 **Event-Sourcing** — lückenlose, unveränderliche Bestellhistorie (GoBD-Grundsätze durch Append-only-Architektur)
+- 📜 **Event-Sourcing** — lückenlose, unveränderliche Bestellhistorie (GoBD-konform durch Append-only-Architektur)
+- 🔗 **Kryptografische Hash-Chain** — SHA-256-Verkettung aller Events, nachträgliche Manipulation nachweisbar
+- 🛡️ **TSE-Anbindung** — integrierte Cloud-TSE-Schnittstelle (fiskaly) mit Signatur jedes Vorgangs
+- 🧾 **Belegausgabe** — gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse
 
 ## Schnellstart
 
@@ -52,9 +69,10 @@ make dev
 | Frontend      | React 19, Vite, Tailwind CSS 4, shadcn/ui, TypeScript |
 | Backend       | Go 1.26, stdlib `net/http`, pgx/v5                    |
 | Datenbank     | PostgreSQL 17                                         |
+| TSE           | Cloud-TSE via fiskaly (Adapter-Pattern, BYOT)         |
 | Reverse Proxy | nginx (HTTPS via Let's Encrypt)                       |
 
-Tisch-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlungen) werden via **Event Sourcing** (append-only) persistiert. Stammdaten nutzen klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
+Tisch-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlungen) werden via **Event Sourcing** (append-only) persistiert. Stammdaten und Kassenführung nutzen immutable Records bzw. klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
 
 ## Für wen ist jotti?
 
@@ -63,15 +81,15 @@ Tisch-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlunge
 - Eingetragene Vereine (e.V.), gemeinnützige Organisationen, NPOs
 - Temporäre Veranstaltungen: Vereinsfeste, Sommerfeste, Weihnachtsmärkte, Maihocks, Konzerte
 - Ehrenamtliche Teams (5–30 Servicekräfte)
-- Bargeld-Betrieb mit schrittweiser Compliance-Roadmap (TSE/KassenSichV)
+- Bargeld-Betrieb mit voller Fiskalkonformität (TSE, DSFinV-K, Belegausgabe)
 
 ❌ **Nicht geeignet für:**
 
 - Dauerbetrieb (Restaurants, Cafés)
-- Betriebe, die **sofort** eine vollständig zertifizierte TSE-Lösung benötigen
 - Kartenzahlung / NFC / Online-Payment
+- Kommerzielle Gastro-Betriebe (ohne separate Lizenz)
 
-> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt der TSE-Pflicht nach § 146a AO. Die TSE-Integration wird schrittweise implementiert — der Betreiber ist verpflichtet, eine Cloud-TSE (BYOT) einzubinden, sobald die entsprechende Phase der Roadmap umgesetzt ist. Siehe [docs/roadmap.md](docs/roadmap.md) und [docs/compliance.md](docs/compliance.md).
+> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und erfüllt die TSE-Pflicht nach § 146a AO. Die TSE-Anbindung erfolgt über eine Cloud-TSE (BYOT-Modell) — der Betreiber schließt selbst einen Vertrag mit einem TSE-Anbieter (z. B. fiskaly) ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md).
 
 ## Lizenz & Urheberrecht
 
@@ -82,10 +100,10 @@ jotti ist lizenziert unter der **AGPL-3.0-or-later mit Zusatzbedingungen** (Sour
 **Was das bedeutet:**
 
 - ✅ **Eingetragene Vereine (e.V.), gemeinnützige Stiftungen und NGOs/NPOs** dürfen jotti kostenlos nutzen, installieren und betreiben.
-- ✅ **Nicht-kommerzielle Open-Source-Projekte** dürfen jotti forken, modifizieren und einsetzen — aber das Ergebnis muss unter **denselben Lizenzbedingungen** (AGPL-3.0 + Zusatzbedingungen) veröffentlicht und betrieben werden.
+- ✅ **Nicht-kommerzielle Projekte** dürfen jotti forken, modifizieren und einsetzen — aber das Ergebnis muss unter **denselben Lizenzbedingungen** (AGPL-3.0 + Zusatzbedingungen) veröffentlicht und betrieben werden.
 - ⚠️ **Wer jotti modifiziert und als Netzwerkservice (SaaS) anbietet**, muss den vollständigen Quellcode aller Änderungen unter denselben Lizenzbedingungen veröffentlichen.
-- ❌ **Kommerzielle Nutzung ist ohne separate Lizenz nicht erlaubt** — auch nicht, wenn der Quellcode unter AGPL offengelegt wird. Niemand darf jotti oder Ableitungen davon gewerblich verwerten, ohne eine kommerzielle Lizenz des Urhebers zu besitzen.
-- ❌ **Proprietäre Abspaltungen sind nicht erlaubt.** Ableitungen dürfen nicht unter restriktiveren oder permissiveren Bedingungen veröffentlicht werden, die die Nicht-Kommerziell-Einschränkung oder das AGPL-Copyleft aufheben.
-- 💼 **Kommerzielle Lizenzierung:** Für gewerbliche Nutzung (z.B. kostenpflichtiges SaaS, White-Label, Integration in kommerzielle Produkte) ist eine separate kommerzielle Lizenz vom Urheber erforderlich — Kontakt über GitHub.
+- ❌ **Kommerzielle Nutzung ist ohne separate Lizenz nicht erlaubt** — auch nicht, wenn der Quellcode unter AGPL offengelegt wird.
+- ❌ **Proprietäre Abspaltungen sind nicht erlaubt.**
+- 💼 **Kommerzielle Lizenzierung:** Für gewerbliche Nutzung ist eine separate kommerzielle Lizenz vom Urheber erforderlich — Kontakt über GitHub.
 
 Ausführliche Informationen: [docs/lizenz-und-nutzung.md](docs/lizenz-und-nutzung.md)
