@@ -116,9 +116,7 @@ Zentrales Aggregat im Kassenbetrieb. Trägt einen Event Stream, aus dem sich der
 
 | Go-Struct | TS-Typ  | DB-Tabelle | API-Pfade (Admin)                                                                           | API-Pfade (Service)                                                                                                            |
 | --------- | ------- | ---------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `Tisch`   | `Tisch` | `tables`   | `/create-tisch`, `/update-tisch`, `/activate-tisch`, `/deactivate-tisch`, `/get-all-tische` | `/get-tisch`, `/get-aktive-tische`, `/get-tisch-historie`, `/get-tisch-saldo`, `/get-tisch-unbezahlt`, `/get-tisch-ausstehend` |
-
-> DB-Tabelle (`tables`) verwendet Englisch (Infrastruktur-Konvention). Frontend-Route (`/service/tische`) ist deutsch (Domänenkonzept).
+| `Tisch`   | `Tisch` | `tische`   | `/create-tisch`, `/update-tisch`, `/activate-tisch`, `/deactivate-tisch`, `/get-all-tische` | `/get-tisch`, `/get-aktive-tische`, `/get-tisch-historie`, `/get-tisch-saldo`, `/get-tisch-unbezahlt`, `/get-tisch-ausstehend` |
 
 #### Bestellung
 
@@ -154,7 +152,7 @@ Kassierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen. Erzeugt
 
 #### Stornierung
 
-Nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. `Kommentar` ist Pflichtfeld (min. 3, max. 100 Zeichen). Erzeugt ein `StornierungErteilt`-Event.
+Nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. `Kommentar` ist Pflichtfeld. Erzeugt ein `StornierungErteilt`-Event.
 
 | Go-Struct     | TS-Typ        | Event-Typ                      | API-Pfad                               |
 | ------------- | ------------- | ------------------------------ | -------------------------------------- |
@@ -162,7 +160,7 @@ Nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Ad
 
 #### Auszahlung
 
-Auszahlung an den Gast, um einen negativen Saldo auszugleichen — entsteht, wenn bereits kassierte Positionen nachträglich storniert wurden (K-05). Kein Positionsbezug; freier Betrag (≥ 1 Cent). `Kommentar` ist Pflichtfeld (min. 3, max. 100 Zeichen). Erzeugt ein `AuszahlungGeleistet`-Event.
+Auszahlung an den Gast, um einen negativen Saldo auszugleichen — entsteht, wenn bereits kassierte Positionen nachträglich storniert wurden (K-05). Kein Positionsbezug; freier Betrag. `Kommentar` ist Pflichtfeld. Erzeugt ein `AuszahlungGeleistet`-Event.
 
 | Go-Struct    | Event-Typ                       | API-Pfad                             |
 | ------------ | ------------------------------- | ------------------------------------ |
@@ -188,7 +186,7 @@ Go-Funktion: `GetHistoryFromEvents()` · Go-Query: `GetTischHistorie()` · API: 
 
 #### Kommentar
 
-Freitextnotiz zu Tischoperationen. Pflichtfeld bei Stornierung und Auszahlung (min. 3 Zeichen), optional bei Bestellung, Ausgabe und Zahlung. Max. 100 Zeichen.
+Freitextnotiz zu Tischoperationen. Pflichtfeld bei Stornierung und Auszahlung, optional bei Bestellung, Ausgabe und Zahlung.
 
 Go-Feld: `Kommentar` · JSON-Key: `"kommentar"` · TS-Feld: `kommentar`
 
@@ -208,7 +206,7 @@ Kompakte KPI-Übersicht einer Servicekraft: Anzahl und Summe eigener Bestellunge
 
 ---
 
-### Kassenführung (Core Domain)
+### Kassenführung (Supporting Sub-Domain)
 
 Die Kassenführung umfasst den vollständigen Lifecycle der Registerkasse — von der Eröffnung eines Abrechnungskreises über die laufende Kassenbestandsüberwachung bis zum formellen Tagesabschluss (Z-Bon). **Persistenzstrategie:** Immutable Records (INSERT-only, DB-Trigger-geschützt).
 
@@ -280,7 +278,7 @@ Formeller Tagesabschlussbon: aggregiert alle Transaktionen eines Abrechnungskrei
 | ------------------- | -------------------- | -------------------------------------------------------------------------- | ----------------------- |
 | `ZBon`              | `z_bons`             | `zNr`, `zeitraumVon`, `zeitraumBis`, `sollBestandCents`, `istBestandCents` | `/admin/tagesabschluss` |
 
-> **Abgrenzung:** Der Z-Bon ersetzt die bisherige R-07-Anforderung. Er ist kein Report, sondern eine transaktionale Operation der Core Domain.
+> **Abgrenzung:** Der Z-Bon ersetzt die bisherige R-07-Anforderung. Er ist kein Report, sondern eine transaktionale Operation der Kassenführung (Supporting Sub-Domain).
 
 #### X-Bon
 
@@ -424,7 +422,7 @@ Die TSE-Kommunikation folgt einem strikten Lifecycle. Jeder Kassiervorgang durch
 | Begriff              | Go-Struct / Go-Typ | DB-Feld / -Tabelle | JSON-Key           | Bedeutung                                                                                                                                                                                                         |
 | -------------------- | ------------------ | ------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **ABRECHNUNGSKREIS** | `Abrechnungskreis` | `abrechnungskreis` | `abrechnungskreis` | Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typisch: einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld. Verbindet logisch zusammengehörige Tisch-Vorgänge. Siehe → Kassenführung. |
-| **Tagesabschluss**   | `ZBon` (geplant)   | `z_bons` (geplant) | `zNr`              | Formaler Abschluss eines ABRECHNUNGSKREIS. Erzeugt ein immutables Dokument (Z-Bon) mit fortlaufender `z_nr`. Gehört zur Kassenführung (Core Domain), nicht zum Reporting.                                         |
+| **Tagesabschluss**   | `ZBon` (geplant)   | `z_bons` (geplant) | `zNr`              | Formaler Abschluss eines ABRECHNUNGSKREIS. Erzeugt ein immutables Dokument (Z-Bon) mit fortlaufender `z_nr`. Gehört zur Kassenführung (Supporting Sub-Domain), nicht zum Reporting.                                         |
 | **Z-Bon**            | `ZBon` (geplant)   | `z_bons` (geplant) | `zNr`              | Tagesabschlussbon: aggregiert alle Transaktionen nach Steuersätzen und Zahlarten (`businesscases.csv`). Immutables Dokument — kein Reset von Events.                                                              |
 | **X-Bon**            | —                  | —                  | —                  | Zwischenbericht: informativer Abruf des aktuellen Kassenstands ohne Rücksetzen. Kein Tagesabschluss im Rechtssinne.                                                                                               |
 | **Bonkopf / Bonpos** | —                  | —                  | —                  | DSFinV-K-Aufteilung: Bonkopf enthält Metadaten und Gesamtsummen des Belegs; Bonpos listet die einzelnen Artikelzeilen (`lines.csv`).                                                                              |
@@ -468,7 +466,7 @@ Die TSE-Kommunikation folgt einem strikten Lifecycle. Jeder Kassiervorgang durch
 
 Die folgenden Begriffe sind in der Ubiquitous Language definiert, aber noch nicht im Code implementiert.
 
-### Ausgabe (Supporting Sub-Domain)
+### Ausgabe (Teil des Kassenbetrieb-Context)
 
 | Begriff                 | Bedeutung                                                                                                       |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -477,7 +475,7 @@ Die folgenden Begriffe sind in der Ubiquitous Language definiert, aber noch nich
 | **Zubereitungsstatus**  | Status einer Position an der Ausgabestation: offen → in Zubereitung → fertig.                                   |
 | **Ausgabestation**      | Physischer Ort (Küche, Getränketheke), an dem Positionen zubereitet und ausgegeben werden.                      |
 
-### Abrechnung (Supporting Sub-Domain)
+### Abrechnung (Teil der Kassenführung)
 
 | Begriff             | Bedeutung                                                                                              |
 | ------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -486,7 +484,7 @@ Die folgenden Begriffe sind in der Ubiquitous Language definiert, aber noch nich
 | **Stornoquote**     | Verhältnis von Stornierungsbetrag zu Bestellsumme. Indikator für Fehler oder Unregelmäßigkeiten.       |
 | **Export**          | CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Vereinsbuchhaltung.                   |
 
-> **Hinweis:** Der Tagesabschluss (Z-Bon) ist kein Reporting-Vorgang, sondern eine transaktionale Operation der Kassenführung (Core Domain). Siehe → Kassenführung.
+> **Hinweis:** Der Tagesabschluss (Z-Bon) ist kein Reporting-Vorgang, sondern eine transaktionale Operation der Kassenführung (Supporting Sub-Domain). Siehe → Kassenführung.
 
 ---
 
