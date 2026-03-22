@@ -35,7 +35,7 @@ Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Comp
 | **Belegausgabepflicht** | ✅ Phase 0 — Bondrucker implementiert | Must        |
 | **Seriennummer**        | 🔲 Phase 1 — UUID + Admin-Anzeige     | Must        |
 | **Steuersätze**         | 🔲 Phase 1 — 19 % / 7 % / 0 %         | Must        |
-| **ABRECHNUNGSKREIS**    | 🔲 Phase 1 — Tagesbasiert             | Should      |
+| **ABRECHNUNGSKREIS**    | 🔲 Phase 1 — Pro Tisch und Tag (`Tisch-{Nr}-{YYYYMMDD}`) | Should      |
 | **DSFinV-K Export**     | 🔲 Phase 2 — CSV-ZIP                  | Should      |
 | **ELSTER-Meldung**      | 🔲 Phase 1 — Anleitung für Betreiber  | Must (Doku) |
 
@@ -45,7 +45,7 @@ Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Comp
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Strategische Richtung**            | Compliance-Roadmap: KassenSichV/TSE schrittweise implementieren                                                                                                  |
 | **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                                                        |
-| **ABRECHNUNGSKREIS-Session**         | Phase 1: tagesbasiert (neuer `ABRECHNUNGSKREIS` bei jedem Tagesabschluss); Phase 2: manuelle Freigabe durch Servicekraft                                         |
+| **ABRECHNUNGSKREIS-Session**         | Phase 1: tagesbasiert — pro Tisch ein `ABRECHNUNGSKREIS` für den gesamten Tag (`Tisch-{Nr}-{YYYYMMDD}`); Zurücksetzen aller Sessions beim Tagesabschluss. Phase 2: manuelle Tischfreigabe durch Servicekraft bei Gästewechsel (`Tisch-{Nr}-{YYYYMMDD}-{Buchstabe}`) |
 | **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                                                             |
 | **Kassenmeldung (§ 146a Abs. 4 AO)** | Phase 1: manuell über ELSTER-Webportal; Phase 2: ERiC oder fiskaly-Submission-API                                                                                |
 | **Seriennummer**                     | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern, im Admin-Dashboard anzeigen                                                               |
@@ -258,7 +258,7 @@ StartTransaction(processType="Kassenbeleg-V1") → sofort → FinishTransaction
 
 Die `processData` enthält Gesamtbetrag, Steuersätze und Zahlungsart. Diese Transaktion ist ebenfalls sofort geschlossen.
 
-**Verknüpfung**: Alle Bestellungen und Zahlungen eines Tisches werden im DSFinV-K-Export über das Feld `ABRECHNUNGSKREIS` (z.B. `"Tisch-42"`) zusammengeführt (siehe Abschnitt 8).
+**Verknüpfung**: Alle Bestellungen und Zahlungen eines Tisches werden im DSFinV-K-Export über das Feld `ABRECHNUNGSKREIS` (z.B. `"Tisch-42-20260501"`) zusammengeführt (siehe Abschnitt 8).
 
 #### Konkretes Szenario: Maihock, Tisch 42
 
@@ -564,17 +564,19 @@ Die Prüfsoftware IDEA der Finanzämter kann so den vollständigen Tischverlauf 
 
 Die Definition, wann eine neue Tisch-Session beginnt (d.h. ein neuer `ABRECHNUNGSKREIS` vergeben wird), wird in zwei Phasen umgesetzt:
 
+> **Wichtiger Hinweis:** „Tagesbasiert" bedeutet **ein `ABRECHNUNGSKREIS` pro Tisch und Tag** — nicht ein einziger Schlüssel für alle Tische des gesamten Tages. Jeder Tisch bekommt seine eigene Session-ID (`Tisch-42-20260501`, `Tisch-43-20260501`, usw.). Ein tagesbasierter Gesamt-Schlüssel für alle Tische wäre ein Verstoß gegen die GoBD-Anforderung der Nachvollziehbarkeit.
+
 **Phase 1 — Tagesbasiert (initiale Umsetzung):**
 
-- Der `ABRECHNUNGSKREIS` wird einmal pro Tisch und Tag vergeben: `Tisch-{Nr}-{YYYYMMDD}`.
+- Der `ABRECHNUNGSKREIS` wird **einmal pro Tisch und Tag** vergeben: `Tisch-{Nr}-{YYYYMMDD}`.
 - Beim **Tagesabschluss** (Z-Bon) werden automatisch alle laufenden Sessions des Tages abgeschlossen.
 - Nachteil: Mehrere Gästegruppen am gleichen Tisch am gleichen Tag teilen denselben `ABRECHNUNGSKREIS` — für den Betriebsprüfer erkennbar, aber zulässig, solange alle Bons korrekt verknüpft sind.
 
-**Phase 2 — Manuelle Tischfreigabe (spätere Erweiterung):**
+**Phase 2 — Manuelle Tischfreigabe (empfohlene Erweiterung für Festzelt-Betrieb):**
 
 - Servicekräfte können einen Tisch explizit für neue Gäste freigeben ("Tisch freimachen").
 - Eine neue Session erhält dann ein Suffix: `Tisch-42-20260501-A`, `Tisch-42-20260501-B`, etc.
-- In jottis Festzelt-Szenario, wo häufig mehrere Gästegruppen am selben Tisch sitzen, ist dies die korrektere Abbildung.
+- In jottis Festzelt-Szenario, wo häufig mehrere Gästegruppen am selben Tisch sitzen (Maihock, Vereinsfest), ist dies die korrektere Abbildung der Realität und reduziert Rückfragen bei Betriebsprüfungen.
 - Phase 2 erfordert eine neue UI-Aktion in der Servicekraft-Ansicht und eine entsprechende Domain-Aktion im Tisch-Aggregat.
 
 > **Hinweis:** Das DSFinV-K-Format erlaubt beliebige Strings als `ABRECHNUNGSKREIS` (max. 40 Zeichen). Das Format `Tisch-{Nr}-{YYYYMMDD}` (Phase 1) bzw. `Tisch-{Nr}-{YYYYMMDD}-{Buchstabe}` (Phase 2) ist eine jotti-interne Konvention.

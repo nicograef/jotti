@@ -245,10 +245,14 @@
 
 ---
 
-## 30 · ABRECHNUNGSKREIS Phase 2 — Manuelle Freigabe
+## 30 · ABRECHNUNGSKREIS Phase 2 — Manuelle Tischfreigabe
 
-- [ ] Backend: Manuelle Eröffnung/Schließung durch Serviceleitung (statt nur automatisch bei Tagesabschluss)
-- [ ] Frontend: Abrechnungskreis-Steuerung erweitern
+> Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der Realität: mehrere Gästegruppen an einem Tisch erhalten jeweils einen eigenen `ABRECHNUNGSKREIS`. Empfohlen zeitnah nach Abschluss der Phase-2-TSE-Integration umzusetzen.
+
+- [ ] Backend: Domain-Aktion `TischFreigegeben` im Tisch-Aggregat (neue Tisch-Session mit Buchstaben-Suffix starten)
+- [ ] Backend: ABRECHNUNGSKREIS-Suffix-Logik (`Tisch-{Nr}-{YYYYMMDD}-A`, `-B`, etc.)
+- [ ] Frontend: UI-Aktion „Tisch freimachen" in der Servicekraft-Ansicht
+- [ ] Tests
 
 ---
 
