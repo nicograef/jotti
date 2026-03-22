@@ -507,7 +507,9 @@ Abrechnungskreis
 
 - Maximal ein Abrechnungskreis darf gleichzeitig `offen` sein.
 - Nummer ist fortlaufend und lückenlos (nie zurücksetzbar).
+- Wird explizit durch Admin eröffnet (Tagesöffnung) — keine automatische Erzeugung.
 - Wird durch Tagesabschluss (Z-Bon) geschlossen.
+- **Kassenbetrieb-Sperre:** Solange kein Abrechnungskreis `offen` ist, werden alle schreibenden Tischoperationen serverseitig mit HTTP 409 abgelehnt.
 
 ### 5.3 Anfangsbestand
 

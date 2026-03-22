@@ -28,29 +28,29 @@ Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Comp
 
 ### Compliance-Status
 
-| Bereich                 | Status                                | Priorität   |
-| ----------------------- | ------------------------------------- | ----------- |
-| **TSE-Integration**     | 🔲 Phase 2 — TSEClient + fiskaly      | Should      |
-| **GoBD-Konformität**    | ✅ Teilweise — Event-Sourcing (Basis) | Laufend     |
-| **Belegausgabepflicht** | ✅ Phase 0 — Bondrucker implementiert | Must        |
-| **Seriennummer**        | 🔲 Phase 1 — UUID + Admin-Anzeige     | Must        |
-| **Steuersätze**         | 🔲 Phase 1 — 19 % / 7 % / 0 %         | Must        |
-| **ABRECHNUNGSKREIS**    | 🔲 Phase 1 — Pro Tisch und Tag (`Tisch-{Nr}-{YYYYMMDD}`) | Should      |
-| **DSFinV-K Export**     | 🔲 Phase 2 — CSV-ZIP                  | Should      |
-| **ELSTER-Meldung**      | 🔲 Phase 1 — Anleitung für Betreiber  | Must (Doku) |
+| Bereich                 | Status                                                   | Priorität   |
+| ----------------------- | -------------------------------------------------------- | ----------- |
+| **TSE-Integration**     | 🔲 Phase 2 — TSEClient + fiskaly                         | Should      |
+| **GoBD-Konformität**    | ✅ Teilweise — Event-Sourcing (Basis)                    | Laufend     |
+| **Belegausgabepflicht** | ✅ Phase 0 — Bondrucker implementiert                    | Must        |
+| **Seriennummer**        | 🔲 Phase 1 — UUID + Admin-Anzeige                        | Must        |
+| **Steuersätze**         | 🔲 Phase 1 — 19 % / 7 % / 0 %                            | Must        |
+| **Abrechnungskreis**    | 🔲 Phase 1 — Pro Tisch und Tag (`Tisch-{Nr}-{YYYYMMDD}`) | Should      |
+| **DSFinV-K Export**     | 🔲 Phase 2 — CSV-ZIP                                     | Should      |
+| **ELSTER-Meldung**      | 🔲 Phase 1 — Anleitung für Betreiber                     | Must (Doku) |
 
 ### Grundsatzentscheidungen (2026-03-19)
 
-| Thema                                | Entscheidung                                                                                                                                                     |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Strategische Richtung**            | Compliance-Roadmap: KassenSichV/TSE schrittweise implementieren                                                                                                  |
-| **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                                                        |
-| **ABRECHNUNGSKREIS-Session**         | Phase 1: tagesbasiert — pro Tisch ein `ABRECHNUNGSKREIS` für den gesamten Tag (`Tisch-{Nr}-{YYYYMMDD}`); Zurücksetzen aller Sessions beim Tagesabschluss. Phase 2: manuelle Tischfreigabe durch Servicekraft bei Gästewechsel (`Tisch-{Nr}-{YYYYMMDD}-{Buchstabe}`) |
-| **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                                                             |
-| **Kassenmeldung (§ 146a Abs. 4 AO)** | Phase 1: manuell über ELSTER-Webportal; Phase 2: ERiC oder fiskaly-Submission-API                                                                                |
-| **Seriennummer**                     | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern, im Admin-Dashboard anzeigen                                                               |
-| **Belegausgabe BYOD**                | Phase 1: zentraler Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); Phase 2 (optional): digitaler eBeleg via QR-Code als Download-Link      |
-| **Rechtliche Rollenverteilung**      | jotti ist Source-Available-Software (kein SaaS); Entwickler implementiert TSE-Schnittstellen; Betreiber (Verein) trägt Betriebspflichten und ELSTER-Meldepflicht |
+| Thema                                | Entscheidung                                                                                                                                                                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Strategische Richtung**            | Compliance-Roadmap: KassenSichV/TSE schrittweise implementieren                                                                                                                                                                                                     |
+| **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                                                                                                                                                           |
+| **Abrechnungskreis-Session**         | Phase 1: tagesbasiert — pro Tisch ein `ABRECHNUNGSKREIS` für den gesamten Tag (`Tisch-{Nr}-{YYYYMMDD}`); Zurücksetzen aller Sessions beim Tagesabschluss. Phase 2: manuelle Tischfreigabe durch Servicekraft bei Gästewechsel (`Tisch-{Nr}-{YYYYMMDD}-{Buchstabe}`) |
+| **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                                                                                                                                                                |
+| **Kassenmeldung (§ 146a Abs. 4 AO)** | Phase 1: manuell über ELSTER-Webportal; Phase 2: ERiC oder fiskaly-Submission-API                                                                                                                                                                                   |
+| **Seriennummer**                     | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern, im Admin-Dashboard anzeigen                                                                                                                                                                  |
+| **Belegausgabe BYOD**                | Phase 1: zentraler Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); Phase 2 (optional): digitaler eBeleg via QR-Code als Download-Link                                                                                                         |
+| **Rechtliche Rollenverteilung**      | jotti ist Source-Available-Software (kein SaaS); Entwickler implementiert TSE-Schnittstellen; Betreiber (Verein) trägt Betriebspflichten und ELSTER-Meldepflicht                                                                                                    |
 
 ---
 
@@ -299,7 +299,7 @@ Der Betriebsprüfer sieht im DSFinV-K-Export alle vier Transaktionen mit demselb
 3. **Signatur-Speicherung:** TSE-Rückgabewerte (Transaktionsnummer, Signaturzähler, Prüfwert, `logTime`) müssen als Event-Daten persistiert werden
 4. **Fehlerbehandlung:** Verhalten bei TSE-Nicht-Erreichbarkeit (Cloud-TSE offline, Timeout) — z.B. Offline-Queue mit späterer Nachsignierung; zwingender Hinweis „TSE ausgefallen" auf dem Bon bei Ausfall
 5. **Konfiguration:** TSE-Anbieter, Kassen-ID, API-Credentials als Umgebungsvariablen
-6. **ABRECHNUNGSKREIS-Verwaltung:** Eindeutige, persistente Tisch-Session-ID für die DSFinV-K-Verknüpfung
+6. **Abrechnungskreis-Verwaltung:** Eindeutige, persistente Tisch-Session-ID für die DSFinV-K-Verknüpfung
 
 ### 5.8 Seriennummer-Generierung bei Self-hosted Docker-Instanzen
 
@@ -545,7 +545,7 @@ Fast jede CSV-Datei muss folgende Schlüssel in den ersten Spalten mitführen:
 3. **`Z_NR`** — Fortlaufende Z-Bon-Nummer
 4. **`BON_ID`** — Eindeutige Vorgangs-ID des Bons
 
-### 8.5 ABRECHNUNGSKREIS — Tisch-Verknüpfung für Festzelt
+### 8.5 Abrechnungskreis — Tisch-Verknüpfung für Festzelt
 
 Das Feld `ABRECHNUNGSKREIS` in `Bonkopf.csv` verknüpft mehrere Bons (Bestellungen + Zahlungen) zu einer logischen Einheit. Im Festzelt-Betrieb trägt jede Bestellung und jede Zahlung für denselben Tisch und dieselbe Gästegruppe denselben `ABRECHNUNGSKREIS`-Wert:
 
@@ -569,7 +569,9 @@ Die Definition, wann eine neue Tisch-Session beginnt (d.h. ein neuer `ABRECHNUNG
 **Phase 1 — Tagesbasiert (initiale Umsetzung):**
 
 - Der `ABRECHNUNGSKREIS` wird **einmal pro Tisch und Tag** vergeben: `Tisch-{Nr}-{YYYYMMDD}`.
-- Beim **Tagesabschluss** (Z-Bon) werden automatisch alle laufenden Sessions des Tages abgeschlossen.
+- Das Datum (`YYYYMMDD`) stammt aus dem Datum der **Tagesöffnung** (`DATE(abrechnungskreis.beginn)`), nicht aus `NOW()` des einzelnen Ereignisses — relevant bei Betrieb über Mitternacht.
+- Beim **Tagesabschluss** (Z-Bon) werden alle laufenden Sessions des Tages geschlossen.
+- Neue Sessions entstehen erst wieder durch eine explizite Tagesöffnung (Admin-Aktion) am nächsten Tag.
 - Nachteil: Mehrere Gästegruppen am gleichen Tisch am gleichen Tag teilen denselben `ABRECHNUNGSKREIS` — für den Betriebsprüfer erkennbar, aber zulässig, solange alle Bons korrekt verknüpft sind.
 
 **Phase 2 — Manuelle Tischfreigabe (empfohlene Erweiterung für Festzelt-Betrieb):**
@@ -609,7 +611,7 @@ Eine bereits bezahlte Rechnung wird mit einem neuen Beleg mit negativen Beträge
 1. **CSV-Generator:** Komponente, die aus den Event-Store-Daten und Stammdaten die DSFinV-K-CSV-Struktur erzeugt (mit korrekten deutschen Dateinamen)
 2. **`index.xml`-Generator:** Metadaten-Datei für die Prüfsoftware
 3. **Z-Bon-Logik:** Kassenabschluss-Funktion, die Tagessummen aggregiert und einen Z-Bon erzeugt
-4. **ABRECHNUNGSKREIS-Verwaltung:** Tisch-Session-ID persistieren und in allen zugehörigen Bons mitführen (Phase 1: tagesbasiert; Phase 2: manuelle Freigabe)
+4. **Abrechnungskreis-Verwaltung:** Tisch-Session-ID persistieren und in allen zugehörigen Bons mitführen (Phase 1: tagesbasiert; Phase 2: manuelle Freigabe)
 5. **Admin-Endpunkt:** API-Endpunkt zum Auslösen des Exports (z.B. `POST /admin/dsfinvk-export`)
 6. **ZIP-Generierung:** Alle CSVs + `index.xml` in ein ZIP-Archiv verpacken
 7. **Steuersatz-Verwaltung:** USt-Sätze müssen als Stammdaten gepflegt werden — zu unterstützende Sätze: **19 %** (Standardsatz, z.B. Getränke), **7 %** (ermäßigt, z.B. Speisen), **0 % / steuerbefreit** (Zweckbetrieb nach § 67a AO). Produkte erhalten einen konfigurierbaren Steuersatz-Schlüssel.

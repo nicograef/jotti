@@ -742,18 +742,18 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 
 ---
 
-### F-06 · ABRECHNUNGSKREIS
+### F-06 · Abrechnungskreis
 
 **Priorität:** Must  
 **Phase:** 1 (tagesbasiert), 2 (manuelle Freigabe)  
 **Status:** 🔲 Offen
 
-**Beschreibung:** Ein `ABRECHNUNGSKREIS` ist eine fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Phase 1: ein neuer `ABRECHNUNGSKREIS` wird automatisch bei jedem Tagesabschluss erzeugt. Phase 2: manuelle Freigabe durch die Serviceleitung. Operative Aspekte (Eröffnung, Schließung, Invarianten) sind in KF-01 definiert; F-06 beschreibt die DSFinV-K-Export-Aspekte.
+**Beschreibung:** Ein `Abrechnungskreis` ist eine fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Phase 1: pro Tisch und Tag wird ein `ABRECHNUNGSKREIS` mit Format-ID `Tisch-{Nr}-{YYYYMMDD}` vergeben; beim Tagesabschluss werden alle laufenden Sessions automatisch abgeschlossen. Phase 2: manuelle Tischfreigabe durch die Serviceleitung bei Gästewechsel. Operative Aspekte (Eröffnung, Schließung, Invarianten) sind in KF-01 definiert; F-06 beschreibt die DSFinV-K-Export-Aspekte.
 
 **Akzeptanzkriterien:**
 
 - [ ] Datenbank-Tabelle `abrechnungskreis` mit fortlaufender Nummer, Start- und Endzeitpunkt
-- [ ] Beim Tagesabschluss wird automatisch ein neuer `ABRECHNUNGSKREIS` eröffnet
+- [ ] Beim Tagesabschluss werden alle laufenden `ABRECHNUNGSKREIS`-Sessions des Tages abgeschlossen (`Tisch-{Nr}-{YYYYMMDD}`, pro Tisch)
 - [ ] Alle TSE-Transaktionen sind einem `ABRECHNUNGSKREIS` zugeordnet
 - [ ] Im DSFinV-K-Export ist der `ABRECHNUNGSKREIS` korrekt ausgewiesen
 
@@ -807,13 +807,15 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 > **ID:** KF-01 · **Rolle:** Admin
 > **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
 
-Ein `Abrechnungskreis` ist eine fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Der Admin eröffnet einen Abrechnungskreis zu Beginn einer Veranstaltung.
+Ein `Abrechnungskreis` ist eine fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Der Admin eröffnet einen Abrechnungskreis zu Beginn einer Veranstaltung (Tagesöffnung). Ohne offenen Abrechnungskreis ist der Kassenbetrieb gesperrt.
 
 **Akzeptanzkriterien:**
 
 - [ ] Maximal ein Abrechnungskreis kann gleichzeitig `offen` sein
-- [ ] Abrechnungskreis-Nummer ist fortlaufend und lückenlos (nie zurücksetzbar)
-- [ ] Admin kann einen Abrechnungskreis mit Bezeichnung (z. B. „Sommerfest 2026 Tag 1") eröffnen
+- [ ] Abrechnungskreis-Nummer ist fortlaufend und lückenlos (nie zurücksetztbar)
+- [ ] Admin kann einen Abrechnungskreis mit Bezeichnung (z. B. „Sommerfest 2026 Tag 1“) eröffnen
+- [ ] **Kassenbetrieb-Sperre:** Bestellungen aufnehmen, Zahlung registrieren, Ausgabe bestätigen, Stornierung erteilen und Auszahlung leisten sind serverseitig blockiert, solange kein Abrechnungskreis mit Status `offen` existiert (HTTP 409 mit sprechendem Fehlertext)
+- [ ] Frontend zeigt Servicekräften einen Hinweis „Kasse ist noch nicht geöffnet“, wenn kein offener Abrechnungskreis vorhanden ist
 - [ ] Beim Tagesabschluss (KF-07) wird der aktive Abrechnungskreis geschlossen
 - [ ] Alle Kassenvorgänge (Zahlungen, Stornierungen, Geldtransit etc.) sind einem Abrechnungskreis zugeordnet
 

@@ -60,7 +60,9 @@
 ## 7 · Abrechnungskreis eröffnen (KF-01)
 
 - [ ] Backend: Repository, Application Service, HTTP Handler
-- [ ] Frontend: Admin-Seite — Abrechnungskreis mit Bezeichnung eröffnen
+- [ ] Backend: Kassenbetrieb-Sperre — schreibende Tischoperationen mit HTTP 409 ablehnen, wenn kein `offen`er Abrechnungskreis existiert
+- [ ] Frontend: Admin-Seite — Abrechnungskreis mit Bezeichnung eröffnen (Tagesöffnung)
+- [ ] Frontend: Hinweis „Kasse ist noch nicht geöffnet“ für Servicekräfte bei fehlendem offenem Abrechnungskreis
 - [ ] Tests
 
 ---
@@ -245,12 +247,12 @@
 
 ---
 
-## 30 · ABRECHNUNGSKREIS Phase 2 — Manuelle Tischfreigabe
+## 30 · Abrechnungskreis Phase 2 — Manuelle Tischfreigabe
 
 > Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der Realität: mehrere Gästegruppen an einem Tisch erhalten jeweils einen eigenen `ABRECHNUNGSKREIS`. Empfohlen zeitnah nach Abschluss der Phase-2-TSE-Integration umzusetzen.
 
 - [ ] Backend: Domain-Aktion `TischFreigegeben` im Tisch-Aggregat (neue Tisch-Session mit Buchstaben-Suffix starten)
-- [ ] Backend: ABRECHNUNGSKREIS-Suffix-Logik (`Tisch-{Nr}-{YYYYMMDD}-A`, `-B`, etc.)
+- [ ] Backend: Abrechnungskreis-Suffix-Logik (`Tisch-{Nr}-{YYYYMMDD}-A`, `-B`, etc.)
 - [ ] Frontend: UI-Aktion „Tisch freimachen" in der Servicekraft-Ansicht
 - [ ] Tests
 

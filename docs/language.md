@@ -296,8 +296,6 @@ Artikel im Produktkatalog. Gehört zu genau einer Kategorie und enthält eine od
 | --------- | --------- | ---------- | --------------------------------------------------------- |
 | `Produkt` | `Produkt` | `produkte` | `/create-produkt`, `/update-produkt`, `/get-all-produkte` |
 
-
-
 #### Variante
 
 Konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. Produkt „Cola" → Varianten „0,3 l" / „0,5 l").
@@ -305,8 +303,6 @@ Konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. P
 | Go-Struct  | TS-Typ     | DB-Tabelle          | API-Pfade                                                                            |
 | ---------- | ---------- | ------------------- | ------------------------------------------------------------------------------------ |
 | `Variante` | `Variante` | `produkt_varianten` | `/create-variante`, `/update-variante`, `/activate-variante`, `/deactivate-variante` |
-
-
 
 #### Kategorie
 
@@ -316,15 +312,11 @@ Gruppierung von Produkten. Aktuell drei feste Kategorien.
 | ----------- | -------------------------------------- | ----------------------------------------------------------- |
 | `Kategorie` | `'essen'`, `'getraenk'`, `'sonstiges'` | `EssenKategorie`, `GetraenkKategorie`, `SonstigesKategorie` |
 
-
-
 #### Preis
 
 Geldbeträge werden ausnahmslos als ganzzahlige Cent-Werte gespeichert — niemals als Fließkommazahlen. 3,50 € = 350 Cent.
 
 **Konvention:** Alle Preis-Felder tragen das Suffix `*Cents` — z. B. `PreisCents`, `GesamtPreisCents`, `SaldoCents`, `GesamtZahlungCents`, `GesamtStornierungCents`.
-
-
 
 #### Soft-Delete
 
@@ -421,8 +413,8 @@ Die TSE-Kommunikation folgt einem strikten Lifecycle. Jeder Kassiervorgang durch
 
 | Begriff              | Go-Struct / Go-Typ | DB-Feld / -Tabelle | JSON-Key           | Bedeutung                                                                                                                                                                                                         |
 | -------------------- | ------------------ | ------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **ABRECHNUNGSKREIS** | `Abrechnungskreis` | `abrechnungskreis` | `abrechnungskreis` | Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typisch: einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld. Verbindet logisch zusammengehörige Tisch-Vorgänge. Siehe → Kassenführung. |
-| **Tagesabschluss**   | `ZBon` (geplant)   | `z_bons` (geplant) | `zNr`              | Formaler Abschluss eines ABRECHNUNGSKREIS. Erzeugt ein immutables Dokument (Z-Bon) mit fortlaufender `z_nr`. Gehört zur Kassenführung (Supporting Sub-Domain), nicht zum Reporting.                                         |
+| **Abrechnungskreis** | `Abrechnungskreis` | `abrechnungskreis` | `abrechnungskreis` | Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typisch: einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld. Verbindet logisch zusammengehörige Tisch-Vorgänge. Siehe → Kassenführung. |
+| **Tagesabschluss**   | `ZBon` (geplant)   | `z_bons` (geplant) | `zNr`              | Formaler Abschluss eines Abrechnungskreises. Erzeugt ein immutables Dokument (Z-Bon) mit fortlaufender `z_nr`. Gehört zur Kassenführung (Supporting Sub-Domain), nicht zum Reporting.                             |
 | **Z-Bon**            | `ZBon` (geplant)   | `z_bons` (geplant) | `zNr`              | Tagesabschlussbon: aggregiert alle Transaktionen nach Steuersätzen und Zahlarten (`businesscases.csv`). Immutables Dokument — kein Reset von Events.                                                              |
 | **X-Bon**            | —                  | —                  | —                  | Zwischenbericht: informativer Abruf des aktuellen Kassenstands ohne Rücksetzen. Kein Tagesabschluss im Rechtssinne.                                                                                               |
 | **Bonkopf / Bonpos** | —                  | —                  | —                  | DSFinV-K-Aufteilung: Bonkopf enthält Metadaten und Gesamtsummen des Belegs; Bonpos listet die einzelnen Artikelzeilen (`lines.csv`).                                                                              |

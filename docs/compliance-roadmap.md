@@ -30,18 +30,18 @@ Diese Phase beschreibt den **aktuellen Stand** des Systems. Grundlegende Complia
 
 ## Phase 1 — Compliance-Grundlage
 
-Diese Phase legt die **rechtlich notwendige Grundlage** für den Betrieb: Seriennummer, Steuersätze, ABRECHNUNGSKREIS und ELSTER-Anleitung. Phase 1 muss abgeschlossen sein, bevor Phase 2 beginnt.
+Diese Phase legt die **rechtlich notwendige Grundlage** für den Betrieb: Seriennummer, Steuersätze, Abrechnungskreis und ELSTER-Anleitung. Phase 1 muss abgeschlossen sein, bevor Phase 2 beginnt.
 
 ### Features
 
-| ID   | Feature                             | Anforderung                       | Priorität   | Aufwand |
-| ---- | ----------------------------------- | --------------------------------- | ----------- | ------- |
-| F-01 | **Seriennummer der Kasse**          | § 146a AO, DSFinV-K, Kassenbeleg  | Must        | Gering  |
-| F-07 | **Steuersätze (19 % / 7 % / 0 %)**  | KassenSichV, DSFinV-K             | Must        | Mittel  |
-| F-06 | **ABRECHNUNGSKREIS (tagesbasiert, pro Tisch)** | DSFinV-K Nr. 2.7                  | Should      | Mittel  |
-| F-03 | **Belegausgabe — Pflichtfelder**    | § 146a Abs. 2 AO, § 6 KassenSichV | Must        | Mittel  |
-| F-05 | **ELSTER-Anleitung**                | § 146a Abs. 4 AO                  | Must (Doku) | Gering  |
-| —    | **Verfahrensdokumentation**         | GoBD                              | Empfohlen   | Gering  |
+| ID   | Feature                                        | Anforderung                       | Priorität   | Aufwand |
+| ---- | ---------------------------------------------- | --------------------------------- | ----------- | ------- |
+| F-01 | **Seriennummer der Kasse**                     | § 146a AO, DSFinV-K, Kassenbeleg  | Must        | Gering  |
+| F-07 | **Steuersätze (19 % / 7 % / 0 %)**             | KassenSichV, DSFinV-K             | Must        | Mittel  |
+| F-06 | **Abrechnungskreis (tagesbasiert, pro Tisch)** | DSFinV-K Nr. 2.7                  | Should      | Mittel  |
+| F-03 | **Belegausgabe — Pflichtfelder**               | § 146a Abs. 2 AO, § 6 KassenSichV | Must        | Mittel  |
+| F-05 | **ELSTER-Anleitung**                           | § 146a Abs. 4 AO                  | Must (Doku) | Gering  |
+| —    | **Verfahrensdokumentation**                    | GoBD                              | Empfohlen   | Gering  |
 
 ### Details
 
@@ -60,11 +60,13 @@ Diese Phase legt die **rechtlich notwendige Grundlage** für den Betrieb: Serien
 - Als Fat Event in `BestellungAufgenommen` einfrieren (für historische Korrektheit)
 - Tagesabrechnung weist Umsätze nach Steuersatz aufgeschlüsselt aus
 
-#### F-06 ABRECHNUNGSKREIS (Phase 1: tagesbasiert, pro Tisch)
+#### F-06 Abrechnungskreis (Phase 1: tagesbasiert, pro Tisch)
 
 - DB-Tabelle `abrechnungskreis` mit fortlaufender Nummer, Start- und Endzeitpunkt
-- Beim Tagesabschluss werden alle laufenden Sessions des Tages automatisch abgeschlossen, und für den nächsten Tag werden neue Sessions eröffnet
-- Format der Session-ID: `Tisch-{Nr}-{YYYYMMDD}` — **pro Tisch und Tag**, nicht ein einziger Schlüssel für alle Tische
+- **Tageseröffnung durch Admin** (bewusste Admin-Aktion, morgens/vormittags) eröffnet den Abrechnungskreis — kein automatisches Eröffnen
+- Format der Session-ID: `Tisch-{Nr}-{YYYYMMDD}` — das Datum stammt aus `DATE(abrechnungskreis.beginn)`, nicht aus `NOW()` des Ereignisses (relevant bei Betrieb über Mitternacht)
+- Beim Tagesabschluss werden alle laufenden Sessions des Tages geschlossen — neue Sessions entstehen erst wieder durch die nächste Tagesöffnung
+- **Kassenbetrieb-Sperre:** Bestellungen, Zahlungen und sonstige Tischoperationen sind nur möglich, wenn ein Abrechnungskreis mit Status `offen` existiert
 - Alle Events eines Tisches sind einem `ABRECHNUNGSKREIS` zugeordnet
 - Hinweis: Mehrere Gästegruppen an einem Tisch teilen denselben `ABRECHNUNGSKREIS` — zulässig, aber Phase 2 (manuelle Tischfreigabe) ist für jottis Festzelt-Betrieb die korrektere Lösung
 
@@ -106,7 +108,7 @@ Diese Phase integriert eine **zertifizierte Cloud-TSE** (fiskaly) und schafft de
 | —    | **Z-Bon-Logik (Kassenführung KF-07)**            | DSFinV-K                | Must      | Mittel  |
 | —    | **TSE-Felder auf Beleg (ergänzt F-03)**          | § 6 KassenSichV         | Should    | Gering  |
 | —    | **QR-Code auf Beleg**                            | DSFinV-K Anhang I       | Nice      | Gering  |
-| —    | **ABRECHNUNGSKREIS Phase 2** (manuelle Freigabe) | DSFinV-K                | Should    | Mittel  |
+| —    | **Abrechnungskreis Phase 2** (manuelle Freigabe) | DSFinV-K                | Should    | Mittel  |
 
 ### Details
 
@@ -139,7 +141,7 @@ Jeder jotti-Vorgang ist eine eigenständige, sofort geschlossene TSE-Transaktion
 - Alle Dateinamen nach DSFinV-K-Spezifikation v2.4 (deutsch, exakt)
 - Steuersatz-Aufschlüsselung korrekt pro Position und Bon
 
-#### ABRECHNUNGSKREIS Phase 2 — Manuelle Tischfreigabe
+#### Abrechnungskreis Phase 2 — Manuelle Tischfreigabe
 
 Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) sitzt häufig mehr als eine Gästegruppe pro Tag an einem Tisch. Phase 2 ist deshalb für diesen Primär-Anwendungsfall die korrekte Abbildung und sollte zeitnah nach Phase 2 umgesetzt werden:
 
@@ -195,7 +197,7 @@ Optional / Nice-to-have — kein harter Compliance-Bedarf, aber sinnvolle Verbes
 | F-03 | Belegausgabepflicht       | 0/1/2 | Must        | ✅ Basis |
 | F-04 | DSFinV-K-Export           | 2     | Should      | 🔲       |
 | F-05 | ELSTER-Meldung            | 1     | Must (Doku) | 🔲       |
-| F-06 | ABRECHNUNGSKREIS          | 1/2   | Should      | 🔲       |
+| F-06 | Abrechnungskreis          | 1/2   | Should      | 🔲       |
 | F-07 | Steuersätze               | 1     | Must        | 🔲       |
 | F-08 | GoBD-Hash-Chain           | 3     | Nice        | 🔲       |
 

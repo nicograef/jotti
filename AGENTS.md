@@ -22,7 +22,7 @@ Alle funktionalen und querschnittlichen Anforderungen mit Akzeptanzkriterien, Pr
 - **§4 Querschnitt:** Q-01 Mobile-first, Q-02 Mehrbenutzerfähigkeit, Q-03 Validierung, Q-04 Datenintegrität, Q-05–Q-08 (Offline, HTTPS, Rate Limiting, Security Headers)
 - **§5 Reporting:** Tagesabrechnung, Abrechnung pro Tisch/Servicekraft, Datenexport
 - **§6 Bewusste Abgrenzung:** Won't-haves mit Begründung
-- **§7 Fiskalkonformität:** F-01–F-08 (Seriennummer, TSE-Adapter, Belegausgabe, DSFinV-K, ELSTER, ABRECHNUNGSKREIS, Steuersätze, GoBD Hash-Chain)
+- **§7 Fiskalkonformität:** F-01–F-08 (Seriennummer, TSE-Adapter, Belegausgabe, DSFinV-K, ELSTER, Abrechnungskreis, Steuersätze, GoBD Hash-Chain)
 
 → Lesen bei: neue Features implementieren, Akzeptanzkriterien prüfen, Rollen/Berechtigungen klären, Compliance-Anforderungen umsetzen.
 
@@ -80,7 +80,7 @@ Rechtliche Grundlagen, Compliance-Anforderungen und Betreiberpflichten.
 Phasenplan für die schrittweise Compliance-Implementierung.
 
 - **Phase 0 — Baseline:** Aktueller Stand (Event-Sourcing, Kassenjournal, Bondrucker)
-- **Phase 1 — Compliance-Grundlage:** Seriennummer, Steuersätze, ABRECHNUNGSKREIS, Belegausgabe, ELSTER-Anleitung
+- **Phase 1 — Compliance-Grundlage:** Seriennummer, Steuersätze, Abrechnungskreis, Belegausgabe, ELSTER-Anleitung
 - **Phase 2 — TSE-Integration:** TSEClient (fiskaly), StartTransaction/FinishTransaction, DSFinV-K-Export
 - **Phase 3 — Erweiterungen:** eBeleg, ERiC-Schnittstelle, GoBD Hash-Chain
 
