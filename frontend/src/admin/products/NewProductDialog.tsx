@@ -20,14 +20,14 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
-import { Kategorie, type Produkt } from './Product'
-import { CreateProductSchema, ProductBackend } from './ProductBackend'
+import { Kategorie, type Produkt } from './Produkt'
+import { CreateProduktSchema, ProduktBackend } from './ProduktBackend'
 
-const FormDataSchema = CreateProductSchema
+const FormDataSchema = CreateProduktSchema
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewProductDialogProps {
-  backend: Pick<ProductBackend, 'createProduct'>
+  backend: Pick<ProduktBackend, 'createProdukt'>
   created: (product: Produkt) => void
 }
 
@@ -47,7 +47,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
     setLoading(true)
 
     try {
-      const id = await props.backend.createProduct(data)
+      const id = await props.backend.createProdukt(data)
       form.reset()
       setOpen(false)
       props.created({

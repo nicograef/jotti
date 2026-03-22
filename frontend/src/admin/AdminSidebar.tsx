@@ -30,7 +30,7 @@ import { AuthSingleton } from '@/lib/Auth'
 const reportingItems = [
   {
     title: 'Dashboard',
-    url: '/admin/reporting',
+    url: '/admin/auswertung',
     icon: LayoutDashboard,
   },
 ]
@@ -38,17 +38,17 @@ const reportingItems = [
 const adminItems = [
   {
     title: 'Produkte',
-    url: '/admin/products',
+    url: '/admin/produkte',
     icon: Utensils,
   },
   {
     title: 'Tische',
-    url: '/admin/tables',
+    url: '/admin/tische',
     icon: Lamp,
   },
   {
     title: 'Benutzer',
-    url: '/admin/users',
+    url: '/admin/benutzer',
     icon: Users,
   },
   {
@@ -61,7 +61,7 @@ const adminItems = [
 const serviceItems = [
   {
     title: 'Tischauswahl',
-    url: '/service/tables',
+    url: '/service/tische',
     icon: Lamp,
   },
 ]

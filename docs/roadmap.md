@@ -8,8 +8,9 @@
 
 ## 1 · Codebase-Bereinigung
 
-- [ ] Frontend: TS-Typen und Zod-Schemas auf Ubiquitous Language umbenennen (`Product`→`Produkt`, `Variant`→`Variante`, `Category`→`Kategorie`, `PriceCents`→`PreisCents`, `Comment`→`Kommentar`, `Quantity`→`Menge`)
-- [ ] `language.md` aktualisieren — Ist/Soll-Abweichungen als erledigt markieren
+- [x] Frontend: TS-Typen und Zod-Schemas auf Ubiquitous Language umbenennen (`Product`→`Produkt`, `Variant`→`Variante`, `Category`→`Kategorie`, `PriceCents`→`PreisCents`, `Comment`→`Kommentar`, `Quantity`→`Menge`)
+- [x] Frontend: Routen auf Ubiquitous Language umgestellt (`/admin/products`→`/admin/produkte`, `/admin/tables`→`/admin/tische`, `/admin/users`→`/admin/benutzer`, `/admin/reporting`→`/admin/auswertung`, `/service/tables`→`/service/tische`)
+- [x] `language.md` aktualisieren — Ist/Soll-Abweichungen als erledigt markieren, Routen-Konvention auf Deutsch aktualisiert
 
 ---
 

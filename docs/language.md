@@ -27,27 +27,14 @@ Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktual
 | DB-Tabellen (Infrastr.)   | Englisch | snake_case                 | `users`, `events`                             |
 | DB-Spalten (Domäne)       | Deutsch  | snake_case                 | `kategorie`, `preis_cents`, `produkt_id`      |
 | DB-Spalten (Infrastr.)    | Englisch | snake_case                 | `created_at`, `updated_at`, `status`, `id`    |
-| Frontend-Routen           | Englisch | kebab-case                 | `/service/tables`, `/admin/products`          |
+| Frontend-Routen           | Deutsch  | kebab-case                 | `/service/tische`, `/admin/produkte`          |
 | Auth/Infrastruktur-Code   | Englisch | Sprachübliche Konventionen | `User`, `Role`, `Token`, `Config`             |
 
 > **Pfadkonvention:** Dateipfade sind relativ angegeben — `domain/…` und `api/…` liegen unter `backend/`, `src/…` unter `frontend/`, `migrations/…` unter `database/`.
 
 ## Abweichungen: Ist-Zustand vs. Soll-Zustand
 
-Die folgende Tabelle dokumentiert Abweichungen zwischen den aktuellen Code-Bezeichnungen und den durch die Ubiquitous Language definierten Soll-Bezeichnungen.
-
-### Handlungsbedarf (Backend behoben, Frontend-Rename ausstehend)
-
-| Begriff   | Ist (Code)   | Soll         | Status                  | Scope                                            |
-| --------- | ------------ | ------------ | ----------------------- | ------------------------------------------------ |
-| Produkt   | `Product`    | `Produkt`    | ✅ Backend, ⏳ Frontend | Go-Struct, JSON-Keys behoben. TS-Typ noch offen. |
-| Variante  | `Variant`    | `Variante`   | ✅ Backend, ⏳ Frontend | Go-Struct, JSON-Keys behoben. TS-Typ noch offen. |
-| Kategorie | `Category`   | `Kategorie`  | ✅ Backend, ⏳ Frontend | Go-Typ + Konstanten behoben. TS-Typ noch offen.  |
-| Preis     | `PriceCents` | `PreisCents` | ✅ Backend, ⏳ Frontend | Go-Feld + JSON-Key behoben. TS-Feld noch offen.  |
-| Kommentar | `Comment`    | `Kommentar`  | ✅ Backend, ⏳ Frontend | Go-Feld, JSON-Key behoben. TS-Feld noch offen.   |
-| Menge     | `Quantity`   | `Menge`      | ✅ Backend, ⏳ Frontend | Go-Feld, JSON-Key behoben. TS-Feld noch offen.   |
-
-> **Hinweis:** Alle Änderungen sind Breaking Changes für die API (JSON-Keys ändern sich). Frontend und Backend müssen koordiniert umgestellt werden.
+Alle bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben. Die folgende Tabelle dokumentiert bewusste Entscheidungen, die korrekt sind und keinen Handlungsbedarf haben.
 
 ### Kein Handlungsbedarf (bewusst korrekt)
 
@@ -55,8 +42,9 @@ Die folgende Tabelle dokumentiert Abweichungen zwischen den aktuellen Code-Bezei
 | -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | DB-Tabellen (Infra)  | `users`, `events`                               | Englisch ist korrekt — Infrastruktur / Generic Sub-Domain.                                      |
 | DB-Tabellen (Domain) | `tische`, `produkte`, `produkt_varianten`       | Deutsch ist korrekt — Domänenbegriffe sind vertikal konsistent.                                 |
-| Frontend-Routen      | `/admin/products`, `/service/tables`            | Englisch ist korrekt — Routen sind Infrastruktur.                                               |
+| Frontend-Routen      | `/admin/produkte`, `/service/tische`            | Deutsch ist korrekt — Routen repräsentieren Domänenkonzepte.                                    |
 | Auth-Code            | `User`, `Role`, `OnetimePassword`               | Englisch ist korrekt — Generic Sub-Domain.                                                      |
+| Auth-Routen          | `/login`, `/set-password`                       | Englisch ist korrekt — Auth ist Infrastruktur.                                                  |
 | Status-Enums         | `active`, `inactive`, `deleted`                 | Englisch ist korrekt — technische Lifecycle-States, kein Domänenbegriff.                        |
 | Kassenjournal        | `Historie` (Code) vs. `Kassenjournal` (Entwurf) | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert. |
 
@@ -130,7 +118,7 @@ Zentrales Aggregat im Kassenbetrieb. Trägt einen Event Stream, aus dem sich der
 | --------- | ------- | ---------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `Tisch`   | `Tisch` | `tables`   | `/create-tisch`, `/update-tisch`, `/activate-tisch`, `/deactivate-tisch`, `/get-all-tische` | `/get-tisch`, `/get-aktive-tische`, `/get-tisch-historie`, `/get-tisch-saldo`, `/get-tisch-unbezahlt`, `/get-tisch-ausstehend` |
 
-> DB-Tabelle (`tables`) und Frontend-Route (`/service/tables`) verwenden Englisch — korrekt per Infrastruktur-Konvention.
+> DB-Tabelle (`tables`) verwendet Englisch (Infrastruktur-Konvention). Frontend-Route (`/service/tische`) ist deutsch (Domänenkonzept).
 
 #### Bestellung
 
@@ -202,13 +190,13 @@ Go-Funktion: `GetHistoryFromEvents()` · Go-Query: `GetTischHistorie()` · API: 
 
 Freitextnotiz zu Tischoperationen. Pflichtfeld bei Stornierung und Auszahlung (min. 3 Zeichen), optional bei Bestellung, Ausgabe und Zahlung. Max. 100 Zeichen.
 
-Go-Feld: `Kommentar` · JSON-Key: `"kommentar"` · TS-Feld (Ist): `comment` ⚠️ Frontend-Rename ausstehend
+Go-Feld: `Kommentar` · JSON-Key: `"kommentar"` · TS-Feld: `kommentar`
 
 #### Menge
 
 Anzahl einer Produktvariante innerhalb einer Position.
 
-Go-Feld: `Menge` · JSON-Key: `"menge"` · TS-Feld (Ist): `quantity` ⚠️ Frontend-Rename ausstehend
+Go-Feld: `Menge` · JSON-Key: `"menge"` · TS-Feld: `menge`
 
 #### EigeneUebersicht
 
@@ -310,7 +298,7 @@ Artikel im Produktkatalog. Gehört zu genau einer Kategorie und enthält eine od
 | --------- | --------- | ---------- | --------------------------------------------------------- |
 | `Produkt` | `Produkt` | `produkte` | `/create-produkt`, `/update-produkt`, `/get-all-produkte` |
 
-> ⚠️ Frontend-Typ-Rename (`Product` → `Produkt`) ausstehend.
+
 
 #### Variante
 
@@ -320,7 +308,7 @@ Konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. P
 | ---------- | ---------- | ------------------- | ------------------------------------------------------------------------------------ |
 | `Variante` | `Variante` | `produkt_varianten` | `/create-variante`, `/update-variante`, `/activate-variante`, `/deactivate-variante` |
 
-> ⚠️ Frontend-Typ-Rename (`Variant` → `Variante`) ausstehend.
+
 
 #### Kategorie
 
@@ -330,7 +318,7 @@ Gruppierung von Produkten. Aktuell drei feste Kategorien.
 | ----------- | -------------------------------------- | ----------------------------------------------------------- |
 | `Kategorie` | `'essen'`, `'getraenk'`, `'sonstiges'` | `EssenKategorie`, `GetraenkKategorie`, `SonstigesKategorie` |
 
-> ⚠️ Frontend-Typ-Rename (`Category` → `Kategorie`) ausstehend.
+
 
 #### Preis
 
@@ -338,7 +326,7 @@ Geldbeträge werden ausnahmslos als ganzzahlige Cent-Werte gespeichert — niema
 
 **Konvention:** Alle Preis-Felder tragen das Suffix `*Cents` — z. B. `PreisCents`, `GesamtPreisCents`, `SaldoCents`, `GesamtZahlungCents`, `GesamtStornierungCents`.
 
-> ⚠️ Frontend-Feld-Rename (`PriceCents` → `PreisCents`) ausstehend.
+
 
 #### Soft-Delete
 

@@ -19,7 +19,7 @@ import {
   KategorieOrder,
   type Produkt,
   type Variante,
-} from '../../product/Product'
+} from '../../product/Produkt'
 
 interface ProductListComponentProps {
   products: Produkt[]

@@ -22,17 +22,17 @@ import {
 import { formatCents } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'
-import { type Variante, VarianteStatus } from './Product'
-import type { ProductBackend } from './ProductBackend'
+import { type Variante, VarianteStatus } from './Produkt'
+import type { ProduktBackend } from './ProduktBackend'
 
 interface VariantItemProps {
   variant: Variante
   loading: boolean
-  backend: Pick<ProductBackend, 'updateVariant'>
-  onActivate: (variantId: number) => Promise<void>
-  onDeactivate: (variantId: number) => Promise<void>
-  onDelete: (variantId: number) => Promise<void>
-  onUpdated: (variant: Variante) => void
+  backend: Pick<ProduktBackend, 'updateVariante'>
+  onActivate: (varianteId: number) => Promise<void>
+  onDeactivate: (varianteId: number) => Promise<void>
+  onDelete: (varianteId: number) => Promise<void>
+  onUpdated: (variante: Variante) => void
 }
 
 export function VariantItem(props: VariantItemProps) {

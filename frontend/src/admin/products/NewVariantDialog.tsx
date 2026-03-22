@@ -19,16 +19,16 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
-import { type Variante, VarianteStatus } from './Product'
-import { CreateVarianteSchema, type ProductBackend } from './ProductBackend'
+import { type Variante, VarianteStatus } from './Produkt'
+import { CreateVarianteSchema, type ProduktBackend } from './ProduktBackend'
 
 const FormDataSchema = CreateVarianteSchema.omit({ produktId: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewVariantDialogProps {
   productId: number
-  backend: Pick<ProductBackend, 'createVariant'>
-  created: (variant: Variante) => void
+  backend: Pick<ProduktBackend, 'createVariante'>
+  created: (variante: Variante) => void
   children: ReactNode
 }
 
@@ -48,7 +48,7 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
     setLoading(true)
 
     try {
-      const id = await props.backend.createVariant({
+      const id = await props.backend.createVariante({
         produktId: props.productId,
         ...data,
       })

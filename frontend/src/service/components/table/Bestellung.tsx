@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import type { Produkt } from '../../product/Product'
+import type { Produkt } from '../../product/Produkt'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { BestellungDrawer } from './BestellungDrawer'

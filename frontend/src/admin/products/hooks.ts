@@ -1,17 +1,17 @@
 import { BackendSingleton } from '@/lib/Backend'
 import { useFetch } from '@/lib/useFetch'
 
-import type { Produkt } from './Product'
-import { ProductBackend } from './ProductBackend'
+import type { Produkt } from './Produkt'
+import { ProduktBackend } from './ProduktBackend'
 
-const productBackend = new ProductBackend(BackendSingleton)
+const produktBackend = new ProduktBackend(BackendSingleton)
 
 /** Custom hook to fetch all products from backend. */
-export function useAllProducts() {
+export function useAllProdukte() {
   const {
-    data: products,
-    setData: setProducts,
+    data: produkte,
+    setData: setProdukte,
     ...rest
-  } = useFetch(() => productBackend.getAllProducts(), [] as Produkt[])
-  return { ...rest, products, setProducts }
+  } = useFetch(() => produktBackend.getAllProdukte(), [] as Produkt[])
+  return { ...rest, produkte, setProdukte }
 }
