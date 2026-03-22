@@ -56,7 +56,7 @@ Die folgenden Abschnitte können **parallel** in separaten Chat-Sessions bearbei
 
 ---
 
-## Abschnitt 1: DB-Schema — `kassenjournal`, `tisch_session_state`, `kassensitzung_state`
+## Abschnitt 1: DB-Schema — `kassenjournal`, `tisch_session_state`, `kassensitzung_state` ✅
 
 Kontext:
 
@@ -67,13 +67,13 @@ Kontext:
 
 ### Tasks
 
-- [ ] Tabelle `events` in `kassenjournal` umbenennen: Tabellenname, neue Spalte `kassensitzung_nr INT NOT NULL` hinzufügen (nach `data JSONB`), `UNIQUE (subject, version)` beibehalten
-- [ ] Alle Indizes umbenennen: `idx_events_user_id` → `idx_kassenjournal_user_id`, `idx_events_subject` → `idx_kassenjournal_subject`, `idx_events_type` → `idx_kassenjournal_type`, `idx_events_subject_type` → `idx_kassenjournal_subject_type`, `idx_events_type_timestamp` → `idx_kassenjournal_type_timestamp`; neuen Index `idx_kassenjournal_ks_nr ON kassenjournal(kassensitzung_nr)` hinzufügen
-- [ ] Immutabilitäts-Trigger anpassen: Funktionsname `prevent_event_mutation` → `prevent_kassenjournal_mutation`, alle drei Trigger-Namen (`events_no_update`, `events_no_delete`, `events_no_truncate`) auf `kassenjournal_no_update/delete/truncate` umbenennen, `ON events` → `ON kassenjournal`
-- [ ] REVOKE/GRANT auf `kassenjournal` anpassen (statt `events`)
-- [ ] Tabelle `table_state` durch `tisch_session_state` ersetzen: PK `subject TEXT` statt `tisch_id INTEGER`, neue Spalten `tisch_id INT NOT NULL REFERENCES tische(id)`, `kassensitzung_nr INT NOT NULL`, FK `last_event_id REFERENCES kassenjournal(id)`, Index `idx_tisch_session_state_ks_nr ON tisch_session_state(kassensitzung_nr)`
-- [ ] Neue Tabelle `kassensitzung_state` erstellen: `subject TEXT PRIMARY KEY`, `z_nr INT UNIQUE NOT NULL`, `datum DATE NOT NULL`, `status TEXT NOT NULL CHECK (status IN ('offen', 'abgeschlossen'))`, `last_event_id INT NOT NULL REFERENCES kassenjournal(id)`, `last_event_version INT NOT NULL`
-- [ ] Kommentare im Schema aktualisieren: Subject-Format-Beispiele (`kassensitzung-20260322`, `kassensitzung-20260322-tisch-42`), Event-Typ-Beispiele (ohne `tisch.`-Präfix)
+- [x] Tabelle `events` in `kassenjournal` umbenennen: Tabellenname, neue Spalte `kassensitzung_nr INT NOT NULL` hinzufügen (nach `data JSONB`), `UNIQUE (subject, version)` beibehalten
+- [x] Alle Indizes umbenennen: `idx_events_user_id` → `idx_kassenjournal_user_id`, `idx_events_subject` → `idx_kassenjournal_subject`, `idx_events_type` → `idx_kassenjournal_type`, `idx_events_subject_type` → `idx_kassenjournal_subject_type`, `idx_events_type_timestamp` → `idx_kassenjournal_type_timestamp`; neuen Index `idx_kassenjournal_ks_nr ON kassenjournal(kassensitzung_nr)` hinzufügen
+- [x] Immutabilitäts-Trigger anpassen: Funktionsname `prevent_event_mutation` → `prevent_kassenjournal_mutation`, alle drei Trigger-Namen (`events_no_update`, `events_no_delete`, `events_no_truncate`) auf `kassenjournal_no_update/delete/truncate` umbenennen, `ON events` → `ON kassenjournal`
+- [x] REVOKE/GRANT auf `kassenjournal` anpassen (statt `events`)
+- [x] Tabelle `table_state` durch `tisch_session_state` ersetzen: PK `subject TEXT` statt `tisch_id INTEGER`, neue Spalten `tisch_id INT NOT NULL REFERENCES tische(id)`, `kassensitzung_nr INT NOT NULL`, FK `last_event_id REFERENCES kassenjournal(id)`, Index `idx_tisch_session_state_ks_nr ON tisch_session_state(kassensitzung_nr)`
+- [x] Neue Tabelle `kassensitzung_state` erstellen: `subject TEXT PRIMARY KEY`, `z_nr INT UNIQUE NOT NULL`, `datum DATE NOT NULL`, `status TEXT NOT NULL CHECK (status IN ('offen', 'abgeschlossen'))`, `last_event_id INT NOT NULL REFERENCES kassenjournal(id)`, `last_event_version INT NOT NULL`
+- [x] Kommentare im Schema aktualisieren: Subject-Format-Beispiele (`kassensitzung-20260322`, `kassensitzung-20260322-tisch-42`), Event-Typ-Beispiele (ohne `tisch.`-Präfix)
 
 ---
 
