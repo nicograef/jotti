@@ -15,7 +15,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 
-import type { Produkt } from '../../product/Product'
+import type { Produkt } from '../../product/Produkt'
 import type { BestellPositionInput } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'

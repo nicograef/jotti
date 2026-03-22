@@ -51,9 +51,9 @@ export function ServiceGuard() {
 }
 
 export function ServiceTableGuard({ params }: LoaderFunctionArgs) {
-  const tableId = Number(params.tableId)
-  if (!Number.isInteger(tableId) || tableId <= 0) {
-    return redirect('/service/tables')
+  const tischId = Number(params.tischId)
+  if (!Number.isInteger(tischId) || tischId <= 0) {
+    return redirect('/service/tische')
   }
 }
 
@@ -70,11 +70,11 @@ export const router = createBrowserRouter([
         Component: AdminLayout,
         loader: AdminGuard,
         children: [
-          { index: true, loader: () => redirect('reporting') },
-          { path: 'reporting', Component: AdminDashboardPage },
-          { path: 'products', Component: AdminProductsPage },
-          { path: 'tables', Component: AdminTablesPage },
-          { path: 'users', Component: AdminUsersPage },
+          { index: true, loader: () => redirect('auswertung') },
+          { path: 'auswertung', Component: AdminDashboardPage },
+          { path: 'produkte', Component: AdminProductsPage },
+          { path: 'tische', Component: AdminTablesPage },
+          { path: 'benutzer', Component: AdminUsersPage },
           { path: 'drucker', Component: DruckerConfigPage },
         ],
       },
@@ -83,14 +83,14 @@ export const router = createBrowserRouter([
         Component: ServiceLayout,
         loader: ServiceGuard,
         children: [
-          { index: true, loader: () => redirect('tables') },
-          { path: 'tables', Component: TableSelectionPage },
+          { index: true, loader: () => redirect('tische') },
+          { path: 'tische', Component: TableSelectionPage },
           {
-            path: 'tables/:tableId',
+            path: 'tische/:tischId',
             Component: TablePage,
             loader: ServiceTableGuard,
           },
-          { path: '', loader: () => redirect('tables') },
+          { path: '', loader: () => redirect('tische') },
         ],
       },
       { path: '', loader: () => redirect('login') },

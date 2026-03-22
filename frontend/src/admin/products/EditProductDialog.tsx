@@ -18,14 +18,14 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { Produkt } from './Product'
-import { ProductBackend, UpdateProductSchema } from './ProductBackend'
+import type { Produkt } from './Produkt'
+import { ProduktBackend, UpdateProduktSchema } from './ProduktBackend'
 
-const FormDataSchema = UpdateProductSchema.omit({ id: true })
+const FormDataSchema = UpdateProduktSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface EditProductDialogProps {
-  backend: Pick<ProductBackend, 'updateProduct'>
+  backend: Pick<ProduktBackend, 'updateProdukt'>
   open: boolean
   product: Produkt
   updated: (product: Produkt) => void
@@ -54,7 +54,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
     setLoading(true)
 
     try {
-      await props.backend.updateProduct({
+      await props.backend.updateProdukt({
         id: props.product.id,
         ...data,
       })

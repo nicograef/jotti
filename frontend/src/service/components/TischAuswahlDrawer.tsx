@@ -59,7 +59,7 @@ export function TischAuswahlDrawer({
   }
 
   const handleTischClick = (tisch: AktiverTischMitFavorit) => {
-    void navigate(`/service/tables/${tisch.id.toString()}`)
+    void navigate(`/service/tische/${tisch.id.toString()}`)
     onOpenChange(false)
   }
 

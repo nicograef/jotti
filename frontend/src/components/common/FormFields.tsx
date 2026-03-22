@@ -8,7 +8,7 @@ import {
   type UseFormReturn,
 } from 'react-hook-form'
 
-import type { Kategorie } from '@/admin/products/Product'
+import type { Kategorie } from '@/admin/products/Produkt'
 import { toUsername, UserRole } from '@/admin/users/User'
 import { Button } from '@/components/ui/button'
 import {

@@ -18,26 +18,26 @@ import { Ausgabe } from './components/table/Ausgabe'
 import { Bestellung } from './components/table/Bestellung'
 import { TischHistorie } from './components/table/TischHistorie'
 import { Zahlung } from './components/table/Zahlung'
-import { useActiveProducts } from './product/hooks'
+import { useAktiveProdukte } from './product/hooks'
 import { useTischHistorie, useTischState } from './table/hooks'
 import { TischBackend } from './table/TischBackend'
 
 const tischBackend = new TischBackend(BackendSingleton)
 
 export function TablePage() {
-  const { tableId } = useParams<{ tableId: string }>()
+  const { tischId } = useParams<{ tischId: string }>()
   const isMobile = useIsMobile()
   const {
     state,
     loading: stateLoading,
     reload: reloadState,
-  } = useTischState(Number(tableId))
-  const { loading: productsLoading, products } = useActiveProducts()
+  } = useTischState(Number(tischId))
+  const { loading: produkteLoading, produkte } = useAktiveProdukte()
   const {
     loading: historieLoading,
     historie,
     reload: reloadHistorie,
-  } = useTischHistorie(Number(tableId))
+  } = useTischHistorie(Number(tischId))
 
   const tisch = {
     id: state.tischId,
@@ -127,8 +127,8 @@ export function TablePage() {
               <Bestellung
                 backend={tischBackend}
                 tisch={tisch}
-                products={products}
-                productsLoading={productsLoading}
+                products={produkte}
+                productsLoading={produkteLoading}
                 onBestellungAufgenommen={() => {
                   reloadState()
                   reloadHistorie()

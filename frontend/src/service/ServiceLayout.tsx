@@ -4,7 +4,7 @@ import { Link, Outlet, useMatch } from 'react-router'
 import { UserDropdown } from '@/components/common/UserDropdown'
 
 export function ServiceLayout() {
-  const onTableDetail = useMatch('/service/tables/:tableId')
+  const onTableDetail = useMatch('/service/tische/:tischId')
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -12,7 +12,7 @@ export function ServiceLayout() {
         <div className="flex items-center gap-2">
           {onTableDetail ? (
             <Link
-              to="/service/tables"
+              to="/service/tische"
               className="flex items-center gap-1 text-sm font-medium"
             >
               <ChevronLeft className="h-4 w-4" />

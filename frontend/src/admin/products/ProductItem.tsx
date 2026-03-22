@@ -41,27 +41,27 @@ import {
   type Produkt,
   type Variante,
   VarianteStatus,
-} from './Product'
-import type { ProductBackend } from './ProductBackend'
+} from './Produkt'
+import type { ProduktBackend } from './ProduktBackend'
 import { VariantItem } from './VariantItem'
 
 interface ProductItemProps {
   loading: boolean
   product: Produkt
   backend: Pick<
-    ProductBackend,
-    | 'activateVariant'
-    | 'deactivateVariant'
-    | 'createVariant'
-    | 'updateVariant'
-    | 'deleteVariant'
+    ProduktBackend,
+    | 'aktiviereVariante'
+    | 'deaktiviereVariante'
+    | 'createVariante'
+    | 'updateVariante'
+    | 'deleteVariante'
   >
-  onEdit: (productId: number) => void
-  onDelete: (productId: number) => Promise<void>
-  onVariantCreated: (variant: Variante) => void
-  onVariantUpdated: (variant: Variante) => void
-  onVariantDeleted: (variantId: number) => void
-  onVariantStatusChange: (variantId: number, status: VarianteStatus) => void
+  onEdit: (produktId: number) => void
+  onDelete: (produktId: number) => Promise<void>
+  onVariantCreated: (variante: Variante) => void
+  onVariantUpdated: (variante: Variante) => void
+  onVariantDeleted: (varianteId: number) => void
+  onVariantStatusChange: (varianteId: number, status: VarianteStatus) => void
 }
 
 export function ProductItem(props: ProductItemProps) {
@@ -86,7 +86,7 @@ export function ProductItem(props: ProductItemProps) {
   const handleActivateVariant = async (variantId: number) => {
     setVariantLoading(true)
     try {
-      await props.backend.activateVariant(variantId)
+      await props.backend.aktiviereVariante(variantId)
       props.onVariantStatusChange(variantId, VarianteStatus.ACTIVE)
     } catch (error) {
       console.error('Error activating variant:', error)
@@ -97,7 +97,7 @@ export function ProductItem(props: ProductItemProps) {
   const handleDeactivateVariant = async (variantId: number) => {
     setVariantLoading(true)
     try {
-      await props.backend.deactivateVariant(variantId)
+      await props.backend.deaktiviereVariante(variantId)
       props.onVariantStatusChange(variantId, VarianteStatus.INACTIVE)
     } catch (error) {
       console.error('Error deactivating variant:', error)
@@ -108,7 +108,7 @@ export function ProductItem(props: ProductItemProps) {
   const handleDeleteVariant = async (variantId: number) => {
     setVariantLoading(true)
     try {
-      await props.backend.deleteVariant(props.product.id, variantId)
+      await props.backend.deleteVariante(props.product.id, variantId)
       props.onVariantDeleted(variantId)
     } catch (error) {
       console.error('Error deleting variant:', error)

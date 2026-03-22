@@ -14,7 +14,7 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
   const navigate = useNavigate()
 
   const handleClick = () => {
-    void navigate(`/service/tables/${state.tischId.toString()}`)
+    void navigate(`/service/tische/${state.tischId.toString()}`)
   }
 
   const hatAusstehende = state.ausstehendePositionen.length > 0

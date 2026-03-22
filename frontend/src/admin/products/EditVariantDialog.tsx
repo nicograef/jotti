@@ -18,8 +18,8 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 
-import type { Variante } from './Product'
-import { type ProductBackend, UpdateVarianteSchema } from './ProductBackend'
+import type { Variante } from './Produkt'
+import { type ProduktBackend, UpdateVarianteSchema } from './ProduktBackend'
 
 const FormDataSchema = UpdateVarianteSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
@@ -27,8 +27,8 @@ type FormData = z.infer<typeof FormDataSchema>
 interface EditVariantDialogProps {
   open: boolean
   variant: Variante
-  backend: Pick<ProductBackend, 'updateVariant'>
-  updated: (variant: Variante) => void
+  backend: Pick<ProduktBackend, 'updateVariante'>
+  updated: (variante: Variante) => void
   close: () => void
 }
 
@@ -57,7 +57,7 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
     setLoading(true)
 
     try {
-      await props.backend.updateVariant({
+      await props.backend.updateVariante({
         id: props.variant.id,
         ...data,
       })

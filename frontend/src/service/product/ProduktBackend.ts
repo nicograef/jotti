@@ -2,16 +2,16 @@ import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
 
-import { type Produkt, ProduktSchema } from './Product'
+import { type Produkt, ProduktSchema } from './Produkt'
 
-export class ProductBackend {
+export class ProduktBackend {
   private readonly backend: BackendClient
 
   constructor(backend: BackendClient) {
     this.backend = backend
   }
 
-  public async getActiveProducts(): Promise<Produkt[]> {
+  public async getAktiveProdukte(): Promise<Produkt[]> {
     const { produkte } = await this.backend.post(
       'service/get-aktive-produkte',
       {},

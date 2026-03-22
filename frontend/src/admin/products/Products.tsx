@@ -3,29 +3,29 @@ import { Package } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
 
-import { type Produkt, type Variante, VarianteStatus } from './Product'
-import { type ProductBackend } from './ProductBackend'
 import { ProductItem } from './ProductItem'
+import { type Produkt, type Variante, VarianteStatus } from './Produkt'
+import { type ProduktBackend } from './ProduktBackend'
 
 interface ProductsProps {
   loading: boolean
   backend: Pick<
-    ProductBackend,
-    | 'activateVariant'
-    | 'deactivateVariant'
-    | 'createVariant'
-    | 'updateVariant'
-    | 'deleteVariant'
+    ProduktBackend,
+    | 'aktiviereVariante'
+    | 'deaktiviereVariante'
+    | 'createVariante'
+    | 'updateVariante'
+    | 'deleteVariante'
   >
   products: Produkt[]
-  onEdit: (productId: number) => void
-  onDelete: (productId: number) => Promise<void>
-  onVariantCreated: (productId: number, variant: Variante) => void
-  onVariantUpdated: (productId: number, variant: Variante) => void
-  onVariantDeleted: (productId: number, variantId: number) => void
+  onEdit: (produktId: number) => void
+  onDelete: (produktId: number) => Promise<void>
+  onVariantCreated: (produktId: number, variante: Variante) => void
+  onVariantUpdated: (produktId: number, variante: Variante) => void
+  onVariantDeleted: (produktId: number, varianteId: number) => void
   onVariantStatusChange: (
-    productId: number,
-    variantId: number,
+    produktId: number,
+    varianteId: number,
     status: VarianteStatus,
   ) => void
 }

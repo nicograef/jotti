@@ -6,14 +6,14 @@ import {
   ProduktSchema,
   VarianteIdSchema,
   VarianteSchema,
-} from './Product'
+} from './Produkt'
 
-export const CreateProductSchema = ProduktSchema.pick({
+export const CreateProduktSchema = ProduktSchema.pick({
   name: true,
   kategorie: true,
 })
 
-export const UpdateProductSchema = ProduktSchema.pick({
+export const UpdateProduktSchema = ProduktSchema.pick({
   id: true,
   name: true,
   kategorie: true,
@@ -33,19 +33,19 @@ export const UpdateVarianteSchema = VarianteSchema.pick({
 
 import type { BackendClient } from '@/lib/Backend'
 
-export class ProductBackend {
+export class ProduktBackend {
   private readonly backend: BackendClient
 
   constructor(backend: BackendClient) {
     this.backend = backend
   }
 
-  // Product methods
+  // Produkt methods
 
-  public async createProduct(
-    newProduct: z.infer<typeof CreateProductSchema>,
+  public async createProdukt(
+    newProdukt: z.infer<typeof CreateProduktSchema>,
   ): Promise<number> {
-    const body = CreateProductSchema.parse(newProduct)
+    const body = CreateProduktSchema.parse(newProdukt)
     const { id } = await this.backend.post(
       'admin/create-produkt',
       body,
@@ -54,14 +54,14 @@ export class ProductBackend {
     return id
   }
 
-  public async updateProduct(
-    updatedProduct: z.infer<typeof UpdateProductSchema>,
+  public async updateProdukt(
+    updatedProdukt: z.infer<typeof UpdateProduktSchema>,
   ): Promise<void> {
-    const body = UpdateProductSchema.parse(updatedProduct)
+    const body = UpdateProduktSchema.parse(updatedProdukt)
     await this.backend.post('admin/update-produkt', body)
   }
 
-  public async getAllProducts(): Promise<Produkt[]> {
+  public async getAllProdukte(): Promise<Produkt[]> {
     const { produkte } = await this.backend.post(
       'admin/get-all-produkte',
       {},
@@ -70,12 +70,12 @@ export class ProductBackend {
     return produkte
   }
 
-  // Variant methods
+  // Variante methods
 
-  public async createVariant(
-    newVariant: z.infer<typeof CreateVarianteSchema>,
+  public async createVariante(
+    newVariante: z.infer<typeof CreateVarianteSchema>,
   ): Promise<number> {
-    const body = CreateVarianteSchema.parse(newVariant)
+    const body = CreateVarianteSchema.parse(newVariante)
     const { id } = await this.backend.post(
       'admin/create-variante',
       body,
@@ -84,29 +84,29 @@ export class ProductBackend {
     return id
   }
 
-  public async updateVariant(
-    updatedVariant: z.infer<typeof UpdateVarianteSchema>,
+  public async updateVariante(
+    updatedVariante: z.infer<typeof UpdateVarianteSchema>,
   ): Promise<void> {
-    const body = UpdateVarianteSchema.parse(updatedVariant)
+    const body = UpdateVarianteSchema.parse(updatedVariante)
     await this.backend.post('admin/update-variante', body)
   }
 
-  public async activateVariant(id: number): Promise<void> {
+  public async aktiviereVariante(id: number): Promise<void> {
     const body = { id: VarianteIdSchema.parse(id) }
     await this.backend.post('admin/activate-variante', body)
   }
 
-  public async deactivateVariant(id: number): Promise<void> {
+  public async deaktiviereVariante(id: number): Promise<void> {
     const body = { id: VarianteIdSchema.parse(id) }
     await this.backend.post('admin/deactivate-variante', body)
   }
 
-  public async deleteProduct(id: number): Promise<void> {
+  public async deleteProdukt(id: number): Promise<void> {
     const body = { id: ProduktIdSchema.parse(id) }
     await this.backend.post('admin/delete-produkt', body)
   }
 
-  public async deleteVariant(produktId: number, id: number): Promise<void> {
+  public async deleteVariante(produktId: number, id: number): Promise<void> {
     const body = {
       produktId: ProduktIdSchema.parse(produktId),
       id: VarianteIdSchema.parse(id),
