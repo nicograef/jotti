@@ -77,7 +77,7 @@ Kontext:
 
 ---
 
-## Abschnitt 2: SQL-Queries + sqlc-Generierung
+## Abschnitt 2: SQL-Queries + sqlc-Generierung ✅
 
 Kontext:
 
@@ -92,13 +92,13 @@ Kontext:
 
 ### Tasks
 
-- [ ] Datei `backend/sqlc/queries/events.sql` löschen und neue Datei `backend/sqlc/queries/kassenjournal.sql` erstellen mit: `WriteEvent` (INSERT INTO `kassenjournal` mit neuer Spalte `kassensitzung_nr`, insgesamt 9 Parameter), `ReadEvent` (SELECT FROM `kassenjournal`), `ReadEventsBySubject` (SELECT FROM `kassenjournal` WHERE subject), `GetMaxVersion` (SELECT FROM `kassenjournal`), `GetDistinctSubjects` (SELECT FROM `kassenjournal`)
-- [ ] Datei `backend/sqlc/queries/table_state.sql` löschen und neue Datei `backend/sqlc/queries/tisch_session_state.sql` erstellen mit: `UpsertTischSessionState` (INSERT/ON CONFLICT auf `subject`, Spalten: subject, tisch_id, kassensitzung_nr, saldo_cents, unbezahlte_positionen, ausstehende_positionen, gesamt_zahlungen_cents, last_event_id, last_event_version), `GetTischSessionState` (WHERE subject = $1), `GetTischSessionStatesByKassensitzungNr` (WHERE kassensitzung_nr = $1, für Tischübersicht), `DeleteAllTischSessionState` (DELETE FROM tisch_session_state)
-- [ ] Neue Datei `backend/sqlc/queries/kassensitzung_state.sql` erstellen mit: `UpsertKassensitzungState` (INSERT/ON CONFLICT auf subject, Spalten: subject, z_nr, datum, status, last_event_id, last_event_version), `GetOffeneKassensitzung` (WHERE status = 'offen' LIMIT 1), `GetKassensitzungBySubject` (WHERE subject = $1), `GetNextZNr` (SELECT COALESCE(MAX(z_nr), 0) + 1 FROM kassensitzung_state), `DeleteAllKassensitzungState` (DELETE FROM kassensitzung_state)
-- [ ] Datei `backend/sqlc/queries/reporting.sql` aktualisieren: Alle `FROM events` → `FROM kassenjournal`; alle Event-Typen `'tisch.bestellung-aufgenommen:v1'` → `'bestellung-aufgenommen:v1'` (analog für zahlung-kassiert, stornierung-erteilt, ausgabe-bestaetigt, auszahlung-geleistet); alle `WHERE timestamp >= @von AND timestamp < @bis` → `WHERE kassensitzung_nr = @kassensitzung_nr`; alle `table_state` → `tisch_session_state`; Subject-Parsing `SPLIT_PART(e.subject, ':', 2)::integer` → `tss.tisch_id` via JOIN auf `tisch_session_state tss ON tss.subject = e.subject`; Query-Parameter von `von`/`bis` auf `kassensitzung_nr` umstellen; `GetEigeneUebersicht` ebenfalls auf `kassenjournal` + `kassensitzung_nr` umstellen
-- [ ] Datei `backend/sqlc/queries/relay.sql` aktualisieren: `FROM events` → `FROM kassenjournal`, Event-Typ `'tisch.bestellung-aufgenommen:v1'` → `'bestellung-aufgenommen:v1'`
-- [ ] Datei `backend/sqlc/queries/tables.sql` aktualisieren: `GetAktiveTische` — JOIN auf `tisch_session_state` statt `table_state`, mit zusätzlichem Parameter `kassensitzung_nr` (`LEFT JOIN tisch_session_state tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $1`); `GetAktiveTischeMitFavoriten` — gleiches Pattern mit `kassensitzung_nr`-Parameter (Position nach user_id-Parameter)
-- [ ] `make sqlc` ausführen, um den generierten Code in `backend/sqlc/dbgen/` zu regenerieren; sicherstellen, dass keine Fehler auftreten
+- [x] Datei `backend/sqlc/queries/events.sql` löschen und neue Datei `backend/sqlc/queries/kassenjournal.sql` erstellen mit: `WriteEvent` (INSERT INTO `kassenjournal` mit neuer Spalte `kassensitzung_nr`, insgesamt 9 Parameter), `ReadEvent` (SELECT FROM `kassenjournal`), `ReadEventsBySubject` (SELECT FROM `kassenjournal` WHERE subject), `GetMaxVersion` (SELECT FROM `kassenjournal`), `GetDistinctSubjects` (SELECT FROM `kassenjournal`)
+- [x] Datei `backend/sqlc/queries/table_state.sql` löschen und neue Datei `backend/sqlc/queries/tisch_session_state.sql` erstellen mit: `UpsertTischSessionState` (INSERT/ON CONFLICT auf `subject`, Spalten: subject, tisch_id, kassensitzung_nr, saldo_cents, unbezahlte_positionen, ausstehende_positionen, gesamt_zahlungen_cents, last_event_id, last_event_version), `GetTischSessionState` (WHERE subject = $1), `GetTischSessionStatesByKassensitzungNr` (WHERE kassensitzung_nr = $1, für Tischübersicht), `DeleteAllTischSessionState` (DELETE FROM tisch_session_state)
+- [x] Neue Datei `backend/sqlc/queries/kassensitzung_state.sql` erstellen mit: `UpsertKassensitzungState` (INSERT/ON CONFLICT auf subject, Spalten: subject, z_nr, datum, status, last_event_id, last_event_version), `GetOffeneKassensitzung` (WHERE status = 'offen' LIMIT 1), `GetKassensitzungBySubject` (WHERE subject = $1), `GetNextZNr` (SELECT COALESCE(MAX(z_nr), 0) + 1 FROM kassensitzung_state), `DeleteAllKassensitzungState` (DELETE FROM kassensitzung_state)
+- [x] Datei `backend/sqlc/queries/reporting.sql` aktualisieren: Alle `FROM events` → `FROM kassenjournal`; alle Event-Typen `'tisch.bestellung-aufgenommen:v1'` → `'bestellung-aufgenommen:v1'` (analog für zahlung-kassiert, stornierung-erteilt, ausgabe-bestaetigt, auszahlung-geleistet); alle `WHERE timestamp >= @von AND timestamp < @bis` → `WHERE kassensitzung_nr = @kassensitzung_nr`; alle `table_state` → `tisch_session_state`; Subject-Parsing `SPLIT_PART(e.subject, ':', 2)::integer` → `tss.tisch_id` via JOIN auf `tisch_session_state tss ON tss.subject = e.subject`; Query-Parameter von `von`/`bis` auf `kassensitzung_nr` umstellen; `GetEigeneUebersicht` ebenfalls auf `kassenjournal` + `kassensitzung_nr` umstellen
+- [x] Datei `backend/sqlc/queries/relay.sql` aktualisieren: `FROM events` → `FROM kassenjournal`, Event-Typ `'tisch.bestellung-aufgenommen:v1'` → `'bestellung-aufgenommen:v1'`
+- [x] Datei `backend/sqlc/queries/tables.sql` aktualisieren: `GetAktiveTische` — JOIN auf `tisch_session_state` statt `table_state`, mit zusätzlichem Parameter `kassensitzung_nr` (`LEFT JOIN tisch_session_state tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $1`); `GetAktiveTischeMitFavoriten` — gleiches Pattern mit `kassensitzung_nr`-Parameter (Position nach user_id-Parameter)
+- [x] `make sqlc` ausführen, um den generierten Code in `backend/sqlc/dbgen/` zu regenerieren; sicherstellen, dass keine Fehler auftreten
 
 ---
 

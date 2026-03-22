@@ -36,9 +36,9 @@ func (q *Queries) CreateTisch(ctx context.Context, arg CreateTischParams) (int, 
 }
 
 const getAktiveTische = `-- name: GetAktiveTische :many
-SELECT t.id, t.name, COALESCE(ts.saldo_cents, 0)::integer AS saldo_cents
+SELECT t.id, t.name, COALESCE(tss.saldo_cents, 0)::integer AS saldo_cents
 FROM tische t
-LEFT JOIN table_state ts ON ts.tisch_id = t.id
+LEFT JOIN tisch_session_state tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $1
 WHERE t.status = 'active'
 ORDER BY t.id ASC
 `
@@ -49,8 +49,8 @@ type GetAktiveTischeRow struct {
 	SaldoCents int
 }
 
-func (q *Queries) GetAktiveTische(ctx context.Context) ([]GetAktiveTischeRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAktiveTische)
+func (q *Queries) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]GetAktiveTischeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAktiveTische, kassensitzungNr)
 	if err != nil {
 		return nil, err
 	}
@@ -73,13 +73,18 @@ func (q *Queries) GetAktiveTische(ctx context.Context) ([]GetAktiveTischeRow, er
 }
 
 const getAktiveTischeMitFavoriten = `-- name: GetAktiveTischeMitFavoriten :many
-SELECT t.id, t.name, COALESCE(ts.saldo_cents, 0)::integer AS saldo_cents, (f.user_id IS NOT NULL) AS ist_favorit
+SELECT t.id, t.name, COALESCE(tss.saldo_cents, 0)::integer AS saldo_cents, (f.user_id IS NOT NULL) AS ist_favorit
 FROM tische t
-LEFT JOIN table_state ts ON ts.tisch_id = t.id
+LEFT JOIN tisch_session_state tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $2
 LEFT JOIN tisch_favoriten f ON f.tisch_id = t.id AND f.user_id = $1
 WHERE t.status = 'active'
 ORDER BY t.id ASC
 `
+
+type GetAktiveTischeMitFavoritenParams struct {
+	UserID          int
+	KassensitzungNr int
+}
 
 type GetAktiveTischeMitFavoritenRow struct {
 	ID         int
@@ -88,8 +93,8 @@ type GetAktiveTischeMitFavoritenRow struct {
 	IstFavorit interface{}
 }
 
-func (q *Queries) GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]GetAktiveTischeMitFavoritenRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAktiveTischeMitFavoriten, userID)
+func (q *Queries) GetAktiveTischeMitFavoriten(ctx context.Context, arg GetAktiveTischeMitFavoritenParams) ([]GetAktiveTischeMitFavoritenRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAktiveTischeMitFavoriten, arg.UserID, arg.KassensitzungNr)
 	if err != nil {
 		return nil, err
 	}

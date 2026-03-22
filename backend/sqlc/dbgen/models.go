@@ -141,16 +141,16 @@ func (ns NullUserrole) Value() (driver.Value, error) {
 	return string(ns.Userrole), nil
 }
 
-// Event log for orders/payments and admin actions (event-sourcing)
-type Event struct {
+// Append-only Kassenjournal (Event Store) for all kasse operations (event-sourcing)
+type Kassenjournal struct {
 	ID int
 	// Actor who triggered the event
 	UserID int
 	// Display name of the actor at the time of the event
 	UserName string
-	// Event type identifier, e.g., bestellung-aufgegeben:v1
+	// Event type identifier, e.g., bestellung-aufgenommen:v1
 	Type string
-	// Aggregate key, e.g. "table:42" for table ID 42
+	// Aggregate key, e.g. "kassensitzung-20260322-tisch-42" for a tisch session
 	Subject string
 	// Optimistic concurrency version per subject (monotonically increasing)
 	Version int
@@ -158,6 +158,18 @@ type Event struct {
 	Timestamp time.Time
 	// Event data (jsonb), versioned by type
 	Data json.RawMessage
+	// Kassensitzung number (z_nr) this event belongs to
+	KassensitzungNr int
+}
+
+// Synchronous CQRS projection of kassensitzung state (hot-path: status + z_nr), updated within the event-write transaction
+type KassensitzungState struct {
+	Subject          string
+	ZNr              int
+	Datum            time.Time
+	Status           string
+	LastEventID      int
+	LastEventVersion int
 }
 
 // Drucker-IP und Bonmodus pro Produkt-Kategorie für den Bondruck.
@@ -201,9 +213,18 @@ type Produkte struct {
 	UpdatedAt time.Time
 }
 
-// Synchronous CQRS projection of per-table state, updated within the event-write transaction
-type TableState struct {
+// Per-user favourite tables; each service user can mark tables they are responsible for.
+type TischFavoriten struct {
+	UserID    int
+	TischID   int
+	CreatedAt time.Time
+}
+
+// Synchronous CQRS projection of per-tisch-session state, session-scoped (PK: subject), updated within the event-write transaction
+type TischSessionState struct {
+	Subject               string
 	TischID               int
+	KassensitzungNr       int
 	SaldoCents            int
 	UnbezahltePositionen  json.RawMessage
 	AusstehendePositionen json.RawMessage
@@ -211,13 +232,6 @@ type TableState struct {
 	LastEventID           int
 	LastEventVersion      int
 	UpdatedAt             time.Time
-}
-
-// Per-user favourite tables; each service user can mark tables they are responsible for.
-type TischFavoriten struct {
-	UserID    int
-	TischID   int
-	CreatedAt time.Time
 }
 
 // Gäste sitzen an Tischen und geben dort Bestellungen auf.

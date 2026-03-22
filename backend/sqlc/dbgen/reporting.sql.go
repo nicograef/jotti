@@ -13,7 +13,7 @@ import (
 
 const getAusstehendAuszahlungen = `-- name: GetAusstehendAuszahlungen :one
 SELECT COALESCE(SUM(ABS(saldo_cents)), 0)::int AS ausstehend_auszahlungen_cents
-FROM table_state
+FROM tisch_session_state
 WHERE saldo_cents < 0
 `
 
@@ -27,16 +27,22 @@ func (q *Queries) GetAusstehendAuszahlungen(ctx context.Context) (int, error) {
 
 const getEigeneUebersicht = `-- name: GetEigeneUebersicht :one
 SELECT
-    COALESCE(COUNT(CASE WHEN type = 'tisch.bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
-    COALESCE(SUM(CASE WHEN type = 'tisch.bestellung-aufgenommen:v1'
+    COALESCE(COUNT(CASE WHEN type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
+    COALESCE(SUM(CASE WHEN type = 'bestellung-aufgenommen:v1'
         THEN (data->>'gesamtPreisCents')::int END), 0)::int AS bestellungen_cents,
-    COALESCE(COUNT(CASE WHEN type = 'tisch.zahlung-kassiert:v1' THEN 1 END), 0)::int AS anzahl_zahlungen,
-    COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-kassiert:v1'
+    COALESCE(COUNT(CASE WHEN type = 'zahlung-kassiert:v1' THEN 1 END), 0)::int AS anzahl_zahlungen,
+    COALESCE(SUM(CASE WHEN type = 'zahlung-kassiert:v1'
         THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents
-FROM events
-WHERE type IN ('tisch.bestellung-aufgenommen:v1', 'tisch.zahlung-kassiert:v1')
+FROM kassenjournal
+WHERE type IN ('bestellung-aufgenommen:v1', 'zahlung-kassiert:v1')
 AND user_id = $1
+AND kassensitzung_nr = $2
 `
+
+type GetEigeneUebersichtParams struct {
+	UserID          int
+	KassensitzungNr int
+}
 
 type GetEigeneUebersichtRow struct {
 	AnzahlBestellungen int
@@ -45,9 +51,9 @@ type GetEigeneUebersichtRow struct {
 	ZahlungenCents     int
 }
 
-// Service-Dashboard: Eigene KPIs der eingeloggten Servicekraft (allzeit).
-func (q *Queries) GetEigeneUebersicht(ctx context.Context, userID int) (GetEigeneUebersichtRow, error) {
-	row := q.db.QueryRowContext(ctx, getEigeneUebersicht, userID)
+// Service-Dashboard: Eigene KPIs der eingeloggten Servicekraft pro Kassensitzung.
+func (q *Queries) GetEigeneUebersicht(ctx context.Context, arg GetEigeneUebersichtParams) (GetEigeneUebersichtRow, error) {
+	row := q.db.QueryRowContext(ctx, getEigeneUebersicht, arg.UserID, arg.KassensitzungNr)
 	var i GetEigeneUebersichtRow
 	err := row.Scan(
 		&i.AnzahlBestellungen,
@@ -60,7 +66,7 @@ func (q *Queries) GetEigeneUebersicht(ctx context.Context, userID int) (GetEigen
 
 const getOffeneSaldi = `-- name: GetOffeneSaldi :one
 SELECT COALESCE(SUM(saldo_cents), 0)::int AS offene_saldi_cents
-FROM table_state WHERE saldo_cents > 0
+FROM tisch_session_state WHERE saldo_cents > 0
 `
 
 // Tagesabrechnung: Summe aller offenen Saldi (zeitraumunabhängig, aktueller Ist-Zustand).
@@ -73,7 +79,7 @@ func (q *Queries) GetOffeneSaldi(ctx context.Context) (int, error) {
 
 const getOffeneTische = `-- name: GetOffeneTische :one
 SELECT COALESCE(COUNT(*), 0)::int AS anzahl
-FROM table_state WHERE saldo_cents > 0
+FROM tisch_session_state WHERE saldo_cents > 0
 `
 
 // Dashboard: Anzahl Tische mit offenem Saldo > 0.
@@ -86,32 +92,27 @@ func (q *Queries) GetOffeneTische(ctx context.Context) (int, error) {
 
 const getReportingStats = `-- name: GetReportingStats :one
 SELECT
-    COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-kassiert:v1'
+    COALESCE(SUM(CASE WHEN type = 'zahlung-kassiert:v1'
         THEN (data->>'gesamtZahlungCents')::int END), 0)::int
-        - COALESCE(SUM(CASE WHEN type = 'tisch.auszahlung-geleistet:v1'
+        - COALESCE(SUM(CASE WHEN type = 'auszahlung-geleistet:v1'
         THEN (data->>'betragCents')::int END), 0)::int AS gesamt_umsatz_cents,
-    COALESCE(SUM(CASE WHEN type = 'tisch.auszahlung-geleistet:v1'
+    COALESCE(SUM(CASE WHEN type = 'auszahlung-geleistet:v1'
         THEN (data->>'betragCents')::int END), 0)::int AS gesamt_auszahlungen_cents,
-    COALESCE(SUM(CASE WHEN type = 'tisch.bestellung-aufgenommen:v1'
+    COALESCE(SUM(CASE WHEN type = 'bestellung-aufgenommen:v1'
         THEN (data->>'gesamtPreisCents')::int END), 0)::int AS gesamt_bestellungen_cents,
-    COALESCE(SUM(CASE WHEN type = 'tisch.stornierung-erteilt:v1'
+    COALESCE(SUM(CASE WHEN type = 'stornierung-erteilt:v1'
         THEN (data->>'gesamtStornierungCents')::int END), 0)::int AS gesamt_stornierungen_cents,
-    COALESCE(COUNT(CASE WHEN type = 'tisch.bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
-    COALESCE(COUNT(CASE WHEN type = 'tisch.stornierung-erteilt:v1' THEN 1 END), 0)::int AS anzahl_stornierungen
-FROM events
+    COALESCE(COUNT(CASE WHEN type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
+    COALESCE(COUNT(CASE WHEN type = 'stornierung-erteilt:v1' THEN 1 END), 0)::int AS anzahl_stornierungen
+FROM kassenjournal
 WHERE type IN (
-    'tisch.bestellung-aufgenommen:v1',
-    'tisch.zahlung-kassiert:v1',
-    'tisch.stornierung-erteilt:v1',
-    'tisch.auszahlung-geleistet:v1'
+    'bestellung-aufgenommen:v1',
+    'zahlung-kassiert:v1',
+    'stornierung-erteilt:v1',
+    'auszahlung-geleistet:v1'
 )
-AND timestamp >= $1 AND timestamp < $2
+AND kassensitzung_nr = $1
 `
-
-type GetReportingStatsParams struct {
-	Von time.Time
-	Bis time.Time
-}
 
 type GetReportingStatsRow struct {
 	GesamtUmsatzCents        int32
@@ -122,9 +123,9 @@ type GetReportingStatsRow struct {
 	AnzahlStornierungen      int
 }
 
-// Reporting: Aggregierte Kennzahlen im gewaehlten Abrechnungszeitraum.
-func (q *Queries) GetReportingStats(ctx context.Context, arg GetReportingStatsParams) (GetReportingStatsRow, error) {
-	row := q.db.QueryRowContext(ctx, getReportingStats, arg.Von, arg.Bis)
+// Reporting: Aggregierte Kennzahlen fuer eine Kassensitzung.
+func (q *Queries) GetReportingStats(ctx context.Context, kassensitzungNr int) (GetReportingStatsRow, error) {
+	row := q.db.QueryRowContext(ctx, getReportingStats, kassensitzungNr)
 	var i GetReportingStatsRow
 	err := row.Scan(
 		&i.GesamtUmsatzCents,
@@ -140,22 +141,18 @@ func (q *Queries) GetReportingStats(ctx context.Context, arg GetReportingStatsPa
 const getStornierungen = `-- name: GetStornierungen :many
 SELECT
     e.timestamp,
-    t.id AS tisch_id,
+    tss.tisch_id,
     t.name AS tisch_name,
     e.user_id,
     e.user_name,
     e.data
-FROM events e
-JOIN tische t ON t.id = CAST(SPLIT_PART(e.subject, ':', 2) AS INTEGER)
-WHERE e.type = 'tisch.stornierung-erteilt:v1'
-AND e.timestamp >= $1 AND e.timestamp < $2
+FROM kassenjournal e
+JOIN tisch_session_state tss ON tss.subject = e.subject
+JOIN tische t ON t.id = tss.tisch_id
+WHERE e.type = 'stornierung-erteilt:v1'
+AND e.kassensitzung_nr = $1
 ORDER BY e.timestamp DESC
 `
-
-type GetStornierungenParams struct {
-	Von time.Time
-	Bis time.Time
-}
 
 type GetStornierungenRow struct {
 	Timestamp time.Time
@@ -166,10 +163,10 @@ type GetStornierungenRow struct {
 	Data      json.RawMessage
 }
 
-// Reporting: Stornierungsevents mit Tischname im Zeitraum.
+// Reporting: Stornierungsevents mit Tischname pro Kassensitzung.
 // Events contain fat positions (produktName, varianteName, einzelpreis, menge) — parse in Go.
-func (q *Queries) GetStornierungen(ctx context.Context, arg GetStornierungenParams) ([]GetStornierungenRow, error) {
-	rows, err := q.db.QueryContext(ctx, getStornierungen, arg.Von, arg.Bis)
+func (q *Queries) GetStornierungen(ctx context.Context, kassensitzungNr int) ([]GetStornierungenRow, error) {
+	rows, err := q.db.QueryContext(ctx, getStornierungen, kassensitzungNr)
 	if err != nil {
 		return nil, err
 	}
@@ -202,22 +199,17 @@ const getUmsatzProServicekraft = `-- name: GetUmsatzProServicekraft :many
 SELECT
     user_id,
     MAX(user_name) AS user_name,
-    COALESCE(SUM(CASE WHEN type = 'tisch.zahlung-kassiert:v1'
+    COALESCE(SUM(CASE WHEN type = 'zahlung-kassiert:v1'
         THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents,
-    COALESCE(SUM(CASE WHEN type = 'tisch.auszahlung-geleistet:v1'
+    COALESCE(SUM(CASE WHEN type = 'auszahlung-geleistet:v1'
         THEN (data->>'betragCents')::int END), 0)::int AS auszahlungen_cents,
-    COUNT(CASE WHEN type = 'tisch.zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
-FROM events
-WHERE type IN ('tisch.zahlung-kassiert:v1', 'tisch.auszahlung-geleistet:v1')
-AND timestamp >= $1 AND timestamp < $2
+    COUNT(CASE WHEN type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
+FROM kassenjournal
+WHERE type IN ('zahlung-kassiert:v1', 'auszahlung-geleistet:v1')
+AND kassensitzung_nr = $1
 GROUP BY user_id
 ORDER BY zahlungen_cents DESC
 `
-
-type GetUmsatzProServicekraftParams struct {
-	Von time.Time
-	Bis time.Time
-}
 
 type GetUmsatzProServicekraftRow struct {
 	UserID            int
@@ -227,10 +219,10 @@ type GetUmsatzProServicekraftRow struct {
 	AnzahlZahlungen   int
 }
 
-// Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Servicekraft im Zeitraum.
+// Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Servicekraft pro Kassensitzung.
 // MAX(user_name) nimmt den lexikographisch letzten Namen bei Namensaenderungen.
-func (q *Queries) GetUmsatzProServicekraft(ctx context.Context, arg GetUmsatzProServicekraftParams) ([]GetUmsatzProServicekraftRow, error) {
-	rows, err := q.db.QueryContext(ctx, getUmsatzProServicekraft, arg.Von, arg.Bis)
+func (q *Queries) GetUmsatzProServicekraft(ctx context.Context, kassensitzungNr int) ([]GetUmsatzProServicekraftRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUmsatzProServicekraft, kassensitzungNr)
 	if err != nil {
 		return nil, err
 	}
@@ -260,25 +252,21 @@ func (q *Queries) GetUmsatzProServicekraft(ctx context.Context, arg GetUmsatzPro
 
 const getUmsatzProTisch = `-- name: GetUmsatzProTisch :many
 SELECT
-    t.id AS tisch_id,
+    tss.tisch_id,
     t.name AS tisch_name,
-    COALESCE(SUM(CASE WHEN e.type = 'tisch.zahlung-kassiert:v1'
+    COALESCE(SUM(CASE WHEN e.type = 'zahlung-kassiert:v1'
         THEN (e.data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents,
-    COALESCE(SUM(CASE WHEN e.type = 'tisch.auszahlung-geleistet:v1'
+    COALESCE(SUM(CASE WHEN e.type = 'auszahlung-geleistet:v1'
         THEN (e.data->>'betragCents')::int END), 0)::int AS auszahlungen_cents,
-    COUNT(CASE WHEN e.type = 'tisch.zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
-FROM events e
-JOIN tische t ON t.id = CAST(SPLIT_PART(e.subject, ':', 2) AS INTEGER)
-WHERE e.type IN ('tisch.zahlung-kassiert:v1', 'tisch.auszahlung-geleistet:v1')
-AND e.timestamp >= $1 AND e.timestamp < $2
-GROUP BY t.id, t.name
+    COUNT(CASE WHEN e.type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
+FROM kassenjournal e
+JOIN tisch_session_state tss ON tss.subject = e.subject
+JOIN tische t ON t.id = tss.tisch_id
+WHERE e.type IN ('zahlung-kassiert:v1', 'auszahlung-geleistet:v1')
+AND e.kassensitzung_nr = $1
+GROUP BY tss.tisch_id, t.name
 ORDER BY zahlungen_cents DESC
 `
-
-type GetUmsatzProTischParams struct {
-	Von time.Time
-	Bis time.Time
-}
 
 type GetUmsatzProTischRow struct {
 	TischID           int
@@ -288,9 +276,9 @@ type GetUmsatzProTischRow struct {
 	AnzahlZahlungen   int
 }
 
-// Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Tisch im Zeitraum.
-func (q *Queries) GetUmsatzProTisch(ctx context.Context, arg GetUmsatzProTischParams) ([]GetUmsatzProTischRow, error) {
-	rows, err := q.db.QueryContext(ctx, getUmsatzProTisch, arg.Von, arg.Bis)
+// Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Tisch pro Kassensitzung.
+func (q *Queries) GetUmsatzProTisch(ctx context.Context, kassensitzungNr int) ([]GetUmsatzProTischRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUmsatzProTisch, kassensitzungNr)
 	if err != nil {
 		return nil, err
 	}
