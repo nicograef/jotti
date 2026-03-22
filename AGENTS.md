@@ -31,13 +31,12 @@ Alle funktionalen und querschnittlichen Anforderungen mit Akzeptanzkriterien, Pr
 Architektur, Bounded Contexts, Domain-Modelle, Invarianten, Event-Sourcing-Details.
 
 - **§1 Überblick:** Systemvision, Designziele, bewusste Abgrenzung
-- **§2 Bounded Contexts:** Kontextsübersicht (Kassenbetrieb, Kassenführung, Stammdaten, Auth), Beziehungen (ACL, Fat Events)
-- **§3 Kassenbetrieb (Core Domain):** Tisch-Aggregat, Invarianten (Saldo, Ausgabe-, Bezahl-, Stornierungsinvariante), Domain Events (BestellungAufgenommen, AusgabeBestaetigt, ZahlungKassiert, StornierungErteilt), Event Replay + Snapshots, Policies
+- **§2 Bounded Contexts:** Kontextübersicht (Kasse, Stammdaten, Auth), Beziehungen (ACL, Fat Events)
+- **§3 Kasse (Core Domain):** Tisch-Session, Kassensitzung, Invarianten (Saldo, Ausgabe-, Bezahl-, Stornierungsinvariante, KS-Sperre), Domain Events (BestellungAufgenommen, AusgabeBestaetigt, ZahlungKassiert, StornierungErteilt, KassensitzungEroeffnet u. a.), Kassenjournal, Zwei Synchrone Projektionen (tisch_session_state, kassensitzung_state)
 - **§4 Stammdaten:** Produkt-Aggregat (Varianten, Kategorien), Tisch-Stammdaten, Benutzer-Aggregat, CRUD-Persistenz
-- **§5 Kassenführung (Supporting Sub-Domain):** Abrechnungskreis, Anfangsbestand, Kassenbestand, Kassenbewegungen, Kassensturz, Tagesabschluss (Z-Bon), Abrechnung/Reporting
-- **§6 Auth und Rollen:** Berechtigungsmatrix, Onboarding-Ablauf
-- **§7 Architekturprinzipien:** Schichtenarchitektur, API-Design, Frontend-Architektur, Validierung, Geldbeträge, OCC, Sicherheit
-- **§8 Read Models:** Service-Read-Models (Tisch-Saldo, Unbezahlt, Ausstehend, Historie)
+- **§5 Auth und Rollen:** Berechtigungsmatrix, Onboarding-Ablauf
+- **§6 Architekturprinzipien:** Schichtenarchitektur, API-Design, Frontend-Architektur, Validierung, Geldbeträge, OCC, Sicherheit
+- **§7 Read Models:** Service-Read-Models (Tisch-Saldo, Unbezahlt, Ausstehend, Historie)
 
 → Lesen bei: Architekturentscheidungen, Invarianten prüfen, Event-Strukturen verstehen, neue Schichten/Endpunkte entwerfen.
 
@@ -134,7 +133,7 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 
 1. **Alle API-Endpunkte sind POST-only.** Keine GET/PUT/DELETE.
 2. **Geldbeträge sind immer in Cent (int).** Niemals Floats für Geld verwenden.
-3. **Event-Sourcing für Tisch-Operationen.** Events sind immutable (append-only). Nie Events updaten oder löschen.
+3. **Event-Sourcing für Kasse-Operationen.** Das Kassenjournal (`kassenjournal`-Tabelle) ist immutable (append-only). Nie Einträge im Kassenjournal updaten oder löschen. Zwei synchrone Projektionen (`tisch_session_state`, `kassensitzung_state`) werden in derselben Transaktion aktualisiert.
 4. **CRUD für Stammdaten** (Benutzer, Produkte, Tische). Soft-Deletes via `status = 'deleted'`.
 5. **Validierung mit Schemas.** Backend: `zog`. Frontend: `Zod`. Beide Seiten validieren.
 6. **Deutsche Ubiquitous Language.** Fachbegriffe der Domäne sind deutsch (Bestellung, Zahlung, Ausgabe, Stornierung, Tisch, Position). Infrastruktur-Code (Auth, Config, DB) bleibt englisch. Alle Benutzer-sichtbaren Strings auf Deutsch. Commits auf Englisch.
@@ -145,7 +144,7 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 
 ## Bereiche
 
-- **Admin** (`admin`): Routen `/admin/*` (`api/admin.go`), Frontend `src/admin/`, `AdminGuard`. Produkte, Tische, Benutzer verwalten.
+- **Admin** (`admin`): Routen `/admin/*` (`api/admin.go`), Frontend `src/admin/`, `AdminGuard`. Produkte, Tische, Benutzer verwalten. Kassensitzung eröffnen/verwalten (künftig).
 - **Service** (`admin` + `serviceleitung` + `service`): Routen `/service/*` (`api/service.go`), Stornierung über `api/serviceleitung.go`. Frontend `src/service/`, `ServiceGuard`. Bestellen, Ausgabe bestätigen, Kassieren, Stornieren.
 - **Auth** (kein JWT): Routen `/auth/*` (`api/auth.go`). Login, Passwort setzen.
 
@@ -156,7 +155,7 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 - ✅ **Immer:** Response-DTOs in der HTTP-Schicht definieren, Domain-Modelle nie direkt serialisieren
 - ⚠️ **Erst fragen:** Neue Dependencies hinzufügen, Docker/Nginx-Konfiguration ändern
 - 🚫 **Niemals:** `sqlc/dbgen/` editieren (generierter Code)
-- 🚫 **Niemals:** Events updaten oder löschen
+- 🚫 **Niemals:** Einträge im Kassenjournal updaten oder löschen
 - 🚫 **Niemals:** Floats für Geldbeträge verwenden
 - 🚫 **Niemals:** `json`-Tags auf Domain-Structs in `domain/` setzen (Ausnahme: Event-Data-Structs für Event Store)
 - 🚫 **Niemals:** Domain-Modelle direkt als HTTP-Response durchschleusen

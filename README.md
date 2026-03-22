@@ -26,9 +26,9 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 🍳 **Ausgabestationen** — Zubereitungsstatus verwalten, Servicekräfte sehen, wann Positionen abholbereit sind
 - 🖨️ **Bon-Druck** — Bestell- und Küchenbons automatisch an zugeordnete Bondrucker senden (pro Kategorie konfigurierbar)
 
-### Kassenführung
+### Kasse
 
-- 📂 **Abrechnungskreis** — fortlaufend nummerierte Kassensitzungen eröffnen und schließen
+- 📂 **Kassensitzung** — fortlaufend nummerierte Kassensitzungen eröffnen und schließen
 - 💵 **Anfangsbestand** — Wechselgeld zu Beginn einer Veranstaltung erfassen
 - 📊 **Kassenbestand** — Soll-Bestand jederzeit einsehen, aufgeschlüsselt nach Komponenten
 - 🔃 **Kassenbewegungen** — Geldtransit, Privatentnahmen und Privateinlagen buchen
@@ -72,7 +72,7 @@ make dev
 | TSE           | Cloud-TSE via fiskaly (Adapter-Pattern, BYOT)         |
 | Reverse Proxy | nginx (HTTPS via Let's Encrypt)                       |
 
-Tisch-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlungen) werden via **Event Sourcing** (append-only) persistiert. Stammdaten und Kassenführung nutzen immutable Records bzw. klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
+Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlungen, Kassensitzungen) werden via **Event Sourcing** im Kassenjournal (append-only) persistiert. Zwei synchrone Projektionen (`tisch_session_state`, `kassensitzung_state`) ermöglichen schnelle Reads. Stammdaten nutzen klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
 
 ## Für wen ist jotti?
 

@@ -22,7 +22,7 @@ frontend/
   src/routes.ts                 # Alle Routen + Guards
   src/App.tsx                   # Root-Komponente
   src/lib/                      # Auth, Backend-Client, useFetch-Hook, Utilities
-  src/admin/                    # Admin-Bereich (Produkte, Tische, Benutzer)
+  src/admin/                    # Admin-Bereich (Produkte, Tische, Benutzer, Kasse/Kassensitzung)
   src/service/                  # Service-Bereich (Tisch-Workflow)
   src/pages/                    # Login, Passwort setzen
   src/components/ui/            # shadcn/ui-Komponenten

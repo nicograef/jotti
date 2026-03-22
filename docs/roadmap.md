@@ -33,7 +33,7 @@
 
 ---
 
-## 4 · Betreiber-Stammdaten (KF-09)
+## 4 · Betreiber-Stammdaten (K-20)
 
 - [ ] DB: `betreiber_stammdaten`-Tabelle anlegen (Name, Adresse, Steuernummer)
 - [ ] Backend: CRUD — Repository, Service, Handler
@@ -49,72 +49,75 @@
 
 ---
 
-## 6 · Kassenführung — DB-Schema
+## 6 · Kasse — DB-Schema (Kassenjournal + Projektionen)
 
-- [ ] DB: Tabellen `abrechnungskreis`, `kassenbewegungen`, `kassensturz`, `zbons` anlegen
-- [ ] DB: Immutability-Trigger (UPDATE/DELETE blockieren) für Kassenführungs-Tabellen
+- [ ] DB: `events` → `kassenjournal` in `01_initial.up.sql` umbenennen (+ `kassensitzung_nr`-Spalte, Trigger, Indizes)
+- [ ] DB: `table_state` → `tisch_session_state` (session-scoped: PK = `subject`, mit `tisch_id`, `kassensitzung_nr`)
+- [ ] DB: Projektionstabelle `kassensitzung_state` anlegen (PK: `subject`, `z_nr` UNIQUE, `datum`, `status`)
+- [ ] DB: Alte Tabellen `abrechnungskreis`, `kassenbewegungen`, `kassensturz`, `z_bons` entfernen (falls geplant)
+- [ ] Repository: `kassenjournal_repo/` (ersetzt `event_repo/`) mit explizitem `StreamType`-Routing
 - [ ] `make sqlc` — Queries generieren
 
 ---
 
-## 7 · Abrechnungskreis eröffnen (KF-01)
+## 7 · Kassensitzung eröffnen (K-16)
 
-- [ ] Backend: Repository, Application Service, HTTP Handler
-- [ ] Backend: Kassenbetrieb-Sperre — schreibende Tischoperationen mit HTTP 409 ablehnen, wenn kein `offen`er Abrechnungskreis existiert
-- [ ] Frontend: Admin-Seite — Abrechnungskreis mit Bezeichnung eröffnen (Tagesöffnung)
-- [ ] Frontend: Hinweis „Kasse ist noch nicht geöffnet“ für Servicekräfte bei fehlendem offenem Abrechnungskreis
+- [ ] Backend: Domain-Modell `domain/kasse/` mit Kassensitzung-Events und -State
+- [ ] Backend: Application Service, HTTP Handler für `KassensitzungEroeffnen`
+- [ ] Backend: Kassensitzung-Sperre — schreibende Tischoperationen mit HTTP 409 ablehnen, wenn keine `offen`e Kassensitzung existiert
+- [ ] Frontend: Admin-Seite — Kassensitzung mit Bezeichnung eröffnen (Tageseröffnung)
+- [ ] Frontend: Hinweis „Kasse ist noch nicht geöffnet" für Servicekräfte bei fehlender offener Kassensitzung
 - [ ] Tests
 
 ---
 
-## 8 · Anfangsbestand setzen (KF-02)
+## 8 · Anfangsbestand setzen (K-17)
 
-- [ ] Backend: Repository, Service, Handler (Betrag pro Abrechnungskreis, einmalig)
+- [ ] Backend: Application Service, Handler (Betrag pro Kassensitzung, einmalig via `AnfangsbestandGesetzt`-Event)
 - [ ] Frontend: Anfangsbestand-Eingabe im Admin
 - [ ] Tests
 
 ---
 
-## 9 · Kassenbewegungen (KF-04 / KF-05 / KF-06)
+## 9 · Kassenbewegungen (K-19)
 
-- [ ] Backend: Geldtransit buchen — Repository, Service, Handler
-- [ ] Backend: Privatentnahme buchen
-- [ ] Backend: Privateinlage buchen
+- [ ] Backend: `KassenbewegungGebucht`-Event mit `art`-Feld (geldtransit | privatentnahme | privateinlage)
+- [ ] Backend: Application Service, Handler für einheitliches `kassenbewegung-buchen`
 - [ ] Frontend: Kassenbewegungen-UI im Admin (einheitliches Formular mit Bewegungsart-Auswahl)
 - [ ] Tests
 
 ---
 
-## 10 · Kassenbestand (KF-03)
+## 10 · Kassenbestand (K-18)
 
-- [ ] Backend: Kassenbestand-Read-Model (SQL-Aggregation über Anfangsbestand + Events + Bewegungen)
+- [ ] Backend: Kassenbestand als SQL-Aggregation über das Kassenjournal (`WHERE kassensitzung_nr = $1`)
 - [ ] Frontend: Kassenbestand-Anzeige mit Aufschlüsselung nach Komponenten
 - [ ] Tests
 
 ---
 
-## 11 · Kassensturz (KF-08)
+## 11 · Kassensturz (K-21)
 
-- [ ] Backend: Ist-Bestand-Eingabe, Differenzberechnung, automatische `DifferenzSollIst`-Buchung
+- [ ] Backend: Zwei-Event-Muster — `KassensturzDurchgefuehrt` + `DifferenzSollIstGebucht` (wenn Differenz ≠ 0) in einer Transaktion
 - [ ] Frontend: Kassensturz-Dialog im Admin (Soll vs. Ist, Differenz-Anzeige)
 - [ ] Tests
 
 ---
 
-## 12 · Tagesabschluss / Z-Bon (KF-07)
+## 12 · Tagesabschluss / Z-Bon (K-22)
 
-- [ ] Backend: Z-Bon-Generierung (Aggregation aller Vorgänge, Stammdaten-Snapshot, fortlaufende `z_nr`)
-- [ ] Backend: Abrechnungskreis beim Tagesabschluss schließen
+- [ ] Backend: `TagesabschlussErstellt`-Event, Kassensitzung abschließen (Status → `abgeschlossen`)
+- [ ] Backend: Z-Bon als Aggregation über Kassenjournal (keine Stammdaten-Snapshot-Pflicht, Änderungssperre garantiert Konsistenz)
+- [ ] Backend: Tisch-Saldo-Sperre prüfen (alle Tische müssen Saldo = 0 haben)
 - [ ] Frontend: Tagesabschluss-Workflow im Admin (offene Tische anzeigen, Kassensturz-Voraussetzung prüfen, Bestätigung)
 - [ ] Tests
-- [ ] `handbuch.md` — Kassenführungs-Abschnitt mit Implementierungsdetails ergänzen
 
 ---
 
-## 13 · Admin-Dashboard: Kassenführung
+## 13 · Admin-Dashboard: Kasse
 
-- [ ] Frontend: Kassenführungs-Übersichtsseite im Admin (aktiver Abrechnungskreis, Kassenbestand, letzte Bewegungen, Z-Bon-Historie)
-- [ ] Frontend: Navigation und Routing für alle Kassenführungs-Funktionen
+- [ ] Frontend: Kasse-Übersichtsseite im Admin (aktive Kassensitzung, Kassenbestand, letzte Bewegungen, Z-Bon-Historie)
+- [ ] Frontend: Navigation und Routing für alle Kasse-Funktionen
 
 ---
 
@@ -134,9 +137,9 @@
 
 ## 16 · Dokumentation nach Phase 1
 
-- [ ] `anforderungen.md` — Status aller Kassenführungs- und Compliance-Features aktualisieren
+- [ ] `anforderungen.md` — Status aller Kasse- und Compliance-Features aktualisieren
 - [ ] `compliance.md` — Compliance-Status nach Phase 1 aktualisieren
-- [ ] `handbuch.md` — Kassenführungs-Code-Referenzen ergänzen
+- [ ] `handbuch.md` — Kasse-Code-Referenzen ergänzen
 
 ---
 
@@ -226,7 +229,7 @@
 ## 27 · Datenexport CSV (R-02)
 
 - [ ] Backend: `POST /admin/export/csv` — Umsätze, Bestellungen, Artikeldaten als CSV
-- [ ] Frontend: Export-Button im Reporting (Abrechnungszeitraum wählbar)
+- [ ] Frontend: Export-Button im Reporting (Kassensitzung wählbar)
 
 ---
 
@@ -247,12 +250,11 @@
 
 ---
 
-## 30 · Abrechnungskreis Phase 2 — Manuelle Tischfreigabe
+## 30 · Tisch-Session Phase 2 — Manuelle Tischfreigabe
 
-> Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der Realität: mehrere Gästegruppen an einem Tisch erhalten jeweils einen eigenen `ABRECHNUNGSKREIS`. Empfohlen zeitnah nach Abschluss der Phase-2-TSE-Integration umzusetzen.
+> Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der Realität: mehrere Gästegruppen an einem Tisch erhalten jeweils einen eigenen Abrechnungskreis (Tisch-Session). Empfohlen zeitnah nach Abschluss der Phase-2-TSE-Integration umzusetzen.
 
-- [ ] Backend: Domain-Aktion `TischFreigegeben` im Tisch-Aggregat (neue Tisch-Session mit Buchstaben-Suffix starten)
-- [ ] Backend: Abrechnungskreis-Suffix-Logik (`Tisch-{Nr}-{YYYYMMDD}-A`, `-B`, etc.)
+- [ ] Backend: Domain-Aktion `TischFreigegeben` — neue Tisch-Session mit Suffix starten (z. B. `kassensitzung-20260322-tisch-42-b`)
 - [ ] Frontend: UI-Aktion „Tisch freimachen" in der Servicekraft-Ansicht
 - [ ] Tests
 
@@ -293,7 +295,7 @@
 
 ## 35 · Dokumentation & Release
 
-- [ ] `README.md` aktualisieren (Kassenführung, Compliance-Status, aktuelle Features)
+- [ ] `README.md` aktualisieren (Kasse, Compliance-Status, aktuelle Features)
 - [ ] Website (`website/`) aktualisieren (Featureliste, Screenshots)
 - [ ] `docs/hosting.md` vervollständigen (Setup-Anleitung, Backup, Updates)
 - [ ] Changelog / Release Notes erstellen

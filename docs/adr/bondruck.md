@@ -12,12 +12,12 @@ Anforderung K-12 erfordert automatischen Bondruck an Ausgabestationen (Küche, G
 
 ### Lastprofil
 
-| Kennzahl                      | Wert          |
-| ----------------------------- | ------------- |
-| Bestellungen pro Veranstaltung | < 2.000       |
-| Bons pro Veranstaltung        | < 5.000       |
-| Latenzanforderung             | < 5 Sekunden  |
-| Gleichzeitige Drucker         | 2–3           |
+| Kennzahl                       | Wert         |
+| ------------------------------ | ------------ |
+| Bestellungen pro Veranstaltung | < 2.000      |
+| Bons pro Veranstaltung         | < 5.000      |
+| Latenzanforderung              | < 5 Sekunden |
+| Gleichzeitige Drucker          | 2–3          |
 
 ### Randbedingungen
 
@@ -33,35 +33,35 @@ Anforderung K-12 erfordert automatischen Bondruck an Ausgabestationen (Küche, G
 
 Eine `print_jobs`-Tabelle wird in derselben Transaktion wie das Event beschrieben. Das Relay pollt diese Tabelle, ein ACK-Endpunkt markiert Jobs als erledigt.
 
-| Vorteil | Nachteil |
-|---|---|
-| Atomare Konsistenz (Event + Job in einer TX) | Kopplung: `WriteEvent()` braucht TxHook-Mechanismus |
-| Bekanntes Enterprise-Pattern | Unnötige Duplikation — Fat Events enthalten bereits alle Daten |
-| | Drucker-IP zum Schreibzeitpunkt festgelegt (stale bei Konfigurationsänderung) |
-| | ESC/POS-Payload pre-rendered (Formatfehler nicht korrigierbar) |
-| | Nicht isolierbar — Bondruck in Core-Domain-Write-Pfad eingebettet |
-| | Zusätzlicher ACK-Endpunkt nötig |
+| Vorteil                                      | Nachteil                                                                      |
+| -------------------------------------------- | ----------------------------------------------------------------------------- |
+| Atomare Konsistenz (Event + Job in einer TX) | Kopplung: `WriteEvent()` braucht TxHook-Mechanismus                           |
+| Bekanntes Enterprise-Pattern                 | Unnötige Duplikation — Fat Events enthalten bereits alle Daten                |
+|                                              | Drucker-IP zum Schreibzeitpunkt festgelegt (stale bei Konfigurationsänderung) |
+|                                              | ESC/POS-Payload pre-rendered (Formatfehler nicht korrigierbar)                |
+|                                              | Nicht isolierbar — Bondruck in Core-Domain-Write-Pfad eingebettet             |
+|                                              | Zusätzlicher ACK-Endpunkt nötig                                               |
 
 ### B: Cursor-basiertes Event-Polling (gewählt)
 
-Die `events`-Tabelle IST die Outbox. Das Relay sendet seinen Cursor (`lastEventId`) und erhält neue Bestellungs-Events. Drucker-IPs werden zur Lesezeit aufgelöst, ESC/POS wird on-the-fly generiert.
+Die `kassenjournal`-Tabelle IST die Outbox. Das Relay sendet seinen Cursor (`lastEventId`) und erhält neue Bestellungs-Events. Drucker-IPs werden zur Lesezeit aufgelöst, ESC/POS wird on-the-fly generiert.
 
-| Vorteil | Nachteil |
-|---|---|
-| Keine Änderung an `WriteEvent()` | At-Least-Once statt Exactly-Once (mitigiert durch Idempotenzliste) |
-| Keine zusätzliche Tabelle | Polling-Latenz (~2 Sekunden) |
-| Drucker-IP zur Lesezeit aufgelöst (immer aktuell) | |
-| ESC/POS on-the-fly generiert (Format jederzeit änderbar) | |
-| Vollständig isolierbar (Relay-Code hat keinen Import aus Core Domain) | |
-| Feature abschaltbar ohne Code-Änderung am Event-Store | |
+| Vorteil                                                               | Nachteil                                                           |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Keine Änderung an `WriteEvent()`                                      | At-Least-Once statt Exactly-Once (mitigiert durch Idempotenzliste) |
+| Keine zusätzliche Tabelle                                             | Polling-Latenz (~2 Sekunden)                                       |
+| Drucker-IP zur Lesezeit aufgelöst (immer aktuell)                     |                                                                    |
+| ESC/POS on-the-fly generiert (Format jederzeit änderbar)              |                                                                    |
+| Vollständig isolierbar (Relay-Code hat keinen Import aus Core Domain) |                                                                    |
+| Feature abschaltbar ohne Code-Änderung am Event-Store                 |                                                                    |
 
 ### C: WebSocket statt HTTP-Polling (verworfen)
 
-| Vorteil | Nachteil |
-|---|---|
-| Geringere Latenz (< 100ms) | Architektur-Mismatch (jotti = POST-only) |
-| Kein unnötiges Polling | WebSocket-Hub, Goroutinen, Ping/Pong, Reconnect-Logik |
-| | gorilla/websocket seit 2022 archiviert |
+| Vorteil                    | Nachteil                                              |
+| -------------------------- | ----------------------------------------------------- |
+| Geringere Latenz (< 100ms) | Architektur-Mismatch (jotti = POST-only)              |
+| Kein unnötiges Polling     | WebSocket-Hub, Goroutinen, Ping/Pong, Reconnect-Logik |
+|                            | gorilla/websocket seit 2022 archiviert                |
 
 **Verworfen:** 2-Sekunden-Latenz ist für Küche/Theke vollkommen akzeptabel. Die zusätzliche Komplexität eines WebSocket-Hubs ist unverhältnismäßig.
 
@@ -81,7 +81,7 @@ Servicekraft druckt manuell aus dem Browser via Ctrl+P.
 
 **Cursor-basiertes Event-Polling mit Print-Relay.** Zwei Komponenten:
 
-1. **Cloud-Backend:** Ein neuer `POST /relay/poll`-Endpunkt liest `BestellungAufgenommen`-Events ab einem Cursor, löst Drucker-IPs zur Lesezeit per JOIN auf `kategorie_drucker` auf, generiert ESC/POS-Payloads on-the-fly und gibt Druck-Aufträge zurück.
+1. **Cloud-Backend:** Ein neuer `POST /relay/poll`-Endpunkt liest `bestellung-aufgenommen`-Events ab einem Cursor, löst Drucker-IPs zur Lesezeit per JOIN auf `kategorie_drucker` auf, generiert ESC/POS-Payloads on-the-fly und gibt Druck-Aufträge zurück.
 2. **Print-Relay:** Ein eigenständiges Go-Binary im lokalen Netzwerk pollt den Backend-Endpunkt, druckt ESC/POS-Bytes an Bondrucker via TCP:9100 und verwaltet seinen Cursor lokal.
 
 ### Delivery-Garantie
@@ -138,6 +138,6 @@ Zwei Modi, konfigurierbar pro Kategorie in der `kategorie_drucker`-Tabelle:
 
 ## Referenzen
 
-- [ADR: Event-Sourcing für Tisch-Operationen](event-sourcing.md) — Fat Events als Datengrundlage
-- [ADR: CQRS-Projektionen für Tisch-Zustand](cqrs.md) — `table_state`-Projektion, Read-Model-Strategie
+- [ADR: Event-Sourcing für Kasse-Operationen](event-sourcing.md) — Fat Events als Datengrundlage
+- [ADR: CQRS-Projektionen für Kasse-Kontext](cqrs.md) — Projektionsarchitektur, Read-Model-Strategie
 - [Anforderungen K-12](../anforderungen.md) — Akzeptanzkriterien für Bondruck

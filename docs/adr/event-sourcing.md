@@ -1,19 +1,19 @@
-# ADR: Persistenz-Strategie für Tisch-Operationen
+# ADR: Persistenz-Strategie für Kasse-Operationen
 
 ## Status
 
-**Entschieden** — Event Sourcing für Tisch-Operationen + Synchrone Projektion. CRUD für Stammdaten und Auth. Ersetzt vorherige ADR (2025-03-13).
+**Entschieden** — Event Sourcing für Kasse-Operationen (Kassenjournal) + Zwei Synchrone Projektionen. CRUD für Stammdaten und Auth. Ersetzt vorherige ADR (2025-03-13).
 
 ## Kontext
 
-Servicekräfte nehmen Bestellungen auf, liefern aus, kassieren und stornieren — alles pro Tisch. Diese vier Kernoperationen (K-01 bis K-04) bilden den Kassenbetrieb, jottis Core Domain. Die zentrale Architekturentscheidung: **Wie werden Tisch-Operationen persistiert?**
+Servicekräfte nehmen Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch. Diese Kernoperationen bilden den Kasse-Kontext (Core Domain). Admins verwalten Kassensitzungen (Eröffnung, Kassenbewegungen, Kassensturz, Tagesabschluss). Die zentrale Architekturentscheidung: **Wie werden Kasse-Operationen persistiert?**
 
 ### Lastprofil
 
 | Kennzahl                         | Wert           | Quelle                                              |
 | -------------------------------- | -------------- | --------------------------------------------------- |
 | Tische pro Veranstaltung         | 5–50           | [Produktbeschreibung §3](../produktbeschreibung.md) |
-| Events pro Tisch (geschätzt)     | ~50–200        | [Handbuch §3.4](../handbuch.md)              |
+| Events pro Tisch (geschätzt)     | ~50–200        | [Handbuch §3.4](../handbuch.md)                     |
 | Gesamte Events pro Veranstaltung | < 10.000       | Berechnung: 50 × 200                                |
 | Gleichzeitige Benutzer           | 5–30           | [Produktbeschreibung §3](../produktbeschreibung.md) |
 | Veranstaltungen pro Jahr         | 2–3            | [Produktbeschreibung §3](../produktbeschreibung.md) |
@@ -34,16 +34,16 @@ Servicekräfte nehmen Bestellungen auf, liefern aus, kassieren und stornieren �
 
 **Indirekt beeinflusst:**
 
-| Anforderung                                                                  | Auswirkung                                                                                                                |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **K-06** (Tischübersicht) — Saldo und Zähler für alle aktiven Tische         | ES ohne Projektion: N separate Event-Replays. CRUD: 1 aggregierendes SELECT. ES + Projektion: 1 SELECT auf `table_state`. |
-| **R-01–R-05** (Reporting) — Tagesabrechnung, Umsatz pro Produkt/Servicekraft | ES: JSONB-Parsing über alle Events. CRUD: Standard-SQL-Aggregation. ES + Projektion: Hybrid.                              |
+| Anforderung                                                                  | Auswirkung                                                                                                                        |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| K-06 (Tischübersicht) — Saldo und Zähler für alle aktiven Tische             | ES ohne Projektion: N separate Event-Replays. CRUD: 1 aggregierendes SELECT. ES + Projektion: 1 SELECT auf `tisch_session_state`. |
+| **R-01–R-05** (Reporting) — Tagesabrechnung, Umsatz pro Produkt/Servicekraft | ES: JSONB-Parsing über alle Events. CRUD: Standard-SQL-Aggregation. ES + Projektion: Hybrid.                                      |
 
 > **Transparenzhinweis — Zirkuläre Abhängigkeit:** Die Anforderungen K-07 und Q-04 formulieren Event Sourcing als _Anforderung_, nicht als _Lösung_. Diese ADR begründet die Entscheidung unter anderem mit diesen Anforderungen. Das ist zirkulär. Die Entscheidung stützt sich daher primär auf die fachliche Analyse (§ Begründung), nicht auf K-07/Q-04. Diese beiden Anforderungen werden als _konsistent mit_ der Entscheidung gewertet, nicht als _Treiber_ der Entscheidung.
 
 ### ACL-Problem (Anti-Corruption Layer)
 
-Produktpreise und -namen können sich zwischen Bestellung und Abrechnung ändern. Der Kassenbetrieb muss sich gegen Stammdaten-Änderungen schützen:
+Produktpreise und -namen können sich zwischen Bestellung und Abrechnung ändern. Der Kasse-Kontext muss sich gegen Stammdaten-Änderungen schützen:
 
 - **ES-Lösung:** Fat Events — Produktdaten zum Bestellzeitpunkt im Event eingefroren. Explizit, sichtbar, Teil des Domänenmodells.
 - **CRUD-Lösung:** Denormalisierte Spalten (`produkt_name`, `variante_name`, `einzelpreis`) in der Positions-Tabelle. Funktional identisch, aber weniger offensichtlich.
@@ -54,9 +54,9 @@ Beide Lösungen funktionieren. Der Unterschied ist konzeptuelle Klarheit, nicht 
 
 ## Entscheidung
 
-**Event Sourcing für Tisch-Operationen, erweitert um synchrone Projektion (CQRS Stufe 2). CRUD für Stammdaten und Auth.**
+**Event Sourcing für Kasse-Operationen, erweitert um zwei synchrone Projektionen (CQRS Stufe 2). CRUD für Stammdaten und Auth.**
 
-Tisch-Operationen werden als immutable Events in einer `events`-Tabelle gespeichert. Eine synchrone `table_state`-Projektion wird in derselben Transaktion wie das Event-INSERT aktualisiert und dient als optimiertes Read-Modell.
+Kasse-Operationen (Tisch-Sessions und Kassensitzungen) werden als immutable Events in einer `kassenjournal`-Tabelle gespeichert. Zwei synchrone Projektionen — `tisch_session_state` (session-scoped Tisch-Projektion) und `kassensitzung_state` (Kassensitzung-Hot-Path) — werden in derselben Transaktion wie das Event-INSERT aktualisiert. Ein expliziter `StreamType`-Parameter steuert das Routing.
 
 ---
 
@@ -136,22 +136,22 @@ ORDER BY created_at ASC;
 
 ### Option B: Event Sourcing ohne Projektion (vorheriger Ist-Zustand)
 
-**Schema:** 1 Events-Tabelle (`events`) mit JSONB-Payload. Event-Typen: `BestellungAufgegeben`, `ZahlungRegistriert`, `ProdukteGeliefert`, `ProdukteStorniert`. (Ehemals auch `tisch.snapshot` — abgelöst durch synchrone Projektion, siehe [ADR: CQRS](cqrs.md).)
+**Schema:** 1 Events-Tabelle (`kassenjournal`) mit JSONB-Payload. Event-Typen: `BestellungAufgenommen`, `ZahlungKassiert`, `AusgabeBestaetigt`, `StornierungErteilt`, `AuszahlungGeleistet` (Tisch-Session) sowie 6 Kassensitzung-Events.
 
-| Aspekt               | Implementierung                                                                       |
-| -------------------- | ------------------------------------------------------------------------------------- |
-| State Reconstruction | Synchrone Projektion via `ApplyEvent()` in `table_state` (siehe [ADR: CQRS](cqrs.md)) |
-| OCC                  | UNIQUE Constraint `(subject, version)` + `GetMaxVersion()` + Retry bei Conflict       |
-| Snapshot             | `tisch.snapshot:v1` als Event-Typ im Event Stream                                     |
-| Read-Optimization    | `ReadEventsWithSnapshot()` — lädt letzten Snapshot + nachfolgende Events              |
-| Kassenjournal        | `ReadEventsBySubject()` — 1 Query, chronologisch sortiert                             |
+| Aspekt               | Implementierung                                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| State Reconstruction | Zwei synchrone Projektionen via `ApplyEvent()` in `tisch_session_state` und `kassensitzung_state` (siehe [ADR: CQRS](cqrs.md)) |
+| OCC                  | UNIQUE Constraint `(subject, version)` + `GetMaxVersion()` + Retry bei Conflict                                                |
+| Snapshot             | Eliminiert — synchrone Projektion ersetzt Snapshot-Events                                                                      |
+| Read-Optimization    | `ReadEventsWithSnapshot()` — lädt letzten Snapshot + nachfolgende Events                                                       |
+| Kassenjournal        | `ReadEventsBySubject()` — 1 Query, chronologisch sortiert                                                                      |
 
 **Vorteile:**
 
 - ✅ Natürliches Domänenmodell — Geschäftsvorfälle als First-Class-Citizens
 - ✅ Unveränderlichkeit strukturell garantiert (DB-Trigger: `prevent_event_mutation()`)
 - ✅ Audit Trail = Event Stream — ein einziger Mechanismus
-- ✅ Minimale Schema-Komplexität (1 Tabelle für den gesamten Kassenbetrieb)
+- ✅ Minimale Schema-Komplexität (1 Tabelle für den gesamten Kasse-Kontext)
 - ✅ Fat Events lösen ACL-Problem explizit und sichtbar
 - ✅ OCC trivial über eine Spalte und einen UNIQUE Constraint
 - ✅ Kassenjournal = 1 Query
@@ -167,9 +167,9 @@ ORDER BY created_at ASC;
 
 **Gesamtbewertung:** Fachlich richtig, Read-Seite hat praktische Schwächen. Der Snapshot-as-Event-Mechanismus ist ein konzeptuelles Problem, das die Klarheit des Event Streams untergräbt.
 
-### Option C: Event Sourcing + Synchrone Projektion (gewählt)
+### Option C: Event Sourcing + Zwei Synchrone Projektionen (gewählt)
 
-**Schema:** Events-Tabelle als Source of Truth + `table_state`-Projektionstabelle. UPSERT auf `table_state` in derselben Transaktion wie Event-INSERT.
+**Schema:** Kassenjournal-Tabelle als Source of Truth + `tisch_session_state`- und `kassensitzung_state`-Projektionstabellen. UPSERT auf die jeweilige Projektion in derselben Transaktion wie Event-INSERT. Routing über expliziten `StreamType`-Parameter.
 
 **Architektur-Skizze:**
 
@@ -177,55 +177,72 @@ ORDER BY created_at ASC;
 Command (Schreiben)                    Query (Lesen)
        │                                      │
        ▼                                      ▼
-┌──────────────────┐              ┌─────────────────────────┐
-│ EventRepo.       │              │ TableStateRepo.         │
-│ WriteEvent()     │              │ GetState()              │
-│                  │              │                         │
-│ BEGIN TX         │              │ SELECT * FROM           │
-│  INSERT event    │              │   table_state           │
-│  UPSERT state ←──── synchron   │ WHERE tisch_id = ?      │
-│ COMMIT TX        │              └─────────────────────────┘
-└──────────────────┘
+┌──────────────────────┐          ┌───────────────────────────────┐
+│ KassenjournalRepo.   │          │ TischSessionStateRepo.        │
+│ WriteEvent()         │          │ GetState()                    │
+│                      │          │                               │
+│ BEGIN TX             │          │ SELECT * FROM                 │
+│  INSERT kassenjournal│          │  tisch_session_state          │
+│  StreamType routing  │          │ WHERE subject = ?             │
+│  UPSERT state ←─ synchron      │                               │
+│ COMMIT TX            │          │ KassensitzungStateRepo.       │
+└──────────────────────┘          │ GetState()                    │
+                                  │                               │
+                                  │ SELECT * FROM                 │
+                                  │  kassensitzung_state          │
+                                  │ WHERE kassensitzung_nr = ?    │
+                                  └───────────────────────────────┘
 ```
 
-**table_state-Schema (Skizze):**
+**Projektions-Schemata (Skizze):**
 
 ```sql
-CREATE TABLE table_state (
-    tisch_id                  INT PRIMARY KEY REFERENCES tische(id),
+CREATE TABLE tisch_session_state (
+    subject                   TEXT PRIMARY KEY,  -- z.B. "kassensitzung-20260501-tisch-42"
+    tisch_id                  INT NOT NULL REFERENCES tische(id),
+    kassensitzung_nr          TEXT NOT NULL,
     saldo_cents               INT NOT NULL DEFAULT 0,
-    last_event_id             INT NOT NULL REFERENCES events(id),
+    last_event_id             INT NOT NULL REFERENCES kassenjournal(id),
     last_event_version        INT NOT NULL,
     unbezahlte_positionen     JSONB NOT NULL DEFAULT '[]',
     ungelieferte_positionen   JSONB NOT NULL DEFAULT '[]',
     gesamt_zahlungen_cents    INT NOT NULL DEFAULT 0,
     updated_at                TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE kassensitzung_state (
+    kassensitzung_nr          TEXT PRIMARY KEY,  -- z.B. "kassensitzung-20260501"
+    status                    TEXT NOT NULL DEFAULT 'offen',
+    anfangsbestand_cents      INT NOT NULL DEFAULT 0,
+    last_event_id             INT NOT NULL REFERENCES kassenjournal(id),
+    last_event_version        INT NOT NULL,
+    updated_at                TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 ```
 
 **Wie die Projektion funktioniert:**
 
-1. Command-Service ruft `EventRepo.WriteEvent(event)` auf (unverändert)
-2. Repository-intern: `BEGIN TX → INSERT INTO events → ApplyEvent(state, event) → UPSERT INTO table_state → COMMIT TX`
-3. Die Apply-Funktion (`ApplyEventToState()`) ist eine reine Funktion in der Domain-Schicht — kein DB-Zugriff
-4. Der Command-Service kennt weder `table_state` noch den Projektor — CQRS-Trennung bleibt intakt
-5. Query-Service liest direkt aus `table_state` — kein Event Replay mehr nötig
+1. Command-Service ruft `KassenjournalRepo.WriteEvent(event, streamType)` auf
+2. Repository-intern: `BEGIN TX → INSERT INTO kassenjournal → StreamType-Routing → ApplyEvent(state, event) → UPSERT in die jeweilige Projektionstabelle → COMMIT TX`
+3. Die Apply-Funktionen sind reine Funktionen in der Domain-Schicht — kein DB-Zugriff
+4. Der Command-Service kennt weder die Projektionstabellen noch den Projektor — CQRS-Trennung bleibt intakt
+5. Query-Service liest direkt aus `tisch_session_state` oder `kassensitzung_state` — kein Event Replay mehr nötig
 
 **Vorteile:**
 
 - ✅ **Alle ES-Vorteile bleiben erhalten** (Audit Trail, Immutabilität, natürliches Domänenmodell, OCC, Fat Events)
-- ✅ **K-06 (Tischübersicht) wird trivial:** `SELECT * FROM table_state` statt N Event-Replays
+- ✅ **K-06 (Tischübersicht) wird trivial:** `SELECT * FROM tisch_session_state` statt N Event-Replays
 - ✅ **Snapshot-as-Event wird eliminiert** — `tisch.snapshot:v1` muss nicht mehr erzeugt werden
-- ✅ **Reporting profitiert** — Saldo und Positionen sind vorberechnet, kombinierbar mit `events`-Tabelle
+- ✅ **Reporting profitiert** — Saldo und Positionen sind vorberechnet, kombinierbar mit `kassenjournal`-Tabelle
 - ✅ **Strong Consistency** — Projektion in derselben TX wie Event-INSERT, kein Stale State
-- ✅ **Selbstheilend** — Bei Inkonsistenz kann `table_state` jederzeit aus Events reberechnet werden
+- ✅ **Selbstheilend** — Bei Inkonsistenz können die Projektionen jederzeit aus dem Kassenjournal reberechnet werden
 
 **Nachteile:**
 
 - ❌ Minimal komplexerer Write-Pfad (1 INSERT + 1 UPSERT pro Transaktion)
 - ❌ Neue Tabelle + Apply-Funktion als Code (~100–200 Zeilen)
 - ❌ Projektion muss konsistent mit Event-Replay-Logik bleiben — Testabdeckung essenziell
-- ❌ JSONB-Spalten in `table_state` für Positionslisten
+- ❌ JSONB-Spalten in `tisch_session_state` für Positionslisten
 
 **Gesamtbewertung:** Kombiniert fachliche Richtigkeit des Event Sourcing mit praktischer Lesbarkeit. Der Mehraufwand ist gering und der Architekturgewinn erheblich: Snapshot-Anti-Pattern wird eliminiert, Read-Performance wird optimal, Reporting wird ermöglicht.
 
@@ -233,7 +250,7 @@ CREATE TABLE table_state (
 
 Normalisierte Tabellen wie Option A, aber alle INSERT-only (nie UPDATE/DELETE). Status wird durch Existenz von Einträgen in Verknüpfungstabellen berechnet.
 
-Konvergiert strukturell auf Event Sourcing — ohne dessen Vorteile (einheitlicher Event Stream, triviales OCC, Kassenjournal als 1 Query). 8+ INSERT-only-Tabellen statt 1 Events-Tabelle, Kassenjournal als UNION, ungelöstes OCC-Problem. Kein etabliertes Pattern — weder reines ES noch reines CRUD. **Nicht empfohlen.**
+Konvergiert strukturell auf Event Sourcing — ohne dessen Vorteile (einheitlicher Event Stream, triviales OCC, Kassenjournal als 1 Query). 8+ INSERT-only-Tabellen statt 1 Kassenjournal-Tabelle, Kassenjournal als UNION, ungelöstes OCC-Problem. Kein etabliertes Pattern — weder reines ES noch reines CRUD. **Nicht empfohlen.**
 
 ---
 
@@ -290,9 +307,9 @@ Das Einfrieren von Produktpreisen zum Bestellzeitpunkt ist bei ES ein sichtbares
 
 Ein UNIQUE Constraint `(subject, version)` auf einer Tabelle. Bei CRUD bräuchte man eine synthetische `tisch_version`-Spalte (UPDATE auf einer eigentlich stabilen Entity) oder Multi-Table-Locking.
 
-### 6. Die Projektion behebt die Read-Schwächen
+### 6. Die Projektionen beheben die Read-Schwächen
 
-`table_state` als synchrone Projektion macht Read-Zugriffe trivial (1 SELECT), eliminiert das Snapshot-as-Event-Anti-Pattern und ermöglicht Reporting — bei minimalem Write-Overhead (1 zusätzlicher UPSERT pro Transaktion). Details zur Projektionsarchitektur: [ADR: CQRS](cqrs.md).
+`tisch_session_state` und `kassensitzung_state` als synchrone Projektionen machen Read-Zugriffe trivial (je 1 SELECT), eliminieren das Snapshot-as-Event-Anti-Pattern und ermöglichen Reporting — bei minimalem Write-Overhead (1 zusätzlicher UPSERT pro Transaktion). Details zur Projektionsarchitektur: [ADR: CQRS](cqrs.md).
 
 ---
 
@@ -304,7 +321,7 @@ Ein UNIQUE Constraint `(subject, version)` auf einer Tabelle. Bei CRUD bräuchte
 
 3. **Höhere Einstiegshürde.** Contributors müssen Event Replay, OCC-Versionierung und die Apply-Funktion verstehen. _Mitigation:_ Gut dokumentierte Domain-Schicht, [Handbuch §3](..//handbuch.md).
 
-4. **Ad-hoc-SQL-Analyse erschwert.** JSONB-Parsing statt Standard-SQL. _Mitigation:_ `table_state` enthält vorberechnete Werte; für tiefergehende Analyse existieren die JSONB-Operatoren.
+4. **Ad-hoc-SQL-Analyse erschwert.** JSONB-Parsing statt Standard-SQL. _Mitigation:_ `tisch_session_state` enthält vorberechnete Werte; für tiefergehende Analyse existieren die JSONB-Operatoren.
 
 5. **Projektion muss konsistent mit Event-Replay-Logik sein.** Zwei Codepfade für dieselbe Berechnung. _Mitigation:_ Apply-Funktion als Single Source of Truth, Replay-Funktionen darauf aufbauen lassen.
 
@@ -312,11 +329,11 @@ Ein UNIQUE Constraint `(subject, version)` auf einer Tabelle. Bei CRUD bräuchte
 
 ## Scope
 
-| Bereich                                     | Persistenz                    | Begründung                                                                   |
-| ------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------- |
-| **Kassenbetrieb** (Tisch-Operationen)       | Event Sourcing (+ Projektion) | Vorgangsbasierte Domäne, Audit Trail, Immutabilität                          |
-| **Stammdaten** (Produkte, Tische, Benutzer) | CRUD                          | Einfache Entities, kein Audit Trail im Domänenmodell nötig, stabile Schemata |
-| **Auth** (Login, Passwort)                  | CRUD                          | Infrastruktur, kein Domänen-Audit-Wert                                       |
+| Bereich                                      | Persistenz                      | Begründung                                                                   |
+| -------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| **Kasse** (Tisch-Sessions + Kassensitzungen) | Event Sourcing (+ Projektionen) | Vorgangsbasierte Domäne, Audit Trail, Immutabilität                          |
+| **Stammdaten** (Produkte, Tische, Benutzer)  | CRUD                            | Einfache Entities, kein Audit Trail im Domänenmodell nötig, stabile Schemata |
+| **Auth** (Login, Passwort)                   | CRUD                            | Infrastruktur, kein Domänen-Audit-Wert                                       |
 
 ---
 
@@ -326,40 +343,56 @@ Ein UNIQUE Constraint `(subject, version)` auf einer Tabelle. Bei CRUD bräuchte
 
 ```go
 type Event struct {
-    ID      int              `json:"id"`
-    UserID  int              `json:"userId"`
-    Type    string           `json:"type"`      // z.B. "tisch.bestellung-aufgegeben:v1"
-    Time    time.Time        `json:"time"`
-    Subject string           `json:"subject"`   // z.B. "tisch:42"
-    Data    json.RawMessage  `json:"data"`
+    ID       int              `json:"id"`
+    UserID   int              `json:"userId"`
+    UserName string           `json:"userName"`
+    Type     string           `json:"type"`      // z.B. "bestellung-aufgenommen:v1"
+    Time     time.Time        `json:"time"`
+    Subject  string           `json:"subject"`   // z.B. "kassensitzung-20260501-tisch-42"
+    Data     json.RawMessage  `json:"data"`
 }
 ```
 
 ### Event-Typen
 
-| Event-Typ                        | Beschreibung          |
-| -------------------------------- | --------------------- |
-| `tisch.bestellung-aufgegeben:v1` | Bestellung aufgegeben |
-| `tisch.zahlung-registriert:v1`   | Zahlung registriert   |
-| `tisch.produkte-storniert:v1`    | Positionen storniert  |
-| `tisch.produkte-geliefert:v1`    | Positionen geliefert  |
+**Tisch-Session Events** (Subject: `kassensitzung-{YYYYMMDD}-tisch-{id}`):
 
-> **Entfernt:** `tisch.snapshot:v1` wurde durch die synchrone `table_state`-Projektion abgelöst (siehe [ADR: CQRS](cqrs.md)). Der Snapshot-Event-Typ wird nicht mehr erzeugt und der zugehörige Code wurde vollständig entfernt.
+| Event-Typ                   | Beschreibung           |
+| --------------------------- | ---------------------- |
+| `bestellung-aufgenommen:v1` | Bestellung aufgenommen |
+| `zahlung-kassiert:v1`       | Zahlung kassiert       |
+| `ausgabe-bestaetigt:v1`     | Ausgabe bestätigt      |
+| `stornierung-erteilt:v1`    | Stornierung erteilt    |
+| `auszahlung-geleistet:v1`   | Auszahlung geleistet   |
+
+**Kassensitzung Events** (Subject: `kassensitzung-{YYYYMMDD}`):
+
+| Event-Typ                       | Beschreibung               |
+| ------------------------------- | -------------------------- |
+| `kassensitzung-eroeffnet:v1`    | Kassensitzung eröffnet     |
+| `anfangsbestand-gesetzt:v1`     | Anfangsbestand gesetzt     |
+| `kassenbewegung-gebucht:v1`     | Kassenbewegung gebucht     |
+| `kassensturz-durchgefuehrt:v1`  | Kassensturz durchgeführt   |
+| `differenz-soll-ist-gebucht:v1` | Differenz Soll/Ist gebucht |
+| `tagesabschluss-erstellt:v1`    | Tagesabschluss erstellt    |
+
+> **Entfernt:** `tisch.snapshot:v1` wurde durch die synchronen Projektionen `tisch_session_state` und `kassensitzung_state` abgelöst (siehe [ADR: CQRS](cqrs.md)). Der Snapshot-Event-Typ wird nicht mehr erzeugt und der zugehörige Code wurde vollständig entfernt.
 
 ### Append-Only-Garantie
 
 - **Privilege Revocation**: Nur SELECT und INSERT erlaubt.
 - **DB-Trigger** (`prevent_event_mutation()`) gegen UPDATE/DELETE/TRUNCATE.
 
-### Synchrone Projektion
+### Synchrone Projektionen
 
-Die `table_state`-Projektion wird in derselben Transaktion wie das Event-INSERT aktualisiert. Details zur Projektionsarchitektur, zum Apply-Mechanismus und zur CQRS-Trennung: [ADR: CQRS](cqrs.md).
+Die `tisch_session_state`- und `kassensitzung_state`-Projektionen werden in derselben Transaktion wie das Event-INSERT aktualisiert. Ein expliziter `StreamType`-Parameter steuert das Routing zur richtigen Projektionstabelle. Details zur Projektionsarchitektur, zum Apply-Mechanismus und zur CQRS-Trennung: [ADR: CQRS](cqrs.md).
 
 ### CQRS
 
-- **Commands** erstellen Events: `BestellungAufgeben`, `ZahlungRegistrieren`, `ProdukteStornieren`, `ProdukteLiefern`
-- **Queries** lesen aus `table_state`: `GetTischSaldo`, `GetTischUnbezahlt`, `GetTischUngeliefert`
-- **Queries** lesen aus `events`: `GetTischHistorie` (Kassenjournal)
+- **Commands** erstellen Events: `BestellungAufnehmen`, `ZahlungKassieren`, `AusgabeBestaetigen`, `StornierungErteilen`, `AuszahlungLeisten`, `KassensitzungEroeffnen`, `AnfangsbestandSetzen`, `KassenbewegungBuchen`, `KassensturzDurchfuehren`, `TagesabschlussErstellen`
+- **Queries** lesen aus `tisch_session_state`: `GetTischSaldo`, `GetTischUnbezahlt`, `GetTischAusstehend`
+- **Queries** lesen aus `kassensitzung_state`: `GetOffeneKassensitzung`, `GetKassenbestand`
+- **Queries** lesen aus `kassenjournal`: `GetTischHistorie` (Kassenjournal)
 
 ---
 
@@ -367,16 +400,16 @@ Die `table_state`-Projektion wird in derselben Transaktion wie das Event-INSERT 
 
 Die Entscheidung sollte revidiert werden, wenn:
 
-- Die Anzahl der Event-Typen deutlich wächst (> 10) und die Apply-Funktion unkontrollierbar wird
+- Die Anzahl der Event-Typen deutlich wächst (> 20) und die Apply-Funktionen unkontrollierbar werden
 - Neue Anforderungen referentielle Integrität auf DB-Ebene zwingend erfordern
 - Die JSONB-Parsing-Komplexität für Reporting nicht mehr beherrschbar ist
 
-Bei jottis aktuellem Scope (4 fachliche Event-Typen, < 10k Events, bewusster Feature-Freeze) sind diese Szenarien unwahrscheinlich.
+Bei jottis aktuellem Scope (11 Event-Typen, < 10k Events, bewusster Feature-Freeze) sind diese Szenarien unwahrscheinlich.
 
 ---
 
 ## Referenzen
 
-- [ADR: CQRS](cqrs.md) — Projektionsarchitektur, Stufen-Modell, `table_state`-Details
-- [Handbuch §3](..//handbuch.md) — Domain-Modell, Tisch-Aggregat, Invarianten, Event Replay
+- [ADR: CQRS](cqrs.md) — Projektionsarchitektur, Stufen-Modell, `tisch_session_state`-/`kassensitzung_state`-Details
+- [Handbuch §3](../handbuch.md) — Domain-Modell, Tisch-Session, Invarianten, Event Replay
 - [Anforderungen](../anforderungen.md) — K-01–K-07, Q-02, Q-04, R-01–R-05

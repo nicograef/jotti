@@ -1,37 +1,60 @@
 ---
-description: "Use when working on event sourcing, domain events, table operations, event replay, snapshots, or tisch-aggregate state."
-applyTo: "backend/domain/table/**,backend/repository/event_repo/**"
+description: "Use when working on event sourcing, domain events, kasse operations, tisch-session state, kassensitzung state, or kassenjournal."
+applyTo: "backend/domain/kasse/**,backend/domain/table/**,backend/repository/event_repo/**,backend/repository/kassenjournal_repo/**"
 ---
 
 # Event-Sourcing-Referenz
 
-Events für Tisch-Operationen. Subject-Format: `"tisch:<id>"`. State wird durch Replay aller Events rekonstruiert. Snapshots optimieren Lesezugriffe.
+Events für Kasse-Operationen (Tisch-Sessions und Kassensitzungen). Zwei Subject-Formate:
+
+- Tisch-Session: `"kassensitzung-{YYYYMMDD}-tisch-{id}"` (z.B. `"kassensitzung-20260501-tisch-42"`)
+- Kassensitzung: `"kassensitzung-{YYYYMMDD}"` (z.B. `"kassensitzung-20260501"`)
+
+State wird durch zwei synchrone Projektionen rekonstruiert (`tisch_session_state`, `kassensitzung_state`), die in derselben Transaktion wie das Event-INSERT aktualisiert werden. Routing über expliziten `StreamType`-Parameter.
 
 ## Event-Typen
 
-- `tisch.bestellung-aufgenommen:v1`
-- `tisch.zahlung-kassiert:v1`
-- `tisch.stornierung-erteilt:v1`
-- `tisch.ausgabe-bestaetigt:v1`
-- `tisch.auszahlung-geleistet:v1`
+**Tisch-Session Events** (Subject: `kassensitzung-{YYYYMMDD}-tisch-{id}`):
 
-Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/table/events.go` und die zugehörigen `*Event.go`-Dateien im selben Verzeichnis.
+- `bestellung-aufgenommen:v1`
+- `zahlung-kassiert:v1`
+- `stornierung-erteilt:v1`
+- `ausgabe-bestaetigt:v1`
+- `auszahlung-geleistet:v1`
+
+**Kassensitzung Events** (Subject: `kassensitzung-{YYYYMMDD}`):
+
+- `kassensitzung-eroeffnet:v1`
+- `anfangsbestand-gesetzt:v1`
+- `kassenbewegung-gebucht:v1`
+- `kassensturz-durchgefuehrt:v1`
+- `differenz-soll-ist-gebucht:v1`
+- `tagesabschluss-erstellt:v1`
+
+Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/kasse/` (künftig) bzw. `backend/domain/table/events.go` und die zugehörigen `*Event.go`-Dateien.
 
 ## State-Rekonstruktion
 
-- Events sind immutable (append-only). Nie Events updaten oder löschen.
+- Das Kassenjournal (`kassenjournal`-Tabelle) ist immutable (append-only). Nie Einträge im Kassenjournal updaten oder löschen.
 - Saldo = Summe(Bestellungen) − Summe(Zahlungen) − Summe(Stornierungen) + Summe(Auszahlungen)
 - UnbezahltePositionen = bestellt − bezahlt − storniert
 - AusstehendePositionen = bestellt − ausgegeben − storniert
 
 ## Event-Store
 
-Tabelle: `events` (append-only). Repository: `backend/repository/event_repo/`.
+Tabelle: `kassenjournal` (append-only). Zwei synchrone Projektionen:
+
+- `tisch_session_state` — session-scoped Tisch-Projektion (PK: `subject`)
+- `kassensitzung_state` — Kassensitzung-Projektion (PK: `kassensitzung_nr`)
+
+Routing über `StreamType`-Parameter: `"tisch-session"` | `"kassensitzung"`.
 
 ## Weiterführende Dokumentation
 
-- **Invarianten, Event-Strukturen, Replay-Logik:** [docs/handbuch.md](../../docs/handbuch.md) Kap. 3 (Kassenbetrieb)
+- **Invarianten, Event-Strukturen, Projektionen:** [docs/handbuch.md](../../docs/handbuch.md) Kap. 3 (Kasse)
 - **Namenskonventionen für Events und Felder:** [docs/language.md](../../docs/language.md)
+- **Persistenz-ADR:** [docs/adr/event-sourcing.md](../../docs/adr/event-sourcing.md)
+- **CQRS-Projektionen-ADR:** [docs/adr/cqrs.md](../../docs/adr/cqrs.md)
 
 ## JSON-Tags in Event-Data-Structs
 

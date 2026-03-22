@@ -44,16 +44,16 @@ Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Comp
 
 ### Grundsatzentscheidungen (2026-03-19)
 
-| Thema                                | Entscheidung                                                                                                                                                                                                                                                        |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Strategische Richtung**            | KassenSichV/TSE schrittweise implementieren (siehe [roadmap.md](roadmap.md))                                                                                                                                                                                        |
-| **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                                                                                                                                                           |
-| **Abrechnungskreis-Session**         | Phase 1: tagesbasiert — pro Tisch ein `ABRECHNUNGSKREIS` für den gesamten Tag (`Tisch-{Nr}-{YYYYMMDD}`); Zurücksetzen aller Sessions beim Tagesabschluss. Phase 2: manuelle Tischfreigabe durch Servicekraft bei Gästewechsel (`Tisch-{Nr}-{YYYYMMDD}-{Buchstabe}`) |
-| **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                                                                                                                                                                |
-| **Kassenmeldung (§ 146a Abs. 4 AO)** | Phase 1: manuell über ELSTER-Webportal; Phase 2: ERiC oder fiskaly-Submission-API                                                                                                                                                                                   |
-| **Seriennummer**                     | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern, im Admin-Dashboard anzeigen                                                                                                                                                                  |
-| **Belegausgabe BYOD**                | Phase 1: zentraler Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); Phase 2 (optional): digitaler eBeleg via QR-Code als Download-Link                                                                                                         |
-| **Rechtliche Rollenverteilung**      | jotti ist Source-Available-Software (kein SaaS); Entwickler implementiert TSE-Schnittstellen; Betreiber (Verein) trägt Betriebspflichten und ELSTER-Meldepflicht                                                                                                    |
+| Thema                                | Entscheidung                                                                                                                                                                                                                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Strategische Richtung**            | KassenSichV/TSE schrittweise implementieren (siehe [roadmap.md](roadmap.md))                                                                                                                                                                                                                     |
+| **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                                                                                                                                                                                        |
+| **Abrechnungskreis-Session**         | Pro Tisch pro Kassensitzung (= Tisch-Session). Im DSFinV-K-Export als `ABRECHNUNGSKREIS` mit dem Tischnamen abgebildet (z. B. `Tisch 42`). Intern: Subject `kassensitzung-{YYYYMMDD}-tisch-{id}`. Phase 2: manuelle Tischfreigabe durch Servicekraft bei Gästewechsel (neues Subject mit Suffix) |
+| **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                                                                                                                                                                                             |
+| **Kassenmeldung (§ 146a Abs. 4 AO)** | Phase 1: manuell über ELSTER-Webportal; Phase 2: ERiC oder fiskaly-Submission-API                                                                                                                                                                                                                |
+| **Seriennummer**                     | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern, im Admin-Dashboard anzeigen                                                                                                                                                                                               |
+| **Belegausgabe BYOD**                | Phase 1: zentraler Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); Phase 2 (optional): digitaler eBeleg via QR-Code als Download-Link                                                                                                                                      |
+| **Rechtliche Rollenverteilung**      | jotti ist Source-Available-Software (kein SaaS); Entwickler implementiert TSE-Schnittstellen; Betreiber (Verein) trägt Betriebspflichten und ELSTER-Meldepflicht                                                                                                                                 |
 
 ---
 
@@ -348,8 +348,8 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 
 | GoBD-Grundsatz             | Aktueller Status    | Anmerkung                                             |
 | -------------------------- | ------------------- | ----------------------------------------------------- |
-| Unveränderbarkeit          | ✅ Erfüllt          | Events sind append-only, kein UPDATE/DELETE           |
-| Nachvollziehbarkeit        | ✅ Erfüllt          | Lückenloses Kassenjournal pro Tisch                   |
+| Unveränderbarkeit          | ✅ Erfüllt          | Kassenjournal ist append-only, kein UPDATE/DELETE     |
+| Nachvollziehbarkeit        | ✅ Erfüllt          | Lückenloses Kassenjournal pro Tisch-Session           |
 | Vollständigkeit            | ✅ Erfüllt          | Jeder Geschäftsvorfall wird als Event erfasst         |
 | Zeitgerechte Buchung       | ✅ Erfüllt          | Events mit Echtzeit-Zeitstempel                       |
 | Ordnungsmäßigkeit          | ✅ Erfüllt          | Strukturiertes Datenmodell, typisierte Events         |
@@ -582,7 +582,7 @@ Die Definition, wann eine neue Tisch-Session beginnt (d.h. ein neuer `ABRECHNUNG
 - Servicekräfte können einen Tisch explizit für neue Gäste freigeben ("Tisch freimachen").
 - Eine neue Session erhält dann ein Suffix: `Tisch-42-20260501-A`, `Tisch-42-20260501-B`, etc.
 - In jottis Festzelt-Szenario, wo häufig mehrere Gästegruppen am selben Tisch sitzen (Maihock, Vereinsfest), ist dies die korrektere Abbildung der Realität und reduziert Rückfragen bei Betriebsprüfungen.
-- Phase 2 erfordert eine neue UI-Aktion in der Servicekraft-Ansicht und eine entsprechende Domain-Aktion im Tisch-Aggregat.
+- Phase 2 erfordert eine neue UI-Aktion in der Servicekraft-Ansicht und eine entsprechende Domain-Aktion in der Tisch-Session.
 
 > **Hinweis:** Das DSFinV-K-Format erlaubt beliebige Strings als `ABRECHNUNGSKREIS` (max. 40 Zeichen). Das Format `Tisch-{Nr}-{YYYYMMDD}` (Phase 1) bzw. `Tisch-{Nr}-{YYYYMMDD}-{Buchstabe}` (Phase 2) ist eine jotti-interne Konvention.
 
@@ -728,7 +728,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 
 ### Laufende Pflichten
 
-- **10-Jahres-Aufbewahrung:** Alle Kassendaten (Events, DSFinV-K-Exporte) sind 10 Jahre aufzubewahren (§§ 146, 147 AO, GoBD). Sicherstellen, dass Backups entsprechend archiviert und jederzeit lesbar sind.
+- **10-Jahres-Aufbewahrung:** Alle Kassendaten (Kassenjournal, DSFinV-K-Exporte) sind 10 Jahre aufzubewahren (§§ 146, 147 AO, GoBD). Sicherstellen, dass Backups entsprechend archiviert und jederzeit lesbar sind.
 - **Regelmäßige Backups:** Tägliche Datenbank-Backups sind Pflicht — nicht nur für die Compliance, sondern auch zur Seriennummern-Sicherung.
 - **Server-Betrieb:** Verfügbarkeit, Datensicherung, Zugriffsschutz und 10-jährige GoBD-konforme Aufbewahrung der Daten liegen beim Verein.
 - **Außerbetriebnahme melden:** Wenn eine jotti-Instanz dauerhaft stillgelegt wird, muss dies innerhalb von einem Monat bei ELSTER gemeldet werden.

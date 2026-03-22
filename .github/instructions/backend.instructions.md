@@ -23,9 +23,9 @@ backend/
   sqlc.yaml                     # sqlc-Konfiguration
   sqlc/queries/                 # SQL-Queries für sqlc
   sqlc/dbgen/                   # Generierter Code (NICHT EDITIEREN)
-  api/service.go                # Service-Routen (Kassenbetrieb)
+  api/service.go                # Service-Routen (Kasse — Tisch-Operationen)
   api/serviceleitung.go         # serviceleitung-Routen (Stornierung)
-  api/admin.go                  # Admin-Routen (Verwaltung)
+  api/admin.go                  # Admin-Routen (Verwaltung, Kassensitzung)
   api/auth.go                   # Auth-Routen (Login, Passwort setzen)
   api/<domain>/http/            # HTTP-Handler
   api/<domain>/application/     # Application-Services

@@ -62,7 +62,7 @@ C4Context
 
 ## 2 · Bounded Context Map
 
-Die vier Bounded Contexts von jotti und ihre Beziehungen nach DDD-Patterns.
+Die drei Bounded Contexts von jotti und ihre Beziehungen nach DDD-Patterns.
 
 ```mermaid
 graph TB
@@ -76,26 +76,17 @@ graph TB
         stamm_desc["Produkte · Tische · Benutzer · Betreiber-Stammdaten<br/><b>Persistenz:</b> CRUD + Soft-Delete"]
     end
 
-    subgraph kassenbetrieb ["💰 Kassenbetrieb<br/><i>Core Domain</i>"]
+    subgraph kasse ["💰 Kasse<br/><i>Core Domain</i>"]
         direction TB
-        kassen_desc["Bestellen · Ausgabe bestätigen · Kassieren · Stornieren · Auszahlen<br/>Tisch-Aggregat mit Event Stream<br/><b>Persistenz:</b> Event-Sourcing + Synchrone Projektion"]
+        kasse_desc["Bestellen · Ausgabe · Kassieren · Stornieren · Auszahlen<br/>Kassensitzung · Kassenbewegungen · Kassensturz · Z-Bon<br/>Kassenjournal (Event-Sourcing)<br/>Projektionen: tisch_session_state · kassensitzung_state"]
     end
 
-    subgraph kassenfuehrung ["📊 Kassenführung<br/><i>Supporting Sub-Domain</i>"]
-        direction TB
-        fuehr_desc["Abrechnungskreis · Kassenbestand · Kassensturz · Z-Bon<br/>Kassenbewegungen · Reporting-Projektionen<br/><b>Persistenz:</b> Immutable Records + Read Models"]
-    end
-
-    stammdaten -->|"Customer/Supplier + ACL<br/>Fat Events frieren Produktdaten ein"| kassenbetrieb
-    kassenbetrieb -->|"Published Language<br/>Zahlungs-/Storno-/Auszahlungs-Events"| kassenfuehrung
-    stammdaten -->|"Customer/Supplier + ACL<br/>Stammdaten-Snapshot im Z-Bon"| kassenfuehrung
-    auth -->|"Open Host Service<br/>JWT (Benutzer-ID + Rolle)"| kassenbetrieb
+    stammdaten -->|"Customer/Supplier + ACL<br/>Fat Events frieren Produktdaten ein"| kasse
+    auth -->|"Open Host Service<br/>JWT (Benutzer-ID + Rolle)"| kasse
     auth -->|"Open Host Service<br/>JWT (Benutzer-ID + Rolle)"| stammdaten
-    auth -->|"Open Host Service<br/>JWT (Benutzer-ID + Rolle)"| kassenfuehrung
 
-    style kassenbetrieb fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style kasse fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
     style stammdaten fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style kassenfuehrung fill:#fff3e0,stroke:#e65100,stroke-width:2px
     style auth fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
 ```
 
@@ -117,9 +108,9 @@ graph LR
 
     subgraph bereiche ["Berechtigungsbereiche"]
         stamm["📋 Stammdaten<br/>Produkte · Tische · Benutzer<br/>Betreiber-Stammdaten"]
-        basis["💰 Kassenbetrieb (Basis)<br/>Bestellen · Ausgabe · Kassieren<br/>Tischübersicht · Kassenjournal"]
-        erweitert["⚠️ Kassenbetrieb (Erweitert)<br/>Stornieren · Auszahlen<br/>Umbuchen"]
-        kf["📊 Kassenführung<br/>Abrechnungskreis · Kassenbestand<br/>Kassensturz · Z-Bon<br/>Geldtransit · Privatentnahme/-einlage"]
+        basis["💰 Kasse (Basis)<br/>Bestellen · Ausgabe · Kassieren<br/>Tischübersicht · Kassenjournal"]
+        erweitert["⚠️ Kasse (Erweitert)<br/>Stornieren · Auszahlen<br/>Umbuchen"]
+        kf["📊 Kasse — Kassensitzung<br/>Kassensitzung eröffnen · Kassenbestand<br/>Kassensturz · Z-Bon<br/>Kassenbewegungen"]
         reporting["📈 Reporting<br/>Tagesabrechnung · Datenexport<br/>DSFinV-K-Export"]
     end
 
@@ -136,13 +127,13 @@ graph LR
 
 ---
 
-## 4 · Kassenbetrieb — Tisch-Aggregat (Zustandsdiagramm)
+## 4 · Kasse — Tisch-Session (Zustandsdiagramm)
 
-Der Tisch ist das zentrale Event-Sourced-Aggregat. Jede Operation erzeugt ein immutables Event.
+Die Tisch-Session (Abrechnungskreis) ist das Event-Sourced-Aggregat im Kasse-Kontext. Entsteht implizit mit der ersten Bestellung innerhalb einer Kassensitzung. Subject: `kassensitzung-{YYYYMMDD}-tisch-{id}`.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Leer: Tisch existiert<br/>(Stammdaten: active)
+    [*] --> Leer: Erste Bestellung für<br/>Tisch in dieser Kassensitzung
 
     Leer --> HatBestellungen: BestellungAufgenommen<br/>Saldo += Σ Positionen
 
@@ -159,7 +150,9 @@ stateDiagram-v2
     HatBestellungen --> Leer: Alle Positionen bezahlt/storniert<br/>Saldo = 0
 
     note right of HatBestellungen
-        TischState (Projektion):
+        TischSessionState (Projektion):
+        • subject (PK)
+        • tisch_id, kassensitzung_nr
         • saldo_cents
         • unbezahlte_positionen[]
         • ausstehende_positionen[]
@@ -170,13 +163,15 @@ stateDiagram-v2
 
 ---
 
-## 5 · Kassenbetrieb — Domain Events und Saldo-Fluss
+## 5 · Kasse — Domain Events
 
-Wie die fünf Event-Typen den Saldo eines Tisches verändern.
+Alle Event-Typen des Kasse-Kontexts. Tisch-Events verändern den Saldo einer Tisch-Session, Kassensitzung-Events steuern den Betriebstag.
+
+### Tisch-Session-Events (Subject: `kassensitzung-{YYYYMMDD}-tisch-{id}`)
 
 ```mermaid
 graph TD
-    subgraph events ["Domain Events (append-only)"]
+    subgraph events ["Tisch-Session Events (append-only)"]
         e1["<b>BestellungAufgenommen</b><br/>Positionen[] mit Fat-Event-Daten<br/>GesamtPreisCents"]
         e2["<b>AusgabeBestaetigt</b><br/>PositionRef[] (ID + Menge)<br/>— kein Saldo-Effekt —"]
         e3["<b>ZahlungKassiert</b><br/>PositionRef[] (ID + Menge)<br/>GesamtZahlungCents"]
@@ -201,11 +196,39 @@ graph TD
     style e5 fill:#fff9c4,stroke:#f57f17
 ```
 
+### Kassensitzung-Events (Subject: `kassensitzung-{YYYYMMDD}`)
+
+```mermaid
+graph TD
+    subgraph ks_events ["Kassensitzung Events (append-only)"]
+        k1["<b>KassensitzungEroeffnet</b><br/>Datum, Bezeichnung"]
+        k2["<b>AnfangsbestandGesetzt</b><br/>BetragCents (Wechselgeld)"]
+        k3["<b>KassenbewegungGebucht</b><br/>Art (geldtransit | privatentnahme | privateinlage)<br/>BetragCents, Kommentar"]
+        k4["<b>KassensturzDurchgefuehrt</b><br/>SollBestandCents, IstBestandCents<br/>DifferenzCents"]
+        k5["<b>DifferenzSollIstGebucht</b><br/>BetragCents<br/>(nur wenn Differenz ≠ 0)"]
+        k6["<b>TagesabschlussErstellt</b><br/>Z_NR, Zeitraum, Umsätze<br/>→ Kassensitzung abgeschlossen"]
+    end
+
+    k1 --> k2
+    k2 --> k3
+    k3 --> k4
+    k4 -.->|"wenn Differenz ≠ 0"| k5
+    k4 --> k6
+    k5 --> k6
+
+    style k1 fill:#e3f2fd,stroke:#1565c0
+    style k2 fill:#e3f2fd,stroke:#1565c0
+    style k3 fill:#fff3e0,stroke:#e65100
+    style k4 fill:#fff3e0,stroke:#e65100
+    style k5 fill:#ffcdd2,stroke:#b71c1c
+    style k6 fill:#ffcdd2,stroke:#b71c1c
+```
+
 ---
 
-## 6 · Kassenbetrieb — Bestellvorgang (Sequenz)
+## 6 · Kasse — Bestellvorgang (Sequenz)
 
-Vom Tap der Servicekraft bis zum gedruckten Bon.
+Vom Tap der Servicekraft bis zum gedruckten Bon. Vor jeder Tisch-Operation prüft der Application Service die Kassensitzung-Sperre.
 
 ```mermaid
 sequenceDiagram
@@ -213,7 +236,8 @@ sequenceDiagram
     participant FE as Frontend (Browser)
     participant BE as Backend (Go)
     participant DB as PostgreSQL
-    participant TS as table_state
+    participant KSP as kassensitzung_state
+    participant TSS as tisch_session_state
     participant TSE as Cloud-TSE (fiskaly)
     participant Relay as Print-Relay
     participant Drucker as Bondrucker
@@ -222,21 +246,30 @@ sequenceDiagram
     FE->>FE: Zod-Validierung (Positionen, Menge, Kommentar)
     FE->>BE: POST /service/bestellung-aufnehmen<br/>{tischId, positionen[], kommentar, version}
     BE->>BE: zog-Validierung
-    BE->>DB: Produkt-Stammdaten laden (Fat Event)
+    BE->>KSP: GetOffeneKassensitzung()
 
-    rect rgb(240, 248, 255)
-        Note over BE,TS: Transaktion (BEGIN...COMMIT)
-        BE->>TSE: StartTransaction + FinishTransaction
-        TSE-->>BE: Signatur, Transaktionsnummer
-        BE->>DB: INSERT INTO events (BestellungAufgenommen)
-        DB-->>BE: event_id, version
-        BE->>TS: SELECT table_state
-        BE->>BE: ApplyEvent(state, event) → neuer State
-        BE->>TS: UPSERT table_state
+    alt Keine offene Kassensitzung
+        KSP-->>BE: nil
+        BE-->>FE: 409 "Kasse ist noch nicht geöffnet"
+    else Kassensitzung offen
+        KSP-->>BE: KS{Nr: 1, Datum: 20260322, Status: offen}
+        BE->>DB: Produkt-Stammdaten laden (Fat Event)
+
+        rect rgb(240, 248, 255)
+            Note over BE,TSS: Transaktion (BEGIN...COMMIT)
+            Note over BE: Subject = "kassensitzung-20260322-tisch-42"
+            BE->>TSE: StartTransaction + FinishTransaction
+            TSE-->>BE: Signatur, Transaktionsnummer
+            BE->>DB: INSERT INTO kassenjournal (BestellungAufgenommen)
+            DB-->>BE: event_id, version
+            BE->>TSS: SELECT tisch_session_state
+            BE->>BE: ApplyEvent(state, event) → neuer State
+            BE->>TSS: UPSERT tisch_session_state
+        end
+
+        BE-->>FE: 200 OK {tischState}
+        FE-->>SK: Bestellung bestätigt ✓
     end
-
-    BE-->>FE: 200 OK {tischState}
-    FE-->>SK: Bestellung bestätigt ✓
 
     Note over Relay,Drucker: Asynchron (Polling)
     Relay->>BE: POST /relay/poll {token, lastEventId}
@@ -341,37 +374,41 @@ classDiagram
 
 ---
 
-## 8 · Kassenführung — Lifecycle
+## 8 · Kassensitzung-Lifecycle
 
-Der vollständige Ablauf einer Kassensitzung von Eröffnung bis Tagesabschluss.
+Der vollständige Ablauf einer Kassensitzung von Eröffnung bis Tagesabschluss — alle Vorgänge als Events im Kassenjournal.
 
 ```mermaid
 flowchart TD
     Start([Veranstaltungsbeginn])
 
-    Start --> AK["<b>1. Abrechnungskreis eröffnen</b><br/>Admin vergibt Bezeichnung<br/>(z.B. 'Sommerfest Tag 1')<br/>Fortlaufende Nr., max. 1 offen"]
+    Start --> KS["<b>1. Kassensitzung eröffnen</b><br/>Admin vergibt Bezeichnung<br/>(z.B. 'Sommerfest Tag 1')<br/>Subject: kassensitzung-{YYYYMMDD}<br/>Event: kassensitzung-eroeffnet:v1<br/>Max. 1 offene KS"]
 
-    AK --> AB["<b>2. Anfangsbestand setzen</b><br/>Wechselgeld in Cent eingeben<br/>Einmalig pro Abrechnungskreis"]
+    KS --> AB["<b>2. Anfangsbestand setzen</b><br/>Wechselgeld in Cent eingeben<br/>Event: anfangsbestand-gesetzt:v1<br/>Einmalig pro Kassensitzung"]
 
     AB --> Betrieb
 
     subgraph Betrieb ["Laufender Betrieb"]
         direction TB
-        KB["<b>Kassenbetrieb</b><br/>Bestellungen → Zahlungen<br/>→ Auszahlungen → Stornierungen<br/>(Events fließen in Kassenbestand)"]
+        KB["<b>Tisch-Operationen</b><br/>Bestellen → Ausgabe → Zahlung<br/>→ Auszahlung → Stornierung<br/>Subject: kassensitzung-{YYYYMMDD}-tisch-{id}<br/>(Events im Kassenjournal)"]
 
-        BW["<b>Kassenbewegungen</b><br/>Geldtransit (→ Bank/Tresor)<br/>Privatentnahme (→ Vereinskasse)<br/>Privateinlage (← Wechselgeld nachfüllen)"]
+        BW["<b>Kassenbewegungen</b><br/>Geldtransit · Privatentnahme · Privateinlage<br/>Event: kassenbewegung-gebucht:v1<br/>mit art-Feld (Art der Bewegung)"]
 
-        Bestand["<b>Kassenbestand (Read Model)</b><br/>Soll = Anfangsbestand<br/>+ Zahlungen − Auszahlungen<br/>− Geldtransit − Privatentnahmen<br/>+ Privateinlagen"]
+        Bestand["<b>Kassenbestand (SQL-Aggregation)</b><br/>Soll = Anfangsbestand<br/>+ Zahlungen − Auszahlungen<br/>− Geldtransit − Privatentnahmen<br/>+ Privateinlagen + DifferenzSollIst<br/><i>Alles aus einer Kassenjournal-Query</i>"]
 
         KB --> Bestand
         BW --> Bestand
     end
 
-    Betrieb --> KS["<b>3. Kassensturz</b><br/>Admin zählt Bargeld (Ist-Bestand)<br/>System zeigt Soll vs. Ist<br/>Differenz → automatische Buchung"]
+    Betrieb --> Saldo{"Alle Tische<br/>Saldo = 0?"}
+    Saldo -->|Nein| Betrieb
+    Saldo -->|Ja| KSturz
 
-    KS --> ZBon["<b>4. Tagesabschluss (Z-Bon)</b><br/>Immutables Dokument:<br/>• Fortlaufende z_nr<br/>• Aggregierte Umsätze nach Steuersätzen<br/>• Soll/Ist/Differenz<br/>• Stammdaten-Snapshot<br/>• Offene Tische protokolliert"]
+    KSturz["<b>3. Kassensturz</b><br/>Admin zählt Bargeld (Ist-Bestand)<br/>System zeigt Soll vs. Ist<br/>Event: kassensturz-durchgefuehrt:v1<br/>+ differenz-soll-ist-gebucht:v1 (wenn ≠ 0)"]
 
-    ZBon --> Close["Abrechnungskreis geschlossen<br/>Status: abgeschlossen"]
+    KSturz --> ZBon["<b>4. Tagesabschluss (Z-Bon)</b><br/>Event: tagesabschluss-erstellt:v1<br/>• Fortlaufende z_nr<br/>• Aggregierte Umsätze nach Steuersätzen<br/>• Soll/Ist/Differenz<br/>→ Kassensitzung abgeschlossen"]
+
+    ZBon --> Close["Kassensitzung abgeschlossen<br/>Status: abgeschlossen"]
 
     Close --> Aufbewahrung["📁 10 Jahre Aufbewahrungspflicht<br/>(GoBD)"]
     Close --> Export["📤 DSFinV-K-Export<br/>ZIP mit CSV-Dateien<br/>für Betriebsprüfer"]
@@ -380,40 +417,43 @@ flowchart TD
     Nächster -->|Ja| Start
     Nächster -->|Nein| Ende([Veranstaltungsende])
 
-    style AK fill:#e3f2fd,stroke:#1565c0
+    style KS fill:#e3f2fd,stroke:#1565c0
     style AB fill:#e3f2fd,stroke:#1565c0
-    style KS fill:#fff3e0,stroke:#e65100
+    style Saldo fill:#fff3e0,stroke:#e65100
+    style KSturz fill:#fff3e0,stroke:#e65100
     style ZBon fill:#ffcdd2,stroke:#b71c1c
     style Bestand fill:#e8f5e9,stroke:#2e7d32
 ```
 
 ---
 
-## 9 · Kassenführung — Kassenbestand-Berechnung
+## 9 · Kasse — Kassenbestand-Berechnung
 
-Woher die Werte für den Soll-Kassenbestand kommen.
+Woher die Werte für den Soll-Kassenbestand kommen — eine einzige SQL-Aggregation über das Kassenjournal.
 
 ```mermaid
 graph LR
-    subgraph quellen ["Datenquellen"]
-        AB["Anfangsbestand<br/>(Immutable Record)"]
-        ZK["Σ ZahlungKassiert<br/>(Events aus Kassenbetrieb)"]
-        AZ["Σ AuszahlungGeleistet<br/>(Events aus Kassenbetrieb)"]
-        GT["Σ Geldtransit<br/>(Immutable Record)"]
-        PE["Σ Privatentnahme<br/>(Immutable Record)"]
-        PEin["Σ Privateinlage<br/>(Immutable Record)"]
+    subgraph quellen ["Kassenjournal-Events (WHERE kassensitzung_nr = $1)"]
+        AB["anfangsbestand-gesetzt:v1<br/>BetragCents"]
+        ZK["Σ zahlung-kassiert:v1<br/>(aus Tisch-Sessions)"]
+        AZ["Σ auszahlung-geleistet:v1<br/>(aus Tisch-Sessions)"]
+        BW_PE["Σ kassenbewegung-gebucht:v1<br/>art = privateinlage"]
+        BW_GT["Σ kassenbewegung-gebucht:v1<br/>art = geldtransit"]
+        BW_PN["Σ kassenbewegung-gebucht:v1<br/>art = privatentnahme"]
+        DSI["Σ differenz-soll-ist-gebucht:v1"]
     end
 
-    subgraph berechnung ["Kassenbestand (Read Model)"]
-        formel["<b>Soll-Bestand</b><br/>=  Anfangsbestand<br/>+  Zahlungen<br/>−  Auszahlungen<br/>−  Geldtransit<br/>−  Privatentnahmen<br/>+  Privateinlagen"]
+    subgraph berechnung ["Kassenbestand (SQL-Aggregation)"]
+        formel["<b>Soll-Bestand</b><br/>=  Anfangsbestand<br/>+  Zahlungen<br/>−  Auszahlungen<br/>−  Geldtransit<br/>−  Privatentnahmen<br/>+  Privateinlagen<br/>+  DifferenzSollIst"]
     end
 
     AB -->|"+"| formel
     ZK -->|"+"| formel
     AZ -->|"−"| formel
-    GT -->|"−"| formel
-    PE -->|"−"| formel
-    PEin -->|"+"| formel
+    BW_GT -->|"−"| formel
+    BW_PN -->|"−"| formel
+    BW_PE -->|"+"| formel
+    DSI -->|"±"| formel
 
     subgraph kassensturz ["Kassensturz"]
         soll["Soll-Bestand"]
@@ -511,10 +551,9 @@ graph TB
     end
 
     subgraph repo ["Repository / Infra-Schicht<br/><code>repository/&lt;domain&gt;_repo/</code>"]
-        r1["Event Store (append-only) — Kassenbetrieb"]
+        r1["Kassenjournal (append-only) + Projektionen — Kasse"]
         r2["CRUD — Stammdaten"]
-        r3["Immutable Records — Kassenführung"]
-        r4["sqlc-generierte Queries · pgx/v5"]
+        r3["sqlc-generierte Queries · pgx/v5"]
     end
 
     http --> app
@@ -529,43 +568,47 @@ graph TB
 
 ---
 
-## 12 · Event Sourcing und Synchrone Projektion
+## 12 · Event Sourcing und Zwei Synchrone Projektionen
 
-Write-Through: Event und Projektion in derselben Transaktion.
+Write-Through: Event und passende Projektion in derselben Transaktion. Ein expliziter `StreamType`-Parameter steuert das Routing.
 
 ```mermaid
 sequenceDiagram
     participant AS as Application Service
-    participant Repo as Event Repository
+    participant Repo as Kassenjournal Repository
     participant DB as PostgreSQL
-    participant ES as events (Event Store)
-    participant TS as table_state (Projektion)
+    participant KJ as kassenjournal (Event Store)
+    participant KSP as kassensitzung_state
+    participant TSS as tisch_session_state
     participant Dom as Domain (ApplyEvent)
 
-    AS->>Repo: WriteEvent(tischId, eventData, expectedVersion)
+    AS->>Repo: WriteEvent(event, streamType)
 
     rect rgb(240, 248, 255)
         Note over Repo,Dom: BEGIN TRANSACTION
-        Repo->>ES: INSERT INTO events (...)<br/>RETURNING event_id, version
-        Note over ES: UNIQUE (subject, version) → OCC
-        ES-->>Repo: event_id, version
+        Repo->>KJ: INSERT INTO kassenjournal (...)<br/>RETURNING event_id, version
+        Note over KJ: UNIQUE (subject, version) → OCC
+        KJ-->>Repo: event_id, version
 
-        Repo->>TS: SELECT * FROM table_state<br/>WHERE tisch_id = ?
-        TS-->>Repo: aktueller State (oder Zero-Value)
+        alt streamType = "kassensitzung"
+            Repo->>KSP: UPSERT kassensitzung_state<br/>(subject, z_nr, datum, status,<br/>last_event_id, last_event_version)
+        else streamType = "tisch-session"
+            Repo->>TSS: SELECT * FROM tisch_session_state<br/>WHERE subject = ?
+            TSS-->>Repo: aktueller State (oder Zero-Value)
+            Repo->>Dom: ApplyEvent(state, event)
+            Note over Dom: Reine Funktion — kein DB-Zugriff
+            Dom-->>Repo: neuer TischSessionState
+            Repo->>TSS: UPSERT tisch_session_state SET<br/>saldo_cents, unbezahlte_positionen,<br/>ausstehende_positionen, ...
+        end
 
-        Repo->>Dom: ApplyEvent(state, event)
-        Note over Dom: Reine Funktion — kein DB-Zugriff
-        Dom-->>Repo: neuer TischState
-
-        Repo->>TS: UPSERT table_state SET<br/>saldo_cents, unbezahlte_positionen,<br/>ausstehende_positionen, ...
         Note over Repo,Dom: COMMIT
     end
 
     Repo-->>AS: event_id
 
-    Note over AS,TS: Lesezugriff (Query)
-    AS->>TS: SELECT saldo_cents,<br/>unbezahlte_positionen, ...<br/>FROM table_state
-    Note over TS: Kein Event-Replay nötig!
+    Note over AS,TSS: Lesezugriff (Query)
+    AS->>TSS: SELECT saldo_cents,<br/>unbezahlte_positionen, ...<br/>FROM tisch_session_state<br/>WHERE subject = ?
+    Note over TSS: Kein Event-Replay nötig!
 ```
 
 ---
@@ -577,7 +620,7 @@ Wie Bestellungen von der Datenbank zum Bondrucker gelangen.
 ```mermaid
 flowchart LR
     subgraph backend ["jotti Backend"]
-        EventStore["events-Tabelle<br/>(BestellungAufgenommen)"]
+        EventStore["kassenjournal-Tabelle<br/>(BestellungAufgenommen)"]
         KatDrucker["kategorie_drucker<br/>(IP + Bonmodus)"]
         PollEndpoint["POST /relay/poll<br/>Auth: RELAY_AUTH_TOKEN"]
     end
@@ -639,7 +682,7 @@ graph TB
         end
 
         subgraph db ["PostgreSQL 17"]
-            Database["Datenbank<br/>Events · Stammdaten · Kassenführung"]
+            Database["Datenbank<br/>Kassenjournal · Stammdaten · Projektionen"]
         end
 
         subgraph migrate ["golang-migrate"]
@@ -694,13 +737,11 @@ graph TB
             cu["create-user · update-user<br/>activate-user · deactivate-user<br/>reset-password"]
             gp["get-all-produkte · get-all-tische · get-all-users"]
         end
-        subgraph admin_kf ["Kassenführung"]
-            ak["abrechnungskreis-eroeffnen"]
+        subgraph admin_kf ["Kasse — Kassensitzung"]
+            ak["kassensitzung-eroeffnen"]
             ab_set["anfangsbestand-setzen"]
             gkb["get-kassenbestand"]
-            gt["geldtransit-buchen"]
-            pe["privatentnahme-buchen"]
-            pein["privateinlage-buchen"]
+            bw["kassenbewegung-buchen"]
             ks["kassensturz"]
             ta["tagesabschluss"]
         end
@@ -837,17 +878,31 @@ erDiagram
         timestamptz aktualisiert_am
     }
 
-    events {
+    kassenjournal {
         int id PK
-        string subject "tisch:{tischId}"
-        string event_type "tisch.bestellung-aufgenommen:v1 | ..."
+        int user_id FK
+        string user_name
+        string type "bestellung-aufgenommen:v1 | ..."
+        string subject "kassensitzung-{YYYYMMDD}[-tisch-{id}]"
         int version "pro subject, für OCC"
         jsonb data "Event-spezifische Daten"
-        timestamptz created_at
+        int kassensitzung_nr "FK-artige Zuordnung zur KS"
+        timestamptz timestamp
     }
 
-    table_state {
-        int tisch_id PK, FK
+    kassensitzung_state {
+        string subject PK "kassensitzung-{YYYYMMDD}"
+        int z_nr UK "fortlaufend, lückenlos"
+        date datum
+        string status "offen | abgeschlossen"
+        int last_event_id FK
+        int last_event_version
+    }
+
+    tisch_session_state {
+        string subject PK "kassensitzung-{YYYYMMDD}-tisch-{id}"
+        int tisch_id FK
+        int kassensitzung_nr
         int saldo_cents
         jsonb unbezahlte_positionen
         jsonb ausstehende_positionen
@@ -888,68 +943,13 @@ erDiagram
         timestamptz aktualisiert_am
     }
 
-    abrechnungskreis {
-        int id PK
-        int nr "fortlaufend, lückenlos"
-        string bezeichnung
-        timestamptz beginn
-        timestamptz ende "NULL wenn offen"
-        string status "offen | abgeschlossen"
-        int anfangsbestand_cents
-        int erstellt_von FK
-        timestamptz erstellt_am
-    }
-
-    kassenbewegungen {
-        int id PK
-        string art "geldtransit | privatentnahme | privateinlage"
-        int betrag_cents
-        string kommentar
-        int user_id FK
-        int abrechnungskreis_id FK
-        timestamptz erstellt_am
-    }
-
-    kassensturz {
-        int id PK
-        int abrechnungskreis_id FK
-        int soll_bestand_cents
-        int ist_bestand_cents
-        int differenz_cents
-        int user_id FK
-        timestamptz erstellt_am
-    }
-
-    z_bons {
-        int id PK
-        int z_nr "fortlaufend, lückenlos"
-        int abrechnungskreis_id FK
-        timestamptz zeitraum_von
-        timestamptz zeitraum_bis
-        int soll_bestand_cents
-        int ist_bestand_cents
-        int differenz_cents
-        int umsatz_gesamt_cents
-        int stornierungen_gesamt_cents
-        int auszahlungen_gesamt_cents
-        int geldtransit_gesamt_cents
-        jsonb stammdaten_snapshot
-        jsonb offene_tische
-        int erstellt_von FK
-        timestamptz erstellt_am
-    }
-
     produkte ||--o{ produkt_varianten : "hat Varianten"
-    tische ||--o| table_state : "hat Projektion"
-    tische ||--o{ events : "hat Events"
+    tische ||--o{ tisch_session_state : "hat Session-Projektionen"
+    kassenjournal }o--|| kassensitzung_state : "gehört zu KS"
+    tisch_session_state ||--o| kassenjournal : "letztes Event"
+    kassensitzung_state ||--o| kassenjournal : "letztes Event"
     users ||--o{ tisch_favoriten : "hat Favoriten"
     tische ||--o{ tisch_favoriten : "ist Favorit von"
-    users ||--o{ abrechnungskreis : "eröffnet von"
-    abrechnungskreis ||--o{ kassenbewegungen : "enthält"
-    users ||--o{ kassenbewegungen : "gebucht von"
-    abrechnungskreis ||--o| kassensturz : "hat Kassensturz"
-    abrechnungskreis ||--|| z_bons : "hat Z-Bon"
-    table_state ||--o| events : "letztes Event"
 ```
 
 ---
