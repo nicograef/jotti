@@ -2,7 +2,7 @@
 
 > Geordnete Aufgabenliste für die Fertigstellung von jotti.
 > Jeder Task ist ein abgeschlossener, einzeln abarbeitbarer Schritt.
-> Referenz: [anforderungen.md](anforderungen.md), [handbuch.md](handbuch.md), [compliance-roadmap.md](compliance-roadmap.md)
+> Referenz: [anforderungen.md](anforderungen.md), [handbuch.md](handbuch.md), [compliance.md](compliance.md)
 
 ---
 
@@ -135,7 +135,7 @@
 ## 16 · Dokumentation nach Phase 1
 
 - [ ] `anforderungen.md` — Status aller Kassenführungs- und Compliance-Features aktualisieren
-- [ ] `compliance-roadmap.md` — Phase 1 als abgeschlossen markieren
+- [ ] `compliance.md` — Compliance-Status nach Phase 1 aktualisieren
 - [ ] `handbuch.md` — Kassenführungs-Code-Referenzen ergänzen
 
 ---
@@ -205,7 +205,7 @@
 
 ## 24 · Dokumentation nach Phase 2
 
-- [ ] `compliance-roadmap.md` — Phase 2 als abgeschlossen markieren
+- [ ] `compliance.md` — Compliance-Status nach Phase 2 aktualisieren
 - [ ] `anforderungen.md` — F-02, F-04 Status aktualisieren
 - [ ] `handbuch.md` — TSE-Architektur und DSFinV-K-Export dokumentieren
 
@@ -298,5 +298,5 @@
 - [ ] `docs/hosting.md` vervollständigen (Setup-Anleitung, Backup, Updates)
 - [ ] Changelog / Release Notes erstellen
 - [ ] `anforderungen.md` — alle Status finalisieren
-- [ ] `compliance-roadmap.md` — Gesamtstatus finalisieren
+- [ ] `compliance.md` — Gesamtstatus finalisieren
 - [ ] `produktbeschreibung.md` — Marketingtexte an finalen Funktionsumfang anpassen

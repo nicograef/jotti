@@ -212,7 +212,7 @@ Die Kassenführung umfasst den vollständigen Lifecycle der Registerkasse — vo
 
 #### Abrechnungskreis
 
-Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld. Maximal ein Abrechnungskreis kann gleichzeitig `offen` sein.
+Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld (`ABRECHNUNGSKREIS`). Wird durch explizite Admin-Aktion eröffnet (Tageseröffnung). Maximal ein Abrechnungskreis kann gleichzeitig `offen` sein. Ohne offenen Abrechnungskreis ist der Kassenbetrieb gesperrt (HTTP 409). Pro Tisch und Tag wird eine Session-ID vergeben: `Tisch-{Nr}-{YYYYMMDD}`.
 
 | Go-Struct (geplant) | DB-Tabelle (geplant) | JSON-Key           | API-Pfade (geplant)                 |
 | ------------------- | -------------------- | ------------------ | ----------------------------------- |

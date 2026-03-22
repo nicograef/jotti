@@ -510,6 +510,7 @@ Abrechnungskreis
 - Wird explizit durch Admin eröffnet (Tagesöffnung) — keine automatische Erzeugung.
 - Wird durch Tagesabschluss (Z-Bon) geschlossen.
 - **Kassenbetrieb-Sperre:** Solange kein Abrechnungskreis `offen` ist, werden alle schreibenden Tischoperationen serverseitig mit HTTP 409 abgelehnt.
+- **Session-ID:** Pro Tisch und Tag: `Tisch-{Nr}-{YYYYMMDD}`. Das Datum stammt aus `DATE(abrechnungskreis.beginn)`, nicht aus `NOW()` — relevant bei Betrieb über Mitternacht.
 
 ### 5.3 Anfangsbestand
 

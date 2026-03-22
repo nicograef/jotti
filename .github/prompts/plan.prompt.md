@@ -32,8 +32,6 @@ Erzeuge aus der referenzierten Analyse eine **plan.md** im selben Verzeichnis. D
 Die Datei MUSS mit folgendem Block beginnen:
 
 ```markdown
-Details siehe analyze.md
-
 ## Agent Anweisungen
 
 > **Lies diese Anweisungen vollständig, bevor du mit der Arbeit beginnst.**

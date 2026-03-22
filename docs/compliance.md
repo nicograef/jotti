@@ -28,22 +28,25 @@ Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Comp
 
 ### Compliance-Status
 
-| Bereich                 | Status                                                   | Priorität   |
-| ----------------------- | -------------------------------------------------------- | ----------- |
-| **TSE-Integration**     | 🔲 Phase 2 — TSEClient + fiskaly                         | Should      |
-| **GoBD-Konformität**    | ✅ Teilweise — Event-Sourcing (Basis)                    | Laufend     |
-| **Belegausgabepflicht** | ✅ Phase 0 — Bondrucker implementiert                    | Must        |
-| **Seriennummer**        | 🔲 Phase 1 — UUID + Admin-Anzeige                        | Must        |
-| **Steuersätze**         | 🔲 Phase 1 — 19 % / 7 % / 0 %                            | Must        |
-| **Abrechnungskreis**    | 🔲 Phase 1 — Pro Tisch und Tag (`Tisch-{Nr}-{YYYYMMDD}`) | Should      |
-| **DSFinV-K Export**     | 🔲 Phase 2 — CSV-ZIP                                     | Should      |
-| **ELSTER-Meldung**      | 🔲 Phase 1 — Anleitung für Betreiber                     | Must (Doku) |
+| ID   | Bereich                 | Phase | Status                                         | Priorität   |
+| ---- | ----------------------- | ----- | ---------------------------------------------- | ----------- |
+| F-01 | **Seriennummer**        | 1     | 🔲 UUID + Admin-Anzeige                        | Must        |
+| F-02 | **TSE-Integration**     | 2     | 🔲 TSEClient + fiskaly                         | Should      |
+| F-03 | **Belegausgabepflicht** | 0/1/2 | ✅ Basis (ohne TSE-Felder)                     | Must        |
+| F-04 | **DSFinV-K Export**     | 2     | 🔲 CSV-ZIP                                     | Should      |
+| F-05 | **ELSTER-Meldung**      | 1     | 🔲 Anleitung für Betreiber                     | Must (Doku) |
+| F-06 | **Abrechnungskreis**    | 1/2   | 🔲 Pro Tisch und Tag (`Tisch-{Nr}-{YYYYMMDD}`) | Should      |
+| F-07 | **Steuersätze**         | 1     | 🔲 19 % / 7 % / 0 %                            | Must        |
+| F-08 | **GoBD-Hash-Chain**     | 3     | 🔲 SHA-256-Verkettung                          | Nice        |
+| —    | **GoBD-Konformität**    | 0     | ✅ Teilweise — Event-Sourcing (Basis)          | Laufend     |
+
+**Legende:** ✅ Implementiert · 🔲 Offen · ⏳ In Arbeit — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen — siehe [roadmap.md](roadmap.md)
 
 ### Grundsatzentscheidungen (2026-03-19)
 
 | Thema                                | Entscheidung                                                                                                                                                                                                                                                        |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Strategische Richtung**            | Compliance-Roadmap: KassenSichV/TSE schrittweise implementieren                                                                                                                                                                                                     |
+| **Strategische Richtung**            | KassenSichV/TSE schrittweise implementieren (siehe [roadmap.md](roadmap.md))                                                                                                                                                                                        |
 | **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                                                                                                                                                           |
 | **Abrechnungskreis-Session**         | Phase 1: tagesbasiert — pro Tisch ein `ABRECHNUNGSKREIS` für den gesamten Tag (`Tisch-{Nr}-{YYYYMMDD}`); Zurücksetzen aller Sessions beim Tagesabschluss. Phase 2: manuelle Tischfreigabe durch Servicekraft bei Gästewechsel (`Tisch-{Nr}-{YYYYMMDD}-{Buchstabe}`) |
 | **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                                                                                                                                                                |
@@ -717,9 +720,18 @@ _(Quelle: § 146a Abs. 1 Satz 5 AO — Verbot des In-Verkehr-Bringens nicht-TSE-
 
 Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung für ihre jotti-Instanz. Eine detaillierte Verantwortlichkeitstabelle findet sich in §7.6.
 
-- **TSE-Beschaffung (BYOT):** Vertrag mit Cloud-TSE-Anbieter (z. B. fiskaly oder D-Trust); API-Keys über `.env`-Datei in Docker-Container injizieren.
-- **ELSTER-Meldung:** Jede Instanz innerhalb eines Monats nach Inbetriebnahme über das eigene ELSTER-Webportal anmelden (§ 146a Abs. 4 AO). Die Seriennummer wird von jotti automatisch generiert und im Admin-Bereich angezeigt.
+### Pflichten vor dem ersten Einsatz
+
+1. **Cloud-TSE-Vertrag (BYOT):** Vertrag mit Cloud-TSE-Anbieter (z. B. fiskaly oder D-Trust) abschließen. API-Schlüssel als Umgebungsvariablen in die `.env`-Datei eintragen.
+2. **ELSTER-Meldung:** Nach der ersten Inbetriebnahme innerhalb von **einem Monat** die jotti-Instanz beim zuständigen Finanzamt über [ELSTER](https://www.elster.de) anmelden (§ 146a Abs. 4 AO). Benötigte Daten: Seriennummer der Kasse (im Admin-Dashboard), Softwarename „jotti", Inbetriebnahmedatum.
+3. **Seriennummer sichern:** Die Kassen-UUID in den System-Stammdaten ist die rechtliche Identität der Kasse. Das Datenbank-Backup muss diese enthalten. Bei Verlust: alte Seriennummer beim Finanzamt abmelden, neue Instanz mit neuer Seriennummer neu anmelden.
+
+### Laufende Pflichten
+
+- **10-Jahres-Aufbewahrung:** Alle Kassendaten (Events, DSFinV-K-Exporte) sind 10 Jahre aufzubewahren (§§ 146, 147 AO, GoBD). Sicherstellen, dass Backups entsprechend archiviert und jederzeit lesbar sind.
+- **Regelmäßige Backups:** Tägliche Datenbank-Backups sind Pflicht — nicht nur für die Compliance, sondern auch zur Seriennummern-Sicherung.
 - **Server-Betrieb:** Verfügbarkeit, Datensicherung, Zugriffsschutz und 10-jährige GoBD-konforme Aufbewahrung der Daten liegen beim Verein.
+- **Außerbetriebnahme melden:** Wenn eine jotti-Instanz dauerhaft stillgelegt wird, muss dies innerhalb von einem Monat bei ELSTER gemeldet werden.
 - **BYOD-Smartphones:** Müssen dem Finanzamt **nicht** gemeldet werden (AEAO zu § 146a AO: Eingabegeräte ohne eigenständige Kassenfunktion).
 
 ---

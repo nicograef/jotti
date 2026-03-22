@@ -748,7 +748,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 **Phase:** 1 (tagesbasiert), 2 (manuelle Freigabe)  
 **Status:** 🔲 Offen
 
-**Beschreibung:** Ein `Abrechnungskreis` ist eine fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Phase 1: pro Tisch und Tag wird ein `ABRECHNUNGSKREIS` mit Format-ID `Tisch-{Nr}-{YYYYMMDD}` vergeben; beim Tagesabschluss werden alle laufenden Sessions automatisch abgeschlossen. Phase 2: manuelle Tischfreigabe durch die Serviceleitung bei Gästewechsel. Operative Aspekte (Eröffnung, Schließung, Invarianten) sind in KF-01 definiert; F-06 beschreibt die DSFinV-K-Export-Aspekte.
+**Beschreibung:** Ein `Abrechnungskreis` ist eine fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Phase 1: pro Tisch und Tag wird ein `ABRECHNUNGSKREIS` mit Format-ID `Tisch-{Nr}-{YYYYMMDD}` vergeben (das Datum stammt aus `DATE(abrechnungskreis.beginn)`, nicht aus `NOW()` — relevant bei Betrieb über Mitternacht); beim Tagesabschluss werden alle laufenden Sessions automatisch abgeschlossen. Phase 2: manuelle Tischfreigabe durch die Serviceleitung bei Gästewechsel. Operative Aspekte (Eröffnung, Schließung, Invarianten) sind in KF-01 definiert; F-06 beschreibt die DSFinV-K-Export-Aspekte.
 
 **Akzeptanzkriterien:**
 
