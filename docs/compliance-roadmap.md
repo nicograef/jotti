@@ -38,7 +38,7 @@ Diese Phase legt die **rechtlich notwendige Grundlage** für den Betrieb: Serien
 | ---- | ----------------------------------- | --------------------------------- | ----------- | ------- |
 | F-01 | **Seriennummer der Kasse**          | § 146a AO, DSFinV-K, Kassenbeleg  | Must        | Gering  |
 | F-07 | **Steuersätze (19 % / 7 % / 0 %)**  | KassenSichV, DSFinV-K             | Must        | Mittel  |
-| F-06 | **ABRECHNUNGSKREIS (tagesbasiert)** | DSFinV-K Nr. 2.7                  | Should      | Mittel  |
+| F-06 | **ABRECHNUNGSKREIS (tagesbasiert, pro Tisch)** | DSFinV-K Nr. 2.7                  | Should      | Mittel  |
 | F-03 | **Belegausgabe — Pflichtfelder**    | § 146a Abs. 2 AO, § 6 KassenSichV | Must        | Mittel  |
 | F-05 | **ELSTER-Anleitung**                | § 146a Abs. 4 AO                  | Must (Doku) | Gering  |
 | —    | **Verfahrensdokumentation**         | GoBD                              | Empfohlen   | Gering  |
@@ -60,12 +60,13 @@ Diese Phase legt die **rechtlich notwendige Grundlage** für den Betrieb: Serien
 - Als Fat Event in `BestellungAufgenommen` einfrieren (für historische Korrektheit)
 - Tagesabrechnung weist Umsätze nach Steuersatz aufgeschlüsselt aus
 
-#### F-06 ABRECHNUNGSKREIS (Phase 1: tagesbasiert)
+#### F-06 ABRECHNUNGSKREIS (Phase 1: tagesbasiert, pro Tisch)
 
 - DB-Tabelle `abrechnungskreis` mit fortlaufender Nummer, Start- und Endzeitpunkt
-- Beim Tagesabschluss automatisch neuer `ABRECHNUNGSKREIS` eröffnet
-- Format der Session-ID: `Tisch-{Nr}-{YYYYMMDD}`
+- Beim Tagesabschluss werden alle laufenden Sessions des Tages automatisch abgeschlossen, und für den nächsten Tag werden neue Sessions eröffnet
+- Format der Session-ID: `Tisch-{Nr}-{YYYYMMDD}` — **pro Tisch und Tag**, nicht ein einziger Schlüssel für alle Tische
 - Alle Events eines Tisches sind einem `ABRECHNUNGSKREIS` zugeordnet
+- Hinweis: Mehrere Gästegruppen an einem Tisch teilen denselben `ABRECHNUNGSKREIS` — zulässig, aber Phase 2 (manuelle Tischfreigabe) ist für jottis Festzelt-Betrieb die korrektere Lösung
 
 #### F-03 Belegausgabe — Pflichtfelder
 
@@ -105,7 +106,7 @@ Diese Phase integriert eine **zertifizierte Cloud-TSE** (fiskaly) und schafft de
 | —    | **Z-Bon-Logik (Kassenführung KF-07)**            | DSFinV-K                | Must      | Mittel  |
 | —    | **TSE-Felder auf Beleg (ergänzt F-03)**          | § 6 KassenSichV         | Should    | Gering  |
 | —    | **QR-Code auf Beleg**                            | DSFinV-K Anhang I       | Nice      | Gering  |
-| —    | **ABRECHNUNGSKREIS Phase 2** (manuelle Freigabe) | DSFinV-K                | Nice      | Mittel  |
+| —    | **ABRECHNUNGSKREIS Phase 2** (manuelle Freigabe) | DSFinV-K                | Should    | Mittel  |
 
 ### Details
 
@@ -137,6 +138,15 @@ Jeder jotti-Vorgang ist eine eigenständige, sofort geschlossene TSE-Transaktion
   - `index.xml`
 - Alle Dateinamen nach DSFinV-K-Spezifikation v2.4 (deutsch, exakt)
 - Steuersatz-Aufschlüsselung korrekt pro Position und Bon
+
+#### ABRECHNUNGSKREIS Phase 2 — Manuelle Tischfreigabe
+
+Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) sitzt häufig mehr als eine Gästegruppe pro Tag an einem Tisch. Phase 2 ist deshalb für diesen Primär-Anwendungsfall die korrekte Abbildung und sollte zeitnah nach Phase 2 umgesetzt werden:
+
+- Servicekräfte können einen Tisch nach dem Bezahlen explizit „freigeben" (UI-Aktion „Tisch freimachen")
+- Eine neue Tisch-Session erhält ein laufendes Buchstaben-Suffix: `Tisch-42-20260501-A`, `Tisch-42-20260501-B`, etc.
+- Der erste `ABRECHNUNGSKREIS` des Tages wird ohne Suffix vergeben (`Tisch-{Nr}-{YYYYMMDD}`) und beim ersten Gästewechsel in `-A`/`-B` umgestellt
+- Neue Domain-Aktion `TischFreigegeben` im Tisch-Aggregat; neue UI-Aktion in der Servicekraft-Ansicht
 
 ---
 
