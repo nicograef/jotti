@@ -196,7 +196,7 @@ Kontext:
 
 ---
 
-## Abschnitt 4: Repository-Schicht — `kassenjournal_repo/` (ersetzt `event_repo/`)
+## Abschnitt 4: Repository-Schicht — `kassenjournal_repo/` (ersetzt `event_repo/`) ✅
 
 Kontext:
 
@@ -209,8 +209,8 @@ Kontext:
 
 ### Tasks
 
-- [ ] Neues Verzeichnis `backend/repository/kassenjournal_repo/` erstellen
-- [ ] Datei `backend/repository/kassenjournal_repo/repo.go` erstellen: **Vorlage:** `event_repo/repo.go`. Struct `Repo` mit `db *sql.DB`. Interface-Methoden:
+- [x] Neues Verzeichnis `backend/repository/kassenjournal_repo/` erstellen
+- [x] Datei `backend/repository/kassenjournal_repo/repo.go` erstellen: **Vorlage:** `event_repo/repo.go`. Struct `Repo` mit `db *sql.DB`. Interface-Methoden:
   - `WriteEvent(ctx, tx, event event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)` — Routing: INSERT INTO kassenjournal (mit `kassensitzung_nr`), dann je nach `streamType`: `"kassensitzung"` → INSERT INTO `kassensitzungen` (bei `kassensitzung-eroeffnet:v1` INSERT mit `datum`, `bezeichnung`, `status='offen'`) oder UPDATE `kassensitzungen` (bei `tagesabschluss-erstellt:v1` SET status='abgeschlossen'); `"tisch-session"` → UPSERT `tisch_sessions` (identisch mit bisherigem Pattern, aber mit neuem Schema: subject als PK, tisch_id + kassensitzung_nr)
   - `ReadEvent(ctx, id int)` — identisch, nur Tabellenname
   - `ReadEventsBySubject(ctx, subject string)` — identisch, nur Tabellenname
@@ -220,9 +220,9 @@ Kontext:
   - `GetBestellungEventsSinceCursor(ctx, cursor int)` — identisch, Tabellenname + Event-Typ anpassen
   - `RebuildAllProjections(ctx)` — DELETE FROM `tisch_sessions`, dann alle Events replayed: je nach Subject-Muster → `parseTischID(subject)` für Tisch-Events, UPSERT entsprechende Projektion (`kassensitzungen` ist CRUD-Entität und wird NICHT replayed)
   - Helper: `parseTischID(subject string)` — delegiert an `kasse.ParseTischIDFromSubject()`; `toTischSession()` — JSON-Unmarshaling analog zu bisherigem `toTischState()`
-- [ ] Datei `backend/repository/kassenjournal_repo/mock.go` erstellen: Mock-Struct mit denselben Interface-Methoden für Unit-Tests — Vorlage: `event_repo/mock.go`, erweitert um neue Methoden (`GetOffeneKassensitzung` liest `kassensitzungen`, `ReadTischSession`)
-- [ ] Datei `backend/repository/kassenjournal_repo/repo_test.go` erstellen: Integrationstests — Vorlage: `event_repo/repo_test.go`. Tests anpassen: Subject-Format `kassensitzung-1/tisch-1`, Event-Typen ohne `tisch.`-Präfix, `kassensitzung_nr`-Parameter, StreamType-Parameter. Neue Tests: WriteEvent mit `StreamTypeKassensitzung` → INSERT/UPDATE `kassensitzungen` prüfen; WriteEvent mit `StreamTypeTischSession` → `tisch_sessions` UPSERT prüfen; `RebuildAllProjections` nur für `tisch_sessions`; `GetOffeneKassensitzung` → offene/keine offene KS aus `kassensitzungen`
-- [ ] Verzeichnis `backend/repository/event_repo/` löschen (repo.go, mock.go, repo_test.go)
+- [x] Datei `backend/repository/kassenjournal_repo/mock.go` erstellen: Mock-Struct mit denselben Interface-Methoden für Unit-Tests — Vorlage: `event_repo/mock.go`, erweitert um neue Methoden (`GetOffeneKassensitzung` liest `kassensitzungen`, `ReadTischSession`)
+- [x] Datei `backend/repository/kassenjournal_repo/repo_test.go` erstellen: Integrationstests — Vorlage: `event_repo/repo_test.go`. Tests anpassen: Subject-Format `kassensitzung-1/tisch-1`, Event-Typen ohne `tisch.`-Präfix, `kassensitzung_nr`-Parameter, StreamType-Parameter. Neue Tests: WriteEvent mit `StreamTypeKassensitzung` → INSERT/UPDATE `kassensitzungen` prüfen; WriteEvent mit `StreamTypeTischSession` → `tisch_sessions` UPSERT prüfen; `RebuildAllProjections` nur für `tisch_sessions`; `GetOffeneKassensitzung` → offene/keine offene KS aus `kassensitzungen`
+- [ ] Verzeichnis `backend/repository/event_repo/` löschen (repo.go, mock.go, repo_test.go) — **Deferred:** Kann erst gelöscht werden, wenn alle Consumer (api/, main.go) in Abschnitten 5-6 auf `kassenjournal_repo` migriert sind. Build-Bruch vermeiden.
 
 ---
 
