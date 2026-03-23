@@ -1,0 +1,403 @@
+package kassenjournal_repo
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/sqlc/dbgen"
+)
+
+type Repository struct {
+	DB *sql.DB
+	q  *dbgen.Queries
+}
+
+func NewRepository(database *sql.DB) Repository {
+	return Repository{DB: database, q: dbgen.New(database)}
+}
+
+// WriteEvent stores a new event in the kassenjournal and synchronously updates
+// the appropriate projection within the same transaction.
+// Routing by streamType:
+//   - "kassensitzung" → INSERT/UPDATE kassensitzungen (CRUD entity)
+//   - "tisch-session" → UPSERT tisch_sessions (synchronous projection)
+func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
+	qtx := r.q.WithTx(tx)
+
+	// 1. Insert event into kassenjournal
+	id, err := qtx.WriteEvent(ctx, dbgen.WriteEventParams{
+		UserID:          e.UserID,
+		UserName:        e.UserName,
+		Type:            e.Type,
+		Subject:         e.Subject,
+		Version:         e.Version,
+		Data:            e.Data,
+		Timestamp:       e.Time,
+		KassensitzungNr: kassensitzungNr,
+	})
+	if err != nil {
+		return 0, db.Error(err)
+	}
+
+	e.ID = id
+
+	// 2. Route to the appropriate projection/entity
+	switch streamType {
+	case kasse.StreamTypeKassensitzung:
+		if err := r.handleKassensitzungEvent(ctx, qtx, e, kassensitzungNr); err != nil {
+			return 0, err
+		}
+
+	case kasse.StreamTypeTischSession:
+		if err := r.handleTischSessionEvent(ctx, qtx, e, kassensitzungNr); err != nil {
+			return 0, err
+		}
+
+	default:
+		return 0, fmt.Errorf("unknown stream type: %s", streamType)
+	}
+
+	// 3. Commit transaction
+	if err := tx.Commit(); err != nil {
+		return 0, db.Error(err)
+	}
+
+	return id, nil
+}
+
+// handleKassensitzungEvent handles kassensitzung events by updating the kassensitzungen CRUD entity.
+// Note: For kassensitzung-eroeffnet:v1, the kassensitzungen row is created by the application layer
+// BEFORE calling WriteEvent (required because kassenjournal has a FK to kassensitzungen).
+// The repo only handles tagesabschluss-erstellt:v1 (setting status to 'abgeschlossen').
+func (r Repository) handleKassensitzungEvent(ctx context.Context, qtx *dbgen.Queries, e event.Event, kassensitzungNr int) error {
+	switch e.Type {
+	case string(kasse.EventTypeTagesabschlussErstelltV1):
+		err := qtx.UpdateKassensitzungStatus(ctx, dbgen.UpdateKassensitzungStatusParams{
+			ZNr:    kassensitzungNr,
+			Status: kasse.KassensitzungStatusAbgeschlossen,
+		})
+		if err != nil {
+			return db.Error(err)
+		}
+
+	default:
+		// Other kassensitzung events (eroeffnet, anfangsbestand, kassenbewegung, kassensturz, differenz)
+		// don't change the CRUD entity — only the kassenjournal entry is written.
+	}
+
+	return nil
+}
+
+// handleTischSessionEvent handles tisch-session events by upserting the tisch_sessions projection.
+func (r Repository) handleTischSessionEvent(ctx context.Context, qtx *dbgen.Queries, e event.Event, kassensitzungNr int) error {
+	tischID, err := kasse.ParseTischIDFromSubject(e.Subject)
+	if err != nil {
+		return fmt.Errorf("parse tisch ID from subject %q: %w", e.Subject, err)
+	}
+
+	// Read current TischSession within TX
+	currentState, err := getTischSessionInTx(ctx, qtx, e.Subject)
+	if err != nil {
+		return err
+	}
+
+	// Apply event to state
+	newState, err := kasse.ApplyEvent(currentState, e)
+	if err != nil {
+		return fmt.Errorf("apply event to tisch session: %w", err)
+	}
+
+	// Marshal positions to JSON
+	unbezahltJSON, err := json.Marshal(newState.UnbezahltePositionen)
+	if err != nil {
+		return fmt.Errorf("marshal unbezahlte positionen: %w", err)
+	}
+	ausstehendeJSON, err := json.Marshal(newState.AusstehendePositionen)
+	if err != nil {
+		return fmt.Errorf("marshal ausstehende positionen: %w", err)
+	}
+
+	// Upsert tisch_sessions
+	err = qtx.UpsertTischSession(ctx, dbgen.UpsertTischSessionParams{
+		Subject:               e.Subject,
+		TischID:               tischID,
+		KassensitzungNr:       kassensitzungNr,
+		SaldoCents:            newState.SaldoCents,
+		UnbezahltePositionen:  unbezahltJSON,
+		AusstehendePositionen: ausstehendeJSON,
+		GesamtZahlungenCents:  newState.GesamtZahlungenCents,
+		LastEventID:           newState.LastEventID,
+		LastEventVersion:      newState.LastEventVersion,
+	})
+	if err != nil {
+		return db.Error(err)
+	}
+
+	return nil
+}
+
+// ReadTischSession reads the projected state of a tisch session by subject.
+// Returns zero-value TischSession if no entry exists (no events written yet).
+func (r Repository) ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error) {
+	row, err := r.q.GetTischSession(ctx, subject)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return kasse.TischSession{}, nil
+		}
+		return kasse.TischSession{}, db.Error(err)
+	}
+
+	return toTischSession(row)
+}
+
+// getTischSessionInTx reads the current TischSession within a transaction.
+// Returns zero-value TischSession if no entry exists.
+func getTischSessionInTx(ctx context.Context, qtx *dbgen.Queries, subject string) (kasse.TischSession, error) {
+	row, err := qtx.GetTischSession(ctx, subject)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return kasse.TischSession{}, nil
+		}
+		return kasse.TischSession{}, db.Error(err)
+	}
+
+	return toTischSession(row)
+}
+
+func toTischSession(row dbgen.TischSession) (kasse.TischSession, error) {
+	var unbezahlt []kasse.Position
+	if err := json.Unmarshal(row.UnbezahltePositionen, &unbezahlt); err != nil {
+		return kasse.TischSession{}, fmt.Errorf("unmarshal unbezahlte positionen: %w", err)
+	}
+
+	var ausstehende []kasse.Position
+	if err := json.Unmarshal(row.AusstehendePositionen, &ausstehende); err != nil {
+		return kasse.TischSession{}, fmt.Errorf("unmarshal ausstehende positionen: %w", err)
+	}
+
+	return kasse.TischSession{
+		Subject:               row.Subject,
+		TischID:               row.TischID,
+		KassensitzungNr:       row.KassensitzungNr,
+		SaldoCents:            row.SaldoCents,
+		UnbezahltePositionen:  unbezahlt,
+		AusstehendePositionen: ausstehende,
+		GesamtZahlungenCents:  row.GesamtZahlungenCents,
+		LastEventID:           row.LastEventID,
+		LastEventVersion:      row.LastEventVersion,
+	}, nil
+}
+
+// GetOffeneKassensitzung reads the currently open Kassensitzung from the kassensitzungen CRUD entity.
+// Returns nil if no open Kassensitzung exists.
+func (r Repository) GetOffeneKassensitzung(ctx context.Context) (*kasse.KassensitzungState, error) {
+	row, err := r.q.GetOffeneKassensitzung(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, db.Error(err)
+	}
+
+	return &kasse.KassensitzungState{
+		ZNr:         row.ZNr,
+		Datum:       row.Datum,
+		Bezeichnung: row.Bezeichnung,
+		Status:      row.Status,
+		CreatedAt:   row.CreatedAt,
+		UpdatedAt:   row.UpdatedAt,
+	}, nil
+}
+
+func (r Repository) ReadEvent(ctx context.Context, eventID int) (event.Event, error) {
+	row, err := r.q.ReadEvent(ctx, eventID)
+	if err != nil {
+		return event.Event{}, db.Error(err)
+	}
+
+	return event.Event{
+		ID:       row.ID,
+		UserID:   row.UserID,
+		UserName: row.UserName,
+		Version:  row.Version,
+		Type:     row.Type,
+		Subject:  row.Subject,
+		Data:     row.Data,
+		Time:     row.Timestamp,
+	}, nil
+}
+
+// ReadEventsBySubject retrieves all events of the given subject.
+// Events are ordered by ID ascending (first element in slice is first event).
+func (r Repository) ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error) {
+	rows, err := r.q.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	events := make([]event.Event, 0, len(rows))
+	for i := range rows {
+		events = append(events, event.Event{
+			ID:       rows[i].ID,
+			UserID:   rows[i].UserID,
+			UserName: rows[i].UserName,
+			Version:  rows[i].Version,
+			Type:     rows[i].Type,
+			Subject:  rows[i].Subject,
+			Data:     rows[i].Data,
+			Time:     rows[i].Timestamp,
+		})
+	}
+
+	return events, nil
+}
+
+// GetMaxVersion returns the highest event version for the given subject.
+// Returns 0 if no events exist for the subject.
+func (r Repository) GetMaxVersion(ctx context.Context, subject string) (int, error) {
+	version, err := r.q.GetMaxVersion(ctx, subject)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+
+	return version, nil
+}
+
+// RebuildAllProjections replays all events and rebuilds the tisch_sessions projection from scratch.
+// Runs in a single transaction: deletes all existing tisch_sessions rows, then replays all events
+// per subject and upserts the resulting state.
+// Note: kassensitzungen is a CRUD entity and is NOT replayed.
+// Returns the number of subjects rebuilt.
+func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
+	qtx := r.q.WithTx(tx)
+
+	// 1. Delete all existing tisch_sessions projections
+	if err := qtx.DeleteAllTischSession(ctx); err != nil {
+		return 0, fmt.Errorf("delete all tisch sessions: %w", err)
+	}
+
+	// 2. Get all distinct subjects
+	subjects, err := qtx.GetDistinctSubjects(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("get distinct subjects: %w", err)
+	}
+
+	// 3. Replay events for each tisch-session subject only
+	rebuiltCount := 0
+	for _, subject := range subjects {
+		// Only rebuild tisch-session subjects (contain "/tisch-")
+		if !isTischSessionSubject(subject) {
+			continue
+		}
+
+		tischID, err := kasse.ParseTischIDFromSubject(subject)
+		if err != nil {
+			return 0, fmt.Errorf("parse tisch ID from subject %q: %w", subject, err)
+		}
+
+		kassensitzungNr, err := kasse.ParseZNrFromSubject(subject)
+		if err != nil {
+			return 0, fmt.Errorf("parse z_nr from subject %q: %w", subject, err)
+		}
+
+		rows, err := qtx.ReadEventsBySubject(ctx, subject)
+		if err != nil {
+			return 0, fmt.Errorf("read events for subject %q: %w", subject, err)
+		}
+
+		state := kasse.TischSession{}
+		for i := range rows {
+			evt := event.Event{
+				ID:       rows[i].ID,
+				UserID:   rows[i].UserID,
+				UserName: rows[i].UserName,
+				Version:  rows[i].Version,
+				Type:     rows[i].Type,
+				Subject:  rows[i].Subject,
+				Data:     rows[i].Data,
+				Time:     rows[i].Timestamp,
+			}
+			state, err = kasse.ApplyEvent(state, evt)
+			if err != nil {
+				return 0, fmt.Errorf("apply event %d to subject %q: %w", rows[i].ID, subject, err)
+			}
+		}
+
+		unbezahltJSON, err := json.Marshal(state.UnbezahltePositionen)
+		if err != nil {
+			return 0, fmt.Errorf("marshal unbezahlte positionen for subject %q: %w", subject, err)
+		}
+		ausstehendeJSON, err := json.Marshal(state.AusstehendePositionen)
+		if err != nil {
+			return 0, fmt.Errorf("marshal ausstehende positionen for subject %q: %w", subject, err)
+		}
+
+		err = qtx.UpsertTischSession(ctx, dbgen.UpsertTischSessionParams{
+			Subject:               subject,
+			TischID:               tischID,
+			KassensitzungNr:       kassensitzungNr,
+			SaldoCents:            state.SaldoCents,
+			UnbezahltePositionen:  unbezahltJSON,
+			AusstehendePositionen: ausstehendeJSON,
+			GesamtZahlungenCents:  state.GesamtZahlungenCents,
+			LastEventID:           state.LastEventID,
+			LastEventVersion:      state.LastEventVersion,
+		})
+		if err != nil {
+			return 0, fmt.Errorf("upsert tisch session for subject %q: %w", subject, err)
+		}
+
+		rebuiltCount++
+	}
+
+	// 4. Commit transaction
+	if err := tx.Commit(); err != nil {
+		return 0, db.Error(err)
+	}
+
+	return rebuiltCount, nil
+}
+
+// GetBestellungEventsSinceCursor reads BestellungAufgenommenV1 events since the
+// given cursor (exclusive). Used by the relay service for receipt printing polling.
+func (r Repository) GetBestellungEventsSinceCursor(ctx context.Context, cursor int) ([]event.Event, error) {
+	rows, err := r.q.GetBestellungEventsSinceCursor(ctx, cursor)
+	if err != nil {
+		return nil, err
+	}
+	events := make([]event.Event, 0, len(rows))
+	for _, row := range rows {
+		events = append(events, event.Event{
+			ID:       row.ID,
+			UserName: row.UserName,
+			Subject:  row.Subject,
+			Data:     row.Data,
+			Time:     row.Timestamp,
+		})
+	}
+	return events, nil
+}
+
+// isTischSessionSubject checks if a subject is a tisch-session subject (contains "/tisch-").
+func isTischSessionSubject(subject string) bool {
+	return strings.Contains(subject, "/tisch-")
+}
