@@ -173,9 +173,9 @@ COMMENT ON COLUMN kassenjournal.data IS 'Event data (jsonb), versioned by type';
 COMMENT ON COLUMN kassenjournal.kassensitzung_nr IS 'Kassensitzung number (z_nr) this event belongs to';
 
 -- ============================================================
--- Table: tisch_session_state (CQRS projection of per-tisch-session state)
+-- Table: tisch_sessions (CQRS projection of per-tisch-session state)
 -- ============================================================
-CREATE TABLE tisch_session_state (
+CREATE TABLE tisch_sessions (
     subject TEXT PRIMARY KEY,
     tisch_id INT NOT NULL REFERENCES tische(id),
     kassensitzung_nr INT NOT NULL REFERENCES kassensitzungen(z_nr),
@@ -188,9 +188,9 @@ CREATE TABLE tisch_session_state (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_tisch_session_state_ks_nr ON tisch_session_state(kassensitzung_nr);
+CREATE INDEX IF NOT EXISTS idx_tisch_sessions_ks_nr ON tisch_sessions(kassensitzung_nr);
 
-COMMENT ON TABLE tisch_session_state IS 'Synchronous CQRS projection of per-tisch-session state, session-scoped (PK: subject), updated within the event-write transaction';
+COMMENT ON TABLE tisch_sessions IS 'Synchronous CQRS projection of per-tisch-session state, session-scoped (PK: subject), updated within the event-write transaction';
 
 -- ============================================================
 -- Table: tisch_favoriten (per-user favorite tables)

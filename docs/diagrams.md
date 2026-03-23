@@ -78,7 +78,7 @@ graph TB
 
     subgraph kasse ["💰 Kasse<br/><i>Core Domain</i>"]
         direction TB
-        kasse_desc["Bestellen · Ausgabe · Kassieren · Stornieren · Auszahlen<br/>Kassensitzung · Kassenbewegungen · Kassensturz · Z-Bon<br/>Kassenjournal (Event-Sourcing)<br/>Projektion: tisch_session_state · CRUD-Entität: kassensitzungen"]
+        kasse_desc["Bestellen · Ausgabe · Kassieren · Stornieren · Auszahlen<br/>Kassensitzung · Kassenbewegungen · Kassensturz · Z-Bon<br/>Kassenjournal (Event-Sourcing)<br/>Projektion: tisch_sessions · CRUD-Entität: kassensitzungen"]
     end
 
     stammdaten -->|"Customer/Supplier + ACL<br/>Fat Events frieren Produktdaten ein"| kasse
@@ -150,7 +150,7 @@ stateDiagram-v2
     HatBestellungen --> Leer: Alle Positionen bezahlt/storniert<br/>Saldo = 0
 
     note right of HatBestellungen
-        TischSessionState (Projektion):
+        TischSession (Projektion):
         • subject (PK)
         • tisch_id, kassensitzung_nr
         • saldo_cents
@@ -237,7 +237,7 @@ sequenceDiagram
     participant BE as Backend (Go)
     participant DB as PostgreSQL
     participant KSP as kassensitzungen
-    participant TSS as tisch_session_state
+    participant TSS as tisch_sessions
     participant TSE as Cloud-TSE (fiskaly)
     participant Relay as Print-Relay
     participant Drucker as Bondrucker
@@ -262,9 +262,9 @@ sequenceDiagram
             TSE-->>BE: Signatur, Transaktionsnummer
             BE->>DB: INSERT INTO kassenjournal (BestellungAufgenommen)
             DB-->>BE: event_id, version
-            BE->>TSS: SELECT tisch_session_state
+            BE->>TSS: SELECT tisch_sessions
             BE->>BE: ApplyEvent(state, event) → neuer State
-            BE->>TSS: UPSERT tisch_session_state
+            BE->>TSS: UPSERT tisch_sessions
         end
 
         BE-->>FE: 200 OK {tischState}
@@ -579,7 +579,7 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant KJ as kassenjournal (Event Store)
     participant KSP as kassensitzungen
-    participant TSS as tisch_session_state
+    participant TSS as tisch_sessions
     participant Dom as Domain (ApplyEvent)
 
     AS->>Repo: WriteEvent(event, streamType)
@@ -591,12 +591,12 @@ sequenceDiagram
         KJ-->>Repo: event_id, version
 
         alt streamType = "tisch-session"
-            Repo->>TSS: SELECT * FROM tisch_session_state<br/>WHERE subject = ?
+            Repo->>TSS: SELECT * FROM tisch_sessions<br/>WHERE subject = ?
             TSS-->>Repo: aktueller State (oder Zero-Value)
             Repo->>Dom: ApplyEvent(state, event)
             Note over Dom: Reine Funktion — kein DB-Zugriff
-            Dom-->>Repo: neuer TischSessionState
-            Repo->>TSS: UPSERT tisch_session_state SET<br/>saldo_cents, unbezahlte_positionen,<br/>ausstehende_positionen, ...
+            Dom-->>Repo: neuer TischSession
+            Repo->>TSS: UPSERT tisch_sessions SET<br/>saldo_cents, unbezahlte_positionen,<br/>ausstehende_positionen, ...
 
         Note over Repo,Dom: COMMIT
     end
@@ -604,7 +604,7 @@ sequenceDiagram
     Repo-->>AS: event_id
 
     Note over AS,TSS: Lesezugriff (Query)
-    AS->>TSS: SELECT saldo_cents,<br/>unbezahlte_positionen, ...<br/>FROM tisch_session_state<br/>WHERE subject = ?
+    AS->>TSS: SELECT saldo_cents,<br/>unbezahlte_positionen, ...<br/>FROM tisch_sessions<br/>WHERE subject = ?
     Note over TSS: Kein Event-Replay nötig!
 ```
 
@@ -896,7 +896,7 @@ erDiagram
         timestamptz updated_at
     }
 
-    tisch_session_state {
+    tisch_sessions {
         string subject PK "kassensitzung-{nr}/tisch-{id}"
         int tisch_id FK
         int kassensitzung_nr
@@ -941,10 +941,10 @@ erDiagram
     }
 
     produkte ||--o{ produkt_varianten : "hat Varianten"
-    tische ||--o{ tisch_session_state : "hat Sessions"
+    tische ||--o{ tisch_sessions : "hat Sessions"
     kassenjournal }o--|| kassensitzungen : "kassensitzung_nr → z_nr"
-    tisch_session_state }o--|| kassensitzungen : "kassensitzung_nr → z_nr"
-    tisch_session_state ||--o| kassenjournal : "letztes Event"
+    tisch_sessions }o--|| kassensitzungen : "kassensitzung_nr → z_nr"
+    tisch_sessions ||--o| kassenjournal : "letztes Event"
     users ||--o{ tisch_favoriten : "hat Favoriten"
     tische ||--o{ tisch_favoriten : "ist Favorit von"
 ```

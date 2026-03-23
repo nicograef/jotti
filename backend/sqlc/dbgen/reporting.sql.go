@@ -13,7 +13,7 @@ import (
 
 const getAusstehendAuszahlungen = `-- name: GetAusstehendAuszahlungen :one
 SELECT COALESCE(SUM(ABS(saldo_cents)), 0)::int AS ausstehend_auszahlungen_cents
-FROM tisch_session_state
+FROM tisch_sessions
 WHERE saldo_cents < 0
 `
 
@@ -66,7 +66,7 @@ func (q *Queries) GetEigeneUebersicht(ctx context.Context, arg GetEigeneUebersic
 
 const getOffeneSaldi = `-- name: GetOffeneSaldi :one
 SELECT COALESCE(SUM(saldo_cents), 0)::int AS offene_saldi_cents
-FROM tisch_session_state WHERE saldo_cents > 0
+FROM tisch_sessions WHERE saldo_cents > 0
 `
 
 // Tagesabrechnung: Summe aller offenen Saldi (zeitraumunabhängig, aktueller Ist-Zustand).
@@ -79,7 +79,7 @@ func (q *Queries) GetOffeneSaldi(ctx context.Context) (int, error) {
 
 const getOffeneTische = `-- name: GetOffeneTische :one
 SELECT COALESCE(COUNT(*), 0)::int AS anzahl
-FROM tisch_session_state WHERE saldo_cents > 0
+FROM tisch_sessions WHERE saldo_cents > 0
 `
 
 // Dashboard: Anzahl Tische mit offenem Saldo > 0.
@@ -147,7 +147,7 @@ SELECT
     e.user_name,
     e.data
 FROM kassenjournal e
-JOIN tisch_session_state tss ON tss.subject = e.subject
+JOIN tisch_sessions tss ON tss.subject = e.subject
 JOIN tische t ON t.id = tss.tisch_id
 WHERE e.type = 'stornierung-erteilt:v1'
 AND e.kassensitzung_nr = $1
@@ -260,7 +260,7 @@ SELECT
         THEN (e.data->>'betragCents')::int END), 0)::int AS auszahlungen_cents,
     COUNT(CASE WHEN e.type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
 FROM kassenjournal e
-JOIN tisch_session_state tss ON tss.subject = e.subject
+JOIN tisch_sessions tss ON tss.subject = e.subject
 JOIN tische t ON t.id = tss.tisch_id
 WHERE e.type IN ('zahlung-kassiert:v1', 'auszahlung-geleistet:v1')
 AND e.kassensitzung_nr = $1

@@ -5,7 +5,7 @@
 `docs/redesign.md` §7 begründet zwei architektonische Änderungen am bestehenden Kassenjournal-Redesign:
 
 **Änderung A — `kassensitzung_state` wird zur `kassensitzungen` CRUD-Entität:**
-Das bisherige Design (§3.8 redesign.md) definiert `kassensitzung_state` als "synchrone CQRS-Projektion" — analog zu `tisch_session_state`. Aber `kassensitzung_state` erfüllt faktisch zwei Rollen: (1) Hot-Path-Read für die KS-Sperre und (2) CRUD-artige Stammdaten-Entität (Kassensitzungs-Verwaltung). Anders als `tisch_session_state` (die aus Events rekonstruierbar sein _muss_) ist `kassensitzung_state` die Single Source of Truth — sie wird nie aus Events replayed. Daher: Umwandlung zur CRUD-Entität `kassensitzungen` ohne `subject`, `last_event_id`, `last_event_version`.
+Das bisherige Design (§3.8 redesign.md) definiert `kassensitzung_state` als "synchrone CQRS-Projektion" — analog zu `tisch_sessions`. Aber `kassensitzung_state` erfüllt faktisch zwei Rollen: (1) Hot-Path-Read für die KS-Sperre und (2) CRUD-artige Stammdaten-Entität (Kassensitzungs-Verwaltung). Anders als `tisch_sessions` (die aus Events rekonstruierbar sein _muss_) ist `kassensitzung_state` die Single Source of Truth — sie wird nie aus Events replayed. Daher: Umwandlung zur CRUD-Entität `kassensitzungen` ohne `subject`, `last_event_id`, `last_event_version`.
 
 **Änderung B — Subject-Format:**
 Altes Format: `kassensitzung-{YYYYMMDD}-tisch-{id}` (z.B. `kassensitzung-20260322-tisch-42`)
@@ -15,7 +15,7 @@ Der `/`-Separator macht die Hierarchie explizit (KS-Segment / Tisch-Segment).
 
 **Was sich NICHT ändert:**
 
-- `tisch_session_state` bleibt eine CQRS-Projektion (mit `last_event_id`, `last_event_version`, PK `subject`)
+- `tisch_sessions` bleibt eine CQRS-Projektion (mit `last_event_id`, `last_event_version`, PK `subject`)
 - `docs/redesign.md` §7 selbst wird NICHT verändert — es dokumentiert die Entscheidung
 - `database/seed.sql` ist NICHT betroffen — sie nutzt den alten `events`-Tabellennamen (Pre-Redesign) und enthält keine `kassensitzung_state`-Referenzen
 - `backend/sqlc/dbgen/` wird NICHT manuell editiert — es wird durch `make sqlc` neu generiert
@@ -70,9 +70,9 @@ ersetzen durch:
     kassensitzung_nr INT NOT NULL REFERENCES kassensitzungen(z_nr),
 ```
 
-**1c) FK auf `tisch_session_state.kassensitzung_nr` hinzufügen.**
+**1c) FK auf `tisch_sessions.kassensitzung_nr` hinzufügen.**
 
-In der `tisch_session_state`-CREATE-TABLE-Definition die Zeile:
+In der `tisch_sessions`-CREATE-TABLE-Definition die Zeile:
 
 ```
     kassensitzung_nr INT NOT NULL,
@@ -169,26 +169,26 @@ Alle Schritte in Phase 2 sind voneinander unabhängig und können parallel bearb
 
 **Allgemeine Ersetzungsregeln** (gelten für ALLE Dokumente in Phase 2, außer `docs/redesign.md` §7):
 
-| Alt                                                   | Neu                                                                                         | Kontext                                             |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `kassensitzung_state` (Tabellenname)                  | `kassensitzungen`                                                                           | Überall wo es den DB-Tabellennamen meint            |
-| `kassensitzung_state`-Projektion / KS-Projektion      | `kassensitzungen`-Entität / KS-Entität                                                      | Beschreibende Texte                                 |
-| `Projektion` (wenn Kassensitzung gemeint)             | `CRUD-Entität`                                                                              | Kassensitzung ist keine Projektion mehr             |
-| `Zwei synchrone Projektionen`                         | `Eine synchrone Projektion (`tisch_session_state`) + eine CRUD-Entität (`kassensitzungen`)` | Wo beide zusammen beschrieben werden                |
-| `kassensitzung-{YYYYMMDD}-tisch-{id}`                 | `kassensitzung-{nr}/tisch-{id}`                                                             | Subject-Format Tisch-Session                        |
-| `kassensitzung-{YYYYMMDD}`                            | `kassensitzung-{nr}`                                                                        | Subject-Format Kassensitzung                        |
-| `kassensitzung-20260322-tisch-42`                     | `kassensitzung-1/tisch-42`                                                                  | Konkretes Beispiel                                  |
-| `kassensitzung-20260322-tisch-43`                     | `kassensitzung-1/tisch-43`                                                                  | Konkretes Beispiel                                  |
-| `kassensitzung-20260322-tisch-7`                      | `kassensitzung-1/tisch-7`                                                                   | Konkretes Beispiel                                  |
-| `kassensitzung-20260322`                              | `kassensitzung-1`                                                                           | KS-Subject-Beispiel (Tag 1)                         |
-| `kassensitzung-20260323`                              | `kassensitzung-2`                                                                           | KS-Subject-Beispiel (Tag 2)                         |
-| `kassensitzung-20260501-tisch-42`                     | `kassensitzung-1/tisch-42`                                                                  | Beispiel in Instructions                            |
-| `kassensitzung-20260501`                              | `kassensitzung-1`                                                                           | Beispiel in Instructions                            |
-| `-tisch-` (im Subject-Kontext)                        | `/tisch-`                                                                                   | Separator-Änderung                                  |
-| `LIKE 'kassensitzung-20260322%'`                      | `LIKE 'kassensitzung-1/%'` oder `WHERE kassensitzung_nr = 1`                                | Query-Beispiele                                     |
-| `UPSERT kassensitzung_state`                          | `INSERT INTO kassensitzungen` / `UPDATE kassensitzungen`                                    | Write-Flow-Pseudocode                               |
-| `last_event_id`, `last_event_version` (im KS-Kontext) | entfernen                                                                                   | Kassensitzung hat keine Event-Tracking-Spalten mehr |
-| `subject TEXT PRIMARY KEY` (im KS-Schema)             | `z_nr INT ... PRIMARY KEY`                                                                  | Schema-Darstellungen                                |
+| Alt                                                   | Neu                                                                                    | Kontext                                             |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `kassensitzung_state` (Tabellenname)                  | `kassensitzungen`                                                                      | Überall wo es den DB-Tabellennamen meint            |
+| `kassensitzung_state`-Projektion / KS-Projektion      | `kassensitzungen`-Entität / KS-Entität                                                 | Beschreibende Texte                                 |
+| `Projektion` (wenn Kassensitzung gemeint)             | `CRUD-Entität`                                                                         | Kassensitzung ist keine Projektion mehr             |
+| `Zwei synchrone Projektionen`                         | `Eine synchrone Projektion (`tisch_sessions`) + eine CRUD-Entität (`kassensitzungen`)` | Wo beide zusammen beschrieben werden                |
+| `kassensitzung-{YYYYMMDD}-tisch-{id}`                 | `kassensitzung-{nr}/tisch-{id}`                                                        | Subject-Format Tisch-Session                        |
+| `kassensitzung-{YYYYMMDD}`                            | `kassensitzung-{nr}`                                                                   | Subject-Format Kassensitzung                        |
+| `kassensitzung-20260322-tisch-42`                     | `kassensitzung-1/tisch-42`                                                             | Konkretes Beispiel                                  |
+| `kassensitzung-20260322-tisch-43`                     | `kassensitzung-1/tisch-43`                                                             | Konkretes Beispiel                                  |
+| `kassensitzung-20260322-tisch-7`                      | `kassensitzung-1/tisch-7`                                                              | Konkretes Beispiel                                  |
+| `kassensitzung-20260322`                              | `kassensitzung-1`                                                                      | KS-Subject-Beispiel (Tag 1)                         |
+| `kassensitzung-20260323`                              | `kassensitzung-2`                                                                      | KS-Subject-Beispiel (Tag 2)                         |
+| `kassensitzung-20260501-tisch-42`                     | `kassensitzung-1/tisch-42`                                                             | Beispiel in Instructions                            |
+| `kassensitzung-20260501`                              | `kassensitzung-1`                                                                      | Beispiel in Instructions                            |
+| `-tisch-` (im Subject-Kontext)                        | `/tisch-`                                                                              | Separator-Änderung                                  |
+| `LIKE 'kassensitzung-20260322%'`                      | `LIKE 'kassensitzung-1/%'` oder `WHERE kassensitzung_nr = 1`                           | Query-Beispiele                                     |
+| `UPSERT kassensitzung_state`                          | `INSERT INTO kassensitzungen` / `UPDATE kassensitzungen`                               | Write-Flow-Pseudocode                               |
+| `last_event_id`, `last_event_version` (im KS-Kontext) | entfernen                                                                              | Kassensitzung hat keine Event-Tracking-Spalten mehr |
+| `subject TEXT PRIMARY KEY` (im KS-Schema)             | `z_nr INT ... PRIMARY KEY`                                                             | Schema-Darstellungen                                |
 
 **ACHTUNG:** `docs/redesign.md` §7 (ab ~Zeile 930) wird NICHT verändert — es ist die Begründung dieser Änderungen.
 
@@ -247,7 +247,7 @@ Wende Ersetzungsregeln an. Hauptbereiche:
 
 - Subject-Formate: `kassensitzung-{YYYYMMDD}-tisch-{id}` → `kassensitzung-{nr}/tisch-{id}`, `kassensitzung-{YYYYMMDD}` → `kassensitzung-{nr}`
 - Konkrete Beispiele: `kassensitzung-20260501-tisch-42` → `kassensitzung-1/tisch-42`, `kassensitzung-20260501` → `kassensitzung-1`
-- "zwei synchrone Projektionen" → "eine synchrone Projektion (`tisch_session_state`) + eine CRUD-Entität (`kassensitzungen`)"
+- "zwei synchrone Projektionen" → "eine synchrone Projektion (`tisch_sessions`) + eine CRUD-Entität (`kassensitzungen`)"
 - Event-Store-Abschnitt: `kassensitzung_state — Kassensitzung-Projektion` → `kassensitzungen — Kassensitzung-Entität (CRUD)`
 
 **`.github/instructions/database.instructions.md`** (1 Stelle):
@@ -258,12 +258,12 @@ Wende Ersetzungsregeln an. Hauptbereiche:
 
 **`AGENTS.md`** (2 Stellen):
 
-- Suche `Zwei Synchrone Projektionen (tisch_session_state, kassensitzung_state)` → `Synchrone Projektion (tisch_session_state), CRUD-Entität (kassensitzungen)`
-- Suche `Zwei synchrone Projektionen (\`tisch_session_state\`, \`kassensitzung_state\`)`→`Eine synchrone Projektion (\`tisch_session_state\`) und eine CRUD-Entität (\`kassensitzungen\`)`
+- Suche `Zwei Synchrone Projektionen (tisch_sessions, kassensitzung_state)` → `Synchrone Projektion (tisch_sessions), CRUD-Entität (kassensitzungen)`
+- Suche `Zwei synchrone Projektionen (\`tisch_sessions\`, \`kassensitzung_state\`)`→`Eine synchrone Projektion (\`tisch_sessions\`) und eine CRUD-Entität (\`kassensitzungen\`)`
 
 **`README.md`** (1 Stelle):
 
-- Suche `Zwei synchrone Projektionen (\`tisch_session_state\`, \`kassensitzung_state\`)` → entsprechend anpassen
+- Suche `Zwei synchrone Projektionen (\`tisch_sessions\`, \`kassensitzung_state\`)` → entsprechend anpassen
 
 ---
 
@@ -329,7 +329,7 @@ ls backend/sqlc/dbgen/kassensitzungen.sql.go
 - `kassensitzungen` (Plural) als Tabellenname — konsistent mit `tische`, `produkte`, `users`
 - `kassensitzungen` wird direkt VOR `kassenjournal` im Schema eingefügt (FK-Abhängigkeit)
 - Neue Redo-Abschnitte 0a/0b/0c/0d im Plan statt Überschreiben von 1+2+9
-- `tisch_session_state` bleibt unverändert (Projektion, mit `last_event_id`/`last_event_version`)
+- `tisch_sessions` bleibt unverändert (Projektion, mit `last_event_id`/`last_event_version`)
 - `docs/redesign.md` §7 wird NICHT verändert — es dokumentiert die Entscheidung
 - Write-Flow Kassensitzung: INSERT in `kassensitzungen` + INSERT in `kassenjournal` in gleicher TX (bei Eröffnung); UPDATE `kassensitzungen` + INSERT in `kassenjournal` (bei Tagesabschluss)
 - `database/seed.sql` ist NICHT betroffen (nutzt altes `events`-Tabellenformat, kein `kassensitzung_state`)

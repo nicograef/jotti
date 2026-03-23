@@ -52,7 +52,7 @@
 ## 6 · Kasse — DB-Schema (Kassenjournal + Projektionen)
 
 - [ ] DB: `events` → `kassenjournal` in `01_initial.up.sql` umbenennen (+ `kassensitzung_nr`-Spalte, Trigger, Indizes)
-- [ ] DB: `table_state` → `tisch_session_state` (session-scoped: PK = `subject`, mit `tisch_id`, `kassensitzung_nr`)
+- [ ] DB: `table_state` → `tisch_sessions` (session-scoped: PK = `subject`, mit `tisch_id`, `kassensitzung_nr`)
 - [ ] DB: CRUD-Entität `kassensitzungen` anlegen (PK: `z_nr` IDENTITY, `datum`, `bezeichnung`, `status`, `created_at`, `updated_at`)
 - [ ] DB: Alte Tabellen `abrechnungskreis`, `kassenbewegungen`, `kassensturz`, `z_bons` entfernen (falls geplant)
 - [ ] Repository: `kassenjournal_repo/` (ersetzt `event_repo/`) mit explizitem `StreamType`-Routing

@@ -9,14 +9,14 @@ FROM tische WHERE status != 'deleted' ORDER BY id ASC;
 -- name: GetAktiveTische :many
 SELECT t.id, t.name, COALESCE(tss.saldo_cents, 0)::integer AS saldo_cents
 FROM tische t
-LEFT JOIN tisch_session_state tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $1
+LEFT JOIN tisch_sessions tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $1
 WHERE t.status = 'active'
 ORDER BY t.id ASC;
 
 -- name: GetAktiveTischeMitFavoriten :many
 SELECT t.id, t.name, COALESCE(tss.saldo_cents, 0)::integer AS saldo_cents, (f.user_id IS NOT NULL) AS ist_favorit
 FROM tische t
-LEFT JOIN tisch_session_state tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $2
+LEFT JOIN tisch_sessions tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $2
 LEFT JOIN tisch_favoriten f ON f.tisch_id = t.id AND f.user_id = $1
 WHERE t.status = 'active'
 ORDER BY t.id ASC;

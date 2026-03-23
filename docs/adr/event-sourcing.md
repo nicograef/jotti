@@ -34,10 +34,10 @@ Servicekräfte nehmen Bestellungen auf, bestätigen die Ausgabe, kassieren und s
 
 **Indirekt beeinflusst:**
 
-| Anforderung                                                                  | Auswirkung                                                                                                                        |
-| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| K-06 (Tischübersicht) — Saldo und Zähler für alle aktiven Tische             | ES ohne Projektion: N separate Event-Replays. CRUD: 1 aggregierendes SELECT. ES + Projektion: 1 SELECT auf `tisch_session_state`. |
-| **R-01–R-05** (Reporting) — Tagesabrechnung, Umsatz pro Produkt/Servicekraft | ES: JSONB-Parsing über alle Events. CRUD: Standard-SQL-Aggregation. ES + Projektion: Hybrid.                                      |
+| Anforderung                                                                  | Auswirkung                                                                                                                   |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| K-06 (Tischübersicht) — Saldo und Zähler für alle aktiven Tische             | ES ohne Projektion: N separate Event-Replays. CRUD: 1 aggregierendes SELECT. ES + Projektion: 1 SELECT auf `tisch_sessions`. |
+| **R-01–R-05** (Reporting) — Tagesabrechnung, Umsatz pro Produkt/Servicekraft | ES: JSONB-Parsing über alle Events. CRUD: Standard-SQL-Aggregation. ES + Projektion: Hybrid.                                 |
 
 > **Transparenzhinweis — Zirkuläre Abhängigkeit:** Die Anforderungen K-07 und Q-04 formulieren Event Sourcing als _Anforderung_, nicht als _Lösung_. Diese ADR begründet die Entscheidung unter anderem mit diesen Anforderungen. Das ist zirkulär. Die Entscheidung stützt sich daher primär auf die fachliche Analyse (§ Begründung), nicht auf K-07/Q-04. Diese beiden Anforderungen werden als _konsistent mit_ der Entscheidung gewertet, nicht als _Treiber_ der Entscheidung.
 
@@ -56,7 +56,7 @@ Beide Lösungen funktionieren. Der Unterschied ist konzeptuelle Klarheit, nicht 
 
 **Event Sourcing für Kasse-Operationen, erweitert um eine synchrone Projektion und eine CRUD-Entität (CQRS Stufe 2). CRUD für Stammdaten und Auth.**
 
-Kasse-Operationen (Tisch-Sessions und Kassensitzungen) werden als immutable Events in einer `kassenjournal`-Tabelle gespeichert. Eine synchrone Projektion — `tisch_session_state` (session-scoped Tisch-Projektion) — und eine CRUD-Entität — `kassensitzungen` (Kassensitzung-Lifecycle) — werden in derselben Transaktion wie das Event-INSERT aktualisiert. Ein expliziter `StreamType`-Parameter steuert das Routing.
+Kasse-Operationen (Tisch-Sessions und Kassensitzungen) werden als immutable Events in einer `kassenjournal`-Tabelle gespeichert. Eine synchrone Projektion — `tisch_sessions` (session-scoped Tisch-Projektion) — und eine CRUD-Entität — `kassensitzungen` (Kassensitzung-Lifecycle) — werden in derselben Transaktion wie das Event-INSERT aktualisiert. Ein expliziter `StreamType`-Parameter steuert das Routing.
 
 ---
 
@@ -138,13 +138,13 @@ ORDER BY created_at ASC;
 
 **Schema:** 1 Events-Tabelle (`kassenjournal`) mit JSONB-Payload. Event-Typen: `BestellungAufgenommen`, `ZahlungKassiert`, `AusgabeBestaetigt`, `StornierungErteilt`, `AuszahlungGeleistet` (Tisch-Session) sowie 6 Kassensitzung-Events.
 
-| Aspekt               | Implementierung                                                                                                             |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| State Reconstruction | Synchrone Projektion `tisch_session_state` via `ApplyEvent()` + CRUD-Entität `kassensitzungen` (siehe [ADR: CQRS](cqrs.md)) |
-| OCC                  | UNIQUE Constraint `(subject, version)` + `GetMaxVersion()` + Retry bei Conflict                                             |
-| Snapshot             | Eliminiert — synchrone Projektion ersetzt Snapshot-Events                                                                   |
-| Read-Optimization    | `ReadEventsWithSnapshot()` — lädt letzten Snapshot + nachfolgende Events                                                    |
-| Kassenjournal        | `ReadEventsBySubject()` — 1 Query, chronologisch sortiert                                                                   |
+| Aspekt               | Implementierung                                                                                                        |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| State Reconstruction | Synchrone Projektion `tisch_sessions` via `ApplyEvent()` + CRUD-Entität `kassensitzungen` (siehe [ADR: CQRS](cqrs.md)) |
+| OCC                  | UNIQUE Constraint `(subject, version)` + `GetMaxVersion()` + Retry bei Conflict                                        |
+| Snapshot             | Eliminiert — synchrone Projektion ersetzt Snapshot-Events                                                              |
+| Read-Optimization    | `ReadEventsWithSnapshot()` — lädt letzten Snapshot + nachfolgende Events                                               |
+| Kassenjournal        | `ReadEventsBySubject()` — 1 Query, chronologisch sortiert                                                              |
 
 **Vorteile:**
 
@@ -169,7 +169,7 @@ ORDER BY created_at ASC;
 
 ### Option C: Event Sourcing + Zwei Synchrone Projektionen (gewählt)
 
-**Schema:** Kassenjournal-Tabelle als Source of Truth + `tisch_session_state`-Projektionstabelle + `kassensitzungen`-CRUD-Entität. UPSERT auf `tisch_session_state` bzw. INSERT/UPDATE auf `kassensitzungen` in derselben Transaktion wie Event-INSERT. Routing über expliziten `StreamType`-Parameter.
+**Schema:** Kassenjournal-Tabelle als Source of Truth + `tisch_sessions`-Projektionstabelle + `kassensitzungen`-CRUD-Entität. UPSERT auf `tisch_sessions` bzw. INSERT/UPDATE auf `kassensitzungen` in derselben Transaktion wie Event-INSERT. Routing über expliziten `StreamType`-Parameter.
 
 **Architektur-Skizze:**
 
@@ -178,11 +178,11 @@ Command (Schreiben)                    Query (Lesen)
        │                                      │
        ▼                                      ▼
 ┌──────────────────────┐          ┌───────────────────────────────┐
-│ KassenjournalRepo.   │          │ TischSessionStateRepo.        │
+│ KassenjournalRepo.   │          │ TischSessionRepo.        │
 │ WriteEvent()         │          │ GetState()                    │
 │                      │          │                               │
 │ BEGIN TX             │          │ SELECT * FROM                 │
-│  INSERT kassenjournal│          │  tisch_session_state          │
+│  INSERT kassenjournal│          │  tisch_sessions          │
 │  StreamType routing  │          │ WHERE subject = ?             │
 │  UPSERT state ←─ synchron      │                               │
 │ COMMIT TX            │          │ KassensitzungenRepo.          │
@@ -197,7 +197,7 @@ Command (Schreiben)                    Query (Lesen)
 **Projektions-Schemata (Skizze):**
 
 ```sql
-CREATE TABLE tisch_session_state (
+CREATE TABLE tisch_sessions (
     subject                   TEXT PRIMARY KEY,  -- z.B. "kassensitzung-1/tisch-42"
     tisch_id                  INT NOT NULL REFERENCES tische(id),
     kassensitzung_nr          TEXT NOT NULL,
@@ -226,12 +226,12 @@ CREATE TABLE kassensitzungen (
 2. Repository-intern: `BEGIN TX → INSERT INTO kassenjournal → StreamType-Routing → ApplyEvent(state, event) → UPSERT in die jeweilige Projektionstabelle → COMMIT TX`
 3. Die Apply-Funktionen sind reine Funktionen in der Domain-Schicht — kein DB-Zugriff
 4. Der Command-Service kennt weder die Projektionstabellen noch den Projektor — CQRS-Trennung bleibt intakt
-5. Query-Service liest direkt aus `tisch_session_state` oder `kassensitzungen` — kein Event Replay mehr nötig
+5. Query-Service liest direkt aus `tisch_sessions` oder `kassensitzungen` — kein Event Replay mehr nötig
 
 **Vorteile:**
 
 - ✅ **Alle ES-Vorteile bleiben erhalten** (Audit Trail, Immutabilität, natürliches Domänenmodell, OCC, Fat Events)
-- ✅ **K-06 (Tischübersicht) wird trivial:** `SELECT * FROM tisch_session_state` statt N Event-Replays
+- ✅ **K-06 (Tischübersicht) wird trivial:** `SELECT * FROM tisch_sessions` statt N Event-Replays
 - ✅ **Snapshot-as-Event wird eliminiert** — `tisch.snapshot:v1` muss nicht mehr erzeugt werden
 - ✅ **Reporting profitiert** — Saldo und Positionen sind vorberechnet, kombinierbar mit `kassenjournal`-Tabelle
 - ✅ **Strong Consistency** — Projektion in derselben TX wie Event-INSERT, kein Stale State
@@ -242,7 +242,7 @@ CREATE TABLE kassensitzungen (
 - ❌ Minimal komplexerer Write-Pfad (1 INSERT + 1 UPSERT pro Transaktion)
 - ❌ Neue Tabelle + Apply-Funktion als Code (~100–200 Zeilen)
 - ❌ Projektion muss konsistent mit Event-Replay-Logik bleiben — Testabdeckung essenziell
-- ❌ JSONB-Spalten in `tisch_session_state` für Positionslisten
+- ❌ JSONB-Spalten in `tisch_sessions` für Positionslisten
 
 **Gesamtbewertung:** Kombiniert fachliche Richtigkeit des Event Sourcing mit praktischer Lesbarkeit. Der Mehraufwand ist gering und der Architekturgewinn erheblich: Snapshot-Anti-Pattern wird eliminiert, Read-Performance wird optimal, Reporting wird ermöglicht.
 
@@ -309,7 +309,7 @@ Ein UNIQUE Constraint `(subject, version)` auf einer Tabelle. Bei CRUD bräuchte
 
 ### 6. Die Projektionen beheben die Read-Schwächen
 
-`tisch_session_state` als synchrone Projektion und `kassensitzungen` als CRUD-Entität machen Read-Zugriffe trivial (je 1 SELECT), eliminieren das Snapshot-as-Event-Anti-Pattern und ermöglichen Reporting — bei minimalem Write-Overhead (1 zusätzlicher UPSERT/INSERT pro Transaktion). Details zur Projektionsarchitektur: [ADR: CQRS](cqrs.md).
+`tisch_sessions` als synchrone Projektion und `kassensitzungen` als CRUD-Entität machen Read-Zugriffe trivial (je 1 SELECT), eliminieren das Snapshot-as-Event-Anti-Pattern und ermöglichen Reporting — bei minimalem Write-Overhead (1 zusätzlicher UPSERT/INSERT pro Transaktion). Details zur Projektionsarchitektur: [ADR: CQRS](cqrs.md).
 
 ---
 
@@ -321,7 +321,7 @@ Ein UNIQUE Constraint `(subject, version)` auf einer Tabelle. Bei CRUD bräuchte
 
 3. **Höhere Einstiegshürde.** Contributors müssen Event Replay, OCC-Versionierung und die Apply-Funktion verstehen. _Mitigation:_ Gut dokumentierte Domain-Schicht, [Handbuch §3](..//handbuch.md).
 
-4. **Ad-hoc-SQL-Analyse erschwert.** JSONB-Parsing statt Standard-SQL. _Mitigation:_ `tisch_session_state` enthält vorberechnete Werte; für tiefergehende Analyse existieren die JSONB-Operatoren.
+4. **Ad-hoc-SQL-Analyse erschwert.** JSONB-Parsing statt Standard-SQL. _Mitigation:_ `tisch_sessions` enthält vorberechnete Werte; für tiefergehende Analyse existieren die JSONB-Operatoren.
 
 5. **Projektion muss konsistent mit Event-Replay-Logik sein.** Zwei Codepfade für dieselbe Berechnung. _Mitigation:_ Apply-Funktion als Single Source of Truth, Replay-Funktionen darauf aufbauen lassen.
 
@@ -376,7 +376,7 @@ type Event struct {
 | `differenz-soll-ist-gebucht:v1` | Differenz Soll/Ist gebucht |
 | `tagesabschluss-erstellt:v1`    | Tagesabschluss erstellt    |
 
-> **Entfernt:** `tisch.snapshot:v1` wurde durch die synchrone Projektion `tisch_session_state` und die CRUD-Entität `kassensitzungen` abgelöst (siehe [ADR: CQRS](cqrs.md)). Der Snapshot-Event-Typ wird nicht mehr erzeugt und der zugehörige Code wurde vollständig entfernt.
+> **Entfernt:** `tisch.snapshot:v1` wurde durch die synchrone Projektion `tisch_sessions` und die CRUD-Entität `kassensitzungen` abgelöst (siehe [ADR: CQRS](cqrs.md)). Der Snapshot-Event-Typ wird nicht mehr erzeugt und der zugehörige Code wurde vollständig entfernt.
 
 ### Append-Only-Garantie
 
@@ -385,12 +385,12 @@ type Event struct {
 
 ### Synchrone Projektionen
 
-Die `tisch_session_state`-Projektion und die `kassensitzungen`-Entität werden in derselben Transaktion wie das Event-INSERT aktualisiert. Ein expliziter `StreamType`-Parameter steuert das Routing zur richtigen Tabelle. Details zur Projektionsarchitektur, zum Apply-Mechanismus und zur CQRS-Trennung: [ADR: CQRS](cqrs.md).
+Die `tisch_sessions`-Projektion und die `kassensitzungen`-Entität werden in derselben Transaktion wie das Event-INSERT aktualisiert. Ein expliziter `StreamType`-Parameter steuert das Routing zur richtigen Tabelle. Details zur Projektionsarchitektur, zum Apply-Mechanismus und zur CQRS-Trennung: [ADR: CQRS](cqrs.md).
 
 ### CQRS
 
 - **Commands** erstellen Events: `BestellungAufnehmen`, `ZahlungKassieren`, `AusgabeBestaetigen`, `StornierungErteilen`, `AuszahlungLeisten`, `KassensitzungEroeffnen`, `AnfangsbestandSetzen`, `KassenbewegungBuchen`, `KassensturzDurchfuehren`, `TagesabschlussErstellen`
-- **Queries** lesen aus `tisch_session_state`: `GetTischSaldo`, `GetTischUnbezahlt`, `GetTischAusstehend`
+- **Queries** lesen aus `tisch_sessions`: `GetTischSaldo`, `GetTischUnbezahlt`, `GetTischAusstehend`
 - **Queries** lesen aus `kassensitzungen`: `GetOffeneKassensitzung`, `GetKassenbestand`
 - **Queries** lesen aus `kassenjournal`: `GetTischHistorie` (Kassenjournal)
 
@@ -410,6 +410,6 @@ Bei jottis aktuellem Scope (11 Event-Typen, < 10k Events, bewusster Feature-Free
 
 ## Referenzen
 
-- [ADR: CQRS](cqrs.md) — Projektionsarchitektur, Stufen-Modell, `tisch_session_state`-/`kassensitzungen`-Details
+- [ADR: CQRS](cqrs.md) — Projektionsarchitektur, Stufen-Modell, `tisch_sessions`-/`kassensitzungen`-Details
 - [Handbuch §3](../handbuch.md) — Domain-Modell, Tisch-Session, Invarianten, Event Replay
 - [Anforderungen](../anforderungen.md) — K-01–K-07, Q-02, Q-04, R-01–R-05

@@ -52,8 +52,8 @@ Das Handbuch ist das am stärksten betroffene Dokument. Es definiert das bisheri
 **§8 Read Models (Zeilen ~808–843):**
 
 - **Ist:** `table_state`-Projektion (PK: `tisch_id`, unbegrenzt)
-- **Soll:** `tisch_session_state` (PK: subject, session-scoped) + `kassensitzungen` (CRUD-Entität)
-- Tischübersicht: `SELECT ... FROM tische LEFT JOIN tisch_session_state` statt `SELECT * FROM table_state`
+- **Soll:** `tisch_sessions` (PK: subject, session-scoped) + `kassensitzungen` (CRUD-Entität)
+- Tischübersicht: `SELECT ... FROM tische LEFT JOIN tisch_sessions` statt `SELECT * FROM table_state`
 
 #### 1.2 `docs/anforderungen.md` — Anforderungen
 
@@ -100,7 +100,7 @@ Das Handbuch ist das am stärksten betroffene Dokument. Es definiert das bisheri
 **Namenskonventionen (Zeilen ~17–34):**
 
 - Go-Structs: `domain/kasse/` statt `domain/table/` für Event-Sourcing-Logik
-- DB-Tabellen: `kassenjournal` statt `events`, `tisch_session_state` statt `table_state`, `kassensitzungen` (CRUD-Entität) neu
+- DB-Tabellen: `kassenjournal` statt `events`, `tisch_sessions` statt `table_state`, `kassensitzungen` (CRUD-Entität) neu
 
 #### 1.4 `docs/diagrams.md` — Diagramme
 
@@ -115,7 +115,7 @@ Nahezu jedes Diagramm ist betroffen:
 - **Diagramm 11 (Schichtenarchitektur, Zeile ~486):** Neue Paketstruktur (`domain/kasse/`, `kassenjournal_repo/`)
 - **Diagramm 12 (Event Sourcing + Synchrone Projektion, Zeile ~532):** Zwei Projektionen statt einer, StreamType-Routing
 - **Diagramm 15 (API-Bereichsgliederung, Zeile ~678):** Neue Kasse-Endpunkte (KS eröffnen, Kassenbewegung, Kassensturz, Z-Bon)
-- **Diagramm 17 (DB-Schema ER-Diagramm, Zeile ~794):** `kassenjournal`, `kassensitzungen`, `tisch_session_state` statt `events` + `table_state`
+- **Diagramm 17 (DB-Schema ER-Diagramm, Zeile ~794):** `kassenjournal`, `kassensitzungen`, `tisch_sessions` statt `events` + `table_state`
 
 #### 1.5 `docs/roadmap.md` — Roadmap
 
@@ -145,7 +145,7 @@ Nahezu jedes Diagramm ist betroffen:
 
 #### 1.9 ADRs (`docs/adr/`)
 
-- **`docs/adr/event-sourcing.md`:** Event-Typen aktualisieren (kein `tisch.`-Präfix), `events` → `kassenjournal`, `table_state` → `tisch_session_state`, Subject-Format, neue Kassensitzung-Events
+- **`docs/adr/event-sourcing.md`:** Event-Typen aktualisieren (kein `tisch.`-Präfix), `events` → `kassenjournal`, `table_state` → `tisch_sessions`, Subject-Format, neue Kassensitzung-Events
 - **`docs/adr/cqrs.md`:** Zwei Projektionen statt einer, StreamType-Routing, session-scoped Projektion
 - **`docs/adr/bondruck.md`:** Relay-Anpassungen referenzieren
 
@@ -191,11 +191,11 @@ Nahezu jedes Diagramm ist betroffen:
 
 **Zeilen ~142–159 (`table_state`-Tabelle):**
 
-- Tabelle `table_state` → `tisch_session_state` umbenennen
+- Tabelle `table_state` → `tisch_sessions` umbenennen
 - PK: `tisch_id INTEGER` → `subject TEXT`
 - Neue Spalten: `tisch_id` (FK, nicht mehr PK), `kassensitzung_nr`
 - FK anpassen: `REFERENCES kassenjournal(id)` statt `REFERENCES events(id)`
-- Index `idx_tisch_session_state_ks_nr` hinzufügen
+- Index `idx_tisch_sessions_ks_nr` hinzufügen
 
 **Neue Tabelle `kassensitzungen` (CRUD-Entität):**
 
@@ -213,7 +213,7 @@ Nahezu jedes Diagramm ist betroffen:
   - Event-Typen: `'tisch.bestellung-aufgenommen:v1'` → `'bestellung-aufgenommen:v1'` (etc.)
   - Neue Spalte `kassensitzung_nr` befüllen
   - Kassensitzung-Events hinzufügen (Eröffnung, Anfangsbestand)
-  - `table_state` → `tisch_session_state` mit angepasstem Schema
+  - `table_state` → `tisch_sessions` mit angepasstem Schema
   - Neue `kassensitzungen`-Einträge (CRUD)
 
 #### 2.3 SQL-Queries (`backend/sqlc/queries/`)
@@ -224,13 +224,13 @@ Nahezu jedes Diagramm ist betroffen:
 - `WriteEvent`: Tabelle `events` → `kassenjournal`, neue Spalte `kassensitzung_nr`
 - `ReadEvent`, `ReadEventsBySubject`, `GetMaxVersion`, `GetDistinctSubjects`: Tabellenname anpassen
 
-**`table_state.sql` → `tisch_session_state.sql`:**
+**`table_state.sql` → `tisch_sessions.sql`:**
 
 - Datei umbenennen
-- `UpsertTableState` → `UpsertTischSessionState`: PK `subject` statt `tisch_id`, neue Spalten
-- `GetTableState` → `GetTischSessionState`: WHERE auf `subject`
-- `GetTableStatesByTischIDs` → ggf. `GetTischSessionStatesByKassensitzungNr`
-- Neue Query: `GetTischSessionStatesBySitzungNr` für Tischübersicht
+- `UpsertTableState` → `UpsertTischSession`: PK `subject` statt `tisch_id`, neue Spalten
+- `GetTableState` → `GetTischSession`: WHERE auf `subject`
+- `GetTableStatesByTischIDs` → ggf. `GetTischSessionsByKassensitzungNr`
+- Neue Query: `GetTischSessionsBySitzungNr` für Tischübersicht
 
 **Neue Datei `kassensitzungen.sql`:**
 
@@ -241,7 +241,7 @@ Nahezu jedes Diagramm ist betroffen:
 
 **`tables.sql` (Zeilen 12–19):**
 
-- `GetAktiveTische`: JOIN auf `tisch_session_state` statt `table_state`, mit `kassensitzung_nr`-Filter
+- `GetAktiveTische`: JOIN auf `tisch_sessions` statt `table_state`, mit `kassensitzung_nr`-Filter
 - `GetAktiveTischeMitFavoriten`: Gleiches JOIN-Pattern
 
 **`reporting.sql` (Zeilen 1–101):**
@@ -250,9 +250,9 @@ Nahezu jedes Diagramm ist betroffen:
 - Alle Event-Typen: `'tisch.bestellung-aufgenommen:v1'` → `'bestellung-aufgenommen:v1'` (etc.)
 - `GetReportingStats`: `WHERE timestamp >= @von AND timestamp < @bis` → `WHERE kassensitzung_nr = @kassensitzungNr`
 - `GetUmsatzProServicekraft`: Gleiches Filterkriterium
-- `GetUmsatzProTisch`: Subject-Parsing `SPLIT_PART(e.subject, ':', 2)` → Neues Parsing oder JOIN auf `tisch_session_state.tisch_id`
+- `GetUmsatzProTisch`: Subject-Parsing `SPLIT_PART(e.subject, ':', 2)` → Neues Parsing oder JOIN auf `tisch_sessions.tisch_id`
 - `GetStornierungen`: Gleiches Subject-Parsing + Filterung
-- `GetOffeneTische`, `GetOffeneSaldi`, `GetAusstehendAuszahlungen`: `table_state` → `tisch_session_state` mit `kassensitzung_nr`-Filter
+- `GetOffeneTische`, `GetOffeneSaldi`, `GetAusstehendAuszahlungen`: `table_state` → `tisch_sessions` mit `kassensitzung_nr`-Filter
 - `GetEigeneUebersicht`: `FROM events` → `FROM kassenjournal`, Event-Typen aktualisieren
 
 **`relay.sql` (Zeilen 1–5):**
@@ -277,7 +277,7 @@ Aktuell enthält `domain/table/` sowohl Stammdaten-Logik als auch Event-Sourcing
 
 **Dateien, die in `domain/table/` BLEIBEN (nur Stammdaten):**
 
-- `tisch.go` (Zeilen 1–100): Bleibt — Tisch als reine Stammdaten-Entität (CRUD). Typen `AktiverTisch` und `AktiverTischMitFavorit` müssen angepasst werden: `SaldoCents` kommt jetzt aus `tisch_session_state`, nicht aus `table_state`
+- `tisch.go` (Zeilen 1–100): Bleibt — Tisch als reine Stammdaten-Entität (CRUD). Typen `AktiverTisch` und `AktiverTischMitFavorit` müssen angepasst werden: `SaldoCents` kommt jetzt aus `tisch_sessions`, nicht aus `table_state`
 
 **Dateien, die nach `domain/kasse/` VERSCHOBEN werden:**
 
@@ -321,9 +321,9 @@ Aktuell enthält `domain/table/` sowohl Stammdaten-Logik als auch Event-Sourcing
 - `repo.go` (Zeilen 1–200):
   - `WriteEvent`: StreamType-Routing implementieren (redesign.md §3.8)
     - `"kassensitzung"` → INSERT Kassenjournal + INSERT/UPDATE `kassensitzungen`
-    - `"tisch-session"` → INSERT Kassenjournal + UPSERT `tisch_session_state`
+    - `"tisch-session"` → INSERT Kassenjournal + UPSERT `tisch_sessions`
   - `parseTischID`: Muss neues Subject-Format parsen (`kassensitzung-{nr}/tisch-{id}`)
-  - `ReadTableState` → `ReadTischSessionState`: Liest nach Subject statt tischID
+  - `ReadTableState` → `ReadTischSession`: Liest nach Subject statt tischID
   - `toTischState`: Anpassen an neues Schema
   - `RebuildAllProjections` (indirekt referenziert in `main.go:95`): Muss beide Projektionen rebuilden
 - `mock.go`: Anpassen an neue Interface-Methoden
@@ -331,8 +331,8 @@ Aktuell enthält `domain/table/` sowohl Stammdaten-Logik als auch Event-Sourcing
 
 **`table_repo/repo.go` (Zeilen 1–300):**
 
-- `GetActiveTables`, `GetActiveTablesWithFavorites`: JOIN-Query ändert sich (auf `tisch_session_state` mit `kassensitzung_nr`)
-- `GetTableStatesByIDs`: Wird zu `GetTischSessionStatesByKassensitzungNr` oder ähnlich
+- `GetActiveTables`, `GetActiveTablesWithFavorites`: JOIN-Query ändert sich (auf `tisch_sessions` mit `kassensitzung_nr`)
+- `GetTableStatesByIDs`: Wird zu `GetTischSessionsByKassensitzungNr` oder ähnlich
 
 #### 2.7 Application-Schicht (`backend/api/`)
 
@@ -422,7 +422,7 @@ Aktuell enthält `domain/table/` sowohl Stammdaten-Logik als auch Event-Sourcing
 
 - Import: `event_repo` → `kassenjournal_repo`
 - Zeile ~95: Rebuild-Projections Meldung anpassen
-- `rebuildProjections`: Muss `tisch_session_state` rebuilden (`kassensitzungen` ist CRUD-Entität, kein Replay)
+- `rebuildProjections`: Muss `tisch_sessions` rebuilden (`kassensitzungen` ist CRUD-Entität, kein Replay)
 
 **`app.go` (Zeilen 1–100):**
 

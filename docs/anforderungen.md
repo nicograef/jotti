@@ -173,7 +173,7 @@ Das Service-Dashboard zeigt primär die eigenen Tische der Servicekraft als Rich
 > **ID:** K-07 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
-Das Kassenjournal ist eine einzige, unveränderliche Tabelle (`kassenjournal`), die alle finanziellen Geschäftsvorfälle chronologisch protokolliert — Tisch-Operationen (Bestellung, Zahlung, Ausgabe, Stornierung, Auszahlung) ebenso wie Kassensitzung-Operationen (Eröffnung, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss). Das Journal ist die einzige Quelle der Wahrheit für den Zustand der Kasse (Event-Sourcing). Eine synchrone Projektion (`tisch_session_state`) + eine CRUD-Entität (`kassensitzungen`) optimieren die Lesezugriffe.
+Das Kassenjournal ist eine einzige, unveränderliche Tabelle (`kassenjournal`), die alle finanziellen Geschäftsvorfälle chronologisch protokolliert — Tisch-Operationen (Bestellung, Zahlung, Ausgabe, Stornierung, Auszahlung) ebenso wie Kassensitzung-Operationen (Eröffnung, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss). Das Journal ist die einzige Quelle der Wahrheit für den Zustand der Kasse (Event-Sourcing). Eine synchrone Projektion (`tisch_sessions`) + eine CRUD-Entität (`kassensitzungen`) optimieren die Lesezugriffe.
 
 **Akzeptanzkriterien:**
 

@@ -157,12 +157,12 @@ kassensitzung-{nr}/tisch-{tischId}              → Abrechnungskreis (Tisch-Sess
 
 **Kanonische Query-Strategie:**
 
-| Zugriffsmuster                                                  | Kanonische Strategie                       | Beispiel                                        |
-| --------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------- |
-| **Single-Stream-Replay** (ein Tisch, eine KS)                   | Exakter `subject`-Match                    | `WHERE subject = 'kassensitzung-1/tisch-42'`    |
-| **Cross-Stream-Aggregation** (Reporting, Kassenbestand, Export) | `kassensitzung_nr`                         | `WHERE kassensitzung_nr = $1`                   |
-| **Tischübersicht** (alle Tische einer KS)                       | `kassensitzung_nr` + `tisch_session_state` | JOIN auf Projektion                             |
-| **Globale Queries** (alle KS eines Tisches, Debug)              | Subject-LIKE                               | `WHERE subject LIKE 'kassensitzung-%/tisch-42'` |
+| Zugriffsmuster                                                  | Kanonische Strategie                  | Beispiel                                        |
+| --------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------- |
+| **Single-Stream-Replay** (ein Tisch, eine KS)                   | Exakter `subject`-Match               | `WHERE subject = 'kassensitzung-1/tisch-42'`    |
+| **Cross-Stream-Aggregation** (Reporting, Kassenbestand, Export) | `kassensitzung_nr`                    | `WHERE kassensitzung_nr = $1`                   |
+| **Tischübersicht** (alle Tische einer KS)                       | `kassensitzung_nr` + `tisch_sessions` | JOIN auf Projektion                             |
+| **Globale Queries** (alle KS eines Tisches, Debug)              | Subject-LIKE                          | `WHERE subject LIKE 'kassensitzung-%/tisch-42'` |
 
 ### 3.4 Tisch-Session (Abrechnungskreis-Aggregat)
 
@@ -191,10 +191,10 @@ Tisch-Session (Event Stream)
         └── menge         (int, ≥ 1)
 ```
 
-**Projektions-Modell (`TischSessionState`):**
+**Projektions-Modell (`TischSession`):**
 
 ```
-TischSessionState (Projektion)
+TischSession (Projektion)
 ├── subject                    (string — PK, "kassensitzung-{nr}/tisch-{id}")
 ├── tisch_id                   (int — FK auf tische.id)
 ├── kassensitzung_nr           (int — für schnelle Queries)
@@ -404,14 +404,14 @@ Alle Beträge in Cent (Integer). Saldo = 0 bedeutet: alle Positionen bezahlt ode
 
 ### 3.8 Synchrone Projektion, CRUD-Entität und Event Replay
 
-Eine synchrone Projektion (`tisch_session_state`) + eine CRUD-Entität (`kassensitzungen`) werden in derselben Transaktion wie das Event-INSERT aktualisiert (Write-Through). Ein expliziter `StreamType`-Parameter steuert das Routing — kein Subject-String-Parsing im Repository-Layer.
+Eine synchrone Projektion (`tisch_sessions`) + eine CRUD-Entität (`kassensitzungen`) werden in derselben Transaktion wie das Event-INSERT aktualisiert (Write-Through). Ein expliziter `StreamType`-Parameter steuert das Routing — kein Subject-String-Parsing im Repository-Layer.
 
 **Routing via StreamType:**
 
-| `streamType`      | Kassenjournal-INSERT | `kassensitzungen` | `tisch_session_state` |
-| ----------------- | -------------------- | ----------------- | --------------------- |
-| `"kassensitzung"` | ✅                   | ✅ INSERT/UPDATE  | —                     |
-| `"tisch-session"` | ✅                   | —                 | ✅ UPSERT             |
+| `streamType`      | Kassenjournal-INSERT | `kassensitzungen` | `tisch_sessions` |
+| ----------------- | -------------------- | ----------------- | ---------------- |
+| `"kassensitzung"` | ✅                   | ✅ INSERT/UPDATE  | —                |
+| `"tisch-session"` | ✅                   | —                 | ✅ UPSERT        |
 
 **Write-Through-Ablauf:**
 
@@ -422,11 +422,11 @@ WriteEvent(event, streamType):
     2. IF streamType = "kassensitzung":
          → INSERT/UPDATE kassensitzungen
     3. ELSE IF streamType = "tisch-session":
-         → UPSERT tisch_session_state (ApplyEvent)
+         → UPSERT tisch_sessions (ApplyEvent)
   COMMIT TX
 ```
 
-Die `ApplyEvent()`-Funktion (`backend/domain/kasse/tisch_session.go`) ist eine reine Funktion in der Domain-Schicht — kein DB-Zugriff. Sie nimmt einen `TischSessionState` und ein `Event` entgegen und gibt den neuen `TischSessionState` zurück.
+Die `ApplyEvent()`-Funktion (`backend/domain/kasse/tisch_session.go`) ist eine reine Funktion in der Domain-Schicht — kein DB-Zugriff. Sie nimmt einen `TischSession` und ein `Event` entgegen und gibt den neuen `TischSession` zurück.
 
 #### `kassensitzungen` — CRUD-Entität (Hot-Path)
 
@@ -438,7 +438,7 @@ Die `ApplyEvent()`-Funktion (`backend/domain/kasse/tisch_session.go`) ist eine r
 
 Diese CRUD-Entität wird bei **jedem** Tisch-Schreibvorgang gelesen (Kassensitzung-Sperre). Alle weiteren Kassensitzung-Daten (Anfangsbestand, Bezeichnung, Kassenbewegungen) werden bei Bedarf per In-Memory-Replay der wenigen KS-Events berechnet.
 
-#### `tisch_session_state` — Session-scoped Tisch-Projektion
+#### `tisch_sessions` — Session-scoped Tisch-Projektion
 
 | Spalte                   | Typ       | Beschreibung                                     |
 | ------------------------ | --------- | ------------------------------------------------ |
@@ -457,7 +457,7 @@ Diese CRUD-Entität wird bei **jedem** Tisch-Schreibvorgang gelesen (Kassensitzu
 ```sql
 SELECT t.id, t.name, COALESCE(tss.saldo_cents, 0) AS saldo_cents
 FROM tische t
-LEFT JOIN tisch_session_state tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $1
+LEFT JOIN tisch_sessions tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $1
 WHERE t.status = 'active'
 ORDER BY t.name;
 ```
@@ -472,9 +472,9 @@ ORDER BY t.name;
 | StornierungErteilt    | Referenzierte Mengen aus `unbezahlte_positionen` und `ausstehende_positionen` subtrahieren, Saldo reduzieren |
 | AuszahlungGeleistet   | Saldo um `betrag_cents` erhöhen (negativen Saldo ausgleichen) — keine Positionslisten-Änderung               |
 
-**Lesezugriff (Queries):** Operative Queries (Saldo, unbezahlte/ausstehende Positionen) lesen direkt aus `tisch_session_state` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`.
+**Lesezugriff (Queries):** Operative Queries (Saldo, unbezahlte/ausstehende Positionen) lesen direkt aus `tisch_sessions` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`.
 
-**Selbstheilung:** Bei Inkonsistenz kann `tisch_session_state` jederzeit aus allen Events im Kassenjournal reberechnet werden — das Kassenjournal bleibt die Single Source of Truth. Details zur Projektionsarchitektur: [ADR: CQRS](adr/cqrs.md).
+**Selbstheilung:** Bei Inkonsistenz kann `tisch_sessions` jederzeit aus allen Events im Kassenjournal reberechnet werden — das Kassenjournal bleibt die Single Source of Truth. Details zur Projektionsarchitektur: [ADR: CQRS](adr/cqrs.md).
 
 ### 3.9 Kassenbestand (Read Model)
 
@@ -760,7 +760,7 @@ Das Backend ist in vier Schichten gegliedert:
 - **HTTP-Schicht:** Liest den Request-Body, validiert das Format und delegiert an den Application-Service. Definiert eigene Request- und Response-DTOs mit `json`-Tags. Domain-Modelle werden nie direkt serialisiert - dedizierte Mapper-Funktionen übersetzen zwischen Domain und HTTP. Gibt strukturierte Fehlerresponses zurück. Keine Business-Logik.
 - **Application-Schicht:** Koordiniert den Use Case: validiert fachlich (zog-Schema), lädt Aggregat-State, ruft Domain-Logik auf und persistiert das Ergebnis. Übersetzt Domain-Fehler in anwendungsseitige Fehlercodes.
 - **Domain-Schicht:** Enthält die fachlichen Regeln (Invarianten, Event-Konstruktion, Zustandsberechnung). Kasse-Logik in `domain/kasse/`, Stammdaten in `domain/table/`, `domain/product/`, `domain/user/`. Kennt keine Datenbank, kein HTTP und keine JSON-Serialisierung. Domain-Structs tragen keine `json`-Tags (Ausnahme: Event-Data-Structs für Kassenjournal-Persistenz).
-- **Repository/Infra-Schicht:** Kapselt alle Datenbankzugriffe. Für die Kasse: Kassenjournal (append-only) mit synchroner Projektion (`tisch_session_state`) und CRUD-Entität (`kassensitzungen`). Für Stammdaten: CRUD. Implementiert auf Basis von sqlc-generierten Queries.
+- **Repository/Infra-Schicht:** Kapselt alle Datenbankzugriffe. Für die Kasse: Kassenjournal (append-only) mit synchroner Projektion (`tisch_sessions`) und CRUD-Entität (`kassensitzungen`). Für Stammdaten: CRUD. Implementiert auf Basis von sqlc-generierten Queries.
 
 ### 6.2 API-Design
 
@@ -882,16 +882,16 @@ Read Models sind aufbereitete Lese-Ansichten — reine Projektionen über vorhan
 
 | Name           | ID   | Quelle                                           | Inhalt (Kurzfassung)                                                                                                                          |
 | -------------- | ---- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tischübersicht | K-06 | `tisch_session_state` + Stammdaten               | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ausstehender Positionen. Startseite des Service-Bereichs. JOIN auf `kassensitzung_nr`. |
-| Tischdetails   | K-06 | `tisch_session_state`                            | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren, Historie.        |
+| Tischübersicht | K-06 | `tisch_sessions` + Stammdaten                    | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ausstehender Positionen. Startseite des Service-Bereichs. JOIN auf `kassensitzung_nr`. |
+| Tischdetails   | K-06 | `tisch_sessions`                                 | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren, Historie.        |
 | Produktkatalog | —    | Produkt-Stammdaten                               | Aktive Produkte und Varianten, nach Kategorie gruppiert. Im Bestellvorgang geladen (kein eigenes Navigationsziel).                            |
 | Kassenjournal  | K-07 | Kassenjournal (Event Stream, Replay per Subject) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich.                  |
 
-Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchronen Projektionstabelle `tisch_session_state` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`. Details zur Projektionsarchitektur: [ADR: CQRS](adr/cqrs.md).
+Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchronen Projektionstabelle `tisch_sessions` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`. Details zur Projektionsarchitektur: [ADR: CQRS](adr/cqrs.md).
 
 ### 7.2 Admin-Ansichten (Reporting)
 
-Alle Reporting-Ansichten aggregieren Daten aus dem `kassenjournal` und `tisch_session_state` tischübergreifend und sind nur für Admins zugänglich. Die Berechnung erfolgt on-demand per SQL-Aggregation (kein Background Worker, kein Eventual Consistency).
+Alle Reporting-Ansichten aggregieren Daten aus dem `kassenjournal` und `tisch_sessions` tischübergreifend und sind nur für Admins zugänglich. Die Berechnung erfolgt on-demand per SQL-Aggregation (kein Background Worker, kein Eventual Consistency).
 
 Der Zugriff erfolgt über den konsolidierten Endpoint `POST /admin/get-reporting`. Request und Response bilden ein einheitliches Modell mit den Sektionen `summary`, `breakdowns` und `stornierungen`. Filtert nach `kassensitzung_nr` statt Zeitraum — ein Event nach Mitternacht gehört zur offenen Kassensitzung, nicht zum Folgetag.
 

@@ -227,7 +227,7 @@ type TischFavoriten struct {
 }
 
 // Synchronous CQRS projection of per-tisch-session state, session-scoped (PK: subject), updated within the event-write transaction
-type TischSessionState struct {
+type TischSession struct {
 	Subject               string
 	TischID               int
 	KassensitzungNr       int

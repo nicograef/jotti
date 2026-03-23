@@ -10,7 +10,7 @@ Events für Kasse-Operationen (Tisch-Sessions und Kassensitzungen). Zwei Subject
 - Tisch-Session: `"kassensitzung-{nr}/tisch-{id}"` (z.B. `"kassensitzung-1/tisch-42"`)
 - Kassensitzung: `"kassensitzung-{nr}"` (z.B. `"kassensitzung-1"`)
 
-State wird durch eine synchrone Projektion (`tisch_session_state`) und eine CRUD-Entität (`kassensitzungen`) rekonstruiert, die in derselben Transaktion wie das Event-INSERT aktualisiert werden. Routing über expliziten `StreamType`-Parameter.
+State wird durch eine synchrone Projektion (`tisch_sessions`) und eine CRUD-Entität (`kassensitzungen`) rekonstruiert, die in derselben Transaktion wie das Event-INSERT aktualisiert werden. Routing über expliziten `StreamType`-Parameter.
 
 ## Event-Typen
 
@@ -44,7 +44,7 @@ Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/kasse/` (künf
 
 Tabelle: `kassenjournal` (append-only). Eine synchrone Projektion + eine CRUD-Entität:
 
-- `tisch_session_state` — session-scoped Tisch-Projektion (PK: `subject`)
+- `tisch_sessions` — session-scoped Tisch-Projektion (PK: `subject`)
 - `kassensitzungen` — Kassensitzung-Entität (CRUD, PK: `z_nr`)
 
 Routing über `StreamType`-Parameter: `"tisch-session"` | `"kassensitzung"`.

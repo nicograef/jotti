@@ -16,19 +16,19 @@ Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktual
 
 ## Namenskonventionen pro Schicht
 
-| Schicht                   | Sprache  | Konvention                 | Beispiel                                                                            |
-| ------------------------- | -------- | -------------------------- | ----------------------------------------------------------------------------------- |
-| Go-Domain-Structs         | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Position`                                                   |
-| Go-Felder (Domäne)        | Deutsch  | PascalCase                 | `GesamtPreisCents`, `SaldoCents`                                                    |
-| TypeScript-Typen (Domäne) | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Zahlung`                                                    |
-| JSON-Keys (Domäne)        | Deutsch  | camelCase                  | `"gesamtPreisCents"`, `"saldoCents"`                                                |
-| API-Pfade (Domäne)        | Deutsch  | kebab-case                 | `/bestellung-aufnehmen`, `/zahlung-kassieren`                                       |
-| DB-Tabellen (Domäne)      | Deutsch  | snake_case                 | `tische`, `produkte`, `produkt_varianten`, `tisch_session_state`, `kassensitzungen` |
-| DB-Tabellen (Infra.)      | Englisch | snake_case                 | `users`, `kassenjournal`                                                            |
-| DB-Spalten (Domäne)       | Deutsch  | snake_case                 | `kategorie`, `preis_cents`, `produkt_id`                                            |
-| DB-Spalten (Infrastr.)    | Englisch | snake_case                 | `created_at`, `updated_at`, `status`, `id`                                          |
-| Frontend-Routen           | Deutsch  | kebab-case                 | `/service/tische`, `/admin/produkte`                                                |
-| Auth/Infrastruktur-Code   | Englisch | Sprachübliche Konventionen | `User`, `Role`, `Token`, `Config`                                                   |
+| Schicht                   | Sprache  | Konvention                 | Beispiel                                                                       |
+| ------------------------- | -------- | -------------------------- | ------------------------------------------------------------------------------ |
+| Go-Domain-Structs         | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Position`                                              |
+| Go-Felder (Domäne)        | Deutsch  | PascalCase                 | `GesamtPreisCents`, `SaldoCents`                                               |
+| TypeScript-Typen (Domäne) | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Zahlung`                                               |
+| JSON-Keys (Domäne)        | Deutsch  | camelCase                  | `"gesamtPreisCents"`, `"saldoCents"`                                           |
+| API-Pfade (Domäne)        | Deutsch  | kebab-case                 | `/bestellung-aufnehmen`, `/zahlung-kassieren`                                  |
+| DB-Tabellen (Domäne)      | Deutsch  | snake_case                 | `tische`, `produkte`, `produkt_varianten`, `tisch_sessions`, `kassensitzungen` |
+| DB-Tabellen (Infra.)      | Englisch | snake_case                 | `users`, `kassenjournal`                                                       |
+| DB-Spalten (Domäne)       | Deutsch  | snake_case                 | `kategorie`, `preis_cents`, `produkt_id`                                       |
+| DB-Spalten (Infrastr.)    | Englisch | snake_case                 | `created_at`, `updated_at`, `status`, `id`                                     |
+| Frontend-Routen           | Deutsch  | kebab-case                 | `/service/tische`, `/admin/produkte`                                           |
+| Auth/Infrastruktur-Code   | Englisch | Sprachübliche Konventionen | `User`, `Role`, `Token`, `Config`                                              |
 
 > **Pfadkonvention:** Dateipfade sind relativ angegeben — `domain/…` und `api/…` liegen unter `backend/`, `src/…` unter `frontend/`, `migrations/…` unter `database/`.
 
@@ -48,7 +48,7 @@ Alle bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben
 | Status-Enums          | `active`, `inactive`, `deleted`                    | Englisch ist korrekt — technische Lifecycle-States, kein Domänenbegriff.                        |
 | Kassenjournal         | `Historie` (Code) vs. `Kassenjournal` (Entwurf)    | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert. |
 | Kassenjournal-Tabelle | `events` (Ist) → `kassenjournal` (Soll)            | Umbenennung im Kassenjournal-Redesign geplant.                                                  |
-| Projektions-Tabelle   | `table_state` (Ist) → `tisch_session_state` (Soll) | PK ändert sich von `tisch_id` zu `subject` (session-scoped).                                    |
+| Projektions-Tabelle   | `table_state` (Ist) → `tisch_sessions` (Soll)      | PK ändert sich von `tisch_id` zu `subject` (session-scoped).                                    |
 | Domain-Paket          | `domain/table/` (Ist) → `domain/kasse/` (Soll)     | Tisch-Stammdaten bleiben in `domain/table/`, Kasse-Logik wandert nach `domain/kasse/`.          |
 | Repository-Paket      | `event_repo/` (Ist) → `kassenjournal_repo/` (Soll) | Umbenennung im Kassenjournal-Redesign geplant.                                                  |
 
@@ -126,9 +126,9 @@ Reine Stammdaten-Entität: ein physischer Ort, an dem Gäste sitzen. Hat einen N
 
 Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Bestellungen, Zahlungen, Stornierungen, Ausgaben, Auszahlungen) eines Tisches innerhalb einer Kassensitzung ab. Entsteht implizit mit der ersten Bestellung. Subject-Format: `kassensitzung-{nr}/tisch-{tischId}`.
 
-| Go-Struct (geplant) | DB-Projektion         | JSON-Key | Subject-Format                       |
-| ------------------- | --------------------- | -------- | ------------------------------------ |
-| `TischSession`      | `tisch_session_state` | —        | `kassensitzung-{nr}/tisch-{tischId}` |
+| Go-Struct (geplant) | DB-Projektion    | JSON-Key | Subject-Format                       |
+| ------------------- | ---------------- | -------- | ------------------------------------ |
+| `TischSession`      | `tisch_sessions` | —        | `kassensitzung-{nr}/tisch-{tischId}` |
 
 #### Bestellung
 
@@ -182,7 +182,7 @@ Auszahlung an den Gast, um einen negativen Saldo auszugleichen — entsteht, wen
 
 Offener Betrag einer Tisch-Session: Bestellungen − Zahlungen − Stornierungen + Auszahlungen. Immer in Cent.
 
-Go-Snapshot-Feld: `SaldoCents` · Go-Projektion: `ApplyEvent()` → `TischSessionState` · API: `/service/get-tisch-state`
+Go-Snapshot-Feld: `SaldoCents` · Go-Projektion: `ApplyEvent()` → `TischSession` · API: `/service/get-tisch-state`
 
 #### Splitrechnung / Teilzahlung
 

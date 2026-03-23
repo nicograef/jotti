@@ -17,7 +17,7 @@ applyTo: "database/**,backend/sqlc/**,backend/sqlc.yaml"
 
 Domain-Tabellen: `tische`, `produkte`, `produkt_varianten` (deutsch, snake_case).
 Infrastruktur-Tabellen: `users` (englisch, snake_case).
-Kasse-Tabellen: `kassenjournal` (append-only Event Store), `tisch_session_state` (Tisch-Projektion), `kassensitzungen` (Kassensitzung-Entität, CRUD).
+Kasse-Tabellen: `kassenjournal` (append-only Event Store), `tisch_sessions` (Tisch-Projektion), `kassensitzungen` (Kassensitzung-Entität, CRUD).
 
 Domain-Spalten sind deutsch (`kategorie`, `preis_cents`, `produkt_id`), technische Spalten englisch (`created_at`, `updated_at`, `status`, `id`).
 

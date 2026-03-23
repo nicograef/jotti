@@ -32,7 +32,7 @@ Architektur, Bounded Contexts, Domain-Modelle, Invarianten, Event-Sourcing-Detai
 
 - **§1 Überblick:** Systemvision, Designziele, bewusste Abgrenzung
 - **§2 Bounded Contexts:** Kontextübersicht (Kasse, Stammdaten, Auth), Beziehungen (ACL, Fat Events)
-- **§3 Kasse (Core Domain):** Tisch-Session, Kassensitzung, Invarianten (Saldo, Ausgabe-, Bezahl-, Stornierungsinvariante, KS-Sperre), Domain Events (BestellungAufgenommen, AusgabeBestaetigt, ZahlungKassiert, StornierungErteilt, KassensitzungEroeffnet u. a.), Kassenjournal, Synchrone Projektion (tisch_session_state), CRUD-Entität (kassensitzungen)
+- **§3 Kasse (Core Domain):** Tisch-Session, Kassensitzung, Invarianten (Saldo, Ausgabe-, Bezahl-, Stornierungsinvariante, KS-Sperre), Domain Events (BestellungAufgenommen, AusgabeBestaetigt, ZahlungKassiert, StornierungErteilt, KassensitzungEroeffnet u. a.), Kassenjournal, Synchrone Projektion (tisch_sessions), CRUD-Entität (kassensitzungen)
 - **§4 Stammdaten:** Produkt-Aggregat (Varianten, Kategorien), Tisch-Stammdaten, Benutzer-Aggregat, CRUD-Persistenz
 - **§5 Auth und Rollen:** Berechtigungsmatrix, Onboarding-Ablauf
 - **§6 Architekturprinzipien:** Schichtenarchitektur, API-Design, Frontend-Architektur, Validierung, Geldbeträge, OCC, Sicherheit
@@ -133,7 +133,7 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 
 1. **Alle API-Endpunkte sind POST-only.** Keine GET/PUT/DELETE.
 2. **Geldbeträge sind immer in Cent (int).** Niemals Floats für Geld verwenden.
-3. **Event-Sourcing für Kasse-Operationen.** Das Kassenjournal (`kassenjournal`-Tabelle) ist immutable (append-only). Nie Einträge im Kassenjournal updaten oder löschen. Eine synchrone Projektion (`tisch_session_state`) und eine CRUD-Entität (`kassensitzungen`) werden in derselben Transaktion aktualisiert.
+3. **Event-Sourcing für Kasse-Operationen.** Das Kassenjournal (`kassenjournal`-Tabelle) ist immutable (append-only). Nie Einträge im Kassenjournal updaten oder löschen. Eine synchrone Projektion (`tisch_sessions`) und eine CRUD-Entität (`kassensitzungen`) werden in derselben Transaktion aktualisiert.
 4. **CRUD für Stammdaten** (Benutzer, Produkte, Tische). Soft-Deletes via `status = 'deleted'`.
 5. **Validierung mit Schemas.** Backend: `zog`. Frontend: `Zod`. Beide Seiten validieren.
 6. **Deutsche Ubiquitous Language.** Fachbegriffe der Domäne sind deutsch (Bestellung, Zahlung, Ausgabe, Stornierung, Tisch, Position). Infrastruktur-Code (Auth, Config, DB) bleibt englisch. Alle Benutzer-sichtbaren Strings auf Deutsch. Commits auf Englisch.
