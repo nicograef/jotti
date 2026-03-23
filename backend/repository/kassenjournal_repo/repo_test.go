@@ -557,11 +557,11 @@ func TestWriteEvent_TagesabschlussErstellt(t *testing.T) {
 }
 
 func TestGetOffeneKassensitzung_NoneOpen(t *testing.T) {
-	_, _, repo, teardown := setup(t)
+	_, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
 	// Close the kassensitzung created by setup
-	_, err := repo.DB.Exec("UPDATE kassensitzungen SET status = $1", kasse.KassensitzungStatusAbgeschlossen)
+	_, err := repo.DB.Exec("UPDATE kassensitzungen SET status = $1 WHERE z_nr = $2", kasse.KassensitzungStatusAbgeschlossen, ksNr)
 	if err != nil {
 		t.Fatalf("Failed to close kassensitzung: %v", err)
 	}

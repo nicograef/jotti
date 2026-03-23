@@ -382,7 +382,7 @@ func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
 func (r Repository) GetBestellungEventsSinceCursor(ctx context.Context, cursor int) ([]event.Event, error) {
 	rows, err := r.q.GetBestellungEventsSinceCursor(ctx, cursor)
 	if err != nil {
-		return nil, err
+		return nil, db.Error(err)
 	}
 	events := make([]event.Event, 0, len(rows))
 	for _, row := range rows {
