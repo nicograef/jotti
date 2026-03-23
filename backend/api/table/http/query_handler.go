@@ -7,16 +7,18 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/middleware"
+	"github.com/nicograef/jotti/backend/api/table/application"
+	k "github.com/nicograef/jotti/backend/domain/kasse"
 	t "github.com/nicograef/jotti/backend/domain/table"
 )
 
 type query interface {
 	GetAllTische(ctx context.Context) ([]t.Tisch, error)
 	GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error)
-	GetTischHistorie(ctx context.Context, tischID int) ([]t.HistorieEintrag, error)
-	GetTischState(ctx context.Context, tischID int) (t.TischState, error)
+	GetTischHistorie(ctx context.Context, tischID int) ([]k.HistorieEintrag, error)
+	GetTischState(ctx context.Context, tischID int) (application.TischStateView, error)
 	GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]t.AktiverTischMitFavorit, error)
-	GetMeineTischeState(ctx context.Context, userID int) ([]t.TischState, error)
+	GetMeineTischeState(ctx context.Context, userID int) ([]application.TischStateView, error)
 }
 
 type QueryHandler struct {
@@ -115,7 +117,7 @@ type position struct {
 	Menge        int    `json:"menge"`
 }
 
-func toPosition(p t.Position) position {
+func toPosition(p k.Position) position {
 	return position{
 		PositionID:   p.PositionID,
 		VarianteID:   p.VarianteID,
@@ -127,7 +129,7 @@ func toPosition(p t.Position) position {
 	}
 }
 
-func toPositionen(positionen []t.Position) []position {
+func toPositionen(positionen []k.Position) []position {
 	positionenResponse := make([]position, 0, len(positionen))
 	for _, position := range positionen {
 		positionenResponse = append(positionenResponse, toPosition(position))
@@ -146,7 +148,7 @@ type bestellung struct {
 	AufgenommenAm    time.Time  `json:"aufgenommenAm"`
 }
 
-func toBestellung(b t.Bestellung) bestellung {
+func toBestellung(b k.Bestellung) bestellung {
 	return bestellung{
 		ID:               b.ID,
 		UserID:           b.UserID,
@@ -167,7 +169,7 @@ type ausgabe struct {
 	AusgegebenAm time.Time  `json:"ausgegebenAm"`
 }
 
-func toAusgabe(a t.Ausgabe) ausgabe {
+func toAusgabe(a k.Ausgabe) ausgabe {
 	return ausgabe{
 		ID:           a.ID,
 		UserID:       a.UserID,
@@ -188,7 +190,7 @@ type zahlung struct {
 	KassiertAm         time.Time  `json:"kassiertAm"`
 }
 
-func toZahlung(z t.Zahlung) zahlung {
+func toZahlung(z k.Zahlung) zahlung {
 	return zahlung{
 		ID:                 z.ID,
 		UserID:             z.UserID,
@@ -210,7 +212,7 @@ type stornierung struct {
 	StorniertAm            time.Time  `json:"storniertAm"`
 }
 
-func toStornierung(s t.Stornierung) stornierung {
+func toStornierung(s k.Stornierung) stornierung {
 	return stornierung{
 		ID:                     s.ID,
 		UserID:                 s.UserID,
@@ -231,7 +233,7 @@ type auszahlung struct {
 	GeleistetAm time.Time `json:"geleistetAm"`
 }
 
-func toAuszahlung(a t.Auszahlung) auszahlung {
+func toAuszahlung(a k.Auszahlung) auszahlung {
 	return auszahlung{
 		ID:          a.ID,
 		UserID:      a.UserID,
@@ -242,27 +244,27 @@ func toAuszahlung(a t.Auszahlung) auszahlung {
 	}
 }
 
-func toHistorie(eintraege []t.HistorieEintrag) []any {
+func toHistorie(eintraege []k.HistorieEintrag) []any {
 	historieResponse := make([]any, 0, len(eintraege))
 	for _, eintrag := range eintraege {
 		switch eintrag.Art {
-		case t.HistorieEintragBestellung:
+		case k.HistorieEintragBestellung:
 			if eintrag.Bestellung != nil {
 				historieResponse = append(historieResponse, toBestellung(*eintrag.Bestellung))
 			}
-		case t.HistorieEintragAusgabe:
+		case k.HistorieEintragAusgabe:
 			if eintrag.Ausgabe != nil {
 				historieResponse = append(historieResponse, toAusgabe(*eintrag.Ausgabe))
 			}
-		case t.HistorieEintragZahlung:
+		case k.HistorieEintragZahlung:
 			if eintrag.Zahlung != nil {
 				historieResponse = append(historieResponse, toZahlung(*eintrag.Zahlung))
 			}
-		case t.HistorieEintragStornierung:
+		case k.HistorieEintragStornierung:
 			if eintrag.Stornierung != nil {
 				historieResponse = append(historieResponse, toStornierung(*eintrag.Stornierung))
 			}
-		case t.HistorieEintragAuszahlung:
+		case k.HistorieEintragAuszahlung:
 			if eintrag.Auszahlung != nil {
 				historieResponse = append(historieResponse, toAuszahlung(*eintrag.Auszahlung))
 			}

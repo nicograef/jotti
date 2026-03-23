@@ -34,7 +34,7 @@ type stornierungEventData struct {
 	Positionen             []stornierungPositionJSON `json:"positionen"`
 }
 
-func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitraum) (reporting.ReportingData, error) {
+func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error) {
 	var (
 		stats                  dbgen.GetReportingStatsRow
 		offeneSaldi            int
@@ -49,7 +49,7 @@ func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitrau
 
 	g.Go(func() error {
 		var err error
-		stats, err = r.q.GetReportingStats(ctx, dbgen.GetReportingStatsParams{Von: zeitraum.Von, Bis: zeitraum.Bis})
+		stats, err = r.q.GetReportingStats(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
@@ -69,17 +69,17 @@ func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitrau
 	})
 	g.Go(func() error {
 		var err error
-		umsatzRows, err = r.q.GetUmsatzProServicekraft(ctx, dbgen.GetUmsatzProServicekraftParams{Von: zeitraum.Von, Bis: zeitraum.Bis})
+		umsatzRows, err = r.q.GetUmsatzProServicekraft(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		tischRows, err = r.q.GetUmsatzProTisch(ctx, dbgen.GetUmsatzProTischParams{Von: zeitraum.Von, Bis: zeitraum.Bis})
+		tischRows, err = r.q.GetUmsatzProTisch(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		stornoRows, err = r.q.GetStornierungen(ctx, dbgen.GetStornierungenParams{Von: zeitraum.Von, Bis: zeitraum.Bis})
+		stornoRows, err = r.q.GetStornierungen(ctx, kassensitzungNr)
 		return err
 	})
 
@@ -133,7 +133,7 @@ func (r Repository) GetReporting(ctx context.Context, zeitraum reporting.Zeitrau
 	}
 
 	return reporting.ReportingData{
-		Zeitraum: zeitraum,
+		KassensitzungNr: kassensitzungNr,
 		Summary: reporting.Summary{
 			GesamtUmsatzCents:           int(stats.GesamtUmsatzCents),
 			GesamtAuszahlungenCents:     stats.GesamtAuszahlungenCents,
@@ -170,8 +170,11 @@ func toStornierungPositionen(positionen []stornierungPositionJSON) []reporting.S
 	return out
 }
 
-func (r Repository) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.EigeneUebersicht, error) {
-	row, err := r.q.GetEigeneUebersicht(ctx, userID)
+func (r Repository) GetEigeneUebersicht(ctx context.Context, userID int, kassensitzungNr int) (reporting.EigeneUebersicht, error) {
+	row, err := r.q.GetEigeneUebersicht(ctx, dbgen.GetEigeneUebersichtParams{
+		UserID:          userID,
+		KassensitzungNr: kassensitzungNr,
+	})
 	if err != nil {
 		return reporting.EigeneUebersicht{}, err
 	}

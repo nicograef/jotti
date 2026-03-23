@@ -42,7 +42,7 @@ func (m mockRepo) GetAllTables(ctx context.Context) ([]table.Tisch, error) {
 	return result, m.err
 }
 
-func (m mockRepo) GetActiveTables(ctx context.Context) ([]table.AktiverTisch, error) {
+func (m mockRepo) GetActiveTables(ctx context.Context, kassensitzungNr int) ([]table.AktiverTisch, error) {
 	var result []table.AktiverTisch
 	for _, t := range m.tables {
 		if t.Status == table.ActiveStatus {
@@ -64,10 +64,6 @@ func (m mockRepo) UpdateTable(ctx context.Context, t table.Tisch) error {
 	return m.err
 }
 
-func (m mockRepo) GetActiveTablesWithFavorites(_ context.Context, _ int) ([]table.AktiverTischMitFavorit, error) {
-	return nil, m.err
-}
-
-func (m mockRepo) GetTableStatesByIDs(_ context.Context, _ []int) ([]table.TischState, error) {
+func (m mockRepo) GetActiveTablesWithFavorites(_ context.Context, _ int, _ int) ([]table.AktiverTischMitFavorit, error) {
 	return nil, m.err
 }

@@ -10,12 +10,12 @@ import (
 )
 
 const (
-	EventTypeKassensitzungEroeffnetV1    EventType = "kassensitzung-eroeffnet:v1"
-	EventTypeAnfangsbestandGesetztV1     EventType = "anfangsbestand-gesetzt:v1"
-	EventTypeKassenbewegungGebuchtV1     EventType = "kassenbewegung-gebucht:v1"
-	EventTypeKassensturzDurchgefuehrtV1  EventType = "kassensturz-durchgefuehrt:v1"
-	EventTypeDifferenzSollIstGebuchtV1   EventType = "differenz-soll-ist-gebucht:v1"
-	EventTypeTagesabschlussErstelltV1    EventType = "tagesabschluss-erstellt:v1"
+	EventTypeKassensitzungEroeffnetV1   EventType = "kassensitzung-eroeffnet:v1"
+	EventTypeAnfangsbestandGesetztV1    EventType = "anfangsbestand-gesetzt:v1"
+	EventTypeKassenbewegungGebuchtV1    EventType = "kassenbewegung-gebucht:v1"
+	EventTypeKassensturzDurchgefuehrtV1 EventType = "kassensturz-durchgefuehrt:v1"
+	EventTypeDifferenzSollIstGebuchtV1  EventType = "differenz-soll-ist-gebucht:v1"
+	EventTypeTagesabschlussErstelltV1   EventType = "tagesabschluss-erstellt:v1"
 )
 
 // --- Event-Data-Structs ---
@@ -83,14 +83,14 @@ var differenzSollIstGebuchtV1DataSchema = z.Struct(z.Shape{
 })
 
 type tagesabschlussErstelltV1Data struct {
-	ZNr                int       `json:"zNr"`
-	ZeitraumVon        time.Time `json:"zeitraumVon"`
-	ZeitraumBis        time.Time `json:"zeitraumBis"`
-	UmsatzGesamtCents  int       `json:"umsatzGesamtCents"`
-	StornierungCents   int       `json:"stornierungCents"`
-	AuszahlungenCents  int       `json:"auszahlungenCents"`
-	GeldtransitCents   int       `json:"geldtransitCents"`
-	ErstelltVon        int       `json:"erstelltVon"`
+	ZNr               int       `json:"zNr"`
+	ZeitraumVon       time.Time `json:"zeitraumVon"`
+	ZeitraumBis       time.Time `json:"zeitraumBis"`
+	UmsatzGesamtCents int       `json:"umsatzGesamtCents"`
+	StornierungCents  int       `json:"stornierungCents"`
+	AuszahlungenCents int       `json:"auszahlungenCents"`
+	GeldtransitCents  int       `json:"geldtransitCents"`
+	ErstelltVon       int       `json:"erstelltVon"`
 }
 
 var tagesabschlussErstelltV1DataSchema = z.Struct(z.Shape{

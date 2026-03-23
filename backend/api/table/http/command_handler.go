@@ -9,6 +9,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/api/table/application"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/table"
 )
 
@@ -19,9 +20,9 @@ type command interface {
 	TischDeaktivieren(ctx context.Context, id int) error
 	TischLoeschen(ctx context.Context, id int) error
 	BestellungAufnehmen(ctx context.Context, userID int, userName string, tischID int, positionen []application.BestellPositionInput, kommentar string) error
-	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
-	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
-	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error
+	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
+	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
+	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	AuszahlungLeisten(ctx context.Context, userID int, userName string, tischID int, betragCents int, kommentar string) error
 	FavoritHinzufuegen(ctx context.Context, userID, tischID int) error
 	FavoritEntfernen(ctx context.Context, userID, tischID int) error
@@ -251,15 +252,15 @@ type positionRefRequest struct {
 	Menge      int    `json:"menge"`
 }
 
-func toPositionRef(p positionRefRequest) table.PositionRef {
-	return table.PositionRef{
+func toPositionRef(p positionRefRequest) kasse.PositionRef {
+	return kasse.PositionRef{
 		PositionID: p.PositionID,
 		Menge:      p.Menge,
 	}
 }
 
-func toPositionRefs(refs []positionRefRequest) []table.PositionRef {
-	positionRefs := make([]table.PositionRef, 0, len(refs))
+func toPositionRefs(refs []positionRefRequest) []kasse.PositionRef {
+	positionRefs := make([]kasse.PositionRef, 0, len(refs))
 	for _, ref := range refs {
 		positionRefs = append(positionRefs, toPositionRef(ref))
 	}
@@ -286,9 +287,10 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 				helper.SendConflictError(w)
 			} else {
 				helper.MapError(w, err, map[error]string{
-					application.ErrTischNotFound:   "tisch_not_found",
-					application.ErrTischNotActive:  "tisch_not_active",
-					application.ErrProduktNotFound: "produkt_not_found",
+					application.ErrKasseNichtGeoeffnet: "kasse_nicht_geoeffnet",
+					application.ErrTischNotFound:       "tisch_not_found",
+					application.ErrTischNotActive:      "tisch_not_active",
+					application.ErrProduktNotFound:     "produkt_not_found",
 				})
 			}
 			return
@@ -323,6 +325,7 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 				helper.SendConflictError(w)
 			} else {
 				helper.MapError(w, err, map[error]string{
+					application.ErrKasseNichtGeoeffnet:    "kasse_nicht_geoeffnet",
 					application.ErrTischNotFound:          "tisch_not_found",
 					application.ErrTischNotActive:         "tisch_not_active",
 					application.ErrPositionNichtBezahlbar: "position_nicht_bezahlbar",
@@ -360,6 +363,7 @@ func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 				helper.SendConflictError(w)
 			} else {
 				helper.MapError(w, err, map[error]string{
+					application.ErrKasseNichtGeoeffnet:      "kasse_nicht_geoeffnet",
 					application.ErrTischNotFound:            "tisch_not_found",
 					application.ErrTischNotActive:           "tisch_not_active",
 					application.ErrPositionNichtStornierbar: "position_nicht_stornierbar",
@@ -403,6 +407,7 @@ func (h *CommandHandler) AusgabeBestaetigenHandler() http.HandlerFunc {
 				helper.SendConflictError(w)
 			} else {
 				helper.MapError(w, err, map[error]string{
+					application.ErrKasseNichtGeoeffnet:    "kasse_nicht_geoeffnet",
 					application.ErrTischNotFound:          "tisch_not_found",
 					application.ErrTischNotActive:         "tisch_not_active",
 					application.ErrPositionNichtAusgebbar: "position_nicht_ausgebbar",
@@ -434,8 +439,9 @@ func (h *CommandHandler) AuszahlungLeistenHandler() http.HandlerFunc {
 				helper.SendConflictError(w)
 			} else {
 				helper.MapError(w, err, map[error]string{
-					application.ErrTischNotFound:  "tisch_not_found",
-					application.ErrTischNotActive: "tisch_not_active",
+					application.ErrKasseNichtGeoeffnet: "kasse_nicht_geoeffnet",
+					application.ErrTischNotFound:       "tisch_not_found",
+					application.ErrTischNotActive:      "tisch_not_active",
 				})
 			}
 			return

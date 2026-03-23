@@ -8,7 +8,7 @@ import (
 	relayApp "github.com/nicograef/jotti/backend/api/relay/application"
 	relayHTTP "github.com/nicograef/jotti/backend/api/relay/http"
 	"github.com/nicograef/jotti/backend/repository/drucker_repo"
-	"github.com/nicograef/jotti/backend/repository/event_repo"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
 // druckerRepoRelayAdapter adapts drucker_repo.Repository to the relay application's druckerRepo interface.
@@ -35,12 +35,12 @@ func (a druckerRepoRelayAdapter) GetKonfigurierteKategorieDrucker(ctx context.Co
 func NewRelayApi(db *sql.DB, relayToken string) http.Handler {
 	r := http.NewServeMux()
 
-	eventRepo := event_repo.NewRepository(db)
+	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
 	druckerRepo := drucker_repo.NewRepository(db)
 
 	handler := relayHTTP.Handler{
 		Query: relayApp.Query{
-			EventRepo:   eventRepo,
+			EventRepo:   kassenjournalRepo,
 			DruckerRepo: druckerRepoRelayAdapter{repo: druckerRepo},
 		},
 		RelayToken: relayToken,

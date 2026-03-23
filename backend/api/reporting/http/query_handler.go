@@ -11,7 +11,7 @@ import (
 )
 
 type query interface {
-	GetReporting(ctx context.Context, zeitraum reporting.Zeitraum) (reporting.ReportingData, error)
+	GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error)
 	GetEigeneUebersicht(ctx context.Context, userID int) (reporting.EigeneUebersicht, error)
 }
 
@@ -20,15 +20,14 @@ type QueryHandler struct {
 }
 
 type getReportingRequest struct {
-	Von time.Time `json:"von"`
-	Bis time.Time `json:"bis"`
+	KassensitzungNr int `json:"kassensitzungNr"`
 }
 
 type reportingResponse struct {
-	Zeitraum      zeitraum            `json:"zeitraum"`
-	Summary       summaryResponse     `json:"summary"`
-	Breakdowns    breakdownsResponse  `json:"breakdowns"`
-	Stornierungen []stornierungDetail `json:"stornierungen"`
+	KassensitzungNr int                 `json:"kassensitzungNr"`
+	Summary         summaryResponse     `json:"summary"`
+	Breakdowns      breakdownsResponse  `json:"breakdowns"`
+	Stornierungen   []stornierungDetail `json:"stornierungen"`
 }
 
 func (h QueryHandler) GetReportingHandler() http.HandlerFunc {
@@ -38,27 +37,12 @@ func (h QueryHandler) GetReportingHandler() http.HandlerFunc {
 			return
 		}
 
-		if body.Von.IsZero() || body.Bis.IsZero() {
-			helper.SendClientError(w, "invalid_zeitraum", "von_und_bis_sind_erforderlich")
+		if body.KassensitzungNr < 1 {
+			helper.SendClientError(w, "invalid_kassensitzung_nr", "kassensitzung_nr_ist_erforderlich")
 			return
 		}
 
-		if !isUTC(body.Von) || !isUTC(body.Bis) {
-			helper.SendClientError(w, "invalid_timezone", "von_und_bis_muessen_utc_sein")
-			return
-		}
-
-		if !body.Von.Before(body.Bis) {
-			helper.SendClientError(w, "invalid_zeitraum", "von_muss_kleiner_als_bis_sein")
-			return
-		}
-
-		zeitraum := reporting.Zeitraum{
-			Von: body.Von,
-			Bis: body.Bis,
-		}
-
-		data, err := h.Query.GetReporting(r.Context(), zeitraum)
+		data, err := h.Query.GetReporting(r.Context(), body.KassensitzungNr)
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -66,16 +50,6 @@ func (h QueryHandler) GetReportingHandler() http.HandlerFunc {
 
 		helper.SendResponse(w, toReportingResponse(data))
 	}
-}
-
-func isUTC(ts time.Time) bool {
-	_, offset := ts.Zone()
-	return offset == 0
-}
-
-type zeitraum struct {
-	Von time.Time `json:"von"`
-	Bis time.Time `json:"bis"`
 }
 
 type summaryResponse struct {
@@ -127,13 +101,6 @@ type stornierungDetail struct {
 	BetragCents int                   `json:"betragCents"`
 	Kommentar   string                `json:"kommentar"`
 	Positionen  []stornierungPosition `json:"positionen"`
-}
-
-func toZeitraum(z reporting.Zeitraum) zeitraum {
-	return zeitraum{
-		Von: z.Von,
-		Bis: z.Bis,
-	}
 }
 
 func toUmsatzServicekraft(u reporting.UmsatzServicekraft) umsatzServicekraft {
@@ -212,7 +179,7 @@ func toStornierungDetails(details []reporting.StornierungDetail) []stornierungDe
 
 func toReportingResponse(d reporting.ReportingData) reportingResponse {
 	return reportingResponse{
-		Zeitraum: toZeitraum(d.Zeitraum),
+		KassensitzungNr: d.KassensitzungNr,
 		Summary: summaryResponse{
 			GesamtUmsatzCents:           d.Summary.GesamtUmsatzCents,
 			GesamtAuszahlungenCents:     d.Summary.GesamtAuszahlungenCents,

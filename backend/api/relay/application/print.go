@@ -7,7 +7,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/relay/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/event"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
 // DruckerKonfig enthält die Konfiguration eines Druckers für eine Kategorie.
@@ -19,7 +19,7 @@ type DruckerKonfig struct {
 // bestellungEventData spiegelt die relevanten Felder von BestellungAufgenommenV1.
 // Keine Schema-Validierung nötig — die Daten wurden beim Schreiben bereits validiert.
 type bestellungEventData struct {
-	Positionen []table.Position `json:"positionen"`
+	Positionen []kasse.Position `json:"positionen"`
 	Kommentar  string           `json:"kommentar"`
 }
 
@@ -40,7 +40,7 @@ func createDruckAuftraegeFromEvent(
 	tischName := parseTischName(evt.Subject) // "tisch:7" → "Tisch 7"
 
 	// Positionen nach Kategorie gruppieren
-	byKategorie := map[string][]table.Position{}
+	byKategorie := map[string][]kasse.Position{}
 	for _, pos := range data.Positionen {
 		byKategorie[pos.Kategorie] = append(byKategorie[pos.Kategorie], pos)
 	}
@@ -86,11 +86,18 @@ func createDruckAuftraegeFromEvent(
 	return auftraege
 }
 
-// parseTischName konvertiert ein Event-Subject ("tisch:7") in einen lesbaren Namen ("Tisch 7").
+// parseTischName converts an Event Subject to a human-readable table name.
+// New format: "kassensitzung-{nr}/tisch-{id}" → "Tisch {id}"
+// Legacy format: "tisch:{id}" → "Tisch {id}"
 func parseTischName(subject string) string {
-	parts := strings.SplitN(subject, ":", 2)
-	if len(parts) != 2 {
-		return subject
+	// New format: "kassensitzung-1/tisch-42"
+	if idx := strings.LastIndex(subject, "/tisch-"); idx != -1 {
+		return "Tisch " + subject[idx+len("/tisch-"):]
 	}
-	return "Tisch " + parts[1]
+	// Legacy format: "tisch:42"
+	parts := strings.SplitN(subject, ":", 2)
+	if len(parts) == 2 {
+		return "Tisch " + parts[1]
+	}
+	return subject
 }

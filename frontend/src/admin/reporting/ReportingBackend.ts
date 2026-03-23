@@ -9,10 +9,10 @@ export class ReportingBackend {
     this.backend = backend
   }
 
-  public async getReporting(von: string, bis: string): Promise<Reporting> {
+  public async getReporting(kassensitzungNr: number): Promise<Reporting> {
     return this.backend.post(
       'admin/get-abrechnung',
-      { von, bis },
+      { kassensitzungNr },
       ReportingSchema,
     )
   }

@@ -16,7 +16,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/app"
 	"github.com/nicograef/jotti/backend/config"
-	"github.com/nicograef/jotti/backend/repository/event_repo"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
 func main() {
@@ -90,7 +90,7 @@ func rebuildProjections(db *sql.DB) error {
 		}
 	}()
 
-	repo := event_repo.NewRepository(db)
+	repo := kassenjournal_repo.NewRepository(db)
 
 	log.Info().Msg("Rebuilding all table_state projections from events...")
 

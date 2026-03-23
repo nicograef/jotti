@@ -15,7 +15,7 @@ import (
 	userApp "github.com/nicograef/jotti/backend/api/user/application"
 	userHTTP "github.com/nicograef/jotti/backend/api/user/http"
 	"github.com/nicograef/jotti/backend/repository/drucker_repo"
-	"github.com/nicograef/jotti/backend/repository/event_repo"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
 	"github.com/nicograef/jotti/backend/repository/table_repo"
@@ -58,11 +58,11 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/get-all-produkte", pq.GetAllProductsHandler())
 
 	tableRepo := table_repo.NewRepository(db)
-	eventRepo := event_repo.NewRepository(db)
+	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
 	tc := tableHTTP.CommandHandler{}
 	tc.Command = tableApp.Command{
 		TableRepo:   tableRepo,
-		EventRepo:   eventRepo,
+		EventRepo:   kassenjournalRepo,
 		ProductRepo: productRepo,
 	}
 	r.HandleFunc("/update-tisch", tc.TischAktualisierenHandler())
@@ -72,12 +72,12 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/delete-tisch", tc.TischLoeschenHandler())
 
 	tq := tableHTTP.QueryHandler{}
-	tq.Query = tableApp.Query{TableRepo: tableRepo, EventRepo: eventRepo}
+	tq.Query = tableApp.Query{TableRepo: tableRepo, EventRepo: kassenjournalRepo}
 	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())
 
 	reportingRepo := reporting_repo.NewRepository(db)
 	rq := reportingHTTP.QueryHandler{}
-	rq.Query = reportingApp.Query{ReportingRepo: reportingRepo}
+	rq.Query = reportingApp.Query{ReportingRepo: reportingRepo, KasseRepo: kassenjournalRepo}
 	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
 
 	druckerRepo := drucker_repo.NewRepository(db)

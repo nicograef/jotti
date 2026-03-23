@@ -10,19 +10,9 @@ export function AdminDashboardPage() {
       <h1 className="text-2xl font-bold">Reporting</h1>
       <div className="mt-4">
         <ReportingFilter
-          vonDate={reporting.vonDate}
-          vonTime={reporting.vonTime}
-          vonOpen={reporting.vonOpen}
-          bisDate={reporting.bisDate}
-          bisTime={reporting.bisTime}
-          bisOpen={reporting.bisOpen}
+          kassensitzungNr={reporting.kassensitzungNr}
           loading={reporting.loading}
-          onVonDateChange={reporting.setVonDate}
-          onVonTimeChange={reporting.setVonTime}
-          onVonOpenChange={reporting.setVonOpen}
-          onBisDateChange={reporting.setBisDate}
-          onBisTimeChange={reporting.setBisTime}
-          onBisOpenChange={reporting.setBisOpen}
+          onKassensitzungNrChange={reporting.setKassensitzungNr}
           onAuswerten={reporting.auswerten}
         />
       </div>
