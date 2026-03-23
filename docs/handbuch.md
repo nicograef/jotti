@@ -17,7 +17,7 @@
    - [3.5 Kassensitzung-Lifecycle](#35-kassensitzung-lifecycle)
    - [3.6 Domain Events](#36-domain-events)
    - [3.7 Invarianten](#37-invarianten)
-   - [3.8 Synchrone Projektionen und Event Replay](#38-synchrone-projektionen-und-event-replay)
+   - [3.8 Synchrone Projektion, CRUD-Entität und Event Replay](#38-synchrone-projektion-crud-entität-und-event-replay)
    - [3.9 Kassenbestand (Read Model)](#39-kassenbestand-read-model)
    - [3.10 Kassensturz](#310-kassensturz)
    - [3.11 Tagesabschluss (Z-Bon)](#311-tagesabschluss-z-bon)
@@ -131,7 +131,7 @@ Kassenjournal (Tabelle: kassenjournal)
 ├── user_id           (int — wer hat die Aktion ausgeführt)
 ├── user_name         (string — Fat Event: Name zum Zeitpunkt der Aktion)
 ├── type              (string — Event-Typ, z. B. "bestellung-aufgenommen:v1")
-├── subject           (string — Stream-Schlüssel, z. B. "kassensitzung-20260322-tisch-42")
+├── subject           (string — Stream-Schlüssel, z. B. "kassensitzung-1/tisch-42")
 ├── version           (int — aufsteigende Version pro Subject, für OCC)
 ├── timestamp         (datetime — Zeitpunkt der Erzeugung)
 ├── data              (JSONB — Event-spezifische Daten)
@@ -145,24 +145,24 @@ Schema, Immutabilitäts-Trigger und OCC-Mechanismus (`UNIQUE(subject, version)`)
 Subjects folgen einer hierarchischen Konvention mit zwei Ebenen:
 
 ```
-kassensitzung-{YYYYMMDD}                      → Globaler Betriebstag (Kassensitzung)
-kassensitzung-{YYYYMMDD}-tisch-{tischId}       → Abrechnungskreis (Tisch-Session)
+kassensitzung-{nr}                             → Globaler Betriebstag (Kassensitzung)
+kassensitzung-{nr}/tisch-{tischId}              → Abrechnungskreis (Tisch-Session)
 ```
 
-**Kassensitzung-Subject:** `kassensitzung-20260322` — das Datum stammt aus dem `KassensitzungEroeffnet`-Event und ist der fachliche Tag (bei Betrieb über Mitternacht bleibt das Datum des Eröffnungstags).
+**Kassensitzung-Subject:** `kassensitzung-1` — die Nummer stammt aus `kassensitzungen.z_nr` und identifiziert die Kassensitzung eindeutig.
 
-**Tisch-Session-Subject:** `kassensitzung-20260322-tisch-42` — der Stream entsteht implizit mit der ersten Bestellung. Es gibt kein explizites „Tisch-Öffnen"-Event.
+**Tisch-Session-Subject:** `kassensitzung-1/tisch-42` — der Stream entsteht implizit mit der ersten Bestellung. Es gibt kein explizites „Tisch-Öffnen"-Event.
 
 **Warum zwei Subject-Typen?** Ein einziges Subject für die gesamte Kassensitzung scheitert an OCC: Der UNIQUE-Constraint `(subject, version)` serialisiert alle Schreibvorgänge desselben Subjects. Bei 5–30 Servicekräften wäre das System ein Single-Writer. Separate Tisch-Subjects ermöglichen parallele Schreibvorgänge an verschiedenen Tischen.
 
 **Kanonische Query-Strategie:**
 
-| Zugriffsmuster                                                  | Kanonische Strategie                       | Beispiel                                            |
-| --------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------- |
-| **Single-Stream-Replay** (ein Tisch, eine KS)                   | Exakter `subject`-Match                    | `WHERE subject = 'kassensitzung-20260322-tisch-42'` |
-| **Cross-Stream-Aggregation** (Reporting, Kassenbestand, Export) | `kassensitzung_nr`                         | `WHERE kassensitzung_nr = $1`                       |
-| **Tischübersicht** (alle Tische einer KS)                       | `kassensitzung_nr` + `tisch_session_state` | JOIN auf Projektion                                 |
-| **Globale Queries** (alle KS eines Tisches, Debug)              | Subject-LIKE                               | `WHERE subject LIKE 'kassensitzung-%-tisch-42'`     |
+| Zugriffsmuster                                                  | Kanonische Strategie                       | Beispiel                                        |
+| --------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------- |
+| **Single-Stream-Replay** (ein Tisch, eine KS)                   | Exakter `subject`-Match                    | `WHERE subject = 'kassensitzung-1/tisch-42'`    |
+| **Cross-Stream-Aggregation** (Reporting, Kassenbestand, Export) | `kassensitzung_nr`                         | `WHERE kassensitzung_nr = $1`                   |
+| **Tischübersicht** (alle Tische einer KS)                       | `kassensitzung_nr` + `tisch_session_state` | JOIN auf Projektion                             |
+| **Globale Queries** (alle KS eines Tisches, Debug)              | Subject-LIKE                               | `WHERE subject LIKE 'kassensitzung-%/tisch-42'` |
 
 ### 3.4 Tisch-Session (Abrechnungskreis-Aggregat)
 
@@ -172,7 +172,7 @@ Die Tisch-Session ist die transaktionale Grenze für tischbezogene Vorgänge. Je
 
 ```
 Tisch-Session (Event Stream)
-├── subject               (string — "kassensitzung-{YYYYMMDD}-tisch-{id}")
+├── subject               (string — "kassensitzung-{nr}/tisch-{id}")
 ├── saldo                 (int, Cent — berechnet)
 ├── event_version         (int — letzte Event-Version)
 └── bestellungen[]
@@ -195,7 +195,7 @@ Tisch-Session (Event Stream)
 
 ```
 TischSessionState (Projektion)
-├── subject                    (string — PK, "kassensitzung-{YYYYMMDD}-tisch-{id}")
+├── subject                    (string — PK, "kassensitzung-{nr}/tisch-{id}")
 ├── tisch_id                   (int — FK auf tische.id)
 ├── kassensitzung_nr           (int — für schnelle Queries)
 ├── saldo_cents                (int, Cent — berechnet)
@@ -220,13 +220,13 @@ Die Kassensitzung durchläuft folgenden Lifecycle:
 4. **Kassensturz** — Admin vergleicht Soll- und Ist-Bestand
 5. **Tagesabschluss** — Admin erstellt den Z-Bon und schließt die Kassensitzung
 
-Alle Kassensitzung-Events werden im selben Kassenjournal wie die Tisch-Events gespeichert — Subject `kassensitzung-{YYYYMMDD}`.
+Alle Kassensitzung-Events werden im selben Kassenjournal wie die Tisch-Events gespeichert — Subject `kassensitzung-{nr}`.
 
 ### 3.6 Domain Events
 
 Alle Events sind unveränderlich (append-only) und werden im Kassenjournal persistiert. Namenskonvention: deutsch, Partizip-Form, Pattern `{Substantiv}-{Partizip}:v{N}`.
 
-#### Tisch-Session-Events (Subject: `kassensitzung-{YYYYMMDD}-tisch-{id}`)
+#### Tisch-Session-Events (Subject: `kassensitzung-{nr}/tisch-{id}`)
 
 ##### BestellungAufgenommen
 
@@ -299,7 +299,7 @@ auszahlung-geleistet:v1
 └── kommentar       (string, Pflichtfeld — min. 3, max. 100 Zeichen)
 ```
 
-#### Kassensitzung-Events (Subject: `kassensitzung-{YYYYMMDD}`)
+#### Kassensitzung-Events (Subject: `kassensitzung-{nr}`)
 
 ##### KassensitzungEroeffnet
 
@@ -381,7 +381,7 @@ $$\text{Saldo} = \sum \text{Bestellungen} - \sum \text{Zahlungen} - \sum \text{S
 
 Alle Beträge in Cent (Integer). Saldo = 0 bedeutet: alle Positionen bezahlt oder storniert. Ein Saldo < 0 entsteht, wenn bereits kassierte Positionen nachträglich storniert werden; `AuszahlungGeleistet` gleicht diesen negativen Saldo wieder aus.
 
-- **Kassensitzung-Invariante:** Jeder schreibende Tisch-Vorgang erfordert eine offene Kassensitzung. Prüfung via `kassensitzung_state`-Projektion im Application Service. Keine offene KS → HTTP 409.
+- **Kassensitzung-Invariante:** Jeder schreibende Tisch-Vorgang erfordert eine offene Kassensitzung. Prüfung via `kassensitzungen`-Entität im Application Service. Keine offene KS → HTTP 409.
 - **Ausgabe-Invariante:** Nur bestellte, nicht-stornierte Positionen können ausgegeben werden. Bereits ausgegebene Positionen nicht erneut ausgebbar. Teilausgaben zulässig.
 - **Bezahl-Invariante:** Nur bestellte, nicht-stornierte, nicht-bezahlte Positionen können bezahlt werden. Der Zahlungsbetrag ergibt sich aus der Summe der gewählten Positionen — Überzahlung nicht möglich. Teilzahlungen zulässig.
 - **Stornierungsinvariante:** Nur bestellte, nicht-stornierte Positionen können storniert werden — **unabhängig vom Ausgabe- und Bezahlstatus**. Bei Stornierung bereits bezahlter Positionen kann der Saldo temporär negativ werden (bewusstes Design). Kommentar ist **Pflichtfeld** (min. 3 Zeichen).
@@ -391,27 +391,27 @@ Alle Beträge in Cent (Integer). Saldo = 0 bedeutet: alle Positionen bezahlt ode
 
 #### Kassensitzung-Invarianten
 
-| Invariante                    | Regel                                                                                                        |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Einzigkeits-Invariante**    | Maximal eine Kassensitzung darf `offen` sein.                                                                |
-| **Nummern-Invariante**        | `z_nr` ist fortlaufend und lückenlos (`max(z_nr) + 1`). Wird beim UPSERT in `kassensitzung_state` berechnet. |
-| **Anfangsbestand-Invariante** | Pro Kassensitzung genau ein `AnfangsbestandGesetzt`. Wiederholter Aufruf wird abgelehnt.                     |
-| **Kassensturz-Reihenfolge**   | `KassensturzDurchgefuehrt` ist Voraussetzung für `TagesabschlussErstellt`.                                   |
-| **Tisch-Saldo-Sperre**        | `TagesabschlussErstellt` ist nur möglich, wenn **alle** Tisch-Sessions der Kassensitzung Saldo = 0 haben.    |
-| **Abschluss-Invariante**      | `TagesabschlussErstellt` schließt die KS → Status `abgeschlossen`. Danach keine Events mehr im Stream.       |
+| Invariante                    | Regel                                                                                                     |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Einzigkeits-Invariante**    | Maximal eine Kassensitzung darf `offen` sein.                                                             |
+| **Nummern-Invariante**        | `z_nr` ist fortlaufend und lückenlos (`max(z_nr) + 1`). Wird beim INSERT in `kassensitzungen` berechnet.  |
+| **Anfangsbestand-Invariante** | Pro Kassensitzung genau ein `AnfangsbestandGesetzt`. Wiederholter Aufruf wird abgelehnt.                  |
+| **Kassensturz-Reihenfolge**   | `KassensturzDurchgefuehrt` ist Voraussetzung für `TagesabschlussErstellt`.                                |
+| **Tisch-Saldo-Sperre**        | `TagesabschlussErstellt` ist nur möglich, wenn **alle** Tisch-Sessions der Kassensitzung Saldo = 0 haben. |
+| **Abschluss-Invariante**      | `TagesabschlussErstellt` schließt die KS → Status `abgeschlossen`. Danach keine Events mehr im Stream.    |
 
 > **Keine Bewegungs-Invariante:** Kassenbewegungen werden ohne Prüfung des Soll-Bestands gebucht. Der Kassensturz zeigt eine Warnung, wenn der Soll-Bestand negativ ist.
 
-### 3.8 Synchrone Projektionen und Event Replay
+### 3.8 Synchrone Projektion, CRUD-Entität und Event Replay
 
-Zwei synchrone Projektionen werden in derselben Transaktion wie das Event-INSERT aktualisiert (Write-Through). Ein expliziter `StreamType`-Parameter steuert das Routing — kein Subject-String-Parsing im Repository-Layer.
+Eine synchrone Projektion (`tisch_session_state`) + eine CRUD-Entität (`kassensitzungen`) werden in derselben Transaktion wie das Event-INSERT aktualisiert (Write-Through). Ein expliziter `StreamType`-Parameter steuert das Routing — kein Subject-String-Parsing im Repository-Layer.
 
 **Routing via StreamType:**
 
-| `streamType`      | Kassenjournal-INSERT | `kassensitzung_state` | `tisch_session_state` |
-| ----------------- | -------------------- | --------------------- | --------------------- |
-| `"kassensitzung"` | ✅                   | ✅ UPSERT             | —                     |
-| `"tisch-session"` | ✅                   | —                     | ✅ UPSERT             |
+| `streamType`      | Kassenjournal-INSERT | `kassensitzungen` | `tisch_session_state` |
+| ----------------- | -------------------- | ----------------- | --------------------- |
+| `"kassensitzung"` | ✅                   | ✅ INSERT/UPDATE  | —                     |
+| `"tisch-session"` | ✅                   | —                 | ✅ UPSERT             |
 
 **Write-Through-Ablauf:**
 
@@ -420,7 +420,7 @@ WriteEvent(event, streamType):
   BEGIN TX
     1. INSERT INTO kassenjournal (...)
     2. IF streamType = "kassensitzung":
-         → UPSERT kassensitzung_state
+         → INSERT/UPDATE kassensitzungen
     3. ELSE IF streamType = "tisch-session":
          → UPSERT tisch_session_state (ApplyEvent)
   COMMIT TX
@@ -428,24 +428,21 @@ WriteEvent(event, streamType):
 
 Die `ApplyEvent()`-Funktion (`backend/domain/kasse/tisch_session.go`) ist eine reine Funktion in der Domain-Schicht — kein DB-Zugriff. Sie nimmt einen `TischSessionState` und ein `Event` entgegen und gibt den neuen `TischSessionState` zurück.
 
-#### `kassensitzung_state` — Hot-Path-Projektion
+#### `kassensitzungen` — CRUD-Entität (Hot-Path)
 
-| Spalte               | Typ          | Beschreibung                       |
-| -------------------- | ------------ | ---------------------------------- |
-| `subject`            | TEXT (PK)    | `kassensitzung-{YYYYMMDD}`         |
-| `z_nr`               | INT (UNIQUE) | Fortlaufende Kassenabschlussnummer |
-| `datum`              | DATE         | Datum der Kassensitzung            |
-| `status`             | TEXT         | `offen` oder `abgeschlossen`       |
-| `last_event_id`      | INT (FK)     | Letztes verarbeitetes Event        |
-| `last_event_version` | INT          | Version des letzten Events         |
+| Spalte   | Typ      | Beschreibung                       |
+| -------- | -------- | ---------------------------------- |
+| `z_nr`   | INT (PK) | Fortlaufende Kassenabschlussnummer |
+| `datum`  | DATE     | Datum der Kassensitzung            |
+| `status` | TEXT     | `offen` oder `abgeschlossen`       |
 
-Diese Projektion wird bei **jedem** Tisch-Schreibvorgang gelesen (Kassensitzung-Sperre). Alle weiteren Kassensitzung-Daten (Anfangsbestand, Bezeichnung, Kassenbewegungen) werden bei Bedarf per In-Memory-Replay der wenigen KS-Events berechnet.
+Diese CRUD-Entität wird bei **jedem** Tisch-Schreibvorgang gelesen (Kassensitzung-Sperre). Alle weiteren Kassensitzung-Daten (Anfangsbestand, Bezeichnung, Kassenbewegungen) werden bei Bedarf per In-Memory-Replay der wenigen KS-Events berechnet.
 
 #### `tisch_session_state` — Session-scoped Tisch-Projektion
 
 | Spalte                   | Typ       | Beschreibung                                     |
 | ------------------------ | --------- | ------------------------------------------------ |
-| `subject`                | TEXT (PK) | `kassensitzung-{YYYYMMDD}-tisch-{id}`            |
+| `subject`                | TEXT (PK) | `kassensitzung-{nr}/tisch-{id}`                  |
 | `tisch_id`               | INT (FK)  | Referenz auf `tische.id`                         |
 | `kassensitzung_nr`       | INT       | Denormalisiert für schnelle Queries              |
 | `saldo_cents`            | INT       | Aktueller Tisch-Saldo in Cent                    |
@@ -477,7 +474,7 @@ ORDER BY t.name;
 
 **Lesezugriff (Queries):** Operative Queries (Saldo, unbezahlte/ausstehende Positionen) lesen direkt aus `tisch_session_state` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`.
 
-**Selbstheilung:** Bei Inkonsistenz können `tisch_session_state` und `kassensitzung_state` jederzeit aus allen Events im Kassenjournal reberechnet werden — das Kassenjournal bleibt die Single Source of Truth. Details zur Projektionsarchitektur: [ADR: CQRS](adr/cqrs.md).
+**Selbstheilung:** Bei Inkonsistenz kann `tisch_session_state` jederzeit aus allen Events im Kassenjournal reberechnet werden — das Kassenjournal bleibt die Single Source of Truth. Details zur Projektionsarchitektur: [ADR: CQRS](adr/cqrs.md).
 
 ### 3.9 Kassenbestand (Read Model)
 
@@ -763,7 +760,7 @@ Das Backend ist in vier Schichten gegliedert:
 - **HTTP-Schicht:** Liest den Request-Body, validiert das Format und delegiert an den Application-Service. Definiert eigene Request- und Response-DTOs mit `json`-Tags. Domain-Modelle werden nie direkt serialisiert - dedizierte Mapper-Funktionen übersetzen zwischen Domain und HTTP. Gibt strukturierte Fehlerresponses zurück. Keine Business-Logik.
 - **Application-Schicht:** Koordiniert den Use Case: validiert fachlich (zog-Schema), lädt Aggregat-State, ruft Domain-Logik auf und persistiert das Ergebnis. Übersetzt Domain-Fehler in anwendungsseitige Fehlercodes.
 - **Domain-Schicht:** Enthält die fachlichen Regeln (Invarianten, Event-Konstruktion, Zustandsberechnung). Kasse-Logik in `domain/kasse/`, Stammdaten in `domain/table/`, `domain/product/`, `domain/user/`. Kennt keine Datenbank, kein HTTP und keine JSON-Serialisierung. Domain-Structs tragen keine `json`-Tags (Ausnahme: Event-Data-Structs für Kassenjournal-Persistenz).
-- **Repository/Infra-Schicht:** Kapselt alle Datenbankzugriffe. Für die Kasse: Kassenjournal (append-only) mit synchronen Projektionen (`kassensitzung_state`, `tisch_session_state`). Für Stammdaten: CRUD. Implementiert auf Basis von sqlc-generierten Queries.
+- **Repository/Infra-Schicht:** Kapselt alle Datenbankzugriffe. Für die Kasse: Kassenjournal (append-only) mit synchroner Projektion (`tisch_session_state`) und CRUD-Entität (`kassensitzungen`). Für Stammdaten: CRUD. Implementiert auf Basis von sqlc-generierten Queries.
 
 ### 6.2 API-Design
 

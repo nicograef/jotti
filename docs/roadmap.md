@@ -53,7 +53,7 @@
 
 - [ ] DB: `events` → `kassenjournal` in `01_initial.up.sql` umbenennen (+ `kassensitzung_nr`-Spalte, Trigger, Indizes)
 - [ ] DB: `table_state` → `tisch_session_state` (session-scoped: PK = `subject`, mit `tisch_id`, `kassensitzung_nr`)
-- [ ] DB: Projektionstabelle `kassensitzung_state` anlegen (PK: `subject`, `z_nr` UNIQUE, `datum`, `status`)
+- [ ] DB: CRUD-Entität `kassensitzungen` anlegen (PK: `z_nr` IDENTITY, `datum`, `bezeichnung`, `status`, `created_at`, `updated_at`)
 - [ ] DB: Alte Tabellen `abrechnungskreis`, `kassenbewegungen`, `kassensturz`, `z_bons` entfernen (falls geplant)
 - [ ] Repository: `kassenjournal_repo/` (ersetzt `event_repo/`) mit explizitem `StreamType`-Routing
 - [ ] `make sqlc` — Queries generieren
@@ -254,7 +254,7 @@
 
 > Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der Realität: mehrere Gästegruppen an einem Tisch erhalten jeweils einen eigenen Abrechnungskreis (Tisch-Session). Empfohlen zeitnah nach Abschluss der Phase-2-TSE-Integration umzusetzen.
 
-- [ ] Backend: Domain-Aktion `TischFreigegeben` — neue Tisch-Session mit Suffix starten (z. B. `kassensitzung-20260322-tisch-42-b`)
+- [ ] Backend: Domain-Aktion `TischFreigegeben` — neue Tisch-Session mit Suffix starten (z. B. `kassensitzung-1/tisch-42-b`)
 - [ ] Frontend: UI-Aktion „Tisch freimachen" in der Servicekraft-Ansicht
 - [ ] Tests
 

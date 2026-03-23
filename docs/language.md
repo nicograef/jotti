@@ -16,19 +16,19 @@ Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktual
 
 ## Namenskonventionen pro Schicht
 
-| Schicht                   | Sprache  | Konvention                 | Beispiel                                                                                |
-| ------------------------- | -------- | -------------------------- | --------------------------------------------------------------------------------------- |
-| Go-Domain-Structs         | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Position`                                                       |
-| Go-Felder (Domäne)        | Deutsch  | PascalCase                 | `GesamtPreisCents`, `SaldoCents`                                                        |
-| TypeScript-Typen (Domäne) | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Zahlung`                                                        |
-| JSON-Keys (Domäne)        | Deutsch  | camelCase                  | `"gesamtPreisCents"`, `"saldoCents"`                                                    |
-| API-Pfade (Domäne)        | Deutsch  | kebab-case                 | `/bestellung-aufnehmen`, `/zahlung-kassieren`                                           |
-| DB-Tabellen (Domäne)      | Deutsch  | snake_case                 | `tische`, `produkte`, `produkt_varianten`, `tisch_session_state`, `kassensitzung_state` |
-| DB-Tabellen (Infra.)      | Englisch | snake_case                 | `users`, `kassenjournal`                                                                |
-| DB-Spalten (Domäne)       | Deutsch  | snake_case                 | `kategorie`, `preis_cents`, `produkt_id`                                                |
-| DB-Spalten (Infrastr.)    | Englisch | snake_case                 | `created_at`, `updated_at`, `status`, `id`                                              |
-| Frontend-Routen           | Deutsch  | kebab-case                 | `/service/tische`, `/admin/produkte`                                                    |
-| Auth/Infrastruktur-Code   | Englisch | Sprachübliche Konventionen | `User`, `Role`, `Token`, `Config`                                                       |
+| Schicht                   | Sprache  | Konvention                 | Beispiel                                                                            |
+| ------------------------- | -------- | -------------------------- | ----------------------------------------------------------------------------------- |
+| Go-Domain-Structs         | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Position`                                                   |
+| Go-Felder (Domäne)        | Deutsch  | PascalCase                 | `GesamtPreisCents`, `SaldoCents`                                                    |
+| TypeScript-Typen (Domäne) | Deutsch  | PascalCase                 | `Bestellung`, `Tisch`, `Zahlung`                                                    |
+| JSON-Keys (Domäne)        | Deutsch  | camelCase                  | `"gesamtPreisCents"`, `"saldoCents"`                                                |
+| API-Pfade (Domäne)        | Deutsch  | kebab-case                 | `/bestellung-aufnehmen`, `/zahlung-kassieren`                                       |
+| DB-Tabellen (Domäne)      | Deutsch  | snake_case                 | `tische`, `produkte`, `produkt_varianten`, `tisch_session_state`, `kassensitzungen` |
+| DB-Tabellen (Infra.)      | Englisch | snake_case                 | `users`, `kassenjournal`                                                            |
+| DB-Spalten (Domäne)       | Deutsch  | snake_case                 | `kategorie`, `preis_cents`, `produkt_id`                                            |
+| DB-Spalten (Infrastr.)    | Englisch | snake_case                 | `created_at`, `updated_at`, `status`, `id`                                          |
+| Frontend-Routen           | Deutsch  | kebab-case                 | `/service/tische`, `/admin/produkte`                                                |
+| Auth/Infrastruktur-Code   | Englisch | Sprachübliche Konventionen | `User`, `Role`, `Token`, `Config`                                                   |
 
 > **Pfadkonvention:** Dateipfade sind relativ angegeben — `domain/…` und `api/…` liegen unter `backend/`, `src/…` unter `frontend/`, `migrations/…` unter `database/`.
 
@@ -124,11 +124,11 @@ Reine Stammdaten-Entität: ein physischer Ort, an dem Gäste sitzen. Hat einen N
 
 #### Tisch-Session (Abrechnungskreis)
 
-Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Bestellungen, Zahlungen, Stornierungen, Ausgaben, Auszahlungen) eines Tisches innerhalb einer Kassensitzung ab. Entsteht implizit mit der ersten Bestellung. Subject-Format: `kassensitzung-{YYYYMMDD}-tisch-{tischId}`.
+Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Bestellungen, Zahlungen, Stornierungen, Ausgaben, Auszahlungen) eines Tisches innerhalb einer Kassensitzung ab. Entsteht implizit mit der ersten Bestellung. Subject-Format: `kassensitzung-{nr}/tisch-{tischId}`.
 
-| Go-Struct (geplant) | DB-Projektion         | JSON-Key | Subject-Format                             |
-| ------------------- | --------------------- | -------- | ------------------------------------------ |
-| `TischSession`      | `tisch_session_state` | —        | `kassensitzung-{YYYYMMDD}-tisch-{tischId}` |
+| Go-Struct (geplant) | DB-Projektion         | JSON-Key | Subject-Format                       |
+| ------------------- | --------------------- | -------- | ------------------------------------ |
+| `TischSession`      | `tisch_session_state` | —        | `kassensitzung-{nr}/tisch-{tischId}` |
 
 #### Bestellung
 
@@ -220,15 +220,15 @@ Kompakte KPI-Übersicht einer Servicekraft: Anzahl und Summe eigener Bestellunge
 
 ### Kasse — Kassensitzung und Kassenbestand
 
-Die Kassensitzung und der Kassenbestand gehören zum Core-Domain-Kontext **Kasse** und nutzen dieselbe Persistenzstrategie: **Event-Sourcing im Kassenjournal**. Kassensitzung-Events werden unter dem Subject `kassensitzung-{YYYYMMDD}` geschrieben.
+Die Kassensitzung und der Kassenbestand gehören zum Core-Domain-Kontext **Kasse** und nutzen dieselbe Persistenzstrategie: **Event-Sourcing im Kassenjournal**. Kassensitzung-Events werden unter dem Subject `kassensitzung-{nr}` geschrieben.
 
 #### Kassensitzung
 
-Global nummerierter Betriebstag, der einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Wird durch Admin-Aktion eröffnet (Event `kassensitzung-eroeffnet:v1`). Maximal eine Kassensitzung kann gleichzeitig `offen` sein. Ohne offene Kassensitzung ist der gesamte Kassenbetrieb gesperrt (HTTP 409). Die `z_nr` ist ein fortlaufender, lückenloser Zähler in der `kassensitzung_state`-Projektion.
+Global nummerierter Betriebstag, der einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Wird durch Admin-Aktion eröffnet (Event `kassensitzung-eroeffnet:v1`). Maximal eine Kassensitzung kann gleichzeitig `offen` sein. Ohne offene Kassensitzung ist der gesamte Kassenbetrieb gesperrt (HTTP 409). Die `z_nr` ist ein fortlaufender, lückenloser Zähler in der `kassensitzungen`-Entität.
 
-| Go-Struct (geplant) | DB-Projektion         | Subject-Format             | API-Pfade (geplant)              |
-| ------------------- | --------------------- | -------------------------- | -------------------------------- |
-| `Kassensitzung`     | `kassensitzung_state` | `kassensitzung-{YYYYMMDD}` | `/admin/kassensitzung-eroeffnen` |
+| Go-Struct (geplant) | DB-Tabelle        | Subject-Format       | API-Pfade (geplant)              |
+| ------------------- | ----------------- | -------------------- | -------------------------------- |
+| `Kassensitzung`     | `kassensitzungen` | `kassensitzung-{nr}` | `/admin/kassensitzung-eroeffnen` |
 
 #### Abrechnungskreis
 

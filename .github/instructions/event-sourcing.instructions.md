@@ -7,14 +7,14 @@ applyTo: "backend/domain/kasse/**,backend/domain/table/**,backend/repository/eve
 
 Events für Kasse-Operationen (Tisch-Sessions und Kassensitzungen). Zwei Subject-Formate:
 
-- Tisch-Session: `"kassensitzung-{YYYYMMDD}-tisch-{id}"` (z.B. `"kassensitzung-20260501-tisch-42"`)
-- Kassensitzung: `"kassensitzung-{YYYYMMDD}"` (z.B. `"kassensitzung-20260501"`)
+- Tisch-Session: `"kassensitzung-{nr}/tisch-{id}"` (z.B. `"kassensitzung-1/tisch-42"`)
+- Kassensitzung: `"kassensitzung-{nr}"` (z.B. `"kassensitzung-1"`)
 
-State wird durch zwei synchrone Projektionen rekonstruiert (`tisch_session_state`, `kassensitzung_state`), die in derselben Transaktion wie das Event-INSERT aktualisiert werden. Routing über expliziten `StreamType`-Parameter.
+State wird durch eine synchrone Projektion (`tisch_session_state`) und eine CRUD-Entität (`kassensitzungen`) rekonstruiert, die in derselben Transaktion wie das Event-INSERT aktualisiert werden. Routing über expliziten `StreamType`-Parameter.
 
 ## Event-Typen
 
-**Tisch-Session Events** (Subject: `kassensitzung-{YYYYMMDD}-tisch-{id}`):
+**Tisch-Session Events** (Subject: `kassensitzung-{nr}/tisch-{id}`):
 
 - `bestellung-aufgenommen:v1`
 - `zahlung-kassiert:v1`
@@ -22,7 +22,7 @@ State wird durch zwei synchrone Projektionen rekonstruiert (`tisch_session_state
 - `ausgabe-bestaetigt:v1`
 - `auszahlung-geleistet:v1`
 
-**Kassensitzung Events** (Subject: `kassensitzung-{YYYYMMDD}`):
+**Kassensitzung Events** (Subject: `kassensitzung-{nr}`):
 
 - `kassensitzung-eroeffnet:v1`
 - `anfangsbestand-gesetzt:v1`
@@ -42,10 +42,10 @@ Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/kasse/` (künf
 
 ## Event-Store
 
-Tabelle: `kassenjournal` (append-only). Zwei synchrone Projektionen:
+Tabelle: `kassenjournal` (append-only). Eine synchrone Projektion + eine CRUD-Entität:
 
 - `tisch_session_state` — session-scoped Tisch-Projektion (PK: `subject`)
-- `kassensitzung_state` — Kassensitzung-Projektion (PK: `kassensitzung_nr`)
+- `kassensitzungen` — Kassensitzung-Entität (CRUD, PK: `z_nr`)
 
 Routing über `StreamType`-Parameter: `"tisch-session"` | `"kassensitzung"`.
 

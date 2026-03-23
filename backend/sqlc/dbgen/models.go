@@ -150,7 +150,7 @@ type Kassenjournal struct {
 	UserName string
 	// Event type identifier, e.g., bestellung-aufgenommen:v1
 	Type string
-	// Aggregate key, e.g. "kassensitzung-20260322-tisch-42" for a tisch session
+	// Aggregate key, e.g. "kassensitzung-1/tisch-42" for a tisch session, "kassensitzung-1" for a kassensitzung
 	Subject string
 	// Optimistic concurrency version per subject (monotonically increasing)
 	Version int
@@ -162,14 +162,20 @@ type Kassenjournal struct {
 	KassensitzungNr int
 }
 
-// Synchronous CQRS projection of kassensitzung state (hot-path: status + z_nr), updated within the event-write transaction
-type KassensitzungState struct {
-	Subject          string
-	ZNr              int
-	Datum            time.Time
-	Status           string
-	LastEventID      int
-	LastEventVersion int
+// CRUD entity for Kassensitzung lifecycle. Each row represents one Kassensitzung (one Betriebstag). The z_nr is the DSFinV-K-compliant sequential number.
+type Kassensitzungen struct {
+	// Fortlaufende Kassensitzungsnummer (Z_NR), DSFinV-K-Pflichtfeld
+	ZNr int
+	// Betriebstag der Kassensitzung
+	Datum time.Time
+	// Optionale Bezeichnung (z.B. "Sommerfest Tag 1")
+	Bezeichnung string
+	// Kassensitzung-Status: offen oder abgeschlossen
+	Status string
+	// Creation timestamp (UTC)
+	CreatedAt time.Time
+	// Last modification timestamp (UTC)
+	UpdatedAt time.Time
 }
 
 // Drucker-IP und Bonmodus pro Produkt-Kategorie für den Bondruck.

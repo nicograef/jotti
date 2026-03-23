@@ -20,7 +20,7 @@ Alle Diagramme bilden den **geplanten Endzustand** ab (inkl. Roadmap-Features: K
 9. [Kassenführung — Kassenbestand-Berechnung](#9--kassenführung--kassenbestand-berechnung)
 10. [Auth und Onboarding](#10--auth-und-onboarding)
 11. [Schichtenarchitektur (Backend)](#11--schichtenarchitektur-backend)
-12. [Event Sourcing und Synchrone Projektion](#12--event-sourcing-und-synchrone-projektion)
+12. [Event Sourcing: Synchrone Projektion + CRUD-Entität](#12--event-sourcing-synchrone-projektion--crud-entität)
 13. [Bondruck — Relay-Architektur](#13--bondruck--relay-architektur)
 14. [Deployment-Architektur](#14--deployment-architektur)
 15. [API-Bereichsgliederung](#15--api-bereichsgliederung)
@@ -78,7 +78,7 @@ graph TB
 
     subgraph kasse ["💰 Kasse<br/><i>Core Domain</i>"]
         direction TB
-        kasse_desc["Bestellen · Ausgabe · Kassieren · Stornieren · Auszahlen<br/>Kassensitzung · Kassenbewegungen · Kassensturz · Z-Bon<br/>Kassenjournal (Event-Sourcing)<br/>Projektionen: tisch_session_state · kassensitzung_state"]
+        kasse_desc["Bestellen · Ausgabe · Kassieren · Stornieren · Auszahlen<br/>Kassensitzung · Kassenbewegungen · Kassensturz · Z-Bon<br/>Kassenjournal (Event-Sourcing)<br/>Projektion: tisch_session_state · CRUD-Entität: kassensitzungen"]
     end
 
     stammdaten -->|"Customer/Supplier + ACL<br/>Fat Events frieren Produktdaten ein"| kasse
@@ -129,7 +129,7 @@ graph LR
 
 ## 4 · Kasse — Tisch-Session (Zustandsdiagramm)
 
-Die Tisch-Session (Abrechnungskreis) ist das Event-Sourced-Aggregat im Kasse-Kontext. Entsteht implizit mit der ersten Bestellung innerhalb einer Kassensitzung. Subject: `kassensitzung-{YYYYMMDD}-tisch-{id}`.
+Die Tisch-Session (Abrechnungskreis) ist das Event-Sourced-Aggregat im Kasse-Kontext. Entsteht implizit mit der ersten Bestellung innerhalb einer Kassensitzung. Subject: `kassensitzung-{nr}/tisch-{id}`.
 
 ```mermaid
 stateDiagram-v2
@@ -167,7 +167,7 @@ stateDiagram-v2
 
 Alle Event-Typen des Kasse-Kontexts. Tisch-Events verändern den Saldo einer Tisch-Session, Kassensitzung-Events steuern den Betriebstag.
 
-### Tisch-Session-Events (Subject: `kassensitzung-{YYYYMMDD}-tisch-{id}`)
+### Tisch-Session-Events (Subject: `kassensitzung-{nr}/tisch-{id}`)
 
 ```mermaid
 graph TD
@@ -196,7 +196,7 @@ graph TD
     style e5 fill:#fff9c4,stroke:#f57f17
 ```
 
-### Kassensitzung-Events (Subject: `kassensitzung-{YYYYMMDD}`)
+### Kassensitzung-Events (Subject: `kassensitzung-{nr}`)
 
 ```mermaid
 graph TD
@@ -236,7 +236,7 @@ sequenceDiagram
     participant FE as Frontend (Browser)
     participant BE as Backend (Go)
     participant DB as PostgreSQL
-    participant KSP as kassensitzung_state
+    participant KSP as kassensitzungen
     participant TSS as tisch_session_state
     participant TSE as Cloud-TSE (fiskaly)
     participant Relay as Print-Relay
@@ -257,7 +257,7 @@ sequenceDiagram
 
         rect rgb(240, 248, 255)
             Note over BE,TSS: Transaktion (BEGIN...COMMIT)
-            Note over BE: Subject = "kassensitzung-20260322-tisch-42"
+            Note over BE: Subject = "kassensitzung-1/tisch-42"
             BE->>TSE: StartTransaction + FinishTransaction
             TSE-->>BE: Signatur, Transaktionsnummer
             BE->>DB: INSERT INTO kassenjournal (BestellungAufgenommen)
@@ -382,7 +382,7 @@ Der vollständige Ablauf einer Kassensitzung von Eröffnung bis Tagesabschluss �
 flowchart TD
     Start([Veranstaltungsbeginn])
 
-    Start --> KS["<b>1. Kassensitzung eröffnen</b><br/>Admin vergibt Bezeichnung<br/>(z.B. 'Sommerfest Tag 1')<br/>Subject: kassensitzung-{YYYYMMDD}<br/>Event: kassensitzung-eroeffnet:v1<br/>Max. 1 offene KS"]
+    Start --> KS["<b>1. Kassensitzung eröffnen</b><br/>Admin vergibt Bezeichnung<br/>(z.B. 'Sommerfest Tag 1')<br/>Subject: kassensitzung-{nr}<br/>Event: kassensitzung-eroeffnet:v1<br/>Max. 1 offene KS"]
 
     KS --> AB["<b>2. Anfangsbestand setzen</b><br/>Wechselgeld in Cent eingeben<br/>Event: anfangsbestand-gesetzt:v1<br/>Einmalig pro Kassensitzung"]
 
@@ -390,7 +390,7 @@ flowchart TD
 
     subgraph Betrieb ["Laufender Betrieb"]
         direction TB
-        KB["<b>Tisch-Operationen</b><br/>Bestellen → Ausgabe → Zahlung<br/>→ Auszahlung → Stornierung<br/>Subject: kassensitzung-{YYYYMMDD}-tisch-{id}<br/>(Events im Kassenjournal)"]
+        KB["<b>Tisch-Operationen</b><br/>Bestellen → Ausgabe → Zahlung<br/>→ Auszahlung → Stornierung<br/>Subject: kassensitzung-{nr}/tisch-{id}<br/>(Events im Kassenjournal)"]
 
         BW["<b>Kassenbewegungen</b><br/>Geldtransit · Privatentnahme · Privateinlage<br/>Event: kassenbewegung-gebucht:v1<br/>mit art-Feld (Art der Bewegung)"]
 
@@ -551,7 +551,7 @@ graph TB
     end
 
     subgraph repo ["Repository / Infra-Schicht<br/><code>repository/&lt;domain&gt;_repo/</code>"]
-        r1["Kassenjournal (append-only) + Projektionen — Kasse"]
+        r1["Kassenjournal (append-only) + Projektion + CRUD-Entität — Kasse"]
         r2["CRUD — Stammdaten"]
         r3["sqlc-generierte Queries · pgx/v5"]
     end
@@ -568,9 +568,9 @@ graph TB
 
 ---
 
-## 12 · Event Sourcing und Zwei Synchrone Projektionen
+## 12 · Event Sourcing: Synchrone Projektion + CRUD-Entität
 
-Write-Through: Event und passende Projektion in derselben Transaktion. Ein expliziter `StreamType`-Parameter steuert das Routing.
+Write-Through: Event und Tisch-Session-Projektion in derselben Transaktion. Kassensitzung als CRUD-Entität (kein Projection-Update im Event-Pfad).
 
 ```mermaid
 sequenceDiagram
@@ -578,7 +578,7 @@ sequenceDiagram
     participant Repo as Kassenjournal Repository
     participant DB as PostgreSQL
     participant KJ as kassenjournal (Event Store)
-    participant KSP as kassensitzung_state
+    participant KSP as kassensitzungen
     participant TSS as tisch_session_state
     participant Dom as Domain (ApplyEvent)
 
@@ -590,16 +590,13 @@ sequenceDiagram
         Note over KJ: UNIQUE (subject, version) → OCC
         KJ-->>Repo: event_id, version
 
-        alt streamType = "kassensitzung"
-            Repo->>KSP: UPSERT kassensitzung_state<br/>(subject, z_nr, datum, status,<br/>last_event_id, last_event_version)
-        else streamType = "tisch-session"
+        alt streamType = "tisch-session"
             Repo->>TSS: SELECT * FROM tisch_session_state<br/>WHERE subject = ?
             TSS-->>Repo: aktueller State (oder Zero-Value)
             Repo->>Dom: ApplyEvent(state, event)
             Note over Dom: Reine Funktion — kein DB-Zugriff
             Dom-->>Repo: neuer TischSessionState
             Repo->>TSS: UPSERT tisch_session_state SET<br/>saldo_cents, unbezahlte_positionen,<br/>ausstehende_positionen, ...
-        end
 
         Note over Repo,Dom: COMMIT
     end
@@ -682,7 +679,7 @@ graph TB
         end
 
         subgraph db ["PostgreSQL 17"]
-            Database["Datenbank<br/>Kassenjournal · Stammdaten · Projektionen"]
+            Database["Datenbank<br/>Kassenjournal · Stammdaten · Projektion + CRUD-Entität"]
         end
 
         subgraph migrate ["golang-migrate"]
@@ -883,24 +880,24 @@ erDiagram
         int user_id FK
         string user_name
         string type "bestellung-aufgenommen:v1 | ..."
-        string subject "kassensitzung-{YYYYMMDD}[-tisch-{id}]"
+        string subject "kassensitzung-{nr}[/tisch-{id}]"
         int version "pro subject, für OCC"
         jsonb data "Event-spezifische Daten"
         int kassensitzung_nr "FK-artige Zuordnung zur KS"
         timestamptz timestamp
     }
 
-    kassensitzung_state {
-        string subject PK "kassensitzung-{YYYYMMDD}"
-        int z_nr UK "fortlaufend, lückenlos"
+    kassensitzungen {
+        int z_nr PK
         date datum
-        string status "offen | abgeschlossen"
-        int last_event_id FK
-        int last_event_version
+        string bezeichnung
+        string status
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     tisch_session_state {
-        string subject PK "kassensitzung-{YYYYMMDD}-tisch-{id}"
+        string subject PK "kassensitzung-{nr}/tisch-{id}"
         int tisch_id FK
         int kassensitzung_nr
         int saldo_cents
@@ -944,10 +941,10 @@ erDiagram
     }
 
     produkte ||--o{ produkt_varianten : "hat Varianten"
-    tische ||--o{ tisch_session_state : "hat Session-Projektionen"
-    kassenjournal }o--|| kassensitzung_state : "gehört zu KS"
+    tische ||--o{ tisch_session_state : "hat Sessions"
+    kassenjournal }o--|| kassensitzungen : "kassensitzung_nr → z_nr"
+    tisch_session_state }o--|| kassensitzungen : "kassensitzung_nr → z_nr"
     tisch_session_state ||--o| kassenjournal : "letztes Event"
-    kassensitzung_state ||--o| kassenjournal : "letztes Event"
     users ||--o{ tisch_favoriten : "hat Favoriten"
     tische ||--o{ tisch_favoriten : "ist Favorit von"
 ```

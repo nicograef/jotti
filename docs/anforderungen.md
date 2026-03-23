@@ -173,7 +173,7 @@ Das Service-Dashboard zeigt primär die eigenen Tische der Servicekraft als Rich
 > **ID:** K-07 · **Rolle:** Servicekraft · Serviceleitung · Admin
 > **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
-Das Kassenjournal ist eine einzige, unveränderliche Tabelle (`kassenjournal`), die alle finanziellen Geschäftsvorfälle chronologisch protokolliert — Tisch-Operationen (Bestellung, Zahlung, Ausgabe, Stornierung, Auszahlung) ebenso wie Kassensitzung-Operationen (Eröffnung, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss). Das Journal ist die einzige Quelle der Wahrheit für den Zustand der Kasse (Event-Sourcing). Zwei synchrone Projektionen (`tisch_session_state`, `kassensitzung_state`) optimieren die Lesezugriffe.
+Das Kassenjournal ist eine einzige, unveränderliche Tabelle (`kassenjournal`), die alle finanziellen Geschäftsvorfälle chronologisch protokolliert — Tisch-Operationen (Bestellung, Zahlung, Ausgabe, Stornierung, Auszahlung) ebenso wie Kassensitzung-Operationen (Eröffnung, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss). Das Journal ist die einzige Quelle der Wahrheit für den Zustand der Kasse (Event-Sourcing). Eine synchrone Projektion (`tisch_session_state`) + eine CRUD-Entität (`kassensitzungen`) optimieren die Lesezugriffe.
 
 **Akzeptanzkriterien:**
 
@@ -745,7 +745,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 **Phase:** 1 (tagesbasiert), 2 (manuelle Freigabe)  
 **Status:** 🔲 Offen
 
-**Beschreibung:** Der `ABRECHNUNGSKREIS` im Sinne der DSFinV-K ist pro Tisch und Kassensitzung: Jede Tisch-Session (Subject `kassensitzung-{YYYYMMDD}-tisch-{id}`) bildet einen eigenständigen Abrechnungskreis. Der DSFinV-K-Export-Wert wird aus dem Tischnamen abgeleitet (z. B. `Tisch 42`) — unabhängig vom Subject-Format. Operative Aspekte (Eröffnung, Kassensitzung-Sperre, Invarianten) sind in K-16 definiert; F-06 beschreibt die DSFinV-K-Export-Aspekte.
+**Beschreibung:** Der `ABRECHNUNGSKREIS` im Sinne der DSFinV-K ist pro Tisch und Kassensitzung: Jede Tisch-Session (Subject `kassensitzung-{nr}/tisch-{id}`) bildet einen eigenständigen Abrechnungskreis. Der DSFinV-K-Export-Wert wird aus dem Tischnamen abgeleitet (z. B. `Tisch 42`) — unabhängig vom Subject-Format. Operative Aspekte (Eröffnung, Kassensitzung-Sperre, Invarianten) sind in K-16 definiert; F-06 beschreibt die DSFinV-K-Export-Aspekte.
 
 **Akzeptanzkriterien:**
 
@@ -793,7 +793,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 
 ## 8 · Kasse — Kassensitzung und Kassenbestand
 
-> **Kontext:** Die folgenden Anforderungen gehören zum Core-Domain-Kontext **Kasse** (§1) und decken den vollständigen Lifecycle der Kassensitzung ab — von der Eröffnung über die laufende Kassenbestandsführung bis zum formellen Tagesabschluss (Z-Bon). Sie nutzen dieselbe Persistenzstrategie wie alle Kasse-Operationen: **Event-Sourcing im Kassenjournal** (K-07). Kassensitzung-Events werden unter dem Subject `kassensitzung-{YYYYMMDD}` geschrieben.
+> **Kontext:** Die folgenden Anforderungen gehören zum Core-Domain-Kontext **Kasse** (§1) und decken den vollständigen Lifecycle der Kassensitzung ab — von der Eröffnung über die laufende Kassenbestandsführung bis zum formellen Tagesabschluss (Z-Bon). Sie nutzen dieselbe Persistenzstrategie wie alle Kasse-Operationen: **Event-Sourcing im Kassenjournal** (K-07). Kassensitzung-Events werden unter dem Subject `kassensitzung-{nr}` geschrieben.
 >
 > **Domänenanalyse:** Siehe [docs/agents/analyse-domaenenmodell.md](agents/analyse-domaenenmodell.md) für die vollständige fachliche Herleitung.
 

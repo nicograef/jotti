@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted** — Zwei synchrone Projektionen (`tisch_session_state`, `kassensitzung_state`) für operative Queries, On-Demand SQL für Reporting. Ersetzt vorherige ADR (Lazy Projection + Background Worker) und vorherige Fassung (einzelne `table_state`-Projektion).
+**Accepted** — Eine synchrone Projektion (`tisch_session_state`) und eine CRUD-Entität (`kassensitzungen`) für operative Queries, On-Demand SQL für Reporting. Ersetzt vorherige ADR (Lazy Projection + Background Worker) und vorherige Fassung (einzelne `table_state`-Projektion).
 
 ## Kontext
 
@@ -29,14 +29,14 @@ jotti implementierte CQRS Stufe 1 (logische Trennung): Getrennte Command-/Query-
 
 ### B: Synchrone Projektion (gewählt)
 
-Zwei Projektionstabellen (`tisch_session_state`, `kassensitzung_state`), jeweils UPSERT in derselben Transaktion wie Event-INSERT. Routing über expliziten `StreamType`-Parameter.
+Eine Projektionstabelle (`tisch_session_state`) mit UPSERT und eine CRUD-Entität (`kassensitzungen`) mit INSERT/UPDATE, jeweils in derselben Transaktion wie Event-INSERT. Routing über expliziten `StreamType`-Parameter.
 
 | +                                                           | -                                                  |
 | ----------------------------------------------------------- | -------------------------------------------------- |
 | Löst Snapshot-as-Event-Problem                              | Write wird minimal langsamer (ein UPSERT mehr)     |
 | Vorhersagbare Latenz (Read = 1 SELECT)                      | Apply-Funktionen müssen konsistent mit Events sein |
 | Tischübersicht trivial: `SELECT * FROM tisch_session_state` | Neuer Code (~200–300 Zeilen Apply-Funktionen)      |
-| KS-Sperre trivial: `SELECT * FROM kassensitzung_state`      |                                                    |
+| KS-Sperre trivial: `SELECT * FROM kassensitzungen`          |                                                    |
 | Strong Consistency ohne Tricks                              |                                                    |
 | Reporting-Enabler (Saldo vorberechnet)                      |                                                    |
 
@@ -73,11 +73,11 @@ Business-Logik (Event-Auswertung, JSONB-Varianten-Mapping) in PL/pgSQL.
 
 ## Entscheidung
 
-**Zwei synchrone Projektionen (`tisch_session_state` + `kassensitzung_state`) für operative Queries. On-Demand SQL-Aggregation für Reporting. Kein Background Worker.**
+**Eine synchrone Projektion (`tisch_session_state`) + eine CRUD-Entität (`kassensitzungen`) für operative Queries. On-Demand SQL-Aggregation für Reporting. Kein Background Worker.**
 
 ### Operative Projektionen — Synchrone Projektion (Write-Through)
 
-Die `tisch_session_state`- und `kassensitzung_state`-Tabellen werden in derselben Transaktion wie das Event-INSERT aktualisiert. Ein expliziter `StreamType`-Parameter steuert das Routing:
+Die `tisch_session_state`-Tabelle wird in derselben Transaktion wie das Event-INSERT aktualisiert. Die `kassensitzungen`-Entität wird ebenfalls in derselben TX gepflegt (INSERT bei Eröffnung, UPDATE bei Abschluss). Ein expliziter `StreamType`-Parameter steuert das Routing:
 
 ```
 BEGIN TX
@@ -88,13 +88,11 @@ BEGIN TX
       ApplyTischSessionEvent(zustand, event)  → neuer Zustand
       UPSERT INTO tisch_session_state (...)   → persistiert
     "kassensitzung" →
-      SELECT * FROM kassensitzung_state  → aktueller Zustand (oder Zero-Value)
-      ApplyKassensitzungEvent(zustand, event) → neuer Zustand
-      UPSERT INTO kassensitzung_state (...)   → persistiert
+      INSERT/UPDATE kassensitzungen (...)   → persistiert
 COMMIT TX
 ```
 
-Die `ApplyTischSessionEvent()`- und `ApplyKassensitzungEvent()`-Funktionen (`backend/domain/kasse/`) sind reine Funktionen in der Domain-Schicht ohne DB-Zugriff. Sie verarbeiten die jeweiligen Domänen-Event-Typen und berechnen den neuen Zustand.
+Die `ApplyTischSessionEvent()`-Funktion (`backend/domain/kasse/`) ist eine reine Funktion in der Domain-Schicht ohne DB-Zugriff. Sie verarbeitet die Tisch-Session-Event-Typen und berechnet den neuen Zustand. Für Kassensitzung-Events wird direkt auf der `kassensitzungen`-Entität geschrieben (INSERT/UPDATE) — kein Apply-Mechanismus nötig.
 
 **Warum synchron statt lazy?**
 
@@ -102,7 +100,7 @@ Die `ApplyTischSessionEvent()`- und `ApplyKassensitzungEvent()`-Funktionen (`bac
 - **Gleiche Komplexität** wie Lazy (beide brauchen `ApplyEvent()`), aber einfacheres Konsistenzmodell
 - **Strong Consistency** ohne Staleness-Detection oder Rebuild-Pfad
 
-**CQRS-Trennung bleibt intakt:** Der Projektor ist ein internes Detail von `KassenjournalRepo.WriteEvent()`. Der Command-Service ruft weiterhin nur `WriteEvent()` auf — das UPSERT auf die jeweilige Projektionstabelle ist transparent. Die Query-Services lesen direkt aus `tisch_session_state` bzw. `kassensitzung_state`.
+**CQRS-Trennung bleibt intakt:** Der Projektor ist ein internes Detail von `KassenjournalRepo.WriteEvent()`. Der Command-Service ruft weiterhin nur `WriteEvent()` auf — das UPSERT auf `tisch_session_state` bzw. INSERT/UPDATE auf `kassensitzungen` ist transparent. Die Query-Services lesen direkt aus `tisch_session_state` bzw. `kassensitzungen`.
 
 ### Kassenjournal (Historie) — Event-Replay (Stufe 1)
 
@@ -121,12 +119,12 @@ Bei ~10.000 Events ist jede Aggregation in < 100ms erledigt. Kein Background Wor
 
 ### CQRS-Stufen im Überblick
 
-| Bereich                  | CQRS-Stufe                         | Strategie                                                         | Konsistenz |
-| ------------------------ | ---------------------------------- | ----------------------------------------------------------------- | ---------- |
-| Kasse (operativ)         | **Stufe 2** — Synchrone Projektion | `tisch_session_state` + `kassensitzung_state`, UPSERT in Event-TX | Strong     |
-| Kassenjournal (Historie) | **Stufe 1** — Event-Replay         | Event Stream = Read Model                                         | Strong     |
-| Reporting (R-01–R-05)    | **Stufe 1** — On-Demand SQL        | `kassenjournal` + `tisch_session_state`                           | Strong     |
-| Stammdaten (CRUD)        | **Stufe 0** — Kein CQRS            | Kein Event-Sourcing                                               | Strong     |
+| Bereich                  | CQRS-Stufe                                | Strategie                                                                      | Konsistenz |
+| ------------------------ | ----------------------------------------- | ------------------------------------------------------------------------------ | ---------- |
+| Kasse (operativ)         | **Stufe 2** — Synchrone Projektion + CRUD | `tisch_session_state` (UPSERT) + `kassensitzungen` (INSERT/UPDATE) in Event-TX | Strong     |
+| Kassenjournal (Historie) | **Stufe 1** — Event-Replay                | Event Stream = Read Model                                                      | Strong     |
+| Reporting (R-01–R-05)    | **Stufe 1** — On-Demand SQL               | `kassenjournal` + `tisch_session_state`                                        | Strong     |
+| Stammdaten (CRUD)        | **Stufe 0** — Kein CQRS                   | Kein Event-Sourcing                                                            | Strong     |
 
 ### Architektur
 
@@ -152,8 +150,8 @@ Bei ~10.000 Events ist jede Aggregation in < 100ms erledigt. Kein Background Wor
 │  ApplyEvent()          │   selber TX
 │  UPSERT state      ───┘
 │ COMMIT TX              │   ┌─────────────────────┘
-└────────────────────────┘   │ kassensitzung_state
-                               │ (KS-Projektion)
+└────────────────────────┘   │ kassensitzungen
+                               │ (KS-Entität, CRUD)
                                └────────────────────
 ```
 
@@ -164,14 +162,14 @@ Bei ~10.000 Events ist jede Aggregation in < 100ms erledigt. Kein Background Wor
 - **Strong Consistency überall** — Projektionen in derselben TX wie Event-INSERT, kein Stale State, kein Eventual-Consistency-Problem.
 - **Ein Projektionsmechanismus** — Nur synchrone Projektion mit StreamType-Routing, kein zweiter Mechanismus (Lazy, Worker) zu pflegen.
 - **Snapshot-Ablösung** — `tisch.snapshot:v1` wird nicht mehr erzeugt. Der Event Stream enthält nur noch fachliche Domänen-Events. Das Kassenjournal ist konzeptionell sauber.
-- **Triviale Reads** — Tischübersicht = 1 SELECT auf `tisch_session_state`. KS-Sperre = 1 SELECT auf `kassensitzung_state`. Saldo, unbezahlte/ausstehende Positionen direkt verfügbar.
+- **Triviale Reads** — Tischübersicht = 1 SELECT auf `tisch_session_state`. KS-Sperre = 1 SELECT auf `kassensitzungen`. Saldo, unbezahlte/ausstehende Positionen direkt verfügbar.
 - **Reporting-Enabler** — Vorberechneter Saldo und Positionen in `tisch_session_state` vereinfachen tischübergreifende Aggregation. Filter über `kassensitzung_nr`.
 - **Selbstheilend** — Bei Inkonsistenz können die Projektionen jederzeit aus dem Kassenjournal reberechnet werden (alle Events bleiben append-only erhalten).
 
 ### Negativ
 
-- **Write-Pfad minimal komplexer** — 1 INSERT + 1 UPSERT pro Transaktion (statt nur 1 INSERT). Bei Kassensitzung-Events zusätzlich Routing-Logik.
-- **Apply-Funktionen müssen konsistent sein** — `ApplyTischSessionEvent()` und `ApplyKassensitzungEvent()` sind die einzigen Zustandsberechnungen. Testabdeckung ist essenziell.
+- **Write-Pfad minimal komplexer** — 1 INSERT + 1 UPSERT pro Tisch-Transaktion, INSERT/UPDATE auf `kassensitzungen` für KS-Events. Bei Kassensitzung-Events zusätzlich Routing-Logik.
+- **Apply-Funktionen müssen konsistent sein** — `ApplyTischSessionEvent()` ist die einzige Zustandsberechnung für Tisch-Sessions. Testabdeckung ist essenziell.
 - **JSONB in Projektionstabelle** — `unbezahlte_positionen` und `ausstehende_positionen` in `tisch_session_state` sind JSONB-Spalten. Typsicherheit nur auf Go-Ebene, nicht auf DB-Ebene.
 
 ## Referenzen
