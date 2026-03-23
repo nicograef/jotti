@@ -196,7 +196,7 @@ Kontext:
 
 ---
 
-## Abschnitt 4: Repository-Schicht — `kassenjournal_repo/` (ersetzt `event_repo/`)
+## Abschnitt 4: Repository-Schicht — `kassenjournal_repo/` (ersetzt `event_repo/`) 🔒
 
 Kontext:
 
