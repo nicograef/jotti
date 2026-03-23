@@ -1,4 +1,4 @@
-package table
+package kasse
 
 import (
 	"encoding/json"
@@ -7,11 +7,12 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-// TischState represents the projected state of a table, derived from applying events.
-// Zero-value represents a table with no events (Saldo 0, empty lists).
-type TischState struct {
+// TischSession represents the projected state of a table session, derived from applying events.
+// Zero-value represents a table session with no events (Saldo 0, empty lists).
+type TischSession struct {
+	Subject               string
 	TischID               int
-	TischName             string
+	KassensitzungNr       int
 	SaldoCents            int
 	UnbezahltePositionen  []Position
 	AusstehendePositionen []Position
@@ -20,8 +21,8 @@ type TischState struct {
 	LastEventVersion      int
 }
 
-// ApplyEvent applies a single domain event to the current TischState and returns the new state.
-func ApplyEvent(state TischState, evt e.Event) (TischState, error) {
+// ApplyEvent applies a single domain event to the current TischSession and returns the new state.
+func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 	switch evt.Type {
 	case string(EventTypeBestellungAufgenommenV1):
 		var data bestellungAufgenommenV1Data
@@ -104,4 +105,40 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 	}
 
 	return nichtStorniert, nil
+}
+
+// accumulatePositionen adds positions to a list, merging quantities for matching positions (by PositionID)
+func accumulatePositionen(list []Position, positionen []Position) []Position {
+	for _, pos := range positionen {
+		found := false
+		for i, existing := range list {
+			if existing.PositionID == pos.PositionID {
+				list[i].Menge += pos.Menge
+				found = true
+				break
+			}
+		}
+		if !found {
+			list = append(list, pos)
+		}
+	}
+	return list
+}
+
+// reduceByPosition subtracts positions from a list, removing entries when quantity reaches zero
+func reduceByPosition(list []Position, reductions []Position) []Position {
+	for _, red := range reductions {
+		for i := 0; i < len(list); i++ {
+			if list[i].PositionID == red.PositionID {
+				if list[i].Menge > red.Menge {
+					list[i].Menge -= red.Menge
+				} else {
+					list = append(list[:i], list[i+1:]...)
+					i--
+				}
+				break
+			}
+		}
+	}
+	return list
 }
