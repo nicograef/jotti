@@ -8,6 +8,7 @@
 4. [Pro und Contra](#4-pro-und-contra)
 5. [Empfehlung](#5-empfehlung)
 6. [Umsetzungsplan](#6-umsetzungsplan)
+7. [Architektur-Review: Aggregate Roots, Entitäten und Subject-Format](#7-architektur-review-aggregate-roots-entitäten-und-subject-format)
 
 ---
 
@@ -900,3 +901,378 @@ Die Relay-Anpassung betrifft mehrere Komponenten und ist eine eigenständige Arb
 - [ ] Z-Bon-Logik im Application Service (Aggregation über Kassenjournal)
 - [ ] Admin-UI: Kassensturz durchführen, Z-Bon anzeigen
 - [ ] DSFinV-K-Export vorbereiten (alle Daten im Kassenjournal)
+
+---
+
+## 7. Architektur-Review: Aggregate Roots, Entitäten und Subject-Format
+
+Dieser Abschnitt ist eine kritische Analyse des Redesigns (§1–§6) mit Fokus auf offene architektonische Fragen: Aggregate Roots, die Rolle von CRUD-Entitäten vs. Projektionen und das Subject-Format. Am Ende steht eine konkrete Anpassungsliste.
+
+---
+
+### 7.1 Bestätigung: Zwei Aggregates
+
+Ja, das Redesign definiert korrekt **zwei Aggregate**:
+
+1. **Kassensitzung** — der globale Betriebstag mit Admin-Operationen (Eröffnung, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss)
+2. **Tisch-Session** (= Abrechnungskreis) — die tischbezogenen Operationen innerhalb einer Kassensitzung (Bestellung, Ausgabe, Zahlung, Stornierung, Auszahlung)
+
+Diese Trennung ist architektonisch zwingend:
+
+- **OCC-Constraint:** Ein einziges Aggregate für alles (ein Subject) würde alle Schreibvorgänge über `UNIQUE(subject, version)` serialisieren — bei 5–30 Servicekräften nicht praktikabel (vgl. §3.4, "Warum zwei Subject-Typen statt einem?").
+- **Fachlichkeit:** Kassensitzung und Tisch-Session haben unterschiedliche Lebenszyklen, Invarianten und Akteure (Admin vs. Servicekraft).
+- **DSFinV-K:** Die Trennung bildet die DSFinV-K-Realität ab: `Z_NR` (Kassensitzung) vs. `ABRECHNUNGSKREIS` (Tisch-Session pro Tisch).
+
+**Alternativen betrachtet und verworfen:**
+
+| Alternative                             | Problem                                                                                             |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Ein Aggregate für alles                 | Single-Writer-Bottleneck, alle Tische + Admin serialisiert                                           |
+| Drei Aggregate (KS + Tisch + Zahlung)  | Overengineering: Zahlung gehört zum Tisch-Lifecycle, separate Aggregate erzeugt Cross-AG-Invarianten |
+| Kein Kassensitzung-Aggregate (nur CRUD) | Verliert Event-History für Admin-Operationen (Kassenbewegungen, Kassensturz)                         |
+
+---
+
+### 7.2 Aggregate Roots
+
+Im DDD ist das Aggregate Root die Entität, die als Einstiegspunkt und Konsistenzgrenze dient. In Event-Sourced Systemen ist das Aggregate Root der Event-Stream plus seine State-Rekonstruktion.
+
+| Aggregate        | Aggregate Root     | Identität                         | Erzeugung                                         |
+| ---------------- | ------------------ | --------------------------------- | ------------------------------------------------- |
+| **Kassensitzung** | Die Kassensitzung selbst | `z_nr` (fortlaufende Nummer)     | Explizit durch Admin-Aktion (`KassensitzungEroeffnet`) |
+| **Tisch-Session** | Die Tisch-Session selbst | Subject (`kassensitzung-{...}/tisch-{id}`) | Implizit durch erste Bestellung                   |
+
+**Wichtige Abgrenzung:** Der physische **Tisch** (Stammdaten) ist _nicht_ das Aggregate Root der Tisch-Session. Der Tisch ist eine Stammdaten-Entität ohne Kassen-Logik. Die Tisch-Session ist ein eigenständiges Aggregate, das den Tisch nur per ID referenziert.
+
+Die `kassensitzung_state`- und `tisch_session_state`-Projektionen sind de facto die persistierte Repräsentation des jeweiligen Aggregate-Root-States. Die Frage in §7.3 und §7.4 ist, ob diese Repräsentation als Projektion oder als explizite Entität besser modelliert ist.
+
+---
+
+### 7.3 Kassensitzung: CRUD-Entität statt reine Projektion
+
+#### Das Problem
+
+Das aktuelle Design (§3.8) definiert `kassensitzung_state` als "Hot-Path-Projektion" — minimal, nur für die KS-Sperre. Aber `kassensitzung_state` übernimmt faktisch _zwei_ Rollen:
+
+1. **Aggregate-State:** Persistierter Zustand des Kassensitzung-Aggregate (Status, z_nr)
+2. **Read-Model:** Hot-Path-Optimierung für die KS-Sperre (jeder Tisch-Write prüft Status)
+
+Diese Doppelrolle ist nicht falsch, aber sie verschleiert die Natur der Kassensitzung: Sie ist keine emergente Projektion, sondern eine **explizit erzeugte Entität** mit klarer Identität, Lebenszyklus und Attributen.
+
+#### Drei Optionen
+
+**Option A: Status Quo — Reine Projektion (§3.8)**
+
+```
+kassensitzung_state (Projektion)
+├── subject (PK)        ← Stream-Schlüssel als Identität
+├── z_nr (UNIQUE)       ← Berechnet beim UPSERT
+├── datum
+├── status
+├── last_event_id       ← FK → kassenjournal
+└── last_event_version
+```
+
+- ✅ Reines Event-Sourcing: Events sind die einzige Source of Truth
+- ✅ Minimale Projektion
+- ❌ `subject` als PK: String-basierte Identität statt fachlicher Schlüssel
+- ❌ Kein echter FK von `kassenjournal.kassensitzung_nr` → `kassensitzung_state` (zirkuläre Abhängigkeit: `last_event_id` → `kassenjournal`, `kassenjournal.kassensitzung_nr` → `kassensitzung_state`)
+- ❌ `z_nr` wird erst beim UPSERT berechnet → kann nicht im Subject verwendet werden (§3.4)
+- ❌ `bezeichnung` nur per Event-Replay verfügbar
+
+**Option B: CRUD-Entität ersetzt Projektion (empfohlen)**
+
+```
+kassensitzungen (Entität)
+├── z_nr (PK)           ← Fachlicher Schlüssel, fortlaufend
+├── datum
+├── bezeichnung         ← Sofort verfügbar, kein Replay nötig
+├── status
+├── created_at
+└── updated_at
+```
+
+- ✅ Explizite Entität mit fachlichem Schlüssel (`z_nr` als PK)
+- ✅ Echter FK: `kassenjournal.kassensitzung_nr` → `kassensitzungen.z_nr`
+- ✅ Echter FK: `tisch_session_state.kassensitzung_nr` → `kassensitzungen.z_nr`
+- ✅ `z_nr` ist VOR dem ersten Event bekannt → ermöglicht `kassensitzung-{nr}` im Subject
+- ✅ `bezeichnung` sofort verfügbar (kein Replay für Admin-UIs)
+- ✅ Keine zirkuläre FK-Abhängigkeit (kein `last_event_id` in der Entität)
+- ✅ Einzigkeits-Invariante via `status`-Check trivial
+- ❌ Leichte Abweichung vom reinen ES-Pattern: Entität wird neben Events gepflegt
+- ❌ `status`-Update bei Tagesabschluss ist ein UPDATE (nicht nur INSERT)
+
+**Option C: Hybrid — Projektion mit erweiterten Feldern**
+
+Wie Option A, aber mit `bezeichnung` und weiteren Feldern. Konzeptuell eine Projektion, faktisch eine Entität. Bietet die Nachteile beider Welten: String-PK, zirkuläre FKs, aber auch UPDATE-Semantik.
+
+#### Empfehlung: Option B
+
+**Die Kassensitzung sollte eine explizite CRUD-Entität in einer `kassensitzungen`-Tabelle sein.**
+
+Begründung:
+
+1. **Die Kassensitzung wird explizit erstellt** — durch eine Admin-Aktion. Das ist kein emergentes Aggregate (wie eine Tisch-Session, die durch die erste Bestellung entsteht), sondern ein bewusster Verwaltungsakt. Ein INSERT in eine `kassensitzungen`-Tabelle bildet diese Semantik natürlicher ab als ein UPSERT in eine Projektionstabelle.
+
+2. **FK-Integrität:** Mit `kassensitzungen.z_nr` als PK kann `kassenjournal.kassensitzung_nr` ein echter FK sein. Das verhindert verwaiste Events und ermöglicht referentielle Integrität über das gesamte Schema.
+
+3. **z_nr als Subject-Bestandteil:** Wenn `z_nr` vor dem ersten Event bekannt ist (weil die Entität zuerst in der TX erstellt wird), kann das Subject `kassensitzung-{nr}` statt `kassensitzung-{YYYYMMDD}` verwenden. Das löst das Abhängigkeitsproblem aus §3.4 (z_nr musste bisher beim UPSERT berechnet werden).
+
+4. **Kein zusätzlicher Write:** Das aktuelle Write-Through-Pattern macht bereits zwei Schreibvorgänge pro TX (Event INSERT + Projection UPSERT). Option B tauscht den UPSERT gegen einen INSERT (bei Eröffnung) bzw. UPDATE (bei Abschluss) — die Komplexität bleibt gleich.
+
+5. **Pragmatische Realität:** Die Kassensitzung hat 3–5 Events. Event-Sourcing-Vorteile (Replay, Audit, OCC) sind bei so wenigen Events marginal. Die Entität braucht primär Status-Tracking und FK-Ankerfunktion — das ist CRUD-Domäne.
+
+**Wichtige Klarstellung:** Die Events im Kassenjournal bleiben die Source of Truth für den _Verlauf_ der Kassensitzung (was passiert ist: Kassenbewegungen, Kassensturz-Ergebnisse). Die `kassensitzungen`-Tabelle ist die Source of Truth für die _Existenz und den aktuellen Status_ (ob die Kassensitzung existiert, ob sie offen ist, welche z_nr sie hat).
+
+#### Schema
+
+```sql
+CREATE TABLE kassensitzungen (
+    z_nr               INT PRIMARY KEY,
+    datum              DATE NOT NULL,
+    bezeichnung        TEXT NOT NULL DEFAULT '',
+    status             TEXT NOT NULL CHECK (status IN ('offen', 'abgeschlossen')),
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- FK-Integrität: Jedes Event gehört zu einer Kassensitzung
+ALTER TABLE kassenjournal
+    ADD CONSTRAINT fk_kassenjournal_kassensitzung
+    FOREIGN KEY (kassensitzung_nr) REFERENCES kassensitzungen(z_nr);
+
+-- FK-Integrität: Jede Tisch-Session gehört zu einer Kassensitzung
+ALTER TABLE tisch_session_state
+    ADD CONSTRAINT fk_tisch_session_state_kassensitzung
+    FOREIGN KEY (kassensitzung_nr) REFERENCES kassensitzungen(z_nr);
+```
+
+#### Write-Flow: Kassensitzung eröffnen
+
+```
+KassensitzungEroeffnen(datum, bezeichnung):
+  BEGIN TX
+    1. z_nr = SELECT COALESCE(MAX(z_nr), 0) + 1 FROM kassensitzungen
+    2. Einzigkeits-Prüfung: SELECT EXISTS(... WHERE status = 'offen')
+    3. INSERT INTO kassensitzungen (z_nr, datum, bezeichnung, status='offen')
+    4. subject = "kassensitzung-{z_nr}"
+    5. INSERT INTO kassenjournal (subject, version=1, type='kassensitzung-eroeffnet:v1',
+                                   kassensitzung_nr=z_nr, ...)
+  COMMIT TX
+```
+
+#### Write-Flow: Tagesabschluss
+
+```
+TagesabschlussErstellen():
+  BEGIN TX
+    1. INSERT INTO kassenjournal (subject, version=N, type='tagesabschluss-erstellt:v1', ...)
+    2. UPDATE kassensitzungen SET status='abgeschlossen', updated_at=NOW() WHERE z_nr = $1
+  COMMIT TX
+```
+
+---
+
+### 7.4 Tisch-Session: Projektion genügt
+
+#### Analyse
+
+Die Tisch-Session unterscheidet sich fundamental von der Kassensitzung:
+
+| Eigenschaft        | Kassensitzung                           | Tisch-Session                                    |
+| ------------------ | --------------------------------------- | ------------------------------------------------ |
+| **Erzeugung**      | Explizit (Admin-Aktion)                 | Implizit (erste Bestellung)                      |
+| **Anzahl Events**  | 3–5                                     | 10–100+                                          |
+| **ES-Nutzen**      | Marginal (Status-Tracking, wenig Audit) | Hoch (OCC, Audit, Replay, Invarianten)           |
+| **Referenziert von** | `kassenjournal`, `tisch_session_state`  | —                                                |
+| **Hot-Path**       | KS-Sperre (jeder Tisch-Write)           | Tischübersicht (ständiges Polling)               |
+| **Identität**      | `z_nr` (fachlicher Schlüssel)           | Subject-String (abgeleiteter technischer Schlüssel) |
+
+#### Empfehlung: `tisch_session_state` bleibt als Projektion
+
+**Keine separate CRUD-Entität nötig.** Begründung:
+
+1. **Implizite Erzeugung ist elegant:** Die Tisch-Session entsteht mit der ersten Bestellung. Ein explizites "Tisch-Session anlegen" wäre ein unnötiger Zwischenschritt, der nichts zur Fachlichkeit beiträgt. Niemand "eröffnet" einen Tisch — man bestellt einfach.
+
+2. **Kein FK-Bedarf:** Keine andere Tabelle referenziert die Tisch-Session per ID. Der Subject-String ist die Identität innerhalb des Kassenjournals, und die Projektion dient dem Read-Pfad.
+
+3. **UPSERT-Pattern ist ideal:** Der `tisch_session_state` wird bei _jedem_ Event aktualisiert (Saldo, Positionen). Das ist eine klassische Projektion — Snapshot des aktuellen Zustands, abgeleitet aus Events.
+
+4. **Session-scoped Reset:** Jede Kassensitzung startet mit leerer Projektion. Das UPSERT-Pattern handhabt das implizit — kein "Create + Delete"-Lifecycle nötig.
+
+5. **Event-Sourcing-Nutzen ist hoch:** Anders als bei der Kassensitzung (3–5 Events) hat die Tisch-Session 10–100+ Events. Replay, OCC und Audit-Trail sind hier der natürliche Ansatz.
+
+#### Kann man `tisch_session_state` gleichzeitig als Projektion UND Entität nutzen?
+
+Ja — und genau das tut das aktuelle Design bereits. `tisch_session_state` IST die Entität der Tisch-Session (ihr persistierter Zustand) UND eine Projektion (Read-Model für die Tischübersicht). Die Doppelrolle ist hier unproblematisch, weil:
+
+- Die Tisch-Session keinen eigenständigen CRUD-Lifecycle hat (kein explizites Create/Update/Delete)
+- Der State vollständig aus Events ableitbar ist (Replay möglich)
+- Kein anderes System per FK darauf referenziert
+
+**Optional:** Rename `tisch_session_state` → `tisch_sessions` für konsistentere Benennung. Der aktuelle Name betont den Projektionscharakter, was vertretbar ist. Alternativ verdeutlicht `tisch_sessions`, dass es sich um die persistierte Repräsentation der Tisch-Session-Aggregate handelt.
+
+---
+
+### 7.5 Subject-Format: `/`-Separator und `{nr}` statt `{YYYYMMDD}`
+
+#### Vorschlag
+
+Ausgangspunkt ist das Format `kassensitzung-{nr}/tisch-{id}/session-{id}`, wobei `session-{id}` aktuell ignoriert werden kann. Analysiert werden drei Aspekte:
+
+1. `/` als hierarchischer Separator (statt `-`)
+2. `{nr}` statt `{YYYYMMDD}` als Kassensitzungs-Bezeichner
+3. `session-{id}` als zukünftige Erweiterung
+
+#### `/` als Separator
+
+| Kriterium          | `-` (aktuell)                              | `/` (vorgeschlagen)                          |
+| ------------------ | ------------------------------------------ | -------------------------------------------- |
+| **Hierarchie**     | Implizit (Konvention)                      | Explizit (universelles Pattern)              |
+| **Parsing**        | Fragil (Zählung der `-`-Segmente)          | Robust (`SPLIT_PART(subject, '/', N)`)       |
+| **LIKE-Queries**   | `LIKE 'kassensitzung-20260322%'`           | `LIKE 'kassensitzung-1/%'`                   |
+| **Lesbarkeit**     | `kassensitzung-20260322-tisch-42`          | `kassensitzung-1/tisch-42`                   |
+| **Konvention**     | Unüblich für Hierarchien                   | NATS Subjects, Kafka Topics, File Systems    |
+| **Erweiterbarkeit** | Drittes Segment schwer abgrenzbar           | `kassensitzung-1/tisch-42/session-1` trivial |
+
+**Empfehlung: `/` ist besser.** Die Hierarchie wird explizit, Parsing wird robuster (keine Ambiguität bei `-` in Segmenten), und die Erweiterung um eine dritte Ebene (`/session-{id}`) ist trivial.
+
+**LIKE-Query-Anpassung:** `LIKE 'kassensitzung-{nr}/%'` matcht nur Tisch-Subjects, nicht das KS-Subject selbst. Für "alle Events einer KS (inkl. KS-Events)" braucht man `WHERE subject = 'kassensitzung-1' OR subject LIKE 'kassensitzung-1/%'`. Da Cross-Stream-Queries ohnehin `kassensitzung_nr` verwenden sollten (kanonische Query-Strategie aus §3.4), ist das akzeptabel. Subject-basierte Queries bleiben für Single-Stream-Replay und Debug.
+
+#### `{nr}` statt `{YYYYMMDD}`
+
+Das Redesign (§3.4) argumentiert für YYYYMMDD mit drei Punkten:
+
+| Argument                  | Bewertung mit `kassensitzungen`-Entität (§7.3)                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Keine DB-Abhängigkeit** | **Entfällt:** `z_nr` wird beim INSERT in `kassensitzungen` berechnet und ist vor dem ersten Event im Kassenjournal bekannt (gleiche TX). |
+| **Selbstdokumentation**   | **Abgeschwächt:** `kassensitzung-1` ist weniger selbsterklärend als `kassensitzung-20260322`, aber `datum` ist in der `kassensitzungen`-Entität verfügbar. In Logs kann `kassensitzung-1 (2026-03-22)` angezeigt werden. |
+| **Feste Länge**           | **Irrelevant:** Mit `/` als Separator ist variable Länge von `z_nr` (1, 12, 123) kein Problem für Parsing. LIKE-Queries funktionieren identisch. |
+
+**Zusätzliche Vorteile von `{nr}`:**
+
+- **Kürzer:** `kassensitzung-1/tisch-42` vs. `kassensitzung-20260322-tisch-42` (23 vs. 38 Zeichen)
+- **Direkte Referenz:** `z_nr` im Subject entspricht 1:1 der `kassensitzungen.z_nr` und `kassenjournal.kassensitzung_nr` — kein Mapping zwischen Datum und Nummer nötig
+- **Keine Datum-Ambiguität:** Kein "was passiert bei Betrieb über Mitternacht?" — die `z_nr` ist eindeutig
+
+**Empfehlung: `{nr}` verwenden** — unter der Voraussetzung, dass die `kassensitzungen`-Entität (§7.3) eingeführt wird. Die `z_nr` ist dann vor dem ersten Event bekannt, und alle drei Gegenargumente aus §3.4 entfallen.
+
+#### `session-{id}` für zukünftige Erweiterung
+
+Das dritte Segment (`kassensitzung-{nr}/tisch-{id}/session-{id}`) ermöglicht mehrere Sessions pro Tisch pro Kassensitzung. Aktuell ist das nicht nötig (ein Tisch hat genau eine Session pro KS), aber:
+
+- **Zukunftssicherheit:** Wenn ein Tisch "geschlossen" und "wiedereröffnet" werden soll (z. B. Tisch 42 wird nach dem Mittagessen abgeräumt und abends neu besetzt), bräuchte es eine neue Session-ID.
+- **Komplexität:** Drei Segmente statt zwei, mehr Parsing, mehr Konzepte.
+
+**Empfehlung: Vorerst nicht implementieren.** Das zweiteilige Format `kassensitzung-{nr}/tisch-{id}` ist ausreichend. Das `/`-Separator-Format macht die spätere Erweiterung trivial — ein drittes Segment kann ohne Breaking Change hinzugefügt werden.
+
+#### Resultierendes Subject-Format
+
+```
+kassensitzung-{nr}                → Kassensitzung (z. B. kassensitzung-1)
+kassensitzung-{nr}/tisch-{id}    → Tisch-Session  (z. B. kassensitzung-1/tisch-42)
+```
+
+**Beispiele:**
+
+```
+kassensitzung-1                   → Sommerfest 2026 Tag 1
+kassensitzung-1/tisch-42          → Tisch 42 am Sommerfest Tag 1
+kassensitzung-1/tisch-7           → Tisch 7 am Sommerfest Tag 1
+kassensitzung-2                   → Sommerfest 2026 Tag 2
+kassensitzung-2/tisch-42          → Tisch 42 am Sommerfest Tag 2 (frischer Start)
+kassensitzung-3                   → Weihnachtsmarkt 2026
+```
+
+**Query-Patterns:**
+
+```sql
+-- Single-Stream-Replay (ein Tisch-AK)
+WHERE subject = 'kassensitzung-1/tisch-42'
+
+-- Nur globale KS-Events
+WHERE subject = 'kassensitzung-1'
+
+-- Alle Tisch-Subjects einer KS (für Debug)
+WHERE subject LIKE 'kassensitzung-1/tisch-%'
+
+-- Cross-Stream-Aggregation (Reporting, Kassenbestand) — bevorzugt
+WHERE kassensitzung_nr = 1
+```
+
+---
+
+### 7.6 Zusammenfassung: Architekturentscheidungen
+
+| Frage                              | Entscheidung                                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Zwei Aggregates?                   | ✅ Ja: Kassensitzung + Tisch-Session                                                           |
+| Aggregate Roots?                   | Kassensitzung selbst (`z_nr`) und Tisch-Session selbst (Subject)                                |
+| Kassensitzung als CRUD-Entität?    | ✅ Ja: `kassensitzungen`-Tabelle ersetzt `kassensitzung_state`-Projektion                       |
+| Tisch-Session als CRUD-Entität?    | ❌ Nein: `tisch_session_state`-Projektion bleibt (dient als Entität UND Read-Model)             |
+| Subject-Format                     | `kassensitzung-{nr}/tisch-{id}` mit `/`-Separator und `z_nr` statt Datum                       |
+| `session-{id}` (dritte Ebene)?    | ❌ Vorerst nicht, aber durch `/`-Format leicht erweiterbar                                      |
+
+---
+
+### 7.7 Anpassungsliste
+
+Die folgenden konkreten Änderungen ergeben sich aus den Entscheidungen in §7.1–§7.6.
+
+#### Änderungen am Redesign (`docs/redesign.md`)
+
+1. **§3.2 (Begriffsklärung):** Kassensitzung als Aggregate Root mit expliziter CRUD-Entität benennen. Tisch-Session als Aggregate Root mit impliziter Erzeugung und Projektions-State.
+
+2. **§3.3 (Kassenjournal-Schema):** FK von `kassenjournal.kassensitzung_nr` → `kassensitzungen.z_nr` definieren. Subject-Beispiele im Schema-Kommentar anpassen.
+
+3. **§3.4 (Subject-Design):** Subject-Format ändern:
+   - `kassensitzung-{YYYYMMDD}` → `kassensitzung-{nr}`
+   - `kassensitzung-{YYYYMMDD}-tisch-{id}` → `kassensitzung-{nr}/tisch-{id}`
+   - Hierarchische Query-Patterns anpassen (LIKE mit `/`)
+   - Abschnitt "Warum Datum im Subject statt Z_NR?" umschreiben — `z_nr` wird jetzt bevorzugt, weil `kassensitzungen`-Entität die DB-Abhängigkeit beseitigt
+
+4. **§3.8 (Projektionsstrategie):** `kassensitzung_state` durch `kassensitzungen`-Tabelle ersetzen. Write-Through-Pseudocode anpassen: KS-Events aktualisieren `kassensitzungen`, nicht eine Projektion. Routing-Schema anpassen.
+
+5. **§3.11 (Lebenszyklus):** Sequence-Diagram an neues Subject-Format und Entitäts-Erstellung anpassen.
+
+6. **§3.13 (Auswirkungen):** Tabelle "Was sich ändert" erweitern: `kassensitzung_state` → `kassensitzungen`, Subject-Format aktualisieren.
+
+#### Änderungen an der Analyse (`docs/agents/kassenjournal-redesign/analyze.md`)
+
+1. **Alle Referenzen** auf `kassensitzung_state` → `kassensitzungen` aktualisieren
+2. **Subject-Format:** Alle Referenzen auf `kassensitzung-{YYYYMMDD}` → `kassensitzung-{nr}`, `-tisch-{id}` → `/tisch-{id}`
+3. **handbuch.md-Analyse:** §3.8 Projektionsstrategie-Anpassung dokumentieren (nur noch eine Projektion + eine Entität, statt zwei Projektionen)
+
+#### Änderungen am Plan (`docs/agents/kassenjournal-redesign/plan.md`)
+
+1. **Abschnitt 1 (DB-Schema) — Redo erforderlich:**
+   - `kassensitzung_state` → `kassensitzungen`-Tabelle mit PK `z_nr`, zusätzlichen Feldern (`bezeichnung`, `created_at`, `updated_at`), ohne `subject`, ohne `last_event_id`/`last_event_version`
+   - FK `kassenjournal.kassensitzung_nr` → `kassensitzungen.z_nr`
+   - FK `tisch_session_state.kassensitzung_nr` → `kassensitzungen.z_nr`
+   - Subject-Beispiele in Kommentaren anpassen (`kassensitzung-{nr}/tisch-{id}`)
+
+2. **Abschnitt 2 (SQL-Queries) — Redo erforderlich:**
+   - Queries für `kassensitzungen`-Tabelle statt `kassensitzung_state`: `InsertKassensitzung` + `UpdateKassensitzungStatus` statt `UpsertKassensitzungState`
+   - `GetOffeneKassensitzung` bleibt (Query auf `kassensitzungen WHERE status = 'offen'`)
+   - `GetNextZNr` bleibt (Query auf `kassensitzungen`)
+
+3. **Abschnitte 3–8 (Code):** Neues Subject-Format `kassensitzung-{nr}/tisch-{id}` durchziehen. `kassensitzung_state` → `kassensitzungen` in allen Repository- und Service-Referenzen.
+
+4. **Abschnitt 9 (Dokumentation):** Alle Doku-Referenzen auf neues Subject-Format und `kassensitzungen`-Tabelle aktualisieren.
+
+#### Änderungen am Handbuch und an der Ubiquitous Language
+
+Diese Änderungen betreffen `docs/handbuch.md` und `docs/language.md`, die bereits Abschnitt 9 des Plans abdeckt:
+
+1. **handbuch.md §3:** Kassensitzung als CRUD-Entität + Event-Stream beschreiben. Subject-Format aktualisieren. `kassensitzung_state` → `kassensitzungen`. Projektionsstrategie: "eine Entität + eine Projektion" statt "zwei Projektionen".
+
+2. **language.md:** Kassensitzung-Definition um Entitäts-Charakter erweitern. Subject-Format aktualisieren. `kassensitzung_state` → `kassensitzungen`.
+
+#### Auswirkungen auf bereits implementierte Abschnitte
+
+Falls die Abschnitte 1 und 2 des Plans bereits implementiert sind (als ✅ markiert), erfordern die Änderungen in §7.3 (Kassensitzung-Entität) und §7.5 (Subject-Format) ein **Redo beider Abschnitte**:
+
+- **Abschnitt 1:** Schema-Änderungen in `database/migrations/01_initial.up.sql` (Tabelle `kassensitzung_state` → `kassensitzungen`, FK-Constraints, Kommentar-Updates)
+- **Abschnitt 2:** SQL-Queries in `backend/sqlc/queries/kassensitzung_state.sql` → `backend/sqlc/queries/kassensitzungen.sql`, Query-Anpassungen, sqlc-Neugenerierung
+
+Da jotti sich in aktiver Pre-Release-Entwicklung befindet und Breaking Changes ausdrücklich erwünscht sind, ist das Redo unproblematisch.
