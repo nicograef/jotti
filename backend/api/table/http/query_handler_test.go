@@ -9,13 +9,14 @@ import (
 	"testing"
 
 	"github.com/nicograef/jotti/backend/api/table/application"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/table"
 )
 
 type mockQuery struct {
 	tisch    table.Tisch
-	order    table.Bestellung
-	position table.Position
+	order    kasse.Bestellung
+	position kasse.Position
 	balance  int
 	err      error
 }
@@ -28,15 +29,15 @@ func (m mockQuery) GetAktiveTische(ctx context.Context) ([]table.AktiverTisch, e
 	return []table.AktiverTisch{{ID: m.tisch.ID, Name: m.tisch.Name, SaldoCents: 0}}, m.err
 }
 
-func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]table.HistorieEintrag, error) {
-	return []table.HistorieEintrag{{Art: table.HistorieEintragBestellung, Bestellung: &m.order}}, m.err
+func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]kasse.HistorieEintrag, error) {
+	return []kasse.HistorieEintrag{{Art: kasse.HistorieEintragBestellung, Bestellung: &m.order}}, m.err
 }
 
-func (m mockQuery) GetTischState(ctx context.Context, tischID int) (table.TischState, error) {
-	return table.TischState{
+func (m mockQuery) GetTischState(ctx context.Context, tischID int) (application.TischStateView, error) {
+	return application.TischStateView{
 		SaldoCents:            m.balance,
-		UnbezahltePositionen:  []table.Position{m.position},
-		AusstehendePositionen: []table.Position{m.position},
+		UnbezahltePositionen:  []kasse.Position{m.position},
+		AusstehendePositionen: []kasse.Position{m.position},
 	}, m.err
 }
 
@@ -44,7 +45,7 @@ func (m mockQuery) GetAktiveTischeMitFavoriten(_ context.Context, _ int) ([]tabl
 	return nil, m.err
 }
 
-func (m mockQuery) GetMeineTischeState(_ context.Context, _ int) ([]table.TischState, error) {
+func (m mockQuery) GetMeineTischeState(_ context.Context, _ int) ([]application.TischStateView, error) {
 	return nil, m.err
 }
 

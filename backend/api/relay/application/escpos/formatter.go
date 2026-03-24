@@ -6,14 +6,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
 const lineWidth = 48 // Font A, 12×24 Dots bei 576 dots/line → 48 Zeichen
 
 // FormatPositionBon generiert einen Bon für eine einzelne Position (Standard-Bonmodus).
 func FormatPositionBon(
-	pos table.Position,
+	pos kasse.Position,
 	tischName string,
 	userName string,
 	zeitpunkt time.Time,
@@ -66,7 +66,7 @@ func FormatPositionBon(
 
 // FormatSammelBon generiert einen Bon für alle Positionen einer Kategorie (optionaler Bonmodus).
 func FormatSammelBon(
-	positionen []table.Position,
+	positionen []kasse.Position,
 	tischName string,
 	userName string,
 	zeitpunkt time.Time,

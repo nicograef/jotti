@@ -50,7 +50,7 @@ export const UmsatzTischSchema = z.object({
 export type UmsatzTisch = z.infer<typeof UmsatzTischSchema>
 
 export const ReportingSchema = z.object({
-  zeitraum: z.object({ von: z.string(), bis: z.string() }),
+  kassensitzungNr: z.number().int(),
   summary: ReportingSummarySchema,
   breakdowns: z.object({
     umsatzProServicekraft: z.array(UmsatzServicekraftSchema),

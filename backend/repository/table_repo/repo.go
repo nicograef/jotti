@@ -2,8 +2,6 @@ package table_repo
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/table"
@@ -33,8 +31,8 @@ func (r Repository) GetAllTables(ctx context.Context) ([]table.Tisch, error) {
 	return tables, nil
 }
 
-func (r Repository) GetActiveTables(ctx context.Context) ([]table.AktiverTisch, error) {
-	rows, err := r.q.GetAktiveTische(ctx)
+func (r Repository) GetActiveTables(ctx context.Context, kassensitzungNr int) ([]table.AktiverTisch, error) {
+	rows, err := r.q.GetAktiveTische(ctx, kassensitzungNr)
 	if err != nil {
 		return nil, db.Error(err)
 	}
@@ -51,8 +49,11 @@ func (r Repository) GetActiveTables(ctx context.Context) ([]table.AktiverTisch, 
 	return tables, nil
 }
 
-func (r Repository) GetActiveTablesWithFavorites(ctx context.Context, userID int) ([]table.AktiverTischMitFavorit, error) {
-	rows, err := r.q.GetAktiveTischeMitFavoriten(ctx, userID)
+func (r Repository) GetActiveTablesWithFavorites(ctx context.Context, userID int, kassensitzungNr int) ([]table.AktiverTischMitFavorit, error) {
+	rows, err := r.q.GetAktiveTischeMitFavoriten(ctx, dbgen.GetAktiveTischeMitFavoritenParams{
+		UserID:          userID,
+		KassensitzungNr: kassensitzungNr,
+	})
 	if err != nil {
 		return nil, db.Error(err)
 	}
@@ -69,38 +70,6 @@ func (r Repository) GetActiveTablesWithFavorites(ctx context.Context, userID int
 	}
 
 	return tables, nil
-}
-
-func (r Repository) GetTableStatesByIDs(ctx context.Context, tischIDs []int) ([]table.TischState, error) {
-	rows, err := r.q.GetTableStatesByTischIDs(ctx, tischIDs)
-	if err != nil {
-		return nil, db.Error(err)
-	}
-
-	states := make([]table.TischState, 0, len(rows))
-	for _, row := range rows {
-		var unbezahlt []table.Position
-		if err := json.Unmarshal(row.UnbezahltePositionen, &unbezahlt); err != nil {
-			return nil, fmt.Errorf("unmarshal unbezahlte positionen: %w", err)
-		}
-
-		var ausstehend []table.Position
-		if err := json.Unmarshal(row.AusstehendePositionen, &ausstehend); err != nil {
-			return nil, fmt.Errorf("unmarshal ausstehende positionen: %w", err)
-		}
-
-		states = append(states, table.TischState{
-			TischID:               row.TischID,
-			SaldoCents:            row.SaldoCents,
-			UnbezahltePositionen:  unbezahlt,
-			AusstehendePositionen: ausstehend,
-			GesamtZahlungenCents:  row.GesamtZahlungenCents,
-			LastEventID:           row.LastEventID,
-			LastEventVersion:      row.LastEventVersion,
-		})
-	}
-
-	return states, nil
 }
 
 func (r Repository) CreateTable(ctx context.Context, t table.Tisch) (int, error) {

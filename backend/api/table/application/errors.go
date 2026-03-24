@@ -7,6 +7,9 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// ErrKasseNichtGeoeffnet is returned when an operation requires an open Kassensitzung but none exists.
+var ErrKasseNichtGeoeffnet = errors.New("kasse nicht geoeffnet")
+
 // ErrTischNotFound is returned when a tisch is not found.
 var ErrTischNotFound = errors.New("tisch not found")
 

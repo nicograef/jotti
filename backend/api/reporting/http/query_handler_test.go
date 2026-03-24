@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/nicograef/jotti/backend/domain/reporting"
 )
@@ -20,7 +19,7 @@ type mockQuery struct {
 	err  error
 }
 
-func (m mockQuery) GetReporting(_ context.Context, _ reporting.Zeitraum) (reporting.ReportingData, error) {
+func (m mockQuery) GetReporting(_ context.Context, _ int) (reporting.ReportingData, error) {
 	return m.data, m.err
 }
 
@@ -41,64 +40,16 @@ func TestGetReportingHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestGetReportingHandler_MissingVon(t *testing.T) {
+func TestGetReportingHandler_MissingKassensitzungNr(t *testing.T) {
 	handler := QueryHandler{}
 
-	body := `{"bis": "2026-03-14T03:00:00Z"}`
+	body := `{}`
 	req := httptest.NewRequest(http.MethodPost, "/get-reporting", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 
 	handler.GetReportingHandler().ServeHTTP(rec, req)
 
-	assertBadRequestCode(t, rec, "invalid_zeitraum")
-}
-
-func TestGetReportingHandler_MissingBis(t *testing.T) {
-	handler := QueryHandler{}
-
-	body := `{"von": "2026-03-13T17:00:00Z"}`
-	req := httptest.NewRequest(http.MethodPost, "/get-reporting", strings.NewReader(body))
-	rec := httptest.NewRecorder()
-
-	handler.GetReportingHandler().ServeHTTP(rec, req)
-
-	assertBadRequestCode(t, rec, "invalid_zeitraum")
-}
-
-func TestGetReportingHandler_VonAfterBis(t *testing.T) {
-	handler := QueryHandler{}
-
-	body := `{"von": "2026-03-14T03:00:00Z", "bis": "2026-03-13T17:00:00Z"}`
-	req := httptest.NewRequest(http.MethodPost, "/get-reporting", strings.NewReader(body))
-	rec := httptest.NewRecorder()
-
-	handler.GetReportingHandler().ServeHTTP(rec, req)
-
-	assertBadRequestCode(t, rec, "invalid_zeitraum")
-}
-
-func TestGetReportingHandler_VonEqualsBis(t *testing.T) {
-	handler := QueryHandler{}
-
-	body := `{"von": "2026-03-13T17:00:00Z", "bis": "2026-03-13T17:00:00Z"}`
-	req := httptest.NewRequest(http.MethodPost, "/get-reporting", strings.NewReader(body))
-	rec := httptest.NewRecorder()
-
-	handler.GetReportingHandler().ServeHTTP(rec, req)
-
-	assertBadRequestCode(t, rec, "invalid_zeitraum")
-}
-
-func TestGetReportingHandler_NonUTCZeitraum(t *testing.T) {
-	handler := QueryHandler{}
-
-	body := `{"von": "2026-03-13T17:00:00+02:00", "bis": "2026-03-13T18:00:00+02:00"}`
-	req := httptest.NewRequest(http.MethodPost, "/get-reporting", strings.NewReader(body))
-	rec := httptest.NewRecorder()
-
-	handler.GetReportingHandler().ServeHTTP(rec, req)
-
-	assertBadRequestCode(t, rec, "invalid_timezone")
+	assertBadRequestCode(t, rec, "invalid_kassensitzung_nr")
 }
 
 func assertBadRequestCode(t *testing.T, rec *httptest.ResponseRecorder, expectedCode string) {
@@ -122,10 +73,7 @@ func assertBadRequestCode(t *testing.T, rec *httptest.ResponseRecorder, expected
 
 func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 	mockData := reporting.ReportingData{
-		Zeitraum: reporting.Zeitraum{
-			Von: time.Date(2026, 3, 14, 0, 0, 0, 0, time.UTC),
-			Bis: time.Date(2026, 3, 14, 23, 59, 0, 0, time.UTC),
-		},
+		KassensitzungNr: 1,
 		Summary: reporting.Summary{
 			GesamtUmsatzCents:  10000,
 			AnzahlBestellungen: 3,
@@ -138,7 +86,7 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 	}
 	handler := QueryHandler{Query: mockQuery{data: mockData}}
 
-	body := `{"von": "2026-03-14T00:00:00Z", "bis": "2026-03-14T23:59:00Z"}`
+	body := `{"kassensitzungNr": 1}`
 	req := httptest.NewRequest(http.MethodPost, "/get-reporting", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 
@@ -168,7 +116,7 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 func TestGetReportingHandler_QueryError_Returns500(t *testing.T) {
 	handler := QueryHandler{Query: mockQuery{err: errors.New("db error")}}
 
-	body := `{"von": "2026-03-14T00:00:00Z", "bis": "2026-03-14T23:59:00Z"}`
+	body := `{"kassensitzungNr": 1}`
 	req := httptest.NewRequest(http.MethodPost, "/get-reporting", strings.NewReader(body))
 	rec := httptest.NewRecorder()
 

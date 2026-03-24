@@ -3,10 +3,10 @@ package application
 import (
 	"context"
 	"errors"
-	"strconv"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/rs/zerolog"
@@ -17,14 +17,14 @@ type tableRepo interface {
 	CreateTable(ctx context.Context, t table.Tisch) (int, error)
 	UpdateTable(ctx context.Context, t table.Tisch) error
 	GetAllTables(ctx context.Context) ([]table.Tisch, error)
-	GetActiveTables(ctx context.Context) ([]table.AktiverTisch, error)
-	GetActiveTablesWithFavorites(ctx context.Context, userID int) ([]table.AktiverTischMitFavorit, error)
-	GetTableStatesByIDs(ctx context.Context, tischIDs []int) ([]table.TischState, error)
+	GetActiveTables(ctx context.Context, kassensitzungNr int) ([]table.AktiverTisch, error)
+	GetActiveTablesWithFavorites(ctx context.Context, userID int, kassensitzungNr int) ([]table.AktiverTischMitFavorit, error)
 }
 
 type eventRepo interface {
-	WriteEvent(ctx context.Context, event event.Event) (int, error)
-	ReadTableState(ctx context.Context, tischID int) (table.TischState, error)
+	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
+	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
+	GetOffeneKassensitzung(ctx context.Context) (*kasse.KassensitzungState, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 }
@@ -55,10 +55,23 @@ type Command struct {
 	FavoritRepo favoritRepo
 }
 
+// getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung.
+// Returns ErrKasseNichtGeoeffnet (HTTP 409) when no open Kassensitzung exists.
+func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.KassensitzungState, error) {
+	ks, err := c.EventRepo.GetOffeneKassensitzung(ctx)
+	if err != nil {
+		return nil, ErrDatabase
+	}
+	if ks == nil {
+		return nil, ErrKasseNichtGeoeffnet
+	}
+	return ks, nil
+}
+
 // writeEvent writes an event with optimistic concurrency control.
 // It reads the current max version for the subject, sets event.Version = maxVersion + 1,
 // and writes the event. Returns ErrConflict on UNIQUE constraint violation (version conflict).
-func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string) error {
+func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int) error {
 	maxVersion, err := repo.GetMaxVersion(ctx, subject)
 	if err != nil {
 		return err
@@ -66,7 +79,7 @@ func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject stri
 
 	e.Version = maxVersion + 1
 
-	_, err = repo.WriteEvent(ctx, e)
+	_, err = repo.WriteEvent(ctx, e, streamType, kassensitzungNr)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			zerolog.Ctx(ctx).Warn().
@@ -81,45 +94,54 @@ func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject stri
 	return nil
 }
 
-// loadTischState loads and validates the tisch, then reads its projected state.
+// loadTischState loads and validates the tisch, then reads its projected tisch session.
+// Returns the subject, kassensitzungNr, and TischSession state.
+// Returns ErrKasseNichtGeoeffnet if no open Kassensitzung exists.
 // Returns ErrTischNotFound if the tisch doesn't exist, ErrTischNotActive if not active.
-func (c Command) loadTischState(ctx context.Context, tischID int) (table.TischState, error) {
+func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, kasse.TischSession, error) {
 	log := zerolog.Ctx(ctx)
+
+	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	if err != nil {
+		return "", 0, kasse.TischSession{}, err
+	}
 
 	tisch, err := c.TableRepo.GetTable(ctx, tischID)
 	if err != nil {
-		return table.TischState{}, fromRepositoryError(err, log, tischID)
+		return "", 0, kasse.TischSession{}, fromRepositoryError(err, log, tischID)
 	}
 
 	if tisch.Status != table.ActiveStatus {
 		log.Warn().Int("tisch_id", tischID).Str("status", string(tisch.Status)).Msg("Tisch is not active")
-		return table.TischState{}, ErrTischNotActive
+		return "", 0, kasse.TischSession{}, ErrTischNotActive
 	}
 
-	state, err := c.EventRepo.ReadTableState(ctx, tischID)
+	subject := kasse.TischSessionSubject(ks.ZNr, tischID)
+
+	state, err := c.EventRepo.ReadTischSession(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table state")
-		return table.TischState{}, ErrDatabase
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read tisch session")
+		return "", 0, kasse.TischSession{}, ErrDatabase
 	}
 
-	return state, nil
+	return subject, ks.ZNr, state, nil
 }
 
 // computeNichtStorniertePositionen replays all events for a subject to compute
 // the list of positions that have been ordered but not yet cancelled.
 // This is used for stornierung validation (on-demand, not stored in projection).
-func (c Command) computeNichtStorniertePositionen(ctx context.Context, subject string) ([]table.Position, error) {
+func (c Command) computeNichtStorniertePositionen(ctx context.Context, subject string) ([]kasse.Position, error) {
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		return nil, err
 	}
 
-	return table.ComputeNichtStorniertePositionen(events)
+	return kasse.ComputeNichtStorniertePositionen(events)
 }
 
 // validatePositionRefs checks that every requested PositionRef exists in the available positions
 // and that the requested Menge does not exceed the available Menge.
-func validatePositionRefs(available []table.Position, requested []table.PositionRef) bool {
+func validatePositionRefs(available []kasse.Position, requested []kasse.PositionRef) bool {
 	for _, ref := range requested {
 		found := false
 		for _, pos := range available {
@@ -267,13 +289,14 @@ func (c Command) applyTischStatusChange(
 func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string, tischID int, inputs []BestellPositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	// Tisch-Existenz und Status prüfen (Bestellungen brauchen keinen Invarianten-Check)
-	if _, err := c.loadTischState(ctx, tischID); err != nil {
+	// Tisch-Existenz, Status prüfen und KS + Subject bestimmen
+	subject, kassensitzungNr, _, err := c.loadTischState(ctx, tischID)
+	if err != nil {
 		return err
 	}
 
 	// Enrich positions with product/variant data (fat events)
-	positionen := make([]table.Position, 0, len(inputs))
+	positionen := make([]kasse.Position, 0, len(inputs))
 	for _, input := range inputs {
 		variant, err := c.ProductRepo.GetVariant(ctx, input.VarianteID)
 		if err != nil {
@@ -287,7 +310,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 			return ErrProduktNotFound
 		}
 
-		positionen = append(positionen, table.Position{
+		positionen = append(positionen, kasse.Position{
 			VarianteID:   input.VarianteID,
 			ProduktName:  prod.Name,
 			VarianteName: variant.Name,
@@ -297,14 +320,13 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		})
 	}
 
-	event, err := table.NewBestellungAufgenommenEvent(userID, userName, tischID, positionen, kommentar)
+	evt, err := kasse.NewBestellungAufgenommenEvent(subject, userID, userName, positionen, kommentar)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create bestellung aufgenommen event")
 		return err
 	}
 
-	subject := "tisch:" + strconv.Itoa(tischID)
-	if err := writeEvent(ctx, c.EventRepo, event, subject); err != nil {
+	if err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -318,13 +340,13 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 
 // resolvePositions resolves PositionRefs to full Positions using available positions.
 // Returns resolved positions and total amount in cents.
-func resolvePositions(available []table.Position, refs []table.PositionRef) ([]table.Position, int) {
-	resolved := make([]table.Position, 0, len(refs))
+func resolvePositions(available []kasse.Position, refs []kasse.PositionRef) ([]kasse.Position, int) {
+	resolved := make([]kasse.Position, 0, len(refs))
 	totalCents := 0
 	for _, ref := range refs {
 		for _, pos := range available {
 			if pos.PositionID == ref.PositionID {
-				resolved = append(resolved, table.Position{
+				resolved = append(resolved, kasse.Position{
 					PositionID:   pos.PositionID,
 					VarianteID:   pos.VarianteID,
 					ProduktName:  pos.ProduktName,
@@ -341,11 +363,11 @@ func resolvePositions(available []table.Position, refs []table.PositionRef) ([]t
 	return resolved, totalCents
 }
 
-func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
+func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz, Status und State laden
-	state, err := c.loadTischState(ctx, tischID)
+	subject, kassensitzungNr, state, err := c.loadTischState(ctx, tischID)
 	if err != nil {
 		return err
 	}
@@ -358,14 +380,13 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 
 	resolvedPositionen, gesamtZahlungCents := resolvePositions(state.UnbezahltePositionen, positionen)
 
-	event, err := table.NewZahlungKassiertEvent(userID, userName, tischID, resolvedPositionen, gesamtZahlungCents, kommentar)
+	evt, err := kasse.NewZahlungKassiertEvent(subject, userID, userName, resolvedPositionen, gesamtZahlungCents, kommentar)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create zahlung kassiert event")
 		return err
 	}
 
-	subject := "tisch:" + strconv.Itoa(tischID)
-	if err := writeEvent(ctx, c.EventRepo, event, subject); err != nil {
+	if err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -377,17 +398,17 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	return nil
 }
 
-func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
+func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	// Tisch-Existenz und Status prüfen
-	if _, err := c.loadTischState(ctx, tischID); err != nil {
+	// Tisch-Existenz und Status prüfen, Subject und KS-Nr bestimmen
+	subject, kassensitzungNr, _, err := c.loadTischState(ctx, tischID)
+	if err != nil {
 		return err
 	}
 
 	// Stornierungsinvariante: Nur bestellte, nicht-stornierte Positionen können storniert werden
 	// (unabhängig vom Bezahlstatus). On-demand event replay to compute nicht-stornierte Positionen.
-	subject := "tisch:" + strconv.Itoa(tischID)
 	nichtStorniert, err := c.computeNichtStorniertePositionen(ctx, subject)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to compute nicht-stornierte Positionen")
@@ -401,13 +422,13 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 
 	resolvedPositionen, gesamtStornierungCents := resolvePositions(nichtStorniert, positionen)
 
-	event, err := table.NewStornierungErteiltEvent(userID, userName, tischID, resolvedPositionen, gesamtStornierungCents, kommentar)
+	evt, err := kasse.NewStornierungErteiltEvent(subject, userID, userName, resolvedPositionen, gesamtStornierungCents, kommentar)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create stornierung erteilt event")
 		return err
 	}
 
-	if err := writeEvent(ctx, c.EventRepo, event, subject); err != nil {
+	if err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -419,11 +440,11 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 	return nil
 }
 
-func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
+func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz, Status und State laden
-	state, err := c.loadTischState(ctx, tischID)
+	subject, kassensitzungNr, state, err := c.loadTischState(ctx, tischID)
 	if err != nil {
 		return err
 	}
@@ -436,14 +457,13 @@ func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName st
 
 	resolvedPositionen, _ := resolvePositions(state.AusstehendePositionen, positionen)
 
-	event, err := table.NewAusgabeBestaetigtEvent(userID, userName, tischID, resolvedPositionen, kommentar)
+	evt, err := kasse.NewAusgabeBestaetigtEvent(subject, userID, userName, resolvedPositionen, kommentar)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create ausgabe bestaetigt event")
 		return err
 	}
 
-	subject := "tisch:" + strconv.Itoa(tischID)
-	if err := writeEvent(ctx, c.EventRepo, event, subject); err != nil {
+	if err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -458,19 +478,19 @@ func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName st
 func (c Command) AuszahlungLeisten(ctx context.Context, userID int, userName string, tischID int, betragCents int, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	// Tisch-Existenz und Status prüfen (kein Saldo-Precondition-Check)
-	if _, err := c.loadTischState(ctx, tischID); err != nil {
+	// Tisch-Existenz und Status prüfen
+	subject, kassensitzungNr, _, err := c.loadTischState(ctx, tischID)
+	if err != nil {
 		return err
 	}
 
-	event, err := table.NewAuszahlungGeleistetEvent(userID, userName, tischID, betragCents, kommentar)
+	evt, err := kasse.NewAuszahlungGeleistetEvent(subject, userID, userName, betragCents, kommentar)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create auszahlung geleistet event")
 		return err
 	}
 
-	subject := "tisch:" + strconv.Itoa(tischID)
-	if err := writeEvent(ctx, c.EventRepo, event, subject); err != nil {
+	if err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}

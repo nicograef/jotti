@@ -2,11 +2,6 @@ package reporting
 
 import "time"
 
-type Zeitraum struct {
-	Von time.Time
-	Bis time.Time
-}
-
 type UmsatzServicekraft struct {
 	UserID            int
 	UserName          string
@@ -59,10 +54,10 @@ type Breakdowns struct {
 }
 
 type ReportingData struct {
-	Zeitraum      Zeitraum
-	Summary       Summary
-	Breakdowns    Breakdowns
-	Stornierungen []StornierungDetail
+	KassensitzungNr int
+	Summary         Summary
+	Breakdowns      Breakdowns
+	Stornierungen   []StornierungDetail
 }
 
 type EigeneUebersicht struct {

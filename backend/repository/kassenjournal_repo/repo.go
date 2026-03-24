@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
@@ -395,6 +396,41 @@ func (r Repository) GetBestellungEventsSinceCursor(ctx context.Context, cursor i
 		})
 	}
 	return events, nil
+}
+
+// InsertKassensitzung creates a new Kassensitzung CRUD entity with status 'offen'.
+// Returns the generated z_nr.
+func (r Repository) InsertKassensitzung(ctx context.Context, datum time.Time, bezeichnung string) (int, error) {
+	zNr, err := r.q.InsertKassensitzung(ctx, dbgen.InsertKassensitzungParams{
+		Datum:       datum,
+		Bezeichnung: bezeichnung,
+		Status:      kasse.KassensitzungStatusOffen,
+	})
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	return zNr, nil
+}
+
+// GetOffeneKassensitzungNr returns the z_nr of the currently open Kassensitzung, or 0 if none exists.
+func (r Repository) GetOffeneKassensitzungNr(ctx context.Context) (int, error) {
+	ks, err := r.GetOffeneKassensitzung(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if ks == nil {
+		return 0, nil
+	}
+	return ks.ZNr, nil
+}
+
+// GetKassenbestand returns the Soll-Kassenbestand for the given Kassensitzung in cents.
+func (r Repository) GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error) {
+	bestand, err := r.q.GetKassenbestand(ctx, kassensitzungNr)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	return bestand, nil
 }
 
 // isTischSessionSubject checks if a subject is a tisch-session subject (contains "/tisch-").

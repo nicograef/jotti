@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/domain/event"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
 // --- Mocks ---
@@ -44,7 +44,7 @@ func (m *mockDruckerRepo) GetKonfigurierteKategorieDrucker(_ context.Context) (m
 
 // --- Helpers ---
 
-func makeBestellungEvent(id int, subject string, positionen []table.Position, kommentar string) event.Event {
+func makeBestellungEvent(id int, subject string, positionen []kasse.Position, kommentar string) event.Event {
 	data, _ := json.Marshal(bestellungEventData{
 		Positionen: positionen,
 		Kommentar:  kommentar,
@@ -90,7 +90,7 @@ func TestGetDruckAuftraege_EventRepoError(t *testing.T) {
 }
 
 func TestGetDruckAuftraege_DruckerRepoError(t *testing.T) {
-	positionen := []table.Position{
+	positionen := []kasse.Position{
 		{ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
 	}
 	events := []event.Event{makeBestellungEvent(1, "tisch:3", positionen, "")}
@@ -108,7 +108,7 @@ func TestGetDruckAuftraege_DruckerRepoError(t *testing.T) {
 }
 
 func TestGetDruckAuftraege_WithEvents_GeneratesAuftraege(t *testing.T) {
-	positionen := []table.Position{
+	positionen := []kasse.Position{
 		{ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 2},
 	}
 	events := []event.Event{makeBestellungEvent(5, "tisch:3", positionen, "")}
@@ -141,7 +141,7 @@ func TestGetDruckAuftraege_WithEvents_GeneratesAuftraege(t *testing.T) {
 }
 
 func TestGetDruckAuftraege_CursorFiltering(t *testing.T) {
-	positionen := []table.Position{
+	positionen := []kasse.Position{
 		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
 	}
 	events := []event.Event{
@@ -173,7 +173,7 @@ func TestGetDruckAuftraege_CursorFiltering(t *testing.T) {
 // --- createDruckAuftraegeFromEvent Tests ---
 
 func TestCreateDruckAuftraege_ProPosition(t *testing.T) {
-	positionen := []table.Position{
+	positionen := []kasse.Position{
 		{ProduktName: "Pommes", VarianteName: "groß", Kategorie: "essen", Menge: 2},
 		{ProduktName: "Bratwurst", VarianteName: "mit Brot", Kategorie: "essen", Menge: 1},
 	}
@@ -201,7 +201,7 @@ func TestCreateDruckAuftraege_ProPosition(t *testing.T) {
 }
 
 func TestCreateDruckAuftraege_ProBestellung(t *testing.T) {
-	positionen := []table.Position{
+	positionen := []kasse.Position{
 		{ProduktName: "Pommes", VarianteName: "groß", Kategorie: "essen", Menge: 1},
 		{ProduktName: "Schnitzel", VarianteName: "mit Salat", Kategorie: "essen", Menge: 1},
 	}
@@ -222,7 +222,7 @@ func TestCreateDruckAuftraege_ProBestellung(t *testing.T) {
 }
 
 func TestCreateDruckAuftraege_NoDruckerFuerKategorie(t *testing.T) {
-	positionen := []table.Position{
+	positionen := []kasse.Position{
 		{ProduktName: "Kaffee", VarianteName: "klein", Kategorie: "sonstiges", Menge: 1},
 	}
 	evt := makeBestellungEvent(3, "tisch:2", positionen, "")
@@ -239,7 +239,7 @@ func TestCreateDruckAuftraege_NoDruckerFuerKategorie(t *testing.T) {
 }
 
 func TestCreateDruckAuftraege_MehrereKategorien(t *testing.T) {
-	positionen := []table.Position{
+	positionen := []kasse.Position{
 		{ProduktName: "Pommes", VarianteName: "groß", Kategorie: "essen", Menge: 1},
 		{ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
 	}

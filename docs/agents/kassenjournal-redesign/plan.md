@@ -226,7 +226,7 @@ Kontext:
 
 ---
 
-## Abschnitt 5: Application-Schicht — Commands + Queries anpassen
+## Abschnitt 5: Application-Schicht — Commands + Queries anpassen 🔒
 
 Kontext:
 

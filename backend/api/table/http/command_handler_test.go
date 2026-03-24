@@ -11,7 +11,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/api/table/application"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
 type mockCommand struct {
@@ -42,15 +42,15 @@ func (m *mockCommand) BestellungAufnehmen(ctx context.Context, userID int, userN
 	return m.err
 }
 
-func (m *mockCommand) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
+func (m *mockCommand) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	return m.err
 }
 
-func (m *mockCommand) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
+func (m *mockCommand) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	return m.err
 }
 
-func (m *mockCommand) AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []table.PositionRef, kommentar string) error {
+func (m *mockCommand) AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	return m.err
 }
 
