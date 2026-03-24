@@ -242,11 +242,13 @@ func (c Command) TagesabschlussErstellen(ctx context.Context, userID int, userNa
 	}
 
 	now := time.Now().UTC()
+	// Aggregate values are 0 here — actual reporting uses SQL aggregation queries.
+	// The event records the structural fact of the Tagesabschluss; detailed numbers come from GetReporting.
 	tagesabschlussEvt, err := kasse.NewTagesabschlussErstelltEvent(
 		subject, userID, userName,
 		ks.ZNr,
 		ks.CreatedAt, now,
-		0, 0, 0, 0, // Aggregate values — actual reporting via SQL queries
+		0, 0, 0, 0,
 	)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create tagesabschluss-erstellt event")

@@ -125,7 +125,6 @@ func TestTagesabschlussErstellen(t *testing.T) {
 	// Add a kassensturz event to satisfy the prerequisite
 	subject := kasse.KassensitzungSubject(testOpenKS.ZNr)
 	kassensturzEvt, _ := kasse.NewKassensturzDurchgefuehrtEvent(subject, 1, "Admin", 50000, 50000, 0)
-	kassensturzEvt.Subject = subject
 	mock.AddEvent(kassensturzEvt)
 
 	cmd := Command{KassenRepo: mock}
@@ -157,7 +156,6 @@ func TestTagesabschlussErstellen_TischSaldoSperre(t *testing.T) {
 	// Add kassensturz event to satisfy that prerequisite
 	subject := kasse.KassensitzungSubject(testOpenKS.ZNr)
 	kassensturzEvt, _ := kasse.NewKassensturzDurchgefuehrtEvent(subject, 1, "Admin", 50000, 50000, 0)
-	kassensturzEvt.Subject = subject
 	mock.AddEvent(kassensturzEvt)
 
 	// Add a tisch session with non-zero saldo
