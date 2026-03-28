@@ -1,53 +1,25 @@
 ---
-description: "Implementiert den nächsten offenen Abschnitt aus einer plan.md. Beansprucht den Abschnitt per 🔒-Marker, sodass parallele Agents sich nicht in die Quere kommen."
+description: "Arbeitet den nächsten offenen Abschnitt aus einer plan.md ab."
 agent: "agent"
-argument-hint: "Pfad zur plan.md (z.B. docs/agents/theory-cleanup/plan.md)"
+argument-hint: "Pfad zur plan.md (z.B. docs/agents/bestellung-storno/plan.md)"
 ---
 
 # Implementierung
 
 Lies die referenzierte plan.md und arbeite **einen Abschnitt** ab.
 
-## Abschnitt auswählen und beanspruchen
+## Vorgehen
 
-1. **Lies die gesamte plan.md** — insbesondere den Parallelisierungs-Abschnitt und alle Abschnitts-Überschriften.
-2. **Finde den nächsten verfügbaren Abschnitt.** Ein Abschnitt ist verfügbar, wenn:
-   - Er offene Tasks hat (`- [ ]`)
-   - Er **nicht** mit 🔒 oder ✅ markiert ist
-   - Seine Abhängigkeiten erfüllt sind (alle Vorgänger-Abschnitte sind ✅)
-3. **Beanspruche den Abschnitt sofort**, indem du `🔒` an die Abschnitts-Überschrift anhängst:
-   - Vorher: `## Abschnitt 4: Phase 1 — event-sourcing.md bereinigen`
-   - Nachher: `## Abschnitt 4: Phase 1 — event-sourcing.md bereinigen 🔒`
-   - **Erst danach** mit der Arbeit beginnen.
-4. **Falls kein verfügbarer Abschnitt existiert: Stoppe sofort, ohne Änderungen vorzunehmen.** Erkläre dem User:
-   - Welche Abschnitte noch offen sind (falls vorhanden)
-   - Warum sie nicht bearbeitet werden können (🔒 = ein anderer Agent arbeitet daran, oder Abhängigkeiten noch nicht ✅)
-   - Welche Vorgänger-Abschnitte zuerst abgeschlossen werden müssen
-   - **Führe keine Änderungen an Dateien durch — weder an der plan.md noch an anderen Dateien.**
+1. **Lies die plan.md** und finde den nächsten Abschnitt mit offenen Tasks (`- [ ]`)
+2. **Lies den `Kontext:`-Block** des Abschnitts — er listet die relevanten Dateien auf
+3. **Arbeite die Tasks sequentiell ab** — von oben nach unten
+4. **Hake jeden Task sofort ab** (`- [ ]` → `- [x]`) nachdem er erledigt ist
+5. **Prüfe nach dem letzten Task**: Build, Lint, Tests (`make check`)
+6. **Stopp** — beginne nicht den nächsten Abschnitt
 
-## Kontext laden
+## Leitfaden
 
-Nachdem du einen Abschnitt beansprucht hast, lade den Kontext:
-
-1. **Lies den `Kontext:`-Block des Abschnitts** — er listet exakt die Dateien und Zeilenbereiche auf, die du für diesen Abschnitt brauchst. Lies genau diese Stellen, nicht mehr.
-2. **Lies bereits erstellte/geänderte Dateien** aus vorherigen Abschnitten, um nahtlos anzuknüpfen.
-
-## Abschnitt abarbeiten
-
-**Befolge die Agent-Anweisungen in der plan.md exakt.** Die plan.md enthält die vollständigen Regeln für Task-Abarbeitung, Abhaken und Abschluss — halte dich an diese.
-
-Zusätzlicher Leitfaden für die Umsetzung:
-
-- Bevorzuge einfache, klare, idiomatische Lösungen gegenüber cleveren oder stark abstrahierten Konstruktionen.
-- Optimiere nicht primär auf Performance, wenn dadurch Lesbarkeit oder Konsistenz leidet.
-- Erzwinge kein DRY um jeden Preis; kleine lokale Duplikation ist erlaubt, wenn sie den Code verständlicher macht.
-
-## Abschnitt abschließen
-
-Wenn alle Tasks `[x]` sind und Build/Lint/Tests erfolgreich:
-
-1. **Ersetze 🔒 durch ✅** in der Abschnitts-Überschrift:
-   - Vorher: `## Abschnitt 4: Phase 1 — event-sourcing.md bereinigen 🔒`
-   - Nachher: `## Abschnitt 4: Phase 1 — event-sourcing.md bereinigen ✅`
-2. **Stoppen** — beginne nicht den nächsten Abschnitt
-3. **Conventional Commit Message** vorschlagen
+- Einfache, klare, idiomatische Lösungen bevorzugen
+- Keine Performance-Optimierung auf Kosten von Lesbarkeit
+- Kleine lokale Duplikation ist erlaubt wenn sie den Code verständlicher macht
+- Schlage eine Conventional Commit Message vor
