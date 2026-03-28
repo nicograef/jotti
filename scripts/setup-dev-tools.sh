@@ -65,6 +65,18 @@ if ! command -v golangci-lint >/dev/null 2>&1; then
   fatal "golangci-lint installation failed. Ensure '$GO_BIN_PATH' is on PATH and rerun."
 fi
 
+info "Ensuring sqlc is available..."
+if command -v sqlc >/dev/null 2>&1; then
+  info "sqlc already installed: $(sqlc version)"
+else
+  info "Installing sqlc via 'go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest'"
+  go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+fi
+
+if ! command -v sqlc >/dev/null 2>&1; then
+  fatal "sqlc installation failed. Ensure '$GO_BIN_PATH' is on PATH and rerun."
+fi
+
 info "Ensuring pnpm (v10) is available..."
 if command -v pnpm >/dev/null 2>&1; then
   info "pnpm already installed: $(pnpm --version)"
@@ -82,12 +94,17 @@ if ! command -v pnpm >/dev/null 2>&1; then
   fatal "pnpm installation failed. Install pnpm v10 manually and rerun."
 fi
 
+info "Installing frontend dependencies..."
+cd "$PROJECT_ROOT/frontend" && pnpm install
+cd "$PROJECT_ROOT"
+
 info "Tool summary"
 echo "  go:             $(go version)"
 echo "  node:           $(node --version)"
 echo "  pnpm:           $(pnpm --version)"
 echo "  goimports:      $(goimports -V 2>/dev/null || echo 'installed')"
 echo "  golangci-lint:  $(golangci-lint --version | head -n 1)"
+echo "  sqlc:           $(sqlc version)"
 
 info "All verify-relevant tools are available."
 info "Next step: make verify"
