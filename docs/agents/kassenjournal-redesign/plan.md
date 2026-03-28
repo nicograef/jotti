@@ -222,7 +222,7 @@ Kontext:
   - Helper: `parseTischID(subject string)` — delegiert an `kasse.ParseTischIDFromSubject()`; `toTischSession()` — JSON-Unmarshaling analog zu bisherigem `toTischState()`
 - [x] Datei `backend/repository/kassenjournal_repo/mock.go` erstellen: Mock-Struct mit denselben Interface-Methoden für Unit-Tests — Vorlage: `event_repo/mock.go`, erweitert um neue Methoden (`GetOffeneKassensitzung` liest `kassensitzungen`, `ReadTischSession`)
 - [x] Datei `backend/repository/kassenjournal_repo/repo_test.go` erstellen: Integrationstests — Vorlage: `event_repo/repo_test.go`. Tests anpassen: Subject-Format `kassensitzung-1/tisch-1`, Event-Typen ohne `tisch.`-Präfix, `kassensitzung_nr`-Parameter, StreamType-Parameter. Neue Tests: WriteEvent mit `StreamTypeKassensitzung` → INSERT/UPDATE `kassensitzungen` prüfen; WriteEvent mit `StreamTypeTischSession` → `tisch_sessions` UPSERT prüfen; `RebuildAllProjections` nur für `tisch_sessions`; `GetOffeneKassensitzung` → offene/keine offene KS aus `kassensitzungen`
-- [ ] Verzeichnis `backend/repository/event_repo/` löschen (repo.go, mock.go, repo_test.go) — **Deferred:** Kann erst gelöscht werden, wenn alle Consumer (api/, main.go) in Abschnitten 5-6 auf `kassenjournal_repo` migriert sind. Build-Bruch vermeiden.
+- [x] Verzeichnis `backend/repository/event_repo/` löschen (repo.go, mock.go, repo_test.go) — **Deferred:** Kann erst gelöscht werden, wenn alle Consumer (api/, main.go) in Abschnitten 5-6 auf `kassenjournal_repo` migriert sind. Build-Bruch vermeiden.
 
 ---
 
@@ -294,7 +294,7 @@ Kontext:
 
 ---
 
-## Abschnitt 6: HTTP-Handler + Routing
+## Abschnitt 6: HTTP-Handler + Routing ✅
 
 Kontext:
 
@@ -314,14 +314,14 @@ Kontext:
 
 #### 6a: Bestehende Handler + DTOs anpassen
 
-- [ ] In `backend/api/table/http/query_handler.go`: Response-DTOs bleiben strukturell gleich; Imports von `domain/table` auf `domain/kasse` aktualisieren wo nötig (für `Position`, `Bestellung`, `HistorieEintrag` etc.); Mapping-Funktionen (`toBestellung`, `toZahlung`, etc.) an neue Paketnamen anpassen
-- [ ] In `backend/api/table/http/command_handler.go`: Imports aktualisieren (Command-Struct nutzt jetzt `domain/kasse`-Typen); wenn `Position` oder `PositionRef` zu `kasse.Position` / `kasse.PositionRef` geworden sind, Mapping anpassen
-- [ ] In `backend/api/reporting/http/query_handler.go`: Request-Struct ändern — von `{ von: time.Time, bis: time.Time }` auf `{ kassensitzungNr: int }`; Validierung anpassen (kassensitzungNr > 0); Aufruf `query.GetReporting(ctx, kassensitzungNr)` statt `query.GetReporting(ctx, zeitraum)`
+- [x] In `backend/api/table/http/query_handler.go`: Response-DTOs bleiben strukturell gleich; Imports von `domain/table` auf `domain/kasse` aktualisieren wo nötig (für `Position`, `Bestellung`, `HistorieEintrag` etc.); Mapping-Funktionen (`toBestellung`, `toZahlung`, etc.) an neue Paketnamen anpassen
+- [x] In `backend/api/table/http/command_handler.go`: Imports aktualisieren (Command-Struct nutzt jetzt `domain/kasse`-Typen); wenn `Position` oder `PositionRef` zu `kasse.Position` / `kasse.PositionRef` geworden sind, Mapping anpassen
+- [x] In `backend/api/reporting/http/query_handler.go`: Request-Struct ändern — von `{ von: time.Time, bis: time.Time }` auf `{ kassensitzungNr: int }`; Validierung anpassen (kassensitzungNr > 0); Aufruf `query.GetReporting(ctx, kassensitzungNr)` statt `query.GetReporting(ctx, zeitraum)`
 
 #### 6b: Neuen Kassensitzung-Handler erstellen
 
-- [ ] Neues Verzeichnis `backend/api/kasse/http/` erstellen
-- [ ] Datei `backend/api/kasse/http/handler.go` erstellen: `Handler`-Struct mit `Command *application.Command, Query *application.Query`; Handler-Funktionen (alle POST):
+- [x] Neues Verzeichnis `backend/api/kasse/http/` erstellen
+- [x] Datei `backend/api/kasse/http/handler.go` erstellen: `Handler`-Struct mit `Command *application.Command, Query *application.Query`; Handler-Funktionen (alle POST):
   - `KassensitzungEroeffnenHandler` — Request: `{ datum: string, bezeichnung: string }`, Validierung, ruft `Command.KassensitzungEroeffnen()`
   - `AnfangsbestandSetzenHandler` — Request: `{ betragCents: int }`, ruft `Command.AnfangsbestandSetzen()`
   - `KassenbewegungBuchenHandler` — Request: `{ art: string, betragCents: int, kommentar: string }`, ruft `Command.KassenbewegungBuchen()`
@@ -333,21 +333,21 @@ Kontext:
 
 #### 6c: Routing aktualisieren
 
-- [ ] In `backend/api/admin.go`: Imports von `event_repo` → `kassenjournal_repo`; neuen Kasse-Handler instanziieren + neue Routen registrieren: `/admin/kassensitzung-eroeffnen`, `/admin/anfangsbestand-setzen`, `/admin/kassenbewegung-buchen`, `/admin/kassensturz-durchfuehren`, `/admin/tagesabschluss-erstellen`, `/admin/get-offene-kassensitzung`, `/admin/get-kassenbestand`
-- [ ] In `backend/api/service.go`: Import `event_repo` → `kassenjournal_repo`; Repository-Instanziierung anpassen
-- [ ] In `backend/api/serviceleitung.go`: Import anpassen
-- [ ] In `backend/api/relay.go`: Import `event_repo` → `kassenjournal_repo`; Repository-Instanziierung anpassen
+- [x] In `backend/api/admin.go`: Imports von `event_repo` → `kassenjournal_repo`; neuen Kasse-Handler instanziieren + neue Routen registrieren: `/admin/kassensitzung-eroeffnen`, `/admin/anfangsbestand-setzen`, `/admin/kassenbewegung-buchen`, `/admin/kassensturz-durchfuehren`, `/admin/tagesabschluss-erstellen`, `/admin/get-offene-kassensitzung`, `/admin/get-kassenbestand`
+- [x] In `backend/api/service.go`: Import `event_repo` → `kassenjournal_repo`; Repository-Instanziierung anpassen
+- [x] In `backend/api/serviceleitung.go`: Import anpassen
+- [x] In `backend/api/relay.go`: Import `event_repo` → `kassenjournal_repo`; Repository-Instanziierung anpassen
 
 #### 6d: Main + App anpassen
 
-- [ ] In `backend/main.go`: Import `event_repo` → `kassenjournal_repo`; `rebuild-projections` Subcommand: `kassenjournal_repo.New(db).RebuildAllProjections(ctx)` statt `event_repo`; Log-Meldung: „Kassensitzung- und Tisch-Session-Projektionen" statt „Table-State-Projektionen"
-- [ ] In `backend/app/app.go`: Imports anpassen; in `SetupRoutes()`: `NewAdminApi` erhält `kassenjournal_repo`-Instanz für Kasse-Handler
-- [ ] In `backend/repository/table_repo/repo.go`: Alle JOINs auf `table_state` → `tisch_sessions` aktualisieren; `GetActiveTables(ctx, kassensitzungNr)` — neuer Parameter für den JOIN; `GetActiveTablesWithFavorites(ctx, userID, kassensitzungNr)` — analog; `GetTableStatesByIDs` entfernen oder durch `GetTischSessionsByKassensitzungNr` ersetzen
+- [x] In `backend/main.go`: Import `event_repo` → `kassenjournal_repo`; `rebuild-projections` Subcommand: `kassenjournal_repo.New(db).RebuildAllProjections(ctx)` statt `event_repo`; Log-Meldung: „Kassensitzung- und Tisch-Session-Projektionen“ statt „Table-State-Projektionen“
+- [x] In `backend/app/app.go`: Imports anpassen; in `SetupRoutes()`: `NewAdminApi` erhält `kassenjournal_repo`-Instanz für Kasse-Handler
+- [x] In `backend/repository/table_repo/repo.go`: Alle JOINs auf `table_state` → `tisch_sessions` aktualisieren; `GetActiveTables(ctx, kassensitzungNr)` — neuer Parameter für den JOIN; `GetActiveTablesWithFavorites(ctx, userID, kassensitzungNr)` — analog; `GetTableStatesByIDs` entfernen oder durch `GetTischSessionsByKassensitzungNr` ersetzen
 
 #### 6e: Compilation + Lint prüfen
 
-- [ ] `make build` ausführen — sicherstellen, dass Backend kompiliert
-- [ ] `make lint` ausführen — sicherstellen, dass keine Lint-Fehler existieren
+- [x] `make build` ausführen — sicherstellen, dass Backend kompiliert
+- [x] `make lint` ausführen — sicherstellen, dass keine Lint-Fehler existieren
 
 ---
 

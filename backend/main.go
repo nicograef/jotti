@@ -92,7 +92,7 @@ func rebuildProjections(db *sql.DB) error {
 
 	repo := kassenjournal_repo.NewRepository(db)
 
-	log.Info().Msg("Rebuilding all table_state projections from events...")
+	log.Info().Msg("Rebuilding tisch-session projections from kassenjournal...")
 
 	count, err := repo.RebuildAllProjections(context.Background())
 	if err != nil {

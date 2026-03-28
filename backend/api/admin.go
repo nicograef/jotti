@@ -6,6 +6,8 @@ import (
 
 	druckerApp "github.com/nicograef/jotti/backend/api/drucker/application"
 	druckerHTTP "github.com/nicograef/jotti/backend/api/drucker/http"
+	kasseApp "github.com/nicograef/jotti/backend/api/kasse/application"
+	kasseHTTP "github.com/nicograef/jotti/backend/api/kasse/http"
 	productApp "github.com/nicograef/jotti/backend/api/product/application"
 	productHTTP "github.com/nicograef/jotti/backend/api/product/http"
 	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
@@ -79,6 +81,17 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	rq := reportingHTTP.QueryHandler{}
 	rq.Query = reportingApp.Query{ReportingRepo: reportingRepo, KasseRepo: kassenjournalRepo}
 	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
+
+	kh := kasseHTTP.Handler{}
+	kh.Command = kasseApp.Command{KassenRepo: kassenjournalRepo}
+	kh.Query = kasseApp.Query{KassenRepo: kassenjournalRepo}
+	r.HandleFunc("/kassensitzung-eroeffnen", kh.KassensitzungEroeffnenHandler())
+	r.HandleFunc("/anfangsbestand-setzen", kh.AnfangsbestandSetzenHandler())
+	r.HandleFunc("/kassenbewegung-buchen", kh.KassenbewegungBuchenHandler())
+	r.HandleFunc("/kassensturz-durchfuehren", kh.KassensturzDurchfuehrenHandler())
+	r.HandleFunc("/tagesabschluss-erstellen", kh.TagesabschlussErstellenHandler())
+	r.HandleFunc("/get-offene-kassensitzung", kh.GetOffeneKassensitzungHandler())
+	r.HandleFunc("/get-kassenbestand", kh.GetKassenbestandHandler())
 
 	druckerRepo := drucker_repo.NewRepository(db)
 	dc := druckerHTTP.CommandHandler{}
