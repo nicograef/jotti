@@ -442,8 +442,8 @@ func (r Repository) GetTischSessionsByKassensitzungNr(ctx context.Context, kasse
 	}
 
 	sessions := make([]kasse.TischSession, 0, len(rows))
-	for _, row := range rows {
-		session, err := toTischSession(row)
+	for i := range rows {
+		session, err := toTischSession(rows[i])
 		if err != nil {
 			return nil, err
 		}

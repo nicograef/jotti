@@ -392,7 +392,7 @@ Kontext:
 
 ---
 
-## Abschnitt 8: Seed-Daten + Integrationstests + Abschluss
+## Abschnitt 8: Seed-Daten + Integrationstests + Abschluss ✅
 
 Kontext:
 
@@ -404,13 +404,13 @@ Kontext:
 
 ### Tasks
 
-- [ ] `database/seed.sql` komplett neuschreiben: Kassensitzung-Einträge in `kassensitzungen` einfügen (3 Betriebstage; 2 abgeschlossen, 1 offen); Kassensitzung-Events einfügen (Eröffnung, Anfangsbestand pro KS); Subject-Format `kassensitzung-{nr}/tisch-{id}` statt `tisch:{id}`; Event-Typen ohne `tisch.`-Präfix; neue Spalte `kassensitzung_nr` befüllen; `tisch_sessions` statt `table_state` (mit subject als PK, tisch_id, kassensitzung_nr); Tagesabschluss-Events für Tag 1 + 2
-- [ ] `make test` ausführen — alle Backend-Unit-Tests müssen grün sein
-- [ ] `make test-frontend` ausführen — alle Frontend-Tests müssen grün sein
-- [ ] `make lint` ausführen — keine Lint-Fehler
-- [ ] `make fmt` ausführen — Formatierung prüfen
-- [ ] `make build` ausführen — Build erfolgreich
-- [ ] `make check` ausführen — Gesamtprüfung ohne DB bestanden
+- [x] `database/seed.sql` komplett neuschreiben: Kassensitzung-Einträge in `kassensitzungen` einfügen (3 Betriebstage; 2 abgeschlossen, 1 offen); Kassensitzung-Events einfügen (Eröffnung, Anfangsbestand pro KS); Subject-Format `kassensitzung-{nr}/tisch-{id}` statt `tisch:{id}`; Event-Typen ohne `tisch.`-Präfix; neue Spalte `kassensitzung_nr` befüllen; `tisch_sessions` statt `table_state` (mit subject als PK, tisch_id, kassensitzung_nr); Tagesabschluss-Events für Tag 1 + 2
+- [x] `make test` ausführen — alle Backend-Unit-Tests müssen grün sein
+- [x] `make test-frontend` ausführen — alle Frontend-Tests müssen grün sein
+- [x] `make lint` ausführen — keine Lint-Fehler
+- [x] `make fmt` ausführen — Formatierung prüfen
+- [x] `make build` ausführen — Build erfolgreich
+- [x] `make check` ausführen — Gesamtprüfung ohne DB bestanden
 
 ---
 
