@@ -90,7 +90,7 @@ Phasenplan für die schrittweise Compliance-Implementierung.
 | Komponente    | Technologie                                                                     |
 | ------------- | ------------------------------------------------------------------------------- |
 | Backend       | Go 1.26, stdlib `net/http`, `pgx/v5`, `sqlc`, `zerolog`, `zog`, `golang-jwt/v5` |
-| Frontend      | React 19, Vite 7, TypeScript 5.9 (strict), Tailwind CSS 4, shadcn/ui, Zod 4     |
+| Frontend      | React 19, Vite 8, TypeScript 5.9 (strict), Tailwind CSS 4, shadcn/ui, Zod 4     |
 | Datenbank     | PostgreSQL 17, `golang-migrate`                                                 |
 | Runtime       | Node 24+, pnpm 10+                                                              |
 | Infrastruktur | Docker Compose, nginx Reverse Proxy, Let's Encrypt                              |

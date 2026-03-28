@@ -1,6 +1,6 @@
 ---
 description: "Use when working on event sourcing, domain events, kasse operations, tisch-session state, kassensitzung state, or kassenjournal."
-applyTo: "backend/domain/kasse/**,backend/domain/table/**,backend/repository/event_repo/**,backend/repository/kassenjournal_repo/**"
+applyTo: "backend/domain/kasse/**,backend/domain/table/**,backend/repository/kassenjournal_repo/**"
 ---
 
 # Event-Sourcing-Referenz
@@ -35,7 +35,6 @@ Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/kasse/` (künf
 
 ## State-Rekonstruktion
 
-- Das Kassenjournal (`kassenjournal`-Tabelle) ist immutable (append-only). Nie Einträge im Kassenjournal updaten oder löschen.
 - Saldo = Summe(Bestellungen) − Summe(Zahlungen) − Summe(Stornierungen) + Summe(Auszahlungen)
 - UnbezahltePositionen = bestellt − bezahlt − storniert
 - AusstehendePositionen = bestellt − ausgegeben − storniert

@@ -50,11 +50,7 @@ Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `a
 
 ## Schichtentrennung: Domain vs. HTTP
 
-- Domain-Structs in `domain/` tragen keine `json`-Tags. Die Domain kennt kein HTTP.
-- Die HTTP-Schicht (`api/<domain>/http/`) definiert eigene Request- und Response-DTOs mit `json`-Tags.
-- Query-Handler mappen Domain-Modelle in Response-DTOs, bevor sie `helper.SendResponse` aufrufen.
-- Command-Handler nutzen Request-DTOs fuer Request-Bodies und geben Response-DTOs zurueck.
-- Ausnahme: Event-Data-Structs fuer Event-Store-Persistenz duerfen `json`-Tags tragen.
+> Grundregel: siehe AGENTS.md Regel #10. Hier das konkrete Pattern:
 
 Beispiel fuer Response-DTO und Mapper in der HTTP-Schicht:
 

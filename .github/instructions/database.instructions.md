@@ -25,7 +25,7 @@ Aktuelles Schema: siehe SQL-Migrationen in `database/migrations/` (alle `*.up.sq
 
 ## Schema-Änderungen
 
-jotti befindet sich in aktiver Entwicklung — Breaking Changes sind erlaubt und erwünscht. Schema-Änderungen direkt in `database/migrations/01_initial.up.sql` vornehmen. Keine neuen Migrationsdateien erstellen, keine Down-Migrationen pflegen. Dev-Datenbank bei Bedarf neu aufsetzen (`make down && make dev`).
+Änderungen direkt in `database/migrations/01_initial.up.sql`. Keine neuen Migrationsdateien, keine Down-Migrationen. Dev-DB bei Bedarf neu aufsetzen (`make down && make dev`). Siehe auch AGENTS.md „Aktive Entwicklungsphase".
 
 ## sqlc
 
