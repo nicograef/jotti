@@ -12,6 +12,15 @@
   },
   "postCreateCommand": "bash scripts/setup-dev-tools.sh",
   "customizations": {
+    "codespaces": {
+      "repositories": {
+        "nicograef/handbook": {
+          "permissions": {
+            "contents": "write"
+          }
+        }
+      }
+    },
     "vscode": {
       "settings": {
         "terminal.integrated.defaultProfile.linux": "bash"
