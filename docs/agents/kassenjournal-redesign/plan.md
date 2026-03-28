@@ -226,7 +226,7 @@ Kontext:
 
 ---
 
-## Abschnitt 5: Application-Schicht — Commands + Queries anpassen 🔒
+## Abschnitt 5: Application-Schicht — Commands + Queries anpassen ✅
 
 Kontext:
 
@@ -246,51 +246,51 @@ Kontext:
 
 #### 5a: Tisch-Command-Service anpassen
 
-- [ ] In `backend/api/table/application/command.go`: Import `event_repo` → `kassenjournal_repo`, Import `domain/table` → `domain/kasse` (für Event-Typen, Position, Bestellung etc.); `eventRepo`-Interface aktualisieren: `WriteEvent(ctx, tx, event, streamType, kassensitzungNr)`, `ReadTischSession(subject)` statt `ReadTableState(tischID)`, `GetOffeneKassensitzung(ctx)` hinzufügen, `GetMaxVersion(subject)`, alle `ReadEventsBySubject(subject)`
-- [ ] In `command.go`: Neue Hilfsmethode `getOffeneKassensitzungOderFehler(ctx) (*kasse.KassensitzungState, error)` — ruft `EventRepo.GetOffeneKassensitzung(ctx)` auf, gibt `ErrKasseNichtGeoeffnet` (HTTP 409) zurück wenn nil
-- [ ] In `command.go`: `loadTischState(ctx, tischID)` anpassen → ruft zuerst `getOffeneKassensitzungOderFehler` auf, konstruiert Subject via `kasse.TischSessionSubject(ks.ZNr, tischID)`, liest dann `ReadTischSession(subject)` statt `ReadTableState(tischID)`; gibt Subject + KS-Nr + State zurück
-- [ ] In `command.go`: `writeEvent(ctx, event, streamType, kassensitzungNr)` anpassen — übergibt `streamType` und `kassensitzungNr` an Repo
-- [ ] In `command.go`: `computeNichtStorniertePositionen(ctx, subject)` — Subject statt tischID, delegiert an `kasse.ComputeNichtStorniertePositionen`
-- [ ] In `command.go`: `BestellungAufnehmen()` anpassen — Subject-Konstruktion über `kasse.TischSessionSubject(ks.ZNr, tischID)`, Event via `kasse.NewBestellungAufgenommenEvent(subject, ...)`, `writeEvent` mit `StreamTypeTischSession` + `ks.ZNr`
-- [ ] In `command.go`: `ZahlungKassieren()`, `StornierungErteilen()`, `AusgabeBestaetigen()`, `AuszahlungLeisten()` — gleiche Anpassungen wie `BestellungAufnehmen`: KS laden, Subject konstruieren, Event-Erstellung mit neuem Funktionsnamen (z.B. `kasse.NewZahlungKassiertEvent(subject, ...)`), `StreamTypeTischSession` + `ks.ZNr`
-- [ ] In `errors.go`: Neuen Fehler `ErrKasseNichtGeoeffnet` hinzufügen (für HTTP 409, wenn keine offene Kassensitzung)
+- [x] In `backend/api/table/application/command.go`: Import `event_repo` → `kassenjournal_repo`, Import `domain/table` → `domain/kasse` (für Event-Typen, Position, Bestellung etc.); `eventRepo`-Interface aktualisieren: `WriteEvent(ctx, tx, event, streamType, kassensitzungNr)`, `ReadTischSession(subject)` statt `ReadTableState(tischID)`, `GetOffeneKassensitzung(ctx)` hinzufügen, `GetMaxVersion(subject)`, alle `ReadEventsBySubject(subject)`
+- [x] In `command.go`: Neue Hilfsmethode `getOffeneKassensitzungOderFehler(ctx) (*kasse.KassensitzungState, error)` — ruft `EventRepo.GetOffeneKassensitzung(ctx)` auf, gibt `ErrKasseNichtGeoeffnet` (HTTP 409) zurück wenn nil
+- [x] In `command.go`: `loadTischState(ctx, tischID)` anpassen → ruft zuerst `getOffeneKassensitzungOderFehler` auf, konstruiert Subject via `kasse.TischSessionSubject(ks.ZNr, tischID)`, liest dann `ReadTischSession(subject)` statt `ReadTableState(tischID)`; gibt Subject + KS-Nr + State zurück
+- [x] In `command.go`: `writeEvent(ctx, event, streamType, kassensitzungNr)` anpassen — übergibt `streamType` und `kassensitzungNr` an Repo
+- [x] In `command.go`: `computeNichtStorniertePositionen(ctx, subject)` — Subject statt tischID, delegiert an `kasse.ComputeNichtStorniertePositionen`
+- [x] In `command.go`: `BestellungAufnehmen()` anpassen — Subject-Konstruktion über `kasse.TischSessionSubject(ks.ZNr, tischID)`, Event via `kasse.NewBestellungAufgenommenEvent(subject, ...)`, `writeEvent` mit `StreamTypeTischSession` + `ks.ZNr`
+- [x] In `command.go`: `ZahlungKassieren()`, `StornierungErteilen()`, `AusgabeBestaetigen()`, `AuszahlungLeisten()` — gleiche Anpassungen wie `BestellungAufnehmen`: KS laden, Subject konstruieren, Event-Erstellung mit neuem Funktionsnamen (z.B. `kasse.NewZahlungKassiertEvent(subject, ...)`), `StreamTypeTischSession` + `ks.ZNr`
+- [x] In `errors.go`: Neuen Fehler `ErrKasseNichtGeoeffnet` hinzufügen (für HTTP 409, wenn keine offene Kassensitzung)
 
 #### 5b: Tisch-Query-Service anpassen
 
-- [ ] In `backend/api/table/application/query.go`: Imports aktualisieren (`domain/kasse` statt `domain/table` wo nötig); `eventRepo`-Interface aktualisieren analog zu command.go
-- [ ] In `query.go`: `GetAktiveTische()` und `GetAktiveTischeMitFavoriten()` — `tableRepo`-Interface muss `kassensitzungNr` akzeptieren; ermittle offene KS (oder 0 wenn keine offen) und übergebe KS-Nr an `GetActiveTables(ctx, ksNr)` / `GetActiveTablesWithFavorites(ctx, userID, ksNr)`
-- [ ] In `query.go`: `GetTischState(tischID)` — ermittle offene KS, konstruiere Subject, lese `ReadTischSession(subject)` statt `ReadTableState(tischID)`
-- [ ] In `query.go`: `GetTischHistorie(tischID)` — ermittle offene KS, konstruiere Subject, `ReadEventsBySubject(subject)` mit neuem Subject-Format; `kasse.GetHistoryFromEvents()` statt `table.GetHistoryFromEvents()`
-- [ ] In `query.go`: `GetMeineTischeState(userID)` — analog zu `GetTischState`, aber für alle Favoriten; Subject-Konstruktion pro Tisch, `ReadTischSession(subject)`
+- [x] In `backend/api/table/application/query.go`: Imports aktualisieren (`domain/kasse` statt `domain/table` wo nötig); `eventRepo`-Interface aktualisieren analog zu command.go
+- [x] In `query.go`: `GetAktiveTische()` und `GetAktiveTischeMitFavoriten()` — `tableRepo`-Interface muss `kassensitzungNr` akzeptieren; ermittle offene KS (oder 0 wenn keine offen) und übergebe KS-Nr an `GetActiveTables(ctx, ksNr)` / `GetActiveTablesWithFavorites(ctx, userID, ksNr)`
+- [x] In `query.go`: `GetTischState(tischID)` — ermittle offene KS, konstruiere Subject, lese `ReadTischSession(subject)` statt `ReadTableState(tischID)`
+- [x] In `query.go`: `GetTischHistorie(tischID)` — ermittle offene KS, konstruiere Subject, `ReadEventsBySubject(subject)` mit neuem Subject-Format; `kasse.GetHistoryFromEvents()` statt `table.GetHistoryFromEvents()`
+- [x] In `query.go`: `GetMeineTischeState(userID)` — analog zu `GetTischState`, aber für alle Favoriten; Subject-Konstruktion pro Tisch, `ReadTischSession(subject)`
 
 #### 5c: Neuer Kassensitzung-Application-Service
 
-- [ ] Neues Verzeichnis `backend/api/kasse/application/` erstellen
-- [ ] Datei `backend/api/kasse/application/command.go` erstellen: `Command`-Struct mit `EventRepo eventRepo`; Interface `eventRepo` (WriteEvent, GetMaxVersion, GetOffeneKassensitzung, ReadEventsBySubject); Methoden:
+- [x] Neues Verzeichnis `backend/api/kasse/application/` erstellen
+- [x] Datei `backend/api/kasse/application/command.go` erstellen: `Command`-Struct mit `EventRepo eventRepo`; Interface `eventRepo` (WriteEvent, GetMaxVersion, GetOffeneKassensitzung, ReadEventsBySubject); Methoden:
   - `KassensitzungEroeffnen(ctx, userID, userName, datum, bezeichnung)` — Prüfe keine offene KS existiert, INSERT INTO `kassensitzungen` (datum, bezeichnung, status=‘offen’) → erhält z_nr, konstruiere Subject `kasse.KassensitzungSubject(zNr)`, erstelle Event `kasse.NewKassensitzungEroeffnetEvent(subject, ...)`, WriteEvent mit `StreamTypeKassensitzung` + z_nr
   - `AnfangsbestandSetzen(ctx, userID, userName, betragCents)` — Prüfe offene KS existiert, Replay KS-Events → prüfe kein Anfangsbestand bereits gesetzt (Invariante), WriteEvent `anfangsbestand-gesetzt:v1`
   - `KassenbewegungBuchen(ctx, userID, userName, art, betragCents, kommentar)` — Prüfe offene KS, WriteEvent `kassenbewegung-gebucht:v1`
   - `KassensturzDurchfuehren(ctx, userID, userName, istBestandCents)` — Prüfe offene KS, berechne Soll-Bestand (SQL-Query), erstelle Kassensturz-Event, bei Differenz ≠ 0 zweites Event `differenz-soll-ist-gebucht:v1` in derselben TX
   - `TagesabschlussErstellen(ctx, userID, userName)` — Prüfe offene KS, prüfe Kassensturz durchgeführt (Replay), prüfe alle Tisch-AKs Saldo = 0 (Query auf `tisch_sessions`), WriteEvent `tagesabschluss-erstellt:v1`
-- [ ] Datei `backend/api/kasse/application/query.go` erstellen: `Query`-Struct mit `EventRepo eventRepo`; Methoden:
+- [x] Datei `backend/api/kasse/application/query.go` erstellen: `Query`-Struct mit `EventRepo eventRepo`; Methoden:
   - `GetOffeneKassensitzung(ctx)` — liest CRUD-Entität `kassensitzungen`
   - `GetKassenbestand(ctx, kassensitzungNr)` — SQL-Query über Kassenjournal (redesign.md §3.9)
 
 #### 5d: Reporting-Application-Service anpassen
 
-- [ ] In `backend/api/reporting/application/query.go`: `GetReporting(ctx, kassensitzungNr int)` statt `GetReporting(ctx, zeitraum reporting.Zeitraum)`; `reportingRepo`-Interface: Query-Methoden mit `kassensitzungNr` statt `zeitraum`
-- [ ] In `backend/domain/reporting/`: `Zeitraum`-Struct entfernen oder durch `kassensitzungNr`-basierte Filterung ersetzen; Reporting-Typen (`ReportingData`, etc.) bleiben, Eingabeparameter ändern sich
+- [x] In `backend/api/reporting/application/query.go`: `GetReporting(ctx, kassensitzungNr int)` statt `GetReporting(ctx, zeitraum reporting.Zeitraum)`; `reportingRepo`-Interface: Query-Methoden mit `kassensitzungNr` statt `zeitraum`
+- [x] In `backend/domain/reporting/`: `Zeitraum`-Struct entfernen oder durch `kassensitzungNr`-basierte Filterung ersetzen; Reporting-Typen (`ReportingData`, etc.) bleiben, Eingabeparameter ändern sich
 
 #### 5e: Relay-Application-Service anpassen
 
-- [ ] In `backend/api/relay/application/query.go`: Import `event_repo` → `kassenjournal_repo`; `eventRepo`-Interface: `GetBestellungEventsSinceCursor` (Query bleibt funktional gleich, nur Tabellen-/Event-Typname geändert)
-- [ ] In `backend/api/relay/application/print.go`: `parseTischName()` / Subject-Parsing anpassen — neues Format `kassensitzung-{nr}/tisch-{id}` statt `tisch:{id}`; nutze `kasse.ParseTischIDFromSubject()` + TableRepo-Lookup für Tischname
+- [x] In `backend/api/relay/application/query.go`: Import `event_repo` → `kassenjournal_repo`; `eventRepo`-Interface: `GetBestellungEventsSinceCursor` (Query bleibt funktional gleich, nur Tabellen-/Event-Typname geändert)
+- [x] In `backend/api/relay/application/print.go`: `parseTischName()` / Subject-Parsing anpassen — neues Format `kassensitzung-{nr}/tisch-{id}` statt `tisch:{id}`; nutze `kasse.ParseTischIDFromSubject()` + TableRepo-Lookup für Tischname
 
 #### 5f: Tests aktualisieren
 
-- [ ] In `backend/api/table/application/command_test.go`: Alle Tests anpassen — Mock-Interface aktualisieren, Event-Typen ohne `tisch.`-Präfix, Subject-Format neu, `kassensitzungNr`-Parameter, Mock für `GetOffeneKassensitzung` hinzufügen
-- [ ] In `backend/api/table/application/query_test.go`: Analog — neue Subject-Formate, Imports aktualisieren
-- [ ] Tests für den neuen `api/kasse/application/` Service: mindestens Basis-Tests für `KassensitzungEroeffnen`, Invariantenprüfung (keine doppelte offene KS), `TagesabschlussErstellen` (Saldo-Sperre)
+- [x] In `backend/api/table/application/command_test.go`: Alle Tests anpassen — Mock-Interface aktualisieren, Event-Typen ohne `tisch.`-Präfix, Subject-Format neu, `kassensitzungNr`-Parameter, Mock für `GetOffeneKassensitzung` hinzufügen
+- [x] In `backend/api/table/application/query_test.go`: Analog — neue Subject-Formate, Imports aktualisieren
+- [x] Tests für den neuen `api/kasse/application/` Service: mindestens Basis-Tests für `KassensitzungEroeffnen`, Invariantenprüfung (keine doppelte offene KS), `TagesabschlussErstellen` (Saldo-Sperre)
 
 ---
 

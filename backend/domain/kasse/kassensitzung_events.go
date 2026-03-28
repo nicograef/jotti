@@ -66,9 +66,9 @@ type kassensturzDurchgefuehrtV1Data struct {
 }
 
 var kassensturzDurchgefuehrtV1DataSchema = z.Struct(z.Shape{
-	"SollBestandCents": z.Int().Required(),
+	"SollBestandCents": z.Int(),
 	"IstBestandCents":  z.Int().GTE(0).Required(),
-	"DifferenzCents":   z.Int().Required(),
+	"DifferenzCents":   z.Int(),
 	"DurchgefuehrtVon": z.Int().GTE(1).Required(),
 })
 
@@ -97,10 +97,10 @@ var tagesabschlussErstelltV1DataSchema = z.Struct(z.Shape{
 	"ZNr":               z.Int().GTE(1).Required(),
 	"ZeitraumVon":       z.Time().Required(),
 	"ZeitraumBis":       z.Time().Required(),
-	"UmsatzGesamtCents": z.Int().Required(),
-	"StornierungCents":  z.Int().Required(),
-	"AuszahlungenCents": z.Int().Required(),
-	"GeldtransitCents":  z.Int().Required(),
+	"UmsatzGesamtCents": z.Int(),
+	"StornierungCents":  z.Int(),
+	"AuszahlungenCents": z.Int(),
+	"GeldtransitCents":  z.Int(),
 	"ErstelltVon":       z.Int().GTE(1).Required(),
 })
 

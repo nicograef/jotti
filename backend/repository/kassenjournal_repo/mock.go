@@ -45,6 +45,7 @@ type MockRepo struct {
 	tischSessionErr error
 	offeneKS        *kasse.KassensitzungState
 	offeneKSErr     error
+	kassenbestand   int // configurable return value for GetKassenbestand
 }
 
 func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamType, _ int) (int, error) {
@@ -151,7 +152,12 @@ func (m *MockRepo) GetKassenbestand(_ context.Context, _ int) (int, error) {
 	if m.err != nil {
 		return 0, m.err
 	}
-	return 0, nil
+	return m.kassenbestand, nil
+}
+
+// SetKassenbestand sets the return value for GetKassenbestand.
+func (m *MockRepo) SetKassenbestand(cents int) {
+	m.kassenbestand = cents
 }
 
 // SetOffeneKassensitzung sets the open Kassensitzung for the mock.
@@ -180,4 +186,17 @@ func (m *MockRepo) GetBestellungEventsSinceCursor(_ context.Context, cursor int)
 		return result[i].ID < result[j].ID
 	})
 	return result, nil
+}
+
+func (m *MockRepo) GetTischSessionsByKassensitzungNr(_ context.Context, kassensitzungNr int) ([]kasse.TischSession, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	var sessions []kasse.TischSession
+	for _, s := range m.tischSessions {
+		if s.KassensitzungNr == kassensitzungNr {
+			sessions = append(sessions, s)
+		}
+	}
+	return sessions, nil
 }

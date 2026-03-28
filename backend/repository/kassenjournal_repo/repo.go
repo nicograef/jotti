@@ -433,6 +433,26 @@ func (r Repository) GetKassenbestand(ctx context.Context, kassensitzungNr int) (
 	return bestand, nil
 }
 
+// GetTischSessionsByKassensitzungNr returns all tisch sessions for a given Kassensitzung.
+// Used by TagesabschlussErstellen to check the Tisch-Saldo-Sperre (all saldi must be 0).
+func (r Repository) GetTischSessionsByKassensitzungNr(ctx context.Context, kassensitzungNr int) ([]kasse.TischSession, error) {
+	rows, err := r.q.GetTischSessionsByKassensitzungNr(ctx, kassensitzungNr)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	sessions := make([]kasse.TischSession, 0, len(rows))
+	for _, row := range rows {
+		session, err := toTischSession(row)
+		if err != nil {
+			return nil, err
+		}
+		sessions = append(sessions, session)
+	}
+
+	return sessions, nil
+}
+
 // isTischSessionSubject checks if a subject is a tisch-session subject (contains "/tisch-").
 func isTischSessionSubject(subject string) bool {
 	return strings.Contains(subject, "/tisch-")

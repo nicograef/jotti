@@ -19,3 +19,9 @@ var ErrKasseAlreadyAbgeschlossen = errors.New("kasse bereits abgeschlossen")
 
 // ErrKonflikt is returned on a concurrent write conflict.
 var ErrKonflikt = errors.New("konflikt")
+
+// ErrKassensturzErforderlich is returned when a Tagesabschluss is attempted without prior Kassensturz.
+var ErrKassensturzErforderlich = errors.New("kassensturz erforderlich")
+
+// ErrTischeSaldoOffen is returned when a Tagesabschluss is attempted but tisch sessions have non-zero saldi.
+var ErrTischeSaldoOffen = errors.New("tische mit offenem saldo")
