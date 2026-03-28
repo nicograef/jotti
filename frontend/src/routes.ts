@@ -8,6 +8,7 @@ import { AuthSingleton } from '@/lib/Auth'
 
 import { AdminLayout } from './admin/AdminLayout'
 import { DruckerConfigPage } from './admin/DruckerConfigPage'
+import { KassensitzungPage } from './admin/kasse/KassensitzungPage'
 import { AdminProductsPage } from './admin/products/AdminProductsPage'
 import { AdminDashboardPage } from './admin/reporting/AdminDashboardPage'
 import { AdminTablesPage } from './admin/tables/AdminTablesPage'
@@ -75,6 +76,7 @@ export const router = createBrowserRouter([
           { path: 'produkte', Component: AdminProductsPage },
           { path: 'tische', Component: AdminTablesPage },
           { path: 'benutzer', Component: AdminUsersPage },
+          { path: 'kasse', Component: KassensitzungPage },
           { path: 'drucker', Component: DruckerConfigPage },
         ],
       },

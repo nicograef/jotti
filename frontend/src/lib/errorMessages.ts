@@ -6,6 +6,8 @@ const commonErrorMessages: Record<string, string> = {
   tisch_not_found:
     'Der Tisch wurde nicht gefunden. Bitte zur Tischübersicht zurückkehren und neu öffnen.',
   tisch_not_active: 'Dieser Tisch ist aktuell nicht aktiv.',
+  kasse_nicht_geoeffnet:
+    'Die Kasse ist noch nicht geöffnet. Bitte zuerst eine Kassensitzung eröffnen.',
   unknown: 'Es ist ein unerwarteter Fehler aufgetreten.',
 }
 

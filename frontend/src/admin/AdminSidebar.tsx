@@ -7,6 +7,7 @@ import {
   Sun,
   Users,
   Utensils,
+  Wallet,
 } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router'
 import { useLocation } from 'react-router'
@@ -50,6 +51,11 @@ const adminItems = [
     title: 'Benutzer',
     url: '/admin/benutzer',
     icon: Users,
+  },
+  {
+    title: 'Kasse',
+    url: '/admin/kasse',
+    icon: Wallet,
   },
   {
     title: 'Drucker',

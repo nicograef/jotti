@@ -351,7 +351,7 @@ Kontext:
 
 ---
 
-## Abschnitt 7: Frontend-Anpassungen
+## Abschnitt 7: Frontend-Anpassungen ✅
 
 Kontext:
 
@@ -366,29 +366,29 @@ Kontext:
 
 #### 7a: Reporting-Frontend auf `kassensitzungNr` umstellen
 
-- [ ] In `frontend/src/admin/reporting/types.ts`: Reporting-Request-Typ von `{ von: string, bis: string }` auf `{ kassensitzungNr: number }` ändern; Zod-Schemas anpassen
-- [ ] In `frontend/src/admin/reporting/ReportingBackend.ts`: API-Aufruf für Abrechnung: Payload `{ kassensitzungNr }` statt `{ von, bis }`
-- [ ] In `frontend/src/admin/reporting/hooks.ts`: Hook-Parameter von Zeitraum auf kassensitzungNr umstellen
-- [ ] In `frontend/src/admin/reporting/ReportingFilter.tsx`: Filter-UI von Datums-Eingabe auf KS-Auswahl umstellen (Dropdown/Select mit offener Kassensitzung oder Nummer-Eingabe); neuen API-Aufruf zum Laden der offenen Kassensitzung einbauen
-- [ ] In `frontend/src/admin/reporting/AdminDashboardPage.tsx` + `ReportingResults.tsx`: Anpassungen an geändertes Filter-/Daten-Format
+- [x] In `frontend/src/admin/reporting/types.ts`: Reporting-Request-Typ von `{ von: string, bis: string }` auf `{ kassensitzungNr: number }` ändern; Zod-Schemas anpassen
+- [x] In `frontend/src/admin/reporting/ReportingBackend.ts`: API-Aufruf für Abrechnung: Payload `{ kassensitzungNr }` statt `{ von, bis }`
+- [x] In `frontend/src/admin/reporting/hooks.ts`: Hook-Parameter von Zeitraum auf kassensitzungNr umstellen
+- [x] In `frontend/src/admin/reporting/ReportingFilter.tsx`: Filter-UI von Datums-Eingabe auf KS-Auswahl umstellen (Dropdown/Select mit offener Kassensitzung oder Nummer-Eingabe); neuen API-Aufruf zum Laden der offenen Kassensitzung einbauen
+- [x] In `frontend/src/admin/reporting/AdminDashboardPage.tsx` + `ReportingResults.tsx`: Anpassungen an geändertes Filter-/Daten-Format
 
 #### 7b: Kassensitzung-Admin-UI (Grundgerüst)
 
-- [ ] Neues Verzeichnis `frontend/src/admin/kasse/` erstellen
-- [ ] Datei `frontend/src/admin/kasse/types.ts` erstellen: Zod-Schemas + Types für `KassensitzungState` (`{ subject, zNr, datum, status }`), `Kassenbestand` (`{ sollBestandCents }`)
-- [ ] Datei `frontend/src/admin/kasse/KasseBackend.ts` erstellen: Backend-Klasse — Vorlage: `TischBackend.ts`-Pattern; Methoden: `kassensitzungEroeffnen(datum, bezeichnung)`, `anfangsbestandSetzen(betragCents)`, `kassenbewegungBuchen(art, betragCents, kommentar)`, `kassensturzDurchfuehren(istBestandCents)`, `tagesabschlussErstellen()`, `getOffeneKassensitzung()`, `getKassenbestand(kassensitzungNr)`
-- [ ] Datei `frontend/src/admin/kasse/hooks.ts` erstellen: `useOffeneKassensitzung()` — Hook zum Laden der offenen KS-Projektion; `useKassenbestand(kassensitzungNr)` — Hook zum Laden des Soll-Bestands
-- [ ] Datei `frontend/src/admin/kasse/KassensitzungPage.tsx` erstellen: Grundgerüst-Seite für Kassensitzung-Verwaltung: Anzeige offene KS (oder „Keine Kassensitzung geöffnet"), Button „Kassensitzung eröffnen", Anfangsbestand setzen, Kassenbewegung buchen, Kassensturz, Tagesabschluss
-- [ ] In `frontend/src/routes.ts`: Neue Route `/admin/kasse` → `KassensitzungPage`; Import und Routing-Eintrag hinzufügen
-- [ ] In Admin-Sidebar (`frontend/src/admin/AdminSidebar.tsx`): Neuen Menüpunkt „Kasse" mit Link zu `/admin/kasse` hinzufügen
+- [x] Neues Verzeichnis `frontend/src/admin/kasse/` erstellen
+- [x] Datei `frontend/src/admin/kasse/types.ts` erstellen: Zod-Schemas + Types für `KassensitzungState` (`{ subject, zNr, datum, status }`), `Kassenbestand` (`{ sollBestandCents }`)
+- [x] Datei `frontend/src/admin/kasse/KasseBackend.ts` erstellen: Backend-Klasse — Vorlage: `TischBackend.ts`-Pattern; Methoden: `kassensitzungEroeffnen(datum, bezeichnung)`, `anfangsbestandSetzen(betragCents)`, `kassenbewegungBuchen(art, betragCents, kommentar)`, `kassensturzDurchfuehren(istBestandCents)`, `tagesabschlussErstellen()`, `getOffeneKassensitzung()`, `getKassenbestand(kassensitzungNr)`
+- [x] Datei `frontend/src/admin/kasse/hooks.ts` erstellen: `useOffeneKassensitzung()` — Hook zum Laden der offenen KS-Projektion; `useKassenbestand(kassensitzungNr)` — Hook zum Laden des Soll-Bestands
+- [x] Datei `frontend/src/admin/kasse/KassensitzungPage.tsx` erstellen: Grundgerüst-Seite für Kassensitzung-Verwaltung: Anzeige offene KS (oder „Keine Kassensitzung geöffnet"), Button „Kassensitzung eröffnen", Anfangsbestand setzen, Kassenbewegung buchen, Kassensturz, Tagesabschluss
+- [x] In `frontend/src/routes.ts`: Neue Route `/admin/kasse` → `KassensitzungPage`; Import und Routing-Eintrag hinzufügen
+- [x] In Admin-Sidebar (`frontend/src/admin/AdminSidebar.tsx`): Neuen Menüpunkt „Kasse" mit Link zu `/admin/kasse` hinzufügen
 
 #### 7c: Service-UI — Kasse-nicht-geöffnet-Handling
 
-- [ ] In den Service-Hooks/Error-Handling: HTTP 409 von Tisch-Commands als „Kasse ist noch nicht geöffnet"-Hinweis anzeigen (Toast/Alert); `TischBackend.ts` oder globales Error-Handling erweitern
+- [x] In den Service-Hooks/Error-Handling: HTTP 409 von Tisch-Commands als „Kasse ist noch nicht geöffnet"-Hinweis anzeigen (Toast/Alert); `TischBackend.ts` oder globales Error-Handling erweitern
 
 #### 7d: Frontend-Tests
 
-- [ ] Vorhandene Frontend-Tests (`hooks.test.ts`, `routes.test.ts`) aktualisieren: neue Routen, geänderte Typen
+- [x] Vorhandene Frontend-Tests (`hooks.test.ts`, `routes.test.ts`) aktualisieren: neue Routen, geänderte Typen
 
 ---
 
