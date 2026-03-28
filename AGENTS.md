@@ -168,6 +168,17 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 - **Commit-Messages:** Conventional Commits auf Englisch (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`)
 - **Kein auto-commit.** Agent schlägt Commit-Message vor, User führt Commit durch.
 - **Kein `--force` push oder `--no-verify`.**
+- **Nach jeder abgeschlossenen Aufgabe** postet der Agent eine vollständige, kopierfähige Conventional-Commit-Message in den Chat. Format:
+
+  ```
+  <type>(<scope>): <kurze Beschreibung>
+
+  <Body: Was wurde geändert und warum. Mehrzeilig bei Bedarf.>
+
+  <Footer: Breaking Changes, Issue-Referenzen etc. nur wenn zutreffend.>
+  ```
+
+  Die Message muss alle geänderten Dateien/Bereiche abdecken, den Kontext der Änderung erklären und direkt per Copy-Paste als `git commit -m` verwendbar sein.
 
 ## Lokale Qualitaetspruefung
 
