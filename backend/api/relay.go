@@ -13,6 +13,8 @@ import (
 
 // druckerRepoRelayAdapter adapts drucker_repo.Repository to the relay application's druckerRepo interface.
 // The repo returns drucker_repo.DruckerKonfig; the relay application expects application.DruckerKonfig.
+// This adapter is retained to avoid an import cycle: relay/application cannot directly import drucker_repo
+// without creating a circular dependency between the application and repository layers.
 type druckerRepoRelayAdapter struct {
 	repo drucker_repo.Repository
 }

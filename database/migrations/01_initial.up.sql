@@ -223,4 +223,30 @@ COMMENT ON COLUMN kategorie_drucker.bonmodus IS 'Bonmodus: pro_position (1 Bon p
 
 INSERT INTO kategorie_drucker (kategorie) VALUES ('essen'), ('getraenk'), ('sonstiges');
 
+-- ============================================================
+-- Reporting helper functions
+-- Encapsulate repeated CASE WHEN event-extraction logic from
+-- kassenjournal queries so each monetary field is defined once.
+-- ============================================================
+
+-- Returns the Zahlung amount in cents for a matching event row, NULL otherwise.
+CREATE OR REPLACE FUNCTION kj_extract_zahlung_cents(type TEXT, data JSONB) RETURNS int AS $$
+    SELECT CASE WHEN type = 'zahlung-kassiert:v1' THEN (data->>'gesamtZahlungCents')::int END
+$$ LANGUAGE sql IMMUTABLE;
+
+-- Returns the Auszahlung amount in cents for a matching event row, NULL otherwise.
+CREATE OR REPLACE FUNCTION kj_extract_auszahlung_cents(type TEXT, data JSONB) RETURNS int AS $$
+    SELECT CASE WHEN type = 'auszahlung-geleistet:v1' THEN (data->>'betragCents')::int END
+$$ LANGUAGE sql IMMUTABLE;
+
+-- Returns the Bestellung amount in cents for a matching event row, NULL otherwise.
+CREATE OR REPLACE FUNCTION kj_extract_bestellung_cents(type TEXT, data JSONB) RETURNS int AS $$
+    SELECT CASE WHEN type = 'bestellung-aufgenommen:v1' THEN (data->>'gesamtPreisCents')::int END
+$$ LANGUAGE sql IMMUTABLE;
+
+-- Returns the Stornierung amount in cents for a matching event row, NULL otherwise.
+CREATE OR REPLACE FUNCTION kj_extract_stornierung_cents(type TEXT, data JSONB) RETURNS int AS $$
+    SELECT CASE WHEN type = 'stornierung-erteilt:v1' THEN (data->>'gesamtStornierungCents')::int END
+$$ LANGUAGE sql IMMUTABLE;
+
 COMMIT;

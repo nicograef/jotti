@@ -6,16 +6,11 @@ FROM tisch_sessions WHERE saldo_cents > 0;
 -- name: GetReportingStats :one
 -- Reporting: Aggregierte Kennzahlen fuer eine Kassensitzung.
 SELECT
-    COALESCE(SUM(CASE WHEN type = 'zahlung-kassiert:v1'
-        THEN (data->>'gesamtZahlungCents')::int END), 0)::int
-        - COALESCE(SUM(CASE WHEN type = 'auszahlung-geleistet:v1'
-        THEN (data->>'betragCents')::int END), 0)::int AS gesamt_umsatz_cents,
-    COALESCE(SUM(CASE WHEN type = 'auszahlung-geleistet:v1'
-        THEN (data->>'betragCents')::int END), 0)::int AS gesamt_auszahlungen_cents,
-    COALESCE(SUM(CASE WHEN type = 'bestellung-aufgenommen:v1'
-        THEN (data->>'gesamtPreisCents')::int END), 0)::int AS gesamt_bestellungen_cents,
-    COALESCE(SUM(CASE WHEN type = 'stornierung-erteilt:v1'
-        THEN (data->>'gesamtStornierungCents')::int END), 0)::int AS gesamt_stornierungen_cents,
+    COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS gesamt_umsatz_cents,
+    COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS gesamt_auszahlungen_cents,
+    COALESCE(SUM(kj_extract_bestellung_cents(type, data)), 0)::int AS gesamt_bestellungen_cents,
+    COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int AS gesamt_stornierungen_cents,
     COALESCE(COUNT(CASE WHEN type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
     COALESCE(COUNT(CASE WHEN type = 'stornierung-erteilt:v1' THEN 1 END), 0)::int AS anzahl_stornierungen
 FROM kassenjournal
@@ -38,10 +33,8 @@ FROM tisch_sessions WHERE saldo_cents > 0;
 SELECT
     user_id,
     MAX(user_name) AS user_name,
-    COALESCE(SUM(CASE WHEN type = 'zahlung-kassiert:v1'
-        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents,
-    COALESCE(SUM(CASE WHEN type = 'auszahlung-geleistet:v1'
-        THEN (data->>'betragCents')::int END), 0)::int AS auszahlungen_cents,
+    COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int AS zahlungen_cents,
+    COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS auszahlungen_cents,
     COUNT(CASE WHEN type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
 FROM kassenjournal
 WHERE type IN ('zahlung-kassiert:v1', 'auszahlung-geleistet:v1')
@@ -71,10 +64,8 @@ ORDER BY e.timestamp DESC;
 SELECT
     tss.tisch_id,
     t.name AS tisch_name,
-    COALESCE(SUM(CASE WHEN e.type = 'zahlung-kassiert:v1'
-        THEN (e.data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents,
-    COALESCE(SUM(CASE WHEN e.type = 'auszahlung-geleistet:v1'
-        THEN (e.data->>'betragCents')::int END), 0)::int AS auszahlungen_cents,
+    COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS zahlungen_cents,
+    COALESCE(SUM(kj_extract_auszahlung_cents(e.type, e.data)), 0)::int AS auszahlungen_cents,
     COUNT(CASE WHEN e.type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
 FROM kassenjournal e
 JOIN tisch_sessions tss ON tss.subject = e.subject
@@ -94,11 +85,9 @@ WHERE saldo_cents < 0;
 -- Service-Dashboard: Eigene KPIs der eingeloggten Servicekraft pro Kassensitzung.
 SELECT
     COALESCE(COUNT(CASE WHEN type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
-    COALESCE(SUM(CASE WHEN type = 'bestellung-aufgenommen:v1'
-        THEN (data->>'gesamtPreisCents')::int END), 0)::int AS bestellungen_cents,
+    COALESCE(SUM(kj_extract_bestellung_cents(type, data)), 0)::int AS bestellungen_cents,
     COALESCE(COUNT(CASE WHEN type = 'zahlung-kassiert:v1' THEN 1 END), 0)::int AS anzahl_zahlungen,
-    COALESCE(SUM(CASE WHEN type = 'zahlung-kassiert:v1'
-        THEN (data->>'gesamtZahlungCents')::int END), 0)::int AS zahlungen_cents
+    COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int AS zahlungen_cents
 FROM kassenjournal
 WHERE type IN ('bestellung-aufgenommen:v1', 'zahlung-kassiert:v1')
 AND user_id = @user_id
