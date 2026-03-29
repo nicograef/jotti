@@ -25,6 +25,7 @@ const PreisCentsSchema = z
   .number()
   .int()
   .min(0, { message: 'Preis muss mindestens 0 Cent sein.' })
+  .max(99999, { message: 'Preis darf maximal 999,99 € betragen.' })
 const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
 const VarianteStatusSchema = z.enum(['active', 'inactive'])
 const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {
@@ -37,6 +38,7 @@ export const VarianteSchema = z.object({
   preisCents: PreisCentsSchema,
   status: VarianteStatusSchema,
   createdAt: DateStringSchema,
+  updatedAt: DateStringSchema,
 })
 export type Variante = z.infer<typeof VarianteSchema>
 
@@ -44,7 +46,9 @@ export const ProduktSchema = z.object({
   id: ProduktIdSchema,
   name: NameSchema,
   kategorie: KategorieSchema,
+  status: VarianteStatusSchema,
   varianten: z.array(VarianteSchema),
   createdAt: DateStringSchema,
+  updatedAt: DateStringSchema,
 })
 export type Produkt = z.infer<typeof ProduktSchema>

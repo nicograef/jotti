@@ -10,6 +10,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/api/table/application"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/table"
 )
 
@@ -268,10 +269,27 @@ func toPositionRefs(refs []positionRefRequest) []kasse.PositionRef {
 	return positionRefs
 }
 
+var bestellPositionInputSchema = z.Struct(z.Shape{
+	"ProduktID":  product.IDSchema.Required(),
+	"VarianteID": product.IDSchema.Required(),
+	"Menge":      z.Int().GTE(1).Required(),
+})
+
+var positionRefRequestSchema = z.Struct(z.Shape{
+	"PositionID": z.String().UUID().Required(),
+	"Menge":      z.Int().GTE(1).Required(),
+})
+
+var bestellungAufnehmenSchema = z.Struct(z.Shape{
+	"TischID":    table.TischIDSchema.Required(),
+	"Positionen": z.Slice(bestellPositionInputSchema).Min(1).Required(),
+	"Kommentar":  z.String().Max(100),
+})
+
 func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := bestellungAufnehmenRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, bestellungAufnehmenSchema) {
 			return
 		}
 
@@ -306,10 +324,16 @@ type zahlungKassierenRequest struct {
 	Kommentar  string               `json:"kommentar"`
 }
 
+var zahlungKassierenSchema = z.Struct(z.Shape{
+	"TischID":    table.TischIDSchema.Required(),
+	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
+	"Kommentar":  z.String().Max(100),
+})
+
 func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := zahlungKassierenRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, zahlungKassierenSchema) {
 			return
 		}
 
@@ -344,10 +368,16 @@ type stornierungErteilenRequest struct {
 	Kommentar  string               `json:"kommentar"`
 }
 
+var stornierungErteilenSchema = z.Struct(z.Shape{
+	"TischID":    table.TischIDSchema.Required(),
+	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
+	"Kommentar":  z.String().Min(3).Max(100).Required(),
+})
+
 func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := stornierungErteilenRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, stornierungErteilenSchema) {
 			return
 		}
 
@@ -388,10 +418,16 @@ type auszahlungLeistenRequest struct {
 	Kommentar   string `json:"kommentar"`
 }
 
+var ausgabeBestaetigenSchema = z.Struct(z.Shape{
+	"TischID":    table.TischIDSchema.Required(),
+	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
+	"Kommentar":  z.String().Max(100),
+})
+
 func (h *CommandHandler) AusgabeBestaetigenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := ausgabeBestaetigenRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, ausgabeBestaetigenSchema) {
 			return
 		}
 
@@ -420,10 +456,16 @@ func (h *CommandHandler) AusgabeBestaetigenHandler() http.HandlerFunc {
 	}
 }
 
+var auszahlungLeistenSchema = z.Struct(z.Shape{
+	"TischID":     table.TischIDSchema.Required(),
+	"BetragCents": z.Int().GTE(1).Required(),
+	"Kommentar":   z.String().Min(3).Max(100).Required(),
+})
+
 func (h *CommandHandler) AuszahlungLeistenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := auszahlungLeistenRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, auszahlungLeistenSchema) {
 			return
 		}
 

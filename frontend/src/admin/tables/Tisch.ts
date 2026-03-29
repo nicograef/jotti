@@ -21,5 +21,6 @@ export const TischSchema = z.object({
   name: TischNameSchema,
   status: TischStatusSchema,
   createdAt: DateStringSchema,
+  updatedAt: DateStringSchema,
 })
 export type Tisch = z.infer<typeof TischSchema>

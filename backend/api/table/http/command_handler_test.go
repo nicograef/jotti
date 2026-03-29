@@ -189,7 +189,7 @@ func TestTischDeaktivierenHandler_NotFound(t *testing.T) {
 func TestBestellungAufnehmenHandler_Conflict(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
 
-	body := `{"tischId":1,"positionen":[{"varianteId":1,"menge":2}],"kommentar":""}`
+	body := `{"tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
 	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufnehmen", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
@@ -206,7 +206,7 @@ func TestBestellungAufnehmenHandler_Conflict(t *testing.T) {
 func TestBestellungAufnehmenHandler_ProduktNotFound(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrProduktNotFound}}
 
-	body := `{"tischId":1,"positionen":[{"varianteId":1,"menge":2}],"kommentar":""}`
+	body := `{"tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
 	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufnehmen", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
@@ -223,7 +223,7 @@ func TestBestellungAufnehmenHandler_ProduktNotFound(t *testing.T) {
 func TestZahlungKassierenHandler_Conflict(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
 
-	body := `{"tischId":1,"positionen":[{"positionId":"abc","menge":1}],"kommentar":""}`
+	body := `{"tischId":1,"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}],"kommentar":""}`
 	req := httptest.NewRequest(http.MethodPost, "/zahlung-kassieren", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
@@ -240,7 +240,7 @@ func TestZahlungKassierenHandler_Conflict(t *testing.T) {
 func TestAusgabeBestaetigenHandler_Conflict(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
 
-	body := `{"tischId":1,"positionen":[{"positionId":"abc","menge":1}],"kommentar":""}`
+	body := `{"tischId":1,"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}],"kommentar":""}`
 	req := httptest.NewRequest(http.MethodPost, "/ausgabe-bestaetigen", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
@@ -257,7 +257,7 @@ func TestAusgabeBestaetigenHandler_Conflict(t *testing.T) {
 func TestStornierungErteilenHandler_Conflict(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
 
-	body := `{"tischId":1,"positionen":[{"positionId":"abc","menge":1}],"kommentar":""}`
+	body := `{"tischId":1,"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}],"kommentar":"Reklamation"}`
 	req := httptest.NewRequest(http.MethodPost, "/stornierung-erteilen", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)

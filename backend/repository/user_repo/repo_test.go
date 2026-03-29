@@ -178,3 +178,22 @@ func TestUpdateUserInDB_Error(t *testing.T) {
 		t.Fatalf("expected user not found error, got %v", err)
 	}
 }
+
+func TestGetAllUsers_ExcludesDeletedUsers(t *testing.T) {
+	u, repo, teardown := setup(t)
+	defer teardown(t)
+
+	u.Delete()
+	err := repo.UpdateUser(context.Background(), u)
+	if err != nil {
+		t.Fatalf("expected no error deleting user, got %v", err)
+	}
+
+	users, err := repo.GetAllUsers(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(users) != 0 {
+		t.Fatalf("expected 0 users (deleted excluded), got %d", len(users))
+	}
+}

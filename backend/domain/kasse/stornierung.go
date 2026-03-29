@@ -22,6 +22,6 @@ var stornierungSchema = z.Struct(z.Shape{
 	"TischID":                z.Int().GTE(1).Required(),
 	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(0).Required(),
-	"Kommentar":              z.String().Max(100),
+	"Kommentar":              z.String().Min(3).Max(100).Required(),
 	"StorniertAm":            z.Time().Required(),
 })

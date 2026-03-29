@@ -52,6 +52,7 @@ export function NewTischDialog(props: NewTischDialogProps) {
         ...data,
         status: 'inactive',
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
     } catch (error: unknown) {
       console.error(error)

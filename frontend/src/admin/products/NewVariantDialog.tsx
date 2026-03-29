@@ -59,6 +59,7 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
         ...data,
         status: VarianteStatus.INACTIVE,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
     } catch (error: unknown) {
       console.error(error)

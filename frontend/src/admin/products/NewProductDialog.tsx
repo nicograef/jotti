@@ -53,8 +53,10 @@ export function NewProductDialog(props: NewProductDialogProps) {
       props.created({
         id,
         ...data,
+        status: 'active',
         varianten: [],
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
     } catch (error: unknown) {
       console.error(error)

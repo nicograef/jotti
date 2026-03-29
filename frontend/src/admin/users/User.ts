@@ -49,5 +49,6 @@ export const UserSchema = z.object({
   role: RoleSchema,
   createdAt: DateStringSchema,
   status: UserStatusSchema,
+  updatedAt: DateStringSchema,
 })
 export type User = z.infer<typeof UserSchema>

@@ -124,14 +124,17 @@ func NewUser(name, username string, role Role) (User, string, error) {
 
 func (u *User) Activate() {
 	u.Status = ActiveStatus
+	u.UpdatedAt = time.Now().UTC()
 }
 
 func (u *User) Deactivate() {
 	u.Status = InactiveStatus
+	u.UpdatedAt = time.Now().UTC()
 }
 
 func (u *User) Delete() {
 	u.Status = DeletedStatus
+	u.UpdatedAt = time.Now().UTC()
 }
 
 func (u *User) UpdateDetails(name, username string, role Role) error {
@@ -150,6 +153,7 @@ func (u *User) UpdateDetails(name, username string, role Role) error {
 	u.Name = name
 	u.Username = username
 	u.Role = role
+	u.UpdatedAt = time.Now().UTC()
 
 	return nil
 }
@@ -167,6 +171,7 @@ func (u *User) ResetPassword() (string, error) {
 
 	u.OnetimePasswordHash = onetimePasswordHash
 	u.PasswordHash = ""
+	u.UpdatedAt = time.Now().UTC()
 
 	return onetimePassword, nil
 }
@@ -191,6 +196,7 @@ func (u *User) SetPassword(onetimePassword, newPassword string) error {
 
 	u.PasswordHash = passwordHash
 	u.OnetimePasswordHash = ""
+	u.UpdatedAt = time.Now().UTC()
 
 	return nil
 }

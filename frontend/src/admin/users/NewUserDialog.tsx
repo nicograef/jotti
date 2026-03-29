@@ -61,6 +61,7 @@ export function NewUserDialog(props: NewUserDialogProps) {
           ...data,
           status: 'inactive',
           createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
         onetimePassword,
       )

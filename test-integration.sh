@@ -10,8 +10,8 @@ cleanup() {
   echo ""
   echo "🧹 Cleaning up..."
 
-  if [[ -x "$ROOT_DIR/database/migrate/migrate" ]]; then
-    "$ROOT_DIR/database/migrate/migrate" -path "$ROOT_DIR/database/migrations" -database "$DATABASE_URL" down -all >/dev/null 2>&1 || true
+  if command -v migrate >/dev/null 2>&1; then
+    migrate -path "$ROOT_DIR/database/migrations" -database "$DATABASE_URL" down -all >/dev/null 2>&1 || true
   fi
 
   docker stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
@@ -45,8 +45,7 @@ done
 echo "✅ PostgreSQL ready!"
 
 echo "🔄 Running database migrations..."
-chmod +x "$ROOT_DIR/database/migrate/migrate" || true
-"$ROOT_DIR/database/migrate/migrate" -path "$ROOT_DIR/database/migrations" -database "$DATABASE_URL" up
+migrate -path "$ROOT_DIR/database/migrations" -database "$DATABASE_URL" up
 
 echo "✅ Migrations complete!"
 echo ""
