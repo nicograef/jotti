@@ -28,5 +28,5 @@ Read the referenced plan.md and work through **one section** at a time.
 
 ## Quality
 
-- Before presenting results, run the self-review checklist from AGENTS.md (Qualitätsprinzipien). Surface issues in the chat only if found.
-- After task completion, include a human-readable summary paragraph alongside the commit message (see AGENTS.md, Git-Workflow).
+- Before presenting results, run the self-review checklist from AGENTS.md (Quality Principles). Surface issues in the chat only if found.
+- After task completion, include a human-readable summary paragraph alongside the commit message (see AGENTS.md, Git Workflow).
