@@ -337,7 +337,7 @@ jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV u
 
 ### Was der Autor leistet
 
-Der Autor implementiert **technische Schnittstellen und Funktionen** zur Unterstützung der Compliance (TSE-Adapter, DSFinV-K-Export, Belegdruck — siehe `docs/roadmap.md`). Der Autor **garantiert jedoch nicht**, dass:
+Der Autor implementiert **technische Schnittstellen und Funktionen** zur Unterstützung der Compliance (TSE-Adapter, DSFinV-K-Export, Belegdruck — siehe `docs/anforderungen.md`). Der Autor **garantiert jedoch nicht**, dass:
 
 - Die Implementierung fehlerfrei oder vollständig ist
 - Die Software alle gesetzlichen Anforderungen erfüllt

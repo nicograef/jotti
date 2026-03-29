@@ -24,7 +24,7 @@
 
 jotti ist ein **elektronisches Aufzeichnungssystem** im Sinne von § 1 KassenSichV. Als solches unterliegt es der Pflicht zur Nutzung einer zertifizierten technischen Sicherheitseinrichtung (TSE) nach § 146a AO — unabhängig von der Rechtsform des Betreibers (e.V., gGmbH, Stiftung) oder dem temporären Charakter der Veranstaltungen.
 
-Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Compliance-Anforderungen an den Entwickler (Hersteller) sowie die Pflichten der Betreiber (Vereine). Die technische Umsetzung erfolgt phasenweise — siehe [docs/roadmap.md](roadmap.md).
+Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Compliance-Anforderungen an den Entwickler (Hersteller) sowie die Pflichten der Betreiber (Vereine). Die technische Umsetzung erfolgt phasenweise — siehe [docs/anforderungen.md](anforderungen.md).
 
 ### Compliance-Status
 
@@ -40,13 +40,13 @@ Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Comp
 | F-08 | **GoBD-Hash-Chain**     | 3     | 🔲 SHA-256-Verkettung                                                     | Nice        |
 | —    | **GoBD-Konformität**    | 0     | ✅ Teilweise — Event-Sourcing (Basis)                                     | Laufend     |
 
-**Legende:** ✅ Implementiert · 🔲 Offen · ⏳ In Arbeit — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen — siehe [roadmap.md](roadmap.md)
+**Legende:** ✅ Implementiert · 🔲 Offen · ⏳ In Arbeit — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen — siehe [anforderungen.md](anforderungen.md)
 
 ### Grundsatzentscheidungen (2026-03-19)
 
 | Thema                                | Entscheidung                                                                                                                                                                                                                                                                               |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Strategische Richtung**            | KassenSichV/TSE schrittweise implementieren (siehe [roadmap.md](roadmap.md))                                                                                                                                                                                                               |
+| **Strategische Richtung**            | KassenSichV/TSE schrittweise implementieren (siehe [anforderungen.md](anforderungen.md))                                                                                                                                                                                                   |
 | **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                                                                                                                                                                                  |
 | **Abrechnungskreis-Session**         | Pro Tisch pro Kassensitzung (= Tisch-Session). Im DSFinV-K-Export als `ABRECHNUNGSKREIS` mit dem Tischnamen abgebildet (z. B. `Tisch 42`). Intern: Subject `kassensitzung-{nr}/tisch-{id}`. Phase 2: manuelle Tischfreigabe durch Servicekraft bei Gästewechsel (neues Subject mit Suffix) |
 | **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb)                                                                                                                                                                                       |

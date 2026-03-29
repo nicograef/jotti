@@ -67,7 +67,7 @@ jotti ist ein self-hosted mPOS-System (Go-Backend, React-Frontend, PostgreSQL, D
 
 Kartenzahlung, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM und Kiosk-Modus sind bewusst ausgeschlossen. Vollständige Liste mit Begründung: siehe [produktbeschreibung.md §7.2](produktbeschreibung.md#72-was-jotti-bewusst-nicht-ist).
 
-> **TSE / KassenSichV:** jotti unterliegt der TSE-Pflicht nach § 146a AO. Die TSE-Integration wird phasenweise implementiert — siehe [roadmap.md](roadmap.md) und [compliance.md](compliance.md).
+> **TSE / KassenSichV:** jotti unterliegt der TSE-Pflicht nach § 146a AO. Die TSE-Integration wird phasenweise implementiert — siehe [anforderungen.md](anforderungen.md) und [compliance.md](compliance.md).
 
 ---
 

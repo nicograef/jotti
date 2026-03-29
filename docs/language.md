@@ -471,7 +471,7 @@ Operative Fachbegriffe aus dem Gastronomie- und Festzeltbetrieb, die für Konfig
 
 - **Belegausgabepflicht (Bonpflicht):** Gesetzliche Pflicht nach § 146a Abs. 2 AO, bei jedem abgeschlossenen Kassiervorgang einen Beleg auszustellen. In jotti: Bondruck via ESC/POS (Phase 1) + TSE-Signaturfelder (Phase 2). Siehe → **Kassenbeleg**.
 
-- **eBeleg:** Digitaler Kassenbon (z. B. als PDF über QR-Code) als rechtskonformer, papierloser Ersatz für den Ausdruck. Phase-3-Feature in jotti — siehe `docs/roadmap.md`.
+- **eBeleg:** Digitaler Kassenbon (z. B. als PDF über QR-Code) als rechtskonformer, papierloser Ersatz für den Ausdruck. Phase-3-Feature in jotti — siehe `docs/anforderungen.md`.
 
 - **Kassensturzfähigkeit:** Anforderung, dass der berechnete Soll-Bestand an Bargeld jederzeit mit dem physisch vorhandenen Ist-Bestand übereinstimmt. Voraussetzung für GoBD-Konformität.
 
@@ -483,7 +483,7 @@ Operative Fachbegriffe aus dem Gastronomie- und Festzeltbetrieb, die für Konfig
 
 ### Fiskalkonformität (Compliance Sub-Domain)
 
-Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und KassenSichV. Diese Sub-Domain wird phasenweise implementiert — siehe `docs/roadmap.md`.
+Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und KassenSichV. Diese Sub-Domain wird phasenweise implementiert — siehe `docs/anforderungen.md`.
 
 > **Sprachkonvention:** Fiskal-Fachbegriffe folgen der deutschen Gesetzessprache und DSFinV-K-Spezifikation. Technische Interface-Namen bleiben englisch (Go-Konvention).
 
@@ -515,10 +515,10 @@ Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und 
 
 #### Kasse & Identifikation
 
-| Begriff                     | Bedeutung                                                                                                                       |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **KassenID / Seriennummer** | Eindeutige UUID-v4 der jotti-Instanz. Für ELSTER-Meldung und TSE-Protokoll. **(nicht implementiert)** — siehe `docs/roadmap.md` |
-| **TSEClient**               | Go-Interface mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. **(nicht implementiert)**               |
+| Begriff                     | Bedeutung                                                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **KassenID / Seriennummer** | Eindeutige UUID-v4 der jotti-Instanz. Für ELSTER-Meldung und TSE-Protokoll. **(nicht implementiert)** — siehe `docs/anforderungen.md` |
+| **TSEClient**               | Go-Interface mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. **(nicht implementiert)**                     |
 
 #### Transaktions-Lifecycle
 
@@ -541,11 +541,11 @@ Fiskal-Begriffe der Abrechnungsstruktur — Definitionen und Code-Mappings siehe
 
 #### Steuern
 
-| Begriff          | Bedeutung                                                                                                                                            |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Steuersatz**   | Steuerklasse eines Produkts. Enum-Werte: `standard` (19 %), `ermaessigt` (7 %), `befreit` (0 %). **(nicht implementiert)** — siehe `docs/roadmap.md` |
-| **Steuerbetrag** | Berechneter Steuerbetrag in Cent für eine Position oder einen Vorgang. Immer in Cent, niemals als Float. **(nicht implementiert)**                   |
-| **Nettobetrag**  | Betrag vor Steuerabzug. Immer in Cent. **(nicht implementiert)**                                                                                     |
+| Begriff          | Bedeutung                                                                                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Steuersatz**   | Steuerklasse eines Produkts. Enum-Werte: `standard` (19 %), `ermaessigt` (7 %), `befreit` (0 %). **(nicht implementiert)** — siehe `docs/anforderungen.md` |
+| **Steuerbetrag** | Berechneter Steuerbetrag in Cent für eine Position oder einen Vorgang. Immer in Cent, niemals als Float. **(nicht implementiert)**                         |
+| **Nettobetrag**  | Betrag vor Steuerabzug. Immer in Cent. **(nicht implementiert)**                                                                                           |
 
 #### Export & Meldung
 
@@ -576,7 +576,7 @@ Fiskal-Begriffe der Abrechnungsstruktur — Definitionen und Code-Mappings siehe
 
 ## Geplant (nicht implementiert)
 
-Die folgenden Begriffe sind definiert, aber noch nicht im Code implementiert. Details und Priorisierung in `docs/roadmap.md`.
+Die folgenden Begriffe sind definiert, aber noch nicht im Code implementiert. Details und Priorisierung in `docs/anforderungen.md`.
 
 - **Bon:** Gedruckter Beleg mit Tisch, Servicekraft, Positionen, Mengen, Zeitstempel.
 - **Küchendisplay (KDS):** Echtzeit-Anzeige offener Bestellungen an der Ausgabestation.

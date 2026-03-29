@@ -6,7 +6,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellung
 
 **Bewusst NICHT enthalten:** Kartenzahlung, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM, Kiosk-Modus. Diese Reduktion ist gewollt — jedes zusätzliche Feature erhöht Komplexität für ehrenamtliche Teams.
 
-**Compliance-Roadmap (TSE/KassenSichV):** jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die TSE-Integration (fiskaly Cloud-TSE, DSFinV-K-Export, ELSTER-Meldepflicht) wird schrittweise implementiert — siehe `docs/roadmap.md` und `docs/compliance.md`.
+**Compliance-Roadmap (TSE/KassenSichV):** jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die TSE-Integration (fiskaly Cloud-TSE, DSFinV-K-Export, ELSTER-Meldepflicht) wird schrittweise implementiert — siehe `docs/anforderungen.md` und `docs/compliance.md`.
 
 ## Referenzdokumente
 
@@ -73,15 +73,6 @@ Rechtliche Grundlagen, Compliance-Anforderungen und Betreiberpflichten.
 - **§5 Architekturprinzipien:** Adapter-Pattern, BYOD-Offline-Blocking
 
 → Lesen bei: Compliance-Features implementieren, Betreiber-Dokumentation schreiben, rechtliche Anforderungen prüfen.
-
-### Roadmap — `docs/roadmap.md`
-
-Geordnete Aufgabenliste mit abgeschlossenen und offenen Tasks.
-
-- **Abgeschlossen:** Codebase-Bereinigung, Kasse DB-Schema, Kassensitzung-Lifecycle (K-16–K-22), Admin-Dashboard
-- **Offen:** Seriennummer (F-01), Steuersätze (F-07), Betreiber-Stammdaten (K-20), Belegausgabe (F-03), TSE-Integration (F-02), DSFinV-K-Export (F-04), KDS (K-13), u. a.
-
-→ Lesen bei: nächste Schritte planen, Feature-Priorisierung, Implementation von offenen Anforderungen.
 
 ## Tech-Stack
 
