@@ -1,6 +1,6 @@
 import type { BackendClient } from '@/lib/Backend'
 
-import { type Reporting, ReportingSchema } from './types'
+import { type ReportingData, ReportingDataSchema } from './types'
 
 export class ReportingBackend {
   private readonly backend: BackendClient
@@ -9,11 +9,11 @@ export class ReportingBackend {
     this.backend = backend
   }
 
-  public async getReporting(kassensitzungNr: number): Promise<Reporting> {
+  public async getReporting(kassensitzungNr: number): Promise<ReportingData> {
     return this.backend.post(
       'admin/get-abrechnung',
       { kassensitzungNr },
-      ReportingSchema,
+      ReportingDataSchema,
     )
   }
 }

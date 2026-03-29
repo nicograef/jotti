@@ -20,7 +20,7 @@ import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatCents } from '@/lib/utils'
 
-import type { Reporting } from './types'
+import type { ReportingData } from './types'
 
 function SummaryCard({
   title,
@@ -52,7 +52,7 @@ function formatLocalTime(utcString: string): string {
   return new Date(utcString).toLocaleString('de-DE')
 }
 
-export function ReportingResults({ result }: { result: Reporting }) {
+export function ReportingResults({ result }: { result: ReportingData }) {
   const summary = result.summary
   const breakdowns = result.breakdowns
 

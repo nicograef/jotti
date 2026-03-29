@@ -30,8 +30,8 @@ import {
   type Tisch,
   TischIdSchema,
   TischSchema,
-  type TischState,
-  TischStateSchema,
+  type TischSession,
+  TischSessionSchema,
 } from './Tisch'
 import { type Zahlung, ZahlungKassierenSchema, ZahlungSchema } from './Zahlung'
 
@@ -108,9 +108,13 @@ export class TischBackend {
     return historie
   }
 
-  public async getTischState(tischId: number): Promise<TischState> {
+  public async getTischState(tischId: number): Promise<TischSession> {
     const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
-    return this.backend.post('service/get-tisch-state', body, TischStateSchema)
+    return this.backend.post(
+      'service/get-tisch-state',
+      body,
+      TischSessionSchema,
+    )
   }
 
   public async favoritHinzufuegen(tischId: number): Promise<void> {
@@ -134,11 +138,11 @@ export class TischBackend {
     return tische
   }
 
-  public async getMeineTischeState(): Promise<TischState[]> {
+  public async getMeineTischeState(): Promise<TischSession[]> {
     const { tische } = await this.backend.post(
       'service/get-meine-tische-state',
       {},
-      z.object({ tische: z.array(TischStateSchema) }),
+      z.object({ tische: z.array(TischSessionSchema) }),
     )
     return tische
   }

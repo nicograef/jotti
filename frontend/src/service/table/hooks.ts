@@ -8,7 +8,7 @@ import type {
   AktiverTischMitFavorit,
   EigeneUebersicht,
   Tisch,
-  TischState,
+  TischSession,
 } from './Tisch'
 import { TischBackend } from './TischBackend'
 import type { Zahlung } from './Zahlung'
@@ -44,7 +44,7 @@ export function useTischState(tischId: number) {
       unbezahltePositionen: [],
       ausstehendePositionen: [],
       gesamtZahlungenCents: 0,
-    } as TischState,
+    } as TischSession,
     [tischId],
   )
   return { ...rest, state }
@@ -61,7 +61,7 @@ export function useAktiveTischeMitFavoriten() {
 export function useMeineTischeState() {
   const { data: tische, ...rest } = useFetch(
     () => tischBackend.getMeineTischeState(),
-    [] as TischState[],
+    [] as TischSession[],
   )
   return { ...rest, tische }
 }

@@ -4,10 +4,10 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatCents } from '@/lib/utils'
 
-import type { TischState } from '../table/Tisch'
+import type { TischSession } from '../table/Tisch'
 
 interface MeinTischCardProps {
-  state: TischState
+  state: TischSession
 }
 
 export function MeinTischCard({ state }: MeinTischCardProps) {

@@ -38,15 +38,16 @@ Alle bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben
 
 ### Kein Handlungsbedarf (bewusst korrekt)
 
-| Bereich              | Ist (Code)                                      | Begründung                                                                                      |
-| -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| DB-Tabellen (Infra)  | `users`, `kassenjournal`                        | Englisch ist korrekt — Infrastruktur / Generic Sub-Domain.                                      |
-| DB-Tabellen (Domain) | `tische`, `produkte`, `produkt_varianten`       | Deutsch ist korrekt — Domänenbegriffe sind vertikal konsistent.                                 |
-| Frontend-Routen      | `/admin/produkte`, `/service/tische`            | Deutsch ist korrekt — Routen repräsentieren Domänenkonzepte.                                    |
-| Auth-Code            | `User`, `Role`, `OnetimePassword`               | Englisch ist korrekt — Generic Sub-Domain.                                                      |
-| Auth-Routen          | `/login`, `/set-password`                       | Englisch ist korrekt — Auth ist Infrastruktur.                                                  |
-| Status-Enums         | `active`, `inactive`, `deleted`                 | Englisch ist korrekt — technische Lifecycle-States, kein Domänenbegriff.                        |
-| Kassenjournal        | `Historie` (Code) vs. `Kassenjournal` (Entwurf) | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert. |
+| Bereich              | Ist (Code)                                      | Begründung                                                                                                    |
+| -------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| DB-Tabellen (Infra)  | `users`, `kassenjournal`                        | Englisch ist korrekt — Infrastruktur / Generic Sub-Domain.                                                    |
+| DB-Tabellen (Domain) | `tische`, `produkte`, `produkt_varianten`       | Deutsch ist korrekt — Domänenbegriffe sind vertikal konsistent.                                               |
+| Frontend-Routen      | `/admin/produkte`, `/service/tische`            | Deutsch ist korrekt — Routen repräsentieren Domänenkonzepte.                                                  |
+| Auth-Code            | `User`, `Role`, `OnetimePassword`               | Englisch ist korrekt — Generic Sub-Domain.                                                                    |
+| Auth-Routen          | `/login`, `/set-password`                       | Englisch ist korrekt — Auth ist Infrastruktur.                                                                |
+| Status-Enums         | `active`, `inactive`, `deleted`                 | Englisch ist korrekt — technische Lifecycle-States, kein Domänenbegriff.                                      |
+| Kassenjournal        | `Historie` (Code) vs. `Kassenjournal` (Entwurf) | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert.               |
+| KassensitzungState   | `KassensitzungState` (Go + TS)                  | Domänenbegriff ist „Kassensitzung". Suffix `State` markiert den CRUD-Zustand der Entität — kein Rename nötig. |
 
 ### Abgeschlossene Migrationen
 
@@ -94,9 +95,9 @@ Das Finanzamt betrachtet einen Verein in vier steuerliche Bereiche (Sphären). D
 
 Person mit Zugang zum System, identifiziert durch einen eindeutigen Benutzernamen.
 
-| Go-Struct | TS-Typ | DB-Tabelle | API-Pfade (Admin)                                                                                         |
-| --------- | ------ | ---------- | --------------------------------------------------------------------------------------------------------- |
-| `User`    | `User` | `users`    | `/create-user`, `/update-user`, `/activate-user`, `/deactivate-user`, `/reset-password`, `/get-all-users` |
+| Go-Struct | TS-Typ | DB-Tabelle |
+| --------- | ------ | ---------- |
+| `User`    | `User` | `users`    |
 
 #### Rolle
 
@@ -128,25 +129,25 @@ JWT (JSON Web Token) mit Benutzer-ID und Rolle. 12 Stunden gültig. Reiner Infra
 
 Reine Stammdaten-Entität: ein physischer Ort, an dem Gäste sitzen. Hat einen Namen, Status (active/inactive/deleted) und wird vom Admin verwaltet. Im Kasse-Kontext wird der Tisch nur über seine ID referenziert — die `tisch_id` fließt in das Subject der Tisch-Session ein.
 
-| Go-Struct | TS-Typ  | DB-Tabelle | API-Pfade (Admin)                                                                           | API-Pfade (Service)                                                                                                            |
-| --------- | ------- | ---------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `Tisch`   | `Tisch` | `tische`   | `/create-tisch`, `/update-tisch`, `/activate-tisch`, `/deactivate-tisch`, `/get-all-tische` | `/get-tisch`, `/get-aktive-tische`, `/get-tisch-historie`, `/get-tisch-saldo`, `/get-tisch-unbezahlt`, `/get-tisch-ausstehend` |
+| Go-Struct | TS-Typ  | DB-Tabelle |
+| --------- | ------- | ---------- |
+| `Tisch`   | `Tisch` | `tische`   |
 
 #### Tisch-Session (Abrechnungskreis)
 
 Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Bestellungen, Zahlungen, Stornierungen, Ausgaben, Auszahlungen) eines Tisches innerhalb einer Kassensitzung ab. Entsteht implizit mit der ersten Bestellung. Subject-Format: `kassensitzung-{nr}/tisch-{tischId}`.
 
-| Go-Struct (geplant) | DB-Projektion    | JSON-Key | Subject-Format                       |
-| ------------------- | ---------------- | -------- | ------------------------------------ |
-| `TischSession`      | `tisch_sessions` | —        | `kassensitzung-{nr}/tisch-{tischId}` |
+| Go-Struct      | TS-Typ         | DB-Projektion    | Subject-Format                       |
+| -------------- | -------------- | ---------------- | ------------------------------------ |
+| `TischSession` | `TischSession` | `tisch_sessions` | `kassensitzung-{nr}/tisch-{tischId}` |
 
 #### Bestellung
 
 Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt. Erzeugt ein `BestellungAufgenommen`-Event.
 
-| Go-Struct    | TS-Typ       | Event-Typ                   | API-Pfad                        |
-| ------------ | ------------ | --------------------------- | ------------------------------- |
-| `Bestellung` | `Bestellung` | `bestellung-aufgenommen:v1` | `/service/bestellung-aufnehmen` |
+| Go-Struct    | TS-Typ       | Event-Typ                   |
+| ------------ | ------------ | --------------------------- |
+| `Bestellung` | `Bestellung` | `bestellung-aufgenommen:v1` |
 
 #### Position
 
@@ -160,39 +161,39 @@ Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einze
 
 Bestätigung, dass bestellte Positionen dem Gast übergeben wurden. Erzeugt ein `AusgabeBestaetigt`-Event.
 
-| Go-Struct | TS-Typ    | Event-Typ               | API-Pfad                       |
-| --------- | --------- | ----------------------- | ------------------------------ |
-| `Ausgabe` | `Ausgabe` | `ausgabe-bestaetigt:v1` | `/service/ausgabe-bestaetigen` |
+| Go-Struct | TS-Typ    | Event-Typ               |
+| --------- | --------- | ----------------------- |
+| `Ausgabe` | `Ausgabe` | `ausgabe-bestaetigt:v1` |
 
 #### Zahlung
 
 Kassierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen. Erzeugt ein `ZahlungKassiert`-Event.
 
-| Go-Struct | TS-Typ    | Event-Typ             | API-Pfad                     |
-| --------- | --------- | --------------------- | ---------------------------- |
-| `Zahlung` | `Zahlung` | `zahlung-kassiert:v1` | `/service/zahlung-kassieren` |
+| Go-Struct | TS-Typ    | Event-Typ             |
+| --------- | --------- | --------------------- |
+| `Zahlung` | `Zahlung` | `zahlung-kassiert:v1` |
 
 #### Stornierung
 
 Nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. `Kommentar` ist Pflichtfeld. Erzeugt ein `StornierungErteilt`-Event.
 
-| Go-Struct     | TS-Typ        | Event-Typ                | API-Pfad                               |
-| ------------- | ------------- | ------------------------ | -------------------------------------- |
-| `Stornierung` | `Stornierung` | `stornierung-erteilt:v1` | `/serviceleitung/stornierung-erteilen` |
+| Go-Struct     | TS-Typ        | Event-Typ                |
+| ------------- | ------------- | ------------------------ |
+| `Stornierung` | `Stornierung` | `stornierung-erteilt:v1` |
 
 #### Auszahlung
 
 Auszahlung an den Gast, um einen negativen Saldo auszugleichen — entsteht, wenn bereits kassierte Positionen nachträglich storniert wurden (K-05). Kein Positionsbezug; freier Betrag. `Kommentar` ist Pflichtfeld. Erzeugt ein `AuszahlungGeleistet`-Event.
 
-| Go-Struct    | Event-Typ                 | API-Pfad                             |
-| ------------ | ------------------------- | ------------------------------------ |
-| `Auszahlung` | `auszahlung-geleistet:v1` | `/serviceleitung/auszahlung-leisten` |
+| Go-Struct    | TS-Typ       | Event-Typ                 |
+| ------------ | ------------ | ------------------------- |
+| `Auszahlung` | `Auszahlung` | `auszahlung-geleistet:v1` |
 
 #### Saldo
 
 Offener Betrag einer Tisch-Session: Bestellungen − Zahlungen − Stornierungen + Auszahlungen. Immer in Cent.
 
-Go-Snapshot-Feld: `SaldoCents` · Go-Projektion: `ApplyEvent()` → `TischSession` · API: `/service/get-tisch-state`
+Go-Projektion-Feld: `SaldoCents` · Berechnung: `ApplyEvent()` → `TischSession`
 
 #### Splitrechnung / Teilzahlung
 
@@ -222,9 +223,33 @@ Go-Feld: `Menge` · JSON-Key: `"menge"` · TS-Feld: `menge`
 
 Kompakte KPI-Übersicht einer Servicekraft: Anzahl und Summe eigener Bestellungen sowie kassierter Zahlungen. Read Model, berechnet aus dem Kassenjournal gefiltert auf `user_id` und `kassensitzung_nr`.
 
-| Go-Struct          | TS-Typ             | JSON-Keys                                                                      | API-Pfad                         |
-| ------------------ | ------------------ | ------------------------------------------------------------------------------ | -------------------------------- |
-| `EigeneUebersicht` | `EigeneUebersicht` | `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` | `/service/get-eigene-uebersicht` |
+| Go-Struct          | TS-Typ             | JSON-Keys                                                                      |
+| ------------------ | ------------------ | ------------------------------------------------------------------------------ |
+| `EigeneUebersicht` | `EigeneUebersicht` | `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` |
+
+#### HistorieEintrag
+
+Einzelner Eintrag in der Tisch-Historie, typisiert nach Art (Bestellung, Zahlung, Stornierung, Ausgabe, Auszahlung).
+
+Go-Struct: `HistorieEintrag` · Feld `Art`: `HistorieEintragArt` (Enum: `"bestellung"`, `"zahlung"`, `"stornierung"`, `"ausgabe"`, `"auszahlung"`)
+
+#### PositionRef
+
+Referenz auf eine Position (ID + Menge) für Zahlung, Ausgabe und Stornierung.
+
+Go-Struct: `PositionRef` · TS-Typ: `PositionRef` · JSON-Keys: `positionId`, `menge`
+
+#### AktiverTisch
+
+Kompakte Tisch-Darstellung mit Saldo für die Tischübersicht. Read Model.
+
+Go-Struct: `AktiverTisch` (ID, Name, SaldoCents)
+
+#### BestellPositionInput
+
+Frontend-Eingabetyp für eine einzelne Bestellposition (Produkt + Variante + Menge).
+
+TS-Typ: `BestellPositionInput` · JSON-Keys: `produktId`, `varianteId`, `menge`
 
 ---
 
@@ -236,9 +261,15 @@ Die Kassensitzung und der Kassenbestand gehören zum Core-Domain-Kontext **Kasse
 
 Global nummerierter Betriebstag, der einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Wird durch Admin-Aktion eröffnet (Event `kassensitzung-eroeffnet:v1`). Maximal eine Kassensitzung kann gleichzeitig `offen` sein. Ohne offene Kassensitzung ist der gesamte Kassenbetrieb gesperrt (HTTP 409). Die `z_nr` ist ein fortlaufender, lückenloser Zähler in der `kassensitzungen`-Entität.
 
-| Go-Struct (geplant) | DB-Tabelle        | Subject-Format       | API-Pfade (geplant)              |
-| ------------------- | ----------------- | -------------------- | -------------------------------- |
-| `Kassensitzung`     | `kassensitzungen` | `kassensitzung-{nr}` | `/admin/kassensitzung-eroeffnen` |
+| Go-Struct            | DB-Tabelle        | Subject-Format       |
+| -------------------- | ----------------- | -------------------- |
+| `KassensitzungState` | `kassensitzungen` | `kassensitzung-{nr}` |
+
+#### Bezeichnung
+
+Freitextlabel einer Kassensitzung (z. B. „Maihock 2026").
+
+Go-Feld: `Bezeichnung` · DB-Spalte: `kassensitzungen.bezeichnung` · JSON-Key: `"bezeichnung"`
 
 #### Abrechnungskreis
 
@@ -248,49 +279,45 @@ DSFinV-K-Pflichtfeld (`ABRECHNUNGSKREIS`). Im neuen Modell ist der Abrechnungskr
 
 Wechselgeld zu Beginn einer Veranstaltung/Schicht. Pro Kassensitzung darf genau ein Anfangsbestand gesetzt werden. Wird als Event `anfangsbestand-gesetzt:v1` im Kassenjournal persistiert.
 
-Go-Feld (geplant): `AnfangsbestandCents` · JSON-Key: `anfangsbestandCents`
+Go-Event-Data-Feld: `BetragCents` · JSON-Key: `betragCents`
 
 #### Kassenbestand
 
 SQL-Aggregation über den erwarteten Bargeldbestand. Berechnung: Anfangsbestand + Zahlungen − Auszahlungen + Kassenbewegungen (vorzeichenbehaftet). Kein eigenes Read Model — wird on-demand aus dem Kassenjournal aggregiert.
 
-| Go-Struct (geplant) | JSON-Keys (geplant)                                                              | API-Pfad (geplant)         |
-| ------------------- | -------------------------------------------------------------------------------- | -------------------------- |
-| `Kassenbestand`     | `anfangsbestandCents`, `einnahmenCents`, `auszahlungenCents`, `sollBestandCents` | `/admin/get-kassenbestand` |
+JSON-Key: `sollBestandCents`
 
 #### Kassenbewegung
 
 Oberbegriff für Geldtransit, Privatentnahme und Privateinlage — Bargeld-Bewegungen außerhalb des Tisch-Verkehrs. Wird als Event `kassenbewegung-gebucht:v1` mit Feld `art` im Kassenjournal persistiert.
 
-| Go-Struct (geplant) | Event-Typ                   | JSON-Key         | Werte für `art`                                  |
-| ------------------- | --------------------------- | ---------------- | ------------------------------------------------ |
-| `Kassenbewegung`    | `kassenbewegung-gebucht:v1` | `kassenbewegung` | `geldtransit`, `privatentnahme`, `privateinlage` |
+| Event-Typ                   | JSON-Key `art`                                   |
+| --------------------------- | ------------------------------------------------ |
+| `kassenbewegung-gebucht:v1` | `geldtransit`, `privatentnahme`, `privateinlage` |
 
 #### Geldtransit
 
 Entnahme von Bargeld aus der Kasse zur Einzahlung bei Bank oder Tresor. Reduziert den Soll-Kassenbestand. DSFinV-K-Geschäftsvorfalltyp: `Geldtransit`.
 
-API-Pfad (geplant): `/admin/kassenbewegung-buchen` (mit `art: geldtransit`)
+API-Pfad: `/admin/kassenbewegung-buchen` (mit `art: geldtransit`)
 
 #### Privatentnahme
 
 Entnahme von Bargeld in den privaten Bereich des Vereins (nicht Bank). Fachlich analog zu Geldtransit, aber anderer DSFinV-K-Geschäftsvorfalltyp: `Privatentnahme`.
 
-API-Pfad (geplant): `/admin/kassenbewegung-buchen` (mit `art: privatentnahme`)
-
 #### Privateinlage
 
 Einlage von Bargeld in die Kasse (z. B. Nachfüllen von Wechselgeld). Erhöht den Soll-Kassenbestand. DSFinV-K-Geschäftsvorfalltyp: `Privateinlage`.
 
-API-Pfad (geplant): `/admin/kassenbewegung-buchen` (mit `art: privateinlage`)
+Alle Kassenbewegungen über `/admin/kassenbewegung-buchen` mit jeweiligem `art`-Wert.
 
 #### Kassensturz
 
 Vergleich des errechneten Soll-Bestands mit dem physisch gezählten Ist-Bestand. Der Application Service schreibt ein `kassensturz-durchgefuehrt:v1`-Event; bei Differenz ≠ 0 folgt ein `differenz-soll-ist-gebucht:v1`-Event in derselben Transaktion (Zwei-Event-Muster). Voraussetzung für den Tagesabschluss (Z-Bon).
 
-| Go-Struct (geplant) | Event-Typ                                                        | JSON-Keys (geplant)                                     | API-Pfad (geplant)   |
-| ------------------- | ---------------------------------------------------------------- | ------------------------------------------------------- | -------------------- |
-| `Kassensturz`       | `kassensturz-durchgefuehrt:v1` + `differenz-soll-ist-gebucht:v1` | `sollBestandCents`, `istBestandCents`, `differenzCents` | `/admin/kassensturz` |
+| Event-Typ                                                        | JSON-Keys                                               |
+| ---------------------------------------------------------------- | ------------------------------------------------------- |
+| `kassensturz-durchgefuehrt:v1` + `differenz-soll-ist-gebucht:v1` | `sollBestandCents`, `istBestandCents`, `differenzCents` |
 
 #### DifferenzSollIst
 
@@ -300,9 +327,9 @@ Automatisch erzeugtes Event (`differenz-soll-ist-gebucht:v1`) beim Kassensturz, 
 
 Formeller Tagesabschlussbon: aggregiert alle Transaktionen einer Kassensitzung nach Steuersätzen und Zahlarten. Wird als `tagesabschluss-erstellt:v1`-Event im Kassenjournal persistiert und schließt die Kassensitzung ab (Status → `abgeschlossen`). Erhält eine fortlaufende, nie zurücksetzbare `z_nr`.
 
-| Go-Struct (geplant) | Event-Typ                    | JSON-Keys (geplant)                                                        | API-Pfad (geplant)      |
-| ------------------- | ---------------------------- | -------------------------------------------------------------------------- | ----------------------- |
-| `ZBon`              | `tagesabschluss-erstellt:v1` | `zNr`, `zeitraumVon`, `zeitraumBis`, `sollBestandCents`, `istBestandCents` | `/admin/tagesabschluss` |
+| Event-Typ                    | DB-Feld                | JSON-Keys                                                                                                             |
+| ---------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `tagesabschluss-erstellt:v1` | `kassensitzungen.z_nr` | `zNr`, `zeitraumVon`, `zeitraumBis`, `umsatzGesamtCents`, `stornierungCents`, `auszahlungenCents`, `geldtransitCents` |
 
 > **Abgrenzung:** Der Z-Bon ersetzt die bisherige R-07-Anforderung. Er ist kein Report, sondern eine transaktionale Operation des Kasse-Kontexts.
 
@@ -318,17 +345,17 @@ Zwischenbericht: informativer Abruf des aktuellen Kassenstands ohne Rücksetzen.
 
 Artikel im Produktkatalog. Gehört zu genau einer Kategorie und enthält eine oder mehrere Varianten mit je eigenem Preis.
 
-| Go-Struct | TS-Typ    | DB-Tabelle | API-Pfade                                                 |
-| --------- | --------- | ---------- | --------------------------------------------------------- |
-| `Produkt` | `Produkt` | `produkte` | `/create-produkt`, `/update-produkt`, `/get-all-produkte` |
+| Go-Struct | TS-Typ    | DB-Tabelle |
+| --------- | --------- | ---------- |
+| `Produkt` | `Produkt` | `produkte` |
 
 #### Variante
 
 Konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. Produkt „Cola" → Varianten „0,3 l" / „0,5 l").
 
-| Go-Struct  | TS-Typ     | DB-Tabelle          | API-Pfade                                                                            |
-| ---------- | ---------- | ------------------- | ------------------------------------------------------------------------------------ |
-| `Variante` | `Variante` | `produkt_varianten` | `/create-variante`, `/update-variante`, `/activate-variante`, `/deactivate-variante` |
+| Go-Struct  | TS-Typ     | DB-Tabelle          |
+| ---------- | ---------- | ------------------- |
+| `Variante` | `Variante` | `produkt_varianten` |
 
 #### Kategorie
 
@@ -354,11 +381,79 @@ DB-Enum: `EntityStatus` (`'active'`, `'inactive'`, `'deleted'`) · Go-Konstanten
 
 Benutzerspezifische Markierung einer Servicekraft für einen Tisch ("Meine Tische"). Kein Aggregat, keine Events — einfache CRUD-Relation.
 
-| Go-Package                 | DB-Tabelle        | API-Pfade                                                    |
-| -------------------------- | ----------------- | ------------------------------------------------------------ |
-| `repository/favorit_repo/` | `tisch_favoriten` | `/service/favorit-hinzufuegen`, `/service/favorit-entfernen` |
+| Go-Package                 | DB-Tabelle        |
+| -------------------------- | ----------------- |
+| `repository/favorit_repo/` | `tisch_favoriten` |
 
 TS-Repräsentation: `istFavorit: boolean` in `AktiverTischMitFavorit` (kein eigener Typ).
+
+---
+
+### Reporting (Read Model)
+
+Reporting-Daten werden on-demand per SQL-Aggregation aus dem Kassenjournal berechnet. Kein eigener Event Stream — reines Read Model.
+
+#### ReportingData
+
+Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen.
+
+Go-Struct: `ReportingData` · TS-Typ: `ReportingData`
+
+#### Summary
+
+Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen).
+
+Go-Struct: `Summary` · TS-Schema: `SummarySchema`
+
+#### Breakdowns
+
+Aufschlüsselung des Umsatzes nach Servicekraft und Tisch.
+
+Go-Struct: `Breakdowns` · Enthält: `UmsatzProServicekraft []UmsatzServicekraft`, `UmsatzProTisch []UmsatzTisch`
+
+#### UmsatzServicekraft
+
+Umsatz einer einzelnen Servicekraft (Zahlungen, Auszahlungen, Anzahl).
+
+Go-Struct: `UmsatzServicekraft` · TS-Typ: `UmsatzServicekraft`
+
+#### UmsatzTisch
+
+Umsatz eines einzelnen Tisches (Zahlungen, Auszahlungen, Anzahl).
+
+Go-Struct: `UmsatzTisch` · TS-Typ: `UmsatzTisch`
+
+#### StornierungDetail
+
+Detailansicht einer einzelnen Stornierung im Reporting (Zeitpunkt, Tisch, Benutzer, Betrag, Kommentar, Positionen).
+
+Go-Struct: `StornierungDetail` · TS-Typ: `StornierungDetail`
+
+#### StornierungPosition
+
+Einzelne Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis).
+
+Go-Struct: `StornierungPosition` · TS-Typ: `StornierungPosition`
+
+---
+
+### Bondruck & Infrastruktur
+
+#### DruckerKonfiguration
+
+Zuordnung einer Produktkategorie zu einer Drucker-IP und einem Bonmodus. CRUD-Entität.
+
+DB-Tabelle: `kategorie_drucker`
+
+#### Bonmodus
+
+Druckmodus für Bestellbons: einzelner Bon pro Position oder ein gesammelter Bon pro Bestellung.
+
+DB-Enum: `'pro_position'`, `'pro_bestellung'`
+
+#### Relay
+
+Separater Dienst (`cmd/relay/`), der Druckaufträge an lokale ESC/POS-Drucker weiterleitet.
 
 ---
 
@@ -420,10 +515,10 @@ Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und 
 
 #### Kasse & Identifikation
 
-| Begriff                     | Go-Typ                | DB-Feld / -Tabelle                      | JSON-Key    | Bedeutung                                                                                                                                                                         |
-| --------------------------- | --------------------- | --------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **KassenID / Seriennummer** | `KassenID` (`string`) | `system_config.value` (key=`kassen_id`) | `kassen_id` | Eindeutige UUID-v4 der jotti-Instanz. Beim ersten Containerstart generiert. Für ELSTER-Meldung und TSE-Protokoll.                                                                 |
-| **TSEClient**               | Interface (Go)        | —                                       | —           | Go-Interface mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. Anbieter-spezifische Implementierungen (z. B. `FiskalyTSEClient`) erfüllen das Interface. |
+| Begriff                     | Bedeutung                                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **KassenID / Seriennummer** | Eindeutige UUID-v4 der jotti-Instanz. Für ELSTER-Meldung und TSE-Protokoll. **(nicht implementiert)** — siehe `docs/roadmap.md` |
+| **TSEClient**               | Go-Interface mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. **(nicht implementiert)**               |
 
 #### Transaktions-Lifecycle
 
@@ -437,21 +532,20 @@ Die TSE-Kommunikation folgt einem strikten Lifecycle. Jeder Kassiervorgang durch
 
 #### Abrechnungsstruktur
 
-| Begriff              | Go-Struct / Go-Typ | DB-Feld / -Tabelle | JSON-Key           | Bedeutung                                                                                                                                                                                                         |
-| -------------------- | ------------------ | ------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Abrechnungskreis** | `Abrechnungskreis` | `abrechnungskreis` | `abrechnungskreis` | Fortlaufend nummerierte Kassensitzung, die einen Abrechnungszeitraum (typisch: einen Veranstaltungstag) abgrenzt. DSFinV-K-Pflichtfeld. Verbindet logisch zusammengehörige Tisch-Vorgänge. Siehe → Kassenführung. |
-| **Tagesabschluss**   | `ZBon` (geplant)   | `z_bons` (geplant) | `zNr`              | Formaler Abschluss eines Abrechnungskreises. Erzeugt ein immutables Dokument (Z-Bon) mit fortlaufender `z_nr`. Gehört zur Kassenführung (Supporting Sub-Domain), nicht zum Reporting.                             |
-| **Z-Bon**            | `ZBon` (geplant)   | `z_bons` (geplant) | `zNr`              | Tagesabschlussbon: aggregiert alle Transaktionen nach Steuersätzen und Zahlarten (`businesscases.csv`). Immutables Dokument — kein Reset von Events.                                                              |
-| **X-Bon**            | —                  | —                  | —                  | Zwischenbericht: informativer Abruf des aktuellen Kassenstands ohne Rücksetzen. Kein Tagesabschluss im Rechtssinne.                                                                                               |
-| **Bonkopf / Bonpos** | —                  | —                  | —                  | DSFinV-K-Aufteilung: Bonkopf enthält Metadaten und Gesamtsummen des Belegs; Bonpos listet die einzelnen Artikelzeilen (`lines.csv`).                                                                              |
+Fiskal-Begriffe der Abrechnungsstruktur — Definitionen und Code-Mappings siehe oben unter → Kasse (Kassensitzung und Kassenbestand).
+
+- **Abrechnungskreis:** → Tisch-Session (Abrechnungskreis)
+- **Tagesabschluss / Z-Bon:** → Z-Bon (Tagesabschluss)
+- **X-Bon:** Zwischenbericht, kein Tagesabschluss im Rechtssinne.
+- **Bonkopf / Bonpos:** DSFinV-K-Aufteilung: Bonkopf enthält Metadaten und Gesamtsummen; Bonpos listet die Artikelzeilen.
 
 #### Steuern
 
-| Begriff          | Go-Typ              | DB-Feld      | JSON-Key       | Bedeutung                                                                                                                                          |
-| ---------------- | ------------------- | ------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Steuersatz**   | `Steuersatz` (Enum) | `steuersatz` | `steuersatz`   | Steuerklasse eines Produkts. Enum-Werte: `standard` (19 %), `ermaessigt` (7 %), `befreit` (0 %). Wird als Fat Event in die Bestellung eingefroren. |
-| **Steuerbetrag** | `int` (Cent)        | —            | `steuerbetrag` | Berechneter Steuerbetrag in Cent für eine Position oder einen Vorgang. Immer in Cent, niemals als Float.                                           |
-| **Nettobetrag**  | `int` (Cent)        | —            | `nettobetrag`  | Betrag vor Steuerabzug. Immer in Cent.                                                                                                             |
+| Begriff          | Bedeutung                                                                                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Steuersatz**   | Steuerklasse eines Produkts. Enum-Werte: `standard` (19 %), `ermaessigt` (7 %), `befreit` (0 %). **(nicht implementiert)** — siehe `docs/roadmap.md` |
+| **Steuerbetrag** | Berechneter Steuerbetrag in Cent für eine Position oder einen Vorgang. Immer in Cent, niemals als Float. **(nicht implementiert)**                   |
+| **Nettobetrag**  | Betrag vor Steuerabzug. Immer in Cent. **(nicht implementiert)**                                                                                     |
 
 #### Export & Meldung
 
@@ -476,57 +570,33 @@ Die TSE-Kommunikation folgt einem strikten Lifecycle. Jeder Kassiervorgang durch
 
 - **Append-only:** Grundprinzip des Event Streams: Events werden nur hinzugefügt, nie geändert oder gelöscht. Falsche Aktionen werden durch kompensierende Events (z. B. Stornierung) aufgehoben. Entspricht dem GoBD-Radierverbot für steuerrelevante Daten.
 
-- **Snapshot:** Vorberechneter Zwischenstand des Tisch-Zustands als Performance-Optimierung. Beim Replay wird nur ab dem letzten Snapshot gelesen. Gespeichert als eigener Event-Typ (`tisch.snapshot:v1`) in der `events`-Tabelle.
+- **Synchrone Projektion:** Performance-Optimierung, die den Snapshot-as-Event-Ansatz ersetzt hat (siehe ADR: CQRS). Der Tisch-Zustand wird als `tisch_sessions`-Zeile synchron in derselben Transaktion wie das Event geschrieben. Kein Event-Replay beim Lesen nötig.
 
 ---
 
 ## Geplant (nicht implementiert)
 
-Die folgenden Begriffe sind in der Ubiquitous Language definiert, aber noch nicht im Code implementiert.
+Die folgenden Begriffe sind definiert, aber noch nicht im Code implementiert. Details und Priorisierung in `docs/roadmap.md`.
 
-### Ausgabe (Teil des Kassenbetrieb-Context)
+- **Bon:** Gedruckter Beleg mit Tisch, Servicekraft, Positionen, Mengen, Zeitstempel.
+- **Küchendisplay (KDS):** Echtzeit-Anzeige offener Bestellungen an der Ausgabestation.
+- **Zubereitungsstatus:** Status einer Position: offen → in Zubereitung → fertig.
+- **Ausgabestation:** Physischer Ort (Küche, Getränketheke), an dem Positionen ausgegeben werden.
+- **Tagesabrechnung:** Übersicht über Gesamtumsatz, Stornierungen und Umsatz pro Servicekraft.
+- **Umsatz:** Summe aller registrierten Zahlungen in einem Zeitraum. Immer in Cent.
+- **Stornoquote:** Verhältnis Stornierungsbetrag zu Bestellsumme.
+- **Export:** CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Buchhaltung.
 
-| Begriff                 | Bedeutung                                                                                                       |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Bon**                 | Gedruckter Beleg mit Tisch, Servicekraft, Positionen, Mengen, Zeitstempel und optionalem Kommentar.             |
-| **Küchendisplay (KDS)** | Echtzeit-Anzeige offener Bestellungen an der Ausgabestation, gruppiert nach Tisch und gefiltert nach Kategorie. |
-| **Zubereitungsstatus**  | Status einer Position an der Ausgabestation: offen → in Zubereitung → fertig.                                   |
-| **Ausgabestation**      | Physischer Ort (Küche, Getränketheke), an dem Positionen zubereitet und ausgegeben werden.                      |
-
-### Abrechnung (Teil der Kassenführung)
-
-| Begriff             | Bedeutung                                                                                              |
-| ------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Tagesabrechnung** | Übersicht über Gesamtumsatz, Stornierungen und Umsatz pro Servicekraft — jederzeit vom Admin abrufbar. |
-| **Umsatz**          | Summe aller registrierten Zahlungen in einem bestimmten Zeitraum. Immer in Cent.                       |
-| **Stornoquote**     | Verhältnis von Stornierungsbetrag zu Bestellsumme. Indikator für Fehler oder Unregelmäßigkeiten.       |
-| **Export**          | CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Vereinsbuchhaltung.                   |
-
-> **Hinweis:** Der Tagesabschluss (Z-Bon) ist kein Reporting-Vorgang, sondern eine transaktionale Operation der Kassenführung (Supporting Sub-Domain). Siehe → Kassenführung.
+> **Hinweis:** Der Tagesabschluss (Z-Bon) ist kein Reporting-Vorgang, sondern eine transaktionale Operation des Kasse-Kontexts. Siehe → Z-Bon (Tagesabschluss).
 
 ---
 
 ## Erweitertes Fach-Glossar
 
-Begriffe aus dem POS/Gastronomie-Umfeld, die **nicht im Scope von jotti** sind (bewusste Abgrenzung — siehe `docs/anforderungen.md` §6). Für die Einarbeitung neuer Teammitglieder in den Fachkontext.
+Begriffe aus dem POS/Gastronomie-Umfeld, die **nicht im Scope von jotti** sind (bewusste Abgrenzung — siehe `docs/anforderungen.md` §6).
 
-**Vereinswesen:**
+**Vereinswesen:** Zuwendungsbestätigung, Sponsoring, Aufwandsspende, Rückspende — Details zu steuerlichen Sphären siehe → Vereinswesen & Steuerliche Sphären.
 
-- **Zuwendungsbestätigung (Spendenbescheinigung):** Amtliches Dokument, das nur gemeinnützige Vereine ausstellen dürfen, damit Spender ihre Zahlungen ohne Gegenleistung steuerlich absetzen können.
-- **Sponsoring:** Leistungsaustausch (kein Spendencharakter): Unternehmen zahlt Geld oder Sachmittel, Verein erbringt als Gegenleistung Werbung.
-- **Aufwandsspende:** Helfer verzichtet auf Kostenerstattung (z. B. Fahrtkosten) und überlässt den Betrag dem Verein als Spende.
-- **Rückspende:** Verzicht auf vertraglich vereinbartes Honorar (z. B. Übungsleiterpauschale) zugunsten des Vereins; der Helfer erhält dafür eine Spendenbescheinigung.
+**Warenwirtschaft:** Warenwirtschaft (WaWi), Inventur, Warengruppe, Pfand/Pfandrückzahlung, Einzweck-/Mehrzweckgutschein — explizit nicht im Scope.
 
-**Warenwirtschaft:**
-
-- **Warenwirtschaft (WaWi):** An die Kasse angebundenes System, das Lagerbestände führt und bei jedem Verkauf automatisch Artikel abbucht.
-- **Inventur:** Physische Zählung von Lagerartikeln zum Abgleich von System-Soll-Bestand und realem Ist-Bestand.
-- **Warengruppe:** Logische Artikelgruppierung für zentrale Steuersatzverwaltung und betriebswirtschaftliche Auswertung.
-- **Pfand / Pfandrückzahlung:** Gesondert gebuchte Nebenleistung für Mehrwegbehälter (Aufschlag beim Verkauf, Erstattung als negativer Betrag bei Rückgabe).
-- **Einzweck- / Mehrzweckgutschein:** Umsatzsteuerlich wichtige Unterscheidung: Einzweckgutscheine werden beim Verkauf versteuert, Mehrzweckgutscheine erst bei Einlösung.
-
-**Hardware:**
-
-- **Kartenterminal (EFT-Terminal):** Gerät für bargeldlose Zahlungen (EC-/Kreditkarte) mit ZVT- oder O.P.I.-Schnittstelle zur Kassensoftware.
-- **Kassenlade (Geldlade):** Physische Geldschublade, die über den Bondrucker elektronisch angesteuert wird und sich bei Bar-Abschlüssen öffnet.
-- **Gangsteuerung:** Softwarefunktion, mit der Servicekräfte der Küche die Reihenfolge der Gänge (Vorspeise → Hauptgang → Dessert) mitteilen.
+**Hardware:** Kartenterminal (EFT-Terminal), Kassenlade, Gangsteuerung — explizit nicht im Scope.

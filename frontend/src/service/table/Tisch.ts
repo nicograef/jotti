@@ -15,7 +15,7 @@ export const TischSchema = z.object({
 })
 export type Tisch = z.infer<typeof TischSchema>
 
-export const TischStateSchema = z.object({
+export const TischSessionSchema = z.object({
   tischId: TischIdSchema,
   tischName: z.string(),
   saldoCents: z.number().int(),
@@ -23,7 +23,7 @@ export const TischStateSchema = z.object({
   ausstehendePositionen: z.array(PositionSchema),
   gesamtZahlungenCents: z.number().int(),
 })
-export type TischState = z.infer<typeof TischStateSchema>
+export type TischSession = z.infer<typeof TischSessionSchema>
 
 export const AktiverTischMitFavoritSchema = z.object({
   id: TischIdSchema,

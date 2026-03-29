@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const ReportingSummarySchema = z.object({
+export const SummarySchema = z.object({
   gesamtUmsatzCents: z.number().int(),
   gesamtAuszahlungenCents: z.number().int(),
   gesamtBestellungenCents: z.number().int(),
@@ -49,13 +49,13 @@ export const UmsatzTischSchema = z.object({
 })
 export type UmsatzTisch = z.infer<typeof UmsatzTischSchema>
 
-export const ReportingSchema = z.object({
+export const ReportingDataSchema = z.object({
   kassensitzungNr: z.number().int(),
-  summary: ReportingSummarySchema,
+  summary: SummarySchema,
   breakdowns: z.object({
     umsatzProServicekraft: z.array(UmsatzServicekraftSchema),
     umsatzProTisch: z.array(UmsatzTischSchema),
   }),
   stornierungen: z.array(StornierungDetailSchema),
 })
-export type Reporting = z.infer<typeof ReportingSchema>
+export type ReportingData = z.infer<typeof ReportingDataSchema>

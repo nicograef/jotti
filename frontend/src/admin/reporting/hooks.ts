@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { BackendSingleton } from '@/lib/Backend'
 
 import { ReportingBackend } from './ReportingBackend'
-import type { Reporting } from './types'
+import type { ReportingData } from './types'
 
 const reportingBackend = new ReportingBackend(BackendSingleton)
 
@@ -12,7 +12,7 @@ const reportingBackend = new ReportingBackend(BackendSingleton)
 export function useReporting() {
   const [kassensitzungNr, setKassensitzungNr] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<Reporting | null>(null)
+  const [result, setResult] = useState<ReportingData | null>(null)
 
   const auswerten = useCallback(async () => {
     if (!kassensitzungNr || kassensitzungNr < 1) {
