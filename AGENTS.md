@@ -46,7 +46,7 @@ Verbindliche Referenz für Fachbegriffe, Code-Repräsentationen und Namenskonven
 
 - **Sprachkonventionen:** Domänenbegriffe deutsch, Infrastruktur englisch, UI deutsch, Commits englisch
 - **Namenskonventionen pro Schicht:** Go-Structs, TS-Typen, JSON-Keys, API-Pfade, DB-Tabellen, Frontend-Routen
-- **Abweichungen Ist/Soll:** Aktueller Rename-Status (Backend ✅, Frontend ⏳)
+- **Abweichungen Ist/Soll:** Abgeschlossene Migrationen (Backend ✅, Frontend ✅)
 - **Begriffsdefinitionen:** Tisch, Bestellung, Position, Ausgabe, Zahlung, Stornierung — jeweils mit Go-Struct, TS-Typ, JSON-Keys, API-Pfad, Frontend-Komponente, UI-Labels
 
 → Lesen bei: Benennungen klären, neue Felder/Typen benennen, Ist/Soll-Abweichungen prüfen.
@@ -76,14 +76,12 @@ Rechtliche Grundlagen, Compliance-Anforderungen und Betreiberpflichten.
 
 ### Roadmap — `docs/roadmap.md`
 
-Phasenplan für die schrittweise Compliance-Implementierung.
+Geordnete Aufgabenliste mit abgeschlossenen und offenen Tasks.
 
-- **Phase 0 — Baseline:** Aktueller Stand (Event-Sourcing, Kassenjournal, Bondrucker)
-- **Phase 1 — Compliance-Grundlage:** Seriennummer, Steuersätze, Abrechnungskreis, Belegausgabe, ELSTER-Anleitung
-- **Phase 2 — TSE-Integration:** TSEClient (fiskaly), StartTransaction/FinishTransaction, DSFinV-K-Export
-- **Phase 3 — Erweiterungen:** eBeleg, ERiC-Schnittstelle, GoBD Hash-Chain
+- **Abgeschlossen:** Codebase-Bereinigung, Kasse DB-Schema, Kassensitzung-Lifecycle (K-16–K-22), Admin-Dashboard
+- **Offen:** Seriennummer (F-01), Steuersätze (F-07), Betreiber-Stammdaten (K-20), Belegausgabe (F-03), TSE-Integration (F-02), DSFinV-K-Export (F-04), KDS (K-13), u. a.
 
-→ Lesen bei: nächste Compliance-Schritte planen, Feature-Priorisierung, Implementation von F-01 bis F-08.
+→ Lesen bei: nächste Schritte planen, Feature-Priorisierung, Implementation von offenen Anforderungen.
 
 ## Tech-Stack
 
@@ -147,9 +145,9 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 
 ## Bereiche
 
-- **Admin** (`admin`): Routen `/admin/*` (`api/admin.go`), Frontend `src/admin/`, `AdminGuard`. Produkte, Tische, Benutzer verwalten. Kassensitzung eröffnen/verwalten (künftig).
+- **Admin** (`admin`): Routen `/admin/*` (`api/admin.go`), Frontend `src/admin/`, `AdminGuard`. Produkte, Tische, Benutzer verwalten. Kassensitzung eröffnen/verwalten, Kassenbestand, Kassensturz, Tagesabschluss. Reporting.
 - **Service** (`admin` + `serviceleitung` + `service`): Routen `/service/*` (`api/service.go`), Stornierung über `api/serviceleitung.go`. Frontend `src/service/`, `ServiceGuard`. Bestellen, Ausgabe bestätigen, Kassieren, Stornieren.
-- **Auth** (kein JWT): Routen `/auth/*` (`api/auth.go`). Login, Passwort setzen.
+- **Auth**: Routen `/auth/*` (`api/auth.go`). Login, Passwort setzen. JWT-Token (Benutzer-ID + Rolle).
 
 ## Grenzen
 

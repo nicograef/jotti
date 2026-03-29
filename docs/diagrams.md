@@ -1,7 +1,7 @@
 # Diagramme — jotti
 
 Visuelle Dokumentation der Fachlichkeit (DDD) und Architektur von jotti.
-Alle Diagramme bilden den **geplanten Endzustand** ab (inkl. Roadmap-Features: Kassenführung, TSE, DSFinV-K).
+Alle Diagramme bilden den **aktuellen Implementierungsstand** ab. Geplante Features (TSE, DSFinV-K, Betreiber-Stammdaten) sind mit _(geplant)_ gekennzeichnet.
 
 > **Referenzen:** [anforderungen.md](anforderungen.md) · [handbuch.md](handbuch.md) · [language.md](language.md) · [roadmap.md](roadmap.md) · [compliance.md](compliance.md)
 
@@ -73,7 +73,7 @@ graph TB
 
     subgraph stammdaten ["📋 Stammdaten<br/><i>Supporting Sub-Domain</i>"]
         direction TB
-        stamm_desc["Produkte · Tische · Benutzer · Betreiber-Stammdaten<br/><b>Persistenz:</b> CRUD + Soft-Delete"]
+        stamm_desc["Produkte · Tische · Benutzer<br/><b>Persistenz:</b> CRUD + Soft-Delete"]
     end
 
     subgraph kasse ["💰 Kasse<br/><i>Core Domain</i>"]
@@ -107,9 +107,9 @@ graph LR
     end
 
     subgraph bereiche ["Berechtigungsbereiche"]
-        stamm["📋 Stammdaten<br/>Produkte · Tische · Benutzer<br/>Betreiber-Stammdaten"]
+        stamm["📋 Stammdaten<br/>Produkte · Tische · Benutzer"]
         basis["💰 Kasse (Basis)<br/>Bestellen · Ausgabe · Kassieren<br/>Tischübersicht · Kassenjournal"]
-        erweitert["⚠️ Kasse (Erweitert)<br/>Stornieren · Auszahlen<br/>Umbuchen"]
+        erweitert["⚠️ Kasse (Erweitert)<br/>Stornieren · Auszahlen"]
         kf["📊 Kasse — Kassensitzung<br/>Kassensitzung eröffnen · Kassenbestand<br/>Kassensturz · Z-Bon<br/>Kassenbewegungen"]
         reporting["📈 Reporting<br/>Tagesabrechnung · Datenexport<br/>DSFinV-K-Export"]
     end
@@ -228,7 +228,7 @@ graph TD
 
 ## 6 · Kasse — Bestellvorgang (Sequenz)
 
-Vom Tap der Servicekraft bis zum gedruckten Bon. Vor jeder Tisch-Operation prüft der Application Service die Kassensitzung-Sperre.
+Vom Tap der Servicekraft bis zum persistierten Event. Vor jeder Tisch-Operation prüft der Application Service die Kassensitzung-Sperre. _(TSE-Signierung ist geplant, aber noch nicht implementiert.)_
 
 ```mermaid
 sequenceDiagram
@@ -238,7 +238,6 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant KSP as kassensitzungen
     participant TSS as tisch_sessions
-    participant TSE as Cloud-TSE (fiskaly)
     participant Relay as Print-Relay
     participant Drucker as Bondrucker
 
@@ -258,8 +257,6 @@ sequenceDiagram
         rect rgb(240, 248, 255)
             Note over BE,TSS: Transaktion (BEGIN...COMMIT)
             Note over BE: Subject = "kassensitzung-1/tisch-42"
-            BE->>TSE: StartTransaction + FinishTransaction
-            TSE-->>BE: Signatur, Transaktionsnummer
             BE->>DB: INSERT INTO kassenjournal (BestellungAufgenommen)
             DB-->>BE: event_id, version
             BE->>TSS: SELECT tisch_sessions
@@ -298,7 +295,6 @@ classDiagram
         +int VarianteId
         +string Name
         +int PreisCents
-        +Steuersatz Steuersatz
         +EntityStatus Status
     }
 
@@ -307,13 +303,6 @@ classDiagram
         essen
         getraenk
         sonstiges
-    }
-
-    class Steuersatz {
-        <<enumeration>>
-        standard  : 19%
-        ermaessigt : 7%
-        befreit   : 0%
     }
 
     class Tisch {
@@ -346,15 +335,6 @@ classDiagram
         deleted
     }
 
-    class BetreiberStammdaten {
-        +string Name
-        +string Strasse
-        +string PLZ
-        +string Ort
-        +string? Steuernummer
-        +string? UStID
-    }
-
     class TischFavorit {
         +int UserId
         +int TischId
@@ -362,7 +342,6 @@ classDiagram
 
     Produkt "1" *-- "1..*" Variante : enthält
     Produkt --> Kategorie
-    Variante --> Steuersatz
     Variante --> EntityStatus
     Produkt --> EntityStatus
     Tisch --> EntityStatus
@@ -728,28 +707,26 @@ graph TB
 
     subgraph admin_api ["🔑 /admin/* — Rolle: admin"]
         subgraph admin_stamm ["Stammdaten"]
-            cp["create-produkt · update-produkt"]
-            cv["create-variante · update-variante<br/>activate-variante · deactivate-variante"]
-            ct["create-tisch · update-tisch<br/>activate-tisch · deactivate-tisch"]
-            cu["create-user · update-user<br/>activate-user · deactivate-user<br/>reset-password"]
+            cp["create-produkt · update-produkt<br/>activate-produkt · deactivate-produkt · delete-produkt"]
+            cv["create-variante · update-variante<br/>activate-variante · deactivate-variante · delete-variante"]
+            ct["create-tisch · update-tisch<br/>activate-tisch · deactivate-tisch · delete-tisch"]
+            cu["create-user · update-user<br/>activate-user · deactivate-user<br/>delete-user · reset-password"]
             gp["get-all-produkte · get-all-tische · get-all-users"]
         end
         subgraph admin_kf ["Kasse — Kassensitzung"]
             ak["kassensitzung-eroeffnen"]
             ab_set["anfangsbestand-setzen"]
+            gks["get-offene-kassensitzung"]
             gkb["get-kassenbestand"]
             bw["kassenbewegung-buchen"]
-            ks["kassensturz"]
-            ta["tagesabschluss"]
+            ks["kassensturz-durchfuehren"]
+            ta["tagesabschluss-erstellen"]
         end
-        subgraph admin_rep ["Reporting & Export"]
-            rep["get-reporting"]
-            exp["export/csv · export/dsfinvk"]
+        subgraph admin_rep ["Reporting"]
+            rep["get-abrechnung"]
         end
         subgraph admin_conf ["Konfiguration"]
-            dc["get-drucker-config · update-drucker-config"]
-            sn["kasse/seriennummer"]
-            bd["betreiber-stammdaten"]
+            dc["get-drucker-konfiguration · update-drucker-konfiguration"]
         end
     end
 
@@ -757,16 +734,16 @@ graph TB
         sb["bestellung-aufnehmen"]
         sa["ausgabe-bestaetigen"]
         sz["zahlung-kassieren"]
-        st["get-tisch · get-aktive-tische"]
-        sh["get-tisch-historie · get-tisch-saldo<br/>get-tisch-unbezahlt · get-tisch-ausstehend"]
-        sf["add-favorit · remove-favorit · get-favoriten"]
+        st["get-tisch-state · get-aktive-tische<br/>get-aktive-tische-mit-favoriten<br/>get-meine-tische-state"]
+        sh["get-tisch-historie"]
+        sf["favorit-hinzufuegen · favorit-entfernen"]
+        sp["get-aktive-produkte"]
         se["get-eigene-uebersicht"]
     end
 
     subgraph sl_api ["👔 /serviceleitung/* — Rolle: serviceleitung+"]
         sto["stornierung-erteilen"]
         aus["auszahlung-leisten"]
-        umb["umbuchung-durchfuehren"]
     end
 
     subgraph relay_api ["🖨️ /relay/* — Token-Auth"]
@@ -831,7 +808,7 @@ graph TB
 
 ## 17 · Datenbank-Schema (ER-Diagramm)
 
-Alle Tabellen des geplanten Endzustands — Domänen-Tabellen deutsch, Infrastruktur-Tabellen englisch.
+Alle Tabellen des aktuellen Schemas — Domänen-Tabellen deutsch, Infrastruktur-Tabellen englisch.
 
 ```mermaid
 erDiagram
@@ -852,8 +829,8 @@ erDiagram
         string name
         string kategorie "essen | getraenk | sonstiges"
         string status "active | inactive | deleted"
-        timestamptz erstellt_am
-        timestamptz aktualisiert_am
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     produkt_varianten {
@@ -861,18 +838,17 @@ erDiagram
         int produkt_id FK
         string name
         int preis_cents
-        string steuersatz "standard | ermaessigt | befreit"
         string status "active | inactive | deleted"
-        timestamptz erstellt_am
-        timestamptz aktualisiert_am
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     tische {
         int id PK
         string name
         string status "active | inactive | deleted"
-        timestamptz erstellt_am
-        timestamptz aktualisiert_am
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     kassenjournal {
@@ -922,24 +898,6 @@ erDiagram
         timestamptz updated_at
     }
 
-    system_config {
-        string key PK "z.B. kassen_id"
-        string value
-        timestamptz created_at
-    }
-
-    betreiber_stammdaten {
-        int id PK
-        string name
-        string strasse
-        string plz
-        string ort
-        string steuernummer
-        string ust_id
-        timestamptz erstellt_am
-        timestamptz aktualisiert_am
-    }
-
     produkte ||--o{ produkt_varianten : "hat Varianten"
     tische ||--o{ tisch_sessions : "hat Sessions"
     kassenjournal }o--|| kassensitzungen : "kassensitzung_nr → z_nr"
@@ -963,11 +921,11 @@ graph TB
     end
 
     subgraph service_guard ["ServiceGuard (service · serviceleitung · admin)"]
-        Dashboard["<b>/service/tables</b><br/>Service-Dashboard<br/>Meine Tische (Favoriten) als Rich Cards<br/>+ Eigene Übersicht (KPIs)"]
+        Dashboard["<b>/service/tische</b><br/>Service-Dashboard<br/>Meine Tische (Favoriten) als Rich Cards<br/>+ Eigene Übersicht (KPIs)"]
 
         AlleTische["<b>Drawer: Alle Tische</b><br/>Alle aktiven Tische<br/>Schnellsuche (K-11)<br/>Favoriten-Toggle ★"]
 
-        TischDetail["<b>/service/tables/:id</b><br/>Tisch-Detail mit 3 Tabs"]
+        TischDetail["<b>/service/tische/:tischId</b><br/>Tisch-Detail mit 3 Tabs"]
 
         subgraph tabs ["Tabs im Tisch-Detail"]
             TabBestellen["<b>Tab: Bestellen</b><br/>Produktkatalog nach Kategorie<br/>+/−  Mengensteuerung<br/>Ausgabe bestätigen (integriert)"]
@@ -985,15 +943,14 @@ graph TB
     end
 
     subgraph admin_guard ["AdminGuard (nur admin)"]
-        Produkte["<b>/admin/products</b><br/>Produkte & Varianten verwalten<br/>Steuersatz pro Variante"]
-        Tische["<b>/admin/tables</b><br/>Tische verwalten"]
-        Benutzer["<b>/admin/users</b><br/>Benutzer verwalten<br/>Einmalpasswort generieren"]
-        Drucker["<b>/admin/printer</b><br/>Druckerkonfiguration<br/>IP + Bonmodus pro Kategorie"]
-        Betreiber["<b>/admin/betreiber</b><br/>Betreiber-Stammdaten"]
+        Produkte["<b>/admin/produkte</b><br/>Produkte & Varianten verwalten"]
+        Tische["<b>/admin/tische</b><br/>Tische verwalten"]
+        Benutzer["<b>/admin/benutzer</b><br/>Benutzer verwalten<br/>Einmalpasswort generieren"]
+        Drucker["<b>/admin/drucker</b><br/>Druckerkonfiguration<br/>IP + Bonmodus pro Kategorie"]
 
-        subgraph kf_admin ["Kassenführung"]
-            KF_Übersicht["<b>/admin/kassenfuehrung</b><br/>Aktiver Abrechnungskreis<br/>Kassenbestand · Bewegungen<br/>Z-Bon-Historie"]
-            KF_AK["Abrechnungskreis eröffnen"]
+        subgraph kf_admin ["Kassensitzung"]
+            KF_Übersicht["<b>/admin/kasse</b><br/>Aktive Kassensitzung<br/>Kassenbestand · Bewegungen<br/>Z-Bon-Historie"]
+            KF_AK["Kassensitzung eröffnen"]
             KF_AB["Anfangsbestand setzen"]
             KF_BW["Kassenbewegungen buchen"]
             KF_KS["Kassensturz durchführen"]
@@ -1001,8 +958,7 @@ graph TB
         end
 
         subgraph rep_admin ["Reporting"]
-            Rep_Tages["<b>/admin/reporting</b><br/>Tagesabrechnung (KPIs)<br/>Umsatz pro Servicekraft/Tisch<br/>Stornierungsübersicht"]
-            Rep_Export["CSV-Export · DSFinV-K-Export"]
+            Rep_Tages["<b>/admin/auswertung</b><br/>Tagesabrechnung (KPIs)<br/>Umsatz pro Servicekraft/Tisch<br/>Stornierungsubersicht"]
         end
     end
 

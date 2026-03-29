@@ -153,7 +153,7 @@ Serviceleitung oder Admin können eine Auszahlung leisten, um einen negativen Ti
 ### K-06 · Tischübersicht und Navigation
 
 > **ID:** K-06 · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** ✅ Teilweise umgesetzt · **Prio:** Must-have
+> **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
 Das Service-Dashboard zeigt primär die eigenen Tische der Servicekraft als Rich Cards (→ K-14 Tisch-Favoriten). Über einen Drawer sind alle aktiven Tische erreichbar. Per Tap auf eine Tischkarte navigiert die Servicekraft zum Tisch-Detail mit drei Tabs: Bestellen, Bezahlen, Historie. Ausgabe bestätigen ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar.
 
@@ -266,7 +266,7 @@ Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eig
 ### K-14 · Tisch-Favoriten
 
 > **ID:** K-14 · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Must-have
+> **Status:** ✅ Umgesetzt · **Prio:** Must-have
 
 Jede Servicekraft kann Tische als Favoriten markieren ("Meine Tische"). Favoriten sind serverseitig pro Benutzer gespeichert und bleiben über Browser-Sessions hinweg erhalten. Die markierten Tische erscheinen als Rich Cards auf dem Service-Dashboard (K-06).
 
@@ -560,30 +560,27 @@ Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um s
 ### R-03 · Abrechnung pro Tisch
 
 > **ID:** R-03 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Should-have
+> **Status:** ✅ Umgesetzt · **Prio:** Should-have
 
-Der Admin kann eine detaillierte Abrechnung pro Tisch einsehen. Diese enthält alle Bestellungen, Zahlungen, Ausgaben und Stornierungen des jeweiligen Tisches in chronologischer Reihenfolge sowie einen Gesamt-Saldo — gefiltert auf die gewählte Kassensitzung.
+Der Admin kann eine aggregierte Umsatzübersicht pro Tisch für die gewählte Kassensitzung einsehen. Die Übersicht enthält Zahlungen und Auszahlungen je Tisch — als Bestandteil der Gesamt-Abrechnung (R-01, `GetAbrechnung`).
 
 **Akzeptanzkriterien:**
 
-- Detaillierte Aufstellung aller Bestellungen, Zahlungen, Ausgaben und Stornierungen eines Tisches in der Kassensitzung
-- Anzeige des Gesamt-Saldos (bestellt, bezahlt, offen, storniert)
-- Abrufbar für jeden einzelnen Tisch durch den Admin
-- Chronologische Reihenfolge der Ereignisse
+- Umsatz pro Tisch in der Kassensitzung (Summe Zahlungen, Summe Auszahlungen, Anzahl Zahlungen)
+- Abrufbar als Teil der Gesamt-Abrechnung (`GetAbrechnung` → `UmsatzProTisch[]`)
+- Nur durch Admin einsehbar
 
 ### R-04 · Abrechnung pro Servicekraft
 
 > **ID:** R-04 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Should-have
+> **Status:** ✅ Umgesetzt · **Prio:** Should-have
 
-Der Admin kann eine personenbezogene Abrechnung pro Servicekraft für die gewählte Kassensitzung einsehen. Diese zeigt den kassieren Umsatz, die Anzahl und Summe der aufgegebenen Bestellungen, Stornierungen sowie den Vergleich Bestellt vs. Kassiert — für die Endabrechnung und Nachvollziehbarkeit.
+Der Admin kann eine aggregierte Umsatzübersicht pro Servicekraft für die gewählte Kassensitzung einsehen. Diese zeigt die Summe und Anzahl der kassierten Zahlungen sowie Auszahlungen je Servicekraft — als Bestandteil der Gesamt-Abrechnung (R-01, `GetAbrechnung`).
 
 **Akzeptanzkriterien:**
 
-- Umsatz pro Servicekraft in der Kassensitzung (Summe aller von dieser Person registrierten Zahlungen)
-- Bestellvolumen pro Servicekraft (Anzahl und Summe der aufgegebenen Bestellungen)
-- Anzahl und Betrag der Stornierungen pro Servicekraft
-- Gegenüberstellung: Bestellsumme vs. kassierte Summe pro Person (Differenz = offene Beträge)
+- Umsatz pro Servicekraft in der Kassensitzung (Summe Zahlungen, Summe Auszahlungen, Anzahl Zahlungen)
+- Abrufbar als Teil der Gesamt-Abrechnung (`GetAbrechnung` → `UmsatzProServicekraft[]`)
 - Nur durch Admin einsehbar
 
 ### R-05 · Produktumsatz-Reporting
@@ -603,7 +600,7 @@ Der Admin kann Auswertungen über Produktumsätze in der gewählten Kassensitzun
 ### R-06 · Eigene Übersicht (Servicekraft)
 
 > **ID:** R-06 · **Rolle:** Servicekraft · Serviceleitung · Admin
-> **Status:** 🔲 Offen · **Prio:** Nice-to-have
+> **Status:** ✅ Umgesetzt · **Prio:** Nice-to-have
 
 Jede Servicekraft sieht auf dem Service-Dashboard eine kompakte KPI-Sektion mit ihren eigenen Aktivitäten: Anzahl und Summe der eigenen Bestellungen sowie Anzahl und Summe der eigenen kassierten Zahlungen. Die Karten bieten einen schnellen persönlichen Überblick über den eigenen Beitrag, ohne dass ein Admin benötigt wird.
 
@@ -800,38 +797,38 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 ### K-16 · Kassensitzung eröffnen
 
 > **ID:** K-16 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+> **Status:** ✅ Umgesetzt · **Prio:** Must-have · **Phase:** 1
 
 Eine `Kassensitzung` ist ein global nummerierter Betriebstag, den der Admin zu Beginn einer Veranstaltung eröffnet. Ohne offene Kassensitzung ist der gesamte Kassenbetrieb gesperrt. Die Kassensitzung wird als Event `kassensitzung-eroeffnet:v1` im Kassenjournal persistiert.
 
 **Akzeptanzkriterien:**
 
-- [ ] Maximal eine Kassensitzung kann gleichzeitig `offen` sein (Einzigkeits-Invariante)
-- [ ] Kassensitzungsnummer (`z_nr`) ist fortlaufend und lückenlos (nie zurücksetzbar)
-- [ ] Admin kann eine Kassensitzung mit Bezeichnung (z. B. „Sommerfest 2026 Tag 1") eröffnen
-- [ ] **Kassensitzung-Sperre:** Bestellungen aufnehmen, Zahlung registrieren, Ausgabe bestätigen, Stornierung erteilen und Auszahlung leisten sind serverseitig blockiert, solange keine Kassensitzung mit Status `offen` existiert (HTTP 409 mit sprechendem Fehlertext)
-- [ ] Frontend zeigt Servicekräften einen Hinweis „Kasse ist noch nicht geöffnet", wenn keine offene Kassensitzung vorhanden ist
-- [ ] Beim Tagesabschluss (K-22) wird die aktive Kassensitzung geschlossen
-- [ ] Alle Kassenjournal-Einträge sind einer Kassensitzung zugeordnet (`kassensitzung_nr`)
+- Maximal eine Kassensitzung kann gleichzeitig `offen` sein (Einzigkeits-Invariante)
+- Kassensitzungsnummer (`z_nr`) ist fortlaufend und lückenlos (nie zurücksetzbar)
+- Admin kann eine Kassensitzung mit Bezeichnung (z. B. „Sommerfest 2026 Tag 1") eröffnen
+- **Kassensitzung-Sperre:** Bestellungen aufnehmen, Zahlung registrieren, Ausgabe bestätigen, Stornierung erteilen und Auszahlung leisten sind serverseitig blockiert, solange keine Kassensitzung mit Status `offen` existiert (HTTP 409 mit sprechendem Fehlertext)
+- Frontend zeigt Servicekräften einen Hinweis „Kasse ist noch nicht geöffnet", wenn keine offene Kassensitzung vorhanden ist
+- Beim Tagesabschluss (K-22) wird die aktive Kassensitzung geschlossen
+- Alle Kassenjournal-Einträge sind einer Kassensitzung zugeordnet (`kassensitzung_nr`)
 
 ### K-17 · Anfangsbestand setzen
 
 > **ID:** K-17 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+> **Status:** ✅ Umgesetzt · **Prio:** Must-have · **Phase:** 1
 
 Vor Beginn einer Veranstaltung gibt der Admin den Anfangsbestand (Wechselgeld) ein. Dieser Betrag ist die Basis für die Kassenbestandsführung und die Kassensturzfähigkeit. Wird als Event `anfangsbestand-gesetzt:v1` im Kassenjournal persistiert.
 
 **Akzeptanzkriterien:**
 
-- [ ] Admin kann den Anfangsbestand in Cent eingeben (≥ 0)
-- [ ] Pro Kassensitzung wird genau ein Anfangsbestand gesetzt (Anfangsbestand-Invariante)
-- [ ] Der Anfangsbestand ist nach dem Setzen nicht änderbar (Korrekturen über Kassenbewegung)
-- [ ] Der Anfangsbestand fließt in die Soll-Berechnung des Kassenbestands ein
+- Admin kann den Anfangsbestand in Cent eingeben (≥ 0)
+- Pro Kassensitzung wird genau ein Anfangsbestand gesetzt (Anfangsbestand-Invariante)
+- Der Anfangsbestand ist nach dem Setzen nicht änderbar (Korrekturen über Kassenbewegung)
+- Der Anfangsbestand fließt in die Soll-Berechnung des Kassenbestands ein
 
 ### K-18 · Kassenbestand einsehen
 
 > **ID:** K-18 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+> **Status:** ✅ Umgesetzt · **Prio:** Must-have · **Phase:** 1
 
 Der Admin kann jederzeit den aktuellen Soll-Kassenbestand einsehen. Der Kassenbestand wird als SQL-Aggregation über das Kassenjournal berechnet (kein eigenes Read Model).
 
@@ -839,25 +836,25 @@ Der Admin kann jederzeit den aktuellen Soll-Kassenbestand einsehen. Der Kassenbe
 
 **Akzeptanzkriterien:**
 
-- [ ] Soll-Bestand wird als SQL-Aggregation über die relevanten Kassenjournal-Events berechnet
-- [ ] Aufschlüsselung nach Komponenten sichtbar (Anfangsbestand, Einnahmen, Auszahlungen, Kassenbewegungen)
-- [ ] Nur durch Admin einsehbar
+- Soll-Bestand wird als SQL-Aggregation über die relevanten Kassenjournal-Events berechnet
+- Aufschlüsselung nach Komponenten sichtbar (Anfangsbestand, Einnahmen, Auszahlungen, Kassenbewegungen)
+- Nur durch Admin einsehbar
 
 ### K-19 · Kassenbewegung buchen
 
 > **ID:** K-19 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+> **Status:** ✅ Umgesetzt · **Prio:** Must-have · **Phase:** 1
 
 Der Admin kann Kassenbewegungen buchen: **Geldtransit** (Entnahme zur Bank/Tresor), **Privatentnahme** (Bargeld in den privaten Bereich) oder **Privateinlage** (z. B. Nachfüllen von Wechselgeld). Jede Buchung erzeugt ein `kassenbewegung-gebucht:v1`-Event mit dem Feld `art` (geldtransit | privatentnahme | privateinlage).
 
 **Akzeptanzkriterien:**
 
-- [ ] Admin kann Art der Bewegung wählen: `geldtransit`, `privatentnahme`, `privateinlage`
-- [ ] Betrag in Cent eingeben (≥ 1)
-- [ ] Kommentar ist Pflichtfeld (min. 3, max. 200 Zeichen)
-- [ ] Geldtransit und Privatentnahme reduzieren den Soll-Kassenbestand
-- [ ] Privateinlage erhöht den Soll-Kassenbestand
-- [ ] DSFinV-K: Geschäftsvorfalltyp `Geldtransit`, `Privatentnahme` bzw. `Privateinlage` je nach Art
+- Admin kann Art der Bewegung wählen: `geldtransit`, `privatentnahme`, `privateinlage`
+- Betrag in Cent eingeben (≥ 1)
+- Kommentar ist Pflichtfeld (min. 3, max. 200 Zeichen)
+- Geldtransit und Privatentnahme reduzieren den Soll-Kassenbestand
+- Privateinlage erhöht den Soll-Kassenbestand
+- DSFinV-K: Geschäftsvorfalltyp `Geldtransit`, `Privatentnahme` bzw. `Privateinlage` je nach Art
 
 ### K-20 · Betreiber-Stammdaten verwalten
 
@@ -877,31 +874,31 @@ Der Admin pflegt die Stammdaten des Betreibers (Verein): Name, Adresse und optio
 ### K-21 · Kassensturz durchführen
 
 > **ID:** K-21 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+> **Status:** ✅ Umgesetzt · **Prio:** Must-have · **Phase:** 1
 
 Am Ende einer Schicht führt der Admin einen Kassensturz durch: Er gibt den physisch gezählten Bargeldbestand (Ist-Bestand) ein, und das System vergleicht diesen mit dem errechneten Soll-Bestand. Der Application Service schreibt ein `kassensturz-durchgefuehrt:v1`-Event; bei Differenz ≠ 0 folgt ein `differenz-soll-ist-gebucht:v1`-Event in derselben Transaktion (Zwei-Event-Muster).
 
 **Akzeptanzkriterien:**
 
-- [ ] Admin gibt den gezählten Ist-Bestand in Cent ein (≥ 0)
-- [ ] System zeigt Soll-Bestand, Ist-Bestand und Differenz an
-- [ ] Bei Differenz ≠ 0: automatische Buchung eines `differenz-soll-ist-gebucht:v1`-Events (eigenständiger Beleg für DSFinV-K)
-- [ ] Kassensturz ist Voraussetzung für den Tagesabschluss (K-22)
+- Admin gibt den gezählten Ist-Bestand in Cent ein (≥ 0)
+- System zeigt Soll-Bestand, Ist-Bestand und Differenz an
+- Bei Differenz ≠ 0: automatische Buchung eines `differenz-soll-ist-gebucht:v1`-Events (eigenständiger Beleg für DSFinV-K)
+- Kassensturz ist Voraussetzung für den Tagesabschluss (K-22)
 
 ### K-22 · Tagesabschluss / Z-Bon erstellen
 
 > **ID:** K-22 · **Rolle:** Admin
-> **Status:** 🔲 Offen · **Prio:** Must-have · **Phase:** 1
+> **Status:** ✅ Umgesetzt · **Prio:** Must-have · **Phase:** 1
 > **Ersetzt:** R-07
 
 Der Admin erstellt am Ende einer Veranstaltung/Schicht einen formalen Tagesabschluss (Z-Bon). Der Z-Bon wird als `tagesabschluss-erstellt:v1`-Event im Kassenjournal persistiert und schließt die Kassensitzung ab (Status → `abgeschlossen`).
 
 **Akzeptanzkriterien:**
 
-- [ ] Admin kann einen Tagesabschluss einleiten
-- [ ] Voraussetzung: Kassensturz (K-21) muss durchgeführt sein (Kassensturz-Reihenfolge-Invariante)
-- [ ] Voraussetzung: Alle Tisch-Sessions der Kassensitzung müssen Saldo = 0 haben (Tisch-Saldo-Sperre)
-- [ ] Z-Bon enthält: `z_nr`, Zeitraum, aggregierte Umsätze nach Steuersätzen, Zahlungsarten, Stornierungen, Kassenbestand (Soll/Ist/Differenz)
-- [ ] Die aktive Kassensitzung wird geschlossen (Status → `abgeschlossen`, Abschluss-Invariante)
-- [ ] Z-Bons sind unveränderlich nach Erstellung — kein Update, kein Delete (Event-Sourcing-Garantie)
-- [ ] Z-Bons müssen 10 Jahre aufbewahrt werden (Hinweis an Betreiber)
+- Admin kann einen Tagesabschluss einleiten
+- Voraussetzung: Kassensturz (K-21) muss durchgeführt sein (Kassensturz-Reihenfolge-Invariante)
+- Voraussetzung: Alle Tisch-Sessions der Kassensitzung müssen Saldo = 0 haben (Tisch-Saldo-Sperre)
+- Z-Bon enthält: `z_nr`, Zeitraum, aggregierte Umsätze nach Steuersätzen, Zahlungsarten, Stornierungen, Kassenbestand (Soll/Ist/Differenz)
+- Die aktive Kassensitzung wird geschlossen (Status → `abgeschlossen`, Abschluss-Invariante)
+- Z-Bons sind unveränderlich nach Erstellung — kein Update, kein Delete (Event-Sourcing-Garantie)
+- Z-Bons müssen 10 Jahre aufbewahrt werden (Hinweis an Betreiber)

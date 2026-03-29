@@ -6,15 +6,27 @@
 
 ---
 
-## 1 · Codebase-Bereinigung
+## Abgeschlossen
 
-- [x] Frontend: TS-Typen und Zod-Schemas auf Ubiquitous Language umbenennen (`Product`→`Produkt`, `Variant`→`Variante`, `Category`→`Kategorie`, `PriceCents`→`PreisCents`, `Comment`→`Kommentar`, `Quantity`→`Menge`)
-- [x] Frontend: Routen auf Ubiquitous Language umgestellt (`/admin/products`→`/admin/produkte`, `/admin/tables`→`/admin/tische`, `/admin/users`→`/admin/benutzer`, `/admin/reporting`→`/admin/auswertung`, `/service/tables`→`/service/tische`)
-- [x] `language.md` aktualisieren — Ist/Soll-Abweichungen als erledigt markieren, Routen-Konvention auf Deutsch aktualisiert
+| Ehem. § | Titel                       | Referenz | Anmerkung                                                                                                      |
+| ------- | --------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| 1       | Codebase-Bereinigung        | —        | Frontend UL-Rename (TS-Typen, Zod-Schemas, Routen), `language.md` aktualisiert                                 |
+| 6       | Kasse — DB-Schema           | —        | `events`→`kassenjournal`, `table_state`→`tisch_sessions`, `kassensitzungen` CRUD-Entität, `kassenjournal_repo` |
+| 7       | Kassensitzung eröffnen      | K-16     | Domain-Modell `domain/kasse/`, Kassensitzung-Sperre (HTTP 409), Admin-UI, Service-Hinweis                      |
+| 8       | Anfangsbestand setzen       | K-17     | `anfangsbestand-gesetzt:v1`-Event, Admin-UI, Anfangsbestand-Invariante                                         |
+| 9       | Kassenbewegungen            | K-19     | `kassenbewegung-gebucht:v1`-Event mit `art`-Feld, Admin-UI                                                     |
+| 10      | Kassenbestand               | K-18     | SQL-Aggregation über Kassenjournal, Aufschlüsselung nach Komponenten                                           |
+| 11      | Kassensturz                 | K-21     | Zwei-Event-Muster (`kassensturz-durchgefuehrt:v1` + `differenz-soll-ist-gebucht:v1`), Admin-UI                 |
+| 12      | Tagesabschluss / Z-Bon      | K-22     | `tagesabschluss-erstellt:v1`-Event, Tisch-Saldo-Sperre, Kassensturz-Reihenfolge-Invariante                     |
+| 13      | Admin-Dashboard: Kasse      | —        | Kassensitzung-Übersicht, Navigation, Routing                                                                   |
+| —       | Tisch-Favoriten             | K-14     | DB `tisch_favoriten`, `favorit_repo`, API-Endpunkte, Frontend Star-Toggle                                      |
+| —       | Abrechnung pro Tisch        | R-03     | Als Bestandteil von R-01/`GetAbrechnung` (`UmsatzProTisch[]`)                                                  |
+| —       | Abrechnung pro Servicekraft | R-04     | Als Bestandteil von R-01/`GetAbrechnung` (`UmsatzProServicekraft[]`)                                           |
+| —       | Eigene Übersicht            | R-06     | `EigeneUebersicht` Domain-Modell, `/service/get-eigene-uebersicht`                                             |
 
 ---
 
-## 2 · Seriennummer (F-01)
+## 1 · Seriennummer (F-01)
 
 - [ ] DB: `system_config`-Tabelle anlegen
 - [ ] Backend: UUID-v4 beim ersten Start generieren und persistieren, API-Endpunkt `/admin/kasse/seriennummer`
@@ -22,7 +34,7 @@
 
 ---
 
-## 3 · Steuersätze (F-07)
+## 2 · Steuersätze (F-07)
 
 - [ ] DB: Spalte `steuersatz` auf `produkt_varianten` ergänzen (`standard` / `ermaessigt` / `befreit`)
 - [ ] Backend: Steuersatz-Enum, Validierung, Produkt-CRUD anpassen
@@ -33,7 +45,7 @@
 
 ---
 
-## 4 · Betreiber-Stammdaten (K-20)
+## 3 · Betreiber-Stammdaten (K-20)
 
 - [ ] DB: `betreiber_stammdaten`-Tabelle anlegen (Name, Adresse, Steuernummer)
 - [ ] Backend: CRUD — Repository, Service, Handler
@@ -41,7 +53,7 @@
 
 ---
 
-## 5 · Belegausgabe — Pflichtfelder (F-03)
+## 4 · Belegausgabe — Pflichtfelder (F-03)
 
 - [ ] Backend: Beleg um Pflichtfelder erweitern (Steuersatz, Steuerbetrag pro Position, Seriennummer der Kasse, Betreiberadresse, Zahlungsart)
 - [ ] ESC/POS-Bonformat aktualisieren
@@ -49,79 +61,7 @@
 
 ---
 
-## 6 · Kasse — DB-Schema (Kassenjournal + Projektionen)
-
-- [ ] DB: `events` → `kassenjournal` in `01_initial.up.sql` umbenennen (+ `kassensitzung_nr`-Spalte, Trigger, Indizes)
-- [ ] DB: `table_state` → `tisch_sessions` (session-scoped: PK = `subject`, mit `tisch_id`, `kassensitzung_nr`)
-- [ ] DB: CRUD-Entität `kassensitzungen` anlegen (PK: `z_nr` IDENTITY, `datum`, `bezeichnung`, `status`, `created_at`, `updated_at`)
-- [ ] DB: Alte Tabellen `abrechnungskreis`, `kassenbewegungen`, `kassensturz`, `z_bons` entfernen (falls geplant)
-- [ ] Repository: `kassenjournal_repo/` (ersetzt `event_repo/`) mit explizitem `StreamType`-Routing
-- [ ] `make sqlc` — Queries generieren
-
----
-
-## 7 · Kassensitzung eröffnen (K-16)
-
-- [ ] Backend: Domain-Modell `domain/kasse/` mit Kassensitzung-Events und -State
-- [ ] Backend: Application Service, HTTP Handler für `KassensitzungEroeffnen`
-- [ ] Backend: Kassensitzung-Sperre — schreibende Tischoperationen mit HTTP 409 ablehnen, wenn keine `offen`e Kassensitzung existiert
-- [ ] Frontend: Admin-Seite — Kassensitzung mit Bezeichnung eröffnen (Tageseröffnung)
-- [ ] Frontend: Hinweis „Kasse ist noch nicht geöffnet" für Servicekräfte bei fehlender offener Kassensitzung
-- [ ] Tests
-
----
-
-## 8 · Anfangsbestand setzen (K-17)
-
-- [ ] Backend: Application Service, Handler (Betrag pro Kassensitzung, einmalig via `AnfangsbestandGesetzt`-Event)
-- [ ] Frontend: Anfangsbestand-Eingabe im Admin
-- [ ] Tests
-
----
-
-## 9 · Kassenbewegungen (K-19)
-
-- [ ] Backend: `KassenbewegungGebucht`-Event mit `art`-Feld (geldtransit | privatentnahme | privateinlage)
-- [ ] Backend: Application Service, Handler für einheitliches `kassenbewegung-buchen`
-- [ ] Frontend: Kassenbewegungen-UI im Admin (einheitliches Formular mit Bewegungsart-Auswahl)
-- [ ] Tests
-
----
-
-## 10 · Kassenbestand (K-18)
-
-- [ ] Backend: Kassenbestand als SQL-Aggregation über das Kassenjournal (`WHERE kassensitzung_nr = $1`)
-- [ ] Frontend: Kassenbestand-Anzeige mit Aufschlüsselung nach Komponenten
-- [ ] Tests
-
----
-
-## 11 · Kassensturz (K-21)
-
-- [ ] Backend: Zwei-Event-Muster — `KassensturzDurchgefuehrt` + `DifferenzSollIstGebucht` (wenn Differenz ≠ 0) in einer Transaktion
-- [ ] Frontend: Kassensturz-Dialog im Admin (Soll vs. Ist, Differenz-Anzeige)
-- [ ] Tests
-
----
-
-## 12 · Tagesabschluss / Z-Bon (K-22)
-
-- [ ] Backend: `TagesabschlussErstellt`-Event, Kassensitzung abschließen (Status → `abgeschlossen`)
-- [ ] Backend: Z-Bon als Aggregation über Kassenjournal (keine Stammdaten-Snapshot-Pflicht, Änderungssperre garantiert Konsistenz)
-- [ ] Backend: Tisch-Saldo-Sperre prüfen (alle Tische müssen Saldo = 0 haben)
-- [ ] Frontend: Tagesabschluss-Workflow im Admin (offene Tische anzeigen, Kassensturz-Voraussetzung prüfen, Bestätigung)
-- [ ] Tests
-
----
-
-## 13 · Admin-Dashboard: Kasse
-
-- [ ] Frontend: Kasse-Übersichtsseite im Admin (aktive Kassensitzung, Kassenbestand, letzte Bewegungen, Z-Bon-Historie)
-- [ ] Frontend: Navigation und Routing für alle Kasse-Funktionen
-
----
-
-## 14 · ELSTER-Dokumentation (F-05)
+## 5 · ELSTER-Dokumentation (F-05)
 
 - [ ] `docs/betrieb/elster-meldung.md` — Schritt-für-Schritt-Anleitung für manuelle ELSTER-Meldung
 - [ ] Frontend: Meldepflicht-Hinweis im Admin-Dashboard mit Link zur Anleitung und Seriennummer
@@ -129,29 +69,25 @@
 
 ---
 
-## 15 · Verfahrensdokumentation
+## 6 · Verfahrensdokumentation
 
 - [ ] `docs/betrieb/verfahrensdokumentation.md` — Vorlage für Betriebsprüfer erstellen (Systemarchitektur, Datenbankschutz, Zugriffskontrollen)
 
 ---
 
-## 16 · Dokumentation nach Phase 1
+## 7 · Dokumentation synchronisieren
 
-- [ ] `anforderungen.md` — Status aller Kasse- und Compliance-Features aktualisieren
-- [ ] `compliance.md` — Compliance-Status nach Phase 1 aktualisieren
-- [ ] `handbuch.md` — Kasse-Code-Referenzen ergänzen
-
----
-
-## 17 · Reporting: Abrechnung pro Tisch (R-03)
-
-- [ ] Backend: Detaillierte Tisch-Abrechnung (alle Events chronologisch mit Saldo)
-- [ ] Frontend: Tisch-Detail-Abrechnung im Admin-Reporting
-- [ ] Tests
+- [x] `anforderungen.md` — Status aller Kasse- und Compliance-Features aktualisieren
+- [x] `roadmap.md` — Komplett überarbeiten (Abgeschlossen-Tabelle + offene Items)
+- [x] `language.md` — Abweichungstabelle aktualisieren
+- [x] `compliance.md` — F-06 Status auf ✅ Umgesetzt
+- [x] `handbuch.md` — EigeneUebersicht als Read-Model ergänzen
+- [x] `diagrams.md` — Alle Diagramme gegen den Code prüfen und korrigieren
+- [x] `AGENTS.md` und `README.md` — Gegen aktuellen Stand prüfen
 
 ---
 
-## 18 · Reporting: Produktumsatz (R-05)
+## 8 · Reporting: Produktumsatz (R-05)
 
 - [ ] Backend: Produktumsatz-Aggregation (Mengen pro Variante, Ranking, Einnahmen)
 - [ ] Frontend: Produktumsatz-Ansicht im Admin-Reporting
@@ -159,7 +95,7 @@
 
 ---
 
-## 19 · Küchendisplay / KDS (K-13)
+## 9 · Küchendisplay / KDS (K-13)
 
 - [ ] Backend: Endpunkte für offene Bestellungen nach Kategorie (gruppiert nach Tisch)
 - [ ] Frontend: KDS-Ansicht als eigene Route (Echtzeit-Polling oder SSE)
@@ -168,7 +104,7 @@
 
 ---
 
-## 20 · TSE-Integration — Interface & Adapter (F-02)
+## 10 · TSE-Integration — Interface & Adapter (F-02)
 
 - [ ] Backend: `TSEClient` Go-Interface definieren (`StartTransaction`, `UpdateTransaction`, `FinishTransaction`)
 - [ ] Backend: `FiskalyTSEClient` implementieren (REST-Adapter für fiskaly Cloud-TSE)
@@ -178,7 +114,7 @@
 
 ---
 
-## 21 · TSE-Hooks auf Zahlungsfluss
+## 11 · TSE-Hooks auf Zahlungsfluss
 
 - [ ] Backend: TSE-Transaktion bei `BestellungAufnehmen`
 - [ ] Backend: TSE-Transaktion bei `ZahlungKassieren` und `StornierungErteilen`
@@ -188,14 +124,14 @@
 
 ---
 
-## 22 · TSE-Felder auf Beleg
+## 12 · TSE-Felder auf Beleg
 
 - [ ] Beleg um TSE-Pflichtfelder erweitern (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
 - [ ] QR-Code auf Beleg generieren (DSFinV-K Anhang I)
 
 ---
 
-## 23 · DSFinV-K-Export (F-04)
+## 13 · DSFinV-K-Export (F-04)
 
 - [ ] Backend: `POST /admin/export/dsfinvk` — ZIP-Archiv mit allen Pflicht-CSV-Dateien
 - [ ] `Stamm_Abschluss.csv`, `Stamm_Kassen.csv`, `Stamm_TSE.csv`, `Stamm_Orte.csv`
@@ -206,34 +142,34 @@
 
 ---
 
-## 24 · Dokumentation nach Phase 2
+## 14 · Dokumentation nach TSE-Integration
 
-- [ ] `compliance.md` — Compliance-Status nach Phase 2 aktualisieren
+- [ ] `compliance.md` — Compliance-Status nach TSE-Integration aktualisieren
 - [ ] `anforderungen.md` — F-02, F-04 Status aktualisieren
 - [ ] `handbuch.md` — TSE-Architektur und DSFinV-K-Export dokumentieren
 
 ---
 
-## 25 · Rückgeldberechnung (K-10)
+## 15 · Rückgeldberechnung (K-10)
 
 - [ ] Frontend: Eingabefeld für erhaltenen Bargeldbetrag bei Zahlung, clientseitige Rückgeld-Anzeige
 
 ---
 
-## 26 · Tisch-Schnellsuche (K-11)
+## 16 · Tisch-Schnellsuche (K-11)
 
 - [ ] Frontend: Suchfeld im Alle-Tische-Drawer (clientseitige Filterung nach Name/Nummer)
 
 ---
 
-## 27 · Datenexport CSV (R-02)
+## 17 · Datenexport CSV (R-02)
 
 - [ ] Backend: `POST /admin/export/csv` — Umsätze, Bestellungen, Artikeldaten als CSV
 - [ ] Frontend: Export-Button im Reporting (Kassensitzung wählbar)
 
 ---
 
-## 28 · Bestellungen umbuchen (K-09)
+## 18 · Bestellungen umbuchen (K-09)
 
 - [ ] Backend: Umbuchungs-Command (atomare Stornierung am Quell-Tisch + Neubestellung am Ziel-Tisch)
 - [ ] Frontend: Umbuchung-UI (Ziel-Tisch auswählen)
@@ -241,7 +177,7 @@
 
 ---
 
-## 29 · Ausgabestationen / Zubereitungsstatus (K-15)
+## 19 · Ausgabestationen / Zubereitungsstatus (K-15)
 
 - [ ] Backend: Zubereitungsstatus-Endpunkte (in Zubereitung → fertig)
 - [ ] Frontend: Status-Verwaltung auf KDS-Ansicht
@@ -250,9 +186,9 @@
 
 ---
 
-## 30 · Tisch-Session Phase 2 — Manuelle Tischfreigabe
+## 20 · Tisch-Session Phase 2 — Manuelle Tischfreigabe
 
-> Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der Realität: mehrere Gästegruppen an einem Tisch erhalten jeweils einen eigenen Abrechnungskreis (Tisch-Session). Empfohlen zeitnah nach Abschluss der Phase-2-TSE-Integration umzusetzen.
+> Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der Realität: mehrere Gästegruppen an einem Tisch erhalten jeweils einen eigenen Abrechnungskreis (Tisch-Session). Empfohlen zeitnah nach Abschluss der TSE-Integration umzusetzen.
 
 - [ ] Backend: Domain-Aktion `TischFreigegeben` — neue Tisch-Session mit Suffix starten (z. B. `kassensitzung-1/tisch-42-b`)
 - [ ] Frontend: UI-Aktion „Tisch freimachen" in der Servicekraft-Ansicht
@@ -260,7 +196,7 @@
 
 ---
 
-## 31 · Compliance Phase 3 — eBeleg
+## 21 · Compliance Phase 3 — eBeleg
 
 - [ ] Backend: Digitaler Beleg als Download-Link (PDF oder HTML)
 - [ ] Backend: QR-Code mit Download-URL generieren
@@ -268,14 +204,14 @@
 
 ---
 
-## 32 · Compliance Phase 3 — Automatisierte ELSTER-Meldung
+## 22 · Compliance Phase 3 — Automatisierte ELSTER-Meldung
 
 - [ ] Backend: Programmatische Meldung über ERiC-Schnittstelle oder fiskaly Submission API
 - [ ] Frontend: ELSTER-Meldung direkt aus Admin-Dashboard auslösen
 
 ---
 
-## 33 · GoBD Hash-Chain (F-08)
+## 23 · GoBD Hash-Chain (F-08)
 
 - [ ] Backend: SHA-256-Verkettung aller Events (`previous_hash` pro Event)
 - [ ] Backend: Genesis-Hash pro Abrechnungskreis
@@ -284,21 +220,9 @@
 
 ---
 
-## 34 · Offline-Fähigkeit (Q-05)
+## 24 · Offline-Fähigkeit (Q-05)
 
 - [ ] Frontend: Service Worker für App-Shell-Caching
 - [ ] Frontend: Lokale Bestellungs-Speicherung bei Verbindungsverlust
 - [ ] Frontend: Automatische Synchronisierung bei Reconnect
 - [ ] Frontend: Offline-Indikator in der UI
-
----
-
-## 35 · Dokumentation & Release
-
-- [ ] `README.md` aktualisieren (Kasse, Compliance-Status, aktuelle Features)
-- [ ] Website (`website/`) aktualisieren (Featureliste, Screenshots)
-- [ ] `docs/hosting.md` vervollständigen (Setup-Anleitung, Backup, Updates)
-- [ ] Changelog / Release Notes erstellen
-- [ ] `anforderungen.md` — alle Status finalisieren
-- [ ] `compliance.md` — Gesamtstatus finalisieren
-- [ ] `produktbeschreibung.md` — Marketingtexte an finalen Funktionsumfang anpassen

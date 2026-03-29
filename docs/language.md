@@ -38,19 +38,29 @@ Alle bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben
 
 ### Kein Handlungsbedarf (bewusst korrekt)
 
-| Bereich               | Ist (Code)                                         | Begründung                                                                                      |
-| --------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| DB-Tabellen (Infra)   | `users`, `kassenjournal`                           | Englisch ist korrekt — Infrastruktur / Generic Sub-Domain.                                      |
-| DB-Tabellen (Domain)  | `tische`, `produkte`, `produkt_varianten`          | Deutsch ist korrekt — Domänenbegriffe sind vertikal konsistent.                                 |
-| Frontend-Routen       | `/admin/produkte`, `/service/tische`               | Deutsch ist korrekt — Routen repräsentieren Domänenkonzepte.                                    |
-| Auth-Code             | `User`, `Role`, `OnetimePassword`                  | Englisch ist korrekt — Generic Sub-Domain.                                                      |
-| Auth-Routen           | `/login`, `/set-password`                          | Englisch ist korrekt — Auth ist Infrastruktur.                                                  |
-| Status-Enums          | `active`, `inactive`, `deleted`                    | Englisch ist korrekt — technische Lifecycle-States, kein Domänenbegriff.                        |
-| Kassenjournal         | `Historie` (Code) vs. `Kassenjournal` (Entwurf)    | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert. |
-| Kassenjournal-Tabelle | `events` (Ist) → `kassenjournal` (Soll)            | Umbenennung im Kassenjournal-Redesign geplant.                                                  |
-| Projektions-Tabelle   | `table_state` (Ist) → `tisch_sessions` (Soll)      | PK ändert sich von `tisch_id` zu `subject` (session-scoped).                                    |
-| Domain-Paket          | `domain/table/` (Ist) → `domain/kasse/` (Soll)     | Tisch-Stammdaten bleiben in `domain/table/`, Kasse-Logik wandert nach `domain/kasse/`.          |
-| Repository-Paket      | `event_repo/` (Ist) → `kassenjournal_repo/` (Soll) | Umbenennung im Kassenjournal-Redesign geplant.                                                  |
+| Bereich              | Ist (Code)                                      | Begründung                                                                                      |
+| -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| DB-Tabellen (Infra)  | `users`, `kassenjournal`                        | Englisch ist korrekt — Infrastruktur / Generic Sub-Domain.                                      |
+| DB-Tabellen (Domain) | `tische`, `produkte`, `produkt_varianten`       | Deutsch ist korrekt — Domänenbegriffe sind vertikal konsistent.                                 |
+| Frontend-Routen      | `/admin/produkte`, `/service/tische`            | Deutsch ist korrekt — Routen repräsentieren Domänenkonzepte.                                    |
+| Auth-Code            | `User`, `Role`, `OnetimePassword`               | Englisch ist korrekt — Generic Sub-Domain.                                                      |
+| Auth-Routen          | `/login`, `/set-password`                       | Englisch ist korrekt — Auth ist Infrastruktur.                                                  |
+| Status-Enums         | `active`, `inactive`, `deleted`                 | Englisch ist korrekt — technische Lifecycle-States, kein Domänenbegriff.                        |
+| Kassenjournal        | `Historie` (Code) vs. `Kassenjournal` (Entwurf) | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert. |
+
+### Abgeschlossene Migrationen
+
+Die folgenden Umbenennungen wurden im Kassenjournal-Redesign abgeschlossen und sind im Code vollständig umgesetzt.
+
+| Bereich          | Alt (vor Redesign) | Neu (aktueller Code)  | Status           |
+| ---------------- | ------------------ | --------------------- | ---------------- |
+| DB-Tabelle       | `events`           | `kassenjournal`       | ✅ Abgeschlossen |
+| DB-Projektion    | `table_state`      | `tisch_sessions`      | ✅ Abgeschlossen |
+| Domain-Paket     | `domain/table/`    | `domain/kasse/`       | ✅ Abgeschlossen |
+| Repository-Paket | `event_repo/`      | `kassenjournal_repo/` | ✅ Abgeschlossen |
+| Frontend-Typen   | Englische Typen    | Deutsche UL-Typen     | ✅ Abgeschlossen |
+
+> **Hinweis `domain/table/`:** Das Paket existiert weiterhin für Tisch-Stammdaten (`tisch.go`). Die Kasse-Logik (Event-Sourcing, Tisch-Sessions, Kassensitzung) wurde nach `domain/kasse/` ausgelagert — `domain/table/` enthält nur noch die CRUD-Entität `Tisch`.
 
 ---
 

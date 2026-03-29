@@ -28,17 +28,17 @@ Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Comp
 
 ### Compliance-Status
 
-| ID   | Bereich                 | Phase | Status                                         | Priorität   |
-| ---- | ----------------------- | ----- | ---------------------------------------------- | ----------- |
-| F-01 | **Seriennummer**        | 1     | 🔲 UUID + Admin-Anzeige                        | Must        |
-| F-02 | **TSE-Integration**     | 2     | 🔲 TSEClient + fiskaly                         | Should      |
-| F-03 | **Belegausgabepflicht** | 0/1/2 | ✅ Basis (ohne TSE-Felder)                     | Must        |
-| F-04 | **DSFinV-K Export**     | 2     | 🔲 CSV-ZIP                                     | Should      |
-| F-05 | **ELSTER-Meldung**      | 1     | 🔲 Anleitung für Betreiber                     | Must (Doku) |
-| F-06 | **Abrechnungskreis**    | 1/2   | 🔲 Pro Tisch und Tag (`Tisch-{Nr}-{YYYYMMDD}`) | Should      |
-| F-07 | **Steuersätze**         | 1     | 🔲 19 % / 7 % / 0 %                            | Must        |
-| F-08 | **GoBD-Hash-Chain**     | 3     | 🔲 SHA-256-Verkettung                          | Nice        |
-| —    | **GoBD-Konformität**    | 0     | ✅ Teilweise — Event-Sourcing (Basis)          | Laufend     |
+| ID   | Bereich                 | Phase | Status                                                                    | Priorität   |
+| ---- | ----------------------- | ----- | ------------------------------------------------------------------------- | ----------- |
+| F-01 | **Seriennummer**        | 1     | 🔲 UUID + Admin-Anzeige                                                   | Must        |
+| F-02 | **TSE-Integration**     | 2     | 🔲 TSEClient + fiskaly                                                    | Should      |
+| F-03 | **Belegausgabepflicht** | 0/1/2 | ✅ Basis (ohne TSE-Felder)                                                | Must        |
+| F-04 | **DSFinV-K Export**     | 2     | 🔲 CSV-ZIP                                                                | Should      |
+| F-05 | **ELSTER-Meldung**      | 1     | 🔲 Anleitung für Betreiber                                                | Must (Doku) |
+| F-06 | **Abrechnungskreis**    | 1     | ✅ Pro Tisch und Kassensitzung (Subject: `kassensitzung-{nr}/tisch-{id}`) | Should      |
+| F-07 | **Steuersätze**         | 1     | 🔲 19 % / 7 % / 0 %                                                       | Must        |
+| F-08 | **GoBD-Hash-Chain**     | 3     | 🔲 SHA-256-Verkettung                                                     | Nice        |
+| —    | **GoBD-Konformität**    | 0     | ✅ Teilweise — Event-Sourcing (Basis)                                     | Laufend     |
 
 **Legende:** ✅ Implementiert · 🔲 Offen · ⏳ In Arbeit — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen — siehe [roadmap.md](roadmap.md)
 
@@ -261,7 +261,7 @@ StartTransaction(processType="Kassenbeleg-V1") → sofort → FinishTransaction
 
 Die `processData` enthält Gesamtbetrag, Steuersätze und Zahlungsart. Diese Transaktion ist ebenfalls sofort geschlossen.
 
-**Verknüpfung**: Alle Bestellungen und Zahlungen eines Tisches werden im DSFinV-K-Export über das Feld `ABRECHNUNGSKREIS` (z.B. `"Tisch-42-20260501"`) zusammengeführt (siehe Abschnitt 8).
+**Verknüpfung**: Alle Bestellungen und Zahlungen eines Tisches werden im DSFinV-K-Export über das Feld `ABRECHNUNGSKREIS` (z.B. `"Tisch 42"`) zusammengeführt (siehe Abschnitt 8).
 
 #### Konkretes Szenario: Maihock, Tisch 42
 
@@ -270,27 +270,27 @@ Die `processData` enthält Gesamtbetrag, Steuersätze und Zahlungsart. Diese Tra
 18:01 — Bestellung: 4x Maß Bier, 2x Weißwurst
         → StartTransaction(Bestellung-V1) + FinishTransaction
           → TSE-Signatur S1, transactionNumber=1001
-        → ABRECHNUNGSKREIS = "Tisch-42-20260501"
+        → ABRECHNUNGSKREIS = "Tisch 42"
 
 19:30 — Bestellung: 4x Maß Bier (Nachbestellung)
         → StartTransaction(Bestellung-V1) + FinishTransaction
           → TSE-Signatur S2, transactionNumber=1002
-        → ABRECHNUNGSKREIS = "Tisch-42-20260501"
+        → ABRECHNUNGSKREIS = "Tisch 42"
 
 20:00 — 2 Gäste zahlen: 2x Bier = 14,00 €, bar
         → StartTransaction(Kassenbeleg-V1) + FinishTransaction
           → TSE-Signatur S3, transactionNumber=1003
           → Bon: enthält zusätzlich "Erste Bestellung: 18:01 Uhr" (s. §7)
-        → ABRECHNUNGSKREIS = "Tisch-42-20260501"
+        → ABRECHNUNGSKREIS = "Tisch 42"
 
 21:00 — Restliche 2 Gäste zahlen: 2x Bier + 2x Weißwurst = 18,00 €, bar
         → StartTransaction(Kassenbeleg-V1) + FinishTransaction
           → TSE-Signatur S4, transactionNumber=1004
           → Bon: enthält zusätzlich "Erste Bestellung: 18:01 Uhr"
-        → ABRECHNUNGSKREIS = "Tisch-42-20260501"
+        → ABRECHNUNGSKREIS = "Tisch 42"
 
 22:00 — Gruppe B setzt sich (neue Gäste, neuer ABRECHNUNGSKREIS)
-        → ABRECHNUNGSKREIS = "Tisch-42-20260501-B"
+        → ABRECHNUNGSKREIS = "Tisch 42-B"
 ```
 
 Der Betriebsprüfer sieht im DSFinV-K-Export alle vier Transaktionen mit demselben `ABRECHNUNGSKREIS` und kann den vollständigen Tischverlauf nachvollziehen, obwohl jede Transaktion sofort geschlossen wurde.
@@ -550,41 +550,41 @@ Fast jede CSV-Datei muss folgende Schlüssel in den ersten Spalten mitführen:
 
 ### 8.5 Abrechnungskreis — Tisch-Verknüpfung für Festzelt
 
-Das Feld `ABRECHNUNGSKREIS` in `Bonkopf.csv` verknüpft mehrere Bons (Bestellungen + Zahlungen) zu einer logischen Einheit. Im Festzelt-Betrieb trägt jede Bestellung und jede Zahlung für denselben Tisch und dieselbe Gästegruppe denselben `ABRECHNUNGSKREIS`-Wert:
+Das Feld `ABRECHNUNGSKREIS` in `Bonkopf.csv` verknüpft mehrere Bons (Bestellungen + Zahlungen) zu einer logischen Einheit. Im Festzelt-Betrieb trägt jede Bestellung und jede Zahlung für denselben Tisch innerhalb einer Kassensitzung denselben `ABRECHNUNGSKREIS`-Wert (= Tischname):
 
 ```
 BON_ID | BON_TYP      | BON_START            | ABRECHNUNGSKREIS
 -------|--------------|----------------------|--------------------
-1001   | Bestellung   | 2026-05-01T18:01:00  | Tisch-42-20260501
-1002   | Bestellung   | 2026-05-01T19:30:00  | Tisch-42-20260501
-1003   | Beleg        | 2026-05-01T20:00:12  | Tisch-42-20260501
-1004   | Beleg        | 2026-05-01T21:00:05  | Tisch-42-20260501
+1001   | Bestellung   | 2026-05-01T18:01:00  | Tisch 42
+1002   | Bestellung   | 2026-05-01T19:30:00  | Tisch 42
+1003   | Beleg        | 2026-05-01T20:00:12  | Tisch 42
+1004   | Beleg        | 2026-05-01T21:00:05  | Tisch 42
 ```
 
 Die Prüfsoftware IDEA der Finanzämter kann so den vollständigen Tischverlauf rekonstruieren, auch wenn jede Transaktion für sich als sofort geschlossen registriert ist.
 
-#### Session-Grenzen (Phasenmodell)
+#### Session-Grenzen
 
-Die Definition, wann eine neue Tisch-Session beginnt (d.h. ein neuer `ABRECHNUNGSKREIS` vergeben wird), wird in zwei Phasen umgesetzt:
+Der `ABRECHNUNGSKREIS` wird **pro Tisch und Kassensitzung** vergeben. Intern bildet das Subject `kassensitzung-{nr}/tisch-{id}` die Tisch-Session ab; im DSFinV-K-Export wird der **Tischname** als `ABRECHNUNGSKREIS` verwendet (z. B. `Tisch 42`).
 
-> **Wichtiger Hinweis:** „Tagesbasiert" bedeutet **ein `ABRECHNUNGSKREIS` pro Tisch und Tag** — nicht ein einziger Schlüssel für alle Tische des gesamten Tages. Jeder Tisch bekommt seine eigene Session-ID (`Tisch-42-20260501`, `Tisch-43-20260501`, usw.). Ein tagesbasierter Gesamt-Schlüssel für alle Tische wäre ein Verstoß gegen die GoBD-Anforderung der Nachvollziehbarkeit.
+> **Wichtiger Hinweis:** Jeder Tisch bekommt seinen eigenen `ABRECHNUNGSKREIS`. Ein Gesamt-Schlüssel für alle Tische wäre ein Verstoß gegen die GoBD-Anforderung der Nachvollziehbarkeit.
 
-**Phase 1 — Tagesbasiert (initiale Umsetzung):**
+**Aktueller Stand (✅ Umgesetzt):**
 
-- Der `ABRECHNUNGSKREIS` wird **einmal pro Tisch und Tag** vergeben: `Tisch-{Nr}-{YYYYMMDD}`.
-- Das Datum (`YYYYMMDD`) stammt aus dem Datum der **Tagesöffnung** (`DATE(abrechnungskreis.beginn)`), nicht aus `NOW()` des einzelnen Ereignisses — relevant bei Betrieb über Mitternacht.
-- Beim **Tagesabschluss** (Z-Bon) werden alle laufenden Sessions des Tages geschlossen.
-- Neue Sessions entstehen erst wieder durch eine explizite Tagesöffnung (Admin-Aktion) am nächsten Tag.
-- Nachteil: Mehrere Gästegruppen am gleichen Tisch am gleichen Tag teilen denselben `ABRECHNUNGSKREIS` — für den Betriebsprüfer erkennbar, aber zulässig, solange alle Bons korrekt verknüpft sind.
+- Der `ABRECHNUNGSKREIS` wird **einmal pro Tisch und Kassensitzung** vergeben: der Tischname (z. B. `Tisch 42`).
+- Intern: Subject `kassensitzung-{nr}/tisch-{id}` im Kassenjournal.
+- Beim **Tagesabschluss** (Z-Bon) wird die Kassensitzung geschlossen und alle zugehörigen Tisch-Sessions sind abgeschlossen.
+- Neue Sessions entstehen erst wieder durch eine explizite Kassensitzungseröffnung (Admin-Aktion).
+- Nachteil: Mehrere Gästegruppen am gleichen Tisch innerhalb einer Kassensitzung teilen denselben `ABRECHNUNGSKREIS` — für den Betriebsprüfer erkennbar, aber zulässig, solange alle Bons korrekt verknüpft sind.
 
-**Phase 2 — Manuelle Tischfreigabe (empfohlene Erweiterung für Festzelt-Betrieb):**
+**Geplant — Manuelle Tischfreigabe (empfohlene Erweiterung für Festzelt-Betrieb):**
 
 - Servicekräfte können einen Tisch explizit für neue Gäste freigeben ("Tisch freimachen").
-- Eine neue Session erhält dann ein Suffix: `Tisch-42-20260501-A`, `Tisch-42-20260501-B`, etc.
+- Eine neue Session erhält dann ein Suffix: `Tisch 42-A`, `Tisch 42-B`, etc.
 - In jottis Festzelt-Szenario, wo häufig mehrere Gästegruppen am selben Tisch sitzen (Maihock, Vereinsfest), ist dies die korrektere Abbildung der Realität und reduziert Rückfragen bei Betriebsprüfungen.
-- Phase 2 erfordert eine neue UI-Aktion in der Servicekraft-Ansicht und eine entsprechende Domain-Aktion in der Tisch-Session.
+- Erfordert eine neue UI-Aktion in der Servicekraft-Ansicht und eine entsprechende Domain-Aktion in der Tisch-Session.
 
-> **Hinweis:** Das DSFinV-K-Format erlaubt beliebige Strings als `ABRECHNUNGSKREIS` (max. 40 Zeichen). Das Format `Tisch-{Nr}-{YYYYMMDD}` (Phase 1) bzw. `Tisch-{Nr}-{YYYYMMDD}-{Buchstabe}` (Phase 2) ist eine jotti-interne Konvention.
+> **Hinweis:** Das DSFinV-K-Format erlaubt beliebige Strings als `ABRECHNUNGSKREIS` (max. 40 Zeichen). Das Format `Tisch {Name}` (aktuell) bzw. `Tisch {Name}-{Buchstabe}` (manuelle Tischfreigabe) ist eine jotti-interne Konvention.
 
 ### 8.6 Storno-Handling in DSFinV-K
 
@@ -820,7 +820,7 @@ type TSEData struct {
 
 // Zusätzlich in TischSession-Daten:
 type TischSession struct {
-    AbrechnungskreisID    string    // z.B. "Tisch-42-20260501"
+    AbrechnungskreisID    string    // z.B. "Tisch 42" (Tischname)
     ErsteBestellungLogTime time.Time // logTime der ersten Bestellung-V1 für den Bon-Aufdruck
 }
 ```
