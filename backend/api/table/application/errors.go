@@ -46,6 +46,9 @@ var ErrPositionNichtAusgebbar = errors.New("position nicht ausgebbar")
 // ErrPositionNichtStornierbar is returned when a position cannot be cancelled (not in unbezahlt list).
 var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 
+// fromRepositoryError maps repository errors to application-layer errors with structured logging.
+// It consolidates tisch-ID context and error mapping at a single location, avoiding duplicated
+// error-handling code across the many command methods that load or update tisch records.
 func fromRepositoryError(err error, log *zerolog.Logger, id int) error {
 	if errors.Is(err, db.ErrNotFound) {
 		log.Warn().Err(err).Int("tisch_id", id).Msg("Tisch not found")

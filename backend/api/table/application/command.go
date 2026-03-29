@@ -32,6 +32,8 @@ type eventRepo interface {
 type productRepo interface {
 	GetProduct(ctx context.Context, productID int) (product.Produkt, error)
 	GetVariant(ctx context.Context, variantID int) (product.Variante, error)
+	GetVariantsByIDs(ctx context.Context, ids []int) (map[int]product.Variante, error)
+	GetProductsByIDs(ctx context.Context, ids []int) (map[int]product.Produkt, error)
 }
 
 type favoritRepo interface {
@@ -236,53 +238,47 @@ func (c Command) TischAktualisieren(ctx context.Context, id int, name string) er
 }
 
 func (c Command) TischAktivieren(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(
-		ctx,
-		id,
-		"Tisch activated",
-		func(t *table.Tisch) { t.Activate() },
-	)
-}
-
-func (c Command) TischDeaktivieren(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(
-		ctx,
-		id,
-		"Tisch deactivated",
-		func(t *table.Tisch) { t.Deactivate() },
-	)
-}
-
-func (c Command) TischLoeschen(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(
-		ctx,
-		id,
-		"Tisch deleted",
-		func(t *table.Tisch) { t.Delete() },
-	)
-}
-
-func (c Command) applyTischStatusChange(
-	ctx context.Context,
-	id int,
-	successMsg string,
-	action func(*table.Tisch),
-) error {
 	log := zerolog.Ctx(ctx)
 
 	tisch, err := c.TableRepo.GetTable(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
+	tisch.Activate()
+	if err := c.TableRepo.UpdateTable(ctx, tisch); err != nil {
+		return fromRepositoryError(err, log, id)
+	}
+	log.Info().Int("tisch_id", id).Msg("Tisch activated")
+	return nil
+}
 
-	action(&tisch)
+func (c Command) TischDeaktivieren(ctx context.Context, id int) error {
+	log := zerolog.Ctx(ctx)
 
-	err = c.TableRepo.UpdateTable(ctx, tisch)
+	tisch, err := c.TableRepo.GetTable(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
+	tisch.Deactivate()
+	if err := c.TableRepo.UpdateTable(ctx, tisch); err != nil {
+		return fromRepositoryError(err, log, id)
+	}
+	log.Info().Int("tisch_id", id).Msg("Tisch deactivated")
+	return nil
+}
 
-	log.Info().Int("tisch_id", id).Msg(successMsg)
+func (c Command) TischLoeschen(ctx context.Context, id int) error {
+	log := zerolog.Ctx(ctx)
+
+	tisch, err := c.TableRepo.GetTable(ctx, id)
+	if err != nil {
+		return fromRepositoryError(err, log, id)
+	}
+	tisch.Delete()
+	if err := c.TableRepo.UpdateTable(ctx, tisch); err != nil {
+		return fromRepositoryError(err, log, id)
+	}
+	log.Info().Int("tisch_id", id).Msg("Tisch deleted")
 	return nil
 }
 
@@ -295,18 +291,45 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return err
 	}
 
+	// Collect unique variant and product IDs for batch enrichment
+	varianteIDs := make([]int, 0, len(inputs))
+	produktIDs := make([]int, 0, len(inputs))
+	seenVarianten := make(map[int]bool, len(inputs))
+	seenProdukte := make(map[int]bool, len(inputs))
+	for _, input := range inputs {
+		if !seenVarianten[input.VarianteID] {
+			varianteIDs = append(varianteIDs, input.VarianteID)
+			seenVarianten[input.VarianteID] = true
+		}
+		if !seenProdukte[input.ProduktID] {
+			produktIDs = append(produktIDs, input.ProduktID)
+			seenProdukte[input.ProduktID] = true
+		}
+	}
+
+	// Batch-fetch all required variants and products in one query each
+	variantenByID, err := c.ProductRepo.GetVariantsByIDs(ctx, varianteIDs)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to batch-fetch variants for position enrichment")
+		return ErrProduktNotFound
+	}
+	produkteByID, err := c.ProductRepo.GetProductsByIDs(ctx, produktIDs)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to batch-fetch products for position enrichment")
+		return ErrProduktNotFound
+	}
+
 	// Enrich positions with product/variant data (fat events)
 	positionen := make([]kasse.Position, 0, len(inputs))
 	for _, input := range inputs {
-		variant, err := c.ProductRepo.GetVariant(ctx, input.VarianteID)
-		if err != nil {
-			log.Error().Err(err).Int("variante_id", input.VarianteID).Msg("Failed to get variant for position enrichment")
+		variant, ok := variantenByID[input.VarianteID]
+		if !ok {
+			log.Error().Int("variante_id", input.VarianteID).Msg("Variant not found in batch result")
 			return ErrProduktNotFound
 		}
-
-		prod, err := c.ProductRepo.GetProduct(ctx, input.ProduktID)
-		if err != nil {
-			log.Error().Err(err).Int("produkt_id", input.ProduktID).Msg("Failed to get product for position enrichment")
+		prod, ok := produkteByID[input.ProduktID]
+		if !ok {
+			log.Error().Int("produkt_id", input.ProduktID).Msg("Product not found in batch result")
 			return ErrProduktNotFound
 		}
 

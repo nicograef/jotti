@@ -28,6 +28,9 @@ export class ResponseBodyError extends Error {
   }
 }
 
+// TokenGetter abstracts token retrieval from the Backend class.
+// This single-implementation interface is intentional: it enables unit testing of Backend
+// without a real authentication dependency by injecting a test double.
 interface TokenGetter {
   getToken(): string | null
 }
