@@ -103,3 +103,8 @@ Large interface with thin implementation = shallow module (avoid).
 - Don't skip comparison — the value is in contrast
 - Don't implement — this is purely about interface shape
 - Don't evaluate based on implementation effort
+
+## Quality
+
+- Before presenting results, run the self-review checklist from AGENTS.md (Qualitätsprinzipien) — applied to the quality of the design artifact. Surface issues in the chat only if found.
+- After task completion, include a human-readable summary paragraph alongside the commit message (see AGENTS.md, Git-Workflow).

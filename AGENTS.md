@@ -143,6 +143,19 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 12. **Fragen statt annehmen.** Bei Unsicherheit über Anforderungen, Design-Absicht oder Erwartungen des Nutzers muss der Clarify-Skill (`skills/clarify/SKILL.md`) oder das AskQuestion-Tool verwendet werden, um Unklarheiten mit strukturierten Fragen zu klären. Mit dokumentierten Annahmen fortfahren ist nur akzeptabel, wenn der Nutzer ausdrücklich ablehnt zu antworten.
 13. **Websuche für externes Wissen.** Bei Arbeit mit externen Bibliotheken, Sprachfeatures, APIs, Compliance-Vorgaben oder anderem Wissen außerhalb der Projekt-Codebasis sollen autoritative Quellen im Web gesucht werden (offizielle Dokumentation, RFCs, Spezifikationen) statt sich auf potenziell veraltetes Trainingswissen zu verlassen. Verifizierte Fakten immer gegenüber erinnerten Informationen bevorzugen.
 
+## Qualitätsprinzipien
+
+- **Qualität vor Quantität, Korrektheit vor Geschwindigkeit.** Weniger, korrekte Änderungen sind besser als viele schnelle Änderungen.
+- **Menschlich reviewbare Änderungen.** Jede Änderung muss sauber, lesbar und wartbar genug sein, damit ein Senior-Entwickler sie langfristig reviewen, verstehen und pflegen kann. Keinen cleveren Code, keine unnötigen Abstraktionen, keine Änderungen, die tiefen Kontext erfordern um verstanden zu werden.
+- **Self-Review-Checkliste** (vor dem Präsentieren der Änderungen still durchlaufen, nur gefundene Probleme im Chat melden):
+  1. Sind die Änderungen **korrekt** — lösen sie tatsächlich das genannte Problem?
+  2. Sind die Änderungen **sauber** — kein toter Code, keine Debug-Artefakte, konsistenter Stil?
+  3. Sind die Änderungen **lesbar** — würde ein menschlicher Reviewer sie ohne zusätzliche Erklärung verstehen?
+  4. Sind die Änderungen **wartbar** — kein Over-Engineering, keine unnötigen Abstraktionen?
+  5. Sind die Änderungen **im Scope** — nichts über das Geforderte oder klar Notwendige hinaus?
+  6. Sind die Änderungen **vollständig** — Tests, Validierung, beide Seiten aktualisiert wo nötig?
+- **Scope Guard.** Wenn der Agent bemerkt, dass er Änderungen außerhalb des Aufgabenumfangs macht oder machen will, muss er stoppen, die Out-of-Scope-Änderungen benennen und den Nutzer fragen, bevor er fortfährt.
+
 ## Bereiche
 
 - **Admin** (`admin`): Routen `/admin/*` (`api/admin.go`), Frontend `src/admin/`, `AdminGuard`. Produkte, Tische, Benutzer verwalten. Kassensitzung eröffnen/verwalten, Kassenbestand, Kassensturz, Tagesabschluss. Reporting.
@@ -180,6 +193,8 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
   ```
 
   Die Message muss alle geänderten Dateien/Bereiche abdecken, den Kontext der Änderung erklären und direkt per Copy-Paste als `git commit -m` verwendbar sein.
+
+- **Zusammenfassung für den Reviewer.** Nach jeder abgeschlossenen Aufgabe postet der Agent — zusätzlich zur Commit-Message — einen narrativen Absatz, der erklärt: was wurde geändert, warum, und worauf der Reviewer achten sollte. Die Sprache der Zusammenfassung richtet sich nach der Konversationssprache (Deutsch wenn die Session auf Deutsch läuft, sonst Englisch). Die Zusammenfassung ist für einen Senior-Entwickler geschrieben, der Intent und Impact schnell verstehen will, ohne jede Diff-Zeile zu lesen.
 
 ## Lokale Qualitaetspruefung
 

@@ -25,3 +25,8 @@ Read the referenced plan.md and work through **one section** at a time.
 - No performance optimisation at the cost of readability
 - Small local duplication is fine when it makes the code more understandable
 - Suggest a Conventional Commit message when done
+
+## Quality
+
+- Before presenting results, run the self-review checklist from AGENTS.md (Qualitätsprinzipien). Surface issues in the chat only if found.
+- After task completion, include a human-readable summary paragraph alongside the commit message (see AGENTS.md, Git-Workflow).

@@ -43,3 +43,8 @@ Per finding: **Category** → **What** → **Where** (file:lines) →
 **User Impact** → **Suggestion** → **Effort** (S/M/L).
 
 At the end: quick wins first, then consistency fixes to batch.
+
+## Quality
+
+- Before presenting results, run the self-review checklist from AGENTS.md (Qualitätsprinzipien) — applied to the quality of the review artifact. Surface issues in the chat only if found.
+- After task completion, include a human-readable summary paragraph alongside the commit message (see AGENTS.md, Git-Workflow).

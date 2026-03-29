@@ -96,3 +96,8 @@ When invoked again in the same conversation:
 3. Update definitions if understanding has evolved
 4. Re-flag any new ambiguities
 5. Rewrite the example dialogue to incorporate new terms
+
+## Quality
+
+- Before presenting results, run the self-review checklist from AGENTS.md (Qualitätsprinzipien) — applied to the quality of the glossary artifact. Surface issues in the chat only if found.
+- After task completion, include a human-readable summary paragraph alongside the commit message (see AGENTS.md, Git-Workflow).

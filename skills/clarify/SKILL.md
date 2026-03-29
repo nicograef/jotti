@@ -53,7 +53,7 @@ Then proceed with the task.
 3. **Structured over free-text.** Use the AskQuestion tool with concrete
    options. If a question seems open-ended, convert it to multiple-choice with
    an "Other (specify)" escape hatch.
-4. **Context before question.** The prompt should explain *why* the question
+4. **Context before question.** The prompt should explain _why_ the question
    matters so the user can make an informed choice.
 5. **Group related choices.** Use `allow_multiple: true` when the user may
    legitimately pick more than one option.
@@ -75,3 +75,8 @@ If the user declines to answer or says "just do it":
 - Always use the **AskQuestion tool** when available; fall back to
   conversational questions only if the tool is unavailable.
 - Do not repeat questions the user has already answered.
+
+## Quality
+
+- Before presenting results, run the self-review checklist from AGENTS.md (Qualitätsprinzipien) — applied to the quality of the clarification artifact. Surface issues in the chat only if found.
+- After task completion, include a human-readable summary paragraph alongside the commit message (see AGENTS.md, Git-Workflow).

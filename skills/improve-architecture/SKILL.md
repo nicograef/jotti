@@ -104,3 +104,8 @@ Write a refactor RFC to `docs/rfcs/rfc-<name>.md` (create the directory if it
 doesn't exist). Use a short kebab-case name derived from the module
 (e.g. `rfc-payment-deepening.md`). Use the template in
 [REFERENCE.md](REFERENCE.md).
+
+## Quality
+
+- Before presenting results, run the self-review checklist from AGENTS.md (Qualitätsprinzipien) — applied to the quality of the RFC artifact. Surface issues in the chat only if found.
+- After task completion, include a human-readable summary paragraph alongside the commit message (see AGENTS.md, Git-Workflow).

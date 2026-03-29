@@ -14,3 +14,9 @@ jotti ist ein quelloffenes Mobile-Kassensystem (mPOS) für Vereine. Backend: Go,
 8. **Frontend API-Aufrufe nur über Backend-Klassen.** Nie direkt `fetch()`.
 9. **Backend ist Single Source of Truth für Daten-Filterung.**
 10. **Niemals** `sqlc/dbgen/` editieren (generierter Code).
+
+## Qualitätsprinzipien
+
+- Qualität vor Quantität, Korrektheit vor Geschwindigkeit.
+- Self-Review vor dem Präsentieren: korrekt, sauber, lesbar, wartbar, im Scope.
+- Nach jeder Aufgabe einen narrativen Zusammenfassungsabsatz für den Reviewer mitliefern.

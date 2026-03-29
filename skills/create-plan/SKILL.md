@@ -108,6 +108,11 @@ doesn't exist).
   (e.g. `backend/api/product/http/handler.go:42-58`).
 - **Readability-first.** Prefer simple, clear, idiomatic solutions.
 
+## Quality
+
+- Before presenting results, run the self-review checklist from AGENTS.md (Qualitätsprinzipien) — applied to the quality of the plan artifact. Surface issues in the chat only if found.
+- After task completion, include a human-readable summary paragraph alongside the commit message (see AGENTS.md, Git-Workflow).
+
 ## Plan Template
 
 ```markdown
