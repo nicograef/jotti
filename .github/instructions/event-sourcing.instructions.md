@@ -3,6 +3,8 @@ description: "Use when working on event sourcing, domain events, kasse operation
 applyTo: "backend/domain/kasse/**,backend/domain/table/**,backend/repository/kassenjournal_repo/**"
 ---
 
+Repo-weite Regeln und Guardrails stehen kanonisch in `AGENTS.md`. Diese Datei ergänzt nur event-sourcing-spezifische Details für Kasse-Streams und Projektionen.
+
 # Event-Sourcing-Referenz
 
 Events für Kasse-Operationen (Tisch-Sessions und Kassensitzungen). Zwei Subject-Formate:
@@ -31,7 +33,7 @@ State wird durch eine synchrone Projektion (`tisch_sessions`) und eine CRUD-Enti
 - `differenz-soll-ist-gebucht:v1`
 - `tagesabschluss-erstellt:v1`
 
-Alle Event-Typen und deren Datenstrukturen: siehe `backend/domain/kasse/` (künftig) bzw. `backend/domain/table/events.go` und die zugehörigen `*Event.go`-Dateien.
+Alle Event-Typen und deren Datenstrukturen: `backend/domain/kasse/tisch_session_events.go` (Tisch-Session) und `backend/domain/kasse/kassensitzung_events.go` (Kassensitzung).
 
 ## State-Rekonstruktion
 
@@ -57,6 +59,6 @@ Routing über `StreamType`-Parameter: `"tisch-session"` | `"kassensitzung"`.
 
 ## JSON-Tags in Event-Data-Structs
 
-Event-Data-Structs (zum Beispiel `bestellungAufgenommenV1Data`, `zahlungKassiertV1Data`, `stornierungErteiltV1Data`, `ausgabeBestaetigtV1Data`, `auszahlungGeleistetV1Data`) behalten `json`-Tags fuer `json.Marshal` und `json.Unmarshal` im Event Store. Das ist Persistenz-Serialisierung und kein HTTP-Concern.
+Event-Data-Structs (zum Beispiel `bestellungAufgenommenV1Data`, `zahlungKassiertV1Data`, `stornierungErteiltV1Data`, `ausgabeBestaetigtV1Data`, `auszahlungGeleistetV1Data`, `kassensitzungEroeffnetV1Data`, `anfangsbestandGesetztV1Data` u. a.) behalten `json`-Tags fuer `json.Marshal` und `json.Unmarshal` im Event Store. Das ist Persistenz-Serialisierung und kein HTTP-Concern.
 
 Dies ist die einzige erlaubte Ausnahme von der Regel "keine `json`-Tags in `domain/`".

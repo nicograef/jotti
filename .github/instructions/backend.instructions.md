@@ -5,6 +5,8 @@ applyTo: "backend/**"
 
 > **Referenz:** Für Ubiquitous Language und Namenskonventionen pro Schicht → `docs/language.md`. Für Architektur, Invarianten und Schichtenarchitektur → `docs/handbuch.md` §6.
 
+Repo-weite Regeln und Guardrails stehen kanonisch in `AGENTS.md`. Diese Datei ergänzt nur backend-spezifische Konventionen für `backend/**`.
+
 # Backend-Konventionen
 
 ## Befehle
@@ -21,8 +23,8 @@ applyTo: "backend/**"
 backend/
   main.go                       # Einstiegspunkt
   sqlc.yaml                     # sqlc-Konfiguration
-  sqlc/queries/                 # SQL-Queries für sqlc
-  sqlc/dbgen/                   # Generierter Code (NICHT EDITIEREN)
+	sqlc/queries/                 # SQL-Queries für sqlc
+	sqlc/dbgen/                   # Generierter Code
   api/service.go                # Service-Routen (Kasse — Tisch-Operationen)
   api/serviceleitung.go         # serviceleitung-Routen (Stornierung)
   api/admin.go                  # Admin-Routen (Verwaltung, Kassensitzung)
@@ -121,23 +123,23 @@ Pattern: Request-Struct definieren → Body lesen → Service aufrufen → Fehle
 Hinweis: Query-Handler senden keine Domain-Modelle direkt, sondern mappen immer auf Response-DTOs.
 
 ```go
-type createProduct struct {
-	Name     string           `json:"name"`
-	Category product.Category `json:"category"`
+type createProdukt struct {
+	Name      string           `json:"name"`
+	Kategorie product.Kategorie `json:"kategorie"`
 }
 
-type createProductResponse struct {
+type createProduktResponse struct {
 	ID int `json:"id"`
 }
 
-func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
+func (h *CommandHandler) CreateProduktHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := createProduct{}
+		body := createProdukt{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		id, err := h.Command.CreateProduct(r.Context(), body.Name, body.Category)
+		id, err := h.Command.CreateProdukt(r.Context(), body.Name, body.Kategorie)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrProduktAlreadyExists):
@@ -151,7 +153,7 @@ func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 		}
 
 		// Query-Handler folgen demselben Prinzip: Domain -> Response-DTO vor SendResponse.
-		helper.SendResponse(w, createProductResponse{ID: id})
+		helper.SendResponse(w, createProduktResponse{ID: id})
 	}
 }
 ```
@@ -161,56 +163,56 @@ func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 Pattern: Logging → Domain-Modell aufbauen/validieren → Repository aufrufen → Fehler mappen.
 
 ```go
-func (c Command) CreateProduct(ctx context.Context, name string, category product.Category) (int, error) {
+func (c Command) CreateProdukt(ctx context.Context, name string, kategorie product.Kategorie) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	product, err := product.NewProduct(name, category)
+	produkt, err := product.NewProdukt(name, kategorie)
 	if err != nil {
-		log.Warn().Err(err).Str("product_name", name).Msg("Invalid product data")
+		log.Warn().Err(err).Str("name", name).Msg("Invalid produkt data")
 		return 0, ErrInvalidProduktData
 	}
 
-	productID, err := c.ProductRepo.CreateProduct(ctx, product)
+	produktID, err := c.ProduktRepo.CreateProdukt(ctx, produkt)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn().Err(err).Str("name", product.Name).Msg("Product name already exists")
+			log.Warn().Err(err).Str("name", produkt.Name).Msg("Produkt name already exists")
 			return 0, ErrProduktAlreadyExists
 		} else {
-			log.Error().Str("name", product.Name).Msg("Failed to create product")
+			log.Error().Str("name", produkt.Name).Msg("Failed to create produkt")
 			return 0, ErrDatabase
 		}
 	}
 
-	log.Info().Int("product_id", productID).Msg("Product created")
-	return productID, nil
+	log.Info().Int("produkt_id", produktID).Msg("Produkt created")
+	return produktID, nil
 }
 ```
 
 ### zog-Validierungsschema
 
 ```go
-var NameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(100, z.Message("Name too long"))
+var NameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(100, z.Message("Name zu lang"))
 
-var CategorySchema = z.StringLike[Category]().OneOf(
-	[]Category{FoodCategory, BeverageCategory, OtherCategory},
-	z.Message("Invalid category"),
+var KategorieSchema = z.StringLike[Kategorie]().OneOf(
+	[]Kategorie{EssenKategorie, GetraenkKategorie, SonstigesKategorie},
+	z.Message("Ungültige Kategorie"),
 )
 
-var ProductSchema = z.Struct(z.Shape{
+var ProduktSchema = z.Struct(z.Shape{
 	"ID":        IDSchema.Required(),
 	"Name":      NameSchema.Required(),
-	"Category":  CategorySchema.Required(),
-	"Variants":  z.Slice(VariantSchema).Required(),
+	"Kategorie": KategorieSchema.Required(),
+	"Varianten": z.Slice(VarianteSchema).Required(),
 	"CreatedAt": z.Time().Required(),
 })
 
-func NewProduct(name string, category Category) (Product, error) {
+func NewProdukt(name string, kategorie Kategorie) (Produkt, error) {
 	if issue := NameSchema.Validate(&name); issue != nil {
-		return Product{}, fmt.Errorf("invalid name")
+		return Produkt{}, fmt.Errorf("invalid name")
 	}
-	if issue := CategorySchema.Validate(&category); issue != nil {
-		return Product{}, fmt.Errorf("invalid category")
+	if issue := KategorieSchema.Validate(&kategorie); issue != nil {
+		return Produkt{}, fmt.Errorf("invalid category")
 	}
-	return Product{Name: name, Category: category}, nil
+	return Produkt{Name: name, Kategorie: kategorie}, nil
 }
 ```

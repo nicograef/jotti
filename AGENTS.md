@@ -8,71 +8,23 @@ Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellung
 
 **Compliance-Roadmap (TSE/KassenSichV):** jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die TSE-Integration (fiskaly Cloud-TSE, DSFinV-K-Export, ELSTER-Meldepflicht) wird schrittweise implementiert — siehe `docs/anforderungen.md` und `docs/compliance.md`.
 
+## Instruktionshierarchie
+
+- `AGENTS.md` ist die kanonische repo-weite Quelle für Produktkontext, Arbeitsregeln, Qualitätsprinzipien und Agenten-Workflow.
+- `.github/copilot-instructions.md` ist bewusst kurz und spiegelt nur wenige harte Guardrails als Sicherheitskopie; bei Konflikten gilt `AGENTS.md`.
+- `.github/instructions/*.instructions.md` ergänzen ausschließlich bereichsspezifische Konventionen für ihre `applyTo`-Bereiche und wiederholen keine generischen Repo-Regeln.
+
 ## Referenzdokumente
 
-Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht automatisch geladen** (zu groß). Bevor du eine Aufgabe beginnst, prüfe ob du Kontext aus einem dieser Dokumente brauchst — und lies dann gezielt den relevanten Abschnitt per `read_file`, nicht das ganze Dokument.
+Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht automatisch geladen** (zu groß). Lies gezielt den relevanten Abschnitt per `read_file`, nicht das ganze Dokument.
 
-### Anforderungen — `docs/anforderungen.md`
-
-Alle funktionalen und querschnittlichen Anforderungen mit Akzeptanzkriterien, Priorisierung (Must/Should/Nice-to-have) und Status (✅/🔲/🚫).
-
-- **§1 Kassenbetrieb:** K-01 Bestellung aufnehmen, K-02 Zahlung kassieren, K-03 Ausgabe bestätigen, K-04 Stornierung, K-05 Auszahlung, K-06 Tischübersicht, K-07 Kassenjournal, K-08–K-14 (Umbuchung, Rückgeld, Schnellsuche, Bondruck, KDS, Ausgabestationen)
-- **§2 Stammdaten:** S-01 Produktverwaltung, S-02 Tischverwaltung, S-03 Benutzerverwaltung
-- **§3 Auth:** A-01 Login, A-02 Passwort setzen, A-03 Logout
-- **§4 Querschnitt:** Q-01 Mobile-first, Q-02 Mehrbenutzerfähigkeit, Q-03 Validierung, Q-04 Datenintegrität, Q-05–Q-08 (Offline, HTTPS, Rate Limiting, Security Headers)
-- **§5 Reporting:** Tagesabrechnung, Abrechnung pro Tisch/Servicekraft, Datenexport
-- **§6 Bewusste Abgrenzung:** Won't-haves mit Begründung
-- **§7 Fiskalkonformität:** F-01–F-08 (Seriennummer, TSE-Adapter, Belegausgabe, DSFinV-K, ELSTER, Abrechnungskreis, Steuersätze, GoBD Hash-Chain)
-
-→ Lesen bei: neue Features implementieren, Akzeptanzkriterien prüfen, Rollen/Berechtigungen klären, Compliance-Anforderungen umsetzen.
-
-### Entwickler-Handbuch — `docs/handbuch.md`
-
-Architektur, Bounded Contexts, Domain-Modelle, Invarianten, Event-Sourcing-Details.
-
-- **§1 Überblick:** Systemvision, Designziele, bewusste Abgrenzung
-- **§2 Bounded Contexts:** Kontextübersicht (Kasse, Stammdaten, Auth), Beziehungen (ACL, Fat Events)
-- **§3 Kasse (Core Domain):** Tisch-Session, Kassensitzung, Invarianten (Saldo, Ausgabe-, Bezahl-, Stornierungsinvariante, KS-Sperre), Domain Events (BestellungAufgenommen, AusgabeBestaetigt, ZahlungKassiert, StornierungErteilt, KassensitzungEroeffnet u. a.), Kassenjournal, Synchrone Projektion (tisch_sessions), CRUD-Entität (kassensitzungen)
-- **§4 Stammdaten:** Produkt-Aggregat (Varianten, Kategorien), Tisch-Stammdaten, Benutzer-Aggregat, CRUD-Persistenz
-- **§5 Auth und Rollen:** Berechtigungsmatrix, Onboarding-Ablauf
-- **§6 Architekturprinzipien:** Schichtenarchitektur, API-Design, Frontend-Architektur, Validierung, Geldbeträge, OCC, Sicherheit
-- **§7 Read Models:** Service-Read-Models (Tisch-Saldo, Unbezahlt, Ausstehend, Historie)
-
-→ Lesen bei: Architekturentscheidungen, Invarianten prüfen, Event-Strukturen verstehen, neue Schichten/Endpunkte entwerfen.
-
-### Ubiquitous Language — `docs/language.md`
-
-Verbindliche Referenz für Fachbegriffe, Code-Repräsentationen und Namenskonventionen.
-
-- **Sprachkonventionen:** Domänenbegriffe deutsch, Infrastruktur englisch, UI deutsch, Commits englisch
-- **Namenskonventionen pro Schicht:** Go-Structs, TS-Typen, JSON-Keys, API-Pfade, DB-Tabellen, Frontend-Routen
-- **Abweichungen Ist/Soll:** Abgeschlossene Migrationen (Backend ✅, Frontend ✅)
-- **Begriffsdefinitionen:** Tisch, Bestellung, Position, Ausgabe, Zahlung, Stornierung — jeweils mit Go-Struct, TS-Typ, JSON-Keys, API-Pfad, Frontend-Komponente, UI-Labels
-
-→ Lesen bei: Benennungen klären, neue Felder/Typen benennen, Ist/Soll-Abweichungen prüfen.
-
-### Produktbeschreibung — `docs/produktbeschreibung.md`
-
-Produktidentität, Positionierung, Zielgruppe, Abgrenzung, Marketingtexte.
-
-- **§1–§3:** Claim, Positionierung, Zielgruppe (Personas: Thomas/Admin, Maria/Service, Felix/Serviceleitung)
-- **§4–§5:** Problemstellung, Lösung
-- **§6–§8:** Kernfeatures, Abgrenzung vs. kommerzielle POS, USPs
-- **§9–§10:** Lizenz/Kosten, Marketingtexte
-
-→ Lesen bei: README/Docs/Marketing-Texte anpassen, Abgrenzungsfragen, Zielgruppe verstehen.
-
-### Compliance — `docs/compliance.md`
-
-Rechtliche Grundlagen, Compliance-Anforderungen und Betreiberpflichten.
-
-- **§1 Einleitung:** Rollentrennung Entwickler/Betreiber, Pflichten nach § 146a AO
-- **§2 Rechtliche Grundlagen:** KassenSichV, GoBD, DSFinV-K, ELSTER/ERiC
-- **§3 Anforderungen an den Entwickler:** TSE-Adapter-Interface, DSFinV-K, Seriennummer, Steuersätze
-- **§4 Betreiberpflichten:** BYOT (Cloud-TSE), ELSTER-Meldung, GoBD-Aufbewahrung
-- **§5 Architekturprinzipien:** Adapter-Pattern, BYOD-Offline-Blocking
-
-→ Lesen bei: Compliance-Features implementieren, Betreiber-Dokumentation schreiben, rechtliche Anforderungen prüfen.
+| Dokument                      | Inhalt                                                                                                                                            | Lesen bei                                                   |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `docs/anforderungen.md`       | Funktionale und querschnittliche Anforderungen, Akzeptanzkriterien, Priorisierung, Status (K-01–K-14, S-01–S-03, A-01–A-03, Q-01–Q-08, F-01–F-08) | neue Features, Akzeptanzkriterien, Rollen, Compliance       |
+| `docs/handbuch.md`            | Architektur, Bounded Contexts, Invarianten, Event-Sourcing, Schichtenarchitektur, Read Models                                                     | Architekturentscheidungen, Invarianten, Endpunkte entwerfen |
+| `docs/language.md`            | Verbindliche Fachbegriffe, Namenskonventionen pro Schicht (Go, TS, JSON, DB), Ist/Soll-Abweichungen                                               | Benennungen klären, neue Felder/Typen benennen              |
+| `docs/produktbeschreibung.md` | Produktidentität, Positionierung, Personas, Abgrenzung, Marketingtexte                                                                            | README/Marketing anpassen, Zielgruppe verstehen             |
+| `docs/compliance.md`          | KassenSichV, GoBD, DSFinV-K, ELSTER; Betreiberpflichten, TSE-Adapter-Interface                                                                    | Compliance-Features implementieren, Betreiberdokumentation  |
 
 ## Tech-Stack
 
@@ -86,34 +38,24 @@ Rechtliche Grundlagen, Compliance-Anforderungen und Betreiberpflichten.
 
 ## Befehle
 
-Alle Befehle werden über das **Makefile** im Projekt-Root ausgeführt:
+Alle Befehle werden über das **Makefile** ausgeführt (`make help` für die vollständige Liste):
 
-| Befehl                  | Beschreibung                                 |
-| ----------------------- | -------------------------------------------- |
-| `make test`             | Backend Unit-Tests                           |
-| `make test-frontend`    | Frontend Tests (Vitest)                      |
-| `make test-all`         | Alle Unit-Tests (Backend + Frontend)         |
-| `make test-integration` | Integrationstests                            |
-| `make lint`             | Backend + Frontend Linting                   |
-| `make fmt`              | Backend + Frontend Formatierung              |
-| `make build`            | Backend + Frontend kompilieren               |
-| `make check`            | Schnelle Repo-Prüfung ohne DB-Integration    |
-| `make check-full`       | Vollständige Prüfung inkl. Integrationstests |
-| `make verify`           | Alias für `make check-full`                  |
-| `make sqlc`             | sqlc Code generieren (nach Query-Änderungen) |
-| `make dev`              | Dev-Stack starten (Docker Compose)           |
-| `make down`             | Dev-Stack stoppen                            |
-| `make prod-init`        | Ersteinrichtung Produktion (Zertifikate)     |
-| `make prod-up`          | Produktions-Stack starten                    |
-| `make prod-down`        | Produktions-Stack stoppen                    |
-
-Siehe `make help` für die vollständige Liste.
+| Befehl        | Beschreibung                                 |
+| ------------- | -------------------------------------------- |
+| `make check`  | Schnelle Repo-Prüfung ohne DB-Integration    |
+| `make verify` | Vollständige Prüfung inkl. Integrationstests |
+| `make test`   | Backend Unit-Tests                           |
+| `make lint`   | Backend + Frontend Linting                   |
+| `make fmt`    | Backend + Frontend Formatierung              |
+| `make build`  | Backend + Frontend kompilieren               |
+| `make sqlc`   | sqlc Code generieren (nach Query-Änderungen) |
+| `make dev`    | Dev-Stack starten (Docker Compose)           |
 
 ## Aktive Entwicklungsphase
 
 jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sind ausdrücklich erwünscht** — es gibt keine produktiven Instanzen und keine Nutzer, auf die Rücksicht genommen werden muss.
 
-- **DB-Schema:** Änderungen direkt in `database/migrations/01_initial.up.sql` vornehmen. Keine neuen Migrationsdateien, keine Down-Migrationen. Dev-DB bei Bedarf neu aufsetzen (`make down && make dev`).
+- **DB-Schema:** Änderungen direkt in `database/migrations/01_initial.up.sql` vornehmen. Keine neuen Migrationsdateien anlegen. Die vorhandene `01_initial.down.sql` dient ausschließlich dem lokalen Dev-Reset und ist kein produktiver Migrations-Pfad. Dev-DB neu aufsetzen: `make down && make dev`.
 - **Backend-API:** Endpunkte, Request-/Response-Formate und JSON-Keys direkt ändern. Keine API-Versionierung, keine Migrations-Strategien.
 - **Event-Formate:** Event-Data-Strukturen und JSON-Keys direkt ändern. Kein Dual-Read, kein Custom `UnmarshalJSON` für alte Daten. Alte Events werden nicht migriert.
 - **Frontend:** Typen, Schemas und Komponenten direkt an geänderte Backend-Datenformate anpassen.
@@ -185,38 +127,16 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 
   Die Message muss alle geänderten Dateien/Bereiche abdecken, den Kontext der Änderung erklären und direkt per Copy-Paste als `git commit -m` verwendbar sein.
 
-- **Zusammenfassung für den Reviewer.** Nach jeder abgeschlossenen Aufgabe postet der Agent — zusätzlich zur Commit-Message — einen narrativen Absatz, der erklärt: was wurde geändert, warum, und worauf der Reviewer achten sollte. Die Sprache der Zusammenfassung richtet sich nach der Konversationssprache (Deutsch wenn die Session auf Deutsch läuft, sonst Englisch). Die Zusammenfassung ist für einen Senior-Entwickler geschrieben, der Intent und Impact schnell verstehen will, ohne jede Diff-Zeile zu lesen.
+- **Zusammenfassung für den Reviewer.** Nach jeder abgeschlossenen Aufgabe postet der Agent — zusätzlich zur Commit-Message — einen narrativen Absatz (in Konversationssprache), der erklärt: was wurde geändert, warum, und worauf der Reviewer achten sollte. Für einen Senior-Entwickler, der Intent und Impact schnell verstehen will, ohne jede Diff-Zeile zu lesen.
 
 ## Lokale Qualitaetspruefung
 
 Fuer reproduzierbare lokale Checks (CI-nah):
 
 ```bash
-bash scripts/setup-dev-tools.sh
-make check
-make verify
+bash scripts/setup-dev-tools.sh  # Tools installieren (einmalig)
+make check                        # Schneller Check ohne Integrationstests
+make verify                       # Voller Check inkl. Integrationstests
 ```
 
-- `make check`: schneller Gesamt-Check ohne Integrationstests
-- `make verify`: voller Check inkl. Integrationstests
-
-### Troubleshooting fehlende Tools
-
-Wenn `make check` oder `make verify` frueh mit `Fehlendes Tool: ...` abbricht:
-
-1. `bash scripts/setup-dev-tools.sh` erneut ausfuehren.
-2. Sicherstellen, dass Go-Bin-Verzeichnis im `PATH` liegt:
-
-```bash
-export PATH="$(go env GOPATH)/bin:$PATH"
-```
-
-3. Tool-Versionen pruefen:
-
-```bash
-go version
-node --version
-pnpm --version
-goimports -V
-golangci-lint --version
-```
+Bei `Fehlendes Tool: ...`: `bash scripts/setup-dev-tools.sh` erneut ausfuehren und sicherstellen, dass `$(go env GOPATH)/bin` im `PATH` liegt.

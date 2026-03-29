@@ -5,6 +5,8 @@ applyTo: "frontend/**"
 
 > **Referenz:** Für Ubiquitous Language, Namenskonventionen und Ist/Soll-Abweichungen (Rename-Status) → `docs/language.md`. Für Frontend-Architektur → `docs/handbuch.md` §6.3.
 
+Repo-weite Regeln und Guardrails stehen kanonisch in `AGENTS.md`. Diese Datei ergänzt nur frontend-spezifische Konventionen für `frontend/**`.
+
 # Frontend-Konventionen
 
 ## Befehle
@@ -64,33 +66,33 @@ Pattern: Zod-Schema für Request definieren → `BackendClient.post()` aufrufen 
 ```typescript
 import { z } from "zod";
 import type { BackendClient } from "@/lib/Backend";
-import { type Product, ProductIdSchema, ProductSchema } from "./Product";
+import { type Produkt, ProduktIdSchema, ProduktSchema } from "./Produkt";
 
-export const CreateProductSchema = ProductSchema.pick({
+export const CreateProduktSchema = ProduktSchema.pick({
   name: true,
-  category: true,
+  kategorie: true,
 });
 
-export class ProductBackend {
+export class ProduktBackend {
   constructor(private readonly backend: BackendClient) {}
 
-  async createProduct(
-    newProduct: z.infer<typeof CreateProductSchema>,
+  async createProdukt(
+    newProdukt: z.infer<typeof CreateProduktSchema>,
   ): Promise<number> {
-    const body = CreateProductSchema.parse(newProduct);
+    const body = CreateProduktSchema.parse(newProdukt);
     const { id } = await this.backend.post(
       "admin/create-produkt",
       body,
-      z.object({ id: ProductIdSchema }),
+      z.object({ id: ProduktIdSchema }),
     );
     return id;
   }
 
-  async getAllProducts(): Promise<Product[]> {
+  async getAllProdukte(): Promise<Produkt[]> {
     const { produkte } = await this.backend.post(
       "admin/get-all-produkte",
       {},
-      z.object({ produkte: z.array(ProductSchema) }),
+      z.object({ produkte: z.array(ProduktSchema) }),
     );
     return produkte;
   }
@@ -102,18 +104,18 @@ export class ProductBackend {
 ```typescript
 import { BackendSingleton } from "@/lib/Backend";
 import { useFetch } from "@/lib/useFetch";
-import type { Product } from "./Product";
-import { ProductBackend } from "./ProductBackend";
+import type { Produkt } from "./Produkt";
+import { ProduktBackend } from "./ProduktBackend";
 
-const productBackend = new ProductBackend(BackendSingleton);
+const produktBackend = new ProduktBackend(BackendSingleton);
 
-export function useAllProducts() {
+export function useAllProdukte() {
   const {
-    data: products,
-    setData: setProducts,
+    data: produkte,
+    setData: setProdukte,
     ...rest
-  } = useFetch(() => productBackend.getAllProducts(), [] as Product[]);
-  return { ...rest, products, setProducts };
+  } = useFetch(() => produktBackend.getAllProdukte(), [] as Produkt[]);
+  return { ...rest, produkte, setProdukte };
 }
 ```
 
@@ -122,24 +124,24 @@ export function useAllProducts() {
 ```typescript
 import { z } from "zod";
 
-export const ProductIdSchema = z.number().int().min(1);
+export const ProduktIdSchema = z.number().int().min(1);
 
 const NameSchema = z
   .string()
   .min(3, { message: "Das sieht nicht nach einem echten Namen aus." })
-  .max(50, { message: "Der Name ist zu lang." });
+  .max(100, { message: "Der Name ist zu lang." });
 
 const PreisCentsSchema = z
   .number()
   .int()
   .min(0, { message: "Preis muss mindestens 0 Cent sein." });
 
-export const ProductSchema = z.object({
-  id: ProductIdSchema,
+export const ProduktSchema = z.object({
+  id: ProduktIdSchema,
   name: NameSchema,
-  category: z.enum(["food", "beverage", "other"]),
-  variants: z.array(VariantSchema),
+  kategorie: z.enum(["essen", "getraenk", "sonstiges"]),
+  varianten: z.array(VarianteSchema),
   createdAt: DateStringSchema,
 });
-export type Product = z.infer<typeof ProductSchema>;
+export type Produkt = z.infer<typeof ProduktSchema>;
 ```

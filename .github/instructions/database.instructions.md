@@ -5,6 +5,8 @@ applyTo: "database/**,backend/sqlc/**,backend/sqlc.yaml"
 
 > **Referenz:** Für Stammdaten-Schema (Produkte, Tische, Benutzer) → `docs/handbuch.md` §4. Für Event-Store-Schema → `docs/handbuch.md` §3.4. Für DB-Spalten-Konventionen → `docs/language.md`.
 
+Repo-weite Regeln und Guardrails stehen kanonisch in `AGENTS.md`. Diese Datei ergänzt nur datenbankspezifische Konventionen für `database/**`, `backend/sqlc/**` und `backend/sqlc.yaml`.
+
 # Datenbank-Konventionen
 
 ## Befehle
@@ -25,11 +27,11 @@ Aktuelles Schema: siehe SQL-Migrationen in `database/migrations/` (alle `*.up.sq
 
 ## Schema-Änderungen
 
-Änderungen direkt in `database/migrations/01_initial.up.sql`. Keine neuen Migrationsdateien, keine Down-Migrationen. Dev-DB bei Bedarf neu aufsetzen (`make down && make dev`). Siehe auch AGENTS.md „Aktive Entwicklungsphase".
+Die repo-weite Schema-Policy ist in `AGENTS.md` unter „Aktive Entwicklungsphase" kanonisch beschrieben. Diese Datei ergänzt nur die DB-spezifischen Arbeitsschritte: Dev-DB bei Bedarf mit `make down && make dev` neu aufsetzen und nach Query-Änderungen `make sqlc` ausführen.
 
 ## sqlc
 
 - Konfiguration: `backend/sqlc.yaml`
 - Queries: `backend/sqlc/queries/<domain>.sql`
-- Generierter Code: `backend/sqlc/dbgen/` (NICHT EDITIEREN)
+- Generierter Code: `backend/sqlc/dbgen/`
 - Nach Query-Änderungen: `sqlc generate` ausführen
