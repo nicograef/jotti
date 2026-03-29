@@ -13,7 +13,7 @@ COPY . .
 RUN go build -o /go/bin/jotti ./main.go
 
 # --- Deploy Stage ---
-FROM alpine:latest
+FROM alpine:3.21
 
 COPY --from=builder /go/bin/jotti /usr/local/bin/jotti
 

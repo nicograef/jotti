@@ -1,3 +1,5 @@
+.DEFAULT_GOAL := help
+
 .PHONY: dev dev-up down restart logs status \
 	test test-frontend test-integration test-all \
        lint-backend lint-backend-full lint-frontend lint \
