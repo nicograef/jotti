@@ -238,47 +238,29 @@ func (c Command) TischAktualisieren(ctx context.Context, id int, name string) er
 }
 
 func (c Command) TischAktivieren(ctx context.Context, id int) error {
-	log := zerolog.Ctx(ctx)
-
-	tisch, err := c.TableRepo.GetTable(ctx, id)
-	if err != nil {
-		return fromRepositoryError(err, log, id)
-	}
-	tisch.Activate()
-	if err := c.TableRepo.UpdateTable(ctx, tisch); err != nil {
-		return fromRepositoryError(err, log, id)
-	}
-	log.Info().Int("tisch_id", id).Msg("Tisch activated")
-	return nil
+	return c.applyTischStatusChange(ctx, id, "Tisch activated", func(t *table.Tisch) { t.Activate() })
 }
 
 func (c Command) TischDeaktivieren(ctx context.Context, id int) error {
-	log := zerolog.Ctx(ctx)
-
-	tisch, err := c.TableRepo.GetTable(ctx, id)
-	if err != nil {
-		return fromRepositoryError(err, log, id)
-	}
-	tisch.Deactivate()
-	if err := c.TableRepo.UpdateTable(ctx, tisch); err != nil {
-		return fromRepositoryError(err, log, id)
-	}
-	log.Info().Int("tisch_id", id).Msg("Tisch deactivated")
-	return nil
+	return c.applyTischStatusChange(ctx, id, "Tisch deactivated", func(t *table.Tisch) { t.Deactivate() })
 }
 
 func (c Command) TischLoeschen(ctx context.Context, id int) error {
+	return c.applyTischStatusChange(ctx, id, "Tisch deleted", func(t *table.Tisch) { t.Delete() })
+}
+
+func (c Command) applyTischStatusChange(ctx context.Context, id int, successMsg string, action func(*table.Tisch)) error {
 	log := zerolog.Ctx(ctx)
 
 	tisch, err := c.TableRepo.GetTable(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
-	tisch.Delete()
+	action(&tisch)
 	if err := c.TableRepo.UpdateTable(ctx, tisch); err != nil {
 		return fromRepositoryError(err, log, id)
 	}
-	log.Info().Int("tisch_id", id).Msg("Tisch deleted")
+	log.Info().Int("tisch_id", id).Msg(successMsg)
 	return nil
 }
 

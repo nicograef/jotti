@@ -44,16 +44,17 @@ func (h *Handler) PollHandler() http.HandlerFunc {
 			return
 		}
 
-		auftraege, err := h.Query.GetDruckAuftraege(r.Context(), body.LastEventID)
+		auftraege, maxEventID, err := h.Query.GetDruckAuftraege(r.Context(), body.LastEventID)
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		// Cursor = höchste verarbeitete Event-ID (oder unverändert wenn keine neuen Events)
+		// Cursor = höchste verarbeitete Event-ID, auch ohne Drucker-Match (verhindert Re-Print
+		// bereits verarbeiteter Bestellungen wenn ein Drucker nachträglich konfiguriert wird).
 		cursor := body.LastEventID
-		if len(auftraege) > 0 {
-			cursor = auftraege[len(auftraege)-1].EventID
+		if maxEventID > 0 {
+			cursor = maxEventID
 		}
 
 		dtos := make([]druckAuftragDTO, 0, len(auftraege))

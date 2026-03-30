@@ -99,25 +99,27 @@ func (m *mockRepo) GetActiveProducts(ctx context.Context) ([]product.Produkt, er
 }
 
 func (m *mockRepo) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]product.Variante, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
 	result := make(map[int]product.Variante, len(ids))
 	for _, id := range ids {
-		vp, ok := m.variants[id]
-		if !ok {
-			return nil, m.err
+		if vp, ok := m.variants[id]; ok {
+			result[id] = vp.variant
 		}
-		result[id] = vp.variant
 	}
 	return result, nil
 }
 
 func (m *mockRepo) GetProductsByIDs(ctx context.Context, ids []int) (map[int]product.Produkt, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
 	result := make(map[int]product.Produkt, len(ids))
 	for _, id := range ids {
-		p, ok := m.products[id]
-		if !ok {
-			return nil, m.err
+		if p, ok := m.products[id]; ok {
+			result[id] = p
 		}
-		result[id] = p
 	}
 	return result, nil
 }

@@ -61,6 +61,11 @@ type updateDruckerConfigRequest struct {
 	Bonmodus  string `json:"bonmodus"`
 }
 
+type kassensitzungEroeffnenRequest struct {
+	Datum       string `json:"datum"`
+	Bezeichnung string `json:"bezeichnung"`
+}
+
 // seedTestData creates the minimal test data needed for integration tests.
 // The migration only creates user ID 1 (admin "nico"), so we need to insert
 // a service user, products with variants, and active tische.
@@ -161,13 +166,35 @@ func setupTestEnv(t *testing.T) testEnv {
 		t.Fatalf("Failed to generate service JWT: %v", err)
 	}
 
-	return testEnv{
+	env := testEnv{
 		server:     ts,
 		adminToken: adminTkn,
 		svcToken:   svcTkn,
 		produktID:  produktID,
 		varianteID: varianteID,
 		tischID:    tischID,
+	}
+
+	openKassensitzungIfNeeded(t, env)
+
+	return env
+}
+
+func openKassensitzungIfNeeded(t *testing.T, env testEnv) {
+	t.Helper()
+	resp := postJSON(t, env.server.URL+"/admin/kassensitzung-eroeffnen", kassensitzungEroeffnenRequest{
+		Datum:       "2026-01-01",
+		Bezeichnung: "Integration Test",
+	}, env.adminToken)
+	defer resp.Body.Close()
+	// 200 = newly opened, 400+kasse_bereits_geoeffnet = already open — both are fine for tests
+	if resp.StatusCode != http.StatusOK {
+		var errResp struct {
+			Code string `json:"code"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil || errResp.Code != "kasse_bereits_geoeffnet" {
+			t.Fatalf("openKassensitzungIfNeeded: unexpected status %d (code=%q)", resp.StatusCode, errResp.Code)
+		}
 	}
 }
 
@@ -204,7 +231,7 @@ func decodePollResponse(t *testing.T, resp *http.Response) pollResponse {
 
 func configureDrucker(t *testing.T, serverURL, token, kategorie, ip, bonmodus string) {
 	t.Helper()
-	resp := postJSON(t, serverURL+"/admin/update-drucker-config", updateDruckerConfigRequest{
+	resp := postJSON(t, serverURL+"/admin/update-drucker-konfiguration", updateDruckerConfigRequest{
 		Kategorie: kategorie,
 		DruckerIP: ip,
 		Bonmodus:  bonmodus,

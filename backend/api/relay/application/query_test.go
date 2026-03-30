@@ -66,13 +66,16 @@ func TestGetDruckAuftraege_NoEvents_ReturnsNil(t *testing.T) {
 		DruckerRepo: &mockDruckerRepo{konfigs: map[string]DruckerKonfig{}},
 	}
 
-	auftraege, err := q.GetDruckAuftraege(context.Background(), 0)
+	auftraege, maxEventID, err := q.GetDruckAuftraege(context.Background(), 0)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if auftraege != nil {
 		t.Errorf("expected nil, got %v", auftraege)
+	}
+	if maxEventID != 0 {
+		t.Errorf("expected maxEventID 0, got %d", maxEventID)
 	}
 }
 
@@ -82,7 +85,7 @@ func TestGetDruckAuftraege_EventRepoError(t *testing.T) {
 		DruckerRepo: &mockDruckerRepo{konfigs: map[string]DruckerKonfig{}},
 	}
 
-	_, err := q.GetDruckAuftraege(context.Background(), 0)
+	_, _, err := q.GetDruckAuftraege(context.Background(), 0)
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -100,7 +103,7 @@ func TestGetDruckAuftraege_DruckerRepoError(t *testing.T) {
 		DruckerRepo: &mockDruckerRepo{err: errors.New("db error")},
 	}
 
-	_, err := q.GetDruckAuftraege(context.Background(), 0)
+	_, _, err := q.GetDruckAuftraege(context.Background(), 0)
 
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -121,7 +124,7 @@ func TestGetDruckAuftraege_WithEvents_GeneratesAuftraege(t *testing.T) {
 		DruckerRepo: &mockDruckerRepo{konfigs: konfigs},
 	}
 
-	auftraege, err := q.GetDruckAuftraege(context.Background(), 0)
+	auftraege, maxEventID, err := q.GetDruckAuftraege(context.Background(), 0)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -137,6 +140,9 @@ func TestGetDruckAuftraege_WithEvents_GeneratesAuftraege(t *testing.T) {
 	}
 	if auftraege[0].Payload == "" {
 		t.Error("expected non-empty payload")
+	}
+	if maxEventID != 5 {
+		t.Errorf("expected maxEventID 5, got %d", maxEventID)
 	}
 }
 
@@ -157,7 +163,7 @@ func TestGetDruckAuftraege_CursorFiltering(t *testing.T) {
 	}
 
 	// cursor=3 → only event with id>3 (id=7)
-	auftraege, err := q.GetDruckAuftraege(context.Background(), 3)
+	auftraege, maxEventID, err := q.GetDruckAuftraege(context.Background(), 3)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -167,6 +173,9 @@ func TestGetDruckAuftraege_CursorFiltering(t *testing.T) {
 	}
 	if auftraege[0].EventID != 7 {
 		t.Errorf("expected EventID 7, got %d", auftraege[0].EventID)
+	}
+	if maxEventID != 7 {
+		t.Errorf("expected maxEventID 7, got %d", maxEventID)
 	}
 }
 

@@ -30,23 +30,24 @@ type DruckAuftrag struct {
 
 // GetDruckAuftraege liest neue BestellungAufgenommenV1-Events seit dem Cursor
 // und erzeugt daraus Druck-Aufträge (1 pro Position oder 1 pro Bestellung je nach Bonmodus).
-// Gibt nil, nil zurück wenn keine neuen Events vorhanden.
-func (q Query) GetDruckAuftraege(ctx context.Context, lastEventID int) ([]DruckAuftrag, error) {
+// Gibt (nil, 0, nil) zurück wenn keine neuen Events vorhanden.
+// MaxEventID ist die höchste verarbeitete Event-ID — für Cursor-Tracking auch ohne Drucker-Match.
+func (q Query) GetDruckAuftraege(ctx context.Context, lastEventID int) ([]DruckAuftrag, int, error) {
 	log := zerolog.Ctx(ctx)
 
 	// 1. Neue BestellungAufgenommenV1-Events lesen
 	events, err := q.EventRepo.GetBestellungEventsSinceCursor(ctx, lastEventID)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if len(events) == 0 {
-		return nil, nil
+		return nil, 0, nil
 	}
 
 	// 2. Druckerkonfiguration zur Lesezeit holen (immer aktuell)
 	druckerConfig, err := q.DruckerRepo.GetKonfigurierteKategorieDrucker(ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	// 3. Pro Event Druck-Aufträge erzeugen
@@ -56,8 +57,10 @@ func (q Query) GetDruckAuftraege(ctx context.Context, lastEventID int) ([]DruckA
 		auftraege = append(auftraege, jobs...)
 	}
 
+	maxEventID := events[len(events)-1].ID
+
 	log.Debug().Int("cursor", lastEventID).Int("new_events", len(events)).
 		Int("auftraege", len(auftraege)).Msg("Relay poll")
 
-	return auftraege, nil
+	return auftraege, maxEventID, nil
 }

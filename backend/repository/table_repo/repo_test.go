@@ -57,7 +57,7 @@ func TestGetActiveTablesDB(t *testing.T) {
 	_, _ = repo.CreateTable(ctx, table.Tisch{Name: "GetAll Test 1", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 	_, _ = repo.CreateTable(ctx, table.Tisch{Name: "GetAll Test 2", Status: table.InactiveStatus, CreatedAt: now, UpdatedAt: now})
 
-	tables, err := repo.GetActiveTables(ctx)
+	tables, err := repo.GetActiveTables(ctx, 0)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

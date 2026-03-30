@@ -2,8 +2,6 @@ package product_repo
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
@@ -12,29 +10,24 @@ import (
 
 // GetVariantsByIDs fetches multiple variants in a single query.
 // Returns a map keyed by variant ID for O(1) lookup during Bestellung enrichment.
-// Uses a dynamically built parameterized IN clause; all arguments are integer IDs from
-// validated application inputs (not user-supplied strings), so this is safe.
+// Uses ANY($1) with a []int32 parameter; pgx v5 encodes Go slices as PostgreSQL arrays
+// natively, so no dynamic SQL building is required.
 func (r Repository) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]product.Variante, error) {
 	if len(ids) == 0 {
 		return make(map[int]product.Variante), nil
 	}
 
-	placeholders := make([]string, len(ids))
-	args := make([]interface{}, len(ids))
-	for i, id := range ids {
-		placeholders[i] = fmt.Sprintf("$%d", i+1)
-		args[i] = id
-	}
+	ids32 := toInt32Slice(ids)
 
-	query := `SELECT id, name, preis_cents, status, created_at, updated_at
-              FROM produkt_varianten
-              WHERE id IN (` + strings.Join(placeholders, ",") + `) AND status != 'deleted'`
+	const query = `SELECT id, name, preis_cents, status, created_at, updated_at
+		FROM produkt_varianten
+		WHERE id = ANY($1) AND status != 'deleted'`
 
-	rows, err := r.DB.QueryContext(ctx, query, args...)
+	rows, err := r.DB.QueryContext(ctx, query, ids32)
 	if err != nil {
 		return nil, db.Error(err)
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck // explicit Close with error check below
 
 	result := make(map[int]product.Variante, len(ids))
 	for rows.Next() {
@@ -71,28 +64,23 @@ func (r Repository) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]pr
 // GetProductsByIDs fetches multiple products in a single query.
 // Returns a map keyed by product ID for O(1) lookup during Bestellung enrichment.
 // Only retrieves fields needed for fat-event enrichment (Name, Kategorie).
-// Uses a dynamically built parameterized IN clause; see GetVariantsByIDs for rationale.
+// Uses ANY($1) with a []int32 parameter; see GetVariantsByIDs for rationale.
 func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]product.Produkt, error) {
 	if len(ids) == 0 {
 		return make(map[int]product.Produkt), nil
 	}
 
-	placeholders := make([]string, len(ids))
-	args := make([]interface{}, len(ids))
-	for i, id := range ids {
-		placeholders[i] = fmt.Sprintf("$%d", i+1)
-		args[i] = id
-	}
+	ids32 := toInt32Slice(ids)
 
-	query := `SELECT id, name, kategorie
-              FROM produkte
-              WHERE id IN (` + strings.Join(placeholders, ",") + `) AND status != 'deleted'`
+	const query = `SELECT id, name, kategorie
+		FROM produkte
+		WHERE id = ANY($1) AND status != 'deleted'`
 
-	rows, err := r.DB.QueryContext(ctx, query, args...)
+	rows, err := r.DB.QueryContext(ctx, query, ids32)
 	if err != nil {
 		return nil, db.Error(err)
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck // explicit Close with error check below
 
 	result := make(map[int]product.Produkt, len(ids))
 	for rows.Next() {
@@ -118,4 +106,14 @@ func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]pr
 	}
 
 	return result, nil
+}
+
+// toInt32Slice converts []int to []int32 for use as a PostgreSQL int4[] array parameter.
+// pgx v5 encodes []int32 as int4[] natively via TryWrapSliceEncodePlan.
+func toInt32Slice(ids []int) []int32 {
+	out := make([]int32, len(ids))
+	for i, id := range ids {
+		out[i] = int32(id) //nolint:gosec // IDs are positive entity IDs, not user-supplied bit-width-sensitive values
+	}
+	return out
 }
