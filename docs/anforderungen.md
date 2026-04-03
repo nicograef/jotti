@@ -28,32 +28,7 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | `serviceleitung` | Kasse einschließlich Stornierung und Auszahlung                      |
 | `service`        | Kasse ohne Stornierung                                               |
 
-### Berechtigungsmatrix
-
-| Aktion                      | Admin | Serviceleitung | Servicekraft |
-| --------------------------- | :---: | :------------: | :----------: |
-| Produkte verwalten          |   ✔   |                |              |
-| Tische verwalten            |   ✔   |                |              |
-| Benutzer verwalten          |   ✔   |                |              |
-| Passwort zurücksetzen       |   ✔   |                |              |
-| Bestellung aufnehmen        |   ✔   |       ✔        |      ✔       |
-| Ausgabe bestätigen          |   ✔   |       ✔        |      ✔       |
-| Zahlung registrieren        |   ✔   |       ✔        |      ✔       |
-| Stornierung erteilen (K-04) |   ✔   |       ✔        |              |
-| Auszahlung leisten (K-05)   |   ✔   |       ✔        |              |
-| Umbuchung durchführen       |   ✔   |       ✔        |              |
-| Tischübersicht einsehen     |   ✔   |       ✔        |      ✔       |
-| Kassenjournal einsehen      |   ✔   |       ✔        |      ✔       |
-| Abmelden                    |   ✔   |       ✔        |      ✔       |
-| Tagesabrechnung einsehen    |   ✔   |                |              |
-| Datenexport                 |   ✔   |                |              |
-| Kassensitzung eröffnen      |   ✔   |                |              |
-| Anfangsbestand setzen       |   ✔   |                |              |
-| Kassenbestand einsehen      |   ✔   |                |              |
-| Kassenbewegung buchen       |   ✔   |                |              |
-| Kassensturz durchführen     |   ✔   |                |              |
-| Tagesabschluss (Z-Bon)      |   ✔   |                |              |
-| Betreiber-Daten verwalten   |   ✔   |                |              |
+→ Vollständige Berechtigungsmatrix: handbuch.md §5.1
 
 ---
 
@@ -61,23 +36,23 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 
 ### Umgesetzt
 
-| ID   | Titel                    | Beschreibung                                                                                               |
-| ---- | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| K-01 | Bestellung aufnehmen     | Servicekraft wählt Tisch, stellt aus Produktkatalog (nach Kategorien) eine Bestellung zusammen und gibt ab. |
-| K-02 | Zahlung registrieren     | Barzahlung mit Positions-Auswahl (Teilzahlung möglich). Saldo wird reduziert.                              |
-| K-03 | Ausgabe bestätigen       | Bestellte Positionen als ausgegeben markieren. Nachverfolgung ausstehender Positionen.                     |
-| K-04 | Stornierung erteilen     | Serviceleitung/Admin stornieren Positionen — unabhängig von Ausgabe-/Bezahlstatus. Saldo kann negativ werden. |
-| K-05 | Auszahlung leisten       | Serviceleitung/Admin gleichen negativen Tischsaldo durch positionsunabhängige Auszahlung aus.              |
-| K-06 | Tischübersicht           | Dashboard mit „Meine Tische" (Favoriten), Alle-Tische-Drawer, Tisch-Detail mit Tabs (Bestellen, Bezahlen, Historie). |
-| K-07 | Kassenjournal            | Unveränderliche Event-Tabelle (append-only) als Single Source of Truth. Synchrone Projektion + CRUD-Entität. |
-| K-12 | Bondruck                 | Automatischer Bondruck bei Bestellaufnahme an konfigurierte Ausgabestationen (Küche, Theke).               |
-| K-14 | Tisch-Favoriten          | Serverseitig gespeicherte Favoriten pro Benutzer. Stern-Toggle im Alle-Tische-Drawer.                     |
-| K-16 | Kassensitzung eröffnen   | Global nummerierter Betriebstag. Kassensitzung-Sperre blockiert Betrieb ohne offene Sitzung.               |
-| K-17 | Anfangsbestand setzen    | Wechselgeld als Basis für Kassenbestandsführung. Genau einmal pro Kassensitzung.                           |
-| K-18 | Kassenbestand einsehen   | Soll-Bestand als SQL-Aggregation über Kassenjournal mit Aufschlüsselung nach Komponenten.                  |
-| K-19 | Kassenbewegung buchen    | Geldtransit, Privatentnahme oder Privateinlage als Event im Kassenjournal.                                 |
-| K-21 | Kassensturz durchführen  | Gezählter Ist-Bestand vs. Soll-Bestand. Differenz wird automatisch gebucht.                               |
-| K-22 | Tagesabschluss / Z-Bon   | Formaler Tagesabschluss. Schließt Kassensitzung ab. Voraussetzung: Kassensturz + alle Tische auf Saldo 0. |
+| ID   | Titel                   | Beschreibung                                                                                                         |
+| ---- | ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| K-01 | Bestellung aufnehmen    | Servicekraft wählt Tisch, stellt aus Produktkatalog (nach Kategorien) eine Bestellung zusammen und gibt ab.          |
+| K-02 | Zahlung registrieren    | Barzahlung mit Positions-Auswahl (Teilzahlung möglich). Saldo wird reduziert.                                        |
+| K-03 | Ausgabe bestätigen      | Bestellte Positionen als ausgegeben markieren. Nachverfolgung ausstehender Positionen.                               |
+| K-04 | Stornierung erteilen    | Serviceleitung/Admin stornieren Positionen — unabhängig von Ausgabe-/Bezahlstatus. Saldo kann negativ werden.        |
+| K-05 | Auszahlung leisten      | Serviceleitung/Admin gleichen negativen Tischsaldo durch positionsunabhängige Auszahlung aus.                        |
+| K-06 | Tischübersicht          | Dashboard mit „Meine Tische" (Favoriten), Alle-Tische-Drawer, Tisch-Detail mit Tabs (Bestellen, Bezahlen, Historie). |
+| K-07 | Kassenjournal           | Unveränderliche Event-Tabelle (append-only) als Single Source of Truth. Synchrone Projektion + CRUD-Entität.         |
+| K-12 | Bondruck                | Automatischer Bondruck bei Bestellaufnahme an konfigurierte Ausgabestationen (Küche, Theke).                         |
+| K-14 | Tisch-Favoriten         | Serverseitig gespeicherte Favoriten pro Benutzer. Stern-Toggle im Alle-Tische-Drawer.                                |
+| K-16 | Kassensitzung eröffnen  | Global nummerierter Betriebstag. Kassensitzung-Sperre blockiert Betrieb ohne offene Sitzung.                         |
+| K-17 | Anfangsbestand setzen   | Wechselgeld als Basis für Kassenbestandsführung. Genau einmal pro Kassensitzung.                                     |
+| K-18 | Kassenbestand einsehen  | Soll-Bestand als SQL-Aggregation über Kassenjournal mit Aufschlüsselung nach Komponenten.                            |
+| K-19 | Kassenbewegung buchen   | Geldtransit, Privatentnahme oder Privateinlage als Event im Kassenjournal.                                           |
+| K-21 | Kassensturz durchführen | Gezählter Ist-Bestand vs. Soll-Bestand. Differenz wird automatisch gebucht.                                          |
+| K-22 | Tagesabschluss / Z-Bon  | Formaler Tagesabschluss. Schließt Kassensitzung ab. Voraussetzung: Kassensturz + alle Tische auf Saldo 0.            |
 
 > 🚫 **K-08 · Bezeichnung pro Bestellung:** Won't-have — wird über das bestehende Kommentarfeld (K-01) gelöst.
 
@@ -188,11 +163,11 @@ Aufbauend auf dem Küchendisplay (K-13) können Mitarbeiter an Ausgabestationen 
 
 ### Umgesetzt
 
-| ID   | Titel              | Beschreibung                                                                                     |
-| ---- | ------------------ | ------------------------------------------------------------------------------------------------ |
-| S-01 | Produktverwaltung  | Admin verwaltet Produktkatalog mit Kategorien und Varianten. Soft-Delete, Preise in Cent.        |
-| S-02 | Tischverwaltung    | Admin verwaltet Tische (Name, Status). Nur aktive Tische in der Service-Übersicht. Soft-Delete.  |
-| S-03 | Benutzerverwaltung | Admin verwaltet Benutzerkonten mit Rollen. Passwort-Reset generiert 6-stelliges Einmalpasswort.  |
+| ID   | Titel              | Beschreibung                                                                                    |
+| ---- | ------------------ | ----------------------------------------------------------------------------------------------- |
+| S-01 | Produktverwaltung  | Admin verwaltet Produktkatalog mit Kategorien und Varianten. Soft-Delete, Preise in Cent.       |
+| S-02 | Tischverwaltung    | Admin verwaltet Tische (Name, Status). Nur aktive Tische in der Service-Übersicht. Soft-Delete. |
+| S-03 | Benutzerverwaltung | Admin verwaltet Benutzerkonten mit Rollen. Passwort-Reset generiert 6-stelliges Einmalpasswort. |
 
 ---
 
@@ -200,11 +175,11 @@ Aufbauend auf dem Küchendisplay (K-13) können Mitarbeiter an Ausgabestationen 
 
 ### Umgesetzt
 
-| ID   | Titel           | Beschreibung                                                                              |
-| ---- | --------------- | ----------------------------------------------------------------------------------------- |
-| A-01 | Login           | Benutzername + Passwort → JWT (12h, Argon2id). Generische Fehlermeldung bei Fehlversuch.  |
+| ID   | Titel           | Beschreibung                                                                                   |
+| ---- | --------------- | ---------------------------------------------------------------------------------------------- |
+| A-01 | Login           | Benutzername + Passwort → JWT (12h, Argon2id). Generische Fehlermeldung bei Fehlversuch.       |
 | A-02 | Passwort setzen | 6-stelliges Einmalpasswort → automatische Weiterleitung zu „Passwort setzen" (min. 6 Zeichen). |
-| A-03 | Logout          | JWT aus Speicher entfernen, Weiterleitung auf Login-Seite.                                |
+| A-03 | Logout          | JWT aus Speicher entfernen, Weiterleitung auf Login-Seite.                                     |
 
 ---
 
@@ -212,15 +187,15 @@ Aufbauend auf dem Küchendisplay (K-13) können Mitarbeiter an Ausgabestationen 
 
 ### Umgesetzt
 
-| ID   | Titel              | Beschreibung                                                                                |
-| ---- | ------------------ | ------------------------------------------------------------------------------------------- |
-| Q-01 | Mobile-first       | Alle Seiten auf Smartphones ab 360 px bedienbar. Touch-optimiert, Drawer-Overlays.          |
-| Q-02 | Mehrbenutzerfähig  | Parallele Zugriffe ohne Datenverlust. Optimistic Concurrency Control.                       |
-| Q-03 | Validierung        | Zod (Frontend) + zog (Backend). Doppelte Validierung, deutsche Fehlermeldungen.             |
-| Q-04 | Datenintegrität    | Transaktionssicher, append-only Kassenjournal, Cent-Werte, Soft-Deletes.                    |
-| Q-06 | HTTPS / TLS        | nginx terminiert TLS, Let's Encrypt, HTTP→HTTPS-Redirect.                                  |
-| Q-07 | Rate Limiting      | Login-Endpunkt geschützt (HTTP 429 bei Überschreitung).                                    |
-| Q-08 | Security Headers   | CSP, X-Content-Type-Options, X-Frame-Options, HSTS.                                        |
+| ID   | Titel             | Beschreibung                                                                       |
+| ---- | ----------------- | ---------------------------------------------------------------------------------- |
+| Q-01 | Mobile-first      | Alle Seiten auf Smartphones ab 360 px bedienbar. Touch-optimiert, Drawer-Overlays. |
+| Q-02 | Mehrbenutzerfähig | Parallele Zugriffe ohne Datenverlust. Optimistic Concurrency Control.              |
+| Q-03 | Validierung       | Zod (Frontend) + zog (Backend). Doppelte Validierung, deutsche Fehlermeldungen.    |
+| Q-04 | Datenintegrität   | Transaktionssicher, append-only Kassenjournal, Cent-Werte, Soft-Deletes.           |
+| Q-06 | HTTPS / TLS       | nginx terminiert TLS, Let's Encrypt, HTTP→HTTPS-Redirect.                          |
+| Q-07 | Rate Limiting     | Login-Endpunkt geschützt (HTTP 429 bei Überschreitung).                            |
+| Q-08 | Security Headers  | CSP, X-Content-Type-Options, X-Frame-Options, HSTS.                                |
 
 ### Offen
 
@@ -249,12 +224,12 @@ Bei einem Internetausfall während der Veranstaltung soll die Bestellaufnahme we
 
 ### Umgesetzt
 
-| ID   | Titel                       | Beschreibung                                                                                |
-| ---- | --------------------------- | ------------------------------------------------------------------------------------------- |
-| R-01 | Tagesabrechnung             | KPIs, Breakdown-Sektionen, Stornierungsdetails für eine wählbare Kassensitzung.             |
-| R-03 | Abrechnung pro Tisch        | Umsatzübersicht pro Tisch als Bestandteil von R-01 (`UmsatzProTisch[]`).                    |
-| R-04 | Abrechnung pro Servicekraft | Umsatzübersicht pro Servicekraft als Bestandteil von R-01 (`UmsatzProServicekraft[]`).      |
-| R-06 | Eigene Übersicht            | KPI-Sektion auf dem Service-Dashboard: eigene Bestellungen und kassierte Zahlungen.          |
+| ID   | Titel                       | Beschreibung                                                                           |
+| ---- | --------------------------- | -------------------------------------------------------------------------------------- |
+| R-01 | Tagesabrechnung             | KPIs, Breakdown-Sektionen, Stornierungsdetails für eine wählbare Kassensitzung.        |
+| R-03 | Abrechnung pro Tisch        | Umsatzübersicht pro Tisch als Bestandteil von R-01 (`UmsatzProTisch[]`).               |
+| R-04 | Abrechnung pro Servicekraft | Umsatzübersicht pro Servicekraft als Bestandteil von R-01 (`UmsatzProServicekraft[]`). |
+| R-06 | Eigene Übersicht            | KPI-Sektion auf dem Service-Dashboard: eigene Bestellungen und kassierte Zahlungen.    |
 
 > ℹ️ **R-07 · Tagesabschluss** wurde als K-22 in den Kasse-Kontext verschoben.
 
@@ -293,9 +268,21 @@ Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um s
 
 ## 6 · Fiskalkonformität
 
-jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht nach § 146a AO. Die folgenden Anforderungen sind **verbindlich**. Detaillierte Hintergründe: [compliance.md](compliance.md).
+jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht nach § 146a AO. Die folgenden Anforderungen sind **verbindlich**. Rechtliche Grundlagen und Compliance-Entscheidungen: [compliance.md](compliance.md).
 
-### Offen
+| ID   | Titel               | Phase | Status                     | Prio        |
+| ---- | ------------------- | ----- | -------------------------- | ----------- |
+| F-01 | Seriennummer        | 1     | 🔲 Offen                   | Must        |
+| F-07 | Steuersätze         | 1     | 🔲 Offen                   | Must        |
+| F-03 | Belegausgabepflicht | 0/1/2 | ✅ Basis (ohne TSE-Felder) | Must        |
+| F-05 | ELSTER-Meldung      | 1     | 🔲 Offen                   | Must (Doku) |
+| F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung | Should      |
+| F-02 | TSE-Integration     | 2     | 🔲 Offen                   | Should      |
+| F-04 | DSFinV-K Export     | 2     | 🔲 Offen                   | Should      |
+| F-09 | eBeleg              | 2     | 🔲 Offen                   | Nice        |
+| F-08 | GoBD-Hash-Chain     | 3     | 🔲 Offen                   | Nice        |
+
+**Legende:** ✅ Implementiert · 🔲 Offen · ⏳ In Arbeit — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
 
 ---
 
@@ -361,13 +348,13 @@ Jede jotti-Instanz muss innerhalb eines Monats nach Inbetriebnahme beim zuständ
 
 #### F-06 · Abrechnungskreis (DSFinV-K)
 
-> **Prio:** Must-have
+> **Prio:** Should-have
 
 Der `ABRECHNUNGSKREIS` im Sinne der DSFinV-K ist pro Tisch und Kassensitzung: Jede Tisch-Session (Subject `kassensitzung-{nr}/tisch-{id}`) bildet einen eigenständigen Abrechnungskreis. Der DSFinV-K-Export-Wert wird aus dem Tischnamen abgeleitet (z. B. `Tisch 42`).
 
 **Akzeptanzkriterien:**
 
-- [ ] Jede Tisch-Session bildet einen `ABRECHNUNGSKREIS` im DSFinV-K-Sinne
+- [x] Jede Tisch-Session bildet einen `ABRECHNUNGSKREIS` im DSFinV-K-Sinne
 - [ ] Beim Tagesabschluss (K-22) wird die Kassensitzung geschlossen; alle zugehörigen Tisch-Sessions sind damit abgeschlossen
 - [ ] Alle TSE-Transaktionen sind einem `ABRECHNUNGSKREIS` zugeordnet
 - [ ] Im DSFinV-K-Export ist der `ABRECHNUNGSKREIS` korrekt ausgewiesen
@@ -435,18 +422,3 @@ Zur Erfüllung der GoBD-Anforderung der Unveränderbarkeit wird jedes Event mit 
 - [ ] Die Hash-Chain ist unabhängig von der TSE-Signatur und ergänzt diese
 
 ---
-
-## 7 · Bewusste Abgrenzung
-
-| Feature                            | Kurzbegründung                                                                                     |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------- |
-| 🚫 Kartenzahlung / Zahlungsgateway | Bargeld-only. Kartenterminals verursachen Kosten, Verträge und Abhängigkeiten.                     |
-| 🚫 Reservierungssystem             | Vereinsfeste haben keine Tischreservierungen.                                                       |
-| 🚫 Warenwirtschaft / Inventory     | Unverhältnismäßig für temporäre Veranstaltungen mit überschaubarem Sortiment.                      |
-| 🚫 Lieferservice-Integration       | Ausschließlich Vor-Ort-Gastronomie.                                                                |
-| 🚫 Multi-Standort-Verwaltung       | Jede Veranstaltung betreibt eine eigene jotti-Instanz.                                              |
-| 🚫 CRM / Kundendatenbank           | Keine wiederkehrenden Kundenbeziehungen bei Vereinsfesten.                                          |
-| 🚫 Kiosk-Modus / Self-Order        | Widerspricht dem persönlichen Service durch ehrenamtliche Helfer.                                   |
-| 🚫 Gast-Benachrichtigung           | Gäste sitzen am Tisch und werden persönlich bedient.                                                |
-
-> **TSE / KassenSichV:** jotti unterliegt der TSE-Pflicht nach § 146a AO. Die Compliance-Anforderungen sind in §6 als verbindliche Anforderungen definiert.

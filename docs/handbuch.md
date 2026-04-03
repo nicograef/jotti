@@ -22,6 +22,7 @@
    - [3.10 Kassensturz](#310-kassensturz)
    - [3.11 Tagesabschluss (Z-Bon)](#311-tagesabschluss-z-bon)
    - [3.12 Policies](#312-policies)
+   - [3.13 TSE-Architektur](#313-tse-architektur)
 4. [Stammdaten](#4-stammdaten)
    - [4.1 Produkt-Aggregat](#41-produkt-aggregat)
    - [4.2 Tisch-Stammdaten](#42-tisch-stammdaten)
@@ -387,7 +388,16 @@ Am Ende einer Schicht vergleicht der Admin den errechneten Soll-Bestand mit dem 
 | N       | `kassensturz-durchgefuehrt:v1`  | Immer                  |
 | N+1     | `differenz-soll-ist-gebucht:v1` | Nur wenn Differenz ≠ 0 |
 
-Das `DifferenzSollIstGebucht`-Event bekommt eine eigene `kassenjournal.id` — direkt exportierbar als Zeile in `businesscases.csv` mit `GV_TYP = DifferenzSollIst`. Rechtliche Grundlagen und Betreiber-Anleitung: siehe [tagesabschluss.md](tagesabschluss.md).
+Das `DifferenzSollIstGebucht`-Event bekommt eine eigene `kassenjournal.id` — direkt exportierbar als Zeile in `businesscases.csv` mit `GV_TYP = DifferenzSollIst`.
+
+**Kassensturz — rechtliche Grundlagen:**
+
+- **Soll-Bestand:** Anfangsbestand + Bareinnahmen − Barausgaben (vom System errechnet).
+- **Ist-Bestand:** Manuell gezählter Bargeldbestand, erfasst im Zählprotokoll.
+- **Invariante:** Kassenbestand darf niemals negativ sein.
+- **Differenzbuchung:** Abweichung darf nicht per `UPDATE` überschrieben werden — Eigenbeleg erzeugen, TSE signieren, als `GV_TYP = DifferenzSollIst` in `businesscases.csv` exportieren. Fehlbetrag = negativer Wert, Überschuss = positiver Wert. Umsatzsteuerlich neutral.
+- **Aufbewahrungspflicht:** Z-Bons und Zählprotokolle 10 Jahre (GoBD).
+- **Hinweis Betriebsprüfung:** Eine Kasse, die „immer auf den Cent genau stimmt", gilt als manipulationsverdächtig — die Finanzverwaltung sucht mit IDEA-Software gezielt nach fehlenden Differenzen.
 
 ### 3.11 Tagesabschluss (Z-Bon)
 
@@ -395,13 +405,157 @@ Der Z-Bon ist das Ergebnis des `TagesabschlussErstellt`-Events — er aggregiert
 
 **Invarianten:** `z_nr` strikt aufsteigend und lückenlos. Voraussetzung: Kassensturz durchgeführt + alle Tisch-Sessions Saldo = 0. Das Event schließt die KS (→ Status `abgeschlossen`). Z-Bons müssen 10 Jahre aufbewahrt werden (GoBD).
 
-Rechtliche Grundlagen und operationale Details: siehe [tagesabschluss.md](tagesabschluss.md).
+**Z-Bon vs. X-Bon:** Der Z-Bon setzt den Kassenumsatzspeicher auf null zurück; ein Zwischenbericht (X-Bon) ersetzt ihn rechtlich nicht. **Stammdaten-Snapshot:** Zu jedem Abschluss müssen die aktuell gültigen Stammdaten (Steuersätze, TSE-Zertifikate, Kassen-IDs) eingefroren werden — vor jeder Stammdaten-Änderung zunächst Kassenabschluss durchführen.
+
+**Betreiber-Ablauf:**
+
+1. Bargeld zählen (Zählprotokoll).
+2. Z-Bon im System erstellen (kein X-Bon).
+3. Ist mit Soll abgleichen.
+4. Differenzen buchen (→ [§3.10](#310-kassensturz)).
+5. Z-Bon und Zählprotokoll archivieren (10 Jahre).
 
 ### 3.12 Policies
 
 - **Stornierungsberechtigung (K-04):** Nur `serviceleitung` und `admin` dürfen `StornierungErteilen`. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat geht.
 - **Automatischer Bon-Druck nach Kategorie (K-12):** Jedes `bestellung-aufgenommen:v1`-Event löst Druck-Aufträge im Ausgabe-Context aus. Das Print-Relay holt via `POST /relay/poll` neue Events seit dem letzten Cursor ab. Pro Event werden Positionen nach Kategorie gruppiert; für jede Kategorie mit konfigurierter Drucker-IP wird ein ESC/POS-Payload erzeugt. Bonmodus (`pro_position` oder `pro_bestellung`) und IP werden zur Lesezeit aus der `kategorie_drucker`-Tabelle gelesen — Änderungen der Konfiguration wirken sofort für alle künftigen Polls.
 - **Umbuchung (K-09):** Verschiebt eine Bestellung von Quell- auf Ziel-Tisch (= Stornierung + neue Bestellung). Cross-Aggregat-Transaktion — Atomarität auf Anwendungsebene sicherstellen. Nur `serviceleitung` und `admin`.
+
+### 3.13 TSE-Architektur
+
+> Compliance-spezifische Architektur-Entscheidungen für die TSE-Integration. Allgemeine Architekturprinzipien (Event-Sourcing, Kassenjournal, Projektion, OCC, Fat Events) sind in den vorherigen §3-Abschnitten beschrieben. Rechtliche Grundlagen → [compliance.md §3–§8](compliance.md).
+
+#### TSE-Integration
+
+```
+┌─────────────────────────────────────────────┐
+│                  jotti Backend               │
+│                                              │
+│  ┌──────────┐    ┌──────────────────────┐   │
+│  │ Service-  │───▶│  TSE-Service          │   │
+│  │ Handler   │    │  (Application Layer)  │   │
+│  └──────────┘    └──────────┬───────────┘   │
+│                              │               │
+│                    ┌─────────▼─────────┐     │
+│                    │  TSEClient        │     │
+│                    │  (Interface)      │     │
+│                    └─────────┬─────────┘     │
+│                              │               │
+└──────────────────────────────┼───────────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │   Cloud-TSE API     │
+                    │   (z.B. fiskaly)    │
+                    └─────────────────────┘
+```
+
+**Interface-Design:**
+
+```go
+type TSEClient interface {
+    StartTransaction(ctx context.Context, kassenID string, processType string, processData string) (StartResult, error)
+    // UpdateTransaction nur für processType="Bestellung-V1" und "SonstigerVorgang-V1" zulässig.
+    // Für "Kassenbeleg-V1" verboten (BMF-FAQ).
+    UpdateTransaction(ctx context.Context, kassenID string, transactionNumber int, processData string) error
+    FinishTransaction(ctx context.Context, kassenID string, transactionNumber int, processType string, processData string) (FinishResult, error)
+}
+
+type StartResult struct {
+    TransactionNumber int
+    LogTime           time.Time // TSE-interner Zeitstempel
+    SerialNumberTSE   string
+    SignatureCounter  int
+}
+
+type FinishResult struct {
+    Signature        string
+    LogTime          time.Time
+    SignatureCounter int
+}
+```
+
+#### Mapping: jotti-Vorgänge → TSE-Transaktionen (Atomares Modell)
+
+Für das Festzelt-Muster gilt: Jeder Vorgang ist eine **eigenständige, sofort geschlossene** TSE-Transaktion.
+
+| jotti-Vorgang                   | TSE-Operation             | processType           | Anmerkung                                                       |
+| ------------------------------- | ------------------------- | --------------------- | --------------------------------------------------------------- |
+| Bestellung aufnehmen            | `Start` + sofort `Finish` | `Bestellung-V1`       | Positionen in processData                                       |
+| Zahlung kassieren (Teilzahlung) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Betrag + Zahlungsart in processData; **kein** UpdateTransaction |
+| Zahlung kassieren (Vollzahlung) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Wie oben                                                        |
+| Positions-Storno                | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negative Menge/Betrag; BON_STORNO=1 im DSFinV-K                 |
+| Bon-Storno (nach Zahlung)       | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Gesamtbetrag; BON_STORNO=1, REF_BON_ID gesetzt        |
+| Tagesabschluss (Z-Bon)          | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Tagesaggregat in processData                                    |
+
+**Alle Transaktionen eines Tisches** teilen denselben `ABRECHNUNGSKREIS`-Wert im DSFinV-K-Export.
+
+#### Event-Store-Erweiterung
+
+Die TSE-Rückgabewerte müssen in den bestehenden Event-Daten persistiert werden:
+
+```go
+// Erweiterung der Event-Data-Structs um TSE-Felder
+type TSEData struct {
+    TransactionNumber int    `json:"tseTransactionNumber"`
+    LogTimeStart      string `json:"tseLogTimeStart"`  // logTime von StartTransaction
+    LogTimeEnd        string `json:"tseLogTimeEnd"`    // logTime von FinishTransaction
+    SignatureCounter  int    `json:"tseSignatureCounter"`
+    Signature         string `json:"tseSignature"`
+    SerialNumberTSE   string `json:"tseSerialNumber"`
+    ProcessType       string `json:"tseProcessType"`
+}
+
+// Zusätzlich in TischSession-Daten:
+type TischSession struct {
+    AbrechnungskreisID     string    // z.B. "Tisch 42" (Tischname)
+    ErsteBestellungLogTime time.Time // logTime der ersten Bestellung-V1 für den Bon-Aufdruck
+}
+```
+
+#### DSFinV-K Export-Architektur
+
+```
+┌──────────────────────────────────────────────┐
+│              DSFinV-K Exporter                │
+│                                               │
+│  ┌────────────┐  ┌────────────┐  ┌────────┐ │
+│  │ Stammdaten- │  │ Einzelauf- │  │ Z-Bon- │ │
+│  │ modul       │  │ zeichnungs-│  │ Modul  │ │
+│  │             │  │ modul      │  │        │ │
+│  └──────┬─────┘  └──────┬─────┘  └───┬────┘ │
+│         │               │             │       │
+│  ┌──────▼───────────────▼─────────────▼────┐ │
+│  │   CSV-Generator (offizielle Dateinamen) │ │
+│  │   Bonkopf.csv, Bonpos.csv, Stamm_*.csv  │ │
+│  └──────────────────┬──────────────────────┘ │
+│                     │                         │
+│  ┌──────────────────▼──────────────────────┐ │
+│  │     index.xml Generator + ZIP-Builder  │ │
+│  └─────────────────────────────────────────┘ │
+└──────────────────────────────────────────────┘
+```
+
+#### Cloud-TSE vs. ERiC — Entscheidungsmatrix für jotti
+
+| Kriterium                  | ERiC (direkt, für Kassenmeldung) | Submission-API (fiskaly o.ä.) |
+| -------------------------- | -------------------------------- | ----------------------------- |
+| Vorab-Validierung          | ✅ Ja (staatlich)                | ❌ Nein                       |
+| Implementierungsaufwand    | Hoch (native C-Bibliothek)       | Niedrig (REST-API)            |
+| Vendor-Lock-in             | Keiner                           | Ja (TSE-Anbieter)             |
+| Kosten                     | Kostenlos                        | Kostenpflichtig               |
+| Offline-Fähigkeit          | ✅ (lokale Lib)                  | ❌ (Cloud-abhängig)           |
+| Passt zu jotti-Philosophie | ✅ (Self-hosted, keine Cloud)    | ⚠️ (externe Abhängigkeit)     |
+
+**Getroffene Entscheidungen:**
+
+- **TSE (Transaktionssignierung):** fiskaly Cloud-TSE als erster Zielanbieter; anbieter-agnostisches Backend-Interface (`TSEClient`) für spätere Flexibilität.
+- **Kassenmeldung (§ 146a Abs. 4 AO):** Phase 1 manuell über ELSTER-Webportal (kein Code-Aufwand); Phase 2 automatisiert via ERiC oder fiskaly-Submission-API (Entscheidung bei Implementierungsbeginn).
+
+**Begründung für fiskaly als TSE-Anbieter:**
+
+- jotti ist ein BYOD-System: Smartphones im Festzelt können keine Hardware-TSE führen.
+- fiskaly ist API-first mit gut dokumentierter REST-Schnittstelle — passt zur bestehenden Backend-Architektur (Go + HTTP).
+- Das Adapter-Pattern (`TSEClient`-Interface) verhindert Vendor-Lock-in auf Architektur-Ebene.
 
 ---
 
@@ -512,7 +666,37 @@ Die Tabelle enthält immer genau drei Zeilen (Per Seed-Insert angelegt). Der Adm
 
 **Datenfluss:** Das Print-Relay (`cmd/relay/main.go`) pollt `POST /relay/poll` im konfigurierten Intervall, liest `bestellung-aufgenommen:v1`-Events seit dem letzten Cursor, gruppiert Positionen nach Kategorie, schlägt Drucker-IP und Bonmodus aus `kategorie_drucker` nach und erzeugt ESC/POS-Payloads. Kategorien ohne IP werden still übersprungen.
 
-Operationale Details (Relay-Protokoll, ESC/POS-Formatierung, CLI-Parameter, Fehlerverhalten): siehe [bondruck.md](bondruck.md).
+**Bon-Inhalt:** Tischnummer (groß), Position (Art + Menge, z. B. „3x Pommes (groß)"), Kommentar (falls vorhanden), Uhrzeit und Servicekraft. Preise erscheinen nicht auf dem Bon.
+
+**Drucker-Voraussetzungen:** ESC/POS-Bondrucker mit Ethernet-Anschluss (TCP Port 9100), 80-mm-Thermodrucker (48 Zeichen/Zeile). Statische IP-Adresse empfohlen. Getestet mit MUNBYN ITPP047P-UE.
+
+**Relay starten:**
+
+```bash
+./jotti-relay \
+  --backend="https://jotti.meinverein.de" \
+  --token="<RELAY_AUTH_TOKEN>" \
+  --poll=2
+```
+
+| Parameter   | Beschreibung                                      | Standard           |
+| ----------- | ------------------------------------------------- | ------------------ |
+| `--backend` | URL des jotti-Servers                             | (erforderlich)     |
+| `--token`   | Authentifizierungs-Token (aus `.env` des Servers) | (erforderlich)     |
+| `--poll`    | Abfrageintervall in Sekunden                      | 2                  |
+| `--state`   | Pfad zur lokalen State-Datei                      | `relay_state.json` |
+
+**Fehlerverhalten:** Bei nicht erreichbarem Drucker versucht das Relay bis zu 5 Minuten lang erneut; danach wird der Auftrag übersprungen und geloggt. Kein Doppeldruck bei Neustart — das Relay setzt an der letzten gespeicherten Position fort.
+
+**Schnelltest:**
+
+```bash
+curl -X POST http://localhost:3000/relay/poll \
+     -H "Content-Type: application/json" \
+     -d '{"token":"<RELAY_AUTH_TOKEN>","lastEventId":0}'
+```
+
+Erwartung: `200` mit `auftraege` und `cursor` bei gültigem Token, `401` bei ungültigem.
 
 ---
 

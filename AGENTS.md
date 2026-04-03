@@ -18,13 +18,13 @@ Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellung
 
 Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht automatisch geladen** (zu groß). Lies gezielt den relevanten Abschnitt per `read_file`, nicht das ganze Dokument.
 
-| Dokument                      | Inhalt                                                                                                                                            | Lesen bei                                                   |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `docs/anforderungen.md`       | Funktionale und querschnittliche Anforderungen, Akzeptanzkriterien, Priorisierung, Status (K-01–K-14, S-01–S-03, A-01–A-03, Q-01–Q-08, F-01–F-08) | neue Features, Akzeptanzkriterien, Rollen, Compliance       |
-| `docs/handbuch.md`            | Architektur, Bounded Contexts, Invarianten, Event-Sourcing, Schichtenarchitektur, Read Models                                                     | Architekturentscheidungen, Invarianten, Endpunkte entwerfen |
-| `docs/language.md`            | Verbindliche Fachbegriffe, Namenskonventionen pro Schicht (Go, TS, JSON, DB), Ist/Soll-Abweichungen                                               | Benennungen klären, neue Felder/Typen benennen              |
-| `docs/produktbeschreibung.md` | Produktidentität, Positionierung, Personas, Abgrenzung, Marketingtexte                                                                            | README/Marketing anpassen, Zielgruppe verstehen             |
-| `docs/compliance.md`          | KassenSichV, GoBD, DSFinV-K, ELSTER; Betreiberpflichten, TSE-Adapter-Interface                                                                    | Compliance-Features implementieren, Betreiberdokumentation  |
+| Dokument                      | Inhalt                                                                                                                                 | Lesen bei                                                   |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `docs/anforderungen.md`       | Funktionale und querschnittliche Anforderungen, Akzeptanzkriterien, Priorisierung, Status (K-01–K-14, S-01–S-03, A-01–A-03, Q-01–Q-08) | neue Features, Akzeptanzkriterien, Rollen                   |
+| `docs/handbuch.md`            | Architektur, Bounded Contexts, Invarianten, Event-Sourcing, Schichtenarchitektur, Read Models, Tagesabschluss, Bondruck                | Architekturentscheidungen, Invarianten, Endpunkte entwerfen |
+| `docs/language.md`            | Verbindliche Fachbegriffe, Namenskonventionen pro Schicht (Go, TS, JSON, DB), Ist/Soll-Abweichungen                                    | Benennungen klären, neue Felder/Typen benennen              |
+| `docs/produktbeschreibung.md` | Produktidentität, Positionierung, Personas, Abgrenzung                                                                                 | Zielgruppe verstehen, Positionierung                        |
+| `docs/compliance.md`          | KassenSichV, GoBD, DSFinV-K, ELSTER; Betreiberpflichten, TSE-Adapter-Interface                                                         | Compliance-Features implementieren, Betreiberdokumentation  |
 
 ## Tech-Stack
 

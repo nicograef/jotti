@@ -1,6 +1,6 @@
 # Produktbeschreibung — jotti
 
-Dieses Dokument definiert die Produktidentität von jotti: Positionierung, Zielgruppe, Abgrenzung, Kernbotschaften und Marketingtexte. Es dient als zentrale Referenz für alle externen Kommunikationskanäle (README, Website, Social Media, Pressemitteilungen).
+Produktidentität von jotti: Positionierung, Zielgruppe, Abgrenzung, Kernfeatures, USPs und Lizenz. Kanonische Referenz für Entwickler und Agenten.
 
 ---
 
@@ -15,7 +15,6 @@ Dieses Dokument definiert die Produktidentität von jotti: Positionierung, Zielg
 7. [Abgrenzung](#7-abgrenzung)
 8. [Alleinstellungsmerkmale (USPs)](#8-alleinstellungsmerkmale-usps)
 9. [Lizenz und Kosten](#9-lizenz-und-kosten)
-10. [Marketingtexte](#10-marketingtexte)
 
 ---
 
@@ -148,88 +147,50 @@ jotti löst genau diese Probleme mit einem radikal einfachen Ansatz:
 | Abrechnung        | Echtzeit-Saldo pro Tisch, lückenlose Bestellhistorie, transparente Abrechnung      |
 | Fiskalkonformität | TSE-Anbindung, DSFinV-K-Export, Belegausgabe, Tagesabschluss — KassenSichV-konform |
 
-### 5.2 So funktioniert's
-
-```
-1. Admin richtet ein          2. Team meldet sich an        3. Loslegen
-┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
-│ • Produkte &     │         │ • Browser öffnen │         │ • Bestellungen   │
-│   Varianten      │   ───►  │ • Einmalpasswort │   ───►  │   aufnehmen      │
-│   anlegen        │         │   eingeben       │         │ • Ausgabe        │
-│ • Tische anlegen │         │ • Eigenes        │         │   bestätigen     │
-│ • Benutzer       │         │   Passwort       │         │ • Kassieren      │
-│   erstellen      │         │   setzen         │         │ • Stornieren     │
-│ • Betreiber-     │         │                  │         │ • Tagesabschluss │
-│   daten pflegen  │         │                  │         │   & Z-Bon        │
-└──────────────────┘         └──────────────────┘         └──────────────────┘
-```
-
 ---
 
 ## 6. Kernfeatures
 
-### 6.1 Kassenbetrieb (Service-Bereich)
-
-| Feature                    | Beschreibung                                                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Bestellungen aufnehmen** | Produkte und Varianten auswählen, Menge wählen, Steuersatz je Variante, auf den Tisch buchen                  |
-| **Ausgabe bestätigen**     | Bestellte Positionen als ausgegeben markieren                                                                 |
-| **Zahlung kassieren**      | Am Tisch kassieren — Teilzahlung und Rückgeldberechnung                                                       |
-| **Stornierungen**          | Falschbestellungen rückgängig machen (nur Serviceleitung/Admin, Pflichtkommentar)                             |
-| **Auszahlung leisten**     | Negativen Saldo ausgleichen — z. B. nach Stornierung bereits kassierter Positionen (nur Serviceleitung/Admin) |
-| **Bestellungen umbuchen**  | Bestellung auf einen anderen Tisch umbuchen (atomare Stornierung + Neubestellung)                             |
-| **Tisch-Übersicht**        | Offener Saldo, bestellte/ausgegebene/bezahlte Positionen, Bestellhistorie auf einen Blick                     |
-| **Tisch-Favoriten**        | Eigene Tische markieren — „Meine Tische" als Rich Cards auf dem Dashboard                                     |
-| **Tisch-Schnellsuche**     | Tische per Name oder Nummer filtern — sofort den richtigen Tisch finden                                       |
-| **Küchendisplay (KDS)**    | Eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe anzeigen                       |
-| **Ausgabestationen**       | Zubereitungsstatus verwalten — Servicekräfte sehen, wann Positionen abholbereit sind                          |
-| **Bon-Druck**              | Bestell- und Küchenbons automatisch an zugeordnete Bondrucker senden (pro Kategorie konfigurierbar)           |
-
-### 6.2 Verwaltung (Admin-Bereich)
-
-| Feature                  | Beschreibung                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------- |
-| **Produktverwaltung**    | Produkte mit Varianten (Größe, Preis, Steuersatz) anlegen und bearbeiten        |
-| **Tischverwaltung**      | Tische anlegen, benennen, aktivieren/deaktivieren                               |
-| **Benutzerverwaltung**   | Accounts erstellen, Rollen zuweisen, Passwörter zurücksetzen                    |
-| **Betreiber-Stammdaten** | Vereinsname, Adresse und Steuernummer pflegen — für Belege, Z-Bons und DSFinV-K |
-| **Rollenmodell**         | Drei Rollen: Admin, Serviceleitung, Servicekraft                                |
-
-### 6.3 Kassenführung (Admin-Bereich)
-
-| Feature                    | Beschreibung                                                                                |
-| -------------------------- | ------------------------------------------------------------------------------------------- |
-| **Abrechnungskreis**       | Fortlaufend nummerierte Kassensitzungen eröffnen und schließen                              |
-| **Anfangsbestand**         | Wechselgeld zu Beginn einer Veranstaltung erfassen                                          |
-| **Kassenbestand**          | Soll-Kassenbestand jederzeit einsehen — aufgeschlüsselt nach Komponenten                    |
-| **Kassenbewegungen**       | Geldtransit, Privatentnahmen und Privateinlagen buchen                                      |
-| **Kassensturz**            | Ist-Bestand eingeben, Differenz zum Soll berechnen, Abweichung automatisch buchen           |
-| **Tagesabschluss (Z-Bon)** | Formaler Tagesabschluss mit fortlaufender Nummer, Umsatzaggregation und Stammdaten-Snapshot |
-
-### 6.4 Abrechnung und Reporting
-
-| Feature                         | Beschreibung                                                                                        |
-| ------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Tagesabrechnung**             | Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge — nach Steuersatz aufgeschlüsselt      |
-| **Abrechnung pro Tisch**        | Detaillierte Aufstellung aller Bestellungen, Zahlungen und Stornierungen je Tisch                   |
-| **Abrechnung pro Servicekraft** | Umsatz und Transaktionen pro Servicekraft — für Transparenz und Nachvollziehbarkeit                 |
-| **Produktumsatz-Reporting**     | Verkaufte Mengen pro Variante, Ranking der meistverkauften Artikel, Gesamteinnahmen pro Produkt     |
-| **Datenexport (CSV)**           | Umsätze, Bestellungen und Artikeldaten als CSV exportieren — für die Vereinsbuchhaltung             |
-| **DSFinV-K-Export**             | Maschinenlesbarer Export aller Kassendaten für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.4) |
-
-### 6.5 Sicherheit und Compliance
-
-| Feature                              | Beschreibung                                                                                    |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| **Sicheres Onboarding**              | Einmalpasswort + eigenes Passwort setzen — kein unsicherer Account-Versand                      |
-| **JWT-Authentifizierung**            | Sichere, tokenbasierte Anmeldung                                                                |
-| **Rollenbasierte Zugriffskontrolle** | Jede Rolle sieht nur, was sie darf                                                              |
-| **Event-Sourcing**                   | Lückenlose, unveränderliche Bestellhistorie — GoBD-konform durch Append-only-Architektur        |
-| **Kryptografische Hash-Chain**       | SHA-256-Verkettung aller Events — nachträgliche Manipulation ist nachweisbar                    |
-| **TSE-Anbindung (Cloud-TSE)**        | Integrierte TSE-Schnittstelle mit fiskaly-Adapter — jeder Vorgang wird signiert und abgesichert |
-| **Belegausgabe**                     | Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse              |
-| **Seriennummer der Kasse**           | Automatisch generierte UUID — für ELSTER-Meldung und DSFinV-K                                   |
-| **HTTPS**                            | Verschlüsselte Kommunikation per Let's Encrypt                                                  |
+| Feature                              | Beschreibung                                                                            |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| **Bestellungen aufnehmen**           | Produkte und Varianten auf den Tisch buchen — Menge, Steuersatz, Kommentar              |
+| **Ausgabe bestätigen**               | Positionen als ausgegeben markieren                                                     |
+| **Zahlung kassieren**                | Bargeld kassieren — Teilzahlung und Rückgeldberechnung                                  |
+| **Stornierungen**                    | Falschbestellungen rückgängig machen (Serviceleitung/Admin, Pflichtkommentar)           |
+| **Auszahlung leisten**               | Negativen Saldo ausgleichen nach Stornierung bereits kassierter Positionen              |
+| **Bestellungen umbuchen**            | Bestellung atomisch auf einen anderen Tisch verschieben                                 |
+| **Tisch-Übersicht**                  | Saldo, Bestellungen, Ausgaben, Zahlungen und Historie auf einen Blick                   |
+| **Tisch-Favoriten**                  | Eigene Tische als Rich Cards auf dem Dashboard markieren                                |
+| **Tisch-Schnellsuche**               | Tische per Name oder Nummer filtern                                                     |
+| **Küchendisplay (KDS)**              | Eingehende Bestellungen in Echtzeit im Küchenbereich anzeigen                           |
+| **Ausgabestationen**                 | Zubereitungsstatus verwalten — Servicekräfte sehen, wann Positionen abholbereit sind    |
+| **Bon-Druck**                        | Bestell- und Küchenbons automatisch an Bondrucker senden (pro Kategorie konfigurierbar) |
+| **Produktverwaltung**                | Produkte mit Varianten anlegen und bearbeiten (Name, Preis, Steuersatz)                 |
+| **Tischverwaltung**                  | Tische anlegen, benennen, aktivieren/deaktivieren                                       |
+| **Benutzerverwaltung**               | Accounts erstellen, Rollen zuweisen, Passwörter zurücksetzen                            |
+| **Betreiber-Stammdaten**             | Vereinsname, Adresse und Steuernummer — für Belege, Z-Bons und DSFinV-K                 |
+| **Rollenmodell**                     | Drei Rollen: Admin, Serviceleitung, Servicekraft                                        |
+| **Abrechnungskreis**                 | Fortlaufend nummerierte Kassensitzungen eröffnen und schließen                          |
+| **Anfangsbestand**                   | Wechselgeld zu Beginn erfassen                                                          |
+| **Kassenbestand**                    | Soll-Kassenbestand jederzeit abrufen — aufgeschlüsselt nach Komponenten                 |
+| **Kassenbewegungen**                 | Geldtransit, Privatentnahmen und Privateinlagen buchen                                  |
+| **Kassensturz**                      | Ist-Bestand eingeben, Differenz berechnen, Abweichung automatisch buchen                |
+| **Tagesabschluss (Z-Bon)**           | Formaler Abschluss mit fortlaufender Nummer, Umsatzaggregation und Stammdaten-Snapshot  |
+| **Tagesabrechnung**                  | Gesamtübersicht aller Umsätze und Zahlungen nach Steuersatz                             |
+| **Abrechnung pro Tisch**             | Aufstellung aller Bestellungen, Zahlungen und Stornierungen je Tisch                    |
+| **Abrechnung pro Servicekraft**      | Umsatz und Transaktionen pro Servicekraft                                               |
+| **Produktumsatz-Reporting**          | Verkaufte Mengen pro Variante, Ranking und Gesamteinnahmen                              |
+| **Datenexport (CSV)**                | Umsätze und Bestellungen als CSV für die Vereinsbuchhaltung                             |
+| **DSFinV-K-Export**                  | Maschinenlesbarer Export nach DSFinV-K v2.4 als ZIP-Archiv                              |
+| **Sicheres Onboarding**              | Einmalpasswort + eigenes Passwort — kein unsicherer Account-Versand                     |
+| **JWT-Authentifizierung**            | Tokenbasierte Anmeldung                                                                 |
+| **Rollenbasierte Zugriffskontrolle** | Jede Rolle sieht nur, was sie darf                                                      |
+| **Event-Sourcing**                   | Unveränderliche Bestellhistorie — GoBD-konform durch Append-only-Architektur            |
+| **Kryptografische Hash-Chain**       | SHA-256-Verkettung aller Events — nachträgliche Manipulation ist nachweisbar            |
+| **TSE-Anbindung (Cloud-TSE)**        | Integrierte Cloud-TSE-Schnittstelle mit fiskaly-Adapter — jeder Vorgang wird signiert   |
+| **Belegausgabe**                     | Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse      |
+| **Seriennummer der Kasse**           | Automatisch generierte UUID — für ELSTER-Meldung und DSFinV-K                           |
+| **HTTPS**                            | Verschlüsselte Kommunikation per Let's Encrypt                                          |
 
 ---
 
@@ -361,52 +322,3 @@ Die einzigen Kosten, die entstehen, sind Infrastrukturkosten für das Hosting un
 | Raspberry Pi (selbst)       | ~50 € einmalig                                 |
 | Vereinseigener Server       | 0 € (bereits vorhanden)                        |
 | Cloud-TSE (z. B. fiskaly)   | Abhängig vom Anbieter (BYOT — eigener Vertrag) |
-
----
-
-## 10. Marketingtexte
-
-### 10.1 Website-Hero (Startseite)
-
-> ### Das kostenlose Kassensystem für euer Vereinsfest.
->
-> jotti ist ein quelloffenes Mobile-Kassensystem für Vereine und gemeinnützige Organisationen. Bestellungen aufnehmen, Ausgabe bestätigen, kassieren — direkt auf dem Smartphone, pro Tisch, ohne spezielle Hardware. Fiskalkonform mit TSE-Anbindung und DSFinV-K-Export.
->
-> **Kostenlos. Self-hosted. Fiskalkonform.**
-
-### 10.2 Feature-Teaser (Social Media / Flyer)
-
-> 📱 **Euer Smartphone wird zur Kasse.**
-> Bestellungen aufnehmen, Ausgabe bestätigen, am Tisch kassieren — alles im Browser, auf jedem Handy.
->
-> 💰 **Kostenlos für Vereine.**
-> Kein Abo, kein Kleingedrucktes. jotti ist quelloffen und für gemeinnützige Organisationen dauerhaft kostenlos.
->
-> 🔒 **Eure Daten bleiben bei euch.**
-> Self-hosted auf eurem eigenen Server. Keine Cloud, keine Abhängigkeit, volle Kontrolle.
->
-> ✅ **Fiskalkonform.**
-> TSE-Anbindung, DSFinV-K-Export, Belegausgabe, Tagesabschluss — KassenSichV-konform ab Werk.
-
-### 10.3 GitHub-Beschreibung (Repository)
-
-> A free, source-available mobile POS system for non-profit events — fiscally compliant with TSE integration and DSFinV-K export. Built for volunteer-run festivals, charity markets, and community gatherings. Self-hosted, mobile-first, no special hardware required.
-
-### 10.4 Einzeiler für verschiedene Kontexte
-
-| Kontext         | Text                                                                                                                              |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| GitHub Topics   | `pos`, `point-of-sale`, `mpos`, `gastro`, `non-profit`, `volunteer`, `festival`, `source-available`, `self-hosted`, `kassensichv` |
-| GitHub About    | Free, source-available mobile POS for non-profit events. Self-hosted, mobile-first, fiscally compliant. No hardware needed.       |
-| Technisch       | Mobile-first POS mit Event-Sourcing, TSE-Integration, Go-Backend, React-Frontend — self-hosted per Docker Compose.                |
-| Nicht-technisch | Das kostenlose Kassensystem für Vereinsfeste — auf jedem Smartphone, ohne Abo, ohne Hardware, finanzamtssicher.                   |
-| Vereinsvorstand | Produkte und Tische anlegen, Team einladen, loslegen. Abrechnung, Tagesabschluss und DSFinV-K-Export auf Knopfdruck.              |
-| Servicekraft    | Browser öffnen, Tisch wählen, bestellen, Ausgabe bestätigen, kassieren. Fertig.                                                   |
-
-### 10.5 SEO-Keywords
-
-**Primär:** Kassensystem Verein, Kassensystem Vereinsfest, POS Verein, kostenloses Kassensystem, Kassensystem ehrenamtlich, Gastronomie Kassensystem kostenlos, Kassensystem KassenSichV, Kassensystem TSE
-
-**Sekundär:** mPOS Non-Profit, Source-Available Kassensystem, Kassensystem Weihnachtsmarkt, Kassensystem Sommerfest, Mobile Kasse Verein, Kasse Smartphone, Self-hosted POS, Kassensystem ohne Abo, DSFinV-K Export, Kassensystem fiskalkonform
-
-**Long-Tail:** kostenloses Kassensystem für Vereinsfeste, Source-Available Gastronomie Kassensystem für Vereine, mobiles Kassensystem ohne Hardware für ehrenamtliche Veranstaltungen, fiskalkonformes Kassensystem Verein kostenlos, Kassensystem mit TSE für Vereine

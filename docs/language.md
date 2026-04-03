@@ -49,20 +49,6 @@ Alle bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben
 | Kassenjournal        | `Historie` (Code) vs. `Kassenjournal` (Entwurf) | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert.               |
 | KassensitzungState   | `KassensitzungState` (Go + TS)                  | Domänenbegriff ist „Kassensitzung". Suffix `State` markiert den CRUD-Zustand der Entität — kein Rename nötig. |
 
-### Abgeschlossene Migrationen
-
-Die folgenden Umbenennungen wurden im Kassenjournal-Redesign abgeschlossen und sind im Code vollständig umgesetzt.
-
-| Bereich          | Alt (vor Redesign) | Neu (aktueller Code)  | Status           |
-| ---------------- | ------------------ | --------------------- | ---------------- |
-| DB-Tabelle       | `events`           | `kassenjournal`       | ✅ Abgeschlossen |
-| DB-Projektion    | `table_state`      | `tisch_sessions`      | ✅ Abgeschlossen |
-| Domain-Paket     | `domain/table/`    | `domain/kasse/`       | ✅ Abgeschlossen |
-| Repository-Paket | `event_repo/`      | `kassenjournal_repo/` | ✅ Abgeschlossen |
-| Frontend-Typen   | Englische Typen    | Deutsche UL-Typen     | ✅ Abgeschlossen |
-
-> **Hinweis `domain/table/`:** Das Paket existiert weiterhin für Tisch-Stammdaten (`tisch.go`). Die Kasse-Logik (Event-Sourcing, Tisch-Sessions, Kassensitzung) wurde nach `domain/kasse/` ausgelagert — `domain/table/` enthält nur noch die CRUD-Entität `Tisch`.
-
 ---
 
 ## Begriffsdefinitionen
@@ -141,9 +127,11 @@ Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Be
 | -------------- | -------------- | ---------------- | ------------------------------------ |
 | `TischSession` | `TischSession` | `tisch_sessions` | `kassensitzung-{nr}/tisch-{tischId}` |
 
+> **Hinweis `domain/table/`:** Das Paket existiert weiterhin für Tisch-Stammdaten (`tisch.go`). Die Kasse-Logik (Event-Sourcing, Tisch-Sessions, Kassensitzung) wurde nach `domain/kasse/` ausgelagert — `domain/table/` enthält nur noch die CRUD-Entität `Tisch`.
+
 #### Bestellung
 
-Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt. Erzeugt ein `BestellungAufgenommen`-Event.
+Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt.
 
 | Go-Struct    | TS-Typ       | Event-Typ                   |
 | ------------ | ------------ | --------------------------- |
@@ -159,7 +147,7 @@ Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einze
 
 #### Ausgabe
 
-Bestätigung, dass bestellte Positionen dem Gast übergeben wurden. Erzeugt ein `AusgabeBestaetigt`-Event.
+Bestätigung, dass bestellte Positionen dem Gast übergeben wurden.
 
 | Go-Struct | TS-Typ    | Event-Typ               |
 | --------- | --------- | ----------------------- |
@@ -167,7 +155,7 @@ Bestätigung, dass bestellte Positionen dem Gast übergeben wurden. Erzeugt ein 
 
 #### Zahlung
 
-Kassierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen. Erzeugt ein `ZahlungKassiert`-Event.
+Kassierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen.
 
 | Go-Struct | TS-Typ    | Event-Typ             |
 | --------- | --------- | --------------------- |
@@ -175,7 +163,7 @@ Kassierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen. Erzeugt
 
 #### Stornierung
 
-Nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. `Kommentar` ist Pflichtfeld. Erzeugt ein `StornierungErteilt`-Event.
+Nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. `Kommentar` ist Pflichtfeld.
 
 | Go-Struct     | TS-Typ        | Event-Typ                |
 | ------------- | ------------- | ------------------------ |
@@ -183,7 +171,7 @@ Nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Ad
 
 #### Auszahlung
 
-Auszahlung an den Gast, um einen negativen Saldo auszugleichen — entsteht, wenn bereits kassierte Positionen nachträglich storniert wurden (K-05). Kein Positionsbezug; freier Betrag. `Kommentar` ist Pflichtfeld. Erzeugt ein `AuszahlungGeleistet`-Event.
+Auszahlung an den Gast, um einen negativen Saldo auszugleichen — entsteht, wenn bereits kassierte Positionen nachträglich storniert wurden (K-05). Kein Positionsbezug; freier Betrag. `Kommentar` ist Pflichtfeld.
 
 | Go-Struct    | TS-Typ       | Event-Typ                 |
 | ------------ | ------------ | ------------------------- |

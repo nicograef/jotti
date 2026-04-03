@@ -15,32 +15,14 @@
 6. [DSFinV-K Export-Schnittstelle](#6-dsfinv-k-export-schnittstelle)
 7. [Elektronische Meldepflicht (ERiC / ELSTER)](#7-elektronische-meldepflicht-eric--elster)
 8. [Betreiberpflichten](#8-betreiberpflichten)
-9. [Architekturprinzipien](#9-architekturprinzipien)
+9. [Architekturprinzipien → handbuch.md §3.13](#9-architekturprinzipien)
 10. [Quellenverzeichnis](#10-quellenverzeichnis)
 
 ---
 
 ## 1. Einleitung
 
-jotti ist ein **elektronisches Aufzeichnungssystem** im Sinne von § 1 KassenSichV. Als solches unterliegt es der Pflicht zur Nutzung einer zertifizierten technischen Sicherheitseinrichtung (TSE) nach § 146a AO — unabhängig von der Rechtsform des Betreibers (e.V., gGmbH, Stiftung) oder dem temporären Charakter der Veranstaltungen.
-
-Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Compliance-Anforderungen an den Entwickler (Hersteller) sowie die Pflichten der Betreiber (Vereine). Die technische Umsetzung erfolgt phasenweise — siehe [docs/anforderungen.md](anforderungen.md).
-
-### Compliance-Status
-
-| ID   | Bereich                 | Phase | Status                                                                    | Priorität   |
-| ---- | ----------------------- | ----- | ------------------------------------------------------------------------- | ----------- |
-| F-01 | **Seriennummer**        | 1     | 🔲 UUID + Admin-Anzeige                                                   | Must        |
-| F-02 | **TSE-Integration**     | 2     | 🔲 TSEClient + fiskaly                                                    | Should      |
-| F-03 | **Belegausgabepflicht** | 0/1/2 | ✅ Basis (ohne TSE-Felder)                                                | Must        |
-| F-04 | **DSFinV-K Export**     | 2     | 🔲 CSV-ZIP                                                                | Should      |
-| F-05 | **ELSTER-Meldung**      | 1     | 🔲 Anleitung für Betreiber                                                | Must (Doku) |
-| F-06 | **Abrechnungskreis**    | 1     | ✅ Pro Tisch und Kassensitzung (Subject: `kassensitzung-{nr}/tisch-{id}`) | Should      |
-| F-07 | **Steuersätze**         | 1     | 🔲 19 % / 7 % / 0 %                                                       | Must        |
-| F-08 | **GoBD-Hash-Chain**     | 3     | 🔲 SHA-256-Verkettung                                                     | Nice        |
-| —    | **GoBD-Konformität**    | 0     | ✅ Teilweise — Event-Sourcing (Basis)                                     | Laufend     |
-
-**Legende:** ✅ Implementiert · 🔲 Offen · ⏳ In Arbeit — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen — siehe [anforderungen.md](anforderungen.md)
+jotti ist ein **elektronisches Aufzeichnungssystem** (§ 1 KassenSichV) und unterliegt nach § 146a AO der TSE-Pflicht — unabhängig von Rechtsform, Gemeinnützigkeit oder Veranstaltungsdauer. Dieses Dokument beschreibt die Rechtsnormen, Entwickler- und Betreiberpflichten sowie die Compliance-Architektur. Technische Umsetzung phasenweise — siehe [anforderungen.md](anforderungen.md).
 
 ### Grundsatzentscheidungen (2026-03-19)
 
@@ -61,24 +43,13 @@ Dieses Dokument beschreibt die daraus folgenden rechtlichen Grundlagen, die Comp
 
 ### 3.1 Abgabenordnung (AO) — § 146a
 
-§ 146a AO verpflichtet jeden, der ein **elektronisches Aufzeichnungssystem** im Sinne des § 1 KassenSichV verwendet, dieses mit einer **zertifizierten technischen Sicherheitseinrichtung (TSE)** zu schützen. Die Norm differenziert nicht nach:
-
-- Rechtsform (e.V., GmbH, Einzelunternehmen)
-- Gemeinnützigkeit
-- Dauer des Betriebs (temporär oder dauerhaft)
-- Gewinnerzielungsabsicht
-
-> **§ 146a Abs. 1 AO:** „Wer aufzeichnungspflichtige Geschäftsvorfälle oder andere Vorgänge mit Hilfe eines elektronischen Aufzeichnungssystems erfasst, hat ein elektronisches Aufzeichnungssystem zu verwenden, das jeden aufzeichnungspflichtigen Geschäftsvorfall und anderen Vorgang einzeln, vollständig, richtig, zeitgerecht und geordnet aufzeichnet. Das elektronische Aufzeichnungssystem und die digitalen Aufzeichnungen sind durch eine zertifizierte technische Sicherheitseinrichtung zu schützen."
+§ 146a Abs. 1 AO verpflichtet jeden Betreiber eines elektronischen Aufzeichnungssystems, jeden Geschäftsvorfall einzeln, vollständig, richtig, zeitgerecht und geordnet zu erfassen und durch eine **zertifizierte TSE** zu schützen — unabhängig von Rechtsform, Gemeinnützigkeit, Betriebsdauer oder Gewinnerzielungsabsicht.
 
 _(Quelle: § 146a AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
 
 ### 3.2 Kassensicherungsverordnung (KassenSichV)
 
-Die KassenSichV konkretisiert die Anforderungen aus § 146a AO. § 1 KassenSichV definiert den Anwendungsbereich:
-
-> **§ 1 KassenSichV:** Elektronische Aufzeichnungssysteme im Sinne des § 146a Absatz 1 Satz 1 der Abgabenordnung sind elektronische oder computergestützte Kassensysteme oder Registrierkassen [...].
-
-jotti ist ein „computergestütztes Kassensystem" im Sinne dieser Definition. Es erfasst Geschäftsvorfälle elektronisch (Bestellungen, Zahlungen, Stornierungen) und berechnet Zahlungsbeträge.
+Die KassenSichV konkretisiert § 146a AO; § 1 KassenSichV definiert als Aufzeichnungssysteme „elektronische oder computergestützte Kassensysteme oder Registrierkassen" — jotti fällt als browserbasiertes Kassensystem eindeutig darunter.
 
 Für **mobile Geräte** (Smartphones als Browser-Clients in jottis BYOD-Modell) gilt: Wenn ein Gerät technisch in der Lage ist, Zahlungsvorgänge eigenständig zu erfassen und offline zu betreiben, muss es selbst an eine TSE angebunden sein. Fungiert es ausschließlich als Eingabeterminal, das sofort an ein TSE-gesichertes Backend weiterleitet, genügt die Backend-seitige TSE-Anbindung. Entscheidend ist die technische Fähigkeit zur selbständigen Offline-Erfassung, nicht die tatsächliche Nutzung.
 
@@ -91,26 +62,15 @@ _(Quelle: KassenSichV — https://www.gesetze-im-internet.de/kassensichv/BJNR351
 _(Quelle: BMF-FAQ zu § 146a AO, Frage zur Abgrenzung von Eingabegeräten und eigenständigen Aufzeichnungssystemen — https://www.bundesfinanzministerium.de/)_
 _(Quelle: AEAO zu § 146a AO — Klarstellung zur Mitteilungspflicht für verbundene Eingabegeräte — https://www.bundesfinanzministerium.de/)_
 
-### 3.3 GoBD (Grundsätze zur ordnungsmäßigen Führung und Aufbewahrung von Büchern, Aufzeichnungen und Unterlagen in elektronischer Form)
+### 3.3 GoBD
 
-Die GoBD gelten für **alle Steuerpflichtigen**, unabhängig von der Rechtsform. Sie regeln:
+Die GoBD (BMF-Schreiben 28.11.2019) fordern Nachvollziehbarkeit, Vollständigkeit, Richtigkeit, Zeitgerechtigkeit, Ordnung und Unveränderbarkeit. Sie gelten für alle Steuerpflichtigen — einschließlich gemeinnütziger Vereine im wirtschaftlichen Geschäftsbetrieb (z.B. Vereinsfeste außerhalb § 67a AO).
 
-- Nachvollziehbarkeit und Nachprüfbarkeit
-- Vollständigkeit
-- Richtigkeit
-- Zeitgerechte Buchungen und Aufzeichnungen
-- Ordnung
-- Unveränderbarkeit
-
-Auch gemeinnützige Vereine sind steuerpflichtig (z.B. im wirtschaftlichen Geschäftsbetrieb bei Vereinsfesten, die nicht unter § 67a AO fallen) und müssen die GoBD einhalten.
-
-_(Quelle: BMF-Schreiben vom 28.11.2019 — GoBD — https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html)_
+_(Quelle: GoBD — https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html)_
 
 ### 3.4 Belegausgabepflicht (§ 146a Abs. 2 AO, § 6 KassenSichV)
 
-> **§ 146a Abs. 2 AO:** „Wer [...] ein elektronisches Aufzeichnungssystem [...] verwendet, hat dem an diesem Geschäftsvorfall Beteiligten in unmittelbarem zeitlichen Zusammenhang mit dem Geschäftsvorfall unbeschadet anderer gesetzlicher Vorschriften einen Beleg über den Geschäftsvorfall auszustellen und zur Verfügung zu stellen."
-
-Die Belegausgabepflicht gilt für **jeden** Nutzer eines elektronischen Aufzeichnungssystems. Der Beleg kann in Papierform oder — mit Zustimmung des Kunden — in elektronischer Form ausgegeben werden.
+§ 146a Abs. 2 AO und § 6 KassenSichV verpflichten zur Belegausgabe in **unmittelbarem zeitlichen Zusammenhang** nach jedem Kassiervorgang — in Papierform oder (mit Zustimmung des Kunden) elektronisch.
 
 _(Quelle: § 146a Abs. 2 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
 
@@ -295,15 +255,6 @@ Die `processData` enthält Gesamtbetrag, Steuersätze und Zahlungsart. Diese Tra
 
 Der Betriebsprüfer sieht im DSFinV-K-Export alle vier Transaktionen mit demselben `ABRECHNUNGSKREIS` und kann den vollständigen Tischverlauf nachvollziehen, obwohl jede Transaktion sofort geschlossen wurde.
 
-### 5.7 Architektonische Anforderungen an jotti
-
-1. **TSE-Abstraktionsschicht:** Ein Interface `TSEClient` im Backend, das die drei Phasen (`StartTransaction`, `UpdateTransaction`, `FinishTransaction`) abstrahiert
-2. **Atomares Transaktionsmodell:** Für jeden jotti-Vorgang (Bestellung, Zahlung, Storno) wird eine eigenständige, sofort geschlossene TSE-Transaktion erstellt
-3. **Signatur-Speicherung:** TSE-Rückgabewerte (Transaktionsnummer, Signaturzähler, Prüfwert, `logTime`) müssen als Event-Daten persistiert werden
-4. **Fehlerbehandlung:** Verhalten bei TSE-Nicht-Erreichbarkeit (Cloud-TSE offline, Timeout) — z.B. Offline-Queue mit späterer Nachsignierung; zwingender Hinweis „TSE ausgefallen" auf dem Bon bei Ausfall
-5. **Konfiguration:** TSE-Anbieter, Kassen-ID, API-Credentials als Umgebungsvariablen
-6. **Abrechnungskreis-Verwaltung:** Eindeutige, persistente Tisch-Session-ID für die DSFinV-K-Verknüpfung
-
 ### 5.8 Seriennummer-Generierung bei Self-hosted Docker-Instanzen
 
 Da jotti auf einem VPS ohne physische Kassenhardware betrieben wird, gibt es kein Typenschild mit aufgedruckter Seriennummer. Die gesetzliche Anforderung (§ 146a AO, DSFinV-K, § 6 KassenSichV) nach einer eindeutigen Seriennummer des elektronischen Aufzeichnungssystems muss softwareseitig erfüllt werden.
@@ -331,12 +282,6 @@ Kassen-ID: 7f3a9d12-84e1-4b2c-9f6a-1234567890ab
 ```
 
 Die UUID ist herstellerunabhängig, weltweit eindeutig und erfordert keine zentrale Registrierung — ideal für ein Self-hosted Source-Available-System, bei dem der Entwickler keine Kontrolle über die Anzahl der laufenden Instanzen hat.
-
-#### Architektonische Anforderungen
-
-1. **DB-Initialisierungsscript:** Bei der ersten Inbetriebnahme wird ein Eintrag `kassen_seriennr` mit einer frisch generierten UUID in den System-Stammdaten angelegt.
-2. **Admin-Endpunkt:** `POST /admin/system-info` liefert u.a. die `kassenSeriennr` für die Anzeige im Admin-Dashboard und für die ELSTER-Meldung.
-3. **Beleg-Generator und DSFinV-K-Exporter** lesen die Seriennummer aus den Stammdaten (nie hart kodiert).
 
 ---
 
@@ -738,155 +683,13 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 
 ## 9. Architekturprinzipien
 
-### 10.1 TSE-Integration (empfohlener Ansatz)
+→ **[handbuch.md §3.13 — TSE-Architektur](handbuch.md#313-tse-architektur)**
 
-```
-┌─────────────────────────────────────────────┐
-│                  jotti Backend               │
-│                                              │
-│  ┌──────────┐    ┌──────────────────────┐   │
-│  │ Service-  │───▶│  TSE-Service          │   │
-│  │ Handler   │    │  (Application Layer)  │   │
-│  └──────────┘    └──────────┬───────────┘   │
-│                              │               │
-│                    ┌─────────▼─────────┐     │
-│                    │  TSEClient        │     │
-│                    │  (Interface)      │     │
-│                    └─────────┬─────────┘     │
-│                              │               │
-└──────────────────────────────┼───────────────┘
-                               │
-                    ┌──────────▼──────────┐
-                    │   Cloud-TSE API     │
-                    │   (z.B. fiskaly)    │
-                    └─────────────────────┘
-```
-
-**Interface-Design:**
-
-```go
-type TSEClient interface {
-    StartTransaction(ctx context.Context, kassenID string, processType string, processData string) (StartResult, error)
-    // UpdateTransaction nur für processType="Bestellung-V1" und "SonstigerVorgang-V1" zulässig.
-    // Für "Kassenbeleg-V1" verboten (BMF-FAQ).
-    UpdateTransaction(ctx context.Context, kassenID string, transactionNumber int, processData string) error
-    FinishTransaction(ctx context.Context, kassenID string, transactionNumber int, processType string, processData string) (FinishResult, error)
-}
-
-type StartResult struct {
-    TransactionNumber int
-    LogTime           time.Time // TSE-interner Zeitstempel
-    SerialNumberTSE   string
-    SignatureCounter  int
-}
-
-type FinishResult struct {
-    Signature        string
-    LogTime          time.Time
-    SignatureCounter int
-}
-```
-
-### 10.2 Mapping: jotti-Vorgänge → TSE-Transaktionen (Atomares Modell)
-
-Für das Festzelt-Muster (Abschnitt 5.6) gilt: Jeder Vorgang ist eine **eigenständige, sofort geschlossene** TSE-Transaktion.
-
-| jotti-Vorgang                   | TSE-Operation             | processType           | Anmerkung                                                       |
-| ------------------------------- | ------------------------- | --------------------- | --------------------------------------------------------------- |
-| Bestellung aufnehmen            | `Start` + sofort `Finish` | `Bestellung-V1`       | Positionen in processData                                       |
-| Zahlung kassieren (Teilzahlung) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Betrag + Zahlungsart in processData; **kein** UpdateTransaction |
-| Zahlung kassieren (Vollzahlung) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Wie oben                                                        |
-| Positions-Storno                | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negative Menge/Betrag; BON_STORNO=1 im DSFinV-K                 |
-| Bon-Storno (nach Zahlung)       | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Gesamtbetrag; BON_STORNO=1, REF_BON_ID gesetzt        |
-| Tagesabschluss (Z-Bon)          | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Tagesaggregat in processData                                    |
-
-**Alle Transaktionen eines Tisches** teilen denselben `ABRECHNUNGSKREIS`-Wert im DSFinV-K-Export.
-
-### 10.3 Event-Store-Erweiterung
-
-Die TSE-Rückgabewerte müssen in den bestehenden Event-Daten persistiert werden:
-
-```go
-// Erweiterung der Event-Data-Structs um TSE-Felder
-type TSEData struct {
-    TransactionNumber int    `json:"tseTransactionNumber"`
-    LogTimeStart      string `json:"tseLogTimeStart"`  // logTime von StartTransaction
-    LogTimeEnd        string `json:"tseLogTimeEnd"`    // logTime von FinishTransaction
-    SignatureCounter  int    `json:"tseSignatureCounter"`
-    Signature         string `json:"tseSignature"`
-    SerialNumberTSE   string `json:"tseSerialNumber"`
-    ProcessType       string `json:"tseProcessType"`
-}
-
-// Zusätzlich in TischSession-Daten:
-type TischSession struct {
-    AbrechnungskreisID    string    // z.B. "Tisch 42" (Tischname)
-    ErsteBestellungLogTime time.Time // logTime der ersten Bestellung-V1 für den Bon-Aufdruck
-}
-```
-
-### 10.4 DSFinV-K Export-Architektur
-
-```
-┌──────────────────────────────────────────────┐
-│              DSFinV-K Exporter                │
-│                                               │
-│  ┌────────────┐  ┌────────────┐  ┌────────┐ │
-│  │ Stammdaten- │  │ Einzelauf- │  │ Z-Bon- │ │
-│  │ modul       │  │ zeichnungs-│  │ Modul  │ │
-│  │             │  │ modul      │  │        │ │
-│  └──────┬─────┘  └──────┬─────┘  └───┬────┘ │
-│         │               │             │       │
-│  ┌──────▼───────────────▼─────────────▼────┐ │
-│  │   CSV-Generator (offizielle Dateinamen) │ │
-│  │   Bonkopf.csv, Bonpos.csv, Stamm_*.csv  │ │
-│  └──────────────────┬──────────────────────┘ │
-│                     │                         │
-│  ┌──────────────────▼──────────────────────┐ │
-│  │     index.xml Generator + ZIP-Builder  │ │
-│  └─────────────────────────────────────────┘ │
-└──────────────────────────────────────────────┘
-```
-
-### 10.5 Cloud-TSE vs. ERiC — Entscheidungsmatrix für jotti
-
-| Kriterium                  | ERiC (direkt, für Kassenmeldung) | Submission-API (fiskaly o.ä.) |
-| -------------------------- | -------------------------------- | ----------------------------- |
-| Vorab-Validierung          | ✅ Ja (staatlich)                | ❌ Nein                       |
-| Implementierungsaufwand    | Hoch (native C-Bibliothek)       | Niedrig (REST-API)            |
-| Vendor-Lock-in             | Keiner                           | Ja (TSE-Anbieter)             |
-| Kosten                     | Kostenlos                        | Kostenpflichtig               |
-| Offline-Fähigkeit          | ✅ (lokale Lib)                  | ❌ (Cloud-abhängig)           |
-| Passt zu jotti-Philosophie | ✅ (Self-hosted, keine Cloud)    | ⚠️ (externe Abhängigkeit)     |
-
-**Getroffene Entscheidungen:**
-
-- **TSE (Transaktionssignierung):** fiskaly Cloud-TSE als erster Zielanbieter; anbieter-agnostisches Backend-Interface (`TSEClient`) für spätere Flexibilität.
-- **Kassenmeldung (§ 146a Abs. 4 AO):** Phase 1 manuell über ELSTER-Webportal (kein Code-Aufwand); Phase 2 automatisiert via ERiC oder fiskaly-Submission-API (Entscheidung bei Implementierungsbeginn).
-
-**Begründung für fiskaly als TSE-Anbieter:**
-
-- jotti ist ein BYOD-System: Smartphones im Festzelt können keine Hardware-TSE führen.
-- fiskaly ist API-first mit gut dokumentierter REST-Schnittstelle — passt zur bestehenden Backend-Architektur (Go + HTTP).
-- Das Adapter-Pattern (`TSEClient`-Interface) verhindert Vendor-Lock-in auf Architektur-Ebene.
+Enthält: TSEClient-Interface, Transaktions-Mapping (jotti-Vorgang → processType), Event-Store-Extension (TSE-Felder), DSFinV-K-Exporter-Übersicht, Entscheidungsmatrix Cloud-TSE vs. ERiC.
 
 ---
 
 ## 10. Quellenverzeichnis
-
-| #   | Quelle                                                                                                                | URL                                                                                                                                 |
-| --- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | § 146a AO — Ordnungsvorschrift für die Buchführung und für Aufzeichnungen mittels elektronischer Aufzeichnungssysteme | https://www.gesetze-im-internet.de/ao_1977/__146a.html                                                                              |
-| 2   | KassenSichV — Kassensicherungsverordnung                                                                              | https://www.gesetze-im-internet.de/kassensichv/BJNR351500017.html                                                                   |
-| 3   | BSI TR-03153 — Technische Richtlinie für Technische Sicherheitseinrichtungen                                          | https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03153/TR-03153.pdf?__blob=publicationFile |
-| 4   | GoBD — BMF-Schreiben zur ordnungsmäßigen Führung elektronischer Bücher                                                | https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html  |
-| 5   | DSFinV-K — Digitale Schnittstelle der Finanzverwaltung für Kassensysteme (BZSt)                                       | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html                   |
-| 6   | ELSTER für Entwickler — Offizielle Entwickler-Dokumentation                                                           | https://www.elster.de/elsterweb/infoseite/entwickler                                                                                |
-| 7   | § 14 AO — Wirtschaftlicher Geschäftsbetrieb                                                                           | https://www.gesetze-im-internet.de/ao_1977/__14.html                                                                                |
-| 8   | § 64 AO — Steuerpflicht wirtschaftlicher Geschäftsbetriebe                                                            | https://www.gesetze-im-internet.de/ao_1977/__64.html                                                                                |
-| 9   | § 67a AO — Sportliche Veranstaltungen (Zweckbetrieb)                                                                  | https://www.gesetze-im-internet.de/ao_1977/__67a.html                                                                               |
-| 10  | § 19 UStG — Kleinunternehmerregelung                                                                                  | https://www.gesetze-im-internet.de/ustg_1980/__19.html                                                                              |
-| 11  | BMF-FAQ zu § 146a AO (Stand Januar 2026) — Meldepflicht und processType-Erläuterungen                                 | https://www.bundesfinanzministerium.de/                                                                                             |
 
 | #   | Quelle                                                                                                                   | URL                                                                                                                                 |
 | --- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |

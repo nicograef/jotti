@@ -17,13 +17,18 @@ description. Output is a Markdown file in `docs/plans/`.
 
 ### 1. Determine the entry point
 
-- **PRD provided** (file or in conversation context) → skip to step 3.
+- **PRD provided** (file or in conversation context) → read it fully, then
+  continue to step 2 to check for ambiguities before planning.
 - **Task description only** → continue to step 2.
 
 If a PRD exists but is not yet in context, ask the user to paste it or point
 you to the file.
 
-### 2. Clarify ambiguities (task-description path only)
+### 2. Clarify ambiguities
+
+**Always run this step** — whether a PRD was provided or not. A PRD may
+contain gaps, conflicting requirements, or underspecified decisions that must
+be resolved before planning begins.
 
 Resolve unknowns through **1–3 rounds** of structured questions before
 planning.
@@ -32,10 +37,15 @@ planning.
 
 - **Explore before asking.** If a question can be answered by reading the
   codebase, read the codebase instead of asking the user.
-- **Always recommend.** Every question must include a recommended answer with
-  brief reasoning.
-- **Structured over free-text.** Use concrete options. Convert open-ended
-  questions to multiple-choice with an "Other (specify)" escape hatch.
+- **Always recommend.** Every question must include a recommended answer.
+  Label it clearly (e.g. "(recommended)" in the option label, or a note in
+  the prompt) with brief reasoning.
+- **Context before question.** The prompt should explain *why* the question
+  matters so the user can make an informed choice.
+- **Structured over free-text.** Prefer the Ask Question tool when available;
+  fall back to conversational questions only if no such tool exists. Present
+  concrete options. Convert open-ended questions to multiple-choice with an
+  "Other (specify)" escape hatch.
 - **Max 5 questions per round.** Prioritise the most impactful unknowns.
 - **Stop when resolved.** If all ambiguities are clear after 1 round, stop.
   Continue only if unresolved branches remain.

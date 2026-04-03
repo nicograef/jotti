@@ -1,5 +1,5 @@
 ---
-name: write-a-prd
+name: write-prd
 description: >-
   Create a PRD through structured clarification, codebase exploration, and
   module design, then save as a local Markdown file. Use when user wants to
@@ -30,10 +30,15 @@ Resolve unknowns through **1–3 rounds** of structured questions.
 
 - **Explore before asking.** If a question can be answered by reading the
   codebase, read the codebase instead of asking the user.
-- **Always recommend.** Every question must include a recommended answer with
-  brief reasoning.
-- **Structured over free-text.** Use concrete options. Convert open-ended
-  questions to multiple-choice with an "Other (specify)" escape hatch.
+- **Always recommend.** Every question must include a recommended answer.
+  Label it clearly (e.g. "(recommended)" in the option label, or a note in
+  the prompt) with brief reasoning.
+- **Context before question.** The prompt should explain *why* the question
+  matters so the user can make an informed choice.
+- **Structured over free-text.** Prefer the Ask Question tool when available;
+  fall back to conversational questions only if no such tool exists. Present
+  concrete options. Convert open-ended questions to multiple-choice with an
+  "Other (specify)" escape hatch.
 - **Max 5 questions per round.** Prioritise the most impactful unknowns.
 - **Stop when resolved.** If all ambiguities are clear after 1 round, stop.
   Continue only if unresolved branches remain.
