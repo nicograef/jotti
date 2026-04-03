@@ -459,25 +459,14 @@ Separater Dienst (`cmd/relay/`), der Druckaufträge an lokale ESC/POS-Drucker we
 
 ### Gastronomie & Betrieb
 
-Operative Fachbegriffe aus dem Gastronomie- und Festzeltbetrieb, die für Konfiguration, Buchführung und Compliance in jotti relevant sind.
-
-- **Inhaus / Außerhaus:** Gesetzlich vorgeschriebene Unterscheidung, ob Speisen vor Ort verzehrt werden (voller MwSt.-Satz, 19 %) oder mitgenommen werden (ermäßigter Satz, 7 %). In jotti über den `Steuersatz` pro Produkt konfiguriert.
-
-- **Trinkgeld:** Zuzahlung des Gastes. Buchhalterisch relevant: Trinkgeld an den Verein ist voll steuerpflichtig; Trinkgeld direkt an die Servicekraft ist in der Regel steuerfrei. jotti unterscheidet dies aktuell nicht — Hinweis für Betreiber in `docs/compliance.md`.
-
-- **BYOD (Bring Your Own Device):** Servicekräfte nutzen ihre eigenen Smartphones. Das System ist Mobile-first konzipiert und läuft vollständig im Browser — keine App-Installation nötig.
-
-- **Geldkatze / Kellnerportemonnaie:** Physische Geldtasche, die Servicekräfte im mobilen Festzeltbetrieb bei sich tragen, um direkt am Tisch kassieren zu können. Kein Code-Bezug — betriebliche Infrastruktur des Betreibers.
-
-- **Belegausgabepflicht (Bonpflicht):** Gesetzliche Pflicht nach § 146a Abs. 2 AO, bei jedem abgeschlossenen Kassiervorgang einen Beleg auszustellen. In jotti: Bondruck via ESC/POS (Phase 1) + TSE-Signaturfelder (Phase 2). Siehe → **Kassenbeleg**.
-
-- **eBeleg:** Digitaler Kassenbon (z. B. als PDF über QR-Code) als rechtskonformer, papierloser Ersatz für den Ausdruck. Phase-3-Feature in jotti — siehe `docs/anforderungen.md`.
-
-- **Kassensturzfähigkeit:** Anforderung, dass der berechnete Soll-Bestand an Bargeld jederzeit mit dem physisch vorhandenen Ist-Bestand übereinstimmt. Voraussetzung für GoBD-Konformität.
-
-- **DifferenzSollIst:** Geschäftsvorfalltyp (`GV_TYP` im DSFinV-K), mit dem Fehlbeträge oder Überschüsse beim Kassensturz zwingend ausgebucht werden müssen.
-
-- **Geldtransit / Privatentnahme:** Geschäftsvorfalltypen für Barentnahmen aus der Kasse (z. B. Bankeinzahlung), die gebucht werden müssen, um die Kassensturzfähigkeit aufrechtzuerhalten.
+- **Inhaus / Außerhaus:** Unterscheidung Vor-Ort-Verzehr (19 % MwSt.) vs. Mitnahme (7 % MwSt.); in jotti über `Steuersatz` pro Produkt konfiguriert.
+- **Trinkgeld:** Trinkgeld an den Verein ist voll steuerpflichtig; direkt an die Servicekraft in der Regel steuerfrei. Hinweis für Betreiber: `docs/compliance.md`.
+- **BYOD (Bring Your Own Device):** Servicekräfte nutzen eigene Smartphones; kein App-Install nötig.
+- **Belegausgabepflicht (Bonpflicht):** Gesetzliche Pflicht nach § 146a Abs. 2 AO — Beleg nach jedem Kassiervorgang. Siehe → **Kassenbeleg**.
+- **eBeleg:** Digitaler Kassenbon als papierloser Beleg-Ersatz. Phase-3-Feature — siehe `docs/anforderungen.md`.
+- **Kassensturzfähigkeit:** Soll-Bestand muss jederzeit mit dem Ist-Bestand übereinstimmen; Voraussetzung für GoBD-Konformität.
+- **DifferenzSollIst:** DSFinV-K-Geschäftsvorfalltyp für Fehlbeträge/Überschüsse beim Kassensturz.
+- **Geldtransit / Privatentnahme:** DSFinV-K-Geschäftsvorfalltypen für Barentnahmen; müssen gebucht werden, um Kassensturzfähigkeit aufrechtzuerhalten.
 
 ---
 
@@ -500,17 +489,9 @@ Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und 
 #### TSE & Kryptografie
 
 - **TSE (Technische Sicherheitseinrichtung):** Zwingend vorgeschriebenes, vom BSI zertifiziertes Sicherheitsmodul, das jeden Kassiervorgang kryptografisch signiert. In jotti über ein Adapter-Pattern eingebunden (`TSEClient`-Interface, BYOT-Modell).
-
-- **Cloud-TSE / Hardware-TSE:** Zwei Bereitstellungsformen: Eine Hardware-TSE ist ein physisches Speichermedium (USB/SD) an der Kasse; bei der Cloud-TSE werden Transaktionen über eine API in einem zertifizierten Rechenzentrum signiert. jotti unterstützt Cloud-TSE (z. B. fiskaly) über das BYOT-Modell.
-
-- **SMAERS (Security Module Application for Electronic Record Keeping System):** Software-Komponente der TSE, die Kassendaten aufbereitet, den Signatur-Input zusammenstellt und mit dem kryptografischen Provider kommuniziert.
-
-- **CSP (Cryptographic Service Provider):** Hardware- oder Cloud-Einheit innerhalb der TSE, die die eigentliche kryptografische Signatur vornimmt.
-
-- **Transaktionsnummer (TSE_TANR):** Eindeutige, fortlaufende Nummer der TSE für jeden Kassiervorgang. Dient der Lückenerkennung.
-
-- **Signaturzähler (TSE_TA_SIGZ):** Stetig ansteigender Zähler, der bei jedem Signaturvorgang hochgezählt wird — beweist die lückenlose kryptografische Kette. Go-Typ: `uint64` · JSON-Key: `signature_counter` · Pflichtfeld auf dem Kassenbeleg.
-
+- **Cloud-TSE / Hardware-TSE:** Cloud-TSE: Signatur über API in zertifiziertem Rechenzentrum; Hardware-TSE: physisches Speichermedium (USB/SD). jotti unterstützt Cloud-TSE (z. B. fiskaly) über das BYOT-Modell.
+- **Transaktionsnummer (TSE_TANR):** Eindeutige, fortlaufende TSE-Nummer pro Kassiervorgang. Dient der Lückenerkennung.
+- **Signaturzähler (TSE_TA_SIGZ):** Stetig ansteigender Zähler pro Signaturvorgang. Go-Typ: `uint64` · JSON-Key: `signature_counter` · Pflichtfeld auf dem Kassenbeleg.
 - **Prüfwert / Signatur:** Kryptografischer Hash-Wert (z. B. ECDSA-SHA256), der den Vorgang absiegelt und auf dem Kassenbeleg abgedruckt werden muss.
 
 #### Kasse & Identifikation
@@ -519,25 +500,6 @@ Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und 
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **KassenID / Seriennummer** | Eindeutige UUID-v4 der jotti-Instanz. Für ELSTER-Meldung und TSE-Protokoll. **(nicht implementiert)** — siehe `docs/anforderungen.md` |
 | **TSEClient**               | Go-Interface mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. **(nicht implementiert)**                     |
-
-#### Transaktions-Lifecycle
-
-Die TSE-Kommunikation folgt einem strikten Lifecycle. Jeder Kassiervorgang durchläuft diese Schritte:
-
-- **StartTransaction:** API-Aufruf an die TSE bei Beginn eines neuen Vorgangs. Eröffnet die Transaktion und gibt die `TSE_TANR` zurück.
-- **UpdateTransaction:** Optionaler API-Aufruf, um einer offenen Transaktion neue Daten hinzuzufügen. Nur bei bestimmten Vorgangsarten erlaubt.
-- **FinishTransaction:** Zwingender Abschluss-Aufruf, der die finale Signatur (Prüfwert) der TSE generiert.
-- **processType:** Strikt normierter String, der der TSE die Art des Vorgangs mitteilt (z. B. `Kassenbeleg-V1`, `Bestellung-V1`, `SonstigerVorgang-V1`).
-- **processData:** Payload-String im BSI-Format (UTF-8, Punkt als Dezimaltrenner) mit Beträgen, Mengen und Steuersätzen.
-
-#### Abrechnungsstruktur
-
-Fiskal-Begriffe der Abrechnungsstruktur — Definitionen und Code-Mappings siehe oben unter → Kasse (Kassensitzung und Kassenbestand).
-
-- **Abrechnungskreis:** → Tisch-Session (Abrechnungskreis)
-- **Tagesabschluss / Z-Bon:** → Z-Bon (Tagesabschluss)
-- **X-Bon:** Zwischenbericht, kein Tagesabschluss im Rechtssinne.
-- **Bonkopf / Bonpos:** DSFinV-K-Aufteilung: Bonkopf enthält Metadaten und Gesamtsummen; Bonpos listet die Artikelzeilen.
 
 #### Steuern
 
@@ -588,15 +550,3 @@ Die folgenden Begriffe sind definiert, aber noch nicht im Code implementiert. De
 - **Export:** CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Buchhaltung.
 
 > **Hinweis:** Der Tagesabschluss (Z-Bon) ist kein Reporting-Vorgang, sondern eine transaktionale Operation des Kasse-Kontexts. Siehe → Z-Bon (Tagesabschluss).
-
----
-
-## Erweitertes Fach-Glossar
-
-Begriffe aus dem POS/Gastronomie-Umfeld, die **nicht im Scope von jotti** sind (bewusste Abgrenzung — siehe `docs/anforderungen.md` §6).
-
-**Vereinswesen:** Zuwendungsbestätigung, Sponsoring, Aufwandsspende, Rückspende — Details zu steuerlichen Sphären siehe → Vereinswesen & Steuerliche Sphären.
-
-**Warenwirtschaft:** Warenwirtschaft (WaWi), Inventur, Warengruppe, Pfand/Pfandrückzahlung, Einzweck-/Mehrzweckgutschein — explizit nicht im Scope.
-
-**Hardware:** Kartenterminal (EFT-Terminal), Kassenlade, Gangsteuerung — explizit nicht im Scope.
