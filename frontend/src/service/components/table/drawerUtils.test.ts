@@ -92,9 +92,8 @@ describe('calculateTotalPrice', () => {
   })
 
   it('handles single item', () => {
-    const items = [{ einzelpreis: 200, menge: 3 }]
-
-    expect(calculateTotalPrice(items)).toBe(600)
+    expect(calculateTotalPrice([{ einzelpreis: 200, menge: 3 }])).toBe(600)
+    expect(calculateTotalPrice([{ einzelpreis: 300, menge: 1 }])).toBe(300)
   })
 
   it('handles zero-cent positionen', () => {
@@ -104,11 +103,5 @@ describe('calculateTotalPrice', () => {
     ]
 
     expect(calculateTotalPrice(items)).toBe(200)
-  })
-
-  it('handles menge of 1', () => {
-    const items = [{ einzelpreis: 300, menge: 1 }]
-
-    expect(calculateTotalPrice(items)).toBe(300)
   })
 })

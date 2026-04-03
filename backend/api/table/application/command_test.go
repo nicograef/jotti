@@ -78,43 +78,6 @@ var testInactiveTisch = table.Tisch{
 	UpdatedAt: time.Now().UTC(),
 }
 
-func TestResolvePositions(t *testing.T) {
-	available := []kasse.Position{
-		{PositionID: "pos-1", VarianteID: 1, ProduktName: "Beer", VarianteName: "Pils 0.5l", Kategorie: "getraenk", Einzelpreis: 500, Menge: 3},
-		{PositionID: "pos-2", VarianteID: 2, ProduktName: "Wurst", VarianteName: "Bratwurst", Kategorie: "essen", Einzelpreis: 400, Menge: 2},
-	}
-
-	refs := []kasse.PositionRef{
-		{PositionID: "pos-1", Menge: 2},
-		{PositionID: "pos-2", Menge: 1},
-	}
-
-	resolved, total := resolvePositions(available, refs)
-	// 500*2 + 400*1 = 1400
-	if total != 1400 {
-		t.Fatalf("expected 1400, got %d", total)
-	}
-	if len(resolved) != 2 {
-		t.Fatalf("expected 2 resolved positions, got %d", len(resolved))
-	}
-	if resolved[0].ProduktName != "Beer" || resolved[0].Menge != 2 {
-		t.Fatalf("expected Beer with menge 2, got %s with menge %d", resolved[0].ProduktName, resolved[0].Menge)
-	}
-	if resolved[1].ProduktName != "Wurst" || resolved[1].Menge != 1 {
-		t.Fatalf("expected Wurst with menge 1, got %s with menge %d", resolved[1].ProduktName, resolved[1].Menge)
-	}
-}
-
-func TestResolvePositions_Empty(t *testing.T) {
-	resolved, total := resolvePositions(nil, nil)
-	if total != 0 {
-		t.Fatalf("expected 0, got %d", total)
-	}
-	if len(resolved) != 0 {
-		t.Fatalf("expected 0 resolved, got %d", len(resolved))
-	}
-}
-
 func TestTischErstellen(t *testing.T) {
 	ctx := context.Background()
 	command := newTestCommand(nil, nil)

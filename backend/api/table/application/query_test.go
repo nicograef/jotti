@@ -88,8 +88,7 @@ func TestGetTischState_NoState(t *testing.T) {
 	}
 }
 
-func TestGetTischHistorie_UsesReadEventsBySubject(t *testing.T) {
-	// Historie should work via ReadEventsBySubject (event stream), not ReadTableState
+func TestGetTischHistorie_ReturnsEmptyForTischWithNoEvents(t *testing.T) {
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	eventMock.SetOffeneKassensitzung(&kasse.KassensitzungState{ZNr: 1, Status: kasse.KassensitzungStatusOffen})
 	query := Query{

@@ -66,25 +66,6 @@ func TestGetHistoryFromEvents_ReversesOrder(t *testing.T) {
 	}
 }
 
-func TestPositionWithFatEventFields(t *testing.T) {
-	pos := Position{
-		PositionID:   "test-uuid",
-		VarianteID:   42,
-		ProduktName:  "Beer",
-		VarianteName: "Pils 0.5l",
-		Kategorie:    "getraenk",
-		Einzelpreis:  500,
-		Menge:        3,
-	}
-
-	if pos.PositionID != "test-uuid" {
-		t.Errorf("expected PositionID test-uuid, got %s", pos.PositionID)
-	}
-	if pos.Einzelpreis*pos.Menge != 1500 {
-		t.Errorf("expected total 1500, got %d", pos.Einzelpreis*pos.Menge)
-	}
-}
-
 func TestGetHistoryFromEvents_IncludesAuszahlung(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),

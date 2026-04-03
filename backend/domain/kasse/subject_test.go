@@ -5,34 +5,35 @@ package kasse
 import "testing"
 
 func TestKassensitzungSubject(t *testing.T) {
-	got := KassensitzungSubject(1)
-	want := "kassensitzung-1"
-	if got != want {
-		t.Fatalf("expected %q, got %q", want, got)
+	cases := []struct {
+		znr  int
+		want string
+	}{
+		{1, "kassensitzung-1"},
+		{42, "kassensitzung-42"},
 	}
-}
-
-func TestKassensitzungSubject_LargeNumber(t *testing.T) {
-	got := KassensitzungSubject(42)
-	want := "kassensitzung-42"
-	if got != want {
-		t.Fatalf("expected %q, got %q", want, got)
+	for _, tc := range cases {
+		got := KassensitzungSubject(tc.znr)
+		if got != tc.want {
+			t.Errorf("KassensitzungSubject(%d) = %q, want %q", tc.znr, got, tc.want)
+		}
 	}
 }
 
 func TestTischSessionSubject(t *testing.T) {
-	got := TischSessionSubject(1, 42)
-	want := "kassensitzung-1/tisch-42"
-	if got != want {
-		t.Fatalf("expected %q, got %q", want, got)
+	cases := []struct {
+		znr     int
+		tischID int
+		want    string
+	}{
+		{1, 42, "kassensitzung-1/tisch-42"},
+		{3, 100, "kassensitzung-3/tisch-100"},
 	}
-}
-
-func TestTischSessionSubject_LargeNumbers(t *testing.T) {
-	got := TischSessionSubject(3, 100)
-	want := "kassensitzung-3/tisch-100"
-	if got != want {
-		t.Fatalf("expected %q, got %q", want, got)
+	for _, tc := range cases {
+		got := TischSessionSubject(tc.znr, tc.tischID)
+		if got != tc.want {
+			t.Errorf("TischSessionSubject(%d, %d) = %q, want %q", tc.znr, tc.tischID, got, tc.want)
+		}
 	}
 }
 

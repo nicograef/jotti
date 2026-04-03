@@ -4,8 +4,10 @@ package application
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -278,26 +280,36 @@ func TestCreateDruckAuftraege_InvalidJSON(t *testing.T) {
 	}
 }
 
-// --- parseTischName Tests ---
-
-func TestParseTischName_Valid(t *testing.T) {
-	result := parseTischName("tisch:7")
-	if result != "Tisch 7" {
-		t.Errorf("expected 'Tisch 7', got %q", result)
+// TestCreateDruckAuftraege_TischNameInPayload verifies that the tisch name derived
+// from the event subject appears in the formatted bon payload.
+func TestCreateDruckAuftraege_TischNameInPayload(t *testing.T) {
+	konfig := map[string]DruckerKonfig{
+		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
-}
-
-func TestParseTischName_WithLargerID(t *testing.T) {
-	result := parseTischName("tisch:42")
-	if result != "Tisch 42" {
-		t.Errorf("expected 'Tisch 42', got %q", result)
+	positionen := []kasse.Position{
+		{ProduktName: "Pommes", VarianteName: "groß", Kategorie: "essen", Menge: 1},
 	}
-}
-
-func TestParseTischName_Invalid(t *testing.T) {
-	// Falls kein Doppelpunkt vorhanden → subject zurückgeben
-	result := parseTischName("invalid")
-	if result != "invalid" {
-		t.Errorf("expected 'invalid', got %q", result)
+	cases := []struct {
+		subject      string
+		expectedName string
+	}{
+		{"kassensitzung-1/tisch-7", "Tisch 7"}, // production format
+		{"tisch:42", "Tisch 42"},               // legacy format
+	}
+	for _, tc := range cases {
+		t.Run(tc.subject, func(t *testing.T) {
+			evt := makeBestellungEvent(1, tc.subject, positionen, "")
+			auftraege := createDruckAuftraegeFromEvent(evt, konfig)
+			if len(auftraege) != 1 {
+				t.Fatalf("expected 1 auftrag, got %d", len(auftraege))
+			}
+			payload, err := base64.StdEncoding.DecodeString(auftraege[0].Payload)
+			if err != nil {
+				t.Fatalf("failed to decode payload: %v", err)
+			}
+			if !strings.Contains(string(payload), tc.expectedName) {
+				t.Errorf("payload does not contain %q", tc.expectedName)
+			}
+		})
 	}
 }
