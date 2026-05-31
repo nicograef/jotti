@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -39,9 +40,16 @@ func ParseAndValidateJWTToken(tokenString, secret string) (int, string, string, 
 		return 0, "", "", err
 	}
 
-	userID := int(claims["sub"].(float64))
+	userIDFloat, ok := claims["sub"].(float64)
+	if !ok || userIDFloat < 0 {
+		return 0, "", "", errors.New("invalid sub claim")
+	}
+	userID := int(userIDFloat)
 	userName, _ := claims["name"].(string)
-	userRole := claims["role"].(string)
+	userRole, ok := claims["role"].(string)
+	if !ok {
+		return 0, "", "", errors.New("invalid role claim")
+	}
 
 	return userID, userName, userRole, nil
 }
