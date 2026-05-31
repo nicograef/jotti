@@ -190,19 +190,19 @@ SELECT setval(pg_get_serial_sequence('kassensitzungen', 'z_nr'), (SELECT MAX(z_n
 -- ─────────────────────────────────────────────────────────────────────────────
 
 INSERT INTO kassenjournal (user_id, user_name, type, subject, version, timestamp, data, kassensitzung_nr) VALUES
-(2, 'Thomas Müller', 'kassensitzung-eroeffnet:v1', 'kassensitzung-1', 1, now() - interval '50 hours 50 minutes', '{"datum": "' || to_char((now() - interval '2 days')::date, 'YYYY-MM-DD') || '", "bezeichnung": "Sommerfest Tag 1 — Freitag", "eroeffnetVon": 2}', 1);
+(2, 'Thomas Müller', 'kassensitzung-eroeffnet:v1', 'kassensitzung-1', 1, now() - interval '50 hours 50 minutes', ('{"datum": "' || to_char((now() - interval '2 days')::date, 'YYYY-MM-DD') || '", "bezeichnung": "Sommerfest Tag 1 — Freitag", "eroeffnetVon": 2}')::jsonb, 1);
 
 INSERT INTO kassenjournal (user_id, user_name, type, subject, version, timestamp, data, kassensitzung_nr) VALUES
 (2, 'Thomas Müller', 'anfangsbestand-gesetzt:v1', 'kassensitzung-1', 2, now() - interval '50 hours 49 minutes', '{"betragCents": 50000, "gesetztVon": 2}', 1);
 
 INSERT INTO kassenjournal (user_id, user_name, type, subject, version, timestamp, data, kassensitzung_nr) VALUES
-(2, 'Thomas Müller', 'kassensitzung-eroeffnet:v1', 'kassensitzung-2', 1, now() - interval '28 hours 50 minutes', '{"datum": "' || to_char((now() - interval '1 day')::date, 'YYYY-MM-DD') || '", "bezeichnung": "Sommerfest Tag 2 — Samstag", "eroeffnetVon": 2}', 2);
+(2, 'Thomas Müller', 'kassensitzung-eroeffnet:v1', 'kassensitzung-2', 1, now() - interval '28 hours 50 minutes', ('{"datum": "' || to_char((now() - interval '1 day')::date, 'YYYY-MM-DD') || '", "bezeichnung": "Sommerfest Tag 2 — Samstag", "eroeffnetVon": 2}')::jsonb, 2);
 
 INSERT INTO kassenjournal (user_id, user_name, type, subject, version, timestamp, data, kassensitzung_nr) VALUES
 (2, 'Thomas Müller', 'anfangsbestand-gesetzt:v1', 'kassensitzung-2', 2, now() - interval '28 hours 49 minutes', '{"betragCents": 50000, "gesetztVon": 2}', 2);
 
 INSERT INTO kassenjournal (user_id, user_name, type, subject, version, timestamp, data, kassensitzung_nr) VALUES
-(2, 'Thomas Müller', 'kassensitzung-eroeffnet:v1', 'kassensitzung-3', 1, now() - interval '6 hours 50 minutes', '{"datum": "' || to_char(now()::date, 'YYYY-MM-DD') || '", "bezeichnung": "Sommerfest Tag 3 — Sonntag", "eroeffnetVon": 2}', 3);
+(2, 'Thomas Müller', 'kassensitzung-eroeffnet:v1', 'kassensitzung-3', 1, now() - interval '6 hours 50 minutes', ('{"datum": "' || to_char(now()::date, 'YYYY-MM-DD') || '", "bezeichnung": "Sommerfest Tag 3 — Sonntag", "eroeffnetVon": 2}')::jsonb, 3);
 
 INSERT INTO kassenjournal (user_id, user_name, type, subject, version, timestamp, data, kassensitzung_nr) VALUES
 (2, 'Thomas Müller', 'anfangsbestand-gesetzt:v1', 'kassensitzung-3', 2, now() - interval '6 hours 49 minutes', '{"betragCents": 50000, "gesetztVon": 2}', 3);
@@ -3247,10 +3247,10 @@ INSERT INTO kassenjournal (user_id, user_name, type, subject, version, timestamp
 -- ─────────────────────────────────────────────────────────────────────────────
 
 INSERT INTO kassenjournal (user_id, user_name, type, subject, version, timestamp, data, kassensitzung_nr) VALUES
-(2, 'Thomas Müller', 'tagesabschluss-erstellt:v1', 'kassensitzung-1', 3, now() - interval '36 hours 10 minutes', '{"zNr": 1, "zeitraumVon": "' || to_char((now() - interval '2 days')::date, 'YYYY-MM-DD') || 'T00:00:00Z", "zeitraumBis": "' || to_char((now() - interval '2 days')::date + interval '1 day', 'YYYY-MM-DD') || 'T00:00:00Z", "umsatzGesamtCents": 0, "stornierungCents": 0, "auszahlungenCents": 0, "geldtransitCents": 0, "erstelltVon": 2}', 1);
+(2, 'Thomas Müller', 'tagesabschluss-erstellt:v1', 'kassensitzung-1', 3, now() - interval '36 hours 10 minutes', ('{"zNr": 1, "zeitraumVon": "' || to_char((now() - interval '2 days')::date, 'YYYY-MM-DD') || 'T00:00:00Z", "zeitraumBis": "' || to_char((now() - interval '2 days')::date + interval '1 day', 'YYYY-MM-DD') || 'T00:00:00Z", "umsatzGesamtCents": 0, "stornierungCents": 0, "auszahlungenCents": 0, "geldtransitCents": 0, "erstelltVon": 2}')::jsonb, 1);
 
 INSERT INTO kassenjournal (user_id, user_name, type, subject, version, timestamp, data, kassensitzung_nr) VALUES
-(2, 'Thomas Müller', 'tagesabschluss-erstellt:v1', 'kassensitzung-2', 3, now() - interval '12 hours 10 minutes', '{"zNr": 2, "zeitraumVon": "' || to_char((now() - interval '1 day')::date, 'YYYY-MM-DD') || 'T00:00:00Z", "zeitraumBis": "' || to_char((now() - interval '1 day')::date + interval '1 day', 'YYYY-MM-DD') || 'T00:00:00Z", "umsatzGesamtCents": 0, "stornierungCents": 0, "auszahlungenCents": 0, "geldtransitCents": 0, "erstelltVon": 2}', 2);
+(2, 'Thomas Müller', 'tagesabschluss-erstellt:v1', 'kassensitzung-2', 3, now() - interval '12 hours 10 minutes', ('{"zNr": 2, "zeitraumVon": "' || to_char((now() - interval '1 day')::date, 'YYYY-MM-DD') || 'T00:00:00Z", "zeitraumBis": "' || to_char((now() - interval '1 day')::date + interval '1 day', 'YYYY-MM-DD') || 'T00:00:00Z", "umsatzGesamtCents": 0, "stornierungCents": 0, "auszahlungenCents": 0, "geldtransitCents": 0, "erstelltVon": 2}')::jsonb, 2);
 
 
 -- =============================================================================
