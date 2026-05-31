@@ -1,15 +1,12 @@
+import { useCallback } from 'react'
+
 import { BackendSingleton } from '@/lib/Backend'
 import { useFetch } from '@/lib/useFetch'
 
 import type { Ausgabe } from './Ausgabe'
 import type { Bestellung } from './Bestellung'
 import type { Stornierung } from './Stornierung'
-import type {
-  AktiverTischMitFavorit,
-  EigeneUebersicht,
-  Tisch,
-  TischSession,
-} from './Tisch'
+import type { AktiverTischMitFavorit, Tisch, TischSession } from './Tisch'
 import { TischBackend } from './TischBackend'
 import type { Zahlung } from './Zahlung'
 
@@ -26,27 +23,30 @@ export function useAktiveTische() {
 
 /** Custom hook to fetch the history for a specific table from backend. */
 export function useTischHistorie(tischId: number) {
-  const { data: historie, ...rest } = useFetch(
+  const fetcher = useCallback(
     () => tischBackend.getTischHistorie(tischId),
-    [] as (Bestellung | Zahlung | Stornierung | Ausgabe)[],
     [tischId],
+  )
+  const { data: historie, ...rest } = useFetch(
+    fetcher,
+    [] as (Bestellung | Zahlung | Stornierung | Ausgabe)[],
   )
   return { ...rest, historie }
 }
 
 export function useTischState(tischId: number) {
-  const { data: state, ...rest } = useFetch(
+  const fetcher = useCallback(
     () => tischBackend.getTischState(tischId),
-    {
-      tischId: 0,
-      tischName: '',
-      saldoCents: 0,
-      unbezahltePositionen: [],
-      ausstehendePositionen: [],
-      gesamtZahlungenCents: 0,
-    } as TischSession,
     [tischId],
   )
+  const { data: state, ...rest } = useFetch(fetcher, {
+    tischId: 0,
+    tischName: '',
+    saldoCents: 0,
+    unbezahltePositionen: [],
+    ausstehendePositionen: [],
+    gesamtZahlungenCents: 0,
+  })
   return { ...rest, state }
 }
 
@@ -74,7 +74,7 @@ export function useEigeneUebersicht() {
       bestellungenCents: 0,
       anzahlZahlungen: 0,
       zahlungenCents: 0,
-    } as EigeneUebersicht,
+    },
   )
   return { ...rest, uebersicht }
 }

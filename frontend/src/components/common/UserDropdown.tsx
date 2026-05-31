@@ -15,17 +15,12 @@ import { AuthSingleton } from '@/lib/Auth'
 export function UserDropdown() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { theme, setTheme } = useTheme()
+  const { isDark, setTheme } = useTheme()
 
   const logout = () => {
     AuthSingleton.logout()
     void navigate('/login')
   }
-
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'system' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches)
 
   return (
     <DropdownMenu>

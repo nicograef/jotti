@@ -25,7 +25,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { useIsCompact } from '@/hooks/use-mobile'
+import { useIsCompact } from '@/hooks/use-is-compact'
 import { AuthSingleton } from '@/lib/Auth'
 
 const reportingItems = [
@@ -76,11 +76,7 @@ export function AdminSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const isCompact = useIsCompact()
-  const { theme, setTheme } = useTheme()
-  const isDark =
-    theme === 'dark' ||
-    (theme === 'system' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const { isDark, setTheme } = useTheme()
   const toggleTheme = () => {
     setTheme(isDark ? 'light' : 'dark')
   }

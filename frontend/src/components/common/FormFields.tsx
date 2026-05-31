@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { formatCents, parseCents } from '@/lib/utils'
 
 interface FieldProps<TField extends FieldValues> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -327,16 +328,6 @@ export function DescriptionField<AllFormFields extends FieldValues>({
   )
 }
 
-const centsToPrice = (cents: number): string => {
-  if (cents <= 0) return ''
-  return (cents / 100).toFixed(2).replace('.', ',')
-}
-
-const priceToCents = (price: string): number => {
-  const parsed = parseFloat(price.replace(',', '.'))
-  return isNaN(parsed) ? 0 : Math.round(parsed * 100)
-}
-
 const cleanInput = (input: string): string => {
   return input.replace(/[^0-9,]/g, '').replace(/,+/g, ',')
 }
@@ -347,9 +338,10 @@ export function PriceField<AllFormFields extends FieldValues>({
   withLabel,
   placeholder,
 }: FieldProps<{ preisCents: number } & AllFormFields>) {
-  const [value, setValue] = useState<string>(() =>
-    centsToPrice(form.getValues().preisCents),
-  )
+  const [value, setValue] = useState<string>(() => {
+    const cents = form.getValues().preisCents
+    return cents > 0 ? formatCents(cents) : ''
+  })
   const [debounceTimeout, setDebounceTimeout] = useState<number | null>(null)
 
   return (
@@ -377,21 +369,20 @@ export function PriceField<AllFormFields extends FieldValues>({
               onChange={(e) => {
                 const cleanedValue = cleanInput(e.target.value)
                 setValue(cleanedValue)
-                const preisCents = priceToCents(cleanedValue)
+                const preisCents = parseCents(cleanedValue)
                 field.onChange(preisCents)
 
                 //  Debounce the conversion to avoid cursor jumping
                 if (debounceTimeout) clearTimeout(debounceTimeout)
                 const newTimeout = setTimeout(() => {
-                  setValue(centsToPrice(preisCents))
+                  setValue(preisCents > 0 ? formatCents(preisCents) : '')
                 }, 1000)
                 setDebounceTimeout(newTimeout)
               }}
               onBlur={(e) => {
-                console.log('onBlur triggered')
                 if (debounceTimeout) clearTimeout(debounceTimeout)
-                const preisCents = priceToCents(e.target.value)
-                setValue(centsToPrice(preisCents))
+                const preisCents = parseCents(e.target.value)
+                setValue(preisCents > 0 ? formatCents(preisCents) : '')
                 field.onChange(preisCents)
               }}
             />

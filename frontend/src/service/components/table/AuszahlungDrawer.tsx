@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { getActionErrorMessage } from '@/lib/errorMessages'
+import { formatCents, parseCents } from '@/lib/utils'
 
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
@@ -33,12 +34,12 @@ export function AuszahlungDrawer(props: AuszahlungDrawerProps) {
   const [loading, setLoading] = useState(false)
 
   const initialBetragEuro =
-    props.saldoCents < 0 ? String(Math.abs(props.saldoCents) / 100) : ''
+    props.saldoCents < 0 ? formatCents(Math.abs(props.saldoCents)) : ''
   const [betragEuro, setBetragEuro] = useState(initialBetragEuro)
   const [kommentar, setKommentar] = useState('')
   const [kommentarTouched, setKommentarTouched] = useState(false)
 
-  const betragCents = Math.round(parseFloat(betragEuro) * 100) || 0
+  const betragCents = parseCents(betragEuro)
   const betragInvalid = betragCents < 1
   const kommentarInvalid = kommentar.trim().length < 3
 
@@ -70,7 +71,7 @@ export function AuszahlungDrawer(props: AuszahlungDrawerProps) {
     setOpen(isOpen)
     if (!isOpen) {
       const reset =
-        props.saldoCents < 0 ? String(Math.abs(props.saldoCents) / 100) : ''
+        props.saldoCents < 0 ? formatCents(Math.abs(props.saldoCents)) : ''
       setBetragEuro(reset)
       setKommentar('')
       setKommentarTouched(false)

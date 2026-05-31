@@ -51,7 +51,7 @@ export function NewUserDialog(props: NewUserDialogProps) {
       const { id, onetimePassword } = await props.backend.createUser(
         data.name,
         data.username,
-        data.role as UserRole,
+        data.role,
       )
       form.reset()
       setOpen(false)

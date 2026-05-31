@@ -16,43 +16,45 @@ interface UseFetchResult<T> {
 
 /**
  * Generic data-fetching hook.
- * Calls the fetcher on mount (and whenever deps change), manages loading/error state,
+ * Calls the fetcher on mount (and whenever fetcher changes), manages loading/error state,
  * and exposes a reload function for manual refetching.
  */
 export function useFetch<T>(
   fetcher: () => Promise<T>,
   initialData: T,
-  deps: unknown[] = [],
 ): UseFetchResult<T> {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [data, setData] = useState<T>(initialData)
   const [error, setError] = useState<Error | null>(null)
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const stableFetcher = useCallback(fetcher, deps)
-
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const result = await stableFetcher()
-      setData(result)
-    } catch (err) {
-      console.error('Fetch failed:', err)
-      setError(err instanceof Error ? err : new Error(String(err)))
-    }
-
-    setLoading(false)
-  }, [stableFetcher])
+  const [trigger, setTrigger] = useState(0)
 
   const reload = useCallback(() => {
-    void fetchData()
-  }, [fetchData])
+    setLoading(true)
+    setError(null)
+    setTrigger((t) => t + 1)
+  }, [])
 
   useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+    let cancelled = false
+    fetcher()
+      .then((result) => {
+        if (!cancelled) {
+          setData(result)
+          setError(null)
+          setLoading(false)
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          console.error('Fetch failed:', err)
+          setError(err instanceof Error ? err : new Error(String(err)))
+          setLoading(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [fetcher, trigger])
 
   return { loading, data, error, reload, setData }
 }

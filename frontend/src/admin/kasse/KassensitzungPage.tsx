@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formatCents } from '@/lib/utils'
+import { formatCents, parseCents } from '@/lib/utils'
 
 import { kasseBackend, useKassenbestand, useOffeneKassensitzung } from './hooks'
 
@@ -74,7 +74,9 @@ export function KassensitzungPage() {
 }
 
 function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
-  const [datum, setDatum] = useState(new Date().toISOString().slice(0, 10))
+  const [datum, setDatum] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  )
   const [bezeichnung, setBezeichnung] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -138,8 +140,8 @@ function AnfangsbestandSection({ onSuccess }: { onSuccess: () => void }) {
   const [saving, setSaving] = useState(false)
 
   const handleSetzen = async () => {
-    const cents = Math.round(parseFloat(betragEuro.replace(',', '.')) * 100)
-    if (isNaN(cents) || cents < 0) {
+    const cents = parseCents(betragEuro)
+    if (cents < 0) {
       toast.error('Bitte einen gültigen Betrag eingeben.')
       return
     }
@@ -191,8 +193,8 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
   const [saving, setSaving] = useState(false)
 
   const handleBuchen = async () => {
-    const cents = Math.round(parseFloat(betragEuro.replace(',', '.')) * 100)
-    if (isNaN(cents) || cents <= 0) {
+    const cents = parseCents(betragEuro)
+    if (cents <= 0) {
       toast.error('Bitte einen gültigen Betrag eingeben.')
       return
     }
@@ -281,8 +283,8 @@ function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
   const [saving, setSaving] = useState(false)
 
   const handleKassensturz = async () => {
-    const cents = Math.round(parseFloat(istBestandEuro.replace(',', '.')) * 100)
-    if (isNaN(cents) || cents < 0) {
+    const cents = parseCents(istBestandEuro)
+    if (cents < 0) {
       toast.error('Bitte einen gültigen Betrag eingeben.')
       return
     }
