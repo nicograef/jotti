@@ -14,9 +14,9 @@ jobs:
       frontend: ${{ steps.changes.outputs.frontend }}
       database: ${{ steps.changes.outputs.database }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Check for changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         id: changes
         with:
           filters: |
@@ -35,7 +35,7 @@ jobs:
       run:
         working-directory: ./backend
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: 1.26.0
@@ -78,7 +78,7 @@ jobs:
       run:
         working-directory: ./backend
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: 1.26.0
@@ -97,11 +97,11 @@ jobs:
       run:
         working-directory: ./frontend
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: 10
+          version: 11
           run_install: false
 
       - uses: actions/setup-node@v6
@@ -131,7 +131,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:17
+        image: postgres:17.8
         env:
           POSTGRES_USER: admin
           POSTGRES_PASSWORD: admin
@@ -147,7 +147,7 @@ jobs:
       run:
         working-directory: ./backend
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: 1.26.0
