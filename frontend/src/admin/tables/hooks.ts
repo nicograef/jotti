@@ -1,17 +1,18 @@
+import { useQuery } from '@tanstack/react-query'
+
 import { BackendSingleton } from '@/lib/Backend'
-import { useFetch } from '@/lib/useFetch'
 
 import type { Tisch } from './Tisch'
 import { TischBackend } from './TischBackend'
 
 const tischBackend = new TischBackend(BackendSingleton)
 
-/** Custom hook to fetch all tables from backend. */
+export const ALLE_TISCHE_KEY = 'alle-tische'
+
 export function useAllTische() {
-  const {
-    data: tische,
-    setData: setTische,
-    ...rest
-  } = useFetch(() => tischBackend.getAllTische(), [] as Tisch[])
-  return { ...rest, tische, setTische }
+  const { data: tische = [] as Tisch[], isPending } = useQuery({
+    queryKey: [ALLE_TISCHE_KEY],
+    queryFn: () => tischBackend.getAllTische(),
+  })
+  return { tische, loading: isPending }
 }

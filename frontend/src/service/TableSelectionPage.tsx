@@ -12,8 +12,8 @@ import { useEigeneUebersicht, useMeineTischeState } from './table/hooks'
 
 export function TableSelectionPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const { tische, loading: tischeLoading } = useMeineTischeState()
-  const { uebersicht, loading: uebersichtLoading } = useEigeneUebersicht()
+  const { tische, isPending: tischeLoading } = useMeineTischeState()
+  const { uebersicht, isPending: uebersichtLoading } = useEigeneUebersicht()
 
   return (
     <div className="py-2">

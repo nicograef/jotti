@@ -1,17 +1,18 @@
+import { useQuery } from '@tanstack/react-query'
+
 import { BackendSingleton } from '@/lib/Backend'
-import { useFetch } from '@/lib/useFetch'
 
 import type { User } from './User'
 import { UserBackend } from './UserBackend'
 
 const userBackend = new UserBackend(BackendSingleton)
 
-/** Custom hook to fetch all users from backend. */
+export const ALLE_USERS_KEY = 'alle-users'
+
 export function useAllUsers() {
-  const {
-    data: users,
-    setData: setUsers,
-    ...rest
-  } = useFetch(() => userBackend.getAllUsers(), [] as User[])
-  return { ...rest, users, setUsers }
+  const { data: users = [] as User[], isPending } = useQuery({
+    queryKey: [ALLE_USERS_KEY],
+    queryFn: () => userBackend.getAllUsers(),
+  })
+  return { users, loading: isPending }
 }

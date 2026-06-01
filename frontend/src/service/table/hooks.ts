@@ -1,80 +1,85 @@
-import { useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
-import { useFetch } from '@/lib/useFetch'
 
-import type { Ausgabe } from './Ausgabe'
-import type { Bestellung } from './Bestellung'
-import type { Stornierung } from './Stornierung'
-import type { AktiverTischMitFavorit, Tisch, TischSession } from './Tisch'
+import type { EigeneUebersicht, TischSession } from './Tisch'
 import { TischBackend } from './TischBackend'
-import type { Zahlung } from './Zahlung'
 
 const tischBackend = new TischBackend(BackendSingleton)
 
-/** Custom hook to fetch active tables from backend. */
 export function useAktiveTische() {
-  const { data: tische, ...rest } = useFetch(
-    () => tischBackend.getAktiveTische(),
-    [] as Tisch[],
-  )
-  return { ...rest, tische }
+  const {
+    data: tische = [],
+    isPending,
+    refetch,
+  } = useQuery({
+    queryKey: ['aktive-tische'],
+    queryFn: () => tischBackend.getAktiveTische(),
+  })
+  return { tische, isPending, refetch }
 }
 
-/** Custom hook to fetch the history for a specific table from backend. */
 export function useTischHistorie(tischId: number) {
-  const fetcher = useCallback(
-    () => tischBackend.getTischHistorie(tischId),
-    [tischId],
-  )
-  const { data: historie, ...rest } = useFetch(
-    fetcher,
-    [] as (Bestellung | Zahlung | Stornierung | Ausgabe)[],
-  )
-  return { ...rest, historie }
+  const {
+    data: historie = [],
+    isPending,
+    refetch,
+  } = useQuery({
+    queryKey: ['tisch-historie', tischId],
+    queryFn: () => tischBackend.getTischHistorie(tischId),
+  })
+  return { historie, isPending, refetch }
+}
+
+const DEFAULT_TISCH_STATE: TischSession = {
+  tischId: 0,
+  tischName: '',
+  saldoCents: 0,
+  unbezahltePositionen: [],
+  ausstehendePositionen: [],
+  gesamtZahlungenCents: 0,
 }
 
 export function useTischState(tischId: number) {
-  const fetcher = useCallback(
-    () => tischBackend.getTischState(tischId),
-    [tischId],
-  )
-  const { data: state, ...rest } = useFetch(fetcher, {
-    tischId: 0,
-    tischName: '',
-    saldoCents: 0,
-    unbezahltePositionen: [],
-    ausstehendePositionen: [],
-    gesamtZahlungenCents: 0,
+  const {
+    data: state = DEFAULT_TISCH_STATE,
+    isPending,
+    refetch,
+  } = useQuery({
+    queryKey: ['tisch-state', tischId],
+    queryFn: () => tischBackend.getTischState(tischId),
   })
-  return { ...rest, state }
+  return { state, isPending, refetch }
 }
 
+export const AKTIVE_TISCHE_MIT_FAVORITEN_KEY = 'aktive-tische-mit-favoriten'
 export function useAktiveTischeMitFavoriten() {
-  const { data: tische, ...rest } = useFetch(
-    () => tischBackend.getAktiveTischeMitFavoriten(),
-    [] as AktiverTischMitFavorit[],
-  )
-  return { ...rest, tische }
+  const { data: tische = [] } = useQuery({
+    queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
+    queryFn: () => tischBackend.getAktiveTischeMitFavoriten(),
+  })
+  return { tische }
 }
 
 export function useMeineTischeState() {
-  const { data: tische, ...rest } = useFetch(
-    () => tischBackend.getMeineTischeState(),
-    [] as TischSession[],
-  )
-  return { ...rest, tische }
+  const { data: tische = [], isPending } = useQuery({
+    queryKey: ['meine-tische-state'],
+    queryFn: () => tischBackend.getMeineTischeState(),
+  })
+  return { tische, isPending }
+}
+
+const DEFAULT_EIGENE_UEBERSICHT: EigeneUebersicht = {
+  anzahlBestellungen: 0,
+  bestellungenCents: 0,
+  anzahlZahlungen: 0,
+  zahlungenCents: 0,
 }
 
 export function useEigeneUebersicht() {
-  const { data: uebersicht, ...rest } = useFetch(
-    () => tischBackend.getEigeneUebersicht(),
-    {
-      anzahlBestellungen: 0,
-      bestellungenCents: 0,
-      anzahlZahlungen: 0,
-      zahlungenCents: 0,
-    },
-  )
-  return { ...rest, uebersicht }
+  const { data: uebersicht = DEFAULT_EIGENE_UEBERSICHT, isPending } = useQuery({
+    queryKey: ['eigene-uebersicht'],
+    queryFn: () => tischBackend.getEigeneUebersicht(),
+  })
+  return { uebersicht, isPending }
 }

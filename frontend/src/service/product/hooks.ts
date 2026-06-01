@@ -1,16 +1,15 @@
-import { BackendSingleton } from '@/lib/Backend'
-import { useFetch } from '@/lib/useFetch'
+import { useQuery } from '@tanstack/react-query'
 
-import type { Produkt } from './Produkt'
+import { BackendSingleton } from '@/lib/Backend'
+
 import { ProduktBackend } from './ProduktBackend'
 
 const produktBackend = new ProduktBackend(BackendSingleton)
 
-/** Custom hook to fetch active products from backend. */
 export function useAktiveProdukte() {
-  const { data: produkte, ...rest } = useFetch(
-    () => produktBackend.getAktiveProdukte(),
-    [] as Produkt[],
-  )
-  return { ...rest, produkte }
+  const { data = [], isPending } = useQuery({
+    queryKey: ['aktive-produkte'],
+    queryFn: () => produktBackend.getAktiveProdukte(),
+  })
+  return { produkte: data, isPending }
 }

@@ -7,10 +7,10 @@ import {
 import { AuthSingleton } from '@/lib/Auth'
 
 import { AdminLayout } from './admin/AdminLayout'
-import { DruckerConfigPage } from './admin/DruckerConfigPage'
 import { KassensitzungPage } from './admin/kasse/KassensitzungPage'
 import { AdminProductsPage } from './admin/products/AdminProductsPage'
 import { AdminDashboardPage } from './admin/reporting/AdminDashboardPage'
+import { DruckerConfigPage } from './admin/settings/DruckerConfigPage'
 import { AdminTablesPage } from './admin/tables/AdminTablesPage'
 import { AdminUsersPage } from './admin/users/AdminUsersPage'
 import App from './App'

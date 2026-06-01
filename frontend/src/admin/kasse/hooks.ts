@@ -1,33 +1,29 @@
+import { useQuery } from '@tanstack/react-query'
+
 import { BackendSingleton } from '@/lib/Backend'
-import { useFetch } from '@/lib/useFetch'
 
 import { KasseBackend } from './KasseBackend'
 import type { KassensitzungState } from './types'
 
-const kasseBackend = new KasseBackend(BackendSingleton)
-
-export { kasseBackend }
+export const kasseBackend = new KasseBackend(BackendSingleton)
 
 export function useOffeneKassensitzung() {
   const {
-    data: kassensitzung,
-    setData: setKassensitzung,
-    ...rest
-  } = useFetch(
-    () => kasseBackend.getOffeneKassensitzung(),
-    null as KassensitzungState | null,
-  )
-  return { ...rest, kassensitzung, setKassensitzung }
+    data = null as KassensitzungState | null,
+    isPending,
+    refetch,
+  } = useQuery({
+    queryKey: ['offene-kassensitzung'],
+    queryFn: () => kasseBackend.getOffeneKassensitzung(),
+  })
+  return { kassensitzung: data, isPending, refetch }
 }
 
 export function useKassenbestand(kassensitzungNr: number | null) {
-  const { data: kassenbestand, ...rest } = useFetch(
-    async () => {
-      if (!kassensitzungNr) return null
-      return kasseBackend.getKassenbestand(kassensitzungNr)
-    },
-    null,
-    [kassensitzungNr],
-  )
-  return { ...rest, kassenbestand }
+  const { data = null } = useQuery({
+    queryKey: ['kassenbestand', kassensitzungNr],
+    queryFn: () => kasseBackend.getKassenbestand(kassensitzungNr ?? 0),
+    enabled: kassensitzungNr !== null,
+  })
+  return { kassenbestand: data }
 }

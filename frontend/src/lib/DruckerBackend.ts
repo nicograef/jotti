@@ -2,20 +2,12 @@ import { z } from 'zod'
 
 import type { BackendClient } from './Backend'
 
-export const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
-export type Kategorie = z.infer<typeof KategorieSchema>
+const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
 
-export const BonmodusSchema = z.enum(['pro_position', 'pro_bestellung'])
+const BonmodusSchema = z.enum(['pro_position', 'pro_bestellung'])
 export type Bonmodus = z.infer<typeof BonmodusSchema>
 
-export const DruckerKonfigSchema = z.object({
-  kategorie: KategorieSchema,
-  druckerIp: z.string(),
-  bonmodus: BonmodusSchema,
-})
-export type DruckerKonfig = z.infer<typeof DruckerKonfigSchema>
-
-export const UpdateDruckerConfigSchema = z.object({
+export const DruckerConfigSchema = z.object({
   kategorie: KategorieSchema,
   druckerIp: z
     .string()
@@ -23,7 +15,7 @@ export const UpdateDruckerConfigSchema = z.object({
     .or(z.literal('')),
   bonmodus: BonmodusSchema,
 })
-export type UpdateDruckerConfig = z.infer<typeof UpdateDruckerConfigSchema>
+export type DruckerConfig = z.infer<typeof DruckerConfigSchema>
 
 export class DruckerBackend {
   private readonly backend: BackendClient
@@ -32,17 +24,17 @@ export class DruckerBackend {
     this.backend = backend
   }
 
-  public async getDruckerConfig(): Promise<DruckerKonfig[]> {
+  public async getDruckerConfig(): Promise<DruckerConfig[]> {
     const { drucker } = await this.backend.post(
       'admin/get-drucker-konfiguration',
       {},
-      z.object({ drucker: z.array(DruckerKonfigSchema) }),
+      z.object({ drucker: z.array(DruckerConfigSchema) }),
     )
     return drucker
   }
 
-  public async updateDruckerConfig(config: UpdateDruckerConfig): Promise<void> {
-    const body = UpdateDruckerConfigSchema.parse(config)
+  public async updateDruckerConfig(config: DruckerConfig): Promise<void> {
+    const body = DruckerConfigSchema.parse(config)
     await this.backend.post('admin/update-drucker-konfiguration', body)
   }
 }

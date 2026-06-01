@@ -11,10 +11,10 @@ import { formatCents, parseCents } from '@/lib/utils'
 import { kasseBackend, useKassenbestand, useOffeneKassensitzung } from './hooks'
 
 export function KassensitzungPage() {
-  const { kassensitzung, loading, reload } = useOffeneKassensitzung()
+  const { kassensitzung, isPending, refetch } = useOffeneKassensitzung()
   const { kassenbestand } = useKassenbestand(kassensitzung?.zNr ?? null)
 
-  if (loading) {
+  if (isPending) {
     return (
       <>
         <h1 className="text-2xl font-bold">Kassensitzung</h1>
@@ -58,15 +58,15 @@ export function KassensitzungPage() {
             </CardContent>
           </Card>
 
-          <AnfangsbestandSection onSuccess={reload} />
-          <KassenbewegungSection onSuccess={reload} />
-          <KassensturzSection onSuccess={reload} />
-          <TagesabschlussSection onSuccess={reload} />
+          <AnfangsbestandSection onSuccess={() => void refetch()} />
+          <KassenbewegungSection onSuccess={() => void refetch()} />
+          <KassensturzSection onSuccess={() => void refetch()} />
+          <TagesabschlussSection onSuccess={() => void refetch()} />
         </div>
       ) : (
         <div className="mt-4 space-y-6">
           <p className="text-muted-foreground">Keine Kassensitzung geöffnet.</p>
-          <EroeffnenSection onSuccess={reload} />
+          <EroeffnenSection onSuccess={() => void refetch()} />
         </div>
       )}
     </>

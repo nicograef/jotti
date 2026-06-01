@@ -1,12 +1,13 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
 
 import { EditTischDialog } from './EditTischDialog'
-import { useAllTische } from './hooks'
+import { ALLE_TISCHE_KEY, useAllTische } from './hooks'
 import { NewTischDialog } from './NewTischDialog'
-import type { Tisch, TischStatus } from './Tisch'
+import type { Tisch } from './Tisch'
 import { TischBackend } from './TischBackend'
 import { Tische } from './Tische'
 
@@ -18,27 +19,19 @@ const initialEditState = {
 const tischBackend = new TischBackend(BackendSingleton)
 
 export function AdminTablesPage() {
-  const { loading, tische, setTische } = useAllTische()
+  const queryClient = useQueryClient()
+  const { loading, tische } = useAllTische()
   const [editState, setEditState] = useState(initialEditState)
 
-  const updateTisch = (tisch: Tisch) => {
-    setTische((prevTische) =>
-      prevTische.map((t) => (t.id === tisch.id ? tisch : t)),
-    )
-  }
-
-  const onStatusChange = (tischId: number, status: TischStatus) => {
-    setTische((prevTische) =>
-      prevTische.map((t) => (t.id === tischId ? { ...t, status } : t)),
-    )
-  }
+  const invalidateTische = () =>
+    void queryClient.invalidateQueries({ queryKey: [ALLE_TISCHE_KEY] })
 
   return (
     <>
       <NewTischDialog
         backend={tischBackend}
         created={(tisch) => {
-          setTische((prevTische) => [...prevTische, tisch])
+          invalidateTische()
           toast.success(`Tisch "${tisch.name}" wurde angelegt.`)
         }}
       />
@@ -47,8 +40,8 @@ export function AdminTablesPage() {
           backend={tischBackend}
           open={editState.open}
           tisch={editState.tisch}
-          updated={(tisch) => {
-            updateTisch(tisch)
+          updated={() => {
+            invalidateTische()
           }}
           close={() => {
             setEditState(initialEditState)
@@ -64,9 +57,11 @@ export function AdminTablesPage() {
           const tischToEdit = tische.find((t) => t.id === tischId) ?? null
           setEditState({ tisch: tischToEdit, open: true })
         }}
-        onStatusChange={onStatusChange}
-        onDeleted={(tischId) => {
-          setTische((prev) => prev.filter((t) => t.id !== tischId))
+        onStatusChange={() => {
+          invalidateTische()
+        }}
+        onDeleted={() => {
+          invalidateTische()
           toast.success('Tisch wurde gelöscht.')
         }}
       />

@@ -29,14 +29,14 @@ export function TablePage() {
   const isMobile = useIsMobile()
   const {
     state,
-    loading: stateLoading,
-    reload: reloadState,
+    isPending: stateLoading,
+    refetch: reloadState,
   } = useTischState(Number(tischId))
-  const { loading: produkteLoading, produkte } = useAktiveProdukte()
+  const { isPending, produkte } = useAktiveProdukte()
   const {
-    loading: historieLoading,
+    isPending: historieLoading,
     historie,
-    reload: reloadHistorie,
+    refetch: reloadHistorie,
   } = useTischHistorie(Number(tischId))
 
   const tisch = {
@@ -118,8 +118,8 @@ export function TablePage() {
                     positionen={state.ausstehendePositionen}
                     loading={stateLoading}
                     onAusgabeBestaetigt={() => {
-                      reloadState()
-                      reloadHistorie()
+                      void reloadState()
+                      void reloadHistorie()
                     }}
                   />
                 </Card>
@@ -128,10 +128,10 @@ export function TablePage() {
                 backend={tischBackend}
                 tisch={tisch}
                 products={produkte}
-                productsLoading={produkteLoading}
+                productsLoading={isPending}
                 onBestellungAufgenommen={() => {
-                  reloadState()
-                  reloadHistorie()
+                  void reloadState()
+                  void reloadHistorie()
                 }}
               />
             </>
@@ -146,16 +146,16 @@ export function TablePage() {
               saldoCents={state.saldoCents}
               loading={stateLoading}
               onZahlungKassiert={() => {
-                reloadState()
-                reloadHistorie()
+                void reloadState()
+                void reloadHistorie()
               }}
               onStornierungErteilt={() => {
-                reloadState()
-                reloadHistorie()
+                void reloadState()
+                void reloadHistorie()
               }}
               onAuszahlungGeleistet={() => {
-                reloadState()
-                reloadHistorie()
+                void reloadState()
+                void reloadHistorie()
               }}
             />
           )}
@@ -169,8 +169,8 @@ export function TablePage() {
               tisch={tisch}
               backend={tischBackend}
               onStornierungErteilt={() => {
-                reloadState()
-                reloadHistorie()
+                void reloadState()
+                void reloadHistorie()
               }}
             />
           )}

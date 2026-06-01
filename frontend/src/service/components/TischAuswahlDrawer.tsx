@@ -1,5 +1,7 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
+import { toast } from 'sonner'
 
 import {
   Drawer,
@@ -11,7 +13,10 @@ import { Input } from '@/components/ui/input'
 import { BackendSingleton } from '@/lib/Backend'
 import { formatCents } from '@/lib/utils'
 
-import { useAktiveTischeMitFavoriten } from '../table/hooks'
+import {
+  AKTIVE_TISCHE_MIT_FAVORITEN_KEY,
+  useAktiveTischeMitFavoriten,
+} from '../table/hooks'
 import type { AktiverTischMitFavorit } from '../table/Tisch'
 import { TischBackend } from '../table/TischBackend'
 
@@ -27,36 +32,25 @@ export function TischAuswahlDrawer({
   onOpenChange,
 }: TischAuswahlDrawerProps) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [suche, setSuche] = useState('')
-  const { tische, setData } = useAktiveTischeMitFavoriten()
+  const { tische } = useAktiveTischeMitFavoriten()
 
   const gefilterteTische = tische.filter((t) =>
     t.name.toLowerCase().includes(suche.toLowerCase()),
   )
 
-  const handleFavoritToggle = async (tisch: AktiverTischMitFavorit) => {
-    // Optimistic update
-    setData((prev: AktiverTischMitFavorit[]) =>
-      prev.map((t: AktiverTischMitFavorit) =>
-        t.id === tisch.id ? { ...t, istFavorit: !t.istFavorit } : t,
-      ),
-    )
-
-    try {
-      if (tisch.istFavorit) {
-        await tischBackend.favoritEntfernen(tisch.id)
-      } else {
-        await tischBackend.favoritHinzufuegen(tisch.id)
-      }
-    } catch {
-      // Revert on error
-      setData((prev: AktiverTischMitFavorit[]) =>
-        prev.map((t: AktiverTischMitFavorit) =>
-          t.id === tisch.id ? { ...t, istFavorit: tisch.istFavorit } : t,
-        ),
-      )
-    }
-  }
+  const favoritMutation = useMutation({
+    mutationFn: (tisch: AktiverTischMitFavorit) =>
+      tisch.istFavorit
+        ? tischBackend.favoritEntfernen(tisch.id)
+        : tischBackend.favoritHinzufuegen(tisch.id),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
+      }),
+    onError: () => toast.error('Favorit konnte nicht geändert werden.'),
+  })
 
   const handleTischClick = (tisch: AktiverTischMitFavorit) => {
     void navigate(`/service/tische/${tisch.id.toString()}`)
@@ -87,7 +81,10 @@ export function TischAuswahlDrawer({
               <button
                 type="button"
                 className="text-xl leading-none shrink-0 w-7 text-center"
-                onClick={() => void handleFavoritToggle(tisch)}
+                disabled={favoritMutation.isPending}
+                onClick={() => {
+                  favoritMutation.mutate(tisch)
+                }}
                 aria-label={
                   tisch.istFavorit
                     ? `${tisch.name} aus Favoriten entfernen`

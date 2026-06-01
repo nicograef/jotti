@@ -1,13 +1,14 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
 
 import { EditProductDialog } from './EditProductDialog'
-import { useAllProdukte } from './hooks'
+import { ALLE_PRODUKTE_KEY, useAllProdukte } from './hooks'
 import { NewProductDialog } from './NewProductDialog'
 import { Products } from './Products'
-import type { Produkt, Variante } from './Produkt'
+import type { Produkt } from './Produkt'
 import { ProduktBackend } from './ProduktBackend'
 
 const initialProduktEditState = {
@@ -18,60 +19,19 @@ const initialProduktEditState = {
 const produktBackend = new ProduktBackend(BackendSingleton)
 
 export function AdminProductsPage() {
-  const { loading, produkte, setProdukte } = useAllProdukte()
+  const queryClient = useQueryClient()
+  const { loading, produkte } = useAllProdukte()
   const [produktEditState, setProduktEditState] = useState(
     initialProduktEditState,
   )
 
-  const updateProdukt = (produkt: Produkt) => {
-    setProdukte((prevProdukte) =>
-      prevProdukte.map((p) => (p.id === produkt.id ? produkt : p)),
-    )
-  }
-
-  const updateVarianteInProdukt = (
-    produktId: number,
-    updater: (varianten: Variante[]) => Variante[],
-  ) => {
-    setProdukte((prevProdukte) =>
-      prevProdukte.map((p) =>
-        p.id === produktId ? { ...p, varianten: updater(p.varianten) } : p,
-      ),
-    )
-  }
-
-  const onVarianteCreated = (produktId: number, variante: Variante) => {
-    updateVarianteInProdukt(produktId, (varianten) => [...varianten, variante])
-    toast.success(`Variante "${variante.name}" wurde angelegt.`)
-  }
-
-  const onVarianteUpdated = (produktId: number, variante: Variante) => {
-    updateVarianteInProdukt(produktId, (varianten) =>
-      varianten.map((v) => (v.id === variante.id ? variante : v)),
-    )
-  }
-
-  const onVarianteStatusChange = (
-    produktId: number,
-    varianteId: number,
-    status: 'active' | 'inactive',
-  ) => {
-    updateVarianteInProdukt(produktId, (varianten) =>
-      varianten.map((v) => (v.id === varianteId ? { ...v, status } : v)),
-    )
-  }
+  const invalidateProdukte = () =>
+    void queryClient.invalidateQueries({ queryKey: [ALLE_PRODUKTE_KEY] })
 
   const onProduktDelete = async (produktId: number) => {
     await produktBackend.deleteProdukt(produktId)
-    setProdukte((prev) => prev.filter((p) => p.id !== produktId))
+    invalidateProdukte()
     toast.success('Produkt wurde gelöscht.')
-  }
-
-  const onVarianteDeleted = (produktId: number, varianteId: number) => {
-    updateVarianteInProdukt(produktId, (varianten) =>
-      varianten.filter((v) => v.id !== varianteId),
-    )
-    toast.success('Variante wurde gelöscht.')
   }
 
   return (
@@ -79,7 +39,7 @@ export function AdminProductsPage() {
       <NewProductDialog
         backend={produktBackend}
         created={(produkt) => {
-          setProdukte((prevProdukte) => [...prevProdukte, produkt])
+          invalidateProdukte()
           toast.success(`Produkt "${produkt.name}" wurde angelegt.`)
         }}
       />
@@ -88,8 +48,8 @@ export function AdminProductsPage() {
           backend={produktBackend}
           open={produktEditState.open}
           product={produktEditState.produkt}
-          updated={(produkt) => {
-            updateProdukt(produkt)
+          updated={() => {
+            invalidateProdukte()
           }}
           close={() => {
             setProduktEditState(initialProduktEditState)
@@ -106,10 +66,20 @@ export function AdminProductsPage() {
           setProduktEditState({ produkt: produktToEdit, open: true })
         }}
         onDelete={onProduktDelete}
-        onVariantCreated={onVarianteCreated}
-        onVariantUpdated={onVarianteUpdated}
-        onVariantDeleted={onVarianteDeleted}
-        onVariantStatusChange={onVarianteStatusChange}
+        onVariantCreated={(_produktId, variante) => {
+          invalidateProdukte()
+          toast.success(`Variante "${variante.name}" wurde angelegt.`)
+        }}
+        onVariantUpdated={() => {
+          invalidateProdukte()
+        }}
+        onVariantDeleted={() => {
+          invalidateProdukte()
+          toast.success('Variante wurde gelöscht.')
+        }}
+        onVariantStatusChange={() => {
+          invalidateProdukte()
+        }}
       />
     </>
   )
