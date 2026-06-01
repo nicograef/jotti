@@ -572,7 +572,7 @@ Produkt
 ├── produkt_id       (int — DB-generiert)
 ├── name             (string — nicht leer)
 ├── kategorie        (essen | getraenk | sonstiges)
-├── status           (active | inactive | deleted)
+├── status           (active | deleted)
 └── varianten[]
     ├── variante_id  (int — DB-generiert)
     ├── name         (string — nicht leer)

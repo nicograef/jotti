@@ -223,24 +223,6 @@ func (r Repository) GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensi
 	}, nil
 }
 
-func (r Repository) ReadEvent(ctx context.Context, eventID int) (event.Event, error) {
-	row, err := r.q.ReadEvent(ctx, eventID)
-	if err != nil {
-		return event.Event{}, db.Error(err)
-	}
-
-	return event.Event{
-		ID:       row.ID,
-		UserID:   row.UserID,
-		UserName: row.UserName,
-		Version:  row.Version,
-		Type:     row.Type,
-		Subject:  row.Subject,
-		Data:     row.Data,
-		Time:     row.Timestamp,
-	}, nil
-}
-
 // ReadEventsBySubject retrieves all events of the given subject.
 // Events are ordered by ID ascending (first element in slice is first event).
 func (r Repository) ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error) {

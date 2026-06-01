@@ -10,15 +10,6 @@ import (
 	"time"
 )
 
-const deleteAllKassensitzungen = `-- name: DeleteAllKassensitzungen :exec
-DELETE FROM kassensitzungen
-`
-
-func (q *Queries) DeleteAllKassensitzungen(ctx context.Context) error {
-	_, err := q.db.ExecContext(ctx, deleteAllKassensitzungen)
-	return err
-}
-
 const getKassenbestand = `-- name: GetKassenbestand :one
 SELECT COALESCE(SUM(CASE
     WHEN type = 'anfangsbestand-gesetzt:v1'
@@ -52,36 +43,6 @@ func (q *Queries) GetKassenbestand(ctx context.Context, kassensitzungNr int) (in
 	var soll_bestand_cents int
 	err := row.Scan(&soll_bestand_cents)
 	return soll_bestand_cents, err
-}
-
-const getKassensitzungByZNr = `-- name: GetKassensitzungByZNr :one
-SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
-FROM kassensitzungen WHERE z_nr = $1
-`
-
-func (q *Queries) GetKassensitzungByZNr(ctx context.Context, zNr int) (Kassensitzungen, error) {
-	row := q.db.QueryRowContext(ctx, getKassensitzungByZNr, zNr)
-	var i Kassensitzungen
-	err := row.Scan(
-		&i.ZNr,
-		&i.Datum,
-		&i.Bezeichnung,
-		&i.Status,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getNextZNr = `-- name: GetNextZNr :one
-SELECT COALESCE(MAX(z_nr), 0) + 1 AS next_z_nr FROM kassensitzungen
-`
-
-func (q *Queries) GetNextZNr(ctx context.Context) (int32, error) {
-	row := q.db.QueryRowContext(ctx, getNextZNr)
-	var next_z_nr int32
-	err := row.Scan(&next_z_nr)
-	return next_z_nr, err
 }
 
 const getOffeneKassensitzung = `-- name: GetOffeneKassensitzung :one

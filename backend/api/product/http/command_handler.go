@@ -13,8 +13,6 @@ import (
 type command interface {
 	CreateProduct(ctx context.Context, name string, kategorie product.Kategorie) (int, error)
 	UpdateProduct(ctx context.Context, id int, name string, kategorie product.Kategorie) error
-	ActivateProduct(ctx context.Context, productID int) error
-	DeactivateProduct(ctx context.Context, productID int) error
 	DeleteProdukt(ctx context.Context, productID int) error
 	CreateVariant(ctx context.Context, productID int, name string, preisCents int) (int, error)
 	UpdateVariant(ctx context.Context, variantID int, name string, preisCents int) error
@@ -76,60 +74,6 @@ func (h *CommandHandler) UpdateProductHandler() http.HandlerFunc {
 			helper.MapError(w, err, map[error]string{
 				application.ErrProduktNotFound:    "produkt_not_found",
 				application.ErrInvalidProduktData: "invalid_produkt_data",
-			})
-			return
-		}
-
-		helper.SendEmptyResponse(w)
-	}
-}
-
-type activateProductRequest struct {
-	ID int `json:"id"`
-}
-
-var activateProductSchema = z.Struct(z.Shape{
-	"ID": product.IDSchema.Required(),
-})
-
-func (h *CommandHandler) ActivateProductHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body := activateProductRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, activateProductSchema) {
-			return
-		}
-
-		err := h.Command.ActivateProduct(r.Context(), body.ID)
-		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrProduktNotFound: "produkt_not_found",
-			})
-			return
-		}
-
-		helper.SendEmptyResponse(w)
-	}
-}
-
-type deactivateProductRequest struct {
-	ID int `json:"id"`
-}
-
-var deactivateProductSchema = z.Struct(z.Shape{
-	"ID": product.IDSchema.Required(),
-})
-
-func (h *CommandHandler) DeactivateProductHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body := deactivateProductRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, deactivateProductSchema) {
-			return
-		}
-
-		err := h.Command.DeactivateProduct(r.Context(), body.ID)
-		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrProduktNotFound: "produkt_not_found",
 			})
 			return
 		}

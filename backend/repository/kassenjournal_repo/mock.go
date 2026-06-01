@@ -74,14 +74,6 @@ func (m *MockRepo) GetMaxVersion(_ context.Context, subject string) (int, error)
 	return maxVersion, nil
 }
 
-func (m *MockRepo) ReadEvent(_ context.Context, eventID int) (event.Event, error) {
-	e, ok := m.events[eventID]
-	if !ok {
-		return event.Event{}, m.err
-	}
-	return e, m.err
-}
-
 func (m *MockRepo) ReadEventsBySubject(_ context.Context, subject string) ([]event.Event, error) {
 	events := []event.Event{}
 	for _, e := range m.events {

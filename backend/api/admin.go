@@ -46,8 +46,6 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	pc.Command = productApp.Command{ProductRepo: productRepo}
 	r.HandleFunc("/create-produkt", pc.CreateProductHandler())
 	r.HandleFunc("/update-produkt", pc.UpdateProductHandler())
-	r.HandleFunc("/activate-produkt", pc.ActivateProductHandler())
-	r.HandleFunc("/deactivate-produkt", pc.DeactivateProductHandler())
 	r.HandleFunc("/create-variante", pc.CreateVariantHandler())
 	r.HandleFunc("/update-variante", pc.UpdateVariantHandler())
 	r.HandleFunc("/activate-variante", pc.ActivateVariantHandler())

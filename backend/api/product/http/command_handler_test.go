@@ -25,14 +25,6 @@ func (m *mockCommand) UpdateProduct(ctx context.Context, id int, name string, ka
 	return m.err
 }
 
-func (m *mockCommand) ActivateProduct(ctx context.Context, productID int) error {
-	return m.err
-}
-
-func (m *mockCommand) DeactivateProduct(ctx context.Context, productID int) error {
-	return m.err
-}
-
 func (m *mockCommand) CreateVariant(ctx context.Context, productID int, name string, preisCents int) (int, error) {
 	return 1, m.err
 }
@@ -174,95 +166,5 @@ func TestDeactivateVariantHandler_Success(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestActivateProductHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/activate-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.ActivateProductHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestActivateProductHandler_NotFound(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrProduktNotFound}}
-
-	body := `{"id":999}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/activate-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.ActivateProductHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestActivateProductHandler_ServerError(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
-
-	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/activate-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.ActivateProductHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
-	}
-}
-
-func TestDeactivateProductHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/deactivate-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.DeactivateProductHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestDeactivateProductHandler_NotFound(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrProduktNotFound}}
-
-	body := `{"id":999}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/deactivate-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.DeactivateProductHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestDeactivateProductHandler_ServerError(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
-
-	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/deactivate-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.DeactivateProductHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
 	}
 }

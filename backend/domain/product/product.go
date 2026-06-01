@@ -98,16 +98,6 @@ func (p *Produkt) UpdateDetails(name string, kategorie Kategorie) error {
 	return nil
 }
 
-func (p *Produkt) Activate() {
-	p.Status = ActiveStatus
-	p.UpdatedAt = time.Now().UTC()
-}
-
-func (p *Produkt) Deactivate() {
-	p.Status = InactiveStatus
-	p.UpdatedAt = time.Now().UTC()
-}
-
 func (p *Produkt) Delete() {
 	p.Status = DeletedStatus
 	p.UpdatedAt = time.Now().UTC()

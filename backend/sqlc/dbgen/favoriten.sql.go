@@ -10,8 +10,8 @@ import (
 )
 
 const addFavorit = `-- name: AddFavorit :exec
-INSERT INTO tisch_favoriten (user_id, tisch_id)
-VALUES ($1, $2)
+INSERT INTO tisch_favoriten (user_id, tisch_id, created_at)
+VALUES ($1, $2, NOW())
 ON CONFLICT DO NOTHING
 `
 

@@ -5,8 +5,6 @@ package kassenjournal_repo
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
-	"errors"
 	"testing"
 	"time"
 
@@ -168,66 +166,6 @@ func TestWriteEvent_TischSession(t *testing.T) {
 	}
 	if eventID == 0 {
 		t.Fatalf("Expected valid event ID, got %d", eventID)
-	}
-}
-
-func TestReadEvent(t *testing.T) {
-	userID, ksNr, repo, teardown := setup(t)
-	defer teardown(t)
-
-	subject := kasse.TischSessionSubject(ksNr, 42)
-	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, map[string]any{"k": "v"})
-
-	eventID, err := insertEventRaw(repo.DB, e, ksNr)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	readEvent, err := repo.ReadEvent(context.Background(), eventID)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if readEvent.ID != eventID {
-		t.Fatalf("Expected event ID %d, got %d", eventID, readEvent.ID)
-	}
-	if readEvent.UserID != e.UserID {
-		t.Fatalf("Expected user ID %d, got %d", e.UserID, readEvent.UserID)
-	}
-	if readEvent.UserName != "nico" {
-		t.Fatalf("Expected user name 'nico', got %s", readEvent.UserName)
-	}
-	if readEvent.Version != 1 {
-		t.Fatalf("Expected version 1, got %d", readEvent.Version)
-	}
-	if readEvent.Type != e.Type {
-		t.Fatalf("Expected event type %s, got %s", e.Type, readEvent.Type)
-	}
-	if readEvent.Subject != e.Subject {
-		t.Fatalf("Expected subject %s, got %s", e.Subject, readEvent.Subject)
-	}
-	if readEvent.Time.Unix() != e.Time.Unix() {
-		t.Fatalf("Expected time %v, got %v", e.Time, readEvent.Time)
-	}
-	var data map[string]any
-	err = json.Unmarshal(readEvent.Data, &data)
-	if err != nil {
-		t.Fatalf("Expected data to be map[string]any, got %T", readEvent.Data)
-	}
-	if data["k"] != "v" {
-		t.Fatalf("Expected data k=v, got k=%v", data["k"])
-	}
-}
-
-func TestReadEvent_NotFound(t *testing.T) {
-	_, _, repo, teardown := setup(t)
-	defer teardown(t)
-
-	_, err := repo.ReadEvent(context.Background(), 999999)
-	if err == nil {
-		t.Fatalf("Expected error, got nil")
-	}
-	if errors.Is(err, dbpkg.ErrNotFound) == false {
-		t.Fatalf("Expected not found error, got %v", err)
 	}
 }
 

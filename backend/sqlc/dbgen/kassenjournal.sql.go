@@ -49,40 +49,6 @@ func (q *Queries) GetMaxVersion(ctx context.Context, subject string) (int, error
 	return version, err
 }
 
-const readEvent = `-- name: ReadEvent :one
-SELECT id, user_id, user_name, version, type, subject, data, timestamp, kassensitzung_nr
-FROM kassenjournal WHERE id = $1
-`
-
-type ReadEventRow struct {
-	ID              int
-	UserID          int
-	UserName        string
-	Version         int
-	Type            string
-	Subject         string
-	Data            json.RawMessage
-	Timestamp       time.Time
-	KassensitzungNr int
-}
-
-func (q *Queries) ReadEvent(ctx context.Context, id int) (ReadEventRow, error) {
-	row := q.db.QueryRowContext(ctx, readEvent, id)
-	var i ReadEventRow
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.UserName,
-		&i.Version,
-		&i.Type,
-		&i.Subject,
-		&i.Data,
-		&i.Timestamp,
-		&i.KassensitzungNr,
-	)
-	return i, err
-}
-
 const readEventsBySubject = `-- name: ReadEventsBySubject :many
 SELECT id, user_id, user_name, version, type, subject, data, timestamp, kassensitzung_nr
 FROM kassenjournal WHERE subject = $1 ORDER BY id ASC
