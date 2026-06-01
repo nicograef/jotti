@@ -87,7 +87,10 @@ export function AdminSidebar() {
   }
 
   return (
-    <Sidebar collapsible={isCompact ? 'offcanvas' : 'none'}>
+    <Sidebar
+      collapsible={isCompact ? 'offcanvas' : 'none'}
+      className="min-h-screen"
+    >
       <SidebarHeader>
         <h1 className="text-4xl text-center font-extrabold">jotti</h1>
       </SidebarHeader>
