@@ -165,9 +165,9 @@ SELECT setval(pg_get_serial_sequence('produkt_varianten', 'id'), (SELECT MAX(id)
 -- =============================================================================
 
 INSERT INTO kassensitzungen (z_nr, datum, bezeichnung, status, created_at, updated_at) VALUES
-  (1, (now() - interval '2 days')::date, 'Sommerfest Tag 1 — Freitag', 'abgeschlossen', now() - interval '50 hours', now() - interval '36 hours'),
-  (2, (now() - interval '1 day')::date, 'Sommerfest Tag 2 — Samstag', 'abgeschlossen', now() - interval '28 hours', now() - interval '12 hours'),
-  (3, now()::date, 'Sommerfest Tag 3 — Sonntag', 'offen', now() - interval '6 hours', now());
+  (1, (now() - interval '2 days')::date, 'Sommerfest 26 Freitag', 'abgeschlossen', now() - interval '50 hours', now() - interval '36 hours'),
+  (2, (now() - interval '1 day')::date, 'Sommerfest 26 Samstag', 'abgeschlossen', now() - interval '28 hours', now() - interval '12 hours'),
+  (3, now()::date, 'Sommerfest 26 Sonntag', 'offen', now() - interval '6 hours', now());
 
 SELECT setval(pg_get_serial_sequence('kassensitzungen', 'z_nr'), (SELECT MAX(z_nr) FROM kassensitzungen));
 

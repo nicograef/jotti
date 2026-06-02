@@ -53,7 +53,7 @@ export const KassensitzungSchema = z.object({
   zNr: z.number().int(),
   datum: z.string(),
   bezeichnung: z.string(),
-  status: z.string(),
+  status: z.enum(['offen', 'abgeschlossen']),
 })
 export type Kassensitzung = z.infer<typeof KassensitzungSchema>
 
