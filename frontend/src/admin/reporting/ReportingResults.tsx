@@ -117,11 +117,6 @@ export function ReportingResults({
             sub="Kassierungen − Auszahlungen"
           />
           <SummaryCard
-            title="Offene Tische"
-            value={String(summary.anzahlOffeneTische)}
-            sub="Aktueller Stand"
-          />
-          <SummaryCard
             title="Bestellungen"
             value={String(summary.anzahlBestellungen)}
             sub={`${formatCents(summary.gesamtBestellungenCents)} €`}
@@ -132,18 +127,8 @@ export function ReportingResults({
             sub={`${formatCents(summary.gesamtStornierungenCents)} €`}
           />
           <SummaryCard
-            title="Offene Saldi"
-            value={`${formatCents(summary.offeneSaldiCents)} €`}
-            sub="Aktueller Stand"
-          />
-          <SummaryCard
             title="Auszahlungen"
             value={`${formatCents(summary.gesamtAuszahlungenCents)} €`}
-          />
-          <SummaryCard
-            title="Ausstehende Auszahlungen"
-            value={`${formatCents(summary.ausstehendAuszahlungenCents)} €`}
-            sub="Aktueller Stand"
           />
         </div>
       </TabsContent>

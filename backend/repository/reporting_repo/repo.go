@@ -36,13 +36,10 @@ type stornierungEventData struct {
 
 func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error) {
 	var (
-		stats                  dbgen.GetReportingStatsRow
-		offeneSaldi            int
-		offeneTische           int
-		ausstehendAuszahlungen int
-		umsatzRows             []dbgen.GetUmsatzProServicekraftRow
-		tischRows              []dbgen.GetUmsatzProTischRow
-		stornoRows             []dbgen.GetStornierungenRow
+		stats      dbgen.GetReportingStatsRow
+		umsatzRows []dbgen.GetUmsatzProServicekraftRow
+		tischRows  []dbgen.GetUmsatzProTischRow
+		stornoRows []dbgen.GetStornierungenRow
 	)
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -50,21 +47,6 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	g.Go(func() error {
 		var err error
 		stats, err = r.q.GetReportingStats(ctx, kassensitzungNr)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		offeneSaldi, err = r.q.GetOffeneSaldi(ctx)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		offeneTische, err = r.q.GetOffeneTische(ctx)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		ausstehendAuszahlungen, err = r.q.GetAusstehendAuszahlungen(ctx)
 		return err
 	})
 	g.Go(func() error {
@@ -135,15 +117,140 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	return reporting.ReportingData{
 		KassensitzungNr: kassensitzungNr,
 		Summary: reporting.Summary{
-			GesamtUmsatzCents:           int(stats.GesamtUmsatzCents),
-			GesamtAuszahlungenCents:     stats.GesamtAuszahlungenCents,
-			GesamtBestellungenCents:     stats.GesamtBestellungenCents,
-			GesamtStornierungenCents:    stats.GesamtStornierungenCents,
-			OffeneSaldiCents:            offeneSaldi,
-			AusstehendAuszahlungenCents: ausstehendAuszahlungen,
-			AnzahlOffeneTische:          offeneTische,
-			AnzahlBestellungen:          stats.AnzahlBestellungen,
-			AnzahlStornierungen:         stats.AnzahlStornierungen,
+			GesamtUmsatzCents:        int(stats.GesamtUmsatzCents),
+			GesamtAuszahlungenCents:  stats.GesamtAuszahlungenCents,
+			GesamtBestellungenCents:  stats.GesamtBestellungenCents,
+			GesamtStornierungenCents: stats.GesamtStornierungenCents,
+			AnzahlBestellungen:       stats.AnzahlBestellungen,
+			AnzahlStornierungen:      stats.AnzahlStornierungen,
+		},
+		Breakdowns: reporting.Breakdowns{
+			UmsatzProServicekraft: umsatz,
+			UmsatzProTisch:        tische,
+		},
+		Stornierungen: stornierungen,
+	}, nil
+}
+
+func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (reporting.LiveReportingData, error) {
+	var (
+		stats                  dbgen.GetReportingStatsRow
+		offeneSaldi            int
+		ausstehendAuszahlungen int
+		offeneTischeRows       []dbgen.GetOffeneTischeDetailsRow
+		umsatzRows             []dbgen.GetUmsatzProServicekraftRow
+		tischRows              []dbgen.GetUmsatzProTischRow
+		stornoRows             []dbgen.GetStornierungenRow
+	)
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		var err error
+		stats, err = r.q.GetReportingStats(ctx, kassensitzungNr)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		offeneSaldi, err = r.q.GetOffeneSaldi(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		ausstehendAuszahlungen, err = r.q.GetAusstehendAuszahlungen(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		offeneTischeRows, err = r.q.GetOffeneTischeDetails(ctx)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		umsatzRows, err = r.q.GetUmsatzProServicekraft(ctx, kassensitzungNr)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		tischRows, err = r.q.GetUmsatzProTisch(ctx, kassensitzungNr)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		stornoRows, err = r.q.GetStornierungen(ctx, kassensitzungNr)
+		return err
+	})
+
+	if err := g.Wait(); err != nil {
+		return reporting.LiveReportingData{}, err
+	}
+
+	offeneTische := make([]reporting.OffenerTisch, len(offeneTischeRows))
+	for i, row := range offeneTischeRows {
+		offeneTische[i] = reporting.OffenerTisch{
+			TischID:    row.TischID,
+			TischName:  row.TischName,
+			SaldoCents: row.SaldoCents,
+		}
+	}
+
+	umsatz := make([]reporting.UmsatzServicekraft, len(umsatzRows))
+	for i, row := range umsatzRows {
+		userName, _ := row.UserName.(string)
+		umsatz[i] = reporting.UmsatzServicekraft{
+			UserID:            row.UserID,
+			UserName:          userName,
+			ZahlungenCents:    row.ZahlungenCents,
+			AuszahlungenCents: row.AuszahlungenCents,
+			AnzahlZahlungen:   row.AnzahlZahlungen,
+		}
+	}
+
+	tische := make([]reporting.UmsatzTisch, len(tischRows))
+	for i, row := range tischRows {
+		tische[i] = reporting.UmsatzTisch{
+			TischID:           row.TischID,
+			TischName:         row.TischName,
+			ZahlungenCents:    row.ZahlungenCents,
+			AuszahlungenCents: row.AuszahlungenCents,
+			AnzahlZahlungen:   row.AnzahlZahlungen,
+		}
+	}
+
+	stornierungen := make([]reporting.StornierungDetail, len(stornoRows))
+	for i, row := range stornoRows {
+		var data stornierungEventData
+		if err := json.Unmarshal(row.Data, &data); err != nil {
+			return reporting.LiveReportingData{}, err
+		}
+		positionen := toStornierungPositionen(data.Positionen)
+		if positionen == nil {
+			positionen = []reporting.StornierungPosition{}
+		}
+		stornierungen[i] = reporting.StornierungDetail{
+			Zeitpunkt:   row.Timestamp,
+			TischID:     row.TischID,
+			TischName:   row.TischName,
+			UserID:      row.UserID,
+			UserName:    row.UserName,
+			BetragCents: data.GesamtStornierungCents,
+			Kommentar:   data.Kommentar,
+			Positionen:  positionen,
+		}
+	}
+
+	return reporting.LiveReportingData{
+		KassensitzungNr:             kassensitzungNr,
+		OffeneTische:                offeneTische,
+		OffeneSaldiCents:            offeneSaldi,
+		AusstehendAuszahlungenCents: ausstehendAuszahlungen,
+		Summary: reporting.Summary{
+			GesamtUmsatzCents:        int(stats.GesamtUmsatzCents),
+			GesamtAuszahlungenCents:  stats.GesamtAuszahlungenCents,
+			GesamtBestellungenCents:  stats.GesamtBestellungenCents,
+			GesamtStornierungenCents: stats.GesamtStornierungenCents,
+			AnzahlBestellungen:       stats.AnzahlBestellungen,
+			AnzahlStornierungen:      stats.AnzahlStornierungen,
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: umsatz,

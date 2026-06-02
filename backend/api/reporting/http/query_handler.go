@@ -15,6 +15,7 @@ type query interface {
 	GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error)
 	GetEigeneUebersicht(ctx context.Context, userID int) (reporting.EigeneUebersicht, error)
 	GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
+	GetLiveReporting(ctx context.Context) (*reporting.LiveReportingData, error)
 }
 
 type QueryHandler struct {
@@ -55,15 +56,12 @@ func (h QueryHandler) GetReportingHandler() http.HandlerFunc {
 }
 
 type summaryResponse struct {
-	GesamtUmsatzCents           int `json:"gesamtUmsatzCents"`
-	GesamtAuszahlungenCents     int `json:"gesamtAuszahlungenCents"`
-	GesamtBestellungenCents     int `json:"gesamtBestellungenCents"`
-	GesamtStornierungenCents    int `json:"gesamtStornierungenCents"`
-	OffeneSaldiCents            int `json:"offeneSaldiCents"`
-	AusstehendAuszahlungenCents int `json:"ausstehendAuszahlungenCents"`
-	AnzahlOffeneTische          int `json:"anzahlOffeneTische"`
-	AnzahlBestellungen          int `json:"anzahlBestellungen"`
-	AnzahlStornierungen         int `json:"anzahlStornierungen"`
+	GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
+	GesamtAuszahlungenCents  int `json:"gesamtAuszahlungenCents"`
+	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
+	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
+	AnzahlBestellungen       int `json:"anzahlBestellungen"`
+	AnzahlStornierungen      int `json:"anzahlStornierungen"`
 }
 
 type breakdownsResponse struct {
@@ -183,15 +181,12 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 	return reportingResponse{
 		KassensitzungNr: d.KassensitzungNr,
 		Summary: summaryResponse{
-			GesamtUmsatzCents:           d.Summary.GesamtUmsatzCents,
-			GesamtAuszahlungenCents:     d.Summary.GesamtAuszahlungenCents,
-			GesamtBestellungenCents:     d.Summary.GesamtBestellungenCents,
-			GesamtStornierungenCents:    d.Summary.GesamtStornierungenCents,
-			OffeneSaldiCents:            d.Summary.OffeneSaldiCents,
-			AusstehendAuszahlungenCents: d.Summary.AusstehendAuszahlungenCents,
-			AnzahlOffeneTische:          d.Summary.AnzahlOffeneTische,
-			AnzahlBestellungen:          d.Summary.AnzahlBestellungen,
-			AnzahlStornierungen:         d.Summary.AnzahlStornierungen,
+			GesamtUmsatzCents:        d.Summary.GesamtUmsatzCents,
+			GesamtAuszahlungenCents:  d.Summary.GesamtAuszahlungenCents,
+			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
+			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
+			AnzahlBestellungen:       d.Summary.AnzahlBestellungen,
+			AnzahlStornierungen:      d.Summary.AnzahlStornierungen,
 		},
 		Breakdowns: breakdownsResponse{
 			UmsatzProServicekraft: toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),
@@ -261,5 +256,79 @@ func (h QueryHandler) GetEigeneUebersichtHandler() http.HandlerFunc {
 			AnzahlZahlungen:    data.AnzahlZahlungen,
 			ZahlungenCents:     data.ZahlungenCents,
 		})
+	}
+}
+
+type offenerTischResponse struct {
+	TischID    int    `json:"tischId"`
+	TischName  string `json:"tischName"`
+	SaldoCents int    `json:"saldoCents"`
+}
+
+type liveSummaryResponse struct {
+	GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
+	GesamtAuszahlungenCents  int `json:"gesamtAuszahlungenCents"`
+	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
+	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
+	AnzahlBestellungen       int `json:"anzahlBestellungen"`
+	AnzahlStornierungen      int `json:"anzahlStornierungen"`
+}
+
+type liveReportingResponse struct {
+	KassensitzungNr             int                    `json:"kassensitzungNr"`
+	Bezeichnung                 string                 `json:"bezeichnung"`
+	Datum                       time.Time              `json:"datum"`
+	OffeneTische                []offenerTischResponse `json:"offeneTische"`
+	OffeneSaldiCents            int                    `json:"offeneSaldiCents"`
+	AusstehendAuszahlungenCents int                    `json:"ausstehendAuszahlungenCents"`
+	Summary                     liveSummaryResponse    `json:"summary"`
+	Breakdowns                  breakdownsResponse     `json:"breakdowns"`
+	Stornierungen               []stornierungDetail    `json:"stornierungen"`
+}
+
+func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingResponse {
+	offeneTische := make([]offenerTischResponse, len(d.OffeneTische))
+	for i, t := range d.OffeneTische {
+		offeneTische[i] = offenerTischResponse{
+			TischID:    t.TischID,
+			TischName:  t.TischName,
+			SaldoCents: t.SaldoCents,
+		}
+	}
+	return liveReportingResponse{
+		KassensitzungNr:             d.KassensitzungNr,
+		Bezeichnung:                 d.Bezeichnung,
+		Datum:                       d.Datum,
+		OffeneTische:                offeneTische,
+		OffeneSaldiCents:            d.OffeneSaldiCents,
+		AusstehendAuszahlungenCents: d.AusstehendAuszahlungenCents,
+		Summary: liveSummaryResponse{
+			GesamtUmsatzCents:        d.Summary.GesamtUmsatzCents,
+			GesamtAuszahlungenCents:  d.Summary.GesamtAuszahlungenCents,
+			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
+			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
+			AnzahlBestellungen:       d.Summary.AnzahlBestellungen,
+			AnzahlStornierungen:      d.Summary.AnzahlStornierungen,
+		},
+		Breakdowns: breakdownsResponse{
+			UmsatzProServicekraft: toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),
+			UmsatzProTisch:        toUmsatzTischList(d.Breakdowns.UmsatzProTisch),
+		},
+		Stornierungen: toStornierungDetails(d.Stornierungen),
+	}
+}
+
+func (h QueryHandler) GetLiveReportingHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		data, err := h.Query.GetLiveReporting(r.Context())
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+		if data == nil {
+			helper.SendResponse(w, nil)
+			return
+		}
+		helper.SendResponse(w, toLiveReportingResponse(*data))
 	}
 }

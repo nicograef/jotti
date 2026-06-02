@@ -88,6 +88,44 @@ func (q *Queries) GetOffeneTische(ctx context.Context) (int, error) {
 	return anzahl, err
 }
 
+const getOffeneTischeDetails = `-- name: GetOffeneTischeDetails :many
+SELECT ts.tisch_id, t.name AS tisch_name, ts.saldo_cents
+FROM tisch_sessions ts
+JOIN tische t ON t.id = ts.tisch_id
+WHERE ts.saldo_cents > 0
+ORDER BY t.name
+`
+
+type GetOffeneTischeDetailsRow struct {
+	TischID    int
+	TischName  string
+	SaldoCents int
+}
+
+// Live-Dashboard: Offene Tische mit Name und aktuellem Saldo.
+func (q *Queries) GetOffeneTischeDetails(ctx context.Context) ([]GetOffeneTischeDetailsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getOffeneTischeDetails)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetOffeneTischeDetailsRow{}
+	for rows.Next() {
+		var i GetOffeneTischeDetailsRow
+		if err := rows.Scan(&i.TischID, &i.TischName, &i.SaldoCents); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getReportingStats = `-- name: GetReportingStats :one
 SELECT
     COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int

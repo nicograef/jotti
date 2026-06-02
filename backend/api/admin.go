@@ -86,6 +86,7 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	}
 	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
 	r.HandleFunc("/get-all-kassensitzungen", rq.GetAllKassensitzungenHandler())
+	r.HandleFunc("/get-live-reporting", rq.GetLiveReportingHandler())
 
 	kc := kasseHTTP.CommandHandler{}
 	kc.Command = kasseApp.Command{KassenjournalRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}

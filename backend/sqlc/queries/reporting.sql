@@ -3,6 +3,14 @@
 SELECT COALESCE(COUNT(*), 0)::int AS anzahl
 FROM tisch_sessions WHERE saldo_cents > 0;
 
+-- name: GetOffeneTischeDetails :many
+-- Live-Dashboard: Offene Tische mit Name und aktuellem Saldo.
+SELECT ts.tisch_id, t.name AS tisch_name, ts.saldo_cents
+FROM tisch_sessions ts
+JOIN tische t ON t.id = ts.tisch_id
+WHERE ts.saldo_cents > 0
+ORDER BY t.name;
+
 -- name: GetReportingStats :one
 -- Reporting: Aggregierte Kennzahlen fuer eine Kassensitzung.
 SELECT

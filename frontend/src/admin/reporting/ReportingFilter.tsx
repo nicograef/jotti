@@ -60,7 +60,7 @@ export function ReportingFilter({
         {kassensitzungen.map((k) => (
           <SelectItem key={k.zNr} value={k.zNr.toString()}>
             {k.status === 'offen' ? '🟢 ' : '🔴 '}
-            {k.bezeichnung} ({formatDatum(k.datum)})
+            {formatDatum(k.datum)} ({k.bezeichnung})
           </SelectItem>
         ))}
       </SelectContent>

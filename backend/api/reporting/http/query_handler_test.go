@@ -16,8 +16,9 @@ import (
 )
 
 type mockQuery struct {
-	data reporting.ReportingData
-	err  error
+	data     reporting.ReportingData
+	liveData *reporting.LiveReportingData
+	err      error
 }
 
 func (m mockQuery) GetReporting(_ context.Context, _ int) (reporting.ReportingData, error) {
@@ -30,6 +31,10 @@ func (m mockQuery) GetEigeneUebersicht(_ context.Context, _ int) (reporting.Eige
 
 func (m mockQuery) GetAllKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
 	return nil, m.err
+}
+
+func (m mockQuery) GetLiveReporting(_ context.Context) (*reporting.LiveReportingData, error) {
+	return m.liveData, m.err
 }
 
 func TestGetReportingHandler_InvalidJSON(t *testing.T) {
@@ -126,6 +131,94 @@ func TestGetReportingHandler_QueryError_Returns500(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	handler.GetReportingHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", rec.Code)
+	}
+}
+
+func TestGetLiveReportingHandler_KeineOffeneSitzung_ReturnsNull(t *testing.T) {
+	handler := QueryHandler{Query: mockQuery{liveData: nil}}
+
+	req := httptest.NewRequest(http.MethodPost, "/get-live-reporting", strings.NewReader("{}"))
+	rec := httptest.NewRecorder()
+
+	handler.GetLiveReportingHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	if strings.TrimSpace(rec.Body.String()) != "null" {
+		t.Errorf("expected null response body, got %q", rec.Body.String())
+	}
+}
+
+func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
+	liveData := &reporting.LiveReportingData{
+		KassensitzungNr:  42,
+		Bezeichnung:      "Sommerfest",
+		OffeneSaldiCents: 1200,
+		OffeneTische: []reporting.OffenerTisch{
+			{TischID: 3, TischName: "Tisch 3", SaldoCents: 1200},
+		},
+		Summary: reporting.Summary{GesamtUmsatzCents: 45000},
+		Breakdowns: reporting.Breakdowns{
+			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
+			UmsatzProTisch:        []reporting.UmsatzTisch{},
+		},
+		Stornierungen: []reporting.StornierungDetail{},
+	}
+	handler := QueryHandler{Query: mockQuery{liveData: liveData}}
+
+	req := httptest.NewRequest(http.MethodPost, "/get-live-reporting", strings.NewReader("{}"))
+	rec := httptest.NewRecorder()
+
+	handler.GetLiveReportingHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		KassensitzungNr  int    `json:"kassensitzungNr"`
+		Bezeichnung      string `json:"bezeichnung"`
+		OffeneSaldiCents int    `json:"offeneSaldiCents"`
+		OffeneTische     []struct {
+			TischID    int    `json:"tischId"`
+			TischName  string `json:"tischName"`
+			SaldoCents int    `json:"saldoCents"`
+		} `json:"offeneTische"`
+		Summary struct {
+			GesamtUmsatzCents int `json:"gesamtUmsatzCents"`
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("expected valid JSON response: %v", err)
+	}
+	if resp.KassensitzungNr != 42 {
+		t.Errorf("expected kassensitzungNr 42, got %d", resp.KassensitzungNr)
+	}
+	if resp.Bezeichnung != "Sommerfest" {
+		t.Errorf("expected Bezeichnung 'Sommerfest', got %q", resp.Bezeichnung)
+	}
+	if resp.OffeneSaldiCents != 1200 {
+		t.Errorf("expected offeneSaldiCents 1200, got %d", resp.OffeneSaldiCents)
+	}
+	if len(resp.OffeneTische) != 1 || resp.OffeneTische[0].TischName != "Tisch 3" {
+		t.Errorf("expected 1 offener Tisch named 'Tisch 3', got %+v", resp.OffeneTische)
+	}
+	if resp.Summary.GesamtUmsatzCents != 45000 {
+		t.Errorf("expected gesamtUmsatzCents 45000, got %d", resp.Summary.GesamtUmsatzCents)
+	}
+}
+
+func TestGetLiveReportingHandler_QueryError_Returns500(t *testing.T) {
+	handler := QueryHandler{Query: mockQuery{err: errors.New("db error")}}
+
+	req := httptest.NewRequest(http.MethodPost, "/get-live-reporting", strings.NewReader("{}"))
+	rec := httptest.NewRecorder()
+
+	handler.GetLiveReportingHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status 500, got %d", rec.Code)

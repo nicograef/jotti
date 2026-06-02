@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { BackendSingleton } from '@/lib/Backend'
 
 import { ReportingBackend } from './ReportingBackend'
-import type { Kassensitzung, ReportingData } from './types'
+import type { Kassensitzung, LiveReportingData, ReportingData } from './types'
 
 const reportingBackend = new ReportingBackend(BackendSingleton)
 
@@ -24,4 +24,13 @@ export function useReport(kassensitzungNr: number | null) {
     enabled: kassensitzungNr !== null,
   })
   return { result, loading: isPending }
+}
+
+export function useLiveReporting() {
+  const { data: liveData = null as LiveReportingData | null, isPending } =
+    useQuery({
+      queryKey: ['live-reporting'],
+      queryFn: () => reportingBackend.getLiveReporting(),
+    })
+  return { liveData, loading: isPending }
 }

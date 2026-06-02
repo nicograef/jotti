@@ -14,11 +14,13 @@ var ErrDatabase = db.ErrDatabase
 type reportingRepo interface {
 	GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error)
 	GetEigeneUebersicht(ctx context.Context, userID int, kassensitzungNr int) (reporting.EigeneUebersicht, error)
+	GetLiveReporting(ctx context.Context, kassensitzungNr int) (reporting.LiveReportingData, error)
 }
 
 type kassensitzungenRepo interface {
 	GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
 	GetOffeneKassensitzungNr(ctx context.Context) (int, error)
+	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
 type Query struct {
@@ -69,4 +71,29 @@ func (q Query) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.E
 
 	log.Info().Msg("Retrieved eigene uebersicht")
 	return data, nil
+}
+
+func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingData, error) {
+	log := zerolog.Ctx(ctx)
+
+	ks, err := q.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get offene kassensitzung")
+		return nil, ErrDatabase
+	}
+	if ks == nil {
+		return nil, nil
+	}
+
+	data, err := q.ReportingRepo.GetLiveReporting(ctx, ks.ZNr)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get live reporting")
+		return nil, ErrDatabase
+	}
+
+	data.Bezeichnung = ks.Bezeichnung
+	data.Datum = ks.Datum
+
+	log.Info().Msg("Retrieved live reporting")
+	return &data, nil
 }

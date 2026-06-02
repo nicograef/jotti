@@ -5,9 +5,6 @@ export const SummarySchema = z.object({
   gesamtAuszahlungenCents: z.number().int(),
   gesamtBestellungenCents: z.number().int(),
   gesamtStornierungenCents: z.number().int(),
-  offeneSaldiCents: z.number().int(),
-  ausstehendAuszahlungenCents: z.number().int(),
-  anzahlOffeneTische: z.number().int(),
   anzahlBestellungen: z.number().int(),
   anzahlStornierungen: z.number().int(),
 })
@@ -56,6 +53,29 @@ export const KassensitzungSchema = z.object({
   status: z.enum(['offen', 'abgeschlossen']),
 })
 export type Kassensitzung = z.infer<typeof KassensitzungSchema>
+
+export const OffenerTischSchema = z.object({
+  tischId: z.number().int(),
+  tischName: z.string(),
+  saldoCents: z.number().int(),
+})
+export type OffenerTisch = z.infer<typeof OffenerTischSchema>
+
+export const LiveReportingDataSchema = z.object({
+  kassensitzungNr: z.number().int(),
+  bezeichnung: z.string(),
+  datum: z.string(),
+  offeneTische: z.array(OffenerTischSchema),
+  offeneSaldiCents: z.number().int(),
+  ausstehendAuszahlungenCents: z.number().int(),
+  summary: SummarySchema,
+  breakdowns: z.object({
+    umsatzProServicekraft: z.array(UmsatzServicekraftSchema),
+    umsatzProTisch: z.array(UmsatzTischSchema),
+  }),
+  stornierungen: z.array(StornierungDetailSchema),
+})
+export type LiveReportingData = z.infer<typeof LiveReportingDataSchema>
 
 export const ReportingDataSchema = z.object({
   kassensitzungNr: z.number().int(),

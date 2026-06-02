@@ -1,10 +1,12 @@
 import { useState } from 'react'
 
-import { useKassensitzungen, useReport } from './hooks'
+import { useKassensitzungen, useLiveReporting, useReport } from './hooks'
+import { LiveReportingSection } from './LiveReportingSection'
 import { ReportingFilter } from './ReportingFilter'
 import { ReportingResults } from './ReportingResults'
 
 export function AdminDashboardPage() {
+  const { liveData, loading: liveLoading } = useLiveReporting()
   const { kassensitzungen, loading: listLoading } = useKassensitzungen()
   const [selectedNr, setSelectedNr] = useState<number | null>(null)
 
@@ -13,7 +15,10 @@ export function AdminDashboardPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Reporting</h1>
+      <LiveReportingSection liveData={liveData} loading={liveLoading} />
+      <hr className="my-8" />
+
+      <h2 className="mt-10 text-lg font-semibold">Historische Auswertung</h2>
       <div className="mt-4">
         <ReportingFilter
           kassensitzungen={kassensitzungen}
@@ -24,7 +29,7 @@ export function AdminDashboardPage() {
       </div>
 
       {result && (
-        <div className="mt-6">
+        <div className="my-6">
           <ReportingResults result={result} loading={reportLoading} />
         </div>
       )}

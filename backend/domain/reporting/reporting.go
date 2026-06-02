@@ -37,15 +37,12 @@ type StornierungDetail struct {
 }
 
 type Summary struct {
-	GesamtUmsatzCents           int
-	GesamtAuszahlungenCents     int
-	GesamtBestellungenCents     int
-	GesamtStornierungenCents    int
-	OffeneSaldiCents            int
-	AusstehendAuszahlungenCents int
-	AnzahlOffeneTische          int
-	AnzahlBestellungen          int
-	AnzahlStornierungen         int
+	GesamtUmsatzCents        int
+	GesamtAuszahlungenCents  int
+	GesamtBestellungenCents  int
+	GesamtStornierungenCents int
+	AnzahlBestellungen       int
+	AnzahlStornierungen      int
 }
 
 type Breakdowns struct {
@@ -58,6 +55,24 @@ type ReportingData struct {
 	Summary         Summary
 	Breakdowns      Breakdowns
 	Stornierungen   []StornierungDetail
+}
+
+type OffenerTisch struct {
+	TischID    int
+	TischName  string
+	SaldoCents int
+}
+
+type LiveReportingData struct {
+	KassensitzungNr             int
+	Bezeichnung                 string
+	Datum                       time.Time
+	OffeneTische                []OffenerTisch
+	OffeneSaldiCents            int
+	AusstehendAuszahlungenCents int
+	Summary                     Summary
+	Breakdowns                  Breakdowns
+	Stornierungen               []StornierungDetail
 }
 
 type EigeneUebersicht struct {

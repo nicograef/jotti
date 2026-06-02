@@ -5,6 +5,8 @@ import type { BackendClient } from '@/lib/Backend'
 import {
   type Kassensitzung,
   KassensitzungSchema,
+  type LiveReportingData,
+  LiveReportingDataSchema,
   type ReportingData,
   ReportingDataSchema,
 } from './types'
@@ -21,6 +23,14 @@ export class ReportingBackend {
       'admin/get-abrechnung',
       { kassensitzungNr },
       ReportingDataSchema,
+    )
+  }
+
+  public async getLiveReporting(): Promise<LiveReportingData | null> {
+    return this.backend.post(
+      'admin/get-live-reporting',
+      {},
+      LiveReportingDataSchema.nullable(),
     )
   }
 
