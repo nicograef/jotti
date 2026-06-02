@@ -7,10 +7,10 @@
 -- verteilt, mit realistischen Produkten und verschiedenen Servicekräften.
 --
 -- Voraussetzung: Frische DB nach Schema-Migration (01_initial.up.sql).
--- Der Admin-User "nico" (id=1) existiert bereits aus der Migration.
+-- Der Admin-User "admin" (id=1) existiert bereits aus der Migration.
 --
 -- Passwort aller Seed-User: jotti123
--- Einmalpasswort von "nico" (aus Migration): 123456
+-- Einmalpasswort von "admin" (aus Migration): siehe Migration
 -- =============================================================================
 
 BEGIN;
@@ -20,17 +20,17 @@ BEGIN;
 -- =============================================================================
 -- Passwort-Hash für "jotti123" (Argon2id, m=65536, t=2, p=2)
 
-INSERT INTO users (id, name, username, password_hash, role, status, created_at) VALUES
-  (2, 'Thomas Müller', 'thomas', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'admin', 'active', now()),
-  (3, 'Felix Weber', 'felix', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'serviceleitung', 'active', now()),
-  (4, 'Maria Schmidt', 'maria', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'active', now()),
-  (5, 'Lisa Braun', 'lisa', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'active', now()),
-  (6, 'Jan Hoffmann', 'jan', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'active', now()),
-  (7, 'Sophie Becker', 'sophie', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'serviceleitung', 'active', now()),
-  (8, 'Markus Lehmann', 'markus', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'active', now()),
-  (9, 'Anna Krause', 'anna', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'active', now()),
-  (10, 'Paul Fischer', 'paul', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'inactive', now()),
-  (11, 'Sabine Wolf', 'sabine', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'deleted', now());
+INSERT INTO users (id, name, username, password_hash, role, status, created_at, updated_at) VALUES
+  (2, 'Thomas Müller', 'thomas', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'admin', 'active', now(), now()),
+  (3, 'Felix Weber', 'felix', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'serviceleitung', 'active', now(), now()),
+  (4, 'Maria Schmidt', 'maria', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'active', now(), now()),
+  (5, 'Lisa Braun', 'lisa', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'active', now(), now()),
+  (6, 'Jan Hoffmann', 'jan', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'active', now(), now()),
+  (7, 'Sophie Becker', 'sophie', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'serviceleitung', 'active', now(), now()),
+  (8, 'Markus Lehmann', 'markus', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'active', now(), now()),
+  (9, 'Anna Krause', 'anna', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'active', now(), now()),
+  (10, 'Paul Fischer', 'paul', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'inactive', now(), now()),
+  (11, 'Sabine Wolf', 'sabine', '$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404', 'service', 'deleted', now(), now());
 
 SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users));
 
@@ -39,29 +39,29 @@ SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users)
 -- 2. TISCHE (22: 20 aktiv, 1 inaktiv, 1 gelöscht)
 -- =============================================================================
 
-INSERT INTO tische (id, name, status, created_at) VALUES
-  (1, 'Tisch 1', 'active', now()),
-  (2, 'Tisch 2', 'active', now()),
-  (3, 'Tisch 3', 'active', now()),
-  (4, 'Tisch 4', 'active', now()),
-  (5, 'Tisch 5', 'active', now()),
-  (6, 'Tisch 6', 'active', now()),
-  (7, 'Tisch 7', 'active', now()),
-  (8, 'Tisch 8', 'active', now()),
-  (9, 'Tisch 9', 'active', now()),
-  (10, 'Tisch 10', 'active', now()),
-  (11, 'Tisch 11', 'active', now()),
-  (12, 'Tisch 12', 'active', now()),
-  (13, 'Tisch 13', 'active', now()),
-  (14, 'Tisch 14', 'active', now()),
-  (15, 'Tisch 15', 'active', now()),
-  (16, 'Zelt A1', 'active', now()),
-  (17, 'Zelt A2', 'active', now()),
-  (18, 'Stehtisch Bar', 'active', now()),
-  (19, 'Stehtisch Eingang', 'active', now()),
-  (20, 'Stehtisch Terrasse', 'active', now()),
-  (21, 'Reserviert', 'inactive', now()),
-  (22, 'Alter Tisch', 'deleted', now());
+INSERT INTO tische (id, name, status, created_at, updated_at) VALUES
+  (1, 'Tisch 1', 'active', now(), now()),
+  (2, 'Tisch 2', 'active', now(), now()),
+  (3, 'Tisch 3', 'active', now(), now()),
+  (4, 'Tisch 4', 'active', now(), now()),
+  (5, 'Tisch 5', 'active', now(), now()),
+  (6, 'Tisch 6', 'active', now(), now()),
+  (7, 'Tisch 7', 'active', now(), now()),
+  (8, 'Tisch 8', 'active', now(), now()),
+  (9, 'Tisch 9', 'active', now(), now()),
+  (10, 'Tisch 10', 'active', now(), now()),
+  (11, 'Tisch 11', 'active', now(), now()),
+  (12, 'Tisch 12', 'active', now(), now()),
+  (13, 'Tisch 13', 'active', now(), now()),
+  (14, 'Tisch 14', 'active', now(), now()),
+  (15, 'Tisch 15', 'active', now(), now()),
+  (16, 'Zelt A1', 'active', now(), now()),
+  (17, 'Zelt A2', 'active', now(), now()),
+  (18, 'Stehtisch Bar', 'active', now(), now()),
+  (19, 'Stehtisch Eingang', 'active', now(), now()),
+  (20, 'Stehtisch Terrasse', 'active', now(), now()),
+  (21, 'Reserviert', 'inactive', now(), now()),
+  (22, 'Alter Tisch', 'deleted', now(), now());
 
 SELECT setval(pg_get_serial_sequence('tische', 'id'), (SELECT MAX(id) FROM tische));
 
@@ -72,85 +72,85 @@ SELECT setval(pg_get_serial_sequence('tische', 'id'), (SELECT MAX(id) FROM tisch
 -- 10 Essen, 10 Getränke, 2 Sonstiges = 22 Produkte
 -- 54 Varianten insgesamt
 
-INSERT INTO produkte (id, name, kategorie, status, created_at) VALUES
-  (1, 'Bratwurst', 'essen', 'active', now()),
-  (2, 'Pommes', 'essen', 'active', now()),
-  (3, 'Flammkuchen', 'essen', 'active', now()),
-  (4, 'Tagesgericht', 'essen', 'active', now()),
-  (5, 'Grillplatte', 'essen', 'active', now()),
-  (6, 'Salat', 'essen', 'active', now()),
-  (7, 'Kuchen', 'essen', 'active', now()),
-  (8, 'Waffeln', 'essen', 'active', now()),
-  (9, 'Brezel', 'essen', 'active', now()),
-  (10, 'Suppe', 'essen', 'inactive', now()),
-  (11, 'Bier', 'getraenk', 'active', now()),
-  (12, 'Weizen', 'getraenk', 'active', now()),
-  (13, 'Softdrinks', 'getraenk', 'active', now()),
-  (14, 'Wasser', 'getraenk', 'active', now()),
-  (15, 'Saftschorle', 'getraenk', 'active', now()),
-  (16, 'Wein', 'getraenk', 'active', now()),
-  (17, 'Kaffee', 'getraenk', 'active', now()),
-  (18, 'Tee', 'getraenk', 'active', now()),
-  (19, 'Hugo/Aperol', 'getraenk', 'active', now()),
-  (20, 'Glühwein', 'getraenk', 'inactive', now()),
-  (21, 'Festbändchen', 'sonstiges', 'active', now()),
-  (22, 'Langos', 'essen', 'deleted', now());
+INSERT INTO produkte (id, name, kategorie, status, created_at, updated_at) VALUES
+  (1, 'Bratwurst', 'essen', 'active', now(), now()),
+  (2, 'Pommes', 'essen', 'active', now(), now()),
+  (3, 'Flammkuchen', 'essen', 'active', now(), now()),
+  (4, 'Tagesgericht', 'essen', 'active', now(), now()),
+  (5, 'Grillplatte', 'essen', 'active', now(), now()),
+  (6, 'Salat', 'essen', 'active', now(), now()),
+  (7, 'Kuchen', 'essen', 'active', now(), now()),
+  (8, 'Waffeln', 'essen', 'active', now(), now()),
+  (9, 'Brezel', 'essen', 'active', now(), now()),
+  (10, 'Suppe', 'essen', 'inactive', now(), now()),
+  (11, 'Bier', 'getraenk', 'active', now(), now()),
+  (12, 'Weizen', 'getraenk', 'active', now(), now()),
+  (13, 'Softdrinks', 'getraenk', 'active', now(), now()),
+  (14, 'Wasser', 'getraenk', 'active', now(), now()),
+  (15, 'Saftschorle', 'getraenk', 'active', now(), now()),
+  (16, 'Wein', 'getraenk', 'active', now(), now()),
+  (17, 'Kaffee', 'getraenk', 'active', now(), now()),
+  (18, 'Tee', 'getraenk', 'active', now(), now()),
+  (19, 'Hugo/Aperol', 'getraenk', 'active', now(), now()),
+  (20, 'Glühwein', 'getraenk', 'inactive', now(), now()),
+  (21, 'Festbändchen', 'sonstiges', 'active', now(), now()),
+  (22, 'Langos', 'essen', 'deleted', now(), now());
 
-INSERT INTO produkt_varianten (id, produkt_id, name, preis_cents, status, created_at) VALUES
-  (1, 1, 'Normal', 350, 'active', now()),
-  (2, 1, 'XXL', 500, 'active', now()),
-  (3, 1, 'Currywurst', 450, 'active', now()),
-  (4, 2, 'Klein', 250, 'active', now()),
-  (5, 2, 'Groß', 350, 'active', now()),
-  (6, 3, 'Classic', 600, 'active', now()),
-  (7, 3, 'Speck & Zwiebel', 700, 'active', now()),
-  (8, 3, 'Mediterran', 750, 'active', now()),
-  (9, 4, 'Fr: Schnitzel mit Pommes', 1250, 'active', now()),
-  (10, 4, 'Sa: Gulasch mit Spätzle', 1150, 'active', now()),
-  (11, 4, 'So: Hähnchen mit Reis', 1050, 'active', now()),
-  (12, 5, 'Klein', 800, 'active', now()),
-  (13, 5, 'Groß', 1400, 'active', now()),
-  (14, 6, 'Gemischter Salat', 550, 'active', now()),
-  (15, 6, 'Caesar Salat', 650, 'active', now()),
-  (16, 7, 'Stück', 250, 'active', now()),
-  (17, 8, 'mit Puderzucker', 300, 'active', now()),
-  (18, 8, 'mit Sahne', 350, 'active', now()),
-  (19, 8, 'mit Nutella', 400, 'active', now()),
-  (20, 9, 'Normal', 200, 'active', now()),
-  (21, 9, 'mit Butter', 300, 'active', now()),
-  (22, 10, 'Tagessuppe', 400, 'active', now()),
-  (23, 11, '0,3l', 300, 'active', now()),
-  (24, 11, '0,5l', 450, 'active', now()),
-  (25, 11, 'Maß 1,0l', 850, 'active', now()),
-  (26, 12, 'Klein 0,3l', 300, 'active', now()),
-  (27, 12, 'Groß 0,5l', 400, 'active', now()),
-  (28, 12, 'Colaweizen Klein', 300, 'active', now()),
-  (29, 12, 'Colaweizen Groß', 400, 'active', now()),
-  (30, 12, 'Russ', 300, 'active', now()),
-  (31, 13, 'Cola', 280, 'active', now()),
-  (32, 13, 'Fanta', 280, 'active', now()),
-  (33, 13, 'Spezi', 280, 'active', now()),
-  (34, 13, 'Sprite', 280, 'active', now()),
-  (35, 13, 'Mezzo Mix', 280, 'active', now()),
-  (36, 14, 'Still 0,5l', 200, 'active', now()),
-  (37, 14, 'Medium 0,5l', 200, 'active', now()),
-  (38, 14, 'Sprudel 0,5l', 200, 'active', now()),
-  (39, 15, 'Apfelschorle 0,5l', 300, 'active', now()),
-  (40, 15, 'Johannisbeerschorle 0,5l', 300, 'active', now()),
-  (41, 15, 'Rhabarberschorle 0,5l', 350, 'active', now()),
-  (42, 16, 'Weißwein 0,2l', 400, 'active', now()),
-  (43, 16, 'Rotwein 0,2l', 400, 'active', now()),
-  (44, 16, 'Rosé 0,2l', 400, 'active', now()),
-  (45, 17, 'Tasse', 200, 'active', now()),
-  (46, 17, 'Espresso', 180, 'active', now()),
-  (47, 18, 'Verschiedene Sorten', 200, 'active', now()),
-  (48, 19, 'Hugo', 550, 'active', now()),
-  (49, 19, 'Aperol Spritz', 550, 'active', now()),
-  (50, 20, 'Tasse', 350, 'active', now()),
-  (51, 21, 'Erwachsene', 500, 'active', now()),
-  (52, 21, 'Kinder', 300, 'active', now()),
-  (53, 22, 'mit Knoblauch', 400, 'deleted', now()),
-  (54, 22, 'mit Käse', 500, 'deleted', now());
+INSERT INTO produkt_varianten (id, produkt_id, name, preis_cents, status, created_at, updated_at) VALUES
+  (1, 1, 'Normal', 350, 'active', now(), now()),
+  (2, 1, 'XXL', 500, 'active', now(), now()),
+  (3, 1, 'Currywurst', 450, 'active', now(), now()),
+  (4, 2, 'Klein', 250, 'active', now(), now()),
+  (5, 2, 'Groß', 350, 'active', now(), now()),
+  (6, 3, 'Classic', 600, 'active', now(), now()),
+  (7, 3, 'Speck & Zwiebel', 700, 'active', now(), now()),
+  (8, 3, 'Mediterran', 750, 'active', now(), now()),
+  (9, 4, 'Fr: Schnitzel mit Pommes', 1250, 'active', now(), now()),
+  (10, 4, 'Sa: Gulasch mit Spätzle', 1150, 'active', now(), now()),
+  (11, 4, 'So: Hähnchen mit Reis', 1050, 'active', now(), now()),
+  (12, 5, 'Klein', 800, 'active', now(), now()),
+  (13, 5, 'Groß', 1400, 'active', now(), now()),
+  (14, 6, 'Gemischter Salat', 550, 'active', now(), now()),
+  (15, 6, 'Caesar Salat', 650, 'active', now(), now()),
+  (16, 7, 'Stück', 250, 'active', now(), now()),
+  (17, 8, 'mit Puderzucker', 300, 'active', now(), now()),
+  (18, 8, 'mit Sahne', 350, 'active', now(), now()),
+  (19, 8, 'mit Nutella', 400, 'active', now(), now()),
+  (20, 9, 'Normal', 200, 'active', now(), now()),
+  (21, 9, 'mit Butter', 300, 'active', now(), now()),
+  (22, 10, 'Tagessuppe', 400, 'active', now(), now()),
+  (23, 11, '0,3l', 300, 'active', now(), now()),
+  (24, 11, '0,5l', 450, 'active', now(), now()),
+  (25, 11, 'Maß 1,0l', 850, 'active', now(), now()),
+  (26, 12, 'Klein 0,3l', 300, 'active', now(), now()),
+  (27, 12, 'Groß 0,5l', 400, 'active', now(), now()),
+  (28, 12, 'Colaweizen Klein', 300, 'active', now(), now()),
+  (29, 12, 'Colaweizen Groß', 400, 'active', now(), now()),
+  (30, 12, 'Russ', 300, 'active', now(), now()),
+  (31, 13, 'Cola', 280, 'active', now(), now()),
+  (32, 13, 'Fanta', 280, 'active', now(), now()),
+  (33, 13, 'Spezi', 280, 'active', now(), now()),
+  (34, 13, 'Sprite', 280, 'active', now(), now()),
+  (35, 13, 'Mezzo Mix', 280, 'active', now(), now()),
+  (36, 14, 'Still 0,5l', 200, 'active', now(), now()),
+  (37, 14, 'Medium 0,5l', 200, 'active', now(), now()),
+  (38, 14, 'Sprudel 0,5l', 200, 'active', now(), now()),
+  (39, 15, 'Apfelschorle 0,5l', 300, 'active', now(), now()),
+  (40, 15, 'Johannisbeerschorle 0,5l', 300, 'active', now(), now()),
+  (41, 15, 'Rhabarberschorle 0,5l', 350, 'active', now(), now()),
+  (42, 16, 'Weißwein 0,2l', 400, 'active', now(), now()),
+  (43, 16, 'Rotwein 0,2l', 400, 'active', now(), now()),
+  (44, 16, 'Rosé 0,2l', 400, 'active', now(), now()),
+  (45, 17, 'Tasse', 200, 'active', now(), now()),
+  (46, 17, 'Espresso', 180, 'active', now(), now()),
+  (47, 18, 'Verschiedene Sorten', 200, 'active', now(), now()),
+  (48, 19, 'Hugo', 550, 'active', now(), now()),
+  (49, 19, 'Aperol Spritz', 550, 'active', now(), now()),
+  (50, 20, 'Tasse', 350, 'active', now(), now()),
+  (51, 21, 'Erwachsene', 500, 'active', now(), now()),
+  (52, 21, 'Kinder', 300, 'active', now(), now()),
+  (53, 22, 'mit Knoblauch', 400, 'deleted', now(), now()),
+  (54, 22, 'mit Käse', 500, 'deleted', now(), now());
 
 SELECT setval(pg_get_serial_sequence('produkte', 'id'), (SELECT MAX(id) FROM produkte));
 SELECT setval(pg_get_serial_sequence('produkt_varianten', 'id'), (SELECT MAX(id) FROM produkt_varianten));
