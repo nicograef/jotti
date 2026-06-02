@@ -52,9 +52,23 @@ function formatLocalTime(utcString: string): string {
   return new Date(utcString).toLocaleString('de-DE')
 }
 
-export function ReportingResults({ result }: { result: ReportingData }) {
+export function ReportingResults({
+  result,
+  loading,
+}: {
+  result: ReportingData
+  loading: boolean
+}) {
   const summary = result.summary
   const breakdowns = result.breakdowns
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Progress className="w-1/2" />
+      </div>
+    )
+  }
 
   return (
     <Tabs defaultValue="uebersicht">

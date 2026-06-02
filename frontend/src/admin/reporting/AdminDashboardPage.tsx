@@ -18,14 +18,14 @@ export function AdminDashboardPage() {
         <ReportingFilter
           kassensitzungen={kassensitzungen}
           kassensitzungNr={effectiveNr}
-          loading={listLoading || reportLoading}
+          loading={listLoading}
           onKassensitzungNrChange={setSelectedNr}
         />
       </div>
 
       {result && (
         <div className="mt-6">
-          <ReportingResults result={result} />
+          <ReportingResults result={result} loading={reportLoading} />
         </div>
       )}
     </>
