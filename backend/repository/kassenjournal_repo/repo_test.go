@@ -468,7 +468,7 @@ func TestWriteEvent_TagesabschlussErstellt(t *testing.T) {
 	}
 	e := newTestEvent(userID, "tagesabschluss-erstellt:v1", subject, 1, data)
 
-	_, err = repo.WriteEvent(context.Background(), e, kasse.StreamTypeKassensitzung, ksNr)
+	_, err := repo.WriteEvent(context.Background(), e, kasse.StreamTypeKassensitzung, ksNr)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

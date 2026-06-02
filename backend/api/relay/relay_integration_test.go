@@ -75,8 +75,8 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 	// Create a service user for placing orders
 	var userID int
 	err := db.QueryRow(`
-		INSERT INTO users (name, username, password_hash, role, status, created_at)
-		VALUES ('Test Service', 'test-service', 'unused', 'service', 'active', now())
+		INSERT INTO users (name, username, password_hash, role, status, created_at, updated_at)
+		VALUES ('Test Service', 'test-service', 'unused', 'service', 'active', now(), now())
 		ON CONFLICT (username) DO UPDATE SET name = EXCLUDED.name
 		RETURNING id
 	`).Scan(&userID)
@@ -87,8 +87,8 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 	// Create a product with category "essen"
 	var prodID int
 	err = db.QueryRow(`
-		INSERT INTO produkte (name, kategorie, status, created_at)
-		VALUES ('Test-Bratwurst', 'essen', 'active', now())
+		INSERT INTO produkte (name, kategorie, status, created_at, updated_at)
+		VALUES ('Test-Bratwurst', 'essen', 'active', now(), now())
 		ON CONFLICT (name) DO UPDATE SET status = 'active'
 		RETURNING id
 	`).Scan(&prodID)
@@ -99,8 +99,8 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 	// Create a variant for the product
 	var varID int
 	err = db.QueryRow(`
-		INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at)
-		VALUES ($1, 'Normal', 350, 'active', now())
+		INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at)
+		VALUES ($1, 'Normal', 350, 'active', now(), now())
 		RETURNING id
 	`, prodID).Scan(&varID)
 	if err != nil {
@@ -110,8 +110,8 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 	// Create active tische
 	var tID int
 	err = db.QueryRow(`
-		INSERT INTO tische (name, status, created_at)
-		VALUES ('Test-Tisch 1', 'active', now())
+		INSERT INTO tische (name, status, created_at, updated_at)
+		VALUES ('Test-Tisch 1', 'active', now(), now())
 		ON CONFLICT (name) DO UPDATE SET status = 'active'
 		RETURNING id
 	`).Scan(&tID)
@@ -121,8 +121,8 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 
 	// Ensure a second tisch exists for other tests
 	_, err = db.Exec(`
-		INSERT INTO tische (name, status, created_at)
-		VALUES ('Test-Tisch 2', 'active', now())
+		INSERT INTO tische (name, status, created_at, updated_at)
+		VALUES ('Test-Tisch 2', 'active', now(), now())
 		ON CONFLICT (name) DO UPDATE SET status = 'active'
 	`)
 	if err != nil {
