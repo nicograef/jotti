@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { BackendSingleton } from '@/lib/Backend'
 
 import { KasseBackend } from './KasseBackend'
-import type { KassensitzungState } from './types'
+import type { KassensitzungState } from './Kassensitzung'
 
 export const kasseBackend = new KasseBackend(BackendSingleton)
 

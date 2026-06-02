@@ -8,6 +8,12 @@ const commonErrorMessages: Record<string, string> = {
   tisch_not_active: 'Dieser Tisch ist aktuell nicht aktiv.',
   kasse_nicht_geoeffnet:
     'Die Kasse ist noch nicht geöffnet. Bitte zuerst eine Kassensitzung eröffnen.',
+  kasse_bereits_geoeffnet:
+    'Es gibt bereits eine offene Kassensitzung. Bitte zuerst die aktuelle Kassensitzung abschließen.',
+  kassensturz_erforderlich:
+    'Vor dem Tagesabschluss muss ein Kassensturz durchgeführt werden.',
+  tische_saldo_offen:
+    'Es gibt noch offene Tische mit ausstehenden Beträgen. Bitte alle Tische abrechnen.',
   unknown: 'Es ist ein unerwarteter Fehler aufgetreten.',
 }
 

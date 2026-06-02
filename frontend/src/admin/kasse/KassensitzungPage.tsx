@@ -1,14 +1,28 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { z } from 'zod'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 import { formatCents, parseCents } from '@/lib/utils'
 
 import { kasseBackend, useKassenbestand, useOffeneKassensitzung } from './hooks'
+import {
+  BezeichnungSchema,
+  KassenbewegungArt,
+  KassenbewegungArtSchema,
+} from './Kassensitzung'
 
 export function KassensitzungPage() {
   const { kassensitzung, isPending, refetch } = useOffeneKassensitzung()
@@ -41,12 +55,10 @@ export function KassensitzungPage() {
                 <span className="text-muted-foreground">Datum:</span>{' '}
                 {kassensitzung.datum}
               </p>
-              {kassensitzung.bezeichnung && (
-                <p>
-                  <span className="text-muted-foreground">Bezeichnung:</span>{' '}
-                  {kassensitzung.bezeichnung}
-                </p>
-              )}
+              <p>
+                <span className="text-muted-foreground">Bezeichnung:</span>{' '}
+                {kassensitzung.bezeichnung}
+              </p>
               {kassenbestand && (
                 <p>
                   <span className="text-muted-foreground">
@@ -74,26 +86,31 @@ export function KassensitzungPage() {
 }
 
 function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
-  const [datum, setDatum] = useState(() =>
-    new Date().toISOString().slice(0, 10),
-  )
-  const [bezeichnung, setBezeichnung] = useState('')
-  const [saving, setSaving] = useState(false)
+  const FormDataSchema = z.object({
+    datum: z.string().min(1, { message: 'Datum ist erforderlich.' }),
+    bezeichnung: BezeichnungSchema,
+  })
+  type FormData = z.infer<typeof FormDataSchema>
 
-  const handleEroeffnen = async () => {
-    if (!datum) {
-      toast.error('Bitte ein Datum eingeben.')
-      return
-    }
-    setSaving(true)
+  const [todayStr] = useState(() => new Date().toISOString().slice(0, 10))
+  const form = useForm<FormData>({
+    defaultValues: {
+      datum: todayStr,
+      bezeichnung: '',
+    },
+    resolver: zodResolver(FormDataSchema),
+    mode: 'onTouched',
+  })
+
+  const onSubmit = async (data: FormData) => {
     try {
-      await kasseBackend.kassensitzungEroeffnen(datum, bezeichnung)
+      await kasseBackend.kassensitzungEroeffnen(data.datum, data.bezeichnung)
       toast.success('Kassensitzung eröffnet.')
       onSuccess()
-    } catch {
-      toast.error('Fehler beim Eröffnen der Kassensitzung.')
-    } finally {
-      setSaving(false)
+    } catch (error: unknown) {
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Kassensitzung eröffnen', error }),
+      )
     }
   }
 
@@ -102,59 +119,85 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
       <CardHeader>
         <CardTitle>Kassensitzung eröffnen</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="ks-datum">Datum</Label>
-          <Input
-            id="ks-datum"
-            type="date"
-            value={datum}
-            onChange={(e) => {
-              setDatum(e.target.value)
-            }}
-            className="mt-1 w-48"
-          />
-        </div>
-        <div>
-          <Label htmlFor="ks-bezeichnung">Bezeichnung (optional)</Label>
-          <Input
-            id="ks-bezeichnung"
-            value={bezeichnung}
-            onChange={(e) => {
-              setBezeichnung(e.target.value)
-            }}
-            placeholder="z.B. Sommerfest Tag 1"
-            className="mt-1 w-72"
-          />
-        </div>
-        <Button onClick={() => void handleEroeffnen()} disabled={saving}>
-          Kassensitzung eröffnen
-        </Button>
+      <CardContent>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit(onSubmit)()
+          }}
+        >
+          <FieldGroup>
+            <Field
+              data-invalid={!!form.formState.errors.datum}
+              className="gap-1"
+            >
+              <FieldLabel htmlFor="ks-datum">Datum</FieldLabel>
+              <Input
+                id="ks-datum"
+                type="date"
+                {...form.register('datum')}
+                aria-invalid={!!form.formState.errors.datum}
+                className="w-48"
+              />
+              {form.formState.errors.datum && (
+                <FieldError errors={[form.formState.errors.datum]} />
+              )}
+            </Field>
+            <Field
+              data-invalid={!!form.formState.errors.bezeichnung}
+              className="gap-1"
+            >
+              <FieldLabel htmlFor="ks-bezeichnung">Bezeichnung</FieldLabel>
+              <Input
+                id="ks-bezeichnung"
+                {...form.register('bezeichnung')}
+                aria-invalid={!!form.formState.errors.bezeichnung}
+                placeholder="z.B. Sommerfest Tag 1"
+                className="w-72"
+              />
+              {form.formState.errors.bezeichnung && (
+                <FieldError errors={[form.formState.errors.bezeichnung]} />
+              )}
+            </Field>
+            <div>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                Kassensitzung eröffnen
+              </Button>
+            </div>
+          </FieldGroup>
+        </form>
       </CardContent>
     </Card>
   )
 }
 
 function AnfangsbestandSection({ onSuccess }: { onSuccess: () => void }) {
-  const [betragEuro, setBetragEuro] = useState('')
-  const [saving, setSaving] = useState(false)
+  const FormDataSchema = z.object({
+    betragEuro: z
+      .string()
+      .min(1, { message: 'Bitte einen Betrag eingeben.' })
+      .refine((val) => !isNaN(parseFloat(val.replace(',', '.'))), {
+        message: 'Bitte einen gültigen Betrag eingeben.',
+      }),
+  })
+  type FormData = z.infer<typeof FormDataSchema>
 
-  const handleSetzen = async () => {
-    const cents = parseCents(betragEuro)
-    if (cents < 0) {
-      toast.error('Bitte einen gültigen Betrag eingeben.')
-      return
-    }
-    setSaving(true)
+  const form = useForm<FormData>({
+    defaultValues: { betragEuro: '' },
+    resolver: zodResolver(FormDataSchema),
+    mode: 'onTouched',
+  })
+
+  const onSubmit = async (data: FormData) => {
     try {
-      await kasseBackend.anfangsbestandSetzen(cents)
+      await kasseBackend.anfangsbestandSetzen(parseCents(data.betragEuro))
       toast.success('Anfangsbestand gesetzt.')
-      setBetragEuro('')
+      form.reset()
       onSuccess()
-    } catch {
-      toast.error('Fehler beim Setzen des Anfangsbestands.')
-    } finally {
-      setSaving(false)
+    } catch (error: unknown) {
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Anfangsbestand setzen', error }),
+      )
     }
   }
 
@@ -163,52 +206,88 @@ function AnfangsbestandSection({ onSuccess }: { onSuccess: () => void }) {
       <CardHeader>
         <CardTitle>Anfangsbestand setzen</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="anfangsbestand">Betrag (€)</Label>
-          <Input
-            id="anfangsbestand"
-            type="text"
-            inputMode="decimal"
-            value={betragEuro}
-            onChange={(e) => {
-              setBetragEuro(e.target.value)
-            }}
-            placeholder="z.B. 150,00"
-            className="mt-1 w-40"
-          />
-        </div>
-        <Button onClick={() => void handleSetzen()} disabled={saving}>
-          Anfangsbestand setzen
-        </Button>
+      <CardContent>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit(onSubmit)()
+          }}
+        >
+          <FieldGroup>
+            <Field
+              data-invalid={!!form.formState.errors.betragEuro}
+              className="gap-1"
+            >
+              <FieldLabel htmlFor="anfangsbestand">Betrag (€)</FieldLabel>
+              <Input
+                id="anfangsbestand"
+                type="text"
+                inputMode="decimal"
+                {...form.register('betragEuro')}
+                aria-invalid={!!form.formState.errors.betragEuro}
+                placeholder="z.B. 150,00"
+                className="w-40"
+              />
+              {form.formState.errors.betragEuro && (
+                <FieldError errors={[form.formState.errors.betragEuro]} />
+              )}
+            </Field>
+            <div>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                Anfangsbestand setzen
+              </Button>
+            </div>
+          </FieldGroup>
+        </form>
       </CardContent>
     </Card>
   )
 }
 
 function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
-  const [art, setArt] = useState('einnahme')
-  const [betragEuro, setBetragEuro] = useState('')
-  const [kommentar, setKommentar] = useState('')
-  const [saving, setSaving] = useState(false)
+  const FormDataSchema = z.object({
+    art: KassenbewegungArtSchema,
+    betragEuro: z
+      .string()
+      .min(1, { message: 'Bitte einen Betrag eingeben.' })
+      .refine(
+        (val) => {
+          const parsed = parseFloat(val.replace(',', '.'))
+          return !isNaN(parsed) && parsed > 0
+        },
+        { message: 'Bitte einen Betrag größer als 0 eingeben.' },
+      ),
+    kommentar: z
+      .string()
+      .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' })
+      .max(200, { message: 'Kommentar darf maximal 200 Zeichen lang sein.' }),
+  })
+  type FormData = z.infer<typeof FormDataSchema>
 
-  const handleBuchen = async () => {
-    const cents = parseCents(betragEuro)
-    if (cents <= 0) {
-      toast.error('Bitte einen gültigen Betrag eingeben.')
-      return
-    }
-    setSaving(true)
+  const form = useForm<FormData>({
+    defaultValues: {
+      art: KassenbewegungArt.GELDTRANSIT,
+      betragEuro: '',
+      kommentar: '',
+    },
+    resolver: zodResolver(FormDataSchema),
+    mode: 'onTouched',
+  })
+
+  const onSubmit = async (data: FormData) => {
     try {
-      await kasseBackend.kassenbewegungBuchen(art, cents, kommentar)
+      await kasseBackend.kassenbewegungBuchen(
+        data.art,
+        parseCents(data.betragEuro),
+        data.kommentar,
+      )
       toast.success('Kassenbewegung gebucht.')
-      setBetragEuro('')
-      setKommentar('')
+      form.reset()
       onSuccess()
-    } catch {
-      toast.error('Fehler beim Buchen der Kassenbewegung.')
-    } finally {
-      setSaving(false)
+    } catch (error: unknown) {
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Kassenbewegung buchen', error }),
+      )
     }
   }
 
@@ -217,87 +296,116 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
       <CardHeader>
         <CardTitle>Kassenbewegung buchen</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex gap-4">
-          <label className="flex items-center gap-1.5">
-            <input
-              type="radio"
-              name="bewegung-art"
-              value="einnahme"
-              checked={art === 'einnahme'}
-              onChange={() => {
-                setArt('einnahme')
-              }}
-            />
-            Einnahme
-          </label>
-          <label className="flex items-center gap-1.5">
-            <input
-              type="radio"
-              name="bewegung-art"
-              value="ausgabe"
-              checked={art === 'ausgabe'}
-              onChange={() => {
-                setArt('ausgabe')
-              }}
-            />
-            Ausgabe
-          </label>
-        </div>
-        <div>
-          <Label htmlFor="bewegung-betrag">Betrag (€)</Label>
-          <Input
-            id="bewegung-betrag"
-            type="text"
-            inputMode="decimal"
-            value={betragEuro}
-            onChange={(e) => {
-              setBetragEuro(e.target.value)
-            }}
-            placeholder="z.B. 25,00"
-            className="mt-1 w-40"
-          />
-        </div>
-        <div>
-          <Label htmlFor="bewegung-kommentar">Kommentar</Label>
-          <Input
-            id="bewegung-kommentar"
-            value={kommentar}
-            onChange={(e) => {
-              setKommentar(e.target.value)
-            }}
-            placeholder="z.B. Wechselgeld Nachschub"
-            className="mt-1 w-72"
-          />
-        </div>
-        <Button onClick={() => void handleBuchen()} disabled={saving}>
-          Kassenbewegung buchen
-        </Button>
+      <CardContent>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit(onSubmit)()
+          }}
+        >
+          <FieldGroup>
+            <Field data-invalid={!!form.formState.errors.art} className="gap-1">
+              <FieldLabel>Art</FieldLabel>
+              <div className="flex gap-4">
+                {(
+                  [
+                    [KassenbewegungArt.GELDTRANSIT, 'Geldtransit'],
+                    [KassenbewegungArt.PRIVATENTNAHME, 'Privatentnahme'],
+                    [KassenbewegungArt.PRIVATEINLAGE, 'Privateinlage'],
+                  ] as const
+                ).map(([value, label]) => (
+                  <label key={value} className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      value={value}
+                      {...form.register('art')}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {form.formState.errors.art && (
+                <FieldError errors={[form.formState.errors.art]} />
+              )}
+            </Field>
+            <Field
+              data-invalid={!!form.formState.errors.betragEuro}
+              className="gap-1"
+            >
+              <FieldLabel htmlFor="bewegung-betrag">Betrag (€)</FieldLabel>
+              <Input
+                id="bewegung-betrag"
+                type="text"
+                inputMode="decimal"
+                {...form.register('betragEuro')}
+                aria-invalid={!!form.formState.errors.betragEuro}
+                placeholder="z.B. 25,00"
+                className="w-40"
+              />
+              {form.formState.errors.betragEuro && (
+                <FieldError errors={[form.formState.errors.betragEuro]} />
+              )}
+            </Field>
+            <Field
+              data-invalid={!!form.formState.errors.kommentar}
+              className="gap-1"
+            >
+              <FieldLabel htmlFor="bewegung-kommentar">Kommentar</FieldLabel>
+              <Input
+                id="bewegung-kommentar"
+                {...form.register('kommentar')}
+                aria-invalid={!!form.formState.errors.kommentar}
+                placeholder="z.B. Wechselgeld Nachschub"
+                className="w-72"
+              />
+              {form.formState.errors.kommentar && (
+                <FieldError errors={[form.formState.errors.kommentar]} />
+              )}
+            </Field>
+            <div>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                Kassenbewegung buchen
+              </Button>
+            </div>
+          </FieldGroup>
+        </form>
       </CardContent>
     </Card>
   )
 }
 
 function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
-  const [istBestandEuro, setIstBestandEuro] = useState('')
-  const [saving, setSaving] = useState(false)
+  const FormDataSchema = z.object({
+    istBestandEuro: z
+      .string()
+      .min(1, { message: 'Bitte einen Betrag eingeben.' })
+      .refine((val) => !isNaN(parseFloat(val.replace(',', '.'))), {
+        message: 'Bitte einen gültigen Betrag eingeben.',
+      }),
+  })
+  type FormData = z.infer<typeof FormDataSchema>
 
-  const handleKassensturz = async () => {
-    const cents = parseCents(istBestandEuro)
-    if (cents < 0) {
-      toast.error('Bitte einen gültigen Betrag eingeben.')
-      return
-    }
-    setSaving(true)
+  const form = useForm<FormData>({
+    defaultValues: { istBestandEuro: '' },
+    resolver: zodResolver(FormDataSchema),
+    mode: 'onTouched',
+  })
+
+  const onSubmit = async (data: FormData) => {
     try {
-      await kasseBackend.kassensturzDurchfuehren(cents)
+      await kasseBackend.kassensturzDurchfuehren(
+        parseCents(data.istBestandEuro),
+      )
       toast.success('Kassensturz durchgeführt.')
-      setIstBestandEuro('')
+      form.reset()
       onSuccess()
-    } catch {
-      toast.error('Fehler beim Kassensturz.')
-    } finally {
-      setSaving(false)
+    } catch (error: unknown) {
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'Kassensturz durchführen',
+          error,
+        }),
+      )
     }
   }
 
@@ -306,24 +414,39 @@ function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
       <CardHeader>
         <CardTitle>Kassensturz</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="kassensturz-ist">Ist-Bestand (€)</Label>
-          <Input
-            id="kassensturz-ist"
-            type="text"
-            inputMode="decimal"
-            value={istBestandEuro}
-            onChange={(e) => {
-              setIstBestandEuro(e.target.value)
-            }}
-            placeholder="z.B. 342,50"
-            className="mt-1 w-40"
-          />
-        </div>
-        <Button onClick={() => void handleKassensturz()} disabled={saving}>
-          Kassensturz durchführen
-        </Button>
+      <CardContent>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit(onSubmit)()
+          }}
+        >
+          <FieldGroup>
+            <Field
+              data-invalid={!!form.formState.errors.istBestandEuro}
+              className="gap-1"
+            >
+              <FieldLabel htmlFor="kassensturz-ist">Ist-Bestand (€)</FieldLabel>
+              <Input
+                id="kassensturz-ist"
+                type="text"
+                inputMode="decimal"
+                {...form.register('istBestandEuro')}
+                aria-invalid={!!form.formState.errors.istBestandEuro}
+                placeholder="z.B. 342,50"
+                className="w-40"
+              />
+              {form.formState.errors.istBestandEuro && (
+                <FieldError errors={[form.formState.errors.istBestandEuro]} />
+              )}
+            </Field>
+            <div>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                Kassensturz durchführen
+              </Button>
+            </div>
+          </FieldGroup>
+        </form>
       </CardContent>
     </Card>
   )
@@ -338,8 +461,13 @@ function TagesabschlussSection({ onSuccess }: { onSuccess: () => void }) {
       await kasseBackend.tagesabschlussErstellen()
       toast.success('Tagesabschluss erstellt.')
       onSuccess()
-    } catch {
-      toast.error('Fehler beim Erstellen des Tagesabschlusses.')
+    } catch (error: unknown) {
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'Tagesabschluss erstellen',
+          error,
+        }),
+      )
     } finally {
       setSaving(false)
     }

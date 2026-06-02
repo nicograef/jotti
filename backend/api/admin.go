@@ -87,16 +87,18 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
 	r.HandleFunc("/get-all-kassensitzungen", rq.GetAllKassensitzungenHandler())
 
-	kh := kasseHTTP.Handler{}
-	kh.Command = kasseApp.Command{KassenjournalRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}
-	kh.Query = kasseApp.Query{KassenjournalRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}
-	r.HandleFunc("/kassensitzung-eroeffnen", kh.KassensitzungEroeffnenHandler())
-	r.HandleFunc("/anfangsbestand-setzen", kh.AnfangsbestandSetzenHandler())
-	r.HandleFunc("/kassenbewegung-buchen", kh.KassenbewegungBuchenHandler())
-	r.HandleFunc("/kassensturz-durchfuehren", kh.KassensturzDurchfuehrenHandler())
-	r.HandleFunc("/tagesabschluss-erstellen", kh.TagesabschlussErstellenHandler())
-	r.HandleFunc("/get-offene-kassensitzung", kh.GetOffeneKassensitzungHandler())
-	r.HandleFunc("/get-kassenbestand", kh.GetKassenbestandHandler())
+	kc := kasseHTTP.CommandHandler{}
+	kc.Command = kasseApp.Command{KassenjournalRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}
+	r.HandleFunc("/kassensitzung-eroeffnen", kc.KassensitzungEroeffnenHandler())
+	r.HandleFunc("/anfangsbestand-setzen", kc.AnfangsbestandSetzenHandler())
+	r.HandleFunc("/kassenbewegung-buchen", kc.KassenbewegungBuchenHandler())
+	r.HandleFunc("/kassensturz-durchfuehren", kc.KassensturzDurchfuehrenHandler())
+	r.HandleFunc("/tagesabschluss-erstellen", kc.TagesabschlussErstellenHandler())
+
+	kq := kasseHTTP.QueryHandler{}
+	kq.Query = kasseApp.Query{KassenjournalRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}
+	r.HandleFunc("/get-offene-kassensitzung", kq.GetOffeneKassensitzungHandler())
+	r.HandleFunc("/get-kassenbestand", kq.GetKassenbestandHandler())
 
 	druckerRepo := drucker_repo.NewRepository(db)
 	dc := druckerHTTP.CommandHandler{}

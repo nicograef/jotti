@@ -109,7 +109,7 @@ CREATE TABLE kassensitzungen (
 COMMENT ON TABLE kassensitzungen IS 'CRUD entity for Kassensitzung lifecycle. Each row represents one Kassensitzung (one Betriebstag). The z_nr is the DSFinV-K-compliant sequential number.';
 COMMENT ON COLUMN kassensitzungen.z_nr IS 'Fortlaufende Kassensitzungsnummer (Z_NR), DSFinV-K-Pflichtfeld';
 COMMENT ON COLUMN kassensitzungen.datum IS 'Betriebstag der Kassensitzung';
-COMMENT ON COLUMN kassensitzungen.bezeichnung IS 'Optionale Bezeichnung (z.B. "Sommerfest Tag 1")';
+COMMENT ON COLUMN kassensitzungen.bezeichnung IS 'Bezeichnung (z.B. "Sommerfest Tag 1")';
 COMMENT ON COLUMN kassensitzungen.status IS 'Kassensitzung-Status: offen oder abgeschlossen';
 COMMENT ON COLUMN kassensitzungen.created_at IS 'Creation timestamp (UTC)';
 COMMENT ON COLUMN kassensitzungen.updated_at IS 'Last modification timestamp (UTC)';

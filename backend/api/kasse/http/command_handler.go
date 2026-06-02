@@ -9,7 +9,6 @@ import (
 	"github.com/nicograef/jotti/backend/api/helper"
 	kasseApp "github.com/nicograef/jotti/backend/api/kasse/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
-	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
 type command interface {
@@ -20,14 +19,8 @@ type command interface {
 	TagesabschlussErstellen(ctx context.Context, userID int, userName string) error
 }
 
-type query interface {
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
-	GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error)
-}
-
-type Handler struct {
+type CommandHandler struct {
 	Command command
-	Query   query
 }
 
 // --- Request / Response DTOs ---
@@ -55,24 +48,9 @@ type kassensturzDurchfuehrenRequest struct {
 	IstBestandCents int `json:"istBestandCents"`
 }
 
-type offeneKassensitzungResponse struct {
-	ZNr         int    `json:"zNr"`
-	Datum       string `json:"datum"`
-	Bezeichnung string `json:"bezeichnung"`
-	Status      string `json:"status"`
-}
-
-type kassenbestandRequest struct {
-	KassensitzungNr int `json:"kassensitzungNr"`
-}
-
-type kassenbestandResponse struct {
-	SollBestandCents int `json:"sollBestandCents"`
-}
-
 // --- Handlers ---
 
-func (h *Handler) KassensitzungEroeffnenHandler() http.HandlerFunc {
+func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := kassensitzungEroeffnenRequest{}
 		if !helper.ReadBody(w, r, &body) {
@@ -109,7 +87,7 @@ func (h *Handler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) AnfangsbestandSetzenHandler() http.HandlerFunc {
+func (h *CommandHandler) AnfangsbestandSetzenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := anfangsbestandSetzenRequest{}
 		if !helper.ReadBody(w, r, &body) {
@@ -139,7 +117,7 @@ func (h *Handler) AnfangsbestandSetzenHandler() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) KassenbewegungBuchenHandler() http.HandlerFunc {
+func (h *CommandHandler) KassenbewegungBuchenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := kassenbewegungBuchenRequest{}
 		if !helper.ReadBody(w, r, &body) {
@@ -174,7 +152,7 @@ func (h *Handler) KassenbewegungBuchenHandler() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) KassensturzDurchfuehrenHandler() http.HandlerFunc {
+func (h *CommandHandler) KassensturzDurchfuehrenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := kassensturzDurchfuehrenRequest{}
 		if !helper.ReadBody(w, r, &body) {
@@ -204,7 +182,7 @@ func (h *Handler) KassensturzDurchfuehrenHandler() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) TagesabschlussErstellenHandler() http.HandlerFunc {
+func (h *CommandHandler) TagesabschlussErstellenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 		if !ok {
@@ -228,49 +206,5 @@ func (h *Handler) TagesabschlussErstellenHandler() http.HandlerFunc {
 		}
 
 		helper.SendEmptyResponse(w)
-	}
-}
-
-func (h *Handler) GetOffeneKassensitzungHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ks, err := h.Query.GetOffeneKassensitzung(r.Context())
-		if err != nil {
-			helper.SendServerError(w)
-			return
-		}
-
-		if ks == nil {
-			helper.SendResponse(w, nil)
-			return
-		}
-
-		helper.SendResponse(w, offeneKassensitzungResponse{
-			ZNr:         ks.ZNr,
-			Datum:       ks.Datum.Format("2006-01-02"),
-			Bezeichnung: ks.Bezeichnung,
-			Status:      ks.Status,
-		})
-	}
-}
-
-func (h *Handler) GetKassenbestandHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body := kassenbestandRequest{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-
-		if body.KassensitzungNr < 1 {
-			helper.SendClientError(w, "invalid_kassensitzung_nr", nil)
-			return
-		}
-
-		bestand, err := h.Query.GetKassenbestand(r.Context(), body.KassensitzungNr)
-		if err != nil {
-			helper.SendServerError(w)
-			return
-		}
-
-		helper.SendResponse(w, kassenbestandResponse{SollBestandCents: bestand})
 	}
 }
