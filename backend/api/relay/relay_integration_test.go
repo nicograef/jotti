@@ -62,7 +62,6 @@ type updateDruckerConfigRequest struct {
 }
 
 type kassensitzungEroeffnenRequest struct {
-	Datum       string `json:"datum"`
 	Bezeichnung string `json:"bezeichnung"`
 }
 
@@ -183,7 +182,6 @@ func setupTestEnv(t *testing.T) testEnv {
 func openKassensitzungIfNeeded(t *testing.T, env testEnv) {
 	t.Helper()
 	resp := postJSON(t, env.server.URL+"/admin/kassensitzung-eroeffnen", kassensitzungEroeffnenRequest{
-		Datum:       "2026-01-01",
 		Bezeichnung: "Integration Test",
 	}, env.adminToken)
 	defer resp.Body.Close()
