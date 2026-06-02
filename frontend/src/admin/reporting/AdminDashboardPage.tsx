@@ -1,25 +1,31 @@
-import { useReporting } from './hooks'
+import { useState } from 'react'
+
+import { useKassensitzungen, useReport } from './hooks'
 import { ReportingFilter } from './ReportingFilter'
 import { ReportingResults } from './ReportingResults'
 
 export function AdminDashboardPage() {
-  const reporting = useReporting()
+  const { kassensitzungen, loading: listLoading } = useKassensitzungen()
+  const [selectedNr, setSelectedNr] = useState<number | null>(null)
+
+  const effectiveNr = selectedNr ?? kassensitzungen.at(0)?.zNr ?? null
+  const { result, loading: reportLoading } = useReport(effectiveNr)
 
   return (
     <>
       <h1 className="text-2xl font-bold">Reporting</h1>
       <div className="mt-4">
         <ReportingFilter
-          kassensitzungNr={reporting.kassensitzungNr}
-          loading={reporting.loading}
-          onKassensitzungNrChange={reporting.setKassensitzungNr}
-          onAuswerten={reporting.auswerten}
+          kassensitzungen={kassensitzungen}
+          kassensitzungNr={effectiveNr}
+          loading={listLoading || reportLoading}
+          onKassensitzungNrChange={setSelectedNr}
         />
       </div>
 
-      {reporting.result && (
+      {result && (
         <div className="mt-6">
-          <ReportingResults result={reporting.result} />
+          <ReportingResults result={result} />
         </div>
       )}
     </>

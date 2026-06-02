@@ -49,6 +49,14 @@ export const UmsatzTischSchema = z.object({
 })
 export type UmsatzTisch = z.infer<typeof UmsatzTischSchema>
 
+export const KassensitzungSchema = z.object({
+  zNr: z.number().int(),
+  datum: z.string(),
+  bezeichnung: z.string(),
+  status: z.string(),
+})
+export type Kassensitzung = z.infer<typeof KassensitzungSchema>
+
 export const ReportingDataSchema = z.object({
   kassensitzungNr: z.number().int(),
   summary: SummarySchema,

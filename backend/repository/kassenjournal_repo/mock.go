@@ -5,7 +5,6 @@ package kassenjournal_repo
 import (
 	"context"
 	"sort"
-	"time"
 
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -43,8 +42,6 @@ type MockRepo struct {
 	writeErr        error // separate error for WriteEvent
 	tischSessions   map[string]kasse.TischSession
 	tischSessionErr error
-	offeneKS        *kasse.KassensitzungState
-	offeneKSErr     error
 	kassenbestand   int // configurable return value for GetKassenbestand
 }
 
@@ -110,36 +107,6 @@ func (m *MockRepo) SetTischSession(subject string, state kasse.TischSession) {
 	m.tischSessions[subject] = state
 }
 
-func (m *MockRepo) GetOffeneKassensitzung(_ context.Context) (*kasse.KassensitzungState, error) {
-	if m.offeneKSErr != nil {
-		return nil, m.offeneKSErr
-	}
-	if m.err != nil {
-		return nil, m.err
-	}
-	return m.offeneKS, nil
-}
-
-func (m *MockRepo) GetOffeneKassensitzungNr(_ context.Context) (int, error) {
-	if m.offeneKSErr != nil {
-		return 0, m.offeneKSErr
-	}
-	if m.err != nil {
-		return 0, m.err
-	}
-	if m.offeneKS == nil {
-		return 0, nil
-	}
-	return m.offeneKS.ZNr, nil
-}
-
-func (m *MockRepo) InsertKassensitzung(_ context.Context, _ time.Time, _ string) (int, error) {
-	if m.err != nil {
-		return 0, m.err
-	}
-	return 1, nil
-}
-
 func (m *MockRepo) GetKassenbestand(_ context.Context, _ int) (int, error) {
 	if m.err != nil {
 		return 0, m.err
@@ -150,11 +117,6 @@ func (m *MockRepo) GetKassenbestand(_ context.Context, _ int) (int, error) {
 // SetKassenbestand sets the return value for GetKassenbestand.
 func (m *MockRepo) SetKassenbestand(cents int) {
 	m.kassenbestand = cents
-}
-
-// SetOffeneKassensitzung sets the open Kassensitzung for the mock.
-func (m *MockRepo) SetOffeneKassensitzung(ks *kasse.KassensitzungState) {
-	m.offeneKS = ks
 }
 
 // AddEvent adds an event to the mock for ReadEventsBySubject.

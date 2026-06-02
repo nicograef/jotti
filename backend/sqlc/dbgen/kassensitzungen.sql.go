@@ -10,6 +10,41 @@ import (
 	"time"
 )
 
+const getAllKassensitzungen = `-- name: GetAllKassensitzungen :many
+SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
+FROM kassensitzungen ORDER BY datum DESC, created_at DESC
+`
+
+func (q *Queries) GetAllKassensitzungen(ctx context.Context) ([]Kassensitzungen, error) {
+	rows, err := q.db.QueryContext(ctx, getAllKassensitzungen)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Kassensitzungen{}
+	for rows.Next() {
+		var i Kassensitzungen
+		if err := rows.Scan(
+			&i.ZNr,
+			&i.Datum,
+			&i.Bezeichnung,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getKassenbestand = `-- name: GetKassenbestand :one
 SELECT COALESCE(SUM(CASE
     WHEN type = 'anfangsbestand-gesetzt:v1'
@@ -82,16 +117,16 @@ func (q *Queries) InsertKassensitzung(ctx context.Context, arg InsertKassensitzu
 	return z_nr, err
 }
 
-const updateKassensitzungStatus = `-- name: UpdateKassensitzungStatus :exec
+const updateKassensitzung = `-- name: UpdateKassensitzung :exec
 UPDATE kassensitzungen SET status = $2, updated_at = NOW() WHERE z_nr = $1
 `
 
-type UpdateKassensitzungStatusParams struct {
+type UpdateKassensitzungParams struct {
 	ZNr    int
 	Status string
 }
 
-func (q *Queries) UpdateKassensitzungStatus(ctx context.Context, arg UpdateKassensitzungStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateKassensitzungStatus, arg.ZNr, arg.Status)
+func (q *Queries) UpdateKassensitzung(ctx context.Context, arg UpdateKassensitzungParams) error {
+	_, err := q.db.ExecContext(ctx, updateKassensitzung, arg.ZNr, arg.Status)
 	return err
 }

@@ -2,12 +2,16 @@
 INSERT INTO kassensitzungen (datum, bezeichnung, status, created_at, updated_at)
 VALUES ($1, $2, $3, NOW(), NOW()) RETURNING z_nr;
 
--- name: UpdateKassensitzungStatus :exec
+-- name: UpdateKassensitzung :exec
 UPDATE kassensitzungen SET status = $2, updated_at = NOW() WHERE z_nr = $1;
 
 -- name: GetOffeneKassensitzung :one
 SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
 FROM kassensitzungen WHERE status = 'offen' LIMIT 1;
+
+-- name: GetAllKassensitzungen :many
+SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
+FROM kassensitzungen ORDER BY datum DESC, created_at DESC;
 
 -- name: GetKassenbestand :one
 -- Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Auszahlungen, Kassenbewegungen und Differenz-Buchungen.

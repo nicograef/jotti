@@ -11,9 +11,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type kassenRepo interface {
-	InsertKassensitzung(ctx context.Context, datum time.Time, bezeichnung string) (int, error)
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.KassensitzungState, error)
+type kassenjournalRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
@@ -21,13 +19,19 @@ type kassenRepo interface {
 	GetTischSessionsByKassensitzungNr(ctx context.Context, kassensitzungNr int) ([]kasse.TischSession, error)
 }
 
+type kassensitzungenRepo interface {
+	InsertKassensitzung(ctx context.Context, datum time.Time, bezeichnung string) (int, error)
+	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+}
+
 type Command struct {
-	KassenRepo kassenRepo
+	KassenjournalRepo   kassenjournalRepo
+	KassensitzungenRepo kassensitzungenRepo
 }
 
 // getOffeneKassensitzungOderFehler returns the open Kassensitzung or ErrKasseNichtGeoeffnet.
-func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.KassensitzungState, error) {
-	ks, err := c.KassenRepo.GetOffeneKassensitzung(ctx)
+func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
+	ks, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
 	if err != nil {
 		return nil, ErrDatabase
 	}
@@ -42,14 +46,14 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 	log := zerolog.Ctx(ctx)
 
 	subject := kasse.KassensitzungSubject(kassensitzungNr)
-	maxVersion, err := c.KassenRepo.GetMaxVersion(ctx, subject)
+	maxVersion, err := c.KassenjournalRepo.GetMaxVersion(ctx, subject)
 	if err != nil {
 		return ErrDatabase
 	}
 
 	e.Version = maxVersion + 1
 
-	_, err = c.KassenRepo.WriteEvent(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr)
+	_, err = c.KassenjournalRepo.WriteEvent(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC Kassensitzung conflict")
@@ -65,7 +69,7 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, datum time.Time, bezeichnung string) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	existing, err := c.KassenRepo.GetOffeneKassensitzung(ctx)
+	existing, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to check for existing open Kassensitzung")
 		return 0, ErrDatabase
@@ -75,7 +79,7 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		return 0, ErrKasseAlreadyOpen
 	}
 
-	zNr, err := c.KassenRepo.InsertKassensitzung(ctx, datum, bezeichnung)
+	zNr, err := c.KassensitzungenRepo.InsertKassensitzung(ctx, datum, bezeichnung)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to insert Kassensitzung")
 		return 0, ErrDatabase
@@ -152,7 +156,7 @@ func (c Command) KassensturzDurchfuehren(ctx context.Context, userID int, userNa
 		return err
 	}
 
-	sollBestandCents, err := c.KassenRepo.GetKassenbestand(ctx, ks.ZNr)
+	sollBestandCents, err := c.KassenjournalRepo.GetKassenbestand(ctx, ks.ZNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get Kassenbestand for Kassensturz")
 		return ErrDatabase
@@ -208,7 +212,7 @@ func (c Command) TagesabschlussErstellen(ctx context.Context, userID int, userNa
 	subject := kasse.KassensitzungSubject(ks.ZNr)
 
 	// Invariant: Kassensturz must be completed
-	events, err := c.KassenRepo.ReadEventsBySubject(ctx, subject)
+	events, err := c.KassenjournalRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to read KS events for Tagesabschluss")
 		return ErrDatabase
@@ -227,7 +231,7 @@ func (c Command) TagesabschlussErstellen(ctx context.Context, userID int, userNa
 	}
 
 	// Invariant: Tisch-Saldo-Sperre — all tisch sessions must have saldo_cents = 0
-	sessions, err := c.KassenRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
+	sessions, err := c.KassenjournalRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get tisch sessions for Tagesabschluss")
 		return ErrDatabase

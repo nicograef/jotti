@@ -2,8 +2,8 @@ package kasse
 
 import "time"
 
-// KassensitzungState represents the CRUD entity for a Kassensitzung.
-type KassensitzungState struct {
+// Kassensitzung represents the CRUD entity for a Kassensitzung.
+type Kassensitzung struct {
 	ZNr         int
 	Datum       time.Time
 	Bezeichnung string
@@ -13,6 +13,6 @@ type KassensitzungState struct {
 }
 
 const (
-	KassensitzungStatusOffen         = "offen"
-	KassensitzungStatusAbgeschlossen = "abgeschlossen"
+	KassensitzungOffen         = "offen"
+	KassensitzungAbgeschlossen = "abgeschlossen"
 )

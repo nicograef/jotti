@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
@@ -86,9 +85,9 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType ka
 func (r Repository) handleKassensitzungEvent(ctx context.Context, qtx *dbgen.Queries, e event.Event, kassensitzungNr int) error {
 	switch e.Type {
 	case string(kasse.EventTypeTagesabschlussErstelltV1):
-		err := qtx.UpdateKassensitzungStatus(ctx, dbgen.UpdateKassensitzungStatusParams{
+		err := qtx.UpdateKassensitzung(ctx, dbgen.UpdateKassensitzungParams{
 			ZNr:    kassensitzungNr,
-			Status: kasse.KassensitzungStatusAbgeschlossen,
+			Status: kasse.KassensitzungAbgeschlossen,
 		})
 		if err != nil {
 			return db.Error(err)
@@ -199,27 +198,6 @@ func toTischSession(row dbgen.TischSession) (kasse.TischSession, error) {
 		GesamtZahlungenCents:  row.GesamtZahlungenCents,
 		LastEventID:           row.LastEventID,
 		LastEventVersion:      row.LastEventVersion,
-	}, nil
-}
-
-// GetOffeneKassensitzung reads the currently open Kassensitzung from the kassensitzungen CRUD entity.
-// Returns nil if no open Kassensitzung exists.
-func (r Repository) GetOffeneKassensitzung(ctx context.Context) (*kasse.KassensitzungState, error) {
-	row, err := r.q.GetOffeneKassensitzung(ctx)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, db.Error(err)
-	}
-
-	return &kasse.KassensitzungState{
-		ZNr:         row.ZNr,
-		Datum:       row.Datum,
-		Bezeichnung: row.Bezeichnung,
-		Status:      row.Status,
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
 	}, nil
 }
 
@@ -378,32 +356,6 @@ func (r Repository) GetBestellungEventsSinceCursor(ctx context.Context, cursor i
 		})
 	}
 	return events, nil
-}
-
-// InsertKassensitzung creates a new Kassensitzung CRUD entity with status 'offen'.
-// Returns the generated z_nr.
-func (r Repository) InsertKassensitzung(ctx context.Context, datum time.Time, bezeichnung string) (int, error) {
-	zNr, err := r.q.InsertKassensitzung(ctx, dbgen.InsertKassensitzungParams{
-		Datum:       datum,
-		Bezeichnung: bezeichnung,
-		Status:      kasse.KassensitzungStatusOffen,
-	})
-	if err != nil {
-		return 0, db.Error(err)
-	}
-	return zNr, nil
-}
-
-// GetOffeneKassensitzungNr returns the z_nr of the currently open Kassensitzung, or 0 if none exists.
-func (r Repository) GetOffeneKassensitzungNr(ctx context.Context) (int, error) {
-	ks, err := r.GetOffeneKassensitzung(ctx)
-	if err != nil {
-		return 0, err
-	}
-	if ks == nil {
-		return 0, nil
-	}
-	return ks.ZNr, nil
 }
 
 // GetKassenbestand returns the Soll-Kassenbestand for the given Kassensitzung in cents.

@@ -21,7 +21,7 @@ type command interface {
 }
 
 type query interface {
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.KassensitzungState, error)
+	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 	GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error)
 }
 

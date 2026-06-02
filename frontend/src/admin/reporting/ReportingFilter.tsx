@@ -1,46 +1,68 @@
-import { ClipboardList, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
+import type { Kassensitzung } from './types'
+
+function formatDatum(datum: string): string {
+  return new Date(datum).toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}
 
 export function ReportingFilter({
+  kassensitzungen,
   kassensitzungNr,
   loading,
   onKassensitzungNrChange,
-  onAuswerten,
 }: {
+  kassensitzungen: Kassensitzung[]
   kassensitzungNr: number | null
   loading: boolean
-  onKassensitzungNrChange: (nr: number | null) => void
-  onAuswerten: () => void
+  onKassensitzungNrChange: (nr: number) => void
 }) {
-  return (
-    <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
-      <div>
-        <Label htmlFor="kassensitzung-nr">Kassensitzungs-Nr</Label>
-        <Input
-          id="kassensitzung-nr"
-          type="number"
-          min={1}
-          value={kassensitzungNr ?? ''}
-          onChange={(e) => {
-            const val = parseInt(e.target.value, 10)
-            onKassensitzungNrChange(isNaN(val) ? null : val)
-          }}
-          placeholder="z.B. 1"
-          className="mt-1 w-32"
-        />
-      </div>
+  if (loading && kassensitzungen.length === 0) {
+    return <Loader2 className="size-5 animate-spin text-muted-foreground" />
+  }
 
-      <Button onClick={onAuswerten} disabled={loading}>
-        {loading ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <ClipboardList className="size-4" />
-        )}
-        Auswerten
-      </Button>
-    </div>
+  if (kassensitzungen.length === 0) {
+    return (
+      <Select disabled>
+        <SelectTrigger className="w-72">
+          <SelectValue placeholder="Noch keine Kassensitzungen vorhanden" />
+        </SelectTrigger>
+        <SelectContent />
+      </Select>
+    )
+  }
+
+  return (
+    <Select
+      value={kassensitzungNr?.toString() ?? ''}
+      onValueChange={(val) => {
+        onKassensitzungNrChange(parseInt(val, 10))
+      }}
+      disabled={loading}
+    >
+      <SelectTrigger className="w-72">
+        <SelectValue placeholder="Kassensitzung wählen" />
+      </SelectTrigger>
+      <SelectContent>
+        {kassensitzungen.map((k) => (
+          <SelectItem key={k.zNr} value={k.zNr.toString()}>
+            {formatDatum(k.datum)} – {k.bezeichnung}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }

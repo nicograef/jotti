@@ -9,6 +9,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
+	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/table_repo"
 )
 
@@ -34,7 +35,7 @@ func TestGetTischState(t *testing.T) {
 		{PositionID: "p1", ProduktName: "Cola", VarianteName: "0,5l", Einzelpreis: 350, Menge: 2},
 	}
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
-	eventMock.SetOffeneKassensitzung(&kasse.KassensitzungState{ZNr: 1, Status: kasse.KassensitzungStatusOffen})
+	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	subject := kasse.TischSessionSubject(1, 1)
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents:            700,
@@ -43,8 +44,9 @@ func TestGetTischState(t *testing.T) {
 		GesamtZahlungenCents:  0,
 	})
 	query := Query{
-		TableRepo: table_repo.NewMock([]table.Tisch{{ID: 1, Name: "Tisch 1", Status: table.ActiveStatus}}, nil),
-		EventRepo: eventMock,
+		TableRepo:           table_repo.NewMock([]table.Tisch{{ID: 1, Name: "Tisch 1", Status: table.ActiveStatus}}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: sitzungMock,
 	}
 
 	state, err := query.GetTischState(context.Background(), 1)
@@ -67,10 +69,11 @@ func TestGetTischState(t *testing.T) {
 
 func TestGetTischState_NoState(t *testing.T) {
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
-	eventMock.SetOffeneKassensitzung(&kasse.KassensitzungState{ZNr: 1, Status: kasse.KassensitzungStatusOffen})
+	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	query := Query{
-		TableRepo: table_repo.NewMock([]table.Tisch{{ID: 999, Name: "Tisch 999", Status: table.ActiveStatus}}, nil),
-		EventRepo: eventMock,
+		TableRepo:           table_repo.NewMock([]table.Tisch{{ID: 999, Name: "Tisch 999", Status: table.ActiveStatus}}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: sitzungMock,
 	}
 
 	state, err := query.GetTischState(context.Background(), 999)
@@ -90,10 +93,11 @@ func TestGetTischState_NoState(t *testing.T) {
 
 func TestGetTischHistorie_ReturnsEmptyForTischWithNoEvents(t *testing.T) {
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
-	eventMock.SetOffeneKassensitzung(&kasse.KassensitzungState{ZNr: 1, Status: kasse.KassensitzungStatusOffen})
+	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	query := Query{
-		TableRepo: table_repo.NewMock(nil, nil),
-		EventRepo: eventMock,
+		TableRepo:           table_repo.NewMock(nil, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: sitzungMock,
 	}
 
 	historie, err := query.GetTischHistorie(context.Background(), 1)

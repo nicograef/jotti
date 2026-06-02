@@ -22,9 +22,10 @@ type TischStateView struct {
 }
 
 type Query struct {
-	TableRepo   tableRepo
-	EventRepo   eventRepo
-	FavoritRepo favoritRepo
+	TableRepo           tableRepo
+	EventRepo           eventRepo
+	FavoritRepo         favoritRepo
+	KassensitzungenRepo kassensitzungenRepo
 }
 
 func (q Query) GetAllTische(ctx context.Context) ([]t.Tisch, error) {
@@ -44,7 +45,7 @@ func (q Query) GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error) {
 	log := zerolog.Ctx(ctx)
 
 	kassensitzungNr := 0
-	ks, err := q.EventRepo.GetOffeneKassensitzung(ctx)
+	ks, err := q.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get offene kassensitzung for active tische")
 		return nil, ErrDatabase
@@ -77,7 +78,7 @@ func (q Query) GetTischState(ctx context.Context, tischID int) (TischStateView, 
 	}
 
 	kassensitzungNr := 0
-	ks, err := q.EventRepo.GetOffeneKassensitzung(ctx)
+	ks, err := q.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to get offene kassensitzung")
 		return TischStateView{}, ErrDatabase
@@ -110,7 +111,7 @@ func (q Query) GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]t
 	log := zerolog.Ctx(ctx)
 
 	kassensitzungNr := 0
-	ks, err := q.EventRepo.GetOffeneKassensitzung(ctx)
+	ks, err := q.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
 	if err != nil {
 		log.Error().Err(err).Int("user_id", userID).Msg("Failed to get offene kassensitzung")
 		return nil, ErrDatabase
@@ -144,7 +145,7 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 	}
 
 	kassensitzungNr := 0
-	ks, err := q.EventRepo.GetOffeneKassensitzung(ctx)
+	ks, err := q.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
 	if err != nil {
 		log.Error().Err(err).Int("user_id", userID).Msg("Failed to get offene kassensitzung")
 		return nil, ErrDatabase
@@ -187,7 +188,7 @@ func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]kasse.Histo
 	log := zerolog.Ctx(ctx)
 
 	kassensitzungNr := 0
-	ks, err := q.EventRepo.GetOffeneKassensitzung(ctx)
+	ks, err := q.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to get offene kassensitzung for historie")
 		return nil, ErrDatabase

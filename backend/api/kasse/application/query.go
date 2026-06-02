@@ -7,20 +7,16 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type kassenQueryRepo interface {
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.KassensitzungState, error)
-	GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error)
-}
-
 type Query struct {
-	KassenRepo kassenQueryRepo
+	KassenjournalRepo   kassenjournalRepo
+	KassensitzungenRepo kassensitzungenRepo
 }
 
 // GetOffeneKassensitzung returns the currently open Kassensitzung or nil if none exists.
-func (q Query) GetOffeneKassensitzung(ctx context.Context) (*kasse.KassensitzungState, error) {
+func (q Query) GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error) {
 	log := zerolog.Ctx(ctx)
 
-	ks, err := q.KassenRepo.GetOffeneKassensitzung(ctx)
+	ks, err := q.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get offene Kassensitzung")
 		return nil, ErrDatabase
@@ -34,7 +30,7 @@ func (q Query) GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung
 func (q Query) GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	bestand, err := q.KassenRepo.GetKassenbestand(ctx, kassensitzungNr)
+	bestand, err := q.KassenjournalRepo.GetKassenbestand(ctx, kassensitzungNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", kassensitzungNr).Msg("Failed to get Kassenbestand")
 		return 0, ErrDatabase

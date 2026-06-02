@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 )
 
@@ -25,6 +26,10 @@ func (m mockQuery) GetReporting(_ context.Context, _ int) (reporting.ReportingDa
 
 func (m mockQuery) GetEigeneUebersicht(_ context.Context, _ int) (reporting.EigeneUebersicht, error) {
 	return reporting.EigeneUebersicht{}, m.err
+}
+
+func (m mockQuery) GetAllKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
+	return nil, m.err
 }
 
 func TestGetReportingHandler_InvalidJSON(t *testing.T) {

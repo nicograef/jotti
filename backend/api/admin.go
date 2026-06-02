@@ -18,6 +18,7 @@ import (
 	userHTTP "github.com/nicograef/jotti/backend/api/user/http"
 	"github.com/nicograef/jotti/backend/repository/drucker_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
+	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
 	"github.com/nicograef/jotti/backend/repository/table_repo"
@@ -59,11 +60,13 @@ func NewAdminApi(db *sql.DB) http.Handler {
 
 	tableRepo := table_repo.NewRepository(db)
 	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
+	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
 	tc := tableHTTP.CommandHandler{}
 	tc.Command = tableApp.Command{
-		TableRepo:   tableRepo,
-		EventRepo:   kassenjournalRepo,
-		ProductRepo: productRepo,
+		TableRepo:           tableRepo,
+		EventRepo:           kassenjournalRepo,
+		ProductRepo:         productRepo,
+		KassensitzungenRepo: kassensitzungenRepo,
 	}
 	r.HandleFunc("/update-tisch", tc.TischAktualisierenHandler())
 	r.HandleFunc("/create-tisch", tc.TischErstellenHandler())
@@ -72,17 +75,21 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/delete-tisch", tc.TischLoeschenHandler())
 
 	tq := tableHTTP.QueryHandler{}
-	tq.Query = tableApp.Query{TableRepo: tableRepo, EventRepo: kassenjournalRepo}
+	tq.Query = tableApp.Query{TableRepo: tableRepo, EventRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}
 	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())
 
 	reportingRepo := reporting_repo.NewRepository(db)
 	rq := reportingHTTP.QueryHandler{}
-	rq.Query = reportingApp.Query{ReportingRepo: reportingRepo, KasseRepo: kassenjournalRepo}
+	rq.Query = reportingApp.Query{
+		ReportingRepo:       reportingRepo,
+		KassensitzungenRepo: kassensitzungenRepo,
+	}
 	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
+	r.HandleFunc("/get-all-kassensitzungen", rq.GetAllKassensitzungenHandler())
 
 	kh := kasseHTTP.Handler{}
-	kh.Command = kasseApp.Command{KassenRepo: kassenjournalRepo}
-	kh.Query = kasseApp.Query{KassenRepo: kassenjournalRepo}
+	kh.Command = kasseApp.Command{KassenjournalRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}
+	kh.Query = kasseApp.Query{KassenjournalRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}
 	r.HandleFunc("/kassensitzung-eroeffnen", kh.KassensitzungEroeffnenHandler())
 	r.HandleFunc("/anfangsbestand-setzen", kh.AnfangsbestandSetzenHandler())
 	r.HandleFunc("/kassenbewegung-buchen", kh.KassenbewegungBuchenHandler())

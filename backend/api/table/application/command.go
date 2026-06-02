@@ -24,9 +24,12 @@ type tableRepo interface {
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.KassensitzungState, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
+}
+
+type kassensitzungenRepo interface {
+	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
 type productRepo interface {
@@ -51,16 +54,17 @@ type BestellPositionInput struct {
 }
 
 type Command struct {
-	TableRepo   tableRepo
-	EventRepo   eventRepo
-	ProductRepo productRepo
-	FavoritRepo favoritRepo
+	TableRepo           tableRepo
+	EventRepo           eventRepo
+	ProductRepo         productRepo
+	FavoritRepo         favoritRepo
+	KassensitzungenRepo kassensitzungenRepo
 }
 
 // getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung.
 // Returns ErrKasseNichtGeoeffnet (HTTP 409) when no open Kassensitzung exists.
-func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.KassensitzungState, error) {
-	ks, err := c.EventRepo.GetOffeneKassensitzung(ctx)
+func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
+	ks, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
 	if err != nil {
 		return nil, ErrDatabase
 	}

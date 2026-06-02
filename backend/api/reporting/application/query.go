@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/rs/zerolog"
 )
@@ -15,13 +16,14 @@ type reportingRepo interface {
 	GetEigeneUebersicht(ctx context.Context, userID int, kassensitzungNr int) (reporting.EigeneUebersicht, error)
 }
 
-type kasseRepo interface {
+type kassensitzungenRepo interface {
+	GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
 	GetOffeneKassensitzungNr(ctx context.Context) (int, error)
 }
 
 type Query struct {
-	ReportingRepo reportingRepo
-	KasseRepo     kasseRepo
+	ReportingRepo       reportingRepo
+	KassensitzungenRepo kassensitzungenRepo
 }
 
 func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error) {
@@ -37,10 +39,23 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 	return data, nil
 }
 
+func (q Query) GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error) {
+	log := zerolog.Ctx(ctx)
+
+	data, err := q.KassensitzungenRepo.GetAllKassensitzungen(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get all kassensitzungen")
+		return nil, ErrDatabase
+	}
+
+	log.Info().Msg("Retrieved all kassensitzungen")
+	return data, nil
+}
+
 func (q Query) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.EigeneUebersicht, error) {
 	log := zerolog.Ctx(ctx)
 
-	kassensitzungNr, err := q.KasseRepo.GetOffeneKassensitzungNr(ctx)
+	kassensitzungNr, err := q.KassensitzungenRepo.GetOffeneKassensitzungNr(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get offene kassensitzung nr")
 		return reporting.EigeneUebersicht{}, ErrDatabase

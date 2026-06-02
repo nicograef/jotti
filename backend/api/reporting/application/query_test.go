@@ -7,6 +7,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 )
 
@@ -32,6 +33,10 @@ func (m mockKasseRepo) GetOffeneKassensitzungNr(_ context.Context) (int, error) 
 	return m.kassensitzungNr, m.err
 }
 
+func (m mockKasseRepo) GetAllKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
+	return nil, m.err
+}
+
 const testKassensitzungNr = 1
 
 func TestGetReporting_HappyPath(t *testing.T) {
@@ -45,7 +50,7 @@ func TestGetReporting_HappyPath(t *testing.T) {
 		Stornierungen: []reporting.StornierungDetail{},
 	}
 
-	q := Query{ReportingRepo: mockReportingRepo{data: expected}, KasseRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
+	q := Query{ReportingRepo: mockReportingRepo{data: expected}, KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
 
 	result, err := q.GetReporting(context.Background(), testKassensitzungNr)
 	if err != nil {
@@ -60,7 +65,7 @@ func TestGetReporting_HappyPath(t *testing.T) {
 }
 
 func TestGetReporting_DatabaseError(t *testing.T) {
-	q := Query{ReportingRepo: mockReportingRepo{err: errors.New("db connection failed")}, KasseRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
+	q := Query{ReportingRepo: mockReportingRepo{err: errors.New("db connection failed")}, KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
 
 	_, err := q.GetReporting(context.Background(), testKassensitzungNr)
 	if !errors.Is(err, ErrDatabase) {

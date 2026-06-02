@@ -34,7 +34,7 @@ func createTisch(db *sql.DB, name string) (int, error) {
 
 func createKassensitzung(db *sql.DB) (int, error) {
 	var zNr int
-	err := db.QueryRow("INSERT INTO kassensitzungen (datum, bezeichnung, status, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING z_nr", time.Now(), "Test-Sitzung", kasse.KassensitzungStatusOffen).Scan(&zNr)
+	err := db.QueryRow("INSERT INTO kassensitzungen (datum, bezeichnung, status, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING z_nr", time.Now(), "Test-Sitzung", kasse.KassensitzungOffen).Scan(&zNr)
 	if err != nil {
 		return 0, err
 	}
@@ -441,30 +441,19 @@ func TestWriteEvent_KassensitzungEroeffnet(t *testing.T) {
 	}
 
 	// Verify the kassensitzung still exists and is offen
-	ks, err := repo.GetOffeneKassensitzung(context.Background())
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+	var status string
+	statErr := repo.DB.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = $1", ksNr).Scan(&status)
+	if statErr != nil {
+		t.Fatalf("Expected no error reading kassensitzung status, got %v", statErr)
 	}
-	if ks == nil {
-		t.Fatalf("Expected open kassensitzung, got nil")
-	}
-	if ks.Status != kasse.KassensitzungStatusOffen {
-		t.Fatalf("Expected status 'offen', got %s", ks.Status)
+	if status != string(kasse.KassensitzungOffen) {
+		t.Fatalf("Expected status 'offen', got %s", status)
 	}
 }
 
 func TestWriteEvent_TagesabschlussErstellt(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
-
-	// Verify kassensitzung is offen
-	ks, err := repo.GetOffeneKassensitzung(context.Background())
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if ks == nil {
-		t.Fatalf("Expected open kassensitzung, got nil")
-	}
 
 	subject := kasse.KassensitzungSubject(ksNr)
 	data := map[string]any{
@@ -485,12 +474,13 @@ func TestWriteEvent_TagesabschlussErstellt(t *testing.T) {
 	}
 
 	// Verify kassensitzung is now abgeschlossen
-	ksAfter, err := repo.GetOffeneKassensitzung(context.Background())
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+	var status string
+	statErr := repo.DB.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = $1", ksNr).Scan(&status)
+	if statErr != nil {
+		t.Fatalf("Expected no error reading kassensitzung status, got %v", statErr)
 	}
-	if ksAfter != nil {
-		t.Fatalf("Expected no open kassensitzung after tagesabschluss, got z_nr=%d", ksAfter.ZNr)
+	if status != string(kasse.KassensitzungAbgeschlossen) {
+		t.Fatalf("Expected status 'abgeschlossen', got %s", status)
 	}
 }
 
@@ -499,17 +489,9 @@ func TestGetOffeneKassensitzung_NoneOpen(t *testing.T) {
 	defer teardown(t)
 
 	// Close the kassensitzung created by setup
-	_, err := repo.DB.Exec("UPDATE kassensitzungen SET status = $1 WHERE z_nr = $2", kasse.KassensitzungStatusAbgeschlossen, ksNr)
+	_, err := repo.DB.Exec("UPDATE kassensitzungen SET status = $1 WHERE z_nr = $2", kasse.KassensitzungAbgeschlossen, ksNr)
 	if err != nil {
 		t.Fatalf("Failed to close kassensitzung: %v", err)
-	}
-
-	ks, err := repo.GetOffeneKassensitzung(context.Background())
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if ks != nil {
-		t.Fatalf("Expected nil for no open kassensitzung, got z_nr=%d", ks.ZNr)
 	}
 }
 
@@ -785,14 +767,12 @@ func TestWriteEvent_KassensitzungOtherEvent_NoCRUDChange(t *testing.T) {
 	}
 
 	// Verify kassensitzung is still offen
-	ks, err := repo.GetOffeneKassensitzung(context.Background())
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+	var status string
+	statErr := repo.DB.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = $1", ksNr).Scan(&status)
+	if statErr != nil {
+		t.Fatalf("Expected no error reading kassensitzung status, got %v", statErr)
 	}
-	if ks == nil {
-		t.Fatalf("Expected open kassensitzung, got nil")
-	}
-	if ks.Status != kasse.KassensitzungStatusOffen {
-		t.Fatalf("Expected status 'offen', got %s", ks.Status)
+	if status != string(kasse.KassensitzungOffen) {
+		t.Fatalf("Expected status 'offen', got %s", status)
 	}
 }

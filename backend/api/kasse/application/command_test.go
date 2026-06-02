@@ -9,22 +9,21 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
+	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 )
 
-var testOpenKS = &kasse.KassensitzungState{
+var testOpenKS = &kasse.Kassensitzung{
 	ZNr:       1,
 	Datum:     time.Now().UTC(),
-	Status:    kasse.KassensitzungStatusOffen,
+	Status:    kasse.KassensitzungOffen,
 	CreatedAt: time.Now().UTC(),
 	UpdatedAt: time.Now().UTC(),
 }
 
-func newTestCommand(ks *kasse.KassensitzungState) Command {
-	mock := kassenjournal_repo.NewMock(nil, nil)
-	if ks != nil {
-		mock.SetOffeneKassensitzung(ks)
-	}
-	return Command{KassenRepo: mock}
+func newTestCommand(ks *kasse.Kassensitzung) Command {
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	sitzungMock := kassensitzungen_repo.NewMock(ks, nil)
+	return Command{KassenjournalRepo: journalMock, KassensitzungenRepo: sitzungMock}
 }
 
 func TestKassensitzungEroeffnen(t *testing.T) {
@@ -82,10 +81,9 @@ func TestKassenbewegungBuchen(t *testing.T) {
 
 func TestKassensturzDurchfuehren(t *testing.T) {
 	ctx := context.Background()
-	mock := kassenjournal_repo.NewMock(nil, nil)
-	mock.SetOffeneKassensitzung(testOpenKS)
-	mock.SetKassenbestand(50000) // Soll = 500 EUR
-	cmd := Command{KassenRepo: mock}
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock.SetKassenbestand(50000) // Soll = 500 EUR
+	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
 
 	err := cmd.KassensturzDurchfuehren(ctx, 1, "Admin", 49500) // Ist = 495 EUR, Differenz = 500
 	if err != nil {
@@ -95,10 +93,9 @@ func TestKassensturzDurchfuehren(t *testing.T) {
 
 func TestKassensturzDurchfuehren_NoDifference(t *testing.T) {
 	ctx := context.Background()
-	mock := kassenjournal_repo.NewMock(nil, nil)
-	mock.SetOffeneKassensitzung(testOpenKS)
-	mock.SetKassenbestand(50000) // Soll = 500 EUR
-	cmd := Command{KassenRepo: mock}
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock.SetKassenbestand(50000) // Soll = 500 EUR
+	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
 
 	// Ist matches Soll exactly — no differenz event should be created
 	err := cmd.KassensturzDurchfuehren(ctx, 1, "Admin", 50000)
@@ -119,15 +116,14 @@ func TestKassensturzDurchfuehren_KasseNichtGeoeffnet(t *testing.T) {
 
 func TestTagesabschlussErstellen(t *testing.T) {
 	ctx := context.Background()
-	mock := kassenjournal_repo.NewMock(nil, nil)
-	mock.SetOffeneKassensitzung(testOpenKS)
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
 
 	// Add a kassensturz event to satisfy the prerequisite
 	subject := kasse.KassensitzungSubject(testOpenKS.ZNr)
 	kassensturzEvt, _ := kasse.NewKassensturzDurchgefuehrtEvent(subject, 1, "Admin", 50000, 50000, 0)
-	mock.AddEvent(kassensturzEvt)
+	journalMock.AddEvent(kassensturzEvt)
 
-	cmd := Command{KassenRepo: mock}
+	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
 
 	err := cmd.TagesabschlussErstellen(ctx, 1, "Admin")
 	if err != nil {
@@ -137,10 +133,9 @@ func TestTagesabschlussErstellen(t *testing.T) {
 
 func TestTagesabschlussErstellen_KassensturzRequired(t *testing.T) {
 	ctx := context.Background()
-	mock := kassenjournal_repo.NewMock(nil, nil)
-	mock.SetOffeneKassensitzung(testOpenKS)
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
 	// No kassensturz event added
-	cmd := Command{KassenRepo: mock}
+	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
 
 	err := cmd.TagesabschlussErstellen(ctx, 1, "Admin")
 	if err != ErrKassensturzErforderlich {
@@ -150,23 +145,22 @@ func TestTagesabschlussErstellen_KassensturzRequired(t *testing.T) {
 
 func TestTagesabschlussErstellen_TischSaldoSperre(t *testing.T) {
 	ctx := context.Background()
-	mock := kassenjournal_repo.NewMock(nil, nil)
-	mock.SetOffeneKassensitzung(testOpenKS)
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
 
 	// Add kassensturz event to satisfy that prerequisite
 	subject := kasse.KassensitzungSubject(testOpenKS.ZNr)
 	kassensturzEvt, _ := kasse.NewKassensturzDurchgefuehrtEvent(subject, 1, "Admin", 50000, 50000, 0)
-	mock.AddEvent(kassensturzEvt)
+	journalMock.AddEvent(kassensturzEvt)
 
 	// Add a tisch session with non-zero saldo
 	tischSubject := kasse.TischSessionSubject(testOpenKS.ZNr, 42)
-	mock.SetTischSession(tischSubject, kasse.TischSession{
+	journalMock.SetTischSession(tischSubject, kasse.TischSession{
 		TischID:         42,
 		KassensitzungNr: testOpenKS.ZNr,
 		SaldoCents:      350, // non-zero saldo
 	})
 
-	cmd := Command{KassenRepo: mock}
+	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
 
 	err := cmd.TagesabschlussErstellen(ctx, 1, "Admin")
 	if err != ErrTischeSaldoOffen {

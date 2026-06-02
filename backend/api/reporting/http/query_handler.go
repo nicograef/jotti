@@ -7,12 +7,14 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/middleware"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 )
 
 type query interface {
 	GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error)
 	GetEigeneUebersicht(ctx context.Context, userID int) (reporting.EigeneUebersicht, error)
+	GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
 }
 
 type QueryHandler struct {
@@ -196,6 +198,39 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 			UmsatzProTisch:        toUmsatzTischList(d.Breakdowns.UmsatzProTisch),
 		},
 		Stornierungen: toStornierungDetails(d.Stornierungen),
+	}
+}
+
+type kassensitzungItem struct {
+	ZNr         int       `json:"zNr"`
+	Datum       time.Time `json:"datum"`
+	Bezeichnung string    `json:"bezeichnung"`
+	Status      string    `json:"status"`
+}
+
+type getAllKassensitzungenResponse struct {
+	Kassensitzungen []kassensitzungItem `json:"kassensitzungen"`
+}
+
+func (h QueryHandler) GetAllKassensitzungenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		data, err := h.Query.GetAllKassensitzungen(r.Context())
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		items := make([]kassensitzungItem, len(data))
+		for i, k := range data {
+			items[i] = kassensitzungItem{
+				ZNr:         k.ZNr,
+				Datum:       k.Datum,
+				Bezeichnung: k.Bezeichnung,
+				Status:      k.Status,
+			}
+		}
+
+		helper.SendResponse(w, getAllKassensitzungenResponse{Kassensitzungen: items})
 	}
 }
 
