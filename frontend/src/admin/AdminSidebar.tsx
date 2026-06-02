@@ -25,7 +25,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { useIsCompact } from '@/hooks/use-is-compact'
 import { AuthSingleton } from '@/lib/Auth'
 
 const reportingItems = [
@@ -75,7 +74,6 @@ const serviceItems = [
 export function AdminSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
-  const isCompact = useIsCompact()
   const { isDark, setTheme } = useTheme()
   const toggleTheme = () => {
     setTheme(isDark ? 'light' : 'dark')
@@ -87,10 +85,7 @@ export function AdminSidebar() {
   }
 
   return (
-    <Sidebar
-      collapsible={isCompact ? 'offcanvas' : 'none'}
-      className="min-h-screen"
-    >
+    <Sidebar collapsible="offcanvas">
       <SidebarHeader>
         <h1 className="text-4xl text-center font-extrabold">jotti</h1>
       </SidebarHeader>
