@@ -53,6 +53,7 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | K-19 | Kassenbewegung buchen   | Geldtransit, Privatentnahme oder Privateinlage als Event im Kassenjournal.                                           |
 | K-21 | Kassensturz durchführen | Gezählter Ist-Bestand vs. Soll-Bestand. Differenz wird automatisch gebucht.                                          |
 | K-22 | Tagesabschluss / Z-Bon  | Formaler Tagesabschluss. Schließt Kassensitzung ab. Voraussetzung: Kassensturz + alle Tische auf Saldo 0.            |
+| K-11 | Tisch-Schnellsuche      | Suchfeld im Alle-Tische-Drawer. Clientseitige Echtzeit-Filterung nach Tischname (case-insensitive).                  |
 
 > 🚫 **K-08 · Bezeichnung pro Bestellung:** Won't-have — wird über das bestehende Kommentarfeld (K-01) gelöst.
 
@@ -128,21 +129,6 @@ Bei der Zahlung kann die Servicekraft den vom Gast erhaltenen Bargeldbetrag eing
 - [ ] Eingabefeld für den erhaltenen Bargeldbetrag bei der Zahlung
 - [ ] System berechnet und zeigt das Rückgeld an
 - [ ] Berechnung erfolgt rein clientseitig (kein Backend-Aufruf)
-
----
-
-#### K-11 · Tisch-Schnellsuche
-
-> **Rolle:** Servicekraft · Serviceleitung · Admin · **Prio:** Nice-to-have
-
-Im Alle-Tische-Drawer (K-06) kann die Servicekraft über ein Suchfeld Tische nach Name oder Nummer filtern, um schnell zum gewünschten Tisch zu navigieren — ohne durch die gesamte Liste scrollen zu müssen.
-
-**Akzeptanzkriterien:**
-
-- [ ] Suchfeld am Anfang des Alle-Tische-Drawers
-- [ ] Clientseitige Filterung der Tischliste nach Tischname/-nummer (case-insensitive)
-- [ ] Filtereingabe reduziert die angezeigte Tischliste in Echtzeit
-- [ ] Bei leerem Suchfeld werden alle aktiven Tische angezeigt
 
 ---
 
