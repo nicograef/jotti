@@ -34,7 +34,7 @@ func createTisch(db *sql.DB, name string) (int, error) {
 
 func createKassensitzung(db *sql.DB) (int, error) {
 	var zNr int
-	err := db.QueryRow("INSERT INTO kassensitzungen (datum, bezeichnung, status, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING z_nr", time.Now(), "Test-Sitzung", kasse.KassensitzungOffen).Scan(&zNr)
+	err := db.QueryRow("INSERT INTO kassensitzungen (datum, bezeichnung, status, created_at, updated_at) VALUES ((NOW() AT TIME ZONE 'Europe/Berlin')::date, $1, $2, NOW(), NOW()) RETURNING z_nr", "Test-Sitzung", kasse.KassensitzungOffen).Scan(&zNr)
 	if err != nil {
 		return 0, err
 	}

@@ -14,7 +14,6 @@ import (
 
 var testOpenKS = &kasse.Kassensitzung{
 	ZNr:       1,
-	Datum:     time.Now().UTC(),
 	Status:    kasse.KassensitzungOffen,
 	CreatedAt: time.Now().UTC(),
 	UpdatedAt: time.Now().UTC(),
@@ -30,7 +29,7 @@ func TestKassensitzungEroeffnen(t *testing.T) {
 	ctx := context.Background()
 	cmd := newTestCommand(nil) // no open KS
 
-	zNr, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", time.Now().UTC(), "Vereinsfest 2026")
+	zNr, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -43,7 +42,7 @@ func TestKassensitzungEroeffnen_AlreadyOpen(t *testing.T) {
 	ctx := context.Background()
 	cmd := newTestCommand(testOpenKS)
 
-	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", time.Now().UTC(), "Vereinsfest 2026")
+	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026")
 	if err != ErrKasseAlreadyOpen {
 		t.Fatalf("expected ErrKasseAlreadyOpen, got %v", err)
 	}

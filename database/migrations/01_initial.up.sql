@@ -31,8 +31,8 @@ COMMENT ON COLUMN users.created_at IS 'Creation timestamp (UTC)';
 COMMENT ON COLUMN users.updated_at IS 'Last modification timestamp (UTC)';
 
 -- Create first admin user (without onetime password)
-INSERT INTO users (username, name, role, onetime_password_hash, status, created_at) VALUES (
-  'admin', 'Administrator', 'admin', '$argon2id$v=19$m=64,t=2,p=2$ekV4Uzg2cUhVTTBUaTJJVw$4Sfsc6eRVIWXSzgNoWaybDBws3c830yC6IMcdUDG1ns', 'active', now()
+INSERT INTO users (username, name, role, onetime_password_hash, status, created_at, updated_at) VALUES (
+  'admin', 'Administrator', 'admin', '$argon2id$v=19$m=64,t=2,p=2$ekV4Uzg2cUhVTTBUaTJJVw$4Sfsc6eRVIWXSzgNoWaybDBws3c830yC6IMcdUDG1ns', 'active', now(), now()
 );
 
 -- Tische

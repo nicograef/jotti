@@ -14,7 +14,6 @@ import {
 } from './Kassensitzung'
 
 export const KassensitzungEroeffnenSchema = z.object({
-  datum: z.string().min(1, { message: 'Datum ist erforderlich.' }),
   bezeichnung: BezeichnungSchema,
 })
 
@@ -45,11 +44,8 @@ export class KasseBackend {
     this.backend = backend
   }
 
-  async kassensitzungEroeffnen(
-    datum: string,
-    bezeichnung: string,
-  ): Promise<number> {
-    const body = KassensitzungEroeffnenSchema.parse({ datum, bezeichnung })
+  async kassensitzungEroeffnen(bezeichnung: string): Promise<number> {
+    const body = KassensitzungEroeffnenSchema.parse({ bezeichnung })
     const { zNr } = await this.backend.post(
       'admin/kassensitzung-eroeffnen',
       body,

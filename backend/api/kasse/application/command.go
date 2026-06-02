@@ -66,7 +66,7 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 }
 
 // KassensitzungEroeffnen opens a new Kassensitzung. Returns ErrKasseAlreadyOpen if one is already open.
-func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, datum time.Time, bezeichnung string) (int, error) {
+func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string) (int, error) {
 	log := zerolog.Ctx(ctx)
 
 	existing, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
@@ -78,6 +78,13 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		log.Warn().Int("z_nr", existing.ZNr).Msg("Kassensitzung already open")
 		return 0, ErrKasseAlreadyOpen
 	}
+
+	berliner, err := time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to load Europe/Berlin timezone")
+		return 0, ErrDatabase
+	}
+	datum := time.Now().In(berliner).Truncate(24 * time.Hour)
 
 	zNr, err := c.KassensitzungenRepo.InsertKassensitzung(ctx, datum, bezeichnung)
 	if err != nil {

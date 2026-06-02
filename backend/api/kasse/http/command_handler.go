@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
 	kasseApp "github.com/nicograef/jotti/backend/api/kasse/application"
@@ -12,7 +11,7 @@ import (
 )
 
 type command interface {
-	KassensitzungEroeffnen(ctx context.Context, userID int, userName string, datum time.Time, bezeichnung string) (int, error)
+	KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string) (int, error)
 	AnfangsbestandSetzen(ctx context.Context, userID int, userName string, betragCents int) error
 	KassenbewegungBuchen(ctx context.Context, userID int, userName string, art string, betragCents int, kommentar string) error
 	KassensturzDurchfuehren(ctx context.Context, userID int, userName string, istBestandCents int) error
@@ -26,7 +25,6 @@ type CommandHandler struct {
 // --- Request / Response DTOs ---
 
 type kassensitzungEroeffnenRequest struct {
-	Datum       string `json:"datum"`
 	Bezeichnung string `json:"bezeichnung"`
 }
 
@@ -57,17 +55,6 @@ func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 			return
 		}
 
-		if body.Datum == "" {
-			helper.SendClientError(w, "datum_erforderlich", nil)
-			return
-		}
-
-		datum, err := time.Parse("2006-01-02", body.Datum)
-		if err != nil {
-			helper.SendClientError(w, "invalid_datum", nil)
-			return
-		}
-
 		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
 		if !ok {
 			helper.SendServerError(w)
@@ -75,7 +62,7 @@ func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
-		zNr, err := h.Command.KassensitzungEroeffnen(r.Context(), userID, userName, datum, body.Bezeichnung)
+		zNr, err := h.Command.KassensitzungEroeffnen(r.Context(), userID, userName, body.Bezeichnung)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				kasseApp.ErrKasseAlreadyOpen: "kasse_bereits_geoeffnet",

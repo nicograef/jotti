@@ -87,15 +87,12 @@ export function KassensitzungPage() {
 
 function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
   const FormDataSchema = z.object({
-    datum: z.string().min(1, { message: 'Datum ist erforderlich.' }),
     bezeichnung: BezeichnungSchema,
   })
   type FormData = z.infer<typeof FormDataSchema>
 
-  const [todayStr] = useState(() => new Date().toISOString().slice(0, 10))
   const form = useForm<FormData>({
     defaultValues: {
-      datum: todayStr,
       bezeichnung: '',
     },
     resolver: zodResolver(FormDataSchema),
@@ -104,7 +101,7 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
 
   const onSubmit = async (data: FormData) => {
     try {
-      await kasseBackend.kassensitzungEroeffnen(data.datum, data.bezeichnung)
+      await kasseBackend.kassensitzungEroeffnen(data.bezeichnung)
       toast.success('Kassensitzung eröffnet.')
       onSuccess()
     } catch (error: unknown) {
@@ -127,22 +124,6 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
           }}
         >
           <FieldGroup>
-            <Field
-              data-invalid={!!form.formState.errors.datum}
-              className="gap-1"
-            >
-              <FieldLabel htmlFor="ks-datum">Datum</FieldLabel>
-              <Input
-                id="ks-datum"
-                type="date"
-                {...form.register('datum')}
-                aria-invalid={!!form.formState.errors.datum}
-                className="w-48"
-              />
-              {form.formState.errors.datum && (
-                <FieldError errors={[form.formState.errors.datum]} />
-              )}
-            </Field>
             <Field
               data-invalid={!!form.formState.errors.bezeichnung}
               className="gap-1"

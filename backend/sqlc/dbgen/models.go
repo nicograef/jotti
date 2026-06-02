@@ -168,7 +168,7 @@ type Kassensitzungen struct {
 	ZNr int
 	// Betriebstag der Kassensitzung
 	Datum time.Time
-	// Optionale Bezeichnung (z.B. "Sommerfest Tag 1")
+	// Bezeichnung (z.B. "Sommerfest Tag 1")
 	Bezeichnung string
 	// Kassensitzung-Status: offen oder abgeschlossen
 	Status string
