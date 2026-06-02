@@ -11,8 +11,7 @@ import (
 )
 
 type command interface {
-	KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string) (int, error)
-	AnfangsbestandSetzen(ctx context.Context, userID int, userName string, betragCents int) error
+	KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error)
 	KassenbewegungBuchen(ctx context.Context, userID int, userName string, art string, betragCents int, kommentar string) error
 	KassensturzDurchfuehren(ctx context.Context, userID int, userName string, istBestandCents int) error
 	TagesabschlussErstellen(ctx context.Context, userID int, userName string) error
@@ -26,14 +25,11 @@ type CommandHandler struct {
 
 type kassensitzungEroeffnenRequest struct {
 	Bezeichnung string `json:"bezeichnung"`
+	BetragCents int    `json:"betragCents"`
 }
 
 type kassensitzungEroeffnenResponse struct {
 	ZNr int `json:"zNr"`
-}
-
-type anfangsbestandSetzenRequest struct {
-	BetragCents int `json:"betragCents"`
 }
 
 type kassenbewegungBuchenRequest struct {
@@ -62,7 +58,7 @@ func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
-		zNr, err := h.Command.KassensitzungEroeffnen(r.Context(), userID, userName, body.Bezeichnung)
+		zNr, err := h.Command.KassensitzungEroeffnen(r.Context(), userID, userName, body.Bezeichnung, body.BetragCents)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				kasseApp.ErrKasseAlreadyOpen: "kasse_bereits_geoeffnet",
@@ -71,36 +67,6 @@ func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 		}
 
 		helper.SendResponse(w, kassensitzungEroeffnenResponse{ZNr: zNr})
-	}
-}
-
-func (h *CommandHandler) AnfangsbestandSetzenHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body := anfangsbestandSetzenRequest{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
-		if !ok {
-			helper.SendServerError(w)
-			return
-		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
-
-		err := h.Command.AnfangsbestandSetzen(r.Context(), userID, userName, body.BetragCents)
-		if err != nil {
-			if errors.Is(err, kasseApp.ErrKonflikt) {
-				helper.SendConflictError(w)
-			} else {
-				helper.MapError(w, err, map[error]string{
-					kasseApp.ErrKasseNichtGeoeffnet: "kasse_nicht_geoeffnet",
-				})
-			}
-			return
-		}
-
-		helper.SendEmptyResponse(w)
 	}
 }
 

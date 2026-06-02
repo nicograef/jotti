@@ -11,7 +11,6 @@ import (
 
 const (
 	EventTypeKassensitzungEroeffnetV1   EventType = "kassensitzung-eroeffnet:v1"
-	EventTypeAnfangsbestandGesetztV1    EventType = "anfangsbestand-gesetzt:v1"
 	EventTypeKassenbewegungGebuchtV1    EventType = "kassenbewegung-gebucht:v1"
 	EventTypeKassensturzDurchgefuehrtV1 EventType = "kassensturz-durchgefuehrt:v1"
 	EventTypeDifferenzSollIstGebuchtV1  EventType = "differenz-soll-ist-gebucht:v1"
@@ -23,23 +22,15 @@ const (
 type kassensitzungEroeffnetV1Data struct {
 	Datum        string `json:"datum"`
 	Bezeichnung  string `json:"bezeichnung"`
+	BetragCents  int    `json:"betragCents"`
 	EroeffnetVon int    `json:"eroeffnetVon"`
 }
 
 var kassensitzungEroeffnetV1DataSchema = z.Struct(z.Shape{
 	"Datum":        z.String().Min(8).Max(10).Required(),
 	"Bezeichnung":  z.String().Min(1).Max(200).Required(),
+	"BetragCents":  z.Int().GTE(0).Required(),
 	"EroeffnetVon": z.Int().GTE(1).Required(),
-})
-
-type anfangsbestandGesetztV1Data struct {
-	BetragCents int `json:"betragCents"`
-	GesetztVon  int `json:"gesetztVon"`
-}
-
-var anfangsbestandGesetztV1DataSchema = z.Struct(z.Shape{
-	"BetragCents": z.Int().GTE(0).Required(),
-	"GesetztVon":  z.Int().GTE(1).Required(),
 })
 
 type kassenbewegungGebuchtV1Data struct {
@@ -106,10 +97,11 @@ var tagesabschlussErstelltV1DataSchema = z.Struct(z.Shape{
 
 // --- Event-Erstellungsfunktionen ---
 
-func NewKassensitzungEroeffnetEvent(subject string, userID int, userName string, datum string, bezeichnung string) (e.Event, error) {
+func NewKassensitzungEroeffnetEvent(subject string, userID int, userName string, datum string, bezeichnung string, betragCents int) (e.Event, error) {
 	data := kassensitzungEroeffnetV1Data{
 		Datum:        datum,
 		Bezeichnung:  bezeichnung,
+		BetragCents:  betragCents,
 		EroeffnetVon: userID,
 	}
 
@@ -119,25 +111,6 @@ func NewKassensitzungEroeffnetEvent(subject string, userID int, userName string,
 	}
 
 	event, err := e.New(userID, userName, string(EventTypeKassensitzungEroeffnetV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
-}
-
-func NewAnfangsbestandGesetztEvent(subject string, userID int, userName string, betragCents int) (e.Event, error) {
-	data := anfangsbestandGesetztV1Data{
-		BetragCents: betragCents,
-		GesetztVon:  userID,
-	}
-
-	if err := anfangsbestandGesetztV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("anfangsbestand gesetzt data validation failed: %v", issues)
-	}
-
-	event, err := e.New(userID, userName, string(EventTypeAnfangsbestandGesetztV1), subject, data)
 	if err != nil {
 		return e.Event{}, err
 	}

@@ -70,7 +70,6 @@ export function KassensitzungPage() {
             </CardContent>
           </Card>
 
-          <AnfangsbestandSection onSuccess={() => void refetch()} />
           <KassenbewegungSection onSuccess={() => void refetch()} />
           <KassensturzSection onSuccess={() => void refetch()} />
           <TagesabschlussSection onSuccess={() => void refetch()} />
@@ -88,12 +87,19 @@ export function KassensitzungPage() {
 function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
   const FormDataSchema = z.object({
     bezeichnung: BezeichnungSchema,
+    betragEuro: z
+      .string()
+      .min(1, { message: 'Bitte einen Betrag eingeben.' })
+      .refine((val) => !isNaN(parseFloat(val.replace(',', '.'))), {
+        message: 'Bitte einen gültigen Betrag eingeben.',
+      }),
   })
   type FormData = z.infer<typeof FormDataSchema>
 
   const form = useForm<FormData>({
     defaultValues: {
       bezeichnung: '',
+      betragEuro: '',
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
@@ -101,7 +107,10 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
 
   const onSubmit = async (data: FormData) => {
     try {
-      await kasseBackend.kassensitzungEroeffnen(data.bezeichnung)
+      await kasseBackend.kassensitzungEroeffnen(
+        data.bezeichnung,
+        parseCents(data.betragEuro),
+      )
       toast.success('Kassensitzung eröffnet.')
       onSuccess()
     } catch (error: unknown) {
@@ -140,68 +149,15 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
                 <FieldError errors={[form.formState.errors.bezeichnung]} />
               )}
             </Field>
-            <div>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                Kassensitzung eröffnen
-              </Button>
-            </div>
-          </FieldGroup>
-        </form>
-      </CardContent>
-    </Card>
-  )
-}
-
-function AnfangsbestandSection({ onSuccess }: { onSuccess: () => void }) {
-  const FormDataSchema = z.object({
-    betragEuro: z
-      .string()
-      .min(1, { message: 'Bitte einen Betrag eingeben.' })
-      .refine((val) => !isNaN(parseFloat(val.replace(',', '.'))), {
-        message: 'Bitte einen gültigen Betrag eingeben.',
-      }),
-  })
-  type FormData = z.infer<typeof FormDataSchema>
-
-  const form = useForm<FormData>({
-    defaultValues: { betragEuro: '' },
-    resolver: zodResolver(FormDataSchema),
-    mode: 'onTouched',
-  })
-
-  const onSubmit = async (data: FormData) => {
-    try {
-      await kasseBackend.anfangsbestandSetzen(parseCents(data.betragEuro))
-      toast.success('Anfangsbestand gesetzt.')
-      form.reset()
-      onSuccess()
-    } catch (error: unknown) {
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Anfangsbestand setzen', error }),
-      )
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Anfangsbestand setzen</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            void form.handleSubmit(onSubmit)()
-          }}
-        >
-          <FieldGroup>
             <Field
               data-invalid={!!form.formState.errors.betragEuro}
               className="gap-1"
             >
-              <FieldLabel htmlFor="anfangsbestand">Betrag (€)</FieldLabel>
+              <FieldLabel htmlFor="ks-anfangsbestand">
+                Anfangsbestand (€)
+              </FieldLabel>
               <Input
-                id="anfangsbestand"
+                id="ks-anfangsbestand"
                 type="text"
                 inputMode="decimal"
                 {...form.register('betragEuro')}
@@ -215,7 +171,7 @@ function AnfangsbestandSection({ onSuccess }: { onSuccess: () => void }) {
             </Field>
             <div>
               <Button type="submit" disabled={form.formState.isSubmitting}>
-                Anfangsbestand setzen
+                Kassensitzung eröffnen
               </Button>
             </div>
           </FieldGroup>

@@ -66,7 +66,7 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 }
 
 // KassensitzungEroeffnen opens a new Kassensitzung. Returns ErrKasseAlreadyOpen if one is already open.
-func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string) (int, error) {
+func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error) {
 	log := zerolog.Ctx(ctx)
 
 	existing, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
@@ -92,7 +92,7 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		return 0, ErrDatabase
 	}
 
-	evt, err := kasse.NewKassensitzungEroeffnetEvent(kasse.KassensitzungSubject(zNr), userID, userName, datum.Format("2006-01-02"), bezeichnung)
+	evt, err := kasse.NewKassensitzungEroeffnetEvent(kasse.KassensitzungSubject(zNr), userID, userName, datum.Format("2006-01-02"), bezeichnung, betragCents)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", zNr).Msg("Failed to create kassensitzung-eroeffnet event")
 		return 0, err
@@ -104,29 +104,6 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 
 	log.Info().Int("z_nr", zNr).Msg("Kassensitzung eroeffnet")
 	return zNr, nil
-}
-
-// AnfangsbestandSetzen sets the initial cash balance for the open Kassensitzung.
-func (c Command) AnfangsbestandSetzen(ctx context.Context, userID int, userName string, betragCents int) error {
-	log := zerolog.Ctx(ctx)
-
-	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
-	if err != nil {
-		return err
-	}
-
-	evt, err := kasse.NewAnfangsbestandGesetztEvent(kasse.KassensitzungSubject(ks.ZNr), userID, userName, betragCents)
-	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create anfangsbestand-gesetzt event")
-		return err
-	}
-
-	if err := c.writeKassensitzungEvent(ctx, evt, ks.ZNr); err != nil {
-		return err
-	}
-
-	log.Info().Int("z_nr", ks.ZNr).Int("betrag_cents", betragCents).Msg("Anfangsbestand gesetzt")
-	return nil
 }
 
 // KassenbewegungBuchen books a cash movement (privateinlage, privatentnahme, geldtransit).

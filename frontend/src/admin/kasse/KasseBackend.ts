@@ -15,9 +15,6 @@ import {
 
 export const KassensitzungEroeffnenSchema = z.object({
   bezeichnung: BezeichnungSchema,
-})
-
-export const AnfangsbestandSetzenSchema = z.object({
   betragCents: BetragCentsSchema,
 })
 
@@ -44,19 +41,20 @@ export class KasseBackend {
     this.backend = backend
   }
 
-  async kassensitzungEroeffnen(bezeichnung: string): Promise<number> {
-    const body = KassensitzungEroeffnenSchema.parse({ bezeichnung })
+  async kassensitzungEroeffnen(
+    bezeichnung: string,
+    betragCents: number,
+  ): Promise<number> {
+    const body = KassensitzungEroeffnenSchema.parse({
+      bezeichnung,
+      betragCents,
+    })
     const { zNr } = await this.backend.post(
       'admin/kassensitzung-eroeffnen',
       body,
       z.object({ zNr: z.number().int() }),
     )
     return zNr
-  }
-
-  async anfangsbestandSetzen(betragCents: number): Promise<void> {
-    const body = AnfangsbestandSetzenSchema.parse({ betragCents })
-    await this.backend.post('admin/anfangsbestand-setzen', body)
   }
 
   async kassenbewegungBuchen(

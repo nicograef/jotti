@@ -29,7 +29,7 @@ func TestKassensitzungEroeffnen(t *testing.T) {
 	ctx := context.Background()
 	cmd := newTestCommand(nil) // no open KS
 
-	zNr, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026")
+	zNr, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -42,29 +42,9 @@ func TestKassensitzungEroeffnen_AlreadyOpen(t *testing.T) {
 	ctx := context.Background()
 	cmd := newTestCommand(testOpenKS)
 
-	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026")
+	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
 	if err != ErrKasseAlreadyOpen {
 		t.Fatalf("expected ErrKasseAlreadyOpen, got %v", err)
-	}
-}
-
-func TestAnfangsbestandSetzen(t *testing.T) {
-	ctx := context.Background()
-	cmd := newTestCommand(testOpenKS)
-
-	err := cmd.AnfangsbestandSetzen(ctx, 1, "Admin", 50000) // 500 EUR
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-}
-
-func TestAnfangsbestandSetzen_KasseNichtGeoeffnet(t *testing.T) {
-	ctx := context.Background()
-	cmd := newTestCommand(nil)
-
-	err := cmd.AnfangsbestandSetzen(ctx, 1, "Admin", 50000)
-	if err != ErrKasseNichtGeoeffnet {
-		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
 

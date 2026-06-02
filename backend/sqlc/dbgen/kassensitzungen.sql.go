@@ -47,7 +47,7 @@ func (q *Queries) GetAllKassensitzungen(ctx context.Context) ([]Kassensitzungen,
 
 const getKassenbestand = `-- name: GetKassenbestand :one
 SELECT COALESCE(SUM(CASE
-    WHEN type = 'anfangsbestand-gesetzt:v1'
+    WHEN type = 'kassensitzung-eroeffnet:v1'
         THEN (data->>'betragCents')::INT
     WHEN type = 'zahlung-kassiert:v1'
         THEN (data->>'gesamtZahlungCents')::INT
@@ -64,7 +64,7 @@ END), 0)::int AS soll_bestand_cents
 FROM kassenjournal
 WHERE kassensitzung_nr = $1
   AND type IN (
-    'anfangsbestand-gesetzt:v1',
+    'kassensitzung-eroeffnet:v1',
     'zahlung-kassiert:v1',
     'auszahlung-geleistet:v1',
     'kassenbewegung-gebucht:v1',

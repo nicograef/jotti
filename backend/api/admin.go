@@ -91,7 +91,6 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	kc := kasseHTTP.CommandHandler{}
 	kc.Command = kasseApp.Command{KassenjournalRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}
 	r.HandleFunc("/kassensitzung-eroeffnen", kc.KassensitzungEroeffnenHandler())
-	r.HandleFunc("/anfangsbestand-setzen", kc.AnfangsbestandSetzenHandler())
 	r.HandleFunc("/kassenbewegung-buchen", kc.KassenbewegungBuchenHandler())
 	r.HandleFunc("/kassensturz-durchfuehren", kc.KassensturzDurchfuehrenHandler())
 	r.HandleFunc("/tagesabschluss-erstellen", kc.TagesabschlussErstellenHandler())

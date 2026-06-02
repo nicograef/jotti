@@ -18,12 +18,8 @@ type mockCommand struct {
 	err error
 }
 
-func (m *mockCommand) KassensitzungEroeffnen(_ context.Context, _ int, _ string, _ string) (int, error) {
+func (m *mockCommand) KassensitzungEroeffnen(_ context.Context, _ int, _ string, _ string, _ int) (int, error) {
 	return m.zNr, m.err
-}
-
-func (m *mockCommand) AnfangsbestandSetzen(_ context.Context, _ int, _ string, _ int) error {
-	return m.err
 }
 
 func (m *mockCommand) KassenbewegungBuchen(_ context.Context, _ int, _ string, _ string, _ int, _ string) error {
@@ -51,7 +47,7 @@ func requestWithUser(body string) *http.Request {
 func TestKassensitzungEroeffnenHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{zNr: 1}}
 
-	req := requestWithUser(`{"bezeichnung":"Maihock"}`)
+	req := requestWithUser(`{"bezeichnung":"Maihock","betragCents":10000}`)
 	rec := httptest.NewRecorder()
 
 	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
@@ -64,38 +60,10 @@ func TestKassensitzungEroeffnenHandler_Success(t *testing.T) {
 func TestKassensitzungEroeffnenHandler_KasseAlreadyOpen(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrKasseAlreadyOpen}}
 
-	req := requestWithUser(`{"bezeichnung":"Maihock"}`)
+	req := requestWithUser(`{"bezeichnung":"Maihock","betragCents":10000}`)
 	rec := httptest.NewRecorder()
 
 	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-}
-
-// AnfangsbestandSetzen
-
-func TestAnfangsbestandSetzenHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	req := requestWithUser(`{"betragCents":10000}`)
-	rec := httptest.NewRecorder()
-
-	handler.AnfangsbestandSetzenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rec.Code)
-	}
-}
-
-func TestAnfangsbestandSetzenHandler_KasseNichtGeoeffnet(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrKasseNichtGeoeffnet}}
-
-	req := requestWithUser(`{"betragCents":10000}`)
-	rec := httptest.NewRecorder()
-
-	handler.AnfangsbestandSetzenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", rec.Code)
