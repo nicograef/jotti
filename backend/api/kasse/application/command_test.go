@@ -23,7 +23,13 @@ var testOpenKS = &kasse.Kassensitzung{
 type settingsMock struct{ vereinsname string }
 
 func (m settingsMock) GetBetreiber(_ context.Context) (settings.Betreiber, error) {
-	return settings.Betreiber{Vereinsname: m.vereinsname}, nil
+	return settings.Betreiber{
+		Vereinsname: m.vereinsname,
+		Strasse:     "Teststraße 1",
+		Plz:         "12345",
+		Ort:         "Teststadt",
+		UpdatedAt:   time.Now(),
+	}, nil
 }
 
 func newTestCommand(ks *kasse.Kassensitzung) Command {
