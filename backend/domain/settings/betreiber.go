@@ -22,8 +22,8 @@ var betreiberSchema = z.Struct(z.Shape{
 	"Strasse":      z.String().Min(1, z.Message("Straße ist erforderlich")).Required(),
 	"Plz":          z.String().Min(1, z.Message("PLZ ist erforderlich")).Required(),
 	"Ort":          z.String().Min(1, z.Message("Ort ist erforderlich")).Required(),
-	"Steuernummer": z.String().Optional(),
-	"UstID":        z.String().Optional(),
+	"Steuernummer": z.Ptr(z.String()),
+	"UstID":        z.Ptr(z.String()),
 	"UpdatedAt":    z.Time().Required(),
 })
 
