@@ -102,8 +102,8 @@ jotti steht unter einer **proprietären Source-Available-Lizenz** — siehe [LIC
 - ✅ **Quellcode lesen** — zum Lernen, Evaluieren oder für Sicherheitsüberprüfungen — ist ohne Vereinbarung erlaubt.
 - ✅ **Pull Requests** an das offizielle Repository sind willkommen (unter dem [CLA](CLA.md)).
 - ✅ **Eingetragene Vereine (e.V.), gemeinnützige Stiftungen und NGOs/NPOs** können eine **kostenlose Nutzungsvereinbarung** mit dem Autor abschließen.
-- ❌ **Jede Nutzung** (Installation, Deployment, Betrieb) **erfordert eine vorherige schriftliche Nutzungsvereinbarung** mit dem Autor.
+- ❌ **Jede Nutzung** (Installation, Deployment, Betrieb) **erfordert eine vorherige Nutzungsvereinbarung in Textform (E-Mail)** mit dem Autor.
 - ❌ **Forks, Modifikation und Weitergabe** sind nicht gestattet (außer PRs an das offizielle Repo).
 - 💼 **Kommerzielle Lizenzierung:** Für gewerbliche Nutzung ist eine separate kommerzielle Lizenz vom Urheber erforderlich — Kontakt über GitHub.
 
-Ausführliche Informationen: [docs/lizenz-und-nutzung.md](docs/lizenz-und-nutzung.md)
+Ausführliche Informationen: [docs/lizenz-und-nutzung.md](docs/lizenz-und-nutzung.md) · Nutzungsbedingungen & Prozess: [docs/nutzungsbedingungen.md](docs/nutzungsbedingungen.md)

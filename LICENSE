@@ -12,8 +12,8 @@ Nico Gräf ("Author").
 The source code is made publicly available for transparency, trust, and
 security auditing. Publication of the source code does NOT constitute a grant
 of any rights. This is NOT an open-source license. This is NOT a free software
-license. All rights are expressly reserved unless granted by a separate written
-license agreement.
+license. All rights are expressly reserved unless granted by a separate
+license agreement in text form (Textform, § 126b BGB).
 
 ===========================================================================
 
@@ -37,11 +37,20 @@ license agreement.
    These permissions do NOT include the right to use, deploy, host, run,
    install, copy, modify, or distribute the Software or any part thereof.
 
-3. USE REQUIRES A WRITTEN LICENSE AGREEMENT
+3. USE REQUIRES A LICENSE AGREEMENT IN TEXT FORM
 
    Any use of the Software — including but not limited to installation,
    deployment, hosting, running, operating, or making available to users —
-   requires a prior written license agreement with the Author.
+   requires a prior license agreement in text form (Textform, § 126b BGB
+   German Civil Code) with the Author.
+
+   A license agreement in text form is concluded by email exchange: the
+   organization sends an email to graef.nico@gmail.com identifying itself
+   (name, legal form, registration number, contact person) and explicitly
+   confirming acceptance of the terms of use in the version dated in the
+   document. The Author confirms by reply email. No printed form or
+   signature is required. See TERMS.md for the full process and a
+   ready-to-use email template.
 
    The Author offers free-of-charge license agreements for non-commercial
    use by qualifying non-profit organizations, in particular:
@@ -53,9 +62,7 @@ license agreement.
    - Other registered non-profit organizations (NGOs/NPOs) without
      profit motive and with verifiable charitable status.
 
-   To request a license agreement, contact the Author via:
-
-   https://github.com/nicograef/jotti
+   Contact: graef.nico@gmail.com — https://github.com/nicograef/jotti
 
 4. PROHIBITION OF COMMERCIAL USE
 
@@ -193,7 +200,7 @@ license agreement.
 
 13. ENTIRE AGREEMENT
 
-    This license, together with any written license agreement entered
+    This license, together with any license agreement in text form entered
     into between the Author and a licensee, constitutes the entire
     agreement between the parties with respect to the Software. No oral
     or written representations outside of these documents shall be binding.

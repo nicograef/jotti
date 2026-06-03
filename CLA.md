@@ -76,7 +76,3 @@ Bei Fragen zu diesem CLA:
 
 - Repository: https://github.com/nicograef/jotti
 - Autor: Nico Gräf, Freiburg im Breisgau, Deutschland
-
----
-
-> **Hinweis:** Dieses Dokument ist keine Rechtsberatung. Bei Unsicherheiten empfiehlt sich die Prüfung durch eine Rechtsanwältin oder einen Rechtsanwalt.
