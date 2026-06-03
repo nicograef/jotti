@@ -369,9 +369,11 @@ body.nav-open {
     & span:nth-child(1) {
       transform: translateY(7px) rotate(45deg);
     }
+
     & span:nth-child(2) {
       opacity: 0;
     }
+
     & span:nth-child(3) {
       transform: translateY(-7px) rotate(-45deg);
     }
@@ -633,7 +635,7 @@ body.nav-open {
   &.reverse {
     direction: rtl;
 
-    & > * {
+    &>* {
       direction: ltr;
     }
   }
@@ -650,8 +652,7 @@ body.nav-open {
 .split-screenshot {
   width: 100%;
   max-width: 600px;
-  filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.18))
-    drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+  filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.18)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
 }
 
 .split-text {
@@ -659,7 +660,7 @@ body.nav-open {
     margin-bottom: 1.25rem;
   }
 
-  & > p {
+  &>p {
     margin-bottom: 1.25rem;
     font-size: 1.0625rem;
   }
@@ -1022,6 +1023,7 @@ body.nav-open {
     & pre {
       padding: 1rem;
     }
+
     & code {
       font-size: 0.75rem;
     }
@@ -1163,4 +1165,34 @@ body.nav-open {
     line-height: 1.5;
     font-style: italic;
   }
+}
+
+/* ===========================
+   Dev Banner
+   =========================== */
+.dev-banner {
+  background: var(--primary-light);
+  border-bottom: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  text-align: center;
+  font-size: 0.8125rem;
+  padding: 0.5rem 1rem;
+  color: var(--accent-foreground);
+  line-height: 1.5;
+}
+
+/* ===========================
+   Badge: In Entwicklung
+   =========================== */
+.badge-wip {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  color: var(--primary);
+  vertical-align: middle;
+  margin-left: 0.4em;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
 }

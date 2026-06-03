@@ -115,6 +115,13 @@
   </head>
 
   <body>
+    <!-- ============ DEV BANNER ============ -->
+    <div class="dev-banner">
+      jotti befindet sich in aktiver Entwicklung. Einige Features sind noch
+      nicht verfügbar &mdash; insbesondere TSE-Anbindung, Belegausgabe und
+      DSFinV-K-Export.
+    </div>
+
     <!-- ============ HEADER / NAV ============ -->
     <header class="site-header">
       <div class="container header-inner">
@@ -190,11 +197,15 @@
             </h1>
             <p class="hero-sub">
               Bestellungen aufnehmen, Ausgabe bestätigen, kassieren — direkt auf
-              dem Smartphone, pro Tisch, ohne spezielle Hardware. Fiskalkonform
-              mit TSE-Anbindung und DSFinV-K-Export. Für Vereine und
-              gemeinnützige Organisationen.
+              dem Smartphone, pro Tisch, ohne spezielle Hardware. Für Vereine
+              und gemeinnützige Organisationen. Fiskalkonformität
+              (TSE-Anbindung, DSFinV-K-Export) ist in Entwicklung.
             </p>
-            <p class="hero-tags">Kostenlos. Self-hosted. Fiskalkonform.</p>
+            <p class="hero-tags">
+              Kostenlos. Self-hosted. Fiskalkonform<span class="badge-wip"
+                >In Entwicklung</span
+              >.
+            </p>
             <div class="hero-actions">
               <a
                 href="https://github.com/nicograef/jotti"
@@ -353,7 +364,7 @@
               </div>
               <div class="card feature-card">
                 <div class="card-icon">🔄</div>
-                <h3>Umbuchen</h3>
+                <h3>Umbuchen <span class="badge-wip">In Entwicklung</span></h3>
                 <p>
                   Bestellungen auf einen anderen Tisch verschieben — eine
                   atomare Operation, lückenlos nachvollziehbar.
@@ -377,7 +388,10 @@
             <div class="card-grid three-col">
               <div class="card feature-card">
                 <div class="card-icon">🖥️</div>
-                <h3>Küchendisplay (KDS)</h3>
+                <h3>
+                  Küchendisplay (KDS)
+                  <span class="badge-wip">In Entwicklung</span>
+                </h3>
                 <p>
                   Eingehende Bestellungen in Echtzeit auf einem Bildschirm in
                   der Küche oder an der Ausgabe.
@@ -385,7 +399,9 @@
               </div>
               <div class="card feature-card">
                 <div class="card-icon">🍳</div>
-                <h3>Ausgabestationen</h3>
+                <h3>
+                  Ausgabestationen <span class="badge-wip">In Entwicklung</span>
+                </h3>
                 <p>
                   Zubereitungsstatus verwalten — Servicekräfte sehen, wann
                   Positionen abholbereit sind.
@@ -393,7 +409,7 @@
               </div>
               <div class="card feature-card">
                 <div class="card-icon">🖨️</div>
-                <h3>Bon-Druck</h3>
+                <h3>Bon-Druck <span class="badge-wip">In Entwicklung</span></h3>
                 <p>
                   Bestell- und Küchenbons automatisch an ESC/POS-Bondrucker
                   senden — pro Kategorie konfigurierbar.
@@ -456,7 +472,9 @@
               </div>
               <div class="card feature-card">
                 <div class="card-icon">📥</div>
-                <h3>Datenexport</h3>
+                <h3>
+                  Datenexport <span class="badge-wip">In Entwicklung</span>
+                </h3>
                 <p>
                   CSV-Export für die Vereinsbuchhaltung. DSFinV-K-Export als
                   ZIP-Archiv für die Finanzverwaltung.
@@ -480,7 +498,9 @@
           <div class="card-grid three-col">
             <div class="card feature-card">
               <div class="card-icon">🛡️</div>
-              <h3>TSE-Anbindung</h3>
+              <h3>
+                TSE-Anbindung <span class="badge-wip">In Entwicklung</span>
+              </h3>
               <p>
                 Integrierte Cloud-TSE-Schnittstelle (fiskaly). Jeder Vorgang
                 wird signiert und kryptografisch abgesichert.
@@ -488,7 +508,10 @@
             </div>
             <div class="card feature-card">
               <div class="card-icon">🔗</div>
-              <h3>Kryptografische Hash-Chain</h3>
+              <h3>
+                Kryptografische Hash-Chain
+                <span class="badge-wip">In Entwicklung</span>
+              </h3>
               <p>
                 SHA-256-Verkettung aller Events. Nachträgliche Manipulation ist
                 mathematisch nachweisbar.
@@ -496,7 +519,9 @@
             </div>
             <div class="card feature-card">
               <div class="card-icon">🧾</div>
-              <h3>Belegausgabe</h3>
+              <h3>
+                Belegausgabe <span class="badge-wip">In Entwicklung</span>
+              </h3>
               <p>
                 Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersätzen
                 und Betreiberadresse — nach § 6 KassenSichV.
@@ -512,7 +537,9 @@
             </div>
             <div class="card feature-card">
               <div class="card-icon">📦</div>
-              <h3>DSFinV-K-Export</h3>
+              <h3>
+                DSFinV-K-Export <span class="badge-wip">In Entwicklung</span>
+              </h3>
               <p>
                 Maschinenlesbarer Export aller Kassendaten für die
                 Finanzverwaltung — ZIP-Archiv nach DSFinV-K v2.4.
