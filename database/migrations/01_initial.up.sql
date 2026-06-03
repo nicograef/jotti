@@ -252,4 +252,45 @@ CREATE OR REPLACE FUNCTION kj_extract_stornierung_cents(type TEXT, data JSONB) R
     SELECT CASE WHEN type = 'stornierung-erteilt:v1' THEN (data->>'gesamtStornierungCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
+-- ============================================================
+-- Table: system_config (Systemkonfiguration, Singleton)
+-- Insert-once at first startup; never updated or deleted via API.
+-- ============================================================
+CREATE TABLE system_config (
+    id          INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    seriennummer   UUID NOT NULL,
+    angelegt_am TIMESTAMPTZ NOT NULL
+);
+
+COMMENT ON TABLE system_config IS 'Systemkonfiguration (Singleton). Wird einmalig bei der DB-Migration befüllt.';
+COMMENT ON COLUMN system_config.seriennummer IS 'UUID-v4 Seriennummer der Kasse — nie überschreiben';
+COMMENT ON COLUMN system_config.angelegt_am IS 'Zeitpunkt der ersten Inbetriebnahme (UTC)';
+
+-- Insert initial system configuration with generated Seriennummer (UUIDv4) and current timestamp for angelegt_am.
+INSERT INTO system_config (seriennummer, angelegt_am) VALUES (gen_random_uuid(), now());
+
+-- ============================================================
+-- Table: betreiber (Betreiber-Stammdaten, Singleton)
+-- Admin-managed; at most one row; required before Kassensitzung can be opened.
+-- ============================================================
+CREATE TABLE betreiber (
+    id           INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    vereinsname  TEXT NOT NULL,
+    strasse      TEXT NOT NULL,
+    plz          TEXT NOT NULL,
+    ort          TEXT NOT NULL,
+    steuernummer TEXT NULL,
+    ust_id       TEXT NULL,
+    updated_at   TIMESTAMPTZ NOT NULL
+);
+
+COMMENT ON TABLE betreiber IS 'Betreiber-Stammdaten (Singleton). Pflichtfeld vor erster Kassensitzung.';
+COMMENT ON COLUMN betreiber.vereinsname IS 'Name des Vereins / Betreibers';
+COMMENT ON COLUMN betreiber.strasse IS 'Straße und Hausnummer';
+COMMENT ON COLUMN betreiber.plz IS 'Postleitzahl';
+COMMENT ON COLUMN betreiber.ort IS 'Ort';
+COMMENT ON COLUMN betreiber.steuernummer IS 'Steuernummer (optional)';
+COMMENT ON COLUMN betreiber.ust_id IS 'USt-ID (optional)';
+COMMENT ON COLUMN betreiber.updated_at IS 'Letzte Änderung (UTC)';
+
 COMMIT;

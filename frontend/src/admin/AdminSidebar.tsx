@@ -4,6 +4,7 @@ import {
   LogOut,
   Moon,
   Printer,
+  Settings2,
   Sun,
   Users,
   Utensils,
@@ -60,6 +61,11 @@ const adminItems = [
     title: 'Drucker',
     url: '/admin/drucker',
     icon: Printer,
+  },
+  {
+    title: 'Einstellungen',
+    url: '/admin/einstellungen',
+    icon: Settings2,
   },
 ]
 

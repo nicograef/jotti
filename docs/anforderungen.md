@@ -54,25 +54,11 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | K-21 | Kassensturz durchführen | Gezählter Ist-Bestand vs. Soll-Bestand. Differenz wird automatisch gebucht.                                          |
 | K-22 | Tagesabschluss / Z-Bon  | Formaler Tagesabschluss. Schließt Kassensitzung ab. Voraussetzung: Kassensturz + alle Tische auf Saldo 0.            |
 | K-11 | Tisch-Schnellsuche      | Suchfeld im Alle-Tische-Drawer. Clientseitige Echtzeit-Filterung nach Tischname (case-insensitive).                  |
+| K-20 | Betreiber-Stammdaten    | Admin pflegt Vereinsname, Adresse, Steuernummer und USt-ID. Erscheint auf Beleg (F-03) und DSFinV-K-Export (F-04).   |
 
 > 🚫 **K-08 · Bezeichnung pro Bestellung:** Won't-have — wird über das bestehende Kommentarfeld (K-01) gelöst.
 
 ### Offen
-
----
-
-#### K-20 · Betreiber-Stammdaten verwalten
-
-> **Rolle:** Admin · **Prio:** Must-have
-
-Der Admin pflegt die Stammdaten des Betreibers (Verein): Name, Adresse und optional Steuernummer. Diese Daten werden auf dem Kassenbeleg, im Z-Bon und im DSFinV-K-Export verwendet.
-
-**Akzeptanzkriterien:**
-
-- [ ] Admin kann Vereinsname, Straße, PLZ, Ort eingeben
-- [ ] Optional: Steuernummer und/oder USt-ID
-- [ ] Betreiber-Daten erscheinen auf dem Kassenbeleg (§ 6 KassenSichV: „Name und Anschrift des leistenden Unternehmens")
-- [ ] Betreiber-Daten fließen in den DSFinV-K-Export ein
 
 ---
 
@@ -258,7 +244,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 
 | ID   | Titel               | Phase | Status                     | Prio        |
 | ---- | ------------------- | ----- | -------------------------- | ----------- |
-| F-01 | Seriennummer        | 1     | 🔲 Offen                   | Must        |
+| F-01 | Seriennummer        | 1     | ✅                         | Must        |
 | F-07 | Steuersätze         | 1     | 🔲 Offen                   | Must        |
 | F-03 | Belegausgabepflicht | 0/1/2 | ✅ Basis (ohne TSE-Felder) | Must        |
 | F-05 | ELSTER-Meldung      | 1     | 🔲 Offen                   | Must (Doku) |
@@ -269,21 +255,6 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | F-08 | GoBD-Hash-Chain     | 3     | 🔲 Offen                   | Nice        |
 
 **Legende:** ✅ Implementiert · 🔲 Offen · ⏳ In Arbeit — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
-
----
-
-#### F-01 · Seriennummer der Kasse
-
-> **Prio:** Must-have
-
-jotti generiert beim ersten Containerstart eine eindeutige UUID als Seriennummer der Kasse (`KassenID`). Diese wird dauerhaft in der Datenbank gespeichert und ist im Admin-Bereich jederzeit einsehbar. Die Seriennummer wird für die ELSTER-Meldung (§ 146a Abs. 4 AO) und für das TSE-Protokoll benötigt.
-
-**Akzeptanzkriterien:**
-
-- [ ] Beim ersten Start wird eine UUID-v4 generiert und in `system_config` (Schlüssel `kassen_id`) gespeichert
-- [ ] Bei jedem weiteren Start wird die bestehende UUID geladen — keine Neugenerierung
-- [ ] Im Admin-Dashboard wird die Seriennummer prominent angezeigt (Kopierbutton vorhanden)
-- [ ] Die Seriennummer ist über einen eigenen API-Endpunkt abrufbar (`/admin/kasse/seriennummer`)
 
 ---
 
@@ -377,6 +348,7 @@ Das Backend stellt einen maschinenlesbaren Export der Kassendaten im DSFinV-K-Fo
 - [ ] Alle Pflicht-CSV-Dateien sind vorhanden: `transactions.csv`, `cash_register.csv`, `cashier.csv`, `items.csv` u. a.
 - [ ] `index.xml` ist korrekt befüllt (Kassenseriennummer, Zeitraum, Version)
 - [ ] Steuersätze und Betragsaufschlüsselung sind korrekt pro Transaktion ausgewiesen
+- [ ] Betreiber-Stammdaten (Name, Anschrift) sind als Betreiberdaten korrekt ausgewiesen
 
 ---
 

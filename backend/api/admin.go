@@ -12,6 +12,8 @@ import (
 	productHTTP "github.com/nicograef/jotti/backend/api/product/http"
 	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
 	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
+	settingsApp "github.com/nicograef/jotti/backend/api/settings/application"
+	settingsHTTP "github.com/nicograef/jotti/backend/api/settings/http"
 	tableApp "github.com/nicograef/jotti/backend/api/table/application"
 	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
 	userApp "github.com/nicograef/jotti/backend/api/user/application"
@@ -21,6 +23,7 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
+	"github.com/nicograef/jotti/backend/repository/settings_repo"
 	"github.com/nicograef/jotti/backend/repository/table_repo"
 	"github.com/nicograef/jotti/backend/repository/user_repo"
 )
@@ -61,6 +64,7 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	tableRepo := table_repo.NewRepository(db)
 	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
 	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
+	settingsRepo := settings_repo.NewRepository(db)
 	tc := tableHTTP.CommandHandler{}
 	tc.Command = tableApp.Command{
 		TableRepo:           tableRepo,
@@ -89,7 +93,11 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/get-live-reporting", rq.GetLiveReportingHandler())
 
 	kc := kasseHTTP.CommandHandler{}
-	kc.Command = kasseApp.Command{KassenjournalRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}
+	kc.Command = kasseApp.Command{
+		KassenjournalRepo:   kassenjournalRepo,
+		KassensitzungenRepo: kassensitzungenRepo,
+		SettingsRepo:        settingsRepo,
+	}
 	r.HandleFunc("/kassensitzung-eroeffnen", kc.KassensitzungEroeffnenHandler())
 	r.HandleFunc("/geldtransit-buchen", kc.GeldtransitBuchenHandler())
 	r.HandleFunc("/kassensturz-durchfuehren", kc.KassensturzDurchfuehrenHandler())
@@ -107,6 +115,15 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	dq.Query = druckerApp.Query{DruckerRepo: druckerRepo}
 	r.HandleFunc("/get-drucker-konfiguration", dq.GetDruckerConfigHandler())
 	r.HandleFunc("/update-drucker-konfiguration", dc.UpdateDruckerConfigHandler())
+
+	sq := settingsHTTP.QueryHandler{}
+	sq.Query = settingsApp.Query{SettingsRepo: settingsRepo}
+	r.HandleFunc("/get-seriennummer", sq.GetSeriennummerHandler())
+	r.HandleFunc("/get-betreiber", sq.GetBetreiberHandler())
+
+	sc := settingsHTTP.CommandHandler{}
+	sc.Command = settingsApp.Command{SettingsRepo: settingsRepo}
+	r.HandleFunc("/update-betreiber", sc.UpdateBetreiberHandler())
 
 	return r
 }

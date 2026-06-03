@@ -8,6 +8,7 @@ import (
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/rs/zerolog"
 )
 
@@ -24,9 +25,14 @@ type kassensitzungenRepo interface {
 	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
+type settingsRepo interface {
+	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
+}
+
 type Command struct {
 	KassenjournalRepo   kassenjournalRepo
 	KassensitzungenRepo kassensitzungenRepo
+	SettingsRepo        settingsRepo
 }
 
 // getOffeneKassensitzungOderFehler returns the open Kassensitzung or ErrKasseNichtGeoeffnet.
@@ -68,6 +74,16 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 // KassensitzungEroeffnen opens a new Kassensitzung. Returns ErrKasseAlreadyOpen if one is already open.
 func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error) {
 	log := zerolog.Ctx(ctx)
+
+	betreiber, err := c.SettingsRepo.GetBetreiber(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to check betreiber configuration")
+		return 0, ErrDatabase
+	}
+	if err = betreiber.Validate(); err != nil {
+		log.Warn().Err(err).Msg("Kassensitzung blocked: betreiber not configured")
+		return 0, ErrBetreiberNichtKonfiguriert
+	}
 
 	existing, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
 	if err != nil {

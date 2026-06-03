@@ -61,7 +61,8 @@ func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 		zNr, err := h.Command.KassensitzungEroeffnen(r.Context(), userID, userName, body.Bezeichnung, body.BetragCents)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
-				kasseApp.ErrKasseAlreadyOpen: "kasse_bereits_geoeffnet",
+				kasseApp.ErrKasseAlreadyOpen:           "kasse_bereits_geoeffnet",
+				kasseApp.ErrBetreiberNichtKonfiguriert: "betreiber_nicht_konfiguriert",
 			})
 			return
 		}

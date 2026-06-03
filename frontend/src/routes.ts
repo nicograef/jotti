@@ -11,6 +11,7 @@ import { KassensitzungPage } from './admin/kasse/KassensitzungPage'
 import { AdminProductsPage } from './admin/products/AdminProductsPage'
 import { AdminDashboardPage } from './admin/reporting/AdminDashboardPage'
 import { DruckerConfigPage } from './admin/settings/DruckerConfigPage'
+import { EinstellungenPage } from './admin/settings/EinstellungenPage'
 import { AdminTablesPage } from './admin/tables/AdminTablesPage'
 import { AdminUsersPage } from './admin/users/AdminUsersPage'
 import App from './App'
@@ -78,6 +79,7 @@ export const router = createBrowserRouter([
           { path: 'benutzer', Component: AdminUsersPage },
           { path: 'kasse', Component: KassensitzungPage },
           { path: 'drucker', Component: DruckerConfigPage },
+          { path: 'einstellungen', Component: EinstellungenPage },
         ],
       },
       {

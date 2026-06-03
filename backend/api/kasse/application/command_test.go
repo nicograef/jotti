@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 )
@@ -19,10 +20,20 @@ var testOpenKS = &kasse.Kassensitzung{
 	UpdatedAt: time.Now().UTC(),
 }
 
+type settingsMock struct{ vereinsname string }
+
+func (m settingsMock) GetBetreiber(_ context.Context) (settings.Betreiber, error) {
+	return settings.Betreiber{Vereinsname: m.vereinsname}, nil
+}
+
 func newTestCommand(ks *kasse.Kassensitzung) Command {
 	journalMock := kassenjournal_repo.NewMock(nil, nil)
 	sitzungMock := kassensitzungen_repo.NewMock(ks, nil)
-	return Command{KassenjournalRepo: journalMock, KassensitzungenRepo: sitzungMock}
+	return Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: sitzungMock,
+		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
+	}
 }
 
 func TestKassensitzungEroeffnen(t *testing.T) {

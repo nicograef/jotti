@@ -25,3 +25,6 @@ var ErrKassensturzErforderlich = errors.New("kassensturz erforderlich")
 
 // ErrTischeSaldoOffen is returned when a Tagesabschluss is attempted but tisch sessions have non-zero saldi.
 var ErrTischeSaldoOffen = errors.New("tische mit offenem saldo")
+
+// ErrBetreiberNichtKonfiguriert is returned when a Kassensitzung is opened but betreiber data is incomplete.
+var ErrBetreiberNichtKonfiguriert = errors.New("betreiber nicht konfiguriert")
