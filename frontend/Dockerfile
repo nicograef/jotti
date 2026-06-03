@@ -4,7 +4,7 @@ FROM node:24-alpine AS build
 WORKDIR /app
 
 # Install dependencies with pnpm via Corepack (respects pnpm-lock.yaml)
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN corepack enable \
   && corepack prepare pnpm@11 --activate \
   && pnpm install --frozen-lockfile
