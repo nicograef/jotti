@@ -12,7 +12,7 @@ import (
 
 type command interface {
 	KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error)
-	KassenbewegungBuchen(ctx context.Context, userID int, userName string, art string, betragCents int, kommentar string) error
+	GeldtransitBuchen(ctx context.Context, userID int, userName string, richtung string, betragCents int, kommentar string) error
 	KassensturzDurchfuehren(ctx context.Context, userID int, userName string, istBestandCents int) error
 	TagesabschlussErstellen(ctx context.Context, userID int, userName string) error
 }
@@ -32,8 +32,8 @@ type kassensitzungEroeffnenResponse struct {
 	ZNr int `json:"zNr"`
 }
 
-type kassenbewegungBuchenRequest struct {
-	Art         string `json:"art"`
+type geldtransitBuchenRequest struct {
+	Richtung    string `json:"richtung"`
 	BetragCents int    `json:"betragCents"`
 	Kommentar   string `json:"kommentar"`
 }
@@ -70,15 +70,15 @@ func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 	}
 }
 
-func (h *CommandHandler) KassenbewegungBuchenHandler() http.HandlerFunc {
+func (h *CommandHandler) GeldtransitBuchenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := kassenbewegungBuchenRequest{}
+		body := geldtransitBuchenRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		if body.Art == "" {
-			helper.SendClientError(w, "art_erforderlich", nil)
+		if body.Richtung == "" {
+			helper.SendClientError(w, "richtung_erforderlich", nil)
 			return
 		}
 
@@ -89,7 +89,7 @@ func (h *CommandHandler) KassenbewegungBuchenHandler() http.HandlerFunc {
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
-		err := h.Command.KassenbewegungBuchen(r.Context(), userID, userName, body.Art, body.BetragCents, body.Kommentar)
+		err := h.Command.GeldtransitBuchen(r.Context(), userID, userName, body.Richtung, body.BetragCents, body.Kommentar)
 		if err != nil {
 			if errors.Is(err, kasseApp.ErrKonflikt) {
 				helper.SendConflictError(w)

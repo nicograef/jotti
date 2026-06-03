@@ -1,17 +1,15 @@
 import { z } from 'zod'
 
-export const KassenbewegungArt = {
-  GELDTRANSIT: 'geldtransit',
-  PRIVATENTNAHME: 'privatentnahme',
-  PRIVATEINLAGE: 'privateinlage',
+export const GeldtransitRichtung = {
+  EINLAGE: 'einlage',
+  ENTNAHME: 'entnahme',
 } as const
-export type KassenbewegungArt =
-  (typeof KassenbewegungArt)[keyof typeof KassenbewegungArt]
+export type GeldtransitRichtung =
+  (typeof GeldtransitRichtung)[keyof typeof GeldtransitRichtung]
 
-export const KassenbewegungArtSchema = z.enum([
-  KassenbewegungArt.GELDTRANSIT,
-  KassenbewegungArt.PRIVATENTNAHME,
-  KassenbewegungArt.PRIVATEINLAGE,
+export const GeldtransitRichtungSchema = z.enum([
+  GeldtransitRichtung.EINLAGE,
+  GeldtransitRichtung.ENTNAHME,
 ])
 
 export const KassensitzungStatus = {

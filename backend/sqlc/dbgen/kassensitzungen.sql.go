@@ -53,9 +53,9 @@ SELECT COALESCE(SUM(CASE
         THEN (data->>'gesamtZahlungCents')::INT
     WHEN type = 'auszahlung-geleistet:v1'
         THEN -(data->>'betragCents')::INT
-    WHEN type = 'kassenbewegung-gebucht:v1' AND data->>'art' = 'privateinlage'
+    WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'einlage'
         THEN (data->>'betragCents')::INT
-    WHEN type = 'kassenbewegung-gebucht:v1' AND data->>'art' IN ('privatentnahme', 'geldtransit')
+    WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'entnahme'
         THEN -(data->>'betragCents')::INT
     WHEN type = 'differenz-soll-ist-gebucht:v1'
         THEN (data->>'betragCents')::INT
@@ -67,12 +67,12 @@ WHERE kassensitzung_nr = $1
     'kassensitzung-eroeffnet:v1',
     'zahlung-kassiert:v1',
     'auszahlung-geleistet:v1',
-    'kassenbewegung-gebucht:v1',
+    'geldtransit-gebucht:v1',
     'differenz-soll-ist-gebucht:v1'
   )
 `
 
-// Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Auszahlungen, Kassenbewegungen und Differenz-Buchungen.
+// Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Auszahlungen, Geldtransits und Differenz-Buchungen.
 func (q *Queries) GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error) {
 	row := q.db.QueryRowContext(ctx, getKassenbestand, kassensitzungNr)
 	var soll_bestand_cents int

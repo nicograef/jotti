@@ -48,11 +48,11 @@ func TestKassensitzungEroeffnen_AlreadyOpen(t *testing.T) {
 	}
 }
 
-func TestKassenbewegungBuchen(t *testing.T) {
+func TestGeldtransitBuchen(t *testing.T) {
 	ctx := context.Background()
 	cmd := newTestCommand(testOpenKS)
 
-	err := cmd.KassenbewegungBuchen(ctx, 1, "Admin", "privateinlage", 10000, "Wechselgeld nachgelegt")
+	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "einlage", 10000, "Wechselgeld nachgelegt")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

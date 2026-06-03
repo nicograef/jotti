@@ -250,17 +250,17 @@ Auszahlung durch Serviceleitung/Admin zum Ausgleich eines negativen Saldos (K-05
 | `betrag_cents` | int | Wechselgeld in Cent |
 | `gesetzt_von`  | int | User-ID             |
 
-##### KassenbewegungGebucht (`kassenbewegung-gebucht:v1`)
+##### GeldtransitGebucht (`geldtransit-gebucht:v1`)
 
-Geldtransit, Privatentnahme oder Privateinlage.
+Geldtransit (Einlage oder Entnahme) als Event im Kassenjournal.
 
-| Feld           | Typ    | Beschreibung                                       |
-| -------------- | ------ | -------------------------------------------------- |
-| `bewegung_id`  | UUID   | Eindeutige ID                                      |
-| `art`          | enum   | `geldtransit` · `privatentnahme` · `privateinlage` |
-| `betrag_cents` | int    | ≥ 1 Cent                                           |
-| `kommentar`    | string | **Pflicht**, min. 3, max. 200 Zeichen              |
-| `gebucht_von`  | int    | User-ID                                            |
+| Feld           | Typ    | Beschreibung                          |
+| -------------- | ------ | ------------------------------------- |
+| `bewegung_id`  | UUID   | Eindeutige ID                         |
+| `richtung`     | enum   | `einlage` · `entnahme`                |
+| `betrag_cents` | int    | ≥ 1 Cent                              |
+| `kommentar`    | string | **Pflicht**, min. 3, max. 200 Zeichen |
+| `gebucht_von`  | int    | User-ID                               |
 
 ##### KassensturzDurchgefuehrt (`kassensturz-durchgefuehrt:v1`)
 

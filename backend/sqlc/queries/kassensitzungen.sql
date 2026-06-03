@@ -14,7 +14,7 @@ SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
 FROM kassensitzungen ORDER BY datum DESC, created_at DESC;
 
 -- name: GetKassenbestand :one
--- Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Auszahlungen, Kassenbewegungen und Differenz-Buchungen.
+-- Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Auszahlungen, Geldtransits und Differenz-Buchungen.
 SELECT COALESCE(SUM(CASE
     WHEN type = 'kassensitzung-eroeffnet:v1'
         THEN (data->>'betragCents')::INT
@@ -22,9 +22,9 @@ SELECT COALESCE(SUM(CASE
         THEN (data->>'gesamtZahlungCents')::INT
     WHEN type = 'auszahlung-geleistet:v1'
         THEN -(data->>'betragCents')::INT
-    WHEN type = 'kassenbewegung-gebucht:v1' AND data->>'art' = 'privateinlage'
+    WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'einlage'
         THEN (data->>'betragCents')::INT
-    WHEN type = 'kassenbewegung-gebucht:v1' AND data->>'art' IN ('privatentnahme', 'geldtransit')
+    WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'entnahme'
         THEN -(data->>'betragCents')::INT
     WHEN type = 'differenz-soll-ist-gebucht:v1'
         THEN (data->>'betragCents')::INT
@@ -36,6 +36,6 @@ WHERE kassensitzung_nr = $1
     'kassensitzung-eroeffnet:v1',
     'zahlung-kassiert:v1',
     'auszahlung-geleistet:v1',
-    'kassenbewegung-gebucht:v1',
+    'geldtransit-gebucht:v1',
     'differenz-soll-ist-gebucht:v1'
   );

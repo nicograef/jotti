@@ -22,7 +22,7 @@ func (m *mockCommand) KassensitzungEroeffnen(_ context.Context, _ int, _ string,
 	return m.zNr, m.err
 }
 
-func (m *mockCommand) KassenbewegungBuchen(_ context.Context, _ int, _ string, _ string, _ int, _ string) error {
+func (m *mockCommand) GeldtransitBuchen(_ context.Context, _ int, _ string, _ string, _ int, _ string) error {
 	return m.err
 }
 
@@ -70,28 +70,28 @@ func TestKassensitzungEroeffnenHandler_KasseAlreadyOpen(t *testing.T) {
 	}
 }
 
-// KassenbewegungBuchen
+// GeldtransitBuchen
 
-func TestKassenbewegungBuchenHandler_Success(t *testing.T) {
+func TestGeldtransitBuchenHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
-	req := requestWithUser(`{"art":"geldtransit","betragCents":500,"kommentar":""}`)
+	req := requestWithUser(`{"richtung":"einlage","betragCents":500,"kommentar":""}`)
 	rec := httptest.NewRecorder()
 
-	handler.KassenbewegungBuchenHandler().ServeHTTP(rec, req)
+	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rec.Code)
 	}
 }
 
-func TestKassenbewegungBuchenHandler_MissingArt(t *testing.T) {
+func TestGeldtransitBuchenHandler_MissingRichtung(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
-	req := requestWithUser(`{"art":"","betragCents":500}`)
+	req := requestWithUser(`{"richtung":"","betragCents":500}`)
 	rec := httptest.NewRecorder()
 
-	handler.KassenbewegungBuchenHandler().ServeHTTP(rec, req)
+	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", rec.Code)

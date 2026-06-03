@@ -5,10 +5,10 @@ import type { BackendClient } from '@/lib/Backend'
 import {
   BetragCentsSchema,
   BezeichnungSchema,
+  type GeldtransitRichtung,
+  GeldtransitRichtungSchema,
   type Kassenbestand,
   KassenbestandSchema,
-  type KassenbewegungArt,
-  KassenbewegungArtSchema,
   type KassensitzungState,
   KassensitzungStateSchema,
 } from './Kassensitzung'
@@ -18,8 +18,8 @@ export const KassensitzungEroeffnenSchema = z.object({
   betragCents: BetragCentsSchema,
 })
 
-export const KassenbewegungBuchenSchema = z.object({
-  art: KassenbewegungArtSchema,
+export const GeldtransitBuchenSchema = z.object({
+  richtung: GeldtransitRichtungSchema,
   betragCents: z
     .number()
     .int()
@@ -57,17 +57,17 @@ export class KasseBackend {
     return zNr
   }
 
-  async kassenbewegungBuchen(
-    art: KassenbewegungArt,
+  async geldtransitBuchen(
+    richtung: GeldtransitRichtung,
     betragCents: number,
     kommentar: string,
   ): Promise<void> {
-    const body = KassenbewegungBuchenSchema.parse({
-      art,
+    const body = GeldtransitBuchenSchema.parse({
+      richtung,
       betragCents,
       kommentar,
     })
-    await this.backend.post('admin/kassenbewegung-buchen', body)
+    await this.backend.post('admin/geldtransit-buchen', body)
   }
 
   async kassensturzDurchfuehren(istBestandCents: number): Promise<void> {

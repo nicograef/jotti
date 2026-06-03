@@ -28,7 +28,7 @@ State wird durch eine synchrone Projektion (`tisch_sessions`) und eine CRUD-Enti
 
 - `kassensitzung-eroeffnet:v1`
 - `anfangsbestand-gesetzt:v1`
-- `kassenbewegung-gebucht:v1`
+- `geldtransit-gebucht:v1`
 - `kassensturz-durchgefuehrt:v1`
 - `differenz-soll-ist-gebucht:v1`
 - `tagesabschluss-erstellt:v1`

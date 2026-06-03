@@ -11,7 +11,7 @@ import (
 
 const (
 	EventTypeKassensitzungEroeffnetV1   EventType = "kassensitzung-eroeffnet:v1"
-	EventTypeKassenbewegungGebuchtV1    EventType = "kassenbewegung-gebucht:v1"
+	EventTypeGeldtransitGebuchtV1       EventType = "geldtransit-gebucht:v1"
 	EventTypeKassensturzDurchgefuehrtV1 EventType = "kassensturz-durchgefuehrt:v1"
 	EventTypeDifferenzSollIstGebuchtV1  EventType = "differenz-soll-ist-gebucht:v1"
 	EventTypeTagesabschlussErstelltV1   EventType = "tagesabschluss-erstellt:v1"
@@ -33,17 +33,17 @@ var kassensitzungEroeffnetV1DataSchema = z.Struct(z.Shape{
 	"EroeffnetVon": z.Int().GTE(1).Required(),
 })
 
-type kassenbewegungGebuchtV1Data struct {
+type geldtransitGebuchtV1Data struct {
 	BewegungID  string `json:"bewegungId"`
-	Art         string `json:"art"`
+	Richtung    string `json:"richtung"` // "einlage" | "entnahme"
 	BetragCents int    `json:"betragCents"`
 	Kommentar   string `json:"kommentar"`
 	GebuchtVon  int    `json:"gebuchtVon"`
 }
 
-var kassenbewegungGebuchtV1DataSchema = z.Struct(z.Shape{
+var geldtransitGebuchtV1DataSchema = z.Struct(z.Shape{
 	"BewegungID":  z.String().UUID().Required(),
-	"Art":         z.String().OneOf([]string{"geldtransit", "privatentnahme", "privateinlage"}, z.Message("Ungültige Art")).Required(),
+	"Richtung":    z.String().OneOf([]string{"einlage", "entnahme"}, z.Message("Ungültige Richtung")).Required(),
 	"BetragCents": z.Int().GTE(1).Required(),
 	"Kommentar":   z.String().Min(3).Max(200).Required(),
 	"GebuchtVon":  z.Int().GTE(1).Required(),
@@ -118,21 +118,21 @@ func NewKassensitzungEroeffnetEvent(subject string, userID int, userName string,
 	return event, nil
 }
 
-func NewKassenbewegungGebuchtEvent(subject string, userID int, userName string, art string, betragCents int, kommentar string) (e.Event, error) {
-	data := kassenbewegungGebuchtV1Data{
+func NewGeldtransitGebuchtEvent(subject string, userID int, userName string, richtung string, betragCents int, kommentar string) (e.Event, error) {
+	data := geldtransitGebuchtV1Data{
 		BewegungID:  uuid.New().String(),
-		Art:         art,
+		Richtung:    richtung,
 		BetragCents: betragCents,
 		Kommentar:   kommentar,
 		GebuchtVon:  userID,
 	}
 
-	if err := kassenbewegungGebuchtV1DataSchema.Validate(&data); err != nil {
+	if err := geldtransitGebuchtV1DataSchema.Validate(&data); err != nil {
 		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("kassenbewegung gebucht data validation failed: %v", issues)
+		return e.Event{}, fmt.Errorf("geldtransit gebucht data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeKassenbewegungGebuchtV1), subject, data)
+	event, err := e.New(userID, userName, string(EventTypeGeldtransitGebuchtV1), subject, data)
 	if err != nil {
 		return e.Event{}, err
 	}

@@ -106,8 +106,8 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 	return zNr, nil
 }
 
-// KassenbewegungBuchen books a cash movement (privateinlage, privatentnahme, geldtransit).
-func (c Command) KassenbewegungBuchen(ctx context.Context, userID int, userName string, art string, betragCents int, kommentar string) error {
+// GeldtransitBuchen books a Geldtransit (einlage or entnahme).
+func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName string, richtung string, betragCents int, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
@@ -115,9 +115,9 @@ func (c Command) KassenbewegungBuchen(ctx context.Context, userID int, userName 
 		return err
 	}
 
-	evt, err := kasse.NewKassenbewegungGebuchtEvent(kasse.KassensitzungSubject(ks.ZNr), userID, userName, art, betragCents, kommentar)
+	evt, err := kasse.NewGeldtransitGebuchtEvent(kasse.KassensitzungSubject(ks.ZNr), userID, userName, richtung, betragCents, kommentar)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create kassenbewegung-gebucht event")
+		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create geldtransit-gebucht event")
 		return err
 	}
 
@@ -125,7 +125,7 @@ func (c Command) KassenbewegungBuchen(ctx context.Context, userID int, userName 
 		return err
 	}
 
-	log.Info().Int("z_nr", ks.ZNr).Str("art", art).Int("betrag_cents", betragCents).Msg("Kassenbewegung gebucht")
+	log.Info().Int("z_nr", ks.ZNr).Str("richtung", richtung).Int("betrag_cents", betragCents).Msg("Geldtransit gebucht")
 	return nil
 }
 

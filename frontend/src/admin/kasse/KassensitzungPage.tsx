@@ -20,8 +20,8 @@ import { formatCents, parseCents } from '@/lib/utils'
 import { kasseBackend, useKassenbestand, useOffeneKassensitzung } from './hooks'
 import {
   BezeichnungSchema,
-  KassenbewegungArt,
-  KassenbewegungArtSchema,
+  GeldtransitRichtung,
+  GeldtransitRichtungSchema,
 } from './Kassensitzung'
 
 export function KassensitzungPage() {
@@ -183,7 +183,7 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
 
 function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
   const FormDataSchema = z.object({
-    art: KassenbewegungArtSchema,
+    richtung: GeldtransitRichtungSchema,
     betragEuro: z
       .string()
       .min(1, { message: 'Bitte einen Betrag eingeben.' })
@@ -203,7 +203,7 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
 
   const form = useForm<FormData>({
     defaultValues: {
-      art: KassenbewegungArt.GELDTRANSIT,
+      richtung: GeldtransitRichtung.EINLAGE,
       betragEuro: '',
       kommentar: '',
     },
@@ -213,8 +213,8 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
 
   const onSubmit = async (data: FormData) => {
     try {
-      await kasseBackend.kassenbewegungBuchen(
-        data.art,
+      await kasseBackend.geldtransitBuchen(
+        data.richtung,
         parseCents(data.betragEuro),
         data.kommentar,
       )
@@ -231,7 +231,7 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Kassenbewegung buchen</CardTitle>
+        <CardTitle>Geldtransit buchen</CardTitle>
       </CardHeader>
       <CardContent>
         <form
@@ -241,28 +241,30 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
           }}
         >
           <FieldGroup>
-            <Field data-invalid={!!form.formState.errors.art} className="gap-1">
-              <FieldLabel>Art</FieldLabel>
+            <Field
+              data-invalid={!!form.formState.errors.richtung}
+              className="gap-1"
+            >
+              <FieldLabel>Richtung</FieldLabel>
               <div className="flex gap-4">
                 {(
                   [
-                    [KassenbewegungArt.GELDTRANSIT, 'Geldtransit'],
-                    [KassenbewegungArt.PRIVATENTNAHME, 'Privatentnahme'],
-                    [KassenbewegungArt.PRIVATEINLAGE, 'Privateinlage'],
+                    [GeldtransitRichtung.EINLAGE, 'Einlage (in Tageskasse)'],
+                    [GeldtransitRichtung.ENTNAHME, 'Entnahme (aus Tageskasse)'],
                   ] as const
                 ).map(([value, label]) => (
                   <label key={value} className="flex items-center gap-1.5">
                     <input
                       type="radio"
                       value={value}
-                      {...form.register('art')}
+                      {...form.register('richtung')}
                     />
                     {label}
                   </label>
                 ))}
               </div>
-              {form.formState.errors.art && (
-                <FieldError errors={[form.formState.errors.art]} />
+              {form.formState.errors.richtung && (
+                <FieldError errors={[form.formState.errors.richtung]} />
               )}
             </Field>
             <Field
@@ -301,7 +303,7 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
             </Field>
             <div>
               <Button type="submit" disabled={form.formState.isSubmitting}>
-                Kassenbewegung buchen
+                Geldtransit buchen
               </Button>
             </div>
           </FieldGroup>

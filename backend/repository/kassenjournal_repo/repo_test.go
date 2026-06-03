@@ -754,12 +754,12 @@ func TestWriteEvent_KassensitzungOtherEvent_NoCRUDChange(t *testing.T) {
 	// Write a kassenbewegung event — should NOT change kassensitzungen CRUD entity status
 	data := map[string]any{
 		"bewegungId":  "00000000-0000-0000-0000-000000000001",
-		"art":         "privateinlage",
+		"richtung":    "einlage",
 		"betragCents": 10000,
 		"kommentar":   "Wechselgeld",
 		"gebuchtVon":  userID,
 	}
-	e := newTestEvent(userID, "kassenbewegung-gebucht:v1", subject, 1, data)
+	e := newTestEvent(userID, "geldtransit-gebucht:v1", subject, 1, data)
 
 	eventID, err := repo.WriteEvent(context.Background(), e, kasse.StreamTypeKassensitzung, ksNr)
 	if err != nil {
