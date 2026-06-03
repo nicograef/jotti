@@ -16,22 +16,22 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 💰 **Zahlung** kassieren (Teilzahlungen und Rückgeldberechnung)
 - ↩️ **Stornierungen** mit Rollen-Kontrolle (Admin & Serviceleitung) — mit Pflichtkommentar
 - 💸 **Auszahlung** leisten — negativen Saldo ausgleichen (z. B. nach Stornierung bereits kassierter Positionen)
-- 🔄 **Umbuchung** — Bestellungen auf einen anderen Tisch verschieben
+- 🔄 **Umbuchung** _(in Entwicklung)_ — Bestellungen auf einen anderen Tisch verschieben
 - 📋 **Tisch-Übersicht** mit offenem Saldo, Positionen und Bestellhistorie
 - ⭐ **Meine Tische** — Favoriten als Rich Cards auf dem Dashboard, Schnellsuche per Name/Nummer
 
 ### Küche & Ausgabe
 
-- 🖥️ **Küchendisplay (KDS)** — eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe
-- 🍳 **Ausgabestationen** — Zubereitungsstatus verwalten, Servicekräfte sehen, wann Positionen abholbereit sind
-- 🖨️ **Bon-Druck** — Bestell- und Küchenbons automatisch an zugeordnete Bondrucker senden (pro Kategorie konfigurierbar)
+- 🖥️ **Küchendisplay (KDS)** _(in Entwicklung)_ — eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe
+- 🍳 **Ausgabestationen** _(in Entwicklung)_ — Zubereitungsstatus verwalten, Servicekräfte sehen, wann Positionen abholbereit sind
+- 🖨️ **Bon-Druck** _(in Entwicklung)_ — Bestell- und Küchenbons automatisch an zugeordnete Bondrucker senden (pro Kategorie konfigurierbar)
 
 ### Kasse
 
 - 📂 **Kassensitzung** — fortlaufend nummerierte Kassensitzungen eröffnen und schließen
 - 💵 **Anfangsbestand** — Wechselgeld zu Beginn einer Veranstaltung erfassen
 - 📊 **Kassenbestand** — Soll-Bestand jederzeit einsehen, aufgeschlüsselt nach Komponenten
-- 🔃 **Kassenbewegungen** — Geldtransit, Privatentnahmen und Privateinlagen buchen
+- 🔃 **Kassenbewegungen** — Einlagen und Entnahmen (Geldtransit) buchen
 - ✅ **Kassensturz** — Ist-Bestand eingeben, Differenz berechnen, Abweichung automatisch buchen
 - 📄 **Tagesabschluss (Z-Bon)** — formaler Abschluss mit fortlaufender Nummer und Stammdaten-Snapshot
 
@@ -40,9 +40,9 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 📊 **Tagesabrechnung** — Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge, nach Steuersatz aufgeschlüsselt
 - 🧾 **Abrechnung pro Tisch** — detaillierte Aufstellung je Tisch
 - 👤 **Abrechnung pro Servicekraft** — Umsatz und Transaktionen pro Person
-- 📈 **Produktumsatz-Reporting** — meistverkaufte Varianten, Mengen und Einnahmen pro Produkt
-- 📥 **Datenexport (CSV)** — Umsätze, Bestellungen und Artikeldaten für die Vereinsbuchhaltung
-- 📦 **DSFinV-K-Export** — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.4)
+- 📈 **Produktumsatz-Reporting** _(in Entwicklung)_ — meistverkaufte Varianten, Mengen und Einnahmen pro Produkt
+- 📥 **Datenexport (CSV)** _(in Entwicklung)_ — Umsätze, Bestellungen und Artikeldaten für die Vereinsbuchhaltung
+- 📦 **DSFinV-K-Export** _(in Entwicklung)_ — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.4)
 
 ### Verwaltung & Sicherheit
 
@@ -50,9 +50,9 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 🔐 **Rollenmodell** mit `admin`, `serviceleitung` und `service`
 - 🔑 **Sicheres Onboarding** per Einmalpasswort, Argon2id-Hashing, JWT-Auth
 - 📜 **Event-Sourcing** — lückenlose, unveränderliche Bestellhistorie (GoBD-konform durch Append-only-Architektur)
-- 🔗 **Kryptografische Hash-Chain** — SHA-256-Verkettung aller Events, nachträgliche Manipulation nachweisbar
-- 🛡️ **TSE-Anbindung** — integrierte Cloud-TSE-Schnittstelle (fiskaly) mit Signatur jedes Vorgangs
-- 🧾 **Belegausgabe** — gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse
+- 🔗 **Kryptografische Hash-Chain** _(in Entwicklung)_ — SHA-256-Verkettung aller Events, nachträgliche Manipulation nachweisbar
+- 🛡️ **TSE-Anbindung** _(in Entwicklung)_ — integrierte Cloud-TSE-Schnittstelle (fiskaly) mit Signatur jedes Vorgangs
+- 🧾 **Belegausgabe** _(in Entwicklung)_ — gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse
 
 ## Schnellstart
 
@@ -103,7 +103,6 @@ jotti steht unter einer **proprietären Source-Available-Lizenz** — siehe [LIC
 - ✅ **Pull Requests** an das offizielle Repository sind willkommen (unter dem [CLA](CLA.md)).
 - ✅ **Eingetragene Vereine (e.V.), gemeinnützige Stiftungen und NGOs/NPOs** können eine **kostenlose Nutzungsvereinbarung** mit dem Autor abschließen.
 - ❌ **Jede Nutzung** (Installation, Deployment, Betrieb) **erfordert eine vorherige schriftliche Nutzungsvereinbarung** mit dem Autor.
-- ❌ **Kommerzielle Nutzung** ist ohne separate kommerzielle Lizenz nicht erlaubt.
 - ❌ **Forks, Modifikation und Weitergabe** sind nicht gestattet (außer PRs an das offizielle Repo).
 - 💼 **Kommerzielle Lizenzierung:** Für gewerbliche Nutzung ist eine separate kommerzielle Lizenz vom Urheber erforderlich — Kontakt über GitHub.
 
