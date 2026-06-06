@@ -23,7 +23,7 @@ Repo-weite Regeln und Guardrails stehen kanonisch in `AGENTS.md`. Diese Datei er
 frontend/
   src/routes.ts                 # Alle Routen + Guards
   src/App.tsx                   # Root-Komponente
-  src/lib/                      # Auth, Backend-Client, useFetch-Hook, Utilities
+  src/lib/                      # Auth, Backend-Client, Utilities
   src/admin/                    # Admin-Bereich (Produkte, Tische, Benutzer, Kasse/Kassensitzung)
   src/service/                  # Service-Bereich (Tisch-Workflow)
   src/pages/                    # Login, Passwort setzen
@@ -99,24 +99,45 @@ export class ProduktBackend {
 }
 ```
 
-### Custom Hook mit useFetch
+### Custom Hook mit react-query
+
+Datenbeschaffung läuft über `@tanstack/react-query` (`QueryClient` in `src/main.tsx`).
+Lesezugriffe nutzen `useQuery`, Schreibzugriffe `useMutation` bzw.
+`queryClient.invalidateQueries(...)`. Query-Keys als Konstante exportieren, damit
+Mutationen gezielt invalidieren können. Das Lade-Flag heißt einheitlich `isPending`.
 
 ```typescript
+import { useQuery } from "@tanstack/react-query";
 import { BackendSingleton } from "@/lib/Backend";
-import { useFetch } from "@/lib/useFetch";
 import type { Produkt } from "./Produkt";
 import { ProduktBackend } from "./ProduktBackend";
 
 const produktBackend = new ProduktBackend(BackendSingleton);
 
+export const ALLE_PRODUKTE_KEY = "alle-produkte";
+
 export function useAllProdukte() {
-  const {
-    data: produkte,
-    setData: setProdukte,
-    ...rest
-  } = useFetch(() => produktBackend.getAllProdukte(), [] as Produkt[]);
-  return { ...rest, produkte, setProdukte };
+  const { data: produkte = [] as Produkt[], isPending } = useQuery({
+    queryKey: [ALLE_PRODUKTE_KEY],
+    queryFn: () => produktBackend.getAllProdukte(),
+  });
+  return { produkte, isPending };
 }
+```
+
+Schreibzugriffe invalidieren den betroffenen Query-Key, damit Reads neu laden:
+
+```typescript
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+const queryClient = useQueryClient();
+
+const loeschenMutation = useMutation({
+  mutationFn: (produktId: number) => produktBackend.deleteProdukt(produktId),
+  onSuccess: () =>
+    queryClient.invalidateQueries({ queryKey: [ALLE_PRODUKTE_KEY] }),
+  onError: () => toast.error("Produkt konnte nicht gelöscht werden."),
+});
 ```
 
 ### Zod-Schema
