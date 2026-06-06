@@ -63,17 +63,28 @@ type updateDruckerConfigRequest struct {
 
 type kassensitzungEroeffnenRequest struct {
 	Bezeichnung string `json:"bezeichnung"`
+	BetragCents int    `json:"betragCents"`
 }
 
 // seedTestData creates the minimal test data needed for integration tests.
 // The migration only creates user ID 1 (admin "nico"), so we need to insert
-// a service user, products with variants, and active tische.
+// betreiber master data, a service user, products with variants, and active tische.
 func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteID, tischID int) {
 	t.Helper()
 
+	// Betreiber master data is a precondition for opening a Kassensitzung.
+	_, err := db.Exec(`
+		INSERT INTO betreiber (id, vereinsname, strasse, plz, ort, updated_at)
+		VALUES (1, 'Test-Verein e.V.', 'Teststraße 1', '12345', 'Teststadt', now())
+		ON CONFLICT (id) DO UPDATE SET vereinsname = EXCLUDED.vereinsname
+	`)
+	if err != nil {
+		t.Fatalf("Failed to seed betreiber: %v", err)
+	}
+
 	// Create a service user for placing orders
 	var userID int
-	err := db.QueryRow(`
+	err = db.QueryRow(`
 		INSERT INTO users (name, username, password_hash, role, status, created_at, updated_at)
 		VALUES ('Test Service', 'test-service', 'unused', 'service', 'active', now(), now())
 		ON CONFLICT (username) DO UPDATE SET name = EXCLUDED.name
@@ -183,6 +194,7 @@ func openKassensitzungIfNeeded(t *testing.T, env testEnv) {
 	t.Helper()
 	resp := postJSON(t, env.server.URL+"/admin/kassensitzung-eroeffnen", kassensitzungEroeffnenRequest{
 		Bezeichnung: "Integration Test",
+		BetragCents: 10000,
 	}, env.adminToken)
 	defer resp.Body.Close()
 	// 200 = newly opened, 400+kasse_bereits_geoeffnet = already open — both are fine for tests

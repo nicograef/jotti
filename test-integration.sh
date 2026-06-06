@@ -51,6 +51,8 @@ echo "✅ Migrations complete!"
 echo ""
 
 echo "🏃 Running integration tests..."
+# -p 1 serializes package test binaries: all integration tests share a single
+# Postgres instance, so running packages in parallel pollutes each other's data.
 cd "$ROOT_DIR/backend"
 POSTGRES_HOST=localhost \
 POSTGRES_PORT=5432 \
@@ -58,7 +60,7 @@ POSTGRES_USER=admin \
 POSTGRES_PASSWORD=admin \
 POSTGRES_DBNAME=jotti \
 JWT_SECRET=test-secret \
-go test -tags=integration -count=1 -race ./...
+go test -tags=integration -count=1 -race -p 1 ./...
 
 echo "✅ Integration tests passed!"
 

@@ -21,6 +21,7 @@ func toDomain(row dbgen.GetBetreiberRow) settings.Betreiber {
 		Strasse:     row.Strasse,
 		Plz:         row.Plz,
 		Ort:         row.Ort,
+		UpdatedAt:   row.UpdatedAt,
 	}
 	if row.Steuernummer.Valid {
 		b.Steuernummer = &row.Steuernummer.String
