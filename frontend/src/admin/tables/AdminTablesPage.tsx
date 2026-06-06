@@ -20,7 +20,7 @@ const tischBackend = new TischBackend(BackendSingleton)
 
 export function AdminTablesPage() {
   const queryClient = useQueryClient()
-  const { loading, tische } = useAllTische()
+  const { isPending, tische } = useAllTische()
   const [editState, setEditState] = useState(initialEditState)
 
   const invalidateTische = () =>
@@ -50,7 +50,7 @@ export function AdminTablesPage() {
       )}
       <h1 className="text-2xl font-bold">Tische verwalten</h1>
       <Tische
-        loading={loading}
+        loading={isPending}
         backend={tischBackend}
         tische={tische}
         onEdit={(tischId) => {

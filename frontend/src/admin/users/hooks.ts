@@ -14,5 +14,5 @@ export function useAllUsers() {
     queryKey: [ALLE_USERS_KEY],
     queryFn: () => userBackend.getAllUsers(),
   })
-  return { users, loading: isPending }
+  return { users, isPending }
 }

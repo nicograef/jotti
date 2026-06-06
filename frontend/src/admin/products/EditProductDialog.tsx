@@ -108,7 +108,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
             form="product-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Speichern
+            {loading ? <Spinner /> : null} Speichern
           </Button>
         </DialogFooter>
       </DialogContent>

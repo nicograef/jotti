@@ -39,6 +39,11 @@ export function TablePage() {
     refetch: reloadHistorie,
   } = useTischHistorie(Number(tischId))
 
+  const reload = () => {
+    void reloadState()
+    void reloadHistorie()
+  }
+
   const tisch = {
     id: state.tischId,
     name: state.tischName,
@@ -117,10 +122,7 @@ export function TablePage() {
                     tisch={tisch}
                     positionen={state.ausstehendePositionen}
                     loading={stateLoading}
-                    onAusgabeBestaetigt={() => {
-                      void reloadState()
-                      void reloadHistorie()
-                    }}
+                    onAusgabeBestaetigt={reload}
                   />
                 </Card>
               )}
@@ -129,10 +131,7 @@ export function TablePage() {
                 tisch={tisch}
                 products={produkte}
                 productsLoading={isPending}
-                onBestellungAufgenommen={() => {
-                  void reloadState()
-                  void reloadHistorie()
-                }}
+                onBestellungAufgenommen={reload}
               />
             </>
           )}
@@ -145,14 +144,8 @@ export function TablePage() {
               positionen={state.unbezahltePositionen}
               saldoCents={state.saldoCents}
               loading={stateLoading}
-              onZahlungKassiert={() => {
-                void reloadState()
-                void reloadHistorie()
-              }}
-              onAuszahlungGeleistet={() => {
-                void reloadState()
-                void reloadHistorie()
-              }}
+              onZahlungKassiert={reload}
+              onAuszahlungGeleistet={reload}
             />
           )}
         </TabsContent>
@@ -164,10 +157,7 @@ export function TablePage() {
               userId={AuthSingleton.userId}
               tisch={tisch}
               backend={tischBackend}
-              onStornierungErteilt={() => {
-                void reloadState()
-                void reloadHistorie()
-              }}
+              onStornierungErteilt={reload}
             />
           )}
         </TabsContent>

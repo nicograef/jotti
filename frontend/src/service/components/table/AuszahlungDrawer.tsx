@@ -140,7 +140,7 @@ export function AuszahlungDrawer(props: AuszahlungDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Auszahlung leisten
+              {loading ? <Spinner /> : null} Auszahlung leisten
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>

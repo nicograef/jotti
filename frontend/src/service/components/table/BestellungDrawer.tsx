@@ -113,7 +113,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Bestellung aufnehmen
+              {loading ? <Spinner /> : null} Bestellung aufnehmen
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>

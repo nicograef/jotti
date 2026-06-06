@@ -131,7 +131,7 @@ export function EditUserDialog(props: NewUserDialogProps) {
               void resetPassword()
             }}
           >
-            {loading ? <Spinner /> : <></>} Passwort zurücksetzen
+            {loading ? <Spinner /> : null} Passwort zurücksetzen
           </Button>
           <DialogClose asChild>
             <Button variant="outline" disabled={loading}>
@@ -143,7 +143,7 @@ export function EditUserDialog(props: NewUserDialogProps) {
             form="user-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Speichern
+            {loading ? <Spinner /> : null} Speichern
           </Button>
         </DialogFooter>
       </DialogContent>

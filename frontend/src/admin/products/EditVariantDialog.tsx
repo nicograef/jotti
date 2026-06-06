@@ -114,7 +114,7 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
             form="edit-variant-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Speichern
+            {loading ? <Spinner /> : null} Speichern
           </Button>
         </DialogFooter>
       </DialogContent>

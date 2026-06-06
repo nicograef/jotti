@@ -117,7 +117,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
             form="product-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Produkt anlegen
+            {loading ? <Spinner /> : null} Produkt anlegen
           </Button>
         </DialogFooter>
       </DialogContent>

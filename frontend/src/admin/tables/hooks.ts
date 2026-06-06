@@ -14,5 +14,5 @@ export function useAllTische() {
     queryKey: [ALLE_TISCHE_KEY],
     queryFn: () => tischBackend.getAllTische(),
   })
-  return { tische, loading: isPending }
+  return { tische, isPending }
 }

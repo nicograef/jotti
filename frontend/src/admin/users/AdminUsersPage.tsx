@@ -34,7 +34,7 @@ const userBackend = new UserBackend(BackendSingleton)
 
 export function AdminUsersPage() {
   const queryClient = useQueryClient()
-  const { loading, users } = useAllUsers()
+  const { isPending, users } = useAllUsers()
   const [userCreatedState, setUserCreatedState] = useState(
     initialUserCreatedState,
   )
@@ -86,7 +86,7 @@ export function AdminUsersPage() {
       )}
       <h1 className="text-2xl font-bold">Benutzer verwalten</h1>
       <Users
-        loading={loading}
+        loading={isPending}
         backend={userBackend}
         users={users}
         onEdit={(userId) => {

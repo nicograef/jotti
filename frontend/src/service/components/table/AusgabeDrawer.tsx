@@ -111,7 +111,7 @@ export function AusgabeDrawer(props: AusgabeDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Ausgabe bestätigen
+              {loading ? <Spinner /> : null} Ausgabe bestätigen
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>

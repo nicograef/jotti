@@ -104,7 +104,7 @@ export function EditTischDialog(props: EditTischDialogProps) {
             form="table-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Speichern
+            {loading ? <Spinner /> : null} Speichern
           </Button>
         </DialogFooter>
       </DialogContent>

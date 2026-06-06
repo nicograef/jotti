@@ -94,10 +94,8 @@ export const router = createBrowserRouter([
             Component: TablePage,
             loader: ServiceTableGuard,
           },
-          { path: '', loader: () => redirect('tische') },
         ],
       },
-      { path: '', loader: () => redirect('login') },
     ],
   },
 ])

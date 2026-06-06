@@ -128,7 +128,7 @@ export function NewUserDialog(props: NewUserDialogProps) {
             form="user-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Benutzer anlegen
+            {loading ? <Spinner /> : null} Benutzer anlegen
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -194,7 +194,7 @@ export function HistorieStornierungDrawer({
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Stornierung erteilen
+              {loading ? <Spinner /> : null} Stornierung erteilen
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>

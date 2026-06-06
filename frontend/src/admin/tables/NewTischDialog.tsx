@@ -116,7 +116,7 @@ export function NewTischDialog(props: NewTischDialogProps) {
             form="table-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Tisch anlegen
+            {loading ? <Spinner /> : null} Tisch anlegen
           </Button>
         </DialogFooter>
       </DialogContent>

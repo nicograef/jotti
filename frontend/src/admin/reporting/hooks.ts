@@ -14,7 +14,7 @@ export function useKassensitzungen() {
       queryFn: () => reportingBackend.getAllKassensitzungen(),
     },
   )
-  return { kassensitzungen, loading: isPending }
+  return { kassensitzungen, isPending }
 }
 
 export function useReport(kassensitzungNr: number | null) {
@@ -23,7 +23,7 @@ export function useReport(kassensitzungNr: number | null) {
     queryFn: () => reportingBackend.getReporting(kassensitzungNr ?? 0),
     enabled: kassensitzungNr !== null,
   })
-  return { result, loading: isPending }
+  return { result, isPending }
 }
 
 export function useLiveReporting() {
@@ -32,5 +32,5 @@ export function useLiveReporting() {
       queryKey: ['live-reporting'],
       queryFn: () => reportingBackend.getLiveReporting(),
     })
-  return { liveData, loading: isPending }
+  return { liveData, isPending }
 }

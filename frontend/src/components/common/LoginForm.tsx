@@ -90,7 +90,7 @@ export function LoginForm(props: LoginFormProps) {
           className="w-full"
           disabled={loading || !form.formState.isValid}
         >
-          {loading ? <Spinner /> : <></>} Anmelden
+          {loading ? <Spinner /> : null} Anmelden
         </Button>
         <Button asChild className="w-full" variant="link" disabled={loading}>
           <NavLink to="/set-password">Neues Passwort festlegen</NavLink>

@@ -103,7 +103,7 @@ export function PasswordForm(props: PasswordFormProps) {
           className="w-full"
           disabled={loading || !form.formState.isValid}
         >
-          {loading ? <Spinner /> : <></>} Passwort festlegen
+          {loading ? <Spinner /> : null} Passwort festlegen
         </Button>
         <Button asChild className="w-full" variant="link" disabled={loading}>
           <NavLink to="/login">Zum Login</NavLink>

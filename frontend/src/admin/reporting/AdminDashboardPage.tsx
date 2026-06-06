@@ -6,12 +6,12 @@ import { ReportingFilter } from './ReportingFilter'
 import { ReportingResults } from './ReportingResults'
 
 export function AdminDashboardPage() {
-  const { liveData, loading: liveLoading } = useLiveReporting()
-  const { kassensitzungen, loading: listLoading } = useKassensitzungen()
+  const { liveData, isPending: liveLoading } = useLiveReporting()
+  const { kassensitzungen, isPending: listLoading } = useKassensitzungen()
   const [selectedNr, setSelectedNr] = useState<number | null>(null)
 
   const effectiveNr = selectedNr ?? kassensitzungen.at(0)?.zNr ?? null
-  const { result, loading: reportLoading } = useReport(effectiveNr)
+  const { result, isPending: reportLoading } = useReport(effectiveNr)
 
   return (
     <>

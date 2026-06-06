@@ -14,5 +14,5 @@ export function useAllProdukte() {
     queryKey: [ALLE_PRODUKTE_KEY],
     queryFn: () => produktBackend.getAllProdukte(),
   })
-  return { produkte, loading: isPending }
+  return { produkte, isPending }
 }

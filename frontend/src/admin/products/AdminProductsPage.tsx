@@ -20,7 +20,7 @@ const produktBackend = new ProduktBackend(BackendSingleton)
 
 export function AdminProductsPage() {
   const queryClient = useQueryClient()
-  const { loading, produkte } = useAllProdukte()
+  const { isPending, produkte } = useAllProdukte()
   const [produktEditState, setProduktEditState] = useState(
     initialProduktEditState,
   )
@@ -58,7 +58,7 @@ export function AdminProductsPage() {
       )}
       <h1 className="text-2xl font-bold">Produkte verwalten</h1>
       <Products
-        loading={loading}
+        loading={isPending}
         backend={produktBackend}
         products={produkte}
         onEdit={(produktId) => {

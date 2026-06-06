@@ -114,7 +114,7 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
             form="variant-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : <></>} Variante anlegen
+            {loading ? <Spinner /> : null} Variante anlegen
           </Button>
         </DialogFooter>
       </DialogContent>

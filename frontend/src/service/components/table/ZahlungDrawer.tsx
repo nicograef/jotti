@@ -180,7 +180,7 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
                 void onSubmit()
               }}
             >
-              {loading ? <Spinner /> : <></>} Kassieren
+              {loading ? <Spinner /> : null} Kassieren
             </Button>
             <DrawerClose asChild>
               <Button variant="outline" disabled={loading}>
