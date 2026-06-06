@@ -7,15 +7,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Betreiber } from '@/lib/EinstellungenBackend'
 
-import { useBetreiber, useSeriennummer } from './hooks'
+import { useBetreiber, useKassenidentitaet } from './hooks'
 
-function SeriennummerSection() {
-  const { data: seriennummer, isPending, error } = useSeriennummer()
+function KassenidentitaetSection() {
+  const { data: kassenidentitaet, isPending, error } = useKassenidentitaet()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    if (!seriennummer) return
-    await navigator.clipboard.writeText(seriennummer)
+    if (!kassenidentitaet) return
+    await navigator.clipboard.writeText(kassenidentitaet.seriennummer)
     setCopied(true)
     setTimeout(() => {
       setCopied(false)
@@ -24,37 +24,50 @@ function SeriennummerSection() {
 
   return (
     <section className="max-w-2xl">
-      <h2 className="text-xl font-semibold mb-1">Seriennummer der Kasse</h2>
+      <h2 className="text-xl font-semibold mb-1">Kassenidentität</h2>
       <p className="text-muted-foreground text-sm mb-4">
-        Diese UUID ist die eindeutige Kennung dieser jotti-Instanz. Sie wird für
-        die ELSTER-Meldung (§ 146a AO) benötigt und erscheint auf jedem
-        Kassenbeleg.
+        Seriennummer und Inbetriebnahmedatum identifizieren diese jotti-Instanz
+        eindeutig. Beide Angaben werden für die ELSTER-Meldung (§ 146a AO)
+        benötigt; die Seriennummer erscheint zusätzlich auf jedem Kassenbeleg.
       </p>
       {isPending && (
-        <p className="text-muted-foreground text-sm">Lade Seriennummer…</p>
+        <p className="text-muted-foreground text-sm">Lade Kassenidentität…</p>
       )}
       {error && (
         <p className="text-destructive text-sm">
-          Fehler beim Laden der Seriennummer.
+          Fehler beim Laden der Kassenidentität.
         </p>
       )}
-      {seriennummer && (
-        <div className="flex items-center gap-2">
-          <code className="flex-1 rounded-md border bg-muted px-3 py-2 font-mono text-sm">
-            {seriennummer}
-          </code>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => void handleCopy()}
-            aria-label="Seriennummer kopieren"
-          >
-            {copied ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
-          </Button>
+      {kassenidentitaet && (
+        <div className="grid gap-4">
+          <div className="grid gap-1.5">
+            <Label>Seriennummer</Label>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-md border bg-muted px-3 py-2 font-mono text-sm">
+                {kassenidentitaet.seriennummer}
+              </code>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => void handleCopy()}
+                aria-label="Seriennummer kopieren"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Inbetriebnahmedatum</Label>
+            <p className="text-sm">
+              {new Date(kassenidentitaet.angelegtAm).toLocaleDateString(
+                'de-DE',
+              )}
+            </p>
+          </div>
         </div>
       )}
     </section>
@@ -211,7 +224,7 @@ function BetreiberSection() {
 export function EinstellungenPage() {
   return (
     <div className="flex flex-col gap-10">
-      <SeriennummerSection />
+      <KassenidentitaetSection />
       <hr />
       <BetreiberSection />
     </div>

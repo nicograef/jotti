@@ -5,10 +5,19 @@ DROP TABLE IF EXISTS kategorie_drucker;
 DROP TABLE IF EXISTS tisch_favoriten;
 DROP TABLE IF EXISTS tisch_sessions;
 
+-- Drop all write-protection triggers (both tables) before the shared trigger function,
+-- which the triggers depend on.
+DROP TRIGGER IF EXISTS kassenidentitaet_no_truncate ON kassenidentitaet;
+DROP TRIGGER IF EXISTS kassenidentitaet_no_delete ON kassenidentitaet;
+DROP TRIGGER IF EXISTS kassenidentitaet_no_update ON kassenidentitaet;
+DROP TRIGGER IF EXISTS kassenidentitaet_no_insert ON kassenidentitaet;
 DROP TRIGGER IF EXISTS kassenjournal_no_truncate ON kassenjournal;
 DROP TRIGGER IF EXISTS kassenjournal_no_delete ON kassenjournal;
 DROP TRIGGER IF EXISTS kassenjournal_no_update ON kassenjournal;
-DROP FUNCTION IF EXISTS prevent_kassenjournal_mutation;
+DROP FUNCTION IF EXISTS prevent_table_mutation;
+
+DROP TABLE IF EXISTS kassenidentitaet;
+DROP TABLE IF EXISTS betreiber;
 DROP TABLE IF EXISTS kassenjournal;
 
 DROP TABLE IF EXISTS kassensitzungen;

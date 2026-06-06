@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Entitystatus string
@@ -139,6 +141,34 @@ func (ns NullUserrole) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.Userrole), nil
+}
+
+// Betreiber-Stammdaten (Singleton). Pflichtfeld vor erster Kassensitzung.
+type Betreiber struct {
+	ID int
+	// Name des Vereins / Betreibers
+	Vereinsname string
+	// Straße und Hausnummer
+	Strasse string
+	// Postleitzahl
+	Plz string
+	// Ort
+	Ort string
+	// Steuernummer (optional)
+	Steuernummer sql.NullString
+	// USt-ID (optional)
+	UstID sql.NullString
+	// Letzte Änderung (UTC)
+	UpdatedAt time.Time
+}
+
+// Kassenidentität (Singleton). Einmalig bei der DB-Migration eingebrannt, danach read-only (insert-once).
+type Kassenidentitaet struct {
+	ID int
+	// UUID-v4 Seriennummer der Kasse — nie überschreiben
+	Seriennummer uuid.UUID
+	// Zeitpunkt der ersten Inbetriebnahme (UTC)
+	AngelegtAm time.Time
 }
 
 // Append-only Kassenjournal (Event Store) for all kasse operations (event-sourcing)

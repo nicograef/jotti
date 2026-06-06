@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type SystemConfig struct {
+type Kassenidentitaet struct {
 	Seriennummer uuid.UUID
 	AngelegtAm   time.Time
 }

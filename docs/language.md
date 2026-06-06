@@ -484,10 +484,10 @@ Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und 
 
 #### Kasse & Identifikation
 
-| Begriff                     | Bedeutung                                                                                                                             |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **KassenID / Seriennummer** | Eindeutige UUID-v4 der jotti-Instanz. Für ELSTER-Meldung und TSE-Protokoll. **(nicht implementiert)** — siehe `docs/anforderungen.md` |
-| **TSEClient**               | Go-Interface mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. **(nicht implementiert)**                     |
+| Begriff                     | Bedeutung                                                                                                                                                                                 |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **KassenID / Seriennummer** | Eindeutige UUID-v4 der jotti-Instanz. Für ELSTER-Meldung und TSE-Protokoll. Persistiert in Tabelle `kassenidentitaet` (insert-once), abrufbar über Endpunkt `admin/get-kassenidentitaet`. |
+| **TSEClient**               | Go-Interface mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. **(nicht implementiert)**                                                                         |
 
 #### Steuern
 

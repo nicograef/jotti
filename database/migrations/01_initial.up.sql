@@ -144,23 +144,24 @@ GRANT SELECT, INSERT ON TABLE kassenjournal TO PUBLIC;
 
 -- Triggers to enforce append-only immutability for ALL roles, including the table owner.
 -- REVOKE/GRANT alone is not sufficient because PostgreSQL table owners bypass privilege checks.
-CREATE OR REPLACE FUNCTION prevent_kassenjournal_mutation() RETURNS TRIGGER AS $$
+-- Generic write-protection guard, shared with the insert-once kassenidentitaet table.
+CREATE OR REPLACE FUNCTION prevent_table_mutation() RETURNS TRIGGER AS $$
 BEGIN
-    RAISE EXCEPTION 'kassenjournal table is append-only: % not allowed', TG_OP;
+    RAISE EXCEPTION 'table % is write-protected: % not allowed', TG_TABLE_NAME, TG_OP;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER kassenjournal_no_update
     BEFORE UPDATE ON kassenjournal FOR EACH ROW
-    EXECUTE FUNCTION prevent_kassenjournal_mutation();
+    EXECUTE FUNCTION prevent_table_mutation();
 
 CREATE TRIGGER kassenjournal_no_delete
     BEFORE DELETE ON kassenjournal FOR EACH ROW
-    EXECUTE FUNCTION prevent_kassenjournal_mutation();
+    EXECUTE FUNCTION prevent_table_mutation();
 
 CREATE TRIGGER kassenjournal_no_truncate
     BEFORE TRUNCATE ON kassenjournal FOR EACH STATEMENT
-    EXECUTE FUNCTION prevent_kassenjournal_mutation();
+    EXECUTE FUNCTION prevent_table_mutation();
 
 COMMENT ON TABLE kassenjournal IS 'Append-only Kassenjournal (Event Store) for all kasse operations (event-sourcing)';
 COMMENT ON COLUMN kassenjournal.user_id IS 'Actor who triggered the event';
@@ -253,21 +254,43 @@ CREATE OR REPLACE FUNCTION kj_extract_stornierung_cents(type TEXT, data JSONB) R
 $$ LANGUAGE sql IMMUTABLE;
 
 -- ============================================================
--- Table: system_config (Systemkonfiguration, Singleton)
--- Insert-once at first startup; never updated or deleted via API.
+-- Table: kassenidentitaet (Kassenidentität, Singleton)
+-- Insert-once at first startup; afterwards fully read-only (no INSERT/UPDATE/DELETE/TRUNCATE).
 -- ============================================================
-CREATE TABLE system_config (
+CREATE TABLE kassenidentitaet (
     id          INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
     seriennummer   UUID NOT NULL,
     angelegt_am TIMESTAMPTZ NOT NULL
 );
 
-COMMENT ON TABLE system_config IS 'Systemkonfiguration (Singleton). Wird einmalig bei der DB-Migration befüllt.';
-COMMENT ON COLUMN system_config.seriennummer IS 'UUID-v4 Seriennummer der Kasse — nie überschreiben';
-COMMENT ON COLUMN system_config.angelegt_am IS 'Zeitpunkt der ersten Inbetriebnahme (UTC)';
+COMMENT ON TABLE kassenidentitaet IS 'Kassenidentität (Singleton). Einmalig bei der DB-Migration eingebrannt, danach read-only (insert-once).';
+COMMENT ON COLUMN kassenidentitaet.seriennummer IS 'UUID-v4 Seriennummer der Kasse — nie überschreiben';
+COMMENT ON COLUMN kassenidentitaet.angelegt_am IS 'Zeitpunkt der ersten Inbetriebnahme (UTC)';
 
--- Insert initial system configuration with generated Seriennummer (UUIDv4) and current timestamp for angelegt_am.
-INSERT INTO system_config (seriennummer, angelegt_am) VALUES (gen_random_uuid(), now());
+-- Insert the one and only identity row before the write-protection triggers are installed.
+INSERT INTO kassenidentitaet (seriennummer, angelegt_am) VALUES (gen_random_uuid(), now());
+
+-- Lock the table down: read-only for the public role (no INSERT, unlike kassenjournal).
+REVOKE ALL ON TABLE kassenidentitaet FROM PUBLIC;
+GRANT SELECT ON TABLE kassenidentitaet TO PUBLIC;
+
+-- Triggers enforce insert-once immutability for ALL roles, including the table owner,
+-- because REVOKE/GRANT alone does not constrain the owner.
+CREATE TRIGGER kassenidentitaet_no_insert
+    BEFORE INSERT ON kassenidentitaet FOR EACH ROW
+    EXECUTE FUNCTION prevent_table_mutation();
+
+CREATE TRIGGER kassenidentitaet_no_update
+    BEFORE UPDATE ON kassenidentitaet FOR EACH ROW
+    EXECUTE FUNCTION prevent_table_mutation();
+
+CREATE TRIGGER kassenidentitaet_no_delete
+    BEFORE DELETE ON kassenidentitaet FOR EACH ROW
+    EXECUTE FUNCTION prevent_table_mutation();
+
+CREATE TRIGGER kassenidentitaet_no_truncate
+    BEFORE TRUNCATE ON kassenidentitaet FOR EACH STATEMENT
+    EXECUTE FUNCTION prevent_table_mutation();
 
 -- ============================================================
 -- Table: betreiber (Betreiber-Stammdaten, Singleton)

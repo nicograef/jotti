@@ -4,15 +4,15 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
-	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/settings/application"
 	"github.com/nicograef/jotti/backend/domain/settings"
 )
 
 type settingsQuery interface {
-	GetSeriennummer(ctx context.Context) (uuid.UUID, error)
+	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
 }
 
@@ -20,8 +20,9 @@ type QueryHandler struct {
 	Query settingsQuery
 }
 
-type seriennummerResponse struct {
-	Seriennummer string `json:"seriennummer"`
+type kassenidentitaetResponse struct {
+	Seriennummer string    `json:"seriennummer"`
+	AngelegtAm   time.Time `json:"angelegtAm"`
 }
 
 type betreiberResponse struct {
@@ -33,14 +34,17 @@ type betreiberResponse struct {
 	UstID        *string `json:"ustId"`
 }
 
-func (h *QueryHandler) GetSeriennummerHandler() http.HandlerFunc {
+func (h *QueryHandler) GetKassenidentitaetHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		seriennummer, err := h.Query.GetSeriennummer(r.Context())
+		identitaet, err := h.Query.GetKassenidentitaet(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
-		helper.SendResponse(w, seriennummerResponse{Seriennummer: seriennummer.String()})
+		helper.SendResponse(w, kassenidentitaetResponse{
+			Seriennummer: identitaet.Seriennummer.String(),
+			AngelegtAm:   identitaet.AngelegtAm,
+		})
 	}
 }
 

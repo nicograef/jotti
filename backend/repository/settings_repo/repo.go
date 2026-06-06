@@ -42,16 +42,16 @@ func (r Repository) UpsertBetreiber(ctx context.Context, b settings.Betreiber) e
 	return nil
 }
 
-// GetSystemConfig returns the system config, or db.ErrNotFound if not yet initialized.
-func (r Repository) GetSystemConfig(ctx context.Context) (settings.SystemConfig, error) {
-	row, err := r.q.GetSystemConfig(ctx)
+// GetKassenidentitaet returns the kasse identity, or db.ErrNotFound if not yet initialized.
+func (r Repository) GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error) {
+	row, err := r.q.GetKassenidentitaet(ctx)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return settings.SystemConfig{}, db.ErrNotFound
+			return settings.Kassenidentitaet{}, db.ErrNotFound
 		}
-		return settings.SystemConfig{}, db.ErrDatabase
+		return settings.Kassenidentitaet{}, db.ErrDatabase
 	}
-	return settings.SystemConfig{
+	return settings.Kassenidentitaet{
 		Seriennummer: row.Seriennummer,
 		AngelegtAm:   row.AngelegtAm,
 	}, nil

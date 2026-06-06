@@ -592,10 +592,17 @@ stateDiagram-v2
 graph TD
     A["Anwendungsschicht\n(Go-Code: nur INSERT)"] --> KJ[kassenjournal]
     B["PostgreSQL-Berechtigung\n(REVOKE UPDATE/DELETE FROM PUBLIC)"] --> KJ
-    C["DB-Trigger\n(prevent_kassenjournal_mutation)\nSchützt auch Table-Owner"] --> KJ
+    C["DB-Trigger\n(prevent_table_mutation)\nSchützt auch Table-Owner"] --> KJ
     style KJ fill:#d4edda,stroke:#28a745
     style C fill:#fff3cd,stroke:#ffc107
 ```
+
+### Insert-once-Schutz der kassenidentitaet
+
+Die Singleton-Tabelle `kassenidentitaet` (Seriennummer + Inbetriebnahmedatum) wird einmalig bei der DB-Migration befüllt und ist danach vollständig read-only. Anders als das `kassenjournal` (append-only) erlaubt sie auch keine weiteren `INSERT`s. Der Schutz greift in zwei Schichten:
+
+- **PostgreSQL-Berechtigung:** `REVOKE ALL FROM PUBLIC` + nur `GRANT SELECT` (kein INSERT).
+- **DB-Trigger:** vier Trigger (`no_insert`, `no_update`, `no_delete`, `no_truncate`) rufen dieselbe generische Funktion `prevent_table_mutation()` auf und schützen so auch den Table-Owner.
 
 ### Reporting-Hilfsfunktionen
 

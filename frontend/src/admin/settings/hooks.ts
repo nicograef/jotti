@@ -29,10 +29,10 @@ export function useDruckerConfig() {
   return { drucker: data, isPending, error, updateDruckerConfig }
 }
 
-export function useSeriennummer() {
+export function useKassenidentitaet() {
   return useQuery({
-    queryKey: ['seriennummer'],
-    queryFn: () => einstellungenBackend.getSeriennummer(),
+    queryKey: ['kassenidentitaet'],
+    queryFn: () => einstellungenBackend.getKassenidentitaet(),
   })
 }
 

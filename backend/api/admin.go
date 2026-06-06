@@ -118,7 +118,7 @@ func NewAdminApi(db *sql.DB) http.Handler {
 
 	sq := settingsHTTP.QueryHandler{}
 	sq.Query = settingsApp.Query{SettingsRepo: settingsRepo}
-	r.HandleFunc("/get-seriennummer", sq.GetSeriennummerHandler())
+	r.HandleFunc("/get-kassenidentitaet", sq.GetKassenidentitaetHandler())
 	r.HandleFunc("/get-betreiber", sq.GetBetreiberHandler())
 
 	sc := settingsHTTP.CommandHandler{}

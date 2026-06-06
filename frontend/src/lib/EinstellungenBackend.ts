@@ -12,9 +12,13 @@ export const BetreiberSchema = z.object({
 })
 export type Betreiber = z.infer<typeof BetreiberSchema>
 
-const SeriennummerSchema = z.object({
+const KassenidentitaetSchema = z.object({
   seriennummer: z.uuid(),
+  angelegtAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: 'Ungültiges Datumsformat',
+  }),
 })
+export type Kassenidentitaet = z.infer<typeof KassenidentitaetSchema>
 
 export class EinstellungenBackend {
   private readonly backend: BackendClient
@@ -23,13 +27,12 @@ export class EinstellungenBackend {
     this.backend = backend
   }
 
-  public async getSeriennummer(): Promise<string> {
-    const { seriennummer } = await this.backend.post(
-      'admin/get-seriennummer',
+  public async getKassenidentitaet(): Promise<Kassenidentitaet> {
+    return this.backend.post(
+      'admin/get-kassenidentitaet',
       {},
-      SeriennummerSchema,
+      KassenidentitaetSchema,
     )
-    return seriennummer
   }
 
   public async getBetreiber(): Promise<Betreiber> {
