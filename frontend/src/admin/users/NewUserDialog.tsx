@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import {
@@ -23,6 +24,7 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { BackendError } from '@/lib/Backend'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { type User, UserRole } from './User'
 import { CreateUserSchema, UserBackend } from './UserBackend'
@@ -68,13 +70,18 @@ export function NewUserDialog(props: NewUserDialogProps) {
     } catch (error: unknown) {
       console.error(error)
 
-      if (error instanceof BackendError) {
-        if (error.code === 'username_already_exists') {
-          form.setError('username', {
-            type: 'custom',
-            message: 'Dieser Benutzername ist bereits vergeben.',
-          })
-        }
+      if (
+        error instanceof BackendError &&
+        error.code === 'username_already_exists'
+      ) {
+        form.setError('username', {
+          type: 'custom',
+          message: 'Dieser Benutzername ist bereits vergeben.',
+        })
+      } else {
+        toast.error(
+          getActionErrorMessage({ actionLabel: 'Benutzer anlegen', error }),
+        )
       }
     }
 

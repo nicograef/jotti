@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { BackendSingleton } from '@/lib/Backend'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 import { formatCents } from '@/lib/utils'
 
 import {
@@ -49,7 +50,10 @@ export function TischAuswahlDrawer({
       queryClient.invalidateQueries({
         queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
       }),
-    onError: () => toast.error('Favorit konnte nicht geändert werden.'),
+    onError: (error) =>
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Favorit ändern', error }),
+      ),
   })
 
   const handleTischClick = (tisch: AktiverTischMitFavorit) => {

@@ -22,6 +22,7 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { BackendError } from '@/lib/Backend'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { type User, UserSchema } from './User'
 import type { UserBackend } from './UserBackend'
@@ -71,13 +72,18 @@ export function EditUserDialog(props: NewUserDialogProps) {
     } catch (error: unknown) {
       console.error(error)
 
-      if (error instanceof BackendError) {
-        if (error.code === 'username_already_exists') {
-          form.setError('username', {
-            type: 'custom',
-            message: 'Dieser Benutzername ist bereits vergeben.',
-          })
-        }
+      if (
+        error instanceof BackendError &&
+        error.code === 'username_already_exists'
+      ) {
+        form.setError('username', {
+          type: 'custom',
+          message: 'Dieser Benutzername ist bereits vergeben.',
+        })
+      } else {
+        toast.error(
+          getActionErrorMessage({ actionLabel: 'Benutzer speichern', error }),
+        )
       }
     }
 
@@ -94,7 +100,9 @@ export function EditUserDialog(props: NewUserDialogProps) {
       props.close()
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Fehler beim Zurücksetzen des Passworts.')
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Passwort zurücksetzen', error }),
+      )
     }
 
     setLoading(false)

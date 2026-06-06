@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { NameField } from '@/components/common/FormFields'
@@ -19,6 +20,7 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { BackendError } from '@/lib/Backend'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import type { Tisch } from './Tisch'
 import { CreateTischSchema, TischBackend } from './TischBackend'
@@ -57,13 +59,18 @@ export function NewTischDialog(props: NewTischDialogProps) {
     } catch (error: unknown) {
       console.error(error)
 
-      if (error instanceof BackendError) {
-        if (error.code === 'tisch_already_exists') {
-          form.setError('name', {
-            type: 'custom',
-            message: 'Dieser Name ist bereits vergeben.',
-          })
-        }
+      if (
+        error instanceof BackendError &&
+        error.code === 'tisch_already_exists'
+      ) {
+        form.setError('name', {
+          type: 'custom',
+          message: 'Dieser Name ist bereits vergeben.',
+        })
+      } else {
+        toast.error(
+          getActionErrorMessage({ actionLabel: 'Tisch anlegen', error }),
+        )
       }
     }
 

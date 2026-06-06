@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import React from 'react'
 import { useForm } from 'react-hook-form'
 import { NavLink, useNavigate } from 'react-router'
+import { toast } from 'sonner'
 import type z from 'zod'
 
 import { Button } from '@/components/ui/button'
@@ -16,6 +17,7 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { AuthBackend, SetPasswordSchema } from '@/lib/AuthBackend'
 import { BackendError } from '@/lib/Backend'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { NewPasswordField, OTPField, UsernameField } from './FormFields'
 
@@ -48,22 +50,30 @@ export function PasswordForm(props: PasswordFormProps) {
     } catch (error: unknown) {
       console.error(error)
 
-      if (error instanceof BackendError) {
-        if (error.code === 'invalid_credentials') {
-          form.setError('username', {
-            type: 'manual',
-            message: 'Benutzername oder Code ungültig.',
-          })
-          form.setError('onetimePassword', {
-            type: 'manual',
-            message: 'Benutzername oder Code ungültig.',
-          })
-        } else if (error.code === 'already_has_password') {
-          form.setError('password', {
-            type: 'manual',
-            message: 'Dieses Konto hat bereits ein Passwort festgelegt.',
-          })
-        }
+      if (
+        error instanceof BackendError &&
+        error.code === 'invalid_credentials'
+      ) {
+        form.setError('username', {
+          type: 'manual',
+          message: 'Benutzername oder Code ungültig.',
+        })
+        form.setError('onetimePassword', {
+          type: 'manual',
+          message: 'Benutzername oder Code ungültig.',
+        })
+      } else if (
+        error instanceof BackendError &&
+        error.code === 'already_has_password'
+      ) {
+        form.setError('password', {
+          type: 'manual',
+          message: 'Dieses Konto hat bereits ein Passwort festgelegt.',
+        })
+      } else {
+        toast.error(
+          getActionErrorMessage({ actionLabel: 'Passwort setzen', error }),
+        )
       }
     }
 

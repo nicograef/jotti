@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Betreiber } from '@/lib/EinstellungenBackend'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { useBetreiber, useKassenidentitaet } from './hooks'
 
@@ -101,8 +102,13 @@ function BetreiberForm({
     try {
       await onSave(form)
       toast.success('Betreiber-Stammdaten gespeichert.')
-    } catch {
-      toast.error('Fehler beim Speichern der Betreiber-Stammdaten.')
+    } catch (error) {
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'Betreiber-Stammdaten speichern',
+          error,
+        }),
+      )
     } finally {
       setSaving(false)
     }

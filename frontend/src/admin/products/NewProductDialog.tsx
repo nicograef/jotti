@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { Kategorie, type Produkt } from './Produkt'
 import { CreateProduktSchema, ProduktBackend } from './ProduktBackend'
@@ -60,7 +61,9 @@ export function NewProductDialog(props: NewProductDialogProps) {
       })
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Aktion fehlgeschlagen')
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Produkt anlegen', error }),
+      )
     }
 
     setLoading(false)

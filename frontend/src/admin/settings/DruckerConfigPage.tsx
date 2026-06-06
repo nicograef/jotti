@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { type Bonmodus, type DruckerConfig } from '@/lib/DruckerBackend'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { useDruckerConfig } from './hooks'
 
@@ -39,8 +40,13 @@ function DruckerRow({
       toast.success(
         `Drucker für „${KATEGORIE_LABELS[config.kategorie]}" gespeichert.`,
       )
-    } catch {
-      toast.error('Fehler beim Speichern der Druckerkonfiguration.')
+    } catch (error) {
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'Druckerkonfiguration speichern',
+          error,
+        }),
+      )
     } finally {
       setSaving(false)
     }

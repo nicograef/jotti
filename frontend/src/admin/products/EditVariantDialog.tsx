@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import type { Variante } from './Produkt'
 import { type ProduktBackend, UpdateVarianteSchema } from './ProduktBackend'
@@ -65,7 +66,9 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
       props.close()
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Aktion fehlgeschlagen')
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Variante speichern', error }),
+      )
     }
 
     setLoading(false)

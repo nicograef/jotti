@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { type Variante, VarianteStatus } from './Produkt'
 import { CreateVarianteSchema, type ProduktBackend } from './ProduktBackend'
@@ -63,7 +64,9 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
       })
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Aktion fehlgeschlagen')
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Variante anlegen', error }),
+      )
     }
 
     setLoading(false)

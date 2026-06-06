@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import type { Tisch } from './Tisch'
 import { TischBackend, UpdateTischSchema } from './TischBackend'
@@ -60,7 +61,9 @@ export function EditTischDialog(props: EditTischDialogProps) {
       props.close()
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Aktion fehlgeschlagen')
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Tisch speichern', error }),
+      )
     }
 
     setLoading(false)

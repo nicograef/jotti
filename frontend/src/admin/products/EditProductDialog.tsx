@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import type { Produkt } from './Produkt'
 import { ProduktBackend, UpdateProduktSchema } from './ProduktBackend'
@@ -63,7 +64,9 @@ export function EditProductDialog(props: EditProductDialogProps) {
       props.close()
     } catch (error: unknown) {
       console.error(error)
-      toast.error('Aktion fehlgeschlagen')
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Produkt speichern', error }),
+      )
     }
 
     setLoading(false)
