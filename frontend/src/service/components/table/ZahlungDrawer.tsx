@@ -12,8 +12,11 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { getActionErrorMessage } from '@/lib/errorMessages'
+import { formatCents, parseCents } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -21,6 +24,7 @@ import type { TischBackend } from '../../table/TischBackend'
 import { KommentarField } from './CommentField'
 import {
   calculateTotalPrice,
+  calculateZahlungsbetraege,
   selectPositionen,
   toPositionRefs,
   toReceiptItems,
@@ -39,11 +43,18 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [kommentar, setKommentar] = useState('')
+  const [erhaltenEuro, setErhaltenEuro] = useState('')
+  const [zielbetragEuro, setZielbetragEuro] = useState('')
   const positionenToPay = selectPositionen(
     props.unbezahltePositionen,
     props.mengen,
   )
   const totalPrice = calculateTotalPrice(positionenToPay)
+  const { rueckgeldCents, trinkgeldCents } = calculateZahlungsbetraege(
+    totalPrice,
+    parseCents(erhaltenEuro),
+    parseCents(zielbetragEuro),
+  )
   const noPositionenSelected = positionenToPay.length === 0
 
   const onSubmit = async () => {
@@ -57,6 +68,8 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
       })
       props.zahlungKassiert()
       setOpen(false)
+      setErhaltenEuro('')
+      setZielbetragEuro('')
     } catch (error: unknown) {
       console.error(error)
       toast.error(
@@ -75,10 +88,11 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
   }
 
   const onOpenChange = (isOpen: boolean) => {
-    if (noPositionenSelected) {
-      setOpen(false)
-    } else {
-      setOpen(isOpen)
+    const nextOpen = noPositionenSelected ? false : isOpen
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setErhaltenEuro('')
+      setZielbetragEuro('')
     }
   }
 
@@ -104,7 +118,55 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
             positionen={toReceiptItems(positionenToPay)}
             totalPrice={totalPrice}
           />
-          <div className="px-4">
+          <div className="px-4 pt-3 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="zielbetrag">inklusive Trinkgeld</Label>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  id="zielbetrag"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={zielbetragEuro}
+                  onChange={(e) => {
+                    setZielbetragEuro(e.target.value)
+                  }}
+                  className="w-24 text-right"
+                  spellCheck={false}
+                />
+                <span>€</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="erhalten">Erhalten</Label>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  id="erhalten"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={erhaltenEuro}
+                  onChange={(e) => {
+                    setErhaltenEuro(e.target.value)
+                  }}
+                  className="w-24 text-right"
+                  spellCheck={false}
+                />
+                <span>€</span>
+              </div>
+            </div>
+            {rueckgeldCents !== null && (
+              <div className="flex justify-between font-medium">
+                <div>Rückgeld</div>
+                <div>{formatCents(rueckgeldCents)}&nbsp;€</div>
+              </div>
+            )}
+            {trinkgeldCents !== null && (
+              <div className="flex justify-between font-medium">
+                <div>Trinkgeld</div>
+                <div>{formatCents(trinkgeldCents)}&nbsp;€</div>
+              </div>
+            )}
+          </div>
+          <div className="px-4 pt-3">
             <KommentarField
               onChange={(value) => {
                 setKommentar(value)

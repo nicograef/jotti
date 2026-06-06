@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import type { Position } from '@/service/table/Bestellung'
 
-import { calculateTotalPrice, selectPositionen } from './drawerUtils'
+import {
+  calculateTotalPrice,
+  calculateZahlungsbetraege,
+  selectPositionen,
+} from './drawerUtils'
 
 describe('selectPositionen', () => {
   const positionen: Position[] = [
@@ -103,5 +107,67 @@ describe('calculateTotalPrice', () => {
     ]
 
     expect(calculateTotalPrice(items)).toBe(200)
+  })
+})
+
+describe('calculateZahlungsbetraege', () => {
+  describe('without a Zielbetrag (Rückgeld only)', () => {
+    it('returns the change when more than the total is received', () => {
+      expect(calculateZahlungsbetraege(1350, 2000, 0)).toEqual({
+        rueckgeldCents: 650,
+        trinkgeldCents: null,
+      })
+    })
+
+    it('returns 0 change when the exact amount is received', () => {
+      expect(calculateZahlungsbetraege(1350, 1350, 0)).toEqual({
+        rueckgeldCents: 0,
+        trinkgeldCents: null,
+      })
+    })
+
+    it('returns null when too little is received', () => {
+      expect(calculateZahlungsbetraege(1350, 1000, 0)).toEqual({
+        rueckgeldCents: null,
+        trinkgeldCents: null,
+      })
+    })
+
+    it('returns null when nothing is received (empty field)', () => {
+      expect(calculateZahlungsbetraege(1350, 0, 0)).toEqual({
+        rueckgeldCents: null,
+        trinkgeldCents: null,
+      })
+    })
+  })
+
+  describe('with a Zielbetrag (Trinkgeld + Rückgeld)', () => {
+    it('derives Trinkgeld and Rückgeld from the target amount', () => {
+      expect(calculateZahlungsbetraege(1350, 2000, 1500)).toEqual({
+        rueckgeldCents: 500,
+        trinkgeldCents: 150,
+      })
+    })
+
+    it('reports zero Trinkgeld when the target equals the total', () => {
+      expect(calculateZahlungsbetraege(1350, 2000, 1350)).toEqual({
+        rueckgeldCents: 650,
+        trinkgeldCents: 0,
+      })
+    })
+
+    it('returns null when the target is below the total (negative Trinkgeld)', () => {
+      expect(calculateZahlungsbetraege(1350, 2000, 1300)).toEqual({
+        rueckgeldCents: null,
+        trinkgeldCents: null,
+      })
+    })
+
+    it('returns null when the target exceeds the received cash (negative Rückgeld)', () => {
+      expect(calculateZahlungsbetraege(1350, 1400, 1500)).toEqual({
+        rueckgeldCents: null,
+        trinkgeldCents: null,
+      })
+    })
   })
 })

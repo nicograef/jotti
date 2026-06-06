@@ -76,20 +76,6 @@ Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eig
 
 ---
 
-#### K-23 · Manuelle Tischfreigabe
-
-> **Rolle:** Servicekraft · Serviceleitung · Admin · **Prio:** Nice-to-have
-
-Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der Realität: mehrere Gästegruppen an einem Tisch erhalten jeweils einen eigenen Abrechnungskreis (Tisch-Session). Nach Abschluss einer Gästegruppe kann die Servicekraft den Tisch freigeben, sodass eine neue Tisch-Session mit Suffix gestartet wird (z. B. `kassensitzung-1/tisch-42-b`).
-
-**Akzeptanzkriterien:**
-
-- [ ] Domain-Aktion `TischFreigegeben` startet eine neue Tisch-Session mit Suffix
-- [ ] UI-Aktion „Tisch freimachen" in der Servicekraft-Ansicht
-- [ ] Voraussetzung: Tisch-Saldo = 0
-
----
-
 #### K-09 · Bestellungen umbuchen
 
 > **Rolle:** Serviceleitung · Admin · **Prio:** Nice-to-have
@@ -128,6 +114,20 @@ Aufbauend auf dem Küchendisplay (K-13) können Mitarbeiter an Ausgabestationen 
 
 - [ ] Positionen können als „in Zubereitung" und „fertig" markiert werden
 - [ ] Servicekraft kann den Zubereitungsstatus ihrer Bestellungen einsehen
+
+---
+
+#### K-23 · Manuelle Tischfreigabe
+
+> **Rolle:** Servicekraft · Serviceleitung · Admin · **Prio:** Nice-to-have
+
+Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der Realität: mehrere Gästegruppen an einem Tisch erhalten jeweils einen eigenen Abrechnungskreis (Tisch-Session). Nach Abschluss einer Gästegruppe kann die Servicekraft den Tisch freigeben, sodass eine neue Tisch-Session mit Suffix gestartet wird (z. B. `kassensitzung-1/tisch-42-b`).
+
+**Akzeptanzkriterien:**
+
+- [ ] Domain-Aktion `TischFreigegeben` startet eine neue Tisch-Session mit Suffix
+- [ ] UI-Aktion „Tisch freimachen" in der Servicekraft-Ansicht
+- [ ] Voraussetzung: Tisch-Saldo = 0
 
 ---
 
