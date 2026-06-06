@@ -103,7 +103,7 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
           disabled={noPositionenSelected}
           className="cursor-pointer hover:shadow-sm w-full"
         >
-          Zahlung
+          Kassieren
         </Button>
       </DrawerTrigger>
       <DrawerContent>

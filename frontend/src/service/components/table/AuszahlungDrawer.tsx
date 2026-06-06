@@ -1,3 +1,4 @@
+import { HandCoins } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -83,9 +84,10 @@ export function AuszahlungDrawer(props: AuszahlungDrawerProps) {
       <DrawerTrigger asChild>
         <Button
           variant="outline"
+          aria-label="Auszahlung"
           className="cursor-pointer hover:shadow-sm w-full"
         >
-          Auszahlung
+          {props.saldoCents < 0 ? 'Auszahlung' : <HandCoins />}
         </Button>
       </DrawerTrigger>
       <DrawerContent>

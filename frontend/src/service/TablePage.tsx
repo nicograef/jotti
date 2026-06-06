@@ -149,10 +149,6 @@ export function TablePage() {
                 void reloadState()
                 void reloadHistorie()
               }}
-              onStornierungErteilt={() => {
-                void reloadState()
-                void reloadHistorie()
-              }}
               onAuszahlungGeleistet={() => {
                 void reloadState()
                 void reloadHistorie()
