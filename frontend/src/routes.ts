@@ -6,20 +6,9 @@ import {
 
 import { AuthSingleton } from '@/lib/Auth'
 
-import { AdminLayout } from './admin/AdminLayout'
-import { KassensitzungPage } from './admin/kasse/KassensitzungPage'
-import { AdminProductsPage } from './admin/products/AdminProductsPage'
-import { AdminDashboardPage } from './admin/reporting/AdminDashboardPage'
-import { DruckerConfigPage } from './admin/settings/DruckerConfigPage'
-import { EinstellungenPage } from './admin/settings/EinstellungenPage'
-import { AdminTablesPage } from './admin/tables/AdminTablesPage'
-import { AdminUsersPage } from './admin/users/AdminUsersPage'
 import App from './App'
 import { LoginPage } from './pages/LoginPage'
 import { PasswordPage } from './pages/PasswordPage'
-import { ServiceLayout } from './service/ServiceLayout'
-import { TablePage } from './service/TablePage'
-import { TableSelectionPage } from './service/TableSelectionPage'
 
 function AuthRedirect() {
   if (AuthSingleton.isAuthenticated && AuthSingleton.isAdmin) {
@@ -69,29 +58,83 @@ export const router = createBrowserRouter([
       { path: 'set-password', Component: PasswordPage, loader: AuthRedirect },
       {
         path: 'admin',
-        Component: AdminLayout,
+        lazy: async () => ({
+          Component: (await import('./admin/AdminLayout')).AdminLayout,
+        }),
         loader: AdminGuard,
         children: [
           { index: true, loader: () => redirect('auswertung') },
-          { path: 'auswertung', Component: AdminDashboardPage },
-          { path: 'produkte', Component: AdminProductsPage },
-          { path: 'tische', Component: AdminTablesPage },
-          { path: 'benutzer', Component: AdminUsersPage },
-          { path: 'kasse', Component: KassensitzungPage },
-          { path: 'drucker', Component: DruckerConfigPage },
-          { path: 'einstellungen', Component: EinstellungenPage },
+          {
+            path: 'auswertung',
+            lazy: async () => ({
+              Component: (await import('./admin/reporting/AdminDashboardPage'))
+                .AdminDashboardPage,
+            }),
+          },
+          {
+            path: 'produkte',
+            lazy: async () => ({
+              Component: (await import('./admin/products/AdminProductsPage'))
+                .AdminProductsPage,
+            }),
+          },
+          {
+            path: 'tische',
+            lazy: async () => ({
+              Component: (await import('./admin/tables/AdminTablesPage'))
+                .AdminTablesPage,
+            }),
+          },
+          {
+            path: 'benutzer',
+            lazy: async () => ({
+              Component: (await import('./admin/users/AdminUsersPage'))
+                .AdminUsersPage,
+            }),
+          },
+          {
+            path: 'kasse',
+            lazy: async () => ({
+              Component: (await import('./admin/kasse/KassensitzungPage'))
+                .KassensitzungPage,
+            }),
+          },
+          {
+            path: 'drucker',
+            lazy: async () => ({
+              Component: (await import('./admin/settings/DruckerConfigPage'))
+                .DruckerConfigPage,
+            }),
+          },
+          {
+            path: 'einstellungen',
+            lazy: async () => ({
+              Component: (await import('./admin/settings/EinstellungenPage'))
+                .EinstellungenPage,
+            }),
+          },
         ],
       },
       {
         path: 'service',
-        Component: ServiceLayout,
+        lazy: async () => ({
+          Component: (await import('./service/ServiceLayout')).ServiceLayout,
+        }),
         loader: ServiceGuard,
         children: [
           { index: true, loader: () => redirect('tische') },
-          { path: 'tische', Component: TableSelectionPage },
+          {
+            path: 'tische',
+            lazy: async () => ({
+              Component: (await import('./service/TableSelectionPage'))
+                .TableSelectionPage,
+            }),
+          },
           {
             path: 'tische/:tischId',
-            Component: TablePage,
+            lazy: async () => ({
+              Component: (await import('./service/TablePage')).TablePage,
+            }),
             loader: ServiceTableGuard,
           },
         ],
