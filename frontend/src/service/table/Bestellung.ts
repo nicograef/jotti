@@ -5,6 +5,8 @@ export const PositionSchema = z.object({
   varianteId: z.number().int().min(1),
   produktName: z.string().min(1).max(100),
   varianteName: z.string().min(1).max(100),
+  // The backend sends kategorie as a free-form string; this enum validates it
+  // strictly. Adding a new category requires updating this enum in lockstep.
   kategorie: z.enum(['essen', 'getraenk', 'sonstiges']),
   einzelpreis: z.number().int().min(0),
   menge: z.number().int().min(1),

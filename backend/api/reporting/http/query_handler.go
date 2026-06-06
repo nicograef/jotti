@@ -197,10 +197,10 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 }
 
 type kassensitzungItem struct {
-	ZNr         int       `json:"zNr"`
-	Datum       time.Time `json:"datum"`
-	Bezeichnung string    `json:"bezeichnung"`
-	Status      string    `json:"status"`
+	ZNr         int    `json:"zNr"`
+	Datum       string `json:"datum"`
+	Bezeichnung string `json:"bezeichnung"`
+	Status      string `json:"status"`
 }
 
 type getAllKassensitzungenResponse struct {
@@ -219,7 +219,7 @@ func (h QueryHandler) GetAllKassensitzungenHandler() http.HandlerFunc {
 		for i, k := range data {
 			items[i] = kassensitzungItem{
 				ZNr:         k.ZNr,
-				Datum:       k.Datum,
+				Datum:       k.Datum.Format("2006-01-02"),
 				Bezeichnung: k.Bezeichnung,
 				Status:      k.Status,
 			}
