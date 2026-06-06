@@ -9,6 +9,7 @@ import {
   Wine,
 } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import {
   AlertDialog,
@@ -34,6 +35,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { NewVariantDialog } from './NewVariantDialog'
 import {
@@ -75,6 +77,9 @@ export function ProductItem(props: ProductItemProps) {
       await props.onDelete(props.product.id)
     } catch (error) {
       console.error('Error deleting product:', error)
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Produkt löschen', error }),
+      )
     }
     setDeleteLoading(false)
   }
@@ -90,6 +95,9 @@ export function ProductItem(props: ProductItemProps) {
       props.onVariantStatusChange(variantId, VarianteStatus.ACTIVE)
     } catch (error) {
       console.error('Error activating variant:', error)
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Variante aktivieren', error }),
+      )
     }
     setVariantLoading(false)
   }
@@ -101,6 +109,9 @@ export function ProductItem(props: ProductItemProps) {
       props.onVariantStatusChange(variantId, VarianteStatus.INACTIVE)
     } catch (error) {
       console.error('Error deactivating variant:', error)
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Variante deaktivieren', error }),
+      )
     }
     setVariantLoading(false)
   }
@@ -112,6 +123,9 @@ export function ProductItem(props: ProductItemProps) {
       props.onVariantDeleted(variantId)
     } catch (error) {
       console.error('Error deleting variant:', error)
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Variante löschen', error }),
+      )
     }
     setVariantLoading(false)
   }

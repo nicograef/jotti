@@ -1,9 +1,11 @@
 import { Users as UsersIcon } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
 import { AuthSingleton } from '@/lib/Auth'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { type User, UserStatus } from './User'
 import type { UserBackend } from './UserBackend'
@@ -19,7 +21,7 @@ interface UsersProps {
 }
 
 export function Users(props: UsersProps) {
-  const [loading, setLoading] = useState(props.loading)
+  const [loading, setLoading] = useState(false)
 
   const activateUser = async (userId: number) => {
     setLoading(true)
@@ -28,6 +30,9 @@ export function Users(props: UsersProps) {
       props.onStatusChange(userId, UserStatus.ACTIVE)
     } catch (error) {
       console.error('Error activating user:', error)
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Benutzer aktivieren', error }),
+      )
     }
     setLoading(false)
   }
@@ -39,6 +44,9 @@ export function Users(props: UsersProps) {
       props.onStatusChange(userId, UserStatus.INACTIVE)
     } catch (error) {
       console.error('Error deactivating user:', error)
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Benutzer deaktivieren', error }),
+      )
     }
     setLoading(false)
   }
@@ -50,6 +58,9 @@ export function Users(props: UsersProps) {
       props.onDeleted(userId)
     } catch (error) {
       console.error('Error deleting user:', error)
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Benutzer löschen', error }),
+      )
     }
     setLoading(false)
   }
