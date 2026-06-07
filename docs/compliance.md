@@ -339,6 +339,8 @@ _(Quelle: § 146a Abs. 2 Satz 2 AO — https://www.gesetze-im-internet.de/ao_197
 
 _(Quelle: KassenSichV § 6 — https://www.gesetze-im-internet.de/kassensichv/BJNR351500017.html)_
 
+> **Abgrenzung in jotti — Arbeitsbon ≠ Kassenbeleg:** jotti kennt zwei Bon-Familien (→ [handbuch.md §4.6](handbuch.md)). Der **Arbeitsbon** (automatisch bei Bestellaufnahme, an Küche/Theke) ist **rein operativ und nicht-fiskalisch**: Er trägt keine Preise, löst keine TSE-Transaktion aus und ist **kein** Beleg i. S. v. § 146a AO. Der **Kassenbeleg** (auf Anforderung pro Kassiervorgang) ist der **fiskalische § 146a-Beleg** mit allen Pflichtangaben (siehe Abschnitt 5.2). Nur der Kassenbeleg unterliegt der Belegausgabepflicht und — nach Umsetzung der TSE-Integration (→ [Abschnitt 3](#3-tse-integration-technische-sicherheitseinrichtung)) — der TSE-Absicherung.
+
 ### 5.2 Pflichtangaben auf dem Beleg
 
 Ein konformer Beleg muss mindestens folgende Angaben enthalten:
@@ -459,7 +461,7 @@ _(Quelle: BZSt — https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleS
 - **Zeilenumbrüche:** CRLF (`\r\n`)
 - **Zahlenformate:** Keine Tausendertrennzeichen, Punkt als Dezimaltrennzeichen, mindestens eine Stelle vor dem Dezimaltrennzeichen (`0.5`, nicht `.5`), keine führenden Nullen
 - **Spaltenreihenfolge:** Exakt wie in der Spezifikation vorgegeben
-- **Dateinamen:** Die physischen CSV-Dateinamen der DSFinV-K sind **englisch und kleingeschrieben** (z. B. `transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, `businesscases.csv`) und dürfen nicht abgeändert werden. Die DSFinV-K-Spezifikation verwendet **zusätzlich** deutsche *logische* Bezeichnungen für die Abschnittsüberschriften (z. B. „Bonkopf" für `transactions.csv`, „Bonpos" für `lines.csv`) — diese logischen Namen sind **nicht** die Dateinamen.
+- **Dateinamen:** Die physischen CSV-Dateinamen der DSFinV-K sind **englisch und kleingeschrieben** (z. B. `transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, `businesscases.csv`) und dürfen nicht abgeändert werden. Die DSFinV-K-Spezifikation verwendet **zusätzlich** deutsche _logische_ Bezeichnungen für die Abschnittsüberschriften (z. B. „Bonkopf" für `transactions.csv`, „Bonpos" für `lines.csv`) — diese logischen Namen sind **nicht** die Dateinamen.
 - **Custom-Felder:** Zusätzliche Spalten am Ende erlaubt, müssen aber in `index.xml` definiert werden
 
 > **Achtung — verbreitetes Missverständnis:** Die offiziellen Dateinamen sind `transactions.csv`, `lines.csv`, `allocation_groups.csv`, `references.csv` usw. — **nicht** `Bonkopf.csv`/`Bonpos.csv`. Wer deutsche Dateinamen wie `Bonkopf.csv` exportiert, erzeugt eine **nicht** DSFinV-K-konforme Datei. Maßgeblich ist die offizielle DFKA-Taxonomie (DSFinV-K v2.4) bzw. das BMF-Datenschema.
@@ -470,34 +472,34 @@ Der Export gliedert sich in drei Module. Die Tabellen nennen jeweils den **offiz
 
 #### A. Stammdatenmodul (Master Data)
 
-| Dateiname (offiziell) | Logische Bezeichnung | Inhalt                                                                                                                                                                  |
-| --------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cashpointclosing.csv` | Stamm_Abschluss     | Metadaten zum Z-Bon (Kassenabschluss): Unternehmensname, Steuernummer, Start-/End-Zeitpunkt                                                                             |
-| `location.csv`        | Stamm_Orte           | Standortdaten der Betriebsstätte                                                                                                                                        |
-| `cashregister.csv`    | Stamm_Kassen         | Kassendaten: Hersteller, Seriennummer, Software-Typ und -Version                                                                                                       |
-| `tse.csv`             | Stamm_TSE            | TSE-Daten: Zertifikats-ID, Signaturalgorithmus (z. B. `ecdsa-plain-SHA256`), TSE-Seriennummer (64-stelliger Hexadezimalstring, 0–9 und A–F), Public Key (Base64-kodiert) |
-| `vat.csv`             | Stamm_USt            | Stammdaten der verwendeten Steuersätze                                                                                                                                  |
+| Dateiname (offiziell)  | Logische Bezeichnung | Inhalt                                                                                                                                                                   |
+| ---------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cashpointclosing.csv` | Stamm_Abschluss      | Metadaten zum Z-Bon (Kassenabschluss): Unternehmensname, Steuernummer, Start-/End-Zeitpunkt                                                                              |
+| `location.csv`         | Stamm_Orte           | Standortdaten der Betriebsstätte                                                                                                                                         |
+| `cashregister.csv`     | Stamm_Kassen         | Kassendaten: Hersteller, Seriennummer, Software-Typ und -Version                                                                                                         |
+| `tse.csv`              | Stamm_TSE            | TSE-Daten: Zertifikats-ID, Signaturalgorithmus (z. B. `ecdsa-plain-SHA256`), TSE-Seriennummer (64-stelliger Hexadezimalstring, 0–9 und A–F), Public Key (Base64-kodiert) |
+| `vat.csv`              | Stamm_USt            | Stammdaten der verwendeten Steuersätze                                                                                                                                   |
 
 #### B. Einzelaufzeichnungsmodul (Bonmodul / Transactions)
 
-| Dateiname (offiziell)   | Logische Bezeichnung | Inhalt                                                                                                                                                            |
-| ----------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `transactions.csv`      | Bonkopf              | Ein Datensatz pro Kassenbon: `BON_ID`, `BON_NR`, `BON_TYP`, `BON_START`, `BON_ENDE` (ISO 8601), Gesamtbruttoumsatz, `BON_STORNO`                                  |
-| `transactions_vat.csv`  | Bonkopf_USt          | USt-Aufschlüsselung pro Bon nach Steuerschlüsseln (Brutto, Netto, USt)                                                                                           |
-| `allocation_groups.csv` | Bonkopf_AbrKreis     | Zuordnung eines Bons zu einem `ABRECHNUNGSKREIS` (Tisch-Verknüpfung im Festzelt)                                                                                  |
-| `datapayment.csv`       | Bonkopf_Zahlarten    | Zahlungsarten pro Bon (Bar, EC-Karte, Kreditkarte)                                                                                                                |
-| `references.csv`        | Bon_Referenzen       | Referenzen auf andere Bons, u. a. `REF_BON_ID` bei Stornos                                                                                                        |
-| `lines.csv`             | Bonpos               | Einzelne Artikel: `POS_ZEILE`, `ART_NR`, `MENGE` (Dezimal, 3 Nachstellen), `EINHEIT`, `STK_BR` (Stückpreis brutto)                                                |
-| `lines_vat.csv`         | Bonpos_USt           | USt-Aufschlüsselung pro Artikelzeile                                                                                                                              |
-| `transactions_tse.csv`  | TSE_Transaktionen    | **Kritisch:** TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`)                                                 |
+| Dateiname (offiziell)   | Logische Bezeichnung | Inhalt                                                                                                                           |
+| ----------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `transactions.csv`      | Bonkopf              | Ein Datensatz pro Kassenbon: `BON_ID`, `BON_NR`, `BON_TYP`, `BON_START`, `BON_ENDE` (ISO 8601), Gesamtbruttoumsatz, `BON_STORNO` |
+| `transactions_vat.csv`  | Bonkopf_USt          | USt-Aufschlüsselung pro Bon nach Steuerschlüsseln (Brutto, Netto, USt)                                                           |
+| `allocation_groups.csv` | Bonkopf_AbrKreis     | Zuordnung eines Bons zu einem `ABRECHNUNGSKREIS` (Tisch-Verknüpfung im Festzelt)                                                 |
+| `datapayment.csv`       | Bonkopf_Zahlarten    | Zahlungsarten pro Bon (Bar, EC-Karte, Kreditkarte)                                                                               |
+| `references.csv`        | Bon_Referenzen       | Referenzen auf andere Bons, u. a. `REF_BON_ID` bei Stornos                                                                       |
+| `lines.csv`             | Bonpos               | Einzelne Artikel: `POS_ZEILE`, `ART_NR`, `MENGE` (Dezimal, 3 Nachstellen), `EINHEIT`, `STK_BR` (Stückpreis brutto)               |
+| `lines_vat.csv`         | Bonpos_USt           | USt-Aufschlüsselung pro Artikelzeile                                                                                             |
+| `transactions_tse.csv`  | TSE_Transaktionen    | **Kritisch:** TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`)                |
 
 #### C. Kassenabschlussmodul (Z-Bon)
 
-| Dateiname (offiziell) | Logische Bezeichnung | Inhalt                                                        |
-| --------------------- | -------------------- | ------------------------------------------------------------- |
-| `businesscases.csv`   | Z_GV_Typ             | Aggregierte Beträge pro Geschäftsvorfall-Typ nach Steuersätzen |
-| `payment.csv`         | Z_Zahlart            | Aggregierte Summen der Zahlungsarten (Bar vs. unbar)          |
-| `cash_per_currency.csv` | Z_Waehrungen       | Bargeldbestand je Währung zum Abschluss                       |
+| Dateiname (offiziell)   | Logische Bezeichnung | Inhalt                                                         |
+| ----------------------- | -------------------- | -------------------------------------------------------------- |
+| `businesscases.csv`     | Z_GV_Typ             | Aggregierte Beträge pro Geschäftsvorfall-Typ nach Steuersätzen |
+| `payment.csv`           | Z_Zahlart            | Aggregierte Summen der Zahlungsarten (Bar vs. unbar)           |
+| `cash_per_currency.csv` | Z_Waehrungen         | Bargeldbestand je Währung zum Abschluss                        |
 
 ### 6.4 Schlüsselfelder in `transactions.csv` (Bonkopf, Relationale Verknüpfung)
 
@@ -510,7 +512,7 @@ Fast jede CSV-Datei muss folgende Schlüssel in den ersten Spalten mitführen:
 
 ### 6.5 Abrechnungskreis — Tisch-Verknüpfung für Festzelt
 
-Das Feld `ABRECHNUNGSKREIS` (in `allocation_groups.csv`, logisch *Bonkopf_AbrKreis*, je `BON_ID`) verknüpft mehrere Bons (Bestellungen + Zahlungen) zu einer logischen Einheit. Im Festzelt-Betrieb trägt jede Bestellung und jede Zahlung für denselben Tisch innerhalb einer Kassensitzung denselben `ABRECHNUNGSKREIS`-Wert (= Tischname):
+Das Feld `ABRECHNUNGSKREIS` (in `allocation_groups.csv`, logisch _Bonkopf_AbrKreis_, je `BON_ID`) verknüpft mehrere Bons (Bestellungen + Zahlungen) zu einer logischen Einheit. Im Festzelt-Betrieb trägt jede Bestellung und jede Zahlung für denselben Tisch innerhalb einer Kassensitzung denselben `ABRECHNUNGSKREIS`-Wert (= Tischname):
 
 ```
 BON_ID | BON_TYP      | BON_START            | ABRECHNUNGSKREIS
@@ -632,7 +634,7 @@ Die Kassenmeldung umfasst je Kassensystem:
 - Art des Kassensystems (Softwaretyp, Versionsnummer)
 - Seriennummer des Kassensystems
 - Zertifizierungs-ID der TSE (Format: `BSI-K-TR-nnnn-yyyy`)
-- Seriennummer der TSE (64-stelliger Hexadezimalstring, ausschließlich 0–9 und A–F; **nicht** Base64 — Hinweis: in `tse.csv` (logisch *Stamm_TSE*) für den DSFinV-K-Export wird zusätzlich der Public Key als Base64-Wert gespeichert, hierbei handelt es sich um ein anderes Feld)
+- Seriennummer der TSE (64-stelliger Hexadezimalstring, ausschließlich 0–9 und A–F; **nicht** Base64 — Hinweis: in `tse.csv` (logisch _Stamm_TSE_) für den DSFinV-K-Export wird zusätzlich der Public Key als Base64-Wert gespeichert, hierbei handelt es sich um ein anderes Feld)
 - Anschaffungs- bzw. Inbetriebnahmedatum
 - Betriebsstättenadresse
 

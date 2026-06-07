@@ -34,7 +34,7 @@ Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktual
 
 ## Abweichungen: Ist-Zustand vs. Soll-Zustand
 
-Die meisten bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben. Die erste Tabelle dokumentiert bewusste Entscheidungen, die korrekt sind und keinen Handlungsbedarf haben; die zweite die offenen, bewussten Abweichungen der laufenden Bondruck-Neuordnung.
+Die bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben — die Bondruck-Neuordnung (Druckstation, Druckauftrags-Outbox, Kassenbeleg, Relay-Transport) ist vollständig umgesetzt. Die folgende Tabelle dokumentiert die verbleibenden bewussten Entscheidungen, die korrekt sind und keinen Handlungsbedarf haben.
 
 ### Kein Handlungsbedarf (bewusst korrekt)
 
@@ -48,17 +48,6 @@ Die meisten bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden 
 | Status-Enums         | `active`, `inactive`, `deleted`                 | Englisch ist korrekt — technische Lifecycle-States, kein Domänenbegriff.                                      |
 | Kassenjournal        | `Historie` (Code) vs. `Kassenjournal` (Entwurf) | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert.               |
 | KassensitzungState   | `KassensitzungState` (Go + TS)                  | Domänenbegriff ist „Kassensitzung". Suffix `State` markiert den CRUD-Zustand der Entität — kein Rename nötig. |
-
-### Offene Soll-Abweichungen (Bondruck-Neuordnung)
-
-Die Bon-Domäne wird neu geordnet (siehe `docs/prds/prd-bondruck.md`). Bis zur Umsetzung gelten folgende bewusste, dokumentierte Abweichungen:
-
-| Begriff      | Soll (Ziel)                         | Ist (Code)                                 | Status    |
-| ------------ | ----------------------------------- | ------------------------------------------ | --------- |
-| Druckstation | Tabelle `druckstationen`            | Tabelle `druckstationen`                   | umgesetzt |
-| Druckauftrag | Outbox-Tabelle `druckauftraege`     | transientes DTO, keine Persistenz          | geplant   |
-| Kassenbeleg  | On-Demand-Beleg-Command + Formatter | nicht vorhanden (nur Arbeitsbon existiert) | offen     |
-| Relay        | reiner Transport (poll/quittieren)  | compute-at-poll + lokaler Cursor/State     | geplant   |
 
 ---
 

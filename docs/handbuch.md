@@ -29,7 +29,7 @@
    - [4.3 Benutzer-Aggregat](#43-benutzer-aggregat)
    - [4.4 Tisch-Favoriten](#44-tisch-favoriten)
    - [4.5 Persistenz (CRUD)](#45-persistenz-crud)
-   - [4.6 Ausgabe — Arbeitsbon (K-12)](#46-ausgabe--arbeitsbon-k-12)
+   - [4.6 Bondruck: Arbeitsbon und Kassenbeleg (K-12)](#46-bondruck-arbeitsbon-und-kassenbeleg-k-12)
 5. [Auth und Rollen](#5-auth-und-rollen)
    - [5.1 Rollen und Berechtigungsmatrix](#51-rollen-und-berechtigungsmatrix)
    - [5.2 Onboarding-Ablauf](#52-onboarding-ablauf)
@@ -418,7 +418,7 @@ Der Z-Bon ist das Ergebnis des `TagesabschlussErstellt`-Events — er aggregiert
 ### 3.12 Policies
 
 - **Stornierungsberechtigung (K-04):** Nur `serviceleitung` und `admin` dürfen `StornierungErteilen`. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat geht.
-- **Automatischer Bon-Druck nach Kategorie (K-12):** Jedes `bestellung-aufgenommen:v1`-Event löst Druck-Aufträge im Ausgabe-Context aus. Das Print-Relay holt via `POST /relay/poll` neue Events seit dem letzten Cursor ab. Pro Event werden Positionen nach Kategorie gruppiert; für jede Kategorie mit konfigurierter Drucker-IP wird ein ESC/POS-Payload erzeugt. Bonmodus (`pro_position` oder `pro_bestellung`) und IP werden zur Lesezeit aus der `kategorie_drucker`-Tabelle gelesen — Änderungen der Konfiguration wirken sofort für alle künftigen Polls.
+- **Arbeitsbon-Druck nach Kategorie (K-12):** Jedes `bestellung-aufgenommen:v1`-Event löst im Backend die **Arbeitsbon-Policy** aus (`backend/api/bondruck`). Sie gruppiert die Positionen nach Kategorie, schlägt für jede Kategorie mit konfigurierter Druckstation IP und Bonmodus (`pro_position` oder `pro_bestellung`) aus der `druckstationen`-Tabelle nach, formatiert den ESC/POS-Payload und reiht je einen **Druckauftrag** in die Outbox (`druckauftraege`) ein. Kategorien ohne Druckstation erzeugen keinen Auftrag. Der Arbeitsbon trägt **keine Preise** und ist **kein** Beleg i. S. v. § 146a AO (→ [4.6 Bondruck](#46-bondruck-arbeitsbon-und-kassenbeleg-k-12)). Das Print-Relay ist reiner Transport: Es holt offene Aufträge via `POST /relay/poll` und bestätigt gedruckte via `POST /relay/quittieren`.
 - **Umbuchung (K-09):** Verschiebt eine Bestellung von Quell- auf Ziel-Tisch (= Stornierung + neue Bestellung). Cross-Aggregat-Transaktion — Atomarität auf Anwendungsebene sicherstellen. Nur `serviceleitung` und `admin`.
 
 ### 3.13 TSE-Architektur
@@ -478,19 +478,19 @@ type FinishResult struct {
 
 Für das Festzelt-Muster gilt: Jeder Vorgang ist eine **eigenständige, sofort geschlossene** TSE-Transaktion.
 
-| jotti-Vorgang                   | TSE-Operation             | processType           | Anmerkung                                                       |
-| ------------------------------- | ------------------------- | --------------------- | --------------------------------------------------------------- |
-| Bestellung aufnehmen            | `Start` + sofort `Finish` | `Bestellung-V1`       | Positionen in processData                                       |
-| Zahlung kassieren (Teilzahlung) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Betrag + Zahlungsart in processData; **kein** UpdateTransaction |
-| Zahlung kassieren (Vollzahlung) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Wie oben                                                        |
-| Positions-Storno                | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negative Menge/Betrag; BON_STORNO=1 im DSFinV-K                 |
-| Bon-Storno (nach Zahlung)       | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Gesamtbetrag; BON_STORNO=1, REF_BON_ID gesetzt        |
-| Auszahlung (negativen Saldo ausgleichen) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Bargeldabfluss; negativer Betrag, Zahlungsart bar               |
-| Geldtransit (Einlage/Entnahme)  | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Kassenwirksame Geldbewegung ohne Umsatz                         |
-| Kassendifferenz (Kassensturz)   | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Eigenbeleg `DifferenzSollIst`; umsatzsteuerlich neutral (→ §3.10) |
-| Direktverkauf                   | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Bestellen + Zahlen in einem Schritt; 1 Verkauf = 1 Transaktion  |
-| Direktverkauf-Storno            | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Betrag; BON_STORNO=1, REF_BON_ID gesetzt              |
-| Tagesabschluss (Z-Bon)          | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Tagesaggregat in processData                                    |
+| jotti-Vorgang                            | TSE-Operation             | processType           | Anmerkung                                                         |
+| ---------------------------------------- | ------------------------- | --------------------- | ----------------------------------------------------------------- |
+| Bestellung aufnehmen                     | `Start` + sofort `Finish` | `Bestellung-V1`       | Positionen in processData                                         |
+| Zahlung kassieren (Teilzahlung)          | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Betrag + Zahlungsart in processData; **kein** UpdateTransaction   |
+| Zahlung kassieren (Vollzahlung)          | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Wie oben                                                          |
+| Positions-Storno                         | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negative Menge/Betrag; BON_STORNO=1 im DSFinV-K                   |
+| Bon-Storno (nach Zahlung)                | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Gesamtbetrag; BON_STORNO=1, REF_BON_ID gesetzt          |
+| Auszahlung (negativen Saldo ausgleichen) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Bargeldabfluss; negativer Betrag, Zahlungsart bar                 |
+| Geldtransit (Einlage/Entnahme)           | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Kassenwirksame Geldbewegung ohne Umsatz                           |
+| Kassendifferenz (Kassensturz)            | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Eigenbeleg `DifferenzSollIst`; umsatzsteuerlich neutral (→ §3.10) |
+| Direktverkauf                            | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Bestellen + Zahlen in einem Schritt; 1 Verkauf = 1 Transaktion    |
+| Direktverkauf-Storno                     | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Betrag; BON_STORNO=1, REF_BON_ID gesetzt                |
+| Tagesabschluss (Z-Bon)                   | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Tagesaggregat in processData                                      |
 
 **Alle Transaktionen eines Tisches** teilen denselben `ABRECHNUNGSKREIS`-Wert im DSFinV-K-Export.
 
@@ -654,27 +654,46 @@ Direktes CRUD ohne Event-Sourcing (kein Aggregat, keine Events). Benutzerspezifi
 
 Stammdaten (Produkte, Tische, Benutzer) werden mit klassischem CRUD verwaltet. Event-Sourcing ist hier nicht nötig — die historischen Daten stecken bereits in den Fat Events des Kasse-Context. Alle Stammdaten tragen `erstellt_am` und `aktualisiert_am` Zeitstempel.
 
-### 4.6 Ausgabe — Arbeitsbon (K-12)
+### 4.6 Bondruck: Arbeitsbon und Kassenbeleg (K-12)
 
-> **Ist-Zustand.** Dieser Abschnitt beschreibt den heutigen, nicht-fiskalischen **Arbeitsbon**. Die Bon-Neuordnung (`docs/prds/prd-bondruck.md`) trennt Arbeitsbon (operativ) und **Kassenbeleg** (fiskalisch, § 146a, auf Anforderung) sauber, führt eine Druckauftrags-Outbox ein, macht das Relay zum reinen Transport und benennt `kategorie_drucker` → `druckstationen`. Diese Beschreibung wird mit der Umsetzung nachgezogen.
+**Bondruck** umfasst zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druck-Infrastruktur. Sie teilen **keinen** Auslöser, Inhalt oder Rechtsstatus — nur die Druckauftrags-Outbox (`druckauftraege`) als Transport.
 
-Der Arbeitsbon ist eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)): Jedes `bestellung-aufgenommen:v1`-Event löst Druck-Aufträge aus. Er trägt **keine Preise** und ist **kein** Beleg i. S. v. § 146a AO. KDS (K-13) und Zubereitungsstatus (K-15) sind noch offen.
+| Familie         | Auslöser                                        | Rechtsstatus           | Inhalt                                          |
+| --------------- | ----------------------------------------------- | ---------------------- | ----------------------------------------------- |
+| **Arbeitsbon**  | `bestellung-aufgenommen:v1` (automatisch)       | nicht-fiskalisch       | Ware ohne Preise (Küche/Theke)                  |
+| **Kassenbeleg** | `POST /service/beleg-drucken` (auf Anforderung) | fiskalisch (§ 146a AO) | Positionen mit Preisen, Vereinsdaten, Kassen-ID |
 
-**Druckerkonfiguration (`kategorie_drucker`-Tabelle):**
+**Arbeitsbon (operativ, K-12):** Eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)). Bei `bestellung-aufgenommen:v1` gruppiert die Arbeitsbon-Policy (`backend/api/bondruck`) die Positionen nach Kategorie, schlägt IP und Bonmodus aus `druckstationen` nach, formatiert den ESC/POS-Payload und reiht je einen Druckauftrag (`bon_art = 'arbeitsbon'`) in die Outbox ein. Kategorien ohne konfigurierte Druckstation erzeugen keinen Auftrag. **Inhalt:** Tischnummer (groß), Position (Art + Menge, z. B. „3x Pommes (groß)"), Kommentar, Uhrzeit, Servicekraft — **keine Preise**. Kein Beleg i. S. v. § 146a AO. KDS (K-13) und Zubereitungsstatus (K-15) sind noch offen.
+
+**Kassenbeleg (fiskalisch, auf Anforderung):** Ein Service-Command (`POST /service/beleg-drucken`) erzeugt für **einen Kassiervorgang** (`zahlung-kassiert:v1`) genau einen Druckauftrag (`bon_art = 'kassenbeleg'`) an den Kassenbeleg-Drucker. **Inhalt:** Vereinsdaten (Betreiber, K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer (Event-ID des Kassiervorgangs). Erneuter Aufruf druckt nach, ohne den Kassiervorgang zu wiederholen. Am Fest wird der Beleg selten verlangt (Belegausgabe-Befreiung → [compliance.md §5.1](compliance.md)). Steuer-Aufschlüsselung folgt mit F-07, TSE-Pflichtfelder mit F-02.
+
+**Druckauftrags-Outbox (`druckauftraege`):** Single Source of Truth für alle Druckjobs — technische Warteschlange, **kein** fiskalisches Journal. Einziger Statusübergang: `offen → gedruckt`.
 
 ```
-kategorie_drucker
+druckauftraege
+├── id           (serial — PK)
+├── ziel_ip      (string — IPv4 des Zieldruckers)
+├── payload      (text — Base64-kodierter ESC/POS-Byte-String)
+├── status       (offen | gedruckt)
+├── bon_art      (arbeitsbon | kassenbeleg)
+├── referenz     (text — fachliche Referenz, z. B. Event-ID)
+├── erstellt_am  (timestamptz)
+└── gedruckt_am  (timestamptz — NULL bis quittiert)
+```
+
+**Druckstationen (`druckstationen`-Tabelle):** Arbeitsbon-Stationen je Produktkategorie. Genau drei Zeilen (Seed: essen, getraenk, sonstiges). Admin-Konfiguration über `/admin/get-druckstationen` und `/admin/update-druckstationen`. Validierung: IPv4-Regex im Backend (zog), identisch im Frontend (Zod).
+
+```
+druckstationen
 ├── kategorie   (essen | getraenk | sonstiges — PK)
 ├── drucker_ip  (string — IPv4, leer = kein Drucker)
 ├── bonmodus    (pro_position | pro_bestellung)
 └── updated_at  (timestamptz)
 ```
 
-Die Tabelle enthält immer genau drei Zeilen (Per Seed-Insert angelegt). Der Admin aktualisiert sie über `/admin/update-drucker-config`. Validierung: IPv4-Regex im Backend (zog), identische Validierung im Frontend (Zod).
+**Kassenbeleg-Drucker (`bondruck_einstellungen`, Singleton):** Ziel-IP des Kassenbeleg-Druckers. Admin-Konfiguration über `/admin/get-bondruck-einstellungen` und `/admin/update-bondruck-einstellungen`. Fehlt die IP, schlägt `POST /service/beleg-drucken` mit klarer Fehlermeldung fehl.
 
-**Datenfluss:** Das Print-Relay (`cmd/relay/main.go`) pollt `POST /relay/poll` im konfigurierten Intervall, liest `bestellung-aufgenommen:v1`-Events seit dem letzten Cursor, gruppiert Positionen nach Kategorie, schlägt Drucker-IP und Bonmodus aus `kategorie_drucker` nach und erzeugt ESC/POS-Payloads. Kategorien ohne IP werden still übersprungen.
-
-**Bon-Inhalt:** Tischnummer (groß), Position (Art + Menge, z. B. „3x Pommes (groß)"), Kommentar (falls vorhanden), Uhrzeit und Servicekraft. Preise erscheinen nicht auf dem Bon.
+**Relay = Transport:** Das Print-Relay (`cmd/relay/main.go`) holt offene Aufträge via `POST /relay/poll` (Antwort `{auftraege: [{id, zielIp, payload}]}`), druckt sie und bestätigt die gedruckten IDs via `POST /relay/quittieren` (`{token, gedruckteIds}`); das Backend setzt daraufhin `status = 'gedruckt'`. Das Relay formatiert nichts, kennt keine Kategorien und führt keinen Cursor — ESC/POS-Formatierung und Fachlogik liegen vollständig im Backend.
 
 **Drucker-Voraussetzungen:** ESC/POS-Bondrucker mit Ethernet-Anschluss (TCP Port 9100), 80-mm-Thermodrucker (48 Zeichen/Zeile). Statische IP-Adresse empfohlen. Getestet mit MUNBYN ITPP047P-UE.
 
@@ -687,24 +706,23 @@ Die Tabelle enthält immer genau drei Zeilen (Per Seed-Insert angelegt). Der Adm
   --poll=2
 ```
 
-| Parameter   | Beschreibung                                      | Standard           |
-| ----------- | ------------------------------------------------- | ------------------ |
-| `--backend` | URL des jotti-Servers                             | (erforderlich)     |
-| `--token`   | Authentifizierungs-Token (aus `.env` des Servers) | (erforderlich)     |
-| `--poll`    | Abfrageintervall in Sekunden                      | 2                  |
-| `--state`   | Pfad zur lokalen State-Datei                      | `relay_state.json` |
+| Parameter   | Beschreibung                                      | Standard       |
+| ----------- | ------------------------------------------------- | -------------- |
+| `--backend` | URL des jotti-Servers                             | (erforderlich) |
+| `--token`   | Authentifizierungs-Token (aus `.env` des Servers) | (erforderlich) |
+| `--poll`    | Abfrageintervall in Sekunden                      | 2              |
 
-**Fehlerverhalten:** Bei nicht erreichbarem Drucker versucht das Relay bis zu 5 Minuten lang erneut; danach wird der Auftrag übersprungen und geloggt. Kein Doppeldruck bei Neustart — das Relay setzt an der letzten gespeicherten Position fort.
+**Fehlerverhalten:** Bei nicht erreichbarem Drucker versucht das Relay mehrfach (bis zu 5 Minuten); danach bleibt der Auftrag `offen` und wird beim nächsten Poll erneut geliefert. Der DB-Status ist autoritativ: Stürzt das Relay zwischen Druck und Quittierung ab, kann ein Auftrag erneut gedruckt werden — beim nicht-fiskalischen Arbeitsbon unkritisch.
 
 **Schnelltest:**
 
 ```bash
 curl -X POST http://localhost:3000/relay/poll \
      -H "Content-Type: application/json" \
-     -d '{"token":"<RELAY_AUTH_TOKEN>","lastEventId":0}'
+     -d '{"token":"<RELAY_AUTH_TOKEN>"}'
 ```
 
-Erwartung: `200` mit `auftraege` und `cursor` bei gültigem Token, `401` bei ungültigem.
+Erwartung: `200` mit `auftraege` bei gültigem Token, `401` bei ungültigem.
 
 ---
 
@@ -837,17 +855,17 @@ Mehrere Servicekräfte arbeiten gleichzeitig — Schreibkonflikte am selben Tisc
 
 ### 6.7 Sicherheit
 
-| Maßnahme                   | Umsetzung                                                                                                 | Anforderung |
-| -------------------------- | --------------------------------------------------------------------------------------------------------- | ----------- |
-| HTTPS / TLS                | nginx terminiert TLS, Let's Encrypt-Zertifikat, HTTP → HTTPS-Redirect                                     | Q-06        |
-| Rate Limiting              | Login-Endpunkt ist durch Rate Limiting geschützt (Brute-Force-Schutz)                                     | Q-07        |
-| Security Headers           | Reverse Proxy setzt HSTS, X-Frame-Options, X-Content-Type-Options, CSP                                    | Q-08        |
-| Input-Validierung          | Frontend (Zod) + Backend (zog) — beide Seiten unabhängig voneinander                                      | Q-03        |
-| Passwort-Hashing           | Argon2id mit zufälligem Salt                                                                              | A-01        |
-| Generische Fehlermeldungen | Fehlgeschlagene Logins geben keine Auskunft, ob Benutzer oder Passwort falsch war                         | A-01        |
-| Keine Secrets im Code      | Alle Secrets (JWT-Schlüssel, DB-Passwort, `RELAY_AUTH_TOKEN`) werden über Umgebungsvariablen konfiguriert | —           |
-| JWT-Gültigkeit             | Tokens sind 12 Stunden gültig — kurze Lebensdauer begrenzt den Schaden bei Verlust                        | A-01        |
-| Relay-Token                | Statischer Token für `POST /relay/poll` — kein JWT, kein Benutzerkontext. Relay ist kein Benutzer.        | K-12        |
+| Maßnahme                   | Umsetzung                                                                                                                       | Anforderung |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| HTTPS / TLS                | nginx terminiert TLS, Let's Encrypt-Zertifikat, HTTP → HTTPS-Redirect                                                           | Q-06        |
+| Rate Limiting              | Login-Endpunkt ist durch Rate Limiting geschützt (Brute-Force-Schutz)                                                           | Q-07        |
+| Security Headers           | Reverse Proxy setzt HSTS, X-Frame-Options, X-Content-Type-Options, CSP                                                          | Q-08        |
+| Input-Validierung          | Frontend (Zod) + Backend (zog) — beide Seiten unabhängig voneinander                                                            | Q-03        |
+| Passwort-Hashing           | Argon2id mit zufälligem Salt                                                                                                    | A-01        |
+| Generische Fehlermeldungen | Fehlgeschlagene Logins geben keine Auskunft, ob Benutzer oder Passwort falsch war                                               | A-01        |
+| Keine Secrets im Code      | Alle Secrets (JWT-Schlüssel, DB-Passwort, `RELAY_AUTH_TOKEN`) werden über Umgebungsvariablen konfiguriert                       | —           |
+| JWT-Gültigkeit             | Tokens sind 12 Stunden gültig — kurze Lebensdauer begrenzt den Schaden bei Verlust                                              | A-01        |
+| Relay-Token                | Statischer Token für `POST /relay/poll` und `POST /relay/quittieren` — kein JWT, kein Benutzerkontext. Relay ist kein Benutzer. | K-12        |
 
 ---
 
@@ -880,7 +898,7 @@ Alle Reporting-Ansichten aggregieren über `kassenjournal` und `tisch_sessions` 
 
 ### 7.3 Ausgabe-Ansichten
 
-Der Relay-Poll-Endpunkt (`POST /relay/poll`) liefert `DruckAuftrag`-DTOs und ist ein internes Read Model des Ausgabe-Contexts für das Print-Relay. KDS-Ansicht (K-13) und Zubereitungsstatus (K-15) sind noch offen.
+Der Relay-Poll-Endpunkt (`POST /relay/poll`) liefert die offenen Druckaufträge aus der `druckauftraege`-Outbox an das Print-Relay (reiner Transport, → [4.6 Bondruck](#46-bondruck-arbeitsbon-und-kassenbeleg-k-12)). KDS-Ansicht (K-13) und Zubereitungsstatus (K-15) sind noch offen.
 
 ---
 

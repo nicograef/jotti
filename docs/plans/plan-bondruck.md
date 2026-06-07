@@ -321,9 +321,9 @@ offenen Soll-Abweichungen schließen, sobald der jeweilige Rename/Outbox steht.
 
 ### Acceptance criteria
 
-- [ ] §4.6 beschreibt zwei Familien + Outbox + Relay-Transport; §3.12 nennt die Policy
-- [ ] handbuch nennt `druckstationen` (nicht mehr `kategorie_drucker`)
-- [ ] `compliance.md` trennt Arbeitsbon (nicht-fiskalisch) und Kassenbeleg (§ 146a)
+- [x] §4.6 beschreibt zwei Familien + Outbox + Relay-Transport; §3.12 nennt die Policy
+- [x] handbuch nennt `druckstationen` (nicht mehr `kategorie_drucker`)
+- [x] `compliance.md` trennt Arbeitsbon (nicht-fiskalisch) und Kassenbeleg (§ 146a)
       explizit; Befreiungshinweis vorhanden
-- [ ] `language.md` Soll-Abweichungen für umgesetzte Teile geschlossen
-- [ ] `make check` grün
+- [x] `language.md` Soll-Abweichungen für umgesetzte Teile geschlossen
+- [x] `make check` grün
