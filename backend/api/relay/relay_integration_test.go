@@ -23,25 +23,25 @@ const (
 	testRelayToken = "test-relay-token-abc123"
 )
 
-// pollRequest mirrors the relay poll request DTO.
 type pollRequest struct {
-	Token       string `json:"token"`
-	LastEventID int    `json:"lastEventId"`
+	Token string `json:"token"`
 }
 
-// pollResponse mirrors the relay poll response DTO.
 type pollResponse struct {
 	Auftraege []druckAuftragDTO `json:"auftraege"`
-	Cursor    int               `json:"cursor"`
 }
 
 type druckAuftragDTO struct {
-	EventID   int    `json:"eventId"`
-	DruckerIP string `json:"druckerIp"`
-	Payload   string `json:"payload"`
+	ID      int    `json:"id"`
+	ZielIP  string `json:"zielIp"`
+	Payload string `json:"payload"`
 }
 
-// bestellungRequest mirrors the service bestellung-aufnehmen request DTO.
+type quittierenRequest struct {
+	Token        string `json:"token"`
+	GedruckteIDs []int  `json:"gedruckteIds"`
+}
+
 type bestellungRequest struct {
 	TischID    int                    `json:"tischId"`
 	Positionen []bestellPositionInput `json:"positionen"`
@@ -54,7 +54,6 @@ type bestellPositionInput struct {
 	Menge      int `json:"menge"`
 }
 
-// updateDruckstationenRequest mirrors the admin update-drucker-config request.
 type updateDruckstationenRequest struct {
 	Kategorie string `json:"kategorie"`
 	DruckerIP string `json:"druckerIp"`
@@ -66,23 +65,23 @@ type kassensitzungEroeffnenRequest struct {
 	BetragCents int    `json:"betragCents"`
 }
 
-// seedTestData creates the minimal test data needed for integration tests.
-// The migration only creates user ID 1 (admin "nico"), so we need to insert
-// betreiber master data, a service user, products with variants, and active tische.
 func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteID, tischID int) {
 	t.Helper()
 
-	// Betreiber master data is a precondition for opening a Kassensitzung.
 	_, err := db.Exec(`
 		INSERT INTO betreiber (id, vereinsname, strasse, plz, ort, updated_at)
-		VALUES (1, 'Test-Verein e.V.', 'Teststraße 1', '12345', 'Teststadt', now())
+		VALUES (1, 'Test-Verein e.V.', 'Teststrasse 1', '12345', 'Teststadt', now())
 		ON CONFLICT (id) DO UPDATE SET vereinsname = EXCLUDED.vereinsname
 	`)
 	if err != nil {
 		t.Fatalf("Failed to seed betreiber: %v", err)
 	}
 
-	// Create a service user for placing orders
+	_, err = db.Exec("DELETE FROM druckauftraege")
+	if err != nil {
+		t.Fatalf("Failed to reset druckauftraege: %v", err)
+	}
+
 	var userID int
 	err = db.QueryRow(`
 		INSERT INTO users (name, username, password_hash, role, status, created_at, updated_at)
@@ -94,7 +93,6 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 		t.Fatalf("Failed to create test service user: %v", err)
 	}
 
-	// Create a product with category "essen"
 	var prodID int
 	err = db.QueryRow(`
 		INSERT INTO produkte (name, kategorie, status, created_at, updated_at)
@@ -106,7 +104,6 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 		t.Fatalf("Failed to create test product: %v", err)
 	}
 
-	// Create a variant for the product
 	var varID int
 	err = db.QueryRow(`
 		INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at)
@@ -117,7 +114,6 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 		t.Fatalf("Failed to create test variant: %v", err)
 	}
 
-	// Create active tische
 	var tID int
 	err = db.QueryRow(`
 		INSERT INTO tische (name, status, created_at, updated_at)
@@ -127,16 +123,6 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 	`).Scan(&tID)
 	if err != nil {
 		t.Fatalf("Failed to create test tisch: %v", err)
-	}
-
-	// Ensure a second tisch exists for other tests
-	_, err = db.Exec(`
-		INSERT INTO tische (name, status, created_at, updated_at)
-		VALUES ('Test-Tisch 2', 'active', now(), now())
-		ON CONFLICT (name) DO UPDATE SET status = 'active'
-	`)
-	if err != nil {
-		t.Fatalf("Failed to create second test tisch: %v", err)
 	}
 
 	return userID, prodID, varID, tID
@@ -167,7 +153,7 @@ func setupTestEnv(t *testing.T) testEnv {
 	ts := httptest.NewServer(handler)
 	t.Cleanup(func() { ts.Close() })
 
-	adminTkn, err := jwt.GenerateJWTTokenForUser(1, "Nico Gräf", "admin", testJWTSecret)
+	adminTkn, err := jwt.GenerateJWTTokenForUser(1, "Nico Graef", "admin", testJWTSecret)
 	if err != nil {
 		t.Fatalf("Failed to generate admin JWT: %v", err)
 	}
@@ -186,7 +172,6 @@ func setupTestEnv(t *testing.T) testEnv {
 	}
 
 	openKassensitzungIfNeeded(t, env)
-
 	return env
 }
 
@@ -197,7 +182,6 @@ func openKassensitzungIfNeeded(t *testing.T, env testEnv) {
 		BetragCents: 10000,
 	}, env.adminToken)
 	defer resp.Body.Close()
-	// 200 = newly opened, 400+kasse_bereits_geoeffnet = already open — both are fine for tests
 	if resp.StatusCode != http.StatusOK {
 		var errResp struct {
 			Code string `json:"code"`
@@ -276,35 +260,28 @@ func createBestellung(t *testing.T, env testEnv, kommentar string) {
 	}
 }
 
-func pollRelay(t *testing.T, serverURL string, relayToken string, lastEventID int) *http.Response {
+func pollRelay(t *testing.T, serverURL string, relayToken string) *http.Response {
 	t.Helper()
-	return postJSON(t, serverURL+"/relay/poll", pollRequest{
-		Token:       relayToken,
-		LastEventID: lastEventID,
+	return postJSON(t, serverURL+"/relay/poll", pollRequest{Token: relayToken}, "")
+}
+
+func quittiereRelay(t *testing.T, serverURL string, relayToken string, ids []int) *http.Response {
+	t.Helper()
+	return postJSON(t, serverURL+"/relay/quittieren", quittierenRequest{
+		Token:        relayToken,
+		GedruckteIDs: ids,
 	}, "")
 }
 
-// TestRelayPoll_BestellungToAuftraege tests the full flow:
-// configure druckstation → create bestellung → poll relay → receive correct Druck-Aufträge
-func TestRelayPoll_BestellungToAuftraege(t *testing.T) {
+func TestRelayPollQuittierenFlow(t *testing.T) {
 	env := setupTestEnv(t)
 
-	// Reset druckstationen to clean state
 	resetDruckstationen(t, env.server.URL, env.adminToken)
-
-	// Configure a druckstation for "essen" category
 	configureDruckstation(t, env.server.URL, env.adminToken, "essen", "192.168.1.51", "pro_position")
 
-	// Get the current cursor (before our bestellung)
-	resp := pollRelay(t, env.server.URL, testRelayToken, 0)
-	before := decodePollResponse(t, resp)
-	cursorBefore := before.Cursor
-
-	// Create a bestellung with an "essen" product
 	createBestellung(t, env, "ohne Senf")
 
-	// Poll relay from before cursor → should receive Druck-Aufträge
-	resp = pollRelay(t, env.server.URL, testRelayToken, cursorBefore)
+	resp := pollRelay(t, env.server.URL, testRelayToken)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Expected 200, got %d", resp.StatusCode)
 	}
@@ -314,139 +291,61 @@ func TestRelayPoll_BestellungToAuftraege(t *testing.T) {
 		t.Fatal("Expected at least 1 Druck-Auftrag, got 0")
 	}
 
-	// Verify the Druck-Auftrag structure
-	found := false
-	for _, a := range result.Auftraege {
-		if a.DruckerIP == "192.168.1.51" {
-			found = true
-			if a.EventID == 0 {
-				t.Error("EventID should not be 0")
-			}
-			if a.Payload == "" {
-				t.Error("Payload should not be empty")
-			}
+	ids := make([]int, 0, len(result.Auftraege))
+	for _, auftrag := range result.Auftraege {
+		if auftrag.ZielIP != "192.168.1.51" {
+			t.Fatalf("Expected ZielIP 192.168.1.51, got %s", auftrag.ZielIP)
 		}
-	}
-	if !found {
-		t.Error("Expected at least one Auftrag with DruckerIP 192.168.1.51")
-	}
-
-	// Cursor should have advanced
-	if result.Cursor <= cursorBefore {
-		t.Errorf("Cursor should advance: was %d, now %d", cursorBefore, result.Cursor)
-	}
-}
-
-// TestRelayPoll_CursorFortschritt tests that a second poll with the returned cursor
-// does not return duplicate events.
-func TestRelayPoll_CursorFortschritt(t *testing.T) {
-	env := setupTestEnv(t)
-
-	resetDruckstationen(t, env.server.URL, env.adminToken)
-	configureDruckstation(t, env.server.URL, env.adminToken, "essen", "192.168.1.51", "pro_position")
-
-	// Poll to get current cursor
-	resp := pollRelay(t, env.server.URL, testRelayToken, 0)
-	initial := decodePollResponse(t, resp)
-
-	// Create a bestellung
-	createBestellung(t, env, "")
-
-	// First poll: should get new auftraege
-	resp = pollRelay(t, env.server.URL, testRelayToken, initial.Cursor)
-	first := decodePollResponse(t, resp)
-	if len(first.Auftraege) == 0 {
-		t.Fatal("First poll should return auftraege")
-	}
-
-	// Second poll with advanced cursor: no new events → empty
-	resp = pollRelay(t, env.server.URL, testRelayToken, first.Cursor)
-	second := decodePollResponse(t, resp)
-
-	if len(second.Auftraege) != 0 {
-		t.Errorf("Second poll with advanced cursor should return 0 auftraege, got %d", len(second.Auftraege))
-	}
-
-	// Cursor should remain the same
-	if second.Cursor != first.Cursor {
-		t.Errorf("Cursor should stay at %d, got %d", first.Cursor, second.Cursor)
-	}
-}
-
-// TestRelayPoll_DruckerConfigAenderung tests that changing drucker config
-// affects subsequent polls (IPs resolved at read time).
-func TestRelayPoll_DruckerConfigAenderung(t *testing.T) {
-	env := setupTestEnv(t)
-
-	resetDruckstationen(t, env.server.URL, env.adminToken)
-
-	// Configure essen drucker with IP .51
-	configureDruckstation(t, env.server.URL, env.adminToken, "essen", "192.168.1.51", "pro_position")
-
-	// Record cursor before bestellung
-	resp := pollRelay(t, env.server.URL, testRelayToken, 0)
-	before := decodePollResponse(t, resp)
-
-	// Create a bestellung
-	createBestellung(t, env, "")
-
-	// Change drucker IP to .52 BEFORE polling
-	configureDruckstation(t, env.server.URL, env.adminToken, "essen", "192.168.1.52", "pro_position")
-
-	// Poll → should get auftraege with the NEW IP (.52)
-	resp = pollRelay(t, env.server.URL, testRelayToken, before.Cursor)
-	result := decodePollResponse(t, resp)
-
-	if len(result.Auftraege) == 0 {
-		t.Fatal("Expected auftraege after config change")
-	}
-
-	for _, a := range result.Auftraege {
-		if a.DruckerIP != "192.168.1.52" {
-			t.Errorf("Expected DruckerIP 192.168.1.52, got %s", a.DruckerIP)
+		if auftrag.Payload == "" {
+			t.Fatal("Payload should not be empty")
 		}
+		if auftrag.ID == 0 {
+			t.Fatal("Auftrag ID should not be 0")
+		}
+		ids = append(ids, auftrag.ID)
+	}
+
+	resp = quittiereRelay(t, env.server.URL, testRelayToken, ids)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected quittieren status 200, got %d", resp.StatusCode)
+	}
+
+	resp = pollRelay(t, env.server.URL, testRelayToken)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected second poll status 200, got %d", resp.StatusCode)
+	}
+	after := decodePollResponse(t, resp)
+	if len(after.Auftraege) != 0 {
+		t.Fatalf("Expected no offene Auftraege after quittieren, got %d", len(after.Auftraege))
 	}
 }
 
-// TestRelayPoll_KeinDruckerKonfiguriert tests that when no drucker is configured
-// (empty drucker_ip), the poll returns an empty auftraege list.
-func TestRelayPoll_KeinDruckerKonfiguriert(t *testing.T) {
+func TestRelayPollKeinDruckerKonfiguriert(t *testing.T) {
 	env := setupTestEnv(t)
 
-	// Reset all drucker configs to empty
 	resetDruckstationen(t, env.server.URL, env.adminToken)
-
-	// Record cursor
-	resp := pollRelay(t, env.server.URL, testRelayToken, 0)
-	before := decodePollResponse(t, resp)
-
-	// Create a bestellung
 	createBestellung(t, env, "")
 
-	// Poll → no drucker configured → empty auftraege, but cursor should still advance
-	resp = pollRelay(t, env.server.URL, testRelayToken, before.Cursor)
+	resp := pollRelay(t, env.server.URL, testRelayToken)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected 200, got %d", resp.StatusCode)
+	}
 	result := decodePollResponse(t, resp)
 
 	if len(result.Auftraege) != 0 {
-		t.Errorf("Expected 0 auftraege when no drucker configured, got %d", len(result.Auftraege))
-	}
-
-	// Cursor should still advance (events were processed, just no drucker matched)
-	if result.Cursor <= before.Cursor {
-		t.Errorf("Cursor should advance even without drucker config: was %d, now %d", before.Cursor, result.Cursor)
+		t.Fatalf("Expected 0 auftraege when no drucker configured, got %d", len(result.Auftraege))
 	}
 }
 
-// TestRelayPoll_FalscherToken tests that a wrong relay token returns an error.
-func TestRelayPoll_FalscherToken(t *testing.T) {
+func TestRelayPollFalscherToken(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resp := pollRelay(t, env.server.URL, "wrong-token", 0)
+	resp := pollRelay(t, env.server.URL, "wrong-token")
 	defer resp.Body.Close()
 
-	// The handler returns 400 with code "unauthorized"
 	if resp.StatusCode != http.StatusBadRequest {
-		t.Errorf("Expected 400 for wrong token, got %d", resp.StatusCode)
+		t.Fatalf("Expected 400 for wrong token, got %d", resp.StatusCode)
 	}
 
 	var errResp struct {
@@ -454,6 +353,6 @@ func TestRelayPoll_FalscherToken(t *testing.T) {
 	}
 	json.NewDecoder(resp.Body).Decode(&errResp)
 	if errResp.Code != "unauthorized" {
-		t.Errorf("Expected error code 'unauthorized', got %q", errResp.Code)
+		t.Fatalf("Expected error code 'unauthorized', got %q", errResp.Code)
 	}
 }

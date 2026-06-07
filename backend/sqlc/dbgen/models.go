@@ -162,6 +162,21 @@ type Betreiber struct {
 	UpdatedAt time.Time
 }
 
+// Technische Outbox-Warteschlange fuer Druckjobs (Arbeitsbon und Kassenbeleg).
+type Druckauftraege struct {
+	ID     int32
+	ZielIp string
+	// Base64-kodierter ESC/POS-Byte-String.
+	Payload string
+	// Druckstatus: offen -> gedruckt.
+	Status string
+	BonArt string
+	// Fachliche Referenz (z. B. Event- oder Zahlung-ID) fuer Nachvollziehbarkeit.
+	Referenz   string
+	ErstelltAm time.Time
+	GedrucktAm sql.NullTime
+}
+
 // Drucker-IP und Bonmodus pro Produkt-Kategorie für den Bondruck.
 type Druckstationen struct {
 	Kategorie Produktkategorie

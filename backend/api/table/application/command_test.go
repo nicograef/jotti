@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
@@ -77,6 +78,31 @@ var testInactiveTisch = table.Tisch{
 	Status:    table.InactiveStatus,
 	CreatedAt: time.Now().UTC(),
 	UpdatedAt: time.Now().UTC(),
+}
+
+type mockDruckstationRepo struct {
+	konfig map[string]bondruckApp.Druckstation
+	err    error
+}
+
+func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context) (map[string]bondruckApp.Druckstation, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.konfig, nil
+}
+
+type mockDruckauftragRepo struct {
+	enqueued []bondruckApp.Druckauftrag
+	err      error
+}
+
+func (m *mockDruckauftragRepo) EnqueueDruckauftraege(_ context.Context, auftraege []bondruckApp.Druckauftrag) error {
+	if m.err != nil {
+		return m.err
+	}
+	m.enqueued = append(m.enqueued, auftraege...)
+	return nil
 }
 
 func TestTischErstellen(t *testing.T) {
@@ -231,6 +257,42 @@ func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", 1, inputs, "Testkommentar")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
+	ctx := context.Background()
+	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
+	productMock.AddVariant(testProduct.ID, testVariant)
+
+	auftragMock := &mockDruckauftragRepo{}
+	stationMock := &mockDruckstationRepo{konfig: map[string]bondruckApp.Druckstation{
+		"getraenk": {IP: "192.168.1.50", Bonmodus: "pro_position"},
+	}}
+
+	command := newTestCommand([]table.Tisch{testActiveTisch}, []product.Produkt{testProduct})
+	command.ProductRepo = productMock
+	command.DruckstationRepo = stationMock
+	command.DruckauftragRepo = auftragMock
+
+	inputs := []BestellPositionInput{{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2}}
+
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", 1, inputs, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(auftragMock.enqueued) != 1 {
+		t.Fatalf("expected 1 enqueued druckauftrag, got %d", len(auftragMock.enqueued))
+	}
+	if auftragMock.enqueued[0].BonArt != "arbeitsbon" {
+		t.Fatalf("expected BonArt arbeitsbon, got %s", auftragMock.enqueued[0].BonArt)
+	}
+	if auftragMock.enqueued[0].ZielIP != "192.168.1.50" {
+		t.Fatalf("expected ZielIP 192.168.1.50, got %s", auftragMock.enqueued[0].ZielIP)
+	}
+	if auftragMock.enqueued[0].Payload == "" {
+		t.Fatal("expected non-empty payload")
 	}
 }
 

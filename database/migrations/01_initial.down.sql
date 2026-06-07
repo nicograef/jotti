@@ -1,6 +1,7 @@
 BEGIN;
 
 -- Drop in reverse dependency order
+DROP TABLE IF EXISTS druckauftraege;
 DROP TABLE IF EXISTS druckstationen;
 DROP TABLE IF EXISTS tisch_favoriten;
 DROP TABLE IF EXISTS tisch_sessions;

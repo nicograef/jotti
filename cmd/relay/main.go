@@ -15,27 +15,19 @@ import (
 	"time"
 )
 
-// RelayState speichert den Cursor und die Idempotenzliste.
-type RelayState struct {
-	LastEventID     int   `json:"last_event_id"`
-	PrintedEventIDs []int `json:"printed_event_ids"`
-}
-
 // DruckAuftrag ist das DTO vom jotti-Backend.
 type DruckAuftrag struct {
-	EventID   int    `json:"eventId"`
-	DruckerIP string `json:"druckerIp"`
-	Payload   string `json:"payload"`
+	ID      int    `json:"id"`
+	ZielIP  string `json:"zielIp"`
+	Payload string `json:"payload"`
 }
 
 var (
 	backendURL  = flag.String("backend", "https://jotti.meinverein.de", "jotti Backend URL")
 	token       = flag.String("token", "", "RELAY_AUTH_TOKEN aus .env")
-	stateFile   = flag.String("state", "relay_state.json", "Pfad zur lokalen State-Datei")
 	pollSeconds = flag.Int("poll", 2, "Poll-Intervall in Sekunden")
 )
 
-const maxPrintedIDs = 2000
 const maxRetries = 60
 
 func main() {
@@ -46,50 +38,46 @@ func main() {
 
 	log.Printf("jotti Print-Relay gestartet | Backend: %s | Poll: %ds", *backendURL, *pollSeconds)
 
-	state := loadState(*stateFile)
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	idempotencySet := buildIdempotencySet(state.PrintedEventIDs)
 	lastStatusLog := time.Now()
 
 	for {
 		select {
 		case <-quit:
-			log.Printf("Shutdown-Signal empfangen. Cursor bei %d. Beende.", state.LastEventID)
-			saveState(*stateFile, state)
+			log.Printf("Shutdown-Signal empfangen. Beende.")
 			return
 		default:
 		}
 
-		auftraege, err := poll(client, state.LastEventID)
+		auftraege, err := poll(client)
 		if err != nil {
 			log.Printf("Fehler beim Poll: %v", err)
 		} else if len(auftraege) == 0 {
 			if time.Since(lastStatusLog) > 5*time.Minute {
-				log.Printf("Relay aktiv, Cursor bei %d, keine neuen Auftraege", state.LastEventID)
+				log.Printf("Relay aktiv, keine offenen Auftraege")
 				lastStatusLog = time.Now()
 			}
 		} else {
+			gedruckteIDs := make([]int, 0, len(auftraege))
 			for _, a := range auftraege {
-				if idempotencySet[a.EventID] {
-					log.Printf("Event %d bereits gedruckt (Idempotenz) -- ueberspringe", a.EventID)
-					state.LastEventID = a.EventID
-					continue
-				}
-
 				if err := printAuftragWithRetry(a); err != nil {
-					log.Printf("Druckfehler nach max. Versuchen (Event %d): %v -- ueberspringe", a.EventID, err)
+					log.Printf("Druckfehler nach max. Versuchen (Auftrag %d): %v -- bleibt offen", a.ID, err)
 				} else {
-					log.Printf("Event %d erfolgreich gedruckt auf %s", a.EventID, a.DruckerIP)
+					log.Printf("Auftrag %d erfolgreich gedruckt auf %s", a.ID, a.ZielIP)
+					gedruckteIDs = append(gedruckteIDs, a.ID)
 				}
+			}
 
-				state.LastEventID = a.EventID
-				state.PrintedEventIDs = appendWithLimit(state.PrintedEventIDs, a.EventID, maxPrintedIDs)
-				idempotencySet[a.EventID] = true
-				saveState(*stateFile, state)
+			if len(gedruckteIDs) > 0 {
+				if err := quittieren(client, gedruckteIDs); err != nil {
+					log.Printf("Quittieren fehlgeschlagen (%d Auftraege): %v", len(gedruckteIDs), err)
+				} else {
+					log.Printf("%d Auftraege quittiert", len(gedruckteIDs))
+				}
 			}
 			lastStatusLog = time.Now()
 		}
@@ -100,9 +88,9 @@ func main() {
 
 func printAuftragWithRetry(a DruckAuftrag) error {
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		if err := checkPrinter(a.DruckerIP); err != nil {
+		if err := checkPrinter(a.ZielIP); err != nil {
 			log.Printf("Drucker %s nicht bereit (Versuch %d/%d): %v -- warte 5s",
-				a.DruckerIP, attempt, maxRetries, err)
+				a.ZielIP, attempt, maxRetries, err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
@@ -111,20 +99,19 @@ func printAuftragWithRetry(a DruckAuftrag) error {
 		if err != nil {
 			return fmt.Errorf("ungueltiges Base64: %w", err)
 		}
-		if err := sendToPrinter(a.DruckerIP, escposData); err != nil {
+		if err := sendToPrinter(a.ZielIP, escposData); err != nil {
 			log.Printf("Sendefehler (Versuch %d/%d): %v", attempt, maxRetries, err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
 		return nil
 	}
-	return fmt.Errorf("max. Versuche (%d) erreicht fuer Drucker %s", maxRetries, a.DruckerIP)
+	return fmt.Errorf("max. Versuche (%d) erreicht fuer Drucker %s", maxRetries, a.ZielIP)
 }
 
-func poll(client *http.Client, lastEventID int) ([]DruckAuftrag, error) {
+func poll(client *http.Client) ([]DruckAuftrag, error) {
 	reqBody, _ := json.Marshal(map[string]any{
-		"token":       *token,
-		"lastEventId": lastEventID,
+		"token": *token,
 	})
 	resp, err := client.Post(*backendURL+"/relay/poll", "application/json", bytes.NewReader(reqBody))
 	if err != nil {
@@ -141,12 +128,32 @@ func poll(client *http.Client, lastEventID int) ([]DruckAuftrag, error) {
 
 	var result struct {
 		Auftraege []DruckAuftrag `json:"auftraege"`
-		Cursor    int            `json:"cursor"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("JSON-Decode fehlgeschlagen: %w", err)
 	}
 	return result.Auftraege, nil
+}
+
+func quittieren(client *http.Client, ids []int) error {
+	reqBody, _ := json.Marshal(map[string]any{
+		"token":       *token,
+		"gedruckteIds": ids,
+	})
+	resp, err := client.Post(*backendURL+"/relay/quittieren", "application/json", bytes.NewReader(reqBody))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("ungueltiger Token (401) -- Relay-Token pruefen")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unerwarteter HTTP-Status: %d", resp.StatusCode)
+	}
+
+	return nil
 }
 
 func checkPrinter(ip string) error {
@@ -186,45 +193,4 @@ func sendToPrinter(ip string, data []byte) error {
 	}
 	_, err = conn.Write(data)
 	return err
-}
-
-func loadState(path string) *RelayState {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return &RelayState{}
-	}
-	var s RelayState
-	if err := json.Unmarshal(data, &s); err != nil {
-		log.Printf("WARNUNG: State-Datei korrupt, starte neu: %v", err)
-		return &RelayState{}
-	}
-	return &s
-}
-
-func saveState(path string, s *RelayState) {
-	data, _ := json.Marshal(s)
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0600); err != nil {
-		log.Printf("WARNUNG: Relay-State konnte nicht geschrieben werden: %v", err)
-		return
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		log.Printf("WARNUNG: Relay-State-Rename fehlgeschlagen: %v", err)
-	}
-}
-
-func buildIdempotencySet(ids []int) map[int]bool {
-	set := make(map[int]bool, len(ids))
-	for _, id := range ids {
-		set[id] = true
-	}
-	return set
-}
-
-func appendWithLimit(ids []int, id int, limit int) []int {
-	ids = append(ids, id)
-	if len(ids) > limit {
-		ids = ids[len(ids)-limit:]
-	}
-	return ids
 }

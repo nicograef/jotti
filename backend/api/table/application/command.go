@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -45,6 +46,14 @@ type favoritRepo interface {
 	GetByUser(ctx context.Context, userID int) ([]int, error)
 }
 
+type druckstationRepo interface {
+	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]bondruckApp.Druckstation, error)
+}
+
+type druckauftragRepo interface {
+	EnqueueDruckauftraege(ctx context.Context, auftraege []bondruckApp.Druckauftrag) error
+}
+
 // BestellPositionInput represents the input for a single position in an order.
 // The application layer enriches this with product/variant details (fat events).
 type BestellPositionInput struct {
@@ -59,6 +68,8 @@ type Command struct {
 	ProductRepo         productRepo
 	FavoritRepo         favoritRepo
 	KassensitzungenRepo kassensitzungenRepo
+	DruckstationRepo    druckstationRepo
+	DruckauftragRepo    druckauftragRepo
 }
 
 // getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung.
@@ -77,27 +88,45 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 // writeEvent writes an event with optimistic concurrency control.
 // It reads the current max version for the subject, sets event.Version = maxVersion + 1,
 // and writes the event. Returns ErrConflict on UNIQUE constraint violation (version conflict).
-func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int) error {
+func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
 	maxVersion, err := repo.GetMaxVersion(ctx, subject)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	e.Version = maxVersion + 1
 
-	_, err = repo.WriteEvent(ctx, e, streamType, kassensitzungNr)
+	eventID, err := repo.WriteEvent(ctx, e, streamType, kassensitzungNr)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			zerolog.Ctx(ctx).Warn().
 				Int("version", e.Version).
 				Str("subject", subject).
 				Msg("OCC conflict")
-			return ErrConflict
+			return 0, ErrConflict
 		}
+		return 0, err
+	}
+
+	return eventID, nil
+}
+
+func (c Command) enqueueArbeitsbonDruckauftraege(ctx context.Context, evt event.Event) error {
+	if c.DruckstationRepo == nil || c.DruckauftragRepo == nil {
+		return nil
+	}
+
+	druckstationen, err := c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
+	if err != nil {
 		return err
 	}
 
-	return nil
+	auftraege := bondruckApp.CreateArbeitsbonAuftraegeFromEvent(evt, druckstationen)
+	if len(auftraege) == 0 {
+		return nil
+	}
+
+	return c.DruckauftragRepo.EnqueueDruckauftraege(ctx, auftraege)
 }
 
 // loadTischState loads and validates the tisch, then reads its projected tisch session.
@@ -335,11 +364,18 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return err
 	}
 
-	if err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+	eventID, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr)
+	if err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung aufgenommen event to database")
+		return ErrDatabase
+	}
+
+	evt.ID = eventID
+	if err := c.enqueueArbeitsbonDruckauftraege(ctx, evt); err != nil {
+		log.Error().Err(err).Int("tisch_id", tischID).Int("event_id", eventID).Msg("Failed to enqueue arbeitsbon druckauftraege")
 		return ErrDatabase
 	}
 
@@ -395,7 +431,7 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		return err
 	}
 
-	if err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -437,7 +473,7 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		return err
 	}
 
-	if err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -472,7 +508,7 @@ func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName st
 		return err
 	}
 
-	if err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -499,7 +535,7 @@ func (c Command) AuszahlungLeisten(ctx context.Context, userID int, userName str
 		return err
 	}
 
-	if err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}

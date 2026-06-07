@@ -9,26 +9,30 @@ import (
 
 type Handler struct {
 	Query      relayApp.Query
+	Command    relayApp.Command
 	RelayToken string
 }
 
 // POST /relay/poll
-// Request:  {"token": "...", "lastEventId": 42}
-// Response: {"auftraege": [...], "cursor": 55}
+// Request:  {"token": "..."}
+// Response: {"auftraege": [...]}
 type pollRequest struct {
-	Token       string `json:"token"`
-	LastEventID int    `json:"lastEventId"`
+	Token string `json:"token"`
 }
 
 type pollResponse struct {
 	Auftraege []druckAuftragDTO `json:"auftraege"`
-	Cursor    int               `json:"cursor"`
 }
 
 type druckAuftragDTO struct {
-	EventID   int    `json:"eventId"`
-	DruckerIP string `json:"druckerIp"`
-	Payload   string `json:"payload"` // Base64 ESC/POS
+	ID      int    `json:"id"`
+	ZielIP  string `json:"zielIp"`
+	Payload string `json:"payload"` // Base64 ESC/POS
+}
+
+type quittierenRequest struct {
+	Token        string `json:"token"`
+	GedruckteIDs []int  `json:"gedruckteIds"`
 }
 
 func (h *Handler) PollHandler() http.HandlerFunc {
@@ -44,31 +48,47 @@ func (h *Handler) PollHandler() http.HandlerFunc {
 			return
 		}
 
-		auftraege, maxEventID, err := h.Query.GetDruckAuftraege(r.Context(), body.LastEventID)
+		auftraege, err := h.Query.GetOffeneDruckauftraege(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		// Cursor = höchste verarbeitete Event-ID, auch ohne Drucker-Match (verhindert Re-Print
-		// bereits verarbeiteter Bestellungen wenn ein Drucker nachträglich konfiguriert wird).
-		cursor := body.LastEventID
-		if maxEventID > 0 {
-			cursor = maxEventID
-		}
-
 		dtos := make([]druckAuftragDTO, 0, len(auftraege))
 		for _, a := range auftraege {
 			dtos = append(dtos, druckAuftragDTO{
-				EventID:   a.EventID,
-				DruckerIP: a.DruckerIP,
-				Payload:   a.Payload,
+				ID:      a.ID,
+				ZielIP:  a.ZielIP,
+				Payload: a.Payload,
 			})
 		}
 
 		helper.SendResponse(w, pollResponse{
 			Auftraege: dtos,
-			Cursor:    cursor,
 		})
+	}
+}
+
+// POST /relay/quittieren
+// Request:  {"token": "...", "gedruckteIds": [1,2,3]}
+// Response: {"status": "ok"}
+func (h *Handler) QuittierenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body quittierenRequest
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		if body.Token != h.RelayToken {
+			helper.SendClientError(w, "unauthorized", nil)
+			return
+		}
+
+		if err := h.Command.QuittiereGedruckteAuftraege(r.Context(), body.GedruckteIDs); err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		helper.SendResponse(w, map[string]string{"status": "ok"})
 	}
 }

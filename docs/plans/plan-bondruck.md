@@ -249,14 +249,14 @@ Open Decision.
 
 ### Acceptance criteria
 
-- [ ] `druckauftraege`-Tabelle existiert; Repo kann einreihen, offene lesen, quittieren
-- [ ] Bestellung erzeugt korrekte Outbox-Zeilen je Kategorie/Modus; Kategorie ohne
+- [x] `druckauftraege`-Tabelle existiert; Repo kann einreihen, offene lesen, quittieren
+- [x] Bestellung erzeugt korrekte Outbox-Zeilen je Kategorie/Modus; Kategorie ohne
       Druckstation → keine Zeile
-- [ ] ESC/POS-Output der Arbeitsbons ist byte-identisch zum bisherigen Bon (Regression)
-- [ ] `poll` liefert nur `offen`; nach `quittieren` liefert ein erneuter `poll` sie nicht
-- [ ] Relay enthält keine ESC/POS-/Kategorie-/Cursor-Logik mehr (reiner Transport)
-- [ ] Integrationstest: Bestellung → Outbox → poll → quittieren → poll (leer)
-- [ ] `make verify` grün
+- [x] ESC/POS-Output der Arbeitsbons ist byte-identisch zum bisherigen Bon (Regression)
+- [x] `poll` liefert nur `offen`; nach `quittieren` liefert ein erneuter `poll` sie nicht
+- [x] Relay enthält keine ESC/POS-/Kategorie-/Cursor-Logik mehr (reiner Transport)
+- [x] Integrationstest: Bestellung → Outbox → poll → quittieren → poll (leer)
+- [x] `make verify` grün
 
 ---
 

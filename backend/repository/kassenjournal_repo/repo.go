@@ -338,26 +338,6 @@ func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
 	return rebuiltCount, nil
 }
 
-// GetBestellungEventsSinceCursor reads BestellungAufgenommenV1 events since the
-// given cursor (exclusive). Used by the relay service for receipt printing polling.
-func (r Repository) GetBestellungEventsSinceCursor(ctx context.Context, cursor int) ([]event.Event, error) {
-	rows, err := r.q.GetBestellungEventsSinceCursor(ctx, cursor)
-	if err != nil {
-		return nil, db.Error(err)
-	}
-	events := make([]event.Event, 0, len(rows))
-	for _, row := range rows {
-		events = append(events, event.Event{
-			ID:       row.ID,
-			UserName: row.UserName,
-			Subject:  row.Subject,
-			Data:     row.Data,
-			Time:     row.Timestamp,
-		})
-	}
-	return events, nil
-}
-
 // GetKassenbestand returns the Soll-Kassenbestand for the given Kassensitzung in cents.
 func (r Repository) GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error) {
 	bestand, err := r.q.GetKassenbestand(ctx, kassensitzungNr)

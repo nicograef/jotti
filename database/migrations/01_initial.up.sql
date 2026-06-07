@@ -233,6 +233,27 @@ INSERT INTO druckstationen (kategorie, drucker_ip, bonmodus, updated_at) VALUES
     ('sonstiges', '', 'pro_position', now());
 
 -- ============================================================
+-- Table: druckauftraege (technical outbox queue for print jobs)
+-- ============================================================
+CREATE TABLE druckauftraege (
+    id          SERIAL PRIMARY KEY,
+    ziel_ip     VARCHAR(50) NOT NULL,
+    payload     TEXT NOT NULL,
+    status      TEXT NOT NULL CHECK (status IN ('offen', 'gedruckt')),
+    bon_art     TEXT NOT NULL CHECK (bon_art IN ('arbeitsbon', 'kassenbeleg')),
+    referenz    TEXT NOT NULL,
+    erstellt_am TIMESTAMPTZ NOT NULL,
+    gedruckt_am TIMESTAMPTZ NULL
+);
+
+CREATE INDEX idx_druckauftraege_status_id ON druckauftraege(status, id);
+
+COMMENT ON TABLE druckauftraege IS 'Technische Outbox-Warteschlange fuer Druckjobs (Arbeitsbon und Kassenbeleg).';
+COMMENT ON COLUMN druckauftraege.payload IS 'Base64-kodierter ESC/POS-Byte-String.';
+COMMENT ON COLUMN druckauftraege.status IS 'Druckstatus: offen -> gedruckt.';
+COMMENT ON COLUMN druckauftraege.referenz IS 'Fachliche Referenz (z. B. Event- oder Zahlung-ID) fuer Nachvollziehbarkeit.';
+
+-- ============================================================
 -- Reporting helper functions
 -- Encapsulate repeated CASE WHEN event-extraction logic from
 -- kassenjournal queries so each monetary field is defined once.

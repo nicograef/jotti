@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nicograef/jotti/backend/api/relay/application/escpos"
+	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
@@ -14,7 +14,7 @@ var (
 		PositionID:   "pos-1",
 		VarianteID:   1,
 		ProduktName:  "Pommes",
-		VarianteName: "groß",
+		VarianteName: "gross",
 		Kategorie:    "essen",
 		Einzelpreis:  300,
 		Menge:        3,
@@ -26,15 +26,15 @@ func TestFormatPositionBon_ContainsTischName(t *testing.T) {
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
 	got := string(payload)
 	if !strings.Contains(got, "Tisch 7") {
-		t.Errorf("Bon enthält nicht den Tischnamen; got:\n%q", got)
+		t.Errorf("Bon enthaelt nicht den Tischnamen; got:\n%q", got)
 	}
 }
 
 func TestFormatPositionBon_ContainsArtikel(t *testing.T) {
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
 	got := string(payload)
-	if !strings.Contains(got, "3x Pommes (groß)") {
-		t.Errorf("Bon enthält nicht den Artikel; got:\n%q", got)
+	if !strings.Contains(got, "3x Pommes (gross)") {
+		t.Errorf("Bon enthaelt nicht den Artikel; got:\n%q", got)
 	}
 }
 
@@ -42,7 +42,7 @@ func TestFormatPositionBon_ContainsBedienung(t *testing.T) {
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
 	got := string(payload)
 	if !strings.Contains(got, "Bedienung: Maria") {
-		t.Errorf("Bon enthält nicht Bedienung; got:\n%q", got)
+		t.Errorf("Bon enthaelt nicht Bedienung; got:\n%q", got)
 	}
 }
 
@@ -50,7 +50,7 @@ func TestFormatPositionBon_ContainsZeit(t *testing.T) {
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
 	got := string(payload)
 	if !strings.Contains(got, "19:34") {
-		t.Errorf("Bon enthält nicht Zeitstempel; got:\n%q", got)
+		t.Errorf("Bon enthaelt nicht Zeitstempel; got:\n%q", got)
 	}
 }
 
@@ -58,25 +58,23 @@ func TestFormatPositionBon_WithKommentar(t *testing.T) {
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "ohne Ketchup", false)
 	got := string(payload)
 	if !strings.Contains(got, "ohne Ketchup") {
-		t.Errorf("Bon enthält nicht den Kommentar; got:\n%q", got)
+		t.Errorf("Bon enthaelt nicht den Kommentar; got:\n%q", got)
 	}
 }
 
 func TestFormatPositionBon_WithoutKommentar_NoEmptyKommentarLine(t *testing.T) {
 	withKommentar := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "Kommentar", false)
 	without := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
-	// Bon ohne Kommentar sollte kürzer sein
 	if len(without) >= len(withKommentar) {
-		t.Errorf("Bon ohne Kommentar sollte kürzer sein als mit Kommentar")
+		t.Errorf("Bon ohne Kommentar sollte kuerzer sein als mit Kommentar")
 	}
 }
 
 func TestFormatPositionBon_WithBeep_ContainsBeepBytes(t *testing.T) {
 	withBeep := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", true)
 	withoutBeep := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
-	// Bon mit Beep sollte länger sein
 	if len(withBeep) <= len(withoutBeep) {
-		t.Errorf("Bon mit Beep sollte länger sein als ohne Beep")
+		t.Errorf("Bon mit Beep sollte laenger sein als ohne Beep")
 	}
 }
 
@@ -116,11 +114,11 @@ func TestFormatSammelBon_ContainsAllPositionen(t *testing.T) {
 	}
 	payload := escpos.FormatSammelBon([]kasse.Position{testPos, pos2}, "Tisch 7", "Maria", testTime, "", false)
 	got := string(payload)
-	if !strings.Contains(got, "3x Pommes (groß)") {
-		t.Errorf("Sammelbon enthält nicht erste Position; got:\n%q", got)
+	if !strings.Contains(got, "3x Pommes (gross)") {
+		t.Errorf("Sammelbon enthaelt nicht erste Position; got:\n%q", got)
 	}
 	if !strings.Contains(got, "1x Bratwurst (mit Brot)") {
-		t.Errorf("Sammelbon enthält nicht zweite Position; got:\n%q", got)
+		t.Errorf("Sammelbon enthaelt nicht zweite Position; got:\n%q", got)
 	}
 }
 
@@ -128,7 +126,7 @@ func TestFormatSammelBon_ContainsTischName(t *testing.T) {
 	payload := escpos.FormatSammelBon([]kasse.Position{testPos}, "Tisch 12", "Felix", testTime, "", false)
 	got := string(payload)
 	if !strings.Contains(got, "Tisch 12") {
-		t.Errorf("Sammelbon enthält nicht Tischnamen; got:\n%q", got)
+		t.Errorf("Sammelbon enthaelt nicht Tischnamen; got:\n%q", got)
 	}
 }
 
@@ -140,9 +138,9 @@ func TestFormatSammelBon_EndsWithCutPaper(t *testing.T) {
 }
 
 func TestFormatSammelBon_WithKommentar(t *testing.T) {
-	payload := escpos.FormatSammelBon([]kasse.Position{testPos}, "Tisch 7", "Maria", testTime, "ohne Ketchup für die Pommes", false)
+	payload := escpos.FormatSammelBon([]kasse.Position{testPos}, "Tisch 7", "Maria", testTime, "ohne Ketchup fuer die Pommes", false)
 	got := string(payload)
 	if !strings.Contains(got, "ohne Ketchup") {
-		t.Errorf("Sammelbon enthält nicht Kommentar; got:\n%q", got)
+		t.Errorf("Sammelbon enthaelt nicht Kommentar; got:\n%q", got)
 	}
 }

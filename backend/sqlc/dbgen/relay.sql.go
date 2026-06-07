@@ -7,43 +7,32 @@ package dbgen
 
 import (
 	"context"
-	"encoding/json"
-	"time"
 )
 
-const getBestellungEventsSinceCursor = `-- name: GetBestellungEventsSinceCursor :many
-SELECT id, user_name, subject, data, timestamp
-FROM kassenjournal
-WHERE type = 'bestellung-aufgenommen:v1'
-  AND id > $1
+const getOffeneDruckauftraege = `-- name: GetOffeneDruckauftraege :many
+SELECT id, ziel_ip, payload
+FROM druckauftraege
+WHERE status = 'offen'
 ORDER BY id ASC
-LIMIT 50
+LIMIT 200
 `
 
-type GetBestellungEventsSinceCursorRow struct {
-	ID        int
-	UserName  string
-	Subject   string
-	Data      json.RawMessage
-	Timestamp time.Time
+type GetOffeneDruckauftraegeRow struct {
+	ID      int32
+	ZielIp  string
+	Payload string
 }
 
-func (q *Queries) GetBestellungEventsSinceCursor(ctx context.Context, id int) ([]GetBestellungEventsSinceCursorRow, error) {
-	rows, err := q.db.QueryContext(ctx, getBestellungEventsSinceCursor, id)
+func (q *Queries) GetOffeneDruckauftraege(ctx context.Context) ([]GetOffeneDruckauftraegeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getOffeneDruckauftraege)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetBestellungEventsSinceCursorRow{}
+	items := []GetOffeneDruckauftraegeRow{}
 	for rows.Next() {
-		var i GetBestellungEventsSinceCursorRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserName,
-			&i.Subject,
-			&i.Data,
-			&i.Timestamp,
-		); err != nil {
+		var i GetOffeneDruckauftraegeRow
+		if err := rows.Scan(&i.ID, &i.ZielIp, &i.Payload); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -55,4 +44,37 @@ func (q *Queries) GetBestellungEventsSinceCursor(ctx context.Context, id int) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertDruckauftrag = `-- name: InsertDruckauftrag :exec
+INSERT INTO druckauftraege (ziel_ip, payload, status, bon_art, referenz, erstellt_am)
+VALUES ($1, $2, 'offen', $3, $4, NOW())
+`
+
+type InsertDruckauftragParams struct {
+	ZielIp   string
+	Payload  string
+	BonArt   string
+	Referenz string
+}
+
+func (q *Queries) InsertDruckauftrag(ctx context.Context, arg InsertDruckauftragParams) error {
+	_, err := q.db.ExecContext(ctx, insertDruckauftrag,
+		arg.ZielIp,
+		arg.Payload,
+		arg.BonArt,
+		arg.Referenz,
+	)
+	return err
+}
+
+const markDruckauftragGedruckt = `-- name: MarkDruckauftragGedruckt :exec
+UPDATE druckauftraege
+SET status = 'gedruckt', gedruckt_am = NOW()
+WHERE id = $1 AND status = 'offen'
+`
+
+func (q *Queries) MarkDruckauftragGedruckt(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, markDruckauftragGedruckt, id)
+	return err
 }

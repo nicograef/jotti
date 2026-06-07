@@ -701,50 +701,6 @@ func TestRebuildAllProjections_SkipsKassensitzungSubjects(t *testing.T) {
 	}
 }
 
-func TestGetBestellungEventsSinceCursor(t *testing.T) {
-	userID, ksNr, repo, teardown := setup(t)
-	defer teardown(t)
-
-	subject := kasse.TischSessionSubject(ksNr, 1)
-
-	// Insert events of different types
-	e1 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, validBestellungData("p1", 100, 1))
-	id1, err := insertEventRaw(repo.DB, e1, ksNr)
-	if err != nil {
-		t.Fatalf("Failed to insert event: %v", err)
-	}
-
-	e2 := newTestEvent(userID, "zahlung-kassiert:v1", subject, 2, validZahlungData("p1", 1, 100))
-	_, err = insertEventRaw(repo.DB, e2, ksNr)
-	if err != nil {
-		t.Fatalf("Failed to insert event: %v", err)
-	}
-
-	e3 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 3, validBestellungData("p2", 200, 1))
-	_, err = insertEventRaw(repo.DB, e3, ksNr)
-	if err != nil {
-		t.Fatalf("Failed to insert event: %v", err)
-	}
-
-	// Get bestellung events since cursor=id1 (should only return the second bestellung)
-	events, err := repo.GetBestellungEventsSinceCursor(context.Background(), id1)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if len(events) != 1 {
-		t.Fatalf("Expected 1 bestellung event since cursor, got %d", len(events))
-	}
-
-	// Get all bestellung events (cursor=0)
-	allEvents, err := repo.GetBestellungEventsSinceCursor(context.Background(), 0)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if len(allEvents) != 2 {
-		t.Fatalf("Expected 2 bestellung events total, got %d", len(allEvents))
-	}
-}
-
 func TestWriteEvent_KassensitzungOtherEvent_NoCRUDChange(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)

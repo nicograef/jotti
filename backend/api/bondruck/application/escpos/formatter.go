@@ -9,9 +9,9 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
-const lineWidth = 48 // Font A, 12×24 Dots bei 576 dots/line → 48 Zeichen
+const lineWidth = 48 // Font A, 12x24 Dots bei 576 dots/line -> 48 Zeichen
 
-// FormatPositionBon generiert einen Bon für eine einzelne Position (Standard-Bonmodus).
+// FormatPositionBon generiert einen Bon fuer eine einzelne Position (Standard-Bonmodus).
 func FormatPositionBon(
 	pos kasse.Position,
 	tischName string,
@@ -27,7 +27,7 @@ func FormatPositionBon(
 	}
 	buf.WriteString(Init)
 
-	// Tisch — groß und fett, zentriert
+	// Tisch - gross und fett, zentriert
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
@@ -36,14 +36,14 @@ func FormatPositionBon(
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
-	// Position — doppelte Höhe, fett, zentriert
+	// Position - doppelte Hoehe, fett, zentriert
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
 	fmt.Fprintf(&buf, "%dx %s (%s)\n", pos.Menge, pos.ProduktName, pos.VarianteName)
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
-	// Kommentar (optional) — fett, linksbündig
+	// Kommentar (optional) - fett, linksbuendig
 	if kommentar != "" {
 		buf.WriteString("\n")
 		buf.WriteString(AlignLeft)
@@ -57,14 +57,14 @@ func FormatPositionBon(
 	buf.WriteString(strings.Repeat("-", lineWidth) + "\n")
 	fmt.Fprintf(&buf, "  %s  Bedienung: %s\n", zeitpunkt.Format("15:04"), truncate(userName, 24))
 
-	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm über dem Druckkopf)
+	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm ueber dem Druckkopf)
 	buf.WriteString(strings.Repeat("\n", 5))
 	buf.WriteString(CutPaper)
 
 	return buf.Bytes()
 }
 
-// FormatSammelBon generiert einen Bon für alle Positionen einer Kategorie (optionaler Bonmodus).
+// FormatSammelBon generiert einen Bon fuer alle Positionen einer Kategorie (optionaler Bonmodus).
 func FormatSammelBon(
 	positionen []kasse.Position,
 	tischName string,
@@ -80,7 +80,7 @@ func FormatSammelBon(
 	}
 	buf.WriteString(Init)
 
-	// Tisch — groß und fett, zentriert
+	// Tisch - gross und fett, zentriert
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
@@ -89,7 +89,7 @@ func FormatSammelBon(
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
-	// Positionen — doppelte Höhe, fett, linksbündig
+	// Positionen - doppelte Hoehe, fett, linksbuendig
 	buf.WriteString(AlignLeft)
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
@@ -100,7 +100,7 @@ func FormatSammelBon(
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
-	// Kommentar (optional) — fett
+	// Kommentar (optional) - fett
 	if kommentar != "" {
 		buf.WriteString("\n")
 		buf.WriteString(BoldOn)
@@ -122,7 +122,7 @@ func FormatSammelBon(
 	return buf.Bytes()
 }
 
-// truncate kürzt einen String auf maxLen Zeichen.
+// truncate kuerzt einen String auf maxLen Zeichen.
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s

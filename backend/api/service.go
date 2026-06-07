@@ -10,6 +10,8 @@ import (
 	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
 	tableApp "github.com/nicograef/jotti/backend/api/table/application"
 	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
+	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/favorit_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
@@ -30,6 +32,8 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
 	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
 	favoritRepo := favorit_repo.NewRepository(db)
+	druckstationRepo := druckstation_repo.NewRepository(db)
+	druckauftragRepo := druckauftrag_repo.NewRepository(db)
 
 	tc := tableHTTP.CommandHandler{}
 	tc.Command = tableApp.Command{
@@ -38,6 +42,8 @@ func NewServiceApi(db *sql.DB) http.Handler {
 		ProductRepo:         productRepo,
 		FavoritRepo:         favoritRepo,
 		KassensitzungenRepo: kassensitzungenRepo,
+		DruckstationRepo:    druckstationRepoTableAdapter{repo: druckstationRepo},
+		DruckauftragRepo:    druckauftragRepoTableAdapter{repo: druckauftragRepo},
 	}
 	r.HandleFunc("/bestellung-aufnehmen", tc.BestellungAufnehmenHandler())
 	r.HandleFunc("/zahlung-kassieren", tc.ZahlungKassierenHandler())
