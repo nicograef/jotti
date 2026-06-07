@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -13,7 +12,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import type { Produkt } from '../../product/Produkt'
 import type { BestellPositionInput } from '../../table/Bestellung'
@@ -33,7 +32,6 @@ interface BestellungDrawerProps {
 
 export function BestellungDrawer(props: BestellungDrawerProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [kommentar, setKommentar] = useState('')
   const { receiptItems, inputItems } = toBestellungData(
     props.products,
@@ -42,32 +40,26 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
   const totalPrice = calculateTotalPrice(receiptItems)
   const noPositionenSelected = inputItems.length === 0
 
-  const onSubmit = async () => {
-    setLoading(true)
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Bestellung aufnehmen',
+    byCode: {
+      produkt_not_found:
+        'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
+    },
+    onSuccess: () => {
+      props.bestellungAufgenommen()
+      setOpen(false)
+    },
+  })
 
-    try {
+  const onSubmit = async () => {
+    await run(async () => {
       await props.backend.bestellungAufnehmen({
         tischId: props.tisch.id,
         positionen: inputItems,
         kommentar,
       })
-      props.bestellungAufgenommen()
-      setOpen(false)
-    } catch (error: unknown) {
-      console.error(error)
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'Bestellung aufnehmen',
-          error,
-          byCode: {
-            produkt_not_found:
-              'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
-          },
-        }),
-      )
-    }
-
-    setLoading(false)
+    })
   }
 
   const onOpenChange = (isOpen: boolean) => {

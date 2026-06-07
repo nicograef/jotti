@@ -1,6 +1,5 @@
 import { Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -14,7 +13,7 @@ import {
 } from '@/components/ui/drawer'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 import { formatCents } from '@/lib/utils'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
@@ -40,9 +39,7 @@ export function HistorieStornierungDrawer({
   onClose,
   onStornierungErteilt,
 }: HistorieStornierungDrawerProps) {
-  const [loading, setLoading] = useState(false)
   const [kommentar, setKommentar] = useState('')
-  const [kommentarTouched, setKommentarTouched] = useState(false)
   const [mengen, setMengen] = useState<Record<string, number>>({})
 
   const selectedPositionen = positionen
@@ -71,31 +68,25 @@ export function HistorieStornierungDrawer({
     })
   }
 
-  const onSubmit = async () => {
-    setLoading(true)
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Stornierung ausführen',
+    byCode: {
+      position_nicht_stornierbar:
+        'Mindestens eine Position ist nicht mehr stornierbar. Bitte Auswahl aktualisieren.',
+    },
+    onSuccess: () => {
+      onStornierungErteilt()
+    },
+  })
 
-    try {
+  const onSubmit = async () => {
+    await run(async () => {
       await backend.stornierungErteilen({
         tischId: tisch.id,
         positionen: toPositionRefs(selectedPositionen),
         kommentar,
       })
-      onStornierungErteilt()
-    } catch (error: unknown) {
-      console.error(error)
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'Stornierung ausführen',
-          error,
-          byCode: {
-            position_nicht_stornierbar:
-              'Mindestens eine Position ist nicht mehr stornierbar. Bitte Auswahl aktualisieren.',
-          },
-        }),
-      )
-    }
-
-    setLoading(false)
+    })
   }
 
   return (
@@ -175,16 +166,12 @@ export function HistorieStornierungDrawer({
           )}
           <div className="px-4">
             <KommentarField
+              required
+              invalid={kommentarInvalid}
               onChange={(value) => {
                 setKommentar(value)
-                setKommentarTouched(true)
               }}
             />
-            {kommentarTouched && kommentarInvalid && (
-              <p className="text-sm text-destructive mt-1">
-                Kommentar ist erforderlich (mind. 3 Zeichen).
-              </p>
-            )}
           </div>
           <DrawerFooter>
             <Button

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -13,7 +12,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -32,7 +31,6 @@ interface AusgabeDrawerProps {
 
 export function AusgabeDrawer(props: AusgabeDrawerProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [kommentar, setKommentar] = useState('')
   const positionenToDeliver = selectPositionen(
     props.ausstehendePositionen,
@@ -40,32 +38,26 @@ export function AusgabeDrawer(props: AusgabeDrawerProps) {
   )
   const noPositionenSelected = positionenToDeliver.length === 0
 
-  const onSubmit = async () => {
-    setLoading(true)
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Ausgabe bestätigen',
+    byCode: {
+      position_nicht_ausgebbar:
+        'Mindestens eine Position ist nicht mehr ausgebbar. Bitte Auswahl aktualisieren.',
+    },
+    onSuccess: () => {
+      props.ausgabeBestaetigt()
+      setOpen(false)
+    },
+  })
 
-    try {
+  const onSubmit = async () => {
+    await run(async () => {
       await props.backend.ausgabeBestaetigen({
         tischId: props.tisch.id,
         positionen: toPositionRefs(positionenToDeliver),
         kommentar,
       })
-      props.ausgabeBestaetigt()
-      setOpen(false)
-    } catch (error: unknown) {
-      console.error(error)
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'Ausgabe bestätigen',
-          error,
-          byCode: {
-            position_nicht_ausgebbar:
-              'Mindestens eine Position ist nicht mehr ausgebbar. Bitte Auswahl aktualisieren.',
-          },
-        }),
-      )
-    }
-
-    setLoading(false)
+    })
   }
 
   const onOpenChange = (isOpen: boolean) => {

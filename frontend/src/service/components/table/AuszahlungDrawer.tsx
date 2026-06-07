@@ -1,6 +1,5 @@
 import { HandCoins } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -16,12 +15,12 @@ import {
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-import { Textarea } from '@/components/ui/textarea'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 import { formatCents, parseCents } from '@/lib/utils'
 
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import { KommentarField } from './CommentField'
 
 interface AuszahlungDrawerProps {
   backend: Pick<TischBackend, 'auszahlungLeisten'>
@@ -32,40 +31,32 @@ interface AuszahlungDrawerProps {
 
 export function AuszahlungDrawer(props: AuszahlungDrawerProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
 
   const initialBetragEuro =
     props.saldoCents < 0 ? formatCents(Math.abs(props.saldoCents)) : ''
   const [betragEuro, setBetragEuro] = useState(initialBetragEuro)
   const [kommentar, setKommentar] = useState('')
-  const [kommentarTouched, setKommentarTouched] = useState(false)
 
   const betragCents = parseCents(betragEuro)
   const betragInvalid = betragCents < 1
   const kommentarInvalid = kommentar.trim().length < 3
 
-  const onSubmit = async () => {
-    setLoading(true)
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Auszahlung leisten',
+    onSuccess: () => {
+      props.auszahlungGeleistet()
+      setOpen(false)
+    },
+  })
 
-    try {
+  const onSubmit = async () => {
+    await run(async () => {
       await props.backend.auszahlungLeisten({
         tischId: props.tisch.id,
         betragCents,
         kommentar,
       })
-      props.auszahlungGeleistet()
-      setOpen(false)
-    } catch (error: unknown) {
-      console.error(error)
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'Auszahlung leisten',
-          error,
-        }),
-      )
-    }
-
-    setLoading(false)
+    })
   }
 
   const onOpenChange = (isOpen: boolean) => {
@@ -75,7 +66,6 @@ export function AuszahlungDrawer(props: AuszahlungDrawerProps) {
         props.saldoCents < 0 ? formatCents(Math.abs(props.saldoCents)) : ''
       setBetragEuro(reset)
       setKommentar('')
-      setKommentarTouched(false)
     }
   }
 
@@ -112,25 +102,11 @@ export function AuszahlungDrawer(props: AuszahlungDrawerProps) {
                 spellCheck={false}
               />
             </Field>
-            <Field>
-              <Textarea
-                className="resize-none"
-                placeholder="Kommentar (erforderlich)"
-                rows={3}
-                maxLength={100}
-                value={kommentar}
-                onChange={(e) => {
-                  setKommentar(e.target.value)
-                  setKommentarTouched(true)
-                }}
-                spellCheck={false}
-              />
-              {kommentarTouched && kommentarInvalid && (
-                <p className="text-sm text-destructive mt-1">
-                  Kommentar ist erforderlich (mind. 3 Zeichen).
-                </p>
-              )}
-            </Field>
+            <KommentarField
+              required
+              invalid={kommentarInvalid}
+              onChange={setKommentar}
+            />
           </div>
           <DrawerFooter>
             <Button

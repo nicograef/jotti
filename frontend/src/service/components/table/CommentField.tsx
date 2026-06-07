@@ -1,23 +1,44 @@
+import { useState } from 'react'
+
 import { Field } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 
 interface KommentarFieldProps {
   onChange: (value: string) => void
+  required?: boolean
+  invalid?: boolean
 }
 
-export function KommentarField({ onChange }: KommentarFieldProps) {
+export function KommentarField({
+  onChange,
+  required = false,
+  invalid = false,
+}: KommentarFieldProps) {
+  const [touched, setTouched] = useState(false)
+
   return (
     <Field>
       <Textarea
         className="resize-none"
-        placeholder="Kommentar (optional)"
+        placeholder={
+          required ? 'Kommentar (erforderlich)' : 'Kommentar (optional)'
+        }
         rows={3}
         maxLength={100}
         onChange={(e) => {
+          setTouched(true)
           onChange(e.target.value)
+        }}
+        onBlur={() => {
+          setTouched(true)
         }}
         spellCheck={false}
       />
+      {required && touched && invalid && (
+        <p className="text-sm text-destructive mt-1">
+          Kommentar ist erforderlich (mind. 3 Zeichen).
+        </p>
+      )}
     </Field>
   )
 }

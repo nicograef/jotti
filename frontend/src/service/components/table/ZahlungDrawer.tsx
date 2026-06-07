@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 import { formatCents, parseCents } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
@@ -41,7 +40,6 @@ interface ZahlungDrawerProps {
 
 export function ZahlungDrawer(props: ZahlungDrawerProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [kommentar, setKommentar] = useState('')
   const [erhaltenEuro, setErhaltenEuro] = useState('')
   const [zielbetragEuro, setZielbetragEuro] = useState('')
@@ -57,34 +55,28 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
   )
   const noPositionenSelected = positionenToPay.length === 0
 
-  const onSubmit = async () => {
-    setLoading(true)
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Zahlung kassieren',
+    byCode: {
+      position_nicht_bezahlbar:
+        'Mindestens eine Position ist nicht mehr bezahlbar. Bitte Auswahl aktualisieren.',
+    },
+    onSuccess: () => {
+      props.zahlungKassiert()
+      setOpen(false)
+      setErhaltenEuro('')
+      setZielbetragEuro('')
+    },
+  })
 
-    try {
+  const onSubmit = async () => {
+    await run(async () => {
       await props.backend.zahlungKassieren({
         tischId: props.tisch.id,
         positionen: toPositionRefs(positionenToPay),
         kommentar,
       })
-      props.zahlungKassiert()
-      setOpen(false)
-      setErhaltenEuro('')
-      setZielbetragEuro('')
-    } catch (error: unknown) {
-      console.error(error)
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'Zahlung kassieren',
-          error,
-          byCode: {
-            position_nicht_bezahlbar:
-              'Mindestens eine Position ist nicht mehr bezahlbar. Bitte Auswahl aktualisieren.',
-          },
-        }),
-      )
-    }
-
-    setLoading(false)
+    })
   }
 
   const onOpenChange = (isOpen: boolean) => {
