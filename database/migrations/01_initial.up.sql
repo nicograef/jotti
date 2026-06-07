@@ -135,8 +135,6 @@ CREATE TABLE IF NOT EXISTS kassenjournal (
 );
 
 CREATE INDEX IF NOT EXISTS idx_kassenjournal_user_id ON kassenjournal(user_id);
-CREATE INDEX IF NOT EXISTS idx_kassenjournal_subject ON kassenjournal(subject);
-CREATE INDEX IF NOT EXISTS idx_kassenjournal_type ON kassenjournal(type);
 CREATE INDEX IF NOT EXISTS idx_kassenjournal_subject_type ON kassenjournal(subject, type);
 CREATE INDEX IF NOT EXISTS idx_kassenjournal_type_timestamp ON kassenjournal(type, timestamp);
 CREATE INDEX IF NOT EXISTS idx_kassenjournal_ks_nr ON kassenjournal(kassensitzung_nr);
