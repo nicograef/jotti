@@ -319,7 +319,7 @@ Das Backend exponiert ein `TSEClient`-Interface für die Kommunikation mit einer
 - [ ] Interface `TSEClient` mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction` ist definiert
 - [ ] Eine fiskaly-Implementierung des Interfaces (`FiskalyTSEClient`) ist vorhanden
 - [ ] Bei fehlender TSE-Konfiguration: konfigurierbarer Modus `strict` (Fehler) oder `bypass` (nur Entwicklung)
-- [ ] TSE-Transaktion bei Bestellung, Zahlung, Stornierung, Tagesabschluss und Kassenbewegungen
+- [ ] TSE-Transaktion bei Bestellung, Zahlung, Stornierung, **Auszahlung**, Geldtransit (Kassenbewegungen), Kassendifferenz, Direktverkauf und Tagesabschluss (vollständiges Mapping → [handbuch.md §3.13](handbuch.md))
 - [ ] Event-Daten um TSE-Felder erweitert (Signatur, Transaktionsnummer, Signaturzähler, TSE-Seriennummer)
 - [ ] Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
 - [ ] QR-Code auf Beleg (DSFinV-K Anhang I)
@@ -335,7 +335,7 @@ Das Backend stellt einen maschinenlesbaren Export der Kassendaten im DSFinV-K-Fo
 **Akzeptanzkriterien:**
 
 - [ ] Admin-Endpunkt `/admin/export/dsfinvk` erzeugt ein ZIP-Archiv im DSFinV-K-Format v2.4
-- [ ] Alle Pflicht-CSV-Dateien sind vorhanden: `transactions.csv`, `cash_register.csv`, `cashier.csv`, `items.csv` u. a.
+- [ ] Alle Pflicht-CSV-Dateien sind mit den **offiziellen (englischen) Dateinamen** vorhanden: `transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, `businesscases.csv`, `cashpointclosing.csv` u. a. (nicht deutsche Namen wie `Bonkopf.csv` — siehe [compliance.md §6.2](compliance.md))
 - [ ] `index.xml` ist korrekt befüllt (Kassenseriennummer, Zeitraum, Version)
 - [ ] Steuersätze und Betragsaufschlüsselung sind korrekt pro Transaktion ausgewiesen
 - [ ] Betreiber-Stammdaten (Name, Anschrift) sind als Betreiberdaten korrekt ausgewiesen
