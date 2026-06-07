@@ -485,6 +485,11 @@ Für das Festzelt-Muster gilt: Jeder Vorgang ist eine **eigenständige, sofort g
 | Zahlung kassieren (Vollzahlung) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Wie oben                                                        |
 | Positions-Storno                | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negative Menge/Betrag; BON_STORNO=1 im DSFinV-K                 |
 | Bon-Storno (nach Zahlung)       | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Gesamtbetrag; BON_STORNO=1, REF_BON_ID gesetzt        |
+| Auszahlung (negativen Saldo ausgleichen) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Bargeldabfluss; negativer Betrag, Zahlungsart bar               |
+| Geldtransit (Einlage/Entnahme)  | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Kassenwirksame Geldbewegung ohne Umsatz                         |
+| Kassendifferenz (Kassensturz)   | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Eigenbeleg `DifferenzSollIst`; umsatzsteuerlich neutral (→ §3.10) |
+| Direktverkauf                   | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Bestellen + Zahlen in einem Schritt; 1 Verkauf = 1 Transaktion  |
+| Direktverkauf-Storno            | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Betrag; BON_STORNO=1, REF_BON_ID gesetzt              |
 | Tagesabschluss (Z-Bon)          | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Tagesaggregat in processData                                    |
 
 **Alle Transaktionen eines Tisches** teilen denselben `ABRECHNUNGSKREIS`-Wert im DSFinV-K-Export.
@@ -526,7 +531,8 @@ type TischSession struct {
 │         │               │             │       │
 │  ┌──────▼───────────────▼─────────────▼────┐ │
 │  │   CSV-Generator (offizielle Dateinamen) │ │
-│  │   Bonkopf.csv, Bonpos.csv, Stamm_*.csv  │ │
+│  │   transactions.csv, lines.csv,          │ │
+│  │   cashregister.csv, tse.csv, …          │ │
 │  └──────────────────┬──────────────────────┘ │
 │                     │                         │
 │  ┌──────────────────▼──────────────────────┐ │

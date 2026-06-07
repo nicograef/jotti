@@ -4,8 +4,8 @@ Ein kostenloses, quelloffenes **Gastronomie-Kassensystem (mPOS)** für Vereine u
 
 Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer, führen den Kassenbestand und erstellen den Tagesabschluss.
 
-> **Kostenlos. Self-hosted. Fiskalkonform.**
-> Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. KassenSichV-konform mit TSE-Anbindung und DSFinV-K-Export.
+> **Kostenlos. Self-hosted. Auf dem Weg zur Fiskalkonformität.**
+> Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. Auf KassenSichV-Konformität ausgelegt — TSE-Anbindung und DSFinV-K-Export sind in Entwicklung (siehe [Status](#was-jotti-kann) und [docs/compliance.md](docs/compliance.md)).
 
 ## Was jotti kann
 
@@ -81,7 +81,7 @@ Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlunge
 - Eingetragene Vereine (e.V.), gemeinnützige Organisationen, NPOs
 - Temporäre Veranstaltungen: Vereinsfeste, Sommerfeste, Weihnachtsmärkte, Maihocks, Konzerte
 - Ehrenamtliche Teams (5–30 Servicekräfte)
-- Bargeld-Betrieb mit voller Fiskalkonformität (TSE, DSFinV-K, Belegausgabe)
+- Bargeld-Betrieb mit dem Ziel voller Fiskalkonformität (TSE, DSFinV-K, Belegausgabe — in Entwicklung, siehe [docs/compliance.md](docs/compliance.md))
 
 ❌ **Nicht geeignet für:**
 
@@ -89,7 +89,7 @@ Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlunge
 - Kartenzahlung / NFC / Online-Payment
 - Kommerzielle Gastro-Betriebe (ohne separate Lizenz)
 
-> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und erfüllt die TSE-Pflicht nach § 146a AO. Die TSE-Anbindung erfolgt über eine Cloud-TSE (BYOT-Modell) — der Betreiber schließt selbst einen Vertrag mit einem TSE-Anbieter (z. B. fiskaly) ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md).
+> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die dafür nötige TSE-Anbindung und der DSFinV-K-Export befinden sich in Entwicklung; jotti ist so konzipiert, dass die TSE-Pflicht nach Fertigstellung über eine Cloud-TSE (BYOT-Modell) erfüllt wird — der Betreiber schließt selbst einen Vertrag mit einem TSE-Anbieter (z. B. fiskaly) ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Betreiber-Leitfaden](docs/betrieb/leitfaden-betreiber.md).
 
 ## Lizenz & Urheberrecht
 

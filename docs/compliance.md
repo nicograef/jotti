@@ -41,13 +41,13 @@ jotti ist ein **elektronisches Aufzeichnungssystem** (§ 1 KassenSichV) und unte
 
 ## 2. Rechtliche Grundlagen
 
-### 3.1 Abgabenordnung (AO) — § 146a
+### 2.1 Abgabenordnung (AO) — § 146a
 
 § 146a Abs. 1 AO verpflichtet jeden Betreiber eines elektronischen Aufzeichnungssystems, jeden Geschäftsvorfall einzeln, vollständig, richtig, zeitgerecht und geordnet zu erfassen und durch eine **zertifizierte TSE** zu schützen — unabhängig von Rechtsform, Gemeinnützigkeit, Betriebsdauer oder Gewinnerzielungsabsicht.
 
 _(Quelle: § 146a AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
 
-### 3.2 Kassensicherungsverordnung (KassenSichV)
+### 2.2 Kassensicherungsverordnung (KassenSichV)
 
 Die KassenSichV konkretisiert § 146a AO; § 1 KassenSichV definiert als Aufzeichnungssysteme „elektronische oder computergestützte Kassensysteme oder Registrierkassen" — jotti fällt als browserbasiertes Kassensystem eindeutig darunter.
 
@@ -62,32 +62,32 @@ _(Quelle: KassenSichV — https://www.gesetze-im-internet.de/kassensichv/BJNR351
 _(Quelle: BMF-FAQ zu § 146a AO, Frage zur Abgrenzung von Eingabegeräten und eigenständigen Aufzeichnungssystemen — https://www.bundesfinanzministerium.de/)_
 _(Quelle: AEAO zu § 146a AO — Klarstellung zur Mitteilungspflicht für verbundene Eingabegeräte — https://www.bundesfinanzministerium.de/)_
 
-### 3.3 GoBD
+### 2.3 GoBD
 
 Die GoBD (BMF-Schreiben 28.11.2019) fordern Nachvollziehbarkeit, Vollständigkeit, Richtigkeit, Zeitgerechtigkeit, Ordnung und Unveränderbarkeit. Sie gelten für alle Steuerpflichtigen — einschließlich gemeinnütziger Vereine im wirtschaftlichen Geschäftsbetrieb (z.B. Vereinsfeste außerhalb § 67a AO).
 
 _(Quelle: GoBD — https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html)_
 
-### 3.4 Belegausgabepflicht (§ 146a Abs. 2 AO, § 6 KassenSichV)
+### 2.4 Belegausgabepflicht (§ 146a Abs. 2 AO, § 6 KassenSichV)
 
 § 146a Abs. 2 AO und § 6 KassenSichV verpflichten zur Belegausgabe in **unmittelbarem zeitlichen Zusammenhang** nach jedem Kassiervorgang — in Papierform oder (mit Zustimmung des Kunden) elektronisch.
 
 _(Quelle: § 146a Abs. 2 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
 
-### 3.5 DSFinV-K (Digitale Schnittstelle der Finanzverwaltung für Kassensysteme)
+### 2.5 DSFinV-K (Digitale Schnittstelle der Finanzverwaltung für Kassensysteme)
 
-§ 4 KassenSichV verlangt eine **einheitliche digitale Schnittstelle**, über die die gespeicherten Daten für die Finanzverwaltung exportiert werden können. Die DSFinV-K (aktuell Version 2.4, Stand Januar 2024) definiert das genaue Format dieses Exports: eine Sammlung von CSV-Dateien mit fest vorgeschriebenen deutschen Dateinamen, Spaltenreihenfolge und Semikolon-Trennung, verpackt in einem ZIP-Archiv mit `index.xml`.
+§ 4 KassenSichV verlangt eine **einheitliche digitale Schnittstelle**, über die die gespeicherten Daten für die Finanzverwaltung exportiert werden können. Die DSFinV-K (aktuell Version 2.4, Stand Januar 2024) definiert das genaue Format dieses Exports: eine Sammlung von CSV-Dateien mit fest vorgeschriebenen (englischen, kleingeschriebenen) Dateinamen, Spaltenreihenfolge und Semikolon-Trennung, verpackt in einem ZIP-Archiv mit `index.xml`.
 
 _(Quelle: BZSt — DSFinV-K — https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html)_
 
-### 3.6 Elektronische Kassenmeldepflicht (§ 146a Abs. 4 AO)
+### 2.6 Elektronische Kassenmeldepflicht (§ 146a Abs. 4 AO)
 
-Ab dem 1. Januar 2025 müssen elektronische Aufzeichnungssysteme dem zuständigen Finanzamt **elektronisch** gemeldet werden. Die Meldung erfolgt über das ELSTER-System, wahlweise direkt im Portal oder programmatisch über die ERiC-Schnittstelle (ELSTER Rich Client). Genauere Fristen: siehe Abschnitt 9.
+Ab dem 1. Januar 2025 müssen elektronische Aufzeichnungssysteme dem zuständigen Finanzamt **elektronisch** gemeldet werden. Die Meldung erfolgt über das ELSTER-System, wahlweise direkt im Portal oder programmatisch über die ERiC-Schnittstelle (ELSTER Rich Client). Genauere Fristen: siehe Abschnitt 7.
 
 _(Quelle: § 146a Abs. 4 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
 _(Quelle: BMF-FAQ — https://www.bundesfinanzministerium.de/)_
 
-### 3.7 Sonderfall: Source-Available Self-hosted System — Pflichten des Entwicklers und der Betreiber
+### 2.7 Sonderfall: Source-Available Self-hosted System — Pflichten des Entwicklers und der Betreiber
 
 jotti unterscheidet sich von kommerziellen SaaS-Kassensystemen fundamental: Es wird als quelloffene Software auf GitHub bereitgestellt, und die Vereine betreiben das System eigenverantwortlich auf ihrem eigenen Server (VPS via Docker). Diese Konstellation schafft eine klare Rollentrennung zwischen dem **Entwickler (Hersteller)** und den **Betreibern (Vereine)** — mit jeweils unterschiedlichen Rechtspflichten.
 
@@ -107,7 +107,7 @@ Nach **§ 146a Abs. 1 Satz 5 AO** i.V.m. **§ 379 AO** ist es verboten, Kassenso
 Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung:
 
 - **TSE-Beschaffung (Bring Your Own TSE):** Da auf einem Cloud-VPS keine Hardware-TSE eingesteckt werden kann, müssen die Vereine selbst einen Vertrag mit einem Cloud-TSE-Anbieter (wie fiskaly oder D-Trust) abschließen. Sie erhalten API-Keys, die über Umgebungsvariablen (`.env`-Datei) in den Docker-Container injiziert werden.
-- **ELSTER-Meldung:** Jede Kassen-Instanz, die auf dem VPS des Vereins läuft, muss innerhalb eines Monats nach Inbetriebnahme über das eigene ELSTER-Portal beim Finanzamt angemeldet werden (§ 146a Abs. 4 AO). Die hierfür benötigte Seriennummer wird von jotti bei der ersten Inbetriebnahme automatisch generiert und im Admin-Bereich angezeigt (siehe Abschnitt 5.8).
+- **ELSTER-Meldung:** Jede Kassen-Instanz, die auf dem VPS des Vereins läuft, muss innerhalb eines Monats nach Inbetriebnahme über das eigene ELSTER-Portal beim Finanzamt angemeldet werden (§ 146a Abs. 4 AO). Die hierfür benötigte Seriennummer wird von jotti bei der ersten Inbetriebnahme automatisch generiert und im Admin-Bereich angezeigt (siehe Abschnitt 3.7).
 - **Server-Betrieb:** Der Verein ist für Verfügbarkeit, Datensicherung, Zugriffskontrolle und die 10-jährige GoBD-konforme Aufbewahrung der Daten verantwortlich.
 
 _(Quelle: § 146a Abs. 1 Satz 5 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
@@ -117,7 +117,7 @@ _(Quelle: § 379 AO — Steuergefährdung — https://www.gesetze-im-internet.de
 
 ## 3. TSE-Integration (Technische Sicherheitseinrichtung)
 
-### 5.1 Hintergrund
+### 3.1 Hintergrund
 
 Die TSE ist das kryptografische Herzstück eines konformen Kassensystems. Sie besteht aus drei Modulen:
 
@@ -127,7 +127,7 @@ Die TSE ist das kryptografische Herzstück eines konformen Kassensystems. Sie be
 
 _(Quelle: BSI TR-03153 — https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR03153/TR-03153.pdf?__blob=publicationFile)_
 
-### 5.2 Protokollierungs-Ablauf (Transaktions-Lebenszyklus)
+### 3.2 Protokollierungs-Ablauf (Transaktions-Lebenszyklus)
 
 Jeder abzusichernde Vorgang kommuniziert mit der TSE über drei Operationen:
 
@@ -152,7 +152,7 @@ Wird der Vorgang abgeschlossen (Zahlung, Ausgabe von Beleg) oder abgebrochen (St
 - **Request-Payload:** Transaktionsnummer, finale `processData` (Summen aufgeteilt nach Steuersätzen und Zahlungsarten)
 - **Response:** Kryptografische Signatur (Prüfwert), Zeitpunkt der Vorgangsbeendigung, finaler Signaturzähler
 
-### 5.3 Offizielle processType-Werte
+### 3.3 Offizielle processType-Werte
 
 Die `processType`-Werte sind im AEAO zu § 146a AO, Anhang I, festgelegt und in DSFinV-K Anhang I referenziert. Die **-V1-Endung ist Bestandteil des offiziellen Strings** und muss exakt so an die TSE übergeben werden.
 
@@ -162,7 +162,7 @@ Die `processType`-Werte sind im AEAO zu § 146a AO, Anhang I, festgelegt und in 
 | `Bestellung-V1`       | Zwischenabsicherung einer Bestellung ohne sofortige Zahlung (Gastronomie)  |
 | `SonstigerVorgang-V1` | Alle anderen abzusichernden Vorgänge (Tagesabschluss, TSE-Selbsttest, ...) |
 
-### 5.4 Datenformat-Vorgaben (`processData`)
+### 3.4 Datenformat-Vorgaben (`processData`)
 
 Die Formatierung der `processData` ist streng reguliert:
 
@@ -173,7 +173,7 @@ Die Formatierung der `processData` ist streng reguliert:
 - **Format-String für `Kassenbeleg-V1`:** `Beleg^<Betrag_Normal>_<Betrag_Ermaessigt>_<Betrag_Null>_<Betrag_Besonderer_Satz>_<Betrag_Befreit>^<Zahlbetrag>:<Zahlungsart>`
 - **Format-String für `Bestellung-V1`:** Positionen als strukturierter Text (z.B. `4x Maß Bier_2x Weißwurst`) — genaues Format gemäß AEAO § 146a Anhang I
 
-### 5.5 TSE-Varianten
+### 3.5 TSE-Varianten
 
 Es gibt zwei grundlegende Integrationsansätze:
 
@@ -195,7 +195,7 @@ fiskaly ist der initiale Zielanbieter für die TSE-Integration. Gründe:
 
 Das Backend-Interface `TSEClient` ist **anbieter-agnostisch** (Adapter-Pattern), so dass ein späterer Wechsel zu einem anderen Cloud-TSE-Anbieter ohne Änderungen am Domain-Code möglich ist.
 
-### 5.6 Das Festzelt-Muster: Atomare TSE-Transaktionen (Empfehlung)
+### 3.6 Das Festzelt-Muster: Atomare TSE-Transaktionen (Empfehlung)
 
 #### Das Problem langer Tischvorgänge
 
@@ -221,7 +221,7 @@ StartTransaction(processType="Kassenbeleg-V1") → sofort → FinishTransaction
 
 Die `processData` enthält Gesamtbetrag, Steuersätze und Zahlungsart. Diese Transaktion ist ebenfalls sofort geschlossen.
 
-**Verknüpfung**: Alle Bestellungen und Zahlungen eines Tisches werden im DSFinV-K-Export über das Feld `ABRECHNUNGSKREIS` (z.B. `"Tisch 42"`) zusammengeführt (siehe Abschnitt 8).
+**Verknüpfung**: Alle Bestellungen und Zahlungen eines Tisches werden im DSFinV-K-Export über das Feld `ABRECHNUNGSKREIS` (z.B. `"Tisch 42"`) zusammengeführt (siehe Abschnitt 6).
 
 #### Konkretes Szenario: Maihock, Tisch 42
 
@@ -255,7 +255,7 @@ Die `processData` enthält Gesamtbetrag, Steuersätze und Zahlungsart. Diese Tra
 
 Der Betriebsprüfer sieht im DSFinV-K-Export alle vier Transaktionen mit demselben `ABRECHNUNGSKREIS` und kann den vollständigen Tischverlauf nachvollziehen, obwohl jede Transaktion sofort geschlossen wurde.
 
-### 5.8 Seriennummer-Generierung bei Self-hosted Docker-Instanzen
+### 3.7 Seriennummer-Generierung bei Self-hosted Docker-Instanzen
 
 Da jotti auf einem VPS ohne physische Kassenhardware betrieben wird, gibt es kein Typenschild mit aufgedruckter Seriennummer. Die gesetzliche Anforderung (§ 146a AO, DSFinV-K, § 6 KassenSichV) nach einer eindeutigen Seriennummer des elektronischen Aufzeichnungssystems muss softwareseitig erfüllt werden.
 
@@ -271,7 +271,7 @@ Da jotti auf einem VPS ohne physische Kassenhardware betrieben wird, gibt es kei
 | Verwendungsort                               | Feld / Kontext                                         |
 | -------------------------------------------- | ------------------------------------------------------ |
 | ELSTER-Meldung                               | „Seriennummer des elektronischen Aufzeichnungssystems" |
-| DSFinV-K Export (`Stamm_Kassen.csv`)         | Feld `KASSE_SERIENNR`                                  |
+| DSFinV-K Export (`cashregister.csv`)         | Feld `KASSE_SERIENNR`                                  |
 | Kassenbon (Pflichtfeld nach § 6 KassenSichV) | Angedruckter String, z.B. `Kassen-ID: 7f3a9d12-...`    |
 | TSE-Kommunikation (`StartTransaction`)       | Parameter `kassenID`                                   |
 
@@ -287,7 +287,7 @@ Die UUID ist herstellerunabhängig, weltweit eindeutig und erfordert keine zentr
 
 ## 4. GoBD-Konformität
 
-### 6.1 Aktueller Stand
+### 4.1 Aktueller Stand
 
 jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grundsätze:
 
@@ -301,7 +301,7 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 | Kryptografische Verkettung | ❌ Fehlt            | Keine TSE-Signatur, keine kryptografische Absicherung |
 | 10-Jahres-Aufbewahrung     | ⚠️ Nicht adressiert | Keine Archivierungsstrategie implementiert            |
 
-### 6.2 Anforderungen gemäß §§ 146, 147 AO und GoBD
+### 4.2 Anforderungen gemäß §§ 146, 147 AO und GoBD
 
 - **Aufbewahrungspflicht:** Alle steuerlich relevanten Daten müssen **10 Jahre** aufbewahrt werden, jederzeit verfügbar, unverzüglich lesbar, vollständig und absolut unveränderbar.
 - **Elektronisches Radierverbot:** Datensätze dürfen nach der Erfassung nicht per `UPDATE` oder `DELETE` überschrieben oder gelöscht werden.
@@ -310,7 +310,7 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 
 _(Quelle: GoBD — BMF-Schreiben vom 28.11.2019 — https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html)_
 
-### 6.3 Handlungsbedarf
+### 4.3 Handlungsbedarf
 
 | Maßnahme                                     | Priorität | Aufwand |
 | -------------------------------------------- | --------- | ------- |
@@ -323,13 +323,23 @@ _(Quelle: GoBD — BMF-Schreiben vom 28.11.2019 — https://www.bundesfinanzmini
 
 ## 5. Belegausgabepflicht
 
-### 7.1 Gesetzliche Grundlage
+### 5.1 Gesetzliche Grundlage
 
 Gemäß § 146a Abs. 2 AO und § 6 KassenSichV muss für **jeden Kassiervorgang** ein Beleg erzeugt und dem Kunden zur Verfügung gestellt werden. Der Beleg kann gedruckt oder — mit Zustimmung des Kunden — elektronisch (z.B. per QR-Code oder PDF) bereitgestellt werden.
 
+> **Wichtige Befreiung für Vereinsfeste (§ 146a Abs. 2 Satz 2 AO):** Bei „Verkauf von Waren an eine **Vielzahl nicht bekannter Personen**" kann das Finanzamt aus Zumutbarkeitsgründen von der Pflicht zur **Aushändigung** des Belegs befreien. Genau dieser Tatbestand greift im typischen Festzelt-/Vereinsfest-Betrieb. Zu beachten:
+>
+> - Die Befreiung betrifft **nur die Aushändigung**, **nicht** die TSE-Absicherung, die Erfassung und die Belegerzeugung — diese bleiben vollumfänglich Pflicht. Der Beleg muss also jederzeit **erstellbar** sein, auch wenn er nicht aktiv ausgehändigt wird.
+> - Die Befreiung wird **nicht automatisch** gewährt: Der Betreiber muss sie **schriftlich beim zuständigen Finanzamt beantragen**; sie kann widerrufen werden.
+> - Verlangt ein Gast ausdrücklich einen Beleg, ist dieser auszuhändigen.
+>
+> jotti setzt darauf auf, indem es den Kassenbeleg **auf Anforderung** erstellt (→ [anforderungen.md F-03](anforderungen.md)), statt nach jeder Zahlung automatisch zu drucken.
+
+_(Quelle: § 146a Abs. 2 Satz 2 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
+
 _(Quelle: KassenSichV § 6 — https://www.gesetze-im-internet.de/kassensichv/BJNR351500017.html)_
 
-### 7.2 Pflichtangaben auf dem Beleg
+### 5.2 Pflichtangaben auf dem Beleg
 
 Ein konformer Beleg muss mindestens folgende Angaben enthalten:
 
@@ -351,9 +361,9 @@ Ein konformer Beleg muss mindestens folgende Angaben enthalten:
 - Signaturzähler
 - Kryptografischer Prüfwert (TSE-Signatur)
 
-### 7.3 Besondere Anforderung beim Festzelt-Muster (Durchbedienen)
+### 5.3 Besondere Anforderung beim Festzelt-Muster (Durchbedienen)
 
-Wenn die Tisch-Bestellungen mit `Bestellung-V1`-Transaktionen abgesichert wurden und erst später bezahlt wird (atomares Transaktionsmodell gemäß Abschnitt 5.6), gilt laut BMF-FAQ:
+Wenn die Tisch-Bestellungen mit `Bestellung-V1`-Transaktionen abgesichert wurden und erst später bezahlt wird (atomares Transaktionsmodell gemäß Abschnitt 3.6), gilt laut BMF-FAQ:
 
 > „Zusätzlich ist auf den Bon der **Startzeitpunkt der ersten Bestellung in Klarschrift aufzudrucken**."
 > _(Quelle: BMF-FAQ zu § 146a AO; DSFinV-K Nr. 2.7 sowie Anhang H)_
@@ -384,20 +394,20 @@ TSE-Nr.: 1003, Signatur-Zähler: 5871
 [QR-Code mit TSE-Daten]
 ```
 
-### 7.4 QR-Code-Format
+### 5.4 QR-Code-Format
 
 Um Platz auf dem Beleg zu sparen, können die TSE-Daten in einen standardisierten **QR-Code** verpackt werden. Das Format muss den Vorgaben der DSFinV-K (Anhang I) entsprechen.
 
-### 7.5 Architektonische Anforderungen an jotti
+### 5.5 Architektonische Anforderungen an jotti
 
 1. **Beleg-Generator:** Komponente, die aus einem abgeschlossenen Kassiervorgang einen konformen Beleg (PDF oder Druckformat) erzeugt
 2. **TSE-Daten auf dem Beleg:** Alle TSE-Rückgabewerte müssen auf dem Beleg erscheinen
 3. **Erste-Bestellung-Zeitstempel:** Das Backend muss den `logTime` der ersten `Bestellung-V1`-Transaktion einer Tisch-Session persistieren und beim Beleg-Druck abrufen
 4. **QR-Code-Generierung:** TSE-Daten als QR-Code im DSFinV-K-Format
-5. **Beleg-Ausgabekanal:** Primär über stationären Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); optional als digitaler eBeleg via QR-Code (Download-Link) — Details siehe §7.6
+5. **Beleg-Ausgabekanal:** Primär über stationären Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); optional als digitaler eBeleg via QR-Code (Download-Link) — Details siehe Abschnitt 5.6
 6. **Beleg-Archivierung:** Belegdaten müssen für den DSFinV-K-Export persistiert werden
 
-### 7.6 Umsetzung der Belegausgabepflicht im BYOD-Setup
+### 5.6 Umsetzung der Belegausgabepflicht im BYOD-Setup
 
 Da die Servicekräfte private Smartphones ohne mobile Bondrucker verwenden, erfordert die Belegausgabe nach § 146a Abs. 2 AO in jottis BYOD-Setup besondere architektonische Überlegungen.
 
@@ -434,13 +444,13 @@ _(Quelle: KassenSichV § 6 — Inhalt des Belegs)_
 
 ## 6. DSFinV-K Export-Schnittstelle
 
-### 8.1 Übersicht
+### 6.1 Übersicht
 
 Die Finanzverwaltung verlangt bei einer Kassen-Nachschau oder Betriebsprüfung einen genormten, maschinenlesbaren Datenexport. Dieser Export folgt der **DSFinV-K-Spezifikation** (Version 2.4, Stand Januar 2024) und muss von der Prüfsoftware IDEA der Finanzämter gelesen werden können.
 
 _(Quelle: BZSt — https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html)_
 
-### 8.2 Dateiformat und Grundregeln
+### 6.2 Dateiformat und Grundregeln
 
 - **Gesamtstruktur:** ZIP-Archiv mit CSV-Dateien und einer `index.xml`
 - **`index.xml`:** Metadaten-Datei, die dem Prüftool mitteilt, wie die CSVs zu parsen sind
@@ -449,42 +459,47 @@ _(Quelle: BZSt — https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleS
 - **Zeilenumbrüche:** CRLF (`\r\n`)
 - **Zahlenformate:** Keine Tausendertrennzeichen, Punkt als Dezimaltrennzeichen, mindestens eine Stelle vor dem Dezimaltrennzeichen (`0.5`, nicht `.5`), keine führenden Nullen
 - **Spaltenreihenfolge:** Exakt wie in der Spezifikation vorgegeben
-- **Dateinamen:** Die Dateinamen sind in der DSFinV-K-Spezifikation auf Deutsch vorgegeben (z.B. `Bonkopf.csv`, `Bonpos.csv`) und dürfen nicht abgeändert werden
+- **Dateinamen:** Die physischen CSV-Dateinamen der DSFinV-K sind **englisch und kleingeschrieben** (z. B. `transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, `businesscases.csv`) und dürfen nicht abgeändert werden. Die DSFinV-K-Spezifikation verwendet **zusätzlich** deutsche *logische* Bezeichnungen für die Abschnittsüberschriften (z. B. „Bonkopf" für `transactions.csv`, „Bonpos" für `lines.csv`) — diese logischen Namen sind **nicht** die Dateinamen.
 - **Custom-Felder:** Zusätzliche Spalten am Ende erlaubt, müssen aber in `index.xml` definiert werden
 
-> **Achtung:** Manche TSE-Anbieter (z.B. fiskaly/fiskaltrust) stellen interne Export-Zwischenschichten mit abweichenden Dateinamen bereit (z.B. `transactions.csv`, `allocation_groups.csv`, `references.csv`). Diese sind **kein offizieller DSFinV-K-Standard** und müssen vor der Abgabe an das Finanzamt in das offizielle Format konvertiert werden.
+> **Achtung — verbreitetes Missverständnis:** Die offiziellen Dateinamen sind `transactions.csv`, `lines.csv`, `allocation_groups.csv`, `references.csv` usw. — **nicht** `Bonkopf.csv`/`Bonpos.csv`. Wer deutsche Dateinamen wie `Bonkopf.csv` exportiert, erzeugt eine **nicht** DSFinV-K-konforme Datei. Maßgeblich ist die offizielle DFKA-Taxonomie (DSFinV-K v2.4) bzw. das BMF-Datenschema.
 
-### 8.3 Modul-Struktur und offizielle Dateinamen
+### 6.3 Modul-Struktur und offizielle Dateinamen
 
-Der Export gliedert sich in drei Module:
+Der Export gliedert sich in drei Module. Die Tabellen nennen jeweils den **offiziellen Dateinamen** (englisch) und in Klammern die **logische DSFinV-K-Bezeichnung** (deutsch).
 
 #### A. Stammdatenmodul (Master Data)
 
-| Datei                 | Inhalt                                                                                                                                                                  |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Stamm_Abschluss.csv` | Metadaten zum Z-Bon (Kassenabschluss): Unternehmensname, Steuernummer, Start-/End-Zeitpunkt                                                                             |
-| `Stamm_Orte.csv`      | Standortdaten der Betriebsstätte                                                                                                                                        |
-| `Stamm_Kassen.csv`    | Kassen-Hardware: Hersteller, Seriennummer, Software-Typ und -Version                                                                                                    |
-| `Stamm_TSE.csv`       | TSE-Daten: Zertifikats-ID, Signaturalgorithmus (z.B. `ecdsa-plain-SHA256`), TSE-Seriennummer (64-stelliger Hexadezimalstring, 0–9 und A–F), Public Key (Base64-kodiert) |
-| `Z_GV_Typ.csv`        | Aggregierte Beträge pro Geschäftsvorfall-Typ nach Steuersätzen                                                                                                          |
-| `Z_Zahlart.csv`       | Aggregierte Summen der Zahlungsarten (Bar vs. unbar)                                                                                                                    |
+| Dateiname (offiziell) | Logische Bezeichnung | Inhalt                                                                                                                                                                  |
+| --------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cashpointclosing.csv` | Stamm_Abschluss     | Metadaten zum Z-Bon (Kassenabschluss): Unternehmensname, Steuernummer, Start-/End-Zeitpunkt                                                                             |
+| `location.csv`        | Stamm_Orte           | Standortdaten der Betriebsstätte                                                                                                                                        |
+| `cashregister.csv`    | Stamm_Kassen         | Kassendaten: Hersteller, Seriennummer, Software-Typ und -Version                                                                                                       |
+| `tse.csv`             | Stamm_TSE            | TSE-Daten: Zertifikats-ID, Signaturalgorithmus (z. B. `ecdsa-plain-SHA256`), TSE-Seriennummer (64-stelliger Hexadezimalstring, 0–9 und A–F), Public Key (Base64-kodiert) |
+| `vat.csv`             | Stamm_USt            | Stammdaten der verwendeten Steuersätze                                                                                                                                  |
 
-#### B. Einzelaufzeichnungsmodul (Transactions / Lines)
+#### B. Einzelaufzeichnungsmodul (Bonmodul / Transactions)
 
-| Datei                   | Inhalt                                                                                                                                                             |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Bonkopf.csv`           | Ein Datensatz pro Kassenbon: `BON_ID`, `BON_NR`, `BON_TYP`, `BON_START`, `BON_ENDE` (ISO 8601), Gesamtbruttoumsatz, `ABRECHNUNGSKREIS`, `BON_STORNO`, `REF_BON_ID` |
-| `Bonkopf_USt.csv`       | USt-Aufschlüsselung pro Bon nach Steuerschlüsseln (Brutto, Netto, USt)                                                                                             |
-| `Bonkopf_Zahlarten.csv` | Zahlungsarten pro Bon (Bar, EC-Karte, Kreditkarte)                                                                                                                 |
-| `Bonpos.csv`            | Einzelne Artikel: `POS_ZEILE`, `ART_NR`, `MENGE` (Dezimal, 3 Nachstellen), `EINHEIT`, `STK_BR` (Stückpreis brutto)                                                 |
-| `Bonpos_USt.csv`        | USt-Aufschlüsselung pro Artikelzeile                                                                                                                               |
-| `TSE_Transaktionen.csv` | **Kritisch:** TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`)                                                  |
+| Dateiname (offiziell)   | Logische Bezeichnung | Inhalt                                                                                                                                                            |
+| ----------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `transactions.csv`      | Bonkopf              | Ein Datensatz pro Kassenbon: `BON_ID`, `BON_NR`, `BON_TYP`, `BON_START`, `BON_ENDE` (ISO 8601), Gesamtbruttoumsatz, `BON_STORNO`                                  |
+| `transactions_vat.csv`  | Bonkopf_USt          | USt-Aufschlüsselung pro Bon nach Steuerschlüsseln (Brutto, Netto, USt)                                                                                           |
+| `allocation_groups.csv` | Bonkopf_AbrKreis     | Zuordnung eines Bons zu einem `ABRECHNUNGSKREIS` (Tisch-Verknüpfung im Festzelt)                                                                                  |
+| `datapayment.csv`       | Bonkopf_Zahlarten    | Zahlungsarten pro Bon (Bar, EC-Karte, Kreditkarte)                                                                                                                |
+| `references.csv`        | Bon_Referenzen       | Referenzen auf andere Bons, u. a. `REF_BON_ID` bei Stornos                                                                                                        |
+| `lines.csv`             | Bonpos               | Einzelne Artikel: `POS_ZEILE`, `ART_NR`, `MENGE` (Dezimal, 3 Nachstellen), `EINHEIT`, `STK_BR` (Stückpreis brutto)                                                |
+| `lines_vat.csv`         | Bonpos_USt           | USt-Aufschlüsselung pro Artikelzeile                                                                                                                              |
+| `transactions_tse.csv`  | TSE_Transaktionen    | **Kritisch:** TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`)                                                 |
 
 #### C. Kassenabschlussmodul (Z-Bon)
 
-Die aggregierten Tages-/Schicht-Abrechnungen werden in `Z_GV_Typ.csv` und `Z_Zahlart.csv` des Stammdatenmoduls abgebildet.
+| Dateiname (offiziell) | Logische Bezeichnung | Inhalt                                                        |
+| --------------------- | -------------------- | ------------------------------------------------------------- |
+| `businesscases.csv`   | Z_GV_Typ             | Aggregierte Beträge pro Geschäftsvorfall-Typ nach Steuersätzen |
+| `payment.csv`         | Z_Zahlart            | Aggregierte Summen der Zahlungsarten (Bar vs. unbar)          |
+| `cash_per_currency.csv` | Z_Waehrungen       | Bargeldbestand je Währung zum Abschluss                       |
 
-### 8.4 Schlüsselfelder in Bonkopf.csv (Relationale Verknüpfung)
+### 6.4 Schlüsselfelder in `transactions.csv` (Bonkopf, Relationale Verknüpfung)
 
 Fast jede CSV-Datei muss folgende Schlüssel in den ersten Spalten mitführen:
 
@@ -493,9 +508,9 @@ Fast jede CSV-Datei muss folgende Schlüssel in den ersten Spalten mitführen:
 3. **`Z_NR`** — Fortlaufende Z-Bon-Nummer
 4. **`BON_ID`** — Eindeutige Vorgangs-ID des Bons
 
-### 8.5 Abrechnungskreis — Tisch-Verknüpfung für Festzelt
+### 6.5 Abrechnungskreis — Tisch-Verknüpfung für Festzelt
 
-Das Feld `ABRECHNUNGSKREIS` in `Bonkopf.csv` verknüpft mehrere Bons (Bestellungen + Zahlungen) zu einer logischen Einheit. Im Festzelt-Betrieb trägt jede Bestellung und jede Zahlung für denselben Tisch innerhalb einer Kassensitzung denselben `ABRECHNUNGSKREIS`-Wert (= Tischname):
+Das Feld `ABRECHNUNGSKREIS` (in `allocation_groups.csv`, logisch *Bonkopf_AbrKreis*, je `BON_ID`) verknüpft mehrere Bons (Bestellungen + Zahlungen) zu einer logischen Einheit. Im Festzelt-Betrieb trägt jede Bestellung und jede Zahlung für denselben Tisch innerhalb einer Kassensitzung denselben `ABRECHNUNGSKREIS`-Wert (= Tischname):
 
 ```
 BON_ID | BON_TYP      | BON_START            | ABRECHNUNGSKREIS
@@ -531,15 +546,15 @@ Der `ABRECHNUNGSKREIS` wird **pro Tisch und Kassensitzung** vergeben. Intern bil
 
 > **Hinweis:** Das DSFinV-K-Format erlaubt beliebige Strings als `ABRECHNUNGSKREIS` (max. 40 Zeichen). Das Format `Tisch {Name}` (aktuell) bzw. `Tisch {Name}-{Buchstabe}` (manuelle Tischfreigabe) ist eine jotti-interne Konvention.
 
-### 8.6 Storno-Handling in DSFinV-K
+### 6.6 Storno-Handling in DSFinV-K
 
 #### Positions-Storno (Storno vor Zahlung)
 
 Ein falsch gebuchtes Produkt (z.B. 5 statt 4 Maß Bier) wird als neuer Bon mit **negativer Menge** gebucht:
 
 - Neuer Bon mit `BON_TYP = "AVBelegstorno"` oder negativen Positionsmengen
-- **`BON_STORNO = 1`** in `Bonkopf.csv`
-- **`REF_BON_ID`** in `Bonkopf.csv` = `BON_ID` des fehlerhaften Ursprungsbons
+- **`BON_STORNO = 1`** in `transactions.csv`
+- **`REF_BON_ID`** in `references.csv` = `BON_ID` des fehlerhaften Ursprungsbons
 - Eigene TSE-Signatur (`Kassenbeleg-V1` oder `Bestellung-V1` mit negativen Werten)
 - `ABRECHNUNGSKREIS` identisch mit dem stornierten Vorgang
 
@@ -548,15 +563,15 @@ Ein falsch gebuchtes Produkt (z.B. 5 statt 4 Maß Bier) wird als neuer Bon mit *
 Eine bereits bezahlte Rechnung wird mit einem neuen Beleg mit negativen Beträgen storniert:
 
 - Neuer Bon mit negativem Gesamtbetrag
-- **`BON_STORNO = 1`** in `Bonkopf.csv`
-- **`REF_BON_ID`** = `BON_ID` des Original-Zahlungsbelegs
+- **`BON_STORNO = 1`** in `transactions.csv`
+- **`REF_BON_ID`** (in `references.csv`) = `BON_ID` des Original-Zahlungsbelegs
 - Eigene TSE-Transaktion (`Kassenbeleg-V1` mit negativem Betrag)
 
 > **GoBD-Grundsatz:** Datensätze dürfen niemals per `UPDATE` oder `DELETE` aus der Datenbank entfernt werden. Stornierungen erzeugen immer neue Datensätze, die den Ursprungswert ausgleichen (Append-Only-Prinzip).
 
-### 8.7 Architektonische Anforderungen an jotti
+### 6.7 Architektonische Anforderungen an jotti
 
-1. **CSV-Generator:** Komponente, die aus den Event-Store-Daten und Stammdaten die DSFinV-K-CSV-Struktur erzeugt (mit korrekten deutschen Dateinamen)
+1. **CSV-Generator:** Komponente, die aus den Event-Store-Daten und Stammdaten die DSFinV-K-CSV-Struktur erzeugt (mit den offiziellen, englischen Dateinamen, z. B. `transactions.csv`, `lines.csv`)
 2. **`index.xml`-Generator:** Metadaten-Datei für die Prüfsoftware
 3. **Z-Bon-Logik:** Kassenabschluss-Funktion, die Tagessummen aggregiert und einen Z-Bon erzeugt
 4. **Abrechnungskreis-Verwaltung:** Tisch-Session-ID persistieren und in allen zugehörigen Bons mitführen (Phase 1: tagesbasiert; Phase 2: manuelle Freigabe)
@@ -568,7 +583,7 @@ Eine bereits bezahlte Rechnung wird mit einem neuen Beleg mit negativen Beträge
 
 ## 7. Elektronische Meldepflicht (ERiC / ELSTER)
 
-### 9.1 Gesetzliche Grundlage und Fristen
+### 7.1 Gesetzliche Grundlage und Fristen
 
 Nach § 146a Abs. 4 AO müssen elektronische Aufzeichnungssysteme beim zuständigen Finanzamt gemeldet werden. Das Mitteilungsverfahren ist seit dem 1. Januar 2025 aktiv.
 
@@ -584,7 +599,7 @@ Systeme, die bereits vor dem 1. Juli 2025 außer Betrieb genommen wurden, müsse
 _(Quelle: § 146a Abs. 4 AO — https://www.gesetze-im-internet.de/ao_1977/__146a.html)_
 _(Quelle: BMF-Schreiben 28. Juni 2024 — Meldepflicht)_
 
-### 9.2 Drei Übermittlungswege
+### 7.2 Drei Übermittlungswege
 
 1. **Direkteingabe im ELSTER-Web-Portal** (`www.elster.de`, „Mein ELSTER") — manuell, für Einzelfälle
 2. **XML-Dateiupload** im ELSTER-Portal — semi-automatisch
@@ -601,7 +616,7 @@ Da jotti ein **Self-hosted-Produkt** ist (kein SaaS), das von ehrenamtlichen Ver
 
 _(Quelle: ELSTER für Entwickler — https://www.elster.de/elsterweb/infoseite/entwickler)_
 
-### 9.3 Submission-API (kommerzielle Alternative)
+### 7.3 Submission-API (kommerzielle Alternative)
 
 Alternativ bieten TSE-Anbieter wie fiskaly eine **Submission-API** als Abstraktionsschicht an:
 
@@ -609,7 +624,7 @@ Alternativ bieten TSE-Anbieter wie fiskaly eine **Submission-API** als Abstrakti
 - **Nachteil:** Keine staatliche Vorab-Validierung; Verantwortung für Datenqualität liegt bei der Software
 - **Abhängigkeit:** Vendor-Lock-in zum TSE-Anbieter
 
-### 9.4 Meldepflichtige Daten (Payload)
+### 7.4 Meldepflichtige Daten (Payload)
 
 Die Kassenmeldung umfasst je Kassensystem:
 
@@ -617,18 +632,18 @@ Die Kassenmeldung umfasst je Kassensystem:
 - Art des Kassensystems (Softwaretyp, Versionsnummer)
 - Seriennummer des Kassensystems
 - Zertifizierungs-ID der TSE (Format: `BSI-K-TR-nnnn-yyyy`)
-- Seriennummer der TSE (64-stelliger Hexadezimalstring, ausschließlich 0–9 und A–F; **nicht** Base64 — Hinweis: in `Stamm_TSE.csv` für den DSFinV-K-Export wird zusätzlich der Public Key als Base64-Wert gespeichert, hierbei handelt es sich um ein anderes Feld)
+- Seriennummer der TSE (64-stelliger Hexadezimalstring, ausschließlich 0–9 und A–F; **nicht** Base64 — Hinweis: in `tse.csv` (logisch *Stamm_TSE*) für den DSFinV-K-Export wird zusätzlich der Public Key als Base64-Wert gespeichert, hierbei handelt es sich um ein anderes Feld)
 - Anschaffungs- bzw. Inbetriebnahmedatum
 - Betriebsstättenadresse
 
-### 9.5 Architektonische Anforderungen an jotti
+### 7.5 Architektonische Anforderungen an jotti
 
 1. **Konfiguration:** Vereinsdaten, Betriebsstätte, Steuernummer als Stammdaten (bereits für Phase-1-Meldung nötig)
-2. **Admin-Datenanzeige (Phase 1):** Admin-Bereich zeigt alle meldepflichtigen Felder strukturiert an, damit der Admin die manuelle ELSTER-Meldung ohne Suche durchführen kann; kein API-Aufruf, nur Datenanzeige — inkl. der automatisch generierten Kassen-Seriennummer (siehe Abschnitt 5.8)
+2. **Admin-Datenanzeige (Phase 1):** Admin-Bereich zeigt alle meldepflichtigen Felder strukturiert an, damit der Admin die manuelle ELSTER-Meldung ohne Suche durchführen kann; kein API-Aufruf, nur Datenanzeige — inkl. der automatisch generierten Kassen-Seriennummer (siehe Abschnitt 3.7)
 3. **Meldestatus (Phase 1):** Manuell setzbarer Status in der Admin-UI (z.B. „ausstehend / gemeldet am TT.MM.JJJJ / Fehler") — persistiert in den Stammdaten
 4. **Automatisierte Übermittlung (Phase 2, optional):** Entweder ERiC-Integration oder fiskaly-Submission-API; Entscheidung bei Implementierungsbeginn
 
-### 9.6 Verantwortungsverteilung im Source-Available-Self-hosted-Modell
+### 7.6 Verantwortungsverteilung im Source-Available-Self-hosted-Modell
 
 Die Meldepflicht nach § 146a Abs. 4 AO liegt **ausschließlich beim Betreiber (Verein)**, nicht beim Entwickler der Software. Dies hat folgende praktische Konsequenzen:
 
@@ -639,7 +654,7 @@ Die Smartphones der Servicekräfte müssen dem Finanzamt **nicht gemeldet** werd
 #### Self-hosted Docker-Instanz: Verein meldet eigenständig
 
 - Jeder Verein, der jotti in eigener Regie auf einem VPS betreibt, meldet **seine Docker-Instanz** (die Seriennummer der Kasse) beim Finanzamt an.
-- Die für die Meldung benötigte Seriennummer wird von jotti automatisch generiert und im Admin-Bereich angezeigt (siehe Abschnitt 5.8).
+- Die für die Meldung benötigte Seriennummer wird von jotti automatisch generiert und im Admin-Bereich angezeigt (siehe Abschnitt 3.7).
 - **Der Entwickler hat keine Meldepflicht** — er stellt nur das gesetzeskonforme Werkzeug bereit.
 
 #### Zusammenfassung der Verantwortlichkeiten
@@ -663,7 +678,7 @@ _(Quelle: § 146a Abs. 1 Satz 5 AO — Verbot des In-Verkehr-Bringens nicht-TSE-
 
 ## 8. Betreiberpflichten
 
-Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung für ihre jotti-Instanz. Eine detaillierte Verantwortlichkeitstabelle findet sich in §7.6.
+Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung für ihre jotti-Instanz. Eine detaillierte Verantwortlichkeitstabelle findet sich in Abschnitt 7.6.
 
 ### Pflichten vor dem ersten Einsatz
 
