@@ -287,15 +287,15 @@ Open Decision.
 
 ### Acceptance criteria
 
-- [ ] `bondruck_einstellungen`-Singleton + Admin-Konfig (Kassenbeleg-Drucker), validiert
-- [ ] `POST /service/beleg-drucken` erzeugt genau einen Druckauftrag für einen echten
+- [x] `bondruck_einstellungen`-Singleton + Admin-Konfig (Kassenbeleg-Drucker), validiert
+- [x] `POST /service/beleg-drucken` erzeugt genau einen Druckauftrag für einen echten
       Kassiervorgang
-- [ ] Beleg enthält Vereinsdaten, Kassen-Seriennummer, Positionen mit Preisen,
+- [x] Beleg enthält Vereinsdaten, Kassen-Seriennummer, Positionen mit Preisen,
       Gesamtbetrag, Zahlungsart „bar", Bon-Nummer
-- [ ] Fehlender Kassenbeleg-Drucker → klare Fehlermeldung (kein stilles Scheitern)
-- [ ] Erneuter Aufruf druckt erneut (Nachdruck), ohne den Kassiervorgang zu wiederholen
-- [ ] Frontend „Beleg drucken" nur über `BackendClient`; löst genau einen Aufruf aus
-- [ ] `make verify` grün
+- [x] Fehlender Kassenbeleg-Drucker → klare Fehlermeldung (kein stilles Scheitern)
+- [x] Erneuter Aufruf druckt erneut (Nachdruck), ohne den Kassiervorgang zu wiederholen
+- [x] Frontend „Beleg drucken" nur über `BackendClient`; löst genau einen Aufruf aus
+- [x] `make verify` grün
 
 ---
 

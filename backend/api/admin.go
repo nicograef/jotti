@@ -120,10 +120,12 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	sq.Query = settingsApp.Query{SettingsRepo: settingsRepo}
 	r.HandleFunc("/get-kassenidentitaet", sq.GetKassenidentitaetHandler())
 	r.HandleFunc("/get-betreiber", sq.GetBetreiberHandler())
+	r.HandleFunc("/get-bondruck-einstellungen", sq.GetBondruckEinstellungenHandler())
 
 	sc := settingsHTTP.CommandHandler{}
 	sc.Command = settingsApp.Command{SettingsRepo: settingsRepo}
 	r.HandleFunc("/update-betreiber", sc.UpdateBetreiberHandler())
+	r.HandleFunc("/update-bondruck-einstellungen", sc.UpdateBondruckEinstellungenHandler())
 
 	return r
 }

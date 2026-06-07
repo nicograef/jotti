@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"net/http"
+	"regexp"
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
@@ -11,6 +12,7 @@ import (
 
 type settingsCommand interface {
 	UpdateBetreiber(ctx context.Context, b settings.Betreiber) error
+	UpdateBondruckEinstellungen(ctx context.Context, b settings.BondruckEinstellungen) error
 }
 
 type CommandHandler struct {
@@ -35,6 +37,16 @@ var updateBetreiberSchema = z.Struct(z.Shape{
 	"UstID":        z.String().Optional(),
 })
 
+type updateBondruckEinstellungenRequest struct {
+	KassenbelegDruckerIP string `json:"kassenbelegDruckerIp"`
+}
+
+var ipv4Regex = regexp.MustCompile(`^(\d{1,3}\.){3}\d{1,3}$`)
+
+var updateBondruckEinstellungenSchema = z.Struct(z.Shape{
+	"KassenbelegDruckerIP": z.String().Match(ipv4Regex, z.Message("Ungültige IPv4-Adresse")).Optional(),
+})
+
 func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body updateBetreiberRequest
@@ -49,6 +61,27 @@ func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {
 		}
 
 		if err := h.Command.UpdateBetreiber(r.Context(), b); err != nil {
+			helper.SendServerError(w)
+			return
+		}
+		helper.SendEmptyResponse(w)
+	}
+}
+
+func (h *CommandHandler) UpdateBondruckEinstellungenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body updateBondruckEinstellungenRequest
+		if !helper.ReadAndValidateBody(w, r, &body, updateBondruckEinstellungenSchema) {
+			return
+		}
+
+		b, err := settings.NewBondruckEinstellungen(body.KassenbelegDruckerIP)
+		if err != nil {
+			helper.SendClientError(w, "validation_error", nil)
+			return
+		}
+
+		if err := h.Command.UpdateBondruckEinstellungen(r.Context(), b); err != nil {
 			helper.SendServerError(w)
 			return
 		}

@@ -17,6 +17,7 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
+	"github.com/nicograef/jotti/backend/repository/settings_repo"
 	"github.com/nicograef/jotti/backend/repository/table_repo"
 )
 
@@ -34,6 +35,7 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	favoritRepo := favorit_repo.NewRepository(db)
 	druckstationRepo := druckstation_repo.NewRepository(db)
 	druckauftragRepo := druckauftrag_repo.NewRepository(db)
+	settingsRepo := settings_repo.NewRepository(db)
 
 	tc := tableHTTP.CommandHandler{}
 	tc.Command = tableApp.Command{
@@ -44,9 +46,11 @@ func NewServiceApi(db *sql.DB) http.Handler {
 		KassensitzungenRepo: kassensitzungenRepo,
 		DruckstationRepo:    druckstationRepoTableAdapter{repo: druckstationRepo},
 		DruckauftragRepo:    druckauftragRepoTableAdapter{repo: druckauftragRepo},
+		SettingsRepo:        settingsRepo,
 	}
 	r.HandleFunc("/bestellung-aufnehmen", tc.BestellungAufnehmenHandler())
 	r.HandleFunc("/zahlung-kassieren", tc.ZahlungKassierenHandler())
+	r.HandleFunc("/beleg-drucken", tc.KassenbelegDruckenHandler())
 	r.HandleFunc("/ausgabe-bestaetigen", tc.AusgabeBestaetigenHandler())
 	r.HandleFunc("/favorit-hinzufuegen", tc.FavoritHinzufuegenHandler())
 	r.HandleFunc("/favorit-entfernen", tc.FavoritEntfernenHandler())

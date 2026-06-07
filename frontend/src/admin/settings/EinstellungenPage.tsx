@@ -5,10 +5,17 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { Betreiber } from '@/lib/EinstellungenBackend'
+import {
+  type Betreiber,
+  type BondruckEinstellungen,
+} from '@/lib/EinstellungenBackend'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 
-import { useBetreiber, useKassenidentitaet } from './hooks'
+import {
+  useBetreiber,
+  useBondruckEinstellungen,
+  useKassenidentitaet,
+} from './hooks'
 
 function KassenidentitaetSection() {
   const { data: kassenidentitaet, isPending, error } = useKassenidentitaet()
@@ -190,6 +197,104 @@ const emptyBetreiber: Betreiber = {
   ustId: null,
 }
 
+const emptyBondruckEinstellungen: BondruckEinstellungen = {
+  kassenbelegDruckerIp: '',
+}
+
+function BondruckEinstellungenForm({
+  initial,
+  onSave,
+}: {
+  initial: BondruckEinstellungen
+  onSave: (b: BondruckEinstellungen) => Promise<void>
+}) {
+  const [form, setForm] = useState<BondruckEinstellungen>(initial)
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await onSave(form)
+      toast.success('Bondruck-Einstellungen gespeichert.')
+    } catch (error) {
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'Bondruck-Einstellungen speichern',
+          error,
+          byCode: {
+            validation_error: 'Bitte eine gültige IPv4-Adresse eingeben.',
+          },
+        }),
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-1.5">
+        <Label htmlFor="kassenbelegDruckerIp">Kassenbeleg-Drucker-IP</Label>
+        <Input
+          id="kassenbelegDruckerIp"
+          value={form.kassenbelegDruckerIp}
+          onChange={(event) => {
+            setForm({ kassenbelegDruckerIp: event.target.value })
+          }}
+          placeholder="z.B. 192.168.1.80"
+        />
+        {form.kassenbelegDruckerIp === '' && (
+          <p className="text-sm text-muted-foreground">kein Drucker</p>
+        )}
+      </div>
+      <div>
+        <Button onClick={() => void handleSave()} disabled={saving}>
+          {saving ? 'Speichern…' : 'Speichern'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function BondruckEinstellungenSection() {
+  const { bondruckEinstellungen, isPending, error, saveBondruckEinstellungen } =
+    useBondruckEinstellungen()
+
+  if (isPending) {
+    return (
+      <section className="max-w-2xl">
+        <p className="text-muted-foreground text-sm">
+          Lade Bondruck-Einstellungen…
+        </p>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="max-w-2xl">
+        <p className="text-destructive text-sm">
+          Fehler beim Laden der Bondruck-Einstellungen.
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="max-w-2xl">
+      <h2 className="text-xl font-semibold mb-1">Kassenbeleg-Druck</h2>
+      <p className="text-muted-foreground text-sm mb-4">
+        Hier konfigurierst du den Drucker für den gesetzlichen Kassenbeleg. Ist
+        keine IP gesetzt, ist Belegdruck im Service nicht möglich.
+      </p>
+      <BondruckEinstellungenForm
+        initial={bondruckEinstellungen ?? emptyBondruckEinstellungen}
+        onSave={saveBondruckEinstellungen}
+      />
+    </section>
+  )
+}
+
 function BetreiberSection() {
   const { betreiber, isPending, error, saveBetreiber } = useBetreiber()
 
@@ -231,6 +336,8 @@ export function EinstellungenPage() {
   return (
     <div className="flex flex-col gap-10">
       <KassenidentitaetSection />
+      <hr />
+      <BondruckEinstellungenSection />
       <hr />
       <BetreiberSection />
     </div>

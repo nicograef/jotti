@@ -58,6 +58,10 @@ func (m *mockCommand) AuszahlungLeisten(ctx context.Context, userID int, userNam
 	return m.err
 }
 
+func (m *mockCommand) KassenbelegDrucken(_ context.Context, _ int, _ string) error {
+	return m.err
+}
+
 func (m *mockCommand) FavoritHinzufuegen(_ context.Context, _, _ int) error {
 	return m.err
 }
@@ -268,5 +272,35 @@ func TestStornierungErteilenHandler_Conflict(t *testing.T) {
 
 	if rec.Code != http.StatusConflict {
 		t.Errorf("expected status 409, got %d", rec.Code)
+	}
+}
+
+func TestKassenbelegDruckenHandler_Success(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"tischId":1,"zahlungId":"11111111-1111-1111-1111-111111111111"}`
+	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestKassenbelegDruckenHandler_DruckerNichtKonfiguriert(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrKassenbelegDruckerNichtKonfiguriert}}
+
+	body := `{"tischId":1,"zahlungId":"11111111-1111-1111-1111-111111111111"}`
+	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }

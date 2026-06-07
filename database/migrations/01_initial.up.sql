@@ -360,4 +360,20 @@ COMMENT ON COLUMN betreiber.steuernummer IS 'Steuernummer (optional)';
 COMMENT ON COLUMN betreiber.ust_id IS 'USt-ID (optional)';
 COMMENT ON COLUMN betreiber.updated_at IS 'Letzte Änderung (UTC)';
 
+-- ============================================================
+-- Table: bondruck_einstellungen (Bondruck-Settings, Singleton)
+-- ============================================================
+CREATE TABLE bondruck_einstellungen (
+    id                      INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    kassenbeleg_drucker_ip  VARCHAR(50) NOT NULL,
+    updated_at              TIMESTAMPTZ NOT NULL
+);
+
+COMMENT ON TABLE bondruck_einstellungen IS 'Bondruck-Einstellungen (Singleton). Konfiguration fuer den Kassenbeleg-Drucker.';
+COMMENT ON COLUMN bondruck_einstellungen.kassenbeleg_drucker_ip IS 'IPv4-Adresse des Kassenbeleg-Druckers (leer = nicht konfiguriert).';
+COMMENT ON COLUMN bondruck_einstellungen.updated_at IS 'Letzte Aenderung (UTC)';
+
+INSERT INTO bondruck_einstellungen (id, kassenbeleg_drucker_ip, updated_at)
+VALUES (1, '', now());
+
 COMMIT;

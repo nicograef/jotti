@@ -20,6 +20,17 @@ const KassenidentitaetSchema = z.object({
 })
 export type Kassenidentitaet = z.infer<typeof KassenidentitaetSchema>
 
+const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
+
+export const BondruckEinstellungenSchema = z.object({
+  kassenbelegDruckerIp: z
+    .string()
+    .refine((value) => value === '' || ipv4Regex.test(value), {
+      message: 'Ungültige IPv4-Adresse',
+    }),
+})
+export type BondruckEinstellungen = z.infer<typeof BondruckEinstellungenSchema>
+
 export class EinstellungenBackend {
   private readonly backend: BackendClient
 
@@ -42,5 +53,20 @@ export class EinstellungenBackend {
   public async saveBetreiber(b: Betreiber): Promise<void> {
     const body = BetreiberSchema.parse(b)
     await this.backend.post('admin/update-betreiber', body)
+  }
+
+  public async getBondruckEinstellungen(): Promise<BondruckEinstellungen> {
+    return this.backend.post(
+      'admin/get-bondruck-einstellungen',
+      {},
+      BondruckEinstellungenSchema,
+    )
+  }
+
+  public async saveBondruckEinstellungen(
+    b: BondruckEinstellungen,
+  ): Promise<void> {
+    const body = BondruckEinstellungenSchema.parse(b)
+    await this.backend.post('admin/update-bondruck-einstellungen', body)
   }
 }

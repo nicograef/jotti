@@ -162,6 +162,15 @@ type Betreiber struct {
 	UpdatedAt time.Time
 }
 
+// Bondruck-Einstellungen (Singleton). Konfiguration fuer den Kassenbeleg-Drucker.
+type BondruckEinstellungen struct {
+	ID int
+	// IPv4-Adresse des Kassenbeleg-Druckers (leer = nicht konfiguriert).
+	KassenbelegDruckerIp string
+	// Letzte Aenderung (UTC)
+	UpdatedAt time.Time
+}
+
 // Technische Outbox-Warteschlange fuer Druckjobs (Arbeitsbon und Kassenbeleg).
 type Druckauftraege struct {
 	ID     int32

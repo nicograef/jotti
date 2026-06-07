@@ -1,5 +1,6 @@
 import { Eye, X } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -20,6 +21,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
@@ -40,7 +42,7 @@ interface TischHistorieProps {
   historieLoading: boolean
   userId: number | null
   tisch: Tisch
-  backend: Pick<TischBackend, 'stornierungErteilen'>
+  backend: Pick<TischBackend, 'stornierungErteilen' | 'belegDrucken'>
   onStornierungErteilt: () => void
 }
 
@@ -99,6 +101,18 @@ export function TischHistorie({
   const [auszahlung, setAuszahlung] = useState(initialAuszahlungState)
   const [stornierenBestellung, setStornierenBestellung] =
     useState<Bestellung | null>(null)
+  const { loading: belegDruckenLoading, run: runBelegDrucken } =
+    useActionSubmit({
+      actionLabel: 'Beleg drucken',
+      byCode: {
+        kassenbeleg_drucker_nicht_konfiguriert:
+          'Kein Kassenbeleg-Drucker konfiguriert. Bitte in den Admin-Einstellungen hinterlegen.',
+        zahlung_not_found: 'Die ausgewählte Zahlung wurde nicht gefunden.',
+      },
+      onSuccess: () => {
+        toast.success('Beleg in die Druckwarteschlange eingereiht.')
+      },
+    })
 
   return (
     <>
@@ -228,6 +242,17 @@ export function TischHistorie({
           kommentar={zahlung.zahlung.kommentar}
           positionen={toReceiptItems(zahlung.zahlung.positionen)}
           totalPrice={zahlung.zahlung.gesamtZahlungCents}
+          primaryActionLabel="Beleg drucken"
+          primaryActionLoading={belegDruckenLoading}
+          onPrimaryAction={() => {
+            void runBelegDrucken(async () => {
+              const aktuelleZahlung = zahlung.zahlung
+              if (!aktuelleZahlung) {
+                return
+              }
+              await backend.belegDrucken(tisch.id, aktuelleZahlung.id)
+            })
+          }}
         />
       )}
       {stornierung.stornierung && (
@@ -404,6 +429,9 @@ function Details({
   positionen,
   totalPrice,
   summary,
+  primaryActionLabel,
+  primaryActionLoading,
+  onPrimaryAction,
 }: {
   open: boolean
   onClose: () => void
@@ -415,6 +443,9 @@ function Details({
   positionen?: ReceiptPosition[]
   totalPrice?: number
   summary?: string
+  primaryActionLabel?: string
+  primaryActionLoading?: boolean
+  onPrimaryAction?: () => void
 }) {
   return (
     <Drawer
@@ -451,8 +482,15 @@ function Details({
             </div>
           )}
           <DrawerFooter>
+            {onPrimaryAction && primaryActionLabel && (
+              <Button onClick={onPrimaryAction} disabled={primaryActionLoading}>
+                {primaryActionLoading ? 'Drucke…' : primaryActionLabel}
+              </Button>
+            )}
             <DrawerClose asChild>
-              <Button variant="outline">Schließen</Button>
+              <Button variant="outline" disabled={primaryActionLoading}>
+                Schließen
+              </Button>
             </DrawerClose>
           </DrawerFooter>
         </div>

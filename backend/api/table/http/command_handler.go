@@ -25,6 +25,7 @@ type command interface {
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	AuszahlungLeisten(ctx context.Context, userID int, userName string, tischID int, betragCents int, kommentar string) error
+	KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string) error
 	FavoritHinzufuegen(ctx context.Context, userID, tischID int) error
 	FavoritEntfernen(ctx context.Context, userID, tischID int) error
 }
@@ -330,6 +331,16 @@ var zahlungKassierenSchema = z.Struct(z.Shape{
 	"Kommentar":  z.String().Max(100),
 })
 
+type belegDruckenRequest struct {
+	TischID   int    `json:"tischId"`
+	ZahlungID string `json:"zahlungId"`
+}
+
+var belegDruckenSchema = z.Struct(z.Shape{
+	"TischID":   table.TischIDSchema.Required(),
+	"ZahlungID": z.String().UUID().Required(),
+})
+
 func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := zahlungKassierenRequest{}
@@ -355,6 +366,27 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 					application.ErrPositionNichtBezahlbar: "position_nicht_bezahlbar",
 				})
 			}
+			return
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := belegDruckenRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, belegDruckenSchema) {
+			return
+		}
+
+		err := h.Command.KassenbelegDrucken(r.Context(), body.TischID, body.ZahlungID)
+		if err != nil {
+			helper.MapError(w, err, map[error]string{
+				application.ErrKasseNichtGeoeffnet:                 "kasse_nicht_geoeffnet",
+				application.ErrZahlungNichtGefunden:                "zahlung_not_found",
+				application.ErrKassenbelegDruckerNichtKonfiguriert: "kassenbeleg_drucker_nicht_konfiguriert",
+			})
 			return
 		}
 

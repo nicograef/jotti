@@ -31,3 +31,10 @@ func toDomain(row dbgen.GetBetreiberRow) settings.Betreiber {
 	}
 	return b
 }
+
+func toBondruckEinstellungen(row dbgen.GetBondruckEinstellungenRow) settings.BondruckEinstellungen {
+	return settings.BondruckEinstellungen{
+		KassenbelegDruckerIP: row.KassenbelegDruckerIp,
+		UpdatedAt:            row.UpdatedAt,
+	}
+}

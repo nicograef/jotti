@@ -65,6 +65,13 @@ export class TischBackend {
     await this.backend.post('service/zahlung-kassieren', body)
   }
 
+  public async belegDrucken(tischId: number, zahlungId: string): Promise<void> {
+    const body = z
+      .object({ tischId: TischIdSchema, zahlungId: z.uuid() })
+      .parse({ tischId, zahlungId })
+    await this.backend.post('service/beleg-drucken', body)
+  }
+
   public async stornierungErteilen(
     stornierung: z.infer<typeof StornierungErteilenSchema>,
   ): Promise<void> {

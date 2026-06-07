@@ -9,6 +9,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/rs/zerolog"
 )
@@ -54,6 +55,12 @@ type druckauftragRepo interface {
 	EnqueueDruckauftraege(ctx context.Context, auftraege []bondruckApp.Druckauftrag) error
 }
 
+type settingsRepo interface {
+	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
+	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
+	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
+}
+
 // BestellPositionInput represents the input for a single position in an order.
 // The application layer enriches this with product/variant details (fat events).
 type BestellPositionInput struct {
@@ -70,6 +77,24 @@ type Command struct {
 	KassensitzungenRepo kassensitzungenRepo
 	DruckstationRepo    druckstationRepo
 	DruckauftragRepo    druckauftragRepo
+	SettingsRepo        settingsRepo
+}
+
+type zahlungKassiertV1Data struct {
+	ZahlungID          string                `json:"zahlungId"`
+	Positionen         []zahlungPositionData `json:"positionen"`
+	GesamtZahlungCents int                   `json:"gesamtZahlungCents"`
+	Kommentar          string                `json:"kommentar"`
+}
+
+type zahlungPositionData struct {
+	PositionID   string `json:"positionId"`
+	VarianteID   int    `json:"varianteId"`
+	ProduktName  string `json:"produktName"`
+	VarianteName string `json:"varianteName"`
+	Kategorie    string `json:"kategorie"`
+	Einzelpreis  int    `json:"einzelpreis"`
+	Menge        int    `json:"menge"`
 }
 
 // getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung.

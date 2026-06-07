@@ -144,3 +144,54 @@ func TestFormatSammelBon_WithKommentar(t *testing.T) {
 		t.Errorf("Sammelbon enthaelt nicht Kommentar; got:\n%q", got)
 	}
 }
+
+func TestFormatKassenbeleg_ContainsPflichtfelder(t *testing.T) {
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "42",
+		Zeitpunkt:          testTime,
+		Positionen:         []kasse.Position{testPos},
+		GesamtbetragCents:  900,
+		Zahlungsart:        "bar",
+	})
+	got := string(payload)
+
+	checks := []string{
+		"KASSENBELEG",
+		"SV Musterstadt",
+		"Kassen-ID: 2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		"Bon-Nr: 42",
+		"3x Pommes (gross)",
+		"GESAMT: 9,00 EUR",
+		"Zahlungsart: bar",
+	}
+
+	for _, check := range checks {
+		if !strings.Contains(got, check) {
+			t.Fatalf("Kassenbeleg enthaelt %q nicht; got:\n%q", check, got)
+		}
+	}
+}
+
+func TestFormatKassenbeleg_EndsWithCutPaper(t *testing.T) {
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "42",
+		Zeitpunkt:          testTime,
+		Positionen:         []kasse.Position{testPos},
+		GesamtbetragCents:  900,
+		Zahlungsart:        "bar",
+	})
+
+	if !strings.HasSuffix(string(payload), escpos.CutPaper) {
+		t.Errorf("Kassenbeleg endet nicht mit CutPaper-Befehl")
+	}
+}

@@ -46,6 +46,12 @@ var ErrPositionNichtAusgebbar = errors.New("position nicht ausgebbar")
 // ErrPositionNichtStornierbar is returned when a position cannot be cancelled (not in unbezahlt list).
 var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 
+// ErrZahlungNichtGefunden is returned when a requested payment reference does not exist.
+var ErrZahlungNichtGefunden = errors.New("zahlung nicht gefunden")
+
+// ErrKassenbelegDruckerNichtKonfiguriert is returned when no receipt printer IP is configured.
+var ErrKassenbelegDruckerNichtKonfiguriert = errors.New("kassenbeleg drucker nicht konfiguriert")
+
 // fromRepositoryError maps repository errors to application-layer errors with structured logging.
 // It consolidates tisch-ID context and error mapping at a single location, avoiding duplicated
 // error-handling code across the many command methods that load or update tisch records.
