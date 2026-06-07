@@ -34,7 +34,7 @@ Die Ubiquitous Language ist ein **Living Document**: Sie wird fortlaufend aktual
 
 ## Abweichungen: Ist-Zustand vs. Soll-Zustand
 
-Alle bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben. Die folgende Tabelle dokumentiert bewusste Entscheidungen, die korrekt sind und keinen Handlungsbedarf haben.
+Die meisten bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben. Die erste Tabelle dokumentiert bewusste Entscheidungen, die korrekt sind und keinen Handlungsbedarf haben; die zweite die offenen, bewussten Abweichungen der laufenden Bondruck-Neuordnung.
 
 ### Kein Handlungsbedarf (bewusst korrekt)
 
@@ -48,6 +48,17 @@ Alle bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben
 | Status-Enums         | `active`, `inactive`, `deleted`                 | Englisch ist korrekt — technische Lifecycle-States, kein Domänenbegriff.                                      |
 | Kassenjournal        | `Historie` (Code) vs. `Kassenjournal` (Entwurf) | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert.               |
 | KassensitzungState   | `KassensitzungState` (Go + TS)                  | Domänenbegriff ist „Kassensitzung". Suffix `State` markiert den CRUD-Zustand der Entität — kein Rename nötig. |
+
+### Offene Soll-Abweichungen (Bondruck-Neuordnung)
+
+Die Bon-Domäne wird neu geordnet (siehe `docs/prds/prd-bondruck.md`). Bis zur Umsetzung gelten folgende bewusste, dokumentierte Abweichungen:
+
+| Begriff      | Soll (Ziel)                         | Ist (Code)                                 | Status  |
+| ------------ | ----------------------------------- | ------------------------------------------ | ------- |
+| Druckstation | Tabelle `druckstationen`            | Tabelle `kategorie_drucker`                | geplant |
+| Druckauftrag | Outbox-Tabelle `druckauftraege`     | transientes DTO, keine Persistenz          | geplant |
+| Kassenbeleg  | On-Demand-Beleg-Command + Formatter | nicht vorhanden (nur Arbeitsbon existiert) | offen   |
+| Relay        | reiner Transport (poll/quittieren)  | compute-at-poll + lokaler Cursor/State     | geplant |
 
 ---
 
@@ -427,21 +438,37 @@ Go-Struct: `StornierungPosition` · TS-Typ: `StornierungPosition`
 
 ### Bondruck & Infrastruktur
 
-#### DruckerKonfiguration
+**Bondruck** ist der Oberbegriff für zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druck-Infrastruktur: den operativen **Arbeitsbon** (nicht-fiskalisch, automatisch beim Entstehen von Ware) und den gesetzlichen **Kassenbeleg** (fiskalisch, auf Anforderung beim Kassieren). Beide Familien teilen **keinen** Auslöser, Inhalt oder Rechtsstatus — nur den **Druckauftrag** (Outbox) als Transport.
 
-Zuordnung einer Produktkategorie zu einer Drucker-IP und einem Bonmodus. CRUD-Entität.
+#### Arbeitsbon
 
-DB-Tabelle: `kategorie_drucker`
+Operativer, nicht-fiskalischer Bon an eine Ausgabestation (Küche, Theke). Trägt **keine Preise**, nur die zuzubereitende/auszugebende Ware (Quelle, Artikel, Menge, Kommentar, Uhrzeit, Bedienung). Wird automatisch bei Bestellaufnahme erzeugt. **Kein Beleg** im Sinne von § 146a AO.
+
+#### Kassenbeleg
+
+Fiskalischer Zahlungsbeleg (§ 146a Abs. 2 AO, § 6 KassenSichV) für den Gast: alle Positionen mit Preisen, Vereinsdaten (Betreiber, K-20) und Kassen-Seriennummer (F-01). Wird **auf Anforderung** pro Kassiervorgang gedruckt — am Fest selten (Befreiung „Verkauf an eine Vielzahl unbekannter Personen", § 146a Abs. 2 Satz 2 AO). DSFinV-K-`processType`: `Kassenbeleg-V1`. Steuer-Aufschlüsselung folgt mit F-07, TSE-Pflichtfelder mit F-02.
+
+#### Druckstation
+
+Konfigurierter Drucker an einem Ausgabeort, je Produktkategorie — die Stationen für **Arbeitsbons**. CRUD-Entität.
+
+DB-Tabelle: `druckstationen` _(Soll; Ist-Zustand: `kategorie_drucker` — Rename ausstehend, siehe Abweichungen)_
 
 #### Bonmodus
 
-Druckmodus für Bestellbons: einzelner Bon pro Position oder ein gesammelter Bon pro Bestellung.
+Druckmodus für Arbeitsbons: einzelner Bon pro Position oder ein gesammelter Bon pro Bestellung.
 
 DB-Enum: `'pro_position'`, `'pro_bestellung'`
 
+#### Druckauftrag
+
+Konkreter Druckjob in der Outbox: Ziel-IP, ESC/POS-Payload und Status (`offen` | `gedruckt`). Single Source of Truth für alle Druckjobs — Arbeitsbon **und** Kassenbeleg. Das Backend reiht ein, der Relay leert.
+
+DB-Tabelle: `druckauftraege` _(geplant; aktuell ein transientes DTO ohne Persistenz)_
+
 #### Relay
 
-Separater Dienst (`cmd/relay/`), der Druckaufträge an lokale ESC/POS-Drucker weiterleitet.
+Separater Dienst (`cmd/relay/`), der Druckaufträge an lokale ESC/POS-Drucker weiterleitet. Soll: **reiner Transport** — holt offene Druckaufträge, druckt, quittiert; **keine** Fachlogik (ESC/POS-Formatierung liegt im Backend). _(Ist-Zustand: berechnet Druckaufträge noch beim Poll aus Events und hält einen lokalen Cursor — siehe Abweichungen.)_
 
 ---
 

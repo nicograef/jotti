@@ -257,6 +257,8 @@ graph LR
 
 ### 3.5 `kategorie_drucker` — Druckerkonfiguration
 
+> **Ist-Zustand.** Die Bon-Neuordnung (`docs/prds/prd-bondruck.md`) benennt diese Tabelle zu `druckstationen` um (Arbeitsbon-Stationen) und führt eine Druckauftrags-Outbox (`druckauftraege`) ein; das Relay wird dann zum reinen Transport. Bis zur Umsetzung beschreibt dieser Abschnitt den aktuellen Stand.
+
 **Zweck:** Konfiguriert, welcher Netzwerkdrucker (Bondrucker, ESC/POS) für welche Produktkategorie zuständig ist. Das Relay-Dienst liest diese Konfiguration bei jedem Poll-Aufruf.
 
 | Spalte       | Typ         | Zweck                                                                                                   |

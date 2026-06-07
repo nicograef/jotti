@@ -29,7 +29,7 @@
    - [4.3 Benutzer-Aggregat](#43-benutzer-aggregat)
    - [4.4 Tisch-Favoriten](#44-tisch-favoriten)
    - [4.5 Persistenz (CRUD)](#45-persistenz-crud)
-   - [4.6 Ausgabe — Bondruck (K-12)](#46-ausgabe--bondruck-k-12)
+   - [4.6 Ausgabe — Arbeitsbon (K-12)](#46-ausgabe--arbeitsbon-k-12)
 5. [Auth und Rollen](#5-auth-und-rollen)
    - [5.1 Rollen und Berechtigungsmatrix](#51-rollen-und-berechtigungsmatrix)
    - [5.2 Onboarding-Ablauf](#52-onboarding-ablauf)
@@ -648,9 +648,11 @@ Direktes CRUD ohne Event-Sourcing (kein Aggregat, keine Events). Benutzerspezifi
 
 Stammdaten (Produkte, Tische, Benutzer) werden mit klassischem CRUD verwaltet. Event-Sourcing ist hier nicht nötig — die historischen Daten stecken bereits in den Fat Events des Kasse-Context. Alle Stammdaten tragen `erstellt_am` und `aktualisiert_am` Zeitstempel.
 
-### 4.6 Ausgabe — Bondruck (K-12)
+### 4.6 Ausgabe — Arbeitsbon (K-12)
 
-Bondruck ist eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)): Jedes `bestellung-aufgenommen:v1`-Event löst Druck-Aufträge aus. KDS (K-13) und Zubereitungsstatus (K-15) sind noch offen.
+> **Ist-Zustand.** Dieser Abschnitt beschreibt den heutigen, nicht-fiskalischen **Arbeitsbon**. Die Bon-Neuordnung (`docs/prds/prd-bondruck.md`) trennt Arbeitsbon (operativ) und **Kassenbeleg** (fiskalisch, § 146a, auf Anforderung) sauber, führt eine Druckauftrags-Outbox ein, macht das Relay zum reinen Transport und benennt `kategorie_drucker` → `druckstationen`. Diese Beschreibung wird mit der Umsetzung nachgezogen.
+
+Der Arbeitsbon ist eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)): Jedes `bestellung-aufgenommen:v1`-Event löst Druck-Aufträge aus. Er trägt **keine Preise** und ist **kein** Beleg i. S. v. § 146a AO. KDS (K-13) und Zubereitungsstatus (K-15) sind noch offen.
 
 **Druckerkonfiguration (`kategorie_drucker`-Tabelle):**
 

@@ -77,17 +77,22 @@ vom bedienten Tisch — **ohne** eigene Stammdaten-Entität:
 - **Aggregierte Reporting-Kennzahl** „Direktverkauf" (Anzahl + Umsatz, abzüglich
   Storno) — eine Zeile in den bestehenden Reporting-Kennzahlen, **keine**
   Aufschlüsselung pro Theke (es gibt nur eine).
-- **Bondruck unverändert wiederverwendet** — der bestehende Kategorie-Bondruck wird
-  lediglich um den neuen Event-Typ als Auslöser erweitert (leere Drucker-IP = kein
-  Bon, wie gehabt); als Bon-Label dient der feste Text „Direktverkauf".
+- **Bondruck über die gemeinsame Outbox-Infrastruktur** (siehe `prd-bondruck.md`) —
+  der Direktverkauf speist dieselbe Arbeitsbon-Policy wie die Tischbestellung und kann
+  auf Anforderung denselben Kassenbeleg erzeugen. Genau eine zusätzliche
+  Konfigurationsentscheidung (`direktverkauf_modus`) steuert den operativen Druck:
+  `kein_bon` (nichts), `abholbon` (ein kombinierter Bon für den Gast zur Selbstabholung,
+  festes Label „Direktverkauf") oder `an_stationen` (Positionen nach Kategorie an die
+  Druckstationen, wie ein Tisch).
 
 ## Ubiquitous Language (neue Begriffe)
 
-| Begriff                       | Bedeutung                                                                                                            |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Direktverkauf**             | Geschäftsvorfall: ein in einem Schritt abgeschlossener Barverkauf an der Theke (bestellen+zahlen+ausgeben zugleich). |
-| **Verkauf**                   | Die konkrete Instanz eines Direktverkaufs, identifiziert durch eine UUID. Bildet einen eigenen Event-Stream.         |
-| **Direktverkauf-Stornierung** | Positionsgenaue Korrektur/Rückgabe eines Verkaufs durch Serviceleitung/Admin. Gibt Bargeld sofort zurück.            |
+| Begriff                       | Bedeutung                                                                                                                                                                                    |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Direktverkauf**             | Geschäftsvorfall: ein in einem Schritt abgeschlossener Barverkauf an der Theke (bestellen+zahlen+ausgeben zugleich).                                                                         |
+| **Verkauf**                   | Die konkrete Instanz eines Direktverkaufs, identifiziert durch eine UUID. Bildet einen eigenen Event-Stream.                                                                                 |
+| **Direktverkauf-Stornierung** | Positionsgenaue Korrektur/Rückgabe eines Verkaufs durch Serviceleitung/Admin. Gibt Bargeld sofort zurück.                                                                                    |
+| **Abholbon**                  | Operativer, nicht-fiskalischer Direktverkauf-Bon **für den Gast** (Selbstabholung). Festes Label „Direktverkauf", keine Preise. **Kein** Beleg i. S. v. § 146a AO (siehe `prd-bondruck.md`). |
 
 **Abgrenzung:** Der Direktverkauf ist **personalbedient** (ein Vereinsmitglied
 bedient das Gerät). Der **Selbstbedienungs-Kiosk** (Gast bedient das Gerät selbst)
@@ -199,53 +204,63 @@ Positionsgenaue Korrektur/Rückgabe durch Serviceleitung/Admin.
    Rückgeld angezeigt bekommen (bestehende Rückgeldberechnung K-10, rein
    clientseitig), damit ich mich nicht verrechne.
 
-### Bon / Ausgabe
+### Bon / Ausgabe (Bondruck-Infrastruktur aus `prd-bondruck.md`)
 
-10. Als Gast möchte ich (sofern ein Drucker für die Kategorie konfiguriert ist) einen
-    Bon erhalten, mit dem ich meine Ware abhole.
-11. Als Betreiber möchte ich über die bestehenden Drucker-Einstellungen steuern, ob
-    ein Bon gedruckt wird (leere Drucker-IP = kein Bon), damit kleine Feste ohne Bon
-    auskommen.
-12. Als Vereinsmitglied möchte ich, dass nach dem Verkauf nichts als „ausstehende
+10. Als Betreiber möchte ich konfigurieren, ob beim Direktverkauf **kein Bon**, ein
+    **Abholbon** an den Gast oder **Bons an die Stationen** gedruckt werden
+    (`direktverkauf_modus`), damit ich die Ausgabe nach meiner Vereinsorganisation
+    steuere.
+11. Als Gast am Direktverkauf möchte ich (im `abholbon`-Modus) **einen** kombinierten
+    Bon mit allen meinen Artikeln und dem festen Label „Direktverkauf" (statt eines
+    Tischnamens) erhalten, mit dem ich Essen und Getränke selbst abhole.
+12. Als Vereinsmitglied möchte ich (im `an_stationen`-Modus), dass meine
+    Direktverkauf-Positionen genauso an Küche/Theke gedruckt werden wie eine
+    Tischbestellung, damit die Ausgabe dort vorbereitet wird.
+13. Als Betreiber möchte ich (im `kein_bon`-Modus) gar nichts drucken, weil bei uns
+    alles auf Zuruf und Vertrauen läuft.
+14. Als Gast am Direktverkauf möchte ich **zusätzlich** auf Anforderung einen
+    fiskalischen Kassenbeleg erhalten können (§ 146a AO, derselbe On-Demand-Beleg wie
+    beim Tisch), unabhängig vom Abholbon.
+15. Als Vereinsmitglied möchte ich, dass nach dem Verkauf nichts als „ausstehende
     Ausgabe" offen bleibt, damit die Kasse keine vermeintlich offenen Posten zeigt.
 
 ### Korrektur / Storno / Rückgabe
 
-13. Als Serviceleitung möchte ich einen fehlerhaften Verkauf positionsgenau
+16. Als Serviceleitung möchte ich einen fehlerhaften Verkauf positionsgenau
     stornieren können, damit ich Vertipper oder Rückgaben korrigieren kann, ohne den
     ganzen Verkauf rückgängig machen zu müssen.
-14. Als Serviceleitung möchte ich, dass das zurückgegebene Bargeld durch die
+17. Als Serviceleitung möchte ich, dass das zurückgegebene Bargeld durch die
     Stornierung selbst kassenwirksam wird (Kassenbestand sinkt), ohne dass ich eine
     separate Auszahlung buchen muss.
-15. Als Vereinsmitglied (`service`) möchte ich selbst **keine** Stornierungen
+18. Als Vereinsmitglied (`service`) möchte ich selbst **keine** Stornierungen
     auslösen können, damit die Kontroll-Trennung erhalten bleibt.
-16. Als Serviceleitung möchte ich die Direktverkauf-Historie einsehen (eine Zeile pro
+19. Als Serviceleitung möchte ich die Direktverkauf-Historie einsehen (eine Zeile pro
     Verkauf), um zu stornierende Verkäufe zu finden.
 
 ### Übersicht / Reporting
 
-17. Als Servicekraft möchte ich den Direktverkauf klar von Tischen unterscheiden
+20. Als Servicekraft möchte ich den Direktverkauf klar von Tischen unterscheiden
     (eigener Menüpunkt, kein Saldo), damit die Übersicht ehrlich bleibt.
-18. Als Admin möchte ich den Direktverkauf-Umsatz als **eine aggregierte Kennzahl**
+21. Als Admin möchte ich den Direktverkauf-Umsatz als **eine aggregierte Kennzahl**
     (Anzahl + Umsatz) in den Reporting-Kennzahlen sehen, damit ich den Beitrag der
     Theke erkenne — ohne Aufschlüsselung pro Theke (es gibt nur eine).
-19. Als Admin möchte ich, dass Direktverkäufe im **Gesamtumsatz**, im
+22. Als Admin möchte ich, dass Direktverkäufe im **Gesamtumsatz**, im
     **Kassenbestand** und im **Tagesabschluss (Z-Bon)** vollständig enthalten sind,
     damit die Kassenführung stimmt.
-20. Als Admin/Serviceleitung möchte ich Direktverkäufe und ihre Stornierungen im
+23. Als Admin/Serviceleitung möchte ich Direktverkäufe und ihre Stornierungen im
     Kassenjournal lückenlos nachvollziehen, damit Revisionssicherheit gewahrt bleibt.
 
 ### Robustheit / Randfälle
 
-21. Als Vereinsmitglied möchte ich ohne offene Kassensitzung nicht verkaufen können
+24. Als Vereinsmitglied möchte ich ohne offene Kassensitzung nicht verkaufen können
     (gleiche Invariante wie beim Tisch).
-22. Als Entwickler möchte ich, dass der Tisch-Ablauf
+25. Als Entwickler möchte ich, dass der Tisch-Ablauf
     (`bestellung-aufnehmen`/`zahlung-kassieren`/`ausgabe-bestaetigen`) und der
     Direktverkauf-Ablauf sich **nicht vermischen** — getrennte Endpunkte, getrennte
     Events.
-23. Als Serviceleitung möchte ich bei parallelem Storno-Konflikt auf denselben
+26. Als Serviceleitung möchte ich bei parallelem Storno-Konflikt auf denselben
     Verkauf (OCC) eine klare 409-Rückmeldung erhalten und es erneut versuchen können.
-24. Als Vereinsmitglied möchte ich, dass beim Tagesabschluss Direktverkäufe **nie**
+27. Als Vereinsmitglied möchte ich, dass beim Tagesabschluss Direktverkäufe **nie**
     als „offener Saldo" blockieren (sie sind per Definition abgeschlossen).
 
 ## Implementation Decisions
@@ -330,15 +345,30 @@ kassensitzungNr)` wird genutzt. Neuer `StreamType` `direktverkauf`, der **nur** 
   Storno-Aktion für serviceleitung/admin.
 - **Keine Admin-Verwaltungsseite** — es gibt keine Stammdaten zu pflegen.
 
-### Bondruck
+### Bondruck (baut auf `prd-bondruck.md` auf)
 
-- **Unverändert im Mechanismus, erweitert im Auslöser.** Das Print-Relay pollt heute
-  `bestellung-aufgenommen:v1` (`backend/sqlc/queries/relay.sql`). Es wird so erweitert,
-  dass auch `direktverkauf-getaetigt:v1` Druckaufträge erzeugt (gleiche
-  Kategorie-Logik, `pro_position`/`pro_bestellung`, leere IP = kein Druck).
-- **Festes Bon-Label „Direktverkauf".** Wo der Tisch-Bon den Tischnamen aus dem Subject
-  parst (`parseTischName`), nutzt der Direktverkauf-Bon den konstanten Text
-  „Direktverkauf" — kein Subject-Parsing, kein Name im Event nötig.
+Voraussetzung ist die Bondruck-Neuordnung aus `prd-bondruck.md` (Druckauftrags-Outbox,
+Arbeitsbon-Policy, Kassenbeleg-Command, `bondruck_einstellungen`-Singleton). Der
+Direktverkauf konsumiert diese Infrastruktur und fügt **keinen** neuen Bon-Typ hinzu —
+nur eine Routing-Entscheidung und einen Abholbon-Formatter.
+
+- **`direktverkauf_modus` (Konfiguration).** `bondruck_einstellungen` wird um
+  `direktverkauf_modus` (`kein_bon` | `abholbon` | `an_stationen`) und
+  `abholbon_drucker_ip` erweitert. Beidseitig validiert (Enum + IPv4).
+- **Arbeitsbon-Policy erweitert.** Die Policy aus `prd-bondruck.md` reagiert zusätzlich
+  auf `direktverkauf-getaetigt:v1`:
+  - `an_stationen` → Positionen nach Kategorie an die Druckstationen (identische Logik
+    wie beim Tisch),
+  - `abholbon` → **ein** kombinierter Abholbon-Druckauftrag an `abholbon_drucker_ip`
+    (festes Label „Direktverkauf", keine Preise),
+  - `kein_bon` → keine Outbox-Zeile.
+- **Festes Bon-Label „Direktverkauf".** Wo der Tisch-Arbeitsbon den Tischnamen aus dem
+  Subject ableitet, nutzt der Abholbon den konstanten Text „Direktverkauf" — kein
+  Subject-Parsing, kein Name im Event nötig.
+- **Direktverkauf-Kassenbeleg.** Der On-Demand-Kassenbeleg-Command aus `prd-bondruck.md`
+  akzeptiert zusätzlich eine **Verkauf-Referenz**; derselbe Formatter und dieselbe
+  Outbox, nur die Datenquelle ist der Verkauf statt einer Tischzahlung. Unabhängig vom
+  Abholbon.
 
 ### Reporting / Kassenbestand (Compliance-relevant)
 
@@ -390,12 +420,18 @@ Implementierungsdetails. Priorisiert:
    Soll-Kassenbestand und Gesamtumsatz; Storno mindert beide; die aggregierte
    Direktverkauf-Kennzahl zählt korrekt. Prior Art:
    `repository/kassenjournal_repo/repo_test.go`, Reporting-Repo-Tests.
-5. **Frontend.** Verkaufen löst genau einen Backend-Aufruf aus; nach Erfolg leere
+5. **Direktverkauf-Bons (baut auf `prd-bondruck.md` auf).** Die Arbeitsbon-Policy
+   erzeugt aus `direktverkauf-getaetigt` je `direktverkauf_modus` die richtigen
+   Druckaufträge: `an_stationen` → Station-Bons nach Kategorie, `abholbon` → genau ein
+   Abholbon (Label „Direktverkauf", keine Preise), `kein_bon` → keine Outbox-Zeile; der
+   Direktverkauf-Kassenbeleg erzeugt genau einen Druckauftrag für einen echten Verkauf.
+   Prior Art: `prd-bondruck.md` (Formatter-/Policy-Tests).
+6. **Frontend.** Verkaufen löst genau einen Backend-Aufruf aus; nach Erfolg leere
    Eingabe; die Verkaufen-Seite rendert die kombinierte Oberfläche statt Tabs; Historie
    kompakt. Prior Art: bestehende Service-Komponententests, `routes.test.ts`.
 
-Mit dem Nutzer abzustimmen: ob alle fünf Bereiche getestet werden oder der Fokus
-zunächst auf dem Backend-Kern (1–4) liegt.
+Mit dem Nutzer abzustimmen: ob alle sechs Bereiche getestet werden oder der Fokus
+zunächst auf dem Backend-Kern (1–5) liegt.
 
 ## Out of Scope
 
@@ -405,10 +441,11 @@ zunächst auf dem Backend-Kern (1–4) liegt.
   `Verkaufsstelle`-Stammdatenentität (Name, Status, CRUD) und „Umsatz pro Theke" sind
   bewusst nicht enthalten (YAGNI; bei echtem Bedarf später nachrüstbar — „rule of three").
 - **Kartenzahlung / Zahlungsgateway** — Direktverkauf ist Barzahlung.
-- **Kombinierter Kunden-/Kassenbeleg** über den Kategorie-Bondruck hinaus — nicht Teil
-  dieser PRD (käme mit der TSE-/Belegpflicht-Phase).
-- **Drucker-Konfiguration speziell für den Direktverkauf** — Bondruck bleibt global pro
-  Kategorie.
+- **Steuer-Aufschlüsselung und TSE-Pflichtfelder auf dem Kassenbeleg** — hängen an F-07
+  bzw. F-02 (siehe `prd-bondruck.md`); der Basis-Kassenbeleg des Direktverkaufs ist
+  davon unabhängig druckbar.
+- **Bondruck-Infrastruktur selbst** (Outbox, Relay-Transport, Druckstation-Rename,
+  Kassenbeleg-Command) — wird in `prd-bondruck.md` gebaut; diese PRD konsumiert sie nur.
 - **Teilzahlung / offener Saldo beim Direktverkauf** — ein Verkauf ist immer
   vollständig.
 - **Separate Ausgabe-Bestätigung / Küchendisplay (K-13)** — beim Direktverkauf nicht
@@ -416,11 +453,19 @@ zunächst auf dem Backend-Kern (1–4) liegt.
 
 ## Further Notes
 
+- **Abhängigkeit von der Bondruck-PRD.** Der Bon-/Beleg-Teil dieses Features (Abholbon,
+  `direktverkauf_modus`, Stations-Routing, Direktverkauf-Kassenbeleg) setzt die
+  Bondruck-Neuordnung aus `prd-bondruck.md` voraus (Druckauftrags-Outbox,
+  Arbeitsbon-Policy, Kassenbeleg-Command, `bondruck_einstellungen`-Singleton). Diese
+  Infrastruktur wird zuerst gebaut; der Direktverkauf konsumiert sie. Der **Kern** des
+  Direktverkaufs (Event-Aggregat, Storno, Reporting, Kassenwirksamkeit) ist davon
+  unabhängig und kann vorab umgesetzt werden.
+
 Bei der Umsetzung zu aktualisierende Dokumente:
 
 - `docs/language.md` — neue Begriffe „Direktverkauf", „Verkauf",
-  „Direktverkauf-Stornierung"; Namenskonventionen pro Schicht; Abgrenzung zum
-  „Selbstbedienungs-Kiosk". Klarstellen, dass es keine `Verkaufsstelle`-Entität gibt.
+  „Direktverkauf-Stornierung", „Abholbon"; Namenskonventionen pro Schicht; Abgrenzung
+  zum „Selbstbedienungs-Kiosk". Klarstellen, dass es keine `Verkaufsstelle`-Entität gibt.
 - `docs/handbuch.md` — Direktverkauf als eigenes Event-Aggregat (Subject
   `kassensitzung-{nr}/direktverkauf-{uuid}`), die zwei Event-Typen, Storno-Replay,
   Kassenwirksamkeit, neuer `StreamType` `direktverkauf`, fehlende Projektion.

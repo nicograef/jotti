@@ -36,26 +36,26 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 
 ### Umgesetzt
 
-| ID   | Titel                   | Beschreibung                                                                                                                                                      |
-| ---- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| K-01 | Bestellung aufnehmen    | Servicekraft wählt Tisch, stellt aus Produktkatalog (nach Kategorien) eine Bestellung zusammen und gibt ab.                                                       |
-| K-02 | Zahlung registrieren    | Barzahlung mit Positions-Auswahl (Teilzahlung möglich). Saldo wird reduziert.                                                                                     |
-| K-03 | Ausgabe bestätigen      | Bestellte Positionen als ausgegeben markieren. Nachverfolgung ausstehender Positionen.                                                                            |
-| K-04 | Stornierung erteilen    | Serviceleitung/Admin stornieren Positionen — unabhängig von Ausgabe-/Bezahlstatus. Saldo kann negativ werden.                                                     |
-| K-05 | Auszahlung leisten      | Serviceleitung/Admin gleichen negativen Tischsaldo durch positionsunabhängige Auszahlung aus.                                                                     |
-| K-06 | Tischübersicht          | Dashboard mit „Meine Tische" (Favoriten), Alle-Tische-Drawer, Tisch-Detail mit Tabs (Bestellen, Bezahlen, Historie).                                              |
-| K-07 | Kassenjournal           | Unveränderliche Event-Tabelle (append-only) als Single Source of Truth. Synchrone Projektion + CRUD-Entität.                                                      |
-| K-12 | Bondruck                | Automatischer Bondruck bei Bestellaufnahme an konfigurierte Ausgabestationen (Küche, Theke).                                                                      |
-| K-14 | Tisch-Favoriten         | Serverseitig gespeicherte Favoriten pro Benutzer. Stern-Toggle im Alle-Tische-Drawer.                                                                             |
-| K-16 | Kassensitzung eröffnen  | Global nummerierter Betriebstag. Kassensitzung-Sperre blockiert Betrieb ohne offene Sitzung.                                                                      |
-| K-17 | Anfangsbestand setzen   | Wechselgeld als Basis für Kassenbestandsführung. Genau einmal pro Kassensitzung.                                                                                  |
-| K-18 | Kassenbestand einsehen  | Soll-Bestand als SQL-Aggregation über Kassenjournal mit Aufschlüsselung nach Komponenten.                                                                         |
-| K-19 | Geldtransit buchen      | Geldtransit (Einlage oder Entnahme) als Event im Kassenjournal.                                                                                                   |
-| K-21 | Kassensturz durchführen | Gezählter Ist-Bestand vs. Soll-Bestand. Differenz wird automatisch gebucht.                                                                                       |
-| K-22 | Tagesabschluss / Z-Bon  | Formaler Tagesabschluss. Schließt Kassensitzung ab. Voraussetzung: Kassensturz + alle Tische auf Saldo 0.                                                         |
-| K-11 | Tisch-Schnellsuche      | Suchfeld im Alle-Tische-Drawer. Clientseitige Echtzeit-Filterung nach Tischname (case-insensitive).                                                               |
-| K-20 | Betreiber-Stammdaten    | Admin pflegt Vereinsname, Adresse, Steuernummer und USt-ID. Erscheint auf Beleg (F-03) und DSFinV-K-Export (F-04).                                                |
-| K-10 | Rückgeldberechnung      | Optionale Eingabe von erhaltenem Betrag und Zielbetrag (inkl. Trinkgeld) beim Kassieren. Rückgeld und Trinkgeld werden rein clientseitig berechnet und angezeigt. |
+| ID   | Titel                   | Beschreibung                                                                                                                                                           |
+| ---- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| K-01 | Bestellung aufnehmen    | Servicekraft wählt Tisch, stellt aus Produktkatalog (nach Kategorien) eine Bestellung zusammen und gibt ab.                                                            |
+| K-02 | Zahlung registrieren    | Barzahlung mit Positions-Auswahl (Teilzahlung möglich). Saldo wird reduziert.                                                                                          |
+| K-03 | Ausgabe bestätigen      | Bestellte Positionen als ausgegeben markieren. Nachverfolgung ausstehender Positionen.                                                                                 |
+| K-04 | Stornierung erteilen    | Serviceleitung/Admin stornieren Positionen — unabhängig von Ausgabe-/Bezahlstatus. Saldo kann negativ werden.                                                          |
+| K-05 | Auszahlung leisten      | Serviceleitung/Admin gleichen negativen Tischsaldo durch positionsunabhängige Auszahlung aus.                                                                          |
+| K-06 | Tischübersicht          | Dashboard mit „Meine Tische" (Favoriten), Alle-Tische-Drawer, Tisch-Detail mit Tabs (Bestellen, Bezahlen, Historie).                                                   |
+| K-07 | Kassenjournal           | Unveränderliche Event-Tabelle (append-only) als Single Source of Truth. Synchrone Projektion + CRUD-Entität.                                                           |
+| K-12 | Arbeitsbon              | Automatischer Arbeitsbon (ohne Preise) bei Bestellaufnahme an konfigurierte Druckstationen (Küche, Theke). Operativ, nicht-fiskalisch — **kein** Kassenbeleg (→ F-03). |
+| K-14 | Tisch-Favoriten         | Serverseitig gespeicherte Favoriten pro Benutzer. Stern-Toggle im Alle-Tische-Drawer.                                                                                  |
+| K-16 | Kassensitzung eröffnen  | Global nummerierter Betriebstag. Kassensitzung-Sperre blockiert Betrieb ohne offene Sitzung.                                                                           |
+| K-17 | Anfangsbestand setzen   | Wechselgeld als Basis für Kassenbestandsführung. Genau einmal pro Kassensitzung.                                                                                       |
+| K-18 | Kassenbestand einsehen  | Soll-Bestand als SQL-Aggregation über Kassenjournal mit Aufschlüsselung nach Komponenten.                                                                              |
+| K-19 | Geldtransit buchen      | Geldtransit (Einlage oder Entnahme) als Event im Kassenjournal.                                                                                                        |
+| K-21 | Kassensturz durchführen | Gezählter Ist-Bestand vs. Soll-Bestand. Differenz wird automatisch gebucht.                                                                                            |
+| K-22 | Tagesabschluss / Z-Bon  | Formaler Tagesabschluss. Schließt Kassensitzung ab. Voraussetzung: Kassensturz + alle Tische auf Saldo 0.                                                              |
+| K-11 | Tisch-Schnellsuche      | Suchfeld im Alle-Tische-Drawer. Clientseitige Echtzeit-Filterung nach Tischname (case-insensitive).                                                                    |
+| K-20 | Betreiber-Stammdaten    | Admin pflegt Vereinsname, Adresse, Steuernummer und USt-ID. Erscheint auf Beleg (F-03) und DSFinV-K-Export (F-04).                                                     |
+| K-10 | Rückgeldberechnung      | Optionale Eingabe von erhaltenem Betrag und Zielbetrag (inkl. Trinkgeld) beim Kassieren. Rückgeld und Trinkgeld werden rein clientseitig berechnet und angezeigt.      |
 
 > 🚫 **K-08 · Bezeichnung pro Bestellung:** Won't-have — wird über das bestehende Kommentarfeld (K-01) gelöst.
 
@@ -233,7 +233,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | ---- | ------------------- | ----- | -------------------------- | ----------- |
 | F-01 | Seriennummer        | 1     | ✅                         | Must        |
 | F-07 | Steuersätze         | 1     | 🔲 Offen                   | Must        |
-| F-03 | Belegausgabepflicht | 0/1/2 | ✅ Basis (ohne TSE-Felder) | Must        |
+| F-03 | Belegausgabepflicht | 1/2   | 🔲 Offen                   | Must        |
 | F-05 | ELSTER-Meldung      | 1     | 🔲 Offen                   | Must (Doku) |
 | F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung | Should      |
 | F-02 | TSE-Integration     | 2     | 🔲 Offen                   | Should      |
@@ -263,15 +263,18 @@ Jedes Produkt wird einem Steuersatz zugeordnet. jotti unterstützt die in Deutsc
 
 #### F-03 · Belegausgabepflicht
 
-> **Prio:** Must-have (teilweise umgesetzt — Bondrucker vorhanden; Pflichtfelder + TSE-Daten ausstehend)
+> **Prio:** Must-have (offen — heute existiert nur der nicht-fiskalische Arbeitsbon, K-12; ein fiskalischer Kassenbeleg wird noch nicht erzeugt)
 
-Bei jedem Kassiervorgang muss dem Gast ein Beleg ausgestellt werden (§ 146a Abs. 2 AO, § 6 KassenSichV). Der Beleg kann in Papierform (Bondrucker) oder — mit Zustimmung des Gastes — digital ausgegeben werden. Ab TSE-Integration enthält der Beleg zusätzlich TSE-Pflichtfelder.
+Bei jedem Kassiervorgang muss dem Gast ein **Kassenbeleg** angeboten werden (§ 146a Abs. 2 AO, § 6 KassenSichV). jotti druckt den Kassenbeleg **auf Anforderung** durch den Service — am Fest greift in der Regel die Befreiung „Verkauf an eine Vielzahl unbekannter Personen" (§ 146a Abs. 2 Satz 2 AO), der Beleg muss aber jederzeit erstellbar sein. Der Kassenbeleg ist **strikt** vom automatischen, nicht-fiskalischen Arbeitsbon (K-12) zu trennen: Letzterer ist eine Arbeitsanweisung ohne Preise und **kein** Beleg. Der Kassenbeleg kann in Papierform (Bondrucker) oder — mit Zustimmung des Gastes — digital (F-09) ausgegeben werden. Ab TSE-Integration (F-02) enthält er zusätzlich TSE-Pflichtfelder.
 
 **Akzeptanzkriterien:**
 
-- [x] Beleg wird nach jeder Zahlung automatisch an den Bondrucker gesendet
-- [ ] Beleg enthält alle Pflichtfelder nach § 6 KassenSichV: Datum/Uhrzeit, Betrag, Steuersatz, Zahlungsart, Seriennummer der Kasse, Betreiberadresse
-- [ ] Nach TSE-Integration: Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer)
+- [ ] Service kann pro Kassiervorgang **auf Anforderung** einen Kassenbeleg drucken (kein automatischer Druck nach jeder Zahlung)
+- [ ] Basis-Beleg enthält: Vereinsname + Adresse (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, alle Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer
+- [ ] Fehlender Kassenbeleg-Drucker erzeugt eine klare Fehlermeldung (kein stilles Scheitern)
+- [ ] Nachdruck ist möglich, ohne den Kassiervorgang zu wiederholen
+- [ ] Mit F-07: Beleg weist Nettobetrag, Steuersatz und Steuerbetrag pro Position aus
+- [ ] Mit F-02 (TSE): Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
 
 ---
 
