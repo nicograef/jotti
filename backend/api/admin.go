@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"net/http"
 
-	druckerApp "github.com/nicograef/jotti/backend/api/drucker/application"
-	druckerHTTP "github.com/nicograef/jotti/backend/api/drucker/http"
+	druckstationApp "github.com/nicograef/jotti/backend/api/druckstation/application"
+	druckstationHTTP "github.com/nicograef/jotti/backend/api/druckstation/http"
 	kasseApp "github.com/nicograef/jotti/backend/api/kasse/application"
 	kasseHTTP "github.com/nicograef/jotti/backend/api/kasse/http"
 	productApp "github.com/nicograef/jotti/backend/api/product/application"
@@ -18,7 +18,7 @@ import (
 	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
 	userApp "github.com/nicograef/jotti/backend/api/user/application"
 	userHTTP "github.com/nicograef/jotti/backend/api/user/http"
-	"github.com/nicograef/jotti/backend/repository/drucker_repo"
+	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
@@ -108,13 +108,13 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/get-offene-kassensitzung", kq.GetOffeneKassensitzungHandler())
 	r.HandleFunc("/get-kassenbestand", kq.GetKassenbestandHandler())
 
-	druckerRepo := drucker_repo.NewRepository(db)
-	dc := druckerHTTP.CommandHandler{}
-	dc.Command = druckerApp.Command{DruckerRepo: druckerRepo}
-	dq := druckerHTTP.QueryHandler{}
-	dq.Query = druckerApp.Query{DruckerRepo: druckerRepo}
-	r.HandleFunc("/get-drucker-konfiguration", dq.GetDruckerConfigHandler())
-	r.HandleFunc("/update-drucker-konfiguration", dc.UpdateDruckerConfigHandler())
+	druckstationRepo := druckstation_repo.NewRepository(db)
+	druckstationCommandHandler := druckstationHTTP.CommandHandler{}
+	druckstationCommandHandler.Command = druckstationApp.Command{DruckstationRepo: druckstationRepo}
+	druckstationQueryHandler := druckstationHTTP.QueryHandler{}
+	druckstationQueryHandler.Query = druckstationApp.Query{DruckstationRepo: druckstationRepo}
+	r.HandleFunc("/get-druckstationen", druckstationQueryHandler.GetDruckstationenHandler())
+	r.HandleFunc("/update-druckstationen", druckstationCommandHandler.UpdateDruckstationenHandler())
 
 	sq := settingsHTTP.QueryHandler{}
 	sq.Query = settingsApp.Query{SettingsRepo: settingsRepo}

@@ -53,12 +53,12 @@ Die meisten bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden 
 
 Die Bon-Domäne wird neu geordnet (siehe `docs/prds/prd-bondruck.md`). Bis zur Umsetzung gelten folgende bewusste, dokumentierte Abweichungen:
 
-| Begriff      | Soll (Ziel)                         | Ist (Code)                                 | Status  |
-| ------------ | ----------------------------------- | ------------------------------------------ | ------- |
-| Druckstation | Tabelle `druckstationen`            | Tabelle `kategorie_drucker`                | geplant |
-| Druckauftrag | Outbox-Tabelle `druckauftraege`     | transientes DTO, keine Persistenz          | geplant |
-| Kassenbeleg  | On-Demand-Beleg-Command + Formatter | nicht vorhanden (nur Arbeitsbon existiert) | offen   |
-| Relay        | reiner Transport (poll/quittieren)  | compute-at-poll + lokaler Cursor/State     | geplant |
+| Begriff      | Soll (Ziel)                         | Ist (Code)                                 | Status    |
+| ------------ | ----------------------------------- | ------------------------------------------ | --------- |
+| Druckstation | Tabelle `druckstationen`            | Tabelle `druckstationen`                   | umgesetzt |
+| Druckauftrag | Outbox-Tabelle `druckauftraege`     | transientes DTO, keine Persistenz          | geplant   |
+| Kassenbeleg  | On-Demand-Beleg-Command + Formatter | nicht vorhanden (nur Arbeitsbon existiert) | offen     |
+| Relay        | reiner Transport (poll/quittieren)  | compute-at-poll + lokaler Cursor/State     | geplant   |
 
 ---
 
@@ -452,7 +452,7 @@ Fiskalischer Zahlungsbeleg (§ 146a Abs. 2 AO, § 6 KassenSichV) für den Gast: 
 
 Konfigurierter Drucker an einem Ausgabeort, je Produktkategorie — die Stationen für **Arbeitsbons**. CRUD-Entität.
 
-DB-Tabelle: `druckstationen` _(Soll; Ist-Zustand: `kategorie_drucker` — Rename ausstehend, siehe Abweichungen)_
+DB-Tabelle: `druckstationen`
 
 #### Bonmodus
 

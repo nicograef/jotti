@@ -58,8 +58,8 @@ const adminItems = [
     icon: Wallet,
   },
   {
-    title: 'Drucker',
-    url: '/admin/drucker',
+    title: 'Druckstationen',
+    url: '/admin/druckstationen',
     icon: Printer,
   },
   {

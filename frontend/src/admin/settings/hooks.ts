@@ -1,32 +1,35 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
-import { DruckerBackend, type DruckerConfig } from '@/lib/DruckerBackend'
+import {
+  DruckstationBackend,
+  type DruckstationConfig,
+} from '@/lib/DruckstationBackend'
 import {
   type Betreiber,
   EinstellungenBackend,
 } from '@/lib/EinstellungenBackend'
 
-const druckerBackend = new DruckerBackend(BackendSingleton)
+const druckstationBackend = new DruckstationBackend(BackendSingleton)
 const einstellungenBackend = new EinstellungenBackend(BackendSingleton)
 
-export function useDruckerConfig() {
+export function useDruckstationen() {
   const queryClient = useQueryClient()
   const {
     isPending,
     data = [],
     error,
   } = useQuery({
-    queryKey: ['drucker-config'],
-    queryFn: () => druckerBackend.getDruckerConfig(),
+    queryKey: ['druckstationen'],
+    queryFn: () => druckstationBackend.getDruckstationen(),
   })
 
-  const updateDruckerConfig = async (newConfig: DruckerConfig) => {
-    await druckerBackend.updateDruckerConfig(newConfig)
-    await queryClient.invalidateQueries({ queryKey: ['drucker-config'] })
+  const updateDruckstation = async (newConfig: DruckstationConfig) => {
+    await druckstationBackend.updateDruckstation(newConfig)
+    await queryClient.invalidateQueries({ queryKey: ['druckstationen'] })
   }
 
-  return { drucker: data, isPending, error, updateDruckerConfig }
+  return { druckstationen: data, isPending, error, updateDruckstation }
 }
 
 export function useKassenidentitaet() {

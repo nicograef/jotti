@@ -35,12 +35,12 @@ func (m *mockEventRepo) GetBestellungEventsSinceCursor(_ context.Context, cursor
 	return result, nil
 }
 
-type mockDruckerRepo struct {
-	konfigs map[string]DruckerKonfig
+type mockDruckstationRepo struct {
+	konfigs map[string]Druckstation
 	err     error
 }
 
-func (m *mockDruckerRepo) GetKonfigurierteKategorieDrucker(_ context.Context) (map[string]DruckerKonfig, error) {
+func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context) (map[string]Druckstation, error) {
 	return m.konfigs, m.err
 }
 
@@ -64,8 +64,8 @@ func makeBestellungEvent(id int, subject string, positionen []kasse.Position, ko
 
 func TestGetDruckAuftraege_NoEvents_ReturnsNil(t *testing.T) {
 	q := Query{
-		EventRepo:   &mockEventRepo{events: nil},
-		DruckerRepo: &mockDruckerRepo{konfigs: map[string]DruckerKonfig{}},
+		EventRepo:        &mockEventRepo{events: nil},
+		DruckstationRepo: &mockDruckstationRepo{konfigs: map[string]Druckstation{}},
 	}
 
 	auftraege, maxEventID, err := q.GetDruckAuftraege(context.Background(), 0)
@@ -83,8 +83,8 @@ func TestGetDruckAuftraege_NoEvents_ReturnsNil(t *testing.T) {
 
 func TestGetDruckAuftraege_EventRepoError(t *testing.T) {
 	q := Query{
-		EventRepo:   &mockEventRepo{err: errors.New("db error")},
-		DruckerRepo: &mockDruckerRepo{konfigs: map[string]DruckerKonfig{}},
+		EventRepo:        &mockEventRepo{err: errors.New("db error")},
+		DruckstationRepo: &mockDruckstationRepo{konfigs: map[string]Druckstation{}},
 	}
 
 	_, _, err := q.GetDruckAuftraege(context.Background(), 0)
@@ -94,15 +94,15 @@ func TestGetDruckAuftraege_EventRepoError(t *testing.T) {
 	}
 }
 
-func TestGetDruckAuftraege_DruckerRepoError(t *testing.T) {
+func TestGetDruckAuftraege_DruckstationRepoError(t *testing.T) {
 	positionen := []kasse.Position{
 		{ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
 	}
 	events := []event.Event{makeBestellungEvent(1, "tisch:3", positionen, "")}
 
 	q := Query{
-		EventRepo:   &mockEventRepo{events: events},
-		DruckerRepo: &mockDruckerRepo{err: errors.New("db error")},
+		EventRepo:        &mockEventRepo{events: events},
+		DruckstationRepo: &mockDruckstationRepo{err: errors.New("db error")},
 	}
 
 	_, _, err := q.GetDruckAuftraege(context.Background(), 0)
@@ -118,12 +118,12 @@ func TestGetDruckAuftraege_WithEvents_GeneratesAuftraege(t *testing.T) {
 	}
 	events := []event.Event{makeBestellungEvent(5, "tisch:3", positionen, "")}
 
-	konfigs := map[string]DruckerKonfig{
+	konfigs := map[string]Druckstation{
 		"getraenk": {IP: "192.168.1.50", Bonmodus: "pro_position"},
 	}
 	q := Query{
-		EventRepo:   &mockEventRepo{events: events},
-		DruckerRepo: &mockDruckerRepo{konfigs: konfigs},
+		EventRepo:        &mockEventRepo{events: events},
+		DruckstationRepo: &mockDruckstationRepo{konfigs: konfigs},
 	}
 
 	auftraege, maxEventID, err := q.GetDruckAuftraege(context.Background(), 0)
@@ -156,12 +156,12 @@ func TestGetDruckAuftraege_CursorFiltering(t *testing.T) {
 		makeBestellungEvent(3, "tisch:1", positionen, ""),
 		makeBestellungEvent(7, "tisch:2", positionen, ""),
 	}
-	konfigs := map[string]DruckerKonfig{
+	konfigs := map[string]Druckstation{
 		"getraenk": {IP: "192.168.1.50", Bonmodus: "pro_position"},
 	}
 	q := Query{
-		EventRepo:   &mockEventRepo{events: events},
-		DruckerRepo: &mockDruckerRepo{konfigs: konfigs},
+		EventRepo:        &mockEventRepo{events: events},
+		DruckstationRepo: &mockDruckstationRepo{konfigs: konfigs},
 	}
 
 	// cursor=3 → only event with id>3 (id=7)
@@ -189,7 +189,7 @@ func TestCreateDruckAuftraege_ProPosition(t *testing.T) {
 		{ProduktName: "Bratwurst", VarianteName: "mit Brot", Kategorie: "essen", Menge: 1},
 	}
 	evt := makeBestellungEvent(1, "tisch:7", positionen, "ohne Ketchup")
-	konfig := map[string]DruckerKonfig{
+	konfig := map[string]Druckstation{
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
@@ -217,7 +217,7 @@ func TestCreateDruckAuftraege_ProBestellung(t *testing.T) {
 		{ProduktName: "Schnitzel", VarianteName: "mit Salat", Kategorie: "essen", Menge: 1},
 	}
 	evt := makeBestellungEvent(2, "tisch:5", positionen, "")
-	konfig := map[string]DruckerKonfig{
+	konfig := map[string]Druckstation{
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_bestellung"},
 	}
 
@@ -238,7 +238,7 @@ func TestCreateDruckAuftraege_NoDruckerFuerKategorie(t *testing.T) {
 	}
 	evt := makeBestellungEvent(3, "tisch:2", positionen, "")
 	// Nur "essen" konfiguriert, nicht "sonstiges"
-	konfig := map[string]DruckerKonfig{
+	konfig := map[string]Druckstation{
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
@@ -255,7 +255,7 @@ func TestCreateDruckAuftraege_MehrereKategorien(t *testing.T) {
 		{ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
 	}
 	evt := makeBestellungEvent(4, "tisch:3", positionen, "")
-	konfig := map[string]DruckerKonfig{
+	konfig := map[string]Druckstation{
 		"essen":    {IP: "192.168.1.51", Bonmodus: "pro_position"},
 		"getraenk": {IP: "192.168.1.50", Bonmodus: "pro_position"},
 	}
@@ -273,7 +273,7 @@ func TestCreateDruckAuftraege_InvalidJSON(t *testing.T) {
 		ID:   1,
 		Data: []byte("not json"),
 	}
-	auftraege := createDruckAuftraegeFromEvent(evt, map[string]DruckerKonfig{})
+	auftraege := createDruckAuftraegeFromEvent(evt, map[string]Druckstation{})
 
 	if auftraege != nil {
 		t.Errorf("expected nil on invalid JSON, got %v", auftraege)
@@ -283,7 +283,7 @@ func TestCreateDruckAuftraege_InvalidJSON(t *testing.T) {
 // TestCreateDruckAuftraege_TischNameInPayload verifies that the tisch name derived
 // from the event subject appears in the formatted bon payload.
 func TestCreateDruckAuftraege_TischNameInPayload(t *testing.T) {
-	konfig := map[string]DruckerKonfig{
+	konfig := map[string]Druckstation{
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 	positionen := []kasse.Position{

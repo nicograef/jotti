@@ -54,8 +54,8 @@ type bestellPositionInput struct {
 	Menge      int `json:"menge"`
 }
 
-// updateDruckerConfigRequest mirrors the admin update-drucker-config request.
-type updateDruckerConfigRequest struct {
+// updateDruckstationenRequest mirrors the admin update-drucker-config request.
+type updateDruckstationenRequest struct {
 	Kategorie string `json:"kategorie"`
 	DruckerIP string `json:"druckerIp"`
 	Bonmodus  string `json:"bonmodus"`
@@ -239,23 +239,23 @@ func decodePollResponse(t *testing.T, resp *http.Response) pollResponse {
 	return result
 }
 
-func configureDrucker(t *testing.T, serverURL, token, kategorie, ip, bonmodus string) {
+func configureDruckstation(t *testing.T, serverURL, token, kategorie, ip, bonmodus string) {
 	t.Helper()
-	resp := postJSON(t, serverURL+"/admin/update-drucker-konfiguration", updateDruckerConfigRequest{
+	resp := postJSON(t, serverURL+"/admin/update-druckstationen", updateDruckstationenRequest{
 		Kategorie: kategorie,
 		DruckerIP: ip,
 		Bonmodus:  bonmodus,
 	}, token)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("Failed to configure drucker for %s: status %d", kategorie, resp.StatusCode)
+		t.Fatalf("Failed to configure druckstation for %s: status %d", kategorie, resp.StatusCode)
 	}
 }
 
-func resetDruckerConfig(t *testing.T, serverURL, token string) {
+func resetDruckstationen(t *testing.T, serverURL, token string) {
 	t.Helper()
 	for _, kat := range []string{"essen", "getraenk", "sonstiges"} {
-		configureDrucker(t, serverURL, token, kat, "", "pro_position")
+		configureDruckstation(t, serverURL, token, kat, "", "pro_position")
 	}
 }
 
@@ -285,15 +285,15 @@ func pollRelay(t *testing.T, serverURL string, relayToken string, lastEventID in
 }
 
 // TestRelayPoll_BestellungToAuftraege tests the full flow:
-// configure drucker → create bestellung → poll relay → receive correct Druck-Aufträge
+// configure druckstation → create bestellung → poll relay → receive correct Druck-Aufträge
 func TestRelayPoll_BestellungToAuftraege(t *testing.T) {
 	env := setupTestEnv(t)
 
-	// Reset drucker config to clean state
-	resetDruckerConfig(t, env.server.URL, env.adminToken)
+	// Reset druckstationen to clean state
+	resetDruckstationen(t, env.server.URL, env.adminToken)
 
-	// Configure a drucker for "essen" category
-	configureDrucker(t, env.server.URL, env.adminToken, "essen", "192.168.1.51", "pro_position")
+	// Configure a druckstation for "essen" category
+	configureDruckstation(t, env.server.URL, env.adminToken, "essen", "192.168.1.51", "pro_position")
 
 	// Get the current cursor (before our bestellung)
 	resp := pollRelay(t, env.server.URL, testRelayToken, 0)
@@ -342,8 +342,8 @@ func TestRelayPoll_BestellungToAuftraege(t *testing.T) {
 func TestRelayPoll_CursorFortschritt(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resetDruckerConfig(t, env.server.URL, env.adminToken)
-	configureDrucker(t, env.server.URL, env.adminToken, "essen", "192.168.1.51", "pro_position")
+	resetDruckstationen(t, env.server.URL, env.adminToken)
+	configureDruckstation(t, env.server.URL, env.adminToken, "essen", "192.168.1.51", "pro_position")
 
 	// Poll to get current cursor
 	resp := pollRelay(t, env.server.URL, testRelayToken, 0)
@@ -378,10 +378,10 @@ func TestRelayPoll_CursorFortschritt(t *testing.T) {
 func TestRelayPoll_DruckerConfigAenderung(t *testing.T) {
 	env := setupTestEnv(t)
 
-	resetDruckerConfig(t, env.server.URL, env.adminToken)
+	resetDruckstationen(t, env.server.URL, env.adminToken)
 
 	// Configure essen drucker with IP .51
-	configureDrucker(t, env.server.URL, env.adminToken, "essen", "192.168.1.51", "pro_position")
+	configureDruckstation(t, env.server.URL, env.adminToken, "essen", "192.168.1.51", "pro_position")
 
 	// Record cursor before bestellung
 	resp := pollRelay(t, env.server.URL, testRelayToken, 0)
@@ -391,7 +391,7 @@ func TestRelayPoll_DruckerConfigAenderung(t *testing.T) {
 	createBestellung(t, env, "")
 
 	// Change drucker IP to .52 BEFORE polling
-	configureDrucker(t, env.server.URL, env.adminToken, "essen", "192.168.1.52", "pro_position")
+	configureDruckstation(t, env.server.URL, env.adminToken, "essen", "192.168.1.52", "pro_position")
 
 	// Poll → should get auftraege with the NEW IP (.52)
 	resp = pollRelay(t, env.server.URL, testRelayToken, before.Cursor)
@@ -414,7 +414,7 @@ func TestRelayPoll_KeinDruckerKonfiguriert(t *testing.T) {
 	env := setupTestEnv(t)
 
 	// Reset all drucker configs to empty
-	resetDruckerConfig(t, env.server.URL, env.adminToken)
+	resetDruckstationen(t, env.server.URL, env.adminToken)
 
 	// Record cursor
 	resp := pollRelay(t, env.server.URL, testRelayToken, 0)

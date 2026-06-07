@@ -162,6 +162,16 @@ type Betreiber struct {
 	UpdatedAt time.Time
 }
 
+// Drucker-IP und Bonmodus pro Produkt-Kategorie für den Bondruck.
+type Druckstationen struct {
+	Kategorie Produktkategorie
+	// IPv4-Adresse des Bondruckers (leer = kein Drucker konfiguriert)
+	DruckerIp string
+	// Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon)
+	Bonmodus  string
+	UpdatedAt time.Time
+}
+
 // Kassenidentität (Singleton). Einmalig bei der DB-Migration eingebrannt, danach read-only (insert-once).
 type Kassenidentitaet struct {
 	ID int
@@ -205,16 +215,6 @@ type Kassensitzungen struct {
 	// Creation timestamp (UTC)
 	CreatedAt time.Time
 	// Last modification timestamp (UTC)
-	UpdatedAt time.Time
-}
-
-// Drucker-IP und Bonmodus pro Produkt-Kategorie für den Bondruck.
-type KategorieDrucker struct {
-	Kategorie Produktkategorie
-	// IPv4-Adresse des Bondruckers (leer = kein Drucker konfiguriert)
-	DruckerIp string
-	// Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon)
-	Bonmodus  string
 	UpdatedAt time.Time
 }
 

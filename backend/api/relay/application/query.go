@@ -8,17 +8,17 @@ import (
 )
 
 type Query struct {
-	EventRepo   eventRepo
-	DruckerRepo druckerRepo
+	EventRepo        eventRepo
+	DruckstationRepo druckstationRepo
 }
 
 type eventRepo interface {
 	GetBestellungEventsSinceCursor(ctx context.Context, cursor int) ([]event.Event, error)
 }
 
-type druckerRepo interface {
+type druckstationRepo interface {
 	// Gibt nur Kategorien zurück, für die eine drucker_ip konfiguriert ist.
-	GetKonfigurierteKategorieDrucker(ctx context.Context) (map[string]DruckerKonfig, error)
+	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]Druckstation, error)
 }
 
 // DruckAuftrag ist das Application-DTO, das an den HTTP-Handler weitergegeben wird.
@@ -44,8 +44,8 @@ func (q Query) GetDruckAuftraege(ctx context.Context, lastEventID int) ([]DruckA
 		return nil, 0, nil
 	}
 
-	// 2. Druckerkonfiguration zur Lesezeit holen (immer aktuell)
-	druckerConfig, err := q.DruckerRepo.GetKonfigurierteKategorieDrucker(ctx)
+	// 2. Druckstationen zur Lesezeit holen (immer aktuell)
+	druckstationen, err := q.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -53,7 +53,7 @@ func (q Query) GetDruckAuftraege(ctx context.Context, lastEventID int) ([]DruckA
 	// 3. Pro Event Druck-Aufträge erzeugen
 	var auftraege []DruckAuftrag
 	for _, evt := range events {
-		jobs := createDruckAuftraegeFromEvent(evt, druckerConfig)
+		jobs := createDruckAuftraegeFromEvent(evt, druckstationen)
 		auftraege = append(auftraege, jobs...)
 	}
 

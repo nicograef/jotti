@@ -11,10 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { type Bonmodus, type DruckerConfig } from '@/lib/DruckerBackend'
+import {
+  type Bonmodus,
+  type DruckstationConfig,
+} from '@/lib/DruckstationBackend'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 
-import { useDruckerConfig } from './hooks'
+import { useDruckstationen } from './hooks'
 
 const KATEGORIE_LABELS: Record<string, string> = {
   essen: 'Essen',
@@ -22,12 +25,12 @@ const KATEGORIE_LABELS: Record<string, string> = {
   sonstiges: 'Sonstiges',
 }
 
-function DruckerRow({
+function DruckstationRow({
   config,
   onUpdate,
 }: {
-  config: DruckerConfig
-  onUpdate: (config: DruckerConfig) => Promise<void>
+  config: DruckstationConfig
+  onUpdate: (config: DruckstationConfig) => Promise<void>
 }) {
   const [druckerIp, setDruckerIp] = useState(config.druckerIp)
   const [bonmodus, setBonmodus] = useState<Bonmodus>(config.bonmodus)
@@ -38,12 +41,12 @@ function DruckerRow({
     try {
       await onUpdate({ kategorie: config.kategorie, druckerIp, bonmodus })
       toast.success(
-        `Drucker für „${KATEGORIE_LABELS[config.kategorie]}" gespeichert.`,
+        `Druckstation für „${KATEGORIE_LABELS[config.kategorie]}" gespeichert.`,
       )
     } catch (error) {
       toast.error(
         getActionErrorMessage({
-          actionLabel: 'Druckerkonfiguration speichern',
+          actionLabel: 'Druckstation speichern',
           error,
         }),
       )
@@ -100,34 +103,34 @@ function DruckerRow({
   )
 }
 
-export function DruckerConfigPage() {
-  const { drucker, isPending, error, updateDruckerConfig } = useDruckerConfig()
+export function DruckstationConfigPage() {
+  const { druckstationen, isPending, error, updateDruckstation } =
+    useDruckstationen()
 
   if (isPending) {
-    return <p className="text-muted-foreground">Lade Druckerkonfiguration…</p>
+    return <p className="text-muted-foreground">Lade Druckstationen…</p>
   }
 
   if (error) {
     return (
-      <p className="text-destructive">
-        Fehler beim Laden der Druckerkonfiguration.
-      </p>
+      <p className="text-destructive">Fehler beim Laden der Druckstationen.</p>
     )
   }
 
   return (
     <div className="max-w-2xl">
-      <h2 className="text-xl font-semibold mb-4">Druckerkonfiguration</h2>
+      <h2 className="text-xl font-semibold mb-4">Druckstationen</h2>
       <p className="text-muted-foreground text-sm mb-6">
-        Jedem Produkttyp kann ein Bondrucker im lokalen Netzwerk zugewiesen
-        werden. Leere IP bedeutet kein Drucker für diese Kategorie.
+        Je Produktkategorie kann eine Druckstation im lokalen Netzwerk
+        zugewiesen werden. Leere IP bedeutet keine Druckstation für diese
+        Kategorie.
       </p>
       <div className="rounded-md border px-4">
-        {drucker.map((config) => (
-          <DruckerRow
+        {druckstationen.map((config) => (
+          <DruckstationRow
             key={config.kategorie}
             config={config}
-            onUpdate={updateDruckerConfig}
+            onUpdate={updateDruckstation}
           />
         ))}
       </div>

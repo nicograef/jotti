@@ -215,11 +215,11 @@ Tisch-Bestellung druckt danach exakt wie zuvor (über den noch unveränderten Re
 
 ### Acceptance criteria
 
-- [ ] `druckstationen`-Tabelle ersetzt `kategorie_drucker` (3 Seed-Zeilen unverändert)
-- [ ] `make sqlc` regeneriert ohne manuelle `dbgen/`-Eingriffe; Build grün
-- [ ] Admin-Konfigseite lädt/speichert Druckstationen unverändert (Verhalten identisch)
-- [ ] `language.md`-Soll-Abweichung „Druckstation" geschlossen (Ist = `druckstationen`)
-- [ ] `make check` grün; keine verwaisten `drucker`-Bezeichner mehr
+- [x] `druckstationen`-Tabelle ersetzt `kategorie_drucker` (3 Seed-Zeilen unverändert)
+- [x] `make sqlc` regeneriert ohne manuelle `dbgen/`-Eingriffe; Build grün
+- [x] Admin-Konfigseite lädt/speichert Druckstationen unverändert (Verhalten identisch)
+- [x] `language.md`-Soll-Abweichung „Druckstation" geschlossen (Ist = `druckstationen`)
+- [x] `make check` grün; keine verwaisten `drucker`-Bezeichner mehr
 
 ---
 

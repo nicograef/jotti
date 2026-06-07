@@ -213,9 +213,9 @@ CREATE INDEX idx_tisch_favoriten_user_id ON tisch_favoriten(user_id);
 COMMENT ON TABLE tisch_favoriten IS 'Per-user favourite tables; each service user can mark tables they are responsible for.';
 
 -- ============================================================
--- Table: kategorie_drucker (Drucker-Konfiguration pro Produkt-Kategorie)
+-- Table: druckstationen (Drucker-Konfiguration pro Produkt-Kategorie)
 -- ============================================================
-CREATE TABLE kategorie_drucker (
+CREATE TABLE druckstationen (
     kategorie   ProduktKategorie PRIMARY KEY,
     drucker_ip  VARCHAR(50) NOT NULL,
     bonmodus    TEXT NOT NULL
@@ -223,11 +223,11 @@ CREATE TABLE kategorie_drucker (
     updated_at  TIMESTAMPTZ NOT NULL
 );
 
-COMMENT ON TABLE kategorie_drucker IS 'Drucker-IP und Bonmodus pro Produkt-Kategorie für den Bondruck.';
-COMMENT ON COLUMN kategorie_drucker.drucker_ip IS 'IPv4-Adresse des Bondruckers (leer = kein Drucker konfiguriert)';
-COMMENT ON COLUMN kategorie_drucker.bonmodus IS 'Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon)';
+COMMENT ON TABLE druckstationen IS 'Drucker-IP und Bonmodus pro Produkt-Kategorie für den Bondruck.';
+COMMENT ON COLUMN druckstationen.drucker_ip IS 'IPv4-Adresse des Bondruckers (leer = kein Drucker konfiguriert)';
+COMMENT ON COLUMN druckstationen.bonmodus IS 'Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon)';
 
-INSERT INTO kategorie_drucker (kategorie, drucker_ip, bonmodus, updated_at) VALUES
+INSERT INTO druckstationen (kategorie, drucker_ip, bonmodus, updated_at) VALUES
     ('essen',     '', 'pro_position', now()),
     ('getraenk',  '', 'pro_position', now()),
     ('sonstiges', '', 'pro_position', now());

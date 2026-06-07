@@ -100,10 +100,11 @@ export const router = createBrowserRouter([
             }),
           },
           {
-            path: 'drucker',
+            path: 'druckstationen',
             lazy: async () => ({
-              Component: (await import('./admin/settings/DruckerConfigPage'))
-                .DruckerConfigPage,
+              Component: (
+                await import('./admin/settings/DruckstationConfigPage')
+              ).DruckstationConfigPage,
             }),
           },
           {

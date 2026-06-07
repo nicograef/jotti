@@ -10,8 +10,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
-// DruckerKonfig enthält die Konfiguration eines Druckers für eine Kategorie.
-type DruckerKonfig struct {
+// Druckstation enthält die Konfiguration eines Druckers für eine Kategorie.
+type Druckstation struct {
 	IP       string // z.B. "192.168.1.51", leer = kein Drucker
 	Bonmodus string // "pro_position" (Standard) oder "pro_bestellung"
 }
@@ -30,7 +30,7 @@ type bestellungEventData struct {
 // Kategorien ohne konfigurierte drucker_ip werden übersprungen (kein Fehler).
 func createDruckAuftraegeFromEvent(
 	evt event.Event,
-	druckerConfig map[string]DruckerKonfig, // kategorie → DruckerKonfig
+	druckstationen map[string]Druckstation, // kategorie → Druckstation
 ) []DruckAuftrag {
 	var data bestellungEventData
 	if err := json.Unmarshal(evt.Data, &data); err != nil {
@@ -48,7 +48,7 @@ func createDruckAuftraegeFromEvent(
 	var auftraege []DruckAuftrag
 
 	for kategorie, positionen := range byKategorie {
-		konfig, ok := druckerConfig[kategorie]
+		konfig, ok := druckstationen[kategorie]
 		if !ok || konfig.IP == "" {
 			continue // Kein Drucker konfiguriert → überspringen
 		}
