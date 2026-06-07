@@ -121,8 +121,8 @@ func TestKassensturzDurchfuehrenHandler_KasseNichtGeoeffnet(t *testing.T) {
 
 	handler.KassensturzDurchfuehrenHandler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected 409, got %d", rec.Code)
 	}
 }
 

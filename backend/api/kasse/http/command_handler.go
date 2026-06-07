@@ -92,12 +92,13 @@ func (h *CommandHandler) GeldtransitBuchenHandler() http.HandlerFunc {
 
 		err := h.Command.GeldtransitBuchen(r.Context(), userID, userName, body.Richtung, body.BetragCents, body.Kommentar)
 		if err != nil {
-			if errors.Is(err, kasseApp.ErrKonflikt) {
+			switch {
+			case errors.Is(err, kasseApp.ErrKonflikt):
 				helper.SendConflictError(w)
-			} else {
-				helper.MapError(w, err, map[error]string{
-					kasseApp.ErrKasseNichtGeoeffnet: "kasse_nicht_geoeffnet",
-				})
+			case errors.Is(err, kasseApp.ErrKasseNichtGeoeffnet):
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			default:
+				helper.SendServerError(w)
 			}
 			return
 		}
@@ -122,12 +123,13 @@ func (h *CommandHandler) KassensturzDurchfuehrenHandler() http.HandlerFunc {
 
 		err := h.Command.KassensturzDurchfuehren(r.Context(), userID, userName, body.IstBestandCents)
 		if err != nil {
-			if errors.Is(err, kasseApp.ErrKonflikt) {
+			switch {
+			case errors.Is(err, kasseApp.ErrKonflikt):
 				helper.SendConflictError(w)
-			} else {
-				helper.MapError(w, err, map[error]string{
-					kasseApp.ErrKasseNichtGeoeffnet: "kasse_nicht_geoeffnet",
-				})
+			case errors.Is(err, kasseApp.ErrKasseNichtGeoeffnet):
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			default:
+				helper.SendServerError(w)
 			}
 			return
 		}
@@ -147,11 +149,13 @@ func (h *CommandHandler) TagesabschlussErstellenHandler() http.HandlerFunc {
 
 		err := h.Command.TagesabschlussErstellen(r.Context(), userID, userName)
 		if err != nil {
-			if errors.Is(err, kasseApp.ErrKonflikt) {
+			switch {
+			case errors.Is(err, kasseApp.ErrKonflikt):
 				helper.SendConflictError(w)
-			} else {
+			case errors.Is(err, kasseApp.ErrKasseNichtGeoeffnet):
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			default:
 				helper.MapError(w, err, map[error]string{
-					kasseApp.ErrKasseNichtGeoeffnet:     "kasse_nicht_geoeffnet",
 					kasseApp.ErrKassensturzErforderlich: "kassensturz_erforderlich",
 					kasseApp.ErrTischeSaldoOffen:        "tische_saldo_offen",
 				})

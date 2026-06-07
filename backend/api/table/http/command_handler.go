@@ -302,14 +302,16 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.TischID, toBestellPositionInputs(body.Positionen), body.Kommentar)
 		if err != nil {
-			if errors.Is(err, application.ErrConflict) {
+			switch {
+			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
-			} else {
+			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			default:
 				helper.MapError(w, err, map[error]string{
-					application.ErrKasseNichtGeoeffnet: "kasse_nicht_geoeffnet",
-					application.ErrTischNotFound:       "tisch_not_found",
-					application.ErrTischNotActive:      "tisch_not_active",
-					application.ErrProduktNotFound:     "produkt_not_found",
+					application.ErrTischNotFound:   "tisch_not_found",
+					application.ErrTischNotActive:  "tisch_not_active",
+					application.ErrProduktNotFound: "produkt_not_found",
 				})
 			}
 			return
@@ -356,11 +358,13 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
-			if errors.Is(err, application.ErrConflict) {
+			switch {
+			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
-			} else {
+			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			default:
 				helper.MapError(w, err, map[error]string{
-					application.ErrKasseNichtGeoeffnet:    "kasse_nicht_geoeffnet",
 					application.ErrTischNotFound:          "tisch_not_found",
 					application.ErrTischNotActive:         "tisch_not_active",
 					application.ErrPositionNichtBezahlbar: "position_nicht_bezahlbar",
@@ -382,11 +386,14 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 
 		err := h.Command.KassenbelegDrucken(r.Context(), body.TischID, body.ZahlungID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrKasseNichtGeoeffnet:                 "kasse_nicht_geoeffnet",
-				application.ErrZahlungNichtGefunden:                "zahlung_not_found",
-				application.ErrKassenbelegDruckerNichtKonfiguriert: "kassenbeleg_drucker_nicht_konfiguriert",
-			})
+			if errors.Is(err, application.ErrKasseNichtGeoeffnet) {
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			} else {
+				helper.MapError(w, err, map[error]string{
+					application.ErrZahlungNichtGefunden:                "zahlung_not_found",
+					application.ErrKassenbelegDruckerNichtKonfiguriert: "kassenbeleg_drucker_nicht_konfiguriert",
+				})
+			}
 			return
 		}
 
@@ -421,11 +428,13 @@ func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.StornierungErteilen(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
-			if errors.Is(err, application.ErrConflict) {
+			switch {
+			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
-			} else {
+			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			default:
 				helper.MapError(w, err, map[error]string{
-					application.ErrKasseNichtGeoeffnet:      "kasse_nicht_geoeffnet",
 					application.ErrTischNotFound:            "tisch_not_found",
 					application.ErrTischNotActive:           "tisch_not_active",
 					application.ErrPositionNichtStornierbar: "position_nicht_stornierbar",
@@ -471,11 +480,13 @@ func (h *CommandHandler) AusgabeBestaetigenHandler() http.HandlerFunc {
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.AusgabeBestaetigen(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
-			if errors.Is(err, application.ErrConflict) {
+			switch {
+			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
-			} else {
+			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			default:
 				helper.MapError(w, err, map[error]string{
-					application.ErrKasseNichtGeoeffnet:    "kasse_nicht_geoeffnet",
 					application.ErrTischNotFound:          "tisch_not_found",
 					application.ErrTischNotActive:         "tisch_not_active",
 					application.ErrPositionNichtAusgebbar: "position_nicht_ausgebbar",
@@ -509,13 +520,15 @@ func (h *CommandHandler) AuszahlungLeistenHandler() http.HandlerFunc {
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.AuszahlungLeisten(r.Context(), userID, userName, body.TischID, body.BetragCents, body.Kommentar)
 		if err != nil {
-			if errors.Is(err, application.ErrConflict) {
+			switch {
+			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
-			} else {
+			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			default:
 				helper.MapError(w, err, map[error]string{
-					application.ErrKasseNichtGeoeffnet: "kasse_nicht_geoeffnet",
-					application.ErrTischNotFound:       "tisch_not_found",
-					application.ErrTischNotActive:      "tisch_not_active",
+					application.ErrTischNotFound:  "tisch_not_found",
+					application.ErrTischNotActive: "tisch_not_active",
 				})
 			}
 			return

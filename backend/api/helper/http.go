@@ -36,7 +36,12 @@ func SendClientError(w http.ResponseWriter, code string, details any) {
 }
 
 func SendConflictError(w http.ResponseWriter) {
-	SendJSONResponse(w, errorResponse{Code: "conflict"}, http.StatusConflict)
+	SendConflict(w, "conflict")
+}
+
+// SendConflict sends a 409 Conflict response with the given error code.
+func SendConflict(w http.ResponseWriter, code string) {
+	SendJSONResponse(w, errorResponse{Code: code}, http.StatusConflict)
 }
 
 func SendServerError(w http.ResponseWriter) {
