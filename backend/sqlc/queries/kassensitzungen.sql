@@ -15,21 +15,13 @@ FROM kassensitzungen ORDER BY datum DESC, created_at DESC;
 
 -- name: GetKassenbestand :one
 -- Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Auszahlungen, Geldtransits und Differenz-Buchungen.
-SELECT COALESCE(SUM(CASE
-    WHEN type = 'kassensitzung-eroeffnet:v1'
-        THEN (data->>'betragCents')::INT
-    WHEN type = 'zahlung-kassiert:v1'
-        THEN (data->>'gesamtZahlungCents')::INT
-    WHEN type = 'auszahlung-geleistet:v1'
-        THEN -(data->>'betragCents')::INT
-    WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'einlage'
-        THEN (data->>'betragCents')::INT
-    WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'entnahme'
-        THEN -(data->>'betragCents')::INT
-    WHEN type = 'differenz-soll-ist-gebucht:v1'
-        THEN (data->>'betragCents')::INT
-    ELSE 0
-END), 0)::int AS soll_bestand_cents
+SELECT (
+    COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int
+    + COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
+    - COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int
+    + COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int
+    + COALESCE(SUM(kj_extract_differenz_cents(type, data)), 0)::int
+)::int AS soll_bestand_cents
 FROM kassenjournal
 WHERE kassensitzung_nr = $1
   AND type IN (

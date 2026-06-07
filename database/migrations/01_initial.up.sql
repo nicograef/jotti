@@ -242,9 +242,27 @@ CREATE OR REPLACE FUNCTION kj_extract_zahlung_cents(type TEXT, data JSONB) RETUR
     SELECT CASE WHEN type = 'zahlung-kassiert:v1' THEN (data->>'gesamtZahlungCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
+-- Returns the opening amount in cents for a matching event row, NULL otherwise.
+CREATE OR REPLACE FUNCTION kj_extract_eroeffnung_cents(type TEXT, data JSONB) RETURNS int AS $$
+    SELECT CASE WHEN type = 'kassensitzung-eroeffnet:v1' THEN (data->>'betragCents')::int END
+$$ LANGUAGE sql IMMUTABLE;
+
 -- Returns the Auszahlung amount in cents for a matching event row, NULL otherwise.
 CREATE OR REPLACE FUNCTION kj_extract_auszahlung_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE WHEN type = 'auszahlung-geleistet:v1' THEN (data->>'betragCents')::int END
+$$ LANGUAGE sql IMMUTABLE;
+
+-- Returns the signed Geldtransit amount in cents for a matching event row, NULL otherwise.
+CREATE OR REPLACE FUNCTION kj_extract_geldtransit_cents(type TEXT, data JSONB) RETURNS int AS $$
+    SELECT CASE
+        WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'einlage' THEN (data->>'betragCents')::int
+        WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'entnahme' THEN -(data->>'betragCents')::int
+    END
+$$ LANGUAGE sql IMMUTABLE;
+
+-- Returns the Soll/Ist differenz amount in cents for a matching event row, NULL otherwise.
+CREATE OR REPLACE FUNCTION kj_extract_differenz_cents(type TEXT, data JSONB) RETURNS int AS $$
+    SELECT CASE WHEN type = 'differenz-soll-ist-gebucht:v1' THEN (data->>'betragCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the Bestellung amount in cents for a matching event row, NULL otherwise.

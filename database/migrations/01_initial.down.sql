@@ -15,6 +15,13 @@ DROP TRIGGER IF EXISTS kassenjournal_no_truncate ON kassenjournal;
 DROP TRIGGER IF EXISTS kassenjournal_no_delete ON kassenjournal;
 DROP TRIGGER IF EXISTS kassenjournal_no_update ON kassenjournal;
 DROP FUNCTION IF EXISTS prevent_table_mutation;
+DROP FUNCTION IF EXISTS kj_extract_stornierung_cents(TEXT, JSONB);
+DROP FUNCTION IF EXISTS kj_extract_bestellung_cents(TEXT, JSONB);
+DROP FUNCTION IF EXISTS kj_extract_differenz_cents(TEXT, JSONB);
+DROP FUNCTION IF EXISTS kj_extract_geldtransit_cents(TEXT, JSONB);
+DROP FUNCTION IF EXISTS kj_extract_auszahlung_cents(TEXT, JSONB);
+DROP FUNCTION IF EXISTS kj_extract_eroeffnung_cents(TEXT, JSONB);
+DROP FUNCTION IF EXISTS kj_extract_zahlung_cents(TEXT, JSONB);
 
 DROP TABLE IF EXISTS kassenidentitaet;
 DROP TABLE IF EXISTS betreiber;
