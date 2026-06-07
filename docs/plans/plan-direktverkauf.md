@@ -204,28 +204,28 @@ vollständig getrennt (eigene Events, eigene Endpunkte).
 
 ### Akzeptanzkriterien
 
-- [ ] Neuer `StreamType` `direktverkauf`; Repository-Routing schreibt dafür **nur** ins
+- [x] Neuer `StreamType` `direktverkauf`; Repository-Routing schreibt dafür **nur** ins
       Kassenjournal und legt **keine** `tisch_sessions`-Zeile an.
-- [ ] `DirektverkaufSubject(zNr, verkaufUUID)` erzeugt/parst
+- [x] `DirektverkaufSubject(zNr, verkaufUUID)` erzeugt/parst
       `kassensitzung-{nr}/direktverkauf-{uuid}`.
-- [ ] `direktverkauf-getaetigt:v1` wird per zog validiert; `gesamtbetragCents` ist die
+- [x] `direktverkauf-getaetigt:v1` wird per zog validiert; `gesamtbetragCents` ist die
       konsistente Summe der Positionen; Positions-IDs (UUID) werden serverseitig erzeugt.
-- [ ] `POST /service/direktverkauf-taetigen` (POST-only) schreibt **genau ein** Event;
+- [x] `POST /service/direktverkauf-taetigen` (POST-only) schreibt **genau ein** Event;
       ohne offene Kassensitzung → HTTP 409.
-- [ ] Endpunkt ist für admin/serviceleitung/service erreichbar; Request-DTO:
+- [x] Endpunkt ist für admin/serviceleitung/service erreichbar; Request-DTO:
       `positionen[]` (`produktId`, `varianteId`, `menge`), `kommentar?` (max. 100) —
       **kein** `verkaufsstelleId`.
-- [ ] Frontend: `DirektverkaufBackend.direktverkaufTaetigen` über `BackendClient`
+- [x] Frontend: `DirektverkaufBackend.direktverkaufTaetigen` über `BackendClient`
       (kein direktes `fetch()`); Route `service/direktverkauf` unter `ServiceGuard`;
       Einstiegskarte auf `/service/tische`.
-- [ ] Verkaufen-Seite rendert die kombinierte Oberfläche (Produktauswahl +
+- [x] Verkaufen-Seite rendert die kombinierte Oberfläche (Produktauswahl +
       Abschluss-Button + optionale Rückgeldanzeige) statt der Tabs Bestellen/Bezahlen;
       nach Erfolg ist die Eingabe geleert.
-- [ ] Tests: Domäne (ein Event, konsistente Summe, Positions-IDs), Command (keine
+- [x] Tests: Domäne (ein Event, konsistente Summe, Positions-IDs), Command (keine
       offene KS → Fehler; Happy Path ein Event), HTTP, Frontend (genau ein Backend-Aufruf,
       Reset, kombinierte Oberfläche).
-- [ ] Doku: `docs/language.md` (Direktverkauf, Verkauf; keine `Verkaufsstelle`-Entität),
-      `docs/anforderungen.md` (neu **K-23 · Direktverkauf**),
+- [x] Doku: `docs/language.md` (Direktverkauf, Verkauf; keine `Verkaufsstelle`-Entität),
+      `docs/anforderungen.md` (neu **K-24 · Direktverkauf**),
       `docs/handbuch.md` (Stream-Typ, Subject, Event), `docs/produktbeschreibung.md`
       (Direktverkauf personalbedient enthalten; SB-Kiosk weiterhin ausgeschlossen).
 
@@ -324,7 +324,7 @@ Gruppierung pro Theke. Im Admin-Dashboard erscheint diese Kennzahl als eigene
       zählt korrekt; Reporting-Stats), Reporting-Query/HTTP, Frontend (`SummaryCard`).
 - [ ] Doku: `docs/compliance.md` (einzelner Geschäftsvorfall, Kassenwirksamkeit von
       Verkauf und Storno), `docs/handbuch.md` (Kassenbestand-/Reporting-Erweiterung),
-      `docs/anforderungen.md` (K-23-Akzeptanzkriterien).
+      `docs/anforderungen.md` (K-24-Akzeptanzkriterien).
 
 ---
 

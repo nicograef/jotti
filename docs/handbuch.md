@@ -137,11 +137,14 @@ Subjects folgen einer hierarchischen Konvention mit zwei Ebenen:
 ```
 kassensitzung-{nr}                             → Globaler Betriebstag (Kassensitzung)
 kassensitzung-{nr}/tisch-{tischId}              → Abrechnungskreis (Tisch-Session)
+kassensitzung-{nr}/direktverkauf-{uuid}         → Direktverkauf (ein Stream pro Verkauf)
 ```
 
 **Kassensitzung-Subject:** `kassensitzung-1` — Nummer aus `kassensitzungen.z_nr`.
 
 **Tisch-Session-Subject:** `kassensitzung-1/tisch-42` — entsteht implizit mit der ersten Bestellung (kein „Tisch-Öffnen"-Event).
+
+**Direktverkauf-Subject:** `kassensitzung-1/direktverkauf-<uuid>` — ein eigener Stream pro Barverkauf an der Theke. Der Stream-Typ `direktverkauf` schreibt ausschließlich ins Kassenjournal (keine Projektion). `direktverkauf-getaetigt:v1` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream (OCC über `UNIQUE(subject, version)`).
 
 Separate Tisch-Subjects sind notwendig, weil der OCC-Constraint `UNIQUE(subject, version)` bei einem einzigen Subject alle Schreibvorgänge serialisieren würde — bei 5–30 Servicekräften nicht praktikabel.
 

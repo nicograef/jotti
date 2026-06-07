@@ -94,3 +94,38 @@ func TestParseZNrFromSubject_InvalidNumber(t *testing.T) {
 		t.Fatal("expected error for invalid number, got nil")
 	}
 }
+
+func TestDirektverkaufSubject(t *testing.T) {
+	got := DirektverkaufSubject(1, "abc-123")
+	want := "kassensitzung-1/direktverkauf-abc-123"
+	if got != want {
+		t.Errorf("DirektverkaufSubject(1, abc-123) = %q, want %q", got, want)
+	}
+}
+
+func TestParseVerkaufIDFromSubject_Valid(t *testing.T) {
+	id, err := ParseVerkaufIDFromSubject("kassensitzung-1/direktverkauf-abc-123")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if id != "abc-123" {
+		t.Fatalf("expected abc-123, got %s", id)
+	}
+}
+
+func TestParseVerkaufIDFromSubject_InvalidFormat(t *testing.T) {
+	_, err := ParseVerkaufIDFromSubject("kassensitzung-1/tisch-42")
+	if err == nil {
+		t.Fatal("expected error for invalid format, got nil")
+	}
+}
+
+func TestParseZNrFromSubject_DirektverkaufSubject(t *testing.T) {
+	nr, err := ParseZNrFromSubject("kassensitzung-3/direktverkauf-abc-123")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if nr != 3 {
+		t.Fatalf("expected 3, got %d", nr)
+	}
+}

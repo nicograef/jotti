@@ -132,6 +132,13 @@ export const router = createBrowserRouter([
             }),
           },
           {
+            path: 'direktverkauf',
+            lazy: async () => ({
+              Component: (await import('./service/DirektverkaufPage'))
+                .DirektverkaufPage,
+            }),
+          },
+          {
             path: 'tische/:tischId',
             lazy: async () => ({
               Component: (await import('./service/TablePage')).TablePage,

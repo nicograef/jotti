@@ -28,6 +28,7 @@ func NewRepository(database *sql.DB) Repository {
 // Routing by streamType:
 //   - "kassensitzung" → INSERT/UPDATE kassensitzungen (CRUD entity)
 //   - "tisch-session" → UPSERT tisch_sessions (synchronous projection)
+//   - "direktverkauf" → kassenjournal only (no projection)
 func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -65,6 +66,9 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType ka
 		if err := r.handleTischSessionEvent(ctx, qtx, e, kassensitzungNr); err != nil {
 			return 0, err
 		}
+
+	case kasse.StreamTypeDirektverkauf:
+		// Direktverkauf lives entirely in the kassenjournal — no projection to update.
 
 	default:
 		return 0, fmt.Errorf("unknown stream type: %s", streamType)

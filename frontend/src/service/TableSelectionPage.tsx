@@ -1,5 +1,6 @@
-import { Lamp, TableIcon } from 'lucide-react'
+import { Lamp, ShoppingCart, TableIcon } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router'
 
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -17,6 +18,13 @@ export function TableSelectionPage() {
 
   return (
     <div className="py-2">
+      <Button asChild size="lg" className="w-full mb-4">
+        <Link to="/service/direktverkauf">
+          <ShoppingCart />
+          Direktverkauf
+        </Link>
+      </Button>
+
       <EigeneUebersichtKarten
         uebersicht={uebersicht}
         loading={uebersichtLoading}

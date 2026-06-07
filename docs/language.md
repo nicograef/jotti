@@ -129,6 +129,16 @@ Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Be
 
 > **Hinweis `domain/table/`:** Das Paket existiert weiterhin für Tisch-Stammdaten (`tisch.go`). Die Kasse-Logik (Event-Sourcing, Tisch-Sessions, Kassensitzung) wurde nach `domain/kasse/` ausgelagert — `domain/table/` enthält nur noch die CRUD-Entität `Tisch`.
 
+#### Direktverkauf
+
+Schlankes Event-Sourced Aggregat im Kasse-Kontext für den **Barverkauf an der Theke**: bestellen, zahlen und ausgeben in einem Schritt — **ohne** Tisch und **ohne** Projektion. Jeder **Verkauf** ist ein eigener Event-Stream mit eigener UUID. Der Stream-Typ `direktverkauf` schreibt ausschließlich ins Kassenjournal. Direktverkauf hat **keine** `Verkaufsstelle`-Stammdaten-Entität.
+
+| Go-Struct | TS-Typ | Event-Typ (Verkauf)          | Subject-Format                            |
+| --------- | ------ | ---------------------------- | ----------------------------------------- |
+| —         | —      | `direktverkauf-getaetigt:v1` | `kassensitzung-{nr}/direktverkauf-{uuid}` |
+
+> **Verkauf:** die fachliche Einheit eines Direktverkaufs (ein Stream, ein `verkaufId`). Kein eigenes Domain-Struct — der Verkauf existiert nur als Event-Stream im Kassenjournal. `direktverkauf-getaetigt:v1` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream.
+
 #### Bestellung
 
 Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt.

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"net/http"
 
+	direktverkaufApp "github.com/nicograef/jotti/backend/api/direktverkauf/application"
+	direktverkaufHTTP "github.com/nicograef/jotti/backend/api/direktverkauf/http"
 	productApp "github.com/nicograef/jotti/backend/api/product/application"
 	productHTTP "github.com/nicograef/jotti/backend/api/product/http"
 	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
@@ -54,6 +56,14 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/ausgabe-bestaetigen", tc.AusgabeBestaetigenHandler())
 	r.HandleFunc("/favorit-hinzufuegen", tc.FavoritHinzufuegenHandler())
 	r.HandleFunc("/favorit-entfernen", tc.FavoritEntfernenHandler())
+
+	dc := direktverkaufHTTP.CommandHandler{}
+	dc.Command = direktverkaufApp.Command{
+		EventRepo:           kassenjournalRepo,
+		ProductRepo:         productRepo,
+		KassensitzungenRepo: kassensitzungenRepo,
+	}
+	r.HandleFunc("/direktverkauf-taetigen", dc.DirektverkaufTaetigenHandler())
 
 	tq := tableHTTP.QueryHandler{}
 	tq.Query = tableApp.Query{TableRepo: tableRepo, EventRepo: kassenjournalRepo, FavoritRepo: favoritRepo, KassensitzungenRepo: kassensitzungenRepo}

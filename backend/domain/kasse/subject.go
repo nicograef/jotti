@@ -16,6 +16,23 @@ func TischSessionSubject(zNr int, tischID int) string {
 	return "kassensitzung-" + strconv.Itoa(zNr) + "/tisch-" + strconv.Itoa(tischID)
 }
 
+// DirektverkaufSubject constructs the subject for a Direktverkauf event stream.
+// Each Direktverkauf is its own stream identified by a UUID.
+func DirektverkaufSubject(zNr int, verkaufID string) string {
+	return "kassensitzung-" + strconv.Itoa(zNr) + "/direktverkauf-" + verkaufID
+}
+
+// ParseVerkaufIDFromSubject extracts the verkaufID from a subject like
+// "kassensitzung-1/direktverkauf-<uuid>".
+func ParseVerkaufIDFromSubject(subject string) (string, error) {
+	const marker = "/direktverkauf-"
+	idx := strings.LastIndex(subject, marker)
+	if idx < 0 {
+		return "", fmt.Errorf("invalid direktverkauf subject format: %s", subject)
+	}
+	return subject[idx+len(marker):], nil
+}
+
 // ParseTischIDFromSubject extracts the tischID from a subject like "kassensitzung-1/tisch-42".
 func ParseTischIDFromSubject(subject string) (int, error) {
 	const marker = "/tisch-"
