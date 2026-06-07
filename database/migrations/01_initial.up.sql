@@ -64,6 +64,8 @@ CREATE TABLE IF NOT EXISTS produkte (
     updated_at TIMESTAMPTZ NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_produkte_status ON produkte(status);
+
 COMMENT ON TABLE produkte IS 'Produkte, die von Gästen bestellt werden können.';
 COMMENT ON COLUMN produkte.name IS 'Name des Produkts';
 COMMENT ON COLUMN produkte.kategorie IS 'Kategorie des Produkts: essen, getraenk oder sonstiges';
@@ -84,6 +86,7 @@ CREATE TABLE IF NOT EXISTS produkt_varianten (
     updated_at TIMESTAMPTZ NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_produkt_varianten_produkt_id ON produkt_varianten(produkt_id);
 CREATE INDEX IF NOT EXISTS idx_produkt_varianten_status ON produkt_varianten(status);
 
 COMMENT ON TABLE produkt_varianten IS 'Varianten von Produkten (verschiedene Größen, Optionen, etc.).';
