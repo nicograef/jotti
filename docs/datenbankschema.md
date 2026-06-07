@@ -13,7 +13,7 @@ Dieses Dokument erklärt das vollständige Datenbankschema von jotti: jede Tabel
    - [tische](#32-tische--gaststische)
    - [produkte](#33-produkte--produktkatalog)
    - [produkt_varianten](#34-produkt_varianten--produktvarianten)
-   - [kategorie_drucker](#35-kategorie_drucker--druckerkonfiguration)
+   - [druckstationen](#35-druckstationen--druckerkonfiguration)
    - [tisch_favoriten](#36-tisch_favoriten--lieblingstische-pro-benutzer)
 4. [Kasse-Tabellen (Event-Sourcing)](#4-kasse-tabellen-event-sourcing)
    - [kassensitzungen](#41-kassensitzungen--kassensitzung-crud-entität)
@@ -30,10 +30,10 @@ Dieses Dokument erklärt das vollständige Datenbankschema von jotti: jede Tabel
 
 Das Schema besteht aus zwei fundamental unterschiedlichen Bereichen:
 
-| Bereich        | Muster                | Tabellen                                                                                   | Änderbar?                            |
-| -------------- | --------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------ |
-| **Stammdaten** | CRUD                  | `users`, `tische`, `produkte`, `produkt_varianten`, `tisch_favoriten`, `kategorie_drucker` | Ja (Soft-Delete)                     |
-| **Kasse**      | Event-Sourcing + CQRS | `kassensitzungen`, `kassenjournal`, `tisch_sessions`                                       | `kassenjournal` niemals — nur append |
+| Bereich        | Muster                | Tabellen                                                                                | Änderbar?                            |
+| -------------- | --------------------- | --------------------------------------------------------------------------------------- | ------------------------------------ |
+| **Stammdaten** | CRUD                  | `users`, `tische`, `produkte`, `produkt_varianten`, `tisch_favoriten`, `druckstationen` | Ja (Soft-Delete)                     |
+| **Kasse**      | Event-Sourcing + CQRS | `kassensitzungen`, `kassenjournal`, `tisch_sessions`                                    | `kassenjournal` niemals — nur append |
 
 **Warum Event-Sourcing für die Kasse?**
 
@@ -47,7 +47,7 @@ tische                          kassenjournal    (append-only! ← Single Source
 produkte                        tisch_sessions   (CQRS-Projektion)
 produkt_varianten
 tisch_favoriten
-kategorie_drucker
+druckstationen
 ```
 
 ---
@@ -95,7 +95,7 @@ erDiagram
         timestamptz updated_at
     }
 
-    kategorie_drucker {
+    druckstationen {
         ProduktKategorie kategorie PK
         varchar drucker_ip
         text bonmodus
@@ -225,7 +225,7 @@ Stammdaten-Tabellen folgen dem klassischen CRUD-Muster. Datensätze werden nie p
 
 **Warum die Kategorie auf `produkte` und nicht auf `produkt_varianten`?**
 
-Die Kategorie steuert das Drucker-Routing über `kategorie_drucker`. Alle Varianten eines Produkts gehören zur gleichen Kategorie (z. B. alle Bier-Varianten → Getränk-Drucker). Das ist eine Invariante des Produktmodells.
+Die Kategorie steuert das Drucker-Routing über `druckstationen`. Alle Varianten eines Produkts gehören zur gleichen Kategorie (z. B. alle Bier-Varianten → Getränk-Drucker). Das ist eine Invariante des Produktmodells.
 
 ---
 
@@ -255,11 +255,11 @@ graph LR
 
 ---
 
-### 3.5 `kategorie_drucker` — Druckerkonfiguration
+### 3.5 `druckstationen` — Druckerkonfiguration
 
-> **Ist-Zustand.** Die Bon-Neuordnung (`docs/prds/prd-bondruck.md`) benennt diese Tabelle zu `druckstationen` um (Arbeitsbon-Stationen) und führt eine Druckauftrags-Outbox (`druckauftraege`) ein; das Relay wird dann zum reinen Transport. Bis zur Umsetzung beschreibt dieser Abschnitt den aktuellen Stand.
+> **Bondruck-Architektur.** Dieser Abschnitt beschreibt die Konfigurationstabelle der Arbeitsbon-Stationen. Die vollständige Bondruck-Architektur (zwei Bon-Familien Arbeitsbon/Kassenbeleg, die `druckauftraege`-Outbox und das Relay als reiner Transport) ist in [handbuch.md §4.6](handbuch.md) dokumentiert.
 
-**Zweck:** Konfiguriert, welcher Netzwerkdrucker (Bondrucker, ESC/POS) für welche Produktkategorie zuständig ist. Das Relay-Dienst liest diese Konfiguration bei jedem Poll-Aufruf.
+**Zweck:** Konfiguriert pro Produktkategorie, an welchen Netzwerkdrucker (Bondrucker, ESC/POS) der **Arbeitsbon** geht. Die Arbeitsbon-Policy im Backend liest diese Konfiguration beim Einreihen der Druckaufträge.
 
 | Spalte       | Typ         | Zweck                                                                                                   |
 | ------------ | ----------- | ------------------------------------------------------------------------------------------------------- |
@@ -268,26 +268,35 @@ graph LR
 | `bonmodus`   | TEXT        | `pro_position`: 1 Bon pro bestellter Position; `pro_bestellung`: 1 Sammelbon für die gesamte Bestellung |
 | `updated_at` | TIMESTAMPTZ | Letzter Änderungszeitpunkt                                                                              |
 
-**Initialdaten:** Die Migration befüllt alle drei Kategorien mit leerer `drucker_ip` — Drucker-Druck ist defaultmäßig deaktiviert.
+**Initialdaten:** Die Migration befüllt alle drei Kategorien mit leerer `drucker_ip` — Arbeitsbon-Druck ist defaultmäßig deaktiviert.
 
-**Wie funktioniert der Bondruck?**
+**Verwandte Bondruck-Tabellen:** Zwei weitere Tabellen gehören zur Bondruck-Infrastruktur (Details → [handbuch.md §4.6](handbuch.md)):
+
+- **`druckauftraege`** — technische Outbox-Warteschlange für Druckjobs (`id`, `ziel_ip`, `payload` als Base64-ESC/POS, `status` `offen`→`gedruckt`, `bon_art` `arbeitsbon`|`kassenbeleg`, `referenz`, `erstellt_am`, `gedruckt_am`). Single Source of Truth für alle Druckjobs; **kein** fiskalisches Journal.
+- **`bondruck_einstellungen`** — Singleton (`id = 1`) mit `kassenbeleg_drucker_ip` für den Kassenbeleg-Drucker.
+
+**Wie funktioniert der Bondruck (Outbox-Fluss)?**
 
 ```mermaid
 sequenceDiagram
     participant S as Servicekraft
     participant BE as Backend
     participant KJ as kassenjournal
-    participant KD as kategorie_drucker
+    participant DS as druckstationen
+    participant DA as druckauftraege
     participant R as jotti-relay
     participant D as Bondrucker
 
     S->>BE: Bestellung aufnehmen
     BE->>KJ: INSERT bestellung-aufgenommen:v1
+    BE->>DS: SELECT drucker_ip, bonmodus pro Kategorie
+    BE->>DA: INSERT Druckauftrag (status=offen, ESC/POS-Payload)
     R->>BE: POST /relay/poll (alle N Sekunden)
-    BE->>KJ: SELECT neue Events seit letztem Cursor
-    BE->>KD: SELECT drucker_ip, bonmodus pro Kategorie
-    BE-->>R: Events + Druckerkonfig
+    BE->>DA: SELECT offene Druckaufträge
+    BE-->>R: offene Aufträge (id, zielIp, payload)
     R->>D: ESC/POS-Payload (TCP, Port 9100)
+    R->>BE: POST /relay/quittieren (gedruckte IDs)
+    BE->>DA: UPDATE status=gedruckt
 ```
 
 ---
@@ -632,5 +641,5 @@ Diese Funktionen sind `IMMUTABLE` (PostgreSQL kann sie in Indizes und CTEs optim
 | Offene Kassensitzung prüfen        | `kassensitzungen` WHERE status='offen'                         |
 | Kassenbestand berechnen            | `kassenjournal` WHERE kassensitzung_nr = N (SQL-Aggregation)   |
 | Z-Bon erstellen                    | `kassenjournal` WHERE kassensitzung_nr = N + `kassensitzungen` |
-| Drucker-IP ermitteln               | `kategorie_drucker` WHERE kategorie = '...'                    |
+| Drucker-IP ermitteln               | `druckstationen` WHERE kategorie = '...'                       |
 | Favoritentische einer Servicekraft | `tisch_favoriten` WHERE user_id = N                            |

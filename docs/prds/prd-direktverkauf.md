@@ -77,7 +77,7 @@ vom bedienten Tisch — **ohne** eigene Stammdaten-Entität:
 - **Aggregierte Reporting-Kennzahl** „Direktverkauf" (Anzahl + Umsatz, abzüglich
   Storno) — eine Zeile in den bestehenden Reporting-Kennzahlen, **keine**
   Aufschlüsselung pro Theke (es gibt nur eine).
-- **Bondruck über die gemeinsame Outbox-Infrastruktur** (siehe `prd-bondruck.md`) —
+- **Bondruck über die gemeinsame Outbox-Infrastruktur** (→ `docs/handbuch.md` §4.6) —
   der Direktverkauf speist dieselbe Arbeitsbon-Policy wie die Tischbestellung und kann
   auf Anforderung denselben Kassenbeleg erzeugen. Genau eine zusätzliche
   Konfigurationsentscheidung (`direktverkauf_modus`) steuert den operativen Druck:
@@ -87,12 +87,12 @@ vom bedienten Tisch — **ohne** eigene Stammdaten-Entität:
 
 ## Ubiquitous Language (neue Begriffe)
 
-| Begriff                       | Bedeutung                                                                                                                                                                                    |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Direktverkauf**             | Geschäftsvorfall: ein in einem Schritt abgeschlossener Barverkauf an der Theke (bestellen+zahlen+ausgeben zugleich).                                                                         |
-| **Verkauf**                   | Die konkrete Instanz eines Direktverkaufs, identifiziert durch eine UUID. Bildet einen eigenen Event-Stream.                                                                                 |
-| **Direktverkauf-Stornierung** | Positionsgenaue Korrektur/Rückgabe eines Verkaufs durch Serviceleitung/Admin. Gibt Bargeld sofort zurück.                                                                                    |
-| **Abholbon**                  | Operativer, nicht-fiskalischer Direktverkauf-Bon **für den Gast** (Selbstabholung). Festes Label „Direktverkauf", keine Preise. **Kein** Beleg i. S. v. § 146a AO (siehe `prd-bondruck.md`). |
+| Begriff                       | Bedeutung                                                                                                                                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Direktverkauf**             | Geschäftsvorfall: ein in einem Schritt abgeschlossener Barverkauf an der Theke (bestellen+zahlen+ausgeben zugleich).                                                                           |
+| **Verkauf**                   | Die konkrete Instanz eines Direktverkaufs, identifiziert durch eine UUID. Bildet einen eigenen Event-Stream.                                                                                   |
+| **Direktverkauf-Stornierung** | Positionsgenaue Korrektur/Rückgabe eines Verkaufs durch Serviceleitung/Admin. Gibt Bargeld sofort zurück.                                                                                      |
+| **Abholbon**                  | Operativer, nicht-fiskalischer Direktverkauf-Bon **für den Gast** (Selbstabholung). Festes Label „Direktverkauf", keine Preise. **Kein** Beleg i. S. v. § 146a AO (→ `docs/handbuch.md` §4.6). |
 
 **Abgrenzung:** Der Direktverkauf ist **personalbedient** (ein Vereinsmitglied
 bedient das Gerät). Der **Selbstbedienungs-Kiosk** (Gast bedient das Gerät selbst)
@@ -204,7 +204,7 @@ Positionsgenaue Korrektur/Rückgabe durch Serviceleitung/Admin.
    Rückgeld angezeigt bekommen (bestehende Rückgeldberechnung K-10, rein
    clientseitig), damit ich mich nicht verrechne.
 
-### Bon / Ausgabe (Bondruck-Infrastruktur aus `prd-bondruck.md`)
+### Bon / Ausgabe (bestehende Bondruck-Infrastruktur, → `docs/handbuch.md` §4.6)
 
 10. Als Betreiber möchte ich konfigurieren, ob beim Direktverkauf **kein Bon**, ein
     **Abholbon** an den Gast oder **Bons an die Stationen** gedruckt werden
@@ -345,17 +345,18 @@ kassensitzungNr)` wird genutzt. Neuer `StreamType` `direktverkauf`, der **nur** 
   Storno-Aktion für serviceleitung/admin.
 - **Keine Admin-Verwaltungsseite** — es gibt keine Stammdaten zu pflegen.
 
-### Bondruck (baut auf `prd-bondruck.md` auf)
+### Bondruck (nutzt die bestehende Bondruck-Infrastruktur, → `docs/handbuch.md` §4.6)
 
-Voraussetzung ist die Bondruck-Neuordnung aus `prd-bondruck.md` (Druckauftrags-Outbox,
-Arbeitsbon-Policy, Kassenbeleg-Command, `bondruck_einstellungen`-Singleton). Der
+Voraussetzung ist die bereits umgesetzte Bondruck-Infrastruktur (Druckauftrags-Outbox,
+Arbeitsbon-Policy, Kassenbeleg-Command, `bondruck_einstellungen`-Singleton — →
+`docs/handbuch.md` §4.6). Der
 Direktverkauf konsumiert diese Infrastruktur und fügt **keinen** neuen Bon-Typ hinzu —
 nur eine Routing-Entscheidung und einen Abholbon-Formatter.
 
 - **`direktverkauf_modus` (Konfiguration).** `bondruck_einstellungen` wird um
   `direktverkauf_modus` (`kein_bon` | `abholbon` | `an_stationen`) und
   `abholbon_drucker_ip` erweitert. Beidseitig validiert (Enum + IPv4).
-- **Arbeitsbon-Policy erweitert.** Die Policy aus `prd-bondruck.md` reagiert zusätzlich
+- **Arbeitsbon-Policy erweitert.** Die bestehende Arbeitsbon-Policy reagiert zusätzlich
   auf `direktverkauf-getaetigt:v1`:
   - `an_stationen` → Positionen nach Kategorie an die Druckstationen (identische Logik
     wie beim Tisch),
@@ -365,7 +366,7 @@ nur eine Routing-Entscheidung und einen Abholbon-Formatter.
 - **Festes Bon-Label „Direktverkauf".** Wo der Tisch-Arbeitsbon den Tischnamen aus dem
   Subject ableitet, nutzt der Abholbon den konstanten Text „Direktverkauf" — kein
   Subject-Parsing, kein Name im Event nötig.
-- **Direktverkauf-Kassenbeleg.** Der On-Demand-Kassenbeleg-Command aus `prd-bondruck.md`
+- **Direktverkauf-Kassenbeleg.** Der bestehende On-Demand-Kassenbeleg-Command
   akzeptiert zusätzlich eine **Verkauf-Referenz**; derselbe Formatter und dieselbe
   Outbox, nur die Datenquelle ist der Verkauf statt einer Tischzahlung. Unabhängig vom
   Abholbon.
@@ -420,12 +421,12 @@ Implementierungsdetails. Priorisiert:
    Soll-Kassenbestand und Gesamtumsatz; Storno mindert beide; die aggregierte
    Direktverkauf-Kennzahl zählt korrekt. Prior Art:
    `repository/kassenjournal_repo/repo_test.go`, Reporting-Repo-Tests.
-5. **Direktverkauf-Bons (baut auf `prd-bondruck.md` auf).** Die Arbeitsbon-Policy
+5. **Direktverkauf-Bons (nutzt die bestehende Bondruck-Infrastruktur).** Die Arbeitsbon-Policy
    erzeugt aus `direktverkauf-getaetigt` je `direktverkauf_modus` die richtigen
    Druckaufträge: `an_stationen` → Station-Bons nach Kategorie, `abholbon` → genau ein
    Abholbon (Label „Direktverkauf", keine Preise), `kein_bon` → keine Outbox-Zeile; der
    Direktverkauf-Kassenbeleg erzeugt genau einen Druckauftrag für einen echten Verkauf.
-   Prior Art: `prd-bondruck.md` (Formatter-/Policy-Tests).
+   Prior Art: `backend/api/bondruck` (Formatter-/Policy-Tests).
 6. **Frontend.** Verkaufen löst genau einen Backend-Aufruf aus; nach Erfolg leere
    Eingabe; die Verkaufen-Seite rendert die kombinierte Oberfläche statt Tabs; Historie
    kompakt. Prior Art: bestehende Service-Komponententests, `routes.test.ts`.
@@ -442,10 +443,11 @@ zunächst auf dem Backend-Kern (1–5) liegt.
   bewusst nicht enthalten (YAGNI; bei echtem Bedarf später nachrüstbar — „rule of three").
 - **Kartenzahlung / Zahlungsgateway** — Direktverkauf ist Barzahlung.
 - **Steuer-Aufschlüsselung und TSE-Pflichtfelder auf dem Kassenbeleg** — hängen an F-07
-  bzw. F-02 (siehe `prd-bondruck.md`); der Basis-Kassenbeleg des Direktverkaufs ist
+  bzw. F-02 (→ `docs/handbuch.md` §4.6); der Basis-Kassenbeleg des Direktverkaufs ist
   davon unabhängig druckbar.
 - **Bondruck-Infrastruktur selbst** (Outbox, Relay-Transport, Druckstation-Rename,
-  Kassenbeleg-Command) — wird in `prd-bondruck.md` gebaut; diese PRD konsumiert sie nur.
+  Kassenbeleg-Command) — bereits umgesetzt (→ `docs/handbuch.md` §4.6); diese PRD
+  konsumiert sie nur.
 - **Teilzahlung / offener Saldo beim Direktverkauf** — ein Verkauf ist immer
   vollständig.
 - **Separate Ausgabe-Bestätigung / Küchendisplay (K-13)** — beim Direktverkauf nicht
@@ -453,13 +455,13 @@ zunächst auf dem Backend-Kern (1–5) liegt.
 
 ## Further Notes
 
-- **Abhängigkeit von der Bondruck-PRD.** Der Bon-/Beleg-Teil dieses Features (Abholbon,
+- **Abhängigkeit von der Bondruck-Infrastruktur.** Der Bon-/Beleg-Teil dieses Features (Abholbon,
   `direktverkauf_modus`, Stations-Routing, Direktverkauf-Kassenbeleg) setzt die
-  Bondruck-Neuordnung aus `prd-bondruck.md` voraus (Druckauftrags-Outbox,
-  Arbeitsbon-Policy, Kassenbeleg-Command, `bondruck_einstellungen`-Singleton). Diese
-  Infrastruktur wird zuerst gebaut; der Direktverkauf konsumiert sie. Der **Kern** des
+  bereits umgesetzte Bondruck-Infrastruktur voraus (Druckauftrags-Outbox,
+  Arbeitsbon-Policy, Kassenbeleg-Command, `bondruck_einstellungen`-Singleton — →
+  `docs/handbuch.md` §4.6). Der **Kern** des
   Direktverkaufs (Event-Aggregat, Storno, Reporting, Kassenwirksamkeit) ist davon
-  unabhängig und kann vorab umgesetzt werden.
+  unabhängig und kann eigenständig umgesetzt werden.
 
 Bei der Umsetzung zu aktualisierende Dokumente:
 
