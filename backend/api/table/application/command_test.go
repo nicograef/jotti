@@ -607,11 +607,11 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 		DruckauftragRepo:    auftragMock,
 	}
 
-	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID)
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID)
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
 	if err != nil {
 		t.Fatalf("expected no reprint error, got %v", err)
 	}
@@ -639,7 +639,7 @@ func TestKassenbelegDrucken_ZahlungNichtGefunden(t *testing.T) {
 		DruckauftragRepo:    &mockDruckauftragRepo{},
 	}
 
-	err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, "11111111-1111-1111-1111-111111111111")
+	err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, "11111111-1111-1111-1111-111111111111", "")
 	if err != ErrZahlungNichtGefunden {
 		t.Fatalf("expected ErrZahlungNichtGefunden, got %v", err)
 	}
@@ -683,7 +683,120 @@ func TestKassenbelegDrucken_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
 		DruckauftragRepo: &mockDruckauftragRepo{},
 	}
 
-	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID)
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	if err != ErrKassenbelegDruckerNichtKonfiguriert {
+		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
+	}
+}
+
+func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
+	ctx := context.Background()
+	verkaufID := uuid.New().String()
+	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
+
+	verkaufEvent, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "Test User", []kasse.Position{
+		{
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk",
+			Einzelpreis:  350,
+			Menge:        2,
+		},
+	}, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(verkaufEvent)
+
+	auftragMock := &mockDruckauftragRepo{}
+	settingsMock := &mockSettingsRepo{
+		bondruck: settings.BondruckEinstellungen{KassenbelegDruckerIP: "192.168.1.80", UpdatedAt: time.Now()},
+		betreiber: settings.Betreiber{
+			Vereinsname: "SV Musterstadt",
+			Strasse:     "Musterstrasse 1",
+			Plz:         "12345",
+			Ort:         "Musterstadt",
+			UpdatedAt:   time.Now(),
+		},
+		kassenident: settings.Kassenidentitaet{
+			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
+			AngelegtAm:   time.Now(),
+		},
+	}
+
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo:        settingsMock,
+		DruckauftragRepo:    auftragMock,
+	}
+
+	err = command.KassenbelegDrucken(ctx, 0, "", verkaufID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(auftragMock.enqueued) != 1 {
+		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
+	}
+	if auftragMock.enqueued[0].BonArt != "kassenbeleg" {
+		t.Fatalf("expected bon_art kassenbeleg, got %s", auftragMock.enqueued[0].BonArt)
+	}
+	if !strings.HasPrefix(auftragMock.enqueued[0].Referenz, "direktverkauf-getaetigt:") {
+		t.Fatalf("expected direktverkauf-getaetigt referenz, got %s", auftragMock.enqueued[0].Referenz)
+	}
+}
+
+func TestKassenbelegDrucken_Direktverkauf_NichtGefunden(t *testing.T) {
+	ctx := context.Background()
+	command := Command{
+		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo:        &mockSettingsRepo{},
+		DruckauftragRepo:    &mockDruckauftragRepo{},
+	}
+
+	err := command.KassenbelegDrucken(ctx, 0, "", uuid.New().String())
+	if err != ErrVerkaufNichtGefunden {
+		t.Fatalf("expected ErrVerkaufNichtGefunden, got %v", err)
+	}
+}
+
+func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
+	ctx := context.Background()
+	verkaufID := uuid.New().String()
+	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
+
+	verkaufEvent, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "Test User", []kasse.Position{
+		{
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk",
+			Einzelpreis:  350,
+			Menge:        1,
+		},
+	}, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(verkaufEvent)
+
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo: &mockSettingsRepo{
+			bondruck: settings.BondruckEinstellungen{KassenbelegDruckerIP: "", UpdatedAt: time.Now()},
+		},
+		DruckauftragRepo: &mockDruckauftragRepo{},
+	}
+
+	err = command.KassenbelegDrucken(ctx, 0, "", verkaufID)
 	if err != ErrKassenbelegDruckerNichtKonfiguriert {
 		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
 	}

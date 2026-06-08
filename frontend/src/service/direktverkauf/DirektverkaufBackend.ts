@@ -5,6 +5,8 @@ import type { BackendClient } from '@/lib/Backend'
 import {
   type DirektverkaufHistorieEintrag,
   DirektverkaufHistorieEintragSchema,
+  type DirektverkaufKassenbelegDrucken,
+  DirektverkaufKassenbelegDruckenSchema,
   type DirektverkaufStornieren,
   DirektverkaufStornierenSchema,
   type DirektverkaufTaetigen,
@@ -41,5 +43,12 @@ export class DirektverkaufBackend {
   ): Promise<void> {
     const body = DirektverkaufStornierenSchema.parse(storno)
     await this.backend.post('serviceleitung/direktverkauf-stornieren', body)
+  }
+
+  public async kassenbelegDrucken(
+    cmd: DirektverkaufKassenbelegDrucken,
+  ): Promise<void> {
+    const body = DirektverkaufKassenbelegDruckenSchema.parse(cmd)
+    await this.backend.post('service/beleg-drucken', body)
   }
 }

@@ -399,15 +399,15 @@ Fehlermeldung fehl (bestehendes Verhalten).
 
 ### Akzeptanzkriterien
 
-- [ ] `KassenbelegDrucken` akzeptiert eine Verkauf-Referenz und lädt das
+- [x] `KassenbelegDrucken` akzeptiert eine Verkauf-Referenz und lädt das
       `direktverkauf-getaetigt:v1`-Event als Datenquelle.
-- [ ] `POST /service/beleg-drucken` um die Verkauf-Referenz erweitert (DTO + zog),
+- [x] `POST /service/beleg-drucken` um die Verkauf-Referenz erweitert (DTO + zog),
       unabhängig vom Abholbon.
-- [ ] Genau ein `bon_art = 'kassenbeleg'`-Druckauftrag pro Anforderung; fehlende
+- [x] Genau ein `bon_art = 'kassenbeleg'`-Druckauftrag pro Anforderung; fehlende
       Drucker-IP → klare Fehlermeldung.
-- [ ] Frontend: Auslöser „Kassenbeleg drucken" auf der Verkaufen-Erfolgsansicht und/oder
+- [x] Frontend: Auslöser „Kassenbeleg drucken" auf der Verkaufen-Erfolgsansicht und/oder
       in der Historie (über `DirektverkaufBackend`).
-- [ ] Tests: Command (genau ein Auftrag für einen echten Verkauf; Drucker-nicht-konfiguriert
+- [x] Tests: Command (genau ein Auftrag für einen echten Verkauf; Drucker-nicht-konfiguriert
       → Fehler), HTTP, Frontend-Auslöser.
-- [ ] Doku: `docs/handbuch.md` (Direktverkauf-Kassenbeleg), `docs/compliance.md`
+- [x] Doku: `docs/handbuch.md` (Direktverkauf-Kassenbeleg), `docs/compliance.md`
       (Storno als eigener Geschäftsvorfall, 1:1-TSE-Mapping-Ausblick).

@@ -1,7 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { DirektverkaufHistorieEintrag } from '../../direktverkauf/Direktverkauf'
 import { DirektverkaufHistorie } from './DirektverkaufHistorie'
@@ -32,6 +32,10 @@ vi.mock('@/components/ui/drawer', () => {
 vi.mock('@/components/ui/scroll-area', () => {
   const Passthrough = ({ children }: { children?: ReactNode }) => children
   return { ScrollArea: Passthrough }
+})
+
+afterEach(() => {
+  cleanup()
 })
 
 const positionId = '22222222-2222-2222-2222-222222222222'
@@ -71,12 +75,13 @@ describe('DirektverkaufHistorie', () => {
   it('cancels selected positions with exactly one backend call', async () => {
     const user = userEvent.setup()
     const direktverkaufStornieren = vi.fn().mockResolvedValue(undefined)
+    const kassenbelegDrucken = vi.fn().mockResolvedValue(undefined)
     const onStorniert = vi.fn()
     render(
       <DirektverkaufHistorie
         historie={[verkauf]}
         historieLoading={false}
-        backend={{ direktverkaufStornieren }}
+        backend={{ direktverkaufStornieren, kassenbelegDrucken }}
         onStorniert={onStorniert}
       />,
     )
@@ -102,5 +107,32 @@ describe('DirektverkaufHistorie', () => {
       kommentar: 'Rückgabe',
     })
     expect(onStorniert).toHaveBeenCalled()
+  })
+
+  it('triggers kassenbeleg print for a sale with exactly one backend call', async () => {
+    const user = userEvent.setup()
+    const kassenbelegDrucken = vi.fn().mockResolvedValue(undefined)
+    render(
+      <DirektverkaufHistorie
+        historie={[verkauf]}
+        historieLoading={false}
+        backend={{
+          direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
+          kassenbelegDrucken,
+        }}
+        onStorniert={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: 'Kassenbeleg drucken' }),
+    )
+
+    await waitFor(() => {
+      expect(kassenbelegDrucken).toHaveBeenCalledTimes(1)
+    })
+    expect(kassenbelegDrucken).toHaveBeenCalledWith({
+      verkaufId: '11111111-1111-1111-1111-111111111111',
+    })
   })
 })

@@ -15,7 +15,10 @@ import (
 )
 
 type mockCommand struct {
-	err error
+	err         error
+	lastTischID int
+	lastZahlung string
+	lastVerkauf string
 }
 
 func (m *mockCommand) TischErstellen(ctx context.Context, name string) (int, error) {
@@ -58,7 +61,10 @@ func (m *mockCommand) AuszahlungLeisten(ctx context.Context, userID int, userNam
 	return m.err
 }
 
-func (m *mockCommand) KassenbelegDrucken(_ context.Context, _ int, _ string) error {
+func (m *mockCommand) KassenbelegDrucken(_ context.Context, tischID int, zahlungID string, verkaufID string) error {
+	m.lastTischID = tischID
+	m.lastZahlung = zahlungID
+	m.lastVerkauf = verkaufID
 	return m.err
 }
 
@@ -276,7 +282,8 @@ func TestStornierungErteilenHandler_Conflict(t *testing.T) {
 }
 
 func TestKassenbelegDruckenHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
+	mock := &mockCommand{}
+	handler := &CommandHandler{Command: mock}
 
 	body := `{"tischId":1,"zahlungId":"11111111-1111-1111-1111-111111111111"}`
 	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
@@ -288,12 +295,73 @@ func TestKassenbelegDruckenHandler_Success(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
+	if mock.lastTischID != 1 {
+		t.Errorf("expected tischId 1, got %d", mock.lastTischID)
+	}
+	if mock.lastZahlung != "11111111-1111-1111-1111-111111111111" {
+		t.Errorf("expected zahlungId to be forwarded")
+	}
+	if mock.lastVerkauf != "" {
+		t.Errorf("expected verkaufId empty for zahlung path, got %q", mock.lastVerkauf)
+	}
+}
+
+func TestKassenbelegDruckenHandler_DirektverkaufSuccess(t *testing.T) {
+	mock := &mockCommand{}
+	handler := &CommandHandler{Command: mock}
+
+	body := `{"verkaufId":"11111111-1111-1111-1111-111111111111"}`
+	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+	if mock.lastVerkauf != "11111111-1111-1111-1111-111111111111" {
+		t.Errorf("expected verkaufId to be forwarded")
+	}
+	if mock.lastTischID != 0 || mock.lastZahlung != "" {
+		t.Errorf("expected zahlung reference to be empty for direktverkauf path")
+	}
 }
 
 func TestKassenbelegDruckenHandler_DruckerNichtKonfiguriert(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrKassenbelegDruckerNichtKonfiguriert}}
 
 	body := `{"tischId":1,"zahlungId":"11111111-1111-1111-1111-111111111111"}`
+	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestKassenbelegDruckenHandler_DirektverkaufNichtGefunden(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrVerkaufNichtGefunden}}
+
+	body := `{"verkaufId":"11111111-1111-1111-1111-111111111111"}`
+	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestKassenbelegDruckenHandler_MixedReferenceValidationError(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"tischId":1,"zahlungId":"11111111-1111-1111-1111-111111111111","verkaufId":"22222222-2222-2222-2222-222222222222"}`
 	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()

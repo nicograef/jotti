@@ -1,5 +1,6 @@
-import { X } from 'lucide-react'
+import { Printer, X } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
@@ -22,7 +24,10 @@ import { DirektverkaufStornoDrawer } from './DirektverkaufStornoDrawer'
 interface DirektverkaufHistorieProps {
   historie: DirektverkaufHistorieEintrag[]
   historieLoading: boolean
-  backend: Pick<DirektverkaufBackend, 'direktverkaufStornieren'>
+  backend: Pick<
+    DirektverkaufBackend,
+    'direktverkaufStornieren' | 'kassenbelegDrucken'
+  >
   onStorniert: () => void
 }
 
@@ -34,6 +39,18 @@ export function DirektverkaufHistorie({
 }: DirektverkaufHistorieProps) {
   const [stornoVerkauf, setStornoVerkauf] =
     useState<DirektverkaufHistorieEintrag | null>(null)
+  const { loading: belegDruckenLoading, run: runBelegDrucken } =
+    useActionSubmit({
+      actionLabel: 'Kassenbeleg drucken',
+      byCode: {
+        kassenbeleg_drucker_nicht_konfiguriert:
+          'Kein Kassenbeleg-Drucker konfiguriert. Bitte in den Admin-Einstellungen hinterlegen.',
+        verkauf_not_found: 'Der Verkauf wurde nicht gefunden.',
+      },
+      onSuccess: () => {
+        toast.success('Kassenbeleg in die Druckwarteschlange eingereiht.')
+      },
+    })
 
   if (historieLoading) {
     return (
@@ -83,8 +100,24 @@ export function DirektverkaufHistorie({
                   )}
                 </ItemDescription>
               </ItemContent>
-              {stornierbar && (
-                <ItemActions>
+              <ItemActions>
+                <Button
+                  size="icon-sm"
+                  variant="outline"
+                  className="rounded-full cursor-pointer"
+                  aria-label="Kassenbeleg drucken"
+                  disabled={belegDruckenLoading}
+                  onClick={() => {
+                    void runBelegDrucken(async () => {
+                      await backend.kassenbelegDrucken({
+                        verkaufId: verkauf.verkaufId,
+                      })
+                    })
+                  }}
+                >
+                  <Printer />
+                </Button>
+                {stornierbar && (
                   <Button
                     size="icon-sm"
                     variant="destructive"
@@ -96,8 +129,8 @@ export function DirektverkaufHistorie({
                   >
                     <X />
                   </Button>
-                </ItemActions>
-              )}
+                )}
+              </ItemActions>
             </Item>
           )
         })}

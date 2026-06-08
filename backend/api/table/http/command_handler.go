@@ -25,7 +25,7 @@ type command interface {
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	AuszahlungLeisten(ctx context.Context, userID int, userName string, tischID int, betragCents int, kommentar string) error
-	KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string) error
+	KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string) error
 	FavoritHinzufuegen(ctx context.Context, userID, tischID int) error
 	FavoritEntfernen(ctx context.Context, userID, tischID int) error
 }
@@ -334,13 +334,27 @@ var zahlungKassierenSchema = z.Struct(z.Shape{
 })
 
 type belegDruckenRequest struct {
+	TischID   *int    `json:"tischId"`
+	ZahlungID *string `json:"zahlungId"`
+	VerkaufID *string `json:"verkaufId"`
+}
+
+type belegDruckenZahlungRequest struct {
 	TischID   int    `json:"tischId"`
 	ZahlungID string `json:"zahlungId"`
 }
 
-var belegDruckenSchema = z.Struct(z.Shape{
+type belegDruckenVerkaufRequest struct {
+	VerkaufID string `json:"verkaufId"`
+}
+
+var belegDruckenZahlungSchema = z.Struct(z.Shape{
 	"TischID":   table.TischIDSchema.Required(),
 	"ZahlungID": z.String().UUID().Required(),
+})
+
+var belegDruckenVerkaufSchema = z.Struct(z.Shape{
+	"VerkaufID": z.String().UUID().Required(),
 })
 
 func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
@@ -380,11 +394,59 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := belegDruckenRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, belegDruckenSchema) {
+		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		err := h.Command.KassenbelegDrucken(r.Context(), body.TischID, body.ZahlungID)
+		hasTisch := body.TischID != nil
+		hasZahlung := body.ZahlungID != nil
+		hasVerkauf := body.VerkaufID != nil
+
+		if hasVerkauf && (hasTisch || hasZahlung) {
+			helper.SendClientError(w, "validation_error", map[string][]string{
+				"body": {"entweder tischId+zahlungId oder verkaufId senden"},
+			})
+			return
+		}
+
+		if hasVerkauf {
+			cmd := belegDruckenVerkaufRequest{VerkaufID: *body.VerkaufID}
+			if issues := belegDruckenVerkaufSchema.Validate(&cmd); issues != nil {
+				helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+				return
+			}
+
+			err := h.Command.KassenbelegDrucken(r.Context(), 0, "", cmd.VerkaufID)
+			if err != nil {
+				if errors.Is(err, application.ErrKasseNichtGeoeffnet) {
+					helper.SendConflict(w, "kasse_nicht_geoeffnet")
+				} else {
+					helper.MapError(w, err, map[error]string{
+						application.ErrVerkaufNichtGefunden:                "verkauf_not_found",
+						application.ErrKassenbelegDruckerNichtKonfiguriert: "kassenbeleg_drucker_nicht_konfiguriert",
+					})
+				}
+				return
+			}
+
+			helper.SendEmptyResponse(w)
+			return
+		}
+
+		if !hasTisch || !hasZahlung {
+			helper.SendClientError(w, "validation_error", map[string][]string{
+				"body": {"entweder tischId+zahlungId oder verkaufId senden"},
+			})
+			return
+		}
+
+		cmd := belegDruckenZahlungRequest{TischID: *body.TischID, ZahlungID: *body.ZahlungID}
+		if issues := belegDruckenZahlungSchema.Validate(&cmd); issues != nil {
+			helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+			return
+		}
+
+		err := h.Command.KassenbelegDrucken(r.Context(), cmd.TischID, cmd.ZahlungID, "")
 		if err != nil {
 			if errors.Is(err, application.ErrKasseNichtGeoeffnet) {
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")

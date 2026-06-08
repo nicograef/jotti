@@ -47,6 +47,8 @@ jotti ist ein **elektronisches Aufzeichnungssystem** (§ 1 KassenSichV) und unte
 
 Für jottis Direktverkauf (K-24) gilt diese Einzelaufzeichnung strikt pro Event: `direktverkauf-getaetigt:v1` und `direktverkauf-storniert:v1` sind jeweils eigenständige Geschäftsvorfälle. Beide sind unmittelbar kassenwirksam und werden als neue append-only Kassenjournal-Einträge erfasst; der Storno korrigiert durch Gegeneintrag und niemals per Änderung des ursprünglichen Verkaufsdatensatzes.
 
+Für den fiskalischen Beleg gilt im Direktverkauf derselbe On-Demand-Mechanismus wie am Tisch: `POST /service/beleg-drucken` akzeptiert eine `verkaufId` und erzeugt daraus genau einen Kassenbeleg-Druckauftrag auf Basis des referenzierten `direktverkauf-getaetigt:v1`-Events. Damit bleibt der Geschäftsvorfall 1:1 referenzierbar (Verkauf ↔ Belegreferenz), ohne zusätzliche Projektion oder Sammelbuchung.
+
 ### 2.2 Kassensicherungsverordnung (KassenSichV)
 
 Die KassenSichV konkretisiert § 146a AO; § 1 KassenSichV definiert als Aufzeichnungssysteme „elektronische oder computergestützte Kassensysteme oder Registrierkassen" — jotti fällt als browserbasiertes Kassensystem eindeutig darunter.
@@ -519,6 +521,12 @@ Eine bereits bezahlte Rechnung wird mit einem neuen Beleg mit negativen Beträge
 - **`BON_STORNO = 1`** in `transactions.csv`
 - **`REF_BON_ID`** (in `references.csv`) = `BON_ID` des Original-Zahlungsbelegs
 - Eigene TSE-Transaktion (`Kassenbeleg-V1` mit negativem Betrag)
+
+#### Direktverkauf (1:1-Mapping-Ausblick)
+
+- `direktverkauf-getaetigt:v1` ist ein eigener positiver Geschäftsvorfall (Kassenzufluss) und wird als separater Belegvorgang geführt.
+- `direktverkauf-storniert:v1` ist ein eigener negativer Geschäftsvorfall (Kassenabfluss) und wird nie als Update des ursprünglichen Verkaufs geführt.
+- TSE-seitig ist das Zielbild ein 1:1-Mapping je Event: Verkauf als `Kassenbeleg-V1`, Storno als eigener `Kassenbeleg-V1`-Stornovorgang mit Referenz auf den Ursprungsbeleg (`REF_BON_ID`).
 
 > **GoBD-Grundsatz:** Datensätze dürfen niemals per `UPDATE` oder `DELETE` aus der Datenbank entfernt werden. Stornierungen erzeugen immer neue Datensätze, die den Ursprungswert ausgleichen (Append-Only-Prinzip).
 

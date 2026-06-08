@@ -28,6 +28,13 @@ export type DirektverkaufStornieren = z.infer<
   typeof DirektverkaufStornierenSchema
 >
 
+export const DirektverkaufKassenbelegDruckenSchema = z.object({
+  verkaufId: z.uuid(),
+})
+export type DirektverkaufKassenbelegDrucken = z.infer<
+  typeof DirektverkaufKassenbelegDruckenSchema
+>
+
 export const VerkaufPositionSchema = z.object({
   positionId: z.uuid(),
   varianteId: z.number().int().min(1),
