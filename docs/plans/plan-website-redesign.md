@@ -240,15 +240,15 @@ Specs) bleibt vollständig erhalten.
 
 ### Akzeptanzkriterien
 
-- [ ] Abschnittszahl spürbar reduziert (~12 → ~7–8); keine wesentliche Information
+- [x] Abschnittszahl spürbar reduziert (~12 → ~7–8); keine wesentliche Information
       verloren (Funktionen, Fiskalkonformität inkl. WIP-Stand, Specs, Kosten,
       Zielgruppe weiterhin vorhanden).
-- [ ] **Keine dekorativen Emoji-Icons** mehr in Karten/Listen der Startseite.
-- [ ] Deutlich weniger Box-/Card-Rahmen und Bold; Vergleichs- und Spec-Daten als
+- [x] **Keine dekorativen Emoji-Icons** mehr in Karten/Listen der Startseite.
+- [x] Deutlich weniger Box-/Card-Rahmen und Bold; Vergleichs- und Spec-Daten als
       **leichte** Tabellen erhalten.
-- [ ] Genau **ein** Token-Set/CI durchgängig (Grün), keine Sonderverläufe pro
+- [x] Genau **ein** Token-Set/CI durchgängig (Grün), keine Sonderverläufe pro
       Abschnitt.
-- [ ] Lesefluss auf Mobile und Desktop geprüft; kein Overflow, ruhiger
+- [x] Lesefluss auf Mobile und Desktop geprüft; kein Overflow, ruhiger
       Weißraum-Rhythmus.
 
 ---
