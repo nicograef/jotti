@@ -374,7 +374,7 @@ Diese CRUD-Entität wird bei **jedem** Tisch-Schreibvorgang gelesen (Kassensitzu
 | StornierungErteilt    | Referenzierte Mengen aus `unbezahlte_positionen` und `ausstehende_positionen` subtrahieren, Saldo reduzieren |
 | AuszahlungGeleistet   | Saldo um `betrag_cents` erhöhen (negativen Saldo ausgleichen) — keine Positionslisten-Änderung               |
 
-**Lesezugriff:** Operative Queries lesen direkt aus `tisch_sessions`; Historie liest den Event Stream via `ReadEventsBySubject()`. Bei Inkonsistenz kann `tisch_sessions` jederzeit aus dem Kassenjournal reberechnet werden (Single Source of Truth). Projektionsarchitektur: [ADR: CQRS](adr/cqrs.md).
+**Lesezugriff:** Operative Queries lesen direkt aus `tisch_sessions`; Historie liest den Event Stream via `ReadEventsBySubject()`. Bei Inkonsistenz kann `tisch_sessions` jederzeit aus dem Kassenjournal reberechnet werden (Single Source of Truth).
 
 ### 3.9 Kassenbestand (Read Model)
 
@@ -888,7 +888,7 @@ Read Models sind aufbereitete Lese-Ansichten — reine Projektionen über vorhan
 | Kassenjournal    | K-07 | Kassenjournal (Event Stream, Replay per Subject) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich.                                                                      |
 | Eigene Übersicht | R-06 | `kassenjournal` (SQL-Aggregation)                | KPIs der eigenen Servicekraft: Anzahl und Summe eigener Bestellungen sowie kassierter Zahlungen. Gefiltert auf `user_id` und `kassensitzung_nr`. Endpunkt: `POST /service/get-eigene-uebersicht`. |
 
-Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchronen Projektionstabelle `tisch_sessions` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`. Details zur Projektionsarchitektur: [ADR: CQRS](adr/cqrs.md).
+Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchronen Projektionstabelle `tisch_sessions` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`. Details zur Projektionsarchitektur: [§3.8 Synchrone Projektion, CRUD-Entität und Event Replay](#38-synchrone-projektion-crud-entität-und-event-replay).
 
 ### 7.2 Admin-Ansichten (Reporting)
 

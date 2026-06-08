@@ -54,8 +54,6 @@ Routing über `StreamType`-Parameter: `"tisch-session"` | `"kassensitzung"`.
 
 - **Invarianten, Event-Strukturen, Projektionen:** [docs/handbuch.md](../../docs/handbuch.md) Kap. 3 (Kasse)
 - **Namenskonventionen für Events und Felder:** [docs/language.md](../../docs/language.md)
-- **Persistenz-ADR:** [docs/adr/event-sourcing.md](../../docs/adr/event-sourcing.md)
-- **CQRS-Projektionen-ADR:** [docs/adr/cqrs.md](../../docs/adr/cqrs.md)
 
 ## JSON-Tags in Event-Data-Structs
 
