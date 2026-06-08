@@ -100,16 +100,11 @@ func CreateArbeitsbonAuftraegeFromEvent(
 }
 
 // parseTischName converts an Event Subject to a human-readable table name.
-// New format: "kassensitzung-{nr}/tisch-{id}" -> "Tisch {id}"
-// Legacy format: "tisch:{id}" -> "Tisch {id}"
+// Format: "kassensitzung-{nr}/tisch-{id}" -> "Tisch {id}".
+// If "/tisch-" is missing, the subject is returned unchanged.
 func parseTischName(subject string) string {
 	if idx := strings.LastIndex(subject, "/tisch-"); idx != -1 {
 		return "Tisch " + subject[idx+len("/tisch-"):]
-	}
-
-	parts := strings.SplitN(subject, ":", 2)
-	if len(parts) == 2 {
-		return "Tisch " + parts[1]
 	}
 	return subject
 }

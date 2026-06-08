@@ -233,10 +233,10 @@ parsen. Ein defensiver Rückgabewert (Subject unverändert) bleibt, falls
 
 ### Acceptance criteria
 
-- [ ] `parseTischName` behandelt nur noch `kassensitzung-{nr}/tisch-{id}`.
-- [ ] Kein Aufrufer ist auf das Legacy-Format angewiesen (verifiziert).
-- [ ] Bestehende Arbeitsbon-Tests bleiben grün.
-- [ ] `make check` grün.
+- [x] `parseTischName` behandelt nur noch `kassensitzung-{nr}/tisch-{id}`.
+- [x] Kein Aufrufer ist auf das Legacy-Format angewiesen (verifiziert).
+- [x] Bestehende Arbeitsbon-Tests bleiben grün.
+- [x] `make check` grün.
 
 ---
 
