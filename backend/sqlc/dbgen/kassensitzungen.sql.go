@@ -50,6 +50,8 @@ SELECT (
     COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int
     + COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
     - COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int
+  + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
+  - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
     + COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int
     + COALESCE(SUM(kj_extract_differenz_cents(type, data)), 0)::int
 )::int AS soll_bestand_cents
@@ -59,6 +61,8 @@ WHERE kassensitzung_nr = $1
     'kassensitzung-eroeffnet:v1',
     'zahlung-kassiert:v1',
     'auszahlung-geleistet:v1',
+    'direktverkauf-getaetigt:v1',
+    'direktverkauf-storniert:v1',
     'geldtransit-gebucht:v1',
     'differenz-soll-ist-gebucht:v1'
   )

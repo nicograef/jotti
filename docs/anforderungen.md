@@ -58,6 +58,14 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | K-10 | Rückgeldberechnung      | Optionale Eingabe von erhaltenem Betrag und Zielbetrag (inkl. Trinkgeld) beim Kassieren. Rückgeld und Trinkgeld werden rein clientseitig berechnet und angezeigt.                               |
 | K-24 | Direktverkauf           | Barverkauf an der Theke: bestellen + zahlen + ausgeben in einem Schritt. Eigener Event-Stream pro Verkauf (`direktverkauf-getaetigt:v1`), sofort kassenwirksam, ohne Tisch und ohne Projektion. |
 
+#### K-24 · Direktverkauf (Akzeptanzkriterien, umgesetzt)
+
+- [x] Direktverkauf wird als eigener Stream pro Verkauf erfasst (`kassensitzung-{nr}/direktverkauf-{uuid}`) und sofort kassenwirksam verbucht.
+- [x] Direktverkauf-Storno erfolgt positionsgenau im selben Stream (`direktverkauf-storniert:v1`) und mindert den Kassenbestand ohne separate Auszahlung.
+- [x] Kassenbestand enthält Direktverkauf vollständig: `+ direktverkauf-getaetigt`, `− direktverkauf-storniert`.
+- [x] Reporting-Summary liefert die aggregierte Direktverkauf-Kennzahl als Anzahl und Umsatz (`anzahlDirektverkaeufe`, `direktverkaufUmsatzCents`).
+- [x] Tagesabschluss wird durch Direktverkäufe nicht blockiert; Blocker bleiben ausschließlich offene Tisch-Salden.
+
 > 🚫 **K-08 · Bezeichnung pro Bestellung:** Won't-have — wird über das bestehende Kommentarfeld (K-01) gelöst.
 
 ### Offen

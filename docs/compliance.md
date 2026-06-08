@@ -45,6 +45,8 @@ jotti ist ein **elektronisches Aufzeichnungssystem** (§ 1 KassenSichV) und unte
 
 § 146a Abs. 1 AO verpflichtet jeden Betreiber eines elektronischen Aufzeichnungssystems, jeden Geschäftsvorfall einzeln, vollständig, richtig, zeitgerecht und geordnet zu erfassen und durch eine **zertifizierte TSE** zu schützen — unabhängig von Rechtsform, Gemeinnützigkeit, Betriebsdauer oder Gewinnerzielungsabsicht. [1]
 
+Für jottis Direktverkauf (K-24) gilt diese Einzelaufzeichnung strikt pro Event: `direktverkauf-getaetigt:v1` und `direktverkauf-storniert:v1` sind jeweils eigenständige Geschäftsvorfälle. Beide sind unmittelbar kassenwirksam und werden als neue append-only Kassenjournal-Einträge erfasst; der Storno korrigiert durch Gegeneintrag und niemals per Änderung des ursprünglichen Verkaufsdatensatzes.
+
 ### 2.2 Kassensicherungsverordnung (KassenSichV)
 
 Die KassenSichV konkretisiert § 146a AO; § 1 KassenSichV definiert als Aufzeichnungssysteme „elektronische oder computergestützte Kassensysteme oder Registrierkassen" — jotti fällt als browserbasiertes Kassensystem eindeutig darunter.

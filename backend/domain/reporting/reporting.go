@@ -43,6 +43,8 @@ type Summary struct {
 	GesamtStornierungenCents int
 	AnzahlBestellungen       int
 	AnzahlStornierungen      int
+	AnzahlDirektverkaeufe    int
+	DirektverkaufUmsatzCents int
 }
 
 type Breakdowns struct {

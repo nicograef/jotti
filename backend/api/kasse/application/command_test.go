@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -118,6 +119,34 @@ func TestTagesabschlussErstellen(t *testing.T) {
 	subject := kasse.KassensitzungSubject(testOpenKS.ZNr)
 	kassensturzEvt, _ := kasse.NewKassensturzDurchgefuehrtEvent(subject, 1, "Admin", 50000, 50000, 0)
 	journalMock.AddEvent(kassensturzEvt)
+
+	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
+
+	err := cmd.TagesabschlussErstellen(ctx, 1, "Admin")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestTagesabschlussErstellen_DirektverkaufBlocksNever(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+
+	// Kassensturz is still mandatory.
+	ksSubject := kasse.KassensitzungSubject(testOpenKS.ZNr)
+	kassensturzEvt, _ := kasse.NewKassensturzDurchgefuehrtEvent(ksSubject, 1, "Admin", 50000, 50000, 0)
+	journalMock.AddEvent(kassensturzEvt)
+
+	// Direktverkauf events are in separate streams and must not influence the
+	// Tisch-Saldo-Sperre (no tisch session projection / no saldo to settle).
+	dvSubject := kasse.DirektverkaufSubject(testOpenKS.ZNr, "verkauf-123")
+	dvEvt, _ := event.New(1, "Admin", string(kasse.EventTypeDirektverkaufGetaetigtV1), dvSubject, map[string]any{
+		"verkaufId":         "verkauf-123",
+		"gesamtbetragCents": 900,
+		"positionen":        []map[string]any{},
+		"kommentar":         "",
+	})
+	journalMock.AddEvent(dvEvt)
 
 	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
 

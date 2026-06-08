@@ -153,6 +153,11 @@ export function LiveReportingSection({
               sub={`${formatCents(summary.gesamtBestellungenCents)} €`}
             />
             <SummaryCard
+              title="Direktverkauf"
+              value={String(summary.anzahlDirektverkaeufe)}
+              sub={`${formatCents(summary.direktverkaufUmsatzCents)} €`}
+            />
+            <SummaryCard
               title="Gesamtumsatz"
               value={`${formatCents(summary.gesamtUmsatzCents)} €`}
               sub="Kassierungen − Auszahlungen"

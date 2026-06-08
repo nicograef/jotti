@@ -53,7 +53,11 @@ const testKassensitzungNr = 1
 func TestGetReporting_HappyPath(t *testing.T) {
 	expected := reporting.ReportingData{
 		KassensitzungNr: testKassensitzungNr,
-		Summary:         reporting.Summary{GesamtUmsatzCents: 5000},
+		Summary: reporting.Summary{
+			GesamtUmsatzCents:        5000,
+			AnzahlDirektverkaeufe:    2,
+			DirektverkaufUmsatzCents: 2200,
+		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
 			UmsatzProTisch:        []reporting.UmsatzTisch{},
@@ -69,6 +73,12 @@ func TestGetReporting_HappyPath(t *testing.T) {
 	}
 	if result.Summary.GesamtUmsatzCents != 5000 {
 		t.Errorf("expected 5000 cents, got %d", result.Summary.GesamtUmsatzCents)
+	}
+	if result.Summary.AnzahlDirektverkaeufe != 2 {
+		t.Errorf("expected anzahl direktverkaeufe 2, got %d", result.Summary.AnzahlDirektverkaeufe)
+	}
+	if result.Summary.DirektverkaufUmsatzCents != 2200 {
+		t.Errorf("expected direktverkauf umsatz 2200, got %d", result.Summary.DirektverkaufUmsatzCents)
 	}
 	if result.KassensitzungNr != testKassensitzungNr {
 		t.Errorf("expected KassensitzungNr %d, got %d", testKassensitzungNr, result.KassensitzungNr)

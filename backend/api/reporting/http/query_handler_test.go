@@ -85,8 +85,10 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 	mockData := reporting.ReportingData{
 		KassensitzungNr: 1,
 		Summary: reporting.Summary{
-			GesamtUmsatzCents:  10000,
-			AnzahlBestellungen: 3,
+			GesamtUmsatzCents:        10000,
+			AnzahlBestellungen:       3,
+			AnzahlDirektverkaeufe:    4,
+			DirektverkaufUmsatzCents: 2750,
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
@@ -108,8 +110,10 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 
 	var resp struct {
 		Summary struct {
-			GesamtUmsatzCents  int `json:"gesamtUmsatzCents"`
-			AnzahlBestellungen int `json:"anzahlBestellungen"`
+			GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
+			AnzahlBestellungen       int `json:"anzahlBestellungen"`
+			AnzahlDirektverkaeufe    int `json:"anzahlDirektverkaeufe"`
+			DirektverkaufUmsatzCents int `json:"direktverkaufUmsatzCents"`
 		} `json:"summary"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -120,6 +124,12 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 	}
 	if resp.Summary.AnzahlBestellungen != 3 {
 		t.Errorf("expected anzahlBestellungen 3, got %d", resp.Summary.AnzahlBestellungen)
+	}
+	if resp.Summary.AnzahlDirektverkaeufe != 4 {
+		t.Errorf("expected anzahlDirektverkaeufe 4, got %d", resp.Summary.AnzahlDirektverkaeufe)
+	}
+	if resp.Summary.DirektverkaufUmsatzCents != 2750 {
+		t.Errorf("expected direktverkaufUmsatzCents 2750, got %d", resp.Summary.DirektverkaufUmsatzCents)
 	}
 }
 
@@ -161,7 +171,11 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 		OffeneTische: []reporting.OffenerTisch{
 			{TischID: 3, TischName: "Tisch 3", SaldoCents: 1200},
 		},
-		Summary: reporting.Summary{GesamtUmsatzCents: 45000},
+		Summary: reporting.Summary{
+			GesamtUmsatzCents:        45000,
+			AnzahlDirektverkaeufe:    2,
+			DirektverkaufUmsatzCents: 1800,
+		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
 			UmsatzProTisch:        []reporting.UmsatzTisch{},
@@ -189,7 +203,9 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 			SaldoCents int    `json:"saldoCents"`
 		} `json:"offeneTische"`
 		Summary struct {
-			GesamtUmsatzCents int `json:"gesamtUmsatzCents"`
+			GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
+			AnzahlDirektverkaeufe    int `json:"anzahlDirektverkaeufe"`
+			DirektverkaufUmsatzCents int `json:"direktverkaufUmsatzCents"`
 		} `json:"summary"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -209,6 +225,12 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 	}
 	if resp.Summary.GesamtUmsatzCents != 45000 {
 		t.Errorf("expected gesamtUmsatzCents 45000, got %d", resp.Summary.GesamtUmsatzCents)
+	}
+	if resp.Summary.AnzahlDirektverkaeufe != 2 {
+		t.Errorf("expected anzahlDirektverkaeufe 2, got %d", resp.Summary.AnzahlDirektverkaeufe)
+	}
+	if resp.Summary.DirektverkaufUmsatzCents != 1800 {
+		t.Errorf("expected direktverkaufUmsatzCents 1800, got %d", resp.Summary.DirektverkaufUmsatzCents)
 	}
 }
 

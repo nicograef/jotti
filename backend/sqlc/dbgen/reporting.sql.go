@@ -129,18 +129,27 @@ func (q *Queries) GetOffeneTischeDetails(ctx context.Context) ([]GetOffeneTische
 const getReportingStats = `-- name: GetReportingStats :one
 SELECT
     COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS gesamt_umsatz_cents,
     COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS gesamt_auszahlungen_cents,
     COALESCE(SUM(kj_extract_bestellung_cents(type, data)), 0)::int AS gesamt_bestellungen_cents,
     COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int AS gesamt_stornierungen_cents,
     COALESCE(COUNT(CASE WHEN type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
-    COALESCE(COUNT(CASE WHEN type = 'stornierung-erteilt:v1' THEN 1 END), 0)::int AS anzahl_stornierungen
+    COALESCE(COUNT(CASE WHEN type = 'stornierung-erteilt:v1' THEN 1 END), 0)::int AS anzahl_stornierungen,
+    COALESCE(COUNT(CASE WHEN type = 'direktverkauf-getaetigt:v1' THEN 1 END), 0)::int AS anzahl_direktverkaeufe,
+    (
+        COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
+    )::int AS direktverkauf_umsatz_cents
 FROM kassenjournal
 WHERE type IN (
     'bestellung-aufgenommen:v1',
     'zahlung-kassiert:v1',
     'stornierung-erteilt:v1',
-    'auszahlung-geleistet:v1'
+    'auszahlung-geleistet:v1',
+    'direktverkauf-getaetigt:v1',
+    'direktverkauf-storniert:v1'
 )
 AND kassensitzung_nr = $1
 `
@@ -152,6 +161,8 @@ type GetReportingStatsRow struct {
 	GesamtStornierungenCents int
 	AnzahlBestellungen       int
 	AnzahlStornierungen      int
+	AnzahlDirektverkaeufe    int
+	DirektverkaufUmsatzCents int
 }
 
 // Reporting: Aggregierte Kennzahlen fuer eine Kassensitzung.
@@ -165,6 +176,8 @@ func (q *Queries) GetReportingStats(ctx context.Context, kassensitzungNr int) (G
 		&i.GesamtStornierungenCents,
 		&i.AnzahlBestellungen,
 		&i.AnzahlStornierungen,
+		&i.AnzahlDirektverkaeufe,
+		&i.DirektverkaufUmsatzCents,
 	)
 	return i, err
 }

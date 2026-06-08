@@ -62,6 +62,8 @@ type summaryResponse struct {
 	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
 	AnzahlBestellungen       int `json:"anzahlBestellungen"`
 	AnzahlStornierungen      int `json:"anzahlStornierungen"`
+	AnzahlDirektverkaeufe    int `json:"anzahlDirektverkaeufe"`
+	DirektverkaufUmsatzCents int `json:"direktverkaufUmsatzCents"`
 }
 
 type breakdownsResponse struct {
@@ -187,6 +189,8 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
 			AnzahlBestellungen:       d.Summary.AnzahlBestellungen,
 			AnzahlStornierungen:      d.Summary.AnzahlStornierungen,
+			AnzahlDirektverkaeufe:    d.Summary.AnzahlDirektverkaeufe,
+			DirektverkaufUmsatzCents: d.Summary.DirektverkaufUmsatzCents,
 		},
 		Breakdowns: breakdownsResponse{
 			UmsatzProServicekraft: toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),
@@ -272,6 +276,8 @@ type liveSummaryResponse struct {
 	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
 	AnzahlBestellungen       int `json:"anzahlBestellungen"`
 	AnzahlStornierungen      int `json:"anzahlStornierungen"`
+	AnzahlDirektverkaeufe    int `json:"anzahlDirektverkaeufe"`
+	DirektverkaufUmsatzCents int `json:"direktverkaufUmsatzCents"`
 }
 
 type liveReportingResponse struct {
@@ -309,6 +315,8 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
 			AnzahlBestellungen:       d.Summary.AnzahlBestellungen,
 			AnzahlStornierungen:      d.Summary.AnzahlStornierungen,
+			AnzahlDirektverkaeufe:    d.Summary.AnzahlDirektverkaeufe,
+			DirektverkaufUmsatzCents: d.Summary.DirektverkaufUmsatzCents,
 		},
 		Breakdowns: breakdownsResponse{
 			UmsatzProServicekraft: toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),

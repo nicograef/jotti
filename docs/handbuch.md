@@ -380,9 +380,9 @@ Diese CRUD-Entität wird bei **jedem** Tisch-Schreibvorgang gelesen (Kassensitzu
 
 SQL-Aggregation über das Kassenjournal (eine `SELECT`-Query über `kassensitzung_nr`):
 
-$$\text{Soll} = \text{Anfangsbestand}_{\text{KS}} + \sum_{\text{Tische}} \text{Zahlungen} - \sum_{\text{Tische}} \text{Auszahlungen} + \text{Kassenbewegungen}_{\text{netto}} + \text{DifferenzSollIst}$$
+$$\text{Soll} = \text{Anfangsbestand}_{\text{KS}} + \sum_{\text{Tische}} \text{Zahlungen} - \sum_{\text{Tische}} \text{Auszahlungen} + \sum \text{Direktverkauf} - \sum \text{Direktverkauf-Storno} + \text{Kassenbewegungen}_{\text{netto}} + \text{DifferenzSollIst}$$
 
-Alle Summanden stammen aus dem Kassenjournal. Keine Cross-Context-Projektion.
+Alle Summanden stammen aus dem Kassenjournal. Keine Cross-Context-Projektion. Direktverkauf-Events (`direktverkauf-getaetigt:v1`, `direktverkauf-storniert:v1`) haben keine eigene Projektion, sind aber vollständig kassenwirksam und fließen in den Soll-Bestand ein.
 
 ### 3.10 Kassensturz
 
@@ -875,6 +875,8 @@ Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchrone
 ### 7.2 Admin-Ansichten (Reporting)
 
 Alle Reporting-Ansichten aggregieren über `kassenjournal` und `tisch_sessions` (nur Admins, on-demand per SQL-Aggregation). Konsolidierter Endpoint `POST /admin/get-reporting` mit Sektionen `summary`, `breakdowns`, `stornierungen`. Filtert nach `kassensitzung_nr` statt Zeitraum. Kein Live-Dashboard, kein Polling.
+
+Die `summary`-Sektion enthält zusätzlich die Direktverkauf-Kennzahl als aggregierte Sitzungsmetrik: `anzahlDirektverkaeufe` und `direktverkaufUmsatzCents` (netto aus Verkauf minus Storno).
 
 | Name                        | ID   | Inhalt (Kurzfassung)                                                                               |
 | --------------------------- | ---- | -------------------------------------------------------------------------------------------------- |

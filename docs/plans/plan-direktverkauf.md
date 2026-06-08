@@ -312,17 +312,17 @@ Gruppierung pro Theke. Im Admin-Dashboard erscheint diese Kennzahl als eigene
 
 ### Akzeptanzkriterien
 
-- [ ] Zwei neue `IMMUTABLE`-SQL-Funktionen `kj_extract_direktverkauf_cents` und
+- [x] Zwei neue `IMMUTABLE`-SQL-Funktionen `kj_extract_direktverkauf_cents` und
       `kj_extract_direktverkauf_storno_cents` in der Migration; `make sqlc` ausgeführt.
-- [ ] `GetKassenbestand` enthält `+ direktverkauf-getaetigt`,
+- [x] `GetKassenbestand` enthält `+ direktverkauf-getaetigt`,
       `− direktverkauf-storniert`.
-- [ ] `GetReportingStats`: Gesamtumsatz +Verkauf / −Storno; zusätzlich aggregierte
+- [x] `GetReportingStats`: Gesamtumsatz +Verkauf / −Storno; zusätzlich aggregierte
       Kennzahl (Anzahl + Umsatz Direktverkauf); Response-DTO erweitert.
-- [ ] Admin-Dashboard zeigt die Direktverkauf-Kennzahl als eigene `SummaryCard`.
-- [ ] Tagesabschluss wird durch Direktverkäufe nie blockiert (Test bestätigt).
-- [ ] Tests: Integration (Kassenbestand steigt bei Verkauf, sinkt bei Storno; Kennzahl
+- [x] Admin-Dashboard zeigt die Direktverkauf-Kennzahl als eigene `SummaryCard`.
+- [x] Tagesabschluss wird durch Direktverkäufe nie blockiert (Test bestätigt).
+- [x] Tests: Integration (Kassenbestand steigt bei Verkauf, sinkt bei Storno; Kennzahl
       zählt korrekt; Reporting-Stats), Reporting-Query/HTTP, Frontend (`SummaryCard`).
-- [ ] Doku: `docs/compliance.md` (einzelner Geschäftsvorfall, Kassenwirksamkeit von
+- [x] Doku: `docs/compliance.md` (einzelner Geschäftsvorfall, Kassenwirksamkeit von
       Verkauf und Storno), `docs/handbuch.md` (Kassenbestand-/Reporting-Erweiterung),
       `docs/anforderungen.md` (K-24-Akzeptanzkriterien).
 

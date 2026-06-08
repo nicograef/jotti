@@ -297,6 +297,16 @@ CREATE OR REPLACE FUNCTION kj_extract_stornierung_cents(type TEXT, data JSONB) R
     SELECT CASE WHEN type = 'stornierung-erteilt:v1' THEN (data->>'gesamtStornierungCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
+-- Returns the Direktverkauf amount in cents for a matching event row, NULL otherwise.
+CREATE OR REPLACE FUNCTION kj_extract_direktverkauf_cents(type TEXT, data JSONB) RETURNS int AS $$
+    SELECT CASE WHEN type = 'direktverkauf-getaetigt:v1' THEN (data->>'gesamtbetragCents')::int END
+$$ LANGUAGE sql IMMUTABLE;
+
+-- Returns the Direktverkauf-Storno amount in cents for a matching event row, NULL otherwise.
+CREATE OR REPLACE FUNCTION kj_extract_direktverkauf_storno_cents(type TEXT, data JSONB) RETURNS int AS $$
+    SELECT CASE WHEN type = 'direktverkauf-storniert:v1' THEN (data->>'gesamtStornierungCents')::int END
+$$ LANGUAGE sql IMMUTABLE;
+
 -- ============================================================
 -- Table: kassenidentitaet (Kassenidentität, Singleton)
 -- Insert-once at first startup; afterwards fully read-only (no INSERT/UPDATE/DELETE/TRUNCATE).

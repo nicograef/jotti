@@ -96,6 +96,53 @@ func validZahlungData(positionID string, menge, gesamtCents int) map[string]any 
 	}
 }
 
+func validAuszahlungData(betragCents int) map[string]any {
+	return map[string]any{
+		"auszahlungId": "a0000000-0000-0000-0000-000000000001",
+		"betragCents":  betragCents,
+		"kommentar":    "",
+	}
+}
+
+func validDirektverkaufData(verkaufID string, gesamtbetragCents int) map[string]any {
+	return map[string]any{
+		"verkaufId":         verkaufID,
+		"gesamtbetragCents": gesamtbetragCents,
+		"positionen": []map[string]any{
+			{
+				"positionId":   "d0000000-0000-0000-0000-000000000001",
+				"varianteId":   1,
+				"produktName":  "Bier",
+				"varianteName": "0.5L",
+				"kategorie":    "getraenk",
+				"einzelpreis":  gesamtbetragCents,
+				"menge":        1,
+			},
+		},
+		"kommentar": "",
+	}
+}
+
+func validDirektverkaufStornoData(verkaufID string, gesamtStornierungCents int) map[string]any {
+	return map[string]any{
+		"stornierungId":          "s0000000-0000-0000-0000-000000000001",
+		"verkaufId":              verkaufID,
+		"gesamtStornierungCents": gesamtStornierungCents,
+		"positionen": []map[string]any{
+			{
+				"positionId":   "d0000000-0000-0000-0000-000000000001",
+				"varianteId":   1,
+				"produktName":  "Bier",
+				"varianteName": "0.5L",
+				"kategorie":    "getraenk",
+				"einzelpreis":  gesamtStornierungCents,
+				"menge":        1,
+			},
+		},
+		"kommentar": "Rueckgabe",
+	}
+}
+
 func cleanDB(t *testing.T, db *sql.DB) {
 	_, err := db.Exec("DELETE FROM druckauftraege")
 	if err != nil {
@@ -334,6 +381,81 @@ func TestGetMaxVersion(t *testing.T) {
 	}
 	if version != 1 {
 		t.Fatalf("Expected version 1, got %d", version)
+	}
+}
+
+func TestGetKassenbestand_DirektverkaufIncreasesThenStornoDecreases(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	subject := kasse.DirektverkaufSubject(ksNr, "verkauf-1")
+
+	verkauf := newTestEvent(userID, "direktverkauf-getaetigt:v1", subject, 1, validDirektverkaufData("verkauf-1", 1200))
+	if _, err := insertEventRaw(repo.DB, verkauf, ksNr); err != nil {
+		t.Fatalf("Failed to insert direktverkauf-getaetigt event: %v", err)
+	}
+
+	bestand, err := repo.GetKassenbestand(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if bestand != 1200 {
+		t.Fatalf("Expected kassenbestand 1200 after direktverkauf, got %d", bestand)
+	}
+
+	storno := newTestEvent(userID, "direktverkauf-storniert:v1", subject, 2, validDirektverkaufStornoData("verkauf-1", 500))
+	if _, err := insertEventRaw(repo.DB, storno, ksNr); err != nil {
+		t.Fatalf("Failed to insert direktverkauf-storniert event: %v", err)
+	}
+
+	bestand, err = repo.GetKassenbestand(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if bestand != 700 {
+		t.Fatalf("Expected kassenbestand 700 after direktverkauf-storno, got %d", bestand)
+	}
+}
+
+func TestGetReportingStats_IncludesDirektverkaufMetrics(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischSubject := kasse.TischSessionSubject(ksNr, 1)
+	zahlung := newTestEvent(userID, "zahlung-kassiert:v1", tischSubject, 1, validZahlungData("p0000000-0000-0000-0000-000000000001", 1, 1000))
+	if _, err := insertEventRaw(repo.DB, zahlung, ksNr); err != nil {
+		t.Fatalf("Failed to insert zahlung-kassiert event: %v", err)
+	}
+
+	auszahlung := newTestEvent(userID, "auszahlung-geleistet:v1", tischSubject, 2, validAuszahlungData(300))
+	if _, err := insertEventRaw(repo.DB, auszahlung, ksNr); err != nil {
+		t.Fatalf("Failed to insert auszahlung-geleistet event: %v", err)
+	}
+
+	dvSubject := kasse.DirektverkaufSubject(ksNr, "verkauf-2")
+	dv := newTestEvent(userID, "direktverkauf-getaetigt:v1", dvSubject, 1, validDirektverkaufData("verkauf-2", 700))
+	if _, err := insertEventRaw(repo.DB, dv, ksNr); err != nil {
+		t.Fatalf("Failed to insert direktverkauf-getaetigt event: %v", err)
+	}
+
+	dvStorno := newTestEvent(userID, "direktverkauf-storniert:v1", dvSubject, 2, validDirektverkaufStornoData("verkauf-2", 200))
+	if _, err := insertEventRaw(repo.DB, dvStorno, ksNr); err != nil {
+		t.Fatalf("Failed to insert direktverkauf-storniert event: %v", err)
+	}
+
+	stats, err := repo.q.GetReportingStats(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if stats.GesamtUmsatzCents != 1200 {
+		t.Fatalf("Expected gesamt_umsatz_cents 1200, got %d", stats.GesamtUmsatzCents)
+	}
+	if stats.AnzahlDirektverkaeufe != 1 {
+		t.Fatalf("Expected anzahl_direktverkaeufe 1, got %d", stats.AnzahlDirektverkaeufe)
+	}
+	if stats.DirektverkaufUmsatzCents != 500 {
+		t.Fatalf("Expected direktverkauf_umsatz_cents 500, got %d", stats.DirektverkaufUmsatzCents)
 	}
 }
 

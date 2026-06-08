@@ -117,6 +117,11 @@ export function ReportingResults({
             sub="Kassierungen − Auszahlungen"
           />
           <SummaryCard
+            title="Direktverkauf"
+            value={String(summary.anzahlDirektverkaeufe)}
+            sub={`${formatCents(summary.direktverkaufUmsatzCents)} €`}
+          />
+          <SummaryCard
             title="Bestellungen"
             value={String(summary.anzahlBestellungen)}
             sub={`${formatCents(summary.gesamtBestellungenCents)} €`}

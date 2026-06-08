@@ -123,6 +123,8 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 			GesamtStornierungenCents: stats.GesamtStornierungenCents,
 			AnzahlBestellungen:       stats.AnzahlBestellungen,
 			AnzahlStornierungen:      stats.AnzahlStornierungen,
+			AnzahlDirektverkaeufe:    stats.AnzahlDirektverkaeufe,
+			DirektverkaufUmsatzCents: stats.DirektverkaufUmsatzCents,
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: umsatz,
@@ -251,6 +253,8 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 			GesamtStornierungenCents: stats.GesamtStornierungenCents,
 			AnzahlBestellungen:       stats.AnzahlBestellungen,
 			AnzahlStornierungen:      stats.AnzahlStornierungen,
+			AnzahlDirektverkaeufe:    stats.AnzahlDirektverkaeufe,
+			DirektverkaufUmsatzCents: stats.DirektverkaufUmsatzCents,
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: umsatz,
