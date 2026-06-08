@@ -78,7 +78,11 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 
 ## Qualitätsprinzipien
 
-- **Qualität vor Quantität, Korrektheit vor Geschwindigkeit.** Weniger, korrekte Änderungen sind besser als viele schnelle Änderungen.
+- **Bewertungsmetriken — der Maßstab für jede Änderung, in jedem Chat-Modus (Ask, Plan, Agent):**
+  - **Maßgeblich, immer optimieren:** Korrektheit, Einfachheit, Codequalität, Konsistenz.
+  - **Bewusst nachrangig, nie ein Gegenargument:** Aufwand, Zeit, Arbeitsumfang, Kosten, Breaking Changes.
+  - Eine korrekte, einfache, saubere und konsistente Lösung wird nie zugunsten einer schnelleren, kleineren oder bequemeren Variante verworfen. Mehr Arbeit allein ist kein Grund, die richtige Lösung zu vermeiden.
+  - **„Arbeitsumfang“ ist nicht Feature-Scope.** Aufwandsscheu wird ignoriert; der Scope Guard bleibt unberührt: keine ungefragten Features, kein Gold-Plating (siehe „Scope Guard“ unten).
 - **Menschlich reviewbare Änderungen.** Jede Änderung muss sauber, lesbar und wartbar genug sein, damit ein Senior-Entwickler sie langfristig reviewen, verstehen und pflegen kann. Keinen cleveren Code, keine unnötigen Abstraktionen, keine Änderungen, die tiefen Kontext erfordern um verstanden zu werden.
 - **Self-Review-Checkliste** (vor dem Präsentieren der Änderungen still durchlaufen, nur gefundene Probleme im Chat melden):
   1. Sind die Änderungen **korrekt** — lösen sie tatsächlich das genannte Problem?
