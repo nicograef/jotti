@@ -189,156 +189,41 @@ Die Veröffentlichung ist **kein Freibrief** zur Nutzung, Kopie oder Modifikatio
 
 ## 6. Hosting und Betrieb
 
-### Grundsatz: Die Organisation ist Betreiberin
+Die nutzende Organisation ist **alleinige Betreiberin**: Sie verantwortet Server, Domain, Datenbank-Backups, SSL (Let's Encrypt) und Updates und kompiliert die Software selbst (Docker Compose). Der Autor stellt **ausschließlich Quellcode** bereit — kein Hosting, kein SaaS, keine kompilierte Software — und ist damit weder Betreiber noch SaaS-Anbieter, Software-Vertreiber, Auftragsverarbeiter oder Hersteller im Sinne des ProdHaftG. Ein externer Hoster ist Auftragsverarbeiter der Organisation (AV-Vertrag nach Art. 28 DSGVO); Multi-Tenant-Betrieb für mehrere Organisationen erfordert eine kommerzielle Lizenz. Eine freiwillige Einrichtungshilfe begründet keinen Anspruch auf laufende Betreuung.
 
-Die nutzende Organisation ist für Betrieb, Wartung und Sicherheit der Infrastruktur **allein verantwortlich**. Der Autor stellt **ausschließlich Quellcode** bereit — keine Infrastruktur, kein Hosting, kein SaaS, keine kompilierte Software.
-
-| Aspekt            | Regelung                                                               |
-| ----------------- | ---------------------------------------------------------------------- |
-| Server            | Verantwortung der Organisation (VPS, Cloud, Webhoster, lokaler Server) |
-| Domain            | Von der Organisation registriert und bezahlt                           |
-| SSL-Zertifikat    | Let's Encrypt (automatisch, kostenlos)                                 |
-| Datenbank-Backups | Verantwortung der Organisation                                         |
-| Software-Updates  | Organisation entscheidet, wann aktualisiert wird                       |
-| Kompilierung      | Organisation kompiliert und deployt selbst (Docker Compose)            |
-
-### Was der Autor NICHT ist
-
-| Der Autor ist **nicht** …          | Bedeutung                                                                                        |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------ |
-| …Betreiber                         | Er betreibt keine Instanz der Software für Dritte.                                               |
-| …SaaS-Anbieter                     | Er bietet keine gehostete Lösung an.                                                             |
-| …Software-Vertreiber               | Er verteilt keine kompilierte oder installierbare Software.                                      |
-| …Hersteller im Sinne des ProdHaftG | Er stellt ein Werk (Quellcode) zur Verfügung, kein Produkt im Sinne des Produkthaftungsgesetzes. |
-| …IT-Dienstleister                  | Er schuldet keine Arbeitsleistung und keinen Service.                                            |
-| …Auftragsverarbeiter               | Er hat keinen Zugriff auf Server oder Daten der Organisation.                                    |
-
-### Hosting durch Dritte
-
-Die Organisation kann die Infrastruktur durch einen externen Hosting-Anbieter betreiben lassen. Bedingungen:
-
-1. **Die Organisation bleibt Betreiberin und Verantwortliche.** Sie schließt den Vertrag mit dem Hosting-Anbieter.
-2. **Der Hosting-Anbieter ist Auftragsverarbeiter der Organisation** (Art. 28 DSGVO). AV-Vertrag erforderlich.
-3. **Der Autor hat keinen Zugriff** auf den Server oder die Daten.
-4. **Kein Multi-Tenant-Hosting.** Bietet ein Dritter jotti als gemeinsamen Dienst für mehrere Organisationen an, benötigt er eine **kommerzielle Lizenz** des Autors.
-
-### Einrichtungshilfe
-
-Der Autor kann bei der Ersteinrichtung **freiwillig** unterstützen (Docker Compose, Dokumentation, einmalige Begleitung). Daraus entsteht **kein Anspruch** auf laufende Betreuung, Wartung oder Betrieb.
+Verbindlich geregelt in [Nutzungsbedingungen § 5](nutzungsbedingungen.md).
 
 ---
 
 ## 7. Datenschutz (DSGVO)
 
-### Welche Daten speichert jotti?
+jotti speichert personenbezogene Daten nur über die Servicekräfte (Name, Rolle, Passwort-Hash) und indirekt über deren Aktivitäten (Bestellungen, Events); Gäste haben keine Accounts, Zahlungsmittel werden nicht verarbeitet. Datenschutzrechtlich ist die Organisation **Verantwortliche** (Art. 4 Nr. 7 DSGVO) und damit zuständig für Informations- und Löschpflichten, technische Maßnahmen (Art. 32) und — bei externem Hosting — den AV-Vertrag (Art. 28). Der Autor ist **kein** Auftragsverarbeiter, da er keinen Zugriff auf Server oder Daten hat.
 
-| Datenkategorie                   | Personenbezug                   | Beispiel                                      |
-| -------------------------------- | ------------------------------- | --------------------------------------------- |
-| Benutzerdaten (Servicekräfte)    | Ja                              | Name, Rolle, Passwort-Hash                    |
-| Bestellungen & Events            | Indirekt (User-ID referenziert) | Bestellung auf Tisch 5, aufgegeben von User 3 |
-| Gästedaten                       | **Nein**                        | Gäste haben keine Accounts                    |
-| Zahlungsdaten (Kreditkarte etc.) | **Nein**                        | jotti verarbeitet keine Zahlungsmittel        |
-
-### Rollen im Datenschutz
-
-| Rolle (DSGVO)                       | Wer                                        | Begründung                                                                      |
-| ----------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
-| **Verantwortlicher** (Art. 4 Nr. 7) | Die nutzende Organisation                  | Die Organisation entscheidet, welche Servicekräfte als Benutzer angelegt werden |
-| **Auftragsverarbeiter** (Art. 28)   | Ggf. der Hosting-Anbieter der Organisation | Sofern ein externer Hoster die Infrastruktur betreibt (AV-Vertrag erforderlich) |
-| **Kein Auftragsverarbeiter**        | Der Autor (Nico Gräf)                      | Der Autor hat keinen Zugriff auf den Server oder die gespeicherten Daten        |
-| **Betroffene Personen**             | Servicekräfte der Organisation             | Ihre Daten werden im System gespeichert                                         |
-
-### Pflichten der Organisation
-
-| Pflicht                                | Beschreibung                                                                                                                          |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Informationspflicht** (Art. 13/14)   | Servicekräfte darüber informieren, dass ihre Daten gespeichert werden (Name, Rolle, Aktivitäten)                                      |
-| **Löschpflicht** (Art. 17)             | Benutzer auf Wunsch deaktivieren/löschen (Soft-Delete vorhanden)                                                                      |
-| **Verarbeitungsverzeichnis** (Art. 30) | jotti als Verarbeitungstätigkeit dokumentieren (bei Organisationen unter 250 Beschäftigten i.d.R. nicht Pflicht, aber empfehlenswert) |
-| **Technische Maßnahmen** (Art. 32)     | Server absichern, HTTPS verwenden, Passwörter nicht teilen                                                                            |
-| **AV-Vertrag** (Art. 28)               | Mit dem Hosting-Anbieter schließen, sofern dieser die Infrastruktur betreibt                                                          |
+Verbindlich geregelt in [Nutzungsbedingungen § 6](nutzungsbedingungen.md).
 
 ---
 
 ## 8. Haftung und Gewährleistung
 
-### Haftungsausschluss
+Der Autor stellt den Quellcode **unentgeltlich** und **ohne jede Gewähr** („as-is") bereit: keine Zusicherung von Fehlerfreiheit, Funktionalität, Verfügbarkeit oder Eignung und kein Anspruch auf Support, Weiterentwicklung oder Fehlerbehebung. Da die Überlassung unentgeltlich ist, haftet der Autor nach Schenkungsrecht (§ 521 BGB) nur für Vorsatz und grobe Fahrlässigkeit; die Haftung für die Verletzung von Leben, Körper und Gesundheit (§ 309 Nr. 7a BGB) sowie nach dem Produkthaftungsgesetz bleibt unberührt. Insbesondere haftet der Autor nicht für Datenverlust, Fehlberechnungen, Ausfälle oder Beanstandungen aus Betriebsprüfungen.
 
-Der Autor stellt den Quellcode **unentgeltlich** und **ohne jede Gewähr** zur Verfügung. Es besteht **kein vertragliches oder gesetzliches Schuldverhältnis**, das über die in der Nutzungsvereinbarung gewährte Lizenz hinausgeht.
-
-| Aspekt                | Regelung                                                                                                                                                               |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Gewährleistung**    | Keine — die Software wird „as-is" bereitgestellt. Es gibt keine Zusicherung von Fehlerfreiheit, Funktionalität, Verfügbarkeit oder Eignung für einen bestimmten Zweck. |
-| **Support**           | Kein Anspruch. Unterstützung durch den Autor ist freiwillig und unverbindlich.                                                                                         |
-| **Weiterentwicklung** | Kein Anspruch. Der Autor entscheidet allein über Art und Umfang der Weiterentwicklung.                                                                                 |
-| **Fehlerbehebung**    | Kein Anspruch. Bugs werden nach Ermessen des Autors behoben — oder nicht.                                                                                              |
-| **Verfügbarkeit**     | Kein Anspruch. Der Autor kann das Repository oder die Software jederzeit offline nehmen.                                                                               |
-
-### Haftungsbegrenzung nach deutschem Recht
-
-Da die Software **unentgeltlich** überlassen wird, gelten die Grundsätze des Schenkungsrechts (§ 521 BGB):
-
-| Haftungsmaßstab                              | Regelung                                                                                                                                         |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Vorsatz** (§ 276 Abs. 3 BGB)               | Haftung **kann nicht ausgeschlossen werden** — gesetzlich zwingend.                                                                              |
-| **Grobe Fahrlässigkeit**                     | Haftung besteht — kann bei unentgeltlicher Überlassung nicht ausgeschlossen werden.                                                              |
-| **Einfache Fahrlässigkeit**                  | Haftung **ausgeschlossen** — bei unentgeltlicher Überlassung (§ 521 BGB).                                                                        |
-| **Verletzung von Leben, Körper, Gesundheit** | Haftung **kann nicht ausgeschlossen werden** — gesetzlich zwingend (§ 309 Nr. 7a BGB).                                                           |
-| **Produkthaftung** (ProdHaftG)               | Soweit anwendbar, bleibt unberührt. Der Autor ist jedoch kein Hersteller im Sinne des ProdHaftG, da er lediglich Quellcode zur Verfügung stellt. |
-
-### Was der Autor NICHT schuldet
-
-- Keine Garantie, dass die Software gesetzliche Anforderungen erfüllt (KassenSichV, GoBD, DSFinV-K, TSE)
-- Keine Garantie der Richtigkeit von Berechnungen (Saldo, Steuersätze, Abrechnungen)
-- Keine Garantie der Datensicherheit oder Datenverfügbarkeit
-- Keine Garantie der Kompatibilität mit bestimmten Systemen oder Browsern
-- Kein Schadensersatz bei Datenverlust, Fehlberechnungen, Ausfällen, Betriebsprüfungen oder behördlichen Beanstandungen
+Verbindlich geregelt in [Nutzungsbedingungen §§ 7–8](nutzungsbedingungen.md).
 
 ---
 
 ## 9. Freistellungsklausel
 
-### Umfassende Freistellung durch die Organisation
+Die Organisation stellt den Autor von **sämtlichen Ansprüchen, Schäden, Verlusten und Kosten** frei, die aus ihrer Nutzung, ihrem Deployment oder Betrieb der Software, aus Gesetzes- oder Datenschutzverstößen, aus Ansprüchen Dritter (z. B. Finanz- und Aufsichtsbehörden, Arbeitnehmer, Kunden) oder aus steuerlichen Beanstandungen als Kassensystem (KassenSichV, § 146a AO, GoBD) entstehen. Hintergrund: Der Autor stellt nur Quellcode bereit und kontrolliert weder Konfiguration noch Betrieb — die alleinige Verantwortung trägt die Organisation als Betreiberin.
 
-Die Organisation stellt den Autor (Nico Gräf) von **sämtlichen Ansprüchen, Schäden, Verlusten, Kosten und Aufwendungen** (einschließlich angemessener Rechtsanwalts- und Gerichtskosten) frei, die aus folgenden Umständen entstehen oder damit zusammenhängen:
-
-1. **Nutzung, Deployment oder Betrieb** der Software durch die Organisation
-2. **Nichteinhaltung** geltender Gesetze, Vorschriften oder dieser Lizenz durch die Organisation
-3. **Ansprüche Dritter** (einschließlich, aber nicht beschränkt auf Finanzbehörden, Aufsichtsbehörden, Arbeitnehmer, Kunden oder Endnutzer), die aus der Nutzung der Software durch die Organisation resultieren
-4. **Datenschutzverstöße**, die aus dem Betrieb der Software durch die Organisation resultieren
-5. **Steuerliche Beanstandungen**, Ordnungswidrigkeiten oder Bußgelder im Zusammenhang mit der Nutzung der Software als Kassensystem (KassenSichV, § 146a AO, GoBD)
-
-### Begründung
-
-Der Autor stellt Quellcode zur Verfügung. Er betreibt die Software nicht, er vertreibt kein fertiges Produkt, er kontrolliert nicht, wie die Organisation die Software einsetzt, konfiguriert oder betreibt. Die alleinige Verantwortung für den ordnungsgemäßen Betrieb und die Einhaltung gesetzlicher Vorschriften liegt bei der Organisation als Betreiberin.
+Verbindlich geregelt in [Nutzungsbedingungen § 9](nutzungsbedingungen.md).
 
 ---
 
 ## 10. Compliance-Verantwortung (KassenSichV / TSE)
 
-### Klarstellung: Compliance ist Sache der Organisation
+jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV (TSE-Pflicht nach § 146a AO). Die Einhaltung aller daraus folgenden Pflichten — TSE-Anbindung, Kassenmeldung über ELSTER, GoBD-konforme Aufbewahrung, DSFinV-K-Export, Belegausgabe und ordnungsgemäßer Betrieb — obliegt **allein der Organisation** als Betreiberin. Der Autor implementiert unterstützende technische Schnittstellen (TSE-Adapter, DSFinV-K-Export, Belegdruck — siehe [compliance.md](compliance.md)), garantiert aber weder deren Vollständigkeit noch Richtigkeit; die Organisation muss die Software vor dem produktiven Einsatz eigenständig auf Eignung und Compliance prüfen, ggf. mit Steuerberater.
 
-jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. **Die Einhaltung dieser Pflichten obliegt ausschließlich der Organisation als Betreiberin** — nicht dem Autor der Software.
-
-| Pflicht                               | Verantwortlicher | Erläuterung                                                           |
-| ------------------------------------- | ---------------- | --------------------------------------------------------------------- |
-| TSE-Anbindung (§ 146a AO)             | Organisation     | Die Organisation muss eine zertifizierte TSE beschaffen und anbinden. |
-| Kassenmeldung (§ 146a Abs. 4 AO)      | Organisation     | Meldung des Kassensystems an das zuständige Finanzamt über ELSTER.    |
-| GoBD-konforme Aufbewahrung            | Organisation     | Aufbewahrungspflicht für digitale Aufzeichnungen (10 Jahre).          |
-| DSFinV-K-Export                       | Organisation     | Bereitstellung des Exports bei Betriebsprüfung.                       |
-| Belegausgabepflicht (§ 6 KassenSichV) | Organisation     | Ausgabe von Belegen an Kunden.                                        |
-| Ordnungsgemäßer Betrieb               | Organisation     | Korrekte Konfiguration, regelmäßige Backups, Systemverfügbarkeit.     |
-
-### Was der Autor leistet
-
-Der Autor implementiert **technische Schnittstellen und Funktionen** zur Unterstützung der Compliance (TSE-Adapter, DSFinV-K-Export, Belegdruck — siehe `docs/anforderungen.md`). Der Autor **garantiert jedoch nicht**, dass:
-
-- Die Implementierung fehlerfrei oder vollständig ist
-- Die Software alle gesetzlichen Anforderungen erfüllt
-- Die Software einer Betriebsprüfung standhält
-- Die technischen Schnittstellen korrekt funktionieren
-
-**Die Organisation ist verpflichtet**, die Software vor dem produktiven Einsatz **eigenständig** auf Eignung und Compliance zu prüfen — ggf. unter Hinzuziehung eines Steuerberaters oder einer fachkundigen Person.
+Verbindlich geregelt in [Nutzungsbedingungen § 10](nutzungsbedingungen.md).
 
 ---
 
