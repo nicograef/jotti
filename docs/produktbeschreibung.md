@@ -20,21 +20,9 @@ Produktidentität von jotti: Positionierung, Zielgruppe, Abgrenzung, Kernfeature
 
 ## 1. Claim und Kurzbeschreibung
 
-### 1.1 Claim
-
 > **jotti — Das kostenlose Kassensystem für Vereinsfeste.**
 
-### 1.2 Kurzbeschreibung (Einzeiler)
-
-> jotti ist ein kostenloses, quelloffenes Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen — fiskalkonform, self-hosted, ohne Abo, ohne Hardware.
-
-### 1.3 Kurzbeschreibung (3 Sätze)
-
-> jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfeste, Weihnachtsmärkte, Konzerte und andere Non-Profit-Veranstaltungen. Servicekräfte nehmen Bestellungen direkt auf ihrem Smartphone auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch, alles im Browser. Fiskalkonform mit TSE-Anbindung und DSFinV-K-Export, kein Cloud-Abo, keine spezielle Hardware — einfach auf dem eigenen Server installieren und loslegen.
-
-### 1.4 Elevator Pitch
-
-> Euer Verein plant ein Sommerfest und braucht ein Kassensystem? Vergesst teure POS-Software mit monatlichen Gebühren. jotti ist ein kostenloses Kassensystem, das auf jedem Smartphone läuft — quelloffen und fiskalkonform. Eure Servicekräfte öffnen einfach den Browser, nehmen Bestellungen auf, bestätigen die Ausgabe und kassieren — pro Tisch, übersichtlich und schnell. Mit TSE-Anbindung, DSFinV-K-Export und Belegausgabe erfüllt jotti die gesetzlichen Anforderungen der KassenSichV. Keine Installation auf dem Handy, keine spezielle Hardware, keine laufenden Kosten. Self-hosted per Docker, in Minuten einsatzbereit. Für Vereine und gemeinnützige Organisationen — kostenlos, für immer.
+jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfeste, Weihnachtsmärkte, Konzerte und andere Non-Profit-Veranstaltungen. Servicekräfte nehmen Bestellungen direkt auf ihrem Smartphone auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch, alles im Browser. Fiskalkonform mit TSE-Anbindung und DSFinV-K-Export, kein Cloud-Abo, keine spezielle Hardware — einfach auf dem eigenen Server installieren und loslegen.
 
 ---
 
@@ -235,25 +223,18 @@ Diese bewusste Reduktion ist ein Feature, kein Mangel. Jedes zusätzliche Featur
 
 jotti ist ein **elektronisches Aufzeichnungssystem** im Sinne von § 1 KassenSichV und erfüllt die TSE-Pflicht nach § 146a AO — unabhängig von der Rechtsform des Betreibers (e.V., gGmbH, Stiftung) oder dem temporären Charakter einer Veranstaltung.
 
-| Anforderung                            | Umsetzung                                                                                            |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Event-Sourcing (Unveränderbarkeit)** | Append-Only-Architektur — nachträgliche Änderung ist technisch unmöglich                             |
-| **Kryptografische Hash-Chain**         | SHA-256-Verkettung aller Events — jede Manipulation ist nachweisbar (GoBD)                           |
-| **Kassenjournal**                      | Lückenlose, chronologische Transaktionshistorie                                                      |
-| **TSE-Anbindung**                      | Integrierte Cloud-TSE-Schnittstelle (fiskaly) — jeder Vorgang wird signiert                          |
-| **Belegausgabe**                       | Gesetzeskonforme Belege mit allen Pflichtfeldern nach § 6 KassenSichV inkl. TSE-Signatur und QR-Code |
-| **Seriennummer der Kasse**             | UUID wird beim ersten Start generiert und dauerhaft gespeichert                                      |
-| **Steuersätze**                        | 19 % (Standard), 7 % (ermäßigt), 0 % (steuerbefreit) — konfigurierbar pro Produktvariante            |
-| **Abrechnungskreis**                   | Fortlaufend nummerierte Kassensitzungen mit Eröffnung und Tagesabschluss                             |
-| **Tagesabschluss (Z-Bon)**             | Immutables Dokument mit fortlaufender Nummer, Umsatzaggregation und Stammdaten-Snapshot              |
-| **DSFinV-K-Export**                    | Vollständiger Export als ZIP-Archiv (CSV + index.xml) nach DSFinV-K v2.4                             |
-| **ELSTER-Meldepflicht**                | Dokumentierte Anleitung für die manuelle Meldung; Seriennummer im Admin-Dashboard                    |
+| Anforderung           | Umsetzung in jotti                                                            |
+| --------------------- | ----------------------------------------------------------------------------- |
+| Unveränderbarkeit     | Event-Sourcing (Append-Only) + SHA-256-Hash-Chain — Manipulation nachweisbar  |
+| Kassenjournal         | Lückenlose, chronologische Transaktionshistorie                               |
+| TSE-Signatur          | Integrierte Cloud-TSE-Schnittstelle (fiskaly) — jeder Vorgang wird signiert   |
+| Belegausgabe          | Belege mit Pflichtfeldern nach § 6 KassenSichV inkl. TSE-Signatur und QR-Code |
+| Steuersätze           | 19 % (Standard), 7 % (ermäßigt), 0 % — konfigurierbar pro Produktvariante     |
+| Abrechnungskreis      | Fortlaufend nummerierte Kassensitzungen mit Tagesabschluss (Z-Bon)            |
+| DSFinV-K-Export       | Vollständiger Export als ZIP (CSV + index.xml) nach DSFinV-K v2.4             |
+| Seriennummer / ELSTER | UUID beim ersten Start; dokumentierte Anleitung für die ELSTER-Meldung        |
 
-**Architekturprinzip:** Die Smartphones der Servicekräfte fungieren als reine Eingabegeräte — die TSE-Anbindung, Protokollierung und DSFinV-K-Persistenz erfolgen zentral im Backend. Die Webapp blockiert bei Verbindungsunterbrechung sofort (kein Offline-Kassieren), damit diese Einordnung rechtlich haltbar bleibt.
-
-**Bring Your Own TSE (BYOT):** Da jotti self-hosted betrieben wird, schließen Betreiber selbst einen Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly) ab und injizieren die API-Schlüssel über die `.env`-Datei in den Docker-Container. Ohne TSE-Konfiguration startet jotti im Entwicklungsmodus — im Produktivbetrieb ist die TSE-Anbindung verpflichtend.
-
-**Betreiberpflichten:** Der Betreiber (Verein) ist verantwortlich für die TSE-Beschaffung, die ELSTER-Meldung beim Finanzamt, die Datensicherung und die 10-jährige GoBD-konforme Aufbewahrung. Details: [docs/compliance.md](compliance.md).
+**Architekturprinzip:** Die Smartphones der Servicekräfte sind reine Eingabegeräte — TSE-Anbindung, Protokollierung und DSFinV-K-Persistenz laufen zentral im Backend; bei Verbindungsverlust blockiert die Webapp sofort (kein Offline-Kassieren). Da jotti self-hosted läuft, schließen Betreiber den Cloud-TSE-Vertrag selbst ab und hinterlegen die API-Schlüssel per `.env` (Bring Your Own TSE); ohne TSE-Konfiguration startet jotti nur im Entwicklungsmodus. Die rechtlichen Grundlagen sowie die Betreiberpflichten (ELSTER-Meldung, Datensicherung, 10-jährige GoBD-konforme Aufbewahrung) stehen in [docs/compliance.md](compliance.md).
 
 ### 7.4 Einsatzprofil
 
@@ -271,50 +252,26 @@ jotti ist ein **elektronisches Aufzeichnungssystem** im Sinne von § 1 KassenSic
 
 ## 8. Alleinstellungsmerkmale (USPs)
 
-### 8.1 Die sechs USPs von jotti
+Verdichtet auf sechs Punkte, die jotti von kommerziellen Kassensystemen und von Stift-und-Papier abheben:
 
-| #   | USP                          | Beschreibung                                                                                                                  |
-| --- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Kostenlos für Vereine**    | Keine Lizenzgebühren, kein Abo, keine versteckten Kosten. Für immer kostenlos für gemeinnützige Organisationen.               |
-| 2   | **Kein Hardware-Kauf**       | Jedes Smartphone wird zur Kasse. Kein Terminal, kein iPad, kein Drucker — BYOD (Bring Your Own Device).                       |
-| 3   | **In Minuten einsatzbereit** | Docker Compose starten, Produkte anlegen, Team einladen — fertig. Keine wochenlange Einrichtung.                              |
-| 4   | **Lückenlose Transparenz**   | Event-Sourcing garantiert eine unveränderliche Bestellhistorie. Jede Bestellung, Zahlung und Stornierung ist nachvollziehbar. |
-| 5   | **Volle Datenhoheit**        | Self-hosted auf dem eigenen Server. Keine Daten in fremden Clouds. Der Verein behält die volle Kontrolle.                     |
-| 6   | **Fiskalkonform ab Werk**    | TSE-Anbindung, DSFinV-K-Export, Belegausgabe und Tagesabschluss — KassenSichV-konform, ohne Zusatzkosten für die Software.    |
+| USP                          | Kurz                                                                 |
+| ---------------------------- | -------------------------------------------------------------------- |
+| **Kostenlos für Vereine**    | Keine Lizenzgebühren, kein Abo, keine versteckten Kosten             |
+| **Kein Hardware-Kauf**       | Jedes Smartphone wird zur Kasse — BYOD statt Terminal, iPad, Drucker |
+| **In Minuten einsatzbereit** | Docker Compose starten, Produkte anlegen, Team einladen              |
+| **Lückenlose Transparenz**   | Event-Sourcing — unveränderliche, nachvollziehbare Bestellhistorie   |
+| **Volle Datenhoheit**        | Self-hosted auf dem eigenen Server, keine fremde Cloud               |
+| **Fiskalkonform ab Werk**    | TSE, DSFinV-K-Export, Belegausgabe und Tagesabschluss inklusive      |
 
-### 8.2 Der jotti-Vorteil in einem Satz
-
-> Wo andere Vereine mit Stift und Papier jonglieren oder teure Abos bezahlen, bietet jotti ein kostenloses, fiskalkonformes Kassensystem, das in Minuten auf jedem Smartphone läuft und jede Bestellung lückenlos nachvollziehbar macht.
+Wie jotti die typischen Vereinsprobleme löst, zeigt [§5 Lösung](#5-lösung); der direkte Vergleich mit kommerziellen Systemen steht in [§7.1](#71-jotti-vs-kommerzielle-pos-systeme).
 
 ---
 
 ## 9. Lizenz und Kosten
 
-### 9.1 Lizenzmodell
+jotti steht unter einer **proprietären Source-Available-Lizenz**: Der Quellcode ist öffentlich einsehbar, Nutzungsrechte werden aber nicht automatisch gewährt. Eingetragene Vereine und gemeinnützige Organisationen (gGmbH, gUG, Stiftungen, NGOs) dürfen jotti **kostenlos** nutzen — nach Abschluss einer schriftlichen Nutzungsvereinbarung mit dem Autor (Nico Gräf). Quellcode lesen (Lernen, Evaluation, Sicherheitsaudit) und Pull Requests unter CLA sind ohne Vereinbarung erlaubt; Forks, Weitergabe sowie kommerzielle oder gewerbliche Nutzung erfordern eine separate Lizenz. Lizenzmodell, erlaubte Nutzungsfälle und die vollständigen Bedingungen: [lizenz-und-nutzung.md](lizenz-und-nutzung.md) und [nutzungsbedingungen.md](nutzungsbedingungen.md).
 
-jotti steht unter einer **proprietären Source-Available-Lizenz**. Der Quellcode ist öffentlich einsehbar, aber es werden keine Nutzungsrechte automatisch gewährt. Jede Nutzung erfordert eine vorherige schriftliche **Nutzungsvereinbarung** mit dem Autor (Nico Gräf).
-
-| Nutzungsfall                                                | Erlaubt?                          |
-| ----------------------------------------------------------- | --------------------------------- |
-| Quellcode lesen (Lernen, Evaluation, Sicherheitsaudit)      | ✅ Ohne Vereinbarung              |
-| Pull Requests an das offizielle Repo (unter CLA)            | ✅ Ohne Vereinbarung              |
-| Eingetragene Vereine (e.V.) für eigene Veranstaltungen      | ✅ Kostenlos (mit Vereinbarung)   |
-| Gemeinnützige Organisationen (gGmbH, gUG, Stiftungen, NGOs) | ✅ Kostenlos (mit Vereinbarung)   |
-| Nutzung ohne Vereinbarung                                   | ❌ Nicht erlaubt                  |
-| Forks, Modifikation, Weitergabe                             | ❌ Nicht erlaubt                  |
-| Kommerzielles SaaS oder gewerbliche Nutzung                 | ❌ Nicht ohne kommerzielle Lizenz |
-
-### 9.2 Was „kostenlos" bedeutet
-
-- **Keine Lizenzgebühren** — nicht jetzt, nicht später
-- **Keine Nutzungslimits** — keine Beschränkung auf Tische, Produkte oder Benutzer
-- **Kein Freemium** — der volle Funktionsumfang, keine versteckte Paywall
-- **Keine Werbung** — keine Ads, kein Tracking, keine Datenmonetarisierung
-- **Quellcode einsehbar** — Transparenz und Vertrauen durch offenen Code
-
-### 9.3 Einzige Kosten
-
-Die einzigen Kosten, die entstehen, sind Infrastrukturkosten für das Hosting und ggf. die Cloud-TSE — diese fallen unabhängig von jotti an:
+„Kostenlos" heißt: keine Lizenzgebühren, keine Nutzungslimits, kein Freemium, keine Werbung, kein Tracking — voller Funktionsumfang. Es entstehen nur Infrastrukturkosten, die unabhängig von jotti anfallen:
 
 | Kostenart                   | Geschätzte Kosten                              |
 | --------------------------- | ---------------------------------------------- |
