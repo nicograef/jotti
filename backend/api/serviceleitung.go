@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"net/http"
 
+	direktverkaufApp "github.com/nicograef/jotti/backend/api/direktverkauf/application"
+	direktverkaufHTTP "github.com/nicograef/jotti/backend/api/direktverkauf/http"
 	tableApp "github.com/nicograef/jotti/backend/api/table/application"
 	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -28,6 +30,14 @@ func NewServiceleitungApi(db *sql.DB) http.Handler {
 	}
 	r.HandleFunc("/stornierung-erteilen", tc.StornierungErteilenHandler())
 	r.HandleFunc("/auszahlung-leisten", tc.AuszahlungLeistenHandler())
+
+	dc := direktverkaufHTTP.CommandHandler{}
+	dc.Command = direktverkaufApp.Command{
+		EventRepo:           kassenjournalRepo,
+		ProductRepo:         productRepo,
+		KassensitzungenRepo: kassensitzungenRepo,
+	}
+	r.HandleFunc("/direktverkauf-stornieren", dc.DirektverkaufStornierenHandler())
 
 	return r
 }

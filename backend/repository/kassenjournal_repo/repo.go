@@ -230,6 +230,31 @@ func (r Repository) ReadEventsBySubject(ctx context.Context, subject string) ([]
 	return events, nil
 }
 
+// ReadDirektverkaufEvents retrieves all Direktverkauf events (getaetigt + storniert) of the given
+// Kassensitzung across all verkauf streams, ordered by ID ascending.
+func (r Repository) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error) {
+	rows, err := r.q.ReadDirektverkaufEvents(ctx, kassensitzungNr)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	events := make([]event.Event, 0, len(rows))
+	for i := range rows {
+		events = append(events, event.Event{
+			ID:       rows[i].ID,
+			UserID:   rows[i].UserID,
+			UserName: rows[i].UserName,
+			Version:  rows[i].Version,
+			Type:     rows[i].Type,
+			Subject:  rows[i].Subject,
+			Data:     rows[i].Data,
+			Time:     rows[i].Timestamp,
+		})
+	}
+
+	return events, nil
+}
+
 // GetMaxVersion returns the highest event version for the given subject.
 // Returns 0 if no events exist for the subject.
 func (r Repository) GetMaxVersion(ctx context.Context, subject string) (int, error) {

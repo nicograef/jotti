@@ -10,6 +10,7 @@ import (
 
 const (
 	EventTypeDirektverkaufGetaetigtV1 EventType = "direktverkauf-getaetigt:v1"
+	EventTypeDirektverkaufStorniertV1 EventType = "direktverkauf-storniert:v1"
 )
 
 type direktverkaufGetaetigtV1Data struct {
@@ -24,6 +25,25 @@ var direktverkaufGetaetigtV1DataSchema = z.Struct(z.Shape{
 	"Positionen":        z.Slice(positionSchema).Min(1).Required(),
 	"GesamtbetragCents": z.Int().GTE(0).Required(),
 	"Kommentar":         z.String().Max(100),
+})
+
+// direktverkaufStorniertV1Data stores the cancelled positions as fat positions — self-contained
+// for reporting, consistent with the Tisch-Storno (stornierung-erteilt:v1).
+// The json-keys are stable and must not be changed (immutable events).
+type direktverkaufStorniertV1Data struct {
+	StornierungID          string              `json:"stornierungId"`
+	VerkaufID              string              `json:"verkaufId"`
+	Positionen             []positionEventData `json:"positionen"`
+	GesamtStornierungCents int                 `json:"gesamtStornierungCents"`
+	Kommentar              string              `json:"kommentar"`
+}
+
+var direktverkaufStorniertV1DataSchema = z.Struct(z.Shape{
+	"StornierungID":          z.String().UUID().Required(),
+	"VerkaufID":              z.String().UUID().Required(),
+	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
+	"GesamtStornierungCents": z.Int().GTE(0).Required(),
+	"Kommentar":              z.String().Min(3).Max(100).Required(),
 })
 
 // NewDirektverkaufGetaetigtEvent creates the single event for a completed Direktverkauf.
@@ -51,6 +71,32 @@ func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 	}
 
 	event, err := e.New(userID, userName, string(EventTypeDirektverkaufGetaetigtV1), subject, data)
+	if err != nil {
+		return e.Event{}, err
+	}
+
+	return event, nil
+}
+
+// NewDirektverkaufStorniertEvent creates a position-precise cancellation event for a Direktverkauf.
+// It stores the cancelled positions as fat positions (self-contained, like the Tisch-Storno); the
+// monetary impact is carried by gesamtStornierungCents, which the command computes from the
+// not-yet-cancelled positions. StornierungID is generated server-side.
+func NewDirektverkaufStorniertEvent(subject string, verkaufID string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
+	data := direktverkaufStorniertV1Data{
+		StornierungID:          uuid.New().String(),
+		VerkaufID:              verkaufID,
+		Positionen:             toPositionenEventData(positionen),
+		GesamtStornierungCents: gesamtStornierungCents,
+		Kommentar:              kommentar,
+	}
+
+	if err := direktverkaufStorniertV1DataSchema.Validate(&data); err != nil {
+		issues := z.Issues.FlattenAndCollect(err)
+		return e.Event{}, fmt.Errorf("direktverkauf storniert data validation failed: %v", issues)
+	}
+
+	event, err := e.New(userID, userName, string(EventTypeDirektverkaufStorniertV1), subject, data)
 	if err != nil {
 		return e.Event{}, err
 	}

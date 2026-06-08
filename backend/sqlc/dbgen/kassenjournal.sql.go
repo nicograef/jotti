@@ -49,6 +49,59 @@ func (q *Queries) GetMaxVersion(ctx context.Context, subject string) (int, error
 	return version, err
 }
 
+const readDirektverkaufEvents = `-- name: ReadDirektverkaufEvents :many
+SELECT id, user_id, user_name, version, type, subject, data, timestamp, kassensitzung_nr
+FROM kassenjournal
+WHERE kassensitzung_nr = $1
+  AND type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1')
+ORDER BY id ASC
+`
+
+type ReadDirektverkaufEventsRow struct {
+	ID              int
+	UserID          int
+	UserName        string
+	Version         int
+	Type            string
+	Subject         string
+	Data            json.RawMessage
+	Timestamp       time.Time
+	KassensitzungNr int
+}
+
+func (q *Queries) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr int) ([]ReadDirektverkaufEventsRow, error) {
+	rows, err := q.db.QueryContext(ctx, readDirektverkaufEvents, kassensitzungNr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReadDirektverkaufEventsRow{}
+	for rows.Next() {
+		var i ReadDirektverkaufEventsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.UserName,
+			&i.Version,
+			&i.Type,
+			&i.Subject,
+			&i.Data,
+			&i.Timestamp,
+			&i.KassensitzungNr,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const readEventsBySubject = `-- name: ReadEventsBySubject :many
 SELECT id, user_id, user_name, version, type, subject, data, timestamp, kassensitzung_nr
 FROM kassenjournal WHERE subject = $1 ORDER BY id ASC

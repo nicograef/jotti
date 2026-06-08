@@ -261,23 +261,23 @@ Stornierung selbst kassenwirksam — **keine** separate Auszahlungsbuchung. Die 
 
 ### Akzeptanzkriterien
 
-- [ ] `direktverkauf-storniert:v1` (zog-validiert) mit `verkaufId`,
+- [x] `direktverkauf-storniert:v1` (zog-validiert) mit `verkaufId`,
       `positionen[]` (PositionRef: `positionId`, `menge`), `gesamtStornierungCents`,
       `kommentar` (Pflicht, min. 3, max. 100).
-- [ ] `ComputeNichtStornierteVerkaufPositionen(events)` liefert nach mehreren
+- [x] `ComputeNichtStornierteVerkaufPositionen(events)` liefert nach mehreren
       Teilstornos korrekt die Restmengen; Vollstorno → leere Restmenge.
-- [ ] `POST /serviceleitung/direktverkauf-stornieren` schreibt das Storno-Event mit
+- [x] `POST /serviceleitung/direktverkauf-stornieren` schreibt das Storno-Event mit
       `version = maxVersion + 1`; Storno über verfügbare Menge hinaus → Fehler;
       nicht-existenter Verkauf → Fehler; OCC-Konflikt → HTTP 409; Rolle `service`
       → abgewiesen.
-- [ ] `POST /service/get-direktverkauf-historie` liefert die kompakte Historie der
+- [x] `POST /service/get-direktverkauf-historie` liefert die kompakte Historie der
       offenen KS (eine Zeile pro Verkauf) über ein Response-DTO der HTTP-Schicht.
-- [ ] Frontend: Historie kompakt mit positionsgenauer Storno-Aktion, sichtbar nur für
+- [x] Frontend: Historie kompakt mit positionsgenauer Storno-Aktion, sichtbar nur für
       serviceleitung/admin (`DirektverkaufBackend.direktverkaufStornieren`,
       `…getDirektverkaufHistorie`).
-- [ ] Tests: Domäne (Teil-/Vollstorno-Replay), Command (Über-Storno, nicht-existent,
+- [x] Tests: Domäne (Teil-/Vollstorno-Replay), Command (Über-Storno, nicht-existent,
       OCC-409, Rolle service abgewiesen), HTTP, Frontend (Historie + Storno).
-- [ ] Doku: `docs/language.md` (Direktverkauf-Stornierung), `docs/handbuch.md`
+- [x] Doku: `docs/language.md` (Direktverkauf-Stornierung), `docs/handbuch.md`
       (Storno-Replay, Kassenwirksamkeit ohne separate Auszahlung).
 
 ---

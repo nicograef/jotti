@@ -146,6 +146,8 @@ kassensitzung-{nr}/direktverkauf-{uuid}         → Direktverkauf (ein Stream pr
 
 **Direktverkauf-Subject:** `kassensitzung-1/direktverkauf-<uuid>` — ein eigener Stream pro Barverkauf an der Theke. Der Stream-Typ `direktverkauf` schreibt ausschließlich ins Kassenjournal (keine Projektion). `direktverkauf-getaetigt:v1` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream (OCC über `UNIQUE(subject, version)`).
 
+Die **Storno-Validierung** läuft ohne Projektion per On-Demand-Replay des einzelnen Verkauf-Streams (`ReadEventsBySubject` → `ComputeNichtStornierteVerkaufPositionen`): Es lassen sich nur Positionen stornieren, die noch nicht (vollständig) storniert wurden, höchstens in der ursprünglich verkauften Menge. `direktverkauf-storniert:v1` speichert die stornierten Positionen als **Fat-Positionen** (wie der Tisch-Storno `stornierung-erteilt:v1`); die API nimmt `PositionRef` (`positionId` + `menge`) entgegen und reichert im Command an. `gesamtStornierungCents` (vom Command aus den nicht-stornierten Positionen berechnet) trägt den Geldbetrag. Anders als beim Tisch ist die Bargeld-Rückgabe **Teil des Storno-Vorgangs selbst** und mindert den Soll-Kassenbestand direkt — es gibt **keine** separate `auszahlung-geleistet`-Buchung, weil ein Direktverkauf keinen aufzulösenden Saldo hat. Die kompakte Direktverkauf-Historie (eine Zeile pro Verkauf, inkl. noch offener Positionen) entsteht durch Cross-Stream-Replay aller `direktverkauf-*`-Events der offenen Kassensitzung (`kassensitzung_nr`).
+
 Separate Tisch-Subjects sind notwendig, weil der OCC-Constraint `UNIQUE(subject, version)` bei einem einzigen Subject alle Schreibvorgänge serialisieren würde — bei 5–30 Servicekräften nicht praktikabel.
 
 **Kanonische Query-Strategie:**

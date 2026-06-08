@@ -19,6 +19,7 @@ interface DirektverkaufProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
   products: Produkt[]
   productsLoading: boolean
+  onVerkauft?: () => void
 }
 
 interface SelectedItem {
@@ -48,6 +49,7 @@ export function Direktverkauf({
   backend,
   products,
   productsLoading,
+  onVerkauft,
 }: DirektverkaufProps) {
   const [mengen, setMengen] = useState<Record<number, number>>({})
   const [erhaltenEuro, setErhaltenEuro] = useState('')
@@ -78,6 +80,7 @@ export function Direktverkauf({
       setErhaltenEuro('')
       setKommentar('')
       toast.success('Verkauf abgeschlossen.')
+      onVerkauft?.()
     },
   })
 

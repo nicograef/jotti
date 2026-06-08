@@ -136,8 +136,11 @@ Schlankes Event-Sourced Aggregat im Kasse-Kontext für den **Barverkauf an der T
 | Go-Struct | TS-Typ | Event-Typ (Verkauf)          | Subject-Format                            |
 | --------- | ------ | ---------------------------- | ----------------------------------------- |
 | —         | —      | `direktverkauf-getaetigt:v1` | `kassensitzung-{nr}/direktverkauf-{uuid}` |
+| —         | —      | `direktverkauf-storniert:v1` | `kassensitzung-{nr}/direktverkauf-{uuid}` |
 
 > **Verkauf:** die fachliche Einheit eines Direktverkaufs (ein Stream, ein `verkaufId`). Kein eigenes Domain-Struct — der Verkauf existiert nur als Event-Stream im Kassenjournal. `direktverkauf-getaetigt:v1` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream.
+
+> **Direktverkauf-Stornierung:** positionsgenaue Korrektur/Rückgabe eines Verkaufs durch Serviceleitung/Admin (`direktverkauf-storniert:v1`, Folge-Version im selben Stream). Speichert die stornierten Positionen als **Fat-Positionen** (wie der Tisch-Storno, selbst-enthaltend fürs Reporting); die API nimmt `PositionRef` (`positionId` + `menge`) entgegen und reichert sie im Command an. `gesamtStornierungCents` ist die Summe der stornierten Positionen und sofort kassenwirksam (Bargeld-Rückgabe) — **ohne** separate `auszahlung-geleistet`-Buchung, da ein Verkauf keinen offenen Saldo hat. Validierung per On-Demand-Replay des Verkauf-Streams (`ComputeNichtStornierteVerkaufPositionen`): nur noch nicht stornierte Positionen, höchstens die ursprünglich verkaufte Menge. Mehrere Teilstornos pro Verkauf sind zulässig.
 
 #### Bestellung
 

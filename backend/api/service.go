@@ -65,6 +65,13 @@ func NewServiceApi(db *sql.DB) http.Handler {
 	}
 	r.HandleFunc("/direktverkauf-taetigen", dc.DirektverkaufTaetigenHandler())
 
+	dq := direktverkaufHTTP.QueryHandler{}
+	dq.Query = direktverkaufApp.Query{
+		EventRepo:           kassenjournalRepo,
+		KassensitzungenRepo: kassensitzungenRepo,
+	}
+	r.HandleFunc("/get-direktverkauf-historie", dq.GetDirektverkaufHistorieHandler())
+
 	tq := tableHTTP.QueryHandler{}
 	tq.Query = tableApp.Query{TableRepo: tableRepo, EventRepo: kassenjournalRepo, FavoritRepo: favoritRepo, KassensitzungenRepo: kassensitzungenRepo}
 	r.HandleFunc("/get-aktive-tische", tq.GetAktiveTischeHandler())

@@ -1,6 +1,12 @@
+import { z } from 'zod'
+
 import type { BackendClient } from '@/lib/Backend'
 
 import {
+  type DirektverkaufHistorieEintrag,
+  DirektverkaufHistorieEintragSchema,
+  type DirektverkaufStornieren,
+  DirektverkaufStornierenSchema,
   type DirektverkaufTaetigen,
   DirektverkaufTaetigenSchema,
 } from './Direktverkauf'
@@ -17,5 +23,23 @@ export class DirektverkaufBackend {
   ): Promise<void> {
     const body = DirektverkaufTaetigenSchema.parse(verkauf)
     await this.backend.post('service/direktverkauf-taetigen', body)
+  }
+
+  public async getDirektverkaufHistorie(): Promise<
+    DirektverkaufHistorieEintrag[]
+  > {
+    const { historie } = await this.backend.post(
+      'service/get-direktverkauf-historie',
+      {},
+      z.object({ historie: DirektverkaufHistorieEintragSchema.array() }),
+    )
+    return historie
+  }
+
+  public async direktverkaufStornieren(
+    storno: DirektverkaufStornieren,
+  ): Promise<void> {
+    const body = DirektverkaufStornierenSchema.parse(storno)
+    await this.backend.post('serviceleitung/direktverkauf-stornieren', body)
   }
 }

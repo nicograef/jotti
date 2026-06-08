@@ -147,13 +147,17 @@ Ein Vereinsmitglied schließt einen Barverkauf an der Theke ab.
 
 Positionsgenaue Korrektur/Rückgabe durch Serviceleitung/Admin.
 
-| Feld                       | Typ           | Beschreibung                              |
-| -------------------------- | ------------- | ----------------------------------------- |
-| `stornierung_id`           | UUID          | Eindeutige ID                             |
-| `verkauf_id`               | UUID          | Referenz auf den stornierten Verkauf      |
-| `positionen[]`             | PositionRef[] | `position_id` (UUID) + `menge` (int, ≥ 1) |
-| `gesamt_stornierung_cents` | int           | Summe der stornierten Positionen in Cent  |
-| `kommentar`                | string        | **Pflicht**, min. 3, max. 100 Zeichen     |
+| Feld                       | Typ        | Beschreibung                                                |
+| -------------------------- | ---------- | ----------------------------------------------------------- |
+| `stornierung_id`           | UUID       | Eindeutige ID                                               |
+| `verkauf_id`               | UUID       | Referenz auf den stornierten Verkauf                        |
+| `positionen[]`             | Position[] | Stornierte Positionen als Fat-Event (wie beim Tisch-Storno) |
+| `gesamt_stornierung_cents` | int        | Summe der stornierten Positionen in Cent                    |
+| `kommentar`                | string     | **Pflicht**, min. 3, max. 100 Zeichen                       |
+
+Die Positionen werden — wie beim Tisch-Storno — als **Fat-Positionen** gespeichert
+(`produkt_name`, `variante_name`, `kategorie`, `einzelpreis`, `menge`). Die API nimmt
+`PositionRef` (`position_id` + `menge`) entgegen und reichert sie im Command an.
 
 #### Invarianten
 

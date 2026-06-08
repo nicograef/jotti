@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -39,9 +40,11 @@ var testVariant = product.Variante{
 // spyEventRepo records WriteEvent calls so tests can assert the exact write contract
 // (single event, stream type, version, subject).
 type spyEventRepo struct {
-	written    []writtenEvent
-	maxVersion int
-	writeErr   error
+	written      []writtenEvent
+	maxVersion   int
+	writeErr     error
+	streamEvents []event.Event
+	readErr      error
 }
 
 type writtenEvent struct {
@@ -52,6 +55,10 @@ type writtenEvent struct {
 
 func (s *spyEventRepo) GetMaxVersion(_ context.Context, _ string) (int, error) {
 	return s.maxVersion, nil
+}
+
+func (s *spyEventRepo) ReadEventsBySubject(_ context.Context, _ string) ([]event.Event, error) {
+	return s.streamEvents, s.readErr
 }
 
 func (s *spyEventRepo) WriteEvent(_ context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
@@ -154,6 +161,113 @@ func TestDirektverkaufTaetigen_Conflict(t *testing.T) {
 	command := newCommand(spy, testOpenKS)
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "")
+	if err != ErrConflict {
+		t.Fatalf("expected ErrConflict, got %v", err)
+	}
+}
+
+// getaetigtEvent builds a real direktverkauf-getaetigt:v1 event with a single position and returns
+// the event, its verkaufId, and the server-generated positionId for use in storno tests.
+func getaetigtEvent(t *testing.T, einzelpreis, menge int) (event.Event, string, string) {
+	t.Helper()
+	verkaufID := uuid.New().String()
+	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
+	evt, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "User", []kasse.Position{
+		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: einzelpreis, Menge: menge},
+	}, "")
+	if err != nil {
+		t.Fatalf("failed to create getaetigt event: %v", err)
+	}
+
+	var data struct {
+		Positionen []struct {
+			PositionID string `json:"positionId"`
+		} `json:"positionen"`
+	}
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		t.Fatalf("failed to unmarshal getaetigt data: %v", err)
+	}
+	return evt, verkaufID, data.Positionen[0].PositionID
+}
+
+func TestDirektverkaufStornieren_KasseNichtGeoeffnet(t *testing.T) {
+	command := newCommand(&spyEventRepo{}, nil)
+
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
+	if err != ErrKasseNichtGeoeffnet {
+		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+	}
+}
+
+func TestDirektverkaufStornieren_VerkaufNichtGefunden(t *testing.T) {
+	spy := &spyEventRepo{streamEvents: nil}
+	command := newCommand(spy, testOpenKS)
+
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
+	if err != ErrVerkaufNichtGefunden {
+		t.Fatalf("expected ErrVerkaufNichtGefunden, got %v", err)
+	}
+	if len(spy.written) != 0 {
+		t.Fatalf("expected no event written, got %d", len(spy.written))
+	}
+}
+
+func TestDirektverkaufStornieren_UeberVerfuegbareMenge(t *testing.T) {
+	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 2)
+	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}
+	command := newCommand(spy, testOpenKS)
+
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 3}}, "Zu viel")
+	if err != ErrPositionNichtStornierbar {
+		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
+	}
+	if len(spy.written) != 0 {
+		t.Fatalf("expected no event written, got %d", len(spy.written))
+	}
+}
+
+func TestDirektverkaufStornieren_WritesStornoEventWithNextVersion(t *testing.T) {
+	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 2)
+	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}
+	command := newCommand(spy, testOpenKS)
+
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(spy.written) != 1 {
+		t.Fatalf("expected exactly 1 written event, got %d", len(spy.written))
+	}
+
+	got := spy.written[0]
+	if got.streamType != kasse.StreamTypeDirektverkauf {
+		t.Errorf("expected stream type %s, got %s", kasse.StreamTypeDirektverkauf, got.streamType)
+	}
+	if got.event.Version != 2 {
+		t.Errorf("expected version 2 (maxVersion+1), got %d", got.event.Version)
+	}
+	if got.event.Type != string(kasse.EventTypeDirektverkaufStorniertV1) {
+		t.Errorf("expected type %s, got %s", kasse.EventTypeDirektverkaufStorniertV1, got.event.Type)
+	}
+
+	var data struct {
+		GesamtStornierungCents int `json:"gesamtStornierungCents"`
+	}
+	if err := json.Unmarshal(got.event.Data, &data); err != nil {
+		t.Fatalf("failed to unmarshal storno event data: %v", err)
+	}
+	if data.GesamtStornierungCents != 500 {
+		t.Errorf("expected gesamtStornierungCents 500, got %d", data.GesamtStornierungCents)
+	}
+}
+
+func TestDirektverkaufStornieren_Conflict(t *testing.T) {
+	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 2)
+	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}, writeErr: db.ErrAlreadyExists}
+	command := newCommand(spy, testOpenKS)
+
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}

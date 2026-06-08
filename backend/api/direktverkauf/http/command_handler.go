@@ -9,11 +9,13 @@ import (
 	"github.com/nicograef/jotti/backend/api/direktverkauf/application"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/middleware"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
 )
 
 type command interface {
 	DirektverkaufTaetigen(ctx context.Context, userID int, userName string, positionen []application.VerkaufPositionInput, kommentar string) error
+	DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error
 }
 
 type CommandHandler struct {
@@ -78,6 +80,70 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 			default:
 				helper.MapError(w, err, map[error]string{
 					application.ErrProduktNotFound: "produkt_not_found",
+				})
+			}
+			return
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+type positionRefRequest struct {
+	PositionID string `json:"positionId"`
+	Menge      int    `json:"menge"`
+}
+
+var positionRefRequestSchema = z.Struct(z.Shape{
+	"PositionID": z.String().UUID().Required(),
+	"Menge":      z.Int().GTE(1).Required(),
+})
+
+func toPositionRefs(refs []positionRefRequest) []kasse.PositionRef {
+	out := make([]kasse.PositionRef, len(refs))
+	for i, ref := range refs {
+		out[i] = kasse.PositionRef{PositionID: ref.PositionID, Menge: ref.Menge}
+	}
+	return out
+}
+
+type direktverkaufStornierenRequest struct {
+	VerkaufID  string               `json:"verkaufId"`
+	Positionen []positionRefRequest `json:"positionen"`
+	Kommentar  string               `json:"kommentar"`
+}
+
+var direktverkaufStornierenSchema = z.Struct(z.Shape{
+	"VerkaufID":  z.String().UUID().Required(),
+	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
+	"Kommentar":  z.String().Min(3).Max(100).Required(),
+})
+
+func (h *CommandHandler) DirektverkaufStornierenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := direktverkaufStornierenRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, direktverkaufStornierenSchema) {
+			return
+		}
+
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
+
+		err := h.Command.DirektverkaufStornieren(r.Context(), userID, userName, body.VerkaufID, toPositionRefs(body.Positionen), body.Kommentar)
+		if err != nil {
+			switch {
+			case errors.Is(err, application.ErrConflict):
+				helper.SendConflictError(w)
+			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			default:
+				helper.MapError(w, err, map[error]string{
+					application.ErrVerkaufNichtGefunden:     "verkauf_not_found",
+					application.ErrPositionNichtStornierbar: "position_nicht_stornierbar",
 				})
 			}
 			return

@@ -15,6 +15,7 @@ import (
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
+	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 }
 
 type kassensitzungenRepo interface {
@@ -79,6 +80,113 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 
 	log.Info().Str("verkauf_id", verkaufID).Msg("Direktverkauf getaetigt")
 	return nil
+}
+
+// DirektverkaufStornieren records a position-precise cancellation of a Direktverkauf as an immutable
+// event appended to that verkauf's own stream (version = maxVersion + 1, OCC). The returned cash
+// reduces the Soll-Kassenbestand directly — there is no separate Auszahlung, because a Direktverkauf
+// has no open Saldo. Requires an open Kassensitzung (ErrKasseNichtGeoeffnet otherwise). Returns
+// ErrVerkaufNichtGefunden when the verkauf does not exist and ErrPositionNichtStornierbar when a
+// requested position is not (or no longer) cancellable.
+func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error {
+	log := zerolog.Ctx(ctx)
+
+	ks, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to load open Kassensitzung")
+		return ErrDatabase
+	}
+	if ks == nil {
+		return ErrKasseNichtGeoeffnet
+	}
+
+	subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
+
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to read direktverkauf events")
+		return ErrDatabase
+	}
+	if len(events) == 0 {
+		return ErrVerkaufNichtGefunden
+	}
+
+	nichtStorniert, err := kasse.ComputeNichtStornierteVerkaufPositionen(events)
+	if err != nil {
+		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to compute nicht-stornierte Positionen")
+		return ErrDatabase
+	}
+
+	if !validatePositionRefs(nichtStorniert, positionen) {
+		log.Warn().Str("verkauf_id", verkaufID).Msg("Storno-Invariante verletzt: angeforderte Positionen nicht stornierbar")
+		return ErrPositionNichtStornierbar
+	}
+
+	resolvedPositionen, gesamtStornierungCents := resolvePositionen(nichtStorniert, positionen)
+
+	evt, err := kasse.NewDirektverkaufStorniertEvent(subject, verkaufID, userID, userName, resolvedPositionen, gesamtStornierungCents, kommentar)
+	if err != nil {
+		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to create direktverkauf storniert event")
+		return err
+	}
+
+	if err := c.writeEvent(ctx, evt, subject, ks.ZNr); err != nil {
+		if errors.Is(err, ErrConflict) {
+			return ErrConflict
+		}
+		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to write direktverkauf storniert event")
+		return ErrDatabase
+	}
+
+	log.Info().Str("verkauf_id", verkaufID).Int("gesamt_stornierung_cents", gesamtStornierungCents).Msg("Direktverkauf storniert")
+	return nil
+}
+
+// validatePositionRefs checks that every requested PositionRef exists in the available positions
+// and that the requested Menge does not exceed the available Menge.
+func validatePositionRefs(available []kasse.Position, requested []kasse.PositionRef) bool {
+	for _, ref := range requested {
+		found := false
+		for _, pos := range available {
+			if pos.PositionID == ref.PositionID {
+				if ref.Menge > pos.Menge {
+					return false
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// resolvePositionen resolves the requested PositionRefs to fat Positions using the available
+// (not-yet-cancelled) positions, returning the resolved positions and their total in cents.
+// Mirrors the Tisch-Storno so the storno event is self-contained (fat).
+func resolvePositionen(available []kasse.Position, requested []kasse.PositionRef) ([]kasse.Position, int) {
+	resolved := make([]kasse.Position, 0, len(requested))
+	totalCents := 0
+	for _, ref := range requested {
+		for _, pos := range available {
+			if pos.PositionID == ref.PositionID {
+				resolved = append(resolved, kasse.Position{
+					PositionID:   pos.PositionID,
+					VarianteID:   pos.VarianteID,
+					ProduktName:  pos.ProduktName,
+					VarianteName: pos.VarianteName,
+					Kategorie:    pos.Kategorie,
+					Einzelpreis:  pos.Einzelpreis,
+					Menge:        ref.Menge,
+				})
+				totalCents += pos.Einzelpreis * ref.Menge
+				break
+			}
+		}
+	}
+	return resolved, totalCents
 }
 
 // enrichPositionen batch-fetches the referenced variants and products and turns the inputs
