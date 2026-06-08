@@ -1,0 +1,114 @@
+# Local / LAN deployment for jotti — HTTP only, no domain, no TLS.
+#
+# Runs jotti on a single PC or laptop (Windows/macOS with Docker Desktop, or Linux
+# with Docker Engine) and makes it reachable from tablets/phones in the same WLAN via
+# the host's local IP address — e.g. http://192.168.1.50
+#
+# Intended for the smallest setup: a single direct-sales till on one device, cash only,
+# no receipt printing. See docs/hosting.md → "Lokaler Betrieb ohne Server".
+#
+# Start:  docker compose -f docker-compose.local.yml up -d --build
+# Stop:   docker compose -f docker-compose.local.yml down
+#
+# SECURITY: Traffic is unencrypted. Run only inside a trusted local network — never
+# expose this stack to the public internet (no port forwarding).
+
+name: jotti-local
+
+services:
+  postgres:
+    image: postgres:17.8
+    container_name: jotti-postgres-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: jotti
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - db-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d jotti"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: ./database/migrate
+      dockerfile: Dockerfile
+    container_name: jotti-migrate-local
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    networks:
+      - db-network
+    volumes:
+      - ./database/migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: jotti-backend-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DBNAME: jotti
+      JWT_SECRET: ${JWT_SECRET}
+    networks:
+      - app-network
+      - db-network
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    # No exposed ports; reachable only via reverse proxy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: jotti-frontend-local
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      backend:
+        condition: service_started
+    # No exposed ports; served via reverse proxy
+
+  reverse-proxy:
+    image: nginx:1.27-alpine
+    container_name: jotti-reverse-proxy-local
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./reverse-proxy/nginx.local.conf:/etc/nginx/conf.d/jotti.conf:ro
+    networks:
+      - app-network
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+
+networks:
+  app-network:
+    driver: bridge
+  db-network:
+    driver: bridge
+    internal: true
+
+volumes:
+  postgres-data:

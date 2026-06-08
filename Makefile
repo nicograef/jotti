@@ -8,6 +8,7 @@
        sqlc \
        prod-init prod-up prod-down prod-logs prod-reset-db prod-reset-and-seed \
        jotti-rocks-init jotti-rocks-up jotti-rocks-down jotti-rocks-logs \
+       local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
 	check-tools check-backend check-frontend check-integration check check-full verify \
@@ -138,6 +139,19 @@ jotti-rocks-down: ## jotti.rocks Stack stoppen
 
 jotti-rocks-logs: ## jotti.rocks Stack Logs folgen
 	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml logs -f
+
+# ──────────────────────────────────────────────
+# Lokaler Betrieb (LAN, HTTP-only)              
+# ──────────────────────────────────────────────
+
+local-up: ## Lokalen LAN-Stack starten (HTTP, ohne Domain/TLS) — siehe docs/hosting.md
+	docker compose -f docker-compose.local.yml up -d --build
+
+local-down: ## Lokalen LAN-Stack stoppen
+	docker compose -f docker-compose.local.yml down
+
+local-logs: ## Lokalen LAN-Stack Logs folgen
+	docker compose -f docker-compose.local.yml logs -f
 
 # ──────────────────────────────────────────────
 # Datenbank                                     
