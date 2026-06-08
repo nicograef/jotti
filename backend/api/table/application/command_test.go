@@ -298,15 +298,14 @@ func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
 	productMock.AddVariant(testProduct.ID, testVariant)
 
-	auftragMock := &mockDruckauftragRepo{}
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	stationMock := &mockDruckstationRepo{konfig: map[string]bondruckApp.Druckstation{
 		"getraenk": {IP: "192.168.1.50", Bonmodus: "pro_position"},
 	}}
 
-	command := newTestCommand([]table.Tisch{testActiveTisch}, []product.Produkt{testProduct})
+	command := newTestCommandWithEventMock([]table.Tisch{testActiveTisch}, []product.Produkt{testProduct}, eventMock)
 	command.ProductRepo = productMock
 	command.DruckstationRepo = stationMock
-	command.DruckauftragRepo = auftragMock
 
 	inputs := []BestellPositionInput{{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2}}
 
@@ -315,16 +314,17 @@ func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if len(auftragMock.enqueued) != 1 {
-		t.Fatalf("expected 1 enqueued druckauftrag, got %d", len(auftragMock.enqueued))
+	enqueued := eventMock.CapturedDruckauftraege()
+	if len(enqueued) != 1 {
+		t.Fatalf("expected 1 enqueued druckauftrag, got %d", len(enqueued))
 	}
-	if auftragMock.enqueued[0].BonArt != "arbeitsbon" {
-		t.Fatalf("expected BonArt arbeitsbon, got %s", auftragMock.enqueued[0].BonArt)
+	if enqueued[0].BonArt != "arbeitsbon" {
+		t.Fatalf("expected BonArt arbeitsbon, got %s", enqueued[0].BonArt)
 	}
-	if auftragMock.enqueued[0].ZielIP != "192.168.1.50" {
-		t.Fatalf("expected ZielIP 192.168.1.50, got %s", auftragMock.enqueued[0].ZielIP)
+	if enqueued[0].ZielIP != "192.168.1.50" {
+		t.Fatalf("expected ZielIP 192.168.1.50, got %s", enqueued[0].ZielIP)
 	}
-	if auftragMock.enqueued[0].Payload == "" {
+	if enqueued[0].Payload == "" {
 		t.Fatal("expected non-empty payload")
 	}
 }

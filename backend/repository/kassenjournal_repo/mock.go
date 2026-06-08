@@ -8,6 +8,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
 // NewMock creates a new mock repository with the given events and error.
@@ -42,7 +43,8 @@ type MockRepo struct {
 	writeErr        error // separate error for WriteEvent
 	tischSessions   map[string]kasse.TischSession
 	tischSessionErr error
-	kassenbestand   int // configurable return value for GetKassenbestand
+	kassenbestand   int                                   // configurable return value for GetKassenbestand
+	druckauftraege  []druckauftrag_repo.NeuerDruckauftrag // captured via WriteEventWithDruckauftraege
 }
 
 func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamType, _ int) (int, error) {
@@ -56,6 +58,21 @@ func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamTy
 	e.ID = newID
 	m.events[newID] = e
 	return newID, nil
+}
+
+func (m *MockRepo) WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
+	id, err := m.WriteEvent(ctx, e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+	e.ID = id
+	m.druckauftraege = append(m.druckauftraege, buildAuftraege(e)...)
+	return id, nil
+}
+
+// CapturedDruckauftraege returns the print jobs produced via WriteEventWithDruckauftraege.
+func (m *MockRepo) CapturedDruckauftraege() []druckauftrag_repo.NeuerDruckauftrag {
+	return m.druckauftraege
 }
 
 func (m *MockRepo) GetMaxVersion(_ context.Context, subject string) (int, error) {

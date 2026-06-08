@@ -11,6 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/rs/zerolog"
 )
 
@@ -25,6 +26,7 @@ type tableRepo interface {
 
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
+	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
@@ -110,10 +112,9 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
-// writeEvent writes an event with optimistic concurrency control.
-// It reads the current max version for the subject, sets event.Version = maxVersion + 1,
-// and writes the event. Returns ErrConflict on UNIQUE constraint violation (version conflict).
-func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
+// writeEventOCC assigns the next version for the subject and writes the event via
+// write, mapping a version conflict (UNIQUE violation) to ErrConflict.
+func writeEventOCC(ctx context.Context, repo eventRepo, e event.Event, subject string, write func(event.Event) (int, error)) (int, error) {
 	maxVersion, err := repo.GetMaxVersion(ctx, subject)
 	if err != nil {
 		return 0, err
@@ -121,7 +122,7 @@ func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject stri
 
 	e.Version = maxVersion + 1
 
-	eventID, err := repo.WriteEvent(ctx, e, streamType, kassensitzungNr)
+	eventID, err := write(e)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			zerolog.Ctx(ctx).Warn().
@@ -136,22 +137,44 @@ func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject stri
 	return eventID, nil
 }
 
-func (c Command) enqueueArbeitsbonDruckauftraege(ctx context.Context, evt event.Event) error {
-	if c.DruckstationRepo == nil || c.DruckauftragRepo == nil {
-		return nil
-	}
+// writeEvent writes an event with optimistic concurrency control.
+// Returns ErrConflict on a version conflict.
+func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
+	return writeEventOCC(ctx, repo, e, subject, func(versioned event.Event) (int, error) {
+		return repo.WriteEvent(ctx, versioned, streamType, kassensitzungNr)
+	})
+}
 
-	druckstationen, err := c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
-	if err != nil {
-		return err
-	}
+// writeEventWithDruckauftraege writes an event and the print jobs derived from it
+// (built from the stored event including its generated ID) in a single transaction.
+// Returns ErrConflict on a version conflict.
+func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
+	return writeEventOCC(ctx, repo, e, subject, func(versioned event.Event) (int, error) {
+		return repo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
+	})
+}
 
-	auftraege := bondruckApp.CreateArbeitsbonAuftraegeFromEvent(evt, druckstationen)
-	if len(auftraege) == 0 {
-		return nil
+// konfigurierteDruckstationen returns the configured work-ticket printers, or an
+// empty map when no DruckstationRepo is wired (e.g. in tests).
+func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]bondruckApp.Druckstation, error) {
+	if c.DruckstationRepo == nil {
+		return nil, nil
 	}
+	return c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
+}
 
-	return c.DruckauftragRepo.EnqueueDruckauftraege(ctx, auftraege)
+// toNeuerDruckauftraege maps bondruck print jobs to the repository's insert type.
+func toNeuerDruckauftraege(auftraege []bondruckApp.Druckauftrag) []druckauftrag_repo.NeuerDruckauftrag {
+	result := make([]druckauftrag_repo.NeuerDruckauftrag, 0, len(auftraege))
+	for _, a := range auftraege {
+		result = append(result, druckauftrag_repo.NeuerDruckauftrag{
+			ZielIP:   a.ZielIP,
+			Payload:  a.Payload,
+			BonArt:   a.BonArt,
+			Referenz: a.Referenz,
+		})
+	}
+	return result
 }
 
 // loadTischState loads and validates the tisch, then reads its projected tisch session.
@@ -389,18 +412,24 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return err
 	}
 
-	eventID, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr)
+	druckstationen, err := c.konfigurierteDruckstationen(ctx)
+	if err != nil {
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to load druckstationen for arbeitsbon")
+		return ErrDatabase
+	}
+
+	// Build the work tickets from the stored event (with its generated ID) so the
+	// event and its print jobs are written in one transaction (transactional outbox).
+	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
+		return toNeuerDruckauftraege(bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen))
+	}
+
+	_, err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
 	if err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung aufgenommen event to database")
-		return ErrDatabase
-	}
-
-	evt.ID = eventID
-	if err := c.enqueueArbeitsbonDruckauftraege(ctx, evt); err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Int("event_id", eventID).Msg("Failed to enqueue arbeitsbon druckauftraege")
 		return ErrDatabase
 	}
 

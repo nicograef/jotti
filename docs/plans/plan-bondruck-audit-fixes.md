@@ -125,14 +125,14 @@ HTTP-/DB-frei.
 
 ### Acceptance criteria
 
-- [ ] Event-INSERT und Druckauftrag-INSERT teilen dieselbe Transaktion.
-- [ ] Fehler beim Auftrags-INSERT rollt das Event zurück (verifiziert durch Test).
-- [ ] `referenz` nutzt weiterhin die generierte Event-ID.
-- [ ] Kein zweiter Tx-Roundtrip mehr nach dem Event-Commit (der separate
+- [x] Event-INSERT und Druckauftrag-INSERT teilen dieselbe Transaktion.
+- [x] Fehler beim Auftrags-INSERT rollt das Event zurück (verifiziert durch Test).
+- [x] `referenz` nutzt weiterhin die generierte Event-ID.
+- [x] Kein zweiter Tx-Roundtrip mehr nach dem Event-Commit (der separate
       `enqueueArbeitsbonDruckauftraege`-Pfad ist aufgelöst).
-- [ ] Bestehende Tisch-/Bestellungs-Tests bleiben grün; neuer Test deckt den
+- [x] Bestehende Tisch-/Bestellungs-Tests bleiben grün; neuer Test deckt den
       Rollback-Fall ab.
-- [ ] `make check` grün.
+- [x] `make check` grün.
 
 ---
 

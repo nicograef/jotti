@@ -41,7 +41,22 @@ func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []Neuer
 	}
 	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
 
-	qtx := r.q.WithTx(tx)
+	if err := InsertDruckauftraege(ctx, r.q.WithTx(tx), auftraege); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return db.Error(err)
+	}
+
+	return nil
+}
+
+// InsertDruckauftraege inserts the given print jobs using the provided
+// transaction-bound queries. The caller owns the transaction, which enables a
+// transactional outbox: writing an event and its resulting print jobs atomically
+// (see kassenjournal_repo.WriteEventWithDruckauftraege).
+func InsertDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []NeuerDruckauftrag) error {
 	for _, auftrag := range auftraege {
 		err := qtx.InsertDruckauftrag(ctx, dbgen.InsertDruckauftragParams{
 			ZielIp:   auftrag.ZielIP,
@@ -52,10 +67,6 @@ func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []Neuer
 		if err != nil {
 			return db.Error(err)
 		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return db.Error(err)
 	}
 
 	return nil

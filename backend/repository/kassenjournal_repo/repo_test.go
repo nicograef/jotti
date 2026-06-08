@@ -5,6 +5,7 @@ package kassenjournal_repo
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	dbpkg "github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
 func createUser(db *sql.DB) (int, error) {
@@ -95,7 +97,11 @@ func validZahlungData(positionID string, menge, gesamtCents int) map[string]any 
 }
 
 func cleanDB(t *testing.T, db *sql.DB) {
-	_, err := db.Exec("DELETE FROM tisch_sessions")
+	_, err := db.Exec("DELETE FROM druckauftraege")
+	if err != nil {
+		t.Fatalf("Failed to clean druckauftraege: %v", err)
+	}
+	_, err = db.Exec("DELETE FROM tisch_sessions")
 	if err != nil {
 		t.Fatalf("Failed to clean tisch_sessions: %v", err)
 	}
@@ -166,6 +172,100 @@ func TestWriteEvent_TischSession(t *testing.T) {
 	}
 	if eventID == 0 {
 		t.Fatalf("Expected valid event ID, got %d", eventID)
+	}
+}
+
+func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischID, err := createTisch(repo.DB, "Tisch 1")
+	if err != nil {
+		t.Fatalf("Failed to create tisch: %v", err)
+	}
+
+	subject := kasse.TischSessionSubject(ksNr, tischID)
+	data := validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 2)
+	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, data)
+
+	eventID, err := repo.WriteEventWithDruckauftraege(context.Background(), e, kasse.StreamTypeTischSession, ksNr,
+		func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
+			return []druckauftrag_repo.NeuerDruckauftrag{{
+				ZielIP:   "192.168.1.50",
+				Payload:  "AAA=",
+				BonArt:   "arbeitsbon",
+				Referenz: fmt.Sprintf("bestellung-aufgenommen:%d", stored.ID),
+			}}
+		})
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if eventID == 0 {
+		t.Fatalf("Expected valid event ID, got %d", eventID)
+	}
+
+	events, err := repo.ReadEventsBySubject(context.Background(), subject)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 persisted event, got %d", len(events))
+	}
+
+	// The druckauftrag references the generated event ID.
+	var referenz string
+	err = repo.DB.QueryRow("SELECT referenz FROM druckauftraege").Scan(&referenz)
+	if err != nil {
+		t.Fatalf("Expected 1 persisted druckauftrag, got error %v", err)
+	}
+	if want := fmt.Sprintf("bestellung-aufgenommen:%d", eventID); referenz != want {
+		t.Fatalf("Expected referenz %q, got %q", want, referenz)
+	}
+}
+
+func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischID, err := createTisch(repo.DB, "Tisch 1")
+	if err != nil {
+		t.Fatalf("Failed to create tisch: %v", err)
+	}
+
+	subject := kasse.TischSessionSubject(ksNr, tischID)
+	data := validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 2)
+	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, data)
+
+	// "ungueltig" violates the bon_art CHECK constraint, so the auftrag INSERT fails.
+	_, err = repo.WriteEventWithDruckauftraege(context.Background(), e, kasse.StreamTypeTischSession, ksNr,
+		func(_ event.Event) []druckauftrag_repo.NeuerDruckauftrag {
+			return []druckauftrag_repo.NeuerDruckauftrag{{
+				ZielIP:   "192.168.1.50",
+				Payload:  "AAA=",
+				BonArt:   "ungueltig",
+				Referenz: "bestellung-aufgenommen:rollback",
+			}}
+		})
+	if err == nil {
+		t.Fatal("Expected error from invalid druckauftrag, got nil")
+	}
+
+	// The event must be rolled back together with the failed auftrag.
+	events, err := repo.ReadEventsBySubject(context.Background(), subject)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(events) != 0 {
+		t.Fatalf("Expected event to be rolled back, found %d events", len(events))
+	}
+
+	// The projection must not have been updated either.
+	session, err := repo.ReadTischSession(context.Background(), subject)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if session.LastEventID != 0 {
+		t.Fatalf("Expected no tisch session projection, got LastEventID %d", session.LastEventID)
 	}
 }
 

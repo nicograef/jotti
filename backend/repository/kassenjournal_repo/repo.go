@@ -11,6 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
@@ -36,8 +37,58 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType ka
 	}
 	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
 
+	stored, err := r.writeEventInTx(ctx, r.q.WithTx(tx), e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, db.Error(err)
+	}
+
+	return stored.ID, nil
+}
+
+// WriteEventWithDruckauftraege writes an event and the print jobs derived from it
+// within a single transaction (transactional outbox). buildAuftraege receives the
+// stored event including its generated ID, so a print job's referenz can depend on
+// it. If inserting a print job fails, the event is rolled back — there is never an
+// order without its work tickets, nor work tickets without their order.
+func (r Repository) WriteEventWithDruckauftraege(
+	ctx context.Context,
+	e event.Event,
+	streamType kasse.StreamType,
+	kassensitzungNr int,
+	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
+) (int, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
 	qtx := r.q.WithTx(tx)
 
+	stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := druckauftrag_repo.InsertDruckauftraege(ctx, qtx, buildAuftraege(stored)); err != nil {
+		return 0, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, db.Error(err)
+	}
+
+	return stored.ID, nil
+}
+
+// writeEventInTx inserts the event into the kassenjournal and updates the matching
+// projection within the given transaction, returning the event with its generated
+// ID. The caller owns the transaction (commit/rollback).
+func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (event.Event, error) {
 	// 1. Insert event into kassenjournal
 	id, err := qtx.WriteEvent(ctx, dbgen.WriteEventParams{
 		UserID:          e.UserID,
@@ -50,7 +101,7 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType ka
 		KassensitzungNr: kassensitzungNr,
 	})
 	if err != nil {
-		return 0, db.Error(err)
+		return event.Event{}, db.Error(err)
 	}
 
 	e.ID = id
@@ -59,27 +110,22 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType ka
 	switch streamType {
 	case kasse.StreamTypeKassensitzung:
 		if err := r.handleKassensitzungEvent(ctx, qtx, e, kassensitzungNr); err != nil {
-			return 0, err
+			return event.Event{}, err
 		}
 
 	case kasse.StreamTypeTischSession:
 		if err := r.handleTischSessionEvent(ctx, qtx, e, kassensitzungNr); err != nil {
-			return 0, err
+			return event.Event{}, err
 		}
 
 	case kasse.StreamTypeDirektverkauf:
 		// Direktverkauf lives entirely in the kassenjournal — no projection to update.
 
 	default:
-		return 0, fmt.Errorf("unknown stream type: %s", streamType)
+		return event.Event{}, fmt.Errorf("unknown stream type: %s", streamType)
 	}
 
-	// 3. Commit transaction
-	if err := tx.Commit(); err != nil {
-		return 0, db.Error(err)
-	}
-
-	return id, nil
+	return e, nil
 }
 
 // handleKassensitzungEvent handles kassensitzung events by updating the kassensitzungen CRUD entity.
