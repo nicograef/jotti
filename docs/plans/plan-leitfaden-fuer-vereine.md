@@ -137,15 +137,15 @@ Link/Button im Fiskalkonform-Abschnitt („Betreiber-Leitfaden für Vereine lese
 
 ### Acceptance criteria
 
-- [ ] Seite ist unter `/leitfaden-fuer-vereine/` (und via 301 unter `/leitfaden-fuer-vereine`)
+- [x] Seite ist unter `/leitfaden-fuer-vereine/` (und via 301 unter `/leitfaden-fuer-vereine`)
       erreichbar und lädt CSS, Fonts und JS aus `/css`, `/fonts`, `/js` (200, korrektes Rendering).
-- [ ] Dev-Banner, Header und Footer erscheinen identisch zum Website-Stil; Header-Links der
+- [x] Dev-Banner, Header und Footer erscheinen identisch zum Website-Stil; Header-Links der
       Unterseite führen korrekt zurück zur Startseite und ihren Abschnitten.
-- [ ] Intro (Zielgruppe + rechtlicher Disclaimer) und Abschnitt „Das Wichtigste in 60 Sekunden“
+- [x] Intro (Zielgruppe + rechtlicher Disclaimer) und Abschnitt „Das Wichtigste in 60 Sekunden“
       sind originalgetreu vorhanden und gestylt.
-- [ ] Startseite verlinkt prominent auf die Unterseite: Desktop-Nav, Mobile-Nav, Footer und
+- [x] Startseite verlinkt prominent auf die Unterseite: Desktop-Nav, Mobile-Nav, Footer und
       Fiskalkonform-Abschnitt; alle Links funktionieren.
-- [ ] Keine Inline-Skripte und keine Fremdressourcen (CSP `'self'` eingehalten).
+- [x] Keine Inline-Skripte und keine Fremdressourcen (CSP `'self'` eingehalten).
 
 ---
 

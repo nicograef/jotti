@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="description"
+      content="Betreiber-Leitfaden für Vereine: TSE einrichten, Kasse beim Finanzamt anmelden, Belege und 10-Jahre-Aufbewahrung — verständlich erklärt für ehrenamtliche Teams, die jotti selbst betreiben."
+    />
+    <meta name="author" content="Nico Gräf" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="Kassensystem Verein Leitfaden, TSE Verein, Kasse anmelden ELSTER, KassenSichV Verein, § 146a AO Verein, fiskalkonform Vereinsfest, DSFinV-K, GoBD, Kassen-Seriennummer, Betreiberpflichten Kasse"
+    />
+
+    <title>Leitfaden für Vereine — jotti rechtssicher betreiben</title>
+
+    <link rel="canonical" href="https://jotti.rocks/leitfaden-fuer-vereine/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article" />
+    <meta
+      property="og:title"
+      content="Leitfaden für Vereine — jotti rechtssicher betreiben"
+    />
+    <meta
+      property="og:description"
+      content="Was euer Verein als Betreiber rund um Kasse, TSE und Finanzamt wissen muss — in einfacher Sprache erklärt."
+    />
+    <meta property="og:site_name" content="jotti" />
+    <meta property="og:locale" content="de_DE" />
+    <meta
+      property="og:url"
+      content="https://jotti.rocks/leitfaden-fuer-vereine/"
+    />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Leitfaden für Vereine — jotti rechtssicher betreiben"
+    />
+    <meta
+      name="twitter:description"
+      content="Betreiberpflichten für Vereine verständlich erklärt: TSE, ELSTER-Meldung, Belege und Aufbewahrung."
+    />
+
+    <!-- Favicons: light mode -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="/icons/jotti-icon-light-16.png"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/icons/jotti-icon-light-32.png"
+      media="(prefers-color-scheme: light)"
+    />
+    <!-- Favicons: dark mode -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="/icons/jotti-icon-dark-16.png"
+      media="(prefers-color-scheme: dark)"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/icons/jotti-icon-dark-32.png"
+      media="(prefers-color-scheme: dark)"
+    />
+    <!-- Fallback favicon -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/icons/jotti-icon-light-32.png"
+    />
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="/icons/jotti-logo-icon-light.png" />
+
+    <!-- Browser-Chrome-Farbe -->
+    <meta
+      name="theme-color"
+      content="#4a7c59"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#121e16"
+      media="(prefers-color-scheme: dark)"
+    />
+
+    <!-- Fonts & Styles -->
+    <link
+      rel="preload"
+      href="/fonts/Montserrat-Regular.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/Montserrat-Bold.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/css/base.css" />
+  </head>
+
+  <body>
+    <!-- ============ DEV BANNER ============ -->
+    <div class="dev-banner">
+      jotti befindet sich in aktiver Entwicklung. Einige Features sind noch
+      nicht verfügbar &mdash; insbesondere TSE-Anbindung, Belegausgabe und
+      DSFinV-K-Export.
+    </div>
+
+    <!-- ============ HEADER / NAV ============ -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <div class="header-brand">
+          <a href="/" class="logo-link" aria-label="jotti Startseite">
+            <img
+              src="/img/jotti-logo-full-light-transparent.png"
+              alt="jotti Logo"
+              class="logo"
+            />
+          </a>
+          <span class="header-byline">
+            Entwickelt von
+            <a
+              href="https://nicograef.de"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Nico Gräf</a
+            >
+          </span>
+        </div>
+        <nav class="main-nav" aria-label="Hauptnavigation">
+          <a href="/#features">Features</a>
+          <a href="/#fiskalkonform">Fiskalkonform</a>
+          <a href="/#so-funktionierts">So geht's</a>
+          <a href="/#vergleich">Vergleich</a>
+          <a href="/#technik">Technik</a>
+          <a href="/#bereit">Bereit?</a>
+          <a
+            href="https://github.com/nicograef/jotti"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-sm btn-outline"
+            >GitHub</a
+          >
+        </nav>
+        <button
+          class="mobile-menu-toggle"
+          aria-label="Menü öffnen"
+          aria-expanded="false"
+        >
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Mobile Nav Overlay -->
+    <div class="mobile-nav-overlay" aria-hidden="true">
+      <nav class="mobile-nav" aria-label="Mobile Navigation">
+        <a href="/#features">Features</a>
+        <a href="/#fiskalkonform">Fiskalkonform</a>
+        <a href="/#so-funktionierts">So geht's</a>
+        <a href="/#vergleich">Vergleich</a>
+        <a href="/#technik">Technik</a>
+        <a href="/#bereit">Bereit?</a>
+        <a
+          href="https://github.com/nicograef/jotti"
+          target="_blank"
+          rel="noopener noreferrer"
+          >GitHub</a
+        >
+      </nav>
+    </div>
+
+    <main>
+      <!-- ============ HERO ============ -->
+      <section class="guide-hero">
+        <div class="container">
+          <p class="guide-eyebrow">Betreiber-Leitfaden</p>
+          <h1>jotti rechtssicher betreiben</h1>
+          <p class="guide-lead">
+            Was euer Verein als Betreiber rund um Kasse, TSE und Finanzamt
+            wissen muss &mdash; in einfacher Sprache erklärt.
+          </p>
+        </div>
+      </section>
+
+      <div class="container">
+        <article class="guide-prose">
+          <!-- ============ INTRO CALLOUTS ============ -->
+          <div class="compliance-note">
+            <p>
+              <strong>Für wen ist dieser Leitfaden?</strong> Für
+              Vereinsvorstände, Kassenwarte und ehrenamtliche Teams, die jotti
+              auf einem eigenen Server betreiben wollen. Er erklärt
+              <strong>in einfachen Worten</strong>, welche Pflichten ihr als
+              Verein (= „Betreiber“) habt, wie ihr die Kasse anmeldet, wie ihr
+              eine TSE einrichtet und warum jotti fiskalkonform ist bzw. wird.
+            </p>
+            <p>
+              <strong>Kein Fachjargon nötig.</strong> Jeder Rechtsbegriff wird
+              erklärt. Die genauen Paragraphen stehen am Rand, falls ihr (oder
+              euer Steuerberater) sie nachlesen wollt.
+            </p>
+          </div>
+
+          <div class="compliance-note">
+            <p>
+              ⚖️
+              <strong
+                >Dieser Leitfaden ist keine Rechts- oder Steuerberatung.</strong
+              >
+              Er fasst die Rechtslage nach bestem Wissen zusammen. Im Zweifel
+              klärt Details mit eurem <strong>Steuerberater</strong> oder dem
+              zuständigen <strong>Finanzamt</strong>.
+            </p>
+          </div>
+
+          <!-- ============ 1. DAS WICHTIGSTE IN 60 SEKUNDEN ============ -->
+          <section class="guide-chapter" id="das-wichtigste">
+            <h2>1. Das Wichtigste in 60 Sekunden</h2>
+            <ul>
+              <li>
+                jotti ist eine <strong>Kasse</strong> im Sinne des Gesetzes (ein
+                „elektronisches Aufzeichnungssystem“). Damit gelten dieselben
+                Regeln wie für jede Registrierkasse.
+              </li>
+              <li>
+                <strong>Drei Dinge</strong> müsst ihr als Verein selbst
+                erledigen:
+                <ol>
+                  <li>
+                    Eine <strong>TSE</strong> (manipulationssicheres
+                    Signaturmodul) bei einem Anbieter wie
+                    <strong>fiskaly</strong>
+                    buchen und in jotti eintragen.
+                  </li>
+                  <li>
+                    Eure Kasse <strong>beim Finanzamt anmelden</strong> (online
+                    über ELSTER) — dafür braucht ihr die
+                    <strong>Seriennummer</strong>, die jotti euch im
+                    Admin-Bereich anzeigt.
+                  </li>
+                  <li>
+                    Alle Kassendaten <strong>10 Jahre aufbewahren</strong>
+                    (regelmäßige Backups).
+                  </li>
+                </ol>
+              </li>
+              <li>
+                <strong
+                  >Der Entwickler von jotti ist dafür nicht
+                  verantwortlich.</strong
+                >
+                Er stellt nur den Programmcode bereit. Die Pflichten gegenüber
+                dem Finanzamt liegen <strong>bei euch als Verein</strong>.
+              </li>
+              <li>
+                ⏳ <strong>Aktueller Stand:</strong> TSE-Anbindung, Belegausgabe
+                und DSFinV-K-Export sind noch <strong>in Entwicklung</strong>.
+                Solange diese Funktionen nicht fertig sind, ist jotti
+                <strong>noch nicht</strong> für den fiskalpflichtigen
+                Echtbetrieb geeignet. Dieser Leitfaden beschreibt, was zu tun
+                ist, <strong>sobald</strong> die Funktionen verfügbar sind.
+              </li>
+            </ul>
+          </section>
+        </article>
+      </div>
+    </main>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">
+          <img src="/img/jotti-symbol.png" alt="jotti" width="28" height="28" />
+          <span>jotti — Das kostenlose Kassensystem für Vereinsfeste.</span>
+        </div>
+        <div class="footer-links">
+          <a href="/leitfaden-fuer-vereine/">Leitfaden für Vereine</a>
+          <a
+            href="https://github.com/nicograef/jotti"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          >
+          <a
+            href="https://github.com/nicograef/jotti/blob/main/docs/nutzungsbedingungen.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Nutzungsbedingungen</a
+          >
+          <a
+            href="https://github.com/nicograef/jotti/blob/main/LICENSE"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Lizenz</a
+          >
+        </div>
+        <p class="footer-copy">
+          Entwickelt von
+          <a
+            href="https://nicograef.de"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Nico Gräf</a
+          >
+        </p>
+      </div>
+    </footer>
+
+    <script src="/js/main.js" defer></script>
+  </body>
+</html>

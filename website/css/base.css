@@ -1227,3 +1227,89 @@ body.nav-open {
   white-space: nowrap;
   letter-spacing: 0.02em;
 }
+
+/* ===========================
+   Compliance CTA (link to Leitfaden subpage)
+   =========================== */
+.compliance-actions {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+/* ===========================
+   Leitfaden für Vereine (subpage)
+   =========================== */
+.guide-hero {
+  padding: 3.5rem 0 1.5rem;
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--background) 100%);
+  border-bottom: 1px solid var(--card-border);
+
+  @media (max-width: 640px) {
+    padding: 2.5rem 0 1.25rem;
+  }
+}
+
+.guide-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+}
+
+.guide-lead {
+  max-width: 720px;
+  margin-top: 1.25rem;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+}
+
+.guide-prose {
+  max-width: 780px;
+  margin-inline: auto;
+  padding-block: 2.5rem 4rem;
+}
+
+.guide-prose > :first-child {
+  margin-top: 0;
+}
+
+.guide-prose :is(p, ul, ol) {
+  margin-bottom: 1rem;
+}
+
+.guide-prose :is(ul, ol) {
+  padding-left: 1.5rem;
+  color: var(--muted);
+}
+
+.guide-prose ul {
+  list-style: disc;
+}
+
+.guide-prose ol {
+  list-style: decimal;
+}
+
+.guide-prose li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.guide-prose :is(ul, ol) :is(ul, ol) {
+  margin: 0.5rem 0 0;
+}
+
+.guide-prose .compliance-note p + p {
+  margin-top: 0.75rem;
+}
+
+.guide-chapter {
+  margin-top: 2.5rem;
+  scroll-margin-top: 5rem;
+}
+
+.guide-chapter h2 {
+  margin-bottom: 1rem;
+}
