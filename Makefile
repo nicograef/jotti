@@ -144,7 +144,7 @@ jotti-rocks-logs: ## jotti.rocks Stack Logs folgen
 # Lokaler Betrieb (LAN, HTTP-only)              
 # ──────────────────────────────────────────────
 
-local-up: ## Lokalen LAN-Stack starten (HTTP, ohne Domain/TLS) — siehe docs/hosting.md
+local-up: ## Lokalen LAN-Stack starten (HTTP, ohne Domain/TLS) — siehe docs/betrieb/leitfaden-hosting.md
 	docker compose -f docker-compose.local.yml up -d --build
 
 local-down: ## Lokalen LAN-Stack stoppen
