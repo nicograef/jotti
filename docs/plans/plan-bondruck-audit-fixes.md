@@ -302,9 +302,9 @@ Settings-/Druckstation-Application-Services.
 
 ### Acceptance criteria
 
-- [ ] `NewBondruckEinstellungen` durch Unit-Test abgedeckt (gültig/ungültig/leer).
-- [ ] Test folgt dem `//go:build unit`-Muster.
-- [ ] `make check` grün.
+- [x] `NewBondruckEinstellungen` durch Unit-Test abgedeckt (gültig/ungültig/leer).
+- [x] Test folgt dem `//go:build unit`-Muster.
+- [x] `make check` grün.
 
 ---
 
