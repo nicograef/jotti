@@ -208,8 +208,11 @@ verify: check-tools check-full ## Alias für vollständige Repo-Prüfung
 # Website                                       
 # ──────────────────────────────────────────────
 
-website: ## Website Dev-Server starten (http://localhost:8080)
-	npx -y serve website -l 8080
+website: ## Website Dev-Server (nginx + SSI) starten (http://localhost:8080)
+	docker run --rm -p 8080:80 \
+	  -v $(CURDIR)/website:/usr/share/nginx/html:ro \
+	  -v $(CURDIR)/reverse-proxy/nginx.website-dev.conf:/etc/nginx/conf.d/default.conf:ro \
+	  nginx:1.27-alpine
 
 # ──────────────────────────────────────────────
 # Hilfe                                         

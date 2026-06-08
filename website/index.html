@@ -44,149 +44,13 @@
       content="Kostenloses, fiskalkonformes Mobile-Kassensystem für Vereine und gemeinnützige Organisationen. TSE-Anbindung, DSFinV-K-Export, Belegausgabe."
     />
 
-    <!-- Favicons: light mode -->
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="icons/jotti-icon-light-16.png"
-      media="(prefers-color-scheme: light)"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="icons/jotti-icon-light-32.png"
-      media="(prefers-color-scheme: light)"
-    />
-    <!-- Favicons: dark mode -->
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="icons/jotti-icon-dark-16.png"
-      media="(prefers-color-scheme: dark)"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="icons/jotti-icon-dark-32.png"
-      media="(prefers-color-scheme: dark)"
-    />
-    <!-- Fallback favicon -->
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="icons/jotti-icon-light-32.png"
-    />
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="icons/jotti-logo-icon-light.png" />
-
-    <!-- Browser-Chrome-Farbe -->
-    <meta
-      name="theme-color"
-      content="#4a7c59"
-      media="(prefers-color-scheme: light)"
-    />
-    <meta
-      name="theme-color"
-      content="#121e16"
-      media="(prefers-color-scheme: dark)"
-    />
-
-    <!-- Fonts & Styles -->
-    <link
-      rel="preload"
-      href="fonts/Montserrat-Regular.ttf"
-      as="font"
-      type="font/ttf"
-      crossorigin
-    />
-    <link
-      rel="preload"
-      href="fonts/Montserrat-Bold.ttf"
-      as="font"
-      type="font/ttf"
-      crossorigin
-    />
-    <link rel="stylesheet" href="css/base.css" />
+    <!--# include virtual="/partials/head-assets.html" -->
   </head>
 
   <body>
-    <!-- ============ DEV BANNER ============ -->
-    <div class="dev-banner">
-      jotti befindet sich in aktiver Entwicklung. Einige Features sind noch
-      nicht verfügbar &mdash; insbesondere TSE-Anbindung, Belegausgabe und
-      DSFinV-K-Export.
-    </div>
-
-    <!-- ============ HEADER / NAV ============ -->
-    <header class="site-header">
-      <div class="container header-inner">
-        <div class="header-brand">
-          <a href="#" class="logo-link" aria-label="jotti Startseite">
-            <img
-              src="img/jotti-logo-full-light-transparent.png"
-              alt="jotti Logo"
-              class="logo"
-            />
-          </a>
-          <span class="header-byline">
-            Entwickelt von
-            <a
-              href="https://nicograef.de"
-              target="_blank"
-              rel="noopener noreferrer"
-              >Nico Gräf</a
-            >
-          </span>
-        </div>
-        <nav class="main-nav" aria-label="Hauptnavigation">
-          <a href="#features">Features</a>
-          <a href="#fiskalkonform">Fiskalkonform</a>
-          <a href="leitfaden-fuer-vereine/">Leitfaden</a>
-          <a href="#so-funktionierts">So geht's</a>
-          <a href="#vergleich">Vergleich</a>
-          <a href="#technik">Technik</a>
-          <a href="#bereit">Bereit?</a>
-          <a
-            href="https://github.com/nicograef/jotti"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn btn-sm btn-outline"
-            >GitHub</a
-          >
-        </nav>
-        <button
-          class="mobile-menu-toggle"
-          aria-label="Menü öffnen"
-          aria-expanded="false"
-        >
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Mobile Nav Overlay -->
-    <div class="mobile-nav-overlay" aria-hidden="true">
-      <nav class="mobile-nav" aria-label="Mobile Navigation">
-        <a href="#features">Features</a>
-        <a href="#fiskalkonform">Fiskalkonform</a>
-        <a href="leitfaden-fuer-vereine/">Leitfaden für Vereine</a>
-        <a href="#so-funktionierts">So geht's</a>
-        <a href="#vergleich">Vergleich</a>
-        <a href="#technik">Technik</a>
-        <a href="#bereit">Bereit?</a>
-        <a
-          href="https://github.com/nicograef/jotti"
-          target="_blank"
-          rel="noopener noreferrer"
-          >GitHub</a
-        >
-      </nav>
-    </div>
+    <!--# include virtual="/partials/dev-banner.html" -->
+    <!--# include virtual="/partials/header.html" -->
+    <!--# include virtual="/partials/mobile-nav.html" -->
 
     <main>
       <!-- ============ HERO ============ -->
@@ -1023,46 +887,8 @@ make prod-up            <span class="code-comment"># Starten</span></code></pre>
       </section>
     </main>
 
-    <!-- ============ FOOTER ============ -->
-    <footer class="site-footer">
-      <div class="container footer-inner">
-        <div class="footer-brand">
-          <img src="img/jotti-symbol.png" alt="jotti" width="28" height="28" />
-          <span>jotti — Das kostenlose Kassensystem für Vereinsfeste.</span>
-        </div>
-        <div class="footer-links">
-          <a href="leitfaden-fuer-vereine/">Leitfaden für Vereine</a>
-          <a
-            href="https://github.com/nicograef/jotti"
-            target="_blank"
-            rel="noopener noreferrer"
-            >GitHub</a
-          >
-          <a
-            href="https://github.com/nicograef/jotti/blob/main/docs/nutzungsbedingungen.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            >Nutzungsbedingungen</a
-          >
-          <a
-            href="https://github.com/nicograef/jotti/blob/main/LICENSE"
-            target="_blank"
-            rel="noopener noreferrer"
-            >Lizenz</a
-          >
-        </div>
-        <p class="footer-copy">
-          Entwickelt von
-          <a
-            href="https://nicograef.de"
-            target="_blank"
-            rel="noopener noreferrer"
-            >Nico Gräf</a
-          >
-        </p>
-      </div>
-    </footer>
+    <!--# include virtual="/partials/footer.html" -->
 
-    <script src="js/main.js" defer></script>
+    <script src="/js/main.js" defer></script>
   </body>
 </html>

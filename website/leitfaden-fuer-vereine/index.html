@@ -50,147 +50,13 @@
       content="Betreiberpflichten für Vereine verständlich erklärt: TSE, ELSTER-Meldung, Belege und Aufbewahrung."
     />
 
-    <!-- Favicons: light mode -->
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="/icons/jotti-icon-light-16.png"
-      media="(prefers-color-scheme: light)"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="/icons/jotti-icon-light-32.png"
-      media="(prefers-color-scheme: light)"
-    />
-    <!-- Favicons: dark mode -->
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="/icons/jotti-icon-dark-16.png"
-      media="(prefers-color-scheme: dark)"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="/icons/jotti-icon-dark-32.png"
-      media="(prefers-color-scheme: dark)"
-    />
-    <!-- Fallback favicon -->
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="/icons/jotti-icon-light-32.png"
-    />
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="/icons/jotti-logo-icon-light.png" />
-
-    <!-- Browser-Chrome-Farbe -->
-    <meta
-      name="theme-color"
-      content="#4a7c59"
-      media="(prefers-color-scheme: light)"
-    />
-    <meta
-      name="theme-color"
-      content="#121e16"
-      media="(prefers-color-scheme: dark)"
-    />
-
-    <!-- Fonts & Styles -->
-    <link
-      rel="preload"
-      href="/fonts/Montserrat-Regular.ttf"
-      as="font"
-      type="font/ttf"
-      crossorigin
-    />
-    <link
-      rel="preload"
-      href="/fonts/Montserrat-Bold.ttf"
-      as="font"
-      type="font/ttf"
-      crossorigin
-    />
-    <link rel="stylesheet" href="/css/base.css" />
+    <!--# include virtual="/partials/head-assets.html" -->
   </head>
 
   <body>
-    <!-- ============ DEV BANNER ============ -->
-    <div class="dev-banner">
-      jotti befindet sich in aktiver Entwicklung. Einige Features sind noch
-      nicht verfügbar &mdash; insbesondere TSE-Anbindung, Belegausgabe und
-      DSFinV-K-Export.
-    </div>
-
-    <!-- ============ HEADER / NAV ============ -->
-    <header class="site-header">
-      <div class="container header-inner">
-        <div class="header-brand">
-          <a href="/" class="logo-link" aria-label="jotti Startseite">
-            <img
-              src="/img/jotti-logo-full-light-transparent.png"
-              alt="jotti Logo"
-              class="logo"
-            />
-          </a>
-          <span class="header-byline">
-            Entwickelt von
-            <a
-              href="https://nicograef.de"
-              target="_blank"
-              rel="noopener noreferrer"
-              >Nico Gräf</a
-            >
-          </span>
-        </div>
-        <nav class="main-nav" aria-label="Hauptnavigation">
-          <a href="/#features">Features</a>
-          <a href="/#fiskalkonform">Fiskalkonform</a>
-          <a href="/#so-funktionierts">So geht's</a>
-          <a href="/#vergleich">Vergleich</a>
-          <a href="/#technik">Technik</a>
-          <a href="/#bereit">Bereit?</a>
-          <a
-            href="https://github.com/nicograef/jotti"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn btn-sm btn-outline"
-            >GitHub</a
-          >
-        </nav>
-        <button
-          class="mobile-menu-toggle"
-          aria-label="Menü öffnen"
-          aria-expanded="false"
-        >
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Mobile Nav Overlay -->
-    <div class="mobile-nav-overlay" aria-hidden="true">
-      <nav class="mobile-nav" aria-label="Mobile Navigation">
-        <a href="/#features">Features</a>
-        <a href="/#fiskalkonform">Fiskalkonform</a>
-        <a href="/#so-funktionierts">So geht's</a>
-        <a href="/#vergleich">Vergleich</a>
-        <a href="/#technik">Technik</a>
-        <a href="/#bereit">Bereit?</a>
-        <a
-          href="https://github.com/nicograef/jotti"
-          target="_blank"
-          rel="noopener noreferrer"
-          >GitHub</a
-        >
-      </nav>
-    </div>
+    <!--# include virtual="/partials/dev-banner.html" -->
+    <!--# include virtual="/partials/header.html" -->
+    <!--# include virtual="/partials/mobile-nav.html" -->
 
     <main>
       <!-- ============ HERO ============ -->
@@ -207,24 +73,14 @@
 
       <div class="container">
         <article class="guide-prose">
-          <!-- ============ INTRO CALLOUTS ============ -->
+          <!-- ============ INTRO CALLOUT ============ -->
           <div class="compliance-note">
             <p>
-              <strong>Für wen ist dieser Leitfaden?</strong> Für
-              Vereinsvorstände, Kassenwarte und ehrenamtliche Teams, die jotti
-              auf einem eigenen Server betreiben wollen. Er erklärt
-              <strong>in einfachen Worten</strong>, welche Pflichten ihr als
-              Verein (= „Betreiber“) habt, wie ihr die Kasse anmeldet, wie ihr
-              eine TSE einrichtet und warum jotti fiskalkonform ist bzw. wird.
+              <strong>Für wen?</strong> Für Vereinsvorstände, Kassenwarte und
+              ehrenamtliche Teams, die jotti auf einem eigenen Server betreiben.
+              Jeder Rechtsbegriff wird in einfachen Worten erklärt; die genauen
+              Paragraphen stehen am Rand zum Nachlesen.
             </p>
-            <p>
-              <strong>Kein Fachjargon nötig.</strong> Jeder Rechtsbegriff wird
-              erklärt. Die genauen Paragraphen stehen am Rand, falls ihr (oder
-              euer Steuerberater) sie nachlesen wollt.
-            </p>
-          </div>
-
-          <div class="compliance-note">
             <p>
               ⚖️
               <strong
@@ -516,38 +372,16 @@
                     <td>Pflicht zur TSE + Anmeldung</td>
                   </tr>
                   <tr>
-                    <td>
-                      <strong>KassenSichV</strong> (Kassensicherungsverordnung)
-                    </td>
-                    <td>
-                      Die „Bedienungsanleitung“ zu § 146a AO: Sie sagt genau,
-                      was die TSE können muss und was auf den Beleg gehört.
-                    </td>
-                    <td>technische Pflichten</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>§ 146a Abs. 2 AO + § 6 KassenSichV</strong>
-                    </td>
+                    <td><strong>§ 146a Abs. 2 AO</strong></td>
                     <td>
                       „Belegausgabepflicht“: Für jeden Kassiervorgang muss ein
-                      Beleg <strong>erstellt</strong> werden.
+                      Beleg <strong>erstellt</strong> werden. Eine
+                      <strong>Befreiung von der Aushändigung</strong> ist beim
+                      „Verkauf an eine Vielzahl nicht bekannter Personen“
+                      (typisches Vereinsfest) möglich — aber nur auf
+                      <strong>Antrag beim Finanzamt</strong>.
                     </td>
                     <td>Belegausgabe</td>
-                  </tr>
-                  <tr>
-                    <td><strong>§ 146a Abs. 2 Satz 2 AO</strong></td>
-                    <td>
-                      <strong>Befreiung möglich</strong> beim „Verkauf an eine
-                      Vielzahl nicht bekannter Personen“ (= typisches
-                      Vereinsfest). Dann müsst ihr den Bon nicht aktiv
-                      aushändigen —
-                      <strong
-                        >aber nur, wenn das Finanzamt es auf Antrag
-                        genehmigt</strong
-                      >, und der Bon muss trotzdem erstellbar bleiben.
-                    </td>
-                    <td>Belegausgabe (Erleichterung)</td>
                   </tr>
                   <tr>
                     <td><strong>§ 146a Abs. 4 AO</strong></td>
@@ -565,25 +399,21 @@
                     </td>
                     <td>Aufbewahrung &amp; Backups</td>
                   </tr>
-                  <tr>
-                    <td><strong>DSFinV-K</strong></td>
-                    <td>
-                      Das genormte Datenformat, in dem ihr bei einer Prüfung
-                      eure Daten herausgebt.
-                    </td>
-                    <td>Datenexport bei Prüfung</td>
-                  </tr>
-                  <tr>
-                    <td><strong>§ 379 AO</strong></td>
-                    <td>
-                      „Steuergefährdung“: Wer ohne TSE kassiert, riskiert ein
-                      <strong>Bußgeld</strong> (bis 25.000 €).
-                    </td>
-                    <td>Warnung</td>
-                  </tr>
                 </tbody>
               </table>
             </div>
+            <p>
+              Weitere Regelwerke (KassenSichV mit den technischen TSE-Details,
+              DSFinV-K als Prüf-Datenformat, Bußgeld bis 25.000 € bei Verstoß
+              nach § 379 AO) sind in
+              <a
+                href="https://github.com/nicograef/jotti/blob/main/docs/compliance.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                >compliance.md</a
+              >
+              beschrieben.
+            </p>
             <div class="compliance-note">
               <p>
                 <strong
@@ -862,16 +692,6 @@
           <section class="guide-chapter" id="faq">
             <h2>7. Häufige Fragen (FAQ)</h2>
             <dl class="guide-faq">
-              <dt>
-                Brauchen wir wirklich eine TSE, obwohl wir gemeinnützig sind und
-                nur ein Sommerfest haben?
-              </dt>
-              <dd>
-                Ja. Die Pflicht hängt nicht von der Gemeinnützigkeit oder der
-                Dauer ab, sondern davon, dass ihr eine elektronische Kasse für
-                Verkäufe nutzt (§ 146a AO).
-              </dd>
-
               <dt>Können wir jotti ohne TSE „einfach mal so“ nutzen?</dt>
               <dd>
                 Technisch ja, <strong>rechtlich nein</strong> für echte
@@ -879,25 +699,6 @@
                 Steuergefährdung mit Bußgeld geahndet werden (§ 379 AO). Ein
                 TSE-freier Modus ist ausschließlich für
                 <strong>Tests/Entwicklung</strong> gedacht.
-              </dd>
-
-              <dt>
-                Ist der Entwickler von jotti haftbar, wenn wir etwas falsch
-                machen?
-              </dt>
-              <dd>
-                Nein. Der Entwickler stellt nur den Code bereit. Die Anmeldung,
-                der TSE-Vertrag und die Aufbewahrung sind <strong>eure</strong>
-                Pflichten als Betreiber.
-              </dd>
-
-              <dt>Müssen wir die Handys der Helfer anmelden?</dt>
-              <dd>Nein — nur die eine jotti-Instanz auf eurem Server.</dd>
-
-              <dt>Wo finde ich unsere Kassen-Seriennummer?</dt>
-              <dd>
-                Im <strong>Admin-Bereich</strong> von jotti. Sie wird beim
-                ersten Start automatisch erzeugt.
               </dd>
 
               <dt>Was kostet uns das?</dt>
@@ -936,17 +737,6 @@
                     </td>
                   </tr>
                   <tr>
-                    <td>Cloud-TSE / BYO TSE</td>
-                    <td>
-                      Eine TSE als Online-Dienst, die ihr selbst bucht und in
-                      jotti eintragt.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>fiskaly</td>
-                    <td>Ein Anbieter solcher Cloud-TSEs.</td>
-                  </tr>
-                  <tr>
                     <td>KassenSichV</td>
                     <td>
                       Verordnung mit den technischen Detailregeln zur Kasse.
@@ -975,20 +765,6 @@
                   <tr>
                     <td>Z-Bon / Tagesabschluss</td>
                     <td>Der förmliche Abschluss eines Kassen-Tages.</td>
-                  </tr>
-                  <tr>
-                    <td>Seriennummer / Kassen-ID</td>
-                    <td>
-                      Die eindeutige Nummer eurer Kasse; bei jotti automatisch
-                      erzeugt.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Betreiber</td>
-                    <td>
-                      Diejenigen, die die Kasse tatsächlich verwenden — euer
-                      Verein.
-                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -1024,45 +800,7 @@
       </div>
     </main>
 
-    <!-- ============ FOOTER ============ -->
-    <footer class="site-footer">
-      <div class="container footer-inner">
-        <div class="footer-brand">
-          <img src="/img/jotti-symbol.png" alt="jotti" width="28" height="28" />
-          <span>jotti — Das kostenlose Kassensystem für Vereinsfeste.</span>
-        </div>
-        <div class="footer-links">
-          <a href="/leitfaden-fuer-vereine/">Leitfaden für Vereine</a>
-          <a
-            href="https://github.com/nicograef/jotti"
-            target="_blank"
-            rel="noopener noreferrer"
-            >GitHub</a
-          >
-          <a
-            href="https://github.com/nicograef/jotti/blob/main/docs/nutzungsbedingungen.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            >Nutzungsbedingungen</a
-          >
-          <a
-            href="https://github.com/nicograef/jotti/blob/main/LICENSE"
-            target="_blank"
-            rel="noopener noreferrer"
-            >Lizenz</a
-          >
-        </div>
-        <p class="footer-copy">
-          Entwickelt von
-          <a
-            href="https://nicograef.de"
-            target="_blank"
-            rel="noopener noreferrer"
-            >Nico Gräf</a
-          >
-        </p>
-      </div>
-    </footer>
+    <!--# include virtual="/partials/footer.html" -->
 
     <script src="/js/main.js" defer></script>
   </body>
