@@ -856,7 +856,7 @@ Das System verwendet zwei Persistenzstrategien:
 | Kasse (Tisch-Session + Kassensitzung) | Event-Sourcing | Geschichte ist fachlich relevant (Kassenjournal, Buchhaltung, Compliance) |
 | Stammdaten (Produkt, Tisch, Benutzer) | CRUD           | Nur aktueller Zustand benötigt; Fat Events decken historische Daten ab    |
 
-Mehrere Servicekräfte arbeiten gleichzeitig — Schreibkonflikte am selben Tisch werden über Optimistic Concurrency Control gelöst: Jeder Schreibvorgang sendet die erwartete `event_version` mit; der UNIQUE Constraint `(subject, version)` erkennt Konflikte. Bei Konflikt: Anwendungsschicht lädt Tischzustand neu und führt Retry durch.
+Mehrere Servicekräfte arbeiten gleichzeitig — auch am selben Tisch. Schreibkonflikte werden über Optimistic Concurrency Control gelöst (Subject- und OCC-Modell → [3.3](#33-subject-design-hierarchische-subjects)). Für den Mehrbenutzerbetrieb relevant ist der Retry: Jeder Schreibvorgang sendet die erwartete `event_version` mit; bei einem Konflikt lädt die Anwendungsschicht den Tischzustand neu und wiederholt den Vorgang.
 
 ### 6.7 Sicherheit
 

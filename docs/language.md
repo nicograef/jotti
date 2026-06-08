@@ -89,13 +89,15 @@ Person mit Zugang zum System, identifiziert durch einen eindeutigen Benutzername
 
 Berechtigungsstufe eines Benutzers. Bestimmt, welche Aktionen im System verfügbar sind.
 
-| Rolle          | Code-Wert        | Berechtigungen                                 |
-| -------------- | ---------------- | ---------------------------------------------- |
-| Admin          | `admin`          | Produkte, Tische, Benutzer verwalten + Service |
-| Serviceleitung | `serviceleitung` | Service-Funktionen + Stornierung + Auszahlung  |
-| Servicekraft   | `service`        | Bestellen, Ausgabe bestätigen, Kassieren       |
+| Rolle          | Code-Wert        |
+| -------------- | ---------------- |
+| Admin          | `admin`          |
+| Serviceleitung | `serviceleitung` |
+| Servicekraft   | `service`        |
 
 Go-Typ: `Role` mit `AdminRole`, `ServiceleitungRole`, `ServiceRole` · DB-Enum: `UserRole` (`'admin'`, `'serviceleitung'`, `'service'`)
+
+Die vollständige Berechtigungsmatrix steht in [handbuch.md §5.1](handbuch.md#51-rollen-und-berechtigungsmatrix).
 
 #### Einmalpasswort
 
@@ -110,6 +112,8 @@ JWT (JSON Web Token) mit Benutzer-ID und Rolle. 12 Stunden gültig. Reiner Infra
 ---
 
 ### Kasse (Core Domain)
+
+Die Event-Feldschemata (Felder, Typen, Constraints) aller Kasse-Events sind kanonisch in [handbuch.md §3.6](handbuch.md#36-domain-events) definiert. Die folgenden Einträge geben die Begriff↔Code-Mappings (Go-Struct, TS-Typ, Event-Typ, JSON-Keys).
 
 #### Tisch (Stammdaten)
 
@@ -192,7 +196,7 @@ Auszahlung an den Gast, um einen negativen Saldo auszugleichen — entsteht, wen
 
 #### Saldo
 
-Offener Betrag einer Tisch-Session: Bestellungen − Zahlungen − Stornierungen + Auszahlungen. Immer in Cent.
+Offener Betrag einer Tisch-Session. Immer in Cent. Die Saldo-Formel ist kanonisch in [handbuch.md §3.7](handbuch.md#37-invarianten) definiert.
 
 Go-Projektion-Feld: `SaldoCents` · Berechnung: `ApplyEvent()` → `TischSession`
 
@@ -256,7 +260,7 @@ TS-Typ: `BestellPositionInput` · JSON-Keys: `produktId`, `varianteId`, `menge`
 
 ### Kasse — Kassensitzung und Kassenbestand
 
-Die Kassensitzung und der Kassenbestand gehören zum Core-Domain-Kontext **Kasse** und nutzen dieselbe Persistenzstrategie: **Event-Sourcing im Kassenjournal**. Kassensitzung-Events werden unter dem Subject `kassensitzung-{nr}` geschrieben.
+Die Kassensitzung und der Kassenbestand gehören zum Core-Domain-Kontext **Kasse** und nutzen dieselbe Persistenzstrategie: **Event-Sourcing im Kassenjournal**. Kassensitzung-Events werden unter dem Subject `kassensitzung-{nr}` geschrieben. Die Event-Feldschemata sind kanonisch in [handbuch.md §3.6](handbuch.md#36-domain-events) definiert.
 
 #### Kassensitzung
 
