@@ -1,13 +1,5 @@
 # Betreiber-Leitfaden: jotti rechtssicher betreiben
 
-> **Für wen ist dieser Leitfaden?** Für Vereinsvorstände, Kassenwarte und ehrenamtliche
-> Teams, die jotti auf einem eigenen Server betreiben wollen. Er erklärt **in einfachen
-> Worten**, welche Pflichten ihr als Verein (= „Betreiber") habt, wie ihr die Kasse anmeldet,
-> wie ihr eine TSE einrichtet und warum jotti fiskalkonform ist bzw. wird.
->
-> **Kein Fachjargon nötig.** Jeder Rechtsbegriff wird erklärt. Die genauen Paragraphen stehen
-> am Rand, falls ihr (oder euer Steuerberater) sie nachlesen wollt.
-
 > ⚖️ **Dieser Leitfaden ist keine Rechts- oder Steuerberatung.** Er fasst die Rechtslage
 > nach bestem Wissen zusammen. Im Zweifel klärt Details mit eurem **Steuerberater** oder
 > dem zuständigen **Finanzamt**.
@@ -56,15 +48,15 @@ jotti ist **keine gemietete Cloud-Software** (kein „SaaS"), sondern **quelloff
 ihr **selbst auf eurem eigenen Server** installiert und betreibt. Daraus ergibt sich eine klare
 Rollentrennung:
 
-| Aufgabe | Entwickler (jotti) | Euer Verein (Betreiber) |
-| --- | :---: | :---: |
-| Programmcode mit TSE- und DSFinV-K-Schnittstelle bereitstellen | ✅ | — |
-| Vertrag mit TSE-Anbieter (z. B. fiskaly) abschließen | — | ✅ |
-| TSE-Schlüssel in jotti eintragen | — | ✅ |
-| Kasse beim Finanzamt anmelden (ELSTER) | — | ✅ |
-| Server betreiben, Backups, Datenschutz | — | ✅ |
-| Daten 10 Jahre aufbewahren | — | ✅ |
-| Belege ausgeben (bzw. Befreiung beantragen) | — | ✅ |
+| Aufgabe                                                        | Entwickler (jotti) | Euer Verein (Betreiber) |
+| -------------------------------------------------------------- | :----------------: | :---------------------: |
+| Programmcode mit TSE- und DSFinV-K-Schnittstelle bereitstellen |         ✅         |            —            |
+| Vertrag mit TSE-Anbieter (z. B. fiskaly) abschließen           |         —          |           ✅            |
+| TSE-Schlüssel in jotti eintragen                               |         —          |           ✅            |
+| Kasse beim Finanzamt anmelden (ELSTER)                         |         —          |           ✅            |
+| Server betreiben, Backups, Datenschutz                         |         —          |           ✅            |
+| Daten 10 Jahre aufbewahren                                     |         —          |           ✅            |
+| Belege ausgeben (bzw. Befreiung beantragen)                    |         —          |           ✅            |
 
 > **Warum ist das so?** Wer eine Kasse **tatsächlich verwendet**, ist gegenüber dem Finanzamt
 > verantwortlich — das seid **ihr als Verein**, nicht der Programmierer. Der Entwickler hat
@@ -75,9 +67,6 @@ Rollentrennung:
 > _Rechtsgrundlage: § 146a Abs. 1 Satz 5 AO (Pflicht des Herstellers), § 146a Abs. 4 AO
 > (Meldepflicht des Betreibers), § 379 AO (Bußgeld bei Verstoß)._
 
-Eine ausführliche Verantwortungs-Tabelle findet ihr in
-[compliance.md, Abschnitt 7.6](../compliance.md).
-
 ---
 
 ## 3. Was heißt „fiskalkonform"? Einfach erklärt
@@ -86,12 +75,12 @@ Eine ausführliche Verantwortungs-Tabelle findet ihr in
 elektronische Kassen stellt, damit **niemand Umsätze heimlich löschen oder verändern kann**.
 Konkret braucht eine konforme Kasse vier Bausteine:
 
-| Baustein | Was es bedeutet | Wie jotti es löst | Status |
-| --- | --- | --- | --- |
-| **Unveränderbare Aufzeichnung** | Einmal gebuchte Vorgänge dürfen nie heimlich geändert werden | „Event-Sourcing": Jeder Vorgang wird als unveränderlicher Eintrag gespeichert; Korrekturen nur als neue Gegenbuchung | ✅ vorhanden |
-| **TSE-Signatur** | Ein Sicherheitsmodul „versiegelt" jeden Vorgang kryptografisch | Anbindung an eine Cloud-TSE (z. B. fiskaly) | ⏳ in Entwicklung |
-| **Beleg** | Für jeden Kassiervorgang kann ein gültiger Bon erstellt werden | Kassenbeleg auf Knopfdruck, mit allen Pflichtangaben | ⏳ in Entwicklung |
-| **DSFinV-K-Export** | Standard-Datenpaket, das ein Prüfer einlesen kann | ZIP mit genormten CSV-Dateien (`transactions.csv`, `lines.csv` …) | ⏳ in Entwicklung |
+| Baustein                        | Was es bedeutet                                                | Wie jotti es löst                                                                                                    | Status            |
+| ------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| **Unveränderbare Aufzeichnung** | Einmal gebuchte Vorgänge dürfen nie heimlich geändert werden   | „Event-Sourcing": Jeder Vorgang wird als unveränderlicher Eintrag gespeichert; Korrekturen nur als neue Gegenbuchung | ✅ vorhanden      |
+| **TSE-Signatur**                | Ein Sicherheitsmodul „versiegelt" jeden Vorgang kryptografisch | Anbindung an eine Cloud-TSE (z. B. fiskaly)                                                                          | ⏳ in Entwicklung |
+| **Beleg**                       | Für jeden Kassiervorgang kann ein gültiger Bon erstellt werden | Kassenbeleg auf Knopfdruck, mit allen Pflichtangaben                                                                 | ⏳ in Entwicklung |
+| **DSFinV-K-Export**             | Standard-Datenpaket, das ein Prüfer einlesen kann              | ZIP mit genormten CSV-Dateien (`transactions.csv`, `lines.csv` …)                                                    | ⏳ in Entwicklung |
 
 > **Wichtig:** jotti ist **so gebaut**, dass es nach Fertigstellung dieser Bausteine konform
 > ist. Heute ist es das noch nicht vollständig. Den genauen Stand seht ihr in
@@ -104,16 +93,16 @@ Konkret braucht eine konforme Kasse vier Bausteine:
 Ihr müsst diese Gesetze **nicht auswendig kennen** — aber es hilft zu wissen, woher die
 Pflichten kommen. Hier die wichtigsten, in Alltagssprache:
 
-| Gesetz / Regel | Was es einfach gesagt verlangt | Betrifft euch als |
-| --- | --- | --- |
-| **§ 146a AO** (Abgabenordnung) | „Jede Kasse muss jeden Vorgang einzeln und manipulationssicher (per TSE) aufzeichnen." Gilt **auch für gemeinnützige Vereine** und auch bei kurzen Festen. | Pflicht zur TSE + Anmeldung |
-| **KassenSichV** (Kassensicherungs­verordnung) | Die „Bedienungsanleitung" zu § 146a AO: Sie sagt genau, was die TSE können muss und was auf den Beleg gehört. | technische Pflichten |
-| **§ 146a Abs. 2 AO + § 6 KassenSichV** | „Belegausgabepflicht": Für jeden Kassiervorgang muss ein Beleg **erstellt** werden. | Belegausgabe |
-| **§ 146a Abs. 2 Satz 2 AO** | **Befreiung möglich** beim „Verkauf an eine Vielzahl nicht bekannter Personen" (= typisches Vereinsfest). Dann müsst ihr den Bon nicht aktiv aushändigen — **aber nur, wenn das Finanzamt es auf Antrag genehmigt**, und der Bon muss trotzdem erstellbar bleiben. | Belegausgabe (Erleichterung) |
-| **§ 146a Abs. 4 AO** | „Meldepflicht": Jede Kasse muss dem Finanzamt online gemeldet werden (seit 1.1.2025). | Anmeldung der Kasse |
-| **GoBD** (BMF-Schreiben) | Daten müssen vollständig, nachvollziehbar, unveränderbar und **10 Jahre** aufbewahrt werden. | Aufbewahrung & Backups |
-| **DSFinV-K** | Das genormte Datenformat, in dem ihr bei einer Prüfung eure Daten herausgebt. | Datenexport bei Prüfung |
-| **§ 379 AO** | „Steuergefährdung": Wer ohne TSE kassiert, riskiert ein **Bußgeld** (bis 25.000 €). | Warnung |
+| Gesetz / Regel                                | Was es einfach gesagt verlangt                                                                                                                                                                                                                                     | Betrifft euch als            |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| **§ 146a AO** (Abgabenordnung)                | „Jede Kasse muss jeden Vorgang einzeln und manipulationssicher (per TSE) aufzeichnen." Gilt **auch für gemeinnützige Vereine** und auch bei kurzen Festen.                                                                                                         | Pflicht zur TSE + Anmeldung  |
+| **KassenSichV** (Kassensicherungs­verordnung) | Die „Bedienungsanleitung" zu § 146a AO: Sie sagt genau, was die TSE können muss und was auf den Beleg gehört.                                                                                                                                                      | technische Pflichten         |
+| **§ 146a Abs. 2 AO + § 6 KassenSichV**        | „Belegausgabepflicht": Für jeden Kassiervorgang muss ein Beleg **erstellt** werden.                                                                                                                                                                                | Belegausgabe                 |
+| **§ 146a Abs. 2 Satz 2 AO**                   | **Befreiung möglich** beim „Verkauf an eine Vielzahl nicht bekannter Personen" (= typisches Vereinsfest). Dann müsst ihr den Bon nicht aktiv aushändigen — **aber nur, wenn das Finanzamt es auf Antrag genehmigt**, und der Bon muss trotzdem erstellbar bleiben. | Belegausgabe (Erleichterung) |
+| **§ 146a Abs. 4 AO**                          | „Meldepflicht": Jede Kasse muss dem Finanzamt online gemeldet werden (seit 1.1.2025).                                                                                                                                                                              | Anmeldung der Kasse          |
+| **GoBD** (BMF-Schreiben)                      | Daten müssen vollständig, nachvollziehbar, unveränderbar und **10 Jahre** aufbewahrt werden.                                                                                                                                                                       | Aufbewahrung & Backups       |
+| **DSFinV-K**                                  | Das genormte Datenformat, in dem ihr bei einer Prüfung eure Daten herausgebt.                                                                                                                                                                                      | Datenexport bei Prüfung      |
+| **§ 379 AO**                                  | „Steuergefährdung": Wer ohne TSE kassiert, riskiert ein **Bußgeld** (bis 25.000 €).                                                                                                                                                                                | Warnung                      |
 
 > **Gilt das auch für unseren gemeinnützigen Verein?** Ja. Sobald ihr bei einem Fest Speisen
 > oder Getränke gegen Geld verkauft, betreibt ihr einen „wirtschaftlichen Geschäftsbetrieb"
@@ -177,11 +166,11 @@ ersetzt.
 
 **Fristen:**
 
-| Situation | Frist |
-| --- | --- |
-| Kasse **ab 1. Juli 2025** in Betrieb genommen | **innerhalb 1 Monat** nach Inbetriebnahme |
-| Kasse **vor 1. Juli 2025** angeschafft | war bis **31. Juli 2025** zu melden |
-| Kasse **stillgelegt** | **innerhalb 1 Monat** nach Außerbetriebnahme melden |
+| Situation                                     | Frist                                               |
+| --------------------------------------------- | --------------------------------------------------- |
+| Kasse **ab 1. Juli 2025** in Betrieb genommen | **innerhalb 1 Monat** nach Inbetriebnahme           |
+| Kasse **vor 1. Juli 2025** angeschafft        | war bis **31. Juli 2025** zu melden                 |
+| Kasse **stillgelegt**                         | **innerhalb 1 Monat** nach Außerbetriebnahme melden |
 
 > **Gute Nachricht:** Die privaten **Smartphones eurer Servicekräfte müsst ihr NICHT melden.**
 > Sie gelten nur als „Eingabegeräte" (wie eine Tastatur). Gemeldet wird **nur die eine
@@ -267,22 +256,16 @@ die **Cloud-TSE** (kleine laufende Gebühr beim TSE-Anbieter).
 
 ## 8. Glossar
 
-| Begriff | Einfache Erklärung |
-| --- | --- |
-| **AO** | Abgabenordnung — das „Grundgesetz" des Steuerrechts. |
-| **TSE** | Technische Sicherheitseinrichtung — das digitale Siegel-Modul für jeden Kassenvorgang. |
-| **Cloud-TSE / BYO TSE** | Eine TSE als Online-Dienst, die ihr selbst bucht und in jotti eintragt. |
-| **fiskaly** | Ein Anbieter solcher Cloud-TSEs. |
-| **KassenSichV** | Verordnung mit den technischen Detailregeln zur Kasse. |
-| **GoBD** | Regeln zu Aufbewahrung und Unveränderbarkeit von Daten. |
-| **DSFinV-K** | Genormtes Datenpaket (ZIP mit CSV-Dateien) für die Finanzprüfung. |
-| **ELSTER** | Das Online-Portal der Finanzverwaltung — hier meldet ihr die Kasse an. |
-| **Z-Bon / Tagesabschluss** | Der förmliche Abschluss eines Kassen-Tages. |
-| **Seriennummer / Kassen-ID** | Die eindeutige Nummer eurer Kasse; bei jotti automatisch erzeugt. |
-| **Betreiber** | Diejenigen, die die Kasse tatsächlich verwenden — euer Verein. |
-
----
-
-> **Mehr Details (technisch/rechtlich):**
-> [compliance.md](../compliance.md) · [anforderungen.md](../anforderungen.md) ·
-> [handbuch.md §3.13 (TSE-Architektur)](../handbuch.md)
+| Begriff                      | Einfache Erklärung                                                                     |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| **AO**                       | Abgabenordnung — das „Grundgesetz" des Steuerrechts.                                   |
+| **TSE**                      | Technische Sicherheitseinrichtung — das digitale Siegel-Modul für jeden Kassenvorgang. |
+| **Cloud-TSE / BYO TSE**      | Eine TSE als Online-Dienst, die ihr selbst bucht und in jotti eintragt.                |
+| **fiskaly**                  | Ein Anbieter solcher Cloud-TSEs.                                                       |
+| **KassenSichV**              | Verordnung mit den technischen Detailregeln zur Kasse.                                 |
+| **GoBD**                     | Regeln zu Aufbewahrung und Unveränderbarkeit von Daten.                                |
+| **DSFinV-K**                 | Genormtes Datenpaket (ZIP mit CSV-Dateien) für die Finanzprüfung.                      |
+| **ELSTER**                   | Das Online-Portal der Finanzverwaltung — hier meldet ihr die Kasse an.                 |
+| **Z-Bon / Tagesabschluss**   | Der förmliche Abschluss eines Kassen-Tages.                                            |
+| **Seriennummer / Kassen-ID** | Die eindeutige Nummer eurer Kasse; bei jotti automatisch erzeugt.                      |
+| **Betreiber**                | Diejenigen, die die Kasse tatsächlich verwenden — euer Verein.                         |

@@ -1,19 +1,5 @@
 # Hosting-Leitfaden: jotti selbst betreiben
 
-> **Für wen ist dieser Leitfaden?** Für die (technisch etwas versierten) Helfer:innen im Verein,
-> die jotti **selbst aufsetzen und betreiben** — auf einem Laptop im Festzelt-WLAN oder auf einem
-> kleinen gemieteten Server. Er erklärt **in einfachen Worten und mit fertigen Befehlen zum
-> Kopieren**, welcher Weg zu eurem Fest passt, was ihr an Technik braucht und wie ihr jotti startet.
->
-> **Ihr müsst keine Profis sein.** Wer schon einmal ein Programm über die Kommandozeile (das
-> schwarze Terminal-Fenster) gestartet hat, kommt hier zurecht.
-
-> 💡 **Hier geht es ums Technische** — Geräte, Netzwerk, Start und Stopp. Die **rechtlichen
-> Pflichten** (TSE, Anmeldung beim Finanzamt, Datenaufbewahrung) sind ein eigenes Thema und stehen
-> im [Betreiber-Leitfaden](./leitfaden-betreiber.md).
-
----
-
 ## Inhalt
 
 1. [Das Wichtigste in 60 Sekunden](#1-das-wichtigste-in-60-sekunden)
@@ -256,9 +242,3 @@ Betreiber-Leitfaden).
 | **Docker-Volume**           | Der Speicherort, an dem Docker eure Daten dauerhaft aufbewahrt.                            |
 | **SSD**                     | Schnelle Festplatte (Flash-Speicher) — Pflicht für flüssigen Betrieb.                      |
 | **Direktverkauf („Theke")** | Verkauf, bei dem sofort bar kassiert wird — kein offener Tisch-Saldo.                      |
-
----
-
-> **Verwandte Dokumente:**
-> [Betreiber-Leitfaden (Recht & Compliance)](./leitfaden-betreiber.md) ·
-> [Lizenz & Nutzung](../lizenz-und-nutzung.md) · [README](../../README.md)
