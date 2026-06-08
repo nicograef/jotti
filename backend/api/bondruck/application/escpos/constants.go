@@ -3,6 +3,14 @@ package escpos
 // Initialisierung
 const Init = "\x1B\x40"
 
+// Zeichentabelle (ESC t n)
+// SetCodepageCP858 waehlt Codepage 19 (PC858: Euro) gemaess Epson-ESC/POS-Standard.
+// CP858 deckt die deutschen Umlaute (ae/oe/ue/Ae/Oe/Ue/ss) und das Euro-Zeichen ab.
+// Wird von ESC @ (Init) zurueckgesetzt und muss daher nach Init gesendet werden.
+// HINWEIS: Der exakte Index ist druckerabhaengig und am Zielgeraet
+// (MUNBYN ITPP047P-UE) zu verifizieren.
+const SetCodepageCP858 = "\x1B\x74\x13" // ESC t 19
+
 // Ausrichtung
 const AlignLeft = "\x1B\x61\x00"
 const AlignCenter = "\x1B\x61\x01"

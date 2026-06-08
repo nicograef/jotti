@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/charmap"
 )
 
 const lineWidth = 48 // Font A, 12x24 Dots bei 576 dots/line -> 48 Zeichen
@@ -39,12 +42,13 @@ func FormatPositionBon(
 		buf.WriteString(Beep)
 	}
 	buf.WriteString(Init)
+	buf.WriteString(SetCodepageCP858)
 
 	// Tisch - gross und fett, zentriert
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
-	fmt.Fprintf(&buf, "== %s ==\n", tischName)
+	buf.WriteString(toCP858(fmt.Sprintf("== %s ==\n", tischName)))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
@@ -52,7 +56,7 @@ func FormatPositionBon(
 	// Position - doppelte Hoehe, fett, zentriert
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
-	fmt.Fprintf(&buf, "%dx %s (%s)\n", pos.Menge, pos.ProduktName, pos.VarianteName)
+	buf.WriteString(toCP858(fmt.Sprintf("%dx %s (%s)\n", pos.Menge, pos.ProduktName, pos.VarianteName)))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
@@ -61,7 +65,7 @@ func FormatPositionBon(
 		buf.WriteString("\n")
 		buf.WriteString(AlignLeft)
 		buf.WriteString(BoldOn)
-		buf.WriteString(wrapLine(kommentar, lineWidth))
+		buf.WriteString(toCP858(wrapLine(kommentar, lineWidth)))
 		buf.WriteByte('\n')
 		buf.WriteString(BoldOff)
 	}
@@ -70,7 +74,7 @@ func FormatPositionBon(
 	buf.WriteString(AlignLeft)
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
-	fmt.Fprintf(&buf, "  %s  Bedienung: %s\n", zeitpunkt.Format("15:04"), truncate(userName, 24))
+	buf.WriteString(toCP858(fmt.Sprintf("  %s  Bedienung: %s\n", zeitpunkt.Format("15:04"), truncate(userName, 24))))
 
 	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm ueber dem Druckkopf)
 	buf.WriteString(strings.Repeat("\n", 5))
@@ -94,12 +98,13 @@ func FormatSammelBon(
 		buf.WriteString(Beep)
 	}
 	buf.WriteString(Init)
+	buf.WriteString(SetCodepageCP858)
 
 	// Tisch - gross und fett, zentriert
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
-	fmt.Fprintf(&buf, "== %s ==\n", tischName)
+	buf.WriteString(toCP858(fmt.Sprintf("== %s ==\n", tischName)))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
@@ -110,7 +115,7 @@ func FormatSammelBon(
 	buf.WriteString(BoldOn)
 	for _, pos := range positionen {
 		artikel := fmt.Sprintf("%dx %s (%s)", pos.Menge, pos.ProduktName, pos.VarianteName)
-		buf.WriteString(artikel)
+		buf.WriteString(toCP858(artikel))
 		buf.WriteByte('\n')
 	}
 	buf.WriteString(BoldOff)
@@ -120,7 +125,7 @@ func FormatSammelBon(
 	if kommentar != "" {
 		buf.WriteString("\n")
 		buf.WriteString(BoldOn)
-		buf.WriteString(wrapLine(kommentar, lineWidth))
+		buf.WriteString(toCP858(wrapLine(kommentar, lineWidth)))
 		buf.WriteByte('\n')
 		buf.WriteString(BoldOff)
 	}
@@ -128,10 +133,10 @@ func FormatSammelBon(
 	// Trennlinie + Metadaten
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
-	fmt.Fprintf(&buf, "  %s  Bedienung: %s\n",
+	buf.WriteString(toCP858(fmt.Sprintf("  %s  Bedienung: %s\n",
 		zeitpunkt.Format("15:04"),
 		truncate(userName, 24),
-	)
+	)))
 
 	// 5 Leerzeilen vor dem Schnitt
 	buf.WriteString(strings.Repeat("\n", 5))
@@ -145,6 +150,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	var buf bytes.Buffer
 
 	buf.WriteString(Init)
+	buf.WriteString(SetCodepageCP858)
 
 	buf.WriteString(AlignCenter)
 	buf.WriteString(BoldOn)
@@ -152,11 +158,11 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString(BoldOff)
 	buf.WriteString("\n")
 
-	buf.WriteString(wrapLine(data.Vereinsname, lineWidth))
+	buf.WriteString(toCP858(wrapLine(data.Vereinsname, lineWidth)))
 	buf.WriteByte('\n')
-	buf.WriteString(wrapLine(data.Strasse, lineWidth))
+	buf.WriteString(toCP858(wrapLine(data.Strasse, lineWidth)))
 	buf.WriteByte('\n')
-	buf.WriteString(wrapLine(strings.TrimSpace(data.Plz+" "+data.Ort), lineWidth))
+	buf.WriteString(toCP858(wrapLine(strings.TrimSpace(data.Plz+" "+data.Ort), lineWidth)))
 	buf.WriteByte('\n')
 	buf.WriteString("\n")
 
@@ -169,7 +175,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 
 	for _, pos := range data.Positionen {
 		artikel := fmt.Sprintf("%dx %s (%s)", pos.Menge, pos.ProduktName, pos.VarianteName)
-		buf.WriteString(wrapLine(artikel, lineWidth))
+		buf.WriteString(toCP858(wrapLine(artikel, lineWidth)))
 		buf.WriteByte('\n')
 		fmt.Fprintf(&buf, "  %s x %d = %s EUR\n", formatCents(pos.Einzelpreis), pos.Menge, formatCents(pos.Einzelpreis*pos.Menge))
 	}
@@ -179,7 +185,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString(BoldOn)
 	fmt.Fprintf(&buf, "GESAMT: %s EUR\n", formatCents(data.GesamtbetragCents))
 	buf.WriteString(BoldOff)
-	fmt.Fprintf(&buf, "Zahlungsart: %s\n", data.Zahlungsart)
+	buf.WriteString(toCP858(fmt.Sprintf("Zahlungsart: %s\n", data.Zahlungsart)))
 
 	// TODO(F-07): Steueraufteilung sobald Positionen einen Steuersatz enthalten.
 	// TODO(F-02): TSE-Signatur und processType nach TSE-Integration ergaenzen.
@@ -194,24 +200,37 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	return buf.Bytes()
 }
 
-// truncate kuerzt einen String auf maxLen Zeichen.
-func truncate(s string, maxLen int) string {
-	if len(s) <= maxLen {
+// toCP858 transkodiert sichtbaren Text von UTF-8 in die Drucker-Codepage CP858.
+// Nicht abbildbare Zeichen werden ersetzt, damit ein einzelnes Sonderzeichen nicht
+// den ganzen Bon verwirft. ESC/POS-Steuerbytes werden nie hierdurch geschickt.
+func toCP858(s string) string {
+	encoded, err := encoding.ReplaceUnsupported(charmap.CodePage858.NewEncoder()).String(s)
+	if err != nil {
 		return s
 	}
-	return s[:maxLen-1] + "…"
+	return encoded
 }
 
-// wrapLine bricht einen langen String an Wortgrenzen um.
+// truncate kuerzt einen String auf maxLen Runen (inkl. Auslassungszeichen)
+// und schneidet dabei nie mitten in einer Rune.
+func truncate(s string, maxLen int) string {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
+		return s
+	}
+	return string(runes[:maxLen-1]) + "…"
+}
+
+// wrapLine bricht einen langen String an Wortgrenzen um (runenbasierte Breite).
 func wrapLine(s string, width int) string {
-	if len(s) <= width {
+	if utf8.RuneCountInString(s) <= width {
 		return s
 	}
 	var result strings.Builder
 	words := strings.Fields(s)
 	line := ""
 	for _, w := range words {
-		if len(line)+1+len(w) > width && line != "" {
+		if utf8.RuneCountInString(line)+1+utf8.RuneCountInString(w) > width && line != "" {
 			result.WriteString(line)
 			result.WriteByte('\n')
 			line = w

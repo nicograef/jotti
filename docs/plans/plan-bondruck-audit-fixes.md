@@ -157,14 +157,14 @@ Rune schneidet. Gilt für alle drei Bon-Typen (`FormatPositionBon`,
 
 ### Acceptance criteria
 
-- [ ] Drucker-Codepage wird per `ESC t n` (CP858) gesetzt; Index als benannte Konstante.
-- [ ] Umlaute (ä/ö/ü/Ä/Ö/Ü/ß) und € werden als CP858-Einzelbytes ausgegeben.
-- [ ] ESC/POS-Steuerbytes werden **nicht** transkodiert.
-- [ ] `truncate`/`wrapLine` arbeiten runenbasiert; `truncate` erzeugt nie ungültiges Encoding.
-- [ ] Unit-Test: Text mit Umlauten + € → erwartete CP858-Bytes; `truncate` auf
+- [x] Drucker-Codepage wird per `ESC t n` (CP858) gesetzt; Index als benannte Konstante.
+- [x] Umlaute (ä/ö/ü/Ä/Ö/Ü/ß) und € werden als CP858-Einzelbytes ausgegeben.
+- [x] ESC/POS-Steuerbytes werden **nicht** transkodiert.
+- [x] `truncate`/`wrapLine` arbeiten runenbasiert; `truncate` erzeugt nie ungültiges Encoding.
+- [x] Unit-Test: Text mit Umlauten + € → erwartete CP858-Bytes; `truncate` auf
       Umlaut-Grenze bleibt gültig.
-- [ ] Risiko dokumentiert: exakter `ESC t`-Index am MUNBYN-Gerät zu verifizieren.
-- [ ] `make check` grün.
+- [x] Risiko dokumentiert: exakter `ESC t`-Index am MUNBYN-Gerät zu verifizieren.
+- [x] `make check` grün.
 
 ---
 
