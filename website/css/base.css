@@ -960,6 +960,8 @@ body.nav-open {
 
 .footer-links {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1.5rem;
 
   & a {
@@ -975,7 +977,7 @@ body.nav-open {
 
 .footer-copy {
   font-size: 0.8125rem;
-  color: var(--muted-light);
+  color: var(--muted);
 
   & a {
     color: var(--muted);
@@ -1010,7 +1012,7 @@ body.nav-open {
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--primary-light);
-  color: var(--primary);
+  color: var(--accent-foreground);
   vertical-align: middle;
   margin-left: 0.4em;
   white-space: nowrap;

@@ -311,14 +311,14 @@ Abweichungen werden behoben.
 
 ### Akzeptanzkriterien
 
-- [ ] Auf Mobile, Tablet und Desktop kein horizontaler Overflow auf allen drei
+- [x] Auf Mobile, Tablet und Desktop kein horizontaler Overflow auf allen drei
       Seiten.
-- [ ] Logo, Navigation (inkl. Mobile-Overlay) und Footer auf allen Viewports
+- [x] Logo, Navigation (inkl. Mobile-Overlay) und Footer auf allen Viewports
       korrekt und bedienbar.
-- [ ] Text-Kontrast erfüllt WCAG AA; Fließtext angenehm lesbar.
-- [ ] Abstände, Typografie, Buttons, Tabellen und Callouts seitenübergreifend
+- [x] Text-Kontrast erfüllt WCAG AA; Fließtext angenehm lesbar.
+- [x] Abstände, Typografie, Buttons, Tabellen und Callouts seitenübergreifend
       konsistent.
-- [ ] Visuelle Endkontrolle: deutlich „cleaner" als vorher (weniger Boxen,
+- [x] Visuelle Endkontrolle: deutlich „cleaner" als vorher (weniger Boxen,
       Icons, Bold, Verläufe).
 
 ---
