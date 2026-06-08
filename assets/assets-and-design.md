@@ -44,20 +44,20 @@ Das jotti Logo-System basiert auf dem stilisierten, gefalteten `J` und dem Wortm
 
 ### 3.3. Die Logo-Varianten und ihr Einsatz
 
-| Asset | Beschreibung | Erscheinungsbild | Primärer Einsatzort | Wann & Wo einsetzen |
-|---|---|---|---|---|
-| 1 (`jotti-logo-examples-and-definitions.png`) | Beispiel und Definition aller Assets | Alle Varianten neben bzw. untereinander mit Angaben von Farbe usw. | Dokumentation | Nirgendwo. |
-| 2 (`jotti-logo-icon-dark.png`) | Dark Icon | Quadrat, abgerundet. Hintergrund: Slate-950 (`#020617`). `J` Verlauf Violet-400 → Indigo-400. | App Store, Launcher Icon, Desktop Shortcut | Quadratisches Icon auf dunklem Hintergrund (z. B. PWA-Piktogramm auf einem dunklen Smartphone-Hintergrund). |
-| 3 (`jotti-logo-icon-light.png`) | Light Icon | Quadrat, abgerundet. Hintergrund: Slate-50 (`#f8fafc`). `J` Verlauf Violet-600 → Indigo-600 (reichhaltiger). | App Store, Launcher Icon, Desktop Shortcut | Quadratisches Icon auf hellem Hintergrund. |
-| 4 (`jotti-logo-full-dark.png`) | Dark Full Logo | Isoliert auf Slate-950 (`#020617`). `J` (wie #2) links. Text „jotti" (Slate-50, `#f8fafc`) rechts. | Webseite (Header), Admin-Bereich (Dark Mode), Marketing (Flyer) | Primäre Markenplatzierung auf dunklem Hintergrund. |
-| 5 (`jotti-logo-full-light.png`) | Light Full Logo | Isoliert auf Slate-50 (`#f8fafc`). `J` (wie #3) links. Text „jotti" (Slate-900, `#0f172a`) rechts. | Webseite (Header), gedruckte Abrechnungen, Admin-Bereich (Light Mode) | Primäre Markenplatzierung auf hellem Hintergrund. Standardwahl für gedruckte Dokumente. |
-| 6 (`jotti-symbol.png`) | J Symbol | Isoliert auf transparentem Hintergrund. Reines gefaltetes `J` (reichhaltiger Verlauf wie #3), ohne Hintergrund-Quadrat. | UI-Icon, Marketing, PWA-Titelzeile | Für allgemeine UI-Symbole, in der Titelzeile der PWA, oder über Bildmaterial im Marketing. |
-| 7 (`jotti-icon-light-16.png`) | Light Favicon 16×16 | Transparenter Hintergrund. J-Symbol, Light-Verlauf (Violet-600 → Indigo-600). | Browser-Tab-Favicon | Smallest Favicon für Browser-Tab. |
-| 8 (`jotti-icon-light-32.png`) | Light Favicon 32×32 | Transparenter Hintergrund. J-Symbol, Light-Verlauf. | Browser-Tab-Favicon, Lesezeichen | Standard-Favicon für Browser-Tab und Lesezeichen-Ansicht. |
-| 9 (`jotti-icon-light-64.png`) | Light Favicon 64×64 | Transparenter Hintergrund. J-Symbol, Light-Verlauf. | Desktop-Verknüpfung, Taskbar | Größeres Favicon für Desktop-Shortcuts und Taskbar-Icons. |
-| 10 (`jotti-icon-dark-16.png`) | Dark Favicon 16×16 | Transparenter Hintergrund. J-Symbol, Dark-Verlauf (Violet-400 → Indigo-400). | Browser-Tab-Favicon (Dark Mode) | Kleinster Favicon für Browser-Tab im Dark Mode. |
-| 11 (`jotti-icon-dark-32.png`) | Dark Favicon 32×32 | Transparenter Hintergrund. J-Symbol, Dark-Verlauf. | Browser-Tab-Favicon (Dark Mode), Lesezeichen | Standard-Favicon für Dark-Mode-Browser. |
-| 12 (`jotti-icon-dark-64.png`) | Dark Favicon 64×64 | Transparenter Hintergrund. J-Symbol, Dark-Verlauf. | Desktop-Verknüpfung (Dark Mode), Taskbar | Größeres Favicon für Desktop-Shortcuts im Dark Mode. |
+| Asset                                         | Beschreibung                         | Erscheinungsbild                                                                                                        | Primärer Einsatzort                                                   | Wann & Wo einsetzen                                                                                         |
+| --------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1 (`jotti-logo-examples-and-definitions.png`) | Beispiel und Definition aller Assets | Alle Varianten neben bzw. untereinander mit Angaben von Farbe usw.                                                      | Dokumentation                                                         | Nirgendwo.                                                                                                  |
+| 2 (`jotti-logo-icon-dark.png`)                | Dark Icon                            | Quadrat, abgerundet. Hintergrund: Slate-950 (`#020617`). `J` Verlauf Violet-400 → Indigo-400.                           | App Store, Launcher Icon, Desktop Shortcut                            | Quadratisches Icon auf dunklem Hintergrund (z. B. PWA-Piktogramm auf einem dunklen Smartphone-Hintergrund). |
+| 3 (`jotti-logo-icon-light.png`)               | Light Icon                           | Quadrat, abgerundet. Hintergrund: Slate-50 (`#f8fafc`). `J` Verlauf Violet-600 → Indigo-600 (reichhaltiger).            | App Store, Launcher Icon, Desktop Shortcut                            | Quadratisches Icon auf hellem Hintergrund.                                                                  |
+| 4 (`jotti-logo-full-dark.png`)                | Dark Full Logo                       | Isoliert auf Slate-950 (`#020617`). `J` (wie #2) links. Text „jotti" (Slate-50, `#f8fafc`) rechts.                      | Webseite (Header), Admin-Bereich (Dark Mode), Marketing (Flyer)       | Primäre Markenplatzierung auf dunklem Hintergrund.                                                          |
+| 5 (`jotti-logo-full-light.png`)               | Light Full Logo                      | Isoliert auf Slate-50 (`#f8fafc`). `J` (wie #3) links. Text „jotti" (Slate-900, `#0f172a`) rechts.                      | Webseite (Header), gedruckte Abrechnungen, Admin-Bereich (Light Mode) | Primäre Markenplatzierung auf hellem Hintergrund. Standardwahl für gedruckte Dokumente.                     |
+| 6 (`jotti-symbol.png`)                        | J Symbol                             | Isoliert auf transparentem Hintergrund. Reines gefaltetes `J` (reichhaltiger Verlauf wie #3), ohne Hintergrund-Quadrat. | UI-Icon, Marketing, PWA-Titelzeile                                    | Für allgemeine UI-Symbole, in der Titelzeile der PWA, oder über Bildmaterial im Marketing.                  |
+| 7 (`jotti-icon-light-16.png`)                 | Light Favicon 16×16                  | Transparenter Hintergrund. J-Symbol, Light-Verlauf (Violet-600 → Indigo-600).                                           | Browser-Tab-Favicon                                                   | Smallest Favicon für Browser-Tab.                                                                           |
+| 8 (`jotti-icon-light-32.png`)                 | Light Favicon 32×32                  | Transparenter Hintergrund. J-Symbol, Light-Verlauf.                                                                     | Browser-Tab-Favicon, Lesezeichen                                      | Standard-Favicon für Browser-Tab und Lesezeichen-Ansicht.                                                   |
+| 9 (`jotti-icon-light-64.png`)                 | Light Favicon 64×64                  | Transparenter Hintergrund. J-Symbol, Light-Verlauf.                                                                     | Desktop-Verknüpfung, Taskbar                                          | Größeres Favicon für Desktop-Shortcuts und Taskbar-Icons.                                                   |
+| 10 (`jotti-icon-dark-16.png`)                 | Dark Favicon 16×16                   | Transparenter Hintergrund. J-Symbol, Dark-Verlauf (Violet-400 → Indigo-400).                                            | Browser-Tab-Favicon (Dark Mode)                                       | Kleinster Favicon für Browser-Tab im Dark Mode.                                                             |
+| 11 (`jotti-icon-dark-32.png`)                 | Dark Favicon 32×32                   | Transparenter Hintergrund. J-Symbol, Dark-Verlauf.                                                                      | Browser-Tab-Favicon (Dark Mode), Lesezeichen                          | Standard-Favicon für Dark-Mode-Browser.                                                                     |
+| 12 (`jotti-icon-dark-64.png`)                 | Dark Favicon 64×64                   | Transparenter Hintergrund. J-Symbol, Dark-Verlauf.                                                                      | Desktop-Verknüpfung (Dark Mode), Taskbar                              | Größeres Favicon für Desktop-Shortcuts im Dark Mode.                                                        |
 
 ---
 
@@ -84,37 +84,39 @@ Um das Logo herum muss immer eine ausreichende Schutzzone eingehalten werden, in
 
 ## 5. Das Theme (Farben)
 
-Das jotti Theme basiert auf dem TailwindCSS-Farbschema.
+Das jotti Theme basiert auf dem TailwindCSS-Farbschema. Kanonische Quelle aller Token-Werte ist `frontend/src/index.css` (Light + Dark); die folgenden Tabellen sind ein Auszug. Die Palette: **olive** als neutrale Basis, **emerald** als primäre Markenfarbe (Grün), **zinc** als Sekundärfläche, **red** für destruktive Aktionen.
 
-**Border-Radius:** `--radius: 0.625rem` (10px) — wird konsequent auf UI-Elemente und die Logo-Icons angewendet.
+> **Hinweis:** Die Logo- und Icon-Bild-Assets (Abschnitt 3, 7) verwenden noch die frühere violett/indigo Palette. Ihre Neugestaltung in Grün ist ein separates Design-Follow-up — CSS-Theme und PWA-Farben (Abschnitt 8) sind bereits grün.
+
+**Border-Radius:** `--radius: 0.45rem` — wird konsequent auf UI-Elemente und die Logo-Icons angewendet.
 
 ### 5.1. Light Theme
 
-_Slate base, Violet primary, Indigo secondary_
+_olive base, emerald primary, zinc secondary_
 
-| Variable | Wert | Beschreibung |
-|---|---|---|
-| `--background` | `#f8fafc` (slate-50) | |
-| `--foreground` | `#0f172a` (slate-900) | |
-| `--card` | `#ffffff` (white) | |
-| `--primary` | `#7c3aed` (violet-600) | Primärfarbe des Light-Modus Logos |
-| `--secondary` | `#4f46e5` (indigo-600) | Basis-Verlauf des Light-Modus Logos |
-| `--accent` | `#ede9fe` (violet-100) | |
-| `--accent-foreground` | `#6d28d9` (violet-700) | |
+| Variable              | Wert                    | Beschreibung                    |
+| --------------------- | ----------------------- | ------------------------------- |
+| `--background`        | `#ffffff` (white)       |                                 |
+| `--foreground`        | `#0c0c09` (olive-950)   |                                 |
+| `--card`              | `#ffffff` (white)       |                                 |
+| `--primary`           | `#007a55` (emerald-700) | Primärfarbe (Aktionen, Buttons) |
+| `--secondary`         | `#f4f4f5` (zinc-100)    | Sekundärfläche (neutral)        |
+| `--accent`            | `#f4f4f0` (olive-100)   |                                 |
+| `--accent-foreground` | `#1d1d16` (olive-900)   |                                 |
 
 ### 5.2. Dark Theme
 
-_Slate base, Violet primary, Indigo secondary_
+_olive base, emerald primary, zinc secondary_
 
-| Variable | Wert | Beschreibung |
-|---|---|---|
-| `--background` | `#020617` (slate-950) | |
-| `--foreground` | `#f8fafc` (slate-50) | |
-| `--card` | `#0f172a` (slate-900) | |
-| `--primary` | `#a78bfa` (violet-400) | Primärfarbe des Dark-Modus Logos |
-| `--secondary` | `#818cf8` (indigo-400) | Basis-Verlauf des Dark-Modus Logos |
-| `--accent` | `#4c1d95` (violet-900) | |
-| `--accent-foreground` | `#ddd6fe` (violet-200) | |
+| Variable              | Wert                    | Beschreibung                    |
+| --------------------- | ----------------------- | ------------------------------- |
+| `--background`        | `#0c0c09` (olive-950)   |                                 |
+| `--foreground`        | `#fbfbf9` (olive-50)    |                                 |
+| `--card`              | `#1d1d16` (olive-900)   |                                 |
+| `--primary`           | `#006045` (emerald-800) | Primärfarbe (Aktionen, Buttons) |
+| `--secondary`         | `#27272a` (zinc-800)    | Sekundärfläche (neutral)        |
+| `--accent`            | `#2b2b22` (olive-800)   |                                 |
+| `--accent-foreground` | `#fbfbf9` (olive-50)    |                                 |
 
 ---
 
@@ -127,12 +129,12 @@ _Slate base, Violet primary, Indigo secondary_
 
 ## 7. Ikonografie
 
-| Asset | Dateiname | Erscheinungsbild | Anwendung |
-|---|---|---|---|
-| 7–9 | `jotti-icon-light-{16,32,64}.png` | J-Symbol, transparenter Hintergrund, Light-Verlauf | Browser-Favicons (Light Mode), Lesezeichen, Desktop-Shortcuts |
-| 10–12 | `jotti-icon-dark-{16,32,64}.png` | J-Symbol, transparenter Hintergrund, Dark-Verlauf | Browser-Favicons (Dark Mode), Lesezeichen, Desktop-Shortcuts |
-| 2 | `jotti-logo-icon-dark.png` | Quadratisches App-Icon, Slate-950-Hintergrund, abgerundet | PWA-Startbildschirm-Icon (Dark), Apple Touch Icon (Fallback) |
-| 3 | `jotti-logo-icon-light.png` | Quadratisches App-Icon, Slate-50-Hintergrund, abgerundet | PWA-Startbildschirm-Icon (Light), Apple Touch Icon (primär) |
+| Asset | Dateiname                         | Erscheinungsbild                                          | Anwendung                                                     |
+| ----- | --------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------- |
+| 7–9   | `jotti-icon-light-{16,32,64}.png` | J-Symbol, transparenter Hintergrund, Light-Verlauf        | Browser-Favicons (Light Mode), Lesezeichen, Desktop-Shortcuts |
+| 10–12 | `jotti-icon-dark-{16,32,64}.png`  | J-Symbol, transparenter Hintergrund, Dark-Verlauf         | Browser-Favicons (Dark Mode), Lesezeichen, Desktop-Shortcuts  |
+| 2     | `jotti-logo-icon-dark.png`        | Quadratisches App-Icon, Slate-950-Hintergrund, abgerundet | PWA-Startbildschirm-Icon (Dark), Apple Touch Icon (Fallback)  |
+| 3     | `jotti-logo-icon-light.png`       | Quadratisches App-Icon, Slate-50-Hintergrund, abgerundet  | PWA-Startbildschirm-Icon (Light), Apple Touch Icon (primär)   |
 
 ---
 
@@ -159,7 +161,7 @@ frontend/public/
 jotti ist Mobile-first und für den Einsatz auf Smartphones (BYOD) konzipiert. Ein PWA-Setup macht Sinn:
 
 - **Motivation:** Servicekräfte können die App beim Anlaufen des Vereinsfestes direkt als Icon auf den Startbildschirm hinzufügen — ohne App Store, ohne Installation.
-- **Ergebnis:** `standalone`-Display (kein Browser-Chrome), Violet-Theme-Color in der Statusleiste, sofort erkennbares Icon.
+- **Ergebnis:** `standalone`-Display (kein Browser-Chrome), grüne Theme-Color in der Statusleiste, sofort erkennbares Icon.
 
 Das Manifest liegt unter `frontend/public/manifest.webmanifest`:
 
@@ -170,15 +172,37 @@ Das Manifest liegt unter `frontend/public/manifest.webmanifest`:
   "description": "Das kostenlose Kassensystem für Vereinsfeste.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#7c3aed",
+  "background_color": "#ffffff",
+  "theme_color": "#007a55",
   "lang": "de",
   "icons": [
-    { "src": "/icons/jotti-icon-light-16.png", "sizes": "16x16", "type": "image/png" },
-    { "src": "/icons/jotti-icon-light-32.png", "sizes": "32x32", "type": "image/png" },
-    { "src": "/icons/jotti-icon-light-64.png", "sizes": "64x64", "type": "image/png" },
-    { "src": "/icons/jotti-logo-icon-light.png", "sizes": "any", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/jotti-logo-icon-dark.png", "sizes": "any", "type": "image/png", "purpose": "any" }
+    {
+      "src": "/icons/jotti-icon-light-16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/jotti-icon-light-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/jotti-icon-light-64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/jotti-logo-icon-light.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/jotti-logo-icon-dark.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }
 ```
@@ -189,13 +213,42 @@ Das Manifest liegt unter `frontend/public/manifest.webmanifest`:
 
 ```html
 <!-- Favicons: light mode -->
-<link rel="icon" type="image/png" sizes="16x16" href="/icons/jotti-icon-light-16.png" media="(prefers-color-scheme: light)" />
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/jotti-icon-light-32.png" media="(prefers-color-scheme: light)" />
+<link
+  rel="icon"
+  type="image/png"
+  sizes="16x16"
+  href="/icons/jotti-icon-light-16.png"
+  media="(prefers-color-scheme: light)"
+/>
+<link
+  rel="icon"
+  type="image/png"
+  sizes="32x32"
+  href="/icons/jotti-icon-light-32.png"
+  media="(prefers-color-scheme: light)"
+/>
 <!-- Favicons: dark mode -->
-<link rel="icon" type="image/png" sizes="16x16" href="/icons/jotti-icon-dark-16.png" media="(prefers-color-scheme: dark)" />
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/jotti-icon-dark-32.png" media="(prefers-color-scheme: dark)" />
+<link
+  rel="icon"
+  type="image/png"
+  sizes="16x16"
+  href="/icons/jotti-icon-dark-16.png"
+  media="(prefers-color-scheme: dark)"
+/>
+<link
+  rel="icon"
+  type="image/png"
+  sizes="32x32"
+  href="/icons/jotti-icon-dark-32.png"
+  media="(prefers-color-scheme: dark)"
+/>
 <!-- Fallback (light, 32px) -->
-<link rel="icon" type="image/png" sizes="32x32" href="/icons/jotti-icon-light-32.png" />
+<link
+  rel="icon"
+  type="image/png"
+  sizes="32x32"
+  href="/icons/jotti-icon-light-32.png"
+/>
 
 <!-- Apple Touch Icon für iOS-Startbildschirm -->
 <link rel="apple-touch-icon" href="/icons/jotti-logo-icon-light.png" />
@@ -204,21 +257,29 @@ Das Manifest liegt unter `frontend/public/manifest.webmanifest`:
 <link rel="manifest" href="/manifest.webmanifest" />
 
 <!-- Browser-Chrome-Farbe passend zum Theme -->
-<meta name="theme-color" content="#7c3aed" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)" />
+<meta
+  name="theme-color"
+  content="#007a55"
+  media="(prefers-color-scheme: light)"
+/>
+<meta
+  name="theme-color"
+  content="#0c0c09"
+  media="(prefers-color-scheme: dark)"
+/>
 ```
 
 ### 8.4. Logo-Nutzung im Frontend-Code
 
-| Kontext | Empfohlenes Asset | Pfad (nach `public/`) |
-|---|---|---|
-| Admin-Sidebar Header (Light Mode) | `jotti-logo-full-light.png` | Assets-Ordner → nicht im `public/` |
-| Admin-Sidebar Header (Dark Mode) | `jotti-logo-full-dark.png` | Assets-Ordner → nicht im `public/` |
-| Login-Seite Branding | `jotti-logo-full-light.png` / `-dark.png` | je nach Theme |
-| Browser-Favicon (Light) | `jotti-icon-light-32.png` | `/icons/jotti-icon-light-32.png` |
-| Browser-Favicon (Dark) | `jotti-icon-dark-32.png` | `/icons/jotti-icon-dark-32.png` |
-| PWA Startbildschirm-Icon | `jotti-logo-icon-light.png` | `/icons/jotti-logo-icon-light.png` |
-| Apple Touch Icon | `jotti-logo-icon-light.png` | `/icons/jotti-logo-icon-light.png` |
+| Kontext                           | Empfohlenes Asset                         | Pfad (nach `public/`)              |
+| --------------------------------- | ----------------------------------------- | ---------------------------------- |
+| Admin-Sidebar Header (Light Mode) | `jotti-logo-full-light.png`               | Assets-Ordner → nicht im `public/` |
+| Admin-Sidebar Header (Dark Mode)  | `jotti-logo-full-dark.png`                | Assets-Ordner → nicht im `public/` |
+| Login-Seite Branding              | `jotti-logo-full-light.png` / `-dark.png` | je nach Theme                      |
+| Browser-Favicon (Light)           | `jotti-icon-light-32.png`                 | `/icons/jotti-icon-light-32.png`   |
+| Browser-Favicon (Dark)            | `jotti-icon-dark-32.png`                  | `/icons/jotti-icon-dark-32.png`    |
+| PWA Startbildschirm-Icon          | `jotti-logo-icon-light.png`               | `/icons/jotti-logo-icon-light.png` |
+| Apple Touch Icon                  | `jotti-logo-icon-light.png`               | `/icons/jotti-logo-icon-light.png` |
 
 **Hinweis:** `jotti-logo-full-*.png` und `jotti-symbol.png` sind bisher nicht in `public/` kopiert. Sie werden erst benötigt, wenn die Logo-Komponente im Frontend implementiert wird (z. B. in `AdminSidebar.tsx` oder `LoginPage.tsx`).
 
