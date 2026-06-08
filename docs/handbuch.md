@@ -546,27 +546,9 @@ type TischSession struct {
 └──────────────────────────────────────────────┘
 ```
 
-#### Cloud-TSE vs. ERiC — Entscheidungsmatrix für jotti
+#### Anbieter- und Meldeweg-Entscheidungen
 
-| Kriterium                  | ERiC (direkt, für Kassenmeldung) | Submission-API (fiskaly o.ä.) |
-| -------------------------- | -------------------------------- | ----------------------------- |
-| Vorab-Validierung          | ✅ Ja (staatlich)                | ❌ Nein                       |
-| Implementierungsaufwand    | Hoch (native C-Bibliothek)       | Niedrig (REST-API)            |
-| Vendor-Lock-in             | Keiner                           | Ja (TSE-Anbieter)             |
-| Kosten                     | Kostenlos                        | Kostenpflichtig               |
-| Offline-Fähigkeit          | ✅ (lokale Lib)                  | ❌ (Cloud-abhängig)           |
-| Passt zu jotti-Philosophie | ✅ (Self-hosted, keine Cloud)    | ⚠️ (externe Abhängigkeit)     |
-
-**Getroffene Entscheidungen:**
-
-- **TSE (Transaktionssignierung):** fiskaly Cloud-TSE als erster Zielanbieter; anbieter-agnostisches Backend-Interface (`TSEClient`) für spätere Flexibilität.
-- **Kassenmeldung (§ 146a Abs. 4 AO):** Phase 1 manuell über ELSTER-Webportal (kein Code-Aufwand); Phase 2 automatisiert via ERiC oder fiskaly-Submission-API (Entscheidung bei Implementierungsbeginn).
-
-**Begründung für fiskaly als TSE-Anbieter:**
-
-- jotti ist ein BYOD-System: Smartphones im Festzelt können keine Hardware-TSE führen.
-- fiskaly ist API-first mit gut dokumentierter REST-Schnittstelle — passt zur bestehenden Backend-Architektur (Go + HTTP).
-- Das Adapter-Pattern (`TSEClient`-Interface) verhindert Vendor-Lock-in auf Architektur-Ebene.
+TSE-Anbieter (fiskaly als erster Zielanbieter; anbieter-agnostisches `TSEClient`-Interface gegen Vendor-Lock-in) und Kassenmeldungs-Weg (Phase 1 manuell über ELSTER, Phase 2 ERiC oder fiskaly-Submission-API) sind mitsamt Begründung und Abwägung (ERiC vs. Submission-API) in [compliance.md §3.5 und §7](compliance.md) dokumentiert.
 
 ---
 

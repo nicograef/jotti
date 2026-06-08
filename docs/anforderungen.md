@@ -266,7 +266,7 @@ Jedes Produkt wird einem Steuersatz zugeordnet. jotti unterstützt die in Deutsc
 
 > **Prio:** Must-have (offen — heute existiert nur der nicht-fiskalische Arbeitsbon, K-12; ein fiskalischer Kassenbeleg wird noch nicht erzeugt)
 
-Bei jedem Kassiervorgang muss dem Gast ein **Kassenbeleg** angeboten werden (§ 146a Abs. 2 AO, § 6 KassenSichV). jotti druckt den Kassenbeleg **auf Anforderung** durch den Service — am Fest greift in der Regel die Befreiung „Verkauf an eine Vielzahl unbekannter Personen" (§ 146a Abs. 2 Satz 2 AO), der Beleg muss aber jederzeit erstellbar sein. Der Kassenbeleg ist **strikt** vom automatischen, nicht-fiskalischen Arbeitsbon (K-12) zu trennen: Letzterer ist eine Arbeitsanweisung ohne Preise und **kein** Beleg. Der Kassenbeleg kann in Papierform (Bondrucker) oder — mit Zustimmung des Gastes — digital (F-09) ausgegeben werden. Ab TSE-Integration (F-02) enthält er zusätzlich TSE-Pflichtfelder.
+Bei jedem Kassiervorgang muss dem Gast ein **Kassenbeleg** angeboten werden (§ 146a Abs. 2 AO, § 6 KassenSichV). jotti druckt den Kassenbeleg **auf Anforderung** durch den Service; am Fest greift in der Regel die Belegausgabe-Befreiung (Voraussetzungen → [compliance.md §5.1](compliance.md)), der Beleg muss aber jederzeit erstellbar sein. Der Kassenbeleg ist **strikt** vom automatischen, nicht-fiskalischen Arbeitsbon (K-12) zu trennen: Letzterer ist eine Arbeitsanweisung ohne Preise und **kein** Beleg. Der Kassenbeleg kann in Papierform (Bondrucker) oder — mit Zustimmung des Gastes — digital (F-09) ausgegeben werden. Ab TSE-Integration (F-02) enthält er zusätzlich TSE-Pflichtfelder.
 
 **Akzeptanzkriterien:**
 
@@ -331,7 +331,7 @@ Das Backend exponiert ein `TSEClient`-Interface für die Kommunikation mit einer
 
 > **Prio:** Should-have
 
-Das Backend stellt einen maschinenlesbaren Export der Kassendaten im DSFinV-K-Format (Version 2.4) bereit. Der Export besteht aus CSV-Dateien mit vorgeschriebenen deutschen Dateinamen, Semikolon-Trennung und einer `index.xml`, verpackt in einem ZIP-Archiv.
+Das Backend stellt einen maschinenlesbaren Export der Kassendaten im DSFinV-K-Format (Version 2.4) bereit: CSV-Dateien mit den vorgeschriebenen **offiziellen (englischen)** Dateinamen, Semikolon-Trennung und einer `index.xml`, verpackt in einem ZIP-Archiv (Format- und Dateinamen-Regeln → [compliance.md §6.2](compliance.md)).
 
 **Akzeptanzkriterien:**
 
