@@ -257,9 +257,9 @@ erhalten — entfernt wird nur tatsächlich Ungenutztes.)
 
 ### Acceptance criteria
 
-- [ ] `AlignRight`, `TextDoubleWidth`, `StatusPaper` entfernt (sofern nach Phase 2 weiterhin ungenutzt).
-- [ ] Kein toter „wird im Relay verwendet"-Kommentar mehr.
-- [ ] `make check` (inkl. Lint) grün.
+- [x] `AlignRight`, `TextDoubleWidth`, `StatusPaper` entfernt (sofern nach Phase 2 weiterhin ungenutzt).
+- [x] Kein toter „wird im Relay verwendet"-Kommentar mehr.
+- [x] `make check` (inkl. Lint) grün.
 
 ---
 
