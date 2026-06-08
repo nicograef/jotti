@@ -41,7 +41,7 @@ func (r Repository) GetAlleDruckstationen(ctx context.Context) ([]Druckstation, 
 }
 
 // GetKonfigurierteDruckstationen gibt nur Kategorien mit konfiguriertem Drucker zurück.
-// Wird vom Relay-Service verwendet.
+// Wird von der Arbeitsbon-Policy (Table-Command) genutzt, um Druckaufträge je Kategorie zu erzeugen.
 func (r Repository) GetKonfigurierteDruckstationen(ctx context.Context) (map[string]Druckstation, error) {
 	rows, err := r.q.GetKonfigurierteDruckstationen(ctx)
 	if err != nil {

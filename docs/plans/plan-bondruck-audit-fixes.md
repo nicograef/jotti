@@ -213,8 +213,8 @@ Relay kennt laut Handbuch keine Kategorien).
 
 ### Acceptance criteria
 
-- [ ] Kommentar beschreibt den tatsächlichen Aufrufer (Arbeitsbon-Policy).
-- [ ] `make check` grün.
+- [x] Kommentar beschreibt den tatsächlichen Aufrufer (Arbeitsbon-Policy).
+- [x] `make check` grün.
 
 ---
 
