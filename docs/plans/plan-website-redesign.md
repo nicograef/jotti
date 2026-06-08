@@ -280,14 +280,14 @@ vollständig.
 
 ### Akzeptanzkriterien
 
-- [ ] Keine dekorativen Emoji mehr in Callouts/Karten beider Leitfäden.
-- [ ] Einleitende Deko-`card-grid`-Kästen zu Text/leichten Listen aufgelöst;
+- [x] Keine dekorativen Emoji mehr in Callouts/Karten beider Leitfäden.
+- [x] Einleitende Deko-`card-grid`-Kästen zu Text/leichten Listen aufgelöst;
       echte Datentabellen als leichte Tabellen erhalten.
-- [ ] Callouts (`.compliance-note`) einheitlich und leicht gestaltet; Bold
+- [x] Callouts (`.compliance-note`) einheitlich und leicht gestaltet; Bold
       reduziert.
-- [ ] Beide Seiten teilen dieselbe ruhige Typo-/Abstands-Behandlung wie die
+- [x] Beide Seiten teilen dieselbe ruhige Typo-/Abstands-Behandlung wie die
       Startseite (Konsistenz).
-- [ ] Mobile und Desktop geprüft; lange Tabellen scrollen horizontal ohne
+- [x] Mobile und Desktop geprüft; lange Tabellen scrollen horizontal ohne
       Layout-Bruch.
 
 ---
