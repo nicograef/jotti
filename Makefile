@@ -107,8 +107,9 @@ sqlc: ## sqlc Code generieren (aus SQL-Queries)
 prod-init: ## Ersteinrichtung Produktion (Zertifikate, Stack)
 	./scripts/prod-init.sh
 
-prod-up: ## Produktions-Stack starten
+prod-up: ## Produktions-Stack starten/aktualisieren (wendet nginx-Config-Änderungen an)
 	docker compose -f docker-compose.prod.yml up -d --build
+	docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate reverse-proxy
 
 prod-down: ## Produktions-Stack stoppen
 	docker compose -f docker-compose.prod.yml down
@@ -131,8 +132,9 @@ prod-reset-and-seed: ## Prod-DB resetten, Seed importieren, Projektionen neu auf
 jotti-rocks-init: ## jotti.rocks Ersteinrichtung (Zertifikate für alle Domains, Stack)
 	./scripts/jotti-rocks-init.sh
 
-jotti-rocks-up: ## jotti.rocks Stack starten (Landing + Demo App)
+jotti-rocks-up: ## jotti.rocks Stack starten/aktualisieren (Landing + Demo App, inkl. nginx-Config)
 	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml up -d --build
+	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml up -d --no-deps --force-recreate reverse-proxy
 
 jotti-rocks-down: ## jotti.rocks Stack stoppen
 	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml down
@@ -144,8 +146,9 @@ jotti-rocks-logs: ## jotti.rocks Stack Logs folgen
 # Lokaler Betrieb (LAN, HTTP-only)              
 # ──────────────────────────────────────────────
 
-local-up: ## Lokalen LAN-Stack starten (HTTP, ohne Domain/TLS) — siehe docs/betrieb/leitfaden-hosting.md
+local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTP, ohne TLS) — siehe docs/betrieb/leitfaden-hosting.md
 	docker compose -f docker-compose.local.yml up -d --build
+	docker compose -f docker-compose.local.yml up -d --no-deps --force-recreate reverse-proxy
 
 local-down: ## Lokalen LAN-Stack stoppen
 	docker compose -f docker-compose.local.yml down
