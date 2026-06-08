@@ -280,9 +280,9 @@ Druckstation auf dieselbe Schichtentrennung wie die übrigen Module.
 
 ### Acceptance criteria
 
-- [ ] Die exportierte Query-Signatur referenziert keinen `*_repo`-Typ mehr.
-- [ ] HTTP-Response unverändert (DTO-Form identisch).
-- [ ] `make check` grün.
+- [x] Die exportierte Query-Signatur referenziert keinen `*_repo`-Typ mehr.
+- [x] HTTP-Response unverändert (DTO-Form identisch).
+- [x] `make check` grün.
 
 ---
 

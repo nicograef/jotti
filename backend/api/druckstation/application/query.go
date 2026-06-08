@@ -5,18 +5,18 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 type druckstationQueryRepo interface {
-	GetAlleDruckstationen(ctx context.Context) ([]druckstation_repo.Druckstation, error)
+	GetAlleDruckstationen(ctx context.Context) ([]druckstation.Druckstation, error)
 }
 
 type Query struct {
 	DruckstationRepo druckstationQueryRepo
 }
 
-func (q Query) GetAlleDruckstationen(ctx context.Context) ([]druckstation_repo.Druckstation, error) {
+func (q Query) GetAlleDruckstationen(ctx context.Context) ([]druckstation.Druckstation, error) {
 	log := zerolog.Ctx(ctx)
 
 	konfigs, err := q.DruckstationRepo.GetAlleDruckstationen(ctx)

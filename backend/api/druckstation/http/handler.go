@@ -6,13 +6,13 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 // --- Query Handler ---
 
 type druckstationQuery interface {
-	GetAlleDruckstationen(ctx context.Context) ([]druckstation_repo.Druckstation, error)
+	GetAlleDruckstationen(ctx context.Context) ([]druckstation.Druckstation, error)
 }
 
 type QueryHandler struct {

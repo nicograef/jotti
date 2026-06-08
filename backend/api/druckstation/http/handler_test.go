@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 type mockDruckstationCommand struct {
@@ -21,11 +21,11 @@ func (m *mockDruckstationCommand) UpsertDruckstation(ctx context.Context, katego
 }
 
 type mockDruckstationQuery struct {
-	result []druckstation_repo.Druckstation
+	result []druckstation.Druckstation
 	err    error
 }
 
-func (m *mockDruckstationQuery) GetAlleDruckstationen(ctx context.Context) ([]druckstation_repo.Druckstation, error) {
+func (m *mockDruckstationQuery) GetAlleDruckstationen(ctx context.Context) ([]druckstation.Druckstation, error) {
 	return m.result, m.err
 }
 
@@ -105,7 +105,7 @@ func TestUpdateDruckstationenHandler_InvalidIP(t *testing.T) {
 }
 
 func TestGetDruckstationenHandler_Success(t *testing.T) {
-	konfigs := []druckstation_repo.Druckstation{
+	konfigs := []druckstation.Druckstation{
 		{Kategorie: "essen", DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 		{Kategorie: "getraenk", DruckerIP: "", Bonmodus: "pro_position"},
 		{Kategorie: "sonstiges", DruckerIP: "", Bonmodus: "pro_position"},
