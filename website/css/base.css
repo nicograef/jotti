@@ -1313,3 +1313,68 @@ body.nav-open {
 .guide-chapter h2 {
   margin-bottom: 1rem;
 }
+
+.guide-chapter h3 {
+  margin: 1.75rem 0 0.75rem;
+}
+
+.guide-prose code {
+  background: var(--surface-alt);
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  font-size: 0.875rem;
+  font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+}
+
+.guide-prose .table-wrapper {
+  margin-bottom: 1.25rem;
+}
+
+.guide-prose .legal-basis {
+  margin-top: 0.75rem;
+  font-style: italic;
+  font-size: 0.8125rem;
+  color: var(--muted-light);
+}
+
+/* To-do-Checkliste mit leeren Kästchen (Betreiberpflichten) */
+.guide-prose .guide-checklist {
+  list-style: none;
+  padding-left: 0;
+}
+
+.guide-prose .guide-checklist li {
+  position: relative;
+  padding-left: 1.75rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.guide-prose .guide-checklist li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.3em;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--primary);
+  border-radius: 4px;
+}
+
+/* FAQ als Definitionsliste */
+.guide-prose .guide-faq {
+  margin-bottom: 1rem;
+}
+
+.guide-prose .guide-faq dt {
+  margin-top: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.guide-prose .guide-faq dd {
+  margin: 0.375rem 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}

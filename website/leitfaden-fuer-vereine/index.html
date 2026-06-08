@@ -285,6 +285,712 @@
               </li>
             </ul>
           </section>
+
+          <!-- ============ 2. WER IST VERANTWORTLICH ============ -->
+          <section class="guide-chapter" id="verantwortung">
+            <h2>2. Wer ist verantwortlich? Entwickler vs. Verein</h2>
+            <p>
+              jotti ist <strong>keine gemietete Cloud-Software</strong> (kein
+              „SaaS“), sondern <strong>quelloffener Code</strong>, den ihr
+              <strong>selbst auf eurem eigenen Server</strong> installiert und
+              betreibt. Daraus ergibt sich eine klare Rollentrennung:
+            </p>
+            <div class="table-wrapper">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Aufgabe</th>
+                    <th>Entwickler (jotti)</th>
+                    <th>Euer Verein (Betreiber)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      Programmcode mit TSE- und DSFinV-K-Schnittstelle
+                      bereitstellen
+                    </td>
+                    <td>✅</td>
+                    <td>—</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      Vertrag mit TSE-Anbieter (z.&nbsp;B. fiskaly) abschließen
+                    </td>
+                    <td>—</td>
+                    <td>✅</td>
+                  </tr>
+                  <tr>
+                    <td>TSE-Schlüssel in jotti eintragen</td>
+                    <td>—</td>
+                    <td>✅</td>
+                  </tr>
+                  <tr>
+                    <td>Kasse beim Finanzamt anmelden (ELSTER)</td>
+                    <td>—</td>
+                    <td>✅</td>
+                  </tr>
+                  <tr>
+                    <td>Server betreiben, Backups, Datenschutz</td>
+                    <td>—</td>
+                    <td>✅</td>
+                  </tr>
+                  <tr>
+                    <td>Daten 10 Jahre aufbewahren</td>
+                    <td>—</td>
+                    <td>✅</td>
+                  </tr>
+                  <tr>
+                    <td>Belege ausgeben (bzw. Befreiung beantragen)</td>
+                    <td>—</td>
+                    <td>✅</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="compliance-note">
+              <p>
+                <strong>Warum ist das so?</strong> Wer eine Kasse
+                <strong>tatsächlich verwendet</strong>, ist gegenüber dem
+                Finanzamt verantwortlich — das seid
+                <strong>ihr als Verein</strong>, nicht der Programmierer. Der
+                Entwickler hat seine gesetzliche Pflicht erfüllt, indem er
+                Software bereitstellt, die eine zertifizierte TSE anbinden
+                <strong>kann</strong> (das verlangt § 146a Abs. 1 Satz 5 AO). Ob
+                ihr die TSE dann auch wirklich einrichtet, liegt in eurer
+                Verantwortung.
+              </p>
+              <p class="legal-basis">
+                Rechtsgrundlage: § 146a Abs. 1 Satz 5 AO (Pflicht des
+                Herstellers), § 146a Abs. 4 AO (Meldepflicht des Betreibers), §
+                379 AO (Bußgeld bei Verstoß).
+              </p>
+            </div>
+            <p>
+              Eine ausführliche Verantwortungs-Tabelle findet ihr in
+              <a
+                href="https://github.com/nicograef/jotti/blob/main/docs/compliance.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                >compliance.md, Abschnitt 7.6</a
+              >.
+            </p>
+          </section>
+
+          <!-- ============ 3. WAS HEISST FISKALKONFORM ============ -->
+          <section class="guide-chapter" id="fiskalkonform">
+            <h2>3. Was heißt „fiskalkonform“? Einfach erklärt</h2>
+            <p>
+              „Fiskalkonform“ bedeutet: Die Kasse erfüllt alle Anforderungen,
+              die das Finanzamt an elektronische Kassen stellt, damit
+              <strong
+                >niemand Umsätze heimlich löschen oder verändern kann</strong
+              >. Konkret braucht eine konforme Kasse vier Bausteine:
+            </p>
+            <div class="table-wrapper">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Baustein</th>
+                    <th>Was es bedeutet</th>
+                    <th>Wie jotti es löst</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Unveränderbare Aufzeichnung</td>
+                    <td>
+                      Einmal gebuchte Vorgänge dürfen nie heimlich geändert
+                      werden
+                    </td>
+                    <td>
+                      „Event-Sourcing“: Jeder Vorgang wird als unveränderlicher
+                      Eintrag gespeichert; Korrekturen nur als neue Gegenbuchung
+                    </td>
+                    <td>✅ vorhanden</td>
+                  </tr>
+                  <tr>
+                    <td>TSE-Signatur</td>
+                    <td>
+                      Ein Sicherheitsmodul „versiegelt“ jeden Vorgang
+                      kryptografisch
+                    </td>
+                    <td>Anbindung an eine Cloud-TSE (z.&nbsp;B. fiskaly)</td>
+                    <td><span class="badge-wip">In Entwicklung</span></td>
+                  </tr>
+                  <tr>
+                    <td>Beleg</td>
+                    <td>
+                      Für jeden Kassiervorgang kann ein gültiger Bon erstellt
+                      werden
+                    </td>
+                    <td>
+                      Kassenbeleg auf Knopfdruck, mit allen Pflichtangaben
+                    </td>
+                    <td><span class="badge-wip">In Entwicklung</span></td>
+                  </tr>
+                  <tr>
+                    <td>DSFinV-K-Export</td>
+                    <td>Standard-Datenpaket, das ein Prüfer einlesen kann</td>
+                    <td>
+                      ZIP mit genormten CSV-Dateien
+                      (<code>transactions.csv</code>,
+                      <code>lines.csv</code> …)
+                    </td>
+                    <td><span class="badge-wip">In Entwicklung</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="compliance-note">
+              <p>
+                <strong>Wichtig:</strong> jotti ist <strong>so gebaut</strong>,
+                dass es nach Fertigstellung dieser Bausteine konform ist. Heute
+                ist es das noch nicht vollständig. Den genauen Stand seht ihr in
+                <a
+                  href="https://github.com/nicograef/jotti/blob/main/docs/anforderungen.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >anforderungen.md, Abschnitt 6 „Fiskalkonformität“</a
+                >.
+              </p>
+            </div>
+          </section>
+
+          <!-- ============ 4. DIE GESETZE IN EINFACHER SPRACHE ============ -->
+          <section class="guide-chapter" id="gesetze">
+            <h2>4. Die Gesetze in einfacher Sprache</h2>
+            <p>
+              Ihr müsst diese Gesetze <strong>nicht auswendig kennen</strong> —
+              aber es hilft zu wissen, woher die Pflichten kommen. Hier die
+              wichtigsten, in Alltagssprache:
+            </p>
+            <div class="table-wrapper">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Gesetz / Regel</th>
+                    <th>Was es einfach gesagt verlangt</th>
+                    <th>Betrifft euch als</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>§ 146a AO</strong> (Abgabenordnung)</td>
+                    <td>
+                      „Jede Kasse muss jeden Vorgang einzeln und
+                      manipulationssicher (per TSE) aufzeichnen.“ Gilt
+                      <strong>auch für gemeinnützige Vereine</strong> und auch
+                      bei kurzen Festen.
+                    </td>
+                    <td>Pflicht zur TSE + Anmeldung</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>KassenSichV</strong> (Kassensicherungsverordnung)
+                    </td>
+                    <td>
+                      Die „Bedienungsanleitung“ zu § 146a AO: Sie sagt genau,
+                      was die TSE können muss und was auf den Beleg gehört.
+                    </td>
+                    <td>technische Pflichten</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>§ 146a Abs. 2 AO + § 6 KassenSichV</strong>
+                    </td>
+                    <td>
+                      „Belegausgabepflicht“: Für jeden Kassiervorgang muss ein
+                      Beleg <strong>erstellt</strong> werden.
+                    </td>
+                    <td>Belegausgabe</td>
+                  </tr>
+                  <tr>
+                    <td><strong>§ 146a Abs. 2 Satz 2 AO</strong></td>
+                    <td>
+                      <strong>Befreiung möglich</strong> beim „Verkauf an eine
+                      Vielzahl nicht bekannter Personen“ (= typisches
+                      Vereinsfest). Dann müsst ihr den Bon nicht aktiv
+                      aushändigen —
+                      <strong
+                        >aber nur, wenn das Finanzamt es auf Antrag
+                        genehmigt</strong
+                      >, und der Bon muss trotzdem erstellbar bleiben.
+                    </td>
+                    <td>Belegausgabe (Erleichterung)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>§ 146a Abs. 4 AO</strong></td>
+                    <td>
+                      „Meldepflicht“: Jede Kasse muss dem Finanzamt online
+                      gemeldet werden (seit 1.1.2025).
+                    </td>
+                    <td>Anmeldung der Kasse</td>
+                  </tr>
+                  <tr>
+                    <td><strong>GoBD</strong> (BMF-Schreiben)</td>
+                    <td>
+                      Daten müssen vollständig, nachvollziehbar, unveränderbar
+                      und <strong>10 Jahre</strong> aufbewahrt werden.
+                    </td>
+                    <td>Aufbewahrung &amp; Backups</td>
+                  </tr>
+                  <tr>
+                    <td><strong>DSFinV-K</strong></td>
+                    <td>
+                      Das genormte Datenformat, in dem ihr bei einer Prüfung
+                      eure Daten herausgebt.
+                    </td>
+                    <td>Datenexport bei Prüfung</td>
+                  </tr>
+                  <tr>
+                    <td><strong>§ 379 AO</strong></td>
+                    <td>
+                      „Steuergefährdung“: Wer ohne TSE kassiert, riskiert ein
+                      <strong>Bußgeld</strong> (bis 25.000 €).
+                    </td>
+                    <td>Warnung</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="compliance-note">
+              <p>
+                <strong
+                  >Gilt das auch für unseren gemeinnützigen Verein?</strong
+                >
+                Ja. Sobald ihr bei einem Fest Speisen oder Getränke gegen Geld
+                verkauft, betreibt ihr einen „wirtschaftlichen Geschäftsbetrieb“
+                (§ 14, § 64 AO). Die Kassenpflichten gelten
+                <strong>unabhängig von der Gemeinnützigkeit</strong>. Ob auf
+                eure Umsätze Steuern anfallen, ist eine
+                <strong>andere</strong> Frage (Freibeträge, Zweckbetrieb nach §
+                67a AO) — das klärt euer Steuerberater.
+              </p>
+            </div>
+          </section>
+
+          <!-- ============ 5. EURE PFLICHTEN — SCHRITT FÜR SCHRITT ============ -->
+          <section class="guide-chapter" id="pflichten">
+            <h2>5. Eure Pflichten als Verein — Schritt für Schritt</h2>
+
+            <h3>Schritt 1: TSE einrichten (BYO TSE mit fiskaly)</h3>
+            <p>
+              <strong>Was ist eine TSE?</strong> Die „Technische
+              Sicherheitseinrichtung“ ist ein Sicherheitsmodul, das jeden
+              Kassenvorgang fälschungssicher signiert (wie ein digitales
+              Siegel). Das Gesetz schreibt sie zwingend vor.
+            </p>
+            <p>
+              <strong>Warum „BYO TSE“ (Bring Your Own TSE)?</strong> jotti läuft
+              auf einem normalen Server (z.&nbsp;B. einem gemieteten
+              Cloud-Server). Dort kann man
+              <strong>keinen USB-Stick einstecken</strong>. Deshalb nutzt jotti
+              eine <strong>Cloud-TSE</strong>: Ihr bucht sie als Online-Dienst
+              und gebt jotti die Zugangsschlüssel. „Bring Your Own“ heißt:
+              <strong>Ihr</strong> schließt den Vertrag ab, nicht der
+              Entwickler.
+            </p>
+            <p><strong>So geht ihr vor:</strong></p>
+            <ol>
+              <li>
+                <strong>Anbieter wählen.</strong> Empfohlen für den Start:
+                <strong>fiskaly</strong> (Cloud-TSE, einfache Einrichtung über
+                das Internet). Andere zertifizierte Anbieter sind ebenfalls
+                möglich.
+              </li>
+              <li>
+                <strong>Vertrag abschließen</strong> und ein TSE-/Kassen-Konto
+                („Client“) anlegen. Ihr erhaltet <strong>Zugangsdaten</strong>
+                (typischerweise ein API-Key und ein Secret).
+              </li>
+              <li>
+                <strong>Schlüssel in jotti eintragen.</strong> Tragt die
+                Zugangsdaten in die <code>.env</code>-Konfigurationsdatei eures
+                Servers ein (die genauen Variablennamen stehen in der
+                <code>.env.example</code> bzw. der technischen Doku). Damit
+                verbindet sich jotti automatisch mit der TSE.
+              </li>
+              <li>
+                <strong>Testen.</strong> Macht einen Testverkauf und prüft, ob
+                auf dem Beleg eine TSE-Signatur, eine Transaktionsnummer und ein
+                Zeitstempel erscheinen.
+              </li>
+            </ol>
+            <div class="compliance-note">
+              <p>
+                🔒 <strong>Schlüssel sind geheim.</strong> Die TSE-Zugangsdaten
+                gehören <strong>nicht</strong> in den Programmcode und nicht in
+                ein öffentliches Repository — nur in die <code>.env</code>-Datei
+                auf eurem Server.
+              </p>
+            </div>
+            <p class="legal-basis">
+              Rechtsgrundlage: § 146a Abs. 1 AO i.&nbsp;V.&nbsp;m. KassenSichV;
+              technischer Standard BSI TR-03153.
+            </p>
+
+            <h3>
+              Schritt 2: Kasse beim Finanzamt anmelden (mit jotti-Seriennummer)
+            </h3>
+            <p>
+              Seit dem <strong>1. Januar 2025</strong> muss jede elektronische
+              Kasse dem Finanzamt <strong>online</strong> gemeldet werden. Das
+              ist eine <strong>eigene</strong> Pflicht — sie ersetzt nicht die
+              TSE und wird nicht durch sie ersetzt.
+            </p>
+            <p><strong>Was ihr braucht:</strong></p>
+            <ul>
+              <li>
+                Die <strong>Seriennummer eurer jotti-Kasse.</strong> Da es keine
+                Hardware mit aufgedruckter Nummer gibt, erzeugt jotti beim
+                ersten Start automatisch eine eindeutige Nummer (eine „UUID“)
+                und zeigt sie im <strong>Admin-Bereich</strong> an. Beispiel:
+                <code>Kassen-ID: 7f3a9d12-84e1-4b2c-9f6a-1234567890ab</code>.
+              </li>
+              <li>
+                Die
+                <strong>Zertifizierungs-ID und Seriennummer eurer TSE</strong>
+                (bekommt ihr von fiskaly).
+              </li>
+              <li>
+                <strong>Steuernummer</strong> des Vereins,
+                <strong>Anschrift</strong> der Betriebsstätte,
+                <strong>Anschaffungs-/Inbetriebnahmedatum</strong>, Softwarename
+                „jotti“.
+              </li>
+            </ul>
+            <p><strong>So geht ihr vor:</strong></p>
+            <ol>
+              <li>
+                Im <strong>Mein-ELSTER-Portal</strong> (<a
+                  href="https://www.elster.de"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >elster.de</a
+                >) anmelden.
+              </li>
+              <li>
+                Das Formular „Mitteilung über elektronische
+                Aufzeichnungssysteme“ ausfüllen — die oben genannten Daten
+                findet ihr <strong>gebündelt im jotti-Admin-Bereich</strong>.
+              </li>
+              <li>
+                Absenden und die <strong>Bestätigung aufbewahren</strong>.
+              </li>
+            </ol>
+            <p><strong>Fristen:</strong></p>
+            <div class="table-wrapper">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Situation</th>
+                    <th>Frist</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      Kasse <strong>ab 1. Juli 2025</strong> in Betrieb genommen
+                    </td>
+                    <td>
+                      <strong>innerhalb 1 Monat</strong> nach Inbetriebnahme
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Kasse <strong>vor 1. Juli 2025</strong> angeschafft</td>
+                    <td>war bis <strong>31. Juli 2025</strong> zu melden</td>
+                  </tr>
+                  <tr>
+                    <td>Kasse <strong>stillgelegt</strong></td>
+                    <td>
+                      <strong>innerhalb 1 Monat</strong> nach Außerbetriebnahme
+                      melden
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="compliance-note">
+              <p>
+                <strong>Gute Nachricht:</strong> Die privaten
+                <strong
+                  >Smartphones eurer Servicekräfte müsst ihr NICHT
+                  melden.</strong
+                >
+                Sie gelten nur als „Eingabegeräte“ (wie eine Tastatur). Gemeldet
+                wird <strong>nur die eine jotti-Instanz</strong> auf eurem
+                Server.
+              </p>
+              <p class="legal-basis">
+                Rechtsgrundlage: § 146a Abs. 4 AO; AEAO zu § 146a AO
+                (Eingabegeräte).
+              </p>
+            </div>
+            <div class="compliance-note">
+              <p>
+                ⚠️ <strong>Seriennummer sichern!</strong> Die
+                Kassen-Seriennummer steckt in eurer Datenbank. Geht die
+                Datenbank ohne Backup verloren, müsst ihr die alte Kasse beim
+                Finanzamt <strong>abmelden</strong> und eine neue mit neuer
+                Nummer <strong>anmelden</strong>. Deshalb sind Backups (Schritt
+                4) Pflicht.
+              </p>
+            </div>
+
+            <h3>Schritt 3: Belege &amp; Steuersätze</h3>
+            <ul>
+              <li>
+                <strong>Belegausgabe:</strong> Für jeden Kassiervorgang muss ein
+                Beleg <strong>erstellbar</strong> sein. Beim Vereinsfest greift
+                meist die
+                <strong>Befreiung von der Aushändigung</strong> („Verkauf an
+                eine Vielzahl nicht bekannter Personen“, § 146a Abs. 2 Satz 2
+                AO). <strong>Aber:</strong> Diese Befreiung müsst ihr beim
+                Finanzamt <strong>schriftlich beantragen</strong> — sie gilt
+                nicht automatisch. Verlangt ein Gast einen Bon, müsst ihr ihn
+                aushändigen.
+              </li>
+              <li>
+                <strong>Steuersätze:</strong> Ordnet jedem Produkt im
+                Admin-Bereich den richtigen Steuersatz zu:
+                <strong>19 %</strong> (z.&nbsp;B. Getränke),
+                <strong>7 %</strong> (z.&nbsp;B. Speisen) oder
+                <strong>0 % / steuerbefreit</strong> (Zweckbetrieb). Der
+                Steuersatz erscheint auf dem Beleg und im Datenexport. Welcher
+                Satz für euch gilt, klärt euer Steuerberater.
+              </li>
+            </ul>
+
+            <h3>Schritt 4: Daten 10 Jahre aufbewahren</h3>
+            <ul>
+              <li>
+                Alle Kassendaten (das Kassenjournal und spätere
+                DSFinV-K-Exporte) müssen <strong>10 Jahre</strong> aufbewahrt
+                werden — vollständig, lesbar und unveränderbar.
+              </li>
+              <li>
+                Macht <strong>regelmäßige (täglich empfohlene) Backups</strong>
+                eurer Datenbank und bewahrt sie sicher auf. Das schützt zugleich
+                eure Kassen-Seriennummer (siehe Schritt 2).
+              </li>
+              <li>
+                Sorgt dafür, dass nur berechtigte Personen Zugriff auf den
+                Server und die Daten haben.
+              </li>
+            </ul>
+            <p class="legal-basis">Rechtsgrundlage: §§ 146, 147 AO; GoBD.</p>
+          </section>
+
+          <!-- ============ 6. LAUFENDE PFLICHTEN (CHECKLISTE) ============ -->
+          <section class="guide-chapter" id="checkliste">
+            <h2>6. Laufende Pflichten (Checkliste)</h2>
+
+            <h3>Einmalig, vor dem ersten Einsatz:</h3>
+            <ul class="guide-checklist">
+              <li>
+                Nutzungsvereinbarung mit dem Autor abgeschlossen (siehe
+                <a
+                  href="https://github.com/nicograef/jotti/blob/main/docs/lizenz-und-nutzung.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Lizenz</a
+                >)
+              </li>
+              <li>
+                TSE bei fiskaly (o.&nbsp;a.) gebucht und Schlüssel in
+                <code>.env</code> eingetragen
+              </li>
+              <li>
+                Betreiber-Stammdaten (Vereinsname, Adresse, Steuernummer) im
+                Admin-Bereich gepflegt
+              </li>
+              <li>Produkte mit korrekten Steuersätzen angelegt</li>
+              <li>
+                Kasse über ELSTER beim Finanzamt angemeldet (Seriennummer aus
+                dem Admin-Bereich)
+              </li>
+              <li>Ggf. Antrag auf Befreiung von der Belegausgabe gestellt</li>
+              <li>Backup-Routine eingerichtet</li>
+            </ul>
+
+            <h3>Laufend / regelmäßig:</h3>
+            <ul class="guide-checklist">
+              <li>Tägliche Datenbank-Backups laufen</li>
+              <li>
+                Nach jedem Veranstaltungstag: Tagesabschluss (Z-Bon) erstellt
+              </li>
+              <li>Daten werden 10 Jahre archiviert</li>
+              <li>
+                Bei Stilllegung der Kasse: Abmeldung beim Finanzamt innerhalb 1
+                Monat
+              </li>
+            </ul>
+          </section>
+
+          <!-- ============ 7. HÄUFIGE FRAGEN (FAQ) ============ -->
+          <section class="guide-chapter" id="faq">
+            <h2>7. Häufige Fragen (FAQ)</h2>
+            <dl class="guide-faq">
+              <dt>
+                Brauchen wir wirklich eine TSE, obwohl wir gemeinnützig sind und
+                nur ein Sommerfest haben?
+              </dt>
+              <dd>
+                Ja. Die Pflicht hängt nicht von der Gemeinnützigkeit oder der
+                Dauer ab, sondern davon, dass ihr eine elektronische Kasse für
+                Verkäufe nutzt (§ 146a AO).
+              </dd>
+
+              <dt>Können wir jotti ohne TSE „einfach mal so“ nutzen?</dt>
+              <dd>
+                Technisch ja, <strong>rechtlich nein</strong> für echte
+                Verkäufe. Ohne TSE ist die Kasse nicht konform; das kann als
+                Steuergefährdung mit Bußgeld geahndet werden (§ 379 AO). Ein
+                TSE-freier Modus ist ausschließlich für
+                <strong>Tests/Entwicklung</strong> gedacht.
+              </dd>
+
+              <dt>
+                Ist der Entwickler von jotti haftbar, wenn wir etwas falsch
+                machen?
+              </dt>
+              <dd>
+                Nein. Der Entwickler stellt nur den Code bereit. Die Anmeldung,
+                der TSE-Vertrag und die Aufbewahrung sind <strong>eure</strong>
+                Pflichten als Betreiber.
+              </dd>
+
+              <dt>Müssen wir die Handys der Helfer anmelden?</dt>
+              <dd>Nein — nur die eine jotti-Instanz auf eurem Server.</dd>
+
+              <dt>Wo finde ich unsere Kassen-Seriennummer?</dt>
+              <dd>
+                Im <strong>Admin-Bereich</strong> von jotti. Sie wird beim
+                ersten Start automatisch erzeugt.
+              </dd>
+
+              <dt>Was kostet uns das?</dt>
+              <dd>
+                jotti selbst ist für berechtigte Vereine kostenlos. Kosten
+                entstehen für den <strong>Server</strong> und die
+                <strong>Cloud-TSE</strong> (kleine laufende Gebühr beim
+                TSE-Anbieter).
+              </dd>
+            </dl>
+          </section>
+
+          <!-- ============ 8. GLOSSAR ============ -->
+          <section class="guide-chapter" id="glossar">
+            <h2>8. Glossar</h2>
+            <div class="table-wrapper">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Begriff</th>
+                    <th>Einfache Erklärung</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>AO</td>
+                    <td>
+                      Abgabenordnung — das „Grundgesetz“ des Steuerrechts.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>TSE</td>
+                    <td>
+                      Technische Sicherheitseinrichtung — das digitale
+                      Siegel-Modul für jeden Kassenvorgang.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Cloud-TSE / BYO TSE</td>
+                    <td>
+                      Eine TSE als Online-Dienst, die ihr selbst bucht und in
+                      jotti eintragt.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>fiskaly</td>
+                    <td>Ein Anbieter solcher Cloud-TSEs.</td>
+                  </tr>
+                  <tr>
+                    <td>KassenSichV</td>
+                    <td>
+                      Verordnung mit den technischen Detailregeln zur Kasse.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>GoBD</td>
+                    <td>
+                      Regeln zu Aufbewahrung und Unveränderbarkeit von Daten.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>DSFinV-K</td>
+                    <td>
+                      Genormtes Datenpaket (ZIP mit CSV-Dateien) für die
+                      Finanzprüfung.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>ELSTER</td>
+                    <td>
+                      Das Online-Portal der Finanzverwaltung — hier meldet ihr
+                      die Kasse an.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Z-Bon / Tagesabschluss</td>
+                    <td>Der förmliche Abschluss eines Kassen-Tages.</td>
+                  </tr>
+                  <tr>
+                    <td>Seriennummer / Kassen-ID</td>
+                    <td>
+                      Die eindeutige Nummer eurer Kasse; bei jotti automatisch
+                      erzeugt.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Betreiber</td>
+                    <td>
+                      Diejenigen, die die Kasse tatsächlich verwenden — euer
+                      Verein.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="compliance-note">
+              <p>
+                <strong>Mehr Details (technisch/rechtlich):</strong>
+                <a
+                  href="https://github.com/nicograef/jotti/blob/main/docs/compliance.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >compliance.md</a
+                >
+                ·
+                <a
+                  href="https://github.com/nicograef/jotti/blob/main/docs/anforderungen.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >anforderungen.md</a
+                >
+                ·
+                <a
+                  href="https://github.com/nicograef/jotti/blob/main/docs/handbuch.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >handbuch.md §3.13 (TSE-Architektur)</a
+                >
+              </p>
+            </div>
+          </section>
         </article>
       </div>
     </main>

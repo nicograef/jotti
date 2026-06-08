@@ -180,15 +180,15 @@ Tokens und ohne neue Farben.
 
 ### Acceptance criteria
 
-- [ ] Alle Abschnitte 2–8 sind inhaltlich vollständig und originalgetreu umgesetzt, inkl. aller
+- [x] Alle Abschnitte 2–8 sind inhaltlich vollständig und originalgetreu umgesetzt, inkl. aller
       Tabellen, Callouts, Rechtsgrundlagen-Hinweise und der Checkliste.
-- [ ] Tabellen, Listen und Callouts nutzen die bestehenden Komponenten/Token; neu ergänztes CSS
+- [x] Tabellen, Listen und Callouts nutzen die bestehenden Komponenten/Token; neu ergänztes CSS
       steht am Ende von `base.css`, ist minimal und führt keine neuen Farben außerhalb `:root` ein.
-- [ ] Sämtliche Querverweise (compliance.md, anforderungen.md, handbuch.md, lizenz-und-nutzung.md)
+- [x] Sämtliche Querverweise (compliance.md, anforderungen.md, handbuch.md, lizenz-und-nutzung.md)
       zeigen auf gültige GitHub-Blob-URLs.
-- [ ] „In Entwicklung“-Status (TSE, Beleg, DSFinV-K) ist über `.badge-wip` bzw. den Dev-Banner
+- [x] „In Entwicklung“-Status (TSE, Beleg, DSFinV-K) ist über `.badge-wip` bzw. den Dev-Banner
       konsistent kenntlich gemacht.
-- [ ] Jeder Abschnitt hat die festgelegte stabile Anker-ID.
+- [x] Jeder Abschnitt hat die festgelegte stabile Anker-ID.
 
 ---
 
