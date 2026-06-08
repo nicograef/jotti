@@ -9,10 +9,7 @@ export type Bonmodus = z.infer<typeof BonmodusSchema>
 
 export const DruckstationConfigSchema = z.object({
   kategorie: KategorieSchema,
-  druckerIp: z
-    .string()
-    .regex(/^(\d{1,3}\.){3}\d{1,3}$/, 'Ungültige IPv4-Adresse')
-    .or(z.literal('')),
+  druckerIp: z.ipv4('Ungültige IPv4-Adresse').or(z.literal('')),
   bonmodus: BonmodusSchema,
 })
 export type DruckstationConfig = z.infer<typeof DruckstationConfigSchema>

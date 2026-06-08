@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"net/http"
-	"regexp"
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
@@ -41,10 +40,8 @@ type updateBondruckEinstellungenRequest struct {
 	KassenbelegDruckerIP string `json:"kassenbelegDruckerIp"`
 }
 
-var ipv4Regex = regexp.MustCompile(`^(\d{1,3}\.){3}\d{1,3}$`)
-
 var updateBondruckEinstellungenSchema = z.Struct(z.Shape{
-	"KassenbelegDruckerIP": z.String().Match(ipv4Regex, z.Message("Ungültige IPv4-Adresse")).Optional(),
+	"KassenbelegDruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
 })
 
 func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {

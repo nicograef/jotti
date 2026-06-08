@@ -29,8 +29,11 @@ Durable decisions, die über alle Phasen gelten:
   externer Download). Die Drucker-Codepage wird per `ESC t n` gesetzt; nur
   sichtbarer Text wird transkodiert, **niemals** ESC/POS-Steuerbytes.
 - **IP-Validierung (#3):** Beide Drucker-IP-Felder (Arbeitsbon-Druckstation und
-  Kassenbeleg-Drucker) nutzen dieselbe strikte `netip`-Validierung
-  (`ParseAddr` + `Is4()`); leere IP bleibt erlaubt (= „kein Drucker").
+  Kassenbeleg-Drucker) werden über die **nativen IPv4-Validatoren der
+  Validierungsbibliotheken** geprüft (Backend zog `.IPv4()`, Frontend Zod
+  `z.ipv4()`, beide `net.ParseIP`-basiert) statt über einen eigenen
+  `netip`-Validator; leere IP bleibt erlaubt (= „kein Drucker"). Der bestehende
+  `netip`-Backstop in `NewBondruckEinstellungen` bleibt als Domain-Invariante.
 - **Scope:** Reine Korrektheits-, Konsistenz- und Aufräum-Fixes am bestehenden
   Bondruck. **Keine** neuen Features (kein Direktverkauf-Bondruck, kein KDS,
   keine TSE-Felder).
@@ -178,18 +181,21 @@ Rune schneidet. Gilt für alle drei Bon-Typen (`FormatPositionBon`,
 
 ### What to build
 
-Die Arbeitsbon-Druckstation-IP mit derselben strikten `netip`-Validierung prüfen
-wie die Kassenbeleg-Drucker-IP (`ParseAddr` + `Is4()`), idealerweise über einen
-gemeinsamen Validator. `999.999.999.999` & Co. werden abgelehnt; leere IP bleibt
-erlaubt. Frontend-Zod-Schema optional angleichen (Oktett ≤ 255), Backend bleibt
+Die Arbeitsbon-Druckstation-IP strikt validieren wie die Kassenbeleg-Drucker-IP.
+Statt eines eigenen `netip`-Validators werden die **nativen IPv4-Validatoren der
+bereits genutzten Validierungsbibliotheken** verwendet (Entscheidung des Nutzers):
+Backend zog `z.String().IPv4(...)`, Frontend Zod `z.ipv4(...)`. Beide lehnen
+`999.999.999.999` & Co. ab (`net.ParseIP`-basiert); leere IP bleibt erlaubt
+(`.Optional()` bzw. `.or(z.literal(''))`). Der bestehende `netip`-Backstop in
+`NewBondruckEinstellungen` bleibt als Domain-Invariante erhalten. Backend bleibt
 Single Source of Truth.
 
 ### Acceptance criteria
 
-- [ ] Druckstation-IP wird strikt (`Is4()`) validiert; ungültige Oktette werden abgelehnt.
-- [ ] Leere IP (= kein Drucker) bleibt zulässig.
-- [ ] Beide Drucker-IP-Felder teilen denselben Validierungspfad (keine Duplikat-Logik).
-- [ ] `make check` grün.
+- [x] Druckstation-IP wird strikt (zog `.IPv4()`) validiert; ungültige Oktette werden abgelehnt.
+- [x] Leere IP (= kein Drucker) bleibt zulässig.
+- [x] Beide Drucker-IP-Felder teilen denselben Validierungspfad (keine Duplikat-Logik; loses Regex entfernt).
+- [x] `make check` grün.
 
 ---
 

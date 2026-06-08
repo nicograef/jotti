@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"net/http"
-	"regexp"
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
@@ -68,14 +67,12 @@ type updateDruckstationenRequest struct {
 	Bonmodus  string `json:"bonmodus"`
 }
 
-var ipv4Regex = regexp.MustCompile(`^(\d{1,3}\.){3}\d{1,3}$`)
-
 var updateDruckstationenSchema = z.Struct(z.Shape{
 	"Kategorie": z.String().OneOf(
 		[]string{"essen", "getraenk", "sonstiges"},
 		z.Message("Ungültige Kategorie"),
 	).Required(),
-	"DruckerIP": z.String().Match(ipv4Regex, z.Message("Ungültige IPv4-Adresse")).Optional(),
+	"DruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
 	"Bonmodus": z.String().OneOf(
 		[]string{"pro_position", "pro_bestellung"},
 		z.Message("Ungültiger Bonmodus"),

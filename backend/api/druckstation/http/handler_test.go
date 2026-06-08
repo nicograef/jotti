@@ -92,7 +92,7 @@ func TestUpdateDruckstationenHandler_InvalidBonmodus(t *testing.T) {
 func TestUpdateDruckstationenHandler_InvalidIP(t *testing.T) {
 	handler := &CommandHandler{Command: &mockDruckstationCommand{}}
 
-	body := `{"kategorie":"essen","druckerIp":"not-an-ip","bonmodus":"pro_position"}`
+	body := `{"kategorie":"essen","druckerIp":"999.999.999.999","bonmodus":"pro_position"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/update-druckstationen", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()

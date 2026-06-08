@@ -20,14 +20,8 @@ const KassenidentitaetSchema = z.object({
 })
 export type Kassenidentitaet = z.infer<typeof KassenidentitaetSchema>
 
-const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/
-
 export const BondruckEinstellungenSchema = z.object({
-  kassenbelegDruckerIp: z
-    .string()
-    .refine((value) => value === '' || ipv4Regex.test(value), {
-      message: 'Ungültige IPv4-Adresse',
-    }),
+  kassenbelegDruckerIp: z.ipv4('Ungültige IPv4-Adresse').or(z.literal('')),
 })
 export type BondruckEinstellungen = z.infer<typeof BondruckEinstellungenSchema>
 

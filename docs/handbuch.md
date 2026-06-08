@@ -686,7 +686,7 @@ druckauftraege
 └── gedruckt_am  (timestamptz — NULL bis quittiert)
 ```
 
-**Druckstationen (`druckstationen`-Tabelle):** Arbeitsbon-Stationen je Produktkategorie. Genau drei Zeilen (Seed: essen, getraenk, sonstiges). Admin-Konfiguration über `/admin/get-druckstationen` und `/admin/update-druckstationen`. Validierung: IPv4-Regex im Backend (zog), identisch im Frontend (Zod).
+**Druckstationen (`druckstationen`-Tabelle):** Arbeitsbon-Stationen je Produktkategorie. Genau drei Zeilen (Seed: essen, getraenk, sonstiges). Admin-Konfiguration über `/admin/get-druckstationen` und `/admin/update-druckstationen`. Validierung: strikte IPv4-Validierung im Backend (zog `.IPv4()`), identisch im Frontend (Zod `z.ipv4()`).
 
 ```
 druckstationen
