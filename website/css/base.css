@@ -1344,6 +1344,34 @@ body.nav-open {
   margin: 1.75rem 0 0.75rem;
 }
 
+/* Nummerierte Pflicht-Schritte */
+.guide-steps {
+  counter-reset: guide-step;
+}
+
+.guide-steps h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.guide-steps h3::before {
+  counter-increment: guide-step;
+  content: counter(guide-step);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .guide-prose code {
   background: var(--surface-alt);
   padding: 0.125rem 0.375rem;
@@ -1354,13 +1382,6 @@ body.nav-open {
 
 .guide-prose .table-wrapper {
   margin-bottom: 1.25rem;
-}
-
-.guide-prose .legal-basis {
-  margin-top: 0.75rem;
-  font-style: italic;
-  font-size: 0.8125rem;
-  color: var(--muted-light);
 }
 
 /* To-do-Checkliste mit leeren Kästchen (Betreiberpflichten) */
@@ -1403,46 +1424,4 @@ body.nav-open {
   margin: 0.375rem 0 0;
   color: var(--muted);
   line-height: 1.6;
-}
-
-/* In-Page-Inhaltsverzeichnis */
-.guide-toc {
-  margin-top: 2rem;
-  background: var(--surface-soft);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  padding: 1.5rem 1.75rem;
-}
-
-.guide-toc-title {
-  margin-bottom: 0.75rem;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--primary);
-}
-
-.guide-prose .guide-toc-list {
-  margin: 0;
-  padding-left: 1.5rem;
-  color: var(--muted);
-}
-
-.guide-prose .guide-toc-list li {
-  margin-bottom: 0.5rem;
-  line-height: 1.5;
-}
-
-.guide-prose .guide-toc-list li:last-child {
-  margin-bottom: 0;
-}
-
-.guide-prose .guide-toc-list a {
-  color: var(--foreground);
-}
-
-.guide-prose .guide-toc-list a:hover {
-  color: var(--primary);
-  text-decoration: underline;
 }
