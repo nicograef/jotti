@@ -34,6 +34,10 @@ func (c Command) UpdateBondruckEinstellungen(ctx context.Context, b settings.Bon
 		log.Error().Err(err).Msg("Failed to save bondruck_einstellungen")
 		return ErrDatabase
 	}
-	log.Info().Str("kassenbeleg_drucker_ip", b.KassenbelegDruckerIP).Msg("Bondruck-Einstellungen saved")
+	log.Info().
+		Str("kassenbeleg_drucker_ip", b.KassenbelegDruckerIP).
+		Str("direktverkauf_modus", string(b.DirektverkaufModus)).
+		Str("abholbon_drucker_ip", b.AbholbonDruckerIP).
+		Msg("Bondruck-Einstellungen saved")
 	return nil
 }

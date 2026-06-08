@@ -678,7 +678,23 @@ druckstationen
 └── updated_at  (timestamptz)
 ```
 
-**Kassenbeleg-Drucker (`bondruck_einstellungen`, Singleton):** Ziel-IP des Kassenbeleg-Druckers. Admin-Konfiguration über `/admin/get-bondruck-einstellungen` und `/admin/update-bondruck-einstellungen`. Fehlt die IP, schlägt `POST /service/beleg-drucken` mit klarer Fehlermeldung fehl.
+**Bondruck-Einstellungen (`bondruck_einstellungen`, Singleton):** zentrale Bondruck-Konfiguration, administriert über `/admin/get-bondruck-einstellungen` und `/admin/update-bondruck-einstellungen`.
+
+```
+bondruck_einstellungen
+├── kassenbeleg_drucker_ip  (string — IPv4, leer = kein Kassenbeleg-Drucker)
+├── direktverkauf_modus     (kein_bon | abholbon | an_stationen)
+├── abholbon_drucker_ip     (string — IPv4, leer = kein Abholbon-Drucker)
+└── updated_at              (timestamptz)
+```
+
+`direktverkauf_modus` steuert den Bondruck für `direktverkauf-getaetigt:v1`:
+
+- `kein_bon`: kein Druckauftrag.
+- `abholbon`: genau ein kombinierter Abholbon (festes Label „Direktverkauf“, keine Preise) an `abholbon_drucker_ip`.
+- `an_stationen`: Arbeitsbons nach Kategorie über `druckstationen` (identische Routing-Logik wie bei Tisch-Bestellungen).
+
+Für den fiskalischen Kassenbeleg bleibt `kassenbeleg_drucker_ip` maßgeblich. Fehlt diese IP, schlägt `POST /service/beleg-drucken` mit klarer Fehlermeldung fehl.
 
 **Relay = Transport:** Das Print-Relay (`cmd/relay/main.go`) holt offene Aufträge via `POST /relay/poll` (Antwort `{auftraege: [{id, zielIp, payload}]}`), druckt sie und bestätigt die gedruckten IDs via `POST /relay/quittieren` (`{token, gedruckteIds}`); das Backend setzt daraufhin `status = 'gedruckt'`. Das Relay formatiert nichts, kennt keine Kategorien und führt keinen Cursor — ESC/POS-Formatierung und Fachlogik liegen vollständig im Backend.
 

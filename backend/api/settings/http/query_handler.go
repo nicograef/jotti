@@ -37,6 +37,8 @@ type betreiberResponse struct {
 
 type bondruckEinstellungenResponse struct {
 	KassenbelegDruckerIP string `json:"kassenbelegDruckerIp"`
+	DirektverkaufModus   string `json:"direktverkaufModus"`
+	AbholbonDruckerIP    string `json:"abholbonDruckerIp"`
 }
 
 func (h *QueryHandler) GetKassenidentitaetHandler() http.HandlerFunc {
@@ -80,7 +82,9 @@ func (h *QueryHandler) GetBondruckEinstellungenHandler() http.HandlerFunc {
 		b, err := h.Query.GetBondruckEinstellungen(r.Context())
 		if err != nil {
 			if errors.Is(err, application.ErrNotFound) {
-				helper.SendResponse(w, bondruckEinstellungenResponse{})
+				helper.SendResponse(w, bondruckEinstellungenResponse{
+					DirektverkaufModus: string(settings.DirektverkaufModusKeinBon),
+				})
 				return
 			}
 			helper.SendServerError(w)
@@ -88,6 +92,8 @@ func (h *QueryHandler) GetBondruckEinstellungenHandler() http.HandlerFunc {
 		}
 		helper.SendResponse(w, bondruckEinstellungenResponse{
 			KassenbelegDruckerIP: b.KassenbelegDruckerIP,
+			DirektverkaufModus:   string(b.DirektverkaufModus),
+			AbholbonDruckerIP:    b.AbholbonDruckerIP,
 		})
 	}
 }

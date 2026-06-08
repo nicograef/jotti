@@ -11,32 +11,53 @@ import (
 )
 
 const getBondruckEinstellungen = `-- name: GetBondruckEinstellungen :one
-SELECT kassenbeleg_drucker_ip, updated_at
+SELECT kassenbeleg_drucker_ip, direktverkauf_modus, abholbon_drucker_ip, updated_at
 FROM bondruck_einstellungen
 WHERE id = 1
 `
 
 type GetBondruckEinstellungenRow struct {
 	KassenbelegDruckerIp string
+	DirektverkaufModus   string
+	AbholbonDruckerIp    string
 	UpdatedAt            time.Time
 }
 
 func (q *Queries) GetBondruckEinstellungen(ctx context.Context) (GetBondruckEinstellungenRow, error) {
 	row := q.db.QueryRowContext(ctx, getBondruckEinstellungen)
 	var i GetBondruckEinstellungenRow
-	err := row.Scan(&i.KassenbelegDruckerIp, &i.UpdatedAt)
+	err := row.Scan(
+		&i.KassenbelegDruckerIp,
+		&i.DirektverkaufModus,
+		&i.AbholbonDruckerIp,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
 const upsertBondruckEinstellungen = `-- name: UpsertBondruckEinstellungen :exec
-INSERT INTO bondruck_einstellungen (id, kassenbeleg_drucker_ip, updated_at)
-VALUES (1, $1, NOW())
+INSERT INTO bondruck_einstellungen (
+    id,
+    kassenbeleg_drucker_ip,
+    direktverkauf_modus,
+    abholbon_drucker_ip,
+    updated_at
+)
+VALUES (1, $1, $2, $3, NOW())
 ON CONFLICT (id) DO UPDATE SET
     kassenbeleg_drucker_ip = EXCLUDED.kassenbeleg_drucker_ip,
+    direktverkauf_modus = EXCLUDED.direktverkauf_modus,
+    abholbon_drucker_ip = EXCLUDED.abholbon_drucker_ip,
     updated_at = EXCLUDED.updated_at
 `
 
-func (q *Queries) UpsertBondruckEinstellungen(ctx context.Context, kassenbelegDruckerIp string) error {
-	_, err := q.db.ExecContext(ctx, upsertBondruckEinstellungen, kassenbelegDruckerIp)
+type UpsertBondruckEinstellungenParams struct {
+	KassenbelegDruckerIp string
+	DirektverkaufModus   string
+	AbholbonDruckerIp    string
+}
+
+func (q *Queries) UpsertBondruckEinstellungen(ctx context.Context, arg UpsertBondruckEinstellungenParams) error {
+	_, err := q.db.ExecContext(ctx, upsertBondruckEinstellungen, arg.KassenbelegDruckerIp, arg.DirektverkaufModus, arg.AbholbonDruckerIp)
 	return err
 }

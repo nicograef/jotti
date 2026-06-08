@@ -5,23 +5,42 @@ package application
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/settings"
 )
 
 func makeBestellungEvent(id int, subject string, positionen []kasse.Position, kommentar string) event.Event {
-	data, _ := json.Marshal(bestellungEventData{
+	data, _ := json.Marshal(positionenMitKommentarData{
 		Positionen: positionen,
 		Kommentar:  kommentar,
 	})
 	return event.Event{
 		ID:       id,
+		Type:     string(kasse.EventTypeBestellungAufgenommenV1),
 		UserName: "Maria",
 		Subject:  subject,
+		Time:     time.Date(2026, 3, 17, 19, 34, 0, 0, time.UTC),
+		Data:     data,
+	}
+}
+
+func makeDirektverkaufEvent(id int, positionen []kasse.Position, kommentar string) event.Event {
+	data, _ := json.Marshal(positionenMitKommentarData{
+		Positionen: positionen,
+		Kommentar:  kommentar,
+	})
+
+	return event.Event{
+		ID:       id,
+		Type:     string(kasse.EventTypeDirektverkaufGetaetigtV1),
+		UserName: "Maria",
+		Subject:  fmt.Sprintf("kassensitzung-1/direktverkauf-%d", id),
 		Time:     time.Date(2026, 3, 17, 19, 34, 0, 0, time.UTC),
 		Data:     data,
 	}
@@ -37,7 +56,7 @@ func TestCreateArbeitsbonAuftraege_ProPosition(t *testing.T) {
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, DirektverkaufBondruckKonfiguration{})
 
 	if len(auftraege) != 2 {
 		t.Fatalf("expected 2 auftraege (one per position), got %d", len(auftraege))
@@ -65,7 +84,7 @@ func TestCreateArbeitsbonAuftraege_ProBestellung(t *testing.T) {
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_bestellung"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, DirektverkaufBondruckKonfiguration{})
 
 	if len(auftraege) != 1 {
 		t.Fatalf("expected 1 sammelbon, got %d", len(auftraege))
@@ -84,7 +103,7 @@ func TestCreateArbeitsbonAuftraege_NoDruckerFuerKategorie(t *testing.T) {
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, DirektverkaufBondruckKonfiguration{})
 
 	if len(auftraege) != 0 {
 		t.Errorf("expected 0 auftraege (no printer for kategorie), got %d", len(auftraege))
@@ -101,7 +120,7 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, DirektverkaufBondruckKonfiguration{})
 	if len(auftraege) != 2 {
 		t.Fatalf("expected 2 auftraege, got %d", len(auftraege))
 	}
@@ -128,5 +147,76 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 	}
 	if auftraege[1].Payload != expectedSecond {
 		t.Fatal("second payload is not byte-identical to formatter output")
+	}
+}
+
+func TestCreateArbeitsbonAuftraege_DirektverkaufAnStationen(t *testing.T) {
+	positionen := []kasse.Position{
+		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1},
+		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 2},
+	}
+	evt := makeDirektverkaufEvent(20, positionen, "schnell")
+	stationen := map[string]Druckstation{
+		"essen":    {IP: "192.168.1.51", Bonmodus: "pro_bestellung"},
+		"getraenk": {IP: "192.168.1.52", Bonmodus: "pro_bestellung"},
+	}
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, DirektverkaufBondruckKonfiguration{
+		Modus: settings.DirektverkaufModusAnStationen,
+	})
+
+	if len(auftraege) != 2 {
+		t.Fatalf("expected 2 auftraege (one per configured category), got %d", len(auftraege))
+	}
+	for _, auftrag := range auftraege {
+		if auftrag.BonArt != "arbeitsbon" {
+			t.Errorf("expected BonArt arbeitsbon, got %s", auftrag.BonArt)
+		}
+		if auftrag.Referenz != "direktverkauf-getaetigt:20" {
+			t.Errorf("expected referenz direktverkauf-getaetigt:20, got %s", auftrag.Referenz)
+		}
+	}
+}
+
+func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon(t *testing.T) {
+	positionen := []kasse.Position{
+		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 2},
+		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
+	}
+	evt := makeDirektverkaufEvent(21, positionen, "ohne Senf")
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]Druckstation{}, DirektverkaufBondruckKonfiguration{
+		Modus:             settings.DirektverkaufModusAbholbon,
+		AbholbonDruckerIP: "192.168.1.77",
+	})
+
+	if len(auftraege) != 1 {
+		t.Fatalf("expected exactly 1 abholbon auftrag, got %d", len(auftraege))
+	}
+	if auftraege[0].ZielIP != "192.168.1.77" {
+		t.Errorf("expected ZielIP 192.168.1.77, got %s", auftraege[0].ZielIP)
+	}
+	if auftraege[0].BonArt != "arbeitsbon" {
+		t.Errorf("expected BonArt arbeitsbon, got %s", auftraege[0].BonArt)
+	}
+	if auftraege[0].Referenz != "direktverkauf-getaetigt:21" {
+		t.Errorf("expected referenz direktverkauf-getaetigt:21, got %s", auftraege[0].Referenz)
+	}
+
+	expected := base64.StdEncoding.EncodeToString(escpos.FormatDirektverkaufAbholbon(positionen, evt.UserName, evt.Time, "ohne Senf"))
+	if auftraege[0].Payload != expected {
+		t.Fatal("abholbon payload is not byte-identical to formatter output")
+	}
+}
+
+func TestCreateArbeitsbonAuftraege_DirektverkaufKeinBon(t *testing.T) {
+	evt := makeDirektverkaufEvent(22, []kasse.Position{{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1}}, "")
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]Druckstation{}, DirektverkaufBondruckKonfiguration{
+		Modus: settings.DirektverkaufModusKeinBon,
+	})
+
+	if len(auftraege) != 0 {
+		t.Fatalf("expected 0 auftraege in kein_bon mode, got %d", len(auftraege))
 	}
 }

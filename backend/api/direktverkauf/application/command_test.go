@@ -6,12 +6,16 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
 )
@@ -40,11 +44,12 @@ var testVariant = product.Variante{
 // spyEventRepo records WriteEvent calls so tests can assert the exact write contract
 // (single event, stream type, version, subject).
 type spyEventRepo struct {
-	written      []writtenEvent
-	maxVersion   int
-	writeErr     error
-	streamEvents []event.Event
-	readErr      error
+	written        []writtenEvent
+	druckauftraege []druckauftrag_repo.NeuerDruckauftrag
+	maxVersion     int
+	writeErr       error
+	streamEvents   []event.Event
+	readErr        error
 }
 
 type writtenEvent struct {
@@ -69,6 +74,41 @@ func (s *spyEventRepo) WriteEvent(_ context.Context, e event.Event, streamType k
 	return len(s.written), nil
 }
 
+func (s *spyEventRepo) WriteEventWithDruckauftraege(_ context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
+	id, err := s.WriteEvent(context.Background(), e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+
+	e.ID = id
+	s.druckauftraege = append(s.druckauftraege, buildAuftraege(e)...)
+	return id, nil
+}
+
+type mockDruckstationRepo struct {
+	konfig map[string]bondruckApp.Druckstation
+	err    error
+}
+
+func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context) (map[string]bondruckApp.Druckstation, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.konfig, nil
+}
+
+type mockSettingsRepo struct {
+	bondruck settings.BondruckEinstellungen
+	err      error
+}
+
+func (m *mockSettingsRepo) GetBondruckEinstellungen(_ context.Context) (settings.BondruckEinstellungen, error) {
+	if m.err != nil {
+		return settings.BondruckEinstellungen{}, m.err
+	}
+	return m.bondruck, nil
+}
+
 func newProductMock() productRepo {
 	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
 	productMock.AddVariant(testProduct.ID, testVariant)
@@ -80,6 +120,16 @@ func newCommand(eventRepo eventRepo, ks *kasse.Kassensitzung) Command {
 		EventRepo:           eventRepo,
 		ProductRepo:         newProductMock(),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(ks, nil),
+	}
+}
+
+func newCommandWithBondruck(eventRepo eventRepo, ks *kasse.Kassensitzung, stationen map[string]bondruckApp.Druckstation, bondruck settings.BondruckEinstellungen) Command {
+	return Command{
+		EventRepo:           eventRepo,
+		ProductRepo:         newProductMock(),
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(ks, nil),
+		DruckstationRepo:    &mockDruckstationRepo{konfig: stationen},
+		SettingsRepo:        &mockSettingsRepo{bondruck: bondruck},
 	}
 }
 
@@ -163,6 +213,43 @@ func TestDirektverkaufTaetigen_Conflict(t *testing.T) {
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
+	}
+}
+
+func TestDirektverkaufTaetigen_AbholbonModeQueuesExactlyOneAuftrag(t *testing.T) {
+	spy := &spyEventRepo{}
+	command := newCommandWithBondruck(
+		spy,
+		testOpenKS,
+		map[string]bondruckApp.Druckstation{},
+		settings.BondruckEinstellungen{
+			DirektverkaufModus: settings.DirektverkaufModusAbholbon,
+			AbholbonDruckerIP:  "192.168.1.77",
+			UpdatedAt:          time.Now(),
+		},
+	)
+
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "Direktverkauf")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(spy.druckauftraege) != 1 {
+		t.Fatalf("expected exactly 1 druckauftrag, got %d", len(spy.druckauftraege))
+	}
+
+	auftrag := spy.druckauftraege[0]
+	if auftrag.ZielIP != "192.168.1.77" {
+		t.Errorf("expected ZielIP 192.168.1.77, got %s", auftrag.ZielIP)
+	}
+	if auftrag.BonArt != "arbeitsbon" {
+		t.Errorf("expected BonArt arbeitsbon, got %s", auftrag.BonArt)
+	}
+	if auftrag.Referenz != "direktverkauf-getaetigt:1" {
+		t.Errorf("expected referenz direktverkauf-getaetigt:1, got %s", auftrag.Referenz)
+	}
+	if auftrag.Payload == "" {
+		t.Error("expected non-empty payload")
 	}
 }
 

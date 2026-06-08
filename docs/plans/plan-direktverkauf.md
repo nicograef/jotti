@@ -359,18 +359,18 @@ keine Outbox-Zeile. Die Policy wird im `DirektverkaufTaetigen`-Command verdrahte
 
 ### Akzeptanzkriterien
 
-- [ ] `bondruck_einstellungen` erweitert um `direktverkauf_modus` (Enum) und
+- [x] `bondruck_einstellungen` erweitert um `direktverkauf_modus` (Enum) und
       `abholbon_drucker_ip` (IPv4, leer = nicht konfiguriert); `make sqlc` ausgeführt.
-- [ ] Get/Update-Endpunkte + Admin-UI um `direktverkauf_modus` und Abholbon-IP erweitert;
+- [x] Get/Update-Endpunkte + Admin-UI um `direktverkauf_modus` und Abholbon-IP erweitert;
       beidseitig validiert (Enum + IPv4).
-- [ ] Arbeitsbon-Policy reagiert auf `direktverkauf-getaetigt:v1`: `an_stationen` →
+- [x] Arbeitsbon-Policy reagiert auf `direktverkauf-getaetigt:v1`: `an_stationen` →
       Station-Bons nach Kategorie; `abholbon` → genau **ein** Abholbon mit festem Label
       „Direktverkauf" ohne Preise; `kein_bon` → keine Outbox-Zeile.
-- [ ] Policy ist im `DirektverkaufTaetigen`-Command verdrahtet (nach erfolgreichem
+- [x] Policy ist im `DirektverkaufTaetigen`-Command verdrahtet (nach erfolgreichem
       Event-Write).
-- [ ] Tests: Policy je `direktverkauf_modus` (Station-Bons, genau ein Abholbon, keine
+- [x] Tests: Policy je `direktverkauf_modus` (Station-Bons, genau ein Abholbon, keine
       Outbox-Zeile), Abholbon-Formatter, Einstellungen-Validierung (zog + Zod).
-- [ ] Doku: `docs/handbuch.md` §4.6 (`direktverkauf_modus`, Abholbon),
+- [x] Doku: `docs/handbuch.md` §4.6 (`direktverkauf_modus`, Abholbon),
       `docs/language.md` (Abholbon).
 
 ---

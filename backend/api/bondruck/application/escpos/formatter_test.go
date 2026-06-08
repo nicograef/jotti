@@ -146,6 +146,34 @@ func TestFormatSammelBon_WithKommentar(t *testing.T) {
 	}
 }
 
+func TestFormatDirektverkaufAbholbon_HasFixedLabelAndNoPrices(t *testing.T) {
+	pos2 := kasse.Position{
+		PositionID:   "pos-2",
+		VarianteID:   2,
+		ProduktName:  "Bier",
+		VarianteName: "0,5l",
+		Kategorie:    "getraenk",
+		Einzelpreis:  400,
+		Menge:        2,
+	}
+
+	payload := escpos.FormatDirektverkaufAbholbon([]kasse.Position{testPos, pos2}, "Maria", testTime, "abholen")
+	got := string(payload)
+
+	if !strings.Contains(got, "Direktverkauf") {
+		t.Errorf("Abholbon enthaelt nicht das fixe Label Direktverkauf; got:\n%q", got)
+	}
+	if !strings.Contains(got, "3x Pommes (gross)") {
+		t.Errorf("Abholbon enthaelt nicht die erste Position; got:\n%q", got)
+	}
+	if !strings.Contains(got, "2x Bier (0,5l)") {
+		t.Errorf("Abholbon enthaelt nicht die zweite Position; got:\n%q", got)
+	}
+	if strings.Contains(got, "EUR") {
+		t.Errorf("Abholbon darf keine Preise enthalten; got:\n%q", got)
+	}
+}
+
 func TestFormatKassenbeleg_ContainsPflichtfelder(t *testing.T) {
 	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
 		Vereinsname:        "SV Musterstadt",

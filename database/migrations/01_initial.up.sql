@@ -376,14 +376,19 @@ COMMENT ON COLUMN betreiber.updated_at IS 'Letzte Änderung (UTC)';
 CREATE TABLE bondruck_einstellungen (
     id                      INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
     kassenbeleg_drucker_ip  VARCHAR(50) NOT NULL,
+    direktverkauf_modus     TEXT NOT NULL
+                            CHECK (direktverkauf_modus IN ('kein_bon', 'abholbon', 'an_stationen')),
+    abholbon_drucker_ip     VARCHAR(50) NOT NULL,
     updated_at              TIMESTAMPTZ NOT NULL
 );
 
 COMMENT ON TABLE bondruck_einstellungen IS 'Bondruck-Einstellungen (Singleton). Konfiguration fuer den Kassenbeleg-Drucker.';
 COMMENT ON COLUMN bondruck_einstellungen.kassenbeleg_drucker_ip IS 'IPv4-Adresse des Kassenbeleg-Druckers (leer = nicht konfiguriert).';
+COMMENT ON COLUMN bondruck_einstellungen.direktverkauf_modus IS 'Bondruckmodus fuer Direktverkauf: kein_bon | abholbon | an_stationen.';
+COMMENT ON COLUMN bondruck_einstellungen.abholbon_drucker_ip IS 'IPv4-Adresse fuer Abholbon beim Direktverkauf (leer = nicht konfiguriert).';
 COMMENT ON COLUMN bondruck_einstellungen.updated_at IS 'Letzte Aenderung (UTC)';
 
-INSERT INTO bondruck_einstellungen (id, kassenbeleg_drucker_ip, updated_at)
-VALUES (1, '', now());
+INSERT INTO bondruck_einstellungen (id, kassenbeleg_drucker_ip, direktverkauf_modus, abholbon_drucker_ip, updated_at)
+VALUES (1, '', 'kein_bon', '', now());
 
 COMMIT;

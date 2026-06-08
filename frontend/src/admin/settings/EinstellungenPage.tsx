@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   type Betreiber,
   type BondruckEinstellungen,
 } from '@/lib/EinstellungenBackend'
@@ -199,6 +206,8 @@ const emptyBetreiber: Betreiber = {
 
 const emptyBondruckEinstellungen: BondruckEinstellungen = {
   kassenbelegDruckerIp: '',
+  direktverkaufModus: 'kein_bon',
+  abholbonDruckerIp: '',
 }
 
 function BondruckEinstellungenForm({
@@ -239,7 +248,10 @@ function BondruckEinstellungenForm({
           id="kassenbelegDruckerIp"
           value={form.kassenbelegDruckerIp}
           onChange={(event) => {
-            setForm({ kassenbelegDruckerIp: event.target.value })
+            setForm((prev) => ({
+              ...prev,
+              kassenbelegDruckerIp: event.target.value,
+            }))
           }}
           placeholder="z.B. 192.168.1.80"
         />
@@ -247,6 +259,55 @@ function BondruckEinstellungenForm({
           <p className="text-sm text-muted-foreground">kein Drucker</p>
         )}
       </div>
+
+      <div className="grid gap-1.5">
+        <Label htmlFor="direktverkaufModus">Direktverkauf-Bondruck</Label>
+        <Select
+          value={form.direktverkaufModus}
+          onValueChange={(value) => {
+            setForm((prev) => ({
+              ...prev,
+              direktverkaufModus:
+                value as BondruckEinstellungen['direktverkaufModus'],
+            }))
+          }}
+        >
+          <SelectTrigger id="direktverkaufModus">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="kein_bon">Kein Bon</SelectItem>
+            <SelectItem value="abholbon">Abholbon</SelectItem>
+            <SelectItem value="an_stationen">An Stationen</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid gap-1.5">
+        <Label htmlFor="abholbonDruckerIp">Abholbon-Drucker-IP</Label>
+        <Input
+          id="abholbonDruckerIp"
+          value={form.abholbonDruckerIp}
+          onChange={(event) => {
+            setForm((prev) => ({
+              ...prev,
+              abholbonDruckerIp: event.target.value,
+            }))
+          }}
+          placeholder="z.B. 192.168.1.81"
+          disabled={form.direktverkaufModus !== 'abholbon'}
+        />
+        {form.direktverkaufModus !== 'abholbon' && (
+          <p className="text-sm text-muted-foreground">
+            Nur relevant, wenn der Direktverkauf-Modus auf Abholbon steht.
+          </p>
+        )}
+        {form.direktverkaufModus === 'abholbon' &&
+          form.abholbonDruckerIp === '' && (
+            <p className="text-sm text-muted-foreground">kein Drucker</p>
+          )}
+      </div>
+
       <div>
         <Button onClick={() => void handleSave()} disabled={saving}>
           {saving ? 'Speichern…' : 'Speichern'}
@@ -282,10 +343,11 @@ function BondruckEinstellungenSection() {
 
   return (
     <section className="max-w-2xl">
-      <h2 className="text-xl font-semibold mb-1">Kassenbeleg-Druck</h2>
+      <h2 className="text-xl font-semibold mb-1">Bondruck</h2>
       <p className="text-muted-foreground text-sm mb-4">
-        Hier konfigurierst du den Drucker für den gesetzlichen Kassenbeleg. Ist
-        keine IP gesetzt, ist Belegdruck im Service nicht möglich.
+        Hier konfigurierst du den Drucker für den gesetzlichen Kassenbeleg sowie
+        den Bondruck-Modus fuer Direktverkauf. Ist keine Kassenbeleg-IP gesetzt,
+        ist Belegdruck im Service nicht moeglich.
       </p>
       <BondruckEinstellungenForm
         initial={bondruckEinstellungen ?? emptyBondruckEinstellungen}

@@ -421,7 +421,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	// Build the work tickets from the stored event (with its generated ID) so the
 	// event and its print jobs are written in one transaction (transactional outbox).
 	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
-		return toNeuerDruckauftraege(bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen))
+		return toNeuerDruckauftraege(bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, bondruckApp.DirektverkaufBondruckKonfiguration{}))
 	}
 
 	_, err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)

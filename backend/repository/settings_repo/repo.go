@@ -69,7 +69,11 @@ func (r Repository) GetBondruckEinstellungen(ctx context.Context) (settings.Bond
 }
 
 func (r Repository) UpsertBondruckEinstellungen(ctx context.Context, b settings.BondruckEinstellungen) error {
-	err := r.q.UpsertBondruckEinstellungen(ctx, b.KassenbelegDruckerIP)
+	err := r.q.UpsertBondruckEinstellungen(ctx, dbgen.UpsertBondruckEinstellungenParams{
+		KassenbelegDruckerIp: b.KassenbelegDruckerIP,
+		DirektverkaufModus:   string(b.DirektverkaufModus),
+		AbholbonDruckerIp:    b.AbholbonDruckerIP,
+	})
 	if err != nil {
 		return db.ErrDatabase
 	}

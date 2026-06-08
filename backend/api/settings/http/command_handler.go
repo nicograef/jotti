@@ -38,10 +38,21 @@ var updateBetreiberSchema = z.Struct(z.Shape{
 
 type updateBondruckEinstellungenRequest struct {
 	KassenbelegDruckerIP string `json:"kassenbelegDruckerIp"`
+	DirektverkaufModus   string `json:"direktverkaufModus"`
+	AbholbonDruckerIP    string `json:"abholbonDruckerIp"`
 }
 
 var updateBondruckEinstellungenSchema = z.Struct(z.Shape{
 	"KassenbelegDruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
+	"DirektverkaufModus": z.String().OneOf(
+		[]string{
+			string(settings.DirektverkaufModusKeinBon),
+			string(settings.DirektverkaufModusAbholbon),
+			string(settings.DirektverkaufModusAnStationen),
+		},
+		z.Message("Ungültiger Direktverkauf-Modus"),
+	).Required(),
+	"AbholbonDruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
 })
 
 func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {
@@ -72,7 +83,11 @@ func (h *CommandHandler) UpdateBondruckEinstellungenHandler() http.HandlerFunc {
 			return
 		}
 
-		b, err := settings.NewBondruckEinstellungen(body.KassenbelegDruckerIP)
+		b, err := settings.NewBondruckEinstellungen(
+			body.KassenbelegDruckerIP,
+			settings.DirektverkaufModus(body.DirektverkaufModus),
+			body.AbholbonDruckerIP,
+		)
 		if err != nil {
 			helper.SendClientError(w, "validation_error", nil)
 			return

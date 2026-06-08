@@ -9,6 +9,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/settings"
 )
 
 type Druckstation struct {
@@ -23,9 +24,15 @@ type Druckauftrag struct {
 	Referenz string
 }
 
-// bestellungEventData spiegelt die relevanten Felder von BestellungAufgenommenV1.
+type DirektverkaufBondruckKonfiguration struct {
+	Modus             settings.DirektverkaufModus
+	AbholbonDruckerIP string
+}
+
+// positionenMitKommentarData spiegelt die benoetigten Felder von
+// bestellung-aufgenommen:v1 und direktverkauf-getaetigt:v1.
 // Keine Schema-Validierung noetig, da die Daten beim Event-Write validiert wurden.
-type bestellungEventData struct {
+type positionenMitKommentarData struct {
 	Positionen []kasse.Position `json:"positionen"`
 	Kommentar  string           `json:"kommentar"`
 }
@@ -36,13 +43,75 @@ type bestellungEventData struct {
 func CreateArbeitsbonAuftraegeFromEvent(
 	evt event.Event,
 	druckstationen map[string]Druckstation,
+	direktverkaufKonfig DirektverkaufBondruckKonfiguration,
 ) []Druckauftrag {
-	var data bestellungEventData
-	if err := json.Unmarshal(evt.Data, &data); err != nil {
+	switch evt.Type {
+	case string(kasse.EventTypeBestellungAufgenommenV1):
+		return createStationsAuftraege(evt, druckstationen, parseTischName(evt.Subject), fmt.Sprintf("bestellung-aufgenommen:%d", evt.ID))
+	case string(kasse.EventTypeDirektverkaufGetaetigtV1):
+		return createDirektverkaufAuftraege(evt, druckstationen, direktverkaufKonfig)
+	default:
+		return nil
+	}
+}
+
+func createDirektverkaufAuftraege(
+	evt event.Event,
+	druckstationen map[string]Druckstation,
+	direktverkaufKonfig DirektverkaufBondruckKonfiguration,
+) []Druckauftrag {
+	if direktverkaufKonfig.Modus == settings.DirektverkaufModusKeinBon {
 		return nil
 	}
 
-	tischName := parseTischName(evt.Subject)
+	data, ok := unmarshalPositionenMitKommentar(evt)
+	if !ok {
+		return nil
+	}
+
+	referenz := fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
+
+	switch direktverkaufKonfig.Modus {
+	case settings.DirektverkaufModusAnStationen:
+		return createStationsAuftraegeFromData(evt, data, druckstationen, "Direktverkauf", referenz)
+	case settings.DirektverkaufModusAbholbon:
+		if direktverkaufKonfig.AbholbonDruckerIP == "" {
+			return nil
+		}
+
+		payload := escpos.FormatDirektverkaufAbholbon(data.Positionen, evt.UserName, evt.Time, data.Kommentar)
+		return []Druckauftrag{{
+			ZielIP:   direktverkaufKonfig.AbholbonDruckerIP,
+			Payload:  base64.StdEncoding.EncodeToString(payload),
+			BonArt:   "arbeitsbon",
+			Referenz: referenz,
+		}}
+	default:
+		return nil
+	}
+}
+
+func createStationsAuftraege(
+	evt event.Event,
+	druckstationen map[string]Druckstation,
+	kontextName string,
+	referenz string,
+) []Druckauftrag {
+	data, ok := unmarshalPositionenMitKommentar(evt)
+	if !ok {
+		return nil
+	}
+
+	return createStationsAuftraegeFromData(evt, data, druckstationen, kontextName, referenz)
+}
+
+func createStationsAuftraegeFromData(
+	evt event.Event,
+	data positionenMitKommentarData,
+	druckstationen map[string]Druckstation,
+	kontextName string,
+	referenz string,
+) []Druckauftrag {
 
 	byKategorie := map[string][]kasse.Position{}
 	for _, pos := range data.Positionen {
@@ -57,12 +126,11 @@ func CreateArbeitsbonAuftraegeFromEvent(
 		}
 
 		withBeep := kategorie == "essen"
-		referenz := fmt.Sprintf("bestellung-aufgenommen:%d", evt.ID)
 
 		if konfig.Bonmodus == "pro_bestellung" {
 			payload := escpos.FormatSammelBon(
 				positionen,
-				tischName,
+				kontextName,
 				evt.UserName,
 				evt.Time,
 				data.Kommentar,
@@ -80,7 +148,7 @@ func CreateArbeitsbonAuftraegeFromEvent(
 		for _, pos := range positionen {
 			payload := escpos.FormatPositionBon(
 				pos,
-				tischName,
+				kontextName,
 				evt.UserName,
 				evt.Time,
 				data.Kommentar,
@@ -97,6 +165,15 @@ func CreateArbeitsbonAuftraegeFromEvent(
 	}
 
 	return auftraege
+}
+
+func unmarshalPositionenMitKommentar(evt event.Event) (positionenMitKommentarData, bool) {
+	var data positionenMitKommentarData
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return positionenMitKommentarData{}, false
+	}
+
+	return data, true
 }
 
 // parseTischName converts an Event Subject to a human-readable table name.

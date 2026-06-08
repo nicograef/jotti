@@ -5,15 +5,19 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/rs/zerolog"
 )
 
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
+	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 }
@@ -25,6 +29,14 @@ type kassensitzungenRepo interface {
 type productRepo interface {
 	GetVariantsByIDs(ctx context.Context, ids []int) (map[int]product.Variante, error)
 	GetProductsByIDs(ctx context.Context, ids []int) (map[int]product.Produkt, error)
+}
+
+type druckstationRepo interface {
+	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]bondruckApp.Druckstation, error)
+}
+
+type settingsRepo interface {
+	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
 }
 
 // VerkaufPositionInput represents a single position of a Direktverkauf.
@@ -39,6 +51,8 @@ type Command struct {
 	EventRepo           eventRepo
 	ProductRepo         productRepo
 	KassensitzungenRepo kassensitzungenRepo
+	DruckstationRepo    druckstationRepo
+	SettingsRepo        settingsRepo
 }
 
 // DirektverkaufTaetigen records a Direktverkauf as a single immutable event in its own stream
@@ -70,7 +84,18 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return err
 	}
 
-	if err := c.writeEvent(ctx, evt, subject, ks.ZNr); err != nil {
+	druckstationen, direktverkaufKonfig, err := c.loadBondruckKonfiguration(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to load bondruck configuration for direktverkauf")
+		return ErrDatabase
+	}
+
+	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
+		auftraege := bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, direktverkaufKonfig)
+		return toNeuerDruckauftraege(auftraege)
+	}
+
+	if err := c.writeEventWithDruckauftraege(ctx, evt, subject, ks.ZNr, buildAuftraege); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -80,6 +105,40 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 
 	log.Info().Str("verkauf_id", verkaufID).Msg("Direktverkauf getaetigt")
 	return nil
+}
+
+func (c Command) loadBondruckKonfiguration(ctx context.Context) (map[string]bondruckApp.Druckstation, bondruckApp.DirektverkaufBondruckKonfiguration, error) {
+	if c.DruckstationRepo == nil || c.SettingsRepo == nil {
+		return nil, bondruckApp.DirektverkaufBondruckKonfiguration{Modus: settings.DirektverkaufModusKeinBon}, nil
+	}
+
+	druckstationen, err := c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
+	if err != nil {
+		return nil, bondruckApp.DirektverkaufBondruckKonfiguration{}, err
+	}
+
+	bondruckEinstellungen, err := c.SettingsRepo.GetBondruckEinstellungen(ctx)
+	if err != nil {
+		return nil, bondruckApp.DirektverkaufBondruckKonfiguration{}, err
+	}
+
+	return druckstationen, bondruckApp.DirektverkaufBondruckKonfiguration{
+		Modus:             bondruckEinstellungen.DirektverkaufModus,
+		AbholbonDruckerIP: bondruckEinstellungen.AbholbonDruckerIP,
+	}, nil
+}
+
+func toNeuerDruckauftraege(auftraege []bondruckApp.Druckauftrag) []druckauftrag_repo.NeuerDruckauftrag {
+	result := make([]druckauftrag_repo.NeuerDruckauftrag, 0, len(auftraege))
+	for _, a := range auftraege {
+		result = append(result, druckauftrag_repo.NeuerDruckauftrag{
+			ZielIP:   a.ZielIP,
+			Payload:  a.Payload,
+			BonArt:   a.BonArt,
+			Referenz: a.Referenz,
+		})
+	}
+	return result
 }
 
 // DirektverkaufStornieren records a position-precise cancellation of a Direktverkauf as an immutable
@@ -259,6 +318,31 @@ func (c Command) writeEvent(ctx context.Context, e event.Event, subject string, 
 	e.Version = maxVersion + 1
 
 	if _, err := c.EventRepo.WriteEvent(ctx, e, kasse.StreamTypeDirektverkauf, kassensitzungNr); err != nil {
+		if errors.Is(err, db.ErrAlreadyExists) {
+			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC conflict")
+			return ErrConflict
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (c Command) writeEventWithDruckauftraege(
+	ctx context.Context,
+	e event.Event,
+	subject string,
+	kassensitzungNr int,
+	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
+) error {
+	maxVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
+	if err != nil {
+		return err
+	}
+
+	e.Version = maxVersion + 1
+
+	if _, err := c.EventRepo.WriteEventWithDruckauftraege(ctx, e, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege); err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC conflict")
 			return ErrConflict

@@ -145,6 +145,17 @@ func FormatSammelBon(
 	return buf.Bytes()
 }
 
+// FormatDirektverkaufAbholbon generates a single combined pickup ticket for a Direktverkauf.
+// The header label is fixed to "Direktverkauf" and, like all Arbeitsbons, contains no prices.
+func FormatDirektverkaufAbholbon(
+	positionen []kasse.Position,
+	userName string,
+	zeitpunkt time.Time,
+	kommentar string,
+) []byte {
+	return FormatSammelBon(positionen, "Direktverkauf", userName, zeitpunkt, kommentar, false)
+}
+
 // FormatKassenbeleg generiert einen fiskalischen Kassenbeleg (Basisstand ohne Steuer/TSE).
 func FormatKassenbeleg(data KassenbelegData) []byte {
 	var buf bytes.Buffer

@@ -22,6 +22,8 @@ export type Kassenidentitaet = z.infer<typeof KassenidentitaetSchema>
 
 export const BondruckEinstellungenSchema = z.object({
   kassenbelegDruckerIp: z.ipv4('Ungültige IPv4-Adresse').or(z.literal('')),
+  direktverkaufModus: z.enum(['kein_bon', 'abholbon', 'an_stationen']),
+  abholbonDruckerIp: z.ipv4('Ungültige IPv4-Adresse').or(z.literal('')),
 })
 export type BondruckEinstellungen = z.infer<typeof BondruckEinstellungenSchema>
 

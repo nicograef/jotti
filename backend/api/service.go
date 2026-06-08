@@ -62,6 +62,8 @@ func NewServiceApi(db *sql.DB) http.Handler {
 		EventRepo:           kassenjournalRepo,
 		ProductRepo:         productRepo,
 		KassensitzungenRepo: kassensitzungenRepo,
+		DruckstationRepo:    druckstationRepoTableAdapter{repo: druckstationRepo},
+		SettingsRepo:        settingsRepo,
 	}
 	r.HandleFunc("/direktverkauf-taetigen", dc.DirektverkaufTaetigenHandler())
 

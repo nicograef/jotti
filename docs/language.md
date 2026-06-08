@@ -146,6 +146,12 @@ Schlankes Event-Sourced Aggregat im Kasse-Kontext für den **Barverkauf an der T
 
 > **Direktverkauf-Stornierung:** positionsgenaue Korrektur/Rückgabe eines Verkaufs durch Serviceleitung/Admin (`direktverkauf-storniert:v1`, Folge-Version im selben Stream). Speichert die stornierten Positionen als **Fat-Positionen** (wie der Tisch-Storno, selbst-enthaltend fürs Reporting); die API nimmt `PositionRef` (`positionId` + `menge`) entgegen und reichert sie im Command an. `gesamtStornierungCents` ist die Summe der stornierten Positionen und sofort kassenwirksam (Bargeld-Rückgabe) — **ohne** separate `auszahlung-geleistet`-Buchung, da ein Verkauf keinen offenen Saldo hat. Validierung per On-Demand-Replay des Verkauf-Streams (`ComputeNichtStornierteVerkaufPositionen`): nur noch nicht stornierte Positionen, höchstens die ursprünglich verkaufte Menge. Mehrere Teilstornos pro Verkauf sind zulässig.
 
+> **Direktverkauf-Modus (Bondruck):** steuert den nicht-fiskalischen Bonfluss bei `direktverkauf-getaetigt:v1` über `bondruck_einstellungen.direktverkauf_modus`: `kein_bon` (kein Auftrag), `abholbon` (genau ein kombinierter Abholbon), `an_stationen` (Routing nach Produktkategorie wie Tisch-Arbeitsbon).
+
+#### Abholbon
+
+Nicht-fiskalischer kombinierter Bon für Direktverkauf im Modus `abholbon`. Festes Label „Direktverkauf“, keine Preise, genau ein Druckauftrag (`bon_art = 'arbeitsbon'`) an `bondruck_einstellungen.abholbon_drucker_ip`.
+
 #### Bestellung
 
 Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt.

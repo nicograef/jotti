@@ -167,6 +167,10 @@ type BondruckEinstellungen struct {
 	ID int
 	// IPv4-Adresse des Kassenbeleg-Druckers (leer = nicht konfiguriert).
 	KassenbelegDruckerIp string
+	// Bondruckmodus fuer Direktverkauf: kein_bon | abholbon | an_stationen.
+	DirektverkaufModus string
+	// IPv4-Adresse fuer Abholbon beim Direktverkauf (leer = nicht konfiguriert).
+	AbholbonDruckerIp string
 	// Letzte Aenderung (UTC)
 	UpdatedAt time.Time
 }
