@@ -1271,7 +1271,7 @@ body.nav-open {
   padding-block: 2.5rem 4rem;
 }
 
-.guide-prose > :first-child {
+.guide-prose> :first-child {
   margin-top: 0;
 }
 
@@ -1301,7 +1301,7 @@ body.nav-open {
   margin: 0.5rem 0 0;
 }
 
-.guide-prose .compliance-note p + p {
+.guide-prose .compliance-note p+p {
   margin-top: 0.75rem;
 }
 
@@ -1377,4 +1377,46 @@ body.nav-open {
   margin: 0.375rem 0 0;
   color: var(--muted);
   line-height: 1.6;
+}
+
+/* In-Page-Inhaltsverzeichnis */
+.guide-toc {
+  margin-top: 2rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.75rem;
+}
+
+.guide-toc-title {
+  margin-bottom: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+}
+
+.guide-prose .guide-toc-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: var(--muted);
+}
+
+.guide-prose .guide-toc-list li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.guide-prose .guide-toc-list li:last-child {
+  margin-bottom: 0;
+}
+
+.guide-prose .guide-toc-list a {
+  color: var(--foreground);
+}
+
+.guide-prose .guide-toc-list a:hover {
+  color: var(--primary);
+  text-decoration: underline;
 }
