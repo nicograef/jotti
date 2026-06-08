@@ -9,7 +9,7 @@ import (
 // ErrUserNotFound is returned when a user is not found.
 var ErrUserNotFound = errors.New("user not found")
 
-// ErrUserNotFound is returned when a user is not found.
+// ErrUsernameAlreadyExists is returned when trying to create a user with a username that already exists.
 var ErrUsernameAlreadyExists = errors.New("username already exists")
 
 // ErrNoPassword is returned when there is no password set for the user.

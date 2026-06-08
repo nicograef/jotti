@@ -42,7 +42,6 @@ func main() {
 
 	log.Info().Msg("Connected to database")
 
-	// Check for subcommands
 	if len(os.Args) > 1 && os.Args[1] == "rebuild-projections" {
 		if err := rebuildProjections(db); err != nil {
 			log.Fatal().Err(err).Msg("Failed to rebuild projections")
@@ -71,7 +70,6 @@ func run(cfg config.Config, db *sql.DB) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Handle OS signals
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
@@ -79,7 +77,6 @@ func run(cfg config.Config, db *sql.DB) error {
 		cancel()
 	}()
 
-	// Run application
 	return a.Run(ctx)
 }
 

@@ -52,7 +52,6 @@ func createArgon2idHash(password string) (string, error) {
 	}
 	config.Salt = salt
 
-	// Execute Argon2id hashing algorithm
 	config.HashRaw = argon2.IDKey(
 		[]byte(password),
 		config.Salt,
@@ -62,7 +61,6 @@ func createArgon2idHash(password string) (string, error) {
 		config.KeyLength,
 	)
 
-	// Generate standardized hash format
 	encodedHash := fmt.Sprintf(
 		"$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
 		argon2.Version,
@@ -82,33 +80,28 @@ func parseArgon2Hash(encodedHash string) (*argon2Configuration, error) {
 		return nil, errors.New("invalid hash format structure")
 	}
 
-	// Validate algorithm identifier
 	if !strings.HasPrefix(components[1], "argon2id") {
 		return nil, errors.New("unsupported algorithm variant")
 	}
 
-	// Extract version information
 	var version int
 	_, err := fmt.Sscanf(components[2], "v=%d", &version)
 	if err != nil {
 		return nil, fmt.Errorf("version parsing failed: %w", err)
 	}
 
-	// Parse configuration parameters
 	config := &argon2Configuration{}
 	_, err = fmt.Sscanf(components[3], "m=%d,t=%d,p=%d", &config.MemoryCost, &config.TimeCost, &config.Threads)
 	if err != nil {
 		return nil, fmt.Errorf("parameter parsing failed: %w", err)
 	}
 
-	// Decode salt component
 	salt, err := base64.RawStdEncoding.DecodeString(components[4])
 	if err != nil {
 		return nil, fmt.Errorf("salt decoding failed: %w", err)
 	}
 	config.Salt = salt
 
-	// Decode hash component
 	hash, err := base64.RawStdEncoding.DecodeString(components[5])
 	if err != nil {
 		return nil, fmt.Errorf("hash decoding failed: %w", err)
@@ -125,7 +118,6 @@ func verifyPassword(correctPasswordHash, userProvidedPassword string) error {
 		return fmt.Errorf("hash parsing failed: %w", err)
 	}
 
-	// Generate hash using identical parameters
 	computedHash := argon2.IDKey(
 		[]byte(userProvidedPassword),
 		config.Salt,

@@ -12,8 +12,6 @@ import (
 )
 
 func TestHealthCheck_WithDatabase(t *testing.T) {
-	// This is a placeholder for integration tests
-	// In a real scenario, you'd use testcontainers to spin up a real PostgreSQL instance
 	t.Skip("Integration test requires database - run with testcontainers")
 }
 

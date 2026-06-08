@@ -44,7 +44,6 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	r := http.NewServeMux()
 
-	// Health check with database connectivity
 	healthCheck := health.HealthCheck{DB: db}
 	r.HandleFunc("/health", healthCheck.Handler())
 
@@ -70,16 +69,15 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	// Wrap the entire router with middleware chain
 	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by nginx
 	var handler http.Handler = r
-	handler = middleware.PostMethodOnlyMiddleware(handler) // Enforce POST method
-	handler = middleware.LoggingMiddleware(handler)        // Logging
-	handler = middleware.CorrelationIDMiddleware(handler)  // Correlation ID
+	handler = middleware.PostMethodOnlyMiddleware(handler)
+	handler = middleware.LoggingMiddleware(handler)
+	handler = middleware.CorrelationIDMiddleware(handler)
 
 	return handler
 }
 
 // Run starts the application with graceful shutdown
 func (app *App) Run(ctx context.Context) error {
-	// Start server in goroutine
 	errChan := make(chan error, 1)
 	go func() {
 		log.Info().Int("port", app.Config.Port).Msg("Starting server")
@@ -88,7 +86,6 @@ func (app *App) Run(ctx context.Context) error {
 		}
 	}()
 
-	// Wait for context cancellation or server error
 	select {
 	case <-ctx.Done():
 		fmt.Println("Shutdown signal received, gracefully stopping...")
@@ -100,11 +97,9 @@ func (app *App) Run(ctx context.Context) error {
 
 // Shutdown gracefully stops the application
 func (app *App) Shutdown() error {
-	// Create shutdown context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Shutdown HTTP server
 	if err := app.Server.Shutdown(ctx); err != nil {
 		log.Printf("ERROR shutting down server: %v", err)
 	}
