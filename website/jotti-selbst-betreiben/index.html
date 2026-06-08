@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="description"
+      content="Hosting-Leitfaden für Vereine: jotti selbst betreiben — auf einem Laptop im Festzelt-WLAN oder auf einem kleinen eigenen Server (VPS). Mit fertigen Docker-Befehlen zum Kopieren, verständlich erklärt für ehrenamtliche Teams."
+    />
+    <meta name="author" content="Nico Gräf" />
+    <meta name="robots" content="index, follow" />
+    <meta
+      name="keywords"
+      content="jotti hosting, jotti selbst betreiben, self-hosted Kassensystem, Kassensystem Verein installieren, Docker Compose Verein, VPS Vereinsfest, jotti Server, Kassensystem lokal WLAN, nginx Let's Encrypt, Kassensystem ohne Cloud"
+    />
+
+    <title>Hosting-Leitfaden — jotti selbst betreiben</title>
+
+    <link rel="canonical" href="https://jotti.rocks/jotti-selbst-betreiben/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article" />
+    <meta
+      property="og:title"
+      content="Hosting-Leitfaden — jotti selbst betreiben"
+    />
+    <meta
+      property="og:description"
+      content="Wie euer Verein jotti selbst aufsetzt und betreibt — auf einem Gerät im lokalen WLAN oder auf einem eigenen Server. Mit fertigen Befehlen zum Kopieren."
+    />
+    <meta property="og:site_name" content="jotti" />
+    <meta property="og:locale" content="de_DE" />
+    <meta
+      property="og:url"
+      content="https://jotti.rocks/jotti-selbst-betreiben/"
+    />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Hosting-Leitfaden — jotti selbst betreiben"
+    />
+    <meta
+      name="twitter:description"
+      content="Technischer Leitfaden zum Selbst-Betrieb von jotti: Einzelgerät im WLAN oder eigener Server (VPS), Schritt für Schritt erklärt."
+    />
+
+    <!--# include virtual="/partials/head-assets.html" -->
+  </head>
+
+  <body>
+    <!--# include virtual="/partials/dev-banner.html" -->
+    <!--# include virtual="/partials/header.html" -->
+    <!--# include virtual="/partials/mobile-nav.html" -->
+
+    <main>
+      <!-- ============ HERO ============ -->
+      <section class="guide-hero">
+        <div class="container">
+          <p class="guide-eyebrow">Hosting-Leitfaden</p>
+          <h1>jotti selbst betreiben</h1>
+          <p class="guide-lead">
+            Wie ihr jotti selbst aufsetzt und startet &mdash; auf einem Laptop
+            im Festzelt-WLAN oder auf einem kleinen eigenen Server. Mit fertigen
+            Befehlen zum Kopieren, ohne tiefes Technik-Wissen.
+          </p>
+        </div>
+      </section>
+
+      <div class="container">
+        <article class="guide-prose">
+          <!-- ============ INTRO CALLOUT ============ -->
+          <div class="compliance-note">
+            <p>
+              <strong>Für wen?</strong> Für die (technisch etwas versierten)
+              Helfer:innen im Verein, die jotti selbst aufsetzen und betreiben.
+              Wer schon einmal ein Programm über die Kommandozeile gestartet
+              hat, kommt hier zurecht.
+            </p>
+            <p>
+              💡 <strong>Hier geht es ums Technische</strong> &mdash; Geräte,
+              Netzwerk, Start und Stopp. Die
+              <strong>rechtlichen Pflichten</strong>
+              (TSE, Anmeldung beim Finanzamt, Datenaufbewahrung) sind ein
+              eigenes Thema und stehen im
+              <a href="/leitfaden-fuer-vereine/">Betreiber-Leitfaden</a>.
+            </p>
+          </div>
+
+          <!-- ============ DAS WICHTIGSTE ============ -->
+          <section class="guide-chapter" id="das-wichtigste">
+            <h2>Das Wichtigste in 60 Sekunden</h2>
+            <p>
+              jotti ist <strong>self-hosted</strong>: Es läuft nicht in einer
+              fremden Cloud, sondern auf
+              <strong>eurer eigenen</strong> Hardware. Gestartet wird es mit
+              <strong>Docker</strong> &mdash; einem Programm, das jotti samt
+              Datenbank in fertigen „Containern" startet, ohne dass ihr etwas
+              von Hand installieren müsst. Je nach Größe des Fests gibt es zwei
+              Wege:
+            </p>
+            <div class="card-grid two-col">
+              <div class="card">
+                <div class="card-icon">💻</div>
+                <h3>Weg A — Einzelgerät im WLAN</h3>
+                <p>
+                  jotti läuft auf <strong>einem Laptop/PC</strong>, bedient von
+                  einem <strong>Tablet oder Handy</strong> im selben WLAN. Kein
+                  Server, keine Domain, keine laufenden Kosten. Ideal für eine
+                  einzelne Theke (Direktverkauf, bar, ohne Bondruck).
+                </p>
+              </div>
+              <div class="card">
+                <div class="card-icon">🖥️</div>
+                <h3>Weg B — Eigener Server</h3>
+                <p>
+                  jotti läuft auf einem kleinen gemieteten Server (einem
+                  <strong>VPS</strong>) mit eigener Domain und Verschlüsselung
+                  (HTTPS). Für größere Feste mit mehreren Helfern, vielen
+                  Tischen und über mehrere Tage.
+                </p>
+              </div>
+            </div>
+            <p>
+              <strong>Was kostet das?</strong> Weg A: nichts außer vorhandener
+              Hardware. Weg B: ein kleiner VPS ab etwa
+              <strong>3&ndash;8 € pro Monat</strong>.
+            </p>
+            <div class="compliance-note">
+              <p>
+                <strong>Worum es hier nicht geht:</strong> die rechtlichen
+                Pflichten rund um die Kasse (TSE, Finanzamt, 10 Jahre
+                Aufbewahrung). Das steht im
+                <a href="/leitfaden-fuer-vereine/">Betreiber-Leitfaden</a>.
+              </p>
+            </div>
+          </section>
+
+          <!-- ============ WELCHER WEG ============ -->
+          <section class="guide-chapter" id="welcher-weg">
+            <h2>Welcher Weg passt zu uns?</h2>
+            <div class="table-wrapper">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Frage</th>
+                    <th>Weg A: Einzelgerät im WLAN</th>
+                    <th>Weg B: Eigener Server</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Typisches Fest</td>
+                    <td>Eine Theke, eine Person kassiert</td>
+                    <td>Mehrere Helfer, viele Tische, mehrtägig</td>
+                  </tr>
+                  <tr>
+                    <td>Geräte</td>
+                    <td>1 Laptop + 1 Tablet/Handy</td>
+                    <td>Beliebig viele Handys der Helfer</td>
+                  </tr>
+                  <tr>
+                    <td>Internet nötig?</td>
+                    <td>Nein — nur lokales WLAN</td>
+                    <td>Ja</td>
+                  </tr>
+                  <tr>
+                    <td>Domain &amp; HTTPS nötig?</td>
+                    <td>Nein</td>
+                    <td>Ja</td>
+                  </tr>
+                  <tr>
+                    <td>Bondruck</td>
+                    <td>Nein</td>
+                    <td>Möglich (in Entwicklung)</td>
+                  </tr>
+                  <tr>
+                    <td>Laufende Kosten</td>
+                    <td>Keine</td>
+                    <td>~3–8 €/Monat (VPS)</td>
+                  </tr>
+                  <tr>
+                    <td>Einrichtungsaufwand</td>
+                    <td>Sehr gering</td>
+                    <td>Etwas höher (einmalig)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="compliance-note">
+              <p>
+                <strong>Faustregel:</strong> Eine kleine Theke an einem Tag? →
+                <strong>Weg A</strong>. Ein richtiges Fest, bei dem
+                Servicekräfte mit ihren eigenen Handys an den Tischen bestellen?
+                → <strong>Weg B</strong>.
+              </p>
+            </div>
+          </section>
+
+          <!-- ============ WEG A ============ -->
+          <section class="guide-chapter" id="weg-a">
+            <h2>Weg A: Einzelgerät im WLAN (ohne Server)</h2>
+            <p>
+              Für das kleinste Einsatzszenario braucht jotti weder Server noch
+              Domain noch laufende Kosten: eine einzige Direktverkaufs-Kasse
+              („Theke"), an <strong>einem Gerät</strong> von
+              <strong>einer Person</strong> bedient, bar,
+              <strong>ohne Bondruck</strong>. Der Gast bestellt, zahlt sofort
+              bar, fertig &mdash; kein offener Saldo, keine spätere
+              Ausgabe-Bestätigung.
+            </p>
+            <p>
+              jotti läuft dabei auf einem vorhandenen Rechner (Windows-Laptop,
+              Mac oder Linux-PC). Ein
+              <strong>Tablet oder Smartphone im selben WLAN</strong> bedient die
+              Kasse im Browser über die lokale Adresse des Rechners.
+            </p>
+            <div class="compliance-note">
+              <p>
+                🔒 <strong>Sicherheitshinweis:</strong> Der lokale Betrieb läuft
+                <strong>unverschlüsselt</strong> über HTTP und ist
+                ausschließlich für das eigene, vertrauenswürdige WLAN gedacht.
+                Öffnet den Rechner <strong>niemals</strong> per
+                Port-Weiterleitung ins Internet.
+              </p>
+            </div>
+
+            <h3>Voraussetzungen</h3>
+            <ul>
+              <li>
+                Ein Rechner mit <strong>Docker Desktop</strong> (Windows oder
+                macOS) bzw. <strong>Docker Engine + Compose-Plugin</strong>
+                (Linux) &mdash; Download:
+                <a
+                  href="https://www.docker.com/products/docker-desktop/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >docker.com</a
+                >
+              </li>
+              <li>Rechner und Tablet hängen am selben Router/WLAN.</li>
+              <li>
+                Die jotti-Projektdateien liegen auf dem Rechner (ZIP entpackt
+                oder per <code>git clone</code>).
+              </li>
+            </ul>
+
+            <h3>Schritt für Schritt</h3>
+            <ol>
+              <li>
+                <strong>.env anlegen.</strong> Im Projektordner die Vorlage
+                kopieren: <code>cp .env.example .env</code>. Darin
+                <code>POSTGRES_PASSWORD</code> und <code>JWT_SECRET</code> durch
+                eigene Werte ersetzen. Ein sicheres Geheimnis erzeugt z.&nbsp;B.
+                <code>openssl rand -base64 32</code>.
+              </li>
+              <li>
+                <strong>jotti starten.</strong> Im Projektordner:
+                <code
+                  >docker compose -f docker-compose.local.yml up -d
+                  --build</code
+                >. Der erste Start dauert einige Minuten (die „Container" werden
+                gebaut). Mit installiertem <code>make</code> alternativ:
+                <code>make local-up</code>.
+              </li>
+              <li>
+                <strong>Lokal testen.</strong> Auf dem Rechner
+                <code>http://localhost</code> im Browser öffnen &mdash; die
+                Anmeldemaske erscheint.
+              </li>
+              <li>
+                <strong>Lokale IP-Adresse des Rechners ermitteln</strong> (siehe
+                Tabelle unten). Gesucht ist die Adresse im Heimnetz, meist
+                <code>192.168.x.x</code> oder <code>10.x.x.x</code>.
+              </li>
+              <li>
+                <strong>Vom Tablet verbinden.</strong> Tablet ins gleiche WLAN
+                bringen und im Browser die IP-Adresse öffnen, z.&nbsp;B.
+                <code>http://192.168.1.50</code>. Anmelden &mdash; fertig. Über
+                „Zum Startbildschirm hinzufügen" lässt sich jotti wie eine App
+                ablegen.
+              </li>
+            </ol>
+            <div class="table-wrapper">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>System</th>
+                    <th>Befehl</th>
+                    <th>Beispiel-Ausgabe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Windows</td>
+                    <td><code>ipconfig</code></td>
+                    <td>IPv4-Adresse: 192.168.1.50</td>
+                  </tr>
+                  <tr>
+                    <td>Linux</td>
+                    <td><code>hostname -I</code></td>
+                    <td>192.168.1.50</td>
+                  </tr>
+                  <tr>
+                    <td>macOS</td>
+                    <td><code>ipconfig getifaddr en0</code></td>
+                    <td>192.168.1.50</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Beenden</h3>
+            <p>
+              Zum Stoppen im Projektordner
+              <code>docker compose -f docker-compose.local.yml down</code>
+              ausführen (alternativ <code>make local-down</code>). Die Daten
+              bleiben im Docker-Volume erhalten und stehen beim nächsten Start
+              wieder bereit.
+            </p>
+
+            <h3>Gut zu wissen</h3>
+            <ul>
+              <li>
+                <strong>Windows-Firewall:</strong> Beim ersten Start fragt
+                Windows ggf., ob der Zugriff erlaubt werden soll. Für
+                <strong>private Netzwerke</strong> zulassen, damit das Tablet
+                den Rechner über Port 80 erreicht.
+              </li>
+              <li>
+                <strong>Rechner muss laufen.</strong> Während des Betriebs muss
+                der Rechner eingeschaltet und im WLAN sein;
+                Energiespar-/Ruhezustand vorher deaktivieren.
+              </li>
+              <li>
+                <strong>Hardware genügt locker.</strong> Jeder halbwegs aktuelle
+                Laptop bewältigt eine Theke mühelos.
+              </li>
+              <li>
+                <strong>Für größere Feste</strong> (mehrere Helfer, viele
+                Tische, mehrtägig) ist Weg B mit Domain und HTTPS die bessere
+                Wahl.
+              </li>
+            </ul>
+          </section>
+
+          <!-- ============ WEG B ============ -->
+          <section class="guide-chapter" id="weg-b">
+            <h2>Weg B: Eigener Server (für größere Feste)</h2>
+            <p>
+              Für größere Feste &mdash; mehrere Helfer mit eigenen Handys, viele
+              Tische, mehrere Tage &mdash; lohnt sich ein eigener kleiner Server
+              im Internet, ein <strong>VPS</strong> („Virtual Private Server").
+              Dann erreichen alle Helfer jotti über eine
+              <strong>Domain</strong> mit
+              <strong>Verschlüsselung (HTTPS)</strong> &mdash; nicht nur im
+              lokalen WLAN vor Ort.
+            </p>
+
+            <h3>Welchen Server mieten?</h3>
+            <p>
+              jotti ist sehr genügsam &mdash; schon der kleinste VPS reicht für
+              ein durchschnittliches Vereinsfest. Zwei Richtwerte:
+            </p>
+            <p>
+              <strong>Minimal</strong> &mdash; für ein durchschnittliches Fest
+              (etwa 20 Tische, 10 Helfer gleichzeitig, 2&ndash;3 Tage).
+              Typisches Angebot: netcup VPS 200 oder vergleichbar (~3&ndash;4
+              €/Monat).
+            </p>
+            <div class="table-wrapper">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Ressource</th>
+                    <th>Minimum</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>CPU</td>
+                    <td>1 vCPU</td>
+                  </tr>
+                  <tr>
+                    <td>RAM</td>
+                    <td>2 GB</td>
+                  </tr>
+                  <tr>
+                    <td>Speicher</td>
+                    <td>20 GB SSD</td>
+                  </tr>
+                  <tr>
+                    <td>Netzwerk</td>
+                    <td>100 Mbit/s</td>
+                  </tr>
+                  <tr>
+                    <td>Betriebssystem</td>
+                    <td>Linux (Debian/Ubuntu)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              <strong>Empfohlen</strong> &mdash; für große, mehrtägige Feste
+              (etwa 50 Tische, 30 Helfer gleichzeitig) mit Reserve. Typisches
+              Angebot: netcup VPS 500 oder vergleichbar (~5&ndash;8 €/Monat).
+            </p>
+            <div class="table-wrapper">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Ressource</th>
+                    <th>Empfohlen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>CPU</td>
+                    <td>2–4 vCPUs</td>
+                  </tr>
+                  <tr>
+                    <td>RAM</td>
+                    <td>4 GB</td>
+                  </tr>
+                  <tr>
+                    <td>Speicher</td>
+                    <td>40+ GB SSD</td>
+                  </tr>
+                  <tr>
+                    <td>Netzwerk</td>
+                    <td>200+ Mbit/s</td>
+                  </tr>
+                  <tr>
+                    <td>Betriebssystem</td>
+                    <td>Linux (Debian/Ubuntu)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Worauf es bei der Hardware ankommt</h3>
+            <ul>
+              <li>
+                <strong>SSD ist Pflicht.</strong> Server mit alter Festplatte
+                (HDD) sind um ein Vielfaches langsamer bei Datenbankzugriffen.
+              </li>
+              <li>
+                <strong>RAM ist wichtiger als CPU.</strong> Mehr Arbeitsspeicher
+                bedeutet schnellere Auswertungen. Die Rechenleistung (CPU) ist
+                selten der Engpass.
+              </li>
+              <li>
+                <strong>Speicherplatz ist unkritisch.</strong> Selbst nach
+                Jahren wächst die Datenbank nur auf wenige hundert Megabyte.
+              </li>
+            </ul>
+
+            <h3>Domain und Verschlüsselung (HTTPS)</h3>
+            <p>Für den Server-Betrieb braucht ihr zusätzlich zwei Dinge:</p>
+            <ul>
+              <li>
+                eine <strong>Domain</strong> (z.&nbsp;B.
+                <code>kasse-musterverein.de</code>), die auf euren Server zeigt,
+                und
+              </li>
+              <li>
+                ein <strong>TLS-Zertifikat</strong> für HTTPS &mdash; kostenlos
+                über <strong>Let's Encrypt</strong>.
+              </li>
+            </ul>
+            <p>
+              jotti bringt dafür eine fertige Produktions-Konfiguration mit
+              (<code>docker-compose.prod.yml</code>), inklusive
+              nginx-Reverse-Proxy und automatischer Zertifikats-Erneuerung. Die
+              einmalige Ersteinrichtung (erstes Zertifikat anfordern, Stack
+              starten) übernimmt das Skript <code>scripts/prod-init.sh</code>
+              &mdash; Domain und E-Mail-Adresse darin vorher anpassen.
+            </p>
+            <div class="compliance-note">
+              <p>
+                ⚠️ Ohne HTTPS dürft ihr jotti <strong>nicht</strong> über das
+                offene Internet betreiben: Anmeldedaten und Bestellungen würden
+                sonst unverschlüsselt übertragen.
+              </p>
+            </div>
+          </section>
+
+          <!-- ============ FAQ ============ -->
+          <section class="guide-chapter" id="faq">
+            <h2>Häufige Fragen</h2>
+            <dl class="guide-faq">
+              <dt>Brauchen wir Internet auf dem Fest?</dt>
+              <dd>
+                Bei Weg A nein &mdash; es genügt ein lokales WLAN, in dem
+                Rechner und Tablet hängen. Bei Weg B ja, denn die Handys der
+                Helfer erreichen jotti über das Internet.
+              </dd>
+              <dt>Können mehrere Helfer gleichzeitig kassieren?</dt>
+              <dd>
+                Bei Weg A bedient <strong>ein</strong> Gerät die Theke. Sobald
+                mehrere Servicekräfte mit eigenen Handys an Tischen aufnehmen
+                sollen, ist Weg B die richtige Wahl &mdash; dort arbeiten
+                beliebig viele Geräte gleichzeitig.
+              </dd>
+              <dt>Müssen wir uns mit Linux auskennen?</dt>
+              <dd>
+                Grundkenntnisse im Umgang mit der Kommandozeile reichen. Alle
+                nötigen Befehle stehen in diesem Leitfaden zum Kopieren bereit.
+              </dd>
+              <dt>Wie sichern wir unsere Daten?</dt>
+              <dd>
+                jotti speichert alles in einer Datenbank (in einem
+                „Docker-Volume"). Macht <strong>regelmäßige Backups</strong>
+                &mdash; besonders wichtig wegen der gesetzlichen
+                10-Jahre-Aufbewahrung. Details im
+                <a href="/leitfaden-fuer-vereine/">Betreiber-Leitfaden</a>.
+              </dd>
+              <dt>Was kostet uns der Betrieb?</dt>
+              <dd>
+                jotti selbst ist für berechtigte Vereine kostenlos. Weg A
+                verursacht keine laufenden Kosten; bei Weg B fällt nur die
+                VPS-Miete an (ca. 3&ndash;8 €/Monat), ggf. plus die
+                Cloud-TSE-Gebühr (siehe Betreiber-Leitfaden).
+              </dd>
+            </dl>
+          </section>
+
+          <!-- ============ GLOSSAR ============ -->
+          <section class="guide-chapter" id="glossar">
+            <h2>Glossar</h2>
+            <div class="table-wrapper">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Begriff</th>
+                    <th>Einfache Erklärung</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Self-hosted</td>
+                    <td>
+                      Ihr betreibt die Software auf eurer eigenen Hardware,
+                      nicht in einer fremden Cloud.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Docker</td>
+                    <td>
+                      Programm, das jotti samt Datenbank in fertigen
+                      „Containern" startet &mdash; ohne Installieren.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Container</td>
+                    <td>
+                      Ein abgeschlossenes Paket mit einem laufenden Programmteil
+                      (Datenbank, Backend, Frontend).
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>VPS</td>
+                    <td>
+                      „Virtual Private Server" &mdash; ein kleiner, gemieteter
+                      Server im Internet.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>WLAN / LAN</td>
+                    <td>Euer lokales (Funk-)Netzwerk vor Ort.</td>
+                  </tr>
+                  <tr>
+                    <td>IP-Adresse</td>
+                    <td>
+                      Die „Hausnummer" eines Geräts im Netzwerk, z.&nbsp;B.
+                      <code>192.168.1.50</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Domain</td>
+                    <td>
+                      Eine Internet-Adresse wie
+                      <code>kasse-musterverein.de</code>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>HTTPS / TLS</td>
+                    <td>
+                      Verschlüsselte Verbindung im Internet (Schloss-Symbol im
+                      Browser).
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Let's Encrypt</td>
+                    <td>Kostenlose Stelle, die HTTPS-Zertifikate ausstellt.</td>
+                  </tr>
+                  <tr>
+                    <td><code>.env</code></td>
+                    <td>
+                      Konfigurationsdatei mit Passwörtern und Geheimnissen
+                      &mdash; niemals öffentlich teilen.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Reverse Proxy (nginx)</td>
+                    <td>
+                      Vermittler, der Anfragen aus dem Internet sicher an jotti
+                      weiterleitet.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Docker-Volume</td>
+                    <td>
+                      Der Speicherort, an dem Docker eure Daten dauerhaft
+                      aufbewahrt.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>SSD</td>
+                    <td>
+                      Schnelle Festplatte (Flash-Speicher) &mdash; Pflicht für
+                      flüssigen Betrieb.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Direktverkauf („Theke")</td>
+                    <td>
+                      Verkauf, bei dem sofort bar kassiert wird &mdash; kein
+                      offener Tisch-Saldo.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ============ VERWANDTE DOKUMENTE ============ -->
+          <div class="compliance-note">
+            <p><strong>Verwandte Dokumente:</strong></p>
+            <p>
+              <a href="/leitfaden-fuer-vereine/"
+                >Betreiber-Leitfaden (Recht &amp; Compliance)</a
+              >
+              ·
+              <a
+                href="https://github.com/nicograef/jotti/blob/main/docs/lizenz-und-nutzung.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Lizenz &amp; Nutzung</a
+              >
+              ·
+              <a
+                href="https://github.com/nicograef/jotti/blob/main/README.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                >README</a
+              >
+            </p>
+          </div>
+        </article>
+      </div>
+    </main>
+
+    <!--# include virtual="/partials/footer.html" -->
+
+    <script src="/js/main.js" defer></script>
+  </body>
+</html>
