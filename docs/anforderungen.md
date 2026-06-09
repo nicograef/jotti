@@ -244,7 +244,6 @@ Bei jedem Kassiervorgang muss dem Gast ein **Kassenbeleg** angeboten werden (§ 
 - [ ] Service kann pro Kassiervorgang **auf Anforderung** einen Kassenbeleg drucken (kein automatischer Druck nach jeder Zahlung)
 - [ ] Basis-Beleg enthält: Vereinsname + Adresse (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, alle Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer
 - [ ] Fehlender Kassenbeleg-Drucker erzeugt eine klare Fehlermeldung (kein stilles Scheitern)
-- [ ] Nachdruck ist möglich, ohne den Kassiervorgang zu wiederholen
 - [ ] Mit F-07: Beleg weist Nettobetrag, Steuersatz und Steuerbetrag pro Position aus
 - [ ] Mit F-02 (TSE): Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
 
@@ -294,7 +293,7 @@ Das Backend exponiert ein `TSEClient`-Interface für die Kommunikation mit einer
 - [ ] TSE-Transaktion bei Bestellung, Zahlung, Stornierung, **Auszahlung**, Geldtransit (Kassenbewegungen), Kassendifferenz, Direktverkauf und Tagesabschluss (vollständiges Mapping → [handbuch.md §3.13](handbuch.md))
 - [ ] Event-Daten um TSE-Felder erweitert (Signatur, Transaktionsnummer, Signaturzähler, TSE-Seriennummer)
 - [ ] Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
-- [ ] QR-Code auf Beleg (DSFinV-K Anhang I)
+- [ ] Optional? QR-Code auf Beleg (DSFinV-K Anhang I)
 
 ---
 
