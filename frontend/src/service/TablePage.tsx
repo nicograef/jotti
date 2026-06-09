@@ -158,6 +158,7 @@ export function TablePage() {
               tisch={tisch}
               backend={tischBackend}
               onStornierungErteilt={reload}
+              onBestellungUmgebucht={reload}
             />
           )}
         </TabsContent>

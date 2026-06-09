@@ -248,17 +248,17 @@ Toast „Bestellung umgebucht." + Reload von Historie und Saldo.
 
 ### Acceptance criteria
 
-- [ ] `getUmbuchbarePositionen` liefert nur unbezahlte, nicht-stornierte Positionen je
+- [x] `getUmbuchbarePositionen` liefert nur unbezahlte, nicht-stornierte Positionen je
       Bestellung mit korrekten Restmengen nach Teil-Zahlung/Teil-Stornierung; leere Liste,
       wenn alles bezahlt/storniert (Vitest). `getStornierbarePositionen` bleibt korrekt
       und ist nun ebenfalls getestet.
-- [ ] „Umbuchen"-Aktion erscheint nur bei `canCancel` **und** vorhandenen umbuchbaren
+- [x] „Umbuchen"-Aktion erscheint nur bei `canCancel` **und** vorhandenen umbuchbaren
       Positionen; bei leerer Auswahl wird kein Drawer geöffnet (US-20).
-- [ ] Drawer erlaubt Mengenauswahl (Default: alle umbuchbaren Positionen) **und** Ziel-
+- [x] Drawer erlaubt Mengenauswahl (Default: alle umbuchbaren Positionen) **und** Ziel-
       Tisch-Auswahl aus aktiven Tischen ohne den Quell-Tisch; kein Kommentarfeld.
-- [ ] `bestellungUmbuchen` validiert per Zod und ruft den Endpunkt über den
+- [x] `bestellungUmbuchen` validiert per Zod und ruft den Endpunkt über den
       `BackendClient` auf (kein direktes `fetch`).
-- [ ] Fehlercode `position_nicht_umbuchbar` zeigt eine verständliche deutsche Meldung
+- [x] Fehlercode `position_nicht_umbuchbar` zeigt eine verständliche deutsche Meldung
       (Auswahl aktualisieren) (US-16).
-- [ ] Nach Erfolg: Toast „Bestellung umgebucht." + Reload von Historie und Saldo (US-22).
-- [ ] `make lint-frontend` und `make test-frontend` grün.
+- [x] Nach Erfolg: Toast „Bestellung umgebucht." + Reload von Historie und Saldo (US-22).
+- [x] `make lint-frontend` und `make test-frontend` grün.

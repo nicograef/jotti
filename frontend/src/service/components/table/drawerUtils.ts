@@ -1,5 +1,11 @@
-import type { Position, PositionRef } from '../../table/Bestellung'
+import type { Ausgabe } from '../../table/Ausgabe'
+import type { Auszahlung } from '../../table/Auszahlung'
+import type { Bestellung, Position, PositionRef } from '../../table/Bestellung'
+import type { Stornierung } from '../../table/Stornierung'
+import type { Zahlung } from '../../table/Zahlung'
 import type { ReceiptPosition } from './Receipt'
+
+type HistorieEintrag = Bestellung | Zahlung | Stornierung | Ausgabe | Auszahlung
 
 export function selectPositionen(
   positionen: Position[],
@@ -67,4 +73,74 @@ export function toPositionRefs(positionen: Position[]): PositionRef[] {
     positionId: p.positionId,
     menge: p.menge,
   }))
+}
+
+export function getStornierbarePositionen(
+  bestellung: Bestellung,
+  historie: HistorieEintrag[],
+) {
+  const stornierteMengen = new Map<string, number>()
+
+  historie.forEach((item) => {
+    if (!Object.prototype.hasOwnProperty.call(item, 'storniertAm')) {
+      return
+    }
+
+    const stornierung = item as Stornierung
+    stornierung.positionen.forEach((position) => {
+      const bisherigeMenge = stornierteMengen.get(position.positionId) ?? 0
+      stornierteMengen.set(position.positionId, bisherigeMenge + position.menge)
+    })
+  })
+
+  return bestellung.positionen.flatMap((position) => {
+    const verbleibendeMenge =
+      position.menge - (stornierteMengen.get(position.positionId) ?? 0)
+    if (verbleibendeMenge <= 0) {
+      return []
+    }
+
+    return [{ ...position, menge: verbleibendeMenge }]
+  })
+}
+
+export function getUmbuchbarePositionen(
+  bestellung: Bestellung,
+  historie: HistorieEintrag[],
+) {
+  const stornierteMengen = new Map<string, number>()
+  const bezahlteMengen = new Map<string, number>()
+
+  historie.forEach((item) => {
+    if (Object.prototype.hasOwnProperty.call(item, 'storniertAm')) {
+      const stornierung = item as Stornierung
+      stornierung.positionen.forEach((position) => {
+        const bisherigeMenge = stornierteMengen.get(position.positionId) ?? 0
+        stornierteMengen.set(
+          position.positionId,
+          bisherigeMenge + position.menge,
+        )
+      })
+      return
+    }
+
+    if (Object.prototype.hasOwnProperty.call(item, 'kassiertAm')) {
+      const zahlung = item as Zahlung
+      zahlung.positionen.forEach((position) => {
+        const bisherigeMenge = bezahlteMengen.get(position.positionId) ?? 0
+        bezahlteMengen.set(position.positionId, bisherigeMenge + position.menge)
+      })
+    }
+  })
+
+  return bestellung.positionen.flatMap((position) => {
+    const storniert = stornierteMengen.get(position.positionId) ?? 0
+    const bezahlt = bezahlteMengen.get(position.positionId) ?? 0
+    const verbleibendeMenge = position.menge - storniert - bezahlt
+    if (verbleibendeMenge <= 0) {
+      return []
+    }
+
+    return [{ ...position, menge: verbleibendeMenge }]
+  })
 }

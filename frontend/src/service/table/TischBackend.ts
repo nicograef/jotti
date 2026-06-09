@@ -33,6 +33,7 @@ import {
   type TischSession,
   TischSessionSchema,
 } from './Tisch'
+import { BestellungUmbuchenSchema } from './Umbuchung'
 import { type Zahlung, ZahlungKassierenSchema, ZahlungSchema } from './Zahlung'
 
 export class TischBackend {
@@ -77,6 +78,13 @@ export class TischBackend {
   ): Promise<void> {
     const body = StornierungErteilenSchema.parse(stornierung)
     await this.backend.post('serviceleitung/stornierung-erteilen', body)
+  }
+
+  public async bestellungUmbuchen(
+    umbuchung: z.infer<typeof BestellungUmbuchenSchema>,
+  ): Promise<void> {
+    const body = BestellungUmbuchenSchema.parse(umbuchung)
+    await this.backend.post('serviceleitung/bestellung-umbuchen', body)
   }
 
   public async auszahlungLeisten(

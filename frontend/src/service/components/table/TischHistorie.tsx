@@ -1,4 +1,4 @@
-import { Eye, X } from 'lucide-react'
+import { ArrowRightLeft, Eye, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -33,8 +33,13 @@ import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import type { Zahlung } from '../../table/Zahlung'
 import { Kommentar } from './CommentField'
-import { toReceiptItems } from './drawerUtils'
+import {
+  getStornierbarePositionen,
+  getUmbuchbarePositionen,
+  toReceiptItems,
+} from './drawerUtils'
 import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
+import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 import { Receipt, type ReceiptPosition } from './Receipt'
 
 interface TischHistorieProps {
@@ -42,8 +47,12 @@ interface TischHistorieProps {
   historieLoading: boolean
   userId: number | null
   tisch: Tisch
-  backend: Pick<TischBackend, 'stornierungErteilen' | 'belegDrucken'>
+  backend: Pick<
+    TischBackend,
+    'stornierungErteilen' | 'bestellungUmbuchen' | 'belegDrucken'
+  >
   onStornierungErteilt: () => void
+  onBestellungUmgebucht: () => void
 }
 
 const initialBestellungState: {
@@ -93,6 +102,7 @@ export function TischHistorie({
   tisch,
   backend,
   onStornierungErteilt,
+  onBestellungUmgebucht,
 }: TischHistorieProps) {
   const [bestellung, setBestellung] = useState(initialBestellungState)
   const [zahlung, setZahlung] = useState(initialZahlungState)
@@ -100,6 +110,8 @@ export function TischHistorie({
   const [ausgabe, setAusgabe] = useState(initialAusgabeState)
   const [auszahlung, setAuszahlung] = useState(initialAuszahlungState)
   const [stornierenBestellung, setStornierenBestellung] =
+    useState<Bestellung | null>(null)
+  const [umbuchenBestellung, setUmbuchenBestellung] =
     useState<Bestellung | null>(null)
   const { loading: belegDruckenLoading, run: runBelegDrucken } =
     useActionSubmit({
@@ -141,6 +153,14 @@ export function TischHistorie({
                 Object.prototype.hasOwnProperty.call(item, 'aufgenommenAm')
               ) {
                 const bestellung = item as Bestellung
+                const stornierbarePositionen = getStornierbarePositionen(
+                  bestellung,
+                  historie,
+                )
+                const umbuchbarePositionen = getUmbuchbarePositionen(
+                  bestellung,
+                  historie,
+                )
                 return (
                   <HistoryItem
                     key={item.id}
@@ -153,9 +173,16 @@ export function TischHistorie({
                     }}
                     onStornieren={
                       AuthSingleton.canCancel &&
-                      getStornierbarePositionen(bestellung, historie).length > 0
+                      stornierbarePositionen.length > 0
                         ? () => {
                             setStornierenBestellung(bestellung)
+                          }
+                        : undefined
+                    }
+                    onUmbuchen={
+                      AuthSingleton.canCancel && umbuchbarePositionen.length > 0
+                        ? () => {
+                            setUmbuchenBestellung(bestellung)
                           }
                         : undefined
                     }
@@ -313,38 +340,23 @@ export function TischHistorie({
           }}
         />
       )}
+      {umbuchenBestellung && (
+        <HistorieUmbuchungDrawer
+          backend={backend}
+          tisch={tisch}
+          bestellung={umbuchenBestellung}
+          positionen={getUmbuchbarePositionen(umbuchenBestellung, historie)}
+          onClose={() => {
+            setUmbuchenBestellung(null)
+          }}
+          onBestellungUmgebucht={() => {
+            setUmbuchenBestellung(null)
+            onBestellungUmgebucht()
+          }}
+        />
+      )}
     </>
   )
-}
-
-function getStornierbarePositionen(
-  bestellung: Bestellung,
-  historie: (Bestellung | Zahlung | Stornierung | Ausgabe | Auszahlung)[],
-) {
-  const stornierteMengen = new Map<string, number>()
-
-  historie.forEach((item) => {
-    if (Object.prototype.hasOwnProperty.call(item, 'storniertAm')) {
-      const stornierung = item as Stornierung
-      stornierung.positionen.forEach((position) => {
-        const bisherigeMenge = stornierteMengen.get(position.positionId) ?? 0
-        stornierteMengen.set(
-          position.positionId,
-          bisherigeMenge + position.menge,
-        )
-      })
-    }
-  })
-
-  return bestellung.positionen.flatMap((position) => {
-    const verbleibendeMenge =
-      position.menge - (stornierteMengen.get(position.positionId) ?? 0)
-    if (verbleibendeMenge <= 0) {
-      return []
-    }
-
-    return [{ ...position, menge: verbleibendeMenge }]
-  })
 }
 
 function HistoryItem({
@@ -354,6 +366,7 @@ function HistoryItem({
   kommentar,
   onClick,
   onStornieren,
+  onUmbuchen,
 }: {
   title: string
   date: string
@@ -361,6 +374,7 @@ function HistoryItem({
   kommentar: string
   onClick: () => void
   onStornieren?: () => void
+  onUmbuchen?: () => void
 }) {
   return (
     <Item variant="outline" className={isFromUser ? 'border-primary' : ''}>
@@ -386,6 +400,17 @@ function HistoryItem({
             onClick={onStornieren}
           >
             <X />
+          </Button>
+        )}
+        {onUmbuchen && (
+          <Button
+            size="icon-sm"
+            variant="outline"
+            className="rounded-full cursor-pointer"
+            aria-label="Umbuchen"
+            onClick={onUmbuchen}
+          >
+            <ArrowRightLeft />
           </Button>
         )}
         <Button
