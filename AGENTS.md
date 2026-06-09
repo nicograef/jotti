@@ -24,6 +24,7 @@ Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht autom
 | `docs/handbuch.md`            | Architektur, Bounded Contexts, Invarianten, Event-Sourcing, Schichtenarchitektur, Read Models, Tagesabschluss, Bondruck                | Architekturentscheidungen, Invarianten, Endpunkte entwerfen |
 | `docs/language.md`            | Verbindliche Fachbegriffe, Namenskonventionen pro Schicht (Go, TS, JSON, DB), Ist/Soll-Abweichungen                                    | Benennungen klären, neue Felder/Typen benennen              |
 | `docs/produktbeschreibung.md` | Produktidentität, Positionierung, Personas, Abgrenzung                                                                                 | Zielgruppe verstehen, Positionierung                        |
+| `docs/steuerrecht.md`         | Umsatzsteuerrecht Gastronomie ab 2026: Steuersätze, Ausnahmen, Kombi-Splitting, Gutscheine, Belegpflichtangaben                        | Steuerregeln verstehen, Steuersatz-Zuordnung, F-07-Arbeit   |
 | `docs/compliance.md`          | KassenSichV, GoBD, DSFinV-K, ELSTER; Betreiberpflichten, TSE-Adapter-Interface                                                         | Compliance-Features implementieren, Betreiberdokumentation  |
 
 ## Tech-Stack

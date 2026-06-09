@@ -237,7 +237,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 
 > **Prio:** Must-have
 
-Jedes Produkt wird einem Steuersatz zugeordnet. jotti unterstützt die in Deutschland relevanten Steuersätze: 19 % (Standardsatz, z. B. Getränke), 7 % (ermäßigt, z. B. Speisen), 0 % / steuerbefreit (Zweckbetrieb). Der Steuersatz wird im Kassenbeleg, in der Tagesabrechnung und im DSFinV-K-Export ausgewiesen.
+Jedes Produkt wird einem Steuersatz zugeordnet. jotti unterstützt die in Deutschland relevanten Steuersätze: 19 % (Standardsatz, z. B. Getränke), 7 % (ermäßigt, z. B. Speisen), 0 % / steuerbefreit (Zweckbetrieb). Der Steuersatz wird im Kassenbeleg, in der Tagesabrechnung und im DSFinV-K-Export ausgewiesen. Rechtsgrundlage und Sonderregeln: [steuerrecht.md](steuerrecht.md).
 
 **Akzeptanzkriterien:**
 

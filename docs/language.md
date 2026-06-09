@@ -486,7 +486,7 @@ Separater Dienst (`cmd/relay/`), der Druckaufträge an lokale ESC/POS-Drucker we
 
 ### Gastronomie & Betrieb
 
-- **Inhaus / Außerhaus:** Unterscheidung Vor-Ort-Verzehr (19 % MwSt.) vs. Mitnahme (7 % MwSt.); in jotti über `Steuersatz` pro Produkt konfiguriert.
+- **Inhaus / Außerhaus:** Historische Unterscheidung des Verzehrorts. Seit 1.1.2026 für die Steuersatzbestimmung **irrelevant** — Speisen unterliegen einheitlich 7 %, Getränke 19 %, unabhängig vom Verzehrort. In jotti wird der Steuersatz direkt pro Produkt konfiguriert (siehe [steuerrecht.md](steuerrecht.md)).
 - **Trinkgeld:** Trinkgeld an den Verein ist voll steuerpflichtig; direkt an die Servicekraft in der Regel steuerfrei. Hinweis für Betreiber: `docs/compliance.md`.
 - **BYOD (Bring Your Own Device):** Servicekräfte nutzen eigene Smartphones; kein App-Install nötig.
 - **Belegausgabepflicht (Bonpflicht):** Gesetzliche Pflicht nach § 146a Abs. 2 AO — Beleg nach jedem Kassiervorgang. Siehe → **Kassenbeleg**.
