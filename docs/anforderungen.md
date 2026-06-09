@@ -220,7 +220,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | ID   | Titel               | Phase | Status                     | Prio        |
 | ---- | ------------------- | ----- | -------------------------- | ----------- |
 | F-01 | Seriennummer        | 1     | ✅                         | Must        |
-| F-07 | Steuersätze         | 1     | 🔲 Offen                   | Must        |
+| F-07 | Steuersätze         | 1     | ✅                         | Must        |
 | F-03 | Belegausgabepflicht | 1/2   | 🔲 Offen                   | Must        |
 | F-05 | ELSTER-Meldung      | 1     | 🔲 Offen                   | Must (Doku) |
 | F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung | Should      |
@@ -230,22 +230,6 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | F-08 | GoBD-Hash-Chain     | 3     | 🔲 Offen                   | Nice        |
 
 **Legende:** ✅ Implementiert · 🔲 Offen · ⏳ In Arbeit — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
-
----
-
-#### F-07 · Steuersätze
-
-> **Prio:** Must-have
-
-Jedes Produkt wird einem Steuersatz zugeordnet. jotti unterstützt die in Deutschland relevanten Steuersätze: 19 % (Standardsatz, z. B. Getränke), 7 % (ermäßigt, z. B. Speisen), 0 % / steuerbefreit (Zweckbetrieb). Der Steuersatz wird im Kassenbeleg, in der Tagesabrechnung und im DSFinV-K-Export ausgewiesen. Rechtsgrundlage und Sonderregeln: [steuerrecht.md](steuerrecht.md).
-
-**Akzeptanzkriterien:**
-
-- [ ] Produkte haben ein Pflichtfeld `steuersatz` mit Enum-Werten: `standard` (19 %), `ermaessigt` (7 %), `befreit` (0 %)
-- [ ] Steuersatz wird im Admin-Bereich bei der Produktanlage/-bearbeitung auswählbar angezeigt
-- [ ] Steuersatz wird in `bestellung-aufgenommen:v1`-Events als Fat Event mitgespeichert (unveränderlich für historische Auswertungen)
-- [ ] Tagesabrechnung weist Umsätze nach Steuersatz aufgeschlüsselt aus
-- [ ] Kassenbeleg zeigt Nettobetrag, Steuersatz und Steuerbetrag pro Position
 
 ---
 
@@ -300,7 +284,7 @@ Der `ABRECHNUNGSKREIS` im Sinne der DSFinV-K ist pro Tisch und Kassensitzung: Je
 
 > **Prio:** Should-have
 
-Das Backend exponiert ein `TSEClient`-Interface für die Kommunikation mit einer zertifizierten Cloud-TSE (primär: fiskaly). Das Interface abstrahiert den TSE-Anbieter. Die TSE-API-Schlüssel werden über Umgebungsvariablen injiziert (BYOT-Modell). Nach der Adapter-Implementierung werden TSE-Transaktionen in den Zahlungsfluss eingehängt und TSE-Felder auf dem Beleg ausgegeben.
+Das Backend exponiert ein `TSEClient`-Interface für die Kommunikation mit einer zertifizierten Cloud-TSE (primär: fiskaly). Das Interface abstrahiert den TSE-Anbieter. Die TSE-API-Schlüssel werden über UI in der Datenbank gespeichert (BYOT-Modell). Nach der Adapter-Implementierung werden TSE-Transaktionen in den Zahlungsfluss eingehängt und TSE-Felder auf dem Beleg ausgegeben.
 
 **Akzeptanzkriterien:**
 
