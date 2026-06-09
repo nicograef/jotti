@@ -84,12 +84,12 @@ Ein neues Paket `backend/domain/steuer/` mit:
 
 ### Acceptance criteria
 
-- [ ] `backend/domain/steuer/steuer.go` existiert mit Typ, Konstanten, `Prozent()`-Methode, `Aufteilen()`-Funktion
-- [ ] `backend/domain/steuer/steuer_test.go` existiert mit tabellengetriebenen Tests
-- [ ] Invariante Netto + Steuer = Brutto gilt für alle Testfälle (inklusive kombi-Anteile)
-- [ ] Kombi-Aufteilung: Summe der Brutto-Anteile = Gesamt-Brutto (kein Rundungsverlust)
-- [ ] zog-Schema validiert nur die 4 erlaubten Werte und gibt deutsche Fehlermeldung bei Verstoß
-- [ ] `make test` und `make lint` bestehen
+- [x] `backend/domain/steuer/steuer.go` existiert mit Typ, Konstanten, `Prozent()`-Methode, `Aufteilen()`-Funktion
+- [x] `backend/domain/steuer/steuer_test.go` existiert mit tabellengetriebenen Tests
+- [x] Invariante Netto + Steuer = Brutto gilt für alle Testfälle (inklusive kombi-Anteile)
+- [x] Kombi-Aufteilung: Summe der Brutto-Anteile = Gesamt-Brutto (kein Rundungsverlust)
+- [x] zog-Schema validiert nur die 4 erlaubten Werte und gibt deutsche Fehlermeldung bei Verstoß
+- [x] `make test` und `make lint` bestehen
 
 ---
 
