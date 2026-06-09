@@ -5,6 +5,7 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
 // Kategorie represents the category of a product.
@@ -20,13 +21,14 @@ const (
 )
 
 type Produkt struct {
-	ID        int
-	Name      string
-	Kategorie Kategorie
-	Status    Status
-	Varianten []Variante
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID         int
+	Name       string
+	Kategorie  Kategorie
+	Steuersatz steuer.Steuersatz
+	Status     Status
+	Varianten  []Variante
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // IDSchema defines the schema for a product ID.
@@ -41,14 +43,17 @@ var KategorieSchema = z.StringLike[Kategorie]().OneOf(
 	z.Message("Ungültige Kategorie"),
 )
 
+var SteuersatzSchema = steuer.SteuersatzSchema
+
 var ProduktSchema = z.Struct(z.Shape{
-	"ID":        IDSchema.Required(),
-	"Name":      NameSchema.Required(),
-	"Kategorie": KategorieSchema.Required(),
-	"Status":    StatusSchema.Required(),
-	"Varianten": z.Slice(VarianteSchema).Required(),
-	"CreatedAt": z.Time().Required(),
-	"UpdatedAt": z.Time().Required(),
+	"ID":         IDSchema.Required(),
+	"Name":       NameSchema.Required(),
+	"Kategorie":  KategorieSchema.Required(),
+	"Steuersatz": SteuersatzSchema.Required(),
+	"Status":     StatusSchema.Required(),
+	"Varianten":  z.Slice(VarianteSchema).Required(),
+	"CreatedAt":  z.Time().Required(),
+	"UpdatedAt":  z.Time().Required(),
 })
 
 func (p Produkt) Validate() error {
@@ -61,7 +66,7 @@ func (p Produkt) Validate() error {
 
 // NewProduct creates a new Product instance after validating the input parameters.
 // The new Product does not have an ID assigned; it is expected to be set by the persistence layer.
-func NewProdukt(name string, kategorie Kategorie) (Produkt, error) {
+func NewProdukt(name string, kategorie Kategorie, steuersatz steuer.Steuersatz) (Produkt, error) {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return Produkt{}, fmt.Errorf("invalid name")
 	}
@@ -70,19 +75,24 @@ func NewProdukt(name string, kategorie Kategorie) (Produkt, error) {
 		return Produkt{}, fmt.Errorf("invalid category")
 	}
 
+	if issue := SteuersatzSchema.Validate(&steuersatz); issue != nil {
+		return Produkt{}, fmt.Errorf("invalid tax rate")
+	}
+
 	produkt := Produkt{
-		Name:      name,
-		Kategorie: kategorie,
-		Status:    ActiveStatus,
-		Varianten: []Variante{},
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+		Name:       name,
+		Kategorie:  kategorie,
+		Steuersatz: steuersatz,
+		Status:     ActiveStatus,
+		Varianten:  []Variante{},
+		CreatedAt:  time.Now().UTC(),
+		UpdatedAt:  time.Now().UTC(),
 	}
 
 	return produkt, nil
 }
 
-func (p *Produkt) UpdateDetails(name string, kategorie Kategorie) error {
+func (p *Produkt) UpdateDetails(name string, kategorie Kategorie, steuersatz steuer.Steuersatz) error {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return fmt.Errorf("invalid name")
 	}
@@ -91,8 +101,13 @@ func (p *Produkt) UpdateDetails(name string, kategorie Kategorie) error {
 		return fmt.Errorf("invalid category")
 	}
 
+	if issue := SteuersatzSchema.Validate(&steuersatz); issue != nil {
+		return fmt.Errorf("invalid tax rate")
+	}
+
 	p.Name = name
 	p.Kategorie = kategorie
+	p.Steuersatz = steuersatz
 	p.UpdatedAt = time.Now().UTC()
 
 	return nil

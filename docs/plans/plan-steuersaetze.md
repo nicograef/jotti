@@ -123,14 +123,14 @@ End-to-end: DB-Enum + Spalte → sqlc-Queries → Repository → Domain-Modell �
 
 ### Acceptance criteria
 
-- [ ] DB-Schema enthält `Steuersatz`-Enum und `produkte.steuersatz NOT NULL`
-- [ ] Produkt anlegen ohne Steuersatz → Validierungsfehler (Backend + Frontend)
-- [ ] Produkt anlegen mit `steuersatz: "ermaessigt"` → erfolgreich, Wert in DB und Response
-- [ ] Produkt bearbeiten → Steuersatz änderbar
-- [ ] Frontend: Kategorie-Wechsel setzt Default (essen → ermaessigt, getraenk → regel)
-- [ ] Frontend: beim Bearbeiten ist der gespeicherte Satz vorausgewählt
-- [ ] Seed-Daten laden fehlerfrei (`make dev`)
-- [ ] `make check` besteht (lint + unit tests + build)
+- [x] DB-Schema enthält `Steuersatz`-Enum und `produkte.steuersatz NOT NULL`
+- [x] Produkt anlegen ohne Steuersatz → Validierungsfehler (Backend + Frontend)
+- [x] Produkt anlegen mit `steuersatz: "ermaessigt"` → erfolgreich, Wert in DB und Response
+- [x] Produkt bearbeiten → Steuersatz änderbar
+- [x] Frontend: Kategorie-Wechsel setzt Default (essen → ermaessigt, getraenk → regel)
+- [x] Frontend: beim Bearbeiten ist der gespeicherte Satz vorausgewählt
+- [x] Seed-Daten laden fehlerfrei (`make dev`)
+- [x] `make check` besteht (lint + unit tests + build)
 
 ---
 

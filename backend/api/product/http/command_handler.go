@@ -8,11 +8,12 @@ import (
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/product/application"
 	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
 type command interface {
-	CreateProduct(ctx context.Context, name string, kategorie product.Kategorie) (int, error)
-	UpdateProduct(ctx context.Context, id int, name string, kategorie product.Kategorie) error
+	CreateProduct(ctx context.Context, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) (int, error)
+	UpdateProduct(ctx context.Context, id int, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) error
 	DeleteProdukt(ctx context.Context, productID int) error
 	CreateVariant(ctx context.Context, productID int, name string, preisCents int) (int, error)
 	UpdateVariant(ctx context.Context, variantID int, name string, preisCents int) error
@@ -28,9 +29,16 @@ type CommandHandler struct {
 // Product handlers
 
 type createProductRequest struct {
-	Name      string            `json:"name"`
-	Kategorie product.Kategorie `json:"kategorie"`
+	Name       string            `json:"name"`
+	Kategorie  product.Kategorie `json:"kategorie"`
+	Steuersatz steuer.Steuersatz `json:"steuersatz"`
 }
+
+var createProductSchema = z.Struct(z.Shape{
+	"Name":       product.NameSchema.Required(),
+	"Kategorie":  product.KategorieSchema.Required(),
+	"Steuersatz": steuer.SteuersatzSchema.Required(),
+})
 
 type createProductResponse struct {
 	ID int `json:"id"`
@@ -39,11 +47,11 @@ type createProductResponse struct {
 func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := createProductRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, createProductSchema) {
 			return
 		}
 
-		id, err := h.Command.CreateProduct(r.Context(), body.Name, body.Kategorie)
+		id, err := h.Command.CreateProduct(r.Context(), body.Name, body.Kategorie, body.Steuersatz)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				application.ErrProduktAlreadyExists: "produkt_already_exists",
@@ -57,19 +65,27 @@ func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 }
 
 type updateProductRequest struct {
-	ID        int               `json:"id"`
-	Name      string            `json:"name"`
-	Kategorie product.Kategorie `json:"kategorie"`
+	ID         int               `json:"id"`
+	Name       string            `json:"name"`
+	Kategorie  product.Kategorie `json:"kategorie"`
+	Steuersatz steuer.Steuersatz `json:"steuersatz"`
 }
+
+var updateProductSchema = z.Struct(z.Shape{
+	"ID":         product.IDSchema.Required(),
+	"Name":       product.NameSchema.Required(),
+	"Kategorie":  product.KategorieSchema.Required(),
+	"Steuersatz": steuer.SteuersatzSchema.Required(),
+})
 
 func (h *CommandHandler) UpdateProductHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := updateProductRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, updateProductSchema) {
 			return
 		}
 
-		err := h.Command.UpdateProduct(r.Context(), body.ID, body.Name, body.Kategorie)
+		err := h.Command.UpdateProduct(r.Context(), body.ID, body.Name, body.Kategorie, body.Steuersatz)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				application.ErrProduktNotFound:    "produkt_not_found",

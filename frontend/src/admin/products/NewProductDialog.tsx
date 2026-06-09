@@ -1,11 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus } from 'lucide-react'
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { CategoryField, NameField } from '@/components/common/FormFields'
+import {
+  CategoryField,
+  NameField,
+  SteuersatzField,
+} from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -21,7 +25,11 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 
-import { Kategorie, type Produkt } from './Produkt'
+import {
+  defaultSteuersatzByKategorie,
+  Kategorie,
+  type Produkt,
+} from './Produkt'
 import { CreateProduktSchema, ProduktBackend } from './ProduktBackend'
 
 const FormDataSchema = CreateProduktSchema
@@ -39,10 +47,19 @@ export function NewProductDialog(props: NewProductDialogProps) {
     defaultValues: {
       name: '',
       kategorie: Kategorie.ESSEN,
+      steuersatz: defaultSteuersatzByKategorie(Kategorie.ESSEN),
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
+
+  const kategorie = useWatch({ control: form.control, name: 'kategorie' })
+
+  useEffect(() => {
+    form.setValue('steuersatz', defaultSteuersatzByKategorie(kategorie), {
+      shouldValidate: true,
+    })
+  }, [form, kategorie])
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
@@ -101,6 +118,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
               placeholder="Produktname eingeben"
             />
             <CategoryField form={form} withLabel />
+            <SteuersatzField form={form} withLabel />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">

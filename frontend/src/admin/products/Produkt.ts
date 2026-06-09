@@ -7,6 +7,14 @@ export const Kategorie = {
 } as const
 export type Kategorie = (typeof Kategorie)[keyof typeof Kategorie]
 
+export const Steuersatz = {
+  REGEL: 'regel',
+  ERMAESSIGT: 'ermaessigt',
+  BEFREIT: 'befreit',
+  KOMBI: 'kombi',
+} as const
+export type Steuersatz = (typeof Steuersatz)[keyof typeof Steuersatz]
+
 export const VarianteStatus = {
   ACTIVE: 'active',
   INACTIVE: 'inactive',
@@ -27,10 +35,19 @@ const PreisCentsSchema = z
   .min(0, { message: 'Preis muss mindestens 0 Cent sein.' })
   .max(99999, { message: 'Preis darf maximal 999,99 € betragen.' })
 const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
+const SteuersatzSchema = z.enum(['regel', 'ermaessigt', 'befreit', 'kombi'])
 const VarianteStatusSchema = z.enum(['active', 'inactive'])
 const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {
   message: 'Ungültiges Datumsformat',
 })
+
+export function defaultSteuersatzByKategorie(kategorie: Kategorie): Steuersatz {
+  if (kategorie === Kategorie.ESSEN) {
+    return Steuersatz.ERMAESSIGT
+  }
+
+  return Steuersatz.REGEL
+}
 
 export const VarianteSchema = z.object({
   id: VarianteIdSchema,
@@ -46,6 +63,7 @@ export const ProduktSchema = z.object({
   id: ProduktIdSchema,
   name: NameSchema,
   kategorie: KategorieSchema,
+  steuersatz: SteuersatzSchema,
   status: VarianteStatusSchema,
   varianten: z.array(VarianteSchema),
   createdAt: DateStringSchema,

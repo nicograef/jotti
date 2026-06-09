@@ -13,22 +13,24 @@ import (
 )
 
 const createProdukt = `-- name: CreateProdukt :one
-INSERT INTO produkte (name, kategorie, status, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5) RETURNING id
+INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
 `
 
 type CreateProduktParams struct {
-	Name      string
-	Kategorie Produktkategorie
-	Status    Entitystatus
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Name       string
+	Kategorie  Produktkategorie
+	Steuersatz Steuersatz
+	Status     Entitystatus
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 func (q *Queries) CreateProdukt(ctx context.Context, arg CreateProduktParams) (int, error) {
 	row := q.db.QueryRowContext(ctx, createProdukt,
 		arg.Name,
 		arg.Kategorie,
+		arg.Steuersatz,
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -88,6 +90,7 @@ SELECT
     p.id,
     p.name,
     p.kategorie,
+    p.steuersatz,
     p.status,
     p.created_at,
     p.updated_at,
@@ -99,13 +102,14 @@ ORDER BY p.id ASC
 `
 
 type GetAktiveProdukteRow struct {
-	ID        int
-	Name      string
-	Kategorie Produktkategorie
-	Status    Entitystatus
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Varianten json.RawMessage
+	ID         int
+	Name       string
+	Kategorie  Produktkategorie
+	Steuersatz Steuersatz
+	Status     Entitystatus
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Varianten  json.RawMessage
 }
 
 func (q *Queries) GetAktiveProdukte(ctx context.Context) ([]GetAktiveProdukteRow, error) {
@@ -121,6 +125,7 @@ func (q *Queries) GetAktiveProdukte(ctx context.Context) ([]GetAktiveProdukteRow
 			&i.ID,
 			&i.Name,
 			&i.Kategorie,
+			&i.Steuersatz,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -161,6 +166,7 @@ SELECT
     p.id,
     p.name,
     p.kategorie,
+    p.steuersatz,
     p.status,
     p.created_at,
     p.updated_at,
@@ -172,13 +178,14 @@ ORDER BY p.id ASC
 `
 
 type GetAlleProdukteRow struct {
-	ID        int
-	Name      string
-	Kategorie Produktkategorie
-	Status    Entitystatus
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Varianten json.RawMessage
+	ID         int
+	Name       string
+	Kategorie  Produktkategorie
+	Steuersatz Steuersatz
+	Status     Entitystatus
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Varianten  json.RawMessage
 }
 
 func (q *Queries) GetAlleProdukte(ctx context.Context) ([]GetAlleProdukteRow, error) {
@@ -194,6 +201,7 @@ func (q *Queries) GetAlleProdukte(ctx context.Context) ([]GetAlleProdukteRow, er
 			&i.ID,
 			&i.Name,
 			&i.Kategorie,
+			&i.Steuersatz,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -217,6 +225,7 @@ SELECT
     p.id,
     p.name,
     p.kategorie,
+    p.steuersatz,
     p.status,
     p.created_at,
     p.updated_at,
@@ -240,13 +249,14 @@ WHERE p.id = $1 AND p.status != 'deleted'
 `
 
 type GetProduktRow struct {
-	ID        int
-	Name      string
-	Kategorie Produktkategorie
-	Status    Entitystatus
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Varianten json.RawMessage
+	ID         int
+	Name       string
+	Kategorie  Produktkategorie
+	Steuersatz Steuersatz
+	Status     Entitystatus
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Varianten  json.RawMessage
 }
 
 func (q *Queries) GetProdukt(ctx context.Context, id int) (GetProduktRow, error) {
@@ -256,6 +266,7 @@ func (q *Queries) GetProdukt(ctx context.Context, id int) (GetProduktRow, error)
 		&i.ID,
 		&i.Name,
 		&i.Kategorie,
+		&i.Steuersatz,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -293,21 +304,23 @@ func (q *Queries) GetVariante(ctx context.Context, id int) (GetVarianteRow, erro
 }
 
 const updateProdukt = `-- name: UpdateProdukt :execresult
-UPDATE produkte SET name = $1, kategorie = $2, status = $3, updated_at = $4 WHERE id = $5
+UPDATE produkte SET name = $1, kategorie = $2, steuersatz = $3, status = $4, updated_at = $5 WHERE id = $6
 `
 
 type UpdateProduktParams struct {
-	Name      string
-	Kategorie Produktkategorie
-	Status    Entitystatus
-	UpdatedAt time.Time
-	ID        int
+	Name       string
+	Kategorie  Produktkategorie
+	Steuersatz Steuersatz
+	Status     Entitystatus
+	UpdatedAt  time.Time
+	ID         int
 }
 
 func (q *Queries) UpdateProdukt(ctx context.Context, arg UpdateProduktParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, updateProdukt,
 		arg.Name,
 		arg.Kategorie,
+		arg.Steuersatz,
 		arg.Status,
 		arg.UpdatedAt,
 		arg.ID,

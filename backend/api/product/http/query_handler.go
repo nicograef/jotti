@@ -28,13 +28,14 @@ type variante struct {
 }
 
 type produkt struct {
-	ID        int        `json:"id"`
-	Name      string     `json:"name"`
-	Kategorie string     `json:"kategorie"`
-	Status    string     `json:"status"`
-	Varianten []variante `json:"varianten"`
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt time.Time  `json:"updatedAt"`
+	ID         int        `json:"id"`
+	Name       string     `json:"name"`
+	Kategorie  string     `json:"kategorie"`
+	Steuersatz string     `json:"steuersatz"`
+	Status     string     `json:"status"`
+	Varianten  []variante `json:"varianten"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
 }
 
 type getAllProductsResponse struct {
@@ -59,13 +60,14 @@ func toProdukt(p product.Produkt) produkt {
 	}
 
 	return produkt{
-		ID:        p.ID,
-		Name:      p.Name,
-		Kategorie: string(p.Kategorie),
-		Status:    string(p.Status),
-		Varianten: varianten,
-		CreatedAt: p.CreatedAt,
-		UpdatedAt: p.UpdatedAt,
+		ID:         p.ID,
+		Name:       p.Name,
+		Kategorie:  string(p.Kategorie),
+		Steuersatz: string(p.Steuersatz),
+		Status:     string(p.Status),
+		Varianten:  varianten,
+		CreatedAt:  p.CreatedAt,
+		UpdatedAt:  p.UpdatedAt,
 	}
 }
 

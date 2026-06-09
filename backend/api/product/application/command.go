@@ -6,6 +6,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/rs/zerolog"
 )
 
@@ -26,10 +27,10 @@ type Command struct {
 
 // Product commands
 
-func (c Command) CreateProduct(ctx context.Context, name string, kategorie product.Kategorie) (int, error) {
+func (c Command) CreateProduct(ctx context.Context, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	produkt, err := product.NewProdukt(name, kategorie)
+	produkt, err := product.NewProdukt(name, kategorie, steuersatz)
 	if err != nil {
 		log.Warn().Err(err).Str("product_name", name).Msg("Invalid product data")
 		return 0, ErrInvalidProduktData
@@ -50,7 +51,7 @@ func (c Command) CreateProduct(ctx context.Context, name string, kategorie produ
 	return productID, nil
 }
 
-func (c Command) UpdateProduct(ctx context.Context, productID int, name string, kategorie product.Kategorie) error {
+func (c Command) UpdateProduct(ctx context.Context, productID int, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) error {
 	log := zerolog.Ctx(ctx)
 
 	produkt, err := c.ProductRepo.GetProduct(ctx, productID)
@@ -64,7 +65,7 @@ func (c Command) UpdateProduct(ctx context.Context, productID int, name string, 
 		}
 	}
 
-	err = produkt.UpdateDetails(name, kategorie)
+	err = produkt.UpdateDetails(name, kategorie, steuersatz)
 	if err != nil {
 		log.Warn().Err(err).Int("product_id", productID).Msg("Invalid product data for update")
 		return ErrInvalidProduktData

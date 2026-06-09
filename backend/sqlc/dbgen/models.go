@@ -100,6 +100,50 @@ func (ns NullProduktkategorie) Value() (driver.Value, error) {
 	return string(ns.Produktkategorie), nil
 }
 
+type Steuersatz string
+
+const (
+	SteuersatzRegel      Steuersatz = "regel"
+	SteuersatzErmaessigt Steuersatz = "ermaessigt"
+	SteuersatzBefreit    Steuersatz = "befreit"
+	SteuersatzKombi      Steuersatz = "kombi"
+)
+
+func (e *Steuersatz) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = Steuersatz(s)
+	case string:
+		*e = Steuersatz(s)
+	default:
+		return fmt.Errorf("unsupported scan type for Steuersatz: %T", src)
+	}
+	return nil
+}
+
+type NullSteuersatz struct {
+	Steuersatz Steuersatz
+	Valid      bool // Valid is true if Steuersatz is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSteuersatz) Scan(value interface{}) error {
+	if value == nil {
+		ns.Steuersatz, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.Steuersatz.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSteuersatz) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.Steuersatz), nil
+}
+
 type Userrole string
 
 const (
@@ -269,6 +313,8 @@ type Produkte struct {
 	Name string
 	// Kategorie des Produkts: essen, getraenk oder sonstiges
 	Kategorie Produktkategorie
+	// Steuersatz des Produkts: regel, ermaessigt, befreit oder kombi
+	Steuersatz Steuersatz
 	// Produkt-Status: active, inactive oder deleted
 	Status Entitystatus
 	// Creation timestamp (UTC)

@@ -1,10 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useRef, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { CategoryField, NameField } from '@/components/common/FormFields'
+import {
+  CategoryField,
+  NameField,
+  SteuersatzField,
+} from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,7 +23,7 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 
-import type { Produkt } from './Produkt'
+import { defaultSteuersatzByKategorie, type Produkt } from './Produkt'
 import { ProduktBackend, UpdateProduktSchema } from './ProduktBackend'
 
 const FormDataSchema = UpdateProduktSchema.omit({ id: true })
@@ -39,10 +43,22 @@ export function EditProductDialog(props: EditProductDialogProps) {
     defaultValues: {
       name: props.product.name,
       kategorie: props.product.kategorie,
+      steuersatz: props.product.steuersatz,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
+  const previousKategorie = useRef(props.product.kategorie)
+  const kategorie = useWatch({ control: form.control, name: 'kategorie' })
+
+  useEffect(() => {
+    if (kategorie !== previousKategorie.current) {
+      previousKategorie.current = kategorie
+      form.setValue('steuersatz', defaultSteuersatzByKategorie(kategorie), {
+        shouldValidate: true,
+      })
+    }
+  }, [form, kategorie])
 
   const onOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -92,6 +108,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
           <FieldGroup>
             <NameField form={form} withLabel />
             <CategoryField form={form} withLabel />
+            <SteuersatzField form={form} withLabel />
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">

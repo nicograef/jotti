@@ -11,12 +11,14 @@ import {
 export const CreateProduktSchema = ProduktSchema.pick({
   name: true,
   kategorie: true,
+  steuersatz: true,
 })
 
 export const UpdateProduktSchema = ProduktSchema.pick({
   id: true,
   name: true,
   kategorie: true,
+  steuersatz: true,
 })
 
 export const CreateVarianteSchema = z.object({

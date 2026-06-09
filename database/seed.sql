@@ -72,29 +72,29 @@ SELECT setval(pg_get_serial_sequence('tische', 'id'), (SELECT MAX(id) FROM tisch
 -- 10 Essen, 10 Getränke, 2 Sonstiges = 22 Produkte
 -- 54 Varianten insgesamt
 
-INSERT INTO produkte (id, name, kategorie, status, created_at, updated_at) VALUES
-  (1, 'Bratwurst', 'essen', 'active', now(), now()),
-  (2, 'Pommes', 'essen', 'active', now(), now()),
-  (3, 'Flammkuchen', 'essen', 'active', now(), now()),
-  (4, 'Tagesgericht', 'essen', 'active', now(), now()),
-  (5, 'Grillplatte', 'essen', 'active', now(), now()),
-  (6, 'Salat', 'essen', 'active', now(), now()),
-  (7, 'Kuchen', 'essen', 'active', now(), now()),
-  (8, 'Waffeln', 'essen', 'active', now(), now()),
-  (9, 'Brezel', 'essen', 'active', now(), now()),
-  (10, 'Suppe', 'essen', 'inactive', now(), now()),
-  (11, 'Bier', 'getraenk', 'active', now(), now()),
-  (12, 'Weizen', 'getraenk', 'active', now(), now()),
-  (13, 'Softdrinks', 'getraenk', 'active', now(), now()),
-  (14, 'Wasser', 'getraenk', 'active', now(), now()),
-  (15, 'Saftschorle', 'getraenk', 'active', now(), now()),
-  (16, 'Wein', 'getraenk', 'active', now(), now()),
-  (17, 'Kaffee', 'getraenk', 'active', now(), now()),
-  (18, 'Tee', 'getraenk', 'active', now(), now()),
-  (19, 'Hugo/Aperol', 'getraenk', 'active', now(), now()),
-  (20, 'Glühwein', 'getraenk', 'inactive', now(), now()),
-  (21, 'Festbändchen', 'sonstiges', 'active', now(), now()),
-  (22, 'Langos', 'essen', 'deleted', now(), now());
+INSERT INTO produkte (id, name, kategorie, steuersatz, status, created_at, updated_at) VALUES
+  (1, 'Bratwurst', 'essen', 'ermaessigt', 'active', now(), now()),
+  (2, 'Pommes', 'essen', 'ermaessigt', 'active', now(), now()),
+  (3, 'Flammkuchen', 'essen', 'ermaessigt', 'active', now(), now()),
+  (4, 'Tagesgericht', 'essen', 'ermaessigt', 'active', now(), now()),
+  (5, 'Grillplatte', 'essen', 'ermaessigt', 'active', now(), now()),
+  (6, 'Salat', 'essen', 'ermaessigt', 'active', now(), now()),
+  (7, 'Kuchen', 'essen', 'ermaessigt', 'active', now(), now()),
+  (8, 'Waffeln', 'essen', 'ermaessigt', 'active', now(), now()),
+  (9, 'Brezel', 'essen', 'ermaessigt', 'active', now(), now()),
+  (10, 'Suppe', 'essen', 'ermaessigt', 'inactive', now(), now()),
+  (11, 'Bier', 'getraenk', 'regel', 'active', now(), now()),
+  (12, 'Weizen', 'getraenk', 'regel', 'active', now(), now()),
+  (13, 'Softdrinks', 'getraenk', 'regel', 'active', now(), now()),
+  (14, 'Wasser', 'getraenk', 'regel', 'active', now(), now()),
+  (15, 'Saftschorle', 'getraenk', 'regel', 'active', now(), now()),
+  (16, 'Wein', 'getraenk', 'regel', 'active', now(), now()),
+  (17, 'Kaffee', 'getraenk', 'regel', 'active', now(), now()),
+  (18, 'Tee', 'getraenk', 'regel', 'active', now(), now()),
+  (19, 'Hugo/Aperol', 'getraenk', 'regel', 'active', now(), now()),
+  (20, 'Glühwein', 'getraenk', 'regel', 'inactive', now(), now()),
+  (21, 'Festbändchen', 'sonstiges', 'befreit', 'active', now(), now()),
+  (22, 'Langos', 'essen', 'ermaessigt', 'deleted', now(), now());
 
 INSERT INTO produkt_varianten (id, produkt_id, name, preis_cents, status, created_at, updated_at) VALUES
   (1, 1, 'Normal', 350, 'active', now(), now()),

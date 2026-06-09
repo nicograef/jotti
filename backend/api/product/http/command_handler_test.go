@@ -11,17 +11,18 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/product/application"
 	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
 type mockCommand struct {
 	err error
 }
 
-func (m *mockCommand) CreateProduct(ctx context.Context, name string, kategorie product.Kategorie) (int, error) {
+func (m *mockCommand) CreateProduct(ctx context.Context, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
 	return 1, m.err
 }
 
-func (m *mockCommand) UpdateProduct(ctx context.Context, id int, name string, kategorie product.Kategorie) error {
+func (m *mockCommand) UpdateProduct(ctx context.Context, id int, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) error {
 	return m.err
 }
 
@@ -52,7 +53,7 @@ func (m *mockCommand) DeleteVariante(ctx context.Context, produktID int, variant
 func TestCreateProductHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
-	body := `{"name":"French Fries","kategorie":"essen"}`
+	body := `{"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/create-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -67,7 +68,7 @@ func TestCreateProductHandler_Success(t *testing.T) {
 func TestCreateProductHandler_Failure(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
-	body := `{"name":"French Fries","kategorie":"essen"}`
+	body := `{"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/create-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -82,7 +83,7 @@ func TestCreateProductHandler_Failure(t *testing.T) {
 func TestUpdateProductHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
-	body := `{"id":1,"name":"French Fries","kategorie":"essen"}`
+	body := `{"id":1,"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/update-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -97,7 +98,7 @@ func TestUpdateProductHandler_Success(t *testing.T) {
 func TestUpdateProductHandler_Failure(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
-	body := `{"id":1,"name":"French Fries","kategorie":"essen"}`
+	body := `{"id":1,"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/update-produkt", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()

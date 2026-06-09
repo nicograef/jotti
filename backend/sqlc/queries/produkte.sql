@@ -3,6 +3,7 @@ SELECT
     p.id,
     p.name,
     p.kategorie,
+    p.steuersatz,
     p.status,
     p.created_at,
     p.updated_at,
@@ -46,6 +47,7 @@ SELECT
     p.id,
     p.name,
     p.kategorie,
+    p.steuersatz,
     p.status,
     p.created_at,
     p.updated_at,
@@ -77,6 +79,7 @@ SELECT
     p.id,
     p.name,
     p.kategorie,
+    p.steuersatz,
     p.status,
     p.created_at,
     p.updated_at,
@@ -87,11 +90,11 @@ WHERE p.status = 'active'
 ORDER BY p.id ASC;
 
 -- name: CreateProdukt :one
-INSERT INTO produkte (name, kategorie, status, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5) RETURNING id;
+INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;
 
 -- name: UpdateProdukt :execresult
-UPDATE produkte SET name = $1, kategorie = $2, status = $3, updated_at = $4 WHERE id = $5;
+UPDATE produkte SET name = $1, kategorie = $2, steuersatz = $3, status = $4, updated_at = $5 WHERE id = $6;
 
 -- name: GetVariante :one
 SELECT id, name, preis_cents, status, created_at, updated_at

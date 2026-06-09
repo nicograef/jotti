@@ -6,6 +6,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
 // GetVariantsByIDs fetches multiple variants in a single query.
@@ -63,7 +64,7 @@ func (r Repository) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]pr
 
 // GetProductsByIDs fetches multiple products in a single query.
 // Returns a map keyed by product ID for O(1) lookup during Bestellung enrichment.
-// Only retrieves fields needed for fat-event enrichment (Name, Kategorie).
+// Only retrieves fields needed for fat-event enrichment (Name, Kategorie, Steuersatz).
 // Uses ANY($1) with a []int32 parameter; see GetVariantsByIDs for rationale.
 func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]product.Produkt, error) {
 	if len(ids) == 0 {
@@ -72,7 +73,7 @@ func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]pr
 
 	ids32 := toInt32Slice(ids)
 
-	const query = `SELECT id, name, kategorie
+	const query = `SELECT id, name, kategorie, steuersatz
 		FROM produkte
 		WHERE id = ANY($1) AND status != 'deleted'`
 
@@ -85,17 +86,19 @@ func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]pr
 	result := make(map[int]product.Produkt, len(ids))
 	for rows.Next() {
 		var (
-			id        int
-			name      string
-			kategorie string
+			id         int
+			name       string
+			kategorie  string
+			steuersatz string
 		)
-		if err := rows.Scan(&id, &name, &kategorie); err != nil {
+		if err := rows.Scan(&id, &name, &kategorie, &steuersatz); err != nil {
 			return nil, db.Error(err)
 		}
 		result[id] = product.Produkt{
-			ID:        id,
-			Name:      name,
-			Kategorie: product.Kategorie(kategorie),
+			ID:         id,
+			Name:       name,
+			Kategorie:  product.Kategorie(kategorie),
+			Steuersatz: steuer.Steuersatz(steuersatz),
 		}
 	}
 	if err := rows.Close(); err != nil {

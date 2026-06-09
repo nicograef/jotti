@@ -10,6 +10,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
 func setup(t *testing.T) (Repository, func(t *testing.T)) {
@@ -41,13 +42,22 @@ func setup(t *testing.T) (Repository, func(t *testing.T)) {
 
 func newProduct(name string, kategorie product.Kategorie) product.Produkt {
 	now := time.Now().UTC()
+	steuersatz := steuer.RegelSteuersatz
+	if kategorie == product.EssenKategorie {
+		steuersatz = steuer.ErmaessigtSteuersatz
+	}
+	if kategorie == product.SonstigesKategorie {
+		steuersatz = steuer.BefreitSteuersatz
+	}
+
 	return product.Produkt{
-		Name:      name,
-		Kategorie: kategorie,
-		Status:    product.ActiveStatus,
-		Varianten: []product.Variante{},
-		CreatedAt: now,
-		UpdatedAt: now,
+		Name:       name,
+		Kategorie:  kategorie,
+		Steuersatz: steuersatz,
+		Status:     product.ActiveStatus,
+		Varianten:  []product.Variante{},
+		CreatedAt:  now,
+		UpdatedAt:  now,
 	}
 }
 
@@ -209,7 +219,7 @@ func TestUpdateProduct_NotFound(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	err := repo.UpdateProduct(ctx, product.Produkt{ID: 999999, Name: "Updated Name", Kategorie: product.GetraenkKategorie, Status: product.ActiveStatus, UpdatedAt: time.Now().UTC()})
+	err := repo.UpdateProduct(ctx, product.Produkt{ID: 999999, Name: "Updated Name", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.ActiveStatus, UpdatedAt: time.Now().UTC()})
 
 	if err != dbpkg.ErrNotFound {
 		t.Fatalf("Expected ErrNotFound, got %v", err)

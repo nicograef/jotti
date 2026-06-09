@@ -8,7 +8,7 @@ import {
   type UseFormReturn,
 } from 'react-hook-form'
 
-import type { Kategorie } from '@/admin/products/Produkt'
+import type { Kategorie, Steuersatz } from '@/admin/products/Produkt'
 import { toUsername, UserRole } from '@/admin/users/User'
 import { Button } from '@/components/ui/button'
 import {
@@ -420,6 +420,45 @@ export function CategoryField<AllFormFields extends FieldValues>({
               <SelectItem value="essen">Essen</SelectItem>
               <SelectItem value="getraenk">Getränk</SelectItem>
               <SelectItem value="sonstiges">Sonstiges</SelectItem>
+            </SelectContent>
+          </Select>
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  )
+}
+
+export function SteuersatzField<AllFormFields extends FieldValues>({
+  form,
+  withLabel,
+  placeholder,
+}: FieldProps<{ steuersatz: Steuersatz } & AllFormFields>) {
+  return (
+    <Controller
+      name={'steuersatz' as Path<{ steuersatz: Steuersatz } & AllFormFields>}
+      control={form.control}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid} className="gap-1">
+          {withLabel && (
+            <FieldLabel htmlFor="form-steuersatz">Steuersatz</FieldLabel>
+          )}
+          <Select
+            name={field.name}
+            value={field.value}
+            onValueChange={field.onChange}
+          >
+            <SelectTrigger
+              id="form-steuersatz"
+              aria-invalid={fieldState.invalid}
+            >
+              <SelectValue placeholder={placeholder ?? 'Auswählen'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="regel">Regelsteuersatz (19 %)</SelectItem>
+              <SelectItem value="ermaessigt">Ermäßigter Satz (7 %)</SelectItem>
+              <SelectItem value="befreit">Steuerbefreit (0 %)</SelectItem>
+              <SelectItem value="kombi">Kombi (70/30)</SelectItem>
             </SelectContent>
           </Select>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
