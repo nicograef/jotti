@@ -156,12 +156,12 @@ End-to-end: DB-Enum + Spalte → sqlc-Queries → Repository → Domain-Modell �
 
 ### Acceptance criteria
 
-- [ ] Neue Bestellung enthält `steuersatz` in jeder Position des Events (verifizierbar in DB)
-- [ ] Der Steuersatz wird serverseitig aus dem Produkt ermittelt (nicht vom Client gesendet)
-- [ ] Alle 6 positionsführenden Event-Typen enthalten `steuersatz` in ihren Positionen
-- [ ] Seed-Events enthalten konsistente `steuersatz`-Werte
-- [ ] `make check` besteht
-- [ ] Position-Validierung lehnt fehlenden/ungültigen Steuersatz ab
+- [x] Neue Bestellung enthält `steuersatz` in jeder Position des Events (verifizierbar in DB)
+- [x] Der Steuersatz wird serverseitig aus dem Produkt ermittelt (nicht vom Client gesendet)
+- [x] Alle 6 positionsführenden Event-Typen enthalten `steuersatz` in ihren Positionen
+- [x] Seed-Events enthalten konsistente `steuersatz`-Werte
+- [x] `make check` besteht
+- [x] Position-Validierung lehnt fehlenden/ungültigen Steuersatz ab
 
 ---
 

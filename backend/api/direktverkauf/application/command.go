@@ -237,6 +237,7 @@ func resolvePositionen(available []kasse.Position, requested []kasse.PositionRef
 					ProduktName:  pos.ProduktName,
 					VarianteName: pos.VarianteName,
 					Kategorie:    pos.Kategorie,
+					Steuersatz:   pos.Steuersatz,
 					Einzelpreis:  pos.Einzelpreis,
 					Menge:        ref.Menge,
 				})
@@ -297,6 +298,7 @@ func (c Command) enrichPositionen(ctx context.Context, inputs []VerkaufPositionI
 			ProduktName:  prod.Name,
 			VarianteName: variant.Name,
 			Kategorie:    string(prod.Kategorie),
+			Steuersatz:   string(prod.Steuersatz),
 			Einzelpreis:  variant.PreisCents,
 			Menge:        input.Menge,
 		})

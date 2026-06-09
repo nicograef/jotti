@@ -8,6 +8,7 @@ export const PositionSchema = z.object({
   // The backend sends kategorie as a free-form string; this enum validates it
   // strictly. Adding a new category requires updating this enum in lockstep.
   kategorie: z.enum(['essen', 'getraenk', 'sonstiges']),
+  steuersatz: z.enum(['regel', 'ermaessigt', 'befreit', 'kombi']),
   einzelpreis: z.number().int().min(0),
   menge: z.number().int().min(1),
 })

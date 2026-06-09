@@ -67,7 +67,7 @@ func TestNewDirektverkaufStorniertEvent_ValidatesAndStoresPositionen(t *testing.
 	verkaufID := uuid.New().String()
 	subject := DirektverkaufSubject(1, verkaufID)
 	posID := uuid.New().String()
-	positionen := []Position{{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 500, Menge: 2}}
+	positionen := []Position{{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 500, Menge: 2}}
 
 	event, err := NewDirektverkaufStorniertEvent(subject, verkaufID, 2, "Leitung", positionen, 1000, "Rückgabe")
 	if err != nil {
@@ -107,7 +107,7 @@ func TestNewDirektverkaufStorniertEvent_RejectsShortKommentar(t *testing.T) {
 	verkaufID := uuid.New().String()
 	subject := DirektverkaufSubject(1, verkaufID)
 
-	_, err := NewDirektverkaufStorniertEvent(subject, verkaufID, 2, "Leitung", []Position{{PositionID: uuid.New().String(), VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 500, Menge: 1}}, 500, "ab")
+	_, err := NewDirektverkaufStorniertEvent(subject, verkaufID, 2, "Leitung", []Position{{PositionID: uuid.New().String(), VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 500, Menge: 1}}, 500, "ab")
 	if err == nil {
 		t.Fatal("expected error for kommentar shorter than 3 characters, got nil")
 	}

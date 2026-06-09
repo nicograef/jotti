@@ -13,6 +13,7 @@ type Position struct {
 	ProduktName  string
 	VarianteName string
 	Kategorie    string
+	Steuersatz   string
 	Einzelpreis  int
 	Menge        int
 }
@@ -25,6 +26,7 @@ type positionEventData struct {
 	ProduktName  string `json:"produktName"`
 	VarianteName string `json:"varianteName"`
 	Kategorie    string `json:"kategorie"`
+	Steuersatz   string `json:"steuersatz"`
 	Einzelpreis  int    `json:"einzelpreis"`
 	Menge        int    `json:"menge"`
 }
@@ -59,6 +61,7 @@ var positionSchema = z.Struct(z.Shape{
 	"ProduktName":  product.NameSchema.Required(),
 	"VarianteName": product.NameSchema.Required(),
 	"Kategorie":    z.String().OneOf([]string{"essen", "getraenk", "sonstiges"}, z.Message("Ungültige Kategorie")).Required(),
+	"Steuersatz":   z.String().OneOf([]string{"regel", "ermaessigt", "befreit", "kombi"}, z.Message("Ungültiger Steuersatz")).Required(),
 	"Einzelpreis":  product.PreisCentsSchema.Required(),
 	"Menge":        z.Int().GTE(1, z.Message("Menge muss mindestens 1 betragen")).Required(),
 })

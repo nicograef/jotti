@@ -15,6 +15,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
@@ -28,10 +29,11 @@ var testOpenKS = &kasse.Kassensitzung{
 }
 
 var testProduct = product.Produkt{
-	ID:        1,
-	Name:      "Cola",
-	Kategorie: product.GetraenkKategorie,
-	Status:    product.ActiveStatus,
+	ID:         1,
+	Name:       "Cola",
+	Kategorie:  product.GetraenkKategorie,
+	Steuersatz: steuer.RegelSteuersatz,
+	Status:     product.ActiveStatus,
 }
 
 var testVariant = product.Variante{
@@ -260,7 +262,7 @@ func getaetigtEvent(t *testing.T, einzelpreis, menge int) (event.Event, string, 
 	verkaufID := uuid.New().String()
 	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
 	evt, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "User", []kasse.Position{
-		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: einzelpreis, Menge: menge},
+		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: einzelpreis, Menge: menge},
 	}, "")
 	if err != nil {
 		t.Fatalf("failed to create getaetigt event: %v", err)

@@ -16,6 +16,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
@@ -50,13 +51,14 @@ func newTestCommandWithEventMock(tables []table.Tisch, products []product.Produk
 }
 
 var testProduct = product.Produkt{
-	ID:        1,
-	Name:      "Cola",
-	Kategorie: product.GetraenkKategorie,
-	Status:    product.ActiveStatus,
-	Varianten: []product.Variante{},
-	CreatedAt: time.Now().UTC(),
-	UpdatedAt: time.Now().UTC(),
+	ID:         1,
+	Name:       "Cola",
+	Kategorie:  product.GetraenkKategorie,
+	Steuersatz: steuer.RegelSteuersatz,
+	Status:     product.ActiveStatus,
+	Varianten:  []product.Variante{},
+	CreatedAt:  time.Now().UTC(),
+	UpdatedAt:  time.Now().UTC(),
 }
 
 var testVariant = product.Variante{
@@ -485,7 +487,7 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 
 	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User",
 		[]kasse.Position{
-			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
 		}, "")
 
 	var orderData struct {
@@ -500,7 +502,7 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 
 	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, 1, "Test User",
 		[]kasse.Position{
-			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
 		}, 350, "")
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
@@ -535,7 +537,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 
 	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User",
 		[]kasse.Position{
-			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
 		}, "")
 
 	var orderData struct {
@@ -550,7 +552,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 
 	cancelEvent, _ := kasse.NewStornierungErteiltEvent(subject, 1, "Test User",
 		[]kasse.Position{
-			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
 		}, 350, "Test")
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
@@ -587,10 +589,10 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents: 350,
 		UnbezahltePositionen: []kasse.Position{
-			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
 		},
 		AusstehendePositionen: []kasse.Position{
-			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 350, Menge: 1},
+			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
 		},
 	})
 	command := Command{
@@ -628,9 +630,9 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 				VarianteID:   1,
 				ProduktName:  "Cola",
 				VarianteName: "0,5l",
-				Kategorie:    "getraenk",
-				Einzelpreis:  350,
-				Menge:        2,
+				Kategorie:    "getraenk", Steuersatz: "regel",
+				Einzelpreis: 350,
+				Menge:       2,
 			},
 		},
 	})
@@ -727,9 +729,9 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 			VarianteID:   1,
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Einzelpreis:  350,
-			Menge:        1,
+			Kategorie:    "getraenk", Steuersatz: "regel",
+			Einzelpreis: 350,
+			Menge:       1,
 		}},
 	})
 
@@ -783,9 +785,9 @@ func TestBestellungUmbuchen_PositionNichtUmbuchbar(t *testing.T) {
 			VarianteID:   1,
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Einzelpreis:  350,
-			Menge:        1,
+			Kategorie:    "getraenk", Steuersatz: "regel",
+			Einzelpreis: 350,
+			Menge:       1,
 		}},
 	})
 
@@ -871,9 +873,9 @@ func TestBestellungUmbuchen_Conflict(t *testing.T) {
 			VarianteID:   1,
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Einzelpreis:  350,
-			Menge:        1,
+			Kategorie:    "getraenk", Steuersatz: "regel",
+			Einzelpreis: 350,
+			Menge:       1,
 		}},
 	})
 
@@ -899,9 +901,9 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 			VarianteID:   1,
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Einzelpreis:  350,
-			Menge:        2,
+			Kategorie:    "getraenk", Steuersatz: "regel",
+			Einzelpreis: 350,
+			Menge:       2,
 		},
 	}, 700, "")
 	if err != nil {
@@ -989,9 +991,9 @@ func TestKassenbelegDrucken_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
 			VarianteID:   1,
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Einzelpreis:  350,
-			Menge:        1,
+			Kategorie:    "getraenk", Steuersatz: "regel",
+			Einzelpreis: 350,
+			Menge:       1,
 		},
 	}, 350, "")
 	if err != nil {
@@ -1033,9 +1035,9 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 			VarianteID:   1,
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Einzelpreis:  350,
-			Menge:        2,
+			Kategorie:    "getraenk", Steuersatz: "regel",
+			Einzelpreis: 350,
+			Menge:       2,
 		},
 	}, "")
 	if err != nil {
@@ -1109,9 +1111,9 @@ func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t 
 			VarianteID:   1,
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Einzelpreis:  350,
-			Menge:        1,
+			Kategorie:    "getraenk", Steuersatz: "regel",
+			Einzelpreis: 350,
+			Menge:       1,
 		},
 	}, "")
 	if err != nil {
