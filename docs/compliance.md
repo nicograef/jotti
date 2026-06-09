@@ -31,7 +31,7 @@ jotti ist ein **elektronisches Aufzeichnungssystem** (§ 1 KassenSichV) und unte
 | **Strategische Richtung**            | KassenSichV/TSE schrittweise implementieren (siehe [anforderungen.md](anforderungen.md))                                                                                                                                                                                                   |
 | **TSE-Anbieter**                     | fiskaly (Cloud-TSE, API-first) als erster Zielanbieter; Adapter-Pattern für spätere Anbieter-Flexibilität                                                                                                                                                                                  |
 | **Abrechnungskreis-Session**         | Pro Tisch pro Kassensitzung (= Tisch-Session). Im DSFinV-K-Export als `ABRECHNUNGSKREIS` mit dem Tischnamen abgebildet (z. B. `Tisch 42`). Intern: Subject `kassensitzung-{nr}/tisch-{id}`. Phase 2: manuelle Tischfreigabe durch Servicekraft bei Gästewechsel (neues Subject mit Suffix) |
-| **Steuersätze**                      | 19 % (Standardsatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb) — Details und Ausnahmen: [steuerrecht.md](steuerrecht.md)                                                                                                                             |
+| **Steuersätze**                      | 19 % (Regelsteuersatz, z.B. Getränke), 7 % (ermäßigt, z.B. Speisen), 0 % / steuerbefreit (Zweckbetrieb), Kombi 70/30 (Menü-Pauschalierung) — Details: [steuerrecht.md](steuerrecht.md)                                                                                                     |
 | **Kassenmeldung (§ 146a Abs. 4 AO)** | Phase 1: manuell über ELSTER-Webportal; Phase 2: ERiC oder fiskaly-Submission-API                                                                                                                                                                                                          |
 | **Seriennummer**                     | UUID beim ersten Containerstart generieren, dauerhaft in DB speichern, im Admin-Dashboard anzeigen                                                                                                                                                                                         |
 | **Belegausgabe BYOD**                | Phase 1: zentraler Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); Phase 2 (optional): digitaler eBeleg via QR-Code als Download-Link                                                                                                                                |
@@ -146,6 +146,17 @@ Die `processType`-Werte sind im AEAO zu § 146a AO, Anhang I, festgelegt und in 
 | `Bestellung-V1`       | Zwischenabsicherung einer Bestellung ohne sofortige Zahlung (Gastronomie)  |
 | `SonstigerVorgang-V1` | Alle anderen abzusichernden Vorgänge (Tagesabschluss, TSE-Selbsttest, ...) |
 
+**Mapping auf jotti-Events:**
+
+| jotti-Event                  | processType           | Anmerkung                                                                                     |
+| ---------------------------- | --------------------- | --------------------------------------------------------------------------------------------- |
+| `bestellung-aufgenommen:v1`  | `Bestellung-V1`       | Sofort geschlossen (Festzelt-Muster, §3.6)                                                    |
+| `zahlung-kassiert:v1`        | `Kassenbeleg-V1`      | Tisch-Teilzahlung oder Vollzahlung                                                            |
+| `direktverkauf-getaetigt:v1` | `Kassenbeleg-V1`      | Atomar — keine vorgelagerte `Bestellung-V1`, da Bestellung und Zahlung zeitgleich stattfinden |
+| `direktverkauf-storniert:v1` | `Kassenbeleg-V1`      | Stornobeleg mit negativem Betrag, `REF_BON_ID` auf den Ursprungsverkauf                       |
+| `stornierung-erteilt:v1`     | `Kassenbeleg-V1`      | Positions-Storno am Tisch mit negativen Beträgen                                              |
+| Tagesabschluss (Z-Bon)       | `SonstigerVorgang-V1` | Aggregierte Tagessummen                                                                       |
+
 ### 3.4 Datenformat-Vorgaben (`processData`)
 
 Die Formatierung der `processData` ist streng reguliert:
@@ -155,6 +166,9 @@ Die Formatierung der `processData` ist streng reguliert:
 - **Verboten:** Tausendertrennzeichen, Exponentialschreibweise, `+` vor positiven Werten
 - **Mindestens eine Stelle vor dem Dezimaltrennzeichen:** `0.5` statt `.5`
 - **Format-String für `Kassenbeleg-V1`:** `Beleg^<Betrag_Normal>_<Betrag_Ermaessigt>_<Betrag_Null>_<Betrag_Besonderer_Satz>_<Betrag_Befreit>^<Zahlbetrag>:<Zahlungsart>`
+
+  > **Kombi-Positionen (70/30):** Der Speisen-Anteil (70 %) fließt in `Betrag_Ermaessigt`, der Getränke-Anteil (30 %) in `Betrag_Normal`. Kein zusätzlicher Slot nötig — die fünf Betragstellen des TSE-Formats bilden alle jotti-Steuersätze ab.
+
 - **Format-String für `Bestellung-V1`:** Positionen als strukturierter Text (z.B. `4x Maß Bier_2x Weißwurst`) — genaues Format gemäß AEAO § 146a Anhang I
 
 ### 3.5 TSE-Varianten
@@ -311,6 +325,8 @@ Ein konformer Beleg muss mindestens folgende Angaben enthalten:
 - Menge und Art der gelieferten Gegenstände / Umfang der Dienstleistung
 - Entgelt und darauf entfallender Steuerbetrag, oder Hinweis auf Steuerbefreiung
 - Transaktionsnummer (Bonnummer)
+- Pro Position: Steuerkennzeichen (z. B. `A` für 19 %, `B` für 7 %). Bei `kombi`-Positionen (70/30-Pauschalierung): entweder zwei Teilzeilen pro Position oder ein gemeinsamer Positionstext mit Verweis auf die Steuermatrix im Belegfuß.
+- Im Belegfuß — Steuermatrix: Brutto, Netto und Steuerbetrag je Steuersatz. `kombi`-Anteile fließen anteilig in die 7-%- und 19-%-Zeilen der Steuermatrix ein.
 
 **TSE-Pflichtdaten (§ 6 KassenSichV):**
 
@@ -360,9 +376,9 @@ Um Platz auf dem Beleg zu sparen, können die TSE-Daten in einen standardisierte
 
 ### 5.5 Architektonische Anforderungen an jotti
 
-1. **Beleg-Generator:** Komponente, die aus einem abgeschlossenen Kassiervorgang einen konformen Beleg (PDF oder Druckformat) erzeugt
-2. **TSE-Daten auf dem Beleg:** Alle TSE-Rückgabewerte müssen auf dem Beleg erscheinen
-3. **Erste-Bestellung-Zeitstempel:** Das Backend muss den `logTime` der ersten `Bestellung-V1`-Transaktion einer Tisch-Session persistieren und beim Beleg-Druck abrufen
+1. **Beleg-Generator:** Komponente, die aus einem abgeschlossenen Kassiervorgang einen konformen Beleg (PDF oder Druckformat) erzeugt. Bereits implementiert: `POST /service/beleg-drucken` akzeptiert entweder eine `verkaufId` (Direktverkauf) oder `tischId` + `zahlungId` (Tisch-Zahlung) und erzeugt einen ESC/POS-Druckauftrag an den konfigurierten `KassenbelegDruckerIP`.
+2. **TSE-Daten auf dem Beleg:** Alle TSE-Rückgabewerte müssen auf dem Beleg erscheinen (nach TSE-Integration, F-02)
+3. **Erste-Bestellung-Zeitstempel:** Das Backend muss den `logTime` der ersten `Bestellung-V1`-Transaktion einer Tisch-Session persistieren und beim Beleg-Druck abrufen (Durchbedienen-Pflicht, nur für Tisch-Kassenbelege relevant — Direktverkäufe haben keine vorgelagerte Bestellung)
 4. **QR-Code-Generierung:** TSE-Daten als QR-Code im DSFinV-K-Format
 5. **Beleg-Ausgabekanal:** Primär über stationären Bondrucker an der Theke (Backend steuert Drucker nach TSE-Abschluss); optional als digitaler eBeleg via QR-Code (Download-Link) — Details siehe Abschnitt 5.6
 6. **Beleg-Archivierung:** Belegdaten müssen für den DSFinV-K-Export persistiert werden
@@ -501,6 +517,10 @@ Der `ABRECHNUNGSKREIS` wird **pro Tisch und Kassensitzung** vergeben. Intern bil
 
 > **Hinweis:** Das DSFinV-K-Format erlaubt beliebige Strings als `ABRECHNUNGSKREIS` (max. 40 Zeichen). Das Format `Tisch {Name}` (aktuell) bzw. `Tisch {Name}-{Buchstabe}` (manuelle Tischfreigabe) ist eine jotti-interne Konvention.
 
+#### Direktverkauf im Abrechnungskreis
+
+Ein Direktverkauf (`direktverkauf-getaetigt:v1`) ist eine **sofort geschlossene Transaktion** ohne Tisch — Bestellung, Zahlung und Ausgabe erfolgen atomar in einem Schritt. Im DSFinV-K-Export wird ein Direktverkauf **ohne `ABRECHNUNGSKREIS`** geführt (das Feld ist optional in `allocation_groups.csv`). Alternativ kann eine Konvention wie `Theke` verwendet werden; die Entscheidung fällt bei Implementierung des DSFinV-K-Exporters. Der Direktverkauf benötigt keine `Bestellung-V1`-Transaktion — er wird direkt als `Kassenbeleg-V1` abgesichert (ein Schritt statt zwei Schichten), da Bestellung und Zahlung zeitgleich stattfinden.
+
 ### 6.6 Storno-Handling in DSFinV-K
 
 #### Positions-Storno (Storno vor Zahlung)
@@ -538,7 +558,7 @@ Eine bereits bezahlte Rechnung wird mit einem neuen Beleg mit negativen Beträge
 4. **Abrechnungskreis-Verwaltung:** Tisch-Session-ID persistieren und in allen zugehörigen Bons mitführen (Phase 1: tagesbasiert; Phase 2: manuelle Freigabe)
 5. **Admin-Endpunkt:** API-Endpunkt zum Auslösen des Exports (z.B. `POST /admin/dsfinvk-export`)
 6. **ZIP-Generierung:** Alle CSVs + `index.xml` in ein ZIP-Archiv verpacken
-7. **Steuersatz-Verwaltung:** USt-Sätze müssen als Stammdaten gepflegt werden — zu unterstützende Sätze: **19 %** (Standardsatz, z.B. Getränke), **7 %** (ermäßigt, z.B. Speisen), **0 % / steuerbefreit** (Zweckbetrieb nach § 67a AO). Produkte erhalten einen konfigurierbaren Steuersatz-Schlüssel.
+7. **Steuersatz-Verwaltung:** USt-Sätze müssen als Stammdaten gepflegt werden — zu unterstützende Sätze: **19 %** (Regelsteuersatz, z.B. Getränke), **7 %** (ermäßigt, z.B. Speisen), **0 % / steuerbefreit** (Zweckbetrieb nach § 67a AO), **Kombi 70/30** (Kombinationsangebote nach Abschn. 10.1 Abs. 12 UStAE, z.B. Menü „Schnitzel + 1 Bier"). Produkte erhalten einen konfigurierbaren Steuersatz-Schlüssel. Bei `kombi`-Positionen muss der Export den Pauschalpreis in zwei Steueranteile (70 % → 7 %, 30 % → 19 %) entfalten: in `lines_vat.csv` werden **zwei VAT-Einträge** pro Position erzeugt, und in `transactions_vat.csv` fließen beide Anteile in die Bon-Gesamtaufschlüsselung ein.
 
 ---
 
