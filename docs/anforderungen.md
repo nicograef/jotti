@@ -45,6 +45,7 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | K-05 | Auszahlung leisten      | Serviceleitung/Admin gleichen negativen Tischsaldo durch positionsunabhängige Auszahlung aus.                                                                                                   |
 | K-06 | Tischübersicht          | Dashboard mit „Meine Tische" (Favoriten), Alle-Tische-Drawer, Tisch-Detail mit Tabs (Bestellen, Bezahlen, Historie).                                                                            |
 | K-07 | Kassenjournal           | Unveränderliche Event-Tabelle (append-only) als Single Source of Truth. Synchrone Projektion + CRUD-Entität.                                                                                    |
+| K-09 | Bestellungen umbuchen   | Serviceleitung/Admin buchen unbezahlte Bestellungen atomar zwischen Tischen um (Quell-Storno + Ziel-Bestellung in einer Transaktion).                                                           |
 | K-12 | Arbeitsbon              | Automatischer Arbeitsbon (ohne Preise) bei Bestellaufnahme an konfigurierte Druckstationen (Küche, Theke). Operativ, nicht-fiskalisch — **kein** Kassenbeleg (→ F-03).                          |
 | K-14 | Tisch-Favoriten         | Serverseitig gespeicherte Favoriten pro Benutzer. Stern-Toggle im Alle-Tische-Drawer.                                                                                                           |
 | K-16 | Kassensitzung eröffnen  | Global nummerierter Betriebstag. Kassensitzung-Sperre blockiert Betrieb ohne offene Sitzung.                                                                                                    |
@@ -57,14 +58,6 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | K-20 | Betreiber-Stammdaten    | Admin pflegt Vereinsname, Adresse, Steuernummer und USt-ID. Erscheint auf Beleg (F-03) und DSFinV-K-Export (F-04).                                                                              |
 | K-10 | Rückgeldberechnung      | Optionale Eingabe von erhaltenem Betrag und Zielbetrag (inkl. Trinkgeld) beim Kassieren. Rückgeld und Trinkgeld werden rein clientseitig berechnet und angezeigt.                               |
 | K-24 | Direktverkauf           | Barverkauf an der Theke: bestellen + zahlen + ausgeben in einem Schritt. Eigener Event-Stream pro Verkauf (`direktverkauf-getaetigt:v1`), sofort kassenwirksam, ohne Tisch und ohne Projektion. |
-
-#### K-24 · Direktverkauf (Akzeptanzkriterien, umgesetzt)
-
-- [x] Direktverkauf wird als eigener Stream pro Verkauf erfasst (`kassensitzung-{nr}/direktverkauf-{uuid}`) und sofort kassenwirksam verbucht.
-- [x] Direktverkauf-Storno erfolgt positionsgenau im selben Stream (`direktverkauf-storniert:v1`) und mindert den Kassenbestand ohne separate Auszahlung.
-- [x] Kassenbestand enthält Direktverkauf vollständig: `+ direktverkauf-getaetigt`, `− direktverkauf-storniert`.
-- [x] Reporting-Summary liefert die aggregierte Direktverkauf-Kennzahl als Anzahl und Umsatz (`anzahlDirektverkaeufe`, `direktverkaufUmsatzCents`).
-- [x] Tagesabschluss wird durch Direktverkäufe nicht blockiert; Blocker bleiben ausschließlich offene Tisch-Salden.
 
 > 🚫 **K-08 · Bezeichnung pro Bestellung:** Won't-have — wird über das bestehende Kommentarfeld (K-01) gelöst.
 
@@ -83,20 +76,6 @@ Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eig
 - [ ] Echtzeit-Anzeige offener Bestellungen nach Kategorie (Essen, Getränke), gruppiert nach Tisch
 - [ ] Getränkeausgabe sieht offene Getränkebestellungen, Essensausgabe sieht offene Essensbestellungen
 - [ ] Letzte Bestellungen sind einsehbar (bei Bon-Verlust)
-
----
-
-#### K-09 · Bestellungen umbuchen
-
-> **Rolle:** Serviceleitung · Admin · **Prio:** Nice-to-have
-
-Serviceleitung oder Admin können eine Bestellung nachträglich auf einen anderen Tisch umbuchen, um Eingabefehler zu korrigieren. Das Umbuchen erzeugt eine Stornierung am Quell-Tisch und eine neue Bestellung am Ziel-Tisch in einer atomaren Operation.
-
-**Akzeptanzkriterien:**
-
-- [ ] Bestellung kann auf einen anderen Tisch umgebucht werden
-- [ ] Umbuchung erzeugt eine Stornierung am Quell-Tisch und eine neue Bestellung am Ziel-Tisch
-- [ ] Umbuchung erfolgt atomar (beide Operationen in einer Transaktion)
 
 ---
 
