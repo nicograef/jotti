@@ -85,6 +85,32 @@ func (r Repository) WriteEventWithDruckauftraege(
 	return stored.ID, nil
 }
 
+// WriteUmbuchung writes the source stornierung and target bestellung atomically.
+// Both events must already carry their final subject/version.
+func (r Repository) WriteUmbuchung(ctx context.Context, stornierungEvent event.Event, bestellungEvent event.Event, kassensitzungNr int) error {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return db.Error(err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
+	qtx := r.q.WithTx(tx)
+
+	if _, err := r.writeEventInTx(ctx, qtx, stornierungEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+		return err
+	}
+
+	if _, err := r.writeEventInTx(ctx, qtx, bestellungEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return db.Error(err)
+	}
+
+	return nil
+}
+
 // writeEventInTx inserts the event into the kassenjournal and updates the matching
 // projection within the given transaction, returning the event with its generated
 // ID. The caller owns the transaction (commit/rollback).

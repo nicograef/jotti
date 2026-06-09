@@ -5,6 +5,7 @@ package kassenjournal_repo
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -313,6 +314,279 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 	}
 	if session.LastEventID != 0 {
 		t.Fatalf("Expected no tisch session projection, got LastEventID %d", session.LastEventID)
+	}
+}
+
+func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	quellTischID, err := createTisch(repo.DB, "Tisch Quelle")
+	if err != nil {
+		t.Fatalf("Failed to create source tisch: %v", err)
+	}
+	zielTischID, err := createTisch(repo.DB, "Tisch Ziel")
+	if err != nil {
+		t.Fatalf("Failed to create target tisch: %v", err)
+	}
+
+	quellSubject := kasse.TischSessionSubject(ksNr, quellTischID)
+	zielSubject := kasse.TischSessionSubject(ksNr, zielTischID)
+	quellPositionID := "10000000-0000-0000-0000-000000000001"
+
+	quellBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", quellSubject, 1, validBestellungData(quellPositionID, 350, 2))
+	if _, err := repo.WriteEvent(context.Background(), quellBestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
+		t.Fatalf("Failed to write source bestellung: %v", err)
+	}
+
+	umbuchPosition := kasse.Position{
+		PositionID:   quellPositionID,
+		VarianteID:   1,
+		ProduktName:  "Bier",
+		VarianteName: "0.5L",
+		Kategorie:    "getraenk",
+		Einzelpreis:  350,
+		Menge:        2,
+	}
+
+	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
+	if err != nil {
+		t.Fatalf("Failed to build stornierung event: %v", err)
+	}
+	stornierungEvent.Version = 2
+
+	bestellungEvent, err := kasse.NewBestellungAufgenommenEvent(zielSubject, userID, "nico", []kasse.Position{umbuchPosition}, "Umbuchung")
+	if err != nil {
+		t.Fatalf("Failed to build bestellung event: %v", err)
+	}
+	bestellungEvent.Version = 1
+
+	if err := repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, ksNr); err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	quellEvents, err := repo.ReadEventsBySubject(context.Background(), quellSubject)
+	if err != nil {
+		t.Fatalf("Expected no read error for source subject, got %v", err)
+	}
+	if len(quellEvents) != 2 {
+		t.Fatalf("Expected 2 source events, got %d", len(quellEvents))
+	}
+	if quellEvents[1].Type != string(kasse.EventTypeStornierungErteiltV1) {
+		t.Fatalf("Expected source event type %q, got %q", kasse.EventTypeStornierungErteiltV1, quellEvents[1].Type)
+	}
+
+	zielEvents, err := repo.ReadEventsBySubject(context.Background(), zielSubject)
+	if err != nil {
+		t.Fatalf("Expected no read error for target subject, got %v", err)
+	}
+	if len(zielEvents) != 1 {
+		t.Fatalf("Expected 1 target event, got %d", len(zielEvents))
+	}
+	if zielEvents[0].Type != string(kasse.EventTypeBestellungAufgenommenV1) {
+		t.Fatalf("Expected target event type %q, got %q", kasse.EventTypeBestellungAufgenommenV1, zielEvents[0].Type)
+	}
+
+	quellState, err := repo.ReadTischSession(context.Background(), quellSubject)
+	if err != nil {
+		t.Fatalf("Expected no source state read error, got %v", err)
+	}
+	if quellState.SaldoCents != 0 {
+		t.Fatalf("Expected source saldo 0, got %d", quellState.SaldoCents)
+	}
+	if len(quellState.UnbezahltePositionen) != 0 {
+		t.Fatalf("Expected no source unbezahlte positionen, got %d", len(quellState.UnbezahltePositionen))
+	}
+	if len(quellState.AusstehendePositionen) != 0 {
+		t.Fatalf("Expected no source ausstehende positionen, got %d", len(quellState.AusstehendePositionen))
+	}
+
+	zielState, err := repo.ReadTischSession(context.Background(), zielSubject)
+	if err != nil {
+		t.Fatalf("Expected no target state read error, got %v", err)
+	}
+	if zielState.SaldoCents != 700 {
+		t.Fatalf("Expected target saldo 700, got %d", zielState.SaldoCents)
+	}
+	if len(zielState.UnbezahltePositionen) != 1 {
+		t.Fatalf("Expected 1 target unbezahlte position, got %d", len(zielState.UnbezahltePositionen))
+	}
+	if len(zielState.AusstehendePositionen) != 1 {
+		t.Fatalf("Expected 1 target ausstehende position, got %d", len(zielState.AusstehendePositionen))
+	}
+	if zielState.UnbezahltePositionen[0].Einzelpreis != 350 {
+		t.Fatalf("Expected target einzelpreis 350, got %d", zielState.UnbezahltePositionen[0].Einzelpreis)
+	}
+	if zielState.UnbezahltePositionen[0].Menge != 2 {
+		t.Fatalf("Expected target menge 2, got %d", zielState.UnbezahltePositionen[0].Menge)
+	}
+}
+
+func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	quellTischID, err := createTisch(repo.DB, "Tisch Quelle")
+	if err != nil {
+		t.Fatalf("Failed to create source tisch: %v", err)
+	}
+	zielTischID, err := createTisch(repo.DB, "Tisch Ziel")
+	if err != nil {
+		t.Fatalf("Failed to create target tisch: %v", err)
+	}
+
+	quellSubject := kasse.TischSessionSubject(ksNr, quellTischID)
+	zielSubject := kasse.TischSessionSubject(ksNr, zielTischID)
+	quellPositionID := "10000000-0000-0000-0000-000000000002"
+
+	quellBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", quellSubject, 1, validBestellungData(quellPositionID, 350, 2))
+	if _, err := repo.WriteEvent(context.Background(), quellBestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
+		t.Fatalf("Failed to write source bestellung: %v", err)
+	}
+
+	umbuchPosition := kasse.Position{
+		PositionID:   quellPositionID,
+		VarianteID:   1,
+		ProduktName:  "Bier",
+		VarianteName: "0.5L",
+		Kategorie:    "getraenk",
+		Einzelpreis:  350,
+		Menge:        2,
+	}
+
+	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
+	if err != nil {
+		t.Fatalf("Failed to build stornierung event: %v", err)
+	}
+	stornierungEvent.Version = 2
+
+	ungueltigesZielEvent := newTestEvent(userID, "unknown-event:v1", zielSubject, 1, map[string]any{"any": "value"})
+
+	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, ungueltigesZielEvent, ksNr)
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+
+	quellEvents, err := repo.ReadEventsBySubject(context.Background(), quellSubject)
+	if err != nil {
+		t.Fatalf("Expected no read error for source subject, got %v", err)
+	}
+	if len(quellEvents) != 1 {
+		t.Fatalf("Expected source rollback (1 event), got %d", len(quellEvents))
+	}
+
+	zielEvents, err := repo.ReadEventsBySubject(context.Background(), zielSubject)
+	if err != nil {
+		t.Fatalf("Expected no read error for target subject, got %v", err)
+	}
+	if len(zielEvents) != 0 {
+		t.Fatalf("Expected target rollback (0 events), got %d", len(zielEvents))
+	}
+
+	quellState, err := repo.ReadTischSession(context.Background(), quellSubject)
+	if err != nil {
+		t.Fatalf("Expected no source state read error, got %v", err)
+	}
+	if quellState.SaldoCents != 700 {
+		t.Fatalf("Expected source saldo 700 after rollback, got %d", quellState.SaldoCents)
+	}
+	if len(quellState.UnbezahltePositionen) != 1 {
+		t.Fatalf("Expected source unbezahlte positionen to remain 1, got %d", len(quellState.UnbezahltePositionen))
+	}
+
+	zielState, err := repo.ReadTischSession(context.Background(), zielSubject)
+	if err != nil {
+		t.Fatalf("Expected no target state read error, got %v", err)
+	}
+	if zielState.LastEventID != 0 {
+		t.Fatalf("Expected no target projection update, got LastEventID %d", zielState.LastEventID)
+	}
+}
+
+func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	quellTischID, err := createTisch(repo.DB, "Tisch Quelle")
+	if err != nil {
+		t.Fatalf("Failed to create source tisch: %v", err)
+	}
+	zielTischID, err := createTisch(repo.DB, "Tisch Ziel")
+	if err != nil {
+		t.Fatalf("Failed to create target tisch: %v", err)
+	}
+
+	quellSubject := kasse.TischSessionSubject(ksNr, quellTischID)
+	zielSubject := kasse.TischSessionSubject(ksNr, zielTischID)
+	quellPositionID := "10000000-0000-0000-0000-000000000003"
+	zielPositionID := "10000000-0000-0000-0000-000000000004"
+
+	quellBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", quellSubject, 1, validBestellungData(quellPositionID, 350, 2))
+	if _, err := repo.WriteEvent(context.Background(), quellBestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
+		t.Fatalf("Failed to write source bestellung: %v", err)
+	}
+	zielBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", zielSubject, 1, validBestellungData(zielPositionID, 100, 1))
+	if _, err := repo.WriteEvent(context.Background(), zielBestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
+		t.Fatalf("Failed to write target bestellung: %v", err)
+	}
+
+	umbuchPosition := kasse.Position{
+		PositionID:   quellPositionID,
+		VarianteID:   1,
+		ProduktName:  "Bier",
+		VarianteName: "0.5L",
+		Kategorie:    "getraenk",
+		Einzelpreis:  350,
+		Menge:        2,
+	}
+
+	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
+	if err != nil {
+		t.Fatalf("Failed to build stornierung event: %v", err)
+	}
+	stornierungEvent.Version = 2
+
+	bestellungEvent, err := kasse.NewBestellungAufgenommenEvent(zielSubject, userID, "nico", []kasse.Position{umbuchPosition}, "Umbuchung")
+	if err != nil {
+		t.Fatalf("Failed to build bestellung event: %v", err)
+	}
+	bestellungEvent.Version = 1 // conflicts with existing target event version 1
+
+	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, ksNr)
+	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
+		t.Fatalf("Expected ErrAlreadyExists conflict, got %v", err)
+	}
+
+	quellEvents, err := repo.ReadEventsBySubject(context.Background(), quellSubject)
+	if err != nil {
+		t.Fatalf("Expected no read error for source subject, got %v", err)
+	}
+	if len(quellEvents) != 1 {
+		t.Fatalf("Expected source rollback (1 event), got %d", len(quellEvents))
+	}
+
+	zielEvents, err := repo.ReadEventsBySubject(context.Background(), zielSubject)
+	if err != nil {
+		t.Fatalf("Expected no read error for target subject, got %v", err)
+	}
+	if len(zielEvents) != 1 {
+		t.Fatalf("Expected target unchanged (1 event), got %d", len(zielEvents))
+	}
+
+	quellState, err := repo.ReadTischSession(context.Background(), quellSubject)
+	if err != nil {
+		t.Fatalf("Expected no source state read error, got %v", err)
+	}
+	if quellState.SaldoCents != 700 {
+		t.Fatalf("Expected source saldo 700 after rollback, got %d", quellState.SaldoCents)
+	}
+
+	zielState, err := repo.ReadTischSession(context.Background(), zielSubject)
+	if err != nil {
+		t.Fatalf("Expected no target state read error, got %v", err)
+	}
+	if zielState.SaldoCents != 100 {
+		t.Fatalf("Expected target saldo 100 unchanged, got %d", zielState.SaldoCents)
 	}
 }
 

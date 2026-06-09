@@ -136,17 +136,17 @@ Anwendungsschicht in Phase 2 dagegen testen kann.
 
 ### Acceptance criteria
 
-- [ ] Neue Repo-Methode schreibt Storno- (Quelle) und Bestellung-Event (Ziel) plus beide
+- [x] Neue Repo-Methode schreibt Storno- (Quelle) und Bestellung-Event (Ziel) plus beide
       Projektionen in einer einzigen DB-Transaktion.
-- [ ] Erfolgsfall (Integrationstest): Am Quell-Subject existiert das Storno-Event, am
+- [x] Erfolgsfall (Integrationstest): Am Quell-Subject existiert das Storno-Event, am
       Ziel-Subject das Bestellung-Event; beide `tisch_sessions` zeigen korrekte Salden
       (Quelle reduziert, Ziel erhöht) und Positionslisten.
-- [ ] Rollback/Atomarität (Integrationstest): Schlägt der Ziel-Write fehl, bleibt auch
+- [x] Rollback/Atomarität (Integrationstest): Schlägt der Ziel-Write fehl, bleibt auch
       der Quell-Storno aus (kein halber Zustand, keine Projektionsänderung).
-- [ ] OCC-Konflikt (Integrationstest): Eine kollidierende Version an einem der beiden
+- [x] OCC-Konflikt (Integrationstest): Eine kollidierende Version an einem der beiden
       Subjects führt zum vollständigen Rollback und wird als Konflikt erkennbar.
-- [ ] Der Mock implementiert die neue Methode konsistent (kein realer Outbox-/Druckpfad).
-- [ ] `make test` / Integrationstests grün; `make lint` ohne Befunde.
+- [x] Der Mock implementiert die neue Methode konsistent (kein realer Outbox-/Druckpfad).
+- [x] `make test` / Integrationstests grün; `make lint` ohne Befunde.
 
 ---
 

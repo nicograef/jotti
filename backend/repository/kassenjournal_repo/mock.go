@@ -70,6 +70,23 @@ func (m *MockRepo) WriteEventWithDruckauftraege(ctx context.Context, e event.Eve
 	return id, nil
 }
 
+func (m *MockRepo) WriteUmbuchung(_ context.Context, stornierungEvent event.Event, bestellungEvent event.Event, _ int) error {
+	if m.writeErr != nil {
+		return m.writeErr
+	}
+	if m.err != nil {
+		return m.err
+	}
+
+	firstID := len(m.events) + 1
+	stornierungEvent.ID = firstID
+	bestellungEvent.ID = firstID + 1
+	m.events[firstID] = stornierungEvent
+	m.events[firstID+1] = bestellungEvent
+
+	return nil
+}
+
 // CapturedDruckauftraege returns the print jobs produced via WriteEventWithDruckauftraege.
 func (m *MockRepo) CapturedDruckauftraege() []druckauftrag_repo.NeuerDruckauftrag {
 	return m.druckauftraege
