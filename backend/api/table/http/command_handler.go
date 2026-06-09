@@ -21,6 +21,7 @@ type command interface {
 	TischDeaktivieren(ctx context.Context, id int) error
 	TischLoeschen(ctx context.Context, id int) error
 	BestellungAufnehmen(ctx context.Context, userID int, userName string, tischID int, positionen []application.BestellPositionInput, kommentar string) error
+	BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef) error
 	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
@@ -469,10 +470,22 @@ type stornierungErteilenRequest struct {
 	Kommentar  string               `json:"kommentar"`
 }
 
+type bestellungUmbuchenRequest struct {
+	QuellTischID int                  `json:"quellTischId"`
+	ZielTischID  int                  `json:"zielTischId"`
+	Positionen   []positionRefRequest `json:"positionen"`
+}
+
 var stornierungErteilenSchema = z.Struct(z.Shape{
 	"TischID":    table.TischIDSchema.Required(),
 	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
 	"Kommentar":  z.String().Min(3).Max(100).Required(),
+})
+
+var bestellungUmbuchenSchema = z.Struct(z.Shape{
+	"QuellTischID": table.TischIDSchema.Required(),
+	"ZielTischID":  table.TischIDSchema.Required(),
+	"Positionen":   z.Slice(positionRefRequestSchema).Min(1).Required(),
 })
 
 func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
@@ -500,6 +513,42 @@ func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 					application.ErrTischNotFound:            "tisch_not_found",
 					application.ErrTischNotActive:           "tisch_not_active",
 					application.ErrPositionNichtStornierbar: "position_nicht_stornierbar",
+				})
+			}
+			return
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+func (h *CommandHandler) BestellungUmbuchenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := bestellungUmbuchenRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, bestellungUmbuchenSchema) {
+			return
+		}
+
+		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
+
+		err := h.Command.BestellungUmbuchen(r.Context(), userID, userName, body.QuellTischID, body.ZielTischID, toPositionRefs(body.Positionen))
+		if err != nil {
+			switch {
+			case errors.Is(err, application.ErrConflict):
+				helper.SendConflictError(w)
+			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			default:
+				helper.MapError(w, err, map[error]string{
+					application.ErrTischNotFound:          "tisch_not_found",
+					application.ErrTischNotActive:         "tisch_not_active",
+					application.ErrPositionNichtUmbuchbar: "position_nicht_umbuchbar",
+					application.ErrUmbuchungGleicherTisch: "umbuchung_gleicher_tisch",
 				})
 			}
 			return

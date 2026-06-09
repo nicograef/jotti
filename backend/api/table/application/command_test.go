@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
@@ -115,6 +116,60 @@ type mockSettingsRepo struct {
 	bondruckErr    error
 	betreiberErr   error
 	kassenidentErr error
+}
+
+type umbuchungPositionData struct {
+	PositionID   string `json:"positionId"`
+	VarianteID   int    `json:"varianteId"`
+	ProduktName  string `json:"produktName"`
+	VarianteName string `json:"varianteName"`
+	Kategorie    string `json:"kategorie"`
+	Einzelpreis  int    `json:"einzelpreis"`
+	Menge        int    `json:"menge"`
+}
+
+type stornierungErteiltData struct {
+	Positionen             []umbuchungPositionData `json:"positionen"`
+	GesamtStornierungCents int                     `json:"gesamtStornierungCents"`
+	Kommentar              string                  `json:"kommentar"`
+}
+
+type bestellungAufgenommenData struct {
+	Positionen       []umbuchungPositionData `json:"positionen"`
+	GesamtPreisCents int                     `json:"gesamtPreisCents"`
+	Kommentar        string                  `json:"kommentar"`
+}
+
+type umbuchungTableRepoMock struct {
+	tables map[int]table.Tisch
+}
+
+func (m *umbuchungTableRepoMock) GetTable(_ context.Context, id int) (table.Tisch, error) {
+	tisch, ok := m.tables[id]
+	if !ok {
+		return table.Tisch{}, db.ErrNotFound
+	}
+	return tisch, nil
+}
+
+func (m *umbuchungTableRepoMock) CreateTable(_ context.Context, _ table.Tisch) (int, error) {
+	return 0, nil
+}
+
+func (m *umbuchungTableRepoMock) UpdateTable(_ context.Context, _ table.Tisch) error {
+	return nil
+}
+
+func (m *umbuchungTableRepoMock) GetAllTables(_ context.Context) ([]table.Tisch, error) {
+	return nil, nil
+}
+
+func (m *umbuchungTableRepoMock) GetActiveTables(_ context.Context, _ int) ([]table.AktiverTisch, error) {
+	return nil, nil
+}
+
+func (m *umbuchungTableRepoMock) GetActiveTablesWithFavorites(_ context.Context, _, _ int) ([]table.AktiverTischMitFavorit, error) {
+	return nil, nil
 }
 
 func (m *mockSettingsRepo) GetBondruckEinstellungen(_ context.Context) (settings.BondruckEinstellungen, error) {
@@ -552,6 +607,285 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
+	}
+}
+
+func TestBestellungUmbuchen_HappyPath(t *testing.T) {
+	ctx := context.Background()
+	quellTisch := table.Tisch{ID: 1, Name: "Tisch Quelle", Status: table.ActiveStatus}
+	zielTisch := table.Tisch{ID: 2, Name: "Tisch Ziel", Status: table.ActiveStatus}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
+	zielSubject := kasse.TischSessionSubject(testKassensitzungNr, zielTisch.ID)
+	quellPositionID := uuid.New().String()
+
+	eventMock.SetTischSession(quellSubject, kasse.TischSession{
+		SaldoCents: 700,
+		UnbezahltePositionen: []kasse.Position{
+			{
+				PositionID:   quellPositionID,
+				VarianteID:   1,
+				ProduktName:  "Cola",
+				VarianteName: "0,5l",
+				Kategorie:    "getraenk",
+				Einzelpreis:  350,
+				Menge:        2,
+			},
+		},
+	})
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{quellTisch, zielTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	quellEvents, err := eventMock.ReadEventsBySubject(ctx, quellSubject)
+	if err != nil {
+		t.Fatalf("expected no error reading source events, got %v", err)
+	}
+	if len(quellEvents) != 1 {
+		t.Fatalf("expected 1 source event, got %d", len(quellEvents))
+	}
+	if quellEvents[0].Type != string(kasse.EventTypeStornierungErteiltV1) {
+		t.Fatalf("expected source event type %s, got %s", kasse.EventTypeStornierungErteiltV1, quellEvents[0].Type)
+	}
+
+	zielEvents, err := eventMock.ReadEventsBySubject(ctx, zielSubject)
+	if err != nil {
+		t.Fatalf("expected no error reading target events, got %v", err)
+	}
+	if len(zielEvents) != 1 {
+		t.Fatalf("expected 1 target event, got %d", len(zielEvents))
+	}
+	if zielEvents[0].Type != string(kasse.EventTypeBestellungAufgenommenV1) {
+		t.Fatalf("expected target event type %s, got %s", kasse.EventTypeBestellungAufgenommenV1, zielEvents[0].Type)
+	}
+
+	var stornoData stornierungErteiltData
+	if err := json.Unmarshal(quellEvents[0].Data, &stornoData); err != nil {
+		t.Fatalf("expected no unmarshal error for storno data, got %v", err)
+	}
+
+	if stornoData.GesamtStornierungCents != 350 {
+		t.Fatalf("expected source amount 350, got %d", stornoData.GesamtStornierungCents)
+	}
+	if stornoData.Kommentar != "Umbuchung auf Tisch Tisch Ziel" {
+		t.Fatalf("unexpected source comment: %q", stornoData.Kommentar)
+	}
+	if len(stornoData.Positionen) != 1 {
+		t.Fatalf("expected 1 source position, got %d", len(stornoData.Positionen))
+	}
+	if stornoData.Positionen[0].PositionID != quellPositionID {
+		t.Fatalf("expected source position ID %q, got %q", quellPositionID, stornoData.Positionen[0].PositionID)
+	}
+	if stornoData.Positionen[0].Einzelpreis != 350 {
+		t.Fatalf("expected source einzelpreis 350, got %d", stornoData.Positionen[0].Einzelpreis)
+	}
+
+	var bestellungData bestellungAufgenommenData
+	if err := json.Unmarshal(zielEvents[0].Data, &bestellungData); err != nil {
+		t.Fatalf("expected no unmarshal error for bestellung data, got %v", err)
+	}
+
+	if bestellungData.GesamtPreisCents != 350 {
+		t.Fatalf("expected target amount 350, got %d", bestellungData.GesamtPreisCents)
+	}
+	if bestellungData.Kommentar != "Umbuchung von Tisch Tisch Quelle" {
+		t.Fatalf("unexpected target comment: %q", bestellungData.Kommentar)
+	}
+	if len(bestellungData.Positionen) != 1 {
+		t.Fatalf("expected 1 target position, got %d", len(bestellungData.Positionen))
+	}
+	if bestellungData.Positionen[0].PositionID == quellPositionID {
+		t.Fatalf("expected target position ID to be regenerated, but remained %q", bestellungData.Positionen[0].PositionID)
+	}
+	if bestellungData.Positionen[0].Einzelpreis != 350 {
+		t.Fatalf("expected target einzelpreis 350, got %d", bestellungData.Positionen[0].Einzelpreis)
+	}
+}
+
+func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
+	ctx := context.Background()
+	quellTisch := table.Tisch{ID: 1, Name: strings.Repeat("Q", 100), Status: table.ActiveStatus}
+	zielTisch := table.Tisch{ID: 2, Name: strings.Repeat("Z", 100), Status: table.ActiveStatus}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
+	zielSubject := kasse.TischSessionSubject(testKassensitzungNr, zielTisch.ID)
+	quellPositionID := uuid.New().String()
+
+	eventMock.SetTischSession(quellSubject, kasse.TischSession{
+		UnbezahltePositionen: []kasse.Position{{
+			PositionID:   quellPositionID,
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk",
+			Einzelpreis:  350,
+			Menge:        1,
+		}},
+	})
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{quellTisch, zielTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	quellEvents, _ := eventMock.ReadEventsBySubject(ctx, quellSubject)
+	zielEvents, _ := eventMock.ReadEventsBySubject(ctx, zielSubject)
+
+	var stornoData stornierungErteiltData
+	if err := json.Unmarshal(quellEvents[0].Data, &stornoData); err != nil {
+		t.Fatalf("expected no unmarshal error for storno data, got %v", err)
+	}
+	var bestellungData bestellungAufgenommenData
+	if err := json.Unmarshal(zielEvents[0].Data, &bestellungData); err != nil {
+		t.Fatalf("expected no unmarshal error for bestellung data, got %v", err)
+	}
+
+	if utf8.RuneCountInString(stornoData.Kommentar) > 100 {
+		t.Fatalf("expected source comment length <= 100 runes, got %d", utf8.RuneCountInString(stornoData.Kommentar))
+	}
+	if utf8.RuneCountInString(bestellungData.Kommentar) > 100 {
+		t.Fatalf("expected target comment length <= 100 runes, got %d", utf8.RuneCountInString(bestellungData.Kommentar))
+	}
+	if !strings.HasPrefix(stornoData.Kommentar, "Umbuchung auf Tisch ") {
+		t.Fatalf("expected source comment prefix, got %q", stornoData.Kommentar)
+	}
+	if !strings.HasPrefix(bestellungData.Kommentar, "Umbuchung von Tisch ") {
+		t.Fatalf("expected target comment prefix, got %q", bestellungData.Kommentar)
+	}
+}
+
+func TestBestellungUmbuchen_PositionNichtUmbuchbar(t *testing.T) {
+	ctx := context.Background()
+	quellTisch := table.Tisch{ID: 1, Name: "Tisch Quelle", Status: table.ActiveStatus}
+	zielTisch := table.Tisch{ID: 2, Name: "Tisch Ziel", Status: table.ActiveStatus}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
+	eventMock.SetTischSession(quellSubject, kasse.TischSession{
+		UnbezahltePositionen: []kasse.Position{{
+			PositionID:   uuid.New().String(),
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk",
+			Einzelpreis:  350,
+			Menge:        1,
+		}},
+	})
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{quellTisch, zielTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}})
+	if err != ErrPositionNichtUmbuchbar {
+		t.Fatalf("expected ErrPositionNichtUmbuchbar, got %v", err)
+	}
+}
+
+func TestBestellungUmbuchen_GleicherTisch(t *testing.T) {
+	err := Command{}.BestellungUmbuchen(context.Background(), 1, "Test User", 3, 3, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}})
+	if err != ErrUmbuchungGleicherTisch {
+		t.Fatalf("expected ErrUmbuchungGleicherTisch, got %v", err)
+	}
+}
+
+func TestBestellungUmbuchen_ZielTischNotActive(t *testing.T) {
+	ctx := context.Background()
+	quellTisch := table.Tisch{ID: 1, Name: "Tisch Quelle", Status: table.ActiveStatus}
+	zielTisch := table.Tisch{ID: 2, Name: "Tisch Ziel", Status: table.InactiveStatus}
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{quellTisch, zielTisch}, nil),
+		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}})
+	if err != ErrTischNotActive {
+		t.Fatalf("expected ErrTischNotActive, got %v", err)
+	}
+}
+
+func TestBestellungUmbuchen_ZielTischNotFound(t *testing.T) {
+	ctx := context.Background()
+	quellTisch := table.Tisch{ID: 1, Name: "Tisch Quelle", Status: table.ActiveStatus}
+
+	command := Command{
+		TableRepo: &umbuchungTableRepoMock{tables: map[int]table.Tisch{
+			quellTisch.ID: quellTisch,
+		}},
+		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, 99, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}})
+	if err != ErrTischNotFound {
+		t.Fatalf("expected ErrTischNotFound, got %v", err)
+	}
+}
+
+func TestBestellungUmbuchen_KasseNichtGeoeffnet(t *testing.T) {
+	ctx := context.Background()
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
+	}
+
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", 1, 2, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}})
+	if err != ErrKasseNichtGeoeffnet {
+		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+	}
+}
+
+func TestBestellungUmbuchen_Conflict(t *testing.T) {
+	ctx := context.Background()
+	quellTisch := table.Tisch{ID: 1, Name: "Tisch Quelle", Status: table.ActiveStatus}
+	zielTisch := table.Tisch{ID: 2, Name: "Tisch Ziel", Status: table.ActiveStatus}
+
+	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, db.ErrAlreadyExists)
+	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
+	quellPositionID := uuid.New().String()
+	eventMock.SetTischSession(quellSubject, kasse.TischSession{
+		UnbezahltePositionen: []kasse.Position{{
+			PositionID:   quellPositionID,
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk",
+			Einzelpreis:  350,
+			Menge:        1,
+		}},
+	})
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{quellTisch, zielTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}})
+	if err != ErrConflict {
+		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
 

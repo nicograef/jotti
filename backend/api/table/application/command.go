@@ -27,6 +27,7 @@ type tableRepo interface {
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
+	WriteUmbuchung(ctx context.Context, stornierungEvent event.Event, bestellungEvent event.Event, kassensitzungNr int) error
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
@@ -460,6 +461,128 @@ func resolvePositions(available []kasse.Position, refs []kasse.PositionRef) ([]k
 		}
 	}
 	return resolved, totalCents
+}
+
+const maxUmbuchungKommentarRunes = 100
+
+func truncateRunes(s string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+
+	runes := []rune(s)
+	if len(runes) <= max {
+		return s
+	}
+
+	return string(runes[:max])
+}
+
+func buildUmbuchungKommentar(prefix string, tischName string) string {
+	prefixRunes := len([]rune(prefix))
+	if prefixRunes >= maxUmbuchungKommentarRunes {
+		return truncateRunes(prefix, maxUmbuchungKommentarRunes)
+	}
+
+	maxTischNameRunes := maxUmbuchungKommentarRunes - prefixRunes
+	return prefix + truncateRunes(tischName, maxTischNameRunes)
+}
+
+func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef) error {
+	log := zerolog.Ctx(ctx)
+
+	if quellTischID == zielTischID {
+		log.Warn().Int("tisch_id", quellTischID).Msg("Umbuchung mit gleichem Quell- und Ziel-Tisch")
+		return ErrUmbuchungGleicherTisch
+	}
+
+	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	if err != nil {
+		return err
+	}
+
+	quellTisch, err := c.TableRepo.GetTable(ctx, quellTischID)
+	if err != nil {
+		return fromRepositoryError(err, log, quellTischID)
+	}
+	if quellTisch.Status != table.ActiveStatus {
+		log.Warn().Int("tisch_id", quellTischID).Str("status", string(quellTisch.Status)).Msg("Quell-Tisch ist nicht aktiv")
+		return ErrTischNotActive
+	}
+
+	zielTisch, err := c.TableRepo.GetTable(ctx, zielTischID)
+	if err != nil {
+		return fromRepositoryError(err, log, zielTischID)
+	}
+	if zielTisch.Status != table.ActiveStatus {
+		log.Warn().Int("tisch_id", zielTischID).Str("status", string(zielTisch.Status)).Msg("Ziel-Tisch ist nicht aktiv")
+		return ErrTischNotActive
+	}
+
+	quellSubject := kasse.TischSessionSubject(ks.ZNr, quellTischID)
+	zielSubject := kasse.TischSessionSubject(ks.ZNr, zielTischID)
+
+	quellState, err := c.EventRepo.ReadTischSession(ctx, quellSubject)
+	if err != nil {
+		log.Error().Err(err).Int("tisch_id", quellTischID).Msg("Failed to read source tisch session")
+		return ErrDatabase
+	}
+
+	if !validatePositionRefs(quellState.UnbezahltePositionen, positionen) {
+		log.Warn().Int("quell_tisch_id", quellTischID).Msg("Umbuchungsinvariante verletzt: Positionen nicht umbuchbar")
+		return ErrPositionNichtUmbuchbar
+	}
+
+	resolvedPositionen, gesamtStornierungCents := resolvePositions(quellState.UnbezahltePositionen, positionen)
+
+	stornierungKommentar := buildUmbuchungKommentar("Umbuchung auf Tisch ", zielTisch.Name)
+	bestellungKommentar := buildUmbuchungKommentar("Umbuchung von Tisch ", quellTisch.Name)
+
+	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, userName, resolvedPositionen, gesamtStornierungCents, stornierungKommentar)
+	if err != nil {
+		log.Error().Err(err).Int("quell_tisch_id", quellTischID).Msg("Failed to create stornierung event for umbuchung")
+		return err
+	}
+
+	bestellungEvent, err := kasse.NewBestellungAufgenommenEvent(zielSubject, userID, userName, resolvedPositionen, bestellungKommentar)
+	if err != nil {
+		log.Error().Err(err).Int("ziel_tisch_id", zielTischID).Msg("Failed to create bestellung event for umbuchung")
+		return err
+	}
+
+	quellMaxVersion, err := c.EventRepo.GetMaxVersion(ctx, quellSubject)
+	if err != nil {
+		log.Error().Err(err).Int("quell_tisch_id", quellTischID).Msg("Failed to load max version for source subject")
+		return ErrDatabase
+	}
+
+	zielMaxVersion, err := c.EventRepo.GetMaxVersion(ctx, zielSubject)
+	if err != nil {
+		log.Error().Err(err).Int("ziel_tisch_id", zielTischID).Msg("Failed to load max version for target subject")
+		return ErrDatabase
+	}
+
+	stornierungEvent.Version = quellMaxVersion + 1
+	bestellungEvent.Version = zielMaxVersion + 1
+
+	err = c.EventRepo.WriteUmbuchung(ctx, stornierungEvent, bestellungEvent, ks.ZNr)
+	if err != nil {
+		if errors.Is(err, db.ErrAlreadyExists) {
+			log.Warn().
+				Int("quell_version", stornierungEvent.Version).
+				Int("ziel_version", bestellungEvent.Version).
+				Str("quell_subject", quellSubject).
+				Str("ziel_subject", zielSubject).
+				Msg("OCC conflict bei Bestellung umbuchen")
+			return ErrConflict
+		}
+
+		log.Error().Err(err).Int("quell_tisch_id", quellTischID).Int("ziel_tisch_id", zielTischID).Msg("Failed to write umbuchung")
+		return ErrDatabase
+	}
+
+	log.Info().Int("quell_tisch_id", quellTischID).Int("ziel_tisch_id", zielTischID).Msg("Bestellung umgebucht")
+	return nil
 }
 
 func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {

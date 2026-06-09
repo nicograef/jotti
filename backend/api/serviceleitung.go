@@ -29,6 +29,7 @@ func NewServiceleitungApi(db *sql.DB) http.Handler {
 		KassensitzungenRepo: kassensitzungenRepo,
 	}
 	r.HandleFunc("/stornierung-erteilen", tc.StornierungErteilenHandler())
+	r.HandleFunc("/bestellung-umbuchen", tc.BestellungUmbuchenHandler())
 	r.HandleFunc("/auszahlung-leisten", tc.AuszahlungLeistenHandler())
 
 	dc := direktverkaufHTTP.CommandHandler{}

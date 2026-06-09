@@ -46,6 +46,12 @@ var ErrPositionNichtAusgebbar = errors.New("position nicht ausgebbar")
 // ErrPositionNichtStornierbar is returned when a position cannot be cancelled (not in unbezahlt list).
 var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 
+// ErrPositionNichtUmbuchbar is returned when a position cannot be moved (not in unbezahlt list).
+var ErrPositionNichtUmbuchbar = errors.New("position nicht umbuchbar")
+
+// ErrUmbuchungGleicherTisch is returned when source and target tisch are identical.
+var ErrUmbuchungGleicherTisch = errors.New("umbuchung gleicher tisch")
+
 // ErrZahlungNichtGefunden is returned when a requested payment reference does not exist.
 var ErrZahlungNichtGefunden = errors.New("zahlung nicht gefunden")
 

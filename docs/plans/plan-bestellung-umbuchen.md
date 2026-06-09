@@ -188,23 +188,23 @@ die Registrierung der Route `POST /serviceleitung/bestellung-umbuchen`.
 
 ### Acceptance criteria
 
-- [ ] Endpunkt `POST /serviceleitung/bestellung-umbuchen` ist registriert und nur für
+- [x] Endpunkt `POST /serviceleitung/bestellung-umbuchen` ist registriert und nur für
       `serviceleitung`/`admin` erreichbar; Request-Vertrag wie in den Architektur-
       entscheidungen, Antwort leerer Erfolg.
-- [ ] Happy Path (Unit-Test): korrekte Storno- (Quell-Subject) und Bestellung-Events
+- [x] Happy Path (Unit-Test): korrekte Storno- (Quell-Subject) und Bestellung-Events
       (Ziel-Subject) mit übernommenen Positionen/Mengen/**Original-Preisen**, frischen
       Ziel-`PositionID`s und den Auto-Kommentaren („Umbuchung auf/von Tisch <Name>").
-- [ ] Auto-Kommentar ist garantiert ≤ 100 Zeichen (langer Tischname wird gekürzt) und
+- [x] Auto-Kommentar ist garantiert ≤ 100 Zeichen (langer Tischname wird gekürzt) und
       besteht die Event-Schema-Validierung (Storno `Min(3).Max(100)`).
-- [ ] Eligibility (Unit-Test): Anforderung einer bereits **bezahlten** Position →
+- [x] Eligibility (Unit-Test): Anforderung einer bereits **bezahlten** Position →
       `ErrPositionNichtUmbuchbar` (→ `position_nicht_umbuchbar`).
-- [ ] Gleicher-Tisch-Guard (Unit-Test): `quellTischId == zielTischId` →
+- [x] Gleicher-Tisch-Guard (Unit-Test): `quellTischId == zielTischId` →
       `ErrUmbuchungGleicherTisch` (→ `umbuchung_gleicher_tisch`).
-- [ ] Ziel-Tisch inaktiv/unbekannt → `ErrTischNotActive` / `ErrTischNotFound`; keine
+- [x] Ziel-Tisch inaktiv/unbekannt → `ErrTischNotActive` / `ErrTischNotFound`; keine
       offene Kassensitzung → `ErrKasseNichtGeoeffnet`; Repo-Versionskonflikt →
       `ErrConflict` (HTTP-Konflikt).
-- [ ] Kein Druckauftrag am Ziel-Tisch (schlichter Write-Pfad, kein Outbox-Pfad).
-- [ ] `make test` grün; `make lint` ohne Befunde.
+- [x] Kein Druckauftrag am Ziel-Tisch (schlichter Write-Pfad, kein Outbox-Pfad).
+- [x] `make test` grün; `make lint` ohne Befunde.
 
 ---
 
