@@ -20,6 +20,14 @@ const reportingResult: ReportingData = {
     umsatzProServicekraft: [],
     umsatzProTisch: [],
   },
+  umsatzProSteuersatz: [
+    {
+      satz: 'regel',
+      bruttoCents: 1190,
+      nettoCents: 1000,
+      steuerCents: 190,
+    },
+  ],
   stornierungen: [],
 }
 
@@ -30,5 +38,7 @@ describe('ReportingResults', () => {
     expect(screen.getByText('Direktverkauf')).toBeInTheDocument()
     expect(screen.getByText('7')).toBeInTheDocument()
     expect(screen.getByText('45,00 €')).toBeInTheDocument()
+    expect(screen.getByText('Umsatz nach Steuersatz')).toBeInTheDocument()
+    expect(screen.getByText('Regelsteuersatz (19 %)')).toBeInTheDocument()
   })
 })

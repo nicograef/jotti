@@ -10,6 +10,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
 type mockReportingRepo struct {
@@ -62,7 +63,8 @@ func TestGetReporting_HappyPath(t *testing.T) {
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
 			UmsatzProTisch:        []reporting.UmsatzTisch{},
 		},
-		Stornierungen: []reporting.StornierungDetail{},
+		UmsatzProSteuersatz: []reporting.UmsatzSteuersatz{},
+		Stornierungen:       []reporting.StornierungDetail{},
 	}
 
 	q := Query{ReportingRepo: mockReportingRepo{data: expected}, KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
@@ -82,6 +84,49 @@ func TestGetReporting_HappyPath(t *testing.T) {
 	}
 	if result.KassensitzungNr != testKassensitzungNr {
 		t.Errorf("expected KassensitzungNr %d, got %d", testKassensitzungNr, result.KassensitzungNr)
+	}
+}
+
+func TestGetReporting_BerechnetUmsatzProSteuersatz(t *testing.T) {
+	data := reporting.ReportingData{
+		KassensitzungNr: testKassensitzungNr,
+		UmsatzProSteuersatz: []reporting.UmsatzSteuersatz{
+			{Satz: steuer.RegelSteuersatz, BruttoCents: 1190},
+			{Satz: steuer.ErmaessigtSteuersatz, BruttoCents: 107},
+			{Satz: steuer.BefreitSteuersatz, BruttoCents: 500},
+			{Satz: steuer.KombiSteuersatz, BruttoCents: 1000},
+		},
+	}
+
+	q := Query{ReportingRepo: mockReportingRepo{data: data}, KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
+
+	result, err := q.GetReporting(context.Background(), testKassensitzungNr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	bySatz := map[steuer.Steuersatz]reporting.UmsatzSteuersatz{}
+	for _, eintrag := range result.UmsatzProSteuersatz {
+		bySatz[eintrag.Satz] = eintrag
+	}
+
+	regel := bySatz[steuer.RegelSteuersatz]
+	if regel.BruttoCents != 1490 || regel.NettoCents != 1252 || regel.SteuerCents != 238 {
+		t.Fatalf("unexpected regel values: %+v", regel)
+	}
+
+	ermaessigt := bySatz[steuer.ErmaessigtSteuersatz]
+	if ermaessigt.BruttoCents != 807 || ermaessigt.NettoCents != 754 || ermaessigt.SteuerCents != 53 {
+		t.Fatalf("unexpected ermaessigt values: %+v", ermaessigt)
+	}
+
+	befreit := bySatz[steuer.BefreitSteuersatz]
+	if befreit.BruttoCents != 500 || befreit.NettoCents != 500 || befreit.SteuerCents != 0 {
+		t.Fatalf("unexpected befreit values: %+v", befreit)
+	}
+
+	if _, hasKombi := bySatz[steuer.KombiSteuersatz]; hasKombi {
+		t.Fatalf("did not expect kombi row in result: %+v", result.UmsatzProSteuersatz)
 	}
 }
 

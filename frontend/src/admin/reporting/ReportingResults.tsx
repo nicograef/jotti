@@ -52,6 +52,21 @@ function formatLocalTime(utcString: string): string {
   return new Date(utcString).toLocaleString('de-DE')
 }
 
+function steuersatzLabel(satz: string): string {
+  switch (satz) {
+    case 'regel':
+      return 'Regelsteuersatz (19 %)'
+    case 'ermaessigt':
+      return 'Ermäßigter Steuersatz (7 %)'
+    case 'befreit':
+      return 'Steuerbefreit (0 %)'
+    case 'kombi':
+      return 'Kombi'
+    default:
+      return satz
+  }
+}
+
 export function ReportingResults({
   result,
   loading,
@@ -136,6 +151,57 @@ export function ReportingResults({
             value={`${formatCents(summary.gesamtAuszahlungenCents)} €`}
           />
         </div>
+
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="text-base">Umsatz nach Steuersatz</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {result.umsatzProSteuersatz.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Keine steuerrelevanten Umsätze im gewählten Zeitraum.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[32rem] text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-muted-foreground">
+                      <th className="py-2 pr-3 font-medium">Steuersatz</th>
+                      <th className="py-2 pr-3 text-right font-medium">
+                        Brutto
+                      </th>
+                      <th className="py-2 pr-3 text-right font-medium">
+                        Netto
+                      </th>
+                      <th className="py-2 text-right font-medium">Steuer</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.umsatzProSteuersatz.map((umsatz) => (
+                      <tr
+                        key={umsatz.satz}
+                        className="border-b last:border-b-0"
+                      >
+                        <td className="py-2 pr-3">
+                          {steuersatzLabel(umsatz.satz)}
+                        </td>
+                        <td className="py-2 pr-3 text-right">
+                          {formatCents(umsatz.bruttoCents)} €
+                        </td>
+                        <td className="py-2 pr-3 text-right">
+                          {formatCents(umsatz.nettoCents)} €
+                        </td>
+                        <td className="py-2 text-right">
+                          {formatCents(umsatz.steuerCents)} €
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </TabsContent>
 
       {/* Servicekräfte */}

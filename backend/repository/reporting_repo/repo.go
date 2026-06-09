@@ -8,6 +8,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/nicograef/jotti/backend/domain/reporting"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
@@ -39,6 +40,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		stats      dbgen.GetReportingStatsRow
 		umsatzRows []dbgen.GetUmsatzProServicekraftRow
 		tischRows  []dbgen.GetUmsatzProTischRow
+		steuerRows []dbgen.GetUmsatzProSteuersatzRow
 		stornoRows []dbgen.GetStornierungenRow
 	)
 
@@ -57,6 +59,11 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	g.Go(func() error {
 		var err error
 		tischRows, err = r.q.GetUmsatzProTisch(ctx, kassensitzungNr)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		steuerRows, err = r.q.GetUmsatzProSteuersatz(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
@@ -114,6 +121,14 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		}
 	}
 
+	umsatzProSteuersatz := make([]reporting.UmsatzSteuersatz, len(steuerRows))
+	for i, row := range steuerRows {
+		umsatzProSteuersatz[i] = reporting.UmsatzSteuersatz{
+			Satz:        steuer.Steuersatz(row.Steuersatz),
+			BruttoCents: row.BruttoCents,
+		}
+	}
+
 	return reporting.ReportingData{
 		KassensitzungNr: kassensitzungNr,
 		Summary: reporting.Summary{
@@ -130,7 +145,8 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 			UmsatzProServicekraft: umsatz,
 			UmsatzProTisch:        tische,
 		},
-		Stornierungen: stornierungen,
+		UmsatzProSteuersatz: umsatzProSteuersatz,
+		Stornierungen:       stornierungen,
 	}, nil
 }
 

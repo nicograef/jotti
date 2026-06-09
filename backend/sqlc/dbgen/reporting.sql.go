@@ -292,6 +292,53 @@ func (q *Queries) GetUmsatzProServicekraft(ctx context.Context, kassensitzungNr 
 	return items, nil
 }
 
+const getUmsatzProSteuersatz = `-- name: GetUmsatzProSteuersatz :many
+SELECT
+    s.steuersatz::Steuersatz AS steuersatz,
+    COALESCE(SUM(s.brutto_cents), 0)::int AS brutto_cents
+FROM kassenjournal kj
+CROSS JOIN LATERAL kj_extract_umsatz_pro_steuersatz(kj.type, kj.data) AS s(steuersatz, brutto_cents)
+WHERE kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1')
+AND kj.kassensitzung_nr = $1
+GROUP BY s.steuersatz
+ORDER BY CASE s.steuersatz
+    WHEN 'regel' THEN 1
+    WHEN 'ermaessigt' THEN 2
+    WHEN 'befreit' THEN 3
+    WHEN 'kombi' THEN 4
+    ELSE 5
+END
+`
+
+type GetUmsatzProSteuersatzRow struct {
+	Steuersatz  Steuersatz
+	BruttoCents int
+}
+
+// Tagesabrechnung: Bruttoumsatz gruppiert nach Steuersatz pro Kassensitzung.
+func (q *Queries) GetUmsatzProSteuersatz(ctx context.Context, kassensitzungNr int) ([]GetUmsatzProSteuersatzRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUmsatzProSteuersatz, kassensitzungNr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUmsatzProSteuersatzRow{}
+	for rows.Next() {
+		var i GetUmsatzProSteuersatzRow
+		if err := rows.Scan(&i.Steuersatz, &i.BruttoCents); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUmsatzProTisch = `-- name: GetUmsatzProTisch :many
 SELECT
     tss.tisch_id,

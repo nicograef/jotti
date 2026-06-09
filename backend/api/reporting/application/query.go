@@ -2,10 +2,12 @@ package application
 
 import (
 	"context"
+	"sort"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/rs/zerolog"
 )
 
@@ -37,8 +39,64 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 		return reporting.ReportingData{}, ErrDatabase
 	}
 
+	data.UmsatzProSteuersatz = berechneUmsatzProSteuersatz(data.UmsatzProSteuersatz)
+
 	log.Info().Msg("Retrieved reporting")
 	return data, nil
+}
+
+func berechneUmsatzProSteuersatz(bruttoProSatz []reporting.UmsatzSteuersatz) []reporting.UmsatzSteuersatz {
+	if len(bruttoProSatz) == 0 {
+		return []reporting.UmsatzSteuersatz{}
+	}
+
+	aggregiert := make(map[steuer.Steuersatz]reporting.UmsatzSteuersatz, len(bruttoProSatz))
+	for _, eintrag := range bruttoProSatz {
+		aufteilungen := steuer.Aufteilen(eintrag.BruttoCents, eintrag.Satz)
+		for _, aufteilung := range aufteilungen {
+			current := aggregiert[aufteilung.Satz]
+			current.Satz = aufteilung.Satz
+			current.BruttoCents += aufteilung.Brutto
+			current.NettoCents += aufteilung.Netto
+			current.SteuerCents += aufteilung.Steuer
+			aggregiert[aufteilung.Satz] = current
+		}
+	}
+
+	if len(aggregiert) == 0 {
+		return []reporting.UmsatzSteuersatz{}
+	}
+
+	orderedSaetze := []steuer.Steuersatz{
+		steuer.RegelSteuersatz,
+		steuer.ErmaessigtSteuersatz,
+		steuer.BefreitSteuersatz,
+	}
+
+	out := make([]reporting.UmsatzSteuersatz, 0, len(aggregiert))
+	for _, satz := range orderedSaetze {
+		if eintrag, ok := aggregiert[satz]; ok {
+			out = append(out, eintrag)
+			delete(aggregiert, satz)
+		}
+	}
+
+	if len(aggregiert) == 0 {
+		return out
+	}
+
+	restSaetze := make([]steuer.Steuersatz, 0, len(aggregiert))
+	for satz := range aggregiert {
+		restSaetze = append(restSaetze, satz)
+	}
+	sort.Slice(restSaetze, func(i, j int) bool {
+		return restSaetze[i] < restSaetze[j]
+	})
+	for _, satz := range restSaetze {
+		out = append(out, aggregiert[satz])
+	}
+
+	return out
 }
 
 func (q Query) GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error) {

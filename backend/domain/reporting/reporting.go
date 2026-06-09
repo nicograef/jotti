@@ -1,6 +1,10 @@
 package reporting
 
-import "time"
+import (
+	"time"
+
+	"github.com/nicograef/jotti/backend/domain/steuer"
+)
 
 type UmsatzServicekraft struct {
 	UserID            int
@@ -16,6 +20,13 @@ type UmsatzTisch struct {
 	ZahlungenCents    int
 	AuszahlungenCents int
 	AnzahlZahlungen   int
+}
+
+type UmsatzSteuersatz struct {
+	Satz        steuer.Steuersatz
+	BruttoCents int
+	NettoCents  int
+	SteuerCents int
 }
 
 type StornierungPosition struct {
@@ -53,10 +64,11 @@ type Breakdowns struct {
 }
 
 type ReportingData struct {
-	KassensitzungNr int
-	Summary         Summary
-	Breakdowns      Breakdowns
-	Stornierungen   []StornierungDetail
+	KassensitzungNr     int
+	Summary             Summary
+	Breakdowns          Breakdowns
+	UmsatzProSteuersatz []UmsatzSteuersatz
+	Stornierungen       []StornierungDetail
 }
 
 type OffenerTisch struct {

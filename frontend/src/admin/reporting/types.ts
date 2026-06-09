@@ -48,6 +48,14 @@ export const UmsatzTischSchema = z.object({
 })
 export type UmsatzTisch = z.infer<typeof UmsatzTischSchema>
 
+export const UmsatzSteuersatzSchema = z.object({
+  satz: z.enum(['regel', 'ermaessigt', 'befreit', 'kombi']),
+  bruttoCents: z.number().int(),
+  nettoCents: z.number().int(),
+  steuerCents: z.number().int(),
+})
+export type UmsatzSteuersatz = z.infer<typeof UmsatzSteuersatzSchema>
+
 export const KassensitzungSchema = z.object({
   zNr: z.number().int(),
   datum: z.string(),
@@ -86,6 +94,7 @@ export const ReportingDataSchema = z.object({
     umsatzProServicekraft: z.array(UmsatzServicekraftSchema),
     umsatzProTisch: z.array(UmsatzTischSchema),
   }),
+  umsatzProSteuersatz: z.array(UmsatzSteuersatzSchema),
   stornierungen: z.array(StornierungDetailSchema),
 })
 export type ReportingData = z.infer<typeof ReportingDataSchema>

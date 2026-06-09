@@ -310,6 +310,17 @@ CREATE OR REPLACE FUNCTION kj_extract_direktverkauf_storno_cents(type TEXT, data
     SELECT CASE WHEN type = 'direktverkauf-storniert:v1' THEN (data->>'gesamtStornierungCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
+-- Returns the gross cents per steuersatz from position arrays for Umsatz aggregation.
+CREATE OR REPLACE FUNCTION kj_extract_umsatz_pro_steuersatz(type TEXT, data JSONB)
+RETURNS TABLE(steuersatz Steuersatz, brutto_cents int) AS $$
+    SELECT
+        (position->>'steuersatz')::Steuersatz AS steuersatz,
+        ((position->>'einzelpreis')::int * (position->>'menge')::int)
+            * CASE WHEN type = 'direktverkauf-storniert:v1' THEN -1 ELSE 1 END AS brutto_cents
+    FROM jsonb_array_elements(data->'positionen') AS position
+    WHERE type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1')
+$$ LANGUAGE sql IMMUTABLE;
+
 -- ============================================================
 -- Table: kassenidentitaet (Kassenidentität, Singleton)
 -- Insert-once at first startup; afterwards fully read-only (no INSERT/UPDATE/DELETE/TRUNCATE).

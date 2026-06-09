@@ -13,6 +13,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
 type mockQuery struct {
@@ -94,6 +95,9 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
 			UmsatzProTisch:        []reporting.UmsatzTisch{},
 		},
+		UmsatzProSteuersatz: []reporting.UmsatzSteuersatz{
+			{Satz: steuer.RegelSteuersatz, BruttoCents: 1190, NettoCents: 1000, SteuerCents: 190},
+		},
 		Stornierungen: []reporting.StornierungDetail{},
 	}
 	handler := QueryHandler{Query: mockQuery{data: mockData}}
@@ -115,6 +119,12 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 			AnzahlDirektverkaeufe    int `json:"anzahlDirektverkaeufe"`
 			DirektverkaufUmsatzCents int `json:"direktverkaufUmsatzCents"`
 		} `json:"summary"`
+		UmsatzProSteuersatz []struct {
+			Satz        string `json:"satz"`
+			BruttoCents int    `json:"bruttoCents"`
+			NettoCents  int    `json:"nettoCents"`
+			SteuerCents int    `json:"steuerCents"`
+		} `json:"umsatzProSteuersatz"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("expected valid JSON response: %v", err)
@@ -130,6 +140,12 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 	}
 	if resp.Summary.DirektverkaufUmsatzCents != 2750 {
 		t.Errorf("expected direktverkaufUmsatzCents 2750, got %d", resp.Summary.DirektverkaufUmsatzCents)
+	}
+	if len(resp.UmsatzProSteuersatz) != 1 {
+		t.Fatalf("expected 1 umsatzProSteuersatz row, got %d", len(resp.UmsatzProSteuersatz))
+	}
+	if resp.UmsatzProSteuersatz[0].Satz != "regel" || resp.UmsatzProSteuersatz[0].BruttoCents != 1190 {
+		t.Fatalf("unexpected umsatzProSteuersatz row: %+v", resp.UmsatzProSteuersatz[0])
 	}
 }
 

@@ -189,10 +189,10 @@ End-to-end: DB-Enum + Spalte → sqlc-Queries → Repository → Domain-Modell �
 
 ### Acceptance criteria
 
-- [ ] Tagesabrechnung zeigt Aufschlüsselung pro Steuersatz (19 %, 7 %, 0 %)
-- [ ] Pro Steuersatz: Brutto, Netto, Steuerbetrag korrekt (Netto + Steuer = Brutto)
-- [ ] Basis = Zahlungen + Direktverkäufe − Direktverkauf-Stornos (konsistent mit PRD)
-- [ ] Steuerbefreiter Umsatz erscheint als eigene Zeile mit Steuerbetrag 0
-- [ ] Kombi-Umsatz fließt anteilig in 7 %- und 19 %-Zeilen ein (keine Kombi-Zeile)
-- [ ] `make check` besteht (inkl. Reporting-Integrationstests falls vorhanden)
-- [ ] Frontend zeigt nur die Daten an, die das Backend liefert (keine clientseitige Berechnung)
+- [x] Tagesabrechnung zeigt Aufschlüsselung pro Steuersatz (19 %, 7 %, 0 %)
+- [x] Pro Steuersatz: Brutto, Netto, Steuerbetrag korrekt (Netto + Steuer = Brutto)
+- [x] Basis = Zahlungen + Direktverkäufe − Direktverkauf-Stornos (konsistent mit PRD)
+- [x] Steuerbefreiter Umsatz erscheint als eigene Zeile mit Steuerbetrag 0
+- [x] Kombi-Umsatz fließt anteilig in 7 %- und 19 %-Zeilen ein (keine Kombi-Zeile)
+- [x] `make check` besteht (inkl. Reporting-Integrationstests falls vorhanden)
+- [x] Frontend zeigt nur die Daten an, die das Backend liefert (keine clientseitige Berechnung)

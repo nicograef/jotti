@@ -27,10 +27,11 @@ type getReportingRequest struct {
 }
 
 type reportingResponse struct {
-	KassensitzungNr int                 `json:"kassensitzungNr"`
-	Summary         summaryResponse     `json:"summary"`
-	Breakdowns      breakdownsResponse  `json:"breakdowns"`
-	Stornierungen   []stornierungDetail `json:"stornierungen"`
+	KassensitzungNr     int                        `json:"kassensitzungNr"`
+	Summary             summaryResponse            `json:"summary"`
+	Breakdowns          breakdownsResponse         `json:"breakdowns"`
+	UmsatzProSteuersatz []umsatzSteuersatzResponse `json:"umsatzProSteuersatz"`
+	Stornierungen       []stornierungDetail        `json:"stornierungen"`
 }
 
 func (h QueryHandler) GetReportingHandler() http.HandlerFunc {
@@ -87,6 +88,13 @@ type umsatzTisch struct {
 	AnzahlZahlungen   int    `json:"anzahlZahlungen"`
 }
 
+type umsatzSteuersatzResponse struct {
+	Satz        string `json:"satz"`
+	BruttoCents int    `json:"bruttoCents"`
+	NettoCents  int    `json:"nettoCents"`
+	SteuerCents int    `json:"steuerCents"`
+}
+
 type stornierungPosition struct {
 	ProduktName  string `json:"produktName"`
 	VarianteName string `json:"varianteName"`
@@ -137,6 +145,27 @@ func toUmsatzTischList(tische []reporting.UmsatzTisch) []umsatzTisch {
 	out := make([]umsatzTisch, len(tische))
 	for i := range tische {
 		out[i] = toUmsatzTisch(tische[i])
+	}
+	return out
+}
+
+func toUmsatzSteuersatz(u reporting.UmsatzSteuersatz) umsatzSteuersatzResponse {
+	return umsatzSteuersatzResponse{
+		Satz:        string(u.Satz),
+		BruttoCents: u.BruttoCents,
+		NettoCents:  u.NettoCents,
+		SteuerCents: u.SteuerCents,
+	}
+}
+
+func toUmsatzSteuersatzList(werte []reporting.UmsatzSteuersatz) []umsatzSteuersatzResponse {
+	if len(werte) == 0 {
+		return []umsatzSteuersatzResponse{}
+	}
+
+	out := make([]umsatzSteuersatzResponse, len(werte))
+	for i := range werte {
+		out[i] = toUmsatzSteuersatz(werte[i])
 	}
 	return out
 }
@@ -196,7 +225,8 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 			UmsatzProServicekraft: toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),
 			UmsatzProTisch:        toUmsatzTischList(d.Breakdowns.UmsatzProTisch),
 		},
-		Stornierungen: toStornierungDetails(d.Stornierungen),
+		UmsatzProSteuersatz: toUmsatzSteuersatzList(d.UmsatzProSteuersatz),
+		Stornierungen:       toStornierungDetails(d.Stornierungen),
 	}
 }
 
