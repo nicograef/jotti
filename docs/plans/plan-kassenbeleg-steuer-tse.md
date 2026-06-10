@@ -118,13 +118,13 @@ Eine neue exportierte Funktion im `domain/steuer/`-Paket, die aus einer Liste vo
 
 ### Acceptance criteria
 
-- [ ] `TSEAbschnitt`-Struct mit Feldern: TransaktionNr, Signaturzaehler, TSESeriennummer, ZeitpunktBeginn, ZeitpunktEnde, Signatur
-- [ ] `KassenbelegData.TSE` ist ein optionaler Pointer (`*TSEAbschnitt`)
-- [ ] Formatter druckt TSE-Block nur wenn `TSE != nil`
-- [ ] Test: `TSE = nil` → kein TSE-Block im Beleg (Regression: Beleg identisch zu vorher)
-- [ ] Test: `TSE` gesetzt → alle TSE-Pflichtfelder im Beleg enthalten
-- [ ] Beleg endet weiterhin mit "Vielen Dank!" + CutPaper (bestehender Test bleibt grün)
-- [ ] `make lint && make test` grün
+- [x] `TSEAbschnitt`-Struct mit Feldern: TransaktionNr, Signaturzaehler, TSESeriennummer, ZeitpunktBeginn, ZeitpunktEnde, Signatur
+- [x] `KassenbelegData.TSE` ist ein optionaler Pointer (`*TSEAbschnitt`)
+- [x] Formatter druckt TSE-Block nur wenn `TSE != nil`
+- [x] Test: `TSE = nil` → kein TSE-Block im Beleg (Regression: Beleg identisch zu vorher)
+- [x] Test: `TSE` gesetzt → alle TSE-Pflichtfelder im Beleg enthalten
+- [x] Beleg endet weiterhin mit "Vielen Dank!" + CutPaper (bestehender Test bleibt grün)
+- [x] `make lint && make test` grün
 
 ---
 

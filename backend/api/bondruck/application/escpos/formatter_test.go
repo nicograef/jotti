@@ -294,6 +294,72 @@ func TestFormatKassenbeleg_ContainsSteuermatrix(t *testing.T) {
 	}
 }
 
+func TestFormatKassenbeleg_WithoutTSE_DoesNotContainTSEBlock(t *testing.T) {
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "42",
+		Zeitpunkt:          testTime,
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		Steuermatrix: []steuer.Aufteilung{
+			{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
+		},
+		GesamtbetragCents: 700,
+		Zahlungsart:       "bar",
+	})
+	got := string(payload)
+
+	if strings.Contains(got, "TSE-Daten:") {
+		t.Fatalf("Kassenbeleg darf ohne TSE-Daten keinen TSE-Block enthalten; got:\n%q", got)
+	}
+}
+
+func TestFormatKassenbeleg_WithTSE_ContainsTSEPflichtfelder(t *testing.T) {
+	tseBeginn := time.Date(2026, 5, 1, 20, 0, 12, 0, time.UTC)
+	tseEnde := time.Date(2026, 5, 1, 20, 0, 14, 0, time.UTC)
+
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "1003",
+		Zeitpunkt:          testTime,
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		GesamtbetragCents:  700,
+		Zahlungsart:        "bar",
+		TSE: &escpos.TSEAbschnitt{
+			TransaktionNr:   1003,
+			Signaturzaehler: 5871,
+			TSESeriennummer: "SW-TSE-SN-0042",
+			ZeitpunktBeginn: tseBeginn,
+			ZeitpunktEnde:   tseEnde,
+			Signatur:        "ABCDEF0123456789",
+		},
+	})
+	got := string(payload)
+
+	checks := []string{
+		"TSE-Daten:",
+		"TSE-Transaktion: 1003",
+		"Signaturzaehler: 5871",
+		"TSE-Seriennummer: SW-TSE-SN-0042",
+		"TSE-Start: 01.05.2026 20:00:12",
+		"TSE-Ende: 01.05.2026 20:00:14",
+		"Signatur: ABCDEF0123456789",
+	}
+
+	for _, check := range checks {
+		if !strings.Contains(got, check) {
+			t.Fatalf("Kassenbeleg enthaelt TSE-Pflichtfeld %q nicht; got:\n%q", check, got)
+		}
+	}
+}
+
 func TestFormatPositionBon_SetsCP858CodepageAfterInit(t *testing.T) {
 	payload := string(escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false))
 

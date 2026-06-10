@@ -25,8 +25,18 @@ type KassenbelegData struct {
 	Zeitpunkt          time.Time
 	Positionen         []kasse.Position
 	Steuermatrix       []steuer.Aufteilung
+	TSE                *TSEAbschnitt
 	GesamtbetragCents  int
 	Zahlungsart        string
+}
+
+type TSEAbschnitt struct {
+	TransaktionNr   int
+	Signaturzaehler int
+	TSESeriennummer string
+	ZeitpunktBeginn time.Time
+	ZeitpunktEnde   time.Time
+	Signatur        string
 }
 
 // FormatPositionBon generiert einen Bon fuer eine einzelne Position (Standard-Bonmodus).
@@ -158,7 +168,7 @@ func FormatDirektverkaufAbholbon(
 	return FormatSammelBon(positionen, "Direktverkauf", userName, zeitpunkt, kommentar, false)
 }
 
-// FormatKassenbeleg generiert einen fiskalischen Kassenbeleg (Basisstand ohne Steuer/TSE).
+// FormatKassenbeleg generiert einen fiskalischen Kassenbeleg.
 func FormatKassenbeleg(data KassenbelegData) []byte {
 	var buf bytes.Buffer
 
@@ -215,7 +225,18 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		}
 	}
 
-	// TODO(F-02): TSE-Signatur und processType nach TSE-Integration ergaenzen.
+	if data.TSE != nil {
+		buf.WriteByte('\n')
+		buf.WriteString("TSE-Daten:\n")
+		fmt.Fprintf(&buf, "  TSE-Transaktion: %d\n", data.TSE.TransaktionNr)
+		fmt.Fprintf(&buf, "  Signaturzaehler: %d\n", data.TSE.Signaturzaehler)
+		fmt.Fprintf(&buf, "  TSE-Seriennummer: %s\n", data.TSE.TSESeriennummer)
+		fmt.Fprintf(&buf, "  TSE-Start: %s\n", data.TSE.ZeitpunktBeginn.Format("02.01.2006 15:04:05"))
+		fmt.Fprintf(&buf, "  TSE-Ende: %s\n", data.TSE.ZeitpunktEnde.Format("02.01.2006 15:04:05"))
+		buf.WriteString(toCP858("  Signatur: "))
+		buf.WriteString(toCP858(wrapLine(data.TSE.Signatur, lineWidth-2)))
+		buf.WriteByte('\n')
+	}
 
 	buf.WriteString("\n")
 	buf.WriteString(AlignCenter)
