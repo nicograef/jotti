@@ -217,17 +217,17 @@ Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um s
 
 jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht nach § 146a AO. Die folgenden Anforderungen sind **verbindlich**. Rechtliche Grundlagen und Compliance-Entscheidungen: [compliance.md](compliance.md).
 
-| ID   | Titel               | Phase | Status                     | Prio        |
-| ---- | ------------------- | ----- | -------------------------- | ----------- |
-| F-01 | Seriennummer        | 1     | ✅                         | Must        |
-| F-07 | Steuersätze         | 1     | ✅                         | Must        |
-| F-03 | Belegausgabepflicht | 1/2   | 🔲 Offen                   | Must        |
-| F-05 | ELSTER-Meldung      | 1     | 🔲 Offen                   | Must (Doku) |
-| F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung | Should      |
-| F-02 | TSE-Integration     | 2     | 🔲 Offen                   | Should      |
-| F-04 | DSFinV-K Export     | 2     | 🔲 Offen                   | Should      |
-| F-09 | eBeleg              | 2     | 🔲 Offen                   | Nice        |
-| F-08 | GoBD-Hash-Chain     | 3     | 🔲 Offen                   | Nice        |
+| ID   | Titel               | Phase | Status                       | Prio        |
+| ---- | ------------------- | ----- | ---------------------------- | ----------- |
+| F-01 | Seriennummer        | 1     | ✅                           | Must        |
+| F-07 | Steuersätze         | 1     | ✅                           | Must        |
+| F-03 | Belegausgabepflicht | 1/2   | ⏳ Basis/F-07 ✅, F-02 offen | Must        |
+| F-05 | ELSTER-Meldung      | 1     | 🔲 Offen                     | Must (Doku) |
+| F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung   | Should      |
+| F-02 | TSE-Integration     | 2     | 🔲 Offen                     | Should      |
+| F-04 | DSFinV-K Export     | 2     | 🔲 Offen                     | Should      |
+| F-09 | eBeleg              | 2     | 🔲 Offen                     | Nice        |
+| F-08 | GoBD-Hash-Chain     | 3     | 🔲 Offen                     | Nice        |
 
 **Legende:** ✅ Implementiert · 🔲 Offen · ⏳ In Arbeit — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
 
@@ -235,16 +235,16 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 
 #### F-03 · Belegausgabepflicht
 
-> **Prio:** Must-have (offen — heute existiert nur der nicht-fiskalische Arbeitsbon, K-12; ein fiskalischer Kassenbeleg wird noch nicht erzeugt)
+> **Prio:** Must-have (teilweise umgesetzt: Kassenbeleg mit Basisangaben und Steuerausweis vorhanden; TSE-Pflichtfelder folgen mit F-02)
 
 Bei jedem Kassiervorgang muss dem Gast ein **Kassenbeleg** angeboten werden (§ 146a Abs. 2 AO, § 6 KassenSichV). jotti druckt den Kassenbeleg **auf Anforderung** durch den Service; am Fest greift in der Regel die Belegausgabe-Befreiung (Voraussetzungen → [compliance.md §5.1](compliance.md)), der Beleg muss aber jederzeit erstellbar sein. Der Kassenbeleg ist **strikt** vom automatischen, nicht-fiskalischen Arbeitsbon (K-12) zu trennen: Letzterer ist eine Arbeitsanweisung ohne Preise und **kein** Beleg. Der Kassenbeleg kann in Papierform (Bondrucker) oder — mit Zustimmung des Gastes — digital (F-09) ausgegeben werden. Ab TSE-Integration (F-02) enthält er zusätzlich TSE-Pflichtfelder.
 
 **Akzeptanzkriterien:**
 
-- [ ] Service kann pro Kassiervorgang **auf Anforderung** einen Kassenbeleg drucken (kein automatischer Druck nach jeder Zahlung)
-- [ ] Basis-Beleg enthält: Vereinsname + Adresse (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, alle Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer
-- [ ] Fehlender Kassenbeleg-Drucker erzeugt eine klare Fehlermeldung (kein stilles Scheitern)
-- [ ] Mit F-07: Beleg weist Nettobetrag, Steuersatz und Steuerbetrag pro Position aus
+- [x] Service kann pro Kassiervorgang **auf Anforderung** einen Kassenbeleg drucken (kein automatischer Druck nach jeder Zahlung)
+- [x] Basis-Beleg enthält: Vereinsname + Adresse (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, alle Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer
+- [x] Fehlender Kassenbeleg-Drucker erzeugt eine klare Fehlermeldung (kein stilles Scheitern)
+- [x] Mit F-07: Beleg weist Nettobetrag, Steuersatz und Steuerbetrag pro Position aus
 - [ ] Mit F-02 (TSE): Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
 
 ---
