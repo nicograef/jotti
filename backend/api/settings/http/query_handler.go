@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
@@ -15,6 +16,7 @@ type settingsQuery interface {
 	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
 	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
+	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
 
 type QueryHandler struct {
@@ -39,6 +41,14 @@ type bondruckEinstellungenResponse struct {
 	KassenbelegDruckerIP string `json:"kassenbelegDruckerIp"`
 	DirektverkaufModus   string `json:"direktverkaufModus"`
 	AbholbonDruckerIP    string `json:"abholbonDruckerIp"`
+}
+
+type tseKonfigurationResponse struct {
+	ApiKeyGesetzt    bool   `json:"apiKeyGesetzt"`
+	ApiSecretGesetzt bool   `json:"apiSecretGesetzt"`
+	TssID            string `json:"tssId"`
+	ClientID         string `json:"clientId"`
+	IstKonfiguriert  bool   `json:"istKonfiguriert"`
 }
 
 func (h *QueryHandler) GetKassenidentitaetHandler() http.HandlerFunc {
@@ -94,6 +104,28 @@ func (h *QueryHandler) GetBondruckEinstellungenHandler() http.HandlerFunc {
 			KassenbelegDruckerIP: b.KassenbelegDruckerIP,
 			DirektverkaufModus:   string(b.DirektverkaufModus),
 			AbholbonDruckerIP:    b.AbholbonDruckerIP,
+		})
+	}
+}
+
+func (h *QueryHandler) GetTSEKonfigurationHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		c, err := h.Query.GetTSEKonfiguration(r.Context())
+		if err != nil {
+			if errors.Is(err, application.ErrNotFound) {
+				helper.SendResponse(w, tseKonfigurationResponse{})
+				return
+			}
+			helper.SendServerError(w)
+			return
+		}
+
+		helper.SendResponse(w, tseKonfigurationResponse{
+			ApiKeyGesetzt:    strings.TrimSpace(c.ApiKey) != "",
+			ApiSecretGesetzt: strings.TrimSpace(c.ApiSecret) != "",
+			TssID:            c.TssID,
+			ClientID:         c.ClientID,
+			IstKonfiguriert:  c.IstKonfiguriert(),
 		})
 	}
 }

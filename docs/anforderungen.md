@@ -289,7 +289,7 @@ Das Backend exponiert ein `TSEClient`-Interface für die Kommunikation mit einer
 
 - [ ] Interface `TSEClient` mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction` ist definiert
 - [ ] Eine fiskaly-Implementierung des Interfaces (`FiskalyTSEClient`) ist vorhanden
-- [ ] Bei fehlender TSE-Konfiguration: konfigurierbarer Modus `strict` (Fehler) oder `bypass` (nur Entwicklung)
+- [ ] Bei fehlender TSE-Konfiguration bleibt TSE optional; im Admin-Dashboard erscheint ein deutlicher Hinweis + Warnung (nur Test/Demo/Übung)
 - [ ] TSE-Transaktion bei Bestellung, Zahlung, Stornierung, **Auszahlung**, Geldtransit (Kassenbewegungen), Kassendifferenz, Direktverkauf und Tagesabschluss (vollständiges Mapping → [handbuch.md §3.13](handbuch.md))
 - [ ] Event-Daten um TSE-Felder erweitert (Signatur, Transaktionsnummer, Signaturzähler, TSE-Seriennummer)
 - [ ] Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)

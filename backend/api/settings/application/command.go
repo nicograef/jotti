@@ -10,6 +10,7 @@ import (
 type settingsCommandRepo interface {
 	UpsertBetreiber(ctx context.Context, b settings.Betreiber) error
 	UpsertBondruckEinstellungen(ctx context.Context, b settings.BondruckEinstellungen) error
+	UpsertTSEKonfiguration(ctx context.Context, b settings.TSEKonfiguration) error
 }
 
 type Command struct {
@@ -39,5 +40,20 @@ func (c Command) UpdateBondruckEinstellungen(ctx context.Context, b settings.Bon
 		Str("direktverkauf_modus", string(b.DirektverkaufModus)).
 		Str("abholbon_drucker_ip", b.AbholbonDruckerIP).
 		Msg("Bondruck-Einstellungen saved")
+	return nil
+}
+
+func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf settings.TSEKonfiguration) error {
+	log := zerolog.Ctx(ctx)
+
+	if err := c.SettingsRepo.UpsertTSEKonfiguration(ctx, conf); err != nil {
+		log.Error().Err(err).Msg("Failed to save tse_konfiguration")
+		return ErrDatabase
+	}
+
+	log.Info().
+		Bool("ist_konfiguriert", conf.IstKonfiguriert()).
+		Msg("TSE-Konfiguration saved")
+
 	return nil
 }

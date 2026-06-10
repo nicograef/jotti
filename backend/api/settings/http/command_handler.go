@@ -12,6 +12,7 @@ import (
 type settingsCommand interface {
 	UpdateBetreiber(ctx context.Context, b settings.Betreiber) error
 	UpdateBondruckEinstellungen(ctx context.Context, b settings.BondruckEinstellungen) error
+	UpdateTSEKonfiguration(ctx context.Context, b settings.TSEKonfiguration) error
 }
 
 type CommandHandler struct {
@@ -53,6 +54,20 @@ var updateBondruckEinstellungenSchema = z.Struct(z.Shape{
 		z.Message("Ungültiger Direktverkauf-Modus"),
 	).Required(),
 	"AbholbonDruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
+})
+
+type updateTSEKonfigurationRequest struct {
+	ApiKey    string `json:"apiKey"`
+	ApiSecret string `json:"apiSecret"`
+	TssID     string `json:"tssId"`
+	ClientID  string `json:"clientId"`
+}
+
+var updateTSEKonfigurationSchema = z.Struct(z.Shape{
+	"ApiKey":    z.String().Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Optional(),
+	"ApiSecret": z.String().Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Optional(),
+	"TssID":     z.String().Max(255, z.Message("TSS-ID darf höchstens 255 Zeichen lang sein")).Optional(),
+	"ClientID":  z.String().Max(255, z.Message("Client-ID darf höchstens 255 Zeichen lang sein")).Optional(),
 })
 
 func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {
@@ -97,6 +112,28 @@ func (h *CommandHandler) UpdateBondruckEinstellungenHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
+		helper.SendEmptyResponse(w)
+	}
+}
+
+func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body updateTSEKonfigurationRequest
+		if !helper.ReadAndValidateBody(w, r, &body, updateTSEKonfigurationSchema) {
+			return
+		}
+
+		conf, err := settings.NewTSEKonfiguration(body.ApiKey, body.ApiSecret, body.TssID, body.ClientID)
+		if err != nil {
+			helper.SendClientError(w, "validation_error", nil)
+			return
+		}
+
+		if err := h.Command.UpdateTSEKonfiguration(r.Context(), conf); err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
 		helper.SendEmptyResponse(w)
 	}
 }

@@ -357,6 +357,21 @@ type Tische struct {
 	UpdatedAt time.Time
 }
 
+// TSE-Konfiguration (Singleton). Speichert API-Zugangsdaten fuer die Cloud-TSE-Integration.
+type TseKonfiguration struct {
+	ID int
+	// API-Key fuer den TSE-Anbieter.
+	ApiKey string
+	// API-Secret fuer den TSE-Anbieter.
+	ApiSecret string
+	// TSS-ID der TSE-Instanz.
+	TssID string
+	// Client-ID innerhalb der TSS.
+	ClientID string
+	// Letzte Aenderung (UTC)
+	UpdatedAt time.Time
+}
+
 // System users who perform actions in jotti
 type User struct {
 	ID int

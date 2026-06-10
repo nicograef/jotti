@@ -206,18 +206,18 @@ nur Test/Demo/Übung). Abschließend wird `docs/anforderungen.md` F-02 von
 
 ### Acceptance criteria
 
-- [ ] `tse_konfiguration` existiert als Singleton in der initialen Migration;
+- [x] `tse_konfiguration` existiert als Singleton in der initialen Migration;
       `make down && make dev` setzt die DB sauber neu auf.
-- [ ] `POST /admin/update-tse-konfiguration` setzt und leert die vier Felder;
+- [x] `POST /admin/update-tse-konfiguration` setzt und leert die vier Felder;
       `POST /admin/get-tse-konfiguration` liefert sie mit maskierten Secrets.
-- [ ] Beide Seiten validieren (zog + Zod) mit deutschen Fehlermeldungen; Aufrufe
+- [x] Beide Seiten validieren (zog + Zod) mit deutschen Fehlermeldungen; Aufrufe
       laufen über eine `BackendClient`-basierte Backend-Klasse (kein `fetch`).
-- [ ] Die Admin-Seite zeigt die Kassenseriennummer und erlaubt das Pflegen/Leeren
+- [x] Die Admin-Seite zeigt die Kassenseriennummer und erlaubt das Pflegen/Leeren
       der TSE-Konfiguration.
-- [ ] Bei fehlender TSE erscheint im Admin-Dashboard ein sichtbarer Hinweis +
+- [x] Bei fehlender TSE erscheint im Admin-Dashboard ein sichtbarer Hinweis +
       Warnung; bei konfigurierter TSE verschwindet er.
-- [ ] `docs/anforderungen.md` F-02 spiegelt „optional + Hinweis/Warnung".
-- [ ] `make check` und Frontend-Lint sind grün; Response-DTOs liegen in der
+- [x] `docs/anforderungen.md` F-02 spiegelt „optional + Hinweis/Warnung".
+- [x] `make check` und Frontend-Lint sind grün; Response-DTOs liegen in der
       HTTP-Schicht (Domain-Modelle ohne JSON-Tags).
 
 ---

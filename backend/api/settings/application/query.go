@@ -13,6 +13,7 @@ type settingsQueryRepo interface {
 	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
 	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
+	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
 
 type Query struct {
@@ -56,4 +57,19 @@ func (q Query) GetBondruckEinstellungen(ctx context.Context) (settings.BondruckE
 		return settings.BondruckEinstellungen{}, ErrDatabase
 	}
 	return b, nil
+}
+
+func (q Query) GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error) {
+	log := zerolog.Ctx(ctx)
+
+	c, err := q.SettingsRepo.GetTSEKonfiguration(ctx)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			return settings.TSEKonfiguration{}, ErrNotFound
+		}
+		log.Error().Err(err).Msg("Failed to retrieve tse_konfiguration")
+		return settings.TSEKonfiguration{}, ErrDatabase
+	}
+
+	return c, nil
 }

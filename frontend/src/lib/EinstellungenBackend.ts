@@ -27,6 +27,41 @@ export const BondruckEinstellungenSchema = z.object({
 })
 export type BondruckEinstellungen = z.infer<typeof BondruckEinstellungenSchema>
 
+export const TSEKonfigurationSchema = z.object({
+  apiKeyGesetzt: z.boolean(),
+  apiSecretGesetzt: z.boolean(),
+  tssId: z.string(),
+  clientId: z.string(),
+  istKonfiguriert: z.boolean(),
+})
+export type TSEKonfiguration = z.infer<typeof TSEKonfigurationSchema>
+
+export const TSEKonfigurationSpeichernSchema = z.object({
+  apiKey: z
+    .string()
+    .trim()
+    .min(1, 'API-Key ist erforderlich')
+    .max(500, 'API-Key darf höchstens 500 Zeichen lang sein'),
+  apiSecret: z
+    .string()
+    .trim()
+    .min(1, 'API-Secret ist erforderlich')
+    .max(500, 'API-Secret darf höchstens 500 Zeichen lang sein'),
+  tssId: z
+    .string()
+    .trim()
+    .min(1, 'TSS-ID ist erforderlich')
+    .max(255, 'TSS-ID darf höchstens 255 Zeichen lang sein'),
+  clientId: z
+    .string()
+    .trim()
+    .min(1, 'Client-ID ist erforderlich')
+    .max(255, 'Client-ID darf höchstens 255 Zeichen lang sein'),
+})
+export type TSEKonfigurationSpeichern = z.infer<
+  typeof TSEKonfigurationSpeichernSchema
+>
+
 export class EinstellungenBackend {
   private readonly backend: BackendClient
 
@@ -64,5 +99,29 @@ export class EinstellungenBackend {
   ): Promise<void> {
     const body = BondruckEinstellungenSchema.parse(b)
     await this.backend.post('admin/update-bondruck-einstellungen', body)
+  }
+
+  public async getTSEKonfiguration(): Promise<TSEKonfiguration> {
+    return this.backend.post(
+      'admin/get-tse-konfiguration',
+      {},
+      TSEKonfigurationSchema,
+    )
+  }
+
+  public async saveTSEKonfiguration(
+    config: TSEKonfigurationSpeichern,
+  ): Promise<void> {
+    const body = TSEKonfigurationSpeichernSchema.parse(config)
+    await this.backend.post('admin/update-tse-konfiguration', body)
+  }
+
+  public async clearTSEKonfiguration(): Promise<void> {
+    await this.backend.post('admin/update-tse-konfiguration', {
+      apiKey: '',
+      apiSecret: '',
+      tssId: '',
+      clientId: '',
+    })
   }
 }

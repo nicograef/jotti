@@ -9,6 +9,7 @@ import {
   type Betreiber,
   type BondruckEinstellungen,
   EinstellungenBackend,
+  type TSEKonfigurationSpeichern,
 } from '@/lib/EinstellungenBackend'
 
 const druckstationBackend = new DruckstationBackend(BackendSingleton)
@@ -74,5 +75,31 @@ export function useBondruckEinstellungen() {
     isPending,
     error,
     saveBondruckEinstellungen,
+  }
+}
+
+export function useTSEKonfiguration() {
+  const queryClient = useQueryClient()
+  const { isPending, data, error } = useQuery({
+    queryKey: ['tse-konfiguration'],
+    queryFn: () => einstellungenBackend.getTSEKonfiguration(),
+  })
+
+  const saveTSEKonfiguration = async (config: TSEKonfigurationSpeichern) => {
+    await einstellungenBackend.saveTSEKonfiguration(config)
+    await queryClient.invalidateQueries({ queryKey: ['tse-konfiguration'] })
+  }
+
+  const clearTSEKonfiguration = async () => {
+    await einstellungenBackend.clearTSEKonfiguration()
+    await queryClient.invalidateQueries({ queryKey: ['tse-konfiguration'] })
+  }
+
+  return {
+    tseKonfiguration: data,
+    isPending,
+    error,
+    saveTSEKonfiguration,
+    clearTSEKonfiguration,
   }
 }

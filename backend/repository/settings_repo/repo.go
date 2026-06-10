@@ -79,3 +79,27 @@ func (r Repository) UpsertBondruckEinstellungen(ctx context.Context, b settings.
 	}
 	return nil
 }
+
+func (r Repository) GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error) {
+	row, err := r.q.GetTSEKonfiguration(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return settings.TSEKonfiguration{}, db.ErrNotFound
+		}
+		return settings.TSEKonfiguration{}, db.ErrDatabase
+	}
+	return toTSEKonfiguration(row), nil
+}
+
+func (r Repository) UpsertTSEKonfiguration(ctx context.Context, c settings.TSEKonfiguration) error {
+	err := r.q.UpsertTSEKonfiguration(ctx, dbgen.UpsertTSEKonfigurationParams{
+		ApiKey:    c.ApiKey,
+		ApiSecret: c.ApiSecret,
+		TssID:     c.TssID,
+		ClientID:  c.ClientID,
+	})
+	if err != nil {
+		return db.ErrDatabase
+	}
+	return nil
+}

@@ -15,6 +15,7 @@ import {
 import {
   type Betreiber,
   type BondruckEinstellungen,
+  type TSEKonfigurationSpeichern,
 } from '@/lib/EinstellungenBackend'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 
@@ -22,6 +23,7 @@ import {
   useBetreiber,
   useBondruckEinstellungen,
   useKassenidentitaet,
+  useTSEKonfiguration,
 } from './hooks'
 
 function KassenidentitaetSection() {
@@ -210,6 +212,157 @@ const emptyBondruckEinstellungen: BondruckEinstellungen = {
   abholbonDruckerIp: '',
 }
 
+const emptyTSEKonfiguration: TSEKonfigurationSpeichern = {
+  apiKey: '',
+  apiSecret: '',
+  tssId: '',
+  clientId: '',
+}
+
+function TSEKonfigurationForm({
+  initial,
+  apiKeyGesetzt,
+  apiSecretGesetzt,
+  onSave,
+  onClear,
+}: {
+  initial: TSEKonfigurationSpeichern
+  apiKeyGesetzt: boolean
+  apiSecretGesetzt: boolean
+  onSave: (config: TSEKonfigurationSpeichern) => Promise<void>
+  onClear: () => Promise<void>
+}) {
+  const [form, setForm] = useState<TSEKonfigurationSpeichern>(initial)
+  const [saving, setSaving] = useState(false)
+  const [clearing, setClearing] = useState(false)
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await onSave(form)
+      setForm((prev) => ({
+        ...prev,
+        apiKey: '',
+        apiSecret: '',
+      }))
+      toast.success('TSE-Konfiguration gespeichert.')
+    } catch (error) {
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'TSE-Konfiguration speichern',
+          error,
+          byCode: {
+            validation_error:
+              'Bitte alle vier Felder ausfüllen und auf gültige Länge prüfen.',
+          },
+        }),
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleClear = async () => {
+    setClearing(true)
+    try {
+      await onClear()
+      setForm(emptyTSEKonfiguration)
+      toast.success('TSE-Konfiguration geleert.')
+    } catch (error) {
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'TSE-Konfiguration leeren',
+          error,
+        }),
+      )
+    } finally {
+      setClearing(false)
+    }
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-1.5">
+        <Label htmlFor="tseApiKey">API-Key *</Label>
+        <Input
+          id="tseApiKey"
+          type="password"
+          value={form.apiKey}
+          onChange={(event) => {
+            setForm((prev) => ({ ...prev, apiKey: event.target.value }))
+          }}
+          placeholder="fiskaly API-Key"
+        />
+        {apiKeyGesetzt && (
+          <p className="text-sm text-muted-foreground">
+            Ein API-Key ist bereits hinterlegt. Beim Speichern wird der hier
+            eingegebene Wert übernommen.
+          </p>
+        )}
+      </div>
+
+      <div className="grid gap-1.5">
+        <Label htmlFor="tseApiSecret">API-Secret *</Label>
+        <Input
+          id="tseApiSecret"
+          type="password"
+          value={form.apiSecret}
+          onChange={(event) => {
+            setForm((prev) => ({
+              ...prev,
+              apiSecret: event.target.value,
+            }))
+          }}
+          placeholder="fiskaly API-Secret"
+        />
+        {apiSecretGesetzt && (
+          <p className="text-sm text-muted-foreground">
+            Ein API-Secret ist bereits hinterlegt. Beim Speichern wird der hier
+            eingegebene Wert übernommen.
+          </p>
+        )}
+      </div>
+
+      <div className="grid gap-1.5">
+        <Label htmlFor="tseTssId">TSS-ID *</Label>
+        <Input
+          id="tseTssId"
+          value={form.tssId}
+          onChange={(event) => {
+            setForm((prev) => ({ ...prev, tssId: event.target.value }))
+          }}
+          placeholder="z.B. 123e4567-e89b-12d3-a456-426614174000"
+        />
+      </div>
+
+      <div className="grid gap-1.5">
+        <Label htmlFor="tseClientId">Client-ID *</Label>
+        <Input
+          id="tseClientId"
+          value={form.clientId}
+          onChange={(event) => {
+            setForm((prev) => ({ ...prev, clientId: event.target.value }))
+          }}
+          placeholder="z.B. KASSE-1"
+        />
+      </div>
+
+      <div className="flex gap-2">
+        <Button onClick={() => void handleSave()} disabled={saving || clearing}>
+          {saving ? 'Speichern…' : 'Speichern'}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => void handleClear()}
+          disabled={saving || clearing}
+        >
+          {clearing ? 'Leeren…' : 'Alle Felder leeren'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function BondruckEinstellungenForm({
   initial,
   onSave,
@@ -357,6 +510,60 @@ function BondruckEinstellungenSection() {
   )
 }
 
+function TSEKonfigurationSection() {
+  const {
+    tseKonfiguration,
+    isPending,
+    error,
+    saveTSEKonfiguration,
+    clearTSEKonfiguration,
+  } = useTSEKonfiguration()
+
+  if (isPending) {
+    return (
+      <section className="max-w-2xl">
+        <p className="text-muted-foreground text-sm">Lade TSE-Konfiguration…</p>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="max-w-2xl">
+        <p className="text-destructive text-sm">
+          Fehler beim Laden der TSE-Konfiguration.
+        </p>
+      </section>
+    )
+  }
+
+  const initial: TSEKonfigurationSpeichern = {
+    apiKey: '',
+    apiSecret: '',
+    tssId: tseKonfiguration?.tssId ?? '',
+    clientId: tseKonfiguration?.clientId ?? '',
+  }
+
+  return (
+    <section className="max-w-2xl">
+      <h2 className="text-xl font-semibold mb-1">TSE-Integration (BYOT)</h2>
+      <p className="text-muted-foreground text-sm mb-4">
+        Hier hinterlegst du die Zugangsdaten für deine Cloud-TSE. Die
+        Seriennummer aus der Kassenidentität oben wird in fiskaly als
+        serial_number benötigt.
+      </p>
+      <TSEKonfigurationForm
+        key={`${tseKonfiguration?.tssId ?? ''}-${tseKonfiguration?.clientId ?? ''}-${String(tseKonfiguration?.apiKeyGesetzt ?? false)}-${String(tseKonfiguration?.apiSecretGesetzt ?? false)}`}
+        initial={initial}
+        apiKeyGesetzt={tseKonfiguration?.apiKeyGesetzt ?? false}
+        apiSecretGesetzt={tseKonfiguration?.apiSecretGesetzt ?? false}
+        onSave={saveTSEKonfiguration}
+        onClear={clearTSEKonfiguration}
+      />
+    </section>
+  )
+}
+
 function BetreiberSection() {
   const { betreiber, isPending, error, saveBetreiber } = useBetreiber()
 
@@ -398,6 +605,8 @@ export function EinstellungenPage() {
   return (
     <div className="flex flex-col gap-10">
       <KassenidentitaetSection />
+      <hr />
+      <TSEKonfigurationSection />
       <hr />
       <BondruckEinstellungenSection />
       <hr />

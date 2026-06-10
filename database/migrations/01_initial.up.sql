@@ -405,4 +405,27 @@ COMMENT ON COLUMN bondruck_einstellungen.updated_at IS 'Letzte Aenderung (UTC)';
 INSERT INTO bondruck_einstellungen (id, kassenbeleg_drucker_ip, direktverkauf_modus, abholbon_drucker_ip, updated_at)
 VALUES (1, '', 'kein_bon', '', now());
 
+-- ============================================================
+-- Table: tse_konfiguration (TSE-Zugangsdaten, Singleton)
+-- Optional: Ohne Konfiguration bleibt TSE deaktiviert.
+-- ============================================================
+CREATE TABLE tse_konfiguration (
+    id          INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    api_key     TEXT NOT NULL,
+    api_secret  TEXT NOT NULL,
+    tss_id      TEXT NOT NULL,
+    client_id   TEXT NOT NULL,
+    updated_at  TIMESTAMPTZ NOT NULL
+);
+
+COMMENT ON TABLE tse_konfiguration IS 'TSE-Konfiguration (Singleton). Speichert API-Zugangsdaten fuer die Cloud-TSE-Integration.';
+COMMENT ON COLUMN tse_konfiguration.api_key IS 'API-Key fuer den TSE-Anbieter.';
+COMMENT ON COLUMN tse_konfiguration.api_secret IS 'API-Secret fuer den TSE-Anbieter.';
+COMMENT ON COLUMN tse_konfiguration.tss_id IS 'TSS-ID der TSE-Instanz.';
+COMMENT ON COLUMN tse_konfiguration.client_id IS 'Client-ID innerhalb der TSS.';
+COMMENT ON COLUMN tse_konfiguration.updated_at IS 'Letzte Aenderung (UTC)';
+
+INSERT INTO tse_konfiguration (id, api_key, api_secret, tss_id, client_id, updated_at)
+VALUES (1, '', '', '', '', now());
+
 COMMIT;

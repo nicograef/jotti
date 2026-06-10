@@ -40,3 +40,13 @@ func toBondruckEinstellungen(row dbgen.GetBondruckEinstellungenRow) settings.Bon
 		UpdatedAt:            row.UpdatedAt,
 	}
 }
+
+func toTSEKonfiguration(row dbgen.GetTSEKonfigurationRow) settings.TSEKonfiguration {
+	return settings.TSEKonfiguration{
+		ApiKey:    row.ApiKey,
+		ApiSecret: row.ApiSecret,
+		TssID:     row.TssID,
+		ClientID:  row.ClientID,
+		UpdatedAt: row.UpdatedAt,
+	}
+}

@@ -26,6 +26,7 @@ DROP FUNCTION IF EXISTS kj_extract_zahlung_cents(TEXT, JSONB);
 
 DROP TABLE IF EXISTS kassenidentitaet;
 DROP TABLE IF EXISTS betreiber;
+DROP TABLE IF EXISTS tse_konfiguration;
 DROP TABLE IF EXISTS kassenjournal;
 
 DROP TABLE IF EXISTS kassensitzungen;
