@@ -17,11 +17,22 @@ type settingsQueryRepo interface {
 	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
 
+type tseStatusRepo interface {
+	CountOffeneTSENachsignierAuftraege(ctx context.Context) (int, error)
+}
+
 type NewTSEConnectionTester func(credentials tse.Credentials) (tse.ConnectionTester, error)
 
 type Query struct {
 	SettingsRepo           settingsQueryRepo
+	TSEStatusRepo          tseStatusRepo
 	NewTSEConnectionTester NewTSEConnectionTester
+}
+
+type TSEStatus struct {
+	Umgebung               string
+	OffeneNachsignierungen int
+	IstKonfiguriert        bool
 }
 
 func (q Query) GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error) {
@@ -117,5 +128,60 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 		return tse.VerbindungStatus{}, ErrTSEVerbindungFehlgeschlagen
 	}
 
+	return status, nil
+}
+
+func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
+	log := zerolog.Ctx(ctx)
+
+	if q.TSEStatusRepo == nil {
+		log.Error().Msg("Missing TSE status repository")
+		return TSEStatus{}, ErrDatabase
+	}
+
+	offeneNachsignierungen, err := q.TSEStatusRepo.CountOffeneTSENachsignierAuftraege(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to count open TSE retry jobs")
+		return TSEStatus{}, ErrDatabase
+	}
+
+	conf, err := q.SettingsRepo.GetTSEKonfiguration(ctx)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			return TSEStatus{OffeneNachsignierungen: offeneNachsignierungen}, nil
+		}
+		log.Error().Err(err).Msg("Failed to retrieve tse_konfiguration for status")
+		return TSEStatus{}, ErrDatabase
+	}
+
+	status := TSEStatus{
+		OffeneNachsignierungen: offeneNachsignierungen,
+		IstKonfiguriert:        conf.IstKonfiguriert(),
+	}
+	if !status.IstKonfiguriert {
+		return status, nil
+	}
+	if q.NewTSEConnectionTester == nil {
+		return status, nil
+	}
+
+	tester, err := q.NewTSEConnectionTester(tse.Credentials{
+		ApiKey:    conf.ApiKey,
+		ApiSecret: conf.ApiSecret,
+		TssID:     conf.TssID,
+		ClientID:  conf.ClientID,
+	})
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to create TSE connection tester for status")
+		return status, nil
+	}
+
+	verbindung, err := tester.TestConnection(ctx)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to determine TSE environment for status")
+		return status, nil
+	}
+
+	status.Umgebung = string(verbindung.Umgebung)
 	return status, nil
 }

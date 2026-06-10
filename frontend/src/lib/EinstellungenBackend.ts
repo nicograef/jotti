@@ -42,6 +42,16 @@ export const TSEVerbindungStatusSchema = z.object({
 })
 export type TSEVerbindungStatus = z.infer<typeof TSEVerbindungStatusSchema>
 
+export const TSEStatusSchema = z.object({
+  umgebung: z.string(),
+  offeneNachsignierungen: z
+    .number()
+    .int()
+    .min(0, 'Offene Nachsignierungen müssen >= 0 sein'),
+  istKonfiguriert: z.boolean(),
+})
+export type TSEStatus = z.infer<typeof TSEStatusSchema>
+
 export const TSEKonfigurationSpeichernSchema = z.object({
   apiKey: z
     .string()
@@ -137,5 +147,9 @@ export class EinstellungenBackend {
       {},
       TSEVerbindungStatusSchema,
     )
+  }
+
+  public async getTSEStatus(): Promise<TSEStatus> {
+    return this.backend.post('admin/get-tse-status', {}, TSEStatusSchema)
   }
 }

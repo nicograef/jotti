@@ -109,3 +109,16 @@ export function useTSEKonfiguration() {
     testTSEVerbindung,
   }
 }
+
+export function useTSEStatus() {
+  const { data, isPending, error } = useQuery({
+    queryKey: ['tse-status'],
+    queryFn: () => einstellungenBackend.getTSEStatus(),
+  })
+
+  return {
+    tseStatus: data,
+    isPending,
+    error,
+  }
+}

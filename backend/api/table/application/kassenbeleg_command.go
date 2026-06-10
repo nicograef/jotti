@@ -10,6 +10,7 @@ import (
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/steuer"
@@ -130,6 +131,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 	var gesamtbetragCents int
 	var referenz string
 	var tseAbschnitt *escpos.TSEAbschnitt
+	var tseAusfallvermerk bool
 
 	if verkaufID != "" {
 		subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
@@ -181,6 +183,29 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 			log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to parse TSE data for kassenbeleg")
 			return ErrDatabase
 		}
+
+		if tseAbschnitt == nil {
+			txID, err := tseTransactionIDForZahlungEvent(zahlungEvent)
+			if err != nil {
+				log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to derive TSE tx_id for kassenbeleg fallback")
+				return ErrDatabase
+			}
+
+			signaturData, err := c.EventRepo.GetTSESignaturByTxID(ctx, txID)
+			switch {
+			case err == nil:
+				tseAbschnitt, err = toTSEAbschnitt(&signaturData)
+				if err != nil {
+					log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to parse backfilled TSE signature for kassenbeleg")
+					return ErrDatabase
+				}
+			case errors.Is(err, db.ErrNotFound):
+				tseAusfallvermerk = zahlungData.TSEAusfall
+			default:
+				log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to load backfilled TSE signature for kassenbeleg")
+				return ErrDatabase
+			}
+		}
 	}
 
 	bondruckSettings, err := c.SettingsRepo.GetBondruckEinstellungen(ctx)
@@ -215,6 +240,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		Positionen:         positionen,
 		Steuermatrix:       steuer.Steuermatrix(toSteuermatrixPositionen(positionen)),
 		TSE:                tseAbschnitt,
+		TSEAusfallvermerk:  tseAusfallvermerk,
 		GesamtbetragCents:  gesamtbetragCents,
 		Zahlungsart:        "bar",
 	})

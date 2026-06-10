@@ -349,17 +349,17 @@ offener Nachsignierungen; die Admin-UI zeigt sie an.
 
 ### Acceptance criteria
 
-- [ ] Bei TSE-Fehler wird das Event ohne Signatur persistiert, ein Outbox-Eintrag
+- [x] Bei TSE-Fehler wird das Event ohne Signatur persistiert, ein Outbox-Eintrag
       angelegt und der Verkauf erfolgreich abgeschlossen (nicht blockiert).
-- [ ] Der Beleg trägt bei Ausfall einen klaren Ausfallvermerk.
-- [ ] Die Worker-Goroutine signiert offene Aufträge nach, markiert sie als
+- [x] Der Beleg trägt bei Ausfall einen klaren Ausfallvermerk.
+- [x] Die Worker-Goroutine signiert offene Aufträge nach, markiert sie als
       erledigt und schreibt die Signatur in `tse_signaturen`.
-- [ ] Ein erneuter Lauf gegen dieselbe `tx_id` erzeugt **keine** Dublette
+- [x] Ein erneuter Lauf gegen dieselbe `tx_id` erzeugt **keine** Dublette
       (Idempotenz).
-- [ ] Der Beleg-Druck bezieht die Signatur aus Event **oder** Seitentabelle.
-- [ ] `POST /admin/get-tse-status` liefert die Anzahl offener Nachsignierungen;
+- [x] Der Beleg-Druck bezieht die Signatur aus Event **oder** Seitentabelle.
+- [x] `POST /admin/get-tse-status` liefert die Anzahl offener Nachsignierungen;
       die Admin-UI zeigt sie an.
-- [ ] Service- und Worker-Verhalten gegen den Fake getestet (Erfolg/Fehler/
+- [x] Service- und Worker-Verhalten gegen den Fake getestet (Erfolg/Fehler/
       Idempotenz); `make check` grün.
 
 ---

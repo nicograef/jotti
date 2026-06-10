@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
@@ -76,6 +77,47 @@ func (r Repository) WriteEventWithDruckauftraege(
 
 	if err := druckauftrag_repo.InsertDruckauftraege(ctx, qtx, buildAuftraege(stored)); err != nil {
 		return 0, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, db.Error(err)
+	}
+
+	return stored.ID, nil
+}
+
+// WriteEventWithNachsignierAuftrag writes an event and enqueues a TSE retry
+// job in one transaction. This is used for the DON'T BLOCK THE TILL fallback:
+// the sale is persisted immediately and signing can be retried asynchronously.
+func (r Repository) WriteEventWithNachsignierAuftrag(
+	ctx context.Context,
+	e event.Event,
+	streamType kasse.StreamType,
+	kassensitzungNr int,
+	txID string,
+	processType string,
+	processData string,
+) (int, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
+	qtx := r.q.WithTx(tx)
+
+	stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+
+	err = qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
+		TxID:        txID,
+		ProcessType: processType,
+		ProcessData: processData,
+	})
+	if err != nil {
+		return 0, db.Error(err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -325,6 +367,29 @@ func (r Repository) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr
 	}
 
 	return events, nil
+}
+
+// GetTSESignaturByTxID returns the backfilled signature data for a TSE tx_id.
+// It is used when the event was persisted unsigned during a temporary TSE
+// outage and later signed by the retry worker.
+func (r Repository) GetTSESignaturByTxID(ctx context.Context, txID string) (kasse.TSEData, error) {
+	row, err := r.q.GetTSESignaturByTxID(ctx, strings.TrimSpace(txID))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return kasse.TSEData{}, db.ErrNotFound
+		}
+		return kasse.TSEData{}, db.Error(err)
+	}
+
+	return kasse.TSEData{
+		TransactionNumber: row.TransaktionNummer,
+		SignatureCounter:  row.SignaturZaehler,
+		SerialNumberTSE:   row.TseSeriennummer,
+		LogTimeStart:      row.LogTimeStart.UTC().Format(time.RFC3339),
+		LogTimeEnd:        row.LogTimeEnd.UTC().Format(time.RFC3339),
+		Signature:         row.Signatur,
+		QRCodeData:        row.QrCodeData,
+	}, nil
 }
 
 // GetMaxVersion returns the highest event version for the given subject.

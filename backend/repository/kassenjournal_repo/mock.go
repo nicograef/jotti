@@ -6,6 +6,7 @@ import (
 	"context"
 	"sort"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
@@ -45,6 +46,14 @@ type MockRepo struct {
 	tischSessionErr error
 	kassenbestand   int                                   // configurable return value for GetKassenbestand
 	druckauftraege  []druckauftrag_repo.NeuerDruckauftrag // captured via WriteEventWithDruckauftraege
+	nachsignier     []NachsignierAuftrag                  // captured via WriteEventWithNachsignierAuftrag
+	signaturen      map[string]kasse.TSEData              // lookup map for GetTSESignaturByTxID
+}
+
+type NachsignierAuftrag struct {
+	TxID        string
+	ProcessType string
+	ProcessData string
 }
 
 func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamType, _ int) (int, error) {
@@ -70,6 +79,21 @@ func (m *MockRepo) WriteEventWithDruckauftraege(ctx context.Context, e event.Eve
 	return id, nil
 }
 
+func (m *MockRepo) WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error) {
+	id, err := m.WriteEvent(ctx, e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+
+	m.nachsignier = append(m.nachsignier, NachsignierAuftrag{
+		TxID:        txID,
+		ProcessType: processType,
+		ProcessData: processData,
+	})
+
+	return id, nil
+}
+
 func (m *MockRepo) WriteUmbuchung(_ context.Context, stornierungEvent event.Event, bestellungEvent event.Event, _ int) error {
 	if m.writeErr != nil {
 		return m.writeErr
@@ -90,6 +114,26 @@ func (m *MockRepo) WriteUmbuchung(_ context.Context, stornierungEvent event.Even
 // CapturedDruckauftraege returns the print jobs produced via WriteEventWithDruckauftraege.
 func (m *MockRepo) CapturedDruckauftraege() []druckauftrag_repo.NeuerDruckauftrag {
 	return m.druckauftraege
+}
+
+func (m *MockRepo) CapturedNachsignierAuftraege() []NachsignierAuftrag {
+	return m.nachsignier
+}
+
+func (m *MockRepo) SetTSESignatur(txID string, data kasse.TSEData) {
+	if m.signaturen == nil {
+		m.signaturen = make(map[string]kasse.TSEData)
+	}
+	m.signaturen[txID] = data
+}
+
+func (m *MockRepo) GetTSESignaturByTxID(_ context.Context, txID string) (kasse.TSEData, error) {
+	if m.signaturen != nil {
+		if data, ok := m.signaturen[txID]; ok {
+			return data, nil
+		}
+	}
+	return kasse.TSEData{}, db.ErrNotFound
 }
 
 func (m *MockRepo) GetMaxVersion(_ context.Context, subject string) (int, error) {

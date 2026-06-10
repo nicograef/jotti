@@ -22,9 +22,20 @@ const (
 	tseZahlungsartBar           = "Bar"
 )
 
-func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, positionen []kasse.Position, zahlbetragCents int) (event.Event, error) {
+type tseNachsignierAuftrag struct {
+	TxID        string
+	ProcessType string
+	ProcessData string
+}
+
+type zahlungSignierungErgebnis struct {
+	Event              event.Event
+	NachsignierAuftrag *tseNachsignierAuftrag
+}
+
+func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, positionen []kasse.Position, zahlbetragCents int) (zahlungSignierungErgebnis, error) {
 	if c.SettingsRepo == nil || c.NewTSEClient == nil {
-		return evt, nil
+		return zahlungSignierungErgebnis{Event: evt}, nil
 	}
 
 	log := zerolog.Ctx(ctx)
@@ -32,25 +43,25 @@ func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, 
 	conf, err := c.SettingsRepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			return evt, nil
+			return zahlungSignierungErgebnis{Event: evt}, nil
 		}
 		log.Error().Err(err).Msg("Failed to load TSE-Konfiguration for zahlung signierung")
-		return event.Event{}, ErrDatabase
+		return zahlungSignierungErgebnis{}, ErrDatabase
 	}
 	if !conf.IstKonfiguriert() {
-		return evt, nil
+		return zahlungSignierungErgebnis{Event: evt}, nil
 	}
 
 	processData, err := buildKassenbelegProcessData(positionen, zahlbetragCents)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to build TSE process_data for zahlung")
-		return event.Event{}, ErrDatabase
+		return zahlungSignierungErgebnis{}, ErrDatabase
 	}
 
 	txID, err := tseTransactionIDForZahlungEvent(evt)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to derive deterministic tx_id for zahlung")
-		return event.Event{}, ErrDatabase
+		return zahlungSignierungErgebnis{}, ErrDatabase
 	}
 
 	client, err := c.NewTSEClient(tse.Credentials{
@@ -60,20 +71,17 @@ func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, 
 		ClientID:  conf.ClientID,
 	})
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create TSE client for zahlung signierung")
-		return event.Event{}, ErrDatabase
+		return handleZahlungSignierAusfall(log, evt, txID, processData, err)
 	}
 
 	startResult, err := client.StartTransaction(ctx, txID, tseProcessTypeKassenbelegV1, processData)
 	if err != nil {
-		log.Error().Err(err).Str("tx_id", txID).Msg("Failed to start TSE transaction for zahlung")
-		return event.Event{}, ErrDatabase
+		return handleZahlungSignierAusfall(log, evt, txID, processData, err)
 	}
 
 	finishResult, err := client.FinishTransaction(ctx, txID, startResult.TransactionNumber, tseProcessTypeKassenbelegV1, processData)
 	if err != nil {
-		log.Error().Err(err).Str("tx_id", txID).Int("tx_number", startResult.TransactionNumber).Msg("Failed to finish TSE transaction for zahlung")
-		return event.Event{}, ErrDatabase
+		return handleZahlungSignierAusfall(log, evt, txID, processData, err)
 	}
 
 	tseData := kasse.TSEData{
@@ -90,10 +98,29 @@ func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, 
 	signedEvent, err := withZahlungEventTSEData(evt, tseData)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to embed TSE data into zahlung event")
-		return event.Event{}, ErrDatabase
+		return zahlungSignierungErgebnis{}, ErrDatabase
 	}
 
-	return signedEvent, nil
+	return zahlungSignierungErgebnis{Event: signedEvent}, nil
+}
+
+func handleZahlungSignierAusfall(log *zerolog.Logger, evt event.Event, txID string, processData string, cause error) (zahlungSignierungErgebnis, error) {
+	log.Warn().Err(cause).Str("tx_id", txID).Msg("TSE-Signierung fehlgeschlagen, Vorgang wird unsigniert persistiert und zur Nachsignierung vorgemerkt")
+
+	unsignedEvent, err := withZahlungEventTSEAusfall(evt)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to mark zahlung event with TSE-Ausfall")
+		return zahlungSignierungErgebnis{}, ErrDatabase
+	}
+
+	return zahlungSignierungErgebnis{
+		Event: unsignedEvent,
+		NachsignierAuftrag: &tseNachsignierAuftrag{
+			TxID:        txID,
+			ProcessType: tseProcessTypeKassenbelegV1,
+			ProcessData: processData,
+		},
+	}, nil
 }
 
 func withZahlungEventTSEData(evt event.Event, tseData kasse.TSEData) (event.Event, error) {
@@ -110,6 +137,29 @@ func withZahlungEventTSEData(evt event.Event, tseData kasse.TSEData) (event.Even
 	}
 
 	data.TSEData = &tseData
+	data.TSEAusfall = false
+
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return event.Event{}, err
+	}
+
+	evt.Data = encoded
+	return evt, nil
+}
+
+func withZahlungEventTSEAusfall(evt event.Event) (event.Event, error) {
+	if evt.Type != string(kasse.EventTypeZahlungKassiertV1) {
+		return event.Event{}, fmt.Errorf("unsupported event type for TSE-Ausfall: %s", evt.Type)
+	}
+
+	data := zahlungKassiertV1Data{}
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return event.Event{}, err
+	}
+
+	data.TSEData = nil
+	data.TSEAusfall = true
 
 	encoded, err := json.Marshal(data)
 	if err != nil {

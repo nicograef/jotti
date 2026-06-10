@@ -317,6 +317,33 @@ func TestFormatKassenbeleg_WithoutTSE_DoesNotContainTSEBlock(t *testing.T) {
 	}
 }
 
+func TestFormatKassenbeleg_WithTSEAusfallvermerk_ContainsAusfallhinweis(t *testing.T) {
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "42",
+		Zeitpunkt:          testTime,
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		Steuermatrix: []steuer.Aufteilung{
+			{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
+		},
+		TSEAusfallvermerk: true,
+		GesamtbetragCents: 700,
+		Zahlungsart:       "bar",
+	})
+	got := string(payload)
+
+	if !strings.Contains(got, "TSE-Hinweis:") {
+		t.Fatalf("Kassenbeleg mit TSE-Ausfall muss Hinweis enthalten; got:\n%q", got)
+	}
+	if !strings.Contains(got, "wird automatisch nachsigniert") {
+		t.Fatalf("Kassenbeleg mit TSE-Ausfall muss Nachsignierhinweis enthalten; got:\n%q", got)
+	}
+}
+
 func TestFormatKassenbeleg_WithTSE_ContainsTSEPflichtfelder(t *testing.T) {
 	tseBeginn := time.Date(2026, 5, 1, 20, 0, 12, 0, time.UTC)
 	tseEnde := time.Date(2026, 5, 1, 20, 0, 14, 0, time.UTC)

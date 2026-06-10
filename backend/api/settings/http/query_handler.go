@@ -19,6 +19,7 @@ type settingsQuery interface {
 	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
 	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 	TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, error)
+	GetTSEStatus(ctx context.Context) (application.TSEStatus, error)
 }
 
 type QueryHandler struct {
@@ -56,6 +57,12 @@ type tseKonfigurationResponse struct {
 type tseVerbindungResponse struct {
 	Umgebung string `json:"umgebung"`
 	TSSState string `json:"tssState"`
+}
+
+type tseStatusResponse struct {
+	Umgebung               string `json:"umgebung"`
+	OffeneNachsignierungen int    `json:"offeneNachsignierungen"`
+	IstKonfiguriert        bool   `json:"istKonfiguriert"`
 }
 
 func (h *QueryHandler) GetKassenidentitaetHandler() http.HandlerFunc {
@@ -155,6 +162,22 @@ func (h *QueryHandler) TestTSEVerbindungHandler() http.HandlerFunc {
 		helper.SendResponse(w, tseVerbindungResponse{
 			Umgebung: string(status.Umgebung),
 			TSSState: status.TSSState,
+		})
+	}
+}
+
+func (h *QueryHandler) GetTSEStatusHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		status, err := h.Query.GetTSEStatus(r.Context())
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		helper.SendResponse(w, tseStatusResponse{
+			Umgebung:               status.Umgebung,
+			OffeneNachsignierungen: status.OffeneNachsignierungen,
+			IstKonfiguriert:        status.IstKonfiguriert,
 		})
 	}
 }

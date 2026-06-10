@@ -372,6 +372,37 @@ type TseKonfiguration struct {
 	UpdatedAt time.Time
 }
 
+// Technische Outbox fuer Nachsignierung bei TSE-Ausfall.
+type TseNachsignierAuftraege struct {
+	ID int32
+	// Deterministische TSE-Transaktions-ID pro Vorgang.
+	TxID string
+	// fiskaly process_type, z. B. Kassenbeleg-V1.
+	ProcessType string
+	// fiskaly process_data fuer die Nachsignierung.
+	ProcessData string
+	// Nachsignierstatus: offen -> erledigt.
+	Status     string
+	ErstelltAm time.Time
+	ErledigtAm sql.NullTime
+}
+
+// Signatur-Seitentabelle fuer nachsignierte Vorgaenge (Happy Path bleibt im Event).
+type TseSignaturen struct {
+	ID int32
+	// Deterministische TSE-Transaktions-ID (1:1 zu einem fiskalischen Vorgang).
+	TxID              string
+	TransaktionNummer int
+	SignaturZaehler   int
+	TseSeriennummer   string
+	LogTimeStart      time.Time
+	LogTimeEnd        time.Time
+	Signatur          string
+	// DSFinV-K QR-Code-Daten aus der TSE-Antwort.
+	QrCodeData string
+	ErstelltAm time.Time
+}
+
 // System users who perform actions in jotti
 type User struct {
 	ID int

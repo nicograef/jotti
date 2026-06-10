@@ -21,6 +21,8 @@ type mockSettingsQuery struct {
 	err              error
 	verbindungStatus tse.VerbindungStatus
 	verbindungErr    error
+	tseStatus        application.TSEStatus
+	tseStatusErr     error
 }
 
 func (m *mockSettingsQuery) GetKassenidentitaet(_ context.Context) (settings.Kassenidentitaet, error) {
@@ -47,6 +49,13 @@ func (m *mockSettingsQuery) TestTSEVerbindung(_ context.Context) (tse.Verbindung
 		return tse.VerbindungStatus{}, m.verbindungErr
 	}
 	return m.verbindungStatus, nil
+}
+
+func (m *mockSettingsQuery) GetTSEStatus(_ context.Context) (application.TSEStatus, error) {
+	if m.tseStatusErr != nil {
+		return application.TSEStatus{}, m.tseStatusErr
+	}
+	return m.tseStatus, nil
 }
 
 func TestGetTSEKonfigurationHandler_MaskedResponse(t *testing.T) {
@@ -196,5 +205,40 @@ func TestTestTSEVerbindungHandler_VerbindungFehlgeschlagen(t *testing.T) {
 	}
 	if body.Code != "tse_verbindung_fehlgeschlagen" {
 		t.Fatalf("expected code tse_verbindung_fehlgeschlagen, got %q", body.Code)
+	}
+}
+
+func TestGetTSEStatusHandler_Success(t *testing.T) {
+	h := &QueryHandler{Query: &mockSettingsQuery{tseStatus: application.TSEStatus{
+		Umgebung:               "TEST",
+		OffeneNachsignierungen: 3,
+		IstKonfiguriert:        true,
+	}}}
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/get-tse-status", nil)
+	rec := httptest.NewRecorder()
+
+	h.GetTSEStatusHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	var body struct {
+		Umgebung               string `json:"umgebung"`
+		OffeneNachsignierungen int    `json:"offeneNachsignierungen"`
+		IstKonfiguriert        bool   `json:"istKonfiguriert"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body.Umgebung != "TEST" {
+		t.Fatalf("expected TEST, got %q", body.Umgebung)
+	}
+	if body.OffeneNachsignierungen != 3 {
+		t.Fatalf("expected 3 offeneNachsignierungen, got %d", body.OffeneNachsignierungen)
+	}
+	if !body.IstKonfiguriert {
+		t.Fatal("expected istKonfiguriert true")
 	}
 }

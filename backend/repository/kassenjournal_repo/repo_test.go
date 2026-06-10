@@ -145,7 +145,15 @@ func validDirektverkaufStornoData(verkaufID string, gesamtStornierungCents int) 
 }
 
 func cleanDB(t *testing.T, db *sql.DB) {
-	_, err := db.Exec("DELETE FROM druckauftraege")
+	_, err := db.Exec("DELETE FROM tse_signaturen")
+	if err != nil {
+		t.Fatalf("Failed to clean tse_signaturen: %v", err)
+	}
+	_, err = db.Exec("DELETE FROM tse_nachsignier_auftraege")
+	if err != nil {
+		t.Fatalf("Failed to clean tse_nachsignier_auftraege: %v", err)
+	}
+	_, err = db.Exec("DELETE FROM druckauftraege")
 	if err != nil {
 		t.Fatalf("Failed to clean druckauftraege: %v", err)
 	}
@@ -314,6 +322,49 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 	}
 	if session.LastEventID != 0 {
 		t.Fatalf("Expected no tisch session projection, got LastEventID %d", session.LastEventID)
+	}
+}
+
+func TestWriteEventWithNachsignierAuftrag_CommitsEventAndOutbox(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischID, err := createTisch(repo.DB, "Tisch 1")
+	if err != nil {
+		t.Fatalf("Failed to create tisch: %v", err)
+	}
+
+	subject := kasse.TischSessionSubject(ksNr, tischID)
+	data := validZahlungData("10000000-0000-4000-8000-000000000001", 1, 350)
+	e := newTestEvent(userID, "zahlung-kassiert:v1", subject, 1, data)
+
+	txID := "tx-zahlung-1"
+	processType := "Kassenbeleg-V1"
+	processData := "Beleg^3.50_0.00_0.00_0.00_0.00^3.50:Bar"
+
+	eventID, err := repo.WriteEventWithNachsignierAuftrag(context.Background(), e, kasse.StreamTypeTischSession, ksNr, txID, processType, processData)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if eventID == 0 {
+		t.Fatalf("Expected valid event ID, got %d", eventID)
+	}
+
+	events, err := repo.ReadEventsBySubject(context.Background(), subject)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("Expected 1 persisted event, got %d", len(events))
+	}
+
+	var count int
+	err = repo.DB.QueryRow("SELECT COUNT(*) FROM tse_nachsignier_auftraege WHERE tx_id = $1 AND status = 'offen'", txID).Scan(&count)
+	if err != nil {
+		t.Fatalf("Expected outbox row to exist, got error %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("Expected 1 open outbox row for tx_id %q, got %d", txID, count)
 	}
 }
 

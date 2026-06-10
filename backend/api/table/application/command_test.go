@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -781,6 +782,77 @@ func TestZahlungKassieren_OhneTSEKonfiguration_Unsigniert(t *testing.T) {
 	}
 }
 
+func TestZahlungKassieren_BeiTSEAusfall_NichtBlockierendMitNachsignierAuftrag(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.SetTischSession(subject, kasse.TischSession{
+		SaldoCents: 350,
+		UnbezahltePositionen: []kasse.Position{{
+			PositionID:   "33333333-3333-4333-8333-333333333333",
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk",
+			Steuersatz:   "regel",
+			Einzelpreis:  350,
+			Menge:        1,
+		}},
+	})
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+			ApiKey:    "api-key",
+			ApiSecret: "api-secret",
+			TssID:     "tss-1",
+			ClientID:  "client-1",
+			UpdatedAt: time.Now(),
+		}},
+		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+			return tse.FakeClient{StartErr: errors.New("fiskaly timeout")}, nil
+		},
+	}
+
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, []kasse.PositionRef{{PositionID: "33333333-3333-4333-8333-333333333333", Menge: 1}}, "")
+	if err != nil {
+		t.Fatalf("expected no error (don't block the till), got %v", err)
+	}
+
+	events, err := eventMock.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected exactly one event, got %d", len(events))
+	}
+
+	var data zahlungKassiertV1Data
+	if err := json.Unmarshal(events[0].Data, &data); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	if data.TSEData != nil {
+		t.Fatal("expected no TSE data when fallback path is used")
+	}
+	if !data.TSEAusfall {
+		t.Fatal("expected tseAusfall marker on unsigned event")
+	}
+
+	nachsignier := eventMock.CapturedNachsignierAuftraege()
+	if len(nachsignier) != 1 {
+		t.Fatalf("expected exactly one retry job, got %d", len(nachsignier))
+	}
+	if nachsignier[0].TxID == "" {
+		t.Fatal("expected deterministic tx_id on retry job")
+	}
+	if nachsignier[0].ProcessType != "Kassenbeleg-V1" {
+		t.Fatalf("expected process type Kassenbeleg-V1, got %q", nachsignier[0].ProcessType)
+	}
+}
+
 func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	ctx := context.Background()
 	quellTisch := table.Tisch{ID: 1, Name: "Tisch Quelle", Status: table.ActiveStatus}
@@ -1318,6 +1390,170 @@ func TestKassenbelegDrucken_WithTSEData_ContainsTSEBlock(t *testing.T) {
 		if !strings.Contains(got, check) {
 			t.Fatalf("kassenbeleg payload enthaelt %q nicht; got:\n%q", check, got)
 		}
+	}
+}
+
+func TestKassenbelegDrucken_UsesBackfilledTSESignaturAusSeitentabelle(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
+		PositionID:   "11111111-1111-4111-8111-111111111111",
+		VarianteID:   1,
+		ProduktName:  "Cola",
+		VarianteName: "0,5l",
+		Kategorie:    "getraenk",
+		Steuersatz:   "regel",
+		Einzelpreis:  350,
+		Menge:        1,
+	}}, 350, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	zahlungEvent, err = withZahlungEventTSEAusfall(zahlungEvent)
+	if err != nil {
+		t.Fatalf("expected no event mutation error, got %v", err)
+	}
+
+	var eventData struct {
+		ZahlungID string `json:"zahlungId"`
+	}
+	if err := json.Unmarshal(zahlungEvent.Data, &eventData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+
+	txID, err := tseTransactionIDForZahlungEvent(zahlungEvent)
+	if err != nil {
+		t.Fatalf("expected tx id derivation to succeed, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(zahlungEvent)
+	eventMock.SetTSESignatur(txID, kasse.TSEData{
+		TransactionNumber: 3002,
+		SignatureCounter:  78,
+		SerialNumberTSE:   "SW-TSE-SN-0043",
+		LogTimeStart:      "2026-06-10T18:10:01Z",
+		LogTimeEnd:        "2026-06-10T18:10:03Z",
+		Signature:         "SIG-BACKFILL",
+		QRCodeData:        "V0;BACKFILL",
+	})
+
+	auftragMock := &mockDruckauftragRepo{}
+	settingsMock := &mockSettingsRepo{
+		bondruck: settings.BondruckEinstellungen{KassenbelegDruckerIP: "192.168.1.80", UpdatedAt: time.Now()},
+		betreiber: settings.Betreiber{
+			Vereinsname: "SV Musterstadt",
+			Strasse:     "Musterstrasse 1",
+			Plz:         "12345",
+			Ort:         "Musterstadt",
+			UpdatedAt:   time.Now(),
+		},
+		kassenident: settings.Kassenidentitaet{
+			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
+			AngelegtAm:   time.Now(),
+		},
+	}
+
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo:        settingsMock,
+		DruckauftragRepo:    auftragMock,
+	}
+
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+
+	got := string(payload)
+	if !strings.Contains(got, "TSE-Daten:") {
+		t.Fatalf("expected TSE block from side table signature, got:\n%q", got)
+	}
+	if !strings.Contains(got, "SIG-BACKFILL") {
+		t.Fatalf("expected side table signature in payload, got:\n%q", got)
+	}
+}
+
+func TestKassenbelegDrucken_BeiOffenemTSEAusfall_MitAusfallvermerk(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
+		PositionID:   "11111111-1111-4111-8111-111111111111",
+		VarianteID:   1,
+		ProduktName:  "Cola",
+		VarianteName: "0,5l",
+		Kategorie:    "getraenk",
+		Steuersatz:   "regel",
+		Einzelpreis:  350,
+		Menge:        1,
+	}}, 350, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	zahlungEvent, err = withZahlungEventTSEAusfall(zahlungEvent)
+	if err != nil {
+		t.Fatalf("expected no event mutation error, got %v", err)
+	}
+
+	var eventData struct {
+		ZahlungID string `json:"zahlungId"`
+	}
+	if err := json.Unmarshal(zahlungEvent.Data, &eventData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(zahlungEvent)
+
+	auftragMock := &mockDruckauftragRepo{}
+	settingsMock := &mockSettingsRepo{
+		bondruck: settings.BondruckEinstellungen{KassenbelegDruckerIP: "192.168.1.80", UpdatedAt: time.Now()},
+		betreiber: settings.Betreiber{
+			Vereinsname: "SV Musterstadt",
+			Strasse:     "Musterstrasse 1",
+			Plz:         "12345",
+			Ort:         "Musterstadt",
+			UpdatedAt:   time.Now(),
+		},
+		kassenident: settings.Kassenidentitaet{
+			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
+			AngelegtAm:   time.Now(),
+		},
+	}
+
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo:        settingsMock,
+		DruckauftragRepo:    auftragMock,
+	}
+
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+
+	got := string(payload)
+	if !strings.Contains(got, "TSE-Hinweis:") {
+		t.Fatalf("expected TSE outage note, got:\n%q", got)
+	}
+	if strings.Contains(got, "TSE-Daten:") {
+		t.Fatalf("did not expect TSE data block while signature is still pending, got:\n%q", got)
 	}
 }
 

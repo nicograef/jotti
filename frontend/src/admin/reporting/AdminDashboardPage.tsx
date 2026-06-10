@@ -2,7 +2,7 @@ import { TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink } from 'react-router'
 
-import { useTSEKonfiguration } from '@/admin/settings/hooks'
+import { useTSEStatus } from '@/admin/settings/hooks'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 import { useKassensitzungen, useLiveReporting, useReport } from './hooks'
@@ -13,12 +13,14 @@ import { ReportingResults } from './ReportingResults'
 export function AdminDashboardPage() {
   const { liveData, isPending: liveLoading } = useLiveReporting()
   const { kassensitzungen, isPending: listLoading } = useKassensitzungen()
-  const { tseKonfiguration, isPending: tseLoading } = useTSEKonfiguration()
+  const { tseStatus, isPending: tseLoading } = useTSEStatus()
   const [selectedNr, setSelectedNr] = useState<number | null>(null)
 
   const effectiveNr = selectedNr ?? kassensitzungen.at(0)?.zNr ?? null
   const { result, isPending: reportLoading } = useReport(effectiveNr)
-  const showTSEWarning = !tseLoading && !tseKonfiguration?.istKonfiguriert
+  const showTSEWarning = !tseLoading && !tseStatus?.istKonfiguriert
+  const offeneNachsignierungen = tseStatus?.offeneNachsignierungen ?? 0
+  const showNachsignierWarning = !tseLoading && offeneNachsignierungen > 0
 
   return (
     <>
@@ -36,6 +38,20 @@ export function AdminDashboardPage() {
               Einstellungen
             </NavLink>{' '}
             hinterlegen.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {showNachsignierWarning && (
+        <Alert variant="destructive" className="mb-6">
+          <TriangleAlert className="size-4" />
+          <AlertTitle>TSE-Nachsignierungen offen</AlertTitle>
+          <AlertDescription>
+            Aktuell warten {offeneNachsignierungen} Vorgänge auf Nachsignierung.
+            Bitte TSE-Anbindung prüfen und die Warteschlange beobachten.
+            {tseStatus?.umgebung
+              ? ` Verbundene Umgebung: ${tseStatus.umgebung}.`
+              : ''}
           </AlertDescription>
         </Alert>
       )}

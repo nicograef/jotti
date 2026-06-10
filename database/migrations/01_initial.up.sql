@@ -428,4 +428,45 @@ COMMENT ON COLUMN tse_konfiguration.updated_at IS 'Letzte Aenderung (UTC)';
 INSERT INTO tse_konfiguration (id, api_key, api_secret, tss_id, client_id, updated_at)
 VALUES (1, '', '', '', '', now());
 
+-- ============================================================
+-- Table: tse_nachsignier_auftraege (technical outbox for failed TSE signing)
+-- ============================================================
+CREATE TABLE tse_nachsignier_auftraege (
+    id           SERIAL PRIMARY KEY,
+    tx_id        TEXT NOT NULL UNIQUE,
+    process_type TEXT NOT NULL,
+    process_data TEXT NOT NULL,
+    status       TEXT NOT NULL CHECK (status IN ('offen', 'erledigt')),
+    erstellt_am  TIMESTAMPTZ NOT NULL,
+    erledigt_am  TIMESTAMPTZ NULL
+);
+
+CREATE INDEX idx_tse_nachsignier_auftraege_status_id ON tse_nachsignier_auftraege(status, id);
+
+COMMENT ON TABLE tse_nachsignier_auftraege IS 'Technische Outbox fuer Nachsignierung bei TSE-Ausfall.';
+COMMENT ON COLUMN tse_nachsignier_auftraege.tx_id IS 'Deterministische TSE-Transaktions-ID pro Vorgang.';
+COMMENT ON COLUMN tse_nachsignier_auftraege.process_type IS 'fiskaly process_type, z. B. Kassenbeleg-V1.';
+COMMENT ON COLUMN tse_nachsignier_auftraege.process_data IS 'fiskaly process_data fuer die Nachsignierung.';
+COMMENT ON COLUMN tse_nachsignier_auftraege.status IS 'Nachsignierstatus: offen -> erledigt.';
+
+-- ============================================================
+-- Table: tse_signaturen (side table for backfilled TSE signatures)
+-- ============================================================
+CREATE TABLE tse_signaturen (
+    id                  SERIAL PRIMARY KEY,
+    tx_id               TEXT NOT NULL UNIQUE,
+    transaktion_nummer  INT NOT NULL,
+    signatur_zaehler    INT NOT NULL,
+    tse_seriennummer    TEXT NOT NULL,
+    log_time_start      TIMESTAMPTZ NOT NULL,
+    log_time_end        TIMESTAMPTZ NOT NULL,
+    signatur            TEXT NOT NULL,
+    qr_code_data        TEXT NOT NULL,
+    erstellt_am         TIMESTAMPTZ NOT NULL
+);
+
+COMMENT ON TABLE tse_signaturen IS 'Signatur-Seitentabelle fuer nachsignierte Vorgaenge (Happy Path bleibt im Event).';
+COMMENT ON COLUMN tse_signaturen.tx_id IS 'Deterministische TSE-Transaktions-ID (1:1 zu einem fiskalischen Vorgang).';
+COMMENT ON COLUMN tse_signaturen.qr_code_data IS 'DSFinV-K QR-Code-Daten aus der TSE-Antwort.';
+
 COMMIT;

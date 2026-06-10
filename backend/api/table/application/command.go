@@ -28,10 +28,12 @@ type tableRepo interface {
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
+	WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error)
 	WriteUmbuchung(ctx context.Context, stornierungEvent event.Event, bestellungEvent event.Event, kassensitzungNr int) error
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
+	GetTSESignaturByTxID(ctx context.Context, txID string) (kasse.TSEData, error)
 }
 
 type kassensitzungenRepo interface {
@@ -94,6 +96,7 @@ type zahlungKassiertV1Data struct {
 	GesamtZahlungCents int                   `json:"gesamtZahlungCents"`
 	Kommentar          string                `json:"kommentar"`
 	TSEData            *kasse.TSEData        `json:"tseData,omitempty"`
+	TSEAusfall         bool                  `json:"tseAusfall,omitempty"`
 }
 
 type zahlungPositionData struct {
@@ -159,6 +162,14 @@ func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject stri
 func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
 	return writeEventOCC(ctx, repo, e, subject, func(versioned event.Event) (int, error) {
 		return repo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
+	})
+}
+
+// writeEventWithNachsignierAuftrag writes an event plus a TSE retry job in one
+// transaction. Returns ErrConflict on a version conflict.
+func writeEventWithNachsignierAuftrag(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error) {
+	return writeEventOCC(ctx, repo, e, subject, func(versioned event.Event) (int, error) {
+		return repo.WriteEventWithNachsignierAuftrag(ctx, versioned, streamType, kassensitzungNr, txID, processType, processData)
 	})
 }
 
@@ -617,9 +628,33 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		return err
 	}
 
-	evt, err = c.signZahlungKassiertEvent(ctx, evt, resolvedPositionen, gesamtZahlungCents)
+	signierung, err := c.signZahlungKassiertEvent(ctx, evt, resolvedPositionen, gesamtZahlungCents)
 	if err != nil {
 		return err
+	}
+	evt = signierung.Event
+
+	if signierung.NachsignierAuftrag != nil {
+		if _, err := writeEventWithNachsignierAuftrag(
+			ctx,
+			c.EventRepo,
+			evt,
+			subject,
+			kasse.StreamTypeTischSession,
+			kassensitzungNr,
+			signierung.NachsignierAuftrag.TxID,
+			signierung.NachsignierAuftrag.ProcessType,
+			signierung.NachsignierAuftrag.ProcessData,
+		); err != nil {
+			if errors.Is(err, ErrConflict) {
+				return ErrConflict
+			}
+			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write zahlung event with TSE-nachsignierung")
+			return ErrDatabase
+		}
+
+		log.Info().Int("tisch_id", tischID).Msg("Zahlung kassiert (unsigniert, Nachsignierung vorgemerkt)")
+		return nil
 	}
 
 	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {

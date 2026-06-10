@@ -68,6 +68,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
 	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
 	settingsRepo := settings_repo.NewRepository(db)
+	tseStore := tse_repo.NewStore(db)
 	tc := tableHTTP.CommandHandler{}
 	tc.Command = tableApp.Command{
 		TableRepo:           tableRepo,
@@ -121,7 +122,8 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 
 	sq := settingsHTTP.QueryHandler{}
 	sq.Query = settingsApp.Query{
-		SettingsRepo: settingsRepo,
+		SettingsRepo:  settingsRepo,
+		TSEStatusRepo: tseStore,
 		NewTSEConnectionTester: func(credentials tse.Credentials) (tse.ConnectionTester, error) {
 			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
 		},
@@ -131,6 +133,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/get-bondruck-einstellungen", sq.GetBondruckEinstellungenHandler())
 	r.HandleFunc("/get-tse-konfiguration", sq.GetTSEKonfigurationHandler())
 	r.HandleFunc("/test-tse-verbindung", sq.TestTSEVerbindungHandler())
+	r.HandleFunc("/get-tse-status", sq.GetTSEStatusHandler())
 
 	sc := settingsHTTP.CommandHandler{}
 	sc.Command = settingsApp.Command{SettingsRepo: settingsRepo}

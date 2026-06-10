@@ -26,6 +26,7 @@ type KassenbelegData struct {
 	Positionen         []kasse.Position
 	Steuermatrix       []steuer.Aufteilung
 	TSE                *TSEAbschnitt
+	TSEAusfallvermerk  bool
 	GesamtbetragCents  int
 	Zahlungsart        string
 }
@@ -236,6 +237,11 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		buf.WriteString(toCP858("  Signatur: "))
 		buf.WriteString(toCP858(wrapLine(data.TSE.Signatur, lineWidth-2)))
 		buf.WriteByte('\n')
+	} else if data.TSEAusfallvermerk {
+		buf.WriteByte('\n')
+		buf.WriteString("TSE-Hinweis:\n")
+		buf.WriteString(toCP858("  TSE voruebergehend nicht erreichbar.\n"))
+		buf.WriteString(toCP858("  Dieser Vorgang wird automatisch nachsigniert.\n"))
 	}
 
 	buf.WriteString("\n")
