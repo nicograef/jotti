@@ -11,6 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/rs/zerolog"
 )
 
@@ -23,11 +24,24 @@ func toKassePositionen(positionen []zahlungPositionData) []kasse.Position {
 			ProduktName:  pos.ProduktName,
 			VarianteName: pos.VarianteName,
 			Kategorie:    pos.Kategorie,
+			Steuersatz:   pos.Steuersatz,
 			Einzelpreis:  pos.Einzelpreis,
 			Menge:        pos.Menge,
 		})
 	}
 	return out
+}
+
+func toSteuermatrixPositionen(positionen []kasse.Position) []steuer.SteuermatrixPosition {
+	matrixPositionen := make([]steuer.SteuermatrixPosition, 0, len(positionen))
+	for _, position := range positionen {
+		matrixPositionen = append(matrixPositionen, steuer.SteuermatrixPosition{
+			Brutto:     position.Einzelpreis * position.Menge,
+			Steuersatz: steuer.Steuersatz(position.Steuersatz),
+		})
+	}
+
+	return matrixPositionen
 }
 
 func findZahlungEvent(events []event.Event, zahlungID string) (event.Event, zahlungKassiertV1Data, error) {
@@ -167,6 +181,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		Belegnummer:        fmt.Sprintf("%d", quelleEvent.ID),
 		Zeitpunkt:          quelleEvent.Time,
 		Positionen:         positionen,
+		Steuermatrix:       steuer.Steuermatrix(toSteuermatrixPositionen(positionen)),
 		GesamtbetragCents:  gesamtbetragCents,
 		Zahlungsart:        "bar",
 	})

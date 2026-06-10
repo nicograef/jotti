@@ -8,6 +8,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
 var (
@@ -222,6 +223,74 @@ func TestFormatKassenbeleg_EndsWithCutPaper(t *testing.T) {
 
 	if !strings.HasSuffix(string(payload), escpos.CutPaper) {
 		t.Errorf("Kassenbeleg endet nicht mit CutPaper-Befehl")
+	}
+}
+
+func TestFormatKassenbeleg_ContainsSteuerkennzeichenProPosition(t *testing.T) {
+	positionen := []kasse.Position{
+		{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
+		{PositionID: "pos-2", VarianteID: 2, ProduktName: "Wasser", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "ermaessigt", Einzelpreis: 300, Menge: 1},
+		{PositionID: "pos-3", VarianteID: 3, ProduktName: "Spende", VarianteName: "frei", Kategorie: "sonstiges", Steuersatz: "befreit", Einzelpreis: 200, Menge: 1},
+		{PositionID: "pos-4", VarianteID: 4, ProduktName: "Kombi-Menue", VarianteName: "Standard", Kategorie: "essen", Steuersatz: "kombi", Einzelpreis: 500, Menge: 1},
+	}
+
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "42",
+		Zeitpunkt:          testTime,
+		Positionen:         positionen,
+		GesamtbetragCents:  1350,
+		Zahlungsart:        "bar",
+	})
+	got := string(payload)
+
+	checks := []string{
+		"= 3,50 EUR (A)",
+		"= 3,00 EUR (B)",
+		"= 2,00 EUR (C)",
+		"= 5,00 EUR (A/B)",
+	}
+
+	for _, check := range checks {
+		if !strings.Contains(got, check) {
+			t.Fatalf("Kassenbeleg enthaelt Steuerkennzeichen %q nicht; got:\n%q", check, got)
+		}
+	}
+}
+
+func TestFormatKassenbeleg_ContainsSteuermatrix(t *testing.T) {
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "42",
+		Zeitpunkt:          testTime,
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		Steuermatrix: []steuer.Aufteilung{
+			{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
+			{Satz: steuer.ErmaessigtSteuersatz, Brutto: 300, Netto: 280, Steuer: 20},
+		},
+		GesamtbetragCents: 1000,
+		Zahlungsart:       "bar",
+	})
+	got := string(payload)
+
+	checks := []string{
+		"Steueraufteilung:",
+		"A: Netto 5,88 EUR, Steuer 1,12 EUR, Brutto 7,00 EUR",
+		"B: Netto 2,80 EUR, Steuer 0,20 EUR, Brutto 3,00 EUR",
+	}
+
+	for _, check := range checks {
+		if !strings.Contains(got, check) {
+			t.Fatalf("Kassenbeleg enthaelt Steuermatrix-Zeile %q nicht; got:\n%q", check, got)
+		}
 	}
 }
 

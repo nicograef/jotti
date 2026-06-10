@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/charmap"
 )
@@ -23,6 +24,7 @@ type KassenbelegData struct {
 	Belegnummer        string
 	Zeitpunkt          time.Time
 	Positionen         []kasse.Position
+	Steuermatrix       []steuer.Aufteilung
 	GesamtbetragCents  int
 	Zahlungsart        string
 }
@@ -188,7 +190,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		artikel := fmt.Sprintf("%dx %s (%s)", pos.Menge, pos.ProduktName, pos.VarianteName)
 		buf.WriteString(toCP858(wrapLine(artikel, lineWidth)))
 		buf.WriteByte('\n')
-		fmt.Fprintf(&buf, "  %s x %d = %s EUR\n", formatCents(pos.Einzelpreis), pos.Menge, formatCents(pos.Einzelpreis*pos.Menge))
+		fmt.Fprintf(&buf, "  %s x %d = %s EUR (%s)\n", formatCents(pos.Einzelpreis), pos.Menge, formatCents(pos.Einzelpreis*pos.Menge), steuerKennzeichenAusPosition(pos.Steuersatz))
 	}
 
 	buf.WriteString(strings.Repeat("-", lineWidth))
@@ -198,7 +200,21 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString(BoldOff)
 	buf.WriteString(toCP858(fmt.Sprintf("Zahlungsart: %s\n", data.Zahlungsart)))
 
-	// TODO(F-07): Steueraufteilung sobald Positionen einen Steuersatz enthalten.
+	if len(data.Steuermatrix) > 0 {
+		buf.WriteByte('\n')
+		buf.WriteString("Steueraufteilung:\n")
+		for _, zeile := range data.Steuermatrix {
+			fmt.Fprintf(
+				&buf,
+				"  %s: Netto %s EUR, Steuer %s EUR, Brutto %s EUR\n",
+				steuerKennzeichenAusSatz(zeile.Satz),
+				formatCents(zeile.Netto),
+				formatCents(zeile.Steuer),
+				formatCents(zeile.Brutto),
+			)
+		}
+	}
+
 	// TODO(F-02): TSE-Signatur und processType nach TSE-Integration ergaenzen.
 
 	buf.WriteString("\n")
@@ -266,4 +282,23 @@ func formatCents(cents int) string {
 		rest = -rest
 	}
 	return fmt.Sprintf("%d,%02d", euros, rest)
+}
+
+func steuerKennzeichenAusPosition(satz string) string {
+	return steuerKennzeichenAusSatz(steuer.Steuersatz(satz))
+}
+
+func steuerKennzeichenAusSatz(satz steuer.Steuersatz) string {
+	switch satz {
+	case steuer.RegelSteuersatz:
+		return "A"
+	case steuer.ErmaessigtSteuersatz:
+		return "B"
+	case steuer.BefreitSteuersatz:
+		return "C"
+	case steuer.KombiSteuersatz:
+		return "A/B"
+	default:
+		return "?"
+	}
 }

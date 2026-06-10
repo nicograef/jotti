@@ -86,15 +86,15 @@ Eine neue exportierte Funktion im `domain/steuer/`-Paket, die aus einer Liste vo
 
 ### Acceptance criteria
 
-- [ ] `zahlungPositionData` decodiert `steuersatz` aus dem Event-JSON
-- [ ] `toKassePositionen()` setzt `Position.Steuersatz`
-- [ ] Jede Positionszeile im gedruckten Beleg enthält ein Steuerkennzeichen (A, B, C, oder A/B)
-- [ ] Belegfuß enthält Steuermatrix mit Netto, Steuer und Brutto je Satz
-- [ ] Summe der Matrix-Bruttowerte = GESAMT-Betrag
-- [ ] Bestehende Tests (`ContainsPflichtfelder`, `EndsWithCutPaper`) bleiben grün
-- [ ] Neue Formatter-Tests prüfen Steuerkennzeichen-Präsenz und Matrixzeilen
-- [ ] End-to-End-Test (Command-Level): bekannte Positionen → korrekter Steuerausweis im Beleg
-- [ ] `make lint && make test` grün
+- [x] `zahlungPositionData` decodiert `steuersatz` aus dem Event-JSON
+- [x] `toKassePositionen()` setzt `Position.Steuersatz`
+- [x] Jede Positionszeile im gedruckten Beleg enthält ein Steuerkennzeichen (A, B, C, oder A/B)
+- [x] Belegfuß enthält Steuermatrix mit Netto, Steuer und Brutto je Satz
+- [x] Summe der Matrix-Bruttowerte = GESAMT-Betrag
+- [x] Bestehende Tests (`ContainsPflichtfelder`, `EndsWithCutPaper`) bleiben grün
+- [x] Neue Formatter-Tests prüfen Steuerkennzeichen-Präsenz und Matrixzeilen
+- [x] End-to-End-Test (Command-Level): bekannte Positionen → korrekter Steuerausweis im Beleg
+- [x] `make lint && make test` grün
 
 ---
 

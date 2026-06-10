@@ -96,6 +96,7 @@ type zahlungPositionData struct {
 	ProduktName  string `json:"produktName"`
 	VarianteName string `json:"varianteName"`
 	Kategorie    string `json:"kategorie"`
+	Steuersatz   string `json:"steuersatz"`
 	Einzelpreis  int    `json:"einzelpreis"`
 	Menge        int    `json:"menge"`
 }

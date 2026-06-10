@@ -4,6 +4,7 @@ package application
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -963,6 +964,98 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 	}
 	if !strings.HasPrefix(auftragMock.enqueued[0].Referenz, "zahlung-kassiert:") {
 		t.Fatalf("expected zahlung-kassiert referenz, got %s", auftragMock.enqueued[0].Referenz)
+	}
+}
+
+func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{
+		{
+			PositionID:   "11111111-1111-1111-1111-111111111111",
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk", Steuersatz: "regel",
+			Einzelpreis: 350,
+			Menge:       2,
+		},
+		{
+			PositionID:   "22222222-2222-2222-2222-222222222222",
+			VarianteID:   2,
+			ProduktName:  "Brezel",
+			VarianteName: "normal",
+			Kategorie:    "essen", Steuersatz: "ermaessigt",
+			Einzelpreis: 300,
+			Menge:       1,
+		},
+	}, 1000, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	var eventData struct {
+		ZahlungID string `json:"zahlungId"`
+	}
+	if err := json.Unmarshal(zahlungEvent.Data, &eventData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(zahlungEvent)
+
+	auftragMock := &mockDruckauftragRepo{}
+	settingsMock := &mockSettingsRepo{
+		bondruck: settings.BondruckEinstellungen{KassenbelegDruckerIP: "192.168.1.80", UpdatedAt: time.Now()},
+		betreiber: settings.Betreiber{
+			Vereinsname: "SV Musterstadt",
+			Strasse:     "Musterstrasse 1",
+			Plz:         "12345",
+			Ort:         "Musterstadt",
+			UpdatedAt:   time.Now(),
+		},
+		kassenident: settings.Kassenidentitaet{
+			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
+			AngelegtAm:   time.Now(),
+		},
+	}
+
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo:        settingsMock,
+		DruckauftragRepo:    auftragMock,
+	}
+
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(auftragMock.enqueued) != 1 {
+		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+
+	got := string(payload)
+	checks := []string{
+		"GESAMT: 10,00 EUR",
+		"= 7,00 EUR (A)",
+		"= 3,00 EUR (B)",
+		"Steueraufteilung:",
+		"A: Netto 5,88 EUR, Steuer 1,12 EUR, Brutto 7,00 EUR",
+		"B: Netto 2,80 EUR, Steuer 0,20 EUR, Brutto 3,00 EUR",
+	}
+
+	for _, check := range checks {
+		if !strings.Contains(got, check) {
+			t.Fatalf("kassenbeleg payload enthaelt %q nicht; got:\n%q", check, got)
+		}
 	}
 }
 
