@@ -18,6 +18,11 @@ type Aufteilung struct {
 	Steuer int
 }
 
+type SteuermatrixPosition struct {
+	Brutto     int
+	Steuersatz Steuersatz
+}
+
 var SteuersatzSchema = z.StringLike[Steuersatz]().OneOf(
 	[]Steuersatz{RegelSteuersatz, ErmaessigtSteuersatz, BefreitSteuersatz, KombiSteuersatz},
 	z.Message("Ungueltiger Steuersatz"),
@@ -55,6 +60,30 @@ func Aufteilen(brutto int, satz Steuersatz) []Aufteilung {
 	default:
 		return nil
 	}
+}
+
+func Steuermatrix(positionen []SteuermatrixPosition) []Aufteilung {
+	summen := make(map[Steuersatz]Aufteilung, 3)
+
+	for _, position := range positionen {
+		for _, aufteilung := range Aufteilen(position.Brutto, position.Steuersatz) {
+			summe := summen[aufteilung.Satz]
+			summe.Satz = aufteilung.Satz
+			summe.Brutto += aufteilung.Brutto
+			summe.Netto += aufteilung.Netto
+			summe.Steuer += aufteilung.Steuer
+			summen[aufteilung.Satz] = summe
+		}
+	}
+
+	result := make([]Aufteilung, 0, len(summen))
+	for _, satz := range []Steuersatz{RegelSteuersatz, ErmaessigtSteuersatz, BefreitSteuersatz} {
+		if summe, ok := summen[satz]; ok {
+			result = append(result, summe)
+		}
+	}
+
+	return result
 }
 
 func aufteilenEinzeln(brutto int, satz Steuersatz) Aufteilung {

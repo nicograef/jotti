@@ -54,12 +54,12 @@ Eine neue exportierte Funktion im `domain/steuer/`-Paket, die aus einer Liste vo
 
 ### Acceptance criteria
 
-- [ ] Neue Funktion akzeptiert eine Slice-artige Eingabe mit Brutto (Einzelpreis × Menge) und Steuersatz pro Position
-- [ ] Gibt eine nach effektivem Satz (19 %, 7 %, 0 %) aggregierte Liste von Matrixzeilen zurück (Netto, Steuer, Brutto)
-- [ ] Kombi-Positionen erzeugen über `Aufteilen()` anteilige Beiträge zu 7 %- und 19 %-Zeilen
-- [ ] Summe aller Matrix-Bruttowerte = Summe aller Eingabe-Bruttowerte (centgenau, keine Rundungsdifferenz)
-- [ ] Unit-Tests: einzelner Satz, gemischte Sätze, kombi mit korrekter 70/30-Aufteilung, befreit (0 %), leere Eingabe
-- [ ] `make test` grün
+- [x] Neue Funktion akzeptiert eine Slice-artige Eingabe mit Brutto (Einzelpreis × Menge) und Steuersatz pro Position
+- [x] Gibt eine nach effektivem Satz (19 %, 7 %, 0 %) aggregierte Liste von Matrixzeilen zurück (Netto, Steuer, Brutto)
+- [x] Kombi-Positionen erzeugen über `Aufteilen()` anteilige Beiträge zu 7 %- und 19 %-Zeilen
+- [x] Summe aller Matrix-Bruttowerte = Summe aller Eingabe-Bruttowerte (centgenau, keine Rundungsdifferenz)
+- [x] Unit-Tests: einzelner Satz, gemischte Sätze, kombi mit korrekter 70/30-Aufteilung, befreit (0 %), leere Eingabe
+- [x] `make test` grün
 
 ---
 
