@@ -18,6 +18,7 @@ import (
 )
 
 const (
+	tseProcessTypeBestellungV1  = "Bestellung-V1"
 	tseProcessTypeKassenbelegV1 = "Kassenbeleg-V1"
 	tseZahlungsartBar           = "Bar"
 )
@@ -28,14 +29,94 @@ type tseNachsignierAuftrag struct {
 	ProcessData string
 }
 
-type zahlungSignierungErgebnis struct {
+type eventSignierungErgebnis struct {
 	Event              event.Event
 	NachsignierAuftrag *tseNachsignierAuftrag
 }
 
-func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, positionen []kasse.Position, zahlbetragCents int) (zahlungSignierungErgebnis, error) {
+func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, positionen []kasse.Position, zahlbetragCents int) (eventSignierungErgebnis, error) {
+	processData, err := buildKassenbelegProcessData(positionen, zahlbetragCents)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to build TSE process_data for zahlung")
+		return eventSignierungErgebnis{}, ErrDatabase
+	}
+
+	return c.signEventWithTSE(
+		ctx,
+		evt,
+		tseProcessTypeKassenbelegV1,
+		processData,
+		tseTransactionIDForZahlungEvent,
+		withZahlungEventTSEData,
+		withZahlungEventTSEAusfall,
+	)
+}
+
+func (c Command) signBestellungAufgenommenEvent(ctx context.Context, evt event.Event, positionen []kasse.Position) (eventSignierungErgebnis, error) {
+	processData, err := buildBestellungProcessData(positionen)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to build TSE process_data for bestellung")
+		return eventSignierungErgebnis{}, ErrDatabase
+	}
+
+	return c.signEventWithTSE(
+		ctx,
+		evt,
+		tseProcessTypeBestellungV1,
+		processData,
+		tseTransactionIDForBestellungEvent,
+		withBestellungEventTSEData,
+		nil,
+	)
+}
+
+func (c Command) signStornierungErteiltEvent(ctx context.Context, evt event.Event, positionen []kasse.Position, stornoBetragCents int) (eventSignierungErgebnis, error) {
+	processData, err := buildKassenbelegProcessDataWithFaktor(positionen, -stornoBetragCents, -1)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to build TSE process_data for stornierung")
+		return eventSignierungErgebnis{}, ErrDatabase
+	}
+
+	return c.signEventWithTSE(
+		ctx,
+		evt,
+		tseProcessTypeKassenbelegV1,
+		processData,
+		tseTransactionIDForStornierungEvent,
+		withStornierungEventTSEData,
+		nil,
+	)
+}
+
+func (c Command) signAuszahlungGeleistetEvent(ctx context.Context, evt event.Event, betragCents int) (eventSignierungErgebnis, error) {
+	processData, err := buildKassenbelegProcessData(nil, -betragCents)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to build TSE process_data for auszahlung")
+		return eventSignierungErgebnis{}, ErrDatabase
+	}
+
+	return c.signEventWithTSE(
+		ctx,
+		evt,
+		tseProcessTypeKassenbelegV1,
+		processData,
+		tseTransactionIDForAuszahlungEvent,
+		withAuszahlungEventTSEData,
+		nil,
+	)
+}
+
+func (c Command) signEventWithTSE(
+	ctx context.Context,
+	evt event.Event,
+	processType string,
+	processData string,
+	transactionID func(event.Event) (string, error),
+	withTSEData func(event.Event, kasse.TSEData) (event.Event, error),
+	withTSEAusfall func(event.Event) (event.Event, error),
+) (eventSignierungErgebnis, error) {
 	if c.SettingsRepo == nil || c.NewTSEClient == nil {
-		return zahlungSignierungErgebnis{Event: evt}, nil
+		return eventSignierungErgebnis{Event: evt}, nil
 	}
 
 	log := zerolog.Ctx(ctx)
@@ -43,25 +124,19 @@ func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, 
 	conf, err := c.SettingsRepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			return zahlungSignierungErgebnis{Event: evt}, nil
+			return eventSignierungErgebnis{Event: evt}, nil
 		}
-		log.Error().Err(err).Msg("Failed to load TSE-Konfiguration for zahlung signierung")
-		return zahlungSignierungErgebnis{}, ErrDatabase
+		log.Error().Err(err).Msg("Failed to load TSE-Konfiguration for signierung")
+		return eventSignierungErgebnis{}, ErrDatabase
 	}
 	if !conf.IstKonfiguriert() {
-		return zahlungSignierungErgebnis{Event: evt}, nil
+		return eventSignierungErgebnis{Event: evt}, nil
 	}
 
-	processData, err := buildKassenbelegProcessData(positionen, zahlbetragCents)
+	txID, err := transactionID(evt)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to build TSE process_data for zahlung")
-		return zahlungSignierungErgebnis{}, ErrDatabase
-	}
-
-	txID, err := tseTransactionIDForZahlungEvent(evt)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to derive deterministic tx_id for zahlung")
-		return zahlungSignierungErgebnis{}, ErrDatabase
+		log.Error().Err(err).Msg("Failed to derive deterministic tx_id")
+		return eventSignierungErgebnis{}, ErrDatabase
 	}
 
 	client, err := c.NewTSEClient(tse.Credentials{
@@ -71,17 +146,17 @@ func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, 
 		ClientID:  conf.ClientID,
 	})
 	if err != nil {
-		return handleZahlungSignierAusfall(log, evt, txID, processData, err)
+		return handleSignierAusfall(log, evt, txID, processType, processData, err, withTSEAusfall)
 	}
 
-	startResult, err := client.StartTransaction(ctx, txID, tseProcessTypeKassenbelegV1, processData)
+	startResult, err := client.StartTransaction(ctx, txID, processType, processData)
 	if err != nil {
-		return handleZahlungSignierAusfall(log, evt, txID, processData, err)
+		return handleSignierAusfall(log, evt, txID, processType, processData, err, withTSEAusfall)
 	}
 
-	finishResult, err := client.FinishTransaction(ctx, txID, startResult.TransactionNumber, tseProcessTypeKassenbelegV1, processData)
+	finishResult, err := client.FinishTransaction(ctx, txID, startResult.TransactionNumber, processType, processData)
 	if err != nil {
-		return handleZahlungSignierAusfall(log, evt, txID, processData, err)
+		return handleSignierAusfall(log, evt, txID, processType, processData, err, withTSEAusfall)
 	}
 
 	tseData := kasse.TSEData{
@@ -91,36 +166,64 @@ func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, 
 		LogTimeStart:      tseTimeString(nonZeroTime(startResult.LogTime, finishResult.LogTimeStart)),
 		LogTimeEnd:        tseTimeString(nonZeroTime(finishResult.LogTime, finishResult.LogTimeEnd)),
 		Signature:         strings.TrimSpace(finishResult.Signature),
-		ProcessType:       tseProcessTypeKassenbelegV1,
+		ProcessType:       processType,
 		QRCodeData:        strings.TrimSpace(finishResult.QRCodeData),
 	}
 
-	signedEvent, err := withZahlungEventTSEData(evt, tseData)
+	signedEvent, err := withTSEData(evt, tseData)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to embed TSE data into zahlung event")
-		return zahlungSignierungErgebnis{}, ErrDatabase
+		log.Error().Err(err).Msg("Failed to embed TSE data into event")
+		return eventSignierungErgebnis{}, ErrDatabase
 	}
 
-	return zahlungSignierungErgebnis{Event: signedEvent}, nil
+	return eventSignierungErgebnis{Event: signedEvent}, nil
 }
 
-func handleZahlungSignierAusfall(log *zerolog.Logger, evt event.Event, txID string, processData string, cause error) (zahlungSignierungErgebnis, error) {
+func handleSignierAusfall(log *zerolog.Logger, evt event.Event, txID string, processType string, processData string, cause error, withTSEAusfall func(event.Event) (event.Event, error)) (eventSignierungErgebnis, error) {
 	log.Warn().Err(cause).Str("tx_id", txID).Msg("TSE-Signierung fehlgeschlagen, Vorgang wird unsigniert persistiert und zur Nachsignierung vorgemerkt")
 
-	unsignedEvent, err := withZahlungEventTSEAusfall(evt)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to mark zahlung event with TSE-Ausfall")
-		return zahlungSignierungErgebnis{}, ErrDatabase
+	unsignedEvent := evt
+	if withTSEAusfall != nil {
+		var err error
+		unsignedEvent, err = withTSEAusfall(evt)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to mark event with TSE-Ausfall")
+			return eventSignierungErgebnis{}, ErrDatabase
+		}
 	}
 
-	return zahlungSignierungErgebnis{
+	return eventSignierungErgebnis{
 		Event: unsignedEvent,
 		NachsignierAuftrag: &tseNachsignierAuftrag{
 			TxID:        txID,
-			ProcessType: tseProcessTypeKassenbelegV1,
+			ProcessType: processType,
 			ProcessData: processData,
 		},
 	}, nil
+}
+
+func withBestellungEventTSEData(evt event.Event, tseData kasse.TSEData) (event.Event, error) {
+	if evt.Type != string(kasse.EventTypeBestellungAufgenommenV1) {
+		return event.Event{}, fmt.Errorf("unsupported event type for TSE data: %s", evt.Type)
+	}
+	if err := tseData.Validate(); err != nil {
+		return event.Event{}, err
+	}
+
+	data := bestellungAufgenommenV1Data{}
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return event.Event{}, err
+	}
+
+	data.TSEData = &tseData
+
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return event.Event{}, err
+	}
+
+	evt.Data = encoded
+	return evt, nil
 }
 
 func withZahlungEventTSEData(evt event.Event, tseData kasse.TSEData) (event.Event, error) {
@@ -138,6 +241,54 @@ func withZahlungEventTSEData(evt event.Event, tseData kasse.TSEData) (event.Even
 
 	data.TSEData = &tseData
 	data.TSEAusfall = false
+
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return event.Event{}, err
+	}
+
+	evt.Data = encoded
+	return evt, nil
+}
+
+func withStornierungEventTSEData(evt event.Event, tseData kasse.TSEData) (event.Event, error) {
+	if evt.Type != string(kasse.EventTypeStornierungErteiltV1) {
+		return event.Event{}, fmt.Errorf("unsupported event type for TSE data: %s", evt.Type)
+	}
+	if err := tseData.Validate(); err != nil {
+		return event.Event{}, err
+	}
+
+	data := stornierungErteiltV1Data{}
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return event.Event{}, err
+	}
+
+	data.TSEData = &tseData
+
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return event.Event{}, err
+	}
+
+	evt.Data = encoded
+	return evt, nil
+}
+
+func withAuszahlungEventTSEData(evt event.Event, tseData kasse.TSEData) (event.Event, error) {
+	if evt.Type != string(kasse.EventTypeAuszahlungGeleistetV1) {
+		return event.Event{}, fmt.Errorf("unsupported event type for TSE data: %s", evt.Type)
+	}
+	if err := tseData.Validate(); err != nil {
+		return event.Event{}, err
+	}
+
+	data := auszahlungGeleistetV1Data{}
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return event.Event{}, err
+	}
+
+	data.TSEData = &tseData
 
 	encoded, err := json.Marshal(data)
 	if err != nil {
@@ -171,24 +322,33 @@ func withZahlungEventTSEAusfall(evt event.Event) (event.Event, error) {
 }
 
 func buildKassenbelegProcessData(positionen []kasse.Position, zahlbetragCents int) (string, error) {
+	return buildKassenbelegProcessDataWithFaktor(positionen, zahlbetragCents, 1)
+}
+
+func buildKassenbelegProcessDataWithFaktor(positionen []kasse.Position, zahlbetragCents int, faktor int) (string, error) {
+	if faktor != 1 && faktor != -1 {
+		return "", fmt.Errorf("invalid faktor %d", faktor)
+	}
+
 	var betragNormalCents int
 	var betragErmaessigtCents int
 	var betragBefreitCents int
 
 	for _, pos := range positionen {
-		brutto := pos.Einzelpreis * pos.Menge
-		aufteilungen := steuer.Aufteilen(brutto, steuer.Steuersatz(pos.Steuersatz))
+		basisBrutto := pos.Einzelpreis * pos.Menge
+		aufteilungen := steuer.Aufteilen(basisBrutto, steuer.Steuersatz(pos.Steuersatz))
 		if len(aufteilungen) == 0 {
 			return "", fmt.Errorf("unsupported steuersatz %q", pos.Steuersatz)
 		}
 		for _, aufteilung := range aufteilungen {
+			brutto := aufteilung.Brutto * faktor
 			switch aufteilung.Satz {
 			case steuer.RegelSteuersatz:
-				betragNormalCents += aufteilung.Brutto
+				betragNormalCents += brutto
 			case steuer.ErmaessigtSteuersatz:
-				betragErmaessigtCents += aufteilung.Brutto
+				betragErmaessigtCents += brutto
 			case steuer.BefreitSteuersatz:
-				betragBefreitCents += aufteilung.Brutto
+				betragBefreitCents += brutto
 			default:
 				return "", fmt.Errorf("unsupported steuersatz in aufteilung %q", aufteilung.Satz)
 			}
@@ -205,6 +365,36 @@ func buildKassenbelegProcessData(positionen []kasse.Position, zahlbetragCents in
 		tseBetragString(zahlbetragCents),
 		tseZahlungsartBar,
 	), nil
+}
+
+func buildBestellungProcessData(positionen []kasse.Position) (string, error) {
+	if len(positionen) == 0 {
+		return "", fmt.Errorf("bestellung processData requires at least one position")
+	}
+
+	teile := make([]string, 0, len(positionen))
+	for _, pos := range positionen {
+		if pos.Menge <= 0 {
+			continue
+		}
+
+		name := strings.TrimSpace(pos.ProduktName)
+		variante := strings.TrimSpace(pos.VarianteName)
+		if variante != "" && !strings.EqualFold(variante, name) {
+			name = strings.TrimSpace(name + " " + variante)
+		}
+		if name == "" {
+			name = "Unbekannt"
+		}
+
+		teile = append(teile, fmt.Sprintf("%dx %s", pos.Menge, name))
+	}
+
+	if len(teile) == 0 {
+		return "", fmt.Errorf("bestellung processData requires positive quantities")
+	}
+
+	return strings.Join(teile, "_"), nil
 }
 
 func tseBetragString(cents int) string {
@@ -230,6 +420,57 @@ func tseTransactionIDForZahlungEvent(evt event.Event) (string, error) {
 	}
 
 	seed := fmt.Sprintf("%s|%s|%s", evt.Type, evt.Subject, data.ZahlungID)
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(seed)).String(), nil
+}
+
+func tseTransactionIDForBestellungEvent(evt event.Event) (string, error) {
+	if evt.Type != string(kasse.EventTypeBestellungAufgenommenV1) {
+		return "", fmt.Errorf("unsupported event type for tx_id: %s", evt.Type)
+	}
+
+	data := bestellungAufgenommenV1Data{}
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(data.BestellungID) == "" {
+		return "", fmt.Errorf("bestellungId missing in event data")
+	}
+
+	seed := fmt.Sprintf("%s|%s|%s", evt.Type, evt.Subject, data.BestellungID)
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(seed)).String(), nil
+}
+
+func tseTransactionIDForStornierungEvent(evt event.Event) (string, error) {
+	if evt.Type != string(kasse.EventTypeStornierungErteiltV1) {
+		return "", fmt.Errorf("unsupported event type for tx_id: %s", evt.Type)
+	}
+
+	data := stornierungErteiltV1Data{}
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(data.StornierungID) == "" {
+		return "", fmt.Errorf("stornierungId missing in event data")
+	}
+
+	seed := fmt.Sprintf("%s|%s|%s", evt.Type, evt.Subject, data.StornierungID)
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(seed)).String(), nil
+}
+
+func tseTransactionIDForAuszahlungEvent(evt event.Event) (string, error) {
+	if evt.Type != string(kasse.EventTypeAuszahlungGeleistetV1) {
+		return "", fmt.Errorf("unsupported event type for tx_id: %s", evt.Type)
+	}
+
+	data := auszahlungGeleistetV1Data{}
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(data.AuszahlungID) == "" {
+		return "", fmt.Errorf("auszahlungId missing in event data")
+	}
+
+	seed := fmt.Sprintf("%s|%s|%s", evt.Type, evt.Subject, data.AuszahlungID)
 	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(seed)).String(), nil
 }
 

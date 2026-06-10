@@ -28,6 +28,7 @@ type tableRepo interface {
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
+	WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error)
 	WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error)
 	WriteUmbuchung(ctx context.Context, stornierungEvent event.Event, bestellungEvent event.Event, kassensitzungNr int) error
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
@@ -110,6 +111,29 @@ type zahlungPositionData struct {
 	Menge        int    `json:"menge"`
 }
 
+type bestellungAufgenommenV1Data struct {
+	BestellungID     string                `json:"bestellungId"`
+	Positionen       []zahlungPositionData `json:"positionen"`
+	GesamtPreisCents int                   `json:"gesamtPreisCents"`
+	Kommentar        string                `json:"kommentar"`
+	TSEData          *kasse.TSEData        `json:"tseData,omitempty"`
+}
+
+type stornierungErteiltV1Data struct {
+	StornierungID          string                `json:"stornierungId"`
+	Positionen             []zahlungPositionData `json:"positionen"`
+	GesamtStornierungCents int                   `json:"gesamtStornierungCents"`
+	Kommentar              string                `json:"kommentar"`
+	TSEData                *kasse.TSEData        `json:"tseData,omitempty"`
+}
+
+type auszahlungGeleistetV1Data struct {
+	AuszahlungID string         `json:"auszahlungId"`
+	BetragCents  int            `json:"betragCents"`
+	Kommentar    string         `json:"kommentar"`
+	TSEData      *kasse.TSEData `json:"tseData,omitempty"`
+}
+
 // getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung.
 // Returns ErrKasseNichtGeoeffnet (HTTP 409) when no open Kassensitzung exists.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
@@ -162,6 +186,12 @@ func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject stri
 func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
 	return writeEventOCC(ctx, repo, e, subject, func(versioned event.Event) (int, error) {
 		return repo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
+	})
+}
+
+func writeEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error) {
+	return writeEventOCC(ctx, repo, e, subject, func(versioned event.Event) (int, error) {
+		return repo.WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx, versioned, streamType, kassensitzungNr, buildAuftraege, txID, processType, processData)
 	})
 }
 
@@ -432,6 +462,12 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return err
 	}
 
+	signierung, err := c.signBestellungAufgenommenEvent(ctx, evt, positionen)
+	if err != nil {
+		return err
+	}
+	evt = signierung.Event
+
 	druckstationen, err := c.konfigurierteDruckstationen(ctx)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to load druckstationen for arbeitsbon")
@@ -442,6 +478,30 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	// event and its print jobs are written in one transaction (transactional outbox).
 	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
 		return toNeuerDruckauftraege(bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, bondruckApp.DirektverkaufBondruckKonfiguration{}))
+	}
+
+	if signierung.NachsignierAuftrag != nil {
+		if _, err = writeEventWithDruckauftraegeUndNachsignierAuftrag(
+			ctx,
+			c.EventRepo,
+			evt,
+			subject,
+			kasse.StreamTypeTischSession,
+			kassensitzungNr,
+			buildAuftraege,
+			signierung.NachsignierAuftrag.TxID,
+			signierung.NachsignierAuftrag.ProcessType,
+			signierung.NachsignierAuftrag.ProcessData,
+		); err != nil {
+			if errors.Is(err, ErrConflict) {
+				return ErrConflict
+			}
+			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung event with TSE-nachsignierung")
+			return ErrDatabase
+		}
+
+		log.Info().Int("tisch_id", tischID).Msg("Bestellung aufgenommen (unsigniert, Nachsignierung vorgemerkt)")
+		return nil
 	}
 
 	_, err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
@@ -699,6 +759,35 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		return err
 	}
 
+	signierung, err := c.signStornierungErteiltEvent(ctx, evt, resolvedPositionen, gesamtStornierungCents)
+	if err != nil {
+		return err
+	}
+	evt = signierung.Event
+
+	if signierung.NachsignierAuftrag != nil {
+		if _, err := writeEventWithNachsignierAuftrag(
+			ctx,
+			c.EventRepo,
+			evt,
+			subject,
+			kasse.StreamTypeTischSession,
+			kassensitzungNr,
+			signierung.NachsignierAuftrag.TxID,
+			signierung.NachsignierAuftrag.ProcessType,
+			signierung.NachsignierAuftrag.ProcessData,
+		); err != nil {
+			if errors.Is(err, ErrConflict) {
+				return ErrConflict
+			}
+			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write stornierung event with TSE-nachsignierung")
+			return ErrDatabase
+		}
+
+		log.Info().Int("tisch_id", tischID).Msg("Stornierung erteilt (unsigniert, Nachsignierung vorgemerkt)")
+		return nil
+	}
+
 	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
@@ -759,6 +848,35 @@ func (c Command) AuszahlungLeisten(ctx context.Context, userID int, userName str
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create auszahlung geleistet event")
 		return err
+	}
+
+	signierung, err := c.signAuszahlungGeleistetEvent(ctx, evt, betragCents)
+	if err != nil {
+		return err
+	}
+	evt = signierung.Event
+
+	if signierung.NachsignierAuftrag != nil {
+		if _, err := writeEventWithNachsignierAuftrag(
+			ctx,
+			c.EventRepo,
+			evt,
+			subject,
+			kasse.StreamTypeTischSession,
+			kassensitzungNr,
+			signierung.NachsignierAuftrag.TxID,
+			signierung.NachsignierAuftrag.ProcessType,
+			signierung.NachsignierAuftrag.ProcessData,
+		); err != nil {
+			if errors.Is(err, ErrConflict) {
+				return ErrConflict
+			}
+			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write auszahlung event with TSE-nachsignierung")
+			return ErrDatabase
+		}
+
+		log.Info().Int("tisch_id", tischID).Msg("Auszahlung geleistet (unsigniert, Nachsignierung vorgemerkt)")
+		return nil
 	}
 
 	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {

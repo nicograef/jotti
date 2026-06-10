@@ -94,6 +94,23 @@ func (m *MockRepo) WriteEventWithNachsignierAuftrag(ctx context.Context, e event
 	return id, nil
 }
 
+func (m *MockRepo) WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error) {
+	id, err := m.WriteEvent(ctx, e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+
+	e.ID = id
+	m.druckauftraege = append(m.druckauftraege, buildAuftraege(e)...)
+	m.nachsignier = append(m.nachsignier, NachsignierAuftrag{
+		TxID:        txID,
+		ProcessType: processType,
+		ProcessData: processData,
+	})
+
+	return id, nil
+}
+
 func (m *MockRepo) WriteUmbuchung(_ context.Context, stornierungEvent event.Event, bestellungEvent event.Event, _ int) error {
 	if m.writeErr != nil {
 		return m.writeErr

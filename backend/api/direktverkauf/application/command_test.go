@@ -5,6 +5,8 @@ package application
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/steuer"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
@@ -48,10 +51,17 @@ var testVariant = product.Variante{
 type spyEventRepo struct {
 	written        []writtenEvent
 	druckauftraege []druckauftrag_repo.NeuerDruckauftrag
+	nachsignier    []capturedNachsignier
 	maxVersion     int
 	writeErr       error
 	streamEvents   []event.Event
 	readErr        error
+}
+
+type capturedNachsignier struct {
+	txID        string
+	processType string
+	processData string
 }
 
 type writtenEvent struct {
@@ -87,6 +97,28 @@ func (s *spyEventRepo) WriteEventWithDruckauftraege(_ context.Context, e event.E
 	return id, nil
 }
 
+func (s *spyEventRepo) WriteEventWithDruckauftraegeUndNachsignierAuftrag(_ context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error) {
+	id, err := s.WriteEvent(context.Background(), e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+
+	e.ID = id
+	s.druckauftraege = append(s.druckauftraege, buildAuftraege(e)...)
+	s.nachsignier = append(s.nachsignier, capturedNachsignier{txID: txID, processType: processType, processData: processData})
+	return id, nil
+}
+
+func (s *spyEventRepo) WriteEventWithNachsignierAuftrag(_ context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error) {
+	id, err := s.WriteEvent(context.Background(), e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+
+	s.nachsignier = append(s.nachsignier, capturedNachsignier{txID: txID, processType: processType, processData: processData})
+	return id, nil
+}
+
 type mockDruckstationRepo struct {
 	konfig map[string]bondruckApp.Druckstation
 	err    error
@@ -101,6 +133,7 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 
 type mockSettingsRepo struct {
 	bondruck settings.BondruckEinstellungen
+	tse      settings.TSEKonfiguration
 	err      error
 }
 
@@ -109,6 +142,13 @@ func (m *mockSettingsRepo) GetBondruckEinstellungen(_ context.Context) (settings
 		return settings.BondruckEinstellungen{}, m.err
 	}
 	return m.bondruck, nil
+}
+
+func (m *mockSettingsRepo) GetTSEKonfiguration(_ context.Context) (settings.TSEKonfiguration, error) {
+	if m.err != nil {
+		return settings.TSEKonfiguration{}, m.err
+	}
+	return m.tse, nil
 }
 
 func newProductMock() productRepo {
@@ -359,5 +399,84 @@ func TestDirektverkaufStornieren_Conflict(t *testing.T) {
 	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
+	}
+}
+
+func TestDirektverkaufTaetigen_MitTSE_DatenImEvent(t *testing.T) {
+	spy := &spyEventRepo{}
+	start := time.Date(2026, 6, 10, 21, 0, 1, 0, time.UTC)
+	end := time.Date(2026, 6, 10, 21, 0, 2, 0, time.UTC)
+
+	command := Command{
+		EventRepo:           spy,
+		ProductRepo:         newProductMock(),
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+			ApiKey:    "api-key",
+			ApiSecret: "api-secret",
+			TssID:     "tss-1",
+			ClientID:  "client-1",
+			UpdatedAt: time.Now(),
+		}},
+		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+			return tse.FakeClient{
+				StartResponse:  tse.StartResult{TransactionNumber: 31, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 30},
+				FinishResponse: tse.FinishResult{TransactionNumber: 31, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 31, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-DIREKTVERKAUF"},
+			}, nil
+		},
+	}
+
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(spy.written) != 1 {
+		t.Fatalf("expected one event, got %d", len(spy.written))
+	}
+
+	var data direktverkaufGetaetigtV1Data
+	if err := json.Unmarshal(spy.written[0].event.Data, &data); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	if data.TSEData == nil {
+		t.Fatal("expected TSE data in direktverkauf-getaetigt event")
+	}
+	if data.TSEData.ProcessType != "Kassenbeleg-V1" {
+		t.Fatalf("expected process type Kassenbeleg-V1, got %q", data.TSEData.ProcessType)
+	}
+}
+
+func TestDirektverkaufStornieren_BeiTSEAusfall_NachsignierMitNegativemBetrag(t *testing.T) {
+	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 1)
+	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}
+
+	command := Command{
+		EventRepo:           spy,
+		ProductRepo:         newProductMock(),
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+			ApiKey:    "api-key",
+			ApiSecret: "api-secret",
+			TssID:     "tss-1",
+			ClientID:  "client-1",
+			UpdatedAt: time.Now(),
+		}},
+		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+			return tse.FakeClient{StartErr: errors.New("timeout")}, nil
+		},
+	}
+
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rueckgabe")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(spy.nachsignier) != 1 {
+		t.Fatalf("expected one nachsignier job, got %d", len(spy.nachsignier))
+	}
+	if spy.nachsignier[0].processType != "Kassenbeleg-V1" {
+		t.Fatalf("expected process type Kassenbeleg-V1, got %q", spy.nachsignier[0].processType)
+	}
+	if !strings.Contains(spy.nachsignier[0].processData, "^-5.00:Bar") {
+		t.Fatalf("expected negative storno payment in processData, got %q", spy.nachsignier[0].processData)
 	}
 }

@@ -9,11 +9,13 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/rs/zerolog"
 )
 
 type kassenjournalRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
+	WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error)
@@ -27,12 +29,16 @@ type kassensitzungenRepo interface {
 
 type settingsRepo interface {
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
+	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
+
+type NewTSEClient func(credentials tse.Credentials) (tse.TSEClient, error)
 
 type Command struct {
 	KassenjournalRepo   kassenjournalRepo
 	KassensitzungenRepo kassensitzungenRepo
 	SettingsRepo        settingsRepo
+	NewTSEClient        NewTSEClient
 }
 
 // getOffeneKassensitzungOderFehler returns the open Kassensitzung or ErrKasseNichtGeoeffnet.
@@ -60,6 +66,29 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 	e.Version = maxVersion + 1
 
 	_, err = c.KassenjournalRepo.WriteEvent(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr)
+	if err != nil {
+		if errors.Is(err, db.ErrAlreadyExists) {
+			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC Kassensitzung conflict")
+			return ErrKonflikt
+		}
+		return ErrDatabase
+	}
+
+	return nil
+}
+
+func (c Command) writeKassensitzungEventWithNachsignierAuftrag(ctx context.Context, e event.Event, kassensitzungNr int, txID string, processType string, processData string) error {
+	log := zerolog.Ctx(ctx)
+
+	subject := kasse.KassensitzungSubject(kassensitzungNr)
+	maxVersion, err := c.KassenjournalRepo.GetMaxVersion(ctx, subject)
+	if err != nil {
+		return ErrDatabase
+	}
+
+	e.Version = maxVersion + 1
+
+	_, err = c.KassenjournalRepo.WriteEventWithNachsignierAuftrag(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr, txID, processType, processData)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC Kassensitzung conflict")
@@ -137,6 +166,28 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 		return err
 	}
 
+	signierung, err := c.signGeldtransitGebuchtEvent(ctx, evt, richtung, betragCents, kommentar)
+	if err != nil {
+		return err
+	}
+	evt = signierung.Event
+
+	if signierung.NachsignierAuftrag != nil {
+		if err := c.writeKassensitzungEventWithNachsignierAuftrag(
+			ctx,
+			evt,
+			ks.ZNr,
+			signierung.NachsignierAuftrag.TxID,
+			signierung.NachsignierAuftrag.ProcessType,
+			signierung.NachsignierAuftrag.ProcessData,
+		); err != nil {
+			return err
+		}
+
+		log.Info().Int("z_nr", ks.ZNr).Str("richtung", richtung).Int("betrag_cents", betragCents).Msg("Geldtransit gebucht (unsigniert, Nachsignierung vorgemerkt)")
+		return nil
+	}
+
 	if err := c.writeKassensitzungEvent(ctx, evt, ks.ZNr); err != nil {
 		return err
 	}
@@ -184,8 +235,27 @@ func (c Command) KassensturzDurchfuehren(ctx context.Context, userID int, userNa
 			return err
 		}
 
-		if err := c.writeKassensitzungEvent(ctx, diffEvt, ks.ZNr); err != nil {
+		signierung, err := c.signDifferenzSollIstGebuchtEvent(ctx, diffEvt, differenzCents)
+		if err != nil {
 			return err
+		}
+		diffEvt = signierung.Event
+
+		if signierung.NachsignierAuftrag != nil {
+			if err := c.writeKassensitzungEventWithNachsignierAuftrag(
+				ctx,
+				diffEvt,
+				ks.ZNr,
+				signierung.NachsignierAuftrag.TxID,
+				signierung.NachsignierAuftrag.ProcessType,
+				signierung.NachsignierAuftrag.ProcessData,
+			); err != nil {
+				return err
+			}
+		} else {
+			if err := c.writeKassensitzungEvent(ctx, diffEvt, ks.ZNr); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -257,6 +327,28 @@ func (c Command) TagesabschlussErstellen(ctx context.Context, userID int, userNa
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create tagesabschluss-erstellt event")
 		return err
+	}
+
+	signierung, err := c.signTagesabschlussErstelltEvent(ctx, tagesabschlussEvt, ks.ZNr, ks.CreatedAt, now)
+	if err != nil {
+		return err
+	}
+	tagesabschlussEvt = signierung.Event
+
+	if signierung.NachsignierAuftrag != nil {
+		if err := c.writeKassensitzungEventWithNachsignierAuftrag(
+			ctx,
+			tagesabschlussEvt,
+			ks.ZNr,
+			signierung.NachsignierAuftrag.TxID,
+			signierung.NachsignierAuftrag.ProcessType,
+			signierung.NachsignierAuftrag.ProcessData,
+		); err != nil {
+			return err
+		}
+
+		log.Info().Int("z_nr", ks.ZNr).Msg("Tagesabschluss erstellt (unsigniert, Nachsignierung vorgemerkt)")
+		return nil
 	}
 
 	if err := c.writeKassensitzungEvent(ctx, tagesabschlussEvt, ks.ZNr); err != nil {

@@ -11,6 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/rs/zerolog"
 )
@@ -18,6 +19,8 @@ import (
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
+	WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error)
+	WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 }
@@ -37,7 +40,10 @@ type druckstationRepo interface {
 
 type settingsRepo interface {
 	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
+	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
+
+type NewTSEClient func(credentials tse.Credentials) (tse.TSEClient, error)
 
 // VerkaufPositionInput represents a single position of a Direktverkauf.
 // The application layer enriches it with product/variant details (fat events).
@@ -53,6 +59,7 @@ type Command struct {
 	KassensitzungenRepo kassensitzungenRepo
 	DruckstationRepo    druckstationRepo
 	SettingsRepo        settingsRepo
+	NewTSEClient        NewTSEClient
 }
 
 // DirektverkaufTaetigen records a Direktverkauf as a single immutable event in its own stream
@@ -84,6 +91,12 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return err
 	}
 
+	tseSignierung, err := c.signDirektverkaufGetaetigtEvent(ctx, evt, positionen)
+	if err != nil {
+		return err
+	}
+	evt = tseSignierung.Event
+
 	druckstationen, direktverkaufKonfig, err := c.loadBondruckKonfiguration(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load bondruck configuration for direktverkauf")
@@ -93,6 +106,28 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
 		auftraege := bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, direktverkaufKonfig)
 		return toNeuerDruckauftraege(auftraege)
+	}
+
+	if tseSignierung.NachsignierAuftrag != nil {
+		if err := c.writeEventWithDruckauftraegeUndNachsignierAuftrag(
+			ctx,
+			evt,
+			subject,
+			ks.ZNr,
+			buildAuftraege,
+			tseSignierung.NachsignierAuftrag.TxID,
+			tseSignierung.NachsignierAuftrag.ProcessType,
+			tseSignierung.NachsignierAuftrag.ProcessData,
+		); err != nil {
+			if errors.Is(err, ErrConflict) {
+				return ErrConflict
+			}
+			log.Error().Err(err).Msg("Failed to write direktverkauf getaetigt event with TSE-nachsignierung")
+			return ErrDatabase
+		}
+
+		log.Info().Str("verkauf_id", verkaufID).Msg("Direktverkauf getaetigt (unsigniert, Nachsignierung vorgemerkt)")
+		return nil
 	}
 
 	if err := c.writeEventWithDruckauftraege(ctx, evt, subject, ks.ZNr, buildAuftraege); err != nil {
@@ -187,6 +222,33 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 	if err != nil {
 		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to create direktverkauf storniert event")
 		return err
+	}
+
+	tseSignierung, err := c.signDirektverkaufStorniertEvent(ctx, evt, resolvedPositionen, gesamtStornierungCents)
+	if err != nil {
+		return err
+	}
+	evt = tseSignierung.Event
+
+	if tseSignierung.NachsignierAuftrag != nil {
+		if err := c.writeEventWithNachsignierAuftrag(
+			ctx,
+			evt,
+			subject,
+			ks.ZNr,
+			tseSignierung.NachsignierAuftrag.TxID,
+			tseSignierung.NachsignierAuftrag.ProcessType,
+			tseSignierung.NachsignierAuftrag.ProcessData,
+		); err != nil {
+			if errors.Is(err, ErrConflict) {
+				return ErrConflict
+			}
+			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to write direktverkauf storniert event with TSE-nachsignierung")
+			return ErrDatabase
+		}
+
+		log.Info().Str("verkauf_id", verkaufID).Int("gesamt_stornierung_cents", gesamtStornierungCents).Msg("Direktverkauf storniert (unsigniert, Nachsignierung vorgemerkt)")
+		return nil
 	}
 
 	if err := c.writeEvent(ctx, evt, subject, ks.ZNr); err != nil {
@@ -345,6 +407,61 @@ func (c Command) writeEventWithDruckauftraege(
 	e.Version = maxVersion + 1
 
 	if _, err := c.EventRepo.WriteEventWithDruckauftraege(ctx, e, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege); err != nil {
+		if errors.Is(err, db.ErrAlreadyExists) {
+			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC conflict")
+			return ErrConflict
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (c Command) writeEventWithDruckauftraegeUndNachsignierAuftrag(
+	ctx context.Context,
+	e event.Event,
+	subject string,
+	kassensitzungNr int,
+	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
+	txID string,
+	processType string,
+	processData string,
+) error {
+	maxVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
+	if err != nil {
+		return err
+	}
+
+	e.Version = maxVersion + 1
+
+	if _, err := c.EventRepo.WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx, e, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege, txID, processType, processData); err != nil {
+		if errors.Is(err, db.ErrAlreadyExists) {
+			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC conflict")
+			return ErrConflict
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (c Command) writeEventWithNachsignierAuftrag(
+	ctx context.Context,
+	e event.Event,
+	subject string,
+	kassensitzungNr int,
+	txID string,
+	processType string,
+	processData string,
+) error {
+	maxVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
+	if err != nil {
+		return err
+	}
+
+	e.Version = maxVersion + 1
+
+	if _, err := c.EventRepo.WriteEventWithNachsignierAuftrag(ctx, e, kasse.StreamTypeDirektverkauf, kassensitzungNr, txID, processType, processData); err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC conflict")
 			return ErrConflict

@@ -25,6 +25,7 @@ type bestellungAufgenommenV1Data struct {
 	Positionen       []positionEventData `json:"positionen"`
 	GesamtPreisCents int                 `json:"gesamtPreisCents"`
 	Kommentar        string              `json:"kommentar"`
+	TSEData          *TSEData            `json:"tseData,omitempty"`
 }
 
 var bestellungAufgenommenV1DataSchema = z.Struct(z.Shape{
@@ -54,6 +55,7 @@ type stornierungErteiltV1Data struct {
 	Positionen             []positionEventData `json:"positionen"`
 	GesamtStornierungCents int                 `json:"gesamtStornierungCents"`
 	Kommentar              string              `json:"kommentar"`
+	TSEData                *TSEData            `json:"tseData,omitempty"`
 }
 
 var stornierungErteiltV1DataSchema = z.Struct(z.Shape{
@@ -76,9 +78,10 @@ var ausgabeBestaetigtV1DataSchema = z.Struct(z.Shape{
 })
 
 type auszahlungGeleistetV1Data struct {
-	AuszahlungID string `json:"auszahlungId"`
-	BetragCents  int    `json:"betragCents"`
-	Kommentar    string `json:"kommentar"`
+	AuszahlungID string   `json:"auszahlungId"`
+	BetragCents  int      `json:"betragCents"`
+	Kommentar    string   `json:"kommentar"`
+	TSEData      *TSEData `json:"tseData,omitempty"`
 }
 
 var auszahlungGeleistetV1DataSchema = z.Struct(z.Shape{
@@ -90,6 +93,20 @@ var auszahlungGeleistetV1DataSchema = z.Struct(z.Shape{
 // --- Event-Erstellungsfunktionen ---
 
 func NewBestellungAufgenommenEvent(subject string, userID int, userName string, positionen []Position, kommentar string) (e.Event, error) {
+	return newBestellungAufgenommenEvent(subject, userID, userName, positionen, kommentar, nil)
+}
+
+func NewBestellungAufgenommenEventMitTSE(subject string, userID int, userName string, positionen []Position, kommentar string, tseData *TSEData) (e.Event, error) {
+	return newBestellungAufgenommenEvent(subject, userID, userName, positionen, kommentar, tseData)
+}
+
+func newBestellungAufgenommenEvent(subject string, userID int, userName string, positionen []Position, kommentar string, tseData *TSEData) (e.Event, error) {
+	if tseData != nil {
+		if err := tseData.Validate(); err != nil {
+			return e.Event{}, err
+		}
+	}
+
 	// Generate PositionIDs for each position
 	for i := range positionen {
 		positionen[i].PositionID = uuid.New().String()
@@ -105,6 +122,7 @@ func NewBestellungAufgenommenEvent(subject string, userID int, userName string, 
 		Positionen:       toPositionenEventData(positionen),
 		GesamtPreisCents: gesamtPreisCents,
 		Kommentar:        kommentar,
+		TSEData:          tseData,
 	}
 
 	if err := bestellungAufgenommenV1DataSchema.Validate(&data); err != nil {
@@ -157,11 +175,26 @@ func newZahlungKassiertEvent(subject string, userID int, userName string, positi
 }
 
 func NewStornierungErteiltEvent(subject string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
+	return newStornierungErteiltEvent(subject, userID, userName, positionen, gesamtStornierungCents, kommentar, nil)
+}
+
+func NewStornierungErteiltEventMitTSE(subject string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string, tseData *TSEData) (e.Event, error) {
+	return newStornierungErteiltEvent(subject, userID, userName, positionen, gesamtStornierungCents, kommentar, tseData)
+}
+
+func newStornierungErteiltEvent(subject string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string, tseData *TSEData) (e.Event, error) {
+	if tseData != nil {
+		if err := tseData.Validate(); err != nil {
+			return e.Event{}, err
+		}
+	}
+
 	data := stornierungErteiltV1Data{
 		StornierungID:          uuid.New().String(),
 		Positionen:             toPositionenEventData(positionen),
 		GesamtStornierungCents: gesamtStornierungCents,
 		Kommentar:              kommentar,
+		TSEData:                tseData,
 	}
 
 	if err := stornierungErteiltV1DataSchema.Validate(&data); err != nil {
@@ -198,10 +231,25 @@ func NewAusgabeBestaetigtEvent(subject string, userID int, userName string, posi
 }
 
 func NewAuszahlungGeleistetEvent(subject string, userID int, userName string, betragCents int, kommentar string) (e.Event, error) {
+	return newAuszahlungGeleistetEvent(subject, userID, userName, betragCents, kommentar, nil)
+}
+
+func NewAuszahlungGeleistetEventMitTSE(subject string, userID int, userName string, betragCents int, kommentar string, tseData *TSEData) (e.Event, error) {
+	return newAuszahlungGeleistetEvent(subject, userID, userName, betragCents, kommentar, tseData)
+}
+
+func newAuszahlungGeleistetEvent(subject string, userID int, userName string, betragCents int, kommentar string, tseData *TSEData) (e.Event, error) {
+	if tseData != nil {
+		if err := tseData.Validate(); err != nil {
+			return e.Event{}, err
+		}
+	}
+
 	data := auszahlungGeleistetV1Data{
 		AuszahlungID: uuid.New().String(),
 		BetragCents:  betragCents,
 		Kommentar:    kommentar,
+		TSEData:      tseData,
 	}
 
 	if err := auszahlungGeleistetV1DataSchema.Validate(&data); err != nil {

@@ -72,6 +72,37 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 	}
 }
 
+func TestBuildKassenbelegProcessDataWithFaktor_NegativBeiStorno(t *testing.T) {
+	got, err := buildKassenbelegProcessDataWithFaktor(
+		[]kasse.Position{{Einzelpreis: 350, Menge: 2, Steuersatz: "regel"}},
+		-700,
+		-1,
+	)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	want := "Beleg^-7.00_0.00_0.00_0.00_0.00^-7.00:Bar"
+	if got != want {
+		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+	}
+}
+
+func TestBuildBestellungProcessData(t *testing.T) {
+	got, err := buildBestellungProcessData([]kasse.Position{
+		{ProduktName: "Ma\u00df Bier", VarianteName: "", Menge: 4},
+		{ProduktName: "Wei\u00dfwurst", VarianteName: "normal", Menge: 2},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	want := "4x Ma\u00df Bier_2x Wei\u00dfwurst normal"
+	if got != want {
+		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+	}
+}
+
 func TestTSETransactionIDForZahlungEvent_Deterministic(t *testing.T) {
 	event := e.Event{
 		Type:    string(kasse.EventTypeZahlungKassiertV1),

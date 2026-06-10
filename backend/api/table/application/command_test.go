@@ -853,6 +853,214 @@ func TestZahlungKassieren_BeiTSEAusfall_NichtBlockierendMitNachsignierAuftrag(t 
 	}
 }
 
+func TestBestellungAufnehmen_MitTSE_DatenImEvent(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+
+	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
+	productMock.AddVariant(testProduct.ID, testVariant)
+
+	start := time.Date(2026, 6, 10, 20, 10, 1, 0, time.UTC)
+	end := time.Date(2026, 6, 10, 20, 10, 2, 0, time.UTC)
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		ProductRepo:         productMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+			ApiKey:    "api-key",
+			ApiSecret: "api-secret",
+			TssID:     "tss-1",
+			ClientID:  "client-1",
+			UpdatedAt: time.Now(),
+		}},
+		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+			return tse.FakeClient{
+				StartResponse:  tse.StartResult{TransactionNumber: 11, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 10},
+				FinishResponse: tse.FinishResult{TransactionNumber: 11, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 11, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-BESTELLUNG"},
+			}, nil
+		},
+	}
+
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", testActiveTisch.ID, []BestellPositionInput{{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2}}, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	events, err := eventMock.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected exactly one event, got %d", len(events))
+	}
+
+	var data bestellungAufgenommenV1Data
+	if err := json.Unmarshal(events[0].Data, &data); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	if data.TSEData == nil {
+		t.Fatal("expected TSE data in bestellung event")
+	}
+	if data.TSEData.ProcessType != "Bestellung-V1" {
+		t.Fatalf("expected process type Bestellung-V1, got %q", data.TSEData.ProcessType)
+	}
+}
+
+func TestStornierungErteilen_BeiTSEAusfall_NachsignierauftragMitNegativemBetrag(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", []kasse.Position{{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1}}, "")
+
+	var orderData struct {
+		Positionen []struct {
+			PositionID string `json:"positionId"`
+		} `json:"positionen"`
+	}
+	if err := json.Unmarshal(orderEvent.Data, &orderData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	posID := orderData.Positionen[0].PositionID
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.SetTischSession(subject, kasse.TischSession{})
+	eventMock.AddEvent(orderEvent)
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+			ApiKey:    "api-key",
+			ApiSecret: "api-secret",
+			TssID:     "tss-1",
+			ClientID:  "client-1",
+			UpdatedAt: time.Now(),
+		}},
+		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+			return tse.FakeClient{StartErr: errors.New("timeout")}, nil
+		},
+	}
+
+	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, []kasse.PositionRef{{PositionID: posID, Menge: 1}}, "Reklamation")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	nachsignier := eventMock.CapturedNachsignierAuftraege()
+	if len(nachsignier) != 1 {
+		t.Fatalf("expected one nachsignier job, got %d", len(nachsignier))
+	}
+	if nachsignier[0].ProcessType != "Kassenbeleg-V1" {
+		t.Fatalf("expected process type Kassenbeleg-V1, got %q", nachsignier[0].ProcessType)
+	}
+	if !strings.Contains(nachsignier[0].ProcessData, "^-3.50:Bar") {
+		t.Fatalf("expected negative storno payment in processData, got %q", nachsignier[0].ProcessData)
+	}
+}
+
+func TestAuszahlungLeisten_MitTSE_DatenImEvent(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+
+	start := time.Date(2026, 6, 10, 20, 20, 1, 0, time.UTC)
+	end := time.Date(2026, 6, 10, 20, 20, 2, 0, time.UTC)
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+			ApiKey:    "api-key",
+			ApiSecret: "api-secret",
+			TssID:     "tss-1",
+			ClientID:  "client-1",
+			UpdatedAt: time.Now(),
+		}},
+		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+			return tse.FakeClient{
+				StartResponse:  tse.StartResult{TransactionNumber: 21, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 20},
+				FinishResponse: tse.FinishResult{TransactionNumber: 21, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 21, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-AUSZAHLUNG"},
+			}, nil
+		},
+	}
+
+	err := command.AuszahlungLeisten(ctx, 1, "Test User", testActiveTisch.ID, 500, "Rueckzahlung")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	events, err := eventMock.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected exactly one event, got %d", len(events))
+	}
+
+	var data auszahlungGeleistetV1Data
+	if err := json.Unmarshal(events[0].Data, &data); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	if data.TSEData == nil {
+		t.Fatal("expected TSE data in auszahlung event")
+	}
+	if data.TSEData.ProcessType != "Kassenbeleg-V1" {
+		t.Fatalf("expected process type Kassenbeleg-V1, got %q", data.TSEData.ProcessType)
+	}
+}
+
+func TestAusgabeBestaetigen_MitTSEKonfiguration_WirdNichtSigniert(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.SetTischSession(subject, kasse.TischSession{
+		AusstehendePositionen: []kasse.Position{{
+			PositionID:   "44444444-4444-4444-8444-444444444444",
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk",
+			Steuersatz:   "regel",
+			Einzelpreis:  350,
+			Menge:        1,
+		}},
+	})
+
+	tseClientCalled := false
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+			ApiKey:    "api-key",
+			ApiSecret: "api-secret",
+			TssID:     "tss-1",
+			ClientID:  "client-1",
+			UpdatedAt: time.Now(),
+		}},
+		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+			tseClientCalled = true
+			return tse.FakeClient{}, nil
+		},
+	}
+
+	err := command.AusgabeBestaetigen(ctx, 1, "Test User", testActiveTisch.ID, []kasse.PositionRef{{PositionID: "44444444-4444-4444-8444-444444444444", Menge: 1}}, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if tseClientCalled {
+		t.Fatal("expected TSE client to not be created for ausgabe-bestaetigt")
+	}
+}
+
 func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	ctx := context.Background()
 	quellTisch := table.Tisch{ID: 1, Name: "Tisch Quelle", Status: table.ActiveStatus}

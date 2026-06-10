@@ -127,6 +127,51 @@ func (r Repository) WriteEventWithNachsignierAuftrag(
 	return stored.ID, nil
 }
 
+// WriteEventWithDruckauftraegeUndNachsignierAuftrag writes an event, derived
+// print jobs, and a TSE retry job in one transaction.
+func (r Repository) WriteEventWithDruckauftraegeUndNachsignierAuftrag(
+	ctx context.Context,
+	e event.Event,
+	streamType kasse.StreamType,
+	kassensitzungNr int,
+	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
+	txID string,
+	processType string,
+	processData string,
+) (int, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
+	qtx := r.q.WithTx(tx)
+
+	stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := druckauftrag_repo.InsertDruckauftraege(ctx, qtx, buildAuftraege(stored)); err != nil {
+		return 0, err
+	}
+
+	err = qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
+		TxID:        txID,
+		ProcessType: processType,
+		ProcessData: processData,
+	})
+	if err != nil {
+		return 0, db.Error(err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, db.Error(err)
+	}
+
+	return stored.ID, nil
+}
+
 // WriteUmbuchung writes the source stornierung and target bestellung atomically.
 // Both events must already carry their final subject/version.
 func (r Repository) WriteUmbuchung(ctx context.Context, stornierungEvent event.Event, bestellungEvent event.Event, kassensitzungNr int) error {

@@ -394,15 +394,15 @@ Marshal/Unmarshal-Round-Trip (mit und ohne TSE).
 
 ### Acceptance criteria
 
-- [ ] Alle neun Vorgänge signieren im Happy Path mit korrektem `processType` und
+- [x] Alle neun Vorgänge signieren im Happy Path mit korrektem `processType` und
       betten `TSEData` ein; bei Ausfall greift der Outbox-/Nachsignier-Pfad.
-- [ ] processData-Zweige für `Bestellung-V1` und `SonstigerVorgang-V1` existieren;
+- [x] processData-Zweige für `Bestellung-V1` und `SonstigerVorgang-V1` existieren;
       Storni erzeugen negative Beträge.
-- [ ] Event-Data-Round-Trip ist für alle neun Structs verlustfrei — mit TSE-Feldern
+- [x] Event-Data-Round-Trip ist für alle neun Structs verlustfrei — mit TSE-Feldern
       und ohne (kein TSE konfiguriert bleibt gültig).
-- [ ] `ausgabe-bestaetigt:v1` und `kassensitzung-eroeffnet:v1` werden **nicht**
+- [x] `ausgabe-bestaetigt:v1` und `kassensitzung-eroeffnet:v1` werden **nicht**
       signiert.
-- [ ] Bestehende Command-/Handler-Tests bleiben grün; `make check` grün.
+- [x] Bestehende Command-/Handler-Tests bleiben grün; `make check` grün.
 
 ---
 
