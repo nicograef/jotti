@@ -23,14 +23,12 @@ export function useTischHistorie(tischId: number) {
   const {
     data: historie = [],
     isPending,
-    isError,
     refetch,
   } = useQuery({
     queryKey: ['tisch-historie', tischId],
     queryFn: () => tischBackend.getTischHistorie(tischId),
-    enabled: tischId > 0,
   })
-  return { historie, isPending, isError, refetch }
+  return { historie, isPending, refetch }
 }
 
 const DEFAULT_TISCH_STATE: TischSession = {
@@ -46,15 +44,12 @@ export function useTischState(tischId: number) {
   const {
     data: state = DEFAULT_TISCH_STATE,
     isPending,
-    isError,
     refetch,
   } = useQuery({
     queryKey: ['tisch-state', tischId],
     queryFn: () => tischBackend.getTischState(tischId),
-    enabled: tischId > 0,
-    refetchInterval: 10_000,
   })
-  return { state, isPending, isError, refetch }
+  return { state, isPending, refetch }
 }
 
 export const AKTIVE_TISCHE_MIT_FAVORITEN_KEY = 'aktive-tische-mit-favoriten'

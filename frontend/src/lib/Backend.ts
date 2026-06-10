@@ -73,7 +73,6 @@ export class Backend implements BackendClient {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(15_000),
     })
 
     if (!response.ok) {

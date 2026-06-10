@@ -30,13 +30,11 @@ export function TablePage() {
   const {
     state,
     isPending: stateLoading,
-    isError: stateError,
     refetch: reloadState,
   } = useTischState(Number(tischId))
   const { isPending, produkte } = useAktiveProdukte()
   const {
     isPending: historieLoading,
-    isError: historieError,
     historie,
     refetch: reloadHistorie,
   } = useTischHistorie(Number(tischId))
@@ -56,44 +54,32 @@ export function TablePage() {
     (sum, position) => sum + position.menge,
     0,
   )
-  const hasData = state.tischId > 0
-  const loadFailed = (stateError || historieError) && !hasData
-  const tabsLocked = stateLoading || historieLoading || loadFailed
+  const tabsLocked = stateLoading || historieLoading
 
   return (
     <>
-      {loadFailed && (
-        <Card className="p-4 mb-4 border-destructive">
-          <p className="text-sm text-destructive font-medium">
-            Verbindungsfehler — Daten konnten nicht geladen werden.
-          </p>
-          <button className="mt-2 text-sm underline" onClick={reload}>
-            Erneut versuchen
-          </button>
-        </Card>
-      )}
       <Item>
         <ItemContent>
           <ItemTitle className="text-2xl">
-            {stateLoading && !hasData ? 'Tisch ??' : tisch.name}{' '}
-            {hasData && offenePositionen > 0 && (
+            {stateLoading ? 'Tisch ??' : tisch.name}{' '}
+            {!stateLoading && offenePositionen > 0 && (
               <Badge variant="destructive">{offenePositionen} offen</Badge>
             )}
-            {hasData && offenePositionen === 0 && (
+            {!stateLoading && offenePositionen === 0 && (
               <Badge>Alles ausgegeben!</Badge>
             )}
           </ItemTitle>
         </ItemContent>
         <ItemContent>
           <ItemDescription className="text-2xl">
-            {stateLoading && !hasData ? (
+            {stateLoading ? (
               '?'
             ) : (
               <span className={state.saldoCents < 0 ? 'text-destructive' : ''}>
                 {formatCents(state.saldoCents)} €
               </span>
             )}
-            {hasData && state.saldoCents < 0 && (
+            {!stateLoading && state.saldoCents < 0 && (
               <Badge variant="destructive" className="ml-2">
                 Auszahlung ausstehend
               </Badge>
@@ -127,7 +113,7 @@ export function TablePage() {
           </TabsList>
         </div>
         <TabsContent value="order" className={isMobile ? 'pb-24' : ''}>
-          {hasData && (
+          {!stateLoading && (
             <>
               {offenePositionen > 0 && (
                 <Card className="p-2 gap-0 mb-4">
@@ -151,7 +137,7 @@ export function TablePage() {
           )}
         </TabsContent>
         <TabsContent value="payment" className={isMobile ? 'pb-24' : ''}>
-          {hasData && (
+          {!stateLoading && (
             <Zahlung
               backend={tischBackend}
               tisch={tisch}
@@ -164,7 +150,7 @@ export function TablePage() {
           )}
         </TabsContent>
         <TabsContent value="history" className={isMobile ? 'pb-24' : ''}>
-          {hasData && (
+          {!stateLoading && (
             <TischHistorie
               historie={historie}
               historieLoading={historieLoading}

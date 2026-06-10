@@ -170,11 +170,11 @@ den Hooks.
 
 ### Acceptance criteria
 
-- [ ] `TablePage.tsx` und `hooks.ts` entsprechen wieder dem ursprünglichen
+- [x] `TablePage.tsx` und `hooks.ts` entsprechen wieder dem ursprünglichen
       Verhalten (kein Fehlerbanner, keine `hasData`-Gates).
-- [ ] `main.tsx` nutzt wieder `new QueryClient()` ohne Custom-Defaults.
-- [ ] `frontend` Lint + Typecheck grün (`make lint`).
-- [ ] Verhalten der Tisch-Seite identisch zum Stand vor den Pflastern — nur
+- [x] `main.tsx` nutzt wieder `new QueryClient()` ohne Custom-Defaults.
+- [x] `frontend` Lint + Typecheck grün (`make lint`).
+- [x] Verhalten der Tisch-Seite identisch zum Stand vor den Pflastern — nur
       dass dank Phase 1 die Daten jetzt korrekt sind.
 
 ---
