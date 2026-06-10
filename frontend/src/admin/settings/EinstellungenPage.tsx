@@ -16,6 +16,7 @@ import {
   type Betreiber,
   type BondruckEinstellungen,
   type TSEKonfigurationSpeichern,
+  type TSEVerbindungStatus,
 } from '@/lib/EinstellungenBackend'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 
@@ -225,16 +226,21 @@ function TSEKonfigurationForm({
   apiSecretGesetzt,
   onSave,
   onClear,
+  onTestConnection,
 }: {
   initial: TSEKonfigurationSpeichern
   apiKeyGesetzt: boolean
   apiSecretGesetzt: boolean
   onSave: (config: TSEKonfigurationSpeichern) => Promise<void>
   onClear: () => Promise<void>
+  onTestConnection: () => Promise<TSEVerbindungStatus>
 }) {
   const [form, setForm] = useState<TSEKonfigurationSpeichern>(initial)
   const [saving, setSaving] = useState(false)
   const [clearing, setClearing] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [verbindungStatus, setVerbindungStatus] =
+    useState<TSEVerbindungStatus | null>(null)
 
   const handleSave = async () => {
     setSaving(true)
@@ -245,6 +251,7 @@ function TSEKonfigurationForm({
         apiKey: '',
         apiSecret: '',
       }))
+      setVerbindungStatus(null)
       toast.success('TSE-Konfiguration gespeichert.')
     } catch (error) {
       toast.error(
@@ -267,6 +274,7 @@ function TSEKonfigurationForm({
     try {
       await onClear()
       setForm(emptyTSEKonfiguration)
+      setVerbindungStatus(null)
       toast.success('TSE-Konfiguration geleert.')
     } catch (error) {
       toast.error(
@@ -277,6 +285,30 @@ function TSEKonfigurationForm({
       )
     } finally {
       setClearing(false)
+    }
+  }
+
+  const handleTestConnection = async () => {
+    setTesting(true)
+    try {
+      const status = await onTestConnection()
+      setVerbindungStatus(status)
+      toast.success('TSE-Verbindung erfolgreich getestet.')
+    } catch (error) {
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'TSE-Verbindung testen',
+          error,
+          byCode: {
+            tse_nicht_konfiguriert:
+              'Bitte zuerst eine vollständige TSE-Konfiguration speichern.',
+            tse_verbindung_fehlgeschlagen:
+              'Verbindung zur TSE fehlgeschlagen. Bitte Zugangsdaten und TSS prüfen.',
+          },
+        }),
+      )
+    } finally {
+      setTesting(false)
     }
   }
 
@@ -352,13 +384,31 @@ function TSEKonfigurationForm({
           {saving ? 'Speichern…' : 'Speichern'}
         </Button>
         <Button
+          variant="secondary"
+          onClick={() => void handleTestConnection()}
+          disabled={saving || clearing || testing}
+        >
+          {testing ? 'Teste Verbindung…' : 'Verbindung testen'}
+        </Button>
+        <Button
           variant="outline"
           onClick={() => void handleClear()}
-          disabled={saving || clearing}
+          disabled={saving || clearing || testing}
         >
           {clearing ? 'Leeren…' : 'Alle Felder leeren'}
         </Button>
       </div>
+
+      {verbindungStatus ? (
+        <p className="text-sm text-muted-foreground">
+          Verbunden mit <strong>{verbindungStatus.umgebung}</strong> ·
+          TSS-Status: {verbindungStatus.tssState}
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Umgebung wird nach einem erfolgreichen Verbindungstest angezeigt.
+        </p>
+      )}
     </div>
   )
 }
@@ -517,6 +567,7 @@ function TSEKonfigurationSection() {
     error,
     saveTSEKonfiguration,
     clearTSEKonfiguration,
+    testTSEVerbindung,
   } = useTSEKonfiguration()
 
   if (isPending) {
@@ -559,6 +610,7 @@ function TSEKonfigurationSection() {
         apiSecretGesetzt={tseKonfiguration?.apiSecretGesetzt ?? false}
         onSave={saveTSEKonfiguration}
         onClear={clearTSEKonfiguration}
+        onTestConnection={testTSEVerbindung}
       />
     </section>
   )

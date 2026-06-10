@@ -6,6 +6,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/rs/zerolog"
 )
 
@@ -16,8 +17,11 @@ type settingsQueryRepo interface {
 	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
 
+type NewTSEConnectionTester func(credentials tse.Credentials) (tse.ConnectionTester, error)
+
 type Query struct {
-	SettingsRepo settingsQueryRepo
+	SettingsRepo           settingsQueryRepo
+	NewTSEConnectionTester NewTSEConnectionTester
 }
 
 func (q Query) GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error) {
@@ -72,4 +76,46 @@ func (q Query) GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfigurati
 	}
 
 	return c, nil
+}
+
+func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, error) {
+	log := zerolog.Ctx(ctx)
+
+	if q.NewTSEConnectionTester == nil {
+		log.Error().Msg("Missing TSE connection tester factory")
+		return tse.VerbindungStatus{}, ErrDatabase
+	}
+
+	conf, err := q.SettingsRepo.GetTSEKonfiguration(ctx)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			return tse.VerbindungStatus{}, ErrTSENichtKonfiguriert
+		}
+		log.Error().Err(err).Msg("Failed to retrieve tse_konfiguration for test")
+		return tse.VerbindungStatus{}, ErrDatabase
+	}
+
+	credentials := tse.Credentials{
+		ApiKey:    conf.ApiKey,
+		ApiSecret: conf.ApiSecret,
+		TssID:     conf.TssID,
+		ClientID:  conf.ClientID,
+	}
+	if err := credentials.Validate(); err != nil {
+		return tse.VerbindungStatus{}, ErrTSENichtKonfiguriert
+	}
+
+	tester, err := q.NewTSEConnectionTester(credentials)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create TSE connection tester")
+		return tse.VerbindungStatus{}, ErrTSEVerbindungFehlgeschlagen
+	}
+
+	status, err := tester.TestConnection(ctx)
+	if err != nil {
+		log.Warn().Err(err).Msg("TSE connection test failed")
+		return tse.VerbindungStatus{}, ErrTSEVerbindungFehlgeschlagen
+	}
+
+	return status, nil
 }

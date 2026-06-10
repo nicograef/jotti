@@ -13,11 +13,14 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/settings/application"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 type mockSettingsQuery struct {
-	tse settings.TSEKonfiguration
-	err error
+	tse              settings.TSEKonfiguration
+	err              error
+	verbindungStatus tse.VerbindungStatus
+	verbindungErr    error
 }
 
 func (m *mockSettingsQuery) GetKassenidentitaet(_ context.Context) (settings.Kassenidentitaet, error) {
@@ -37,6 +40,13 @@ func (m *mockSettingsQuery) GetTSEKonfiguration(_ context.Context) (settings.TSE
 		return settings.TSEKonfiguration{}, m.err
 	}
 	return m.tse, nil
+}
+
+func (m *mockSettingsQuery) TestTSEVerbindung(_ context.Context) (tse.VerbindungStatus, error) {
+	if m.verbindungErr != nil {
+		return tse.VerbindungStatus{}, m.verbindungErr
+	}
+	return m.verbindungStatus, nil
 }
 
 func TestGetTSEKonfigurationHandler_MaskedResponse(t *testing.T) {
@@ -113,5 +123,78 @@ func TestGetTSEKonfigurationHandler_NotFoundReturnsEmpty(t *testing.T) {
 	}
 	if body.TssID != "" || body.ClientID != "" {
 		t.Fatal("expected empty response values")
+	}
+}
+
+func TestTestTSEVerbindungHandler_Success(t *testing.T) {
+	h := &QueryHandler{Query: &mockSettingsQuery{verbindungStatus: tse.VerbindungStatus{Umgebung: tse.UmgebungTest, TSSState: "INITIALIZED"}}}
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/test-tse-verbindung", nil)
+	rec := httptest.NewRecorder()
+
+	h.TestTSEVerbindungHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	var body struct {
+		Umgebung string `json:"umgebung"`
+		TSSState string `json:"tssState"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body.Umgebung != "TEST" {
+		t.Fatalf("expected TEST environment, got %q", body.Umgebung)
+	}
+	if body.TSSState != "INITIALIZED" {
+		t.Fatalf("expected INITIALIZED state, got %q", body.TSSState)
+	}
+}
+
+func TestTestTSEVerbindungHandler_NotConfigured(t *testing.T) {
+	h := &QueryHandler{Query: &mockSettingsQuery{verbindungErr: application.ErrTSENichtKonfiguriert}}
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/test-tse-verbindung", nil)
+	rec := httptest.NewRecorder()
+
+	h.TestTSEVerbindungHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rec.Code)
+	}
+
+	var body struct {
+		Code string `json:"code"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body.Code != "tse_nicht_konfiguriert" {
+		t.Fatalf("expected code tse_nicht_konfiguriert, got %q", body.Code)
+	}
+}
+
+func TestTestTSEVerbindungHandler_VerbindungFehlgeschlagen(t *testing.T) {
+	h := &QueryHandler{Query: &mockSettingsQuery{verbindungErr: application.ErrTSEVerbindungFehlgeschlagen}}
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/test-tse-verbindung", nil)
+	rec := httptest.NewRecorder()
+
+	h.TestTSEVerbindungHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rec.Code)
+	}
+
+	var body struct {
+		Code string `json:"code"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body.Code != "tse_verbindung_fehlgeschlagen" {
+		t.Fatalf("expected code tse_verbindung_fehlgeschlagen, got %q", body.Code)
 	}
 }

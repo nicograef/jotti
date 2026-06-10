@@ -18,6 +18,8 @@ import (
 	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
 	userApp "github.com/nicograef/jotti/backend/api/user/application"
 	userHTTP "github.com/nicograef/jotti/backend/api/user/http"
+	"github.com/nicograef/jotti/backend/config"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
@@ -25,10 +27,11 @@ import (
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
 	"github.com/nicograef/jotti/backend/repository/settings_repo"
 	"github.com/nicograef/jotti/backend/repository/table_repo"
+	"github.com/nicograef/jotti/backend/repository/tse_repo"
 	"github.com/nicograef/jotti/backend/repository/user_repo"
 )
 
-func NewAdminApi(db *sql.DB) http.Handler {
+func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r := http.NewServeMux()
 
 	userRepo := user_repo.NewRepository(db)
@@ -117,11 +120,17 @@ func NewAdminApi(db *sql.DB) http.Handler {
 	r.HandleFunc("/update-druckstationen", druckstationCommandHandler.UpdateDruckstationenHandler())
 
 	sq := settingsHTTP.QueryHandler{}
-	sq.Query = settingsApp.Query{SettingsRepo: settingsRepo}
+	sq.Query = settingsApp.Query{
+		SettingsRepo: settingsRepo,
+		NewTSEConnectionTester: func(credentials tse.Credentials) (tse.ConnectionTester, error) {
+			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
+		},
+	}
 	r.HandleFunc("/get-kassenidentitaet", sq.GetKassenidentitaetHandler())
 	r.HandleFunc("/get-betreiber", sq.GetBetreiberHandler())
 	r.HandleFunc("/get-bondruck-einstellungen", sq.GetBondruckEinstellungenHandler())
 	r.HandleFunc("/get-tse-konfiguration", sq.GetTSEKonfigurationHandler())
+	r.HandleFunc("/test-tse-verbindung", sq.TestTSEVerbindungHandler())
 
 	sc := settingsHTTP.CommandHandler{}
 	sc.Command = settingsApp.Command{SettingsRepo: settingsRepo}

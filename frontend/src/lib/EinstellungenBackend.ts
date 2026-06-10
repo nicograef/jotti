@@ -36,6 +36,12 @@ export const TSEKonfigurationSchema = z.object({
 })
 export type TSEKonfiguration = z.infer<typeof TSEKonfigurationSchema>
 
+export const TSEVerbindungStatusSchema = z.object({
+  umgebung: z.enum(['TEST', 'LIVE']),
+  tssState: z.string().min(1, 'TSS-Status fehlt'),
+})
+export type TSEVerbindungStatus = z.infer<typeof TSEVerbindungStatusSchema>
+
 export const TSEKonfigurationSpeichernSchema = z.object({
   apiKey: z
     .string()
@@ -123,5 +129,13 @@ export class EinstellungenBackend {
       tssId: '',
       clientId: '',
     })
+  }
+
+  public async testTSEVerbindung(): Promise<TSEVerbindungStatus> {
+    return this.backend.post(
+      'admin/test-tse-verbindung',
+      {},
+      TSEVerbindungStatusSchema,
+    )
   }
 }

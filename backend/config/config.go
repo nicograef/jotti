@@ -17,10 +17,11 @@ type postgresConfig struct {
 
 // Config holds application configuration values loaded from environment variables.
 type Config struct {
-	Port       int // Port for the HTTP server
-	Postgres   postgresConfig
-	JWTSecret  string // Secret key for JWT signing
-	RelayToken string // Statischer Token für das Print-Relay
+	Port           int // Port for the HTTP server
+	Postgres       postgresConfig
+	JWTSecret      string // Secret key for JWT signing
+	RelayToken     string // Statischer Token für das Print-Relay
+	FiskalyBaseURL string // Basis-URL fuer fiskaly SIGN-DE Middleware API
 }
 
 // Load reads configuration from environment variables and returns a Config struct.
@@ -37,10 +38,11 @@ func Load() Config {
 	jwtSecret := parseEnvString("JWT_SECRET", "")
 
 	return Config{
-		Port:       port,
-		Postgres:   postgres,
-		JWTSecret:  jwtSecret,
-		RelayToken: os.Getenv("RELAY_AUTH_TOKEN"),
+		Port:           port,
+		Postgres:       postgres,
+		JWTSecret:      jwtSecret,
+		RelayToken:     os.Getenv("RELAY_AUTH_TOKEN"),
+		FiskalyBaseURL: parseEnvString("FISKALY_BASE_URL", "https://kassensichv-middleware.fiskaly.com"),
 	}
 }
 

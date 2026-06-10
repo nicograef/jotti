@@ -32,6 +32,9 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Postgres.DBName != "jotti" {
 		t.Errorf("expected default Postgres DBName 'jotti', got %s", cfg.Postgres.DBName)
 	}
+	if cfg.FiskalyBaseURL != "https://kassensichv-middleware.fiskaly.com" {
+		t.Errorf("expected default Fiskaly base URL, got %s", cfg.FiskalyBaseURL)
+	}
 }
 
 func TestLoad_EnvValues(t *testing.T) {
@@ -58,6 +61,9 @@ func TestLoad_EnvValues(t *testing.T) {
 	if err := os.Setenv("POSTGRES_DBNAME", "testdb"); err != nil {
 		t.Fatalf("Failed to set POSTGRES_DBNAME: %v", err)
 	}
+	if err := os.Setenv("FISKALY_BASE_URL", "https://example.invalid"); err != nil {
+		t.Fatalf("Failed to set FISKALY_BASE_URL: %v", err)
+	}
 
 	cfg := Load()
 
@@ -78,6 +84,9 @@ func TestLoad_EnvValues(t *testing.T) {
 	}
 	if cfg.Postgres.DBName != "testdb" {
 		t.Errorf("expected Postgres DBName 'testdb', got %s", cfg.Postgres.DBName)
+	}
+	if cfg.FiskalyBaseURL != "https://example.invalid" {
+		t.Errorf("expected Fiskaly base URL 'https://example.invalid', got %s", cfg.FiskalyBaseURL)
 	}
 }
 

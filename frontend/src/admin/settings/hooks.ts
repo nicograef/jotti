@@ -10,6 +10,7 @@ import {
   type BondruckEinstellungen,
   EinstellungenBackend,
   type TSEKonfigurationSpeichern,
+  type TSEVerbindungStatus,
 } from '@/lib/EinstellungenBackend'
 
 const druckstationBackend = new DruckstationBackend(BackendSingleton)
@@ -95,11 +96,16 @@ export function useTSEKonfiguration() {
     await queryClient.invalidateQueries({ queryKey: ['tse-konfiguration'] })
   }
 
+  const testTSEVerbindung = async (): Promise<TSEVerbindungStatus> => {
+    return einstellungenBackend.testTSEVerbindung()
+  }
+
   return {
     tseKonfiguration: data,
     isPending,
     error,
     saveTSEKonfiguration,
     clearTSEKonfiguration,
+    testTSEVerbindung,
   }
 }

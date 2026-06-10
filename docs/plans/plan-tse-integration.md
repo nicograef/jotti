@@ -255,17 +255,17 @@ prüft Auth + TSS-Status und meldet die Umgebung; die Admin-UI zeigt **TEST** od
 
 ### Acceptance criteria
 
-- [ ] `TSEClient`-Port mit `StartResult`/`FinishResult` exakt nach §3.13; Fake
+- [x] `TSEClient`-Port mit `StartResult`/`FinishResult` exakt nach §3.13; Fake
       deckt Erfolg, Fehler und Timeout ab.
-- [ ] `FiskalyTSEClient` erwirbt und cacht das Token und erneuert bei `401`.
-- [ ] Start/Finish senden korrektes `state` + `tx_revision`; Antwortfelder werden
+- [x] `FiskalyTSEClient` erwirbt und cacht das Token und erneuert bei `401`.
+- [x] Start/Finish senden korrektes `state` + `tx_revision`; Antwortfelder werden
       vollständig auf `StartResult`/`FinishResult` gemappt (`counter` als Zahl und
       String akzeptiert).
-- [ ] Retry mit Backoff bei `5xx`/`499`/`429`; nicht-wiederholbare Fehler werden
+- [x] Retry mit Backoff bei `5xx`/`499`/`429`; nicht-wiederholbare Fehler werden
       durchgereicht.
-- [ ] `POST /admin/test-tse-verbindung` liefert ein Ergebnis inkl. TEST/LIVE; die
+- [x] `POST /admin/test-tse-verbindung` liefert ein Ergebnis inkl. TEST/LIVE; die
       Admin-UI zeigt die Umgebung an.
-- [ ] Adapter-Tests laufen gegen einen lokalen Mock-HTTP-Server (kein echter
+- [x] Adapter-Tests laufen gegen einen lokalen Mock-HTTP-Server (kein echter
       fiskaly-Zugriff); `make check` grün.
 
 ---

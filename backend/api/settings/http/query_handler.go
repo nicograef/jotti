@@ -10,6 +10,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/settings/application"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 type settingsQuery interface {
@@ -17,6 +18,7 @@ type settingsQuery interface {
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
 	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
 	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
+	TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, error)
 }
 
 type QueryHandler struct {
@@ -49,6 +51,11 @@ type tseKonfigurationResponse struct {
 	TssID            string `json:"tssId"`
 	ClientID         string `json:"clientId"`
 	IstKonfiguriert  bool   `json:"istKonfiguriert"`
+}
+
+type tseVerbindungResponse struct {
+	Umgebung string `json:"umgebung"`
+	TSSState string `json:"tssState"`
 }
 
 func (h *QueryHandler) GetKassenidentitaetHandler() http.HandlerFunc {
@@ -126,6 +133,28 @@ func (h *QueryHandler) GetTSEKonfigurationHandler() http.HandlerFunc {
 			TssID:            c.TssID,
 			ClientID:         c.ClientID,
 			IstKonfiguriert:  c.IstKonfiguriert(),
+		})
+	}
+}
+
+func (h *QueryHandler) TestTSEVerbindungHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		status, err := h.Query.TestTSEVerbindung(r.Context())
+		if err != nil {
+			switch {
+			case errors.Is(err, application.ErrTSENichtKonfiguriert):
+				helper.SendClientError(w, "tse_nicht_konfiguriert", nil)
+			case errors.Is(err, application.ErrTSEVerbindungFehlgeschlagen):
+				helper.SendClientError(w, "tse_verbindung_fehlgeschlagen", nil)
+			default:
+				helper.SendServerError(w)
+			}
+			return
+		}
+
+		helper.SendResponse(w, tseVerbindungResponse{
+			Umgebung: string(status.Umgebung),
+			TSSState: status.TSSState,
 		})
 	}
 }
