@@ -295,15 +295,16 @@ func (r Repository) handleTischSessionEvent(ctx context.Context, qtx *dbgen.Quer
 
 	// Upsert tisch_sessions
 	err = qtx.UpsertTischSession(ctx, dbgen.UpsertTischSessionParams{
-		Subject:               e.Subject,
-		TischID:               tischID,
-		KassensitzungNr:       kassensitzungNr,
-		SaldoCents:            newState.SaldoCents,
-		UnbezahltePositionen:  unbezahltJSON,
-		AusstehendePositionen: ausstehendeJSON,
-		GesamtZahlungenCents:  newState.GesamtZahlungenCents,
-		LastEventID:           newState.LastEventID,
-		LastEventVersion:      newState.LastEventVersion,
+		Subject:                e.Subject,
+		TischID:                tischID,
+		KassensitzungNr:        kassensitzungNr,
+		SaldoCents:             newState.SaldoCents,
+		UnbezahltePositionen:   unbezahltJSON,
+		AusstehendePositionen:  ausstehendeJSON,
+		GesamtZahlungenCents:   newState.GesamtZahlungenCents,
+		ErsteBestellungLogtime: toNullTime(newState.ErsteBestellungLogTime),
+		LastEventID:            newState.LastEventID,
+		LastEventVersion:       newState.LastEventVersion,
 	})
 	if err != nil {
 		return db.Error(err)
@@ -351,17 +352,31 @@ func toTischSession(row dbgen.TischSession) (kasse.TischSession, error) {
 		return kasse.TischSession{}, fmt.Errorf("unmarshal ausstehende positionen: %w", err)
 	}
 
+	var ersteBestellungLogTime *time.Time
+	if row.ErsteBestellungLogtime.Valid {
+		v := row.ErsteBestellungLogtime.Time.UTC()
+		ersteBestellungLogTime = &v
+	}
+
 	return kasse.TischSession{
-		Subject:               row.Subject,
-		TischID:               row.TischID,
-		KassensitzungNr:       row.KassensitzungNr,
-		SaldoCents:            row.SaldoCents,
-		UnbezahltePositionen:  unbezahlt,
-		AusstehendePositionen: ausstehende,
-		GesamtZahlungenCents:  row.GesamtZahlungenCents,
-		LastEventID:           row.LastEventID,
-		LastEventVersion:      row.LastEventVersion,
+		Subject:                row.Subject,
+		TischID:                row.TischID,
+		KassensitzungNr:        row.KassensitzungNr,
+		SaldoCents:             row.SaldoCents,
+		UnbezahltePositionen:   unbezahlt,
+		AusstehendePositionen:  ausstehende,
+		GesamtZahlungenCents:   row.GesamtZahlungenCents,
+		ErsteBestellungLogTime: ersteBestellungLogTime,
+		LastEventID:            row.LastEventID,
+		LastEventVersion:       row.LastEventVersion,
 	}, nil
+}
+
+func toNullTime(t *time.Time) sql.NullTime {
+	if t == nil {
+		return sql.NullTime{}
+	}
+	return sql.NullTime{Time: t.UTC(), Valid: true}
 }
 
 // ReadEventsBySubject retrieves all events of the given subject.
@@ -524,15 +539,16 @@ func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
 		}
 
 		err = qtx.UpsertTischSession(ctx, dbgen.UpsertTischSessionParams{
-			Subject:               subject,
-			TischID:               tischID,
-			KassensitzungNr:       kassensitzungNr,
-			SaldoCents:            state.SaldoCents,
-			UnbezahltePositionen:  unbezahltJSON,
-			AusstehendePositionen: ausstehendeJSON,
-			GesamtZahlungenCents:  state.GesamtZahlungenCents,
-			LastEventID:           state.LastEventID,
-			LastEventVersion:      state.LastEventVersion,
+			Subject:                subject,
+			TischID:                tischID,
+			KassensitzungNr:        kassensitzungNr,
+			SaldoCents:             state.SaldoCents,
+			UnbezahltePositionen:   unbezahltJSON,
+			AusstehendePositionen:  ausstehendeJSON,
+			GesamtZahlungenCents:   state.GesamtZahlungenCents,
+			ErsteBestellungLogtime: toNullTime(state.ErsteBestellungLogTime),
+			LastEventID:            state.LastEventID,
+			LastEventVersion:       state.LastEventVersion,
 		})
 		if err != nil {
 			return 0, fmt.Errorf("upsert tisch session for subject %q: %w", subject, err)

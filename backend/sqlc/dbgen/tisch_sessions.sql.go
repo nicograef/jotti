@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 )
 
@@ -20,7 +21,7 @@ func (q *Queries) DeleteAllTischSession(ctx context.Context) error {
 }
 
 const getTischSession = `-- name: GetTischSession :one
-SELECT subject, tisch_id, kassensitzung_nr, saldo_cents, unbezahlte_positionen, ausstehende_positionen, gesamt_zahlungen_cents, last_event_id, last_event_version, updated_at
+SELECT subject, tisch_id, kassensitzung_nr, saldo_cents, unbezahlte_positionen, ausstehende_positionen, gesamt_zahlungen_cents, erste_bestellung_logtime, last_event_id, last_event_version, updated_at
 FROM tisch_sessions WHERE subject = $1
 `
 
@@ -35,6 +36,7 @@ func (q *Queries) GetTischSession(ctx context.Context, subject string) (TischSes
 		&i.UnbezahltePositionen,
 		&i.AusstehendePositionen,
 		&i.GesamtZahlungenCents,
+		&i.ErsteBestellungLogtime,
 		&i.LastEventID,
 		&i.LastEventVersion,
 		&i.UpdatedAt,
@@ -43,7 +45,7 @@ func (q *Queries) GetTischSession(ctx context.Context, subject string) (TischSes
 }
 
 const getTischSessionsByKassensitzungNr = `-- name: GetTischSessionsByKassensitzungNr :many
-SELECT subject, tisch_id, kassensitzung_nr, saldo_cents, unbezahlte_positionen, ausstehende_positionen, gesamt_zahlungen_cents, last_event_id, last_event_version, updated_at
+SELECT subject, tisch_id, kassensitzung_nr, saldo_cents, unbezahlte_positionen, ausstehende_positionen, gesamt_zahlungen_cents, erste_bestellung_logtime, last_event_id, last_event_version, updated_at
 FROM tisch_sessions WHERE kassensitzung_nr = $1
 `
 
@@ -64,6 +66,7 @@ func (q *Queries) GetTischSessionsByKassensitzungNr(ctx context.Context, kassens
 			&i.UnbezahltePositionen,
 			&i.AusstehendePositionen,
 			&i.GesamtZahlungenCents,
+			&i.ErsteBestellungLogtime,
 			&i.LastEventID,
 			&i.LastEventVersion,
 			&i.UpdatedAt,
@@ -82,8 +85,8 @@ func (q *Queries) GetTischSessionsByKassensitzungNr(ctx context.Context, kassens
 }
 
 const upsertTischSession = `-- name: UpsertTischSession :exec
-INSERT INTO tisch_sessions (subject, tisch_id, kassensitzung_nr, saldo_cents, unbezahlte_positionen, ausstehende_positionen, gesamt_zahlungen_cents, last_event_id, last_event_version, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+INSERT INTO tisch_sessions (subject, tisch_id, kassensitzung_nr, saldo_cents, unbezahlte_positionen, ausstehende_positionen, gesamt_zahlungen_cents, erste_bestellung_logtime, last_event_id, last_event_version, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
 ON CONFLICT (subject) DO UPDATE SET
     tisch_id = $2,
     kassensitzung_nr = $3,
@@ -91,21 +94,23 @@ ON CONFLICT (subject) DO UPDATE SET
     unbezahlte_positionen = $5,
     ausstehende_positionen = $6,
     gesamt_zahlungen_cents = $7,
-    last_event_id = $8,
-    last_event_version = $9,
+    erste_bestellung_logtime = $8,
+    last_event_id = $9,
+    last_event_version = $10,
     updated_at = NOW()
 `
 
 type UpsertTischSessionParams struct {
-	Subject               string
-	TischID               int
-	KassensitzungNr       int
-	SaldoCents            int
-	UnbezahltePositionen  json.RawMessage
-	AusstehendePositionen json.RawMessage
-	GesamtZahlungenCents  int
-	LastEventID           int
-	LastEventVersion      int
+	Subject                string
+	TischID                int
+	KassensitzungNr        int
+	SaldoCents             int
+	UnbezahltePositionen   json.RawMessage
+	AusstehendePositionen  json.RawMessage
+	GesamtZahlungenCents   int
+	ErsteBestellungLogtime sql.NullTime
+	LastEventID            int
+	LastEventVersion       int
 }
 
 func (q *Queries) UpsertTischSession(ctx context.Context, arg UpsertTischSessionParams) error {
@@ -117,6 +122,7 @@ func (q *Queries) UpsertTischSession(ctx context.Context, arg UpsertTischSession
 		arg.UnbezahltePositionen,
 		arg.AusstehendePositionen,
 		arg.GesamtZahlungenCents,
+		arg.ErsteBestellungLogtime,
 		arg.LastEventID,
 		arg.LastEventVersion,
 	)

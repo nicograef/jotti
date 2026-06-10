@@ -3,6 +3,8 @@ package kasse
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
@@ -10,15 +12,16 @@ import (
 // TischSession represents the projected state of a table session, derived from applying events.
 // Zero-value represents a table session with no events (Saldo 0, empty lists).
 type TischSession struct {
-	Subject               string
-	TischID               int
-	KassensitzungNr       int
-	SaldoCents            int
-	UnbezahltePositionen  []Position
-	AusstehendePositionen []Position
-	GesamtZahlungenCents  int
-	LastEventID           int
-	LastEventVersion      int
+	Subject                string
+	TischID                int
+	KassensitzungNr        int
+	SaldoCents             int
+	UnbezahltePositionen   []Position
+	AusstehendePositionen  []Position
+	GesamtZahlungenCents   int
+	ErsteBestellungLogTime *time.Time
+	LastEventID            int
+	LastEventVersion       int
 }
 
 // ApplyEvent applies a single domain event to the current TischSession and returns the new state.
@@ -32,6 +35,18 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		state.SaldoCents += data.GesamtPreisCents
 		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
 		state.AusstehendePositionen = accumulatePositionen(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
+
+		if state.ErsteBestellungLogTime == nil && data.TSEData != nil {
+			logTimeStart := strings.TrimSpace(data.TSEData.LogTimeStart)
+			if logTimeStart != "" {
+				parsed, err := time.Parse(time.RFC3339, logTimeStart)
+				if err != nil {
+					return state, fmt.Errorf("parse erste bestellung log time: %w", err)
+				}
+				parsedUTC := parsed.UTC()
+				state.ErsteBestellungLogTime = &parsedUTC
+			}
+		}
 
 	case string(EventTypeZahlungKassiertV1):
 		var data zahlungKassiertV1Data

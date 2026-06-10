@@ -16,19 +16,20 @@ import (
 const lineWidth = 48 // Font A, 12x24 Dots bei 576 dots/line -> 48 Zeichen
 
 type KassenbelegData struct {
-	Vereinsname        string
-	Strasse            string
-	Plz                string
-	Ort                string
-	KassenSeriennummer string
-	Belegnummer        string
-	Zeitpunkt          time.Time
-	Positionen         []kasse.Position
-	Steuermatrix       []steuer.Aufteilung
-	TSE                *TSEAbschnitt
-	TSEAusfallvermerk  bool
-	GesamtbetragCents  int
-	Zahlungsart        string
+	Vereinsname              string
+	Strasse                  string
+	Plz                      string
+	Ort                      string
+	KassenSeriennummer       string
+	Belegnummer              string
+	Zeitpunkt                time.Time
+	ErsteBestellungZeitpunkt *time.Time
+	Positionen               []kasse.Position
+	Steuermatrix             []steuer.Aufteilung
+	TSE                      *TSEAbschnitt
+	TSEAusfallvermerk        bool
+	GesamtbetragCents        int
+	Zahlungsart              string
 }
 
 type TSEAbschnitt struct {
@@ -38,6 +39,7 @@ type TSEAbschnitt struct {
 	ZeitpunktBeginn time.Time
 	ZeitpunktEnde   time.Time
 	Signatur        string
+	QRCodeData      string
 }
 
 // FormatPositionBon generiert einen Bon fuer eine einzelne Position (Standard-Bonmodus).
@@ -194,6 +196,9 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	fmt.Fprintf(&buf, "Datum: %s\n", data.Zeitpunkt.Format("02.01.2006 15:04"))
 	fmt.Fprintf(&buf, "Bon-Nr: %s\n", data.Belegnummer)
 	fmt.Fprintf(&buf, "Kassen-ID: %s\n", data.KassenSeriennummer)
+	if data.ErsteBestellungZeitpunkt != nil {
+		fmt.Fprintf(&buf, "Erste Bestellung: %s\n", data.ErsteBestellungZeitpunkt.Format("02.01.2006 15:04:05"))
+	}
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
 
@@ -237,6 +242,8 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		buf.WriteString(toCP858("  Signatur: "))
 		buf.WriteString(toCP858(wrapLine(data.TSE.Signatur, lineWidth-2)))
 		buf.WriteByte('\n')
+
+		appendNativeQRCode(&buf, data.TSE.QRCodeData)
 	} else if data.TSEAusfallvermerk {
 		buf.WriteByte('\n')
 		buf.WriteString("TSE-Hinweis:\n")
@@ -252,6 +259,34 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString(CutPaper)
 
 	return buf.Bytes()
+}
+
+// appendNativeQRCode writes a printer-rendered QR code using ESC/POS GS ( k.
+func appendNativeQRCode(buf *bytes.Buffer, qrCodeData string) {
+	data := strings.TrimSpace(qrCodeData)
+	if data == "" {
+		return
+	}
+
+	buf.WriteByte('\n')
+	buf.WriteString(AlignCenter)
+	buf.WriteString(QRCodeModel2)
+	buf.WriteString(QRCodeModuleSize6)
+	buf.WriteString(QRCodeErrorCorrectionM)
+
+	payload := []byte(data)
+	commandLen := len(payload) + 3
+	pL := byte(commandLen % 256)
+	pH := byte(commandLen / 256)
+
+	buf.WriteString(QRCodeStorePrefix)
+	buf.WriteByte(pL)
+	buf.WriteByte(pH)
+	buf.Write([]byte{0x31, 0x50, 0x30})
+	buf.Write(payload)
+	buf.WriteString(QRCodePrint)
+	buf.WriteByte('\n')
+	buf.WriteString(AlignLeft)
 }
 
 // toCP858 transkodiert sichtbaren Text von UTF-8 in die Drucker-Codepage CP858.

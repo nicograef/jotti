@@ -434,13 +434,13 @@ haben keine vorgelagerte Bestellung).
 
 ### Acceptance criteria
 
-- [ ] Liegt `qr_code_data` vor, druckt der Beleg einen nativen ESC/POS-QR-Code;
+- [x] Liegt `qr_code_data` vor, druckt der Beleg einen nativen ESC/POS-QR-Code;
       ohne TSE-Daten erscheint kein QR.
-- [ ] `tisch_sessions.erste_bestellung_logtime` wird beim ersten
+- [x] `tisch_sessions.erste_bestellung_logtime` wird beim ersten
       `bestellung-aufgenommen:v1` der Session gesetzt.
-- [ ] Der Tisch-Zahlungsbeleg zeigt den Startzeitpunkt der ersten Bestellung in
+- [x] Der Tisch-Zahlungsbeleg zeigt den Startzeitpunkt der ersten Bestellung in
       Klarschrift; Direktverkauf-Belege nicht.
-- [ ] Formatter-Verhaltenstests decken QR-Präsenz/-Abwesenheit und die Klarschrift
+- [x] Formatter-Verhaltenstests decken QR-Präsenz/-Abwesenheit und die Klarschrift
       ab; der Beleg endet weiterhin mit dem Schnittbefehl.
-- [ ] `make check` grün; ohne TSE bleibt der Beleg byte-identisch (kein QR, keine
+- [x] `make check` grün; ohne TSE bleibt der Beleg byte-identisch (kein QR, keine
       TSE-Zeilen).

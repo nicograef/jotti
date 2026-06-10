@@ -332,16 +332,17 @@ type TischFavoriten struct {
 
 // Synchronous CQRS projection of per-tisch-session state, session-scoped (PK: subject), updated within the event-write transaction
 type TischSession struct {
-	Subject               string
-	TischID               int
-	KassensitzungNr       int
-	SaldoCents            int
-	UnbezahltePositionen  json.RawMessage
-	AusstehendePositionen json.RawMessage
-	GesamtZahlungenCents  int
-	LastEventID           int
-	LastEventVersion      int
-	UpdatedAt             time.Time
+	Subject                string
+	TischID                int
+	KassensitzungNr        int
+	SaldoCents             int
+	UnbezahltePositionen   json.RawMessage
+	AusstehendePositionen  json.RawMessage
+	GesamtZahlungenCents   int
+	ErsteBestellungLogtime sql.NullTime
+	LastEventID            int
+	LastEventVersion       int
+	UpdatedAt              time.Time
 }
 
 // Gäste sitzen an Tischen und geben dort Bestellungen auf.

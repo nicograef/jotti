@@ -192,6 +192,7 @@ CREATE TABLE tisch_sessions (
     unbezahlte_positionen JSONB NOT NULL,
     ausstehende_positionen JSONB NOT NULL,
     gesamt_zahlungen_cents INTEGER NOT NULL,
+    erste_bestellung_logtime TIMESTAMPTZ NULL,
     last_event_id INTEGER NOT NULL REFERENCES kassenjournal(id),
     last_event_version INTEGER NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL

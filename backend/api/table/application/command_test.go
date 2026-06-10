@@ -1601,6 +1601,82 @@ func TestKassenbelegDrucken_WithTSEData_ContainsTSEBlock(t *testing.T) {
 	}
 }
 
+func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{
+		{
+			PositionID:   "11111111-1111-4111-8111-111111111111",
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk", Steuersatz: "regel",
+			Einzelpreis: 350,
+			Menge:       1,
+		},
+	}, 350, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	var eventData struct {
+		ZahlungID string `json:"zahlungId"`
+	}
+	if err := json.Unmarshal(zahlungEvent.Data, &eventData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+
+	ersteBestellung := time.Date(2026, 5, 1, 18, 1, 0, 0, time.UTC)
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(zahlungEvent)
+	eventMock.SetTischSession(subject, kasse.TischSession{
+		Subject:                subject,
+		TischID:                testActiveTisch.ID,
+		KassensitzungNr:        testKassensitzungNr,
+		ErsteBestellungLogTime: &ersteBestellung,
+	})
+
+	auftragMock := &mockDruckauftragRepo{}
+	settingsMock := &mockSettingsRepo{
+		bondruck: settings.BondruckEinstellungen{KassenbelegDruckerIP: "192.168.1.80", UpdatedAt: time.Now()},
+		betreiber: settings.Betreiber{
+			Vereinsname: "SV Musterstadt",
+			Strasse:     "Musterstrasse 1",
+			Plz:         "12345",
+			Ort:         "Musterstadt",
+			UpdatedAt:   time.Now(),
+		},
+		kassenident: settings.Kassenidentitaet{
+			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
+			AngelegtAm:   time.Now(),
+		},
+	}
+
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo:        settingsMock,
+		DruckauftragRepo:    auftragMock,
+	}
+
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+
+	got := string(payload)
+	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 18:01:00") {
+		t.Fatalf("expected first order klartext in table receipt, got:\n%q", got)
+	}
+}
+
 func TestKassenbelegDrucken_UsesBackfilledTSESignaturAusSeitentabelle(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
@@ -1882,6 +1958,14 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 	}
 	if !strings.HasPrefix(auftragMock.enqueued[0].Referenz, "direktverkauf-getaetigt:") {
 		t.Fatalf("expected direktverkauf-getaetigt referenz, got %s", auftragMock.enqueued[0].Referenz)
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+	if strings.Contains(string(payload), "Erste Bestellung:") {
+		t.Fatalf("Direktverkauf-Beleg darf keinen Durchbedienen-Klarschriftzeitpunkt enthalten, got:\n%q", string(payload))
 	}
 }
 

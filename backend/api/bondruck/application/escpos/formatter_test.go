@@ -366,6 +366,7 @@ func TestFormatKassenbeleg_WithTSE_ContainsTSEPflichtfelder(t *testing.T) {
 			ZeitpunktBeginn: tseBeginn,
 			ZeitpunktEnde:   tseEnde,
 			Signatur:        "ABCDEF0123456789",
+			QRCodeData:      "V0;TSE:1003",
 		},
 	})
 	got := string(payload)
@@ -384,6 +385,89 @@ func TestFormatKassenbeleg_WithTSE_ContainsTSEPflichtfelder(t *testing.T) {
 		if !strings.Contains(got, check) {
 			t.Fatalf("Kassenbeleg enthaelt TSE-Pflichtfeld %q nicht; got:\n%q", check, got)
 		}
+	}
+}
+
+func TestFormatKassenbeleg_WithTSEQRCode_ContainsNativeESCPosQR(t *testing.T) {
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "1003",
+		Zeitpunkt:          testTime,
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		GesamtbetragCents:  700,
+		Zahlungsart:        "bar",
+		TSE: &escpos.TSEAbschnitt{
+			TransaktionNr:   1003,
+			Signaturzaehler: 5871,
+			TSESeriennummer: "SW-TSE-SN-0042",
+			ZeitpunktBeginn: time.Date(2026, 5, 1, 20, 0, 12, 0, time.UTC),
+			ZeitpunktEnde:   time.Date(2026, 5, 1, 20, 0, 14, 0, time.UTC),
+			Signatur:        "ABCDEF0123456789",
+			QRCodeData:      "V0;QR-TSE-TEST",
+		},
+	})
+
+	if !bytes.Contains(payload, []byte(escpos.QRCodeModel2)) {
+		t.Fatal("Kassenbeleg mit qr_code_data muss QR-Modellbefehl enthalten")
+	}
+	if !bytes.Contains(payload, []byte(escpos.QRCodePrint)) {
+		t.Fatal("Kassenbeleg mit qr_code_data muss QR-Printbefehl enthalten")
+	}
+	if !bytes.Contains(payload, []byte("V0;QR-TSE-TEST")) {
+		t.Fatal("Kassenbeleg mit qr_code_data muss QR-Payload enthalten")
+	}
+}
+
+func TestFormatKassenbeleg_WithoutTSEQRCode_DoesNotContainNativeESCPosQR(t *testing.T) {
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "1003",
+		Zeitpunkt:          testTime,
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		GesamtbetragCents:  700,
+		Zahlungsart:        "bar",
+		TSE: &escpos.TSEAbschnitt{
+			TransaktionNr:   1003,
+			Signaturzaehler: 5871,
+			TSESeriennummer: "SW-TSE-SN-0042",
+			ZeitpunktBeginn: time.Date(2026, 5, 1, 20, 0, 12, 0, time.UTC),
+			ZeitpunktEnde:   time.Date(2026, 5, 1, 20, 0, 14, 0, time.UTC),
+			Signatur:        "ABCDEF0123456789",
+		},
+	})
+
+	if bytes.Contains(payload, []byte(escpos.QRCodePrint)) {
+		t.Fatal("Kassenbeleg ohne qr_code_data darf keinen nativen QR-Printbefehl enthalten")
+	}
+}
+
+func TestFormatKassenbeleg_WithErsteBestellungZeitpunkt_ContainsKlartext(t *testing.T) {
+	ersteBestellung := time.Date(2026, 5, 1, 18, 1, 0, 0, time.UTC)
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:              "SV Musterstadt",
+		Strasse:                  "Musterstrasse 1",
+		Plz:                      "12345",
+		Ort:                      "Musterstadt",
+		KassenSeriennummer:       "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:              "42",
+		Zeitpunkt:                testTime,
+		ErsteBestellungZeitpunkt: &ersteBestellung,
+		Positionen:               []kasse.Position{testPos},
+		GesamtbetragCents:        900,
+		Zahlungsart:              "bar",
+	})
+
+	got := string(payload)
+	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 18:01:00") {
+		t.Fatalf("Kassenbeleg mit erster Bestellung muss Klarschrift enthalten; got:\n%q", got)
 	}
 }
 

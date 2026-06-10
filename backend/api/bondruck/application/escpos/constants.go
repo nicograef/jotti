@@ -24,6 +24,13 @@ const TextNormal = "\x1D\x21\x00"
 const TextDoubleHigh = "\x1D\x21\x01" // Doppelte Hoehe
 const TextDoubleAll = "\x1D\x21\x11"  // Doppelte Hoehe und Breite (fuer Tischnummer)
 
+// QR-Code (GS ( k)
+const QRCodeStorePrefix = "\x1D\x28\x6B" // GS ( k + pL pH
+const QRCodeModel2 = "\x1D\x28\x6B\x04\x00\x31\x41\x32\x00"
+const QRCodeModuleSize6 = "\x1D\x28\x6B\x03\x00\x31\x43\x06"
+const QRCodeErrorCorrectionM = "\x1D\x28\x6B\x03\x00\x31\x45\x31"
+const QRCodePrint = "\x1D\x28\x6B\x03\x00\x31\x51\x30"
+
 // Hardware
 const CutPaper = "\x1D\x56\x42\x00" // Partial Cut (GS V B 0)
 const Beep = "\x1B\x42\x03\x02"     // 3 Piepser, Dauer 2 (ESC B n1 n2)

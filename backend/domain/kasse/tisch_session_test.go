@@ -5,6 +5,7 @@ package kasse
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
@@ -471,5 +472,89 @@ func TestComputeNichtStorniertePositionen_IgnoresAuszahlung(t *testing.T) {
 	// 2 beers still not cancelled
 	if len(nichtStorniert) != 1 || nichtStorniert[0].Menge != 2 {
 		t.Fatalf("expected 2 beers not cancelled, got %v", nichtStorniert)
+	}
+}
+
+func TestApplyEvent_SetsErsteBestellungLogTimeOnlyOnce(t *testing.T) {
+	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}
+
+	firstTSE := &TSEData{
+		TransactionNumber: 1001,
+		SignatureCounter:  1,
+		SerialNumberTSE:   "TSE-1",
+		LogTimeStart:      "2026-05-01T18:01:00Z",
+		LogTimeEnd:        "2026-05-01T18:01:01Z",
+		Signature:         "SIG-1",
+		ProcessType:       "Bestellung-V1",
+	}
+	firstOrder, err := NewBestellungAufgenommenEventMitTSE(testSubject, 1, "TestUser", products, "", firstTSE)
+	if err != nil {
+		t.Fatalf("failed to create first order event with TSE: %v", err)
+	}
+	firstOrder.ID = 1
+	firstOrder.Version = 1
+
+	state, err := ApplyEvent(TischSession{}, firstOrder)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if state.ErsteBestellungLogTime == nil {
+		t.Fatal("expected ersteBestellungLogTime to be set")
+	}
+
+	wantFirst, _ := time.Parse(time.RFC3339, "2026-05-01T18:01:00Z")
+	if !state.ErsteBestellungLogTime.Equal(wantFirst) {
+		t.Fatalf("expected first log time %s, got %s", wantFirst.Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
+	}
+
+	secondTSE := &TSEData{
+		TransactionNumber: 1002,
+		SignatureCounter:  2,
+		SerialNumberTSE:   "TSE-1",
+		LogTimeStart:      "2026-05-01T18:05:00Z",
+		LogTimeEnd:        "2026-05-01T18:05:01Z",
+		Signature:         "SIG-2",
+		ProcessType:       "Bestellung-V1",
+	}
+	secondOrder, err := NewBestellungAufgenommenEventMitTSE(testSubject, 1, "TestUser", products, "", secondTSE)
+	if err != nil {
+		t.Fatalf("failed to create second order event with TSE: %v", err)
+	}
+	secondOrder.ID = 2
+	secondOrder.Version = 2
+
+	state, err = ApplyEvent(state, secondOrder)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if state.ErsteBestellungLogTime == nil {
+		t.Fatal("expected ersteBestellungLogTime to stay set")
+	}
+	if !state.ErsteBestellungLogTime.Equal(wantFirst) {
+		t.Fatalf("expected log time to stay on first order %s, got %s", wantFirst.Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
+	}
+}
+
+func TestApplyEvent_BestellungWithInvalidLogTime_ReturnsError(t *testing.T) {
+	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}
+
+	tseData := &TSEData{
+		TransactionNumber: 1001,
+		SignatureCounter:  1,
+		SerialNumberTSE:   "TSE-1",
+		LogTimeStart:      "invalid",
+		LogTimeEnd:        "2026-05-01T18:01:01Z",
+		Signature:         "SIG-1",
+		ProcessType:       "Bestellung-V1",
+	}
+
+	evt, err := NewBestellungAufgenommenEventMitTSE(testSubject, 1, "TestUser", products, "", tseData)
+	if err != nil {
+		t.Fatalf("failed to create order event with TSE: %v", err)
+	}
+
+	_, err = ApplyEvent(TischSession{}, evt)
+	if err == nil {
+		t.Fatal("expected parse error for invalid log time, got nil")
 	}
 }

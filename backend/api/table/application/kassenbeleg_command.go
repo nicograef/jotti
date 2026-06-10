@@ -92,6 +92,7 @@ func toTSEAbschnitt(data *kasse.TSEData) (*escpos.TSEAbschnitt, error) {
 		ZeitpunktBeginn: start,
 		ZeitpunktEnde:   end,
 		Signatur:        data.Signature,
+		QRCodeData:      data.QRCodeData,
 	}, nil
 }
 
@@ -132,6 +133,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 	var referenz string
 	var tseAbschnitt *escpos.TSEAbschnitt
 	var tseAusfallvermerk bool
+	var ersteBestellungZeitpunkt *time.Time
 
 	if verkaufID != "" {
 		subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
@@ -157,6 +159,13 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		referenz = fmt.Sprintf("direktverkauf-getaetigt:%d", verkaufEvent.ID)
 	} else {
 		subject := kasse.TischSessionSubject(ks.ZNr, tischID)
+		state, err := c.EventRepo.ReadTischSession(ctx, subject)
+		if err != nil {
+			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table projection for kassenbeleg")
+			return ErrDatabase
+		}
+		ersteBestellungZeitpunkt = state.ErsteBestellungLogTime
+
 		events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 		if err != nil {
 			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for kassenbeleg")
@@ -230,19 +239,20 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 	}
 
 	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
-		Vereinsname:        betreiber.Vereinsname,
-		Strasse:            betreiber.Strasse,
-		Plz:                betreiber.Plz,
-		Ort:                betreiber.Ort,
-		KassenSeriennummer: kassenidentitaet.Seriennummer.String(),
-		Belegnummer:        fmt.Sprintf("%d", quelleEvent.ID),
-		Zeitpunkt:          quelleEvent.Time,
-		Positionen:         positionen,
-		Steuermatrix:       steuer.Steuermatrix(toSteuermatrixPositionen(positionen)),
-		TSE:                tseAbschnitt,
-		TSEAusfallvermerk:  tseAusfallvermerk,
-		GesamtbetragCents:  gesamtbetragCents,
-		Zahlungsart:        "bar",
+		Vereinsname:              betreiber.Vereinsname,
+		Strasse:                  betreiber.Strasse,
+		Plz:                      betreiber.Plz,
+		Ort:                      betreiber.Ort,
+		KassenSeriennummer:       kassenidentitaet.Seriennummer.String(),
+		Belegnummer:              fmt.Sprintf("%d", quelleEvent.ID),
+		Zeitpunkt:                quelleEvent.Time,
+		ErsteBestellungZeitpunkt: ersteBestellungZeitpunkt,
+		Positionen:               positionen,
+		Steuermatrix:             steuer.Steuermatrix(toSteuermatrixPositionen(positionen)),
+		TSE:                      tseAbschnitt,
+		TSEAusfallvermerk:        tseAusfallvermerk,
+		GesamtbetragCents:        gesamtbetragCents,
+		Zahlungsart:              "bar",
 	})
 
 	auftrag := bondruckApp.Druckauftrag{
