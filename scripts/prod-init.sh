@@ -52,7 +52,7 @@ info "Checking prerequisites..."
 
 # .env must exist
 if [[ ! -f .env ]]; then
-  fatal ".env file not found. Copy .env.example to .env and configure it first."
+  fatal ".env file not found. Run 'make init' first."
 fi
 
 # Docker must be available

@@ -57,7 +57,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 ## Schnellstart
 
 ```bash
-cp .env.example .env
+make init
 make dev
 # Frontend: http://localhost | API: http://localhost/api
 ```

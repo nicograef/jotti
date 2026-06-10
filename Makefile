@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: dev dev-up down restart logs status \
+.PHONY: init dev dev-up down restart logs status \
 	test test-frontend test-integration test-all \
        lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt \
@@ -18,6 +18,9 @@
 # ──────────────────────────────────────────────
 # Development                                   
 # ──────────────────────────────────────────────
+
+init: ## .env erzeugen (idempotent, sichere Secrets)
+	./scripts/init-env.sh
 
 dev: ## Dev-Stack starten (docker compose, detached)
 	docker compose up --build -d

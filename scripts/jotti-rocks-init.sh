@@ -53,7 +53,7 @@ info "Project root: $PROJECT_ROOT"
 info "Checking prerequisites..."
 
 if [[ ! -f .env ]]; then
-  fatal ".env file not found. Copy .env.example to .env and configure it first."
+  fatal ".env file not found. Run 'make init' first."
 fi
 
 if ! command -v docker &>/dev/null; then

@@ -240,15 +240,15 @@ statt auf die manuelle `openssl`-Prozedur.
 
 ### Acceptance criteria
 
-- [ ] `make init` erzeugt aus einem frischen Checkout eine vollständige `.env`
+- [x] `make init` erzeugt aus einem frischen Checkout eine vollständige `.env`
       mit sicheren Zufalls-Secrets, ohne weitere manuelle Eingriffe.
-- [ ] Ein zweiter Aufruf von `make init` lässt eine vorhandene `.env` unverändert
+- [x] Ein zweiter Aufruf von `make init` lässt eine vorhandene `.env` unverändert
       (idempotent, keine Überschreibung).
-- [ ] Die erzeugte `.env` enthält alle Schlüssel, die dev/local/prod benötigen
+- [x] Die erzeugte `.env` enthält alle Schlüssel, die dev/local/prod benötigen
       (inkl. `RELAY_AUTH_TOKEN`).
-- [ ] `prod-init.sh`/`jotti-rocks-init.sh` verweisen bei fehlender `.env` auf
+- [x] `prod-init.sh`/`jotti-rocks-init.sh` verweisen bei fehlender `.env` auf
       `make init`.
-- [ ] Hosting-Leitfaden und README beschreiben `make init` statt der manuellen
+- [x] Hosting-Leitfaden und README beschreiben `make init` statt der manuellen
       `openssl`-Schritte.
 
 ---

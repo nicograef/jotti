@@ -77,15 +77,14 @@ oder Smartphone im selben WLAN** bedient die Kasse im Browser über die lokale A
 
 ### Schritt für Schritt
 
-1. **`.env` anlegen.** Im Projektordner die Vorlage kopieren:
+1. **`.env` anlegen.** Im Projektordner ausfuehren:
 
    ```bash
-   cp .env.example .env
+   make init
    ```
 
-   Darin `POSTGRES_PASSWORD` und `JWT_SECRET` durch eigene Werte ersetzen. Ein sicheres Geheimnis
-   erzeugt z. B. `openssl rand -base64 32` (unter Windows ersatzweise eine lange, zufällige
-   Zeichenfolge eintragen).
+Das Kommando erzeugt eine vollstaendige `.env` mit sicheren Zufallswerten fuer
+`POSTGRES_PASSWORD`, `JWT_SECRET` und `RELAY_AUTH_TOKEN`.
 
 2. **jotti starten.** Im Projektordner:
 
