@@ -116,7 +116,7 @@ beschreiben, werden auf den neuen HTTPS-Zustand aktualisiert:
 
 ### Acceptance criteria
 
-- [ ] `docs/betrieb/leitfaden-hosting.md` Weg A beschreibt HTTPS-Zugriff mit Browserwarnung und Restrisiko-Hinweis
-- [ ] `docs/anforderungen.md` Q-06 erwähnt den lokalen selbstsignierten Betrieb
-- [ ] Keine Referenz auf „HTTP-only" / „unverschlüsselt" im Kontext des lokalen Stacks verbleibt
-- [ ] `make help` zeigt aktualisierte Beschreibung für `local-up`
+- [x] `docs/betrieb/leitfaden-hosting.md` Weg A beschreibt HTTPS-Zugriff mit Browserwarnung und Restrisiko-Hinweis
+- [x] `docs/anforderungen.md` Q-06 erwähnt den lokalen selbstsignierten Betrieb
+- [x] Keine Referenz auf „HTTP-only" / „unverschlüsselt" im Kontext des lokalen Stacks verbleibt
+- [x] `make help` zeigt aktualisierte Beschreibung für `local-up`

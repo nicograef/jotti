@@ -146,10 +146,10 @@ jotti-rocks-logs: ## jotti.rocks Stack Logs folgen
 	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml logs -f
 
 # ──────────────────────────────────────────────
-# Lokaler Betrieb (LAN, HTTP-only)              
+# Lokaler Betrieb (LAN, HTTPS selbstsigniert)   
 # ──────────────────────────────────────────────
 
-local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTP, ohne TLS) — siehe docs/betrieb/leitfaden-hosting.md
+local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS, selbstsigniertes Zertifikat) — siehe docs/betrieb/leitfaden-hosting.md
 	docker compose -f docker-compose.local.yml up -d --build
 	docker compose -f docker-compose.local.yml up -d --no-deps --force-recreate reverse-proxy
 

@@ -39,15 +39,15 @@
 
 ## 2. Welcher Weg passt zu uns?
 
-| Frage                 | Weg A: Einzelgerät im WLAN       | Weg B: Eigener Server                   |
-| --------------------- | -------------------------------- | --------------------------------------- |
-| Typisches Fest        | Eine Theke, eine Person kassiert | Mehrere Helfer, viele Tische, mehrtägig |
-| Geräte                | 1 Laptop + 1 Tablet/Handy        | Beliebig viele Handys der Helfer        |
-| Internet nötig?       | Nein — nur lokales WLAN          | Ja                                      |
-| Domain & HTTPS nötig? | Nein                             | Ja                                      |
-| Bondruck              | Nein                             | Möglich _(in Entwicklung)_              |
-| Laufende Kosten       | Keine                            | ~3–8 €/Monat (VPS)                      |
-| Einrichtungsaufwand   | Sehr gering                      | Etwas höher (einmalig)                  |
+| Frage                 | Weg A: Einzelgerät im WLAN               | Weg B: Eigener Server                   |
+| --------------------- | ---------------------------------------- | --------------------------------------- |
+| Typisches Fest        | Eine Theke, eine Person kassiert         | Mehrere Helfer, viele Tische, mehrtägig |
+| Geräte                | 1 Laptop + 1 Tablet/Handy                | Beliebig viele Handys der Helfer        |
+| Internet nötig?       | Nein — nur lokales WLAN                  | Ja                                      |
+| Domain & HTTPS nötig? | Domain: nein, HTTPS: ja (selbstsigniert) | Ja                                      |
+| Bondruck              | Nein                                     | Möglich _(in Entwicklung)_              |
+| Laufende Kosten       | Keine                                    | ~3–8 €/Monat (VPS)                      |
+| Einrichtungsaufwand   | Sehr gering                              | Etwas höher (einmalig)                  |
 
 > **Faustregel:** Eine kleine Theke an einem Tag? → **Weg A.** Ein richtiges Fest, bei dem
 > Servicekräfte mit ihren eigenen Handys an den Tischen bestellen? → **Weg B.**
@@ -64,9 +64,14 @@ offener Saldo, keine spätere Ausgabe-Bestätigung.
 jotti läuft dabei auf einem vorhandenen Rechner (Windows-Laptop, Mac oder Linux-PC). Ein **Tablet
 oder Smartphone im selben WLAN** bedient die Kasse im Browser über die lokale Adresse des Rechners.
 
-> 🔒 **Sicherheitshinweis:** Der lokale Betrieb läuft **unverschlüsselt** über HTTP und ist
-> ausschließlich für das **eigene, vertrauenswürdige WLAN** gedacht. Öffnet den Rechner **niemals**
-> per Port-Weiterleitung ins Internet.
+> 🔒 **Sicherheitshinweis:** Der lokale Betrieb nutzt **selbstsigniertes HTTPS**. Beim ersten Zugriff
+> erscheint pro Gerät eine Browserwarnung, die einmal bestätigt werden muss. Damit ist der Verkehr im
+> WLAN verschlüsselt (kein passives Mitlesen). **Restrisiko:** Ein aktiver Angreifer im selben WLAN
+> (MITM) bleibt möglich. Für vertrauenswürdige Zertifikate siehe Option 3:
+> `docs/prds/prd-lokale-tls-vertrauenswuerdig.md`.
+>
+> ℹ️ **Einzeltheke-/localhost-Ausnahme:** Wenn jotti nur direkt am selben Rechner über `localhost`
+> bedient wird, entsteht kein WLAN-Transport.
 
 ### Voraussetzungen
 
@@ -92,12 +97,12 @@ Das Kommando erzeugt eine vollstaendige `.env` mit sicheren Zufallswerten fuer
    docker compose -f docker-compose.local.yml up -d --build
    ```
 
-   Der erste Start dauert einige Minuten (die „Container" werden gebaut). Danach laufen Datenbank,
-   Backend, Frontend und ein nginx-Reverse-Proxy auf **Port 80**. Mit installiertem `make`
-   alternativ: `make local-up`.
+Der erste Start dauert einige Minuten (die „Container" werden gebaut). Danach laufen Datenbank,
+Backend, Frontend und ein nginx-Reverse-Proxy auf **Port 443** (Port 80 leitet auf HTTPS um). Mit installiertem `make`
+alternativ: `make local-up`.
 
-3. **Lokal testen.** Auf dem Rechner `http://localhost` im Browser öffnen — die Anmeldemaske
-   erscheint.
+3. **Lokal testen.** Auf dem Rechner `https://localhost` im Browser öffnen — beim ersten Aufruf die
+   Browserwarnung bestätigen, danach erscheint die Anmeldemaske.
 
 4. **Lokale IP-Adresse des Rechners ermitteln:**
 
@@ -110,7 +115,8 @@ Das Kommando erzeugt eine vollstaendige `.env` mit sicheren Zufallswerten fuer
    Gesucht ist die Adresse im Heimnetz, meist `192.168.x.x` oder `10.x.x.x`.
 
 5. **Vom Tablet verbinden.** Tablet ins gleiche WLAN bringen und im Browser die IP-Adresse öffnen,
-   z. B. `http://192.168.1.50`. Anmelden — fertig. Über „Zum Startbildschirm hinzufügen" lässt sich
+   z. B. `https://192.168.1.50`. Beim ersten Zugriff die Browserwarnung bestätigen, danach anmelden.
+   Über „Zum Startbildschirm hinzufügen" lässt sich
    jotti wie eine App ablegen.
 
 ### Beenden
@@ -125,7 +131,8 @@ Alternativ: `make local-down`.
 ### Gut zu wissen
 
 - **Windows-Firewall:** Beim ersten Start fragt Windows ggf., ob der Zugriff erlaubt werden soll.
-  Für **private Netzwerke** zulassen, damit das Tablet den Rechner über Port 80 erreicht.
+  Für **private Netzwerke** zulassen, damit das Tablet den Rechner über Port 443 erreicht
+  (Port 80 wird nur für Redirect genutzt).
 - **Rechner muss laufen.** Während des Betriebs muss der Rechner eingeschaltet und im WLAN sein;
   Energiespar-/Ruhezustand vorher deaktivieren.
 - **Hardware genügt locker.** Jeder halbwegs aktuelle Laptop bewältigt eine Theke mühelos.
