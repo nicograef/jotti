@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -24,9 +25,10 @@ type DruckAuftrag struct {
 }
 
 type RelayConfig struct {
-	BackendURL  string
-	Token       string
-	PollSeconds int
+	BackendURL    string
+	Token         string
+	PollSeconds   int
+	TLSSkipVerify bool
 }
 
 const maxRetries = 60
@@ -54,10 +56,13 @@ func loadConfigFromEnv(getenv func(string) string) (RelayConfig, error) {
 		pollSeconds = parsedPollSeconds
 	}
 
+	tlsSkip := strings.TrimSpace(getenv("RELAY_TLS_SKIP_VERIFY"))
+
 	return RelayConfig{
-		BackendURL:  backendURL,
-		Token:       token,
-		PollSeconds: pollSeconds,
+		BackendURL:    backendURL,
+		Token:         token,
+		PollSeconds:   pollSeconds,
+		TLSSkipVerify: tlsSkip == "1" || tlsSkip == "true",
 	}, nil
 }
 
@@ -70,6 +75,12 @@ func main() {
 	log.Printf("jotti Print-Relay gestartet | Backend: %s | Poll: %ds", config.BackendURL, config.PollSeconds)
 
 	client := &http.Client{Timeout: 10 * time.Second}
+	if config.TLSSkipVerify {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		log.Printf("TLS-Zertifikatsprüfung deaktiviert (selbstsigniert)")
+	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

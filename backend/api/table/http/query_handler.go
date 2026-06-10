@@ -113,6 +113,7 @@ type position struct {
 	ProduktName  string `json:"produktName"`
 	VarianteName string `json:"varianteName"`
 	Kategorie    string `json:"kategorie"`
+	Steuersatz   string `json:"steuersatz"`
 	Einzelpreis  int    `json:"einzelpreis"`
 	Menge        int    `json:"menge"`
 }
@@ -124,6 +125,7 @@ func toPosition(p k.Position) position {
 		ProduktName:  p.ProduktName,
 		VarianteName: p.VarianteName,
 		Kategorie:    p.Kategorie,
+		Steuersatz:   p.Steuersatz,
 		Einzelpreis:  p.Einzelpreis,
 		Menge:        p.Menge,
 	}
