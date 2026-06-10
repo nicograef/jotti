@@ -140,6 +140,36 @@ func TestCreateVariantHandler_Failure(t *testing.T) {
 	}
 }
 
+func TestCreateVariantHandler_InvalidInput(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"produktId":0,"name":"ab","preisCents":-1}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/create-variante", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.CreateVariantHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestUpdateVariantHandler_InvalidInput(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"id":0,"name":"ab","preisCents":-1}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/update-variante", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.UpdateVariantHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
 func TestActivateVariantHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 

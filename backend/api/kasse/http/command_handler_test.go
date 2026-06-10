@@ -75,7 +75,7 @@ func TestKassensitzungEroeffnenHandler_KasseAlreadyOpen(t *testing.T) {
 func TestGeldtransitBuchenHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
-	req := requestWithUser(`{"richtung":"einlage","betragCents":500,"kommentar":""}`)
+	req := requestWithUser(`{"richtung":"einlage","betragCents":500,"kommentar":"Initialbestand"}`)
 	rec := httptest.NewRecorder()
 
 	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
@@ -89,6 +89,19 @@ func TestGeldtransitBuchenHandler_MissingRichtung(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	req := requestWithUser(`{"richtung":"","betragCents":500}`)
+	rec := httptest.NewRecorder()
+
+	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestGeldtransitBuchenHandler_InvalidKommentar(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	req := requestWithUser(`{"richtung":"einlage","betragCents":500,"kommentar":"ab"}`)
 	rec := httptest.NewRecorder()
 
 	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)

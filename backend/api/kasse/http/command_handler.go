@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
 	kasseApp "github.com/nicograef/jotti/backend/api/kasse/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
@@ -28,6 +29,11 @@ type kassensitzungEroeffnenRequest struct {
 	BetragCents int    `json:"betragCents"`
 }
 
+var kassensitzungEroeffnenSchema = z.Struct(z.Shape{
+	"Bezeichnung": z.String().Min(1, z.Message("Bezeichnung ist erforderlich")).Max(200, z.Message("Bezeichnung darf höchstens 200 Zeichen lang sein")).Required(),
+	"BetragCents": z.Int().GTE(0, z.Message("Anfangsbestand darf nicht negativ sein")).Required(),
+})
+
 type kassensitzungEroeffnenResponse struct {
 	ZNr int `json:"zNr"`
 }
@@ -38,16 +44,29 @@ type geldtransitBuchenRequest struct {
 	Kommentar   string `json:"kommentar"`
 }
 
+var geldtransitBuchenSchema = z.Struct(z.Shape{
+	"Richtung": z.String().OneOf(
+		[]string{"einlage", "entnahme"},
+		z.Message("Ungültige Richtung"),
+	).Required(),
+	"BetragCents": z.Int().GTE(1, z.Message("Betrag muss mindestens 1 Cent sein")).Required(),
+	"Kommentar":   z.String().Min(3, z.Message("Kommentar muss mindestens 3 Zeichen lang sein")).Max(200, z.Message("Kommentar darf höchstens 200 Zeichen lang sein")).Required(),
+})
+
 type kassensturzDurchfuehrenRequest struct {
 	IstBestandCents int `json:"istBestandCents"`
 }
+
+var kassensturzDurchfuehrenSchema = z.Struct(z.Shape{
+	"IstBestandCents": z.Int().GTE(0, z.Message("Ist-Bestand darf nicht negativ sein")).Required(),
+})
 
 // --- Handlers ---
 
 func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := kassensitzungEroeffnenRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, kassensitzungEroeffnenSchema) {
 			return
 		}
 
@@ -74,12 +93,7 @@ func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 func (h *CommandHandler) GeldtransitBuchenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := geldtransitBuchenRequest{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-
-		if body.Richtung == "" {
-			helper.SendClientError(w, "richtung_erforderlich", nil)
+		if !helper.ReadAndValidateBody(w, r, &body, geldtransitBuchenSchema) {
 			return
 		}
 
@@ -110,7 +124,7 @@ func (h *CommandHandler) GeldtransitBuchenHandler() http.HandlerFunc {
 func (h *CommandHandler) KassensturzDurchfuehrenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := kassensturzDurchfuehrenRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, kassensturzDurchfuehrenSchema) {
 			return
 		}
 

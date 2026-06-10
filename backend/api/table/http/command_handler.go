@@ -39,6 +39,10 @@ type createTischRequest struct {
 	Name string `json:"name"`
 }
 
+var createTischSchema = z.Struct(z.Shape{
+	"Name": table.TischNameSchema.Required(),
+})
+
 type createTischResponse struct {
 	ID int `json:"id"`
 }
@@ -46,7 +50,7 @@ type createTischResponse struct {
 func (h *CommandHandler) TischErstellenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := createTischRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, createTischSchema) {
 			return
 		}
 
@@ -68,10 +72,15 @@ type updateTischRequest struct {
 	Name string `json:"name"`
 }
 
+var updateTischSchema = z.Struct(z.Shape{
+	"ID":   table.TischIDSchema.Required(),
+	"Name": table.TischNameSchema.Required(),
+})
+
 func (h *CommandHandler) TischAktualisierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := updateTischRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, updateTischSchema) {
 			return
 		}
 
@@ -92,10 +101,14 @@ type favoritRequest struct {
 	TischID int `json:"tischId"`
 }
 
+var favoritSchema = z.Struct(z.Shape{
+	"TischID": table.TischIDSchema.Required(),
+})
+
 func (h *CommandHandler) FavoritHinzufuegenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := favoritRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, favoritSchema) {
 			return
 		}
 
@@ -121,7 +134,7 @@ func (h *CommandHandler) FavoritHinzufuegenHandler() http.HandlerFunc {
 func (h *CommandHandler) FavoritEntfernenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := favoritRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, favoritSchema) {
 			return
 		}
 

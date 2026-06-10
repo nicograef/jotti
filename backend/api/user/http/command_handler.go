@@ -30,6 +30,12 @@ type createUserRequest struct {
 	Role     user.Role `json:"role"`
 }
 
+var createUserSchema = z.Struct(z.Shape{
+	"Name":     user.NameSchema.Required(),
+	"Username": user.UsernameSchema.Required(),
+	"Role":     user.RoleSchema.Required(),
+})
+
 type createUserResponse struct {
 	ID              int    `json:"id"`
 	OnetimePassword string `json:"onetimePassword"`
@@ -38,7 +44,7 @@ type createUserResponse struct {
 func (h CommandHandler) CreateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := createUserRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, createUserSchema) {
 			return
 		}
 
@@ -61,10 +67,17 @@ type updateUserRequest struct {
 	Role     user.Role `json:"role"`
 }
 
+var updateUserSchema = z.Struct(z.Shape{
+	"ID":       user.IDSchema.Required(),
+	"Name":     user.NameSchema.Required(),
+	"Username": user.UsernameSchema.Required(),
+	"Role":     user.RoleSchema.Required(),
+})
+
 func (h CommandHandler) UpdateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := updateUserRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, updateUserSchema) {
 			return
 		}
 

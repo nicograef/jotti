@@ -110,6 +110,21 @@ func TestTischErstellenHandler_Failure(t *testing.T) {
 	}
 }
 
+func TestTischErstellenHandler_InvalidInput(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"name":"ab"}`
+	req := httptest.NewRequest(http.MethodPost, "/create-tisch", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.TischErstellenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
 func TestTischAktualisierenHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
@@ -129,6 +144,21 @@ func TestTischAktualisierenHandler_NotFound(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischNotFound}}
 
 	body := `{"id":999,"name":"Aktualisierter Tisch"}`
+	req := httptest.NewRequest(http.MethodPost, "/update-tisch", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.TischAktualisierenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestTischAktualisierenHandler_InvalidInput(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"id":0,"name":"ab"}`
 	req := httptest.NewRequest(http.MethodPost, "/update-tisch", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -313,6 +343,23 @@ func TestBestellungUmbuchenHandler_UmbuchungGleicherTisch(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	handler.BestellungUmbuchenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestFavoritHinzufuegenHandler_InvalidInput(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"tischId":0}`
+	req := httptest.NewRequest(http.MethodPost, "/favorit-hinzufuegen", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+
+	handler.FavoritHinzufuegenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected status 400, got %d", rec.Code)

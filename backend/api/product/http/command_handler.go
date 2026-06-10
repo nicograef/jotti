@@ -106,6 +106,12 @@ type createVariantRequest struct {
 	PreisCents int    `json:"preisCents"`
 }
 
+var createVariantSchema = z.Struct(z.Shape{
+	"ProductID":  product.IDSchema.Required(),
+	"Name":       product.NameSchema.Required(),
+	"PreisCents": product.PreisCentsSchema.Required(),
+})
+
 type createVariantResponse struct {
 	ID int `json:"id"`
 }
@@ -113,7 +119,7 @@ type createVariantResponse struct {
 func (h *CommandHandler) CreateVariantHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := createVariantRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, createVariantSchema) {
 			return
 		}
 
@@ -136,10 +142,16 @@ type updateVariantRequest struct {
 	PreisCents int    `json:"preisCents"`
 }
 
+var updateVariantSchema = z.Struct(z.Shape{
+	"ID":         product.IDSchema.Required(),
+	"Name":       product.NameSchema.Required(),
+	"PreisCents": product.PreisCentsSchema.Required(),
+})
+
 func (h *CommandHandler) UpdateVariantHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := updateVariantRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, updateVariantSchema) {
 			return
 		}
 

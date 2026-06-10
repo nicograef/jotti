@@ -72,3 +72,35 @@ func TestLoginHandler_InactiveUser(t *testing.T) {
 		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
+
+func TestLoginHandler_InvalidInput(t *testing.T) {
+	command := mockAuthCommand{token: "test-token", err: nil}
+	handler := CommandHandler{Command: command}
+
+	body := `{"username":"","password":""}`
+	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.LoginHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestSetPasswordHandler_InvalidInput(t *testing.T) {
+	command := mockAuthCommand{err: nil}
+	handler := CommandHandler{Command: command}
+
+	body := `{"username":"INVALID","password":"123","onetimePassword":""}`
+	req := httptest.NewRequest(http.MethodPost, "/set-password", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.SetPasswordHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}

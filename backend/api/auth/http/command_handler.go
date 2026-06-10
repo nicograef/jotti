@@ -5,8 +5,10 @@ import (
 	"errors"
 	"net/http"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/auth/application"
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/domain/user"
 )
 
 type authCommand interface {
@@ -23,6 +25,11 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
+var loginSchema = z.Struct(z.Shape{
+	"Username": z.String().Trim().Min(1, z.Message("Benutzername ist erforderlich")).Required(),
+	"Password": z.String().Min(1, z.Message("Passwort ist erforderlich")).Required(),
+})
+
 type loginResponse struct {
 	Token string `json:"token"`
 }
@@ -32,7 +39,7 @@ func (h *CommandHandler) LoginHandler() http.HandlerFunc {
 		ctx := r.Context()
 
 		body := loginRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, loginSchema) {
 			return
 		}
 
@@ -61,12 +68,18 @@ type setPasswordRequest struct {
 	OnetimePassword string `json:"onetimePassword"`
 }
 
+var setPasswordSchema = z.Struct(z.Shape{
+	"Username":        user.UsernameSchema.Required(),
+	"Password":        user.PasswordSchema.Required(),
+	"OnetimePassword": z.String().Trim().Min(1, z.Message("Einmalpasswort ist erforderlich")).Required(),
+})
+
 func (h *CommandHandler) SetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		body := setPasswordRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, setPasswordSchema) {
 			return
 		}
 
