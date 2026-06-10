@@ -164,16 +164,16 @@ Tests/Skripten setzen den Token, damit die bestehende Suite grün bleibt.
 
 ### Acceptance criteria
 
-- [ ] Startet das Backend ohne gesetztes `RELAY_AUTH_TOKEN`, bricht es mit klarer
+- [x] Startet das Backend ohne gesetztes `RELAY_AUTH_TOKEN`, bricht es mit klarer
       Fehlermeldung ab (analog `JWT_SECRET`).
-- [ ] Eine Relay-Anfrage mit leerem oder falschem Token erhält `unauthorized`,
+- [x] Eine Relay-Anfrage mit leerem oder falschem Token erhält `unauthorized`,
       auch wenn der konfigurierte Token leer wäre.
-- [ ] `RELAY_AUTH_TOKEN` wird in der Backend-Env von `docker-compose.yml`,
+- [x] `RELAY_AUTH_TOKEN` wird in der Backend-Env von `docker-compose.yml`,
       `docker-compose.local.yml` und `docker-compose.prod.yml` aus der `.env`
       übergeben und ist in `.env.example` dokumentiert.
 - [ ] `config_test.go`, `app_test.go` und `test-integration.sh` setzen den Token;
       `make test` und die Integrationstests laufen unverändert grün.
-- [ ] Unit-Tests decken ab: Token vorhanden → akzeptiert; leerer/falscher Token →
+- [x] Unit-Tests decken ab: Token vorhanden → akzeptiert; leerer/falscher Token →
       abgelehnt.
 
 ---
@@ -327,7 +327,3 @@ konsolidiert.
 - [ ] Geteilte Service-Definitionen stehen genau einmal in der Basis; `local`/
       `prod` enthalten nur noch ihre Abweichungen.
 - [ ] Der Dev-Stack ist unverändert und weiterhin per `make dev` lauffähig.
-
-```
-
-```

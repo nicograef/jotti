@@ -60,6 +60,7 @@ POSTGRES_USER=admin \
 POSTGRES_PASSWORD=admin \
 POSTGRES_DBNAME=jotti \
 JWT_SECRET=test-secret \
+RELAY_AUTH_TOKEN=test-relay-token \
 go test -tags=integration -count=1 -race -p 1 ./...
 
 echo "✅ Integration tests passed!"

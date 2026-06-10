@@ -35,6 +35,18 @@ type quittierenRequest struct {
 	GedruckteIDs []int  `json:"gedruckteIds"`
 }
 
+func (h *Handler) isRelayTokenValid(token string) bool {
+	if h.RelayToken == "" {
+		return false
+	}
+
+	if token == "" {
+		return false
+	}
+
+	return token == h.RelayToken
+}
+
 func (h *Handler) PollHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body pollRequest
@@ -43,7 +55,7 @@ func (h *Handler) PollHandler() http.HandlerFunc {
 		}
 
 		// Statischer Token-Vergleich — das Relay ist kein Benutzer, kein JWT
-		if body.Token != h.RelayToken {
+		if !h.isRelayTokenValid(body.Token) {
 			helper.SendClientError(w, "unauthorized", nil)
 			return
 		}
@@ -79,7 +91,7 @@ func (h *Handler) QuittierenHandler() http.HandlerFunc {
 			return
 		}
 
-		if body.Token != h.RelayToken {
+		if !h.isRelayTokenValid(body.Token) {
 			helper.SendClientError(w, "unauthorized", nil)
 			return
 		}

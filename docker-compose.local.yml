@@ -64,6 +64,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DBNAME: jotti
       JWT_SECRET: ${JWT_SECRET}
+      RELAY_AUTH_TOKEN: ${RELAY_AUTH_TOKEN}
     networks:
       - app-network
       - db-network

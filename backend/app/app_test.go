@@ -5,15 +5,20 @@ package app
 import (
 	"context"
 	"database/sql"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/nicograef/jotti/backend/config"
 )
 
+func setRequiredConfigEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("JWT_SECRET", "test-secret-for-app-tests")
+	t.Setenv("RELAY_AUTH_TOKEN", "test-relay-token-for-app-tests")
+}
+
 func TestNewApp(t *testing.T) {
-	os.Setenv("JWT_SECRET", "test-secret-for-app-tests")
+	setRequiredConfigEnv(t)
 	cfg := config.Load()
 	app, err := NewApp(cfg, &sql.DB{})
 	if err != nil {
@@ -30,7 +35,7 @@ func TestNewApp(t *testing.T) {
 }
 
 func TestSetupRoutes(t *testing.T) {
-	os.Setenv("JWT_SECRET", "test-secret-for-app-tests")
+	setRequiredConfigEnv(t)
 	cfg := config.Load()
 
 	handler := SetupRoutes(cfg, &sql.DB{})
@@ -41,6 +46,7 @@ func TestSetupRoutes(t *testing.T) {
 }
 
 func TestShutdown(t *testing.T) {
+	setRequiredConfigEnv(t)
 	cfg := config.Load()
 	app, err := NewApp(cfg, &sql.DB{})
 	if err != nil {
@@ -55,7 +61,7 @@ func TestShutdown(t *testing.T) {
 }
 
 func TestRun_ContextCancellation(t *testing.T) {
-	os.Setenv("JWT_SECRET", "test-secret-for-app-tests")
+	setRequiredConfigEnv(t)
 	cfg := config.Load()
 	app, err := NewApp(cfg, &sql.DB{})
 	if err != nil {

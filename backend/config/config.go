@@ -41,7 +41,7 @@ func Load() Config {
 		Port:           port,
 		Postgres:       postgres,
 		JWTSecret:      jwtSecret,
-		RelayToken:     os.Getenv("RELAY_AUTH_TOKEN"),
+		RelayToken:     parseEnvString("RELAY_AUTH_TOKEN", ""),
 		FiskalyBaseURL: parseEnvString("FISKALY_BASE_URL", "https://kassensichv-middleware.fiskaly.com"),
 	}
 }

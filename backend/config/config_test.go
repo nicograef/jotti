@@ -10,6 +10,7 @@ import (
 func TestLoad_Defaults(t *testing.T) {
 	os.Clearenv()
 	os.Setenv("JWT_SECRET", "test-secret-key-for-unit-tests")
+	os.Setenv("RELAY_AUTH_TOKEN", "test-relay-token")
 
 	cfg := Load()
 
@@ -35,6 +36,9 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.FiskalyBaseURL != "https://kassensichv-middleware.fiskaly.com" {
 		t.Errorf("expected default Fiskaly base URL, got %s", cfg.FiskalyBaseURL)
 	}
+	if cfg.RelayToken != "test-relay-token" {
+		t.Errorf("expected relay token 'test-relay-token', got %s", cfg.RelayToken)
+	}
 }
 
 func TestLoad_EnvValues(t *testing.T) {
@@ -42,6 +46,9 @@ func TestLoad_EnvValues(t *testing.T) {
 
 	if err := os.Setenv("JWT_SECRET", "test-jwt-secret"); err != nil {
 		t.Fatalf("Failed to set JWT_SECRET: %v", err)
+	}
+	if err := os.Setenv("RELAY_AUTH_TOKEN", "test-relay-token"); err != nil {
+		t.Fatalf("Failed to set RELAY_AUTH_TOKEN: %v", err)
 	}
 	if err := os.Setenv("PORT", "8080"); err != nil {
 		t.Fatalf("Failed to set PORT: %v", err)
@@ -96,6 +103,9 @@ func TestLoad_InvalidIntAndLowValues(t *testing.T) {
 	if err := os.Setenv("JWT_SECRET", "test-secret"); err != nil {
 		t.Fatalf("Failed to set JWT_SECRET: %v", err)
 	}
+	if err := os.Setenv("RELAY_AUTH_TOKEN", "test-relay-token"); err != nil {
+		t.Fatalf("Failed to set RELAY_AUTH_TOKEN: %v", err)
+	}
 	if err := os.Setenv("PORT", "notanint"); err != nil {
 		t.Fatalf("Failed to set PORT: %v", err)
 	}
@@ -118,6 +128,9 @@ func TestLoad_NegativeValues(t *testing.T) {
 
 	if err := os.Setenv("JWT_SECRET", "test-secret"); err != nil {
 		t.Fatalf("Failed to set JWT_SECRET: %v", err)
+	}
+	if err := os.Setenv("RELAY_AUTH_TOKEN", "test-relay-token"); err != nil {
+		t.Fatalf("Failed to set RELAY_AUTH_TOKEN: %v", err)
 	}
 	if err := os.Setenv("PORT", "-1"); err != nil {
 		t.Fatalf("Failed to set PORT: %v", err)
