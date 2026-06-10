@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -22,21 +23,51 @@ type DruckAuftrag struct {
 	Payload string `json:"payload"`
 }
 
-var (
-	backendURL  = flag.String("backend", "https://jotti.meinverein.de", "jotti Backend URL")
-	token       = flag.String("token", "", "RELAY_AUTH_TOKEN aus .env")
-	pollSeconds = flag.Int("poll", 2, "Poll-Intervall in Sekunden")
-)
+type RelayConfig struct {
+	BackendURL  string
+	Token       string
+	PollSeconds int
+}
 
 const maxRetries = 60
+const defaultBackendURL = "http://localhost/api"
+const defaultPollSeconds = 2
 
-func main() {
-	flag.Parse()
-	if *token == "" {
-		log.Fatal("--token ist erforderlich")
+func loadConfigFromEnv(getenv func(string) string) (RelayConfig, error) {
+	token := strings.TrimSpace(getenv("RELAY_AUTH_TOKEN"))
+	if token == "" {
+		return RelayConfig{}, fmt.Errorf("RELAY_AUTH_TOKEN ist erforderlich")
 	}
 
-	log.Printf("jotti Print-Relay gestartet | Backend: %s | Poll: %ds", *backendURL, *pollSeconds)
+	backendURL := strings.TrimRight(strings.TrimSpace(getenv("RELAY_BACKEND_URL")), "/")
+	if backendURL == "" {
+		backendURL = defaultBackendURL
+	}
+
+	pollSeconds := defaultPollSeconds
+	pollSecondsRaw := strings.TrimSpace(getenv("RELAY_POLL_SECONDS"))
+	if pollSecondsRaw != "" {
+		parsedPollSeconds, err := strconv.Atoi(pollSecondsRaw)
+		if err != nil || parsedPollSeconds < 1 {
+			return RelayConfig{}, fmt.Errorf("RELAY_POLL_SECONDS muss eine positive Ganzzahl sein")
+		}
+		pollSeconds = parsedPollSeconds
+	}
+
+	return RelayConfig{
+		BackendURL:  backendURL,
+		Token:       token,
+		PollSeconds: pollSeconds,
+	}, nil
+}
+
+func main() {
+	config, err := loadConfigFromEnv(os.Getenv)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("jotti Print-Relay gestartet | Backend: %s | Poll: %ds", config.BackendURL, config.PollSeconds)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 
@@ -53,7 +84,7 @@ func main() {
 		default:
 		}
 
-		auftraege, err := poll(client)
+		auftraege, err := poll(client, config)
 		if err != nil {
 			log.Printf("Fehler beim Poll: %v", err)
 		} else if len(auftraege) == 0 {
@@ -73,7 +104,7 @@ func main() {
 			}
 
 			if len(gedruckteIDs) > 0 {
-				if err := quittieren(client, gedruckteIDs); err != nil {
+				if err := quittieren(client, gedruckteIDs, config); err != nil {
 					log.Printf("Quittieren fehlgeschlagen (%d Auftraege): %v", len(gedruckteIDs), err)
 				} else {
 					log.Printf("%d Auftraege quittiert", len(gedruckteIDs))
@@ -82,7 +113,7 @@ func main() {
 			lastStatusLog = time.Now()
 		}
 
-		time.Sleep(time.Duration(*pollSeconds) * time.Second)
+		time.Sleep(time.Duration(config.PollSeconds) * time.Second)
 	}
 }
 
@@ -109,11 +140,11 @@ func printAuftragWithRetry(a DruckAuftrag) error {
 	return fmt.Errorf("max. Versuche (%d) erreicht fuer Drucker %s", maxRetries, a.ZielIP)
 }
 
-func poll(client *http.Client) ([]DruckAuftrag, error) {
+func poll(client *http.Client, config RelayConfig) ([]DruckAuftrag, error) {
 	reqBody, _ := json.Marshal(map[string]any{
-		"token": *token,
+		"token": config.Token,
 	})
-	resp, err := client.Post(*backendURL+"/relay/poll", "application/json", bytes.NewReader(reqBody))
+	resp, err := client.Post(config.BackendURL+"/relay/poll", "application/json", bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, err
 	}
@@ -135,12 +166,12 @@ func poll(client *http.Client) ([]DruckAuftrag, error) {
 	return result.Auftraege, nil
 }
 
-func quittieren(client *http.Client, ids []int) error {
+func quittieren(client *http.Client, ids []int, config RelayConfig) error {
 	reqBody, _ := json.Marshal(map[string]any{
-		"token":       *token,
+		"token":        config.Token,
 		"gedruckteIds": ids,
 	})
-	resp, err := client.Post(*backendURL+"/relay/quittieren", "application/json", bytes.NewReader(reqBody))
+	resp, err := client.Post(config.BackendURL+"/relay/quittieren", "application/json", bytes.NewReader(reqBody))
 	if err != nil {
 		return err
 	}

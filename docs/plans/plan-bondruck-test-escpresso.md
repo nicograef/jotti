@@ -127,7 +127,11 @@ Loopback-IP zugewiesen → alles rendert in einem Fenster, aber
 7. **Relay starten:** In neuem Terminal:
 
    ```bash
-   cd cmd/relay && RELAY_AUTH_TOKEN=<Token aus .env> go run .
+   cd cmd/relay && \
+    RELAY_AUTH_TOKEN=<Token aus .env> \
+    RELAY_BACKEND_URL=http://localhost/api \
+    RELAY_POLL_SECONDS=2 \
+    go run .
    ```
 
    Erwartung: `jotti Print-Relay gestartet | Backend: http://localhost/api | Poll: 2s`

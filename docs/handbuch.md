@@ -703,17 +703,17 @@ Für den fiskalischen Kassenbeleg bleibt `kassenbeleg_drucker_ip` maßgeblich. F
 **Relay starten:**
 
 ```bash
-./jotti-relay \
-  --backend="https://jotti.meinverein.de" \
-  --token="<RELAY_AUTH_TOKEN>" \
-  --poll=2
+RELAY_AUTH_TOKEN="<RELAY_AUTH_TOKEN>" \
+RELAY_BACKEND_URL="https://jotti.meinverein.de/api" \
+RELAY_POLL_SECONDS="2" \
+./jotti-relay
 ```
 
-| Parameter   | Beschreibung                                      | Standard       |
-| ----------- | ------------------------------------------------- | -------------- |
-| `--backend` | URL des jotti-Servers                             | (erforderlich) |
-| `--token`   | Authentifizierungs-Token (aus `.env` des Servers) | (erforderlich) |
-| `--poll`    | Abfrageintervall in Sekunden                      | 2              |
+| Umgebungsvariable    | Beschreibung                                      | Standard               |
+| -------------------- | ------------------------------------------------- | ---------------------- |
+| `RELAY_AUTH_TOKEN`   | Authentifizierungs-Token (aus `.env` des Servers) | (erforderlich)         |
+| `RELAY_BACKEND_URL`  | URL des jotti-Servers inkl. `/api`                | `http://localhost/api` |
+| `RELAY_POLL_SECONDS` | Abfrageintervall in Sekunden                      | `2`                    |
 
 **Fehlerverhalten:** Bei nicht erreichbarem Drucker versucht das Relay mehrfach (bis zu 5 Minuten); danach bleibt der Auftrag `offen` und wird beim nächsten Poll erneut geliefert. Der DB-Status ist autoritativ: Stürzt das Relay zwischen Druck und Quittierung ab, kann ein Auftrag erneut gedruckt werden — beim nicht-fiskalischen Arbeitsbon unkritisch.
 

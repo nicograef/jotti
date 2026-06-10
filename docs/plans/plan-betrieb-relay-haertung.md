@@ -186,8 +186,6 @@ Tests/Skripten setzen den Token, damit die bestehende Suite grün bleibt.
 
 - `cmd/relay/main.go:23,24,36` — `--backend`-Default, `--token`-Flag, Fatal bei
   leerem Token. Eigenes Modul `jotti-relay`, bisher ohne Tests.
-- `docs/plans/plan-lokalerBondruckTestMitEscpresso.prompt.md` — Dev-Workflow nutzt
-  heute `--token=devrelay`.
 
 ### What to build
 
@@ -205,16 +203,16 @@ Adresse).
 
 ### Acceptance criteria
 
-- [ ] `jotti-relay` startet allein mit gesetzten Umgebungsvariablen und **ohne
+- [x] `jotti-relay` startet allein mit gesetzten Umgebungsvariablen und **ohne
       jedes Kommandozeilen-Argument** in beiden Szenarien.
-- [ ] Fehlt `RELAY_AUTH_TOKEN`, bricht das Relay mit einer verständlichen Meldung
+- [x] Fehlt `RELAY_AUTH_TOKEN`, bricht das Relay mit einer verständlichen Meldung
       ab.
-- [ ] Ohne `RELAY_BACKEND_URL` nutzt das Relay den Default `http://localhost/api`;
+- [x] Ohne `RELAY_BACKEND_URL` nutzt das Relay den Default `http://localhost/api`;
       ein gesetzter Wert (z. B. VPS-Adresse) wird verwendet.
-- [ ] Die Flags `--token`, `--backend`, `--poll` existieren nicht mehr.
-- [ ] Ein Unit-Test im `jotti-relay`-Modul prüft die Konfigurations-Auflösung
+- [x] Die Flags `--token`, `--backend`, `--poll` existieren nicht mehr.
+- [x] Ein Unit-Test im `jotti-relay`-Modul prüft die Konfigurations-Auflösung
       (Token gesetzt/fehlend, Backend-URL Default/überschrieben).
-- [ ] Die Bondruck-Test-Doku beschreibt den Start per Umgebungsvariablen.
+- [x] Die Bondruck-Test-Doku beschreibt den Start per Umgebungsvariablen.
 
 ---
 
