@@ -800,6 +800,8 @@ Das Backend ist in vier Schichten gegliedert: **HTTP** → **Application** → *
 
 **POST-only:** Alle API-Endpunkte sind POST-Endpunkte. Jede Aktion wird explizit benannt (z. B. `/service/bestellung-aufnehmen` statt `PUT /tables/5`).
 
+**Bewusste Ops-Ausnahme:** `GET /health` ist explizit erlaubt, damit Container-Orchestrierung und Reverse-Proxy den Backend-Status per Healthcheck pruefen koennen. Diese Ausnahme gilt nur fuer `/health`; alle fachlichen Endpunkte bleiben strikt POST-only.
+
 **JSON:** Request- und Response-Bodies sind JSON.
 
 **Authentifizierung:** Jeder Endpunkt (außer `/auth/*`) erwartet ein gültiges JWT im `Authorization: Bearer <token>`-Header. Die Middleware prüft Signatur und Gültigkeit.

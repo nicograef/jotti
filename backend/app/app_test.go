@@ -5,9 +5,13 @@ package app
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/config"
 )
 
@@ -42,6 +46,70 @@ func TestSetupRoutes(t *testing.T) {
 
 	if handler == nil {
 		t.Error("Handler should not be nil")
+	}
+}
+
+func TestSetupRoutes_HealthAllowsGet(t *testing.T) {
+	setRequiredConfigEnv(t)
+	cfg := config.Load()
+	db, err := sql.Open("pgx", "invalid-connection-string")
+	if err != nil {
+		t.Fatalf("failed to create test db handle: %v", err)
+	}
+	defer db.Close()
+
+	handler := SetupRoutes(cfg, db)
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK && w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected status 200 or 503 for GET /health, got %d", w.Code)
+	}
+
+	var body map[string]any
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("expected JSON response for GET /health: %v", err)
+	}
+
+	if code, ok := body["code"].(string); ok && code == "method_not_allowed" {
+		t.Fatalf("GET /health must not be blocked by method middleware")
+	}
+}
+
+func TestSetupRoutes_NonHealthRejectsGet(t *testing.T) {
+	setRequiredConfigEnv(t)
+	cfg := config.Load()
+	db, err := sql.Open("pgx", "invalid-connection-string")
+	if err != nil {
+		t.Fatalf("failed to create test db handle: %v", err)
+	}
+	defer db.Close()
+
+	handler := SetupRoutes(cfg, db)
+
+	req := httptest.NewRequest(http.MethodGet, "/auth/login", nil)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d for GET on non-health route, got %d", http.StatusBadRequest, w.Code)
+	}
+
+	type errorBody struct {
+		Code string `json:"code"`
+	}
+
+	var body errorBody
+	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
+		t.Fatalf("expected JSON error response: %v", err)
+	}
+
+	if body.Code != "method_not_allowed" {
+		t.Fatalf("expected code method_not_allowed, got %q", body.Code)
 	}
 }
 

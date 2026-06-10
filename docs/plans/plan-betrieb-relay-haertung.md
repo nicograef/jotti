@@ -277,14 +277,14 @@ im Handbuch dokumentiert.
 
 ### Acceptance criteria
 
-- [ ] `GET /health` liefert `200` (bzw. `503` bei DB-Problemen); andere Routen
+- [x] `GET /health` liefert `200` (bzw. `503` bei DB-Problemen); andere Routen
       weisen GET weiterhin ab.
-- [ ] Der Backend-Service meldet in `local` und `prod` einen Docker-Health-Status
+- [x] Der Backend-Service meldet in `local` und `prod` einen Docker-Health-Status
       (`healthy`/`unhealthy`).
-- [ ] Der reverse-proxy startet erst, wenn das Backend `healthy` ist.
-- [ ] Ein Test belegt: `GET /health` erlaubt, `GET` auf eine andere Route
+- [x] Der reverse-proxy startet erst, wenn das Backend `healthy` ist.
+- [x] Ein Test belegt: `GET /health` erlaubt, `GET` auf eine andere Route
       abgelehnt.
-- [ ] Das Handbuch dokumentiert die GET-Ausnahme für `/health` als bewusste
+- [x] Das Handbuch dokumentiert die GET-Ausnahme für `/health` als bewusste
       Ops-Entscheidung.
 
 ---
@@ -316,12 +316,12 @@ konsolidiert.
 
 ### Acceptance criteria
 
-- [ ] `local`- und `prod`-Stack starten über `-f base -f override` und verhalten
+- [x] `local`- und `prod`-Stack starten über `-f base -f override` und verhalten
       sich identisch zu vorher (gleiche Services, Ports, Volumes, Env).
-- [ ] `docker compose … config` löst für jedes Target dieselbe effektive
+- [x] `docker compose … config` löst für jedes Target dieselbe effektive
       Konfiguration auf wie vor der Umstellung.
-- [ ] Alle betroffenen Makefile-Targets (`local-*`, `prod-*`, `jotti-rocks-*`)
+- [x] Alle betroffenen Makefile-Targets (`local-*`, `prod-*`, `jotti-rocks-*`)
       und beide Init-Skripte verwenden die Base/Override-Aufrufe.
-- [ ] Geteilte Service-Definitionen stehen genau einmal in der Basis; `local`/
+- [x] Geteilte Service-Definitionen stehen genau einmal in der Basis; `local`/
       `prod` enthalten nur noch ihre Abweichungen.
-- [ ] Der Dev-Stack ist unverändert und weiterhin per `make dev` lauffähig.
+- [x] Der Dev-Stack ist unverändert und weiterhin per `make dev` lauffähig.

@@ -126,6 +126,12 @@ func PostMethodOnlyMiddleware(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := zerolog.Ctx(r.Context())
 
+		// Ops exception: /health must be probeable via GET for container orchestrators.
+		if r.Method == http.MethodGet && r.URL.Path == "/health" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		if r.Method != http.MethodPost {
 			logger.Error().Str("method", r.Method).Msg("Invalid method.")
 			helper.SendClientError(w, "method_not_allowed", nil)
