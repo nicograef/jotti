@@ -95,9 +95,9 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 
 	var prodID int
 	err = db.QueryRow(`
-		INSERT INTO produkte (name, kategorie, status, created_at, updated_at)
-		VALUES ('Test-Bratwurst', 'essen', 'active', now(), now())
-		ON CONFLICT (name) DO UPDATE SET status = 'active'
+		INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at)
+		VALUES ('Test-Bratwurst', 'essen', 'regel', 'active', now(), now())
+		ON CONFLICT (name) DO UPDATE SET status = 'active', steuersatz = 'regel'
 		RETURNING id
 	`).Scan(&prodID)
 	if err != nil {

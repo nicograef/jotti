@@ -345,6 +345,7 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 		ProduktName:  "Bier",
 		VarianteName: "0.5L",
 		Kategorie:    "getraenk",
+		Steuersatz:   "regel",
 		Einzelpreis:  350,
 		Menge:        2,
 	}
@@ -450,6 +451,7 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 		ProduktName:  "Bier",
 		VarianteName: "0.5L",
 		Kategorie:    "getraenk",
+		Steuersatz:   "regel",
 		Einzelpreis:  350,
 		Menge:        2,
 	}
@@ -536,6 +538,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 		ProduktName:  "Bier",
 		VarianteName: "0.5L",
 		Kategorie:    "getraenk",
+		Steuersatz:   "regel",
 		Einzelpreis:  350,
 		Menge:        2,
 	}

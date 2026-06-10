@@ -171,7 +171,7 @@ Tests/Skripten setzen den Token, damit die bestehende Suite grün bleibt.
 - [x] `RELAY_AUTH_TOKEN` wird in der Backend-Env von `docker-compose.yml`,
       `docker-compose.local.yml` und `docker-compose.prod.yml` aus der `.env`
       übergeben und ist in `.env.example` dokumentiert.
-- [ ] `config_test.go`, `app_test.go` und `test-integration.sh` setzen den Token;
+- [x] `config_test.go`, `app_test.go` und `test-integration.sh` setzen den Token;
       `make test` und die Integrationstests laufen unverändert grün.
 - [x] Unit-Tests decken ab: Token vorhanden → akzeptiert; leerer/falscher Token →
       abgelehnt.
