@@ -39,6 +39,7 @@ type zahlungKassiertV1Data struct {
 	Positionen         []positionEventData `json:"positionen"`
 	GesamtZahlungCents int                 `json:"gesamtZahlungCents"`
 	Kommentar          string              `json:"kommentar"`
+	TSEData            *TSEData            `json:"tseData,omitempty"`
 }
 
 var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
@@ -120,11 +121,26 @@ func NewBestellungAufgenommenEvent(subject string, userID int, userName string, 
 }
 
 func NewZahlungKassiertEvent(subject string, userID int, userName string, positionen []Position, gesamtZahlungCents int, kommentar string) (e.Event, error) {
+	return newZahlungKassiertEvent(subject, userID, userName, positionen, gesamtZahlungCents, kommentar, nil)
+}
+
+func NewZahlungKassiertEventMitTSE(subject string, userID int, userName string, positionen []Position, gesamtZahlungCents int, kommentar string, tseData *TSEData) (e.Event, error) {
+	return newZahlungKassiertEvent(subject, userID, userName, positionen, gesamtZahlungCents, kommentar, tseData)
+}
+
+func newZahlungKassiertEvent(subject string, userID int, userName string, positionen []Position, gesamtZahlungCents int, kommentar string, tseData *TSEData) (e.Event, error) {
+	if tseData != nil {
+		if err := tseData.Validate(); err != nil {
+			return e.Event{}, err
+		}
+	}
+
 	data := zahlungKassiertV1Data{
 		ZahlungID:          uuid.New().String(),
 		Positionen:         toPositionenEventData(positionen),
 		GesamtZahlungCents: gesamtZahlungCents,
 		Kommentar:          kommentar,
+		TSEData:            tseData,
 	}
 
 	if err := zahlungKassiertV1DataSchema.Validate(&data); err != nil {

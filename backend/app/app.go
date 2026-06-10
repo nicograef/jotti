@@ -54,7 +54,7 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	adminApi := api.NewAdminApi(cfg, db)
 	r.Handle("/admin/", admin(http.StripPrefix("/admin", adminApi)))
 
-	servicesApi := api.NewServiceApi(db)
+	servicesApi := api.NewServiceApi(cfg, db)
 	service := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "serviceleitung", "service"})
 	r.Handle("/service/", service(http.StripPrefix("/service", servicesApi)))
 

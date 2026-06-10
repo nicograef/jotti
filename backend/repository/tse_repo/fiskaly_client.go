@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
@@ -138,8 +137,12 @@ func NewFiskalyTSEClient(baseURL string, credentials tse.Credentials, httpClient
 	}, nil
 }
 
-func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, _ string, processType string, processData string) (tse.StartResult, error) {
-	txID := uuid.NewString()
+func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string, processType string, processData string) (tse.StartResult, error) {
+	txID = strings.TrimSpace(txID)
+	if txID == "" {
+		return tse.StartResult{}, fmt.Errorf("tx id is required")
+	}
+
 	resp := transactionResponse{}
 	err := c.doJSONRequest(
 		ctx,
@@ -170,12 +173,17 @@ func (c *FiskalyTSEClient) UpdateTransaction(_ context.Context, _ string, _ int,
 	return ErrUpdateTransactionNichtUnterstuetzt
 }
 
-func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, _ string, transactionNumber int, processType string, processData string) (tse.FinishResult, error) {
+func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, _ int, processType string, processData string) (tse.FinishResult, error) {
+	txID = strings.TrimSpace(txID)
+	if txID == "" {
+		return tse.FinishResult{}, fmt.Errorf("tx id is required")
+	}
+
 	resp := transactionResponse{}
 	err := c.doJSONRequest(
 		ctx,
 		http.MethodPut,
-		fmt.Sprintf("/api/v2/tss/%s/tx/%d", url.PathEscape(c.credentials.TssID), transactionNumber),
+		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.credentials.TssID), url.PathEscape(txID)),
 		url.Values{"tx_revision": []string{"2"}},
 		upsertTransactionRequest{
 			State:    "FINISHED",

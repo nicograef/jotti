@@ -304,18 +304,18 @@ konfiguriert, wird nicht signiert und der Beleg bleibt byte-identisch.
 
 ### Acceptance criteria
 
-- [ ] Mit konfigurierter TSE trägt ein `zahlung-kassiert:v1`-Event die
+- [x] Mit konfigurierter TSE trägt ein `zahlung-kassiert:v1`-Event die
       `TSEData`-Felder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer,
       LogTime-Start/-Ende, Signatur) im Kassenjournal.
-- [ ] Die processData für `Kassenbeleg-V1` entspricht §3.4: korrekte Slot-Belegung,
+- [x] Die processData für `Kassenbeleg-V1` entspricht §3.4: korrekte Slot-Belegung,
       kombi 70/30, befreit (0 %), Punkt-Dezimal, keine Tausendertrenner — über
       table-driven Tests abgesichert.
-- [ ] Die `tx_id` ist deterministisch aus der Event-Identität abgeleitet.
-- [ ] Der gedruckte Kassenbeleg zeigt die TSE-Pflichtfelder, wenn Signaturdaten
+- [x] Die `tx_id` ist deterministisch aus der Event-Identität abgeleitet.
+- [x] Der gedruckte Kassenbeleg zeigt die TSE-Pflichtfelder, wenn Signaturdaten
       vorliegen.
-- [ ] Ohne konfigurierte TSE wird nicht signiert und der Beleg ist byte-identisch
+- [x] Ohne konfigurierte TSE wird nicht signiert und der Beleg ist byte-identisch
       zum heutigen Zustand (bestehende Formatter-Tests bleiben grün).
-- [ ] Der Service wird gegen den Fake-`TSEClient` getestet (Happy Path);
+- [x] Der Service wird gegen den Fake-`TSEClient` getestet (Happy Path);
       `make check` grün.
 
 ---

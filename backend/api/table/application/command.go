@@ -11,6 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/rs/zerolog"
 )
@@ -62,7 +63,10 @@ type settingsRepo interface {
 	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
 	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
+	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
+
+type NewTSEClient func(credentials tse.Credentials) (tse.TSEClient, error)
 
 // BestellPositionInput represents the input for a single position in an order.
 // The application layer enriches this with product/variant details (fat events).
@@ -81,6 +85,7 @@ type Command struct {
 	DruckstationRepo    druckstationRepo
 	DruckauftragRepo    druckauftragRepo
 	SettingsRepo        settingsRepo
+	NewTSEClient        NewTSEClient
 }
 
 type zahlungKassiertV1Data struct {
@@ -88,6 +93,7 @@ type zahlungKassiertV1Data struct {
 	Positionen         []zahlungPositionData `json:"positionen"`
 	GesamtZahlungCents int                   `json:"gesamtZahlungCents"`
 	Kommentar          string                `json:"kommentar"`
+	TSEData            *kasse.TSEData        `json:"tseData,omitempty"`
 }
 
 type zahlungPositionData struct {
@@ -608,6 +614,11 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	evt, err := kasse.NewZahlungKassiertEvent(subject, userID, userName, resolvedPositionen, gesamtZahlungCents, kommentar)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create zahlung kassiert event")
+		return err
+	}
+
+	evt, err = c.signZahlungKassiertEvent(ctx, evt, resolvedPositionen, gesamtZahlungCents)
+	if err != nil {
 		return err
 	}
 

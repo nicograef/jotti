@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
@@ -69,6 +70,30 @@ type direktverkaufGetaetigtV1Data struct {
 	Kommentar         string                `json:"kommentar"`
 }
 
+func toTSEAbschnitt(data *kasse.TSEData) (*escpos.TSEAbschnitt, error) {
+	if data == nil {
+		return nil, nil
+	}
+
+	start, err := time.Parse(time.RFC3339, data.LogTimeStart)
+	if err != nil {
+		return nil, err
+	}
+	end, err := time.Parse(time.RFC3339, data.LogTimeEnd)
+	if err != nil {
+		return nil, err
+	}
+
+	return &escpos.TSEAbschnitt{
+		TransaktionNr:   data.TransactionNumber,
+		Signaturzaehler: data.SignatureCounter,
+		TSESeriennummer: data.SerialNumberTSE,
+		ZeitpunktBeginn: start,
+		ZeitpunktEnde:   end,
+		Signatur:        data.Signature,
+	}, nil
+}
+
 func findDirektverkaufGetaetigtEvent(events []event.Event, verkaufID string) (event.Event, direktverkaufGetaetigtV1Data, error) {
 	for _, evt := range events {
 		if evt.Type != string(kasse.EventTypeDirektverkaufGetaetigtV1) {
@@ -104,6 +129,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 	var positionen []kasse.Position
 	var gesamtbetragCents int
 	var referenz string
+	var tseAbschnitt *escpos.TSEAbschnitt
 
 	if verkaufID != "" {
 		subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
@@ -149,6 +175,12 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		positionen = toKassePositionen(zahlungData.Positionen)
 		gesamtbetragCents = zahlungData.GesamtZahlungCents
 		referenz = fmt.Sprintf("zahlung-kassiert:%d", zahlungEvent.ID)
+
+		tseAbschnitt, err = toTSEAbschnitt(zahlungData.TSEData)
+		if err != nil {
+			log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to parse TSE data for kassenbeleg")
+			return ErrDatabase
+		}
 	}
 
 	bondruckSettings, err := c.SettingsRepo.GetBondruckEinstellungen(ctx)
@@ -182,6 +214,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		Zeitpunkt:          quelleEvent.Time,
 		Positionen:         positionen,
 		Steuermatrix:       steuer.Steuermatrix(toSteuermatrixPositionen(positionen)),
+		TSE:                tseAbschnitt,
 		GesamtbetragCents:  gesamtbetragCents,
 		Zahlungsart:        "bar",
 	})
