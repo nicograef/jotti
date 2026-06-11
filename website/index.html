@@ -21,25 +21,29 @@
 
     <main>
       <!-- ============ HERO ============ -->
-      <section class="hero">
-        <div class="container hero-inner">
-          <div class="hero-text">
-            <h1>
+      <section class="pt-12 pb-10 md:pt-20 md:pb-16">
+        <div
+          class="container grid items-center gap-12 text-center lg:grid-cols-2 lg:text-left"
+        >
+          <div class="lg:max-w-135">
+            <h1 class="mb-5">
               Das kostenlose Kassensystem
-              <span class="highlight">für euer Vereinsfest.</span>
+              <span class="text-primary">für euer Vereinsfest.</span>
             </h1>
-            <p class="hero-sub">
+            <p class="text-lg mb-4">
               Bestellungen aufnehmen, Ausgabe bestätigen, kassieren — am
               bedienten Tisch oder per Direktverkauf an der Theke, direkt auf
               dem Smartphone, ohne spezielle Hardware. Für Vereine und
               gemeinnützige Organisationen.
             </p>
-            <p class="hero-tags">
+            <p class="text-15 font-bold text-primary tracking-2 mb-8">
               Kostenlos. Self-hosted. Fiskalkonform<span class="badge-wip"
                 >In Entwicklung</span
               >.
             </p>
-            <div class="hero-actions">
+            <div
+              class="flex flex-col gap-4 md:flex-row md:flex-wrap md:justify-center lg:justify-start"
+            >
               <a
                 href="https://github.com/nicograef/jotti"
                 target="_blank"
@@ -50,11 +54,13 @@
               <a href="#features" class="btn btn-ghost">Features entdecken</a>
             </div>
           </div>
-          <div class="hero-visual">
+          <div
+            class="flex items-center justify-center order-first lg:order-none"
+          >
             <img
               src="/img/jotti-service-dashboard.webp"
               alt="jotti Service-Ansicht auf einem Smartphone: Tischübersicht mit offenen Saldi und farbigen Status-Badges"
-              class="hero-screenshot"
+              class="w-full max-w-50 lg:max-w-75 drop-shadow-soft"
               width="390"
               loading="eager"
             />
@@ -63,18 +69,18 @@
       </section>
 
       <!-- ============ WARUM JOTTI (Problem + Vergleich) ============ -->
-      <section class="section why" id="warum">
+      <section class="py-section bg-surface-alt" id="warum">
         <div class="container">
-          <h2 class="section-title">Warum jotti?</h2>
-          <p class="section-subtitle">
+          <h2 class="text-center mb-3">Warum jotti?</h2>
+          <p class="text-17 text-center max-w-160 mx-auto mb-12">
             Die meisten Vereine bewirtschaften ihre Feste mit Stift &amp;
             Papier, einer Excel-Tabelle oder einem teuren kommerziellen
             Kassensystem — und stoßen dabei immer wieder an dieselben Grenzen.
           </p>
-          <div class="text-list cols-3">
+          <div class="grid gap-y-7 gap-x-10 lg:grid-cols-3">
             <div>
-              <h3>Stift &amp; Papier</h3>
-              <p>
+              <h3 class="mb-1-5">Stift &amp; Papier</h3>
+              <p class="text-15 leading-relaxed">
                 Unleserliche Handschrift, verlorene Bonblöcke, keine
                 Echtzeit-Übersicht. Am Ende sitzt ihr stundenlang zusammen, um
                 die Abrechnung hinzubekommen. Und die KassenSichV? Damit nicht
@@ -82,23 +88,25 @@
               </p>
             </div>
             <div>
-              <h3>Excel-Tabelle</h3>
-              <p>
+              <h3 class="mb-1-5">Excel-Tabelle</h3>
+              <p class="text-15 leading-relaxed">
                 Nicht echtzeitfähig, kein Mehrbenutzerbetrieb, keine
                 Tisch-Zuordnung. Einer tippt, alle anderen warten. Keine
                 TSE-Anbindung, keine Fiskalkonformität.
               </p>
             </div>
             <div>
-              <h3>Kommerzielles POS</h3>
-              <p>
+              <h3 class="mb-1-5">Kommerzielles POS</h3>
+              <p class="text-15 leading-relaxed">
                 30–100&nbsp;€ pro Monat plus Hardware. Fiskalkonform, aber für
                 2–3 Feste im Jahr völlig überdimensioniert — und viel zu teuer.
               </p>
             </div>
           </div>
 
-          <h3 class="subsection-title">jotti löst genau diese Probleme.</h3>
+          <h3 class="text-center mt-12 mb-5">
+            jotti löst genau diese Probleme.
+          </h3>
           <div class="table-wrapper">
             <table class="comparison-table">
               <thead>
@@ -197,69 +205,75 @@
       </section>
 
       <!-- ============ FEATURES ============ -->
-      <section class="section" id="features">
+      <section class="py-section" id="features">
         <div class="container">
-          <h2 class="section-title">Alles, was euer Vereinsfest braucht.</h2>
-          <p class="section-subtitle">
+          <h2 class="text-center mb-3">Alles, was euer Vereinsfest braucht.</h2>
+          <p class="text-17 text-center max-w-160 mx-auto mb-12">
             Nicht mehr, nicht weniger. jotti konzentriert sich auf die
             Kernfunktionen — damit sich euer Team auf die Gäste konzentrieren
             kann.
           </p>
 
           <!-- Kassenbetrieb -->
-          <div class="feature-group">
-            <h3 class="feature-group-title">Kassenbetrieb</h3>
-            <div class="text-list cols-2">
+          <div class="mb-12 last:mb-0">
+            <h3
+              class="text-xl font-bold text-primary text-center tracking-1 mb-5"
+            >
+              Kassenbetrieb
+            </h3>
+            <div class="grid gap-y-7 gap-x-10 md:grid-cols-2">
               <div>
-                <h3>Bestellungen aufnehmen</h3>
-                <p>
+                <h3 class="mb-1-5">Bestellungen aufnehmen</h3>
+                <p class="text-15 leading-relaxed">
                   Produkte mit Varianten und Steuersätzen auswählen, Menge und
                   Kommentare angeben, auf den Tisch buchen — alles im Browser.
                 </p>
               </div>
               <div>
-                <h3>Ausgabe bestätigen</h3>
-                <p>
+                <h3 class="mb-1-5">Ausgabe bestätigen</h3>
+                <p class="text-15 leading-relaxed">
                   Bestellte Positionen als ausgegeben markieren. Jeder weiß, was
                   raus ist und was noch fehlt.
                 </p>
               </div>
               <div>
-                <h3>Kassieren</h3>
-                <p>
+                <h3 class="mb-1-5">Kassieren</h3>
+                <p class="text-15 leading-relaxed">
                   Am Tisch kassieren — Teilzahlungen und automatische
                   Rückgeldberechnung. Offener Saldo immer im Blick.
                 </p>
               </div>
               <div>
-                <h3>
+                <h3 class="mb-1-5">
                   Direktverkauf an der Theke
                   <span class="badge-wip">In Entwicklung</span>
                 </h3>
-                <p>
+                <p class="text-15 leading-relaxed">
                   Bestellen, kassieren und ausgeben in einem Schritt — ideal für
                   Getränke- und Kuchentheke. Kein offener Saldo, sofort bezahlt,
                   optionaler Abholbon für den Gast.
                 </p>
               </div>
               <div>
-                <h3>Stornieren &amp; Auszahlung</h3>
-                <p>
+                <h3 class="mb-1-5">Stornieren &amp; Auszahlung</h3>
+                <p class="text-15 leading-relaxed">
                   Falschbestellungen rückgängig machen (Serviceleitung/Admin,
                   Pflichtkommentar). Negativen Saldo nach Stornierung
                   ausgleichen.
                 </p>
               </div>
               <div>
-                <h3>Umbuchen <span class="badge-wip">In Entwicklung</span></h3>
-                <p>
+                <h3 class="mb-1-5">
+                  Umbuchen <span class="badge-wip">In Entwicklung</span>
+                </h3>
+                <p class="text-15 leading-relaxed">
                   Bestellungen auf einen anderen Tisch verschieben — eine
                   atomare Operation, lückenlos nachvollziehbar.
                 </p>
               </div>
               <div>
-                <h3>Tischübersicht</h3>
-                <p>
+                <h3 class="mb-1-5">Tischübersicht</h3>
+                <p class="text-15 leading-relaxed">
                   Alle Tische mit Saldo und Status auf einen Blick. Eigene
                   Tische als Favoriten markieren, Schnellsuche per Name oder
                   Nummer.
@@ -269,32 +283,36 @@
           </div>
 
           <!-- Küche & Ausgabe -->
-          <div class="feature-group">
-            <h3 class="feature-group-title">Küche &amp; Ausgabe</h3>
-            <div class="text-list cols-2">
+          <div class="mb-12 last:mb-0">
+            <h3
+              class="text-xl font-bold text-primary text-center tracking-1 mb-5"
+            >
+              Küche &amp; Ausgabe
+            </h3>
+            <div class="grid gap-y-7 gap-x-10 md:grid-cols-2">
               <div>
-                <h3>Arbeitsbon (Küche &amp; Theke)</h3>
-                <p>
+                <h3 class="mb-1-5">Arbeitsbon (Küche &amp; Theke)</h3>
+                <p class="text-15 leading-relaxed">
                   Bestellungen automatisch als Arbeitsanweisung an die
                   Druckstationen senden — pro Kategorie konfigurierbar, ganz
                   ohne Preise. Kein Beleg, sondern reine Ausgabe-Hilfe.
                 </p>
               </div>
               <div>
-                <h3>
+                <h3 class="mb-1-5">
                   Küchendisplay (KDS)
                   <span class="badge-wip">In Entwicklung</span>
                 </h3>
-                <p>
+                <p class="text-15 leading-relaxed">
                   Eingehende Bestellungen in Echtzeit auf einem Bildschirm in
                   der Küche oder an der Ausgabe.
                 </p>
               </div>
               <div>
-                <h3>
+                <h3 class="mb-1-5">
                   Ausgabestationen <span class="badge-wip">In Entwicklung</span>
                 </h3>
-                <p>
+                <p class="text-15 leading-relaxed">
                   Zubereitungsstatus verwalten — Servicekräfte sehen, wann
                   Positionen abholbereit sind.
                 </p>
@@ -303,26 +321,30 @@
           </div>
 
           <!-- Kassenführung -->
-          <div class="feature-group">
-            <h3 class="feature-group-title">Kassenführung</h3>
-            <div class="text-list cols-2">
+          <div class="mb-12 last:mb-0">
+            <h3
+              class="text-xl font-bold text-primary text-center tracking-1 mb-5"
+            >
+              Kassenführung
+            </h3>
+            <div class="grid gap-y-7 gap-x-10 md:grid-cols-2">
               <div>
-                <h3>Abrechnungskreis</h3>
-                <p>
+                <h3 class="mb-1-5">Abrechnungskreis</h3>
+                <p class="text-15 leading-relaxed">
                   Fortlaufend nummerierte Kassensitzungen eröffnen und
                   schließen. Anfangsbestand (Wechselgeld) zu Beginn erfassen.
                 </p>
               </div>
               <div>
-                <h3>Kassenbestand &amp; Bewegungen</h3>
-                <p>
+                <h3 class="mb-1-5">Kassenbestand &amp; Bewegungen</h3>
+                <p class="text-15 leading-relaxed">
                   Soll-Bestand jederzeit einsehen. Geldtransit, Privatentnahmen
                   und Privateinlagen buchen.
                 </p>
               </div>
               <div>
-                <h3>Kassensturz &amp; Z-Bon</h3>
-                <p>
+                <h3 class="mb-1-5">Kassensturz &amp; Z-Bon</h3>
+                <p class="text-15 leading-relaxed">
                   Ist-Bestand eingeben, Differenz berechnen. Formaler
                   Tagesabschluss mit fortlaufender Nummer und
                   Stammdaten-Snapshot.
@@ -332,28 +354,32 @@
           </div>
 
           <!-- Abrechnung & Reporting -->
-          <div class="feature-group">
-            <h3 class="feature-group-title">Abrechnung &amp; Reporting</h3>
-            <div class="text-list cols-2">
+          <div class="mb-12 last:mb-0">
+            <h3
+              class="text-xl font-bold text-primary text-center tracking-1 mb-5"
+            >
+              Abrechnung &amp; Reporting
+            </h3>
+            <div class="grid gap-y-7 gap-x-10 md:grid-cols-2">
               <div>
-                <h3>Tagesabrechnung</h3>
-                <p>
+                <h3 class="mb-1-5">Tagesabrechnung</h3>
+                <p class="text-15 leading-relaxed">
                   Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge —
                   nach Steuersatz aufgeschlüsselt.
                 </p>
               </div>
               <div>
-                <h3>Pro Tisch &amp; Servicekraft</h3>
-                <p>
+                <h3 class="mb-1-5">Pro Tisch &amp; Servicekraft</h3>
+                <p class="text-15 leading-relaxed">
                   Detaillierte Aufstellung je Tisch. Umsatz und Transaktionen
                   pro Servicekraft. Produktumsatz-Ranking.
                 </p>
               </div>
               <div>
-                <h3>
+                <h3 class="mb-1-5">
                   Datenexport <span class="badge-wip">In Entwicklung</span>
                 </h3>
-                <p>
+                <p class="text-15 leading-relaxed">
                   CSV-Export für die Vereinsbuchhaltung. DSFinV-K-Export als
                   ZIP-Archiv für die Finanzverwaltung.
                 </p>
@@ -364,41 +390,41 @@
       </section>
 
       <!-- ============ FISKALKONFORM & SICHER (Fiskal + Sicherheit) ============ -->
-      <section class="section compliance" id="fiskalkonform">
+      <section class="py-section bg-surface-alt" id="fiskalkonform">
         <div class="container">
-          <h2 class="section-title">Finanzamtssicher. Ab Werk.</h2>
-          <p class="section-subtitle">
+          <h2 class="text-center mb-3">Finanzamtssicher. Ab Werk.</h2>
+          <p class="text-17 text-center max-w-160 mx-auto mb-12">
             jotti ist ein elektronisches Aufzeichnungssystem nach KassenSichV
             und erfüllt die TSE-Pflicht nach § 146a AO — fiskalkonform, ohne
             Zusatzkosten für die Software.
           </p>
 
-          <div class="text-list cols-2">
+          <div class="grid gap-y-7 gap-x-10 md:grid-cols-2">
             <div>
-              <h3>
+              <h3 class="mb-1-5">
                 TSE-Anbindung <span class="badge-wip">In Entwicklung</span>
               </h3>
-              <p>
+              <p class="text-15 leading-relaxed">
                 Integrierte Cloud-TSE-Schnittstelle (fiskaly). Jeder Vorgang
                 wird signiert und kryptografisch abgesichert.
               </p>
             </div>
             <div>
-              <h3>
+              <h3 class="mb-1-5">
                 Kryptografische Hash-Chain
                 <span class="badge-wip">In Entwicklung</span>
               </h3>
-              <p>
+              <p class="text-15 leading-relaxed">
                 SHA-256-Verkettung aller Events. Nachträgliche Manipulation ist
                 mathematisch nachweisbar.
               </p>
             </div>
             <div>
-              <h3>
+              <h3 class="mb-1-5">
                 Kassenbeleg (auf Anforderung)
                 <span class="badge-wip">In Entwicklung</span>
               </h3>
-              <p>
+              <p class="text-15 leading-relaxed">
                 Gesetzeskonformer Zahlungsbeleg nach § 146a AO: alle Positionen
                 mit Preisen, Vereinsdaten und Kassen-Seriennummer — auf
                 Knopfdruck, wenn der Gast ihn verlangt. TSE-Signatur, QR-Code
@@ -406,31 +432,31 @@
               </p>
             </div>
             <div>
-              <h3>Event-Sourcing</h3>
-              <p>
+              <h3 class="mb-1-5">Event-Sourcing</h3>
+              <p class="text-15 leading-relaxed">
                 Lückenlose, unveränderliche Bestellhistorie. GoBD-konform durch
                 Append-only-Architektur — kein nachträgliches Löschen.
               </p>
             </div>
             <div>
-              <h3>
+              <h3 class="mb-1-5">
                 DSFinV-K-Export <span class="badge-wip">In Entwicklung</span>
               </h3>
-              <p>
+              <p class="text-15 leading-relaxed">
                 Maschinenlesbarer Export aller Kassendaten für die
                 Finanzverwaltung — ZIP-Archiv nach DSFinV-K v2.4.
               </p>
             </div>
             <div>
-              <h3>Tagesabschluss (Z-Bon)</h3>
-              <p>
+              <h3 class="mb-1-5">Tagesabschluss (Z-Bon)</h3>
+              <p class="text-15 leading-relaxed">
                 Immutables Abschlussdokument mit fortlaufender Nummer,
                 Umsatzaggregation und Stammdaten-Snapshot.
               </p>
             </div>
           </div>
 
-          <div class="bon-visual">
+          <div class="mt-12 rounded-3xl overflow-hidden">
             <img
               src="/img/jotti-bon.webp"
               alt="Gedruckter Kassenbeleg auf einem Bierzelttisch beim Vereinsfest — mit Artikeln und Preisen, geplant mit TSE-Signatur und QR-Code"
@@ -440,15 +466,17 @@
             />
           </div>
 
-          <h3 class="subsection-title">Eure Daten. Manipulationssicher.</h3>
-          <p class="section-subtitle">
+          <h3 class="text-center mt-12 mb-5">
+            Eure Daten. Manipulationssicher.
+          </h3>
+          <p class="text-17 text-center max-w-160 mx-auto mb-12">
             jotti speichert jede Bestellung, jede Zahlung und jede Stornierung
             als unveränderliches Event — kryptografisch verkettet und per TSE
             signiert. Nachträgliche Manipulation ist technisch ausgeschlossen.
             Das schafft Vertrauen — gegenüber dem Vorstand, den Helfern und dem
             Finanzamt.
           </p>
-          <ul class="check-list narrow">
+          <ul class="check-list max-w-160 mx-auto">
             <li>
               <strong>Rollenmodell</strong> — Admin, Serviceleitung,
               Servicekraft mit abgestuften Rechten
@@ -477,7 +505,7 @@
             </p>
           </div>
 
-          <div class="compliance-actions">
+          <div class="mt-8 text-center">
             <a href="/leitfaden-fuer-vereine/" class="btn btn-primary"
               >Betreiber-Leitfaden für Vereine lesen</a
             >
@@ -486,34 +514,48 @@
       </section>
 
       <!-- ============ SO FUNKTIONIERT'S ============ -->
-      <section class="section" id="so-funktionierts">
+      <section class="py-section" id="so-funktionierts">
         <div class="container">
-          <h2 class="section-title">In drei Schritten startklar.</h2>
-          <p class="section-subtitle">
+          <h2 class="text-center mb-3">In drei Schritten startklar.</h2>
+          <p class="text-17 text-center max-w-160 mx-auto mb-12">
             Keine wochenlange Einrichtung. Kein Schulungsbedarf. Einfach
             loslegen.
           </p>
-          <div class="steps">
-            <div class="step">
-              <div class="step-number">1</div>
-              <h3>Admin richtet ein</h3>
-              <p>
+          <div
+            class="grid gap-8 max-w-88 mx-auto lg:grid-cols-3 lg:gap-10 lg:max-w-none"
+          >
+            <div class="text-center">
+              <div
+                class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white text-xl font-bold mb-4"
+              >
+                1
+              </div>
+              <h3 class="mb-2">Admin richtet ein</h3>
+              <p class="text-15 leading-relaxed">
                 Produkte mit Varianten, Preisen und Steuersätzen anlegen, Tische
                 erstellen, Benutzer einladen, Betreiber-Stammdaten pflegen.
               </p>
             </div>
-            <div class="step">
-              <div class="step-number">2</div>
-              <h3>Team meldet sich an</h3>
-              <p>
+            <div class="text-center">
+              <div
+                class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white text-xl font-bold mb-4"
+              >
+                2
+              </div>
+              <h3 class="mb-2">Team meldet sich an</h3>
+              <p class="text-15 leading-relaxed">
                 Jeder Helfer öffnet den Browser auf dem eigenen Smartphone, gibt
                 das Einmalpasswort ein und setzt ein eigenes Passwort.
               </p>
             </div>
-            <div class="step">
-              <div class="step-number">3</div>
-              <h3>Loslegen</h3>
-              <p>
+            <div class="text-center">
+              <div
+                class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white text-xl font-bold mb-4"
+              >
+                3
+              </div>
+              <h3 class="mb-2">Loslegen</h3>
+              <p class="text-15 leading-relaxed">
                 Bestellungen aufnehmen, Ausgabe bestätigen, kassieren —
                 Tagesabschluss und Z-Bon am Ende des Abends.
               </p>
@@ -523,34 +565,34 @@
       </section>
 
       <!-- ============ FÜR WEN ============ -->
-      <section class="section target-audience">
+      <section class="py-section bg-surface-alt">
         <div class="container">
-          <h2 class="section-title">Für wen ist jotti gedacht?</h2>
-          <p class="section-subtitle">
+          <h2 class="text-center mb-3">Für wen ist jotti gedacht?</h2>
+          <p class="text-17 text-center max-w-160 mx-auto mb-12">
             jotti ist für alle gemeinnützigen Organisationen, die temporäre
             Gastronomie-Veranstaltungen durchführen — mit voller
             Fiskalkonformität, unabhängig von der Rechtsform.
           </p>
-          <div class="text-list cols-2">
+          <div class="grid gap-y-7 gap-x-10 md:grid-cols-2">
             <div>
-              <h3>Vereine (e.V.)</h3>
-              <p>
+              <h3 class="mb-1-5">Vereine (e.V.)</h3>
+              <p class="text-15 leading-relaxed">
                 Sportvereine, Musikvereine, Schützenvereine, Karnevalsvereine,
                 Fördervereine — jeder eingetragene Verein, der Feste
                 veranstaltet.
               </p>
             </div>
             <div>
-              <h3>Gemeinnützige Organisationen</h3>
-              <p>
+              <h3 class="mb-1-5">Gemeinnützige Organisationen</h3>
+              <p class="text-15 leading-relaxed">
                 gGmbH, gUG, Stiftungen, kirchliche Träger, NGOs — alle, die
                 unter das Gemeinnützigkeitsrecht fallen.
               </p>
             </div>
           </div>
 
-          <h3 class="subsection-title">Typische Veranstaltungen</h3>
-          <div class="tag-cloud">
+          <h3 class="text-center mt-12 mb-5">Typische Veranstaltungen</h3>
+          <div class="flex flex-wrap justify-center gap-2-5">
             <span class="tag">Vereinsfeste</span>
             <span class="tag">Sommerfeste</span>
             <span class="tag">Weihnachtsmärkte</span>
@@ -566,17 +608,17 @@
       </section>
 
       <!-- ============ SELBST BETREIBEN & KOSTEN (Technik + Kosten) ============ -->
-      <section class="section" id="technik">
+      <section class="py-section" id="technik">
         <div class="container">
-          <h2 class="section-title">Selbst betreiben — kostenlos.</h2>
-          <p class="section-subtitle">
+          <h2 class="text-center mb-3">Selbst betreiben — kostenlos.</h2>
+          <p class="text-17 text-center max-w-160 mx-auto mb-12">
             jotti ist self-hosted per Docker Compose und für gemeinnützige
             Organisationen dauerhaft kostenlos. Wer Docker starten kann, kann
             jotti betreiben. Die einzigen Kosten sind Hosting und — sobald die
             TSE-Phase greift — eine Cloud-TSE.
           </p>
 
-          <ul class="check-list narrow">
+          <ul class="check-list max-w-160 mx-auto">
             <li>
               Voller Funktionsumfang inklusive Fiskalkonformität — ohne Limits
               bei Tischen, Produkten oder Benutzern
@@ -595,63 +637,103 @@
             </li>
           </ul>
 
-          <h3 class="subsection-title">Was kostet der Betrieb?</h3>
-          <ul class="plain-list narrow">
+          <h3 class="text-center mt-12 mb-5">Was kostet der Betrieb?</h3>
+          <ul class="plain-list max-w-160 mx-auto">
             <li>VPS ab ~3 €/Monat (z.&nbsp;B. Hetzner, Netcup)</li>
             <li>Raspberry Pi ~50 € einmalig</li>
             <li>Vereinseigener Server — 0 €</li>
             <li>Cloud-TSE (z.&nbsp;B. fiskaly) — je nach Anbieter (BYOT)</li>
           </ul>
 
-          <h3 class="subsection-title">Technik &amp; Anforderungen</h3>
-          <div class="card-grid two-col">
-            <div class="spec-block">
-              <h3>Tech-Stack</h3>
-              <div class="tech-stack">
-                <div class="tech-row">
-                  <span class="tech-label">Frontend</span>
-                  <span>React, TypeScript, Tailwind CSS</span>
+          <h3 class="text-center mt-12 mb-5">Technik &amp; Anforderungen</h3>
+          <div class="grid gap-6 md:grid-cols-2">
+            <div>
+              <h3 class="mb-4">Tech-Stack</h3>
+              <div class="flex flex-col gap-3">
+                <div
+                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
+                >
+                  <span class="min-w-25 font-bold text-foreground"
+                    >Frontend</span
+                  >
+                  <span class="text-muted"
+                    >React, TypeScript, Tailwind CSS</span
+                  >
                 </div>
-                <div class="tech-row">
-                  <span class="tech-label">Backend</span>
-                  <span>Go, stdlib net/http, pgx</span>
+                <div
+                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
+                >
+                  <span class="min-w-25 font-bold text-foreground"
+                    >Backend</span
+                  >
+                  <span class="text-muted">Go, stdlib net/http, pgx</span>
                 </div>
-                <div class="tech-row">
-                  <span class="tech-label">Datenbank</span>
-                  <span>PostgreSQL</span>
+                <div
+                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
+                >
+                  <span class="min-w-25 font-bold text-foreground"
+                    >Datenbank</span
+                  >
+                  <span class="text-muted">PostgreSQL</span>
                 </div>
-                <div class="tech-row">
-                  <span class="tech-label">TSE</span>
-                  <span>Cloud-TSE via fiskaly (Adapter-Pattern)</span>
+                <div
+                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
+                >
+                  <span class="min-w-25 font-bold text-foreground">TSE</span>
+                  <span class="text-muted"
+                    >Cloud-TSE via fiskaly (Adapter-Pattern)</span
+                  >
                 </div>
-                <div class="tech-row">
-                  <span class="tech-label">Infrastruktur</span>
-                  <span>Docker Compose, nginx, Let's Encrypt</span>
+                <div
+                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
+                >
+                  <span class="min-w-25 font-bold text-foreground"
+                    >Infrastruktur</span
+                  >
+                  <span class="text-muted"
+                    >Docker Compose, nginx, Let's Encrypt</span
+                  >
                 </div>
               </div>
             </div>
-            <div class="spec-block">
-              <h3>Anforderungen</h3>
-              <div class="tech-stack">
-                <div class="tech-row">
-                  <span class="tech-label">Server</span>
-                  <span>1 vCPU, 1 GB RAM, 10 GB SSD</span>
+            <div>
+              <h3 class="mb-4">Anforderungen</h3>
+              <div class="flex flex-col gap-3">
+                <div
+                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
+                >
+                  <span class="min-w-25 font-bold text-foreground">Server</span>
+                  <span class="text-muted">1 vCPU, 1 GB RAM, 10 GB SSD</span>
                 </div>
-                <div class="tech-row">
-                  <span class="tech-label">OS</span>
-                  <span>Linux (Ubuntu, Debian o.ä.)</span>
+                <div
+                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
+                >
+                  <span class="min-w-25 font-bold text-foreground">OS</span>
+                  <span class="text-muted">Linux (Ubuntu, Debian o.ä.)</span>
                 </div>
-                <div class="tech-row">
-                  <span class="tech-label">Software</span>
-                  <span>Docker + Docker Compose</span>
+                <div
+                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
+                >
+                  <span class="min-w-25 font-bold text-foreground"
+                    >Software</span
+                  >
+                  <span class="text-muted">Docker + Docker Compose</span>
                 </div>
-                <div class="tech-row">
-                  <span class="tech-label">Netzwerk</span>
-                  <span>Domain + Port 80/443 offen</span>
+                <div
+                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
+                >
+                  <span class="min-w-25 font-bold text-foreground"
+                    >Netzwerk</span
+                  >
+                  <span class="text-muted">Domain + Port 80/443 offen</span>
                 </div>
-                <div class="tech-row">
-                  <span class="tech-label">TSE</span>
-                  <span>Cloud-TSE-Vertrag (z.B. fiskaly)</span>
+                <div
+                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
+                >
+                  <span class="min-w-25 font-bold text-foreground">TSE</span>
+                  <span class="text-muted"
+                    >Cloud-TSE-Vertrag (z.B. fiskaly)</span
+                  >
                 </div>
               </div>
             </div>
@@ -659,12 +741,12 @@
 
           <div class="quickstart-box">
             <h3>Schnellstart</h3>
-            <pre><code>cp .env.example .env    <span class="code-comment"># Konfiguration + TSE-API-Keys</span>
-make prod-init          <span class="code-comment"># SSL-Zertifikat erstellen</span>
-make prod-up            <span class="code-comment"># Starten</span></code></pre>
+            <pre><code>cp .env.example .env    <span class="text-muted-light"># Konfiguration + TSE-API-Keys</span>
+make prod-init          <span class="text-muted-light"># SSL-Zertifikat erstellen</span>
+make prod-up            <span class="text-muted-light"># Starten</span></code></pre>
           </div>
 
-          <div class="compliance-actions">
+          <div class="mt-8 text-center">
             <a href="/jotti-selbst-betreiben/" class="btn btn-primary"
               >Hosting-Leitfaden: jotti selbst betreiben</a
             >
@@ -673,12 +755,12 @@ make prod-up            <span class="code-comment"># Starten</span></code></pre>
       </section>
 
       <!-- ============ CTA ============ -->
-      <section class="section cta-section" id="bereit">
-        <div class="container cta-inner">
+      <section class="cta-section py-section" id="bereit">
+        <div class="container flex flex-col items-center gap-5">
           <img
             src="/img/jotti-symbol.png"
             alt="jotti"
-            class="cta-icon"
+            class="rounded-2xl"
             width="80"
             height="80"
           />

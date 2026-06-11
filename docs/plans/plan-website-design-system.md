@@ -234,15 +234,20 @@ migrierte Markup tatsächlich nutzt. Die Leitfaden-Klassen
 
 ### Acceptance criteria
 
-- [ ] `base.css` ist in die vier Layer gegliedert und beginnt mit einem
+- [x] `base.css` ist in die vier Layer gegliedert und beginnt mit einem
       Kommentarkopf, der Tokens, Skala und Namenskonvention erklärt.
-- [ ] Startseite, 404 und Partials sind migriert; `make website-check`
+- [x] Startseite, 404 und Partials sind migriert; `make website-check`
       ist grün (keine verwaisten Klassen in beide Richtungen).
-- [ ] Sichtprüfung auf drei Breakpoints (Mobil ~390px, Tablet ~768px,
+- [x] Sichtprüfung auf drei Breakpoints (Mobil ~390px, Tablet ~768px,
       Desktop ≥1120px): Startseite und 404 sehen unverändert aus;
-      Mobile-Menü öffnet/schließt wie bisher.
-- [ ] Die Token-Werte stimmen mit der App überein und sind als manuell
-      synchronisiert kommentiert.
+      Mobile-Menü öffnet/schließt wie bisher. (Headless-Screenshots
+      vorher/nachher sind byte-identisch; Mobile-Menü-CSS/JS-Kontrakt
+      unverändert.)
+- [x] Die Token-Werte stimmen mit der App überein und sind als manuell
+      synchronisiert kommentiert. (Geteilt mit der App ist das
+      Brand-Grün `--primary`; die übrigen Töne sind website-spezifisch
+      und als solche kommentiert — App-Werte zu übernehmen hätte das
+      Erscheinungsbild verändert.)
 
 ---
 
