@@ -221,23 +221,23 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | ---- | ------------------- | ----- | ---------------------------- | ----------- |
 | F-01 | Seriennummer        | 1     | ✅                           | Must        |
 | F-07 | Steuersätze         | 1     | ✅                           | Must        |
-| F-03 | Belegausgabepflicht | 1/2   | ⏳ Basis/F-07 ✅, F-02 offen | Must        |
+| F-03 | Belegausgabepflicht | 1/2   | ✅                           | Must        |
 | F-05 | ELSTER-Meldung      | 1     | 🔲 Offen                     | Must (Doku) |
 | F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung   | Should      |
-| F-02 | TSE-Integration     | 2     | 🔲 Offen                     | Should      |
+| F-02 | TSE-Integration     | 2     | ✅                           | Should      |
 | F-04 | DSFinV-K Export     | 2     | 🔲 Offen                     | Should      |
 | F-09 | eBeleg              | 2     | 🔲 Offen                     | Nice        |
 | F-08 | GoBD-Hash-Chain     | 3     | 🔲 Offen                     | Nice        |
 
-**Legende:** ✅ Implementiert · 🔲 Offen · ⏳ In Arbeit — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
+**Legende:** ✅ Implementiert · 🔲 Offen — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
 
 ---
 
 #### F-03 · Belegausgabepflicht
 
-> **Prio:** Must-have (teilweise umgesetzt: Kassenbeleg mit Basisangaben und Steuerausweis vorhanden; TSE-Pflichtfelder folgen mit F-02)
+> **Prio:** Must-have (umgesetzt)
 
-Bei jedem Kassiervorgang muss dem Gast ein **Kassenbeleg** angeboten werden (§ 146a Abs. 2 AO, § 6 KassenSichV). jotti druckt den Kassenbeleg **auf Anforderung** durch den Service; am Fest greift in der Regel die Belegausgabe-Befreiung (Voraussetzungen → [compliance.md §5.1](compliance.md)), der Beleg muss aber jederzeit erstellbar sein. Der Kassenbeleg ist **strikt** vom automatischen, nicht-fiskalischen Arbeitsbon (K-12) zu trennen: Letzterer ist eine Arbeitsanweisung ohne Preise und **kein** Beleg. Der Kassenbeleg kann in Papierform (Bondrucker) oder — mit Zustimmung des Gastes — digital (F-09) ausgegeben werden. Ab TSE-Integration (F-02) enthält er zusätzlich TSE-Pflichtfelder.
+Bei jedem Kassiervorgang muss dem Gast ein **Kassenbeleg** angeboten werden (§ 146a Abs. 2 AO, § 6 KassenSichV). jotti druckt den Kassenbeleg **auf Anforderung** durch den Service; am Fest greift in der Regel die Belegausgabe-Befreiung (Voraussetzungen → [compliance.md §5.1](compliance.md)), der Beleg muss aber jederzeit erstellbar sein. Der Kassenbeleg ist **strikt** vom automatischen, nicht-fiskalischen Arbeitsbon (K-12) zu trennen: Letzterer ist eine Arbeitsanweisung ohne Preise und **kein** Beleg. Der Kassenbeleg kann in Papierform (Bondrucker) oder — mit Zustimmung des Gastes — digital (F-09) ausgegeben werden. Seit der TSE-Integration (F-02) enthält er TSE-Pflichtfelder, sofern eine TSE konfiguriert ist.
 
 **Akzeptanzkriterien:**
 
@@ -245,7 +245,7 @@ Bei jedem Kassiervorgang muss dem Gast ein **Kassenbeleg** angeboten werden (§ 
 - [x] Basis-Beleg enthält: Vereinsname + Adresse (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, alle Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer
 - [x] Fehlender Kassenbeleg-Drucker erzeugt eine klare Fehlermeldung (kein stilles Scheitern)
 - [x] Mit F-07: Beleg weist Nettobetrag, Steuersatz und Steuerbetrag pro Position aus
-- [ ] Mit F-02 (TSE): Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
+- [x] Mit F-02 (TSE): Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
 
 ---
 
@@ -281,19 +281,19 @@ Der `ABRECHNUNGSKREIS` im Sinne der DSFinV-K ist pro Tisch und Kassensitzung: Je
 
 #### F-02 · TSE-Integration
 
-> **Prio:** Should-have
+> **Prio:** Should-have (umgesetzt)
 
-Das Backend exponiert ein `TSEClient`-Interface für die Kommunikation mit einer zertifizierten Cloud-TSE (primär: fiskaly). Das Interface abstrahiert den TSE-Anbieter. Die TSE-API-Schlüssel werden über UI in der Datenbank gespeichert (BYOT-Modell). Nach der Adapter-Implementierung werden TSE-Transaktionen in den Zahlungsfluss eingehängt und TSE-Felder auf dem Beleg ausgegeben.
+Das Backend spricht die zertifizierte Cloud-TSE (primär: fiskaly) über das anbieter-agnostische `TSEClient`-Interface an. Die TSE-Zugangsdaten werden über UI in der Datenbank gespeichert (BYOT-Modell). TSE-Transaktionen sind in alle Buchungsflüsse eingehängt; der Beleg gibt die TSE-Felder aus. Fehlgeschlagene Signaturen werden über eine Nachsignier-Outbox nachgeholt.
 
 **Akzeptanzkriterien:**
 
-- [ ] Interface `TSEClient` mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction` ist definiert
-- [ ] Eine fiskaly-Implementierung des Interfaces (`FiskalyTSEClient`) ist vorhanden
-- [ ] Bei fehlender TSE-Konfiguration bleibt TSE optional; im Admin-Dashboard erscheint ein deutlicher Hinweis + Warnung (nur Test/Demo/Übung)
-- [ ] TSE-Transaktion bei Bestellung, Zahlung, Stornierung, **Auszahlung**, Geldtransit (Kassenbewegungen), Kassendifferenz, Direktverkauf und Tagesabschluss (vollständiges Mapping → [handbuch.md §3.13](handbuch.md))
-- [ ] Event-Daten um TSE-Felder erweitert (Signatur, Transaktionsnummer, Signaturzähler, TSE-Seriennummer)
-- [ ] Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
-- [ ] Optional? QR-Code auf Beleg (DSFinV-K Anhang I)
+- [x] Interface `TSEClient` mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction` ist definiert
+- [x] Eine fiskaly-Implementierung des Interfaces (`FiskalyTSEClient`) ist vorhanden
+- [x] Bei fehlender TSE-Konfiguration bleibt TSE optional; im Admin-Dashboard erscheint ein deutlicher Hinweis + Warnung (nur Test/Demo/Übung)
+- [x] TSE-Transaktion bei Bestellung, Zahlung, Stornierung, **Auszahlung**, Geldtransit (Kassenbewegungen), Kassendifferenz, Direktverkauf und Tagesabschluss (vollständiges Mapping → [handbuch.md §3.13](handbuch.md))
+- [x] Event-Daten um TSE-Felder erweitert (Signatur, Transaktionsnummer, Signaturzähler, TSE-Seriennummer)
+- [x] Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
+- [x] Optional? QR-Code auf Beleg (DSFinV-K Anhang I)
 
 ---
 

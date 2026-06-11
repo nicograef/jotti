@@ -55,14 +55,14 @@ Die bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben 
 
 ### Vereinswesen & Steuerliche Sphären
 
-Das Finanzamt betrachtet einen Verein in vier steuerliche Bereiche (Sphären). Diese bestimmen Buchführungspflichten und Steuersätze — und damit direkt die korrekte Konfiguration von jotti.
+Das Finanzamt teilt einen Verein in vier steuerliche Sphären, die Buchführungspflichten und Steuersätze bestimmen — Details und jotti-Bezug: [steuerrecht.md §8](steuerrecht.md#8-bedeutung-für-jotti).
 
-- **Gemeinnützigkeit:** Steuerbegünstigter Status eines Vereins, der voraussetzt, dass die Tätigkeit der Allgemeinheit selbstlos zugutekommt und in der Satzung verankert ist.
-- **Ideeller Bereich:** Steuerfreier Kernbereich des Vereins ohne wirtschaftliche Tätigkeit (finanziert durch Spenden und Mitgliedsbeiträge).
-- **Wirtschaftlicher Geschäftsbetrieb (WGB):** In der Regel steuerpflichtiger Bereich, in dem der Verein wie ein normales Unternehmen agiert — z. B. Getränke- und Essensverkauf auf einem Vereinsfest. jotti ist primär für diesen Bereich konzipiert.
-- **Zweckbetrieb:** Wirtschaftlicher Geschäftsbetrieb, der steuerbegünstigt ist, weil er unmittelbar dem gemeinnützigen Zweck dient (z. B. Eintrittsgelder für ein Sportturnier).
-- **Vermögensverwaltung:** Steuerfreie, passive Einnahmen aus Vereinsvermögen (z. B. Zinsen, Mieteinnahmen).
-- **Kleinunternehmerregelung (§ 19 UStG):** Vereine mit geringen Umsätzen können von der Umsatzsteuerpflicht befreit sein. Hat direkte Auswirkungen auf die korrekte Konfiguration des `Steuersatz` im System.
+- **Gemeinnützigkeit:** Steuerbegünstigter Status eines Vereins (selbstlose, satzungsgemäße Tätigkeit für die Allgemeinheit).
+- **Ideeller Bereich:** Steuerfreier Kernbereich ohne wirtschaftliche Tätigkeit (Spenden, Mitgliedsbeiträge).
+- **Wirtschaftlicher Geschäftsbetrieb (WGB):** In der Regel steuerpflichtiger Bereich, in dem der Verein wie ein Unternehmen agiert (z. B. Getränke- und Essensverkauf auf dem Vereinsfest) — jottis primärer Einsatzbereich.
+- **Zweckbetrieb:** Steuerbegünstigter wirtschaftlicher Geschäftsbetrieb, der unmittelbar dem gemeinnützigen Zweck dient.
+- **Vermögensverwaltung:** Steuerfreie, passive Einnahmen aus Vereinsvermögen (Zinsen, Mieten).
+- **Kleinunternehmerregelung (§ 19 UStG):** Befreiung von der Umsatzsteuerpflicht bei geringen Umsätzen — beeinflusst die korrekte `Steuersatz`-Konfiguration.
 
 ### Akteure & Rollen
 
@@ -70,10 +70,10 @@ Das Finanzamt betrachtet einen Verein in vier steuerliche Bereiche (Sphären). D
 
 **Fachliche Akteure (kein Code-Mapping):**
 
-- **Servicekraft / Bedienung:** Freiwillige Helfer, die im Festzeltbetrieb Bestellungen aufnehmen, kassieren und Ausgaben bestätigen. Entspricht der Systemrolle `service`.
-- **Serviceleitung:** Erfahrene Servicekraft mit erweiterten Rechten für Stornierungen und Auszahlungen. Entspricht der Systemrolle `serviceleitung`.
-- **Kassenwart / Schatzmeister:** Vorstandsmitglied, das für Finanzen, Buchhaltung und den korrekten DSFinV-K-Export sowie Steuererklärungen verantwortlich ist. Entspricht typischerweise der Systemrolle `admin`.
-- **Vorstand:** Gesetzliches Vertretungsorgan des Vereins. Haftet persönlich für die Einhaltung steuerlicher Pflichten (GoBD, KassenSichV). Entspricht typischerweise der Systemrolle `admin`.
+- **Servicekraft / Bedienung:** Freiwillige Helfer, die Bestellungen aufnehmen, kassieren und Ausgaben bestätigen. Systemrolle `service`.
+- **Serviceleitung:** Erfahrene Servicekraft mit erweiterten Rechten für Stornierungen und Auszahlungen. Systemrolle `serviceleitung`.
+- **Kassenwart / Schatzmeister:** Vorstandsmitglied, verantwortlich für Finanzen, Buchhaltung und Steuererklärungen. Typischerweise Systemrolle `admin`.
+- **Vorstand:** Gesetzliches Vertretungsorgan des Vereins; haftet persönlich für die Einhaltung steuerlicher Pflichten. Typischerweise Systemrolle `admin`.
 
 **Systemrollen (mit Code-Mapping):**
 
@@ -81,19 +81,11 @@ Das Finanzamt betrachtet einen Verein in vier steuerliche Bereiche (Sphären). D
 
 Person mit Zugang zum System, identifiziert durch einen eindeutigen Benutzernamen.
 
-| Go-Struct | TS-Typ | DB-Tabelle |
-| --------- | ------ | ---------- |
-| `User`    | `User` | `users`    |
+Go-Struct: `User` · TS-Typ: `User` · DB-Tabelle: `users`
 
 #### Rolle
 
-Berechtigungsstufe eines Benutzers. Bestimmt, welche Aktionen im System verfügbar sind.
-
-| Rolle          | Code-Wert        |
-| -------------- | ---------------- |
-| Admin          | `admin`          |
-| Serviceleitung | `serviceleitung` |
-| Servicekraft   | `service`        |
+Berechtigungsstufe eines Benutzers: Admin (`admin`), Serviceleitung (`serviceleitung`), Servicekraft (`service`).
 
 Go-Typ: `Role` mit `AdminRole`, `ServiceleitungRole`, `ServiceRole` · DB-Enum: `UserRole` (`'admin'`, `'serviceleitung'`, `'service'`)
 
@@ -113,29 +105,27 @@ JWT (JSON Web Token) mit Benutzer-ID und Rolle. 12 Stunden gültig. Reiner Infra
 
 ### Kasse (Core Domain)
 
-Die Event-Feldschemata (Felder, Typen, Constraints) aller Kasse-Events sind kanonisch in [handbuch.md §3.6](handbuch.md#36-domain-events) definiert. Die folgenden Einträge geben die Begriff↔Code-Mappings (Go-Struct, TS-Typ, Event-Typ, JSON-Keys).
+Die Event-Feldschemata (Felder, Typen, Constraints) aller Kasse-Events stehen kanonisch im Code: `backend/domain/kasse/*_events.go`. Eine kompakte Event-Übersicht (Typ, Subject, Semantik) gibt [handbuch.md §3.6](handbuch.md#36-domain-events). Die folgenden Einträge geben die Begriff↔Code-Mappings.
 
 #### Tisch (Stammdaten)
 
 Reine Stammdaten-Entität: ein physischer Ort, an dem Gäste sitzen. Hat einen Namen, Status (active/inactive/deleted) und wird vom Admin verwaltet. Im Kasse-Kontext wird der Tisch nur über seine ID referenziert — die `tisch_id` fließt in das Subject der Tisch-Session ein.
 
-| Go-Struct | TS-Typ  | DB-Tabelle |
-| --------- | ------- | ---------- |
-| `Tisch`   | `Tisch` | `tische`   |
+Go-Struct: `Tisch` · TS-Typ: `Tisch` · DB-Tabelle: `tische`
 
 #### Tisch-Session (Abrechnungskreis)
 
-Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Bestellungen, Zahlungen, Stornierungen, Ausgaben, Auszahlungen) eines Tisches innerhalb einer Kassensitzung ab. Entsteht implizit mit der ersten Bestellung. Subject-Format: `kassensitzung-{nr}/tisch-{tischId}`.
+Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Bestellungen, Zahlungen, Stornierungen, Ausgaben, Auszahlungen) eines Tisches innerhalb einer Kassensitzung ab. Entsteht implizit mit der ersten Bestellung.
 
 | Go-Struct      | TS-Typ         | DB-Projektion    | Subject-Format                       |
 | -------------- | -------------- | ---------------- | ------------------------------------ |
 | `TischSession` | `TischSession` | `tisch_sessions` | `kassensitzung-{nr}/tisch-{tischId}` |
 
-> **Hinweis `domain/table/`:** Das Paket existiert weiterhin für Tisch-Stammdaten (`tisch.go`). Die Kasse-Logik (Event-Sourcing, Tisch-Sessions, Kassensitzung) wurde nach `domain/kasse/` ausgelagert — `domain/table/` enthält nur noch die CRUD-Entität `Tisch`.
+> **Hinweis `domain/table/`:** Das Paket existiert weiterhin für Tisch-Stammdaten (`tisch.go`). Die Kasse-Logik (Event-Sourcing, Tisch-Sessions, Kassensitzung) liegt in `domain/kasse/` — `domain/table/` enthält nur noch die CRUD-Entität `Tisch`.
 
 #### Direktverkauf
 
-Schlankes Event-Sourced Aggregat im Kasse-Kontext für den **Barverkauf an der Theke**: bestellen, zahlen und ausgeben in einem Schritt — **ohne** Tisch und **ohne** Projektion. Jeder **Verkauf** ist ein eigener Event-Stream mit eigener UUID. Der Stream-Typ `direktverkauf` schreibt ausschließlich ins Kassenjournal. Direktverkauf hat **keine** `Verkaufsstelle`-Stammdaten-Entität.
+Schlankes Event-Sourced Aggregat im Kasse-Kontext für den **Barverkauf an der Theke**: bestellen, zahlen und ausgeben in einem Schritt — **ohne** Tisch und **ohne** Projektion. Jeder **Verkauf** ist ein eigener Event-Stream mit eigener UUID. Direktverkauf hat **keine** `Verkaufsstelle`-Stammdaten-Entität.
 
 | Go-Struct | TS-Typ | Event-Typ (Verkauf)          | Subject-Format                            |
 | --------- | ------ | ---------------------------- | ----------------------------------------- |
@@ -144,13 +134,13 @@ Schlankes Event-Sourced Aggregat im Kasse-Kontext für den **Barverkauf an der T
 
 > **Verkauf:** die fachliche Einheit eines Direktverkaufs (ein Stream, ein `verkaufId`). Kein eigenes Domain-Struct — der Verkauf existiert nur als Event-Stream im Kassenjournal. `direktverkauf-getaetigt:v1` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream.
 
-> **Direktverkauf-Stornierung:** positionsgenaue Korrektur/Rückgabe eines Verkaufs durch Serviceleitung/Admin (`direktverkauf-storniert:v1`, Folge-Version im selben Stream). Speichert die stornierten Positionen als **Fat-Positionen** (wie der Tisch-Storno, selbst-enthaltend fürs Reporting); die API nimmt `PositionRef` (`positionId` + `menge`) entgegen und reichert sie im Command an. `gesamtStornierungCents` ist die Summe der stornierten Positionen und sofort kassenwirksam (Bargeld-Rückgabe) — **ohne** separate `auszahlung-geleistet`-Buchung, da ein Verkauf keinen offenen Saldo hat. Validierung per On-Demand-Replay des Verkauf-Streams (`ComputeNichtStornierteVerkaufPositionen`): nur noch nicht stornierte Positionen, höchstens die ursprünglich verkaufte Menge. Mehrere Teilstornos pro Verkauf sind zulässig.
+> **Direktverkauf-Stornierung:** positionsgenaue Korrektur/Rückgabe eines Verkaufs durch Serviceleitung/Admin (`direktverkauf-storniert:v1`, Fat-Positionen, sofort kassenwirksam ohne separate Auszahlung). API-Input: `PositionRef`; Validierung per On-Demand-Replay (`ComputeNichtStornierteVerkaufPositionen`). Regeln im Detail → [handbuch.md §3.3](handbuch.md#33-subject-design-hierarchische-subjects).
 
-> **Direktverkauf-Modus (Bondruck):** steuert den nicht-fiskalischen Bonfluss bei `direktverkauf-getaetigt:v1` über `bondruck_einstellungen.direktverkauf_modus`: `kein_bon` (kein Auftrag), `abholbon` (genau ein kombinierter Abholbon), `an_stationen` (Routing nach Produktkategorie wie Tisch-Arbeitsbon).
+> **Direktverkauf-Bondruck (Ableitungsregel):** Ist die Druckstation `abholbon` konfiguriert, erzeugt `direktverkauf-getaetigt:v1` Abholbon(s) gemäß deren Bonmodus; sonst Arbeitsbons an die Produktstationen; ohne konfigurierte Stationen entsteht kein Druckauftrag.
 
 #### Abholbon
 
-Nicht-fiskalischer kombinierter Bon für Direktverkauf im Modus `abholbon`. Festes Label „Direktverkauf“, keine Preise, genau ein Druckauftrag (`bon_art = 'arbeitsbon'`) an `bondruck_einstellungen.abholbon_drucker_ip`.
+Nicht-fiskalischer Bon für die Warenübergabe beim Direktverkauf. Festes Label „Direktverkauf", keine Preise, `bon_art = 'arbeitsbon'`, gedruckt an der Druckstation `abholbon` (Bonmodus `pro_bestellung` = ein Sammel-Abholbon, `pro_position` = ein Bon je Position).
 
 #### Bestellung
 
@@ -164,9 +154,9 @@ Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt.
 
 Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einzelpreis. Alle Felder werden als Fat Event eingefroren.
 
-| Go-Struct  | TS-Typ     | JSON-Keys (Schlüsselfelder)                                                                    |
-| ---------- | ---------- | ---------------------------------------------------------------------------------------------- |
-| `Position` | `Position` | `positionId`, `varianteId`, `produktName`, `varianteName`, `kategorie`, `einzelpreis`, `menge` |
+| Go-Struct  | TS-Typ     | JSON-Keys (Schlüsselfelder)                                                                                  |
+| ---------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
+| `Position` | `Position` | `positionId`, `varianteId`, `produktName`, `varianteName`, `kategorie`, `steuersatz`, `einzelpreis`, `menge` |
 
 #### Ausgabe
 
@@ -214,67 +204,35 @@ Kassiervorgang, bei dem der Gesamtsaldo eines Tisches auf mehrere Gäste aufgete
 
 Vollständiger, unveränderlicher Event Stream einer Tisch-Session in chronologischer Reihenfolge.
 
-**Synonym: Kassenjournal.** „Kassenjournal“ ist der formale Fachbegriff (die DB-Tabelle `kassenjournal` enthält alle Events); „Historie“ ist der im Code und UI etablierte Begriff für die Tisch-spezifische Ansicht.
+**Synonym: Kassenjournal.** „Kassenjournal" ist der formale Fachbegriff (die DB-Tabelle `kassenjournal` enthält alle Events); „Historie" ist der im Code und UI etablierte Begriff für die Tisch-spezifische Ansicht.
 
 Go-Funktion: `GetHistoryFromEvents()` · Go-Query: `GetTischHistorie()` · API: `/service/get-tisch-historie`
 
-#### Kommentar
+#### Weitere Typen und Felder (Kasse)
 
-Freitextnotiz zu Tischoperationen. Pflichtfeld bei Stornierung und Auszahlung, optional bei Bestellung, Ausgabe und Zahlung.
-
-Go-Feld: `Kommentar` · JSON-Key: `"kommentar"` · TS-Feld: `kommentar`
-
-#### Menge
-
-Anzahl einer Produktvariante innerhalb einer Position.
-
-Go-Feld: `Menge` · JSON-Key: `"menge"` · TS-Feld: `menge`
-
-#### EigeneUebersicht
-
-Kompakte KPI-Übersicht einer Servicekraft: Anzahl und Summe eigener Bestellungen sowie kassierter Zahlungen. Read Model, berechnet aus dem Kassenjournal gefiltert auf `user_id` und `kassensitzung_nr`.
-
-| Go-Struct          | TS-Typ             | JSON-Keys                                                                      |
-| ------------------ | ------------------ | ------------------------------------------------------------------------------ |
-| `EigeneUebersicht` | `EigeneUebersicht` | `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` |
-
-#### HistorieEintrag
-
-Einzelner Eintrag in der Tisch-Historie, typisiert nach Art (Bestellung, Zahlung, Stornierung, Ausgabe, Auszahlung).
-
-Go-Struct: `HistorieEintrag` · Feld `Art`: `HistorieEintragArt` (Enum: `"bestellung"`, `"zahlung"`, `"stornierung"`, `"ausgabe"`, `"auszahlung"`)
-
-#### PositionRef
-
-Referenz auf eine Position (ID + Menge) für Zahlung, Ausgabe und Stornierung.
-
-Go-Struct: `PositionRef` · TS-Typ: `PositionRef` · JSON-Keys: `positionId`, `menge`
-
-#### AktiverTisch
-
-Kompakte Tisch-Darstellung mit Saldo für die Tischübersicht. Read Model.
-
-Go-Struct: `AktiverTisch` (ID, Name, SaldoCents)
-
-#### BestellPositionInput
-
-Frontend-Eingabetyp für eine einzelne Bestellposition (Produkt + Variante + Menge).
-
-TS-Typ: `BestellPositionInput` · JSON-Keys: `produktId`, `varianteId`, `menge`
+| Begriff                  | Bedeutung                                                                  | Code-Mapping                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **Kommentar**            | Freitextnotiz; Pflicht bei Stornierung und Auszahlung, sonst optional      | Go `Kommentar` · JSON/TS `kommentar`                                                          |
+| **Menge**                | Anzahl einer Produktvariante innerhalb einer Position                      | Go `Menge` · JSON/TS `menge`                                                                  |
+| **PositionRef**          | Referenz auf eine Position (ID + Menge) für Zahlung, Ausgabe, Stornierung  | Go/TS `PositionRef` · JSON `positionId`, `menge`                                              |
+| **HistorieEintrag**      | Eintrag der Tisch-Historie, typisiert nach Art                             | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `ausgabe`, `auszahlung` |
+| **EigeneUebersicht**     | KPI-Read-Model einer Servicekraft: eigene Bestellungen und Zahlungen       | Go/TS `EigeneUebersicht` · JSON `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` |
+| **AktiverTisch**         | Kompakte Tisch-Darstellung mit Saldo für die Tischübersicht (Read Model)   | Go `AktiverTisch` · TS `AktiverTischMitFavorit` (mit `istFavorit`)                            |
+| **BestellPositionInput** | Frontend-Eingabetyp einer Bestellposition (Produkt + Variante + Menge)     | TS `BestellPositionInput` · JSON `produktId`, `varianteId`, `menge`                           |
 
 ---
 
 ### Kasse — Kassensitzung und Kassenbestand
 
-Die Kassensitzung und der Kassenbestand gehören zum Core-Domain-Kontext **Kasse** und nutzen dieselbe Persistenzstrategie: **Event-Sourcing im Kassenjournal**. Kassensitzung-Events werden unter dem Subject `kassensitzung-{nr}` geschrieben. Die Event-Feldschemata sind kanonisch in [handbuch.md §3.6](handbuch.md#36-domain-events) definiert.
+Kassensitzung-Events werden unter dem Subject `kassensitzung-{nr}` im Kassenjournal persistiert. Feldschemata kanonisch in `backend/domain/kasse/kassensitzung_events.go`.
 
 #### Kassensitzung
 
-Global nummerierter Betriebstag, der einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Wird durch Admin-Aktion eröffnet (Event `kassensitzung-eroeffnet:v1`). Maximal eine Kassensitzung kann gleichzeitig `offen` sein. Ohne offene Kassensitzung ist der gesamte Kassenbetrieb gesperrt (HTTP 409). Die `z_nr` ist ein fortlaufender, lückenloser Zähler in der `kassensitzungen`-Entität.
+Global nummerierter Betriebstag, der einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Maximal eine Kassensitzung ist gleichzeitig `offen`; ohne offene Kassensitzung ist der Kassenbetrieb gesperrt. Lifecycle und `z_nr`-Regeln → [handbuch.md §3.5](handbuch.md#35-kassensitzung-lifecycle).
 
-| Go-Struct            | DB-Tabelle        | Subject-Format       |
-| -------------------- | ----------------- | -------------------- |
-| `KassensitzungState` | `kassensitzungen` | `kassensitzung-{nr}` |
+| Go-Struct            | DB-Tabelle        | Subject-Format       | Eröffnungs-Event             |
+| -------------------- | ----------------- | -------------------- | ---------------------------- |
+| `KassensitzungState` | `kassensitzungen` | `kassensitzung-{nr}` | `kassensitzung-eroeffnet:v1` |
 
 #### Bezeichnung
 
@@ -284,69 +242,51 @@ Go-Feld: `Bezeichnung` · DB-Spalte: `kassensitzungen.bezeichnung` · JSON-Key: 
 
 #### Abrechnungskreis
 
-DSFinV-K-Pflichtfeld (`ABRECHNUNGSKREIS`). Im neuen Modell ist der Abrechnungskreis **identisch mit der Tisch-Session**: pro Tisch und Kassensitzung existiert ein Abrechnungskreis. Der DSFinV-K-Export-Wert wird aus dem Tischnamen abgeleitet (z. B. `Tisch 42`) — unabhängig vom Subject-Format.
+DSFinV-K-Pflichtfeld (`ABRECHNUNGSKREIS`), identisch mit der Tisch-Session: pro Tisch und Kassensitzung existiert ein Abrechnungskreis. Der Export-Wert wird aus dem Tischnamen abgeleitet (z. B. `Tisch 42`).
 
 #### Anfangsbestand
 
-Wechselgeld zu Beginn einer Veranstaltung/Schicht. Pro Kassensitzung darf genau ein Anfangsbestand gesetzt werden. Wird als Event `anfangsbestand-gesetzt:v1` im Kassenjournal persistiert.
-
-Go-Event-Data-Feld: `BetragCents` · JSON-Key: `betragCents`
+Wechselgeld zu Beginn einer Kassensitzung. Wird bei der Eröffnung gesetzt — als Feld `betragCents` im Event `kassensitzung-eroeffnet:v1`, kein eigenes Event.
 
 #### Kassenbestand
 
-SQL-Aggregation über den erwarteten Bargeldbestand. Berechnung: Anfangsbestand + Zahlungen − Auszahlungen + Kassenbewegungen (vorzeichenbehaftet). Kein eigenes Read Model — wird on-demand aus dem Kassenjournal aggregiert.
+Erwarteter Bargeldbestand (Soll), on-demand per SQL-Aggregation aus dem Kassenjournal berechnet — kein eigenes Read Model. Formel → [handbuch.md §3.9](handbuch.md#39-kassenbestand-read-model).
 
 JSON-Key: `sollBestandCents`
 
-#### Kassenbewegung
+#### Geldtransit (Kassenbewegung)
 
-Oberbegriff für Geldtransit, Privatentnahme und Privateinlage — Bargeld-Bewegungen außerhalb des Tisch-Verkehrs. Wird als Event `kassenbewegung-gebucht:v1` mit Feld `art` im Kassenjournal persistiert.
+Bargeld-Bewegung außerhalb des Tisch-Verkehrs: Einlage (z. B. Wechselgeld nachfüllen, erhöht den Soll-Bestand) oder Entnahme (z. B. Abschöpfung in Bank/Tresor, reduziert ihn). `Kommentar` ist Pflichtfeld. DSFinV-K-Geschäftsvorfalltyp: `Geldtransit`.
 
-| Event-Typ                   | JSON-Key `art`                                   |
-| --------------------------- | ------------------------------------------------ |
-| `kassenbewegung-gebucht:v1` | `geldtransit`, `privatentnahme`, `privateinlage` |
+| Event-Typ                | JSON-Key `richtung`     | API-Pfad                    |
+| ------------------------ | ----------------------- | --------------------------- |
+| `geldtransit-gebucht:v1` | `einlage` \| `entnahme` | `/admin/geldtransit-buchen` |
 
-#### Geldtransit
-
-Entnahme von Bargeld aus der Kasse zur Einzahlung bei Bank oder Tresor. Reduziert den Soll-Kassenbestand. DSFinV-K-Geschäftsvorfalltyp: `Geldtransit`.
-
-API-Pfad: `/admin/kassenbewegung-buchen` (mit `art: geldtransit`)
-
-#### Privatentnahme
-
-Entnahme von Bargeld in den privaten Bereich des Vereins (nicht Bank). Fachlich analog zu Geldtransit, aber anderer DSFinV-K-Geschäftsvorfalltyp: `Privatentnahme`.
-
-#### Privateinlage
-
-Einlage von Bargeld in die Kasse (z. B. Nachfüllen von Wechselgeld). Erhöht den Soll-Kassenbestand. DSFinV-K-Geschäftsvorfalltyp: `Privateinlage`.
-
-Alle Kassenbewegungen über `/admin/kassenbewegung-buchen` mit jeweiligem `art`-Wert.
+> **Privatentnahme / Privateinlage (geplant):** eigene DSFinV-K-Geschäftsvorfalltypen für Bewegungen in den/aus dem privaten Bereich des Vereins. Im Code nicht abgebildet — aktuell wird jede Bargeld-Bewegung als Geldtransit gebucht.
 
 #### Kassensturz
 
-Vergleich des errechneten Soll-Bestands mit dem physisch gezählten Ist-Bestand. Der Application Service schreibt ein `kassensturz-durchgefuehrt:v1`-Event; bei Differenz ≠ 0 folgt ein `differenz-soll-ist-gebucht:v1`-Event in derselben Transaktion (Zwei-Event-Muster). Voraussetzung für den Tagesabschluss (Z-Bon).
+Vergleich des errechneten Soll-Bestands mit dem physisch gezählten Ist-Bestand; Voraussetzung für den Tagesabschluss. Zwei-Event-Muster → [handbuch.md §3.10](handbuch.md#310-kassensturz).
 
-| Event-Typ                                                        | JSON-Keys                                               |
-| ---------------------------------------------------------------- | ------------------------------------------------------- |
-| `kassensturz-durchgefuehrt:v1` + `differenz-soll-ist-gebucht:v1` | `sollBestandCents`, `istBestandCents`, `differenzCents` |
+| Event-Typen                                                                          | JSON-Keys                                               |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `kassensturz-durchgefuehrt:v1` (+ `differenz-soll-ist-gebucht:v1` bei Differenz ≠ 0) | `sollBestandCents`, `istBestandCents`, `differenzCents` |
 
 #### DifferenzSollIst
 
-Automatisch erzeugtes Event (`differenz-soll-ist-gebucht:v1`) beim Kassensturz, wenn Soll-Bestand ≠ Ist-Bestand. DSFinV-K-Pflicht-Geschäftsvorfalltyp. Wird in derselben Transaktion wie das Kassensturz-Event geschrieben.
+Automatisch erzeugtes Event (`differenz-soll-ist-gebucht:v1`) beim Kassensturz, wenn Soll-Bestand ≠ Ist-Bestand. DSFinV-K-Pflicht-Geschäftsvorfalltyp.
 
 #### Z-Bon (Tagesabschluss)
 
-Formeller Tagesabschlussbon: aggregiert alle Transaktionen einer Kassensitzung nach Steuersätzen und Zahlarten. Wird als `tagesabschluss-erstellt:v1`-Event im Kassenjournal persistiert und schließt die Kassensitzung ab (Status → `abgeschlossen`). Erhält eine fortlaufende, nie zurücksetzbare `z_nr`.
+Formeller Tagesabschluss: aggregiert die Kassensitzung und schließt sie ab (Status → `abgeschlossen`). Kein Report, sondern eine transaktionale Operation des Kasse-Kontexts (→ [handbuch.md §3.11](handbuch.md#311-tagesabschluss-z-bon)).
 
-| Event-Typ                    | DB-Feld                | JSON-Keys                                                                                                             |
-| ---------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Event-Typ                    | DB-Feld                | JSON-Keys (Auszug)                                                                                                    |
+| ---------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `tagesabschluss-erstellt:v1` | `kassensitzungen.z_nr` | `zNr`, `zeitraumVon`, `zeitraumBis`, `umsatzGesamtCents`, `stornierungCents`, `auszahlungenCents`, `geldtransitCents` |
-
-> **Abgrenzung:** Der Z-Bon ersetzt die bisherige R-07-Anforderung. Er ist kein Report, sondern eine transaktionale Operation des Kasse-Kontexts.
 
 #### X-Bon
 
-Zwischenbericht: informativer Abruf des aktuellen Kassenstands ohne Rücksetzen. Kein Tagesabschluss im Rechtssinne. Nicht gesetzlich vorgeschrieben.
+Zwischenbericht: informativer Abruf des aktuellen Kassenstands ohne Abschluss. Kein Tagesabschluss im Rechtssinne, nicht gesetzlich vorgeschrieben.
 
 ---
 
@@ -356,17 +296,13 @@ Zwischenbericht: informativer Abruf des aktuellen Kassenstands ohne Rücksetzen.
 
 Artikel im Produktkatalog. Gehört zu genau einer Kategorie und enthält eine oder mehrere Varianten mit je eigenem Preis.
 
-| Go-Struct | TS-Typ    | DB-Tabelle |
-| --------- | --------- | ---------- |
-| `Produkt` | `Produkt` | `produkte` |
+Go-Struct: `Produkt` · TS-Typ: `Produkt` · DB-Tabelle: `produkte`
 
 #### Variante
 
 Konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. Produkt „Cola" → Varianten „0,3 l" / „0,5 l").
 
-| Go-Struct  | TS-Typ     | DB-Tabelle          |
-| ---------- | ---------- | ------------------- |
-| `Variante` | `Variante` | `produkt_varianten` |
+Go-Struct: `Variante` · TS-Typ: `Variante` · DB-Tabelle: `produkt_varianten`
 
 #### Kategorie
 
@@ -392,65 +328,29 @@ DB-Enum: `EntityStatus` (`'active'`, `'inactive'`, `'deleted'`) · Go-Konstanten
 
 Benutzerspezifische Markierung einer Servicekraft für einen Tisch ("Meine Tische"). Kein Aggregat, keine Events — einfache CRUD-Relation.
 
-| Go-Package                 | DB-Tabelle        |
-| -------------------------- | ----------------- |
-| `repository/favorit_repo/` | `tisch_favoriten` |
-
-TS-Repräsentation: `istFavorit: boolean` in `AktiverTischMitFavorit` (kein eigener Typ).
+Go-Package: `repository/favorit_repo/` · DB-Tabelle: `tisch_favoriten` · TS: `istFavorit: boolean` in `AktiverTischMitFavorit` (kein eigener Typ)
 
 ---
 
 ### Reporting (Read Model)
 
-Reporting-Daten werden on-demand per SQL-Aggregation aus dem Kassenjournal berechnet. Kein eigener Event Stream — reines Read Model.
+Reporting-Daten werden on-demand per SQL-Aggregation aus dem Kassenjournal berechnet. Kein eigener Event Stream — reines Read Model. Alle Typen existieren spiegelbildlich als Go-Struct (`domain/reporting/`) und TS-Typ.
 
-#### ReportingData
-
-Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen.
-
-Go-Struct: `ReportingData` · TS-Typ: `ReportingData`
-
-#### Summary
-
-Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen).
-
-Go-Struct: `Summary` · TS-Schema: `SummarySchema`
-
-#### Breakdowns
-
-Aufschlüsselung des Umsatzes nach Servicekraft und Tisch.
-
-Go-Struct: `Breakdowns` · Enthält: `UmsatzProServicekraft []UmsatzServicekraft`, `UmsatzProTisch []UmsatzTisch`
-
-#### UmsatzServicekraft
-
-Umsatz einer einzelnen Servicekraft (Zahlungen, Auszahlungen, Anzahl).
-
-Go-Struct: `UmsatzServicekraft` · TS-Typ: `UmsatzServicekraft`
-
-#### UmsatzTisch
-
-Umsatz eines einzelnen Tisches (Zahlungen, Auszahlungen, Anzahl).
-
-Go-Struct: `UmsatzTisch` · TS-Typ: `UmsatzTisch`
-
-#### StornierungDetail
-
-Detailansicht einer einzelnen Stornierung im Reporting (Zeitpunkt, Tisch, Benutzer, Betrag, Kommentar, Positionen).
-
-Go-Struct: `StornierungDetail` · TS-Typ: `StornierungDetail`
-
-#### StornierungPosition
-
-Einzelne Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis).
-
-Go-Struct: `StornierungPosition` · TS-Typ: `StornierungPosition`
+| Begriff                 | Bedeutung                                                                                                  |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **ReportingData**       | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen                |
+| **Summary**             | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen)                |
+| **Breakdowns**          | Aufschlüsselung des Umsatzes: `UmsatzProServicekraft []UmsatzServicekraft`, `UmsatzProTisch []UmsatzTisch` |
+| **UmsatzServicekraft**  | Umsatz einer einzelnen Servicekraft (Zahlungen, Auszahlungen, Anzahl)                                      |
+| **UmsatzTisch**         | Umsatz eines einzelnen Tisches (Zahlungen, Auszahlungen, Anzahl)                                           |
+| **StornierungDetail**   | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, Benutzer, Betrag, Kommentar, Positionen)              |
+| **StornierungPosition** | Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis)                |
 
 ---
 
 ### Bondruck & Infrastruktur
 
-**Bondruck** ist der Oberbegriff für zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druck-Infrastruktur: den operativen **Arbeitsbon** (nicht-fiskalisch, automatisch beim Entstehen von Ware) und den gesetzlichen **Kassenbeleg** (fiskalisch, auf Anforderung beim Kassieren). Beide Familien teilen **keinen** Auslöser, Inhalt oder Rechtsstatus — nur den **Druckauftrag** (Outbox) als Transport.
+**Bondruck** ist der Oberbegriff für zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druck-Infrastruktur: den operativen **Arbeitsbon** und den gesetzlichen **Kassenbeleg**. Architektur und Abgrenzung: [handbuch.md §4.6](handbuch.md#46-bondruck-arbeitsbon-und-kassenbeleg-k-12).
 
 #### Arbeitsbon
 
@@ -458,108 +358,103 @@ Operativer, nicht-fiskalischer Bon an eine Ausgabestation (Küche, Theke). Träg
 
 #### Kassenbeleg
 
-Fiskalischer Zahlungsbeleg (§ 146a Abs. 2 AO, § 6 KassenSichV) für den Gast: alle Positionen mit Preisen, Vereinsdaten (Betreiber, K-20) und Kassen-Seriennummer (F-01). Wird **auf Anforderung** pro Kassiervorgang gedruckt — am Fest selten (Befreiung „Verkauf an eine Vielzahl unbekannter Personen", § 146a Abs. 2 Satz 2 AO). DSFinV-K-`processType`: `Kassenbeleg-V1`. Steuer-Aufschlüsselung folgt mit F-07, TSE-Pflichtfelder mit F-02.
+Fiskalischer Zahlungsbeleg (§ 146a Abs. 2 AO, § 6 KassenSichV) für den Gast: alle Positionen mit Preisen, Steueraufteilung (F-07), Vereinsdaten (K-20), Kassen-Seriennummer (F-01) und — sofern TSE konfiguriert — TSE-Pflichtfelder inkl. QR-Code (F-02). Wird **auf Anforderung** pro Kassiervorgang gedruckt — am Fest greift meist die Belegausgabe-Befreiung (→ [compliance.md §5.1](compliance.md#51-gesetzliche-grundlage)). DSFinV-K-`processType`: `Kassenbeleg-V1`.
 
 #### Druckstation
 
-Konfigurierter Drucker an einem Ausgabeort, je Produktkategorie — die Stationen für **Arbeitsbons**. CRUD-Entität.
+Konfigurierter Drucker je Kategorie: drei Produktstationen für Arbeitsbons plus die Stationen `kassenbeleg` und `abholbon`. CRUD-Entität.
 
-DB-Tabelle: `druckstationen`
+DB-Tabelle: `druckstationen` · DB-Enum `DruckstationKategorie`: `'essen'`, `'getraenk'`, `'sonstiges'`, `'kassenbeleg'`, `'abholbon'`
 
 #### Bonmodus
 
-Druckmodus für Arbeitsbons: einzelner Bon pro Position oder ein gesammelter Bon pro Bestellung.
+Druckmodus für Arbeitsbons/Abholbons: einzelner Bon pro Position oder ein gesammelter Bon pro Bestellung. Für die Kassenbeleg-Station entfällt er (NULL).
 
 DB-Enum: `'pro_position'`, `'pro_bestellung'`
 
 #### Druckauftrag
 
-Konkreter Druckjob in der Outbox: Ziel-IP, ESC/POS-Payload und Status (`offen` | `gedruckt`). Single Source of Truth für alle Druckjobs — Arbeitsbon **und** Kassenbeleg. Das Backend reiht ein, der Relay leert.
+Konkreter Druckjob in der Outbox — Single Source of Truth für alle Druckjobs, Arbeitsbon **und** Kassenbeleg. Das Backend reiht ein, das Relay leert.
 
-DB-Tabelle: `druckauftraege` _(geplant; aktuell ein transientes DTO ohne Persistenz)_
+DB-Tabelle: `druckauftraege` · Spalten u. a.: `ziel_ip`, `payload` (Base64-ESC/POS), `bon_art` (`'arbeitsbon'` | `'kassenbeleg'`), `referenz`, `status` (`offen` → `gedruckt`; nach 3 Fehlversuchen `fehlgeschlagen` → `verworfen` oder zurück auf `offen`)
 
 #### Relay
 
-Separater Dienst (`cmd/relay/`), der Druckaufträge an lokale ESC/POS-Drucker weiterleitet. Soll: **reiner Transport** — holt offene Druckaufträge, druckt, quittiert; **keine** Fachlogik (ESC/POS-Formatierung liegt im Backend). _(Ist-Zustand: berechnet Druckaufträge noch beim Poll aus Events und hält einen lokalen Cursor — siehe Abweichungen.)_
+Separater Dienst (`cmd/relay/`, Repo-Root): **reiner Transport** ohne Fachlogik und ohne lokalen Zustand. Holt offene Druckaufträge (`POST /relay/poll`), druckt und meldet das Ergebnis zurück (`POST /relay/ergebnis` — gedruckte IDs und Fehlversuche). Die ESC/POS-Formatierung liegt im Backend.
 
 ---
 
 ### Gastronomie & Betrieb
 
-- **Inhaus / Außerhaus:** Historische Unterscheidung des Verzehrorts. Seit 1.1.2026 für die Steuersatzbestimmung **irrelevant** — Speisen unterliegen einheitlich 7 %, Getränke 19 %, unabhängig vom Verzehrort. In jotti wird der Steuersatz direkt pro Produkt konfiguriert (siehe [steuerrecht.md](steuerrecht.md)).
-- **Trinkgeld:** Trinkgeld an den Verein ist voll steuerpflichtig; direkt an die Servicekraft in der Regel steuerfrei. Hinweis für Betreiber: `docs/compliance.md`.
+- **Inhaus / Außerhaus:** Historische Unterscheidung des Verzehrorts — seit 1.1.2026 für die Steuersatzbestimmung irrelevant: Speisen einheitlich 7 %, Getränke 19 % (→ [steuerrecht.md](steuerrecht.md)).
+- **Trinkgeld:** Trinkgeld an den Verein ist voll steuerpflichtig; direkt an die Servicekraft in der Regel steuerfrei (→ [compliance.md](compliance.md)).
 - **BYOD (Bring Your Own Device):** Servicekräfte nutzen eigene Smartphones; kein App-Install nötig.
 - **Belegausgabepflicht (Bonpflicht):** Gesetzliche Pflicht nach § 146a Abs. 2 AO — Beleg nach jedem Kassiervorgang. Siehe → **Kassenbeleg**.
-- **eBeleg:** Digitaler Kassenbon als papierloser Beleg-Ersatz. Phase-3-Feature — siehe `docs/anforderungen.md`.
-- **Kassensturzfähigkeit:** Soll-Bestand muss jederzeit mit dem Ist-Bestand übereinstimmen; Voraussetzung für GoBD-Konformität.
-- **DifferenzSollIst:** DSFinV-K-Geschäftsvorfalltyp für Fehlbeträge/Überschüsse beim Kassensturz.
-- **Geldtransit / Privatentnahme:** DSFinV-K-Geschäftsvorfalltypen für Barentnahmen; müssen gebucht werden, um Kassensturzfähigkeit aufrechtzuerhalten.
+- **eBeleg:** Digitaler Kassenbon als papierloser Beleg-Ersatz. Geplant (→ anforderungen.md F-09).
+- **Kassensturzfähigkeit:** Der Soll-Bestand muss jederzeit mit dem Ist-Bestand abgleichbar sein; Voraussetzung für GoBD-Konformität.
 
 ---
 
 ### Fiskalkonformität (Compliance Sub-Domain)
 
-Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und KassenSichV. Diese Sub-Domain wird phasenweise implementiert — siehe `docs/anforderungen.md`.
+Begriffe der gesetzlich vorgeschriebenen Fiskalisierung nach § 146a AO und KassenSichV. TSE-Integration, Steuersätze und Kassenbeleg sind umgesetzt; DSFinV-K-Export, ELSTER-Meldung, eBeleg und Hash-Chain sind offen (→ `docs/anforderungen.md`).
 
 > **Sprachkonvention:** Fiskal-Fachbegriffe folgen der deutschen Gesetzessprache und DSFinV-K-Spezifikation. Technische Interface-Namen bleiben englisch (Go-Konvention).
 
 #### Gesetzliche Grundlagen
 
-- **AO (Abgabenordnung):** Zentrales deutsches Steuergesetz. § 146a AO regelt die Pflichten (TSE, Belegausgabe, Kassenmeldung) für alle Betreiber elektronischer Aufzeichnungssysteme — und damit für jeden jotti-Betreiber.
+Je ein Satz — Pflichten und Details: [compliance.md §2](compliance.md#2-rechtliche-grundlagen).
 
-- **KassenSichV (Kassensicherungsverordnung):** Auf der AO basierende Verordnung, die technische Detailanforderungen an manipulationssichere Kassen, TSE und Belege vorschreibt.
-
-- **GoBD:** „Grundsätze zur ordnungsmäßigen Führung und Aufbewahrung von Büchern, Aufzeichnungen und Unterlagen in elektronischer Form" — Bundesfinanzministerium-Schreiben. Steuerrelevante Daten müssen 10 Jahre lang lückenlos und unveränderbar gespeichert werden. jottis Event-Sourcing-Architektur (Append-only) erfüllt diese Unveränderbarkeitsanforderung strukturell.
-
-- **BSI (Bundesamt für Sicherheit in der Informationstechnik):** Deutsche Bundesbehörde, die technische Richtlinien (TR-03153) und Schutzprofile für die TSE-Zertifizierung definiert.
+- **AO (Abgabenordnung):** Zentrales Steuergesetz; § 146a regelt TSE-, Belegausgabe- und Meldepflichten für jeden jotti-Betreiber.
+- **KassenSichV:** Verordnung mit den technischen Detailanforderungen an manipulationssichere Kassen, TSE und Belege.
+- **GoBD:** BMF-Schreiben — steuerrelevante Daten müssen 10 Jahre lückenlos und unveränderbar gespeichert werden; jottis Append-only-Journal erfüllt das strukturell.
+- **BSI:** Bundesbehörde, die technische Richtlinien (TR-03153) und Schutzprofile für die TSE-Zertifizierung definiert.
 
 #### TSE & Kryptografie
 
-- **TSE (Technische Sicherheitseinrichtung):** Zwingend vorgeschriebenes, vom BSI zertifiziertes Sicherheitsmodul, das jeden Kassiervorgang kryptografisch signiert. In jotti über ein Adapter-Pattern eingebunden (`TSEClient`-Interface, BYOT-Modell).
-- **Cloud-TSE / Hardware-TSE:** Cloud-TSE: Signatur über API in zertifiziertem Rechenzentrum; Hardware-TSE: physisches Speichermedium (USB/SD). jotti unterstützt Cloud-TSE (z. B. fiskaly) über das BYOT-Modell.
+- **TSE (Technische Sicherheitseinrichtung):** Zwingend vorgeschriebenes, BSI-zertifiziertes Sicherheitsmodul, das jeden Kassiervorgang kryptografisch signiert. In jotti als Cloud-TSE über das `TSEClient`-Interface umgesetzt (BYOT-Modell).
+- **TSEClient:** Anbieter-agnostisches Go-Interface (`domain/tse/client.go`) mit `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. Implementierung: `FiskalyTSEClient` (`repository/tse_repo/`).
+- **TSEData:** Signaturdaten in den Event-Payloads. Go-Struct `TSEData` (`domain/kasse/tse_data.go`) · JSON-Keys: `tseTransactionNumber`, `tseSignatureCounter`, `tseSerialNumber`, `tseLogTimeStart`, `tseLogTimeEnd`, `tseSignature`, `tseProcessType`, `tseQrCodeData`.
+- **Nachsignierung:** Schlägt die TSE-Signatur beim Buchen fehl, wird der Vorgang in der Outbox `tse_nachsignier_auftraege` vermerkt und von einem Worker nachsigniert.
 - **Transaktionsnummer (TSE_TANR):** Eindeutige, fortlaufende TSE-Nummer pro Kassiervorgang. Dient der Lückenerkennung.
-- **Signaturzähler (TSE_TA_SIGZ):** Stetig ansteigender Zähler pro Signaturvorgang. Go-Typ: `uint64` · JSON-Key: `signature_counter` · Pflichtfeld auf dem Kassenbeleg.
-- **Prüfwert / Signatur:** Kryptografischer Hash-Wert (z. B. ECDSA-SHA256), der den Vorgang absiegelt und auf dem Kassenbeleg abgedruckt werden muss.
+- **Signaturzähler (TSE_TA_SIGZ):** Stetig ansteigender Zähler pro Signaturvorgang. Pflichtfeld auf dem Kassenbeleg (JSON-Key: `tseSignatureCounter`).
+- **Prüfwert / Signatur:** Kryptografischer Signaturwert, der den Vorgang absiegelt und auf dem Kassenbeleg abgedruckt wird.
 
 #### Kasse & Identifikation
 
 | Begriff                     | Bedeutung                                                                                                                                                                                 |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **KassenID / Seriennummer** | Eindeutige UUID-v4 der jotti-Instanz. Für ELSTER-Meldung und TSE-Protokoll. Persistiert in Tabelle `kassenidentitaet` (insert-once), abrufbar über Endpunkt `admin/get-kassenidentitaet`. |
-| **TSEClient**               | Go-Interface mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. **(nicht implementiert)**                                                                         |
+| **TSE-Konfiguration**       | TSE-Zugangsdaten (API-Key/-Secret, TSS-ID, Client-ID), über die Admin-Einstellungen gepflegt. Singleton-Tabelle `tse_konfiguration`.                                                      |
 
 #### Steuern
 
-| Begriff          | Bedeutung                                                                                                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Steuersatz**   | Steuerklasse eines Produkts. Enum-Werte: `standard` (19 %), `ermaessigt` (7 %), `befreit` (0 %). **(nicht implementiert)** — siehe `docs/anforderungen.md` |
-| **Steuerbetrag** | Berechneter Steuerbetrag in Cent für eine Position oder einen Vorgang. Immer in Cent, niemals als Float. **(nicht implementiert)**                         |
-| **Nettobetrag**  | Betrag vor Steuerabzug. Immer in Cent. **(nicht implementiert)**                                                                                           |
+| Begriff                        | Bedeutung                                                                                                                                                                                  |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Steuersatz**                 | Steuerklasse eines Produkts. Enum: `regel` (19 %), `ermaessigt` (7 %), `befreit` (0 %), `kombi` (70/30-Aufteilung). Go: `domain/steuer` · DB: `produkte.steuersatz` · JSON-Key: `steuersatz` |
+| **Steuerbetrag / Nettobetrag** | Pro Steuersatz berechnete Beträge (`steuer.Aufteilung`: Brutto, Netto, Steuer) — immer in Cent. Auf dem Kassenbeleg als Steueraufteilung ausgewiesen. Fachregeln → [steuerrecht.md](steuerrecht.md) |
 
 #### Export & Meldung
 
-| Begriff                    | Bedeutung                                                                                                                                                               |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **DSFinV-K**               | „Digitale Schnittstelle der Finanzverwaltung für Kassensysteme" — standardisiertes CSV-ZIP-Exportformat (Version 2.4) für Betriebsprüfungen durch die Finanzverwaltung. |
-| **TAR-Archiv**             | Gesetzlich vorgeschriebenes Dateiformat für den Export der rohen, kryptografisch gesicherten TSE-Log-Nachrichten.                                                       |
-| **Kassenmeldung / ELSTER** | Pflicht nach § 146a Abs. 4 AO: Jede jotti-Instanz muss innerhalb eines Monats nach Inbetriebnahme über das ELSTER-Portal gemeldet werden.                               |
-| **ERiC**                   | „ELSTER Rich Client" — Programmierschnittstelle für die automatisierte ELSTER-Kommunikation. Phase-3-Feature.                                                           |
-| **Kassenbeleg**            | Pflichtbeleg nach § 146a Abs. 2 AO nach jedem Kassiervorgang. In jotti: Bondruck via ESC/POS + (Phase 2) TSE-Signaturfelder.                                            |
-| **BYOT**                   | „Bring Your Own TSE" — Betreiber schließen selbst einen Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly) und injizieren API-Schlüssel via `.env`.                   |
+| Begriff                    | Bedeutung                                                                                                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **DSFinV-K**               | „Digitale Schnittstelle der Finanzverwaltung für Kassensysteme" — standardisiertes CSV-ZIP-Exportformat (Version 2.4) für Betriebsprüfungen. Geplant (→ F-04). |
+| **TAR-Archiv**             | Gesetzlich vorgeschriebenes Dateiformat für den Export der rohen, kryptografisch gesicherten TSE-Log-Nachrichten.                                              |
+| **Kassenmeldung / ELSTER** | Pflicht nach § 146a Abs. 4 AO: Meldung jeder jotti-Instanz innerhalb eines Monats nach Inbetriebnahme über das ELSTER-Portal (→ F-05).                         |
+| **ERiC**                   | „ELSTER Rich Client" — Programmierschnittstelle für die automatisierte ELSTER-Kommunikation. Geplant.                                                          |
+| **BYOT**                   | „Bring Your Own TSE" — Betreiber schließen selbst einen Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly) und hinterlegen die Zugangsdaten in den Admin-Einstellungen. |
 
 ---
 
 ### Architekturprinzipien
 
-- **Event-Sourcing:** Persistenzmuster für den Kassenbetrieb: Zustand wird nicht direkt gespeichert, sondern aus unveränderlichen Events berechnet. Jeder Tisch hat einen eigenen Event Stream.
+Kurzdefinitionen — die kanonische Architektur-Erklärung steht im [handbuch.md](handbuch.md).
 
-- **Fat Event:** Event, das alle relevanten Daten zum Zeitpunkt der Aktion enthält — inklusive Produktname und Preis. Damit ist das Event unabhängig von späteren Stammdaten-Änderungen auswertbar.
-
-- **Anti-Corruption Layer (ACL):** Schutzmechanismus zwischen Bounded Contexts: Der Kassenbetrieb friert Stammdaten (Produktname, Preis) in Events ein und ist damit unabhängig von nachträglichen Änderungen an Produkten oder Varianten.
-
-- **Append-only:** Grundprinzip des Event Streams: Events werden nur hinzugefügt, nie geändert oder gelöscht. Falsche Aktionen werden durch kompensierende Events (z. B. Stornierung) aufgehoben. Entspricht dem GoBD-Radierverbot für steuerrelevante Daten.
-
-- **Synchrone Projektion:** Performance-Optimierung, die den Snapshot-as-Event-Ansatz ersetzt hat (siehe ADR: CQRS). Der Tisch-Zustand wird als `tisch_sessions`-Zeile synchron in derselben Transaktion wie das Event geschrieben. Kein Event-Replay beim Lesen nötig.
+- **Event-Sourcing:** Zustand wird aus unveränderlichen Events berechnet, nicht direkt gespeichert (→ handbuch.md §3.2).
+- **Fat Event:** Event friert alle relevanten Daten zum Aktionszeitpunkt ein — Produktname, Preis, Steuersatz (→ handbuch.md §2.2).
+- **Anti-Corruption Layer (ACL):** Eingefrorene Stammdaten entkoppeln den Kassenbetrieb von späteren Produkt-Änderungen (→ handbuch.md §2.2).
+- **Append-only:** Events werden nie geändert oder gelöscht; Korrekturen sind kompensierende Events. Entspricht dem GoBD-Radierverbot (→ handbuch.md §3.2).
+- **Synchrone Projektion:** Der Tisch-Zustand wird als `tisch_sessions`-Zeile in derselben Transaktion wie das Event geschrieben (→ handbuch.md §3.8).
 
 ---
 
@@ -567,13 +462,9 @@ Begriffe für die gesetzlich vorgeschriebene Fiskalisierung nach § 146a AO und 
 
 Die folgenden Begriffe sind definiert, aber noch nicht im Code implementiert. Details und Priorisierung in `docs/anforderungen.md`.
 
-- **Bon:** Gedruckter Beleg mit Tisch, Servicekraft, Positionen, Mengen, Zeitstempel.
-- **Küchendisplay (KDS):** Echtzeit-Anzeige offener Bestellungen an der Ausgabestation.
-- **Zubereitungsstatus:** Status einer Position: offen → in Zubereitung → fertig.
-- **Ausgabestation:** Physischer Ort (Küche, Getränketheke), an dem Positionen ausgegeben werden.
-- **Tagesabrechnung:** Übersicht über Gesamtumsatz, Stornierungen und Umsatz pro Servicekraft.
-- **Umsatz:** Summe aller registrierten Zahlungen in einem Zeitraum. Immer in Cent.
+- **Küchendisplay (KDS):** Echtzeit-Anzeige offener Bestellungen an der Ausgabestation (K-13).
+- **Zubereitungsstatus:** Status einer Position: offen → in Zubereitung → fertig (K-15).
+- **Ausgabestation:** Physischer Ort (Küche, Getränketheke), an dem Positionen ausgegeben werden (K-13/K-15).
 - **Stornoquote:** Verhältnis Stornierungsbetrag zu Bestellsumme.
-- **Export:** CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Buchhaltung.
-
-> **Hinweis:** Der Tagesabschluss (Z-Bon) ist kein Reporting-Vorgang, sondern eine transaktionale Operation des Kasse-Kontexts. Siehe → Z-Bon (Tagesabschluss).
+- **Export:** CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Buchhaltung (R-02).
+- **Privatentnahme / Privateinlage:** eigene DSFinV-K-Geschäftsvorfalltypen neben dem Geldtransit (siehe → Geldtransit).

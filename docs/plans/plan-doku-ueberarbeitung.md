@@ -166,11 +166,11 @@ language.md auf ~430–470 Zeilen bringen: Alle veralteten Anmerkungen gegen den
 
 ### Acceptance criteria
 
-- [ ] Alle Code-Mappings in language.md stimmen mit dem Code überein (Stichproben: Geldtransit-Event, druckauftraege, Relay, TSEClient-Status)
-- [ ] Kein Begriffseintrag erklärt Architektur, die handbuch.md bereits beschreibt — nur Mapping + Verweis
-- [ ] Widerspruch zwischen Abweichungs-Abschnitt und Einzeleinträgen beseitigt
-- [ ] anforderungen.md: alle IDs, Status und Akzeptanzkriterien unverändert vorhanden
-- [ ] language.md ≤ 470 Zeilen
+- [x] Alle Code-Mappings in language.md stimmen mit dem Code überein (Stichproben: Geldtransit-Event, druckauftraege, Relay, TSEClient-Status)
+- [x] Kein Begriffseintrag erklärt Architektur, die handbuch.md bereits beschreibt — nur Mapping + Verweis
+- [x] Widerspruch zwischen Abweichungs-Abschnitt und Einzeleinträgen beseitigt
+- [x] anforderungen.md: alle IDs und Akzeptanzkriterien unverändert vorhanden _(bewusste Abweichung: F-02- und F-03-Status nach Code-Verifikation auf ✅ korrigiert — TSE-Integration inkl. fiskaly-Adapter, Beleg-TSE-Feldern, Admin-Warnung und Nachsignier-Outbox ist implementiert; die Plan-Prämisse „F-02 offen" war veraltet)_
+- [x] language.md ≤ 470 Zeilen (Ergebnis: 470)
 
 ---
 
@@ -178,7 +178,8 @@ language.md auf ~430–470 Zeilen bringen: Alle veralteten Anmerkungen gegen den
 
 ### Context
 
-- `docs/produktbeschreibung.md` — §6 Kernfeatures-Tabelle (Z. 140–182) und §7.3 (Z. 222–237) nennen offene Features als vorhanden; Abgleich: anforderungen.md (K-13, K-15, R-02, R-05, F-02, F-04, F-08 offen); README.md:8 als Vorbild für Status-Formulierung
+- `docs/produktbeschreibung.md` — §6 Kernfeatures-Tabelle (Z. 140–182) und §7.3 (Z. 222–237) nennen offene Features als vorhanden; Abgleich: anforderungen.md (K-13, K-15, R-02, R-05, F-04, F-08 offen); README.md:8 als Vorbild für Status-Formulierung
+- Nachtrag aus Phase 4: F-02 (TSE) und F-03 (Kassenbeleg) sind im Code umgesetzt und in anforderungen.md jetzt ✅ — TSE und Beleg **nicht** mehr als „in Entwicklung" markieren. Offen bleiben: K-13, K-15, K-23, Q-05, R-02, R-05, F-04, F-05, F-08, F-09.
 
 ### What to build
 

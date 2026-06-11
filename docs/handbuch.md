@@ -104,7 +104,7 @@ Die Tisch-Session ist die transaktionale Grenze für tischbezogene Vorgänge. Je
 
 ### 3.5 Kassensitzung-Lifecycle
 
-Die Kassensitzung durchläuft: **Eröffnung** (Datum + Bezeichnung) → **Anfangsbestand** (Wechselgeld) → **Betrieb** (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Kassenbewegungen) → **Kassensturz** (Soll-Ist-Abgleich) → **Tagesabschluss** (Z-Bon, KS schließen). Alle KS-Events werden im selben Kassenjournal wie Tisch-Events gespeichert — Subject `kassensitzung-{nr}`.
+Die Kassensitzung durchläuft: **Eröffnung** (Datum, Bezeichnung, Anfangsbestand/Wechselgeld) → **Betrieb** (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Kassenbewegungen) → **Kassensturz** (Soll-Ist-Abgleich) → **Tagesabschluss** (Z-Bon, KS schließen). Alle KS-Events werden im selben Kassenjournal wie Tisch-Events gespeichert — Subject `kassensitzung-{nr}`.
 
 ### 3.6 Domain Events
 
@@ -131,8 +131,7 @@ Alle Events sind unveränderlich (append-only) und werden im Kassenjournal persi
 
 | Event                           | Semantik                                                | Tragende Constraints                                                          |
 | ------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `kassensitzung-eroeffnet:v1`    | Admin eröffnet die Kassensitzung (Datum, Bezeichnung)   | —                                                                             |
-| `anfangsbestand-gesetzt:v1`     | Wechselgeld-Anfangsbestand                              | Genau 1× pro Kassensitzung                                                    |
+| `kassensitzung-eroeffnet:v1`    | Admin eröffnet die Kassensitzung (Datum, Bezeichnung, Anfangsbestand) | Anfangsbestand (`betragCents`) ist Teil der Eröffnung — kein eigenes Event |
 | `geldtransit-gebucht:v1`        | Einlage oder Entnahme (`richtung`)                      | Kommentar **Pflicht** (min. 3 Zeichen)                                        |
 | `kassensturz-durchgefuehrt:v1`  | Soll-Ist-Abgleich                                       | Voraussetzung für den Tagesabschluss                                          |
 | `differenz-soll-ist-gebucht:v1` | Differenzbuchung nach Kassensturz                       | Nur wenn Differenz ≠ 0; gleiche Transaktion wie der Kassensturz (→ [3.10](#310-kassensturz)) |
@@ -285,13 +284,13 @@ Stammdaten (Produkte, Tische, Benutzer) werden mit klassischem CRUD verwaltet. E
 
 **Arbeitsbon (operativ, K-12):** Eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)). Bei `bestellung-aufgenommen:v1` gruppiert die Arbeitsbon-Policy (`backend/api/bondruck`) die Positionen nach Kategorie, schlägt Drucker-IP und Bonmodus (`pro_position` oder `pro_bestellung`) aus der `druckstationen`-Tabelle nach (eine Zeile pro Kategorie; Admin-Konfiguration mit beidseitiger IPv4-Validierung), formatiert den ESC/POS-Payload und reiht je einen Druckauftrag in die Outbox ein. Kategorien ohne konfigurierte Druckstation erzeugen keinen Auftrag. **Inhalt:** Tischnummer, Positionen (Art + Menge), Kommentar, Uhrzeit, Servicekraft — **keine Preise**. Kein Beleg i. S. v. § 146a AO. KDS (K-13) und Zubereitungsstatus (K-15) sind noch offen.
 
-**Kassenbeleg (fiskalisch, auf Anforderung):** Ein Service-Command (`POST /service/beleg-drucken`) erzeugt pro Anforderung genau **einen** Druckauftrag an den Kassenbeleg-Drucker. Als Datenquelle dient entweder eine Tischzahlung (`zahlung-kassiert:v1`) oder ein Direktverkauf (`direktverkauf-getaetigt:v1`); die Outbox-Referenz ist die Event-ID des referenzierten Vorgangs. **Inhalt:** Vereinsdaten (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer. Erneuter Aufruf druckt nach, ohne den Vorgang fachlich zu wiederholen. Am Fest wird der Beleg selten verlangt (Belegausgabe-Befreiung → [compliance.md §5.1](compliance.md)). TSE-Pflichtfelder folgen mit F-02.
+**Kassenbeleg (fiskalisch, auf Anforderung):** Ein Service-Command (`POST /service/beleg-drucken`) erzeugt pro Anforderung genau **einen** Druckauftrag an den Kassenbeleg-Drucker. Als Datenquelle dient entweder eine Tischzahlung (`zahlung-kassiert:v1`) oder ein Direktverkauf (`direktverkauf-getaetigt:v1`); die Outbox-Referenz ist die Event-ID des referenzierten Vorgangs. **Inhalt:** Vereinsdaten (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer. Erneuter Aufruf druckt nach, ohne den Vorgang fachlich zu wiederholen. Am Fest wird der Beleg selten verlangt (Belegausgabe-Befreiung → [compliance.md §5.1](compliance.md)). Der Beleg enthält die Steueraufteilung (F-07) und — sofern eine TSE konfiguriert ist — die TSE-Pflichtfelder inkl. QR-Code (F-02).
 
-**Druckauftrags-Outbox (`druckauftraege`):** Single Source of Truth für alle Druckjobs — eine technische Warteschlange (Ziel-IP, ESC/POS-Payload, `bon_art`, fachliche Referenz), **kein** fiskalisches Journal. Einziger Statusübergang: `offen → gedruckt`.
+**Druckauftrags-Outbox (`druckauftraege`):** Single Source of Truth für alle Druckjobs — eine technische Warteschlange (Ziel-IP, ESC/POS-Payload, `bon_art`, fachliche Referenz), **kein** fiskalisches Journal. Statusmodell: `offen → gedruckt`; nach drei gemeldeten Fehlversuchen `fehlgeschlagen`, von dort `verworfen` oder zurück auf `offen`.
 
-**Direktverkauf-Routing:** Die Singleton-Konfiguration `bondruck_einstellungen` hält die Kassenbeleg-Drucker-IP und den `direktverkauf_modus`, der den Bondruck für `direktverkauf-getaetigt:v1` steuert: `kein_bon` (kein Auftrag), `abholbon` (genau ein kombinierter Abholbon ohne Preise) oder `an_stationen` (Arbeitsbons nach Kategorie, identisches Routing wie bei Tisch-Bestellungen). Fehlt die Kassenbeleg-Drucker-IP, schlägt `POST /service/beleg-drucken` mit klarer Fehlermeldung fehl.
+**Direktverkauf-Routing (Ableitungsregel):** Der Bondruck für `direktverkauf-getaetigt:v1` wird aus den konfigurierten Druckstationen abgeleitet: Ist die Abholbon-Station konfiguriert, entstehen Abholbons an dieser Station gemäß ihrem Bonmodus; sonst Arbeitsbons an die Produktstationen; ohne konfigurierte Stationen entsteht kein Auftrag. Der Kassenbeleg-Drucker ist die Druckstation `kassenbeleg`; fehlt ihre IP, schlägt `POST /service/beleg-drucken` mit klarer Fehlermeldung fehl.
 
-**Relay = Transport:** Das Print-Relay (`cmd/relay/main.go`) holt offene Aufträge via `POST /relay/poll`, druckt sie und quittiert die gedruckten IDs via `POST /relay/quittieren`; das Backend setzt daraufhin `status = 'gedruckt'`. Das Relay formatiert nichts, kennt keine Kategorien und führt keinen Cursor — der DB-Status ist autoritativ; nicht quittierte Aufträge liefert der nächste Poll erneut (beim nicht-fiskalischen Arbeitsbon unkritisch). Start und Konfiguration → [README §Print-Relay](../README.md#print-relay).
+**Relay = Transport:** Das Print-Relay (`cmd/relay/main.go`) holt offene Aufträge via `POST /relay/poll`, druckt sie und meldet das Ergebnis via `POST /relay/ergebnis` (gedruckte IDs und Fehlversuche); das Backend setzt die Status entsprechend. Das Relay formatiert nichts, kennt keine Kategorien und führt keinen Cursor — der DB-Status ist autoritativ; nicht quittierte Aufträge liefert der nächste Poll erneut (beim nicht-fiskalischen Arbeitsbon unkritisch). Start und Konfiguration → [README §Print-Relay](../README.md#print-relay).
 
 ---
 
@@ -436,7 +435,7 @@ Mehrere Servicekräfte arbeiten gleichzeitig — auch am selben Tisch. Schreibko
 | Generische Fehlermeldungen | Fehlgeschlagene Logins geben keine Auskunft, ob Benutzer oder Passwort falsch war                                               | A-01        |
 | Keine Secrets im Code      | Alle Secrets (JWT-Schlüssel, DB-Passwort, `RELAY_AUTH_TOKEN`) werden über Umgebungsvariablen konfiguriert                       | —           |
 | JWT-Gültigkeit             | Tokens sind 12 Stunden gültig — kurze Lebensdauer begrenzt den Schaden bei Verlust                                              | A-01        |
-| Relay-Token                | Statischer Token für `POST /relay/poll` und `POST /relay/quittieren` — kein JWT, kein Benutzerkontext. Relay ist kein Benutzer. | K-12        |
+| Relay-Token                | Statischer Token für `POST /relay/poll` und `POST /relay/ergebnis` — kein JWT, kein Benutzerkontext. Relay ist kein Benutzer. | K-12        |
 
 ---
 

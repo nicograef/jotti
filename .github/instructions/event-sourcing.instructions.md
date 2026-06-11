@@ -24,8 +24,7 @@ Events für Kasse-Operationen (Tisch-Sessions und Kassensitzungen). Zwei Subject
 
 **Kassensitzung Events** (Subject: `kassensitzung-{nr}`):
 
-- `kassensitzung-eroeffnet:v1`
-- `anfangsbestand-gesetzt:v1`
+- `kassensitzung-eroeffnet:v1` (enthält den Anfangsbestand — kein eigenes Event)
 - `geldtransit-gebucht:v1`
 - `kassensturz-durchgefuehrt:v1`
 - `differenz-soll-ist-gebucht:v1`
