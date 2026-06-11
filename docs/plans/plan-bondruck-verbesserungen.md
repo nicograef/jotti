@@ -240,13 +240,13 @@ Der Relay-Zyklus wird neu geschnitten: Pro Poll werden die Aufträge nach Ziel-I
 
 ### Acceptance criteria
 
-- [ ] Pro Auftrag genau ein Zustellversuch pro Zyklus; `maxRetries`/Sleep-Retry sind entfernt
-- [ ] Aufträge nach Ziel-IP gruppiert, Gruppen parallel; ein nicht erreichbarer Drucker verzögert andere Drucker nur um einen kurzen Verbindungsversuch
-- [ ] Nach Erstfehler einer IP werden deren übrige Aufträge im Zyklus übersprungen und nicht als Fehlversuch gemeldet
-- [ ] Erfolge und Fehlversuche gehen gesammelt in einem `/relay/ergebnis`-Request ans Backend
-- [ ] Unit-Tests mit injizierten Fake-Funktionen: Gruppierung, Reihenfolge innerhalb einer IP, Skip nach Erstfehler, korrekte Erfolg-/Fehlversuchs-Meldung
-- [ ] Papierstatus-Bits gegen die ESC/POS-Dokumentation verifiziert und ggf. korrigiert (mit Quellenangabe im Commit/Kommentar)
-- [ ] `make check` prüft das Relay-Modul mit (Lint, Vet, Tests, Build)
+- [x] Pro Auftrag genau ein Zustellversuch pro Zyklus; `maxRetries`/Sleep-Retry sind entfernt
+- [x] Aufträge nach Ziel-IP gruppiert, Gruppen parallel; ein nicht erreichbarer Drucker verzögert andere Drucker nur um einen kurzen Verbindungsversuch
+- [x] Nach Erstfehler einer IP werden deren übrige Aufträge im Zyklus übersprungen und nicht als Fehlversuch gemeldet
+- [x] Erfolge und Fehlversuche gehen gesammelt in einem `/relay/ergebnis`-Request ans Backend
+- [x] Unit-Tests mit injizierten Fake-Funktionen: Gruppierung, Reihenfolge innerhalb einer IP, Skip nach Erstfehler, korrekte Erfolg-/Fehlversuchs-Meldung
+- [x] Papierstatus-Bits gegen die ESC/POS-Dokumentation verifiziert und ggf. korrigiert (mit Quellenangabe im Commit/Kommentar)
+- [x] `make check` prüft das Relay-Modul mit (Lint, Vet, Tests, Build)
 
 ---
 

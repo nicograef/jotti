@@ -11,8 +11,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -31,9 +33,35 @@ type RelayConfig struct {
 	TLSSkipVerify bool
 }
 
-const maxRetries = 60
 const defaultBackendURL = "https://localhost/api"
 const defaultPollSeconds = 2
+
+// dialTimeout ist der kurze TCP-Timeout für genau einen Zustellversuch pro
+// Auftrag und Zyklus. Ein nicht erreichbarer Drucker verzögert seine eigene
+// IP-Gruppe nur um diese Spanne; andere Gruppen laufen parallel weiter.
+const dialTimeout = 2 * time.Second
+
+// druckFunc stellt einen einzelnen Auftrag zu und meldet einen Fehler, wenn der
+// Versuch scheitert. Injizierbar, damit die Zyklus-Logik ohne echte Drucker
+// testbar ist.
+type druckFunc func(a DruckAuftrag) error
+
+// meldeFunc meldet das Ergebnis eines Zyklus ans Backend. Injizierbar, damit die
+// Zyklus-Logik ohne HTTP-Backend testbar ist.
+type meldeFunc func(ergebnis zyklusErgebnis) error
+
+// fehlversuch beschreibt einen gescheiterten Zustellversuch eines Auftrags.
+type fehlversuch struct {
+	ID     int
+	Fehler string
+}
+
+// zyklusErgebnis fasst zusammen, was ein Poll-Zyklus zugestellt und welche
+// Aufträge dabei gescheitert sind.
+type zyklusErgebnis struct {
+	gedruckteIDs []int
+	fehlversuche []fehlversuch
+}
 
 func loadConfigFromEnv(getenv func(string) string) (RelayConfig, error) {
 	token := strings.TrimSpace(getenv("RELAY_AUTH_TOKEN"))
@@ -126,22 +154,22 @@ func main() {
 				lastStatusLog = time.Now()
 			}
 		} else {
-			gedruckteIDs := make([]int, 0, len(auftraege))
-			for _, a := range auftraege {
-				if err := printAuftragWithRetry(a); err != nil {
-					log.Printf("Druckfehler nach max. Versuchen (Auftrag %d): %v -- bleibt offen", a.ID, err)
-				} else {
-					log.Printf("Auftrag %d erfolgreich gedruckt auf %s", a.ID, a.ZielIP)
-					gedruckteIDs = append(gedruckteIDs, a.ID)
-				}
+			melde := func(ergebnis zyklusErgebnis) error {
+				return meldeErgebnis(client, ergebnis, config)
 			}
+			ergebnis, meldeErr := fuehreZyklusAus(auftraege, druckeAuftrag, melde)
 
-			if len(gedruckteIDs) > 0 {
-				if err := meldeErgebnis(client, gedruckteIDs, config); err != nil {
-					log.Printf("Ergebnis-Meldung fehlgeschlagen (%d Auftraege): %v", len(gedruckteIDs), err)
-				} else {
-					log.Printf("%d Auftraege quittiert", len(gedruckteIDs))
-				}
+			for _, id := range ergebnis.gedruckteIDs {
+				log.Printf("Auftrag %d erfolgreich gedruckt", id)
+			}
+			for _, f := range ergebnis.fehlversuche {
+				log.Printf("Auftrag %d fehlgeschlagen: %s", f.ID, f.Fehler)
+			}
+			if meldeErr != nil {
+				log.Printf("Ergebnis-Meldung fehlgeschlagen: %v", meldeErr)
+			} else if len(ergebnis.gedruckteIDs) > 0 || len(ergebnis.fehlversuche) > 0 {
+				log.Printf("Zyklus gemeldet: %d gedruckt, %d Fehlversuche",
+					len(ergebnis.gedruckteIDs), len(ergebnis.fehlversuche))
 			}
 			lastStatusLog = time.Now()
 		}
@@ -150,27 +178,89 @@ func main() {
 	}
 }
 
-func printAuftragWithRetry(a DruckAuftrag) error {
-	for attempt := 1; attempt <= maxRetries; attempt++ {
-		if err := checkPrinter(a.ZielIP); err != nil {
-			log.Printf("Drucker %s nicht bereit (Versuch %d/%d): %v -- warte 5s",
-				a.ZielIP, attempt, maxRetries, err)
-			time.Sleep(5 * time.Second)
-			continue
-		}
-
-		escposData, err := base64.StdEncoding.DecodeString(a.Payload)
-		if err != nil {
-			return fmt.Errorf("ungueltiges Base64: %w", err)
-		}
-		if err := sendToPrinter(a.ZielIP, escposData); err != nil {
-			log.Printf("Sendefehler (Versuch %d/%d): %v", attempt, maxRetries, err)
-			time.Sleep(5 * time.Second)
-			continue
-		}
-		return nil
+// fuehreZyklusAus verarbeitet alle Aufträge eines Polls und meldet das Ergebnis.
+// Verarbeitung und Meldung sind über druck/melde injizierbar.
+func fuehreZyklusAus(auftraege []DruckAuftrag, druck druckFunc, melde meldeFunc) (zyklusErgebnis, error) {
+	ergebnis := verarbeiteZyklus(auftraege, druck)
+	if len(ergebnis.gedruckteIDs) == 0 && len(ergebnis.fehlversuche) == 0 {
+		return ergebnis, nil
 	}
-	return fmt.Errorf("max. Versuche (%d) erreicht fuer Drucker %s", maxRetries, a.ZielIP)
+	return ergebnis, melde(ergebnis)
+}
+
+// verarbeiteZyklus verarbeitet die Aufträge eines Polls: gruppiert nach Ziel-IP,
+// Gruppen laufen parallel (ein toter Drucker blockiert keinen anderen).
+// Innerhalb einer IP bleibt die ID-Reihenfolge erhalten und der erste Fehler
+// bricht die Gruppe ab. Die Resultate werden nach ID sortiert zurückgegeben.
+func verarbeiteZyklus(auftraege []DruckAuftrag, druck druckFunc) zyklusErgebnis {
+	var (
+		mu       sync.Mutex
+		wg       sync.WaitGroup
+		ergebnis zyklusErgebnis
+	)
+
+	for _, gruppe := range gruppiereNachIP(auftraege) {
+		wg.Add(1)
+		go func(gruppe []DruckAuftrag) {
+			defer wg.Done()
+			gedruckte, fehler := verarbeiteGruppe(gruppe, druck)
+
+			mu.Lock()
+			defer mu.Unlock()
+			ergebnis.gedruckteIDs = append(ergebnis.gedruckteIDs, gedruckte...)
+			if fehler != nil {
+				ergebnis.fehlversuche = append(ergebnis.fehlversuche, *fehler)
+			}
+		}(gruppe)
+	}
+	wg.Wait()
+
+	sort.Ints(ergebnis.gedruckteIDs)
+	sort.Slice(ergebnis.fehlversuche, func(i, j int) bool {
+		return ergebnis.fehlversuche[i].ID < ergebnis.fehlversuche[j].ID
+	})
+	return ergebnis
+}
+
+// verarbeiteGruppe stellt die Aufträge einer einzelnen Ziel-IP in ID-Reihenfolge
+// zu — genau ein Versuch pro Auftrag. Beim ersten Fehler bricht die Gruppe ab:
+// Dieser Auftrag wird als Fehlversuch gemeldet, die übrigen Aufträge dieser IP
+// bleiben offen und werden im nächsten Zyklus erneut versucht.
+func verarbeiteGruppe(gruppe []DruckAuftrag, druck druckFunc) ([]int, *fehlversuch) {
+	var gedruckteIDs []int
+	for _, a := range gruppe {
+		if err := druck(a); err != nil {
+			return gedruckteIDs, &fehlversuch{ID: a.ID, Fehler: err.Error()}
+		}
+		gedruckteIDs = append(gedruckteIDs, a.ID)
+	}
+	return gedruckteIDs, nil
+}
+
+// gruppiereNachIP gruppiert Aufträge nach Ziel-IP. Innerhalb jeder Gruppe bleibt
+// die Eingabe-Reihenfolge (älteste ID zuerst) erhalten.
+func gruppiereNachIP(auftraege []DruckAuftrag) map[string][]DruckAuftrag {
+	gruppen := make(map[string][]DruckAuftrag)
+	for _, a := range auftraege {
+		gruppen[a.ZielIP] = append(gruppen[a.ZielIP], a)
+	}
+	return gruppen
+}
+
+// druckeAuftrag stellt einen Auftrag mit genau einem Versuch zu: Payload
+// dekodieren, Drucker prüfen, Daten senden.
+func druckeAuftrag(a DruckAuftrag) error {
+	escposData, err := base64.StdEncoding.DecodeString(a.Payload)
+	if err != nil {
+		return fmt.Errorf("ungueltiges Base64: %w", err)
+	}
+	if err := checkPrinter(a.ZielIP); err != nil {
+		return fmt.Errorf("drucker %s: %w", a.ZielIP, err)
+	}
+	if err := sendToPrinter(a.ZielIP, escposData); err != nil {
+		return fmt.Errorf("drucker %s: senden fehlgeschlagen: %w", a.ZielIP, err)
+	}
+	return nil
 }
 
 func poll(client *http.Client, config RelayConfig) ([]DruckAuftrag, error) {
@@ -181,7 +271,7 @@ func poll(client *http.Client, config RelayConfig) ([]DruckAuftrag, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return nil, fmt.Errorf("ungueltiger Token (401) -- Relay-Token pruefen")
@@ -199,20 +289,33 @@ func poll(client *http.Client, config RelayConfig) ([]DruckAuftrag, error) {
 	return result.Auftraege, nil
 }
 
-// meldeErgebnis meldet das Ergebnis eines Poll-Zyklus an das Backend. In dieser
-// Ausbaustufe meldet das Relay nur Erfolge; Fehlversuche kommen mit dem
-// Zyklus-Umbau (Phase 5) hinzu. Das Backend besitzt die Fehlversuchs-Logik.
-func meldeErgebnis(client *http.Client, gedruckteIDs []int, config RelayConfig) error {
+// meldeErgebnis meldet Erfolge und Fehlversuche eines Zyklus gesammelt in einem
+// Request an das Backend. Das Backend besitzt die Fehlversuchs-Logik (zählt
+// hoch und markiert nach drei Versuchen als fehlgeschlagen).
+func meldeErgebnis(client *http.Client, ergebnis zyklusErgebnis, config RelayConfig) error {
+	fehlversuche := make([]map[string]any, 0, len(ergebnis.fehlversuche))
+	for _, f := range ergebnis.fehlversuche {
+		fehlversuche = append(fehlversuche, map[string]any{
+			"id":     f.ID,
+			"fehler": f.Fehler,
+		})
+	}
+
+	gedruckteIDs := ergebnis.gedruckteIDs
+	if gedruckteIDs == nil {
+		gedruckteIDs = []int{}
+	}
+
 	reqBody, _ := json.Marshal(map[string]any{
 		"token":        config.Token,
 		"gedruckteIds": gedruckteIDs,
-		"fehlversuche": []any{},
+		"fehlversuche": fehlversuche,
 	})
 	resp, err := client.Post(config.BackendURL+"/relay/ergebnis", "application/json", bytes.NewReader(reqBody))
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return fmt.Errorf("ungueltiger Token (401) -- Relay-Token pruefen")
@@ -225,11 +328,11 @@ func meldeErgebnis(client *http.Client, gedruckteIDs []int, config RelayConfig) 
 }
 
 func checkPrinter(ip string) error {
-	conn, err := net.DialTimeout("tcp", ip+":9100", 3*time.Second)
+	conn, err := net.DialTimeout("tcp", ip+":9100", dialTimeout)
 	if err != nil {
 		return fmt.Errorf("nicht erreichbar: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	if _, err := conn.Write([]byte{0x10, 0x04, 0x04}); err != nil {
 		return fmt.Errorf("status-abfrage fehlgeschlagen: %w", err)
@@ -241,21 +344,25 @@ func checkPrinter(ip string) error {
 		return nil
 	}
 
-	if reply[0]&0x40 != 0 {
+	// DLE EOT n=4 liefert den Rollenpapier-Sensorstatus (ESC/POS). Bits 2,3
+	// (Maske 0x0C) melden den Near-End-Sensor (Papier fast leer), Bits 5,6
+	// (Maske 0x60) den End-Sensor (Papier leer). Die übrigen Bits sind fest.
+	// Quelle: Epson ESC/POS DLE EOT, bestätigt via escpos.readthedocs.io.
+	if reply[0]&0x60 != 0 {
 		return fmt.Errorf("papier leer (status=0x%02X)", reply[0])
 	}
-	if reply[0]&0x20 != 0 {
+	if reply[0]&0x0C != 0 {
 		log.Printf("WARNUNG: Drucker %s meldet Papier fast leer", ip)
 	}
 	return nil
 }
 
 func sendToPrinter(ip string, data []byte) error {
-	conn, err := net.DialTimeout("tcp", ip+":9100", 3*time.Second)
+	conn, err := net.DialTimeout("tcp", ip+":9100", dialTimeout)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	if err := conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
 		return fmt.Errorf("set write deadline: %w", err)
 	}
