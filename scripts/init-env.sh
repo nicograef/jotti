@@ -31,7 +31,7 @@ if ! command -v openssl >/dev/null 2>&1; then
 fi
 
 generate_secret() {
-  openssl rand -base64 32 | tr -d '\n'
+  openssl rand -hex 32
 }
 
 postgres_password="$(generate_secret)"
