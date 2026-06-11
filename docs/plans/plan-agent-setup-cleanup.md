@@ -137,10 +137,10 @@ bleiben.
 
 ### Acceptance criteria
 
-- [ ] `"rm": true` ist entfernt
-- [ ] Pseudo-Regex-Eintrag und beide cloudevents-Einträge sind entfernt
-- [ ] Sicherungskopie der Datei existiert
-- [ ] VS Code lädt die Settings ohne Fehler (JSONC bleibt parsebar)
+- [x] `"rm": true` ist entfernt
+- [x] Pseudo-Regex-Eintrag und beide cloudevents-Einträge sind entfernt
+- [x] Sicherungskopie der Datei existiert
+- [x] VS Code lädt die Settings ohne Fehler (JSONC bleibt parsebar)
 
 ---
 
