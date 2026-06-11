@@ -5,6 +5,7 @@ package tse_repo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -279,6 +280,158 @@ func TestFiskalyClient_RetriesOnRetryableErrors(t *testing.T) {
 	}
 	if atomic.LoadInt32(&txCalls) != 3 {
 		t.Fatalf("expected 3 transaction calls due to retries, got %d", txCalls)
+	}
+}
+
+// TestFiskalyClient_RetrieveTransaction bildet den Kontrakt von "Retrieve a
+// transaction" ab: GET auf den UUID-Transaktionspfad, Antwort enthaelt state
+// und dieselben Signaturfelder wie ein Finish-Response.
+func TestFiskalyClient_RetrieveTransaction(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"access_token":            "token-1",
+				"access_token_expires_at": time.Now().Add(1 * time.Hour).Unix(),
+				"access_token_claims": map[string]any{
+					"env": "TEST",
+				},
+			})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v2/tss/tss-1/tx/"+testTxID:
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"number":            42,
+				"state":             "FINISHED",
+				"tss_serial_number": "TSS-SN-1",
+				"time_start":        1700000000,
+				"time_end":          1700000600,
+				"qr_code_data":      "V0;...",
+				"log": map[string]any{
+					"timestamp": 1700000600,
+				},
+				"signature": map[string]any{
+					"counter": 8,
+					"value":   "sig-abc",
+				},
+			})
+		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewFiskalyTSEClient(server.URL, tse.Credentials{
+		ApiKey:    "api-key",
+		ApiSecret: "api-secret",
+		TssID:     "tss-1",
+		ClientID:  "client-1",
+	}, nil)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	result, err := client.RetrieveTransaction(context.Background(), testTxID)
+	if err != nil {
+		t.Fatalf("retrieve transaction failed: %v", err)
+	}
+	if result.State != tse.TransactionStateFinished {
+		t.Fatalf("expected state FINISHED, got %q", result.State)
+	}
+	if result.TransactionNumber != 42 {
+		t.Fatalf("expected transaction number 42, got %d", result.TransactionNumber)
+	}
+	if result.Signature != "sig-abc" || result.SignatureCounter != 8 {
+		t.Fatalf("expected signature sig-abc/8, got %q/%d", result.Signature, result.SignatureCounter)
+	}
+	if result.QRCodeData != "V0;..." {
+		t.Fatalf("expected qr_code_data to be mapped")
+	}
+	if result.LogTimeStart.Unix() != 1700000000 || result.LogTimeEnd.Unix() != 1700000600 {
+		t.Fatalf("expected mapped unix times, got %v / %v", result.LogTimeStart, result.LogTimeEnd)
+	}
+}
+
+func TestFiskalyClient_RetrieveTransaction_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"access_token":            "token-1",
+				"access_token_expires_at": time.Now().Add(1 * time.Hour).Unix(),
+				"access_token_claims": map[string]any{
+					"env": "TEST",
+				},
+			})
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/api/v2/tss/tss-1/tx/"):
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code":        "E_TX_NOT_FOUND",
+				"message":     "transaction not found",
+				"status_code": 404,
+			})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewFiskalyTSEClient(server.URL, tse.Credentials{
+		ApiKey:    "api-key",
+		ApiSecret: "api-secret",
+		TssID:     "tss-1",
+		ClientID:  "client-1",
+	}, nil)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	_, err = client.RetrieveTransaction(context.Background(), testTxID)
+	if !errors.Is(err, tse.ErrTransactionNichtGefunden) {
+		t.Fatalf("expected ErrTransactionNichtGefunden, got %v", err)
+	}
+}
+
+// TestFiskalyClient_SingleAttempt_DoesNotRetry sichert das Verhalten des
+// synchronen Kassier-Pfads: genau ein Versuch, auch bei retry-faehigen Fehlern.
+func TestFiskalyClient_SingleAttempt_DoesNotRetry(t *testing.T) {
+	var txCalls int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"access_token":            "token-1",
+				"access_token_expires_at": time.Now().Add(1 * time.Hour).Unix(),
+				"access_token_claims": map[string]any{
+					"env": "TEST",
+				},
+			})
+		case r.Method == http.MethodPut && strings.Contains(r.URL.Path, "/api/v2/tss/tss-1/tx/"):
+			atomic.AddInt32(&txCalls, 1)
+			w.Header().Set("Retry-After", "0")
+			w.WriteHeader(http.StatusServiceUnavailable)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewFiskalyTSEClientSingleAttempt(server.URL, tse.Credentials{
+		ApiKey:    "api-key",
+		ApiSecret: "api-secret",
+		TssID:     "tss-1",
+		ClientID:  "client-1",
+	}, nil)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	_, err = client.StartTransaction(context.Background(), testTxID, "Kassenbeleg-V1", "")
+	if err == nil {
+		t.Fatal("expected error from single attempt against failing server")
+	}
+	if atomic.LoadInt32(&txCalls) != 1 {
+		t.Fatalf("expected exactly one transaction call, got %d", txCalls)
 	}
 }
 

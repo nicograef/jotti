@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"time"
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	"github.com/nicograef/jotti/backend/db"
@@ -88,6 +89,9 @@ type Command struct {
 	DruckauftragRepo    druckauftragRepo
 	SettingsRepo        settingsRepo
 	NewTSEClient        NewTSEClient
+	// TSESignierDeadline ueberschreibt die Gesamt-Deadline des synchronen
+	// Signierversuchs; 0 bedeutet tse.SignierDeadline. Nur fuer Tests gedacht.
+	TSESignierDeadline time.Duration
 }
 
 type zahlungKassiertV1Data struct {

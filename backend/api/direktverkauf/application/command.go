@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
@@ -59,6 +60,9 @@ type Command struct {
 	DruckstationRepo    druckstationRepo
 	SettingsRepo        settingsRepo
 	NewTSEClient        NewTSEClient
+	// TSESignierDeadline ueberschreibt die Gesamt-Deadline des synchronen
+	// Signierversuchs; 0 bedeutet tse.SignierDeadline. Nur fuer Tests gedacht.
+	TSESignierDeadline time.Duration
 }
 
 // DirektverkaufTaetigen records a Direktverkauf as a single immutable event in its own stream

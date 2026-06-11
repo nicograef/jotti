@@ -851,6 +851,76 @@ func TestZahlungKassieren_BeiTSEAusfall_NichtBlockierendMitNachsignierAuftrag(t 
 	}
 }
 
+// Bei fiskaly-Stoerung (haengende Verbindung) wartet der Kassieren-Request
+// hoechstens die Signier-Deadline, dann greift der Ausfallpfad: unsigniertes
+// Event mit Ausfallvermerk plus Nachsignier-Auftrag fuer den Worker.
+func TestZahlungKassieren_TSEDeadline_DanachAusfallpfad(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.SetTischSession(subject, kasse.TischSession{
+		SaldoCents: 350,
+		UnbezahltePositionen: []kasse.Position{{
+			PositionID:   "44444444-4444-4444-8444-444444444444",
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk",
+			Steuersatz:   "regel",
+			Einzelpreis:  350,
+			Menge:        1,
+		}},
+	})
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+			ApiKey:    "api-key",
+			ApiSecret: "api-secret",
+			TssID:     "tss-1",
+			ClientID:  "client-1",
+			UpdatedAt: time.Now(),
+		}},
+		// Die TSE antwortet erst nach 5 Sekunden — deutlich nach der Deadline.
+		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+			return tse.FakeClient{ArtificialDelay: 5 * time.Second}, nil
+		},
+		TSESignierDeadline: 50 * time.Millisecond,
+	}
+
+	begin := time.Now()
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, []kasse.PositionRef{{PositionID: "44444444-4444-4444-8444-444444444444", Menge: 1}}, "")
+	if err != nil {
+		t.Fatalf("expected no error (don't block the till), got %v", err)
+	}
+	if elapsed := time.Since(begin); elapsed > 2*time.Second {
+		t.Fatalf("expected request to return shortly after the deadline, took %v", elapsed)
+	}
+
+	events, err := eventMock.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected exactly one event, got %d", len(events))
+	}
+
+	var data zahlungKassiertV1Data
+	if err := json.Unmarshal(events[0].Data, &data); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	if !data.TSEAusfall {
+		t.Fatal("expected tseAusfall marker after deadline")
+	}
+
+	if len(eventMock.CapturedNachsignierAuftraege()) != 1 {
+		t.Fatalf("expected exactly one retry job, got %d", len(eventMock.CapturedNachsignierAuftraege()))
+	}
+}
+
 func TestBestellungAufnehmen_MitTSE_DatenImEvent(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)

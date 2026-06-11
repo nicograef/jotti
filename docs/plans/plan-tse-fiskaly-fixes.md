@@ -136,10 +136,10 @@ Worker-Hardening nach Druckauftrags-Muster: `versuche`/`letzter_fehler`/`naechst
 
 ### Acceptance criteria
 
-- [ ] Ein dauerhaft fehlschlagender Auftrag erreicht `fehlgeschlagen` und blockiert keine neueren Aufträge mehr
-- [ ] Worker quittiert eine bei fiskaly bereits FINISHED-Transaktion ohne neuen Signierversuch (409-Szenario getestet)
-- [ ] Kassieren-Request wartet bei fiskaly-Störung maximal die definierte Deadline, dann greift der Ausfallpfad
-- [ ] Admin sieht offene/fehlgeschlagene Nachsignierungen mit Zeitraum und Fehlergrund und kann zurücksetzen/verwerfen
+- [x] Ein dauerhaft fehlschlagender Auftrag erreicht `fehlgeschlagen` und blockiert keine neueren Aufträge mehr
+- [x] Worker quittiert eine bei fiskaly bereits FINISHED-Transaktion ohne neuen Signierversuch (409-Szenario getestet)
+- [x] Kassieren-Request wartet bei fiskaly-Störung maximal die definierte Deadline, dann greift der Ausfallpfad
+- [x] Admin sieht offene/fehlgeschlagene Nachsignierungen mit Zeitraum und Fehlergrund und kann zurücksetzen/verwerfen
 
 ---
 

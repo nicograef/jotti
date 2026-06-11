@@ -45,6 +45,28 @@ export const TSEStatusSchema = z.object({
 })
 export type TSEStatus = z.infer<typeof TSEStatusSchema>
 
+// Nachsignier-Auftrag: bei TSE-Ausfall vorgemerkter Vorgang. Die Liste dient
+// zugleich als TSE-Ausfalldokumentation (AEAO zu § 146a, 1.14.1):
+// erstelltAm = Beginn, erledigtAm = Ende, letzterFehler = Grund.
+export const TSENachsignierAuftragSchema = z.object({
+  id: z.number().int(),
+  txId: z.string(),
+  processType: z.string(),
+  status: z.enum(['offen', 'erledigt', 'fehlgeschlagen', 'verworfen']),
+  versuche: z.number().int(),
+  letzterFehler: z.string(),
+  erstelltAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: 'Ungültiges Datumsformat',
+  }),
+  erledigtAm: z
+    .string()
+    .refine((date) => !isNaN(Date.parse(date)), {
+      message: 'Ungültiges Datumsformat',
+    })
+    .nullable(),
+})
+export type TSENachsignierAuftrag = z.infer<typeof TSENachsignierAuftragSchema>
+
 export const TSEKonfigurationSpeichernSchema = z.object({
   apiKey: z
     .string()
@@ -129,5 +151,26 @@ export class EinstellungenBackend {
 
   public async getTSEStatus(): Promise<TSEStatus> {
     return this.backend.post('admin/get-tse-status', {}, TSEStatusSchema)
+  }
+
+  public async getTSENachsignierAuftraege(): Promise<TSENachsignierAuftrag[]> {
+    const { auftraege } = await this.backend.post(
+      'admin/get-tse-nachsignier-auftraege',
+      {},
+      z.object({
+        auftraege: z.array(TSENachsignierAuftragSchema),
+      }),
+    )
+    return auftraege
+  }
+
+  public async tseNachsignierAuftragZuruecksetzen(id: number): Promise<void> {
+    await this.backend.post('admin/tse-nachsignier-auftrag-zuruecksetzen', {
+      id,
+    })
+  }
+
+  public async tseNachsignierAuftragVerwerfen(id: number): Promise<void> {
+    await this.backend.post('admin/tse-nachsignier-auftrag-verwerfen', { id })
   }
 }

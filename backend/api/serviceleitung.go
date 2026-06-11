@@ -34,7 +34,7 @@ func NewServiceleitungApi(cfg config.Config, db *sql.DB) http.Handler {
 		KassensitzungenRepo: kassensitzungenRepo,
 		SettingsRepo:        settingsRepo,
 		NewTSEClient: func(credentials tse.Credentials) (tse.TSEClient, error) {
-			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
+			return tse_repo.NewFiskalyTSEClientSingleAttempt(cfg.FiskalyBaseURL, credentials, nil)
 		},
 	}
 	r.HandleFunc("/stornierung-erteilen", tc.StornierungErteilenHandler())
@@ -48,7 +48,7 @@ func NewServiceleitungApi(cfg config.Config, db *sql.DB) http.Handler {
 		KassensitzungenRepo: kassensitzungenRepo,
 		SettingsRepo:        settingsRepo,
 		NewTSEClient: func(credentials tse.Credentials) (tse.TSEClient, error) {
-			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
+			return tse_repo.NewFiskalyTSEClientSingleAttempt(cfg.FiskalyBaseURL, credentials, nil)
 		},
 	}
 	r.HandleFunc("/direktverkauf-stornieren", dc.DirektverkaufStornierenHandler())

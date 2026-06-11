@@ -18,6 +18,8 @@ import (
 	settingsHTTP "github.com/nicograef/jotti/backend/api/settings/http"
 	tableApp "github.com/nicograef/jotti/backend/api/table/application"
 	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
+	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
+	tseHTTP "github.com/nicograef/jotti/backend/api/tse/http"
 	userApp "github.com/nicograef/jotti/backend/api/user/application"
 	userHTTP "github.com/nicograef/jotti/backend/api/user/http"
 	"github.com/nicograef/jotti/backend/config"
@@ -105,7 +107,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 		KassensitzungenRepo: kassensitzungenRepo,
 		SettingsRepo:        settingsRepo,
 		NewTSEClient: func(credentials tse.Credentials) (tse.TSEClient, error) {
-			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
+			return tse_repo.NewFiskalyTSEClientSingleAttempt(cfg.FiskalyBaseURL, credentials, nil)
 		},
 	}
 	r.HandleFunc("/kassensitzung-eroeffnen", kc.KassensitzungEroeffnenHandler())
@@ -134,6 +136,14 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/get-fehlgeschlagene-druckauftraege", druckauftragQueryHandler.GetFehlgeschlageneDruckauftraegeHandler())
 	r.HandleFunc("/druckauftrag-erneut-versuchen", druckauftragCommandHandler.DruckauftragErneutVersuchenHandler())
 	r.HandleFunc("/druckauftrag-verwerfen", druckauftragCommandHandler.DruckauftragVerwerfenHandler())
+
+	tseNachsignierQueryHandler := tseHTTP.QueryHandler{}
+	tseNachsignierQueryHandler.Query = tseApp.Query{TSERepo: tseStore}
+	tseNachsignierCommandHandler := tseHTTP.CommandHandler{}
+	tseNachsignierCommandHandler.Command = tseApp.Command{TSERepo: tseStore}
+	r.HandleFunc("/get-tse-nachsignier-auftraege", tseNachsignierQueryHandler.GetTSENachsignierAuftraegeHandler())
+	r.HandleFunc("/tse-nachsignier-auftrag-zuruecksetzen", tseNachsignierCommandHandler.TSENachsignierAuftragZuruecksetzenHandler())
+	r.HandleFunc("/tse-nachsignier-auftrag-verwerfen", tseNachsignierCommandHandler.TSENachsignierAuftragVerwerfenHandler())
 
 	sq := settingsHTTP.QueryHandler{}
 	sq.Query = settingsApp.Query{

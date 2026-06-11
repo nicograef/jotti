@@ -409,7 +409,7 @@ type TseKonfiguration struct {
 	UpdatedAt time.Time
 }
 
-// Technische Outbox fuer Nachsignierung bei TSE-Ausfall.
+// Technische Outbox fuer Nachsignierung bei TSE-Ausfall. Dient zugleich als TSE-Ausfalldokumentation (AEAO zu § 146a, 1.14.1): erstellt_am = Beginn, erledigt_am = Ende, letzter_fehler = Grund.
 type TseNachsignierAuftraege struct {
 	ID int32
 	// Deterministische TSE-Transaktions-ID pro Vorgang.
@@ -418,10 +418,16 @@ type TseNachsignierAuftraege struct {
 	ProcessType string
 	// fiskaly process_data fuer die Nachsignierung.
 	ProcessData string
-	// Nachsignierstatus: offen -> erledigt.
-	Status     string
-	ErstelltAm time.Time
-	ErledigtAm sql.NullTime
+	// Nachsignierstatus: offen -> erledigt | fehlgeschlagen (nach max. Versuchen) -> verworfen oder zurueck auf offen.
+	Status string
+	// Anzahl fehlgeschlagener Nachsignier-Versuche; ab dem Maximum wird der Auftrag fehlgeschlagen.
+	Versuche int
+	// Fehlertext des letzten Fehlversuchs (NULL solange kein Fehler auftrat).
+	LetzterFehler sql.NullString
+	// Fruehester Zeitpunkt des naechsten Versuchs (exponentielles Backoff).
+	NaechsterVersuchAm time.Time
+	ErstelltAm         time.Time
+	ErledigtAm         sql.NullTime
 }
 
 // Signatur-Seitentabelle fuer nachsignierte Vorgaenge (Happy Path bleibt im Event).

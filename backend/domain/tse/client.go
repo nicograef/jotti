@@ -17,6 +17,16 @@ const (
 
 var ErrUnvollstaendigeCredentials = errors.New("tse credentials are incomplete")
 
+// ErrTransactionNichtGefunden zeigt an, dass eine Transaktion bei der TSE
+// (noch) nicht existiert — der Nachsignier-Worker startet sie dann neu.
+var ErrTransactionNichtGefunden = errors.New("tse transaction not found")
+
+// SignierDeadline ist die Gesamt-Deadline fuer den synchronen Signierversuch
+// im Kassier-Pfad (Auth + Start + Finish, max. 1 Versuch pro Request).
+// Laeuft sie ab, greift der Ausfallpfad (Nachsignier-Auftrag); die volle
+// Retry-Strategie lebt nur im Nachsignier-Worker.
+const SignierDeadline = 5 * time.Second
+
 type Credentials struct {
 	ApiKey    string
 	ApiSecret string
@@ -49,6 +59,28 @@ type TSEClient interface {
 
 type ConnectionTester interface {
 	TestConnection(ctx context.Context) (VerbindungStatus, error)
+}
+
+// TransactionRetriever fragt den Ist-Zustand einer Transaktion bei der TSE ab.
+// Existiert die Transaktion nicht, wird ErrTransactionNichtGefunden geliefert.
+type TransactionRetriever interface {
+	RetrieveTransaction(ctx context.Context, txID string) (RetrieveResult, error)
+}
+
+type TransactionState string
+
+const (
+	TransactionStateActive    TransactionState = "ACTIVE"
+	TransactionStateFinished  TransactionState = "FINISHED"
+	TransactionStateCancelled TransactionState = "CANCELLED"
+)
+
+// RetrieveResult ist der bei der TSE gespeicherte Stand einer Transaktion:
+// ihr Zustand plus — bei abgeschlossenen Transaktionen — die Signaturdaten
+// in derselben Form wie ein FinishResult.
+type RetrieveResult struct {
+	State TransactionState
+	FinishResult
 }
 
 type StartResult struct {

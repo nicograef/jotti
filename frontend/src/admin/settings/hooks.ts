@@ -115,6 +115,34 @@ export function useTSEKonfiguration() {
   }
 }
 
+export function useTSENachsignierAuftraege() {
+  const queryClient = useQueryClient()
+  const {
+    isPending,
+    data = [],
+    error,
+  } = useQuery({
+    queryKey: ['tse-nachsignier-auftraege'],
+    queryFn: () => einstellungenBackend.getTSENachsignierAuftraege(),
+  })
+
+  const zuruecksetzen = async (id: number) => {
+    await einstellungenBackend.tseNachsignierAuftragZuruecksetzen(id)
+    await queryClient.invalidateQueries({
+      queryKey: ['tse-nachsignier-auftraege'],
+    })
+  }
+
+  const verwerfen = async (id: number) => {
+    await einstellungenBackend.tseNachsignierAuftragVerwerfen(id)
+    await queryClient.invalidateQueries({
+      queryKey: ['tse-nachsignier-auftraege'],
+    })
+  }
+
+  return { auftraege: data, isPending, error, zuruecksetzen, verwerfen }
+}
+
 export function useTSEStatus() {
   const { data, isPending, error } = useQuery({
     queryKey: ['tse-status'],

@@ -11,11 +11,32 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
+// MaxNachsignierVersuche ist die Anzahl Fehlversuche, nach der ein
+// Nachsignier-Auftrag als fehlgeschlagen markiert und nicht mehr automatisch
+// versucht wird. Mit dem exponentiellen Backoff (1, 2, 4, ... Minuten,
+// gedeckelt auf 30) ueberbrueckt der Worker damit Ausfaelle von rund drei
+// Stunden, bevor ein Admin eingreifen muss.
+const MaxNachsignierVersuche = 10
+
 type OffenerNachsignierAuftrag struct {
 	ID          int
 	TxID        string
 	ProcessType string
 	ProcessData string
+}
+
+// NachsignierAuftrag ist die Admin-Sicht eines Nachsignier-Auftrags. Sie dient
+// zugleich als TSE-Ausfalldokumentation (AEAO zu § 146a, 1.14.1):
+// ErstelltAm = Beginn, ErledigtAm = Ende, LetzterFehler = Grund.
+type NachsignierAuftrag struct {
+	ID            int
+	TxID          string
+	ProcessType   string
+	Status        string
+	Versuche      int
+	LetzterFehler string
+	ErstelltAm    time.Time
+	ErledigtAm    *time.Time
 }
 
 type Signatur struct {
@@ -89,6 +110,62 @@ func (r Store) QuittiereTSENachsignierAuftrag(ctx context.Context, auftragID int
 	}
 
 	return nil
+}
+
+// TSENachsignierAuftragFehlversuch verbucht einen Fehlversuch: Zaehler hoch,
+// Fehlertext speichern, naechster Versuch mit exponentiellem Backoff. Beim
+// MaxNachsignierVersuche-ten Fehlversuch wechselt der Auftrag auf
+// fehlgeschlagen (Backoff-Logik liegt in der SQL-Query).
+func (r Store) TSENachsignierAuftragFehlversuch(ctx context.Context, auftragID int, fehler string) error {
+	return db.Error(r.q.TSENachsignierAuftragFehlversuch(ctx, dbgen.TSENachsignierAuftragFehlversuchParams{
+		ID:            int32(auftragID),
+		LetzterFehler: sql.NullString{String: fehler, Valid: true},
+		MaxVersuche:   MaxNachsignierVersuche,
+	}))
+}
+
+// GetTSENachsignierAuftraege liefert die Nachsignier-Auftraege fuer die
+// Admin-Verwaltung und die Ausfalldokumentation, neueste zuerst.
+func (r Store) GetTSENachsignierAuftraege(ctx context.Context) ([]NachsignierAuftrag, error) {
+	rows, err := r.q.GetTSENachsignierAuftraege(ctx)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	result := make([]NachsignierAuftrag, 0, len(rows))
+	for i := range rows {
+		row := &rows[i]
+		auftrag := NachsignierAuftrag{
+			ID:            int(row.ID),
+			TxID:          row.TxID,
+			ProcessType:   row.ProcessType,
+			Status:        row.Status,
+			Versuche:      row.Versuche,
+			LetzterFehler: row.LetzterFehler.String,
+			ErstelltAm:    row.ErstelltAm,
+		}
+		if row.ErledigtAm.Valid {
+			erledigtAm := row.ErledigtAm.Time
+			auftrag.ErledigtAm = &erledigtAm
+		}
+		result = append(result, auftrag)
+	}
+
+	return result, nil
+}
+
+// TSENachsignierAuftragZuruecksetzen reiht einen fehlgeschlagenen Auftrag
+// wieder ein (fehlgeschlagen -> offen, Zaehler und Fehler zurueckgesetzt).
+// Der Status-Guard wirkt nur auf fehlgeschlagene Auftraege.
+func (r Store) TSENachsignierAuftragZuruecksetzen(ctx context.Context, auftragID int) error {
+	return db.Error(r.q.TSENachsignierAuftragZuruecksetzen(ctx, int32(auftragID)))
+}
+
+// TSENachsignierAuftragVerwerfen markiert einen fehlgeschlagenen Auftrag als
+// verworfen. Der Eintrag bleibt fuer die Ausfalldokumentation erhalten; der
+// Status-Guard wirkt nur auf fehlgeschlagene Auftraege.
+func (r Store) TSENachsignierAuftragVerwerfen(ctx context.Context, auftragID int) error {
+	return db.Error(r.q.TSENachsignierAuftragVerwerfen(ctx, int32(auftragID)))
 }
 
 func (r Store) CountOffeneTSENachsignierAuftraege(ctx context.Context) (int, error) {

@@ -84,6 +84,15 @@ func (c Command) signDirektverkaufStorniertEvent(ctx context.Context, evt event.
 	)
 }
 
+// tseSignierDeadline liefert die Gesamt-Deadline fuer den synchronen
+// Signierversuch; 0 bedeutet tse.SignierDeadline (Override nur fuer Tests).
+func (c Command) tseSignierDeadline() time.Duration {
+	if c.TSESignierDeadline > 0 {
+		return c.TSESignierDeadline
+	}
+	return tse.SignierDeadline
+}
+
 func (c Command) signEventWithTSE(
 	ctx context.Context,
 	evt event.Event,
@@ -110,6 +119,12 @@ func (c Command) signEventWithTSE(
 	if !conf.IstKonfiguriert() {
 		return eventSignierungErgebnis{Event: evt}, nil
 	}
+
+	// Gesamt-Deadline fuer den synchronen Signierversuch: Bei fiskaly-Stoerung
+	// wartet der Kassier-Request hoechstens diese Zeitspanne, danach greift der
+	// Ausfallpfad (Nachsignier-Auftrag fuer den Worker).
+	ctx, cancel := context.WithTimeout(ctx, c.tseSignierDeadline())
+	defer cancel()
 
 	txID, err := transactionID(evt)
 	if err != nil {

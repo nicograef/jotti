@@ -11,6 +11,8 @@ type FakeClient struct {
 	UpdateErr          error
 	FinishResponse     FinishResult
 	FinishErr          error
+	RetrieveResponse   RetrieveResult
+	RetrieveErr        error
 	ConnectionResponse VerbindungStatus
 	ConnectionErr      error
 	ArtificialDelay    time.Duration
@@ -56,6 +58,16 @@ func (f FakeClient) FinishTransaction(ctx context.Context, _ string, _ int, _ st
 		return FinishResult{}, f.FinishErr
 	}
 	return f.FinishResponse, nil
+}
+
+func (f FakeClient) RetrieveTransaction(ctx context.Context, _ string) (RetrieveResult, error) {
+	if err := f.wait(ctx); err != nil {
+		return RetrieveResult{}, err
+	}
+	if f.RetrieveErr != nil {
+		return RetrieveResult{}, f.RetrieveErr
+	}
+	return f.RetrieveResponse, nil
 }
 
 func (f FakeClient) TestConnection(ctx context.Context) (VerbindungStatus, error) {

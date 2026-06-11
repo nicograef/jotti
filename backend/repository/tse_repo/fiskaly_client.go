@@ -76,6 +76,7 @@ type rawSchema struct {
 
 type transactionResponse struct {
 	Number          int             `json:"number"`
+	State           string          `json:"state"`
 	TSSSerialNumber string          `json:"tss_serial_number"`
 	TimeStart       json.RawMessage `json:"time_start"`
 	TimeEnd         json.RawMessage `json:"time_end"`
@@ -118,6 +119,7 @@ type FiskalyTSEClient struct {
 
 var _ tse.TSEClient = (*FiskalyTSEClient)(nil)
 var _ tse.ConnectionTester = (*FiskalyTSEClient)(nil)
+var _ tse.TransactionRetriever = (*FiskalyTSEClient)(nil)
 
 func NewFiskalyTSEClient(baseURL string, credentials tse.Credentials, httpClient *http.Client) (*FiskalyTSEClient, error) {
 	if err := credentials.Validate(); err != nil {
@@ -141,6 +143,19 @@ func NewFiskalyTSEClient(baseURL string, credentials tse.Credentials, httpClient
 		sleep:       sleepWithContext,
 		maxRetries:  defaultRetryAttempts,
 	}, nil
+}
+
+// NewFiskalyTSEClientSingleAttempt creates a client that tries each request
+// exactly once (no retries). Used in the synchronous Kassier path, where the
+// caller imposes a total deadline (tse.SignierDeadline) and failed signing
+// falls back to the Nachsignier worker, which owns the full retry strategy.
+func NewFiskalyTSEClientSingleAttempt(baseURL string, credentials tse.Credentials, httpClient *http.Client) (*FiskalyTSEClient, error) {
+	client, err := NewFiskalyTSEClient(baseURL, credentials, httpClient)
+	if err != nil {
+		return nil, err
+	}
+	client.maxRetries = 0
+	return client, nil
 }
 
 // StartTransaction sendet bewusst kein Schema: processType/processData muessen
@@ -207,6 +222,44 @@ func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, _
 	}
 
 	return mapFinishResult(resp)
+}
+
+// RetrieveTransaction fragt den aktuellen Stand einer Transaktion ab (letzte
+// Revision). Eine bei fiskaly unbekannte Transaktion wird als
+// tse.ErrTransactionNichtGefunden gemeldet.
+func (c *FiskalyTSEClient) RetrieveTransaction(ctx context.Context, txID string) (tse.RetrieveResult, error) {
+	txID = strings.TrimSpace(txID)
+	if txID == "" {
+		return tse.RetrieveResult{}, fmt.Errorf("tx id is required")
+	}
+
+	resp := transactionResponse{}
+	err := c.doJSONRequest(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.credentials.TssID), url.PathEscape(txID)),
+		nil,
+		nil,
+		true,
+		&resp,
+	)
+	if err != nil {
+		var apiErr apiError
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+			return tse.RetrieveResult{}, tse.ErrTransactionNichtGefunden
+		}
+		return tse.RetrieveResult{}, err
+	}
+
+	finishResult, err := mapFinishResult(resp)
+	if err != nil {
+		return tse.RetrieveResult{}, err
+	}
+
+	return tse.RetrieveResult{
+		State:        tse.TransactionState(strings.ToUpper(strings.TrimSpace(resp.State))),
+		FinishResult: finishResult,
+	}, nil
 }
 
 func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungStatus, error) {
@@ -370,6 +423,9 @@ func (c *FiskalyTSEClient) doJSONRequest(
 		if withAuth && resp.StatusCode == http.StatusUnauthorized && !triedTokenRefresh {
 			triedTokenRefresh = true
 			c.invalidateToken()
+			// Der Token-Refresh ist kein Netz-Retry und verbraucht keinen
+			// Versuch — wichtig fuer Single-Attempt-Clients (maxRetries = 0).
+			attempt--
 			continue
 		}
 

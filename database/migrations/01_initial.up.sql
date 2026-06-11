@@ -425,22 +425,28 @@ VALUES (1, '', '', '', '', now());
 -- Table: tse_nachsignier_auftraege (technical outbox for failed TSE signing)
 -- ============================================================
 CREATE TABLE tse_nachsignier_auftraege (
-    id           SERIAL PRIMARY KEY,
-    tx_id        TEXT NOT NULL UNIQUE,
-    process_type TEXT NOT NULL,
-    process_data TEXT NOT NULL,
-    status       TEXT NOT NULL CHECK (status IN ('offen', 'erledigt')),
-    erstellt_am  TIMESTAMPTZ NOT NULL,
-    erledigt_am  TIMESTAMPTZ NULL
+    id                   SERIAL PRIMARY KEY,
+    tx_id                TEXT NOT NULL UNIQUE,
+    process_type         TEXT NOT NULL,
+    process_data         TEXT NOT NULL,
+    status               TEXT NOT NULL CHECK (status IN ('offen', 'erledigt', 'fehlgeschlagen', 'verworfen')),
+    versuche             INT NOT NULL DEFAULT 0,
+    letzter_fehler       TEXT NULL,
+    naechster_versuch_am TIMESTAMPTZ NOT NULL,
+    erstellt_am          TIMESTAMPTZ NOT NULL,
+    erledigt_am          TIMESTAMPTZ NULL
 );
 
 CREATE INDEX idx_tse_nachsignier_auftraege_status_id ON tse_nachsignier_auftraege(status, id);
 
-COMMENT ON TABLE tse_nachsignier_auftraege IS 'Technische Outbox fuer Nachsignierung bei TSE-Ausfall.';
+COMMENT ON TABLE tse_nachsignier_auftraege IS 'Technische Outbox fuer Nachsignierung bei TSE-Ausfall. Dient zugleich als TSE-Ausfalldokumentation (AEAO zu § 146a, 1.14.1): erstellt_am = Beginn, erledigt_am = Ende, letzter_fehler = Grund.';
 COMMENT ON COLUMN tse_nachsignier_auftraege.tx_id IS 'Deterministische TSE-Transaktions-ID pro Vorgang.';
 COMMENT ON COLUMN tse_nachsignier_auftraege.process_type IS 'fiskaly process_type, z. B. Kassenbeleg-V1.';
 COMMENT ON COLUMN tse_nachsignier_auftraege.process_data IS 'fiskaly process_data fuer die Nachsignierung.';
-COMMENT ON COLUMN tse_nachsignier_auftraege.status IS 'Nachsignierstatus: offen -> erledigt.';
+COMMENT ON COLUMN tse_nachsignier_auftraege.status IS 'Nachsignierstatus: offen -> erledigt | fehlgeschlagen (nach max. Versuchen) -> verworfen oder zurueck auf offen.';
+COMMENT ON COLUMN tse_nachsignier_auftraege.versuche IS 'Anzahl fehlgeschlagener Nachsignier-Versuche; ab dem Maximum wird der Auftrag fehlgeschlagen.';
+COMMENT ON COLUMN tse_nachsignier_auftraege.letzter_fehler IS 'Fehlertext des letzten Fehlversuchs (NULL solange kein Fehler auftrat).';
+COMMENT ON COLUMN tse_nachsignier_auftraege.naechster_versuch_am IS 'Fruehester Zeitpunkt des naechsten Versuchs (exponentielles Backoff).';
 
 -- ============================================================
 -- Table: tse_signaturen (side table for backfilled TSE signatures)

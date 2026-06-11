@@ -7,14 +7,18 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
+	"time"
 )
 
 const countOffeneTSENachsignierAuftraege = `-- name: CountOffeneTSENachsignierAuftraege :one
 SELECT COUNT(*)::int
 FROM tse_nachsignier_auftraege
-WHERE status = 'offen'
+WHERE status IN ('offen', 'fehlgeschlagen')
 `
 
+// Zaehlt noch nicht erledigte Nachsignierungen (offen und fehlgeschlagen):
+// beide Status bedeuten unsignierte Vorgaenge.
 func (q *Queries) CountOffeneTSENachsignierAuftraege(ctx context.Context) (int, error) {
 	row := q.db.QueryRowContext(ctx, countOffeneTSENachsignierAuftraege)
 	var column_1 int
@@ -26,6 +30,7 @@ const getOffeneTSENachsignierAuftraege = `-- name: GetOffeneTSENachsignierAuftra
 SELECT id, tx_id, process_type, process_data
 FROM tse_nachsignier_auftraege
 WHERE status = 'offen'
+  AND naechster_versuch_am <= NOW()
 ORDER BY id ASC
 LIMIT $1
 `
@@ -65,9 +70,61 @@ func (q *Queries) GetOffeneTSENachsignierAuftraege(ctx context.Context, limit in
 	return items, nil
 }
 
+const getTSENachsignierAuftraege = `-- name: GetTSENachsignierAuftraege :many
+SELECT id, tx_id, process_type, status, versuche, letzter_fehler, erstellt_am, erledigt_am
+FROM tse_nachsignier_auftraege
+ORDER BY id DESC
+LIMIT 200
+`
+
+type GetTSENachsignierAuftraegeRow struct {
+	ID            int32
+	TxID          string
+	ProcessType   string
+	Status        string
+	Versuche      int
+	LetzterFehler sql.NullString
+	ErstelltAm    time.Time
+	ErledigtAm    sql.NullTime
+}
+
+// Admin-Ansicht aller Nachsignier-Auftraege; dient zugleich als
+// TSE-Ausfalldokumentation (erstellt_am = Beginn, erledigt_am = Ende).
+func (q *Queries) GetTSENachsignierAuftraege(ctx context.Context) ([]GetTSENachsignierAuftraegeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTSENachsignierAuftraege)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetTSENachsignierAuftraegeRow{}
+	for rows.Next() {
+		var i GetTSENachsignierAuftraegeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TxID,
+			&i.ProcessType,
+			&i.Status,
+			&i.Versuche,
+			&i.LetzterFehler,
+			&i.ErstelltAm,
+			&i.ErledigtAm,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertTSENachsignierAuftrag = `-- name: InsertTSENachsignierAuftrag :exec
-INSERT INTO tse_nachsignier_auftraege (tx_id, process_type, process_data, status, erstellt_am)
-VALUES ($1, $2, $3, 'offen', NOW())
+INSERT INTO tse_nachsignier_auftraege (tx_id, process_type, process_data, status, naechster_versuch_am, erstellt_am)
+VALUES ($1, $2, $3, 'offen', NOW(), NOW())
 ON CONFLICT (tx_id) DO NOTHING
 `
 
@@ -87,9 +144,56 @@ UPDATE tse_nachsignier_auftraege
 SET status = 'erledigt',
     erledigt_am = NOW()
 WHERE id = $1
+  AND status = 'offen'
 `
 
 func (q *Queries) MarkTSENachsignierAuftragErledigt(ctx context.Context, id int32) error {
 	_, err := q.db.ExecContext(ctx, markTSENachsignierAuftragErledigt, id)
+	return err
+}
+
+const tSENachsignierAuftragFehlversuch = `-- name: TSENachsignierAuftragFehlversuch :exec
+UPDATE tse_nachsignier_auftraege
+SET versuche = versuche + 1,
+    letzter_fehler = $1,
+    naechster_versuch_am = NOW() + LEAST(POWER(2, versuche), 30) * interval '1 minute',
+    status = CASE WHEN versuche + 1 >= $2 THEN 'fehlgeschlagen' ELSE status END
+WHERE id = $3 AND status = 'offen'
+`
+
+type TSENachsignierAuftragFehlversuchParams struct {
+	LetzterFehler sql.NullString
+	MaxVersuche   int
+	ID            int32
+}
+
+// TSENachsignierAuftragFehlversuch verbucht einen Fehlversuch mit exponentiellem
+// Backoff (1, 2, 4, ... Minuten, gedeckelt auf 30). Beim max_versuche-ten
+// Fehlversuch wechselt der Auftrag auf fehlgeschlagen und wird nicht mehr
+// automatisch versucht.
+func (q *Queries) TSENachsignierAuftragFehlversuch(ctx context.Context, arg TSENachsignierAuftragFehlversuchParams) error {
+	_, err := q.db.ExecContext(ctx, tSENachsignierAuftragFehlversuch, arg.LetzterFehler, arg.MaxVersuche, arg.ID)
+	return err
+}
+
+const tSENachsignierAuftragVerwerfen = `-- name: TSENachsignierAuftragVerwerfen :exec
+UPDATE tse_nachsignier_auftraege
+SET status = 'verworfen'
+WHERE id = $1 AND status = 'fehlgeschlagen'
+`
+
+func (q *Queries) TSENachsignierAuftragVerwerfen(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, tSENachsignierAuftragVerwerfen, id)
+	return err
+}
+
+const tSENachsignierAuftragZuruecksetzen = `-- name: TSENachsignierAuftragZuruecksetzen :exec
+UPDATE tse_nachsignier_auftraege
+SET status = 'offen', versuche = 0, letzter_fehler = NULL, naechster_versuch_am = NOW()
+WHERE id = $1 AND status = 'fehlgeschlagen'
+`
+
+func (q *Queries) TSENachsignierAuftragZuruecksetzen(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, tSENachsignierAuftragZuruecksetzen, id)
 	return err
 }

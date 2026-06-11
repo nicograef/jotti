@@ -39,6 +39,9 @@ type Command struct {
 	KassensitzungenRepo kassensitzungenRepo
 	SettingsRepo        settingsRepo
 	NewTSEClient        NewTSEClient
+	// TSESignierDeadline ueberschreibt die Gesamt-Deadline des synchronen
+	// Signierversuchs; 0 bedeutet tse.SignierDeadline. Nur fuer Tests gedacht.
+	TSESignierDeadline time.Duration
 }
 
 // getOffeneKassensitzungOderFehler returns the open Kassensitzung or ErrKasseNichtGeoeffnet.

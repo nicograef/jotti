@@ -53,7 +53,7 @@ func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 		DruckauftragRepo:    druckauftragRepo,
 		SettingsRepo:        settingsRepo,
 		NewTSEClient: func(credentials tse.Credentials) (tse.TSEClient, error) {
-			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
+			return tse_repo.NewFiskalyTSEClientSingleAttempt(cfg.FiskalyBaseURL, credentials, nil)
 		},
 	}
 	r.HandleFunc("/bestellung-aufnehmen", tc.BestellungAufnehmenHandler())
@@ -71,7 +71,7 @@ func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 		DruckstationRepo:    druckstationRepoTableAdapter{repo: druckstationRepo},
 		SettingsRepo:        settingsRepo,
 		NewTSEClient: func(credentials tse.Credentials) (tse.TSEClient, error) {
-			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
+			return tse_repo.NewFiskalyTSEClientSingleAttempt(cfg.FiskalyBaseURL, credentials, nil)
 		},
 	}
 	r.HandleFunc("/direktverkauf-taetigen", dc.DirektverkaufTaetigenHandler())
