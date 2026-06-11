@@ -19,9 +19,10 @@ func TestLoadConfigFromEnv(t *testing.T) {
 				"RELAY_AUTH_TOKEN": "devrelay",
 			},
 			wantConfig: RelayConfig{
-				Token:       "devrelay",
-				BackendURL:  defaultBackendURL,
-				PollSeconds: defaultPollSeconds,
+				Token:         "devrelay",
+				BackendURL:    defaultBackendURL,
+				PollSeconds:   defaultPollSeconds,
+				TLSSkipVerify: true,
 			},
 		},
 		{
@@ -32,9 +33,10 @@ func TestLoadConfigFromEnv(t *testing.T) {
 				"RELAY_POLL_SECONDS": "5",
 			},
 			wantConfig: RelayConfig{
-				Token:       "devrelay",
-				BackendURL:  "https://example.org/api",
-				PollSeconds: 5,
+				Token:         "devrelay",
+				BackendURL:    "https://example.org/api",
+				PollSeconds:   5,
+				TLSSkipVerify: false,
 			},
 		},
 		{
@@ -44,10 +46,47 @@ func TestLoadConfigFromEnv(t *testing.T) {
 				"RELAY_BACKEND_URL": "https://example.org/api/",
 			},
 			wantConfig: RelayConfig{
-				Token:       "devrelay",
-				BackendURL:  "https://example.org/api",
-				PollSeconds: defaultPollSeconds,
+				Token:         "devrelay",
+				BackendURL:    "https://example.org/api",
+				PollSeconds:   defaultPollSeconds,
+				TLSSkipVerify: false,
 			},
+		},
+		{
+			name: "accepts explicit TLS skip true",
+			env: map[string]string{
+				"RELAY_AUTH_TOKEN":       "devrelay",
+				"RELAY_BACKEND_URL":      "https://example.org/api",
+				"RELAY_TLS_SKIP_VERIFY": "true",
+			},
+			wantConfig: RelayConfig{
+				Token:         "devrelay",
+				BackendURL:    "https://example.org/api",
+				PollSeconds:   defaultPollSeconds,
+				TLSSkipVerify: true,
+			},
+		},
+		{
+			name: "accepts explicit TLS skip false on localhost",
+			env: map[string]string{
+				"RELAY_AUTH_TOKEN":       "devrelay",
+				"RELAY_TLS_SKIP_VERIFY": "0",
+			},
+			wantConfig: RelayConfig{
+				Token:         "devrelay",
+				BackendURL:    defaultBackendURL,
+				PollSeconds:   defaultPollSeconds,
+				TLSSkipVerify: false,
+			},
+		},
+		{
+			name: "fails on invalid TLS skip value",
+			env: map[string]string{
+				"RELAY_AUTH_TOKEN":       "devrelay",
+				"RELAY_TLS_SKIP_VERIFY": "ja",
+			},
+			wantErr:     true,
+			errContains: "RELAY_TLS_SKIP_VERIFY",
 		},
 		{
 			name: "fails when token is missing",
@@ -95,6 +134,9 @@ func TestLoadConfigFromEnv(t *testing.T) {
 			}
 			if config.PollSeconds != tt.wantConfig.PollSeconds {
 				t.Fatalf("poll seconds mismatch: got %d, want %d", config.PollSeconds, tt.wantConfig.PollSeconds)
+			}
+			if config.TLSSkipVerify != tt.wantConfig.TLSSkipVerify {
+				t.Fatalf("tls skip verify mismatch: got %t, want %t", config.TLSSkipVerify, tt.wantConfig.TLSSkipVerify)
 			}
 		})
 	}

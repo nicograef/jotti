@@ -32,7 +32,7 @@ type RelayConfig struct {
 }
 
 const maxRetries = 60
-const defaultBackendURL = "http://localhost/api"
+const defaultBackendURL = "https://localhost/api"
 const defaultPollSeconds = 2
 
 func loadConfigFromEnv(getenv func(string) string) (RelayConfig, error) {
@@ -56,14 +56,36 @@ func loadConfigFromEnv(getenv func(string) string) (RelayConfig, error) {
 		pollSeconds = parsedPollSeconds
 	}
 
-	tlsSkip := strings.TrimSpace(getenv("RELAY_TLS_SKIP_VERIFY"))
+	tlsSkipRaw := strings.TrimSpace(getenv("RELAY_TLS_SKIP_VERIFY"))
+	tlsSkipVerify, err := parseTLSSkipVerify(tlsSkipRaw)
+	if err != nil {
+		return RelayConfig{}, err
+	}
+
+	// Local default (single-device setup behind self-signed TLS on localhost).
+	if tlsSkipRaw == "" && backendURL == defaultBackendURL {
+		tlsSkipVerify = true
+	}
 
 	return RelayConfig{
 		BackendURL:    backendURL,
 		Token:         token,
 		PollSeconds:   pollSeconds,
-		TLSSkipVerify: tlsSkip == "1" || tlsSkip == "true",
+		TLSSkipVerify: tlsSkipVerify,
 	}, nil
+}
+
+func parseTLSSkipVerify(raw string) (bool, error) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "":
+		return false, nil
+	case "1", "true":
+		return true, nil
+	case "0", "false":
+		return false, nil
+	default:
+		return false, fmt.Errorf("RELAY_TLS_SKIP_VERIFY muss 1/true oder 0/false sein")
+	}
 }
 
 func main() {

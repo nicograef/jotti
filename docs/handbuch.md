@@ -709,11 +709,17 @@ RELAY_POLL_SECONDS="2" \
 ./jotti-relay
 ```
 
-| Umgebungsvariable    | Beschreibung                                      | Standard               |
-| -------------------- | ------------------------------------------------- | ---------------------- |
-| `RELAY_AUTH_TOKEN`   | Authentifizierungs-Token (aus `.env` des Servers) | (erforderlich)         |
-| `RELAY_BACKEND_URL`  | URL des jotti-Servers inkl. `/api`                | `http://localhost/api` |
-| `RELAY_POLL_SECONDS` | Abfrageintervall in Sekunden                      | `2`                    |
+| Umgebungsvariable       | Beschreibung                                                    | Standard                |
+| ----------------------- | --------------------------------------------------------------- | ----------------------- |
+| `RELAY_AUTH_TOKEN`      | Authentifizierungs-Token (aus `.env` des Servers)               | (erforderlich)          |
+| `RELAY_BACKEND_URL`     | URL des jotti-Servers inkl. `/api`                              | `https://localhost/api` |
+| `RELAY_POLL_SECONDS`    | Abfrageintervall in Sekunden                                    | `2`                     |
+| `RELAY_TLS_SKIP_VERIFY` | TLS-Zertifikatspruefung ueberspringen (`1/true` oder `0/false`) | bei Local-Default aktiv |
+
+**TLS-Verhalten:**
+
+- **Local (ein Geraet, selbstsigniertes Zertifikat):** Ohne weitere Env-Variablen nutzt das Relay `https://localhost/api` und deaktiviert die Zertifikatspruefung automatisch. Optional explizit: `RELAY_TLS_SKIP_VERIFY=1`.
+- **Cloud (gueltiges Zertifikat):** `RELAY_BACKEND_URL="https://<deine-domain>/api"` setzen und **kein** `RELAY_TLS_SKIP_VERIFY=1` setzen, damit Zertifikate verifiziert werden.
 
 **Fehlerverhalten:** Bei nicht erreichbarem Drucker versucht das Relay mehrfach (bis zu 5 Minuten); danach bleibt der Auftrag `offen` und wird beim nächsten Poll erneut geliefert. Der DB-Status ist autoritativ: Stürzt das Relay zwischen Druck und Quittierung ab, kann ein Auftrag erneut gedruckt werden — beim nicht-fiskalischen Arbeitsbon unkritisch.
 
