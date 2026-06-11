@@ -280,15 +280,16 @@ Drei neue admin-only POST-Endpoints in einem neuen Modul `backend/api/druckauftr
 
 ## Phase 7: Referenzdokumente angleichen
 
-ACHTUNG: veraltet, muss neu geplant werden nach Doku-Umbau aus docs/plan-doku-ueberarbeitung.md
+HINWEIS: Die parallele Doku-Überarbeitung (`docs/plans/plan-doku-ueberarbeitung.md`, Phasen 3–5) hat den Großteil dieser Phase bereits geliefert — `handbuch.md` §4.6 und `language.md` wurden im neuen Modell neu geschrieben. Diese Phase hat nur noch die verbliebenen Altmodell-Verweise gegen den Code abgeglichen und korrigiert.
 
 **User stories**: — (Aufräumpunkt aus dem PRD)
 
-### Context (veraltet)
+### Context
 
-- `docs/handbuch.md — Policy-Beschreibung, §4.6 Bondruck, Relay-Poll
-- `docs/language.md` — Direktverkauf-Modus, Abholbon, Druckauftrag (inkl. veraltetem Hinweis „transientes DTO“), Relay
-- `docs/anforderungen.md` — K-12, F-03
+- `docs/handbuch.md` §4.6 (Z. 276–293) — Bondruck-Policy, Ableitungsregel, Outbox-Statusmodell, `/relay/ergebnis` (durch Doku-Umbau bereits aktuell)
+- `docs/language.md` — Druckstation/Abholbon/Druckauftrag, Direktverkauf-Bondruck als Ableitungsregel (durch Doku-Umbau bereits aktuell)
+- `docs/anforderungen.md` — K-12 (Z. 49), F-03 (Z. 224, 236–246): gegengeprüft, konsistent
+- `README.md` §Print-Relay (Z. 76) — trug noch das alte 5-Minuten-Sleep-Retry und „quittieren“-Wording
 
 ### What to build
 
@@ -296,7 +297,7 @@ Die Referenzdokumente werden an das neue Modell angepasst: fünf Druckstationen 
 
 ### Acceptance criteria
 
-- [ ] `docs/handbuch.md` §4.6 beschreibt fünf Stationen, Ableitungsregel, Statusmodell und Ergebnis-Endpoint; keine Erwähnung von `bondruck_einstellungen` oder `direktverkauf_modus` mehr
-- [ ] `docs/language.md`: Direktverkauf-Modus-Begriff entfernt bzw. durch Ableitungsregel ersetzt, Abholbon- und Druckauftrag-Definitionen aktualisiert, veraltete Relay-/Outbox-Hinweise korrigiert
-- [ ] `docs/anforderungen.md` K-12/F-03 gegengeprüft und wo nötig angepasst
-- [ ] Außerhalb von `docs/prds/` und `docs/plans/` (historische Artefakte) verweist kein Dokument mehr auf das alte Modell
+- [x] `docs/handbuch.md` §4.6 beschreibt fünf Stationen, Ableitungsregel, Statusmodell und Ergebnis-Endpoint; keine Erwähnung von `bondruck_einstellungen` oder `direktverkauf_modus` mehr (Doku-Umbau; „nicht quittierte“ → „noch offene“ korrigiert)
+- [x] `docs/language.md`: Direktverkauf-Modus-Begriff entfernt bzw. durch Ableitungsregel ersetzt, Abholbon- und Druckauftrag-Definitionen aktualisiert, veraltete Relay-/Outbox-Hinweise korrigiert (Doku-Umbau)
+- [x] `docs/anforderungen.md` K-12/F-03 gegengeprüft — bereits konsistent, keine Änderung nötig
+- [x] Außerhalb von `docs/prds/` und `docs/plans/` (historische Artefakte) verweist kein Dokument mehr auf das alte Modell (`README.md` §Print-Relay auf Ein-Versuch-pro-Zyklus + `/relay/ergebnis` aktualisiert)
