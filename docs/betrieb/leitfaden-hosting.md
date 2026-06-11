@@ -1,23 +1,5 @@
 # Hosting-Leitfaden: jotti selbst betreiben
 
-## Inhalt
-
-1. [Das Wichtigste in 60 Sekunden](#1-das-wichtigste-in-60-sekunden)
-2. [Welcher Weg passt zu uns?](#2-welcher-weg-passt-zu-uns)
-3. [Weg A: Einzelgerät im WLAN (ohne Server)](#3-weg-a-einzelgerät-im-wlan-ohne-server)
-   - [Voraussetzungen](#voraussetzungen)
-   - [Schritt für Schritt](#schritt-für-schritt)
-   - [Beenden](#beenden)
-   - [Gut zu wissen](#gut-zu-wissen)
-4. [Weg B: Eigener Server (für größere Feste)](#4-weg-b-eigener-server-für-größere-feste)
-   - [Welchen Server mieten?](#welchen-server-mieten)
-   - [Worauf es bei der Hardware ankommt](#worauf-es-bei-der-hardware-ankommt)
-   - [Domain und Verschlüsselung (HTTPS)](#domain-und-verschlüsselung-https)
-5. [Häufige Fragen (FAQ)](#5-häufige-fragen-faq)
-6. [Glossar](#6-glossar)
-
----
-
 ## 1. Das Wichtigste in 60 Sekunden
 
 - jotti ist **self-hosted**: Es läuft nicht in einer fremden Cloud, sondern auf **eurer eigenen**
@@ -30,8 +12,11 @@
   2. **Weg B — Eigener Server:** jotti läuft auf einem kleinen gemieteten Server (einem „VPS") mit
      eigener Internet-Adresse (Domain) und Verschlüsselung (HTTPS). Für **größere Feste** mit
      mehreren Helfern, vielen Tischen und über mehrere Tage.
-- **Was kostet das?** Weg A: nichts außer vorhandener Hardware. Weg B: ein kleiner VPS ab etwa
-  **3–8 € pro Monat**.
+- **Was kostet das?** jotti selbst ist für berechtigte Vereine **kostenlos**. Weg A verursacht
+  sonst keine laufenden Kosten (nur vorhandene Hardware); bei Weg B kommt ein kleiner VPS ab etwa
+  **3–8 € pro Monat** hinzu (ggf. plus Cloud-TSE-Gebühr, siehe Betreiber-Leitfaden).
+- **Technisches Vorwissen?** Grundkenntnisse im Umgang mit der Kommandozeile genügen — alle
+  nötigen Befehle stehen in diesem Leitfaden zum Kopieren bereit.
 - **Worum es hier _nicht_ geht:** die rechtlichen Pflichten rund um die Kasse (TSE, Finanzamt,
   10 Jahre Aufbewahrung). Das steht im [Betreiber-Leitfaden](./leitfaden-betreiber.md).
 
@@ -82,13 +67,13 @@ oder Smartphone im selben WLAN** bedient die Kasse im Browser über die lokale A
 
 ### Schritt für Schritt
 
-1. **`.env` anlegen.** Im Projektordner ausfuehren:
+1. **`.env` anlegen.** Im Projektordner ausführen:
 
    ```bash
    make init
    ```
 
-Das Kommando erzeugt eine vollstaendige `.env` mit sicheren Zufallswerten fuer
+Das Kommando erzeugt eine vollständige `.env` mit sicheren Zufallswerten für
 `POSTGRES_PASSWORD`, `JWT_SECRET` und `RELAY_AUTH_TOKEN`.
 
 2. **jotti starten.** Im Projektordner:
@@ -201,36 +186,13 @@ Ersteinrichtung (erstes Zertifikat anfordern, Stack starten) übernimmt das Skri
 > ⚠️ Ohne HTTPS dürft ihr jotti **nicht** über das offene Internet betreiben: Anmeldedaten und
 > Bestellungen würden sonst unverschlüsselt übertragen.
 
----
-
-## 5. Häufige Fragen (FAQ)
-
-**Brauchen wir Internet auf dem Fest?**
-Bei Weg A nein — es genügt ein lokales WLAN, in dem Rechner und Tablet hängen. Bei Weg B ja, denn
-die Handys der Helfer erreichen jotti über das Internet.
-
-**Können mehrere Helfer gleichzeitig kassieren?**
-Bei Weg A bedient **ein** Gerät die Theke. Sobald mehrere Servicekräfte mit eigenen Handys an
-Tischen aufnehmen sollen, ist Weg B die richtige Wahl — dort arbeiten beliebig viele Geräte
-gleichzeitig.
-
-**Müssen wir uns mit Linux auskennen?**
-Grundkenntnisse im Umgang mit der Kommandozeile reichen. Alle nötigen Befehle stehen in diesem
-Leitfaden zum Kopieren bereit.
-
-**Wie sichern wir unsere Daten?**
-jotti speichert alles in einer Datenbank (in einem „Docker-Volume"). Macht **regelmäßige Backups**
-— besonders wichtig wegen der gesetzlichen 10-Jahre-Aufbewahrung. Details dazu im
-[Betreiber-Leitfaden, Schritt 4](./leitfaden-betreiber.md#schritt-4-daten-10-jahre-aufbewahren).
-
-**Was kostet uns der Betrieb?**
-jotti selbst ist für berechtigte Vereine kostenlos. Weg A verursacht keine laufenden Kosten; bei
-Weg B fällt nur die VPS-Miete an (ca. 3–8 €/Monat), ggf. plus die Cloud-TSE-Gebühr (siehe
-Betreiber-Leitfaden).
+> 💾 **Backups nicht vergessen.** jotti speichert alle Daten in einem **Docker-Volume**. Macht
+> **regelmäßige Backups** der Datenbank — besonders wegen der gesetzlichen 10-Jahre-Aufbewahrung
+> (Details im [Betreiber-Leitfaden, Schritt 4](./leitfaden-betreiber.md#schritt-4-daten-10-jahre-aufbewahren)).
 
 ---
 
-## 6. Glossar
+## 5. Glossar
 
 | Begriff                     | Einfache Erklärung                                                                         |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

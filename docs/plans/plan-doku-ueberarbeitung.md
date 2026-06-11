@@ -207,11 +207,11 @@ Beide Leitfäden bleiben vollständig standalone (keine Verweise in Entwickler-D
 
 ### Acceptance criteria
 
-- [ ] Keine FAQ-Abschnitte mehr; kein Informationsverlust (jede vorher nur im FAQ stehende Aussage hat eine neue Stelle)
-- [ ] Beide Leitfäden ohne Öffnen anderer Dokumente verständlich; Mini-Glossare vorhanden
-- [ ] Keine Umlaut-losen Schreibweisen mehr im Hosting-Leitfaden
-- [ ] leitfaden-betreiber.md ≤ 230 Zeilen, leitfaden-hosting.md ≤ 215 Zeilen
-- [ ] Der „noch nicht fiskalkonform"-Warnhinweis (§1) bleibt unverändert
+- [x] Keine FAQ-Abschnitte mehr; kein Informationsverlust (jede vorher nur im FAQ stehende Aussage hat eine neue Stelle) _(neu eingearbeitet: Kosten → §1 beider Leitfäden; „TSE-frei nur für Tests/Entwicklung" → Betreiber §3; Linux-Vorwissen → Hosting §1; Backup-Hinweis → Hosting §4. Übrige FAQ-Fragen waren reine Wiederholungen und entfielen ersatzlos)_
+- [x] Beide Leitfäden ohne Öffnen anderer Dokumente verständlich; Mini-Glossare vorhanden
+- [x] Keine Umlaut-losen Schreibweisen mehr im Hosting-Leitfaden
+- [x] leitfaden-betreiber.md ≤ 230 Zeilen (Ergebnis: 230), leitfaden-hosting.md ≤ 215 Zeilen (Ergebnis: 212)
+- [x] Der „noch nicht fiskalkonform"-Warnhinweis (§1) bleibt unverändert
 
 ---
 

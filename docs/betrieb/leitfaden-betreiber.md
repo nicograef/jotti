@@ -6,23 +6,6 @@
 
 ---
 
-## Inhalt
-
-1. [Das Wichtigste in 60 Sekunden](#1-das-wichtigste-in-60-sekunden)
-2. [Wer ist verantwortlich? Entwickler vs. Verein](#2-wer-ist-verantwortlich-entwickler-vs-verein)
-3. [Was heißt „fiskalkonform"? Einfach erklärt](#3-was-heißt-fiskalkonform-einfach-erklärt)
-4. [Die Gesetze in einfacher Sprache](#4-die-gesetze-in-einfacher-sprache)
-5. [Eure Pflichten als Verein — Schritt für Schritt](#5-eure-pflichten-als-verein--schritt-für-schritt)
-   - [Schritt 1: TSE einrichten (BYO TSE mit fiskaly)](#schritt-1-tse-einrichten-byo-tse-mit-fiskaly)
-   - [Schritt 2: Kasse beim Finanzamt anmelden (mit jotti-Seriennummer)](#schritt-2-kasse-beim-finanzamt-anmelden-mit-jotti-seriennummer)
-   - [Schritt 3: Belege & Steuersätze](#schritt-3-belege--steuersätze)
-   - [Schritt 4: Daten 10 Jahre aufbewahren](#schritt-4-daten-10-jahre-aufbewahren)
-6. [Laufende Pflichten (Checkliste)](#6-laufende-pflichten-checkliste)
-7. [Häufige Fragen (FAQ)](#7-häufige-fragen-faq)
-8. [Glossar](#8-glossar)
-
----
-
 ## 1. Das Wichtigste in 60 Sekunden
 
 - jotti ist eine **Kasse** im Sinne des Gesetzes (ein „elektronisches Aufzeichnungssystem").
@@ -35,6 +18,8 @@
   3. Alle Kassendaten **10 Jahre aufbewahren** (regelmäßige Backups).
 - **Der Entwickler von jotti ist dafür nicht verantwortlich.** Er stellt nur den Programmcode
   bereit. Die Pflichten gegenüber dem Finanzamt liegen **bei euch als Verein**.
+- **Was kostet uns das?** jotti selbst ist für berechtigte Vereine **kostenlos**. Kosten
+  entstehen nur für den **Server** und die **Cloud-TSE** (kleine laufende Gebühr beim Anbieter).
 - ⏳ **Aktueller Stand:** TSE-Anbindung, Belegausgabe und DSFinV-K-Export sind noch **in
   Entwicklung**. Solange diese Funktionen nicht fertig sind, ist jotti **noch nicht** für den
   fiskalpflichtigen Echtbetrieb geeignet. Dieser Leitfaden beschreibt, was zu tun ist,
@@ -83,8 +68,9 @@ Konkret braucht eine konforme Kasse vier Bausteine:
 | **DSFinV-K-Export**             | Standard-Datenpaket, das ein Prüfer einlesen kann              | ZIP mit genormten CSV-Dateien (`transactions.csv`, `lines.csv` …)                                                    | ⏳ in Entwicklung |
 
 > **Wichtig:** jotti ist **so gebaut**, dass es nach Fertigstellung dieser Bausteine konform
-> ist. Heute ist es das noch nicht vollständig. Den genauen Stand seht ihr in
-> [anforderungen.md, Abschnitt 6 „Fiskalkonformität"](../anforderungen.md).
+> ist. Heute ist es das noch nicht vollständig; den genauen Stand seht ihr in
+> [anforderungen.md, Abschnitt 6 „Fiskalkonformität"](../anforderungen.md). Ein TSE-freier
+> Betrieb ist nur für **Tests/Entwicklung** gedacht (für echte Verkäufe nicht konform, § 379 AO).
 
 ---
 
@@ -227,34 +213,7 @@ ersetzt.
 
 ---
 
-## 7. Häufige Fragen (FAQ)
-
-**Brauchen wir wirklich eine TSE, obwohl wir gemeinnützig sind und nur ein Sommerfest haben?**
-Ja. Die Pflicht hängt nicht von der Gemeinnützigkeit oder der Dauer ab, sondern davon, dass ihr
-eine elektronische Kasse für Verkäufe nutzt (§ 146a AO).
-
-**Können wir jotti ohne TSE „einfach mal so" nutzen?**
-Technisch ja, **rechtlich nein** für echte Verkäufe. Ohne TSE ist die Kasse nicht konform; das
-kann als Steuergefährdung mit Bußgeld geahndet werden (§ 379 AO). Ein TSE-freier Modus ist
-ausschließlich für **Tests/Entwicklung** gedacht.
-
-**Ist der Entwickler von jotti haftbar, wenn wir etwas falsch machen?**
-Nein. Der Entwickler stellt nur den Code bereit. Die Anmeldung, der TSE-Vertrag und die
-Aufbewahrung sind **eure** Pflichten als Betreiber.
-
-**Müssen wir die Handys der Helfer anmelden?**
-Nein — nur die eine jotti-Instanz auf eurem Server.
-
-**Wo finde ich unsere Kassen-Seriennummer?**
-Im **Admin-Bereich** von jotti. Sie wird beim ersten Start automatisch erzeugt.
-
-**Was kostet uns das?**
-jotti selbst ist für berechtigte Vereine kostenlos. Kosten entstehen für den **Server** und
-die **Cloud-TSE** (kleine laufende Gebühr beim TSE-Anbieter).
-
----
-
-## 8. Glossar
+## 7. Glossar
 
 | Begriff                      | Einfache Erklärung                                                                     |
 | ---------------------------- | -------------------------------------------------------------------------------------- |
