@@ -251,19 +251,6 @@ type Betreiber struct {
 	UpdatedAt time.Time
 }
 
-// Bondruck-Einstellungen (Singleton). Konfiguration fuer den Kassenbeleg-Drucker.
-type BondruckEinstellungen struct {
-	ID int
-	// IPv4-Adresse des Kassenbeleg-Druckers (leer = nicht konfiguriert).
-	KassenbelegDruckerIp string
-	// Bondruckmodus fuer Direktverkauf: kein_bon | abholbon | an_stationen.
-	DirektverkaufModus string
-	// IPv4-Adresse fuer Abholbon beim Direktverkauf (leer = nicht konfiguriert).
-	AbholbonDruckerIp string
-	// Letzte Aenderung (UTC)
-	UpdatedAt time.Time
-}
-
 // Technische Outbox-Warteschlange fuer Druckjobs (Arbeitsbon und Kassenbeleg).
 type Druckauftraege struct {
 	ID     int32
@@ -279,12 +266,12 @@ type Druckauftraege struct {
 	GedrucktAm sql.NullTime
 }
 
-// Drucker-IP und (für Produktkategorien) Bonmodus je Druckstation für den Bondruck.
+// Drucker-IP und (außer für Kassenbeleg) Bonmodus je Druckstation für den Bondruck.
 type Druckstationen struct {
 	Kategorie Druckstationkategorie
 	// IPv4-Adresse des Bondruckers (leer = kein Drucker konfiguriert)
 	DruckerIp string
-	// Bonmodus für Produktkategorien: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon); NULL für kassenbeleg/abholbon.
+	// Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon) für essen/getraenk/sonstiges/abholbon; NULL für kassenbeleg.
 	Bonmodus  sql.NullString
 	UpdatedAt time.Time
 }

@@ -13,7 +13,6 @@ import (
 type settingsQueryRepo interface {
 	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
-	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
 	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
 
@@ -56,20 +55,6 @@ func (q Query) GetBetreiber(ctx context.Context) (settings.Betreiber, error) {
 		}
 		log.Error().Err(err).Msg("Failed to retrieve betreiber")
 		return settings.Betreiber{}, ErrDatabase
-	}
-	return b, nil
-}
-
-func (q Query) GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error) {
-	log := zerolog.Ctx(ctx)
-
-	b, err := q.SettingsRepo.GetBondruckEinstellungen(ctx)
-	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			return settings.BondruckEinstellungen{}, ErrNotFound
-		}
-		log.Error().Err(err).Msg("Failed to retrieve bondruck_einstellungen")
-		return settings.BondruckEinstellungen{}, ErrDatabase
 	}
 	return b, nil
 }

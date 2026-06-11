@@ -10,6 +10,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/steuer"
@@ -117,7 +118,7 @@ func findDirektverkaufGetaetigtEvent(events []event.Event, verkaufID string) (ev
 func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string) error {
 	log := zerolog.Ctx(ctx)
 
-	if c.SettingsRepo == nil || c.DruckauftragRepo == nil {
+	if c.DruckstationRepo == nil || c.SettingsRepo == nil || c.DruckauftragRepo == nil {
 		log.Error().Msg("KassenbelegDrucken called without required dependencies")
 		return ErrDatabase
 	}
@@ -217,12 +218,13 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		}
 	}
 
-	bondruckSettings, err := c.SettingsRepo.GetBondruckEinstellungen(ctx)
+	stationen, err := c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load bondruck settings")
+		log.Error().Err(err).Msg("Failed to load druckstationen for kassenbeleg")
 		return ErrDatabase
 	}
-	if bondruckSettings.KassenbelegDruckerIP == "" {
+	kassenbelegStation, ok := stationen[string(druckstation.KategorieKassenbeleg)]
+	if !ok || kassenbelegStation.IP == "" {
 		return ErrKassenbelegDruckerNichtKonfiguriert
 	}
 
@@ -256,7 +258,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 	})
 
 	auftrag := druckauftrag_repo.NeuerDruckauftrag{
-		ZielIP:   bondruckSettings.KassenbelegDruckerIP,
+		ZielIP:   kassenbelegStation.IP,
 		Payload:  base64.StdEncoding.EncodeToString(payload),
 		BonArt:   "kassenbeleg",
 		Referenz: referenz,

@@ -20,13 +20,6 @@ const KassenidentitaetSchema = z.object({
 })
 export type Kassenidentitaet = z.infer<typeof KassenidentitaetSchema>
 
-export const BondruckEinstellungenSchema = z.object({
-  kassenbelegDruckerIp: z.ipv4('Ungültige IPv4-Adresse').or(z.literal('')),
-  direktverkaufModus: z.enum(['kein_bon', 'abholbon', 'an_stationen']),
-  abholbonDruckerIp: z.ipv4('Ungültige IPv4-Adresse').or(z.literal('')),
-})
-export type BondruckEinstellungen = z.infer<typeof BondruckEinstellungenSchema>
-
 export const TSEKonfigurationSchema = z.object({
   apiKeyGesetzt: z.boolean(),
   apiSecretGesetzt: z.boolean(),
@@ -100,21 +93,6 @@ export class EinstellungenBackend {
   public async saveBetreiber(b: Betreiber): Promise<void> {
     const body = BetreiberSchema.parse(b)
     await this.backend.post('admin/update-betreiber', body)
-  }
-
-  public async getBondruckEinstellungen(): Promise<BondruckEinstellungen> {
-    return this.backend.post(
-      'admin/get-bondruck-einstellungen',
-      {},
-      BondruckEinstellungenSchema,
-    )
-  }
-
-  public async saveBondruckEinstellungen(
-    b: BondruckEinstellungen,
-  ): Promise<void> {
-    const body = BondruckEinstellungenSchema.parse(b)
-    await this.backend.post('admin/update-bondruck-einstellungen', body)
   }
 
   public async getTSEKonfiguration(): Promise<TSEKonfiguration> {

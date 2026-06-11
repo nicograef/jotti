@@ -63,7 +63,6 @@ type druckauftragRepo interface {
 }
 
 type settingsRepo interface {
-	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
 	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
 	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)

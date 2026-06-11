@@ -133,7 +133,6 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	}
 	r.HandleFunc("/get-kassenidentitaet", sq.GetKassenidentitaetHandler())
 	r.HandleFunc("/get-betreiber", sq.GetBetreiberHandler())
-	r.HandleFunc("/get-bondruck-einstellungen", sq.GetBondruckEinstellungenHandler())
 	r.HandleFunc("/get-tse-konfiguration", sq.GetTSEKonfigurationHandler())
 	r.HandleFunc("/test-tse-verbindung", sq.TestTSEVerbindungHandler())
 	r.HandleFunc("/get-tse-status", sq.GetTSEStatusHandler())
@@ -141,7 +140,6 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	sc := settingsHTTP.CommandHandler{}
 	sc.Command = settingsApp.Command{SettingsRepo: settingsRepo}
 	r.HandleFunc("/update-betreiber", sc.UpdateBetreiberHandler())
-	r.HandleFunc("/update-bondruck-einstellungen", sc.UpdateBondruckEinstellungenHandler())
 	r.HandleFunc("/update-tse-konfiguration", sc.UpdateTSEKonfigurationHandler())
 
 	return r

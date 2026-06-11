@@ -7,7 +7,6 @@ import {
 } from '@/lib/DruckstationBackend'
 import {
   type Betreiber,
-  type BondruckEinstellungen,
   EinstellungenBackend,
   type TSEKonfigurationSpeichern,
   type TSEVerbindungStatus,
@@ -55,28 +54,6 @@ export function useBetreiber() {
   }
 
   return { betreiber: data, isPending, error, saveBetreiber }
-}
-
-export function useBondruckEinstellungen() {
-  const queryClient = useQueryClient()
-  const { isPending, data, error } = useQuery({
-    queryKey: ['bondruck-einstellungen'],
-    queryFn: () => einstellungenBackend.getBondruckEinstellungen(),
-  })
-
-  const saveBondruckEinstellungen = async (b: BondruckEinstellungen) => {
-    await einstellungenBackend.saveBondruckEinstellungen(b)
-    await queryClient.invalidateQueries({
-      queryKey: ['bondruck-einstellungen'],
-    })
-  }
-
-  return {
-    bondruckEinstellungen: data,
-    isPending,
-    error,
-    saveBondruckEinstellungen,
-  }
 }
 
 export function useTSEKonfiguration() {

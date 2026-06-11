@@ -5,27 +5,14 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import {
   type Betreiber,
-  type BondruckEinstellungen,
   type TSEKonfigurationSpeichern,
   type TSEVerbindungStatus,
 } from '@/lib/EinstellungenBackend'
 
-import {
-  useBetreiber,
-  useBondruckEinstellungen,
-  useKassenidentitaet,
-  useTSEKonfiguration,
-} from './hooks'
+import { useBetreiber, useKassenidentitaet, useTSEKonfiguration } from './hooks'
 
 function KassenidentitaetSection() {
   const { data: kassenidentitaet, isPending, error } = useKassenidentitaet()
@@ -197,12 +184,6 @@ const emptyBetreiber: Betreiber = {
   ort: '',
   steuernummer: null,
   ustId: null,
-}
-
-const emptyBondruckEinstellungen: BondruckEinstellungen = {
-  kassenbelegDruckerIp: '',
-  direktverkaufModus: 'kein_bon',
-  abholbonDruckerIp: '',
 }
 
 const emptyTSEKonfiguration: TSEKonfigurationSpeichern = {
@@ -382,145 +363,6 @@ function TSEKonfigurationForm({
   )
 }
 
-function BondruckEinstellungenForm({
-  initial,
-  onSave,
-}: {
-  initial: BondruckEinstellungen
-  onSave: (b: BondruckEinstellungen) => Promise<void>
-}) {
-  const [form, setForm] = useState<BondruckEinstellungen>(initial)
-  const { loading: saving, run } = useActionSubmit({
-    actionLabel: 'Bondruck-Einstellungen speichern',
-    byCode: {
-      validation_error: 'Bitte eine gültige IPv4-Adresse eingeben.',
-    },
-  })
-
-  const handleSave = async () => {
-    await run(async () => {
-      await onSave(form)
-      toast.success('Bondruck-Einstellungen gespeichert.')
-    })
-  }
-
-  return (
-    <div className="grid gap-4">
-      <div className="grid gap-1.5">
-        <Label htmlFor="kassenbelegDruckerIp">Kassenbeleg-Drucker-IP</Label>
-        <Input
-          id="kassenbelegDruckerIp"
-          value={form.kassenbelegDruckerIp}
-          onChange={(event) => {
-            setForm((prev) => ({
-              ...prev,
-              kassenbelegDruckerIp: event.target.value,
-            }))
-          }}
-          placeholder="z.B. 192.168.1.80"
-        />
-        {form.kassenbelegDruckerIp === '' && (
-          <p className="text-sm text-muted-foreground">kein Drucker</p>
-        )}
-      </div>
-
-      <div className="grid gap-1.5">
-        <Label htmlFor="direktverkaufModus">Direktverkauf-Bondruck</Label>
-        <Select
-          value={form.direktverkaufModus}
-          onValueChange={(value) => {
-            setForm((prev) => ({
-              ...prev,
-              direktverkaufModus:
-                value as BondruckEinstellungen['direktverkaufModus'],
-            }))
-          }}
-        >
-          <SelectTrigger id="direktverkaufModus">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="kein_bon">Kein Bon</SelectItem>
-            <SelectItem value="abholbon">Abholbon</SelectItem>
-            <SelectItem value="an_stationen">An Stationen</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="grid gap-1.5">
-        <Label htmlFor="abholbonDruckerIp">Abholbon-Drucker-IP</Label>
-        <Input
-          id="abholbonDruckerIp"
-          value={form.abholbonDruckerIp}
-          onChange={(event) => {
-            setForm((prev) => ({
-              ...prev,
-              abholbonDruckerIp: event.target.value,
-            }))
-          }}
-          placeholder="z.B. 192.168.1.81"
-          disabled={form.direktverkaufModus !== 'abholbon'}
-        />
-        {form.direktverkaufModus !== 'abholbon' && (
-          <p className="text-sm text-muted-foreground">
-            Nur relevant, wenn der Direktverkauf-Modus auf Abholbon steht.
-          </p>
-        )}
-        {form.direktverkaufModus === 'abholbon' &&
-          form.abholbonDruckerIp === '' && (
-            <p className="text-sm text-muted-foreground">kein Drucker</p>
-          )}
-      </div>
-
-      <div>
-        <Button onClick={() => void handleSave()} disabled={saving}>
-          {saving ? 'Speichern…' : 'Speichern'}
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-function BondruckEinstellungenSection() {
-  const { bondruckEinstellungen, isPending, error, saveBondruckEinstellungen } =
-    useBondruckEinstellungen()
-
-  if (isPending) {
-    return (
-      <section className="max-w-2xl">
-        <p className="text-muted-foreground text-sm">
-          Lade Bondruck-Einstellungen…
-        </p>
-      </section>
-    )
-  }
-
-  if (error) {
-    return (
-      <section className="max-w-2xl">
-        <p className="text-destructive text-sm">
-          Fehler beim Laden der Bondruck-Einstellungen.
-        </p>
-      </section>
-    )
-  }
-
-  return (
-    <section className="max-w-2xl">
-      <h2 className="text-xl font-semibold mb-1">Bondruck</h2>
-      <p className="text-muted-foreground text-sm mb-4">
-        Hier konfigurierst du den Drucker für den gesetzlichen Kassenbeleg sowie
-        den Bondruck-Modus fuer Direktverkauf. Ist keine Kassenbeleg-IP gesetzt,
-        ist Belegdruck im Service nicht moeglich.
-      </p>
-      <BondruckEinstellungenForm
-        initial={bondruckEinstellungen ?? emptyBondruckEinstellungen}
-        onSave={saveBondruckEinstellungen}
-      />
-    </section>
-  )
-}
-
 function TSEKonfigurationSection() {
   const {
     tseKonfiguration,
@@ -620,8 +462,6 @@ export function EinstellungenPage() {
       <KassenidentitaetSection />
       <hr />
       <TSEKonfigurationSection />
-      <hr />
-      <BondruckEinstellungenSection />
       <hr />
       <BetreiberSection />
     </div>

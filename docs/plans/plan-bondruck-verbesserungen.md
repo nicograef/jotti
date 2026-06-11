@@ -186,10 +186,10 @@ Der Kassenbeleg-Command bezieht die Ziel-IP aus der Kassenbeleg-Druckstation sta
 
 ### Acceptance criteria
 
-- [ ] Kassenbeleg-Druck nutzt die IP der Kassenbeleg-Druckstation; ohne Konfiguration kommt weiterhin `kassenbeleg_drucker_nicht_konfiguriert` (Servicekraft sieht die bestehende klare Meldung)
-- [ ] `bondruck_einstellungen` existiert in keiner Schicht mehr: kein Treffer für `bondruck_einstellungen`, `BondruckEinstellungen` oder `DirektverkaufModus` in `backend/`, `frontend/src/`, `database/`
-- [ ] Einstellungen-Seite ohne Bondruck-Sektion; übrige Sektionen unverändert
-- [ ] `make check` und `make check-integration` grün
+- [x] Kassenbeleg-Druck nutzt die IP der Kassenbeleg-Druckstation; ohne Konfiguration kommt weiterhin `kassenbeleg_drucker_nicht_konfiguriert` (Servicekraft sieht die bestehende klare Meldung)
+- [x] `bondruck_einstellungen` existiert in keiner Schicht mehr: kein Treffer für `bondruck_einstellungen`, `BondruckEinstellungen` oder `DirektverkaufModus` in `backend/`, `frontend/src/`, `database/`
+- [x] Einstellungen-Seite ohne Bondruck-Sektion; übrige Sektionen unverändert
+- [x] `make check` und `make check-integration` grün
 
 ---
 
@@ -282,11 +282,11 @@ Drei neue admin-only POST-Endpoints in einem neuen Modul `backend/api/druckauftr
 
 **User stories**: — (Aufräumpunkt aus dem PRD)
 
-### Context
+### Context (veraltet)
 
-- `docs/handbuch.md:426,644-701,914` — Policy-Beschreibung, §4.6 Bondruck, Relay-Poll
-- `docs/language.md:37,149-153,451-483` — Direktverkauf-Modus, Abholbon, Druckauftrag (inkl. veraltetem Hinweis „transientes DTO“), Relay
-- `docs/anforderungen.md:49,240` — K-12, F-03
+- `docs/handbuch.md — Policy-Beschreibung, §4.6 Bondruck, Relay-Poll
+- `docs/language.md` — Direktverkauf-Modus, Abholbon, Druckauftrag (inkl. veraltetem Hinweis „transientes DTO“), Relay
+- `docs/anforderungen.md` — K-12, F-03
 
 ### What to build
 

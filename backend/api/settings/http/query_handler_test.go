@@ -33,10 +33,6 @@ func (m *mockSettingsQuery) GetBetreiber(_ context.Context) (settings.Betreiber,
 	return settings.Betreiber{}, errors.New("not implemented")
 }
 
-func (m *mockSettingsQuery) GetBondruckEinstellungen(_ context.Context) (settings.BondruckEinstellungen, error) {
-	return settings.BondruckEinstellungen{}, errors.New("not implemented")
-}
-
 func (m *mockSettingsQuery) GetTSEKonfiguration(_ context.Context) (settings.TSEKonfiguration, error) {
 	if m.err != nil {
 		return settings.TSEKonfiguration{}, m.err

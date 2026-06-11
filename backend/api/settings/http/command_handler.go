@@ -11,7 +11,6 @@ import (
 
 type settingsCommand interface {
 	UpdateBetreiber(ctx context.Context, b settings.Betreiber) error
-	UpdateBondruckEinstellungen(ctx context.Context, b settings.BondruckEinstellungen) error
 	UpdateTSEKonfiguration(ctx context.Context, b settings.TSEKonfiguration) error
 }
 
@@ -35,25 +34,6 @@ var updateBetreiberSchema = z.Struct(z.Shape{
 	"Ort":          z.String().Min(1, z.Message("Ort ist erforderlich")).Required(),
 	"Steuernummer": z.Ptr(z.String()),
 	"UstID":        z.Ptr(z.String()),
-})
-
-type updateBondruckEinstellungenRequest struct {
-	KassenbelegDruckerIP string `json:"kassenbelegDruckerIp"`
-	DirektverkaufModus   string `json:"direktverkaufModus"`
-	AbholbonDruckerIP    string `json:"abholbonDruckerIp"`
-}
-
-var updateBondruckEinstellungenSchema = z.Struct(z.Shape{
-	"KassenbelegDruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
-	"DirektverkaufModus": z.String().OneOf(
-		[]string{
-			string(settings.DirektverkaufModusKeinBon),
-			string(settings.DirektverkaufModusAbholbon),
-			string(settings.DirektverkaufModusAnStationen),
-		},
-		z.Message("Ungültiger Direktverkauf-Modus"),
-	).Required(),
-	"AbholbonDruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
 })
 
 type updateTSEKonfigurationRequest struct {
@@ -84,31 +64,6 @@ func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {
 		}
 
 		if err := h.Command.UpdateBetreiber(r.Context(), b); err != nil {
-			helper.SendServerError(w)
-			return
-		}
-		helper.SendEmptyResponse(w)
-	}
-}
-
-func (h *CommandHandler) UpdateBondruckEinstellungenHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var body updateBondruckEinstellungenRequest
-		if !helper.ReadAndValidateBody(w, r, &body, updateBondruckEinstellungenSchema) {
-			return
-		}
-
-		b, err := settings.NewBondruckEinstellungen(
-			body.KassenbelegDruckerIP,
-			settings.DirektverkaufModus(body.DirektverkaufModus),
-			body.AbholbonDruckerIP,
-		)
-		if err != nil {
-			helper.SendClientError(w, "validation_error", nil)
-			return
-		}
-
-		if err := h.Command.UpdateBondruckEinstellungen(r.Context(), b); err != nil {
 			helper.SendServerError(w)
 			return
 		}

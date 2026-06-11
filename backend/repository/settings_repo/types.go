@@ -32,15 +32,6 @@ func toDomain(row dbgen.GetBetreiberRow) settings.Betreiber {
 	return b
 }
 
-func toBondruckEinstellungen(row dbgen.GetBondruckEinstellungenRow) settings.BondruckEinstellungen {
-	return settings.BondruckEinstellungen{
-		KassenbelegDruckerIP: row.KassenbelegDruckerIp,
-		DirektverkaufModus:   settings.DirektverkaufModus(row.DirektverkaufModus),
-		AbholbonDruckerIP:    row.AbholbonDruckerIp,
-		UpdatedAt:            row.UpdatedAt,
-	}
-}
-
 func toTSEKonfiguration(row dbgen.GetTSEKonfigurationRow) settings.TSEKonfiguration {
 	return settings.TSEKonfiguration{
 		ApiKey:    row.ApiKey,

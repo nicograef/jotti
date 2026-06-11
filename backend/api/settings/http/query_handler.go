@@ -16,7 +16,6 @@ import (
 type settingsQuery interface {
 	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
-	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
 	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 	TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, error)
 	GetTSEStatus(ctx context.Context) (application.TSEStatus, error)
@@ -38,12 +37,6 @@ type betreiberResponse struct {
 	Ort          string  `json:"ort"`
 	Steuernummer *string `json:"steuernummer"`
 	UstID        *string `json:"ustId"`
-}
-
-type bondruckEinstellungenResponse struct {
-	KassenbelegDruckerIP string `json:"kassenbelegDruckerIp"`
-	DirektverkaufModus   string `json:"direktverkaufModus"`
-	AbholbonDruckerIP    string `json:"abholbonDruckerIp"`
 }
 
 type tseKonfigurationResponse struct {
@@ -97,27 +90,6 @@ func (h *QueryHandler) GetBetreiberHandler() http.HandlerFunc {
 			Ort:          b.Ort,
 			Steuernummer: b.Steuernummer,
 			UstID:        b.UstID,
-		})
-	}
-}
-
-func (h *QueryHandler) GetBondruckEinstellungenHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		b, err := h.Query.GetBondruckEinstellungen(r.Context())
-		if err != nil {
-			if errors.Is(err, application.ErrNotFound) {
-				helper.SendResponse(w, bondruckEinstellungenResponse{
-					DirektverkaufModus: string(settings.DirektverkaufModusKeinBon),
-				})
-				return
-			}
-			helper.SendServerError(w)
-			return
-		}
-		helper.SendResponse(w, bondruckEinstellungenResponse{
-			KassenbelegDruckerIP: b.KassenbelegDruckerIP,
-			DirektverkaufModus:   string(b.DirektverkaufModus),
-			AbholbonDruckerIP:    b.AbholbonDruckerIP,
 		})
 	}
 }

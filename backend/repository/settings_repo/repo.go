@@ -57,29 +57,6 @@ func (r Repository) GetKassenidentitaet(ctx context.Context) (settings.Kassenide
 	}, nil
 }
 
-func (r Repository) GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error) {
-	row, err := r.q.GetBondruckEinstellungen(ctx)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return settings.BondruckEinstellungen{}, db.ErrNotFound
-		}
-		return settings.BondruckEinstellungen{}, db.ErrDatabase
-	}
-	return toBondruckEinstellungen(row), nil
-}
-
-func (r Repository) UpsertBondruckEinstellungen(ctx context.Context, b settings.BondruckEinstellungen) error {
-	err := r.q.UpsertBondruckEinstellungen(ctx, dbgen.UpsertBondruckEinstellungenParams{
-		KassenbelegDruckerIp: b.KassenbelegDruckerIP,
-		DirektverkaufModus:   string(b.DirektverkaufModus),
-		AbholbonDruckerIp:    b.AbholbonDruckerIP,
-	})
-	if err != nil {
-		return db.ErrDatabase
-	}
-	return nil
-}
-
 func (r Repository) GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error) {
 	row, err := r.q.GetTSEKonfiguration(ctx)
 	if err != nil {
