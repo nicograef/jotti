@@ -161,9 +161,9 @@ prompt-frei.
 
 ### Acceptance criteria
 
-- [ ] Die sechs Einträge sind entfernt, alle übrigen unverändert
-- [ ] `jq empty ~/.claude/settings.json` ist erfolgreich
-- [ ] Sicherungskopie in `~/.claude/backups/` existiert
+- [x] Die sechs Einträge sind entfernt, alle übrigen unverändert
+- [x] `jq empty ~/.claude/settings.json` ist erfolgreich
+- [x] Sicherungskopie in `~/.claude/backups/` existiert
 - [ ] Stichprobe in einer Claude-Code-Session: `make check` läuft ohne
       Permission-Prompt, `curl example.com` prompted
 
