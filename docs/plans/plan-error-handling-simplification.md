@@ -79,10 +79,10 @@ Tests: Der camelCase-details-Test und der Magic-Suffix-Test entfallen. Verbleibe
 
 ### Acceptance criteria
 
-- [ ] `use-form-action-submit.ts` enthält kein `error.details`-Parsing, keine Suffix-Heuristik und keine Helper-Funktionen mehr; nur `fieldErrorsByCode` (inline) und `byCode` (Toast)
-- [ ] `byCode` hat in beiden Hooks identische Bedeutung (Toast-Override); kein `byCode`-Eintrag erzeugt einen Feldfehler
-- [ ] `tisch_already_exists`, `produkt_already_exists`, `username_already_exists` erscheinen weiterhin inline am `name`- bzw. `username`-Feld der sechs Dialoge
-- [ ] `variante_already_exists` kommt im Frontend nicht mehr vor
-- [ ] `validation_error`-Toast-Text referenziert keine „markierten" Eingaben mehr
-- [ ] Kein Test konstruiert `validation_error.details` in einem Format, das das Backend nicht sendet
-- [ ] `make check-frontend` läuft ohne Fehler (Format, Lint, Tests, Build)
+- [x] `use-form-action-submit.ts` enthält kein `error.details`-Parsing, keine Suffix-Heuristik und keine Helper-Funktionen mehr; nur `fieldErrorsByCode` (inline) und `byCode` (Toast)
+- [x] `byCode` hat in beiden Hooks identische Bedeutung (Toast-Override); kein `byCode`-Eintrag erzeugt einen Feldfehler
+- [x] `tisch_already_exists`, `produkt_already_exists`, `username_already_exists` erscheinen weiterhin inline am `name`- bzw. `username`-Feld der sechs Dialoge
+- [x] `variante_already_exists` kommt im Frontend nicht mehr vor
+- [x] `validation_error`-Toast-Text referenziert keine „markierten" Eingaben mehr
+- [x] Kein Test konstruiert `validation_error.details` in einem Format, das das Backend nicht sendet
+- [x] `make check-frontend` läuft ohne Fehler (Format, Lint, Tests, Build)

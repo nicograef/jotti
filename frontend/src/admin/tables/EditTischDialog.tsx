@@ -41,8 +41,8 @@ export function EditTischDialog(props: EditTischDialogProps) {
   const { loading, run } = useFormActionSubmit({
     form,
     actionLabel: 'Tisch speichern',
-    byCode: {
-      tisch_already_exists: 'Dieser Name ist bereits vergeben.',
+    fieldErrorsByCode: {
+      tisch_already_exists: { name: 'Dieser Name ist bereits vergeben.' },
     },
   })
 

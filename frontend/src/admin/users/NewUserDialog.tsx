@@ -46,8 +46,10 @@ export function NewUserDialog(props: NewUserDialogProps) {
   const { loading, run } = useFormActionSubmit({
     form,
     actionLabel: 'Benutzer anlegen',
-    byCode: {
-      username_already_exists: 'Dieser Benutzername ist bereits vergeben.',
+    fieldErrorsByCode: {
+      username_already_exists: {
+        username: 'Dieser Benutzername ist bereits vergeben.',
+      },
     },
   })
 

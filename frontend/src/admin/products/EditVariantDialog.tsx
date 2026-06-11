@@ -44,9 +44,6 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
   const { loading, run } = useFormActionSubmit({
     form,
     actionLabel: 'Variante speichern',
-    byCode: {
-      variante_already_exists: 'Dieser Name ist bereits vergeben.',
-    },
   })
 
   const onOpenChange = (isOpen: boolean) => {

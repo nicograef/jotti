@@ -42,8 +42,8 @@ export function NewTischDialog(props: NewTischDialogProps) {
   const { loading, run } = useFormActionSubmit({
     form,
     actionLabel: 'Tisch anlegen',
-    byCode: {
-      tisch_already_exists: 'Dieser Name ist bereits vergeben.',
+    fieldErrorsByCode: {
+      tisch_already_exists: { name: 'Dieser Name ist bereits vergeben.' },
     },
   })
 

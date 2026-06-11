@@ -46,9 +46,6 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
   const { loading, run } = useFormActionSubmit({
     form,
     actionLabel: 'Variante anlegen',
-    byCode: {
-      variante_already_exists: 'Dieser Name ist bereits vergeben.',
-    },
   })
 
   const onSubmit = async (data: FormData) => {

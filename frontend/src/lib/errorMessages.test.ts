@@ -136,7 +136,7 @@ const mappedCodes: [string, string][] = [
     'username_already_exists',
     'Dieser Benutzername ist bereits vergeben. Bitte einen anderen Benutzernamen wählen.',
   ],
-  ['validation_error', 'Bitte die markierten Eingaben prüfen.'],
+  ['validation_error', 'Bitte die Eingaben prüfen und erneut versuchen.'],
   [
     'variante_not_found',
     'Die Variante wurde nicht gefunden. Bitte neu laden und erneut versuchen.',

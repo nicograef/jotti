@@ -51,8 +51,10 @@ export function EditUserDialog(props: NewUserDialogProps) {
   const { loading: saveLoading, run: runSave } = useFormActionSubmit({
     form,
     actionLabel: 'Benutzer speichern',
-    byCode: {
-      username_already_exists: 'Dieser Benutzername ist bereits vergeben.',
+    fieldErrorsByCode: {
+      username_already_exists: {
+        username: 'Dieser Benutzername ist bereits vergeben.',
+      },
     },
   })
   const { loading: resetLoading, run: runResetPassword } = useActionSubmit({

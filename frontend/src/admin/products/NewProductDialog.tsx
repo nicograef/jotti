@@ -62,8 +62,8 @@ export function NewProductDialog(props: NewProductDialogProps) {
   const { loading, run } = useFormActionSubmit({
     form,
     actionLabel: 'Produkt anlegen',
-    byCode: {
-      produkt_already_exists: 'Dieser Name ist bereits vergeben.',
+    fieldErrorsByCode: {
+      produkt_already_exists: { name: 'Dieser Name ist bereits vergeben.' },
     },
   })
 

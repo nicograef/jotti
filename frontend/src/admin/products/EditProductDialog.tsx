@@ -61,8 +61,8 @@ export function EditProductDialog(props: EditProductDialogProps) {
   const { loading, run } = useFormActionSubmit({
     form,
     actionLabel: 'Produkt speichern',
-    byCode: {
-      produkt_already_exists: 'Dieser Name ist bereits vergeben.',
+    fieldErrorsByCode: {
+      produkt_already_exists: { name: 'Dieser Name ist bereits vergeben.' },
     },
   })
 
