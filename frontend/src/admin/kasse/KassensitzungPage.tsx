@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -14,7 +13,8 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import { formatCents, parseCents } from '@/lib/utils'
 
 import { kasseBackend, useKassenbestand, useOffeneKassensitzung } from './hooks'
@@ -105,19 +105,20 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
     mode: 'onTouched',
   })
 
+  const { loading, run } = useFormActionSubmit({
+    form,
+    actionLabel: 'Kassensitzung eröffnen',
+  })
+
   const onSubmit = async (data: FormData) => {
-    try {
+    await run(async () => {
       await kasseBackend.kassensitzungEroeffnen(
         data.bezeichnung,
         parseCents(data.betragEuro),
       )
       toast.success('Kassensitzung eröffnet.')
       onSuccess()
-    } catch (error: unknown) {
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Kassensitzung eröffnen', error }),
-      )
-    }
+    })
   }
 
   return (
@@ -170,7 +171,7 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
               )}
             </Field>
             <div>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={loading}>
                 Kassensitzung eröffnen
               </Button>
             </div>
@@ -211,8 +212,13 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
     mode: 'onTouched',
   })
 
+  const { loading, run } = useFormActionSubmit({
+    form,
+    actionLabel: 'Kassenbewegung buchen',
+  })
+
   const onSubmit = async (data: FormData) => {
-    try {
+    await run(async () => {
       await kasseBackend.geldtransitBuchen(
         data.richtung,
         parseCents(data.betragEuro),
@@ -221,11 +227,7 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
       toast.success('Kassenbewegung gebucht.')
       form.reset()
       onSuccess()
-    } catch (error: unknown) {
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Kassenbewegung buchen', error }),
-      )
-    }
+    })
   }
 
   return (
@@ -302,7 +304,7 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
               )}
             </Field>
             <div>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={loading}>
                 Geldtransit buchen
               </Button>
             </div>
@@ -330,22 +332,20 @@ function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
     mode: 'onTouched',
   })
 
+  const { loading, run } = useFormActionSubmit({
+    form,
+    actionLabel: 'Kassensturz durchführen',
+  })
+
   const onSubmit = async (data: FormData) => {
-    try {
+    await run(async () => {
       await kasseBackend.kassensturzDurchfuehren(
         parseCents(data.istBestandEuro),
       )
       toast.success('Kassensturz durchgeführt.')
       form.reset()
       onSuccess()
-    } catch (error: unknown) {
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'Kassensturz durchführen',
-          error,
-        }),
-      )
-    }
+    })
   }
 
   return (
@@ -380,7 +380,7 @@ function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
               )}
             </Field>
             <div>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={loading}>
                 Kassensturz durchführen
               </Button>
             </div>
@@ -392,24 +392,16 @@ function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function TagesabschlussSection({ onSuccess }: { onSuccess: () => void }) {
-  const [saving, setSaving] = useState(false)
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Tagesabschluss erstellen',
+  })
 
   const handleTagesabschluss = async () => {
-    setSaving(true)
-    try {
+    await run(async () => {
       await kasseBackend.tagesabschlussErstellen()
       toast.success('Tagesabschluss erstellt.')
       onSuccess()
-    } catch (error: unknown) {
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'Tagesabschluss erstellen',
-          error,
-        }),
-      )
-    } finally {
-      setSaving(false)
-    }
+    })
   }
 
   return (
@@ -425,7 +417,7 @@ function TagesabschlussSection({ onSuccess }: { onSuccess: () => void }) {
         <Button
           variant="destructive"
           onClick={() => void handleTagesabschluss()}
-          disabled={saving}
+          disabled={loading}
         >
           Tagesabschluss erstellen
         </Button>

@@ -1,11 +1,9 @@
 import { Users as UsersIcon } from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
-import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { type User, UserStatus } from './User'
 import type { UserBackend } from './UserBackend'
@@ -21,48 +19,37 @@ interface UsersProps {
 }
 
 export function Users(props: UsersProps) {
-  const [loading, setLoading] = useState(false)
+  const { loading: activateLoading, run: runActivate } = useActionSubmit({
+    actionLabel: 'Benutzer aktivieren',
+  })
+  const { loading: deactivateLoading, run: runDeactivate } = useActionSubmit({
+    actionLabel: 'Benutzer deaktivieren',
+  })
+  const { loading: deleteLoading, run: runDelete } = useActionSubmit({
+    actionLabel: 'Benutzer löschen',
+  })
+
+  const loading = activateLoading || deactivateLoading || deleteLoading
 
   const activateUser = async (userId: number) => {
-    setLoading(true)
-    try {
+    await runActivate(async () => {
       await props.backend.activateUser(userId)
       props.onStatusChange(userId, UserStatus.ACTIVE)
-    } catch (error) {
-      console.error('Error activating user:', error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Benutzer aktivieren', error }),
-      )
-    }
-    setLoading(false)
+    })
   }
 
   const deactivateUser = async (userId: number) => {
-    setLoading(true)
-    try {
+    await runDeactivate(async () => {
       await props.backend.deactivateUser(userId)
       props.onStatusChange(userId, UserStatus.INACTIVE)
-    } catch (error) {
-      console.error('Error deactivating user:', error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Benutzer deaktivieren', error }),
-      )
-    }
-    setLoading(false)
+    })
   }
 
   const deleteUser = async (userId: number) => {
-    setLoading(true)
-    try {
+    await runDelete(async () => {
       await props.backend.deleteUser(userId)
       props.onDeleted(userId)
-    } catch (error) {
-      console.error('Error deleting user:', error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Benutzer löschen', error }),
-      )
-    }
-    setLoading(false)
+    })
   }
 
   if (props.users.length === 0 && !props.loading) {

@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import {
@@ -23,7 +22,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import {
   defaultSteuersatzByKategorie,
@@ -42,7 +41,6 @@ interface NewProductDialogProps {
 
 export function NewProductDialog(props: NewProductDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: {
       name: '',
@@ -61,10 +59,16 @@ export function NewProductDialog(props: NewProductDialogProps) {
     })
   }, [form, kategorie])
 
-  const onSubmit = async (data: FormData) => {
-    setLoading(true)
+  const { loading, run } = useFormActionSubmit({
+    form,
+    actionLabel: 'Produkt anlegen',
+    byCode: {
+      produkt_already_exists: 'Dieser Name ist bereits vergeben.',
+    },
+  })
 
-    try {
+  const onSubmit = async (data: FormData) => {
+    await run(async () => {
       const id = await props.backend.createProdukt(data)
       form.reset()
       setOpen(false)
@@ -76,14 +80,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
-    } catch (error: unknown) {
-      console.error(error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Produkt anlegen', error }),
-      )
-    }
-
-    setLoading(false)
+    })
   }
 
   return (

@@ -1,7 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import {
@@ -21,8 +19,8 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { BackendError } from '@/lib/Backend'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import { type User, UserSchema } from './User'
 import type { UserBackend } from './UserBackend'
@@ -44,12 +42,23 @@ interface NewUserDialogProps {
 }
 
 export function EditUserDialog(props: NewUserDialogProps) {
-  const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: props.user,
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
+
+  const { loading: saveLoading, run: runSave } = useFormActionSubmit({
+    form,
+    actionLabel: 'Benutzer speichern',
+    byCode: {
+      username_already_exists: 'Dieser Benutzername ist bereits vergeben.',
+    },
+  })
+  const { loading: resetLoading, run: runResetPassword } = useActionSubmit({
+    actionLabel: 'Passwort zurücksetzen',
+  })
+  const loading = saveLoading || resetLoading
 
   const onOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -59,9 +68,7 @@ export function EditUserDialog(props: NewUserDialogProps) {
   }
 
   const onSubmit = async (data: FormData) => {
-    setLoading(true)
-
-    try {
+    await runSave(async () => {
       await props.backend.updateUser({
         id: props.user.id,
         ...data,
@@ -69,43 +76,16 @@ export function EditUserDialog(props: NewUserDialogProps) {
       form.reset()
       props.updated({ ...props.user, ...data })
       props.close()
-    } catch (error: unknown) {
-      console.error(error)
-
-      if (
-        error instanceof BackendError &&
-        error.code === 'username_already_exists'
-      ) {
-        form.setError('username', {
-          type: 'custom',
-          message: 'Dieser Benutzername ist bereits vergeben.',
-        })
-      } else {
-        toast.error(
-          getActionErrorMessage({ actionLabel: 'Benutzer speichern', error }),
-        )
-      }
-    }
-
-    setLoading(false)
+    })
   }
 
   const resetPassword = async () => {
-    setLoading(true)
-
-    try {
+    await runResetPassword(async () => {
       const onetimePassword = await props.backend.resetPassword(props.user.id)
       form.reset()
       props.onPasswordReset(props.user.username, onetimePassword)
       props.close()
-    } catch (error: unknown) {
-      console.error(error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Passwort zurücksetzen', error }),
-      )
-    }
-
-    setLoading(false)
+    })
   }
 
   return (

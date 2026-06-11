@@ -16,7 +16,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 💰 **Zahlung** kassieren (Teilzahlungen und Rückgeldberechnung)
 - ↩️ **Stornierungen** mit Rollen-Kontrolle (Admin & Serviceleitung) — mit Pflichtkommentar
 - 💸 **Auszahlung** leisten — negativen Saldo ausgleichen (z. B. nach Stornierung bereits kassierter Positionen)
-- 🔄 **Umbuchung** _(in Entwicklung)_ — Bestellungen auf einen anderen Tisch verschieben
+- 🔄 **Umbuchung** — Bestellungen auf einen anderen Tisch verschieben
 - 📋 **Tisch-Übersicht** mit offenem Saldo, Positionen und Bestellhistorie
 - ⭐ **Meine Tische** — Favoriten als Rich Cards auf dem Dashboard, Schnellsuche per Name/Nummer
 
@@ -24,7 +24,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 
 - 🖥️ **Küchendisplay (KDS)** _(in Entwicklung)_ — eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe
 - 🍳 **Ausgabestationen** _(in Entwicklung)_ — Zubereitungsstatus verwalten, Servicekräfte sehen, wann Positionen abholbereit sind
-- 🖨️ **Bon-Druck** _(in Entwicklung)_ — Bestell- und Küchenbons automatisch an zugeordnete Bondrucker senden (pro Kategorie konfigurierbar)
+- 🖨️ **Bon-Druck** — Bestell- und Küchenbons automatisch an zugeordnete Bondrucker senden (pro Kategorie konfigurierbar)
 
 ### Kasse
 
@@ -80,7 +80,7 @@ Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlunge
 
 - Eingetragene Vereine (e.V.), gemeinnützige Organisationen, NPOs
 - Temporäre Veranstaltungen: Vereinsfeste, Sommerfeste, Weihnachtsmärkte, Maihocks, Konzerte
-- Ehrenamtliche Teams (5–30 Servicekräfte)
+- Ehrenamtliche Teams (1–30 Helfer:innen)
 - Bargeld-Betrieb mit dem Ziel voller Fiskalkonformität (TSE, DSFinV-K, Belegausgabe — in Entwicklung, siehe [docs/compliance.md](docs/compliance.md))
 
 ❌ **Nicht geeignet für:**

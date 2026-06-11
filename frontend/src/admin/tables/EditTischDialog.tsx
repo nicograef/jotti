@@ -1,7 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { NameField } from '@/components/common/FormFields'
@@ -17,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import type { Tisch } from './Tisch'
 import { TischBackend, UpdateTischSchema } from './TischBackend'
@@ -34,11 +32,18 @@ interface EditTischDialogProps {
 }
 
 export function EditTischDialog(props: EditTischDialogProps) {
-  const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: props.tisch,
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
+  })
+
+  const { loading, run } = useFormActionSubmit({
+    form,
+    actionLabel: 'Tisch speichern',
+    byCode: {
+      tisch_already_exists: 'Dieser Name ist bereits vergeben.',
+    },
   })
 
   const onOpenChange = (isOpen: boolean) => {
@@ -49,9 +54,7 @@ export function EditTischDialog(props: EditTischDialogProps) {
   }
 
   const onSubmit = async (data: FormData) => {
-    setLoading(true)
-
-    try {
+    await run(async () => {
       await props.backend.updateTisch({
         id: props.tisch.id,
         ...data,
@@ -59,14 +62,7 @@ export function EditTischDialog(props: EditTischDialogProps) {
       form.reset()
       props.updated({ ...props.tisch, ...data })
       props.close()
-    } catch (error: unknown) {
-      console.error(error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Tisch speichern', error }),
-      )
-    }
-
-    setLoading(false)
+    })
   }
 
   return (

@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import {
@@ -23,8 +22,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { BackendError } from '@/lib/Backend'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import { type User, UserRole } from './User'
 import { CreateUserSchema, UserBackend } from './UserBackend'
@@ -39,17 +37,22 @@ interface NewUserDialogProps {
 
 export function NewUserDialog(props: NewUserDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: { name: '', username: '', role: UserRole.SERVICE },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
 
-  const onSubmit = async (data: FormData) => {
-    setLoading(true)
+  const { loading, run } = useFormActionSubmit({
+    form,
+    actionLabel: 'Benutzer anlegen',
+    byCode: {
+      username_already_exists: 'Dieser Benutzername ist bereits vergeben.',
+    },
+  })
 
-    try {
+  const onSubmit = async (data: FormData) => {
+    await run(async () => {
       const { id, onetimePassword } = await props.backend.createUser(
         data.name,
         data.username,
@@ -67,25 +70,7 @@ export function NewUserDialog(props: NewUserDialogProps) {
         },
         onetimePassword,
       )
-    } catch (error: unknown) {
-      console.error(error)
-
-      if (
-        error instanceof BackendError &&
-        error.code === 'username_already_exists'
-      ) {
-        form.setError('username', {
-          type: 'custom',
-          message: 'Dieser Benutzername ist bereits vergeben.',
-        })
-      } else {
-        toast.error(
-          getActionErrorMessage({ actionLabel: 'Benutzer anlegen', error }),
-        )
-      }
-    }
-
-    setLoading(false)
+    })
   }
 
   return (

@@ -9,6 +9,9 @@ interface UseFormActionSubmitOptions<TFieldValues extends FieldValues> {
   form: UseFormReturn<TFieldValues>
   actionLabel: string
   byCode?: Record<string, string>
+  fieldErrorsByCode?: Partial<
+    Record<string, Partial<Record<Path<TFieldValues>, string>>>
+  >
   onSuccess?: () => void
 }
 
@@ -57,10 +60,70 @@ function applyValidationErrors<TFieldValues extends FieldValues>(
   return applied
 }
 
+function applyMappedCodeError<TFieldValues extends FieldValues>(
+  form: UseFormReturn<TFieldValues>,
+  error: unknown,
+  byCode?: Record<string, string>,
+): boolean {
+  if (!(error instanceof BackendError) || !byCode) {
+    return false
+  }
+
+  const message = byCode[error.code]
+  if (!message) {
+    return false
+  }
+
+  const field =
+    error.code === 'username_already_exists'
+      ? 'username'
+      : error.code.endsWith('_already_exists')
+        ? 'name'
+        : undefined
+
+  if (!field) {
+    return false
+  }
+
+  form.setError(field as Path<TFieldValues>, { message })
+  return true
+}
+
+function applyExplicitCodeErrors<TFieldValues extends FieldValues>(
+  form: UseFormReturn<TFieldValues>,
+  error: unknown,
+  fieldErrorsByCode?: Partial<
+    Record<string, Partial<Record<Path<TFieldValues>, string>>>
+  >,
+): boolean {
+  if (!(error instanceof BackendError) || !fieldErrorsByCode) {
+    return false
+  }
+
+  const fieldMessages = fieldErrorsByCode[error.code]
+  if (!fieldMessages) {
+    return false
+  }
+
+  let applied = false
+  for (const field of Object.keys(fieldMessages) as Path<TFieldValues>[]) {
+    const message = fieldMessages[field]
+    if (typeof message !== 'string' || message.length === 0) {
+      continue
+    }
+
+    form.setError(field, { message })
+    applied = true
+  }
+
+  return applied
+}
+
 export function useFormActionSubmit<TFieldValues extends FieldValues>({
   form,
   actionLabel,
   byCode,
+  fieldErrorsByCode,
   onSuccess,
 }: UseFormActionSubmitOptions<TFieldValues>) {
   const [loading, setLoading] = useState(false)
@@ -79,6 +142,14 @@ export function useFormActionSubmit<TFieldValues extends FieldValues>({
         if (details && applyValidationErrors(form, details)) {
           return
         }
+      }
+
+      if (applyExplicitCodeErrors(form, error, fieldErrorsByCode)) {
+        return
+      }
+
+      if (applyMappedCodeError(form, error, byCode)) {
+        return
       }
 
       toast.error(

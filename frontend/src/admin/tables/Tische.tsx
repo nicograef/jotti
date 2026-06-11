@@ -1,10 +1,8 @@
 import { LayoutGrid } from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import { type Tisch, TischStatus } from './Tisch'
 import type { TischBackend } from './TischBackend'
@@ -23,48 +21,37 @@ interface TischeProps {
 }
 
 export function Tische(props: TischeProps) {
-  const [loading, setLoading] = useState(false)
+  const { loading: activateLoading, run: runActivate } = useActionSubmit({
+    actionLabel: 'Tisch aktivieren',
+  })
+  const { loading: deactivateLoading, run: runDeactivate } = useActionSubmit({
+    actionLabel: 'Tisch deaktivieren',
+  })
+  const { loading: deleteLoading, run: runDelete } = useActionSubmit({
+    actionLabel: 'Tisch löschen',
+  })
+
+  const loading = activateLoading || deactivateLoading || deleteLoading
 
   const activateTisch = async (tischId: number) => {
-    setLoading(true)
-    try {
+    await runActivate(async () => {
       await props.backend.activateTisch(tischId)
       props.onStatusChange(tischId, TischStatus.ACTIVE)
-    } catch (error) {
-      console.error('Error activating table:', error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Tisch aktivieren', error }),
-      )
-    }
-    setLoading(false)
+    })
   }
 
   const deactivateTisch = async (tischId: number) => {
-    setLoading(true)
-    try {
+    await runDeactivate(async () => {
       await props.backend.deactivateTisch(tischId)
       props.onStatusChange(tischId, TischStatus.INACTIVE)
-    } catch (error) {
-      console.error('Error deactivating table:', error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Tisch deaktivieren', error }),
-      )
-    }
-    setLoading(false)
+    })
   }
 
   const deleteTisch = async (tischId: number) => {
-    setLoading(true)
-    try {
+    await runDelete(async () => {
       await props.backend.deleteTisch(tischId)
       props.onDeleted(tischId)
-    } catch (error) {
-      console.error('Error deleting table:', error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Tisch löschen', error }),
-      )
-    }
-    setLoading(false)
+    })
   }
 
   if (props.tische.length === 0 && !props.loading) {

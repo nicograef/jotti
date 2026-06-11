@@ -1,8 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import React from 'react'
 import { useForm } from 'react-hook-form'
 import { NavLink, useNavigate } from 'react-router'
-import { toast } from 'sonner'
 import type z from 'zod'
 
 import { Button } from '@/components/ui/button'
@@ -15,9 +13,8 @@ import {
 } from '@/components/ui/card'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
+import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import { AuthBackend, SetPasswordSchema } from '@/lib/AuthBackend'
-import { BackendError } from '@/lib/Backend'
-import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { NewPasswordField, OTPField, UsernameField } from './FormFields'
 
@@ -30,54 +27,35 @@ interface PasswordFormProps {
 
 export function PasswordForm(props: PasswordFormProps) {
   const navigate = useNavigate()
-  const [loading, setLoading] = React.useState(false)
   const form = useForm<FormData>({
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
     defaultValues: { username: '', password: '', onetimePassword: '' },
   })
 
-  const onSubmit = async (data: FormData) => {
-    setLoading(true)
+  const { loading, run } = useFormActionSubmit({
+    form,
+    actionLabel: 'Passwort setzen',
+    fieldErrorsByCode: {
+      invalid_credentials: {
+        username: 'Benutzername oder Code ungültig.',
+        onetimePassword: 'Benutzername oder Code ungültig.',
+      },
+      already_has_password: {
+        password: 'Dieses Konto hat bereits ein Passwort festgelegt.',
+      },
+    },
+  })
 
-    try {
+  const onSubmit = async (data: FormData) => {
+    await run(async () => {
       await props.backend.setPassword(
         data.username,
         data.password,
         data.onetimePassword,
       )
       await navigate('/login')
-    } catch (error: unknown) {
-      console.error(error)
-
-      if (
-        error instanceof BackendError &&
-        error.code === 'invalid_credentials'
-      ) {
-        form.setError('username', {
-          type: 'manual',
-          message: 'Benutzername oder Code ungültig.',
-        })
-        form.setError('onetimePassword', {
-          type: 'manual',
-          message: 'Benutzername oder Code ungültig.',
-        })
-      } else if (
-        error instanceof BackendError &&
-        error.code === 'already_has_password'
-      ) {
-        form.setError('password', {
-          type: 'manual',
-          message: 'Dieses Konto hat bereits ein Passwort festgelegt.',
-        })
-      } else {
-        toast.error(
-          getActionErrorMessage({ actionLabel: 'Passwort setzen', error }),
-        )
-      }
-    }
-
-    setLoading(false)
+    })
   }
 
   return (

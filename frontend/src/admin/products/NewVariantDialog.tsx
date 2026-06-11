@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { type ReactNode, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { NameField, PriceField } from '@/components/common/FormFields'
@@ -18,7 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import { type Variante, VarianteStatus } from './Produkt'
 import { CreateVarianteSchema, type ProduktBackend } from './ProduktBackend'
@@ -35,7 +34,6 @@ interface NewVariantDialogProps {
 
 export function NewVariantDialog(props: NewVariantDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: {
       name: '',
@@ -45,10 +43,16 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
     mode: 'onTouched',
   })
 
-  const onSubmit = async (data: FormData) => {
-    setLoading(true)
+  const { loading, run } = useFormActionSubmit({
+    form,
+    actionLabel: 'Variante anlegen',
+    byCode: {
+      variante_already_exists: 'Dieser Name ist bereits vergeben.',
+    },
+  })
 
-    try {
+  const onSubmit = async (data: FormData) => {
+    await run(async () => {
       const id = await props.backend.createVariante({
         produktId: props.productId,
         ...data,
@@ -62,14 +66,7 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
-    } catch (error: unknown) {
-      console.error(error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Variante anlegen', error }),
-      )
-    }
-
-    setLoading(false)
+    })
   }
 
   return (

@@ -9,7 +9,6 @@ import {
   Wine,
 } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import {
   AlertDialog,
@@ -35,7 +34,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import { NewVariantDialog } from './NewVariantDialog'
 import {
@@ -68,20 +67,30 @@ interface ProductItemProps {
 
 export function ProductItem(props: ProductItemProps) {
   const [expanded, setExpanded] = useState(false)
-  const [variantLoading, setVariantLoading] = useState(false)
-  const [deleteLoading, setDeleteLoading] = useState(false)
+
+  const { loading: deleteLoading, run: runDeleteProduct } = useActionSubmit({
+    actionLabel: 'Produkt löschen',
+  })
+  const { loading: activateVariantLoading, run: runActivateVariant } =
+    useActionSubmit({
+      actionLabel: 'Variante aktivieren',
+    })
+  const { loading: deactivateVariantLoading, run: runDeactivateVariant } =
+    useActionSubmit({
+      actionLabel: 'Variante deaktivieren',
+    })
+  const { loading: deleteVariantLoading, run: runDeleteVariant } =
+    useActionSubmit({
+      actionLabel: 'Variante löschen',
+    })
+
+  const variantLoading =
+    activateVariantLoading || deactivateVariantLoading || deleteVariantLoading
 
   const handleDelete = async () => {
-    setDeleteLoading(true)
-    try {
+    await runDeleteProduct(async () => {
       await props.onDelete(props.product.id)
-    } catch (error) {
-      console.error('Error deleting product:', error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Produkt löschen', error }),
-      )
-    }
-    setDeleteLoading(false)
+    })
   }
 
   const activeVariantsCount = props.product.varianten.filter(
@@ -89,45 +98,24 @@ export function ProductItem(props: ProductItemProps) {
   ).length
 
   const handleActivateVariant = async (variantId: number) => {
-    setVariantLoading(true)
-    try {
+    await runActivateVariant(async () => {
       await props.backend.aktiviereVariante(variantId)
       props.onVariantStatusChange(variantId, VarianteStatus.ACTIVE)
-    } catch (error) {
-      console.error('Error activating variant:', error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Variante aktivieren', error }),
-      )
-    }
-    setVariantLoading(false)
+    })
   }
 
   const handleDeactivateVariant = async (variantId: number) => {
-    setVariantLoading(true)
-    try {
+    await runDeactivateVariant(async () => {
       await props.backend.deaktiviereVariante(variantId)
       props.onVariantStatusChange(variantId, VarianteStatus.INACTIVE)
-    } catch (error) {
-      console.error('Error deactivating variant:', error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Variante deaktivieren', error }),
-      )
-    }
-    setVariantLoading(false)
+    })
   }
 
   const handleDeleteVariant = async (variantId: number) => {
-    setVariantLoading(true)
-    try {
+    await runDeleteVariant(async () => {
       await props.backend.deleteVariante(props.product.id, variantId)
       props.onVariantDeleted(variantId)
-    } catch (error) {
-      console.error('Error deleting variant:', error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Variante löschen', error }),
-      )
-    }
-    setVariantLoading(false)
+    })
   }
 
   return (

@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import {
@@ -21,7 +20,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import { defaultSteuersatzByKategorie, type Produkt } from './Produkt'
 import { ProduktBackend, UpdateProduktSchema } from './ProduktBackend'
@@ -38,7 +37,6 @@ interface EditProductDialogProps {
 }
 
 export function EditProductDialog(props: EditProductDialogProps) {
-  const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: {
       name: props.product.name,
@@ -60,6 +58,14 @@ export function EditProductDialog(props: EditProductDialogProps) {
     }
   }, [form, kategorie])
 
+  const { loading, run } = useFormActionSubmit({
+    form,
+    actionLabel: 'Produkt speichern',
+    byCode: {
+      produkt_already_exists: 'Dieser Name ist bereits vergeben.',
+    },
+  })
+
   const onOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
       form.reset()
@@ -68,9 +74,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
   }
 
   const onSubmit = async (data: FormData) => {
-    setLoading(true)
-
-    try {
+    await run(async () => {
       await props.backend.updateProdukt({
         id: props.product.id,
         ...data,
@@ -78,14 +82,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
       form.reset()
       props.updated({ ...props.product, ...data })
       props.close()
-    } catch (error: unknown) {
-      console.error(error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Produkt speichern', error }),
-      )
-    }
-
-    setLoading(false)
+    })
   }
 
   return (

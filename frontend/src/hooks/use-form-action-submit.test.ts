@@ -94,6 +94,62 @@ describe('useFormActionSubmit', () => {
     )
   })
 
+  it('sets field errors based on fieldErrorsByCode without showing toast', async () => {
+    const form = createFormMock()
+    const { result } = renderHook(() =>
+      useFormActionSubmit({
+        form,
+        actionLabel: 'Passwort setzen',
+        fieldErrorsByCode: {
+          invalid_credentials: {
+            username: 'Benutzername oder Code ungültig.',
+            onetimePassword: 'Benutzername oder Code ungültig.',
+          },
+        },
+      }),
+    )
+
+    await act(async () => {
+      await result.current.run(() =>
+        Promise.reject(new BackendError(401, 'invalid_credentials')),
+      )
+    })
+
+    expect(form.setError).toHaveBeenCalledTimes(2)
+    expect(form.setError).toHaveBeenNthCalledWith(1, 'username', {
+      message: 'Benutzername oder Code ungültig.',
+    })
+    expect(form.setError).toHaveBeenNthCalledWith(2, 'onetimePassword', {
+      message: 'Benutzername oder Code ungültig.',
+    })
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  it('sets inline name error for *_already_exists using byCode without showing toast', async () => {
+    const form = createFormMock()
+    const { result } = renderHook(() =>
+      useFormActionSubmit({
+        form,
+        actionLabel: 'Produkt anlegen',
+        byCode: {
+          produkt_already_exists: 'Dieser Name ist bereits vergeben.',
+        },
+      }),
+    )
+
+    await act(async () => {
+      await result.current.run(() =>
+        Promise.reject(new BackendError(409, 'produkt_already_exists')),
+      )
+    })
+
+    expect(form.setError).toHaveBeenCalledTimes(1)
+    expect(form.setError).toHaveBeenCalledWith('name', {
+      message: 'Dieser Name ist bereits vergeben.',
+    })
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
   it('calls onSuccess on successful execution without setting errors or showing toast', async () => {
     const form = createFormMock()
     const onSuccess = vi.fn()

@@ -163,8 +163,8 @@ Keine neuen Tests: die Logik ist durch Phase 1 (errorMessages) und Phase 2 (Hook
 
 ### Acceptance criteria
 
-- [ ] Keine Komponente in `frontend/src/admin/` oder `frontend/src/service/` enthält noch manuelles `try/catch + toast.error()` (außer `Auth.ts`)
-- [ ] Formulare mit `validation_error`-Fehlern zeigen inline Feldfehler statt Toast
-- [ ] `tisch_already_exists`, `produkt_already_exists`, `username_already_exists` erscheinen am `name`-Feld der jeweiligen Dialoge
-- [ ] `betreiber_nicht_konfiguriert` (bei Kassensitzung eröffnen) zeigt die handlungsorientierte Message aus `commonErrorMessages`
-- [ ] `make check` läuft ohne Fehler (lint + unit tests)
+- [x] Keine Komponente in `frontend/src/admin/` oder `frontend/src/service/` enthält noch manuelles `try/catch + toast.error()` (außer `Auth.ts`)
+- [x] Formulare mit `validation_error`-Fehlern zeigen inline Feldfehler statt Toast
+- [x] `tisch_already_exists`, `produkt_already_exists`, `username_already_exists` erscheinen am `name`-Feld der jeweiligen Dialoge
+- [x] `betreiber_nicht_konfiguriert` (bei Kassensitzung eröffnen) zeigt die handlungsorientierte Message aus `commonErrorMessages`
+- [x] `make check` läuft ohne Fehler (lint + unit tests)

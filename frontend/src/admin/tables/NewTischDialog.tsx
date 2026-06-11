@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { NameField } from '@/components/common/FormFields'
@@ -19,8 +18,7 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { BackendError } from '@/lib/Backend'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import type { Tisch } from './Tisch'
 import { CreateTischSchema, TischBackend } from './TischBackend'
@@ -35,17 +33,22 @@ interface NewTischDialogProps {
 
 export function NewTischDialog(props: NewTischDialogProps) {
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     defaultValues: { name: '' },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
 
-  const onSubmit = async (data: FormData) => {
-    setLoading(true)
+  const { loading, run } = useFormActionSubmit({
+    form,
+    actionLabel: 'Tisch anlegen',
+    byCode: {
+      tisch_already_exists: 'Dieser Name ist bereits vergeben.',
+    },
+  })
 
-    try {
+  const onSubmit = async (data: FormData) => {
+    await run(async () => {
       const id = await props.backend.createTisch(data)
       form.reset()
       setOpen(false)
@@ -56,25 +59,7 @@ export function NewTischDialog(props: NewTischDialogProps) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
-    } catch (error: unknown) {
-      console.error(error)
-
-      if (
-        error instanceof BackendError &&
-        error.code === 'tisch_already_exists'
-      ) {
-        form.setError('name', {
-          type: 'custom',
-          message: 'Dieser Name ist bereits vergeben.',
-        })
-      } else {
-        toast.error(
-          getActionErrorMessage({ actionLabel: 'Tisch anlegen', error }),
-        )
-      }
-    }
-
-    setLoading(false)
+    })
   }
 
   return (

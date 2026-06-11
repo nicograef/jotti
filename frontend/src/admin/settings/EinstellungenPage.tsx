@@ -12,13 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 import {
   type Betreiber,
   type BondruckEinstellungen,
   type TSEKonfigurationSpeichern,
   type TSEVerbindungStatus,
 } from '@/lib/EinstellungenBackend'
-import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import {
   useBetreiber,
@@ -100,7 +100,9 @@ function BetreiberForm({
   onSave: (b: Betreiber) => Promise<void>
 }) {
   const [form, setForm] = useState<Betreiber>(initial)
-  const [saving, setSaving] = useState(false)
+  const { loading: saving, run } = useActionSubmit({
+    actionLabel: 'Betreiber-Stammdaten speichern',
+  })
 
   const handleChange =
     (field: keyof Betreiber) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,20 +117,10 @@ function BetreiberForm({
     }
 
   const handleSave = async () => {
-    setSaving(true)
-    try {
+    await run(async () => {
       await onSave(form)
       toast.success('Betreiber-Stammdaten gespeichert.')
-    } catch (error) {
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'Betreiber-Stammdaten speichern',
-          error,
-        }),
-      )
-    } finally {
-      setSaving(false)
-    }
+    })
   }
 
   return (
@@ -236,15 +228,31 @@ function TSEKonfigurationForm({
   onTestConnection: () => Promise<TSEVerbindungStatus>
 }) {
   const [form, setForm] = useState<TSEKonfigurationSpeichern>(initial)
-  const [saving, setSaving] = useState(false)
-  const [clearing, setClearing] = useState(false)
-  const [testing, setTesting] = useState(false)
   const [verbindungStatus, setVerbindungStatus] =
     useState<TSEVerbindungStatus | null>(null)
 
+  const { loading: saving, run: runSave } = useActionSubmit({
+    actionLabel: 'TSE-Konfiguration speichern',
+    byCode: {
+      validation_error:
+        'Bitte alle vier Felder ausfüllen und auf gültige Länge prüfen.',
+    },
+  })
+  const { loading: clearing, run: runClear } = useActionSubmit({
+    actionLabel: 'TSE-Konfiguration leeren',
+  })
+  const { loading: testing, run: runTestConnection } = useActionSubmit({
+    actionLabel: 'TSE-Verbindung testen',
+    byCode: {
+      tse_nicht_konfiguriert:
+        'Bitte zuerst eine vollständige TSE-Konfiguration speichern.',
+      tse_verbindung_fehlgeschlagen:
+        'Verbindung zur TSE fehlgeschlagen. Bitte Zugangsdaten und TSS prüfen.',
+    },
+  })
+
   const handleSave = async () => {
-    setSaving(true)
-    try {
+    await runSave(async () => {
       await onSave(form)
       setForm((prev) => ({
         ...prev,
@@ -253,63 +261,24 @@ function TSEKonfigurationForm({
       }))
       setVerbindungStatus(null)
       toast.success('TSE-Konfiguration gespeichert.')
-    } catch (error) {
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'TSE-Konfiguration speichern',
-          error,
-          byCode: {
-            validation_error:
-              'Bitte alle vier Felder ausfüllen und auf gültige Länge prüfen.',
-          },
-        }),
-      )
-    } finally {
-      setSaving(false)
-    }
+    })
   }
 
   const handleClear = async () => {
-    setClearing(true)
-    try {
+    await runClear(async () => {
       await onClear()
       setForm(emptyTSEKonfiguration)
       setVerbindungStatus(null)
       toast.success('TSE-Konfiguration geleert.')
-    } catch (error) {
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'TSE-Konfiguration leeren',
-          error,
-        }),
-      )
-    } finally {
-      setClearing(false)
-    }
+    })
   }
 
   const handleTestConnection = async () => {
-    setTesting(true)
-    try {
+    await runTestConnection(async () => {
       const status = await onTestConnection()
       setVerbindungStatus(status)
       toast.success('TSE-Verbindung erfolgreich getestet.')
-    } catch (error) {
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'TSE-Verbindung testen',
-          error,
-          byCode: {
-            tse_nicht_konfiguriert:
-              'Bitte zuerst eine vollständige TSE-Konfiguration speichern.',
-            tse_verbindung_fehlgeschlagen:
-              'Verbindung zur TSE fehlgeschlagen. Bitte Zugangsdaten und TSS prüfen.',
-          },
-        }),
-      )
-    } finally {
-      setTesting(false)
-    }
+    })
   }
 
   return (
@@ -421,26 +390,18 @@ function BondruckEinstellungenForm({
   onSave: (b: BondruckEinstellungen) => Promise<void>
 }) {
   const [form, setForm] = useState<BondruckEinstellungen>(initial)
-  const [saving, setSaving] = useState(false)
+  const { loading: saving, run } = useActionSubmit({
+    actionLabel: 'Bondruck-Einstellungen speichern',
+    byCode: {
+      validation_error: 'Bitte eine gültige IPv4-Adresse eingeben.',
+    },
+  })
 
   const handleSave = async () => {
-    setSaving(true)
-    try {
+    await run(async () => {
       await onSave(form)
       toast.success('Bondruck-Einstellungen gespeichert.')
-    } catch (error) {
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'Bondruck-Einstellungen speichern',
-          error,
-          byCode: {
-            validation_error: 'Bitte eine gültige IPv4-Adresse eingeben.',
-          },
-        }),
-      )
-    } finally {
-      setSaving(false)
-    }
+    })
   }
 
   return (

@@ -11,11 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 import {
   type Bonmodus,
   type DruckstationConfig,
 } from '@/lib/DruckstationBackend'
-import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { useDruckstationen } from './hooks'
 
@@ -34,25 +34,17 @@ function DruckstationRow({
 }) {
   const [druckerIp, setDruckerIp] = useState(config.druckerIp)
   const [bonmodus, setBonmodus] = useState<Bonmodus>(config.bonmodus)
-  const [saving, setSaving] = useState(false)
+  const { loading: saving, run } = useActionSubmit({
+    actionLabel: 'Druckstation speichern',
+  })
 
   const handleSave = async () => {
-    setSaving(true)
-    try {
+    await run(async () => {
       await onUpdate({ kategorie: config.kategorie, druckerIp, bonmodus })
       toast.success(
-        `Druckstation für „${KATEGORIE_LABELS[config.kategorie]}" gespeichert.`,
+        `Druckstation für „${KATEGORIE_LABELS[config.kategorie]}“ gespeichert.`,
       )
-    } catch (error) {
-      toast.error(
-        getActionErrorMessage({
-          actionLabel: 'Druckstation speichern',
-          error,
-        }),
-      )
-    } finally {
-      setSaving(false)
-    }
+    })
   }
 
   return (

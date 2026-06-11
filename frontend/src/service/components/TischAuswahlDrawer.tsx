@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { toast } from 'sonner'
 
 import {
   Drawer,
@@ -10,8 +9,8 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 import { BackendSingleton } from '@/lib/Backend'
-import { getActionErrorMessage } from '@/lib/errorMessages'
 import { formatCents } from '@/lib/utils'
 
 import {
@@ -36,6 +35,9 @@ export function TischAuswahlDrawer({
   const queryClient = useQueryClient()
   const [suche, setSuche] = useState('')
   const { tische } = useAktiveTischeMitFavoriten()
+  const { loading: favoritLoading, run: runToggleFavorit } = useActionSubmit({
+    actionLabel: 'Favorit ändern',
+  })
 
   const gefilterteTische = tische.filter((t) =>
     t.name.toLowerCase().includes(suche.toLowerCase()),
@@ -50,10 +52,6 @@ export function TischAuswahlDrawer({
       queryClient.invalidateQueries({
         queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
       }),
-    onError: (error) =>
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Favorit ändern', error }),
-      ),
   })
 
   const handleTischClick = (tisch: AktiverTischMitFavorit) => {
@@ -85,9 +83,11 @@ export function TischAuswahlDrawer({
               <button
                 type="button"
                 className="text-xl leading-none shrink-0 w-7 text-center"
-                disabled={favoritMutation.isPending}
+                disabled={favoritMutation.isPending || favoritLoading}
                 onClick={() => {
-                  favoritMutation.mutate(tisch)
+                  void runToggleFavorit(async () => {
+                    await favoritMutation.mutateAsync(tisch)
+                  })
                 }}
                 aria-label={
                   tisch.istFavorit
