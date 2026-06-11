@@ -8,6 +8,10 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
+// MaxDruckversuche ist die Anzahl gemeldeter Fehlversuche, nach der ein
+// Druckauftrag als fehlgeschlagen markiert und nicht mehr ausgeliefert wird.
+const MaxDruckversuche = 3
+
 type NeuerDruckauftrag struct {
 	ZielIP   string
 	Payload  string
@@ -19,6 +23,12 @@ type OffenerDruckauftrag struct {
 	ID      int
 	ZielIP  string
 	Payload string
+}
+
+// Fehlversuch meldet einen fehlgeschlagenen Zustellversuch eines Druckauftrags.
+type Fehlversuch struct {
+	ID     int
+	Fehler string
 }
 
 type Repository struct {
@@ -90,8 +100,13 @@ func (r Repository) GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruck
 	return result, nil
 }
 
-func (r Repository) QuittiereGedruckteAuftraege(ctx context.Context, ids []int) error {
-	if len(ids) == 0 {
+// MeldeDruckergebnis verarbeitet das Ergebnis eines Relay-Zyklus in einer
+// Transaktion: Erfolge werden quittiert (offen -> gedruckt), Fehlversuche
+// hochgezaehlt. Beim MaxDruckversuche-ten Fehlversuch wechselt der Auftrag auf
+// fehlgeschlagen und wird nicht mehr ausgeliefert. Das Quittieren bleibt
+// idempotent (Status-Guard 'offen'): eine doppelt gemeldete ID aendert nichts.
+func (r Repository) MeldeDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
+	if len(gedruckteIDs) == 0 && len(fehlversuche) == 0 {
 		return nil
 	}
 
@@ -102,8 +117,17 @@ func (r Repository) QuittiereGedruckteAuftraege(ctx context.Context, ids []int) 
 	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
 
 	qtx := r.q.WithTx(tx)
-	for _, id := range ids {
-		err := qtx.MarkDruckauftragGedruckt(ctx, int32(id))
+	for _, id := range gedruckteIDs {
+		if err := qtx.MarkDruckauftragGedruckt(ctx, int32(id)); err != nil {
+			return db.Error(err)
+		}
+	}
+	for _, f := range fehlversuche {
+		err := qtx.IncrementDruckauftragFehlversuch(ctx, dbgen.IncrementDruckauftragFehlversuchParams{
+			ID:            int32(f.ID),
+			LetzterFehler: sql.NullString{String: f.Fehler, Valid: true},
+			MaxVersuche:   MaxDruckversuche,
+		})
 		if err != nil {
 			return db.Error(err)
 		}

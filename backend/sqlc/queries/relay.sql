@@ -13,3 +13,10 @@ LIMIT 200;
 UPDATE druckauftraege
 SET status = 'gedruckt', gedruckt_am = NOW()
 WHERE id = $1 AND status = 'offen';
+
+-- name: IncrementDruckauftragFehlversuch :exec
+UPDATE druckauftraege
+SET versuche = versuche + 1,
+    letzter_fehler = sqlc.arg(letzter_fehler),
+    status = CASE WHEN versuche + 1 >= sqlc.arg(max_versuche) THEN 'fehlgeschlagen' ELSE status END
+WHERE id = sqlc.arg(id) AND status = 'offen';

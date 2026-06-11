@@ -37,7 +37,7 @@ type druckAuftragDTO struct {
 	Payload string `json:"payload"`
 }
 
-type quittierenRequest struct {
+type ergebnisRequest struct {
 	Token        string `json:"token"`
 	GedruckteIDs []int  `json:"gedruckteIds"`
 }
@@ -265,15 +265,15 @@ func pollRelay(t *testing.T, serverURL string, relayToken string) *http.Response
 	return postJSON(t, serverURL+"/relay/poll", pollRequest{Token: relayToken}, "")
 }
 
-func quittiereRelay(t *testing.T, serverURL string, relayToken string, ids []int) *http.Response {
+func meldeErgebnis(t *testing.T, serverURL string, relayToken string, ids []int) *http.Response {
 	t.Helper()
-	return postJSON(t, serverURL+"/relay/quittieren", quittierenRequest{
+	return postJSON(t, serverURL+"/relay/ergebnis", ergebnisRequest{
 		Token:        relayToken,
 		GedruckteIDs: ids,
 	}, "")
 }
 
-func TestRelayPollQuittierenFlow(t *testing.T) {
+func TestRelayPollErgebnisFlow(t *testing.T) {
 	env := setupTestEnv(t)
 
 	resetDruckstationen(t, env.server.URL, env.adminToken)
@@ -305,10 +305,10 @@ func TestRelayPollQuittierenFlow(t *testing.T) {
 		ids = append(ids, auftrag.ID)
 	}
 
-	resp = quittiereRelay(t, env.server.URL, testRelayToken, ids)
+	resp = meldeErgebnis(t, env.server.URL, testRelayToken, ids)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("Expected quittieren status 200, got %d", resp.StatusCode)
+		t.Fatalf("Expected ergebnis status 200, got %d", resp.StatusCode)
 	}
 
 	resp = pollRelay(t, env.server.URL, testRelayToken)
@@ -317,7 +317,7 @@ func TestRelayPollQuittierenFlow(t *testing.T) {
 	}
 	after := decodePollResponse(t, resp)
 	if len(after.Auftraege) != 0 {
-		t.Fatalf("Expected no offene Auftraege after quittieren, got %d", len(after.Auftraege))
+		t.Fatalf("Expected no offene Auftraege after ergebnis, got %d", len(after.Auftraege))
 	}
 }
 

@@ -249,21 +249,25 @@ INSERT INTO druckstationen (kategorie, drucker_ip, bonmodus, updated_at) VALUES
 -- Table: druckauftraege (technical outbox queue for print jobs)
 -- ============================================================
 CREATE TABLE druckauftraege (
-    id          SERIAL PRIMARY KEY,
-    ziel_ip     VARCHAR(50) NOT NULL,
-    payload     TEXT NOT NULL,
-    status      TEXT NOT NULL CHECK (status IN ('offen', 'gedruckt')),
-    bon_art     TEXT NOT NULL CHECK (bon_art IN ('arbeitsbon', 'kassenbeleg')),
-    referenz    TEXT NOT NULL,
-    erstellt_am TIMESTAMPTZ NOT NULL,
-    gedruckt_am TIMESTAMPTZ NULL
+    id             SERIAL PRIMARY KEY,
+    ziel_ip        VARCHAR(50) NOT NULL,
+    payload        TEXT NOT NULL,
+    status         TEXT NOT NULL CHECK (status IN ('offen', 'gedruckt', 'fehlgeschlagen', 'verworfen')),
+    bon_art        TEXT NOT NULL CHECK (bon_art IN ('arbeitsbon', 'kassenbeleg')),
+    referenz       TEXT NOT NULL,
+    versuche       INT NOT NULL DEFAULT 0,
+    letzter_fehler TEXT NULL,
+    erstellt_am    TIMESTAMPTZ NOT NULL,
+    gedruckt_am    TIMESTAMPTZ NULL
 );
 
 CREATE INDEX idx_druckauftraege_status_id ON druckauftraege(status, id);
 
 COMMENT ON TABLE druckauftraege IS 'Technische Outbox-Warteschlange fuer Druckjobs (Arbeitsbon und Kassenbeleg).';
 COMMENT ON COLUMN druckauftraege.payload IS 'Base64-kodierter ESC/POS-Byte-String.';
-COMMENT ON COLUMN druckauftraege.status IS 'Druckstatus: offen -> gedruckt.';
+COMMENT ON COLUMN druckauftraege.status IS 'Druckstatus: offen -> gedruckt | fehlgeschlagen (nach 3 Fehlversuchen) -> verworfen oder zurueck auf offen.';
+COMMENT ON COLUMN druckauftraege.versuche IS 'Anzahl gemeldeter Fehlversuche; ab 3 wird der Auftrag fehlgeschlagen.';
+COMMENT ON COLUMN druckauftraege.letzter_fehler IS 'Fehlertext des letzten Fehlversuchs (NULL solange kein Fehler gemeldet wurde).';
 COMMENT ON COLUMN druckauftraege.referenz IS 'Fachliche Referenz (z. B. Event- oder Zahlung-ID) fuer Nachvollziehbarkeit.';
 
 -- ============================================================

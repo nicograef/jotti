@@ -137,8 +137,8 @@ func main() {
 			}
 
 			if len(gedruckteIDs) > 0 {
-				if err := quittieren(client, gedruckteIDs, config); err != nil {
-					log.Printf("Quittieren fehlgeschlagen (%d Auftraege): %v", len(gedruckteIDs), err)
+				if err := meldeErgebnis(client, gedruckteIDs, config); err != nil {
+					log.Printf("Ergebnis-Meldung fehlgeschlagen (%d Auftraege): %v", len(gedruckteIDs), err)
 				} else {
 					log.Printf("%d Auftraege quittiert", len(gedruckteIDs))
 				}
@@ -199,12 +199,16 @@ func poll(client *http.Client, config RelayConfig) ([]DruckAuftrag, error) {
 	return result.Auftraege, nil
 }
 
-func quittieren(client *http.Client, ids []int, config RelayConfig) error {
+// meldeErgebnis meldet das Ergebnis eines Poll-Zyklus an das Backend. In dieser
+// Ausbaustufe meldet das Relay nur Erfolge; Fehlversuche kommen mit dem
+// Zyklus-Umbau (Phase 5) hinzu. Das Backend besitzt die Fehlversuchs-Logik.
+func meldeErgebnis(client *http.Client, gedruckteIDs []int, config RelayConfig) error {
 	reqBody, _ := json.Marshal(map[string]any{
 		"token":        config.Token,
-		"gedruckteIds": ids,
+		"gedruckteIds": gedruckteIDs,
+		"fehlversuche": []any{},
 	})
-	resp, err := client.Post(config.BackendURL+"/relay/quittieren", "application/json", bytes.NewReader(reqBody))
+	resp, err := client.Post(config.BackendURL+"/relay/ergebnis", "application/json", bytes.NewReader(reqBody))
 	if err != nil {
 		return err
 	}

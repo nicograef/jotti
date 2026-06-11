@@ -10,32 +10,28 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	relayApp "github.com/nicograef/jotti/backend/api/relay/application"
 )
 
-type mockQueryRepo struct {
-	offene []relayApp.DruckAuftrag
-	err    error
+type mockRepo struct {
+	offene       []OffenerDruckauftrag
+	gedruckteIDs []int
+	fehlversuche []Fehlversuch
+	err          error
 }
 
-func (m *mockQueryRepo) GetOffeneDruckauftraege(_ context.Context) ([]relayApp.DruckAuftrag, error) {
+func (m *mockRepo) GetOffeneDruckauftraege(_ context.Context) ([]OffenerDruckauftrag, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	return m.offene, nil
 }
 
-type mockCommandRepo struct {
-	lastIDs []int
-	err     error
-}
-
-func (m *mockCommandRepo) QuittiereGedruckteAuftraege(_ context.Context, ids []int) error {
+func (m *mockRepo) MeldeDruckergebnis(_ context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
 	if m.err != nil {
 		return m.err
 	}
-	m.lastIDs = append([]int(nil), ids...)
+	m.gedruckteIDs = append(m.gedruckteIDs, gedruckteIDs...)
+	m.fehlversuche = append(m.fehlversuche, fehlversuche...)
 	return nil
 }
 
@@ -51,20 +47,11 @@ type pollResponseBody struct {
 	} `json:"auftraege"`
 }
 
-func makeHandler(relayToken string, offene []relayApp.DruckAuftrag, cmdErr error) (*Handler, *mockCommandRepo) {
-	cmdRepo := &mockCommandRepo{err: cmdErr}
-
-	h := &Handler{
+func makeHandler(relayToken string, repo *mockRepo) *Handler {
+	return &Handler{
 		RelayToken: relayToken,
-		Query: relayApp.Query{
-			DruckauftragRepo: &mockQueryRepo{offene: offene},
-		},
-		Command: relayApp.Command{
-			DruckauftragRepo: cmdRepo,
-		},
+		Repo:       repo,
 	}
-
-	return h, cmdRepo
 }
 
 func performJSONRequest(t *testing.T, handler http.HandlerFunc, body any) *httptest.ResponseRecorder {
@@ -83,7 +70,7 @@ func performJSONRequest(t *testing.T, handler http.HandlerFunc, body any) *httpt
 }
 
 func TestPollHandler_AcceptsMatchingToken(t *testing.T) {
-	h, _ := makeHandler("relay-secret", []relayApp.DruckAuftrag{{ID: 7, ZielIP: "192.168.1.20", Payload: "AAA="}}, nil)
+	h := makeHandler("relay-secret", &mockRepo{offene: []OffenerDruckauftrag{{ID: 7, ZielIP: "192.168.1.20", Payload: "AAA="}}})
 
 	rr := performJSONRequest(t, h.PollHandler(), map[string]any{"token": "relay-secret"})
 	if rr.Code != http.StatusOK {
@@ -103,7 +90,7 @@ func TestPollHandler_AcceptsMatchingToken(t *testing.T) {
 }
 
 func TestPollHandler_RejectsEmptyAndWrongToken(t *testing.T) {
-	h, _ := makeHandler("relay-secret", nil, nil)
+	h := makeHandler("relay-secret", &mockRepo{})
 
 	for _, token := range []string{"", "wrong-token"} {
 		rr := performJSONRequest(t, h.PollHandler(), map[string]any{"token": token})
@@ -122,7 +109,7 @@ func TestPollHandler_RejectsEmptyAndWrongToken(t *testing.T) {
 }
 
 func TestPollHandler_RejectsWhenConfiguredTokenIsEmpty(t *testing.T) {
-	h, _ := makeHandler("", nil, nil)
+	h := makeHandler("", &mockRepo{})
 
 	rr := performJSONRequest(t, h.PollHandler(), map[string]any{"token": ""})
 	if rr.Code != http.StatusBadRequest {
@@ -138,28 +125,37 @@ func TestPollHandler_RejectsWhenConfiguredTokenIsEmpty(t *testing.T) {
 	}
 }
 
-func TestQuittierenHandler_AcceptsMatchingToken(t *testing.T) {
-	h, cmdRepo := makeHandler("relay-secret", nil, nil)
+func TestErgebnisHandler_AcceptsMatchingToken(t *testing.T) {
+	repo := &mockRepo{}
+	h := makeHandler("relay-secret", repo)
 
-	rr := performJSONRequest(t, h.QuittierenHandler(), map[string]any{"token": "relay-secret", "gedruckteIds": []int{4, 5}})
+	rr := performJSONRequest(t, h.ErgebnisHandler(), map[string]any{
+		"token":        "relay-secret",
+		"gedruckteIds": []int{4, 5},
+		"fehlversuche": []map[string]any{{"id": 9, "fehler": "drucker nicht erreichbar"}},
+	})
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", rr.Code)
 	}
-	if len(cmdRepo.lastIDs) != 2 || cmdRepo.lastIDs[0] != 4 || cmdRepo.lastIDs[1] != 5 {
-		t.Fatalf("expected ids [4 5], got %v", cmdRepo.lastIDs)
+	if len(repo.gedruckteIDs) != 2 || repo.gedruckteIDs[0] != 4 || repo.gedruckteIDs[1] != 5 {
+		t.Fatalf("expected gedruckte ids [4 5], got %v", repo.gedruckteIDs)
+	}
+	if len(repo.fehlversuche) != 1 || repo.fehlversuche[0].ID != 9 || repo.fehlversuche[0].Fehler != "drucker nicht erreichbar" {
+		t.Fatalf("expected one fehlversuch for id 9, got %v", repo.fehlversuche)
 	}
 }
 
-func TestQuittierenHandler_RejectsEmptyAndWrongToken(t *testing.T) {
-	h, cmdRepo := makeHandler("relay-secret", nil, errors.New("should not be called"))
+func TestErgebnisHandler_RejectsEmptyAndWrongToken(t *testing.T) {
+	repo := &mockRepo{err: errors.New("should not be called")}
+	h := makeHandler("relay-secret", repo)
 
 	for _, token := range []string{"", "wrong-token"} {
-		rr := performJSONRequest(t, h.QuittierenHandler(), map[string]any{"token": token, "gedruckteIds": []int{1}})
+		rr := performJSONRequest(t, h.ErgebnisHandler(), map[string]any{"token": token, "gedruckteIds": []int{1}})
 		if rr.Code != http.StatusBadRequest {
 			t.Fatalf("token %q: expected status 400, got %d", token, rr.Code)
 		}
 	}
-	if len(cmdRepo.lastIDs) != 0 {
-		t.Fatalf("expected command repo not called, got ids %v", cmdRepo.lastIDs)
+	if len(repo.gedruckteIDs) != 0 {
+		t.Fatalf("expected repo not called, got gedruckte ids %v", repo.gedruckteIDs)
 	}
 }

@@ -9,10 +9,11 @@ func NewMock(offene []OffenerDruckauftrag, err error) *mockRepo {
 }
 
 type mockRepo struct {
-	offene    []OffenerDruckauftrag
-	enqueued  []NeuerDruckauftrag
-	quittiert []int
-	err       error
+	offene       []OffenerDruckauftrag
+	enqueued     []NeuerDruckauftrag
+	gedruckt     []int
+	fehlversuche []Fehlversuch
+	err          error
 }
 
 func (m *mockRepo) EnqueueDruckauftraege(_ context.Context, auftraege []NeuerDruckauftrag) error {
@@ -27,11 +28,12 @@ func (m *mockRepo) GetOffeneDruckauftraege(_ context.Context) ([]OffenerDruckauf
 	return m.offene, m.err
 }
 
-func (m *mockRepo) QuittiereGedruckteAuftraege(_ context.Context, ids []int) error {
+func (m *mockRepo) MeldeDruckergebnis(_ context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
 	if m.err != nil {
 		return m.err
 	}
-	m.quittiert = append(m.quittiert, ids...)
+	m.gedruckt = append(m.gedruckt, gedruckteIDs...)
+	m.fehlversuche = append(m.fehlversuche, fehlversuche...)
 	return nil
 }
 

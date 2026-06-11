@@ -5,24 +5,25 @@ import (
 	"database/sql"
 	"net/http"
 
-	relayApp "github.com/nicograef/jotti/backend/api/relay/application"
 	relayHTTP "github.com/nicograef/jotti/backend/api/relay/http"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
+// druckauftragRepoRelayAdapter mappt die Repository-Typen auf die Typen der
+// Relay-HTTP-Schicht, damit diese das Repository nicht direkt importiert.
 type druckauftragRepoRelayAdapter struct {
 	repo druckauftrag_repo.Repository
 }
 
-func (a druckauftragRepoRelayAdapter) GetOffeneDruckauftraege(ctx context.Context) ([]relayApp.DruckAuftrag, error) {
+func (a druckauftragRepoRelayAdapter) GetOffeneDruckauftraege(ctx context.Context) ([]relayHTTP.OffenerDruckauftrag, error) {
 	rows, err := a.repo.GetOffeneDruckauftraege(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]relayApp.DruckAuftrag, 0, len(rows))
+	result := make([]relayHTTP.OffenerDruckauftrag, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, relayApp.DruckAuftrag{
+		result = append(result, relayHTTP.OffenerDruckauftrag{
 			ID:      row.ID,
 			ZielIP:  row.ZielIP,
 			Payload: row.Payload,
@@ -32,25 +33,25 @@ func (a druckauftragRepoRelayAdapter) GetOffeneDruckauftraege(ctx context.Contex
 	return result, nil
 }
 
-func (a druckauftragRepoRelayAdapter) QuittiereGedruckteAuftraege(ctx context.Context, ids []int) error {
-	return a.repo.QuittiereGedruckteAuftraege(ctx, ids)
+func (a druckauftragRepoRelayAdapter) MeldeDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []relayHTTP.Fehlversuch) error {
+	repoFehlversuche := make([]druckauftrag_repo.Fehlversuch, 0, len(fehlversuche))
+	for _, f := range fehlversuche {
+		repoFehlversuche = append(repoFehlversuche, druckauftrag_repo.Fehlversuch{ID: f.ID, Fehler: f.Fehler})
+	}
+
+	return a.repo.MeldeDruckergebnis(ctx, gedruckteIDs, repoFehlversuche)
 }
 
 func NewRelayApi(db *sql.DB, relayToken string) http.Handler {
 	r := http.NewServeMux()
 
-	druckauftragRepo := druckauftragRepoRelayAdapter{repo: druckauftrag_repo.NewRepository(db)}
-
 	handler := relayHTTP.Handler{
-		Query: relayApp.Query{
-			DruckauftragRepo: druckauftragRepo,
-		},
-		Command:    relayApp.Command{DruckauftragRepo: druckauftragRepo},
+		Repo:       druckauftragRepoRelayAdapter{repo: druckauftrag_repo.NewRepository(db)},
 		RelayToken: relayToken,
 	}
 
 	r.HandleFunc("/poll", handler.PollHandler())
-	r.HandleFunc("/quittieren", handler.QuittierenHandler())
+	r.HandleFunc("/ergebnis", handler.ErgebnisHandler())
 
 	return r
 }

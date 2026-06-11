@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 )
 
 const getOffeneDruckauftraege = `-- name: GetOffeneDruckauftraege :many
@@ -44,6 +45,25 @@ func (q *Queries) GetOffeneDruckauftraege(ctx context.Context) ([]GetOffeneDruck
 		return nil, err
 	}
 	return items, nil
+}
+
+const incrementDruckauftragFehlversuch = `-- name: IncrementDruckauftragFehlversuch :exec
+UPDATE druckauftraege
+SET versuche = versuche + 1,
+    letzter_fehler = $1,
+    status = CASE WHEN versuche + 1 >= $2 THEN 'fehlgeschlagen' ELSE status END
+WHERE id = $3 AND status = 'offen'
+`
+
+type IncrementDruckauftragFehlversuchParams struct {
+	LetzterFehler sql.NullString
+	MaxVersuche   int
+	ID            int32
+}
+
+func (q *Queries) IncrementDruckauftragFehlversuch(ctx context.Context, arg IncrementDruckauftragFehlversuchParams) error {
+	_, err := q.db.ExecContext(ctx, incrementDruckauftragFehlversuch, arg.LetzterFehler, arg.MaxVersuche, arg.ID)
+	return err
 }
 
 const insertDruckauftrag = `-- name: InsertDruckauftrag :exec
