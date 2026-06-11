@@ -16,7 +16,7 @@ func TestFakeClient_Success(t *testing.T) {
 		ConnectionResponse: VerbindungStatus{Umgebung: UmgebungTest, TSSState: "INITIALIZED"},
 	}
 
-	start, err := fake.StartTransaction(context.Background(), "kasse-1", "Kassenbeleg-V1", "Beleg^0.00")
+	start, err := fake.StartTransaction(context.Background(), "8e9e7b56-31a8-43e3-9b29-d92a2b78b561")
 	if err != nil {
 		t.Fatalf("expected no start error, got %v", err)
 	}
@@ -24,7 +24,7 @@ func TestFakeClient_Success(t *testing.T) {
 		t.Fatalf("expected transaction number 10, got %d", start.TransactionNumber)
 	}
 
-	finish, err := fake.FinishTransaction(context.Background(), "kasse-1", 10, "Kassenbeleg-V1", "Beleg^0.00")
+	finish, err := fake.FinishTransaction(context.Background(), "8e9e7b56-31a8-43e3-9b29-d92a2b78b561", "Kassenbeleg-V1", "Beleg^0.00")
 	if err != nil {
 		t.Fatalf("expected no finish error, got %v", err)
 	}
@@ -45,18 +45,14 @@ func TestFakeClient_ConfiguredErrors(t *testing.T) {
 	expectedErr := errors.New("boom")
 	fake := FakeClient{
 		StartErr:      expectedErr,
-		UpdateErr:     expectedErr,
 		FinishErr:     expectedErr,
 		ConnectionErr: expectedErr,
 	}
 
-	if _, err := fake.StartTransaction(context.Background(), "kasse-1", "Kassenbeleg-V1", ""); !errors.Is(err, expectedErr) {
+	if _, err := fake.StartTransaction(context.Background(), "8e9e7b56-31a8-43e3-9b29-d92a2b78b561"); !errors.Is(err, expectedErr) {
 		t.Fatalf("expected start error boom, got %v", err)
 	}
-	if err := fake.UpdateTransaction(context.Background(), "kasse-1", 1, ""); !errors.Is(err, expectedErr) {
-		t.Fatalf("expected update error boom, got %v", err)
-	}
-	if _, err := fake.FinishTransaction(context.Background(), "kasse-1", 1, "Kassenbeleg-V1", ""); !errors.Is(err, expectedErr) {
+	if _, err := fake.FinishTransaction(context.Background(), "8e9e7b56-31a8-43e3-9b29-d92a2b78b561", "Kassenbeleg-V1", ""); !errors.Is(err, expectedErr) {
 		t.Fatalf("expected finish error boom, got %v", err)
 	}
 	if _, err := fake.TestConnection(context.Background()); !errors.Is(err, expectedErr) {

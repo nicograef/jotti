@@ -24,8 +24,6 @@ const (
 	tokenExpiryLeeway    = 30 * time.Second
 )
 
-var ErrUpdateTransactionNichtUnterstuetzt = errors.New("update transaction is not supported in atomares muster")
-
 type apiError struct {
 	StatusCode int
 	Code       string
@@ -160,7 +158,7 @@ func NewFiskalyTSEClientSingleAttempt(baseURL string, credentials tse.Credential
 
 // StartTransaction sendet bewusst kein Schema: processType/processData muessen
 // laut DSFinV-K bei StartTransaction immer leer sein (Anhang I).
-func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string, _ string, _ string) (tse.StartResult, error) {
+func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string) (tse.StartResult, error) {
 	txID = strings.TrimSpace(txID)
 	if txID == "" {
 		return tse.StartResult{}, fmt.Errorf("tx id is required")
@@ -186,11 +184,7 @@ func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string, _ 
 	return mapStartResult(resp)
 }
 
-func (c *FiskalyTSEClient) UpdateTransaction(_ context.Context, _ string, _ int, _ string) error {
-	return ErrUpdateTransactionNichtUnterstuetzt
-}
-
-func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, _ int, processType string, processData string) (tse.FinishResult, error) {
+func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, processType string, processData string) (tse.FinishResult, error) {
 	txID = strings.TrimSpace(txID)
 	if txID == "" {
 		return tse.FinishResult{}, fmt.Errorf("tx id is required")

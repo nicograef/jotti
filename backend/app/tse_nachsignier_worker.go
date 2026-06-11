@@ -156,11 +156,11 @@ func (w tseNachsignierWorker) processAuftrag(ctx context.Context, client tseWork
 func (w tseNachsignierWorker) beschaffeSignatur(ctx context.Context, client tseWorkerClient, auftrag tse_repo.OffenerNachsignierAuftrag) (tse.FinishResult, time.Time, error) {
 	vorhanden, err := client.RetrieveTransaction(ctx, auftrag.TxID)
 	if errors.Is(err, tse.ErrTransactionNichtGefunden) {
-		startResult, err := client.StartTransaction(ctx, auftrag.TxID, auftrag.ProcessType, auftrag.ProcessData)
+		startResult, err := client.StartTransaction(ctx, auftrag.TxID)
 		if err != nil {
 			return tse.FinishResult{}, time.Time{}, err
 		}
-		finishResult, err := client.FinishTransaction(ctx, auftrag.TxID, startResult.TransactionNumber, auftrag.ProcessType, auftrag.ProcessData)
+		finishResult, err := client.FinishTransaction(ctx, auftrag.TxID, auftrag.ProcessType, auftrag.ProcessData)
 		if err != nil {
 			return tse.FinishResult{}, time.Time{}, err
 		}
@@ -174,7 +174,7 @@ func (w tseNachsignierWorker) beschaffeSignatur(ctx context.Context, client tseW
 	case tse.TransactionStateFinished:
 		return vorhanden.FinishResult, vorhanden.LogTimeStart, nil
 	case tse.TransactionStateActive:
-		finishResult, err := client.FinishTransaction(ctx, auftrag.TxID, vorhanden.TransactionNumber, auftrag.ProcessType, auftrag.ProcessData)
+		finishResult, err := client.FinishTransaction(ctx, auftrag.TxID, auftrag.ProcessType, auftrag.ProcessData)
 		if err != nil {
 			return tse.FinishResult{}, time.Time{}, err
 		}

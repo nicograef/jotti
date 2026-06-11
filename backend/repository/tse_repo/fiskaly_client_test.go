@@ -131,7 +131,7 @@ func TestFiskalyClient_StartAndFinishContract(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	start, err := client.StartTransaction(context.Background(), testTxID, "Kassenbeleg-V1", "")
+	start, err := client.StartTransaction(context.Background(), testTxID)
 	if err != nil {
 		t.Fatalf("start transaction failed: %v", err)
 	}
@@ -142,7 +142,7 @@ func TestFiskalyClient_StartAndFinishContract(t *testing.T) {
 		t.Fatalf("expected start signature counter 7, got %d", start.SignatureCounter)
 	}
 
-	finish, err := client.FinishTransaction(context.Background(), testTxID, start.TransactionNumber, "Kassenbeleg-V1", specProcessData)
+	finish, err := client.FinishTransaction(context.Background(), testTxID, "Kassenbeleg-V1", specProcessData)
 	if err != nil {
 		t.Fatalf("finish transaction failed: %v", err)
 	}
@@ -212,7 +212,7 @@ func TestFiskalyClient_RefreshesTokenOn401(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	_, err = client.StartTransaction(context.Background(), testTxID, "Kassenbeleg-V1", "")
+	_, err = client.StartTransaction(context.Background(), testTxID)
 	if err != nil {
 		t.Fatalf("start transaction failed: %v", err)
 	}
@@ -274,7 +274,7 @@ func TestFiskalyClient_RetriesOnRetryableErrors(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	_, err = client.StartTransaction(context.Background(), testTxID, "Kassenbeleg-V1", "")
+	_, err = client.StartTransaction(context.Background(), testTxID)
 	if err != nil {
 		t.Fatalf("expected retry to recover, got error: %v", err)
 	}
@@ -426,7 +426,7 @@ func TestFiskalyClient_SingleAttempt_DoesNotRetry(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	_, err = client.StartTransaction(context.Background(), testTxID, "Kassenbeleg-V1", "")
+	_, err = client.StartTransaction(context.Background(), testTxID)
 	if err == nil {
 		t.Fatal("expected error from single attempt against failing server")
 	}

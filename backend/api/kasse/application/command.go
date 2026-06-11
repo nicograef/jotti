@@ -5,11 +5,11 @@ import (
 	"errors"
 	"time"
 
+	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/settings"
-	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/rs/zerolog"
 )
 
@@ -29,19 +29,13 @@ type kassensitzungenRepo interface {
 
 type settingsRepo interface {
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
-	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
-
-type NewTSEClient func(credentials tse.Credentials) (tse.TSEClient, error)
 
 type Command struct {
 	KassenjournalRepo   kassenjournalRepo
 	KassensitzungenRepo kassensitzungenRepo
 	SettingsRepo        settingsRepo
-	NewTSEClient        NewTSEClient
-	// TSESignierDeadline ueberschreibt die Gesamt-Deadline des synchronen
-	// Signierversuchs; 0 bedeutet tse.SignierDeadline. Nur fuer Tests gedacht.
-	TSESignierDeadline time.Duration
+	TSESignierer        tseApp.Signierer
 }
 
 // getOffeneKassensitzungOderFehler returns the open Kassensitzung or ErrKasseNichtGeoeffnet.

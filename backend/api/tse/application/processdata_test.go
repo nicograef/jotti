@@ -3,10 +3,9 @@
 package application
 
 import (
-	"encoding/json"
 	"testing"
+	"time"
 
-	e "github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
@@ -67,7 +66,7 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := buildKassenbelegProcessData(tc.positionen, tc.zahlbetrag)
+			got, err := BuildKassenbelegProcessData(tc.positionen, tc.zahlbetrag)
 			if tc.expectError {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -85,7 +84,7 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 }
 
 func TestBuildKassenbelegProcessDataWithFaktor_NegativBeiStorno(t *testing.T) {
-	got, err := buildKassenbelegProcessDataWithFaktor(
+	got, err := BuildKassenbelegProcessDataWithFaktor(
 		[]kasse.Position{{Einzelpreis: 350, Menge: 2, Steuersatz: "regel"}},
 		-700,
 		-1,
@@ -101,22 +100,22 @@ func TestBuildKassenbelegProcessDataWithFaktor_NegativBeiStorno(t *testing.T) {
 }
 
 func TestBuildBestellungProcessData_CSVFormat(t *testing.T) {
-	got, err := buildBestellungProcessData([]kasse.Position{
-		{ProduktName: "Ma\u00df Bier", VarianteName: "", Menge: 4, Einzelpreis: 950},
-		{ProduktName: "Wei\u00dfwurst", VarianteName: "normal", Menge: 2, Einzelpreis: 250},
+	got, err := BuildBestellungProcessData([]kasse.Position{
+		{ProduktName: "Maß Bier", VarianteName: "", Menge: 4, Einzelpreis: 950},
+		{ProduktName: "Weißwurst", VarianteName: "normal", Menge: 2, Einzelpreis: 250},
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	want := "4;\"Ma\u00df Bier\";9.50\r2;\"Wei\u00dfwurst normal\";2.50"
+	want := "4;\"Maß Bier\";9.50\r2;\"Weißwurst normal\";2.50"
 	if got != want {
 		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}
 }
 
 func TestBuildBestellungProcessData_VerdoppeltAnfuehrungszeichen(t *testing.T) {
-	got, err := buildBestellungProcessData([]kasse.Position{
+	got, err := BuildBestellungProcessData([]kasse.Position{
 		{ProduktName: `Eisbecher "Himbeere"`, Menge: 2, Einzelpreis: 399},
 	})
 	if err != nil {
@@ -130,41 +129,61 @@ func TestBuildBestellungProcessData_VerdoppeltAnfuehrungszeichen(t *testing.T) {
 	}
 }
 
-func TestTSETransactionIDForZahlungEvent_Deterministic(t *testing.T) {
-	event := e.Event{
-		Type:    string(kasse.EventTypeZahlungKassiertV1),
-		Subject: "kassensitzung-1/tisch-7",
-		Data:    []byte(`{"zahlungId":"11111111-1111-1111-1111-111111111111","positionen":[],"gesamtZahlungCents":100,"kommentar":""}`),
-	}
-
-	first, err := tseTransactionIDForZahlungEvent(event)
+func TestBuildGeldtransitProcessData_Einlage(t *testing.T) {
+	got, err := BuildGeldtransitProcessData("einlage", 1234)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	second, err := tseTransactionIDForZahlungEvent(event)
+	want := "Beleg^0.00_0.00_0.00_0.00_0.00^12.34:Bar"
+	if got != want {
+		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+	}
+}
+
+func TestBuildGeldtransitProcessData_Entnahme(t *testing.T) {
+	got, err := BuildGeldtransitProcessData("entnahme", 1234)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if first != second {
-		t.Fatalf("expected deterministic tx_id, got %q and %q", first, second)
+	want := "Beleg^0.00_0.00_0.00_0.00_0.00^-12.34:Bar"
+	if got != want {
+		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+	}
+}
+
+func TestBuildGeldtransitProcessData_UngueltigeRichtung(t *testing.T) {
+	if _, err := BuildGeldtransitProcessData("foo", 1234); err == nil {
+		t.Fatal("expected error for invalid richtung, got nil")
+	}
+}
+
+func TestBuildEigenbelegProcessData(t *testing.T) {
+	tests := []struct {
+		name            string
+		zahlbetragCents int
+		expected        string
+	}{
+		{name: "positiver betrag", zahlbetragCents: 250, expected: "Beleg^0.00_0.00_0.00_0.00_0.00^2.50:Bar"},
+		{name: "negativer betrag", zahlbetragCents: -250, expected: "Beleg^0.00_0.00_0.00_0.00_0.00^-2.50:Bar"},
+		{name: "zahlung 0.00 entfaellt", zahlbetragCents: 0, expected: "Beleg^0.00_0.00_0.00_0.00_0.00^"},
 	}
 
-	var data zahlungKassiertV1Data
-	if err := json.Unmarshal(event.Data, &data); err != nil {
-		t.Fatalf("expected no unmarshal error, got %v", err)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := BuildEigenbelegProcessData(tc.zahlbetragCents)
+			if got != tc.expected {
+				t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", tc.expected, got)
+			}
+		})
 	}
-	data.ZahlungID = "22222222-2222-2222-2222-222222222222"
-	changed, err := json.Marshal(data)
-	if err != nil {
-		t.Fatalf("expected no marshal error, got %v", err)
-	}
-	event.Data = changed
+}
 
-	third, err := tseTransactionIDForZahlungEvent(event)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if third == first {
-		t.Fatalf("expected tx_id to change when event identity changes, still got %q", third)
+func TestBuildTagesabschlussProcessData(t *testing.T) {
+	von := time.Date(2026, 6, 10, 8, 0, 0, 0, time.UTC)
+	bis := time.Date(2026, 6, 10, 22, 0, 0, 0, time.UTC)
+	got := BuildTagesabschlussProcessData(7, von, bis)
+	want := "Tagesabschluss^ZNr:7^Von:2026-06-10T08:00:00Z^Bis:2026-06-10T22:00:00Z"
+	if got != want {
+		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}
 }

@@ -1,0 +1,145 @@
+package application
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/steuer"
+)
+
+const zahlungsartBar = "Bar"
+
+// BuildKassenbelegProcessData erzeugt Kassenbeleg-V1-processData nach
+// DSFinV-K Anhang I: Bruttobetraege je Steuersatz plus Zahlungsteil.
+func BuildKassenbelegProcessData(positionen []kasse.Position, zahlbetragCents int) (string, error) {
+	return BuildKassenbelegProcessDataWithFaktor(positionen, zahlbetragCents, 1)
+}
+
+// BuildKassenbelegProcessDataWithFaktor erlaubt zusaetzlich faktor -1 fuer
+// Stornierungen: alle Steuerbetraege werden negiert.
+func BuildKassenbelegProcessDataWithFaktor(positionen []kasse.Position, zahlbetragCents int, faktor int) (string, error) {
+	if faktor != 1 && faktor != -1 {
+		return "", fmt.Errorf("invalid faktor %d", faktor)
+	}
+
+	var betragNormalCents int
+	var betragErmaessigtCents int
+	var betragBefreitCents int
+
+	for _, pos := range positionen {
+		basisBrutto := pos.Einzelpreis * pos.Menge
+		aufteilungen := steuer.Aufteilen(basisBrutto, steuer.Steuersatz(pos.Steuersatz))
+		if len(aufteilungen) == 0 {
+			return "", fmt.Errorf("unsupported steuersatz %q", pos.Steuersatz)
+		}
+		for _, aufteilung := range aufteilungen {
+			brutto := aufteilung.Brutto * faktor
+			switch aufteilung.Satz {
+			case steuer.RegelSteuersatz:
+				betragNormalCents += brutto
+			case steuer.ErmaessigtSteuersatz:
+				betragErmaessigtCents += brutto
+			case steuer.BefreitSteuersatz:
+				betragBefreitCents += brutto
+			default:
+				return "", fmt.Errorf("unsupported steuersatz in aufteilung %q", aufteilung.Satz)
+			}
+		}
+	}
+
+	// DSFinV-K Anhang I: Zahlungen von 0.00 müssen entfallen.
+	zahlungen := ""
+	if zahlbetragCents != 0 {
+		zahlungen = betragString(zahlbetragCents) + ":" + zahlungsartBar
+	}
+
+	return fmt.Sprintf(
+		"Beleg^%s_%s_%s_%s_%s^%s",
+		betragString(betragNormalCents),
+		betragString(betragErmaessigtCents),
+		betragString(0),
+		betragString(0),
+		betragString(betragBefreitCents),
+		zahlungen,
+	), nil
+}
+
+// BuildBestellungProcessData erzeugt die CSV-Darstellung nach DSFinV-K Anhang I:
+// pro Position `<Menge>;"<Bezeichnung>";<Brutto-Einzelpreis>`, Zeilentrenner \r,
+// Anführungszeichen in der Bezeichnung werden verdoppelt.
+func BuildBestellungProcessData(positionen []kasse.Position) (string, error) {
+	if len(positionen) == 0 {
+		return "", fmt.Errorf("bestellung processData requires at least one position")
+	}
+
+	zeilen := make([]string, 0, len(positionen))
+	for _, pos := range positionen {
+		if pos.Menge <= 0 {
+			continue
+		}
+
+		name := strings.TrimSpace(pos.ProduktName)
+		variante := strings.TrimSpace(pos.VarianteName)
+		if variante != "" && !strings.EqualFold(variante, name) {
+			name = strings.TrimSpace(name + " " + variante)
+		}
+		if name == "" {
+			name = "Unbekannt"
+		}
+
+		bezeichnung := `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
+		zeilen = append(zeilen, fmt.Sprintf("%d;%s;%s", pos.Menge, bezeichnung, betragString(pos.Einzelpreis)))
+	}
+
+	if len(zeilen) == 0 {
+		return "", fmt.Errorf("bestellung processData requires positive quantities")
+	}
+
+	return strings.Join(zeilen, "\r"), nil
+}
+
+// BuildGeldtransitProcessData bildet Einlage/Entnahme als Eigenbeleg ab:
+// Einlagen mit positivem, Entnahmen mit negativem Zahlbetrag.
+func BuildGeldtransitProcessData(richtung string, betragCents int) (string, error) {
+	switch richtung {
+	case "einlage":
+		return BuildEigenbelegProcessData(betragCents), nil
+	case "entnahme":
+		return BuildEigenbelegProcessData(-betragCents), nil
+	default:
+		return "", fmt.Errorf("unsupported richtung %q", richtung)
+	}
+}
+
+// BuildEigenbelegProcessData erzeugt Kassenbeleg-V1-processData für Geschäftsvorfälle
+// ohne Umsatz (Eigenbelege nach AEAO 2.2.3.6.1): alle Steuerbeträge 0.00, nur der
+// Zahlbetrag ist gefüllt. DSFinV-K Anhang I: Zahlungen von 0.00 müssen entfallen.
+func BuildEigenbelegProcessData(zahlbetragCents int) string {
+	zahlungen := ""
+	if zahlbetragCents != 0 {
+		zahlungen = betragString(zahlbetragCents) + ":" + zahlungsartBar
+	}
+	return fmt.Sprintf("Beleg^0.00_0.00_0.00_0.00_0.00^%s", zahlungen)
+}
+
+// BuildTagesabschlussProcessData erzeugt SonstigerVorgang-processData fuer den
+// Tagesabschluss (Z-Bon): Z-Nummer plus Abschlusszeitraum.
+func BuildTagesabschlussProcessData(zNr int, zeitraumVon time.Time, zeitraumBis time.Time) string {
+	return fmt.Sprintf(
+		"Tagesabschluss^ZNr:%d^Von:%s^Bis:%s",
+		zNr,
+		zeitraumVon.UTC().Format(time.RFC3339),
+		zeitraumBis.UTC().Format(time.RFC3339),
+	)
+}
+
+func betragString(cents int) string {
+	sign := ""
+	if cents < 0 {
+		sign = "-"
+		cents = -cents
+	}
+	return fmt.Sprintf("%s%d.%02d", sign, cents/100, cents%100)
+}

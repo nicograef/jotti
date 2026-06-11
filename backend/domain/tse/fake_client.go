@@ -8,7 +8,6 @@ import (
 type FakeClient struct {
 	StartResponse      StartResult
 	StartErr           error
-	UpdateErr          error
 	FinishResponse     FinishResult
 	FinishErr          error
 	RetrieveResponse   RetrieveResult
@@ -33,7 +32,7 @@ func (f FakeClient) wait(ctx context.Context) error {
 	}
 }
 
-func (f FakeClient) StartTransaction(ctx context.Context, _ string, _ string, _ string) (StartResult, error) {
+func (f FakeClient) StartTransaction(ctx context.Context, _ string) (StartResult, error) {
 	if err := f.wait(ctx); err != nil {
 		return StartResult{}, err
 	}
@@ -43,14 +42,7 @@ func (f FakeClient) StartTransaction(ctx context.Context, _ string, _ string, _ 
 	return f.StartResponse, nil
 }
 
-func (f FakeClient) UpdateTransaction(ctx context.Context, _ string, _ int, _ string) error {
-	if err := f.wait(ctx); err != nil {
-		return err
-	}
-	return f.UpdateErr
-}
-
-func (f FakeClient) FinishTransaction(ctx context.Context, _ string, _ int, _ string, _ string) (FinishResult, error) {
+func (f FakeClient) FinishTransaction(ctx context.Context, _ string, _ string, _ string) (FinishResult, error) {
 	if err := f.wait(ctx); err != nil {
 		return FinishResult{}, err
 	}

@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
+	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
@@ -675,15 +676,17 @@ func TestZahlungKassieren_MitTSESignaturImEvent(t *testing.T) {
 		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return fakeTSEClient, nil
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return fakeTSEClient, nil
+			},
 		},
 	}
 
@@ -722,6 +725,14 @@ func TestZahlungKassieren_MitTSESignaturImEvent(t *testing.T) {
 	if data.TSEData.LogTimeStart == "" || data.TSEData.LogTimeEnd == "" {
 		t.Fatal("expected non-empty TSE log times")
 	}
+
+	parsedTxID, err := uuid.Parse(data.TSETxID)
+	if err != nil {
+		t.Fatalf("expected tseTxId to be a UUID, got %q (%v)", data.TSETxID, err)
+	}
+	if parsedTxID.Version() != 4 {
+		t.Fatalf("expected tseTxId to be a UUIDv4, got version %d", parsedTxID.Version())
+	}
 }
 
 func TestZahlungKassieren_OhneTSEKonfiguration_Unsigniert(t *testing.T) {
@@ -748,10 +759,12 @@ func TestZahlungKassieren_OhneTSEKonfiguration_Unsigniert(t *testing.T) {
 		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo:        &mockSettingsRepo{tseErr: db.ErrNotFound},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			tseClientCalled = true
-			return tse.FakeClient{}, nil
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tseErr: db.ErrNotFound},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				tseClientCalled = true
+				return tse.FakeClient{}, nil
+			},
 		},
 	}
 
@@ -803,15 +816,17 @@ func TestZahlungKassieren_BeiTSEAusfall_NichtBlockierendMitNachsignierAuftrag(t 
 		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return tse.FakeClient{StartErr: errors.New("fiskaly timeout")}, nil
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{StartErr: errors.New("fiskaly timeout")}, nil
+			},
 		},
 	}
 
@@ -844,7 +859,10 @@ func TestZahlungKassieren_BeiTSEAusfall_NichtBlockierendMitNachsignierAuftrag(t 
 		t.Fatalf("expected exactly one retry job, got %d", len(nachsignier))
 	}
 	if nachsignier[0].TxID == "" {
-		t.Fatal("expected deterministic tx_id on retry job")
+		t.Fatal("expected tx_id on retry job")
+	}
+	if data.TSETxID != nachsignier[0].TxID {
+		t.Fatalf("expected event tseTxId %q to match retry job tx_id %q", data.TSETxID, nachsignier[0].TxID)
 	}
 	if nachsignier[0].ProcessType != "Kassenbeleg-V1" {
 		t.Fatalf("expected process type Kassenbeleg-V1, got %q", nachsignier[0].ProcessType)
@@ -877,18 +895,20 @@ func TestZahlungKassieren_TSEDeadline_DanachAusfallpfad(t *testing.T) {
 		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		// Die TSE antwortet erst nach 5 Sekunden — deutlich nach der Deadline.
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return tse.FakeClient{ArtificialDelay: 5 * time.Second}, nil
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			// Die TSE antwortet erst nach 5 Sekunden — deutlich nach der Deadline.
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{ArtificialDelay: 5 * time.Second}, nil
+			},
+			SignierDeadline: 50 * time.Millisecond,
 		},
-		TSESignierDeadline: 50 * time.Millisecond,
 	}
 
 	begin := time.Now()
@@ -938,18 +958,20 @@ func TestBestellungAufnehmen_MitTSE_DatenImEvent(t *testing.T) {
 		EventRepo:           eventMock,
 		ProductRepo:         productMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return tse.FakeClient{
-				StartResponse:  tse.StartResult{TransactionNumber: 11, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 10},
-				FinishResponse: tse.FinishResult{TransactionNumber: 11, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 11, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-BESTELLUNG"},
-			}, nil
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{
+					StartResponse:  tse.StartResult{TransactionNumber: 11, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 10},
+					FinishResponse: tse.FinishResult{TransactionNumber: 11, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 11, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-BESTELLUNG"},
+				}, nil
+			},
 		},
 	}
 
@@ -1002,15 +1024,17 @@ func TestStornierungErteilen_BeiTSEAusfall_NachsignierauftragMitNegativemBetrag(
 		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return tse.FakeClient{StartErr: errors.New("timeout")}, nil
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{StartErr: errors.New("timeout")}, nil
+			},
 		},
 	}
 
@@ -1044,18 +1068,20 @@ func TestAuszahlungLeisten_MitTSE_DatenImEvent(t *testing.T) {
 		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return tse.FakeClient{
-				StartResponse:  tse.StartResult{TransactionNumber: 21, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 20},
-				FinishResponse: tse.FinishResult{TransactionNumber: 21, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 21, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-AUSZAHLUNG"},
-			}, nil
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{
+					StartResponse:  tse.StartResult{TransactionNumber: 21, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 20},
+					FinishResponse: tse.FinishResult{TransactionNumber: 21, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 21, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-AUSZAHLUNG"},
+				}, nil
+			},
 		},
 	}
 
@@ -1107,16 +1133,18 @@ func TestAusgabeBestaetigen_MitTSEKonfiguration_WirdNichtSigniert(t *testing.T) 
 		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			tseClientCalled = true
-			return tse.FakeClient{}, nil
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				tseClientCalled = true
+				return tse.FakeClient{}, nil
+			},
 		},
 	}
 
@@ -1763,7 +1791,10 @@ func TestKassenbelegDrucken_UsesBackfilledTSESignaturAusSeitentabelle(t *testing
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	zahlungEvent, err = withZahlungEventTSEAusfall(zahlungEvent)
+	// Ausfall beim Kassieren: Event traegt nur die tx-ID, die Signatur wurde
+	// spaeter vom Worker in die Seitentabelle nachgetragen.
+	txID := "7d9e8c4a-1c2b-4d3e-9f4a-5b6c7d8e9f0a"
+	zahlungEvent, err = withZahlungEventTSE(zahlungEvent, txID, nil)
 	if err != nil {
 		t.Fatalf("expected no event mutation error, got %v", err)
 	}
@@ -1773,11 +1804,6 @@ func TestKassenbelegDrucken_UsesBackfilledTSESignaturAusSeitentabelle(t *testing
 	}
 	if err := json.Unmarshal(zahlungEvent.Data, &eventData); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
-	}
-
-	txID, err := tseTransactionIDForZahlungEvent(zahlungEvent)
-	if err != nil {
-		t.Fatalf("expected tx id derivation to succeed, got %v", err)
 	}
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
@@ -1852,7 +1878,7 @@ func TestKassenbelegDrucken_BeiOffenemTSEAusfall_MitAusfallvermerk(t *testing.T)
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	zahlungEvent, err = withZahlungEventTSEAusfall(zahlungEvent)
+	zahlungEvent, err = withZahlungEventTSE(zahlungEvent, "0f2c1c0e-6a51-4f7e-9a93-2dd35d8f3a10", nil)
 	if err != nil {
 		t.Fatalf("expected no event mutation error, got %v", err)
 	}
@@ -2178,9 +2204,17 @@ func TestKassenbelegDrucken_Direktverkauf_UsesBackfilledTSESignaturAusSeitentabe
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	txID, err := tseTransactionIDForDirektverkaufGetaetigtEvent(verkaufEvent)
+	// Ausfall beim Direktverkauf: Event traegt nur die tx-ID, die Signatur
+	// wurde spaeter vom Worker in die Seitentabelle nachgetragen.
+	txID := "3a1f5b27-9c4d-4e8f-8a6b-1c2d3e4f5a6b"
+	var verkaufData direktverkaufGetaetigtV1Data
+	if err := json.Unmarshal(verkaufEvent.Data, &verkaufData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	verkaufData.TSETxID = txID
+	verkaufEvent.Data, err = json.Marshal(verkaufData)
 	if err != nil {
-		t.Fatalf("expected tx id derivation to succeed, got %v", err)
+		t.Fatalf("expected no marshal error, got %v", err)
 	}
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)

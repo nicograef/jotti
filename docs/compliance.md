@@ -145,7 +145,7 @@ Ohne physische Kassenhardware gibt es kein Typenschild — die gesetzlich geford
 | ELSTER-Meldung                               | „Seriennummer des elektronischen Aufzeichnungssystems" |
 | DSFinV-K Export (`cashregister.csv`)         | Feld `KASSE_SERIENNR`                                  |
 | Kassenbon (Pflichtfeld nach § 6 KassenSichV) | Angedruckter String, z. B. `Kassen-ID: 7f3a9d12-...`   |
-| TSE-Kommunikation (`StartTransaction`)       | Parameter `kassenID`                                   |
+| TSE-Kommunikation                            | `serial_number` des fiskaly-Clients (Client-Registrierung) |
 
 ---
 
@@ -162,7 +162,7 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 | Vollständigkeit            | ✅ Erfüllt          | Jeder Geschäftsvorfall wird als Event erfasst         |
 | Zeitgerechte Buchung       | ✅ Erfüllt          | Events mit Echtzeit-Zeitstempel                       |
 | Ordnungsmäßigkeit          | ✅ Erfüllt          | Strukturiertes Datenmodell, typisierte Events         |
-| Kryptografische Verkettung | ❌ Fehlt            | Keine TSE-Signatur, keine kryptografische Absicherung |
+| Kryptografische Verkettung | ✅ Erfüllt          | TSE-Signatur (fiskaly Cloud-TSE) für alle Geschäftsvorfälle; Signaturdaten im Event persistiert, Ausfälle werden nachsigniert |
 | 10-Jahres-Aufbewahrung     | ⚠️ Nicht adressiert | Keine Archivierungsstrategie implementiert            |
 
 ### 4.2 Anforderungen gemäß §§ 146, 147 AO und GoBD
@@ -174,7 +174,6 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 
 ### 4.3 Handlungsbedarf
 
-- TSE-Signatur in die Event-Daten integrieren (schließt die fehlende kryptografische Verkettung)
 - Archivierungsstrategie für die 10-Jahres-Aufbewahrung definieren
 - Verfahrensdokumentation erstellen
 - Soft-Delete-Praxis bei Stammdaten prüfen
@@ -399,7 +398,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 | DSFinV-K-Export im Code implementieren       | ✅ Pflicht         | —                           |
 | Muster-Verfahrensdokumentation bereitstellen | Empfohlen          | —                           |
 | Cloud-TSE-Vertrag abschließen                | —                  | ✅ Pflicht                  |
-| TSE-API-Keys konfigurieren (`.env`)          | —                  | ✅ Pflicht                  |
+| TSE-API-Keys konfigurieren (Admin-UI)        | —                  | ✅ Pflicht                  |
 | ELSTER-Meldung (§ 146a Abs. 4 AO)            | ❌ Keine Pflicht   | ✅ Pflicht (Frist: 1 Monat) |
 | BYOD-Smartphones melden                      | —                  | ❌ Nicht erforderlich       |
 | 10-Jahres-Archivierung (GoBD)                | —                  | ✅ Pflicht                  |
@@ -407,7 +406,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 
 **Vor dem ersten Einsatz:**
 
-1. **Cloud-TSE-Vertrag (BYOT):** Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly oder D-Trust) abschließen; API-Schlüssel in die `.env`-Datei eintragen.
+1. **Cloud-TSE-Vertrag (BYOT):** Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly oder D-Trust) abschließen; API-Schlüssel in den TSE-Einstellungen des Admin-Bereichs hinterlegen (gespeichert in der Datenbank).
 2. **ELSTER-Meldung:** Innerhalb von **einem Monat** nach Inbetriebnahme die Instanz über [ELSTER](https://www.elster.de) anmelden. Benötigt: Kassen-Seriennummer (Admin-Dashboard), Softwarename „jotti", Inbetriebnahmedatum (→ §7.3).
 3. **Seriennummer sichern:** Die Kassen-UUID ist die rechtliche Identität der Kasse (→ §3.7) — das Datenbank-Backup muss sie enthalten. Bei Verlust: alte Nummer abmelden, neue Instanz anmelden.
 

@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
+	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -399,18 +400,20 @@ func TestDirektverkaufTaetigen_MitTSE_DatenImEvent(t *testing.T) {
 		EventRepo:           spy,
 		ProductRepo:         newProductMock(),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return tse.FakeClient{
-				StartResponse:  tse.StartResult{TransactionNumber: 31, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 30},
-				FinishResponse: tse.FinishResult{TransactionNumber: 31, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 31, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-DIREKTVERKAUF"},
-			}, nil
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{
+					StartResponse:  tse.StartResult{TransactionNumber: 31, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 30},
+					FinishResponse: tse.FinishResult{TransactionNumber: 31, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 31, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-DIREKTVERKAUF"},
+				}, nil
+			},
 		},
 	}
 
@@ -441,15 +444,17 @@ func TestDirektverkaufTaetigen_BeiTSEAusfall_MarkiertEventMitAusfall(t *testing.
 		EventRepo:           spy,
 		ProductRepo:         newProductMock(),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return tse.FakeClient{StartErr: errors.New("timeout")}, nil
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{StartErr: errors.New("timeout")}, nil
+			},
 		},
 	}
 
@@ -474,6 +479,9 @@ func TestDirektverkaufTaetigen_BeiTSEAusfall_MarkiertEventMitAusfall(t *testing.
 	if data.TSEData != nil {
 		t.Fatal("did not expect TSE data on unsigned direktverkauf event")
 	}
+	if data.TSETxID == "" || data.TSETxID != spy.nachsignier[0].txID {
+		t.Fatalf("expected event tseTxId %q to match nachsignier tx_id %q", data.TSETxID, spy.nachsignier[0].txID)
+	}
 }
 
 func TestDirektverkaufStornieren_BeiTSEAusfall_NachsignierMitNegativemBetrag(t *testing.T) {
@@ -484,15 +492,17 @@ func TestDirektverkaufStornieren_BeiTSEAusfall_NachsignierMitNegativemBetrag(t *
 		EventRepo:           spy,
 		ProductRepo:         newProductMock(),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return tse.FakeClient{StartErr: errors.New("timeout")}, nil
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{StartErr: errors.New("timeout")}, nil
+			},
 		},
 	}
 

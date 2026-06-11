@@ -51,10 +51,13 @@ func (c Credentials) Validate() error {
 	return nil
 }
 
+// TSEClient bildet das atomare Transaktionsmuster ab: Start eroeffnet die
+// Transaktion (processType/processData sind laut DSFinV-K bei Start immer
+// leer), Finish schliesst sie mit dem finalen Schema ab. Beide Aufrufe
+// adressieren die Transaktion ueber die von jotti erzeugte tx-ID (UUIDv4).
 type TSEClient interface {
-	StartTransaction(ctx context.Context, kassenID string, processType string, processData string) (StartResult, error)
-	UpdateTransaction(ctx context.Context, kassenID string, transactionNumber int, processData string) error
-	FinishTransaction(ctx context.Context, kassenID string, transactionNumber int, processType string, processData string) (FinishResult, error)
+	StartTransaction(ctx context.Context, txID string) (StartResult, error)
+	FinishTransaction(ctx context.Context, txID string, processType string, processData string) (FinishResult, error)
 }
 
 type ConnectionTester interface {

@@ -3,16 +3,15 @@ package application
 import (
 	"context"
 	"errors"
-	"time"
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
+	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/table"
-	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/rs/zerolog"
 )
@@ -66,10 +65,7 @@ type druckauftragRepo interface {
 type settingsRepo interface {
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
 	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
-	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
-
-type NewTSEClient func(credentials tse.Credentials) (tse.TSEClient, error)
 
 // BestellPositionInput represents the input for a single position in an order.
 // The application layer enriches this with product/variant details (fat events).
@@ -88,10 +84,7 @@ type Command struct {
 	DruckstationRepo    druckstationRepo
 	DruckauftragRepo    druckauftragRepo
 	SettingsRepo        settingsRepo
-	NewTSEClient        NewTSEClient
-	// TSESignierDeadline ueberschreibt die Gesamt-Deadline des synchronen
-	// Signierversuchs; 0 bedeutet tse.SignierDeadline. Nur fuer Tests gedacht.
-	TSESignierDeadline time.Duration
+	TSESignierer        tseApp.Signierer
 }
 
 type zahlungKassiertV1Data struct {
@@ -99,6 +92,7 @@ type zahlungKassiertV1Data struct {
 	Positionen         []zahlungPositionData `json:"positionen"`
 	GesamtZahlungCents int                   `json:"gesamtZahlungCents"`
 	Kommentar          string                `json:"kommentar"`
+	TSETxID            string                `json:"tseTxId,omitempty"`
 	TSEData            *kasse.TSEData        `json:"tseData,omitempty"`
 	TSEAusfall         bool                  `json:"tseAusfall,omitempty"`
 }
@@ -119,6 +113,7 @@ type bestellungAufgenommenV1Data struct {
 	Positionen       []zahlungPositionData `json:"positionen"`
 	GesamtPreisCents int                   `json:"gesamtPreisCents"`
 	Kommentar        string                `json:"kommentar"`
+	TSETxID          string                `json:"tseTxId,omitempty"`
 	TSEData          *kasse.TSEData        `json:"tseData,omitempty"`
 }
 
@@ -127,6 +122,7 @@ type stornierungErteiltV1Data struct {
 	Positionen             []zahlungPositionData `json:"positionen"`
 	GesamtStornierungCents int                   `json:"gesamtStornierungCents"`
 	Kommentar              string                `json:"kommentar"`
+	TSETxID                string                `json:"tseTxId,omitempty"`
 	TSEData                *kasse.TSEData        `json:"tseData,omitempty"`
 }
 
@@ -134,6 +130,7 @@ type auszahlungGeleistetV1Data struct {
 	AuszahlungID string         `json:"auszahlungId"`
 	BetragCents  int            `json:"betragCents"`
 	Kommentar    string         `json:"kommentar"`
+	TSETxID      string         `json:"tseTxId,omitempty"`
 	TSEData      *kasse.TSEData `json:"tseData,omitempty"`
 }
 

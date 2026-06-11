@@ -70,6 +70,7 @@ type direktverkaufGetaetigtV1Data struct {
 	Positionen        []zahlungPositionData `json:"positionen"`
 	GesamtbetragCents int                   `json:"gesamtbetragCents"`
 	Kommentar         string                `json:"kommentar"`
+	TSETxID           string                `json:"tseTxId,omitempty"`
 	TSEData           *kasse.TSEData        `json:"tseData,omitempty"`
 	TSEAusfall        bool                  `json:"tseAusfall,omitempty"`
 }
@@ -80,6 +81,7 @@ type direktverkaufStorniertV1Data struct {
 	Positionen             []zahlungPositionData `json:"positionen"`
 	GesamtStornierungCents int                   `json:"gesamtStornierungCents"`
 	Kommentar              string                `json:"kommentar"`
+	TSETxID                string                `json:"tseTxId,omitempty"`
 	TSEData                *kasse.TSEData        `json:"tseData,omitempty"`
 }
 
@@ -145,8 +147,10 @@ func findDirektverkaufStorniertEvent(events []event.Event, stornierungID string)
 }
 
 // tseAbschnittFuerBeleg resolves the TSE section of a Kassenbeleg: signature data from the
-// event itself, fallback to the nachsignierte Signatur aus der Seitentabelle, otherwise the
-// event's TSE-Ausfall flag as Ausfallvermerk (AEAO 1.14.2).
+// event itself, fallback to the nachsignierte Signatur aus der Seitentabelle (ueber die im
+// Event persistierte tseTxId), otherwise the event's TSE-Ausfall flag as Ausfallvermerk
+// (AEAO 1.14.2). Eine leere txID bedeutet: Es gab nie einen Signierversuch (TSE war nicht
+// konfiguriert) — dann existiert auch keine nachsignierte Signatur.
 func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventTSEData *kasse.TSEData, tseAusfall bool, txID string) (*escpos.TSEAbschnitt, bool, error) {
 	abschnitt, err := toTSEAbschnitt(eventTSEData)
 	if err != nil {
@@ -154,6 +158,9 @@ func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventTSEData *kasse.
 	}
 	if abschnitt != nil {
 		return abschnitt, false, nil
+	}
+	if txID == "" {
+		return nil, tseAusfall, nil
 	}
 
 	signaturData, err := c.EventRepo.GetTSESignaturByTxID(ctx, txID)
@@ -254,12 +261,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		stornobeleg = true
 		stornoZuBelegnummer = fmt.Sprintf("%d", verkaufEvent.ID)
 
-		txID, err := tseTransactionIDForDirektverkaufStorniertEvent(stornoEvent)
-		if err != nil {
-			log.Error().Err(err).Str("stornierung_id", stornierungID).Msg("Failed to derive TSE tx_id for stornobeleg fallback")
-			return ErrDatabase
-		}
-		tseAbschnitt, tseAusfallvermerk, err = c.tseAbschnittFuerBeleg(ctx, stornoData.TSEData, false, txID)
+		tseAbschnitt, tseAusfallvermerk, err = c.tseAbschnittFuerBeleg(ctx, stornoData.TSEData, false, stornoData.TSETxID)
 		if err != nil {
 			log.Error().Err(err).Str("stornierung_id", stornierungID).Msg("Failed to resolve TSE section for stornobeleg")
 			return ErrDatabase
@@ -288,12 +290,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		gesamtbetragCents = verkaufData.GesamtbetragCents
 		referenz = fmt.Sprintf("direktverkauf-getaetigt:%d", verkaufEvent.ID)
 
-		txID, err := tseTransactionIDForDirektverkaufGetaetigtEvent(verkaufEvent)
-		if err != nil {
-			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to derive TSE tx_id for kassenbeleg fallback")
-			return ErrDatabase
-		}
-		tseAbschnitt, tseAusfallvermerk, err = c.tseAbschnittFuerBeleg(ctx, verkaufData.TSEData, verkaufData.TSEAusfall, txID)
+		tseAbschnitt, tseAusfallvermerk, err = c.tseAbschnittFuerBeleg(ctx, verkaufData.TSEData, verkaufData.TSEAusfall, verkaufData.TSETxID)
 		if err != nil {
 			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to resolve TSE section for kassenbeleg")
 			return ErrDatabase
@@ -329,12 +326,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		gesamtbetragCents = zahlungData.GesamtZahlungCents
 		referenz = fmt.Sprintf("zahlung-kassiert:%d", zahlungEvent.ID)
 
-		txID, err := tseTransactionIDForZahlungEvent(zahlungEvent)
-		if err != nil {
-			log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to derive TSE tx_id for kassenbeleg fallback")
-			return ErrDatabase
-		}
-		tseAbschnitt, tseAusfallvermerk, err = c.tseAbschnittFuerBeleg(ctx, zahlungData.TSEData, zahlungData.TSEAusfall, txID)
+		tseAbschnitt, tseAusfallvermerk, err = c.tseAbschnittFuerBeleg(ctx, zahlungData.TSEData, zahlungData.TSEAusfall, zahlungData.TSETxID)
 		if err != nil {
 			log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to resolve TSE section for kassenbeleg")
 			return ErrDatabase

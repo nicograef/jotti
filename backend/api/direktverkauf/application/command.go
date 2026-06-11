@@ -3,16 +3,14 @@ package application
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/google/uuid"
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
+	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
-	"github.com/nicograef/jotti/backend/domain/settings"
-	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/rs/zerolog"
 )
@@ -39,12 +37,6 @@ type druckstationRepo interface {
 	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]bondruckApp.Druckstation, error)
 }
 
-type settingsRepo interface {
-	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
-}
-
-type NewTSEClient func(credentials tse.Credentials) (tse.TSEClient, error)
-
 // VerkaufPositionInput represents a single position of a Direktverkauf.
 // The application layer enriches it with product/variant details (fat events).
 type VerkaufPositionInput struct {
@@ -58,11 +50,7 @@ type Command struct {
 	ProductRepo         productRepo
 	KassensitzungenRepo kassensitzungenRepo
 	DruckstationRepo    druckstationRepo
-	SettingsRepo        settingsRepo
-	NewTSEClient        NewTSEClient
-	// TSESignierDeadline ueberschreibt die Gesamt-Deadline des synchronen
-	// Signierversuchs; 0 bedeutet tse.SignierDeadline. Nur fuer Tests gedacht.
-	TSESignierDeadline time.Duration
+	TSESignierer        tseApp.Signierer
 }
 
 // DirektverkaufTaetigen records a Direktverkauf as a single immutable event in its own stream

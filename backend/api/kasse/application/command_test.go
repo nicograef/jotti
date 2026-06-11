@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -229,18 +230,21 @@ func TestGeldtransitBuchen_MitTSE_DatenImEvent(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: settingsMock{vereinsname: "TestVerein", tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return tse.FakeClient{
-				StartResponse:  tse.StartResult{TransactionNumber: 41, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 40},
-				FinishResponse: tse.FinishResult{TransactionNumber: 41, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 41, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-GELDTRANSIT"},
-			}, nil
+		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: settingsMock{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{
+					StartResponse:  tse.StartResult{TransactionNumber: 41, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 40},
+					FinishResponse: tse.FinishResult{TransactionNumber: 41, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 41, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-GELDTRANSIT"},
+				}, nil
+			},
 		},
 	}
 
@@ -279,18 +283,21 @@ func TestKassensturzDurchfuehren_MitTSE_SigniertNurDifferenzEvent(t *testing.T) 
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: settingsMock{vereinsname: "TestVerein", tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return tse.FakeClient{
-				StartResponse:  tse.StartResult{TransactionNumber: 51, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 50},
-				FinishResponse: tse.FinishResult{TransactionNumber: 51, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 51, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-DIFFERENZ"},
-			}, nil
+		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: settingsMock{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{
+					StartResponse:  tse.StartResult{TransactionNumber: 51, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 50},
+					FinishResponse: tse.FinishResult{TransactionNumber: 51, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 51, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-DIFFERENZ"},
+				}, nil
+			},
 		},
 	}
 
@@ -339,18 +346,21 @@ func TestTagesabschlussErstellen_MitTSE_DatenImEvent(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo: settingsMock{vereinsname: "TestVerein", tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			return tse.FakeClient{
-				StartResponse:  tse.StartResult{TransactionNumber: 61, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 60},
-				FinishResponse: tse.FinishResult{TransactionNumber: 61, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 61, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-TAGESABSCHLUSS"},
-			}, nil
+		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: settingsMock{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{
+					StartResponse:  tse.StartResult{TransactionNumber: 61, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 60},
+					FinishResponse: tse.FinishResult{TransactionNumber: 61, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 61, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-TAGESABSCHLUSS"},
+				}, nil
+			},
 		},
 	}
 
@@ -389,16 +399,19 @@ func TestKassensitzungEroeffnen_MitTSEKonfiguration_WirdNichtSigniert(t *testing
 	cmd := Command{
 		KassenjournalRepo:   kassenjournal_repo.NewMock(nil, nil),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
-		SettingsRepo: settingsMock{vereinsname: "TestVerein", tse: settings.TSEKonfiguration{
-			ApiKey:    "api-key",
-			ApiSecret: "api-secret",
-			TssID:     "tss-1",
-			ClientID:  "client-1",
-			UpdatedAt: time.Now(),
-		}},
-		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-			tseClientCalled = true
-			return tse.FakeClient{}, nil
+		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: settingsMock{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				tseClientCalled = true
+				return tse.FakeClient{}, nil
+			},
 		},
 	}
 

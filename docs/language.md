@@ -413,7 +413,7 @@ Je ein Satz — Pflichten und Details: [compliance.md §2](compliance.md#2-recht
 #### TSE & Kryptografie
 
 - **TSE (Technische Sicherheitseinrichtung):** Zwingend vorgeschriebenes, BSI-zertifiziertes Sicherheitsmodul, das jeden Kassiervorgang kryptografisch signiert. In jotti als Cloud-TSE über das `TSEClient`-Interface umgesetzt (BYOT-Modell).
-- **TSEClient:** Anbieter-agnostisches Go-Interface (`domain/tse/client.go`) mit `StartTransaction`, `UpdateTransaction`, `FinishTransaction`. Implementierung: `FiskalyTSEClient` (`repository/tse_repo/`).
+- **TSEClient:** Anbieter-agnostisches Go-Interface (`domain/tse/client.go`) mit `StartTransaction` und `FinishTransaction` (atomares Muster). Implementierung: `FiskalyTSEClient` (`repository/tse_repo/`).
 - **TSEData:** Signaturdaten in den Event-Payloads. Go-Struct `TSEData` (`domain/kasse/tse_data.go`) · JSON-Keys: `tseTransactionNumber`, `tseSignatureCounter`, `tseSerialNumber`, `tseLogTimeStart`, `tseLogTimeEnd`, `tseSignature`, `tseProcessType`, `tseQrCodeData`.
 - **Nachsignierung:** Schlägt die TSE-Signatur beim Buchen fehl, wird der Vorgang in der Outbox `tse_nachsignier_auftraege` vermerkt und von einem Worker nachsigniert.
 - **Transaktionsnummer (TSE_TANR):** Eindeutige, fortlaufende TSE-Nummer pro Kassiervorgang. Dient der Lückenerkennung.

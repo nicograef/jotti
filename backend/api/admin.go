@@ -106,8 +106,11 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 		KassenjournalRepo:   kassenjournalRepo,
 		KassensitzungenRepo: kassensitzungenRepo,
 		SettingsRepo:        settingsRepo,
-		NewTSEClient: func(credentials tse.Credentials) (tse.TSEClient, error) {
-			return tse_repo.NewFiskalyTSEClientSingleAttempt(cfg.FiskalyBaseURL, credentials, nil)
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: settingsRepo,
+			NewTSEClient: func(credentials tse.Credentials) (tse.TSEClient, error) {
+				return tse_repo.NewFiskalyTSEClientSingleAttempt(cfg.FiskalyBaseURL, credentials, nil)
+			},
 		},
 	}
 	r.HandleFunc("/kassensitzung-eroeffnen", kc.KassensitzungEroeffnenHandler())

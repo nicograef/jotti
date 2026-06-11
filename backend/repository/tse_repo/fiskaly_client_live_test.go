@@ -54,7 +54,7 @@ func TestFiskalyClient_LiveSigniertTransaktion(t *testing.T) {
 
 	txID := uuid.NewString()
 
-	start, err := client.StartTransaction(ctx, txID, "Kassenbeleg-V1", "")
+	start, err := client.StartTransaction(ctx, txID)
 	if err != nil {
 		t.Fatalf("start transaction failed: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestFiskalyClient_LiveSigniertTransaktion(t *testing.T) {
 		t.Fatalf("expected a transaction number, got 0")
 	}
 
-	finish, err := client.FinishTransaction(ctx, txID, start.TransactionNumber, "Kassenbeleg-V1", "Beleg^0.00_2.55_0.00_0.00_0.00^2.55:Bar")
+	finish, err := client.FinishTransaction(ctx, txID, "Kassenbeleg-V1", "Beleg^0.00_2.55_0.00_0.00_0.00^2.55:Bar")
 	if err != nil {
 		t.Fatalf("finish transaction failed: %v", err)
 	}

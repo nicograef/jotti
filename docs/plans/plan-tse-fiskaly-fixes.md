@@ -158,7 +158,7 @@ Die Signier-Orchestrierung (`signEventWithTSE`, Ausfallpfad, Betrags-/Zeit-Helfe
 
 ### Acceptance criteria
 
-- [ ] `signEventWithTSE` und processData-Formatter existieren genau einmal; alle drei Kontexte nutzen das gemeinsame Paket
-- [ ] `TSEClient`-Interface ohne `UpdateTransaction`, Parameter heißen nach ihrer tatsächlichen Bedeutung
-- [ ] Neue Events tragen `tseTxId` (UUIDv4); Beleg-Fallback findet nachsignierte Signaturen über das persistierte Feld
-- [ ] compliance.md §4.1/§8 und anforderungen.md F-02 spiegeln den realen Stand (D-06 geschlossen)
+- [x] `signEventWithTSE` und processData-Formatter existieren genau einmal; alle drei Kontexte nutzen das gemeinsame Paket
+- [x] `TSEClient`-Interface ohne `UpdateTransaction`, Parameter heißen nach ihrer tatsächlichen Bedeutung
+- [x] Neue Events tragen `tseTxId` (UUIDv4); Beleg-Fallback findet nachsignierte Signaturen über das persistierte Feld
+- [x] compliance.md §4.1/§8 und anforderungen.md F-02 spiegeln den realen Stand (D-06 geschlossen)

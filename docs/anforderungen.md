@@ -287,13 +287,13 @@ Das Backend spricht die zertifizierte Cloud-TSE (primär: fiskaly) über das anb
 
 **Akzeptanzkriterien:**
 
-- [x] Interface `TSEClient` mit Methoden `StartTransaction`, `UpdateTransaction`, `FinishTransaction` ist definiert
+- [x] Interface `TSEClient` mit Methoden `StartTransaction` und `FinishTransaction` ist definiert (atomares Muster; `UpdateTransaction` wird nicht benötigt)
 - [x] Eine fiskaly-Implementierung des Interfaces (`FiskalyTSEClient`) ist vorhanden
 - [x] Bei fehlender TSE-Konfiguration bleibt TSE optional; im Admin-Dashboard erscheint ein deutlicher Hinweis + Warnung (nur Test/Demo/Übung)
 - [x] TSE-Transaktion bei Bestellung, Zahlung, Stornierung, **Auszahlung**, Geldtransit (Kassenbewegungen), Kassendifferenz, Direktverkauf und Tagesabschluss (vollständiges Mapping → [handbuch.md §3.13](handbuch.md))
 - [x] Event-Daten um TSE-Felder erweitert (Signatur, Transaktionsnummer, Signaturzähler, TSE-Seriennummer)
 - [x] Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
-- [x] Optional? QR-Code auf Beleg (DSFinV-K Anhang I)
+- [x] QR-Code auf Beleg (DSFinV-K Anhang I)
 
 ---
 
