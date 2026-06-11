@@ -30,9 +30,9 @@ func TestGetDirektverkaufHistorieHandler_ReturnsHistorie(t *testing.T) {
 			VerkaufID:            "11111111-1111-1111-1111-111111111111",
 			UserName:             "Leitung",
 			GetaetigtAm:          time.Now(),
-			Positionen:           []kasse.Position{{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 500, Menge: 2}},
+			Positionen:           []kasse.Position{{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 500, Menge: 2}},
 			GesamtbetragCents:    1000,
-			OffenePositionen:     []kasse.Position{{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Einzelpreis: 500, Menge: 1}},
+			OffenePositionen:     []kasse.Position{{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 500, Menge: 1}},
 			GesamtStorniertCents: 500,
 		},
 	}}}
@@ -50,8 +50,12 @@ func TestGetDirektverkaufHistorieHandler_ReturnsHistorie(t *testing.T) {
 			VerkaufID            string `json:"verkaufId"`
 			GesamtbetragCents    int    `json:"gesamtbetragCents"`
 			GesamtStorniertCents int    `json:"gesamtStorniertCents"`
-			OffenePositionen     []struct {
-				Menge int `json:"menge"`
+			Positionen           []struct {
+				Steuersatz string `json:"steuersatz"`
+			} `json:"positionen"`
+			OffenePositionen []struct {
+				Menge      int    `json:"menge"`
+				Steuersatz string `json:"steuersatz"`
 			} `json:"offenePositionen"`
 		} `json:"historie"`
 	}
@@ -67,8 +71,14 @@ func TestGetDirektverkaufHistorieHandler_ReturnsHistorie(t *testing.T) {
 	if resp.Historie[0].GesamtStorniertCents != 500 {
 		t.Errorf("expected gesamtStorniertCents 500, got %d", resp.Historie[0].GesamtStorniertCents)
 	}
+	if len(resp.Historie[0].Positionen) != 1 || resp.Historie[0].Positionen[0].Steuersatz == "" {
+		t.Errorf("expected one position with steuersatz, got %+v", resp.Historie[0].Positionen)
+	}
 	if len(resp.Historie[0].OffenePositionen) != 1 || resp.Historie[0].OffenePositionen[0].Menge != 1 {
 		t.Errorf("expected one offene Position with menge 1, got %+v", resp.Historie[0].OffenePositionen)
+	}
+	if resp.Historie[0].OffenePositionen[0].Steuersatz == "" {
+		t.Errorf("expected offene position steuersatz to be set")
 	}
 }
 

@@ -41,6 +41,7 @@ export const VerkaufPositionSchema = z.object({
   produktName: z.string().min(1).max(100),
   varianteName: z.string().min(1).max(100),
   kategorie: z.enum(['essen', 'getraenk', 'sonstiges']),
+  steuersatz: z.enum(['regel', 'ermaessigt', 'befreit', 'kombi']),
   einzelpreis: z.number().int().min(0),
   menge: z.number().int().min(1),
 })

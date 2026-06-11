@@ -197,10 +197,10 @@ die TSE/Steuer-Roadmap.
 
 ### Acceptance criteria
 
-- [ ] Direktverkauf-Query-Responses enthalten `steuersatz` pro Position.
-- [ ] `VerkaufPositionSchema` verlangt `steuersatz`; Direktverkauf-Ansichten
+- [x] Direktverkauf-Query-Responses enthalten `steuersatz` pro Position.
+- [x] `VerkaufPositionSchema` verlangt `steuersatz`; Direktverkauf-Ansichten
       parsen und rendern weiterhin korrekt.
-- [ ] Direktverkauf-Tests (Backend + Frontend) grün.
+- [x] Direktverkauf-Tests (Backend + Frontend) grün.
 
 ---
 
