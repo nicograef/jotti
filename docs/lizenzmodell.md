@@ -59,8 +59,8 @@ Diese Restriktionen schützen das geistige Eigentum, halten das Dual-Licensing-M
 
 Als alleiniger Urheber kann Nico Gräf jotti unter beliebig vielen Lizenzen gleichzeitig anbieten:
 
-| Pfad            | Lizenz                                                         | Zielgruppe                                          | Kosten          |
-| --------------- | --------------------------------------------------------------- | --------------------------------------------------- | --------------- |
+| Pfad            | Lizenz                                                         | Zielgruppe                                         | Kosten          |
+| --------------- | -------------------------------------------------------------- | -------------------------------------------------- | --------------- |
 | **Non-Profit**  | Proprietäre Source-Available + kostenlose Nutzungsvereinbarung | Eingetragene Vereine, gemeinnützige Organisationen | Kostenlos       |
 | **Kommerziell** | Proprietäre kommerzielle Lizenz                                | Unternehmen, gewerbliche Betriebe, SaaS-Anbieter   | Kostenpflichtig |
 
@@ -73,11 +73,3 @@ Jeder Beitrag (Pull Request, Patch, Code-Einreichung) unterliegt dem [Contributo
 ## 7. Verbindliche Regelungen in den Nutzungsbedingungen
 
 Hosting und Betrieb, Datenschutz (DSGVO), Gewährleistungsausschluss, Haftungsbegrenzung, Freistellung und Compliance-Verantwortung (KassenSichV / TSE) sind abschließend in [TERMS.md §§ 5–10](../TERMS.md) geregelt. Kurzfassung: Die nutzende Organisation ist alleinige Betreiberin und datenschutzrechtlich Verantwortliche; der Autor stellt ausschließlich Quellcode bereit („as-is", Haftung nach Schenkungsrecht § 521 BGB nur für Vorsatz und grobe Fahrlässigkeit) und wird von Ansprüchen Dritter freigestellt. Die fachlichen Compliance-Pflichten der Betreiber beschreibt [compliance.md](compliance.md).
-
----
-
-## Hinweise für den Entwickler
-
-- **Vereinsmitgliedschaft:** Auch wenn der Autor Mitglied eines nutzenden Vereins ist, bleibt jotti sein persönliches Projekt — Vereinsmitgliedschaft begründet kein Arbeitsverhältnis, § 69b UrhG (Arbeitnehmerurheberrecht) gilt nicht für ehrenamtliche Tätigkeit. Entwickelt auf eigenem Rechner, in eigener Zeit, ohne Vereinsbeschluss; [TERMS.md § 1 Abs. 2](../TERMS.md) hält fest, dass kein Auftrags-, Dienst- oder Werkvertragsverhältnis besteht. Bezahlte Feature-Wünsche entweder ablehnen oder sauber als Werkvertrag aufsetzen.
-- **Erwartungsmanagement:** Keine Support-Versprechen, keine Deadlines zusagen („Ich bin kein Auftragnehmer"). Nutzungsvereinbarung vor dem ersten Einsatz per E-Mail abschließen, feste Ansprechperson im Verein benennen, Testlauf und Fallback (Stift & Papier) empfehlen.
-- **Wirtschaftlicher Wert:** Eine Neuentwicklung läge je nach Szenario bei ~120.000–250.000 € netto (133–274 Personentage zu marktüblichen Tagessätzen) — Maßstab für den unentgeltlichen Charakter der Bereitstellung und für das Erwartungsmanagement.
