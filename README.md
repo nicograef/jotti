@@ -62,6 +62,19 @@ make dev
 # Frontend: http://localhost | API: http://localhost/api
 ```
 
+### Print-Relay
+
+Das Print-Relay verbindet den jotti-Server mit den ESC/POS-Bondruckern (80 mm, Ethernet, TCP Port 9100; statische IP empfohlen). Es läuft auf einem Rechner im Drucker-Netzwerk:
+
+```bash
+make build-relay
+RELAY_AUTH_TOKEN="<Token aus .env des Servers>" \
+RELAY_BACKEND_URL="https://jotti.meinverein.de/api" \
+./cmd/relay/jotti-relay
+```
+
+Optionale Umgebungsvariablen: `RELAY_POLL_SECONDS` (Abfrageintervall, Standard `2`) und `RELAY_TLS_SKIP_VERIFY=1` (Zertifikatsprüfung überspringen). Ohne `RELAY_BACKEND_URL` nutzt das Relay `https://localhost/api` und überspringt die Zertifikatsprüfung automatisch (lokales, selbstsigniertes Setup); bei gültigem Zertifikat `RELAY_TLS_SKIP_VERIFY` **nicht** setzen. Bei nicht erreichbarem Drucker versucht das Relay den Druck bis zu 5 Minuten erneut; nicht quittierte Aufträge liefert der nächste Poll erneut. Schnelltest: `curl -X POST http://localhost:3000/relay/poll -H "Content-Type: application/json" -d '{"token":"<RELAY_AUTH_TOKEN>"}'` → `200` mit `auftraege` bei gültigem Token, `401` bei ungültigem.
+
 ## Tech-Stack
 
 | Komponente    | Technologie                                           |

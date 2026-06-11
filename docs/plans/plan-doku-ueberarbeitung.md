@@ -4,7 +4,7 @@
 
 ## Goal
 
-Alle zehn Dokumente unter `docs/` (ohne `plans/` und `prds/`) verschlanken, entdoppeln und konsistent machen: weniger Text, eine einzige Quelle pro Fakt in den Entwickler-Dokumenten, eigenständig lesbare Betreiber-Leitfäden, korrekte Implementierungsstatus-Angaben. Zielgröße: von ~4.220 Zeilen auf ~2.800–2.900 Zeilen (≈ 33 %; das ursprüngliche 40–50 %-Ziel ist durch die eingefrorenen §§-Texte und die Arbeitsartefakte anforderungen.md/language.md begrenzt — Akzeptanzkriterien sind inhaltlich, Zeilenziele indikativ).
+Alle zehn Dokumente unter `docs/` (ohne `plans/` und `prds/`) verschlanken, entdoppeln und konsistent machen: weniger Text, eine einzige Quelle pro Fakt in den Entwickler-Dokumenten, eigenständig lesbare Betreiber-Leitfäden, korrekte Implementierungsstatus-Angaben. Zielgröße: von ~4.220 Zeilen auf ~2.650–2.800 Zeilen (≈ 35 %; das ursprüngliche 40–50 %-Ziel ist durch die eingefrorenen §§-Texte und die Arbeitsartefakte anforderungen.md/language.md begrenzt — Akzeptanzkriterien sind inhaltlich, Zeilenziele indikativ).
 
 ## Architectural decisions
 
@@ -23,7 +23,7 @@ Dauerhafte Strukturentscheidungen, die für alle Phasen gelten:
   - `produktbeschreibung.md` — Produktidentität (mit ehrlichem Status)
   - `betrieb/leitfaden-*.md` — Laienfassung, standalone
 - **Keine TOCs:** Inhaltsverzeichnisse in allen Dokumenten entfernen (GitHub rendert die Outline automatisch). Ausnahme: keine — auch in `TERMS.md` ist das TOC kein Bestandteil der §§.
-- **Handbuch-Kapitelnummern bleiben stabil** (§3 Kasse, §4 Stammdaten, §5 Auth, §6 Architekturprinzipien) — `.github/instructions/*` verlinken auf §3/§4/§6.
+- **Handbuch = Architektur-Referenz:** Bounded Contexts, Aggregat-Grenzen, Event-Sourcing-Modell, Invarianten, Design-Entscheidungen, Berechtigungsmatrix. Keine Code-Listings, Feld-Schemata oder Betriebsanleitungen — kanonische Quelle dafür sind Code (`backend/domain/`), Migrationen (`database/migrations/`) bzw. README/`betrieb/`. Kapitelnummern dürfen sich ändern; referenzierende Deep-Links (`.github/instructions/*`, AGENTS.md) werden in derselben Phase angepasst.
 - **`git mv` für Verschiebungen** (History-Erhalt). Für `TERMS.md`: erst Stub löschen, dann `git mv docs/nutzungsbedingungen.md TERMS.md`, dann anpassen.
 
 ## Inventory
@@ -122,20 +122,32 @@ compliance.md auf ~400–450 Zeilen konsolidieren: Betreiberpflichten in **einem
 
 ### Context
 
-- `docs/handbuch.md` — TOC Z. 3–47; §3.10 „Kassensturz — rechtliche Grundlagen" (Z. 398–405) und §3.11 „Betreiber-Ablauf" (Z. 415–421) = Rechts-/Betreiberinhalte; §4.6 Relay-Betrieb (Z. 699–734) mit Start-Anleitung, Env-Tabelle, Schnelltest; §5.2 Passwort „min. 8 Zeichen" (Z. 788) — Code: min. 6 (`backend/domain/user/password.go:15`)
-- `.github/instructions/*.instructions.md` — Deep-Links auf §3/§4/§6
+- `docs/handbuch.md` — 923 Zeilen. TOC Z. 3–47; §3.6 Event-Feldtabellen (Z. 170–300) duplizieren die Go-Structs; §3.10 „rechtliche Grundlagen" (Z. 398–405) und §3.11 „Betreiber-Ablauf" (Z. 415–421) = Rechts-/Betreiberinhalte; §3.13 enthält Go-Code (TSEClient-Interface, TSEData-Struct) und zwei ASCII-Diagramme; §4.1–§4.4 Entitäts-Bäume duplizieren die Migrationen; §4.6 enthält Tabellen-Schemata und eine Relay-Betriebsanleitung (Start-Kommando, Env-Tabelle, TLS, Schnelltest, Z. 699–734); §5.2 Passwort „min. 8 Zeichen" (Z. 788) — Code: min. 6 (`backend/domain/user/password.go:15`)
+- Zweck (→ Architectural decisions): Architektur-Referenz — übergeordnete Erklärungen, Architektur-Ansatz, Design-Entscheidungen, Invarianten. Was 1:1 im Code/in Migrationen steht, wird dort nachgeschlagen, nicht hier dupliziert.
+- `.github/instructions/*.instructions.md` — Deep-Links auf §3/§3.4/§4/§6/§6.3; `database.instructions.md:6` verweist für das Event-Store-Schema bereits heute fälschlich auf §3.4 (richtig: §3.2)
 
 ### What to build
 
-handbuch.md auf ~650–700 Zeilen straffen, Kapitelnummern stabil halten. TOC entfernen. §3.10/§3.11: rechtliche Grundlagen und Betreiber-Ablauf durch je einen Verweis auf compliance.md ersetzen — die technischen Invarianten (Zwei-Event-Muster, z_nr-Regeln) bleiben. §3.13: ASCII-Diagramm des DSFinV-K-Exporters entfernen (Modul-Aufzählung genügt), TSE-Diagramm und Interface-Code bleiben. §4.6: Relay-Start-Anleitung, Env-Variablen-Tabelle, TLS-Verhalten und Schnelltest auf das architektonisch Relevante kürzen (Relay = Transport, Poll/Quittieren, Fehlerverhalten in 2–3 Sätzen) — die Betriebsanleitung gehört perspektivisch in betrieb/, wird hier aber ersatzlos verdichtet, da das README den Start bereits abdeckt. §5.2 Passwort-Mindestlänge auf 6 Zeichen korrigieren. Doppelt erklärte Konzepte (z. B. Fat Events, OCC — mehrfach in §2.2, §3.4, §6.6) auf je eine kanonische Stelle reduzieren.
+handbuch.md auf die Architektur-Referenz reduzieren (~500–550 Zeilen). Kapitelnummern dürfen sich ändern — alle Deep-Links werden im selben Commit nachgezogen. Im Einzelnen:
+
+- **TOC entfernen** (GitHub-Outline genügt).
+- **Code-/Schema-Duplikate entfernen:** Go-Blöcke (TSEClient, TSEData), ASCII-Diagramme (TSE-Integration, DSFinV-K-Exporter) und Feld-Bäume/Spalten-Tabellen, die 1:1 im Code stehen (§3.2 Kassenjournal-Baum, §3.8 Projektions-Spalten, §4.1–§4.4 Entitäts-Bäume, §4.6 druckauftraege/druckstationen-Schemata), durch kurze Prosa mit den architektonisch tragenden Eigenschaften ersetzen (z. B. `UNIQUE(subject, version)` für OCC, `kassensitzung_nr` für Cross-Stream-Queries) und auf Code/Migrationen verweisen.
+- **§3.6 Domain Events:** Feldtabellen entfernen; kompakte Event-Übersicht bleibt (Event-Typ, Subject, Semantik, tragende Constraints wie Pflicht-Kommentare) mit Verweis auf `backend/domain/kasse/*_events.go` als kanonische Schema-Quelle.
+- **§3.10/§3.11:** Rechtliche Grundlagen und Betreiber-Ablauf durch Verweise auf compliance.md ersetzen; technische Invarianten (Zwei-Event-Muster, z_nr-Regeln, Tisch-Saldo-Sperre) bleiben — ggf. zu einem Abschnitt zusammenführen.
+- **§3.13:** Mapping-Tabelle jotti-Vorgang → TSE-Transaktion (Atomares Modell) bleibt als Design-Entscheidung; Rest auf Prosa + Verweise (compliance.md §3, Code) verdichten.
+- **§4.6:** Relay-Betriebsanleitung (Start-Kommando, Env-Tabelle, TLS-Hinweise, Schnelltest, Drucker-Hardware) ersatzlos streichen (README deckt den Start ab); bleiben: Zwei-Familien-Tabelle (Arbeitsbon/Kassenbeleg), Outbox-Konzept, „Relay = Transport" in 2–3 Sätzen.
+- **§5.2:** Passwort-Mindestlänge auf 6 Zeichen korrigieren.
+- **Dedup:** Fat Events und OCC je einmal kanonisch erklären (§2.2 bzw. §6.6), übrige Stellen verweisen nur.
+- **Deep-Links nachziehen:** `.github/instructions/*` und AGENTS.md gegen die neuen Kapitelnummern prüfen und korrigieren (inkl. des bereits falschen §3.4-Verweises in database.instructions.md).
 
 ### Acceptance criteria
 
-- [ ] Kapitelnummern §1–§8 unverändert; alle Deep-Links aus `.github/instructions/*` funktionieren
-- [ ] §5.2 nennt min. 6 Zeichen (konsistent mit Code und anforderungen.md A-02)
-- [ ] Keine Rechts-Grundlagen-Aufzählungen mehr in §3.10/§3.11 (nur Verweise auf compliance.md)
-- [ ] handbuch.md ≤ 700 Zeilen
-- [ ] Event-Schemata in §3.6 vollständig erhalten (kanonische Quelle für language.md)
+- [x] Keine Go-Code-Blöcke, keine Spalten-/Feld-Schemata und keine ASCII-Architektur-Diagramme mehr im Handbuch; Schema-Fragen verweisen auf Code/Migrationen
+- [x] §5.2 nennt min. 6 Zeichen (konsistent mit Code und anforderungen.md A-02)
+- [x] Keine Rechts-Grundlagen-Aufzählungen und kein Betreiber-Ablauf mehr (nur Verweise auf compliance.md)
+- [x] Alle Deep-Links aus `.github/instructions/*` und AGENTS.md zeigen auf existierende Kapitel des neuen Stands
+- [x] Berechtigungsmatrix (§5.1), Invarianten und Event-Übersicht (Typ, Subject, Semantik) bleiben vollständig erhalten
+- [x] handbuch.md ≤ 550 Zeilen (Ergebnis: 480)
 
 ---
 
@@ -146,6 +158,7 @@ handbuch.md auf ~650–700 Zeilen straffen, Kapitelnummern stabil halten. TOC en
 - `docs/language.md` — veraltete Stellen: Z. 303–323 (`kassenbewegung-gebucht:v1` → Code: `geldtransit-gebucht:v1`, nur `einlage`/`entnahme`), Z. 479 (`druckauftraege` „geplant" → existiert), Z. 483 (Relay-Cursor-Hinweis → Relay ist Transport), Z. 37 (Widerspruch zum Cursor-Hinweis); Vereinswesen-Definitionen (Z. 56–65) überlappen steuerrecht.md §8; Fiskal-Begriffe (Z. 506–514) überlappen compliance.md §2
 - `docs/anforderungen.md` — bereits straff; Status-Symbole und IDs werden extern referenziert
 - Code-Referenzen: `backend/domain/kasse/kassensitzung_events.go:14`, `database/migrations/01_initial.up.sql`
+- Nachtrag aus Phase 3: language.md Z. 116 und Z. 269 behaupten, die Event-Feldschemata seien kanonisch in handbuch.md §3.6 — kanonisch ist seit Phase 3 der Code (`backend/domain/kasse/*_events.go`); Verweise entsprechend umstellen
 
 ### What to build
 
@@ -218,4 +231,4 @@ AGENTS.md-Dokumententabelle auffrischen: Pfade/Beschreibungen an den neuen Zusta
 - [ ] AGENTS.md-Tabelle entspricht dem Ist-Zustand der Dokumente
 - [ ] Kein toter relativer Link und kein toter Anker in README.md, TERMS.md, AGENTS.md, docs/, .github/
 - [ ] `grep -rn "docs/nutzungsbedingungen\|lizenz-und-nutzung\|docs/recht" .` (ohne .git und docs/plans, docs/prds) ist leer
-- [ ] Gesamtbilanz dokumentiert: Ausgangswert 4.221 Zeilen (in-scope), Zielkorridor ≤ ~2.900 erreicht oder Abweichung begründet
+- [ ] Gesamtbilanz dokumentiert: Ausgangswert 4.221 Zeilen (in-scope), Zielkorridor ≤ ~2.800 erreicht oder Abweichung begründet

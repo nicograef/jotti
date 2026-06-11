@@ -213,13 +213,13 @@ Die Outbox bekommt das erweiterte Statusmodell (`fehlgeschlagen`, `verworfen`) p
 
 ### Acceptance criteria
 
-- [ ] `druckauftraege` trägt erweiterten Status-CHECK, `versuche` (Default 0) und `letzter_fehler` (NULL)
-- [ ] `/relay/ergebnis` verarbeitet Erfolge und Fehlversuche in einem Request; `/relay/quittieren` existiert nicht mehr (Backend und Relay)
-- [ ] Fehlversuchs-Zählung: 1. und 2. Meldung inkrementieren und aktualisieren `letzter_fehler`, die 3. setzt `fehlgeschlagen`; fehlgeschlagene Aufträge erscheinen nicht mehr im Poll — als Repository-Integrationstests gegen echte DB
-- [ ] Quittieren ist idempotent (doppelte Meldung einer ID ändert nichts) — Integrationstest
-- [ ] Handler-Tests (httptest, Mock-Repo) für den Ergebnis-Endpoint inkl. Token-Prüfung
-- [ ] Zwischen Relay-Handler und Repository liegt keine reine 1:1-Durchreich-Schicht mehr
-- [ ] `make check` und `make check-integration` grün
+- [x] `druckauftraege` trägt erweiterten Status-CHECK, `versuche` (Default 0) und `letzter_fehler` (NULL)
+- [x] `/relay/ergebnis` verarbeitet Erfolge und Fehlversuche in einem Request; `/relay/quittieren` existiert nicht mehr (Backend und Relay)
+- [x] Fehlversuchs-Zählung: 1. und 2. Meldung inkrementieren und aktualisieren `letzter_fehler`, die 3. setzt `fehlgeschlagen`; fehlgeschlagene Aufträge erscheinen nicht mehr im Poll — als Repository-Integrationstests gegen echte DB
+- [x] Quittieren ist idempotent (doppelte Meldung einer ID ändert nichts) — Integrationstest
+- [x] Handler-Tests (httptest, Mock-Repo) für den Ergebnis-Endpoint inkl. Token-Prüfung
+- [x] Zwischen Relay-Handler und Repository liegt keine reine 1:1-Durchreich-Schicht mehr
+- [x] `make check` und `make check-integration` grün
 
 ---
 

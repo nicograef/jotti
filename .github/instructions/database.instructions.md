@@ -3,7 +3,7 @@ description: "Use when working on database migrations, SQL queries, sqlc configu
 applyTo: "database/**,backend/sqlc/**,backend/sqlc.yaml"
 ---
 
-> **Referenz:** Für Stammdaten-Schema (Produkte, Tische, Benutzer) → `docs/handbuch.md` §4. Für Event-Store-Schema → `docs/handbuch.md` §3.4. Für DB-Spalten-Konventionen → `docs/language.md`.
+> **Referenz:** Tabellen-Schemata stehen kanonisch in `database/migrations/01_initial.up.sql`. Für Architektur und Invarianten → `docs/handbuch.md` §3.2 (Kassenjournal) und §4 (Stammdaten). Für DB-Spalten-Konventionen → `docs/language.md`.
 
 Repo-weite Regeln und Guardrails stehen kanonisch in `AGENTS.md`. Diese Datei ergänzt nur datenbankspezifische Konventionen für `database/**`, `backend/sqlc/**` und `backend/sqlc.yaml`.
 

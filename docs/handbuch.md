@@ -1,50 +1,6 @@
 # Entwickler-Handbuch — jotti
 
-## Inhaltsverzeichnis
-
-1. [Überblick](#1-überblick)
-   - [1.1 Systemvision](#11-systemvision)
-   - [1.2 Designziele](#12-designziele)
-   - [1.3 Bewusste Abgrenzung](#13-bewusste-abgrenzung)
-2. [Bounded Contexts](#2-bounded-contexts)
-   - [2.1 Kontextübersicht](#21-kontextübersicht)
-   - [2.2 Beziehungen zwischen Kontexten](#22-beziehungen-zwischen-kontexten)
-3. [Kasse (Core Domain)](#3-kasse-core-domain)
-   - [3.1 Kassensitzung und Abrechnungskreis](#31-kassensitzung-und-abrechnungskreis)
-   - [3.2 Kassenjournal (Event Store)](#32-kassenjournal-event-store)
-   - [3.3 Subject-Design: Hierarchische Subjects](#33-subject-design-hierarchische-subjects)
-   - [3.4 Tisch-Session (Abrechnungskreis-Aggregat)](#34-tisch-session-abrechnungskreis-aggregat)
-   - [3.5 Kassensitzung-Lifecycle](#35-kassensitzung-lifecycle)
-   - [3.6 Domain Events](#36-domain-events)
-   - [3.7 Invarianten](#37-invarianten)
-   - [3.8 Synchrone Projektion, CRUD-Entität und Event Replay](#38-synchrone-projektion-crud-entität-und-event-replay)
-   - [3.9 Kassenbestand (Read Model)](#39-kassenbestand-read-model)
-   - [3.10 Kassensturz](#310-kassensturz)
-   - [3.11 Tagesabschluss (Z-Bon)](#311-tagesabschluss-z-bon)
-   - [3.12 Policies](#312-policies)
-   - [3.13 TSE-Architektur](#313-tse-architektur)
-4. [Stammdaten](#4-stammdaten)
-   - [4.1 Produkt-Aggregat](#41-produkt-aggregat)
-   - [4.2 Tisch-Stammdaten](#42-tisch-stammdaten)
-   - [4.3 Benutzer-Aggregat](#43-benutzer-aggregat)
-   - [4.4 Tisch-Favoriten](#44-tisch-favoriten)
-   - [4.5 Persistenz (CRUD)](#45-persistenz-crud)
-   - [4.6 Bondruck: Arbeitsbon und Kassenbeleg (K-12)](#46-bondruck-arbeitsbon-und-kassenbeleg-k-12)
-5. [Auth und Rollen](#5-auth-und-rollen)
-   - [5.1 Rollen und Berechtigungsmatrix](#51-rollen-und-berechtigungsmatrix)
-   - [5.2 Onboarding-Ablauf](#52-onboarding-ablauf)
-6. [Architekturprinzipien](#6-architekturprinzipien)
-   - [6.1 Schichtenarchitektur](#61-schichtenarchitektur)
-   - [6.2 API-Design](#62-api-design)
-   - [6.3 Frontend-Architektur](#63-frontend-architektur)
-   - [6.4 Validierung](#64-validierung)
-   - [6.5 Geldbeträge](#65-geldbeträge)
-   - [6.6 Mehrbenutzerfähigkeit (OCC)](#66-mehrbenutzerfähigkeit-occ)
-   - [6.7 Sicherheit](#67-sicherheit)
-7. [Read Models](#7-read-models)
-8. [Ubiquitous Language](#8-ubiquitous-language) → [language.md](language.md)
-
----
+> **Zweck:** Architektur-Referenz — Bounded Contexts, Aggregate, Invarianten und Design-Entscheidungen. Feld-Schemata und Implementierungsdetails stehen kanonisch im Code (`backend/domain/`, `database/migrations/`); Start und Betrieb im [README](../README.md) und in [betrieb/](betrieb/).
 
 ## 1. Überblick
 
@@ -92,9 +48,7 @@ Kartenzahlung, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, C
 | Auth       | Kasse      | Open Host Service       | Token mit Benutzer-ID und Rolle                                                  |
 | Auth       | Stammdaten | Open Host Service       | Token mit Benutzer-ID und Rolle                                                  |
 
-Der Kasse-Kontext schützt sich über eine **Anti-Corruption Layer (ACL)** vor Stammdaten-Änderungen: Bestellungs-Events enthalten alle relevanten Produktdaten zum Zeitpunkt der Bestellung (Fat Events). Spätere Preisänderungen haben keinen Einfluss auf historische Bestellungen. Reporting-Projektionen aggregieren direkt über das Kassenjournal — keine Cross-Context-Kommunikation nötig.
-
-> **Stammdaten-Änderungen während offener Kassensitzung:** Fat Events frieren Produktdaten zum Bestellzeitpunkt ein — Änderungen wirken erst in künftigen Bestellungen (Änderungssperre für Steuersätze folgt mit Compliance-Phase 1).
+Der Kasse-Kontext schützt sich über eine **Anti-Corruption Layer (ACL)** vor Stammdaten-Änderungen: Bestellungs-Events enthalten alle relevanten Produktdaten zum Zeitpunkt der Bestellung (**Fat Events**). Spätere Preis- oder Stammdaten-Änderungen haben keinen Einfluss auf historische Bestellungen und wirken erst in künftigen Bestellungen (Änderungssperre für Steuersätze folgt mit Compliance-Phase 1). Reporting-Projektionen aggregieren direkt über das Kassenjournal — keine Cross-Context-Kommunikation nötig.
 
 ---
 
@@ -113,22 +67,9 @@ Die Kassensitzung ist der Container, der Abrechnungskreis (= Tisch-Session) ist 
 
 ### 3.2 Kassenjournal (Event Store)
 
-Das Kassenjournal ist die zentrale, append-only Tabelle für alle finanziellen Geschäftsvorfälle — chronologische, vollständige, unveränderbare Aufzeichnung im Sinne von § 146 AO.
+Das Kassenjournal (Tabelle `kassenjournal`) ist die zentrale, append-only Tabelle für alle finanziellen Geschäftsvorfälle — chronologische, vollständige, unveränderbare Aufzeichnung im Sinne von § 146 AO. Ein Immutabilitäts-Trigger verhindert UPDATE und DELETE.
 
-```
-Kassenjournal (Tabelle: kassenjournal)
-├── id                (int — DB-generiert, eindeutige Event-ID)
-├── user_id           (int — wer hat die Aktion ausgeführt)
-├── user_name         (string — Fat Event: Name zum Zeitpunkt der Aktion)
-├── type              (string — Event-Typ, z. B. "bestellung-aufgenommen:v1")
-├── subject           (string — Stream-Schlüssel, z. B. "kassensitzung-1/tisch-42")
-├── version           (int — aufsteigende Version pro Subject, für OCC)
-├── timestamp         (datetime — Zeitpunkt der Erzeugung)
-├── data              (JSONB — Event-spezifische Daten)
-└── kassensitzung_nr  (int — Zuordnung zur Kassensitzung für Cross-Stream-Queries)
-```
-
-Schema, Immutabilitäts-Trigger und OCC-Mechanismus (`UNIQUE(subject, version)`) sind identisch zum bisherigen Event Store. Die `kassensitzung_nr`-Spalte ermöglicht robuste Cross-Stream-Aggregationen (Reporting, Kassenbestand) ohne fragile LIKE-Patterns auf Subjects.
+Architektonisch tragende Spalten: `subject` (Stream-Schlüssel, → [3.3](#33-subject-design-hierarchische-subjects)), `version` (aufsteigend pro Subject; der Constraint `UNIQUE(subject, version)` realisiert OCC, → [6.6](#66-mehrbenutzerfähigkeit-occ)), `type` (Event-Typ, z. B. `bestellung-aufgenommen:v1`), `data` (JSONB), `user_id`/`user_name` (Fat Event: Name zum Zeitpunkt der Aktion) und `kassensitzung_nr` — sie ermöglicht robuste Cross-Stream-Aggregationen (Reporting, Kassenbestand) ohne fragile LIKE-Patterns auf Subjects. Vollständiges Schema: `database/migrations/01_initial.up.sql`.
 
 ### 3.3 Subject-Design: Hierarchische Subjects
 
@@ -144,9 +85,7 @@ kassensitzung-{nr}/direktverkauf-{uuid}         → Direktverkauf (ein Stream pr
 
 **Tisch-Session-Subject:** `kassensitzung-1/tisch-42` — entsteht implizit mit der ersten Bestellung (kein „Tisch-Öffnen"-Event).
 
-**Direktverkauf-Subject:** `kassensitzung-1/direktverkauf-<uuid>` — ein eigener Stream pro Barverkauf an der Theke. Der Stream-Typ `direktverkauf` schreibt ausschließlich ins Kassenjournal (keine Projektion). `direktverkauf-getaetigt:v1` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream (OCC über `UNIQUE(subject, version)`).
-
-Die **Storno-Validierung** läuft ohne Projektion per On-Demand-Replay des einzelnen Verkauf-Streams (`ReadEventsBySubject` → `ComputeNichtStornierteVerkaufPositionen`): Es lassen sich nur Positionen stornieren, die noch nicht (vollständig) storniert wurden, höchstens in der ursprünglich verkauften Menge. `direktverkauf-storniert:v1` speichert die stornierten Positionen als **Fat-Positionen** (wie der Tisch-Storno `stornierung-erteilt:v1`); die API nimmt `PositionRef` (`positionId` + `menge`) entgegen und reichert im Command an. `gesamtStornierungCents` (vom Command aus den nicht-stornierten Positionen berechnet) trägt den Geldbetrag. Anders als beim Tisch ist die Bargeld-Rückgabe **Teil des Storno-Vorgangs selbst** und mindert den Soll-Kassenbestand direkt — es gibt **keine** separate `auszahlung-geleistet`-Buchung, weil ein Direktverkauf keinen aufzulösenden Saldo hat. Die kompakte Direktverkauf-Historie (eine Zeile pro Verkauf, inkl. noch offener Positionen) entsteht durch Cross-Stream-Replay aller `direktverkauf-*`-Events der offenen Kassensitzung (`kassensitzung_nr`).
+**Direktverkauf-Subject:** `kassensitzung-1/direktverkauf-<uuid>` — ein eigener Stream pro Barverkauf an der Theke, ohne Projektion. `direktverkauf-getaetigt:v1` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream. Die Storno-Validierung läuft per On-Demand-Replay des einzelnen Verkauf-Streams: Es lassen sich nur Positionen stornieren, die noch nicht (vollständig) storniert wurden, höchstens in der ursprünglich verkauften Menge. Anders als beim Tisch ist die Bargeld-Rückgabe **Teil des Storno-Vorgangs selbst** und mindert den Soll-Kassenbestand direkt — es gibt **keine** separate `auszahlung-geleistet`-Buchung, weil ein Direktverkauf keinen aufzulösenden Saldo hat. Die kompakte Direktverkauf-Historie (eine Zeile pro Verkauf) entsteht durch Cross-Stream-Replay aller `direktverkauf-*`-Events der offenen Kassensitzung.
 
 Separate Tisch-Subjects sind notwendig, weil der OCC-Constraint `UNIQUE(subject, version)` bei einem einzigen Subject alle Schreibvorgänge serialisieren würde — bei 5–30 Servicekräften nicht praktikabel.
 
@@ -161,7 +100,7 @@ Separate Tisch-Subjects sind notwendig, weil der OCC-Constraint `UNIQUE(subject,
 
 ### 3.4 Tisch-Session (Abrechnungskreis-Aggregat)
 
-Die Tisch-Session ist die transaktionale Grenze für tischbezogene Vorgänge. Jeder Tisch innerhalb einer Kassensitzung bildet einen eigenständigen Abrechnungskreis mit eigenem Event-Stream (→ [3.6](#36-domain-events)), eigener Versionierung und eigenem Saldo. Das Projektions-Modell (`TischSession`) materialisiert den aktuellen Zustand (→ [3.8](#38-synchrone-projektion-crud-entität-und-event-replay)). Die Projektion ist session-scoped — jede KS startet mit leerer Projektion. Produktdaten werden als Fat Events zum Bestellzeitpunkt eingefroren.
+Die Tisch-Session ist die transaktionale Grenze für tischbezogene Vorgänge. Jeder Tisch innerhalb einer Kassensitzung bildet einen eigenständigen Abrechnungskreis mit eigenem Event-Stream (→ [3.6](#36-domain-events)), eigener Versionierung und eigenem Saldo. Das Projektions-Modell (`TischSession`) materialisiert den aktuellen Zustand (→ [3.8](#38-synchrone-projektion-crud-entität-und-event-replay)). Die Projektion ist session-scoped — jede KS startet mit leerer Projektion. Produktdaten sind zum Bestellzeitpunkt eingefroren (Fat Events, → [2.2](#22-beziehungen-zwischen-kontexten)).
 
 ### 3.5 Kassensitzung-Lifecycle
 
@@ -169,134 +108,35 @@ Die Kassensitzung durchläuft: **Eröffnung** (Datum + Bezeichnung) → **Anfang
 
 ### 3.6 Domain Events
 
-Alle Events sind unveränderlich (append-only) und werden im Kassenjournal persistiert. Namenskonvention: deutsch, Partizip-Form, Pattern `{Substantiv}-{Partizip}:v{N}`.
+Alle Events sind unveränderlich (append-only) und werden im Kassenjournal persistiert. Namenskonvention: deutsch, Partizip-Form, Pattern `{Substantiv}-{Partizip}:v{N}`. Die Feld-Schemata (Felder, Typen, Validierung) stehen kanonisch im Code: `backend/domain/kasse/*_events.go`.
 
-#### Tisch-Session-Events (Subject: `kassensitzung-{nr}/tisch-{id}`)
+**Tisch-Session-Events** (Subject `kassensitzung-{nr}/tisch-{id}`):
 
-##### BestellungAufgenommen (`bestellung-aufgenommen:v1`)
+| Event                      | Semantik                                        | Tragende Constraints                                                                          |
+| -------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `bestellung-aufgenommen:v1` | Servicekraft nimmt eine Bestellung am Tisch auf | ≥ 1 Position; Produktname, Variante, Kategorie und Einzelpreis als Fat Event eingefroren      |
+| `ausgabe-bestaetigt:v1`     | Positionen als ausgegeben markiert              | Positionsbezug (`position_id` + `menge`); Teilausgaben möglich                                |
+| `zahlung-kassiert:v1`       | Barzahlung kassiert                             | Betrag = Summe der gewählten Positionen; Teilzahlungen möglich                                |
+| `stornierung-erteilt:v1`    | Stornierung durch Serviceleitung/Admin          | Kommentar **Pflicht** (min. 3 Zeichen); unabhängig vom Ausgabe-/Bezahlstatus                  |
+| `auszahlung-geleistet:v1`   | Auszahlung gleicht negativen Saldo aus (K-05)   | Freier Betrag ≥ 1 Cent, kein Positionsbezug; Kommentar **Pflicht**                            |
 
-Servicekraft nimmt eine Bestellung am Tisch auf.
+**Direktverkauf-Events** (Subject `kassensitzung-{nr}/direktverkauf-{uuid}`):
 
-| Feld                 | Typ     | Beschreibung                   |
-| -------------------- | ------- | ------------------------------ |
-| `bestellung_id`      | UUID    | Eindeutige ID der Bestellung   |
-| `gesamt_preis_cents` | int     | Summe aller Positionen in Cent |
-| `kommentar`          | string? | Optional, max. 100 Zeichen     |
-| `positionen[]`       | Array   | Mindestens 1 Position          |
+| Event                       | Semantik                                                     | Tragende Constraints                                                                    |
+| --------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `direktverkauf-getaetigt:v1` | Barverkauf an der Theke: Bestellen + Zahlen in einem Schritt | Immer `version = 1` des Streams                                                         |
+| `direktverkauf-storniert:v1` | Positionsgenauer Storno eines Direktverkaufs                 | Folge-Version im selben Stream; Fat-Positionen; Bargeld-Rückgabe inklusive (→ [3.3](#33-subject-design-hierarchische-subjects)) |
 
-**Position:**
+**Kassensitzung-Events** (Subject `kassensitzung-{nr}`):
 
-| Feld            | Typ    | Beschreibung                                   |
-| --------------- | ------ | ---------------------------------------------- |
-| `position_id`   | UUID   | Eindeutige ID der Position                     |
-| `variante_id`   | int    | FK auf Variante                                |
-| `produkt_name`  | string | Fat Event — eingefroren                        |
-| `variante_name` | string | Fat Event — eingefroren                        |
-| `kategorie`     | enum   | `essen` · `getraenk` · `sonstiges` — Fat Event |
-| `einzelpreis`   | int    | Cent, Fat Event — eingefroren                  |
-| `menge`         | int    | ≥ 1                                            |
-
-##### AusgabeBestaetigt (`ausgabe-bestaetigt:v1`)
-
-Positionen als ausgegeben markieren. Teilausgaben möglich.
-
-| Feld           | Typ           | Beschreibung                              |
-| -------------- | ------------- | ----------------------------------------- |
-| `ausgabe_id`   | UUID          | Eindeutige ID                             |
-| `positionen[]` | PositionRef[] | `position_id` (UUID) + `menge` (int, ≥ 1) |
-| `kommentar`    | string?       | Optional, max. 100 Zeichen                |
-
-##### ZahlungKassiert (`zahlung-kassiert:v1`)
-
-Barzahlung kassieren. Betrag = Summe der gewählten Positionen. Teilzahlungen möglich.
-
-| Feld                   | Typ           | Beschreibung                              |
-| ---------------------- | ------------- | ----------------------------------------- |
-| `zahlung_id`           | UUID          | Eindeutige ID                             |
-| `positionen[]`         | PositionRef[] | `position_id` (UUID) + `menge` (int, ≥ 1) |
-| `gesamt_zahlung_cents` | int           | Cent — Summe der gewählten Positionen     |
-| `kommentar`            | string?       | Optional, max. 100 Zeichen                |
-
-##### StornierungErteilt (`stornierung-erteilt:v1`)
-
-Stornierung durch Serviceleitung/Admin. Unabhängig vom Ausgabe-/Bezahlstatus.
-
-| Feld                       | Typ           | Beschreibung                              |
-| -------------------------- | ------------- | ----------------------------------------- |
-| `stornierung_id`           | UUID          | Eindeutige ID                             |
-| `positionen[]`             | PositionRef[] | `position_id` (UUID) + `menge` (int, ≥ 1) |
-| `gesamt_stornierung_cents` | int           | Cent — Summe der stornierten Positionen   |
-| `kommentar`                | string        | **Pflicht**, min. 3, max. 100 Zeichen     |
-
-##### AuszahlungGeleistet (`auszahlung-geleistet:v1`)
-
-Auszahlung durch Serviceleitung/Admin zum Ausgleich eines negativen Saldos (K-05). Freier Betrag, kein Positionsbezug.
-
-| Feld            | Typ    | Beschreibung                          |
-| --------------- | ------ | ------------------------------------- |
-| `auszahlung_id` | UUID   | Eindeutige ID                         |
-| `betrag_cents`  | int    | ≥ 1 Cent, kein Positionsbezug         |
-| `kommentar`     | string | **Pflicht**, min. 3, max. 100 Zeichen |
-
-#### Kassensitzung-Events (Subject: `kassensitzung-{nr}`)
-
-##### KassensitzungEroeffnet (`kassensitzung-eroeffnet:v1`)
-
-| Feld            | Typ    | Beschreibung                  |
-| --------------- | ------ | ----------------------------- |
-| `datum`         | date   | YYYYMMDD                      |
-| `bezeichnung`   | string | z. B. „Sommerfest 2026 Tag 1" |
-| `eroeffnet_von` | int    | User-ID des Admins            |
-
-##### AnfangsbestandGesetzt (`anfangsbestand-gesetzt:v1`)
-
-| Feld           | Typ | Beschreibung        |
-| -------------- | --- | ------------------- |
-| `betrag_cents` | int | Wechselgeld in Cent |
-| `gesetzt_von`  | int | User-ID             |
-
-##### GeldtransitGebucht (`geldtransit-gebucht:v1`)
-
-Geldtransit (Einlage oder Entnahme) als Event im Kassenjournal.
-
-| Feld           | Typ    | Beschreibung                          |
-| -------------- | ------ | ------------------------------------- |
-| `bewegung_id`  | UUID   | Eindeutige ID                         |
-| `richtung`     | enum   | `einlage` · `entnahme`                |
-| `betrag_cents` | int    | ≥ 1 Cent                              |
-| `kommentar`    | string | **Pflicht**, min. 3, max. 200 Zeichen |
-| `gebucht_von`  | int    | User-ID                               |
-
-##### KassensturzDurchgefuehrt (`kassensturz-durchgefuehrt:v1`)
-
-| Feld                 | Typ | Beschreibung     |
-| -------------------- | --- | ---------------- |
-| `soll_bestand_cents` | int | Errechneter Soll |
-| `ist_bestand_cents`  | int | Gezählter Ist    |
-| `differenz_cents`    | int | Soll − Ist       |
-| `durchgefuehrt_von`  | int | User-ID          |
-
-##### DifferenzSollIstGebucht (`differenz-soll-ist-gebucht:v1`)
-
-Nur wenn `differenz_cents ≠ 0`.
-
-| Feld           | Typ | Beschreibung                               |
-| -------------- | --- | ------------------------------------------ |
-| `betrag_cents` | int | Positiv = Überschuss, negativ = Fehlbetrag |
-| `gebucht_von`  | int | User-ID                                    |
-
-##### TagesabschlussErstellt (`tagesabschluss-erstellt:v1`)
-
-| Feld                  | Typ      | Beschreibung                   |
-| --------------------- | -------- | ------------------------------ |
-| `z_nr`                | int      | Fortlaufend, nie zurücksetzbar |
-| `zeitraum_von`        | datetime | Beginn der Kassensitzung       |
-| `zeitraum_bis`        | datetime | Ende der Kassensitzung         |
-| `umsatz_gesamt_cents` | int      | Gesamtumsatz                   |
-| `stornierungen_cents` | int      | Summe Stornierungen            |
-| `auszahlungen_cents`  | int      | Summe Auszahlungen             |
-| `geldtransit_cents`   | int      | Netto-Geldtransit              |
-| `erstellt_von`        | int      | User-ID                        |
+| Event                           | Semantik                                                | Tragende Constraints                                                          |
+| ------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `kassensitzung-eroeffnet:v1`    | Admin eröffnet die Kassensitzung (Datum, Bezeichnung)   | —                                                                             |
+| `anfangsbestand-gesetzt:v1`     | Wechselgeld-Anfangsbestand                              | Genau 1× pro Kassensitzung                                                    |
+| `geldtransit-gebucht:v1`        | Einlage oder Entnahme (`richtung`)                      | Kommentar **Pflicht** (min. 3 Zeichen)                                        |
+| `kassensturz-durchgefuehrt:v1`  | Soll-Ist-Abgleich                                       | Voraussetzung für den Tagesabschluss                                          |
+| `differenz-soll-ist-gebucht:v1` | Differenzbuchung nach Kassensturz                       | Nur wenn Differenz ≠ 0; gleiche Transaktion wie der Kassensturz (→ [3.10](#310-kassensturz)) |
+| `tagesabschluss-erstellt:v1`    | Z-Bon: aggregiert die Kassensitzung und schließt sie    | `z_nr` fortlaufend, nie zurücksetzbar                                         |
 
 ### 3.7 Invarianten
 
@@ -338,43 +178,11 @@ Eine synchrone Projektion (`tisch_sessions`) + eine CRUD-Entität (`kassensitzun
 | `"kassensitzung"` | ✅                   | ✅ INSERT/UPDATE  | —                |
 | `"tisch-session"` | ✅                   | —                 | ✅ UPSERT        |
 
-**Write-Through-Ablauf:** `WriteEvent()` führt in einer einzigen Transaktion das Kassenjournal-INSERT und — je nach `streamType` — das `kassensitzungen`-UPDATE oder das `tisch_sessions`-UPSERT durch. Die `ApplyEvent()`-Funktion (`backend/domain/kasse/tisch_session.go`) ist eine reine Funktion in der Domain-Schicht (kein DB-Zugriff): nimmt `TischSession` + `Event` entgegen, gibt den neuen Zustand zurück.
+Die Zustandsberechnung (`ApplyEvent()` in `backend/domain/kasse/tisch_session.go`) ist eine reine Funktion der Domain-Schicht (kein DB-Zugriff): Sie nimmt `TischSession` + `Event` entgegen und schreibt pro Event-Typ Saldo und Positionslisten fort.
 
-#### `kassensitzungen` — CRUD-Entität (Hot-Path)
+**`kassensitzungen` (CRUD-Entität, Hot-Path):** hält nur `z_nr`, `datum` und `status` und wird bei **jedem** Tisch-Schreibvorgang gelesen (Kassensitzung-Sperre). Alle weiteren KS-Daten (Anfangsbestand, Bezeichnung, Kassenbewegungen) werden bei Bedarf per In-Memory-Replay der wenigen KS-Events berechnet.
 
-| Spalte   | Typ      | Beschreibung                       |
-| -------- | -------- | ---------------------------------- |
-| `z_nr`   | INT (PK) | Fortlaufende Kassenabschlussnummer |
-| `datum`  | DATE     | Datum der Kassensitzung            |
-| `status` | TEXT     | `offen` oder `abgeschlossen`       |
-
-Diese CRUD-Entität wird bei **jedem** Tisch-Schreibvorgang gelesen (Kassensitzung-Sperre). Alle weiteren Kassensitzung-Daten (Anfangsbestand, Bezeichnung, Kassenbewegungen) werden bei Bedarf per In-Memory-Replay der wenigen KS-Events berechnet.
-
-#### `tisch_sessions` — Session-scoped Tisch-Projektion
-
-| Spalte                   | Typ       | Beschreibung                                     |
-| ------------------------ | --------- | ------------------------------------------------ |
-| `subject`                | TEXT (PK) | `kassensitzung-{nr}/tisch-{id}`                  |
-| `tisch_id`               | INT (FK)  | Referenz auf `tische.id`                         |
-| `kassensitzung_nr`       | INT       | Denormalisiert für schnelle Queries              |
-| `saldo_cents`            | INT       | Aktueller Tisch-Saldo in Cent                    |
-| `unbezahlte_positionen`  | JSONB     | `[]Position` — noch nicht bezahlte Positionen    |
-| `ausstehende_positionen` | JSONB     | `[]Position` — noch nicht ausgegebene Positionen |
-| `gesamt_zahlungen_cents` | INT       | Summe aller Zahlungen in Cent                    |
-| `last_event_id`          | INT (FK)  | ID des zuletzt verarbeiteten Events              |
-| `last_event_version`     | INT       | Version des zuletzt verarbeiteten Events         |
-
-**Apply-Tabelle:**
-
-| Event-Typ             | Zustandsänderung                                                                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------------ |
-| BestellungAufgenommen | Positionen zu `unbezahlte_positionen` und `ausstehende_positionen` hinzufügen, Saldo erhöhen                 |
-| AusgabeBestaetigt     | Referenzierte Mengen aus `ausstehende_positionen` subtrahieren (Eintrag entfernen bei Menge 0)               |
-| ZahlungKassiert       | Referenzierte Mengen aus `unbezahlte_positionen` subtrahieren, Saldo und `gesamt_zahlungen_cents` anpassen   |
-| StornierungErteilt    | Referenzierte Mengen aus `unbezahlte_positionen` und `ausstehende_positionen` subtrahieren, Saldo reduzieren |
-| AuszahlungGeleistet   | Saldo um `betrag_cents` erhöhen (negativen Saldo ausgleichen) — keine Positionslisten-Änderung               |
-
-**Lesezugriff:** Operative Queries lesen direkt aus `tisch_sessions`; Historie liest den Event Stream via `ReadEventsBySubject()`. Bei Inkonsistenz kann `tisch_sessions` jederzeit aus dem Kassenjournal reberechnet werden (Single Source of Truth).
+**`tisch_sessions` (session-scoped Projektion):** pro Subject eine Zeile mit Tisch-Referenz, Saldo, unbezahlten und ausstehenden Positionen (JSONB) sowie der ID/Version des zuletzt verarbeiteten Events. Operative Queries lesen direkt aus der Projektion; die Historie liest den Event-Stream via `ReadEventsBySubject()`. Bei Inkonsistenz kann die Projektion jederzeit aus dem Kassenjournal reberechnet werden (Single Source of Truth).
 
 ### 3.9 Kassenbestand (Read Model)
 
@@ -386,102 +194,33 @@ Alle Summanden stammen aus dem Kassenjournal. Keine Cross-Context-Projektion. Di
 
 ### 3.10 Kassensturz
 
-Am Ende einer Schicht vergleicht der Admin den errechneten Soll-Bestand mit dem physisch gezählten Ist-Bestand. Der Application Service schreibt beim Kassensturz **zwei Events in derselben Transaktion**, wenn `differenz_cents ≠ 0`:
+Am Ende einer Schicht vergleicht der Admin den errechneten Soll-Bestand (→ [3.9](#39-kassenbestand-read-model)) mit dem physisch gezählten Ist-Bestand. Der Application Service schreibt beim Kassensturz **zwei Events in derselben Transaktion**: `kassensturz-durchgefuehrt:v1` (immer) und `differenz-soll-ist-gebucht:v1` (nur wenn `differenz_cents ≠ 0`). Differenzen werden nie per `UPDATE` korrigiert — sie sind eigene Geschäftsvorfälle: Das Differenz-Event bekommt eine eigene `kassenjournal.id` und ist direkt als Zeile in `businesscases.csv` exportierbar (`GV_TYP = DifferenzSollIst`).
 
-| Version | Event                           | Wann                   |
-| ------- | ------------------------------- | ---------------------- |
-| N       | `kassensturz-durchgefuehrt:v1`  | Immer                  |
-| N+1     | `differenz-soll-ist-gebucht:v1` | Nur wenn Differenz ≠ 0 |
-
-Das `DifferenzSollIstGebucht`-Event bekommt eine eigene `kassenjournal.id` — direkt exportierbar als Zeile in `businesscases.csv` mit `GV_TYP = DifferenzSollIst`.
-
-**Kassensturz — rechtliche Grundlagen:**
-
-- **Soll-Bestand:** Anfangsbestand + Bareinnahmen − Barausgaben (vom System errechnet).
-- **Ist-Bestand:** Manuell gezählter Bargeldbestand, erfasst im Zählprotokoll.
-- **Invariante:** Kassenbestand darf niemals negativ sein.
-- **Differenzbuchung:** Abweichung darf nicht per `UPDATE` überschrieben werden — Eigenbeleg erzeugen, TSE signieren, als `GV_TYP = DifferenzSollIst` in `businesscases.csv` exportieren. Fehlbetrag = negativer Wert, Überschuss = positiver Wert. Umsatzsteuerlich neutral.
-- **Aufbewahrungspflicht:** Z-Bons und Zählprotokolle 10 Jahre (GoBD).
-- **Hinweis Betriebsprüfung:** Eine Kasse, die „immer auf den Cent genau stimmt", gilt als manipulationsverdächtig — die Finanzverwaltung sucht mit IDEA-Software gezielt nach fehlenden Differenzen.
+Rechtliche Grundlagen und Betreiberpflichten (Zählprotokoll, Differenzbuchung, Aufbewahrung) → [compliance.md §4](compliance.md#4-gobd-konformität) und [§8](compliance.md#8-betreiberpflichten).
 
 ### 3.11 Tagesabschluss (Z-Bon)
 
-Der Z-Bon ist das Ergebnis des `TagesabschlussErstellt`-Events — er aggregiert alle Geschäftsvorfälle einer Kassensitzung und erhält eine fortlaufende, nie zurücksetzbare `z_nr`.
+Der Z-Bon ist das Ergebnis des `tagesabschluss-erstellt:v1`-Events — er aggregiert alle Geschäftsvorfälle einer Kassensitzung und erhält eine fortlaufende, nie zurücksetzbare `z_nr`.
 
-**Invarianten:** `z_nr` strikt aufsteigend und lückenlos. Voraussetzung: Kassensturz durchgeführt + alle Tisch-Sessions Saldo = 0. Das Event schließt die KS (→ Status `abgeschlossen`). Z-Bons müssen 10 Jahre aufbewahrt werden (GoBD).
+**Invarianten:** `z_nr` strikt aufsteigend und lückenlos. Voraussetzung: Kassensturz durchgeführt + alle Tisch-Sessions Saldo = 0 (→ [3.7](#37-invarianten)). Das Event schließt die KS (→ Status `abgeschlossen`).
 
-**Z-Bon vs. X-Bon:** Der Z-Bon setzt den Kassenumsatzspeicher auf null zurück; ein Zwischenbericht (X-Bon) ersetzt ihn rechtlich nicht. **Stammdaten-Snapshot:** Zu jedem Abschluss müssen die aktuell gültigen Stammdaten (Steuersätze, TSE-Zertifikate, Kassen-IDs) eingefroren werden — vor jeder Stammdaten-Änderung zunächst Kassenabschluss durchführen.
+**Stammdaten-Snapshot:** Zu jedem Abschluss müssen die aktuell gültigen Stammdaten (Steuersätze, TSE-Zertifikate, Kassen-IDs) eingefroren werden — vor jeder Stammdaten-Änderung zunächst Kassenabschluss durchführen.
 
-**Betreiber-Ablauf:**
-
-1. Bargeld zählen (Zählprotokoll).
-2. Z-Bon im System erstellen (kein X-Bon).
-3. Ist mit Soll abgleichen.
-4. Differenzen buchen (→ [§3.10](#310-kassensturz)).
-5. Z-Bon und Zählprotokoll archivieren (10 Jahre).
+Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, Aufbewahrung) → [compliance.md §8](compliance.md#8-betreiberpflichten).
 
 ### 3.12 Policies
 
 - **Stornierungsberechtigung (K-04):** Nur `serviceleitung` und `admin` dürfen `StornierungErteilen`. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat geht.
-- **Arbeitsbon-Druck nach Kategorie (K-12):** Jedes `bestellung-aufgenommen:v1`-Event löst im Backend die **Arbeitsbon-Policy** aus (`backend/api/bondruck`). Sie gruppiert die Positionen nach Kategorie, schlägt für jede Kategorie mit konfigurierter Druckstation IP und Bonmodus (`pro_position` oder `pro_bestellung`) aus der `druckstationen`-Tabelle nach, formatiert den ESC/POS-Payload und reiht je einen **Druckauftrag** in die Outbox (`druckauftraege`) ein. Kategorien ohne Druckstation erzeugen keinen Auftrag. Der Arbeitsbon trägt **keine Preise** und ist **kein** Beleg i. S. v. § 146a AO (→ [4.6 Bondruck](#46-bondruck-arbeitsbon-und-kassenbeleg-k-12)). Das Print-Relay ist reiner Transport: Es holt offene Aufträge via `POST /relay/poll` und bestätigt gedruckte via `POST /relay/quittieren`.
+- **Arbeitsbon-Druck nach Kategorie (K-12):** Jedes `bestellung-aufgenommen:v1`-Event löst im Backend die Arbeitsbon-Policy aus, die Druckaufträge in die Outbox einreiht (→ [4.6 Bondruck](#46-bondruck-arbeitsbon-und-kassenbeleg-k-12)).
 - **Umbuchung (K-09):** Verschiebt eine Bestellung von Quell- auf Ziel-Tisch (= Stornierung + neue Bestellung). Cross-Aggregat-Transaktion — Atomarität auf Anwendungsebene sicherstellen. Nur `serviceleitung` und `admin`.
 
 ### 3.13 TSE-Architektur
 
-> Compliance-spezifische Architektur-Entscheidungen für die TSE-Integration. Allgemeine Architekturprinzipien (Event-Sourcing, Kassenjournal, Projektion, OCC, Fat Events) sind in den vorherigen §3-Abschnitten beschrieben. Rechtliche Grundlagen → [compliance.md §3–§8](compliance.md).
+> Compliance-spezifische Architektur-Entscheidungen für die TSE-Integration. Rechtliche Grundlagen → [compliance.md §3–§8](compliance.md).
 
-#### TSE-Integration
+**TSE-Integration:** Die Application-Schicht ruft die TSE über das anbieter-agnostische `TSEClient`-Interface auf (`StartTransaction` / `UpdateTransaction` / `FinishTransaction`, → `backend/domain/tse/client.go`). `UpdateTransaction` ist nur für `Bestellung-V1` und `SonstigerVorgang-V1` zulässig — für `Kassenbeleg-V1` verboten (BMF-FAQ). Die TSE-Rückgabewerte (Transaktionsnummer, logTime von Start und Finish, Signaturzähler, Signatur, TSE-Seriennummer, processType) werden als `TSEData` in den Event-Daten des Kassenjournals persistiert (`backend/domain/kasse/*_events.go`); zusätzlich hält die Tisch-Session die logTime der ersten Bestellung für den Bon-Aufdruck.
 
-```
-┌─────────────────────────────────────────────┐
-│                  jotti Backend               │
-│                                              │
-│  ┌──────────┐    ┌──────────────────────┐   │
-│  │ Service-  │───▶│  TSE-Service          │   │
-│  │ Handler   │    │  (Application Layer)  │   │
-│  └──────────┘    └──────────┬───────────┘   │
-│                              │               │
-│                    ┌─────────▼─────────┐     │
-│                    │  TSEClient        │     │
-│                    │  (Interface)      │     │
-│                    └─────────┬─────────┘     │
-│                              │               │
-└──────────────────────────────┼───────────────┘
-                               │
-                    ┌──────────▼──────────┐
-                    │   Cloud-TSE API     │
-                    │   (z.B. fiskaly)    │
-                    └─────────────────────┘
-```
-
-**Interface-Design:**
-
-```go
-type TSEClient interface {
-    StartTransaction(ctx context.Context, kassenID string, processType string, processData string) (StartResult, error)
-    // UpdateTransaction nur für processType="Bestellung-V1" und "SonstigerVorgang-V1" zulässig.
-    // Für "Kassenbeleg-V1" verboten (BMF-FAQ).
-    UpdateTransaction(ctx context.Context, kassenID string, transactionNumber int, processData string) error
-    FinishTransaction(ctx context.Context, kassenID string, transactionNumber int, processType string, processData string) (FinishResult, error)
-}
-
-type StartResult struct {
-    TransactionNumber int
-    LogTime           time.Time // TSE-interner Zeitstempel
-    SerialNumberTSE   string
-    SignatureCounter  int
-}
-
-type FinishResult struct {
-    Signature        string
-    LogTime          time.Time
-    SignatureCounter int
-}
-```
-
-#### Mapping: jotti-Vorgänge → TSE-Transaktionen (Atomares Modell)
-
-Für das Festzelt-Muster gilt: Jeder Vorgang ist eine **eigenständige, sofort geschlossene** TSE-Transaktion.
+**Mapping: jotti-Vorgänge → TSE-Transaktionen (Atomares Modell):** Für das Festzelt-Muster gilt: Jeder Vorgang ist eine **eigenständige, sofort geschlossene** TSE-Transaktion.
 
 | jotti-Vorgang                            | TSE-Operation             | processType           | Anmerkung                                                         |
 | ---------------------------------------- | ------------------------- | --------------------- | ----------------------------------------------------------------- |
@@ -499,143 +238,37 @@ Für das Festzelt-Muster gilt: Jeder Vorgang ist eine **eigenständige, sofort g
 
 **Alle Transaktionen eines Tisches** teilen denselben `ABRECHNUNGSKREIS`-Wert im DSFinV-K-Export.
 
-#### Event-Store-Erweiterung
+**DSFinV-K-Exporter:** Drei Module — Stammdaten-, Einzelaufzeichnungs- und Z-Bon-Modul — speisen einen CSV-Generator mit den offiziellen Dateinamen (`transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, …); ein index.xml-Generator und ZIP-Builder bündeln den Export. Datei-Struktur und Pflichtfelder → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 
-Die TSE-Rückgabewerte müssen in den bestehenden Event-Daten persistiert werden:
-
-```go
-// Erweiterung der Event-Data-Structs um TSE-Felder
-type TSEData struct {
-    TransactionNumber int    `json:"tseTransactionNumber"`
-    LogTimeStart      string `json:"tseLogTimeStart"`  // logTime von StartTransaction
-    LogTimeEnd        string `json:"tseLogTimeEnd"`    // logTime von FinishTransaction
-    SignatureCounter  int    `json:"tseSignatureCounter"`
-    Signature         string `json:"tseSignature"`
-    SerialNumberTSE   string `json:"tseSerialNumber"`
-    ProcessType       string `json:"tseProcessType"`
-}
-
-// Zusätzlich in TischSession-Daten:
-type TischSession struct {
-    AbrechnungskreisID     string    // z.B. "Tisch 42" (Tischname)
-    ErsteBestellungLogTime time.Time // logTime der ersten Bestellung-V1 für den Bon-Aufdruck
-}
-```
-
-#### DSFinV-K Export-Architektur
-
-```
-┌──────────────────────────────────────────────┐
-│              DSFinV-K Exporter                │
-│                                               │
-│  ┌────────────┐  ┌────────────┐  ┌────────┐ │
-│  │ Stammdaten- │  │ Einzelauf- │  │ Z-Bon- │ │
-│  │ modul       │  │ zeichnungs-│  │ Modul  │ │
-│  │             │  │ modul      │  │        │ │
-│  └──────┬─────┘  └──────┬─────┘  └───┬────┘ │
-│         │               │             │       │
-│  ┌──────▼───────────────▼─────────────▼────┐ │
-│  │   CSV-Generator (offizielle Dateinamen) │ │
-│  │   transactions.csv, lines.csv,          │ │
-│  │   cashregister.csv, tse.csv, …          │ │
-│  └──────────────────┬──────────────────────┘ │
-│                     │                         │
-│  ┌──────────────────▼──────────────────────┐ │
-│  │     index.xml Generator + ZIP-Builder  │ │
-│  └─────────────────────────────────────────┘ │
-└──────────────────────────────────────────────┘
-```
-
-#### Anbieter- und Meldeweg-Entscheidungen
-
-TSE-Anbieter (fiskaly als erster Zielanbieter; anbieter-agnostisches `TSEClient`-Interface gegen Vendor-Lock-in) und Kassenmeldungs-Weg (Phase 1 manuell über ELSTER, Phase 2 ERiC oder fiskaly-Submission-API) sind mitsamt Begründung und Abwägung (ERiC vs. Submission-API) in [compliance.md §3.5 und §7](compliance.md) dokumentiert.
+**Anbieter- und Meldeweg-Entscheidungen:** TSE-Anbieter (fiskaly als erster Zielanbieter; anbieter-agnostisches `TSEClient`-Interface gegen Vendor-Lock-in) und Kassenmeldungs-Weg (Phase 1 manuell über ELSTER, Phase 2 ERiC oder fiskaly-Submission-API) sind mitsamt Begründung und Abwägung in [compliance.md §3.5 und §7](compliance.md) dokumentiert.
 
 ---
 
 ## 4. Stammdaten
 
-Alle Stammdaten verwenden Soft-Delete via `status = 'deleted'`. Datensätze werden nie physisch gelöscht — referenzielle Integrität und historische Nachvollziehbarkeit (Fat Events im Kassenjournal) erfordern dies.
+Alle Stammdaten verwenden Soft-Delete via `status = 'deleted'`. Datensätze werden nie physisch gelöscht — referenzielle Integrität und historische Nachvollziehbarkeit (Fat Events im Kassenjournal) erfordern dies. Tabellen-Schemata: `database/migrations/01_initial.up.sql`.
 
 ### 4.1 Produkt-Aggregat
 
-Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produkt gehört zu einer Kategorie und kann beliebig viele Varianten besitzen — jede Variante mit eigenem Namen und Preis.
+Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produkt gehört zu einer Kategorie (`essen`, `getraenk`, `sonstiges`) und kann beliebig viele Varianten besitzen — jede Variante mit eigenem Namen und Preis (Cent, ≥ 0).
 
-```
-Produkt
-├── produkt_id       (int — DB-generiert)
-├── name             (string — nicht leer)
-├── kategorie        (essen | getraenk | sonstiges)
-├── status           (active | deleted)
-└── varianten[]
-    ├── variante_id  (int — DB-generiert)
-    ├── name         (string — nicht leer)
-    ├── preis        (int, Cent — ≥ 0)
-    └── status       (active | inactive | deleted)
-```
-
-**Invarianten:**
-
-- Produktname darf nicht leer sein.
-- Kategorie muss ein gültiger Wert sein (`essen`, `getraenk`, `sonstiges`).
-- Jede Variante benötigt einen nicht-leeren Namen und einen Preis ≥ 0 (in Cent).
-- Varianten können unabhängig vom Produkt deaktiviert werden (`inactive`). Inaktive Varianten erscheinen nicht im Service-Katalog.
+**Invarianten:** Produkt- und Variantennamen nicht leer; Kategorie gültig; Preis ≥ 0. Varianten können unabhängig vom Produkt deaktiviert werden (`inactive`) und erscheinen dann nicht im Service-Katalog.
 
 ### 4.2 Tisch-Stammdaten
 
-Das Tisch-Stammdaten-Aggregat verwaltet die Basisdaten eines Tisches (Name + Status). Strikt von der Tisch-Session im Kasse-Kontext (→ [3.4](#34-tisch-session-abrechnungskreis-aggregat)) zu unterscheiden.
+Tisch-Stammdaten sind Name + Status. Nur aktive Tische (`active`) erscheinen in der Tischübersicht der Servicekräfte; der Name darf nicht leer sein.
 
-```
-Tisch (Stammdaten)
-├── tisch_id    (int — DB-generiert)
-├── name        (string — nicht leer, z. B. „Tisch 1", „Stehtisch Eingang")
-└── status      (active | inactive | deleted)
-```
-
-**Invarianten:**
-
-- Name darf nicht leer sein.
-- Nur aktive Tische (`active`) erscheinen in der Tischübersicht der Servicekräfte.
-
-**Abgrenzung zum Kasse-Kontext:** In den Stammdaten ist der Tisch eine CRUD-Entität (Name + Status); im Kasse-Kontext eine Event-Sourced Tisch-Session (Abrechnungskreis). Beide teilen `tisch_id`.
+**Abgrenzung zum Kasse-Kontext:** In den Stammdaten ist der Tisch eine CRUD-Entität; im Kasse-Kontext eine Event-Sourced Tisch-Session (Abrechnungskreis, → [3.4](#34-tisch-session-abrechnungskreis-aggregat)). Beide teilen `tisch_id`.
 
 ### 4.3 Benutzer-Aggregat
 
-Das Benutzer-Aggregat verwaltet die Zugangsdaten und Rollen der Helfer und Admins.
+Das Benutzer-Aggregat verwaltet Zugangsdaten und Rollen (`admin`, `serviceleitung`, `service`) der Helfer und Admins.
 
-```
-Benutzer
-├── benutzer_id                (int — DB-generiert)
-├── name                       (string — Anzeigename)
-├── benutzername               (string — eindeutig, Login-Name)
-├── passwort_hash              (string — Argon2id, NULL bei Neuanlage)
-├── einmalpasswort_hash        (string — Argon2id, NULL nach Passwort-Vergabe)
-├── rolle                      (admin | serviceleitung | service)
-└── status                     (active | inactive | deleted)
-```
-
-**Invarianten:**
-
-- Benutzername muss systemweit eindeutig sein.
-- Rolle muss ein gültiger Wert sein (`admin`, `serviceleitung`, `service`).
-- Passwort wird mit Argon2id gehasht — Klartext-Passwörter nie persistiert.
-- Deaktivierte (`inactive`) und entfernte (`deleted`) Benutzer können sich nicht anmelden.
-- Neue Benutzer: Status `inactive`, 6-stelliges Einmalpasswort (→ [5.2](#52-onboarding-ablauf)).
+**Invarianten:** Benutzername systemweit eindeutig; Rolle gültig; Passwörter nur als Argon2id-Hash persistiert — Klartext nie. Deaktivierte (`inactive`) und entfernte (`deleted`) Benutzer können sich nicht anmelden. Neue Benutzer starten mit Status `inactive` und 6-stelligem Einmalpasswort (→ [5.2](#52-onboarding-ablauf)).
 
 ### 4.4 Tisch-Favoriten
 
-Tisch-Favoriten sind eine einfache CRUD-Relation im Stammdaten-Kontext. Sie verknüpfen einen Benutzer mit einem oder mehreren Tischen und steuern, welche Tische auf dem Service-Dashboard als "Meine Tische" angezeigt werden.
-
-```
-tisch_favoriten
-├── user_id     (int — FK users(id), NOT NULL)
-├── tisch_id    (int — FK tische(id), NOT NULL)
-└── created_at  (timestamptz — DEFAULT NOW())
-
-PRIMARY KEY (user_id, tisch_id)
-INDEX idx_tisch_favoriten_user_id ON tisch_favoriten(user_id)
-```
-
-Direktes CRUD ohne Event-Sourcing (kein Aggregat, keine Events). Benutzerspezifisch, idempotente Operationen (`ON CONFLICT DO NOTHING`), nur aktive Tische erlaubt. Fremdschlüssel sichern referenzielle Integrität; physisches Löschen durch Soft-Delete ausgeschlossen. Repository `favorit_repo` kapselt drei Operationen: `Add`, `Remove`, `GetByUser`.
+Tisch-Favoriten sind eine CRUD-Relation Benutzer ↔ Tisch und steuern, welche Tische auf dem Service-Dashboard als „Meine Tische" angezeigt werden. Kein Aggregat, keine Events; Operationen idempotent (`ON CONFLICT DO NOTHING`), nur aktive Tische erlaubt.
 
 ### 4.5 Persistenz (CRUD)
 
@@ -650,88 +283,15 @@ Stammdaten (Produkte, Tische, Benutzer) werden mit klassischem CRUD verwaltet. E
 | **Arbeitsbon**  | `bestellung-aufgenommen:v1` (automatisch)       | nicht-fiskalisch       | Ware ohne Preise (Küche/Theke)                  |
 | **Kassenbeleg** | `POST /service/beleg-drucken` (auf Anforderung) | fiskalisch (§ 146a AO) | Positionen mit Preisen, Vereinsdaten, Kassen-ID |
 
-**Arbeitsbon (operativ, K-12):** Eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)). Bei `bestellung-aufgenommen:v1` gruppiert die Arbeitsbon-Policy (`backend/api/bondruck`) die Positionen nach Kategorie, schlägt IP und Bonmodus aus `druckstationen` nach, formatiert den ESC/POS-Payload und reiht je einen Druckauftrag (`bon_art = 'arbeitsbon'`) in die Outbox ein. Kategorien ohne konfigurierte Druckstation erzeugen keinen Auftrag. **Inhalt:** Tischnummer (groß), Position (Art + Menge, z. B. „3x Pommes (groß)"), Kommentar, Uhrzeit, Servicekraft — **keine Preise**. Kein Beleg i. S. v. § 146a AO. KDS (K-13) und Zubereitungsstatus (K-15) sind noch offen.
+**Arbeitsbon (operativ, K-12):** Eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)). Bei `bestellung-aufgenommen:v1` gruppiert die Arbeitsbon-Policy (`backend/api/bondruck`) die Positionen nach Kategorie, schlägt Drucker-IP und Bonmodus (`pro_position` oder `pro_bestellung`) aus der `druckstationen`-Tabelle nach (eine Zeile pro Kategorie; Admin-Konfiguration mit beidseitiger IPv4-Validierung), formatiert den ESC/POS-Payload und reiht je einen Druckauftrag in die Outbox ein. Kategorien ohne konfigurierte Druckstation erzeugen keinen Auftrag. **Inhalt:** Tischnummer, Positionen (Art + Menge), Kommentar, Uhrzeit, Servicekraft — **keine Preise**. Kein Beleg i. S. v. § 146a AO. KDS (K-13) und Zubereitungsstatus (K-15) sind noch offen.
 
-**Kassenbeleg (fiskalisch, auf Anforderung):** Ein Service-Command (`POST /service/beleg-drucken`) erzeugt pro Anforderung genau **einen** Druckauftrag (`bon_art = 'kassenbeleg'`) an den Kassenbeleg-Drucker. Als Datenquelle dient entweder eine Tischzahlung (`zahlung-kassiert:v1`, Request: `tischId` + `zahlungId`) oder ein Direktverkauf (`direktverkauf-getaetigt:v1`, Request: `verkaufId`). **Inhalt:** Vereinsdaten (Betreiber, K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer (Event-ID des referenzierten Vorgangs). Die Outbox-Referenz ist entsprechend `zahlung-kassiert:{eventId}` oder `direktverkauf-getaetigt:{eventId}`. Erneuter Aufruf druckt nach, ohne den Vorgang fachlich zu wiederholen. Am Fest wird der Beleg selten verlangt (Belegausgabe-Befreiung → [compliance.md §5.1](compliance.md)). Steuer-Aufschlüsselung folgt mit F-07, TSE-Pflichtfelder mit F-02.
+**Kassenbeleg (fiskalisch, auf Anforderung):** Ein Service-Command (`POST /service/beleg-drucken`) erzeugt pro Anforderung genau **einen** Druckauftrag an den Kassenbeleg-Drucker. Als Datenquelle dient entweder eine Tischzahlung (`zahlung-kassiert:v1`) oder ein Direktverkauf (`direktverkauf-getaetigt:v1`); die Outbox-Referenz ist die Event-ID des referenzierten Vorgangs. **Inhalt:** Vereinsdaten (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer. Erneuter Aufruf druckt nach, ohne den Vorgang fachlich zu wiederholen. Am Fest wird der Beleg selten verlangt (Belegausgabe-Befreiung → [compliance.md §5.1](compliance.md)). TSE-Pflichtfelder folgen mit F-02.
 
-**Druckauftrags-Outbox (`druckauftraege`):** Single Source of Truth für alle Druckjobs — technische Warteschlange, **kein** fiskalisches Journal. Einziger Statusübergang: `offen → gedruckt`.
+**Druckauftrags-Outbox (`druckauftraege`):** Single Source of Truth für alle Druckjobs — eine technische Warteschlange (Ziel-IP, ESC/POS-Payload, `bon_art`, fachliche Referenz), **kein** fiskalisches Journal. Einziger Statusübergang: `offen → gedruckt`.
 
-```
-druckauftraege
-├── id           (serial — PK)
-├── ziel_ip      (string — IPv4 des Zieldruckers)
-├── payload      (text — Base64-kodierter ESC/POS-Byte-String)
-├── status       (offen | gedruckt)
-├── bon_art      (arbeitsbon | kassenbeleg)
-├── referenz     (text — fachliche Referenz, z. B. Event-ID)
-├── erstellt_am  (timestamptz)
-└── gedruckt_am  (timestamptz — NULL bis quittiert)
-```
+**Direktverkauf-Routing:** Die Singleton-Konfiguration `bondruck_einstellungen` hält die Kassenbeleg-Drucker-IP und den `direktverkauf_modus`, der den Bondruck für `direktverkauf-getaetigt:v1` steuert: `kein_bon` (kein Auftrag), `abholbon` (genau ein kombinierter Abholbon ohne Preise) oder `an_stationen` (Arbeitsbons nach Kategorie, identisches Routing wie bei Tisch-Bestellungen). Fehlt die Kassenbeleg-Drucker-IP, schlägt `POST /service/beleg-drucken` mit klarer Fehlermeldung fehl.
 
-**Druckstationen (`druckstationen`-Tabelle):** Arbeitsbon-Stationen je Produktkategorie. Genau drei Zeilen (Seed: essen, getraenk, sonstiges). Admin-Konfiguration über `/admin/get-druckstationen` und `/admin/update-druckstationen`. Validierung: strikte IPv4-Validierung im Backend (zog `.IPv4()`), identisch im Frontend (Zod `z.ipv4()`).
-
-```
-druckstationen
-├── kategorie   (essen | getraenk | sonstiges — PK)
-├── drucker_ip  (string — IPv4, leer = kein Drucker)
-├── bonmodus    (pro_position | pro_bestellung)
-└── updated_at  (timestamptz)
-```
-
-**Bondruck-Einstellungen (`bondruck_einstellungen`, Singleton):** zentrale Bondruck-Konfiguration, administriert über `/admin/get-bondruck-einstellungen` und `/admin/update-bondruck-einstellungen`.
-
-```
-bondruck_einstellungen
-├── kassenbeleg_drucker_ip  (string — IPv4, leer = kein Kassenbeleg-Drucker)
-├── direktverkauf_modus     (kein_bon | abholbon | an_stationen)
-├── abholbon_drucker_ip     (string — IPv4, leer = kein Abholbon-Drucker)
-└── updated_at              (timestamptz)
-```
-
-`direktverkauf_modus` steuert den Bondruck für `direktverkauf-getaetigt:v1`:
-
-- `kein_bon`: kein Druckauftrag.
-- `abholbon`: genau ein kombinierter Abholbon (festes Label „Direktverkauf“, keine Preise) an `abholbon_drucker_ip`.
-- `an_stationen`: Arbeitsbons nach Kategorie über `druckstationen` (identische Routing-Logik wie bei Tisch-Bestellungen).
-
-Für den fiskalischen Kassenbeleg bleibt `kassenbeleg_drucker_ip` maßgeblich. Fehlt diese IP, schlägt `POST /service/beleg-drucken` mit klarer Fehlermeldung fehl.
-
-**Relay = Transport:** Das Print-Relay (`cmd/relay/main.go`) holt offene Aufträge via `POST /relay/poll` (Antwort `{auftraege: [{id, zielIp, payload}]}`), druckt sie und bestätigt die gedruckten IDs via `POST /relay/quittieren` (`{token, gedruckteIds}`); das Backend setzt daraufhin `status = 'gedruckt'`. Das Relay formatiert nichts, kennt keine Kategorien und führt keinen Cursor — ESC/POS-Formatierung und Fachlogik liegen vollständig im Backend.
-
-**Drucker-Voraussetzungen:** ESC/POS-Bondrucker mit Ethernet-Anschluss (TCP Port 9100), 80-mm-Thermodrucker (48 Zeichen/Zeile). Statische IP-Adresse empfohlen. Getestet mit MUNBYN ITPP047P-UE.
-
-**Relay starten:**
-
-```bash
-RELAY_AUTH_TOKEN="<RELAY_AUTH_TOKEN>" \
-RELAY_BACKEND_URL="https://jotti.meinverein.de/api" \
-RELAY_POLL_SECONDS="2" \
-./jotti-relay
-```
-
-| Umgebungsvariable       | Beschreibung                                                    | Standard                |
-| ----------------------- | --------------------------------------------------------------- | ----------------------- |
-| `RELAY_AUTH_TOKEN`      | Authentifizierungs-Token (aus `.env` des Servers)               | (erforderlich)          |
-| `RELAY_BACKEND_URL`     | URL des jotti-Servers inkl. `/api`                              | `https://localhost/api` |
-| `RELAY_POLL_SECONDS`    | Abfrageintervall in Sekunden                                    | `2`                     |
-| `RELAY_TLS_SKIP_VERIFY` | TLS-Zertifikatspruefung ueberspringen (`1/true` oder `0/false`) | bei Local-Default aktiv |
-
-**TLS-Verhalten:**
-
-- **Local (ein Geraet, selbstsigniertes Zertifikat):** Ohne weitere Env-Variablen nutzt das Relay `https://localhost/api` und deaktiviert die Zertifikatspruefung automatisch. Optional explizit: `RELAY_TLS_SKIP_VERIFY=1`.
-- **Cloud (gueltiges Zertifikat):** `RELAY_BACKEND_URL="https://<deine-domain>/api"` setzen und **kein** `RELAY_TLS_SKIP_VERIFY=1` setzen, damit Zertifikate verifiziert werden.
-
-**Fehlerverhalten:** Bei nicht erreichbarem Drucker versucht das Relay mehrfach (bis zu 5 Minuten); danach bleibt der Auftrag `offen` und wird beim nächsten Poll erneut geliefert. Der DB-Status ist autoritativ: Stürzt das Relay zwischen Druck und Quittierung ab, kann ein Auftrag erneut gedruckt werden — beim nicht-fiskalischen Arbeitsbon unkritisch.
-
-**Schnelltest:**
-
-```bash
-curl -X POST http://localhost:3000/relay/poll \
-     -H "Content-Type: application/json" \
-     -d '{"token":"<RELAY_AUTH_TOKEN>"}'
-```
-
-Erwartung: `200` mit `auftraege` bei gültigem Token, `401` bei ungültigem.
+**Relay = Transport:** Das Print-Relay (`cmd/relay/main.go`) holt offene Aufträge via `POST /relay/poll`, druckt sie und quittiert die gedruckten IDs via `POST /relay/quittieren`; das Backend setzt daraufhin `status = 'gedruckt'`. Das Relay formatiert nichts, kennt keine Kategorien und führt keinen Cursor — der DB-Status ist autoritativ; nicht quittierte Aufträge liefert der nächste Poll erneut (beim nicht-fiskalischen Arbeitsbon unkritisch). Start und Konfiguration → [README §Print-Relay](../README.md#print-relay).
 
 ---
 
@@ -785,7 +345,7 @@ Die Rollenhierarchie ist inklusiv: Admin kann alles, was Serviceleitung kann. Se
 Neue Benutzer durchlaufen einen zweistufigen Onboarding-Prozess, der sicherstellt, dass nur der Benutzer sein eigenes Passwort kennt:
 
 1. **Benutzer anlegen:** Admin erstellt Benutzer (Name, Benutzername, Rolle, Status `inactive`). System generiert 6-stelliges Einmalpasswort, das der Admin dem Benutzer mitteilt.
-2. **Erstanmeldung + Passwort setzen:** Benutzer meldet sich mit Einmalpasswort an. System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL` den Onboarding-Status und leitet zur Passwort-Vergabe weiter (min. 8 Zeichen, Argon2id-Hash). Danach reguläre Anmeldung.
+2. **Erstanmeldung + Passwort setzen:** Benutzer meldet sich mit Einmalpasswort an. System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL` den Onboarding-Status und leitet zur Passwort-Vergabe weiter (min. 6 Zeichen, Argon2id-Hash). Danach reguläre Anmeldung.
 
 **Passwort-Reset:** Admin-Reset generiert neues Einmalpasswort, leert `passwort_hash` → Benutzer durchläuft Onboarding erneut.
 
@@ -806,7 +366,7 @@ Das Backend ist in vier Schichten gegliedert: **HTTP** → **Application** → *
 
 **POST-only:** Alle API-Endpunkte sind POST-Endpunkte. Jede Aktion wird explizit benannt (z. B. `/service/bestellung-aufnehmen` statt `PUT /tables/5`).
 
-**Bewusste Ops-Ausnahme:** `GET /health` ist explizit erlaubt, damit Container-Orchestrierung und Reverse-Proxy den Backend-Status per Healthcheck pruefen koennen. Diese Ausnahme gilt nur fuer `/health`; alle fachlichen Endpunkte bleiben strikt POST-only.
+**Bewusste Ops-Ausnahme:** `GET /health` ist explizit erlaubt, damit Container-Orchestrierung und Reverse-Proxy den Backend-Status per Healthcheck prüfen können. Diese Ausnahme gilt nur für `/health`; alle fachlichen Endpunkte bleiben strikt POST-only.
 
 **JSON:** Request- und Response-Bodies sind JSON.
 
@@ -836,7 +396,7 @@ Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 **Seitenstruktur:**
 
 | Bereich   | Seiten                                                                                                                                                                                              |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Service   | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Bezahlen, Historie). Ausgabe bestätigen ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar. |
 | Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten · **Druckerkonfiguration** (`DruckerConfigPage` — IP und Bonmodus pro Kategorie konfigurieren)                                           |
 | Allgemein | Login · Passwort setzen (Erstanmeldung)                                                                                                                                                             |
@@ -851,7 +411,7 @@ Alle Eingaben werden auf beiden Seiten unabhängig validiert: Frontend (Zod, vor
 
 ### 6.5 Geldbeträge
 
-Alle Geldbeträge sind ganzzahlige Cent-Werte (`int` / `INTEGER` / JSON-Zahl) — durchgehend von Datenbank über Backend und API bis Frontend und Events. Keine Fließkommazahlen. Darstellung als „3,50 €“ erfolgt ausschließlich im Frontend (`formatCents()`).
+Alle Geldbeträge sind ganzzahlige Cent-Werte (`int` / `INTEGER` / JSON-Zahl) — durchgehend von Datenbank über Backend und API bis Frontend und Events. Keine Fließkommazahlen. Darstellung als „3,50 €" erfolgt ausschließlich im Frontend (`formatCents()`).
 
 ### 6.6 Mehrbenutzerfähigkeit (OCC)
 
@@ -894,17 +454,15 @@ Read Models sind aufbereitete Lese-Ansichten — reine Projektionen über vorhan
 | Kassenjournal    | K-07 | Kassenjournal (Event Stream, Replay per Subject) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich.                                                                      |
 | Eigene Übersicht | R-06 | `kassenjournal` (SQL-Aggregation)                | KPIs der eigenen Servicekraft: Anzahl und Summe eigener Bestellungen sowie kassierter Zahlungen. Gefiltert auf `user_id` und `kassensitzung_nr`. Endpunkt: `POST /service/get-eigene-uebersicht`. |
 
-Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchronen Projektionstabelle `tisch_sessions` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`. Details zur Projektionsarchitektur: [§3.8 Synchrone Projektion, CRUD-Entität und Event Replay](#38-synchrone-projektion-crud-entität-und-event-replay).
+Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchronen Projektionstabelle `tisch_sessions` — kein Event-Replay nötig. Das Kassenjournal (Historie) liest weiterhin den vollständigen Event Stream via `ReadEventsBySubject()`. Details zur Projektionsarchitektur: [§3.8](#38-synchrone-projektion-crud-entität-und-event-replay).
 
 ### 7.2 Admin-Ansichten (Reporting)
 
-Alle Reporting-Ansichten aggregieren über `kassenjournal` und `tisch_sessions` (nur Admins, on-demand per SQL-Aggregation). Konsolidierter Endpoint `POST /admin/get-reporting` mit Sektionen `summary`, `breakdowns`, `stornierungen`. Filtert nach `kassensitzung_nr` statt Zeitraum. Kein Live-Dashboard, kein Polling.
-
-Die `summary`-Sektion enthält zusätzlich die Direktverkauf-Kennzahl als aggregierte Sitzungsmetrik: `anzahlDirektverkaeufe` und `direktverkaufUmsatzCents` (netto aus Verkauf minus Storno).
+Alle Reporting-Ansichten aggregieren über `kassenjournal` und `tisch_sessions` (nur Admins, on-demand per SQL-Aggregation). Konsolidierter Endpoint `POST /admin/get-reporting` mit Sektionen `summary`, `breakdowns`, `stornierungen`. Filtert nach `kassensitzung_nr` statt Zeitraum. Kein Live-Dashboard, kein Polling. Die `summary`-Sektion enthält zusätzlich die Direktverkauf-Kennzahlen `anzahlDirektverkaeufe` und `direktverkaufUmsatzCents` (netto aus Verkauf minus Storno).
 
 | Name                        | ID   | Inhalt (Kurzfassung)                                                                               |
 | --------------------------- | ---- | -------------------------------------------------------------------------------------------------- |
-| Reporting (Unified)         | R-01 | KPIs (inkl. offene Tische), Umsatz pro Servicekraft/Tisch, Stornierungsübersicht, offene Betraege  |
+| Reporting (Unified)         | R-01 | KPIs (inkl. offene Tische), Umsatz pro Servicekraft/Tisch, Stornierungsübersicht, offene Beträge   |
 | Abrechnung pro Tisch        | R-03 | Alle Bestellungen, Zahlungen, Ausgaben, Stornierungen chronologisch; Gesamt-Saldo pro Tisch        |
 | Abrechnung pro Servicekraft | R-04 | Umsatz pro Servicekraft, Anzahl Bestellungen, Anzahl und Betrag der Stornierungen                  |
 | Produktumsatz               | R-05 | Verkaufte Menge pro Produkt/Variante (abzgl. Stornierungen), Ranking, Gesamteinnahmen pro Variante |

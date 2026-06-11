@@ -412,6 +412,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 
 **Laufend:**
 
+- **Kassensturz und Z-Bon:** Beim Kassensturz den gezählten Ist-Bestand in einem Zählprotokoll festhalten; nach jedem Veranstaltungstag einen Z-Bon erstellen (ein X-Bon/Zwischenbericht ersetzt ihn rechtlich nicht). Differenzen ehrlich buchen — eine Kasse, die „immer auf den Cent genau stimmt", gilt der Finanzverwaltung als manipulationsverdächtig (IDEA-Prüfung). Z-Bons und Zählprotokolle fallen unter die 10-Jahres-Aufbewahrung.
 - **10-Jahres-Aufbewahrung:** Kassenjournal und DSFinV-K-Exporte GoBD-konform und jederzeit lesbar aufbewahren (§§ 146, 147 AO).
 - **Tägliche Backups** — für die Aufbewahrung und die Seriennummern-Kontinuität.
 - **Server-Betrieb:** Verfügbarkeit, Zugriffsschutz, Datensicherung.
@@ -421,7 +422,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 
 ## 9. Architekturprinzipien
 
-→ **[handbuch.md §3.13 — TSE-Architektur](handbuch.md#313-tse-architektur)**: TSEClient-Interface, vollständiges Transaktions-Mapping, Event-Store-Erweiterung (TSE-Felder), DSFinV-K-Exporter-Übersicht. Anbieter- und Meldeweg-Entscheidungen: §3.5 und §7 in diesem Dokument.
+→ **[handbuch.md §3.13 — TSE-Architektur](handbuch.md#313-tse-architektur)**: vollständiges Transaktions-Mapping (Atomares Modell), TSE-Datenpersistenz im Event Store, DSFinV-K-Exporter-Übersicht. Interface-Definition: `backend/domain/tse/client.go`. Anbieter- und Meldeweg-Entscheidungen: §3.5 und §7 in diesem Dokument.
 
 ---
 
