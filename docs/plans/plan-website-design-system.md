@@ -145,15 +145,15 @@ Security-Header der Produktion bleiben auf allen Antworten erhalten
 
 ### Acceptance criteria
 
-- [ ] `make website`: `curl -sI -H 'Accept-Encoding: gzip'` zeigt
+- [x] `make website`: `curl -sI -H 'Accept-Encoding: gzip'` zeigt
       `Content-Encoding: gzip` für HTML und CSS.
-- [ ] `curl -sI` zeigt Cache-Control: lang + immutable für
+- [x] `curl -sI` zeigt Cache-Control: lang + immutable für
       `/fonts/*.woff2` und `/img/*`, kurze max-age für `/css/*` und
       `/js/*`, kein Caching für HTML-Seiten.
-- [ ] In der Prod-Config sind auf Asset-Antworten weiterhin alle
+- [x] In der Prod-Config sind auf Asset-Antworten weiterhin alle
       Security-Header gesetzt (Config-Review; nach Deploy per
       `curl -sI https://jotti.rocks/css/base.css` verifiziert).
-- [ ] Dev- und Prod-Config enthalten identische gzip-/Cache-Regeln.
+- [x] Dev- und Prod-Config enthalten identische gzip-/Cache-Regeln.
 
 ---
 
