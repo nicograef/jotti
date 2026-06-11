@@ -157,11 +157,11 @@ Die Policy verliert die `DirektverkaufBondruckKonfiguration`: Eingabe ist nur no
 
 ### Acceptance criteria
 
-- [ ] Policy-Signatur ohne `DirektverkaufBondruckKonfiguration`; die Policy importiert kein `settings`-Paket mehr
-- [ ] Direktverkauf erzeugt Abholbon(s) gemäß Abholbon-Bonmodus, wenn Abholbon-Station konfiguriert; sonst Aufträge an Produktstationen; ohne Stationen keine Aufträge — Unit-Tests für alle Zweige inkl. Bonmodus-Gruppierung (auch Abholbon) und leerer Konfiguration
-- [ ] Direktverkauf schließt ohne einen einzigen konfigurierten Drucker erfolgreich ab
-- [ ] Die 1:1-Mappings (Direktverkauf-Command, Table-Adapter) sind auf einen gemeinsamen Typ/Helfer reduziert
-- [ ] `make check` und `make check-integration` grün
+- [x] Policy-Signatur ohne `DirektverkaufBondruckKonfiguration`; die Policy importiert kein `settings`-Paket mehr
+- [x] Direktverkauf erzeugt Abholbon(s) gemäß Abholbon-Bonmodus, wenn Abholbon-Station konfiguriert; sonst Aufträge an Produktstationen; ohne Stationen keine Aufträge — Unit-Tests für alle Zweige inkl. Bonmodus-Gruppierung (auch Abholbon) und leerer Konfiguration
+- [x] Direktverkauf schließt ohne einen einzigen konfigurierten Drucker erfolgreich ab
+- [x] Die 1:1-Mappings (Direktverkauf-Command, Table-Adapter) sind auf einen gemeinsamen Typ/Helfer reduziert
+- [x] `make check` und `make check-integration` grün
 
 ---
 

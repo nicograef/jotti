@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"time"
 
-	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/steuer"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/rs/zerolog"
 )
 
@@ -255,14 +255,14 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		Zahlungsart:              "bar",
 	})
 
-	auftrag := bondruckApp.Druckauftrag{
+	auftrag := druckauftrag_repo.NeuerDruckauftrag{
 		ZielIP:   bondruckSettings.KassenbelegDruckerIP,
 		Payload:  base64.StdEncoding.EncodeToString(payload),
 		BonArt:   "kassenbeleg",
 		Referenz: referenz,
 	}
 
-	if err := c.DruckauftragRepo.EnqueueDruckauftraege(ctx, []bondruckApp.Druckauftrag{auftrag}); err != nil {
+	if err := c.DruckauftragRepo.EnqueueDruckauftraege(ctx, []druckauftrag_repo.NeuerDruckauftrag{auftrag}); err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Str("verkauf_id", verkaufID).Msg("Failed to enqueue kassenbeleg")
 		return ErrDatabase
 	}

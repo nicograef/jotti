@@ -50,7 +50,7 @@ func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 		FavoritRepo:         favoritRepo,
 		KassensitzungenRepo: kassensitzungenRepo,
 		DruckstationRepo:    druckstationRepoTableAdapter{repo: druckstationRepo},
-		DruckauftragRepo:    druckauftragRepoTableAdapter{repo: druckauftragRepo},
+		DruckauftragRepo:    druckauftragRepo,
 		SettingsRepo:        settingsRepo,
 		NewTSEClient: func(credentials tse.Credentials) (tse.TSEClient, error) {
 			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)

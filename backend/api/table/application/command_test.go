@@ -21,6 +21,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
@@ -102,11 +103,11 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 }
 
 type mockDruckauftragRepo struct {
-	enqueued []bondruckApp.Druckauftrag
+	enqueued []druckauftrag_repo.NeuerDruckauftrag
 	err      error
 }
 
-func (m *mockDruckauftragRepo) EnqueueDruckauftraege(_ context.Context, auftraege []bondruckApp.Druckauftrag) error {
+func (m *mockDruckauftragRepo) EnqueueDruckauftraege(_ context.Context, auftraege []druckauftrag_repo.NeuerDruckauftrag) error {
 	if m.err != nil {
 		return m.err
 	}

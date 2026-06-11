@@ -39,7 +39,6 @@ type druckstationRepo interface {
 }
 
 type settingsRepo interface {
-	GetBondruckEinstellungen(ctx context.Context) (settings.BondruckEinstellungen, error)
 	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
 
@@ -97,15 +96,14 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	}
 	evt = tseSignierung.Event
 
-	druckstationen, direktverkaufKonfig, err := c.loadBondruckKonfiguration(ctx)
+	druckstationen, err := c.konfigurierteDruckstationen(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load bondruck configuration for direktverkauf")
+		log.Error().Err(err).Msg("Failed to load druckstationen for direktverkauf")
 		return ErrDatabase
 	}
 
 	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
-		auftraege := bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, direktverkaufKonfig)
-		return toNeuerDruckauftraege(auftraege)
+		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen)
 	}
 
 	if tseSignierung.NachsignierAuftrag != nil {
@@ -142,38 +140,14 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	return nil
 }
 
-func (c Command) loadBondruckKonfiguration(ctx context.Context) (map[string]bondruckApp.Druckstation, bondruckApp.DirektverkaufBondruckKonfiguration, error) {
-	if c.DruckstationRepo == nil || c.SettingsRepo == nil {
-		return nil, bondruckApp.DirektverkaufBondruckKonfiguration{Modus: settings.DirektverkaufModusKeinBon}, nil
+// konfigurierteDruckstationen returns the configured print stations, or an empty
+// map when no DruckstationRepo is wired (e.g. in tests). Without configured stations
+// the policy derives no print jobs.
+func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]bondruckApp.Druckstation, error) {
+	if c.DruckstationRepo == nil {
+		return nil, nil
 	}
-
-	druckstationen, err := c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
-	if err != nil {
-		return nil, bondruckApp.DirektverkaufBondruckKonfiguration{}, err
-	}
-
-	bondruckEinstellungen, err := c.SettingsRepo.GetBondruckEinstellungen(ctx)
-	if err != nil {
-		return nil, bondruckApp.DirektverkaufBondruckKonfiguration{}, err
-	}
-
-	return druckstationen, bondruckApp.DirektverkaufBondruckKonfiguration{
-		Modus:             bondruckEinstellungen.DirektverkaufModus,
-		AbholbonDruckerIP: bondruckEinstellungen.AbholbonDruckerIP,
-	}, nil
-}
-
-func toNeuerDruckauftraege(auftraege []bondruckApp.Druckauftrag) []druckauftrag_repo.NeuerDruckauftrag {
-	result := make([]druckauftrag_repo.NeuerDruckauftrag, 0, len(auftraege))
-	for _, a := range auftraege {
-		result = append(result, druckauftrag_repo.NeuerDruckauftrag{
-			ZielIP:   a.ZielIP,
-			Payload:  a.Payload,
-			BonArt:   a.BonArt,
-			Referenz: a.Referenz,
-		})
-	}
-	return result
+	return c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
 }
 
 // DirektverkaufStornieren records a position-precise cancellation of a Direktverkauf as an immutable

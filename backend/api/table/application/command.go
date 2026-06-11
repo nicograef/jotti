@@ -59,7 +59,7 @@ type druckstationRepo interface {
 }
 
 type druckauftragRepo interface {
-	EnqueueDruckauftraege(ctx context.Context, auftraege []bondruckApp.Druckauftrag) error
+	EnqueueDruckauftraege(ctx context.Context, auftraege []druckauftrag_repo.NeuerDruckauftrag) error
 }
 
 type settingsRepo interface {
@@ -210,20 +210,6 @@ func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]bo
 		return nil, nil
 	}
 	return c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
-}
-
-// toNeuerDruckauftraege maps bondruck print jobs to the repository's insert type.
-func toNeuerDruckauftraege(auftraege []bondruckApp.Druckauftrag) []druckauftrag_repo.NeuerDruckauftrag {
-	result := make([]druckauftrag_repo.NeuerDruckauftrag, 0, len(auftraege))
-	for _, a := range auftraege {
-		result = append(result, druckauftrag_repo.NeuerDruckauftrag{
-			ZielIP:   a.ZielIP,
-			Payload:  a.Payload,
-			BonArt:   a.BonArt,
-			Referenz: a.Referenz,
-		})
-	}
-	return result
 }
 
 // loadTischState loads and validates the tisch, then reads its projected tisch session.
@@ -477,7 +463,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	// Build the work tickets from the stored event (with its generated ID) so the
 	// event and its print jobs are written in one transaction (transactional outbox).
 	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
-		return toNeuerDruckauftraege(bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, bondruckApp.DirektverkaufBondruckKonfiguration{}))
+		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen)
 	}
 
 	if signierung.NachsignierAuftrag != nil {

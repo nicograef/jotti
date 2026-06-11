@@ -12,7 +12,6 @@ import (
 	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/settings"
 )
 
 func makeBestellungEvent(id int, subject string, positionen []kasse.Position, kommentar string) event.Event {
@@ -56,7 +55,7 @@ func TestCreateArbeitsbonAuftraege_ProPosition(t *testing.T) {
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, DirektverkaufBondruckKonfiguration{})
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
 
 	if len(auftraege) != 2 {
 		t.Fatalf("expected 2 auftraege (one per position), got %d", len(auftraege))
@@ -84,7 +83,7 @@ func TestCreateArbeitsbonAuftraege_ProBestellung(t *testing.T) {
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_bestellung"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, DirektverkaufBondruckKonfiguration{})
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
 
 	if len(auftraege) != 1 {
 		t.Fatalf("expected 1 sammelbon, got %d", len(auftraege))
@@ -103,7 +102,7 @@ func TestCreateArbeitsbonAuftraege_NoDruckerFuerKategorie(t *testing.T) {
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, DirektverkaufBondruckKonfiguration{})
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
 
 	if len(auftraege) != 0 {
 		t.Errorf("expected 0 auftraege (no printer for kategorie), got %d", len(auftraege))
@@ -120,7 +119,7 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, DirektverkaufBondruckKonfiguration{})
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
 	if len(auftraege) != 2 {
 		t.Fatalf("expected 2 auftraege, got %d", len(auftraege))
 	}
@@ -150,7 +149,9 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 	}
 }
 
-func TestCreateArbeitsbonAuftraege_DirektverkaufAnStationen(t *testing.T) {
+// Direktverkauf-Ableitungsregel: ohne konfigurierte Abholbon-Station gehen die Bons
+// an die Produktstationen je Kategorie.
+func TestCreateArbeitsbonAuftraege_DirektverkaufAnProduktstationen(t *testing.T) {
 	positionen := []kasse.Position{
 		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1},
 		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 2},
@@ -161,9 +162,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAnStationen(t *testing.T) {
 		"getraenk": {IP: "192.168.1.52", Bonmodus: "pro_bestellung"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, DirektverkaufBondruckKonfiguration{
-		Modus: settings.DirektverkaufModusAnStationen,
-	})
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen)
 
 	if len(auftraege) != 2 {
 		t.Fatalf("expected 2 auftraege (one per configured category), got %d", len(auftraege))
@@ -178,17 +177,19 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAnStationen(t *testing.T) {
 	}
 }
 
-func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon(t *testing.T) {
+// Ist die Abholbon-Station konfiguriert, hat sie Vorrang vor den Produktstationen.
+func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProBestellung(t *testing.T) {
 	positionen := []kasse.Position{
 		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 2},
 		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
 	}
 	evt := makeDirektverkaufEvent(21, positionen, "ohne Senf")
+	stationen := map[string]Druckstation{
+		"essen":    {IP: "192.168.1.51", Bonmodus: "pro_position"},
+		"abholbon": {IP: "192.168.1.77", Bonmodus: "pro_bestellung"},
+	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]Druckstation{}, DirektverkaufBondruckKonfiguration{
-		Modus:             settings.DirektverkaufModusAbholbon,
-		AbholbonDruckerIP: "192.168.1.77",
-	})
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen)
 
 	if len(auftraege) != 1 {
 		t.Fatalf("expected exactly 1 abholbon auftrag, got %d", len(auftraege))
@@ -209,14 +210,40 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon(t *testing.T) {
 	}
 }
 
-func TestCreateArbeitsbonAuftraege_DirektverkaufKeinBon(t *testing.T) {
-	evt := makeDirektverkaufEvent(22, []kasse.Position{{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1}}, "")
+// Bonmodus pro_position der Abholbon-Station erzeugt einen Abholbon je Position.
+func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProPosition(t *testing.T) {
+	positionen := []kasse.Position{
+		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 2},
+		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
+	}
+	evt := makeDirektverkaufEvent(22, positionen, "")
+	stationen := map[string]Druckstation{
+		"abholbon": {IP: "192.168.1.77", Bonmodus: "pro_position"},
+	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]Druckstation{}, DirektverkaufBondruckKonfiguration{
-		Modus: settings.DirektverkaufModusKeinBon,
-	})
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen)
+
+	if len(auftraege) != 2 {
+		t.Fatalf("expected 2 abholbon auftraege (one per position), got %d", len(auftraege))
+	}
+	for i, auftrag := range auftraege {
+		if auftrag.ZielIP != "192.168.1.77" {
+			t.Errorf("expected ZielIP 192.168.1.77, got %s", auftrag.ZielIP)
+		}
+		expected := base64.StdEncoding.EncodeToString(escpos.FormatDirektverkaufAbholbon([]kasse.Position{positionen[i]}, evt.UserName, evt.Time, ""))
+		if auftrag.Payload != expected {
+			t.Errorf("abholbon payload %d is not byte-identical to formatter output", i)
+		}
+	}
+}
+
+// Ohne konfigurierte Druckstationen entstehen fuer einen Direktverkauf keine Auftraege.
+func TestCreateArbeitsbonAuftraege_DirektverkaufOhneStationen(t *testing.T) {
+	evt := makeDirektverkaufEvent(23, []kasse.Position{{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1}}, "")
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]Druckstation{})
 
 	if len(auftraege) != 0 {
-		t.Fatalf("expected 0 auftraege in kein_bon mode, got %d", len(auftraege))
+		t.Fatalf("expected 0 auftraege without configured stations, got %d", len(auftraege))
 	}
 }

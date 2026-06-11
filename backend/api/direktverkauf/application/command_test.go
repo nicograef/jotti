@@ -132,16 +132,8 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 }
 
 type mockSettingsRepo struct {
-	bondruck settings.BondruckEinstellungen
-	tse      settings.TSEKonfiguration
-	err      error
-}
-
-func (m *mockSettingsRepo) GetBondruckEinstellungen(_ context.Context) (settings.BondruckEinstellungen, error) {
-	if m.err != nil {
-		return settings.BondruckEinstellungen{}, m.err
-	}
-	return m.bondruck, nil
+	tse settings.TSEKonfiguration
+	err error
 }
 
 func (m *mockSettingsRepo) GetTSEKonfiguration(_ context.Context) (settings.TSEKonfiguration, error) {
@@ -165,13 +157,12 @@ func newCommand(eventRepo eventRepo, ks *kasse.Kassensitzung) Command {
 	}
 }
 
-func newCommandWithBondruck(eventRepo eventRepo, ks *kasse.Kassensitzung, stationen map[string]bondruckApp.Druckstation, bondruck settings.BondruckEinstellungen) Command {
+func newCommandWithDruckstationen(eventRepo eventRepo, ks *kasse.Kassensitzung, stationen map[string]bondruckApp.Druckstation) Command {
 	return Command{
 		EventRepo:           eventRepo,
 		ProductRepo:         newProductMock(),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(ks, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: stationen},
-		SettingsRepo:        &mockSettingsRepo{bondruck: bondruck},
 	}
 }
 
@@ -260,14 +251,11 @@ func TestDirektverkaufTaetigen_Conflict(t *testing.T) {
 
 func TestDirektverkaufTaetigen_AbholbonModeQueuesExactlyOneAuftrag(t *testing.T) {
 	spy := &spyEventRepo{}
-	command := newCommandWithBondruck(
+	command := newCommandWithDruckstationen(
 		spy,
 		testOpenKS,
-		map[string]bondruckApp.Druckstation{},
-		settings.BondruckEinstellungen{
-			DirektverkaufModus: settings.DirektverkaufModusAbholbon,
-			AbholbonDruckerIP:  "192.168.1.77",
-			UpdatedAt:          time.Now(),
+		map[string]bondruckApp.Druckstation{
+			"abholbon": {IP: "192.168.1.77", Bonmodus: "pro_bestellung"},
 		},
 	)
 
