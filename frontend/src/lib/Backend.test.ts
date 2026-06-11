@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
-import { Backend, BackendError } from './Backend'
+import { Backend, BackendError, ResponseBodyError } from './Backend'
 
 const dummyTokenGetter = {
   getToken(): string | null {
@@ -62,5 +62,53 @@ describe('Backend.post', () => {
       code: 'unknown',
     })
     await expect(request).rejects.toThrow('upstream error')
+  })
+
+  it('includes endpoint and issue path for response schema mismatch without leaking values', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            ausstehendePositionen: [
+              { steuersatz: 'SECRET', secretToken: 'SECRET' },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    )
+
+    const backend = createClient()
+    const request = backend.post(
+      'service/get-tisch-state',
+      {},
+      z.object({
+        ausstehendePositionen: z.array(
+          z.object({
+            steuersatz: z.number().int(),
+          }),
+        ),
+      }),
+    )
+
+    await expect(request).rejects.toBeInstanceOf(ResponseBodyError)
+    await expect(request).rejects.toThrow(
+      'Response of service/get-tisch-state is invalid: ausstehendePositionen[0].steuersatz (invalid_type)',
+    )
+
+    let thrown: Error | null = null
+    try {
+      await request
+    } catch (e) {
+      thrown = e as Error
+    }
+
+    expect(thrown).not.toBeNull()
+    expect(thrown?.message).not.toContain('SECRET')
   })
 })

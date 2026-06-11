@@ -222,8 +222,8 @@ Meldung. Kein Verhaltenswechsel in Produktion außer einer präziseren Meldung.
 
 ### Acceptance criteria
 
-- [ ] Bei einer simulierten Schema-Abweichung nennt die Fehlermeldung Endpoint
+- [x] Bei einer simulierten Schema-Abweichung nennt die Fehlermeldung Endpoint
       und Feldpfad.
-- [ ] Bestehende `Backend`-Unit-Tests bleiben grün; ggf. ein Test, der die
+- [x] Bestehende `Backend`-Unit-Tests bleiben grün; ggf. ein Test, der die
       angereicherte Meldung prüft.
-- [ ] Kein Leak sensibler Daten in die Meldung (nur Pfade/Typen, keine Werte).
+- [x] Kein Leak sensibler Daten in die Meldung (nur Pfade/Typen, keine Werte).

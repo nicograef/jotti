@@ -35,6 +35,31 @@ interface TokenGetter {
   getToken(): string | null
 }
 
+function formatIssuePath(path: readonly PropertyKey[]): string {
+  if (path.length === 0) {
+    return '<root>'
+  }
+
+  let out = ''
+  for (const segment of path) {
+    if (typeof segment === 'number') {
+      out += `[${segment.toString()}]`
+      continue
+    }
+
+    const key = String(segment)
+    out += out === '' ? key : `.${key}`
+  }
+
+  return out
+}
+
+function formatSchemaIssues(error: z.ZodError): string {
+  return error.issues
+    .map((issue) => `${formatIssuePath(issue.path)} (${issue.code})`)
+    .join(', ')
+}
+
 function parseJsonSafely(text: string): unknown {
   try {
     return JSON.parse(text)
@@ -107,8 +132,10 @@ export class Backend implements BackendClient {
 
     const { error, data } = responseSchema.safeParse(await response.json())
     if (error) {
-      console.error(error.message)
-      throw new ResponseBodyError(`Response of ${endpoint} is invalid`)
+      const issues = formatSchemaIssues(error)
+      const message = `Response of ${endpoint} is invalid: ${issues}`
+      console.error(message)
+      throw new ResponseBodyError(message)
     }
 
     return data
