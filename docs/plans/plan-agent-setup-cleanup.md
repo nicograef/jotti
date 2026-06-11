@@ -95,6 +95,13 @@ Durable Entscheidungen, auf die sich alle Phasen beziehen:
   erhalten; code-audit nur in der Description rescopen.
 - **Distribution:** Kein „copy into repos". Skills werden von beiden Agents
   aus `~/.claude/skills` gelesen (Symlink auf handbook). Nur Doku fixen.
+- **Kein manuelles Aufräumen von Caches/Sessions/Workspaces/Memory.** Bewusst
+  ausgeschlossen: Claude Code räumt eigenen State automatisch auf
+  (`.last-cleanup` 2026-06-11, Transcript-Retention per Default 30 Tage über
+  `cleanupPeriodDays` steuerbar), die `~/.claude`-Verzeichnisse sind winzig
+  (< 2 MB), VS Codes `workspaceStorage` (324 MB) regeneriert sich nach dem
+  Löschen. Stattdessen adressiert Phase 8 veraltete *Inhalte*, die Agents
+  tatsächlich als Kontext lesen.
 
 ## Open questions / Risks
 
@@ -308,3 +315,39 @@ Copilot-Chat-Session), damit das README keine ungeprüfte Behauptung enthält.
 - [ ] Copilot-Discovery wurde praktisch verifiziert (oder die Einschränkung
       ist im README dokumentiert)
 - [ ] „Adding a New Skill"-Verweis und Workflow-Sektion stimmen weiterhin
+
+---
+
+## Phase 8: Abgeschlossene Plan- und PRD-Artefakte entfernen (jotti)
+
+### Context
+
+- `docs/plans/` — fünf vollständig abgearbeitete Pläne (Stand 2026-06-11,
+  alle Checkboxen erledigt): `plan-error-handling.md` (17/17),
+  `plan-error-handling-simplification.md` (7/7),
+  `plan-lokale-tls-selbstsigniert.md` (11/11),
+  `plan-position-steuersatz.md` (15/15), `plan-tse-integration.md` (36/36).
+  Offen bleiben: `plan-bondruck-test-escpresso.md`,
+  `plan-windows-verpackung.md`, dieser Plan.
+- `docs/prds/` — sechs PRDs + `notes.md`; ein Teil gehört zu bereits
+  gelieferten Features, ein Teil zu künftiger Arbeit (z. B.
+  `prd-betrieb-relay-haertung.md`, `prd-lokale-tls-vertrauenswuerdig.md`).
+
+### What to build
+
+Abgeschlossene Pläne aus `docs/plans/` löschen — die Git-Historie bewahrt
+sie; im Arbeitsbaum sind sie veralteter Kontext, der Agents (z. B.
+`/implement-plan`, Codebase-Suchen) in die Irre führen kann. PRDs einzeln
+beurteilen: PRDs vollständig gelieferter Features löschen, sofern ihre
+Anforderungen in `docs/anforderungen.md` bzw. `docs/handbuch.md` kanonisch
+abgedeckt sind; PRDs offener oder künftiger Arbeit bleiben. Die Policy als
+einen Satz festhalten (z. B. im Git-Workflow-Abschnitt von `AGENTS.md`):
+abgeschlossene Pläne werden nach dem Merge gelöscht.
+
+### Acceptance criteria
+
+- [ ] `docs/plans/` enthält ausschließlich Pläne mit offenen Checkboxen
+- [ ] Jedes verbleibende PRD gehört zu offener oder künftiger Arbeit
+- [ ] Vor jeder Löschung geprüft: keine eingehenden Verweise aus `docs/`,
+      `AGENTS.md` oder `.github/instructions/` auf die gelöschte Datei
+- [ ] Die Lösch-Policy ist als ein Satz dokumentiert
