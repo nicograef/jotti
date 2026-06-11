@@ -217,24 +217,33 @@ CREATE INDEX idx_tisch_favoriten_user_id ON tisch_favoriten(user_id);
 COMMENT ON TABLE tisch_favoriten IS 'Per-user favourite tables; each service user can mark tables they are responsible for.';
 
 -- ============================================================
--- Table: druckstationen (Drucker-Konfiguration pro Produkt-Kategorie)
+-- Table: druckstationen (Drucker-Konfiguration je Druckstation)
 -- ============================================================
+-- Eigener Enum-Typ: die drei Produktkategorien plus die Sonderstationen
+-- Kassenbeleg und Abholbon. ProduktKategorie bleibt unverändert für Produkte.
+CREATE TYPE DruckstationKategorie AS ENUM ('essen', 'getraenk', 'sonstiges', 'kassenbeleg', 'abholbon');
+
 CREATE TABLE druckstationen (
-    kategorie   ProduktKategorie PRIMARY KEY,
+    kategorie   DruckstationKategorie PRIMARY KEY,
     drucker_ip  VARCHAR(50) NOT NULL,
-    bonmodus    TEXT NOT NULL
-                CHECK (bonmodus IN ('pro_position', 'pro_bestellung')),
+    bonmodus    TEXT NULL
+                CHECK (
+                    (kategorie IN ('essen', 'getraenk', 'sonstiges', 'abholbon') AND bonmodus IN ('pro_position', 'pro_bestellung'))
+                    OR (kategorie = 'kassenbeleg' AND bonmodus IS NULL)
+                ),
     updated_at  TIMESTAMPTZ NOT NULL
 );
 
-COMMENT ON TABLE druckstationen IS 'Drucker-IP und Bonmodus pro Produkt-Kategorie für den Bondruck.';
+COMMENT ON TABLE druckstationen IS 'Drucker-IP und (außer für Kassenbeleg) Bonmodus je Druckstation für den Bondruck.';
 COMMENT ON COLUMN druckstationen.drucker_ip IS 'IPv4-Adresse des Bondruckers (leer = kein Drucker konfiguriert)';
-COMMENT ON COLUMN druckstationen.bonmodus IS 'Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon)';
+COMMENT ON COLUMN druckstationen.bonmodus IS 'Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon) für essen/getraenk/sonstiges/abholbon; NULL für kassenbeleg.';
 
 INSERT INTO druckstationen (kategorie, drucker_ip, bonmodus, updated_at) VALUES
-    ('essen',     '', 'pro_position', now()),
-    ('getraenk',  '', 'pro_position', now()),
-    ('sonstiges', '', 'pro_position', now());
+    ('essen',       '', 'pro_position',   now()),
+    ('getraenk',    '', 'pro_position',   now()),
+    ('sonstiges',   '', 'pro_position',   now()),
+    ('kassenbeleg', '', NULL,             now()),
+    ('abholbon',    '', 'pro_bestellung', now());
 
 -- ============================================================
 -- Table: druckauftraege (technical outbox queue for print jobs)

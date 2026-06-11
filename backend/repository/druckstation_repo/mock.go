@@ -30,20 +30,16 @@ func (m *mockRepo) GetKonfigurierteDruckstationen(ctx context.Context) (map[stri
 	result := make(map[string]druckstation.Druckstation)
 	for _, k := range m.konfigs {
 		if k.DruckerIP != "" {
-			result[k.Kategorie] = k
+			result[string(k.Kategorie)] = k
 		}
 	}
 	return result, nil
 }
 
-func (m *mockRepo) UpsertDruckstation(ctx context.Context, kategorie, druckerIP, bonmodus string) error {
+func (m *mockRepo) UpsertDruckstation(ctx context.Context, station druckstation.Druckstation) error {
 	if m.err != nil {
 		return m.err
 	}
-	m.upserted = append(m.upserted, druckstation.Druckstation{
-		Kategorie: kategorie,
-		DruckerIP: druckerIP,
-		Bonmodus:  bonmodus,
-	})
+	m.upserted = append(m.upserted, station)
 	return nil
 }

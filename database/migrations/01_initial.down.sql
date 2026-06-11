@@ -41,6 +41,7 @@ DROP TABLE IF EXISTS users;
 DROP TYPE IF EXISTS EntityStatus;
 DROP TYPE IF EXISTS UserRole;
 DROP TYPE IF EXISTS ProduktKategorie;
+DROP TYPE IF EXISTS DruckstationKategorie;
 DROP TYPE IF EXISTS Steuersatz;
 
 COMMIT;

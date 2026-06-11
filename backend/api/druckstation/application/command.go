@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"github.com/rs/zerolog"
+
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 type druckstationCommandRepo interface {
-	UpsertDruckstation(ctx context.Context, kategorie, druckerIP, bonmodus string) error
+	UpsertDruckstation(ctx context.Context, station druckstation.Druckstation) error
 }
 
 type Command struct {
@@ -17,8 +19,17 @@ type Command struct {
 func (c Command) UpsertDruckstation(ctx context.Context, kategorie, druckerIP, bonmodus string) error {
 	log := zerolog.Ctx(ctx)
 
-	err := c.DruckstationRepo.UpsertDruckstation(ctx, kategorie, druckerIP, bonmodus)
+	station, err := druckstation.NewDruckstation(
+		druckstation.Kategorie(kategorie),
+		druckerIP,
+		druckstation.Bonmodus(bonmodus),
+	)
 	if err != nil {
+		log.Warn().Err(err).Str("kategorie", kategorie).Msg("Invalid druckstation")
+		return ErrUngueltigeDruckstation
+	}
+
+	if err := c.DruckstationRepo.UpsertDruckstation(ctx, station); err != nil {
 		log.Error().Err(err).Str("kategorie", kategorie).Msg("Failed to upsert druckstation")
 		return ErrDatabase
 	}

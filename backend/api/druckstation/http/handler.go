@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	z "github.com/Oudwins/zog"
+	"github.com/nicograef/jotti/backend/api/druckstation/application"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
@@ -22,7 +23,7 @@ type QueryHandler struct {
 type druckstationDTO struct {
 	Kategorie string `json:"kategorie"`
 	DruckerIP string `json:"druckerIp"`
-	Bonmodus  string `json:"bonmodus"`
+	Bonmodus  string `json:"bonmodus"` // leer für kassenbeleg/abholbon
 }
 
 type getDruckstationenResponse struct {
@@ -41,9 +42,9 @@ func (h *QueryHandler) GetDruckstationenHandler() http.HandlerFunc {
 		dtos := make([]druckstationDTO, 0, len(konfigs))
 		for _, k := range konfigs {
 			dtos = append(dtos, druckstationDTO{
-				Kategorie: k.Kategorie,
+				Kategorie: string(k.Kategorie),
 				DruckerIP: k.DruckerIP,
-				Bonmodus:  k.Bonmodus,
+				Bonmodus:  string(k.Bonmodus),
 			})
 		}
 
@@ -69,15 +70,26 @@ type updateDruckstationenRequest struct {
 
 var updateDruckstationenSchema = z.Struct(z.Shape{
 	"Kategorie": z.String().OneOf(
-		[]string{"essen", "getraenk", "sonstiges"},
+		[]string{"essen", "getraenk", "sonstiges", "kassenbeleg", "abholbon"},
 		z.Message("Ungültige Kategorie"),
 	).Required(),
 	"DruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
 	"Bonmodus": z.String().OneOf(
 		[]string{"pro_position", "pro_bestellung"},
 		z.Message("Ungültiger Bonmodus"),
-	).Required(),
-})
+	).Optional(),
+}).TestFunc(func(val any, ctx z.Ctx) bool {
+	body, ok := val.(*updateDruckstationenRequest)
+	if !ok {
+		return false
+	}
+	if druckstation.Kategorie(body.Kategorie).HatBonmodus() {
+		// essen/getraenk/sonstiges/abholbon tragen verpflichtend einen Bonmodus.
+		return body.Bonmodus != ""
+	}
+	// Nur der Kassenbeleg trägt keinen Bonmodus.
+	return body.Bonmodus == ""
+}, z.Message("Bonmodus ist nur für Produktkategorien zulässig"))
 
 // POST /admin/update-druckstationen
 func (h *CommandHandler) UpdateDruckstationenHandler() http.HandlerFunc {
@@ -89,7 +101,9 @@ func (h *CommandHandler) UpdateDruckstationenHandler() http.HandlerFunc {
 
 		err := h.Command.UpsertDruckstation(r.Context(), body.Kategorie, body.DruckerIP, body.Bonmodus)
 		if err != nil {
-			helper.SendServerError(w)
+			helper.MapError(w, err, map[error]string{
+				application.ErrUngueltigeDruckstation: "validation_error",
+			})
 			return
 		}
 

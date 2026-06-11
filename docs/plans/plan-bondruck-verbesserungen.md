@@ -4,7 +4,7 @@
 
 ## Goal
 
-Alle Drucker (drei Produktkategorien plus Kassenbeleg und Abholbon) werden als Druckstationen auf einer einzigen Admin-Seite konfiguriert; die Singleton-Tabelle `bondruck_einstellungen` und der Direktverkauf-Modus entfallen ersatzlos (Ableitungsregel: Abholbon-Station konfiguriert → Abholbon, sonst Produktstationen, sonst nichts). Das Print-Relay verarbeitet Drucker unabhängig voneinander mit genau einem Zustellversuch pro Auftrag und Zyklus; das Backend zählt Fehlversuche und markiert Aufträge nach drei Versuchen als `fehlgeschlagen`. Fehlgeschlagene Aufträge sind auf der Druckstationen-Seite sichtbar und können erneut eingereiht oder verworfen werden — kein manueller DB-Eingriff mehr.
+Alle Drucker (drei Produktkategorien plus Kassenbeleg und Abholbon) werden als Druckstationen auf einer einzigen Admin-Seite konfiguriert; die Singleton-Tabelle `bondruck_einstellungen` und der Direktverkauf-Modus entfallen ersatzlos (Ableitungsregel: Abholbon-Station konfiguriert → Abholbon(s) gemäß ihrem Bonmodus, sonst Produktstationen, sonst nichts). Das Print-Relay verarbeitet Drucker unabhängig voneinander mit genau einem Zustellversuch pro Auftrag und Zyklus; das Backend zählt Fehlversuche und markiert Aufträge nach drei Versuchen als `fehlgeschlagen`. Fehlgeschlagene Aufträge sind auf der Druckstationen-Seite sichtbar und können erneut eingereiht oder verworfen werden — kein manueller DB-Eingriff mehr.
 
 ## Architectural decisions
 
@@ -18,7 +18,7 @@ Durable Entscheidungen, die für alle Phasen gelten:
   - `/admin/get-bondruck-einstellungen` und `/admin/update-bondruck-einstellungen` entfallen ersatzlos.
 - **Schema** (alle Änderungen direkt in `database/migrations/01_initial.up.sql`, Down-Skript mitziehen — Pre-Release-Regel):
   - Neuer DB-Enum `DruckstationKategorie` (`essen`, `getraenk`, `sonstiges`, `kassenbeleg`, `abholbon`) als PK-Typ von `druckstationen`; `ProduktKategorie` bleibt unverändert für Produkte. Fünf Seed-Zeilen.
-  - `druckstationen.bonmodus` wird NULLable; CHECK-Constraint erzwingt: Produktkategorien `IN ('pro_position','pro_bestellung')`, `kassenbeleg`/`abholbon` NULL.
+  - `druckstationen.bonmodus` wird NULLable; CHECK-Constraint erzwingt: `essen`/`getraenk`/`sonstiges`/`abholbon` `IN ('pro_position','pro_bestellung')`, `kassenbeleg` NULL.
   - `druckauftraege`: Status-CHECK erweitert auf (`offen`, `gedruckt`, `fehlgeschlagen`, `verworfen`); neue Spalten `versuche INT NOT NULL DEFAULT 0` und `letzter_fehler TEXT NULL`.
   - Tabelle `bondruck_einstellungen` entfällt ersatzlos.
 - **Key models**:
@@ -125,16 +125,16 @@ Durable Entscheidungen, die für alle Phasen gelten:
 
 ### What to build
 
-Die Druckstationen-Tabelle trägt fünf Kategorien (neuer DB-Enum `DruckstationKategorie`, fünf Seed-Zeilen, `bonmodus` NULL für `kassenbeleg`/`abholbon` per CHECK). Domain, Repository, zog-Schema und Admin-Endpoints akzeptieren alle fünf Kategorien; der Bonmodus ist nur für Produktkategorien zulässig (Konstruktor-Validierung im Domain-Modell). Die Druckstationen-Seite zeigt fünf Zeilen — Bonmodus-Select nur bei Produktkategorien — mit kurzen Erklärtexten je Station (insbesondere die Abholbon-Ableitungsregel) und Inline-IPv4-Feldvalidierung statt Schema-Throw mit generischem Toast. Die neuen Stationen haben in dieser Phase noch keine Routing-Wirkung; das bestehende Arbeitsbon-Verhalten bleibt unverändert.
+Die Druckstationen-Tabelle trägt fünf Kategorien (neuer DB-Enum `DruckstationKategorie`, fünf Seed-Zeilen, `bonmodus` NULL nur für `kassenbeleg` per CHECK). Domain, Repository, zog-Schema und Admin-Endpoints akzeptieren alle fünf Kategorien; der Bonmodus ist für `essen`/`getraenk`/`sonstiges`/`abholbon` verpflichtend und für `kassenbeleg` unzulässig (Konstruktor-Validierung im Domain-Modell). Die Druckstationen-Seite zeigt fünf Zeilen — Bonmodus-Select bei allen außer Kassenbeleg — mit kurzen Erklärtexten je Station (insbesondere die Abholbon-Ableitungsregel) und Inline-IPv4-Feldvalidierung statt Schema-Throw mit generischem Toast. Die neuen Stationen haben in dieser Phase noch keine Routing-Wirkung; das bestehende Arbeitsbon-Verhalten bleibt unverändert.
 
 ### Acceptance criteria
 
-- [ ] `druckstationen` hat fünf Seed-Zeilen mit neuem Kategorie-Typ; CHECK erzwingt Bonmodus-Kopplung (Produktkategorien gesetzt, kassenbeleg/abholbon NULL); `01_initial.down.sql` räumt den neuen Typ mit ab
-- [ ] `/admin/get-druckstationen` liefert fünf Stationen; `/admin/update-druckstationen` akzeptiert alle fünf Kategorien und lehnt Bonmodus für kassenbeleg/abholbon ab (zog + Domain-Konstruktor, Unit-Tests)
-- [ ] Druckstationen-Seite zeigt fünf Zeilen mit Erklärtexten; Bonmodus-Select nur bei Essen/Getränk/Sonstiges; Deaktivieren per Leeren der IP funktioniert
-- [ ] Ungültige IP erzeugt eine Feldmeldung am Eingabefeld, keinen generischen Speicherfehler
-- [ ] Bestehendes Arbeitsbon-Routing unverändert (bestehende Policy- und Handler-Tests grün)
-- [ ] `make check` und `make check-integration` grün
+- [x] `druckstationen` hat fünf Seed-Zeilen mit neuem Kategorie-Typ; CHECK erzwingt Bonmodus-Kopplung (essen/getraenk/sonstiges/abholbon gesetzt, kassenbeleg NULL); `01_initial.down.sql` räumt den neuen Typ mit ab
+- [x] `/admin/get-druckstationen` liefert fünf Stationen; `/admin/update-druckstationen` akzeptiert alle fünf Kategorien und lehnt Bonmodus für kassenbeleg ab (zog + Domain-Konstruktor, Unit-Tests)
+- [x] Druckstationen-Seite zeigt fünf Zeilen mit Erklärtexten; Bonmodus-Select bei Essen/Getränk/Sonstiges/Abholbon (nicht Kassenbeleg); Deaktivieren per Leeren der IP funktioniert
+- [x] Ungültige IP erzeugt eine Feldmeldung am Eingabefeld, keinen generischen Speicherfehler
+- [x] Bestehendes Arbeitsbon-Routing unverändert (bestehende Policy- und Handler-Tests grün)
+- [x] `make check` und `make check-integration` grün
 
 ---
 
@@ -153,12 +153,12 @@ Die Druckstationen-Tabelle trägt fünf Kategorien (neuer DB-Enum `DruckstationK
 
 ### What to build
 
-Die Policy verliert die `DirektverkaufBondruckKonfiguration`: Eingabe ist nur noch das Event plus die Map aller konfigurierten Druckstationen. Für `direktverkauf-getaetigt` gilt die Ableitungsregel — Abholbon-Station konfiguriert → genau ein Abholbon an diese Station; sonst Produktstationen je Kategorie (inkl. Bonmodus-Gruppierung); ohne konfigurierte Stationen entstehen keine Aufträge. `bestellung-aufgenommen` bleibt unverändert. Der Direktverkauf-Command lädt nur noch Druckstationen (kein Settings-Zugriff für den Modus mehr). Im selben Zug werden die doppelten 1:1-Mappings zwischen Policy-Druckauftrag und Repository-Insert-Typ auf einen gemeinsamen Typ bzw. einen Helfer reduziert. Die Policy-Unit-Tests decken alle Routing-Zweige ab.
+Die Policy verliert die `DirektverkaufBondruckKonfiguration`: Eingabe ist nur noch das Event plus die Map aller konfigurierten Druckstationen. Für `direktverkauf-getaetigt` gilt die Ableitungsregel — Abholbon-Station konfiguriert → Abholbon(s) an diese Station gemäß ihrem Bonmodus (`pro_position` = ein Abholbon je Position, `pro_bestellung` = ein Sammel-Abholbon); sonst Produktstationen je Kategorie (inkl. Bonmodus-Gruppierung); ohne konfigurierte Stationen entstehen keine Aufträge. `bestellung-aufgenommen` bleibt unverändert. Der Direktverkauf-Command lädt nur noch Druckstationen (kein Settings-Zugriff für den Modus mehr). Im selben Zug werden die doppelten 1:1-Mappings zwischen Policy-Druckauftrag und Repository-Insert-Typ auf einen gemeinsamen Typ bzw. einen Helfer reduziert. Die Policy-Unit-Tests decken alle Routing-Zweige ab.
 
 ### Acceptance criteria
 
 - [ ] Policy-Signatur ohne `DirektverkaufBondruckKonfiguration`; die Policy importiert kein `settings`-Paket mehr
-- [ ] Direktverkauf erzeugt Abholbon, wenn Abholbon-Station konfiguriert; sonst Aufträge an Produktstationen; ohne Stationen keine Aufträge — Unit-Tests für alle Zweige inkl. Bonmodus-Gruppierung und leerer Konfiguration
+- [ ] Direktverkauf erzeugt Abholbon(s) gemäß Abholbon-Bonmodus, wenn Abholbon-Station konfiguriert; sonst Aufträge an Produktstationen; ohne Stationen keine Aufträge — Unit-Tests für alle Zweige inkl. Bonmodus-Gruppierung (auch Abholbon) und leerer Konfiguration
 - [ ] Direktverkauf schließt ohne einen einzigen konfigurierten Drucker erfolgreich ab
 - [ ] Die 1:1-Mappings (Direktverkauf-Command, Table-Adapter) sind auf einen gemeinsamen Typ/Helfer reduziert
 - [ ] `make check` und `make check-integration` grün

@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 )
 
 const getDruckstationen = `-- name: GetDruckstationen :many
@@ -15,9 +16,9 @@ FROM druckstationen
 `
 
 type GetDruckstationenRow struct {
-	Kategorie Produktkategorie
+	Kategorie Druckstationkategorie
 	DruckerIp string
-	Bonmodus  string
+	Bonmodus  sql.NullString
 }
 
 func (q *Queries) GetDruckstationen(ctx context.Context) ([]GetDruckstationenRow, error) {
@@ -50,9 +51,9 @@ WHERE drucker_ip != ''
 `
 
 type GetKonfigurierteDruckstationenRow struct {
-	Kategorie Produktkategorie
+	Kategorie Druckstationkategorie
 	DruckerIp string
-	Bonmodus  string
+	Bonmodus  sql.NullString
 }
 
 func (q *Queries) GetKonfigurierteDruckstationen(ctx context.Context) ([]GetKonfigurierteDruckstationenRow, error) {
@@ -88,9 +89,9 @@ ON CONFLICT (kategorie) DO UPDATE SET
 `
 
 type UpsertDruckstationParams struct {
-	Kategorie Produktkategorie
+	Kategorie Druckstationkategorie
 	DruckerIp string
-	Bonmodus  string
+	Bonmodus  sql.NullString
 }
 
 func (q *Queries) UpsertDruckstation(ctx context.Context, arg UpsertDruckstationParams) error {

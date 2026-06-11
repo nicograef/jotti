@@ -22,7 +22,7 @@ func (a druckstationRepoTableAdapter) GetKonfigurierteDruckstationen(ctx context
 	for kategorie, row := range rows {
 		result[kategorie] = bondruckApp.Druckstation{
 			IP:       row.DruckerIP,
-			Bonmodus: row.Bonmodus,
+			Bonmodus: string(row.Bonmodus),
 		}
 	}
 	return result, nil

@@ -14,6 +14,51 @@ import (
 	"github.com/google/uuid"
 )
 
+type Druckstationkategorie string
+
+const (
+	DruckstationkategorieEssen       Druckstationkategorie = "essen"
+	DruckstationkategorieGetraenk    Druckstationkategorie = "getraenk"
+	DruckstationkategorieSonstiges   Druckstationkategorie = "sonstiges"
+	DruckstationkategorieKassenbeleg Druckstationkategorie = "kassenbeleg"
+	DruckstationkategorieAbholbon    Druckstationkategorie = "abholbon"
+)
+
+func (e *Druckstationkategorie) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = Druckstationkategorie(s)
+	case string:
+		*e = Druckstationkategorie(s)
+	default:
+		return fmt.Errorf("unsupported scan type for Druckstationkategorie: %T", src)
+	}
+	return nil
+}
+
+type NullDruckstationkategorie struct {
+	Druckstationkategorie Druckstationkategorie
+	Valid                 bool // Valid is true if Druckstationkategorie is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDruckstationkategorie) Scan(value interface{}) error {
+	if value == nil {
+		ns.Druckstationkategorie, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.Druckstationkategorie.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDruckstationkategorie) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.Druckstationkategorie), nil
+}
+
 type Entitystatus string
 
 const (
@@ -234,13 +279,13 @@ type Druckauftraege struct {
 	GedrucktAm sql.NullTime
 }
 
-// Drucker-IP und Bonmodus pro Produkt-Kategorie für den Bondruck.
+// Drucker-IP und (für Produktkategorien) Bonmodus je Druckstation für den Bondruck.
 type Druckstationen struct {
-	Kategorie Produktkategorie
+	Kategorie Druckstationkategorie
 	// IPv4-Adresse des Bondruckers (leer = kein Drucker konfiguriert)
 	DruckerIp string
-	// Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon)
-	Bonmodus  string
+	// Bonmodus für Produktkategorien: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon); NULL für kassenbeleg/abholbon.
+	Bonmodus  sql.NullString
 	UpdatedAt time.Time
 }
 
