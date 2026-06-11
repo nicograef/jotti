@@ -83,12 +83,12 @@ Jeder Backend-Error-Code zeigt dem Nutzer eine deutsche, handlungsorientierte Me
 
 ### Acceptance criteria
 
-- [ ] `BackendError.details` ist `unknown`; `ErrorResponseSchema.details` akzeptiert beliebige JSON-Werte
-- [ ] Alle ~29 neuen Error-Codes haben eine deutsche, nicht-generische Message in `commonErrorMessages`
-- [ ] `getActionErrorMessage` gibt bei `status >= 500` eine eigene Server-Error-Message zurück (nicht den `actionLabel`-Fallback)
-- [ ] `position_nicht_bezahlbar` ist in `commonErrorMessages` eingetragen
-- [ ] Alle leeren `MapError`-Maps im Backend sind behoben; `FavoritEntfernen` hat eine vollständige Map
-- [ ] Unit-Tests für `getActionErrorMessage` laufen grün (`make check`)
+- [x] `BackendError.details` ist `unknown`; `ErrorResponseSchema.details` akzeptiert beliebige JSON-Werte
+- [x] Alle ~29 neuen Error-Codes haben eine deutsche, nicht-generische Message in `commonErrorMessages`
+- [x] `getActionErrorMessage` gibt bei `status >= 500` eine eigene Server-Error-Message zurück (nicht den `actionLabel`-Fallback)
+- [x] `position_nicht_bezahlbar` ist in `commonErrorMessages` eingetragen
+- [x] Alle leeren `MapError`-Maps im Backend sind behoben; `FavoritEntfernen` hat eine vollständige Map
+- [x] Unit-Tests für `getActionErrorMessage` laufen grün (`make check`)
 
 ---
 

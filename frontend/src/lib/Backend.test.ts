@@ -64,8 +64,36 @@ describe('Backend.post', () => {
     await expect(request).rejects.toThrow('upstream error')
   })
 
+  it('accepts non-string error details and exposes them on BackendError', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            code: 'validation_error',
+            details: { name: ['Name ist erforderlich'] },
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    )
+
+    const backend = createClient()
+
+    await expect(
+      backend.post('service/foo', {}, z.object({ ok: z.boolean() })),
+    ).rejects.toMatchObject({
+      status: 400,
+      code: 'validation_error',
+      details: { name: ['Name ist erforderlich'] },
+    })
+  })
+
   it('includes endpoint and issue path for response schema mismatch without leaking values', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(

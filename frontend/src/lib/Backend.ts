@@ -4,19 +4,27 @@ import { AuthSingleton } from './Auth'
 
 const ErrorResponseSchema = z.object({
   code: z.string(),
-  details: z.string().optional(),
+  details: z.unknown().optional(),
 })
 
 export class BackendError extends Error {
   public readonly status: number
   public readonly code: string
+  public readonly details?: unknown
 
-  constructor(status: number, code: string, details?: string) {
-    super(
-      details ? `BackendError: ${code} - ${details}` : `BackendError: ${code}`,
-    )
+  constructor(status: number, code: string, details?: unknown) {
+    let errorMessage = `BackendError: ${code}`
+
+    if (details !== undefined) {
+      const detailMessage =
+        typeof details === 'string' ? details : JSON.stringify(details)
+      errorMessage += ` - ${detailMessage}`
+    }
+
+    super(errorMessage)
     this.status = status
     this.code = code
+    this.details = details
     Object.setPrototypeOf(this, BackendError.prototype)
   }
 }

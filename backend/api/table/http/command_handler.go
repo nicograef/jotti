@@ -146,7 +146,7 @@ func (h *CommandHandler) FavoritEntfernenHandler() http.HandlerFunc {
 
 		err := h.Command.FavoritEntfernen(r.Context(), userID, body.TischID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{})
+			helper.SendServerError(w)
 			return
 		}
 
