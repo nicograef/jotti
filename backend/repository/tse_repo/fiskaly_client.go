@@ -3,6 +3,7 @@ package tse_repo
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -53,7 +54,12 @@ type authResponse struct {
 	} `json:"access_token_claims"`
 }
 
-type upsertTransactionRequest struct {
+type startTransactionRequest struct {
+	State    string `json:"state"`
+	ClientID string `json:"client_id"`
+}
+
+type finishTransactionRequest struct {
 	State    string            `json:"state"`
 	ClientID string            `json:"client_id"`
 	Schema   rawSchemaEnvelope `json:"schema"`
@@ -137,7 +143,9 @@ func NewFiskalyTSEClient(baseURL string, credentials tse.Credentials, httpClient
 	}, nil
 }
 
-func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string, processType string, processData string) (tse.StartResult, error) {
+// StartTransaction sendet bewusst kein Schema: processType/processData muessen
+// laut DSFinV-K bei StartTransaction immer leer sein (Anhang I).
+func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string, _ string, _ string) (tse.StartResult, error) {
 	txID = strings.TrimSpace(txID)
 	if txID == "" {
 		return tse.StartResult{}, fmt.Errorf("tx id is required")
@@ -147,17 +155,11 @@ func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string, pr
 	err := c.doJSONRequest(
 		ctx,
 		http.MethodPut,
-		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.credentials.TssID), txID),
+		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.credentials.TssID), url.PathEscape(txID)),
 		url.Values{"tx_revision": []string{"1"}},
-		upsertTransactionRequest{
+		startTransactionRequest{
 			State:    "ACTIVE",
 			ClientID: c.credentials.ClientID,
-			Schema: rawSchemaEnvelope{
-				Raw: rawSchema{
-					ProcessType: processType,
-					ProcessData: processData,
-				},
-			},
 		},
 		true,
 		&resp,
@@ -185,13 +187,15 @@ func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, _
 		http.MethodPut,
 		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.credentials.TssID), url.PathEscape(txID)),
 		url.Values{"tx_revision": []string{"2"}},
-		upsertTransactionRequest{
+		finishTransactionRequest{
 			State:    "FINISHED",
 			ClientID: c.credentials.ClientID,
 			Schema: rawSchemaEnvelope{
 				Raw: rawSchema{
 					ProcessType: processType,
-					ProcessData: processData,
+					// Die fiskaly-API verlangt process_data als Base64; Aufrufer
+					// liefern Klartext, das Encoding ist allein Sache dieses Clients.
+					ProcessData: base64.StdEncoding.EncodeToString([]byte(processData)),
 				},
 			},
 		},

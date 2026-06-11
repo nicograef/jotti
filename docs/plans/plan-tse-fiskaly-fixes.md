@@ -70,10 +70,10 @@ Der `FiskalyTSEClient` sendet Requests, die die echte API akzeptiert: `StartTran
 
 ### Acceptance criteria
 
-- [ ] Start-Request enthält kein `schema`; Finish-Request enthält `process_data` ausschließlich Base64-codiert
-- [ ] Kontrakt-Tests prüfen Base64, leeren Start und Revisionsfolge; `make check` grün
-- [ ] Env-gated Integrationstest (TEST-Credentials) durchläuft Start→Finish erfolgreich und validiert `qr_code_data`-Prefix `V0;`
-- [ ] Manuell verifiziert: Direktverkauf in Dev-Umgebung erzeugt Event mit gefülltem `tseData` (kein Nachsignier-Auftrag)
+- [x] Start-Request enthält kein `schema`; Finish-Request enthält `process_data` ausschließlich Base64-codiert
+- [x] Kontrakt-Tests prüfen Base64, leeren Start und Revisionsfolge; `make check` grün
+- [x] Env-gated Integrationstest (TEST-Credentials) durchläuft Start→Finish erfolgreich und validiert `qr_code_data`-Prefix `V0;`
+- [x] Manuell verifiziert: Direktverkauf in Dev-Umgebung erzeugt Event mit gefülltem `tseData` (kein Nachsignier-Auftrag)
 
 ---
 

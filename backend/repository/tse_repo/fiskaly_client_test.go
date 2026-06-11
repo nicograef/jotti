@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -16,10 +17,22 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-func TestFiskalyClient_StartAndFinishMapping(t *testing.T) {
+const (
+	testTxID = "8c0f9c4e-3a52-4f5d-9e6b-2d1c7a8b4f01"
+
+	// Beispiel aus DSFinV-K Anhang I / fiskaly-Spec: Klartext und sein Base64.
+	specProcessData       = "Beleg^0.00_2.55_0.00_0.00_0.00^2.55:Bar"
+	specProcessDataBase64 = "QmVsZWdeMC4wMF8yLjU1XzAuMDBfMC4wMF8wLjAwXjIuNTU6QmFy"
+)
+
+// TestFiskalyClient_StartAndFinishContract bildet den API-Kontrakt der fiskaly
+// SIGN-DE-Spec 2.2.2 ab: Start ohne Schema (DSFinV-K: processType/processData
+// bei Start immer leer), Finish mit Base64-codiertem process_data,
+// UUID-Transaktionspfade und Revisionsfolge 1→2.
+func TestFiskalyClient_StartAndFinishContract(t *testing.T) {
 	var authCalls int32
-	var startCalls int32
-	var finishCalls int32
+	var mu sync.Mutex
+	var revisions []string
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -32,9 +45,28 @@ func TestFiskalyClient_StartAndFinishMapping(t *testing.T) {
 					"env": "TEST",
 				},
 			})
-		case r.Method == http.MethodPut && strings.Contains(r.URL.Path, "/api/v2/tss/tss-1/tx/"):
-			if r.URL.Query().Get("tx_revision") == "1" {
-				atomic.AddInt32(&startCalls, 1)
+		case r.Method == http.MethodPut && r.URL.Path == "/api/v2/tss/tss-1/tx/"+testTxID:
+			revision := r.URL.Query().Get("tx_revision")
+			mu.Lock()
+			revisions = append(revisions, revision)
+			mu.Unlock()
+
+			body := map[string]any{}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Errorf("failed to decode request body: %v", err)
+			}
+			if body["client_id"] != "client-1" {
+				t.Errorf("expected client_id client-1, got %v", body["client_id"])
+			}
+
+			switch revision {
+			case "1":
+				if body["state"] != "ACTIVE" {
+					t.Errorf("expected state ACTIVE on start, got %v", body["state"])
+				}
+				if _, hasSchema := body["schema"]; hasSchema {
+					t.Errorf("start request must not contain a schema, got %v", body["schema"])
+				}
 				_ = json.NewEncoder(w).Encode(map[string]any{
 					"number":            42,
 					"tss_serial_number": "TSS-SN-1",
@@ -46,10 +78,23 @@ func TestFiskalyClient_StartAndFinishMapping(t *testing.T) {
 						"counter": "7",
 					},
 				})
-				return
-			}
-			if r.URL.Query().Get("tx_revision") == "2" {
-				atomic.AddInt32(&finishCalls, 1)
+			case "2":
+				if body["state"] != "FINISHED" {
+					t.Errorf("expected state FINISHED on finish, got %v", body["state"])
+				}
+				schema, _ := body["schema"].(map[string]any)
+				raw, ok := schema["raw"].(map[string]any)
+				if !ok {
+					t.Errorf("finish request must contain schema.raw, got %v", body["schema"])
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				if raw["process_type"] != "Kassenbeleg-V1" {
+					t.Errorf("expected process_type Kassenbeleg-V1, got %v", raw["process_type"])
+				}
+				if raw["process_data"] != specProcessDataBase64 {
+					t.Errorf("expected base64 process_data %q, got %v", specProcessDataBase64, raw["process_data"])
+				}
 				_ = json.NewEncoder(w).Encode(map[string]any{
 					"number":            42,
 					"tss_serial_number": "TSS-SN-1",
@@ -64,10 +109,12 @@ func TestFiskalyClient_StartAndFinishMapping(t *testing.T) {
 						"value":   "sig-abc",
 					},
 				})
-				return
+			default:
+				t.Errorf("unexpected tx_revision %q", revision)
+				w.WriteHeader(http.StatusBadRequest)
 			}
-			w.WriteHeader(http.StatusBadRequest)
 		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
@@ -83,7 +130,7 @@ func TestFiskalyClient_StartAndFinishMapping(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	start, err := client.StartTransaction(context.Background(), "kasse-1", "Kassenbeleg-V1", "Beleg^1")
+	start, err := client.StartTransaction(context.Background(), testTxID, "Kassenbeleg-V1", "")
 	if err != nil {
 		t.Fatalf("start transaction failed: %v", err)
 	}
@@ -94,7 +141,7 @@ func TestFiskalyClient_StartAndFinishMapping(t *testing.T) {
 		t.Fatalf("expected start signature counter 7, got %d", start.SignatureCounter)
 	}
 
-	finish, err := client.FinishTransaction(context.Background(), "kasse-1", start.TransactionNumber, "Kassenbeleg-V1", "Beleg^1")
+	finish, err := client.FinishTransaction(context.Background(), testTxID, start.TransactionNumber, "Kassenbeleg-V1", specProcessData)
 	if err != nil {
 		t.Fatalf("finish transaction failed: %v", err)
 	}
@@ -108,79 +155,12 @@ func TestFiskalyClient_StartAndFinishMapping(t *testing.T) {
 		t.Fatalf("expected qr_code_data to be mapped")
 	}
 
+	expectedRevisions := []string{"1", "2"}
+	if len(revisions) != len(expectedRevisions) || revisions[0] != "1" || revisions[1] != "2" {
+		t.Fatalf("expected revision sequence %v, got %v", expectedRevisions, revisions)
+	}
 	if atomic.LoadInt32(&authCalls) != 1 {
 		t.Fatalf("expected exactly one auth call, got %d", authCalls)
-	}
-	if atomic.LoadInt32(&startCalls) != 1 {
-		t.Fatalf("expected exactly one start call, got %d", startCalls)
-	}
-	if atomic.LoadInt32(&finishCalls) != 1 {
-		t.Fatalf("expected exactly one finish call, got %d", finishCalls)
-	}
-}
-
-func TestFiskalyClient_UsesProvidedTxIDForStartAndFinish(t *testing.T) {
-	const expectedTxID = "deterministic-tx-id"
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth":
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"access_token":            "token-1",
-				"access_token_expires_at": time.Now().Add(1 * time.Hour).Unix(),
-				"access_token_claims": map[string]any{
-					"env": "TEST",
-				},
-			})
-		case r.Method == http.MethodPut && r.URL.Path == "/api/v2/tss/tss-1/tx/"+expectedTxID && r.URL.Query().Get("tx_revision") == "1":
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"number":            42,
-				"tss_serial_number": "TSS-SN-1",
-				"time_start":        1700000000,
-				"log": map[string]any{
-					"timestamp": 1700000000,
-				},
-				"signature": map[string]any{
-					"counter": 1,
-				},
-			})
-		case r.Method == http.MethodPut && r.URL.Path == "/api/v2/tss/tss-1/tx/"+expectedTxID && r.URL.Query().Get("tx_revision") == "2":
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"number":            42,
-				"tss_serial_number": "TSS-SN-1",
-				"time_start":        1700000000,
-				"time_end":          1700000600,
-				"log": map[string]any{
-					"timestamp": 1700000600,
-				},
-				"signature": map[string]any{
-					"counter": 2,
-					"value":   "sig-abc",
-				},
-			})
-		default:
-			t.Fatalf("unexpected request %s %s?%s", r.Method, r.URL.Path, r.URL.RawQuery)
-		}
-	}))
-	defer server.Close()
-
-	client, err := NewFiskalyTSEClient(server.URL, tse.Credentials{
-		ApiKey:    "api-key",
-		ApiSecret: "api-secret",
-		TssID:     "tss-1",
-		ClientID:  "client-1",
-	}, nil)
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-
-	start, err := client.StartTransaction(context.Background(), expectedTxID, "Kassenbeleg-V1", "Beleg^1")
-	if err != nil {
-		t.Fatalf("start transaction failed: %v", err)
-	}
-
-	if _, err := client.FinishTransaction(context.Background(), expectedTxID, start.TransactionNumber, "Kassenbeleg-V1", "Beleg^1"); err != nil {
-		t.Fatalf("finish transaction failed: %v", err)
 	}
 }
 
@@ -231,7 +211,7 @@ func TestFiskalyClient_RefreshesTokenOn401(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	_, err = client.StartTransaction(context.Background(), "kasse-1", "Kassenbeleg-V1", "Beleg^1")
+	_, err = client.StartTransaction(context.Background(), testTxID, "Kassenbeleg-V1", "")
 	if err != nil {
 		t.Fatalf("start transaction failed: %v", err)
 	}
@@ -293,7 +273,7 @@ func TestFiskalyClient_RetriesOnRetryableErrors(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	_, err = client.StartTransaction(context.Background(), "kasse-1", "Kassenbeleg-V1", "Beleg^1")
+	_, err = client.StartTransaction(context.Background(), testTxID, "Kassenbeleg-V1", "")
 	if err != nil {
 		t.Fatalf("expected retry to recover, got error: %v", err)
 	}
