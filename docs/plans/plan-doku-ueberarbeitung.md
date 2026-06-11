@@ -110,11 +110,11 @@ compliance.md auf ~400–450 Zeilen konsolidieren: Betreiberpflichten in **einem
 
 ### Acceptance criteria
 
-- [ ] Betreiberpflichten stehen vollständig in genau einem compliance-Abschnitt; die anderen beiden Stellen sind ≤ 3-Zeilen-Verweise
-- [ ] Kein Inhalt doppelt zwischen steuerrecht.md §6 und compliance.md §5.2
-- [ ] Maihock-Beispieltabelle existiert genau einmal
-- [ ] compliance.md ≤ 450 Zeilen, steuerrecht.md ≤ 150 Zeilen
-- [ ] Alle Querverweise (anforderungen.md F-03/F-04, handbuch.md §3.13, leitfäden) zeigen weiterhin auf existierende Anker
+- [x] Betreiberpflichten stehen vollständig in genau einem compliance-Abschnitt; die anderen beiden Stellen sind ≤ 3-Zeilen-Verweise
+- [x] Kein Inhalt doppelt zwischen steuerrecht.md §6 und compliance.md §5.2
+- [x] Maihock-Beispieltabelle existiert genau einmal
+- [x] compliance.md ≤ 450 Zeilen, steuerrecht.md ≤ 150 Zeilen
+- [x] Alle Querverweise (anforderungen.md F-03/F-04, handbuch.md §3.13, leitfäden) zeigen weiterhin auf existierende Anker
 
 ---
 

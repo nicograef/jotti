@@ -8,10 +8,6 @@ Mit dem **Steueränderungsgesetz 2025** (Bundesrat-Zustimmung 19. Dezember 2025)
 - **Getränke** unterliegen weiterhin dem **Regelsteuersatz von 19 %**.
 - Die historische Unterscheidung **Vor-Ort-Verzehr (19 %) vs. Mitnahme (7 %)** für Speisen ist vollständig **entfallen**. Eine Differenzierung in „Lieferung" und „sonstige Leistung" ist nicht mehr erforderlich.
 
-### Historischer Hintergrund
-
-Die Ermäßigung für Speisen wurde erstmals mit dem Ersten Corona-Steuerhilfegesetz (19.6.2020) in § 12 Abs. 2 Nr. 15 UStG eingeführt und mehrfach verlängert (bis 31.12.2023). Im Jahr 2024 und 2025 galt wieder der Regelsteuersatz von 19 % auf alle Restaurant- und Verpflegungsdienstleistungen. Ab 1.1.2026 gilt die Ermäßigung nun dauerhaft.
-
 ---
 
 ## 2. Die zwei Kernsteuersätze
@@ -72,8 +68,7 @@ Der Unternehmer kann zwischen den sachgerechten Methoden wählen.
 ### 4.2 Einschränkungen
 
 - **Kostenbasierte Aufteilung ist unzulässig** (Aufteilung nach betrieblichen Kosten wird vom BMF explizit ausgeschlossen).
-- **Spar-Menü-Deckelung:** Bei rabattierten Warenzusammenstellungen (Systemgastronomie) darf kein anteiliger Einzelpreis den regulären Einzelverkaufspreis übersteigen.
-- **Hotel-Business-Package:** Bei Übernachtungspauschale mit untrennbarer Verpflegung: 15 % des Gesamtpreises → nicht-begünstigte Leistungen (Getränke, WLAN, Wellness) zu 19 %; 85 % → Beherbergung zu 7 %.
+- **Spar-Menü-Deckelung:** Bei rabattierten Warenzusammenstellungen darf kein anteiliger Einzelpreis den regulären Einzelverkaufspreis übersteigen.
 
 ### 4.3 Rechenbeispiel (Methode B)
 
@@ -113,42 +108,14 @@ Lautet der Gutschein auf einen Geldbetrag (z. B. „Wertgutschein über 50 €")
 
 ## 6. Belegausweis und Pflichtangaben
 
-Gemäß **§ 14 UStG** und **KassenSichV** muss jeder Kassenbeleg folgende steuerliche Pflichtangaben enthalten:
-
-- **Pro Position:** Steuerkennzeichen (z. B. `A` für 19 %, `B` für 7 %)
-- **Im Belegfuß — Steuermatrix:**
-  - Steuersatz
-  - Nettobetrag (Bemessungsgrundlage) je Satz
-  - Steuerbetrag je Satz
-  - Bruttobetrag je Satz
-- Keine unaufgeteilte Gesamtsumme ohne Steueraufschlüsselung
-
-**Gutschein-Sonderfall:** Bei Ausgabe eines Mehrzweck-Gutscheins wird auf dem Beleg **keine** Steuer ausgewiesen (0 % bei Ausgabe). Die Steuer entsteht erst bei Einlösung.
-
-Details zur technischen Belegstruktur (Kassenbeleg-V1-Format, DSFinV-K-Export mit `vat.csv` und `transactions_vat.csv`): → [compliance.md](compliance.md)
+Gemäß **§ 14 UStG** muss jeder Kassenbeleg pro Position ein **Steuerkennzeichen** (z. B. `A` für 19 %, `B` für 7 %) und im Belegfuß eine **Steuermatrix** (Netto, Steuerbetrag und Brutto je Steuersatz) ausweisen — keine unaufgeteilte Gesamtsumme ohne Steueraufschlüsselung. **Gutschein-Sonderfall:** Bei Ausgabe eines Mehrzweck-Gutscheins wird keine Steuer ausgewiesen (0 % bei Ausgabe); sie entsteht erst bei Einlösung. Die vollständigen Belegangaben (inkl. TSE-Pflichtfelder) und die technische Belegstruktur: → [compliance.md §5.2](compliance.md).
 
 ---
 
-## 7. Zeitliche Abgrenzung und Sonderfälle
+## 7. Zeitliche Abgrenzung
 
-### 7.1 Jahreswechsel 2025/2026
-
-- Leistungen bis **24:00 Uhr am 31.12.2025:** bisheriger Steuersatz (19 % auf alle Restaurationsleistungen)
-- Leistungen ab **0:00 Uhr am 1.1.2026:** neuer Steuersatz (7 % Speisen / 19 % Getränke)
-- Bei mehrstündigen Silvesterveranstaltungen: sorgfältige zeitliche Zuordnung des Leistungszeitpunkts erforderlich
-
-### 7.2 Anzahlungen und Vorauszahlungen
-
-Maßgeblich sind die Verhältnisse zum **Zeitpunkt der Leistungserbringung**, nicht der Zahlung. Wurde für Leistungen ab 2026 bereits 19 % USt auf Anzahlungen abgeführt, ist die betroffene Voranmeldung zu korrigieren.
-
-### 7.3 Bewirtungsbelege
-
-Geschäftliche Bewirtungsbelege ab 1.1.2026 erfordern eine Aufteilung der Vorsteuer in:
-
-- Speisen-Anteil (7 % Vorsteuer abzugsfähig)
-- Getränke-Anteil (19 % Vorsteuer abzugsfähig)
-
-Die bisherige Vereinfachung (einheitlich 19 % auf den Gesamtbetrag) entfällt.
+- **Leistungszeitpunkt maßgeblich:** Für den Steuersatz zählen die Verhältnisse zum Zeitpunkt der **Leistungserbringung**, nicht der Zahlung — bei Anzahlungen für Leistungen ab 2026 mit altem Satz ist die Voranmeldung zu korrigieren.
+- **Bewirtungsbelege:** Seit 1.1.2026 ist die Vorsteuer aufzuteilen (Speisen 7 %, Getränke 19 %); die frühere Vereinfachung (einheitlich 19 %) entfällt.
 
 ---
 
@@ -167,7 +134,6 @@ Die bisherige Vereinfachung (einheitlich 19 % auf den Gesamtbetrag) entfällt.
 ### Gesetze und Verwaltungsanweisungen
 
 - **§ 12 Abs. 2 Nr. 15 UStG** — Ermäßigter Steuersatz für Restaurant- und Verpflegungsdienstleistungen (Speisen)
-- **§ 12 Abs. 2 Nr. 11 UStG** — Ermäßigter Steuersatz für Beherbergungsleistungen
 - **Anlage 2 zum UStG** — Liste der dem ermäßigten Steuersatz unterliegenden Gegenstände (u. a. Milch)
 - **Abschn. 10.1 Abs. 12 UStAE** — 30/70-Pauschalierung für Kombinationsangebote
 - **§ 14 UStG** — Pflichtangaben auf Rechnungen/Belegen
