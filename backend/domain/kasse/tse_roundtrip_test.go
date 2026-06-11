@@ -222,7 +222,7 @@ func TestEventDataRoundtrip_Geldtransit_WithAndWithoutTSE(t *testing.T) {
 		t.Fatal("expected nil TSEData for event without TSE")
 	}
 
-	evtMit, err := NewGeldtransitGebuchtEventMitTSE(subject, 1, "User", "einlage", 1000, "Wechselgeld", testRoundtripTSEData("SonstigerVorgang-V1"))
+	evtMit, err := NewGeldtransitGebuchtEventMitTSE(subject, 1, "User", "einlage", 1000, "Wechselgeld", testRoundtripTSEData("Kassenbeleg-V1"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -244,7 +244,7 @@ func TestEventDataRoundtrip_Differenz_WithAndWithoutTSE(t *testing.T) {
 		t.Fatal("expected nil TSEData for event without TSE")
 	}
 
-	evtMit, err := NewDifferenzSollIstGebuchtEventMitTSE(subject, 1, "User", -250, testRoundtripTSEData("SonstigerVorgang-V1"))
+	evtMit, err := NewDifferenzSollIstGebuchtEventMitTSE(subject, 1, "User", -250, testRoundtripTSEData("Kassenbeleg-V1"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -268,7 +268,7 @@ func TestEventDataRoundtrip_Tagesabschluss_WithAndWithoutTSE(t *testing.T) {
 		t.Fatal("expected nil TSEData for event without TSE")
 	}
 
-	evtMit, err := NewTagesabschlussErstelltEventMitTSE(subject, 1, "User", 1, von, bis, 10000, 500, 300, 200, testRoundtripTSEData("SonstigerVorgang-V1"))
+	evtMit, err := NewTagesabschlussErstelltEventMitTSE(subject, 1, "User", 1, von, bis, 10000, 500, 300, 200, testRoundtripTSEData("SonstigerVorgang"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

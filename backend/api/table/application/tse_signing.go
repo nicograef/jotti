@@ -17,11 +17,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const (
-	tseProcessTypeBestellungV1  = "Bestellung-V1"
-	tseProcessTypeKassenbelegV1 = "Kassenbeleg-V1"
-	tseZahlungsartBar           = "Bar"
-)
+const tseZahlungsartBar = "Bar"
 
 type tseNachsignierAuftrag struct {
 	TxID        string
@@ -44,7 +40,7 @@ func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, 
 	return c.signEventWithTSE(
 		ctx,
 		evt,
-		tseProcessTypeKassenbelegV1,
+		tse.ProcessTypeKassenbelegV1,
 		processData,
 		tseTransactionIDForZahlungEvent,
 		withZahlungEventTSEData,
@@ -62,7 +58,7 @@ func (c Command) signBestellungAufgenommenEvent(ctx context.Context, evt event.E
 	return c.signEventWithTSE(
 		ctx,
 		evt,
-		tseProcessTypeBestellungV1,
+		tse.ProcessTypeBestellungV1,
 		processData,
 		tseTransactionIDForBestellungEvent,
 		withBestellungEventTSEData,
@@ -80,7 +76,7 @@ func (c Command) signStornierungErteiltEvent(ctx context.Context, evt event.Even
 	return c.signEventWithTSE(
 		ctx,
 		evt,
-		tseProcessTypeKassenbelegV1,
+		tse.ProcessTypeKassenbelegV1,
 		processData,
 		tseTransactionIDForStornierungEvent,
 		withStornierungEventTSEData,
@@ -98,7 +94,7 @@ func (c Command) signAuszahlungGeleistetEvent(ctx context.Context, evt event.Eve
 	return c.signEventWithTSE(
 		ctx,
 		evt,
-		tseProcessTypeKassenbelegV1,
+		tse.ProcessTypeKassenbelegV1,
 		processData,
 		tseTransactionIDForAuszahlungEvent,
 		withAuszahlungEventTSEData,
@@ -355,24 +351,32 @@ func buildKassenbelegProcessDataWithFaktor(positionen []kasse.Position, zahlbetr
 		}
 	}
 
+	// DSFinV-K Anhang I: Zahlungen von 0.00 müssen entfallen.
+	zahlungen := ""
+	if zahlbetragCents != 0 {
+		zahlungen = tseBetragString(zahlbetragCents) + ":" + tseZahlungsartBar
+	}
+
 	return fmt.Sprintf(
-		"Beleg^%s_%s_%s_%s_%s^%s:%s",
+		"Beleg^%s_%s_%s_%s_%s^%s",
 		tseBetragString(betragNormalCents),
 		tseBetragString(betragErmaessigtCents),
 		tseBetragString(0),
 		tseBetragString(0),
 		tseBetragString(betragBefreitCents),
-		tseBetragString(zahlbetragCents),
-		tseZahlungsartBar,
+		zahlungen,
 	), nil
 }
 
+// buildBestellungProcessData erzeugt die CSV-Darstellung nach DSFinV-K Anhang I:
+// pro Position `<Menge>;"<Bezeichnung>";<Brutto-Einzelpreis>`, Zeilentrenner \r,
+// Anführungszeichen in der Bezeichnung werden verdoppelt.
 func buildBestellungProcessData(positionen []kasse.Position) (string, error) {
 	if len(positionen) == 0 {
 		return "", fmt.Errorf("bestellung processData requires at least one position")
 	}
 
-	teile := make([]string, 0, len(positionen))
+	zeilen := make([]string, 0, len(positionen))
 	for _, pos := range positionen {
 		if pos.Menge <= 0 {
 			continue
@@ -387,14 +391,15 @@ func buildBestellungProcessData(positionen []kasse.Position) (string, error) {
 			name = "Unbekannt"
 		}
 
-		teile = append(teile, fmt.Sprintf("%dx %s", pos.Menge, name))
+		bezeichnung := `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
+		zeilen = append(zeilen, fmt.Sprintf("%d;%s;%s", pos.Menge, bezeichnung, tseBetragString(pos.Einzelpreis)))
 	}
 
-	if len(teile) == 0 {
+	if len(zeilen) == 0 {
 		return "", fmt.Errorf("bestellung processData requires positive quantities")
 	}
 
-	return strings.Join(teile, "_"), nil
+	return strings.Join(zeilen, "\r"), nil
 }
 
 func tseBetragString(cents int) string {

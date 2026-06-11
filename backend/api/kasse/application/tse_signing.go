@@ -16,9 +16,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const (
-	tseProcessTypeSonstigerVorgangV1 = "SonstigerVorgang-V1"
-)
+const tseZahlungsartBar = "Bar"
 
 type tseNachsignierAuftrag struct {
 	TxID        string
@@ -58,12 +56,17 @@ type tagesabschlussErstelltV1Data struct {
 	TSEData           *kasse.TSEData `json:"tseData,omitempty"`
 }
 
-func (c Command) signGeldtransitGebuchtEvent(ctx context.Context, evt event.Event, richtung string, betragCents int, kommentar string) (eventSignierungErgebnis, error) {
-	processData := buildGeldtransitProcessData(richtung, betragCents, kommentar)
+func (c Command) signGeldtransitGebuchtEvent(ctx context.Context, evt event.Event, richtung string, betragCents int) (eventSignierungErgebnis, error) {
+	processData, err := buildGeldtransitProcessData(richtung, betragCents)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to build TSE process_data for geldtransit")
+		return eventSignierungErgebnis{}, ErrDatabase
+	}
+
 	return c.signEventWithTSE(
 		ctx,
 		evt,
-		tseProcessTypeSonstigerVorgangV1,
+		tse.ProcessTypeKassenbelegV1,
 		processData,
 		tseTransactionIDForGeldtransitEvent,
 		withGeldtransitEventTSEData,
@@ -71,11 +74,11 @@ func (c Command) signGeldtransitGebuchtEvent(ctx context.Context, evt event.Even
 }
 
 func (c Command) signDifferenzSollIstGebuchtEvent(ctx context.Context, evt event.Event, differenzCents int) (eventSignierungErgebnis, error) {
-	processData := buildDifferenzProcessData(differenzCents)
+	processData := buildEigenbelegProcessData(differenzCents)
 	return c.signEventWithTSE(
 		ctx,
 		evt,
-		tseProcessTypeSonstigerVorgangV1,
+		tse.ProcessTypeKassenbelegV1,
 		processData,
 		tseTransactionIDForDifferenzEvent,
 		withDifferenzEventTSEData,
@@ -87,7 +90,7 @@ func (c Command) signTagesabschlussErstelltEvent(ctx context.Context, evt event.
 	return c.signEventWithTSE(
 		ctx,
 		evt,
-		tseProcessTypeSonstigerVorgangV1,
+		tse.ProcessTypeSonstigerVorgang,
 		processData,
 		tseTransactionIDForTagesabschlussEvent,
 		withTagesabschlussEventTSEData,
@@ -251,12 +254,26 @@ func withTagesabschlussEventTSEData(evt event.Event, tseData kasse.TSEData) (eve
 	return evt, nil
 }
 
-func buildGeldtransitProcessData(richtung string, betragCents int, kommentar string) string {
-	return fmt.Sprintf("Geldtransit^%s^%s^%s", strings.TrimSpace(richtung), tseBetragString(betragCents), strings.TrimSpace(kommentar))
+func buildGeldtransitProcessData(richtung string, betragCents int) (string, error) {
+	switch richtung {
+	case "einlage":
+		return buildEigenbelegProcessData(betragCents), nil
+	case "entnahme":
+		return buildEigenbelegProcessData(-betragCents), nil
+	default:
+		return "", fmt.Errorf("unsupported richtung %q", richtung)
+	}
 }
 
-func buildDifferenzProcessData(betragCents int) string {
-	return fmt.Sprintf("DifferenzSollIst^%s", tseBetragString(betragCents))
+// buildEigenbelegProcessData erzeugt Kassenbeleg-V1-processData für Geschäftsvorfälle
+// ohne Umsatz (Eigenbelege nach AEAO 2.2.3.6.1): alle Steuerbeträge 0.00, nur der
+// Zahlbetrag ist gefüllt. DSFinV-K Anhang I: Zahlungen von 0.00 müssen entfallen.
+func buildEigenbelegProcessData(zahlbetragCents int) string {
+	zahlungen := ""
+	if zahlbetragCents != 0 {
+		zahlungen = tseBetragString(zahlbetragCents) + ":" + tseZahlungsartBar
+	}
+	return fmt.Sprintf("Beleg^0.00_0.00_0.00_0.00_0.00^%s", zahlungen)
 }
 
 func buildTagesabschlussProcessData(zNr int, zeitraumVon time.Time, zeitraumBis time.Time) string {

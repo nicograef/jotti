@@ -264,8 +264,8 @@ func TestGeldtransitBuchen_MitTSE_DatenImEvent(t *testing.T) {
 	if data.TSEData == nil {
 		t.Fatal("expected TSE data in geldtransit event")
 	}
-	if data.TSEData.ProcessType != "SonstigerVorgang-V1" {
-		t.Fatalf("expected process type SonstigerVorgang-V1, got %q", data.TSEData.ProcessType)
+	if data.TSEData.ProcessType != "Kassenbeleg-V1" {
+		t.Fatalf("expected process type Kassenbeleg-V1, got %q", data.TSEData.ProcessType)
 	}
 }
 
@@ -320,8 +320,8 @@ func TestKassensturzDurchfuehren_MitTSE_SigniertNurDifferenzEvent(t *testing.T) 
 	if diff.TSEData == nil {
 		t.Fatal("expected TSE data in differenz event")
 	}
-	if diff.TSEData.ProcessType != "SonstigerVorgang-V1" {
-		t.Fatalf("expected process type SonstigerVorgang-V1, got %q", diff.TSEData.ProcessType)
+	if diff.TSEData.ProcessType != "Kassenbeleg-V1" {
+		t.Fatalf("expected process type Kassenbeleg-V1, got %q", diff.TSEData.ProcessType)
 	}
 }
 
@@ -377,8 +377,8 @@ func TestTagesabschlussErstellen_MitTSE_DatenImEvent(t *testing.T) {
 	if data.TSEData == nil {
 		t.Fatal("expected TSE data in tagesabschluss event")
 	}
-	if data.TSEData.ProcessType != "SonstigerVorgang-V1" {
-		t.Fatalf("expected process type SonstigerVorgang-V1, got %q", data.TSEData.ProcessType)
+	if data.TSEData.ProcessType != "SonstigerVorgang" {
+		t.Fatalf("expected process type SonstigerVorgang, got %q", data.TSEData.ProcessType)
 	}
 }
 

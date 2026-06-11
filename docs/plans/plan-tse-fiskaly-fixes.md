@@ -92,11 +92,11 @@ Der `FiskalyTSEClient` sendet Requests, die die echte API akzeptiert: `StartTran
 
 ### Acceptance criteria
 
-- [ ] Bestellung-processData entspricht dem Spec-Beispiel inkl. Quoting (`2;"Eisbecher ""Himbeere""";3.99`)
-- [ ] Kein Vorkommen von `SonstigerVorgang-V1` mehr in Code und Doku
-- [ ] Geldtransit/Differenz/Auszahlung signieren als `Kassenbeleg-V1`; Unit-Tests decken positive und negative Beträge ab
-- [ ] processData ohne `0.00:Bar`-Zahlungsteil, wenn Zahlbetrag 0
-- [ ] compliance.md §3.2–§3.4 und handbuch.md §3.13 stimmen mit DSFinV-K Anhang I/AEAO überein (D-01–D-05 geschlossen)
+- [x] Bestellung-processData entspricht dem Spec-Beispiel inkl. Quoting (`2;"Eisbecher ""Himbeere""";3.99`)
+- [x] Kein Vorkommen von `SonstigerVorgang-V1` mehr in Code und Doku
+- [x] Geldtransit/Differenz/Auszahlung signieren als `Kassenbeleg-V1`; Unit-Tests decken positive und negative Beträge ab
+- [x] processData ohne `0.00:Bar`-Zahlungsteil, wenn Zahlbetrag 0
+- [x] compliance.md §3.2–§3.4 und handbuch.md §3.13 stimmen mit DSFinV-K Anhang I/AEAO überein (D-01–D-05 geschlossen)
 
 ---
 

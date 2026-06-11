@@ -7,19 +7,52 @@ import (
 	"time"
 )
 
-func TestBuildGeldtransitProcessData(t *testing.T) {
-	got := buildGeldtransitProcessData("einlage", 1234, "Wechselgeld")
-	want := "Geldtransit^einlage^12.34^Wechselgeld"
+func TestBuildGeldtransitProcessData_Einlage(t *testing.T) {
+	got, err := buildGeldtransitProcessData("einlage", 1234)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "Beleg^0.00_0.00_0.00_0.00_0.00^12.34:Bar"
 	if got != want {
 		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}
 }
 
-func TestBuildDifferenzProcessData_Negativ(t *testing.T) {
-	got := buildDifferenzProcessData(-250)
-	want := "DifferenzSollIst^-2.50"
+func TestBuildGeldtransitProcessData_Entnahme(t *testing.T) {
+	got, err := buildGeldtransitProcessData("entnahme", 1234)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	want := "Beleg^0.00_0.00_0.00_0.00_0.00^-12.34:Bar"
 	if got != want {
 		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+	}
+}
+
+func TestBuildGeldtransitProcessData_UngueltigeRichtung(t *testing.T) {
+	if _, err := buildGeldtransitProcessData("foo", 1234); err == nil {
+		t.Fatal("expected error for invalid richtung, got nil")
+	}
+}
+
+func TestBuildEigenbelegProcessData(t *testing.T) {
+	tests := []struct {
+		name            string
+		zahlbetragCents int
+		expected        string
+	}{
+		{name: "positiver betrag", zahlbetragCents: 250, expected: "Beleg^0.00_0.00_0.00_0.00_0.00^2.50:Bar"},
+		{name: "negativer betrag", zahlbetragCents: -250, expected: "Beleg^0.00_0.00_0.00_0.00_0.00^-2.50:Bar"},
+		{name: "zahlung 0.00 entfaellt", zahlbetragCents: 0, expected: "Beleg^0.00_0.00_0.00_0.00_0.00^"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := buildEigenbelegProcessData(tc.zahlbetragCents)
+			if got != tc.expected {
+				t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", tc.expected, got)
+			}
+		})
 	}
 }
 

@@ -217,7 +217,7 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 
 > Compliance-spezifische Architektur-Entscheidungen für die TSE-Integration. Rechtliche Grundlagen → [compliance.md §3–§8](compliance.md).
 
-**TSE-Integration:** Die Application-Schicht ruft die TSE über das anbieter-agnostische `TSEClient`-Interface auf (`StartTransaction` / `UpdateTransaction` / `FinishTransaction`, → `backend/domain/tse/client.go`). `UpdateTransaction` ist nur für `Bestellung-V1` und `SonstigerVorgang-V1` zulässig — für `Kassenbeleg-V1` verboten (BMF-FAQ). Die TSE-Rückgabewerte (Transaktionsnummer, logTime von Start und Finish, Signaturzähler, Signatur, TSE-Seriennummer, processType) werden als `TSEData` in den Event-Daten des Kassenjournals persistiert (`backend/domain/kasse/*_events.go`); zusätzlich hält die Tisch-Session die logTime der ersten Bestellung für den Bon-Aufdruck.
+**TSE-Integration:** Die Application-Schicht ruft die TSE über das anbieter-agnostische `TSEClient`-Interface auf (`StartTransaction` / `UpdateTransaction` / `FinishTransaction`, → `backend/domain/tse/client.go`). `processType` und `processData` sind bei `StartTransaction` immer leer (DSFinV-K Anhang I). `UpdateTransaction` ist nur für `Bestellung-V1` und `SonstigerVorgang` zulässig — für `Kassenbeleg-V1` verboten (BMF-FAQ). Die TSE-Rückgabewerte (Transaktionsnummer, logTime von Start und Finish, Signaturzähler, Signatur, TSE-Seriennummer, processType) werden als `TSEData` in den Event-Daten des Kassenjournals persistiert (`backend/domain/kasse/*_events.go`); zusätzlich hält die Tisch-Session die logTime der ersten Bestellung für den Bon-Aufdruck.
 
 **Mapping: jotti-Vorgänge → TSE-Transaktionen (Atomares Modell):** Für das Festzelt-Muster gilt: Jeder Vorgang ist eine **eigenständige, sofort geschlossene** TSE-Transaktion.
 
@@ -229,11 +229,11 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 | Positions-Storno                         | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negative Menge/Betrag; BON_STORNO=1 im DSFinV-K                   |
 | Bon-Storno (nach Zahlung)                | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Gesamtbetrag; BON_STORNO=1, REF_BON_ID gesetzt          |
 | Auszahlung (negativen Saldo ausgleichen) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Bargeldabfluss; negativer Betrag, Zahlungsart bar                 |
-| Geldtransit (Einlage/Entnahme)           | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Kassenwirksame Geldbewegung ohne Umsatz                           |
-| Kassendifferenz (Kassensturz)            | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Eigenbeleg `DifferenzSollIst`; umsatzsteuerlich neutral (→ §3.10) |
+| Geldtransit (Einlage/Entnahme)           | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Eigenbeleg über Ein-/Auszahlung (AEAO 2.2.3.6.1); ±Betrag als Zahlung |
+| Kassendifferenz (Kassensturz)            | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Eigenbeleg `DifferenzSollIst` (AEAO 2.2.3.6.1); ±Betrag als Zahlung; umsatzsteuerlich neutral (→ §3.10) |
 | Direktverkauf                            | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Bestellen + Zahlen in einem Schritt; 1 Verkauf = 1 Transaktion    |
 | Direktverkauf-Storno                     | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Betrag; BON_STORNO=1, REF_BON_ID gesetzt                |
-| Tagesabschluss (Z-Bon)                   | `Start` + sofort `Finish` | `SonstigerVorgang-V1` | Tagesaggregat in processData                                      |
+| Tagesabschluss (Z-Bon)                   | `Start` + sofort `Finish` | `SonstigerVorgang`    | Tagesaggregat in processData                                      |
 
 **Alle Transaktionen eines Tisches** teilen denselben `ABRECHNUNGSKREIS`-Wert im DSFinV-K-Export.
 

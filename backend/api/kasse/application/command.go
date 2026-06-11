@@ -166,7 +166,7 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 		return err
 	}
 
-	signierung, err := c.signGeldtransitGebuchtEvent(ctx, evt, richtung, betragCents, kommentar)
+	signierung, err := c.signGeldtransitGebuchtEvent(ctx, evt, richtung, betragCents)
 	if err != nil {
 		return err
 	}

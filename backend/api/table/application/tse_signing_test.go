@@ -46,6 +46,18 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 			expected:   "Beleg^1234.56_0.00_0.00_0.00_0.00^1234.56:Bar",
 		},
 		{
+			name:       "auszahlung ohne positionen mit negativem betrag",
+			positionen: nil,
+			zahlbetrag: -1500,
+			expected:   "Beleg^0.00_0.00_0.00_0.00_0.00^-15.00:Bar",
+		},
+		{
+			name:       "zahlung 0.00 entfaellt",
+			positionen: []kasse.Position{{Einzelpreis: 1000, Menge: 1, Steuersatz: "regel"}},
+			zahlbetrag: 0,
+			expected:   "Beleg^10.00_0.00_0.00_0.00_0.00^",
+		},
+		{
 			name:        "ungueltiger steuersatz",
 			positionen:  []kasse.Position{{Einzelpreis: 100, Menge: 1, Steuersatz: "foo"}},
 			zahlbetrag:  100,
@@ -88,16 +100,31 @@ func TestBuildKassenbelegProcessDataWithFaktor_NegativBeiStorno(t *testing.T) {
 	}
 }
 
-func TestBuildBestellungProcessData(t *testing.T) {
+func TestBuildBestellungProcessData_CSVFormat(t *testing.T) {
 	got, err := buildBestellungProcessData([]kasse.Position{
-		{ProduktName: "Ma\u00df Bier", VarianteName: "", Menge: 4},
-		{ProduktName: "Wei\u00dfwurst", VarianteName: "normal", Menge: 2},
+		{ProduktName: "Ma\u00df Bier", VarianteName: "", Menge: 4, Einzelpreis: 950},
+		{ProduktName: "Wei\u00dfwurst", VarianteName: "normal", Menge: 2, Einzelpreis: 250},
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	want := "4x Ma\u00df Bier_2x Wei\u00dfwurst normal"
+	want := "4;\"Ma\u00df Bier\";9.50\r2;\"Wei\u00dfwurst normal\";2.50"
+	if got != want {
+		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+	}
+}
+
+func TestBuildBestellungProcessData_VerdoppeltAnfuehrungszeichen(t *testing.T) {
+	got, err := buildBestellungProcessData([]kasse.Position{
+		{ProduktName: `Eisbecher "Himbeere"`, Menge: 2, Einzelpreis: 399},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Beispiel aus DSFinV-K Anhang I
+	want := `2;"Eisbecher ""Himbeere""";3.99`
 	if got != want {
 		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}

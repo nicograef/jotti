@@ -68,19 +68,19 @@ Jeder abzusichernde Vorgang kommuniziert mit der TSE über drei Operationen:
 
 | Operation | Wann | Request | Response |
 | --- | --- | --- | --- |
-| **`StartTransaction`** | **Unmittelbar** bei Vorgangsbeginn (Ordnungsanforderung; keine maximale Transaktionsdauer in BSI TR-03153) | Kassen-ID, `processType`, initiale `processData` | Fortlaufende Transaktionsnummer, `logTime`, TSE-Seriennummer, Signaturzähler |
-| **`UpdateTransaction`** | Optional — **nur** für `Bestellung-V1` und `SonstigerVorgang-V1`; für `Kassenbeleg-V1` **verboten** (processData erst bei Abschluss bekannt) [11] | Kassen-ID, Transaktionsnummer, aktualisierte `processData` | — |
+| **`StartTransaction`** | **Unmittelbar** bei Vorgangsbeginn (Ordnungsanforderung; keine maximale Transaktionsdauer in BSI TR-03153) | Kassen-ID — `processType` und `processData` sind bei Start **immer leer** (DSFinV-K Anhang I) | Fortlaufende Transaktionsnummer, `logTime`, TSE-Seriennummer, Signaturzähler |
+| **`UpdateTransaction`** | Optional — **nur** für `Bestellung-V1` und `SonstigerVorgang`; für `Kassenbeleg-V1` **verboten** (processData erst bei Abschluss bekannt) [11] | Kassen-ID, Transaktionsnummer, aktualisierte `processData` | — |
 | **`FinishTransaction`** | Bei Abschluss oder Abbruch des Vorgangs | Transaktionsnummer, finale `processData` (Summen nach Steuersätzen und Zahlungsarten) | Signatur, `logTime`, finaler Signaturzähler |
 
 ### 3.3 Offizielle processType-Werte
 
-Die `processType`-Werte sind im AEAO zu § 146a AO, Anhang I, festgelegt. Die **-V1-Endung ist Bestandteil des offiziellen Strings**.
+Die `processType`-Werte sind im AEAO zu § 146a AO, Anhang I, festgelegt. Die **-V1-Endung ist nur bei `Kassenbeleg-V1` und `Bestellung-V1` Bestandteil des offiziellen Strings** — der dritte Typ heißt `SonstigerVorgang` (ohne Suffix).
 
-| processType           | Verwendung                                                                 |
-| --------------------- | -------------------------------------------------------------------------- |
-| `Kassenbeleg-V1`      | Zahlungsbeleg (Rechnung), der dem Kunden ausgehändigt wird                 |
-| `Bestellung-V1`       | Zwischenabsicherung einer Bestellung ohne sofortige Zahlung (Gastronomie)  |
-| `SonstigerVorgang-V1` | Alle anderen abzusichernden Vorgänge (Tagesabschluss, TSE-Selbsttest, ...) |
+| processType        | Verwendung                                                                                                                 |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `Kassenbeleg-V1`   | Zahlungsbeleg (Rechnung), der dem Kunden ausgehändigt wird; auch Eigenbelege über Ein-/Auszahlungen wie Geldtransit, Kassendifferenz und Auszahlung (AEAO 2.2.3.6.1) |
+| `Bestellung-V1`    | Zwischenabsicherung einer Bestellung ohne sofortige Zahlung (Gastronomie)                                                  |
+| `SonstigerVorgang` | Alle anderen abzusichernden Vorgänge (Tagesabschluss, TSE-Selbsttest, ...)                                                 |
 
 **Mapping auf jotti-Events:**
 
@@ -91,7 +91,7 @@ Die `processType`-Werte sind im AEAO zu § 146a AO, Anhang I, festgelegt. Die **
 | `direktverkauf-getaetigt:v1` | `Kassenbeleg-V1`      | Atomar — keine vorgelagerte `Bestellung-V1`, da Bestellung und Zahlung zeitgleich stattfinden |
 | `direktverkauf-storniert:v1` | `Kassenbeleg-V1`      | Stornobeleg mit negativem Betrag, `REF_BON_ID` auf den Ursprungsverkauf                       |
 | `stornierung-erteilt:v1`     | `Kassenbeleg-V1`      | Positions-Storno am Tisch mit negativen Beträgen                                              |
-| Tagesabschluss (Z-Bon)       | `SonstigerVorgang-V1` | Aggregierte Tagessummen                                                                       |
+| Tagesabschluss (Z-Bon)       | `SonstigerVorgang`    | Aggregierte Tagessummen                                                                       |
 
 Das vollständige Mapping aller jotti-Vorgänge (inkl. Auszahlung, Geldtransit, Kassendifferenz): [handbuch.md §3.13](handbuch.md#313-tse-architektur).
 
@@ -99,9 +99,10 @@ Das vollständige Mapping aller jotti-Vorgänge (inkl. Auszahlung, Geldtransit, 
 
 - **Encoding:** UTF-8 oder ASCII, kein BOM
 - **Dezimaltrennzeichen:** ausschließlich Punkt (`.`); keine Tausendertrennzeichen, keine Exponentialschreibweise, kein `+`; mindestens eine Stelle vor dem Punkt (`0.5`, nicht `.5`)
-- **Format `Kassenbeleg-V1`:** `Beleg^<Betrag_Normal>_<Betrag_Ermaessigt>_<Betrag_Null>_<Betrag_Besonderer_Satz>_<Betrag_Befreit>^<Zahlbetrag>:<Zahlungsart>`
-  > **Kombi-Positionen (70/30):** Speisen-Anteil (70 %) → `Betrag_Ermaessigt`, Getränke-Anteil (30 %) → `Betrag_Normal`. Die fünf Betragstellen bilden alle jotti-Steuersätze ab.
-- **Format `Bestellung-V1`:** Positionen als strukturierter Text (z. B. `4x Maß Bier_2x Weißwurst`) gemäß AEAO § 146a Anhang I
+- **Bei `StartTransaction`:** `processType` und `processData` sind **immer leer** — beide werden erst bei `FinishTransaction` übergeben (DSFinV-K Anhang I)
+- **Format `Kassenbeleg-V1`:** `Beleg^<Betraege>^<Zahlungen>` — die fünf Brutto-Steuerbeträge in fester Reihenfolge: **1.** Allgemeiner Steuersatz (19 %) · **2.** Ermäßigter Steuersatz (7 %) · **3.** Durchschnittssatz § 24 Abs. 1 Nr. 3 UStG (10,7 %) · **4.** Durchschnittssatz § 24 Abs. 1 Nr. 1 UStG (5,5 %) · **5.** 0 %. Zahlungen als `<Betrag>:<Zahlungsart>`; **Zahlungen von `0.00` entfallen**.
+  > **Kombi-Positionen (70/30):** Speisen-Anteil (70 %) → Position 2 (ermäßigt), Getränke-Anteil (30 %) → Position 1 (allgemein); steuerbefreite Positionen → Position 5 (0 %). Die fünf Betragstellen bilden alle jotti-Steuersätze ab.
+- **Format `Bestellung-V1`:** CSV-Darstellung, pro Position eine Zeile `<Menge>;"<Bezeichnung>";<Brutto-Einzelpreis>` — Zeilentrenner `\r` (U+000D), Bezeichnung in Anführungszeichen (innere `"` werden verdoppelt), Preis mit exakt 2 Nachkommastellen. Beispiel aus DSFinV-K Anhang I: `2;"Eisbecher ""Himbeere""";3.99`
 
 ### 3.5 TSE-Varianten und Anbieter-Entscheidung
 

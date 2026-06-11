@@ -17,10 +17,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const (
-	tseProcessTypeKassenbelegV1 = "Kassenbeleg-V1"
-	tseZahlungsartBar           = "Bar"
-)
+const tseZahlungsartBar = "Bar"
 
 type tseNachsignierAuftrag struct {
 	TxID        string
@@ -60,7 +57,7 @@ func (c Command) signDirektverkaufGetaetigtEvent(ctx context.Context, evt event.
 	return c.signEventWithTSE(
 		ctx,
 		evt,
-		tseProcessTypeKassenbelegV1,
+		tse.ProcessTypeKassenbelegV1,
 		processData,
 		tseTransactionIDForDirektverkaufGetaetigtEvent,
 		withDirektverkaufGetaetigtEventTSEData,
@@ -77,7 +74,7 @@ func (c Command) signDirektverkaufStorniertEvent(ctx context.Context, evt event.
 	return c.signEventWithTSE(
 		ctx,
 		evt,
-		tseProcessTypeKassenbelegV1,
+		tse.ProcessTypeKassenbelegV1,
 		processData,
 		tseTransactionIDForDirektverkaufStorniertEvent,
 		withDirektverkaufStorniertEventTSEData,
@@ -251,15 +248,20 @@ func buildKassenbelegProcessDataWithFaktor(positionen []kasse.Position, zahlbetr
 		}
 	}
 
+	// DSFinV-K Anhang I: Zahlungen von 0.00 müssen entfallen.
+	zahlungen := ""
+	if zahlbetragCents != 0 {
+		zahlungen = tseBetragString(zahlbetragCents) + ":" + tseZahlungsartBar
+	}
+
 	return fmt.Sprintf(
-		"Beleg^%s_%s_%s_%s_%s^%s:%s",
+		"Beleg^%s_%s_%s_%s_%s^%s",
 		tseBetragString(betragNormalCents),
 		tseBetragString(betragErmaessigtCents),
 		tseBetragString(0),
 		tseBetragString(0),
 		tseBetragString(betragBefreitCents),
-		tseBetragString(zahlbetragCents),
-		tseZahlungsartBar,
+		zahlungen,
 	), nil
 }
 
