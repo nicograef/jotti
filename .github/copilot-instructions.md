@@ -1,6 +1,6 @@
 # jotti — Copilot-Anweisungen
 
-jotti ist ein quelloffenes Mobile-Kassensystem (mPOS) für Vereine. Backend: Go, Frontend: React/TypeScript. Vollständige Projektregeln und Konventionen: siehe `AGENTS.md`.
+jotti ist ein Mobile-Kassensystem (mPOS) für Vereine. Backend: Go, Frontend: React/TypeScript. Vollständige Projektregeln und Konventionen: siehe `AGENTS.md`.
 
 Diese Datei ist absichtlich kurz. `AGENTS.md` ist die kanonische repo-weite Quelle; diese Datei spiegelt nur wenige harte Guardrails und den modus-übergreifenden Bewertungsmaßstab als Sicherheitskopie.
 

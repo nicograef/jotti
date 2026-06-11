@@ -11,11 +11,11 @@ widersprüchliche Instruktionen abbauen und die Skill-Familie konsolidieren.
 
 Die Arbeit verteilt sich auf drei Orte:
 
-| Ort | Inhalt | Versioniert |
-| --- | --- | --- |
-| jotti-Repo | `AGENTS.md`, `.github/copilot-instructions.md`, `.github/instructions/`, `.claude/settings.local.json` | ja (dieses Repo) |
-| Maschine | `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, `~/.claude/statusline.sh`, `~/.config/Code/User/settings.json` | nein — vor Änderung Kopie nach `~/.claude/backups/` |
-| handbook-Repo | `skills/` (cleanup, deslop, code-audit, README) | ja (`~/r/handbook`) |
+| Ort           | Inhalt                                                                                                           | Versioniert                                         |
+| ------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| jotti-Repo    | `AGENTS.md`, `.github/copilot-instructions.md`, `.github/instructions/`, `.claude/settings.local.json`           | ja (dieses Repo)                                    |
+| Maschine      | `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, `~/.claude/statusline.sh`, `~/.config/Code/User/settings.json` | nein — vor Änderung Kopie nach `~/.claude/backups/` |
+| handbook-Repo | `skills/` (cleanup, deslop, code-audit, README)                                                                  | ja (`~/r/handbook`)                                 |
 
 ## Architectural decisions
 
@@ -100,7 +100,7 @@ Durable Entscheidungen, auf die sich alle Phasen beziehen:
   (`.last-cleanup` 2026-06-11, Transcript-Retention per Default 30 Tage über
   `cleanupPeriodDays` steuerbar), die `~/.claude`-Verzeichnisse sind winzig
   (< 2 MB), VS Codes `workspaceStorage` (324 MB) regeneriert sich nach dem
-  Löschen. Stattdessen adressiert Phase 8 veraltete *Inhalte*, die Agents
+  Löschen. Stattdessen adressiert Phase 8 veraltete _Inhalte_, die Agents
   tatsächlich als Kontext lesen.
 
 ## Open questions / Risks
@@ -164,7 +164,7 @@ prompt-frei.
 - [x] Die sechs Einträge sind entfernt, alle übrigen unverändert
 - [x] `jq empty ~/.claude/settings.json` ist erfolgreich
 - [x] Sicherungskopie in `~/.claude/backups/` existiert
-- [ ] Stichprobe in einer Claude-Code-Session: `make check` läuft ohne
+- [x] Stichprobe in einer Claude-Code-Session: `make check` läuft ohne
       Permission-Prompt, `curl example.com` prompted
 
 ---
@@ -192,12 +192,12 @@ streichen (Anzeigename ist kurz genug) oder um `fable` ergänzen.
 
 ### Acceptance criteria
 
-- [ ] CLAUDE.md enthält keine framework-/architekturspezifischen Regeln mehr
+- [x] CLAUDE.md enthält keine framework-/architekturspezifischen Regeln mehr
       (kein `BackendClient`, kein „POST-only", keine sqlc/Flyway-Details)
-- [ ] jotti ist als source-available beschrieben
-- [ ] Statusline rendert korrekt für Fable- und Opus-Modelle, in und außerhalb
+- [x] jotti ist als source-available beschrieben
+- [x] Statusline rendert korrekt für Fable- und Opus-Modelle, in und außerhalb
       von Git-Repos (Test per Pipe mit Beispiel-JSON)
-- [ ] Sicherungskopien beider Dateien existieren
+- [x] Sicherungskopien beider Dateien existieren
 
 ---
 
@@ -217,9 +217,9 @@ nur der Widerspruch im Eröffnungssatz wird beseitigt.
 
 ### Acceptance criteria
 
-- [ ] `grep -ri quelloffen AGENTS.md .github/` liefert keine Treffer mehr
-- [ ] Beide Dateien beschreiben die Lizenz konsistent als Source-Available
-- [ ] Keine inhaltlichen Änderungen über die Terminologie hinaus
+- [x] `grep -ri quelloffen AGENTS.md .github/` liefert keine Treffer mehr
+- [x] Beide Dateien beschreiben die Lizenz konsistent als Source-Available
+- [x] Keine inhaltlichen Änderungen über die Terminologie hinaus
 
 ---
 
@@ -248,12 +248,12 @@ verallgemeinern.
 
 ### Acceptance criteria
 
-- [ ] Jeder Constraint steht genau einmal in `AGENTS.md`; keine Regel ist
+- [x] Jeder Constraint steht genau einmal in `AGENTS.md`; keine Regel ist
       inhaltlich verloren gegangen
-- [ ] `AGENTS.md` ist um ≥ 20 Zeilen kürzer
-- [ ] `backend.instructions.md` zeigt genau ein DTO-Mapping-Beispiel
-- [ ] `event-sourcing.instructions.md` beschreibt Projektion/Routing einmal
-- [ ] `.claude/settings.local.json` ist nicht mehr versionsgepinnt
+- [x] `AGENTS.md` ist um ≥ 20 Zeilen kürzer
+- [x] `backend.instructions.md` zeigt genau ein DTO-Mapping-Beispiel
+- [x] `event-sourcing.instructions.md` beschreibt Projektion/Routing einmal
+- [x] `.claude/settings.local.json` ist nicht mehr versionsgepinnt
 
 ---
 
@@ -284,11 +284,11 @@ einschließlich der toten Zeilen für die bereits gelöschten Skills
 
 ### Acceptance criteria
 
-- [ ] `skills/deslop/` existiert nicht mehr; keine toten Links in `cleanup/`
-- [ ] cleanup-Description nennt die übernommenen deslop-Trigger
-- [ ] code-audit-Description überlappt nicht mehr mit cleanup
+- [x] `skills/deslop/` existiert nicht mehr; keine toten Links in `cleanup/`
+- [x] cleanup-Description nennt die übernommenen deslop-Trigger
+- [x] code-audit-Description überlappt nicht mehr mit cleanup
 - [ ] Neue Claude-Code-Session listet cleanup (gemergt) und kein deslop
-- [ ] README-Tabelle ist konsistent mit den vorhandenen Skill-Verzeichnissen
+- [x] README-Tabelle ist konsistent mit den vorhandenen Skill-Verzeichnissen
 
 ---
 
@@ -310,11 +310,11 @@ Copilot-Chat-Session), damit das README keine ungeprüfte Behauptung enthält.
 
 ### Acceptance criteria
 
-- [ ] README beschreibt Symlink-Konsum durch beide Agents; „copy into project
+- [x] README beschreibt Symlink-Konsum durch beide Agents; „copy into project
       repos" ist entfernt
-- [ ] Copilot-Discovery wurde praktisch verifiziert (oder die Einschränkung
+- [x] Copilot-Discovery wurde praktisch verifiziert (oder die Einschränkung
       ist im README dokumentiert)
-- [ ] „Adding a New Skill"-Verweis und Workflow-Sektion stimmen weiterhin
+- [x] „Adding a New Skill"-Verweis und Workflow-Sektion stimmen weiterhin
 
 ---
 
@@ -346,8 +346,8 @@ abgeschlossene Pläne werden nach dem Merge gelöscht.
 
 ### Acceptance criteria
 
-- [ ] `docs/plans/` enthält ausschließlich Pläne mit offenen Checkboxen
-- [ ] Jedes verbleibende PRD gehört zu offener oder künftiger Arbeit
-- [ ] Vor jeder Löschung geprüft: keine eingehenden Verweise aus `docs/`,
+- [x] `docs/plans/` enthält ausschließlich Pläne mit offenen Checkboxen
+- [x] Jedes verbleibende PRD gehört zu offener oder künftiger Arbeit
+- [x] Vor jeder Löschung geprüft: keine eingehenden Verweise aus `docs/`,
       `AGENTS.md` oder `.github/instructions/` auf die gelöschte Datei
-- [ ] Die Lösch-Policy ist als ein Satz dokumentiert
+- [x] Die Lösch-Policy ist als ein Satz dokumentiert

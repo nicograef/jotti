@@ -66,17 +66,6 @@ type varianteDTO struct {
 	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
-func toVarianteDTO(v product.Variante) varianteDTO {
-	return varianteDTO{
-		ID:         v.ID,
-		Name:       v.Name,
-		PreisCents: v.PreisCents,
-		Status:     string(v.Status),
-		CreatedAt:  v.CreatedAt,
-		UpdatedAt:  v.UpdatedAt,
-	}
-}
-
 type produktDTO struct {
 	ID        int           `json:"id"`
 	Name      string        `json:"name"`
@@ -89,8 +78,15 @@ type produktDTO struct {
 
 func toProduktDTO(p product.Produkt) produktDTO {
 	varianten := make([]varianteDTO, 0, len(p.Varianten))
-	for _, variante := range p.Varianten {
-		varianten = append(varianten, toVarianteDTO(variante))
+	for _, v := range p.Varianten {
+		varianten = append(varianten, varianteDTO{
+			ID:         v.ID,
+			Name:       v.Name,
+			PreisCents: v.PreisCents,
+			Status:     string(v.Status),
+			CreatedAt:  v.CreatedAt,
+			UpdatedAt:  v.UpdatedAt,
+		})
 	}
 
 	return produktDTO{

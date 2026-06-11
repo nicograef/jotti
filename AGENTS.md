@@ -1,6 +1,6 @@
 # Agent Instructions — jotti
 
-jotti ist ein **kostenloses, quelloffenes Mobile-Kassensystem (mPOS)** für Vereine und gemeinnützige Organisationen. Zielgruppe: eingetragene Vereine (e.V.), gGmbH, gUG, Stiftungen, kirchliche Träger — für temporäre Gastronomie-Veranstaltungen (Vereinsfeste, Weihnachtsmärkte, Maihocks, Konzerte, 2–3 Mal pro Jahr, 5–50 Tische, 5–30 ehrenamtliche Helfer).
+jotti ist ein **kostenloses Mobile-Kassensystem (mPOS)** für Vereine und gemeinnützige Organisationen. Zielgruppe: eingetragene Vereine (e.V.), gGmbH, gUG, Stiftungen, kirchliche Träger — für temporäre Gastronomie-Veranstaltungen (Vereinsfeste, Weihnachtsmärkte, Maihocks, Konzerte, 2–3 Mal pro Jahr, 5–50 Tische, 5–30 ehrenamtliche Helfer).
 
 Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer. Self-hosted per Docker Compose, proprietäre Source-Available-Lizenz (Non-Commercial, Nutzungsvereinbarung erforderlich), Mobile-first.
 
@@ -76,6 +76,10 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 11. **Verifizieren statt vermuten.** Vor jeder Aussage über bestehenden Code, Architektur, Benennung oder Verhalten muss die Codebasis durchsucht werden (grep, file search, semantic search, read file). Nie raten, was eine Datei enthält, was eine Funktion tut oder wie ein Feature funktioniert — immer den tatsächlichen Quellcode lesen. Domänenbezogene Behauptungen gegen `docs/` gegenprüfen.
 12. **Fragen statt annehmen.** Bei Unsicherheit über Anforderungen, Design-Absicht oder Erwartungen des Nutzers muss der Clarify-Skill oder das AskQuestion-Tool verwendet werden, um Unklarheiten mit strukturierten Fragen zu klären. Mit dokumentierten Annahmen fortfahren ist nur akzeptabel, wenn der Nutzer ausdrücklich ablehnt zu antworten.
 13. **Websuche für externes Wissen.** Bei Arbeit mit externen Bibliotheken, Sprachfeatures, APIs, Compliance-Vorgaben oder anderem Wissen außerhalb der Projekt-Codebasis sollen autoritative Quellen im Web gesucht werden (offizielle Dokumentation, RFCs, Spezifikationen) statt sich auf potenziell veraltetes Trainingswissen zu verlassen. Verifizierte Fakten immer gegenüber erinnerten Informationen bevorzugen.
+14. 🚫 **`sqlc/dbgen/` niemals editieren** (generierter Code).
+15. ✅ **`make sqlc`** nach Query-Änderungen ausführen; **`make lint`** nach Code-Änderungen.
+16. ⚠️ **Erst fragen** vor neuen Dependencies oder Änderungen an Docker/Nginx-Konfiguration.
+17. 🚫 **Keine Secrets oder Passwörter** in den Code committen.
 
 ## Qualitätsprinzipien
 
@@ -100,26 +104,12 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 - **Service** (`admin` + `serviceleitung` + `service`): Routen `/service/*` (`api/service.go`), Stornierung über `api/serviceleitung.go`. Frontend `src/service/`, `ServiceGuard`. Bestellen, Ausgabe bestätigen, Kassieren, Stornieren.
 - **Auth**: Routen `/auth/*` (`api/auth.go`). Login, Passwort setzen. JWT-Token (Benutzer-ID + Rolle).
 
-## Grenzen
-
-- ✅ **Immer:** Beide Seiten validieren (zog + Zod), Tests mitliefern, Events immutable behandeln
-- ✅ **Immer:** `make sqlc` nach Query-Änderungen, `make lint` nach Code-Änderungen
-- ✅ **Immer:** Response-DTOs in der HTTP-Schicht definieren, Domain-Modelle nie direkt serialisieren
-- ⚠️ **Erst fragen:** Neue Dependencies hinzufügen, Docker/Nginx-Konfiguration ändern
-- 🚫 **Niemals:** `sqlc/dbgen/` editieren (generierter Code)
-- 🚫 **Niemals:** Einträge im Kassenjournal updaten oder löschen
-- 🚫 **Niemals:** Floats für Geldbeträge verwenden
-- 🚫 **Niemals:** `json`-Tags auf Domain-Structs in `domain/` setzen (Ausnahme: Event-Data-Structs für Event Store)
-- 🚫 **Niemals:** Domain-Modelle direkt als HTTP-Response durchschleusen
-- 🚫 **Niemals:** Direkt `fetch()` im Frontend verwenden
-- 🚫 **Niemals:** GET/PUT/DELETE-Endpunkte erstellen
-- 🚫 **Niemals:** Secrets oder Passwörter in Code committen
-
 ## Git-Workflow
 
 - **Commit-Messages:** Conventional Commits auf Englisch (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`)
 - **Kein auto-commit.** Agent schlägt Commit-Message vor, User führt Commit durch.
 - **Kein `--force` push oder `--no-verify`.**
+- **Abgeschlossene Pläne werden nach dem Merge aus `docs/plans/` gelöscht** (die Git-Historie bewahrt sie); im Arbeitsbaum bleiben nur Pläne mit offenen Checkboxen.
 - **Nach jeder abgeschlossenen Aufgabe** postet der Agent eine vollständige, kopierfähige Conventional-Commit-Message in den Chat. Format:
 
   ```
