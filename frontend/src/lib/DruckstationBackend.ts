@@ -35,6 +35,23 @@ export function hatBonmodus(kategorie: Kategorie): boolean {
   return KATEGORIEN_MIT_BONMODUS.includes(kategorie)
 }
 
+// Fehlgeschlagener Druckauftrag: nach drei Fehlversuchen aufgegeben. Wird auf der
+// Druckstationen-Seite zur Verwaltung (erneut versuchen / verwerfen) angezeigt.
+export const FehlgeschlagenerDruckauftragSchema = z.object({
+  id: z.number(),
+  bonArt: z.string(),
+  zielIp: z.string(),
+  referenz: z.string(),
+  versuche: z.number(),
+  letzterFehler: z.string(),
+  erstelltAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: 'Ungültiges Datumsformat',
+  }),
+})
+export type FehlgeschlagenerDruckauftrag = z.infer<
+  typeof FehlgeschlagenerDruckauftragSchema
+>
+
 // validateDruckerIp prüft eine Drucker-IP für die Inline-Feldvalidierung.
 // Leer ist erlaubt (kein Drucker); andernfalls muss es eine IPv4-Adresse sein.
 // Gibt eine Fehlermeldung zurück oder null, wenn gültig.
@@ -63,5 +80,26 @@ export class DruckstationBackend {
 
   public async updateDruckstation(config: DruckstationConfig): Promise<void> {
     await this.backend.post('admin/update-druckstationen', config)
+  }
+
+  public async getFehlgeschlageneDruckauftraege(): Promise<
+    FehlgeschlagenerDruckauftrag[]
+  > {
+    const { druckauftraege } = await this.backend.post(
+      'admin/get-fehlgeschlagene-druckauftraege',
+      {},
+      z.object({
+        druckauftraege: z.array(FehlgeschlagenerDruckauftragSchema),
+      }),
+    )
+    return druckauftraege
+  }
+
+  public async druckauftragErneutVersuchen(id: number): Promise<void> {
+    await this.backend.post('admin/druckauftrag-erneut-versuchen', { id })
+  }
+
+  public async druckauftragVerwerfen(id: number): Promise<void> {
+    await this.backend.post('admin/druckauftrag-verwerfen', { id })
   }
 }

@@ -34,6 +34,34 @@ export function useDruckstationen() {
   return { druckstationen: data, isPending, error, updateDruckstation }
 }
 
+export function useFehlgeschlageneDruckauftraege() {
+  const queryClient = useQueryClient()
+  const {
+    isPending,
+    data = [],
+    error,
+  } = useQuery({
+    queryKey: ['fehlgeschlagene-druckauftraege'],
+    queryFn: () => druckstationBackend.getFehlgeschlageneDruckauftraege(),
+  })
+
+  const erneutVersuchen = async (id: number) => {
+    await druckstationBackend.druckauftragErneutVersuchen(id)
+    await queryClient.invalidateQueries({
+      queryKey: ['fehlgeschlagene-druckauftraege'],
+    })
+  }
+
+  const verwerfen = async (id: number) => {
+    await druckstationBackend.druckauftragVerwerfen(id)
+    await queryClient.invalidateQueries({
+      queryKey: ['fehlgeschlagene-druckauftraege'],
+    })
+  }
+
+  return { druckauftraege: data, isPending, error, erneutVersuchen, verwerfen }
+}
+
 export function useKassenidentitaet() {
   return useQuery({
     queryKey: ['kassenidentitaet'],

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"net/http"
 
+	druckauftragApp "github.com/nicograef/jotti/backend/api/druckauftrag/application"
+	druckauftragHTTP "github.com/nicograef/jotti/backend/api/druckauftrag/http"
 	druckstationApp "github.com/nicograef/jotti/backend/api/druckstation/application"
 	druckstationHTTP "github.com/nicograef/jotti/backend/api/druckstation/http"
 	kasseApp "github.com/nicograef/jotti/backend/api/kasse/application"
@@ -20,6 +22,7 @@ import (
 	userHTTP "github.com/nicograef/jotti/backend/api/user/http"
 	"github.com/nicograef/jotti/backend/config"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
@@ -122,6 +125,15 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	druckstationQueryHandler.Query = druckstationApp.Query{DruckstationRepo: druckstationRepo}
 	r.HandleFunc("/get-druckstationen", druckstationQueryHandler.GetDruckstationenHandler())
 	r.HandleFunc("/update-druckstationen", druckstationCommandHandler.UpdateDruckstationenHandler())
+
+	druckauftragRepo := druckauftrag_repo.NewRepository(db)
+	druckauftragCommandHandler := druckauftragHTTP.CommandHandler{}
+	druckauftragCommandHandler.Command = druckauftragApp.Command{DruckauftragRepo: druckauftragRepo}
+	druckauftragQueryHandler := druckauftragHTTP.QueryHandler{}
+	druckauftragQueryHandler.Query = druckauftragApp.Query{DruckauftragRepo: druckauftragRepo}
+	r.HandleFunc("/get-fehlgeschlagene-druckauftraege", druckauftragQueryHandler.GetFehlgeschlageneDruckauftraegeHandler())
+	r.HandleFunc("/druckauftrag-erneut-versuchen", druckauftragCommandHandler.DruckauftragErneutVersuchenHandler())
+	r.HandleFunc("/druckauftrag-verwerfen", druckauftragCommandHandler.DruckauftragVerwerfenHandler())
 
 	sq := settingsHTTP.QueryHandler{}
 	sq.Query = settingsApp.Query{

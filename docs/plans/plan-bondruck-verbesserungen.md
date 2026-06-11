@@ -268,17 +268,19 @@ Drei neue admin-only POST-Endpoints in einem neuen Modul `backend/api/druckauftr
 
 ### Acceptance criteria
 
-- [ ] `/admin/get-fehlgeschlagene-druckauftraege` listet ausschließlich fehlgeschlagene Aufträge mit Bon-Art, Ziel-IP, Referenz, Zeitpunkt, Versuchen und letztem Fehler
-- [ ] „Erneut versuchen“ setzt den Auftrag auf `offen` mit `versuche = 0`; er erscheint wieder im Relay-Poll — Repository-Integrationstest
-- [ ] „Verwerfen“ setzt `verworfen`; der Auftrag bleibt in der Datenbank erhalten — Repository-Integrationstest
-- [ ] Beide Übergänge wirken nur auf Aufträge im Status `fehlgeschlagen` (Status-Guard, Integrationstest)
-- [ ] Handler-Tests (httptest, Mock-Repo) für alle drei Endpoints; Endpoints nur für Admins erreichbar
-- [ ] Druckstationen-Seite zeigt die Liste mit beiden Aktionen und einem leeren Zustand; Aufrufe laufen über die erweiterte `DruckstationBackend`-Klasse
-- [ ] `make check` und `make check-integration` grün
+- [x] `/admin/get-fehlgeschlagene-druckauftraege` listet ausschließlich fehlgeschlagene Aufträge mit Bon-Art, Ziel-IP, Referenz, Zeitpunkt, Versuchen und letztem Fehler
+- [x] „Erneut versuchen“ setzt den Auftrag auf `offen` mit `versuche = 0`; er erscheint wieder im Relay-Poll — Repository-Integrationstest
+- [x] „Verwerfen“ setzt `verworfen`; der Auftrag bleibt in der Datenbank erhalten — Repository-Integrationstest
+- [x] Beide Übergänge wirken nur auf Aufträge im Status `fehlgeschlagen` (Status-Guard, Integrationstest)
+- [x] Handler-Tests (httptest, Mock-Repo) für alle drei Endpoints; Endpoints nur für Admins erreichbar
+- [x] Druckstationen-Seite zeigt die Liste mit beiden Aktionen und einem leeren Zustand; Aufrufe laufen über die erweiterte `DruckstationBackend`-Klasse
+- [x] `make check` und `make check-integration` grün
 
 ---
 
 ## Phase 7: Referenzdokumente angleichen
+
+ACHTUNG: veraltet, muss neu geplant werden nach Doku-Umbau aus docs/plan-doku-ueberarbeitung.md
 
 **User stories**: — (Aufräumpunkt aus dem PRD)
 

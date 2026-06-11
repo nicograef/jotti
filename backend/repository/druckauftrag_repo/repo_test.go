@@ -166,6 +166,160 @@ func TestMeldeDruckergebnis_FehlversuchZaehlung(t *testing.T) {
 	}
 }
 
+func TestGetFehlgeschlageneDruckauftraege_NurFehlgeschlagene(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	err := repo.EnqueueDruckauftraege(context.Background(), []NeuerDruckauftrag{
+		{ZielIP: "192.168.1.51", Payload: "AAA=", BonArt: "arbeitsbon", Referenz: "offen-ref"},
+		{ZielIP: "192.168.1.52", Payload: "BBB=", BonArt: "arbeitsbon", Referenz: "fehl-ref"},
+	})
+	if err != nil {
+		t.Fatalf("Expected no enqueue error, got %v", err)
+	}
+
+	offene, err := repo.GetOffeneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != 2 {
+		t.Fatalf("Expected 2 offene auftraege, got %d", len(offene))
+	}
+	offenID := offene[0].ID
+	fehlID := offene[1].ID
+	makeFehlgeschlagen(t, repo, fehlID, "endgueltig")
+
+	fehlgeschlagene, err := repo.GetFehlgeschlageneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if len(fehlgeschlagene) != 1 {
+		t.Fatalf("Expected exactly 1 fehlgeschlagener auftrag, got %d", len(fehlgeschlagene))
+	}
+
+	a := fehlgeschlagene[0]
+	if a.ID != fehlID {
+		t.Fatalf("Expected fehlgeschlagener auftrag id %d, got %d", fehlID, a.ID)
+	}
+	if a.ID == offenID {
+		t.Fatalf("Offener auftrag should not appear among fehlgeschlagene")
+	}
+	if a.BonArt != "arbeitsbon" || a.ZielIP != "192.168.1.52" || a.Referenz != "fehl-ref" {
+		t.Fatalf("Unexpected auftrag fields: %+v", a)
+	}
+	if a.Versuche != MaxDruckversuche {
+		t.Fatalf("Expected versuche %d, got %d", MaxDruckversuche, a.Versuche)
+	}
+	if a.LetzterFehler != "endgueltig" {
+		t.Fatalf("Expected letzter_fehler %q, got %q", "endgueltig", a.LetzterFehler)
+	}
+	if a.ErstelltAm.IsZero() {
+		t.Fatalf("Expected erstellt_am to be set")
+	}
+}
+
+func TestDruckauftragErneutVersuchen_SetztOffenUndVersucheNull(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	id := enqueueOne(t, repo, "192.168.1.51")
+	makeFehlgeschlagen(t, repo, id, "endgueltig")
+
+	if err := repo.DruckauftragErneutVersuchen(context.Background(), id); err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	status, versuche, letzterFehler := readAuftrag(t, repo, id)
+	if status != "offen" {
+		t.Fatalf("Expected status offen after erneut versuchen, got %q", status)
+	}
+	if versuche != 0 {
+		t.Fatalf("Expected versuche 0 after erneut versuchen, got %d", versuche)
+	}
+	if letzterFehler != "" {
+		t.Fatalf("Expected letzter_fehler cleared after erneut versuchen, got %q", letzterFehler)
+	}
+
+	offene, err := repo.GetOffeneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != 1 || offene[0].ID != id {
+		t.Fatalf("Expected auftrag %d back in poll, got %+v", id, offene)
+	}
+}
+
+func TestDruckauftragVerwerfen_SetztVerworfenUndBleibtErhalten(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	id := enqueueOne(t, repo, "192.168.1.51")
+	makeFehlgeschlagen(t, repo, id, "endgueltig")
+
+	if err := repo.DruckauftragVerwerfen(context.Background(), id); err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	status, _, _ := readAuftrag(t, repo, id)
+	if status != "verworfen" {
+		t.Fatalf("Expected status verworfen, got %q", status)
+	}
+
+	offene, err := repo.GetOffeneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != 0 {
+		t.Fatalf("Expected verworfener auftrag to stay out of poll, got %d offene", len(offene))
+	}
+
+	fehlgeschlagene, err := repo.GetFehlgeschlageneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(fehlgeschlagene) != 0 {
+		t.Fatalf("Expected verworfener auftrag to leave the fehlgeschlagene list, got %d", len(fehlgeschlagene))
+	}
+}
+
+func TestDruckauftragTransitionen_NurAusFehlgeschlagen(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	// Auftrag bleibt offen (nicht fehlgeschlagen): beide Übergänge sind No-Ops.
+	id := enqueueOne(t, repo, "192.168.1.51")
+
+	if err := repo.DruckauftragErneutVersuchen(context.Background(), id); err != nil {
+		t.Fatalf("Expected no error on erneut versuchen, got %v", err)
+	}
+	if err := repo.DruckauftragVerwerfen(context.Background(), id); err != nil {
+		t.Fatalf("Expected no error on verwerfen, got %v", err)
+	}
+
+	status, versuche, _ := readAuftrag(t, repo, id)
+	if status != "offen" {
+		t.Fatalf("Expected offener auftrag to stay offen, got %q", status)
+	}
+	if versuche != 0 {
+		t.Fatalf("Expected versuche to stay 0, got %d", versuche)
+	}
+}
+
+// makeFehlgeschlagen treibt einen Auftrag über MaxDruckversuche Fehlversuche in
+// den Status fehlgeschlagen.
+func makeFehlgeschlagen(t *testing.T, repo Repository, id int, letzterFehler string) {
+	t.Helper()
+	for i := 0; i < MaxDruckversuche; i++ {
+		if err := repo.MeldeDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: letzterFehler}}); err != nil {
+			t.Fatalf("Failed to drive auftrag %d into fehlgeschlagen: %v", id, err)
+		}
+	}
+	status, _, _ := readAuftrag(t, repo, id)
+	if status != "fehlgeschlagen" {
+		t.Fatalf("Expected auftrag %d to be fehlgeschlagen, got %q", id, status)
+	}
+}
+
 func enqueueOne(t *testing.T, repo Repository, zielIP string) int {
 	t.Helper()
 	err := repo.EnqueueDruckauftraege(context.Background(), []NeuerDruckauftrag{

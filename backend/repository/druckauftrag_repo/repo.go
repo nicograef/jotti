@@ -3,6 +3,7 @@ package druckauftrag_repo
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
@@ -29,6 +30,18 @@ type OffenerDruckauftrag struct {
 type Fehlversuch struct {
 	ID     int
 	Fehler string
+}
+
+// FehlgeschlagenerDruckauftrag ist ein nach MaxDruckversuche aufgegebener
+// Druckauftrag, wie ihn die Druckstationen-Seite zur Verwaltung anzeigt.
+type FehlgeschlagenerDruckauftrag struct {
+	ID            int
+	BonArt        string
+	ZielIP        string
+	Referenz      string
+	Versuche      int
+	LetzterFehler string
+	ErstelltAm    time.Time
 }
 
 type Repository struct {
@@ -138,4 +151,42 @@ func (r Repository) MeldeDruckergebnis(ctx context.Context, gedruckteIDs []int, 
 	}
 
 	return nil
+}
+
+// GetFehlgeschlageneDruckauftraege liefert alle nach MaxDruckversuche
+// aufgegebenen Aufträge (Status fehlgeschlagen), älteste zuerst.
+func (r Repository) GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]FehlgeschlagenerDruckauftrag, error) {
+	rows, err := r.q.GetFehlgeschlageneDruckauftraege(ctx)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	result := make([]FehlgeschlagenerDruckauftrag, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, FehlgeschlagenerDruckauftrag{
+			ID:            int(row.ID),
+			BonArt:        row.BonArt,
+			ZielIP:        row.ZielIp,
+			Referenz:      row.Referenz,
+			Versuche:      row.Versuche,
+			LetzterFehler: row.LetzterFehler.String,
+			ErstelltAm:    row.ErstelltAm,
+		})
+	}
+
+	return result, nil
+}
+
+// DruckauftragErneutVersuchen reiht einen fehlgeschlagenen Auftrag wieder ein
+// (fehlgeschlagen -> offen, versuche zurück auf 0). Der Status-Guard wirkt nur
+// auf fehlgeschlagene Aufträge; andere Status bleiben unberührt.
+func (r Repository) DruckauftragErneutVersuchen(ctx context.Context, id int) error {
+	return db.Error(r.q.DruckauftragErneutVersuchen(ctx, int32(id)))
+}
+
+// DruckauftragVerwerfen markiert einen fehlgeschlagenen Auftrag als verworfen
+// (fehlgeschlagen -> verworfen). Der Eintrag bleibt in der Datenbank erhalten;
+// der Status-Guard wirkt nur auf fehlgeschlagene Aufträge.
+func (r Repository) DruckauftragVerwerfen(ctx context.Context, id int) error {
+	return db.Error(r.q.DruckauftragVerwerfen(ctx, int32(id)))
 }

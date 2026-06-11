@@ -8,7 +8,78 @@ package dbgen
 import (
 	"context"
 	"database/sql"
+	"time"
 )
+
+const druckauftragErneutVersuchen = `-- name: DruckauftragErneutVersuchen :exec
+UPDATE druckauftraege
+SET status = 'offen', versuche = 0, letzter_fehler = NULL
+WHERE id = $1 AND status = 'fehlgeschlagen'
+`
+
+func (q *Queries) DruckauftragErneutVersuchen(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, druckauftragErneutVersuchen, id)
+	return err
+}
+
+const druckauftragVerwerfen = `-- name: DruckauftragVerwerfen :exec
+UPDATE druckauftraege
+SET status = 'verworfen'
+WHERE id = $1 AND status = 'fehlgeschlagen'
+`
+
+func (q *Queries) DruckauftragVerwerfen(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, druckauftragVerwerfen, id)
+	return err
+}
+
+const getFehlgeschlageneDruckauftraege = `-- name: GetFehlgeschlageneDruckauftraege :many
+SELECT id, ziel_ip, bon_art, referenz, versuche, letzter_fehler, erstellt_am
+FROM druckauftraege
+WHERE status = 'fehlgeschlagen'
+ORDER BY id ASC
+`
+
+type GetFehlgeschlageneDruckauftraegeRow struct {
+	ID            int32
+	ZielIp        string
+	BonArt        string
+	Referenz      string
+	Versuche      int
+	LetzterFehler sql.NullString
+	ErstelltAm    time.Time
+}
+
+func (q *Queries) GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]GetFehlgeschlageneDruckauftraegeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFehlgeschlageneDruckauftraege)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetFehlgeschlageneDruckauftraegeRow{}
+	for rows.Next() {
+		var i GetFehlgeschlageneDruckauftraegeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ZielIp,
+			&i.BonArt,
+			&i.Referenz,
+			&i.Versuche,
+			&i.LetzterFehler,
+			&i.ErstelltAm,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const getOffeneDruckauftraege = `-- name: GetOffeneDruckauftraege :many
 SELECT id, ziel_ip, payload
