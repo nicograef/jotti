@@ -127,12 +127,12 @@ useFormActionSubmit({
 
 ### Acceptance criteria
 
-- [ ] `useFormActionSubmit` existiert in `frontend/src/hooks/use-form-action-submit.ts`
-- [ ] `validation_error` mit `details` ruft `form.setError` für jeden Feldpfad auf — kein Toast
-- [ ] `validation_error` ohne `details` zeigt einen Fallback-Toast
-- [ ] Andere Fehler zeigen einen Toast via `getActionErrorMessage`; kein `form.setError`
-- [ ] Erfolg löst `onSuccess` aus; kein Toast, kein `setError`
-- [ ] Unit-Tests laufen grün (`make check`)
+- [x] `useFormActionSubmit` existiert in `frontend/src/hooks/use-form-action-submit.ts`
+- [x] `validation_error` mit `details` ruft `form.setError` für jeden Feldpfad auf — kein Toast
+- [x] `validation_error` ohne `details` zeigt einen Fallback-Toast
+- [x] Andere Fehler zeigen einen Toast via `getActionErrorMessage`; kein `form.setError`
+- [x] Erfolg löst `onSuccess` aus; kein Toast, kein `setError`
+- [x] Unit-Tests laufen grün (`make check`)
 
 ---
 
