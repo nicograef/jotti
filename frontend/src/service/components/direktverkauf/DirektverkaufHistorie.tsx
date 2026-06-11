@@ -46,6 +46,7 @@ export function DirektverkaufHistorie({
         kassenbeleg_drucker_nicht_konfiguriert:
           'Kein Kassenbeleg-Drucker konfiguriert. Bitte in den Admin-Einstellungen hinterlegen.',
         verkauf_not_found: 'Der Verkauf wurde nicht gefunden.',
+        stornierung_not_found: 'Die Stornierung wurde nicht gefunden.',
       },
       onSuccess: () => {
         toast.success('Kassenbeleg in die Druckwarteschlange eingereiht.')
@@ -99,6 +100,39 @@ export function DirektverkaufHistorie({
                     </>
                   )}
                 </ItemDescription>
+                {verkauf.stornierungen.length > 0 && (
+                  <div className="mt-1 flex flex-col gap-1">
+                    {verkauf.stornierungen.map((storno) => (
+                      <div
+                        key={storno.stornierungId}
+                        className="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <span>
+                          Storno −{formatCents(storno.gesamtStornierungCents)}
+                          &nbsp;€ ·{' '}
+                          {new Date(storno.storniertAm).toLocaleString('de-DE')}
+                        </span>
+                        <Button
+                          size="icon-sm"
+                          variant="outline"
+                          className="rounded-full cursor-pointer"
+                          aria-label="Stornobeleg drucken"
+                          disabled={belegDruckenLoading}
+                          onClick={() => {
+                            void runBelegDrucken(async () => {
+                              await backend.kassenbelegDrucken({
+                                verkaufId: verkauf.verkaufId,
+                                stornierungId: storno.stornierungId,
+                              })
+                            })
+                          }}
+                        >
+                          <Printer />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </ItemContent>
               <ItemActions>
                 <Button

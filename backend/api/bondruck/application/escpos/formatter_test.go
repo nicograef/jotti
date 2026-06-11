@@ -207,6 +207,45 @@ func TestFormatKassenbeleg_ContainsPflichtfelder(t *testing.T) {
 	}
 }
 
+func TestFormatKassenbeleg_Stornobeleg_ContainsStornoFelder(t *testing.T) {
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "43",
+		Zeitpunkt:          testTime,
+		Positionen: []kasse.Position{
+			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: -300, Menge: 3},
+			{PositionID: "pos-2", VarianteID: 2, ProduktName: "Pfand", VarianteName: "Becher", Kategorie: "sonstiges", Steuersatz: "regel", Einzelpreis: -50, Menge: 1},
+		},
+		GesamtbetragCents:   -950,
+		Zahlungsart:         "bar",
+		Stornobeleg:         true,
+		StornoZuBelegnummer: "42",
+	})
+	got := string(payload)
+
+	checks := []string{
+		"STORNOBELEG",
+		"Bon-Nr: 43",
+		"Storno zu Bon-Nr: 42",
+		"-3,00 x 3 = -9,00 EUR",
+		"-0,50 x 1 = -0,50 EUR",
+		"GESAMT: -9,50 EUR",
+	}
+	for _, check := range checks {
+		if !strings.Contains(got, check) {
+			t.Fatalf("Stornobeleg enthaelt %q nicht; got:\n%q", check, got)
+		}
+	}
+
+	if strings.Contains(got, "KASSENBELEG") {
+		t.Fatalf("Stornobeleg darf nicht als KASSENBELEG betitelt sein; got:\n%q", got)
+	}
+}
+
 func TestFormatKassenbeleg_EndsWithCutPaper(t *testing.T) {
 	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
 		Vereinsname:        "SV Musterstadt",

@@ -117,4 +117,16 @@ func TestBuildDirektverkaufHistorieEintrag_AggregatesStornos(t *testing.T) {
 	if got := mengeOf(eintrag.Positionen, beerID); got != 2 {
 		t.Errorf("expected original Positionen to keep 2 Beer, got %d", got)
 	}
+	if len(eintrag.Stornierungen) != 1 {
+		t.Fatalf("expected 1 stornierung in eintrag, got %d", len(eintrag.Stornierungen))
+	}
+	if eintrag.Stornierungen[0].StornierungID == "" {
+		t.Error("expected stornierungId to be set")
+	}
+	if eintrag.Stornierungen[0].GesamtStornierungCents != 500 {
+		t.Errorf("expected stornierung betrag 500, got %d", eintrag.Stornierungen[0].GesamtStornierungCents)
+	}
+	if !eintrag.Stornierungen[0].StorniertAm.Equal(storno.Time) {
+		t.Errorf("expected storniertAm %s, got %s", storno.Time, eintrag.Stornierungen[0].StorniertAm)
+	}
 }

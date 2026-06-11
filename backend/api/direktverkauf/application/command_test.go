@@ -434,6 +434,48 @@ func TestDirektverkaufTaetigen_MitTSE_DatenImEvent(t *testing.T) {
 	}
 }
 
+func TestDirektverkaufTaetigen_BeiTSEAusfall_MarkiertEventMitAusfall(t *testing.T) {
+	spy := &spyEventRepo{}
+
+	command := Command{
+		EventRepo:           spy,
+		ProductRepo:         newProductMock(),
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+			ApiKey:    "api-key",
+			ApiSecret: "api-secret",
+			TssID:     "tss-1",
+			ClientID:  "client-1",
+			UpdatedAt: time.Now(),
+		}},
+		NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+			return tse.FakeClient{StartErr: errors.New("timeout")}, nil
+		},
+	}
+
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(spy.written) != 1 {
+		t.Fatalf("expected one event, got %d", len(spy.written))
+	}
+	if len(spy.nachsignier) != 1 {
+		t.Fatalf("expected one nachsignier job, got %d", len(spy.nachsignier))
+	}
+
+	var data direktverkaufGetaetigtV1Data
+	if err := json.Unmarshal(spy.written[0].event.Data, &data); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	if !data.TSEAusfall {
+		t.Fatal("expected tseAusfall marker on unsigned direktverkauf event")
+	}
+	if data.TSEData != nil {
+		t.Fatal("did not expect TSE data on unsigned direktverkauf event")
+	}
+}
+
 func TestDirektverkaufStornieren_BeiTSEAusfall_NachsignierMitNegativemBetrag(t *testing.T) {
 	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 1)
 	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}

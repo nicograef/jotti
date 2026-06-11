@@ -71,6 +71,7 @@ const verkauf: DirektverkaufHistorieEintrag = {
     },
   ],
   gesamtStorniertCents: 0,
+  stornierungen: [],
 }
 
 describe('DirektverkaufHistorie', () => {
@@ -135,6 +136,46 @@ describe('DirektverkaufHistorie', () => {
     })
     expect(kassenbelegDrucken).toHaveBeenCalledWith({
       verkaufId: '11111111-1111-1111-1111-111111111111',
+    })
+  })
+
+  it('triggers stornobeleg print with the stornierungId of the cancellation', async () => {
+    const user = userEvent.setup()
+    const kassenbelegDrucken = vi.fn().mockResolvedValue(undefined)
+    const stornierterVerkauf: DirektverkaufHistorieEintrag = {
+      ...verkauf,
+      offenePositionen: [],
+      gesamtStorniertCents: 1000,
+      stornierungen: [
+        {
+          stornierungId: '33333333-3333-3333-3333-333333333333',
+          storniertAm: '2026-06-08T11:00:00Z',
+          gesamtStornierungCents: 1000,
+        },
+      ],
+    }
+    render(
+      <DirektverkaufHistorie
+        historie={[stornierterVerkauf]}
+        historieLoading={false}
+        backend={{
+          direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
+          kassenbelegDrucken,
+        }}
+        onStorniert={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: 'Stornobeleg drucken' }),
+    )
+
+    await waitFor(() => {
+      expect(kassenbelegDrucken).toHaveBeenCalledTimes(1)
+    })
+    expect(kassenbelegDrucken).toHaveBeenCalledWith({
+      verkaufId: '11111111-1111-1111-1111-111111111111',
+      stornierungId: '33333333-3333-3333-3333-333333333333',
     })
   })
 })

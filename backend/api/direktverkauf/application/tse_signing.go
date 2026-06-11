@@ -36,6 +36,7 @@ type direktverkaufGetaetigtV1Data struct {
 	Positionen        []kasse.Position `json:"positionen"`
 	Kommentar         string           `json:"kommentar"`
 	TSEData           *kasse.TSEData   `json:"tseData,omitempty"`
+	TSEAusfall        bool             `json:"tseAusfall,omitempty"`
 }
 
 type direktverkaufStorniertV1Data struct {
@@ -61,6 +62,7 @@ func (c Command) signDirektverkaufGetaetigtEvent(ctx context.Context, evt event.
 		processData,
 		tseTransactionIDForDirektverkaufGetaetigtEvent,
 		withDirektverkaufGetaetigtEventTSEData,
+		withDirektverkaufGetaetigtEventTSEAusfall,
 	)
 }
 
@@ -78,6 +80,7 @@ func (c Command) signDirektverkaufStorniertEvent(ctx context.Context, evt event.
 		processData,
 		tseTransactionIDForDirektverkaufStorniertEvent,
 		withDirektverkaufStorniertEventTSEData,
+		nil,
 	)
 }
 
@@ -88,6 +91,7 @@ func (c Command) signEventWithTSE(
 	processData string,
 	transactionID func(event.Event) (string, error),
 	withTSEData func(event.Event, kasse.TSEData) (event.Event, error),
+	withTSEAusfall func(event.Event) (event.Event, error),
 ) (eventSignierungErgebnis, error) {
 	if c.SettingsRepo == nil || c.NewTSEClient == nil {
 		return eventSignierungErgebnis{Event: evt}, nil
@@ -120,17 +124,17 @@ func (c Command) signEventWithTSE(
 		ClientID:  conf.ClientID,
 	})
 	if err != nil {
-		return handleSignierAusfall(log, evt, txID, processType, processData, err)
+		return handleSignierAusfall(log, evt, txID, processType, processData, err, withTSEAusfall)
 	}
 
 	startResult, err := client.StartTransaction(ctx, txID, processType, processData)
 	if err != nil {
-		return handleSignierAusfall(log, evt, txID, processType, processData, err)
+		return handleSignierAusfall(log, evt, txID, processType, processData, err, withTSEAusfall)
 	}
 
 	finishResult, err := client.FinishTransaction(ctx, txID, startResult.TransactionNumber, processType, processData)
 	if err != nil {
-		return handleSignierAusfall(log, evt, txID, processType, processData, err)
+		return handleSignierAusfall(log, evt, txID, processType, processData, err, withTSEAusfall)
 	}
 
 	tseData := kasse.TSEData{
@@ -153,11 +157,21 @@ func (c Command) signEventWithTSE(
 	return eventSignierungErgebnis{Event: signedEvent}, nil
 }
 
-func handleSignierAusfall(log *zerolog.Logger, evt event.Event, txID string, processType string, processData string, cause error) (eventSignierungErgebnis, error) {
+func handleSignierAusfall(log *zerolog.Logger, evt event.Event, txID string, processType string, processData string, cause error, withTSEAusfall func(event.Event) (event.Event, error)) (eventSignierungErgebnis, error) {
 	log.Warn().Err(cause).Str("tx_id", txID).Msg("TSE-Signierung fehlgeschlagen, Vorgang wird unsigniert persistiert und zur Nachsignierung vorgemerkt")
 
+	unsignedEvent := evt
+	if withTSEAusfall != nil {
+		var err error
+		unsignedEvent, err = withTSEAusfall(evt)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to mark event with TSE-Ausfall")
+			return eventSignierungErgebnis{}, ErrDatabase
+		}
+	}
+
 	return eventSignierungErgebnis{
-		Event: evt,
+		Event: unsignedEvent,
 		NachsignierAuftrag: &tseNachsignierAuftrag{
 			TxID:        txID,
 			ProcessType: processType,
@@ -180,6 +194,29 @@ func withDirektverkaufGetaetigtEventTSEData(evt event.Event, tseData kasse.TSEDa
 	}
 
 	data.TSEData = &tseData
+	data.TSEAusfall = false
+
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return event.Event{}, err
+	}
+
+	evt.Data = encoded
+	return evt, nil
+}
+
+func withDirektverkaufGetaetigtEventTSEAusfall(evt event.Event) (event.Event, error) {
+	if evt.Type != string(kasse.EventTypeDirektverkaufGetaetigtV1) {
+		return event.Event{}, fmt.Errorf("unsupported event type for TSE-Ausfall: %s", evt.Type)
+	}
+
+	data := direktverkaufGetaetigtV1Data{}
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return event.Event{}, err
+	}
+
+	data.TSEData = nil
+	data.TSEAusfall = true
 
 	encoded, err := json.Marshal(data)
 	if err != nil {

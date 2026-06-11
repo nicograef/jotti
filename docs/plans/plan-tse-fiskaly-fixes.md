@@ -4,7 +4,7 @@
 
 ## Goal
 
-Die TSE-Integration funktionsfähig (I-01/I-02: derzeit schlägt **jeder** Signier-Request mit `400 E_PARSER` fehl), DSFinV-K-/AEAO-konform (Formate, Vorgangsarten, Belegpflichtfelder) und betriebsrobust (Worker, Ausfalldokumentation) machen. Zusätzlich: TSS-/Client-Einrichtung aus jotti heraus automatisieren, Doku-Fehler korrigieren.
+Die TSE-Integration funktionsfähig (I-01/I-02: derzeit schlägt **jeder** Signier-Request mit `400 E_PARSER` fehl), DSFinV-K-/AEAO-konform (Formate, Vorgangsarten, Belegpflichtfelder) und betriebsrobust (Worker, Ausfalldokumentation) machen. Zusätzlich: Doku-Fehler korrigieren. Die TSS-/Client-Einrichtung aus jotti heraus (Setup-Wizard) ist in eine eigene PRD ausgelagert (siehe Resolved decisions).
 
 ## Architectural decisions
 
@@ -14,11 +14,11 @@ Durable Entscheidungen für alle Phasen:
 - **Start-Request ohne Schema:** `StartTransaction` sendet nur `state: ACTIVE` + `client_id` (DSFinV-K: processType/processData bei Start immer leer).
 - **processType-Konstanten zentral** in `backend/domain/tse`: `Kassenbeleg-V1`, `Bestellung-V1`, `SonstigerVorgang` (ohne `-V1`).
 - **Vorgangsarten-Mapping:** Geldtransit, Kassendifferenz, Auszahlung → `Kassenbeleg-V1` (Eigenbelege, AEAO 2.2.3.6.1); Tagesabschluss → `SonstigerVorgang`; Bestellung → `Bestellung-V1`.
-- **tx_id:** UUIDv4 (`uuid.New()`), einmal erzeugt beim Signierversuch und als `tseTxId` in den Event-Daten persistiert (Breaking Change erlaubt, kein Dual-Read). Bis zur Umstellung in Phase 6 bleibt die deterministische v5-Ableitung in Betrieb.
+- **tx_id:** UUIDv4 (`uuid.New()`), einmal erzeugt beim Signierversuch und als `tseTxId` in den Event-Daten persistiert (Breaking Change erlaubt, kein Dual-Read). Bis zur Umstellung in Phase 5 bleibt die deterministische v5-Ableitung in Betrieb.
 - **Worker-Statusmodell** analog Druckaufträge (handbuch.md §4.6): `offen → erledigt`; nach N Fehlversuchen `fehlgeschlagen`; von dort `verworfen` oder zurück auf `offen`. Spalten: `versuche`, `letzter_fehler`, `naechster_versuch_am` (exponentielles Backoff).
 - **Ausfalldokumentation** (AEAO 1.14.1) wird aus den Nachsignier-Aufträgen abgeleitet (erstellt_am = Beginn, erledigt_am = Ende, letzter_fehler = Grund) und im Admin sichtbar gemacht — keine separate Tabelle.
-- **Routes (POST-only):** `admin/tse-einrichten` (Setup-Wizard); `admin/get-tse-nachsignier-auftraege`, `admin/tse-nachsignier-auftrag-zuruecksetzen`, `admin/tse-nachsignier-auftrag-verwerfen` (analog Druckauftrags-Verwaltung).
-- **Schema:** `tse_konfiguration` erhält `admin_puk`, `admin_pin` (für Setup-Automatisierung; Klartext wie `api_secret` — Self-hosted-Prämisse); `tse_nachsignier_auftraege` erhält die Worker-Spalten; Status-CHECK erweitert. Änderungen direkt in `database/migrations/01_initial.up.sql`.
+- **Routes (POST-only):** `admin/get-tse-nachsignier-auftraege`, `admin/tse-nachsignier-auftrag-zuruecksetzen`, `admin/tse-nachsignier-auftrag-verwerfen` (analog Druckauftrags-Verwaltung).
+- **Schema:** `tse_nachsignier_auftraege` erhält die Worker-Spalten; Status-CHECK erweitert. Änderungen direkt in `database/migrations/01_initial.up.sql`.
 - **fiskaly-Client-`serial_number` = jotti-Kassen-Seriennummer** (Kassenidentitäts-UUID). Der QR-Code trägt diese serial_number; Beleg und QR müssen übereinstimmen.
 
 ## Inventory
@@ -42,17 +42,16 @@ Durable Entscheidungen für alle Phasen:
 
 ## Resolved decisions
 
-- **TSS-Setup-Vollautomatisierung** (User-Entscheidung): jotti legt die TSS an, führt PUK→PIN→INITIALIZED durch und registriert den Client mit der Kassen-Seriennummer — eigene Phase 5. Manuelle Eingabe von TSS-ID/Client-ID bleibt als Fallback für bestehende TSS erhalten.
+- **TSS-Setup-Wizard ausgelagert** (User-Entscheidung 2026-06-11): Die TSS-Setup-Vollautomatisierung (TSS anlegen, PUK→PIN→INITIALIZED, Client-Registrierung mit Kassen-Seriennummer, Admin-Wizard-UI) wird als eigenes Feature mit eigener PRD und eigenem Plan umgesetzt und ist nicht mehr Teil dieses Plans. Begründung: Vereins-Helfer können keine API-Calls (Postman/curl) ausführen, und das fiskaly-Dashboard kann weder Clients anlegen noch die TSS initialisieren — der Wizard ist damit ein vollwertiges Feature mit eigenem UX-/Risiko-Profil (LIVE-Kosten, PUK/PIN-Ablage), kein Fix. Die Findings I-09, I-15.4 und D-07 wandern mit in die PRD: `docs/prds/prd-tse-setup-wizard.md`.
 - **Worker wie Druckaufträge** (User-Entscheidung): Fehlerzähler + Backoff + `fehlgeschlagen`-Status + Admin-UI.
-- **tx_id auf UUIDv4 umstellen** (User-Entscheidung nach Klärung): v4 einmal erzeugen, als `tseTxId` in Event-Daten persistieren; Beleg-Druck liest das Feld statt v5-Neuableitung. Umsetzung in Phase 6.
-- **Phasenzuschnitt bestätigt**; durch die Vollautomatisierung kommt eine sechste Phase hinzu.
+- **tx_id auf UUIDv4 umstellen** (User-Entscheidung nach Klärung): v4 einmal erzeugen, als `tseTxId` in Event-Daten persistieren; Beleg-Druck liest das Feld statt v5-Neuableitung. Umsetzung in Phase 5.
+- **Phasenzuschnitt bestätigt**; nach Auslagerung des Setup-Wizards umfasst der Plan fünf Phasen.
 - Pre-Release-Regeln (AGENTS.md): Breaking Changes an Events/Schema/API direkt, keine Migrationspfade.
 
 ## Open questions / Risks
 
-- **fiskaly-Kosten/Limits:** Der Setup-Wizard legt TSS an — in LIVE kostenpflichtig. Wizard muss vorhandene TSS erkennen und Doppel-Anlage verhindern; Umgebung (TEST/LIVE) deutlich anzeigen.
-- **PUK/PIN-Ablage:** Klartext in DB (wie api_secret). Akzeptiert für Self-hosted; im Betreiber-Leitfaden ausweisen.
-- **UUIDv4-Enforcement-Zeitpunkt** bei fiskaly unbekannt — bis Phase 6 läuft v5 (live verifiziert funktionsfähig).
+- **UUIDv4-Enforcement-Zeitpunkt** bei fiskaly unbekannt — bis Phase 5 läuft v5 (live verifiziert funktionsfähig).
+- Die Wizard-spezifischen Risiken (fiskaly-Kosten/Doppel-Anlage in LIVE, PUK/PIN-Ablage) sind mit in die Setup-Wizard-PRD gewandert.
 
 ---
 
@@ -115,10 +114,10 @@ Direktverkaufs-Kassenbelege erhalten denselben TSE-Pfad wie Tisch-Zahlungen: TSE
 
 ### Acceptance criteria
 
-- [ ] Direktverkauf-Beleg druckt TSE-Transaktionsnummer, Signaturzähler, Seriennummer, Zeiten, Signatur und QR-Code, sobald signiert
-- [ ] Bei TSE-Ausfall trägt der Direktverkauf-Beleg den Ausfallvermerk
-- [ ] Beleg eines Tisches, dessen erste Bestellung während eines Ausfalls erfasst wurde, druckt den Startzeitpunkt aus der Event-Zeit
-- [ ] Stornierter Direktverkauf ist als Stornobeleg druckbar
+- [x] Direktverkauf-Beleg druckt TSE-Transaktionsnummer, Signaturzähler, Seriennummer, Zeiten, Signatur und QR-Code, sobald signiert
+- [x] Bei TSE-Ausfall trägt der Direktverkauf-Beleg den Ausfallvermerk
+- [x] Beleg eines Tisches, dessen erste Bestellung während eines Ausfalls erfasst wurde, druckt den Startzeitpunkt aus der Event-Zeit
+- [x] Stornierter Direktverkauf ist als Stornobeleg druckbar
 
 ---
 
@@ -144,29 +143,7 @@ Worker-Hardening nach Druckauftrags-Muster: `versuche`/`letzter_fehler`/`naechst
 
 ---
 
-## Phase 5: TSS-Setup-Automatisierung aus jotti (I-09, I-15.4, D-07)
-
-### Context
-
-- fiskaly-Lifecycle (Postman/Spec): TSS anlegen → `UNINITIALIZED` → Admin-PIN aus PUK → Admin-Auth → `INITIALIZED` → Client registrieren (Admin-Auth nötig)
-- `backend/api/settings/http/command_handler.go:39-52`, `frontend/src/admin/settings/EinstellungenPage.tsx:189-260` — bestehende TSE-Konfiguration
-- `backend/domain/settings/kassenidentitaet.go` — Kassen-Seriennummer (UUID)
-- Audit I-09: QR-`<kassen-seriennummer>` = fiskaly-Client-`serial_number`; DSFinV-K ≥ 2.3: keine `/` und `_`
-
-### What to build
-
-Ein Admin-Wizard „TSE einrichten": Nach Eingabe von API-Key/-Secret legt jotti die TSS an, durchläuft PUK→PIN→`INITIALIZED`, registriert den Client mit der Kassen-Seriennummer als `serial_number` und speichert TSS-ID/Client-ID/PUK/PIN in `tse_konfiguration`. Vorhandene TSS werden erkannt (keine Doppel-Anlage); Umgebung (TEST/LIVE) wird vor der Anlage angezeigt und bestätigt. Die manuelle Eingabe bleibt für bestehende TSS erhalten. Der Verbindungstest prüft zusätzlich Client-State `REGISTERED` und die Übereinstimmung `serial_number` ↔ Kassen-Seriennummer. Betreiber-Leitfaden dokumentiert beide Wege und die PUK/PIN-Ablage.
-
-### Acceptance criteria
-
-- [ ] Wizard richtet aus leerem fiskaly-TEST-Konto eine signierfähige TSS samt Client ein (Ende-zu-Ende verifiziert)
-- [ ] Client wird mit der Kassen-Seriennummer registriert; Verbindungstest meldet Abweichung als Fehler
-- [ ] Wizard verhindert Doppel-Anlage und zeigt die Umgebung vor kostenwirksamen Aktionen an
-- [ ] Betreiber-Leitfaden beschreibt Setup, Fallback und PUK/PIN-Aufbewahrung (D-07 geschlossen)
-
----
-
-## Phase 6: Konsolidierung — Dedup, Interface, UUIDv4, Status-Doku (I-12, I-15.2, I-11, D-06)
+## Phase 5: Konsolidierung — Dedup, Interface, UUIDv4, Status-Doku (I-12, I-15.2, I-11, D-06)
 
 ### Context
 

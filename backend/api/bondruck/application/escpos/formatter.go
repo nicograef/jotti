@@ -30,6 +30,9 @@ type KassenbelegData struct {
 	TSEAusfallvermerk        bool
 	GesamtbetragCents        int
 	Zahlungsart              string
+	// Stornobeleg switches the title to STORNOBELEG; amounts are expected pre-negated.
+	Stornobeleg         bool
+	StornoZuBelegnummer string
 }
 
 type TSEAbschnitt struct {
@@ -180,7 +183,11 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 
 	buf.WriteString(AlignCenter)
 	buf.WriteString(BoldOn)
-	buf.WriteString("KASSENBELEG\n")
+	if data.Stornobeleg {
+		buf.WriteString("STORNOBELEG\n")
+	} else {
+		buf.WriteString("KASSENBELEG\n")
+	}
 	buf.WriteString(BoldOff)
 	buf.WriteString("\n")
 
@@ -195,6 +202,9 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString(AlignLeft)
 	fmt.Fprintf(&buf, "Datum: %s\n", data.Zeitpunkt.Format("02.01.2006 15:04"))
 	fmt.Fprintf(&buf, "Bon-Nr: %s\n", data.Belegnummer)
+	if data.StornoZuBelegnummer != "" {
+		fmt.Fprintf(&buf, "Storno zu Bon-Nr: %s\n", data.StornoZuBelegnummer)
+	}
 	fmt.Fprintf(&buf, "Kassen-ID: %s\n", data.KassenSeriennummer)
 	if data.ErsteBestellungZeitpunkt != nil {
 		fmt.Fprintf(&buf, "Erste Bestellung: %s\n", data.ErsteBestellungZeitpunkt.Format("02.01.2006 15:04:05"))
@@ -338,12 +348,12 @@ func wrapLine(s string, width int) string {
 }
 
 func formatCents(cents int) string {
-	euros := cents / 100
-	rest := cents % 100
-	if rest < 0 {
-		rest = -rest
+	sign := ""
+	if cents < 0 {
+		sign = "-"
+		cents = -cents
 	}
-	return fmt.Sprintf("%d,%02d", euros, rest)
+	return fmt.Sprintf("%s%d,%02d", sign, cents/100, cents%100)
 }
 
 func steuerKennzeichenAusPosition(satz string) string {

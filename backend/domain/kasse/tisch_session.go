@@ -36,16 +36,18 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
 		state.AusstehendePositionen = accumulatePositionen(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
 
-		if state.ErsteBestellungLogTime == nil && data.TSEData != nil {
-			logTimeStart := strings.TrimSpace(data.TSEData.LogTimeStart)
-			if logTimeStart != "" {
-				parsed, err := time.Parse(time.RFC3339, logTimeStart)
+		// AEAO 1.14.3: Liegt keine TSE-logTime vor (z. B. TSE-Ausfall bei der ersten
+		// Bestellung), stellt das Aufzeichnungssystem den Zeitpunkt — Fallback auf die Event-Zeit.
+		if state.ErsteBestellungLogTime == nil {
+			logTime := evt.Time.UTC()
+			if data.TSEData != nil && strings.TrimSpace(data.TSEData.LogTimeStart) != "" {
+				parsed, err := time.Parse(time.RFC3339, strings.TrimSpace(data.TSEData.LogTimeStart))
 				if err != nil {
 					return state, fmt.Errorf("parse erste bestellung log time: %w", err)
 				}
-				parsedUTC := parsed.UTC()
-				state.ErsteBestellungLogTime = &parsedUTC
+				logTime = parsed.UTC()
 			}
+			state.ErsteBestellungLogTime = &logTime
 		}
 
 	case string(EventTypeZahlungKassiertV1):

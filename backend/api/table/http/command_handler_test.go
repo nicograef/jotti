@@ -15,10 +15,11 @@ import (
 )
 
 type mockCommand struct {
-	err         error
-	lastTischID int
-	lastZahlung string
-	lastVerkauf string
+	err             error
+	lastTischID     int
+	lastZahlung     string
+	lastVerkauf     string
+	lastStornierung string
 }
 
 func (m *mockCommand) TischErstellen(ctx context.Context, name string) (int, error) {
@@ -65,10 +66,11 @@ func (m *mockCommand) AuszahlungLeisten(ctx context.Context, userID int, userNam
 	return m.err
 }
 
-func (m *mockCommand) KassenbelegDrucken(_ context.Context, tischID int, zahlungID string, verkaufID string) error {
+func (m *mockCommand) KassenbelegDrucken(_ context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) error {
 	m.lastTischID = tischID
 	m.lastZahlung = zahlungID
 	m.lastVerkauf = verkaufID
+	m.lastStornierung = stornierungID
 	return m.err
 }
 
@@ -447,6 +449,43 @@ func TestKassenbelegDruckenHandler_MixedReferenceValidationError(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"tischId":1,"zahlungId":"11111111-1111-1111-1111-111111111111","verkaufId":"22222222-2222-2222-2222-222222222222"}`
+	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestKassenbelegDruckenHandler_StornobelegSuccess(t *testing.T) {
+	mock := &mockCommand{}
+	handler := &CommandHandler{Command: mock}
+
+	body := `{"verkaufId":"11111111-1111-1111-1111-111111111111","stornierungId":"33333333-3333-3333-3333-333333333333"}`
+	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+	if mock.lastVerkauf != "11111111-1111-1111-1111-111111111111" {
+		t.Errorf("expected verkaufId to be forwarded")
+	}
+	if mock.lastStornierung != "33333333-3333-3333-3333-333333333333" {
+		t.Errorf("expected stornierungId to be forwarded, got %q", mock.lastStornierung)
+	}
+}
+
+func TestKassenbelegDruckenHandler_StornierungOhneVerkaufValidationError(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"stornierungId":"33333333-3333-3333-3333-333333333333"}`
 	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()

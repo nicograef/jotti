@@ -58,6 +58,9 @@ var ErrZahlungNichtGefunden = errors.New("zahlung nicht gefunden")
 // ErrVerkaufNichtGefunden is returned when a requested Direktverkauf reference does not exist.
 var ErrVerkaufNichtGefunden = errors.New("verkauf nicht gefunden")
 
+// ErrStornierungNichtGefunden is returned when a requested Direktverkauf-Stornierung does not exist.
+var ErrStornierungNichtGefunden = errors.New("stornierung nicht gefunden")
+
 // ErrKassenbelegDruckerNichtKonfiguriert is returned when no receipt printer IP is configured.
 var ErrKassenbelegDruckerNichtKonfiguriert = errors.New("kassenbeleg drucker nicht konfiguriert")
 

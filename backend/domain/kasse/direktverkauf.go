@@ -51,6 +51,15 @@ type DirektverkaufHistorieEintrag struct {
 	Kommentar            string
 	OffenePositionen     []Position
 	GesamtStorniertCents int
+	Stornierungen        []DirektverkaufStornierung
+}
+
+// DirektverkaufStornierung is one cancellation within a Direktverkauf, referenced by its
+// StornierungID so a Stornobeleg can be printed for it.
+type DirektverkaufStornierung struct {
+	StornierungID          string
+	StorniertAm            time.Time
+	GesamtStornierungCents int
 }
 
 // BuildDirektverkaufHistorieEintrag replays a single Direktverkauf stream (getaetigt + stornos)
@@ -82,6 +91,11 @@ func BuildDirektverkaufHistorieEintrag(events []e.Event) (DirektverkaufHistorieE
 			}
 			eintrag.OffenePositionen = reduceByPosition(eintrag.OffenePositionen, fromPositionenEventData(data.Positionen))
 			eintrag.GesamtStorniertCents += data.GesamtStornierungCents
+			eintrag.Stornierungen = append(eintrag.Stornierungen, DirektverkaufStornierung{
+				StornierungID:          data.StornierungID,
+				StorniertAm:            evt.Time,
+				GesamtStornierungCents: data.GesamtStornierungCents,
+			})
 
 		default:
 			return DirektverkaufHistorieEintrag{}, fmt.Errorf("unknown event type: %s", evt.Type)

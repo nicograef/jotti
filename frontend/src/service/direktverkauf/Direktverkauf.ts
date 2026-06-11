@@ -30,6 +30,7 @@ export type DirektverkaufStornieren = z.infer<
 
 export const DirektverkaufKassenbelegDruckenSchema = z.object({
   verkaufId: z.uuid(),
+  stornierungId: z.uuid().optional(),
 })
 export type DirektverkaufKassenbelegDrucken = z.infer<
   typeof DirektverkaufKassenbelegDruckenSchema
@@ -47,6 +48,17 @@ export const VerkaufPositionSchema = z.object({
 })
 export type VerkaufPosition = z.infer<typeof VerkaufPositionSchema>
 
+export const DirektverkaufStornierungSchema = z.object({
+  stornierungId: z.uuid(),
+  storniertAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: 'Ungültiges Datumsformat',
+  }),
+  gesamtStornierungCents: z.number().int().min(0),
+})
+export type DirektverkaufStornierung = z.infer<
+  typeof DirektverkaufStornierungSchema
+>
+
 export const DirektverkaufHistorieEintragSchema = z.object({
   verkaufId: z.uuid(),
   userName: z.string(),
@@ -58,6 +70,7 @@ export const DirektverkaufHistorieEintragSchema = z.object({
   kommentar: z.string(),
   offenePositionen: VerkaufPositionSchema.array(),
   gesamtStorniertCents: z.number().int().min(0),
+  stornierungen: DirektverkaufStornierungSchema.array(),
 })
 export type DirektverkaufHistorieEintrag = z.infer<
   typeof DirektverkaufHistorieEintragSchema

@@ -49,19 +49,38 @@ func toPositionen(positionen []kasse.Position) []position {
 	return out
 }
 
+type direktverkaufStornierung struct {
+	StornierungID          string    `json:"stornierungId"`
+	StorniertAm            time.Time `json:"storniertAm"`
+	GesamtStornierungCents int       `json:"gesamtStornierungCents"`
+}
+
 type direktverkaufHistorieEintrag struct {
-	VerkaufID            string     `json:"verkaufId"`
-	UserName             string     `json:"userName"`
-	GetaetigtAm          time.Time  `json:"getaetigtAm"`
-	Positionen           []position `json:"positionen"`
-	GesamtbetragCents    int        `json:"gesamtbetragCents"`
-	Kommentar            string     `json:"kommentar"`
-	OffenePositionen     []position `json:"offenePositionen"`
-	GesamtStorniertCents int        `json:"gesamtStorniertCents"`
+	VerkaufID            string                     `json:"verkaufId"`
+	UserName             string                     `json:"userName"`
+	GetaetigtAm          time.Time                  `json:"getaetigtAm"`
+	Positionen           []position                 `json:"positionen"`
+	GesamtbetragCents    int                        `json:"gesamtbetragCents"`
+	Kommentar            string                     `json:"kommentar"`
+	OffenePositionen     []position                 `json:"offenePositionen"`
+	GesamtStorniertCents int                        `json:"gesamtStorniertCents"`
+	Stornierungen        []direktverkaufStornierung `json:"stornierungen"`
 }
 
 type getDirektverkaufHistorieResponse struct {
 	Historie []direktverkaufHistorieEintrag `json:"historie"`
+}
+
+func toStornierungen(stornierungen []kasse.DirektverkaufStornierung) []direktverkaufStornierung {
+	out := make([]direktverkaufStornierung, 0, len(stornierungen))
+	for _, s := range stornierungen {
+		out = append(out, direktverkaufStornierung{
+			StornierungID:          s.StornierungID,
+			StorniertAm:            s.StorniertAm,
+			GesamtStornierungCents: s.GesamtStornierungCents,
+		})
+	}
+	return out
 }
 
 func toHistorieEintrag(e kasse.DirektverkaufHistorieEintrag) direktverkaufHistorieEintrag {
@@ -74,6 +93,7 @@ func toHistorieEintrag(e kasse.DirektverkaufHistorieEintrag) direktverkaufHistor
 		Kommentar:            e.Kommentar,
 		OffenePositionen:     toPositionen(e.OffenePositionen),
 		GesamtStorniertCents: e.GesamtStorniertCents,
+		Stornierungen:        toStornierungen(e.Stornierungen),
 	}
 }
 

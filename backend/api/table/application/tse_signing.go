@@ -462,6 +462,44 @@ func tseTransactionIDForStornierungEvent(evt event.Event) (string, error) {
 	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(seed)).String(), nil
 }
 
+// tseTransactionIDForDirektverkaufGetaetigtEvent mirrors the derivation in the
+// direktverkauf application so the Beleg-Fallback finds nachsignierte Signaturen.
+func tseTransactionIDForDirektverkaufGetaetigtEvent(evt event.Event) (string, error) {
+	if evt.Type != string(kasse.EventTypeDirektverkaufGetaetigtV1) {
+		return "", fmt.Errorf("unsupported event type for tx_id: %s", evt.Type)
+	}
+
+	data := direktverkaufGetaetigtV1Data{}
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(data.VerkaufID) == "" {
+		return "", fmt.Errorf("verkaufId missing in event data")
+	}
+
+	seed := fmt.Sprintf("%s|%s|%s", evt.Type, evt.Subject, data.VerkaufID)
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(seed)).String(), nil
+}
+
+// tseTransactionIDForDirektverkaufStorniertEvent mirrors the derivation in the
+// direktverkauf application so the Stornobeleg-Fallback finds nachsignierte Signaturen.
+func tseTransactionIDForDirektverkaufStorniertEvent(evt event.Event) (string, error) {
+	if evt.Type != string(kasse.EventTypeDirektverkaufStorniertV1) {
+		return "", fmt.Errorf("unsupported event type for tx_id: %s", evt.Type)
+	}
+
+	data := direktverkaufStorniertV1Data{}
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(data.StornierungID) == "" {
+		return "", fmt.Errorf("stornierungId missing in event data")
+	}
+
+	seed := fmt.Sprintf("%s|%s|%s", evt.Type, evt.Subject, data.StornierungID)
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(seed)).String(), nil
+}
+
 func tseTransactionIDForAuszahlungEvent(evt event.Event) (string, error) {
 	if evt.Type != string(kasse.EventTypeAuszahlungGeleistetV1) {
 		return "", fmt.Errorf("unsupported event type for tx_id: %s", evt.Type)

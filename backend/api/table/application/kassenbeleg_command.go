@@ -70,6 +70,17 @@ type direktverkaufGetaetigtV1Data struct {
 	Positionen        []zahlungPositionData `json:"positionen"`
 	GesamtbetragCents int                   `json:"gesamtbetragCents"`
 	Kommentar         string                `json:"kommentar"`
+	TSEData           *kasse.TSEData        `json:"tseData,omitempty"`
+	TSEAusfall        bool                  `json:"tseAusfall,omitempty"`
+}
+
+type direktverkaufStorniertV1Data struct {
+	StornierungID          string                `json:"stornierungId"`
+	VerkaufID              string                `json:"verkaufId"`
+	Positionen             []zahlungPositionData `json:"positionen"`
+	GesamtStornierungCents int                   `json:"gesamtStornierungCents"`
+	Kommentar              string                `json:"kommentar"`
+	TSEData                *kasse.TSEData        `json:"tseData,omitempty"`
 }
 
 func toTSEAbschnitt(data *kasse.TSEData) (*escpos.TSEAbschnitt, error) {
@@ -115,7 +126,76 @@ func findDirektverkaufGetaetigtEvent(events []event.Event, verkaufID string) (ev
 	return event.Event{}, direktverkaufGetaetigtV1Data{}, ErrVerkaufNichtGefunden
 }
 
-func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string) error {
+func findDirektverkaufStorniertEvent(events []event.Event, stornierungID string) (event.Event, direktverkaufStorniertV1Data, error) {
+	for _, evt := range events {
+		if evt.Type != string(kasse.EventTypeDirektverkaufStorniertV1) {
+			continue
+		}
+
+		var data direktverkaufStorniertV1Data
+		if err := json.Unmarshal(evt.Data, &data); err != nil {
+			return event.Event{}, direktverkaufStorniertV1Data{}, err
+		}
+		if data.StornierungID == stornierungID {
+			return evt, data, nil
+		}
+	}
+
+	return event.Event{}, direktverkaufStorniertV1Data{}, ErrStornierungNichtGefunden
+}
+
+// tseAbschnittFuerBeleg resolves the TSE section of a Kassenbeleg: signature data from the
+// event itself, fallback to the nachsignierte Signatur aus der Seitentabelle, otherwise the
+// event's TSE-Ausfall flag as Ausfallvermerk (AEAO 1.14.2).
+func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventTSEData *kasse.TSEData, tseAusfall bool, txID string) (*escpos.TSEAbschnitt, bool, error) {
+	abschnitt, err := toTSEAbschnitt(eventTSEData)
+	if err != nil {
+		return nil, false, err
+	}
+	if abschnitt != nil {
+		return abschnitt, false, nil
+	}
+
+	signaturData, err := c.EventRepo.GetTSESignaturByTxID(ctx, txID)
+	switch {
+	case err == nil:
+		abschnitt, err = toTSEAbschnitt(&signaturData)
+		if err != nil {
+			return nil, false, err
+		}
+		return abschnitt, false, nil
+	case errors.Is(err, db.ErrNotFound):
+		return nil, tseAusfall, nil
+	default:
+		return nil, false, err
+	}
+}
+
+// negierePositionen flips the Einzelpreis sign so a Stornobeleg shows negative amounts.
+func negierePositionen(positionen []kasse.Position) []kasse.Position {
+	out := make([]kasse.Position, 0, len(positionen))
+	for _, pos := range positionen {
+		pos.Einzelpreis = -pos.Einzelpreis
+		out = append(out, pos)
+	}
+	return out
+}
+
+// negiereAufteilungen flips the sign of all Steuermatrix amounts for a Stornobeleg.
+// steuer.Aufteilen ignores negative Brutto, so the matrix is computed from the positive
+// amounts and negated afterwards (same approach as the faktor in the TSE-processData).
+func negiereAufteilungen(aufteilungen []steuer.Aufteilung) []steuer.Aufteilung {
+	out := make([]steuer.Aufteilung, 0, len(aufteilungen))
+	for _, aufteilung := range aufteilungen {
+		aufteilung.Brutto = -aufteilung.Brutto
+		aufteilung.Netto = -aufteilung.Netto
+		aufteilung.Steuer = -aufteilung.Steuer
+		out = append(out, aufteilung)
+	}
+	return out
+}
+
+func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) error {
 	log := zerolog.Ctx(ctx)
 
 	if c.DruckstationRepo == nil || c.SettingsRepo == nil || c.DruckauftragRepo == nil {
@@ -135,8 +215,57 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 	var tseAbschnitt *escpos.TSEAbschnitt
 	var tseAusfallvermerk bool
 	var ersteBestellungZeitpunkt *time.Time
+	var stornobeleg bool
+	var stornoZuBelegnummer string
 
-	if verkaufID != "" {
+	switch {
+	case verkaufID != "" && stornierungID != "":
+		subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
+		events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
+		if err != nil {
+			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to read direktverkauf events for stornobeleg")
+			return ErrDatabase
+		}
+
+		verkaufEvent, _, err := findDirektverkaufGetaetigtEvent(events, verkaufID)
+		if err != nil {
+			if errors.Is(err, ErrVerkaufNichtGefunden) {
+				log.Warn().Str("verkauf_id", verkaufID).Msg("Direktverkauf not found for stornobeleg")
+				return ErrVerkaufNichtGefunden
+			}
+			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to decode direktverkauf event data")
+			return ErrDatabase
+		}
+
+		stornoEvent, stornoData, err := findDirektverkaufStorniertEvent(events, stornierungID)
+		if err != nil {
+			if errors.Is(err, ErrStornierungNichtGefunden) {
+				log.Warn().Str("verkauf_id", verkaufID).Str("stornierung_id", stornierungID).Msg("Stornierung not found for stornobeleg")
+				return ErrStornierungNichtGefunden
+			}
+			log.Error().Err(err).Str("verkauf_id", verkaufID).Str("stornierung_id", stornierungID).Msg("Failed to decode direktverkauf storno event data")
+			return ErrDatabase
+		}
+
+		quelleEvent = stornoEvent
+		positionen = toKassePositionen(stornoData.Positionen)
+		gesamtbetragCents = -stornoData.GesamtStornierungCents
+		referenz = fmt.Sprintf("direktverkauf-storniert:%d", stornoEvent.ID)
+		stornobeleg = true
+		stornoZuBelegnummer = fmt.Sprintf("%d", verkaufEvent.ID)
+
+		txID, err := tseTransactionIDForDirektverkaufStorniertEvent(stornoEvent)
+		if err != nil {
+			log.Error().Err(err).Str("stornierung_id", stornierungID).Msg("Failed to derive TSE tx_id for stornobeleg fallback")
+			return ErrDatabase
+		}
+		tseAbschnitt, tseAusfallvermerk, err = c.tseAbschnittFuerBeleg(ctx, stornoData.TSEData, false, txID)
+		if err != nil {
+			log.Error().Err(err).Str("stornierung_id", stornierungID).Msg("Failed to resolve TSE section for stornobeleg")
+			return ErrDatabase
+		}
+
+	case verkaufID != "":
 		subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
 		events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 		if err != nil {
@@ -158,7 +287,19 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		positionen = toKassePositionen(verkaufData.Positionen)
 		gesamtbetragCents = verkaufData.GesamtbetragCents
 		referenz = fmt.Sprintf("direktverkauf-getaetigt:%d", verkaufEvent.ID)
-	} else {
+
+		txID, err := tseTransactionIDForDirektverkaufGetaetigtEvent(verkaufEvent)
+		if err != nil {
+			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to derive TSE tx_id for kassenbeleg fallback")
+			return ErrDatabase
+		}
+		tseAbschnitt, tseAusfallvermerk, err = c.tseAbschnittFuerBeleg(ctx, verkaufData.TSEData, verkaufData.TSEAusfall, txID)
+		if err != nil {
+			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to resolve TSE section for kassenbeleg")
+			return ErrDatabase
+		}
+
+	default:
 		subject := kasse.TischSessionSubject(ks.ZNr, tischID)
 		state, err := c.EventRepo.ReadTischSession(ctx, subject)
 		if err != nil {
@@ -188,33 +329,15 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		gesamtbetragCents = zahlungData.GesamtZahlungCents
 		referenz = fmt.Sprintf("zahlung-kassiert:%d", zahlungEvent.ID)
 
-		tseAbschnitt, err = toTSEAbschnitt(zahlungData.TSEData)
+		txID, err := tseTransactionIDForZahlungEvent(zahlungEvent)
 		if err != nil {
-			log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to parse TSE data for kassenbeleg")
+			log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to derive TSE tx_id for kassenbeleg fallback")
 			return ErrDatabase
 		}
-
-		if tseAbschnitt == nil {
-			txID, err := tseTransactionIDForZahlungEvent(zahlungEvent)
-			if err != nil {
-				log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to derive TSE tx_id for kassenbeleg fallback")
-				return ErrDatabase
-			}
-
-			signaturData, err := c.EventRepo.GetTSESignaturByTxID(ctx, txID)
-			switch {
-			case err == nil:
-				tseAbschnitt, err = toTSEAbschnitt(&signaturData)
-				if err != nil {
-					log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to parse backfilled TSE signature for kassenbeleg")
-					return ErrDatabase
-				}
-			case errors.Is(err, db.ErrNotFound):
-				tseAusfallvermerk = zahlungData.TSEAusfall
-			default:
-				log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to load backfilled TSE signature for kassenbeleg")
-				return ErrDatabase
-			}
+		tseAbschnitt, tseAusfallvermerk, err = c.tseAbschnittFuerBeleg(ctx, zahlungData.TSEData, zahlungData.TSEAusfall, txID)
+		if err != nil {
+			log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to resolve TSE section for kassenbeleg")
+			return ErrDatabase
 		}
 	}
 
@@ -240,6 +363,12 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		return ErrDatabase
 	}
 
+	steuermatrix := steuer.Steuermatrix(toSteuermatrixPositionen(positionen))
+	if stornobeleg {
+		steuermatrix = negiereAufteilungen(steuermatrix)
+		positionen = negierePositionen(positionen)
+	}
+
 	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
 		Vereinsname:              betreiber.Vereinsname,
 		Strasse:                  betreiber.Strasse,
@@ -250,11 +379,13 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		Zeitpunkt:                quelleEvent.Time,
 		ErsteBestellungZeitpunkt: ersteBestellungZeitpunkt,
 		Positionen:               positionen,
-		Steuermatrix:             steuer.Steuermatrix(toSteuermatrixPositionen(positionen)),
+		Steuermatrix:             steuermatrix,
 		TSE:                      tseAbschnitt,
 		TSEAusfallvermerk:        tseAusfallvermerk,
 		GesamtbetragCents:        gesamtbetragCents,
 		Zahlungsart:              "bar",
+		Stornobeleg:              stornobeleg,
+		StornoZuBelegnummer:      stornoZuBelegnummer,
 	})
 
 	auftrag := druckauftrag_repo.NeuerDruckauftrag{

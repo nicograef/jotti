@@ -1390,11 +1390,11 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 		DruckauftragRepo:    auftragMock,
 	}
 
-	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
 	if err != nil {
 		t.Fatalf("expected no reprint error, got %v", err)
 	}
@@ -1474,7 +1474,7 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 		DruckauftragRepo:    auftragMock,
 	}
 
-	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1567,7 +1567,7 @@ func TestKassenbelegDrucken_WithTSEData_ContainsTSEBlock(t *testing.T) {
 		DruckauftragRepo:    auftragMock,
 	}
 
-	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1659,7 +1659,7 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 		DruckauftragRepo:    auftragMock,
 	}
 
-	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1745,7 +1745,7 @@ func TestKassenbelegDrucken_UsesBackfilledTSESignaturAusSeitentabelle(t *testing
 		DruckauftragRepo:    auftragMock,
 	}
 
-	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1820,7 +1820,7 @@ func TestKassenbelegDrucken_BeiOffenemTSEAusfall_MitAusfallvermerk(t *testing.T)
 		DruckauftragRepo:    auftragMock,
 	}
 
-	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1849,7 +1849,7 @@ func TestKassenbelegDrucken_ZahlungNichtGefunden(t *testing.T) {
 		DruckauftragRepo:    &mockDruckauftragRepo{},
 	}
 
-	err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, "11111111-1111-1111-1111-111111111111", "")
+	err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, "11111111-1111-1111-1111-111111111111", "", "")
 	if err != ErrZahlungNichtGefunden {
 		t.Fatalf("expected ErrZahlungNichtGefunden, got %v", err)
 	}
@@ -1892,7 +1892,7 @@ func TestKassenbelegDrucken_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
 		DruckauftragRepo:    &mockDruckauftragRepo{},
 	}
 
-	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "")
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
 	if err != ErrKassenbelegDruckerNichtKonfiguriert {
 		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
 	}
@@ -1943,7 +1943,7 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 		DruckauftragRepo:    auftragMock,
 	}
 
-	err = command.KassenbelegDrucken(ctx, 0, "", verkaufID)
+	err = command.KassenbelegDrucken(ctx, 0, "", verkaufID, "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1977,7 +1977,7 @@ func TestKassenbelegDrucken_Direktverkauf_NichtGefunden(t *testing.T) {
 		DruckauftragRepo:    &mockDruckauftragRepo{},
 	}
 
-	err := command.KassenbelegDrucken(ctx, 0, "", uuid.New().String())
+	err := command.KassenbelegDrucken(ctx, 0, "", uuid.New().String(), "")
 	if err != ErrVerkaufNichtGefunden {
 		t.Fatalf("expected ErrVerkaufNichtGefunden, got %v", err)
 	}
@@ -2013,8 +2013,316 @@ func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t 
 		DruckauftragRepo:    &mockDruckauftragRepo{},
 	}
 
-	err = command.KassenbelegDrucken(ctx, 0, "", verkaufID)
+	err = command.KassenbelegDrucken(ctx, 0, "", verkaufID, "")
 	if err != ErrKassenbelegDruckerNichtKonfiguriert {
 		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
+	}
+}
+
+func belegTestSettingsMock() *mockSettingsRepo {
+	return &mockSettingsRepo{
+		betreiber: settings.Betreiber{
+			Vereinsname: "SV Musterstadt",
+			Strasse:     "Musterstrasse 1",
+			Plz:         "12345",
+			Ort:         "Musterstadt",
+			UpdatedAt:   time.Now(),
+		},
+		kassenident: settings.Kassenidentitaet{
+			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
+			AngelegtAm:   time.Now(),
+		},
+	}
+}
+
+func TestKassenbelegDrucken_Direktverkauf_MitTSEDatenAusEvent(t *testing.T) {
+	ctx := context.Background()
+	verkaufID := uuid.New().String()
+	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
+
+	verkaufEvent, err := kasse.NewDirektverkaufGetaetigtEventMitTSE(subject, verkaufID, 1, "Test User", []kasse.Position{{
+		VarianteID:   1,
+		ProduktName:  "Cola",
+		VarianteName: "0,5l",
+		Kategorie:    "getraenk", Steuersatz: "regel",
+		Einzelpreis: 350,
+		Menge:       2,
+	}}, "", &kasse.TSEData{
+		TransactionNumber: 4001,
+		SignatureCounter:  99,
+		SerialNumberTSE:   "SW-TSE-SN-0044",
+		LogTimeStart:      "2026-06-10T19:00:01Z",
+		LogTimeEnd:        "2026-06-10T19:00:03Z",
+		Signature:         "SIG-DIREKTVERKAUF",
+		ProcessType:       "Kassenbeleg-V1",
+		QRCodeData:        "V0;DIREKTVERKAUF",
+	})
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(verkaufEvent)
+
+	auftragMock := &mockDruckauftragRepo{}
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
+		SettingsRepo:        belegTestSettingsMock(),
+		DruckauftragRepo:    auftragMock,
+	}
+
+	err = command.KassenbelegDrucken(ctx, 0, "", verkaufID, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+
+	got := string(payload)
+	for _, check := range []string{"TSE-Daten:", "TSE-Transaktion: 4001", "Signaturzaehler: 99", "TSE-Seriennummer: SW-TSE-SN-0044", "SIG-DIREKTVERKAUF", "V0;DIREKTVERKAUF"} {
+		if !strings.Contains(got, check) {
+			t.Fatalf("expected %q in direktverkauf receipt, got:\n%q", check, got)
+		}
+	}
+}
+
+func TestKassenbelegDrucken_Direktverkauf_UsesBackfilledTSESignaturAusSeitentabelle(t *testing.T) {
+	ctx := context.Background()
+	verkaufID := uuid.New().String()
+	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
+
+	verkaufEvent, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "Test User", []kasse.Position{{
+		VarianteID:   1,
+		ProduktName:  "Cola",
+		VarianteName: "0,5l",
+		Kategorie:    "getraenk", Steuersatz: "regel",
+		Einzelpreis: 350,
+		Menge:       1,
+	}}, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	txID, err := tseTransactionIDForDirektverkaufGetaetigtEvent(verkaufEvent)
+	if err != nil {
+		t.Fatalf("expected tx id derivation to succeed, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(verkaufEvent)
+	eventMock.SetTSESignatur(txID, kasse.TSEData{
+		TransactionNumber: 4002,
+		SignatureCounter:  100,
+		SerialNumberTSE:   "SW-TSE-SN-0044",
+		LogTimeStart:      "2026-06-10T19:10:01Z",
+		LogTimeEnd:        "2026-06-10T19:10:03Z",
+		Signature:         "SIG-BACKFILL-DV",
+		QRCodeData:        "V0;BACKFILL-DV",
+	})
+
+	auftragMock := &mockDruckauftragRepo{}
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
+		SettingsRepo:        belegTestSettingsMock(),
+		DruckauftragRepo:    auftragMock,
+	}
+
+	err = command.KassenbelegDrucken(ctx, 0, "", verkaufID, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+
+	got := string(payload)
+	if !strings.Contains(got, "TSE-Daten:") {
+		t.Fatalf("expected TSE block from side table signature, got:\n%q", got)
+	}
+	if !strings.Contains(got, "SIG-BACKFILL-DV") {
+		t.Fatalf("expected side table signature in payload, got:\n%q", got)
+	}
+}
+
+func TestKassenbelegDrucken_Direktverkauf_BeiOffenemTSEAusfall_MitAusfallvermerk(t *testing.T) {
+	ctx := context.Background()
+	verkaufID := uuid.New().String()
+	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
+
+	verkaufEvent, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "Test User", []kasse.Position{{
+		VarianteID:   1,
+		ProduktName:  "Cola",
+		VarianteName: "0,5l",
+		Kategorie:    "getraenk", Steuersatz: "regel",
+		Einzelpreis: 350,
+		Menge:       1,
+	}}, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	var verkaufData direktverkaufGetaetigtV1Data
+	if err := json.Unmarshal(verkaufEvent.Data, &verkaufData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	verkaufData.TSEAusfall = true
+	verkaufEvent.Data, err = json.Marshal(verkaufData)
+	if err != nil {
+		t.Fatalf("expected no marshal error, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(verkaufEvent)
+
+	auftragMock := &mockDruckauftragRepo{}
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
+		SettingsRepo:        belegTestSettingsMock(),
+		DruckauftragRepo:    auftragMock,
+	}
+
+	err = command.KassenbelegDrucken(ctx, 0, "", verkaufID, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+
+	got := string(payload)
+	if !strings.Contains(got, "TSE-Hinweis:") {
+		t.Fatalf("expected TSE outage note on direktverkauf receipt, got:\n%q", got)
+	}
+	if strings.Contains(got, "TSE-Daten:") {
+		t.Fatalf("did not expect TSE data block while signature is still pending, got:\n%q", got)
+	}
+}
+
+func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testing.T) {
+	ctx := context.Background()
+	verkaufID := uuid.New().String()
+	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
+
+	verkaufEvent, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "Test User", []kasse.Position{{
+		VarianteID:   1,
+		ProduktName:  "Cola",
+		VarianteName: "0,5l",
+		Kategorie:    "getraenk", Steuersatz: "regel",
+		Einzelpreis: 350,
+		Menge:       2,
+	}}, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	stornoEvent, err := kasse.NewDirektverkaufStorniertEventMitTSE(subject, verkaufID, 2, "Leitung", []kasse.Position{{
+		PositionID:   "11111111-1111-4111-8111-111111111111",
+		VarianteID:   1,
+		ProduktName:  "Cola",
+		VarianteName: "0,5l",
+		Kategorie:    "getraenk", Steuersatz: "regel",
+		Einzelpreis: 350,
+		Menge:       2,
+	}}, 700, "Rückgabe", &kasse.TSEData{
+		TransactionNumber: 4003,
+		SignatureCounter:  101,
+		SerialNumberTSE:   "SW-TSE-SN-0044",
+		LogTimeStart:      "2026-06-10T19:20:01Z",
+		LogTimeEnd:        "2026-06-10T19:20:03Z",
+		Signature:         "SIG-STORNO",
+		ProcessType:       "Kassenbeleg-V1",
+		QRCodeData:        "V0;STORNO",
+	})
+	if err != nil {
+		t.Fatalf("expected no storno event error, got %v", err)
+	}
+
+	var stornoData direktverkaufStorniertV1Data
+	if err := json.Unmarshal(stornoEvent.Data, &stornoData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(verkaufEvent)
+	eventMock.AddEvent(stornoEvent)
+
+	auftragMock := &mockDruckauftragRepo{}
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
+		SettingsRepo:        belegTestSettingsMock(),
+		DruckauftragRepo:    auftragMock,
+	}
+
+	err = command.KassenbelegDrucken(ctx, 0, "", verkaufID, stornoData.StornierungID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(auftragMock.enqueued) != 1 {
+		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
+	}
+	if !strings.HasPrefix(auftragMock.enqueued[0].Referenz, "direktverkauf-storniert:") {
+		t.Fatalf("expected direktverkauf-storniert referenz, got %s", auftragMock.enqueued[0].Referenz)
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+
+	got := string(payload)
+	for _, check := range []string{"STORNOBELEG", "Storno zu Bon-Nr: 1", "GESAMT: -7,00 EUR", "-3,50 x 2 = -7,00 EUR", "SIG-STORNO"} {
+		if !strings.Contains(got, check) {
+			t.Fatalf("expected %q in stornobeleg, got:\n%q", check, got)
+		}
+	}
+}
+
+func TestKassenbelegDrucken_DirektverkaufStorno_NichtGefunden(t *testing.T) {
+	ctx := context.Background()
+	verkaufID := uuid.New().String()
+	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
+
+	verkaufEvent, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "Test User", []kasse.Position{{
+		VarianteID:   1,
+		ProduktName:  "Cola",
+		VarianteName: "0,5l",
+		Kategorie:    "getraenk", Steuersatz: "regel",
+		Einzelpreis: 350,
+		Menge:       1,
+	}}, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(verkaufEvent)
+
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		SettingsRepo:        belegTestSettingsMock(),
+		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
+		DruckauftragRepo:    &mockDruckauftragRepo{},
+	}
+
+	err = command.KassenbelegDrucken(ctx, 0, "", verkaufID, uuid.New().String())
+	if err != ErrStornierungNichtGefunden {
+		t.Fatalf("expected ErrStornierungNichtGefunden, got %v", err)
 	}
 }

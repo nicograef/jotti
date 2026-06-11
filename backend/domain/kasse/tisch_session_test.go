@@ -535,6 +535,29 @@ func TestApplyEvent_SetsErsteBestellungLogTimeOnlyOnce(t *testing.T) {
 	}
 }
 
+func TestApplyEvent_ErsteBestellungLogTime_FallbackAufEventZeit(t *testing.T) {
+	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}
+
+	// Bestellung ohne TSE-Daten (z. B. waehrend eines TSE-Ausfalls erfasst).
+	order, err := NewBestellungAufgenommenEvent(testSubject, 1, "TestUser", products, "")
+	if err != nil {
+		t.Fatalf("failed to create order event: %v", err)
+	}
+	order.ID = 1
+	order.Version = 1
+
+	state, err := ApplyEvent(TischSession{}, order)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if state.ErsteBestellungLogTime == nil {
+		t.Fatal("expected ersteBestellungLogTime fallback to event time")
+	}
+	if !state.ErsteBestellungLogTime.Equal(order.Time.UTC()) {
+		t.Fatalf("expected event time %s, got %s", order.Time.UTC().Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
+	}
+}
+
 func TestApplyEvent_BestellungWithInvalidLogTime_ReturnsError(t *testing.T) {
 	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}
 
