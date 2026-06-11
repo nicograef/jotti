@@ -187,10 +187,10 @@ produktbeschreibung.md auf ~160–190 Zeilen kürzen und ehrlich machen: In §6 
 
 ### Acceptance criteria
 
-- [ ] Jedes in §6/§7 genannte offene Feature trägt eine Status-Markierung; keine Behauptung widerspricht anforderungen.md
-- [ ] Problem und Lösung stehen in einem Abschnitt ohne inhaltliche Wiederholung
-- [ ] produktbeschreibung.md ≤ 190 Zeilen
-- [ ] Positioning Statement (§2.1) und USPs (§8) bleiben erhalten (Kernidentität)
+- [x] Jedes in §6/§7 genannte offene Feature trägt eine Status-Markierung; keine Behauptung widerspricht anforderungen.md _(KDS, Ausgabestationen, Produktumsatz-Reporting, CSV-Export, DSFinV-K, Hash-Chain, ELSTER markiert; TSE/Beleg/Seriennummer unmarkiert. §2.1 als geschütztes Zielbild verbatim erhalten — gemäß Resolved Decision „Zielbild bleibt")_
+- [x] Problem und Lösung stehen in einem Abschnitt ohne inhaltliche Wiederholung _(§4+§5 zu §4 „Problem & Lösung" verschmolzen; Folgekapitel renummeriert, handbuch.md-Deeplink §7.2→§6.2 nachgezogen)_
+- [x] produktbeschreibung.md ≤ 190 Zeilen (Ergebnis: 187)
+- [x] Positioning Statement (§2.1) und USPs (§7, vormals §8) bleiben erhalten (Kernidentität)
 
 ---
 
