@@ -106,4 +106,4 @@ jotti steht unter einer **proprietären Source-Available-Lizenz** — siehe [LIC
 - ❌ **Forks, Modifikation und Weitergabe** sind nicht gestattet (außer PRs an das offizielle Repo).
 - 💼 **Kommerzielle Lizenzierung:** Für gewerbliche Nutzung ist eine separate kommerzielle Lizenz vom Urheber erforderlich — Kontakt über GitHub.
 
-Ausführliche Informationen: [docs/lizenz-und-nutzung.md](docs/lizenz-und-nutzung.md) · Nutzungsbedingungen & Prozess: [docs/nutzungsbedingungen.md](docs/nutzungsbedingungen.md)
+Ausführliche Informationen: [docs/lizenzmodell.md](docs/lizenzmodell.md) · Nutzungsbedingungen & Prozess: [TERMS.md](TERMS.md)

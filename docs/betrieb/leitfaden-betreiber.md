@@ -210,7 +210,7 @@ ersetzt.
 
 **Einmalig, vor dem ersten Einsatz:**
 
-- [ ] Nutzungsvereinbarung mit dem Autor abgeschlossen (siehe [Lizenz](../lizenz-und-nutzung.md))
+- [ ] Nutzungsvereinbarung mit dem Autor abgeschlossen (siehe [Lizenzmodell](../lizenzmodell.md))
 - [ ] TSE bei fiskaly (o. a.) gebucht und Schlüssel in `.env` eingetragen
 - [ ] Betreiber-Stammdaten (Vereinsname, Adresse, Steuernummer) im Admin-Bereich gepflegt
 - [ ] Produkte mit korrekten Steuersätzen angelegt

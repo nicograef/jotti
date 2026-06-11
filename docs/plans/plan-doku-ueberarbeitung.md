@@ -88,11 +88,11 @@ Aus den Klärungsrunden (2026-06-11):
 
 ### Acceptance criteria
 
-- [ ] `TERMS.md` enthält die vollständigen Nutzungsbedingungen; §§ 1–13 textidentisch zur Vorversion (Diff zeigt nur Move, TOC-Entfall, URL/Link-Anpassungen)
-- [ ] `docs/nutzungsbedingungen.md` existiert nicht mehr
-- [ ] `docs/lizenzmodell.md` ≤ ~150 Zeilen; jede Aussage steht entweder dort oder in TERMS.md, nicht in beiden
-- [ ] `grep -rn "nutzungsbedingungen.md\|lizenz-und-nutzung.md" .` (ohne .git, docs/plans, docs/prds) liefert keine Treffer mehr
-- [ ] README §Lizenz verlinkt auf `docs/lizenzmodell.md` und `TERMS.md`
+- [x] `TERMS.md` enthält die vollständigen Nutzungsbedingungen; §§ 1–13 textidentisch zur Vorversion (Diff zeigt nur Move, TOC-Entfall, URL/Link-Anpassungen)
+- [x] `docs/nutzungsbedingungen.md` existiert nicht mehr
+- [x] `docs/lizenzmodell.md` ≤ ~150 Zeilen; jede Aussage steht entweder dort oder in TERMS.md, nicht in beiden
+- [x] `grep -rn "nutzungsbedingungen.md\|lizenz-und-nutzung.md" .` (ohne .git, docs/plans, docs/prds) liefert keine Treffer mehr
+- [x] README §Lizenz verlinkt auf `docs/lizenzmodell.md` und `TERMS.md`
 
 ---
 

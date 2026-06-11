@@ -269,7 +269,7 @@ Wie jotti die typischen Vereinsprobleme löst, zeigt [§5 Lösung](#5-lösung); 
 
 ## 9. Lizenz und Kosten
 
-jotti steht unter einer **proprietären Source-Available-Lizenz**: Der Quellcode ist öffentlich einsehbar, Nutzungsrechte werden aber nicht automatisch gewährt. Eingetragene Vereine und gemeinnützige Organisationen (gGmbH, gUG, Stiftungen, NGOs) dürfen jotti **kostenlos** nutzen — nach Abschluss einer schriftlichen Nutzungsvereinbarung mit dem Autor (Nico Gräf). Quellcode lesen (Lernen, Evaluation, Sicherheitsaudit) und Pull Requests unter CLA sind ohne Vereinbarung erlaubt; Forks, Weitergabe sowie kommerzielle oder gewerbliche Nutzung erfordern eine separate Lizenz. Lizenzmodell, erlaubte Nutzungsfälle und die vollständigen Bedingungen: [lizenz-und-nutzung.md](lizenz-und-nutzung.md) und [nutzungsbedingungen.md](nutzungsbedingungen.md).
+jotti steht unter einer **proprietären Source-Available-Lizenz**: Der Quellcode ist öffentlich einsehbar, Nutzungsrechte werden aber nicht automatisch gewährt. Eingetragene Vereine und gemeinnützige Organisationen (gGmbH, gUG, Stiftungen, NGOs) dürfen jotti **kostenlos** nutzen — nach Abschluss einer schriftlichen Nutzungsvereinbarung mit dem Autor (Nico Gräf). Quellcode lesen (Lernen, Evaluation, Sicherheitsaudit) und Pull Requests unter CLA sind ohne Vereinbarung erlaubt; Forks, Weitergabe sowie kommerzielle oder gewerbliche Nutzung erfordern eine separate Lizenz. Lizenzmodell, erlaubte Nutzungsfälle und die vollständigen Bedingungen: [lizenzmodell.md](lizenzmodell.md) und [TERMS.md](../TERMS.md).
 
 „Kostenlos" heißt: keine Lizenzgebühren, keine Nutzungslimits, kein Freemium, keine Werbung, kein Tracking — voller Funktionsumfang. Es entstehen nur Infrastrukturkosten, die unabhängig von jotti anfallen:
 
