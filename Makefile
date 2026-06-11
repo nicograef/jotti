@@ -223,6 +223,15 @@ website: ## Website Dev-Server (nginx + SSI) starten (http://localhost:8080)
 	  -v $(CURDIR)/reverse-proxy/nginx.website-dev.conf:/etc/nginx/conf.d/default.conf:ro \
 	  nginx:1.27-alpine
 
+# head-seo.html ist für Prettier kein valides HTML (SSI-Echo in Attributwerten)
+# und wird deshalb von Format-Check und -Write ausgenommen.
+website-check: ## Website prüfen (Links, Assets, SSI, CSS-Klassen, Format)
+	./scripts/check-website.sh
+	cd frontend && pnpm exec prettier --check --ignore-unknown ../website '!../website/partials/head-seo.html'
+
+website-fmt: ## Website formatieren (Prettier via Frontend-Installation)
+	cd frontend && pnpm exec prettier --write --ignore-unknown ../website '!../website/partials/head-seo.html'
+
 # ──────────────────────────────────────────────
 # Hilfe                                         
 # ──────────────────────────────────────────────

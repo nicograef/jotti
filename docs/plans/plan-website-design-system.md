@@ -191,14 +191,14 @@ Der Prettier-Erstlauf wird als separater Format-Commit eingebracht.
 
 ### Acceptance criteria
 
-- [ ] Tote Klassen, ungenutzte Assets und obsolete Meta-Tags sind
+- [x] Tote Klassen, ungenutzte Assets und obsolete Meta-Tags sind
       entfernt; Startseite nutzt durchgehend absolute Pfade; Website
       sieht unverändert aus (Sichtprüfung über `make website`).
-- [ ] `make website-check` läuft grün; ein absichtlich eingebauter
+- [x] `make website-check` läuft grün; ein absichtlich eingebauter
       Fehler (kaputter Link, fehlendes Asset, unbenutzte CSS-Klasse,
       Tippfehler im Klassennamen) lässt es jeweils fehlschlagen
       (Negativprobe).
-- [ ] `make website-fmt` formatiert `website/`; danach ist
+- [x] `make website-fmt` formatiert `website/`; danach ist
       `website-check` (inkl. Prettier-Check) grün.
 - [ ] CI führt den Website-Job nur bei Änderungen unter `website/` aus
       und ist auf dem PR grün.

@@ -13,6 +13,7 @@ jobs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
       database: ${{ steps.changes.outputs.database }}
+      website: ${{ steps.changes.outputs.website }}
     steps:
       - uses: actions/checkout@v6
       - name: Check for changes
@@ -26,6 +27,9 @@ jobs:
               - 'frontend/**'
             database:
               - 'database/**'
+            website:
+              - 'website/**'
+              - 'scripts/check-website.sh'
 
   backend-ci:
     needs: changes
@@ -124,6 +128,31 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+  website-ci:
+    needs: changes
+    if: ${{ needs.changes.outputs.website == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+          run_install: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Website checks
+        run: make website-check
 
   backend-integration-tests:
     needs: changes
