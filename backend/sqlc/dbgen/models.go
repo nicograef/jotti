@@ -253,7 +253,7 @@ type Betreiber struct {
 
 // Technische Outbox-Warteschlange fuer Druckjobs (Arbeitsbon und Kassenbeleg).
 type Druckauftraege struct {
-	ID     int32
+	ID     int
 	ZielIp string
 	// Base64-kodierter ESC/POS-Byte-String.
 	Payload string
@@ -368,17 +368,28 @@ type TischFavoriten struct {
 
 // Synchronous CQRS projection of per-tisch-session state, session-scoped (PK: subject), updated within the event-write transaction
 type TischSession struct {
-	Subject                string
-	TischID                int
-	KassensitzungNr        int
-	SaldoCents             int
-	UnbezahltePositionen   json.RawMessage
-	AusstehendePositionen  json.RawMessage
-	GesamtZahlungenCents   int
+	// Aggregate key of the tisch session, e.g. "kassensitzung-1/tisch-42" (see kassenjournal.subject)
+	Subject string
+	// Tisch this session belongs to
+	TischID int
+	// Kassensitzung number (z_nr) this session belongs to
+	KassensitzungNr int
+	// Open balance in cents: positive = unpaid Bestellungen, negative = refund owed to the guest (settled by Auszahlung)
+	SaldoCents int
+	// Positions ordered but not yet paid (JSON array), reduced by Zahlung and Stornierung
+	UnbezahltePositionen json.RawMessage
+	// Positions ordered but not yet handed out (JSON array), reduced by Ausgabe and Stornierung
+	AusstehendePositionen json.RawMessage
+	// Sum of all Zahlungen collected in this session, in cents
+	GesamtZahlungenCents int
+	// TSE logTime of the first Bestellung (fallback: event time); NULL until the first Bestellung
 	ErsteBestellungLogtime sql.NullTime
-	LastEventID            int
-	LastEventVersion       int
-	UpdatedAt              time.Time
+	// Last kassenjournal event applied to this projection
+	LastEventID int
+	// Version of the last applied event (optimistic concurrency)
+	LastEventVersion int
+	// Last modification timestamp (UTC)
+	UpdatedAt time.Time
 }
 
 // Gäste sitzen an Tischen und geben dort Bestellungen auf.
@@ -411,7 +422,7 @@ type TseKonfiguration struct {
 
 // Technische Outbox fuer Nachsignierung bei TSE-Ausfall. Dient zugleich als TSE-Ausfalldokumentation (AEAO zu § 146a, 1.14.1): erstellt_am = Beginn, erledigt_am = Ende, letzter_fehler = Grund.
 type TseNachsignierAuftraege struct {
-	ID int32
+	ID int
 	// Deterministische TSE-Transaktions-ID pro Vorgang.
 	TxID string
 	// fiskaly process_type, z. B. Kassenbeleg-V1.
@@ -432,17 +443,25 @@ type TseNachsignierAuftraege struct {
 
 // Signatur-Seitentabelle fuer nachsignierte Vorgaenge (Happy Path bleibt im Event).
 type TseSignaturen struct {
-	ID int32
+	// Technischer Primaerschluessel.
+	ID int
 	// Deterministische TSE-Transaktions-ID (1:1 zu einem fiskalischen Vorgang).
-	TxID              string
+	TxID string
+	// TSE-Transaktionsnummer aus der TSE-Antwort.
 	TransaktionNummer int
-	SignaturZaehler   int
-	TseSeriennummer   string
-	LogTimeStart      time.Time
-	LogTimeEnd        time.Time
-	Signatur          string
+	// Signaturzaehler der TSE aus der TSE-Antwort.
+	SignaturZaehler int
+	// Seriennummer der TSE, die den Vorgang signiert hat.
+	TseSeriennummer string
+	// TSE-logTime des Vorgangsbeginns (UTC).
+	LogTimeStart time.Time
+	// TSE-logTime des Vorgangsendes (UTC).
+	LogTimeEnd time.Time
+	// TSE-Signatur aus der TSE-Antwort.
+	Signatur string
 	// DSFinV-K QR-Code-Daten aus der TSE-Antwort.
 	QrCodeData string
+	// Zeitpunkt der Nachsignierung (UTC).
 	ErstelltAm time.Time
 }
 

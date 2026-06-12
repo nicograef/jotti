@@ -36,7 +36,7 @@ LIMIT $1
 `
 
 type GetOffeneTSENachsignierAuftraegeRow struct {
-	ID          int32
+	ID          int
 	TxID        string
 	ProcessType string
 	ProcessData string
@@ -78,7 +78,7 @@ LIMIT 200
 `
 
 type GetTSENachsignierAuftraegeRow struct {
-	ID            int32
+	ID            int
 	TxID          string
 	ProcessType   string
 	Status        string
@@ -147,7 +147,7 @@ WHERE id = $1
   AND status = 'offen'
 `
 
-func (q *Queries) MarkTSENachsignierAuftragErledigt(ctx context.Context, id int32) error {
+func (q *Queries) MarkTSENachsignierAuftragErledigt(ctx context.Context, id int) error {
 	_, err := q.db.ExecContext(ctx, markTSENachsignierAuftragErledigt, id)
 	return err
 }
@@ -164,7 +164,7 @@ WHERE id = $3 AND status = 'offen'
 type TSENachsignierAuftragFehlversuchParams struct {
 	LetzterFehler sql.NullString
 	MaxVersuche   int
-	ID            int32
+	ID            int
 }
 
 // TSENachsignierAuftragFehlversuch verbucht einen Fehlversuch mit exponentiellem
@@ -182,7 +182,7 @@ SET status = 'verworfen'
 WHERE id = $1 AND status = 'fehlgeschlagen'
 `
 
-func (q *Queries) TSENachsignierAuftragVerwerfen(ctx context.Context, id int32) error {
+func (q *Queries) TSENachsignierAuftragVerwerfen(ctx context.Context, id int) error {
 	_, err := q.db.ExecContext(ctx, tSENachsignierAuftragVerwerfen, id)
 	return err
 }
@@ -193,7 +193,7 @@ SET status = 'offen', versuche = 0, letzter_fehler = NULL, naechster_versuch_am 
 WHERE id = $1 AND status = 'fehlgeschlagen'
 `
 
-func (q *Queries) TSENachsignierAuftragZuruecksetzen(ctx context.Context, id int32) error {
+func (q *Queries) TSENachsignierAuftragZuruecksetzen(ctx context.Context, id int) error {
 	_, err := q.db.ExecContext(ctx, tSENachsignierAuftragZuruecksetzen, id)
 	return err
 }

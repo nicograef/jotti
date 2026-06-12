@@ -68,7 +68,7 @@ func (r Store) GetOffeneTSENachsignierAuftraege(ctx context.Context, limit int) 
 	result := make([]OffenerNachsignierAuftrag, 0, len(rows))
 	for _, row := range rows {
 		result = append(result, OffenerNachsignierAuftrag{
-			ID:          int(row.ID),
+			ID:          row.ID,
 			TxID:        row.TxID,
 			ProcessType: row.ProcessType,
 			ProcessData: row.ProcessData,
@@ -100,7 +100,7 @@ func (r Store) QuittiereTSENachsignierAuftrag(ctx context.Context, auftragID int
 		return db.Error(err)
 	}
 
-	err = qtx.MarkTSENachsignierAuftragErledigt(ctx, int32(auftragID))
+	err = qtx.MarkTSENachsignierAuftragErledigt(ctx, auftragID)
 	if err != nil {
 		return db.Error(err)
 	}
@@ -118,7 +118,7 @@ func (r Store) QuittiereTSENachsignierAuftrag(ctx context.Context, auftragID int
 // fehlgeschlagen (Backoff-Logik liegt in der SQL-Query).
 func (r Store) TSENachsignierAuftragFehlversuch(ctx context.Context, auftragID int, fehler string) error {
 	return db.Error(r.q.TSENachsignierAuftragFehlversuch(ctx, dbgen.TSENachsignierAuftragFehlversuchParams{
-		ID:            int32(auftragID),
+		ID:            auftragID,
 		LetzterFehler: sql.NullString{String: fehler, Valid: true},
 		MaxVersuche:   MaxNachsignierVersuche,
 	}))
@@ -136,7 +136,7 @@ func (r Store) GetTSENachsignierAuftraege(ctx context.Context) ([]NachsignierAuf
 	for i := range rows {
 		row := &rows[i]
 		auftrag := NachsignierAuftrag{
-			ID:            int(row.ID),
+			ID:            row.ID,
 			TxID:          row.TxID,
 			ProcessType:   row.ProcessType,
 			Status:        row.Status,
@@ -158,14 +158,14 @@ func (r Store) GetTSENachsignierAuftraege(ctx context.Context) ([]NachsignierAuf
 // wieder ein (fehlgeschlagen -> offen, Zaehler und Fehler zurueckgesetzt).
 // Der Status-Guard wirkt nur auf fehlgeschlagene Auftraege.
 func (r Store) TSENachsignierAuftragZuruecksetzen(ctx context.Context, auftragID int) error {
-	return db.Error(r.q.TSENachsignierAuftragZuruecksetzen(ctx, int32(auftragID)))
+	return db.Error(r.q.TSENachsignierAuftragZuruecksetzen(ctx, auftragID))
 }
 
 // TSENachsignierAuftragVerwerfen markiert einen fehlgeschlagenen Auftrag als
 // verworfen. Der Eintrag bleibt fuer die Ausfalldokumentation erhalten; der
 // Status-Guard wirkt nur auf fehlgeschlagene Auftraege.
 func (r Store) TSENachsignierAuftragVerwerfen(ctx context.Context, auftragID int) error {
-	return db.Error(r.q.TSENachsignierAuftragVerwerfen(ctx, int32(auftragID)))
+	return db.Error(r.q.TSENachsignierAuftragVerwerfen(ctx, auftragID))
 }
 
 func (r Store) CountOffeneTSENachsignierAuftraege(ctx context.Context) (int, error) {

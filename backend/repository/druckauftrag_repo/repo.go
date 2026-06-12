@@ -104,7 +104,7 @@ func (r Repository) GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruck
 	result := make([]OffenerDruckauftrag, 0, len(rows))
 	for _, row := range rows {
 		result = append(result, OffenerDruckauftrag{
-			ID:      int(row.ID),
+			ID:      row.ID,
 			ZielIP:  row.ZielIp,
 			Payload: row.Payload,
 		})
@@ -131,13 +131,13 @@ func (r Repository) MeldeDruckergebnis(ctx context.Context, gedruckteIDs []int, 
 
 	qtx := r.q.WithTx(tx)
 	for _, id := range gedruckteIDs {
-		if err := qtx.MarkDruckauftragGedruckt(ctx, int32(id)); err != nil {
+		if err := qtx.MarkDruckauftragGedruckt(ctx, id); err != nil {
 			return db.Error(err)
 		}
 	}
 	for _, f := range fehlversuche {
 		err := qtx.IncrementDruckauftragFehlversuch(ctx, dbgen.IncrementDruckauftragFehlversuchParams{
-			ID:            int32(f.ID),
+			ID:            f.ID,
 			LetzterFehler: sql.NullString{String: f.Fehler, Valid: true},
 			MaxVersuche:   MaxDruckversuche,
 		})
@@ -164,7 +164,7 @@ func (r Repository) GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]Feh
 	result := make([]FehlgeschlagenerDruckauftrag, 0, len(rows))
 	for _, row := range rows {
 		result = append(result, FehlgeschlagenerDruckauftrag{
-			ID:            int(row.ID),
+			ID:            row.ID,
 			BonArt:        row.BonArt,
 			ZielIP:        row.ZielIp,
 			Referenz:      row.Referenz,
@@ -181,12 +181,12 @@ func (r Repository) GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]Feh
 // (fehlgeschlagen -> offen, versuche zurück auf 0). Der Status-Guard wirkt nur
 // auf fehlgeschlagene Aufträge; andere Status bleiben unberührt.
 func (r Repository) DruckauftragErneutVersuchen(ctx context.Context, id int) error {
-	return db.Error(r.q.DruckauftragErneutVersuchen(ctx, int32(id)))
+	return db.Error(r.q.DruckauftragErneutVersuchen(ctx, id))
 }
 
 // DruckauftragVerwerfen markiert einen fehlgeschlagenen Auftrag als verworfen
 // (fehlgeschlagen -> verworfen). Der Eintrag bleibt in der Datenbank erhalten;
 // der Status-Guard wirkt nur auf fehlgeschlagene Aufträge.
 func (r Repository) DruckauftragVerwerfen(ctx context.Context, id int) error {
-	return db.Error(r.q.DruckauftragVerwerfen(ctx, int32(id)))
+	return db.Error(r.q.DruckauftragVerwerfen(ctx, id))
 }

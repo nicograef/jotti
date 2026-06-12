@@ -17,7 +17,7 @@ SET status = 'offen', versuche = 0, letzter_fehler = NULL
 WHERE id = $1 AND status = 'fehlgeschlagen'
 `
 
-func (q *Queries) DruckauftragErneutVersuchen(ctx context.Context, id int32) error {
+func (q *Queries) DruckauftragErneutVersuchen(ctx context.Context, id int) error {
 	_, err := q.db.ExecContext(ctx, druckauftragErneutVersuchen, id)
 	return err
 }
@@ -28,7 +28,7 @@ SET status = 'verworfen'
 WHERE id = $1 AND status = 'fehlgeschlagen'
 `
 
-func (q *Queries) DruckauftragVerwerfen(ctx context.Context, id int32) error {
+func (q *Queries) DruckauftragVerwerfen(ctx context.Context, id int) error {
 	_, err := q.db.ExecContext(ctx, druckauftragVerwerfen, id)
 	return err
 }
@@ -41,7 +41,7 @@ ORDER BY id ASC
 `
 
 type GetFehlgeschlageneDruckauftraegeRow struct {
-	ID            int32
+	ID            int
 	ZielIp        string
 	BonArt        string
 	Referenz      string
@@ -90,7 +90,7 @@ LIMIT 200
 `
 
 type GetOffeneDruckauftraegeRow struct {
-	ID      int32
+	ID      int
 	ZielIp  string
 	Payload string
 }
@@ -129,7 +129,7 @@ WHERE id = $3 AND status = 'offen'
 type IncrementDruckauftragFehlversuchParams struct {
 	LetzterFehler sql.NullString
 	MaxVersuche   int
-	ID            int32
+	ID            int
 }
 
 func (q *Queries) IncrementDruckauftragFehlversuch(ctx context.Context, arg IncrementDruckauftragFehlversuchParams) error {
@@ -165,7 +165,7 @@ SET status = 'gedruckt', gedruckt_am = NOW()
 WHERE id = $1 AND status = 'offen'
 `
 
-func (q *Queries) MarkDruckauftragGedruckt(ctx context.Context, id int32) error {
+func (q *Queries) MarkDruckauftragGedruckt(ctx context.Context, id int) error {
 	_, err := q.db.ExecContext(ctx, markDruckauftragGedruckt, id)
 	return err
 }

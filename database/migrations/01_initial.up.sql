@@ -12,12 +12,11 @@ CREATE TABLE users (
     password_hash TEXT NULL,
     onetime_password_hash TEXT NULL,
     role UserRole NOT NULL,
-    status EntityStatus NOT NULL ,
+    status EntityStatus NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_status ON users(status);
 
 COMMENT ON TABLE users IS 'System users who perform actions in jotti';
@@ -30,7 +29,7 @@ COMMENT ON COLUMN users.status IS 'Account status: active, inactive, or deleted'
 COMMENT ON COLUMN users.created_at IS 'Creation timestamp (UTC)';
 COMMENT ON COLUMN users.updated_at IS 'Last modification timestamp (UTC)';
 
--- Create first admin user (without onetime password)
+-- Create first admin user: onetime password set, regular password NULL until first login
 INSERT INTO users (username, name, role, onetime_password_hash, status, created_at, updated_at) VALUES (
   'admin', 'Administrator', 'admin', '$argon2id$v=19$m=64,t=2,p=2$ekV4Uzg2cUhVTTBUaTJJVw$4Sfsc6eRVIWXSzgNoWaybDBws3c830yC6IMcdUDG1ns', 'active', now(), now()
 );
@@ -110,7 +109,7 @@ CREATE TABLE kassensitzungen (
     -- Deliberately TEXT+CHECK: lifecycle is offen/abgeschlossen and differs from EntityStatus (active/inactive/deleted).
     status TEXT NOT NULL CHECK (status IN ('offen', 'abgeschlossen')),
     created_at TIMESTAMPTZ NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL   
+    updated_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE UNIQUE INDEX idx_kassensitzungen_eine_offen
@@ -144,7 +143,7 @@ CREATE TABLE kassenjournal (
 CREATE INDEX idx_kassenjournal_user_id ON kassenjournal(user_id);
 CREATE INDEX idx_kassenjournal_subject_type ON kassenjournal(subject, type);
 CREATE INDEX idx_kassenjournal_type_timestamp ON kassenjournal(type, timestamp);
-CREATE INDEX idx_kassenjournal_ks_nr ON kassenjournal(kassensitzung_nr);
+CREATE INDEX idx_kassenjournal_kassensitzung_nr ON kassenjournal(kassensitzung_nr);
 
 -- Restrict public role to SELECT + INSERT only (defense-in-depth for non-owner roles)
 REVOKE ALL ON TABLE kassenjournal FROM PUBLIC;
@@ -153,7 +152,7 @@ GRANT SELECT, INSERT ON TABLE kassenjournal TO PUBLIC;
 -- Triggers to enforce append-only immutability for ALL roles, including the table owner.
 -- REVOKE/GRANT alone is not sufficient because PostgreSQL table owners bypass privilege checks.
 -- Generic write-protection guard, shared with the insert-once kassenidentitaet table.
-CREATE OR REPLACE FUNCTION prevent_table_mutation() RETURNS TRIGGER AS $$
+CREATE FUNCTION prevent_table_mutation() RETURNS TRIGGER AS $$
 BEGIN
     RAISE EXCEPTION 'table % is write-protected: % not allowed', TG_TABLE_NAME, TG_OP;
 END;
@@ -188,19 +187,30 @@ CREATE TABLE tisch_sessions (
     subject TEXT PRIMARY KEY,
     tisch_id INT NOT NULL REFERENCES tische(id),
     kassensitzung_nr INT NOT NULL REFERENCES kassensitzungen(z_nr),
-    saldo_cents INTEGER NOT NULL,
+    saldo_cents INT NOT NULL,
     unbezahlte_positionen JSONB NOT NULL,
     ausstehende_positionen JSONB NOT NULL,
-    gesamt_zahlungen_cents INTEGER NOT NULL,
+    gesamt_zahlungen_cents INT NOT NULL,
     erste_bestellung_logtime TIMESTAMPTZ NULL,
-    last_event_id INTEGER NOT NULL REFERENCES kassenjournal(id),
-    last_event_version INTEGER NOT NULL,
+    last_event_id INT NOT NULL REFERENCES kassenjournal(id),
+    last_event_version INT NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX idx_tisch_sessions_ks_nr ON tisch_sessions(kassensitzung_nr);
+CREATE INDEX idx_tisch_sessions_kassensitzung_nr ON tisch_sessions(kassensitzung_nr);
 
 COMMENT ON TABLE tisch_sessions IS 'Synchronous CQRS projection of per-tisch-session state, session-scoped (PK: subject), updated within the event-write transaction';
+COMMENT ON COLUMN tisch_sessions.subject IS 'Aggregate key of the tisch session, e.g. "kassensitzung-1/tisch-42" (see kassenjournal.subject)';
+COMMENT ON COLUMN tisch_sessions.tisch_id IS 'Tisch this session belongs to';
+COMMENT ON COLUMN tisch_sessions.kassensitzung_nr IS 'Kassensitzung number (z_nr) this session belongs to';
+COMMENT ON COLUMN tisch_sessions.saldo_cents IS 'Open balance in cents: positive = unpaid Bestellungen, negative = refund owed to the guest (settled by Auszahlung)';
+COMMENT ON COLUMN tisch_sessions.unbezahlte_positionen IS 'Positions ordered but not yet paid (JSON array), reduced by Zahlung and Stornierung';
+COMMENT ON COLUMN tisch_sessions.ausstehende_positionen IS 'Positions ordered but not yet handed out (JSON array), reduced by Ausgabe and Stornierung';
+COMMENT ON COLUMN tisch_sessions.gesamt_zahlungen_cents IS 'Sum of all Zahlungen collected in this session, in cents';
+COMMENT ON COLUMN tisch_sessions.erste_bestellung_logtime IS 'TSE logTime of the first Bestellung (fallback: event time); NULL until the first Bestellung';
+COMMENT ON COLUMN tisch_sessions.last_event_id IS 'Last kassenjournal event applied to this projection';
+COMMENT ON COLUMN tisch_sessions.last_event_version IS 'Version of the last applied event (optimistic concurrency)';
+COMMENT ON COLUMN tisch_sessions.updated_at IS 'Last modification timestamp (UTC)';
 
 -- ============================================================
 -- Table: tisch_favoriten (per-user favorite tables)
@@ -211,8 +221,6 @@ CREATE TABLE tisch_favoriten (
     created_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (user_id, tisch_id)
 );
-
-CREATE INDEX idx_tisch_favoriten_user_id ON tisch_favoriten(user_id);
 
 COMMENT ON TABLE tisch_favoriten IS 'Per-user favourite tables; each service user can mark tables they are responsible for.';
 
@@ -225,7 +233,7 @@ CREATE TYPE DruckstationKategorie AS ENUM ('essen', 'getraenk', 'sonstiges', 'ka
 
 CREATE TABLE druckstationen (
     kategorie   DruckstationKategorie PRIMARY KEY,
-    drucker_ip  VARCHAR(50) NOT NULL,
+    drucker_ip  TEXT NOT NULL,
     bonmodus    TEXT NULL
                 CHECK (
                     (kategorie IN ('essen', 'getraenk', 'sonstiges', 'abholbon') AND bonmodus IN ('pro_position', 'pro_bestellung'))
@@ -249,8 +257,8 @@ INSERT INTO druckstationen (kategorie, drucker_ip, bonmodus, updated_at) VALUES
 -- Table: druckauftraege (technical outbox queue for print jobs)
 -- ============================================================
 CREATE TABLE druckauftraege (
-    id             SERIAL PRIMARY KEY,
-    ziel_ip        VARCHAR(50) NOT NULL,
+    id             INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    ziel_ip        TEXT NOT NULL,
     payload        TEXT NOT NULL,
     status         TEXT NOT NULL CHECK (status IN ('offen', 'gedruckt', 'fehlgeschlagen', 'verworfen')),
     bon_art        TEXT NOT NULL CHECK (bon_art IN ('arbeitsbon', 'kassenbeleg')),
@@ -277,22 +285,22 @@ COMMENT ON COLUMN druckauftraege.referenz IS 'Fachliche Referenz (z. B. Event- o
 -- ============================================================
 
 -- Returns the Zahlung amount in cents for a matching event row, NULL otherwise.
-CREATE OR REPLACE FUNCTION kj_extract_zahlung_cents(type TEXT, data JSONB) RETURNS int AS $$
+CREATE FUNCTION kj_extract_zahlung_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE WHEN type = 'zahlung-kassiert:v1' THEN (data->>'gesamtZahlungCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the opening amount in cents for a matching event row, NULL otherwise.
-CREATE OR REPLACE FUNCTION kj_extract_eroeffnung_cents(type TEXT, data JSONB) RETURNS int AS $$
+CREATE FUNCTION kj_extract_eroeffnung_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE WHEN type = 'kassensitzung-eroeffnet:v1' THEN (data->>'betragCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the Auszahlung amount in cents for a matching event row, NULL otherwise.
-CREATE OR REPLACE FUNCTION kj_extract_auszahlung_cents(type TEXT, data JSONB) RETURNS int AS $$
+CREATE FUNCTION kj_extract_auszahlung_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE WHEN type = 'auszahlung-geleistet:v1' THEN (data->>'betragCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the signed Geldtransit amount in cents for a matching event row, NULL otherwise.
-CREATE OR REPLACE FUNCTION kj_extract_geldtransit_cents(type TEXT, data JSONB) RETURNS int AS $$
+CREATE FUNCTION kj_extract_geldtransit_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE
         WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'einlage' THEN (data->>'betragCents')::int
         WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'entnahme' THEN -(data->>'betragCents')::int
@@ -300,32 +308,32 @@ CREATE OR REPLACE FUNCTION kj_extract_geldtransit_cents(type TEXT, data JSONB) R
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the Soll/Ist differenz amount in cents for a matching event row, NULL otherwise.
-CREATE OR REPLACE FUNCTION kj_extract_differenz_cents(type TEXT, data JSONB) RETURNS int AS $$
+CREATE FUNCTION kj_extract_differenz_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE WHEN type = 'differenz-soll-ist-gebucht:v1' THEN (data->>'betragCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the Bestellung amount in cents for a matching event row, NULL otherwise.
-CREATE OR REPLACE FUNCTION kj_extract_bestellung_cents(type TEXT, data JSONB) RETURNS int AS $$
+CREATE FUNCTION kj_extract_bestellung_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE WHEN type = 'bestellung-aufgenommen:v1' THEN (data->>'gesamtPreisCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the Stornierung amount in cents for a matching event row, NULL otherwise.
-CREATE OR REPLACE FUNCTION kj_extract_stornierung_cents(type TEXT, data JSONB) RETURNS int AS $$
+CREATE FUNCTION kj_extract_stornierung_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE WHEN type = 'stornierung-erteilt:v1' THEN (data->>'gesamtStornierungCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the Direktverkauf amount in cents for a matching event row, NULL otherwise.
-CREATE OR REPLACE FUNCTION kj_extract_direktverkauf_cents(type TEXT, data JSONB) RETURNS int AS $$
+CREATE FUNCTION kj_extract_direktverkauf_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE WHEN type = 'direktverkauf-getaetigt:v1' THEN (data->>'gesamtbetragCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the Direktverkauf-Storno amount in cents for a matching event row, NULL otherwise.
-CREATE OR REPLACE FUNCTION kj_extract_direktverkauf_storno_cents(type TEXT, data JSONB) RETURNS int AS $$
+CREATE FUNCTION kj_extract_direktverkauf_storno_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE WHEN type = 'direktverkauf-storniert:v1' THEN (data->>'gesamtStornierungCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the gross cents per steuersatz from position arrays for Umsatz aggregation.
-CREATE OR REPLACE FUNCTION kj_extract_umsatz_pro_steuersatz(type TEXT, data JSONB)
+CREATE FUNCTION kj_extract_umsatz_pro_steuersatz(type TEXT, data JSONB)
 RETURNS TABLE(steuersatz Steuersatz, brutto_cents int) AS $$
     SELECT
         (position->>'steuersatz')::Steuersatz AS steuersatz,
@@ -425,7 +433,7 @@ VALUES (1, '', '', '', '', now());
 -- Table: tse_nachsignier_auftraege (technical outbox for failed TSE signing)
 -- ============================================================
 CREATE TABLE tse_nachsignier_auftraege (
-    id                   SERIAL PRIMARY KEY,
+    id                   INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
     tx_id                TEXT NOT NULL UNIQUE,
     process_type         TEXT NOT NULL,
     process_data         TEXT NOT NULL,
@@ -452,7 +460,7 @@ COMMENT ON COLUMN tse_nachsignier_auftraege.naechster_versuch_am IS 'Fruehester 
 -- Table: tse_signaturen (side table for backfilled TSE signatures)
 -- ============================================================
 CREATE TABLE tse_signaturen (
-    id                  SERIAL PRIMARY KEY,
+    id                  INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
     tx_id               TEXT NOT NULL UNIQUE,
     transaktion_nummer  INT NOT NULL,
     signatur_zaehler    INT NOT NULL,
@@ -465,7 +473,15 @@ CREATE TABLE tse_signaturen (
 );
 
 COMMENT ON TABLE tse_signaturen IS 'Signatur-Seitentabelle fuer nachsignierte Vorgaenge (Happy Path bleibt im Event).';
+COMMENT ON COLUMN tse_signaturen.id IS 'Technischer Primaerschluessel.';
 COMMENT ON COLUMN tse_signaturen.tx_id IS 'Deterministische TSE-Transaktions-ID (1:1 zu einem fiskalischen Vorgang).';
+COMMENT ON COLUMN tse_signaturen.transaktion_nummer IS 'TSE-Transaktionsnummer aus der TSE-Antwort.';
+COMMENT ON COLUMN tse_signaturen.signatur_zaehler IS 'Signaturzaehler der TSE aus der TSE-Antwort.';
+COMMENT ON COLUMN tse_signaturen.tse_seriennummer IS 'Seriennummer der TSE, die den Vorgang signiert hat.';
+COMMENT ON COLUMN tse_signaturen.log_time_start IS 'TSE-logTime des Vorgangsbeginns (UTC).';
+COMMENT ON COLUMN tse_signaturen.log_time_end IS 'TSE-logTime des Vorgangsendes (UTC).';
+COMMENT ON COLUMN tse_signaturen.signatur IS 'TSE-Signatur aus der TSE-Antwort.';
 COMMENT ON COLUMN tse_signaturen.qr_code_data IS 'DSFinV-K QR-Code-Daten aus der TSE-Antwort.';
+COMMENT ON COLUMN tse_signaturen.erstellt_am IS 'Zeitpunkt der Nachsignierung (UTC).';
 
 COMMIT;

@@ -154,10 +154,16 @@ diff-free, demonstrating none of the changes alter what the application sees.
 
 ### Acceptance criteria
 
-- [ ] `grep -nE "SERIAL|VARCHAR\(|INTEGER|OR REPLACE" database/migrations/01_initial.up.sql`
+- [x] `grep -nE "SERIAL|VARCHAR\(|INTEGER|OR REPLACE" database/migrations/01_initial.up.sql`
       returns nothing; no trailing whitespace or space-before-comma remains.
-- [ ] Fresh `migrate up` succeeds; `users` has exactly one (unique) index on
+- [x] Fresh `migrate up` succeeds; `users` has exactly one (unique) index on
       `username`; `tisch_favoriten` has only its PK index.
-- [ ] Every column of `tisch_sessions` and `tse_signaturen` has a comment.
-- [ ] `make sqlc` produces no diff in `backend/sqlc/dbgen/`.
-- [ ] `make check` and `make verify` pass.
+- [x] Every column of `tisch_sessions` and `tse_signaturen` has a comment.
+- [x] `make sqlc` regenerated cleanly. **Deviation from plan:** the output is
+      not diff-free — (a) new column comments propagate into Go doc comments in
+      `models.go`, (b) the SERIAL→IDENTITY conversion makes the three outbox `id`
+      columns match the `pg_catalog.int4` → `int` override in `sqlc.yaml`
+      (SERIAL columns were catalogued as `serial4` and fell back to `int32`).
+      The now-redundant `int32(...)` bridge casts in `druckauftrag_repo` and
+      `tse_repo` were removed; all IDs are now consistently `int`.
+- [x] `make check` and `make verify` pass.
