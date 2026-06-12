@@ -12,10 +12,11 @@ import (
 )
 
 // Run spielt das Demo-Szenario „3-Tage-Sommerfest TSV Musterstadt e.V." in die Datenbank ein:
-// Stammdaten mit Favoriten, drei Kassensitzungen (Freitag/Samstag abgeschlossen, Sonntag offen)
-// und die zugehörigen Events — die fiskalischen davon mit Fake-TSE-Daten samt Ausfallfenster
-// und Nachsignier-Aufträgen. Stammdaten, Kassensitzungen, Events und TSE-Seitentabellen werden
-// in einer Transaktion geschrieben; anschließend wird die Tisch-Session-Projektion neu aufgebaut.
+// Stammdaten mit Favoriten und Druckstations-Konfiguration, drei Kassensitzungen
+// (Freitag/Samstag abgeschlossen, Sonntag offen) und die zugehörigen Events — die fiskalischen
+// davon mit Fake-TSE-Daten samt Ausfallfenster und Nachsignier-Aufträgen — plus die
+// Druckauftrags-Historie zu Bestellungen, Direktverkäufen und Kassenbelegen. Alles wird in
+// einer Transaktion geschrieben; anschließend wird die Tisch-Session-Projektion neu aufgebaut.
 // Ein Guard verhindert das Überschreiben einer Datenbank, die bereits Kassenjournal-Events enthält.
 func Run(ctx context.Context, database *sql.DB) error {
 	jetzt := time.Now().UTC()
@@ -31,7 +32,12 @@ func Run(ctx context.Context, database *sql.DB) error {
 		return fmt.Errorf("fake-tse signieren: %w", err)
 	}
 
-	if err := schreibeSeed(ctx, database, s, daten, tseDaten, jetzt); err != nil {
+	druckauftraege, err := baueDruckauftraege(s, daten.Events, jetzt)
+	if err != nil {
+		return fmt.Errorf("druckaufträge aufbauen: %w", err)
+	}
+
+	if err := schreibeSeed(ctx, database, s, daten, tseDaten, druckauftraege, jetzt); err != nil {
 		return err
 	}
 
@@ -43,7 +49,7 @@ func Run(ctx context.Context, database *sql.DB) error {
 	return nil
 }
 
-func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDaten, tseDaten tseSeitentabellen, jetzt time.Time) error {
+func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDaten, tseDaten tseSeitentabellen, druckauftraege []druckauftragZeile, jetzt time.Time) error {
 	q := dbgen.New(database)
 
 	// Guard: niemals eine Datenbank überschreiben, die bereits Kassenjournal-Events enthält.
@@ -74,6 +80,9 @@ func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedD
 		return err
 	}
 	if err := schreibeTSESeitentabellen(ctx, qtx, tseDaten); err != nil {
+		return err
+	}
+	if err := schreibeDruckauftraege(ctx, qtx, druckauftraege); err != nil {
 		return err
 	}
 	if err := korrigiereSequenzen(ctx, qtx); err != nil {
@@ -169,6 +178,17 @@ func schreibeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jet
 		return fmt.Errorf("betreiber einfügen: %w", err)
 	}
 
+	for _, st := range s.Druckstationen {
+		err := qtx.UpsertDruckstation(ctx, dbgen.UpsertDruckstationParams{
+			Kategorie: dbgen.Druckstationkategorie(st.Kategorie),
+			DruckerIp: st.DruckerIP,
+			Bonmodus:  sql.NullString{String: string(st.Bonmodus), Valid: st.Bonmodus != ""},
+		})
+		if err != nil {
+			return fmt.Errorf("druckstation %s konfigurieren: %w", st.Kategorie, err)
+		}
+	}
+
 	return nil
 }
 
@@ -190,10 +210,14 @@ func schreibeSitzungen(ctx context.Context, qtx *dbgen.Queries, sitzungen []kass
 	return nil
 }
 
+// schreibeEvents persistiert die Events mit den von der Engine vergebenen IDs — Bondruck-
+// Referenzen und Belegnummern verweisen darauf, deshalb läuft der Insert nicht über die
+// Identity-Spalte (Sequenzkorrektur in korrigiereSequenzen).
 func schreibeEvents(ctx context.Context, qtx *dbgen.Queries, events []seedEvent) error {
 	for i := range events {
 		ev := &events[i]
-		_, err := qtx.WriteEvent(ctx, dbgen.WriteEventParams{
+		err := qtx.SeedInsertEvent(ctx, dbgen.SeedInsertEventParams{
+			ID:              ev.event.ID,
 			UserID:          ev.event.UserID,
 			UserName:        ev.event.UserName,
 			Type:            ev.event.Type,
@@ -205,6 +229,28 @@ func schreibeEvents(ctx context.Context, qtx *dbgen.Queries, events []seedEvent)
 		})
 		if err != nil {
 			return fmt.Errorf("event %s v%d schreiben: %w", ev.event.Subject, ev.event.Version, err)
+		}
+	}
+
+	return nil
+}
+
+func schreibeDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []druckauftragZeile) error {
+	for i := range auftraege {
+		a := &auftraege[i]
+		err := qtx.SeedInsertDruckauftrag(ctx, dbgen.SeedInsertDruckauftragParams{
+			ZielIp:        a.ZielIP,
+			Payload:       a.Payload,
+			Status:        a.Status,
+			BonArt:        a.BonArt,
+			Referenz:      a.Referenz,
+			Versuche:      a.Versuche,
+			LetzterFehler: nullString(a.LetzterFehler),
+			ErstelltAm:    a.ErstelltAm,
+			GedrucktAm:    nullTime(a.GedrucktAm),
+		})
+		if err != nil {
+			return fmt.Errorf("druckauftrag %s einfügen: %w", a.Referenz, err)
 		}
 	}
 
@@ -268,6 +314,9 @@ func korrigiereSequenzen(ctx context.Context, qtx *dbgen.Queries) error {
 	}
 	if err := qtx.SeedResetKassensitzungenSeq(ctx); err != nil {
 		return fmt.Errorf("kassensitzungen-sequenz nachziehen: %w", err)
+	}
+	if err := qtx.SeedResetKassenjournalSeq(ctx); err != nil {
+		return fmt.Errorf("kassenjournal-sequenz nachziehen: %w", err)
 	}
 
 	return nil

@@ -8,6 +8,7 @@ package dbgen
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
 )
 
@@ -24,6 +25,70 @@ func (q *Queries) SeedCountKassenjournal(ctx context.Context) (int, error) {
 	var count int
 	err := row.Scan(&count)
 	return count, err
+}
+
+const seedInsertDruckauftrag = `-- name: SeedInsertDruckauftrag :exec
+INSERT INTO druckauftraege (ziel_ip, payload, status, bon_art, referenz, versuche, letzter_fehler, erstellt_am, gedruckt_am)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+`
+
+type SeedInsertDruckauftragParams struct {
+	ZielIp        string
+	Payload       string
+	Status        string
+	BonArt        string
+	Referenz      string
+	Versuche      int
+	LetzterFehler sql.NullString
+	ErstelltAm    time.Time
+	GedrucktAm    sql.NullTime
+}
+
+func (q *Queries) SeedInsertDruckauftrag(ctx context.Context, arg SeedInsertDruckauftragParams) error {
+	_, err := q.db.ExecContext(ctx, seedInsertDruckauftrag,
+		arg.ZielIp,
+		arg.Payload,
+		arg.Status,
+		arg.BonArt,
+		arg.Referenz,
+		arg.Versuche,
+		arg.LetzterFehler,
+		arg.ErstelltAm,
+		arg.GedrucktAm,
+	)
+	return err
+}
+
+const seedInsertEvent = `-- name: SeedInsertEvent :exec
+INSERT INTO kassenjournal (id, user_id, user_name, type, subject, version, data, timestamp, kassensitzung_nr)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+`
+
+type SeedInsertEventParams struct {
+	ID              int
+	UserID          int
+	UserName        string
+	Type            string
+	Subject         string
+	Version         int
+	Data            json.RawMessage
+	Timestamp       time.Time
+	KassensitzungNr int
+}
+
+func (q *Queries) SeedInsertEvent(ctx context.Context, arg SeedInsertEventParams) error {
+	_, err := q.db.ExecContext(ctx, seedInsertEvent,
+		arg.ID,
+		arg.UserID,
+		arg.UserName,
+		arg.Type,
+		arg.Subject,
+		arg.Version,
+		arg.Data,
+		arg.Timestamp,
+		arg.KassensitzungNr,
+	)
+	return err
 }
 
 const seedInsertKassensitzung = `-- name: SeedInsertKassensitzung :exec
@@ -223,6 +288,15 @@ func (q *Queries) SeedInsertVariante(ctx context.Context, arg SeedInsertVariante
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
+	return err
+}
+
+const seedResetKassenjournalSeq = `-- name: SeedResetKassenjournalSeq :exec
+SELECT setval(pg_get_serial_sequence('kassenjournal', 'id'), COALESCE((SELECT MAX(id) FROM kassenjournal), 1))
+`
+
+func (q *Queries) SeedResetKassenjournalSeq(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, seedResetKassenjournalSeq)
 	return err
 }
 

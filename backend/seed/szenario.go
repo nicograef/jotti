@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/steuer"
@@ -52,6 +53,14 @@ type produkt struct {
 type favorit struct {
 	UserID  int
 	TischID int
+}
+
+// druckstationKonfig ist die Drucker-Konfiguration einer Station im Drehbuch.
+// Der Bonmodus bleibt nur für die Kassenbeleg-Station leer (DB-Constraint).
+type druckstationKonfig struct {
+	Kategorie druckstation.Kategorie
+	DruckerIP string
+	Bonmodus  druckstation.Bonmodus
 }
 
 // --- Drehbuch-Typen ---
@@ -171,6 +180,16 @@ type tseAusfall struct {
 	Grund     string // Fehlertext der Signierversuche während der Störung (leer, wenn nie versucht)
 }
 
+// druckerAusfall ist ein Drucker-Ausfallfenster relativ zum Sitzungsstart: Druckaufträge an
+// die Station in diesem Fenster scheitern nach den maximalen Zustellversuchen mit dem
+// Fehlertext und bleiben fehlgeschlagen (bzw. genau einer wird verworfen).
+type druckerAusfall struct {
+	Kategorie  druckstation.Kategorie
+	NachStart  time.Duration
+	Dauer      time.Duration
+	Fehlertext string
+}
+
 // kassensitzungDrehbuch beschreibt einen Betriebstag: Zeitfenster relativ zu „jetzt",
 // Eröffnung und die chronologische Aktionsfolge. Für abgeschlossene Sitzungen hängt die
 // Engine den Tagesabschluss (mit berechneten Summen) automatisch ans Fensterende.
@@ -184,17 +203,19 @@ type kassensitzungDrehbuch struct {
 	Abgeschlossen       bool
 	Tagesprofil         []profilPunkt
 	TSEAusfaelle        []tseAusfall
+	DruckerAusfaelle    []druckerAusfall
 	Aktionen            []aktion
 }
 
 // szenario bündelt die Stammdaten und das Drehbuch.
 type szenario struct {
-	Benutzer  []benutzer
-	Tische    []tisch
-	Produkte  []produkt
-	Favoriten []favorit
-	Betreiber settings.Betreiber
-	Sitzungen []kassensitzungDrehbuch
+	Benutzer       []benutzer
+	Tische         []tisch
+	Produkte       []produkt
+	Favoriten      []favorit
+	Betreiber      settings.Betreiber
+	Druckstationen []druckstationKonfig
+	Sitzungen      []kassensitzungDrehbuch
 }
 
 func strPtr(s string) *string { return &s }
@@ -434,6 +455,13 @@ func demoSzenario() szenario {
 			Steuernummer: strPtr("204/123/45678"),
 			UstID:        nil,
 		},
+		Druckstationen: []druckstationKonfig{
+			{Kategorie: druckstation.KategorieEssen, DruckerIP: "192.168.8.51", Bonmodus: druckstation.BonmodusProPosition},
+			{Kategorie: druckstation.KategorieGetraenk, DruckerIP: "192.168.8.52", Bonmodus: druckstation.BonmodusProBestellung},
+			{Kategorie: druckstation.KategorieSonstiges, DruckerIP: "192.168.8.53", Bonmodus: druckstation.BonmodusProPosition},
+			{Kategorie: druckstation.KategorieKassenbeleg, DruckerIP: "192.168.8.54"},
+			{Kategorie: druckstation.KategorieAbholbon, DruckerIP: "192.168.8.55", Bonmodus: druckstation.BonmodusProBestellung},
+		},
 		Sitzungen: []kassensitzungDrehbuch{
 			{
 				ZNr:                 1,
@@ -445,7 +473,15 @@ func demoSzenario() szenario {
 				Abgeschlossen:       true,
 				// Eröffnungsabend: zum Abend hin voller.
 				Tagesprofil: []profilPunkt{{EventAnteil: 0.3, ZeitAnteil: 0.45}, {EventAnteil: 0.8, ZeitAnteil: 0.8}},
-				Aktionen:    freitagsAktionen(),
+				// Papierrolle des Essen-Druckers leer; die fehlgeschlagenen Bons bleiben
+				// in der Fehlerliste, einen davon hat der Admin verworfen.
+				DruckerAusfaelle: []druckerAusfall{{
+					Kategorie:  druckstation.KategorieEssen,
+					NachStart:  3 * time.Hour,
+					Dauer:      25 * time.Minute,
+					Fehlertext: "Drucker meldet: Papier leer",
+				}},
+				Aktionen: freitagsAktionen(),
 			},
 			{
 				ZNr:                 2,
@@ -469,6 +505,13 @@ func demoSzenario() szenario {
 					Dauer:     time.Hour,
 					Grund:     "Cloud-TSE nicht erreichbar: Zeitüberschreitung nach 10 Sekunden",
 				}},
+				// Getränke-Drucker in der Mittagsstoßzeit vom LAN getrennt.
+				DruckerAusfaelle: []druckerAusfall{{
+					Kategorie:  druckstation.KategorieGetraenk,
+					NachStart:  2 * time.Hour,
+					Dauer:      15 * time.Minute,
+					Fehlertext: "Drucker nicht erreichbar: Zeitüberschreitung beim Verbindungsaufbau",
+				}},
 				Aktionen: samstagsAktionen(),
 			},
 			{
@@ -483,7 +526,15 @@ func demoSzenario() szenario {
 				// ohne Fehlertext, weil der Worker ohne TSE-Konfiguration nie einen
 				// Signierversuch startet.
 				TSEAusfaelle: []tseAusfall{{NachStart: 4 * time.Hour, Dauer: 10 * time.Minute}},
-				Aktionen:     sonntagsAktionen(),
+				// Abdeckung des Kassenbeleg-Druckers stand offen — fehlgeschlagene
+				// Kassenbelege für die Fehlerliste des laufenden Tags.
+				DruckerAusfaelle: []druckerAusfall{{
+					Kategorie:  druckstation.KategorieKassenbeleg,
+					NachStart:  2 * time.Hour,
+					Dauer:      time.Hour,
+					Fehlertext: "Drucker meldet: Abdeckung offen",
+				}},
+				Aktionen: sonntagsAktionen(),
 			},
 		},
 	}

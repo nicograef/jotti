@@ -110,6 +110,12 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 		})
 	}
 
+	// Kassenjournal-IDs deterministisch ab 1 vergeben; der Writer persistiert sie explizit.
+	// Bondruck-Referenzen und Belegnummern verweisen auf diese IDs.
+	for i := range daten.Events {
+		daten.Events[i].event.ID = i + 1
+	}
+
 	return daten, nil
 }
 

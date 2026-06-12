@@ -17,6 +17,9 @@ func cleanSeedDB(t *testing.T, db *sql.DB) {
 		"DELETE FROM tse_signaturen",
 		"DELETE FROM tse_nachsignier_auftraege",
 		"DELETE FROM druckauftraege",
+		"UPDATE druckstationen SET drucker_ip = '', bonmodus = 'pro_position' WHERE kategorie IN ('essen', 'getraenk', 'sonstiges')",
+		"UPDATE druckstationen SET drucker_ip = '', bonmodus = 'pro_bestellung' WHERE kategorie = 'abholbon'",
+		"UPDATE druckstationen SET drucker_ip = '', bonmodus = NULL WHERE kategorie = 'kassenbeleg'",
 		"DELETE FROM tisch_favoriten",
 		"DELETE FROM tisch_sessions",
 		"ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete",
@@ -157,6 +160,49 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 	}
 	if signaturOhneErledigt != 0 {
 		t.Errorf("%d tse_signaturen-Zeilen ohne erledigten Nachsignier-Auftrag", signaturOhneErledigt)
+	}
+
+	// Druckstationen: alle fünf Stationen sind mit einer Drucker-IP konfiguriert.
+	var stationen, ohneDrucker int
+	if err := db.QueryRow("SELECT COUNT(*), COUNT(*) FILTER (WHERE drucker_ip = '') FROM druckstationen").Scan(&stationen, &ohneDrucker); err != nil {
+		t.Fatalf("Druckstationen abfragen: %v", err)
+	}
+	if stationen != 5 || ohneDrucker != 0 {
+		t.Errorf("%d Druckstationen, davon %d ohne Drucker-IP — erwartet 5 konfigurierte", stationen, ohneDrucker)
+	}
+
+	// Druckaufträge existieren in allen vier Status; genau einer ist verworfen.
+	for status, mindestens := range map[string]int{"offen": 1, "gedruckt": 1, "fehlgeschlagen": 2, "verworfen": 1} {
+		var anzahl int
+		if err := db.QueryRow("SELECT COUNT(*) FROM druckauftraege WHERE status = $1", status).Scan(&anzahl); err != nil {
+			t.Fatalf("Druckaufträge (%s) zählen: %v", status, err)
+		}
+		if anzahl < mindestens {
+			t.Errorf("Druckaufträge mit Status %s: %d, erwartet mindestens %d", status, anzahl, mindestens)
+		}
+		if status == "verworfen" && anzahl != 1 {
+			t.Errorf("%d verworfene Druckaufträge, erwartet genau 1", anzahl)
+		}
+	}
+
+	// Beide Bon-Arten sind vorhanden; fehlgeschlagene Aufträge tragen Fehlertext und
+	// ausgeschöpfte Versuche.
+	for _, bonArt := range []string{"arbeitsbon", "kassenbeleg"} {
+		var anzahl int
+		if err := db.QueryRow("SELECT COUNT(*) FROM druckauftraege WHERE bon_art = $1", bonArt).Scan(&anzahl); err != nil {
+			t.Fatalf("Druckaufträge (%s) zählen: %v", bonArt, err)
+		}
+		if anzahl == 0 {
+			t.Errorf("keine Druckaufträge mit Bon-Art %s", bonArt)
+		}
+	}
+	var fehlerhaftOhneGrund int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM druckauftraege
+		WHERE status IN ('fehlgeschlagen', 'verworfen') AND (letzter_fehler IS NULL OR versuche < 3)`).Scan(&fehlerhaftOhneGrund); err != nil {
+		t.Fatalf("fehlgeschlagene Druckaufträge prüfen: %v", err)
+	}
+	if fehlerhaftOhneGrund != 0 {
+		t.Errorf("%d fehlgeschlagene/verworfene Druckaufträge ohne Fehlertext oder mit zu wenigen Versuchen", fehlerhaftOhneGrund)
 	}
 
 	// TSE-Konfiguration bleibt leer — der Nachsignier-Worker bleibt inaktiv.

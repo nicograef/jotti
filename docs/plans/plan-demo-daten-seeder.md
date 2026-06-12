@@ -275,15 +275,15 @@ Phase 3).
 
 ### Acceptance criteria
 
-- [ ] Alle fünf Druckstationen haben plausible LAN-IPs und gemischte Bonmodi
+- [x] Alle fünf Druckstationen haben plausible LAN-IPs und gemischte Bonmodi
       (`pro_position`/`pro_bestellung`, Kassenbeleg NULL).
-- [ ] Druckaufträge existieren in allen vier Status mit beiden Bon-Arten; fehlgeschlagene
+- [x] Druckaufträge existieren in allen vier Status mit beiden Bon-Arten; fehlgeschlagene
       tragen verständliche Fehlertexte (z. B. „Drucker nicht erreichbar").
-- [ ] Payloads sind echte ESC/POS-Bytes aus dem bestehenden Formatter und passen
+- [x] Payloads sind echte ESC/POS-Bytes aus dem bestehenden Formatter und passen
       inhaltlich zu den Szenario-Events.
-- [ ] Die Bondruck-Fehlerliste der Demo zeigt die fehlgeschlagenen Aufträge; „Erneut
+- [x] Die Bondruck-Fehlerliste der Demo zeigt die fehlgeschlagenen Aufträge; „Erneut
       versuchen" und „Verwerfen" sind bedienbar.
-- [ ] Integrationstest erweitert: `druckstationen` konfiguriert, `druckauftraege` in allen
+- [x] Integrationstest erweitert: `druckstationen` konfiguriert, `druckauftraege` in allen
       Status befüllt.
 
 ---

@@ -25,6 +25,14 @@ VALUES ($1, $2, $3, $4, $5, $6, $7);
 INSERT INTO kassensitzungen (z_nr, datum, bezeichnung, status, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6);
 
+-- name: SeedInsertEvent :exec
+INSERT INTO kassenjournal (id, user_id, user_name, type, subject, version, data, timestamp, kassensitzung_nr)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+
+-- name: SeedInsertDruckauftrag :exec
+INSERT INTO druckauftraege (ziel_ip, payload, status, bon_art, referenz, versuche, letzter_fehler, erstellt_am, gedruckt_am)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+
 -- name: SeedResetUsersSeq :exec
 SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE((SELECT MAX(id) FROM users), 1));
 
@@ -39,6 +47,9 @@ SELECT setval(pg_get_serial_sequence('produkt_varianten', 'id'), COALESCE((SELEC
 
 -- name: SeedResetKassensitzungenSeq :exec
 SELECT setval(pg_get_serial_sequence('kassensitzungen', 'z_nr'), COALESCE((SELECT MAX(z_nr) FROM kassensitzungen), 1));
+
+-- name: SeedResetKassenjournalSeq :exec
+SELECT setval(pg_get_serial_sequence('kassenjournal', 'id'), COALESCE((SELECT MAX(id) FROM kassenjournal), 1));
 
 -- name: SeedInsertTSENachsignierAuftrag :exec
 INSERT INTO tse_nachsignier_auftraege (tx_id, process_type, process_data, status, versuche, letzter_fehler, naechster_versuch_am, erstellt_am, erledigt_am)
