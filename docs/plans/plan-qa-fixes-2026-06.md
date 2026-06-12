@@ -201,10 +201,10 @@ sortieren innerhalb des `json_agg` nach Varianten-ID aufsteigend
 
 ### Acceptance criteria
 
-- [ ] Repo-Integrationstest: Nach `UpsertDruckstation` auf eine mittlere Kategorie bleibt
-      die Reihenfolge (alphabetisch nach Kategorie) stabil
-- [ ] `make sqlc` ausgeführt, generierter Code committed
-- [ ] `make verify` grün
+- [x] Repo-Integrationstest: Nach `UpsertDruckstation` auf eine mittlere Kategorie bleibt
+      die Reihenfolge (nach Kategorie, Enum-Deklaration) stabil
+- [x] `make sqlc` ausgeführt, generierter Code committed
+- [x] `make verify` grün
 
 ---
 

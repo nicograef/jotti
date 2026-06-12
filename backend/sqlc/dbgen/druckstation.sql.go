@@ -13,6 +13,7 @@ import (
 const getDruckstationen = `-- name: GetDruckstationen :many
 SELECT kategorie, drucker_ip, bonmodus
 FROM druckstationen
+ORDER BY kategorie
 `
 
 type GetDruckstationenRow struct {
@@ -48,6 +49,7 @@ const getKonfigurierteDruckstationen = `-- name: GetKonfigurierteDruckstationen 
 SELECT kategorie, drucker_ip, bonmodus
 FROM druckstationen
 WHERE drucker_ip != ''
+ORDER BY kategorie
 `
 
 type GetKonfigurierteDruckstationenRow struct {

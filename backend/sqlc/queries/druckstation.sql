@@ -1,11 +1,13 @@
 -- name: GetDruckstationen :many
 SELECT kategorie, drucker_ip, bonmodus
-FROM druckstationen;
+FROM druckstationen
+ORDER BY kategorie;
 
 -- name: GetKonfigurierteDruckstationen :many
 SELECT kategorie, drucker_ip, bonmodus
 FROM druckstationen
-WHERE drucker_ip != '';
+WHERE drucker_ip != ''
+ORDER BY kategorie;
 
 -- name: UpsertDruckstation :exec
 INSERT INTO druckstationen (kategorie, drucker_ip, bonmodus, updated_at)

@@ -64,6 +64,45 @@ func TestGetKonfigurierteDruckstationen_Leer(t *testing.T) {
 	}
 }
 
+func TestGetAlleDruckstationen_StabileReihenfolge(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+
+	// Upsert auf eine mittlere Kategorie darf die Reihenfolge nicht verschieben.
+	err := repo.UpsertDruckstation(ctx, druckstation.Druckstation{
+		Kategorie: druckstation.KategorieSonstiges,
+		DruckerIP: "192.168.1.50",
+		Bonmodus:  druckstation.BonmodusProPosition,
+	})
+	if err != nil {
+		t.Fatalf("Expected no error on upsert, got %v", err)
+	}
+
+	result, err := repo.GetAlleDruckstationen(ctx)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// ORDER BY kategorie folgt der Enum-Deklaration, nicht dem Alphabet.
+	want := []druckstation.Kategorie{
+		druckstation.KategorieEssen,
+		druckstation.KategorieGetraenk,
+		druckstation.KategorieSonstiges,
+		druckstation.KategorieKassenbeleg,
+		druckstation.KategorieAbholbon,
+	}
+	if len(result) != len(want) {
+		t.Fatalf("Expected %d Kategorien, got %d", len(want), len(result))
+	}
+	for i, kategorie := range want {
+		if result[i].Kategorie != kategorie {
+			t.Errorf("Position %d: expected %q, got %q", i, kategorie, result[i].Kategorie)
+		}
+	}
+}
+
 func TestUpsertDruckstation(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
