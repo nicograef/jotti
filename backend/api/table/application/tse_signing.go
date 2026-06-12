@@ -17,7 +17,7 @@ func (c Command) signZahlungKassiertEvent(ctx context.Context, evt event.Event, 
 		return tseApp.Signierung{}, ErrDatabase
 	}
 
-	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, withZahlungEventTSE)
+	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, kasse.EmbedTSEInZahlungKassiert)
 }
 
 func (c Command) signBestellungAufgenommenEvent(ctx context.Context, evt event.Event, positionen []kasse.Position) (tseApp.Signierung, error) {
@@ -27,7 +27,7 @@ func (c Command) signBestellungAufgenommenEvent(ctx context.Context, evt event.E
 		return tseApp.Signierung{}, ErrDatabase
 	}
 
-	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeBestellungV1, processData, withBestellungEventTSE)
+	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeBestellungV1, processData, kasse.EmbedTSEInBestellungAufgenommen)
 }
 
 func (c Command) signStornierungErteiltEvent(ctx context.Context, evt event.Event, positionen []kasse.Position, stornoBetragCents int) (tseApp.Signierung, error) {
@@ -37,7 +37,7 @@ func (c Command) signStornierungErteiltEvent(ctx context.Context, evt event.Even
 		return tseApp.Signierung{}, ErrDatabase
 	}
 
-	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, withStornierungEventTSE)
+	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, kasse.EmbedTSEInStornierungErteilt)
 }
 
 func (c Command) signAuszahlungGeleistetEvent(ctx context.Context, evt event.Event, betragCents int) (tseApp.Signierung, error) {
@@ -47,26 +47,5 @@ func (c Command) signAuszahlungGeleistetEvent(ctx context.Context, evt event.Eve
 		return tseApp.Signierung{}, ErrDatabase
 	}
 
-	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, withAuszahlungEventTSE)
+	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, kasse.EmbedTSEInAuszahlungGeleistet)
 }
-
-var withZahlungEventTSE = tseApp.EmbedTSEInData(kasse.EventTypeZahlungKassiertV1, func(data *zahlungKassiertV1Data, txID string, tseData *kasse.TSEData) {
-	data.TSETxID = txID
-	data.TSEData = tseData
-	data.TSEAusfall = tseData == nil
-})
-
-var withBestellungEventTSE = tseApp.EmbedTSEInData(kasse.EventTypeBestellungAufgenommenV1, func(data *bestellungAufgenommenV1Data, txID string, tseData *kasse.TSEData) {
-	data.TSETxID = txID
-	data.TSEData = tseData
-})
-
-var withStornierungEventTSE = tseApp.EmbedTSEInData(kasse.EventTypeStornierungErteiltV1, func(data *stornierungErteiltV1Data, txID string, tseData *kasse.TSEData) {
-	data.TSETxID = txID
-	data.TSEData = tseData
-})
-
-var withAuszahlungEventTSE = tseApp.EmbedTSEInData(kasse.EventTypeAuszahlungGeleistetV1, func(data *auszahlungGeleistetV1Data, txID string, tseData *kasse.TSEData) {
-	data.TSETxID = txID
-	data.TSEData = tseData
-})

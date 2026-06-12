@@ -19,9 +19,9 @@ type Position struct {
 	Menge        int
 }
 
-// positionEventData is the serialization-friendly representation of Position for the event store.
+// PositionEventData is the serialization-friendly representation of Position for the event store.
 // The json-keys are stable and must not be changed (immutable events).
-type positionEventData struct {
+type PositionEventData struct {
 	PositionID   string `json:"positionId"`
 	VarianteID   int    `json:"varianteId"`
 	ProduktName  string `json:"produktName"`
@@ -32,15 +32,15 @@ type positionEventData struct {
 	Menge        int    `json:"menge"`
 }
 
-func toPositionenEventData(positionen []Position) []positionEventData {
-	out := make([]positionEventData, len(positionen))
+func toPositionenEventData(positionen []Position) []PositionEventData {
+	out := make([]PositionEventData, len(positionen))
 	for i, p := range positionen {
-		out[i] = positionEventData(p)
+		out[i] = PositionEventData(p)
 	}
 	return out
 }
 
-func fromPositionenEventData(positionen []positionEventData) []Position {
+func fromPositionenEventData(positionen []PositionEventData) []Position {
 	out := make([]Position, len(positionen))
 	for i, p := range positionen {
 		out[i] = Position(p)

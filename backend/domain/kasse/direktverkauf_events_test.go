@@ -29,7 +29,7 @@ func TestNewDirektverkaufGetaetigtEvent_SingleEventWithConsistentSum(t *testing.
 		t.Errorf("expected subject %s, got %s", subject, event.Subject)
 	}
 
-	data := direktverkaufGetaetigtV1Data{}
+	data := DirektverkaufGetaetigtV1Data{}
 	if err := e.ParseData(event, &data, direktverkaufGetaetigtV1DataSchema); err != nil {
 		t.Fatalf("failed to parse event data: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestNewDirektverkaufStorniertEvent_ValidatesAndStoresPositionen(t *testing.
 		t.Errorf("expected subject %s, got %s", subject, event.Subject)
 	}
 
-	data := direktverkaufStorniertV1Data{}
+	data := DirektverkaufStorniertV1Data{}
 	if err := e.ParseData(event, &data, direktverkaufStorniertV1DataSchema); err != nil {
 		t.Fatalf("failed to parse event data: %v", err)
 	}

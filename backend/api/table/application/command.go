@@ -87,53 +87,6 @@ type Command struct {
 	TSESignierer        tseApp.Signierer
 }
 
-type zahlungKassiertV1Data struct {
-	ZahlungID          string                `json:"zahlungId"`
-	Positionen         []zahlungPositionData `json:"positionen"`
-	GesamtZahlungCents int                   `json:"gesamtZahlungCents"`
-	Kommentar          string                `json:"kommentar"`
-	TSETxID            string                `json:"tseTxId,omitempty"`
-	TSEData            *kasse.TSEData        `json:"tseData,omitempty"`
-	TSEAusfall         bool                  `json:"tseAusfall,omitempty"`
-}
-
-type zahlungPositionData struct {
-	PositionID   string `json:"positionId"`
-	VarianteID   int    `json:"varianteId"`
-	ProduktName  string `json:"produktName"`
-	VarianteName string `json:"varianteName"`
-	Kategorie    string `json:"kategorie"`
-	Steuersatz   string `json:"steuersatz"`
-	Einzelpreis  int    `json:"einzelpreis"`
-	Menge        int    `json:"menge"`
-}
-
-type bestellungAufgenommenV1Data struct {
-	BestellungID     string                `json:"bestellungId"`
-	Positionen       []zahlungPositionData `json:"positionen"`
-	GesamtPreisCents int                   `json:"gesamtPreisCents"`
-	Kommentar        string                `json:"kommentar"`
-	TSETxID          string                `json:"tseTxId,omitempty"`
-	TSEData          *kasse.TSEData        `json:"tseData,omitempty"`
-}
-
-type stornierungErteiltV1Data struct {
-	StornierungID          string                `json:"stornierungId"`
-	Positionen             []zahlungPositionData `json:"positionen"`
-	GesamtStornierungCents int                   `json:"gesamtStornierungCents"`
-	Kommentar              string                `json:"kommentar"`
-	TSETxID                string                `json:"tseTxId,omitempty"`
-	TSEData                *kasse.TSEData        `json:"tseData,omitempty"`
-}
-
-type auszahlungGeleistetV1Data struct {
-	AuszahlungID string         `json:"auszahlungId"`
-	BetragCents  int            `json:"betragCents"`
-	Kommentar    string         `json:"kommentar"`
-	TSETxID      string         `json:"tseTxId,omitempty"`
-	TSEData      *kasse.TSEData `json:"tseData,omitempty"`
-}
-
 // getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung.
 // Returns ErrKasseNichtGeoeffnet (HTTP 409) when no open Kassensitzung exists.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {

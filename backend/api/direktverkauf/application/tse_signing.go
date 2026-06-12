@@ -10,26 +10,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type direktverkaufGetaetigtV1Data struct {
-	VerkaufID         string           `json:"verkaufId"`
-	GesamtbetragCents int              `json:"gesamtbetragCents"`
-	Positionen        []kasse.Position `json:"positionen"`
-	Kommentar         string           `json:"kommentar"`
-	TSETxID           string           `json:"tseTxId,omitempty"`
-	TSEData           *kasse.TSEData   `json:"tseData,omitempty"`
-	TSEAusfall        bool             `json:"tseAusfall,omitempty"`
-}
-
-type direktverkaufStorniertV1Data struct {
-	StornierungID          string           `json:"stornierungId"`
-	VerkaufID              string           `json:"verkaufId"`
-	Positionen             []kasse.Position `json:"positionen"`
-	GesamtStornierungCents int              `json:"gesamtStornierungCents"`
-	Kommentar              string           `json:"kommentar"`
-	TSETxID                string           `json:"tseTxId,omitempty"`
-	TSEData                *kasse.TSEData   `json:"tseData,omitempty"`
-}
-
 func (c Command) signDirektverkaufGetaetigtEvent(ctx context.Context, evt event.Event, positionen []kasse.Position) (tseApp.Signierung, error) {
 	processData, err := tseApp.BuildKassenbelegProcessData(positionen, sumPositionenCents(positionen))
 	if err != nil {
@@ -37,7 +17,7 @@ func (c Command) signDirektverkaufGetaetigtEvent(ctx context.Context, evt event.
 		return tseApp.Signierung{}, ErrDatabase
 	}
 
-	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, withDirektverkaufGetaetigtEventTSE)
+	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, kasse.EmbedTSEInDirektverkaufGetaetigt)
 }
 
 func (c Command) signDirektverkaufStorniertEvent(ctx context.Context, evt event.Event, positionen []kasse.Position, stornoBetragCents int) (tseApp.Signierung, error) {
@@ -47,19 +27,8 @@ func (c Command) signDirektverkaufStorniertEvent(ctx context.Context, evt event.
 		return tseApp.Signierung{}, ErrDatabase
 	}
 
-	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, withDirektverkaufStorniertEventTSE)
+	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, kasse.EmbedTSEInDirektverkaufStorniert)
 }
-
-var withDirektverkaufGetaetigtEventTSE = tseApp.EmbedTSEInData(kasse.EventTypeDirektverkaufGetaetigtV1, func(data *direktverkaufGetaetigtV1Data, txID string, tseData *kasse.TSEData) {
-	data.TSETxID = txID
-	data.TSEData = tseData
-	data.TSEAusfall = tseData == nil
-})
-
-var withDirektverkaufStorniertEventTSE = tseApp.EmbedTSEInData(kasse.EventTypeDirektverkaufStorniertV1, func(data *direktverkaufStorniertV1Data, txID string, tseData *kasse.TSEData) {
-	data.TSETxID = txID
-	data.TSEData = tseData
-})
 
 func sumPositionenCents(positionen []kasse.Position) int {
 	sum := 0

@@ -28,7 +28,7 @@ type TischSession struct {
 func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 	switch evt.Type {
 	case string(EventTypeBestellungAufgenommenV1):
-		var data bestellungAufgenommenV1Data
+		var data BestellungAufgenommenV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal bestellung data: %w", err)
 		}
@@ -51,7 +51,7 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		}
 
 	case string(EventTypeZahlungKassiertV1):
-		var data zahlungKassiertV1Data
+		var data ZahlungKassiertV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal zahlung data: %w", err)
 		}
@@ -60,7 +60,7 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
 
 	case string(EventTypeStornierungErteiltV1):
-		var data stornierungErteiltV1Data
+		var data StornierungErteiltV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal stornierung data: %w", err)
 		}
@@ -69,14 +69,14 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
 
 	case string(EventTypeAusgabeBestaetigtV1):
-		var data ausgabeBestaetigtV1Data
+		var data AusgabeBestaetigtV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal ausgabe data: %w", err)
 		}
 		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
 
 	case string(EventTypeAuszahlungGeleistetV1):
-		var data auszahlungGeleistetV1Data
+		var data AuszahlungGeleistetV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal auszahlung data: %w", err)
 		}
@@ -100,14 +100,14 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 	for _, evt := range events {
 		switch evt.Type {
 		case string(EventTypeBestellungAufgenommenV1):
-			var data bestellungAufgenommenV1Data
+			var data BestellungAufgenommenV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal bestellung data: %w", err)
 			}
 			nichtStorniert = accumulatePositionen(nichtStorniert, fromPositionenEventData(data.Positionen))
 
 		case string(EventTypeStornierungErteiltV1):
-			var data stornierungErteiltV1Data
+			var data StornierungErteiltV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal stornierung data: %w", err)
 			}

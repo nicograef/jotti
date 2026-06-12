@@ -425,7 +425,7 @@ func TestDirektverkaufTaetigen_MitTSE_DatenImEvent(t *testing.T) {
 		t.Fatalf("expected one event, got %d", len(spy.written))
 	}
 
-	var data direktverkaufGetaetigtV1Data
+	var data kasse.DirektverkaufGetaetigtV1Data
 	if err := json.Unmarshal(spy.written[0].event.Data, &data); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
@@ -469,7 +469,7 @@ func TestDirektverkaufTaetigen_BeiTSEAusfall_MarkiertEventMitAusfall(t *testing.
 		t.Fatalf("expected one nachsignier job, got %d", len(spy.nachsignier))
 	}
 
-	var data direktverkaufGetaetigtV1Data
+	var data kasse.DirektverkaufGetaetigtV1Data
 	if err := json.Unmarshal(spy.written[0].event.Data, &data); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}

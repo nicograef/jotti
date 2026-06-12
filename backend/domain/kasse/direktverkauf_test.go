@@ -13,7 +13,7 @@ import (
 // getaetigt event, so tests can build fat storno positions that reference real positions.
 func verkaufPositionen(t *testing.T, evt e.Event) []Position {
 	t.Helper()
-	data := direktverkaufGetaetigtV1Data{}
+	data := DirektverkaufGetaetigtV1Data{}
 	if err := e.ParseData(evt, &data, direktverkaufGetaetigtV1DataSchema); err != nil {
 		t.Fatalf("failed to parse getaetigt event data: %v", err)
 	}

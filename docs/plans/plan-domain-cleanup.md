@@ -385,12 +385,12 @@ Typisierung analog `table.Status`.
 
 ### Acceptance criteria
 
-- [ ] `make test`, `make lint-backend` und `make test-integration` grün
-- [ ] `grep -rn "V1Data struct" backend/api/` liefert keine Treffer
+- [x] `make test`, `make lint-backend` und `make test-integration` grün
+- [x] `grep -rn "V1Data struct" backend/api/` liefert keine Treffer
       (keine Payload-Struct-Kopien mehr im App-Layer)
-- [ ] `grep -rn "EventMitTSE" backend/` liefert keine Treffer
-- [ ] Persistierte Event-JSON byte-identisch zu vorher: gleiche Keys, gleiche
+- [x] `grep -rn "EventMitTSE" backend/` liefert keine Treffer
+- [x] Persistierte Event-JSON byte-identisch zu vorher: gleiche Keys, gleiche
       omitempty-Semantik (Roundtrip-Tests + ein manueller Vergleich eines
       signierten und eines Ausfall-Events)
-- [ ] `TSEAusfall` existiert nur auf `ZahlungKassiertV1Data` und
+- [x] `TSEAusfall` existiert nur auf `ZahlungKassiertV1Data` und
       `DirektverkaufGetaetigtV1Data`

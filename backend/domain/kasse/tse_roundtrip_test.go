@@ -56,18 +56,21 @@ func TestEventDataRoundtrip_Bestellung_WithAndWithoutTSE(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataOhne := assertTypedRoundtrip[bestellungAufgenommenV1Data](t, evtOhne.Data)
-	if dataOhne.TSEData != nil {
-		t.Fatal("expected nil TSEData for event without TSE")
+	dataOhne := assertTypedRoundtrip[BestellungAufgenommenV1Data](t, evtOhne.Data)
+	if dataOhne.TSEData != nil || dataOhne.TSETxID != "" {
+		t.Fatal("expected no TSE fields for event without TSE")
 	}
 
-	evtMit, err := NewBestellungAufgenommenEventMitTSE(testSubject, 1, "User", positionen, "", testRoundtripTSEData("Bestellung-V1"))
+	signed, err := EmbedTSEInBestellungAufgenommen(evtOhne, "tx-bestellung", testRoundtripTSEData("Bestellung-V1"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataMit := assertTypedRoundtrip[bestellungAufgenommenV1Data](t, evtMit.Data)
+	dataMit := assertTypedRoundtrip[BestellungAufgenommenV1Data](t, signed.Data)
 	if dataMit.TSEData == nil {
-		t.Fatal("expected TSEData for event with TSE")
+		t.Fatal("expected TSEData for signed event")
+	}
+	if dataMit.TSETxID != "tx-bestellung" {
+		t.Fatalf("expected tseTxId to survive roundtrip, got %q", dataMit.TSETxID)
 	}
 }
 
@@ -87,18 +90,33 @@ func TestEventDataRoundtrip_Zahlung_WithAndWithoutTSE(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataOhne := assertTypedRoundtrip[zahlungKassiertV1Data](t, evtOhne.Data)
-	if dataOhne.TSEData != nil {
-		t.Fatal("expected nil TSEData for event without TSE")
+	dataOhne := assertTypedRoundtrip[ZahlungKassiertV1Data](t, evtOhne.Data)
+	if dataOhne.TSEData != nil || dataOhne.TSETxID != "" || dataOhne.TSEAusfall {
+		t.Fatal("expected no TSE fields for event without TSE")
 	}
 
-	evtMit, err := NewZahlungKassiertEventMitTSE(testSubject, 1, "User", positionen, 350, "", testRoundtripTSEData("Kassenbeleg-V1"))
+	signed, err := EmbedTSEInZahlungKassiert(evtOhne, "tx-zahlung", testRoundtripTSEData("Kassenbeleg-V1"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataMit := assertTypedRoundtrip[zahlungKassiertV1Data](t, evtMit.Data)
+	dataMit := assertTypedRoundtrip[ZahlungKassiertV1Data](t, signed.Data)
 	if dataMit.TSEData == nil {
-		t.Fatal("expected TSEData for event with TSE")
+		t.Fatal("expected TSEData for signed event")
+	}
+	if dataMit.TSETxID != "tx-zahlung" || dataMit.TSEAusfall {
+		t.Fatalf("expected tseTxId set and tseAusfall false on success, got txId=%q ausfall=%v", dataMit.TSETxID, dataMit.TSEAusfall)
+	}
+
+	ausfall, err := EmbedTSEInZahlungKassiert(evtOhne, "tx-ausfall", nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	dataAusfall := assertTypedRoundtrip[ZahlungKassiertV1Data](t, ausfall.Data)
+	if dataAusfall.TSEData != nil {
+		t.Fatal("expected nil TSEData on Ausfall")
+	}
+	if dataAusfall.TSETxID != "tx-ausfall" || !dataAusfall.TSEAusfall {
+		t.Fatalf("expected tseTxId set and tseAusfall true to survive roundtrip, got txId=%q ausfall=%v", dataAusfall.TSETxID, dataAusfall.TSEAusfall)
 	}
 }
 
@@ -118,18 +136,21 @@ func TestEventDataRoundtrip_Stornierung_WithAndWithoutTSE(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataOhne := assertTypedRoundtrip[stornierungErteiltV1Data](t, evtOhne.Data)
-	if dataOhne.TSEData != nil {
-		t.Fatal("expected nil TSEData for event without TSE")
+	dataOhne := assertTypedRoundtrip[StornierungErteiltV1Data](t, evtOhne.Data)
+	if dataOhne.TSEData != nil || dataOhne.TSETxID != "" {
+		t.Fatal("expected no TSE fields for event without TSE")
 	}
 
-	evtMit, err := NewStornierungErteiltEventMitTSE(testSubject, 1, "User", positionen, 350, "Reklamation", testRoundtripTSEData("Kassenbeleg-V1"))
+	signed, err := EmbedTSEInStornierungErteilt(evtOhne, "tx-storno", testRoundtripTSEData("Kassenbeleg-V1"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataMit := assertTypedRoundtrip[stornierungErteiltV1Data](t, evtMit.Data)
+	dataMit := assertTypedRoundtrip[StornierungErteiltV1Data](t, signed.Data)
 	if dataMit.TSEData == nil {
-		t.Fatal("expected TSEData for event with TSE")
+		t.Fatal("expected TSEData for signed event")
+	}
+	if dataMit.TSETxID != "tx-storno" {
+		t.Fatalf("expected tseTxId to survive roundtrip, got %q", dataMit.TSETxID)
 	}
 }
 
@@ -138,18 +159,21 @@ func TestEventDataRoundtrip_Auszahlung_WithAndWithoutTSE(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataOhne := assertTypedRoundtrip[auszahlungGeleistetV1Data](t, evtOhne.Data)
-	if dataOhne.TSEData != nil {
-		t.Fatal("expected nil TSEData for event without TSE")
+	dataOhne := assertTypedRoundtrip[AuszahlungGeleistetV1Data](t, evtOhne.Data)
+	if dataOhne.TSEData != nil || dataOhne.TSETxID != "" {
+		t.Fatal("expected no TSE fields for event without TSE")
 	}
 
-	evtMit, err := NewAuszahlungGeleistetEventMitTSE(testSubject, 1, "User", 500, "Rueckzahlung", testRoundtripTSEData("Kassenbeleg-V1"))
+	signed, err := EmbedTSEInAuszahlungGeleistet(evtOhne, "tx-auszahlung", testRoundtripTSEData("Kassenbeleg-V1"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataMit := assertTypedRoundtrip[auszahlungGeleistetV1Data](t, evtMit.Data)
+	dataMit := assertTypedRoundtrip[AuszahlungGeleistetV1Data](t, signed.Data)
 	if dataMit.TSEData == nil {
-		t.Fatal("expected TSEData for event with TSE")
+		t.Fatal("expected TSEData for signed event")
+	}
+	if dataMit.TSETxID != "tx-auszahlung" {
+		t.Fatalf("expected tseTxId to survive roundtrip, got %q", dataMit.TSETxID)
 	}
 }
 
@@ -162,18 +186,33 @@ func TestEventDataRoundtrip_DirektverkaufGetaetigt_WithAndWithoutTSE(t *testing.
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataOhne := assertTypedRoundtrip[direktverkaufGetaetigtV1Data](t, evtOhne.Data)
-	if dataOhne.TSEData != nil {
-		t.Fatal("expected nil TSEData for event without TSE")
+	dataOhne := assertTypedRoundtrip[DirektverkaufGetaetigtV1Data](t, evtOhne.Data)
+	if dataOhne.TSEData != nil || dataOhne.TSETxID != "" || dataOhne.TSEAusfall {
+		t.Fatal("expected no TSE fields for event without TSE")
 	}
 
-	evtMit, err := NewDirektverkaufGetaetigtEventMitTSE(subject, verkaufID, 1, "User", positionen, "", testRoundtripTSEData("Kassenbeleg-V1"))
+	signed, err := EmbedTSEInDirektverkaufGetaetigt(evtOhne, "tx-verkauf", testRoundtripTSEData("Kassenbeleg-V1"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataMit := assertTypedRoundtrip[direktverkaufGetaetigtV1Data](t, evtMit.Data)
+	dataMit := assertTypedRoundtrip[DirektverkaufGetaetigtV1Data](t, signed.Data)
 	if dataMit.TSEData == nil {
-		t.Fatal("expected TSEData for event with TSE")
+		t.Fatal("expected TSEData for signed event")
+	}
+	if dataMit.TSETxID != "tx-verkauf" || dataMit.TSEAusfall {
+		t.Fatalf("expected tseTxId set and tseAusfall false on success, got txId=%q ausfall=%v", dataMit.TSETxID, dataMit.TSEAusfall)
+	}
+
+	ausfall, err := EmbedTSEInDirektverkaufGetaetigt(evtOhne, "tx-verkauf-ausfall", nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	dataAusfall := assertTypedRoundtrip[DirektverkaufGetaetigtV1Data](t, ausfall.Data)
+	if dataAusfall.TSEData != nil {
+		t.Fatal("expected nil TSEData on Ausfall")
+	}
+	if dataAusfall.TSETxID != "tx-verkauf-ausfall" || !dataAusfall.TSEAusfall {
+		t.Fatalf("expected tseTxId set and tseAusfall true to survive roundtrip, got txId=%q ausfall=%v", dataAusfall.TSETxID, dataAusfall.TSEAusfall)
 	}
 }
 
@@ -195,18 +234,21 @@ func TestEventDataRoundtrip_DirektverkaufStorniert_WithAndWithoutTSE(t *testing.
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataOhne := assertTypedRoundtrip[direktverkaufStorniertV1Data](t, evtOhne.Data)
-	if dataOhne.TSEData != nil {
-		t.Fatal("expected nil TSEData for event without TSE")
+	dataOhne := assertTypedRoundtrip[DirektverkaufStorniertV1Data](t, evtOhne.Data)
+	if dataOhne.TSEData != nil || dataOhne.TSETxID != "" {
+		t.Fatal("expected no TSE fields for event without TSE")
 	}
 
-	evtMit, err := NewDirektverkaufStorniertEventMitTSE(subject, verkaufID, 1, "User", positionen, 350, "Rueckgabe", testRoundtripTSEData("Kassenbeleg-V1"))
+	signed, err := EmbedTSEInDirektverkaufStorniert(evtOhne, "tx-verkauf-storno", testRoundtripTSEData("Kassenbeleg-V1"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataMit := assertTypedRoundtrip[direktverkaufStorniertV1Data](t, evtMit.Data)
+	dataMit := assertTypedRoundtrip[DirektverkaufStorniertV1Data](t, signed.Data)
 	if dataMit.TSEData == nil {
-		t.Fatal("expected TSEData for event with TSE")
+		t.Fatal("expected TSEData for signed event")
+	}
+	if dataMit.TSETxID != "tx-verkauf-storno" {
+		t.Fatalf("expected tseTxId to survive roundtrip, got %q", dataMit.TSETxID)
 	}
 }
 
@@ -217,18 +259,21 @@ func TestEventDataRoundtrip_Geldtransit_WithAndWithoutTSE(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataOhne := assertTypedRoundtrip[geldtransitGebuchtV1Data](t, evtOhne.Data)
-	if dataOhne.TSEData != nil {
-		t.Fatal("expected nil TSEData for event without TSE")
+	dataOhne := assertTypedRoundtrip[GeldtransitGebuchtV1Data](t, evtOhne.Data)
+	if dataOhne.TSEData != nil || dataOhne.TSETxID != "" {
+		t.Fatal("expected no TSE fields for event without TSE")
 	}
 
-	evtMit, err := NewGeldtransitGebuchtEventMitTSE(subject, 1, "User", "einlage", 1000, "Wechselgeld", testRoundtripTSEData("Kassenbeleg-V1"))
+	signed, err := EmbedTSEInGeldtransitGebucht(evtOhne, "tx-geldtransit", testRoundtripTSEData("Kassenbeleg-V1"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataMit := assertTypedRoundtrip[geldtransitGebuchtV1Data](t, evtMit.Data)
+	dataMit := assertTypedRoundtrip[GeldtransitGebuchtV1Data](t, signed.Data)
 	if dataMit.TSEData == nil {
-		t.Fatal("expected TSEData for event with TSE")
+		t.Fatal("expected TSEData for signed event")
+	}
+	if dataMit.TSETxID != "tx-geldtransit" {
+		t.Fatalf("expected tseTxId to survive roundtrip, got %q", dataMit.TSETxID)
 	}
 }
 
@@ -239,18 +284,21 @@ func TestEventDataRoundtrip_Differenz_WithAndWithoutTSE(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataOhne := assertTypedRoundtrip[differenzSollIstGebuchtV1Data](t, evtOhne.Data)
-	if dataOhne.TSEData != nil {
-		t.Fatal("expected nil TSEData for event without TSE")
+	dataOhne := assertTypedRoundtrip[DifferenzSollIstGebuchtV1Data](t, evtOhne.Data)
+	if dataOhne.TSEData != nil || dataOhne.TSETxID != "" {
+		t.Fatal("expected no TSE fields for event without TSE")
 	}
 
-	evtMit, err := NewDifferenzSollIstGebuchtEventMitTSE(subject, 1, "User", -250, testRoundtripTSEData("Kassenbeleg-V1"))
+	signed, err := EmbedTSEInDifferenzSollIstGebucht(evtOhne, "tx-differenz", testRoundtripTSEData("Kassenbeleg-V1"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataMit := assertTypedRoundtrip[differenzSollIstGebuchtV1Data](t, evtMit.Data)
+	dataMit := assertTypedRoundtrip[DifferenzSollIstGebuchtV1Data](t, signed.Data)
 	if dataMit.TSEData == nil {
-		t.Fatal("expected TSEData for event with TSE")
+		t.Fatal("expected TSEData for signed event")
+	}
+	if dataMit.TSETxID != "tx-differenz" {
+		t.Fatalf("expected tseTxId to survive roundtrip, got %q", dataMit.TSETxID)
 	}
 }
 
@@ -263,17 +311,20 @@ func TestEventDataRoundtrip_Tagesabschluss_WithAndWithoutTSE(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataOhne := assertTypedRoundtrip[tagesabschlussErstelltV1Data](t, evtOhne.Data)
-	if dataOhne.TSEData != nil {
-		t.Fatal("expected nil TSEData for event without TSE")
+	dataOhne := assertTypedRoundtrip[TagesabschlussErstelltV1Data](t, evtOhne.Data)
+	if dataOhne.TSEData != nil || dataOhne.TSETxID != "" {
+		t.Fatal("expected no TSE fields for event without TSE")
 	}
 
-	evtMit, err := NewTagesabschlussErstelltEventMitTSE(subject, 1, "User", 1, von, bis, 10000, 500, 300, 200, testRoundtripTSEData("SonstigerVorgang"))
+	signed, err := EmbedTSEInTagesabschlussErstellt(evtOhne, "tx-tagesabschluss", testRoundtripTSEData("SonstigerVorgang"))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	dataMit := assertTypedRoundtrip[tagesabschlussErstelltV1Data](t, evtMit.Data)
+	dataMit := assertTypedRoundtrip[TagesabschlussErstelltV1Data](t, signed.Data)
 	if dataMit.TSEData == nil {
-		t.Fatal("expected TSEData for event with TSE")
+		t.Fatal("expected TSEData for signed event")
+	}
+	if dataMit.TSETxID != "tx-tagesabschluss" {
+		t.Fatalf("expected tseTxId to survive roundtrip, got %q", dataMit.TSETxID)
 	}
 }

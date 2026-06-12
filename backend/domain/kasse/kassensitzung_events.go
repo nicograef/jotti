@@ -19,7 +19,7 @@ const (
 
 // --- Event-Data-Structs ---
 
-type kassensitzungEroeffnetV1Data struct {
+type KassensitzungEroeffnetV1Data struct {
 	Datum        string `json:"datum"`
 	Bezeichnung  string `json:"bezeichnung"`
 	BetragCents  int    `json:"betragCents"`
@@ -33,12 +33,13 @@ var kassensitzungEroeffnetV1DataSchema = z.Struct(z.Shape{
 	"EroeffnetVon": z.Int().GTE(1).Required(),
 })
 
-type geldtransitGebuchtV1Data struct {
+type GeldtransitGebuchtV1Data struct {
 	BewegungID  string   `json:"bewegungId"`
 	Richtung    string   `json:"richtung"` // "einlage" | "entnahme"
 	BetragCents int      `json:"betragCents"`
 	Kommentar   string   `json:"kommentar"`
 	GebuchtVon  int      `json:"gebuchtVon"`
+	TSETxID     string   `json:"tseTxId,omitempty"`
 	TSEData     *TSEData `json:"tseData,omitempty"`
 }
 
@@ -50,7 +51,7 @@ var geldtransitGebuchtV1DataSchema = z.Struct(z.Shape{
 	"GebuchtVon":  z.Int().GTE(1).Required(),
 })
 
-type kassensturzDurchgefuehrtV1Data struct {
+type KassensturzDurchgefuehrtV1Data struct {
 	SollBestandCents int `json:"sollBestandCents"`
 	IstBestandCents  int `json:"istBestandCents"`
 	DifferenzCents   int `json:"differenzCents"`
@@ -64,9 +65,10 @@ var kassensturzDurchgefuehrtV1DataSchema = z.Struct(z.Shape{
 	"DurchgefuehrtVon": z.Int().GTE(1).Required(),
 })
 
-type differenzSollIstGebuchtV1Data struct {
+type DifferenzSollIstGebuchtV1Data struct {
 	BetragCents int      `json:"betragCents"`
 	GebuchtVon  int      `json:"gebuchtVon"`
+	TSETxID     string   `json:"tseTxId,omitempty"`
 	TSEData     *TSEData `json:"tseData,omitempty"`
 }
 
@@ -75,7 +77,7 @@ var differenzSollIstGebuchtV1DataSchema = z.Struct(z.Shape{
 	"GebuchtVon":  z.Int().GTE(1).Required(),
 })
 
-type tagesabschlussErstelltV1Data struct {
+type TagesabschlussErstelltV1Data struct {
 	ZNr               int       `json:"zNr"`
 	ZeitraumVon       time.Time `json:"zeitraumVon"`
 	ZeitraumBis       time.Time `json:"zeitraumBis"`
@@ -84,6 +86,7 @@ type tagesabschlussErstelltV1Data struct {
 	AuszahlungenCents int       `json:"auszahlungenCents"`
 	GeldtransitCents  int       `json:"geldtransitCents"`
 	ErstelltVon       int       `json:"erstelltVon"`
+	TSETxID           string    `json:"tseTxId,omitempty"`
 	TSEData           *TSEData  `json:"tseData,omitempty"`
 }
 
@@ -101,7 +104,7 @@ var tagesabschlussErstelltV1DataSchema = z.Struct(z.Shape{
 // --- Event-Erstellungsfunktionen ---
 
 func NewKassensitzungEroeffnetEvent(subject string, userID int, userName string, datum string, bezeichnung string, betragCents int) (e.Event, error) {
-	data := kassensitzungEroeffnetV1Data{
+	data := KassensitzungEroeffnetV1Data{
 		Datum:        datum,
 		Bezeichnung:  bezeichnung,
 		BetragCents:  betragCents,
@@ -122,27 +125,12 @@ func NewKassensitzungEroeffnetEvent(subject string, userID int, userName string,
 }
 
 func NewGeldtransitGebuchtEvent(subject string, userID int, userName string, richtung string, betragCents int, kommentar string) (e.Event, error) {
-	return newGeldtransitGebuchtEvent(subject, userID, userName, richtung, betragCents, kommentar, nil)
-}
-
-func NewGeldtransitGebuchtEventMitTSE(subject string, userID int, userName string, richtung string, betragCents int, kommentar string, tseData *TSEData) (e.Event, error) {
-	return newGeldtransitGebuchtEvent(subject, userID, userName, richtung, betragCents, kommentar, tseData)
-}
-
-func newGeldtransitGebuchtEvent(subject string, userID int, userName string, richtung string, betragCents int, kommentar string, tseData *TSEData) (e.Event, error) {
-	if tseData != nil {
-		if err := tseData.Validate(); err != nil {
-			return e.Event{}, err
-		}
-	}
-
-	data := geldtransitGebuchtV1Data{
+	data := GeldtransitGebuchtV1Data{
 		BewegungID:  uuid.New().String(),
 		Richtung:    richtung,
 		BetragCents: betragCents,
 		Kommentar:   kommentar,
 		GebuchtVon:  userID,
-		TSEData:     tseData,
 	}
 
 	if err := geldtransitGebuchtV1DataSchema.Validate(&data); err != nil {
@@ -159,7 +147,7 @@ func newGeldtransitGebuchtEvent(subject string, userID int, userName string, ric
 }
 
 func NewKassensturzDurchgefuehrtEvent(subject string, userID int, userName string, sollBestandCents int, istBestandCents int, differenzCents int) (e.Event, error) {
-	data := kassensturzDurchgefuehrtV1Data{
+	data := KassensturzDurchgefuehrtV1Data{
 		SollBestandCents: sollBestandCents,
 		IstBestandCents:  istBestandCents,
 		DifferenzCents:   differenzCents,
@@ -180,24 +168,9 @@ func NewKassensturzDurchgefuehrtEvent(subject string, userID int, userName strin
 }
 
 func NewDifferenzSollIstGebuchtEvent(subject string, userID int, userName string, betragCents int) (e.Event, error) {
-	return newDifferenzSollIstGebuchtEvent(subject, userID, userName, betragCents, nil)
-}
-
-func NewDifferenzSollIstGebuchtEventMitTSE(subject string, userID int, userName string, betragCents int, tseData *TSEData) (e.Event, error) {
-	return newDifferenzSollIstGebuchtEvent(subject, userID, userName, betragCents, tseData)
-}
-
-func newDifferenzSollIstGebuchtEvent(subject string, userID int, userName string, betragCents int, tseData *TSEData) (e.Event, error) {
-	if tseData != nil {
-		if err := tseData.Validate(); err != nil {
-			return e.Event{}, err
-		}
-	}
-
-	data := differenzSollIstGebuchtV1Data{
+	data := DifferenzSollIstGebuchtV1Data{
 		BetragCents: betragCents,
 		GebuchtVon:  userID,
-		TSEData:     tseData,
 	}
 
 	if err := differenzSollIstGebuchtV1DataSchema.Validate(&data); err != nil {
@@ -214,21 +187,7 @@ func newDifferenzSollIstGebuchtEvent(subject string, userID int, userName string
 }
 
 func NewTagesabschlussErstelltEvent(subject string, userID int, userName string, zNr int, zeitraumVon time.Time, zeitraumBis time.Time, umsatzGesamtCents int, stornierungCents int, auszahlungenCents int, geldtransitCents int) (e.Event, error) {
-	return newTagesabschlussErstelltEvent(subject, userID, userName, zNr, zeitraumVon, zeitraumBis, umsatzGesamtCents, stornierungCents, auszahlungenCents, geldtransitCents, nil)
-}
-
-func NewTagesabschlussErstelltEventMitTSE(subject string, userID int, userName string, zNr int, zeitraumVon time.Time, zeitraumBis time.Time, umsatzGesamtCents int, stornierungCents int, auszahlungenCents int, geldtransitCents int, tseData *TSEData) (e.Event, error) {
-	return newTagesabschlussErstelltEvent(subject, userID, userName, zNr, zeitraumVon, zeitraumBis, umsatzGesamtCents, stornierungCents, auszahlungenCents, geldtransitCents, tseData)
-}
-
-func newTagesabschlussErstelltEvent(subject string, userID int, userName string, zNr int, zeitraumVon time.Time, zeitraumBis time.Time, umsatzGesamtCents int, stornierungCents int, auszahlungenCents int, geldtransitCents int, tseData *TSEData) (e.Event, error) {
-	if tseData != nil {
-		if err := tseData.Validate(); err != nil {
-			return e.Event{}, err
-		}
-	}
-
-	data := tagesabschlussErstelltV1Data{
+	data := TagesabschlussErstelltV1Data{
 		ZNr:               zNr,
 		ZeitraumVon:       zeitraumVon,
 		ZeitraumBis:       zeitraumBis,
@@ -237,7 +196,6 @@ func newTagesabschlussErstelltEvent(subject string, userID int, userName string,
 		AuszahlungenCents: auszahlungenCents,
 		GeldtransitCents:  geldtransitCents,
 		ErstelltVon:       userID,
-		TSEData:           tseData,
 	}
 
 	if err := tagesabschlussErstelltV1DataSchema.Validate(&data); err != nil {

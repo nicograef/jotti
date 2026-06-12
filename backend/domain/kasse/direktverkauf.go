@@ -17,14 +17,14 @@ func ComputeNichtStornierteVerkaufPositionen(events []e.Event) ([]Position, erro
 	for _, evt := range events {
 		switch evt.Type {
 		case string(EventTypeDirektverkaufGetaetigtV1):
-			var data direktverkaufGetaetigtV1Data
+			var data DirektverkaufGetaetigtV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal direktverkauf getaetigt data: %w", err)
 			}
 			nichtStorniert = accumulatePositionen(nichtStorniert, fromPositionenEventData(data.Positionen))
 
 		case string(EventTypeDirektverkaufStorniertV1):
-			var data direktverkaufStorniertV1Data
+			var data DirektverkaufStorniertV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal direktverkauf storniert data: %w", err)
 			}
@@ -70,7 +70,7 @@ func BuildDirektverkaufHistorieEintrag(events []e.Event) (DirektverkaufHistorieE
 	for _, evt := range events {
 		switch evt.Type {
 		case string(EventTypeDirektverkaufGetaetigtV1):
-			var data direktverkaufGetaetigtV1Data
+			var data DirektverkaufGetaetigtV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return DirektverkaufHistorieEintrag{}, fmt.Errorf("unmarshal direktverkauf getaetigt data: %w", err)
 			}
@@ -85,7 +85,7 @@ func BuildDirektverkaufHistorieEintrag(events []e.Event) (DirektverkaufHistorieE
 			eintrag.OffenePositionen = accumulatePositionen(nil, positionen)
 
 		case string(EventTypeDirektverkaufStorniertV1):
-			var data direktverkaufStorniertV1Data
+			var data DirektverkaufStorniertV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return DirektverkaufHistorieEintrag{}, fmt.Errorf("unmarshal direktverkauf storniert data: %w", err)
 			}

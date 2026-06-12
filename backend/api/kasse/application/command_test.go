@@ -261,7 +261,7 @@ func TestGeldtransitBuchen_MitTSE_DatenImEvent(t *testing.T) {
 		t.Fatalf("expected one event, got %d", len(events))
 	}
 
-	var data geldtransitGebuchtV1Data
+	var data kasse.GeldtransitGebuchtV1Data
 	if err := json.Unmarshal(events[0].Data, &data); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
@@ -320,7 +320,7 @@ func TestKassensturzDurchfuehren_MitTSE_SigniertNurDifferenzEvent(t *testing.T) 
 		t.Fatalf("expected second event differenz, got %q", events[1].Type)
 	}
 
-	var diff differenzSollIstGebuchtV1Data
+	var diff kasse.DifferenzSollIstGebuchtV1Data
 	if err := json.Unmarshal(events[1].Data, &diff); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
@@ -380,7 +380,7 @@ func TestTagesabschlussErstellen_MitTSE_DatenImEvent(t *testing.T) {
 		t.Fatalf("expected second event tagesabschluss, got %q", events[1].Type)
 	}
 
-	var data tagesabschlussErstelltV1Data
+	var data kasse.TagesabschlussErstelltV1Data
 	if err := json.Unmarshal(events[1].Data, &data); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}

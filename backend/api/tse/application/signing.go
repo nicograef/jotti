@@ -2,9 +2,7 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -43,34 +41,9 @@ type Signierung struct {
 // EmbedTSE persistiert das Signier-Ergebnis in den Daten eines konkreten
 // Event-Typs: die tx-ID (`tseTxId`) immer, die TSE-Daten nur bei Erfolg.
 // data == nil bedeutet Ausfall; Event-Typen mit Ausfallvermerk setzen dann
-// ihr TSEAusfall-Flag.
+// ihr TSEAusfall-Flag. Die konkreten Embed-Funktionen leben in domain/kasse
+// (kasse.EmbedTSEIn…), das ihr Payload-Schema besitzt.
 type EmbedTSE func(evt event.Event, txID string, data *kasse.TSEData) (event.Event, error)
-
-// EmbedTSEInData baut eine EmbedTSE-Funktion fuer einen Event-Data-Typ T:
-// Typ-Check, JSON-Roundtrip und Zurueckschreiben sind fuer alle Event-Typen
-// identisch, nur das Setzen der TSE-Felder (apply) ist typspezifisch.
-func EmbedTSEInData[T any](eventType kasse.EventType, apply func(data *T, txID string, tseData *kasse.TSEData)) EmbedTSE {
-	return func(evt event.Event, txID string, tseData *kasse.TSEData) (event.Event, error) {
-		if evt.Type != string(eventType) {
-			return event.Event{}, fmt.Errorf("unsupported event type for TSE data: %s", evt.Type)
-		}
-
-		var data T
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return event.Event{}, err
-		}
-
-		apply(&data, txID, tseData)
-
-		encoded, err := json.Marshal(data)
-		if err != nil {
-			return event.Event{}, err
-		}
-
-		evt.Data = encoded
-		return evt, nil
-	}
-}
 
 // Signierer orchestriert die synchrone TSE-Signierung von Events fuer alle
 // Kassen-Kontexte (Tisch, Direktverkauf, Kassensitzung). Ohne SettingsRepo/

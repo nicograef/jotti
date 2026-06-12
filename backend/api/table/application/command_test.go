@@ -703,7 +703,7 @@ func TestZahlungKassieren_MitTSESignaturImEvent(t *testing.T) {
 		t.Fatalf("expected exactly one event, got %d", len(events))
 	}
 
-	var data zahlungKassiertV1Data
+	var data kasse.ZahlungKassiertV1Data
 	if err := json.Unmarshal(events[0].Data, &data); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
@@ -784,7 +784,7 @@ func TestZahlungKassieren_OhneTSEKonfiguration_Unsigniert(t *testing.T) {
 		t.Fatalf("expected exactly one event, got %d", len(events))
 	}
 
-	var data zahlungKassiertV1Data
+	var data kasse.ZahlungKassiertV1Data
 	if err := json.Unmarshal(events[0].Data, &data); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
@@ -843,7 +843,7 @@ func TestZahlungKassieren_BeiTSEAusfall_NichtBlockierendMitNachsignierAuftrag(t 
 		t.Fatalf("expected exactly one event, got %d", len(events))
 	}
 
-	var data zahlungKassiertV1Data
+	var data kasse.ZahlungKassiertV1Data
 	if err := json.Unmarshal(events[0].Data, &data); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
@@ -928,7 +928,7 @@ func TestZahlungKassieren_TSEDeadline_DanachAusfallpfad(t *testing.T) {
 		t.Fatalf("expected exactly one event, got %d", len(events))
 	}
 
-	var data zahlungKassiertV1Data
+	var data kasse.ZahlungKassiertV1Data
 	if err := json.Unmarshal(events[0].Data, &data); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
@@ -988,7 +988,7 @@ func TestBestellungAufnehmen_MitTSE_DatenImEvent(t *testing.T) {
 		t.Fatalf("expected exactly one event, got %d", len(events))
 	}
 
-	var data bestellungAufgenommenV1Data
+	var data kasse.BestellungAufgenommenV1Data
 	if err := json.Unmarshal(events[0].Data, &data); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
@@ -1098,7 +1098,7 @@ func TestAuszahlungLeisten_MitTSE_DatenImEvent(t *testing.T) {
 		t.Fatalf("expected exactly one event, got %d", len(events))
 	}
 
-	var data auszahlungGeleistetV1Data
+	var data kasse.AuszahlungGeleistetV1Data
 	if err := json.Unmarshal(events[0].Data, &data); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
@@ -1617,7 +1617,7 @@ func TestKassenbelegDrucken_WithTSEData_ContainsTSEBlock(t *testing.T) {
 		ProcessType:       "Kassenbeleg-V1",
 	}
 
-	zahlungEvent, err := kasse.NewZahlungKassiertEventMitTSE(subject, 1, "Test User", []kasse.Position{
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{
 		{
 			PositionID:   "11111111-1111-1111-1111-111111111111",
 			VarianteID:   1,
@@ -1627,9 +1627,13 @@ func TestKassenbelegDrucken_WithTSEData_ContainsTSEBlock(t *testing.T) {
 			Einzelpreis: 350,
 			Menge:       1,
 		},
-	}, 350, "", tseData)
+	}, 350, "")
 	if err != nil {
 		t.Fatalf("expected no event error, got %v", err)
+	}
+	zahlungEvent, err = kasse.EmbedTSEInZahlungKassiert(zahlungEvent, "tx-zahlung-beleg", tseData)
+	if err != nil {
+		t.Fatalf("expected no embed error, got %v", err)
 	}
 
 	var eventData struct {
@@ -1794,7 +1798,7 @@ func TestKassenbelegDrucken_UsesBackfilledTSESignaturAusSeitentabelle(t *testing
 	// Ausfall beim Kassieren: Event traegt nur die tx-ID, die Signatur wurde
 	// spaeter vom Worker in die Seitentabelle nachgetragen.
 	txID := "7d9e8c4a-1c2b-4d3e-9f4a-5b6c7d8e9f0a"
-	zahlungEvent, err = withZahlungEventTSE(zahlungEvent, txID, nil)
+	zahlungEvent, err = kasse.EmbedTSEInZahlungKassiert(zahlungEvent, txID, nil)
 	if err != nil {
 		t.Fatalf("expected no event mutation error, got %v", err)
 	}
@@ -1878,7 +1882,7 @@ func TestKassenbelegDrucken_BeiOffenemTSEAusfall_MitAusfallvermerk(t *testing.T)
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	zahlungEvent, err = withZahlungEventTSE(zahlungEvent, "0f2c1c0e-6a51-4f7e-9a93-2dd35d8f3a10", nil)
+	zahlungEvent, err = kasse.EmbedTSEInZahlungKassiert(zahlungEvent, "0f2c1c0e-6a51-4f7e-9a93-2dd35d8f3a10", nil)
 	if err != nil {
 		t.Fatalf("expected no event mutation error, got %v", err)
 	}
@@ -2136,14 +2140,18 @@ func TestKassenbelegDrucken_Direktverkauf_MitTSEDatenAusEvent(t *testing.T) {
 	verkaufID := uuid.New().String()
 	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
 
-	verkaufEvent, err := kasse.NewDirektverkaufGetaetigtEventMitTSE(subject, verkaufID, 1, "Test User", []kasse.Position{{
+	verkaufEvent, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "Test User", []kasse.Position{{
 		VarianteID:   1,
 		ProduktName:  "Cola",
 		VarianteName: "0,5l",
 		Kategorie:    "getraenk", Steuersatz: "regel",
 		Einzelpreis: 350,
 		Menge:       2,
-	}}, "", &kasse.TSEData{
+	}}, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+	verkaufEvent, err = kasse.EmbedTSEInDirektverkaufGetaetigt(verkaufEvent, "tx-verkauf-beleg", &kasse.TSEData{
 		TransactionNumber: 4001,
 		SignatureCounter:  99,
 		SerialNumberTSE:   "SW-TSE-SN-0044",
@@ -2154,7 +2162,7 @@ func TestKassenbelegDrucken_Direktverkauf_MitTSEDatenAusEvent(t *testing.T) {
 		QRCodeData:        "V0;DIREKTVERKAUF",
 	})
 	if err != nil {
-		t.Fatalf("expected no event error, got %v", err)
+		t.Fatalf("expected no embed error, got %v", err)
 	}
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
@@ -2207,7 +2215,7 @@ func TestKassenbelegDrucken_Direktverkauf_UsesBackfilledTSESignaturAusSeitentabe
 	// Ausfall beim Direktverkauf: Event traegt nur die tx-ID, die Signatur
 	// wurde spaeter vom Worker in die Seitentabelle nachgetragen.
 	txID := "3a1f5b27-9c4d-4e8f-8a6b-1c2d3e4f5a6b"
-	var verkaufData direktverkaufGetaetigtV1Data
+	var verkaufData kasse.DirektverkaufGetaetigtV1Data
 	if err := json.Unmarshal(verkaufEvent.Data, &verkaufData); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
@@ -2274,7 +2282,7 @@ func TestKassenbelegDrucken_Direktverkauf_BeiOffenemTSEAusfall_MitAusfallvermerk
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	var verkaufData direktverkaufGetaetigtV1Data
+	var verkaufData kasse.DirektverkaufGetaetigtV1Data
 	if err := json.Unmarshal(verkaufEvent.Data, &verkaufData); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
@@ -2332,7 +2340,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	stornoEvent, err := kasse.NewDirektverkaufStorniertEventMitTSE(subject, verkaufID, 2, "Leitung", []kasse.Position{{
+	stornoEvent, err := kasse.NewDirektverkaufStorniertEvent(subject, verkaufID, 2, "Leitung", []kasse.Position{{
 		PositionID:   "11111111-1111-4111-8111-111111111111",
 		VarianteID:   1,
 		ProduktName:  "Cola",
@@ -2340,7 +2348,11 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 		Kategorie:    "getraenk", Steuersatz: "regel",
 		Einzelpreis: 350,
 		Menge:       2,
-	}}, 700, "Rückgabe", &kasse.TSEData{
+	}}, 700, "Rückgabe")
+	if err != nil {
+		t.Fatalf("expected no storno event error, got %v", err)
+	}
+	stornoEvent, err = kasse.EmbedTSEInDirektverkaufStorniert(stornoEvent, "tx-verkauf-storno-beleg", &kasse.TSEData{
 		TransactionNumber: 4003,
 		SignatureCounter:  101,
 		SerialNumberTSE:   "SW-TSE-SN-0044",
@@ -2351,10 +2363,10 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 		QRCodeData:        "V0;STORNO",
 	})
 	if err != nil {
-		t.Fatalf("expected no storno event error, got %v", err)
+		t.Fatalf("expected no storno embed error, got %v", err)
 	}
 
-	var stornoData direktverkaufStorniertV1Data
+	var stornoData kasse.DirektverkaufStorniertV1Data
 	if err := json.Unmarshal(stornoEvent.Data, &stornoData); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}

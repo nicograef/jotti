@@ -18,7 +18,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func toKassePositionen(positionen []zahlungPositionData) []kasse.Position {
+func toKassePositionen(positionen []kasse.PositionEventData) []kasse.Position {
 	out := make([]kasse.Position, 0, len(positionen))
 	for _, pos := range positionen {
 		out = append(out, kasse.Position{
@@ -47,42 +47,22 @@ func toSteuermatrixPositionen(positionen []kasse.Position) []steuer.Steuermatrix
 	return matrixPositionen
 }
 
-func findZahlungEvent(events []event.Event, zahlungID string) (event.Event, zahlungKassiertV1Data, error) {
+func findZahlungEvent(events []event.Event, zahlungID string) (event.Event, kasse.ZahlungKassiertV1Data, error) {
 	for _, evt := range events {
 		if evt.Type != string(kasse.EventTypeZahlungKassiertV1) {
 			continue
 		}
 
-		var data zahlungKassiertV1Data
+		var data kasse.ZahlungKassiertV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return event.Event{}, zahlungKassiertV1Data{}, err
+			return event.Event{}, kasse.ZahlungKassiertV1Data{}, err
 		}
 		if data.ZahlungID == zahlungID {
 			return evt, data, nil
 		}
 	}
 
-	return event.Event{}, zahlungKassiertV1Data{}, ErrZahlungNichtGefunden
-}
-
-type direktverkaufGetaetigtV1Data struct {
-	VerkaufID         string                `json:"verkaufId"`
-	Positionen        []zahlungPositionData `json:"positionen"`
-	GesamtbetragCents int                   `json:"gesamtbetragCents"`
-	Kommentar         string                `json:"kommentar"`
-	TSETxID           string                `json:"tseTxId,omitempty"`
-	TSEData           *kasse.TSEData        `json:"tseData,omitempty"`
-	TSEAusfall        bool                  `json:"tseAusfall,omitempty"`
-}
-
-type direktverkaufStorniertV1Data struct {
-	StornierungID          string                `json:"stornierungId"`
-	VerkaufID              string                `json:"verkaufId"`
-	Positionen             []zahlungPositionData `json:"positionen"`
-	GesamtStornierungCents int                   `json:"gesamtStornierungCents"`
-	Kommentar              string                `json:"kommentar"`
-	TSETxID                string                `json:"tseTxId,omitempty"`
-	TSEData                *kasse.TSEData        `json:"tseData,omitempty"`
+	return event.Event{}, kasse.ZahlungKassiertV1Data{}, ErrZahlungNichtGefunden
 }
 
 func toTSEAbschnitt(data *kasse.TSEData) (*escpos.TSEAbschnitt, error) {
@@ -110,40 +90,40 @@ func toTSEAbschnitt(data *kasse.TSEData) (*escpos.TSEAbschnitt, error) {
 	}, nil
 }
 
-func findDirektverkaufGetaetigtEvent(events []event.Event, verkaufID string) (event.Event, direktverkaufGetaetigtV1Data, error) {
+func findDirektverkaufGetaetigtEvent(events []event.Event, verkaufID string) (event.Event, kasse.DirektverkaufGetaetigtV1Data, error) {
 	for _, evt := range events {
 		if evt.Type != string(kasse.EventTypeDirektverkaufGetaetigtV1) {
 			continue
 		}
 
-		var data direktverkaufGetaetigtV1Data
+		var data kasse.DirektverkaufGetaetigtV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return event.Event{}, direktverkaufGetaetigtV1Data{}, err
+			return event.Event{}, kasse.DirektverkaufGetaetigtV1Data{}, err
 		}
 		if data.VerkaufID == verkaufID {
 			return evt, data, nil
 		}
 	}
 
-	return event.Event{}, direktverkaufGetaetigtV1Data{}, ErrVerkaufNichtGefunden
+	return event.Event{}, kasse.DirektverkaufGetaetigtV1Data{}, ErrVerkaufNichtGefunden
 }
 
-func findDirektverkaufStorniertEvent(events []event.Event, stornierungID string) (event.Event, direktverkaufStorniertV1Data, error) {
+func findDirektverkaufStorniertEvent(events []event.Event, stornierungID string) (event.Event, kasse.DirektverkaufStorniertV1Data, error) {
 	for _, evt := range events {
 		if evt.Type != string(kasse.EventTypeDirektverkaufStorniertV1) {
 			continue
 		}
 
-		var data direktverkaufStorniertV1Data
+		var data kasse.DirektverkaufStorniertV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return event.Event{}, direktverkaufStorniertV1Data{}, err
+			return event.Event{}, kasse.DirektverkaufStorniertV1Data{}, err
 		}
 		if data.StornierungID == stornierungID {
 			return evt, data, nil
 		}
 	}
 
-	return event.Event{}, direktverkaufStorniertV1Data{}, ErrStornierungNichtGefunden
+	return event.Event{}, kasse.DirektverkaufStorniertV1Data{}, ErrStornierungNichtGefunden
 }
 
 // tseAbschnittFuerBeleg resolves the TSE section of a Kassenbeleg: signature data from the

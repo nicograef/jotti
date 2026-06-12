@@ -14,12 +14,14 @@ const (
 	EventTypeDirektverkaufStorniertV1 EventType = "direktverkauf-storniert:v1"
 )
 
-type direktverkaufGetaetigtV1Data struct {
+type DirektverkaufGetaetigtV1Data struct {
 	VerkaufID         string              `json:"verkaufId"`
-	Positionen        []positionEventData `json:"positionen"`
+	Positionen        []PositionEventData `json:"positionen"`
 	GesamtbetragCents int                 `json:"gesamtbetragCents"`
 	Kommentar         string              `json:"kommentar"`
+	TSETxID           string              `json:"tseTxId,omitempty"`
 	TSEData           *TSEData            `json:"tseData,omitempty"`
+	TSEAusfall        bool                `json:"tseAusfall,omitempty"`
 }
 
 var direktverkaufGetaetigtV1DataSchema = z.Struct(z.Shape{
@@ -29,15 +31,16 @@ var direktverkaufGetaetigtV1DataSchema = z.Struct(z.Shape{
 	"Kommentar":         z.String().Max(100),
 })
 
-// direktverkaufStorniertV1Data stores the cancelled positions as fat positions — self-contained
+// DirektverkaufStorniertV1Data stores the cancelled positions as fat positions — self-contained
 // for reporting, consistent with the Tisch-Storno (stornierung-erteilt:v1).
 // The json-keys are stable and must not be changed (immutable events).
-type direktverkaufStorniertV1Data struct {
+type DirektverkaufStorniertV1Data struct {
 	StornierungID          string              `json:"stornierungId"`
 	VerkaufID              string              `json:"verkaufId"`
-	Positionen             []positionEventData `json:"positionen"`
+	Positionen             []PositionEventData `json:"positionen"`
 	GesamtStornierungCents int                 `json:"gesamtStornierungCents"`
 	Kommentar              string              `json:"kommentar"`
+	TSETxID                string              `json:"tseTxId,omitempty"`
 	TSEData                *TSEData            `json:"tseData,omitempty"`
 }
 
@@ -52,20 +55,6 @@ var direktverkaufStorniertV1DataSchema = z.Struct(z.Shape{
 // NewDirektverkaufGetaetigtEvent creates the single event for a completed Direktverkauf.
 // PositionIDs are generated server-side and GesamtbetragCents is derived from the positions.
 func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int, userName string, positionen []Position, kommentar string) (e.Event, error) {
-	return newDirektverkaufGetaetigtEvent(subject, verkaufID, userID, userName, positionen, kommentar, nil)
-}
-
-func NewDirektverkaufGetaetigtEventMitTSE(subject string, verkaufID string, userID int, userName string, positionen []Position, kommentar string, tseData *TSEData) (e.Event, error) {
-	return newDirektverkaufGetaetigtEvent(subject, verkaufID, userID, userName, positionen, kommentar, tseData)
-}
-
-func newDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int, userName string, positionen []Position, kommentar string, tseData *TSEData) (e.Event, error) {
-	if tseData != nil {
-		if err := tseData.Validate(); err != nil {
-			return e.Event{}, err
-		}
-	}
-
 	// Generate PositionIDs for each position (on a copy, so the caller's slice stays untouched)
 	positionen = slices.Clone(positionen)
 	for i := range positionen {
@@ -77,12 +66,11 @@ func newDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 		gesamtbetragCents += pos.Einzelpreis * pos.Menge
 	}
 
-	data := direktverkaufGetaetigtV1Data{
+	data := DirektverkaufGetaetigtV1Data{
 		VerkaufID:         verkaufID,
 		Positionen:        toPositionenEventData(positionen),
 		GesamtbetragCents: gesamtbetragCents,
 		Kommentar:         kommentar,
-		TSEData:           tseData,
 	}
 
 	if err := direktverkaufGetaetigtV1DataSchema.Validate(&data); err != nil {
@@ -103,27 +91,12 @@ func newDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 // monetary impact is carried by gesamtStornierungCents, which the command computes from the
 // not-yet-cancelled positions. StornierungID is generated server-side.
 func NewDirektverkaufStorniertEvent(subject string, verkaufID string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
-	return newDirektverkaufStorniertEvent(subject, verkaufID, userID, userName, positionen, gesamtStornierungCents, kommentar, nil)
-}
-
-func NewDirektverkaufStorniertEventMitTSE(subject string, verkaufID string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string, tseData *TSEData) (e.Event, error) {
-	return newDirektverkaufStorniertEvent(subject, verkaufID, userID, userName, positionen, gesamtStornierungCents, kommentar, tseData)
-}
-
-func newDirektverkaufStorniertEvent(subject string, verkaufID string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string, tseData *TSEData) (e.Event, error) {
-	if tseData != nil {
-		if err := tseData.Validate(); err != nil {
-			return e.Event{}, err
-		}
-	}
-
-	data := direktverkaufStorniertV1Data{
+	data := DirektverkaufStorniertV1Data{
 		StornierungID:          uuid.New().String(),
 		VerkaufID:              verkaufID,
 		Positionen:             toPositionenEventData(positionen),
 		GesamtStornierungCents: gesamtStornierungCents,
 		Kommentar:              kommentar,
-		TSEData:                tseData,
 	}
 
 	if err := direktverkaufStorniertV1DataSchema.Validate(&data); err != nil {
