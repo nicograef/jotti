@@ -21,6 +21,7 @@ import type { TischBackend } from '../../table/TischBackend'
 import { KommentarField } from './CommentField'
 import { calculateTotalPrice } from './drawerUtils'
 import { Receipt, type ReceiptPosition } from './Receipt'
+import { StickyActionBar } from './StickyActionBar'
 
 interface BestellungDrawerProps {
   backend: Pick<TischBackend, 'bestellungAufnehmen'>
@@ -38,6 +39,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
     props.mengen,
   )
   const totalPrice = calculateTotalPrice(receiptItems)
+  const anzahl = inputItems.reduce((sum, item) => sum + item.menge, 0)
   const noPositionenSelected = inputItems.length === 0
 
   const { loading, run } = useActionSubmit({
@@ -73,14 +75,12 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
-        <div className="text-center">
-          <Button
-            className="cursor-pointer hover:shadow-sm w-full lg:w-1/2"
-            disabled={noPositionenSelected}
-          >
-            Bestellung überprüfen
-          </Button>
-        </div>
+        <StickyActionBar
+          label="Bestellung überprüfen"
+          anzahl={anzahl}
+          summeCents={totalPrice}
+          disabled={noPositionenSelected}
+        />
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">

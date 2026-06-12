@@ -112,7 +112,7 @@ export function TablePage() {
             </TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="order" className={isMobile ? 'pb-24' : ''}>
+        <TabsContent value="order" className="pb-40 md:pb-28">
           {!stateLoading && (
             <>
               {offenePositionen > 0 && (
@@ -136,7 +136,7 @@ export function TablePage() {
             </>
           )}
         </TabsContent>
-        <TabsContent value="payment" className={isMobile ? 'pb-24' : ''}>
+        <TabsContent value="payment" className="pb-40 md:pb-28">
           {!stateLoading && (
             <Zahlung
               backend={tischBackend}

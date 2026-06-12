@@ -324,11 +324,11 @@ seiner Stelle. Die Listen erhalten ausreichend Padding nach unten (analog zum be
 
 ### Acceptance criteria
 
-- [ ] Komponententest: Leiste zeigt Positionsanzahl und Summe der Auswahl
-- [ ] Komponententest: Leiste ist ohne gewählte Position deaktiviert
-- [ ] Klick auf die Leiste öffnet den Review-Drawer (Bestellung bzw. Zahlung); Drawer
+- [x] Komponententest: Leiste zeigt Positionsanzahl und Summe der Auswahl
+- [x] Komponententest: Leiste ist ohne gewählte Position deaktiviert
+- [x] Klick auf die Leiste öffnet den Review-Drawer (Bestellung bzw. Zahlung); Drawer
       unverändert
 - [ ] Manuelle Prüfung (mobiler Viewport): Leiste verdeckt die Tab-Leiste nicht, kein
       Listeneintrag verschwindet hinter den Leisten, Aktion ohne Scrollen erreichbar
-- [ ] Auszahlung weiterhin im Kassieren-Tab erreichbar
-- [ ] `make lint` und Frontend-Tests grün
+- [x] Auszahlung weiterhin im Kassieren-Tab erreichbar
+- [x] `make lint` und Frontend-Tests grün

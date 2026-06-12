@@ -29,6 +29,7 @@ import {
   toReceiptItems,
 } from './drawerUtils'
 import { Receipt } from './Receipt'
+import { StickyActionBar } from './StickyActionBar'
 
 interface ZahlungDrawerProps {
   backend: Pick<TischBackend, 'zahlungKassieren'>
@@ -48,6 +49,7 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
     props.mengen,
   )
   const totalPrice = calculateTotalPrice(positionenToPay)
+  const anzahl = positionenToPay.reduce((sum, p) => sum + p.menge, 0)
   const { rueckgeldCents, trinkgeldCents } = calculateZahlungsbetraege(
     totalPrice,
     parseCents(erhaltenEuro),
@@ -91,12 +93,12 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
-        <Button
+        <StickyActionBar
+          label="Kassieren"
+          anzahl={anzahl}
+          summeCents={totalPrice}
           disabled={noPositionenSelected}
-          className="cursor-pointer hover:shadow-sm w-full"
-        >
-          Kassieren
-        </Button>
+        />
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">

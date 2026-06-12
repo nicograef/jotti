@@ -71,34 +71,30 @@ export function Zahlung({
 
   return (
     <>
-      <div className="flex gap-2">
-        {AuthSingleton.canCancel && (
-          <div className={saldoCents < 0 ? 'flex-1' : 'flex-none'}>
-            <AuszahlungDrawer
-              backend={backend}
-              tisch={tisch}
-              saldoCents={saldoCents}
-              auszahlungGeleistet={() => {
-                toast.success(`Auszahlung erfolgreich.`)
-                onAuszahlungGeleistet()
-              }}
-            />
-          </div>
-        )}
-        <div className="flex-1">
-          <ZahlungDrawer
+      {AuthSingleton.canCancel && (
+        <div className={saldoCents < 0 ? 'mb-4' : 'mb-4 w-fit'}>
+          <AuszahlungDrawer
             backend={backend}
             tisch={tisch}
-            unbezahltePositionen={positionen}
-            mengen={mengen}
-            zahlungKassiert={() => {
-              setMengen({})
-              toast.success(`Zahlung erfolgreich.`)
-              onZahlungKassiert()
+            saldoCents={saldoCents}
+            auszahlungGeleistet={() => {
+              toast.success(`Auszahlung erfolgreich.`)
+              onAuszahlungGeleistet()
             }}
           />
         </div>
-      </div>
+      )}
+      <ZahlungDrawer
+        backend={backend}
+        tisch={tisch}
+        unbezahltePositionen={positionen}
+        mengen={mengen}
+        zahlungKassiert={() => {
+          setMengen({})
+          toast.success(`Zahlung erfolgreich.`)
+          onZahlungKassiert()
+        }}
+      />
       <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
         {loading
           ? Array.from({ length: 6 }).map((_, index) => (
