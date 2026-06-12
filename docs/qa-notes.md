@@ -1,6 +1,6 @@
 # Notes from QA Session
 
-### Internal Server Error for plausible domain error
+### 1. Internal Server Error for plausible domain error
 
 **What?**
 When a user sets up jotti freshly and tries to open a new (first) Kassensitzung on frontend/src/admin/kasse/KassensitzungPage.tsx the backend responds with 500 and the user only sees a general error message in the toast.
@@ -16,7 +16,7 @@ If the Betreiber-Stammdaten are not found (i.e. not configured yet by user) this
 
 ---
 
-### toast has only neutral color
+### 2. toast has only neutral color
 
 **What?**
 The toast always appears in a neutral color/theme. The user cannot differentiate a successfull toast from a warning or error feedback.
@@ -26,7 +26,7 @@ Use info, success, warning and error themese for the toast given the context and
 
 ---
 
-### Produktvarianten ui glitch
+### 3. Produktvarianten ui glitch
 
 **What?**
 When activating or deactivating a product variant, the order of the product variants in the ui changes unintentionally.
@@ -37,7 +37,18 @@ Stable sorting/ordering by id or name or created date.
 
 ---
 
-### Direktverkauf is too prominent in the UI
+### 4. Druckstationen ui glitch
+
+**What?**
+When saving a Druckstation (e.g. setting IP or bon mode), the order of the Druckstationen in the ui changes unintentionally.
+See frontend/src/admin/settings/DruckstationConfigPage.tsx
+
+**Suggestion**
+Stable sorting/ordering by category or hardcoded.
+
+---
+
+### 5. Direktverkauf is too prominent in the UI
 
 **What?**
 There are two modes in jotti: Table-Services and Direktverkauf. Some Vereine use only one mode for their Vereinsfeste. And the ones that use both dont need to switch easily: the users are either Servicekräfte (waiters) that take orders and payments from tables (mostly their selected favorites) OR are working at a stationary POS (Direktverkauf) where the is no service but customers order and pay at the cash register (Verkaufsstelle) and get a pick-up bon (Abholbon). This means one must only open the Direktverkauf Mode once at the beginning and then is working inside this mode for hours probably. And the service servicing tables dont use this mode at all.
@@ -48,7 +59,7 @@ Reconsider the Direkverkauf mode, the separation between the two modes and rewor
 
 ---
 
-### Refresh on favorite change
+### 6. Refresh on favorite change
 
 **What?**
 When a service user selects or deselects a table as a favorite, the favorite list (Meine Tische) is not being refreshed (invalidate query) so the favorite os only shown (or hidden) on a hard page refresh.
@@ -61,7 +72,7 @@ See
 
 ---
 
-### Non-Sticky primary action buttons
+### 7. Non-Sticky primary action buttons
 
 **What?**
 On the table page for the tabs "Bestellen" and "Kassieren" the primary action buttons (i.e. submit/review Bestellung and submit/review Zahlung) are at the top of the page. However, the page is very long and users must scroll down to add products. In order to actually perform order or payment, service users must scroll to the top first which is cumbersome and bad ux.
@@ -72,3 +83,13 @@ See frontend/src/service/components/table/ZahlungDrawer.tsx
 Rethink the UI and UX of the Table Page, evaluate floating action buttons, bottom buttons, sticky headers or sticky buttons.
 
 ---
+
+### 8. zog considers zero values as invalid
+
+**What?**
+One quirk of schema.Validate() is that it will consider zero values as invalid if the schema is required (e.g. int=0, string=""). When a user wants to open a new Kassensitzung (cash register session) the schema and UI allows 0 Cents, but the backend throws a 400 error because the betragCents is required in the schema and zog treats the zero value as undefined/nullish in go.
+See frontend/src/admin/kasse/KassensitzungPage.tsx
+See https://zog.dev/core-concepts/validate/#required-and-zero-values
+
+**Suggestion**
+Find a proper solution to this. Also, should jotti allow 0 Cents for opening a session? That would mean no change money. (However, it can be added afterwards via Geldtransit.)
