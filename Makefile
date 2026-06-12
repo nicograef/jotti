@@ -7,7 +7,7 @@
        build-backend build-frontend build \
        sqlc \
        prod-init prod-up prod-down prod-logs \
-       jotti-rocks-init jotti-rocks-up jotti-rocks-down jotti-rocks-logs jotti-rocks-reset-db jotti-rocks-reset-and-seed \
+       rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed \
        local-up local-down local-logs local-reset-db local-reset-and-seed \
        db-shell seed rebuild-projections \
        clean \
@@ -124,26 +124,26 @@ prod-logs: ## Produktions-Stack Logs folgen
 # jotti.rocks Deployment
 # ──────────────────────────────────────────────
 
-jotti-rocks-init: ## jotti.rocks Ersteinrichtung (Zertifikate für alle Domains, Stack)
-	./scripts/jotti-rocks-init.sh
+rocks-init: ## jotti.rocks Ersteinrichtung (Zertifikate für alle Domains, Stack)
+	./scripts/rocks-init.sh
 
-jotti-rocks-up: ## jotti.rocks Stack starten/aktualisieren (Landing + Demo App, inkl. nginx-Config)
-	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml up -d --build
-	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml up -d --no-deps --force-recreate reverse-proxy
+rocks-up: ## jotti.rocks Stack starten/aktualisieren (Landing + Demo App, inkl. nginx-Config)
+	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml up -d --build
+	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml up -d --no-deps --force-recreate reverse-proxy
 
-jotti-rocks-down: ## jotti.rocks Stack stoppen
-	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml down
+rocks-down: ## jotti.rocks Stack stoppen
+	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml down
 
-jotti-rocks-logs: ## jotti.rocks Stack Logs folgen
-	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml logs -f
+rocks-logs: ## jotti.rocks Stack Logs folgen
+	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml logs -f
 
-jotti-rocks-reset-db: ## jotti.rocks-DB zurücksetzen (Zertifikate bleiben erhalten) — nur Demo/Staging
-	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml down
+rocks-reset-db: ## jotti.rocks-DB zurücksetzen (Zertifikate bleiben erhalten) — nur Demo/Staging
+	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml down
 	docker volume rm jotti_postgres-data
-	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml up -d --build
+	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml up -d --build
 
-jotti-rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (SSL bleibt erhalten) — nur Demo/Staging
-	./scripts/jotti-rocks-reset-and-seed.sh --yes
+rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (SSL bleibt erhalten) — nur Demo/Staging
+	./scripts/rocks-reset-and-seed.sh --yes
 
 # ──────────────────────────────────────────────
 # Lokaler Betrieb (LAN, HTTPS selbstsigniert)   

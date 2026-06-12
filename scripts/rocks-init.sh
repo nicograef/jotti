@@ -8,10 +8,10 @@ set -euo pipefail
 #   - https://jotti.rocks        → static landing page
 #   - https://demo.jotti.rocks   → demo app (frontend + backend API)
 #
-# Uses docker-compose.prod.yml + docker-compose.jotti-rocks.yml override.
+# Uses docker-compose.prod.yml + docker-compose.rocks.yml override.
 # Self-hosters should use scripts/prod-init.sh instead.
 #
-# Usage: ./scripts/jotti-rocks-init.sh
+# Usage: ./scripts/rocks-init.sh
 # =============================================================================
 
 # ---------------------------------------------------------------------------
@@ -23,7 +23,7 @@ DOMAIN_DEMO="demo.jotti.rocks"
 EMAIL="graef.nico@gmail.com"
 
 COMPOSE_CERT="docker-compose.initial-cert.yml"
-COMPOSE_PROD="-f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml"
+COMPOSE_PROD="-f docker-compose.prod.yml -f docker-compose.rocks.yml"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -70,8 +70,8 @@ fi
 if [[ ! -f docker-compose.prod.yml ]]; then
   fatal "Missing compose file: docker-compose.prod.yml"
 fi
-if [[ ! -f docker-compose.jotti-rocks.yml ]]; then
-  fatal "Missing compose file: docker-compose.jotti-rocks.yml"
+if [[ ! -f docker-compose.rocks.yml ]]; then
+  fatal "Missing compose file: docker-compose.rocks.yml"
 fi
 
 info "Prerequisites OK."
@@ -183,9 +183,9 @@ echo "  Landing page:  https://$DOMAIN"
 echo "  Demo app:      https://$DOMAIN_DEMO"
 echo ""
 echo "  Useful commands:"
-echo "    make jotti-rocks-up     — Rebuild & restart"
-echo "    make jotti-rocks-down   — Stop all services"
-echo "    make jotti-rocks-logs   — Follow logs"
+echo "    make rocks-up     — Rebuild & restart"
+echo "    make rocks-down   — Stop all services"
+echo "    make rocks-logs   — Follow logs"
 echo ""
 echo "  Certificates renew automatically every 24h."
 echo "=========================================="

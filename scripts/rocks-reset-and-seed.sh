@@ -8,7 +8,7 @@ set -euo pipefail
 # production deployments. It uses the prod base file plus the jotti.rocks override so
 # the reverse-proxy keeps its dual-domain (landing + demo) config after the recreate.
 
-COMPOSE_FILES=(-f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml)
+COMPOSE_FILES=(-f docker-compose.prod.yml -f docker-compose.rocks.yml)
 DB_VOLUME="jotti_postgres-data"
 PG_SERVICE="postgres"
 BACKEND_SERVICE="backend"
@@ -25,7 +25,7 @@ fatal() { error "$1"; exit 1; }
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/jotti-rocks-reset-and-seed.sh [--yes]
+Usage: ./scripts/rocks-reset-and-seed.sh [--yes]
 
 Resets the jotti.rocks demo DB data and reloads seed data without touching SSL volumes.
 
@@ -57,7 +57,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 [[ -f "docker-compose.prod.yml" ]] || fatal "Missing docker-compose.prod.yml"
-[[ -f "docker-compose.jotti-rocks.yml" ]] || fatal "Missing docker-compose.jotti-rocks.yml"
+[[ -f "docker-compose.rocks.yml" ]] || fatal "Missing docker-compose.rocks.yml"
 
 command -v docker >/dev/null 2>&1 || fatal "docker not found in PATH"
 docker compose version >/dev/null 2>&1 || fatal "docker compose (v2) is not available"

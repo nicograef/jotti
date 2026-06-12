@@ -2,14 +2,14 @@
 # Adds the static landing page and swaps in the dual-domain nginx config.
 #
 # Usage (always combine with the base prod file):
-#   docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml up -d --build
+#   docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml up -d --build
 #
 # This file is NOT used by self-hosters — they use docker-compose.prod.yml alone.
 
 services:
   reverse-proxy:
     volumes:
-      - ./reverse-proxy/nginx.jotti-rocks.conf:/etc/nginx/conf.d/jotti.conf:ro
+      - ./reverse-proxy/nginx.rocks.conf:/etc/nginx/conf.d/jotti.conf:ro
       - ./website:/usr/share/nginx/html/landing:ro
       - certbot-challenges:/var/www/certbot
       - letsencrypt:/etc/letsencrypt
