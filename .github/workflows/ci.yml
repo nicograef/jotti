@@ -13,6 +13,7 @@ jobs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
       database: ${{ steps.changes.outputs.database }}
+      resolver: ${{ steps.changes.outputs.resolver }}
       website: ${{ steps.changes.outputs.website }}
     steps:
       - uses: actions/checkout@v6
@@ -27,6 +28,8 @@ jobs:
               - 'frontend/**'
             database:
               - 'database/**'
+            resolver:
+              - 'resolver/**'
             website:
               - 'website/**'
               - 'scripts/check-website.sh'
@@ -92,6 +95,43 @@ jobs:
         with:
           version: latest
           working-directory: ./backend
+
+  resolver-ci:
+    needs: changes
+    if: ${{ needs.changes.outputs.resolver == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./resolver
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.0
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Check format
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+          if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
+            echo "Code is not properly formatted:"
+            goimports -l .
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Test
+        run: go test -v -race ./...
 
   frontend-ci:
     needs: changes

@@ -11,7 +11,7 @@
        local-up local-down local-logs local-reset-db local-reset-and-seed \
        db-shell seed rebuild-projections \
        clean \
-	check-tools check-backend check-relay check-frontend check-integration check check-full verify \
+	check-tools check-backend check-relay check-resolver check-frontend check-integration check check-full verify \
        website \
        help
 
@@ -90,6 +90,9 @@ build-backend: ## Backend kompilieren
 
 build-relay: ## Print-Relay-Binary kompilieren
 	cd cmd/relay && go build ./...
+
+build-resolver: ## DNS-Resolver-Binary kompilieren
+	cd resolver && go build ./...
 
 build-frontend: ## Frontend kompilieren
 	cd frontend && pnpm build
@@ -207,13 +210,16 @@ check-backend: ## Backend komplett prüfen (Deps, Format, Lint, Test, Build)
 check-relay: ## Print-Relay komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd cmd/relay && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
+check-resolver: ## DNS-Resolver komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
+	cd resolver && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+
 check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
 	cd frontend && pnpm format:check && pnpm lint && pnpm test && pnpm build
 
 check-integration: ## Integrationstests gegen echte Datenbank ausführen
 	./test-integration.sh
 
-check: check-tools check-backend check-relay check-frontend ## Schnelle Komplettprüfung ohne DB-Integration
+check: check-tools check-backend check-relay check-resolver check-frontend ## Schnelle Komplettprüfung ohne DB-Integration
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 

@@ -221,15 +221,15 @@ DNS-Binary für `lokal.jotti.rocks` (sslip.io-Muster, `miekg/dns`).
 
 ### Acceptance criteria
 
-- [ ] `dig @localhost -p <port> 192-168-1-50.<id>.lokal.jotti.rocks A` liefert
+- [x] `dig @localhost -p <port> 192-168-1-50.<id>.lokal.jotti.rocks A` liefert
       `192.168.1.50` (auch für private IPs), TTL 86400.
-- [ ] `dig _acme-challenge.<id>.lokal.jotti.rocks` liefert den CNAME
+- [x] `dig _acme-challenge.<id>.lokal.jotti.rocks` liefert den CNAME
       `<id>.auth.jotti.rocks`.
-- [ ] Ungültige Namen liefern NXDOMAIN; der Zone-Apex beantwortet SOA und NS.
-- [ ] Anfragen für `*.auth.jotti.rocks` werden an die konfigurierte Adresse
+- [x] Ungültige Namen liefern NXDOMAIN; der Zone-Apex beantwortet SOA und NS.
+- [x] Anfragen für `*.auth.jotti.rocks` werden an die konfigurierte Adresse
       weitergeleitet und die Antwort durchgereicht.
-- [ ] Unit- und Integrationstests grün; Kernlogik ist eine reine Funktion.
-- [ ] Docker-Image baut; CI-Job läuft bei Änderungen unter `resolver/**`.
+- [x] Unit- und Integrationstests grün; Kernlogik ist eine reine Funktion.
+- [x] Docker-Image baut; CI-Job läuft bei Änderungen unter `resolver/**`.
 
 ---
 
