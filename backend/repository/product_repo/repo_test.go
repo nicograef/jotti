@@ -345,3 +345,59 @@ func TestDeletedVariantsNotReturned(t *testing.T) {
 		t.Fatalf("Expected 'Small' variant, got %s", p.Varianten[0].Name)
 	}
 }
+
+func TestVariantOrderStableAfterUpdate(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+	productID, _ := repo.CreateProduct(ctx, newProduct("Pizza", product.EssenKategorie))
+
+	firstID, _ := repo.CreateVariant(ctx, productID, newVariant("Klein", 899, product.ActiveStatus))
+	middleID, _ := repo.CreateVariant(ctx, productID, newVariant("Mittel", 1099, product.ActiveStatus))
+	lastID, _ := repo.CreateVariant(ctx, productID, newVariant("Groß", 1299, product.ActiveStatus))
+
+	// Updating the middle variant must not change its position in the aggregated
+	// variant list — without ORDER BY in the json_agg, Postgres may reorder rows.
+	err := repo.UpdateVariant(ctx, product.Variante{
+		ID:         middleID,
+		Name:       "Mittel neu",
+		PreisCents: 1150,
+		Status:     product.ActiveStatus,
+	})
+	if err != nil {
+		t.Fatalf("Expected no error updating variant, got %v", err)
+	}
+
+	wantOrder := []int{firstID, middleID, lastID}
+
+	p, err := repo.GetProduct(ctx, productID)
+	if err != nil {
+		t.Fatalf("Expected no error from GetProduct, got %v", err)
+	}
+	assertVariantOrder(t, "GetProduct", p.Varianten, wantOrder)
+
+	all, err := repo.GetAllProducts(ctx)
+	if err != nil {
+		t.Fatalf("Expected no error from GetAllProducts, got %v", err)
+	}
+	assertVariantOrder(t, "GetAllProducts", all[0].Varianten, wantOrder)
+
+	active, err := repo.GetActiveProducts(ctx)
+	if err != nil {
+		t.Fatalf("Expected no error from GetActiveProducts, got %v", err)
+	}
+	assertVariantOrder(t, "GetActiveProducts", active[0].Varianten, wantOrder)
+}
+
+func assertVariantOrder(t *testing.T, query string, varianten []product.Variante, wantIDs []int) {
+	t.Helper()
+	if len(varianten) != len(wantIDs) {
+		t.Fatalf("%s: expected %d variants, got %d", query, len(wantIDs), len(varianten))
+	}
+	for i, wantID := range wantIDs {
+		if varianten[i].ID != wantID {
+			t.Fatalf("%s: expected variant ID %d at position %d, got %d", query, wantID, i, varianten[i].ID)
+		}
+	}
+}

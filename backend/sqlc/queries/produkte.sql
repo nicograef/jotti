@@ -17,6 +17,7 @@ SELECT
                 'createdAt', pv.created_at,
                 'updatedAt', pv.updated_at
             )
+            ORDER BY pv.id
         )
         FROM produkt_varianten pv
         WHERE pv.produkt_id = p.id AND pv.status != 'deleted'),
@@ -38,6 +39,7 @@ WITH varianten_json AS (
                 'createdAt', created_at,
                 'updatedAt', updated_at
             )
+            ORDER BY id
         ) AS varianten
     FROM produkt_varianten
     WHERE status != 'deleted'
@@ -70,6 +72,7 @@ WITH varianten_json AS (
                 'createdAt', created_at,
                 'updatedAt', updated_at
             )
+            ORDER BY id
         ) AS varianten
     FROM produkt_varianten
     WHERE status = 'active'

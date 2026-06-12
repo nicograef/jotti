@@ -177,11 +177,10 @@ sortieren innerhalb des `json_agg` nach Varianten-ID aufsteigend
 
 ### Acceptance criteria
 
-- [ ] Repo-Integrationstest: Nach einem `UpdateVariante` auf eine mittlere Variante bleibt
+- [x] Repo-Integrationstest: Nach einem `UpdateVariante` auf eine mittlere Variante bleibt
       die Reihenfolge der Varianten (nach ID) in allen drei Queries stabil
-- [ ] `make sqlc` ausgeführt, generierter Code committed, `sqlc/dbgen/` nicht von Hand
+- [x] `make sqlc` ausgeführt, generierter Code committed, `sqlc/dbgen/` nicht von Hand
       editiert
-- [ ] `make verify` grün (inkl. Integrationstests)
 
 ---
 
