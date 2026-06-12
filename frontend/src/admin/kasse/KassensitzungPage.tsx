@@ -108,6 +108,10 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
   const { loading, run } = useFormActionSubmit({
     form,
     actionLabel: 'Kassensitzung eröffnen',
+    byCode: {
+      betreiber_nicht_konfiguriert:
+        'Die Betreiber-Stammdaten sind nicht vollständig hinterlegt. Bitte zuerst in den Einstellungen die Betreiber-Stammdaten pflegen, dann die Kassensitzung eröffnen.',
+    },
   })
 
   const onSubmit = async (data: FormData) => {

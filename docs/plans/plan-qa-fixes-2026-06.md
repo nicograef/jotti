@@ -148,14 +148,14 @@ in den Einstellungen pflegen, dann Kassensitzung eröffnen).
 
 ### Acceptance criteria
 
-- [ ] Command-Test: `GetBetreiber` mit `db.ErrNotFound` → `ErrBetreiberNichtKonfiguriert`,
+- [x] Command-Test: `GetBetreiber` mit `db.ErrNotFound` → `ErrBetreiberNichtKonfiguriert`,
       nicht `ErrDatabase`
-- [ ] Command-Test: `GetBetreiber` mit `db.ErrDatabase` → weiterhin `ErrDatabase`
-- [ ] Handler-Test: Response ist Client-Fehler (4xx) mit Code `betreiber_nicht_konfiguriert`
-- [ ] Kein Error-Log-Eintrag für den Nicht-konfiguriert-Fall (nur Warn)
-- [ ] Kassensitzungs-Seite zeigt für den Fehlercode die Handlungsanweisung (deutsch,
+- [x] Command-Test: `GetBetreiber` mit `db.ErrDatabase` → weiterhin `ErrDatabase`
+- [x] Handler-Test: Response ist Client-Fehler (4xx) mit Code `betreiber_nicht_konfiguriert`
+- [x] Kein Error-Log-Eintrag für den Nicht-konfiguriert-Fall (nur Warn)
+- [x] Kassensitzungs-Seite zeigt für den Fehlercode die Handlungsanweisung (deutsch,
       verweist auf die Einstellungen)
-- [ ] `make check` grün
+- [x] `make check` grün
 
 ---
 

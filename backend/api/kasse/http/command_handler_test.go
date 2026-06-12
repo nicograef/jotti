@@ -70,6 +70,22 @@ func TestKassensitzungEroeffnenHandler_KasseAlreadyOpen(t *testing.T) {
 	}
 }
 
+func TestKassensitzungEroeffnenHandler_BetreiberNichtKonfiguriert(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrBetreiberNichtKonfiguriert}}
+
+	req := requestWithUser(`{"bezeichnung":"Maihock","betragCents":10000}`)
+	rec := httptest.NewRecorder()
+
+	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "betreiber_nicht_konfiguriert") {
+		t.Errorf("expected code betreiber_nicht_konfiguriert in body, got %s", rec.Body.String())
+	}
+}
+
 // GeldtransitBuchen
 
 func TestGeldtransitBuchenHandler_Success(t *testing.T) {

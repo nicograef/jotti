@@ -26,12 +26,16 @@ var testOpenKS = &kasse.Kassensitzung{
 }
 
 type settingsMock struct {
-	vereinsname string
-	tse         settings.TSEKonfiguration
-	tseErr      error
+	vereinsname  string
+	betreiberErr error
+	tse          settings.TSEKonfiguration
+	tseErr       error
 }
 
 func (m settingsMock) GetBetreiber(_ context.Context) (settings.Betreiber, error) {
+	if m.betreiberErr != nil {
+		return settings.Betreiber{}, m.betreiberErr
+	}
 	return settings.Betreiber{
 		Vereinsname: m.vereinsname,
 		Strasse:     "Teststraße 1",
@@ -71,6 +75,34 @@ func TestKassensitzungEroeffnen(t *testing.T) {
 	}
 	if zNr < 1 {
 		t.Errorf("expected z_nr >= 1, got %d", zNr)
+	}
+}
+
+func TestKassensitzungEroeffnen_BetreiberNichtKonfiguriert(t *testing.T) {
+	ctx := context.Background()
+	cmd := Command{
+		KassenjournalRepo:   kassenjournal_repo.NewMock(nil, nil),
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
+		SettingsRepo:        settingsMock{betreiberErr: db.ErrNotFound},
+	}
+
+	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
+	if err != ErrBetreiberNichtKonfiguriert {
+		t.Fatalf("expected ErrBetreiberNichtKonfiguriert, got %v", err)
+	}
+}
+
+func TestKassensitzungEroeffnen_BetreiberDatabaseError(t *testing.T) {
+	ctx := context.Background()
+	cmd := Command{
+		KassenjournalRepo:   kassenjournal_repo.NewMock(nil, nil),
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
+		SettingsRepo:        settingsMock{betreiberErr: db.ErrDatabase},
+	}
+
+	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
+	if err != ErrDatabase {
+		t.Fatalf("expected ErrDatabase, got %v", err)
 	}
 }
 

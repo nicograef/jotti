@@ -103,6 +103,10 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 
 	betreiber, err := c.SettingsRepo.GetBetreiber(ctx)
 	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn().Msg("Kassensitzung blocked: betreiber not configured")
+			return 0, ErrBetreiberNichtKonfiguriert
+		}
 		log.Error().Err(err).Msg("Failed to check betreiber configuration")
 		return 0, ErrDatabase
 	}
