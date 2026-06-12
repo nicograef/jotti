@@ -127,12 +127,7 @@ func (s Signierer) SignEvent(
 
 	txID := uuid.New().String()
 
-	client, err := s.NewTSEClient(tse.Credentials{
-		ApiKey:    conf.ApiKey,
-		ApiSecret: conf.ApiSecret,
-		TssID:     conf.TssID,
-		ClientID:  conf.ClientID,
-	})
+	client, err := s.NewTSEClient(conf.Credentials())
 	if err != nil {
 		return signierAusfall(log, evt, txID, processType, processData, err, embedTSE)
 	}

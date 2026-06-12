@@ -316,11 +316,11 @@ Typisierung analog `table.Status`.
 
 ### Acceptance criteria
 
-- [ ] `make test` und `make lint-backend` grün
-- [ ] Die Vier-Felder-Regel existiert nur noch in
+- [x] `make test` und `make lint-backend` grün
+- [x] Die Vier-Felder-Regel existiert nur noch in
       `tse.Credentials.Validate` (kein `hasApiKey && hasApiSecret && …`
       mehr in `settings`)
-- [ ] Verhalten identisch: komplett leer → gültig + `IstKonfiguriert() ==
+- [x] Verhalten identisch: komplett leer → gültig + `IstKonfiguriert() ==
       false`; teilweise gesetzt → Fehler; vollständig → gültig + `true`
 
 ---

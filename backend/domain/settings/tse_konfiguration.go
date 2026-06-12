@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 type TSEKonfiguration struct {
@@ -14,16 +16,26 @@ type TSEKonfiguration struct {
 	UpdatedAt time.Time
 }
 
-func (t TSEKonfiguration) Validate() error {
-	hasApiKey := strings.TrimSpace(t.ApiKey) != ""
-	hasApiSecret := strings.TrimSpace(t.ApiSecret) != ""
-	hasTssID := strings.TrimSpace(t.TssID) != ""
-	hasClientID := strings.TrimSpace(t.ClientID) != ""
+// Credentials bildet die TSE-Konfiguration auf die kanonische
+// tse.Credentials-Form ab — die einzige Stelle, an der die vier Felder
+// gemappt werden.
+func (t TSEKonfiguration) Credentials() tse.Credentials {
+	return tse.Credentials{
+		ApiKey:    t.ApiKey,
+		ApiSecret: t.ApiSecret,
+		TssID:     t.TssID,
+		ClientID:  t.ClientID,
+	}
+}
 
-	hasAny := hasApiKey || hasApiSecret || hasTssID || hasClientID
-	hasAll := hasApiKey && hasApiSecret && hasTssID && hasClientID
-	if hasAny && !hasAll {
-		return fmt.Errorf("all tse fields must be set together")
+func (t TSEKonfiguration) Validate() error {
+	// Sonderfall: komplett leer ist gueltig (TSE schlicht nicht konfiguriert).
+	// Sind Felder gesetzt, gilt die kanonische Vier-Felder-Regel aus
+	// tse.Credentials (alle oder keines).
+	if !t.leer() {
+		if err := t.Credentials().Validate(); err != nil {
+			return err
+		}
 	}
 
 	if len(t.ApiKey) > 500 {
@@ -45,10 +57,14 @@ func (t TSEKonfiguration) Validate() error {
 }
 
 func (t TSEKonfiguration) IstKonfiguriert() bool {
-	return strings.TrimSpace(t.ApiKey) != "" &&
-		strings.TrimSpace(t.ApiSecret) != "" &&
-		strings.TrimSpace(t.TssID) != "" &&
-		strings.TrimSpace(t.ClientID) != ""
+	return t.Credentials().Validate() == nil
+}
+
+func (t TSEKonfiguration) leer() bool {
+	return strings.TrimSpace(t.ApiKey) == "" &&
+		strings.TrimSpace(t.ApiSecret) == "" &&
+		strings.TrimSpace(t.TssID) == "" &&
+		strings.TrimSpace(t.ClientID) == ""
 }
 
 func NewTSEKonfiguration(apiKey, apiSecret, tssID, clientID string) (TSEKonfiguration, error) {
