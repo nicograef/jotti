@@ -39,3 +39,11 @@ SELECT setval(pg_get_serial_sequence('produkt_varianten', 'id'), COALESCE((SELEC
 
 -- name: SeedResetKassensitzungenSeq :exec
 SELECT setval(pg_get_serial_sequence('kassensitzungen', 'z_nr'), COALESCE((SELECT MAX(z_nr) FROM kassensitzungen), 1));
+
+-- name: SeedInsertTSENachsignierAuftrag :exec
+INSERT INTO tse_nachsignier_auftraege (tx_id, process_type, process_data, status, versuche, letzter_fehler, naechster_versuch_am, erstellt_am, erledigt_am)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+
+-- name: SeedInsertTSESignatur :exec
+INSERT INTO tse_signaturen (tx_id, transaktion_nummer, signatur_zaehler, tse_seriennummer, log_time_start, log_time_end, signatur, qr_code_data, erstellt_am)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);

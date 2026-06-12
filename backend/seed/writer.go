@@ -13,8 +13,9 @@ import (
 
 // Run spielt das Demo-Szenario „3-Tage-Sommerfest TSV Musterstadt e.V." in die Datenbank ein:
 // Stammdaten mit Favoriten, drei Kassensitzungen (Freitag/Samstag abgeschlossen, Sonntag offen)
-// und die zugehörigen Events. Stammdaten, Kassensitzungen und Events werden in einer Transaktion
-// geschrieben; anschließend wird die Tisch-Session-Projektion neu aufgebaut.
+// und die zugehörigen Events — die fiskalischen davon mit Fake-TSE-Daten samt Ausfallfenster
+// und Nachsignier-Aufträgen. Stammdaten, Kassensitzungen, Events und TSE-Seitentabellen werden
+// in einer Transaktion geschrieben; anschließend wird die Tisch-Session-Projektion neu aufgebaut.
 // Ein Guard verhindert das Überschreiben einer Datenbank, die bereits Kassenjournal-Events enthält.
 func Run(ctx context.Context, database *sql.DB) error {
 	jetzt := time.Now().UTC()
@@ -25,7 +26,12 @@ func Run(ctx context.Context, database *sql.DB) error {
 		return fmt.Errorf("seed-daten aufbauen: %w", err)
 	}
 
-	if err := schreibeSeed(ctx, database, s, daten, jetzt); err != nil {
+	tseDaten, err := signiereEvents(daten.Events, ausfallFensterAus(s, jetzt))
+	if err != nil {
+		return fmt.Errorf("fake-tse signieren: %w", err)
+	}
+
+	if err := schreibeSeed(ctx, database, s, daten, tseDaten, jetzt); err != nil {
 		return err
 	}
 
@@ -37,7 +43,7 @@ func Run(ctx context.Context, database *sql.DB) error {
 	return nil
 }
 
-func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDaten, jetzt time.Time) error {
+func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDaten, tseDaten tseSeitentabellen, jetzt time.Time) error {
 	q := dbgen.New(database)
 
 	// Guard: niemals eine Datenbank überschreiben, die bereits Kassenjournal-Events enthält.
@@ -65,6 +71,9 @@ func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedD
 		return err
 	}
 	if err := schreibeEvents(ctx, qtx, daten.Events); err != nil {
+		return err
+	}
+	if err := schreibeTSESeitentabellen(ctx, qtx, tseDaten); err != nil {
 		return err
 	}
 	if err := korrigiereSequenzen(ctx, qtx); err != nil {
@@ -202,6 +211,46 @@ func schreibeEvents(ctx context.Context, qtx *dbgen.Queries, events []seedEvent)
 	return nil
 }
 
+func schreibeTSESeitentabellen(ctx context.Context, qtx *dbgen.Queries, daten tseSeitentabellen) error {
+	for i := range daten.Auftraege {
+		a := &daten.Auftraege[i]
+		err := qtx.SeedInsertTSENachsignierAuftrag(ctx, dbgen.SeedInsertTSENachsignierAuftragParams{
+			TxID:               a.TxID,
+			ProcessType:        a.ProcessType,
+			ProcessData:        a.ProcessData,
+			Status:             a.Status,
+			Versuche:           a.Versuche,
+			LetzterFehler:      nullString(a.LetzterFehler),
+			NaechsterVersuchAm: a.NaechsterVersuchAm,
+			ErstelltAm:         a.ErstelltAm,
+			ErledigtAm:         nullTime(a.ErledigtAm),
+		})
+		if err != nil {
+			return fmt.Errorf("nachsignier-auftrag %s einfügen: %w", a.TxID, err)
+		}
+	}
+
+	for i := range daten.Signaturen {
+		sig := &daten.Signaturen[i]
+		err := qtx.SeedInsertTSESignatur(ctx, dbgen.SeedInsertTSESignaturParams{
+			TxID:              sig.TxID,
+			TransaktionNummer: sig.TransaktionNummer,
+			SignaturZaehler:   sig.SignaturZaehler,
+			TseSeriennummer:   sig.TSESeriennummer,
+			LogTimeStart:      sig.LogTimeStart,
+			LogTimeEnd:        sig.LogTimeEnd,
+			Signatur:          sig.Signatur,
+			QrCodeData:        sig.QRCodeData,
+			ErstelltAm:        sig.ErstelltAm,
+		})
+		if err != nil {
+			return fmt.Errorf("tse-signatur %s einfügen: %w", sig.TxID, err)
+		}
+	}
+
+	return nil
+}
+
 // korrigiereSequenzen zieht die IDENTITY-Sequenzen auf den höchsten manuell vergebenen Wert nach,
 // damit anschließend per Anwendung erzeugte Datensätze keine Primärschlüssel-Kollision auslösen.
 func korrigiereSequenzen(ctx context.Context, qtx *dbgen.Queries) error {
@@ -229,4 +278,11 @@ func nullString(s *string) sql.NullString {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: *s, Valid: true}
+}
+
+func nullTime(t *time.Time) sql.NullTime {
+	if t == nil {
+		return sql.NullTime{}
+	}
+	return sql.NullTime{Time: *t, Valid: true}
 }

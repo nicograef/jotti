@@ -63,7 +63,8 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 	daten := seedDaten{}
 	vorherigesEnde := time.Time{}
 
-	for _, sitzung := range s.Sitzungen {
+	for i := range s.Sitzungen {
+		sitzung := &s.Sitzungen[i]
 		start := jetzt.Add(-sitzung.StartVorJetzt)
 		ende := start.Add(sitzung.Dauer)
 		if !vorherigesEnde.IsZero() && !start.After(vorherigesEnde) {
@@ -72,7 +73,7 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 		vorherigesEnde = ende
 
 		bauer := &sitzungsBauer{
-			sitzung:       sitzung,
+			sitzung:       *sitzung,
 			varianten:     variantenIdx,
 			benutzer:      benutzerIdx,
 			tische:        tischIdx,

@@ -26,12 +26,12 @@ type CommandHandler struct {
 
 type kassensitzungEroeffnenRequest struct {
 	Bezeichnung string `json:"bezeichnung"`
-	BetragCents int    `json:"betragCents"`
+	BetragCents *int   `json:"betragCents"`
 }
 
 var kassensitzungEroeffnenSchema = z.Struct(z.Shape{
 	"Bezeichnung": z.String().Min(1, z.Message("Bezeichnung ist erforderlich")).Max(200, z.Message("Bezeichnung darf höchstens 200 Zeichen lang sein")).Required(),
-	"BetragCents": z.Int().GTE(0, z.Message("Anfangsbestand darf nicht negativ sein")).Required(),
+	"BetragCents": z.Ptr(z.Int().GTE(0, z.Message("Anfangsbestand darf nicht negativ sein"))).NotNil(z.Message("Anfangsbestand ist erforderlich")),
 })
 
 type kassensitzungEroeffnenResponse struct {

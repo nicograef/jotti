@@ -104,6 +104,70 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 		t.Errorf("Tisch 1 Saldo = %d, erwartet 0 (bezahlt)", saldo)
 	}
 
+	// TSE: Zahlungen tragen Signaturdaten mit QR-Code im V0-Format (Belegansicht und -druck).
+	var signierteZahlungen int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM kassenjournal
+		WHERE type = 'zahlung-kassiert:v1' AND data->'tseData'->>'tseQrCodeData' LIKE 'V0;%'`).Scan(&signierteZahlungen); err != nil {
+		t.Fatalf("signierte Zahlungen zählen: %v", err)
+	}
+	if signierteZahlungen == 0 {
+		t.Error("keine Zahlung mit TSE-Signaturdaten und V0-QR-Code")
+	}
+
+	// Nicht-fiskalische Event-Typen bleiben ohne TSE-Felder.
+	var nichtFiskalischMitTSE int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM kassenjournal
+		WHERE type IN ('kassensitzung-eroeffnet:v1', 'ausgabe-bestaetigt:v1', 'kassensturz-durchgefuehrt:v1')
+		  AND data->>'tseTxId' IS NOT NULL`).Scan(&nichtFiskalischMitTSE); err != nil {
+		t.Fatalf("nicht-fiskalische Events prüfen: %v", err)
+	}
+	if nichtFiskalischMitTSE != 0 {
+		t.Errorf("%d nicht-fiskalische Events tragen TSE-Felder", nichtFiskalischMitTSE)
+	}
+
+	// Nachsignier-Aufträge existieren in allen vier Status; genau einer ist verworfen.
+	for status, mindestens := range map[string]int{"offen": 1, "erledigt": 2, "fehlgeschlagen": 1, "verworfen": 1} {
+		var anzahl int
+		if err := db.QueryRow("SELECT COUNT(*) FROM tse_nachsignier_auftraege WHERE status = $1", status).Scan(&anzahl); err != nil {
+			t.Fatalf("Nachsignier-Aufträge (%s) zählen: %v", status, err)
+		}
+		if anzahl < mindestens {
+			t.Errorf("Nachsignier-Aufträge mit Status %s: %d, erwartet mindestens %d", status, anzahl, mindestens)
+		}
+		if status == "verworfen" && anzahl != 1 {
+			t.Errorf("%d verworfene Nachsignier-Aufträge, erwartet genau 1", anzahl)
+		}
+	}
+
+	// Jeder erledigte Auftrag hat die nachgetragene Signatur-Zeile — und umgekehrt.
+	var erledigtOhneSignatur int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM tse_nachsignier_auftraege a
+		LEFT JOIN tse_signaturen s ON s.tx_id = a.tx_id
+		WHERE a.status = 'erledigt' AND s.tx_id IS NULL`).Scan(&erledigtOhneSignatur); err != nil {
+		t.Fatalf("erledigte Aufträge ohne Signatur zählen: %v", err)
+	}
+	if erledigtOhneSignatur != 0 {
+		t.Errorf("%d erledigte Nachsignier-Aufträge ohne tse_signaturen-Zeile", erledigtOhneSignatur)
+	}
+	var signaturOhneErledigt int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM tse_signaturen s
+		LEFT JOIN tse_nachsignier_auftraege a ON a.tx_id = s.tx_id AND a.status = 'erledigt'
+		WHERE a.tx_id IS NULL`).Scan(&signaturOhneErledigt); err != nil {
+		t.Fatalf("Signaturen ohne erledigten Auftrag zählen: %v", err)
+	}
+	if signaturOhneErledigt != 0 {
+		t.Errorf("%d tse_signaturen-Zeilen ohne erledigten Nachsignier-Auftrag", signaturOhneErledigt)
+	}
+
+	// TSE-Konfiguration bleibt leer — der Nachsignier-Worker bleibt inaktiv.
+	var tseKonfiguration string
+	if err := db.QueryRow("SELECT api_key || api_secret || tss_id || client_id FROM tse_konfiguration WHERE id = 1").Scan(&tseKonfiguration); err != nil {
+		t.Fatalf("TSE-Konfiguration abfragen: %v", err)
+	}
+	if tseKonfiguration != "" {
+		t.Errorf("TSE-Konfiguration nicht leer: %q", tseKonfiguration)
+	}
+
 	// --- Zweiter Lauf: Guard greift, ohne etwas zu schreiben ---
 	if err := Run(ctx, db); err == nil {
 		t.Fatal("zweiter Run sollte am Guard scheitern, lieferte aber keinen Fehler")

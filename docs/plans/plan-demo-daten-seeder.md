@@ -235,19 +235,19 @@ Seitentabellen in derselben Transaktion.
 
 ### Acceptance criteria
 
-- [ ] Genau die fiskalischen Event-Typen (Bestellung, Zahlung, Stornierung, Auszahlung,
+- [x] Genau die fiskalischen Event-Typen (Bestellung, Zahlung, Stornierung, Auszahlung,
       Direktverkauf und -storno, Geldtransit, Differenz, Tagesabschluss) tragen TSE-Daten;
       Ausgabe, Kassensitzungs-Eröffnung und Kassensturz nicht.
-- [ ] Transaktionsnummern und Signaturzähler global streng monoton; eine feste
+- [x] Transaktionsnummern und Signaturzähler global streng monoton; eine feste
       Fake-Seriennummer; alle erzeugten TSE-Daten bestehen `kasse.TSEData.Validate`.
-- [ ] Ausfallfenster: Events ohne TSE-Daten (TSEAusfall-Flag wo vorhanden); je Event genau
+- [x] Ausfallfenster: Events ohne TSE-Daten (TSEAusfall-Flag wo vorhanden); je Event genau
       ein Nachsignier-Auftrag; erledigte Aufträge haben eine passende
       `tse_signaturen`-Zeile, die die Belegansicht auflöst; einzelne fehlgeschlagen mit
       verständlichem Fehlertext, genau einer verworfen.
-- [ ] In der Demo: Beleg eines bezahlten Tischs zeigt TSE-Signaturdaten und QR-Code; die
+- [x] In der Demo: Beleg eines bezahlten Tischs zeigt TSE-Signaturdaten und QR-Code; die
       TSE-Einstellungen zeigen Nachsignier-Aufträge in allen Status.
-- [ ] TSE-Konfiguration bleibt leer; der Nachsignier-Worker startet keine Signierversuche.
-- [ ] Unit-Tests (`-tags=unit`) gemäß PRD-Testentscheidungen (Monotonie, Typ-Abdeckung,
+- [x] TSE-Konfiguration bleibt leer; der Nachsignier-Worker startet keine Signierversuche.
+- [x] Unit-Tests (`-tags=unit`) gemäß PRD-Testentscheidungen (Monotonie, Typ-Abdeckung,
       Ausfallfenster-Paarigkeit, Domain-Validierung).
 
 ---

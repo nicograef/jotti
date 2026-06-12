@@ -161,6 +161,16 @@ type profilPunkt struct {
 	ZeitAnteil  float64
 }
 
+// tseAusfall ist ein TSE-Ausfallfenster relativ zum Sitzungsstart: Fiskalische Events in
+// diesem Fenster bleiben unsigniert und erhalten je einen Nachsignier-Auftrag. In
+// abgeschlossenen Sitzungen gelten die Aufträge als vom Worker abgearbeitet, in der offenen
+// Sitzung bleiben sie offen (der Worker ist ohne TSE-Konfiguration inaktiv).
+type tseAusfall struct {
+	NachStart time.Duration
+	Dauer     time.Duration
+	Grund     string // Fehlertext der Signierversuche während der Störung (leer, wenn nie versucht)
+}
+
 // kassensitzungDrehbuch beschreibt einen Betriebstag: Zeitfenster relativ zu „jetzt",
 // Eröffnung und die chronologische Aktionsfolge. Für abgeschlossene Sitzungen hängt die
 // Engine den Tagesabschluss (mit berechneten Summen) automatisch ans Fensterende.
@@ -173,6 +183,7 @@ type kassensitzungDrehbuch struct {
 	Dauer               time.Duration
 	Abgeschlossen       bool
 	Tagesprofil         []profilPunkt
+	TSEAusfaelle        []tseAusfall
 	Aktionen            []aktion
 }
 
@@ -451,6 +462,13 @@ func demoSzenario() szenario {
 					{EventAnteil: 0.55, ZeitAnteil: 0.60},
 					{EventAnteil: 0.85, ZeitAnteil: 0.80},
 				},
+				// Cloud-TSE-Störung in der Abendstoßzeit; der Nachsignier-Worker arbeitet
+				// die Aufträge nach dem Fensterende ab.
+				TSEAusfaelle: []tseAusfall{{
+					NachStart: 8*time.Hour + 30*time.Minute,
+					Dauer:     time.Hour,
+					Grund:     "Cloud-TSE nicht erreichbar: Zeitüberschreitung nach 10 Sekunden",
+				}},
 				Aktionen: samstagsAktionen(),
 			},
 			{
@@ -461,7 +479,11 @@ func demoSzenario() szenario {
 				StartVorJetzt:       5 * time.Hour,
 				Dauer:               5 * time.Hour,
 				Abgeschlossen:       false,
-				Aktionen:            sonntagsAktionen(),
+				// Kurzer TSE-Aussetzer am laufenden Tag: Die Aufträge bleiben offen und
+				// ohne Fehlertext, weil der Worker ohne TSE-Konfiguration nie einen
+				// Signierversuch startet.
+				TSEAusfaelle: []tseAusfall{{NachStart: 4 * time.Hour, Dauer: 10 * time.Minute}},
+				Aktionen:     sonntagsAktionen(),
 			},
 		},
 	}

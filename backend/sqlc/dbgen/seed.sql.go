@@ -80,6 +80,70 @@ func (q *Queries) SeedInsertProdukt(ctx context.Context, arg SeedInsertProduktPa
 	return err
 }
 
+const seedInsertTSENachsignierAuftrag = `-- name: SeedInsertTSENachsignierAuftrag :exec
+INSERT INTO tse_nachsignier_auftraege (tx_id, process_type, process_data, status, versuche, letzter_fehler, naechster_versuch_am, erstellt_am, erledigt_am)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+`
+
+type SeedInsertTSENachsignierAuftragParams struct {
+	TxID               string
+	ProcessType        string
+	ProcessData        string
+	Status             string
+	Versuche           int
+	LetzterFehler      sql.NullString
+	NaechsterVersuchAm time.Time
+	ErstelltAm         time.Time
+	ErledigtAm         sql.NullTime
+}
+
+func (q *Queries) SeedInsertTSENachsignierAuftrag(ctx context.Context, arg SeedInsertTSENachsignierAuftragParams) error {
+	_, err := q.db.ExecContext(ctx, seedInsertTSENachsignierAuftrag,
+		arg.TxID,
+		arg.ProcessType,
+		arg.ProcessData,
+		arg.Status,
+		arg.Versuche,
+		arg.LetzterFehler,
+		arg.NaechsterVersuchAm,
+		arg.ErstelltAm,
+		arg.ErledigtAm,
+	)
+	return err
+}
+
+const seedInsertTSESignatur = `-- name: SeedInsertTSESignatur :exec
+INSERT INTO tse_signaturen (tx_id, transaktion_nummer, signatur_zaehler, tse_seriennummer, log_time_start, log_time_end, signatur, qr_code_data, erstellt_am)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+`
+
+type SeedInsertTSESignaturParams struct {
+	TxID              string
+	TransaktionNummer int
+	SignaturZaehler   int
+	TseSeriennummer   string
+	LogTimeStart      time.Time
+	LogTimeEnd        time.Time
+	Signatur          string
+	QrCodeData        string
+	ErstelltAm        time.Time
+}
+
+func (q *Queries) SeedInsertTSESignatur(ctx context.Context, arg SeedInsertTSESignaturParams) error {
+	_, err := q.db.ExecContext(ctx, seedInsertTSESignatur,
+		arg.TxID,
+		arg.TransaktionNummer,
+		arg.SignaturZaehler,
+		arg.TseSeriennummer,
+		arg.LogTimeStart,
+		arg.LogTimeEnd,
+		arg.Signatur,
+		arg.QrCodeData,
+		arg.ErstelltAm,
+	)
+	return err
+}
+
 const seedInsertTisch = `-- name: SeedInsertTisch :exec
 INSERT INTO tische (id, name, status, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5)
