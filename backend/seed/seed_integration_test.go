@@ -17,6 +17,7 @@ func cleanSeedDB(t *testing.T, db *sql.DB) {
 		"DELETE FROM tse_signaturen",
 		"DELETE FROM tse_nachsignier_auftraege",
 		"DELETE FROM druckauftraege",
+		"DELETE FROM tisch_favoriten",
 		"DELETE FROM tisch_sessions",
 		"ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete",
 		"DELETE FROM kassenjournal",
@@ -65,13 +66,24 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 		t.Errorf("Betreiber vereinsname = %q, erwartet %q", vereinsname, "TSV Musterstadt e.V.")
 	}
 
-	// Offene Kassensitzung mit z_nr=3.
-	var status string
-	if err := db.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = 3").Scan(&status); err != nil {
-		t.Fatalf("Kassensitzung 3 abfragen: %v", err)
+	// Drei Kassensitzungen: Freitag und Samstag abgeschlossen, Sonntag offen.
+	for znr, erwartet := range map[int]string{1: "abgeschlossen", 2: "abgeschlossen", 3: "offen"} {
+		var status string
+		if err := db.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = $1", znr).Scan(&status); err != nil {
+			t.Fatalf("Kassensitzung %d abfragen: %v", znr, err)
+		}
+		if status != erwartet {
+			t.Errorf("Kassensitzung %d Status = %q, erwartet %q", znr, status, erwartet)
+		}
 	}
-	if status != "offen" {
-		t.Errorf("Kassensitzung 3 Status = %q, erwartet offen", status)
+
+	// Tisch-Favoriten sind angelegt.
+	var favoriten int
+	if err := db.QueryRow("SELECT COUNT(*) FROM tisch_favoriten").Scan(&favoriten); err != nil {
+		t.Fatalf("Favoriten zählen: %v", err)
+	}
+	if favoriten == 0 {
+		t.Error("keine Tisch-Favoriten nach dem Seeding")
 	}
 
 	// Kassenjournal enthält Events.

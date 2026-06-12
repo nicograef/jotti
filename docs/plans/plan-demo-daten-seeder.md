@@ -186,22 +186,22 @@ Produkte) und Tisch-Favoriten für mehrere Service-Benutzer.
 
 ### Acceptance criteria
 
-- [ ] Drei Kassensitzungen in der bisherigen Größenordnung (~160/~700/~130 Events);
+- [x] Drei Kassensitzungen in der bisherigen Größenordnung (~160/~700/~130 Events);
       Freitag und Samstag abgeschlossen, Sonntag offen.
-- [ ] Tagesabschluss-Events tragen aus den Tages-Events berechnete Summen; ein Unit-Test
+- [x] Tagesabschluss-Events tragen aus den Tages-Events berechnete Summen; ein Unit-Test
       prüft sie gegen eine unabhängige Aggregation.
-- [ ] Umbuchung als atomares Storno-/Bestellungs-Paar mit Standard-Kommentaren
+- [x] Umbuchung als atomares Storno-/Bestellungs-Paar mit Standard-Kommentaren
       („Umbuchung auf/von Tisch …") und identischen Positionen.
-- [ ] Direktverkäufe mit festen Subject-UUIDs aus dem Drehbuch, mindestens ein Storno.
-- [ ] Kassenführung komplett: Geldtransit beide Richtungen, Kassensturz mit Differenz und
+- [x] Direktverkäufe mit festen Subject-UUIDs aus dem Drehbuch, mindestens ein Storno.
+- [x] Kassenführung komplett: Geldtransit beide Richtungen, Kassensturz mit Differenz und
       zugehöriger Differenz-Buchung.
-- [ ] Sonntags-Tische decken alle Zustände ab (leer, frisch bestellt, teilgeliefert,
+- [x] Sonntags-Tische decken alle Zustände ab (leer, frisch bestellt, teilgeliefert,
       teilbezahlt, Guthaben/Auszahlung, abgeschlossen); für abgeschlossene Tische gilt
       Bestellungen − Stornierungen − Zahlungen (± Auszahlung) = 0.
-- [ ] Benutzer in allen Lebenszyklus-Zuständen und beiden Service-Rollen; Produkte und
+- [x] Benutzer in allen Lebenszyklus-Zuständen und beiden Service-Rollen; Produkte und
       Tische mit Soft-Delete-/Inaktiv-Beispielen; Tisch-Favoriten für mehrere
       Service-Benutzer.
-- [ ] Engine-Unit-Tests (`-tags=unit`): lückenlose Versionen, monotone Zeitstempel im
+- [x] Engine-Unit-Tests (`-tags=unit`): lückenlose Versionen, monotone Zeitstempel im
       Sitzungszeitraum, Tagesabschluss-Summen, Umbuchungspaar-Konsistenz, Salden.
 
 ---

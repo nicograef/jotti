@@ -11,13 +11,14 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-// Run spielt das Phase-1-Demo-Szenario in die Datenbank ein: Stammdaten, eine offene
-// Kassensitzung und die zugehörigen Events. Stammdaten, Kassensitzungen und Events werden in
-// einer Transaktion geschrieben; anschließend wird die Tisch-Session-Projektion neu aufgebaut.
+// Run spielt das Demo-Szenario „3-Tage-Sommerfest TSV Musterstadt e.V." in die Datenbank ein:
+// Stammdaten mit Favoriten, drei Kassensitzungen (Freitag/Samstag abgeschlossen, Sonntag offen)
+// und die zugehörigen Events. Stammdaten, Kassensitzungen und Events werden in einer Transaktion
+// geschrieben; anschließend wird die Tisch-Session-Projektion neu aufgebaut.
 // Ein Guard verhindert das Überschreiben einer Datenbank, die bereits Kassenjournal-Events enthält.
 func Run(ctx context.Context, database *sql.DB) error {
 	jetzt := time.Now().UTC()
-	s := phase1Szenario()
+	s := demoSzenario()
 
 	daten, err := buildSeedDaten(s, jetzt)
 	if err != nil {
@@ -134,6 +135,16 @@ func schreibeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jet
 			if err != nil {
 				return fmt.Errorf("variante %d einfügen: %w", v.ID, err)
 			}
+		}
+	}
+
+	for _, f := range s.Favoriten {
+		err := qtx.AddFavorit(ctx, dbgen.AddFavoritParams{
+			UserID:  f.UserID,
+			TischID: f.TischID,
+		})
+		if err != nil {
+			return fmt.Errorf("favorit (benutzer %d, tisch %d) einfügen: %w", f.UserID, f.TischID, err)
 		}
 	}
 

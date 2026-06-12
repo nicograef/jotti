@@ -21,16 +21,7 @@ import (
 func toKassePositionen(positionen []kasse.PositionEventData) []kasse.Position {
 	out := make([]kasse.Position, 0, len(positionen))
 	for _, pos := range positionen {
-		out = append(out, kasse.Position{
-			PositionID:   pos.PositionID,
-			VarianteID:   pos.VarianteID,
-			ProduktName:  pos.ProduktName,
-			VarianteName: pos.VarianteName,
-			Kategorie:    pos.Kategorie,
-			Steuersatz:   pos.Steuersatz,
-			Einzelpreis:  pos.Einzelpreis,
-			Menge:        pos.Menge,
-		})
+		out = append(out, kasse.Position(pos))
 	}
 	return out
 }
