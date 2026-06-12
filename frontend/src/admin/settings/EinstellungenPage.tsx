@@ -163,6 +163,7 @@ function BetreiberForm({
           value={form.steuernummer ?? ''}
           onChange={handleChange('steuernummer')}
           placeholder="z.B. 12/345/67890"
+          autoComplete="off"
         />
       </div>
       <div className="grid gap-1.5">
@@ -172,6 +173,7 @@ function BetreiberForm({
           value={form.ustId ?? ''}
           onChange={handleChange('ustId')}
           placeholder="z.B. DE123456789"
+          autoComplete="off"
         />
       </div>
       <div>
@@ -190,6 +192,43 @@ const emptyBetreiber: Betreiber = {
   ort: '',
   steuernummer: null,
   ustId: null,
+}
+
+function BetreiberSection() {
+  const { betreiber, isPending, error, saveBetreiber } = useBetreiber()
+
+  if (isPending) {
+    return (
+      <section className="max-w-2xl">
+        <p className="text-muted-foreground text-sm">Lade Betreiber-Daten…</p>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="max-w-2xl">
+        <p className="text-destructive text-sm">
+          Fehler beim Laden der Betreiber-Daten.
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="max-w-2xl">
+      <h2 className="text-xl font-semibold mb-1">Betreiber-Stammdaten</h2>
+      <p className="text-muted-foreground text-sm mb-4">
+        Name und Adresse des Vereins erscheinen auf jedem Kassenbeleg (§ 6
+        KassenSichV). Eine Kassensitzung kann erst eröffnet werden, wenn
+        mindestens der Vereinsname gesetzt ist.
+      </p>
+      <BetreiberForm
+        initial={betreiber ?? emptyBetreiber}
+        onSave={saveBetreiber}
+      />
+    </section>
+  )
 }
 
 const emptyTSEKonfiguration: TSEKonfigurationSpeichern = {
@@ -280,6 +319,7 @@ function TSEKonfigurationForm({
             setForm((prev) => ({ ...prev, apiKey: event.target.value }))
           }}
           placeholder="fiskaly API-Key"
+          autoComplete="off"
         />
         {apiKeyGesetzt && (
           <p className="text-sm text-muted-foreground">
@@ -302,6 +342,7 @@ function TSEKonfigurationForm({
             }))
           }}
           placeholder="fiskaly API-Secret"
+          autoComplete="off"
         />
         {apiSecretGesetzt && (
           <p className="text-sm text-muted-foreground">
@@ -525,7 +566,7 @@ function TSENachsignierSection() {
     )
   } else {
     inhalt = (
-      <div className="rounded-md border px-4">
+      <div className="rounded-md border px-4 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-muted max-h-96 overflow-auto">
         {auftraege.map((auftrag) => (
           <NachsignierAuftragRow
             key={auftrag.id}
@@ -553,53 +594,16 @@ function TSENachsignierSection() {
   )
 }
 
-function BetreiberSection() {
-  const { betreiber, isPending, error, saveBetreiber } = useBetreiber()
-
-  if (isPending) {
-    return (
-      <section className="max-w-2xl">
-        <p className="text-muted-foreground text-sm">Lade Betreiber-Daten…</p>
-      </section>
-    )
-  }
-
-  if (error) {
-    return (
-      <section className="max-w-2xl">
-        <p className="text-destructive text-sm">
-          Fehler beim Laden der Betreiber-Daten.
-        </p>
-      </section>
-    )
-  }
-
-  return (
-    <section className="max-w-2xl">
-      <h2 className="text-xl font-semibold mb-1">Betreiber-Stammdaten</h2>
-      <p className="text-muted-foreground text-sm mb-4">
-        Name und Adresse des Vereins erscheinen auf jedem Kassenbeleg (§ 6
-        KassenSichV). Eine Kassensitzung kann erst eröffnet werden, wenn
-        mindestens der Vereinsname gesetzt ist.
-      </p>
-      <BetreiberForm
-        initial={betreiber ?? emptyBetreiber}
-        onSave={saveBetreiber}
-      />
-    </section>
-  )
-}
-
 export function EinstellungenPage() {
   return (
     <div className="flex flex-col gap-10">
+      <BetreiberSection />
+      <hr />
       <KassenidentitaetSection />
       <hr />
       <TSEKonfigurationSection />
       <hr />
       <TSENachsignierSection />
-      <hr />
-      <BetreiberSection />
     </div>
   )
 }

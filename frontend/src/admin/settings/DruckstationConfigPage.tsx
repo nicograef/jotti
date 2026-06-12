@@ -226,7 +226,7 @@ function FehlgeschlageneDruckauftraege() {
     )
   } else {
     inhalt = (
-      <div className="rounded-md border px-4">
+      <div className="rounded-md border px-4 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-muted max-h-96 overflow-auto">
         {druckauftraege.map((auftrag) => (
           <FehlgeschlagenerDruckauftragRow
             key={auftrag.id}
