@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/jwt"
 	"github.com/nicograef/jotti/backend/domain/user"
 	"github.com/rs/zerolog"
 )
@@ -33,8 +34,7 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 		}
 	}
 
-	token, err := u.GenerateJWTToken(password, c.JWTSecret)
-	if err != nil {
+	if err := u.VerifyPassword(password); err != nil {
 		switch {
 		case errors.Is(err, user.ErrNotActive):
 			log.Warn().Str("username", username).Msg("Inactive user attempted to log in")
@@ -46,9 +46,15 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 			log.Warn().Err(err).Str("username", username).Msg("Password validation failed")
 			return "", ErrInvalidPassword
 		default:
-			log.Error().Err(err).Str("username", username).Msg("Failed to generate JWT token")
+			log.Error().Err(err).Str("username", username).Msg("Failed to verify password")
 			return "", ErrTokenGeneration
 		}
+	}
+
+	token, err := jwt.GenerateJWTTokenForUser(u.ID, u.Name, string(u.Role), c.JWTSecret)
+	if err != nil {
+		log.Error().Err(err).Str("username", username).Msg("Failed to generate JWT token")
+		return "", ErrTokenGeneration
 	}
 
 	log.Info().Str("username", username).Msg("User logged in successfully")

@@ -33,6 +33,9 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 	if claims["role"].(string) != "admin" {
 		t.Errorf("Expected role '%s', got '%v'", "admin", claims["role"])
 	}
+	if _, ok := claims["alg"]; ok {
+		t.Error("Expected no alg claim in token payload")
+	}
 }
 
 func TestParseAndValidateJWTToken(t *testing.T) {

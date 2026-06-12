@@ -11,7 +11,6 @@ const issuer = "jotti"
 
 func GenerateJWTTokenForUser(userID int, userName, userRole string, secret string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"alg":  jwt.SigningMethodHS256.Alg(),
 		"iss":  issuer,
 		"iat":  jwt.NewNumericDate(time.Now().UTC()),
 		"exp":  jwt.NewNumericDate(time.Now().UTC().Add(12 * time.Hour)),

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
-	"github.com/nicograef/jotti/backend/domain/jwt"
 )
 
 type Role string
@@ -201,18 +200,14 @@ func (u *User) SetPassword(onetimePassword, newPassword string) error {
 	return nil
 }
 
-func (u *User) GenerateJWTToken(password, secret string) (string, error) {
+func (u User) VerifyPassword(password string) error {
 	if u.Status != ActiveStatus {
-		return "", ErrNotActive
+		return ErrNotActive
 	}
 
 	if u.PasswordHash == "" {
-		return "", ErrNoPassword
+		return ErrNoPassword
 	}
 
-	if err := verifyPassword(u.PasswordHash, password); err != nil {
-		return "", err
-	}
-
-	return jwt.GenerateJWTTokenForUser(u.ID, u.Name, string(u.Role), secret)
+	return verifyPassword(u.PasswordHash, password)
 }

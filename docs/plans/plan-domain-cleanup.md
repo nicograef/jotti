@@ -247,12 +247,12 @@ Application-Layer:
 
 ### Acceptance criteria
 
-- [ ] `make test` und `make lint-backend` grün
-- [ ] Login-Fehlerfälle (inaktiv, kein Passwort, falsches Passwort, User
+- [x] `make test` und `make lint-backend` grün
+- [x] Login-Fehlerfälle (inaktiv, kein Passwort, falsches Passwort, User
       unbekannt) liefern dieselben App-Fehler wie zuvor
       (`command_test.go` unverändert grün oder nur Mock-seitig angepasst)
-- [ ] `domain/user` hat keinen Import von `domain/jwt` mehr
-- [ ] Ein mit dem neuen Code erzeugtes Token enthält keinen `alg`-Claim im
+- [x] `domain/user` hat keinen Import von `domain/jwt` mehr
+- [x] Ein mit dem neuen Code erzeugtes Token enthält keinen `alg`-Claim im
       Payload und wird von `ParseAndValidateJWTToken` akzeptiert
 
 ---
