@@ -259,8 +259,8 @@ unverändert.
 
 - [ ] Manuelle Prüfung: `toast.success` grün, `toast.error` rot, `toast.warning` und
       `toast.info` davon unterscheidbar — im Light- und im Dark-Theme lesbar
-- [ ] Keine Änderung an Aufrufstellen
-- [ ] `make lint` grün
+- [x] Keine Änderung an Aufrufstellen
+- [x] `make lint` grün
 
 ---
 
