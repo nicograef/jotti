@@ -6,9 +6,9 @@
        fmt-backend fmt-frontend fmt \
        build-backend build-frontend build \
        sqlc \
-       prod-init prod-up prod-down prod-logs prod-reset-db prod-reset-and-seed \
-       jotti-rocks-init jotti-rocks-up jotti-rocks-down jotti-rocks-logs \
-       local-up local-down local-logs \
+       prod-init prod-up prod-down prod-logs \
+       jotti-rocks-init jotti-rocks-up jotti-rocks-down jotti-rocks-logs jotti-rocks-reset-db jotti-rocks-reset-and-seed \
+       local-up local-down local-logs local-reset-db local-reset-and-seed \
        db-shell seed rebuild-projections \
        clean \
 	check-tools check-backend check-relay check-frontend check-integration check check-full verify \
@@ -120,16 +120,8 @@ prod-down: ## Produktions-Stack stoppen
 prod-logs: ## Produktions-Stack Logs folgen
 	docker compose -f docker-compose.prod.yml logs -f
 
-prod-reset-db: ## Prod-DB zurücksetzen (Zertifikate bleiben erhalten)
-	docker compose -f docker-compose.prod.yml down
-	docker volume rm $$(docker volume ls -q --filter name=_postgres-data | head -1)
-	docker compose -f docker-compose.prod.yml up -d --build
-
-prod-reset-and-seed: ## Prod-DB resetten, Seed importieren, Projektionen neu aufbauen (SSL bleibt erhalten)
-	./scripts/prod-reset-and-seed.sh --yes
-
 # ──────────────────────────────────────────────
-# jotti.rocks Deployment                        
+# jotti.rocks Deployment
 # ──────────────────────────────────────────────
 
 jotti-rocks-init: ## jotti.rocks Ersteinrichtung (Zertifikate für alle Domains, Stack)
@@ -145,6 +137,14 @@ jotti-rocks-down: ## jotti.rocks Stack stoppen
 jotti-rocks-logs: ## jotti.rocks Stack Logs folgen
 	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml logs -f
 
+jotti-rocks-reset-db: ## jotti.rocks-DB zurücksetzen (Zertifikate bleiben erhalten) — nur Demo/Staging
+	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml down
+	docker volume rm jotti_postgres-data
+	docker compose -f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml up -d --build
+
+jotti-rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (SSL bleibt erhalten) — nur Demo/Staging
+	./scripts/jotti-rocks-reset-and-seed.sh --yes
+
 # ──────────────────────────────────────────────
 # Lokaler Betrieb (LAN, HTTPS selbstsigniert)   
 # ──────────────────────────────────────────────
@@ -158,6 +158,14 @@ local-down: ## Lokalen LAN-Stack stoppen
 
 local-logs: ## Lokalen LAN-Stack Logs folgen
 	docker compose -f docker-compose.local.yml logs -f
+
+local-reset-db: ## Lokale DB zurücksetzen (selbstsigniertes Zertifikat bleibt erhalten)
+	docker compose -f docker-compose.local.yml down
+	docker volume rm jotti-local_postgres-data
+	docker compose -f docker-compose.local.yml up -d --build
+
+local-reset-and-seed: ## Lokale DB resetten + Seed einspielen (TLS-Zertifikat bleibt erhalten)
+	./scripts/local-reset-and-seed.sh --yes
 
 # ──────────────────────────────────────────────
 # Datenbank                                     

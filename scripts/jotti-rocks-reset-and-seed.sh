@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Resets only the production database volume, then recreates the prod stack and
+# Resets only the jotti.rocks database volume, then recreates the demo stack and
 # seeds demo data via the `jotti seed` subcommand (guard and projection rebuild included).
+#
+# This is for the jotti.rocks demo/staging instance only — NOT for self-hosted
+# production deployments. It uses the prod base file plus the jotti.rocks override so
+# the reverse-proxy keeps its dual-domain (landing + demo) config after the recreate.
 
-COMPOSE_FILE="docker-compose.prod.yml"
+COMPOSE_FILES=(-f docker-compose.prod.yml -f docker-compose.jotti-rocks.yml)
 DB_VOLUME="jotti_postgres-data"
 PG_SERVICE="postgres"
 BACKEND_SERVICE="backend"
@@ -21,9 +25,9 @@ fatal() { error "$1"; exit 1; }
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/prod-reset-and-seed.sh [--yes]
+Usage: ./scripts/jotti-rocks-reset-and-seed.sh [--yes]
 
-Resets production DB data and reloads seed data without touching SSL volumes.
+Resets the jotti.rocks demo DB data and reloads seed data without touching SSL volumes.
 
 Options:
   --yes    Skip interactive confirmation prompt
@@ -52,21 +56,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-[[ -f "$COMPOSE_FILE" ]] || fatal "Missing $COMPOSE_FILE"
+[[ -f "docker-compose.prod.yml" ]] || fatal "Missing docker-compose.prod.yml"
+[[ -f "docker-compose.jotti-rocks.yml" ]] || fatal "Missing docker-compose.jotti-rocks.yml"
 
 command -v docker >/dev/null 2>&1 || fatal "docker not found in PATH"
 docker compose version >/dev/null 2>&1 || fatal "docker compose (v2) is not available"
 
 if [[ "$ASSUME_YES" != "true" ]]; then
   echo ""
-  warn "This will DELETE all production DB data in volume: $DB_VOLUME"
+  warn "This will DELETE all jotti.rocks demo DB data in volume: $DB_VOLUME"
   warn "SSL certificate volumes (letsencrypt, certbot-challenges) are NOT touched."
   read -r -p "Continue? Type 'yes' to proceed: " answer
   [[ "$answer" == "yes" ]] || fatal "Aborted by user"
 fi
 
-info "Stopping production stack..."
-docker compose -f "$COMPOSE_FILE" down
+info "Stopping jotti.rocks stack..."
+docker compose "${COMPOSE_FILES[@]}" down
 
 if docker volume inspect "$DB_VOLUME" >/dev/null 2>&1; then
   info "Removing database volume: $DB_VOLUME"
@@ -75,24 +80,24 @@ else
   warn "Database volume $DB_VOLUME not found; continuing"
 fi
 
-info "Starting production stack..."
-docker compose -f "$COMPOSE_FILE" up -d --build
+info "Starting jotti.rocks stack..."
+docker compose "${COMPOSE_FILES[@]}" up -d --build
 
 info "Waiting for postgres service to become healthy..."
 for _ in $(seq 1 60); do
-  status="$(docker compose -f "$COMPOSE_FILE" ps --format json "$PG_SERVICE" | sed -n 's/.*"Health":"\([^"]*\)".*/\1/p')"
+  status="$(docker compose "${COMPOSE_FILES[@]}" ps --format json "$PG_SERVICE" | sed -n 's/.*"Health":"\([^"]*\)".*/\1/p')"
   if [[ "$status" == "healthy" ]]; then
     break
   fi
   sleep 2
 done
 
-status="$(docker compose -f "$COMPOSE_FILE" ps --format json "$PG_SERVICE" | sed -n 's/.*"Health":"\([^"]*\)".*/\1/p')"
+status="$(docker compose "${COMPOSE_FILES[@]}" ps --format json "$PG_SERVICE" | sed -n 's/.*"Health":"\([^"]*\)".*/\1/p')"
 [[ "$status" == "healthy" ]] || fatal "Postgres is not healthy (status: ${status:-unknown})"
 
 info "Seeding demo data via seed subcommand (guard + projection rebuild included)..."
-docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SERVICE" jotti seed
+docker compose "${COMPOSE_FILES[@]}" exec -T "$BACKEND_SERVICE" jotti seed
 
 echo ""
-info "Done. Production DB reset + seed completed."
+info "Done. jotti.rocks demo DB reset + seed completed."
 info "SSL certificates were not modified."
