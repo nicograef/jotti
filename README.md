@@ -52,7 +52,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 📜 **Event-Sourcing** — lückenlose, unveränderliche Bestellhistorie (GoBD-konform durch Append-only-Architektur)
 - 🔗 **Kryptografische Hash-Chain** _(in Entwicklung)_ — SHA-256-Verkettung aller Events, nachträgliche Manipulation nachweisbar
 - 🛡️ **TSE-Anbindung** _(in Entwicklung)_ — integrierte Cloud-TSE-Schnittstelle (fiskaly) mit Signatur jedes Vorgangs
-- 🧾 **Belegausgabe** _(in Entwicklung)_ — gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse
+- 🧾 **Belegausgabe** — gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse
 
 ## Schnellstart
 
