@@ -45,25 +45,27 @@ var kommentarTestPositionen = []Position{
 	},
 }
 
+// kommentarTestPositionenMitID is for events whose schema requires a PositionID
+// (Zahlung, Stornierung, Ausgabe) — unlike Bestellung, which generates the IDs itself.
+var kommentarTestPositionenMitID = []Position{
+	{
+		PositionID:   "a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",
+		VarianteID:   1,
+		ProduktName:  "Cola",
+		VarianteName: "0,5l",
+		Kategorie:    "getraenk",
+		Steuersatz:   "regel",
+		Einzelpreis:  350,
+		Menge:        1,
+	},
+}
+
 // --- Stornierung: Kommentar ist Pflichtfeld (min 3 Zeichen) ---
 
 func TestNewStornierungErteiltEvent_Kommentar(t *testing.T) {
-	positionen := []Position{
-		{
-			PositionID:   "a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",
-			VarianteID:   1,
-			ProduktName:  "Cola",
-			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Steuersatz:   "regel",
-			Einzelpreis:  350,
-			Menge:        1,
-		},
-	}
-
 	for _, tt := range kommentarTests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewStornierungErteiltEvent(kommentarTestSubject, 1, "Servicekraft", positionen, 350, tt.kommentar)
+			_, err := NewStornierungErteiltEvent(kommentarTestSubject, 1, "Servicekraft", kommentarTestPositionenMitID, 350, tt.kommentar)
 			if tt.wantErr && err == nil {
 				t.Errorf("erwartete Fehler für Kommentar %q, aber kein Fehler", tt.kommentar)
 			}
@@ -109,22 +111,9 @@ func TestNewBestellungAufgenommenEvent_Kommentar(t *testing.T) {
 // --- Zahlung: Kommentar ist optional ---
 
 func TestNewZahlungKassiertEvent_Kommentar(t *testing.T) {
-	positionen := []Position{
-		{
-			PositionID:   "a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",
-			VarianteID:   1,
-			ProduktName:  "Cola",
-			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Steuersatz:   "regel",
-			Einzelpreis:  350,
-			Menge:        1,
-		},
-	}
-
 	for _, tt := range optionalKommentarTests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewZahlungKassiertEvent(kommentarTestSubject, 1, "Servicekraft", positionen, 350, tt.kommentar)
+			_, err := NewZahlungKassiertEvent(kommentarTestSubject, 1, "Servicekraft", kommentarTestPositionenMitID, 350, tt.kommentar)
 			if tt.wantErr && err == nil {
 				t.Errorf("erwartete Fehler für Kommentar %q, aber kein Fehler", tt.kommentar)
 			}
@@ -138,22 +127,9 @@ func TestNewZahlungKassiertEvent_Kommentar(t *testing.T) {
 // --- Ausgabe: Kommentar ist optional ---
 
 func TestNewAusgabeBestaetigtEvent_Kommentar(t *testing.T) {
-	positionen := []Position{
-		{
-			PositionID:   "a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",
-			VarianteID:   1,
-			ProduktName:  "Cola",
-			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Steuersatz:   "regel",
-			Einzelpreis:  350,
-			Menge:        1,
-		},
-	}
-
 	for _, tt := range optionalKommentarTests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewAusgabeBestaetigtEvent(kommentarTestSubject, 1, "Servicekraft", positionen, tt.kommentar)
+			_, err := NewAusgabeBestaetigtEvent(kommentarTestSubject, 1, "Servicekraft", kommentarTestPositionenMitID, tt.kommentar)
 			if tt.wantErr && err == nil {
 				t.Errorf("erwartete Fehler für Kommentar %q, aber kein Fehler", tt.kommentar)
 			}

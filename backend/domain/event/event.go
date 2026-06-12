@@ -11,8 +11,8 @@ import (
 )
 
 // Event represents a CNCF Cloudevent with additional fields for user association.
-// Identifies the event. Must be unique within the scope of the producer/source.
 type Event struct {
+	// Identifies the event. Must be unique within the scope of the producer/source.
 	ID int
 	// The ID of the user associated with the event.
 	UserID int

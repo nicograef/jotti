@@ -25,7 +25,7 @@ type HistorieEintrag struct {
 	Auszahlung  *Auszahlung
 }
 
-func GetHistoryFromEvents(events []e.Event) ([]HistorieEintrag, error) {
+func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 	history := []HistorieEintrag{}
 
 	for _, event := range events {

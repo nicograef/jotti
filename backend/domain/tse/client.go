@@ -40,11 +40,7 @@ func (c Credentials) Validate() error {
 	hasTssID := strings.TrimSpace(c.TssID) != ""
 	hasClientID := strings.TrimSpace(c.ClientID) != ""
 
-	hasAny := hasApiKey || hasApiSecret || hasTssID || hasClientID
 	hasAll := hasApiKey && hasApiSecret && hasTssID && hasClientID
-	if hasAny && !hasAll {
-		return ErrUnvollstaendigeCredentials
-	}
 	if !hasAll {
 		return ErrUnvollstaendigeCredentials
 	}

@@ -7,13 +7,13 @@ import (
 	z "github.com/Oudwins/zog"
 )
 
-// Status represents the status of a product variant.
+// Status represents the status of a product or variant.
 type Status string
 
 const (
-	// ActiveStatus indicates the product variant is active and usable for service.
+	// ActiveStatus indicates the product or variant is active and usable for service.
 	ActiveStatus Status = "active"
-	// InactiveStatus indicates the product variant is inactive and not currently in use.
+	// InactiveStatus indicates the product or variant is inactive and not currently in use.
 	InactiveStatus Status = "inactive"
 	// DeletedStatus indicates the product or variant has been soft-deleted.
 	DeletedStatus Status = "deleted"
@@ -28,10 +28,10 @@ type Variante struct {
 	UpdatedAt  time.Time
 }
 
-// PreisCentsSchema defines the schema for a product variant's net price in cents.
+// PreisCentsSchema defines the schema for a product variant's gross price in cents.
 var PreisCentsSchema = z.Int().GTE(0, z.Message("Preis darf nicht negativ sein")).LTE(99999, z.Message("Preis zu hoch"))
 
-// StatusSchema defines the schema for a product variant status.
+// StatusSchema defines the schema for a product or variant status.
 var StatusSchema = z.StringLike[Status]().OneOf(
 	[]Status{ActiveStatus, InactiveStatus, DeletedStatus},
 	z.Message("Ungültiger Status"),
@@ -54,15 +54,15 @@ func (v Variante) Validate() error {
 	return nil
 }
 
-// NewVariant creates a new Variant instance after validating the input parameters.
-// The new Variant does not have an ID assigned; it is expected to be set by the persistence layer.
+// NewVariante creates a new Variante instance after validating the input parameters.
+// The new Variante does not have an ID assigned; it is expected to be set by the persistence layer.
 func NewVariante(name string, preisCents int) (Variante, error) {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return Variante{}, fmt.Errorf("invalid name")
 	}
 
 	if issue := PreisCentsSchema.Validate(&preisCents); issue != nil {
-		return Variante{}, fmt.Errorf("invalid net price")
+		return Variante{}, fmt.Errorf("invalid price")
 	}
 
 	variante := Variante{
@@ -97,7 +97,7 @@ func (v *Variante) UpdateDetails(name string, preisCents int) error {
 	}
 
 	if issue := PreisCentsSchema.Validate(&preisCents); issue != nil {
-		return fmt.Errorf("invalid net price")
+		return fmt.Errorf("invalid price")
 	}
 
 	v.Name = name

@@ -14,7 +14,7 @@ func GenerateJWTTokenForUser(userID int, userName, userRole string, secret strin
 		"alg":  jwt.SigningMethodHS256.Alg(),
 		"iss":  issuer,
 		"iat":  jwt.NewNumericDate(time.Now().UTC()),
-		"exp":  jwt.NewNumericDate(time.Now().UTC().Add(12 * time.Hour)), // 12 hours validity
+		"exp":  jwt.NewNumericDate(time.Now().UTC().Add(12 * time.Hour)),
 		"sub":  userID,
 		"name": userName,
 		"role": userRole,

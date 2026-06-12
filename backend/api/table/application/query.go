@@ -204,7 +204,7 @@ func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]kasse.Histo
 		return nil, ErrDatabase
 	}
 
-	historie, err := kasse.GetHistoryFromEvents(events)
+	historie, err := kasse.GetHistorieFromEvents(events)
 	if err != nil {
 		log.Error().Int("tisch_id", tischID).Err(err).Msg("Failed to build historie from events")
 		return nil, err

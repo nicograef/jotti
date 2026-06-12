@@ -57,7 +57,7 @@ func NewTSEKonfiguration(apiKey, apiSecret, tssID, clientID string) (TSEKonfigur
 		ApiSecret: strings.TrimSpace(apiSecret),
 		TssID:     strings.TrimSpace(tssID),
 		ClientID:  strings.TrimSpace(clientID),
-		UpdatedAt: time.Now(),
+		UpdatedAt: time.Now().UTC(),
 	}
 
 	if err := t.Validate(); err != nil {

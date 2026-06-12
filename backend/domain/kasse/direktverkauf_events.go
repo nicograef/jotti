@@ -2,6 +2,7 @@ package kasse
 
 import (
 	"fmt"
+	"slices"
 
 	z "github.com/Oudwins/zog"
 	"github.com/google/uuid"
@@ -65,6 +66,8 @@ func newDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 		}
 	}
 
+	// Generate PositionIDs for each position (on a copy, so the caller's slice stays untouched)
+	positionen = slices.Clone(positionen)
 	for i := range positionen {
 		positionen[i].PositionID = uuid.New().String()
 	}

@@ -43,7 +43,7 @@ func NewBetreiber(vereinsname, strasse, plz, ort string, steuernummer, ustId *st
 		Ort:          ort,
 		Steuernummer: steuernummer,
 		UstID:        ustId,
-		UpdatedAt:    time.Now(),
+		UpdatedAt:    time.Now().UTC(),
 	}
 	if err := b.Validate(); err != nil {
 		return Betreiber{}, err

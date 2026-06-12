@@ -7,23 +7,6 @@ import (
 	"time"
 )
 
-// makeTestUser returns a minimal valid User with UpdatedAt set in the past.
-func makeTestUser(t *testing.T) User {
-	t.Helper()
-	u, onetimePassword, err := NewUser("Test User", "testuser", ServiceRole)
-	if err != nil {
-		t.Fatalf("NewUser: %v", err)
-	}
-	// Backdate UpdatedAt so any mutation produces a strictly newer timestamp.
-	u.UpdatedAt = u.UpdatedAt.Add(-time.Second)
-	u.ID = 1
-	u.Status = ActiveStatus
-
-	// SetPassword requires a valid one-time password; capture it here for later tests.
-	_ = onetimePassword
-	return u
-}
-
 func TestActivate_SetsUpdatedAt(t *testing.T) {
 	u, _, err := NewUser("Test User", "testuser", ServiceRole)
 	if err != nil {

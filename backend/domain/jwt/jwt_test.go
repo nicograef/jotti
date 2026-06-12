@@ -17,7 +17,7 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 
 	// Validate the token
 	claims := jwt.MapClaims{}
-	_, err = jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+	_, err = jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (any, error) {
 		return []byte("test_secret"), nil
 	})
 	if err != nil {

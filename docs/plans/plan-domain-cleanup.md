@@ -207,12 +207,12 @@ mit einem Produktions-Caller):
 
 ### Acceptance criteria
 
-- [ ] `make test` und `make lint-backend` grün
-- [ ] Kein Verhalten geändert: keine JSON-Keys, keine Schemas, keine
+- [x] `make test` und `make lint-backend` grün
+- [x] Kein Verhalten geändert: keine JSON-Keys, keine Schemas, keine
       Validierungsregeln berührt (nur die zwei dokumentierten
       Fehlerstring-Korrekturen "invalid net price" → "invalid price")
-- [ ] `grep -rn "GetHistoryFromEvents" backend/` liefert keine Treffer
-- [ ] `grep -rn "makeTestUser" backend/` liefert keine Treffer
+- [x] `grep -rn "GetHistoryFromEvents" backend/` liefert keine Treffer
+- [x] `grep -rn "makeTestUser" backend/` liefert keine Treffer
 
 ---
 

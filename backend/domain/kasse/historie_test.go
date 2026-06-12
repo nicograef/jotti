@@ -8,8 +8,8 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-func TestGetHistoryFromEvents_Empty(t *testing.T) {
-	history, err := GetHistoryFromEvents([]e.Event{})
+func TestGetHistorieFromEvents_Empty(t *testing.T) {
+	history, err := GetHistorieFromEvents([]e.Event{})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -18,7 +18,7 @@ func TestGetHistoryFromEvents_Empty(t *testing.T) {
 	}
 }
 
-func TestGetHistoryFromEvents_ReturnsAllEventTypes(t *testing.T) {
+func TestGetHistorieFromEvents_ReturnsAllEventTypes(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
@@ -32,7 +32,7 @@ func TestGetHistoryFromEvents_ReturnsAllEventTypes(t *testing.T) {
 		mustCreateDeliveryEvent(t, testSubject, 1, positions),
 	}
 
-	history, err := GetHistoryFromEvents(events)
+	history, err := GetHistorieFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -41,7 +41,7 @@ func TestGetHistoryFromEvents_ReturnsAllEventTypes(t *testing.T) {
 	}
 }
 
-func TestGetHistoryFromEvents_ReversesOrder(t *testing.T) {
+func TestGetHistorieFromEvents_ReversesOrder(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
@@ -53,7 +53,7 @@ func TestGetHistoryFromEvents_ReversesOrder(t *testing.T) {
 		mustCreatePaymentEvent(t, testSubject, 1, positions, 500),
 	}
 
-	history, err := GetHistoryFromEvents(events)
+	history, err := GetHistorieFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -66,7 +66,7 @@ func TestGetHistoryFromEvents_ReversesOrder(t *testing.T) {
 	}
 }
 
-func TestGetHistoryFromEvents_IncludesAuszahlung(t *testing.T) {
+func TestGetHistorieFromEvents_IncludesAuszahlung(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
@@ -80,7 +80,7 @@ func TestGetHistoryFromEvents_IncludesAuszahlung(t *testing.T) {
 		mustCreateAuszahlungEvent(t, testSubject, 1, 500, "Rueckzahlung"),
 	}
 
-	history, err := GetHistoryFromEvents(events)
+	history, err := GetHistorieFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

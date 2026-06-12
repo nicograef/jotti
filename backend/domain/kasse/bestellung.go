@@ -5,6 +5,7 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
 type Position struct {
@@ -31,18 +32,10 @@ type positionEventData struct {
 	Menge        int    `json:"menge"`
 }
 
-func toPositionEventData(p Position) positionEventData {
-	return positionEventData(p)
-}
-
-func fromPositionEventData(p positionEventData) Position {
-	return Position(p)
-}
-
 func toPositionenEventData(positionen []Position) []positionEventData {
 	out := make([]positionEventData, len(positionen))
 	for i, p := range positionen {
-		out[i] = toPositionEventData(p)
+		out[i] = positionEventData(p)
 	}
 	return out
 }
@@ -50,7 +43,7 @@ func toPositionenEventData(positionen []Position) []positionEventData {
 func fromPositionenEventData(positionen []positionEventData) []Position {
 	out := make([]Position, len(positionen))
 	for i, p := range positionen {
-		out[i] = fromPositionEventData(p)
+		out[i] = Position(p)
 	}
 	return out
 }
@@ -60,8 +53,8 @@ var positionSchema = z.Struct(z.Shape{
 	"VarianteID":   product.IDSchema.Required(),
 	"ProduktName":  product.NameSchema.Required(),
 	"VarianteName": product.NameSchema.Required(),
-	"Kategorie":    z.String().OneOf([]string{"essen", "getraenk", "sonstiges"}, z.Message("Ungültige Kategorie")).Required(),
-	"Steuersatz":   z.String().OneOf([]string{"regel", "ermaessigt", "befreit", "kombi"}, z.Message("Ungültiger Steuersatz")).Required(),
+	"Kategorie":    z.String().OneOf([]string{string(product.EssenKategorie), string(product.GetraenkKategorie), string(product.SonstigesKategorie)}, z.Message("Ungültige Kategorie")).Required(),
+	"Steuersatz":   z.String().OneOf([]string{string(steuer.RegelSteuersatz), string(steuer.ErmaessigtSteuersatz), string(steuer.BefreitSteuersatz), string(steuer.KombiSteuersatz)}, z.Message("Ungültiger Steuersatz")).Required(),
 	"Einzelpreis":  product.PreisCentsSchema.Required(),
 	"Menge":        z.Int().GTE(1, z.Message("Menge muss mindestens 1 betragen")).Required(),
 })

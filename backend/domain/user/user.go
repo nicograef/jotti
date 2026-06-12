@@ -1,9 +1,9 @@
 package user
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 
 	z "github.com/Oudwins/zog"
@@ -17,7 +17,7 @@ const (
 	AdminRole Role = "admin"
 	// ServiceleitungRole: same as service, but can also cancel orders.
 	ServiceleitungRole Role = "serviceleitung"
-	// ServiceRole: can only see active tables and products and .
+	// ServiceRole: can only see active tables and products.
 	ServiceRole Role = "service"
 )
 
@@ -75,7 +75,7 @@ var UserSchema = z.Struct(z.Shape{
 	"UpdatedAt":           z.Time().Required(),
 })
 
-var ErrNotActive = fmt.Errorf("user is not active")
+var ErrNotActive = errors.New("user is not active")
 
 func (u User) Validate() error {
 	if errs := UserSchema.Validate(&u); errs != nil {
@@ -110,7 +110,7 @@ func NewUser(name, username string, role Role) (User, string, error) {
 
 	user := User{
 		Name:                name,
-		Username:            strings.ToLower(username),
+		Username:            username,
 		Role:                role,
 		Status:              InactiveStatus,
 		PasswordHash:        "",

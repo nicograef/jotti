@@ -64,8 +64,8 @@ func (p Produkt) Validate() error {
 	return nil
 }
 
-// NewProduct creates a new Product instance after validating the input parameters.
-// The new Product does not have an ID assigned; it is expected to be set by the persistence layer.
+// NewProdukt creates a new Produkt instance after validating the input parameters.
+// The new Produkt does not have an ID assigned; it is expected to be set by the persistence layer.
 func NewProdukt(name string, kategorie Kategorie, steuersatz steuer.Steuersatz) (Produkt, error) {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return Produkt{}, fmt.Errorf("invalid name")
