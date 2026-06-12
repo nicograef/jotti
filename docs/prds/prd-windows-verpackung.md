@@ -1,9 +1,9 @@
 # PRD: Klickbare Windows-Verpackung für den lokalen Betrieb
 
-> Voraussetzungen:
-> `docs/prds/prd-betrieb-relay-haertung.md` (Relay-Env-Konfiguration, `.env`-Vertrag,
-> `/health` per GET) und `docs/prds/prd-lokale-tls-selbstsigniert.md` (lokales
-> HTTPS — der Starter zeigt eine `https://`-Adresse an).
+> Voraussetzungen (beide inzwischen umgesetzt): die Betriebs-/Relay-Härtung
+> (Relay-Env-Konfiguration, `.env`-Vertrag, `/health` per GET; deren PRD wurde
+> nach Umsetzung entfernt) und `docs/prds/prd-lokale-tls-selbstsigniert.md`
+> (lokales HTTPS — der Starter zeigt eine `https://`-Adresse an).
 > Herkunft: gekürzt aus der ursprünglich gemischten Windows-PRD;
 > Betriebs-/Relay-Härtung und Transportverschlüsselung sind in eigene PRDs
 > abgetrennt. Diese PRD beschreibt ausschließlich die **klickbare
@@ -30,15 +30,18 @@ Bons drucken können. Der lokale Docker-Weg bleibt die Grundlage, ist in seiner
 
 > Hinweis zur Abgrenzung: Dass `RELAY_AUTH_TOKEN` überhaupt sicher existiert, das
 > Relay env-basiert konfiguriert wird und `/health` per GET prüfbar ist, löst die
-> Betriebs-/Relay-Härtung (`docs/prds/prd-betrieb-relay-haertung.md`). Diese PRD
-> baut darauf auf und macht den Ablauf **per Doppelklick bedienbar**.
+> Betriebs-/Relay-Härtung (inzwischen umgesetzt; deren PRD wurde nach Abschluss
+> entfernt). Diese PRD baut darauf auf und macht den Ablauf **per Doppelklick
+> bedienbar**.
 
 ## Solution
 
 jotti erhält für den lokalen Windows-Betrieb zwei kleine, eigenständige
 Programme, die ein Verein als fertiges Release-ZIP herunterlädt, entpackt und
 per Doppelklick startet — **Docker Desktop bleibt die Basis**, es kommt keine
-neue Laufzeitumgebung hinzu.
+neue Laufzeitumgebung hinzu. Das ZIP enthält keinen Quellcode: Der
+Compose-Stack nutzt **vorgebaute Container-Images** aus der GitHub Container
+Registry (GHCR); beim ersten Start wird nur heruntergeladen, nichts gebaut.
 
 1. **`jotti-start.exe` (Starter)** übernimmt Einrichtung und Start:
    - Erzeugt beim ersten Start automatisch eine `.env` mit kryptografisch
@@ -46,10 +49,11 @@ neue Laufzeitumgebung hinzu.
      vorhandene `.env` **nie**. Schema und Schlüssel folgen dem `.env`-Vertrag
      aus der Betriebs-/Relay-Härtung (inkl. `RELAY_AUTH_TOKEN`).
    - Führt vor dem Start Preflight-Prüfungen aus (ist Docker installiert und
-     gestartet? ist der konfigurierte Port frei?) und erklärt Fehler in
+     gestartet? sind die Ports 80 und 443 frei?) und erklärt Fehler in
      verständlichem Deutsch.
    - Startet den lokalen Compose-Stack, prüft anschließend per **GET**-Aufruf
-     gegen `…/health`, dass das Backend antwortet, und zeigt die **lokale
+     gegen `…/api/health` (Health-Endpunkt über den Reverse-Proxy), dass das
+     Backend antwortet, und zeigt die **lokale
      Zugriffsadresse fürs Smartphone** an (z. B. `https://192.168.1.50`).
 
 2. **`jotti-relay.exe` (Print-Relay)** wird vom Verein **separat** per
@@ -83,9 +87,9 @@ Kasse und Web-UI, Relay für den Bondruck.
 4. Als Vereins-Admin möchte ich, dass eine bereits vorhandene `.env` beim
    erneuten Start niemals überschrieben wird, damit meine Daten und Zugänge über
    mehrere Festtage stabil bleiben.
-5. Als Vereins-Admin möchte ich Basiswerte (z. B. den Port) bei Bedarf in einer
-   einfachen Datei ändern können, ohne dass dabei die Geheimnisse neu erzeugt
-   werden.
+5. Als Vereins-Admin möchte ich, dass jotti immer dieselben festen
+   Standard-Ports (80/443) verwendet, damit die Zugriffsadresse vorhersehbar
+   bleibt und ich nichts konfigurieren muss.
 6. Als Vereins-Admin möchte ich ohne interaktive Rückfragen starten können
    (sinnvolle Voreinstellungen), damit der Start so einfach wie möglich bleibt.
 
@@ -107,9 +111,9 @@ Kasse und Web-UI, Relay für den Bondruck.
 11. Als Vereins-Admin möchte ich eine verständliche Meldung erhalten, wenn Docker
     Desktop nicht installiert oder nicht gestartet ist, damit ich weiß, dass ich
     Docker zuerst starten muss.
-12. Als Vereins-Admin möchte ich eine verständliche Meldung erhalten, wenn der
-    benötigte Port bereits belegt ist, samt Hinweis, wie ich den Port in der
-    Datei ändere.
+12. Als Vereins-Admin möchte ich eine verständliche Meldung erhalten, wenn ein
+    benötigter Port (80/443) bereits belegt ist, samt Hinweis, welches Programm
+    typischerweise stört und dass ich es beenden muss.
 13. Als Vereins-Admin möchte ich einen Hinweis zur Windows-Firewall erhalten,
     falls das Smartphone den Rechner nicht erreicht, damit ich den Zugriff für
     private Netzwerke freigeben kann.
@@ -153,9 +157,14 @@ Kasse und Web-UI, Relay für den Bondruck.
   Go-Backend, kein Entfernen von nginx, kein nativer Installer.
 - **Docker Desktop bleibt Pflicht-Basis.**
 - **Distribution** als GitHub-Release-ZIP mit vorgebauten Windows-Binaries
-  (`jotti-start.exe`, `jotti-relay.exe`), den lokalen Compose-Dateien und einer
-  Kurzanleitung. **Es werden nur Windows-Binaries ausgeliefert** (der Go-Code
-  bleibt portabel, aber andere Plattformen sind nicht Teil dieses Releases).
+  (`jotti-start.exe`, `jotti-relay.exe`), einer Release-Compose-Datei, die
+  **vorgebaute Container-Images** aus der GitHub Container Registry (GHCR)
+  referenziert (das ZIP enthält keinen Quellcode und baut nichts selbst), den
+  Datenbank-Migrationen, der Reverse-Proxy-Konfiguration und einer
+  Kurzanleitung. Releases entstehen ausschließlich durch produktweite
+  Version-Tags (`v0.X.Y`) auf `main`. **Es werden nur Windows-Binaries
+  ausgeliefert** (der Go-Code bleibt portabel, aber andere Plattformen sind
+  nicht Teil dieses Releases).
 
 ### Modul: Starter-Core (deep, rein/testbar)
 
@@ -165,22 +174,23 @@ Funktionen, getrennt von Docker- und Prozess-Aufrufen:
 - **Secret-Erzeugung:** kryptografisch sichere Zufallswerte für die Secrets des
   `.env`-Vertrags (`POSTGRES_PASSWORD`, `JWT_SECRET`, `RELAY_AUTH_TOKEN`).
 - **`.env`-Materialisierung:** erzeugt die `.env` nur, wenn sie fehlt; eine
-  vorhandene Datei wird nie überschrieben (idempotent). `POSTGRES_USER` und der
-  Port erhalten sinnvolle Defaults.
+  vorhandene Datei wird nie überschrieben (idempotent). `POSTGRES_USER` erhält
+  einen sinnvollen Default.
 - **Preflight-Auswertung:** bildet die geprüften Bedingungen (Docker
-  vorhanden/gestartet, Port frei) auf verständliche, deutsche Diagnose-Texte mit
-  Handlungshinweis ab.
+  vorhanden/gestartet, Ports 80/443 frei) auf verständliche, deutsche
+  Diagnose-Texte mit Handlungshinweis ab.
 - **LAN-IP-Auswahl:** wählt aus den Netzwerkschnittstellen die passende private
   IPv4-Adresse für den WLAN-Zugriff aus (Loopback/Link-Local ignorieren).
-- **Zugriffs-URL-Bau:** setzt aus IP und Port die anzuzeigende `https://`-Adresse
-  zusammen.
+- **Zugriffs-URL-Bau:** setzt aus der gewählten IP die anzuzeigende
+  `https://`-Adresse zusammen (Port fest 443, kein Suffix).
 
 ### Modul: Starter-Shell (dünn, nicht unit-getestet)
 
 - Ruft `docker compose … up -d --build` auf.
-- Führt nach dem Start den **Health-Check als GET** gegen `…/health` aus
-  (`/health` ist der bewusst von POST-only ausgenommene Ops-Endpunkt, siehe
-  `docs/prds/prd-betrieb-relay-haertung.md`).
+- Führt nach dem Start den **Health-Check als GET** über den Reverse-Proxy
+  gegen `…/api/health` aus (`/health` ist der bewusst von POST-only
+  ausgenommene Ops-Endpunkt des Backends — Entscheidung der inzwischen
+  umgesetzten Betriebs-/Relay-Härtung).
 - Gibt die vom Core gelieferten Diagnosen/URL auf der Konsole aus und setzt
   passende Exit-Codes. Es gibt **keine** laufende Statussicht und **keine**
   Status-Webseite — nur diese einmalige Ausgabe beim Start.
@@ -194,18 +204,23 @@ Funktionen, getrennt von Docker- und Prozess-Aufrufen:
   liest, die der Starter erzeugt hat (minimaler Key=Value-Parser), weil ein
   nackter Prozess auf Windows keine Compose-Env-Injektion hat.
 
-### Port-Konfiguration & Build
+### Ports, Build & Release
 
-- Die Port-Veröffentlichung des Reverse-Proxy ist konfigurierbar
-  (`${HTTP_PORT:-…}` in der lokalen Compose-Datei), damit der „Port belegt"-Fall
-  durch Editieren der `.env` lösbar ist; der Starter weist im Preflight darauf
-  hin.
-- Neues Make-Target zum Bauen des Starters analog `build-relay`; beide Targets
-  erzeugen die Windows-Binaries für das Release.
+- **Feste Ports (KISS):** Der Reverse-Proxy veröffentlicht unverändert 80 und
+  443; es gibt keine Port-Variablen in Compose oder `.env`. Ist ein Port
+  belegt, erklärt der Starter im Preflight verständlich, welches Programm
+  typischerweise stört und dass es beendet werden muss.
+- Neue Make-Targets bauen die Windows-Binaries analog `build-relay`
+  (Cross-Compile, Version per ldflags einkompiliert).
+- **Release-Auslösung ausschließlich per produktweitem Version-Tag**
+  (`v0.X.Y`, trunk-based auf `main`): Ein GitHub-Actions-Workflow baut
+  Container-Images und Binaries, führt einen Smoke-Test aus und publiziert
+  erst danach Images (GHCR) und Release-ZIP. Kein automatischer Release-Build
+  auf jeden `main`-Push.
 
 ## Testing Decisions
 
-- **Starter-Core** (Unit-Tests, `-tags=unit`):
+- **Starter-Core** (Unit-Tests):
   - `.env`-Idempotenz: vorhandene Datei wird nie überschrieben; fehlt sie, wird
     sie mit allen erwarteten Schlüsseln erzeugt.
   - Secret-Erzeugung: ausreichende Länge/Entropie, erwartetes Format; zwei
@@ -213,9 +228,8 @@ Funktionen, getrennt von Docker- und Prozess-Aufrufen:
   - LAN-IP-Auswahl: passende private IPv4 gewählt, Loopback/Link-Local ignoriert.
   - Preflight-Auswertung: jede Bedingung bildet auf die korrekte Diagnose mit
     Handlungshinweis ab.
-  - Zugriffs-URL-Bau: korrekte `https://`-Adresse für Default-Port und
-    abweichenden Port.
-- **Relay-`.env`-Parser** (Unit-Tests, `-tags=unit`): Token und Backend-URL
+  - Zugriffs-URL-Bau: korrekte `https://`-Adresse aus der gewählten IP.
+- **Relay-`.env`-Parser** (Unit-Tests): Token und Backend-URL
   werden aus der `.env` gelesen; fehlt `RELAY_BACKEND_URL`, gilt der lokale
   Default.
 - **Nicht unit-getestet:** die dünne Starter-Shell (Docker-/Prozess-Aufrufe,
@@ -224,11 +238,18 @@ Funktionen, getrennt von Docker- und Prozess-Aufrufen:
 ## Out of Scope
 
 - **Betriebs-/Relay-Härtung** (Relay-Token-Pflicht, Relay-Env-Semantik, `/health`
-  per GET, Compose-Entdoppelung) → `docs/prds/prd-betrieb-relay-haertung.md`.
+  per GET, Compose-Entdoppelung) — bereits umgesetzt; deren PRD wurde nach
+  Abschluss entfernt.
 - **Transportverschlüsselung (TLS)** → `docs/prds/prd-lokale-tls-selbstsigniert.md`
   (Option 2) und `docs/prds/prd-lokale-tls-vertrauenswuerdig.md` (Option 3). Diese
   PRD konsumiert das lokale HTTPS nur (zeigt die `https://`-Adresse), definiert es
   aber nicht.
+- **Konfigurierbare Ports** — der Reverse-Proxy bleibt fest auf 80/443;
+  Port-Konfigurierbarkeit ist der dokumentierte Eskalationspfad, falls
+  Port-Konflikte in der Praxis häufig auftreten.
+- **Umstellung der Server-Deployments** (jotti.rocks, Produktion) auf die
+  GHCR-Images — die Images sind dafür nutzbar, die Umstellung ist ein eigenes
+  Vorhaben.
 - **Phase B:** Frontend ins Go-Backend einbetten, nginx im lokalen Modus
   entfernen.
 - **Phase C:** nativer Windows-Installer (MSI/Setup), Einrichtungs-Wizard,
