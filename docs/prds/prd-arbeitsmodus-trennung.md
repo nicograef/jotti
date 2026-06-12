@@ -1,12 +1,5 @@
 # PRD: Arbeitsmodus-Trennung (Tischservice / Direktverkauf)
 
-> Behebt Befund 5 aus der QA-Session vom 2026-06-12 (`docs/qa-notes.md`): Der Direktverkauf
-> ist auf der Tischauswahl-Seite zu prominent, obwohl Tischservice und Direktverkauf faktisch
-> getrennte Arbeitsplätze sind. Ausgeklammert aus `prd-qa-fixes-2026-06.md`, weil es ein
-> UX-Rework mit eigenen Entwurfsentscheidungen ist.
-> Entscheidungen geklärt am 2026-06-12 (zuletzt genutzter Modus pro Gerät, Wechsel über das
-> Benutzermenü, kein Org-Toggle, Hook- und Routing-Tests).
-
 ## Problem Statement
 
 jotti kennt zwei Verkaufsabläufe: **Tischservice** (Servicekraft nimmt am Tisch Bestellungen
@@ -172,16 +165,10 @@ einmaliger Wechsel pro Gerät.
   Helfer wechseln Stationen spontan; eine Geräte-Präferenz genügt.
 - **Funktionale Änderungen am Direktverkauf** (Verkaufsablauf, Stornierung, Abholbon,
   Druckverhalten).
-- **Änderungen an der Tischdetail-Seite** (Sticky-Aktionsleiste etc. — siehe
-  `prd-qa-fixes-2026-06.md`, Befund 7).
 - **Der Admin-Bereich** bleibt unberührt.
 
 ## Further Notes
 
-- Dieses PRD ist die Ausgliederung von Befund 5 aus `docs/qa-notes.md`; die übrigen Befunde
-  behandelt `prd-qa-fixes-2026-06.md`. Beide PRDs berühren die Tischauswahl-Seite an
-  verschiedenen Stellen (dort Befund 6: Query-Invalidierung; hier: Button-Entfernung) und
-  sind unabhängig umsetzbar.
 - **Arbeitsmodus** ist ein neuer Begriff der Oberfläche (kein Domänenbegriff des Backends).
   Bei der Umsetzung in `docs/language.md` aufnehmen, damit die Benennung verbindlich wird.
   Wichtig: Es gibt bewusst keine `Verkaufsstelle`-Entität (siehe `docs/language.md`,
