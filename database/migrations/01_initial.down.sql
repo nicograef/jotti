@@ -23,6 +23,9 @@ DROP FUNCTION IF EXISTS kj_extract_geldtransit_cents(TEXT, JSONB);
 DROP FUNCTION IF EXISTS kj_extract_auszahlung_cents(TEXT, JSONB);
 DROP FUNCTION IF EXISTS kj_extract_eroeffnung_cents(TEXT, JSONB);
 DROP FUNCTION IF EXISTS kj_extract_zahlung_cents(TEXT, JSONB);
+DROP FUNCTION IF EXISTS kj_extract_direktverkauf_cents(TEXT, JSONB);
+DROP FUNCTION IF EXISTS kj_extract_direktverkauf_storno_cents(TEXT, JSONB);
+DROP FUNCTION IF EXISTS kj_extract_umsatz_pro_steuersatz(TEXT, JSONB);
 
 DROP TABLE IF EXISTS kassenidentitaet;
 DROP TABLE IF EXISTS betreiber;

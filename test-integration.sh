@@ -47,6 +47,10 @@ echo "✅ PostgreSQL ready!"
 echo "🔄 Running database migrations..."
 migrate -path "$ROOT_DIR/database/migrations" -database "$DATABASE_URL" up
 
+echo "🔄 Verifying migration roundtrip (down -all, up)..."
+migrate -path "$ROOT_DIR/database/migrations" -database "$DATABASE_URL" down -all
+migrate -path "$ROOT_DIR/database/migrations" -database "$DATABASE_URL" up
+
 echo "✅ Migrations complete!"
 echo ""
 

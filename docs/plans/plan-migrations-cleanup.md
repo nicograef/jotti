@@ -101,13 +101,13 @@ breaks. The roundtrip leaves the database fully migrated for the tests that foll
 
 ### Acceptance criteria
 
-- [ ] On a fresh PostgreSQL 17, `migrate up` → `migrate down -all` completes
+- [x] On a fresh PostgreSQL 17, `migrate up` → `migrate down -all` completes
       without error (today it fails on `DROP TYPE … Steuersatz`).
-- [ ] After `down -all`, no `kj_extract_*` functions and none of the five enum
+- [x] After `down -all`, no `kj_extract_*` functions and none of the five enum
       types remain in the database.
-- [ ] `test-integration.sh` performs the unmasked up→down→up roundtrip before
+- [x] `test-integration.sh` performs the unmasked up→down→up roundtrip before
       running the tests.
-- [ ] `make verify` passes.
+- [x] `make verify` passes.
 
 ---
 
