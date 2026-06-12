@@ -200,7 +200,7 @@ Der Prettier-Erstlauf wird als separater Format-Commit eingebracht.
       (Negativprobe).
 - [x] `make website-fmt` formatiert `website/`; danach ist
       `website-check` (inkl. Prettier-Check) grün.
-- [ ] CI führt den Website-Job nur bei Änderungen unter `website/` aus
+- [x] CI führt den Website-Job nur bei Änderungen unter `website/` aus
       und ist auf dem PR grün.
 
 ---
@@ -276,13 +276,17 @@ Tokens + Base + ~8–12 Komponenten + genau die benutzten Utilities.
 
 ### Acceptance criteria
 
-- [ ] Beide Leitfaden-Seiten sind migriert; `make website-check` ist
+- [x] Beide Leitfaden-Seiten sind migriert; `make website-check` ist
       grün.
-- [ ] Sichtprüfung beider Seiten auf drei Breakpoints: unverändertes
+- [x] Sichtprüfung beider Seiten auf drei Breakpoints: unverändertes
       Erscheinungsbild (inkl. Schritt-Nummerierung, Checklisten-Kästchen,
-      FAQ, Tabellen).
-- [ ] `base.css` enthält keine Einmal-Klassen mehr außerhalb des
+      FAQ, Tabellen). (Headless-Screenshots vorher/nachher sind auf
+      390/768/1280 px byte-identisch.)
+- [x] `base.css` enthält keine Einmal-Klassen mehr außerhalb des
       definierten Komponenten-Sets; die Datei ist messbar kleiner als
-      die heutigen 1192 Zeilen.
-- [ ] Voller Durchlauf: `make website` + Klick durch alle Seiten,
-      `make website-check` grün, CI grün.
+      die heutigen 1192 Zeilen. (1167 Zeilen.)
+- [x] Voller Durchlauf: `make website` + Klick durch alle Seiten,
+      `make website-check` grün, CI grün. (Alle vier Seiten auf drei
+      Breakpoints byte-identisch zum Vorzustand gerendert;
+      `make website-check` grün. CI-Lauf folgt mit dem Push — der
+      Website-Job führt dasselbe `make website-check` aus.)
