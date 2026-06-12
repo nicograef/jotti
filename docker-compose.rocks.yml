@@ -1,10 +1,15 @@
 # Docker Compose override for the jotti.rocks project deployment.
-# Adds the static landing page and swaps in the dual-domain nginx config.
+# Adds the static landing page, swaps in the dual-domain nginx config and runs
+# the DNS infrastructure for trusted local TLS (resolver + acme-dns), see
+# docs/betrieb/leitfaden-rocks-dns.md.
 #
 # Usage (always combine with the base prod file):
 #   docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml up -d --build
 #
 # This file is NOT used by self-hosters — they use docker-compose.prod.yml alone.
+#
+# Requires VPS_PUBLIC_IP in .env (public IPv4 of this server) and
+# Docker Compose >= 2.23.1 (inline configs with interpolation).
 
 services:
   reverse-proxy:
@@ -13,3 +18,91 @@ services:
       - ./website:/usr/share/nginx/html/landing:ro
       - certbot-challenges:/var/www/certbot
       - letsencrypt:/etc/letsencrypt
+    depends_on:
+      acme-dns:
+        condition: service_started
+
+  # Authoritative DNS for lokal.jotti.rocks — computes A records and
+  # _acme-challenge CNAMEs from the queried name, forwards auth.jotti.rocks
+  # queries to acme-dns. The only process bound to public port 53.
+  resolver:
+    build:
+      context: ./resolver
+      dockerfile: Dockerfile
+    container_name: jotti-resolver
+    restart: unless-stopped
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    environment:
+      RESOLVER_NS_IP: ${VPS_PUBLIC_IP}
+      RESOLVER_AUTH_FORWARD: acme-dns:53
+    networks:
+      - app-network
+    depends_on:
+      acme-dns:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.25"
+
+  # acme-dns serves the auth.jotti.rocks zone (DNS-01 challenge TXT records).
+  # DNS (:53) and HTTP API (:80) are Docker-internal only: DNS is reached via
+  # the resolver's conditional forwarding, the API via nginx
+  # (https://auth.jotti.rocks).
+  acme-dns:
+    image: joohoi/acme-dns:v2.0.2
+    container_name: jotti-acme-dns
+    restart: unless-stopped
+    configs:
+      - source: acme-dns-config
+        target: /etc/acme-dns/config.cfg
+    volumes:
+      - acme-dns-data:/var/lib/acme-dns
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.25"
+
+configs:
+  acme-dns-config:
+    content: |
+      [general]
+      listen = "0.0.0.0:53"
+      protocol = "both"
+      domain = "auth.jotti.rocks"
+      nsname = "dns.jotti.rocks"
+      nsadmin = "graef.nico.gmail.com"
+      records = [
+          "auth.jotti.rocks. A ${VPS_PUBLIC_IP}",
+          "auth.jotti.rocks. NS dns.jotti.rocks.",
+      ]
+      debug = false
+
+      [database]
+      engine = "sqlite"
+      connection = "/var/lib/acme-dns/acme-dns.db"
+
+      [api]
+      ip = "0.0.0.0"
+      disable_registration = false
+      port = "80"
+      tls = "none"
+      corsorigins = [
+          "*"
+      ]
+      use_header = true
+      header_name = "X-Forwarded-For"
+
+      [logconfig]
+      loglevel = "info"
+      logtype = "stdout"
+      logformat = "text"
+
+volumes:
+  acme-dns-data:

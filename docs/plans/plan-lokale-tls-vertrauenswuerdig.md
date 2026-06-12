@@ -281,8 +281,15 @@ Die öffentliche DNS-Infrastruktur, end-to-end verifiziert:
 - [ ] CAA-Record aktiv; nur Let's Encrypt darf für `jotti.rocks` ausstellen.
 - [ ] Ein Staging-Wildcard-Zertifikat für `*.<test-id>.lokal.jotti.rocks`
       wurde erfolgreich über DNS-01 ausgestellt (dokumentierter Testlauf).
-- [ ] Deploy-Schritte und DNS-Hoster-Einträge sind im Betreiber-Leitfaden
+- [x] Deploy-Schritte und DNS-Hoster-Einträge sind im Betreiber-Leitfaden
       dokumentiert (inkl. CT-Monitoring-Routine).
+
+> Stand 2026-06-13: Repo-Artefakte gebaut und lokal verifiziert
+> (resolver + acme-dns als rocks-Services gestartet; A/CNAME/Forwarding,
+> `/register`, credential-geschützte TXT-Updates und TXT-Auflösung end-to-end
+> getestet; `nginx -t` grün). Die vier offenen Kriterien erfordern das
+> VPS-Deployment und die manuellen DNS-Hoster-Einträge — Ablauf in
+> `docs/betrieb/leitfaden-rocks-dns.md`, Abschnitte 3–5.
 
 ---
 

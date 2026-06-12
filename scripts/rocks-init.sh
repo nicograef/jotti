@@ -4,9 +4,10 @@ set -euo pipefail
 # =============================================================================
 # jotti.rocks — First-Deploy Script for the project website
 #
-# Deploys the jotti.rocks dual-domain setup:
+# Deploys the jotti.rocks setup:
 #   - https://jotti.rocks        → static landing page
 #   - https://demo.jotti.rocks   → demo app (frontend + backend API)
+#   - https://auth.jotti.rocks   → acme-dns API (trusted local TLS)
 #
 # Uses docker-compose.prod.yml + docker-compose.rocks.yml override.
 # Self-hosters should use scripts/prod-init.sh instead.
@@ -20,6 +21,7 @@ set -euo pipefail
 DOMAIN="jotti.rocks"
 DOMAIN_WWW="www.jotti.rocks"
 DOMAIN_DEMO="demo.jotti.rocks"
+DOMAIN_AUTH="auth.jotti.rocks"
 EMAIL="graef.nico@gmail.com"
 
 COMPOSE_CERT="docker-compose.initial-cert.yml"
@@ -54,6 +56,10 @@ info "Checking prerequisites..."
 
 if [[ ! -f .env ]]; then
   fatal ".env file not found. Run 'make init' first."
+fi
+
+if ! grep -q '^VPS_PUBLIC_IP=' .env; then
+  fatal "VPS_PUBLIC_IP missing in .env (public IPv4 of this server, needed by resolver + acme-dns). See docs/betrieb/leitfaden-rocks-dns.md."
 fi
 
 if ! command -v docker &>/dev/null; then
@@ -101,6 +107,17 @@ if host "$DOMAIN_DEMO" &>/dev/null 2>&1 || dig +short "$DOMAIN_DEMO" 2>/dev/null
   CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_DEMO"
 else
   warn "DNS resolution for $DOMAIN_DEMO failed. demo will not be included in the certificate."
+fi
+
+# auth.jotti.rocks resolves via the resolver/acme-dns stack on this server —
+# on a fresh install it only works once the stack is up and the NS delegation
+# is set. Expand the certificate later as described in the guide.
+if host "$DOMAIN_AUTH" &>/dev/null 2>&1 || dig +short "$DOMAIN_AUTH" 2>/dev/null | grep -q .; then
+  info "DNS resolution for $DOMAIN_AUTH: OK"
+  CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_AUTH"
+else
+  warn "DNS resolution for $DOMAIN_AUTH failed. auth will not be included in the certificate."
+  warn "Expand the certificate after the stack is up — see docs/betrieb/leitfaden-rocks-dns.md."
 fi
 
 # ---------------------------------------------------------------------------
@@ -162,6 +179,15 @@ else
   warn "Demo app HTTPS check returned HTTP $DEMO_STATUS — may not be fully ready yet."
 fi
 
+# Check acme-dns API
+AUTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN_AUTH/health" 2>/dev/null || echo "000")
+
+if [[ "$AUTH_STATUS" == "200" ]]; then
+  info "acme-dns API HTTPS check: OK (HTTP $AUTH_STATUS)"
+else
+  warn "acme-dns API HTTPS check returned HTTP $AUTH_STATUS — expected if auth.jotti.rocks is not yet in the certificate (see docs/betrieb/leitfaden-rocks-dns.md)."
+fi
+
 # Check HTTP→HTTPS redirect
 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "http://$DOMAIN" 2>/dev/null || echo "000")
 
@@ -181,6 +207,7 @@ echo "=========================================="
 echo ""
 echo "  Landing page:  https://$DOMAIN"
 echo "  Demo app:      https://$DOMAIN_DEMO"
+echo "  acme-dns API:  https://$DOMAIN_AUTH"
 echo ""
 echo "  Useful commands:"
 echo "    make rocks-up     — Rebuild & restart"
