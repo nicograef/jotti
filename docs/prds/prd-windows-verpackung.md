@@ -8,6 +8,14 @@
 > Betriebs-/Relay-Härtung und Transportverschlüsselung sind in eigene PRDs
 > abgetrennt. Diese PRD beschreibt ausschließlich die **klickbare
 > Windows-Verpackung**.
+>
+> Revision 2026-06-12: **Administratorrechte sind Voraussetzung** des lokalen
+> Windows-Betriebs (UAC-Bestätigung bei jedem Start). Der Starter richtet die
+> Windows-Firewall selbst ein, startet Docker Desktop bei Bedarf selbst,
+> schaltet den Container-Modus selbst um und benennt Port-Verursacher exakt.
+> **Kein Autostart** (bewusst abgelehnt, siehe Out of Scope). Der frühere
+> Phase-C-Ausblick (nativ ohne Docker) ist jetzt eine eigene PRD:
+> `docs/prds/prd-windows-nativ-ohne-docker.md`.
 
 ## Problem Statement
 
@@ -24,9 +32,12 @@ Bons drucken können. Der lokale Docker-Weg bleibt die Grundlage, ist in seiner
   Smartphone muss separat ermittelt werden.
 - Der Bondruck (Print-Relay) muss als zweites Programm gestartet werden, ohne
   dass der Admin einen Token oder eine Backend-Adresse von Hand eingeben will.
-- Typische Startfehler (Docker läuft nicht, Port belegt, Windows-Firewall)
-  äußern sich in kryptischen Docker-Meldungen, die ein Ehrenamtlicher nicht
-  einordnen kann.
+- Typische Startfehler (Docker läuft nicht, Port belegt) äußern sich in
+  kryptischen Docker-Meldungen, die ein Ehrenamtlicher nicht einordnen kann.
+- Die Windows-Firewall blockiert den Smartphone-Zugriff — besonders, wenn
+  Windows das Vereins-WLAN als „öffentliches Netzwerk" eingestuft hat — ohne
+  dass am Rechner eine verständliche Meldung erscheint („Handy lädt einfach
+  nicht").
 
 > Hinweis zur Abgrenzung: Dass `RELAY_AUTH_TOKEN` überhaupt sicher existiert, das
 > Relay env-basiert konfiguriert wird und `/health` per GET prüfbar ist, löst die
@@ -43,14 +54,20 @@ neue Laufzeitumgebung hinzu. Das ZIP enthält keinen Quellcode: Der
 Compose-Stack nutzt **vorgebaute Container-Images** aus der GitHub Container
 Registry (GHCR); beim ersten Start wird nur heruntergeladen, nichts gebaut.
 
-1. **`jotti-start.exe` (Starter)** übernimmt Einrichtung und Start:
+1. **`jotti-start.exe` (Starter)** übernimmt Einrichtung und Start und läuft
+   dafür **mit Administratorrechten** (eine UAC-Bestätigung pro Start):
    - Erzeugt beim ersten Start automatisch eine `.env` mit kryptografisch
      sicheren Zufallswerten für alle Geheimnisse und überschreibt eine
      vorhandene `.env` **nie**. Schema und Schlüssel folgen dem `.env`-Vertrag
      aus der Betriebs-/Relay-Härtung (inkl. `RELAY_AUTH_TOKEN`).
-   - Führt vor dem Start Preflight-Prüfungen aus (ist Docker installiert und
-     gestartet? sind die Ports 80 und 443 frei?) und erklärt Fehler in
-     verständlichem Deutsch.
+   - Führt Preflight-Prüfungen aus und **behebt selbst, was es beheben kann**:
+     startet Docker Desktop, falls es installiert, aber nicht gestartet ist;
+     schaltet vom Windows- in den Linux-Container-Modus um; richtet die
+     Windows-Firewall-Freigabe für das lokale Subnetz automatisch ein
+     (profilunabhängig — auch ein als „öffentlich" eingestuftes WLAN blockiert
+     dann nicht mehr). Was es nicht beheben kann, erklärt es in verständlichem
+     Deutsch — bei belegtem Port 80/443 samt **exakter Angabe, welches
+     Programm** den Port hält.
    - Startet den lokalen Compose-Stack, prüft anschließend per **GET**-Aufruf
      gegen `…/api/health` (Health-Endpunkt über den Reverse-Proxy), dass das
      Backend antwortet, und zeigt die **lokale
@@ -58,14 +75,16 @@ Registry (GHCR); beim ersten Start wird nur heruntergeladen, nichts gebaut.
 
 2. **`jotti-relay.exe` (Print-Relay)** wird vom Verein **separat** per
    Doppelklick gestartet (nicht vom Starter mitgestartet) und ist dadurch
-   unabhängig start- und neustartbar. Es liest seinen Token und die lokale
-   Backend-Adresse aus **derselben `.env`-Datei**, die der Starter erzeugt hat —
-   die Datei ist der einzige Vertrag zwischen beiden Programmen. Eine manuelle
-   Token-Eingabe entfällt.
+   unabhängig start- und neustartbar. Es läuft **unprivilegiert** (keine
+   Administratorrechte, nur ausgehende Verbindungen) und liest seinen Token und
+   die lokale Backend-Adresse aus **derselben `.env`-Datei**, die der Starter
+   erzeugt hat — die Datei ist der einzige Vertrag zwischen beiden Programmen.
+   Eine manuelle Token-Eingabe entfällt.
 
 Der Verein muss damit weder eine `.env` von Hand pflegen noch Geheimnisse
-erzeugen noch seine IP-Adresse suchen. Zwei Doppelklicks genügen: Starter für
-Kasse und Web-UI, Relay für den Bondruck.
+erzeugen noch seine IP-Adresse suchen noch Firewall oder Docker bedienen.
+Zwei Doppelklicks genügen: Starter für Kasse und Web-UI, Relay für den
+Bondruck.
 
 > 🔒 Die Transportverschlüsselung des lokalen Modus (HTTPS) regelt
 > `docs/prds/prd-lokale-tls-selbstsigniert.md`. Der Starter zeigt die
@@ -96,7 +115,8 @@ Kasse und Web-UI, Relay für den Bondruck.
 ### Start & Zugriff
 
 7. Als Vereins-Admin möchte ich jotti per Doppelklick auf `jotti-start.exe`
-   starten, damit ich keine Kommandozeilenbefehle eintippen muss.
+   starten (UAC-Dialog mit „Ja" bestätigen), damit ich keine
+   Kommandozeilenbefehle eintippen muss.
 8. Als Vereins-Admin möchte ich nach dem Start klar angezeigt bekommen, unter
    welcher Adresse die Helfer-Smartphones jotti erreichen (z. B.
    `https://192.168.1.50`), damit ich diese Adresse weitergeben kann.
@@ -106,17 +126,19 @@ Kasse und Web-UI, Relay für den Bondruck.
     die angezeigte Adresse auf jotti zugreifen, damit ich ohne App-Installation
     arbeiten kann.
 
-### Fehlerdiagnose
+### Fehlerdiagnose & Selbstheilung
 
-11. Als Vereins-Admin möchte ich eine verständliche Meldung erhalten, wenn Docker
-    Desktop nicht installiert oder nicht gestartet ist, damit ich weiß, dass ich
-    Docker zuerst starten muss.
+11. Als Vereins-Admin möchte ich, dass der Starter Docker Desktop selbst
+    startet, wenn es installiert, aber nicht gestartet ist — und eine
+    verständliche Meldung nur dann, wenn Docker Desktop fehlt oder der Start
+    fehlschlägt.
 12. Als Vereins-Admin möchte ich eine verständliche Meldung erhalten, wenn ein
-    benötigter Port (80/443) bereits belegt ist, samt Hinweis, welches Programm
-    typischerweise stört und dass ich es beenden muss.
-13. Als Vereins-Admin möchte ich einen Hinweis zur Windows-Firewall erhalten,
-    falls das Smartphone den Rechner nicht erreicht, damit ich den Zugriff für
-    private Netzwerke freigeben kann.
+    benötigter Port (80/443) bereits belegt ist, samt Angabe, **welches
+    Programm** den Port belegt, damit ich es gezielt beenden und jotti erneut
+    starten kann.
+13. Als Vereins-Admin möchte ich, dass die Firewall-Freigabe für das lokale
+    Netzwerk automatisch eingerichtet wird, damit die Helfer-Smartphones den
+    Rechner ohne manuelle Firewall-Konfiguration erreichen.
 14. Als Vereins-Admin möchte ich, dass der Starter mit einem klaren Exit-Status
     endet (Erfolg/Fehler), damit ich erkenne, ob der Start geklappt hat.
 
@@ -156,6 +178,11 @@ Kasse und Web-UI, Relay für den Bondruck.
   drumherum wird per Doppelklick bedienbar. Kein Einbetten des Frontends ins
   Go-Backend, kein Entfernen von nginx, kein nativer Installer.
 - **Docker Desktop bleibt Pflicht-Basis.**
+- **Administratorrechte sind Voraussetzung:** `jotti-start.exe` fordert sie
+  über ein eingebettetes `requireAdministrator`-Manifest an (UAC-Dialog bei
+  jedem Start — akzeptiert; der tägliche manuelle Start ist gewollt, siehe
+  Out of Scope „Autostart"). Der angemeldete Nutzer muss Administrator sein
+  oder Admin-Zugangsdaten kennen. `jotti-relay.exe` bleibt unprivilegiert.
 - **Distribution** als GitHub-Release-ZIP mit vorgebauten Windows-Binaries
   (`jotti-start.exe`, `jotti-relay.exe`), einer Release-Compose-Datei, die
   **vorgebaute Container-Images** aus der GitHub Container Registry (GHCR)
@@ -169,16 +196,21 @@ Kasse und Web-UI, Relay für den Bondruck.
 ### Modul: Starter-Core (deep, rein/testbar)
 
 Kapselt die Entscheidungs- und Aufbereitungslogik als seiteneffektfreie
-Funktionen, getrennt von Docker- und Prozess-Aufrufen:
+Funktionen, getrennt von Docker-, Prozess- und Windows-Aufrufen:
 
 - **Secret-Erzeugung:** kryptografisch sichere Zufallswerte für die Secrets des
   `.env`-Vertrags (`POSTGRES_PASSWORD`, `JWT_SECRET`, `RELAY_AUTH_TOKEN`).
 - **`.env`-Materialisierung:** erzeugt die `.env` nur, wenn sie fehlt; eine
   vorhandene Datei wird nie überschrieben (idempotent). `POSTGRES_USER` erhält
   einen sinnvollen Default.
-- **Preflight-Auswertung:** bildet die geprüften Bedingungen (Docker
-  vorhanden/gestartet, Ports 80/443 frei) auf verständliche, deutsche
-  Diagnose-Texte mit Handlungshinweis ab.
+- **Preflight-Auswertung:** bildet die geprüften Bedingungen auf verständliche,
+  deutsche Diagnose-Texte mit Handlungshinweis ab — inklusive „Port belegt
+  durch ‚Programm X' (PID n)" aus dem Port-Verursacher-Lookup und der Fälle
+  „Docker Desktop fehlt / Start fehlgeschlagen / Umschalten fehlgeschlagen".
+- **Port-Verursacher-Parsing:** parst die JSON-Ausgabe des
+  PowerShell-Lookups (`Get-NetTCPConnection`) auf Port → Programmname/PID;
+  schlägt das Parsen fehl, greift eine generische Diagnose mit typischen
+  Verursachern.
 - **LAN-IP-Auswahl:** wählt aus den Netzwerkschnittstellen die passende private
   IPv4-Adresse für den WLAN-Zugriff aus (Loopback/Link-Local ignorieren).
 - **Zugriffs-URL-Bau:** setzt aus der gewählten IP die anzuzeigende
@@ -186,6 +218,13 @@ Funktionen, getrennt von Docker- und Prozess-Aufrufen:
 
 ### Modul: Starter-Shell (dünn, nicht unit-getestet)
 
+- **Behebt selbst, was mit Administratorrechten behebbar ist:** startet Docker
+  Desktop bei Bedarf und wartet auf den Daemon; schaltet den Container-Modus um
+  (`DockerCli.exe -SwitchLinuxEngine`); setzt **idempotent** die Firewall-Regel
+  (eingehend, TCP 80/443, nur lokales Subnetz, profilunabhängig — `netsh
+  advfirewall`); ermittelt bei belegtem Port den haltenden Prozess (PowerShell
+  `Get-NetTCPConnection`, JSON). Fremde Programme oder Dienste werden **nie
+  automatisch beendet**.
 - Ruft `docker compose … up -d --build` auf.
 - Führt nach dem Start den **Health-Check als GET** über den Reverse-Proxy
   gegen `…/api/health` aus (`/health` ist der bewusst von POST-only
@@ -208,8 +247,8 @@ Funktionen, getrennt von Docker- und Prozess-Aufrufen:
 
 - **Feste Ports (KISS):** Der Reverse-Proxy veröffentlicht unverändert 80 und
   443; es gibt keine Port-Variablen in Compose oder `.env`. Ist ein Port
-  belegt, erklärt der Starter im Preflight verständlich, welches Programm
-  typischerweise stört und dass es beendet werden muss.
+  belegt, erklärt der Starter im Preflight, **welches Programm** den Port
+  belegt und dass es beendet werden muss.
 - Neue Make-Targets bauen die Windows-Binaries analog `build-relay`
   (Cross-Compile, Version per ldflags einkompiliert).
 - **Release-Auslösung ausschließlich per produktweitem Version-Tag**
@@ -227,13 +266,16 @@ Funktionen, getrennt von Docker- und Prozess-Aufrufen:
     Aufrufe liefern unterschiedliche Werte.
   - LAN-IP-Auswahl: passende private IPv4 gewählt, Loopback/Link-Local ignoriert.
   - Preflight-Auswertung: jede Bedingung bildet auf die korrekte Diagnose mit
-    Handlungshinweis ab.
+    Handlungshinweis ab — inklusive „Port belegt durch X".
+  - Port-Verursacher-Parsing: einzelnes JSON-Objekt, JSON-Array und fehlender
+    Programmname werden korrekt abgebildet; kaputtes JSON führt zum
+    generischen Fallback.
   - Zugriffs-URL-Bau: korrekte `https://`-Adresse aus der gewählten IP.
 - **Relay-`.env`-Parser** (Unit-Tests): Token und Backend-URL
   werden aus der `.env` gelesen; fehlt `RELAY_BACKEND_URL`, gilt der lokale
   Default.
-- **Nicht unit-getestet:** die dünne Starter-Shell (Docker-/Prozess-Aufrufe,
-  Konsolenausgabe).
+- **Nicht unit-getestet:** die dünne Starter-Shell (Docker-/Prozess-/netsh-
+  Aufrufe, Konsolenausgabe).
 
 ## Out of Scope
 
@@ -244,19 +286,31 @@ Funktionen, getrennt von Docker- und Prozess-Aufrufen:
   (Option 2) und `docs/prds/prd-lokale-tls-vertrauenswuerdig.md` (Option 3). Diese
   PRD konsumiert das lokale HTTPS nur (zeigt die `https://`-Adresse), definiert es
   aber nicht.
+- **Autostart** (Anmelde-Start, geplante Aufgabe, Windows-Dienst) — **bewusst
+  abgelehnt**: Vereinsfeste laufen oft nur einen Tag, danach wird jotti wochen-
+  bis monatelang nicht gebraucht; jotti soll nicht dauerhaft beim Hochfahren
+  mitlaufen. Der tägliche manuelle Doppelklick (inkl. UAC) ist der gewollte
+  Ablauf.
+- **Automatisches Beenden fremder Programme oder Dienste** bei Port-Konflikten —
+  der Starter benennt den Verursacher nur.
+- **Automatische Docker-Desktop-Installation** (z. B. via winget) —
+  dokumentierter Eskalationspfad, falls die manuelle Installation sich in der
+  Praxis als zu große Hürde erweist.
 - **Konfigurierbare Ports** — der Reverse-Proxy bleibt fest auf 80/443;
   Port-Konfigurierbarkeit ist der dokumentierte Eskalationspfad, falls
   Port-Konflikte in der Praxis häufig auftreten.
 - **Umstellung der Server-Deployments** (jotti.rocks, Produktion) auf die
   GHCR-Images — die Images sind dafür nutzbar, die Umstellung ist ein eigenes
   Vorhaben.
-- **Phase B:** Frontend ins Go-Backend einbetten, nginx im lokalen Modus
-  entfernen.
-- **Phase C:** nativer Windows-Installer (MSI/Setup), Einrichtungs-Wizard,
-  Windows-Dienst-Steuerung, gebündelte PostgreSQL, Ablösung von Docker.
+- **Nativ ohne Docker** (Frontend einbetten, nginx entfernen, gebündelte
+  PostgreSQL, Installer) → eigene PRD:
+  `docs/prds/prd-windows-nativ-ohne-docker.md` (Ziel-Architektur, spätere
+  Ausarbeitung).
 - Speicherung von Geheimnissen im Windows Secret Store / via DPAPI (es bleibt bei
   der `.env`-Datei).
 - Interaktiver Konfigurations-Wizard; laufende Statusanzeige oder Status-Webseite.
+- Code-Signing der Binaries (SmartScreen-/UAC-Dialoge werden in der
+  Kurzanleitung erklärt).
 - Builds/Releases für macOS und Linux.
 - Änderungen an POST-only, Event-Sourcing oder Datenmodell.
 - Drucker-/Druckstations-Einrichtung (Ziel-IP der Drucker) — bestehende
@@ -268,11 +322,11 @@ Funktionen, getrennt von Docker- und Prozess-Aufrufen:
   die vom Starter erzeugte `.env` ist der alleinige Vertrag. Beide Programme
   bleiben unabhängig start- und neustartbar.
 - **Sicherheitsmodell:** Der lokale Modus ist für ein vertrauenswürdiges WLAN
-  gedacht; die Transportverschlüsselung regelt die Option-2-PRD. Der Starter
-  weist im Erfolgsfall sichtbar darauf hin, den Rechner nie ins Internet zu
-  öffnen.
-- **Ausblick native App (Phase C, nicht Teil dieser PRD):** Go könnte das Backend
-  samt eingebettetem Frontend (`go:embed`) zu einer einzigen `jotti.exe`
-  kompilieren und eine eigenständige PostgreSQL-Windows-Binary als Kindprozess
-  starten; verpackt in einen Inno-Setup-/MSI-Installer ergäbe das echten
-  Doppelklick-Betrieb ganz ohne Docker. Spätere Ausbaustufe.
+  gedacht; die Transportverschlüsselung regelt die Option-2-PRD. Die
+  automatische Firewall-Freigabe ist bewusst auf das **lokale Subnetz**
+  beschränkt und öffnet nichts darüber hinaus. Der Starter weist im Erfolgsfall
+  sichtbar darauf hin, den Rechner nie ins Internet zu öffnen.
+- **Ausblick nativ ohne Docker:** langfristig soll der lokale Windows-Betrieb
+  ganz ohne Docker auskommen (eine `jotti.exe` mit eingebettetem Frontend und
+  gebündelter PostgreSQL, verpackt in einen Installer) — siehe
+  `docs/prds/prd-windows-nativ-ohne-docker.md`.
