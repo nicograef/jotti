@@ -61,9 +61,10 @@ export function useAktiveTischeMitFavoriten() {
   return { tische }
 }
 
+export const MEINE_TISCHE_STATE_KEY = 'meine-tische-state'
 export function useMeineTischeState() {
   const { data: tische = [], isPending } = useQuery({
-    queryKey: ['meine-tische-state'],
+    queryKey: [MEINE_TISCHE_STATE_KEY],
     queryFn: () => tischBackend.getMeineTischeState(),
   })
   return { tische, isPending }

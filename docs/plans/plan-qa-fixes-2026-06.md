@@ -286,11 +286,11 @@ beide Queries — Tischauswahl-Liste und „Meine Tische".
 
 ### Acceptance criteria
 
-- [ ] Komponententest: Nach dem Favoriten-Toggle werden beide Queries invalidiert bzw.
+- [x] Komponententest: Nach dem Favoriten-Toggle werden beide Queries invalidiert bzw.
       „Meine Tische" zeigt den neuen Stand ohne Reload
 - [ ] Stern in der Tischauswahl und „Meine Tische" zeigen nach dem Toggle denselben Stand
       (manuelle Prüfung)
-- [ ] `make lint` und Frontend-Tests grün
+- [x] `make lint` und Frontend-Tests grün
 
 ---
 

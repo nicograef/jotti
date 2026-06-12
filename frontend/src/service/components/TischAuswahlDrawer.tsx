@@ -15,6 +15,7 @@ import { formatCents } from '@/lib/utils'
 
 import {
   AKTIVE_TISCHE_MIT_FAVORITEN_KEY,
+  MEINE_TISCHE_STATE_KEY,
   useAktiveTischeMitFavoriten,
 } from '../table/hooks'
 import type { AktiverTischMitFavorit } from '../table/Tisch'
@@ -49,9 +50,12 @@ export function TischAuswahlDrawer({
         ? tischBackend.favoritEntfernen(tisch.id)
         : tischBackend.favoritHinzufuegen(tisch.id),
     onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
-      }),
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
+        }),
+        queryClient.invalidateQueries({ queryKey: [MEINE_TISCHE_STATE_KEY] }),
+      ]),
   })
 
   const handleTischClick = (tisch: AktiverTischMitFavorit) => {
