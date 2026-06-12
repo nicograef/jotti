@@ -1160,7 +1160,7 @@ func TestRebuildAllProjections_MultipleSubjects(t *testing.T) {
 	subject1 := kasse.TischSessionSubject(ksNr, tisch1ID)
 	subject2 := kasse.TischSessionSubject(ksNr, tisch2ID)
 
-	// Write events via raw insert (bypassing projection, simulating seed.sql)
+	// Write events via raw insert (bypassing projection, simulating events without a projection)
 	e1 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject1, 1,
 		validBestellungData("p1-1", 200, 2)) // 400
 	_, err = insertEventRaw(repo.DB, e1, ksNr)

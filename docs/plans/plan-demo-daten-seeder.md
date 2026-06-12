@@ -310,11 +310,11 @@ nichts, der zweite Seed-Lauf bricht ab, ohne zu schreiben.
 
 ### Acceptance criteria
 
-- [ ] `prod-reset-and-seed.sh` nutzt das Subkommando; kein psql-Import, kein separater
+- [x] `prod-reset-and-seed.sh` nutzt das Subkommando; kein psql-Import, kein separater
       Rebuild-Schritt; `make prod-reset-and-seed` funktioniert unverändert.
-- [ ] `database/seed.sql` ist gelöscht; `grep -r seed.sql` findet keine produktiven
+- [x] `database/seed.sql` ist gelöscht; `grep -r seed.sql` findet keine produktiven
       Verweise mehr (nur Git-Historie).
-- [ ] Integrationstest komplett: Betreiber, Druckstationen, Druckaufträge,
+- [x] Integrationstest komplett: Betreiber, Druckstationen, Druckaufträge,
       Nachsignier-Aufträge, Signaturen und Favoriten sind befüllt; erneuter
       `RebuildAllProjections` ändert keine Projektionen; Zweitlauf-Guard schreibt nichts.
-- [ ] `make check` und `make verify` laufen grün.
+- [x] `make check` und `make verify` laufen grün.

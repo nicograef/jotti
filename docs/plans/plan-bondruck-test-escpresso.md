@@ -46,7 +46,7 @@ aller Bon-Typen, des kategorienbasierten Routings und des Lifecycle
   alle leer, `pro_position`).
 - `database/migrations/01_initial.up.sql:388-408` — `bondruck_einstellungen`
   (Seed: leer, `kein_bon`).
-- `database/seed.sql:167-171` — Kassensitzung z_nr=3, Status `offen`.
+- `backend/seed/szenario.go:518-519` — Kassensitzung z_nr=3 (Sonntag), Status `offen` (vom Demo-Seeder erzeugt).
 - `.env.example` — alle benötigten Env-Vars inkl. `RELAY_AUTH_TOKEN`.
 
 ## Bon-Erkennung im escpresso-Fenster

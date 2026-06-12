@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Resets only the production database volume, then recreates the prod stack,
-# imports demo seed data, and rebuilds projections.
+# Resets only the production database volume, then recreates the prod stack and
+# seeds demo data via the `jotti seed` subcommand (guard and projection rebuild included).
 
 COMPOSE_FILE="docker-compose.prod.yml"
 DB_VOLUME="jotti_postgres-data"
 PG_SERVICE="postgres"
 BACKEND_SERVICE="backend"
-SEED_FILE="database/seed.sql"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -54,7 +53,6 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 [[ -f "$COMPOSE_FILE" ]] || fatal "Missing $COMPOSE_FILE"
-[[ -f "$SEED_FILE" ]] || fatal "Missing $SEED_FILE"
 
 command -v docker >/dev/null 2>&1 || fatal "docker not found in PATH"
 docker compose version >/dev/null 2>&1 || fatal "docker compose (v2) is not available"
@@ -92,12 +90,9 @@ done
 status="$(docker compose -f "$COMPOSE_FILE" ps --format json "$PG_SERVICE" | sed -n 's/.*"Health":"\([^"]*\)".*/\1/p')"
 [[ "$status" == "healthy" ]] || fatal "Postgres is not healthy (status: ${status:-unknown})"
 
-info "Importing seed data into production database..."
-docker compose -f "$COMPOSE_FILE" exec -T "$PG_SERVICE" sh -lc 'psql -U "$POSTGRES_USER" -d jotti' < "$SEED_FILE"
-
-info "Rebuilding projections from events..."
-docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SERVICE" jotti rebuild-projections
+info "Seeding demo data via seed subcommand (guard + projection rebuild included)..."
+docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SERVICE" jotti seed
 
 echo ""
-info "Done. Production DB reset + seed import completed."
+info "Done. Production DB reset + seed completed."
 info "SSL certificates were not modified."

@@ -5,11 +5,46 @@ package seed
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
+
+// snapshotTischSessions liefert eine deterministische Textrepräsentation der gesamten
+// tisch_sessions-Projektion (nach Subject sortiert), um sie vor/nach einem Rebuild zu vergleichen.
+func snapshotTischSessions(t *testing.T, db *sql.DB) string {
+	t.Helper()
+	rows, err := db.Query(`SELECT subject, tisch_id, kassensitzung_nr, saldo_cents,
+		unbezahlte_positionen::text, ausstehende_positionen::text, gesamt_zahlungen_cents,
+		COALESCE(erste_bestellung_logtime::text, ''), last_event_id, last_event_version
+		FROM tisch_sessions ORDER BY subject`)
+	if err != nil {
+		t.Fatalf("tisch_sessions abfragen: %v", err)
+	}
+	defer rows.Close()
+
+	var b strings.Builder
+	for rows.Next() {
+		var (
+			subject, unbezahlt, ausstehend, ersteBestellung           string
+			tischID, ksNr, saldo, gesamtZahlungen, eventID, eventVers int
+		)
+		if err := rows.Scan(&subject, &tischID, &ksNr, &saldo, &unbezahlt, &ausstehend,
+			&gesamtZahlungen, &ersteBestellung, &eventID, &eventVers); err != nil {
+			t.Fatalf("tisch_sessions-Zeile lesen: %v", err)
+		}
+		fmt.Fprintf(&b, "%s|%d|%d|%d|%s|%s|%d|%s|%d|%d\n", subject, tischID, ksNr, saldo,
+			unbezahlt, ausstehend, gesamtZahlungen, ersteBestellung, eventID, eventVers)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("tisch_sessions iterieren: %v", err)
+	}
+	return b.String()
+}
 
 func cleanSeedDB(t *testing.T, db *sql.DB) {
 	t.Helper()
@@ -212,6 +247,18 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 	}
 	if tseKonfiguration != "" {
 		t.Errorf("TSE-Konfiguration nicht leer: %q", tseKonfiguration)
+	}
+
+	// --- Idempotenz: ein erneuter Projektions-Rebuild ändert nichts ---
+	// Der Seeder baut die Projektion bereits selbst auf; ein zweiter Rebuild aus denselben
+	// Events muss byte-identische tisch_sessions-Zeilen liefern.
+	vorRebuild := snapshotTischSessions(t, db)
+	if _, err := kassenjournal_repo.NewRepository(db).RebuildAllProjections(ctx); err != nil {
+		t.Fatalf("erneuter RebuildAllProjections: %v", err)
+	}
+	nachRebuild := snapshotTischSessions(t, db)
+	if vorRebuild != nachRebuild {
+		t.Errorf("erneuter RebuildAllProjections hat Projektionen verändert:\nvorher:\n%s\nnachher:\n%s", vorRebuild, nachRebuild)
 	}
 
 	// --- Zweiter Lauf: Guard greift, ohne etwas zu schreiben ---
