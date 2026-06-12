@@ -53,7 +53,7 @@ func (h *QueryHandler) GetOffeneKassensitzungHandler() http.HandlerFunc {
 			ZNr:         ks.ZNr,
 			Datum:       ks.Datum.Format("2006-01-02"),
 			Bezeichnung: ks.Bezeichnung,
-			Status:      ks.Status,
+			Status:      string(ks.Status),
 		})
 	}
 }

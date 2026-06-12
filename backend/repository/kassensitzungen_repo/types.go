@@ -21,7 +21,7 @@ func kassensitzungRowToDomain(row dbgen.Kassensitzungen) kasse.Kassensitzung {
 		ZNr:         row.ZNr,
 		Datum:       row.Datum,
 		Bezeichnung: row.Bezeichnung,
-		Status:      row.Status,
+		Status:      kasse.KassensitzungStatus(row.Status),
 		CreatedAt:   row.CreatedAt,
 		UpdatedAt:   row.UpdatedAt,
 	}

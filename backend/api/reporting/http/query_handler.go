@@ -255,7 +255,7 @@ func (h QueryHandler) GetAllKassensitzungenHandler() http.HandlerFunc {
 				ZNr:         k.ZNr,
 				Datum:       k.Datum.Format("2006-01-02"),
 				Bezeichnung: k.Bezeichnung,
-				Status:      k.Status,
+				Status:      string(k.Status),
 			}
 		}
 

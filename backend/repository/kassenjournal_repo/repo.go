@@ -250,7 +250,7 @@ func (r Repository) handleKassensitzungEvent(ctx context.Context, qtx *dbgen.Que
 	case string(kasse.EventTypeTagesabschlussErstelltV1):
 		err := qtx.UpdateKassensitzung(ctx, dbgen.UpdateKassensitzungParams{
 			ZNr:    kassensitzungNr,
-			Status: kasse.KassensitzungAbgeschlossen,
+			Status: string(kasse.KassensitzungAbgeschlossen),
 		})
 		if err != nil {
 			return db.Error(err)

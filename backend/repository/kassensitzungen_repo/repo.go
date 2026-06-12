@@ -40,7 +40,7 @@ func (r Repository) GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensi
 		ZNr:         row.ZNr,
 		Datum:       row.Datum,
 		Bezeichnung: row.Bezeichnung,
-		Status:      row.Status,
+		Status:      kasse.KassensitzungStatus(row.Status),
 		CreatedAt:   row.CreatedAt,
 		UpdatedAt:   row.UpdatedAt,
 	}, nil
@@ -64,7 +64,7 @@ func (r Repository) InsertKassensitzung(ctx context.Context, datum time.Time, be
 	zNr, err := r.q.InsertKassensitzung(ctx, dbgen.InsertKassensitzungParams{
 		Datum:       datum,
 		Bezeichnung: bezeichnung,
-		Status:      kasse.KassensitzungOffen,
+		Status:      string(kasse.KassensitzungOffen),
 	})
 	if err != nil {
 		return 0, db.Error(err)

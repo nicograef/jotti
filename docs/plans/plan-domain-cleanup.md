@@ -280,8 +280,8 @@ Typisierung analog `table.Status`.
 
 ### Acceptance criteria
 
-- [ ] `make test` und `make lint-backend` grün
-- [ ] `Kassensitzung.Status` ist `KassensitzungStatus`; beide Konstanten
+- [x] `make test` und `make lint-backend` grün
+- [x] `Kassensitzung.Status` ist `KassensitzungStatus`; beide Konstanten
       typisiert; keine String-Literale "offen"/"abgeschlossen" außerhalb der
       Konstanten-Definition und SQL (`grep -rn '"offen"' backend/ --include="*.go"`)
 

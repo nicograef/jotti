@@ -32,7 +32,7 @@ func (m *mockQuery) GetKassenbestand(_ context.Context, _ int) (int, error) {
 // GetOffeneKassensitzung
 
 func TestGetOffeneKassensitzungHandler_Success(t *testing.T) {
-	ks := &kasse.Kassensitzung{ZNr: 1, Bezeichnung: "Maihock", Status: "offen"}
+	ks := &kasse.Kassensitzung{ZNr: 1, Bezeichnung: "Maihock", Status: kasse.KassensitzungOffen}
 	handler := &QueryHandler{Query: &mockQuery{kassensitzung: ks}}
 
 	req := httptest.NewRequest(http.MethodPost, "/get-offene-kassensitzung", nil)
