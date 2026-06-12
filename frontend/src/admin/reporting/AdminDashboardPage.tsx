@@ -29,8 +29,8 @@ export function AdminDashboardPage() {
           <TriangleAlert className="size-4" />
           <AlertTitle>TSE ist nicht konfiguriert</AlertTitle>
           <AlertDescription>
-            Ohne TSE läuft jotti nur für Test, Demo oder Übung. Für den
-            regulären Betrieb musst du die TSE-Zugangsdaten unter{' '}
+            Ohne TSE darf jotti nur für Test- oder Demozwecke verwendet werden.
+            Für den regulären Betrieb musst du die TSE-Zugangsdaten unter{' '}
             <NavLink
               to="/admin/einstellungen"
               className="underline underline-offset-4"

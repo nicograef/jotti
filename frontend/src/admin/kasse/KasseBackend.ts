@@ -15,7 +15,9 @@ import {
 
 export const KassensitzungEroeffnenSchema = z.object({
   bezeichnung: BezeichnungSchema,
-  betragCents: BetragCentsSchema,
+  betragCents: BetragCentsSchema.gte(1, {
+    message: 'Betrag muss mindestens 1 Cent sein.',
+  }),
 })
 
 export const GeldtransitBuchenSchema = z.object({

@@ -166,11 +166,9 @@ local-logs: ## Lokalen LAN-Stack Logs folgen
 db-shell: ## psql-Shell im Dev-Postgres öffnen
 	docker exec -it jotti-postgres-dev psql -U $${POSTGRES_USER:-admin} -d jotti
 
-PG_CONTAINER ?= jotti-postgres-dev
 BACKEND_CONTAINER ?= jotti-backend-dev
-seed: ## Demo-Daten einspielen und Projektionen aufbauen
-	docker exec -i $(PG_CONTAINER) psql -U $${POSTGRES_USER:-admin} -d jotti < database/seed.sql
-	@$(MAKE) rebuild-projections
+seed: ## Demo-Daten per Seeder-Subkommando einspielen (Guard + Projektions-Rebuild inklusive)
+	docker exec $(BACKEND_CONTAINER) go run ./main.go seed
 
 rebuild-projections: ## table_state-Projektionen aus Events neu aufbauen
 	docker exec $(BACKEND_CONTAINER) go run ./main.go rebuild-projections

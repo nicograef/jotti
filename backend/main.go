@@ -18,6 +18,7 @@ import (
 	"github.com/nicograef/jotti/backend/app"
 	"github.com/nicograef/jotti/backend/config"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
+	"github.com/nicograef/jotti/backend/seed"
 )
 
 func main() {
@@ -46,6 +47,13 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "rebuild-projections" {
 		if err := rebuildProjections(db); err != nil {
 			log.Fatal().Err(err).Msg("Failed to rebuild projections")
+		}
+		return
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "seed" {
+		if err := seedDemodaten(db); err != nil {
+			log.Fatal().Err(err).Msg("Failed to seed demo data")
 		}
 		return
 	}
@@ -98,5 +106,22 @@ func rebuildProjections(db *sql.DB) error {
 	}
 
 	log.Info().Int("subjects", count).Msg("Projections rebuilt successfully")
+	return nil
+}
+
+func seedDemodaten(db *sql.DB) error {
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Error().Err(err).Msg("Failed to close database connection")
+		}
+	}()
+
+	log.Info().Msg("Seeding demo data...")
+
+	if err := seed.Run(context.Background(), db); err != nil {
+		return fmt.Errorf("seed demo data: %w", err)
+	}
+
+	log.Info().Msg("Demo data seeded successfully")
 	return nil
 }

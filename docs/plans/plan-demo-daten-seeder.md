@@ -144,18 +144,18 @@ Prod-Skript bleiben unangetastet.
 
 ### Acceptance criteria
 
-- [ ] `make seed` auf frischer Dev-DB (`make clean && make dev`) spielt Stammdaten und
+- [x] `make seed` auf frischer Dev-DB (`make clean && make dev`) spielt Stammdaten und
       die offene Sonntags-Kassensitzung in einem Schritt ein — ohne separaten
       `rebuild-projections`-Aufruf, ohne psql-Import.
-- [ ] Demo-Logins funktionieren mit Passwort `jotti123`; Betreiber-Stammdaten sind in den
+- [x] Demo-Logins funktionieren mit Passwort `jotti123`; Betreiber-Stammdaten sind in den
       Einstellungen sichtbar; mindestens ein Tisch zeigt Bestellung, Ausgabe und Zahlung.
-- [ ] Alle Events entstehen über Domain-Konstruktoren; Versionen pro Subject lückenlos
+- [x] Alle Events entstehen über Domain-Konstruktoren; Versionen pro Subject lückenlos
       ab 1; Zeitstempel liegen im Sitzungszeitraum.
-- [ ] Guard: Lauf gegen eine DB mit Kassenjournal-Events bricht ohne Schreibzugriff ab
+- [x] Guard: Lauf gegen eine DB mit Kassenjournal-Events bricht ohne Schreibzugriff ab
       und nennt den Reset-Weg.
-- [ ] Integrationstest (`-tags=integration`): Erstlauf auf frischer DB erfolgreich,
+- [x] Integrationstest (`-tags=integration`): Erstlauf auf frischer DB erfolgreich,
       Zweitlauf bricht mit Guard-Fehler ab und schreibt nichts.
-- [ ] `database/seed.sql` und `prod-reset-and-seed.sh` bleiben unverändert (Abriss in Phase 5).
+- [x] `database/seed.sql` und `prod-reset-and-seed.sh` bleiben unverändert (Abriss in Phase 5).
 
 ---
 
