@@ -43,7 +43,7 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | K-03 | Ausgabe bestätigen      | Bestellte Positionen als ausgegeben markieren. Nachverfolgung ausstehender Positionen.                                                                                                          |
 | K-04 | Stornierung erteilen    | Serviceleitung/Admin stornieren Positionen — unabhängig von Ausgabe-/Bezahlstatus. Saldo kann negativ werden.                                                                                   |
 | K-05 | Auszahlung leisten      | Serviceleitung/Admin gleichen negativen Tischsaldo durch positionsunabhängige Auszahlung aus.                                                                                                   |
-| K-06 | Tischübersicht          | Dashboard mit „Meine Tische" (Favoriten), Alle-Tische-Drawer, Tisch-Detail mit Tabs (Bestellen, Bezahlen, Historie).                                                                            |
+| K-06 | Tischübersicht          | Dashboard mit „Meine Tische" (Favoriten), Alle-Tische-Drawer, Tisch-Detail mit Tabs (Bestellen, Kassieren, Historie).                                                                           |
 | K-07 | Kassenjournal           | Unveränderliche Event-Tabelle (append-only) als Single Source of Truth. Synchrone Projektion + CRUD-Entität.                                                                                    |
 | K-09 | Bestellungen umbuchen   | Serviceleitung/Admin buchen unbezahlte Bestellungen atomar zwischen Tischen um (Quell-Storno + Ziel-Bestellung in einer Transaktion).                                                           |
 | K-12 | Arbeitsbon              | Automatischer Arbeitsbon (ohne Preise) bei Bestellaufnahme an konfigurierte Druckstationen (Küche, Theke). Operativ, nicht-fiskalisch — **kein** Kassenbeleg (→ F-03).                          |
@@ -217,17 +217,17 @@ Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um s
 
 jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht nach § 146a AO. Die folgenden Anforderungen sind **verbindlich**. Rechtliche Grundlagen und Compliance-Entscheidungen: [compliance.md](compliance.md).
 
-| ID   | Titel               | Phase | Status                       | Prio        |
-| ---- | ------------------- | ----- | ---------------------------- | ----------- |
-| F-01 | Seriennummer        | 1     | ✅                           | Must        |
-| F-07 | Steuersätze         | 1     | ✅                           | Must        |
-| F-03 | Belegausgabepflicht | 1/2   | ✅                           | Must        |
-| F-05 | ELSTER-Meldung      | 1     | 🔲 Offen                     | Must (Doku) |
-| F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung   | Should      |
-| F-02 | TSE-Integration     | 2     | ✅                           | Should      |
-| F-04 | DSFinV-K Export     | 2     | 🔲 Offen                     | Should      |
-| F-09 | eBeleg              | 2     | 🔲 Offen                     | Nice        |
-| F-08 | GoBD-Hash-Chain     | 3     | 🔲 Offen                     | Nice        |
+| ID   | Titel               | Phase | Status                     | Prio        |
+| ---- | ------------------- | ----- | -------------------------- | ----------- |
+| F-01 | Seriennummer        | 1     | ✅                         | Must        |
+| F-07 | Steuersätze         | 1     | ✅                         | Must        |
+| F-03 | Belegausgabepflicht | 1/2   | ✅                         | Must        |
+| F-05 | ELSTER-Meldung      | 1     | 🔲 Offen                   | Must (Doku) |
+| F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung | Should      |
+| F-02 | TSE-Integration     | 2     | ✅                         | Should      |
+| F-04 | DSFinV-K Export     | 2     | 🔲 Offen                   | Should      |
+| F-09 | eBeleg              | 2     | 🔲 Offen                   | Nice        |
+| F-08 | GoBD-Hash-Chain     | 3     | 🔲 Offen                   | Nice        |
 
 **Legende:** ✅ Implementiert · 🔲 Offen — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
 
@@ -283,7 +283,7 @@ Der `ABRECHNUNGSKREIS` im Sinne der DSFinV-K ist pro Tisch und Kassensitzung: Je
 
 > **Prio:** Should-have (umgesetzt)
 
-Das Backend spricht die zertifizierte Cloud-TSE (primär: fiskaly) über das anbieter-agnostische `TSEClient`-Interface an. Die TSE-Zugangsdaten werden über UI in der Datenbank gespeichert (BYOT-Modell). TSE-Transaktionen sind in alle Buchungsflüsse eingehängt; der Beleg gibt die TSE-Felder aus. Fehlgeschlagene Signaturen werden über eine Nachsignier-Outbox nachgeholt.
+Das Backend spricht die zertifizierte Cloud-TSE (primär: fiskaly) über das anbieter-agnostische `TSEClient`-Interface an. Die TSE-Zugangsdaten werden über UI in der Datenbank gespeichert. TSE-Transaktionen sind in alle Buchungsflüsse eingehängt; der Beleg gibt die TSE-Felder aus. Fehlgeschlagene Signaturen werden über eine Nachsignier-Outbox nachgeholt.
 
 **Akzeptanzkriterien:**
 

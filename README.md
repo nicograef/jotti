@@ -82,7 +82,7 @@ Optionale Umgebungsvariablen: `RELAY_POLL_SECONDS` (Abfrageintervall, Standard `
 | Frontend      | React 19, Vite, Tailwind CSS 4, shadcn/ui, TypeScript |
 | Backend       | Go 1.26, stdlib `net/http`, pgx/v5                    |
 | Datenbank     | PostgreSQL 17                                         |
-| TSE           | Cloud-TSE via fiskaly (Adapter-Pattern, BYOT)         |
+| TSE           | Cloud-TSE via fiskaly (Adapter-Pattern)               |
 | Reverse Proxy | nginx (HTTPS via Let's Encrypt)                       |
 
 Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlungen, Kassensitzungen) werden via **Event Sourcing** im Kassenjournal (append-only) persistiert. Eine synchrone Projektion (`tisch_sessions`) und eine CRUD-Entität (`kassensitzungen`) ermöglichen schnelle Reads. Stammdaten nutzen klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
@@ -102,7 +102,7 @@ Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlunge
 - Kartenzahlung / NFC / Online-Payment
 - Kommerzielle Gastro-Betriebe (ohne separate Lizenz)
 
-> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die dafür nötige TSE-Anbindung und der DSFinV-K-Export befinden sich in Entwicklung; jotti ist so konzipiert, dass die TSE-Pflicht nach Fertigstellung über eine Cloud-TSE (BYOT-Modell) erfüllt wird — der Betreiber schließt selbst einen Vertrag mit einem TSE-Anbieter (z. B. fiskaly) ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Betreiber-Leitfaden](docs/betrieb/leitfaden-betreiber.md).
+> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die dafür nötige TSE-Anbindung und der DSFinV-K-Export befinden sich in Entwicklung; jotti ist so konzipiert, dass die TSE-Pflicht nach Fertigstellung über eine Cloud-TSE erfüllt wird — der Betreiber schließt selbst einen Vertrag mit einem TSE-Anbieter (z. B. fiskaly) ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Betreiber-Leitfaden](docs/betrieb/leitfaden-betreiber.md).
 
 ## Lizenz & Urheberrecht
 

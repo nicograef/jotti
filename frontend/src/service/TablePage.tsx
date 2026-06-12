@@ -105,7 +105,7 @@ export function TablePage() {
               Bestellen
             </TabsTrigger>
             <TabsTrigger value="payment" className="p-4" disabled={tabsLocked}>
-              Bezahlen
+              Kassieren
             </TabsTrigger>
             <TabsTrigger value="history" className="p-4" disabled={tabsLocked}>
               Historie

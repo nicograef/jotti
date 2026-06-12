@@ -2,7 +2,7 @@
 
 > Herkunft: ausgelagert aus Phase 5 von `docs/plans/plan-tse-fiskaly-fixes.md` (Entscheidung 2026-06-11, dort unter „Resolved decisions" dokumentiert)
 > Quellen: Audit `docs/audits/2026-06-11-tse-fiskaly-audit.md` (Findings I-09, I-15.4, D-07)
-> Ersetzt die BYOT-Festlegung aus `docs/prds/prd-tse-integration.md` („Betreiber legt TSS und Client im fiskaly-Dashboard an; jotti betreibt keinen TSS-Lebenszyklus") — siehe Further Notes.
+> Ersetzt die Festlegung aus `docs/prds/prd-tse-integration.md` („Betreiber legt TSS und Client im fiskaly-Dashboard an; jotti betreibt keinen TSS-Lebenszyklus") — siehe Further Notes.
 
 ## Problem Statement
 
@@ -138,7 +138,7 @@ Der **Verbindungstest** prüft zusätzlich den Client-Zustand (`REGISTERED`) und
 
 ## Further Notes
 
-- **Ablösung der BYOT-Festlegung:** `prd-tse-integration.md` legte fest, dass der Betreiber TSS und Client „im fiskaly-Dashboard anlegt" und jotti keinen TSS-Lebenszyklus betreibt. Recherche (fiskaly-Support/Doku, Juni 2026) hat ergeben, dass das Dashboard das nicht kann: Clients sind nur per API anlegbar, die TSS-Initialisierung ebenso. Diese PRD übernimmt deshalb den **Setup**-Lebenszyklus in jotti; der laufende Betrieb (Signieren über API-Key) bleibt unverändert.
+- **Ablösung der Festlegung:** `prd-tse-integration.md` legte fest, dass der Betreiber TSS und Client „im fiskaly-Dashboard anlegt" und jotti keinen TSS-Lebenszyklus betreibt. Recherche (fiskaly-Support/Doku, Juni 2026) hat ergeben, dass das Dashboard das nicht kann: Clients sind nur per API anlegbar, die TSS-Initialisierung ebenso. Diese PRD übernimmt deshalb den **Setup**-Lebenszyklus in jotti; der laufende Betrieb (Signieren über API-Key) bleibt unverändert.
 - **Adressierte Audit-Findings:** I-09 (serial_number-Konsistenz, durch Wizard erzwungen und durch Verbindungstest geprüft), I-15.4 (Client-Prüfung im Verbindungstest), D-07 (Betreiber-Leitfaden).
 - **Risiken und Gegenmaßnahmen:** LIVE-Kosten/Doppel-Anlage → seiteneffektfreier Befund, Wiederverwendungs-Angebot, Tipp-Bestätigung; PUK/PIN-Verlust beim Betreiber → erzwungene Verwahr-Bestätigung im Wizard, Leitfaden-Kapitel, verständliche Sackgassen-Hinweise (fiskaly-Support bzw. Neuanlage).
 - **Offen bis zur Umsetzung:** Exakte fiskaly-Preisstruktur für LIVE-TSS gehört in den Leitfaden und sollte bei Umsetzung aktuell recherchiert werden.

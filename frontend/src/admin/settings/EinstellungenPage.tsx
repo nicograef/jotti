@@ -406,7 +406,7 @@ function TSEKonfigurationSection() {
 
   return (
     <section className="max-w-2xl">
-      <h2 className="text-xl font-semibold mb-1">TSE-Integration (BYOT)</h2>
+      <h2 className="text-xl font-semibold mb-1">TSE-Integration (fiskaly)</h2>
       <p className="text-muted-foreground text-sm mb-4">
         Hier hinterlegst du die Zugangsdaten für deine Cloud-TSE. Die
         Seriennummer aus der Kassenidentität oben wird in fiskaly als

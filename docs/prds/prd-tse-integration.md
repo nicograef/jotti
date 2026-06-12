@@ -21,7 +21,7 @@ jotti erhält eine vollständige TSE-Integration nach dem **Festzelt-Muster** (a
 - Jeder der **neun fiskalisch relevanten Vorgänge** wird beim Schreiben synchron signiert (**sign-then-persist**): Die TSE-Transaktion wird gestartet und sofort abgeschlossen, und das Ergebnis (Signatur, Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkte) wird in das jeweilige Event eingebettet, bevor das Event im Kassenjournal landet.
 - **TSE ist optional.** Ist keine TSE konfiguriert, läuft jotti unverändert weiter (keine Signatur, kein TSE-Block auf dem Beleg). Der Admin sieht einen deutlichen Hinweis und eine Warnung, solange keine TSE konfiguriert ist.
 - **Die Kasse blockiert nie.** Ist eine TSE konfiguriert, fiskaly aber gerade gestört, wird der Verkauf trotzdem abgeschlossen: Das Event wird ohne Signatur persistiert, der Ausfall wird auf dem Beleg vermerkt, und ein Hintergrund-Worker **signiert den Vorgang automatisch nach** (idempotent über eine deterministische Transaktions-ID).
-- Der Betreiber bringt seine eigene TSE mit (**BYOT**): Er legt TSS und Client im fiskaly-Dashboard an und trägt `api_key`, `api_secret`, `tss_id` und `client_id` über die Admin-UI in jotti ein. jotti **signiert nur** — es betreibt keinen TSS-Lebenszyklus.
+- Der Betreiber bringt seine eigene TSE mit: Er legt TSS und Client im fiskaly-Dashboard an und trägt `api_key`, `api_secret`, `tss_id` und `client_id` über die Admin-UI in jotti ein. jotti **signiert nur** — es betreibt keinen TSS-Lebenszyklus.
 - Der **Kassenbeleg** weist die TSE-Pflichtfelder als Text und zusätzlich als **DSFinV-K-QR-Code** aus.
 
 Servicekräfte und Serviceleitung merken im Normalbetrieb nichts von der TSE — sie bestellen, kassieren, stornieren und zahlen aus wie bisher. Der Gast erhält auf Anforderung einen vollständigen, fiskalisch signierten Kassenbeleg. Der Betriebsprüfer kann jeden Vorgang lückenlos und signiert rekonstruieren.
@@ -86,7 +86,7 @@ Servicekräfte und Serviceleitung merken im Normalbetrieb nichts von der TSE —
   - Eine einzige Middleware-Basis-URL für alle Calls; TEST/LIVE ergibt sich aus den Credentials (im Token-Claim `env` sichtbar) und wird dem Admin angezeigt.
   - Wiederholbare Fehler (`5xx`, `499`, `429` mit `Retry-After`) werden mit exponentiellem Backoff erneut versucht; die fiskaly-API ist idempotent.
 
-### Provisionierung (BYOT)
+### Provisionierung
 
 - Der Betreiber legt **TSS und Client im fiskaly-Dashboard** an. jotti betreibt **keinen** TSS-Lebenszyklus (kein `createTss`/`createClient`, kein Admin-PIN/PUK). Damit bleibt der Adapter minimal (nur Auth + Signieren) und es liegt **kein** mächtiges Admin-Secret in jottis Datenbank.
 - jotti hält in der Konfiguration genau: `api_key`, `api_secret`, `tss_id`, `client_id`.

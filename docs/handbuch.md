@@ -32,11 +32,11 @@ Kartenzahlung, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, C
 
 ### 2.1 Kontextübersicht
 
-| Context        | Typ                   | Beschreibung                                                                                                                            | Persistenz                     |
-| -------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| **Kasse**      | Core Domain           | Alle finanziellen Geschäftsvorfälle: Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal) |
-| **Stammdaten** | Supporting Sub-Domain | Verwaltung von Produkten, Tischen, Benutzern, Betreiber-Stammdaten (CRUD)                                                               | CRUD                           |
-| **Auth**       | Generic Sub-Domain    | Login, Logout, Passwort-Management, Token-Verwaltung                                                                                    | Infrastruktur                  |
+| Context        | Typ                   | Beschreibung                                                                                                                                      | Persistenz                     |
+| -------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **Kasse**      | Core Domain           | Alle finanziellen Geschäftsvorfälle: Bestellen, Ausgabe bestätigen, Bezahlen/Kassieren, Stornieren, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal) |
+| **Stammdaten** | Supporting Sub-Domain | Verwaltung von Produkten, Tischen, Benutzern, Betreiber-Stammdaten (CRUD)                                                                         | CRUD                           |
+| **Auth**       | Generic Sub-Domain    | Login, Logout, Passwort-Management, Token-Verwaltung                                                                                              | Infrastruktur                  |
 
 > **Bondruck** (K-12) ist kein eigenständiger Bounded Context, sondern eine **Policy** innerhalb des Kasse-Context (→ [3.12 Policies](#312-policies)). Abrechnung/Reporting sind Read Models innerhalb der Kasse — kein eigener Context.
 
@@ -54,7 +54,7 @@ Der Kasse-Kontext schützt sich über eine **Anti-Corruption Layer (ACL)** vor S
 
 ## 3. Kasse (Core Domain)
 
-Der Kasse-Kontext vereint alle finanziellen Geschäftsvorfälle mit Event-Sourcing über das **Kassenjournal**: tischbezogene Vorgänge (Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren, Auszahlen) und kassenführungsbezogene Vorgänge (Kassensitzung eröffnen, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss).
+Der Kasse-Kontext vereint alle finanziellen Geschäftsvorfälle mit Event-Sourcing über das **Kassenjournal**: tischbezogene Vorgänge (Bestellen, Ausgabe bestätigen, Bezahlen/Kassieren, Stornieren, Auszahlen) und kassenführungsbezogene Vorgänge (Kassensitzung eröffnen, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss).
 
 ### 3.1 Kassensitzung und Abrechnungskreis
 
@@ -112,30 +112,30 @@ Alle Events sind unveränderlich (append-only) und werden im Kassenjournal persi
 
 **Tisch-Session-Events** (Subject `kassensitzung-{nr}/tisch-{id}`):
 
-| Event                      | Semantik                                        | Tragende Constraints                                                                          |
-| -------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `bestellung-aufgenommen:v1` | Servicekraft nimmt eine Bestellung am Tisch auf | ≥ 1 Position; Produktname, Variante, Kategorie und Einzelpreis als Fat Event eingefroren      |
-| `ausgabe-bestaetigt:v1`     | Positionen als ausgegeben markiert              | Positionsbezug (`position_id` + `menge`); Teilausgaben möglich                                |
-| `zahlung-kassiert:v1`       | Barzahlung kassiert                             | Betrag = Summe der gewählten Positionen; Teilzahlungen möglich                                |
-| `stornierung-erteilt:v1`    | Stornierung durch Serviceleitung/Admin          | Kommentar **Pflicht** (min. 3 Zeichen); unabhängig vom Ausgabe-/Bezahlstatus                  |
-| `auszahlung-geleistet:v1`   | Auszahlung gleicht negativen Saldo aus (K-05)   | Freier Betrag ≥ 1 Cent, kein Positionsbezug; Kommentar **Pflicht**                            |
+| Event                       | Semantik                                        | Tragende Constraints                                                                     |
+| --------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `bestellung-aufgenommen:v1` | Servicekraft nimmt eine Bestellung am Tisch auf | ≥ 1 Position; Produktname, Variante, Kategorie und Einzelpreis als Fat Event eingefroren |
+| `ausgabe-bestaetigt:v1`     | Positionen als ausgegeben markiert              | Positionsbezug (`position_id` + `menge`); Teilausgaben möglich                           |
+| `zahlung-kassiert:v1`       | Barzahlung kassiert                             | Betrag = Summe der gewählten Positionen; Teilzahlungen möglich                           |
+| `stornierung-erteilt:v1`    | Stornierung durch Serviceleitung/Admin          | Kommentar **Pflicht** (min. 3 Zeichen); unabhängig vom Ausgabe-/Bezahlstatus             |
+| `auszahlung-geleistet:v1`   | Auszahlung gleicht negativen Saldo aus (K-05)   | Freier Betrag ≥ 1 Cent, kein Positionsbezug; Kommentar **Pflicht**                       |
 
 **Direktverkauf-Events** (Subject `kassensitzung-{nr}/direktverkauf-{uuid}`):
 
-| Event                       | Semantik                                                     | Tragende Constraints                                                                    |
-| --------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| `direktverkauf-getaetigt:v1` | Barverkauf an der Theke: Bestellen + Zahlen in einem Schritt | Immer `version = 1` des Streams                                                         |
+| Event                        | Semantik                                                     | Tragende Constraints                                                                                                            |
+| ---------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `direktverkauf-getaetigt:v1` | Barverkauf an der Theke: Bestellen + Zahlen in einem Schritt | Immer `version = 1` des Streams                                                                                                 |
 | `direktverkauf-storniert:v1` | Positionsgenauer Storno eines Direktverkaufs                 | Folge-Version im selben Stream; Fat-Positionen; Bargeld-Rückgabe inklusive (→ [3.3](#33-subject-design-hierarchische-subjects)) |
 
 **Kassensitzung-Events** (Subject `kassensitzung-{nr}`):
 
-| Event                           | Semantik                                                | Tragende Constraints                                                          |
-| ------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `kassensitzung-eroeffnet:v1`    | Admin eröffnet die Kassensitzung (Datum, Bezeichnung, Anfangsbestand) | Anfangsbestand (`betragCents`) ist Teil der Eröffnung — kein eigenes Event |
-| `geldtransit-gebucht:v1`        | Einlage oder Entnahme (`richtung`)                      | Kommentar **Pflicht** (min. 3 Zeichen)                                        |
-| `kassensturz-durchgefuehrt:v1`  | Soll-Ist-Abgleich                                       | Voraussetzung für den Tagesabschluss                                          |
-| `differenz-soll-ist-gebucht:v1` | Differenzbuchung nach Kassensturz                       | Nur wenn Differenz ≠ 0; gleiche Transaktion wie der Kassensturz (→ [3.10](#310-kassensturz)) |
-| `tagesabschluss-erstellt:v1`    | Z-Bon: aggregiert die Kassensitzung und schließt sie    | `z_nr` fortlaufend, nie zurücksetzbar                                         |
+| Event                           | Semantik                                                              | Tragende Constraints                                                                         |
+| ------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `kassensitzung-eroeffnet:v1`    | Admin eröffnet die Kassensitzung (Datum, Bezeichnung, Anfangsbestand) | Anfangsbestand (`betragCents`) ist Teil der Eröffnung — kein eigenes Event                   |
+| `geldtransit-gebucht:v1`        | Einlage oder Entnahme (`richtung`)                                    | Kommentar **Pflicht** (min. 3 Zeichen)                                                       |
+| `kassensturz-durchgefuehrt:v1`  | Soll-Ist-Abgleich                                                     | Voraussetzung für den Tagesabschluss                                                         |
+| `differenz-soll-ist-gebucht:v1` | Differenzbuchung nach Kassensturz                                     | Nur wenn Differenz ≠ 0; gleiche Transaktion wie der Kassensturz (→ [3.10](#310-kassensturz)) |
+| `tagesabschluss-erstellt:v1`    | Z-Bon: aggregiert die Kassensitzung und schließt sie                  | `z_nr` fortlaufend, nie zurücksetzbar                                                        |
 
 ### 3.7 Invarianten
 
@@ -150,7 +150,7 @@ Alle Beträge in Cent (Integer). Saldo = 0 bedeutet: alle Positionen bezahlt ode
 - **Bezahl-Invariante:** Nur bestellte, nicht-stornierte, nicht-bezahlte Positionen können bezahlt werden. Der Zahlungsbetrag ergibt sich aus der Summe der gewählten Positionen — Überzahlung nicht möglich. Teilzahlungen zulässig.
 - **Stornierungsinvariante:** Nur bestellte, nicht-stornierte Positionen können storniert werden — **unabhängig vom Ausgabe- und Bezahlstatus**. Bei Stornierung bereits bezahlter Positionen kann der Saldo temporär negativ werden (bewusstes Design). Kommentar ist **Pflichtfeld** (min. 3 Zeichen).
 - **Auszahlungs-Invariante:** Betrag muss ≥ 1 Cent sein. Kommentar ist **Pflichtfeld** (min. 3, max. 100 Zeichen). Es gibt keine Obergrenze für den Auszahlungsbetrag (Freifeld). Nur `serviceleitung` und `admin` dürfen Auszahlungen leisten.
-- **Rolleninvariante:** Stornierungen und Auszahlungen nur durch `serviceleitung` und `admin`. Alle anderen Tischoperationen (Bestellen, Ausgabe bestätigen, Bezahlen) stehen allen drei Rollen zur Verfügung.
+- **Rolleninvariante:** Stornierungen und Auszahlungen nur durch `serviceleitung` und `admin`. Alle anderen Tischoperationen (Bestellen, Ausgabe bestätigen, Kassieren) stehen allen drei Rollen zur Verfügung.
 - **Mindestmengen-Invariante:** Jede positionsbasierte Operation erfordert mindestens eine Position. Bestellung, Ausgabe, Zahlung oder Stornierung ohne Positionen sind ungültig.
 
 #### Kassensitzung-Invarianten
@@ -221,19 +221,19 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 
 **Mapping: jotti-Vorgänge → TSE-Transaktionen (Atomares Modell):** Für das Festzelt-Muster gilt: Jeder Vorgang ist eine **eigenständige, sofort geschlossene** TSE-Transaktion.
 
-| jotti-Vorgang                            | TSE-Operation             | processType           | Anmerkung                                                         |
-| ---------------------------------------- | ------------------------- | --------------------- | ----------------------------------------------------------------- |
-| Bestellung aufnehmen                     | `Start` + sofort `Finish` | `Bestellung-V1`       | Positionen in processData                                         |
-| Zahlung kassieren (Teilzahlung)          | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Betrag + Zahlungsart in processData; **kein** UpdateTransaction   |
-| Zahlung kassieren (Vollzahlung)          | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Wie oben                                                          |
-| Positions-Storno                         | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negative Menge/Betrag; BON_STORNO=1 im DSFinV-K                   |
-| Bon-Storno (nach Zahlung)                | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Gesamtbetrag; BON_STORNO=1, REF_BON_ID gesetzt          |
-| Auszahlung (negativen Saldo ausgleichen) | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Bargeldabfluss; negativer Betrag, Zahlungsart bar                 |
-| Geldtransit (Einlage/Entnahme)           | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Eigenbeleg über Ein-/Auszahlung (AEAO 2.2.3.6.1); ±Betrag als Zahlung |
-| Kassendifferenz (Kassensturz)            | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Eigenbeleg `DifferenzSollIst` (AEAO 2.2.3.6.1); ±Betrag als Zahlung; umsatzsteuerlich neutral (→ §3.10) |
-| Direktverkauf                            | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Bestellen + Zahlen in einem Schritt; 1 Verkauf = 1 Transaktion    |
-| Direktverkauf-Storno                     | `Start` + sofort `Finish` | `Kassenbeleg-V1`      | Negativer Betrag; BON_STORNO=1, REF_BON_ID gesetzt                |
-| Tagesabschluss (Z-Bon)                   | `Start` + sofort `Finish` | `SonstigerVorgang`    | Tagesaggregat in processData                                      |
+| jotti-Vorgang                            | TSE-Operation             | processType        | Anmerkung                                                                                               |
+| ---------------------------------------- | ------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------- |
+| Bestellung aufnehmen                     | `Start` + sofort `Finish` | `Bestellung-V1`    | Positionen in processData                                                                               |
+| Zahlung kassieren (Teilzahlung)          | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Betrag + Zahlungsart in processData; **kein** UpdateTransaction                                         |
+| Zahlung kassieren (Vollzahlung)          | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Wie oben                                                                                                |
+| Positions-Storno                         | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Negative Menge/Betrag; BON_STORNO=1 im DSFinV-K                                                         |
+| Bon-Storno (nach Zahlung)                | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Negativer Gesamtbetrag; BON_STORNO=1, REF_BON_ID gesetzt                                                |
+| Auszahlung (negativen Saldo ausgleichen) | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Bargeldabfluss; negativer Betrag, Zahlungsart bar                                                       |
+| Geldtransit (Einlage/Entnahme)           | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Eigenbeleg über Ein-/Auszahlung (AEAO 2.2.3.6.1); ±Betrag als Zahlung                                   |
+| Kassendifferenz (Kassensturz)            | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Eigenbeleg `DifferenzSollIst` (AEAO 2.2.3.6.1); ±Betrag als Zahlung; umsatzsteuerlich neutral (→ §3.10) |
+| Direktverkauf                            | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Bestellen + Zahlen in einem Schritt; 1 Verkauf = 1 Transaktion                                          |
+| Direktverkauf-Storno                     | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Negativer Betrag; BON_STORNO=1, REF_BON_ID gesetzt                                                      |
+| Tagesabschluss (Z-Bon)                   | `Start` + sofort `Finish` | `SonstigerVorgang` | Tagesaggregat in processData                                                                            |
 
 **Alle Transaktionen eines Tisches** teilen denselben `ABRECHNUNGSKREIS`-Wert im DSFinV-K-Export.
 
@@ -394,11 +394,11 @@ Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 
 **Seitenstruktur:**
 
-| Bereich   | Seiten                                                                                                                                                                                              |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Service   | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Bezahlen, Historie). Ausgabe bestätigen ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Bezahlen-Tab verfügbar. |
-| Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten · **Druckerkonfiguration** (`DruckerConfigPage` — IP und Bonmodus pro Kategorie konfigurieren)                                           |
-| Allgemein | Login · Passwort setzen (Erstanmeldung)                                                                                                                                                             |
+| Bereich   | Seiten                                                                                                                                                                                               |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Service   | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Kassieren, Historie). Ausgabe bestätigen ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Historie-Tab verfügbar. |
+| Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten · **Druckerkonfiguration** (`DruckerConfigPage` — IP und Bonmodus pro Kategorie konfigurieren)                                            |
+| Allgemein | Login · Passwort setzen (Erstanmeldung)                                                                                                                                                              |
 
 **UI-Patterns:** Karten für Produkte/Tische, Drawer (Bottom-Sheet) für Bestell-/Bezahl-/Storno-Bestätigung, Tab-Navigation im Tisch-Detail, Plus/Minus-Buttons für Mengenauswahl (Touch-optimiert).
 
@@ -425,16 +425,16 @@ Mehrere Servicekräfte arbeiten gleichzeitig — auch am selben Tisch. Schreibko
 
 ### 6.7 Sicherheit
 
-| Maßnahme                   | Umsetzung                                                                                                                       | Anforderung |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| HTTPS / TLS                | nginx terminiert TLS, Let's Encrypt-Zertifikat, HTTP → HTTPS-Redirect                                                           | Q-06        |
-| Rate Limiting              | Login-Endpunkt ist durch Rate Limiting geschützt (Brute-Force-Schutz)                                                           | Q-07        |
-| Security Headers           | Reverse Proxy setzt HSTS, X-Frame-Options, X-Content-Type-Options, CSP                                                          | Q-08        |
-| Input-Validierung          | Frontend (Zod) + Backend (zog) — beide Seiten unabhängig voneinander                                                            | Q-03        |
-| Passwort-Hashing           | Argon2id mit zufälligem Salt                                                                                                    | A-01        |
-| Generische Fehlermeldungen | Fehlgeschlagene Logins geben keine Auskunft, ob Benutzer oder Passwort falsch war                                               | A-01        |
-| Keine Secrets im Code      | Alle Secrets (JWT-Schlüssel, DB-Passwort, `RELAY_AUTH_TOKEN`) werden über Umgebungsvariablen konfiguriert                       | —           |
-| JWT-Gültigkeit             | Tokens sind 12 Stunden gültig — kurze Lebensdauer begrenzt den Schaden bei Verlust                                              | A-01        |
+| Maßnahme                   | Umsetzung                                                                                                                     | Anforderung |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| HTTPS / TLS                | nginx terminiert TLS, Let's Encrypt-Zertifikat, HTTP → HTTPS-Redirect                                                         | Q-06        |
+| Rate Limiting              | Login-Endpunkt ist durch Rate Limiting geschützt (Brute-Force-Schutz)                                                         | Q-07        |
+| Security Headers           | Reverse Proxy setzt HSTS, X-Frame-Options, X-Content-Type-Options, CSP                                                        | Q-08        |
+| Input-Validierung          | Frontend (Zod) + Backend (zog) — beide Seiten unabhängig voneinander                                                          | Q-03        |
+| Passwort-Hashing           | Argon2id mit zufälligem Salt                                                                                                  | A-01        |
+| Generische Fehlermeldungen | Fehlgeschlagene Logins geben keine Auskunft, ob Benutzer oder Passwort falsch war                                             | A-01        |
+| Keine Secrets im Code      | Alle Secrets (JWT-Schlüssel, DB-Passwort, `RELAY_AUTH_TOKEN`) werden über Umgebungsvariablen konfiguriert                     | —           |
+| JWT-Gültigkeit             | Tokens sind 12 Stunden gültig — kurze Lebensdauer begrenzt den Schaden bei Verlust                                            | A-01        |
 | Relay-Token                | Statischer Token für `POST /relay/poll` und `POST /relay/ergebnis` — kein JWT, kein Benutzerkontext. Relay ist kein Benutzer. | K-12        |
 
 ---
@@ -448,7 +448,7 @@ Read Models sind aufbereitete Lese-Ansichten — reine Projektionen über vorhan
 | Name             | ID   | Quelle                                           | Inhalt (Kurzfassung)                                                                                                                                                                              |
 | ---------------- | ---- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tischübersicht   | K-06 | `tisch_sessions` + Stammdaten                    | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ausstehender Positionen. Startseite des Service-Bereichs. JOIN auf `kassensitzung_nr`.                                                     |
-| Tischdetails     | K-06 | `tisch_sessions`                                 | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Ausgabe bestätigen, Bezahlen, Stornieren, Historie.                                                            |
+| Tischdetails     | K-06 | `tisch_sessions`                                 | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Ausgabe bestätigen, Bezahlen/Kassieren, Stornieren, Historie.                                                  |
 | Produktkatalog   | —    | Produkt-Stammdaten                               | Aktive Produkte und Varianten, nach Kategorie gruppiert. Im Bestellvorgang geladen (kein eigenes Navigationsziel).                                                                                |
 | Kassenjournal    | K-07 | Kassenjournal (Event Stream, Replay per Subject) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich.                                                                      |
 | Eigene Übersicht | R-06 | `kassenjournal` (SQL-Aggregation)                | KPIs der eigenen Servicekraft: Anzahl und Summe eigener Bestellungen sowie kassierter Zahlungen. Gefiltert auf `user_id` und `kassensitzung_nr`. Endpunkt: `POST /service/get-eigene-uebersicht`. |

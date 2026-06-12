@@ -66,32 +66,32 @@ Die TSE ist das kryptografische Herzstück eines konformen Kassensystems. Sie be
 
 Jeder abzusichernde Vorgang kommuniziert mit der TSE über drei Operationen:
 
-| Operation | Wann | Request | Response |
-| --- | --- | --- | --- |
-| **`StartTransaction`** | **Unmittelbar** bei Vorgangsbeginn (Ordnungsanforderung; keine maximale Transaktionsdauer in BSI TR-03153) | Kassen-ID — `processType` und `processData` sind bei Start **immer leer** (DSFinV-K Anhang I) | Fortlaufende Transaktionsnummer, `logTime`, TSE-Seriennummer, Signaturzähler |
-| **`UpdateTransaction`** | Optional — **nur** für `Bestellung-V1` und `SonstigerVorgang`; für `Kassenbeleg-V1` **verboten** (processData erst bei Abschluss bekannt) [11] | Kassen-ID, Transaktionsnummer, aktualisierte `processData` | — |
-| **`FinishTransaction`** | Bei Abschluss oder Abbruch des Vorgangs | Transaktionsnummer, finale `processData` (Summen nach Steuersätzen und Zahlungsarten) | Signatur, `logTime`, finaler Signaturzähler |
+| Operation               | Wann                                                                                                                                           | Request                                                                                       | Response                                                                     |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **`StartTransaction`**  | **Unmittelbar** bei Vorgangsbeginn (Ordnungsanforderung; keine maximale Transaktionsdauer in BSI TR-03153)                                     | Kassen-ID — `processType` und `processData` sind bei Start **immer leer** (DSFinV-K Anhang I) | Fortlaufende Transaktionsnummer, `logTime`, TSE-Seriennummer, Signaturzähler |
+| **`UpdateTransaction`** | Optional — **nur** für `Bestellung-V1` und `SonstigerVorgang`; für `Kassenbeleg-V1` **verboten** (processData erst bei Abschluss bekannt) [11] | Kassen-ID, Transaktionsnummer, aktualisierte `processData`                                    | —                                                                            |
+| **`FinishTransaction`** | Bei Abschluss oder Abbruch des Vorgangs                                                                                                        | Transaktionsnummer, finale `processData` (Summen nach Steuersätzen und Zahlungsarten)         | Signatur, `logTime`, finaler Signaturzähler                                  |
 
 ### 3.3 Offizielle processType-Werte
 
 Die `processType`-Werte sind im AEAO zu § 146a AO, Anhang I, festgelegt. Die **-V1-Endung ist nur bei `Kassenbeleg-V1` und `Bestellung-V1` Bestandteil des offiziellen Strings** — der dritte Typ heißt `SonstigerVorgang` (ohne Suffix).
 
-| processType        | Verwendung                                                                                                                 |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| processType        | Verwendung                                                                                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Kassenbeleg-V1`   | Zahlungsbeleg (Rechnung), der dem Kunden ausgehändigt wird; auch Eigenbelege über Ein-/Auszahlungen wie Geldtransit, Kassendifferenz und Auszahlung (AEAO 2.2.3.6.1) |
-| `Bestellung-V1`    | Zwischenabsicherung einer Bestellung ohne sofortige Zahlung (Gastronomie)                                                  |
-| `SonstigerVorgang` | Alle anderen abzusichernden Vorgänge (Tagesabschluss, TSE-Selbsttest, ...)                                                 |
+| `Bestellung-V1`    | Zwischenabsicherung einer Bestellung ohne sofortige Zahlung (Gastronomie)                                                                                            |
+| `SonstigerVorgang` | Alle anderen abzusichernden Vorgänge (Tagesabschluss, TSE-Selbsttest, ...)                                                                                           |
 
 **Mapping auf jotti-Events:**
 
-| jotti-Event                  | processType           | Anmerkung                                                                                     |
-| ---------------------------- | --------------------- | --------------------------------------------------------------------------------------------- |
-| `bestellung-aufgenommen:v1`  | `Bestellung-V1`       | Sofort geschlossen (Festzelt-Muster, §3.6)                                                    |
-| `zahlung-kassiert:v1`        | `Kassenbeleg-V1`      | Tisch-Teilzahlung oder Vollzahlung                                                            |
-| `direktverkauf-getaetigt:v1` | `Kassenbeleg-V1`      | Atomar — keine vorgelagerte `Bestellung-V1`, da Bestellung und Zahlung zeitgleich stattfinden |
-| `direktverkauf-storniert:v1` | `Kassenbeleg-V1`      | Stornobeleg mit negativem Betrag, `REF_BON_ID` auf den Ursprungsverkauf                       |
-| `stornierung-erteilt:v1`     | `Kassenbeleg-V1`      | Positions-Storno am Tisch mit negativen Beträgen                                              |
-| Tagesabschluss (Z-Bon)       | `SonstigerVorgang`    | Aggregierte Tagessummen                                                                       |
+| jotti-Event                  | processType        | Anmerkung                                                                                     |
+| ---------------------------- | ------------------ | --------------------------------------------------------------------------------------------- |
+| `bestellung-aufgenommen:v1`  | `Bestellung-V1`    | Sofort geschlossen (Festzelt-Muster, §3.6)                                                    |
+| `zahlung-kassiert:v1`        | `Kassenbeleg-V1`   | Tisch-Teilzahlung oder Vollzahlung                                                            |
+| `direktverkauf-getaetigt:v1` | `Kassenbeleg-V1`   | Atomar — keine vorgelagerte `Bestellung-V1`, da Bestellung und Zahlung zeitgleich stattfinden |
+| `direktverkauf-storniert:v1` | `Kassenbeleg-V1`   | Stornobeleg mit negativem Betrag, `REF_BON_ID` auf den Ursprungsverkauf                       |
+| `stornierung-erteilt:v1`     | `Kassenbeleg-V1`   | Positions-Storno am Tisch mit negativen Beträgen                                              |
+| Tagesabschluss (Z-Bon)       | `SonstigerVorgang` | Aggregierte Tagessummen                                                                       |
 
 Das vollständige Mapping aller jotti-Vorgänge (inkl. Auszahlung, Geldtransit, Kassendifferenz): [handbuch.md §3.13](handbuch.md#313-tse-architektur).
 
@@ -140,11 +140,11 @@ Ohne physische Kassenhardware gibt es kein Typenschild — die gesetzlich geford
 - Die Seriennummer wird im **Admin-Dashboard** angezeigt (für ELSTER-Meldung und DSFinV-K-Export).
 - **Disaster Recovery:** Geht die Datenbank ohne Backup verloren, muss die alte Seriennummer beim Finanzamt abgemeldet und die neue Instanz neu angemeldet werden — Datenbank-Backups sichern die Seriennummern-Kontinuität.
 
-| Verwendungsort                               | Feld / Kontext                                         |
-| -------------------------------------------- | ------------------------------------------------------ |
-| ELSTER-Meldung                               | „Seriennummer des elektronischen Aufzeichnungssystems" |
-| DSFinV-K Export (`cashregister.csv`)         | Feld `KASSE_SERIENNR`                                  |
-| Kassenbon (Pflichtfeld nach § 6 KassenSichV) | Angedruckter String, z. B. `Kassen-ID: 7f3a9d12-...`   |
+| Verwendungsort                               | Feld / Kontext                                             |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| ELSTER-Meldung                               | „Seriennummer des elektronischen Aufzeichnungssystems"     |
+| DSFinV-K Export (`cashregister.csv`)         | Feld `KASSE_SERIENNR`                                      |
+| Kassenbon (Pflichtfeld nach § 6 KassenSichV) | Angedruckter String, z. B. `Kassen-ID: 7f3a9d12-...`       |
 | TSE-Kommunikation                            | `serial_number` des fiskaly-Clients (Client-Registrierung) |
 
 ---
@@ -155,15 +155,15 @@ Ohne physische Kassenhardware gibt es kein Typenschild — die gesetzlich geford
 
 jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grundsätze:
 
-| GoBD-Grundsatz             | Aktueller Status    | Anmerkung                                             |
-| -------------------------- | ------------------- | ----------------------------------------------------- |
-| Unveränderbarkeit          | ✅ Erfüllt          | Kassenjournal ist append-only, kein UPDATE/DELETE     |
-| Nachvollziehbarkeit        | ✅ Erfüllt          | Lückenloses Kassenjournal pro Tisch-Session           |
-| Vollständigkeit            | ✅ Erfüllt          | Jeder Geschäftsvorfall wird als Event erfasst         |
-| Zeitgerechte Buchung       | ✅ Erfüllt          | Events mit Echtzeit-Zeitstempel                       |
-| Ordnungsmäßigkeit          | ✅ Erfüllt          | Strukturiertes Datenmodell, typisierte Events         |
+| GoBD-Grundsatz             | Aktueller Status    | Anmerkung                                                                                                                     |
+| -------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Unveränderbarkeit          | ✅ Erfüllt          | Kassenjournal ist append-only, kein UPDATE/DELETE                                                                             |
+| Nachvollziehbarkeit        | ✅ Erfüllt          | Lückenloses Kassenjournal pro Tisch-Session                                                                                   |
+| Vollständigkeit            | ✅ Erfüllt          | Jeder Geschäftsvorfall wird als Event erfasst                                                                                 |
+| Zeitgerechte Buchung       | ✅ Erfüllt          | Events mit Echtzeit-Zeitstempel                                                                                               |
+| Ordnungsmäßigkeit          | ✅ Erfüllt          | Strukturiertes Datenmodell, typisierte Events                                                                                 |
 | Kryptografische Verkettung | ✅ Erfüllt          | TSE-Signatur (fiskaly Cloud-TSE) für alle Geschäftsvorfälle; Signaturdaten im Event persistiert, Ausfälle werden nachsigniert |
-| 10-Jahres-Aufbewahrung     | ⚠️ Nicht adressiert | Keine Archivierungsstrategie implementiert            |
+| 10-Jahres-Aufbewahrung     | ⚠️ Nicht adressiert | Keine Archivierungsstrategie implementiert                                                                                    |
 
 ### 4.2 Anforderungen gemäß §§ 146, 147 AO und GoBD
 
@@ -280,13 +280,13 @@ Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Beze
 
 #### A. Stammdatenmodul
 
-| Dateiname (offiziell)  | Logische Bezeichnung | Inhalt                                                                                                                       |
-| ---------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `cashpointclosing.csv` | Stamm_Abschluss      | Metadaten zum Z-Bon: Unternehmensname, Steuernummer, Start-/End-Zeitpunkt                                                    |
-| `location.csv`         | Stamm_Orte           | Standortdaten der Betriebsstätte                                                                                             |
-| `cashregister.csv`     | Stamm_Kassen         | Kassendaten: Hersteller, Seriennummer, Software-Typ und -Version                                                             |
-| `tse.csv`              | Stamm_TSE            | TSE-Daten: Zertifikats-ID, Signaturalgorithmus, TSE-Seriennummer (64-stelliger Hexadezimalstring), Public Key (Base64)       |
-| `vat.csv`              | Stamm_USt            | Stammdaten der verwendeten Steuersätze                                                                                       |
+| Dateiname (offiziell)  | Logische Bezeichnung | Inhalt                                                                                                                 |
+| ---------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `cashpointclosing.csv` | Stamm_Abschluss      | Metadaten zum Z-Bon: Unternehmensname, Steuernummer, Start-/End-Zeitpunkt                                              |
+| `location.csv`         | Stamm_Orte           | Standortdaten der Betriebsstätte                                                                                       |
+| `cashregister.csv`     | Stamm_Kassen         | Kassendaten: Hersteller, Seriennummer, Software-Typ und -Version                                                       |
+| `tse.csv`              | Stamm_TSE            | TSE-Daten: Zertifikats-ID, Signaturalgorithmus, TSE-Seriennummer (64-stelliger Hexadezimalstring), Public Key (Base64) |
+| `vat.csv`              | Stamm_USt            | Stammdaten der verwendeten Steuersätze                                                                                 |
 
 #### B. Einzelaufzeichnungsmodul (Bonmodul)
 
@@ -406,7 +406,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 
 **Vor dem ersten Einsatz:**
 
-1. **Cloud-TSE-Vertrag (BYOT):** Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly oder D-Trust) abschließen; API-Schlüssel in den TSE-Einstellungen des Admin-Bereichs hinterlegen (gespeichert in der Datenbank).
+1. **Cloud-TSE-Vertrag:** Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly oder D-Trust) abschließen; API-Schlüssel in den TSE-Einstellungen des Admin-Bereichs hinterlegen (gespeichert in der Datenbank).
 2. **ELSTER-Meldung:** Innerhalb von **einem Monat** nach Inbetriebnahme die Instanz über [ELSTER](https://www.elster.de) anmelden. Benötigt: Kassen-Seriennummer (Admin-Dashboard), Softwarename „jotti", Inbetriebnahmedatum (→ §7.3).
 3. **Seriennummer sichern:** Die Kassen-UUID ist die rechtliche Identität der Kasse (→ §3.7) — das Datenbank-Backup muss sie enthalten. Bei Verlust: alte Nummer abmelden, neue Instanz anmelden.
 

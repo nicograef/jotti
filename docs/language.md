@@ -210,15 +210,15 @@ Go-Funktion: `GetHistoryFromEvents()` · Go-Query: `GetTischHistorie()` · API: 
 
 #### Weitere Typen und Felder (Kasse)
 
-| Begriff                  | Bedeutung                                                                  | Code-Mapping                                                                                  |
-| ------------------------ | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| **Kommentar**            | Freitextnotiz; Pflicht bei Stornierung und Auszahlung, sonst optional      | Go `Kommentar` · JSON/TS `kommentar`                                                          |
-| **Menge**                | Anzahl einer Produktvariante innerhalb einer Position                      | Go `Menge` · JSON/TS `menge`                                                                  |
-| **PositionRef**          | Referenz auf eine Position (ID + Menge) für Zahlung, Ausgabe, Stornierung  | Go/TS `PositionRef` · JSON `positionId`, `menge`                                              |
-| **HistorieEintrag**      | Eintrag der Tisch-Historie, typisiert nach Art                             | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `ausgabe`, `auszahlung` |
-| **EigeneUebersicht**     | KPI-Read-Model einer Servicekraft: eigene Bestellungen und Zahlungen       | Go/TS `EigeneUebersicht` · JSON `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` |
-| **AktiverTisch**         | Kompakte Tisch-Darstellung mit Saldo für die Tischübersicht (Read Model)   | Go `AktiverTisch` · TS `AktiverTischMitFavorit` (mit `istFavorit`)                            |
-| **BestellPositionInput** | Frontend-Eingabetyp einer Bestellposition (Produkt + Variante + Menge)     | TS `BestellPositionInput` · JSON `produktId`, `varianteId`, `menge`                           |
+| Begriff                  | Bedeutung                                                                 | Code-Mapping                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Kommentar**            | Freitextnotiz; Pflicht bei Stornierung und Auszahlung, sonst optional     | Go `Kommentar` · JSON/TS `kommentar`                                                                           |
+| **Menge**                | Anzahl einer Produktvariante innerhalb einer Position                     | Go `Menge` · JSON/TS `menge`                                                                                   |
+| **PositionRef**          | Referenz auf eine Position (ID + Menge) für Zahlung, Ausgabe, Stornierung | Go/TS `PositionRef` · JSON `positionId`, `menge`                                                               |
+| **HistorieEintrag**      | Eintrag der Tisch-Historie, typisiert nach Art                            | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `ausgabe`, `auszahlung`             |
+| **EigeneUebersicht**     | KPI-Read-Model einer Servicekraft: eigene Bestellungen und Zahlungen      | Go/TS `EigeneUebersicht` · JSON `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` |
+| **AktiverTisch**         | Kompakte Tisch-Darstellung mit Saldo für die Tischübersicht (Read Model)  | Go `AktiverTisch` · TS `AktiverTischMitFavorit` (mit `istFavorit`)                                             |
+| **BestellPositionInput** | Frontend-Eingabetyp einer Bestellposition (Produkt + Variante + Menge)    | TS `BestellPositionInput` · JSON `produktId`, `varianteId`, `menge`                                            |
 
 ---
 
@@ -281,7 +281,7 @@ Automatisch erzeugtes Event (`differenz-soll-ist-gebucht:v1`) beim Kassensturz, 
 Formeller Tagesabschluss: aggregiert die Kassensitzung und schließt sie ab (Status → `abgeschlossen`). Kein Report, sondern eine transaktionale Operation des Kasse-Kontexts (→ [handbuch.md §3.11](handbuch.md#311-tagesabschluss-z-bon)).
 
 | Event-Typ                    | DB-Feld                | JSON-Keys (Auszug)                                                                                                    |
-| ---------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| ---------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `tagesabschluss-erstellt:v1` | `kassensitzungen.z_nr` | `zNr`, `zeitraumVon`, `zeitraumBis`, `umsatzGesamtCents`, `stornierungCents`, `auszahlungenCents`, `geldtransitCents` |
 
 #### X-Bon
@@ -337,7 +337,7 @@ Go-Package: `repository/favorit_repo/` · DB-Tabelle: `tisch_favoriten` · TS: `
 Reporting-Daten werden on-demand per SQL-Aggregation aus dem Kassenjournal berechnet. Kein eigener Event Stream — reines Read Model. Alle Typen existieren spiegelbildlich als Go-Struct (`domain/reporting/`) und TS-Typ.
 
 | Begriff                 | Bedeutung                                                                                                  |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
 | **ReportingData**       | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen                |
 | **Summary**             | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen)                |
 | **Breakdowns**          | Aufschlüsselung des Umsatzes: `UmsatzProServicekraft []UmsatzServicekraft`, `UmsatzProTisch []UmsatzTisch` |
@@ -412,7 +412,7 @@ Je ein Satz — Pflichten und Details: [compliance.md §2](compliance.md#2-recht
 
 #### TSE & Kryptografie
 
-- **TSE (Technische Sicherheitseinrichtung):** Zwingend vorgeschriebenes, BSI-zertifiziertes Sicherheitsmodul, das jeden Kassiervorgang kryptografisch signiert. In jotti als Cloud-TSE über das `TSEClient`-Interface umgesetzt (BYOT-Modell).
+- **TSE (Technische Sicherheitseinrichtung):** Zwingend vorgeschriebenes, BSI-zertifiziertes Sicherheitsmodul, das jeden Kassiervorgang kryptografisch signiert. In jotti als Cloud-TSE über das `TSEClient`-Interface umgesetzt.
 - **TSEClient:** Anbieter-agnostisches Go-Interface (`domain/tse/client.go`) mit `StartTransaction` und `FinishTransaction` (atomares Muster). Implementierung: `FiskalyTSEClient` (`repository/tse_repo/`).
 - **TSEData:** Signaturdaten in den Event-Payloads. Go-Struct `TSEData` (`domain/kasse/tse_data.go`) · JSON-Keys: `tseTransactionNumber`, `tseSignatureCounter`, `tseSerialNumber`, `tseLogTimeStart`, `tseLogTimeEnd`, `tseSignature`, `tseProcessType`, `tseQrCodeData`.
 - **Nachsignierung:** Schlägt die TSE-Signatur beim Buchen fehl, wird der Vorgang in der Outbox `tse_nachsignier_auftraege` vermerkt und von einem Worker nachsigniert.
@@ -429,20 +429,19 @@ Je ein Satz — Pflichten und Details: [compliance.md §2](compliance.md#2-recht
 
 #### Steuern
 
-| Begriff                        | Bedeutung                                                                                                                                                                                  |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Steuersatz**                 | Steuerklasse eines Produkts. Enum: `regel` (19 %), `ermaessigt` (7 %), `befreit` (0 %), `kombi` (70/30-Aufteilung). Go: `domain/steuer` · DB: `produkte.steuersatz` · JSON-Key: `steuersatz` |
+| Begriff                        | Bedeutung                                                                                                                                                                                           |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Steuersatz**                 | Steuerklasse eines Produkts. Enum: `regel` (19 %), `ermaessigt` (7 %), `befreit` (0 %), `kombi` (70/30-Aufteilung). Go: `domain/steuer` · DB: `produkte.steuersatz` · JSON-Key: `steuersatz`        |
 | **Steuerbetrag / Nettobetrag** | Pro Steuersatz berechnete Beträge (`steuer.Aufteilung`: Brutto, Netto, Steuer) — immer in Cent. Auf dem Kassenbeleg als Steueraufteilung ausgewiesen. Fachregeln → [steuerrecht.md](steuerrecht.md) |
 
 #### Export & Meldung
 
 | Begriff                    | Bedeutung                                                                                                                                                      |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **DSFinV-K**               | „Digitale Schnittstelle der Finanzverwaltung für Kassensysteme" — standardisiertes CSV-ZIP-Exportformat (Version 2.4) für Betriebsprüfungen. Geplant (→ F-04). |
 | **TAR-Archiv**             | Gesetzlich vorgeschriebenes Dateiformat für den Export der rohen, kryptografisch gesicherten TSE-Log-Nachrichten.                                              |
 | **Kassenmeldung / ELSTER** | Pflicht nach § 146a Abs. 4 AO: Meldung jeder jotti-Instanz innerhalb eines Monats nach Inbetriebnahme über das ELSTER-Portal (→ F-05).                         |
 | **ERiC**                   | „ELSTER Rich Client" — Programmierschnittstelle für die automatisierte ELSTER-Kommunikation. Geplant.                                                          |
-| **BYOT**                   | „Bring Your Own TSE" — Betreiber schließen selbst einen Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly) und hinterlegen die Zugangsdaten in den Admin-Einstellungen. |
 
 ---
 
