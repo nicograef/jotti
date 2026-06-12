@@ -54,11 +54,11 @@ var geldtransitBuchenSchema = z.Struct(z.Shape{
 })
 
 type kassensturzDurchfuehrenRequest struct {
-	IstBestandCents int `json:"istBestandCents"`
+	IstBestandCents *int `json:"istBestandCents"`
 }
 
 var kassensturzDurchfuehrenSchema = z.Struct(z.Shape{
-	"IstBestandCents": z.Int().GTE(0, z.Message("Ist-Bestand darf nicht negativ sein")).Required(),
+	"IstBestandCents": z.Ptr(z.Int().GTE(0, z.Message("Ist-Bestand darf nicht negativ sein"))).NotNil(z.Message("Ist-Bestand ist erforderlich")),
 })
 
 // --- Handlers ---
@@ -77,7 +77,7 @@ func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
-		zNr, err := h.Command.KassensitzungEroeffnen(r.Context(), userID, userName, body.Bezeichnung, body.BetragCents)
+		zNr, err := h.Command.KassensitzungEroeffnen(r.Context(), userID, userName, body.Bezeichnung, *body.BetragCents)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				kasseApp.ErrKasseAlreadyOpen:           "kasse_bereits_geoeffnet",
@@ -135,7 +135,7 @@ func (h *CommandHandler) KassensturzDurchfuehrenHandler() http.HandlerFunc {
 		}
 		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
-		err := h.Command.KassensturzDurchfuehren(r.Context(), userID, userName, body.IstBestandCents)
+		err := h.Command.KassensturzDurchfuehren(r.Context(), userID, userName, *body.IstBestandCents)
 		if err != nil {
 			switch {
 			case errors.Is(err, kasseApp.ErrKonflikt):

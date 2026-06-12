@@ -77,8 +77,6 @@ func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T,
 	if !ReadBody(w, r, body) {
 		return false
 	}
-	// TODO: fix errors with valid zero values (e.g. int=0, string="")
-	// See https://zog.dev/core-concepts/validate/#required-and-zero-values
 	if errs := schema.Validate(body); errs != nil {
 		issues := z.Issues.FlattenAndCollect(errs)
 		SendClientError(w, "validation_error", issues)

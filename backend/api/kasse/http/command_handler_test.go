@@ -86,6 +86,51 @@ func TestKassensitzungEroeffnenHandler_BetreiberNichtKonfiguriert(t *testing.T) 
 	}
 }
 
+func TestKassensitzungEroeffnenHandler_NullBetrag(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{zNr: 1}}
+
+	req := requestWithUser(`{"bezeichnung":"Maihock","betragCents":0}`)
+	rec := httptest.NewRecorder()
+
+	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+}
+
+func TestKassensitzungEroeffnenHandler_MissingBetrag(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{zNr: 1}}
+
+	req := requestWithUser(`{"bezeichnung":"Maihock"}`)
+	rec := httptest.NewRecorder()
+
+	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Anfangsbestand ist erforderlich") {
+		t.Errorf("expected field error message in body, got %s", rec.Body.String())
+	}
+}
+
+func TestKassensitzungEroeffnenHandler_NegativerBetrag(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{zNr: 1}}
+
+	req := requestWithUser(`{"bezeichnung":"Maihock","betragCents":-1}`)
+	rec := httptest.NewRecorder()
+
+	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Anfangsbestand darf nicht negativ sein") {
+		t.Errorf("expected field error message in body, got %s", rec.Body.String())
+	}
+}
+
 // GeldtransitBuchen
 
 func TestGeldtransitBuchenHandler_Success(t *testing.T) {
@@ -127,6 +172,19 @@ func TestGeldtransitBuchenHandler_InvalidKommentar(t *testing.T) {
 	}
 }
 
+func TestGeldtransitBuchenHandler_NullBetrag(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	req := requestWithUser(`{"richtung":"einlage","betragCents":0,"kommentar":"Initialbestand"}`)
+	rec := httptest.NewRecorder()
+
+	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
 // KassensturzDurchfuehren
 
 func TestKassensturzDurchfuehrenHandler_Success(t *testing.T) {
@@ -139,6 +197,51 @@ func TestKassensturzDurchfuehrenHandler_Success(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rec.Code)
+	}
+}
+
+func TestKassensturzDurchfuehrenHandler_NullBestand(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	req := requestWithUser(`{"istBestandCents":0}`)
+	rec := httptest.NewRecorder()
+
+	handler.KassensturzDurchfuehrenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+}
+
+func TestKassensturzDurchfuehrenHandler_MissingBestand(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	req := requestWithUser(`{}`)
+	rec := httptest.NewRecorder()
+
+	handler.KassensturzDurchfuehrenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Ist-Bestand ist erforderlich") {
+		t.Errorf("expected field error message in body, got %s", rec.Body.String())
+	}
+}
+
+func TestKassensturzDurchfuehrenHandler_NegativerBestand(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	req := requestWithUser(`{"istBestandCents":-1}`)
+	rec := httptest.NewRecorder()
+
+	handler.KassensturzDurchfuehrenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Ist-Bestand darf nicht negativ sein") {
+		t.Errorf("expected field error message in body, got %s", rec.Body.String())
 	}
 }
 

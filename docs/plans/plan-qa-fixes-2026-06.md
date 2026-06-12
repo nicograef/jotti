@@ -229,12 +229,12 @@ Validierung. Geldtransit (`GTE(1)`) bleibt unverändert. Command-Signaturen blei
 
 ### Acceptance criteria
 
-- [ ] Handler-Test: Eröffnung mit `betragCents: 0` → Erfolg
-- [ ] Handler-Test: Kassensturz mit `istBestandCents: 0` → Erfolg
-- [ ] Handler-Test: fehlendes Betragsfeld → 400 mit Feld-Fehlermeldung
-- [ ] Handler-Test: negativer Betrag → 400 mit Feld-Fehlermeldung
-- [ ] Geldtransit-Validierung (`≥ 1`) unverändert
-- [ ] `make check` grün
+- [x] Handler-Test: Eröffnung mit `betragCents: 0` → Erfolg
+- [x] Handler-Test: Kassensturz mit `istBestandCents: 0` → Erfolg
+- [x] Handler-Test: fehlendes Betragsfeld → 400 mit Feld-Fehlermeldung
+- [x] Handler-Test: negativer Betrag → 400 mit Feld-Fehlermeldung
+- [x] Geldtransit-Validierung (`≥ 1`) unverändert
+- [x] `make check` grün
 
 ---
 
