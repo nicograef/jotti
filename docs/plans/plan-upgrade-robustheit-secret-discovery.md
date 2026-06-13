@@ -192,11 +192,11 @@ bleibt inert.
 
 ### Acceptance criteria
 
-- [ ] `postgres-data` vorhanden + **kein** Marker → Dump vor den Migrationen.
-- [ ] `postgres-data` vorhanden + Marker == Version → **kein** Dump.
-- [ ] Echte Erstinstallation (kein `postgres-data`) → **kein** Dump.
-- [ ] Marker wird wie bisher nur nach gesundem Start fortgeschrieben.
-- [ ] `core`-Logik unit-getestet; Linux-Dev-Lauf grün.
+- [x] `postgres-data` vorhanden + **kein** Marker → Dump vor den Migrationen.
+- [x] `postgres-data` vorhanden + Marker == Version → **kein** Dump.
+- [x] Echte Erstinstallation (kein `postgres-data`) → **kein** Dump.
+- [x] Marker wird wie bisher nur nach gesundem Start fortgeschrieben.
+- [x] `core`-Logik unit-getestet; Linux-Dev-Lauf grün.
 
 ---
 

@@ -2,18 +2,24 @@ package core
 
 import "sort"
 
+// devVersion ist der Versionswert eines nicht-releasten Entwickler-Builds (der
+// Default von main.version). Ein Dev-Build loest nie ein Backup aus, damit der
+// lokale Repo-Dev-Lauf (go run) inert bleibt und keine fremden Volumes anfasst.
+const devVersion = "dev"
+
 // ShouldBackup entscheidet, ob vor dem vollen Hochfahren des Stacks (inkl. der
 // schemaveraendernden Migrationen) ein automatischer pg_dump gezogen werden soll.
-// Ausloeser ist ausschliesslich ein echter Versionswechsel — lastVersion ist
-// gesetzt und weicht von currentVersion ab — bei gleichzeitig vorhandenen Daten
-// (postgres-data-Volume existiert). Ein leerer lastVersion (Erststart, noch kein
-// Marker) und eine unveraenderte Version erzeugen bewusst kein Backup; ohne Daten
-// gibt es nichts zu sichern.
+// Gesichert wird, sobald Daten existieren (postgres-data-Volume vorhanden) und die
+// laufende Version nicht nachweislich gleich der zuletzt gesund gestarteten ist —
+// also bei einem echten Versionswechsel ebenso wie bei fehlendem last-version-Marker
+// (Erst-Upgrade von einer Vor-Phase-3-Version, die noch keinen Marker schrieb). Ohne
+// Daten gibt es nichts zu sichern (echte Erstinstallation); ein Dev-Build sichert
+// nie (lokaler Repo-Dev-Lauf bleibt inert).
 func ShouldBackup(lastVersion, currentVersion string, postgresDataExists bool) bool {
-	if lastVersion == "" || lastVersion == currentVersion {
+	if !postgresDataExists || currentVersion == devVersion {
 		return false
 	}
-	return postgresDataExists
+	return lastVersion != currentVersion
 }
 
 // DumpsToDelete liefert die zu loeschenden Dump-Dateinamen, sodass nur die

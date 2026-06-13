@@ -30,12 +30,13 @@ const backupDir = "/jotti-backups"
 const keptBackups = 5
 
 // maybeBackupBeforeUpdate zieht vor dem vollen `up` (inkl. migrate) automatisch
-// einen pg_dump, sobald die laufende Version von der zuletzt gesund gestarteten
-// abweicht und bereits Daten existieren (siehe core.ShouldBackup). Es faehrt dafuer
-// nur postgres hoch, wartet auf gesund, dumpt zeitgestempelt ins
-// jotti-backups-Volume und rotiert auf die neuesten keptBackups. Ein Fehler hier
-// ist fatal fuer den Start — lieber nicht migrieren als ohne Sicherungspunkt
-// migrieren. Bei gleicher Version oder Erststart kehrt die Funktion sofort zurueck.
+// einen pg_dump, sobald bereits Daten existieren und die laufende Version von der
+// zuletzt gesund gestarteten abweicht oder noch kein Marker vorliegt (Erst-Upgrade
+// von einer Vor-Phase-3-Version — siehe core.ShouldBackup). Es faehrt dafuer nur
+// postgres hoch, wartet auf gesund, dumpt zeitgestempelt ins jotti-backups-Volume
+// und rotiert auf die neuesten keptBackups. Ein Fehler hier ist fatal fuer den
+// Start — lieber nicht migrieren als ohne Sicherungspunkt migrieren. Bei gleicher
+// Version, echter Erstinstallation oder Dev-Build kehrt die Funktion sofort zurueck.
 func maybeBackupBeforeUpdate(composePath, envPath, stateDir string) error {
 	lastVersion := readLastVersion(stateDir)
 	dataExists, err := volumeExists(postgresDataVolume)
@@ -46,7 +47,11 @@ func maybeBackupBeforeUpdate(composePath, envPath, stateDir string) error {
 		return nil
 	}
 
-	fmt.Printf("Versionswechsel erkannt (%s → %s) — sichere die Daten vor dem Update ...\n", lastVersion, version)
+	if lastVersion == "" {
+		fmt.Printf("Erstes Upgrade erkannt (auf %s) — sichere die Daten vor dem Update ...\n", version)
+	} else {
+		fmt.Printf("Versionswechsel erkannt (%s → %s) — sichere die Daten vor dem Update ...\n", lastVersion, version)
+	}
 	if err := runCompose(os.Environ(), composePath, envPath, "up", "-d", "--wait", "postgres"); err != nil {
 		return fmt.Errorf("postgres fuer das Backup hochfahren fehlgeschlagen: %w", err)
 	}

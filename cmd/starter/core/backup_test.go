@@ -13,10 +13,13 @@ func TestShouldBackupOnlyOnVersionChangeWithData(t *testing.T) {
 		dataExists  bool
 		want        bool
 	}{
-		{"Erststart ohne Marker", "", "v2", true, false},
+		{"Erst-Upgrade: Daten, aber kein Marker", "", "v2", true, true},
+		{"Erstinstallation: kein Marker, keine Daten", "", "v2", false, false},
 		{"gleiche Version", "v1", "v1", true, false},
 		{"Wechsel ohne Daten", "v1", "v2", false, false},
 		{"Wechsel mit Daten", "v1", "v2", true, true},
+		{"Dev-Build sichert nie (kein Marker)", "", "dev", true, false},
+		{"Dev-Build sichert nie (mit Marker)", "v1", "dev", true, false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
