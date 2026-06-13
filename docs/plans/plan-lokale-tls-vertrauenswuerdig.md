@@ -328,16 +328,24 @@ Der lokale Stack läuft auf Caddy, verhält sich aber noch wie Option 2:
 
 ### Acceptance criteria
 
-- [ ] `make local-up` startet den Stack mit Caddy; `https://<LAN-IP>` zeigt
+- [x] `make local-up` startet den Stack mit Caddy; `https://<LAN-IP>` zeigt
       die App nach einmaliger Zertifikatswarnung (interner CA), Login und
       API-Aufrufe funktionieren.
-- [ ] HTTP auf Port 80 leitet auf HTTPS um.
-- [ ] Security-Header (CSP, HSTS, X-Content-Type-Options, …) sind äquivalent
+- [x] HTTP auf Port 80 leitet auf HTTPS um.
+- [x] Security-Header (CSP, HSTS, X-Content-Type-Options, …) sind äquivalent
       zu `nginx.local.conf` gesetzt.
-- [ ] `reverse-proxy/local-entrypoint.sh` und
+- [x] `reverse-proxy/local-entrypoint.sh` und
       `reverse-proxy/nginx.local.conf` existieren nicht mehr; kein
       openssl-Schritt im Stack.
-- [ ] prod-/rocks-Deployments sind unverändert (nginx).
+- [x] prod-/rocks-Deployments sind unverändert (nginx).
+
+> Phase abgeschlossen 2026-06-13: Caddy 2.11.4 + acmedns v0.7.0 (gepinnt, xcaddy).
+> Fallback-Site als Catch-all mit interner CA: `on_demand` stellt beim ersten
+> Handshake aus; `sign_with_root` + `lifetime 365d` halten die Warnung einmalig
+> (Parität zum alten 365-Tage-openssl-Zertifikat). Verifiziert per curl/openssl
+> gegen die LAN-IP: Redirect 301, Frontend, `/api/health`, Login-Validierung,
+> alle sechs Security-Header identisch, identisches Zertifikat nach
+> Proxy-Restart (caddy-data-Volume). `make check` grün.
 
 ---
 

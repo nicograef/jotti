@@ -1,4 +1,4 @@
-# Local / LAN deployment for jotti — self-signed TLS, no domain required.
+# Local / LAN deployment for jotti — Caddy with internal CA, no domain required.
 #
 # Runs jotti on a single PC or laptop (Windows/macOS with Docker Desktop, or Linux
 # with Docker Engine) and makes it reachable from tablets/phones in the same WLAN via
@@ -10,7 +10,7 @@
 # Start:  docker compose -f docker-compose.local.yml up -d --build
 # Stop:   docker compose -f docker-compose.local.yml down
 #
-# SECURITY: Self-signed TLS encrypts transport on the local network (browser warning
+# SECURITY: Caddy's internal CA encrypts transport on the local network (browser warning
 # on first access). Never expose this stack to the public internet (no port forwarding).
 
 name: jotti-local
@@ -99,17 +99,17 @@ services:
     # No exposed ports; served via reverse proxy
 
   reverse-proxy:
-    image: nginx:1.27-alpine
+    build:
+      context: ./reverse-proxy
+      dockerfile: Dockerfile
     container_name: jotti-reverse-proxy-local
     restart: unless-stopped
-    entrypoint: ["/bin/sh", "/usr/local/bin/local-entrypoint.sh"]
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     volumes:
-      - ./reverse-proxy/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./reverse-proxy/local-entrypoint.sh:/usr/local/bin/local-entrypoint.sh:ro
-      - tls-certs:/etc/nginx/certs
+      - caddy-data:/data
     networks:
       - app-network
     depends_on:
@@ -127,4 +127,4 @@ networks:
 
 volumes:
   postgres-data:
-  tls-certs:
+  caddy-data:

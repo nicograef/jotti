@@ -1,0 +1,54 @@
+# HTTPS Caddy reverse proxy for local / LAN deployment (Caddy internal CA).
+#
+# Serves the frontend SPA at https://<host>/ and proxies the backend API under
+# https://<host>/api/*. Intended for self-hosting on a single PC/laptop in a trusted
+# local network — e.g. a small club running one direct-sales till on one device,
+# operated from a tablet via WLAN over the host's local IP address.
+#
+# SECURITY: Caddy's internal CA prevents passive sniffing, but does not provide a
+# trusted CA chain (one-time browser warning). Never expose this configuration to
+# the public internet.
+#
+# Used by docker-compose.local.yml. See docs/betrieb/leitfaden-hosting.md.
+
+{
+  admin off
+}
+
+# Catch-all fallback site: clients connect via the host's LAN IP. on_demand issues
+# an internal certificate during the first TLS handshake; sign_with_root + 365d
+# lifetime keep the browser warning a one-time event (like the previous
+# self-signed nginx certificate).
+https:// {
+  tls {
+    issuer internal {
+      sign_with_root
+      lifetime 365d
+    }
+    on_demand
+  }
+
+  # Security headers (HSTS is enabled because HTTP redirects to HTTPS)
+  header {
+    Strict-Transport-Security "max-age=31536000"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "no-referrer-when-downgrade"
+    Permissions-Policy "geolocation=(), microphone=()"
+    Content-Security-Policy "default-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self' blob:; media-src 'self'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests"
+  }
+
+  # Backend API under /api/ (strip prefix when proxying)
+  handle_path /api/* {
+    reverse_proxy backend:3000
+  }
+
+  # Frontend SPA root
+  handle {
+    reverse_proxy frontend:80
+  }
+}
+
+http:// {
+  redir https://{host}{uri} permanent
+}

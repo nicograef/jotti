@@ -149,10 +149,10 @@ rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (SSL bleibt e
 	./scripts/rocks-reset-and-seed.sh --yes
 
 # ──────────────────────────────────────────────
-# Lokaler Betrieb (LAN, HTTPS selbstsigniert)   
+# Lokaler Betrieb (LAN, HTTPS via Caddy)
 # ──────────────────────────────────────────────
 
-local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS, selbstsigniertes Zertifikat) — siehe docs/betrieb/leitfaden-hosting.md
+local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS, Caddy mit interner CA) — siehe docs/betrieb/leitfaden-hosting.md
 	docker compose -f docker-compose.local.yml up -d --build
 	docker compose -f docker-compose.local.yml up -d --no-deps --force-recreate reverse-proxy
 
@@ -162,12 +162,12 @@ local-down: ## Lokalen LAN-Stack stoppen
 local-logs: ## Lokalen LAN-Stack Logs folgen
 	docker compose -f docker-compose.local.yml logs -f
 
-local-reset-db: ## Lokale DB zurücksetzen (selbstsigniertes Zertifikat bleibt erhalten)
+local-reset-db: ## Lokale DB zurücksetzen (Caddy-Zertifikate bleiben erhalten)
 	docker compose -f docker-compose.local.yml down
 	docker volume rm jotti-local_postgres-data
 	docker compose -f docker-compose.local.yml up -d --build
 
-local-reset-and-seed: ## Lokale DB resetten + Seed einspielen (TLS-Zertifikat bleibt erhalten)
+local-reset-and-seed: ## Lokale DB resetten + Seed einspielen (Caddy-Zertifikate bleiben erhalten)
 	./scripts/local-reset-and-seed.sh --yes
 
 # ──────────────────────────────────────────────

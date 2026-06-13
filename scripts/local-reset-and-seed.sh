@@ -5,8 +5,8 @@ set -euo pipefail
 # seeds demo data via the `jotti seed` subcommand (guard and projection rebuild included).
 #
 # This is for the local/LAN stack (docker-compose.local.yml) — the smallest setup
-# running on a single device with self-signed TLS. The self-signed certificate volume
-# (tls-certs) is NOT touched, so no browser re-trust is needed after a reset.
+# running on a single device with HTTPS via Caddy. The Caddy data volume (caddy-data,
+# certificates + internal CA) is NOT touched, so no browser re-trust is needed after a reset.
 
 COMPOSE_FILES=(-f docker-compose.local.yml)
 DB_VOLUME="jotti-local_postgres-data"
@@ -64,7 +64,7 @@ docker compose version >/dev/null 2>&1 || fatal "docker compose (v2) is not avai
 if [[ "$ASSUME_YES" != "true" ]]; then
   echo ""
   warn "This will DELETE all local DB data in volume: $DB_VOLUME"
-  warn "The self-signed TLS cert volume (tls-certs) is NOT touched."
+  warn "The Caddy data volume (caddy-data, TLS certificates) is NOT touched."
   read -r -p "Continue? Type 'yes' to proceed: " answer
   [[ "$answer" == "yes" ]] || fatal "Aborted by user"
 fi
@@ -99,4 +99,4 @@ docker compose "${COMPOSE_FILES[@]}" exec -T "$BACKEND_SERVICE" jotti seed
 
 echo ""
 info "Done. Local DB reset + seed completed."
-info "The self-signed TLS certificate was not modified."
+info "The Caddy TLS certificates were not modified."
