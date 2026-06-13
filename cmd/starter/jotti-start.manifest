@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Windows-Anwendungsmanifest fuer jotti-start.exe.
+
+  requireAdministrator: Der Starter setzt eine Firewall-Regel, startet Docker
+  Desktop und schaltet bei Bedarf die Container-Engine um — alles privilegierte
+  Aktionen. Mit diesem Manifest loest ein Doppelklick genau eine UAC-Abfrage pro
+  Start aus (Nutzer-Entscheid, siehe docs/plans/plan-windows-verpackung.md).
+
+  Aus dieser XML wird einmalig per `rsrc` das eingecheckte
+  rsrc_windows_amd64.syso erzeugt (siehe Makefile-Ziel `starter-syso`); der
+  Go-Linker bindet die .syso bei windows/amd64-Builds automatisch ein. Der
+  Plattform-Suffix beschraenkt sie auf windows/amd64 — Linux-Builds (CI) bleiben
+  unberuehrt.
+-->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity version="1.0.0.0" processorArchitecture="amd64" name="jotti.start" type="win32" />
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+</assembly>

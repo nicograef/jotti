@@ -20,6 +20,10 @@ node_modules/
 # ── Go ───────────────────────────────────────────────────────────────────────
 /vendor/
 
+# Cross-compilierte Windows-Exes (Build-Artefakte; landen im Release-ZIP unter dist/)
+cmd/starter/jotti-start.exe
+cmd/relay/jotti-relay.exe
+
 # ── Build artifacts ──────────────────────────────────────────────────────────
 dist/
 dist-ssr/

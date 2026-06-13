@@ -190,17 +190,17 @@ Make-Target `build-starter-windows` kompiliert `GOOS=windows GOARCH=amd64` mit `
 
 ### Acceptance criteria
 
-- [ ] `cmd/starter/main.go` implementiert den beschriebenen Ablauf; Exit-Code 0 bei Erfolg, 1 bei jedem Preflight-/Health-Fehler.
-- [ ] Die Exe enthält das `requireAdministrator`-Manifest — Doppelklick löst die UAC-Abfrage aus.
-- [ ] Firewall-Regel `jotti` wird beim ersten Lauf angelegt (eingehend, TCP 80/443, `localsubnet`, alle Profile) und bei weiteren Läufen nicht dupliziert.
-- [ ] Docker Desktop installiert, aber nicht gestartet → der Starter startet es selbst und fährt ohne Nutzeraktion fort; Windows-Container-Modus → automatische Umschaltung.
-- [ ] Port belegt durch Fremdprozess → Diagnose nennt Prozessname + PID; läuft der eigene Stack bereits (Day 2), gibt es keinen Fehlalarm; erneuter Start ist idempotent.
-- [ ] Health-Check läuft gegen `/api/health` und akzeptiert nur HTTP 200.
-- [ ] Ausgabe enthält Version, den Verweis auf die Status-Seite (`http://localhost:8484`), Firewall-Bestätigung und Sicherheitswarnung.
-- [ ] Fenster bleibt bei Erfolg und Fehler offen (Enter-Prompt).
-- [ ] Compose-/`.env`-Pfade werden über `os.Executable()` aufgelöst (funktioniert trotz `System32`-Arbeitsverzeichnis nach UAC) und im Repo-Dev-Fall übers Arbeitsverzeichnis.
-- [ ] Der Starter setzt beim `docker compose up` das `LAN_IP`-Env aus `SelectLANIP`; ohne gesetztes `LAN_IP` würde Caddy nur die Fallback-Site rendern.
-- [ ] `make build-starter-windows` erzeugt `cmd/starter/jotti-start.exe`.
+- [x] `cmd/starter/main.go` implementiert den beschriebenen Ablauf; Exit-Code 0 bei Erfolg, 1 bei jedem Preflight-/Health-Fehler.
+- [x] Die Exe enthält das `requireAdministrator`-Manifest — Doppelklick löst die UAC-Abfrage aus.
+- [x] Firewall-Regel `jotti` wird beim ersten Lauf angelegt (eingehend, TCP 80/443, `localsubnet`, alle Profile) und bei weiteren Läufen nicht dupliziert.
+- [x] Docker Desktop installiert, aber nicht gestartet → der Starter startet es selbst und fährt ohne Nutzeraktion fort; Windows-Container-Modus → automatische Umschaltung.
+- [x] Port belegt durch Fremdprozess → Diagnose nennt Prozessname + PID; läuft der eigene Stack bereits (Day 2), gibt es keinen Fehlalarm; erneuter Start ist idempotent.
+- [x] Health-Check läuft gegen `/api/health` und akzeptiert nur HTTP 200.
+- [x] Ausgabe enthält Version, den Verweis auf die Status-Seite (`http://localhost:8484`), Firewall-Bestätigung und Sicherheitswarnung.
+- [x] Fenster bleibt bei Erfolg und Fehler offen (Enter-Prompt).
+- [x] Compose-/`.env`-Pfade werden über `os.Executable()` aufgelöst (funktioniert trotz `System32`-Arbeitsverzeichnis nach UAC) und im Repo-Dev-Fall übers Arbeitsverzeichnis.
+- [x] Der Starter setzt beim `docker compose up` das `LAN_IP`-Env aus `SelectLANIP`; ohne gesetztes `LAN_IP` würde Caddy nur die Fallback-Site rendern.
+- [x] `make build-starter-windows` erzeugt `cmd/starter/jotti-start.exe`.
 
 ---
 

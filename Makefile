@@ -5,6 +5,7 @@
        lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt \
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
+       build-starter-windows starter-syso \
        sqlc \
        prod-init prod-up prod-down prod-logs \
        rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed \
@@ -82,8 +83,12 @@ fmt-frontend: ## Frontend Code formatieren (Prettier)
 fmt: fmt-backend fmt-frontend ## Backend + Frontend formatieren
 
 # ──────────────────────────────────────────────
-# Build                                         
+# Build
 # ──────────────────────────────────────────────
+
+# Version-String fuer die Windows-Exes (per ldflags einkompiliert). Der
+# Release-Workflow ruft die Targets mit VERSION=<tag> auf.
+VERSION ?= dev
 
 build-backend: ## Backend kompilieren
 	cd backend && go build ./...
@@ -96,6 +101,12 @@ build-resolver: ## DNS-Resolver-Binary kompilieren
 
 build-local-proxy: ## Lokales Proxy-Entrypoint-Binary kompilieren
 	cd reverse-proxy && go build ./...
+
+build-starter-windows: ## Windows-Starter (jotti-start.exe) cross-kompilieren (VERSION=… fuer die Versionszeile)
+	cd cmd/starter && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o jotti-start.exe .
+
+starter-syso: ## Windows-Manifest (rsrc_windows_amd64.syso) aus jotti-start.manifest neu erzeugen (selten noetig)
+	cd cmd/starter && go run github.com/akavel/rsrc@v0.10.2 -manifest jotti-start.manifest -arch amd64 -o rsrc_windows_amd64.syso
 
 build-frontend: ## Frontend kompilieren
 	cd frontend && pnpm build
