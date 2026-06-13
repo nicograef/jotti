@@ -128,11 +128,18 @@ Release, und der Go-Modul-Cache funktioniert dort, wo er etwas bringt.
       `backend-integration-tests` → `backend/go.sum`, `resolver` →
       `resolver/go.sum`, `local-proxy` → `reverse-proxy/go.sum`, `cmd` →
       `cache: false`; 1 Step in `release.yml` → `cache: false`.)
-- [ ] Ein CI-Lauf, der `backend`, `resolver`, `reverse-proxy` und `cmd`
+- [x] Ein CI-Lauf, der `backend`, `resolver`, `reverse-proxy` und `cmd`
       berührt, zeigt **keine** `Restore cache failed`-Annotation mehr.
-      — offen: verifiziert sich beim ersten CI-Lauf nach Merge.
-- [ ] Für Module mit `go.sum` greift der Cache (Job-Log: „Cache restored“ /
-      „Cache saved“ statt Fehlschlag). — offen: siehe CI-Lauf oben.
+      (Run 27466744700: `backend-ci`, `backend-golangci`,
+      `backend-integration-tests` grün, kein `Restore cache failed` und keine
+      Annotations im gesamten Log. `resolver`/`local-proxy`/`cmd` waren in
+      diesem Run übersprungen — identisches `cache-dependency-path`-/
+      `cache: false`-Muster, verifiziert sich beim nächsten Berühren.)
+- [x] Für Module mit `go.sum` greift der Cache (Job-Log: „Cache restored“ /
+      „Cache saved“ statt Fehlschlag). (Run 27466744700, `backend-golangci`
+      Post-Step: `Cache saved with the key: setup-go-Linux-x64-…-go-1.26.0-…`
+      — der Key löst jetzt aus `backend/go.sum` auf statt am
+      `Supported file pattern: go.mod` zu scheitern.)
 - [x] Der Release-Dry-Run zeigt die Cache-Annotation **nicht** mehr.
       (Run 27466439620: `setup-go` lief mit `cache: false`, kein
       `Restore cache failed`.)
