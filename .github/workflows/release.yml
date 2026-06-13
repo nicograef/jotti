@@ -1,0 +1,123 @@
+name: Release
+
+# Produktweite SemVer-Tags (v0.X.Y) auf main sind der einzige Publish-Mechanismus.
+# Tag-Push  → baut, smoke-testet, pusht Images nach GHCR und veroeffentlicht das
+#             Windows-ZIP als GitHub-Release.
+# Dispatch  → Dry-Run: baut und smoke-testet alles, publiziert aber nichts
+#             (Version dev-<shortsha>).
+#
+# Kein Test-Rerun: bei trunk-based Development war die CI auf dem getaggten Commit
+# bereits gruen. Dieser Workflow prueft nur, was die CI nicht abdeckt — den Stack
+# aus docker-compose.release.yml hochfahren und /api/health abfragen.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # GitHub-Release anlegen
+  packages: write # Images nach GHCR pushen
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.0
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Version bestimmen
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=dev-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Alle vier Images lokal bauen und in den Docker-Store laden (--load), damit
+      # der Smoke-Test sie ohne Registry-Push verwenden kann. Push erst nach
+      # bestandenem Smoke-Test.
+      - name: Images bauen (--load)
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          declare -A ctx=(
+            [backend]=./backend
+            [frontend]=./frontend
+            [migrate]=./database/migrate
+            [reverse-proxy]=./reverse-proxy
+          )
+          for svc in "${!ctx[@]}"; do
+            docker buildx build --load \
+              --tag "ghcr.io/nicograef/jotti-$svc:$VERSION" \
+              --label "org.opencontainers.image.version=$VERSION" \
+              "${ctx[$svc]}"
+          done
+
+      - name: Image-Tag in der Release-Compose pinnen
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: sed -i "s|:RELEASE_VERSION|:$VERSION|g" docker-compose.release.yml
+
+      - name: .env fuer den Smoke-Test erzeugen
+        run: make init
+
+      - name: Smoke-Test — Stack starten
+        run: docker compose -f docker-compose.release.yml up -d
+
+      - name: Smoke-Test — auf /api/health warten
+        run: |
+          for i in $(seq 1 60); do
+            if curl -ksf https://localhost/api/health > /dev/null; then
+              echo "jotti ist healthy."
+              exit 0
+            fi
+            echo "warte auf jotti ($i/60) ..."
+            sleep 5
+          done
+          echo "Smoke-Test fehlgeschlagen: /api/health wurde nicht healthy."
+          exit 1
+
+      - name: Smoke-Test — Logs bei Fehler
+        if: failure()
+        run: docker compose -f docker-compose.release.yml logs
+
+      - name: Smoke-Test — Stack stoppen
+        if: always()
+        run: docker compose -f docker-compose.release.yml down -v
+
+      # Ab hier nur beim echten Release (Tag-Push) — der Dry-Run endet nach dem
+      # Smoke-Test.
+      - name: GHCR-Login
+        if: steps.version.outputs.publish == 'true'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Images pushen
+        if: steps.version.outputs.publish == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          for svc in backend frontend migrate reverse-proxy; do
+            docker push "ghcr.io/nicograef/jotti-$svc:$VERSION"
+          done
+
+      - name: Windows-Release-ZIP bauen
+        if: steps.version.outputs.publish == 'true'
+        run: make release-windows VERSION="${{ steps.version.outputs.version }}"
+
+      - name: GitHub-Release veroeffentlichen
+        if: steps.version.outputs.publish == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/jotti-windows-${{ steps.version.outputs.version }}.zip
+          generate_release_notes: true

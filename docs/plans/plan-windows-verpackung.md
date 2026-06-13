@@ -259,12 +259,12 @@ Make-Target `build-relay-windows` erzeugt `cmd/relay/jotti-relay.exe` (`GOOS=win
 
 ### Acceptance criteria
 
-- [ ] `make release-windows VERSION=v0.0.0-test` erzeugt lokal ein ZIP unter `dist/` mit genau dem beschriebenen Inhalt (ohne Image-Builds).
-- [ ] Tag-Push `v0.X.Y` publiziert: vier Images public auf GHCR (backend, frontend, migrate, reverse-proxy; exakter Tag, kein `:latest`, OCI-Version-Label) + GitHub-Release mit ZIP und auto-generierten Notes.
-- [ ] Image-Push und Release passieren erst **nach** bestandenem Smoke-Test (Stack aus Release-Compose wird auf dem Runner healthy).
-- [ ] `workflow_dispatch` (Dry-Run) baut und smoke-testet, publiziert aber nichts.
-- [ ] Release-Compose im ZIP: gepinnter Tag, `name: jotti-local`, Volumes `caddy-data`/`proxy-state` erhalten, keine `build:`-Sektionen (alle vier Services image-basiert).
-- [ ] Beide Exes im ZIP sind Windows-amd64-Binaries und geben beim Start `vX.Y.Z` aus; `jotti-start.exe` fordert Administratorrechte an (Manifest).
+- [x] `make release-windows VERSION=v0.0.0-test` erzeugt lokal ein ZIP unter `dist/` mit genau dem beschriebenen Inhalt (ohne Image-Builds).
+- [x] Tag-Push `v0.X.Y` publiziert: vier Images public auf GHCR (backend, frontend, migrate, reverse-proxy; exakter Tag, kein `:latest`, OCI-Version-Label) + GitHub-Release mit ZIP und auto-generierten Notes.
+- [x] Image-Push und Release passieren erst **nach** bestandenem Smoke-Test (Stack aus Release-Compose wird auf dem Runner healthy).
+- [x] `workflow_dispatch` (Dry-Run) baut und smoke-testet, publiziert aber nichts.
+- [x] Release-Compose im ZIP: gepinnter Tag, `name: jotti-local`, Volumes `caddy-data`/`proxy-state` erhalten, keine `build:`-Sektionen (alle vier Services image-basiert).
+- [x] Beide Exes im ZIP sind Windows-amd64-Binaries und geben beim Start `vX.Y.Z` aus; `jotti-start.exe` fordert Administratorrechte an (Manifest).
 
 ---
 

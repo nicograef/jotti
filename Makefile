@@ -5,7 +5,7 @@
        lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt \
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
-       build-starter-windows build-relay-windows starter-syso \
+       build-starter-windows build-relay-windows starter-syso release-windows \
        sqlc \
        prod-init prod-up prod-down prod-logs \
        rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed \
@@ -90,6 +90,10 @@ fmt: fmt-backend fmt-frontend ## Backend + Frontend formatieren
 # Release-Workflow ruft die Targets mit VERSION=<tag> auf.
 VERSION ?= dev
 
+# Verzeichnis-/Dateinamen des Release-ZIPs (dist/ ist gitignored).
+RELEASE_NAME := jotti-windows-$(VERSION)
+RELEASE_DIR := dist/$(RELEASE_NAME)
+
 build-backend: ## Backend kompilieren
 	cd backend && go build ./...
 
@@ -110,6 +114,22 @@ build-relay-windows: ## Windows-Relay (jotti-relay.exe) cross-kompilieren (VERSI
 
 starter-syso: ## Windows-Manifest (rsrc_windows_amd64.syso) aus jotti-start.manifest neu erzeugen (selten noetig)
 	cd cmd/starter && go run github.com/akavel/rsrc@v0.10.2 -manifest jotti-start.manifest -arch amd64 -o rsrc_windows_amd64.syso
+
+release-windows: build-starter-windows build-relay-windows ## Release-ZIP (Exes + Release-Compose + Doku) unter dist/ bauen (VERSION=… setzen; baut KEINE Images)
+	rm -rf "$(RELEASE_DIR)"
+	mkdir -p "$(RELEASE_DIR)/database"
+	cp cmd/starter/jotti-start.exe "$(RELEASE_DIR)/"
+	cp cmd/relay/jotti-relay.exe "$(RELEASE_DIR)/"
+	cp packaging/windows/jotti-stop.cmd "$(RELEASE_DIR)/"
+	cp packaging/windows/KURZANLEITUNG.md "$(RELEASE_DIR)/"
+	cp .env.example "$(RELEASE_DIR)/"
+	cp docker-compose.release.yml "$(RELEASE_DIR)/"
+	cp -R database/migrations "$(RELEASE_DIR)/database/migrations"
+	# Image-Tag im gestageten Compose auf die konkrete Version pinnen (die
+	# eingecheckte Datei bleibt ein Template mit RELEASE_VERSION-Platzhalter).
+	sed -i 's|:RELEASE_VERSION|:$(VERSION)|g' "$(RELEASE_DIR)/docker-compose.release.yml"
+	cd dist && zip -qr "$(RELEASE_NAME).zip" "$(RELEASE_NAME)"
+	@echo "Release-ZIP erstellt: dist/$(RELEASE_NAME).zip"
 
 build-frontend: ## Frontend kompilieren
 	cd frontend && pnpm build
