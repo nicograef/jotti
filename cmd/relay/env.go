@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -34,25 +35,55 @@ func parseEnvFile(data []byte) map[string]string {
 	return values
 }
 
-// loadEnvFile sucht eine .env neben der Programmdatei und im Arbeitsverzeichnis
-// und gibt die geparsten Schluessel zurueck. Fehlt die Datei (oder ist sie nicht
-// lesbar), kommt eine leere Map zurueck — der Doppelklick-Fallback ist optional,
-// im Server-Betrieb zaehlen ohnehin die echten Env-Variablen.
+// loadEnvFile sucht die .env in den Verzeichnissen aus envSearchDirs und gibt die
+// geparsten Schluessel zurueck. Fehlt die Datei (oder ist sie nicht lesbar), kommt
+// eine leere Map zurueck — der Doppelklick-Fallback ist optional, im Server-Betrieb
+// zaehlen ohnehin die echten Env-Variablen.
 func loadEnvFile() map[string]string {
-	var dirs []string
+	exeDir := ""
 	if exe, err := os.Executable(); err == nil {
-		dirs = append(dirs, filepath.Dir(exe))
+		exeDir = filepath.Dir(exe)
 	}
-	if wd, err := os.Getwd(); err == nil {
-		dirs = append(dirs, wd)
-	}
-
-	for _, dir := range dirs {
+	wd, _ := os.Getwd()
+	for _, dir := range envSearchDirs(runtime.GOOS, os.Getenv("PROGRAMDATA"), exeDir, wd) {
 		if data, err := os.ReadFile(filepath.Join(dir, ".env")); err == nil {
 			return parseEnvFile(data)
 		}
 	}
 	return map[string]string{}
+}
+
+// envSearchDirs liefert die .env-Suchverzeichnisse in Prioritaetsreihenfolge.
+// Unter Windows steht das kanonische %PROGRAMDATA%\jotti zuerst — dorthin schreibt
+// jotti-start.exe den .env-Spiegel, sodass das Relay die Zugangsdaten unabhaengig
+// vom eigenen Ordner findet (es laeuft nicht-eleviert und evtl. aus einem anderen
+// Verzeichnis). Danach (und unter Linux ausschliesslich) der eigene Programmordner
+// und das Arbeitsverzeichnis. Reine Funktion: die echten OS-Werte reicht
+// loadEnvFile ein, damit die Reihenfolge testbar bleibt.
+func envSearchDirs(goos, programData, exeDir, wd string) []string {
+	var dirs []string
+	if goos == "windows" && programData != "" {
+		dirs = append(dirs, filepath.Join(programData, "jotti"))
+	}
+	if exeDir != "" {
+		dirs = append(dirs, exeDir)
+	}
+	if wd != "" {
+		dirs = append(dirs, wd)
+	}
+	return dirs
+}
+
+// envHinweis liefert den OS-spezifischen Hinweis, woher die Zugangsdaten kommen,
+// wenn die Konfiguration fehlt. Unter Windows schreibt jotti-start.exe die .env
+// nach %PROGRAMDATA%\jotti; fehlt sie, lief der Starter schlicht noch nicht. Unter
+// Linux (Server/Dev) zaehlen echte Env-Variablen bzw. eine .env neben der
+// Programmdatei.
+func envHinweis() string {
+	if runtime.GOOS == "windows" {
+		return "Bitte zuerst jotti-start.exe ausfuehren — sie erzeugt die Zugangsdaten."
+	}
+	return "Bitte RELAY_AUTH_TOKEN in der .env-Datei neben jotti-relay.exe setzen."
 }
 
 // envWithFileFallback liefert eine getenv-Funktion, die echte Umgebungsvariablen

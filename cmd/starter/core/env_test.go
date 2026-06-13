@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -91,6 +92,24 @@ func TestResolveEnvGeneratesFreshWhenBothEmpty(t *testing.T) {
 	for _, key := range []string{"POSTGRES_USER=admin", "POSTGRES_PASSWORD=", "JWT_SECRET=", "RELAY_AUTH_TOKEN="} {
 		if !strings.Contains(content, key) {
 			t.Fatalf("frischer Inhalt enthaelt %q nicht:\n%s", key, content)
+		}
+	}
+}
+
+func TestStateDirWindowsUsesProgramData(t *testing.T) {
+	got := StateDir("windows", `C:\ProgramData`, `D:\jotti-entpackt`)
+	want := filepath.Join(`C:\ProgramData`, "jotti")
+	if got != want {
+		t.Fatalf("Windows-Zustandsverzeichnis: got %q, want %q", got, want)
+	}
+}
+
+func TestStateDirFallsBackWhenNoProgramData(t *testing.T) {
+	// Linux-Dev (kein PROGRAMDATA) sowie Windows ohne gesetztes PROGRAMDATA
+	// bleiben ordnerlokal.
+	for _, goos := range []string{"linux", "windows"} {
+		if got := StateDir(goos, "", "/opt/jotti"); got != "/opt/jotti" {
+			t.Fatalf("%s ohne PROGRAMDATA: got %q, want /opt/jotti", goos, got)
 		}
 	}
 }

@@ -4,10 +4,12 @@
 // holt das Install-Secret aus dem jotti-config-Volume (oder erzeugt es beim
 // Erststart) und spiegelt es in die .env, prueft die Ports, gibt die Firewall
 // frei, faehrt den Compose-Stack hoch und wartet, bis jotti unter /api/health
-// bereit ist. Die reine Logik liegt in cmd/starter/core; diese Datei verbindet
-// sie mit den echten Seiteneffekten. Alle Windows-spezifischen Schritte laufen
-// nur unter runtime.GOOS == "windows" — der Repo-Dev-Lauf unter Linux
-// ueberspringt sie und materialisiert die .env weiterhin ordnerlokal.
+// bereit ist. Host-Zustand (.env-Spiegel, last-version-Marker) liegt unter
+// Windows kanonisch in %PROGRAMDATA%\jotti — unabhaengig vom Entpack-Ort. Die
+// reine Logik liegt in cmd/starter/core; diese Datei verbindet sie mit den echten
+// Seiteneffekten. Alle Windows-spezifischen Schritte laufen nur unter
+// runtime.GOOS == "windows" — der Repo-Dev-Lauf unter Linux ueberspringt sie und
+// haelt den Zustand weiterhin ordnerlokal.
 package main
 
 import (
@@ -49,7 +51,12 @@ func run() int {
 	}
 	fmt.Printf("Compose-Datei: %s\n", composePath)
 
-	envPath := filepath.Join(filepath.Dir(composePath), ".env")
+	stateDir, err := resolveStateDir(filepath.Dir(composePath))
+	if err != nil {
+		fmt.Printf("Zustandsverzeichnis konnte nicht angelegt werden: %v\n", err)
+		return 1
+	}
+	envPath := filepath.Join(stateDir, ".env")
 
 	if runtime.GOOS == "windows" {
 		// Reihenfolge bewusst: ensureDocker zuerst, weil der Secret-Read aus dem
@@ -92,8 +99,38 @@ func run() int {
 		return 1
 	}
 
+	// Erst nach gesundem Stack festhalten, welche Version zuletzt lief — der
+	// Marker steuert in Phase 3 das automatische Pre-Update-Backup.
+	if err := writeLastVersion(stateDir); err != nil {
+		fmt.Printf("Hinweis: Versionsmarker konnte nicht geschrieben werden (%v).\n", err)
+	}
+
 	printSuccess()
 	return 0
+}
+
+// lastVersionFile haelt im Zustandsverzeichnis fest, welche jotti-Version zuletzt
+// gesund gestartet ist.
+const lastVersionFile = "last-version"
+
+// resolveStateDir bestimmt das Host-Zustandsverzeichnis und legt es an. Unter
+// Windows ist das %PROGRAMDATA%\jotti, das nicht zwangslaeufig existiert; unter
+// Linux-Dev ist es der bereits vorhandene ordnerlokale fallback (MkdirAll ist
+// dann ein No-op).
+func resolveStateDir(fallback string) (string, error) {
+	dir := core.StateDir(runtime.GOOS, os.Getenv("PROGRAMDATA"), fallback)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
+// writeLastVersion schreibt die aktuelle Version in den last-version-Marker. Phase
+// 3 vergleicht ihn beim naechsten Start mit der eigenen Version und zieht bei
+// einem Wechsel vor den Migrationen automatisch ein Backup. Ein Schreibfehler ist
+// nicht fatal: er kostet hoechstens dieses Backup, nie den laufenden Start.
+func writeLastVersion(stateDir string) error {
+	return os.WriteFile(filepath.Join(stateDir, lastVersionFile), []byte(version+"\n"), 0o644)
 }
 
 // resolveComposeFile sucht die Compose-Datei immer relativ zur Programmdatei —

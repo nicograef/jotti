@@ -169,12 +169,12 @@ genügt, die „über denselben Ordner"-Regel entfällt.
 
 ### Acceptance criteria
 
-- [ ] Starter schreibt/liest `.env` und `last-version` unter `%PROGRAMDATA%\jotti`.
-- [ ] Relay findet `.env` in `%PROGRAMDATA%\jotti`, unabhängig vom eigenen Ordner;
+- [x] Starter schreibt/liest `.env` und `last-version` unter `%PROGRAMDATA%\jotti`.
+- [x] Relay findet `.env` in `%PROGRAMDATA%\jotti`, unabhängig vom eigenen Ordner;
       fehlt der Spiegel, klare Meldung „zuerst jotti-start.exe ausführen".
-- [ ] ZIP in **beliebigen** Ordner entpacken und starten → funktioniert ohne
+- [x] ZIP in **beliebigen** Ordner entpacken und starten → funktioniert ohne
       „über denselben Ordner"-Regel.
-- [ ] Linux-Dev-Lauf unverändert grün (ordnerlokal).
+- [x] Linux-Dev-Lauf unverändert grün (ordnerlokal).
 
 ---
 

@@ -127,7 +127,7 @@ func main() {
 		// Konfigurationsmeldung waere unlesbar. Deshalb auf Enter warten.
 		fmt.Printf("jotti Print-Relay %s\n\n", version)
 		fmt.Printf("Konfigurationsfehler: %v\n", err)
-		fmt.Println("Bitte RELAY_AUTH_TOKEN in der .env-Datei neben jotti-relay.exe setzen.")
+		fmt.Println(envHinweis())
 		waitForEnter()
 		os.Exit(1)
 	}

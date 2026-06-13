@@ -13,6 +13,10 @@ Thumbs.db
 .env.*
 !.env.example
 
+# Host-Zustand des Windows-Starters (ordnerlokal nur im Linux-Dev-Lauf; unter
+# Windows liegt er in %PROGRAMDATA%\jotti)
+last-version
+
 # ── Node ─────────────────────────────────────────────────────────────────────
 node_modules/
 .pnpm-store

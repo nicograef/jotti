@@ -1,6 +1,23 @@
 package core
 
-import "strings"
+import (
+	"path/filepath"
+	"strings"
+)
+
+// StateDir liefert das Host-Zustandsverzeichnis fuer den .env-Spiegel, den
+// last-version-Marker und exportierte Backups. Unter Windows ist das kanonisch
+// %PROGRAMDATA%\jotti — unabhaengig davon, wohin der Nutzer das ZIP entpackt.
+// Damit entfaellt die fehleranfaellige "ueber denselben Ordner entpacken"-Regel:
+// der Zustand lebt an einem festen Ort, die Programmdateien duerfen irgendwo
+// liegen. Sonst (Linux-Dev oder Windows ohne gesetztes PROGRAMDATA) bleibt der
+// Zustand ordnerlokal im uebergebenen fallback — wie bisher.
+func StateDir(goos, programData, fallback string) string {
+	if goos == "windows" && programData != "" {
+		return filepath.Join(programData, "jotti")
+	}
+	return fallback
+}
 
 // EnvContent erzeugt den vollstaendigen .env-Inhalt mit frisch erzeugten
 // Secrets. POSTGRES_USER ist fest "admin" (wie .env.example); die drei Secrets

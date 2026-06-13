@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 )
@@ -80,6 +81,23 @@ func TestEnvWithFileFallbackPrefersProcessEnv(t *testing.T) {
 	}
 	if got := getenv("RELAY_POLL_SECONDS"); got != "" {
 		t.Fatalf("unbekannter Key muss leer sein: got %q", got)
+	}
+}
+
+func TestEnvSearchDirsWindowsPrefersProgramData(t *testing.T) {
+	got := envSearchDirs("windows", `C:\ProgramData`, `D:\relay`, `D:\wd`)
+	want := []string{filepath.Join(`C:\ProgramData`, "jotti"), `D:\relay`, `D:\wd`}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Windows-Suchreihenfolge: got %v, want %v", got, want)
+	}
+}
+
+func TestEnvSearchDirsLinuxSkipsProgramData(t *testing.T) {
+	// Unter Linux (Server/Dev) wird PROGRAMDATA ignoriert, selbst wenn gesetzt.
+	got := envSearchDirs("linux", "/ignored", "/opt/relay", "/work")
+	want := []string{"/opt/relay", "/work"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Linux-Suchreihenfolge: got %v, want %v", got, want)
 	}
 }
 
