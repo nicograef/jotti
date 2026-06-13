@@ -122,11 +122,16 @@ Release, und der Go-Modul-Cache funktioniert dort, wo er etwas bringt.
 
 ### Acceptance criteria
 
-- [ ] Alle `setup-go`-Steps in `ci.yml` und `release.yml` setzen entweder
+- [x] Alle `setup-go`-Steps in `ci.yml` und `release.yml` setzen entweder
       `cache-dependency-path` (Module mit `go.sum`) oder `cache: false`
-      (stdlib-only).
+      (stdlib-only). (6 Steps in `ci.yml`: `backend`/`backend-golangci`/
+      `backend-integration-tests` → `backend/go.sum`, `resolver` →
+      `resolver/go.sum`, `local-proxy` → `reverse-proxy/go.sum`, `cmd` →
+      `cache: false`; 1 Step in `release.yml` → `cache: false`.)
 - [ ] Ein CI-Lauf, der `backend`, `resolver`, `reverse-proxy` und `cmd`
       berührt, zeigt **keine** `Restore cache failed`-Annotation mehr.
+      — offen: verifiziert sich beim ersten CI-Lauf nach Merge.
 - [ ] Für Module mit `go.sum` greift der Cache (Job-Log: „Cache restored“ /
-      „Cache saved“ statt Fehlschlag).
+      „Cache saved“ statt Fehlschlag). — offen: siehe CI-Lauf oben.
 - [ ] Der Release-Dry-Run zeigt die Cache-Annotation **nicht** mehr.
+      — offen: gemeinsam mit dem Phase-1-Dry-Run nach Merge.

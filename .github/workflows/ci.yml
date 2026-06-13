@@ -52,6 +52,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: 1.26.0
+          cache-dependency-path: backend/go.sum
 
       - name: Download dependencies
         run: go mod download
@@ -95,6 +96,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: 1.26.0
+          cache-dependency-path: backend/go.sum
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
@@ -114,6 +116,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: 1.26.0
+          cache-dependency-path: resolver/go.sum
 
       - name: Download dependencies
         run: go mod download
@@ -151,6 +154,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: 1.26.0
+          cache-dependency-path: reverse-proxy/go.sum
 
       - name: Check format
         run: |
@@ -182,6 +186,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: 1.26.0
+          cache: false
 
       - name: Vet
         working-directory: ./cmd/${{ matrix.module }}
@@ -282,6 +287,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: 1.26.0
+          cache-dependency-path: backend/go.sum
 
       - name: Download dependencies
         run: go mod download
