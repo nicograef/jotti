@@ -62,3 +62,35 @@ func TestMaterializeEnvPropagatesExistsError(t *testing.T) {
 		t.Fatalf("exists-Fehler nicht durchgereicht: got %v", err)
 	}
 }
+
+func TestResolveEnvVolumeWins(t *testing.T) {
+	content, seed := ResolveEnv("POSTGRES_PASSWORD=ausvolume\n", "POSTGRES_PASSWORD=lokal\n")
+	if seed {
+		t.Fatal("seed: got true, want false (Volume-Secret darf nicht neu geschrieben werden)")
+	}
+	if content != "POSTGRES_PASSWORD=ausvolume\n" {
+		t.Fatalf("Volume-Inhalt muss unveraendert uebernommen werden: got %q", content)
+	}
+}
+
+func TestResolveEnvAdoptsLocalWhenVolumeEmpty(t *testing.T) {
+	content, seed := ResolveEnv("   \n", "POSTGRES_PASSWORD=lokal\n")
+	if !seed {
+		t.Fatal("seed: got false, want true (adoptierter Inhalt muss ins Volume)")
+	}
+	if content != "POSTGRES_PASSWORD=lokal\n" {
+		t.Fatalf("ordnerlokaler Inhalt muss adoptiert werden: got %q", content)
+	}
+}
+
+func TestResolveEnvGeneratesFreshWhenBothEmpty(t *testing.T) {
+	content, seed := ResolveEnv("", "")
+	if !seed {
+		t.Fatal("seed: got false, want true (frische Secrets muessen ins Volume)")
+	}
+	for _, key := range []string{"POSTGRES_USER=admin", "POSTGRES_PASSWORD=", "JWT_SECRET=", "RELAY_AUTH_TOKEN="} {
+		if !strings.Contains(content, key) {
+			t.Fatalf("frischer Inhalt enthaelt %q nicht:\n%s", key, content)
+		}
+	}
+}

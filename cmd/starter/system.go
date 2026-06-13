@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -240,23 +241,99 @@ func localInterfaces() []core.NetInterface {
 	return result
 }
 
+// configVolume ist das von Compose verwaltete jotti-config-Volume. Compose
+// stellt benannten Volumes den Projektnamen (jotti-local) voran, daher lautet der
+// Host-Name, den der Starter ansprechen muss, "jotti-local_jotti-config". Das
+// Volume ist in der Compose read-only in postgres gemountet — das bindet seinen
+// Lebenszyklus an die Daten: `docker compose down -v` entfernt beide zusammen, das
+// Secret kann die Daten, die es entsperrt, also nie ueberleben (kein Lockout).
+const configVolume = "jotti-local_jotti-config"
+
+// configVolumePath ist der Pfad der gespiegelten .env im Volume.
+const configVolumePath = "/config/.env"
+
+// configHelperImage liest/schreibt das Volume in einem Wegwerf-Container. Es ist
+// bewusst dasselbe postgres-Image wie im Stack (keine zusaetzliche Abhaengigkeit,
+// nach dem ersten `up` ohnehin lokal vorhanden) — beim Bump in den Compose-Dateien
+// hier mitziehen, sonst wird ein zweites Image gezogen.
+const configHelperImage = "postgres:17.8"
+
+// materializeEnvFromVolume macht das jotti-config-Volume zur Quelle der Wahrheit
+// fuers Install-Secret und schreibt den Host-.env-Spiegel, den `compose
+// --env-file` und das Relay lesen. Laeuft nur unter Windows und nach ensureDocker
+// (der Volume-Read braucht einen laufenden Daemon). Entweder haelt das Volume das
+// Secret bereits (lesen und spiegeln) oder es ist der Erststart (erzeugen oder
+// einen vorhandenen ordnerlokalen .env adoptieren, dann ins Volume schreiben).
+func materializeEnvFromVolume(envPath string) error {
+	volumeContent, err := readConfigVolume()
+	if err != nil {
+		return err
+	}
+	localContent, _ := os.ReadFile(envPath) // fehlt/unlesbar → als leer behandelt
+	content, seed := core.ResolveEnv(volumeContent, string(localContent))
+	if seed {
+		if err := writeConfigVolume(content); err != nil {
+			return err
+		}
+		fmt.Println("Zugangsdaten im jotti-Datentresor gesichert.")
+	}
+	return writeEnvFile(envPath, []byte(content))
+}
+
+// readConfigVolume liest die gespiegelte .env aus dem jotti-config-Volume ueber
+// einen Wegwerf-Container. Ein leerer String bedeutet "kein Secret vorhanden":
+// entweder fehlt das Volume (Erststart) oder es existiert, enthaelt aber noch
+// keine .env. Nur ein echter Docker-Fehler (Daemon/Image) wird durchgereicht.
+func readConfigVolume() (string, error) {
+	if exec.Command("docker", "volume", "inspect", configVolume).Run() != nil {
+		return "", nil // Volume fehlt → Erststart, ohne ein leeres Volume anzulegen
+	}
+	out, err := exec.Command("docker", "run", "--rm", "--entrypoint", "cat",
+		"-v", configVolume+":/config", configHelperImage, configVolumePath).Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return "", nil // Volume vorhanden, .env aber (noch) nicht geschrieben
+		}
+		return "", fmt.Errorf("lesen aus dem Datentresor fehlgeschlagen: %w", err)
+	}
+	return string(out), nil
+}
+
+// writeConfigVolume schreibt content in die .env des jotti-config-Volumes. Das
+// `docker run -v` legt das Volume bei Bedarf an; Compose verwendet danach dasselbe
+// (gleicher Name).
+func writeConfigVolume(content string) error {
+	cmd := exec.Command("docker", "run", "--rm", "-i", "--entrypoint", "sh",
+		"-v", configVolume+":/config", configHelperImage, "-c", "cat > "+configVolumePath)
+	cmd.Stdin = strings.NewReader(content)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("schreiben in den Datentresor fehlgeschlagen: %v: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
 // composeUp faehrt den Stack hoch und reicht die Ausgabe live durch (der Pull
 // bleibt sichtbar). LAN_IP wird nur gesetzt, wenn es erkannt wurde — ohne LAN_IP
 // rendert Caddy nur die Fallback-Site. Der Proxy wird danach neu erzeugt, weil
 // das Caddyfile nur im Entrypoint aus LAN_IP gerendert wird (wie make local-up).
-func composeUp(composePath, lanIP string) error {
+func composeUp(composePath, envPath, lanIP string) error {
 	env := os.Environ()
 	if lanIP != "" {
 		env = append(env, "LAN_IP="+lanIP)
 	}
-	if err := runCompose(env, composePath, "up", "-d", "--build"); err != nil {
+	if err := runCompose(env, composePath, envPath, "up", "-d", "--build"); err != nil {
 		return err
 	}
-	return runCompose(env, composePath, "up", "-d", "--no-deps", "--force-recreate", "reverse-proxy")
+	return runCompose(env, composePath, envPath, "up", "-d", "--no-deps", "--force-recreate", "reverse-proxy")
 }
 
-func runCompose(env []string, composePath string, args ...string) error {
-	full := append([]string{"compose", "-f", composePath}, args...)
+// runCompose ruft `docker compose` mit explizitem --env-file auf den Host-Spiegel
+// auf. Nach der UAC-Elevation ist das Arbeitsverzeichnis System32, deshalb wird
+// die .env-Quelle fuer die ${...}-Interpolation explizit benannt statt implizit
+// aus dem Projektverzeichnis geladen.
+func runCompose(env []string, composePath, envPath string, args ...string) error {
+	full := append([]string{"compose", "-f", composePath, "--env-file", envPath}, args...)
 	cmd := exec.Command("docker", full...)
 	cmd.Env = env
 	cmd.Stdout = os.Stdout

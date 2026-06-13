@@ -1,11 +1,13 @@
 // Command jotti-start ist der klickbare Windows-Starter fuer den lokalen
 // jotti-Betrieb. Ein Doppelklick (mit Administratorrechten, requireAdministrator-
-// Manifest) materialisiert die .env, raeumt die Docker-Voraussetzungen aus
-// (Daemon-Start, Linux-Engine, Port-Konflikt-Diagnose, Firewall-Freigabe),
-// faehrt den Compose-Stack hoch und wartet, bis jotti unter /api/health bereit
-// ist. Die reine Logik liegt in cmd/starter/core; diese Datei verbindet sie mit
-// den echten Seiteneffekten. Alle Windows-spezifischen Schritte laufen nur unter
-// runtime.GOOS == "windows" — der Repo-Dev-Lauf unter Linux ueberspringt sie.
+// Manifest) raeumt die Docker-Voraussetzungen aus (Daemon-Start, Linux-Engine),
+// holt das Install-Secret aus dem jotti-config-Volume (oder erzeugt es beim
+// Erststart) und spiegelt es in die .env, prueft die Ports, gibt die Firewall
+// frei, faehrt den Compose-Stack hoch und wartet, bis jotti unter /api/health
+// bereit ist. Die reine Logik liegt in cmd/starter/core; diese Datei verbindet
+// sie mit den echten Seiteneffekten. Alle Windows-spezifischen Schritte laufen
+// nur unter runtime.GOOS == "windows" — der Repo-Dev-Lauf unter Linux
+// ueberspringt sie und materialisiert die .env weiterhin ordnerlokal.
 package main
 
 import (
@@ -48,18 +50,17 @@ func run() int {
 	fmt.Printf("Compose-Datei: %s\n", composePath)
 
 	envPath := filepath.Join(filepath.Dir(composePath), ".env")
-	created, err := core.MaterializeEnv(envPath, fileExists, writeEnvFile)
-	if err != nil {
-		fmt.Printf("Konfiguration (.env) konnte nicht erstellt werden: %v\n", err)
-		return 1
-	}
-	if created {
-		fmt.Println("Konfiguration (.env) mit frischen Zugangsdaten erstellt.")
-	}
 
 	if runtime.GOOS == "windows" {
+		// Reihenfolge bewusst: ensureDocker zuerst, weil der Secret-Read aus dem
+		// Volume einen laufenden Daemon braucht; danach die Host-.env spiegeln,
+		// damit `compose --env-file` sie interpolieren kann.
 		if msg := ensureDocker(); msg != "" {
 			fmt.Println(msg)
+			return 1
+		}
+		if err := materializeEnvFromVolume(envPath); err != nil {
+			fmt.Printf("Zugangsdaten konnten nicht bereitgestellt werden: %v\n", err)
 			return 1
 		}
 		if msg := checkPorts(composePath); msg != "" {
@@ -67,10 +68,21 @@ func run() int {
 			return 1
 		}
 		ensureFirewall()
+	} else {
+		// Linux-Dev-Lauf: ohne Docker-Daemon-Garantie und ohne Volume bleibt die
+		// .env ordnerlokal und wird nur erzeugt, wenn sie fehlt (wie bisher).
+		created, err := core.MaterializeEnv(envPath, fileExists, writeEnvFile)
+		if err != nil {
+			fmt.Printf("Konfiguration (.env) konnte nicht erstellt werden: %v\n", err)
+			return 1
+		}
+		if created {
+			fmt.Println("Konfiguration (.env) mit frischen Zugangsdaten erstellt.")
+		}
 	}
 
 	lanIP := detectLANIP()
-	if err := composeUp(composePath, lanIP); err != nil {
+	if err := composeUp(composePath, envPath, lanIP); err != nil {
 		fmt.Printf("Der jotti-Stack konnte nicht gestartet werden: %v\n", err)
 		return 1
 	}

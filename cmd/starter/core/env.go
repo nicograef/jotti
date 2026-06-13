@@ -2,12 +2,12 @@ package core
 
 import "strings"
 
-// envContent erzeugt den vollstaendigen .env-Inhalt mit frisch erzeugten
+// EnvContent erzeugt den vollstaendigen .env-Inhalt mit frisch erzeugten
 // Secrets. POSTGRES_USER ist fest "admin" (wie .env.example); die drei Secrets
 // stammen aus GenerateSecret. Der Kommentar-Header haelt die erste Zeile frei
 // von einem Key: Schreibt Notepad spaeter ein UTF-8-BOM in die Datei, landet es
 // so vor einem Kommentar statt vor POSTGRES_USER und beschaedigt keinen Key.
-func envContent() string {
+func EnvContent() string {
 	lines := []string{
 		"# Diese Datei wurde automatisch von jotti erzeugt. Hier muss nichts geaendert werden.",
 		"POSTGRES_USER=admin",
@@ -32,8 +32,27 @@ func MaterializeEnv(path string, exists func(string) (bool, error), write func(s
 	if present {
 		return false, nil
 	}
-	if err := write(path, []byte(envContent())); err != nil {
+	if err := write(path, []byte(EnvContent())); err != nil {
 		return false, err
 	}
 	return true, nil
+}
+
+// ResolveEnv entscheidet, welchen .env-Inhalt der Start verwenden soll. Quelle
+// der Wahrheit ist das jotti-config-Volume: liegt dort bereits ein Secret
+// (volumeContent), wird es unveraendert uebernommen — so kann der Schluessel nie
+// von den Daten abweichen, die er entsperrt. Beim Erststart ist das Volume leer;
+// dann wird ein vorhandener ordnerlokaler .env-Inhalt (localContent) adoptiert
+// (Upgrade einer Installation aus der Zeit vor dem Volume, deren Secret weiter
+// zur bestehenden postgres-data passen muss), sonst werden frische Secrets
+// erzeugt. seed meldet, ob der gewaehlte Inhalt noch ins Volume geschrieben
+// werden muss (false nur, wenn er von dort stammt).
+func ResolveEnv(volumeContent, localContent string) (content string, seed bool) {
+	if strings.TrimSpace(volumeContent) != "" {
+		return volumeContent, false
+	}
+	if strings.TrimSpace(localContent) != "" {
+		return localContent, true
+	}
+	return EnvContent(), true
 }

@@ -137,14 +137,14 @@ neu gestartet, stellt der Starter dasselbe Secret aus dem Volume wieder her.
 
 ### Acceptance criteria
 
-- [ ] Erststart erzeugt Secrets und legt sie im `jotti-config`-Volume ab
+- [x] Erststart erzeugt Secrets und legt sie im `jotti-config`-Volume ab
       (+ ordnerlokaler Spiegel).
-- [ ] Host-`.env` löschen → nächster Start restauriert **dasselbe** Secret aus
+- [x] Host-`.env` löschen → nächster Start restauriert **dasselbe** Secret aus
       dem Volume; Stack kommt hoch, **Daten intakt**.
-- [ ] Neues ZIP in **fremden Ordner** entpacken → Start zieht dasselbe Secret aus
+- [x] Neues ZIP in **fremden Ordner** entpacken → Start zieht dasselbe Secret aus
       dem Volume → **kein Lockout**, Daten intakt.
-- [ ] Nur `down -v` / Volume-Löschung entfernt das Secret (zusammen mit den Daten).
-- [ ] Linux-Dev-Lauf (`go run`) unverändert grün (ordnerlokales `.env`).
+- [x] Nur `down -v` / Volume-Löschung entfernt das Secret (zusammen mit den Daten).
+- [x] Linux-Dev-Lauf (`go run`) unverändert grün (ordnerlokales `.env`).
 
 ---
 
