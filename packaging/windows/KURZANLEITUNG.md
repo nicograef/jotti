@@ -67,6 +67,33 @@ Wieder dieselben zwei Doppelklicks (`jotti-start.exe`, bei Bedarf
 Netzwerk-Adresse, **zeigt die Status-Seite sie erneut** — es gilt dasselbe
 Zertifikat, also **keine neue Warnung**.
 
+## jotti aktualisieren
+
+> ⚠️ **Updates zuhause mit Internet machen, nicht auf dem Fest.** Wie beim
+> Erststart lädt jotti dabei neue Programmteile herunter.
+
+Meldet der Starter beim Hochfahren „Neue Version verfügbar" mit einem
+Download-Link, so aktualisiert ihr jotti in drei Schritten:
+
+1. **`jotti-stop.cmd`** doppelklicken, um das laufende jotti sauber zu beenden.
+2. Das **neue ZIP entpacken** — der **Ort ist egal**. Es muss **nicht** derselbe
+   Ordner sein wie vorher; ein frischer Ordner ist völlig in Ordnung.
+3. **`jotti-start.exe`** im neuen Ordner doppelklicken (UAC mit „Ja" bestätigen).
+
+**Eure Daten bleiben erhalten:** Bestellungen, Benutzer, Produkte, der
+Installations-Schlüssel und das grüne Zertifikat liegen geschützt außerhalb des
+Programmordners. Egal wohin ihr entpackt — jotti findet sie beim Start wieder.
+Den alten Ordner könnt ihr danach gefahrlos löschen.
+
+**Automatisches Backup vor dem Update.** Erkennt der Starter eine neue Version,
+sichert er die Datenbank **vor** der Aktualisierung automatisch. Geht beim Update
+etwas schief, stellt **`jotti-restore.cmd`** (Doppelklick) das letzte dieser
+Backups wieder her — seit dem Backup erfasste Daten gehen dabei verloren.
+
+> 🔁 **Nur vorwärts, kein Downgrade.** Spielt **keine ältere Version** über eine
+> neuere. Updates verändern die Datenbank und lassen sich nicht zurücknehmen;
+> eine alte Version kann mit den neuen Daten nicht mehr starten.
+
 ---
 
 > 🔒 **Sicherheit:** jotti läuft nur im lokalen WLAN. Öffnet es **niemals** ins

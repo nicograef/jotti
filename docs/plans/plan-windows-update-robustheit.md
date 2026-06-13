@@ -274,7 +274,7 @@ benennen.
 
 ### Acceptance criteria
 
-- [ ] Update-Abschnitt beschreibt Download→Entpacken→Start mit den
+- [x] Update-Abschnitt beschreibt Download→Entpacken→Start mit den
       Sicherheitsgarantien (Secret/Daten/Zertifikate bleiben).
-- [ ] Automatisches Backup und Restore-Weg erwähnt.
-- [ ] Hinweis „kein Downgrade auf ältere Version" enthalten.
+- [x] Automatisches Backup und Restore-Weg erwähnt.
+- [x] Hinweis „kein Downgrade auf ältere Version" enthalten.
