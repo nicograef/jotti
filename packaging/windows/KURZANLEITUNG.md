@@ -54,6 +54,10 @@ Administratorrechte und nimmt seine Zugangsdaten aus der `.env` im selben Ordner
   (häufig Skype, IIS oder eine VM-Software) und `jotti-start.exe` erneut starten.
 - **Fenster schließt sich zu schnell:** Es bleibt bis zum Enter-Druck offen;
   steht oben eine Fehlermeldung, diese zuerst lesen.
+- **„volume ‚jotti-local_jotti-config' … not created by Docker Compose":** Eine
+  **harmlose** Warnung, die nur bei Installationen erscheint, die vor diesem Update
+  angelegt wurden — jotti läuft normal weiter. Sie verschwindet, sobald dieses
+  Volume einmal neu angelegt wird; neue Installationen zeigen sie gar nicht erst.
 
 ## Beenden
 
@@ -82,8 +86,15 @@ Download-Link, so aktualisiert ihr jotti in drei Schritten:
 
 **Eure Daten bleiben erhalten:** Bestellungen, Benutzer, Produkte, der
 Installations-Schlüssel und das grüne Zertifikat liegen geschützt außerhalb des
-Programmordners. Egal wohin ihr entpackt — jotti findet sie beim Start wieder.
-Den alten Ordner könnt ihr danach gefahrlos löschen.
+Programmordners (in Docker-Volumes). Egal wohin ihr entpackt — der Schlüssel folgt
+den Daten, jotti findet beides beim Start wieder. Den alten Ordner könnt ihr danach
+gefahrlos löschen.
+
+> ⛔ **Niemals `docker compose down -v` ausführen.** Das `-v` löscht **alle**
+> Docker-Volumes — und damit **Daten, Installations-Schlüssel und das grüne
+> Zertifikat** unwiderruflich (auch ein Update bringt sie dann nicht zurück). Zum
+> Beenden immer **`jotti-stop.cmd`** verwenden: das stoppt nur die Container und
+> lässt alles erhalten.
 
 **Automatisches Backup vor dem Update.** Erkennt der Starter eine neue Version,
 sichert er die Datenbank **vor** der Aktualisierung automatisch. Geht beim Update
@@ -93,6 +104,26 @@ Backups wieder her — seit dem Backup erfasste Daten gehen dabei verloren.
 > 🔁 **Nur vorwärts, kein Downgrade.** Spielt **keine ältere Version** über eine
 > neuere. Updates verändern die Datenbank und lassen sich nicht zurücknehmen;
 > eine alte Version kann mit den neuen Daten nicht mehr starten.
+
+## Wenn nach einem Update niemand mehr hineinkommt
+
+Sehr selten — meist nach einem Update von einer **sehr alten** Version — passt das
+in der Datenbank gespeicherte Passwort nicht mehr zum aktuellen
+Installations-Schlüssel. jotti startet dann zwar, aber das Anmelden schlägt fehl.
+**Eure Daten sind dabei nicht verloren** — nur das Schloss passt nicht zum
+Schlüssel. Zwei datenerhaltende Wege zurück:
+
+1. **`jotti-repair.cmd`** doppelklicken. Es gleicht das Datenbank-Passwort an den
+   aktuellen Installations-Schlüssel an und startet jotti neu — ohne eure Daten zu
+   verändern. Mehrfaches Ausführen schadet nicht. Danach einmal **neu anmelden**.
+2. Habt ihr noch die **`.env` aus der alten Installation** (lag früher im
+   Programmordner neben `jotti-start.exe`): kopiert sie nach
+   **`%PROGRAMDATA%\jotti\.env`** und startet `jotti-start.exe` erneut — dann
+   verwendet jotti wieder den ursprünglichen Schlüssel.
+
+Meldet der Starter beim Hochfahren ausdrücklich, es seien **„bereits jotti-Daten
+vorhanden, aber keine Zugangsdaten gefunden"**, dann hilft Weg 2: die alte `.env`
+an den genannten Ort legen und erneut starten.
 
 ---
 

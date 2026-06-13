@@ -224,11 +224,11 @@ Release-ZIP gepackt. Es kennt das alte Passwort nicht und braucht es nicht.
 
 ### Acceptance criteria
 
-- [ ] Installation mit Volume-Secret ≠ `postgres-data`-Passwort → nach `jotti-repair`
+- [x] Installation mit Volume-Secret ≠ `postgres-data`-Passwort → nach `jotti-repair`
       authentifiziert `migrate`/`backend`, Daten unverändert vorhanden, Login geht.
-- [ ] Erneutes Ausführen ist gefahrlos (idempotent), auch wenn bereits konsistent.
-- [ ] `jotti-repair.cmd` liegt im Release-ZIP (`release-windows`).
-- [ ] Skript verändert **keine** Daten (nur das Rollen-Passwort) und fasst keine
+- [x] Erneutes Ausführen ist gefahrlos (idempotent), auch wenn bereits konsistent.
+- [x] `jotti-repair.cmd` liegt im Release-ZIP (`release-windows`).
+- [x] Skript verändert **keine** Daten (nur das Rollen-Passwort) und fasst keine
       anderen Volumes an.
 
 ---
@@ -256,11 +256,11 @@ es weiterhin zusammen mit den Daten. Bestehende Volumes bleiben unangetastet
 
 ### Acceptance criteria
 
-- [ ] Frische Installation → **keine** „not created by Docker Compose"-Warnung.
-- [ ] `down -v` entfernt `jotti-config` weiterhin (Lifecycle/Lockout-Garantie
+- [x] Frische Installation → **keine** „not created by Docker Compose"-Warnung.
+- [x] `down -v` entfernt `jotti-config` weiterhin (Lifecycle/Lockout-Garantie
       erhalten — gegen ein gelabeltes Volume verifiziert).
-- [ ] `external: true` wird **nicht** verwendet.
-- [ ] Anlegen ist idempotent; ein vorhandenes Volume wird nicht neu erzeugt.
+- [x] `external: true` wird **nicht** verwendet.
+- [x] Anlegen ist idempotent; ein vorhandenes Volume wird nicht neu erzeugt.
 
 ---
 
@@ -286,7 +286,7 @@ Hinweis zum Entfernen der Compose-Warnung bei Bestandsinstallationen.
 
 ### Acceptance criteria
 
-- [ ] Abschnitt beschreibt sicheres Update (entpacken egal, Secret folgt Volume).
-- [ ] Klare Warnung vor `down -v` mit Begründung.
-- [ ] Recovery-Weg (`jotti-repair.cmd` / alte `.env` an den kanonischen Ort) erklärt.
-- [ ] Garantie „Daten/Schlüssel/Zertifikate bleiben" benannt.
+- [x] Abschnitt beschreibt sicheres Update (entpacken egal, Secret folgt Volume).
+- [x] Klare Warnung vor `down -v` mit Begründung.
+- [x] Recovery-Weg (`jotti-repair.cmd` / alte `.env` an den kanonischen Ort) erklärt.
+- [x] Garantie „Daten/Schlüssel/Zertifikate bleiben" benannt.

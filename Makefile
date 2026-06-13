@@ -122,6 +122,7 @@ release-windows: build-starter-windows build-relay-windows ## Release-ZIP (Exes 
 	cp cmd/relay/jotti-relay.exe "$(RELEASE_DIR)/"
 	cp packaging/windows/jotti-stop.cmd "$(RELEASE_DIR)/"
 	cp packaging/windows/jotti-restore.cmd "$(RELEASE_DIR)/"
+	cp packaging/windows/jotti-repair.cmd "$(RELEASE_DIR)/"
 	cp packaging/windows/KURZANLEITUNG.md "$(RELEASE_DIR)/"
 	cp .env.example "$(RELEASE_DIR)/"
 	cp docker-compose.release.yml "$(RELEASE_DIR)/"

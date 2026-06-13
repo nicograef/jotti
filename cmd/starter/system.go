@@ -328,10 +328,41 @@ func readConfigVolume() (string, error) {
 	return string(out), nil
 }
 
+// ensureConfigVolume legt das jotti-config-Volume — falls es fehlt — explizit mit
+// den Compose-Labels an, bevor zum ersten Mal hineingeschrieben wird. Ohne diese
+// Labels wuerde Compose das spaeter per `docker run -v` implizit angelegte Volume
+// bei jedem Start als fremd melden ("volume ... not created by Docker Compose") —
+// schlechte UX fuer nicht-technische Helfer. Mit den Labels erkennt Compose es als
+// eigenes Volume des Projekts (jotti-local, Volume-Schluessel jotti-config, vgl.
+// configVolume), und `down -v` entfernt es weiterhin zusammen mit den Daten. Kein
+// `external: true`: das wuerde `down -v` daran hindern und die Lockout-Garantie
+// brechen, dass das Secret die Daten nie ueberlebt. Idempotent: ein vorhandenes
+// Volume wird nicht neu erzeugt (Labels sind nach dem Anlegen ohnehin unveraenderlich).
+func ensureConfigVolume() error {
+	exists, err := volumeExists(configVolume)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+	out, err := exec.Command("docker", "volume", "create",
+		"--label", "com.docker.compose.project=jotti-local",
+		"--label", "com.docker.compose.volume=jotti-config",
+		configVolume).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("jotti-config-Volume anlegen fehlgeschlagen: %v: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
 // writeConfigVolume schreibt content in die .env des jotti-config-Volumes. Das
-// `docker run -v` legt das Volume bei Bedarf an; Compose verwendet danach dasselbe
-// (gleicher Name).
+// Volume wird zuvor (falls fehlend) gelabelt angelegt, damit Compose es als eigenes
+// erkennt; das `docker run -v` greift danach auf dasselbe Volume zu (gleicher Name).
 func writeConfigVolume(content string) error {
+	if err := ensureConfigVolume(); err != nil {
+		return err
+	}
 	cmd := exec.Command("docker", "run", "--rm", "-i", "--entrypoint", "sh",
 		"-v", configVolume+":/config", configHelperImage, "-c", "cat > "+configVolumePath)
 	cmd.Stdin = strings.NewReader(content)
