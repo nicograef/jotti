@@ -140,7 +140,7 @@ Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der
 | Q-02 | Mehrbenutzerfähig | Parallele Zugriffe ohne Datenverlust. Optimistic Concurrency Control.                                                                     |
 | Q-03 | Validierung       | Zod (Frontend) + zog (Backend). Doppelte Validierung, deutsche Fehlermeldungen.                                                           |
 | Q-04 | Datenintegrität   | Transaktionssicher, append-only Kassenjournal, Cent-Werte, Soft-Deletes.                                                                  |
-| Q-06 | HTTPS / TLS       | nginx terminiert TLS. Lokal: selbstsigniertes Zertifikat (automatisch erzeugt, Browserwarnung), HTTP→HTTPS-Redirect. Prod: Let's Encrypt. |
+| Q-06 | HTTPS / TLS       | Lokal: Caddy terminiert TLS — vertrauenswürdiges Let's-Encrypt-Zertifikat via `lokal.jotti.rocks` (DNS-01), selbstsignierter Fallback auf `https://<LAN-IP>` (einmalige Browserwarnung), HTTP→HTTPS-Redirect. Prod: nginx + Let's Encrypt. |
 | Q-07 | Rate Limiting     | Login-Endpunkt geschützt (HTTP 429 bei Überschreitung).                                                                                   |
 | Q-08 | Security Headers  | CSP, X-Content-Type-Options, X-Frame-Options, HSTS.                                                                                       |
 

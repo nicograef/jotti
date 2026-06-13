@@ -128,9 +128,11 @@ eine acme-dns-Instanz auf dem bestehenden rocks-VPS.
   Ablauf werden auf das grüne Schloss umgestellt).
 - `docs/anforderungen.md:143` — Q-06 (lokal: „selbstsigniert, Browserwarnung"
   → aktualisieren).
-- `docs/plans/plan-windows-verpackung.md:203` — Release-ZIP enthält
-  `nginx.local.conf` + `local-entrypoint.sh` (Touchpoint: wird durch
-  Caddy-Artefakte ersetzt, je nachdem welcher Plan später umgesetzt wird).
+- `docs/plans/plan-windows-verpackung.md` — der Windows-Plan ist seit
+  2026-06-13 auf Option 3 angepasst (Revisions-Notiz dort): ZIP ohne
+  `nginx.local.conf` + `local-entrypoint.sh`, viertes GHCR-Image (Caddy),
+  Status-Seiten-Verweis. Touchpoint damit aufgelöst — in Phase 6 nur noch
+  Konsistenzprüfung.
 
 ## Resolved decisions
 
@@ -173,10 +175,10 @@ eine acme-dns-Instanz auf dem bestehenden rocks-VPS.
 - **Missbrauch trotz offener Registrierung:** Rate-Limit + CT-Monitoring
   mindern, verhindern nicht. Eskalationspfad: Registrierungs-Gate (eigene
   Entscheidung, nicht Teil dieses Plans).
-- **Windows-Plan-Drift:** Wird die Windows-Verpackung vor Option 3 umgesetzt,
-  ändert sich danach der ZIP-Inhalt (Caddy-Image von GHCR statt
-  nginx-Conf + Entrypoint-Skript) und die Starter-Erfolgsausgabe (Verweis auf
-  die Status-Seite). In Phase 6 als Touchpoint dokumentiert.
+- **Windows-Plan-Drift:** aufgelöst (2026-06-13) — der Windows-Plan wird nach
+  Option 3 umgesetzt und ist bereits entsprechend angepasst (ZIP mit Caddy-Image
+  von GHCR statt nginx-Conf + Entrypoint-Skript, Starter-Erfolgsausgabe verweist
+  auf die Status-Seite). Phase 6 prüft nur noch Konsistenz, fügt keinen Absatz hinzu.
 
 ---
 
@@ -514,7 +516,8 @@ Das Hilfsprogramm serviert zusätzlich die Status-Seite auf
 - `docs/anforderungen.md:143` — Q-06.
 - `docs/prds/prd-lokale-tls-vertrauenswuerdig.md:9-10` — Status-Hinweis „kein
   Umsetzungsplan" (überholt).
-- `docs/plans/plan-windows-verpackung.md:203` — ZIP-Inhalt mit nginx-Dateien.
+- `docs/plans/plan-windows-verpackung.md` — bereits auf Option 3 integriert
+  (Revision 2026-06-13); in dieser Phase nur Konsistenzprüfung, kein neuer Absatz.
 
 ### What to build
 
@@ -536,19 +539,50 @@ Das Hilfsprogramm serviert zusätzlich die Status-Seite auf
   Zertifikat via lokal.jotti.rocks, selbstsignierter Fallback" umstellen.
 - **PRD-Status aktualisieren** (Plan existiert, Betriebszusage bestätigt,
   offene Fragen entschieden → Verweis auf diesen Plan).
-- **Touchpoint im Windows-Plan dokumentieren:** Hinweis-Absatz in
-  `docs/plans/plan-windows-verpackung.md`, dass Option 3 den ZIP-Inhalt
-  (Caddy statt nginx-Conf + Entrypoint-Skript, Caddy-Image via GHCR) und die
-  Starter-Erfolgsausgabe (Verweis auf `http://localhost:8484`) ändert.
+- **Touchpoint im Windows-Plan — bereits integriert (2026-06-13):** Die
+  Anpassungen an Option 3 sind in `docs/plans/plan-windows-verpackung.md`
+  bereits vollständig eingearbeitet (Revisions-Notiz 2026-06-13: vierter
+  Build-Kontext / viertes GHCR-Image, ZIP ohne nginx-Conf + Entrypoint-Skript,
+  `LAN_IP`-Übergabe an Compose, Erfolgsausgabe verweist auf
+  `http://localhost:8484`). **Keinen neuen Hinweis-Absatz hinzufügen** — das
+  würde die integrierten Edits überschreiben/duplizieren; hier nur auf
+  Konsistenz prüfen (insbesondere: die in Phase 5 gebaute Status-Seite
+  existiert, die der Windows-Starter referenziert).
 
 ### Acceptance criteria
 
 - [ ] Fritz!Box-Frage an echter Hardware verifiziert und das Ergebnis in der
       Anleitung umgesetzt (einmaliger Eintrag vs. Eintrag je Hostname).
+      **Offen: manuelle Verifikation an realer Fritz!Box** (nicht autonom
+      durchführbar); die Anleitung dokumentiert beide Fälle und markiert den
+      Domain-Eintrag als zu bestätigen.
 - [ ] Fritz!Box-Anleitung mit Screenshots existiert; Status-Seite verlinkt
-      sie.
-- [ ] Router-Tabelle und WLAN-/Gastnetz-/DoH-Hinweise sind Teil der
+      sie. **Text-Anleitung existiert** (`docs/betrieb/dns-rebind-schutz.md`)
+      und die Status-Seite verlinkt sie (`statuspage.go:25`); **offen: nur die
+      Screenshots** (an realer Hardware aufzunehmen, Platzhalter markiert).
+- [x] Router-Tabelle und WLAN-/Gastnetz-/DoH-Hinweise sind Teil der
       Betriebsdoku.
-- [ ] Weg A im Hosting-Leitfaden beschreibt grünes Schloss, QR-Ablauf und
+- [x] Weg A im Hosting-Leitfaden beschreibt grünes Schloss, QR-Ablauf und
       Fallback inkl. Restrisiko.
-- [ ] Q-06, PRD-Status und Windows-Plan-Touchpoint sind aktualisiert.
+- [x] Q-06 und PRD-Status sind aktualisiert; der Windows-Plan ist auf Option 3
+      integriert (2026-06-13) und nur auf Konsistenz geprüft — kein duplizierter
+      Hinweis-Absatz.
+
+> Phase 6 Code/Doku abgeschlossen 2026-06-13: Neue Router-Anleitung
+> `docs/betrieb/dns-rebind-schutz.md` (Fritz!Box Schritt für Schritt + generische
+> Tabelle für dnsmasq/Pi-hole, OpenWrt, Speedport + WLAN-/Gastnetz-/DoH-Hinweise);
+> die Status-Seite verlinkte schon vorab genau diesen Pfad. Weg A im
+> Hosting-Leitfaden auf grünes Schloss als Normalfall, QR-Ablauf über die
+> Status-Seite (`http://localhost:8484`) und Fallback mit Restrisiko-Kasten
+> umgestellt (Caddy statt nginx, manuelle IP-Tabelle durch die Status-Seite
+> ersetzt, DHCP-Reservierungstipp). Q-06 (`anforderungen.md`) und der PRD-Status
+> aktualisiert. Windows-Plan: Konsistenz geprüft — Status-Seite (Phase 5)
+> existiert und ist mit `127.0.0.1:8484` gemappt wie dort beschrieben, die
+> generische Verweis auf die Rebind-Anleitung ist jetzt durch das neue Doc
+> gedeckt; **kein** neuer Absatz hinzugefügt.
+>
+> **Offen (manuell, AK 1+2):** Verifikation an realer Fritz!Box-Hardware
+> (Subdomain-Frage: deckt ein `lokal.jotti.rocks`-Eintrag die Subdomains ab?)
+> und das Aufnehmen der Fritz!Box-Screenshots. Beides nicht autonom möglich; die
+> Text-Anleitung dokumentiert den noch zu bestätigenden Fall und enthält
+> markierte Screenshot-Platzhalter.

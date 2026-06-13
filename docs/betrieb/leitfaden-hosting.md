@@ -29,7 +29,7 @@
 | Typisches Fest        | Eine Theke, eine Person kassiert         | Mehrere Helfer, viele Tische, mehrtägig |
 | Geräte                | 1 Laptop + 1 Tablet/Handy                | Beliebig viele Handys der Helfer        |
 | Internet nötig?       | Nein — nur lokales WLAN                  | Ja                                      |
-| Domain & HTTPS nötig? | Domain: nein, HTTPS: ja (selbstsigniert) | Ja                                      |
+| Domain & HTTPS nötig? | Domain: nein, HTTPS: ja (echtes Zertifikat + Fallback) | Ja                         |
 | Bondruck              | Nein                                     | Möglich _(in Entwicklung)_              |
 | Laufende Kosten       | Keine                                    | ~3–8 €/Monat (VPS)                      |
 | Einrichtungsaufwand   | Sehr gering                              | Etwas höher (einmalig)                  |
@@ -49,10 +49,19 @@ offener Saldo, keine spätere Ausgabe-Bestätigung.
 jotti läuft dabei auf einem vorhandenen Rechner (Windows-Laptop, Mac oder Linux-PC). Ein **Tablet
 oder Smartphone im selben WLAN** bedient die Kasse im Browser über die lokale Adresse des Rechners.
 
-> 🔒 **Sicherheitshinweis:** Der lokale Betrieb nutzt **selbstsigniertes HTTPS**. Beim ersten Zugriff
-> erscheint pro Gerät eine Browserwarnung, die einmal bestätigt werden muss. Damit ist der Verkehr im
-> WLAN verschlüsselt (kein passives Mitlesen). **Restrisiko:** Ein aktiver Angreifer im selben WLAN
-> (MITM) bleibt möglich. Für vertrauenswürdige Zertifikate siehe Option 3:
+> 🔒 **Grünes Schloss als Normalfall:** Der lokale Betrieb nutzt ein **echtes, vom Browser
+> anerkanntes Zertifikat** (grünes Schloss, **keine** Warnung) über die Adresse
+> `…lokal.jotti.rocks`. jotti holt es beim ersten Start mit Internet automatisch und erneuert es
+> selbst — **kein** CA-Rollout, **keine** Einrichtung pro Gerät. Welche Adresse gerade gilt und ein
+> QR-Code dazu stehen auf der **Status-Seite** `http://localhost:8484` am Kassenrechner.
+>
+> Zusätzlich gibt es einen **Fallback** `https://<LAN-IP>` mit selbstsigniertem Zertifikat (einmalige
+> Browserwarnung pro Gerät) — er greift vor der ersten Ausstellung, ohne Internet oder wenn der Router
+> die grüne Adresse blockiert ([DNS-Rebind-Schutz](./dns-rebind-schutz.md)).
+>
+> **Restrisiko nur beim Fallback:** Über die grüne Adresse scheitert ein aktiver Angreifer im WLAN
+> (MITM) hart. Nur solange ihr den selbstsignierten Fallback nutzt, bleibt — wie bei reinem
+> selbstsigniertem Betrieb — ein aktiver MITM möglich. Hintergrund:
 > `docs/prds/prd-lokale-tls-vertrauenswuerdig.md`.
 >
 > ℹ️ **Einzeltheke-/localhost-Ausnahme:** Wenn jotti nur direkt am selben Rechner über `localhost`
@@ -83,26 +92,26 @@ Das Kommando erzeugt eine vollständige `.env` mit sicheren Zufallswerten für
    ```
 
 Der erste Start dauert einige Minuten (die „Container" werden gebaut). Danach laufen Datenbank,
-Backend, Frontend und ein nginx-Reverse-Proxy auf **Port 443** (Port 80 leitet auf HTTPS um). Mit installiertem `make`
-alternativ: `make local-up`.
+Backend, Frontend und ein Caddy-Reverse-Proxy auf **Port 443** (Port 80 leitet auf HTTPS um); Caddy
+holt und erneuert das vertrauenswürdige Zertifikat selbst. Mit installiertem `make` alternativ:
+`make local-up` — es nennt am Ende die Status-URL.
 
-3. **Lokal testen.** Auf dem Rechner `https://localhost` im Browser öffnen — beim ersten Aufruf die
-   Browserwarnung bestätigen, danach erscheint die Anmeldemaske.
+3. **Status-Seite öffnen.** Am Kassenrechner `http://localhost:8484` im Browser öffnen. Die
+   Status-Seite zeigt den aktuellen Zustand, die **Zugangsadresse(n)** und einen **QR-Code**. Direkt
+   nach dem ersten Start steht dort zunächst die Fallback-Adresse; sobald das Zertifikat ausgestellt
+   ist (wenige Sekunden bis Minuten, braucht Internet), wechselt sie automatisch auf die **grüne
+   Adresse**.
 
-4. **Lokale IP-Adresse des Rechners ermitteln:**
+4. **Vom Smartphone/Tablet verbinden.** Das Gerät ins **Vereins-WLAN** bringen (nicht Mobilfunk,
+   **kein Gastnetz** — die [DNS-Rebind-Anleitung](./dns-rebind-schutz.md) erklärt, warum). Dann den
+   **QR-Code** von der Status-Seite scannen oder die grüne Adresse eintippen → **grünes Schloss, keine
+   Warnung**, anmelden. Über „Zum Startbildschirm hinzufügen" lässt sich jotti wie eine App ablegen.
 
-   | System  | Befehl                   | Beispiel-Ausgabe             |
-   | ------- | ------------------------ | ---------------------------- |
-   | Windows | `ipconfig`               | `IPv4-Adresse: 192.168.1.50` |
-   | Linux   | `hostname -I`            | `192.168.1.50`               |
-   | macOS   | `ipconfig getifaddr en0` | `192.168.1.50`               |
-
-   Gesucht ist die Adresse im Heimnetz, meist `192.168.x.x` oder `10.x.x.x`.
-
-5. **Vom Tablet verbinden.** Tablet ins gleiche WLAN bringen und im Browser die IP-Adresse öffnen,
-   z. B. `https://192.168.1.50`. Beim ersten Zugriff die Browserwarnung bestätigen, danach anmelden.
-   Über „Zum Startbildschirm hinzufügen" lässt sich
-   jotti wie eine App ablegen.
+5. **Falls die grüne Adresse (noch) nicht geht.** Die Status-Seite nennt dann die **Fallback-Adresse**
+   `https://<LAN-IP>` (z. B. `https://192.168.1.50`) — beim ersten Zugriff pro Gerät die einmalige
+   Browserwarnung bestätigen, danach anmelden. Lädt die grüne Adresse auf den Handys gar nicht,
+   blockiert vermutlich der Router: dann die [DNS-Rebind-Anleitung](./dns-rebind-schutz.md) befolgen
+   (die Status-Seite verlinkt sie ebenfalls).
 
 ### Beenden
 
@@ -120,6 +129,13 @@ Alternativ: `make local-down`.
   (Port 80 wird nur für Redirect genutzt).
 - **Rechner muss laufen.** Während des Betriebs muss der Rechner eingeschaltet und im WLAN sein;
   Energiespar-/Ruhezustand vorher deaktivieren.
+- **Erster Start braucht Internet.** Für das vertrauenswürdige Zertifikat braucht der erste Start
+  (und der Start nach längerer Pause, wenn das Zertifikat abgelaufen ist) **Internet** — am besten
+  vorab zuhause testen. Ohne Internet läuft der Verkauf über den Fallback weiter.
+- **Stabile Adresse (optional).** Bekommt der Rechner per DHCP eine neue LAN-IP, ändert sich der
+  Hostname — aber **dasselbe** Zertifikat gilt weiter (keine neue Warnung) und die Status-Seite zeigt
+  die neue Adresse. Wer eine feste Adresse möchte, richtet im Router eine **DHCP-Reservierung** für
+  den Kassenrechner ein.
 - **Hardware genügt locker.** Jeder halbwegs aktuelle Laptop bewältigt eine Theke mühelos.
 - **Für größere Feste** (mehrere Helfer, viele Tische, mehrtägig) ist Weg B mit Domain und HTTPS
   die bessere Wahl.
@@ -206,7 +222,7 @@ Ersteinrichtung (erstes Zertifikat anfordern, Stack starten) übernimmt das Skri
 | **HTTPS / TLS**             | Verschlüsselte Verbindung im Internet (Schloss-Symbol im Browser).                         |
 | **Let's Encrypt**           | Kostenlose Stelle, die HTTPS-Zertifikate ausstellt.                                        |
 | **`.env`**                  | Konfigurationsdatei mit Passwörtern und Geheimnissen — niemals öffentlich teilen.          |
-| **Reverse Proxy (nginx)**   | Vermittler, der Anfragen aus dem Internet sicher an jotti weiterleitet.                    |
+| **Reverse Proxy (nginx / Caddy)** | Vermittler, der Anfragen sicher an jotti weiterleitet (lokal: Caddy, Server: nginx).  |
 | **Docker-Volume**           | Der Speicherort, an dem Docker eure Daten dauerhaft aufbewahrt.                            |
 | **SSD**                     | Schnelle Festplatte (Flash-Speicher) — Pflicht für flüssigen Betrieb.                      |
 | **Direktverkauf („Theke")** | Verkauf, bei dem sofort bar kassiert wird — kein offener Tisch-Saldo.                      |

@@ -6,11 +6,15 @@
 > Option 3 löst dessen Restrisiko (aktiver MITM) auf und nimmt dessen
 > Mechanismus als eingebauten Fallback auf.
 > Datenschutz-Bezug: `docs/lizenz-und-nutzung.md` §7 (Art. 32 DSGVO).
-> **Status: Ziel-Architektur, spätere Umsetzung.** Es gibt noch keinen
-> Umsetzungsplan.
-> **Voraussetzung:** jotti betreibt eine projekteigene Domain (`jotti.rocks`),
-> einen kleinen zustandslosen DNS-Resolver und eine acme-dns-Instanz dauerhaft
-> — siehe „Open Questions".
+> **Status: umgesetzt (2026-06-13).** Umsetzungsplan:
+> `docs/plans/plan-lokale-tls-vertrauenswuerdig.md` — die Klärungsrunde
+> (2026-06-12) hat die offenen Fragen entschieden und die Betriebszusage
+> bestätigt; die Infrastruktur läuft seit 2026-06-13 auf dem rocks-VPS (siehe
+> `docs/betrieb/leitfaden-rocks-dns.md`). Offen bleibt nur die manuelle
+> Verifikation an realer Hardware (Smartphone mit Echt-LE, Fritz!Box-Subdomain-Frage).
+> **Voraussetzung (erfüllt):** jotti betreibt eine projekteigene Domain
+> (`jotti.rocks`), einen kleinen zustandslosen DNS-Resolver und eine
+> acme-dns-Instanz dauerhaft — siehe „Open Questions" und Betriebsleitfaden.
 
 ## Problem Statement
 
