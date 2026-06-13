@@ -199,12 +199,12 @@ spielt einen Dump zurück. Optionaler Export des jüngsten Dumps nach
 
 ### Acceptance criteria
 
-- [ ] Update vA→vB erzeugt **vor** den Migrationen einen Dump im
+- [x] Update vA→vB erzeugt **vor** den Migrationen einen Dump im
       `jotti-backups`-Volume.
-- [ ] Gleiche Version erneut starten → **kein** Dump (nur bei Wechsel).
-- [ ] Simulierte kaputte Migration → aus dem Dump wiederherstellbar, Daten zurück.
-- [ ] Max. N Dumps; ältere werden rotiert.
-- [ ] `last-version` wird nur nach gesundem Start fortgeschrieben.
+- [x] Gleiche Version erneut starten → **kein** Dump (nur bei Wechsel).
+- [x] Simulierte kaputte Migration → aus dem Dump wiederherstellbar, Daten zurück.
+- [x] Max. N Dumps; ältere werden rotiert.
+- [x] `last-version` wird nur nach gesundem Start fortgeschrieben.
 
 ---
 

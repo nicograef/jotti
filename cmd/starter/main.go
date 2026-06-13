@@ -88,6 +88,14 @@ func run() int {
 		}
 	}
 
+	// Vor dem vollen `up` (das die Migrationen anstoesst) bei einem
+	// Versionswechsel automatisch die Daten sichern — der Sicherungspunkt
+	// entsteht so vor jeder schemaveraendernden Migration.
+	if err := maybeBackupBeforeUpdate(composePath, envPath, stateDir); err != nil {
+		fmt.Printf("Automatisches Pre-Update-Backup fehlgeschlagen: %v\n", err)
+		return 1
+	}
+
 	lanIP := detectLANIP()
 	if err := composeUp(composePath, envPath, lanIP); err != nil {
 		fmt.Printf("Der jotti-Stack konnte nicht gestartet werden: %v\n", err)

@@ -34,6 +34,11 @@ services:
       # secret together with the database, so a stale secret can never outlive —
       # or lock you out of — the data it unlocks. Postgres itself never reads it.
       - jotti-config:/jotti-config:ro
+      # jotti-backups holds the timestamped pre-update pg_dumps that the starter
+      # writes (via `docker exec`) before running migrations on a new version.
+      # Mounted rw so the dump lands straight in the volume; its lifecycle is
+      # likewise bound to the data (`down -v` removes both).
+      - jotti-backups:/jotti-backups
     networks:
       - db-network
     healthcheck:
@@ -151,3 +156,5 @@ volumes:
   proxy-state:
   # Source of truth for the install secret; see the postgres mount above.
   jotti-config:
+  # Timestamped pre-update database dumps; see the postgres mount above.
+  jotti-backups:
