@@ -510,35 +510,35 @@ func TestFormatKassenbeleg_WithErsteBestellungZeitpunkt_ContainsKlartext(t *test
 	}
 }
 
-func TestFormatPositionBon_SetsCP858CodepageAfterInit(t *testing.T) {
+func TestFormatPositionBon_SetsWPC1252CodepageAfterInit(t *testing.T) {
 	payload := string(escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false))
 
-	cpIdx := strings.Index(payload, escpos.SetCodepageCP858)
+	cpIdx := strings.Index(payload, escpos.SetCodepageWPC1252)
 	if cpIdx < 0 {
-		t.Fatal("Bon setzt nicht die CP858-Codepage (ESC t 19)")
+		t.Fatal("Bon setzt nicht die WPC1252-Codepage (ESC t 6)")
 	}
 
 	// ESC @ (Init) setzt die Codepage zurueck; sie muss danach gesetzt werden.
 	initIdx := strings.Index(payload, escpos.Init)
 	if initIdx < 0 || cpIdx < initIdx {
-		t.Errorf("CP858-Codepage muss nach Init gesetzt werden; initIdx=%d cpIdx=%d", initIdx, cpIdx)
+		t.Errorf("WPC1252-Codepage muss nach Init gesetzt werden; initIdx=%d cpIdx=%d", initIdx, cpIdx)
 	}
 }
 
-func TestFormatPositionBon_TranscodesUmlautsAndEuroToCP858(t *testing.T) {
-	// Umlaute und Euro stehen im Kommentar und muessen als CP858-Einzelbytes erscheinen.
+func TestFormatPositionBon_TranscodesUmlautsAndEuroToWPC1252(t *testing.T) {
+	// Umlaute und Euro stehen im Kommentar und muessen als WPC1252-Einzelbytes erscheinen.
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "äöüÄÖÜß 1€", false)
 
-	// CP858: ä=0x84 ö=0x94 ü=0x81 Ä=0x8E Ö=0x99 Ü=0x9A ß=0xE1 €=0xD5
-	wantBytes := []byte{0x84, 0x94, 0x81, 0x8E, 0x99, 0x9A, 0xE1, 0xD5}
+	// WPC1252 (Windows-1252): ä=0xE4 ö=0xF6 ü=0xFC Ä=0xC4 Ö=0xD6 Ü=0xDC ß=0xDF €=0x80
+	wantBytes := []byte{0xE4, 0xF6, 0xFC, 0xC4, 0xD6, 0xDC, 0xDF, 0x80}
 	for _, b := range wantBytes {
 		if !bytes.Contains(payload, []byte{b}) {
-			t.Errorf("Bon enthaelt nicht das erwartete CP858-Byte 0x%02X", b)
+			t.Errorf("Bon enthaelt nicht das erwartete WPC1252-Byte 0x%02X", b)
 		}
 	}
 
 	// Die UTF-8-Sequenz fuer ä (0xC3 0xA4) darf nach Transkodierung nicht mehr vorkommen.
 	if bytes.Contains(payload, []byte{0xC3, 0xA4}) {
-		t.Error("Bon enthaelt rohe UTF-8-Bytes statt CP858 (Transkodierung fehlt)")
+		t.Error("Bon enthaelt rohe UTF-8-Bytes statt WPC1252 (Transkodierung fehlt)")
 	}
 }

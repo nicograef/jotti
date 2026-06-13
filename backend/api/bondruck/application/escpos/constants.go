@@ -4,12 +4,12 @@ package escpos
 const Init = "\x1B\x40"
 
 // Zeichentabelle (ESC t n)
-// SetCodepageCP858 waehlt Codepage 19 (PC858: Euro) gemaess Epson-ESC/POS-Standard.
-// CP858 deckt die deutschen Umlaute (ae/oe/ue/Ae/Oe/Ue/ss) und das Euro-Zeichen ab.
+// SetCodepageWPC1252 waehlt am MUNBYN ITPP047P die Codepage 6 (WPC1252 / Windows-1252,
+// "West Europe" mit Euro-Zeichen). Die MUNBYN-Nummerierung folgt NICHT dem Epson-Standard
+// (dort waere WPC1252 = 16); die Liste steht auf der Selbsttest-Seite des Druckers.
+// WPC1252 deckt die deutschen Umlaute (ae/oe/ue/Ae/Oe/Ue/ss) und das Euro-Zeichen ab.
 // Wird von ESC @ (Init) zurueckgesetzt und muss daher nach Init gesendet werden.
-// HINWEIS: Der exakte Index ist druckerabhaengig und am Zielgeraet
-// (MUNBYN ITPP047P-UE) zu verifizieren.
-const SetCodepageCP858 = "\x1B\x74\x13" // ESC t 19
+const SetCodepageWPC1252 = "\x1B\x74\x06" // ESC t 6
 
 // Ausrichtung
 const AlignLeft = "\x1B\x61\x00"

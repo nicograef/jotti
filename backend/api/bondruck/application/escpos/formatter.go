@@ -60,13 +60,13 @@ func FormatPositionBon(
 		buf.WriteString(Beep)
 	}
 	buf.WriteString(Init)
-	buf.WriteString(SetCodepageCP858)
+	buf.WriteString(SetCodepageWPC1252)
 
 	// Tisch - gross und fett, zentriert
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toCP858(fmt.Sprintf("== %s ==\n", tischName)))
+	buf.WriteString(toWPC1252(fmt.Sprintf("== %s ==\n", tischName)))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
@@ -74,7 +74,7 @@ func FormatPositionBon(
 	// Position - doppelte Hoehe, fett, zentriert
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toCP858(fmt.Sprintf("%dx %s\n", pos.Menge, pos.Bezeichnung())))
+	buf.WriteString(toWPC1252(fmt.Sprintf("%dx %s\n", pos.Menge, pos.Bezeichnung())))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
@@ -83,7 +83,7 @@ func FormatPositionBon(
 		buf.WriteString("\n")
 		buf.WriteString(AlignLeft)
 		buf.WriteString(BoldOn)
-		buf.WriteString(toCP858(wrapLine(kommentar, lineWidth)))
+		buf.WriteString(toWPC1252(wrapLine(kommentar, lineWidth)))
 		buf.WriteByte('\n')
 		buf.WriteString(BoldOff)
 	}
@@ -92,7 +92,7 @@ func FormatPositionBon(
 	buf.WriteString(AlignLeft)
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
-	buf.WriteString(toCP858(fmt.Sprintf("  %s  Bedienung: %s\n", zeitpunkt.Format("15:04"), truncate(userName, 24))))
+	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n", zeitpunkt.Format("15:04"), truncate(userName, 24))))
 
 	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm ueber dem Druckkopf)
 	buf.WriteString(strings.Repeat("\n", 5))
@@ -116,13 +116,13 @@ func FormatSammelBon(
 		buf.WriteString(Beep)
 	}
 	buf.WriteString(Init)
-	buf.WriteString(SetCodepageCP858)
+	buf.WriteString(SetCodepageWPC1252)
 
 	// Tisch - gross und fett, zentriert
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toCP858(fmt.Sprintf("== %s ==\n", tischName)))
+	buf.WriteString(toWPC1252(fmt.Sprintf("== %s ==\n", tischName)))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
@@ -133,7 +133,7 @@ func FormatSammelBon(
 	buf.WriteString(BoldOn)
 	for _, pos := range positionen {
 		artikel := fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung())
-		buf.WriteString(toCP858(artikel))
+		buf.WriteString(toWPC1252(artikel))
 		buf.WriteByte('\n')
 	}
 	buf.WriteString(BoldOff)
@@ -143,7 +143,7 @@ func FormatSammelBon(
 	if kommentar != "" {
 		buf.WriteString("\n")
 		buf.WriteString(BoldOn)
-		buf.WriteString(toCP858(wrapLine(kommentar, lineWidth)))
+		buf.WriteString(toWPC1252(wrapLine(kommentar, lineWidth)))
 		buf.WriteByte('\n')
 		buf.WriteString(BoldOff)
 	}
@@ -151,7 +151,7 @@ func FormatSammelBon(
 	// Trennlinie + Metadaten
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
-	buf.WriteString(toCP858(fmt.Sprintf("  %s  Bedienung: %s\n",
+	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n",
 		zeitpunkt.Format("15:04"),
 		truncate(userName, 24),
 	)))
@@ -179,7 +179,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	var buf bytes.Buffer
 
 	buf.WriteString(Init)
-	buf.WriteString(SetCodepageCP858)
+	buf.WriteString(SetCodepageWPC1252)
 
 	buf.WriteString(AlignCenter)
 	buf.WriteString(BoldOn)
@@ -191,11 +191,11 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString(BoldOff)
 	buf.WriteString("\n")
 
-	buf.WriteString(toCP858(wrapLine(data.Vereinsname, lineWidth)))
+	buf.WriteString(toWPC1252(wrapLine(data.Vereinsname, lineWidth)))
 	buf.WriteByte('\n')
-	buf.WriteString(toCP858(wrapLine(data.Strasse, lineWidth)))
+	buf.WriteString(toWPC1252(wrapLine(data.Strasse, lineWidth)))
 	buf.WriteByte('\n')
-	buf.WriteString(toCP858(wrapLine(strings.TrimSpace(data.Plz+" "+data.Ort), lineWidth)))
+	buf.WriteString(toWPC1252(wrapLine(strings.TrimSpace(data.Plz+" "+data.Ort), lineWidth)))
 	buf.WriteByte('\n')
 	buf.WriteString("\n")
 
@@ -214,7 +214,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 
 	for _, pos := range data.Positionen {
 		artikel := fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung())
-		buf.WriteString(toCP858(wrapLine(artikel, lineWidth)))
+		buf.WriteString(toWPC1252(wrapLine(artikel, lineWidth)))
 		buf.WriteByte('\n')
 		fmt.Fprintf(&buf, "  %s x %d = %s EUR (%s)\n", formatCents(pos.Einzelpreis), pos.Menge, formatCents(pos.Einzelpreis*pos.Menge), steuerKennzeichenAusPosition(pos.Steuersatz))
 	}
@@ -224,7 +224,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString(BoldOn)
 	fmt.Fprintf(&buf, "GESAMT: %s EUR\n", formatCents(data.GesamtbetragCents))
 	buf.WriteString(BoldOff)
-	buf.WriteString(toCP858(fmt.Sprintf("Zahlungsart: %s\n", data.Zahlungsart)))
+	buf.WriteString(toWPC1252(fmt.Sprintf("Zahlungsart: %s\n", data.Zahlungsart)))
 
 	if len(data.Steuermatrix) > 0 {
 		buf.WriteByte('\n')
@@ -249,16 +249,16 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		fmt.Fprintf(&buf, "  TSE-Seriennummer: %s\n", data.TSE.TSESeriennummer)
 		fmt.Fprintf(&buf, "  TSE-Start: %s\n", data.TSE.ZeitpunktBeginn.Format("02.01.2006 15:04:05"))
 		fmt.Fprintf(&buf, "  TSE-Ende: %s\n", data.TSE.ZeitpunktEnde.Format("02.01.2006 15:04:05"))
-		buf.WriteString(toCP858("  Signatur: "))
-		buf.WriteString(toCP858(wrapLine(data.TSE.Signatur, lineWidth-2)))
+		buf.WriteString(toWPC1252("  Signatur: "))
+		buf.WriteString(toWPC1252(wrapLine(data.TSE.Signatur, lineWidth-2)))
 		buf.WriteByte('\n')
 
 		appendNativeQRCode(&buf, data.TSE.QRCodeData)
 	} else if data.TSEAusfallvermerk {
 		buf.WriteByte('\n')
 		buf.WriteString("TSE-Hinweis:\n")
-		buf.WriteString(toCP858("  TSE voruebergehend nicht erreichbar.\n"))
-		buf.WriteString(toCP858("  Dieser Vorgang wird automatisch nachsigniert.\n"))
+		buf.WriteString(toWPC1252("  TSE voruebergehend nicht erreichbar.\n"))
+		buf.WriteString(toWPC1252("  Dieser Vorgang wird automatisch nachsigniert.\n"))
 	}
 
 	buf.WriteString("\n")
@@ -299,11 +299,12 @@ func appendNativeQRCode(buf *bytes.Buffer, qrCodeData string) {
 	buf.WriteString(AlignLeft)
 }
 
-// toCP858 transkodiert sichtbaren Text von UTF-8 in die Drucker-Codepage CP858.
+// toWPC1252 transkodiert sichtbaren Text von UTF-8 in die Drucker-Codepage WPC1252
+// (Windows-1252), passend zu SetCodepageWPC1252 (ESC t 6 am MUNBYN ITPP047P).
 // Nicht abbildbare Zeichen werden ersetzt, damit ein einzelnes Sonderzeichen nicht
 // den ganzen Bon verwirft. ESC/POS-Steuerbytes werden nie hierdurch geschickt.
-func toCP858(s string) string {
-	encoded, err := encoding.ReplaceUnsupported(charmap.CodePage858.NewEncoder()).String(s)
+func toWPC1252(s string) string {
+	encoded, err := encoding.ReplaceUnsupported(charmap.Windows1252.NewEncoder()).String(s)
 	if err != nil {
 		return s
 	}
