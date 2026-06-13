@@ -11,6 +11,18 @@ const contentSecurityPolicy = "default-src 'none'; base-uri 'self'; frame-ancest
 // schonen (Schalter PROXY_LE_STAGING).
 const leStagingCA = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
+// challengeResolvers sind die rekursiven DNS-Resolver, die Caddy für die
+// DNS-01-Propagation-Prüfung verwendet — bewusst öffentliche Resolver statt des
+// LAN-Resolvers. Viele Heimrouter (empirisch z. B. Telekom Speedport →
+// Telekom-Upstream) negativ-cachen die kurzlebigen acme-dns-TXT-Records
+// (`<install-id>.auth.jotti.rocks`, TTL 1) aggressiv und liefern danach
+// NXDOMAIN. Caddys Propagation-Prüfung läuft sonst über genau diesen
+// LAN-Resolver und läuft in einen Timeout, obwohl der Record real ausgestellt
+// ist und Let's Encrypt ihn über die eigenen Resolver sieht. Öffentliche
+// Resolver lösen den CNAME→TXT-Pfad (`_acme-challenge` → `…auth.jotti.rocks`)
+// zuverlässig auf und entkoppeln die Ausstellung vom Router des Vereins-WLANs.
+const challengeResolvers = "1.1.1.1 8.8.8.8"
+
 // caddyfileInput beschreibt, woraus der Caddyfile gerendert wird.
 type caddyfileInput struct {
 	state      InstallState // acme-dns-Credentials für die Wildcard-Site
@@ -96,8 +108,9 @@ func wildcardSite(in caddyfileInput) string {
 			password %q
 			subdomain %q
 			server_url %q
-		}%s
+		}
+		resolvers %s%s
 	}
 	import jotti_proxy
-}`, in.state.Subdomain, in.zone, in.state.Username, in.state.Password, in.state.Subdomain, in.acmeDNSURL, caBlock)
+}`, in.state.Subdomain, in.zone, in.state.Username, in.state.Password, in.state.Subdomain, in.acmeDNSURL, challengeResolvers, caBlock)
 }

@@ -25,6 +25,7 @@ func TestRenderCaddyfileWithState(t *testing.T) {
 		`password "pass-1"`,
 		`subdomain "sub-1"`,
 		`server_url "https://auth.jotti.rocks"`,
+		"resolvers 1.1.1.1 8.8.8.8",
 		"import jotti_proxy",
 		"handle_path /api/* {",
 		"reverse_proxy backend:3000",
