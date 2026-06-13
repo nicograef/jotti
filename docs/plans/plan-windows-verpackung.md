@@ -145,14 +145,14 @@ Dazu CI: paths-filter in `ci.yml` um `cmd: 'cmd/**'` erweitern und einen Job `cm
 
 ### Acceptance criteria
 
-- [ ] `cmd/starter/` existiert mit eigenem `go.mod` (module `jotti-starter`, go 1.26.0, keine Dependencies).
-- [ ] Secrets: 64 Hex-Zeichen; zwei Aufrufe liefern unterschiedliche Werte.
-- [ ] `.env`-Idempotenz: vorhandene Datei wird nie überschrieben; fehlt sie, enthält sie die vier Keys aus `.env.example` und den Kommentar-Header.
-- [ ] LAN-IP: Outbound-IP wird bevorzugt; eine 172.x-Adresse (vEthernet/WSL-Muster) gewinnt nie gegen eine 192.168.x; Loopback/169.254.x werden ignoriert.
-- [ ] Port-Verursacher-Parser: einzelnes JSON-Objekt, JSON-Array und fehlender Prozessname werden korrekt auf Port→Name/PID abgebildet; kaputtes JSON liefert einen Fehler (→ generischer Fallback).
-- [ ] Preflight: jede Bedingung bildet auf eine deutsche Diagnose mit Handlungshinweis ab — inklusive „Port 80 ist durch ‚X' (PID n) belegt".
-- [ ] `go build ./...` und `go test ./...` in `cmd/starter/` erfolgreich.
-- [ ] `ci.yml` führt den neuen `cmd-ci`-Job bei Änderungen unter `cmd/**` aus (greift damit auch für `cmd/relay`).
+- [x] `cmd/starter/` existiert mit eigenem `go.mod` (module `jotti-starter`, go 1.26.0, keine Dependencies).
+- [x] Secrets: 64 Hex-Zeichen; zwei Aufrufe liefern unterschiedliche Werte.
+- [x] `.env`-Idempotenz: vorhandene Datei wird nie überschrieben; fehlt sie, enthält sie die vier Keys aus `.env.example` und den Kommentar-Header.
+- [x] LAN-IP: Outbound-IP wird bevorzugt; eine 172.x-Adresse (vEthernet/WSL-Muster) gewinnt nie gegen eine 192.168.x; Loopback/169.254.x werden ignoriert.
+- [x] Port-Verursacher-Parser: einzelnes JSON-Objekt, JSON-Array und fehlender Prozessname werden korrekt auf Port→Name/PID abgebildet; kaputtes JSON liefert einen Fehler (→ generischer Fallback).
+- [x] Preflight: jede Bedingung bildet auf eine deutsche Diagnose mit Handlungshinweis ab — inklusive „Port 80 ist durch ‚X' (PID n) belegt".
+- [x] `go build ./...` und `go test ./...` in `cmd/starter/` erfolgreich.
+- [x] `ci.yml` führt den neuen `cmd-ci`-Job bei Änderungen unter `cmd/**` aus (greift damit auch für `cmd/relay`).
 
 ---
 

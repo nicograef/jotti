@@ -15,6 +15,7 @@ jobs:
       database: ${{ steps.changes.outputs.database }}
       resolver: ${{ steps.changes.outputs.resolver }}
       localProxy: ${{ steps.changes.outputs.localProxy }}
+      cmd: ${{ steps.changes.outputs.cmd }}
       website: ${{ steps.changes.outputs.website }}
     steps:
       - uses: actions/checkout@v6
@@ -33,6 +34,8 @@ jobs:
               - 'resolver/**'
             localProxy:
               - 'reverse-proxy/**'
+            cmd:
+              - 'cmd/**'
             website:
               - 'website/**'
               - 'scripts/check-website.sh'
@@ -165,6 +168,31 @@ jobs:
         run: go build -v ./...
 
       - name: Test
+        run: go test -v -race ./...
+
+  cmd-ci:
+    needs: changes
+    if: ${{ needs.changes.outputs.cmd == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [relay, starter]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.0
+
+      - name: Vet
+        working-directory: ./cmd/${{ matrix.module }}
+        run: go vet ./...
+
+      - name: Build
+        working-directory: ./cmd/${{ matrix.module }}
+        run: go build -v ./...
+
+      - name: Test
+        working-directory: ./cmd/${{ matrix.module }}
         run: go test -v -race ./...
 
   frontend-ci:
