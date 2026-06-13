@@ -15,12 +15,11 @@ import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import type { Produkt } from '../../product/Produkt'
-import type { BestellPositionInput } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { KommentarField } from './CommentField'
-import { calculateTotalPrice } from './drawerUtils'
-import { Receipt, type ReceiptPosition } from './Receipt'
+import { calculateTotalPrice, toBestellungData } from './drawerUtils'
+import { Receipt } from './Receipt'
 import { StickyActionBar } from './StickyActionBar'
 
 interface BestellungDrawerProps {
@@ -117,34 +116,4 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
       </DrawerContent>
     </Drawer>
   )
-}
-
-function toBestellungData(
-  products: Produkt[],
-  ausgewaehlteMengen: Record<number, number>,
-): { receiptItems: ReceiptPosition[]; inputItems: BestellPositionInput[] } {
-  const items = products.flatMap((p) =>
-    p.varianten
-      .filter((v) => (ausgewaehlteMengen[v.id] || 0) > 0)
-      .map((v) => ({
-        produktId: p.id,
-        varianteId: v.id,
-        name: v.name,
-        einzelpreis: v.preisCents,
-        menge: ausgewaehlteMengen[v.id],
-      })),
-  )
-
-  return {
-    receiptItems: items.map((i) => ({
-      name: i.name,
-      einzelpreis: i.einzelpreis,
-      menge: i.menge,
-    })),
-    inputItems: items.map((i) => ({
-      produktId: i.produktId,
-      varianteId: i.varianteId,
-      menge: i.menge,
-    })),
-  }
 }

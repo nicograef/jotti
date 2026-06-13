@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AuthSingleton } from '@/lib/Auth'
-import { formatCents } from '@/lib/utils'
+import { formatCents, formatPositionName } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -139,7 +139,7 @@ function PositionItem({
     <Item key={position.positionId} variant="outline">
       <ItemContent>
         <ItemTitle>
-          {position.produktName} {position.varianteName}
+          {formatPositionName(position.produktName, position.varianteName)}
         </ItemTitle>
         <ItemDescription>
           <span className="font-bold">

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import type { Produkt } from '@/service/product/Produkt'
 import type { Bestellung, Position } from '@/service/table/Bestellung'
 import type { Stornierung } from '@/service/table/Stornierung'
 import type { Zahlung } from '@/service/table/Zahlung'
@@ -10,6 +11,7 @@ import {
   getStornierbarePositionen,
   getUmbuchbarePositionen,
   selectPositionen,
+  toBestellungData,
 } from './drawerUtils'
 
 const positionA: Position = {
@@ -305,5 +307,38 @@ describe('calculateZahlungsbetraege', () => {
         trinkgeldCents: null,
       })
     })
+  })
+})
+
+describe('toBestellungData', () => {
+  const pommes: Produkt = {
+    id: 1,
+    name: 'Pommes',
+    kategorie: 'essen',
+    status: 'active',
+    varianten: [
+      {
+        id: 7,
+        name: 'mit Ketchup',
+        preisCents: 300,
+        status: 'active',
+        createdAt: '2025-01-01T00:00:00Z',
+        updatedAt: '2025-01-01T00:00:00Z',
+      },
+    ],
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
+  }
+
+  it('sets the receipt preview name to {Produkt} {Variante}', () => {
+    const { receiptItems } = toBestellungData([pommes], { 7: 2 })
+
+    expect(receiptItems).toEqual([
+      { name: 'Pommes mit Ketchup', einzelpreis: 300, menge: 2 },
+    ])
+  })
+
+  it('ignores variants without a selected quantity', () => {
+    expect(toBestellungData([pommes], {}).receiptItems).toEqual([])
   })
 })

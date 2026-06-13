@@ -1,6 +1,14 @@
+import { formatPositionName } from '@/lib/utils'
+
+import type { Produkt } from '../../product/Produkt'
 import type { Ausgabe } from '../../table/Ausgabe'
 import type { Auszahlung } from '../../table/Auszahlung'
-import type { Bestellung, Position, PositionRef } from '../../table/Bestellung'
+import type {
+  BestellPositionInput,
+  Bestellung,
+  Position,
+  PositionRef,
+} from '../../table/Bestellung'
 import type { Stornierung } from '../../table/Stornierung'
 import type { Zahlung } from '../../table/Zahlung'
 import type { ReceiptPosition } from './Receipt'
@@ -60,9 +68,39 @@ export function calculateZahlungsbetraege(
   }
 }
 
+export function toBestellungData(
+  products: Produkt[],
+  ausgewaehlteMengen: Record<number, number>,
+): { receiptItems: ReceiptPosition[]; inputItems: BestellPositionInput[] } {
+  const items = products.flatMap((p) =>
+    p.varianten
+      .filter((v) => (ausgewaehlteMengen[v.id] || 0) > 0)
+      .map((v) => ({
+        produktId: p.id,
+        varianteId: v.id,
+        name: formatPositionName(p.name, v.name),
+        einzelpreis: v.preisCents,
+        menge: ausgewaehlteMengen[v.id],
+      })),
+  )
+
+  return {
+    receiptItems: items.map((i) => ({
+      name: i.name,
+      einzelpreis: i.einzelpreis,
+      menge: i.menge,
+    })),
+    inputItems: items.map((i) => ({
+      produktId: i.produktId,
+      varianteId: i.varianteId,
+      menge: i.menge,
+    })),
+  }
+}
+
 export function toReceiptItems(positionen: Position[]): ReceiptPosition[] {
   return positionen.map((p) => ({
-    name: `${p.produktName} ${p.varianteName}`,
+    name: formatPositionName(p.produktName, p.varianteName),
     einzelpreis: p.einzelpreis,
     menge: p.menge,
   }))

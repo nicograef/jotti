@@ -168,40 +168,40 @@ Bon-Ausgabe), nicht, ob eine bestimmte Hilfsfunktion aufgerufen wurde.
 
 **Backend:**
 
-- [ ] `Position.Bezeichnung()` existiert auf `kasse.Position` und liefert
+- [x] `Position.Bezeichnung()` existiert auf `kasse.Position` und liefert
       `TrimSpace(ProduktName + " " + VarianteName)`.
-- [ ] Unit-Tests für `Bezeichnung()`: Normalfall („Pommes" + „mit Ketchup" →
+- [x] Unit-Tests für `Bezeichnung()`: Normalfall („Pommes" + „mit Ketchup" →
       „Pommes mit Ketchup"), gleichlautend („Cola" + „Cola" → „Cola Cola",
       kein Dedup), leerer Variantenname („Maß Bier" + „" → „Maß Bier", kein
       Trailing-Space).
-- [ ] Alle drei Formatter-Stellen verwenden `"%dx %s"` mit `pos.Bezeichnung()`;
+- [x] Alle drei Formatter-Stellen verwenden `"%dx %s"` mit `pos.Bezeichnung()`;
       Bon-Ausgabe enthält keine Klammern mehr um die Variante.
-- [ ] `formatter_test.go`-Assertions auf das klammerlose Format aktualisiert
+- [x] `formatter_test.go`-Assertions auf das klammerlose Format aktualisiert
       (Einzel-Arbeitsbon, Sammelbon, Kassenbeleg, Stornobeleg) — z. B.
       „3x Pommes gross", „1x Bratwurst mit Brot".
-- [ ] `BuildBestellungProcessData` nutzt `pos.Bezeichnung()`; der
+- [x] `BuildBestellungProcessData` nutzt `pos.Bezeichnung()`; der
       `EqualFold`-Dedup ist entfernt; `"Unbekannt"`-Fallback und
       Anführungszeichen-Verdopplung bleiben funktional.
-- [ ] Bestehende `processdata_test.go`-Fälle (leere/abweichende Variante)
+- [x] Bestehende `processdata_test.go`-Fälle (leere/abweichende Variante)
       bleiben grün; Quoting-Test unverändert.
 
 **Frontend:**
 
-- [ ] `formatPositionName(produktName, varianteName)` existiert in
+- [x] `formatPositionName(produktName, varianteName)` existiert in
       `lib/utils.ts` und liefert `` `${produktName} ${varianteName}`.trim() ``.
-- [ ] Unit-Tests für `formatPositionName`: Normalfall, leerer Variantenname
+- [x] Unit-Tests für `formatPositionName`: Normalfall, leerer Variantenname
       (nur Produktname, kein Trailing-Space), gleichlautende Namen.
-- [ ] Live-Reporting und Reporting-Ergebnisse zeigen `{Produkt} {Variante}`
+- [x] Live-Reporting und Reporting-Ergebnisse zeigen `{Produkt} {Variante}`
       ohne Klammern (Helper statt bedingter Klammer-Darstellung).
-- [ ] `toBestellungData` setzt das `name`-Feld der Bon-Vorschau auf den
+- [x] `toBestellungData` setzt das `name`-Feld der Bon-Vorschau auf den
       zusammengesetzten Namen; Test belegt „{Produkt} {Variante}" statt nur der
       Variante. `Receipt`-Komponente unverändert.
-- [ ] `toReceiptItems`, Zahlung, Ausgabe, Historie-Stornierung,
+- [x] `toReceiptItems`, Zahlung, Ausgabe, Historie-Stornierung,
       Historie-Umbuchung und Direktverkauf-Storno (inkl. beider aria-labels)
       rufen `formatPositionName` auf; Darstellung visuell unverändert.
 
 **Querschnitt:**
 
-- [ ] `make check` (Backend + Frontend Lint/Build/Unit-Tests) ist grün.
-- [ ] Die Zusammensetzungsregel existiert pro Stack an genau einer Stelle; eine
+- [x] `make check` (Backend + Frontend Lint/Build/Unit-Tests) ist grün.
+- [x] Die Zusammensetzungsregel existiert pro Stack an genau einer Stelle; eine
       künftige Format-Änderung ist eine Ein-Zeilen-Änderung pro Stack.

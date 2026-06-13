@@ -14,7 +14,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { formatCents } from '@/lib/utils'
+import { formatCents, formatPositionName } from '@/lib/utils'
 
 import type {
   DirektverkaufHistorieEintrag,
@@ -121,7 +121,10 @@ export function DirektverkaufStornoDrawer({
                   >
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">
-                        {position.produktName} {position.varianteName}
+                        {formatPositionName(
+                          position.produktName,
+                          position.varianteName,
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {formatCents(position.einzelpreis)}&nbsp;€ ·{' '}
@@ -133,7 +136,7 @@ export function DirektverkaufStornoDrawer({
                         variant="secondary"
                         size="icon"
                         className="h-8 w-8"
-                        aria-label={`${position.produktName} ${position.varianteName} verringern`}
+                        aria-label={`${formatPositionName(position.produktName, position.varianteName)} verringern`}
                         onClick={() => {
                           onRemove(position.positionId)
                         }}
@@ -150,7 +153,7 @@ export function DirektverkaufStornoDrawer({
                         variant="secondary"
                         size="icon"
                         className="h-8 w-8"
-                        aria-label={`${position.produktName} ${position.varianteName} hinzufügen`}
+                        aria-label={`${formatPositionName(position.produktName, position.varianteName)} hinzufügen`}
                         onClick={() => {
                           onAdd(position.positionId, position.menge)
                         }}

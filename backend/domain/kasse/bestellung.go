@@ -1,6 +1,7 @@
 package kasse
 
 import (
+	"strings"
 	"time"
 
 	z "github.com/Oudwins/zog"
@@ -17,6 +18,13 @@ type Position struct {
 	Steuersatz   string
 	Einzelpreis  int
 	Menge        int
+}
+
+// Bezeichnung is the canonical position name: product name and variant name
+// joined by a single space, trimmed at the edges. No brackets, no dedup —
+// the single place in the backend that composes these two fields.
+func (p Position) Bezeichnung() string {
+	return strings.TrimSpace(p.ProduktName + " " + p.VarianteName)
 }
 
 // PositionEventData is the serialization-friendly representation of Position for the event store.

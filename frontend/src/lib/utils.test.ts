@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatCents, parseCents } from './utils'
+import { formatCents, formatPositionName, parseCents } from './utils'
 
 describe('formatCents', () => {
   it.each([
@@ -14,6 +14,16 @@ describe('formatCents', () => {
     [10, '0,10'],
   ])('formatCents(%i) = %s', (input, expected) => {
     expect(formatCents(input)).toBe(expected)
+  })
+})
+
+describe('formatPositionName', () => {
+  it.each([
+    ['Pommes', 'mit Ketchup', 'Pommes mit Ketchup'],
+    ['Maß Bier', '', 'Maß Bier'],
+    ['Cola', 'Cola', 'Cola Cola'],
+  ])('formatPositionName(%s, %s) = %s', (produkt, variante, expected) => {
+    expect(formatPositionName(produkt, variante)).toBe(expected)
   })
 })
 

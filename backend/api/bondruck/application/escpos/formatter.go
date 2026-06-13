@@ -74,7 +74,7 @@ func FormatPositionBon(
 	// Position - doppelte Hoehe, fett, zentriert
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toCP858(fmt.Sprintf("%dx %s (%s)\n", pos.Menge, pos.ProduktName, pos.VarianteName)))
+	buf.WriteString(toCP858(fmt.Sprintf("%dx %s\n", pos.Menge, pos.Bezeichnung())))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
@@ -132,7 +132,7 @@ func FormatSammelBon(
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
 	for _, pos := range positionen {
-		artikel := fmt.Sprintf("%dx %s (%s)", pos.Menge, pos.ProduktName, pos.VarianteName)
+		artikel := fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung())
 		buf.WriteString(toCP858(artikel))
 		buf.WriteByte('\n')
 	}
@@ -213,7 +213,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteByte('\n')
 
 	for _, pos := range data.Positionen {
-		artikel := fmt.Sprintf("%dx %s (%s)", pos.Menge, pos.ProduktName, pos.VarianteName)
+		artikel := fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung())
 		buf.WriteString(toCP858(wrapLine(artikel, lineWidth)))
 		buf.WriteByte('\n')
 		fmt.Fprintf(&buf, "  %s x %d = %s EUR (%s)\n", formatCents(pos.Einzelpreis), pos.Menge, formatCents(pos.Einzelpreis*pos.Menge), steuerKennzeichenAusPosition(pos.Steuersatz))

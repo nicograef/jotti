@@ -95,11 +95,11 @@ ausweisen.
       unsere Inputs bleiben gültig. (v3.0.0: einziger Breaking Change ist der
       Node-20→24-Runtime-Wechsel; `files` und `generate_release_notes` sind in
       `action.yml@v3.0.0` unverändert definiert.)
-- [ ] Release-Dry-Run (`gh workflow run release.yml --ref main`) läuft grün
-      durch (Build + Smoke-Test). — offen: läuft erst nach Merge auf `main`
-      (workflow_dispatch nutzt den Ref); Trigger durch den Maintainer.
-- [ ] Die Node-20-Deprecation-Annotation erscheint im Dry-Run **nicht** mehr.
-      — offen: wird mit dem Dry-Run oben verifiziert.
+- [x] Release-Dry-Run (`gh workflow run release.yml --ref main`) läuft grün
+      durch (Build + Smoke-Test). (Run 27466439620, `conclusion: success`.)
+- [x] Die Node-20-Deprecation-Annotation erscheint im Dry-Run **nicht** mehr.
+      (Run 27466439620: keine `deprecated`-/`Node.js`-Meldung, keine
+      `##[warning]`-Zeile im gesamten Log.)
 
 ---
 
@@ -133,5 +133,6 @@ Release, und der Go-Modul-Cache funktioniert dort, wo er etwas bringt.
       — offen: verifiziert sich beim ersten CI-Lauf nach Merge.
 - [ ] Für Module mit `go.sum` greift der Cache (Job-Log: „Cache restored“ /
       „Cache saved“ statt Fehlschlag). — offen: siehe CI-Lauf oben.
-- [ ] Der Release-Dry-Run zeigt die Cache-Annotation **nicht** mehr.
-      — offen: gemeinsam mit dem Phase-1-Dry-Run nach Merge.
+- [x] Der Release-Dry-Run zeigt die Cache-Annotation **nicht** mehr.
+      (Run 27466439620: `setup-go` lief mit `cache: false`, kein
+      `Restore cache failed`.)

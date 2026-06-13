@@ -14,6 +14,18 @@ export function formatCents(cents: number): string {
 }
 
 /**
+ * Composes the canonical position name: product name and variant name joined by
+ * a single space, trimmed at the edges. No brackets, no dedup.
+ * Example: ("Pommes", "mit Ketchup") → "Pommes mit Ketchup"
+ */
+export function formatPositionName(
+  produktName: string,
+  varianteName: string,
+): string {
+  return `${produktName} ${varianteName}`.trim()
+}
+
+/**
  * Parses a Euro string (with comma or dot separator) to cents.
  * Example: "12,50" → 1250, "12.50" → 1250, invalid → 0
  */

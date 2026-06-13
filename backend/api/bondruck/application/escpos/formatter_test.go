@@ -35,7 +35,7 @@ func TestFormatPositionBon_ContainsTischName(t *testing.T) {
 func TestFormatPositionBon_ContainsArtikel(t *testing.T) {
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
 	got := string(payload)
-	if !strings.Contains(got, "3x Pommes (gross)") {
+	if !strings.Contains(got, "3x Pommes gross") {
 		t.Errorf("Bon enthaelt nicht den Artikel; got:\n%q", got)
 	}
 }
@@ -116,10 +116,10 @@ func TestFormatSammelBon_ContainsAllPositionen(t *testing.T) {
 	}
 	payload := escpos.FormatSammelBon([]kasse.Position{testPos, pos2}, "Tisch 7", "Maria", testTime, "", false)
 	got := string(payload)
-	if !strings.Contains(got, "3x Pommes (gross)") {
+	if !strings.Contains(got, "3x Pommes gross") {
 		t.Errorf("Sammelbon enthaelt nicht erste Position; got:\n%q", got)
 	}
-	if !strings.Contains(got, "1x Bratwurst (mit Brot)") {
+	if !strings.Contains(got, "1x Bratwurst mit Brot") {
 		t.Errorf("Sammelbon enthaelt nicht zweite Position; got:\n%q", got)
 	}
 }
@@ -164,10 +164,10 @@ func TestFormatDirektverkaufAbholbon_HasFixedLabelAndNoPrices(t *testing.T) {
 	if !strings.Contains(got, "Direktverkauf") {
 		t.Errorf("Abholbon enthaelt nicht das fixe Label Direktverkauf; got:\n%q", got)
 	}
-	if !strings.Contains(got, "3x Pommes (gross)") {
+	if !strings.Contains(got, "3x Pommes gross") {
 		t.Errorf("Abholbon enthaelt nicht die erste Position; got:\n%q", got)
 	}
-	if !strings.Contains(got, "2x Bier (0,5l)") {
+	if !strings.Contains(got, "2x Bier 0,5l") {
 		t.Errorf("Abholbon enthaelt nicht die zweite Position; got:\n%q", got)
 	}
 	if strings.Contains(got, "EUR") {
@@ -195,7 +195,7 @@ func TestFormatKassenbeleg_ContainsPflichtfelder(t *testing.T) {
 		"SV Musterstadt",
 		"Kassen-ID: 2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
 		"Bon-Nr: 42",
-		"3x Pommes (gross)",
+		"3x Pommes gross",
 		"GESAMT: 9,00 EUR",
 		"Zahlungsart: bar",
 	}

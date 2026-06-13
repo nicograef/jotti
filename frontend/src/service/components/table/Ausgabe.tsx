@@ -12,6 +12,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatPositionName } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -120,7 +121,7 @@ function PositionItem({
     <Item key={position.positionId} variant="outline">
       <ItemContent>
         <ItemTitle>
-          {position.produktName} {position.varianteName}
+          {formatPositionName(position.produktName, position.varianteName)}
         </ItemTitle>
         <ItemDescription>
           noch {ausstehendeMenge - menge} ausstehend

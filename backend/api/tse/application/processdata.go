@@ -80,11 +80,7 @@ func BuildBestellungProcessData(positionen []kasse.Position) (string, error) {
 			continue
 		}
 
-		name := strings.TrimSpace(pos.ProduktName)
-		variante := strings.TrimSpace(pos.VarianteName)
-		if variante != "" && !strings.EqualFold(variante, name) {
-			name = strings.TrimSpace(name + " " + variante)
-		}
+		name := pos.Bezeichnung()
 		if name == "" {
 			name = "Unbekannt"
 		}

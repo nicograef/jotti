@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/item'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { formatCents } from '@/lib/utils'
+import { formatCents, formatPositionName } from '@/lib/utils'
 
 import type { LiveReportingData } from './types'
 
@@ -334,8 +334,11 @@ export function LiveReportingSection({
                             className="flex justify-between text-sm text-muted-foreground"
                           >
                             <span>
-                              {pos.menge}× {pos.produktName}
-                              {pos.varianteName ? ` (${pos.varianteName})` : ''}
+                              {pos.menge}×{' '}
+                              {formatPositionName(
+                                pos.produktName,
+                                pos.varianteName,
+                              )}
                             </span>
                             <span>{formatCents(pos.einzelpreis)} €</span>
                           </li>
