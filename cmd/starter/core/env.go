@@ -55,21 +55,41 @@ func MaterializeEnv(path string, exists func(string) (bool, error), write func(s
 	return true, nil
 }
 
-// ResolveEnv entscheidet, welchen .env-Inhalt der Start verwenden soll. Quelle
-// der Wahrheit ist das jotti-config-Volume: liegt dort bereits ein Secret
-// (volumeContent), wird es unveraendert uebernommen — so kann der Schluessel nie
-// von den Daten abweichen, die er entsperrt. Beim Erststart ist das Volume leer;
-// dann wird ein vorhandener ordnerlokaler .env-Inhalt (localContent) adoptiert
-// (Upgrade einer Installation aus der Zeit vor dem Volume, deren Secret weiter
-// zur bestehenden postgres-data passen muss), sonst werden frische Secrets
-// erzeugt. seed meldet, ob der gewaehlte Inhalt noch ins Volume geschrieben
-// werden muss (false nur, wenn er von dort stammt).
-func ResolveEnv(volumeContent, localContent string) (content string, seed bool) {
+// EnvResolution ist das Ergebnis der Secret-Discovery: welchen .env-Inhalt der
+// Start verwenden soll und wie damit zu verfahren ist. Abort schliesst die anderen
+// Felder aus — ist es gesetzt, wurde kein Secret gefunden, obwohl Daten existieren,
+// und der Start muss abbrechen, ohne irgendetwas zu veraendern.
+type EnvResolution struct {
+	Content string // zu verwendender .env-Inhalt (leer, wenn Abort)
+	Seed    bool   // Content muss noch ins jotti-config-Volume geschrieben werden
+	Abort   bool   // kein Secret gefunden, aber postgres-data vorhanden → abbrechen
+}
+
+// ResolveEnv waehlt das Install-Secret aus der ersten nicht-leeren Quelle in fester
+// Reihenfolge: zuerst das jotti-config-Volume (volumeContent) — die Vorwaerts-Quelle
+// der Wahrheit, deren Inhalt unveraendert uebernommen wird (Seed false), damit der
+// Schluessel nie von den Daten abweicht, die er entsperrt. Ist das Volume leer,
+// gewinnt der erste nicht-leere ordnerlokale Kandidat (localCandidates, in
+// Prioritaetsreihenfolge: Host-Spiegel unter %PROGRAMDATA%\jotti, dann .env neben
+// Compose/Exe, wie eine Version vor dem Volume sie hinterlassen hat); er wird
+// adoptiert und ins Volume geschrieben (Seed true).
+//
+// Findet sich nirgends ein Secret, entscheidet postgresDataExists ueber den
+// Fail-Safe: existieren bereits Daten, wird abgebrochen (Abort), statt frische
+// Secrets neben vorhandene Daten zu erzeugen und damit das alte Passwort
+// auszusperren. Nur bei echter Erstinstallation (keine Daten) werden frische
+// Secrets erzeugt (Seed true) — wie bisher.
+func ResolveEnv(volumeContent string, localCandidates []string, postgresDataExists bool) EnvResolution {
 	if strings.TrimSpace(volumeContent) != "" {
-		return volumeContent, false
+		return EnvResolution{Content: volumeContent, Seed: false}
 	}
-	if strings.TrimSpace(localContent) != "" {
-		return localContent, true
+	for _, candidate := range localCandidates {
+		if strings.TrimSpace(candidate) != "" {
+			return EnvResolution{Content: candidate, Seed: true}
+		}
 	}
-	return EnvContent(), true
+	if postgresDataExists {
+		return EnvResolution{Abort: true}
+	}
+	return EnvResolution{Content: EnvContent(), Seed: true}
 }

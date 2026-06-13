@@ -67,8 +67,12 @@ func run() int {
 			fmt.Println(msg)
 			return 1
 		}
-		if err := materializeEnvFromVolume(envPath); err != nil {
-			fmt.Printf("Zugangsdaten konnten nicht bereitgestellt werden: %v\n", err)
+		if err := materializeEnvFromVolume(envPath, envCandidateDirs(stateDir, filepath.Dir(composePath))); err != nil {
+			// Den Fail-Safe-Abbruch hat materializeEnvFromVolume bereits ausfuehrlich
+			// gemeldet; nur echte Fehler bekommen hier ein Praefix.
+			if !errors.Is(err, errSecretFehltMitDaten) {
+				fmt.Printf("Zugangsdaten konnten nicht bereitgestellt werden: %v\n", err)
+			}
 			return 1
 		}
 		if msg := checkPorts(composePath); msg != "" {
@@ -144,6 +148,19 @@ func resolveStateDir(fallback string) (string, error) {
 // nicht fatal: er kostet hoechstens dieses Backup, nie den laufenden Start.
 func writeLastVersion(stateDir string) error {
 	return os.WriteFile(filepath.Join(stateDir, lastVersionFile), []byte(version+"\n"), 0o644)
+}
+
+// envCandidateDirs liefert die Verzeichnisse, in denen materializeEnvFromVolume nach
+// einer bestehenden .env sucht (Reihenfolge: kanonisches Zustandsverzeichnis, Ordner
+// der Compose-Datei, Ordner der Programmdatei). Bewusst NICHT das Arbeitsverzeichnis:
+// nach der UAC-Elevation ist das C:\Windows\System32 (vgl. resolveComposeFile) — die
+// alte ordnerlokale .env liegt neben Compose/Exe, nicht dort.
+func envCandidateDirs(stateDir, composeDir string) []string {
+	dirs := []string{stateDir, composeDir}
+	if exe, err := os.Executable(); err == nil {
+		dirs = append(dirs, filepath.Dir(exe))
+	}
+	return dirs
 }
 
 // resolveComposeFile sucht die Compose-Datei immer relativ zur Programmdatei —

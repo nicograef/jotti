@@ -27,6 +27,16 @@ const (
 
 	DiagnoseEngineSwitchFehlgeschlagen = "Docker laeuft im Windows-Container-Modus und konnte nicht automatisch auf " +
 		"Linux-Container umgeschaltet werden. Bitte in Docker Desktop \"Switch to Linux containers\" waehlen und jotti erneut starten."
+
+	// DiagnoseSecretFehltMitDaten ist die Fail-Safe-Meldung: es gibt bereits Daten,
+	// aber an keinem Suchort ein Install-Secret. jotti bricht ab, statt frische
+	// Secrets neben die Daten zu erzeugen (das wuerde sie aussperren), und nennt
+	// die gesuchten Orte samt Rettungsweg (alte .env an den kanonischen Ort legen).
+	DiagnoseSecretFehltMitDaten = "Es sind bereits jotti-Daten vorhanden, aber es wurden keine Zugangsdaten (.env) gefunden. " +
+		"jotti startet NICHT, um die vorhandenen Daten nicht mit neuen, falschen Zugangsdaten auszusperren.\n" +
+		"Gesucht wurde im jotti-Datentresor, unter \"%PROGRAMDATA%\\jotti\\.env\" und neben jotti-start.exe.\n" +
+		"Bitte die .env aus der vorherigen jotti-Installation (frueher im Programmordner neben jotti-start.exe) " +
+		"nach \"%PROGRAMDATA%\\jotti\\.env\" kopieren und jotti erneut starten."
 )
 
 // typischePortVerursacher nennt haeufige Beleger von 80/443 fuer den Fall, dass

@@ -156,16 +156,16 @@ Secrets erzeugt (wie bisher). Die reine Auswahl-/Fail-Safe-Logik liegt testbar i
 
 ### Acceptance criteria
 
-- [ ] Upgrade-Layout mit `.env` **neben der Exe** (Vor-Phase-2-Fall) → Secret wird
+- [x] Upgrade-Layout mit `.env` **neben der Exe** (Vor-Phase-2-Fall) → Secret wird
       adoptiert, **keine** Neugenerierung, kein Lockout; Volume wird mit dem
       adoptierten Secret befüllt.
-- [ ] Secret nur im `%PROGRAMDATA%\jotti\.env` → adoptiert; Secret nur im Volume →
+- [x] Secret nur im `%PROGRAMDATA%\jotti\.env` → adoptiert; Secret nur im Volume →
       übernommen (unverändert, kein erneutes Seeden).
-- [ ] `postgres-data` vorhanden, aber an **keinem** Ort ein Secret → Start bricht
+- [x] `postgres-data` vorhanden, aber an **keinem** Ort ein Secret → Start bricht
       mit Anleitung ab, erzeugt/ändert nichts.
-- [ ] Echte Erstinstallation (kein `postgres-data`, kein Secret) → frische Secrets
+- [x] Echte Erstinstallation (kein `postgres-data`, kein Secret) → frische Secrets
       wie bisher.
-- [ ] Linux-Dev-Lauf (`go run`) unverändert grün; `core`-Logik unit-getestet
+- [x] Linux-Dev-Lauf (`go run`) unverändert grün; `core`-Logik unit-getestet
       (Reihenfolge, Adoption, Fail-Safe).
 
 ---

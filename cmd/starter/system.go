@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -258,26 +259,53 @@ const configVolumePath = "/config/.env"
 // hier mitziehen, sonst wird ein zweites Image gezogen.
 const configHelperImage = "postgres:17.8"
 
+// errSecretFehltMitDaten signalisiert den Fail-Safe-Abbruch: vorhandene Daten, aber
+// nirgends ein Secret. Die ausfuehrliche Anleitung gibt materializeEnvFromVolume
+// selbst aus (wie die Preflight-Diagnosen) — run() beendet daraufhin nur noch mit
+// Code 1, ohne die Meldung mit einem Fehlerpraefix zu doppeln.
+var errSecretFehltMitDaten = errors.New("start abgebrochen: keine Zugangsdaten zu vorhandenen Daten gefunden")
+
 // materializeEnvFromVolume macht das jotti-config-Volume zur Quelle der Wahrheit
 // fuers Install-Secret und schreibt den Host-.env-Spiegel, den `compose
 // --env-file` und das Relay lesen. Laeuft nur unter Windows und nach ensureDocker
-// (der Volume-Read braucht einen laufenden Daemon). Entweder haelt das Volume das
-// Secret bereits (lesen und spiegeln) oder es ist der Erststart (erzeugen oder
-// einen vorhandenen ordnerlokalen .env adoptieren, dann ins Volume schreiben).
-func materializeEnvFromVolume(envPath string) error {
+// (der Volume-Read braucht einen laufenden Daemon). Das Secret wird in fester
+// Reihenfolge gesucht (Volume → ordnerlokale Kandidaten in localDirs); ein adoptierter
+// Treffer wird ins Volume geschrieben. Wird nichts gefunden, obwohl bereits Daten
+// existieren, bricht der Start ab (Fail-Safe), statt frische Secrets neben die Daten
+// zu erzeugen und sie damit auszusperren.
+func materializeEnvFromVolume(envPath string, localDirs []string) error {
 	volumeContent, err := readConfigVolume()
 	if err != nil {
 		return err
 	}
-	localContent, _ := os.ReadFile(envPath) // fehlt/unlesbar → als leer behandelt
-	content, seed := core.ResolveEnv(volumeContent, string(localContent))
-	if seed {
-		if err := writeConfigVolume(content); err != nil {
+	dataExists, err := volumeExists(postgresDataVolume)
+	if err != nil {
+		return err
+	}
+	res := core.ResolveEnv(volumeContent, readEnvCandidates(localDirs), dataExists)
+	if res.Abort {
+		fmt.Println(core.DiagnoseSecretFehltMitDaten)
+		return errSecretFehltMitDaten
+	}
+	if res.Seed {
+		if err := writeConfigVolume(res.Content); err != nil {
 			return err
 		}
 		fmt.Println("Zugangsdaten im jotti-Datentresor gesichert.")
 	}
-	return writeEnvFile(envPath, []byte(content))
+	return writeEnvFile(envPath, []byte(res.Content))
+}
+
+// readEnvCandidates liest den .env-Inhalt aus jedem Kandidatenverzeichnis in
+// Reihenfolge. Ein fehlender oder unlesbarer Eintrag liefert leeren Inhalt — leere
+// Kandidaten ueberspringt die Auswahl in core.ResolveEnv.
+func readEnvCandidates(dirs []string) []string {
+	candidates := make([]string, 0, len(dirs))
+	for _, dir := range dirs {
+		data, _ := os.ReadFile(filepath.Join(dir, ".env"))
+		candidates = append(candidates, string(data))
+	}
+	return candidates
 }
 
 // readConfigVolume liest die gespiegelte .env aus dem jotti-config-Volume ueber

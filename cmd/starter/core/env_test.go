@@ -65,33 +65,56 @@ func TestMaterializeEnvPropagatesExistsError(t *testing.T) {
 }
 
 func TestResolveEnvVolumeWins(t *testing.T) {
-	content, seed := ResolveEnv("POSTGRES_PASSWORD=ausvolume\n", "POSTGRES_PASSWORD=lokal\n")
-	if seed {
-		t.Fatal("seed: got true, want false (Volume-Secret darf nicht neu geschrieben werden)")
+	res := ResolveEnv("POSTGRES_PASSWORD=ausvolume\n", []string{"POSTGRES_PASSWORD=lokal\n"}, true)
+	if res.Seed {
+		t.Fatal("Seed: got true, want false (Volume-Secret darf nicht neu geschrieben werden)")
 	}
-	if content != "POSTGRES_PASSWORD=ausvolume\n" {
-		t.Fatalf("Volume-Inhalt muss unveraendert uebernommen werden: got %q", content)
+	if res.Abort {
+		t.Fatal("Abort: got true, want false (Volume hat ein Secret)")
 	}
-}
-
-func TestResolveEnvAdoptsLocalWhenVolumeEmpty(t *testing.T) {
-	content, seed := ResolveEnv("   \n", "POSTGRES_PASSWORD=lokal\n")
-	if !seed {
-		t.Fatal("seed: got false, want true (adoptierter Inhalt muss ins Volume)")
-	}
-	if content != "POSTGRES_PASSWORD=lokal\n" {
-		t.Fatalf("ordnerlokaler Inhalt muss adoptiert werden: got %q", content)
+	if res.Content != "POSTGRES_PASSWORD=ausvolume\n" {
+		t.Fatalf("Volume-Inhalt muss unveraendert uebernommen werden: got %q", res.Content)
 	}
 }
 
-func TestResolveEnvGeneratesFreshWhenBothEmpty(t *testing.T) {
-	content, seed := ResolveEnv("", "")
-	if !seed {
-		t.Fatal("seed: got false, want true (frische Secrets muessen ins Volume)")
+func TestResolveEnvAdoptsFirstNonEmptyCandidate(t *testing.T) {
+	// Volume leer, erster Kandidat (Host-Spiegel) leer → der zweite (ordnerlokal
+	// neben der Exe) gewinnt und muss ins Volume.
+	res := ResolveEnv("   \n", []string{"  \n", "POSTGRES_PASSWORD=lokal\n"}, true)
+	if !res.Seed {
+		t.Fatal("Seed: got false, want true (adoptierter Inhalt muss ins Volume)")
+	}
+	if res.Abort {
+		t.Fatal("Abort: got true, want false (ein Kandidat traegt ein Secret)")
+	}
+	if res.Content != "POSTGRES_PASSWORD=lokal\n" {
+		t.Fatalf("erster nicht-leerer Kandidat muss adoptiert werden: got %q", res.Content)
+	}
+}
+
+func TestResolveEnvAbortsWhenDataButNoSecret(t *testing.T) {
+	// Daten vorhanden, aber nirgends ein Secret → abbrechen, nicht neu erzeugen.
+	res := ResolveEnv("", []string{"", "   "}, true)
+	if !res.Abort {
+		t.Fatal("Abort: got false, want true (Fail-Safe: Daten ohne Secret)")
+	}
+	if res.Seed || res.Content != "" {
+		t.Fatalf("Abort darf keinen Inhalt erzeugen: got Content=%q Seed=%v", res.Content, res.Seed)
+	}
+}
+
+func TestResolveEnvGeneratesFreshOnFirstInstall(t *testing.T) {
+	// Keine Daten, kein Secret → echte Erstinstallation, frische Secrets ins Volume.
+	res := ResolveEnv("", nil, false)
+	if !res.Seed {
+		t.Fatal("Seed: got false, want true (frische Secrets muessen ins Volume)")
+	}
+	if res.Abort {
+		t.Fatal("Abort: got true, want false (ohne Daten ist es eine Erstinstallation)")
 	}
 	for _, key := range []string{"POSTGRES_USER=admin", "POSTGRES_PASSWORD=", "JWT_SECRET=", "RELAY_AUTH_TOKEN="} {
-		if !strings.Contains(content, key) {
-			t.Fatalf("frischer Inhalt enthaelt %q nicht:\n%s", key, content)
+		if !strings.Contains(res.Content, key) {
+			t.Fatalf("frischer Inhalt enthaelt %q nicht:\n%s", key, res.Content)
 		}
 	}
 }
