@@ -250,9 +250,9 @@ Zeitverlust, kein Abbruch. **Kein** automatisches Anwenden.
 
 ### Acceptance criteria
 
-- [ ] Existiert ein neueres Release, erscheint „Neue Version vX verfügbar: <link>".
-- [ ] Offline/timeout → kein Hinweis, kein spürbarer Startverzug, kein Fehler.
-- [ ] Aktuelle Version → kein Hinweis.
+- [x] Existiert ein neueres Release, erscheint „Neue Version vX verfügbar: <link>".
+- [x] Offline/timeout → kein Hinweis, kein spürbarer Startverzug, kein Fehler.
+- [x] Aktuelle Version → kein Hinweis.
 
 ---
 

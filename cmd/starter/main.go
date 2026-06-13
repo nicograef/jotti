@@ -3,8 +3,9 @@
 // Manifest) raeumt die Docker-Voraussetzungen aus (Daemon-Start, Linux-Engine),
 // holt das Install-Secret aus dem jotti-config-Volume (oder erzeugt es beim
 // Erststart) und spiegelt es in die .env, prueft die Ports, gibt die Firewall
-// frei, faehrt den Compose-Stack hoch und wartet, bis jotti unter /api/health
-// bereit ist. Host-Zustand (.env-Spiegel, last-version-Marker) liegt unter
+// frei, faehrt den Compose-Stack hoch, wartet, bis jotti unter /api/health bereit
+// ist, und weist danach (non-fatal, online) auf eine neuere Version hin. Host-
+// Zustand (.env-Spiegel, last-version-Marker) liegt unter
 // Windows kanonisch in %PROGRAMDATA%\jotti — unabhaengig vom Entpack-Ort. Die
 // reine Logik liegt in cmd/starter/core; diese Datei verbindet sie mit den echten
 // Seiteneffekten. Alle Windows-spezifischen Schritte laufen nur unter
@@ -114,6 +115,10 @@ func run() int {
 	}
 
 	printSuccess()
+
+	// Nach gesundem Start kurz online pruefen, ob eine neuere Version vorliegt, und
+	// nur darauf hinweisen. Non-fatal: offline/Timeout/Fehler ueberspringen still.
+	notifyIfUpdateAvailable()
 	return 0
 }
 
