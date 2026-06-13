@@ -89,13 +89,17 @@ ausweisen.
 
 ### Acceptance criteria
 
-- [ ] `release.yml` referenziert `docker/setup-buildx-action@v4` und
+- [x] `release.yml` referenziert `docker/setup-buildx-action@v4` und
       `softprops/action-gh-release@v3`.
-- [ ] Release-Notes von `action-gh-release@v3` auf Breaking Changes geprüft;
-      unsere Inputs bleiben gültig.
+- [x] Release-Notes von `action-gh-release@v3` auf Breaking Changes geprüft;
+      unsere Inputs bleiben gültig. (v3.0.0: einziger Breaking Change ist der
+      Node-20→24-Runtime-Wechsel; `files` und `generate_release_notes` sind in
+      `action.yml@v3.0.0` unverändert definiert.)
 - [ ] Release-Dry-Run (`gh workflow run release.yml --ref main`) läuft grün
-      durch (Build + Smoke-Test).
+      durch (Build + Smoke-Test). — offen: läuft erst nach Merge auf `main`
+      (workflow_dispatch nutzt den Ref); Trigger durch den Maintainer.
 - [ ] Die Node-20-Deprecation-Annotation erscheint im Dry-Run **nicht** mehr.
+      — offen: wird mit dem Dry-Run oben verifiziert.
 
 ---
 
