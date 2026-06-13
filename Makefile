@@ -4,14 +4,14 @@
 	test test-frontend test-integration test-all \
        lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt \
-       build-backend build-frontend build \
+       build-backend build-relay build-resolver build-local-proxy build-frontend build \
        sqlc \
        prod-init prod-up prod-down prod-logs \
        rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed \
        local-up local-down local-logs local-reset-db local-reset-and-seed \
        db-shell seed rebuild-projections \
        clean \
-	check-tools check-backend check-relay check-resolver check-frontend check-integration check check-full verify \
+	check-tools check-backend check-relay check-resolver check-local-proxy check-frontend check-integration check check-full verify \
        website \
        help
 
@@ -94,6 +94,9 @@ build-relay: ## Print-Relay-Binary kompilieren
 build-resolver: ## DNS-Resolver-Binary kompilieren
 	cd resolver && go build ./...
 
+build-local-proxy: ## Lokales Proxy-Entrypoint-Binary kompilieren
+	cd reverse-proxy && go build ./...
+
 build-frontend: ## Frontend kompilieren
 	cd frontend && pnpm build
 
@@ -152,9 +155,11 @@ rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (SSL bleibt e
 # Lokaler Betrieb (LAN, HTTPS via Caddy)
 # ──────────────────────────────────────────────
 
-local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS, Caddy mit interner CA) — siehe docs/betrieb/leitfaden-hosting.md
-	docker compose -f docker-compose.local.yml up -d --build
-	docker compose -f docker-compose.local.yml up -d --no-deps --force-recreate reverse-proxy
+local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS via lokal.jotti.rocks + interner CA-Fallback) — siehe docs/betrieb/leitfaden-hosting.md
+	@LAN_IP="$$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($$i == "src") { print $$(i + 1); exit }}')"; \
+	echo "Host-LAN-IP: $${LAN_IP:-<nicht erkannt>}"; \
+	LAN_IP="$$LAN_IP" docker compose -f docker-compose.local.yml up -d --build; \
+	LAN_IP="$$LAN_IP" docker compose -f docker-compose.local.yml up -d --no-deps --force-recreate reverse-proxy
 
 local-down: ## Lokalen LAN-Stack stoppen
 	docker compose -f docker-compose.local.yml down
@@ -213,13 +218,16 @@ check-relay: ## Print-Relay komplett prüfen (Deps, Format, Lint, Vet, Test, Bui
 check-resolver: ## DNS-Resolver komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd resolver && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
+check-local-proxy: ## Lokales Proxy-Entrypoint-Binary komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
+	cd reverse-proxy && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+
 check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
 	cd frontend && pnpm format:check && pnpm lint && pnpm test && pnpm build
 
 check-integration: ## Integrationstests gegen echte Datenbank ausführen
 	./test-integration.sh
 
-check: check-tools check-backend check-relay check-resolver check-frontend ## Schnelle Komplettprüfung ohne DB-Integration
+check: check-tools check-backend check-relay check-resolver check-local-proxy check-frontend ## Schnelle Komplettprüfung ohne DB-Integration
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 

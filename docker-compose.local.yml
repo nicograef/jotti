@@ -1,8 +1,10 @@
-# Local / LAN deployment for jotti — Caddy with internal CA, no domain required.
+# Local / LAN deployment for jotti — Caddy reverse proxy, no manual domain setup.
 #
 # Runs jotti on a single PC or laptop (Windows/macOS with Docker Desktop, or Linux
-# with Docker Engine) and makes it reachable from tablets/phones in the same WLAN via
-# the host's local IP address — e.g. https://192.168.1.50
+# with Docker Engine) and makes it reachable from tablets/phones in the same WLAN.
+# Primary address is the trusted hostname <lan-ip>.<install-id>.lokal.jotti.rocks
+# (real Let's Encrypt certificate, green padlock); the host's local IP — e.g.
+# https://192.168.1.50 — stays available as a fallback (Caddy internal CA).
 #
 # Intended for the smallest setup: a single direct-sales till on one device, cash only,
 # no receipt printing. See docs/betrieb/leitfaden-hosting.md → "Weg A: Einzelgerät im WLAN".
@@ -104,12 +106,21 @@ services:
       dockerfile: Dockerfile
     container_name: jotti-reverse-proxy-local
     restart: unless-stopped
+    environment:
+      # Host LAN IP, detected on the host and passed in by `make local-up`
+      # (a bridged container can only see its docker-bridge IP, which phones
+      # cannot reach). Empty ⇒ only the fallback site is announced.
+      LAN_IP: ${LAN_IP:-}
+      ACMEDNS_BASE_URL: ${ACMEDNS_BASE_URL:-https://auth.jotti.rocks}
+      # Set to 1 in development to issue via the Let's Encrypt staging CA.
+      PROXY_LE_STAGING: ${PROXY_LE_STAGING:-}
     ports:
       - "80:80"
       - "443:443"
       - "443:443/udp"
     volumes:
       - caddy-data:/data
+      - proxy-state:/state
     networks:
       - app-network
     depends_on:
@@ -128,3 +139,4 @@ networks:
 volumes:
   postgres-data:
   caddy-data:
+  proxy-state:

@@ -14,6 +14,7 @@ jobs:
       frontend: ${{ steps.changes.outputs.frontend }}
       database: ${{ steps.changes.outputs.database }}
       resolver: ${{ steps.changes.outputs.resolver }}
+      localProxy: ${{ steps.changes.outputs.localProxy }}
       website: ${{ steps.changes.outputs.website }}
     steps:
       - uses: actions/checkout@v6
@@ -30,6 +31,8 @@ jobs:
               - 'database/**'
             resolver:
               - 'resolver/**'
+            localProxy:
+              - 'reverse-proxy/**'
             website:
               - 'website/**'
               - 'scripts/check-website.sh'
@@ -114,6 +117,37 @@ jobs:
 
       - name: Verify dependencies
         run: go mod verify
+
+      - name: Check format
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+          if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
+            echo "Code is not properly formatted:"
+            goimports -l .
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Test
+        run: go test -v -race ./...
+
+  local-proxy-ci:
+    needs: changes
+    if: ${{ needs.changes.outputs.localProxy == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./reverse-proxy
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.0
 
       - name: Check format
         run: |

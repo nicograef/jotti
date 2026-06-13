@@ -394,20 +394,45 @@ selbst bleibt bewusst ungetestet (Integrations-/Betriebsebene).
 
 ### Acceptance criteria
 
-- [ ] Erster Start registriert genau einmal bei acme-dns und persistiert den
+- [x] Erster Start registriert genau einmal bei acme-dns und persistiert den
       State; jeder weitere Start verwendet ihn unverändert.
 - [ ] Ein Smartphone im WLAN öffnet
       `https://<ip-mit-bindestrichen>.<id>.lokal.jotti.rocks` mit grünem
       Schloss — ohne Warnung, ohne Geräte-Einrichtung (verifiziert mit echtem
-      LE-Zertifikat).
-- [ ] Fallback `https://<LAN-IP>` funktioniert parallel weiter (einmalige
+      LE-Zertifikat). **Offen: manuelle Verifikation an realer Hardware**
+      (Echt-LE + Smartphone im WLAN; vom Code/der Infra her bereit, der
+      DNS-01-Pfad ist in Phase 2 belegt).
+- [x] Fallback `https://<LAN-IP>` funktioniert parallel weiter (einmalige
       Warnung).
-- [ ] DHCP-IP-Wechsel: neuer Hostname nach Neustart des Proxys, dasselbe
+- [x] DHCP-IP-Wechsel: neuer Hostname nach Neustart des Proxys, dasselbe
       Wildcard-Zertifikat, keine Neuausstellung.
-- [ ] Start ohne Internet: Stack läuft über den Fallback; keine Crash-Loops
+- [x] Start ohne Internet: Stack läuft über den Fallback; keine Crash-Loops
       durch fehlgeschlagene ACME-Versuche.
-- [ ] Unit-Tests für Hostname-Ableitung, State-Idempotenz und
+- [x] Unit-Tests für Hostname-Ableitung, State-Idempotenz und
       Registrierungs-Client grün.
+
+> Phase 4 Code abgeschlossen 2026-06-13: Neues Go-Modul `reverse-proxy/`
+> (`jotti-local-proxy`, stdlib-only) ist Entrypoint des Caddy-Containers:
+> State sicherstellen (acme-dns-Registrierung, einmalig, idempotent) → LAN-IP
+> bestimmen → Caddyfile rendern (Wildcard-Site mit `dns acmedns` + Fallback)
+> → Caddy als Kindprozess mit Signal-Durchreichung. Im Custom-Image
+> (xcaddy + Relay) gebaut; `caddy validate` akzeptiert die gerenderte Config
+> (Wildcard- und Fallback-Variante), Registrierungs-Ausfall ⇒ Fallback-only
+> ohne Crash und ohne State-Schreiben. `make check-local-proxy` grün, CI-Job
+> `local-proxy-ci` + paths-filter ergänzt. `Caddyfile.local` gelöscht.
+>
+> **Abweichung von der Task-Formulierung (Klärung 2026-06-13):** Die LAN-IP
+> wird **host-seitig** ermittelt (`make local-up`: `ip route get`, an den
+> Container via `LAN_IP` übergeben) statt im Container — ein Bridge-Container
+> sieht nur die Docker-Bridge-IP (172.x), die Smartphones nicht erreichen
+> (empirisch bestätigt). Deckt sich mit dem Windows-Plan (`SelectLANIP`).
+> Der Relay liest `LAN_IP`; die Outbound-Route-Erkennung bleibt nur als
+> Fallback fürs Host-Netz. Das Wildcard-Zertifikat `*.<id>.lokal.jotti.rocks`
+> hängt ohnehin nicht an der LAN-IP — ein DHCP-Wechsel ändert nur den Namen.
+>
+> **Offen (AK 2):** Smartphone-Test mit echtem (Nicht-Staging-)LE-Zertifikat
+> an realer Hardware im WLAN — nicht autonom durchführbar; der DNS-01-Pfad ist
+> in Phase 2 belegt, Caddy nutzt denselben Pfad über das acmedns-Modul.
 
 ---
 
