@@ -283,8 +283,8 @@ Make-Target `build-relay-windows` erzeugt `cmd/relay/jotti-relay.exe` (`GOOS=win
 
 ### Acceptance criteria
 
-- [ ] `KURZANLEITUNG.md` existiert und beschreibt den vollständigen Ablauf inkl. SmartScreen-, UAC-, Zertifikats- und Beenden-Schritten in ≤ 1 Seite.
-- [ ] Kein manueller Firewall-Schritt mehr in der Anleitung — Firewall und Docker-Start sind als automatisch beschrieben.
-- [ ] Leitfaden Weg A verweist auf den Starter als empfohlenen Weg (inkl. Admin-Voraussetzung); der manuelle Weg bleibt dokumentiert.
-- [ ] Sicherheitshinweis (nie ins Internet öffnen) in beiden Dokumenten; Zertifikatswarnung ist als Fallback-Fall beschrieben, grünes Schloss als Normalfall.
-- [ ] Hinweis auf Erststart-mit-Internet (Image-Pull + Zertifikatsausstellung) und Daten-/Zertifikatspersistenz über Festtage in der Kurzanleitung.
+- [x] `KURZANLEITUNG.md` existiert und beschreibt den vollständigen Ablauf inkl. SmartScreen-, UAC-, Zertifikats- und Beenden-Schritten in ≤ 1 Seite.
+- [x] Kein manueller Firewall-Schritt mehr in der Anleitung — Firewall und Docker-Start sind als automatisch beschrieben.
+- [x] Leitfaden Weg A verweist auf den Starter als empfohlenen Weg (inkl. Admin-Voraussetzung); der manuelle Weg bleibt dokumentiert.
+- [x] Sicherheitshinweis (nie ins Internet öffnen) in beiden Dokumenten; Zertifikatswarnung ist als Fallback-Fall beschrieben, grünes Schloss als Normalfall.
+- [x] Hinweis auf Erststart-mit-Internet (Image-Pull + Zertifikatsausstellung) und Daten-/Zertifikatspersistenz über Festtage in der Kurzanleitung.

@@ -74,7 +74,26 @@ oder Smartphone im selben WLAN** bedient die Kasse im Browser über die lokale A
 - Rechner und Tablet hängen am **selben Router/WLAN**.
 - Die jotti-Projektdateien liegen auf dem Rechner (ZIP entpackt oder per `git clone`).
 
-### Schritt für Schritt
+### Schnellstart mit dem jotti-Starter (Windows, empfohlen)
+
+Für Windows gibt es einen **Doppelklick-Starter**, der die `.env` erzeugt, den
+Stack hochfährt sowie **Docker-Start und Firewall-Freigabe automatisch erledigt** —
+ganz **ohne Kommandozeile**.
+
+- **Voraussetzung:** ein Windows-Benutzer mit **Administratorrechten** — der Starter
+  fragt bei jedem Start einmal per UAC nach (er setzt die Firewall-Regel und startet
+  Docker Desktop bei Bedarf selbst).
+- Das aktuelle **Release-ZIP** von der
+  [GitHub-Releases-Seite](https://github.com/nicograef/jotti/releases) herunterladen,
+  entpacken und **`jotti-start.exe`** doppelklicken. Für den Bondruck zusätzlich
+  `jotti-relay.exe`.
+- Den vollständigen Ablauf (SmartScreen, UAC, Status-Seite, Beenden) beschreibt die
+  **`KURZANLEITUNG.md`** im ZIP.
+
+Der manuelle Weg unten bleibt die Alternative für **macOS, Linux** oder fortgeschrittene
+Windows-Nutzer.
+
+### Manueller Weg (Kommandozeile)
 
 1. **`.env` anlegen.** Im Projektordner ausführen:
 
@@ -124,9 +143,13 @@ Alternativ: `make local-down`.
 
 ### Gut zu wissen
 
-- **Windows-Firewall:** Beim ersten Start fragt Windows ggf., ob der Zugriff erlaubt werden soll.
-  Für **private Netzwerke** zulassen, damit das Tablet den Rechner über Port 443 erreicht
-  (Port 80 wird nur für Redirect genutzt).
+- **Windows-Firewall:** Der **jotti-Starter** setzt die Freigabe (Port 80/443 im lokalen
+  Netz) automatisch. Nur auf dem **manuellen Weg** fragt Windows beim ersten Start ggf., ob
+  der Zugriff erlaubt werden soll — dann für **private Netzwerke** zulassen, damit das Tablet
+  den Rechner über Port 443 erreicht (Port 80 wird nur für Redirect genutzt).
+- **Nie ins Internet öffnen.** Der lokale Betrieb ist nur fürs eigene WLAN gedacht. Richtet im
+  Router **keine Port-Weiterleitung** auf den Kassenrechner ein — für den Betrieb übers Internet
+  gibt es Weg B mit Domain und HTTPS.
 - **Rechner muss laufen.** Während des Betriebs muss der Rechner eingeschaltet und im WLAN sein;
   Energiespar-/Ruhezustand vorher deaktivieren.
 - **Erster Start braucht Internet.** Für das vertrauenswürdige Zertifikat braucht der erste Start
