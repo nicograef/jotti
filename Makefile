@@ -117,7 +117,7 @@ starter-syso: ## Windows-Manifest (rsrc_windows_amd64.syso) aus jotti-start.mani
 
 release-windows: build-starter-windows build-relay-windows ## Release-ZIP (Exes + Release-Compose + Doku) unter dist/ bauen (VERSION=… setzen; baut KEINE Images)
 	rm -rf "$(RELEASE_DIR)"
-	mkdir -p "$(RELEASE_DIR)/database"
+	mkdir -p "$(RELEASE_DIR)"
 	cp cmd/starter/jotti-start.exe "$(RELEASE_DIR)/"
 	cp cmd/relay/jotti-relay.exe "$(RELEASE_DIR)/"
 	cp packaging/windows/jotti-stop.cmd "$(RELEASE_DIR)/"
@@ -125,7 +125,8 @@ release-windows: build-starter-windows build-relay-windows ## Release-ZIP (Exes 
 	cp packaging/windows/KURZANLEITUNG.md "$(RELEASE_DIR)/"
 	cp .env.example "$(RELEASE_DIR)/"
 	cp docker-compose.release.yml "$(RELEASE_DIR)/"
-	cp -R database/migrations "$(RELEASE_DIR)/database/migrations"
+	# Migrationen werden NICHT mehr ins ZIP kopiert — sie sind ins
+	# jotti-migrate-Image gebacken (siehe database/migrate/Dockerfile).
 	# Image-Tag im gestageten Compose auf die konkrete Version pinnen (die
 	# eingecheckte Datei bleibt ein Template mit RELEASE_VERSION-Platzhalter).
 	sed -i 's|:RELEASE_VERSION|:$(VERSION)|g' "$(RELEASE_DIR)/docker-compose.release.yml"

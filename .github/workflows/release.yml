@@ -54,11 +54,17 @@ jobs:
           declare -A ctx=(
             [backend]=./backend
             [frontend]=./frontend
-            [migrate]=./database/migrate
+            [migrate]=./database
             [reverse-proxy]=./reverse-proxy
+          )
+          # migrate backt die Migrationen ins Image (COPY), der Context ist
+          # deshalb ./database und das Dockerfile liegt eine Ebene tiefer.
+          declare -A dockerfile=(
+            [migrate]=./database/migrate/Dockerfile
           )
           for svc in "${!ctx[@]}"; do
             docker buildx build --load \
+              ${dockerfile[$svc]:+--file "${dockerfile[$svc]}"} \
               --tag "ghcr.io/nicograef/jotti-$svc:$VERSION" \
               --label "org.opencontainers.image.version=$VERSION" \
               "${ctx[$svc]}"

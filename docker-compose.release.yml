@@ -58,8 +58,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
       - db-network
-    volumes:
-      - ./database/migrations:/migrations
+    # Kein Migrations-Bind-Mount: die Migrationen sind ins jotti-migrate-Image
+    # gebacken (COPY), der Stack ist damit selbst-enthalten — das Release-ZIP
+    # braucht den database/migrations-Ordner nicht mehr.
     depends_on:
       postgres:
         condition: service_healthy

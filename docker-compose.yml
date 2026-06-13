@@ -23,8 +23,8 @@ services:
 
   migrate:
     build:
-      context: ./database/migrate
-      dockerfile: Dockerfile
+      context: ./database
+      dockerfile: migrate/Dockerfile
     container_name: jotti-migrate-dev
     environment:
       POSTGRES_USER: ${POSTGRES_USER}

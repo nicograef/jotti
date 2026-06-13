@@ -226,10 +226,10 @@ nicht mehr. Das Release-ZIP wird entsprechend schlanker.
 
 ### Acceptance criteria
 
-- [ ] Stack startet ohne `database/migrations`-Ordner auf dem Host; Migrationen
+- [x] Stack startet ohne `database/migrations`-Ordner auf dem Host; Migrationen
       werden trotzdem angewandt.
-- [ ] Release-Smoke-Test (Workflow) bleibt grün.
-- [ ] ZIP enthält kein `database/migrations` mehr.
+- [x] Release-Smoke-Test (Workflow) bleibt grün.
+- [x] ZIP enthält kein `database/migrations` mehr.
 
 ---
 
