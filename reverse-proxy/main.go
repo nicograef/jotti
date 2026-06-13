@@ -70,7 +70,8 @@ func main() {
 		log.Printf("Kein nutzbarer Installations-State (%v) — Start nur mit der Fallback-Adresse; die Registrierung wird beim nächsten Start erneut versucht", err)
 	}
 
-	if lanIP, ok := resolveLANIP(cfg.lanIPEnv); ok {
+	lanIP, lanOK := resolveLANIP(cfg.lanIPEnv)
+	if lanOK {
 		if hasState {
 			log.Printf("Vertrauenswürdige Adresse: https://%s", deriveHostname(lanIP, state.Subdomain, cfg.zone))
 		}
@@ -93,6 +94,24 @@ func main() {
 	if err := os.WriteFile(cfg.caddyfilePath, []byte(caddyfile), 0o644); err != nil {
 		log.Fatalf("Caddyfile schreiben: %v", err)
 	}
+
+	// Status-Seite parallel zu Caddy bereitstellen (im Compose nur an 127.0.0.1
+	// gemappt). Sie probt laufend Zertifikat und Rebind und wechselt von der
+	// Fallback- auf die grüne Adresse, sobald Caddy ausgestellt hat.
+	status := newStatusServer(statusConfig{
+		zone:      cfg.zone,
+		state:     state,
+		hasState:  hasState,
+		lanIP:     lanIP,
+		lanOK:     lanOK,
+		leStaging: cfg.leStaging,
+	})
+	go func() {
+		if err := status.listenAndServe(); err != nil {
+			log.Printf("Status-Seite beendet: %v", err)
+		}
+	}()
+	log.Printf("Status & Zugangsadresse: http://localhost:8484")
 
 	if err := runCaddy(cfg.caddyBin, cfg.caddyfilePath); err != nil {
 		var exitErr *exec.ExitError

@@ -159,7 +159,8 @@ local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS via lokal.jotti.rock
 	@LAN_IP="$$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($$i == "src") { print $$(i + 1); exit }}')"; \
 	echo "Host-LAN-IP: $${LAN_IP:-<nicht erkannt>}"; \
 	LAN_IP="$$LAN_IP" docker compose -f docker-compose.local.yml up -d --build; \
-	LAN_IP="$$LAN_IP" docker compose -f docker-compose.local.yml up -d --no-deps --force-recreate reverse-proxy
+	LAN_IP="$$LAN_IP" docker compose -f docker-compose.local.yml up -d --no-deps --force-recreate reverse-proxy; \
+	echo "Status & Zugangsadresse: http://localhost:8484"
 
 local-down: ## Lokalen LAN-Stack stoppen
 	docker compose -f docker-compose.local.yml down

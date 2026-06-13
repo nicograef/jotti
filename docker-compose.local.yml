@@ -118,6 +118,9 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"
+      # Status page: bound to host loopback only — visible on the till PC, never
+      # on the WLAN.
+      - "127.0.0.1:8484:8484"
     volumes:
       - caddy-data:/data
       - proxy-state:/state

@@ -470,16 +470,36 @@ Das Hilfsprogramm serviert zusätzlich die Status-Seite auf
 
 ### Acceptance criteria
 
-- [ ] Direkt nach dem ersten Start zeigt die Status-Seite die
+- [x] Direkt nach dem ersten Start zeigt die Status-Seite die
       Fallback-Adresse; nach erfolgreicher Ausstellung wechselt sie ohne
       manuelles Neuladen auf die grüne Adresse mit QR-Code.
 - [ ] Der QR-Code öffnet auf einem Smartphone die grüne Adresse.
-- [ ] Simulierte Rebind-Blockade (Hostname löst nicht zur LAN-IP auf) zeigt
+      **Offen: physischer Scan an realer Hardware** — der QR-Code kodiert
+      nachweislich genau die grüne Adresse (Unit-Test), allein der
+      Kamera-Scan ist manuell.
+- [x] Simulierte Rebind-Blockade (Hostname löst nicht zur LAN-IP auf) zeigt
       den Hinweis samt Anleitung-Link und die Fallback-Adresse.
-- [ ] Status-Seite ist nur vom Kassen-Rechner erreichbar
+- [x] Status-Seite ist nur vom Kassen-Rechner erreichbar
       (`127.0.0.1`-Binding), nicht aus dem WLAN.
-- [ ] Start-Zustandslogik ist über alle vier Zustände unit-getestet.
-- [ ] `make local-up` nennt die Status-URL.
+- [x] Start-Zustandslogik ist über alle vier Zustände unit-getestet.
+- [x] `make local-up` nennt die Status-URL.
+
+> Phase 5 abgeschlossen 2026-06-13: Das Hilfsprogramm serviert zusätzlich die
+> Status-Seite auf `:8484` (im Compose nur an `127.0.0.1` gemappt). Reine
+> Start-Zustandslogik `decideStatus` (status.go) über alle Zustände
+> unit-getestet (kein Zertifikat / gültig / abgelaufen / Rebind blockiert +
+> „keine grüne Adresse"); ein blockierender Rebind-Schutz hat Vorrang vor der
+> Zertifikatslage. Proben (probe.go): TLS-Handshake gegen den eigenen Caddy mit
+> dem grünen Hostnamen als SNI, Verifikation gegen die System-Roots (nur eine
+> öffentlich vertrauenswürdige LE-Kette ⇒ „grün", abgelaufen wird erkannt);
+> Rebind-Check über den System-Resolver mit injizierbarem Lookup. HTML-Seite
+> (statuspage.go) aktualisiert sich per `meta refresh` selbst bis „grün", zeigt
+> dann die grüne Adresse prominent mit eingebettetem QR-Code (`rsc.io/qr`,
+> einzige Dependency), Fallback-Adresse, WLAN-Hinweis und bei Blockade den
+> Rebind-Hinweis mit Link auf die Router-Anleitung (Ziel-Doc in Phase 6).
+> `make local-up` gibt die Status-URL aus; Dockerfile lädt jetzt go.sum/Module.
+> `make check-local-proxy` grün (golangci-lint 0 issues), proxy-builder-Stage
+> baut. **Offen (manuell):** physischer QR-Scan am Smartphone.
 
 ---
 

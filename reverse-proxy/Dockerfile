@@ -4,7 +4,8 @@
 #  - Caddy, built with the acme-dns DNS provider module (dns.providers.acmedns)
 #    for DNS-01 wildcard certificates via lokal.jotti.rocks.
 #  - jotti-local-proxy, the container entrypoint: it ensures the install state
-#    (acme-dns registration), renders the Caddyfile and runs Caddy as a child.
+#    (acme-dns registration), renders the Caddyfile, serves the local status page
+#    and runs Caddy as a child. Only dependency: rsc.io/qr (QR code on the page).
 #
 # prod/rocks deployments keep stock nginx and do not use this image.
 
@@ -18,7 +19,8 @@ RUN xcaddy build \
 FROM golang:1.26.0-alpine AS proxy-builder
 
 WORKDIR /src
-COPY go.mod ./
+COPY go.mod go.sum ./
+RUN go mod download
 COPY *.go ./
 RUN go build -o /go/bin/jotti-local-proxy .
 
