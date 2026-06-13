@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
@@ -35,6 +36,9 @@ type RelayConfig struct {
 
 const defaultBackendURL = "https://localhost/api"
 const defaultPollSeconds = 2
+
+// version wird beim Release per -ldflags "-X main.version=vX.Y.Z" gesetzt.
+var version = "dev"
 
 // dialTimeout ist der kurze TCP-Timeout für genau einen Zustellversuch pro
 // Auftrag und Zyklus. Ein nicht erreichbarer Drucker verzögert seine eigene
@@ -117,12 +121,18 @@ func parseTLSSkipVerify(raw string) (bool, error) {
 }
 
 func main() {
-	config, err := loadConfigFromEnv(os.Getenv)
+	config, err := loadConfigFromEnv(envWithFileFallback(loadEnvFile()))
 	if err != nil {
-		log.Fatal(err)
+		// Beim Doppelklick schliesst das Konsolenfenster beim Exit sofort — die
+		// Konfigurationsmeldung waere unlesbar. Deshalb auf Enter warten.
+		fmt.Printf("jotti Print-Relay %s\n\n", version)
+		fmt.Printf("Konfigurationsfehler: %v\n", err)
+		fmt.Println("Bitte RELAY_AUTH_TOKEN in der .env-Datei neben jotti-relay.exe setzen.")
+		waitForEnter()
+		os.Exit(1)
 	}
 
-	log.Printf("jotti Print-Relay gestartet | Backend: %s | Poll: %ds", config.BackendURL, config.PollSeconds)
+	log.Printf("jotti Print-Relay %s gestartet | Backend: %s | Poll: %ds", version, config.BackendURL, config.PollSeconds)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	if config.TLSSkipVerify {
@@ -176,6 +186,13 @@ func main() {
 
 		time.Sleep(time.Duration(config.PollSeconds) * time.Second)
 	}
+}
+
+// waitForEnter haelt das Doppelklick-Fenster offen, bis der Nutzer Enter drueckt
+// — sonst verschwindet eine Konfigurationsmeldung sofort beim Exit.
+func waitForEnter() {
+	fmt.Print("\nEnter druecken zum Schliessen ...")
+	_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
 }
 
 // fuehreZyklusAus verarbeitet alle Aufträge eines Polls und meldet das Ergebnis.

@@ -5,7 +5,7 @@
        lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt \
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
-       build-starter-windows starter-syso \
+       build-starter-windows build-relay-windows starter-syso \
        sqlc \
        prod-init prod-up prod-down prod-logs \
        rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed \
@@ -104,6 +104,9 @@ build-local-proxy: ## Lokales Proxy-Entrypoint-Binary kompilieren
 
 build-starter-windows: ## Windows-Starter (jotti-start.exe) cross-kompilieren (VERSION=… fuer die Versionszeile)
 	cd cmd/starter && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o jotti-start.exe .
+
+build-relay-windows: ## Windows-Relay (jotti-relay.exe) cross-kompilieren (VERSION=… fuer die Versionszeile)
+	cd cmd/relay && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o jotti-relay.exe .
 
 starter-syso: ## Windows-Manifest (rsrc_windows_amd64.syso) aus jotti-start.manifest neu erzeugen (selten noetig)
 	cd cmd/starter && go run github.com/akavel/rsrc@v0.10.2 -manifest jotti-start.manifest -arch amd64 -o rsrc_windows_amd64.syso

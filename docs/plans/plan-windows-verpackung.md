@@ -226,11 +226,11 @@ Make-Target `build-relay-windows` erzeugt `cmd/relay/jotti-relay.exe` (`GOOS=win
 
 ### Acceptance criteria
 
-- [ ] Parser unit-getestet: Key=Value, Kommentare, Anführungszeichen, Leerzeilen, CRLF, BOM.
-- [ ] Doppelklick neben `.env`: Token und Backend-URL kommen aus der Datei, ohne manuelle Eingabe.
-- [ ] Bereits gesetzte Env-Variablen haben Vorrang vor der Datei.
-- [ ] Fehlt `RELAY_AUTH_TOKEN` in Datei und Env: deutsche Meldung, Fenster bleibt offen.
-- [ ] `make build-relay-windows` erzeugt `cmd/relay/jotti-relay.exe`.
+- [x] Parser unit-getestet: Key=Value, Kommentare, Anführungszeichen, Leerzeilen, CRLF, BOM.
+- [x] Doppelklick neben `.env`: Token und Backend-URL kommen aus der Datei, ohne manuelle Eingabe.
+- [x] Bereits gesetzte Env-Variablen haben Vorrang vor der Datei.
+- [x] Fehlt `RELAY_AUTH_TOKEN` in Datei und Env: deutsche Meldung, Fenster bleibt offen.
+- [x] `make build-relay-windows` erzeugt `cmd/relay/jotti-relay.exe`.
 
 ---
 
