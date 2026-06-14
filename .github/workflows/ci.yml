@@ -14,7 +14,7 @@ jobs:
       frontend: ${{ steps.changes.outputs.frontend }}
       database: ${{ steps.changes.outputs.database }}
       resolver: ${{ steps.changes.outputs.resolver }}
-      localProxy: ${{ steps.changes.outputs.localProxy }}
+      proxy: ${{ steps.changes.outputs.proxy }}
       cmd: ${{ steps.changes.outputs.cmd }}
       website: ${{ steps.changes.outputs.website }}
     steps:
@@ -32,7 +32,7 @@ jobs:
               - 'database/**'
             resolver:
               - 'resolver/**'
-            localProxy:
+            proxy:
               - 'reverse-proxy/**'
             cmd:
               - 'cmd/**'
@@ -62,7 +62,7 @@ jobs:
 
       - name: Check format
         run: |
-          go install golang.org/x/tools/cmd/goimports@latest
+          go install golang.org/x/tools/cmd/goimports@v0.40.0
           if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
             echo "Code is not properly formatted:"
             goimports -l .
@@ -78,11 +78,11 @@ jobs:
       - name: Test
         run: go test -tags=unit -v -race -coverprofile=coverage.out ./...
 
-      - name: Check test coverage
+      - name: Report test coverage
         run: |
           go tool cover -func=coverage.out
-          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
-          echo "Total coverage: ${COVERAGE}%"
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+          echo "Total coverage: ${COVERAGE}"
 
   backend-golangci:
     needs: changes
@@ -126,7 +126,7 @@ jobs:
 
       - name: Check format
         run: |
-          go install golang.org/x/tools/cmd/goimports@latest
+          go install golang.org/x/tools/cmd/goimports@v0.40.0
           if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
             echo "Code is not properly formatted:"
             goimports -l .
@@ -144,7 +144,7 @@ jobs:
 
   local-proxy-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.localProxy == 'true' }}
+    if: ${{ needs.changes.outputs.proxy == 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -156,9 +156,15 @@ jobs:
           go-version: 1.26.0
           cache-dependency-path: reverse-proxy/go.sum
 
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
       - name: Check format
         run: |
-          go install golang.org/x/tools/cmd/goimports@latest
+          go install golang.org/x/tools/cmd/goimports@v0.40.0
           if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
             echo "Code is not properly formatted:"
             goimports -l .
@@ -187,6 +193,24 @@ jobs:
         with:
           go-version: 1.26.0
           cache: false
+
+      - name: Download dependencies
+        working-directory: ./cmd/${{ matrix.module }}
+        run: go mod download
+
+      - name: Verify dependencies
+        working-directory: ./cmd/${{ matrix.module }}
+        run: go mod verify
+
+      - name: Check format
+        working-directory: ./cmd/${{ matrix.module }}
+        run: |
+          go install golang.org/x/tools/cmd/goimports@v0.40.0
+          if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
+            echo "Code is not properly formatted:"
+            goimports -l .
+            exit 1
+          fi
 
       - name: Vet
         working-directory: ./cmd/${{ matrix.module }}

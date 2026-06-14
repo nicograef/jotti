@@ -1,13 +1,13 @@
 name: Release
 
 # Produktweite SemVer-Tags (v0.X.Y) auf main sind der einzige Publish-Mechanismus.
-# Tag-Push  → baut, smoke-testet, pusht Images nach GHCR und veroeffentlicht das
+# Tag-Push  → baut, smoke-testet, pusht Images nach GHCR und veröffentlicht das
 #             Windows-ZIP als GitHub-Release.
 # Dispatch  → Dry-Run: baut und smoke-testet alles, publiziert aber nichts
 #             (Version dev-<shortsha>).
 #
 # Kein Test-Rerun: bei trunk-based Development war die CI auf dem getaggten Commit
-# bereits gruen. Dieser Workflow prueft nur, was die CI nicht abdeckt — den Stack
+# bereits grün. Dieser Workflow prüft nur, was die CI nicht abdeckt — den Stack
 # aus docker-compose.release.yml hochfahren und /api/health abfragen.
 
 on:
@@ -75,7 +75,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: sed -i "s|:RELEASE_VERSION|:$VERSION|g" docker-compose.release.yml
 
-      - name: .env fuer den Smoke-Test erzeugen
+      - name: .env für den Smoke-Test erzeugen
         run: make init
 
       - name: Smoke-Test — Stack starten
@@ -122,7 +122,7 @@ jobs:
         if: steps.version.outputs.publish == 'true'
         run: make release-windows VERSION="${{ steps.version.outputs.version }}"
 
-      - name: GitHub-Release veroeffentlichen
+      - name: GitHub-Release veröffentlichen
         if: steps.version.outputs.publish == 'true'
         uses: softprops/action-gh-release@v3
         with:
