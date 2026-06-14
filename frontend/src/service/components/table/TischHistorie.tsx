@@ -223,16 +223,16 @@ export function TischHistorie({
               } else if (
                 Object.prototype.hasOwnProperty.call(item, 'geleistetAm')
               ) {
-                const az = item as Auszahlung
+                const auszahlung = item as Auszahlung
                 return (
                   <HistoryItem
-                    key={az.id}
-                    title={`Auszahlung -${formatCents(az.betragCents)} €`}
-                    date={az.geleistetAm}
-                    isFromUser={userId === az.userId}
-                    kommentar={az.kommentar}
+                    key={auszahlung.id}
+                    title={`Auszahlung -${formatCents(auszahlung.betragCents)} €`}
+                    date={auszahlung.geleistetAm}
+                    isFromUser={userId === auszahlung.userId}
+                    kommentar={auszahlung.kommentar}
                     onClick={() => {
-                      setAuszahlung({ auszahlung: az, open: true })
+                      setAuszahlung({ auszahlung, open: true })
                     }}
                   />
                 )

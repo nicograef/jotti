@@ -2,7 +2,6 @@ import { Ban, ChartBar, LayoutDashboard, TableIcon, Users } from 'lucide-react'
 import { NavLink } from 'react-router'
 
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Empty,
   EmptyDescription,
@@ -21,37 +20,9 @@ import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatCents, formatPositionName } from '@/lib/utils'
 
+import { SummaryCard } from './SummaryCard'
 import type { LiveReportingData } from './types'
-
-function SummaryCard({
-  title,
-  value,
-  sub,
-}: {
-  title: string
-  value: string
-  sub?: string
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-xl font-bold">{value}</p>
-        {sub && <p className="mt-0.5 text-sm text-muted-foreground">{sub}</p>}
-      </CardContent>
-    </Card>
-  )
-}
-
-function pct(part: number, total: number): number {
-  return total > 0 ? Math.round((part / total) * 100) : 0
-}
-
-function formatLocalTime(utcString: string): string {
-  return new Date(utcString).toLocaleString('de-DE')
-}
+import { formatLocalTime, pct } from './utils'
 
 function formatDatum(datum: string): string {
   return new Date(datum).toLocaleDateString('de-DE', {

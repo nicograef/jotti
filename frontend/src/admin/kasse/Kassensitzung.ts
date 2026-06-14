@@ -29,6 +29,24 @@ export const BetragCentsSchema = z
   .int()
   .gte(0, { message: 'Betrag muss mindestens 0 Cent sein.' })
 
+export const EuroBetragSchema = z
+  .string()
+  .min(1, { message: 'Bitte einen Betrag eingeben.' })
+  .refine((val) => !isNaN(parseFloat(val.replace(',', '.'))), {
+    message: 'Bitte einen gültigen Betrag eingeben.',
+  })
+
+export const PositiverEuroBetragSchema = z
+  .string()
+  .min(1, { message: 'Bitte einen Betrag eingeben.' })
+  .refine(
+    (val) => {
+      const parsed = parseFloat(val.replace(',', '.'))
+      return !isNaN(parsed) && parsed > 0
+    },
+    { message: 'Bitte einen Betrag größer als 0 eingeben.' },
+  )
+
 export const KassensitzungStateSchema = z.object({
   zNr: z.number().int(),
   datum: z.string(),

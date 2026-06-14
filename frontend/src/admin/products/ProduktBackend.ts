@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import type { BackendClient } from '@/lib/Backend'
+
 import {
   type Produkt,
   ProduktIdSchema,
@@ -32,8 +34,6 @@ export const UpdateVarianteSchema = VarianteSchema.pick({
   name: true,
   preisCents: true,
 })
-
-import type { BackendClient } from '@/lib/Backend'
 
 export class ProduktBackend {
   private readonly backend: BackendClient

@@ -20,8 +20,10 @@ import { formatCents, parseCents } from '@/lib/utils'
 import { kasseBackend, useKassenbestand, useOffeneKassensitzung } from './hooks'
 import {
   BezeichnungSchema,
+  EuroBetragSchema,
   GeldtransitRichtung,
   GeldtransitRichtungSchema,
+  PositiverEuroBetragSchema,
 } from './Kassensitzung'
 
 export function KassensitzungPage() {
@@ -87,12 +89,7 @@ export function KassensitzungPage() {
 function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
   const FormDataSchema = z.object({
     bezeichnung: BezeichnungSchema,
-    betragEuro: z
-      .string()
-      .min(1, { message: 'Bitte einen Betrag eingeben.' })
-      .refine((val) => !isNaN(parseFloat(val.replace(',', '.'))), {
-        message: 'Bitte einen gültigen Betrag eingeben.',
-      }),
+    betragEuro: EuroBetragSchema,
   })
   type FormData = z.infer<typeof FormDataSchema>
 
@@ -189,16 +186,7 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
 function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
   const FormDataSchema = z.object({
     richtung: GeldtransitRichtungSchema,
-    betragEuro: z
-      .string()
-      .min(1, { message: 'Bitte einen Betrag eingeben.' })
-      .refine(
-        (val) => {
-          const parsed = parseFloat(val.replace(',', '.'))
-          return !isNaN(parsed) && parsed > 0
-        },
-        { message: 'Bitte einen Betrag größer als 0 eingeben.' },
-      ),
+    betragEuro: PositiverEuroBetragSchema,
     kommentar: z
       .string()
       .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' })
@@ -321,12 +309,7 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
 
 function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
   const FormDataSchema = z.object({
-    istBestandEuro: z
-      .string()
-      .min(1, { message: 'Bitte einen Betrag eingeben.' })
-      .refine((val) => !isNaN(parseFloat(val.replace(',', '.'))), {
-        message: 'Bitte einen gültigen Betrag eingeben.',
-      }),
+    istBestandEuro: EuroBetragSchema,
   })
   type FormData = z.infer<typeof FormDataSchema>
 
@@ -415,7 +398,7 @@ function TagesabschlussSection({ onSuccess }: { onSuccess: () => void }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Schliesst die Kassensitzung ab. Voraussetzungen: Kassensturz
+          Schließt die Kassensitzung ab. Voraussetzungen: Kassensturz
           durchgeführt, alle Tische auf Saldo 0.
         </p>
         <Button

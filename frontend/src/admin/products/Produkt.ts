@@ -15,6 +15,13 @@ export const Steuersatz = {
 } as const
 export type Steuersatz = (typeof Steuersatz)[keyof typeof Steuersatz]
 
+export const STEUERSATZ_LABEL: Record<Steuersatz, string> = {
+  regel: 'Regelsteuersatz (19 %)',
+  ermaessigt: 'Ermäßigter Steuersatz (7 %)',
+  befreit: 'Steuerbefreit (0 %)',
+  kombi: 'Kombi (70/30)',
+}
+
 export const VarianteStatus = {
   ACTIVE: 'active',
   INACTIVE: 'inactive',

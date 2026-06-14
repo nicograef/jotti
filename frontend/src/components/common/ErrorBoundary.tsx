@@ -8,16 +8,7 @@ interface State {
   hasError: boolean
 }
 
-/** ErrorBoundary component to catch JavaScript errors in child components
- *
- * React error boundaries must be class components.
- * React does not provide a hook equivalent for componentDidCatch or getDerivedStateFromError
- * — these lifecycle methods are only available on class components.
- * There is no useErrorBoundary hook in React core.
- *
- * This is a known React limitation that has persisted through React 18 and 19.
- * It's the one remaining case where a class component is required.
- */
+/** Catches render errors in child components. Must be a class — React has no hook equivalent. */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
@@ -41,8 +32,7 @@ export class ErrorBoundary extends Component<Props, State> {
               Etwas ist schiefgelaufen
             </h1>
             <p className="mb-6 text-muted-foreground">
-              Ein unerwarteter Fehler ist aufgetreten. Bitte laden Sie die Seite
-              neu.
+              Ein unerwarteter Fehler ist aufgetreten. Bitte lade die Seite neu.
             </p>
             <button
               onClick={() => {

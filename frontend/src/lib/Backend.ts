@@ -128,8 +128,12 @@ export class Backend implements BackendClient {
         )
       }
 
-      console.error('Failed to parse error response:', parsedError.error)
-      console.log('Response text:', responseText)
+      console.error(
+        'Failed to parse error response:',
+        parsedError.error,
+        'Response text:',
+        responseText,
+      )
       throw new BackendError(response.status, 'unknown', responseText)
     }
 

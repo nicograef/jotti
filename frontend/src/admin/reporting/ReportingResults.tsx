@@ -1,5 +1,6 @@
 import { Ban, ChartBar, TableIcon, Users } from 'lucide-react'
 
+import { STEUERSATZ_LABEL } from '@/admin/products/Produkt'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -20,52 +21,9 @@ import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatCents, formatPositionName } from '@/lib/utils'
 
+import { SummaryCard } from './SummaryCard'
 import type { ReportingData } from './types'
-
-function SummaryCard({
-  title,
-  value,
-  sub,
-}: {
-  title: string
-  value: string
-  sub?: string
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-xl font-bold">{value}</p>
-        {sub && <p className="mt-0.5 text-sm text-muted-foreground">{sub}</p>}
-      </CardContent>
-    </Card>
-  )
-}
-
-function pct(part: number, total: number): number {
-  return total > 0 ? Math.round((part / total) * 100) : 0
-}
-
-function formatLocalTime(utcString: string): string {
-  return new Date(utcString).toLocaleString('de-DE')
-}
-
-function steuersatzLabel(satz: string): string {
-  switch (satz) {
-    case 'regel':
-      return 'Regelsteuersatz (19 %)'
-    case 'ermaessigt':
-      return 'Ermäßigter Steuersatz (7 %)'
-    case 'befreit':
-      return 'Steuerbefreit (0 %)'
-    case 'kombi':
-      return 'Kombi'
-    default:
-      return satz
-  }
-}
+import { formatLocalTime, pct } from './utils'
 
 export function ReportingResults({
   result,
@@ -183,7 +141,7 @@ export function ReportingResults({
                         className="border-b last:border-b-0"
                       >
                         <td className="py-2 pr-3">
-                          {steuersatzLabel(umsatz.satz)}
+                          {STEUERSATZ_LABEL[umsatz.satz]}
                         </td>
                         <td className="py-2 pr-3 text-right">
                           {formatCents(umsatz.bruttoCents)} €

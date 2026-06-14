@@ -8,7 +8,11 @@ import {
   type UseFormReturn,
 } from 'react-hook-form'
 
-import type { Kategorie, Steuersatz } from '@/admin/products/Produkt'
+import {
+  type Kategorie,
+  type Steuersatz,
+  STEUERSATZ_LABEL,
+} from '@/admin/products/Produkt'
 import { toUsername, UserRole } from '@/admin/users/User'
 import { Button } from '@/components/ui/button'
 import {
@@ -100,10 +104,14 @@ export function UsernameField<AllFormFields extends FieldValues>({
   )
 }
 
-export function PasswordField<AllFormFields extends FieldValues>({
+function PasswordInput<AllFormFields extends FieldValues>({
   form,
   placeholder,
-}: FieldProps<{ password: string } & AllFormFields>) {
+  autoComplete,
+}: FieldProps<{ password: string } & AllFormFields> & {
+  placeholder: string
+  autoComplete: string
+}) {
   const [visible, setVisible] = useState(false)
 
   return (
@@ -117,8 +125,8 @@ export function PasswordField<AllFormFields extends FieldValues>({
               {...field}
               type={visible ? 'text' : 'password'}
               aria-invalid={fieldState.invalid}
-              placeholder={placeholder ?? 'Passwort'}
-              autoComplete="current-password"
+              placeholder={placeholder}
+              autoComplete={autoComplete}
               className="rounded-r-none"
             />
             <Button
@@ -141,43 +149,28 @@ export function PasswordField<AllFormFields extends FieldValues>({
   )
 }
 
+export function PasswordField<AllFormFields extends FieldValues>({
+  form,
+  placeholder,
+}: FieldProps<{ password: string } & AllFormFields>) {
+  return (
+    <PasswordInput
+      form={form}
+      placeholder={placeholder ?? 'Passwort'}
+      autoComplete="current-password"
+    />
+  )
+}
+
 export function NewPasswordField<AllFormFields extends FieldValues>({
   form,
   placeholder,
 }: FieldProps<{ password: string } & AllFormFields>) {
-  const [visible, setVisible] = useState(false)
-
   return (
-    <Controller
-      name={'password' as Path<{ password: string } & AllFormFields>}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid} className="gap-1">
-          <div className="flex">
-            <Input
-              {...field}
-              type={visible ? 'text' : 'password'}
-              aria-invalid={fieldState.invalid}
-              placeholder={placeholder ?? 'Neues Passwort'}
-              autoComplete="off"
-              className="rounded-r-none"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Passwort anzeigen"
-              className="rounded-l-none"
-              type="button"
-              onClick={() => {
-                setVisible(!visible)
-              }}
-            >
-              {visible ? <EyeIcon /> : <EyeClosedIcon />}
-            </Button>
-          </div>
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
+    <PasswordInput
+      form={form}
+      placeholder={placeholder ?? 'Neues Passwort'}
+      autoComplete="off"
     />
   )
 }
@@ -455,10 +448,14 @@ export function SteuersatzField<AllFormFields extends FieldValues>({
               <SelectValue placeholder={placeholder ?? 'Auswählen'} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="regel">Regelsteuersatz (19 %)</SelectItem>
-              <SelectItem value="ermaessigt">Ermäßigter Satz (7 %)</SelectItem>
-              <SelectItem value="befreit">Steuerbefreit (0 %)</SelectItem>
-              <SelectItem value="kombi">Kombi (70/30)</SelectItem>
+              <SelectItem value="regel">{STEUERSATZ_LABEL.regel}</SelectItem>
+              <SelectItem value="ermaessigt">
+                {STEUERSATZ_LABEL.ermaessigt}
+              </SelectItem>
+              <SelectItem value="befreit">
+                {STEUERSATZ_LABEL.befreit}
+              </SelectItem>
+              <SelectItem value="kombi">{STEUERSATZ_LABEL.kombi}</SelectItem>
             </SelectContent>
           </Select>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
