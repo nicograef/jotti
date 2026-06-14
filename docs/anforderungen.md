@@ -1,4 +1,4 @@
-# Anforderungen — jotti
+# Anforderungen: jotti
 
 Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Features sind als kompakte Tabelle zusammengefasst; offene Features enthalten vollständige Akzeptanzkriterien.
 
@@ -6,11 +6,11 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 
 ## Legende
 
-| Kürzel           | Bedeutung                                                |
-| ---------------- | -------------------------------------------------------- |
-| **Must-have**    | Kernfunktion, ohne die das System nicht nutzbar ist      |
-| **Should-have**  | Wichtig für einen runden Betrieb, aber nicht blockierend |
-| **Nice-to-have** | Komfortfunktion, die den Alltag erleichtert              |
+| Kürzel       | Bedeutung                                                |
+| ------------ | -------------------------------------------------------- |
+| Must-have    | Kernfunktion, ohne die das System nicht nutzbar ist      |
+| Should-have  | Wichtig für einen runden Betrieb, aber nicht blockierend |
+| Nice-to-have | Komfortfunktion, die den Alltag erleichtert              |
 
 | Symbol | Bedeutung  |
 | ------ | ---------- |
@@ -41,14 +41,14 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | K-01 | Bestellung aufnehmen    | Servicekraft wählt Tisch, stellt aus Produktkatalog (nach Kategorien) eine Bestellung zusammen und gibt ab.                                                                                     |
 | K-02 | Zahlung registrieren    | Barzahlung mit Positions-Auswahl (Teilzahlung möglich). Saldo wird reduziert.                                                                                                                   |
 | K-03 | Ausgabe bestätigen      | Bestellte Positionen als ausgegeben markieren. Nachverfolgung ausstehender Positionen.                                                                                                          |
-| K-04 | Stornierung erteilen    | Serviceleitung/Admin stornieren Positionen — unabhängig von Ausgabe-/Bezahlstatus. Saldo kann negativ werden.                                                                                   |
+| K-04 | Stornierung erteilen    | Serviceleitung/Admin stornieren Positionen, unabhängig von Ausgabe-/Bezahlstatus. Saldo kann negativ werden.                                                                                    |
 | K-05 | Auszahlung leisten      | Serviceleitung/Admin gleichen negativen Tischsaldo durch positionsunabhängige Auszahlung aus.                                                                                                   |
 | K-06 | Tischübersicht          | Dashboard mit „Meine Tische" (Favoriten), Alle-Tische-Drawer, Tisch-Detail mit Tabs (Bestellen, Kassieren, Historie).                                                                           |
 | K-07 | Kassenjournal           | Unveränderliche Event-Tabelle (append-only) als Single Source of Truth. Synchrone Projektion + CRUD-Entität.                                                                                    |
 | K-09 | Bestellungen umbuchen   | Serviceleitung/Admin buchen unbezahlte Bestellungen atomar zwischen Tischen um (Quell-Storno + Ziel-Bestellung in einer Transaktion).                                                           |
 | K-10 | Rückgeldberechnung      | Optionale Eingabe von erhaltenem Betrag und Zielbetrag (inkl. Trinkgeld) beim Kassieren. Rückgeld und Trinkgeld werden rein clientseitig berechnet und angezeigt.                               |
 | K-11 | Tisch-Schnellsuche      | Suchfeld im Alle-Tische-Drawer. Clientseitige Echtzeit-Filterung nach Tischname (case-insensitive).                                                                                             |
-| K-12 | Arbeitsbon              | Automatischer Arbeitsbon (ohne Preise) bei Bestellaufnahme an konfigurierte Druckstationen (Küche, Theke). Operativ, nicht-fiskalisch — **kein** Kassenbeleg (→ F-03).                          |
+| K-12 | Arbeitsbon              | Automatischer Arbeitsbon (ohne Preise) bei Bestellaufnahme an konfigurierte Druckstationen (Küche, Theke). Operativ, nicht-fiskalisch, kein Kassenbeleg (→ F-03).                                |
 | K-14 | Tisch-Favoriten         | Serverseitig gespeicherte Favoriten pro Benutzer. Stern-Toggle im Alle-Tische-Drawer.                                                                                                           |
 | K-16 | Kassensitzung eröffnen  | Global nummerierter Betriebstag. Kassensitzung-Sperre blockiert Betrieb ohne offene Sitzung.                                                                                                    |
 | K-17 | Anfangsbestand setzen   | Wechselgeld als Basis für Kassenbestandsführung. Genau einmal pro Kassensitzung.                                                                                                                |
@@ -59,7 +59,7 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | K-22 | Tagesabschluss / Z-Bon  | Formaler Tagesabschluss. Schließt Kassensitzung ab. Voraussetzung: Kassensturz + alle Tische auf Saldo 0.                                                                                       |
 | K-24 | Direktverkauf           | Barverkauf an der Theke: bestellen + zahlen + ausgeben in einem Schritt. Eigener Event-Stream pro Verkauf (`direktverkauf-getaetigt:v1`), sofort kassenwirksam, ohne Tisch und ohne Projektion. |
 
-> 🚫 **K-08 · Bezeichnung pro Bestellung:** Won't-have — wird über das bestehende Kommentarfeld (K-01) gelöst.
+> 🚫 **K-08 · Bezeichnung pro Bestellung:** Won't-have. Wird über das bestehende Kommentarfeld (K-01) gelöst.
 
 ### Offen
 
@@ -69,7 +69,7 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 
 > **Rolle:** Servicekraft · Serviceleitung · Admin · **Prio:** Should-have
 
-Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eigenen Bildschirm in Echtzeit die eingehenden Bestellungen ihrer Kategorie. Das Display ist eine passive Anzeige — es zeigt offene Bestellungen gruppiert nach Tisch, sodass Ausgabestationen auch bei Bon-Verlust die Bestellungen nachvollziehen können.
+Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eigenen Bildschirm in Echtzeit die eingehenden Bestellungen ihrer Kategorie. Das Display ist eine passive Anzeige, es zeigt offene Bestellungen gruppiert nach Tisch, sodass Ausgabestationen auch bei Bon-Verlust die Bestellungen nachvollziehen können.
 
 **Akzeptanzkriterien:**
 
@@ -140,7 +140,7 @@ Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der
 | Q-02 | Mehrbenutzerfähig | Parallele Zugriffe ohne Datenverlust. Optimistic Concurrency Control.                                                                     |
 | Q-03 | Validierung       | Zod (Frontend) + zog (Backend). Doppelte Validierung, deutsche Fehlermeldungen.                                                           |
 | Q-04 | Datenintegrität   | Transaktionssicher, append-only Kassenjournal, Cent-Werte, Soft-Deletes.                                                                  |
-| Q-06 | HTTPS / TLS       | Lokal: Caddy terminiert TLS — vertrauenswürdiges Let's-Encrypt-Zertifikat via `lokal.jotti.rocks` (DNS-01), selbstsignierter Fallback auf `https://<LAN-IP>` (einmalige Browserwarnung), HTTP→HTTPS-Redirect. Prod: nginx + Let's Encrypt. |
+| Q-06 | HTTPS / TLS       | Lokal: Caddy terminiert TLS, vertrauenswürdiges Let's-Encrypt-Zertifikat via `lokal.jotti.rocks` (DNS-01), selbstsignierter Fallback auf `https://<LAN-IP>` (einmalige Browserwarnung), HTTP→HTTPS-Redirect. Prod: nginx + Let's Encrypt. |
 | Q-07 | Rate Limiting     | Login-Endpunkt geschützt (HTTP 429 bei Überschreitung).                                                                                   |
 | Q-08 | Security Headers  | CSP, X-Content-Type-Options, X-Frame-Options, HSTS.                                                                                       |
 
@@ -167,7 +167,7 @@ Bei einem Internetausfall während der Veranstaltung soll die Bestellaufnahme we
 
 ## 5 · Reporting und Auswertung
 
-> **Kassensitzung als Abrechnungszeitraum:** Alle zeitraumbezogenen Auswertungen beziehen sich auf eine Kassensitzung (`kassensitzung_nr`). Der Admin wählt die Kassensitzung aus — standardmäßig die aktuelle (offene).
+> **Kassensitzung als Abrechnungszeitraum:** Alle zeitraumbezogenen Auswertungen beziehen sich auf eine Kassensitzung (`kassensitzung_nr`). Der Admin wählt die Kassensitzung aus, standardmäßig die aktuelle (offene).
 
 ### Umgesetzt
 
@@ -178,7 +178,7 @@ Bei einem Internetausfall während der Veranstaltung soll die Bestellaufnahme we
 | R-04 | Abrechnung pro Servicekraft | Umsatzübersicht pro Servicekraft als Bestandteil von R-01 (`UmsatzProServicekraft[]`). |
 | R-06 | Eigene Übersicht            | KPI-Sektion auf dem Service-Dashboard: eigene Bestellungen und kassierte Zahlungen.    |
 
-> ℹ️ **R-07 · Tagesabschluss** wurde als K-22 in den Kasse-Kontext verschoben.
+> ℹ️ R-07 · Tagesabschluss wurde als K-22 in den Kasse-Kontext verschoben.
 
 ### Offen
 
@@ -215,7 +215,7 @@ Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um s
 
 ## 6 · Fiskalkonformität
 
-jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht nach § 146a AO. Die folgenden Anforderungen sind **verbindlich**. Rechtliche Grundlagen und Compliance-Entscheidungen: [compliance.md](compliance.md).
+jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht nach § 146a AO. Die folgenden Anforderungen sind verbindlich. Rechtliche Grundlagen und Compliance-Entscheidungen: [compliance.md](compliance.md).
 
 | ID   | Titel               | Phase | Status                     | Prio        |
 | ---- | ------------------- | ----- | -------------------------- | ----------- |
@@ -229,7 +229,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | F-09 | eBeleg              | 2     | 🔲                         | Nice        |
 | F-08 | GoBD-Hash-Chain     | 3     | 🔲                         | Nice        |
 
-**Legende:** ✅ Umgesetzt · 🔲 Offen — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
+**Legende:** ✅ Umgesetzt · 🔲 Offen. **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
 
 ---
 
@@ -237,11 +237,11 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 
 > **Prio:** Must-have (umgesetzt)
 
-Bei jedem Kassiervorgang muss dem Gast ein **Kassenbeleg** angeboten werden (§ 146a Abs. 2 AO, § 6 KassenSichV). jotti druckt den Kassenbeleg **auf Anforderung** durch den Service; am Fest greift in der Regel die Belegausgabe-Befreiung (Voraussetzungen → [compliance.md §5.1](compliance.md)), der Beleg muss aber jederzeit erstellbar sein. Der Kassenbeleg ist **strikt** vom automatischen, nicht-fiskalischen Arbeitsbon (K-12) zu trennen: Letzterer ist eine Arbeitsanweisung ohne Preise und **kein** Beleg. Der Kassenbeleg kann in Papierform (Bondrucker) oder — mit Zustimmung des Gastes — digital (F-09) ausgegeben werden. Seit der TSE-Integration (F-02) enthält er TSE-Pflichtfelder, sofern eine TSE konfiguriert ist.
+Bei jedem Kassiervorgang muss dem Gast ein Kassenbeleg angeboten werden (§ 146a Abs. 2 AO, § 6 KassenSichV). jotti druckt den Kassenbeleg auf Anforderung durch den Service; am Fest greift in der Regel die Belegausgabe-Befreiung (Voraussetzungen → [compliance.md §5.1](compliance.md)), der Beleg muss aber jederzeit erstellbar sein. Der Kassenbeleg ist strikt vom automatischen, nicht-fiskalischen Arbeitsbon (K-12) zu trennen: Letzterer ist eine Arbeitsanweisung ohne Preise und kein Beleg. Der Kassenbeleg kann in Papierform (Bondrucker) oder (mit Zustimmung des Gastes) digital (F-09) ausgegeben werden. Seit der TSE-Integration (F-02) enthält er TSE-Pflichtfelder, sofern eine TSE konfiguriert ist.
 
 **Akzeptanzkriterien:**
 
-- [x] Service kann pro Kassiervorgang **auf Anforderung** einen Kassenbeleg drucken (kein automatischer Druck nach jeder Zahlung)
+- [x] Service kann pro Kassiervorgang auf Anforderung einen Kassenbeleg drucken (kein automatischer Druck nach jeder Zahlung)
 - [x] Basis-Beleg enthält: Vereinsname + Adresse (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, alle Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer
 - [x] Fehlender Kassenbeleg-Drucker erzeugt eine klare Fehlermeldung (kein stilles Scheitern)
 - [x] Mit F-07: Beleg weist Nettobetrag, Steuersatz und Steuerbetrag pro Position aus
@@ -290,7 +290,7 @@ Das Backend spricht die zertifizierte Cloud-TSE (primär: fiskaly) über das anb
 - [x] Interface `TSEClient` mit Methoden `StartTransaction` und `FinishTransaction` ist definiert (atomares Muster; `UpdateTransaction` wird nicht benötigt)
 - [x] Eine fiskaly-Implementierung des Interfaces (`FiskalyTSEClient`) ist vorhanden
 - [x] Bei fehlender TSE-Konfiguration bleibt TSE optional; im Admin-Dashboard erscheint ein deutlicher Hinweis + Warnung (nur Test/Demo/Übung)
-- [x] TSE-Transaktion bei Bestellung, Zahlung, Stornierung, **Auszahlung**, Geldtransit (Kassenbewegungen), Kassendifferenz, Direktverkauf und Tagesabschluss (vollständiges Mapping → [handbuch.md §3.13](handbuch.md))
+- [x] TSE-Transaktion bei Bestellung, Zahlung, Stornierung, Auszahlung, Geldtransit (Kassenbewegungen), Kassendifferenz, Direktverkauf und Tagesabschluss (vollständiges Mapping → [handbuch.md §3.13](handbuch.md))
 - [x] Event-Daten um TSE-Felder erweitert (Signatur, Transaktionsnummer, Signaturzähler, TSE-Seriennummer)
 - [x] Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
 - [x] QR-Code auf Beleg (DSFinV-K Anhang I)
@@ -301,12 +301,12 @@ Das Backend spricht die zertifizierte Cloud-TSE (primär: fiskaly) über das anb
 
 > **Prio:** Should-have
 
-Das Backend stellt einen maschinenlesbaren Export der Kassendaten im DSFinV-K-Format (Version 2.4) bereit: CSV-Dateien mit den vorgeschriebenen **offiziellen (englischen)** Dateinamen, Semikolon-Trennung und einer `index.xml`, verpackt in einem ZIP-Archiv (Format- und Dateinamen-Regeln → [compliance.md §6.2](compliance.md)).
+Das Backend stellt einen maschinenlesbaren Export der Kassendaten im DSFinV-K-Format (Version 2.4) bereit: CSV-Dateien mit den vorgeschriebenen offiziellen (englischen) Dateinamen, Semikolon-Trennung und einer `index.xml`, verpackt in einem ZIP-Archiv (Format- und Dateinamen-Regeln → [compliance.md §6.2](compliance.md)).
 
 **Akzeptanzkriterien:**
 
 - [ ] Admin-Endpunkt `/admin/export/dsfinvk` erzeugt ein ZIP-Archiv im DSFinV-K-Format v2.4
-- [ ] Alle Pflicht-CSV-Dateien sind mit den **offiziellen (englischen) Dateinamen** vorhanden: `transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, `businesscases.csv`, `cashpointclosing.csv` u. a. (nicht deutsche Namen wie `Bonkopf.csv` — siehe [compliance.md §6.2](compliance.md))
+- [ ] Alle Pflicht-CSV-Dateien sind mit den offiziellen (englischen) Dateinamen vorhanden: `transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, `businesscases.csv`, `cashpointclosing.csv` u. a. (nicht deutsche Namen wie `Bonkopf.csv`, siehe [compliance.md §6.2](compliance.md))
 - [ ] `index.xml` ist korrekt befüllt (Kassenseriennummer, Zeitraum, Version)
 - [ ] Steuersätze und Betragsaufschlüsselung sind korrekt pro Transaktion ausgewiesen
 - [ ] Betreiber-Stammdaten (Name, Anschrift) sind als Betreiberdaten korrekt ausgewiesen

@@ -2,21 +2,21 @@
 
 ## Problem Statement
 
-jotti kennt zwei Verkaufsabläufe: **Tischservice** (Servicekraft nimmt am Tisch Bestellungen
-auf, bestätigt die Ausgabe und kassiert) und **Direktverkauf** (Barverkauf an der Theke:
+jotti kennt zwei Verkaufsabläufe: Tischservice (Servicekraft nimmt am Tisch Bestellungen
+auf, bestätigt die Ausgabe und kassiert) und Direktverkauf (Barverkauf an der Theke:
 bestellen, zahlen und ausgeben in einem Schritt, der Gast erhält einen Abholbon). Auf einem
 Vereinsfest sind das getrennte Arbeitsplätze: Ein Helfer arbeitet entweder stundenlang als
-Servicekraft an den Tischen oder stundenlang an der Theke — gewechselt wird selten bis nie.
+Servicekraft an den Tischen oder stundenlang an der Theke, gewechselt wird selten bis nie.
 Manche Vereine nutzen sogar nur einen der beiden Abläufe.
 
 Die heutige Service-Oberfläche bildet das nicht ab:
 
-- Die Tischauswahl-Seite — die Startseite aller Service-Nutzer — beginnt mit einem
+- Die Tischauswahl-Seite (die Startseite aller Service-Nutzer) beginnt mit einem
   bildschirmbreiten, primären „Direktverkauf"-Button. Für Servicekräfte an den Tischen (die
   Mehrheit) ist das prominenteste Element ihrer Startseite nutzlos und verdrängt ihren
   eigentlichen Arbeitsbereich („Meine Tische") nach unten.
 - Helfer an der Theke müssen bei jedem Öffnen von jotti erst über die Tischauswahl-Seite in
-  den Direktverkauf navigieren — bei einem Arbeitsplatz, der den ganzen Abend derselbe
+  den Direktverkauf navigieren, bei einem Arbeitsplatz, der den ganzen Abend derselbe
   bleibt. Nach Browser-Neustart oder versehentlichem Zurück-Tippen landen sie wieder bei den
   Tischen.
 - Der Direktverkauf präsentiert sich als Unterseite der Tischauswahl (Rücklink „Meine
@@ -24,16 +24,16 @@ Die heutige Service-Oberfläche bildet das nicht ab:
 
 ## Solution
 
-Der Service-Bereich erhält zwei gleichrangige **Arbeitsmodi**: **Tischservice** und
-**Direktverkauf**. Ein Helfer arbeitet immer in genau einem Modus; die Oberfläche zeigt nur
+Der Service-Bereich erhält zwei gleichrangige Arbeitsmodi: Tischservice und
+Direktverkauf. Ein Helfer arbeitet immer in genau einem Modus; die Oberfläche zeigt nur
 diesen Arbeitsbereich.
 
-- Beim Öffnen des Service-Bereichs landet der Helfer direkt in seinem **zuletzt genutzten
-  Modus** (gemerkt pro Gerät — die Helfer nutzen ihre eigenen Smartphones). Wer jotti zum
+- Beim Öffnen des Service-Bereichs landet der Helfer direkt in seinem zuletzt genutzten
+  Modus (gemerkt pro Gerät, die Helfer nutzen ihre eigenen Smartphones). Wer jotti zum
   ersten Mal öffnet, startet im Tischservice.
-- Ein Helfer an der Theke wechselt **einmal zu Beginn** über das Benutzermenü in den
-  Direktverkauf — und landet von da an bei jedem Öffnen, nach jedem Neustart, direkt dort.
-- Der prominente Direktverkauf-Button auf der Tischauswahl-Seite **entfällt ersatzlos**. Der
+- Ein Helfer an der Theke wechselt einmal zu Beginn über das Benutzermenü in den
+  Direktverkauf, und landet von da an bei jedem Öffnen, nach jedem Neustart, direkt dort.
+- Der prominente Direktverkauf-Button auf der Tischauswahl-Seite entfällt ersatzlos. Der
   Moduswechsel lebt ausschließlich im Benutzermenü (wo bereits Verwaltung, Theme und Logout
   liegen).
 - Der Kopfbereich des Service-Bereichs zeigt den aktiven Modus an („Meine Tische" bzw.
@@ -41,7 +41,7 @@ diesen Arbeitsbereich.
   im Direktverkauf entfällt; nur die Tischdetail-Seite behält ihren Rücklink zur
   Tischauswahl.
 
-Für Vereine, die nur Tischservice machen, ist der Direktverkauf damit aus dem Weg — ein
+Für Vereine, die nur Tischservice machen, ist der Direktverkauf damit aus dem Weg, ein
 unbenutzter Menüeintrag stört nicht. Für Vereine, die nur Direktverkauf machen, genügt ein
 einmaliger Wechsel pro Gerät.
 
@@ -62,8 +62,8 @@ einmaliger Wechsel pro Gerät.
 
 4. Als Helfer an der Theke möchte ich zu Schichtbeginn einmal über das Benutzermenü in den
    Direktverkauf wechseln, damit ich danach durchgehend in meinem Arbeitsbereich bin.
-5. Als Helfer an der Theke möchte ich bei jedem Öffnen von jotti — auch nach
-   Browser-Neustart oder erneutem Login — direkt im Direktverkauf landen, damit ich nicht
+5. Als Helfer an der Theke möchte ich bei jedem Öffnen von jotti (auch nach
+   Browser-Neustart oder erneutem Login) direkt im Direktverkauf landen, damit ich nicht
    vor jedem Verkauf durch die Tischauswahl navigieren muss.
 6. Als Helfer an der Theke möchte ich im Direktverkauf keinen permanenten Rücklink „Meine
    Tische" sehen, damit ich nicht versehentlich aus meinem Arbeitsbereich herausnavigiere.
@@ -106,12 +106,12 @@ einmaliger Wechsel pro Gerät.
 
 - Ein neues, kleines Frontend-Modul kapselt den Arbeitsmodus: zwei Werte (Tischservice,
   Direktverkauf), Persistenz pro Gerät über localStorage, Lese- und Schreibzugriff über eine
-  schmale Schnittstelle (Hook bzw. Funktionen) — analog zur bestehenden Theme-Präferenz.
+  schmale Schnittstelle (Hook bzw. Funktionen), analog zur bestehenden Theme-Präferenz.
 - Standardwert ohne gespeicherte Präferenz ist Tischservice.
-- Die Präferenz ist eine **Geräte-Einstellung**: Sie überlebt Logout und Login (BYOD — die
+- Die Präferenz ist eine Geräte-Einstellung: Sie überlebt Logout und Login (BYOD, die
   Geräte sind persönlich) und wird nicht pro Benutzer im Backend gespeichert.
-- Der gespeicherte Modus wird beim **Besuch einer Modus-Route** aktualisiert (nicht nur beim
-  Wechsel über das Menü) — damit zählen auch Deep-Links und Lesezeichen als „zuletzt
+- Der gespeicherte Modus wird beim Besuch einer Modus-Route aktualisiert (nicht nur beim
+  Wechsel über das Menü), damit zählen auch Deep-Links und Lesezeichen als „zuletzt
   genutzt". Die Tischdetail-Seite gehört zum Modus Tischservice.
 
 ### Routing
@@ -127,9 +127,9 @@ einmaliger Wechsel pro Gerät.
   Tischservice, „Direktverkauf" im Direktverkauf. Die separate Seitenüberschrift auf der
   Direktverkauf-Seite entfällt dafür (keine doppelte Benennung).
 - Der Rücklink im Kopfbereich erscheint nur noch auf der Tischdetail-Seite (zurück zur
-  Tischauswahl). Im Direktverkauf gibt es keinen Rücklink — er ist keine Unterseite mehr.
+  Tischauswahl). Im Direktverkauf gibt es keinen Rücklink, er ist keine Unterseite mehr.
 - Das Benutzermenü erhält innerhalb des Service-Bereichs einen Wechsel-Eintrag, der immer
-  den **jeweils anderen** Modus anbietet („Direktverkauf" bzw. „Meine Tische"). Er steht
+  den jeweils anderen Modus anbietet („Direktverkauf" bzw. „Meine Tische"). Er steht
   allen Rollen mit Service-Zugang zur Verfügung (Servicekraft, Serviceleitung, Admin) und
   setzt die Geräte-Präferenz beim Wechsel.
 - Der bildschirmbreite Direktverkauf-Button auf der Tischauswahl-Seite wird ersatzlos
@@ -143,8 +143,8 @@ einmaliger Wechsel pro Gerät.
 
 ## Testing Decisions
 
-- **Was ein guter Test ist:** Tests prüfen von außen beobachtbares Verhalten — wohin
-  geleitet wird, welcher Modus nach welcher Aktion gespeichert ist — nicht
+- **Was ein guter Test ist:** Tests prüfen von außen beobachtbares Verhalten (wohin
+  geleitet wird, welcher Modus nach welcher Aktion gespeichert ist), nicht
   Implementierungsdetails wie localStorage-Schlüssel oder interne Strukturen.
 - **Arbeitsmodus-Modul** (Prior Art: bestehende Hook-Tests): ohne Präferenz gilt
   Tischservice; nach Setzen eines Modus liefert das Modul diesen zurück; der Wert überlebt
@@ -157,22 +157,22 @@ einmaliger Wechsel pro Gerät.
 
 ## Out of Scope
 
-- **Org-Einstellung zum Abschalten des Direktverkaufs:** bewusst verworfen — als reiner
+- **Org-Einstellung zum Abschalten des Direktverkaufs:** bewusst verworfen, als reiner
   Menüeintrag kostet ein ungenutzter Modus nichts, und jede Admin-Einstellung erhöht die
   Komplexität für ehrenamtliche Teams. Kann nachgerüstet werden, wenn echte Vereine danach
   fragen.
-- **Modus-Zuweisung pro Benutzer durch den Admin** (Backend-Feld): bewusst verworfen —
+- **Modus-Zuweisung pro Benutzer durch den Admin** (Backend-Feld): bewusst verworfen,
   Helfer wechseln Stationen spontan; eine Geräte-Präferenz genügt.
-- **Funktionale Änderungen am Direktverkauf** (Verkaufsablauf, Stornierung, Abholbon,
+- Funktionale Änderungen am Direktverkauf (Verkaufsablauf, Stornierung, Abholbon,
   Druckverhalten).
-- **Der Admin-Bereich** bleibt unberührt.
+- Der Admin-Bereich bleibt unberührt.
 
 ## Further Notes
 
-- **Arbeitsmodus** ist ein neuer Begriff der Oberfläche (kein Domänenbegriff des Backends).
+- Arbeitsmodus ist ein neuer Begriff der Oberfläche (kein Domänenbegriff des Backends).
   Bei der Umsetzung in `docs/language.md` aufnehmen, damit die Benennung verbindlich wird.
   Wichtig: Es gibt bewusst keine `Verkaufsstelle`-Entität (siehe `docs/language.md`,
-  Direktverkauf) — der Modus ist eine reine Frontend-Sicht, kein Stammdatum.
+  Direktverkauf), der Modus ist eine reine Frontend-Sicht, kein Stammdatum.
 - Sollte sich später herausstellen, dass Vereine eine zentrale Steuerung brauchen (Modus pro
   Benutzer oder Org-Toggle), ist das Arbeitsmodus-Modul die einzige Stelle, an der die
   Bezugsquelle der Präferenz ausgetauscht werden müsste.
