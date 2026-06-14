@@ -46,17 +46,17 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | K-06 | Tischübersicht          | Dashboard mit „Meine Tische" (Favoriten), Alle-Tische-Drawer, Tisch-Detail mit Tabs (Bestellen, Kassieren, Historie).                                                                           |
 | K-07 | Kassenjournal           | Unveränderliche Event-Tabelle (append-only) als Single Source of Truth. Synchrone Projektion + CRUD-Entität.                                                                                    |
 | K-09 | Bestellungen umbuchen   | Serviceleitung/Admin buchen unbezahlte Bestellungen atomar zwischen Tischen um (Quell-Storno + Ziel-Bestellung in einer Transaktion).                                                           |
+| K-10 | Rückgeldberechnung      | Optionale Eingabe von erhaltenem Betrag und Zielbetrag (inkl. Trinkgeld) beim Kassieren. Rückgeld und Trinkgeld werden rein clientseitig berechnet und angezeigt.                               |
+| K-11 | Tisch-Schnellsuche      | Suchfeld im Alle-Tische-Drawer. Clientseitige Echtzeit-Filterung nach Tischname (case-insensitive).                                                                                             |
 | K-12 | Arbeitsbon              | Automatischer Arbeitsbon (ohne Preise) bei Bestellaufnahme an konfigurierte Druckstationen (Küche, Theke). Operativ, nicht-fiskalisch — **kein** Kassenbeleg (→ F-03).                          |
 | K-14 | Tisch-Favoriten         | Serverseitig gespeicherte Favoriten pro Benutzer. Stern-Toggle im Alle-Tische-Drawer.                                                                                                           |
 | K-16 | Kassensitzung eröffnen  | Global nummerierter Betriebstag. Kassensitzung-Sperre blockiert Betrieb ohne offene Sitzung.                                                                                                    |
 | K-17 | Anfangsbestand setzen   | Wechselgeld als Basis für Kassenbestandsführung. Genau einmal pro Kassensitzung.                                                                                                                |
 | K-18 | Kassenbestand einsehen  | Soll-Bestand als SQL-Aggregation über Kassenjournal mit Aufschlüsselung nach Komponenten.                                                                                                       |
 | K-19 | Geldtransit buchen      | Geldtransit (Einlage oder Entnahme) als Event im Kassenjournal.                                                                                                                                 |
+| K-20 | Betreiber-Stammdaten    | Admin pflegt Vereinsname, Adresse, Steuernummer und USt-ID. Erscheint auf Beleg (F-03) und DSFinV-K-Export (F-04).                                                                              |
 | K-21 | Kassensturz durchführen | Gezählter Ist-Bestand vs. Soll-Bestand. Differenz wird automatisch gebucht.                                                                                                                     |
 | K-22 | Tagesabschluss / Z-Bon  | Formaler Tagesabschluss. Schließt Kassensitzung ab. Voraussetzung: Kassensturz + alle Tische auf Saldo 0.                                                                                       |
-| K-11 | Tisch-Schnellsuche      | Suchfeld im Alle-Tische-Drawer. Clientseitige Echtzeit-Filterung nach Tischname (case-insensitive).                                                                                             |
-| K-20 | Betreiber-Stammdaten    | Admin pflegt Vereinsname, Adresse, Steuernummer und USt-ID. Erscheint auf Beleg (F-03) und DSFinV-K-Export (F-04).                                                                              |
-| K-10 | Rückgeldberechnung      | Optionale Eingabe von erhaltenem Betrag und Zielbetrag (inkl. Trinkgeld) beim Kassieren. Rückgeld und Trinkgeld werden rein clientseitig berechnet und angezeigt.                               |
 | K-24 | Direktverkauf           | Barverkauf an der Theke: bestellen + zahlen + ausgeben in einem Schritt. Eigener Event-Stream pro Verkauf (`direktverkauf-getaetigt:v1`), sofort kassenwirksam, ohne Tisch und ohne Projektion. |
 
 > 🚫 **K-08 · Bezeichnung pro Bestellung:** Won't-have — wird über das bestehende Kommentarfeld (K-01) gelöst.
@@ -69,7 +69,7 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 
 > **Rolle:** Servicekraft · Serviceleitung · Admin · **Prio:** Should-have
 
-Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eigenen Bildschirm in Echtzeit die eingehenden Bestellungen ihrer Kategorie. Das Display dient als passive Anzeige — es zeigt offene Bestellungen gruppiert nach Tisch, sodass Ausgabestationen auch bei Bon-Verlust die Bestellungen nachvollziehen können.
+Mitarbeiter an den Ausgabestationen (Getränketheke, Küche) sehen auf einem eigenen Bildschirm in Echtzeit die eingehenden Bestellungen ihrer Kategorie. Das Display ist eine passive Anzeige — es zeigt offene Bestellungen gruppiert nach Tisch, sodass Ausgabestationen auch bei Bon-Verlust die Bestellungen nachvollziehen können.
 
 **Akzeptanzkriterien:**
 
@@ -222,14 +222,14 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | F-01 | Seriennummer        | 1     | ✅                         | Must        |
 | F-07 | Steuersätze         | 1     | ✅                         | Must        |
 | F-03 | Belegausgabepflicht | 1/2   | ✅                         | Must        |
-| F-05 | ELSTER-Meldung      | 1     | 🔲 Offen                   | Must (Doku) |
+| F-05 | ELSTER-Meldung      | 1     | 🔲                         | Must (Doku) |
 | F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung | Should      |
 | F-02 | TSE-Integration     | 2     | ✅                         | Should      |
-| F-04 | DSFinV-K Export     | 2     | 🔲 Offen                   | Should      |
-| F-09 | eBeleg              | 2     | 🔲 Offen                   | Nice        |
-| F-08 | GoBD-Hash-Chain     | 3     | 🔲 Offen                   | Nice        |
+| F-04 | DSFinV-K Export     | 2     | 🔲                         | Should      |
+| F-09 | eBeleg              | 2     | 🔲                         | Nice        |
+| F-08 | GoBD-Hash-Chain     | 3     | 🔲                         | Nice        |
 
-**Legende:** ✅ Implementiert · 🔲 Offen — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
+**Legende:** ✅ Umgesetzt · 🔲 Offen — **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
 
 ---
 
