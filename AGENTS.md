@@ -86,9 +86,9 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 - **Bewertungsmetriken — der Maßstab für jede Änderung, in jedem Chat-Modus (Ask, Plan, Agent):**
   - **Maßgeblich, immer optimieren:** Korrektheit, Einfachheit, Codequalität, Konsistenz.
   - **Bewusst nachrangig, nie ein Gegenargument:** Aufwand, Zeit, Arbeitsumfang, Kosten, Breaking Changes.
-  - Eine korrekte, einfache, saubere und konsistente Lösung wird nie zugunsten einer schnelleren, kleineren oder bequemeren Variante verworfen. Mehr Arbeit allein ist kein Grund, die richtige Lösung zu vermeiden.
+  - Eine korrekte, einfache, saubere und konsistente Lösung wird nie zugunsten einer schnelleren, kleineren oder bequemeren Variante verworfen.
   - **„Arbeitsumfang“ ist nicht Feature-Scope.** Aufwandsscheu wird ignoriert; der Scope Guard bleibt unberührt: keine ungefragten Features, kein Gold-Plating (siehe „Scope Guard“ unten).
-- **Menschlich reviewbare Änderungen.** Jede Änderung muss sauber, lesbar und wartbar genug sein, damit ein Senior-Entwickler sie langfristig reviewen, verstehen und pflegen kann. Keinen cleveren Code, keine unnötigen Abstraktionen, keine Änderungen, die tiefen Kontext erfordern um verstanden zu werden.
+- **Menschlich reviewbare Änderungen.** Jede Änderung muss sauber, lesbar und wartbar genug sein, damit ein Senior-Entwickler sie langfristig reviewen, verstehen und pflegen kann. Keinen cleveren Code, keine unnötigen Abstraktionen, keine Änderungen, die tiefen Kontext erfordern, um verstanden zu werden.
 - **Self-Review-Checkliste** (vor dem Präsentieren der Änderungen still durchlaufen, nur gefundene Probleme im Chat melden):
   1. Sind die Änderungen **korrekt** — lösen sie tatsächlich das genannte Problem?
   2. Sind die Änderungen **sauber** — kein toter Code, keine Debug-Artefakte, konsistenter Stil?
@@ -124,9 +124,9 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 
 - **Zusammenfassung für den Reviewer.** Nach jeder abgeschlossenen Aufgabe postet der Agent — zusätzlich zur Commit-Message — einen narrativen Absatz (in Konversationssprache), der erklärt: was wurde geändert, warum, und worauf der Reviewer achten sollte. Für einen Senior-Entwickler, der Intent und Impact schnell verstehen will, ohne jede Diff-Zeile zu lesen.
 
-## Lokale Qualitaetspruefung
+## Lokale Qualitätsprüfung
 
-Fuer reproduzierbare lokale Checks (CI-nah):
+Für reproduzierbare lokale Checks (CI-nah):
 
 ```bash
 bash scripts/setup-dev-tools.sh  # Tools installieren (einmalig)
@@ -134,4 +134,4 @@ make check                        # Schneller Check ohne Integrationstests
 make verify                       # Voller Check inkl. Integrationstests
 ```
 
-Bei `Fehlendes Tool: ...`: `bash scripts/setup-dev-tools.sh` erneut ausfuehren und sicherstellen, dass `$(go env GOPATH)/bin` im `PATH` liegt.
+Bei `Fehlendes Tool: ...`: `bash scripts/setup-dev-tools.sh` erneut ausführen und sicherstellen, dass `$(go env GOPATH)/bin` im `PATH` liegt.
