@@ -76,49 +76,9 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		return reporting.ReportingData{}, err
 	}
 
-	umsatz := make([]reporting.UmsatzServicekraft, len(umsatzRows))
-	for i, row := range umsatzRows {
-		userName, _ := row.UserName.(string)
-		umsatz[i] = reporting.UmsatzServicekraft{
-			UserID:            row.UserID,
-			UserName:          userName,
-			ZahlungenCents:    row.ZahlungenCents,
-			AuszahlungenCents: row.AuszahlungenCents,
-			AnzahlZahlungen:   row.AnzahlZahlungen,
-		}
-	}
-
-	tische := make([]reporting.UmsatzTisch, len(tischRows))
-	for i, row := range tischRows {
-		tische[i] = reporting.UmsatzTisch{
-			TischID:           row.TischID,
-			TischName:         row.TischName,
-			ZahlungenCents:    row.ZahlungenCents,
-			AuszahlungenCents: row.AuszahlungenCents,
-			AnzahlZahlungen:   row.AnzahlZahlungen,
-		}
-	}
-
-	stornierungen := make([]reporting.StornierungDetail, len(stornoRows))
-	for i, row := range stornoRows {
-		var data stornierungEventData
-		if err := json.Unmarshal(row.Data, &data); err != nil {
-			return reporting.ReportingData{}, err
-		}
-		positionen := toStornierungPositionen(data.Positionen)
-		if positionen == nil {
-			positionen = []reporting.StornierungPosition{}
-		}
-		stornierungen[i] = reporting.StornierungDetail{
-			Zeitpunkt:   row.Timestamp,
-			TischID:     row.TischID,
-			TischName:   row.TischName,
-			UserID:      row.UserID,
-			UserName:    row.UserName,
-			BetragCents: data.GesamtStornierungCents,
-			Kommentar:   data.Kommentar,
-			Positionen:  positionen,
-		}
+	stornierungen, err := toStornierungen(stornoRows)
+	if err != nil {
+		return reporting.ReportingData{}, err
 	}
 
 	umsatzProSteuersatz := make([]reporting.UmsatzSteuersatz, len(steuerRows))
@@ -131,19 +91,10 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 
 	return reporting.ReportingData{
 		KassensitzungNr: kassensitzungNr,
-		Summary: reporting.Summary{
-			GesamtUmsatzCents:        int(stats.GesamtUmsatzCents),
-			GesamtAuszahlungenCents:  stats.GesamtAuszahlungenCents,
-			GesamtBestellungenCents:  stats.GesamtBestellungenCents,
-			GesamtStornierungenCents: stats.GesamtStornierungenCents,
-			AnzahlBestellungen:       stats.AnzahlBestellungen,
-			AnzahlStornierungen:      stats.AnzahlStornierungen,
-			AnzahlDirektverkaeufe:    stats.AnzahlDirektverkaeufe,
-			DirektverkaufUmsatzCents: stats.DirektverkaufUmsatzCents,
-		},
+		Summary:         toSummary(stats),
 		Breakdowns: reporting.Breakdowns{
-			UmsatzProServicekraft: umsatz,
-			UmsatzProTisch:        tische,
+			UmsatzProServicekraft: toUmsatzServicekraft(umsatzRows),
+			UmsatzProTisch:        toUmsatzTische(tischRows),
 		},
 		UmsatzProSteuersatz: umsatzProSteuersatz,
 		Stornierungen:       stornierungen,
@@ -212,49 +163,9 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 		}
 	}
 
-	umsatz := make([]reporting.UmsatzServicekraft, len(umsatzRows))
-	for i, row := range umsatzRows {
-		userName, _ := row.UserName.(string)
-		umsatz[i] = reporting.UmsatzServicekraft{
-			UserID:            row.UserID,
-			UserName:          userName,
-			ZahlungenCents:    row.ZahlungenCents,
-			AuszahlungenCents: row.AuszahlungenCents,
-			AnzahlZahlungen:   row.AnzahlZahlungen,
-		}
-	}
-
-	tische := make([]reporting.UmsatzTisch, len(tischRows))
-	for i, row := range tischRows {
-		tische[i] = reporting.UmsatzTisch{
-			TischID:           row.TischID,
-			TischName:         row.TischName,
-			ZahlungenCents:    row.ZahlungenCents,
-			AuszahlungenCents: row.AuszahlungenCents,
-			AnzahlZahlungen:   row.AnzahlZahlungen,
-		}
-	}
-
-	stornierungen := make([]reporting.StornierungDetail, len(stornoRows))
-	for i, row := range stornoRows {
-		var data stornierungEventData
-		if err := json.Unmarshal(row.Data, &data); err != nil {
-			return reporting.LiveReportingData{}, err
-		}
-		positionen := toStornierungPositionen(data.Positionen)
-		if positionen == nil {
-			positionen = []reporting.StornierungPosition{}
-		}
-		stornierungen[i] = reporting.StornierungDetail{
-			Zeitpunkt:   row.Timestamp,
-			TischID:     row.TischID,
-			TischName:   row.TischName,
-			UserID:      row.UserID,
-			UserName:    row.UserName,
-			BetragCents: data.GesamtStornierungCents,
-			Kommentar:   data.Kommentar,
-			Positionen:  positionen,
-		}
+	stornierungen, err := toStornierungen(stornoRows)
+	if err != nil {
+		return reporting.LiveReportingData{}, err
 	}
 
 	return reporting.LiveReportingData{
@@ -262,19 +173,10 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 		OffeneTische:                offeneTische,
 		OffeneSaldiCents:            offeneSaldi,
 		AusstehendAuszahlungenCents: ausstehendAuszahlungen,
-		Summary: reporting.Summary{
-			GesamtUmsatzCents:        int(stats.GesamtUmsatzCents),
-			GesamtAuszahlungenCents:  stats.GesamtAuszahlungenCents,
-			GesamtBestellungenCents:  stats.GesamtBestellungenCents,
-			GesamtStornierungenCents: stats.GesamtStornierungenCents,
-			AnzahlBestellungen:       stats.AnzahlBestellungen,
-			AnzahlStornierungen:      stats.AnzahlStornierungen,
-			AnzahlDirektverkaeufe:    stats.AnzahlDirektverkaeufe,
-			DirektverkaufUmsatzCents: stats.DirektverkaufUmsatzCents,
-		},
+		Summary:                     toSummary(stats),
 		Breakdowns: reporting.Breakdowns{
-			UmsatzProServicekraft: umsatz,
-			UmsatzProTisch:        tische,
+			UmsatzProServicekraft: toUmsatzServicekraft(umsatzRows),
+			UmsatzProTisch:        toUmsatzTische(tischRows),
 		},
 		Stornierungen: stornierungen,
 	}, nil
@@ -295,6 +197,73 @@ func toStornierungPositionen(positionen []stornierungPositionJSON) []reporting.S
 		out[i] = toStornierungPosition(p)
 	}
 	return out
+}
+
+func toSummary(stats dbgen.GetReportingStatsRow) reporting.Summary {
+	return reporting.Summary{
+		GesamtUmsatzCents:        stats.GesamtUmsatzCents,
+		GesamtAuszahlungenCents:  stats.GesamtAuszahlungenCents,
+		GesamtBestellungenCents:  stats.GesamtBestellungenCents,
+		GesamtStornierungenCents: stats.GesamtStornierungenCents,
+		AnzahlBestellungen:       stats.AnzahlBestellungen,
+		AnzahlStornierungen:      stats.AnzahlStornierungen,
+		AnzahlDirektverkaeufe:    stats.AnzahlDirektverkaeufe,
+		DirektverkaufUmsatzCents: stats.DirektverkaufUmsatzCents,
+	}
+}
+
+func toUmsatzServicekraft(rows []dbgen.GetUmsatzProServicekraftRow) []reporting.UmsatzServicekraft {
+	umsatz := make([]reporting.UmsatzServicekraft, len(rows))
+	for i, row := range rows {
+		userName, _ := row.UserName.(string)
+		umsatz[i] = reporting.UmsatzServicekraft{
+			UserID:            row.UserID,
+			UserName:          userName,
+			ZahlungenCents:    row.ZahlungenCents,
+			AuszahlungenCents: row.AuszahlungenCents,
+			AnzahlZahlungen:   row.AnzahlZahlungen,
+		}
+	}
+	return umsatz
+}
+
+func toUmsatzTische(rows []dbgen.GetUmsatzProTischRow) []reporting.UmsatzTisch {
+	tische := make([]reporting.UmsatzTisch, len(rows))
+	for i, row := range rows {
+		tische[i] = reporting.UmsatzTisch{
+			TischID:           row.TischID,
+			TischName:         row.TischName,
+			ZahlungenCents:    row.ZahlungenCents,
+			AuszahlungenCents: row.AuszahlungenCents,
+			AnzahlZahlungen:   row.AnzahlZahlungen,
+		}
+	}
+	return tische
+}
+
+func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungDetail, error) {
+	stornierungen := make([]reporting.StornierungDetail, len(rows))
+	for i, row := range rows {
+		var data stornierungEventData
+		if err := json.Unmarshal(row.Data, &data); err != nil {
+			return nil, err
+		}
+		positionen := toStornierungPositionen(data.Positionen)
+		if positionen == nil {
+			positionen = []reporting.StornierungPosition{}
+		}
+		stornierungen[i] = reporting.StornierungDetail{
+			Zeitpunkt:   row.Timestamp,
+			TischID:     row.TischID,
+			TischName:   row.TischName,
+			UserID:      row.UserID,
+			UserName:    row.UserName,
+			BetragCents: data.GesamtStornierungCents,
+			Kommentar:   data.Kommentar,
+			Positionen:  positionen,
+		}
+	}
+	return stornierungen, nil
 }
 
 func (r Repository) GetEigeneUebersicht(ctx context.Context, userID int, kassensitzungNr int) (reporting.EigeneUebersicht, error) {

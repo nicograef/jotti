@@ -283,28 +283,33 @@ func (r Repository) handleTischSessionEvent(ctx context.Context, qtx *dbgen.Quer
 		return fmt.Errorf("apply event to tisch session: %w", err)
 	}
 
-	// Marshal positions to JSON
-	unbezahltJSON, err := json.Marshal(newState.UnbezahltePositionen)
+	return upsertTischSessionState(ctx, qtx, e.Subject, tischID, kassensitzungNr, newState)
+}
+
+// upsertTischSessionState marshals the projected positions and upserts the
+// tisch_sessions row for the given subject. Shared by handleTischSessionEvent
+// (event-write path) and RebuildAllProjections (replay path).
+func upsertTischSessionState(ctx context.Context, qtx *dbgen.Queries, subject string, tischID, kassensitzungNr int, state kasse.TischSession) error {
+	unbezahltJSON, err := json.Marshal(state.UnbezahltePositionen)
 	if err != nil {
 		return fmt.Errorf("marshal unbezahlte positionen: %w", err)
 	}
-	ausstehendeJSON, err := json.Marshal(newState.AusstehendePositionen)
+	ausstehendeJSON, err := json.Marshal(state.AusstehendePositionen)
 	if err != nil {
 		return fmt.Errorf("marshal ausstehende positionen: %w", err)
 	}
 
-	// Upsert tisch_sessions
 	err = qtx.UpsertTischSession(ctx, dbgen.UpsertTischSessionParams{
-		Subject:                e.Subject,
+		Subject:                subject,
 		TischID:                tischID,
 		KassensitzungNr:        kassensitzungNr,
-		SaldoCents:             newState.SaldoCents,
+		SaldoCents:             state.SaldoCents,
 		UnbezahltePositionen:   unbezahltJSON,
 		AusstehendePositionen:  ausstehendeJSON,
-		GesamtZahlungenCents:   newState.GesamtZahlungenCents,
-		ErsteBestellungLogtime: toNullTime(newState.ErsteBestellungLogTime),
-		LastEventID:            newState.LastEventID,
-		LastEventVersion:       newState.LastEventVersion,
+		GesamtZahlungenCents:   state.GesamtZahlungenCents,
+		ErsteBestellungLogtime: toNullTime(state.ErsteBestellungLogTime),
+		LastEventID:            state.LastEventID,
+		LastEventVersion:       state.LastEventVersion,
 	})
 	if err != nil {
 		return db.Error(err)
@@ -529,29 +534,8 @@ func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
 			}
 		}
 
-		unbezahltJSON, err := json.Marshal(state.UnbezahltePositionen)
-		if err != nil {
-			return 0, fmt.Errorf("marshal unbezahlte positionen for subject %q: %w", subject, err)
-		}
-		ausstehendeJSON, err := json.Marshal(state.AusstehendePositionen)
-		if err != nil {
-			return 0, fmt.Errorf("marshal ausstehende positionen for subject %q: %w", subject, err)
-		}
-
-		err = qtx.UpsertTischSession(ctx, dbgen.UpsertTischSessionParams{
-			Subject:                subject,
-			TischID:                tischID,
-			KassensitzungNr:        kassensitzungNr,
-			SaldoCents:             state.SaldoCents,
-			UnbezahltePositionen:   unbezahltJSON,
-			AusstehendePositionen:  ausstehendeJSON,
-			GesamtZahlungenCents:   state.GesamtZahlungenCents,
-			ErsteBestellungLogtime: toNullTime(state.ErsteBestellungLogTime),
-			LastEventID:            state.LastEventID,
-			LastEventVersion:       state.LastEventVersion,
-		})
-		if err != nil {
-			return 0, fmt.Errorf("upsert tisch session for subject %q: %w", subject, err)
+		if err := upsertTischSessionState(ctx, qtx, subject, tischID, kassensitzungNr, state); err != nil {
+			return 0, fmt.Errorf("rebuild tisch session for subject %q: %w", subject, err)
 		}
 
 		rebuiltCount++

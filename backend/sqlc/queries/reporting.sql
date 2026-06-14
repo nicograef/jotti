@@ -14,10 +14,12 @@ ORDER BY t.name;
 -- name: GetReportingStats :one
 -- Reporting: Aggregierte Kennzahlen fuer eine Kassensitzung.
 SELECT
-    COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
+    (
+        COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
         + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
-        - COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS gesamt_umsatz_cents,
+        - COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int
+    )::int AS gesamt_umsatz_cents,
     COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS gesamt_auszahlungen_cents,
     COALESCE(SUM(kj_extract_bestellung_cents(type, data)), 0)::int AS gesamt_bestellungen_cents,
     COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int AS gesamt_stornierungen_cents,

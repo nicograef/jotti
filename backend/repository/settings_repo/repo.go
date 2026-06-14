@@ -3,21 +3,17 @@ package settings_repo
 import (
 	"context"
 	"database/sql"
-	"errors"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-// GetBetreiber returns the betreiber data, or nil + db.ErrNotFound if not yet set.
+// GetBetreiber returns the betreiber data, or db.ErrNotFound if not yet set.
 func (r Repository) GetBetreiber(ctx context.Context) (settings.Betreiber, error) {
 	row, err := r.q.GetBetreiber(ctx)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return settings.Betreiber{}, db.ErrNotFound
-		}
-		return settings.Betreiber{}, db.ErrDatabase
+		return settings.Betreiber{}, db.Error(err)
 	}
 	return toDomain(row), nil
 }
@@ -37,7 +33,7 @@ func (r Repository) UpsertBetreiber(ctx context.Context, b settings.Betreiber) e
 		params.UstID = sql.NullString{String: *b.UstID, Valid: true}
 	}
 	if err := r.q.UpsertBetreiber(ctx, params); err != nil {
-		return db.ErrDatabase
+		return db.Error(err)
 	}
 	return nil
 }
@@ -46,10 +42,7 @@ func (r Repository) UpsertBetreiber(ctx context.Context, b settings.Betreiber) e
 func (r Repository) GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error) {
 	row, err := r.q.GetKassenidentitaet(ctx)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return settings.Kassenidentitaet{}, db.ErrNotFound
-		}
-		return settings.Kassenidentitaet{}, db.ErrDatabase
+		return settings.Kassenidentitaet{}, db.Error(err)
 	}
 	return settings.Kassenidentitaet{
 		Seriennummer: row.Seriennummer,
@@ -60,10 +53,7 @@ func (r Repository) GetKassenidentitaet(ctx context.Context) (settings.Kassenide
 func (r Repository) GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error) {
 	row, err := r.q.GetTSEKonfiguration(ctx)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return settings.TSEKonfiguration{}, db.ErrNotFound
-		}
-		return settings.TSEKonfiguration{}, db.ErrDatabase
+		return settings.TSEKonfiguration{}, db.Error(err)
 	}
 	return toTSEKonfiguration(row), nil
 }
@@ -76,7 +66,7 @@ func (r Repository) UpsertTSEKonfiguration(ctx context.Context, c settings.TSEKo
 		ClientID:  c.ClientID,
 	})
 	if err != nil {
-		return db.ErrDatabase
+		return db.Error(err)
 	}
 	return nil
 }

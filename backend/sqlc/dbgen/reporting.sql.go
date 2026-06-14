@@ -128,10 +128,12 @@ func (q *Queries) GetOffeneTischeDetails(ctx context.Context) ([]GetOffeneTische
 
 const getReportingStats = `-- name: GetReportingStats :one
 SELECT
-    COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
+    (
+        COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
         + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
-        - COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS gesamt_umsatz_cents,
+        - COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int
+    )::int AS gesamt_umsatz_cents,
     COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS gesamt_auszahlungen_cents,
     COALESCE(SUM(kj_extract_bestellung_cents(type, data)), 0)::int AS gesamt_bestellungen_cents,
     COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int AS gesamt_stornierungen_cents,
@@ -155,7 +157,7 @@ AND kassensitzung_nr = $1
 `
 
 type GetReportingStatsRow struct {
-	GesamtUmsatzCents        int32
+	GesamtUmsatzCents        int
 	GesamtAuszahlungenCents  int
 	GesamtBestellungenCents  int
 	GesamtStornierungenCents int
