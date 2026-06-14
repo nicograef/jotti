@@ -91,7 +91,6 @@ for _ in $(seq 1 60); do
   sleep 2
 done
 
-status="$(docker compose "${COMPOSE_FILES[@]}" ps --format json "$PG_SERVICE" | sed -n 's/.*"Health":"\([^"]*\)".*/\1/p')"
 [[ "$status" == "healthy" ]] || fatal "Postgres is not healthy (status: ${status:-unknown})"
 
 info "Seeding demo data via seed subcommand (guard + projection rebuild included)..."

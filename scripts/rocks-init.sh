@@ -25,7 +25,7 @@ DOMAIN_AUTH="auth.jotti.rocks"
 EMAIL="graef.nico@gmail.com"
 
 COMPOSE_CERT="docker-compose.initial-cert.yml"
-COMPOSE_PROD="-f docker-compose.prod.yml -f docker-compose.rocks.yml"
+COMPOSE_PROD=(-f docker-compose.prod.yml -f docker-compose.rocks.yml)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -33,7 +33,7 @@ COMPOSE_PROD="-f docker-compose.prod.yml -f docker-compose.rocks.yml"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 info()  { printf "${GREEN}[INFO]${NC}  %s\n" "$1"; }
 warn()  { printf "${YELLOW}[WARN]${NC}  %s\n" "$1"; }
@@ -87,7 +87,7 @@ info "Prerequisites OK."
 # ---------------------------------------------------------------------------
 info "Checking DNS resolution for $DOMAIN..."
 
-if ! host "$DOMAIN" &>/dev/null 2>&1 && ! dig +short "$DOMAIN" 2>/dev/null | grep -q .; then
+if ! host "$DOMAIN" &>/dev/null && ! dig +short "$DOMAIN" 2>/dev/null | grep -q .; then
   fatal "DNS resolution failed for $DOMAIN. Ensure the domain points to this server before continuing."
 fi
 
@@ -95,14 +95,14 @@ info "DNS resolution for $DOMAIN: OK"
 
 CERTBOT_DOMAINS="-d $DOMAIN"
 
-if host "$DOMAIN_WWW" &>/dev/null 2>&1 || dig +short "$DOMAIN_WWW" 2>/dev/null | grep -q .; then
+if host "$DOMAIN_WWW" &>/dev/null || dig +short "$DOMAIN_WWW" 2>/dev/null | grep -q .; then
   info "DNS resolution for $DOMAIN_WWW: OK"
   CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_WWW"
 else
   warn "DNS resolution for $DOMAIN_WWW failed. www will not be included in the certificate."
 fi
 
-if host "$DOMAIN_DEMO" &>/dev/null 2>&1 || dig +short "$DOMAIN_DEMO" 2>/dev/null | grep -q .; then
+if host "$DOMAIN_DEMO" &>/dev/null || dig +short "$DOMAIN_DEMO" 2>/dev/null | grep -q .; then
   info "DNS resolution for $DOMAIN_DEMO: OK"
   CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_DEMO"
 else
@@ -112,7 +112,7 @@ fi
 # auth.jotti.rocks resolves via the resolver/acme-dns stack on this server —
 # on a fresh install it only works once the stack is up and the NS delegation
 # is set. Expand the certificate later as described in the guide.
-if host "$DOMAIN_AUTH" &>/dev/null 2>&1 || dig +short "$DOMAIN_AUTH" 2>/dev/null | grep -q .; then
+if host "$DOMAIN_AUTH" &>/dev/null || dig +short "$DOMAIN_AUTH" 2>/dev/null | grep -q .; then
   info "DNS resolution for $DOMAIN_AUTH: OK"
   CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_AUTH"
 else
@@ -151,7 +151,7 @@ docker compose -f "$COMPOSE_CERT" down
 # Step 5 — Start full production stack with jotti.rocks override
 # ---------------------------------------------------------------------------
 info "Building and starting production stack..."
-docker compose $COMPOSE_PROD up -d --build
+docker compose "${COMPOSE_PROD[@]}" up -d --build
 
 info "Waiting for services to start..."
 sleep 10

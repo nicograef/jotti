@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Integritäts-Checks für website/ — dependency-frei (bash, grep, sed, awk, comm, find).
 #

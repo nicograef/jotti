@@ -29,7 +29,7 @@ COMPOSE_PROD="docker-compose.prod.yml"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 info()  { printf "${GREEN}[INFO]${NC}  %s\n" "$1"; }
 warn()  { printf "${YELLOW}[WARN]${NC}  %s\n" "$1"; }
@@ -80,13 +80,13 @@ info "Prerequisites OK."
 # ---------------------------------------------------------------------------
 info "Checking DNS resolution for $DOMAIN..."
 
-if ! host "$DOMAIN" &>/dev/null 2>&1 && ! dig +short "$DOMAIN" 2>/dev/null | grep -q .; then
+if ! host "$DOMAIN" &>/dev/null && ! dig +short "$DOMAIN" 2>/dev/null | grep -q .; then
   fatal "DNS resolution failed for $DOMAIN. Ensure the domain points to this server before continuing."
 fi
 
 info "DNS resolution for $DOMAIN: OK"
 
-if host "$DOMAIN_WWW" &>/dev/null 2>&1 || dig +short "$DOMAIN_WWW" 2>/dev/null | grep -q .; then
+if host "$DOMAIN_WWW" &>/dev/null || dig +short "$DOMAIN_WWW" 2>/dev/null | grep -q .; then
   info "DNS resolution for $DOMAIN_WWW: OK"
 else
   warn "DNS resolution for $DOMAIN_WWW failed. www subdomain will not be included in the certificate."
