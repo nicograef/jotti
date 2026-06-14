@@ -260,9 +260,10 @@ const configVolumePath = "/config/.env"
 const configHelperImage = "postgres:17.8"
 
 // errSecretFehltMitDaten signalisiert den Fail-Safe-Abbruch: vorhandene Daten, aber
-// nirgends ein Secret. Die ausfuehrliche Anleitung gibt materializeEnvFromVolume
-// selbst aus (wie die Preflight-Diagnosen) — run() beendet daraufhin nur noch mit
-// Code 1, ohne die Meldung mit einem Fehlerpraefix zu doppeln.
+// nirgends ein Secret. run() erkennt den Sentinel und gibt dafuer die ausfuehrliche
+// Anleitung (core.DiagnoseSecretFehltMitDaten) ohne Fehlerpraefix aus statt der
+// kurzen Sentinel-Meldung — wie bei den uebrigen Preflight-Schritten liegt die
+// Ausgabe in run().
 var errSecretFehltMitDaten = errors.New("start abgebrochen: keine Zugangsdaten zu vorhandenen Daten gefunden")
 
 // materializeEnvFromVolume macht das jotti-config-Volume zur Quelle der Wahrheit
@@ -284,7 +285,6 @@ func materializeEnvFromVolume(envPath string, localDirs []string) error {
 	}
 	res := core.ResolveEnv(volumeContent, readEnvCandidates(localDirs), dataExists)
 	if res.Abort {
-		fmt.Println(core.DiagnoseSecretFehltMitDaten)
 		return errSecretFehltMitDaten
 	}
 	if res.Seed {
@@ -313,7 +313,11 @@ func readEnvCandidates(dirs []string) []string {
 // entweder fehlt das Volume (Erststart) oder es existiert, enthaelt aber noch
 // keine .env. Nur ein echter Docker-Fehler (Daemon/Image) wird durchgereicht.
 func readConfigVolume() (string, error) {
-	if exec.Command("docker", "volume", "inspect", configVolume).Run() != nil {
+	exists, err := volumeExists(configVolume)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
 		return "", nil // Volume fehlt → Erststart, ohne ein leeres Volume anzulegen
 	}
 	out, err := exec.Command("docker", "run", "--rm", "--entrypoint", "cat",

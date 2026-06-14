@@ -1,16 +1,18 @@
 // Command jotti-start ist der klickbare Windows-Starter fuer den lokalen
 // jotti-Betrieb. Ein Doppelklick (mit Administratorrechten, requireAdministrator-
-// Manifest) raeumt die Docker-Voraussetzungen aus (Daemon-Start, Linux-Engine),
-// holt das Install-Secret aus dem jotti-config-Volume (oder erzeugt es beim
-// Erststart) und spiegelt es in die .env, prueft die Ports, gibt die Firewall
-// frei, faehrt den Compose-Stack hoch, wartet, bis jotti unter /api/health bereit
-// ist, und weist danach (non-fatal, online) auf eine neuere Version hin. Host-
-// Zustand (.env-Spiegel, last-version-Marker) liegt unter
-// Windows kanonisch in %PROGRAMDATA%\jotti — unabhaengig vom Entpack-Ort. Die
-// reine Logik liegt in cmd/starter/core; diese Datei verbindet sie mit den echten
-// Seiteneffekten. Alle Windows-spezifischen Schritte laufen nur unter
-// runtime.GOOS == "windows" — der Repo-Dev-Lauf unter Linux ueberspringt sie und
-// haelt den Zustand weiterhin ordnerlokal.
+// Manifest) raeumt zuerst die Docker-Voraussetzungen aus (Daemon-Start,
+// Linux-Engine), holt das Install-Secret aus dem jotti-config-Volume (oder erzeugt
+// es beim Erststart) und spiegelt es in die .env. Danach prueft er die Ports, gibt
+// die Firewall frei und faehrt den Compose-Stack hoch. Zuletzt wartet er, bis jotti
+// unter /api/health bereit ist, und weist (non-fatal, online) auf eine neuere
+// Version hin.
+//
+// Host-Zustand (.env-Spiegel, last-version-Marker) liegt unter Windows kanonisch in
+// %PROGRAMDATA%\jotti — unabhaengig vom Entpack-Ort. Die reine Logik liegt in
+// cmd/starter/core; diese Datei verbindet sie mit den echten Seiteneffekten. Alle
+// Windows-spezifischen Schritte laufen nur unter runtime.GOOS == "windows" — der
+// Repo-Dev-Lauf unter Linux ueberspringt sie und haelt den Zustand weiterhin
+// ordnerlokal.
 package main
 
 import (
@@ -68,9 +70,11 @@ func run() int {
 			return 1
 		}
 		if err := materializeEnvFromVolume(envPath, envCandidateDirs(stateDir, filepath.Dir(composePath))); err != nil {
-			// Den Fail-Safe-Abbruch hat materializeEnvFromVolume bereits ausfuehrlich
-			// gemeldet; nur echte Fehler bekommen hier ein Praefix.
-			if !errors.Is(err, errSecretFehltMitDaten) {
+			// Wie bei den uebrigen Preflight-Schritten gibt run() die Meldung aus: der
+			// Fail-Safe-Abbruch zeigt die ausfuehrliche Anleitung, echte Fehler ein Praefix.
+			if errors.Is(err, errSecretFehltMitDaten) {
+				fmt.Println(core.DiagnoseSecretFehltMitDaten)
+			} else {
 				fmt.Printf("Zugangsdaten konnten nicht bereitgestellt werden: %v\n", err)
 			}
 			return 1

@@ -29,6 +29,15 @@ const backupDir = "/jotti-backups"
 // nach jedem neuen Dump rotiert, damit das Volume nicht unbegrenzt waechst.
 const keptBackups = 5
 
+// dumpPrefix und dumpSuffix umrahmen die zeitgestempelten Backup-Dateinamen
+// (jotti-YYYYMMDD-HHMMSS.sql). Erzeugung und Rotations-Filter teilen sie sich,
+// damit der Filter nicht still aufhoert zu greifen, sollte sich das Namensschema
+// einmal aendern.
+const (
+	dumpPrefix = "jotti-"
+	dumpSuffix = ".sql"
+)
+
 // maybeBackupBeforeUpdate zieht vor dem vollen `up` (inkl. migrate) automatisch
 // einen pg_dump, sobald bereits Daten existieren und die laufende Version von der
 // zuletzt gesund gestarteten abweicht oder noch kein Marker vorliegt (Erst-Upgrade
@@ -56,7 +65,7 @@ func maybeBackupBeforeUpdate(composePath, envPath, stateDir string) error {
 		return fmt.Errorf("postgres fuer das Backup hochfahren fehlgeschlagen: %w", err)
 	}
 
-	name := fmt.Sprintf("jotti-%s.sql", time.Now().Format("20060102-150405"))
+	name := dumpPrefix + time.Now().Format("20060102-150405") + dumpSuffix
 	if err := dumpDatabase(name); err != nil {
 		return err
 	}
@@ -120,7 +129,7 @@ func rotateBackups(keep int) error {
 	var names []string
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		name := strings.TrimSpace(line)
-		if strings.HasPrefix(name, "jotti-") && strings.HasSuffix(name, ".sql") {
+		if strings.HasPrefix(name, dumpPrefix) && strings.HasSuffix(name, dumpSuffix) {
 			names = append(names, name)
 		}
 	}
