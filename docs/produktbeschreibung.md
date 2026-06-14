@@ -16,7 +16,7 @@ jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfes
 
 ### 2.1 Positioning Statement
 
-**Für** eingetragene Vereine, gemeinnützige Organisationen und Non-Profit-Veranstalter, **die** ein einfaches und fiskalkonformes Kassensystem für ihre Gastronomie-Veranstaltungen brauchen, **ist jotti** ein kostenloses, quelloffenes Mobile-Point-of-Sale-System, **das** ohne Hardware-Investition, ohne Cloud-Abo und ohne technisches Vorwissen den kompletten Kassenbetrieb auf dem Smartphone ermöglicht — inklusive TSE-Anbindung, DSFinV-K-Export und Belegausgabe nach KassenSichV. **Anders als** kommerzielle POS-Systeme wie Orderbird, Toast oder Zettle **erfordert jotti** keine laufenden Kosten, keine Kartenterminals und keine Anbieter-Abhängigkeit — es gehört dem Verein, läuft auf dem eigenen Server und ist speziell für den ehrenamtlichen Einsatz gebaut.
+**Für** eingetragene Vereine, gemeinnützige Organisationen und Non-Profit-Veranstalter, **die** ein einfaches und fiskalkonformes Kassensystem für ihre Gastronomie-Veranstaltungen brauchen, **ist jotti** ein kostenloses, quelloffenes Mobile-Point-of-Sale-System, **das** ohne Hardware-Investition, ohne Cloud-Abo und ohne technisches Vorwissen den kompletten Kassenbetrieb auf dem Smartphone ermöglicht — inklusive TSE-Anbindung, Belegausgabe nach KassenSichV und DSFinV-K-Export _(in Entwicklung)_. **Anders als** kommerzielle POS-Systeme wie Orderbird, Toast oder Zettle **erfordert jotti** keine laufenden Kosten, keine Kartenterminals und keine Anbieter-Abhängigkeit — es gehört dem Verein, läuft auf dem eigenen Server und ist speziell für den ehrenamtlichen Einsatz gebaut.
 
 ### 2.2 Marktkategorie
 
@@ -48,7 +48,7 @@ Vereins- und Sommerfeste, Weihnachts- und Adventsmärkte, Maihocks und Straßenf
 
 ### 3.3 Personas
 
-- **Thomas, 52 — Vereinsvorstand (Admin):** Entscheider für die Software-Anschaffung, technisch grundlegend versiert (startet Docker nach Anleitung). Will eine kostenlose, von jedem bedienbare Lösung mit verlässlicher Abrechnung, die einer Betriebsprüfung standhält.
+- **Thomas, 52 — Vereinsvorstand (Admin):** Entscheider für die Software-Anschaffung, mit technischen Grundkenntnissen (startet Docker nach Anleitung). Will eine kostenlose, von jedem bedienbare Lösung mit verlässlicher Abrechnung, die einer Betriebsprüfung standhält.
 - **Maria, 23 — Servicekraft (Service):** Nutzt ihr eigenes Smartphone (BYOD), arbeitet ehrenamtlich, erwartet intuitive Bedienung ohne Schulung. Will am Tisch bestellen, ausgeben und kassieren — mehr nicht.
 - **Felix, 34 — Serviceleitung (Senior Service):** Koordiniert das Service-Team, braucht Stornierungsberechtigung und die Tisch-Übersicht auf einen Blick.
 
@@ -108,17 +108,17 @@ Mit _(in Entwicklung)_ markierte Features sind geplant, aber noch nicht umgesetz
 
 ### 6.1 jotti vs. kommerzielle POS-Systeme
 
-| Eigenschaft           | jotti                                                              | Orderbird / Toast / Zettle           |
-| --------------------- | ------------------------------------------------------------------ | ------------------------------------ |
-| **Preis**             | Kostenlos                                                          | 30–100 €/Monat + Hardware            |
-| **Hardware**          | Keine — eigenes Smartphone (BYOD)                                  | Dedizierte Terminals, iPad, Drucker  |
-| **Hosting**           | Self-hosted (Docker)                                               | Cloud-SaaS                           |
-| **Zielgruppe**        | Vereine, gemeinnützige Organisationen                              | Gastronomie-Betriebe, Restaurants    |
-| **Zahlungsarten**     | Bargeld                                                            | Karte, NFC, Online-Payment           |
-| **Fiskalkonformität** | TSE (Cloud-TSE/fiskaly) und Belegausgabe; DSFinV-K-Export in Entw. | Zertifizierte TSE, GoBD, KassenSichV |
-| **Vertragslaufzeit**  | Keine                                                              | 12–24 Monate                         |
-| **Datenhoheit**       | Volle Kontrolle (eigener Server)                                   | Daten beim Anbieter                  |
-| **Quellcode**         | Einsehbar (Source-Available)                                       | Proprietär                           |
+| Eigenschaft           | jotti                                                                        | Orderbird / Toast / Zettle           |
+| --------------------- | ---------------------------------------------------------------------------- | ------------------------------------ |
+| **Preis**             | Kostenlos                                                                    | 30–100 €/Monat + Hardware            |
+| **Hardware**          | Keine — eigenes Smartphone (BYOD)                                            | Dedizierte Terminals, iPad, Drucker  |
+| **Hosting**           | Self-hosted (Docker)                                                         | Cloud-SaaS                           |
+| **Zielgruppe**        | Vereine, gemeinnützige Organisationen                                        | Gastronomie-Betriebe, Restaurants    |
+| **Zahlungsarten**     | Bargeld                                                                      | Karte, NFC, Online-Payment           |
+| **Fiskalkonformität** | TSE (Cloud-TSE/fiskaly) und Belegausgabe; DSFinV-K-Export _(in Entwicklung)_ | Zertifizierte TSE, GoBD, KassenSichV |
+| **Vertragslaufzeit**  | Keine                                                                        | 12–24 Monate                         |
+| **Datenhoheit**       | Volle Kontrolle (eigener Server)                                             | Daten beim Anbieter                  |
+| **Quellcode**         | Einsehbar (Source-Available)                                                 | Proprietär                           |
 
 ### 6.2 Was jotti bewusst NICHT ist
 
@@ -160,14 +160,14 @@ jotti ist ein **elektronisches Aufzeichnungssystem** im Sinne von § 1 KassenSic
 
 Sechs Punkte, die jotti von kommerziellen Kassensystemen und von Stift-und-Papier abheben:
 
-| USP                          | Kurz                                                                      |
-| ---------------------------- | ------------------------------------------------------------------------- |
-| **Kostenlos für Vereine**    | Keine Lizenzgebühren, kein Abo, keine versteckten Kosten                  |
-| **Kein Hardware-Kauf**       | Jedes Smartphone wird zur Kasse — BYOD statt Terminal, iPad, Drucker      |
-| **In Minuten einsatzbereit** | Docker Compose starten, Produkte anlegen, Team einladen                   |
-| **Lückenlose Transparenz**   | Event-Sourcing — unveränderliche, nachvollziehbare Bestellhistorie        |
-| **Volle Datenhoheit**        | Self-hosted auf dem eigenen Server, keine fremde Cloud                    |
-| **Fiskalkonform ausgelegt**  | TSE, Belegausgabe und Tagesabschluss integriert; DSFinV-K-Export in Entw. |
+| USP                          | Kurz                                                                                |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| **Kostenlos für Vereine**    | Keine Lizenzgebühren, kein Abo, keine versteckten Kosten                            |
+| **Kein Hardware-Kauf**       | Jedes Smartphone wird zur Kasse — BYOD statt Terminal, iPad, Drucker                |
+| **In Minuten einsatzbereit** | Docker Compose starten, Produkte anlegen, Team einladen                             |
+| **Lückenlose Transparenz**   | Event-Sourcing — unveränderliche, nachvollziehbare Bestellhistorie                  |
+| **Volle Datenhoheit**        | Self-hosted auf dem eigenen Server, keine fremde Cloud                              |
+| **Fiskalkonform ausgelegt**  | TSE, Belegausgabe und Tagesabschluss integriert; DSFinV-K-Export _(in Entwicklung)_ |
 
 Wie jotti die typischen Vereinsprobleme löst, zeigt [§4 Problem & Lösung](#4-problem--lösung); der direkte Vergleich mit kommerziellen Systemen steht in [§6.1](#61-jotti-vs-kommerzielle-pos-systeme).
 
