@@ -60,7 +60,7 @@ jotti ist kein SaaS: Der Code ist öffentlich auf GitHub, die Vereine betreiben 
 
 ### 3.1 Hintergrund
 
-Die TSE ist das kryptografische Herzstück eines konformen Kassensystems. Sie besteht aus drei Modulen: **Sicherheitsmodul** (SMAERS-Datenaufbereitung + CSP-Signatur), **Speichermedium** (lokale Sicherung der signierten Daten) und **Einheitliche Digitale Schnittstelle** (EDS, Export). [3]
+Die TSE ist die kryptografische Kernkomponente eines konformen Kassensystems. Sie besteht aus drei Modulen: **Sicherheitsmodul** (SMAERS-Datenaufbereitung + CSP-Signatur), **Speichermedium** (lokale Sicherung der signierten Daten) und **Einheitliche Digitale Schnittstelle** (EDS, Export). [3]
 
 ### 3.2 Protokollierungs-Ablauf (Transaktions-Lebenszyklus)
 
