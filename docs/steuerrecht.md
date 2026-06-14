@@ -6,7 +6,7 @@ Mit dem **Steueränderungsgesetz 2025** (Bundesrat-Zustimmung 19. Dezember 2025)
 
 - **Speisen** in der Gastronomie unterliegen dem **ermäßigten Steuersatz von 7 %** — unabhängig von Verzehrsituation oder Servicegrad.
 - **Getränke** unterliegen weiterhin dem **Regelsteuersatz von 19 %**.
-- Die historische Unterscheidung **Vor-Ort-Verzehr (19 %) vs. Mitnahme (7 %)** für Speisen ist vollständig **entfallen**. Eine Differenzierung in „Lieferung" und „sonstige Leistung" ist nicht mehr erforderlich.
+- Die historische Unterscheidung **Vor-Ort-Verzehr (19 %) vs. Mitnahme (7 %)** für Speisen — rechtlich „sonstige Leistung" vs. „Lieferung" — ist vollständig **entfallen**.
 
 ---
 
@@ -46,7 +46,7 @@ Der Regelsteuersatz gilt für die Abgabe von Getränken — ebenfalls unabhängi
 | **Smoothies** (püriertes Obst)                  | 7 %        | Gelten als Speise (feste Nahrung püriert)                                      |
 | **Fruchtsäfte**                                 | 19 %       | Gelten als Getränk                                                             |
 
-**Praxishinweis Milchmixgetränke:** Ein Cappuccino oder Latte Macchiato mit Kuhmilch darf mit 7 % abgerechnet werden, wenn der Kuhmilch-Anteil am Gesamtgetränk mindestens 75 % beträgt. Derselbe Drink mit Hafermilch unterliegt immer 19 %.
+**Praxishinweis Milchmixgetränke:** Ein Cappuccino oder Latte Macchiato mit Kuhmilch darf mit 7 % abgerechnet werden, wenn der Kuhmilch-Anteil am Gesamtgetränk mindestens 75 % beträgt.
 
 ---
 
