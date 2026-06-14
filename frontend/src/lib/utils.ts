@@ -1,9 +1,17 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { z } from 'zod'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+/** A string that parses to a valid date. */
+export const DateStringSchema = z
+  .string()
+  .refine((date) => !isNaN(Date.parse(date)), {
+    message: 'Ungültiges Datumsformat',
+  })
 
 /**
  * Formats a price in cents as a Euro string with comma decimal separator.

@@ -14,8 +14,7 @@ import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { PasswordField, UsernameField } from './FormFields'
 
-const FormDataSchema = LoginSchema
-type FormData = z.infer<typeof FormDataSchema>
+type FormData = z.infer<typeof LoginSchema>
 
 interface LoginFormProps {
   backend: Pick<AuthBackend, 'login'>
@@ -25,7 +24,7 @@ export function LoginForm(props: LoginFormProps) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
-    resolver: zodResolver(FormDataSchema),
+    resolver: zodResolver(LoginSchema),
     mode: 'onSubmit',
     defaultValues: { username: '', password: '' },
   })

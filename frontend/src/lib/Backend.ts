@@ -36,9 +36,7 @@ export class ResponseBodyError extends Error {
   }
 }
 
-// TokenGetter abstracts token retrieval from the Backend class.
-// This single-implementation interface is intentional: it enables unit testing of Backend
-// without a real authentication dependency by injecting a test double.
+// TokenGetter abstracts token retrieval so Backend can be unit-tested with a test double.
 interface TokenGetter {
   getToken(): string | null
 }
@@ -138,7 +136,6 @@ export class Backend implements BackendClient {
     }
 
     if (!responseSchema) {
-      // No response schema provided, return empty object
       return {} as TResponse
     }
 

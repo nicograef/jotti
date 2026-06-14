@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import type { BackendClient } from './Backend'
+import { DateStringSchema } from './utils'
 
 const KategorieSchema = z.enum([
   'essen',
@@ -44,9 +45,7 @@ export const FehlgeschlagenerDruckauftragSchema = z.object({
   referenz: z.string(),
   versuche: z.number(),
   letzterFehler: z.string(),
-  erstelltAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Ungültiges Datumsformat',
-  }),
+  erstelltAm: DateStringSchema,
 })
 export type FehlgeschlagenerDruckauftrag = z.infer<
   typeof FehlgeschlagenerDruckauftragSchema

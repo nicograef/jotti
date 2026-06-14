@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import type { BackendClient } from './Backend'
+import { DateStringSchema } from './utils'
 
 export const BetreiberSchema = z.object({
   vereinsname: z.string(),
@@ -14,9 +15,7 @@ export type Betreiber = z.infer<typeof BetreiberSchema>
 
 const KassenidentitaetSchema = z.object({
   seriennummer: z.uuid(),
-  angelegtAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Ungültiges Datumsformat',
-  }),
+  angelegtAm: DateStringSchema,
 })
 export type Kassenidentitaet = z.infer<typeof KassenidentitaetSchema>
 
@@ -55,15 +54,8 @@ export const TSENachsignierAuftragSchema = z.object({
   status: z.enum(['offen', 'erledigt', 'fehlgeschlagen', 'verworfen']),
   versuche: z.number().int(),
   letzterFehler: z.string(),
-  erstelltAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Ungültiges Datumsformat',
-  }),
-  erledigtAm: z
-    .string()
-    .refine((date) => !isNaN(Date.parse(date)), {
-      message: 'Ungültiges Datumsformat',
-    })
-    .nullable(),
+  erstelltAm: DateStringSchema,
+  erledigtAm: DateStringSchema.nullable(),
 })
 export type TSENachsignierAuftrag = z.infer<typeof TSENachsignierAuftragSchema>
 
@@ -112,8 +104,8 @@ export class EinstellungenBackend {
     return this.backend.post('admin/get-betreiber', {}, BetreiberSchema)
   }
 
-  public async saveBetreiber(b: Betreiber): Promise<void> {
-    const body = BetreiberSchema.parse(b)
+  public async saveBetreiber(betreiber: Betreiber): Promise<void> {
+    const body = BetreiberSchema.parse(betreiber)
     await this.backend.post('admin/update-betreiber', body)
   }
 

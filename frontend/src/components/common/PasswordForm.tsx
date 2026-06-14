@@ -18,8 +18,7 @@ import { AuthBackend, SetPasswordSchema } from '@/lib/AuthBackend'
 
 import { NewPasswordField, OTPField, UsernameField } from './FormFields'
 
-const FormDataSchema = SetPasswordSchema
-type FormData = z.infer<typeof FormDataSchema>
+type FormData = z.infer<typeof SetPasswordSchema>
 
 interface PasswordFormProps {
   backend: Pick<AuthBackend, 'setPassword'>
@@ -28,7 +27,7 @@ interface PasswordFormProps {
 export function PasswordForm(props: PasswordFormProps) {
   const navigate = useNavigate()
   const form = useForm<FormData>({
-    resolver: zodResolver(FormDataSchema),
+    resolver: zodResolver(SetPasswordSchema),
     mode: 'onTouched',
     defaultValues: { username: '', password: '', onetimePassword: '' },
   })

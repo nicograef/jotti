@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import type { BackendClient } from '@/lib/Backend'
+
 const UsernameSchema = z
   .string()
   .min(3, { message: 'Benutzername muss mindestens 3 Zeichen lang sein.' })
@@ -29,8 +31,6 @@ export const SetPasswordSchema = z.object({
   onetimePassword: OnetimePasswordSchema,
 })
 
-import type { BackendClient } from '@/lib/Backend'
-
 export class AuthBackend {
   private readonly backend: BackendClient
 
@@ -49,7 +49,7 @@ export class AuthBackend {
     return token
   }
 
-  /** Sends a login request with the given username and password and returns the JWT token from the backend. */
+  /** Sets the initial password for an account, authorized by its one-time password. */
   public async setPassword(
     username: string,
     password: string,
