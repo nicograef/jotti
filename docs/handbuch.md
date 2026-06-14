@@ -69,7 +69,7 @@ Die Kassensitzung ist der Container, der Abrechnungskreis (= Tisch-Session) ist 
 
 Das Kassenjournal (Tabelle `kassenjournal`) ist die zentrale, append-only Tabelle für alle finanziellen Geschäftsvorfälle — chronologische, vollständige, unveränderbare Aufzeichnung im Sinne von § 146 AO. Ein Immutabilitäts-Trigger verhindert UPDATE und DELETE.
 
-Architektonisch tragende Spalten: `subject` (Stream-Schlüssel, → [3.3](#33-subject-design-hierarchische-subjects)), `version` (aufsteigend pro Subject; der Constraint `UNIQUE(subject, version)` realisiert OCC, → [6.6](#66-mehrbenutzerfähigkeit-occ)), `type` (Event-Typ, z. B. `bestellung-aufgenommen:v1`), `data` (JSONB), `user_id`/`user_name` (Fat Event: Name zum Zeitpunkt der Aktion) und `kassensitzung_nr` — sie ermöglicht robuste Cross-Stream-Aggregationen (Reporting, Kassenbestand) ohne fragile LIKE-Patterns auf Subjects. Vollständiges Schema: `database/migrations/01_initial.up.sql`.
+Architektonisch tragende Spalten: `subject` (Stream-Schlüssel, → [3.3](#33-subject-design-hierarchische-subjects)), `version` (aufsteigend pro Subject; der Constraint `UNIQUE(subject, version)` realisiert OCC, → [6.6](#66-mehrbenutzerfähigkeit-occ)), `type` (Event-Typ, z. B. `bestellung-aufgenommen:v1`), `data` (JSONB), `user_id`/`user_name` (Fat Event: Name zum Zeitpunkt der Aktion) und `kassensitzung_nr`. Dieses Feld ermöglicht robuste Cross-Stream-Aggregationen (Reporting, Kassenbestand) ohne fragile LIKE-Patterns auf Subjects. Vollständiges Schema: `database/migrations/01_initial.up.sql`.
 
 ### 3.3 Subject-Design: Hierarchische Subjects
 
@@ -181,7 +181,7 @@ Die Zustandsberechnung (`ApplyEvent()` in `backend/domain/kasse/tisch_session.go
 
 **`kassensitzungen` (CRUD-Entität, Hot-Path):** hält nur `z_nr`, `datum` und `status` und wird bei **jedem** Tisch-Schreibvorgang gelesen (Kassensitzung-Sperre). Alle weiteren KS-Daten (Anfangsbestand, Bezeichnung, Kassenbewegungen) werden bei Bedarf per In-Memory-Replay der wenigen KS-Events berechnet.
 
-**`tisch_sessions` (session-scoped Projektion):** pro Subject eine Zeile mit Tisch-Referenz, Saldo, unbezahlten und ausstehenden Positionen (JSONB) sowie der ID/Version des zuletzt verarbeiteten Events. Operative Queries lesen direkt aus der Projektion; die Historie liest den Event-Stream via `ReadEventsBySubject()`. Bei Inkonsistenz kann die Projektion jederzeit aus dem Kassenjournal reberechnet werden (Single Source of Truth).
+**`tisch_sessions` (session-scoped Projektion):** pro Subject eine Zeile mit Tisch-Referenz, Saldo, unbezahlten und ausstehenden Positionen (JSONB) sowie der ID/Version des zuletzt verarbeiteten Events. Operative Queries lesen direkt aus der Projektion; die Historie liest den Event-Stream via `ReadEventsBySubject()`. Bei Inkonsistenz kann die Projektion jederzeit aus dem Kassenjournal neu berechnet werden (Single Source of Truth).
 
 ### 3.9 Kassenbestand (Read Model)
 
@@ -239,7 +239,7 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 
 **DSFinV-K-Exporter:** Drei Module — Stammdaten-, Einzelaufzeichnungs- und Z-Bon-Modul — speisen einen CSV-Generator mit den offiziellen Dateinamen (`transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, …); ein index.xml-Generator und ZIP-Builder bündeln den Export. Datei-Struktur und Pflichtfelder → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 
-**Anbieter- und Meldeweg-Entscheidungen:** TSE-Anbieter (fiskaly als erster Zielanbieter; anbieter-agnostisches `TSEClient`-Interface gegen Vendor-Lock-in) und Kassenmeldungs-Weg (Phase 1 manuell über ELSTER, Phase 2 ERiC oder fiskaly-Submission-API) sind mitsamt Begründung und Abwägung in [compliance.md §3.5 und §7](compliance.md) dokumentiert.
+**Anbieter- und Meldeweg-Entscheidungen:** TSE-Anbieter (fiskaly als erster Zielanbieter; anbieter-agnostisches `TSEClient`-Interface gegen Vendor-Lock-in) und Kassenmeldungs-Weg (Phase 1 manuell über ELSTER, Phase 2 ERiC oder fiskaly-Submission-API) sind mitsamt Begründung und Abwägung in [compliance.md §3.5](compliance.md#35-tse-varianten-und-anbieter-entscheidung) und [§7](compliance.md#7-elektronische-meldepflicht-eric--elster) dokumentiert.
 
 ---
 
@@ -284,7 +284,7 @@ Stammdaten (Produkte, Tische, Benutzer) werden mit klassischem CRUD verwaltet. E
 
 **Arbeitsbon (operativ, K-12):** Eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)). Bei `bestellung-aufgenommen:v1` gruppiert die Arbeitsbon-Policy (`backend/api/bondruck`) die Positionen nach Kategorie, schlägt Drucker-IP und Bonmodus (`pro_position` oder `pro_bestellung`) aus der `druckstationen`-Tabelle nach (eine Zeile pro Kategorie; Admin-Konfiguration mit beidseitiger IPv4-Validierung), formatiert den ESC/POS-Payload und reiht je einen Druckauftrag in die Outbox ein. Kategorien ohne konfigurierte Druckstation erzeugen keinen Auftrag. **Inhalt:** Tischnummer, Positionen (Art + Menge), Kommentar, Uhrzeit, Servicekraft — **keine Preise**. Kein Beleg i. S. v. § 146a AO. KDS (K-13) und Zubereitungsstatus (K-15) sind noch offen.
 
-**Kassenbeleg (fiskalisch, auf Anforderung):** Ein Service-Command (`POST /service/beleg-drucken`) erzeugt pro Anforderung genau **einen** Druckauftrag an den Kassenbeleg-Drucker. Als Datenquelle dient entweder eine Tischzahlung (`zahlung-kassiert:v1`) oder ein Direktverkauf (`direktverkauf-getaetigt:v1`); die Outbox-Referenz ist die Event-ID des referenzierten Vorgangs. **Inhalt:** Vereinsdaten (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer. Erneuter Aufruf druckt nach, ohne den Vorgang fachlich zu wiederholen. Am Fest wird der Beleg selten verlangt (Belegausgabe-Befreiung → [compliance.md §5.1](compliance.md)). Der Beleg enthält die Steueraufteilung (F-07) und — sofern eine TSE konfiguriert ist — die TSE-Pflichtfelder inkl. QR-Code (F-02).
+**Kassenbeleg (fiskalisch, auf Anforderung):** Ein Service-Command (`POST /service/beleg-drucken`) erzeugt pro Anforderung genau **einen** Druckauftrag an den Kassenbeleg-Drucker. Als Datenquelle dient entweder eine Tischzahlung (`zahlung-kassiert:v1`) oder ein Direktverkauf (`direktverkauf-getaetigt:v1`); die Outbox-Referenz ist die Event-ID des referenzierten Vorgangs. **Inhalt:** Vereinsdaten (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer. Erneuter Aufruf druckt nach, ohne den Vorgang fachlich zu wiederholen. Am Fest wird der Beleg selten verlangt (Belegausgabe-Befreiung → [compliance.md §5.1](compliance.md#51-gesetzliche-grundlage)). Der Beleg enthält die Steueraufteilung (F-07) und — sofern eine TSE konfiguriert ist — die TSE-Pflichtfelder inkl. QR-Code (F-02).
 
 **Druckauftrags-Outbox (`druckauftraege`):** Single Source of Truth für alle Druckjobs — eine technische Warteschlange (Ziel-IP, ESC/POS-Payload, `bon_art`, fachliche Referenz), **kein** fiskalisches Journal. Statusmodell: `offen → gedruckt`; nach drei gemeldeten Fehlversuchen `fehlgeschlagen`, von dort `verworfen` oder zurück auf `offen`.
 
