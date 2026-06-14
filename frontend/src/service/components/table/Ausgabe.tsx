@@ -65,7 +65,6 @@ export function Ausgabe({
 
   return (
     <>
-      {' '}
       <AusgabeDrawer
         backend={backend}
         tisch={tisch}

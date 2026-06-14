@@ -1,14 +1,14 @@
 import { z } from 'zod'
 
+import { DateStringSchema } from '../schemas'
+
 export const AuszahlungSchema = z.object({
   id: z.uuid(),
   userId: z.number().int().min(1),
   tischId: z.number().int().min(1),
   betragCents: z.number().int().min(1),
   kommentar: z.string().min(3).max(100),
-  geleistetAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Ungültiges Datumsformat',
-  }),
+  geleistetAm: DateStringSchema,
 })
 export type Auszahlung = z.infer<typeof AuszahlungSchema>
 

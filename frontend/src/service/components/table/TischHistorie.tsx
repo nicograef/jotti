@@ -136,53 +136,53 @@ export function TischHistorie({
             ))
           : historie.map((item) => {
               if (Object.prototype.hasOwnProperty.call(item, 'kassiertAm')) {
-                const zahlung = item as Zahlung
+                const zahlungItem = item as Zahlung
                 return (
                   <HistoryItem
                     key={item.id}
-                    title={`Zahlung -${formatCents(zahlung.gesamtZahlungCents)} €`}
-                    date={zahlung.kassiertAm}
-                    isFromUser={userId === zahlung.userId}
-                    kommentar={zahlung.kommentar}
+                    title={`Zahlung -${formatCents(zahlungItem.gesamtZahlungCents)} €`}
+                    date={zahlungItem.kassiertAm}
+                    isFromUser={userId === zahlungItem.userId}
+                    kommentar={zahlungItem.kommentar}
                     onClick={() => {
-                      setZahlung({ zahlung, open: true })
+                      setZahlung({ zahlung: zahlungItem, open: true })
                     }}
                   />
                 )
               } else if (
                 Object.prototype.hasOwnProperty.call(item, 'aufgenommenAm')
               ) {
-                const bestellung = item as Bestellung
+                const bestellungItem = item as Bestellung
                 const stornierbarePositionen = getStornierbarePositionen(
-                  bestellung,
+                  bestellungItem,
                   historie,
                 )
                 const umbuchbarePositionen = getUmbuchbarePositionen(
-                  bestellung,
+                  bestellungItem,
                   historie,
                 )
                 return (
                   <HistoryItem
                     key={item.id}
-                    title={`Bestellung +${formatCents(bestellung.gesamtPreisCents)} €`}
-                    date={bestellung.aufgenommenAm}
-                    isFromUser={userId === bestellung.userId}
-                    kommentar={bestellung.kommentar}
+                    title={`Bestellung +${formatCents(bestellungItem.gesamtPreisCents)} €`}
+                    date={bestellungItem.aufgenommenAm}
+                    isFromUser={userId === bestellungItem.userId}
+                    kommentar={bestellungItem.kommentar}
                     onClick={() => {
-                      setBestellung({ bestellung, open: true })
+                      setBestellung({ bestellung: bestellungItem, open: true })
                     }}
                     onStornieren={
                       AuthSingleton.canCancel &&
                       stornierbarePositionen.length > 0
                         ? () => {
-                            setStornierenBestellung(bestellung)
+                            setStornierenBestellung(bestellungItem)
                           }
                         : undefined
                     }
                     onUmbuchen={
                       AuthSingleton.canCancel && umbuchbarePositionen.length > 0
                         ? () => {
-                            setUmbuchenBestellung(bestellung)
+                            setUmbuchenBestellung(bestellungItem)
                           }
                         : undefined
                     }
@@ -191,48 +191,51 @@ export function TischHistorie({
               } else if (
                 Object.prototype.hasOwnProperty.call(item, 'storniertAm')
               ) {
-                const stornierung = item as Stornierung
+                const stornierungItem = item as Stornierung
                 return (
                   <HistoryItem
                     key={item.id}
-                    title={`Stornierung -${formatCents(stornierung.gesamtStornierungCents)} €`}
-                    date={stornierung.storniertAm}
-                    isFromUser={userId === stornierung.userId}
-                    kommentar={stornierung.kommentar}
+                    title={`Stornierung -${formatCents(stornierungItem.gesamtStornierungCents)} €`}
+                    date={stornierungItem.storniertAm}
+                    isFromUser={userId === stornierungItem.userId}
+                    kommentar={stornierungItem.kommentar}
                     onClick={() => {
-                      setStornierung({ stornierung, open: true })
+                      setStornierung({
+                        stornierung: stornierungItem,
+                        open: true,
+                      })
                     }}
                   />
                 )
               } else if (
                 Object.prototype.hasOwnProperty.call(item, 'ausgegebenAm')
               ) {
-                const ausgabe = item as Ausgabe
+                const ausgabeItem = item as Ausgabe
                 return (
                   <HistoryItem
                     key={item.id}
                     title="Ausgabe"
-                    date={ausgabe.ausgegebenAm}
-                    isFromUser={userId === ausgabe.userId}
-                    kommentar={ausgabe.kommentar}
+                    date={ausgabeItem.ausgegebenAm}
+                    isFromUser={userId === ausgabeItem.userId}
+                    kommentar={ausgabeItem.kommentar}
                     onClick={() => {
-                      setAusgabe({ ausgabe, open: true })
+                      setAusgabe({ ausgabe: ausgabeItem, open: true })
                     }}
                   />
                 )
               } else if (
                 Object.prototype.hasOwnProperty.call(item, 'geleistetAm')
               ) {
-                const auszahlung = item as Auszahlung
+                const auszahlungItem = item as Auszahlung
                 return (
                   <HistoryItem
-                    key={auszahlung.id}
-                    title={`Auszahlung -${formatCents(auszahlung.betragCents)} €`}
-                    date={auszahlung.geleistetAm}
-                    isFromUser={userId === auszahlung.userId}
-                    kommentar={auszahlung.kommentar}
+                    key={auszahlungItem.id}
+                    title={`Auszahlung -${formatCents(auszahlungItem.betragCents)} €`}
+                    date={auszahlungItem.geleistetAm}
+                    isFromUser={userId === auszahlungItem.userId}
+                    kommentar={auszahlungItem.kommentar}
                     onClick={() => {
-                      setAuszahlung({ auszahlung, open: true })
+                      setAuszahlung({ auszahlung: auszahlungItem, open: true })
                     }}
                   />
                 )

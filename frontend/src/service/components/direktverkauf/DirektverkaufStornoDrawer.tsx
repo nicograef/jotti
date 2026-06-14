@@ -22,6 +22,7 @@ import type {
 } from '../../direktverkauf/Direktverkauf'
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
 import { KommentarField } from '../table/CommentField'
+import { calculateTotalPrice } from '../table/drawerUtils'
 
 interface DirektverkaufStornoDrawerProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufStornieren'>
@@ -45,10 +46,7 @@ export function DirektverkaufStornoDrawer({
       menge: mengen[position.positionId] || 0,
     }))
     .filter((position) => position.menge > 0)
-  const totalPrice = selectedPositionen.reduce(
-    (sum, position) => sum + position.einzelpreis * position.menge,
-    0,
-  )
+  const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
   const kommentarInvalid = kommentar.trim().length < 3
 

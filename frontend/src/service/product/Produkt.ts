@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { DateStringSchema } from '../schemas'
+
 export const Kategorie = {
   ESSEN: 'essen',
   GETRAENK: 'getraenk',
@@ -27,12 +29,9 @@ const PreisCentsSchema = z
   .number()
   .int()
   .min(0, { message: 'Der Nettopreis muss positiv sein.' })
-const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
+export const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
 
 const VarianteStatusSchema = z.enum(['active', 'inactive'])
-const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {
-  message: 'Ungültiges Datumsformat',
-})
 
 export const VarianteSchema = z.object({
   id: VariantIdSchema,

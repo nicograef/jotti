@@ -12,7 +12,10 @@ import { formatCents, parseCents } from '@/lib/utils'
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
 import type { Produkt } from '../../product/Produkt'
 import { KommentarField } from '../table/CommentField'
-import { calculateZahlungsbetraege } from '../table/drawerUtils'
+import {
+  calculateTotalPrice,
+  calculateZahlungsbetraege,
+} from '../table/drawerUtils'
 import { ProductList, ProductListSkeleton } from '../table/ProductList'
 
 interface DirektverkaufProps {
@@ -56,10 +59,7 @@ export function Direktverkauf({
   const [kommentar, setKommentar] = useState('')
 
   const items = selectItems(products, mengen)
-  const total = items.reduce(
-    (sum, item) => sum + item.einzelpreis * item.menge,
-    0,
-  )
+  const total = calculateTotalPrice(items)
   const { rueckgeldCents } = calculateZahlungsbetraege(
     total,
     parseCents(erhaltenEuro),

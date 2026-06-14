@@ -20,7 +20,11 @@ import type { Bestellung, Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { KommentarField } from './CommentField'
-import { calculateTotalPrice, toPositionRefs } from './drawerUtils'
+import {
+  calculateTotalPrice,
+  selectPositionen,
+  toPositionRefs,
+} from './drawerUtils'
 
 interface HistorieStornierungDrawerProps {
   backend: Pick<TischBackend, 'stornierungErteilen'>
@@ -42,12 +46,7 @@ export function HistorieStornierungDrawer({
   const [kommentar, setKommentar] = useState('')
   const [mengen, setMengen] = useState<Record<string, number>>({})
 
-  const selectedPositionen = positionen
-    .map((position) => ({
-      ...position,
-      menge: mengen[position.positionId] || 0,
-    }))
-    .filter((position) => position.menge > 0)
+  const selectedPositionen = selectPositionen(positionen, mengen)
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
   const kommentarInvalid = kommentar.trim().length < 3

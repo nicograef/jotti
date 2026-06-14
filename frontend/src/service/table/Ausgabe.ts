@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { DateStringSchema } from '../schemas'
 import { PositionRefSchema, PositionSchema } from './Bestellung'
 
 export const AusgabeSchema = z.object({
@@ -8,9 +9,7 @@ export const AusgabeSchema = z.object({
   tischId: z.number().int().min(1),
   positionen: PositionSchema.array().min(1),
   kommentar: z.string().max(100),
-  ausgegebenAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Ungültiges Datumsformat',
-  }),
+  ausgegebenAm: DateStringSchema,
 })
 export type Ausgabe = z.infer<typeof AusgabeSchema>
 

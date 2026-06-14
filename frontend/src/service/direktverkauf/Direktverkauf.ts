@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+import { KategorieSchema } from '../product/Produkt'
+import { DateStringSchema, SteuersatzSchema } from '../schemas'
+
 export const VerkaufPositionInputSchema = z.object({
   produktId: z.number().int().min(1),
   varianteId: z.number().int().min(1),
@@ -41,8 +44,8 @@ export const VerkaufPositionSchema = z.object({
   varianteId: z.number().int().min(1),
   produktName: z.string().min(1).max(100),
   varianteName: z.string().min(1).max(100),
-  kategorie: z.enum(['essen', 'getraenk', 'sonstiges']),
-  steuersatz: z.enum(['regel', 'ermaessigt', 'befreit', 'kombi']),
+  kategorie: KategorieSchema,
+  steuersatz: SteuersatzSchema,
   einzelpreis: z.number().int().min(0),
   menge: z.number().int().min(1),
 })
@@ -50,9 +53,7 @@ export type VerkaufPosition = z.infer<typeof VerkaufPositionSchema>
 
 export const DirektverkaufStornierungSchema = z.object({
   stornierungId: z.uuid(),
-  storniertAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Ungültiges Datumsformat',
-  }),
+  storniertAm: DateStringSchema,
   gesamtStornierungCents: z.number().int().min(0),
 })
 export type DirektverkaufStornierung = z.infer<
@@ -62,9 +63,7 @@ export type DirektverkaufStornierung = z.infer<
 export const DirektverkaufHistorieEintragSchema = z.object({
   verkaufId: z.uuid(),
   userName: z.string(),
-  getaetigtAm: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Ungültiges Datumsformat',
-  }),
+  getaetigtAm: DateStringSchema,
   positionen: VerkaufPositionSchema.array(),
   gesamtbetragCents: z.number().int().min(0),
   kommentar: z.string(),
