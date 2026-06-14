@@ -58,9 +58,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
       - db-network
-    # Kein Migrations-Bind-Mount: die Migrationen sind ins jotti-migrate-Image
-    # gebacken (COPY), der Stack ist damit selbst-enthalten — das Release-ZIP
-    # braucht den database/migrations-Ordner nicht mehr.
+    # No migrations bind mount: the migrations are baked into the jotti-migrate
+    # image (COPY), so the stack is self-contained — the release ZIP no longer
+    # needs the database/migrations folder.
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,7 +90,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget -qO- http://localhost:3000/health >/dev/null 2>&1 || exit 1",
+          "wget -qO- http://localhost:3000/health >/dev/null 2>&1",
         ]
       interval: 10s
       timeout: 3s

@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 
 .PHONY: init dev dev-up down restart logs status \
-	test test-frontend test-integration test-all \
+       test test-frontend test-integration test-all \
        lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt \
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
@@ -12,8 +12,8 @@
        local-up local-down local-logs local-reset-db local-reset-and-seed \
        db-shell seed rebuild-projections \
        clean \
-	check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-integration check check-full verify \
-       website \
+       check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-integration check check-full verify \
+       website website-check website-fmt \
        help
 
 # ──────────────────────────────────────────────
