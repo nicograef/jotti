@@ -45,6 +45,12 @@ var version = "dev"
 // IP-Gruppe nur um diese Spanne; andere Gruppen laufen parallel weiter.
 const dialTimeout = 2 * time.Second
 
+// readTimeout begrenzt das Warten auf die ESC/POS-Statusantwort des Druckers.
+const readTimeout = 2 * time.Second
+
+// writeTimeout begrenzt das Senden der Druckdaten an den Drucker.
+const writeTimeout = 10 * time.Second
+
 // druckFunc stellt einen einzelnen Auftrag zu und meldet einen Fehler, wenn der
 // Versuch scheitert. Injizierbar, damit die Zyklus-Logik ohne echte Drucker
 // testbar ist.
@@ -94,7 +100,7 @@ func loadConfigFromEnv(getenv func(string) string) (RelayConfig, error) {
 		return RelayConfig{}, err
 	}
 
-	// Local default (single-device setup behind self-signed TLS on localhost).
+	// Lokaler Standard (Einzelgerät hinter selbstsigniertem TLS auf localhost).
 	if tlsSkipRaw == "" && backendURL == defaultBackendURL {
 		tlsSkipVerify = true
 	}
@@ -290,11 +296,8 @@ func poll(client *http.Client, config RelayConfig) ([]DruckAuftrag, error) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode == http.StatusUnauthorized {
-		return nil, fmt.Errorf("ungueltiger Token (401) -- Relay-Token pruefen")
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unerwarteter HTTP-Status: %d", resp.StatusCode)
+	if err := pruefeRelayStatus(resp); err != nil {
+		return nil, err
 	}
 
 	var result struct {
@@ -334,13 +337,17 @@ func meldeErgebnis(client *http.Client, ergebnis zyklusErgebnis, config RelayCon
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	return pruefeRelayStatus(resp)
+}
+
+// pruefeRelayStatus übersetzt den HTTP-Status einer Relay-Antwort in einen Fehler.
+func pruefeRelayStatus(resp *http.Response) error {
 	if resp.StatusCode == http.StatusUnauthorized {
 		return fmt.Errorf("ungueltiger Token (401) -- Relay-Token pruefen")
 	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unerwarteter HTTP-Status: %d", resp.StatusCode)
 	}
-
 	return nil
 }
 
@@ -355,7 +362,7 @@ func checkPrinter(ip string) error {
 		return fmt.Errorf("status-abfrage fehlgeschlagen: %w", err)
 	}
 
-	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_ = conn.SetReadDeadline(time.Now().Add(readTimeout))
 	reply := make([]byte, 1)
 	if _, err := conn.Read(reply); err != nil {
 		return nil
@@ -380,7 +387,7 @@ func sendToPrinter(ip string, data []byte) error {
 		return err
 	}
 	defer func() { _ = conn.Close() }()
-	if err := conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
+	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
 		return fmt.Errorf("set write deadline: %w", err)
 	}
 	_, err = conn.Write(data)
