@@ -46,7 +46,8 @@ Ein **Kassenrechner** im WLAN, die Helfer bedienen jotti auf ihren **Handys**.
 ## Bondruck (optional)
 
 Für den Bondruck zusätzlich **`jotti-relay.exe`** doppelklicken. Es läuft ohne
-Administratorrechte und nimmt seine Zugangsdaten aus der `.env` im selben Ordner.
+Administratorrechte und nimmt seine Zugangsdaten aus der `.env`, die
+`jotti-start.exe` angelegt hat (in `%PROGRAMDATA%\jotti`).
 
 ## Probleme
 

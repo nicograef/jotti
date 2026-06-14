@@ -24,6 +24,7 @@ if errorlevel 1 goto :error
 
 echo Stoppe die Anwendung waehrend der Wiederherstellung ...
 %COMPOSE% stop backend frontend reverse-proxy
+if errorlevel 1 goto :error
 
 echo Spiele das letzte Backup ein ...
 docker exec jotti-postgres-local sh -c "set -e; F=$(ls -1 /jotti-backups/jotti-*.sql 2>/dev/null | tail -n 1); if [ -z \"$F\" ]; then echo 'Kein Backup gefunden.'; exit 1; fi; echo \"Verwende $F\"; psql -U admin -d jotti -f \"$F\""
