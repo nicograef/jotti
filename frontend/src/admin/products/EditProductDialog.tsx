@@ -99,7 +99,6 @@ export function EditProductDialog(props: EditProductDialogProps) {
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
-            return false
           }}
         >
           <FieldGroup>

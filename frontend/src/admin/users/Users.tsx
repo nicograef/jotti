@@ -63,21 +63,19 @@ export function Users(props: UsersProps) {
   }
 
   return (
-    <>
-      <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-        {props.users.map((user) => (
-          <UserItem
-            key={user.id}
-            loading={loading || props.loading}
-            user={user}
-            isSelf={user.id === AuthSingleton.userId}
-            onActivate={activateUser}
-            onDeactivate={deactivateUser}
-            onDelete={deleteUser}
-            onEdit={props.onEdit}
-          />
-        ))}
-      </ItemGroup>
-    </>
+    <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+      {props.users.map((user) => (
+        <UserItem
+          key={user.id}
+          loading={loading || props.loading}
+          user={user}
+          isSelf={user.id === AuthSingleton.userId}
+          onActivate={activateUser}
+          onDeactivate={deactivateUser}
+          onDelete={deleteUser}
+          onEdit={props.onEdit}
+        />
+      ))}
+    </ItemGroup>
   )
 }

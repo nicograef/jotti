@@ -32,7 +32,7 @@ const FormDataSchema = UserSchema.pick({
 })
 type FormData = z.infer<typeof FormDataSchema>
 
-interface NewUserDialogProps {
+interface EditUserDialogProps {
   backend: Pick<UserBackend, 'updateUser' | 'resetPassword'>
   open: boolean
   user: User
@@ -41,7 +41,7 @@ interface NewUserDialogProps {
   close: () => void
 }
 
-export function EditUserDialog(props: NewUserDialogProps) {
+export function EditUserDialog(props: EditUserDialogProps) {
   const form = useForm<FormData>({
     defaultValues: props.user,
     resolver: zodResolver(FormDataSchema),
@@ -96,7 +96,7 @@ export function EditUserDialog(props: NewUserDialogProps) {
         <DialogHeader className="mb-4">
           <DialogTitle>{props.user.name}</DialogTitle>
           <DialogDescription>
-            Du kannst Name, Benutzername, Rolle und Status des Benutzers ändern.
+            Du kannst Name, Benutzername und Rolle des Benutzers ändern.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -104,7 +104,6 @@ export function EditUserDialog(props: NewUserDialogProps) {
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
-            return false
           }}
         >
           <FieldGroup>

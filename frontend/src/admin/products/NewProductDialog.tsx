@@ -105,7 +105,6 @@ export function NewProductDialog(props: NewProductDialogProps) {
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
-            return false
           }}
         >
           <FieldGroup>

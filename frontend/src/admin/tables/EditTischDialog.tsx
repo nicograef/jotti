@@ -71,7 +71,7 @@ export function EditTischDialog(props: EditTischDialogProps) {
         <DialogHeader className="mb-4">
           <DialogTitle>{props.tisch.name}</DialogTitle>
           <DialogDescription>
-            Du kannst Namen und Status des Tisches ändern.
+            Du kannst den Namen des Tisches ändern.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -79,7 +79,6 @@ export function EditTischDialog(props: EditTischDialogProps) {
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
-            return false
           }}
         >
           <FieldGroup>

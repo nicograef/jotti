@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import type { BackendClient } from '@/lib/Backend'
+
 import { type Tisch, TischIdSchema, TischSchema } from './Tisch'
 
 export const CreateTischSchema = TischSchema.pick({
@@ -10,8 +12,6 @@ export const UpdateTischSchema = TischSchema.pick({
   id: true,
   name: true,
 })
-
-import type { BackendClient } from '@/lib/Backend'
 
 export class TischBackend {
   private readonly backend: BackendClient

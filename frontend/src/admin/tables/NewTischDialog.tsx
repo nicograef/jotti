@@ -83,7 +83,6 @@ export function NewTischDialog(props: NewTischDialogProps) {
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
-            return false
           }}
         >
           <FieldGroup>

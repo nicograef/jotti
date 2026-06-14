@@ -65,20 +65,18 @@ export function Tische(props: TischeProps) {
   }
 
   return (
-    <>
-      <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-        {props.tische.map((tisch) => (
-          <TischItem
-            key={tisch.id}
-            loading={loading || props.loading}
-            tisch={tisch}
-            onActivate={activateTisch}
-            onDeactivate={deactivateTisch}
-            onEdit={props.onEdit}
-            onDelete={deleteTisch}
-          />
-        ))}
-      </ItemGroup>
-    </>
+    <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+      {props.tische.map((tisch) => (
+        <TischItem
+          key={tisch.id}
+          loading={loading || props.loading}
+          tisch={tisch}
+          onActivate={activateTisch}
+          onDeactivate={deactivateTisch}
+          onEdit={props.onEdit}
+          onDelete={deleteTisch}
+        />
+      ))}
+    </ItemGroup>
   )
 }

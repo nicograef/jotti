@@ -22,16 +22,7 @@ import { formatCents, formatPositionName } from '@/lib/utils'
 
 import { SummaryCard } from './SummaryCard'
 import type { LiveReportingData } from './types'
-import { formatLocalTime, pct } from './utils'
-
-function formatDatum(datum: string): string {
-  return new Date(datum).toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
-}
+import { formatDatum, formatLocalTime, pct } from './utils'
 
 export function LiveReportingSection({
   liveData,

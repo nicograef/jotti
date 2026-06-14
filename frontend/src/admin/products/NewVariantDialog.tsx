@@ -82,7 +82,6 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
-            return false
           }}
         >
           <FieldGroup>

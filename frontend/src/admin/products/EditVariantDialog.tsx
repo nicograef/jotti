@@ -81,7 +81,6 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
-            return false
           }}
         >
           <FieldGroup>
