@@ -82,8 +82,8 @@ type handler struct {
 
 func (h *handler) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	if len(req.Question) != 1 {
-		refused := new(dns.Msg).SetRcode(req, dns.RcodeFormatError)
-		_ = w.WriteMsg(refused)
+		formErr := new(dns.Msg).SetRcode(req, dns.RcodeFormatError)
+		_ = w.WriteMsg(formErr)
 		return
 	}
 
