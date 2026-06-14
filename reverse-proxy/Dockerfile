@@ -24,7 +24,7 @@ RUN go mod download
 COPY *.go ./
 RUN go build -o /go/bin/jotti-local-proxy .
 
-# --- Deploy Stage ---
+# --- Deploy stage ---
 FROM caddy:2.11.4
 
 COPY --from=caddy-builder /usr/bin/caddy /usr/bin/caddy

@@ -67,7 +67,7 @@ func main() {
 	if hasState {
 		log.Printf("Installations-State geladen | Install-ID: %s", state.Subdomain)
 	} else {
-		log.Printf("Kein nutzbarer Installations-State (%v) — Start nur mit der Fallback-Adresse; die Registrierung wird beim nächsten Start erneut versucht", err)
+		log.Printf("Kein nutzbarer Installations-State (%v) — Start nur mit der Fallback-Adresse; die grüne Adresse wird aktiv, sobald wieder ein gültiger State vorliegt", err)
 	}
 
 	lanIP, lanOK := resolveLANIP(cfg.lanIPEnv)
