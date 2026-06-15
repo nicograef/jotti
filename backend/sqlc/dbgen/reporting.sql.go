@@ -124,10 +124,13 @@ SELECT
     )::int AS gesamt_umsatz_cents,
     COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS gesamt_auszahlungen_cents,
     COALESCE(SUM(kj_extract_bestellung_cents(type, data)), 0)::int AS gesamt_bestellungen_cents,
-    COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int AS gesamt_stornierungen_cents,
+    (
+        COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
+    )::int AS gesamt_stornierungen_cents,
     COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int AS gesamt_geldtransit_cents,
     COALESCE(COUNT(CASE WHEN type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
-    COALESCE(COUNT(CASE WHEN type = 'stornierung-erteilt:v1' THEN 1 END), 0)::int AS anzahl_stornierungen,
+    COALESCE(COUNT(CASE WHEN type IN ('stornierung-erteilt:v1', 'direktverkauf-storniert:v1') THEN 1 END), 0)::int AS anzahl_stornierungen,
     COALESCE(COUNT(CASE WHEN type = 'direktverkauf-getaetigt:v1' THEN 1 END), 0)::int AS anzahl_direktverkaeufe,
     (
         COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
@@ -179,21 +182,23 @@ func (q *Queries) GetReportingStats(ctx context.Context, kassensitzungNr int) (G
 const getStornierungen = `-- name: GetStornierungen :many
 SELECT
     e.timestamp,
-    tss.tisch_id,
-    t.name AS tisch_name,
+    CASE WHEN e.type = 'direktverkauf-storniert:v1' THEN 'direktverkauf' ELSE 'tisch' END::text AS quelle,
+    COALESCE(tss.tisch_id, 0)::int AS tisch_id,
+    COALESCE(t.name, '')::text AS tisch_name,
     e.user_id,
     e.user_name,
     e.data
 FROM kassenjournal e
-JOIN tisch_sessions tss ON tss.subject = e.subject
-JOIN tische t ON t.id = tss.tisch_id
-WHERE e.type = 'stornierung-erteilt:v1'
+LEFT JOIN tisch_sessions tss ON tss.subject = e.subject
+LEFT JOIN tische t ON t.id = tss.tisch_id
+WHERE e.type IN ('stornierung-erteilt:v1', 'direktverkauf-storniert:v1')
 AND e.kassensitzung_nr = $1
 ORDER BY e.timestamp DESC
 `
 
 type GetStornierungenRow struct {
 	Timestamp time.Time
+	Quelle    string
 	TischID   int
 	TischName string
 	UserID    int
@@ -201,8 +206,10 @@ type GetStornierungenRow struct {
 	Data      json.RawMessage
 }
 
-// Reporting: Stornierungsevents mit Tischname pro Kassensitzung.
-// Events contain fat positions (produktName, varianteName, einzelpreis, menge) — parse in Go.
+// Reporting: Storno-Events (Tisch und Direktverkauf) pro Kassensitzung.
+// Tisch-Stornos tragen einen Tischbezug; Direktverkauf-Stornos haben keinen (quelle = 'direktverkauf',
+// tisch_id = 0, tisch_name = ”). Beide Event-Typen teilen dieselbe JSONB-Form (gesamtStornierungCents,
+// kommentar, fat positions) — parse in Go.
 func (q *Queries) GetStornierungen(ctx context.Context, kassensitzungNr int) ([]GetStornierungenRow, error) {
 	rows, err := q.db.QueryContext(ctx, getStornierungen, kassensitzungNr)
 	if err != nil {
@@ -214,6 +221,7 @@ func (q *Queries) GetStornierungen(ctx context.Context, kassensitzungNr int) ([]
 		var i GetStornierungenRow
 		if err := rows.Scan(
 			&i.Timestamp,
+			&i.Quelle,
 			&i.TischID,
 			&i.TischName,
 			&i.UserID,

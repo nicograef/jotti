@@ -279,7 +279,9 @@ export function ReportingResults({
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <ItemTitle>
-                        {storno.tischName}
+                        {storno.quelle === 'direktverkauf'
+                          ? 'Direktverkauf'
+                          : storno.tischName}
                         <Badge variant="secondary" className="ml-2 font-normal">
                           {storno.userName}
                         </Badge>

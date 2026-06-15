@@ -105,6 +105,7 @@ type stornierungPosition struct {
 
 type stornierungDetail struct {
 	Zeitpunkt   time.Time             `json:"zeitpunkt"`
+	Quelle      string                `json:"quelle"`
 	TischID     int                   `json:"tischId"`
 	TischName   string                `json:"tischName"`
 	UserID      int                   `json:"userId"`
@@ -191,6 +192,7 @@ func toStornierungPositionen(positionen []reporting.StornierungPosition) []storn
 func toStornierungDetail(d reporting.StornierungDetail) stornierungDetail {
 	return stornierungDetail{
 		Zeitpunkt:   d.Zeitpunkt,
+		Quelle:      d.Quelle,
 		TischID:     d.TischID,
 		TischName:   d.TischName,
 		UserID:      d.UserID,

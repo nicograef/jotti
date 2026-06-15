@@ -282,7 +282,8 @@ export function LiveReportingSection({
                 >
                   <ItemContent>
                     <ItemTitle>
-                      {s.tischName} · {s.userName}
+                      {s.quelle === 'direktverkauf' ? 'Direktverkauf' : s.tischName}{' '}
+                      · {s.userName}
                     </ItemTitle>
                     <p className="text-xs text-muted-foreground">
                       {formatLocalTime(s.zeitpunkt)}

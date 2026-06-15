@@ -254,6 +254,7 @@ func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungD
 		}
 		stornierungen[i] = reporting.StornierungDetail{
 			Zeitpunkt:   row.Timestamp,
+			Quelle:      row.Quelle,
 			TischID:     row.TischID,
 			TischName:   row.TischName,
 			UserID:      row.UserID,

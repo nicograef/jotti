@@ -38,6 +38,7 @@ type StornierungPosition struct {
 
 type StornierungDetail struct {
 	Zeitpunkt   time.Time
+	Quelle      string // "tisch" oder "direktverkauf"
 	TischID     int
 	TischName   string
 	UserID      int

@@ -30,6 +30,7 @@ export const StornierungPositionSchema = z.object({
 
 export const StornierungDetailSchema = z.object({
   zeitpunkt: z.string(),
+  quelle: z.enum(['tisch', 'direktverkauf']),
   tischId: z.number().int(),
   tischName: z.string(),
   userId: z.number().int(),
