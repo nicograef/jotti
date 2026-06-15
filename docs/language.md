@@ -32,25 +32,6 @@ Die Ubiquitous Language ist ein Living Document: Sie wird fortlaufend aktualisie
 
 > **Pfadkonvention:** Dateipfade sind relativ angegeben, `domain/…` und `api/…` liegen unter `backend/`, `src/…` unter `frontend/`, `migrations/…` unter `database/`.
 
-## Abweichungen: Ist-Zustand vs. Soll-Zustand
-
-Die bekannten Abweichungen zwischen Ist-Zustand und Soll-Zustand wurden behoben, die Bondruck-Neuordnung (Druckstation, Druckauftrags-Outbox, Kassenbeleg, Relay-Transport) ist vollständig umgesetzt. Die folgende Tabelle dokumentiert die verbleibenden bewussten Entscheidungen, die korrekt sind und keinen Handlungsbedarf haben.
-
-### Kein Handlungsbedarf (bewusst korrekt)
-
-| Bereich              | Ist (Code)                                      | Begründung                                                                                                    |
-| -------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| DB-Tabellen (Infra)  | `users`, `kassenjournal`                        | Englisch ist korrekt, Infrastruktur / Generic Sub-Domain.                                                     |
-| DB-Tabellen (Domain) | `tische`, `produkte`, `produkt_varianten`       | Deutsch ist korrekt, Domänenbegriffe sind vertikal konsistent.                                                |
-| Frontend-Routen      | `/admin/produkte`, `/service/tische`            | Deutsch ist korrekt, Routen repräsentieren Domänenkonzepte.                                                   |
-| Auth-Code            | `User`, `Role`, `OnetimePassword`               | Englisch ist korrekt, Generic Sub-Domain.                                                                     |
-| Auth-Routen          | `/login`, `/set-password`                       | Englisch ist korrekt, Auth ist Infrastruktur.                                                                 |
-| Status-Enums         | `active`, `inactive`, `deleted`                 | Englisch ist korrekt, technische Lifecycle-States, kein Domänenbegriff.                                       |
-| Kassenjournal        | `Historie` (Code) vs. `Kassenjournal` (Entwurf) | Bewusste Abweichung: „Historie" ist im Code und UI etabliert, beide Begriffe sind dokumentiert.               |
-| KassensitzungState   | `KassensitzungState` (Go + TS)                  | Domänenbegriff ist „Kassensitzung". Suffix `State` markiert den CRUD-Zustand der Entität, kein Rename nötig.  |
-
----
-
 ## Begriffsdefinitionen
 
 ### Vereinswesen & Steuerliche Sphären
@@ -65,8 +46,6 @@ Das Finanzamt teilt einen Verein in vier steuerliche Sphären, die Buchführungs
 - **Kleinunternehmerregelung (§ 19 UStG):** Befreiung von der Umsatzsteuerpflicht bei geringen Umsätzen, beeinflusst die korrekte `Steuersatz`-Konfiguration.
 
 ### Akteure & Rollen
-
-> **Sprachkonvention:** Systemrollen verwenden englische Code-Bezeichnungen, Auth ist eine Generic Sub-Domain. Benutzer-sichtbare Strings im UI sind deutsch.
 
 **Fachliche Akteure (kein Code-Mapping):**
 
@@ -121,7 +100,7 @@ Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Be
 | -------------- | -------------- | ---------------- | ------------------------------------ |
 | `TischSession` | `TischSession` | `tisch_sessions` | `kassensitzung-{nr}/tisch-{tischId}` |
 
-> **Hinweis `domain/table/`:** Das Paket existiert weiterhin für Tisch-Stammdaten (`tisch.go`). Die Kasse-Logik (Event-Sourcing, Tisch-Sessions, Kassensitzung) liegt in `domain/kasse/`, `domain/table/` enthält nur noch die CRUD-Entität `Tisch`.
+> **Hinweis `domain/table/`:** Das Paket existiert weiterhin für Tisch-Stammdaten (`tisch.go`). Die Kasse-Logik (Event-Sourcing, Tisch-Sessions, Kassensitzung) liegt in `domain/kasse/`; `domain/table/` enthält die Tisch-Stammdaten-Entität `Tisch` sowie die Read-Model-Structs `AktiverTisch`/`AktiverTischMitFavorit`.
 
 #### Direktverkauf
 
@@ -206,7 +185,7 @@ Vollständiger, unveränderlicher Event Stream einer Tisch-Session in chronologi
 
 **Synonym: Kassenjournal.** „Kassenjournal" ist der formale Fachbegriff (die DB-Tabelle `kassenjournal` enthält alle Events); „Historie" ist der im Code und UI etablierte Begriff für die Tisch-spezifische Ansicht.
 
-Go-Funktion: `GetHistoryFromEvents()` · Go-Query: `GetTischHistorie()` · API: `/service/get-tisch-historie`
+Go-Funktion: `GetHistorieFromEvents()` · Application-Query: `GetTischHistorie()` · API: `/service/get-tisch-historie`
 
 #### Weitere Typen und Felder (Kasse)
 
@@ -232,7 +211,7 @@ Global nummerierter Betriebstag, der einen Abrechnungszeitraum (typischerweise e
 
 | Go-Struct            | DB-Tabelle        | Subject-Format       | Eröffnungs-Event             |
 | -------------------- | ----------------- | -------------------- | ---------------------------- |
-| `KassensitzungState` | `kassensitzungen` | `kassensitzung-{nr}` | `kassensitzung-eroeffnet:v1` |
+| `Kassensitzung`      | `kassensitzungen` | `kassensitzung-{nr}` | `kassensitzung-eroeffnet:v1` |
 
 #### Bezeichnung
 
@@ -261,8 +240,6 @@ Bargeld-Bewegung außerhalb des Tisch-Verkehrs: Einlage (z. B. Wechselgeld nachf
 | Event-Typ                | JSON-Key `richtung`     | API-Pfad                    |
 | ------------------------ | ----------------------- | --------------------------- |
 | `geldtransit-gebucht:v1` | `einlage` \| `entnahme` | `/admin/geldtransit-buchen` |
-
-> **Privatentnahme / Privateinlage (geplant):** eigene DSFinV-K-Geschäftsvorfalltypen für Bewegungen in den/aus dem privaten Bereich des Vereins. Im Code nicht abgebildet, aktuell wird jede Bargeld-Bewegung als Geldtransit gebucht.
 
 #### Kassensturz
 
@@ -322,7 +299,7 @@ Geldbeträge werden ausnahmslos als ganzzahlige Cent-Werte gespeichert, niemals 
 
 Logisches Löschen: Datensätze werden nicht physisch entfernt, sondern durch den Status `deleted` markiert. Ermöglicht Referenzintegrität und historische Auswertung.
 
-DB-Enum: `EntityStatus` (`'active'`, `'inactive'`, `'deleted'`) · Go-Konstanten: `ActiveStatus`, `InactiveStatus` (in `domain/table`, `domain/product`, `domain/user`)
+DB-Enum: `EntityStatus` (`'active'`, `'inactive'`, `'deleted'`) · Go-Konstanten: `ActiveStatus`, `InactiveStatus`, `DeletedStatus` (in `domain/table`, `domain/product`, `domain/user`)
 
 #### Favorit
 
@@ -399,7 +376,7 @@ Separater Dienst (`cmd/relay/`, Repo-Root): reiner Transport ohne Fachlogik und 
 
 Begriffe der gesetzlich vorgeschriebenen Fiskalisierung nach § 146a AO und KassenSichV. TSE-Integration, Steuersätze und Kassenbeleg sind umgesetzt; DSFinV-K-Export, ELSTER-Meldung, eBeleg und Hash-Chain sind offen (→ `docs/anforderungen.md`).
 
-> **Sprachkonvention:** Fiskal-Fachbegriffe folgen der deutschen Gesetzessprache und DSFinV-K-Spezifikation. Technische Interface-Namen bleiben englisch (Go-Konvention).
+> **Sprachkonvention:** Fiskal-Fachbegriffe folgen der deutschen Gesetzessprache und DSFinV-K-Spezifikation.
 
 #### Gesetzliche Grundlagen
 
@@ -466,4 +443,4 @@ Die folgenden Begriffe sind definiert, aber noch nicht im Code implementiert. De
 - **Ausgabestation:** Physischer Ort (Küche, Getränketheke), an dem Positionen ausgegeben werden (K-13/K-15).
 - **Stornoquote:** Verhältnis Stornierungsbetrag zu Bestellsumme.
 - **Export:** CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Buchhaltung (R-02).
-- **Privatentnahme / Privateinlage:** eigene DSFinV-K-Geschäftsvorfalltypen neben dem Geldtransit (siehe → Geldtransit).
+- **Privatentnahme / Privateinlage:** eigene DSFinV-K-Geschäftsvorfalltypen für Bewegungen in den/aus dem privaten Bereich des Vereins (neben dem → Geldtransit); aktuell wird jede Bargeld-Bewegung als Geldtransit gebucht.
