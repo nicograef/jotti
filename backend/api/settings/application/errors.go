@@ -18,8 +18,8 @@ var ErrTSESetupZugangsdaten = errors.New("tse_setup_credentials_invalid")
 var ErrTSESetupUmgebungAbweichung = errors.New("tse_setup_umgebung_abweichung")
 
 // ErrTSEBereitsEingerichtet zeigt an, dass das Konto bereits eine aktive TSS
-// enthaelt. Die automatische Neuanlage wird dann verweigert (die Uebernahme
-// einer vorhandenen TSS folgt in einer spaeteren Phase).
+// enthaelt. Die automatische Neuanlage wird dann verweigert; die vorhandene TSS
+// laesst sich stattdessen uebernehmen (UebernimmTSE).
 var ErrTSEBereitsEingerichtet = errors.New("tse_bereits_eingerichtet")
 
 // ErrTSEEinrichtung zeigt einen Fehler waehrend des fiskaly-Lebenszyklus an

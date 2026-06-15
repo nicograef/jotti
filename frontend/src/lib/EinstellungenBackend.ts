@@ -57,31 +57,31 @@ export const TSESetupBefundSchema = z.object({
 })
 export type TSESetupBefund = z.infer<typeof TSESetupBefundSchema>
 
+const apiKeyField = z
+  .string()
+  .trim()
+  .min(1, 'API-Key ist erforderlich')
+  .max(500, 'API-Key darf höchstens 500 Zeichen lang sein')
+const apiSecretField = z
+  .string()
+  .trim()
+  .min(1, 'API-Secret ist erforderlich')
+  .max(500, 'API-Secret darf höchstens 500 Zeichen lang sein')
+const tssIdField = z
+  .string()
+  .trim()
+  .min(1, 'TSS-ID ist erforderlich')
+  .max(255, 'TSS-ID darf höchstens 255 Zeichen lang sein')
+
 export const TSESetupZugangsdatenSchema = z.object({
-  apiKey: z
-    .string()
-    .trim()
-    .min(1, 'API-Key ist erforderlich')
-    .max(500, 'API-Key darf höchstens 500 Zeichen lang sein'),
-  apiSecret: z
-    .string()
-    .trim()
-    .min(1, 'API-Secret ist erforderlich')
-    .max(500, 'API-Secret darf höchstens 500 Zeichen lang sein'),
+  apiKey: apiKeyField,
+  apiSecret: apiSecretField,
 })
 export type TSESetupZugangsdaten = z.infer<typeof TSESetupZugangsdatenSchema>
 
 export const TSEEinrichtenSchema = z.object({
-  apiKey: z
-    .string()
-    .trim()
-    .min(1, 'API-Key ist erforderlich')
-    .max(500, 'API-Key darf höchstens 500 Zeichen lang sein'),
-  apiSecret: z
-    .string()
-    .trim()
-    .min(1, 'API-Secret ist erforderlich')
-    .max(500, 'API-Secret darf höchstens 500 Zeichen lang sein'),
+  apiKey: apiKeyField,
+  apiSecret: apiSecretField,
   umgebung: z.enum(['TEST', 'LIVE']),
 })
 export type TSEEinrichten = z.infer<typeof TSEEinrichtenSchema>
@@ -90,22 +90,10 @@ export type TSEEinrichten = z.infer<typeof TSEEinrichtenSchema>
 // ab Zustand UNINITIALIZED die vom Admin verwahrte Admin-PIN; bei CREATED bleibt
 // es leer (jotti bezieht PUK und PIN selbst).
 export const TSEUebernehmenSchema = z.object({
-  apiKey: z
-    .string()
-    .trim()
-    .min(1, 'API-Key ist erforderlich')
-    .max(500, 'API-Key darf höchstens 500 Zeichen lang sein'),
-  apiSecret: z
-    .string()
-    .trim()
-    .min(1, 'API-Secret ist erforderlich')
-    .max(500, 'API-Secret darf höchstens 500 Zeichen lang sein'),
+  apiKey: apiKeyField,
+  apiSecret: apiSecretField,
   umgebung: z.enum(['TEST', 'LIVE']),
-  tssId: z
-    .string()
-    .trim()
-    .min(1, 'TSS-ID ist erforderlich')
-    .max(255, 'TSS-ID darf höchstens 255 Zeichen lang sein'),
+  tssId: tssIdField,
   pin: z
     .string()
     .trim()
@@ -150,21 +138,9 @@ export const TSENachsignierAuftragSchema = z.object({
 export type TSENachsignierAuftrag = z.infer<typeof TSENachsignierAuftragSchema>
 
 export const TSEKonfigurationSpeichernSchema = z.object({
-  apiKey: z
-    .string()
-    .trim()
-    .min(1, 'API-Key ist erforderlich')
-    .max(500, 'API-Key darf höchstens 500 Zeichen lang sein'),
-  apiSecret: z
-    .string()
-    .trim()
-    .min(1, 'API-Secret ist erforderlich')
-    .max(500, 'API-Secret darf höchstens 500 Zeichen lang sein'),
-  tssId: z
-    .string()
-    .trim()
-    .min(1, 'TSS-ID ist erforderlich')
-    .max(255, 'TSS-ID darf höchstens 255 Zeichen lang sein'),
+  apiKey: apiKeyField,
+  apiSecret: apiSecretField,
+  tssId: tssIdField,
   clientId: z
     .string()
     .trim()

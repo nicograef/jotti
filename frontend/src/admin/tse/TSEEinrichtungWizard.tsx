@@ -64,7 +64,7 @@ export function TSEEinrichtungWizard() {
     })
   }
 
-  const zuruckZuZugangsdaten = () => {
+  const zurueckZuZugangsdaten = () => {
     setBefund(null)
     setErgebnis(null)
   }
@@ -82,7 +82,7 @@ export function TSEEinrichtungWizard() {
         {ergebnis ? (
           <ErgebnisSchritt
             ergebnis={ergebnis}
-            onFertig={zuruckZuZugangsdaten}
+            onFertig={zurueckZuZugangsdaten}
           />
         ) : befund ? (
           <BefundSchritt
@@ -90,7 +90,7 @@ export function TSEEinrichtungWizard() {
             apiSecret={apiSecret}
             befund={befund}
             onEingerichtet={setErgebnis}
-            onZuruck={zuruckZuZugangsdaten}
+            onZuruck={zurueckZuZugangsdaten}
           />
         ) : (
           <ZugangsdatenSchritt

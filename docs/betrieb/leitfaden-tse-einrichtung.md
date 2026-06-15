@@ -239,4 +239,3 @@ Zugangsdaten bewusst eine neue TSS anlegen (in LIVE kostenpflichtig).
 - [ ] Admin-PUK und Admin-PIN sicher und dauerhaft verwahrt
 - [ ] Abschluss-Verbindungstest steht auf „Verbindung bestätigt"
 - [ ] Danach: Kasse beim Finanzamt anmelden (→ [Betreiber-Leitfaden](leitfaden-betreiber.md), Schritt 2)
-</content>
