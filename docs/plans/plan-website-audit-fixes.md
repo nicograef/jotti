@@ -204,14 +204,14 @@ Barrierefreiheits- und CLS-Politur ohne sichtbare Layout-Änderung:
 
 ### Acceptance criteria
 
-- [ ] Alle `comparison-table` haben `scope="col"` an Kopfzellen und `th scope="row"`
+- [x] Alle `comparison-table` haben `scope="col"` an Kopfzellen und `th scope="row"`
       in der ersten Spalte; Darstellung unverändert.
-- [ ] Dokument-Outline ist konsistent: Feature-Items sind `h4` unter `h3`-Kategorie;
+- [x] Dokument-Outline ist konsistent: Feature-Items sind `h4` unter `h3`-Kategorie;
       404-Seite hat genau ein `<h1>`.
-- [ ] Mobile-Toggle meldet den korrekten Zustand (`aria-label` + `aria-expanded`);
+- [x] Mobile-Toggle meldet den korrekten Zustand (`aria-label` + `aria-expanded`);
       `Esc` schließt das Menü und gibt den Body-Scroll frei.
-- [ ] Hero-Bild hat `width` **und** `height`; kein sichtbarer Sprung beim Laden.
-- [ ] `make website-check` grün.
+- [x] Hero-Bild hat `width` **und** `height`; kein sichtbarer Sprung beim Laden.
+- [x] `make website-check` grün.
 
 ---
 

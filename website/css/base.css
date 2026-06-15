@@ -144,7 +144,7 @@
     display: block;
   }
 
-  :is(h1, h2, h3) {
+  :is(h1, h2, h3, h4) {
     line-height: 1.2;
     color: var(--foreground);
   }
@@ -165,7 +165,7 @@
     letter-spacing: -0.01em;
   }
 
-  h3 {
+  :is(h3, h4) {
     font-size: 1.125rem;
     font-weight: 700;
   }
@@ -505,14 +505,15 @@
     & tbody {
       & td {
         color: var(--muted);
-
-        &:first-child {
-          font-weight: 600;
-          color: var(--foreground);
-        }
       }
 
-      & tr:last-child td {
+      /* Zeilenkopf (erste Spalte) als th[scope="row"] */
+      & th {
+        font-weight: 600;
+        color: var(--foreground);
+      }
+
+      & tr:last-child :is(th, td) {
         border-bottom: none;
       }
     }
@@ -601,7 +602,7 @@
     background: var(--primary);
     text-align: center;
 
-    & h2 {
+    & :is(h1, h2) {
       color: #fff;
     }
 

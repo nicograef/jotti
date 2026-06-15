@@ -62,6 +62,7 @@
               alt="jotti Service-Ansicht auf einem Smartphone: Tischübersicht mit offenen Saldi und farbigen Status-Badges"
               class="w-full max-w-50 lg:max-w-75 drop-shadow-soft"
               width="390"
+              height="790"
               loading="eager"
             />
           </div>
@@ -112,20 +113,20 @@
               <thead>
                 <tr>
                   <th></th>
-                  <th class="highlight-col">jotti</th>
-                  <th>Stift &amp; Papier</th>
-                  <th>Kommerzielles POS</th>
+                  <th class="highlight-col" scope="col">jotti</th>
+                  <th scope="col">Stift &amp; Papier</th>
+                  <th scope="col">Kommerzielles POS</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>Kosten</td>
+                  <th scope="row">Kosten</th>
                   <td class="highlight-col"><strong>Kostenlos</strong></td>
                   <td>~0 €</td>
                   <td>30–100 €/Monat + Hardware</td>
                 </tr>
                 <tr>
-                  <td>Hardware</td>
+                  <th scope="row">Hardware</th>
                   <td class="highlight-col">
                     <strong>Eigenes Smartphone</strong>
                   </td>
@@ -133,7 +134,7 @@
                   <td>Terminal, iPad, Drucker</td>
                 </tr>
                 <tr>
-                  <td>Fiskalkonformität</td>
+                  <th scope="row">Fiskalkonformität</th>
                   <td class="highlight-col">
                     <strong
                       >KassenSichV-konform (TSE&nbsp;+&nbsp;DSFinV-K)</strong
@@ -143,19 +144,19 @@
                   <td>✓</td>
                 </tr>
                 <tr>
-                  <td>Echtzeit-Übersicht</td>
+                  <th scope="row">Echtzeit-Übersicht</th>
                   <td class="highlight-col">✓</td>
                   <td>✗</td>
                   <td>✓</td>
                 </tr>
                 <tr>
-                  <td>Mehrbenutzerbetrieb</td>
+                  <th scope="row">Mehrbenutzerbetrieb</th>
                   <td class="highlight-col">✓</td>
                   <td>✗</td>
                   <td>✓</td>
                 </tr>
                 <tr>
-                  <td>Kassenführung</td>
+                  <th scope="row">Kassenführung</th>
                   <td class="highlight-col">
                     <strong>Z-Bon, Kassensturz, Bewegungen</strong>
                   </td>
@@ -163,7 +164,7 @@
                   <td>✓</td>
                 </tr>
                 <tr>
-                  <td>Abrechnung</td>
+                  <th scope="row">Abrechnung</th>
                   <td class="highlight-col">
                     <strong>Automatisch + CSV + DSFinV-K</strong>
                   </td>
@@ -171,13 +172,13 @@
                   <td>Automatisch</td>
                 </tr>
                 <tr>
-                  <td>Einrichtung</td>
+                  <th scope="row">Einrichtung</th>
                   <td class="highlight-col"><strong>Minuten</strong></td>
                   <td>Sofort</td>
                   <td>Tage bis Wochen</td>
                 </tr>
                 <tr>
-                  <td>Datenhoheit</td>
+                  <th scope="row">Datenhoheit</th>
                   <td class="highlight-col">
                     <strong>Eigener Server</strong>
                   </td>
@@ -185,13 +186,13 @@
                   <td>Beim Anbieter</td>
                 </tr>
                 <tr>
-                  <td>Vertragslaufzeit</td>
+                  <th scope="row">Vertragslaufzeit</th>
                   <td class="highlight-col"><strong>Keine</strong></td>
                   <td>Keine</td>
                   <td>12–24 Monate</td>
                 </tr>
                 <tr>
-                  <td>Nachvollziehbarkeit</td>
+                  <th scope="row">Nachvollziehbarkeit</th>
                   <td class="highlight-col">
                     <strong>TSE-Signatur + Event-Sourcing</strong>
                   </td>
@@ -223,28 +224,28 @@
             </h3>
             <div class="grid gap-y-7 gap-x-10 md:grid-cols-2">
               <div>
-                <h3 class="mb-1-5">Bestellungen aufnehmen</h3>
+                <h4 class="mb-1-5">Bestellungen aufnehmen</h4>
                 <p class="text-15 leading-relaxed">
                   Produkte mit Varianten und Steuersätzen auswählen, Menge und
                   Kommentare angeben, auf den Tisch buchen — alles im Browser.
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">Ausgabe bestätigen</h3>
+                <h4 class="mb-1-5">Ausgabe bestätigen</h4>
                 <p class="text-15 leading-relaxed">
                   Bestellte Positionen als ausgegeben markieren. Jeder weiß, was
                   raus ist und was noch fehlt.
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">Kassieren</h3>
+                <h4 class="mb-1-5">Kassieren</h4>
                 <p class="text-15 leading-relaxed">
                   Am Tisch kassieren — Teilzahlungen und automatische
                   Rückgeldberechnung. Offener Saldo immer im Blick.
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">Direktverkauf an der Theke</h3>
+                <h4 class="mb-1-5">Direktverkauf an der Theke</h4>
                 <p class="text-15 leading-relaxed">
                   Bestellen, kassieren und ausgeben in einem Schritt — ideal für
                   Getränke- und Kuchentheke. Kein offener Saldo, sofort bezahlt,
@@ -252,7 +253,7 @@
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">Stornieren &amp; Auszahlung</h3>
+                <h4 class="mb-1-5">Stornieren &amp; Auszahlung</h4>
                 <p class="text-15 leading-relaxed">
                   Falschbestellungen rückgängig machen (Serviceleitung/Admin,
                   Pflichtkommentar). Negativen Saldo nach Stornierung
@@ -260,14 +261,14 @@
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">Umbuchen</h3>
+                <h4 class="mb-1-5">Umbuchen</h4>
                 <p class="text-15 leading-relaxed">
                   Bestellungen auf einen anderen Tisch verschieben — eine
                   atomare Operation, lückenlos nachvollziehbar.
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">Tischübersicht</h3>
+                <h4 class="mb-1-5">Tischübersicht</h4>
                 <p class="text-15 leading-relaxed">
                   Alle Tische mit Saldo und Status auf einen Blick. Eigene
                   Tische als Favoriten markieren, Schnellsuche per Name oder
@@ -286,7 +287,7 @@
             </h3>
             <div class="grid gap-y-7 gap-x-10 md:grid-cols-2">
               <div>
-                <h3 class="mb-1-5">Arbeitsbon (Küche &amp; Theke)</h3>
+                <h4 class="mb-1-5">Arbeitsbon (Küche &amp; Theke)</h4>
                 <p class="text-15 leading-relaxed">
                   Bestellungen automatisch als Arbeitsanweisung an die
                   Druckstationen senden — pro Kategorie konfigurierbar, ganz
@@ -294,19 +295,19 @@
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">
+                <h4 class="mb-1-5">
                   Küchendisplay (KDS)
                   <span class="badge-wip">In Entwicklung</span>
-                </h3>
+                </h4>
                 <p class="text-15 leading-relaxed">
                   Eingehende Bestellungen in Echtzeit auf einem Bildschirm in
                   der Küche oder an der Ausgabe.
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">
+                <h4 class="mb-1-5">
                   Ausgabestationen <span class="badge-wip">In Entwicklung</span>
-                </h3>
+                </h4>
                 <p class="text-15 leading-relaxed">
                   Zubereitungsstatus verwalten — Servicekräfte sehen, wann
                   Positionen abholbereit sind.
@@ -324,21 +325,21 @@
             </h3>
             <div class="grid gap-y-7 gap-x-10 md:grid-cols-2">
               <div>
-                <h3 class="mb-1-5">Abrechnungskreis</h3>
+                <h4 class="mb-1-5">Abrechnungskreis</h4>
                 <p class="text-15 leading-relaxed">
                   Fortlaufend nummerierte Kassensitzungen eröffnen und
                   schließen. Anfangsbestand (Wechselgeld) zu Beginn erfassen.
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">Kassenbestand &amp; Bewegungen</h3>
+                <h4 class="mb-1-5">Kassenbestand &amp; Bewegungen</h4>
                 <p class="text-15 leading-relaxed">
                   Soll-Bestand jederzeit einsehen. Geldtransit, Privatentnahmen
                   und Privateinlagen buchen.
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">Kassensturz &amp; Z-Bon</h3>
+                <h4 class="mb-1-5">Kassensturz &amp; Z-Bon</h4>
                 <p class="text-15 leading-relaxed">
                   Ist-Bestand eingeben, Differenz berechnen. Formaler
                   Tagesabschluss mit fortlaufender Nummer und
@@ -357,23 +358,23 @@
             </h3>
             <div class="grid gap-y-7 gap-x-10 md:grid-cols-2">
               <div>
-                <h3 class="mb-1-5">Tagesabrechnung</h3>
+                <h4 class="mb-1-5">Tagesabrechnung</h4>
                 <p class="text-15 leading-relaxed">
                   Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge —
                   nach Steuersatz aufgeschlüsselt.
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">Pro Tisch &amp; Servicekraft</h3>
+                <h4 class="mb-1-5">Pro Tisch &amp; Servicekraft</h4>
                 <p class="text-15 leading-relaxed">
                   Detaillierte Aufstellung je Tisch. Umsatz und Transaktionen
                   pro Servicekraft. Produktumsatz-Ranking.
                 </p>
               </div>
               <div>
-                <h3 class="mb-1-5">
+                <h4 class="mb-1-5">
                   Datenexport <span class="badge-wip">In Entwicklung</span>
-                </h3>
+                </h4>
                 <p class="text-15 leading-relaxed">
                   CSV-Export für die Vereinsbuchhaltung. DSFinV-K-Export als
                   ZIP-Archiv für die Finanzverwaltung.
