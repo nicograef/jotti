@@ -14,7 +14,7 @@ WHERE t.status = 'active'
 ORDER BY t.id ASC;
 
 -- name: GetAktiveTischeMitFavoriten :many
-SELECT t.id, t.name, COALESCE(tss.saldo_cents, 0)::integer AS saldo_cents, (f.user_id IS NOT NULL) AS ist_favorit
+SELECT t.id, t.name, COALESCE(tss.saldo_cents, 0)::integer AS saldo_cents, (f.user_id IS NOT NULL)::boolean AS ist_favorit
 FROM tische t
 LEFT JOIN tisch_sessions tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $2
 LEFT JOIN tisch_favoriten f ON f.tisch_id = t.id AND f.user_id = $1

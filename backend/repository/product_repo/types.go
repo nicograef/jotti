@@ -10,12 +10,12 @@ import (
 )
 
 type Repository struct {
-	DB *sql.DB
+	db *sql.DB
 	q  *dbgen.Queries
 }
 
 func NewRepository(db *sql.DB) Repository {
-	return Repository{DB: db, q: dbgen.New(db)}
+	return Repository{db: db, q: dbgen.New(db)}
 }
 
 type jsonVariant struct {

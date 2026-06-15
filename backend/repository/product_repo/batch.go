@@ -24,7 +24,7 @@ func (r Repository) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]pr
 		FROM produkt_varianten
 		WHERE id = ANY($1) AND status != 'deleted'`
 
-	rows, err := r.DB.QueryContext(ctx, query, ids32)
+	rows, err := r.db.QueryContext(ctx, query, ids32)
 	if err != nil {
 		return nil, db.Error(err)
 	}
@@ -77,7 +77,7 @@ func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]pr
 		FROM produkte
 		WHERE id = ANY($1) AND status != 'deleted'`
 
-	rows, err := r.DB.QueryContext(ctx, query, ids32)
+	rows, err := r.db.QueryContext(ctx, query, ids32)
 	if err != nil {
 		return nil, db.Error(err)
 	}

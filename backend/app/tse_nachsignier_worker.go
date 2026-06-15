@@ -49,7 +49,7 @@ type tseNachsignierWorker struct {
 
 func newTSENachsignierWorker(cfg config.Config, database *sql.DB) tseNachsignierWorker {
 	settingsRepo := settings_repo.NewRepository(database)
-	store := tse_repo.NewStore(database)
+	store := tse_repo.NewRepository(database)
 
 	return tseNachsignierWorker{
 		settingsRepo: settingsRepo,

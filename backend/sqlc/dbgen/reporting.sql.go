@@ -14,12 +14,12 @@ import (
 const getAusstehendAuszahlungen = `-- name: GetAusstehendAuszahlungen :one
 SELECT COALESCE(SUM(ABS(saldo_cents)), 0)::int AS ausstehend_auszahlungen_cents
 FROM tisch_sessions
-WHERE saldo_cents < 0
+WHERE saldo_cents < 0 AND kassensitzung_nr = $1
 `
 
-// Aktuelle Schulden: Summe aller negativen Tischsaldi (zeitraumunabhaengig).
-func (q *Queries) GetAusstehendAuszahlungen(ctx context.Context) (int, error) {
-	row := q.db.QueryRowContext(ctx, getAusstehendAuszahlungen)
+// Live-Dashboard: Summe der negativen Tischsaldi der offenen Kassensitzung.
+func (q *Queries) GetAusstehendAuszahlungen(ctx context.Context, kassensitzungNr int) (int, error) {
+	row := q.db.QueryRowContext(ctx, getAusstehendAuszahlungen, kassensitzungNr)
 	var ausstehend_auszahlungen_cents int
 	err := row.Scan(&ausstehend_auszahlungen_cents)
 	return ausstehend_auszahlungen_cents, err
@@ -64,28 +64,15 @@ func (q *Queries) GetEigeneUebersicht(ctx context.Context, arg GetEigeneUebersic
 
 const getOffeneSaldi = `-- name: GetOffeneSaldi :one
 SELECT COALESCE(SUM(saldo_cents), 0)::int AS offene_saldi_cents
-FROM tisch_sessions WHERE saldo_cents > 0
+FROM tisch_sessions WHERE saldo_cents > 0 AND kassensitzung_nr = $1
 `
 
-// Tagesabrechnung: Summe aller offenen Saldi (zeitraumunabhängig, aktueller Ist-Zustand).
-func (q *Queries) GetOffeneSaldi(ctx context.Context) (int, error) {
-	row := q.db.QueryRowContext(ctx, getOffeneSaldi)
+// Live-Dashboard: Summe der offenen Saldi der offenen Kassensitzung.
+func (q *Queries) GetOffeneSaldi(ctx context.Context, kassensitzungNr int) (int, error) {
+	row := q.db.QueryRowContext(ctx, getOffeneSaldi, kassensitzungNr)
 	var offene_saldi_cents int
 	err := row.Scan(&offene_saldi_cents)
 	return offene_saldi_cents, err
-}
-
-const getOffeneTische = `-- name: GetOffeneTische :one
-SELECT COALESCE(COUNT(*), 0)::int AS anzahl
-FROM tisch_sessions WHERE saldo_cents > 0
-`
-
-// Dashboard: Anzahl Tische mit offenem Saldo > 0.
-func (q *Queries) GetOffeneTische(ctx context.Context) (int, error) {
-	row := q.db.QueryRowContext(ctx, getOffeneTische)
-	var anzahl int
-	err := row.Scan(&anzahl)
-	return anzahl, err
 }
 
 const getOffeneTischeDetails = `-- name: GetOffeneTischeDetails :many
@@ -93,6 +80,7 @@ SELECT ts.tisch_id, t.name AS tisch_name, ts.saldo_cents
 FROM tisch_sessions ts
 JOIN tische t ON t.id = ts.tisch_id
 WHERE ts.saldo_cents > 0
+  AND ts.kassensitzung_nr = $1
 ORDER BY t.name
 `
 
@@ -102,9 +90,9 @@ type GetOffeneTischeDetailsRow struct {
 	SaldoCents int
 }
 
-// Live-Dashboard: Offene Tische mit Name und aktuellem Saldo.
-func (q *Queries) GetOffeneTischeDetails(ctx context.Context) ([]GetOffeneTischeDetailsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getOffeneTischeDetails)
+// Live-Dashboard: Offene Tische der offenen Kassensitzung mit Name und aktuellem Saldo.
+func (q *Queries) GetOffeneTischeDetails(ctx context.Context, kassensitzungNr int) ([]GetOffeneTischeDetailsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getOffeneTischeDetails, kassensitzungNr)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +232,7 @@ func (q *Queries) GetStornierungen(ctx context.Context, kassensitzungNr int) ([]
 const getUmsatzProServicekraft = `-- name: GetUmsatzProServicekraft :many
 SELECT
     user_id,
-    MAX(user_name) AS user_name,
+    MAX(user_name)::text AS user_name,
     COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int AS zahlungen_cents,
     COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS auszahlungen_cents,
     COUNT(CASE WHEN type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
@@ -257,13 +245,14 @@ ORDER BY zahlungen_cents DESC
 
 type GetUmsatzProServicekraftRow struct {
 	UserID            int
-	UserName          interface{}
+	UserName          string
 	ZahlungenCents    int
 	AuszahlungenCents int
 	AnzahlZahlungen   int
 }
 
 // Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Servicekraft pro Kassensitzung.
+// Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
 // MAX(user_name) nimmt den lexikographisch letzten Namen bei Namensaenderungen.
 func (q *Queries) GetUmsatzProServicekraft(ctx context.Context, kassensitzungNr int) ([]GetUmsatzProServicekraftRow, error) {
 	rows, err := q.db.QueryContext(ctx, getUmsatzProServicekraft, kassensitzungNr)
@@ -366,6 +355,7 @@ type GetUmsatzProTischRow struct {
 }
 
 // Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Tisch pro Kassensitzung.
+// Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
 func (q *Queries) GetUmsatzProTisch(ctx context.Context, kassensitzungNr int) ([]GetUmsatzProTischRow, error) {
 	rows, err := q.db.QueryContext(ctx, getUmsatzProTisch, kassensitzungNr)
 	if err != nil {

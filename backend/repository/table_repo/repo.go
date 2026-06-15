@@ -60,12 +60,11 @@ func (r Repository) GetActiveTablesWithFavorites(ctx context.Context, userID int
 
 	tables := make([]table.AktiverTischMitFavorit, 0, len(rows))
 	for _, row := range rows {
-		istFavorit, _ := row.IstFavorit.(bool)
 		tables = append(tables, table.AktiverTischMitFavorit{
 			ID:         row.ID,
 			Name:       row.Name,
 			SaldoCents: row.SaldoCents,
-			IstFavorit: istFavorit,
+			IstFavorit: row.IstFavorit,
 		})
 	}
 

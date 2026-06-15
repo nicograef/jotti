@@ -1,14 +1,10 @@
--- name: GetOffeneTische :one
--- Dashboard: Anzahl Tische mit offenem Saldo > 0.
-SELECT COALESCE(COUNT(*), 0)::int AS anzahl
-FROM tisch_sessions WHERE saldo_cents > 0;
-
 -- name: GetOffeneTischeDetails :many
--- Live-Dashboard: Offene Tische mit Name und aktuellem Saldo.
+-- Live-Dashboard: Offene Tische der offenen Kassensitzung mit Name und aktuellem Saldo.
 SELECT ts.tisch_id, t.name AS tisch_name, ts.saldo_cents
 FROM tisch_sessions ts
 JOIN tische t ON t.id = ts.tisch_id
 WHERE ts.saldo_cents > 0
+  AND ts.kassensitzung_nr = @kassensitzung_nr
 ORDER BY t.name;
 
 -- name: GetReportingStats :one
@@ -42,16 +38,17 @@ WHERE type IN (
 AND kassensitzung_nr = @kassensitzung_nr;
 
 -- name: GetOffeneSaldi :one
--- Tagesabrechnung: Summe aller offenen Saldi (zeitraumunabhängig, aktueller Ist-Zustand).
+-- Live-Dashboard: Summe der offenen Saldi der offenen Kassensitzung.
 SELECT COALESCE(SUM(saldo_cents), 0)::int AS offene_saldi_cents
-FROM tisch_sessions WHERE saldo_cents > 0;
+FROM tisch_sessions WHERE saldo_cents > 0 AND kassensitzung_nr = @kassensitzung_nr;
 
 -- name: GetUmsatzProServicekraft :many
 -- Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Servicekraft pro Kassensitzung.
+-- Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
 -- MAX(user_name) nimmt den lexikographisch letzten Namen bei Namensaenderungen.
 SELECT
     user_id,
-    MAX(user_name) AS user_name,
+    MAX(user_name)::text AS user_name,
     COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int AS zahlungen_cents,
     COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS auszahlungen_cents,
     COUNT(CASE WHEN type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
@@ -80,6 +77,7 @@ ORDER BY e.timestamp DESC;
 
 -- name: GetUmsatzProTisch :many
 -- Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Tisch pro Kassensitzung.
+-- Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
 SELECT
     tss.tisch_id,
     t.name AS tisch_name,
@@ -113,10 +111,10 @@ ORDER BY CASE s.steuersatz
 END;
 
 -- name: GetAusstehendAuszahlungen :one
--- Aktuelle Schulden: Summe aller negativen Tischsaldi (zeitraumunabhaengig).
+-- Live-Dashboard: Summe der negativen Tischsaldi der offenen Kassensitzung.
 SELECT COALESCE(SUM(ABS(saldo_cents)), 0)::int AS ausstehend_auszahlungen_cents
 FROM tisch_sessions
-WHERE saldo_cents < 0;
+WHERE saldo_cents < 0 AND kassensitzung_nr = @kassensitzung_nr;
 
 -- name: GetEigeneUebersicht :one
 -- Service-Dashboard: Eigene KPIs der eingeloggten Servicekraft pro Kassensitzung.

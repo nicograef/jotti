@@ -11,7 +11,7 @@ import (
 	dbpkg "github.com/nicograef/jotti/backend/db"
 )
 
-func setupStore(t *testing.T) (Store, *sql.DB, func(t *testing.T)) {
+func setupRepository(t *testing.T) (Repository, *sql.DB, func(t *testing.T)) {
 	t.Helper()
 	database := dbpkg.OpenTestDatabase()
 
@@ -26,7 +26,7 @@ func setupStore(t *testing.T) (Store, *sql.DB, func(t *testing.T)) {
 	}
 	reset(t)
 
-	return NewStore(database), database, func(t *testing.T) {
+	return NewRepository(database), database, func(t *testing.T) {
 		reset(t)
 		database.Close()
 	}
@@ -50,7 +50,7 @@ func insertAuftrag(t *testing.T, database *sql.DB, txID string) int {
 // Der fehlschlagende Auftrag verschwindet aus dem Worker-Batch, ein neuerer
 // Auftrag bleibt abholbar — kein Head-of-Line-Blocking mehr.
 func TestTSENachsignierFehlversuch_BackoffBlockiertNeuereNicht(t *testing.T) {
-	store, database, teardown := setupStore(t)
+	store, database, teardown := setupRepository(t)
 	defer teardown(t)
 	ctx := context.Background()
 
@@ -85,7 +85,7 @@ func TestTSENachsignierFehlversuch_BackoffBlockiertNeuereNicht(t *testing.T) {
 // Nach MaxNachsignierVersuche Fehlversuchen wechselt der Auftrag auf
 // fehlgeschlagen; Zuruecksetzen reiht ihn wieder ein, Verwerfen beendet ihn.
 func TestTSENachsignierAuftrag_FehlgeschlagenZuruecksetzenVerwerfen(t *testing.T) {
-	store, database, teardown := setupStore(t)
+	store, database, teardown := setupRepository(t)
 	defer teardown(t)
 	ctx := context.Background()
 
@@ -143,7 +143,7 @@ func TestTSENachsignierAuftrag_FehlgeschlagenZuruecksetzenVerwerfen(t *testing.T
 
 // Zuruecksetzen und Verwerfen wirken nur auf fehlgeschlagene Auftraege.
 func TestTSENachsignierAuftrag_StatusGuards(t *testing.T) {
-	store, database, teardown := setupStore(t)
+	store, database, teardown := setupRepository(t)
 	defer teardown(t)
 	ctx := context.Background()
 

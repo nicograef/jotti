@@ -45,12 +45,12 @@ type FehlgeschlagenerDruckauftrag struct {
 }
 
 type Repository struct {
-	DB *sql.DB
+	db *sql.DB
 	q  *dbgen.Queries
 }
 
 func NewRepository(database *sql.DB) Repository {
-	return Repository{DB: database, q: dbgen.New(database)}
+	return Repository{db: database, q: dbgen.New(database)}
 }
 
 func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []NeuerDruckauftrag) error {
@@ -58,7 +58,7 @@ func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []Neuer
 		return nil
 	}
 
-	tx, err := r.DB.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return db.Error(err)
 	}
@@ -123,7 +123,7 @@ func (r Repository) MeldeDruckergebnis(ctx context.Context, gedruckteIDs []int, 
 		return nil
 	}
 
-	tx, err := r.DB.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return db.Error(err)
 	}

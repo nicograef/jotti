@@ -121,17 +121,17 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 	})
 	g.Go(func() error {
 		var err error
-		offeneSaldi, err = r.q.GetOffeneSaldi(ctx)
+		offeneSaldi, err = r.q.GetOffeneSaldi(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		ausstehendAuszahlungen, err = r.q.GetAusstehendAuszahlungen(ctx)
+		ausstehendAuszahlungen, err = r.q.GetAusstehendAuszahlungen(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
 		var err error
-		offeneTischeRows, err = r.q.GetOffeneTischeDetails(ctx)
+		offeneTischeRows, err = r.q.GetOffeneTischeDetails(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
@@ -215,10 +215,9 @@ func toSummary(stats dbgen.GetReportingStatsRow) reporting.Summary {
 func toUmsatzServicekraft(rows []dbgen.GetUmsatzProServicekraftRow) []reporting.UmsatzServicekraft {
 	umsatz := make([]reporting.UmsatzServicekraft, len(rows))
 	for i, row := range rows {
-		userName, _ := row.UserName.(string)
 		umsatz[i] = reporting.UmsatzServicekraft{
 			UserID:            row.UserID,
-			UserName:          userName,
+			UserName:          row.UserName,
 			ZahlungenCents:    row.ZahlungenCents,
 			AuszahlungenCents: row.AuszahlungenCents,
 			AnzahlZahlungen:   row.AnzahlZahlungen,

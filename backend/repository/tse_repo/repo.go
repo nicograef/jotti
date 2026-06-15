@@ -50,16 +50,16 @@ type Signatur struct {
 	QRCodeData        string
 }
 
-type Store struct {
-	DB *sql.DB
+type Repository struct {
+	db *sql.DB
 	q  *dbgen.Queries
 }
 
-func NewStore(database *sql.DB) Store {
-	return Store{DB: database, q: dbgen.New(database)}
+func NewRepository(database *sql.DB) Repository {
+	return Repository{db: database, q: dbgen.New(database)}
 }
 
-func (r Store) GetOffeneTSENachsignierAuftraege(ctx context.Context, limit int) ([]OffenerNachsignierAuftrag, error) {
+func (r Repository) GetOffeneTSENachsignierAuftraege(ctx context.Context, limit int) ([]OffenerNachsignierAuftrag, error) {
 	rows, err := r.q.GetOffeneTSENachsignierAuftraege(ctx, int32(limit))
 	if err != nil {
 		return nil, db.Error(err)
@@ -78,8 +78,8 @@ func (r Store) GetOffeneTSENachsignierAuftraege(ctx context.Context, limit int) 
 	return result, nil
 }
 
-func (r Store) QuittiereTSENachsignierAuftrag(ctx context.Context, auftragID int, signatur Signatur) error {
-	tx, err := r.DB.BeginTx(ctx, nil)
+func (r Repository) QuittiereTSENachsignierAuftrag(ctx context.Context, auftragID int, signatur Signatur) error {
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return db.Error(err)
 	}
@@ -116,7 +116,7 @@ func (r Store) QuittiereTSENachsignierAuftrag(ctx context.Context, auftragID int
 // Fehlertext speichern, naechster Versuch mit exponentiellem Backoff. Beim
 // MaxNachsignierVersuche-ten Fehlversuch wechselt der Auftrag auf
 // fehlgeschlagen (Backoff-Logik liegt in der SQL-Query).
-func (r Store) TSENachsignierAuftragFehlversuch(ctx context.Context, auftragID int, fehler string) error {
+func (r Repository) TSENachsignierAuftragFehlversuch(ctx context.Context, auftragID int, fehler string) error {
 	return db.Error(r.q.TSENachsignierAuftragFehlversuch(ctx, dbgen.TSENachsignierAuftragFehlversuchParams{
 		ID:            auftragID,
 		LetzterFehler: sql.NullString{String: fehler, Valid: true},
@@ -126,7 +126,7 @@ func (r Store) TSENachsignierAuftragFehlversuch(ctx context.Context, auftragID i
 
 // GetTSENachsignierAuftraege liefert die Nachsignier-Auftraege fuer die
 // Admin-Verwaltung und die Ausfalldokumentation, neueste zuerst.
-func (r Store) GetTSENachsignierAuftraege(ctx context.Context) ([]NachsignierAuftrag, error) {
+func (r Repository) GetTSENachsignierAuftraege(ctx context.Context) ([]NachsignierAuftrag, error) {
 	rows, err := r.q.GetTSENachsignierAuftraege(ctx)
 	if err != nil {
 		return nil, db.Error(err)
@@ -157,18 +157,18 @@ func (r Store) GetTSENachsignierAuftraege(ctx context.Context) ([]NachsignierAuf
 // TSENachsignierAuftragZuruecksetzen reiht einen fehlgeschlagenen Auftrag
 // wieder ein (fehlgeschlagen -> offen, Zaehler und Fehler zurueckgesetzt).
 // Der Status-Guard wirkt nur auf fehlgeschlagene Auftraege.
-func (r Store) TSENachsignierAuftragZuruecksetzen(ctx context.Context, auftragID int) error {
+func (r Repository) TSENachsignierAuftragZuruecksetzen(ctx context.Context, auftragID int) error {
 	return db.Error(r.q.TSENachsignierAuftragZuruecksetzen(ctx, auftragID))
 }
 
 // TSENachsignierAuftragVerwerfen markiert einen fehlgeschlagenen Auftrag als
 // verworfen. Der Eintrag bleibt fuer die Ausfalldokumentation erhalten; der
 // Status-Guard wirkt nur auf fehlgeschlagene Auftraege.
-func (r Store) TSENachsignierAuftragVerwerfen(ctx context.Context, auftragID int) error {
+func (r Repository) TSENachsignierAuftragVerwerfen(ctx context.Context, auftragID int) error {
 	return db.Error(r.q.TSENachsignierAuftragVerwerfen(ctx, auftragID))
 }
 
-func (r Store) CountOffeneTSENachsignierAuftraege(ctx context.Context) (int, error) {
+func (r Repository) CountOffeneTSENachsignierAuftraege(ctx context.Context) (int, error) {
 	count, err := r.q.CountOffeneTSENachsignierAuftraege(ctx)
 	if err != nil {
 		return 0, db.Error(err)
@@ -176,7 +176,7 @@ func (r Store) CountOffeneTSENachsignierAuftraege(ctx context.Context) (int, err
 	return count, nil
 }
 
-func (r Store) GetTSESignaturByTxID(ctx context.Context, txID string) (Signatur, error) {
+func (r Repository) GetTSESignaturByTxID(ctx context.Context, txID string) (Signatur, error) {
 	row, err := r.q.GetTSESignaturByTxID(ctx, strings.TrimSpace(txID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

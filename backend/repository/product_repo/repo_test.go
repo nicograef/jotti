@@ -332,7 +332,7 @@ func TestDeletedVariantsNotReturned(t *testing.T) {
 	deletedVariantID, _ := repo.CreateVariant(ctx, productID, newVariant("Large", 1299, product.ActiveStatus))
 
 	// Simulate soft delete by updating status to 'deleted'
-	_, _ = repo.DB.ExecContext(ctx, "UPDATE produkt_varianten SET status = 'deleted' WHERE id = $1", deletedVariantID)
+	_, _ = repo.db.ExecContext(ctx, "UPDATE produkt_varianten SET status = 'deleted' WHERE id = $1", deletedVariantID)
 
 	p, err := repo.GetProduct(ctx, productID)
 	if err != nil {

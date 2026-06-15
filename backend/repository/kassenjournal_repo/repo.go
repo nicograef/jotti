@@ -17,12 +17,12 @@ import (
 )
 
 type Repository struct {
-	DB *sql.DB
+	db *sql.DB
 	q  *dbgen.Queries
 }
 
 func NewRepository(database *sql.DB) Repository {
-	return Repository{DB: database, q: dbgen.New(database)}
+	return Repository{db: database, q: dbgen.New(database)}
 }
 
 // WriteEvent stores a new event in the kassenjournal and synchronously updates
@@ -32,7 +32,7 @@ func NewRepository(database *sql.DB) Repository {
 //   - "tisch-session" → UPSERT tisch_sessions (synchronous projection)
 //   - "direktverkauf" → kassenjournal only (no projection)
 func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
-	tx, err := r.DB.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, db.Error(err)
 	}
@@ -62,7 +62,7 @@ func (r Repository) WriteEventWithDruckauftraege(
 	kassensitzungNr int,
 	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
 ) (int, error) {
-	tx, err := r.DB.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, db.Error(err)
 	}
@@ -98,7 +98,7 @@ func (r Repository) WriteEventWithNachsignierAuftrag(
 	processType string,
 	processData string,
 ) (int, error) {
-	tx, err := r.DB.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, db.Error(err)
 	}
@@ -139,7 +139,7 @@ func (r Repository) WriteEventWithDruckauftraegeUndNachsignierAuftrag(
 	processType string,
 	processData string,
 ) (int, error) {
-	tx, err := r.DB.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, db.Error(err)
 	}
@@ -175,7 +175,7 @@ func (r Repository) WriteEventWithDruckauftraegeUndNachsignierAuftrag(
 // WriteUmbuchung writes the source stornierung and target bestellung atomically.
 // Both events must already carry their final subject/version.
 func (r Repository) WriteUmbuchung(ctx context.Context, stornierungEvent event.Event, bestellungEvent event.Event, kassensitzungNr int) error {
-	tx, err := r.DB.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return db.Error(err)
 	}
@@ -384,6 +384,36 @@ func toNullTime(t *time.Time) sql.NullTime {
 	return sql.NullTime{Time: t.UTC(), Valid: true}
 }
 
+// eventFromReadRow maps a kassenjournal read row to a domain event.
+func eventFromReadRow(row dbgen.ReadEventsBySubjectRow) event.Event {
+	return event.Event{
+		ID:       row.ID,
+		UserID:   row.UserID,
+		UserName: row.UserName,
+		Version:  row.Version,
+		Type:     row.Type,
+		Subject:  row.Subject,
+		Data:     row.Data,
+		Time:     row.Timestamp,
+	}
+}
+
+// eventFromDirektverkaufRow maps a Direktverkauf read row to a domain event.
+// ReadDirektverkaufEvents selects the same columns as ReadEventsBySubject but
+// sqlc emits a distinct row type, so it needs its own mapping.
+func eventFromDirektverkaufRow(row dbgen.ReadDirektverkaufEventsRow) event.Event {
+	return event.Event{
+		ID:       row.ID,
+		UserID:   row.UserID,
+		UserName: row.UserName,
+		Version:  row.Version,
+		Type:     row.Type,
+		Subject:  row.Subject,
+		Data:     row.Data,
+		Time:     row.Timestamp,
+	}
+}
+
 // ReadEventsBySubject retrieves all events of the given subject.
 // Events are ordered by ID ascending (first element in slice is first event).
 func (r Repository) ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error) {
@@ -394,16 +424,7 @@ func (r Repository) ReadEventsBySubject(ctx context.Context, subject string) ([]
 
 	events := make([]event.Event, 0, len(rows))
 	for i := range rows {
-		events = append(events, event.Event{
-			ID:       rows[i].ID,
-			UserID:   rows[i].UserID,
-			UserName: rows[i].UserName,
-			Version:  rows[i].Version,
-			Type:     rows[i].Type,
-			Subject:  rows[i].Subject,
-			Data:     rows[i].Data,
-			Time:     rows[i].Timestamp,
-		})
+		events = append(events, eventFromReadRow(rows[i]))
 	}
 
 	return events, nil
@@ -419,16 +440,7 @@ func (r Repository) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr
 
 	events := make([]event.Event, 0, len(rows))
 	for i := range rows {
-		events = append(events, event.Event{
-			ID:       rows[i].ID,
-			UserID:   rows[i].UserID,
-			UserName: rows[i].UserName,
-			Version:  rows[i].Version,
-			Type:     rows[i].Type,
-			Subject:  rows[i].Subject,
-			Data:     rows[i].Data,
-			Time:     rows[i].Timestamp,
-		})
+		events = append(events, eventFromDirektverkaufRow(rows[i]))
 	}
 
 	return events, nil
@@ -474,7 +486,7 @@ func (r Repository) GetMaxVersion(ctx context.Context, subject string) (int, err
 // Note: kassensitzungen is a CRUD entity and is NOT replayed.
 // Returns the number of subjects rebuilt.
 func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
-	tx, err := r.DB.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, db.Error(err)
 	}
@@ -487,20 +499,15 @@ func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("delete all tisch sessions: %w", err)
 	}
 
-	// 2. Get all distinct subjects
-	subjects, err := qtx.GetDistinctSubjects(ctx)
+	// 2. Get all distinct tisch-session subjects (filtered in SQL)
+	subjects, err := qtx.GetDistinctTischSessionSubjects(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("get distinct subjects: %w", err)
+		return 0, fmt.Errorf("get distinct tisch-session subjects: %w", err)
 	}
 
-	// 3. Replay events for each tisch-session subject only
+	// 3. Replay events for each tisch-session subject
 	rebuiltCount := 0
 	for _, subject := range subjects {
-		// Only rebuild tisch-session subjects (contain "/tisch-")
-		if !isTischSessionSubject(subject) {
-			continue
-		}
-
 		tischID, err := kasse.ParseTischIDFromSubject(subject)
 		if err != nil {
 			return 0, fmt.Errorf("parse tisch ID from subject %q: %w", subject, err)
@@ -518,17 +525,7 @@ func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
 
 		state := kasse.TischSession{}
 		for i := range rows {
-			evt := event.Event{
-				ID:       rows[i].ID,
-				UserID:   rows[i].UserID,
-				UserName: rows[i].UserName,
-				Version:  rows[i].Version,
-				Type:     rows[i].Type,
-				Subject:  rows[i].Subject,
-				Data:     rows[i].Data,
-				Time:     rows[i].Timestamp,
-			}
-			state, err = kasse.ApplyEvent(state, evt)
+			state, err = kasse.ApplyEvent(state, eventFromReadRow(rows[i]))
 			if err != nil {
 				return 0, fmt.Errorf("apply event %d to subject %q: %w", rows[i].ID, subject, err)
 			}
@@ -576,9 +573,4 @@ func (r Repository) GetTischSessionsByKassensitzungNr(ctx context.Context, kasse
 	}
 
 	return sessions, nil
-}
-
-// isTischSessionSubject checks if a subject is a tisch-session subject (contains "/tisch-").
-func isTischSessionSubject(subject string) bool {
-	return strings.Contains(subject, "/tisch-")
 }

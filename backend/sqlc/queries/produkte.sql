@@ -60,6 +60,9 @@ WHERE p.status != 'deleted'
 ORDER BY p.id ASC;
 
 -- name: GetAktiveProdukte :many
+-- Bestelliste fuer den Service: nur aktive Produkte mit mindestens einer aktiven Variante.
+-- Der INNER JOIN blendet aktive Produkte ohne aktive (bepreiste) Variante bewusst aus,
+-- da sie nicht bestellbar sind. Die Admin-Sicht (GetAlleProdukte) zeigt sie via LEFT JOIN.
 WITH varianten_json AS (
     SELECT 
         produkt_id,

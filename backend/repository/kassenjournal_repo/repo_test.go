@@ -212,7 +212,7 @@ func TestWriteEvent_TischSession(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	tischID, err := createTisch(repo.DB, "Tisch 1")
+	tischID, err := createTisch(repo.db, "Tisch 1")
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
@@ -235,7 +235,7 @@ func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	tischID, err := createTisch(repo.DB, "Tisch 1")
+	tischID, err := createTisch(repo.db, "Tisch 1")
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
@@ -270,7 +270,7 @@ func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
 
 	// The druckauftrag references the generated event ID.
 	var referenz string
-	err = repo.DB.QueryRow("SELECT referenz FROM druckauftraege").Scan(&referenz)
+	err = repo.db.QueryRow("SELECT referenz FROM druckauftraege").Scan(&referenz)
 	if err != nil {
 		t.Fatalf("Expected 1 persisted druckauftrag, got error %v", err)
 	}
@@ -283,7 +283,7 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	tischID, err := createTisch(repo.DB, "Tisch 1")
+	tischID, err := createTisch(repo.db, "Tisch 1")
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
@@ -329,7 +329,7 @@ func TestWriteEventWithNachsignierAuftrag_CommitsEventAndOutbox(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	tischID, err := createTisch(repo.DB, "Tisch 1")
+	tischID, err := createTisch(repo.db, "Tisch 1")
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
@@ -359,7 +359,7 @@ func TestWriteEventWithNachsignierAuftrag_CommitsEventAndOutbox(t *testing.T) {
 	}
 
 	var count int
-	err = repo.DB.QueryRow("SELECT COUNT(*) FROM tse_nachsignier_auftraege WHERE tx_id = $1 AND status = 'offen'", txID).Scan(&count)
+	err = repo.db.QueryRow("SELECT COUNT(*) FROM tse_nachsignier_auftraege WHERE tx_id = $1 AND status = 'offen'", txID).Scan(&count)
 	if err != nil {
 		t.Fatalf("Expected outbox row to exist, got error %v", err)
 	}
@@ -372,11 +372,11 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	quellTischID, err := createTisch(repo.DB, "Tisch Quelle")
+	quellTischID, err := createTisch(repo.db, "Tisch Quelle")
 	if err != nil {
 		t.Fatalf("Failed to create source tisch: %v", err)
 	}
-	zielTischID, err := createTisch(repo.DB, "Tisch Ziel")
+	zielTischID, err := createTisch(repo.db, "Tisch Ziel")
 	if err != nil {
 		t.Fatalf("Failed to create target tisch: %v", err)
 	}
@@ -478,11 +478,11 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	quellTischID, err := createTisch(repo.DB, "Tisch Quelle")
+	quellTischID, err := createTisch(repo.db, "Tisch Quelle")
 	if err != nil {
 		t.Fatalf("Failed to create source tisch: %v", err)
 	}
-	zielTischID, err := createTisch(repo.DB, "Tisch Ziel")
+	zielTischID, err := createTisch(repo.db, "Tisch Ziel")
 	if err != nil {
 		t.Fatalf("Failed to create target tisch: %v", err)
 	}
@@ -560,11 +560,11 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	quellTischID, err := createTisch(repo.DB, "Tisch Quelle")
+	quellTischID, err := createTisch(repo.db, "Tisch Quelle")
 	if err != nil {
 		t.Fatalf("Failed to create source tisch: %v", err)
 	}
-	zielTischID, err := createTisch(repo.DB, "Tisch Ziel")
+	zielTischID, err := createTisch(repo.db, "Tisch Ziel")
 	if err != nil {
 		t.Fatalf("Failed to create target tisch: %v", err)
 	}
@@ -653,8 +653,8 @@ func TestReadEventsBySubject(t *testing.T) {
 
 	event1 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject1, 1, map[string]any{"k": "v"})
 	event2 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject2, 1, map[string]any{"k": "v"})
-	_, _ = insertEventRaw(repo.DB, event1, ksNr)
-	_, _ = insertEventRaw(repo.DB, event2, ksNr)
+	_, _ = insertEventRaw(repo.db, event1, ksNr)
+	_, _ = insertEventRaw(repo.db, event2, ksNr)
 
 	events, err := repo.ReadEventsBySubject(context.Background(), subject2)
 	if err != nil {
@@ -689,9 +689,9 @@ func TestGetMaxVersion(t *testing.T) {
 	e2 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject1, 2, map[string]any{"order": 2})
 	e3 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject2, 1, map[string]any{"order": 3})
 
-	_, _ = insertEventRaw(repo.DB, e1, ksNr)
-	_, _ = insertEventRaw(repo.DB, e2, ksNr)
-	_, _ = insertEventRaw(repo.DB, e3, ksNr)
+	_, _ = insertEventRaw(repo.db, e1, ksNr)
+	_, _ = insertEventRaw(repo.db, e2, ksNr)
+	_, _ = insertEventRaw(repo.db, e3, ksNr)
 
 	// Should return max version for subject1
 	version, err = repo.GetMaxVersion(context.Background(), subject1)
@@ -719,7 +719,7 @@ func TestGetKassenbestand_DirektverkaufIncreasesThenStornoDecreases(t *testing.T
 	subject := kasse.DirektverkaufSubject(ksNr, "verkauf-1")
 
 	verkauf := newTestEvent(userID, "direktverkauf-getaetigt:v1", subject, 1, validDirektverkaufData("verkauf-1", 1200))
-	if _, err := insertEventRaw(repo.DB, verkauf, ksNr); err != nil {
+	if _, err := insertEventRaw(repo.db, verkauf, ksNr); err != nil {
 		t.Fatalf("Failed to insert direktverkauf-getaetigt event: %v", err)
 	}
 
@@ -732,7 +732,7 @@ func TestGetKassenbestand_DirektverkaufIncreasesThenStornoDecreases(t *testing.T
 	}
 
 	storno := newTestEvent(userID, "direktverkauf-storniert:v1", subject, 2, validDirektverkaufStornoData("verkauf-1", 500))
-	if _, err := insertEventRaw(repo.DB, storno, ksNr); err != nil {
+	if _, err := insertEventRaw(repo.db, storno, ksNr); err != nil {
 		t.Fatalf("Failed to insert direktverkauf-storniert event: %v", err)
 	}
 
@@ -751,23 +751,23 @@ func TestGetReportingStats_IncludesDirektverkaufMetrics(t *testing.T) {
 
 	tischSubject := kasse.TischSessionSubject(ksNr, 1)
 	zahlung := newTestEvent(userID, "zahlung-kassiert:v1", tischSubject, 1, validZahlungData("p0000000-0000-0000-0000-000000000001", 1, 1000))
-	if _, err := insertEventRaw(repo.DB, zahlung, ksNr); err != nil {
+	if _, err := insertEventRaw(repo.db, zahlung, ksNr); err != nil {
 		t.Fatalf("Failed to insert zahlung-kassiert event: %v", err)
 	}
 
 	auszahlung := newTestEvent(userID, "auszahlung-geleistet:v1", tischSubject, 2, validAuszahlungData(300))
-	if _, err := insertEventRaw(repo.DB, auszahlung, ksNr); err != nil {
+	if _, err := insertEventRaw(repo.db, auszahlung, ksNr); err != nil {
 		t.Fatalf("Failed to insert auszahlung-geleistet event: %v", err)
 	}
 
 	dvSubject := kasse.DirektverkaufSubject(ksNr, "verkauf-2")
 	dv := newTestEvent(userID, "direktverkauf-getaetigt:v1", dvSubject, 1, validDirektverkaufData("verkauf-2", 700))
-	if _, err := insertEventRaw(repo.DB, dv, ksNr); err != nil {
+	if _, err := insertEventRaw(repo.db, dv, ksNr); err != nil {
 		t.Fatalf("Failed to insert direktverkauf-getaetigt event: %v", err)
 	}
 
 	dvStorno := newTestEvent(userID, "direktverkauf-storniert:v1", dvSubject, 2, validDirektverkaufStornoData("verkauf-2", 200))
-	if _, err := insertEventRaw(repo.DB, dvStorno, ksNr); err != nil {
+	if _, err := insertEventRaw(repo.db, dvStorno, ksNr); err != nil {
 		t.Fatalf("Failed to insert direktverkauf-storniert event: %v", err)
 	}
 
@@ -793,7 +793,7 @@ func TestWriteEvent_WithTischSessionProjection(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	tischID, err := createTisch(repo.DB, "Tisch Proj")
+	tischID, err := createTisch(repo.db, "Tisch Proj")
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
@@ -869,7 +869,7 @@ func TestWriteEvent_MultipleEvents_ProjectionCorrect(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	tischID, err := createTisch(repo.DB, "Tisch Multi")
+	tischID, err := createTisch(repo.db, "Tisch Multi")
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
@@ -929,7 +929,7 @@ func TestWriteEvent_InvalidData_Rollback(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	tischID, err := createTisch(repo.DB, "Tisch Rollback")
+	tischID, err := createTisch(repo.db, "Tisch Rollback")
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
@@ -992,7 +992,7 @@ func TestWriteEvent_KassensitzungEroeffnet(t *testing.T) {
 
 	// Verify the kassensitzung still exists and is offen
 	var status string
-	statErr := repo.DB.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = $1", ksNr).Scan(&status)
+	statErr := repo.db.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = $1", ksNr).Scan(&status)
 	if statErr != nil {
 		t.Fatalf("Expected no error reading kassensitzung status, got %v", statErr)
 	}
@@ -1025,7 +1025,7 @@ func TestWriteEvent_TagesabschlussErstellt(t *testing.T) {
 
 	// Verify kassensitzung is now abgeschlossen
 	var status string
-	statErr := repo.DB.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = $1", ksNr).Scan(&status)
+	statErr := repo.db.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = $1", ksNr).Scan(&status)
 	if statErr != nil {
 		t.Fatalf("Expected no error reading kassensitzung status, got %v", statErr)
 	}
@@ -1039,7 +1039,7 @@ func TestGetOffeneKassensitzung_NoneOpen(t *testing.T) {
 	defer teardown(t)
 
 	// Close the kassensitzung created by setup
-	_, err := repo.DB.Exec("UPDATE kassensitzungen SET status = $1 WHERE z_nr = $2", kasse.KassensitzungAbgeschlossen, ksNr)
+	_, err := repo.db.Exec("UPDATE kassensitzungen SET status = $1 WHERE z_nr = $2", kasse.KassensitzungAbgeschlossen, ksNr)
 	if err != nil {
 		t.Fatalf("Failed to close kassensitzung: %v", err)
 	}
@@ -1064,7 +1064,7 @@ func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	tischID, err := createTisch(repo.DB, "Tisch Rebuild")
+	tischID, err := createTisch(repo.db, "Tisch Rebuild")
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
@@ -1094,7 +1094,7 @@ func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
 	}
 
 	// Delete projection manually to simulate seed scenario
-	_, err = repo.DB.Exec("DELETE FROM tisch_sessions")
+	_, err = repo.db.Exec("DELETE FROM tisch_sessions")
 	if err != nil {
 		t.Fatalf("Failed to delete tisch_sessions: %v", err)
 	}
@@ -1148,11 +1148,11 @@ func TestRebuildAllProjections_MultipleSubjects(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	tisch1ID, err := createTisch(repo.DB, "Tisch R1")
+	tisch1ID, err := createTisch(repo.db, "Tisch R1")
 	if err != nil {
 		t.Fatalf("Failed to create tisch 1: %v", err)
 	}
-	tisch2ID, err := createTisch(repo.DB, "Tisch R2")
+	tisch2ID, err := createTisch(repo.db, "Tisch R2")
 	if err != nil {
 		t.Fatalf("Failed to create tisch 2: %v", err)
 	}
@@ -1163,14 +1163,14 @@ func TestRebuildAllProjections_MultipleSubjects(t *testing.T) {
 	// Write events via raw insert (bypassing projection, simulating events without a projection)
 	e1 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject1, 1,
 		validBestellungData("p1-1", 200, 2)) // 400
-	_, err = insertEventRaw(repo.DB, e1, ksNr)
+	_, err = insertEventRaw(repo.db, e1, ksNr)
 	if err != nil {
 		t.Fatalf("Failed to insert event: %v", err)
 	}
 
 	e2 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject2, 1,
 		validBestellungData("p2-1", 300, 1)) // 300
-	_, err = insertEventRaw(repo.DB, e2, ksNr)
+	_, err = insertEventRaw(repo.db, e2, ksNr)
 	if err != nil {
 		t.Fatalf("Failed to insert event: %v", err)
 	}
@@ -1207,7 +1207,7 @@ func TestRebuildAllProjections_SkipsKassensitzungSubjects(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	tischID, err := createTisch(repo.DB, "Tisch SkipKS")
+	tischID, err := createTisch(repo.db, "Tisch SkipKS")
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
@@ -1219,7 +1219,7 @@ func TestRebuildAllProjections_SkipsKassensitzungSubjects(t *testing.T) {
 		"bezeichnung":  "Test",
 		"eroeffnetVon": userID,
 	})
-	_, err = insertEventRaw(repo.DB, ksEvent, ksNr)
+	_, err = insertEventRaw(repo.db, ksEvent, ksNr)
 	if err != nil {
 		t.Fatalf("Failed to insert kassensitzung event: %v", err)
 	}
@@ -1228,7 +1228,7 @@ func TestRebuildAllProjections_SkipsKassensitzungSubjects(t *testing.T) {
 	tischSubject := kasse.TischSessionSubject(ksNr, tischID)
 	tischEvent := newTestEvent(userID, "bestellung-aufgenommen:v1", tischSubject, 1,
 		validBestellungData("p1-1", 200, 1))
-	_, err = insertEventRaw(repo.DB, tischEvent, ksNr)
+	_, err = insertEventRaw(repo.db, tischEvent, ksNr)
 	if err != nil {
 		t.Fatalf("Failed to insert tisch event: %v", err)
 	}
@@ -1277,7 +1277,7 @@ func TestWriteEvent_KassensitzungOtherEvent_NoCRUDChange(t *testing.T) {
 
 	// Verify kassensitzung is still offen
 	var status string
-	statErr := repo.DB.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = $1", ksNr).Scan(&status)
+	statErr := repo.db.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = $1", ksNr).Scan(&status)
 	if statErr != nil {
 		t.Fatalf("Expected no error reading kassensitzung status, got %v", statErr)
 	}

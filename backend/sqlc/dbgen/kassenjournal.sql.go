@@ -11,12 +11,13 @@ import (
 	"time"
 )
 
-const getDistinctSubjects = `-- name: GetDistinctSubjects :many
-SELECT DISTINCT subject FROM kassenjournal ORDER BY subject ASC
+const getDistinctTischSessionSubjects = `-- name: GetDistinctTischSessionSubjects :many
+SELECT DISTINCT subject FROM kassenjournal WHERE subject LIKE '%/tisch-%' ORDER BY subject ASC
 `
 
-func (q *Queries) GetDistinctSubjects(ctx context.Context) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, getDistinctSubjects)
+// Nur Tisch-Session-Subjects (enthalten "/tisch-"); Filterung in SQL fuer RebuildAllProjections.
+func (q *Queries) GetDistinctTischSessionSubjects(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getDistinctTischSessionSubjects)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +51,7 @@ func (q *Queries) GetMaxVersion(ctx context.Context, subject string) (int, error
 }
 
 const readDirektverkaufEvents = `-- name: ReadDirektverkaufEvents :many
-SELECT id, user_id, user_name, version, type, subject, data, timestamp, kassensitzung_nr
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM kassenjournal
 WHERE kassensitzung_nr = $1
   AND type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1')
@@ -58,15 +59,14 @@ ORDER BY id ASC
 `
 
 type ReadDirektverkaufEventsRow struct {
-	ID              int
-	UserID          int
-	UserName        string
-	Version         int
-	Type            string
-	Subject         string
-	Data            json.RawMessage
-	Timestamp       time.Time
-	KassensitzungNr int
+	ID        int
+	UserID    int
+	UserName  string
+	Version   int
+	Type      string
+	Subject   string
+	Data      json.RawMessage
+	Timestamp time.Time
 }
 
 func (q *Queries) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr int) ([]ReadDirektverkaufEventsRow, error) {
@@ -87,7 +87,6 @@ func (q *Queries) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr i
 			&i.Subject,
 			&i.Data,
 			&i.Timestamp,
-			&i.KassensitzungNr,
 		); err != nil {
 			return nil, err
 		}
@@ -103,20 +102,19 @@ func (q *Queries) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr i
 }
 
 const readEventsBySubject = `-- name: ReadEventsBySubject :many
-SELECT id, user_id, user_name, version, type, subject, data, timestamp, kassensitzung_nr
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM kassenjournal WHERE subject = $1 ORDER BY id ASC
 `
 
 type ReadEventsBySubjectRow struct {
-	ID              int
-	UserID          int
-	UserName        string
-	Version         int
-	Type            string
-	Subject         string
-	Data            json.RawMessage
-	Timestamp       time.Time
-	KassensitzungNr int
+	ID        int
+	UserID    int
+	UserName  string
+	Version   int
+	Type      string
+	Subject   string
+	Data      json.RawMessage
+	Timestamp time.Time
 }
 
 func (q *Queries) ReadEventsBySubject(ctx context.Context, subject string) ([]ReadEventsBySubjectRow, error) {
@@ -137,7 +135,6 @@ func (q *Queries) ReadEventsBySubject(ctx context.Context, subject string) ([]Re
 			&i.Subject,
 			&i.Data,
 			&i.Timestamp,
-			&i.KassensitzungNr,
 		); err != nil {
 			return nil, err
 		}

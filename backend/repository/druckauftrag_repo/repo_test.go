@@ -342,7 +342,7 @@ func enqueueOne(t *testing.T, repo Repository, zielIP string) int {
 func readAuftrag(t *testing.T, repo Repository, id int) (status string, versuche int, letzterFehler string) {
 	t.Helper()
 	var fehler sql.NullString
-	err := repo.DB.QueryRow(
+	err := repo.db.QueryRow(
 		"SELECT status, versuche, letzter_fehler FROM druckauftraege WHERE id = $1", id,
 	).Scan(&status, &versuche, &fehler)
 	if err != nil {

@@ -73,7 +73,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
 	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
 	settingsRepo := settings_repo.NewRepository(db)
-	tseStore := tse_repo.NewStore(db)
+	tseStore := tse_repo.NewRepository(db)
 	tc := tableHTTP.CommandHandler{}
 	tc.Command = tableApp.Command{
 		TableRepo:           tableRepo,
