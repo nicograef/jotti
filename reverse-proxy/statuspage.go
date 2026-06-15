@@ -19,9 +19,8 @@ const (
 	// caddyHTTPSAddr ist der lokale HTTPS-Endpunkt des eigenen Caddy, gegen den
 	// die Zertifikats-Probe ihren Handshake fährt.
 	caddyHTTPSAddr = "127.0.0.1:443"
-	// rebindGuideURL verweist auf die Router-Anleitung zum DNS-Rebind-Schutz. Die
-	// Anleitung selbst entsteht in Phase 6; der Link zeigt vorerst auf die
-	// Projekt-Doku und wird dort finalisiert.
+	// rebindGuideURL verweist auf die Router-Anleitung zum DNS-Rebind-Schutz in
+	// der Projekt-Doku.
 	rebindGuideURL = "https://github.com/nicograef/jotti/blob/main/docs/betrieb/dns-rebind-schutz.md"
 )
 
@@ -61,13 +60,12 @@ func newStatusServer(cfg statusConfig) *statusServer {
 			greenURL = "https://" + hostname
 		}
 	}
-	lanIP := cfg.lanIP
 	return &statusServer{
 		greenURL:    greenURL,
 		fallbackURL: fallbackURL,
 		leStaging:   cfg.leStaging,
 		probeCert:   func() certState { return probeCert(caddyHTTPSAddr, hostname) },
-		checkRebind: func() bool { return checkRebind(hostname, lanIP, systemLookupIP) },
+		checkRebind: func() bool { return checkRebind(hostname, cfg.lanIP, systemLookupIP) },
 	}
 }
 

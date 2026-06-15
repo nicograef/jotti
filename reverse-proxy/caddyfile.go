@@ -3,7 +3,8 @@ package main
 import "fmt"
 
 // contentSecurityPolicy ist die CSP des lokalen Stacks — unverändert aus dem
-// früheren nginx-/Caddy-Setup übernommen (Parität).
+// früheren nginx-/Caddy-Setup übernommen (Parität). Muss identisch zur CSP in
+// nginx.conf und nginx.rocks.conf (demo) bleiben.
 const contentSecurityPolicy = "default-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self' blob:; media-src 'self'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests"
 
 // leStagingCA ist das ACME-Verzeichnis der Let's-Encrypt-Staging-Umgebung.
