@@ -176,6 +176,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/update-betreiber", sc.UpdateBetreiberHandler())
 	r.HandleFunc("/update-tse-konfiguration", sc.UpdateTSEKonfigurationHandler())
 	r.HandleFunc("/tse-einrichten", sc.RichteTSEEinHandler())
+	r.HandleFunc("/tse-uebernehmen", sc.UebernimmTSEHandler())
 
 	return r
 }

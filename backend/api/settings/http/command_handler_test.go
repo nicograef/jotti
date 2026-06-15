@@ -16,10 +16,12 @@ import (
 )
 
 type mockSettingsCommand struct {
-	tse         settings.TSEKonfiguration
-	err         error
-	einrichten  application.TSESetupErgebnis
-	einrichtErr error
+	tse          settings.TSEKonfiguration
+	err          error
+	einrichten   application.TSESetupErgebnis
+	einrichtErr  error
+	uebernehmen  application.TSESetupErgebnis
+	uebernehmErr error
 }
 
 func (m *mockSettingsCommand) UpdateBetreiber(_ context.Context, _ settings.Betreiber) error {
@@ -39,6 +41,13 @@ func (m *mockSettingsCommand) RichteTSEEin(_ context.Context, _ tse.SetupCredent
 		return application.TSESetupErgebnis{}, m.einrichtErr
 	}
 	return m.einrichten, nil
+}
+
+func (m *mockSettingsCommand) UebernimmTSE(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung, _, _ string) (application.TSESetupErgebnis, error) {
+	if m.uebernehmErr != nil {
+		return application.TSESetupErgebnis{}, m.uebernehmErr
+	}
+	return m.uebernehmen, nil
 }
 
 func TestUpdateTSEKonfigurationHandler_Success(t *testing.T) {
@@ -189,5 +198,69 @@ func TestRichteTSEEinHandler_BereitsEingerichtet(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "tse_bereits_eingerichtet") {
 		t.Fatalf("expected error code tse_bereits_eingerichtet, got %s", rec.Body.String())
+	}
+}
+
+// TestUebernimmTSEHandler_Success sichert, dass die Uebernahme die TSS-ID
+// entgegennimmt und das Ergebnis (inkl. ggf. neuer Geheimnisse) zurueckgibt.
+func TestUebernimmTSEHandler_Success(t *testing.T) {
+	mock := &mockSettingsCommand{uebernehmen: application.TSESetupErgebnis{
+		TssID:    "tss-halb",
+		ClientID: "client-neu",
+		PUK:      "puk-refetch",
+		AdminPIN: "1234567890",
+		Umgebung: "TEST",
+	}}
+	handler := &CommandHandler{Command: mock}
+
+	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST","tssId":"tss-halb"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-uebernehmen", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.UebernimmTSEHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "tss-halb") || !strings.Contains(rec.Body.String(), "puk-refetch") {
+		t.Fatalf("expected the takeover result in the response, got %s", rec.Body.String())
+	}
+}
+
+// TestUebernimmTSEHandler_FehlendeTssID sichert, dass die Uebernahme ohne TSS-ID
+// abgewiesen wird, ohne den Orchestrator aufzurufen.
+func TestUebernimmTSEHandler_FehlendeTssID(t *testing.T) {
+	handler := &CommandHandler{Command: &mockSettingsCommand{}}
+
+	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-uebernehmen", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.UebernimmTSEHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rec.Code)
+	}
+}
+
+// TestUebernimmTSEHandler_UnbekanntePIN sichert die Uebersetzung der
+// Sackgassen-Meldung in den verstaendlichen Fehlercode fuer die UI.
+func TestUebernimmTSEHandler_UnbekanntePIN(t *testing.T) {
+	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupPINUnbekannt}}
+
+	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST","tssId":"tss-init","pin":"0000000000"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-uebernehmen", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.UebernimmTSEHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "tse_setup_pin_unbekannt") {
+		t.Fatalf("expected error code tse_setup_pin_unbekannt, got %s", rec.Body.String())
 	}
 }

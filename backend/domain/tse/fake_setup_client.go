@@ -21,16 +21,19 @@ type FakeSetupClient struct {
 	ClientsByTSS     map[string][]ClientInfo
 	ClientsErr       error
 
-	CreateTSSResponse TSSErstellt
-	CreateTSSErr      error
-	PersonalisiereErr error
-	SetzeAdminPINErr  error
-	AuthAdminErr      error
-	InitialisiereErr  error
-	RegistriereErr    error
+	CreateTSSResponse    TSSErstellt
+	CreateTSSErr         error
+	HoleAdminPUKResponse string
+	HoleAdminPUKErr      error
+	PersonalisiereErr    error
+	SetzeAdminPINErr     error
+	AuthAdminErr         error
+	InitialisiereErr     error
+	RegistriereErr       error
 
 	// Aufzeichnung fuer Assertions.
 	CreateTSSCalls      int
+	HoleAdminPUKCalls   int
 	GesetzteAdminPIN    string
 	AuthentifiziertePIN string
 	RegistrierteClients []RegistrierterClient
@@ -58,6 +61,14 @@ func (f *FakeSetupClient) CreateTSS(context.Context) (TSSErstellt, error) {
 		return TSSErstellt{}, f.CreateTSSErr
 	}
 	return f.CreateTSSResponse, nil
+}
+
+func (f *FakeSetupClient) HoleAdminPUK(context.Context, string) (string, error) {
+	f.HoleAdminPUKCalls++
+	if f.HoleAdminPUKErr != nil {
+		return "", f.HoleAdminPUKErr
+	}
+	return f.HoleAdminPUKResponse, nil
 }
 
 func (f *FakeSetupClient) PersonalisiereTSS(context.Context, string) error {

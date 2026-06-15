@@ -169,10 +169,10 @@ Der Wizard kann eine im Befund gewählte vorhandene TSS übernehmen: Ein vorhand
 
 ### Acceptance criteria
 
-- [ ] Abbruch nach TSS-Anlage: Ein erneuter Wizard-Lauf vollendet die Einrichtung ohne zweite TSS (Unit-Tests je Zwischenzustand: CREATED, UNINITIALIZED, INITIALIZED ohne Client)
-- [ ] Übernahme einer TSS mit vorhandenem passendem Client registriert keinen neuen Client
-- [ ] PIN-Nachfrage: Übernahme einer initialisierten TSS funktioniert mit eingegebener PIN
-- [ ] Unbekannte PIN führt zu einer verständlichen Meldung mit Auswegen, nicht zu einem technischen Fehler
+- [x] Abbruch nach TSS-Anlage: Ein erneuter Wizard-Lauf vollendet die Einrichtung ohne zweite TSS (Unit-Tests je Zwischenzustand: CREATED, UNINITIALIZED, INITIALIZED ohne Client)
+- [x] Übernahme einer TSS mit vorhandenem passendem Client registriert keinen neuen Client
+- [x] PIN-Nachfrage: Übernahme einer initialisierten TSS funktioniert mit eingegebener PIN
+- [x] Unbekannte PIN führt zu einer verständlichen Meldung mit Auswegen, nicht zu einem technischen Fehler
 
 ---
 

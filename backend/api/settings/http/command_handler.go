@@ -16,6 +16,7 @@ type settingsCommand interface {
 	UpdateBetreiber(ctx context.Context, b settings.Betreiber) error
 	UpdateTSEKonfiguration(ctx context.Context, b settings.TSEKonfiguration) error
 	RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung) (application.TSESetupErgebnis, error)
+	UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, tssID, pin string) (application.TSESetupErgebnis, error)
 }
 
 type CommandHandler struct {
@@ -64,6 +65,24 @@ var tseEinrichtenSchema = z.Struct(z.Shape{
 	"ApiKey":    z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
 	"ApiSecret": z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
 	"Umgebung":  z.String().OneOf([]string{string(tse.UmgebungTest), string(tse.UmgebungLive)}, z.Message("Ungültige Umgebung")).Required(),
+})
+
+type tseUebernehmenRequest struct {
+	ApiKey    string `json:"apiKey"`
+	ApiSecret string `json:"apiSecret"`
+	Umgebung  string `json:"umgebung"`
+	TssID     string `json:"tssId"`
+	Pin       string `json:"pin"`
+}
+
+// Pin ist optional: bei der Uebernahme einer TSS im Zustand CREATED nicht noetig,
+// ab UNINITIALIZED traegt es die vom Admin verwahrte Admin-PIN.
+var tseUebernehmenSchema = z.Struct(z.Shape{
+	"ApiKey":    z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
+	"ApiSecret": z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
+	"Umgebung":  z.String().OneOf([]string{string(tse.UmgebungTest), string(tse.UmgebungLive)}, z.Message("Ungültige Umgebung")).Required(),
+	"TssID":     z.String().Min(1, z.Message("TSS-ID ist erforderlich")).Max(255, z.Message("TSS-ID darf höchstens 255 Zeichen lang sein")).Required(),
+	"Pin":       z.String().Max(50, z.Message("Admin-PIN darf höchstens 50 Zeichen lang sein")).Optional(),
 })
 
 // tseEinrichtenResponse uebergibt PUK und Admin-PIN genau einmal an die UI. Sie
@@ -139,6 +158,53 @@ func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 				helper.SendClientError(w, "tse_setup_umgebung_abweichung", nil)
 			case errors.Is(err, application.ErrTSEBereitsEingerichtet):
 				helper.SendClientError(w, "tse_bereits_eingerichtet", nil)
+			case errors.Is(err, application.ErrTSEEinrichtung),
+				errors.Is(err, application.ErrTSEVerbindungFehlgeschlagen):
+				helper.SendClientError(w, "tse_einrichtung_fehlgeschlagen", nil)
+			default:
+				helper.SendServerError(w)
+			}
+			return
+		}
+
+		helper.SendResponse(w, tseEinrichtenResponse{
+			TssID:    ergebnis.TssID,
+			ClientID: ergebnis.ClientID,
+			Puk:      ergebnis.PUK,
+			AdminPin: ergebnis.AdminPIN,
+			Umgebung: ergebnis.Umgebung,
+		})
+	}
+}
+
+func (h *CommandHandler) UebernimmTSEHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body tseUebernehmenRequest
+		if !helper.ReadAndValidateBody(w, r, &body, tseUebernehmenSchema) {
+			return
+		}
+
+		ergebnis, err := h.Command.UebernimmTSE(
+			r.Context(),
+			tse.SetupCredentials{ApiKey: body.ApiKey, ApiSecret: body.ApiSecret},
+			tse.Umgebung(body.Umgebung),
+			body.TssID,
+			body.Pin,
+		)
+		if err != nil {
+			switch {
+			case errors.Is(err, application.ErrTSESetupZugangsdaten):
+				helper.SendClientError(w, "tse_setup_zugangsdaten_ungueltig", nil)
+			case errors.Is(err, application.ErrTSESetupUmgebungAbweichung):
+				helper.SendClientError(w, "tse_setup_umgebung_abweichung", nil)
+			case errors.Is(err, application.ErrTSESetupTSSNichtGefunden):
+				helper.SendClientError(w, "tse_setup_tss_nicht_gefunden", nil)
+			case errors.Is(err, application.ErrTSESetupPINErforderlich):
+				helper.SendClientError(w, "tse_setup_pin_erforderlich", nil)
+			case errors.Is(err, application.ErrTSESetupPINUnbekannt):
+				helper.SendClientError(w, "tse_setup_pin_unbekannt", nil)
+			case errors.Is(err, application.ErrTSESetupUebernahmeNichtMoeglich):
+				helper.SendClientError(w, "tse_setup_uebernahme_nicht_moeglich", nil)
 			case errors.Is(err, application.ErrTSEEinrichtung),
 				errors.Is(err, application.ErrTSEVerbindungFehlgeschlagen):
 				helper.SendClientError(w, "tse_einrichtung_fehlgeschlagen", nil)

@@ -60,6 +60,11 @@ type createTSSResponse struct {
 	State    string `json:"state"`
 }
 
+type tssDetailResponse struct {
+	AdminPUK string `json:"admin_puk"`
+	State    string `json:"state"`
+}
+
 type tssStateRequest struct {
 	State string `json:"state"`
 }
@@ -140,6 +145,21 @@ func (c *FiskalyTSESetupClient) CreateTSS(ctx context.Context) (tse.TSSErstellt,
 		PUK:   strings.TrimSpace(resp.AdminPUK),
 		State: strings.TrimSpace(resp.State),
 	}, nil
+}
+
+// HoleAdminPUK liest den Admin-PUK einer TSS erneut aus der TSS-Ressource.
+// fiskaly liefert ihn dort nur, solange die TSS im Zustand CREATED ist.
+func (c *FiskalyTSESetupClient) HoleAdminPUK(ctx context.Context, tssID string) (string, error) {
+	tssID = strings.TrimSpace(tssID)
+	if tssID == "" {
+		return "", fmt.Errorf("tss id is required")
+	}
+	resp := tssDetailResponse{}
+	path := fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(tssID))
+	if err := c.doJSONRequest(ctx, http.MethodGet, path, nil, nil, true, &resp); err != nil {
+		return "", mapSetupError(err)
+	}
+	return strings.TrimSpace(resp.AdminPUK), nil
 }
 
 // PersonalisiereTSS ueberfuehrt die TSS von CREATED nach UNINITIALIZED.

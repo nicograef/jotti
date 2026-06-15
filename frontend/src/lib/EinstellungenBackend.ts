@@ -86,6 +86,33 @@ export const TSEEinrichtenSchema = z.object({
 })
 export type TSEEinrichten = z.infer<typeof TSEEinrichtenSchema>
 
+// Übernahme einer vorhandenen TSS: tssId wählt die TSS aus dem Befund. pin trägt
+// ab Zustand UNINITIALIZED die vom Admin verwahrte Admin-PIN; bei CREATED bleibt
+// es leer (jotti bezieht PUK und PIN selbst).
+export const TSEUebernehmenSchema = z.object({
+  apiKey: z
+    .string()
+    .trim()
+    .min(1, 'API-Key ist erforderlich')
+    .max(500, 'API-Key darf höchstens 500 Zeichen lang sein'),
+  apiSecret: z
+    .string()
+    .trim()
+    .min(1, 'API-Secret ist erforderlich')
+    .max(500, 'API-Secret darf höchstens 500 Zeichen lang sein'),
+  umgebung: z.enum(['TEST', 'LIVE']),
+  tssId: z
+    .string()
+    .trim()
+    .min(1, 'TSS-ID ist erforderlich')
+    .max(255, 'TSS-ID darf höchstens 255 Zeichen lang sein'),
+  pin: z
+    .string()
+    .trim()
+    .max(50, 'Admin-PIN darf höchstens 50 Zeichen lang sein'),
+})
+export type TSEUebernehmen = z.infer<typeof TSEUebernehmenSchema>
+
 // PUK und Admin-PIN kommen genau einmal mit der Antwort und werden nie
 // gespeichert. Sie werden dem Admin einmalig zur externen Verwahrung gezeigt.
 export const TSEEinrichtenErgebnisSchema = z.object({
@@ -221,6 +248,17 @@ export class EinstellungenBackend {
     const body = TSEEinrichtenSchema.parse(eingabe)
     return this.backend.post(
       'admin/tse-einrichten',
+      body,
+      TSEEinrichtenErgebnisSchema,
+    )
+  }
+
+  public async uebernimmTSE(
+    eingabe: TSEUebernehmen,
+  ): Promise<TSEEinrichtenErgebnis> {
+    const body = TSEUebernehmenSchema.parse(eingabe)
+    return this.backend.post(
+      'admin/tse-uebernehmen',
       body,
       TSEEinrichtenErgebnisSchema,
     )

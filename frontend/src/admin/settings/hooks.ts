@@ -13,6 +13,7 @@ import {
   type TSEKonfigurationSpeichern,
   type TSESetupBefund,
   type TSESetupZugangsdaten,
+  type TSEUebernehmen,
   type TSEVerbindungStatus,
 } from '@/lib/EinstellungenBackend'
 
@@ -138,7 +139,16 @@ export function useTSEEinrichtung() {
     return ergebnis
   }
 
-  return { richteTSEEin }
+  const uebernimmTSE = async (
+    eingabe: TSEUebernehmen,
+  ): Promise<TSEEinrichtenErgebnis> => {
+    const ergebnis = await einstellungenBackend.uebernimmTSE(eingabe)
+    await queryClient.invalidateQueries({ queryKey: ['tse-konfiguration'] })
+    await queryClient.invalidateQueries({ queryKey: ['tse-status'] })
+    return ergebnis
+  }
+
+  return { richteTSEEin, uebernimmTSE }
 }
 
 export function useTSENachsignierAuftraege() {

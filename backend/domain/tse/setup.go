@@ -64,6 +64,11 @@ type SetupClient interface {
 	// CreateTSS legt eine neue TSS an (Zustand CREATED) und liefert deren
 	// einmaligen Admin-PUK zurueck.
 	CreateTSS(ctx context.Context) (TSSErstellt, error)
+	// HoleAdminPUK liest den Admin-PUK einer TSS erneut aus. fiskaly liefert ihn
+	// nur, solange die TSS im Zustand CREATED ist (Admin-PIN noch nicht gesetzt);
+	// danach ist er nicht mehr abrufbar. Dient der Wiederaufnahme nach einem
+	// Abbruch im Zustand CREATED ohne erneute Nutzereingabe.
+	HoleAdminPUK(ctx context.Context, tssID string) (string, error)
 	// PersonalisiereTSS ueberfuehrt die TSS von CREATED nach UNINITIALIZED.
 	PersonalisiereTSS(ctx context.Context, tssID string) error
 	// SetzeAdminPIN setzt mit dem PUK die Admin-PIN der TSS.

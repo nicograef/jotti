@@ -54,6 +54,10 @@ func TestFiskalySetupClient_OnlyAuthAndReads(t *testing.T) {
 					{"_id": "client-1", "serial_number": "kasse-serial-1", "state": "REGISTERED"},
 				},
 			})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v2/tss/tss-2":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"_id": "tss-2", "state": "CREATED", "admin_puk": "puk-refetch",
+			})
 		default:
 			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -86,6 +90,14 @@ func TestFiskalySetupClient_OnlyAuthAndReads(t *testing.T) {
 	}
 	if len(clients) != 1 || clients[0].ID != "client-1" || clients[0].SerialNumber != "kasse-serial-1" || clients[0].State != "REGISTERED" {
 		t.Fatalf("unexpected client list: %+v", clients)
+	}
+
+	puk, err := client.HoleAdminPUK(context.Background(), "tss-2")
+	if err != nil {
+		t.Fatalf("hole admin puk failed: %v", err)
+	}
+	if puk != "puk-refetch" {
+		t.Fatalf("expected refetched puk, got %q", puk)
 	}
 
 	mu.Lock()
