@@ -282,7 +282,9 @@ export function LiveReportingSection({
                 >
                   <ItemContent>
                     <ItemTitle>
-                      {s.quelle === 'direktverkauf' ? 'Direktverkauf' : s.tischName}{' '}
+                      {s.quelle === 'direktverkauf'
+                        ? 'Direktverkauf'
+                        : s.tischName}{' '}
                       · {s.userName}
                     </ItemTitle>
                     <p className="text-xs text-muted-foreground">

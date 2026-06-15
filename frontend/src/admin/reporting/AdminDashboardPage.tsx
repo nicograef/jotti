@@ -33,7 +33,8 @@ export function AdminDashboardPage() {
             {showTSEWarning && <span>Die TSE ist nicht konfiguriert. </span>}
             {showNachsignierWarning && (
               <span>
-                {offeneNachsignierungen} Vorgänge warten auf Nachsignierung.{' '}
+                {offeneNachsignierungen} Vorgänge warten auf
+                Nachsignierung.{' '}
               </span>
             )}
             Mehr dazu unter{' '}
