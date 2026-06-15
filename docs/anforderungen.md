@@ -235,22 +235,6 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 
 ---
 
-#### F-03 · Belegausgabepflicht
-
-> **Prio:** Must-have (umgesetzt)
-
-Bei jedem Kassiervorgang muss dem Gast ein Kassenbeleg angeboten werden (§ 146a Abs. 2 AO, § 6 KassenSichV). jotti druckt den Kassenbeleg auf Anforderung durch den Service; am Fest greift in der Regel die Belegausgabe-Befreiung (Voraussetzungen → [compliance.md §5.1](compliance.md)), der Beleg muss aber jederzeit erstellbar sein. Der Kassenbeleg ist strikt vom automatischen, nicht-fiskalischen Arbeitsbon (K-12) zu trennen: Letzterer ist eine Arbeitsanweisung ohne Preise und kein Beleg. Der Kassenbeleg kann in Papierform (Bondrucker) oder (mit Zustimmung des Gastes) digital (F-09) ausgegeben werden. Seit der TSE-Integration (F-02) enthält er TSE-Pflichtfelder, sofern eine TSE konfiguriert ist.
-
-**Akzeptanzkriterien:**
-
-- [x] Service kann pro Kassiervorgang auf Anforderung einen Kassenbeleg drucken (kein automatischer Druck nach jeder Zahlung)
-- [x] Basis-Beleg enthält: Vereinsname + Adresse (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, alle Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer
-- [x] Fehlender Kassenbeleg-Drucker erzeugt eine klare Fehlermeldung (kein stilles Scheitern)
-- [x] Mit F-07: Beleg weist Nettobetrag, Steuersatz und Steuerbetrag pro Position aus
-- [x] Mit F-02 (TSE): Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
-
----
-
 #### F-05 · ELSTER-Meldepflicht
 
 > **Prio:** Must-have (manuelle Anleitung), Nice-to-have (programmatisch)
@@ -275,27 +259,9 @@ Der `ABRECHNUNGSKREIS` im Sinne der DSFinV-K ist pro Tisch und Kassensitzung: Je
 **Akzeptanzkriterien:**
 
 - [x] Jede Tisch-Session bildet einen `ABRECHNUNGSKREIS` im DSFinV-K-Sinne
-- [ ] Beim Tagesabschluss (K-22) wird die Kassensitzung geschlossen; alle zugehörigen Tisch-Sessions sind damit abgeschlossen
+- [x] Beim Tagesabschluss (K-22) wird die Kassensitzung geschlossen; alle zugehörigen Tisch-Sessions sind damit abgeschlossen
 - [ ] Alle TSE-Transaktionen sind einem `ABRECHNUNGSKREIS` zugeordnet
 - [ ] Im DSFinV-K-Export ist der `ABRECHNUNGSKREIS` korrekt ausgewiesen
-
----
-
-#### F-02 · TSE-Integration
-
-> **Prio:** Should-have (umgesetzt)
-
-Das Backend spricht die zertifizierte Cloud-TSE (primär: fiskaly) über das anbieter-agnostische `TSEClient`-Interface an. Die TSE-Zugangsdaten werden über UI in der Datenbank gespeichert. TSE-Transaktionen sind in alle Buchungsflüsse eingehängt; der Beleg gibt die TSE-Felder aus. Fehlgeschlagene Signaturen werden über eine Nachsignier-Outbox nachgeholt.
-
-**Akzeptanzkriterien:**
-
-- [x] Interface `TSEClient` mit Methoden `StartTransaction` und `FinishTransaction` ist definiert (atomares Muster; `UpdateTransaction` wird nicht benötigt)
-- [x] Eine fiskaly-Implementierung des Interfaces (`FiskalyTSEClient`) ist vorhanden
-- [x] Bei fehlender TSE-Konfiguration bleibt TSE optional; im Admin-Dashboard erscheint ein deutlicher Hinweis + Warnung (nur Test/Demo/Übung)
-- [x] TSE-Transaktion bei Bestellung, Zahlung, Stornierung, Auszahlung, Geldtransit (Kassenbewegungen), Kassendifferenz, Direktverkauf und Tagesabschluss (vollständiges Mapping → [handbuch.md §3.13](handbuch.md))
-- [x] Event-Daten um TSE-Felder erweitert (Signatur, Transaktionsnummer, Signaturzähler, TSE-Seriennummer)
-- [x] Beleg enthält TSE-Pflichtfelder (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Zeitpunkt)
-- [x] QR-Code auf Beleg (DSFinV-K Anhang I)
 
 ---
 
