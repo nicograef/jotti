@@ -10,10 +10,12 @@ import (
 type settingsCommandRepo interface {
 	UpsertBetreiber(ctx context.Context, b settings.Betreiber) error
 	UpsertTSEKonfiguration(ctx context.Context, b settings.TSEKonfiguration) error
+	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
 }
 
 type Command struct {
-	SettingsRepo settingsCommandRepo
+	SettingsRepo      settingsCommandRepo
+	NewTSESetupClient NewTSESetupClient
 }
 
 func (c Command) UpdateBetreiber(ctx context.Context, b settings.Betreiber) error {

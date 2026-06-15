@@ -65,7 +65,7 @@ func TestPruefeTSESetup_ErkenntPassendenClient(t *testing.T) {
 		SettingsRepo: stubSettingsRepo{
 			identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer},
 		},
-		NewTSESetupClient: setupClientLiefert(tse.FakeSetupClient{
+		NewTSESetupClient: setupClientLiefert(&tse.FakeSetupClient{
 			UmgebungResponse: tse.UmgebungTest,
 			TSSResponse: []tse.TSSInfo{
 				{ID: "tss-1", State: "INITIALIZED"},
@@ -108,7 +108,7 @@ func TestPruefeTSESetup_ErkenntPassendenClient(t *testing.T) {
 func TestPruefeTSESetup_FalscheZugangsdaten(t *testing.T) {
 	q := Query{
 		SettingsRepo: stubSettingsRepo{},
-		NewTSESetupClient: setupClientLiefert(tse.FakeSetupClient{
+		NewTSESetupClient: setupClientLiefert(&tse.FakeSetupClient{
 			TSSErr: tse.ErrSetupAuthFehlgeschlagen,
 		}),
 	}
@@ -124,7 +124,7 @@ func TestPruefeTSESetup_FalscheZugangsdaten(t *testing.T) {
 func TestPruefeTSESetup_LeeresKonto(t *testing.T) {
 	q := Query{
 		SettingsRepo: stubSettingsRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}},
-		NewTSESetupClient: setupClientLiefert(tse.FakeSetupClient{
+		NewTSESetupClient: setupClientLiefert(&tse.FakeSetupClient{
 			UmgebungResponse: tse.UmgebungLive,
 		}),
 	}

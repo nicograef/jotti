@@ -71,6 +71,32 @@ export const TSESetupZugangsdatenSchema = z.object({
 })
 export type TSESetupZugangsdaten = z.infer<typeof TSESetupZugangsdatenSchema>
 
+export const TSEEinrichtenSchema = z.object({
+  apiKey: z
+    .string()
+    .trim()
+    .min(1, 'API-Key ist erforderlich')
+    .max(500, 'API-Key darf höchstens 500 Zeichen lang sein'),
+  apiSecret: z
+    .string()
+    .trim()
+    .min(1, 'API-Secret ist erforderlich')
+    .max(500, 'API-Secret darf höchstens 500 Zeichen lang sein'),
+  umgebung: z.enum(['TEST', 'LIVE']),
+})
+export type TSEEinrichten = z.infer<typeof TSEEinrichtenSchema>
+
+// PUK und Admin-PIN kommen genau einmal mit der Antwort und werden nie
+// gespeichert. Sie werden dem Admin einmalig zur externen Verwahrung gezeigt.
+export const TSEEinrichtenErgebnisSchema = z.object({
+  tssId: z.string(),
+  clientId: z.string(),
+  puk: z.string(),
+  adminPin: z.string(),
+  umgebung: z.enum(['TEST', 'LIVE']),
+})
+export type TSEEinrichtenErgebnis = z.infer<typeof TSEEinrichtenErgebnisSchema>
+
 export const TSEStatusSchema = z.object({
   umgebung: z.string(),
   offeneNachsignierungen: z
@@ -186,6 +212,17 @@ export class EinstellungenBackend {
       'admin/tse-setup-pruefen',
       body,
       TSESetupBefundSchema,
+    )
+  }
+
+  public async richteTSEEin(
+    eingabe: TSEEinrichten,
+  ): Promise<TSEEinrichtenErgebnis> {
+    const body = TSEEinrichtenSchema.parse(eingabe)
+    return this.backend.post(
+      'admin/tse-einrichten',
+      body,
+      TSEEinrichtenErgebnisSchema,
     )
   }
 

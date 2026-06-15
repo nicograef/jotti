@@ -146,11 +146,11 @@ Restliche Setup-Operationen (TSS idempotent anlegen, PUK beziehen, zufällige Ad
 
 ### Acceptance criteria
 
-- [ ] Aus einem leeren fiskaly-TEST-Konto entsteht eine signierfähige TSS samt Client mit Kassen-Seriennummer (env-gated Integrationstest; anschließend signiert ein Direktverkauf in der Dev-Umgebung)
-- [ ] PUK und PIN erscheinen genau einmal in der Antwort und werden weder persistiert noch geloggt
-- [ ] LIVE-Anlage erfordert die Tipp-Bestätigung; Abweichung zwischen bestätigter und tatsächlicher Umgebung bricht ab (Unit-Tests)
-- [ ] Bei vorhandener aktiver TSS wird keine neue angelegt (Unit-Test)
-- [ ] Die Konfiguration wird erst nach erfolgreichem Abschluss gespeichert; ein Abbruch hinterlässt keine halbe Konfiguration in der DB
+- [ ] Aus einem leeren fiskaly-TEST-Konto entsteht eine signierfähige TSS samt Client mit Kassen-Seriennummer (env-gated Integrationstest; anschließend signiert ein Direktverkauf in der Dev-Umgebung) — Test geschrieben (`fiskaly_setup_live_test.go`), Live-Lauf + Dev-Verifikation noch offen
+- [x] PUK und PIN erscheinen genau einmal in der Antwort und werden weder persistiert noch geloggt
+- [x] LIVE-Anlage erfordert die Tipp-Bestätigung; Abweichung zwischen bestätigter und tatsächlicher Umgebung bricht ab (Unit-Tests)
+- [x] Bei vorhandener aktiver TSS wird keine neue angelegt (Unit-Test)
+- [x] Die Konfiguration wird erst nach erfolgreichem Abschluss gespeichert; ein Abbruch hinterlässt keine halbe Konfiguration in der DB
 
 ---
 

@@ -4,17 +4,22 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/nicograef/jotti/backend/api/settings/application"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 type mockSettingsCommand struct {
-	tse settings.TSEKonfiguration
-	err error
+	tse         settings.TSEKonfiguration
+	err         error
+	einrichten  application.TSESetupErgebnis
+	einrichtErr error
 }
 
 func (m *mockSettingsCommand) UpdateBetreiber(_ context.Context, _ settings.Betreiber) error {
@@ -27,6 +32,13 @@ func (m *mockSettingsCommand) UpdateTSEKonfiguration(_ context.Context, b settin
 	}
 	m.tse = b
 	return nil
+}
+
+func (m *mockSettingsCommand) RichteTSEEin(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung) (application.TSESetupErgebnis, error) {
+	if m.einrichtErr != nil {
+		return application.TSESetupErgebnis{}, m.einrichtErr
+	}
+	return m.einrichten, nil
 }
 
 func TestUpdateTSEKonfigurationHandler_Success(t *testing.T) {
@@ -100,5 +112,82 @@ func TestUpdateTSEKonfigurationHandler_PartialValuesRejected(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", rec.Code)
+	}
+}
+
+// TestRichteTSEEinHandler_Success sichert, dass PUK und Admin-PIN genau einmal
+// in der Antwort an die UI erscheinen.
+func TestRichteTSEEinHandler_Success(t *testing.T) {
+	mock := &mockSettingsCommand{einrichten: application.TSESetupErgebnis{
+		TssID:    "tss-neu",
+		ClientID: "kasse-serial",
+		PUK:      "puk-xyz",
+		AdminPIN: "1234567890",
+		Umgebung: "TEST",
+	}}
+	handler := &CommandHandler{Command: mock}
+
+	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-einrichten", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.RichteTSEEinHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		TssID    string `json:"tssId"`
+		ClientID string `json:"clientId"`
+		Puk      string `json:"puk"`
+		AdminPin string `json:"adminPin"`
+		Umgebung string `json:"umgebung"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp.Puk != "puk-xyz" || resp.AdminPin != "1234567890" {
+		t.Fatalf("expected puk and admin pin in response, got %+v", resp)
+	}
+	if resp.TssID != "tss-neu" || resp.ClientID != "kasse-serial" || resp.Umgebung != "TEST" {
+		t.Fatalf("unexpected response fields: %+v", resp)
+	}
+}
+
+// TestRichteTSEEinHandler_InvalidUmgebung sichert, dass eine ungültige Umgebung
+// abgewiesen wird, ohne den Orchestrator aufzurufen.
+func TestRichteTSEEinHandler_InvalidUmgebung(t *testing.T) {
+	handler := &CommandHandler{Command: &mockSettingsCommand{}}
+
+	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"STAGING"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-einrichten", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.RichteTSEEinHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rec.Code)
+	}
+}
+
+// TestRichteTSEEinHandler_BereitsEingerichtet sichert die Übersetzung des
+// Sentinels in den verständlichen Fehlercode für die UI.
+func TestRichteTSEEinHandler_BereitsEingerichtet(t *testing.T) {
+	handler := &CommandHandler{Command: &mockSettingsCommand{einrichtErr: application.ErrTSEBereitsEingerichtet}}
+
+	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-einrichten", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.RichteTSEEinHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "tse_bereits_eingerichtet") {
+		t.Fatalf("expected error code tse_bereits_eingerichtet, got %s", rec.Body.String())
 	}
 }

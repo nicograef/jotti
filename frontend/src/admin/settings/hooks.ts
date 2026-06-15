@@ -8,6 +8,8 @@ import {
 import {
   type Betreiber,
   EinstellungenBackend,
+  type TSEEinrichten,
+  type TSEEinrichtenErgebnis,
   type TSEKonfigurationSpeichern,
   type TSESetupBefund,
   type TSESetupZugangsdaten,
@@ -121,6 +123,22 @@ export function pruefeTSESetup(
   zugangsdaten: TSESetupZugangsdaten,
 ): Promise<TSESetupBefund> {
   return einstellungenBackend.pruefeTSESetup(zugangsdaten)
+}
+
+export function useTSEEinrichtung() {
+  const queryClient = useQueryClient()
+
+  const richteTSEEin = async (
+    eingabe: TSEEinrichten,
+  ): Promise<TSEEinrichtenErgebnis> => {
+    const ergebnis = await einstellungenBackend.richteTSEEin(eingabe)
+    // Die Konfiguration ist jetzt gespeichert — abhängige Ansichten neu laden.
+    await queryClient.invalidateQueries({ queryKey: ['tse-konfiguration'] })
+    await queryClient.invalidateQueries({ queryKey: ['tse-status'] })
+    return ergebnis
+  }
+
+  return { richteTSEEin }
 }
 
 export function useTSENachsignierAuftraege() {

@@ -10,17 +10,34 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import type { TSESetupBefund, TSSBefund } from '@/lib/EinstellungenBackend'
+import type {
+  TSEEinrichtenErgebnis,
+  TSESetupBefund,
+  TSEVerbindungStatus,
+  TSSBefund,
+} from '@/lib/EinstellungenBackend'
 
-import { pruefeTSESetup } from '../settings/hooks'
+import {
+  pruefeTSESetup,
+  useTSEEinrichtung,
+  useTSEKonfiguration,
+} from '../settings/hooks'
+
+type Umgebung = 'TEST' | 'LIVE'
+
+function hatAktiveTSS(tssListe: TSSBefund[]): boolean {
+  return tssListe.some((tss) => tss.state.toUpperCase() !== 'DISABLED')
+}
 
 export function TSEEinrichtungWizard() {
   const [apiKey, setApiKey] = useState('')
   const [apiSecret, setApiSecret] = useState('')
   const [befund, setBefund] = useState<TSESetupBefund | null>(null)
+  const [ergebnis, setErgebnis] = useState<TSEEinrichtenErgebnis | null>(null)
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'TSE prüfen',
@@ -38,23 +55,33 @@ export function TSEEinrichtungWizard() {
     })
   }
 
+  const zuruckZuZugangsdaten = () => {
+    setBefund(null)
+    setErgebnis(null)
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Geführte Einrichtung</CardTitle>
         <CardDescription>
-          jotti prüft dein fiskaly-Konto und bereitet die TSE-Einrichtung vor.
-          Du brauchst nur den API-Key und das API-Secret aus dem
-          fiskaly-Dashboard.
+          jotti prüft dein fiskaly-Konto und richtet die TSE für dich ein. Du
+          brauchst nur den API-Key und das API-Secret aus dem fiskaly-Dashboard.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {befund ? (
+        {ergebnis ? (
+          <ErgebnisSchritt
+            ergebnis={ergebnis}
+            onFertig={zuruckZuZugangsdaten}
+          />
+        ) : befund ? (
           <BefundSchritt
+            apiKey={apiKey}
+            apiSecret={apiSecret}
             befund={befund}
-            onZuruck={() => {
-              setBefund(null)
-            }}
+            onEingerichtet={setErgebnis}
+            onZuruck={zuruckZuZugangsdaten}
           />
         ) : (
           <ZugangsdatenSchritt
@@ -128,16 +155,41 @@ function ZugangsdatenSchritt({
 }
 
 function BefundSchritt({
+  apiKey,
+  apiSecret,
   befund,
+  onEingerichtet,
   onZuruck,
 }: {
+  apiKey: string
+  apiSecret: string
   befund: TSESetupBefund
+  onEingerichtet: (ergebnis: TSEEinrichtenErgebnis) => void
   onZuruck: () => void
 }) {
+  const kontoBelegt = hatAktiveTSS(befund.vorhandeneTss)
+
   return (
     <div className="grid gap-4">
       <UmgebungAnzeige umgebung={befund.umgebung} />
       <TSSListe tssListe={befund.vorhandeneTss} />
+      {kontoBelegt ? (
+        <Alert>
+          <AlertTitle>Es ist bereits eine TSS vorhanden</AlertTitle>
+          <AlertDescription>
+            Die automatische Übernahme einer vorhandenen TSS folgt in einem
+            späteren Schritt. Bitte nutze vorerst die manuelle Einrichtung
+            unten.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <BestaetigungSchritt
+          apiKey={apiKey}
+          apiSecret={apiSecret}
+          umgebung={befund.umgebung}
+          onEingerichtet={onEingerichtet}
+        />
+      )}
       <Button variant="outline" className="w-fit" onClick={onZuruck}>
         Andere Zugangsdaten
       </Button>
@@ -145,7 +197,204 @@ function BefundSchritt({
   )
 }
 
-function UmgebungAnzeige({ umgebung }: { umgebung: 'TEST' | 'LIVE' }) {
+function BestaetigungSchritt({
+  apiKey,
+  apiSecret,
+  umgebung,
+  onEingerichtet,
+}: {
+  apiKey: string
+  apiSecret: string
+  umgebung: Umgebung
+  onEingerichtet: (ergebnis: TSEEinrichtenErgebnis) => void
+}) {
+  const [tippBestaetigung, setTippBestaetigung] = useState('')
+  const { richteTSEEin } = useTSEEinrichtung()
+
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'TSE einrichten',
+    byCode: {
+      tse_setup_zugangsdaten_ungueltig:
+        'API-Key oder API-Secret ist ungültig. Bitte Zugangsdaten prüfen.',
+      tse_setup_umgebung_abweichung:
+        'Die Umgebung der Zugangsdaten hat sich geändert. Bitte das Konto erneut prüfen.',
+      tse_bereits_eingerichtet:
+        'In diesem Konto existiert bereits eine TSS. Es wird keine neue angelegt.',
+      tse_einrichtung_fehlgeschlagen:
+        'Die Einrichtung ist fehlgeschlagen. Bitte später erneut versuchen.',
+    },
+  })
+
+  const istLive = umgebung === 'LIVE'
+  const tippFehlt = istLive && tippBestaetigung.trim().toUpperCase() !== 'LIVE'
+
+  const handleEinrichten = async () => {
+    await run(async () => {
+      onEingerichtet(await richteTSEEin({ apiKey, apiSecret, umgebung }))
+    })
+  }
+
+  return (
+    <div className="grid gap-4 rounded-md border p-4">
+      <div className="grid gap-1.5">
+        <p className="text-sm font-medium">Einrichtung starten</p>
+        <p className="text-sm text-muted-foreground">
+          jotti legt jetzt eine neue TSS an, initialisiert sie und registriert
+          diese Kasse als Client. Du erhältst danach einmalig den Admin-PUK und
+          die Admin-PIN zur Verwahrung.
+        </p>
+      </div>
+
+      {istLive && (
+        <div className="grid gap-1.5">
+          <Label htmlFor="liveBestaetigung">
+            Zur Bestätigung „LIVE“ eingeben
+          </Label>
+          <Input
+            id="liveBestaetigung"
+            value={tippBestaetigung}
+            onChange={(event) => {
+              setTippBestaetigung(event.target.value)
+            }}
+            placeholder="LIVE"
+            autoComplete="off"
+          />
+          <p className="text-xs text-muted-foreground">
+            Die Anlage in der LIVE-Umgebung verursacht Kosten und lässt sich
+            nicht rückgängig machen.
+          </p>
+        </div>
+      )}
+
+      <Button
+        className="w-fit"
+        variant={istLive ? 'destructive' : 'default'}
+        onClick={() => void handleEinrichten()}
+        disabled={loading || tippFehlt}
+      >
+        {loading ? 'Richte ein…' : 'TSE einrichten'}
+      </Button>
+    </div>
+  )
+}
+
+function ErgebnisSchritt({
+  ergebnis,
+  onFertig,
+}: {
+  ergebnis: TSEEinrichtenErgebnis
+  onFertig: () => void
+}) {
+  const [verwahrt, setVerwahrt] = useState(false)
+  const [status, setStatus] = useState<TSEVerbindungStatus | null>(null)
+  const { testTSEVerbindung } = useTSEKonfiguration()
+
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Verbindung testen',
+    byCode: {
+      tse_nicht_konfiguriert:
+        'Die TSE ist nicht konfiguriert. Bitte die Einrichtung erneut starten.',
+      tse_verbindung_fehlgeschlagen:
+        'Verbindung zur TSE fehlgeschlagen. Bitte später erneut testen.',
+    },
+  })
+
+  const handleAbschluss = async () => {
+    await run(async () => {
+      setStatus(await testTSEVerbindung())
+    })
+  }
+
+  return (
+    <div className="grid gap-4">
+      <Alert>
+        <AlertTitle>TSE erfolgreich eingerichtet</AlertTitle>
+        <AlertDescription>
+          Notiere PUK und PIN jetzt und verwahre sie sicher außerhalb von jotti.
+          Sie werden nicht gespeichert und können nicht erneut angezeigt werden.
+        </AlertDescription>
+      </Alert>
+
+      <div className="grid gap-3 rounded-md border p-4">
+        <Geheimnis label="Admin-PUK" wert={ergebnis.puk} />
+        <Geheimnis label="Admin-PIN" wert={ergebnis.adminPin} />
+      </div>
+
+      <label className="flex items-start gap-2 text-sm">
+        <Checkbox
+          checked={verwahrt}
+          onCheckedChange={(checked) => {
+            setVerwahrt(checked === true)
+          }}
+          className="mt-0.5"
+        />
+        <span>Ich habe Admin-PUK und Admin-PIN sicher verwahrt.</span>
+      </label>
+
+      {status ? (
+        <AbschlussTest status={status} />
+      ) : (
+        <Button
+          className="w-fit"
+          onClick={() => void handleAbschluss()}
+          disabled={!verwahrt || loading}
+        >
+          {loading ? 'Teste Verbindung…' : 'Verbindung testen & abschließen'}
+        </Button>
+      )}
+
+      {status && (
+        <Button variant="outline" className="w-fit" onClick={onFertig}>
+          Fertig
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function AbschlussTest({ status }: { status: TSEVerbindungStatus }) {
+  const inOrdnung =
+    status.tssState.toUpperCase() === 'INITIALIZED' &&
+    status.clientState.toUpperCase() === 'REGISTERED' &&
+    status.seriennummerKorrekt
+
+  if (inOrdnung) {
+    return (
+      <Alert>
+        <AlertTitle>Verbindung bestätigt</AlertTitle>
+        <AlertDescription>
+          Die TSE ist einsatzbereit (Umgebung {status.umgebung}, TSS{' '}
+          {status.tssState}, Client {status.clientState}).
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>Verbindung mit Auffälligkeiten</AlertTitle>
+      <AlertDescription>
+        Umgebung {status.umgebung}, TSS {status.tssState}, Client{' '}
+        {status.clientState}, Seriennummern-Abgleich{' '}
+        {status.seriennummerKorrekt ? 'korrekt' : 'abweichend'}. Bitte die
+        Einrichtung unten prüfen.
+      </AlertDescription>
+    </Alert>
+  )
+}
+
+function Geheimnis({ label, wert }: { label: string; wert: string }) {
+  return (
+    <div className="grid gap-0.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="font-mono text-base font-semibold break-all select-all">
+        {wert}
+      </span>
+    </div>
+  )
+}
+
+function UmgebungAnzeige({ umgebung }: { umgebung: Umgebung }) {
   if (umgebung === 'LIVE') {
     return (
       <Alert variant="destructive">

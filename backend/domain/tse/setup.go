@@ -41,12 +41,39 @@ type ClientInfo struct {
 	State        string
 }
 
-// SetupClient kapselt die fiskaly-Operationen der gefuehrten TSE-Einrichtung.
-// Phase 3 nutzt nur die lesenden Operationen; die schreibenden Lebenszyklus-
-// Operationen (TSS anlegen, initialisieren, Client registrieren) kommen spaeter
-// dazu. ListTSS liefert die Umgebung aus der fiskaly-Antwort mit, damit der
-// Befund TEST/LIVE auch bei leerem Konto anzeigen kann.
+// TSSErstellt ist das Ergebnis der TSS-Neuanlage: die ID der frisch erzeugten
+// TSS, ihr Zustand (CREATED) und der einmalig von fiskaly gelieferte Admin-PUK.
+// Der PUK wird nie persistiert oder geloggt — er fliesst nur durch bis in die
+// einmalige Anzeige an den Admin.
+type TSSErstellt struct {
+	ID    string
+	PUK   string
+	State string
+}
+
+// SetupClient kapselt die fiskaly-Operationen der gefuehrten TSE-Einrichtung:
+// die lesenden Operationen des Pruef-Schritts (ListTSS/ListClients) und die
+// schreibenden Lebenszyklus-Operationen, mit denen der Orchestrator eine TSS
+// von der Neuanlage bis zum registrierten Client treibt. ListTSS liefert die
+// Umgebung aus der fiskaly-Antwort mit, damit der Befund TEST/LIVE auch bei
+// leerem Konto anzeigen kann.
 type SetupClient interface {
 	ListTSS(ctx context.Context) (Umgebung, []TSSInfo, error)
 	ListClients(ctx context.Context, tssID string) ([]ClientInfo, error)
+
+	// CreateTSS legt eine neue TSS an (Zustand CREATED) und liefert deren
+	// einmaligen Admin-PUK zurueck.
+	CreateTSS(ctx context.Context) (TSSErstellt, error)
+	// PersonalisiereTSS ueberfuehrt die TSS von CREATED nach UNINITIALIZED.
+	PersonalisiereTSS(ctx context.Context, tssID string) error
+	// SetzeAdminPIN setzt mit dem PUK die Admin-PIN der TSS.
+	SetzeAdminPIN(ctx context.Context, tssID, puk, pin string) error
+	// AuthentifiziereAdmin hebt das aktuelle Zugriffstoken fuer die folgenden
+	// Admin-Operationen der TSS auf Admin-Rechte an.
+	AuthentifiziereAdmin(ctx context.Context, tssID, pin string) error
+	// InitialisiereTSS ueberfuehrt die TSS nach INITIALIZED (signierbereit).
+	InitialisiereTSS(ctx context.Context, tssID string) error
+	// RegistriereClient registriert einen Client unter clientID mit der
+	// uebergebenen serial_number.
+	RegistriereClient(ctx context.Context, tssID, clientID, serialNumber string) error
 }

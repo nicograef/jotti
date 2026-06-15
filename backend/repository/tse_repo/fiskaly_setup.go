@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
@@ -53,6 +54,29 @@ type clientListItem struct {
 	State        string `json:"state"`
 }
 
+type createTSSResponse struct {
+	ID       string `json:"_id"`
+	AdminPUK string `json:"admin_puk"`
+	State    string `json:"state"`
+}
+
+type tssStateRequest struct {
+	State string `json:"state"`
+}
+
+type adminPINRequest struct {
+	AdminPUK    string `json:"admin_puk"`
+	NewAdminPIN string `json:"new_admin_pin"`
+}
+
+type adminAuthRequest struct {
+	AdminPIN string `json:"admin_pin"`
+}
+
+type registerClientRequest struct {
+	SerialNumber string `json:"serial_number"`
+}
+
 // ListTSS listet die TSS des Kontos und liefert die Umgebung (TEST/LIVE) aus der
 // fiskaly-Antwort mit — letztere ist auch bei leerem Konto gesetzt.
 func (c *FiskalyTSESetupClient) ListTSS(ctx context.Context) (tse.Umgebung, []tse.TSSInfo, error) {
@@ -93,6 +117,97 @@ func (c *FiskalyTSESetupClient) ListClients(ctx context.Context, tssID string) (
 		})
 	}
 	return clients, nil
+}
+
+// CreateTSS legt unter einer frisch erzeugten UUID eine neue TSS an. fiskaly
+// liefert in der Antwort den einmaligen Admin-PUK, mit dem spaeter die Admin-PIN
+// gesetzt wird.
+func (c *FiskalyTSESetupClient) CreateTSS(ctx context.Context) (tse.TSSErstellt, error) {
+	tssID := uuid.NewString()
+
+	resp := createTSSResponse{}
+	path := fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(tssID))
+	if err := c.doJSONRequest(ctx, http.MethodPut, path, nil, struct{}{}, true, &resp); err != nil {
+		return tse.TSSErstellt{}, mapSetupError(err)
+	}
+
+	id := strings.TrimSpace(resp.ID)
+	if id == "" {
+		id = tssID
+	}
+	return tse.TSSErstellt{
+		ID:    id,
+		PUK:   strings.TrimSpace(resp.AdminPUK),
+		State: strings.TrimSpace(resp.State),
+	}, nil
+}
+
+// PersonalisiereTSS ueberfuehrt die TSS von CREATED nach UNINITIALIZED.
+func (c *FiskalyTSESetupClient) PersonalisiereTSS(ctx context.Context, tssID string) error {
+	return c.patchTSSState(ctx, tssID, "UNINITIALIZED")
+}
+
+// InitialisiereTSS ueberfuehrt die TSS nach INITIALIZED und macht sie damit
+// signierbereit. Sie setzt eine vorher erfolgte Admin-Authentifizierung voraus.
+func (c *FiskalyTSESetupClient) InitialisiereTSS(ctx context.Context, tssID string) error {
+	return c.patchTSSState(ctx, tssID, "INITIALIZED")
+}
+
+func (c *FiskalyTSESetupClient) patchTSSState(ctx context.Context, tssID, state string) error {
+	tssID = strings.TrimSpace(tssID)
+	if tssID == "" {
+		return fmt.Errorf("tss id is required")
+	}
+	path := fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(tssID))
+	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, tssStateRequest{State: state}, true, nil); err != nil {
+		return mapSetupError(err)
+	}
+	return nil
+}
+
+// SetzeAdminPIN setzt mit dem Admin-PUK die Admin-PIN der TSS.
+func (c *FiskalyTSESetupClient) SetzeAdminPIN(ctx context.Context, tssID, puk, pin string) error {
+	tssID = strings.TrimSpace(tssID)
+	if tssID == "" {
+		return fmt.Errorf("tss id is required")
+	}
+	path := fmt.Sprintf("/api/v2/tss/%s/admin", url.PathEscape(tssID))
+	body := adminPINRequest{AdminPUK: puk, NewAdminPIN: pin}
+	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, body, true, nil); err != nil {
+		return mapSetupError(err)
+	}
+	return nil
+}
+
+// AuthentifiziereAdmin hebt das aktuelle Zugriffstoken fuer die folgenden
+// Admin-Operationen der TSS (Initialisieren, Client registrieren) auf
+// Admin-Rechte an.
+func (c *FiskalyTSESetupClient) AuthentifiziereAdmin(ctx context.Context, tssID, pin string) error {
+	tssID = strings.TrimSpace(tssID)
+	if tssID == "" {
+		return fmt.Errorf("tss id is required")
+	}
+	path := fmt.Sprintf("/api/v2/tss/%s/admin/auth", url.PathEscape(tssID))
+	if err := c.doJSONRequest(ctx, http.MethodPost, path, nil, adminAuthRequest{AdminPIN: pin}, true, nil); err != nil {
+		return mapSetupError(err)
+	}
+	return nil
+}
+
+// RegistriereClient registriert einen Client unter clientID mit der uebergebenen
+// serial_number (der jotti-Kassen-Seriennummer).
+func (c *FiskalyTSESetupClient) RegistriereClient(ctx context.Context, tssID, clientID, serialNumber string) error {
+	tssID = strings.TrimSpace(tssID)
+	clientID = strings.TrimSpace(clientID)
+	if tssID == "" || clientID == "" {
+		return fmt.Errorf("tss id and client id are required")
+	}
+	path := fmt.Sprintf("/api/v2/tss/%s/client/%s", url.PathEscape(tssID), url.PathEscape(clientID))
+	body := registerClientRequest{SerialNumber: serialNumber}
+	if err := c.doJSONRequest(ctx, http.MethodPut, path, nil, body, true, nil); err != nil {
+		return mapSetupError(err)
+	}
+	return nil
 }
 
 // mapSetupError uebersetzt einen Auth-Fehler (falsche Zugangsdaten) in das

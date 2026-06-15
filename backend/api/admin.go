@@ -167,9 +167,15 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/get-tse-status", sq.GetTSEStatusHandler())
 
 	sc := settingsHTTP.CommandHandler{}
-	sc.Command = settingsApp.Command{SettingsRepo: settingsRepo}
+	sc.Command = settingsApp.Command{
+		SettingsRepo: settingsRepo,
+		NewTSESetupClient: func(credentials tse.SetupCredentials) (tse.SetupClient, error) {
+			return tse_repo.NewFiskalyTSESetupClient(cfg.FiskalyBaseURL, credentials, nil)
+		},
+	}
 	r.HandleFunc("/update-betreiber", sc.UpdateBetreiberHandler())
 	r.HandleFunc("/update-tse-konfiguration", sc.UpdateTSEKonfigurationHandler())
+	r.HandleFunc("/tse-einrichten", sc.RichteTSEEinHandler())
 
 	return r
 }
