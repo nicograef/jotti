@@ -292,11 +292,11 @@ verbindlichen Begriffe zu ersetzen.
 
 ### Acceptance criteria
 
-- [ ] Die Komponente heißt `GeldtransitSection`; alle Verweise sind aktualisiert,
+- [x] Die Komponente heißt `GeldtransitSection`; alle Verweise sind aktualisiert,
       Verhalten unverändert.
-- [ ] Einlage und Entnahme sind als große Flächen auf dem Smartphone sicher
+- [x] Einlage und Entnahme sind als große Flächen auf dem Smartphone sicher
       antippbar; gesendeter Richtungswert bleibt `einlage`/`entnahme`.
-- [ ] Eröffnen und Geldtransit haben je einen kurzen Hilfetext und eine
+- [x] Eröffnen und Geldtransit haben je einen kurzen Hilfetext und eine
       Alltagsübersetzung des Fachbegriffs; die Titel bleiben die verbindlichen
       Fachbegriffe.
-- [ ] Lint/Typecheck ohne Warnungen.
+- [x] Lint/Typecheck ohne Warnungen.

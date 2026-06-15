@@ -17,7 +17,13 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Field,
   FieldError,
@@ -75,7 +81,7 @@ export function KassensitzungPage() {
             </CardContent>
           </Card>
 
-          <KassenbewegungSection onSuccess={() => void refetch()} />
+          <GeldtransitSection onSuccess={() => void refetch()} />
           <KasseAbschliessenSection
             kassensitzungNr={kassensitzung.zNr}
             onSuccess={() => void refetch()}
@@ -131,8 +137,14 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
     <Card>
       <CardHeader>
         <CardTitle>Kassensitzung eröffnen</CardTitle>
+        <CardDescription>Die Kasse für den Verkaufstag öffnen</CardDescription>
       </CardHeader>
       <CardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Trage den Anfangsbestand ein, also das Wechselgeld, das beim Start in
+          der Kasse liegt. Die Kassensitzung läuft, bis die Kasse am Ende des
+          Tages abgeschlossen wird.
+        </p>
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -188,7 +200,7 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
   )
 }
 
-function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
+function GeldtransitSection({ onSuccess }: { onSuccess: () => void }) {
   const FormDataSchema = z.object({
     richtung: GeldtransitRichtungSchema,
     betragEuro: PositiverEuroBetragSchema,
@@ -231,8 +243,16 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
     <Card>
       <CardHeader>
         <CardTitle>Geldtransit buchen</CardTitle>
+        <CardDescription>
+          Bargeld in die Kasse legen oder daraus entnehmen
+        </CardDescription>
       </CardHeader>
       <CardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Buche zusätzliches Wechselgeld als Einlage oder Bargeld, das du aus
+          der Kasse nimmst, als Entnahme. Der Soll-Bestand wird dabei
+          automatisch angepasst.
+        </p>
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -245,20 +265,35 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
               className="gap-1"
             >
               <FieldLabel>Richtung</FieldLabel>
-              <div className="flex gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {(
                   [
-                    [GeldtransitRichtung.EINLAGE, 'Einlage (in Tageskasse)'],
-                    [GeldtransitRichtung.ENTNAHME, 'Entnahme (aus Tageskasse)'],
+                    [
+                      GeldtransitRichtung.EINLAGE,
+                      'Einlage',
+                      'Geld in die Kasse legen',
+                    ],
+                    [
+                      GeldtransitRichtung.ENTNAHME,
+                      'Entnahme',
+                      'Geld aus der Kasse nehmen',
+                    ],
                   ] as const
-                ).map(([value, label]) => (
-                  <label key={value} className="flex items-center gap-1.5">
+                ).map(([value, label, hint]) => (
+                  <label
+                    key={value}
+                    className="flex cursor-pointer flex-col gap-0.5 rounded-lg border p-4 text-center transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
+                  >
                     <input
                       type="radio"
                       value={value}
+                      className="sr-only"
                       {...form.register('richtung')}
                     />
-                    {label}
+                    <span className="font-medium">{label}</span>
+                    <span className="text-muted-foreground text-xs">
+                      {hint}
+                    </span>
                   </label>
                 ))}
               </div>
