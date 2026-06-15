@@ -1,135 +1,95 @@
-# PRD: Finanzamt-Seite (Fiskal-Cockpit)
+# PRD: Finanzamt-Seite
 
-> Scope: Seiten-Schale. Diese PRD baut die Admin-Seite „Finanzamt" als integrierendes Cockpit und das lesende Backend-Kontext `fiskal` mit der Prüfungsbereitschafts-Query. Die schweren Fiskal-Features bekommen jeweils ein eigenes PRD: F-04 (DSFinV-K-Export), F-05 (ELSTER-Meldung/Meldestatus), F-08 (GoBD-Integritätsnachweis), F-10 (Archiv-Bundle), F-11 (Verfahrensdokumentation). Diese Seite ist deren gemeinsamer Einstiegspunkt.
+> Scope: Diese PRD legt die Admin-Seite „Finanzamt" als gemeinsamen Ort für alle Belange gegenüber dem Finanzamt an und zieht die bereits vorhandene fiskalische Oberfläche dorthin um. Die Einstellungen-Seite, die heute nur diese fiskalischen Sektionen enthält, entfällt. Kein neues Backend-Kontext, keine neuen Endpunkte, keine Prüfungsbereitschafts- oder TSE-Readiness-Logik. Die schweren Folge-Features (DSFinV-K F-04, ELSTER F-05, GoBD-Integritätsnachweis F-08, Archiv-Bundle F-10, Verfahrensdokumentation F-11) behalten je ihre eigene PRD und ergänzen ihre Sektion erst, wenn das Feature steht.
 > Quellen: [anforderungen.md §6](../anforderungen.md), [compliance.md](../compliance.md), Artikel „Kassen-Nachschau in Deutschland".
 
 ## Problem Statement
 
-jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht. Bei einer Kassen-Nachschau (§ 146b AO) erscheint ein Prüfer unangekündigt während der Veranstaltung, darf Daten aus dem Kassensystem auslesen und Unterlagen einsehen. Der Verein muss dann sofort nachweisen können, dass die Kasse konform ist, und die angeforderten Artefakte erzeugen (Datenexport, Nachweise, Meldedaten).
+jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht. Bei einer Kassen-Nachschau (§ 146b AO) erscheint ein Prüfer unangekündigt während der Veranstaltung, darf Daten aus dem Kassensystem auslesen und Unterlagen einsehen. Der Verein muss dann sofort die geforderten Angaben und Nachweise vorzeigen können. Zielgruppe sind nicht-technische Vereinsvorstände und Helfer.
 
-Die Zielgruppe sind nicht-technische Vereinsvorstände und Helfer. Heute sind die fiskalischen Belange über drei Admin-Seiten verstreut: TSE-Warnungen auf dem Reporting-Dashboard, Betreiber-Stammdaten, Kassenidentität, TSE-Konfiguration und die Nachsignier-Liste in den Einstellungen, der Tagesabschluss in der Kassensitzung. Keine Seite beantwortet die Frage „Sind wir auf eine Prüfung vorbereitet?" und keine bündelt die prüfungsrelevanten Daten und Funktionen an einem Ort. Mehrere Pflicht-Funktionen fehlen zudem noch ganz (DSFinV-K-Export, ELSTER-Meldestatus, Integritätsnachweis, Archiv-Bundle) und hätten ohne eine solche Seite keinen natürlichen Platz.
+Heute sind die fiskalischen Belange über mehrere Admin-Seiten verstreut: die TSE-Warnungen auf dem Reporting-Dashboard, die Betreiber-Stammdaten, die Kassenidentität, die TSE-Konfiguration und die Nachsignier-Liste in den Einstellungen. Keine Seite ist „die Kasse gegenüber dem Finanzamt". Wenn der Prüfer klingelt, muss der Vorstand zwischen Seiten suchen, statt einen Ort zu öffnen.
 
 ## Solution
 
-Eine neue Admin-Seite „Finanzamt" unter `/admin/finanzamt` bündelt alle fiskalischen Angaben, Nachweise und Funktionen als Cockpit für die Prüfungsbereitschaft. Sie ist kein Konfigurationsformular, sondern beantwortet zuerst „Bist du bereit, wenn das Finanzamt klingelt?" und liefert darunter die Artefakte, die ein Prüfer anfordert. Klartext statt Paragrafen, ein Ampel-Status pro Punkt, jede Zeile mit konkretem nächsten Schritt.
+Eine neue Admin-Seite „Finanzamt" unter `/admin/finanzamt` wird der eine Ort für alles, was das Finanzamt betrifft. Statt eine leere Schale mit Platzhaltern zu bauen, zieht diese PRD die bereits funktionierenden Sektionen dorthin um:
 
-Diese PRD liefert die Schale und den tragenden Mechanismus:
+- Betreiber-Stammdaten samt Bearbeitung (Vereinsname, Adresse, Steuernummer, USt-ID).
+- Kassenidentität read-only (Seriennummer, Anlegedatum), mit Kopier-Funktion für die ELSTER-Meldung.
+- TSE-Ausfalldokumentation: die Liste der TSE-Nachsignier-Vorgänge samt ihrer Recovery-Aktionen (wieder einreihen, verwerfen). Sie zieht vollständig um, kein read-only Spiegel.
+- Eine faktische TSE-Anbindungs-Zeile (konfiguriert ja/nein, Umgebung) mit Link zur TSE-Einrichtung.
+- Eine kompakte Sektion „Dokumente und Pflichten" mit Klartext-Hinweis auf die 10-Jahres-Aufbewahrung und Links zu den vorhandenen Betreiber- und Compliance-Unterlagen.
 
-- Eine Prüfungsbereitschafts-Übersicht, die aus den bereits vorhandenen Signalen einen Statusbericht ableitet (TSE konfiguriert und signierfähig, keine offenen Nachsignierungen, Betreiber-Stammdaten vollständig).
-- Eine read-only Kassenidentitäts-Sektion (Seriennummer, Inbetriebnahmedatum), die die für die ELSTER-Meldung nötige Identität sichtbar macht und zum Bearbeiten in die Einstellungen verlinkt.
-- Eine read-only Ausfalldokumentation, die die TSE-Nachsignier-Vorgänge als prüfungsrelevantes Protokoll zeigt. Die Recovery-Aktionen (zurücksetzen, verwerfen) bleiben in den Einstellungen.
-- Platzhalter-Sektionen für die noch offenen Features (DSFinV-K-Export, Archiv-Bundle, Integritätsnachweis, ELSTER-Meldung), die ihren Zweck erklären und als „in Vorbereitung" markiert sind.
-- Eine Dokumenten-Sektion mit Links zu Verfahrensdokumentation, Betreiber-Leitfaden und Compliance-Überblick.
+Die Einstellungen-Seite enthält heute ausschließlich diese fiskalischen Sektionen. Nachdem die TSE-Konfiguration auf die TSE-Einrichtung umgezogen ist (TSE-Wizard-PRD) und die übrigen Sektionen auf die Finanzamt-Seite, entfällt die Einstellungen-Seite samt Sidebar-Eintrag.
 
-Das Reporting-Dashboard zeigt die TSE-Warnungen künftig nur noch als kompakten Banner mit Link auf die Finanzamt-Seite, die der kanonische Ort für Status und Behebung wird.
+Das Reporting-Dashboard behält nur noch einen kompakten Warn-Banner (TSE nicht konfiguriert oder offene Nachsignierungen) mit Link auf die Finanzamt-Seite.
 
-Tragend ist ein neues, rein lesendes Backend-Kontext `fiskal` mit einer Prüfungsbereitschafts-Query. Sie ist bewusst erweiterbar: Jedes Folge-PRD ergänzt seinen eigenen Bereitschafts-Punkt und füllt seine Sektion. Das Kontext hält keine eigene Datenhoheit, sondern liest aus den bestehenden Kontexten.
+Es entsteht kein neues Backend-Kontext und kein neuer Endpunkt. Die Seite komponiert die bestehenden Endpunkte. Jedes schwere Folge-Feature ergänzt seine Sektion in seiner eigenen PRD, wenn es steht; bis dahin zeigt die Seite nur funktionierende Inhalte.
 
 ## User Stories
 
-### Vereins-Admin: Prüfungsbereitschaft
+### Vereins-Admin
 
-1. Als Vereins-Admin möchte ich auf einer eigenen Seite „Finanzamt" auf einen Blick sehen, ob meine Kasse prüfungsbereit ist, damit ich bei einer unangekündigten Kassen-Nachschau ruhig bleiben kann.
-2. Als Vereins-Admin möchte ich pro Bereitschafts-Punkt einen klaren Ampel-Status (in Ordnung, Warnung, offen) sehen, damit ich Probleme sofort erkenne, ohne Fachbegriffe deuten zu müssen.
-3. Als Vereins-Admin möchte ich zu jedem Punkt eine kurze Erklärung in Klartext und einen konkreten nächsten Schritt sehen, damit ich weiß, was zu tun ist.
-4. Als Vereins-Admin möchte ich von einem Bereitschafts-Punkt direkt zur Stelle springen können, an der ich ihn behebe (z. B. Einstellungen für die Stammdaten), damit ich nicht suchen muss.
-5. Als Vereins-Admin möchte ich, dass die Übersicht erkennt, wenn die TSE nicht konfiguriert oder nicht signierfähig ist, damit ich die Kasse nicht versehentlich ohne fiskalische Absicherung betreibe.
-6. Als Vereins-Admin möchte ich gewarnt werden, wenn TSE-Nachsignierungen offen sind, damit ich weiß, dass noch Vorgänge auf ihre Signatur warten.
-7. Als Vereins-Admin möchte ich erkennen, wenn meine Betreiber-Stammdaten unvollständig sind, damit Belege und Meldedaten korrekt sind.
-
-### Vereins-Admin: Identität und Meldedaten
-
-8. Als Vereins-Admin möchte ich die Kassen-Seriennummer und das Inbetriebnahmedatum auf der Finanzamt-Seite sehen und kopieren können, damit ich sie für die ELSTER-Meldung griffbereit habe.
-9. Als Vereins-Admin möchte ich von der Kassenidentität aus zu den Einstellungen gelangen, falls etwas zu ändern ist, damit die Bearbeitung an einem Ort bleibt.
-10. Als Vereins-Admin möchte ich auf der Seite einen klar markierten Bereich für die ELSTER-Meldung sehen, auch solange er noch in Vorbereitung ist, damit ich weiß, dass diese Pflicht existiert und wo sie künftig erledigt wird.
-
-### Vereins-Admin: Daten für die Prüfung
-
-11. Als Vereins-Admin möchte ich auf der Seite einen Bereich „Daten für die Prüfung" sehen, in dem später der DSFinV-K-Export und das Archiv-Bundle bereitstehen, damit ich bei einer Prüfung weiß, wo ich die geforderten Dateien erzeuge.
-12. Als Vereins-Admin möchte ich, dass noch nicht verfügbare Export-Funktionen klar als „in Vorbereitung" gekennzeichnet sind, damit ich nicht auf eine Funktion warte, die noch nicht existiert.
-
-### Vereins-Admin: Nachweise und Dokumente
-
-13. Als Vereins-Admin möchte ich die TSE-Ausfalldokumentation (welche Vorgänge wann nachsigniert wurden) als Protokoll einsehen, damit ich Ausfallzeiten gegenüber einem Prüfer belegen kann.
-14. Als Vereins-Admin möchte ich, dass die Ausfalldokumentation auf der Finanzamt-Seite read-only ist, damit ich sie nicht versehentlich verändere; die Verwaltung bleibt im TSE-Bereich der Einstellungen.
-15. Als Vereins-Admin möchte ich Links zur Verfahrensdokumentation, zum Betreiber-Leitfaden und zum Compliance-Überblick an einem Ort finden, damit ich einem Prüfer die geforderten Unterlagen schnell vorlegen kann.
+1. Als Vereins-Admin möchte ich eine eigene Seite „Finanzamt" über die Seitenleiste erreichen, auf der alle Angaben und Nachweise gegenüber dem Finanzamt an einem Ort liegen, damit ich bei einer Kassen-Nachschau nicht zwischen Seiten suchen muss.
+2. Als Vereins-Admin möchte ich die Betreiber-Stammdaten auf der Finanzamt-Seite einsehen und bearbeiten, damit Name, Anschrift und Steuernummer für Belege und Meldungen stimmen.
+3. Als Vereins-Admin möchte ich die Kassen-Seriennummer auf der Finanzamt-Seite sehen und kopieren können, damit ich sie für die ELSTER-Meldung griffbereit habe.
+4. Als Vereins-Admin möchte ich die TSE-Ausfalldokumentation (welche Vorgänge auf Nachsignierung warten oder nachsigniert wurden) auf der Finanzamt-Seite einsehen und die Vorgänge dort auch wieder einreihen oder verwerfen können, damit ich Ausfallzeiten belegen und bereinigen kann, ohne den Ort zu wechseln.
+5. Als Vereins-Admin möchte ich von der Finanzamt-Seite zur TSE-Einrichtung gelangen, damit ich die TSE-Anbindung von hier aus einrichten oder ändern kann.
+6. Als Vereins-Admin möchte ich auf der Finanzamt-Seite einen Klartext-Hinweis zur 10-Jahres-Aufbewahrung und Links zu den Betreiber- und Compliance-Unterlagen finden, damit ich einem Prüfer die geforderten Hinweise schnell vorlegen kann.
+7. Als Vereins-Admin möchte ich auf dem Reporting-Dashboard weiterhin eine knappe Warnung sehen, wenn die TSE nicht konfiguriert ist oder Nachsignierungen offen sind, mit Link auf die Finanzamt-Seite, damit mir das Problem auch im Tagesgeschäft auffällt.
+8. Als Vereins-Admin möchte ich die Finanzamt-Seite auf dem Smartphone bedienen können, damit ich auch während der Veranstaltung darauf zugreifen kann.
 
 ### Betriebsprüfer
 
-16. Als Betriebsprüfer möchte ich, dass der Verein mir die Kassenidentität, die TSE-Ausfalldokumentation und die geforderten Datenexporte an einer Stelle vorzeigen kann, damit die Nachschau zügig abläuft.
-
-### Querschnitt und Navigation
-
-17. Als Admin möchte ich die Finanzamt-Seite über einen eigenen Eintrag in der Seitenleiste erreichen, damit sie als eigenständiger Bereich erkennbar ist.
-18. Als Admin möchte ich die Finanzamt-Seite auf dem Smartphone bedienen können, damit ich auch während der Veranstaltung darauf zugreifen kann.
-19. Als Admin möchte ich auf dem Reporting-Dashboard weiterhin eine knappe Warnung sehen, wenn die TSE nicht einsatzbereit ist, mit einem Link zur Finanzamt-Seite für die Details, damit mir das Problem auch im Tagesgeschäft auffällt.
-20. Als Entwickler möchte ich, dass die Prüfungsbereitschafts-Query so aufgebaut ist, dass jedes Folge-PRD seinen eigenen Bereitschafts-Punkt ergänzen kann, ohne die bestehende Logik umzubauen, damit die Seite mit den Features mitwächst.
+9. Als Betriebsprüfer möchte ich, dass der Verein mir die Betreiber-Stammdaten, die Kassenidentität und die TSE-Ausfalldokumentation an einer Stelle vorzeigen kann, damit die Nachschau zügig abläuft.
 
 ## Implementation Decisions
 
-### Neues Backend-Kontext `fiskal`
-
-- Ein neues, rein lesendes Bounded Context `fiskal`. Es hält keine eigene Datenhoheit und schreibt nichts zurück; es liest aus den bestehenden Kontexten `settings` und `tse` (später zusätzlich `kasse`, `steuer`, `product` für die Export-Features). Rolle im DDD-Sinn: Customer/Conformist gegenüber diesen Kontexten, später Open-Host-Service für den DSFinV-K-Export.
-- Namensabgrenzung: `fiskal` (das Kontext) ist zu unterscheiden vom Vendor `fiskaly` (TSE-Anbieter, erscheint im Code nur als Eigenname, z. B. in der TSE-Repository-Schicht). Die neuen Begriffe (Finanzamt, Fiskal, Prüfungsbereitschaft, Ausfalldokumentation, Kassen-Nachschau) werden in `docs/language.md` ergänzt.
-
-### Prüfungsbereitschafts-Query (Deep Module)
-
-- Eine Query liefert einen strukturierten Prüfungsbereitschafts-Report: eine Liste von Punkten, jeder mit einem stabilen Schlüssel, einem Status (in Ordnung, Warnung, offen) und optionalen Detailangaben (z. B. Anzahl offener Nachsignierungen).
-- Die Domänenlogik (Ableitung der Punkte aus den Repo-Zuständen) liegt in der Domänenschicht des `fiskal`-Kontexts und liest über die bestehenden Repository-Schnittstellen. Sie ist isoliert testbar.
-- Anfangs enthaltene Punkte:
-  - TSE einsatzbereit: abgeleitet aus der TSE-Konfiguration (konfiguriert ja/nein). Status offen, wenn nicht konfiguriert.
-  - Nachsignierungen: Status Warnung, wenn offene Nachsignierungen vorhanden sind, sonst in Ordnung; Anzahl als Detail.
-  - Betreiber-Stammdaten vollständig: Pflichtfelder Vereinsname, Straße, PLZ, Ort gesetzt. Status offen, wenn unvollständig.
-- Die Report-Struktur ist erweiterbar: Folge-PRDs fügen weitere Punkte hinzu (ELSTER-Meldestatus, Integritätsergebnis, Verfahrensdokumentation), ohne bestehende Punkte zu verändern.
-- Endpunkt: ein POST-only Admin-Endpunkt, der den Report zurückgibt (Konvention der Codebase: flacher Verb-Stil unter `/admin/*`, z. B. `get-fiskal-status`). Antwort über ein Response-DTO mit `json`-Tags in der HTTP-Schicht; die Domänen-Structs werden nie direkt serialisiert.
-
 ### Frontend: Seite „Finanzamt"
 
-- Neue Seite unter `/admin/finanzamt`, lazy geladen wie die übrigen Admin-Seiten, hinter dem `AdminGuard`.
-- Neuer Eintrag „Finanzamt" in der Seitenleiste in der Gruppe „Verwaltung" mit passendem Icon (z. B. Landmark oder ShieldCheck).
-- Die Seite komponiert Sektionen, mobile-first, Karten stapeln auf kleinen Bildschirmen:
-  - Prüfungsbereitschaft: rendert den Report der Query; pro Punkt Status, Klartext-Erklärung und ggf. Deep-Link.
-  - Kassenidentität: read-only Anzeige von Seriennummer und Inbetriebnahmedatum (über den bestehenden Endpunkt), mit Kopier-Funktion und Link zu den Einstellungen.
-  - ELSTER-Meldung: Platzhalter-Sektion mit Zweckerklärung, als „in Vorbereitung" markiert (Detailumsetzung in der F-05-PRD).
-  - Daten für die Prüfung: Platzhalter-Sektionen für DSFinV-K-Export (F-04) und Archiv-Bundle (F-10), als „in Vorbereitung" markiert.
-  - Integritätsnachweis: Platzhalter-Sektion (F-08), als „in Vorbereitung" markiert.
-  - Ausfalldokumentation: read-only Liste der TSE-Nachsignier-Vorgänge über den bestehenden Endpunkt; keine Aktions-Buttons.
-  - Dokumente und Pflichten: Links zu Verfahrensdokumentation, Betreiber-Leitfaden und Compliance-Überblick; Klartext-Hinweis auf die 10-Jahres-Aufbewahrung als Betreiberpflicht.
-- Eine neue Backend-Klasse kapselt den Aufruf der Prüfungsbereitschafts-Query über das bestehende `BackendClient`-Interface; ein Hook stellt den Status der Seite bereit. Frontend-Validierung der Antwort mit Zod.
-- Die read-only Sektionen wiederverwenden die bestehenden Endpunkte für Kassenidentität, Betreiber und Nachsignier-Aufträge; es werden dafür keine neuen Endpunkte gebaut.
+- Neue Route `/admin/finanzamt`, lazy geladen wie die übrigen Admin-Seiten, hinter dem `AdminGuard`. Mobile-first, Karten stapeln auf kleinen Bildschirmen.
+- Neuer Eintrag „Finanzamt" in der Seitenleiste in der Gruppe „Verwaltung" (Icon z. B. Landmark). Der Eintrag „Einstellungen" wird entfernt.
+- Die Seite komponiert die bestehenden Sektionen. Die Komponenten und Hooks aus der heutigen Einstellungen-Seite ziehen unverändert um und werden wiederverwendet: `BetreiberSection`/`BetreiberForm`, `KassenidentitaetSection`, `TSENachsignierSection`/`NachsignierAuftragRow` samt `useBetreiber`, `useKassenidentitaet`, `useTSENachsignierAuftraege`, `useTSEStatus`.
+- TSE-Anbindung: eine faktische Status-Zeile (konfiguriert ja/nein, Umgebung) aus dem bestehenden `get-tse-status`, mit Link „Einrichten oder ändern" auf `/admin/tse-einrichtung`. Das ist Navigation und faktische Anzeige, ausdrücklich keine Bewertung der Prüfungsbereitschaft. Damit übernimmt die Finanzamt-Seite den Einstiegspunkt zur TSE-Einrichtung, den die TSE-Wizard-PRD ursprünglich in der Einstellungen-Sektion vorgesehen hatte.
+- Kassenidentität: Seriennummer und das vorhandene Anlegedatum (`AngelegtAm`) werden als solche beschriftet. Das Anlegedatum wird nicht als das ELSTER-Inbetriebnahmedatum ausgegeben; ein eigenes, rechtlich gemeintes Inbetriebnahmedatum ist Sache von F-05.
 
 ### Änderung am Reporting-Dashboard
 
-- Die beiden ausführlichen TSE-Warnungsblöcke auf dem Reporting-Dashboard werden durch einen kompakten Banner ersetzt, der bei nicht konfigurierter TSE oder offenen Nachsignierungen erscheint und auf die Finanzamt-Seite verlinkt. Die Auslöse-Bedingungen bleiben unverändert; nur die Darstellung wird verkürzt und der Detailort verschiebt sich auf die Finanzamt-Seite.
+- Die beiden ausführlichen TSE-Warnungsblöcke werden durch einen kompakten Banner ersetzt, der bei nicht konfigurierter TSE oder offenen Nachsignierungen erscheint und auf die Finanzamt-Seite verlinkt. Die Auslöse-Bedingungen bleiben unverändert (`get-tse-status`); nur die Darstellung verkürzt sich und der Detailort verschiebt sich auf die Finanzamt-Seite.
 
-### Abgrenzung der drei fiskal-nahen Seiten
+### Wegfall der Einstellungen-Seite
 
-- Einstellungen: Stammdaten und TSE-Zugangsdaten eingeben (Write).
-- TSE-Einrichtung (eigene PRD, geplant): den TSE-Lebenszyklus einrichten (Wizard).
-- Finanzamt (diese PRD): Prüfungsbereitschaft nachweisen, Identität und Meldedaten anzeigen, Artefakte erzeugen (read und produce).
+- Die Einstellungen-Seite enthält heute nur Betreiber-Stammdaten, Kassenidentität, TSE-Konfiguration und die Nachsignier-Liste. Betreiber, Kassenidentität und Nachsignier-Liste ziehen auf die Finanzamt-Seite, die TSE-Konfiguration auf die TSE-Einrichtung. Danach werden die Einstellungen-Route und der Sidebar-Eintrag entfernt.
+
+### Kein Backend-Umbau
+
+- Reine Frontend-Umstrukturierung auf bestehenden Endpunkten: `get-betreiber`, `update-betreiber`, `get-kassenidentitaet`, `get-tse-nachsignier-auftraege`, `tse-nachsignier-auftrag-zuruecksetzen`, `tse-nachsignier-auftrag-verwerfen`, `get-tse-status`. Es werden keine Endpunkte, kein Kontext und kein Schema angefasst.
+- Begriffe für `docs/language.md`: Finanzamt-Seite, Ausfalldokumentation, Kassen-Nachschau.
+
+### Abgrenzung und Koordination der fiskal-nahen Seiten
+
+- TSE-Einrichtung (TSE-Wizard-PRD): den TSE-Lebenszyklus einrichten (Wizard) und die Verbindung testen. Der Einstiegspunkt liegt nach diesem Umzug auf der Finanzamt-Seite statt in den Einstellungen. Das ersetzt die im TSE-Wizard-Plan vorgesehene „Status plus Link"-Sektion in den Einstellungen und behält die Entscheidung „kein eigener Sidebar-Eintrag" bei, da die Finanzamt-Seite dorthin verlinkt.
+- Finanzamt (diese PRD): alles gegenüber dem Finanzamt, fiskalische Stammdaten lesen und bearbeiten, Nachweise vorzeigen.
+- Einstellungen: entfällt.
+- Reihenfolge: Der Umzug der TSE-Konfiguration (TSE-Wizard, Phase 2) und dieser Umzug müssen gemeinsam landen, damit die Einstellungen-Seite nicht halb leer zurückbleibt und der Einstiegspunkt zur TSE-Einrichtung nie verwaist ist.
 
 ## Testing Decisions
 
-- Ein guter Test prüft beobachtbares Verhalten, nicht die innere Umsetzung. Für die Prüfungsbereitschafts-Query heißt das: gegebene Repo-Zustände führen zu erwarteten Bereitschafts-Punkten und -Status.
-- Getestet wird die Prüfungsbereitschafts-Query (das Deep Module): unter anderem TSE konfiguriert gegenüber nicht konfiguriert, offene Nachsignierungen vorhanden gegenüber keine, Betreiber-Stammdaten vollständig gegenüber unvollständig. Geprüft wird, dass die zurückgegebenen Punkte den jeweils korrekten Status und die korrekten Detailangaben tragen.
-- Vorbild für diese Tests sind die bestehenden Query- und Application-Tests im Backend (Settings- und Kasse-Kontext) mit in-memory beziehungsweise gefälschten Repositories.
-- Die Frontend-Schale ist dünne Komposition und erhält in dieser PRD keine eigenen Tests; Tests zu den Sektionen entstehen mit den jeweiligen Feature-PRDs.
+- Es entsteht keine neue Geschäftslogik, daher keine neuen Backend-Tests. Die bestehenden Endpunkt- und Query-Tests bleiben gültig.
+- Die Seite ist dünne Komposition bereits funktionierender, anderswo getesteter Sektionen; nach Konvention der Codebase keine eigenen Frontend-Komponententests.
+- Manuell zu verifizieren: jede umgezogene Sektion funktioniert auf der neuen Seite (Betreiber laden und speichern, Kassenidentität anzeigen und kopieren, Nachsignier-Vorgänge anzeigen, wieder einreihen und verwerfen); die Einstellungen-Route ist entfernt; die Seitenleiste zeigt „Finanzamt"; der Dashboard-Banner verlinkt korrekt; die Seite ist ab 360 px bedienbar.
 
 ## Out of Scope
 
-- DSFinV-K-Export (F-04): eigene PRD. Hier nur eine als „in Vorbereitung" markierte Platzhalter-Sektion.
-- Archiv-Bundle / 10-Jahres-Archivierung (F-10): eigene PRD. Hier nur Platzhalter.
-- GoBD-Integritätsnachweis (F-08): eigene PRD. Hier nur Platzhalter.
-- ELSTER-Meldung und Meldestatus (F-05): eigene PRD. Hier nur Platzhalter und Anzeige der bereits vorhandenen Identitätsdaten. Die programmatische Übermittlung (ERiC, fiskaly-Submission) ist ebenfalls dort verortet.
-- Verfahrensdokumentation (F-11): das Erstellen der Muster-Verfahrensdokumentation ist eine eigene Aufgabe; hier wird nur darauf verlinkt.
-- TSE-Setup-Wizard: eigene PRD (TSE-Einrichtung).
+- DSFinV-K-Export (F-04), Archiv-Bundle (F-10), GoBD-Integritätsnachweis (F-08), ELSTER-Meldung und Meldestatus (F-05), Verfahrensdokumentation (F-11): je eigene PRD. Jedes Feature ergänzt seine Sektion auf dieser Seite, wenn es steht. Keine Platzhalter-Sektionen jetzt.
+- TSE-Setup-Wizard und die TSE-Konfigurations-Oberfläche: TSE-Wizard-PRD.
 - TSE-Datenandruck auf dem Beleg und QR-Code (Rest von F-03, F-09).
-- Das Bearbeiten von Betreiber-Stammdaten und TSE-Konfiguration bleibt in den Einstellungen.
-- Die Recovery-Aktionen für Nachsignier-Aufträge (zurücksetzen, verwerfen) bleiben in den Einstellungen.
+- Jede Prüfungsbereitschafts- oder TSE-Readiness-Bewertung: bewusst nicht gebaut. Die Seite zeigt faktische Angaben und Nachweise, kein Ampel-Urteil.
+- Ein neues Backend-Kontext `fiskal`: nicht nötig. Falls ein Folge-Feature eine echte lesende Aggregation über mehrere Kontexte braucht, wird das in dessen PRD entschieden.
 
 ## Further Notes
 
-- Leitidee der Seite ist die Prüfungsbereitschaft für die Kassen-Nachschau nach § 146b AO. Der Artikel und compliance.md beschreiben, was ein Prüfer verlangt (manipulationssichere TSE, DSFinV-K-Datenexport, lückenlose und unveränderbare Aufzeichnung, Belege mit TSE-Daten, Meldung beim Finanzamt, Verfahrensdokumentation, 10-Jahres-Aufbewahrung, stimmiger Kassenbestand). Die Sektionen der Seite bilden diese Checkliste ab.
-- Erweiterungs-Vertrag für Folge-PRDs: Jedes Feature ergänzt (a) seinen Punkt in der Prüfungsbereitschafts-Query und (b) füllt seine Platzhalter-Sektion mit der echten Funktion. So bleibt die Seite über die Phasen hinweg konsistent.
-- Vorgesehene Verortung des ELSTER-Meldestatus (für die F-05-PRD): als Value Object im bestehenden `settings`-Kontext, da compliance.md §7.4 den Meldestatus ausdrücklich in den Stammdaten verortet. Damit bleibt `fiskal` auch nach F-05 rein lesend.
-- Abrechnungskreis (F-06) ist teilweise umgesetzt und speist später den DSFinV-K-Export; die Steuer-Aufteilung inklusive Kombi-Splitting existiert bereits im `steuer`-Kontext.
+- Leitidee bleibt die Kassen-Nachschau nach § 146b AO: die Finanzamt-Seite ist der eine Ort, den der Vorstand öffnet, wenn das Finanzamt klingelt. Über die Phasen wächst sie um die schweren Nachweise (DSFinV-K, Archiv, Integrität, ELSTER).
+- Erweiterungsvertrag für Folge-PRDs: Jedes Feature ergänzt seine Sektion auf dieser Seite und, falls nötig, seinen eigenen Endpunkt. Es gibt keine zentrale Registry und keine geteilte Query, die mitgepflegt werden müsste.
+- ELSTER-Meldestatus (für die F-05-PRD): als Value Object im bestehenden `settings`-Kontext, da compliance.md §7.4 den Meldestatus in den Stammdaten verortet. Wird auf dieser Seite angezeigt, sobald F-05 steht.
+- Inbetriebnahmedatum: Für die ELSTER-Meldung ist das tatsächliche Inbetriebnahmedatum maßgeblich, nicht der technische Anlegezeitpunkt der Datenbankzeile. Ein editierbares Inbetriebnahmedatum ist Sache von F-05; bis dahin zeigt die Seite nur das Anlegedatum als technische Angabe.
+- Dokumente und Pflichten: verlinkt werden die erreichbaren Unterlagen (Betreiber-Leitfaden, Compliance-Überblick); die Verfahrensdokumentation kommt hinzu, sobald F-11 steht. Wie die Repository-Dokumente aus der App erreichbar gemacht werden (In-App-Hilfe oder externer Link), ist ein Umsetzungsdetail.
