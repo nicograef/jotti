@@ -92,8 +92,14 @@ func TestResolve(t *testing.T) {
 			want:  answer{kind: kindCNAME, cname: testInstallID + ".auth.jotti.rocks.", ttl: ttlDefault},
 		},
 		{
-			name:  "nur eine Label-Ebene ist NXDOMAIN",
+			name:  "nur eine Label-Ebene ist NoData (Empty Non-Terminal mit Kindern)",
 			qname: testInstallID + ".lokal.jotti.rocks.",
+			qtype: dns.TypeA,
+			want:  answer{kind: kindNoData},
+		},
+		{
+			name:  "fuehrende Null im Oktett ist NXDOMAIN",
+			qname: "010-0-0-1." + testInstallID + ".lokal.jotti.rocks.",
 			qtype: dns.TypeA,
 			want:  answer{kind: kindNXDomain},
 		},
@@ -210,7 +216,7 @@ func TestBuildResponseCNAME(t *testing.T) {
 
 func TestBuildResponseNXDomainTraegtSOAImAuthorityAbschnitt(t *testing.T) {
 	cfg := testZoneConfig()
-	req := newQuery("unsinn.lokal.jotti.rocks.", dns.TypeA)
+	req := newQuery("unsinn."+testInstallID+".lokal.jotti.rocks.", dns.TypeA)
 
 	msg := buildResponse(cfg, req, resolve(cfg, req.Question[0].Name, dns.TypeA))
 

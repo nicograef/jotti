@@ -199,7 +199,7 @@ func TestIntegrationChallengeCNAME(t *testing.T) {
 func TestIntegrationNXDomainUndApex(t *testing.T) {
 	udpAddr, _ := startTestServer(t, &handler{cfg: testZoneConfig()})
 
-	nx := exchange(t, "udp", udpAddr, newQuery("unsinn.lokal.jotti.rocks.", dns.TypeA))
+	nx := exchange(t, "udp", udpAddr, newQuery("unsinn."+testInstallID+".lokal.jotti.rocks.", dns.TypeA))
 	if nx.Rcode != dns.RcodeNameError {
 		t.Fatalf("rcode: got %d, want %d (NXDOMAIN)", nx.Rcode, dns.RcodeNameError)
 	}

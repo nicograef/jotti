@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/netip"
-	"strconv"
 	"strings"
 
 	"github.com/miekg/dns"
@@ -75,6 +74,15 @@ func resolve(cfg zoneConfig, qname string, qtype uint16) answer {
 	}
 
 	labels := strings.Split(strings.TrimSuffix(name, "."+cfg.zone), ".")
+	// Eine einzelne Label-Ebene (z. B. `<install-id>.<zone>`) ist ein Empty
+	// Non-Terminal: der Name selbst trägt keinen Record, hat aber berechenbare
+	// Kinder (`<lan-ip>.<install-id>`, `_acme-challenge.<install-id>`). Dafür ist
+	// NODATA korrekt, nicht NXDOMAIN — sonst dürfte ein Resolver mit
+	// QNAME-Minimisation (RFC 7816/9156) das NXDOMAIN cachen und die Auflösung
+	// der Kindnamen verweigern (RFC 8020).
+	if len(labels) == 1 {
+		return answer{kind: kindNoData}
+	}
 	if len(labels) != 2 {
 		return answer{kind: kindNXDomain}
 	}
@@ -111,29 +119,15 @@ func apexAnswer(qtype uint16) answer {
 
 // parseDashedIPv4 liest eine IPv4-Adresse aus einem Label wie "192-168-1-50".
 // Auch private Adressen sind gültig — genau dafür existiert der Resolver.
+// netip.ParseAddr ist strikt und lehnt nicht-kanonische Labels (führende
+// Nullen, Vorzeichen, falsche Oktett-Anzahl) ab; dashedIPv4 im reverse-proxy
+// erzeugt nur kanonische Namen, der Round-Trip bleibt also unberührt.
 func parseDashedIPv4(label string) (netip.Addr, bool) {
-	parts := strings.Split(label, "-")
-	if len(parts) != 4 {
+	ip, err := netip.ParseAddr(strings.ReplaceAll(label, "-", "."))
+	if err != nil || !ip.Is4() {
 		return netip.Addr{}, false
 	}
-
-	var octets [4]byte
-	for i, part := range parts {
-		if len(part) == 0 || len(part) > 3 {
-			return netip.Addr{}, false
-		}
-		for _, c := range part {
-			if c < '0' || c > '9' {
-				return netip.Addr{}, false
-			}
-		}
-		value, err := strconv.Atoi(part)
-		if err != nil || value > 255 {
-			return netip.Addr{}, false
-		}
-		octets[i] = byte(value)
-	}
-	return netip.AddrFrom4(octets), true
+	return ip, true
 }
 
 // buildResponse baut aus der Antwort-Entscheidung die vollständige
@@ -165,6 +159,10 @@ func buildResponse(cfg zoneConfig, req *dns.Msg, ans answer) *dns.Msg {
 	case kindRefused:
 		msg.Rcode = dns.RcodeRefused
 		msg.Authoritative = false
+	default:
+		// kindForward behandelt der Server vor buildResponse; jeder andere
+		// unbehandelte Fall ist ein Programmierfehler.
+		panic("buildResponse: unbehandelter answerKind")
 	}
 	return msg
 }
