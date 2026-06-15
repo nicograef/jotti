@@ -76,16 +76,21 @@ func TestRichteTSEEin_LeeresKonto(t *testing.T) {
 	if ergebnis.AdminPIN == "" {
 		t.Fatal("expected an admin pin to be returned")
 	}
-	if ergebnis.ClientID != seriennummer.String() {
-		t.Fatalf("expected client id to equal serial number %q, got %q", seriennummer, ergebnis.ClientID)
+	// Der Client wird unter einer eigenen UUIDv4 angelegt (fiskaly-Konvention),
+	// nicht unter der Kassen-Seriennummer.
+	if ergebnis.ClientID == "" || ergebnis.ClientID == seriennummer.String() {
+		t.Fatalf("expected a distinct generated client id, got %q", ergebnis.ClientID)
 	}
 
 	if len(client.RegistrierteClients) != 1 {
 		t.Fatalf("expected exactly one registered client, got %d", len(client.RegistrierteClients))
 	}
 	registriert := client.RegistrierteClients[0]
-	if registriert.SerialNumber != seriennummer.String() || registriert.ClientID != seriennummer.String() {
-		t.Fatalf("expected client registered with kassen serial number, got %+v", registriert)
+	if registriert.SerialNumber != seriennummer.String() {
+		t.Fatalf("expected client registered with kassen serial number as serial_number, got %+v", registriert)
+	}
+	if registriert.ClientID != ergebnis.ClientID {
+		t.Fatalf("expected client registered under the returned client id %q, got %q", ergebnis.ClientID, registriert.ClientID)
 	}
 	if client.GesetzteAdminPIN != ergebnis.AdminPIN {
 		t.Fatalf("expected the generated pin to be set on the TSS, got %q vs %q", client.GesetzteAdminPIN, ergebnis.AdminPIN)
@@ -94,7 +99,7 @@ func TestRichteTSEEin_LeeresKonto(t *testing.T) {
 	if repo.gespeichert == nil {
 		t.Fatal("expected the configuration to be saved")
 	}
-	if repo.gespeichert.TssID != "tss-neu" || repo.gespeichert.ClientID != seriennummer.String() {
+	if repo.gespeichert.TssID != "tss-neu" || repo.gespeichert.ClientID != ergebnis.ClientID {
 		t.Fatalf("expected full configuration to be saved, got %+v", repo.gespeichert)
 	}
 	if !repo.gespeichert.IstKonfiguriert() {

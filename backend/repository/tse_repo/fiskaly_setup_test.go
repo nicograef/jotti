@@ -174,7 +174,7 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 	if err := client.InitialisiereTSS(ctx, erstellt.ID); err != nil {
 		t.Fatalf("initialize failed: %v", err)
 	}
-	if err := client.RegistriereClient(ctx, erstellt.ID, "kasse-serial", "kasse-serial"); err != nil {
+	if err := client.RegistriereClient(ctx, erstellt.ID, "client-uuid", "kasse-serial"); err != nil {
 		t.Fatalf("register client failed: %v", err)
 	}
 
@@ -199,7 +199,7 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 	assertCall(http.MethodPatch, "/tss/"+erstellt.ID, map[string]any{"state": "INITIALIZED"})
 	assertCall(http.MethodPatch, "/tss/"+erstellt.ID+"/admin", map[string]any{"admin_puk": "puk-xyz", "new_admin_pin": "1234567890"})
 	assertCall(http.MethodPost, "/tss/"+erstellt.ID+"/admin/auth", map[string]any{"admin_pin": "1234567890"})
-	assertCall(http.MethodPut, "/tss/"+erstellt.ID+"/client/kasse-serial", map[string]any{"serial_number": "kasse-serial"})
+	assertCall(http.MethodPut, "/tss/"+erstellt.ID+"/client/client-uuid", map[string]any{"serial_number": "kasse-serial"})
 }
 
 // bodyMatcht meldet, ob jedes erwartete Feld im tatsaechlichen Body steht.

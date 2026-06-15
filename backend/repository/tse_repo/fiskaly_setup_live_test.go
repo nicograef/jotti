@@ -52,6 +52,7 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 	}
 
 	seriennummer := uuid.NewString()
+	clientID := uuid.NewString()
 	pin := "1234567890"
 
 	erstellt, err := setupClient.CreateTSS(ctx)
@@ -76,7 +77,7 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 	if err := setupClient.AuthentifiziereAdmin(ctx, erstellt.ID, pin); err != nil {
 		t.Fatalf("admin auth (client) failed: %v", err)
 	}
-	if err := setupClient.RegistriereClient(ctx, erstellt.ID, seriennummer, seriennummer); err != nil {
+	if err := setupClient.RegistriereClient(ctx, erstellt.ID, clientID, seriennummer); err != nil {
 		t.Fatalf("register client failed: %v", err)
 	}
 
@@ -85,7 +86,7 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 		ApiKey:    apiKey,
 		ApiSecret: apiSecret,
 		TssID:     erstellt.ID,
-		ClientID:  seriennummer,
+		ClientID:  clientID,
 	}, nil)
 	if err != nil {
 		t.Fatalf("failed to create sign client: %v", err)

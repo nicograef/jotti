@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/rs/zerolog"
@@ -85,6 +86,14 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	}
 	seriennummer := identitaet.Seriennummer.String()
 
+	// Der fiskaly-Client wird unter einer eigenen, frischen UUIDv4 als
+	// Ressourcen-ID (_id) angelegt — fiskaly-Konvention. Die Kassen-Seriennummer
+	// ist die fachliche serial_number (DSFinV-K KASSE_SERIENNR). So bleibt der
+	// technische Client-Identifikator von der fachlichen Seriennummer getrennt
+	// und konsistent mit der Uebernahme einer bestehenden TSS (spaetere Phase),
+	// bei der die vorgefundene Client-_id uebernommen wird.
+	clientID := uuid.NewString()
+
 	pin, err := erzeugeAdminPIN()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate admin pin")
@@ -114,13 +123,13 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	if err := client.AuthentifiziereAdmin(ctx, erstellt.ID, pin); err != nil {
 		return TSESetupErgebnis{}, einrichtungsFehler(log, err, "admin-auth (client)", erstellt.ID)
 	}
-	if err := client.RegistriereClient(ctx, erstellt.ID, seriennummer, seriennummer); err != nil {
+	if err := client.RegistriereClient(ctx, erstellt.ID, clientID, seriennummer); err != nil {
 		return TSESetupErgebnis{}, einrichtungsFehler(log, err, "client registrieren", erstellt.ID)
 	}
 
 	// Erst nach erfolgreichem Lebenszyklus wird die vollstaendige Konfiguration
-	// atomar gespeichert. clientID = serial_number = Kassen-Seriennummer.
-	konfiguration, err := settings.NewTSEKonfiguration(credentials.ApiKey, credentials.ApiSecret, erstellt.ID, seriennummer)
+	// atomar gespeichert.
+	konfiguration, err := settings.NewTSEKonfiguration(credentials.ApiKey, credentials.ApiSecret, erstellt.ID, clientID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to build tse_konfiguration after setup")
 		return TSESetupErgebnis{}, ErrTSEEinrichtung
@@ -134,7 +143,7 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 
 	return TSESetupErgebnis{
 		TssID:    erstellt.ID,
-		ClientID: seriennummer,
+		ClientID: clientID,
 		PUK:      erstellt.PUK,
 		AdminPIN: pin,
 		Umgebung: string(umgebung),
