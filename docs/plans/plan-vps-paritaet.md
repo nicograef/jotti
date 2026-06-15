@@ -299,14 +299,21 @@ werden entfernt. Doku-Stil minimal halten (keine em-dashes/liberales Bold).
 
 ### Acceptance criteria
 
-- [ ] `scripts/prod-harden.sh` ist idempotent und sperrt SSH nicht aus
-      (SSH-Freigabe vor `ufw enable`).
-- [ ] Härtung ist opt-in (nicht Teil von `prod-init.sh`).
-- [ ] `leitfaden-hosting.md` Weg B beschreibt den realen `.env`-/Caddy-/Update-/
-      Backup-/Härtungs-Ablauf; keine Verweise mehr auf Datei-Handedits.
-- [ ] `make website-check`/Doku-Linting (falls zutreffend) bleibt grün; keine
-      toten Links.
-- [ ] Doku-Stil entspricht der House-Style-Vorgabe (minimal, run-in-Labels ok).
+- [x] `scripts/prod-harden.sh` ist idempotent und sperrt SSH nicht aus
+      (SSH-Freigabe vor `ufw enable`). (ufw-Regeln sind idempotent; SSH-Port wird
+      aus `$SSH_CONNECTION`/`sshd_config` erkannt und vor `ufw --force enable`
+      freigegeben; Bestätigungs-Prompt + Hinweis auf zweite SSH-Sitzung.)
+- [x] Härtung ist opt-in (nicht Teil von `prod-init.sh`). (Eigenes Skript +
+      `make prod-harden`; `prod-init.sh` ruft es nicht auf.)
+- [x] `leitfaden-hosting.md` Weg B beschreibt den realen `.env`-/Caddy-/Update-/
+      Backup-/Härtungs-Ablauf; keine Verweise mehr auf Datei-Handedits. (Neue
+      HTTPS-/Ersteinrichtungs-/Backup-/Härtungs-Abschnitte; nginx/certbot/`<domain>`-Edits
+      entfernt, Glossar auf Caddy aktualisiert.)
+- [x] `make website-check`/Doku-Linting (falls zutreffend) bleibt grün; keine
+      toten Links. (`make website-check` grün; Betreiber-Anker und Packaging-Dateien
+      verifiziert; `make check` exit 0.)
+- [x] Doku-Stil entspricht der House-Style-Vorgabe (minimal, run-in-Labels ok).
+      (Keine em-dashes, Run-in-Labels in den neuen Abschnitten.)
 
 ```
 

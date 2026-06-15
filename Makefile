@@ -7,7 +7,7 @@
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
        build-starter-windows build-relay-windows starter-syso release-windows \
        sqlc \
-       prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore \
+       prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore prod-harden \
        rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed \
        local-up local-down local-logs local-reset-db local-reset-and-seed \
        db-shell seed rebuild-projections \
@@ -171,6 +171,9 @@ prod-backup: ## Datenbank-Backup ziehen (pg_dump, gzip, rotiert BACKUP_KEEP)
 
 prod-restore: ## Datenbank aus Backup wiederherstellen (destruktiv, mit Bestätigung)
 	./scripts/prod-restore.sh
+
+prod-harden: ## Optionale Server-Härtung (ufw-Firewall, fail2ban) — opt-in, idempotent
+	./scripts/prod-harden.sh
 
 # ──────────────────────────────────────────────
 # jotti.rocks Deployment

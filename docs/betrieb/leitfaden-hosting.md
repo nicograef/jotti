@@ -214,20 +214,63 @@ Typisches Angebot: netcup VPS 500 oder vergleichbar (~5–8 €/Monat).
 
 Für den Server-Betrieb braucht ihr zusätzlich zwei Dinge:
 
-- eine Domain (z. B. `kasse-musterverein.de`), die auf euren Server zeigt, und
+- eine Domain (z. B. `kasse-musterverein.de`), die per DNS auf euren Server zeigt, und
 - ein TLS-Zertifikat für HTTPS, kostenlos über Let's Encrypt.
 
-jotti bringt dafür eine fertige Produktions-Konfiguration mit (`docker-compose.prod.yml`),
-inklusive nginx-Reverse-Proxy und automatischer Zertifikats-Erneuerung. Die einmalige
-Ersteinrichtung (erstes Zertifikat anfordern, Stack starten) übernimmt das Skript
-`scripts/prod-init.sh`, Domain und E-Mail-Adresse darin vorher anpassen.
+Das Zertifikat holt jotti automatisch. Die Produktions-Konfiguration
+(`docker-compose.prod.yml`) bringt einen Caddy-Reverse-Proxy mit, der das Zertifikat beim
+ersten Start selbst bei Let's Encrypt anfordert und danach selbst erneuert. Es gibt keine
+certbot-Schritte und keine Dateien, die ihr von Hand anpasst: Domain, E-Mail und Version
+stehen in der `.env`.
 
 > ⚠️ Ohne HTTPS dürft ihr jotti nicht über das offene Internet betreiben: Anmeldedaten und
 > Bestellungen würden sonst unverschlüsselt übertragen.
 
-> 💾 **Backups nicht vergessen.** jotti speichert alle Daten in einem Docker-Volume. Macht
-> regelmäßige Backups der Datenbank, besonders wegen der gesetzlichen 10-Jahre-Aufbewahrung
-> (Details im [Betreiber-Leitfaden, Schritt 4](./leitfaden-betreiber.md#schritt-4-daten-10-jahre-aufbewahren)).
+### Ersteinrichtung
+
+1. **Docker installieren.** Auf dem Server Docker Engine samt Compose-Plugin einrichten
+   (Debian/Ubuntu: Anleitung unter <https://docs.docker.com/engine/install/>).
+
+2. **Projektdateien holen.** Das aktuelle Release als ZIP entpacken oder das Repository
+   klonen, dann in den Projektordner wechseln.
+
+3. **`.env` anlegen.** Im Projektordner:
+
+   ```bash
+   make init
+   ```
+
+   Das erzeugt eine `.env` mit sicheren Zufallswerten für die Geheimnisse.
+
+4. **Domain, E-Mail und Version eintragen.** In der `.env` setzen:
+
+   ```bash
+   JOTTI_DOMAIN=kasse-musterverein.de
+   LETSENCRYPT_EMAIL=vorstand@musterverein.de
+   JOTTI_VERSION=v0.2.0
+   ```
+
+   `JOTTI_DOMAIN` ist eure Domain, `LETSENCRYPT_EMAIL` eine Kontaktadresse für das
+   Let's-Encrypt-Konto, `JOTTI_VERSION` die gewünschte Release-Version (siehe
+   [GitHub-Releases](https://github.com/nicograef/jotti/releases); `latest` zieht die neueste).
+
+5. **DNS auf den Server zeigen lassen.** Beim Domain-Anbieter einen A-Record (und bei IPv6
+   einen AAAA-Record) auf die öffentliche IP des Servers setzen. Erst wenn die Domain auf
+   den Server zeigt, kann Let's Encrypt ein Zertifikat ausstellen.
+
+6. **Stack starten.** Im Projektordner:
+
+   ```bash
+   make prod-init
+   ```
+
+   Das Skript liest Domain und E-Mail aus der `.env`, prüft Docker und die DNS-Auflösung,
+   zieht die gepinnten Images und startet den Stack. Danach wartet es, bis das Backend
+   gesund ist und HTTPS antwortet, und gibt eine Zusammenfassung aus. Beim ersten Aufruf
+   kann die Zertifikatsausstellung einen Moment dauern.
+
+Danach ist jotti unter `https://<eure-domain>` erreichbar (grünes Schloss); HTTP leitet
+automatisch auf HTTPS um.
 
 ### jotti aktualisieren
 
@@ -249,6 +292,47 @@ Update erfassten Daten gehen dabei nicht verloren.
 > neuen Daten nicht mehr starten. `make prod-update` verweigert ein solches Downgrade. Wollt ihr
 > zurück, spielt stattdessen ein Backup ein (`make prod-restore`).
 
+### Backups (sichern und wiederherstellen)
+
+jotti speichert alle Daten in einem Docker-Volume. Macht regelmäßige Backups der Datenbank,
+schon wegen der gesetzlichen 10-Jahre-Aufbewahrung (Hintergrund im
+[Betreiber-Leitfaden, Schritt 4](./leitfaden-betreiber.md#schritt-4-daten-10-jahre-aufbewahren)).
+
+- **Sichern.** `make prod-backup` zieht einen komprimierten `pg_dump` in den Ordner
+  `BACKUP_DIR` (Standard `./backups`) und behält die neuesten `BACKUP_KEEP` Stück
+  (Standard 14). Beide Werte lassen sich in der `.env` anpassen.
+- **Wiederherstellen.** `make prod-restore` listet die vorhandenen Backups, fragt eine
+  Bestätigung ab und spielt das gewählte (standardmäßig das neueste) zurück. Das
+  überschreibt die aktuelle Datenbank.
+
+> 💾 Kopiert die Backups regelmäßig vom Server weg (auf einen anderen Rechner oder Speicher).
+> Ein Backup, das nur auf demselben Server liegt, hilft bei dessen Ausfall nicht.
+
+**Täglich automatisch sichern.** Für einen täglichen Dump liegen fertige Vorlagen im
+Repository: ein systemd-Timer (`packaging/systemd/jotti-backup.service` und
+`jotti-backup.timer`) oder alternativ ein cron-Eintrag (`packaging/cron/jotti-backup.cron`).
+Die Installationsschritte stehen als Kommentar in den Dateien; passt darin den Pfad zu eurem
+jotti-Ordner an.
+
+### Server härten (optional)
+
+Ein öffentlich erreichbarer Server sollte abgesichert werden. jotti bringt dafür ein
+optionales Skript mit, das ihr bei Bedarf einmalig ausführt:
+
+```bash
+make prod-harden
+```
+
+Es richtet eine Firewall (ufw) ein, die nur SSH sowie die Web-Ports 80 und 443 erlaubt und
+alles andere von außen sperrt (die Datenbank ist ohnehin nie nach außen geöffnet). Den
+SSH-Zugang gibt es frei, bevor die Firewall scharf geschaltet wird, damit ihr euch nicht
+aussperrt. Optional aktiviert es fail2ban gegen Anmelde-Angriffe auf SSH und weist auf
+automatische Sicherheitsupdates hin. Das Skript ist idempotent (mehrfaches Ausführen schadet
+nicht) und kein Teil der Ersteinrichtung.
+
+> ⚠️ Öffnet nach dem Härten eine zweite SSH-Sitzung, bevor ihr die erste schließt, um
+> sicherzugehen, dass ihr weiter Zugriff habt.
+
 ---
 
 ## 5. Glossar
@@ -265,7 +349,7 @@ Update erfassten Daten gehen dabei nicht verloren.
 | HTTPS / TLS                 | Verschlüsselte Verbindung im Internet (Schloss-Symbol im Browser).                         |
 | Let's Encrypt               | Kostenlose Stelle, die HTTPS-Zertifikate ausstellt.                                        |
 | `.env`                      | Konfigurationsdatei mit Passwörtern und Geheimnissen, niemals öffentlich teilen.           |
-| Reverse Proxy (nginx / Caddy) | Vermittler, der Anfragen sicher an jotti weiterleitet (lokal: Caddy, Server: nginx).     |
+| Reverse Proxy (Caddy)       | Vermittler, der Anfragen sicher an jotti weiterleitet und HTTPS bereitstellt.              |
 | Docker-Volume               | Der Speicherort, an dem Docker eure Daten dauerhaft aufbewahrt.                            |
 | SSD                         | Schnelle Festplatte (Flash-Speicher), Pflicht für flüssigen Betrieb.                       |
 | Direktverkauf („Theke")     | Verkauf, bei dem sofort bar kassiert wird, kein offener Tisch-Saldo.                       |
