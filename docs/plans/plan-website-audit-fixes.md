@@ -136,17 +136,17 @@ Die Website spiegelt den realen Fiskal-Status:
 
 ### Acceptance criteria
 
-- [ ] Keine Website-Stelle bewirbt eine „Hash-Chain"/„kryptografisch verkettet"
+- [x] Keine Website-Stelle bewirbt eine „Hash-Chain"/„kryptografisch verkettet"
       (Grep nach „Hash-Chain"/„verkett" in `website/` ist leer).
-- [ ] „TSE-Anbindung" trägt keinen `badge-wip` mehr; Leitfaden-Tabelle weist
+- [x] „TSE-Anbindung" trägt keinen `badge-wip` mehr; Leitfaden-Tabelle weist
       TSE-Signatur und Beleg als vorhanden aus.
-- [ ] Kassenbeleg-Karte erweckt nicht mehr den Eindruck, TSE-Signatur/QR fehlten.
-- [ ] dev-banner und Leitfaden-Callout nennen als offen ausschließlich
+- [x] Kassenbeleg-Karte erweckt nicht mehr den Eindruck, TSE-Signatur/QR fehlten.
+- [x] dev-banner und Leitfaden-Callout nennen als offen ausschließlich
       DSFinV-K-Export (+ Archivierung/ELSTER-Doku), nicht TSE/Beleg.
-- [ ] Hero-Badge „In Entwicklung" auf „Fiskalkonform" bleibt erhalten.
-- [ ] DSFinV-K-/KDS-/Ausgabestationen-/CSV-Badges unverändert vorhanden.
-- [ ] Jede inhaltlich geänderte Seite hat aktualisierte `lastmod` in der Sitemap.
-- [ ] `make website-check` ist grün (inkl. CSS-Klassen-Check nach Entfernen der Karte).
+- [x] Hero-Badge „In Entwicklung" auf „Fiskalkonform" bleibt erhalten.
+- [x] DSFinV-K-/KDS-/Ausgabestationen-/CSV-Badges unverändert vorhanden.
+- [x] Jede inhaltlich geänderte Seite hat aktualisierte `lastmod` in der Sitemap.
+- [x] `make website-check` ist grün (inkl. CSS-Klassen-Check nach Entfernen der Karte).
 
 ---
 

@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <!--# set var="page_title" value="jotti — Das kostenlose Kassensystem für Vereinsfeste" -->
-    <!--# set var="page_description" value="jotti ist ein kostenloses Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Fiskalkonform mit TSE-Anbindung und DSFinV-K-Export. Self-hosted, Mobile-first, kein Cloud-Abo. Quellcode einsehbar (Source-Available)." -->
+    <!--# set var="page_description" value="jotti ist ein kostenloses Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Fiskalkonform mit TSE-Anbindung und gesetzeskonformer Belegausgabe. Self-hosted, Mobile-first, kein Cloud-Abo. Quellcode einsehbar (Source-Available)." -->
     <!--# set var="page_canonical" value="https://jotti.rocks/" -->
     <!--# set var="og_type" value="website" -->
     <!--# include virtual="/partials/head-seo.html" -->
@@ -193,7 +193,7 @@
                 <tr>
                   <td>Nachvollziehbarkeit</td>
                   <td class="highlight-col">
-                    <strong>Hash-Chain + Event-Sourcing</strong>
+                    <strong>TSE-Signatur + Event-Sourcing</strong>
                   </td>
                   <td>Fehleranfällig</td>
                   <td>Ja</td>
@@ -396,22 +396,10 @@
 
           <div class="grid gap-y-7 gap-x-10 md:grid-cols-2">
             <div>
-              <h3 class="mb-1-5">
-                TSE-Anbindung <span class="badge-wip">In Entwicklung</span>
-              </h3>
+              <h3 class="mb-1-5">TSE-Anbindung</h3>
               <p class="text-15 leading-relaxed">
                 Integrierte Cloud-TSE-Schnittstelle (fiskaly). Jeder Vorgang
                 wird signiert und kryptografisch abgesichert.
-              </p>
-            </div>
-            <div>
-              <h3 class="mb-1-5">
-                Kryptografische Hash-Chain
-                <span class="badge-wip">In Entwicklung</span>
-              </h3>
-              <p class="text-15 leading-relaxed">
-                SHA-256-Verkettung aller Events. Nachträgliche Manipulation ist
-                mathematisch nachweisbar.
               </p>
             </div>
             <div>
@@ -419,8 +407,8 @@
               <p class="text-15 leading-relaxed">
                 Gesetzeskonformer Zahlungsbeleg nach § 146a AO: alle Positionen
                 mit Preisen, Vereinsdaten und Kassen-Seriennummer — auf
-                Knopfdruck, wenn der Gast ihn verlangt. TSE-Signatur, QR-Code
-                und Steuer-Aufschlüsselung folgen mit der TSE-Phase.
+                Knopfdruck, wenn der Gast ihn verlangt. Inklusive TSE-Signatur,
+                QR-Code und Steuer-Aufschlüsselung.
               </p>
             </div>
             <div>
@@ -463,7 +451,7 @@
           </h3>
           <p class="text-17 text-center max-w-160 mx-auto mb-12">
             jotti speichert jede Bestellung, jede Zahlung und jede Stornierung
-            als unveränderliches Event — kryptografisch verkettet und per TSE
+            als unveränderliches Event — append-only gespeichert und per TSE
             signiert. Nachträgliche Manipulation ist technisch ausgeschlossen.
             Das schafft Vertrauen — gegenüber dem Vorstand, den Helfern und dem
             Finanzamt.

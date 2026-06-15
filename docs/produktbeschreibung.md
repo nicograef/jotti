@@ -99,7 +99,6 @@ Mit _(in Entwicklung)_ markierte Features sind geplant, aber noch nicht umgesetz
 | Belegausgabe                                  | Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse                                             |
 | Kassen-Seriennummer                           | Automatisch generierte UUID (für ELSTER-Meldung und DSFinV-K)                                                                  |
 | Event-Sourcing                                | Unveränderliche Bestellhistorie, GoBD-konform durch Append-only-Architektur                                                    |
-| Kryptografische Hash-Chain _(in Entwicklung)_ | SHA-256-Verkettung aller Events, nachträgliche Manipulation nachweisbar                                                         |
 | Sicherheit & Zugriff                          | Sicheres Onboarding (Einmalpasswort), Argon2id, JWT-Auth, rollenbasierte Zugriffskontrolle, HTTPS (Let's Encrypt)               |
 
 ---
@@ -132,7 +131,7 @@ jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV u
 
 | Anforderung           | Umsetzung in jotti                                                                   |
 | --------------------- | ------------------------------------------------------------------------------------ |
-| Unveränderbarkeit     | Event-Sourcing (Append-Only); ergänzende SHA-256-Hash-Chain _(in Entwicklung)_       |
+| Unveränderbarkeit     | Event-Sourcing (Append-Only); jeder Geschäftsvorfall zusätzlich TSE-signiert         |
 | Kassenjournal         | Lückenlose, chronologische Transaktionshistorie                                      |
 | TSE-Signatur          | Integrierte Cloud-TSE-Schnittstelle (fiskaly); jeder Vorgang wird signiert           |
 | Belegausgabe          | Belege mit Pflichtfeldern nach § 6 KassenSichV inkl. TSE-Signatur und QR-Code        |
