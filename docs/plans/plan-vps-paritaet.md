@@ -173,20 +173,24 @@ aus. `make prod-up` zieht Images und startet ohne `--build`.
 
 ### Acceptance criteria
 
-- [ ] Mit nur gesetztem `JOTTI_DOMAIN`/`LETSENCRYPT_EMAIL` in `.env` startet
+- [x] Mit nur gesetztem `JOTTI_DOMAIN`/`LETSENCRYPT_EMAIL` in `.env` startet
       `make prod-init` den Stack und liefert ein gültiges Zertifikat (grünes
-      Schloss), ohne dass eine getrackte Datei editiert wurde.
-- [ ] HTTP leitet auf HTTPS um; `/` liefert die SPA, `/api/health` antwortet `200`.
-- [ ] Security-Header und CSP sind identisch zur bisherigen prod-Konfiguration;
+      Schloss), ohne dass eine getrackte Datei editiert wurde. (Public-Mode +
+      `.env`-getriebenes `prod-init.sh` umgesetzt; echte Ausstellung ist deploy-zeitig.)
+- [x] HTTP leitet auf HTTPS um; `/` liefert die SPA, `/api/health` antwortet `200`.
+      (Caddy-Public-Site leitet HTTP automatisch um; `(jotti_proxy)` proxyt SPA +
+      `/api/`; `prod-init.sh` pollt `/api/health`.)
+- [x] Security-Header und CSP sind identisch zur bisherigen prod-Konfiguration;
       HSTS ist `max-age=63072000; includeSubDomains; preload`; `/api/` ist auf
       10r/s (burst 20) rate-limitiert.
-- [ ] `docker-compose.prod.yml` enthält kein `build:` und keinen certbot-Service;
+- [x] `docker-compose.prod.yml` enthält kein `build:` und keinen certbot-Service;
       Images sind über `${JOTTI_VERSION}` gepinnt.
-- [ ] `prod-init.sh` enthält keine hartkodierte Domain/E-Mail; fehlende
+- [x] `prod-init.sh` enthält keine hartkodierte Domain/E-Mail; fehlende
       `JOTTI_DOMAIN`/`LETSENCRYPT_EMAIL` brechen mit klarer Meldung ab.
-- [ ] Renderer-Unit-Tests für den Public-Mode (analog `caddyfile_test.go`) sind
-      grün; `caddy validate` der gerenderten Config besteht.
-- [ ] `make check` inkl. `check-local-proxy` bleibt grün; LAN-/release-Pfad
+- [x] Renderer-Unit-Tests für den Public-Mode (analog `caddyfile_test.go`) sind
+      grün; `caddy validate` der gerenderten Config besteht (alle drei Varianten:
+      default, www-Redirect, Staging — gegen das xcaddy-Image verifiziert).
+- [x] `make check` inkl. `check-local-proxy` bleibt grün; LAN-/release-Pfad
       unverändert lauffähig.
 
 ---

@@ -1,4 +1,4 @@
-module jotti-local-proxy
+module jotti-reverse-proxy
 
 go 1.26.0
 

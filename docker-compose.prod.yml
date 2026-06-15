@@ -1,5 +1,21 @@
 name: jotti
 
+# Self-hosted production stack for a single public domain.
+#
+# Runs entirely from pinned GHCR images (no build from source on the server) and
+# terminates TLS with Caddy in public mode: set JOTTI_DOMAIN + LETSENCRYPT_EMAIL
+# in .env and Caddy obtains and renews a Let's Encrypt certificate automatically
+# (HTTP-01/TLS-ALPN). No certbot, no manual certificate choreography, no editing
+# of tracked files. See docs/betrieb/leitfaden-hosting.md → "Weg B".
+#
+# Image versions are pinned via ${JOTTI_VERSION} (default: latest).
+#
+# First deploy:  make prod-init     (validates .env/DNS, pulls, starts, verifies)
+# Update:        make prod-update    (pre-update backup, pull, migrate, verify)
+# Logs:          make prod-logs
+#
+# The jotti.rocks demo uses docker-compose.rocks.yml instead (nginx + certbot).
+
 services:
   postgres:
     image: postgres:17.8
@@ -25,26 +41,22 @@ services:
           cpus: "2.0"
 
   migrate:
-    build:
-      context: ./database
-      dockerfile: migrate/Dockerfile
+    image: ghcr.io/nicograef/jotti-migrate:${JOTTI_VERSION:-latest}
     container_name: jotti-migrate
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
       - db-network
-    volumes:
-      - ./database/migrations:/migrations
+    # No migrations bind mount: the migrations are baked into the jotti-migrate
+    # image (COPY), so the pinned stack is self-contained.
     depends_on:
       postgres:
         condition: service_healthy
     restart: "no"
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/nicograef/jotti-backend:${JOTTI_VERSION:-latest}
     container_name: jotti-backend
     restart: unless-stopped
     environment:
@@ -81,9 +93,7 @@ services:
     # No exposed ports; reachable only via reverse proxy
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/nicograef/jotti-frontend:${JOTTI_VERSION:-latest}
     container_name: jotti-frontend
     restart: unless-stopped
     networks:
@@ -99,16 +109,24 @@ services:
     # No exposed ports; served via reverse proxy
 
   reverse-proxy:
-    image: nginx:1.27-alpine
+    image: ghcr.io/nicograef/jotti-reverse-proxy:${JOTTI_VERSION:-latest}
     container_name: jotti-reverse-proxy
     restart: unless-stopped
+    environment:
+      # JOTTI_DOMAIN switches the image into public mode: one site for this
+      # domain with an automatic Let's Encrypt certificate.
+      JOTTI_DOMAIN: ${JOTTI_DOMAIN}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+      # Optional: redirect www.<domain> to <domain> (needs www DNS to point here).
+      JOTTI_WWW_REDIRECT: ${JOTTI_WWW_REDIRECT:-}
+      # Set to 1 to issue via the Let's Encrypt staging CA while testing.
+      PROXY_LE_STAGING: ${PROXY_LE_STAGING:-}
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     volumes:
-      - ./reverse-proxy/nginx.conf:/etc/nginx/conf.d/jotti.conf:ro
-      - certbot-challenges:/var/www/certbot
-      - letsencrypt:/etc/letsencrypt
+      - caddy-data:/data
     networks:
       - app-network
     depends_on:
@@ -122,26 +140,6 @@ services:
           memory: 128M
           cpus: "0.5"
 
-  certbot:
-    image: certbot/certbot:v2.11.0
-    container_name: jotti-certbot
-    restart: unless-stopped
-    volumes:
-      - certbot-challenges:/var/www/certbot
-      - letsencrypt:/etc/letsencrypt
-    networks:
-      - app-network
-    depends_on:
-      reverse-proxy:
-        condition: service_started
-    entrypoint: /bin/sh
-    command: -c "while true; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 24h; done"
-    deploy:
-      resources:
-        limits:
-          memory: 64M
-          cpus: "0.25"
-
 networks:
   app-network:
     driver: bridge
@@ -151,5 +149,5 @@ networks:
 
 volumes:
   postgres-data:
-  certbot-challenges:
-  letsencrypt:
+  # Caddy's data dir holds the Let's Encrypt certificates and ACME account.
+  caddy-data:

@@ -1,10 +1,16 @@
-// Command jotti-local-proxy ist der Entrypoint des lokalen Caddy-Containers
-// (docker-compose.local.yml). Ablauf beim Start: Installations-State
-// sicherstellen (Install-ID + acme-dns-Credentials, einmalige Registrierung) →
-// LAN-IP bestimmen → Caddyfile rendern → Caddy als Kindprozess starten. Caddy
-// holt und erneuert das vertrauenswürdige Wildcard-Zertifikat asynchron; bis
-// dahin (und offline) trägt die Fallback-Site mit interner CA. prod/rocks bleiben
-// auf nginx und nutzen dieses Programm nicht.
+// Command jotti-reverse-proxy ist der Caddy-Container-Entrypoint für zwei Modi:
+//
+// LAN-Mode (docker-compose.local.yml / release): Installations-State sicherstellen
+// (Install-ID + acme-dns-Credentials, einmalige Registrierung) → LAN-IP bestimmen
+// → Caddyfile rendern → Status-Seite starten → Caddy als Kindprozess starten.
+// Caddy holt und erneuert das vertrauenswürdige Wildcard-Zertifikat asynchron;
+// bis dahin (und offline) trägt die Fallback-Site mit interner CA.
+//
+// Public-Mode (docker-compose.prod.yml, Self-Hoster): ist JOTTI_DOMAIN gesetzt,
+// rendert der Entrypoint einen Public-Caddyfile (eine Site mit automatischem
+// Let's-Encrypt-Zertifikat) und startet Caddy — ohne State, acme-dns oder
+// Status-Seite. Die jotti.rocks-Demo bleibt auf nginx und nutzt dieses Programm
+// nicht.
 package main
 
 import (
@@ -31,6 +37,9 @@ const (
 const registerTimeout = 30 * time.Second
 
 type config struct {
+	domain        string // JOTTI_DOMAIN gesetzt ⇒ Public-Mode statt LAN-Mode
+	email         string // LETSENCRYPT_EMAIL (Public-Mode)
+	wwwRedirect   bool   // JOTTI_WWW_REDIRECT (Public-Mode)
 	lanIPEnv      string
 	zone          string
 	acmeDNSURL    string
@@ -42,6 +51,9 @@ type config struct {
 
 func loadConfig(getenv func(string) string) config {
 	return config{
+		domain:        strings.TrimSpace(getenv("JOTTI_DOMAIN")),
+		email:         strings.TrimSpace(getenv("LETSENCRYPT_EMAIL")),
+		wwwRedirect:   parseBool(getenv("JOTTI_WWW_REDIRECT")),
 		lanIPEnv:      getenv("LAN_IP"),
 		zone:          valueOrDefault(getenv("PROXY_ZONE"), defaultZone),
 		acmeDNSURL:    valueOrDefault(getenv("ACMEDNS_BASE_URL"), defaultACMEDNSURL),
@@ -55,6 +67,49 @@ func loadConfig(getenv func(string) string) config {
 func main() {
 	cfg := loadConfig(os.Getenv)
 
+	// JOTTI_DOMAIN gesetzt ⇒ öffentlicher Self-Hoster-Stack (keine acme-dns-
+	// Registrierung, keine Status-Seite, Public-Caddyfile).
+	if cfg.domain != "" {
+		runPublicMode(cfg)
+		return
+	}
+
+	runLANMode(cfg)
+}
+
+// runPublicMode rendert und startet Caddy für den öffentlichen Self-Hoster-Stack:
+// eine Site für JOTTI_DOMAIN mit automatischem Let's-Encrypt-Zertifikat. Eine
+// fehlende E-Mail ist ein Konfigurationsfehler und bricht früh mit klarer Meldung
+// ab.
+func runPublicMode(cfg config) {
+	if cfg.email == "" {
+		log.Fatalf("Public-Mode (JOTTI_DOMAIN=%s): LETSENCRYPT_EMAIL muss gesetzt sein", cfg.domain)
+	}
+
+	log.Printf("Public-Mode aktiv | Zugangsadresse: https://%s", cfg.domain)
+	if cfg.wwwRedirect {
+		log.Printf("www.%s leitet dauerhaft auf %s um", cfg.domain, cfg.domain)
+	}
+	if cfg.leStaging {
+		log.Printf("ACME-CA: Let's-Encrypt-STAGING (Testmodus, kein vertrauenswürdiges Zertifikat)")
+	}
+
+	caddyfile := renderPublicCaddyfile(publicInput{
+		domain:      cfg.domain,
+		email:       cfg.email,
+		wwwRedirect: cfg.wwwRedirect,
+		leStaging:   cfg.leStaging,
+	})
+	if err := os.WriteFile(cfg.caddyfilePath, []byte(caddyfile), 0o644); err != nil {
+		log.Fatalf("Caddyfile schreiben: %v", err)
+	}
+
+	runCaddyOrExit(cfg)
+}
+
+// runLANMode ist der lokale/Release-Ablauf: Installations-State, LAN-IP,
+// Wildcard- plus Fallback-Site und die Status-Seite.
+func runLANMode(cfg config) {
 	state, err := ensureState(stateDeps{
 		path:      cfg.statePath,
 		readFile:  os.ReadFile,
@@ -113,6 +168,12 @@ func main() {
 	}()
 	log.Printf("Status & Zugangsadresse: http://localhost:8484")
 
+	runCaddyOrExit(cfg)
+}
+
+// runCaddyOrExit startet Caddy als Vordergrundprozess und spiegelt dessen
+// Exit-Status. Gemeinsamer Abschluss von LAN- und Public-Mode.
+func runCaddyOrExit(cfg config) {
 	if err := runCaddy(cfg.caddyBin, cfg.caddyfilePath); err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {

@@ -150,12 +150,12 @@ sqlc: ## sqlc Code generieren (aus SQL-Queries)
 # Produktion                                    
 # ──────────────────────────────────────────────
 
-prod-init: ## Ersteinrichtung Produktion (Zertifikate, Stack)
+prod-init: ## Ersteinrichtung Produktion (.env prüfen, Images ziehen, Caddy Auto-TLS, Stack)
 	./scripts/prod-init.sh
 
-prod-up: ## Produktions-Stack starten/aktualisieren (wendet nginx-Config-Änderungen an)
-	docker compose -f docker-compose.prod.yml up -d --build
-	docker compose -f docker-compose.prod.yml up -d --no-deps --force-recreate reverse-proxy
+prod-up: ## Produktions-Stack starten/aktualisieren (zieht gepinnte Images, kein Build)
+	docker compose -f docker-compose.prod.yml pull
+	docker compose -f docker-compose.prod.yml up -d
 
 prod-down: ## Produktions-Stack stoppen
 	docker compose -f docker-compose.prod.yml down
