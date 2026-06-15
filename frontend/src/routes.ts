@@ -4,6 +4,7 @@ import {
   redirect,
 } from 'react-router'
 
+import { getArbeitsmodus, setArbeitsmodus } from '@/lib/arbeitsmodus'
 import { AuthSingleton } from '@/lib/Auth'
 
 import App from './App'
@@ -46,6 +47,26 @@ export function ServiceTableGuard({ params }: LoaderFunctionArgs) {
   if (!Number.isInteger(tischId) || tischId <= 0) {
     return redirect('/service/tische')
   }
+  setArbeitsmodus('tischservice')
+}
+
+// Service-Einstieg: in den zuletzt genutzten Modus weiterleiten.
+export function ServiceIndexRedirect() {
+  return redirect(
+    getArbeitsmodus() === 'direktverkauf' ? 'direktverkauf' : 'tische',
+  )
+}
+
+// Beim Besuch einer Modus-Route den zugehörigen Modus persistieren
+// (auch Deep-Links und Lesezeichen zählen so als „zuletzt genutzt").
+export function ServiceTischauswahlLoader() {
+  setArbeitsmodus('tischservice')
+  return null
+}
+
+export function ServiceDirektverkaufLoader() {
+  setArbeitsmodus('direktverkauf')
+  return null
 }
 
 export const router = createBrowserRouter([
@@ -123,9 +144,10 @@ export const router = createBrowserRouter([
         }),
         loader: ServiceGuard,
         children: [
-          { index: true, loader: () => redirect('tische') },
+          { index: true, loader: ServiceIndexRedirect },
           {
             path: 'tische',
+            loader: ServiceTischauswahlLoader,
             lazy: async () => ({
               Component: (await import('./service/TableSelectionPage'))
                 .TableSelectionPage,
@@ -133,6 +155,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'direktverkauf',
+            loader: ServiceDirektverkaufLoader,
             lazy: async () => ({
               Component: (await import('./service/DirektverkaufPage'))
                 .DirektverkaufPage,

@@ -118,22 +118,22 @@ Admin-Bereich erscheint der Eintrag nicht. End-to-end: wechseln → persistieren
 
 ### Acceptance criteria
 
-- [ ] Ohne gespeicherte Präferenz liefert das Modul Tischservice.
-- [ ] Nach Setzen eines Modus liefert das Modul diesen zurück; der Wert
+- [x] Ohne gespeicherte Präferenz liefert das Modul Tischservice.
+- [x] Nach Setzen eines Modus liefert das Modul diesen zurück; der Wert
       überlebt ein Neu-Initialisieren (Persistenz, von außen beobachtbar).
-- [ ] Der Einstieg in den Service-Bereich leitet bei gespeichertem
+- [x] Der Einstieg in den Service-Bereich leitet bei gespeichertem
       Tischservice auf die Tischauswahl, bei Direktverkauf auf den
       Direktverkauf weiter.
-- [ ] Der Besuch einer Modus-Route aktualisiert den gespeicherten Modus
+- [x] Der Besuch einer Modus-Route aktualisiert den gespeicherten Modus
       (Direktverkauf-Route → Direktverkauf; Tischauswahl und Tischdetail →
       Tischservice).
-- [ ] Das Benutzermenü zeigt im Service-Bereich „Zu Direktverkauf wechseln"
+- [x] Das Benutzermenü zeigt im Service-Bereich „Zu Direktverkauf wechseln"
       bzw. „Zu Tischservice wechseln" (Verb + Wechsel-Icon); der Klick setzt
       die Präferenz und navigiert in den anderen Modus.
-- [ ] Der Wechsel-Eintrag steht Servicekraft, Serviceleitung und Admin im
+- [x] Der Wechsel-Eintrag steht Servicekraft, Serviceleitung und Admin im
       Service-Bereich zur Verfügung und erscheint nicht im Admin-Bereich.
-- [ ] Keine Backend-, Schema-, API- oder Event-Änderung.
-- [ ] `make lint` ist grün; neue Tests laufen.
+- [x] Keine Backend-, Schema-, API- oder Event-Änderung.
+- [x] `make lint` ist grün; neue Tests laufen.
 
 ---
 
