@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { useLiveReporting } from '@/admin/reporting/hooks'
+import { EuroField } from '@/components/common/FormFields'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,15 +34,14 @@ import {
 import { Input } from '@/components/ui/input'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
-import { formatCents, parseCents } from '@/lib/utils'
+import { formatCents } from '@/lib/utils'
 
 import { kasseBackend, useKassenbestand, useOffeneKassensitzung } from './hooks'
 import {
+  BetragCentsSchema,
   BezeichnungSchema,
-  EuroBetragSchema,
   GeldtransitRichtung,
   GeldtransitRichtungSchema,
-  PositiverEuroBetragSchema,
 } from './Kassensitzung'
 
 export function KassensitzungPage() {
@@ -100,14 +100,16 @@ export function KassensitzungPage() {
 function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
   const FormDataSchema = z.object({
     bezeichnung: BezeichnungSchema,
-    betragEuro: EuroBetragSchema,
+    betragCents: BetragCentsSchema.gte(1, {
+      message: 'Bitte einen Anfangsbestand eingeben.',
+    }),
   })
   type FormData = z.infer<typeof FormDataSchema>
 
   const form = useForm<FormData>({
     defaultValues: {
       bezeichnung: '',
-      betragEuro: '',
+      betragCents: 0,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
@@ -126,7 +128,7 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
     await run(async () => {
       await kasseBackend.kassensitzungEroeffnen(
         data.bezeichnung,
-        parseCents(data.betragEuro),
+        data.betragCents,
       )
       toast.success('Kassensitzung eröffnet.')
       onSuccess()
@@ -168,26 +170,14 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
                 <FieldError errors={[form.formState.errors.bezeichnung]} />
               )}
             </Field>
-            <Field
-              data-invalid={!!form.formState.errors.betragEuro}
-              className="gap-1"
-            >
-              <FieldLabel htmlFor="ks-anfangsbestand">
-                Anfangsbestand (€)
-              </FieldLabel>
-              <Input
-                id="ks-anfangsbestand"
-                type="text"
-                inputMode="decimal"
-                {...form.register('betragEuro')}
-                aria-invalid={!!form.formState.errors.betragEuro}
-                placeholder="z.B. 150,00"
-                className="w-40"
-              />
-              {form.formState.errors.betragEuro && (
-                <FieldError errors={[form.formState.errors.betragEuro]} />
-              )}
-            </Field>
+            <EuroField
+              form={form}
+              name="betragCents"
+              label="Anfangsbestand"
+              withLabel
+              placeholder="z.B. 150,00"
+              className="w-44"
+            />
             <div>
               <Button type="submit" disabled={loading}>
                 Kassensitzung eröffnen
@@ -203,7 +193,9 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
 function GeldtransitSection({ onSuccess }: { onSuccess: () => void }) {
   const FormDataSchema = z.object({
     richtung: GeldtransitRichtungSchema,
-    betragEuro: PositiverEuroBetragSchema,
+    betragCents: BetragCentsSchema.gte(1, {
+      message: 'Bitte einen Betrag größer als 0 eingeben.',
+    }),
     kommentar: z
       .string()
       .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' })
@@ -214,7 +206,7 @@ function GeldtransitSection({ onSuccess }: { onSuccess: () => void }) {
   const form = useForm<FormData>({
     defaultValues: {
       richtung: GeldtransitRichtung.EINLAGE,
-      betragEuro: '',
+      betragCents: 0,
       kommentar: '',
     },
     resolver: zodResolver(FormDataSchema),
@@ -230,7 +222,7 @@ function GeldtransitSection({ onSuccess }: { onSuccess: () => void }) {
     await run(async () => {
       await kasseBackend.geldtransitBuchen(
         data.richtung,
-        parseCents(data.betragEuro),
+        data.betragCents,
         data.kommentar,
       )
       toast.success('Kassenbewegung gebucht.')
@@ -301,24 +293,14 @@ function GeldtransitSection({ onSuccess }: { onSuccess: () => void }) {
                 <FieldError errors={[form.formState.errors.richtung]} />
               )}
             </Field>
-            <Field
-              data-invalid={!!form.formState.errors.betragEuro}
-              className="gap-1"
-            >
-              <FieldLabel htmlFor="bewegung-betrag">Betrag (€)</FieldLabel>
-              <Input
-                id="bewegung-betrag"
-                type="text"
-                inputMode="decimal"
-                {...form.register('betragEuro')}
-                aria-invalid={!!form.formState.errors.betragEuro}
-                placeholder="z.B. 25,00"
-                className="w-40"
-              />
-              {form.formState.errors.betragEuro && (
-                <FieldError errors={[form.formState.errors.betragEuro]} />
-              )}
-            </Field>
+            <EuroField
+              form={form}
+              name="betragCents"
+              label="Betrag"
+              withLabel
+              placeholder="z.B. 25,00"
+              className="w-44"
+            />
             <Field
               data-invalid={!!form.formState.errors.kommentar}
               className="gap-1"
@@ -360,12 +342,12 @@ export function KasseAbschliessenSection({
   const [istBestandCents, setIstBestandCents] = useState<number | null>(null)
 
   const FormDataSchema = z.object({
-    istBestandEuro: EuroBetragSchema,
+    istBestandCents: BetragCentsSchema,
   })
   type FormData = z.infer<typeof FormDataSchema>
 
   const form = useForm<FormData>({
-    defaultValues: { istBestandEuro: '' },
+    defaultValues: { istBestandCents: 0 },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
@@ -382,7 +364,7 @@ export function KasseAbschliessenSection({
       : sollBestandCents - istBestandCents
 
   const onSubmit = (data: FormData) => {
-    setIstBestandCents(parseCents(data.istBestandEuro))
+    setIstBestandCents(data.istBestandCents)
     setDialogOpen(true)
   }
 
@@ -417,26 +399,14 @@ export function KasseAbschliessenSection({
           }}
         >
           <FieldGroup>
-            <Field
-              data-invalid={!!form.formState.errors.istBestandEuro}
-              className="gap-1"
-            >
-              <FieldLabel htmlFor="abschluss-ist">
-                Gezählter Ist-Bestand (€)
-              </FieldLabel>
-              <Input
-                id="abschluss-ist"
-                type="text"
-                inputMode="decimal"
-                {...form.register('istBestandEuro')}
-                aria-invalid={!!form.formState.errors.istBestandEuro}
-                placeholder="z.B. 342,50"
-                className="w-40"
-              />
-              {form.formState.errors.istBestandEuro && (
-                <FieldError errors={[form.formState.errors.istBestandEuro]} />
-              )}
-            </Field>
+            <EuroField
+              form={form}
+              name="istBestandCents"
+              label="Gezählter Ist-Bestand"
+              withLabel
+              placeholder="z.B. 342,50"
+              className="w-44"
+            />
             <div>
               <Button type="submit" variant="destructive">
                 Kasse abschließen

@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { EuroInput } from '@/components/common/EuroInput'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
@@ -111,20 +111,12 @@ export function Direktverkauf({
         </div>
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor="erhalten">Erhalten</Label>
-          <div className="flex items-center gap-1.5">
-            <Input
-              id="erhalten"
-              inputMode="decimal"
-              placeholder="0,00"
-              value={erhaltenEuro}
-              onChange={(e) => {
-                setErhaltenEuro(e.target.value)
-              }}
-              className="w-24 text-right"
-              spellCheck={false}
-            />
-            <span>€</span>
-          </div>
+          <EuroInput
+            id="erhalten"
+            value={erhaltenEuro}
+            onValueChange={setErhaltenEuro}
+            className="w-28"
+          />
         </div>
         {rueckgeldCents !== null && (
           <div className="flex justify-between font-medium">

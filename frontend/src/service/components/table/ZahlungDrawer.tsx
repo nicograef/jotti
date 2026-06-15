@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { EuroInput } from '@/components/common/EuroInput'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -11,7 +12,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
@@ -115,37 +115,21 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
           <div className="px-4 pt-3 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="zielbetrag">inklusive Trinkgeld</Label>
-              <div className="flex items-center gap-1.5">
-                <Input
-                  id="zielbetrag"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={zielbetragEuro}
-                  onChange={(e) => {
-                    setZielbetragEuro(e.target.value)
-                  }}
-                  className="w-24 text-right"
-                  spellCheck={false}
-                />
-                <span>€</span>
-              </div>
+              <EuroInput
+                id="zielbetrag"
+                value={zielbetragEuro}
+                onValueChange={setZielbetragEuro}
+                className="w-28"
+              />
             </div>
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="erhalten">Erhalten</Label>
-              <div className="flex items-center gap-1.5">
-                <Input
-                  id="erhalten"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={erhaltenEuro}
-                  onChange={(e) => {
-                    setErhaltenEuro(e.target.value)
-                  }}
-                  className="w-24 text-right"
-                  spellCheck={false}
-                />
-                <span>€</span>
-              </div>
+              <EuroInput
+                id="erhalten"
+                value={erhaltenEuro}
+                onValueChange={setErhaltenEuro}
+                className="w-28"
+              />
             </div>
             {rueckgeldCents !== null && (
               <div className="flex justify-between font-medium">

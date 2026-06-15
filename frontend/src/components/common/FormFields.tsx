@@ -1,8 +1,11 @@
 import { REGEXP_ONLY_DIGITS } from 'input-otp'
 import { EyeClosedIcon, EyeIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Controller,
+  type ControllerFieldState,
+  type ControllerRenderProps,
+  type FieldPath,
   type FieldValues,
   type Path,
   type UseFormReturn,
@@ -38,6 +41,8 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { formatCents, parseCents } from '@/lib/utils'
+
+import { EuroInput } from './EuroInput'
 
 interface FieldProps<TField extends FieldValues> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -321,68 +326,122 @@ export function DescriptionField<AllFormFields extends FieldValues>({
   )
 }
 
-const cleanInput = (input: string): string => {
-  return input.replace(/[^0-9,]/g, '').replace(/,+/g, ',')
+const centsToDisplay = (value: unknown): string =>
+  typeof value === 'number' && value > 0 ? formatCents(value) : ''
+
+interface EuroFieldProps<TField extends FieldValues> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: UseFormReturn<TField, any, TField>
+  name: FieldPath<TField>
+  label?: string
+  withLabel?: boolean
+  placeholder?: string
+  description?: string
+  className?: string
 }
 
-/** Input field for the net price. Converts the data representation as cents to the user-friendly Euro format. */
+/**
+ * Form field for a Euro amount. Stores integer cents in the form while showing
+ * the user-friendly Euro string via {@link EuroInput}. Use for any monetary
+ * input bound to react-hook-form.
+ */
+export function EuroField<TField extends FieldValues>({
+  form,
+  name,
+  label,
+  withLabel,
+  placeholder,
+  description,
+  className,
+}: EuroFieldProps<TField>) {
+  return (
+    <Controller
+      name={name}
+      control={form.control}
+      render={({ field, fieldState }) => (
+        <EuroFieldControl
+          field={field as ControllerRenderProps}
+          fieldState={fieldState}
+          id={`form-${name}`}
+          label={label}
+          withLabel={withLabel}
+          placeholder={placeholder}
+          description={description}
+          className={className}
+        />
+      )}
+    />
+  )
+}
+
+function EuroFieldControl({
+  field,
+  fieldState,
+  id,
+  label,
+  withLabel,
+  placeholder,
+  description,
+  className,
+}: {
+  field: ControllerRenderProps
+  fieldState: ControllerFieldState
+  id: string
+  label?: string
+  withLabel?: boolean
+  placeholder?: string
+  description?: string
+  className?: string
+}) {
+  const cents = field.value as number
+  const [display, setDisplay] = useState<string>(() => centsToDisplay(cents))
+  const lastEmitted = useRef<number>(cents)
+
+  // Reflect external changes (e.g. form.reset after a successful booking) in the
+  // display without overwriting an amount the user is currently typing.
+  useEffect(() => {
+    if (cents !== lastEmitted.current) {
+      setDisplay(centsToDisplay(cents))
+      lastEmitted.current = cents
+    }
+  }, [cents])
+
+  return (
+    <Field data-invalid={fieldState.invalid} className="gap-1">
+      {withLabel && <FieldLabel htmlFor={id}>{label ?? 'Betrag'}</FieldLabel>}
+      {description && <FieldDescription>{description}</FieldDescription>}
+      <EuroInput
+        id={id}
+        aria-invalid={fieldState.invalid}
+        placeholder={placeholder}
+        className={className}
+        value={display}
+        onValueChange={(raw) => {
+          setDisplay(raw)
+          const next = parseCents(raw)
+          lastEmitted.current = next
+          field.onChange(next)
+        }}
+        onBlur={field.onBlur}
+      />
+      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+    </Field>
+  )
+}
+
+/** Euro input for a product's net price, bound to the `preisCents` form field. */
 export function PriceField<AllFormFields extends FieldValues>({
   form,
   withLabel,
   placeholder,
 }: FieldProps<{ preisCents: number } & AllFormFields>) {
-  const [value, setValue] = useState<string>(() => {
-    const cents = form.getValues().preisCents
-    return cents > 0 ? formatCents(cents) : ''
-  })
-  const [debounceTimeout, setDebounceTimeout] = useState<number | null>(null)
-
   return (
-    <Controller
-      name={'preisCents' as Path<{ preisCents: number } & AllFormFields>}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && (
-            <FieldLabel htmlFor="form-preisCents">Preis</FieldLabel>
-          )}
-          <div className="flex">
-            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-background text-muted-foreground text-sm">
-              €
-            </span>
-            <Input
-              {...field}
-              id="form-preisCents"
-              className="border-l-0"
-              type="text"
-              aria-invalid={fieldState.invalid}
-              placeholder={placeholder ?? 'Preis in Euro (z.B. 4,50)'}
-              autoComplete="off"
-              value={value}
-              onChange={(e) => {
-                const cleanedValue = cleanInput(e.target.value)
-                setValue(cleanedValue)
-                const preisCents = parseCents(cleanedValue)
-                field.onChange(preisCents)
-
-                //  Debounce the conversion to avoid cursor jumping
-                if (debounceTimeout) clearTimeout(debounceTimeout)
-                const newTimeout = setTimeout(() => {
-                  setValue(preisCents > 0 ? formatCents(preisCents) : '')
-                }, 1000)
-                setDebounceTimeout(newTimeout)
-              }}
-              onBlur={(e) => {
-                if (debounceTimeout) clearTimeout(debounceTimeout)
-                const preisCents = parseCents(e.target.value)
-                setValue(preisCents > 0 ? formatCents(preisCents) : '')
-                field.onChange(preisCents)
-              }}
-            />
-          </div>
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
+    <EuroField
+      form={form}
+      name={'preisCents' as FieldPath<{ preisCents: number } & AllFormFields>}
+      label="Preis"
+      withLabel={withLabel}
+      placeholder={placeholder ?? 'Preis in Euro (z.B. 4,50)'}
     />
   )
 }

@@ -1,6 +1,7 @@
 import { HandCoins } from 'lucide-react'
 import { useState } from 'react'
 
+import { EuroInput } from '@/components/common/EuroInput'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -13,7 +14,6 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Field } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { formatCents, parseCents } from '@/lib/utils'
@@ -90,17 +90,7 @@ export function AuszahlungDrawer(props: AuszahlungDrawerProps) {
           </DrawerHeader>
           <div className="px-4 flex flex-col gap-3">
             <Field>
-              <Input
-                type="number"
-                min="0.01"
-                step="0.01"
-                placeholder="Betrag in €"
-                value={betragEuro}
-                onChange={(e) => {
-                  setBetragEuro(e.target.value)
-                }}
-                spellCheck={false}
-              />
+              <EuroInput value={betragEuro} onValueChange={setBetragEuro} />
             </Field>
             <KommentarField
               required

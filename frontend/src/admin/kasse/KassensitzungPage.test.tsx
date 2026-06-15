@@ -43,7 +43,7 @@ describe('KasseAbschliessenSection', () => {
     const user = userEvent.setup()
     render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
 
-    const istInput = screen.getByLabelText('Gezählter Ist-Bestand (€)')
+    const istInput = screen.getByLabelText('Gezählter Ist-Bestand')
     await user.type(istInput, '342,50')
     expect(istInput).toHaveValue('342,50')
 
@@ -60,7 +60,7 @@ describe('KasseAbschliessenSection', () => {
     render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
 
     await user.type(
-      screen.getByLabelText('Gezählter Ist-Bestand (€)'),
+      screen.getByLabelText('Gezählter Ist-Bestand'),
       '342,50',
     )
     await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
