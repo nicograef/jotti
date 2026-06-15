@@ -170,10 +170,10 @@ Eine thin slice „kleine Korrektheits-/Konsistenzfixes":
 
 ### Acceptance criteria
 
-- [ ] Startseite und Hosting-Seite nennen identische Server-Mindestanforderungen
+- [x] Startseite und Hosting-Seite nennen identische Server-Mindestanforderungen
       (2 GB RAM / 20 GB SSD), konsistent zu leitfaden-hosting.md.
-- [ ] Kein `z.B.` ohne geschütztes Leerzeichen mehr in `website/`.
-- [ ] Sitemap-`lastmod` aktualisiert; `make website-check` grün.
+- [x] Kein `z.B.` ohne geschütztes Leerzeichen mehr in `website/`.
+- [x] Sitemap-`lastmod` aktualisiert; `make website-check` grün.
 
 ---
 
