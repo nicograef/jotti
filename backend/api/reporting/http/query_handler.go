@@ -61,6 +61,7 @@ type summaryResponse struct {
 	GesamtAuszahlungenCents  int `json:"gesamtAuszahlungenCents"`
 	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
 	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
+	GeldtransitCents         int `json:"geldtransitCents"`
 	AnzahlBestellungen       int `json:"anzahlBestellungen"`
 	AnzahlStornierungen      int `json:"anzahlStornierungen"`
 	AnzahlDirektverkaeufe    int `json:"anzahlDirektverkaeufe"`
@@ -216,6 +217,7 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 			GesamtAuszahlungenCents:  d.Summary.GesamtAuszahlungenCents,
 			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
 			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
+			GeldtransitCents:         d.Summary.GeldtransitCents,
 			AnzahlBestellungen:       d.Summary.AnzahlBestellungen,
 			AnzahlStornierungen:      d.Summary.AnzahlStornierungen,
 			AnzahlDirektverkaeufe:    d.Summary.AnzahlDirektverkaeufe,
@@ -304,6 +306,7 @@ type liveSummaryResponse struct {
 	GesamtAuszahlungenCents  int `json:"gesamtAuszahlungenCents"`
 	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
 	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
+	GeldtransitCents         int `json:"geldtransitCents"`
 	AnzahlBestellungen       int `json:"anzahlBestellungen"`
 	AnzahlStornierungen      int `json:"anzahlStornierungen"`
 	AnzahlDirektverkaeufe    int `json:"anzahlDirektverkaeufe"`
@@ -343,6 +346,7 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 			GesamtAuszahlungenCents:  d.Summary.GesamtAuszahlungenCents,
 			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
 			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
+			GeldtransitCents:         d.Summary.GeldtransitCents,
 			AnzahlBestellungen:       d.Summary.AnzahlBestellungen,
 			AnzahlStornierungen:      d.Summary.AnzahlStornierungen,
 			AnzahlDirektverkaeufe:    d.Summary.AnzahlDirektverkaeufe,

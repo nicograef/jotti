@@ -11,6 +11,7 @@ const reportingResult: ReportingData = {
     gesamtAuszahlungenCents: 1200,
     gesamtBestellungenCents: 6500,
     gesamtStornierungenCents: 300,
+    geldtransitCents: 0,
     anzahlBestellungen: 8,
     anzahlStornierungen: 1,
     anzahlDirektverkaeufe: 7,

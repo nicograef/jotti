@@ -52,6 +52,7 @@ type Summary struct {
 	GesamtAuszahlungenCents  int
 	GesamtBestellungenCents  int
 	GesamtStornierungenCents int
+	GeldtransitCents         int
 	AnzahlBestellungen       int
 	AnzahlStornierungen      int
 	AnzahlDirektverkaeufe    int

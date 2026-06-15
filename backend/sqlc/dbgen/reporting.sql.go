@@ -125,6 +125,7 @@ SELECT
     COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS gesamt_auszahlungen_cents,
     COALESCE(SUM(kj_extract_bestellung_cents(type, data)), 0)::int AS gesamt_bestellungen_cents,
     COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int AS gesamt_stornierungen_cents,
+    COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int AS gesamt_geldtransit_cents,
     COALESCE(COUNT(CASE WHEN type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
     COALESCE(COUNT(CASE WHEN type = 'stornierung-erteilt:v1' THEN 1 END), 0)::int AS anzahl_stornierungen,
     COALESCE(COUNT(CASE WHEN type = 'direktverkauf-getaetigt:v1' THEN 1 END), 0)::int AS anzahl_direktverkaeufe,
@@ -139,7 +140,8 @@ WHERE type IN (
     'stornierung-erteilt:v1',
     'auszahlung-geleistet:v1',
     'direktverkauf-getaetigt:v1',
-    'direktverkauf-storniert:v1'
+    'direktverkauf-storniert:v1',
+    'geldtransit-gebucht:v1'
 )
 AND kassensitzung_nr = $1
 `
@@ -149,6 +151,7 @@ type GetReportingStatsRow struct {
 	GesamtAuszahlungenCents  int
 	GesamtBestellungenCents  int
 	GesamtStornierungenCents int
+	GesamtGeldtransitCents   int
 	AnzahlBestellungen       int
 	AnzahlStornierungen      int
 	AnzahlDirektverkaeufe    int
@@ -164,6 +167,7 @@ func (q *Queries) GetReportingStats(ctx context.Context, kassensitzungNr int) (G
 		&i.GesamtAuszahlungenCents,
 		&i.GesamtBestellungenCents,
 		&i.GesamtStornierungenCents,
+		&i.GesamtGeldtransitCents,
 		&i.AnzahlBestellungen,
 		&i.AnzahlStornierungen,
 		&i.AnzahlDirektverkaeufe,

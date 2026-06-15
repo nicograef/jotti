@@ -205,6 +205,7 @@ func toSummary(stats dbgen.GetReportingStatsRow) reporting.Summary {
 		GesamtAuszahlungenCents:  stats.GesamtAuszahlungenCents,
 		GesamtBestellungenCents:  stats.GesamtBestellungenCents,
 		GesamtStornierungenCents: stats.GesamtStornierungenCents,
+		GeldtransitCents:         stats.GesamtGeldtransitCents,
 		AnzahlBestellungen:       stats.AnzahlBestellungen,
 		AnzahlStornierungen:      stats.AnzahlStornierungen,
 		AnzahlDirektverkaeufe:    stats.AnzahlDirektverkaeufe,

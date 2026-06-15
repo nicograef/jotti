@@ -5,6 +5,7 @@ export const SummarySchema = z.object({
   gesamtAuszahlungenCents: z.number().int(),
   gesamtBestellungenCents: z.number().int(),
   gesamtStornierungenCents: z.number().int(),
+  geldtransitCents: z.number().int(),
   anzahlBestellungen: z.number().int(),
   anzahlStornierungen: z.number().int(),
   anzahlDirektverkaeufe: z.number().int(),

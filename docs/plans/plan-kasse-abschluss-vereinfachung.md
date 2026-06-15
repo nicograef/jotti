@@ -150,12 +150,12 @@ liefern sowohl `GetReporting` als auch das Live-Reporting die Geldtransit-Summe.
 
 ### Acceptance criteria
 
-- [ ] `GetReportingStats` liefert `gesamt_geldtransit_cents` und schließt
+- [x] `GetReportingStats` liefert `gesamt_geldtransit_cents` und schließt
       `geldtransit-gebucht:v1` ein; sqlc-Code ist neu generiert (`make sqlc`).
-- [ ] `reporting.Summary` enthält `GeldtransitCents`, `toSummary` befüllt es.
-- [ ] Die Reporting- und Live-Reporting-Antworten enthalten `geldtransitCents`;
+- [x] `reporting.Summary` enthält `GeldtransitCents`, `toSummary` befüllt es.
+- [x] Die Reporting- und Live-Reporting-Antworten enthalten `geldtransitCents`;
       `SummarySchema` im Frontend kennt das Feld und parst ohne Fehler.
-- [ ] Backend- und Frontend-Build/Tests laufen grün.
+- [x] Backend- und Frontend-Build/Tests laufen grün.
 
 ---
 
