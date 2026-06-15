@@ -163,7 +163,7 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 | Zeitgerechte Buchung       | ✅ Erfüllt          | Events mit Echtzeit-Zeitstempel                                                                                               |
 | Ordnungsmäßigkeit          | ✅ Erfüllt          | Strukturiertes Datenmodell, typisierte Events                                                                                 |
 | Kryptografische Verkettung | ✅ Erfüllt          | TSE-Signatur (fiskaly Cloud-TSE) für alle Geschäftsvorfälle; Signaturdaten im Event persistiert, Ausfälle werden nachsigniert |
-| 10-Jahres-Aufbewahrung     | ⚠️ Nicht adressiert | Keine Archivierungsstrategie implementiert                                                                                    |
+| 10-Jahres-Aufbewahrung     | 🔲 Geplant (F-10)   | Archiv-Export und dokumentierte Aufbewahrungsstrategie geplant; die Aufbewahrung selbst ist Betreiberpflicht (§8)              |
 
 ### 4.2 Anforderungen gemäß §§ 146, 147 AO und GoBD
 
@@ -174,9 +174,9 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 
 ### 4.3 Handlungsbedarf
 
-- Archivierungsstrategie für die 10-Jahres-Aufbewahrung definieren
-- Verfahrensdokumentation erstellen
-- Soft-Delete-Praxis bei Stammdaten prüfen
+- 10-Jahres-Archivierung: Archiv-Export bereitstellen und Aufbewahrungsstrategie dokumentieren (→ [anforderungen.md F-10](anforderungen.md))
+- Muster-Verfahrensdokumentation im Repository bereitstellen (→ [anforderungen.md F-11](anforderungen.md))
+- Soft-Delete bei Stammdaten: umgesetzt (Status `deleted` statt Hard-Delete; Verkaufspreise werden pro Event festgeschrieben, historische Buchungen bleiben dadurch unberührt)
 
 ---
 

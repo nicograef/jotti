@@ -224,10 +224,12 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | F-03 | Belegausgabepflicht | 1/2   | ✅                         | Must        |
 | F-05 | ELSTER-Meldung      | 1     | 🔲                         | Must (Doku) |
 | F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung | Should      |
+| F-11 | Verfahrensdokumentation | 1 | 🔲                       | Should (Doku) |
 | F-02 | TSE-Integration     | 2     | ✅                         | Should      |
 | F-04 | DSFinV-K Export     | 2     | 🔲                         | Should      |
 | F-09 | eBeleg              | 2     | 🔲                         | Nice        |
-| F-08 | GoBD-Hash-Chain     | 3     | 🔲                         | Nice        |
+| F-10 | 10-Jahres-Archivierung | 3   | 🔲                         | Should      |
+| F-08 | GoBD-Integritätsnachweis | 3 | 🔲                         | Nice        |
 
 **Legende:** ✅ Umgesetzt · 🔲 Offen. **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
 
@@ -327,17 +329,49 @@ Als papierloser Ersatz für den Bondruck kann dem Gast ein digitaler Beleg per Q
 
 ---
 
-#### F-08 · GoBD-kryptografische Hash-Chain
+#### F-08 · GoBD-Integritätsnachweis
 
 > **Prio:** Nice-to-have
 
-Zur Erfüllung der GoBD-Anforderung der Unveränderbarkeit wird jedes Event mit einem kryptografischen Hash (SHA-256) des vorherigen Events verkettet. Dadurch ist jede nachträgliche Manipulation der Event-History nachweisbar. Ergänzende Maßnahme zur TSE-Signatur (F-02).
+Die Unveränderbarkeit nach GoBD ist bereits erfüllt: Das Kassenjournal ist append-only (DB-Trigger plus REVOKE, K-07) und alle Geschäftsvorfälle tragen eine TSE-Signatur (F-02). Beides sind nach GoBD Rn. 110 zulässige softwareseitige Mittel zur Sicherung der Unveränderbarkeit (Sperren, Festschreibung, Versionierung). Eine zusätzliche kryptografische Hash-Chain ist dafür nicht erforderlich und ohne externen Anker auch nicht fälschungssicher: Wer die Append-only-Sperre aushebelt, kann eine selbst berechnete Kette neu berechnen. Den externen Anker liefert bereits die TSE.
+
+F-08 ergänzt stattdessen einen read-only Selbsttest, der die bestehenden Garantien nachweisbar macht. Er nutzt ausschließlich vorhandene Daten und ändert das Schema nicht.
 
 **Akzeptanzkriterien:**
 
-- [ ] Jedes Event in der `kassenjournal`-Tabelle speichert den SHA-256-Hash des vorherigen Events (`previous_hash`)
-- [ ] Das erste Event jeder Kassensitzung verwendet einen definierten Genesis-Hash
-- [ ] Ein Integritätsprüfungs-Endpunkt (`/admin/integrity/check`) validiert die vollständige Hash-Chain
-- [ ] Die Hash-Chain ist unabhängig von der TSE-Signatur und ergänzt diese
+- [ ] `/admin/integrity/check` prüft je `subject` die lückenlose Versionsfolge (keine Lücken oder Dopplungen in der OCC-Sequenz)
+- [ ] Prüft, dass jeder signierpflichtige Event entweder eine TSE-Signatur trägt oder als TSE-Ausfall markiert und in der Nachsignier-Outbox vorhanden ist (keine still-unsignierten Geschäftsvorfälle)
+- [ ] Liefert einen kompakten Report (geprüfte Subjects, gefundene Abweichungen) für Admin und Betriebsprüfer
+- [ ] Kein Schema-Eingriff, keine neue Spalte, keine Hash-Chain
+
+---
+
+#### F-10 · 10-Jahres-Archivierung
+
+> **Prio:** Should
+
+§§ 146, 147 AO und GoBD verlangen, alle steuerlich relevanten Daten 10 Jahre aufzubewahren: jederzeit verfügbar, maschinell auswertbar und unveränderbar. Die Aufbewahrung selbst (Backups, Speicher) ist Betreiberpflicht ([compliance.md §8](compliance.md)); jotti stellt die Daten dafür in einem vollständigen, selbst-erklärenden Format bereit.
+
+**Akzeptanzkriterien:**
+
+- [ ] Admin kann ein vollständiges Archiv-Bundle exportieren: Kassenjournal (roh), Stammdaten-Snapshot (Produkte, Preise, Steuersätze), Kassenidentität und Seriennummer
+- [ ] Ergänzt den DSFinV-K-Export (F-04); offene, maschinenlesbare Formate (JSON/CSV), ohne proprietäre Software lesbar
+- [ ] Aufbewahrungsstrategie ist dokumentiert (was, wie lange, wie wiederherstellbar) in [compliance.md §4](compliance.md) und im Betreiber-Leitfaden
+- [ ] jotti erzeugt nur das Archiv-Artefakt; die Aufbewahrungspflicht bleibt beim Betreiber
+
+---
+
+#### F-11 · Muster-Verfahrensdokumentation
+
+> **Prio:** Should (Doku)
+
+Die GoBD verlangt vom Betreiber eine Verfahrensdokumentation ([compliance.md §4.2](compliance.md)). Als Hersteller stellt jotti eine anpassbare Muster-Verfahrensdokumentation im Repository bereit ([compliance.md §2.7](compliance.md)), die Vereine an ihre Instanz anpassen und Betriebsprüfern vorlegen.
+
+**Akzeptanzkriterien:**
+
+- [ ] Muster-Verfahrensdokumentation liegt versioniert im Repository (z. B. `docs/verfahrensdokumentation.md`)
+- [ ] Deckt ab: Systemüberblick und Architektur, Datenmodell und Event-Sourcing, TSE-Anbindung, DSFinV-K-Export, Rollen- und Zugriffskonzept, Archivierung und Aufbewahrung, Nachvollziehbarkeit von Änderungen
+- [ ] Als Vorlage gekennzeichnet; vom Betreiber auszufüllende Stellen (Vereinsname, TSE-Anbieter, Betriebsumgebung) sind markiert
+- [ ] Aus dem Betreiber-Leitfaden verlinkt
 
 ---
