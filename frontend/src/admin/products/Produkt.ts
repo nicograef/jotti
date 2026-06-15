@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { DateStringSchema } from '@/lib/utils'
+
 export const Kategorie = {
   ESSEN: 'essen',
   GETRAENK: 'getraenk',
@@ -44,9 +46,6 @@ const PreisCentsSchema = z
 const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
 const SteuersatzSchema = z.enum(['regel', 'ermaessigt', 'befreit', 'kombi'])
 const VarianteStatusSchema = z.enum(['active', 'inactive'])
-const DateStringSchema = z.string().refine((date) => !isNaN(Date.parse(date)), {
-  message: 'Ungültiges Datumsformat',
-})
 
 export function defaultSteuersatzByKategorie(kategorie: Kategorie): Steuersatz {
   if (kategorie === Kategorie.ESSEN) {

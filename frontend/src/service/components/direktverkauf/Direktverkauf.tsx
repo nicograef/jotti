@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useMengen } from '@/hooks/use-mengen'
 import { formatCents, parseCents } from '@/lib/utils'
 
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
@@ -54,7 +55,7 @@ export function Direktverkauf({
   productsLoading,
   onVerkauft,
 }: DirektverkaufProps) {
-  const [mengen, setMengen] = useState<Record<number, number>>({})
+  const { mengen, add, remove, reset } = useMengen<number>()
   const [erhaltenEuro, setErhaltenEuro] = useState('')
   const [kommentar, setKommentar] = useState('')
 
@@ -76,7 +77,7 @@ export function Direktverkauf({
         'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
     },
     onSuccess: () => {
-      setMengen({})
+      reset()
       setErhaltenEuro('')
       setKommentar('')
       toast.success('Verkauf abgeschlossen.')
@@ -149,22 +150,8 @@ export function Direktverkauf({
       <ProductList
         products={products}
         variantMengen={mengen}
-        onAdd={(variantId) => {
-          setMengen((prev) => ({
-            ...prev,
-            [variantId]: (prev[variantId] || 0) + 1,
-          }))
-        }}
-        onRemove={(variantId) => {
-          setMengen((prev) => {
-            const aktuelleMenge = prev[variantId] || 0
-            if (aktuelleMenge <= 0) return prev
-            return {
-              ...prev,
-              [variantId]: aktuelleMenge - 1,
-            }
-          })
-        }}
+        onAdd={add}
+        onRemove={remove}
       />
     </div>
   )

@@ -1,5 +1,4 @@
 import { Minus, Plus } from 'lucide-react'
-import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -12,6 +11,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useMengen } from '@/hooks/use-mengen'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatCents, formatPositionName } from '@/lib/utils'
 
@@ -40,34 +40,17 @@ export function Zahlung({
   onZahlungKassiert,
   onAuszahlungGeleistet,
 }: ZahlungProps) {
-  const [mengen, setMengen] = useState<Record<string, number>>({})
-
   const unbezahlteMengen: Record<string, number> = {}
   positionen.forEach((position) => {
     unbezahlteMengen[position.positionId] = position.menge
   })
 
-  const onAdd = (positionId: string) => {
-    setMengen((prev) => {
-      const aktuelleMenge = prev[positionId] || 0
-      if (aktuelleMenge >= (unbezahlteMengen[positionId] || 0)) return prev
-      return {
-        ...prev,
-        [positionId]: aktuelleMenge + 1,
-      }
-    })
-  }
-
-  const onRemove = (positionId: string) => {
-    setMengen((prev) => {
-      const aktuelleMenge = prev[positionId] || 0
-      if (aktuelleMenge <= 0) return prev
-      return {
-        ...prev,
-        [positionId]: aktuelleMenge - 1,
-      }
-    })
-  }
+  const {
+    mengen,
+    add: onAdd,
+    remove: onRemove,
+    reset,
+  } = useMengen<string>((positionId) => unbezahlteMengen[positionId] || 0)
 
   return (
     <>
@@ -90,7 +73,7 @@ export function Zahlung({
         unbezahltePositionen={positionen}
         mengen={mengen}
         zahlungKassiert={() => {
-          setMengen({})
+          reset()
           toast.success(`Zahlung erfolgreich.`)
           onZahlungKassiert()
         }}

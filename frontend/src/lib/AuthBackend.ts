@@ -1,21 +1,11 @@
 import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
-
-const UsernameSchema = z
-  .string()
-  .min(3, { message: 'Benutzername muss mindestens 3 Zeichen lang sein.' })
-  .max(20, { message: 'Benutzername darf maximal 20 Zeichen lang sein.' })
-  .regex(/^[a-z0-9]+$/, {
-    message: 'Benutzername darf nur aus Kleinbuchstaben und Zahlen bestehen.',
-  })
-const PasswordSchema = z
-  .string()
-  .min(6, { message: 'Passwort muss mindestens 6 Zeichen lang sein.' })
-  .max(20, { message: 'Passwort darf maximal 20 Zeichen lang sein.' })
-const OnetimePasswordSchema = z.string().regex(/^\d{6}$/, {
-  message: 'Das Einmalpasswort muss genau 6 Ziffern enthalten.',
-})
+import {
+  OnetimePasswordSchema,
+  PasswordSchema,
+  UsernameSchema,
+} from '@/lib/identity'
 
 export const LoginSchema = z.object({
   username: UsernameSchema,

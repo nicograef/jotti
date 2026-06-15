@@ -1,5 +1,6 @@
-import { useState } from 'react'
 import { toast } from 'sonner'
+
+import { useMengen } from '@/hooks/use-mengen'
 
 import type { Produkt } from '../../product/Produkt'
 import type { Tisch } from '../../table/Tisch'
@@ -15,8 +16,6 @@ interface BestellungProps {
   onBestellungAufgenommen: () => void
 }
 
-type VariantMengenMap = Record<number, number>
-
 export function Bestellung({
   backend,
   tisch,
@@ -24,7 +23,7 @@ export function Bestellung({
   productsLoading,
   onBestellungAufgenommen,
 }: BestellungProps) {
-  const [mengen, setMengen] = useState<VariantMengenMap>({})
+  const { mengen, add, remove, reset } = useMengen<number>()
 
   if (productsLoading) {
     return <ProductListSkeleton />
@@ -38,7 +37,7 @@ export function Bestellung({
         products={products}
         mengen={mengen}
         bestellungAufgenommen={() => {
-          setMengen({})
+          reset()
           toast.success(`Bestellung wurde aufgenommen.`)
           onBestellungAufgenommen()
         }}
@@ -46,22 +45,8 @@ export function Bestellung({
       <ProductList
         products={products}
         variantMengen={mengen}
-        onAdd={(variantId) => {
-          setMengen((prev) => ({
-            ...prev,
-            [variantId]: (prev[variantId] || 0) + 1,
-          }))
-        }}
-        onRemove={(variantId) => {
-          setMengen((prev) => {
-            const aktuelleMenge = prev[variantId] || 0
-            if (aktuelleMenge <= 0) return prev
-            return {
-              ...prev,
-              [variantId]: aktuelleMenge - 1,
-            }
-          })
-        }}
+        onAdd={add}
+        onRemove={remove}
       />
     </>
   )

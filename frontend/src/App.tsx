@@ -6,13 +6,11 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 
 export default function App() {
   return (
-    <>
-      <ThemeProvider storageKey="vite-ui-theme">
-        <TooltipProvider>
-          <Toaster position="top-right" />
-          <Outlet />
-        </TooltipProvider>
-      </ThemeProvider>
-    </>
+    <ThemeProvider storageKey="vite-ui-theme">
+      <TooltipProvider>
+        <Toaster position="top-right" />
+        <Outlet />
+      </TooltipProvider>
+    </ThemeProvider>
   )
 }

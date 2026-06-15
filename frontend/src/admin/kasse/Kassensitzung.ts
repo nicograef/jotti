@@ -47,13 +47,15 @@ export const PositiverEuroBetragSchema = z
     { message: 'Bitte einen Betrag größer als 0 eingeben.' },
   )
 
-export const KassensitzungStateSchema = z.object({
+// Canonical Kassensitzung record (zNr, datum, bezeichnung, status). Reporting
+// re-exports this so both areas share one definition.
+export const KassensitzungSchema = z.object({
   zNr: z.number().int(),
   datum: z.string(),
   bezeichnung: z.string(),
   status: z.enum(['offen', 'abgeschlossen']),
 })
-export type KassensitzungState = z.infer<typeof KassensitzungStateSchema>
+export type Kassensitzung = z.infer<typeof KassensitzungSchema>
 
 export const KassenbestandSchema = z.object({
   sollBestandCents: z.number().int(),

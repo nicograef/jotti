@@ -9,8 +9,8 @@ import {
   GeldtransitRichtungSchema,
   type Kassenbestand,
   KassenbestandSchema,
-  type KassensitzungState,
-  KassensitzungStateSchema,
+  type Kassensitzung,
+  KassensitzungSchema,
 } from './Kassensitzung'
 
 export const KassensitzungEroeffnenSchema = z.object({
@@ -81,11 +81,11 @@ export class KasseBackend {
     await this.backend.post('admin/tagesabschluss-erstellen', {})
   }
 
-  async getOffeneKassensitzung(): Promise<KassensitzungState | null> {
+  async getOffeneKassensitzung(): Promise<Kassensitzung | null> {
     const data = await this.backend.post(
       'admin/get-offene-kassensitzung',
       {},
-      KassensitzungStateSchema.nullable(),
+      KassensitzungSchema.nullable(),
     )
     return data
   }

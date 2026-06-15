@@ -56,13 +56,10 @@ export const UmsatzSteuersatzSchema = z.object({
 })
 export type UmsatzSteuersatz = z.infer<typeof UmsatzSteuersatzSchema>
 
-export const KassensitzungSchema = z.object({
-  zNr: z.number().int(),
-  datum: z.string(),
-  bezeichnung: z.string(),
-  status: z.enum(['offen', 'abgeschlossen']),
-})
-export type Kassensitzung = z.infer<typeof KassensitzungSchema>
+export {
+  type Kassensitzung,
+  KassensitzungSchema,
+} from '@/admin/kasse/Kassensitzung'
 
 export const OffenerTischSchema = z.object({
   tischId: z.number().int(),

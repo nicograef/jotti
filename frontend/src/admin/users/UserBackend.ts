@@ -1,12 +1,9 @@
 import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
+import { OnetimePasswordSchema } from '@/lib/identity'
 
 import { type User, UserIdSchema, UserRole, UserSchema } from './User'
-
-const OnetimePasswordSchema = z.string().regex(/^\d{6}$/, {
-  message: 'Das Einmalpasswort muss genau 6 Ziffern enthalten.',
-})
 
 export const CreateUserSchema = UserSchema.pick({
   name: true,

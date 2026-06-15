@@ -3,13 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import { BackendSingleton } from '@/lib/Backend'
 
 import { KasseBackend } from './KasseBackend'
-import type { KassensitzungState } from './Kassensitzung'
+import type { Kassensitzung } from './Kassensitzung'
 
 export const kasseBackend = new KasseBackend(BackendSingleton)
 
 export function useOffeneKassensitzung() {
   const {
-    data = null as KassensitzungState | null,
+    data = null as Kassensitzung | null,
     isPending,
     refetch,
   } = useQuery({
