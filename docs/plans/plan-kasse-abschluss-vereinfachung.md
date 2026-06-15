@@ -251,18 +251,18 @@ korrekte Anzeige von Soll, Ist und Differenz im Dialog.
 
 ### Acceptance criteria
 
-- [ ] Eine einzige "Kasse abschließen"-Sektion ersetzt die getrennten
+- [x] Eine einzige "Kasse abschließen"-Sektion ersetzt die getrennten
       Kassensturz- und Tagesabschluss-Sektionen.
-- [ ] Der Bestätigungsdialog zeigt Soll, Ist, Differenz und die vier Tagessummen
+- [x] Der Bestätigungsdialog zeigt Soll, Ist, Differenz und die vier Tagessummen
       und weist auf die Unwiderruflichkeit hin; Abbruch löst keine Aktion aus.
-- [ ] Bestätigung ruft `kasseBackend.kasseAbschliessen(istBestandCents)` gegen
+- [x] Bestätigung ruft `kasseBackend.kasseAbschliessen(istBestandCents)` gegen
       `admin/kasse-abschliessen`; bei Erfolg gibt es eine Rückmeldung und die
       Seite aktualisiert sich.
-- [ ] Die Soll-Kassenbestand-Zeile in der oberen Info-Karte ist entfernt; Soll
+- [x] Die Soll-Kassenbestand-Zeile in der oberen Info-Karte ist entfernt; Soll
       erscheint nur noch im Dialog.
-- [ ] `KasseBackend` hat `kasseAbschliessen` statt `kassensturzDurchfuehren` und
+- [x] `KasseBackend` hat `kasseAbschliessen` statt `kassensturzDurchfuehren` und
       `tagesabschlussErstellen`.
-- [ ] FE-Tests für Ist-Eingabe und Soll/Ist/Differenz-Anzeige laufen grün;
+- [x] FE-Tests für Ist-Eingabe und Soll/Ist/Differenz-Anzeige laufen grün;
       Lint/Typecheck ohne Warnungen.
 
 ---

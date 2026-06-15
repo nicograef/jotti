@@ -32,7 +32,7 @@ export const GeldtransitBuchenSchema = z.object({
     .max(200, { message: 'Kommentar darf maximal 200 Zeichen lang sein.' }),
 })
 
-export const KassensturzDurchfuehrenSchema = z.object({
+export const KasseAbschliessenSchema = z.object({
   istBestandCents: BetragCentsSchema,
 })
 
@@ -72,13 +72,9 @@ export class KasseBackend {
     await this.backend.post('admin/geldtransit-buchen', body)
   }
 
-  async kassensturzDurchfuehren(istBestandCents: number): Promise<void> {
-    const body = KassensturzDurchfuehrenSchema.parse({ istBestandCents })
-    await this.backend.post('admin/kassensturz-durchfuehren', body)
-  }
-
-  async tagesabschlussErstellen(): Promise<void> {
-    await this.backend.post('admin/tagesabschluss-erstellen', {})
+  async kasseAbschliessen(istBestandCents: number): Promise<void> {
+    const body = KasseAbschliessenSchema.parse({ istBestandCents })
+    await this.backend.post('admin/kasse-abschliessen', body)
   }
 
   async getOffeneKassensitzung(): Promise<Kassensitzung | null> {

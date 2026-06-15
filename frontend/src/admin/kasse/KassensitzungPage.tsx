@@ -1,8 +1,20 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { useLiveReporting } from '@/admin/reporting/hooks'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,7 +40,6 @@ import {
 
 export function KassensitzungPage() {
   const { kassensitzung, isPending, refetch } = useOffeneKassensitzung()
-  const { kassenbestand } = useKassenbestand(kassensitzung?.zNr ?? null)
 
   if (isPending) {
     return (
@@ -61,20 +72,14 @@ export function KassensitzungPage() {
                 <span className="text-muted-foreground">Bezeichnung:</span>{' '}
                 {kassensitzung.bezeichnung}
               </p>
-              {kassenbestand && (
-                <p>
-                  <span className="text-muted-foreground">
-                    Soll-Kassenbestand:
-                  </span>{' '}
-                  {formatCents(kassenbestand.sollBestandCents)} €
-                </p>
-              )}
             </CardContent>
           </Card>
 
           <KassenbewegungSection onSuccess={() => void refetch()} />
-          <KassensturzSection onSuccess={() => void refetch()} />
-          <TagesabschlussSection onSuccess={() => void refetch()} />
+          <KasseAbschliessenSection
+            kassensitzungNr={kassensitzung.zNr}
+            onSuccess={() => void refetch()}
+          />
         </div>
       ) : (
         <div className="mt-4 space-y-6">
@@ -307,7 +312,18 @@ function KassenbewegungSection({ onSuccess }: { onSuccess: () => void }) {
   )
 }
 
-function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
+export function KasseAbschliessenSection({
+  kassensitzungNr,
+  onSuccess,
+}: {
+  kassensitzungNr: number
+  onSuccess: () => void
+}) {
+  const { kassenbestand } = useKassenbestand(kassensitzungNr)
+  const { liveData } = useLiveReporting()
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [istBestandCents, setIstBestandCents] = useState<number | null>(null)
+
   const FormDataSchema = z.object({
     istBestandEuro: EuroBetragSchema,
   })
@@ -319,18 +335,30 @@ function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
     mode: 'onTouched',
   })
 
-  const { loading, run } = useFormActionSubmit({
-    form,
-    actionLabel: 'Kassensturz durchführen',
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Kasse abschließen',
   })
 
-  const onSubmit = async (data: FormData) => {
+  const sollBestandCents = kassenbestand?.sollBestandCents ?? null
+  // Differenz wie im Kassensturz-Event: Soll − Ist (positiv = Fehlbetrag).
+  const differenzCents =
+    sollBestandCents === null || istBestandCents === null
+      ? null
+      : sollBestandCents - istBestandCents
+
+  const onSubmit = (data: FormData) => {
+    setIstBestandCents(parseCents(data.istBestandEuro))
+    setDialogOpen(true)
+  }
+
+  const handleAbschliessen = async () => {
+    if (istBestandCents === null) return
     await run(async () => {
-      await kasseBackend.kassensturzDurchfuehren(
-        parseCents(data.istBestandEuro),
-      )
-      toast.success('Kassensturz durchgeführt.')
+      await kasseBackend.kasseAbschliessen(istBestandCents)
+      toast.success('Kasse abgeschlossen.')
+      setDialogOpen(false)
       form.reset()
+      setIstBestandCents(null)
       onSuccess()
     })
   }
@@ -338,9 +366,15 @@ function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Kassensturz</CardTitle>
+        <CardTitle>Kasse abschließen</CardTitle>
       </CardHeader>
       <CardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Zähle das Bargeld in der Kasse und trage den gezählten Betrag ein.
+          Kleine Differenzen zum Soll-Bestand sind normal. Beim Abschließen
+          werden Kassensturz und Tagesabschluss (Z-Bon) in einem Schritt
+          gebucht.
+        </p>
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -352,9 +386,11 @@ function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
               data-invalid={!!form.formState.errors.istBestandEuro}
               className="gap-1"
             >
-              <FieldLabel htmlFor="kassensturz-ist">Ist-Bestand (€)</FieldLabel>
+              <FieldLabel htmlFor="abschluss-ist">
+                Gezählter Ist-Bestand (€)
+              </FieldLabel>
               <Input
-                id="kassensturz-ist"
+                id="abschluss-ist"
                 type="text"
                 inputMode="decimal"
                 {...form.register('istBestandEuro')}
@@ -367,47 +403,109 @@ function KassensturzSection({ onSuccess }: { onSuccess: () => void }) {
               )}
             </Field>
             <div>
-              <Button type="submit" disabled={loading}>
-                Kassensturz durchführen
+              <Button type="submit" variant="destructive">
+                Kasse abschließen
               </Button>
             </div>
           </FieldGroup>
         </form>
-      </CardContent>
-    </Card>
-  )
-}
 
-function TagesabschlussSection({ onSuccess }: { onSuccess: () => void }) {
-  const { loading, run } = useActionSubmit({
-    actionLabel: 'Tagesabschluss erstellen',
-  })
+        <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Kasse abschließen?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Kassensturz und Tagesabschluss (Z-Bon) werden in einem Schritt
+                gebucht. Dieser Vorgang kann nicht rückgängig gemacht werden.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
 
-  const handleTagesabschluss = async () => {
-    await run(async () => {
-      await kasseBackend.tagesabschlussErstellen()
-      toast.success('Tagesabschluss erstellt.')
-      onSuccess()
-    })
-  }
+            <div className="space-y-4 text-sm">
+              <dl className="space-y-1">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">Soll-Bestand</dt>
+                  <dd>
+                    {sollBestandCents !== null
+                      ? `${formatCents(sollBestandCents)} €`
+                      : '—'}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">
+                    Ist-Bestand (gezählt)
+                  </dt>
+                  <dd>
+                    {istBestandCents !== null
+                      ? `${formatCents(istBestandCents)} €`
+                      : '—'}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 font-medium">
+                  <dt>Differenz</dt>
+                  <dd>
+                    {differenzCents !== null
+                      ? `${formatCents(differenzCents)} €`
+                      : '—'}
+                  </dd>
+                </div>
+              </dl>
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Tagesabschluss</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Schließt die Kassensitzung ab. Voraussetzungen: Kassensturz
-          durchgeführt, alle Tische auf Saldo 0.
-        </p>
-        <Button
-          variant="destructive"
-          onClick={() => void handleTagesabschluss()}
-          disabled={loading}
-        >
-          Tagesabschluss erstellen
-        </Button>
+              <div>
+                <p className="mb-1 font-medium">Z-Bon-Vorschau</p>
+                <dl className="space-y-1">
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Umsatz</dt>
+                    <dd>
+                      {liveData
+                        ? `${formatCents(liveData.summary.gesamtUmsatzCents)} €`
+                        : '—'}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Stornierungen</dt>
+                    <dd>
+                      {liveData
+                        ? `${formatCents(liveData.summary.gesamtStornierungenCents)} €`
+                        : '—'}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Auszahlungen</dt>
+                    <dd>
+                      {liveData
+                        ? `${formatCents(liveData.summary.gesamtAuszahlungenCents)} €`
+                        : '—'}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-muted-foreground">Geldtransit</dt>
+                    <dd>
+                      {liveData
+                        ? `${formatCents(liveData.summary.geldtransitCents)} €`
+                        : '—'}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={loading}>
+                Abbrechen
+              </AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                disabled={loading}
+                onClick={(e) => {
+                  e.preventDefault()
+                  void handleAbschliessen()
+                }}
+              >
+                Kasse abschließen
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   )
