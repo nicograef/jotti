@@ -58,8 +58,8 @@ if [[ ! -f .env ]]; then
   fatal ".env file not found. Run 'make init' first."
 fi
 
-if ! grep -q '^VPS_PUBLIC_IP=' .env; then
-  fatal "VPS_PUBLIC_IP missing in .env (public IPv4 of this server, needed by resolver + acme-dns). See docs/betrieb/leitfaden-rocks-dns.md."
+if ! grep -qE '^VPS_PUBLIC_IP=.+' .env; then
+  fatal "VPS_PUBLIC_IP missing or empty in .env (public IPv4 of this server, needed by resolver + acme-dns). See docs/betrieb/leitfaden-rocks-dns.md."
 fi
 
 if ! command -v docker &>/dev/null; then
@@ -78,6 +78,12 @@ if [[ ! -f docker-compose.prod.yml ]]; then
 fi
 if [[ ! -f docker-compose.rocks.yml ]]; then
   fatal "Missing compose file: docker-compose.rocks.yml"
+fi
+
+# A DNS lookup tool is required for the resolution preflight below; without one,
+# that check would misreport a missing tool as a DNS failure.
+if ! command -v host &>/dev/null && ! command -v dig &>/dev/null; then
+  fatal "Neither 'host' nor 'dig' found. Install one (e.g. dnsutils / bind-tools) for the DNS preflight."
 fi
 
 info "Prerequisites OK."

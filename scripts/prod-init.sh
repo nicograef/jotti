@@ -73,6 +73,12 @@ if [[ ! -f "$COMPOSE_PROD" ]]; then
   fatal "Missing compose file: $COMPOSE_PROD"
 fi
 
+# A DNS lookup tool is required for the resolution preflight below; without one,
+# that check would misreport a missing tool as a DNS failure.
+if ! command -v host &>/dev/null && ! command -v dig &>/dev/null; then
+  fatal "Neither 'host' nor 'dig' found. Install one (e.g. dnsutils / bind-tools) for the DNS preflight."
+fi
+
 info "Prerequisites OK."
 
 # ---------------------------------------------------------------------------

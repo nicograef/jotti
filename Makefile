@@ -186,7 +186,7 @@ rocks-reset-db: ## jotti.rocks-DB zurücksetzen (Zertifikate bleiben erhalten) �
 	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml up -d --build
 
 rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (SSL bleibt erhalten) — nur Demo/Staging
-	./scripts/rocks-reset-and-seed.sh --yes
+	./scripts/reset-and-seed.sh rocks --yes
 
 # ──────────────────────────────────────────────
 # Lokaler Betrieb (LAN, HTTPS via Caddy)
@@ -211,7 +211,7 @@ local-reset-db: ## Lokale DB zurücksetzen (Caddy-Zertifikate bleiben erhalten)
 	docker compose -f docker-compose.local.yml up -d --build
 
 local-reset-and-seed: ## Lokale DB resetten + Seed einspielen (Caddy-Zertifikate bleiben erhalten)
-	./scripts/local-reset-and-seed.sh --yes
+	./scripts/reset-and-seed.sh local --yes
 
 # ──────────────────────────────────────────────
 # Datenbank                                     
