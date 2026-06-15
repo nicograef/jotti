@@ -24,7 +24,7 @@ const VariantIdSchema = z.number().int().min(1)
 const NameSchema = z
   .string()
   .min(3, { message: 'Das sieht nicht nach einem echten Namen aus.' })
-  .max(50, { message: 'Der Name ist zu lang.' })
+  .max(100, { message: 'Der Name ist zu lang.' })
 const PreisCentsSchema = z
   .number()
   .int()
