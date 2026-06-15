@@ -19,15 +19,22 @@ func StateDir(goos, programData, fallback string) string {
 	return fallback
 }
 
+// PostgresUser ist der fest vergebene Postgres-Rollenname und die einzige Quelle
+// der Wahrheit dafuer: EnvContent schreibt ihn in die .env, und das
+// Pre-Update-Backup (cmd/starter/backup.go) dumpt als dieser Rolle. Wert wie
+// .env.example / scripts/init-env.sh — damit ein adoptiertes .env nie davon
+// abweicht und der hartcodierte pg_dump-Nutzer nie zur Quelle driftet.
+const PostgresUser = "admin"
+
 // EnvContent erzeugt den vollstaendigen .env-Inhalt mit frisch erzeugten
-// Secrets. POSTGRES_USER ist fest "admin" (wie .env.example); die drei Secrets
-// stammen aus GenerateSecret. Der Kommentar-Header haelt die erste Zeile frei
-// von einem Key: Schreibt Notepad spaeter ein UTF-8-BOM in die Datei, landet es
-// so vor einem Kommentar statt vor POSTGRES_USER und beschaedigt keinen Key.
+// Secrets. POSTGRES_USER ist fest PostgresUser (wie .env.example); die drei
+// Secrets stammen aus GenerateSecret. Der Kommentar-Header haelt die erste Zeile
+// frei von einem Key: Schreibt Notepad spaeter ein UTF-8-BOM in die Datei, landet
+// es so vor einem Kommentar statt vor POSTGRES_USER und beschaedigt keinen Key.
 func EnvContent() string {
 	lines := []string{
 		"# Diese Datei wurde automatisch von jotti erzeugt. Hier muss nichts geaendert werden.",
-		"POSTGRES_USER=admin",
+		"POSTGRES_USER=" + PostgresUser,
 		"POSTGRES_PASSWORD=" + GenerateSecret(),
 		"JWT_SECRET=" + GenerateSecret(),
 		"RELAY_AUTH_TOKEN=" + GenerateSecret(),

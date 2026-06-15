@@ -107,10 +107,11 @@ func volumeExists(name string) (bool, error) {
 // dumpDatabase schreibt einen vollstaendigen pg_dump per `docker exec` in das im
 // postgres-Container gemountete jotti-backups-Volume. --clean --if-exists setzt
 // DROP-Anweisungen voran, damit ein spaeterer Restore die Objekte sauber neu
-// aufsetzt. POSTGRES_USER ist fest "admin" (siehe core.EnvContent).
+// aufsetzt. Die Rolle stammt aus core.PostgresUser — derselben Quelle, aus der
+// EnvContent POSTGRES_USER in die .env schreibt, damit beide nie auseinanderlaufen.
 func dumpDatabase(name string) error {
 	out, err := exec.Command("docker", "exec", postgresContainer,
-		"pg_dump", "--clean", "--if-exists", "-U", "admin", "-d", "jotti",
+		"pg_dump", "--clean", "--if-exists", "-U", core.PostgresUser, "-d", "jotti",
 		"-f", backupDir+"/"+name).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("pg_dump fehlgeschlagen: %v: %s", err, strings.TrimSpace(string(out)))
