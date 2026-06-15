@@ -24,6 +24,14 @@ type HistorieEintrag struct {
 	Stornierung *Stornierung
 	Ausgabe     *Ausgabe
 	Auszahlung  *Auszahlung
+
+	// StornierbarePositionen and UmbuchbarePositionen are populated only for
+	// Bestellung entries. They carry, per still-actionable position, the quantity
+	// that remains: stornierbar = ordered − cancelled, umbuchbar = ordered −
+	// cancelled − paid. Computed here so the backend stays the single source of
+	// truth for this filtering (no client-side replay of the history).
+	StornierbarePositionen []Position
+	UmbuchbarePositionen   []Position
 }
 
 func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
@@ -69,8 +77,64 @@ func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 		}
 	}
 
+	enrichBestellungenMitRestmengen(history)
+
 	// reverse the order of the array so that the most recent event is first
 	slices.Reverse(history)
 
 	return history, nil
+}
+
+// enrichBestellungenMitRestmengen annotates each Bestellung entry with the
+// positions that are still stornierbar (ordered − cancelled) and umbuchbar
+// (ordered − cancelled − paid). Position IDs are unique per Bestellung, so the
+// totals cancelled/paid for a position only ever apply to its own order.
+func enrichBestellungenMitRestmengen(history []HistorieEintrag) {
+	storniert := map[string]int{}
+	bezahlt := map[string]int{}
+	for _, eintrag := range history {
+		switch eintrag.Art {
+		case HistorieEintragStornierung:
+			if eintrag.Stornierung != nil {
+				for _, pos := range eintrag.Stornierung.Positionen {
+					storniert[pos.PositionID] += pos.Menge
+				}
+			}
+		case HistorieEintragZahlung:
+			if eintrag.Zahlung != nil {
+				for _, pos := range eintrag.Zahlung.Positionen {
+					bezahlt[pos.PositionID] += pos.Menge
+				}
+			}
+		}
+	}
+
+	for i := range history {
+		if history[i].Art != HistorieEintragBestellung || history[i].Bestellung == nil {
+			continue
+		}
+		positionen := history[i].Bestellung.Positionen
+		history[i].StornierbarePositionen = restmengen(positionen, func(pos Position) int {
+			return storniert[pos.PositionID]
+		})
+		history[i].UmbuchbarePositionen = restmengen(positionen, func(pos Position) int {
+			return storniert[pos.PositionID] + bezahlt[pos.PositionID]
+		})
+	}
+}
+
+// restmengen returns the positions whose remaining quantity (menge minus the
+// amount reported by abzug) is still positive, with menge set to that remainder.
+func restmengen(positionen []Position, abzug func(Position) int) []Position {
+	rest := []Position{}
+	for _, pos := range positionen {
+		verbleibend := pos.Menge - abzug(pos)
+		if verbleibend <= 0 {
+			continue
+		}
+		reduziert := pos
+		reduziert.Menge = verbleibend
+		rest = append(rest, reduziert)
+	}
+	return rest
 }

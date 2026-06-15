@@ -1,76 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Produkt } from '@/service/product/Produkt'
-import type { Bestellung, Position } from '@/service/table/Bestellung'
-import type { Stornierung } from '@/service/table/Stornierung'
-import type { Zahlung } from '@/service/table/Zahlung'
+import type { Position } from '@/service/table/Bestellung'
 
 import {
   calculateTotalPrice,
   calculateZahlungsbetraege,
-  getStornierbarePositionen,
-  getUmbuchbarePositionen,
   selectPositionen,
   toBestellungData,
 } from './drawerUtils'
-
-const positionA: Position = {
-  positionId: 'aaa-001',
-  varianteId: 1,
-  produktName: 'Bratwurst',
-  varianteName: 'Normal',
-  kategorie: 'essen',
-  steuersatz: 'ermaessigt',
-  einzelpreis: 350,
-  menge: 5,
-}
-
-const positionB: Position = {
-  positionId: 'aaa-002',
-  varianteId: 4,
-  produktName: 'Pommes',
-  varianteName: 'Klein',
-  kategorie: 'essen',
-  steuersatz: 'ermaessigt',
-  einzelpreis: 250,
-  menge: 3,
-}
-
-function createBestellung(positionen: Position[]): Bestellung {
-  return {
-    id: 'bestellung-1',
-    userId: 1,
-    tischId: 11,
-    positionen,
-    gesamtPreisCents: 2500,
-    kommentar: '',
-    aufgenommenAm: '2026-06-09T10:00:00Z',
-  }
-}
-
-function createStornierung(positionen: Position[]): Stornierung {
-  return {
-    id: 'storno-1',
-    userId: 1,
-    tischId: 11,
-    positionen,
-    gesamtStornierungCents: 500,
-    kommentar: 'Storno',
-    storniertAm: '2026-06-09T10:05:00Z',
-  }
-}
-
-function createZahlung(positionen: Position[]): Zahlung {
-  return {
-    id: 'zahlung-1',
-    userId: 1,
-    tischId: 11,
-    positionen,
-    gesamtZahlungCents: 1200,
-    kommentar: '',
-    kassiertAm: '2026-06-09T10:06:00Z',
-  }
-}
 
 describe('selectPositionen', () => {
   const positionen: Position[] = [
@@ -174,77 +112,6 @@ describe('calculateTotalPrice', () => {
     ]
 
     expect(calculateTotalPrice(items)).toBe(200)
-  })
-})
-
-describe('getStornierbarePositionen', () => {
-  it('subtracts already cancelled amounts for each position', () => {
-    const bestellung = createBestellung([{ ...positionA }, { ...positionB }])
-    const historie = [
-      bestellung,
-      createStornierung([
-        {
-          ...positionA,
-          menge: 2,
-        },
-      ]),
-    ]
-
-    expect(getStornierbarePositionen(bestellung, historie)).toEqual([
-      { ...positionA, menge: 3 },
-      { ...positionB, menge: 3 },
-    ])
-  })
-
-  it('returns empty when all quantities are cancelled', () => {
-    const bestellung = createBestellung([{ ...positionA, menge: 2 }])
-    const historie = [
-      bestellung,
-      createStornierung([{ ...positionA, menge: 2 }]),
-    ]
-
-    expect(getStornierbarePositionen(bestellung, historie)).toEqual([])
-  })
-})
-
-describe('getUmbuchbarePositionen', () => {
-  it('subtracts both cancelled and paid partial quantities', () => {
-    const bestellung = createBestellung([{ ...positionA }, { ...positionB }])
-    const historie = [
-      bestellung,
-      createStornierung([
-        {
-          ...positionA,
-          menge: 1,
-        },
-      ]),
-      createZahlung([
-        {
-          ...positionA,
-          menge: 2,
-        },
-        {
-          ...positionB,
-          menge: 1,
-        },
-      ]),
-    ]
-
-    expect(getUmbuchbarePositionen(bestellung, historie)).toEqual([
-      { ...positionA, menge: 2 },
-      { ...positionB, menge: 2 },
-    ])
-  })
-
-  it('returns empty when all quantities are paid or cancelled', () => {
-    const bestellung = createBestellung([{ ...positionA, menge: 3 }])
-    const historie = [
-      bestellung,
-      createStornierung([{ ...positionA, menge: 1 }]),
-      createZahlung([{ ...positionA, menge: 2 }]),
-    ]
-
-    expect(getUmbuchbarePositionen(bestellung, historie)).toEqual([])
   })
 })
 

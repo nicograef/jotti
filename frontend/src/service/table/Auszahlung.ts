@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { DateStringSchema } from '../schemas'
 
 export const AuszahlungSchema = z.object({
+  art: z.literal('auszahlung'),
   id: z.uuid(),
   userId: z.number().int().min(1),
   tischId: z.number().int().min(1),

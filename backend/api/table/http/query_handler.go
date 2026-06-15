@@ -141,28 +141,36 @@ func toPositionen(positionen []k.Position) []position {
 }
 
 type bestellung struct {
-	ID               string     `json:"id"`
-	UserID           int        `json:"userId"`
-	TischID          int        `json:"tischId"`
-	Positionen       []position `json:"positionen"`
-	GesamtPreisCents int        `json:"gesamtPreisCents"`
-	Kommentar        string     `json:"kommentar"`
-	AufgenommenAm    time.Time  `json:"aufgenommenAm"`
+	Art                    string     `json:"art"`
+	ID                     string     `json:"id"`
+	UserID                 int        `json:"userId"`
+	TischID                int        `json:"tischId"`
+	Positionen             []position `json:"positionen"`
+	GesamtPreisCents       int        `json:"gesamtPreisCents"`
+	Kommentar              string     `json:"kommentar"`
+	AufgenommenAm          time.Time  `json:"aufgenommenAm"`
+	StornierbarePositionen []position `json:"stornierbarePositionen"`
+	UmbuchbarePositionen   []position `json:"umbuchbarePositionen"`
 }
 
-func toBestellung(b k.Bestellung) bestellung {
+func toBestellung(eintrag k.HistorieEintrag) bestellung {
+	b := *eintrag.Bestellung
 	return bestellung{
-		ID:               b.ID,
-		UserID:           b.UserID,
-		TischID:          b.TischID,
-		Positionen:       toPositionen(b.Positionen),
-		GesamtPreisCents: b.GesamtPreisCents,
-		Kommentar:        b.Kommentar,
-		AufgenommenAm:    b.AufgenommenAm,
+		Art:                    string(k.HistorieEintragBestellung),
+		ID:                     b.ID,
+		UserID:                 b.UserID,
+		TischID:                b.TischID,
+		Positionen:             toPositionen(b.Positionen),
+		GesamtPreisCents:       b.GesamtPreisCents,
+		Kommentar:              b.Kommentar,
+		AufgenommenAm:          b.AufgenommenAm,
+		StornierbarePositionen: toPositionen(eintrag.StornierbarePositionen),
+		UmbuchbarePositionen:   toPositionen(eintrag.UmbuchbarePositionen),
 	}
 }
 
 type ausgabe struct {
+	Art          string     `json:"art"`
 	ID           string     `json:"id"`
 	UserID       int        `json:"userId"`
 	TischID      int        `json:"tischId"`
@@ -173,6 +181,7 @@ type ausgabe struct {
 
 func toAusgabe(a k.Ausgabe) ausgabe {
 	return ausgabe{
+		Art:          string(k.HistorieEintragAusgabe),
 		ID:           a.ID,
 		UserID:       a.UserID,
 		TischID:      a.TischID,
@@ -183,6 +192,7 @@ func toAusgabe(a k.Ausgabe) ausgabe {
 }
 
 type zahlung struct {
+	Art                string     `json:"art"`
 	ID                 string     `json:"id"`
 	UserID             int        `json:"userId"`
 	TischID            int        `json:"tischId"`
@@ -194,6 +204,7 @@ type zahlung struct {
 
 func toZahlung(z k.Zahlung) zahlung {
 	return zahlung{
+		Art:                string(k.HistorieEintragZahlung),
 		ID:                 z.ID,
 		UserID:             z.UserID,
 		TischID:            z.TischID,
@@ -205,6 +216,7 @@ func toZahlung(z k.Zahlung) zahlung {
 }
 
 type stornierung struct {
+	Art                    string     `json:"art"`
 	ID                     string     `json:"id"`
 	UserID                 int        `json:"userId"`
 	TischID                int        `json:"tischId"`
@@ -216,6 +228,7 @@ type stornierung struct {
 
 func toStornierung(s k.Stornierung) stornierung {
 	return stornierung{
+		Art:                    string(k.HistorieEintragStornierung),
 		ID:                     s.ID,
 		UserID:                 s.UserID,
 		TischID:                s.TischID,
@@ -227,6 +240,7 @@ func toStornierung(s k.Stornierung) stornierung {
 }
 
 type auszahlung struct {
+	Art         string    `json:"art"`
 	ID          string    `json:"id"`
 	UserID      int       `json:"userId"`
 	TischID     int       `json:"tischId"`
@@ -237,6 +251,7 @@ type auszahlung struct {
 
 func toAuszahlung(a k.Auszahlung) auszahlung {
 	return auszahlung{
+		Art:         string(k.HistorieEintragAuszahlung),
 		ID:          a.ID,
 		UserID:      a.UserID,
 		TischID:     a.TischID,
@@ -252,7 +267,7 @@ func toHistorie(eintraege []k.HistorieEintrag) []any {
 		switch eintrag.Art {
 		case k.HistorieEintragBestellung:
 			if eintrag.Bestellung != nil {
-				historieResponse = append(historieResponse, toBestellung(*eintrag.Bestellung))
+				historieResponse = append(historieResponse, toBestellung(eintrag))
 			}
 		case k.HistorieEintragAusgabe:
 			if eintrag.Ausgabe != nil {

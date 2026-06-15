@@ -4,6 +4,7 @@ import { DateStringSchema } from '../schemas'
 import { PositionRefSchema, PositionSchema } from './Bestellung'
 
 export const AusgabeSchema = z.object({
+  art: z.literal('ausgabe'),
   id: z.uuid(),
   userId: z.number().int().min(1),
   tischId: z.number().int().min(1),

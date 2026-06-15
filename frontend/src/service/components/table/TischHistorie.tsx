@@ -33,17 +33,15 @@ import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import type { Zahlung } from '../../table/Zahlung'
 import { Kommentar } from './CommentField'
-import {
-  getStornierbarePositionen,
-  getUmbuchbarePositionen,
-  toReceiptItems,
-} from './drawerUtils'
+import { toReceiptItems } from './drawerUtils'
 import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 import { Receipt, type ReceiptPosition } from './Receipt'
 
+type HistorieEintrag = Bestellung | Zahlung | Stornierung | Ausgabe | Auszahlung
+
 interface TischHistorieProps {
-  historie: (Bestellung | Zahlung | Stornierung | Ausgabe | Auszahlung)[]
+  historie: HistorieEintrag[]
   historieLoading: boolean
   userId: number | null
   tisch: Tisch
@@ -55,46 +53,6 @@ interface TischHistorieProps {
   onBestellungUmgebucht: () => void
 }
 
-const initialBestellungState: {
-  bestellung: Bestellung | null
-  open: boolean
-} = {
-  bestellung: null,
-  open: false,
-}
-
-const initialZahlungState: {
-  zahlung: Zahlung | null
-  open: boolean
-} = {
-  zahlung: null,
-  open: false,
-}
-
-const initialStornierungState: {
-  stornierung: Stornierung | null
-  open: boolean
-} = {
-  stornierung: null,
-  open: false,
-}
-
-const initialAusgabeState: {
-  ausgabe: Ausgabe | null
-  open: boolean
-} = {
-  ausgabe: null,
-  open: false,
-}
-
-const initialAuszahlungState: {
-  auszahlung: Auszahlung | null
-  open: boolean
-} = {
-  auszahlung: null,
-  open: false,
-}
-
 export function TischHistorie({
   historie,
   historieLoading,
@@ -104,11 +62,7 @@ export function TischHistorie({
   onStornierungErteilt,
   onBestellungUmgebucht,
 }: TischHistorieProps) {
-  const [bestellung, setBestellung] = useState(initialBestellungState)
-  const [zahlung, setZahlung] = useState(initialZahlungState)
-  const [stornierung, setStornierung] = useState(initialStornierungState)
-  const [ausgabe, setAusgabe] = useState(initialAusgabeState)
-  const [auszahlung, setAuszahlung] = useState(initialAuszahlungState)
+  const [detail, setDetail] = useState<HistorieEintrag | null>(null)
   const [stornierenBestellung, setStornierenBestellung] =
     useState<Bestellung | null>(null)
   const [umbuchenBestellung, setUmbuchenBestellung] =
@@ -135,197 +89,113 @@ export function TischHistorie({
               <ItemSkeleton key={index} />
             ))
           : historie.map((item) => {
-              if (Object.prototype.hasOwnProperty.call(item, 'kassiertAm')) {
-                const zahlungItem = item as Zahlung
-                return (
-                  <HistoryItem
-                    key={item.id}
-                    title={`Zahlung -${formatCents(zahlungItem.gesamtZahlungCents)} €`}
-                    date={zahlungItem.kassiertAm}
-                    isFromUser={userId === zahlungItem.userId}
-                    kommentar={zahlungItem.kommentar}
-                    onClick={() => {
-                      setZahlung({ zahlung: zahlungItem, open: true })
-                    }}
-                  />
-                )
-              } else if (
-                Object.prototype.hasOwnProperty.call(item, 'aufgenommenAm')
-              ) {
-                const bestellungItem = item as Bestellung
-                const stornierbarePositionen = getStornierbarePositionen(
-                  bestellungItem,
-                  historie,
-                )
-                const umbuchbarePositionen = getUmbuchbarePositionen(
-                  bestellungItem,
-                  historie,
-                )
-                return (
-                  <HistoryItem
-                    key={item.id}
-                    title={`Bestellung +${formatCents(bestellungItem.gesamtPreisCents)} €`}
-                    date={bestellungItem.aufgenommenAm}
-                    isFromUser={userId === bestellungItem.userId}
-                    kommentar={bestellungItem.kommentar}
-                    onClick={() => {
-                      setBestellung({ bestellung: bestellungItem, open: true })
-                    }}
-                    onStornieren={
-                      AuthSingleton.canCancel &&
-                      stornierbarePositionen.length > 0
-                        ? () => {
-                            setStornierenBestellung(bestellungItem)
-                          }
-                        : undefined
-                    }
-                    onUmbuchen={
-                      AuthSingleton.canCancel && umbuchbarePositionen.length > 0
-                        ? () => {
-                            setUmbuchenBestellung(bestellungItem)
-                          }
-                        : undefined
-                    }
-                  />
-                )
-              } else if (
-                Object.prototype.hasOwnProperty.call(item, 'storniertAm')
-              ) {
-                const stornierungItem = item as Stornierung
-                return (
-                  <HistoryItem
-                    key={item.id}
-                    title={`Stornierung -${formatCents(stornierungItem.gesamtStornierungCents)} €`}
-                    date={stornierungItem.storniertAm}
-                    isFromUser={userId === stornierungItem.userId}
-                    kommentar={stornierungItem.kommentar}
-                    onClick={() => {
-                      setStornierung({
-                        stornierung: stornierungItem,
-                        open: true,
-                      })
-                    }}
-                  />
-                )
-              } else if (
-                Object.prototype.hasOwnProperty.call(item, 'ausgegebenAm')
-              ) {
-                const ausgabeItem = item as Ausgabe
-                return (
-                  <HistoryItem
-                    key={item.id}
-                    title="Ausgabe"
-                    date={ausgabeItem.ausgegebenAm}
-                    isFromUser={userId === ausgabeItem.userId}
-                    kommentar={ausgabeItem.kommentar}
-                    onClick={() => {
-                      setAusgabe({ ausgabe: ausgabeItem, open: true })
-                    }}
-                  />
-                )
-              } else if (
-                Object.prototype.hasOwnProperty.call(item, 'geleistetAm')
-              ) {
-                const auszahlungItem = item as Auszahlung
-                return (
-                  <HistoryItem
-                    key={auszahlungItem.id}
-                    title={`Auszahlung -${formatCents(auszahlungItem.betragCents)} €`}
-                    date={auszahlungItem.geleistetAm}
-                    isFromUser={userId === auszahlungItem.userId}
-                    kommentar={auszahlungItem.kommentar}
-                    onClick={() => {
-                      setAuszahlung({ auszahlung: auszahlungItem, open: true })
-                    }}
-                  />
-                )
-              } else {
-                return null
+              switch (item.art) {
+                case 'zahlung':
+                  return (
+                    <HistoryItem
+                      key={item.id}
+                      title={`Zahlung -${formatCents(item.gesamtZahlungCents)} €`}
+                      date={item.kassiertAm}
+                      isFromUser={userId === item.userId}
+                      kommentar={item.kommentar}
+                      onClick={() => {
+                        setDetail(item)
+                      }}
+                    />
+                  )
+                case 'bestellung':
+                  return (
+                    <HistoryItem
+                      key={item.id}
+                      title={`Bestellung +${formatCents(item.gesamtPreisCents)} €`}
+                      date={item.aufgenommenAm}
+                      isFromUser={userId === item.userId}
+                      kommentar={item.kommentar}
+                      onClick={() => {
+                        setDetail(item)
+                      }}
+                      onStornieren={
+                        AuthSingleton.canCancel &&
+                        item.stornierbarePositionen.length > 0
+                          ? () => {
+                              setStornierenBestellung(item)
+                            }
+                          : undefined
+                      }
+                      onUmbuchen={
+                        AuthSingleton.canCancel &&
+                        item.umbuchbarePositionen.length > 0
+                          ? () => {
+                              setUmbuchenBestellung(item)
+                            }
+                          : undefined
+                      }
+                    />
+                  )
+                case 'stornierung':
+                  return (
+                    <HistoryItem
+                      key={item.id}
+                      title={`Stornierung -${formatCents(item.gesamtStornierungCents)} €`}
+                      date={item.storniertAm}
+                      isFromUser={userId === item.userId}
+                      kommentar={item.kommentar}
+                      onClick={() => {
+                        setDetail(item)
+                      }}
+                    />
+                  )
+                case 'ausgabe':
+                  return (
+                    <HistoryItem
+                      key={item.id}
+                      title="Ausgabe"
+                      date={item.ausgegebenAm}
+                      isFromUser={userId === item.userId}
+                      kommentar={item.kommentar}
+                      onClick={() => {
+                        setDetail(item)
+                      }}
+                    />
+                  )
+                case 'auszahlung':
+                  return (
+                    <HistoryItem
+                      key={item.id}
+                      title={`Auszahlung -${formatCents(item.betragCents)} €`}
+                      date={item.geleistetAm}
+                      isFromUser={userId === item.userId}
+                      kommentar={item.kommentar}
+                      onClick={() => {
+                        setDetail(item)
+                      }}
+                    />
+                  )
               }
             })}
       </ItemGroup>
-      {bestellung.bestellung && (
+      {detail && (
         <Details
-          title="Bestellung"
-          id={bestellung.bestellung.id}
-          isFromUser={userId === bestellung.bestellung.userId}
-          open={bestellung.open}
+          {...detailView(detail)}
+          id={detail.id}
+          isFromUser={userId === detail.userId}
+          kommentar={detail.kommentar}
           onClose={() => {
-            setBestellung(initialBestellungState)
+            setDetail(null)
           }}
-          date={bestellung.bestellung.aufgenommenAm}
-          kommentar={bestellung.bestellung.kommentar}
-          positionen={toReceiptItems(bestellung.bestellung.positionen)}
-          totalPrice={bestellung.bestellung.gesamtPreisCents}
-        />
-      )}
-      {zahlung.zahlung && (
-        <Details
-          title="Zahlung"
-          id={zahlung.zahlung.id}
-          isFromUser={userId === zahlung.zahlung.userId}
-          open={zahlung.open}
-          onClose={() => {
-            setZahlung(initialZahlungState)
-          }}
-          date={zahlung.zahlung.kassiertAm}
-          kommentar={zahlung.zahlung.kommentar}
-          positionen={toReceiptItems(zahlung.zahlung.positionen)}
-          totalPrice={zahlung.zahlung.gesamtZahlungCents}
-          primaryActionLabel="Beleg drucken"
-          primaryActionLoading={belegDruckenLoading}
-          onPrimaryAction={() => {
-            void runBelegDrucken(async () => {
-              const aktuelleZahlung = zahlung.zahlung
-              if (!aktuelleZahlung) {
-                return
-              }
-              await backend.belegDrucken(tisch.id, aktuelleZahlung.id)
-            })
-          }}
-        />
-      )}
-      {stornierung.stornierung && (
-        <Details
-          title="Stornierung"
-          id={stornierung.stornierung.id}
-          isFromUser={userId === stornierung.stornierung.userId}
-          open={stornierung.open}
-          onClose={() => {
-            setStornierung(initialStornierungState)
-          }}
-          date={stornierung.stornierung.storniertAm}
-          kommentar={stornierung.stornierung.kommentar}
-          positionen={toReceiptItems(stornierung.stornierung.positionen)}
-          totalPrice={stornierung.stornierung.gesamtStornierungCents}
-        />
-      )}
-      {ausgabe.ausgabe && (
-        <Details
-          title="Ausgabe"
-          id={ausgabe.ausgabe.id}
-          isFromUser={userId === ausgabe.ausgabe.userId}
-          open={ausgabe.open}
-          onClose={() => {
-            setAusgabe(initialAusgabeState)
-          }}
-          date={ausgabe.ausgabe.ausgegebenAm}
-          kommentar={ausgabe.ausgabe.kommentar}
-          positionen={toReceiptItems(ausgabe.ausgabe.positionen)}
-        />
-      )}
-      {auszahlung.auszahlung && (
-        <Details
-          title="Auszahlung"
-          id={auszahlung.auszahlung.id}
-          isFromUser={userId === auszahlung.auszahlung.userId}
-          open={auszahlung.open}
-          onClose={() => {
-            setAuszahlung(initialAuszahlungState)
-          }}
-          date={auszahlung.auszahlung.geleistetAm}
-          kommentar={auszahlung.auszahlung.kommentar}
-          totalPrice={auszahlung.auszahlung.betragCents}
+          primaryAction={
+            detail.art === 'zahlung'
+              ? {
+                  label: 'Beleg drucken',
+                  loading: belegDruckenLoading,
+                  onAction: () => {
+                    void runBelegDrucken(async () => {
+                      await backend.belegDrucken(tisch.id, detail.id)
+                    })
+                  },
+                }
+              : undefined
+          }
         />
       )}
       {stornierenBestellung && (
@@ -333,7 +203,7 @@ export function TischHistorie({
           backend={backend}
           tisch={tisch}
           bestellung={stornierenBestellung}
-          positionen={getStornierbarePositionen(stornierenBestellung, historie)}
+          positionen={stornierenBestellung.stornierbarePositionen}
           onClose={() => {
             setStornierenBestellung(null)
           }}
@@ -348,7 +218,7 @@ export function TischHistorie({
           backend={backend}
           tisch={tisch}
           bestellung={umbuchenBestellung}
-          positionen={getUmbuchbarePositionen(umbuchenBestellung, historie)}
+          positionen={umbuchenBestellung.umbuchbarePositionen}
           onClose={() => {
             setUmbuchenBestellung(null)
           }}
@@ -446,8 +316,58 @@ function ItemSkeleton() {
   )
 }
 
+// detailView maps a history entry to the fields the detail drawer renders.
+// Auszahlung has no positions (only a payout amount), so positionen is omitted.
+function detailView(eintrag: HistorieEintrag): {
+  title: string
+  date: string
+  positionen?: ReceiptPosition[]
+  totalPrice?: number
+} {
+  switch (eintrag.art) {
+    case 'bestellung':
+      return {
+        title: 'Bestellung',
+        date: eintrag.aufgenommenAm,
+        positionen: toReceiptItems(eintrag.positionen),
+        totalPrice: eintrag.gesamtPreisCents,
+      }
+    case 'zahlung':
+      return {
+        title: 'Zahlung',
+        date: eintrag.kassiertAm,
+        positionen: toReceiptItems(eintrag.positionen),
+        totalPrice: eintrag.gesamtZahlungCents,
+      }
+    case 'stornierung':
+      return {
+        title: 'Stornierung',
+        date: eintrag.storniertAm,
+        positionen: toReceiptItems(eintrag.positionen),
+        totalPrice: eintrag.gesamtStornierungCents,
+      }
+    case 'ausgabe':
+      return {
+        title: 'Ausgabe',
+        date: eintrag.ausgegebenAm,
+        positionen: toReceiptItems(eintrag.positionen),
+      }
+    case 'auszahlung':
+      return {
+        title: 'Auszahlung',
+        date: eintrag.geleistetAm,
+        totalPrice: eintrag.betragCents,
+      }
+  }
+}
+
+interface PrimaryAction {
+  label: string
+  loading: boolean
+  onAction: () => void
+}
+
 function Details({
-  open,
   onClose,
   title,
   id,
@@ -456,12 +376,8 @@ function Details({
   kommentar,
   positionen,
   totalPrice,
-  summary,
-  primaryActionLabel,
-  primaryActionLoading,
-  onPrimaryAction,
+  primaryAction,
 }: {
-  open: boolean
   onClose: () => void
   title: string
   id: string
@@ -470,14 +386,11 @@ function Details({
   kommentar: string
   positionen?: ReceiptPosition[]
   totalPrice?: number
-  summary?: string
-  primaryActionLabel?: string
-  primaryActionLoading?: boolean
-  onPrimaryAction?: () => void
+  primaryAction?: PrimaryAction
 }) {
   return (
     <Drawer
-      open={open}
+      open
       onOpenChange={(open) => {
         if (!open) onClose()
       }}
@@ -497,12 +410,11 @@ function Details({
           {positionen ? (
             <Receipt positionen={positionen} totalPrice={totalPrice} />
           ) : (
-            <div className="px-4 py-2 space-y-1">
-              {summary && <p className="text-muted-foreground">{summary}</p>}
-              {totalPrice !== undefined && (
+            totalPrice !== undefined && (
+              <div className="px-4 py-2">
                 <p className="font-bold">{formatCents(totalPrice)}&nbsp;€</p>
-              )}
-            </div>
+              </div>
+            )
           )}
           {kommentar && (
             <div className="px-4">
@@ -510,13 +422,16 @@ function Details({
             </div>
           )}
           <DrawerFooter>
-            {onPrimaryAction && primaryActionLabel && (
-              <Button onClick={onPrimaryAction} disabled={primaryActionLoading}>
-                {primaryActionLoading ? 'Drucke…' : primaryActionLabel}
+            {primaryAction && (
+              <Button
+                onClick={primaryAction.onAction}
+                disabled={primaryAction.loading}
+              >
+                {primaryAction.loading ? 'Drucke…' : primaryAction.label}
               </Button>
             )}
             <DrawerClose asChild>
-              <Button variant="outline" disabled={primaryActionLoading}>
+              <Button variant="outline" disabled={primaryAction?.loading}>
                 Schließen
               </Button>
             </DrawerClose>

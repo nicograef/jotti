@@ -110,7 +110,7 @@ export class TischBackend {
       body,
       z.object({
         historie: z.array(
-          z.union([
+          z.discriminatedUnion('art', [
             BestellungSchema,
             ZahlungSchema,
             StornierungSchema,

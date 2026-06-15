@@ -36,6 +36,7 @@ export const BestellungAufnehmenSchema = z.object({
 export type BestellungAufnehmen = z.infer<typeof BestellungAufnehmenSchema>
 
 export const BestellungSchema = z.object({
+  art: z.literal('bestellung'),
   id: z.uuid(),
   userId: z.number().int().min(1),
   tischId: z.number().int().min(1),
@@ -43,5 +44,9 @@ export const BestellungSchema = z.object({
   gesamtPreisCents: z.number().int().min(0),
   kommentar: z.string().max(100),
   aufgenommenAm: DateStringSchema,
+  // Backend-computed (single source of truth): positions of this order that are
+  // still stornierbar (ordered − cancelled) resp. umbuchbar (− paid as well).
+  stornierbarePositionen: PositionSchema.array(),
+  umbuchbarePositionen: PositionSchema.array(),
 })
 export type Bestellung = z.infer<typeof BestellungSchema>
