@@ -70,12 +70,11 @@ func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
 		zNr, err := h.Command.KassensitzungEroeffnen(r.Context(), userID, userName, body.Bezeichnung, *body.BetragCents)
 		if err != nil {
@@ -97,12 +96,11 @@ func (h *CommandHandler) GeldtransitBuchenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
 		err := h.Command.GeldtransitBuchen(r.Context(), userID, userName, body.Richtung, body.BetragCents, body.Kommentar)
 		if err != nil {
@@ -128,12 +126,11 @@ func (h *CommandHandler) KassensturzDurchfuehrenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
 		err := h.Command.KassensturzDurchfuehren(r.Context(), userID, userName, *body.IstBestandCents)
 		if err != nil {
@@ -154,12 +151,11 @@ func (h *CommandHandler) KassensturzDurchfuehrenHandler() http.HandlerFunc {
 
 func (h *CommandHandler) TagesabschlussErstellenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
 		err := h.Command.TagesabschlussErstellen(r.Context(), userID, userName)
 		if err != nil {

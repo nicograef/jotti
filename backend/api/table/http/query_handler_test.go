@@ -116,7 +116,7 @@ func TestPositionResponsesIncludeSteuersatz(t *testing.T) {
 			t.Fatalf("expected status 200, got %d", rec.Code)
 		}
 
-		var resp getTischStateResponse
+		var resp tischState
 		if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 			t.Fatalf("expected valid response body, got %v", err)
 		}

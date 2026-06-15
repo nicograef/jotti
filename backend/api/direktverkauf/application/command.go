@@ -86,7 +86,6 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	if err != nil {
 		return err
 	}
-	evt = tseSignierung.Event
 
 	druckstationen, err := c.konfigurierteDruckstationen(ctx)
 	if err != nil {
@@ -98,29 +97,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen)
 	}
 
-	if tseSignierung.NachsignierAuftrag != nil {
-		if err := c.writeEventWithDruckauftraegeUndNachsignierAuftrag(
-			ctx,
-			evt,
-			subject,
-			ks.ZNr,
-			buildAuftraege,
-			tseSignierung.NachsignierAuftrag.TxID,
-			tseSignierung.NachsignierAuftrag.ProcessType,
-			tseSignierung.NachsignierAuftrag.ProcessData,
-		); err != nil {
-			if errors.Is(err, ErrConflict) {
-				return ErrConflict
-			}
-			log.Error().Err(err).Msg("Failed to write direktverkauf getaetigt event with TSE-nachsignierung")
-			return ErrDatabase
-		}
-
-		log.Info().Str("verkauf_id", verkaufID).Msg("Direktverkauf getaetigt (unsigniert, Nachsignierung vorgemerkt)")
-		return nil
-	}
-
-	if err := c.writeEventWithDruckauftraege(ctx, evt, subject, ks.ZNr, buildAuftraege); err != nil {
+	if err := c.persistSignedVerkaufEvent(ctx, tseSignierung, subject, ks.ZNr, buildAuftraege); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -128,7 +105,11 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return ErrDatabase
 	}
 
-	log.Info().Str("verkauf_id", verkaufID).Msg("Direktverkauf getaetigt")
+	msg := "Direktverkauf getaetigt"
+	if tseSignierung.NachsignierAuftrag != nil {
+		msg += " (unsigniert, Nachsignierung vorgemerkt)"
+	}
+	log.Info().Str("verkauf_id", verkaufID).Msg(msg)
 	return nil
 }
 
@@ -194,30 +175,8 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 	if err != nil {
 		return err
 	}
-	evt = tseSignierung.Event
 
-	if tseSignierung.NachsignierAuftrag != nil {
-		if err := c.writeEventWithNachsignierAuftrag(
-			ctx,
-			evt,
-			subject,
-			ks.ZNr,
-			tseSignierung.NachsignierAuftrag.TxID,
-			tseSignierung.NachsignierAuftrag.ProcessType,
-			tseSignierung.NachsignierAuftrag.ProcessData,
-		); err != nil {
-			if errors.Is(err, ErrConflict) {
-				return ErrConflict
-			}
-			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to write direktverkauf storniert event with TSE-nachsignierung")
-			return ErrDatabase
-		}
-
-		log.Info().Str("verkauf_id", verkaufID).Int("gesamt_stornierung_cents", gesamtStornierungCents).Msg("Direktverkauf storniert (unsigniert, Nachsignierung vorgemerkt)")
-		return nil
-	}
-
-	if err := c.writeEvent(ctx, evt, subject, ks.ZNr); err != nil {
+	if err := c.persistSignedVerkaufEvent(ctx, tseSignierung, subject, ks.ZNr, nil); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -225,7 +184,11 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return ErrDatabase
 	}
 
-	log.Info().Str("verkauf_id", verkaufID).Int("gesamt_stornierung_cents", gesamtStornierungCents).Msg("Direktverkauf storniert")
+	msg := "Direktverkauf storniert"
+	if tseSignierung.NachsignierAuftrag != nil {
+		msg += " (unsigniert, Nachsignierung vorgemerkt)"
+	}
+	log.Info().Str("verkauf_id", verkaufID).Int("gesamt_stornierung_cents", gesamtStornierungCents).Msg(msg)
 	return nil
 }
 
@@ -436,4 +399,22 @@ func (c Command) writeEventWithNachsignierAuftrag(
 	}
 
 	return nil
+}
+
+// persistSignedVerkaufEvent writes a signed Direktverkauf event with OCC. When buildAuftraege is
+// non-nil the derived print jobs are written in the same transaction; when the signing produced a
+// Nachsignier-Auftrag the TSE retry job is written alongside. Returns ErrConflict on a version conflict.
+func (c Command) persistSignedVerkaufEvent(ctx context.Context, signierung tseApp.Signierung, subject string, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
+	evt := signierung.Event
+	if signierung.NachsignierAuftrag != nil {
+		na := signierung.NachsignierAuftrag
+		if buildAuftraege != nil {
+			return c.writeEventWithDruckauftraegeUndNachsignierAuftrag(ctx, evt, subject, kassensitzungNr, buildAuftraege, na.TxID, na.ProcessType, na.ProcessData)
+		}
+		return c.writeEventWithNachsignierAuftrag(ctx, evt, subject, kassensitzungNr, na.TxID, na.ProcessType, na.ProcessData)
+	}
+	if buildAuftraege != nil {
+		return c.writeEventWithDruckauftraege(ctx, evt, subject, kassensitzungNr, buildAuftraege)
+	}
+	return c.writeEvent(ctx, evt, subject, kassensitzungNr)
 }

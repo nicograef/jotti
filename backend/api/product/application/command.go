@@ -145,56 +145,30 @@ func (c Command) UpdateVariant(ctx context.Context, variantID int, name string, 
 }
 
 func (c Command) ActivateVariant(ctx context.Context, variantID int) error {
-	return c.applyVarianteStatusChange(
-		ctx,
-		variantID,
-		"Variant not found for activation",
-		"Failed to retrieve variant for activation",
-		"Failed to update variant",
-		"Variant activated",
-		func(v *product.Variante) { v.Activate() },
-	)
+	return c.applyVarianteStatusChange(ctx, variantID, "Variant activated", func(v *product.Variante) { v.Activate() })
 }
 
 func (c Command) DeactivateVariant(ctx context.Context, variantID int) error {
-	return c.applyVarianteStatusChange(
-		ctx,
-		variantID,
-		"Variant not found for deactivation",
-		"Failed to retrieve variant for deactivation",
-		"Failed to update variant",
-		"Variant deactivated",
-		func(v *product.Variante) { v.Deactivate() },
-	)
+	return c.applyVarianteStatusChange(ctx, variantID, "Variant deactivated", func(v *product.Variante) { v.Deactivate() })
 }
 
-func (c Command) applyVarianteStatusChange(
-	ctx context.Context,
-	variantID int,
-	notFoundMsg string,
-	loadFailedMsg string,
-	updateFailedMsg string,
-	successMsg string,
-	action func(*product.Variante),
-) error {
+func (c Command) applyVarianteStatusChange(ctx context.Context, variantID int, successMsg string, action func(*product.Variante)) error {
 	log := zerolog.Ctx(ctx)
 
 	variante, err := c.ProductRepo.GetVariant(ctx, variantID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("variant_id", variantID).Msg(notFoundMsg)
+			log.Warn().Int("variant_id", variantID).Msg("Variant not found for status change")
 			return ErrVarianteNotFound
-		} else {
-			log.Error().Int("variant_id", variantID).Msg(loadFailedMsg)
-			return ErrDatabase
 		}
+		log.Error().Int("variant_id", variantID).Msg("Failed to retrieve variant for status change")
+		return ErrDatabase
 	}
 
 	action(&variante)
 
-	err = c.ProductRepo.UpdateVariant(ctx, variante)
-	if err != nil {
-		log.Error().Err(err).Int("variant_id", variantID).Msg(updateFailedMsg)
+	if err := c.ProductRepo.UpdateVariant(ctx, variante); err != nil {
+		log.Error().Err(err).Int("variant_id", variantID).Msg("Failed to update variant")
 		return ErrDatabase
 	}
 

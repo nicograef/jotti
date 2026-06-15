@@ -56,7 +56,7 @@ func toTische(tische []t.Tisch) []tisch {
 	return tischeResponse
 }
 
-func (h QueryHandler) GetAllTischeHandler() http.HandlerFunc {
+func (h *QueryHandler) GetAllTischeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tische, err := h.Query.GetAllTische(r.Context())
 		if err != nil {
@@ -78,7 +78,7 @@ type getAktiveTischeResponse struct {
 	Tische []aktiverTisch `json:"tische"`
 }
 
-func (h QueryHandler) GetAktiveTischeHandler() http.HandlerFunc {
+func (h *QueryHandler) GetAktiveTischeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tische, err := h.Query.GetAktiveTische(r.Context())
 		if err != nil {
@@ -276,7 +276,7 @@ func toHistorie(eintraege []k.HistorieEintrag) []any {
 	return historieResponse
 }
 
-func (h QueryHandler) GetTischHistorieHandler() http.HandlerFunc {
+func (h *QueryHandler) GetTischHistorieHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := getTischHistorieRequest{}
 		if !helper.ReadBody(w, r, &body) {
@@ -297,7 +297,7 @@ type getTischStateRequest struct {
 	TischID int `json:"tischId"`
 }
 
-type getTischStateResponse struct {
+type tischState struct {
 	TischID               int        `json:"tischId"`
 	TischName             string     `json:"tischName"`
 	SaldoCents            int        `json:"saldoCents"`
@@ -306,7 +306,18 @@ type getTischStateResponse struct {
 	GesamtZahlungenCents  int        `json:"gesamtZahlungenCents"`
 }
 
-func (h QueryHandler) GetTischStateHandler() http.HandlerFunc {
+func toTischState(s application.TischStateView) tischState {
+	return tischState{
+		TischID:               s.TischID,
+		TischName:             s.TischName,
+		SaldoCents:            s.SaldoCents,
+		UnbezahltePositionen:  toPositionen(s.UnbezahltePositionen),
+		AusstehendePositionen: toPositionen(s.AusstehendePositionen),
+		GesamtZahlungenCents:  s.GesamtZahlungenCents,
+	}
+}
+
+func (h *QueryHandler) GetTischStateHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := getTischStateRequest{}
 		if !helper.ReadBody(w, r, &body) {
@@ -319,23 +330,7 @@ func (h QueryHandler) GetTischStateHandler() http.HandlerFunc {
 			return
 		}
 
-		unbezahlt := toPositionen(state.UnbezahltePositionen)
-		if unbezahlt == nil {
-			unbezahlt = []position{}
-		}
-		ausstehend := toPositionen(state.AusstehendePositionen)
-		if ausstehend == nil {
-			ausstehend = []position{}
-		}
-
-		helper.SendResponse(w, getTischStateResponse{
-			TischID:               state.TischID,
-			TischName:             state.TischName,
-			SaldoCents:            state.SaldoCents,
-			UnbezahltePositionen:  unbezahlt,
-			AusstehendePositionen: ausstehend,
-			GesamtZahlungenCents:  state.GesamtZahlungenCents,
-		})
+		helper.SendResponse(w, toTischState(state))
 	}
 }
 
@@ -350,9 +345,9 @@ type getAktiveTischeMitFavoritenResponse struct {
 	Tische []aktiverTischMitFavorit `json:"tische"`
 }
 
-func (h QueryHandler) GetAktiveTischeMitFavoritenHandler() http.HandlerFunc {
+func (h *QueryHandler) GetAktiveTischeMitFavoritenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, _, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
@@ -378,22 +373,13 @@ func (h QueryHandler) GetAktiveTischeMitFavoritenHandler() http.HandlerFunc {
 	}
 }
 
-type meinTischState struct {
-	TischID               int        `json:"tischId"`
-	TischName             string     `json:"tischName"`
-	SaldoCents            int        `json:"saldoCents"`
-	UnbezahltePositionen  []position `json:"unbezahltePositionen"`
-	AusstehendePositionen []position `json:"ausstehendePositionen"`
-	GesamtZahlungenCents  int        `json:"gesamtZahlungenCents"`
-}
-
 type getMeineTischeStateResponse struct {
-	Tische []meinTischState `json:"tische"`
+	Tische []tischState `json:"tische"`
 }
 
-func (h QueryHandler) GetMeineTischeStateHandler() http.HandlerFunc {
+func (h *QueryHandler) GetMeineTischeStateHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, _, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
@@ -405,24 +391,9 @@ func (h QueryHandler) GetMeineTischeStateHandler() http.HandlerFunc {
 			return
 		}
 
-		dtos := make([]meinTischState, len(tische))
+		dtos := make([]tischState, len(tische))
 		for i, state := range tische {
-			unbezahlt := toPositionen(state.UnbezahltePositionen)
-			if unbezahlt == nil {
-				unbezahlt = []position{}
-			}
-			ausstehend := toPositionen(state.AusstehendePositionen)
-			if ausstehend == nil {
-				ausstehend = []position{}
-			}
-			dtos[i] = meinTischState{
-				TischID:               state.TischID,
-				TischName:             state.TischName,
-				SaldoCents:            state.SaldoCents,
-				UnbezahltePositionen:  unbezahlt,
-				AusstehendePositionen: ausstehend,
-				GesamtZahlungenCents:  state.GesamtZahlungenCents,
-			}
+			dtos[i] = toTischState(state)
 		}
 
 		helper.SendResponse(w, getMeineTischeStateResponse{Tische: dtos})

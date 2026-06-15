@@ -25,6 +25,17 @@ const (
 	CorrelationIDKey ContextKey = "correlation_id"
 )
 
+// UserFromContext returns the authenticated user's ID and name from the request
+// context, as populated by NewJwtMiddleware. ok is false when no user ID is present.
+func UserFromContext(ctx context.Context) (userID int, userName string, ok bool) {
+	userID, ok = ctx.Value(UserIDKey).(int)
+	if !ok {
+		return 0, "", false
+	}
+	userName, _ = ctx.Value(UserNameKey).(string)
+	return userID, userName, true
+}
+
 // CorrelationIDMiddleware adds a correlation ID to each request for tracing
 func CorrelationIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

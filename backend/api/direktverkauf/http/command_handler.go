@@ -63,12 +63,11 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
 		err := h.Command.DirektverkaufTaetigen(r.Context(), userID, userName, toVerkaufPositionInputs(body.Positionen), body.Kommentar)
 		if err != nil {
@@ -126,12 +125,11 @@ func (h *CommandHandler) DirektverkaufStornierenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
 		err := h.Command.DirektverkaufStornieren(r.Context(), userID, userName, body.VerkaufID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {

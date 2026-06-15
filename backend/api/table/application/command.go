@@ -156,6 +156,37 @@ func writeEventWithNachsignierAuftrag(ctx context.Context, repo eventRepo, e eve
 	})
 }
 
+// persistSignedTischEvent writes a signed tisch-session event: when the signing produced a
+// Nachsignier-Auftrag the event is written together with that TSE retry job, otherwise on its own.
+// An OCC conflict maps to ErrConflict, any other write error to ErrDatabase. aktion is the success
+// log message; on the deferred-signing path it is suffixed accordingly.
+func (c Command) persistSignedTischEvent(ctx context.Context, signierung tseApp.Signierung, subject string, kassensitzungNr int, tischID int, aktion string) error {
+	log := zerolog.Ctx(ctx)
+
+	if signierung.NachsignierAuftrag != nil {
+		na := signierung.NachsignierAuftrag
+		if _, err := writeEventWithNachsignierAuftrag(ctx, c.EventRepo, signierung.Event, subject, kasse.StreamTypeTischSession, kassensitzungNr, na.TxID, na.ProcessType, na.ProcessData); err != nil {
+			if errors.Is(err, ErrConflict) {
+				return ErrConflict
+			}
+			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write event with TSE-nachsignierung")
+			return ErrDatabase
+		}
+		log.Info().Int("tisch_id", tischID).Msg(aktion + " (unsigniert, Nachsignierung vorgemerkt)")
+		return nil
+	}
+
+	if _, err := writeEvent(ctx, c.EventRepo, signierung.Event, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+		if errors.Is(err, ErrConflict) {
+			return ErrConflict
+		}
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write event to database")
+		return ErrDatabase
+	}
+	log.Info().Int("tisch_id", tischID).Msg(aktion)
+	return nil
+}
+
 // konfigurierteDruckstationen returns the configured work-ticket printers, or an
 // empty map when no DruckstationRepo is wired (e.g. in tests).
 func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]bondruckApp.Druckstation, error) {
@@ -631,41 +662,8 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	if err != nil {
 		return err
 	}
-	evt = signierung.Event
 
-	if signierung.NachsignierAuftrag != nil {
-		if _, err := writeEventWithNachsignierAuftrag(
-			ctx,
-			c.EventRepo,
-			evt,
-			subject,
-			kasse.StreamTypeTischSession,
-			kassensitzungNr,
-			signierung.NachsignierAuftrag.TxID,
-			signierung.NachsignierAuftrag.ProcessType,
-			signierung.NachsignierAuftrag.ProcessData,
-		); err != nil {
-			if errors.Is(err, ErrConflict) {
-				return ErrConflict
-			}
-			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write zahlung event with TSE-nachsignierung")
-			return ErrDatabase
-		}
-
-		log.Info().Int("tisch_id", tischID).Msg("Zahlung kassiert (unsigniert, Nachsignierung vorgemerkt)")
-		return nil
-	}
-
-	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
-		if errors.Is(err, ErrConflict) {
-			return ErrConflict
-		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write zahlung kassiert event to database")
-		return ErrDatabase
-	}
-
-	log.Info().Int("tisch_id", tischID).Msg("Zahlung kassiert")
-	return nil
+	return c.persistSignedTischEvent(ctx, signierung, subject, kassensitzungNr, tischID, "Zahlung kassiert")
 }
 
 func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
@@ -702,41 +700,8 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 	if err != nil {
 		return err
 	}
-	evt = signierung.Event
 
-	if signierung.NachsignierAuftrag != nil {
-		if _, err := writeEventWithNachsignierAuftrag(
-			ctx,
-			c.EventRepo,
-			evt,
-			subject,
-			kasse.StreamTypeTischSession,
-			kassensitzungNr,
-			signierung.NachsignierAuftrag.TxID,
-			signierung.NachsignierAuftrag.ProcessType,
-			signierung.NachsignierAuftrag.ProcessData,
-		); err != nil {
-			if errors.Is(err, ErrConflict) {
-				return ErrConflict
-			}
-			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write stornierung event with TSE-nachsignierung")
-			return ErrDatabase
-		}
-
-		log.Info().Int("tisch_id", tischID).Msg("Stornierung erteilt (unsigniert, Nachsignierung vorgemerkt)")
-		return nil
-	}
-
-	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
-		if errors.Is(err, ErrConflict) {
-			return ErrConflict
-		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write stornierung erteilt event to database")
-		return ErrDatabase
-	}
-
-	log.Info().Int("tisch_id", tischID).Msg("Stornierung erteilt")
-	return nil
+	return c.persistSignedTischEvent(ctx, signierung, subject, kassensitzungNr, tischID, "Stornierung erteilt")
 }
 
 func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
@@ -793,39 +758,6 @@ func (c Command) AuszahlungLeisten(ctx context.Context, userID int, userName str
 	if err != nil {
 		return err
 	}
-	evt = signierung.Event
 
-	if signierung.NachsignierAuftrag != nil {
-		if _, err := writeEventWithNachsignierAuftrag(
-			ctx,
-			c.EventRepo,
-			evt,
-			subject,
-			kasse.StreamTypeTischSession,
-			kassensitzungNr,
-			signierung.NachsignierAuftrag.TxID,
-			signierung.NachsignierAuftrag.ProcessType,
-			signierung.NachsignierAuftrag.ProcessData,
-		); err != nil {
-			if errors.Is(err, ErrConflict) {
-				return ErrConflict
-			}
-			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write auszahlung event with TSE-nachsignierung")
-			return ErrDatabase
-		}
-
-		log.Info().Int("tisch_id", tischID).Msg("Auszahlung geleistet (unsigniert, Nachsignierung vorgemerkt)")
-		return nil
-	}
-
-	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
-		if errors.Is(err, ErrConflict) {
-			return ErrConflict
-		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write auszahlung geleistet event to database")
-		return ErrDatabase
-	}
-
-	log.Info().Int("tisch_id", tischID).Msg("Auszahlung geleistet")
-	return nil
+	return c.persistSignedTischEvent(ctx, signierung, subject, kassensitzungNr, tischID, "Auszahlung geleistet")
 }

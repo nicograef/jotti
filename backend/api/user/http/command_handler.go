@@ -197,7 +197,7 @@ func (h CommandHandler) DeleteUserHandler() http.HandlerFunc {
 			return
 		}
 
-		currentUserID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		currentUserID, _, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return

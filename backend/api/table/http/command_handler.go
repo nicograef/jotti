@@ -112,7 +112,7 @@ func (h *CommandHandler) FavoritHinzufuegenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, _, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
@@ -138,7 +138,7 @@ func (h *CommandHandler) FavoritEntfernenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, _, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
@@ -308,12 +308,11 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.TischID, toBestellPositionInputs(body.Positionen), body.Kommentar)
 		if err != nil {
 			switch {
@@ -382,6 +381,8 @@ var belegDruckenStornoSchema = z.Struct(z.Shape{
 	"StornierungID": z.String().UUID().Required(),
 })
 
+const belegDruckenValidationMessage = "entweder tischId+zahlungId, verkaufId oder verkaufId+stornierungId senden"
+
 func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := zahlungKassierenRequest{}
@@ -389,12 +390,11 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			switch {
@@ -428,9 +428,9 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 		hasVerkauf := body.VerkaufID != nil
 		hasStornierung := body.StornierungID != nil
 
-		if (hasVerkauf || hasStornierung) && (hasTisch || hasZahlung) || (hasStornierung && !hasVerkauf) {
+		if ((hasVerkauf || hasStornierung) && (hasTisch || hasZahlung)) || (hasStornierung && !hasVerkauf) {
 			helper.SendClientError(w, "validation_error", map[string][]string{
-				"body": {"entweder tischId+zahlungId, verkaufId oder verkaufId+stornierungId senden"},
+				"body": {belegDruckenValidationMessage},
 			})
 			return
 		}
@@ -474,7 +474,7 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 
 		if !hasTisch || !hasZahlung {
 			helper.SendClientError(w, "validation_error", map[string][]string{
-				"body": {"entweder tischId+zahlungId, verkaufId oder verkaufId+stornierungId senden"},
+				"body": {belegDruckenValidationMessage},
 			})
 			return
 		}
@@ -533,12 +533,11 @@ func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.StornierungErteilen(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			switch {
@@ -567,12 +566,11 @@ func (h *CommandHandler) BestellungUmbuchenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 
 		err := h.Command.BestellungUmbuchen(r.Context(), userID, userName, body.QuellTischID, body.ZielTischID, toPositionRefs(body.Positionen))
 		if err != nil {
@@ -621,12 +619,11 @@ func (h *CommandHandler) AusgabeBestaetigenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.AusgabeBestaetigen(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			switch {
@@ -661,12 +658,11 @@ func (h *CommandHandler) AuszahlungLeistenHandler() http.HandlerFunc {
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, userName, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
 		}
-		userName, _ := r.Context().Value(middleware.UserNameKey).(string)
 		err := h.Command.AuszahlungLeisten(r.Context(), userID, userName, body.TischID, body.BetragCents, body.Kommentar)
 		if err != nil {
 			switch {

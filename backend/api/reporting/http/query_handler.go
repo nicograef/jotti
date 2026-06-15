@@ -34,7 +34,7 @@ type reportingResponse struct {
 	Stornierungen       []stornierungDetail        `json:"stornierungen"`
 }
 
-func (h QueryHandler) GetReportingHandler() http.HandlerFunc {
+func (h *QueryHandler) GetReportingHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := getReportingRequest{}
 		if !helper.ReadBody(w, r, &body) {
@@ -241,7 +241,7 @@ type getAllKassensitzungenResponse struct {
 	Kassensitzungen []kassensitzungItem `json:"kassensitzungen"`
 }
 
-func (h QueryHandler) GetAllKassensitzungenHandler() http.HandlerFunc {
+func (h *QueryHandler) GetAllKassensitzungenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data, err := h.Query.GetAllKassensitzungen(r.Context())
 		if err != nil {
@@ -270,9 +270,9 @@ type eigeneUebersichtResponse struct {
 	ZahlungenCents     int `json:"zahlungenCents"`
 }
 
-func (h QueryHandler) GetEigeneUebersichtHandler() http.HandlerFunc {
+func (h *QueryHandler) GetEigeneUebersichtHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, ok := r.Context().Value(middleware.UserIDKey).(int)
+		userID, _, ok := middleware.UserFromContext(r.Context())
 		if !ok {
 			helper.SendServerError(w)
 			return
@@ -356,7 +356,7 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 	}
 }
 
-func (h QueryHandler) GetLiveReportingHandler() http.HandlerFunc {
+func (h *QueryHandler) GetLiveReportingHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data, err := h.Query.GetLiveReporting(r.Context())
 		if err != nil {

@@ -97,6 +97,16 @@ func (c Command) writeKassensitzungEventWithNachsignierAuftrag(ctx context.Conte
 	return nil
 }
 
+// writeSignedKassensitzungEvent writes a signed Kassensitzung event, attaching the TSE retry job
+// when the signing produced a Nachsignier-Auftrag and writing the event on its own otherwise.
+func (c Command) writeSignedKassensitzungEvent(ctx context.Context, signierung tseApp.Signierung, kassensitzungNr int) error {
+	if signierung.NachsignierAuftrag != nil {
+		na := signierung.NachsignierAuftrag
+		return c.writeKassensitzungEventWithNachsignierAuftrag(ctx, signierung.Event, kassensitzungNr, na.TxID, na.ProcessType, na.ProcessData)
+	}
+	return c.writeKassensitzungEvent(ctx, signierung.Event, kassensitzungNr)
+}
+
 // KassensitzungEroeffnen opens a new Kassensitzung. Returns ErrKasseAlreadyOpen if one is already open.
 func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error) {
 	log := zerolog.Ctx(ctx)
@@ -171,29 +181,16 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 	if err != nil {
 		return err
 	}
-	evt = signierung.Event
 
-	if signierung.NachsignierAuftrag != nil {
-		if err := c.writeKassensitzungEventWithNachsignierAuftrag(
-			ctx,
-			evt,
-			ks.ZNr,
-			signierung.NachsignierAuftrag.TxID,
-			signierung.NachsignierAuftrag.ProcessType,
-			signierung.NachsignierAuftrag.ProcessData,
-		); err != nil {
-			return err
-		}
-
-		log.Info().Int("z_nr", ks.ZNr).Str("richtung", richtung).Int("betrag_cents", betragCents).Msg("Geldtransit gebucht (unsigniert, Nachsignierung vorgemerkt)")
-		return nil
-	}
-
-	if err := c.writeKassensitzungEvent(ctx, evt, ks.ZNr); err != nil {
+	if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr); err != nil {
 		return err
 	}
 
-	log.Info().Int("z_nr", ks.ZNr).Str("richtung", richtung).Int("betrag_cents", betragCents).Msg("Geldtransit gebucht")
+	msg := "Geldtransit gebucht"
+	if signierung.NachsignierAuftrag != nil {
+		msg += " (unsigniert, Nachsignierung vorgemerkt)"
+	}
+	log.Info().Int("z_nr", ks.ZNr).Str("richtung", richtung).Int("betrag_cents", betragCents).Msg(msg)
 	return nil
 }
 
@@ -240,23 +237,8 @@ func (c Command) KassensturzDurchfuehren(ctx context.Context, userID int, userNa
 		if err != nil {
 			return err
 		}
-		diffEvt = signierung.Event
-
-		if signierung.NachsignierAuftrag != nil {
-			if err := c.writeKassensitzungEventWithNachsignierAuftrag(
-				ctx,
-				diffEvt,
-				ks.ZNr,
-				signierung.NachsignierAuftrag.TxID,
-				signierung.NachsignierAuftrag.ProcessType,
-				signierung.NachsignierAuftrag.ProcessData,
-			); err != nil {
-				return err
-			}
-		} else {
-			if err := c.writeKassensitzungEvent(ctx, diffEvt, ks.ZNr); err != nil {
-				return err
-			}
+		if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr); err != nil {
+			return err
 		}
 	}
 
@@ -334,28 +316,14 @@ func (c Command) TagesabschlussErstellen(ctx context.Context, userID int, userNa
 	if err != nil {
 		return err
 	}
-	tagesabschlussEvt = signierung.Event
-
-	if signierung.NachsignierAuftrag != nil {
-		if err := c.writeKassensitzungEventWithNachsignierAuftrag(
-			ctx,
-			tagesabschlussEvt,
-			ks.ZNr,
-			signierung.NachsignierAuftrag.TxID,
-			signierung.NachsignierAuftrag.ProcessType,
-			signierung.NachsignierAuftrag.ProcessData,
-		); err != nil {
-			return err
-		}
-
-		log.Info().Int("z_nr", ks.ZNr).Msg("Tagesabschluss erstellt (unsigniert, Nachsignierung vorgemerkt)")
-		return nil
-	}
-
-	if err := c.writeKassensitzungEvent(ctx, tagesabschlussEvt, ks.ZNr); err != nil {
+	if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr); err != nil {
 		return err
 	}
 
-	log.Info().Int("z_nr", ks.ZNr).Msg("Tagesabschluss erstellt")
+	msg := "Tagesabschluss erstellt"
+	if signierung.NachsignierAuftrag != nil {
+		msg += " (unsigniert, Nachsignierung vorgemerkt)"
+	}
+	log.Info().Int("z_nr", ks.ZNr).Msg(msg)
 	return nil
 }
