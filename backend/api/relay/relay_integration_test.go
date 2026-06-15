@@ -86,7 +86,7 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 	err = db.QueryRow(`
 		INSERT INTO users (name, username, password_hash, role, status, created_at, updated_at)
 		VALUES ('Test Service', 'test-service', 'unused', 'service', 'active', now(), now())
-		ON CONFLICT (username) DO UPDATE SET name = EXCLUDED.name
+		ON CONFLICT (username) WHERE status != 'deleted' DO UPDATE SET name = EXCLUDED.name
 		RETURNING id
 	`).Scan(&userID)
 	if err != nil {
@@ -97,7 +97,7 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 	err = db.QueryRow(`
 		INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at)
 		VALUES ('Test-Bratwurst', 'essen', 'regel', 'active', now(), now())
-		ON CONFLICT (name) DO UPDATE SET status = 'active', steuersatz = 'regel'
+		ON CONFLICT (name) WHERE status != 'deleted' DO UPDATE SET status = 'active', steuersatz = 'regel'
 		RETURNING id
 	`).Scan(&prodID)
 	if err != nil {
@@ -118,7 +118,7 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 	err = db.QueryRow(`
 		INSERT INTO tische (name, status, created_at, updated_at)
 		VALUES ('Test-Tisch 1', 'active', now(), now())
-		ON CONFLICT (name) DO UPDATE SET status = 'active'
+		ON CONFLICT (name) WHERE status != 'deleted' DO UPDATE SET status = 'active'
 		RETURNING id
 	`).Scan(&tID)
 	if err != nil {
