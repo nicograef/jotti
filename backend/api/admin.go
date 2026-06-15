@@ -106,6 +106,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 		KassenjournalRepo:   kassenjournalRepo,
 		KassensitzungenRepo: kassensitzungenRepo,
 		SettingsRepo:        settingsRepo,
+		ReportingRepo:       reportingRepo,
 		TSESignierer: tseApp.Signierer{
 			SettingsRepo: settingsRepo,
 			NewTSEClient: func(credentials tse.Credentials) (tse.TSEClient, error) {
@@ -115,8 +116,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	}
 	r.HandleFunc("/kassensitzung-eroeffnen", kc.KassensitzungEroeffnenHandler())
 	r.HandleFunc("/geldtransit-buchen", kc.GeldtransitBuchenHandler())
-	r.HandleFunc("/kassensturz-durchfuehren", kc.KassensturzDurchfuehrenHandler())
-	r.HandleFunc("/tagesabschluss-erstellen", kc.TagesabschlussErstellenHandler())
+	r.HandleFunc("/kasse-abschliessen", kc.KasseAbschliessenHandler())
 
 	kq := kasseHTTP.QueryHandler{}
 	kq.Query = kasseApp.Query{KassenjournalRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}

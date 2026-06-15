@@ -422,7 +422,7 @@ func (b *sitzungsBauer) geldtransit(a geldtransit) error {
 }
 
 // kassensturz schreibt den Soll/Ist-Vergleich und bei Differenz ≠ 0 die Differenz-Buchung —
-// das Zwei-Event-Muster aus KassensturzDurchfuehren im Produktivbetrieb.
+// das Zwei-Event-Muster aus KasseAbschliessen im Produktivbetrieb.
 func (b *sitzungsBauer) kassensturz(a kassensturz) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {

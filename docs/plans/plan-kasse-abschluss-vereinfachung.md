@@ -198,21 +198,21 @@ Command-Tests werden durch neue für `KasseAbschliessen` ersetzt.
 
 ### Acceptance criteria
 
-- [ ] `KasseAbschliessen` schreibt bei Differenz Null genau ein Kassensturz- und
+- [x] `KasseAbschliessen` schreibt bei Differenz Null genau ein Kassensturz- und
       ein Tagesabschluss-Event, keine Differenzbuchung; die Kassensitzung erhält
       Status abgeschlossen.
-- [ ] Bei Differenz ungleich Null wird zusätzlich genau eine Differenzbuchung
+- [x] Bei Differenz ungleich Null wird zusätzlich genau eine Differenzbuchung
       geschrieben.
-- [ ] Das `tagesabschluss-erstellt:v1`-Event enthält die echten Tagessummen
+- [x] Das `tagesabschluss-erstellt:v1`-Event enthält die echten Tagessummen
       (Umsatz, Stornierungen, Auszahlungen, Geldtransit) statt Nullen.
-- [ ] Abschluss wird mit `tische_saldo_offen` abgelehnt, wenn ein Tisch einen
+- [x] Abschluss wird mit `tische_saldo_offen` abgelehnt, wenn ein Tisch einen
       Saldo ungleich Null hat.
-- [ ] Abschluss wird mit `kasse_nicht_geoeffnet` abgelehnt, wenn keine Sitzung
+- [x] Abschluss wird mit `kasse_nicht_geoeffnet` abgelehnt, wenn keine Sitzung
       offen ist.
-- [ ] `admin/kasse-abschliessen` existiert; die beiden alten Endpunkte, der
+- [x] `admin/kasse-abschliessen` existiert; die beiden alten Endpunkte, der
       Fehlercode `kassensturz_erforderlich` und `ErrKassensturzErforderlich` sind
       entfernt.
-- [ ] Command-Tests decken die fünf Fälle ab; Seed-Generator bleibt unverändert
+- [x] Command-Tests decken die fünf Fälle ab; Seed-Generator bleibt unverändert
       und erzeugt dieselbe Semantik wie die Produktion.
 
 ---

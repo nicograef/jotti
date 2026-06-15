@@ -9,6 +9,7 @@ import (
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/rs/zerolog"
 )
@@ -17,7 +18,6 @@ type kassenjournalRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
-	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error)
 	GetTischSessionsByKassensitzungNr(ctx context.Context, kassensitzungNr int) ([]kasse.TischSession, error)
 }
@@ -31,10 +31,15 @@ type settingsRepo interface {
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
 }
 
+type reportingRepo interface {
+	GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error)
+}
+
 type Command struct {
 	KassenjournalRepo   kassenjournalRepo
 	KassensitzungenRepo kassensitzungenRepo
 	SettingsRepo        settingsRepo
+	ReportingRepo       reportingRepo
 	TSESignierer        tseApp.Signierer
 }
 
@@ -194,10 +199,21 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 	return nil
 }
 
-// KassensturzDurchfuehren performs a Soll/Ist comparison of the cash balance.
-// Two-Event Pattern: writes kassensturz-durchgefuehrt:v1 always,
-// and differenz-soll-ist-gebucht:v1 additionally when differenzCents != 0.
-func (c Command) KassensturzDurchfuehren(ctx context.Context, userID int, userName string, istBestandCents int) error {
+// KasseAbschliessen schließt die Kasse in einem Schritt ab: Kassensturz,
+// Differenzbuchung (bei Differenz ungleich Null) und Tagesabschluss.
+//
+// Feste Schreibreihenfolge:
+//  1. kassensturz-durchgefuehrt:v1 (immer)
+//  2. differenz-soll-ist-gebucht:v1 (nur bei Differenz ungleich Null, signiert)
+//  3. tagesabschluss-erstellt:v1 (signiert, schließt die Kassensitzung)
+//
+// Invariante: Tisch-Saldo-Sperre — alle Tisch-Sessions müssen saldo_cents = 0
+// haben. Die Tagessummen des Z-Bons kommen aus GetReporting.
+//
+// Teilfehler: Schlägt ein Schreibvorgang nach dem ersten Event fehl, bleibt die
+// Kassensitzung offen und der Abschluss kann wiederholt werden. Es gibt bewusst
+// keine umschließende Transaktion über alle Events.
+func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName string, istBestandCents int) error {
 	log := zerolog.Ctx(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
@@ -205,34 +221,46 @@ func (c Command) KassensturzDurchfuehren(ctx context.Context, userID int, userNa
 		return err
 	}
 
-	sollBestandCents, err := c.KassenjournalRepo.GetKassenbestand(ctx, ks.ZNr)
-	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get Kassenbestand for Kassensturz")
-		return ErrDatabase
-	}
-
-	differenzCents := sollBestandCents - istBestandCents
-
 	subject := kasse.KassensitzungSubject(ks.ZNr)
 
-	evt, err := kasse.NewKassensturzDurchgefuehrtEvent(subject, userID, userName, sollBestandCents, istBestandCents, differenzCents)
+	sollBestandCents, err := c.KassenjournalRepo.GetKassenbestand(ctx, ks.ZNr)
+	if err != nil {
+		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get Kassenbestand for Kassenabschluss")
+		return ErrDatabase
+	}
+	differenzCents := sollBestandCents - istBestandCents
+
+	// Invariant: Tisch-Saldo-Sperre — all tisch sessions must have saldo_cents = 0
+	sessions, err := c.KassenjournalRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
+	if err != nil {
+		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get tisch sessions for Kassenabschluss")
+		return ErrDatabase
+	}
+	for _, s := range sessions {
+		if s.SaldoCents != 0 {
+			log.Warn().Int("z_nr", ks.ZNr).Int("tisch_id", s.TischID).Int("saldo_cents", s.SaldoCents).
+				Msg("Kassenabschluss rejected: Tisch has non-zero saldo")
+			return ErrTischeSaldoOffen
+		}
+	}
+
+	// 1. Kassensturz
+	kassensturzEvt, err := kasse.NewKassensturzDurchgefuehrtEvent(subject, userID, userName, sollBestandCents, istBestandCents, differenzCents)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create kassensturz-durchgefuehrt event")
 		return err
 	}
-
-	if err := c.writeKassensitzungEvent(ctx, evt, ks.ZNr); err != nil {
+	if err := c.writeKassensitzungEvent(ctx, kassensturzEvt, ks.ZNr); err != nil {
 		return err
 	}
 
-	// Two-Event Pattern: write differenz-soll-ist-gebucht if differenz != 0
+	// 2. Differenzbuchung nur bei Differenz ungleich Null
 	if differenzCents != 0 {
 		diffEvt, err := kasse.NewDifferenzSollIstGebuchtEvent(subject, userID, userName, differenzCents)
 		if err != nil {
 			log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create differenz-soll-ist-gebucht event")
 			return err
 		}
-
 		signierung, err := c.signDifferenzSollIstGebuchtEvent(ctx, diffEvt, differenzCents)
 		if err != nil {
 			return err
@@ -242,76 +270,26 @@ func (c Command) KassensturzDurchfuehren(ctx context.Context, userID int, userNa
 		}
 	}
 
-	log.Info().Int("z_nr", ks.ZNr).
-		Int("soll_cents", sollBestandCents).
-		Int("ist_cents", istBestandCents).
-		Int("differenz_cents", differenzCents).
-		Msg("Kassensturz durchgefuehrt")
-	return nil
-}
-
-// TagesabschlussErstellen creates the Z-Receipt and closes the Kassensitzung.
-// Invariants:
-//   - Kassensturz must be completed (kassensturz-durchgefuehrt:v1 in event stream)
-//   - Tisch-Saldo-Sperre: all tisch sessions must have saldo_cents = 0
-func (c Command) TagesabschlussErstellen(ctx context.Context, userID int, userName string) error {
-	log := zerolog.Ctx(ctx)
-
-	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	// 3. Tagesabschluss mit echten Tagessummen aus dem Reporting
+	reportingData, err := c.ReportingRepo.GetReporting(ctx, ks.ZNr)
 	if err != nil {
-		return err
-	}
-
-	subject := kasse.KassensitzungSubject(ks.ZNr)
-
-	// Invariant: Kassensturz must be completed
-	events, err := c.KassenjournalRepo.ReadEventsBySubject(ctx, subject)
-	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to read KS events for Tagesabschluss")
+		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get reporting for Tagesabschluss")
 		return ErrDatabase
 	}
-
-	kassensturzDone := false
-	for _, evt := range events {
-		if evt.Type == string(kasse.EventTypeKassensturzDurchgefuehrtV1) {
-			kassensturzDone = true
-			break
-		}
-	}
-	if !kassensturzDone {
-		log.Warn().Int("z_nr", ks.ZNr).Msg("Tagesabschluss rejected: Kassensturz not completed")
-		return ErrKassensturzErforderlich
-	}
-
-	// Invariant: Tisch-Saldo-Sperre — all tisch sessions must have saldo_cents = 0
-	sessions, err := c.KassenjournalRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
-	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get tisch sessions for Tagesabschluss")
-		return ErrDatabase
-	}
-
-	for _, s := range sessions {
-		if s.SaldoCents != 0 {
-			log.Warn().Int("z_nr", ks.ZNr).Int("tisch_id", s.TischID).Int("saldo_cents", s.SaldoCents).
-				Msg("Tagesabschluss rejected: Tisch has non-zero saldo")
-			return ErrTischeSaldoOffen
-		}
-	}
+	summary := reportingData.Summary
 
 	now := time.Now().UTC()
-	// Aggregate values are 0 here — actual reporting uses SQL aggregation queries.
-	// The event records the structural fact of the Tagesabschluss; detailed numbers come from GetReporting.
 	tagesabschlussEvt, err := kasse.NewTagesabschlussErstelltEvent(
 		subject, userID, userName,
 		ks.ZNr,
 		ks.CreatedAt, now,
-		0, 0, 0, 0,
+		summary.GesamtUmsatzCents, summary.GesamtStornierungenCents,
+		summary.GesamtAuszahlungenCents, summary.GeldtransitCents,
 	)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create tagesabschluss-erstellt event")
 		return err
 	}
-
 	signierung, err := c.signTagesabschlussErstelltEvent(ctx, tagesabschlussEvt, ks.ZNr, ks.CreatedAt, now)
 	if err != nil {
 		return err
@@ -320,10 +298,14 @@ func (c Command) TagesabschlussErstellen(ctx context.Context, userID int, userNa
 		return err
 	}
 
-	msg := "Tagesabschluss erstellt"
+	msg := "Kasse abgeschlossen"
 	if signierung.NachsignierAuftrag != nil {
-		msg += " (unsigniert, Nachsignierung vorgemerkt)"
+		msg += " (Tagesabschluss unsigniert, Nachsignierung vorgemerkt)"
 	}
-	log.Info().Int("z_nr", ks.ZNr).Msg(msg)
+	log.Info().Int("z_nr", ks.ZNr).
+		Int("soll_cents", sollBestandCents).
+		Int("ist_cents", istBestandCents).
+		Int("differenz_cents", differenzCents).
+		Msg(msg)
 	return nil
 }

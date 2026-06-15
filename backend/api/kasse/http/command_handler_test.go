@@ -26,11 +26,7 @@ func (m *mockCommand) GeldtransitBuchen(_ context.Context, _ int, _ string, _ st
 	return m.err
 }
 
-func (m *mockCommand) KassensturzDurchfuehren(_ context.Context, _ int, _ string, _ int) error {
-	return m.err
-}
-
-func (m *mockCommand) TagesabschlussErstellen(_ context.Context, _ int, _ string) error {
+func (m *mockCommand) KasseAbschliessen(_ context.Context, _ int, _ string, _ int) error {
 	return m.err
 }
 
@@ -185,41 +181,41 @@ func TestGeldtransitBuchenHandler_NullBetrag(t *testing.T) {
 	}
 }
 
-// KassensturzDurchfuehren
+// KasseAbschliessen
 
-func TestKassensturzDurchfuehrenHandler_Success(t *testing.T) {
+func TestKasseAbschliessenHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	req := requestWithUser(`{"istBestandCents":10000}`)
 	rec := httptest.NewRecorder()
 
-	handler.KassensturzDurchfuehrenHandler().ServeHTTP(rec, req)
+	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rec.Code)
 	}
 }
 
-func TestKassensturzDurchfuehrenHandler_NullBestand(t *testing.T) {
+func TestKasseAbschliessenHandler_NullBestand(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	req := requestWithUser(`{"istBestandCents":0}`)
 	rec := httptest.NewRecorder()
 
-	handler.KassensturzDurchfuehrenHandler().ServeHTTP(rec, req)
+	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rec.Code)
 	}
 }
 
-func TestKassensturzDurchfuehrenHandler_MissingBestand(t *testing.T) {
+func TestKasseAbschliessenHandler_MissingBestand(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	req := requestWithUser(`{}`)
 	rec := httptest.NewRecorder()
 
-	handler.KassensturzDurchfuehrenHandler().ServeHTTP(rec, req)
+	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", rec.Code)
@@ -229,13 +225,13 @@ func TestKassensturzDurchfuehrenHandler_MissingBestand(t *testing.T) {
 	}
 }
 
-func TestKassensturzDurchfuehrenHandler_NegativerBestand(t *testing.T) {
+func TestKasseAbschliessenHandler_NegativerBestand(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	req := requestWithUser(`{"istBestandCents":-1}`)
 	rec := httptest.NewRecorder()
 
-	handler.KassensturzDurchfuehrenHandler().ServeHTTP(rec, req)
+	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", rec.Code)
@@ -245,43 +241,31 @@ func TestKassensturzDurchfuehrenHandler_NegativerBestand(t *testing.T) {
 	}
 }
 
-func TestKassensturzDurchfuehrenHandler_KasseNichtGeoeffnet(t *testing.T) {
+func TestKasseAbschliessenHandler_KasseNichtGeoeffnet(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrKasseNichtGeoeffnet}}
 
 	req := requestWithUser(`{"istBestandCents":10000}`)
 	rec := httptest.NewRecorder()
 
-	handler.KassensturzDurchfuehrenHandler().ServeHTTP(rec, req)
+	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusConflict {
 		t.Errorf("expected 409, got %d", rec.Code)
 	}
 }
 
-// TagesabschlussErstellen
+func TestKasseAbschliessenHandler_TischeSaldoOffen(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischeSaldoOffen}}
 
-func TestTagesabschlussErstellenHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	req := requestWithUser(`{}`)
+	req := requestWithUser(`{"istBestandCents":10000}`)
 	rec := httptest.NewRecorder()
 
-	handler.TagesabschlussErstellenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rec.Code)
-	}
-}
-
-func TestTagesabschlussErstellenHandler_KassensturzErforderlich(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrKassensturzErforderlich}}
-
-	req := requestWithUser(`{}`)
-	rec := httptest.NewRecorder()
-
-	handler.TagesabschlussErstellenHandler().ServeHTTP(rec, req)
+	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "tische_saldo_offen") {
+		t.Errorf("expected code tische_saldo_offen in body, got %s", rec.Body.String())
 	}
 }

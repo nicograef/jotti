@@ -14,8 +14,7 @@ import (
 type command interface {
 	KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error)
 	GeldtransitBuchen(ctx context.Context, userID int, userName string, richtung string, betragCents int, kommentar string) error
-	KassensturzDurchfuehren(ctx context.Context, userID int, userName string, istBestandCents int) error
-	TagesabschlussErstellen(ctx context.Context, userID int, userName string) error
+	KasseAbschliessen(ctx context.Context, userID int, userName string, istBestandCents int) error
 }
 
 type CommandHandler struct {
@@ -53,11 +52,11 @@ var geldtransitBuchenSchema = z.Struct(z.Shape{
 	"Kommentar":   z.String().Min(3, z.Message("Kommentar muss mindestens 3 Zeichen lang sein")).Max(200, z.Message("Kommentar darf höchstens 200 Zeichen lang sein")).Required(),
 })
 
-type kassensturzDurchfuehrenRequest struct {
+type kasseAbschliessenRequest struct {
 	IstBestandCents *int `json:"istBestandCents"`
 }
 
-var kassensturzDurchfuehrenSchema = z.Struct(z.Shape{
+var kasseAbschliessenSchema = z.Struct(z.Shape{
 	"IstBestandCents": z.Ptr(z.Int().GTE(0, z.Message("Ist-Bestand darf nicht negativ sein"))).NotNil(z.Message("Ist-Bestand ist erforderlich")),
 })
 
@@ -119,10 +118,10 @@ func (h *CommandHandler) GeldtransitBuchenHandler() http.HandlerFunc {
 	}
 }
 
-func (h *CommandHandler) KassensturzDurchfuehrenHandler() http.HandlerFunc {
+func (h *CommandHandler) KasseAbschliessenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := kassensturzDurchfuehrenRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, kassensturzDurchfuehrenSchema) {
+		body := kasseAbschliessenRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, kasseAbschliessenSchema) {
 			return
 		}
 
@@ -132,32 +131,7 @@ func (h *CommandHandler) KassensturzDurchfuehrenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.KassensturzDurchfuehren(r.Context(), userID, userName, *body.IstBestandCents)
-		if err != nil {
-			switch {
-			case errors.Is(err, kasseApp.ErrKonflikt):
-				helper.SendConflictError(w)
-			case errors.Is(err, kasseApp.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			default:
-				helper.SendServerError(w)
-			}
-			return
-		}
-
-		helper.SendEmptyResponse(w)
-	}
-}
-
-func (h *CommandHandler) TagesabschlussErstellenHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		userID, userName, ok := middleware.UserFromContext(r.Context())
-		if !ok {
-			helper.SendServerError(w)
-			return
-		}
-
-		err := h.Command.TagesabschlussErstellen(r.Context(), userID, userName)
+		err := h.Command.KasseAbschliessen(r.Context(), userID, userName, *body.IstBestandCents)
 		if err != nil {
 			switch {
 			case errors.Is(err, kasseApp.ErrKonflikt):
@@ -166,8 +140,7 @@ func (h *CommandHandler) TagesabschlussErstellenHandler() http.HandlerFunc {
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
 				helper.MapError(w, err, map[error]string{
-					kasseApp.ErrKassensturzErforderlich: "kassensturz_erforderlich",
-					kasseApp.ErrTischeSaldoOffen:        "tische_saldo_offen",
+					kasseApp.ErrTischeSaldoOffen: "tische_saldo_offen",
 				})
 			}
 			return

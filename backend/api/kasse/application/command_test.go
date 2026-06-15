@@ -10,8 +10,8 @@ import (
 
 	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -55,6 +55,15 @@ func (m settingsMock) GetTSEKonfiguration(_ context.Context) (settings.TSEKonfig
 	return m.tse, nil
 }
 
+type reportingMock struct {
+	data reporting.ReportingData
+	err  error
+}
+
+func (m reportingMock) GetReporting(_ context.Context, _ int) (reporting.ReportingData, error) {
+	return m.data, m.err
+}
+
 func newTestCommand(ks *kasse.Kassensitzung) Command {
 	journalMock := kassenjournal_repo.NewMock(nil, nil)
 	sitzungMock := kassensitzungen_repo.NewMock(ks, nil)
@@ -62,6 +71,7 @@ func newTestCommand(ks *kasse.Kassensitzung) Command {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
 		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
+		ReportingRepo:       reportingMock{},
 	}
 }
 
@@ -126,128 +136,153 @@ func TestGeldtransitBuchen(t *testing.T) {
 	}
 }
 
-func TestKassensturzDurchfuehren(t *testing.T) {
+func TestKasseAbschliessen_OhneDifferenz(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock.SetKassenbestand(50000) // Soll = Ist
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		ReportingRepo:       reportingMock{},
+	}
+
+	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 2 {
+		t.Fatalf("expected two events (kassensturz + tagesabschluss), got %d", len(events))
+	}
+	if events[0].Type != string(kasse.EventTypeKassensturzDurchgefuehrtV1) {
+		t.Fatalf("expected first event kassensturz, got %q", events[0].Type)
+	}
+	if events[1].Type != string(kasse.EventTypeTagesabschlussErstelltV1) {
+		t.Fatalf("expected second event tagesabschluss, got %q", events[1].Type)
+	}
+}
+
+func TestKasseAbschliessen_MitDifferenz(t *testing.T) {
 	ctx := context.Background()
 	journalMock := kassenjournal_repo.NewMock(nil, nil)
 	journalMock.SetKassenbestand(50000) // Soll = 500 EUR
-	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		ReportingRepo:       reportingMock{},
+	}
 
-	err := cmd.KassensturzDurchfuehren(ctx, 1, "Admin", 49500) // Ist = 495 EUR, Differenz = 500
+	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500) // Ist = 495 EUR, Differenz = 500
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+
+	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 3 {
+		t.Fatalf("expected three events (kassensturz + differenz + tagesabschluss), got %d", len(events))
+	}
+	if events[0].Type != string(kasse.EventTypeKassensturzDurchgefuehrtV1) {
+		t.Fatalf("expected first event kassensturz, got %q", events[0].Type)
+	}
+	if events[1].Type != string(kasse.EventTypeDifferenzSollIstGebuchtV1) {
+		t.Fatalf("expected second event differenz, got %q", events[1].Type)
+	}
+	if events[2].Type != string(kasse.EventTypeTagesabschlussErstelltV1) {
+		t.Fatalf("expected third event tagesabschluss, got %q", events[2].Type)
+	}
 }
 
-func TestKassensturzDurchfuehren_NoDifference(t *testing.T) {
+func TestKasseAbschliessen_TagesabschlussMitEchtenSummen(t *testing.T) {
 	ctx := context.Background()
 	journalMock := kassenjournal_repo.NewMock(nil, nil)
-	journalMock.SetKassenbestand(50000) // Soll = 500 EUR
-	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
+	journalMock.SetKassenbestand(50000)
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		ReportingRepo: reportingMock{data: reporting.ReportingData{
+			Summary: reporting.Summary{
+				GesamtUmsatzCents:        12345,
+				GesamtStornierungenCents: 200,
+				GesamtAuszahlungenCents:  300,
+				GeldtransitCents:         400,
+			},
+		}},
+	}
 
-	// Ist matches Soll exactly — no differenz event should be created
-	err := cmd.KassensturzDurchfuehren(ctx, 1, "Admin", 50000)
+	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-}
 
-func TestKassensturzDurchfuehren_KasseNichtGeoeffnet(t *testing.T) {
-	ctx := context.Background()
-	cmd := newTestCommand(nil)
-
-	err := cmd.KassensturzDurchfuehren(ctx, 1, "Admin", 50000)
-	if err != ErrKasseNichtGeoeffnet {
-		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
-	}
-}
-
-func TestTagesabschlussErstellen(t *testing.T) {
-	ctx := context.Background()
-	journalMock := kassenjournal_repo.NewMock(nil, nil)
-
-	// Add a kassensturz event to satisfy the prerequisite
-	subject := kasse.KassensitzungSubject(testOpenKS.ZNr)
-	kassensturzEvt, _ := kasse.NewKassensturzDurchgefuehrtEvent(subject, 1, "Admin", 50000, 50000, 0)
-	journalMock.AddEvent(kassensturzEvt)
-
-	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
-
-	err := cmd.TagesabschlussErstellen(ctx, 1, "Admin")
+	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	tagesabschluss := events[len(events)-1]
+
+	var data kasse.TagesabschlussErstelltV1Data
+	if err := json.Unmarshal(tagesabschluss.Data, &data); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	if data.UmsatzGesamtCents != 12345 {
+		t.Errorf("expected UmsatzGesamtCents 12345, got %d", data.UmsatzGesamtCents)
+	}
+	if data.StornierungCents != 200 {
+		t.Errorf("expected StornierungCents 200, got %d", data.StornierungCents)
+	}
+	if data.AuszahlungenCents != 300 {
+		t.Errorf("expected AuszahlungenCents 300, got %d", data.AuszahlungenCents)
+	}
+	if data.GeldtransitCents != 400 {
+		t.Errorf("expected GeldtransitCents 400, got %d", data.GeldtransitCents)
 	}
 }
 
-func TestTagesabschlussErstellen_DirektverkaufBlocksNever(t *testing.T) {
+func TestKasseAbschliessen_TischSaldoSperre(t *testing.T) {
 	ctx := context.Background()
 	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock.SetKassenbestand(50000)
 
-	// Kassensturz is still mandatory.
-	ksSubject := kasse.KassensitzungSubject(testOpenKS.ZNr)
-	kassensturzEvt, _ := kasse.NewKassensturzDurchgefuehrtEvent(ksSubject, 1, "Admin", 50000, 50000, 0)
-	journalMock.AddEvent(kassensturzEvt)
-
-	// Direktverkauf events are in separate streams and must not influence the
-	// Tisch-Saldo-Sperre (no tisch session projection / no saldo to settle).
-	dvSubject := kasse.DirektverkaufSubject(testOpenKS.ZNr, "verkauf-123")
-	dvEvt, _ := event.New(1, "Admin", string(kasse.EventTypeDirektverkaufGetaetigtV1), dvSubject, map[string]any{
-		"verkaufId":         "verkauf-123",
-		"gesamtbetragCents": 900,
-		"positionen":        []map[string]any{},
-		"kommentar":         "",
-	})
-	journalMock.AddEvent(dvEvt)
-
-	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
-
-	err := cmd.TagesabschlussErstellen(ctx, 1, "Admin")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-}
-
-func TestTagesabschlussErstellen_KassensturzRequired(t *testing.T) {
-	ctx := context.Background()
-	journalMock := kassenjournal_repo.NewMock(nil, nil)
-	// No kassensturz event added
-	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
-
-	err := cmd.TagesabschlussErstellen(ctx, 1, "Admin")
-	if err != ErrKassensturzErforderlich {
-		t.Fatalf("expected ErrKassensturzErforderlich, got %v", err)
-	}
-}
-
-func TestTagesabschlussErstellen_TischSaldoSperre(t *testing.T) {
-	ctx := context.Background()
-	journalMock := kassenjournal_repo.NewMock(nil, nil)
-
-	// Add kassensturz event to satisfy that prerequisite
-	subject := kasse.KassensitzungSubject(testOpenKS.ZNr)
-	kassensturzEvt, _ := kasse.NewKassensturzDurchgefuehrtEvent(subject, 1, "Admin", 50000, 50000, 0)
-	journalMock.AddEvent(kassensturzEvt)
-
-	// Add a tisch session with non-zero saldo
+	// A tisch session with non-zero saldo must block the Kassenabschluss before any event is written.
 	tischSubject := kasse.TischSessionSubject(testOpenKS.ZNr, 42)
 	journalMock.SetTischSession(tischSubject, kasse.TischSession{
 		TischID:         42,
 		KassensitzungNr: testOpenKS.ZNr,
-		SaldoCents:      350, // non-zero saldo
+		SaldoCents:      350,
 	})
 
-	cmd := Command{KassenjournalRepo: journalMock, KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil)}
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		ReportingRepo:       reportingMock{},
+	}
 
-	err := cmd.TagesabschlussErstellen(ctx, 1, "Admin")
+	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if err != ErrTischeSaldoOffen {
 		t.Fatalf("expected ErrTischeSaldoOffen, got %v", err)
 	}
+
+	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 0 {
+		t.Fatalf("expected no events written when saldo blocks, got %d", len(events))
+	}
 }
 
-func TestTagesabschlussErstellen_KasseNichtGeoeffnet(t *testing.T) {
+func TestKasseAbschliessen_KasseNichtGeoeffnet(t *testing.T) {
 	ctx := context.Background()
 	cmd := newTestCommand(nil)
 
-	err := cmd.TagesabschlussErstellen(ctx, 1, "Admin")
+	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if err != ErrKasseNichtGeoeffnet {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
@@ -305,7 +340,7 @@ func TestGeldtransitBuchen_MitTSE_DatenImEvent(t *testing.T) {
 	}
 }
 
-func TestKassensturzDurchfuehren_MitTSE_SigniertNurDifferenzEvent(t *testing.T) {
+func TestKasseAbschliessen_MitTSE_SigniertDifferenzUndTagesabschluss(t *testing.T) {
 	ctx := context.Background()
 	journalMock := kassenjournal_repo.NewMock(nil, nil)
 	journalMock.SetKassenbestand(50000)
@@ -316,6 +351,7 @@ func TestKassensturzDurchfuehren_MitTSE_SigniertNurDifferenzEvent(t *testing.T) 
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
+		ReportingRepo:       reportingMock{},
 		TSESignierer: tseApp.Signierer{
 			SettingsRepo: settingsMock{tse: settings.TSEKonfiguration{
 				ApiKey:    "api-key",
@@ -327,13 +363,14 @@ func TestKassensturzDurchfuehren_MitTSE_SigniertNurDifferenzEvent(t *testing.T) 
 			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
 				return tse.FakeClient{
 					StartResponse:  tse.StartResult{TransactionNumber: 51, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 50},
-					FinishResponse: tse.FinishResult{TransactionNumber: 51, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 51, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-DIFFERENZ"},
+					FinishResponse: tse.FinishResult{TransactionNumber: 51, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 51, SerialNumberTSE: "TSE-SN-1", Signature: "SIG"},
 				}, nil
 			},
 		},
 	}
 
-	err := cmd.KassensturzDurchfuehren(ctx, 1, "Admin", 49500)
+	// Ist != Soll erzwingt die Differenzbuchung, sodass beide signierungspflichtigen Events entstehen.
+	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -342,14 +379,8 @@ func TestKassensturzDurchfuehren_MitTSE_SigniertNurDifferenzEvent(t *testing.T) 
 	if err != nil {
 		t.Fatalf("expected no read error, got %v", err)
 	}
-	if len(events) != 2 {
-		t.Fatalf("expected two events (kassensturz + differenz), got %d", len(events))
-	}
-	if events[0].Type != string(kasse.EventTypeKassensturzDurchgefuehrtV1) {
-		t.Fatalf("expected first event kassensturz, got %q", events[0].Type)
-	}
-	if events[1].Type != string(kasse.EventTypeDifferenzSollIstGebuchtV1) {
-		t.Fatalf("expected second event differenz, got %q", events[1].Type)
+	if len(events) != 3 {
+		t.Fatalf("expected three events (kassensturz + differenz + tagesabschluss), got %d", len(events))
 	}
 
 	var diff kasse.DifferenzSollIstGebuchtV1Data
@@ -362,65 +393,16 @@ func TestKassensturzDurchfuehren_MitTSE_SigniertNurDifferenzEvent(t *testing.T) 
 	if diff.TSEData.ProcessType != "Kassenbeleg-V1" {
 		t.Fatalf("expected process type Kassenbeleg-V1, got %q", diff.TSEData.ProcessType)
 	}
-}
 
-func TestTagesabschlussErstellen_MitTSE_DatenImEvent(t *testing.T) {
-	ctx := context.Background()
-	journalMock := kassenjournal_repo.NewMock(nil, nil)
-
-	ksSubject := kasse.KassensitzungSubject(testOpenKS.ZNr)
-	kassensturzEvt, _ := kasse.NewKassensturzDurchgefuehrtEvent(ksSubject, 1, "Admin", 50000, 50000, 0)
-	journalMock.AddEvent(kassensturzEvt)
-
-	start := time.Date(2026, 6, 10, 21, 30, 1, 0, time.UTC)
-	end := time.Date(2026, 6, 10, 21, 30, 2, 0, time.UTC)
-
-	cmd := Command{
-		KassenjournalRepo:   journalMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
-		TSESignierer: tseApp.Signierer{
-			SettingsRepo: settingsMock{tse: settings.TSEKonfiguration{
-				ApiKey:    "api-key",
-				ApiSecret: "api-secret",
-				TssID:     "tss-1",
-				ClientID:  "client-1",
-				UpdatedAt: time.Now(),
-			}},
-			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-				return tse.FakeClient{
-					StartResponse:  tse.StartResult{TransactionNumber: 61, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 60},
-					FinishResponse: tse.FinishResult{TransactionNumber: 61, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 61, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-TAGESABSCHLUSS"},
-				}, nil
-			},
-		},
-	}
-
-	err := cmd.TagesabschlussErstellen(ctx, 1, "Admin")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	events, err := journalMock.ReadEventsBySubject(ctx, ksSubject)
-	if err != nil {
-		t.Fatalf("expected no read error, got %v", err)
-	}
-	if len(events) != 2 {
-		t.Fatalf("expected two events, got %d", len(events))
-	}
-	if events[1].Type != string(kasse.EventTypeTagesabschlussErstelltV1) {
-		t.Fatalf("expected second event tagesabschluss, got %q", events[1].Type)
-	}
-
-	var data kasse.TagesabschlussErstelltV1Data
-	if err := json.Unmarshal(events[1].Data, &data); err != nil {
+	var tagesabschluss kasse.TagesabschlussErstelltV1Data
+	if err := json.Unmarshal(events[2].Data, &tagesabschluss); err != nil {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
-	if data.TSEData == nil {
+	if tagesabschluss.TSEData == nil {
 		t.Fatal("expected TSE data in tagesabschluss event")
 	}
-	if data.TSEData.ProcessType != "SonstigerVorgang" {
-		t.Fatalf("expected process type SonstigerVorgang, got %q", data.TSEData.ProcessType)
+	if tagesabschluss.TSEData.ProcessType != "SonstigerVorgang" {
+		t.Fatalf("expected process type SonstigerVorgang, got %q", tagesabschluss.TSEData.ProcessType)
 	}
 }
 
