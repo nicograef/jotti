@@ -154,13 +154,6 @@ func main() {
 	lastStatusLog := time.Now()
 
 	for {
-		select {
-		case <-quit:
-			log.Printf("Shutdown-Signal empfangen. Beende.")
-			return
-		default:
-		}
-
 		auftraege, err := poll(client, config)
 		if err != nil {
 			log.Printf("Fehler beim Poll: %v", err)
@@ -190,7 +183,13 @@ func main() {
 			lastStatusLog = time.Now()
 		}
 
-		time.Sleep(time.Duration(config.PollSeconds) * time.Second)
+		// Wartezeit bis zum nächsten Poll, unterbrechbar durch das Shutdown-Signal.
+		select {
+		case <-quit:
+			log.Printf("Shutdown-Signal empfangen. Beende.")
+			return
+		case <-time.After(time.Duration(config.PollSeconds) * time.Second):
+		}
 	}
 }
 
@@ -341,14 +340,22 @@ func meldeErgebnis(client *http.Client, ergebnis zyklusErgebnis, config RelayCon
 }
 
 // pruefeRelayStatus übersetzt den HTTP-Status einer Relay-Antwort in einen Fehler.
+// Einen falschen Token meldet das Backend als 400 mit {"code":"unauthorized"}
+// (projektweite Konvention für Auth-Fehler) — daraus wird ein klarer Hinweis, weil
+// das die häufigste Fehlkonfiguration vor Ort ist.
 func pruefeRelayStatus(resp *http.Response) error {
-	if resp.StatusCode == http.StatusUnauthorized {
-		return fmt.Errorf("ungueltiger Token (401) -- Relay-Token pruefen")
+	if resp.StatusCode == http.StatusOK {
+		return nil
 	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unerwarteter HTTP-Status: %d", resp.StatusCode)
+
+	var errResp struct {
+		Code string `json:"code"`
 	}
-	return nil
+	_ = json.NewDecoder(resp.Body).Decode(&errResp)
+	if errResp.Code == "unauthorized" {
+		return fmt.Errorf("ungueltiger Token -- Relay-Token pruefen")
+	}
+	return fmt.Errorf("unerwarteter HTTP-Status: %d", resp.StatusCode)
 }
 
 func checkPrinter(ip string) error {

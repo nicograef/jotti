@@ -2,11 +2,74 @@ package main
 
 import (
 	"errors"
+	"io"
+	"net/http"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
 )
+
+func TestPruefeRelayStatus(t *testing.T) {
+	tests := []struct {
+		name        string
+		statusCode  int
+		body        string
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:       "200 ist kein Fehler",
+			statusCode: http.StatusOK,
+			body:       `{"auftraege":[]}`,
+		},
+		{
+			name:        "400 mit code unauthorized ergibt Token-Hinweis",
+			statusCode:  http.StatusBadRequest,
+			body:        `{"code":"unauthorized"}`,
+			wantErr:     true,
+			errContains: "Token",
+		},
+		{
+			name:        "anderer Fehlercode meldet nur den HTTP-Status",
+			statusCode:  http.StatusBadRequest,
+			body:        `{"code":"invalid_json"}`,
+			wantErr:     true,
+			errContains: "400",
+		},
+		{
+			name:        "Serverfehler ohne Body meldet nur den HTTP-Status",
+			statusCode:  http.StatusInternalServerError,
+			body:        "",
+			wantErr:     true,
+			errContains: "500",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &http.Response{
+				StatusCode: tt.statusCode,
+				Body:       io.NopCloser(strings.NewReader(tt.body)),
+			}
+
+			err := pruefeRelayStatus(resp)
+
+			if !tt.wantErr {
+				if err != nil {
+					t.Fatalf("expected no error, got %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.errContains) {
+				t.Fatalf("expected error to contain %q, got %q", tt.errContains, err.Error())
+			}
+		})
+	}
+}
 
 func TestLoadConfigFromEnv(t *testing.T) {
 	tests := []struct {
