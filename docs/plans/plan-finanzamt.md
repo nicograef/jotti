@@ -146,22 +146,22 @@ Backend-Umbau.
 
 ### Acceptance criteria
 
-- [ ] `/admin/finanzamt` ist über einen Sidebar-Eintrag „Finanzamt" in der
+- [x] `/admin/finanzamt` ist über einen Sidebar-Eintrag „Finanzamt" in der
       Gruppe „Verwaltung" erreichbar
-- [ ] Betreiber-Stammdaten laden und speichern funktionieren auf der
+- [x] Betreiber-Stammdaten laden und speichern funktionieren auf der
       Finanzamt-Seite
-- [ ] Kassenidentität wird angezeigt, die Seriennummer ist kopierbar, das
+- [x] Kassenidentität wird angezeigt, die Seriennummer ist kopierbar, das
       Datum ist als „Anlegedatum" beschriftet
-- [ ] Die TSE-Ausfalldokumentation zeigt die Nachsignier-Vorgänge; einreihen
+- [x] Die TSE-Ausfalldokumentation zeigt die Nachsignier-Vorgänge; einreihen
       (zurücksetzen) und verwerfen funktionieren
-- [ ] Die TSE-Anbindungs-Zeile zeigt konfiguriert ja/nein und Umgebung und
+- [x] Die TSE-Anbindungs-Zeile zeigt konfiguriert ja/nein und Umgebung und
       verlinkt auf `/admin/tse-einrichtung`
-- [ ] `/admin/tse-einrichtung` hostet das TSE-Konfigurationsformular;
+- [x] `/admin/tse-einrichtung` hostet das TSE-Konfigurationsformular;
       Speichern, Leeren und Verbindung testen funktionieren dort unverändert
-- [ ] „Dokumente und Pflichten" zeigt den 10-Jahres-Hinweis und die externen
+- [x] „Dokumente und Pflichten" zeigt den 10-Jahres-Hinweis und die externen
       Doku-Links
-- [ ] Die Seite ist ab 360 px Breite bedienbar (Karten stapeln)
-- [ ] `make lint` (Frontend Lint/Typecheck) grün
+- [x] Die Seite ist ab 360 px Breite bedienbar (Karten stapeln)
+- [x] `make lint` (Frontend Lint/Typecheck) grün
 
 ---
 

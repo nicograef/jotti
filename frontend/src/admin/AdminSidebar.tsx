@@ -1,5 +1,6 @@
 import {
   Lamp,
+  Landmark,
   LayoutDashboard,
   LogOut,
   Moon,
@@ -61,6 +62,11 @@ const adminItems = [
     title: 'Druckstationen',
     url: '/admin/druckstationen',
     icon: Printer,
+  },
+  {
+    title: 'Finanzamt',
+    url: '/admin/finanzamt',
+    icon: Landmark,
   },
   {
     title: 'Einstellungen',

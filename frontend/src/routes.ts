@@ -129,6 +129,20 @@ export const router = createBrowserRouter([
             }),
           },
           {
+            path: 'finanzamt',
+            lazy: async () => ({
+              Component: (await import('./admin/finanzamt/FinanzamtPage'))
+                .FinanzamtPage,
+            }),
+          },
+          {
+            path: 'tse-einrichtung',
+            lazy: async () => ({
+              Component: (await import('./admin/tse/TSEEinrichtungPage'))
+                .TSEEinrichtungPage,
+            }),
+          },
+          {
             path: 'einstellungen',
             lazy: async () => ({
               Component: (await import('./admin/settings/EinstellungenPage'))
