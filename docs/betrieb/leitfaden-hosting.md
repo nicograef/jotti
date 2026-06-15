@@ -229,6 +229,26 @@ Ersteinrichtung (erstes Zertifikat anfordern, Stack starten) übernimmt das Skri
 > regelmäßige Backups der Datenbank, besonders wegen der gesetzlichen 10-Jahre-Aufbewahrung
 > (Details im [Betreiber-Leitfaden, Schritt 4](./leitfaden-betreiber.md#schritt-4-daten-10-jahre-aufbewahren)).
 
+### jotti aktualisieren
+
+Welche Version läuft, steuert ihr über die `.env`. Tragt unter `JOTTI_VERSION` die
+gewünschte Release-Version ein (z. B. `v0.2.0`) und führt dann aus:
+
+```bash
+make prod-update
+```
+
+Das Skript sichert die Datenbank automatisch, bevor es die neuen Images zieht und die
+Migrationen ausführt. Anschließend prüft es, ob der Stack wieder gesund hochkommt
+(`/api/health`). Bleibt er ungesund, bricht es ab und zeigt eine kopierfertige Anleitung,
+wie ihr mit dem eben erstellten Backup auf die vorherige Version zurückkehrt. Eure vor dem
+Update erfassten Daten gehen dabei nicht verloren.
+
+> 🔁 Nur vorwärts, kein Downgrade. Tragt keine ältere als die laufende Version ein. Updates
+> verändern die Datenbank und lassen sich nicht zurücknehmen; eine ältere Version kann mit den
+> neuen Daten nicht mehr starten. `make prod-update` verweigert ein solches Downgrade. Wollt ihr
+> zurück, spielt stattdessen ein Backup ein (`make prod-restore`).
+
 ---
 
 ## 5. Glossar

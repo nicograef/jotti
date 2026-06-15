@@ -7,7 +7,7 @@
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
        build-starter-windows build-relay-windows starter-syso release-windows \
        sqlc \
-       prod-init prod-up prod-down prod-logs prod-backup prod-restore \
+       prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore \
        rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed \
        local-up local-down local-logs local-reset-db local-reset-and-seed \
        db-shell seed rebuild-projections \
@@ -156,6 +156,9 @@ prod-init: ## Ersteinrichtung Produktion (.env prüfen, Images ziehen, Caddy Aut
 prod-up: ## Produktions-Stack starten/aktualisieren (zieht gepinnte Images, kein Build)
 	docker compose -f docker-compose.prod.yml pull
 	docker compose -f docker-compose.prod.yml up -d
+
+prod-update: ## Sicheres Update (Pre-Update-Backup, Images ziehen, Migrationen, Health-Check, Rollback-Anleitung)
+	./scripts/prod-update.sh
 
 prod-down: ## Produktions-Stack stoppen
 	docker compose -f docker-compose.prod.yml down

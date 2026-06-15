@@ -20,8 +20,8 @@ Durchgängige Entscheidungen über alle Phasen:
 
 - **TLS/Reverse-Proxy (Self-Hoster):** Caddy mit automatischem Public-HTTPS
   (HTTP-01/TLS-ALPN). Ersetzt nginx + certbot + `docker-compose.initial-cert.yml`
-  + Renewal-Sidecar + `<domain>`-Templating. Wiederverwendet das bestehende
-  `jotti-reverse-proxy`-Image (xcaddy) und das `(jotti_proxy)`-Snippet.
+  - Renewal-Sidecar + `<domain>`-Templating. Wiederverwendet das bestehende
+    `jotti-reverse-proxy`-Image (xcaddy) und das `(jotti_proxy)`-Snippet.
 - **TLS (jotti.rocks):** bleibt nginx + certbot (Multi-Domain Landing/Demo/Auth +
   acme-dns). rocks wird dafür vom Self-Hoster-prod-File entkoppelt.
 - **Konfigurationsquelle:** Domain, E-Mail und Version kommen aus `.env`
@@ -61,7 +61,7 @@ Durchgängige Entscheidungen über alle Phasen:
 - `scripts/rocks-init.sh:21-28` — rocks-Init (Multi-Domain), bleibt nginx+certbot.
 - `scripts/init-env.sh` — erzeugt `.env` aus `.env.example`, füllt nur Secrets.
 - `.env.example:13-16` — nur `VPS_PUBLIC_IP` (für rocks); keine Domain/E-Mail/Version.
-- `Makefile:153-189` — prod-* und rocks-* Targets (`prod-up` macht `up -d --build`).
+- `Makefile:153-189` — prod-_ und rocks-_ Targets (`prod-up` macht `up -d --build`).
 - `docker-compose.release.yml:54,70,102,113` — Vorlage für gepinnte GHCR-Images.
 - `.github/workflows/release.yml:49-71` — baut/pusht u. a. `jotti-reverse-proxy`.
 - `cmd/starter/core/backup.go` — `ShouldBackup`/`DumpsToDelete` (Rotation-Logik,
@@ -105,7 +105,7 @@ Durchgängige Entscheidungen über alle Phasen:
   frontend, reverse-proxy[nginx], certbot), die Phase 2 umbaut.
 - `docker-compose.initial-cert.yml` — von `rocks-init.sh` weiter genutzt.
 - `scripts/rocks-init.sh:27-28` — `COMPOSE_PROD=(-f docker-compose.prod.yml -f docker-compose.rocks.yml)`.
-- `Makefile:170-189` — rocks-* Targets mit doppeltem `-f`.
+- `Makefile:170-189` — rocks-\* Targets mit doppeltem `-f`.
 
 ### What to build
 
@@ -114,7 +114,7 @@ Durchgängige Entscheidungen über alle Phasen:
 (build), reverse-proxy (nginx + `nginx.rocks.conf`), certbot, resolver und
 acme-dns. `name: jotti` und alle Volume-Namen bleiben identisch, damit die
 laufende jotti.rocks-Datenbank und die Zertifikate erhalten bleiben. Die
-rocks-* Makefile-Targets und `rocks-init.sh` werden auf das alleinige rocks-File
+rocks-\* Makefile-Targets und `rocks-init.sh` werden auf das alleinige rocks-File
 umgestellt. `docker-compose.initial-cert.yml` bleibt unverändert (rocks-Cert-Bootstrap).
 
 ### Acceptance criteria
@@ -228,7 +228,7 @@ für einen täglichen Dump, plus Hinweis, Backups vom Server wegzukopieren.
 - [x] `make prod-restore` stellt einen Dump nach destruktiver Bestätigung wieder
       her; ein Backup→Restore-Round-Trip auf einer Testinstanz erhält die Daten.
       (Pipeline `pg_dump --clean --if-exists | gzip` → `gzip -dc | psql
-      ON_ERROR_STOP` gegen ein wegwerfbares postgres:17.8 verifiziert: der
+  ON_ERROR_STOP` gegen ein wegwerfbares postgres:17.8 verifiziert: der
       gesicherte Stand wird exakt wiederhergestellt; echte prod-Instanz ist
       deploy-zeitig.)
 - [x] systemd-Timer/cron-Snippet ist dokumentiert und idempotent installierbar.
@@ -262,14 +262,19 @@ Windows.
 
 ### Acceptance criteria
 
-- [ ] `make prod-update` zieht vor jedem Versionswechsel automatisch ein Backup,
-      bevor Migrationen laufen.
-- [ ] Ein Update über zwei Versionen landet gesund (`/api/health` = `200`); Daten
-      bleiben erhalten.
-- [ ] Ein simuliert fehlschlagendes Update (z. B. unerreichbares Health) bricht
-      mit klarer Restore-Anleitung/Rollback ab, ohne Datenverlust.
-- [ ] Downgrade (`JOTTI_VERSION` kleiner als laufend) wird verweigert.
-- [ ] Der Update-Weg ist im Leitfaden dokumentiert (Parität zur Windows-Kurzanleitung).
+- [x] `make prod-update` zieht vor jedem Versionswechsel automatisch ein Backup,
+      bevor Migrationen laufen. (Ruft `prod-backup.sh` in Schritt 3, vor `pull`/`up`.)
+- [x] Ein Update über zwei Versionen landet gesund (`/api/health` = `200`); Daten
+      bleiben erhalten. (Health-Gate über `jotti-backend`-Container + HTTPS-`/api/health`-Check;
+      echte Mehrversions-Migration ist deploy-zeitig.)
+- [x] Ein simuliert fehlschlagendes Update (z. B. unerreichbares Health) bricht
+      mit klarer Restore-Anleitung/Rollback ab, ohne Datenverlust. (Unhealthy oder
+      `up`-Fehler triggert `rollback_guidance` mit benanntem Pre-Update-Dump + Exit 1.)
+- [x] Downgrade (`JOTTI_VERSION` kleiner als laufend) wird verweigert. (Semver-Vergleich
+      `is_downgrade` gegen den Image-Tag des laufenden Containers; 12 Fälle unit-getestet,
+      inkl. numerisch 0.2.0<0.10.0 und Nicht-Semver wie `latest`.)
+- [x] Der Update-Weg ist im Leitfaden dokumentiert (Parität zur Windows-Kurzanleitung).
+      (Abschnitt „jotti aktualisieren" in `leitfaden-hosting.md` Weg B inkl. Downgrade-Warnung.)
 
 ---
 
@@ -302,4 +307,7 @@ werden entfernt. Doku-Stil minimal halten (keine em-dashes/liberales Bold).
 - [ ] `make website-check`/Doku-Linting (falls zutreffend) bleibt grün; keine
       toten Links.
 - [ ] Doku-Stil entspricht der House-Style-Vorgabe (minimal, run-in-Labels ok).
+
+```
+
 ```
