@@ -14,6 +14,8 @@ type FakeClient struct {
 	RetrieveErr        error
 	ConnectionResponse VerbindungStatus
 	ConnectionErr      error
+	UmgebungResponse   Umgebung
+	UmgebungErr        error
 	ArtificialDelay    time.Duration
 }
 
@@ -70,4 +72,14 @@ func (f FakeClient) TestConnection(ctx context.Context) (VerbindungStatus, error
 		return VerbindungStatus{}, f.ConnectionErr
 	}
 	return f.ConnectionResponse, nil
+}
+
+func (f FakeClient) Umgebung(ctx context.Context) (Umgebung, error) {
+	if err := f.wait(ctx); err != nil {
+		return "", err
+	}
+	if f.UmgebungErr != nil {
+		return "", f.UmgebungErr
+	}
+	return f.UmgebungResponse, nil
 }

@@ -15,11 +15,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { BackendError } from '@/lib/Backend'
-import type {
-  TSEEinrichtenErgebnis,
-  TSESetupBefund,
-  TSEVerbindungStatus,
-  TSSBefund,
+import {
+  type TSEEinrichtenErgebnis,
+  type TSESetupBefund,
+  type TSEVerbindungStatus,
+  type TSSBefund,
+  verbindungIstSigniertfaehig,
 } from '@/lib/EinstellungenBackend'
 
 import {
@@ -42,6 +43,18 @@ function brauchtPin(tss: TSSBefund): boolean {
   return tss.state.toUpperCase() !== 'CREATED'
 }
 
+// Fehlertexte, die mehrere Setup-Schritte teilen — einmal zentral, damit sie
+// nicht zwischen den Schritten auseinanderlaufen.
+const ZUGANGSDATEN_FEHLER = {
+  tse_setup_zugangsdaten_ungueltig:
+    'API-Key oder API-Secret ist ungültig. Bitte Zugangsdaten prüfen.',
+}
+const SETUP_FEHLER = {
+  ...ZUGANGSDATEN_FEHLER,
+  tse_setup_umgebung_abweichung:
+    'Die Umgebung der Zugangsdaten hat sich geändert. Bitte das Konto erneut prüfen.',
+}
+
 export function TSEEinrichtungWizard() {
   const [apiKey, setApiKey] = useState('')
   const [apiSecret, setApiSecret] = useState('')
@@ -51,8 +64,7 @@ export function TSEEinrichtungWizard() {
   const { loading, run } = useActionSubmit({
     actionLabel: 'TSE prüfen',
     byCode: {
-      tse_setup_zugangsdaten_ungueltig:
-        'API-Key oder API-Secret ist ungültig. Bitte Zugangsdaten prüfen.',
+      ...ZUGANGSDATEN_FEHLER,
       tse_verbindung_fehlgeschlagen:
         'Verbindung zu fiskaly fehlgeschlagen. Bitte später erneut versuchen.',
     },
@@ -246,10 +258,7 @@ function UebernahmeSchritt({
   const { loading, run } = useActionSubmit({
     actionLabel: 'TSE übernehmen',
     byCode: {
-      tse_setup_zugangsdaten_ungueltig:
-        'API-Key oder API-Secret ist ungültig. Bitte Zugangsdaten prüfen.',
-      tse_setup_umgebung_abweichung:
-        'Die Umgebung der Zugangsdaten hat sich geändert. Bitte das Konto erneut prüfen.',
+      ...SETUP_FEHLER,
       tse_setup_tss_nicht_gefunden:
         'Diese TSS wurde im Konto nicht mehr gefunden. Bitte das Konto erneut prüfen.',
       tse_setup_pin_erforderlich:
@@ -364,10 +373,7 @@ function BestaetigungSchritt({
   const { loading, run } = useActionSubmit({
     actionLabel: 'TSE einrichten',
     byCode: {
-      tse_setup_zugangsdaten_ungueltig:
-        'API-Key oder API-Secret ist ungültig. Bitte Zugangsdaten prüfen.',
-      tse_setup_umgebung_abweichung:
-        'Die Umgebung der Zugangsdaten hat sich geändert. Bitte das Konto erneut prüfen.',
+      ...SETUP_FEHLER,
       tse_bereits_eingerichtet:
         'In diesem Konto existiert bereits eine TSS. Es wird keine neue angelegt.',
       tse_einrichtung_fehlgeschlagen:
@@ -525,12 +531,7 @@ function ErgebnisSchritt({
 }
 
 function AbschlussTest({ status }: { status: TSEVerbindungStatus }) {
-  const inOrdnung =
-    status.tssState.toUpperCase() === 'INITIALIZED' &&
-    status.clientState.toUpperCase() === 'REGISTERED' &&
-    status.seriennummerKorrekt
-
-  if (inOrdnung) {
+  if (verbindungIstSigniertfaehig(status)) {
     return (
       <Alert>
         <AlertTitle>Verbindung bestätigt</AlertTitle>

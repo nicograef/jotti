@@ -13,7 +13,7 @@ const mappedCodes: [string, string][] = [
   ],
   [
     'betreiber_nicht_konfiguriert',
-    'Die Betreiberdaten sind unvollständig. Bitte in den Einstellungen vervollständigen und erneut versuchen.',
+    'Die Betreiberdaten sind unvollständig. Bitte im Bereich Finanzamt vervollständigen und erneut versuchen.',
   ],
   [
     'cannot_delete_self',
@@ -114,7 +114,7 @@ const mappedCodes: [string, string][] = [
   ],
   [
     'tse_nicht_konfiguriert',
-    'Die TSE ist nicht konfiguriert. Bitte die TSE-Einstellungen vervollständigen.',
+    'Die TSE ist nicht konfiguriert. Bitte sie im Bereich Finanzamt einrichten.',
   ],
   [
     'tse_verbindung_fehlgeschlagen',

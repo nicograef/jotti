@@ -7,7 +7,7 @@ const commonErrorMessages: Record<string, string> = {
   already_has_password:
     'Für diesen Benutzer wurde bereits ein Passwort gesetzt.',
   betreiber_nicht_konfiguriert:
-    'Die Betreiberdaten sind unvollständig. Bitte in den Einstellungen vervollständigen und erneut versuchen.',
+    'Die Betreiberdaten sind unvollständig. Bitte im Bereich Finanzamt vervollständigen und erneut versuchen.',
   cannot_delete_self:
     'Der aktuell angemeldete Benutzer kann nicht gelöscht werden. Bitte einen anderen Benutzer wählen.',
   conflict:
@@ -58,7 +58,7 @@ const commonErrorMessages: Record<string, string> = {
   tische_saldo_offen:
     'Es gibt noch offene Tische mit ausstehenden Beträgen. Bitte alle Tische abrechnen.',
   tse_nicht_konfiguriert:
-    'Die TSE ist nicht konfiguriert. Bitte die TSE-Einstellungen vervollständigen.',
+    'Die TSE ist nicht konfiguriert. Bitte sie im Bereich Finanzamt einrichten.',
   tse_verbindung_fehlgeschlagen:
     'Die Verbindung zur TSE ist fehlgeschlagen. Bitte Verbindung und TSE-Konfiguration prüfen.',
   umbuchung_gleicher_tisch:

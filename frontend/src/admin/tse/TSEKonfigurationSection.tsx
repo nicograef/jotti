@@ -15,6 +15,7 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import {
   type TSEKonfigurationSpeichern,
   type TSEVerbindungStatus,
+  verbindungIstSigniertfaehig,
 } from '@/lib/EinstellungenBackend'
 
 import { useTSEKonfiguration } from '../settings/hooks'
@@ -197,12 +198,6 @@ function TSEKonfigurationForm({
       )}
     </div>
   )
-}
-
-// Eine TSE ist nur signierfähig, wenn der Client registriert ist und seine
-// Seriennummer mit der Kassen-Seriennummer übereinstimmt.
-function verbindungIstSigniertfaehig(status: TSEVerbindungStatus): boolean {
-  return status.clientState === 'REGISTERED' && status.seriennummerKorrekt
 }
 
 function VerbindungStatusAnzeige({ status }: { status: TSEVerbindungStatus }) {

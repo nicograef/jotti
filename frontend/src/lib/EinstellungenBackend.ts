@@ -37,6 +37,19 @@ export const TSEVerbindungStatusSchema = z.object({
 })
 export type TSEVerbindungStatus = z.infer<typeof TSEVerbindungStatusSchema>
 
+// Eine TSE ist signierfähig, wenn die TSS initialisiert, der Client registriert
+// und seine Seriennummer die Kassen-Seriennummer ist. Eine einzige Definition
+// für Wizard-Abschluss und manuellen Verbindungstest.
+export function verbindungIstSigniertfaehig(
+  status: TSEVerbindungStatus,
+): boolean {
+  return (
+    status.tssState.toUpperCase() === 'INITIALIZED' &&
+    status.clientState.toUpperCase() === 'REGISTERED' &&
+    status.seriennummerKorrekt
+  )
+}
+
 export const TSEClientBefundSchema = z.object({
   id: z.string(),
   serialNumber: z.string(),

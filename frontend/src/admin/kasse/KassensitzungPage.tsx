@@ -120,7 +120,7 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
     actionLabel: 'Kassensitzung eröffnen',
     byCode: {
       betreiber_nicht_konfiguriert:
-        'Die Betreiber-Stammdaten sind nicht vollständig hinterlegt. Bitte zuerst in den Einstellungen die Betreiber-Stammdaten pflegen, dann die Kassensitzung eröffnen.',
+        'Die Betreiber-Stammdaten sind nicht vollständig hinterlegt. Bitte zuerst im Bereich Finanzamt die Betreiber-Stammdaten pflegen, dann die Kassensitzung eröffnen.',
     },
   })
 

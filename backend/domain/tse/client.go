@@ -56,8 +56,13 @@ type TSEClient interface {
 	FinishTransaction(ctx context.Context, txID string, processType string, processData string) (FinishResult, error)
 }
 
+// ConnectionTester prueft eine konfigurierte TSE. TestConnection ist die volle
+// Diagnose (TSS- und Client-Abruf, Seriennummer); Umgebung ist der leichte Pfad
+// fuer reine Statusanzeigen und kommt allein aus dem Auth-Token, ohne TSS-/
+// Client-Abruf.
 type ConnectionTester interface {
 	TestConnection(ctx context.Context) (VerbindungStatus, error)
+	Umgebung(ctx context.Context) (Umgebung, error)
 }
 
 // TransactionRetriever fragt den Ist-Zustand einer Transaktion bei der TSE ab.

@@ -286,6 +286,17 @@ func (c *FiskalyTSEClient) RetrieveTransaction(ctx context.Context, txID string)
 	}, nil
 }
 
+// Umgebung liefert die Umgebung (TEST/LIVE) allein aus dem Auth-Token
+// (access_token_claims.env). Sie kommt ohne TSS-/Client-Abruf aus und dient der
+// reinen Statusanzeige, wo der volle Verbindungstest unnoetig waere.
+func (c *fiskalyClient) Umgebung(ctx context.Context) (tse.Umgebung, error) {
+	_, env, err := c.getAccessToken(ctx)
+	if err != nil {
+		return "", err
+	}
+	return env, nil
+}
+
 func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungStatus, error) {
 	_, env, err := c.getAccessToken(ctx)
 	if err != nil {

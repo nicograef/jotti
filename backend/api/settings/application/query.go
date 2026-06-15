@@ -260,12 +260,14 @@ func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
 		return status, nil
 	}
 
-	verbindung, err := tester.TestConnection(ctx)
+	// Fuer die Statusanzeige genuegt die Umgebung aus dem Auth-Token — kein
+	// voller Verbindungstest (TSS-/Client-Abruf) noetig.
+	umgebung, err := tester.Umgebung(ctx)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to determine TSE environment for status")
 		return status, nil
 	}
 
-	status.Umgebung = string(verbindung.Umgebung)
+	status.Umgebung = string(umgebung)
 	return status, nil
 }

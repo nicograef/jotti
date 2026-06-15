@@ -221,6 +221,7 @@ oder beim Wechsel von TEST auf LIVE.
 | Umgebung hat sich geändert                     | Zwischen Prüfung und Einrichtung wurden die Zugangsdaten gewechselt. Konto erneut prüfen.                          |
 | Admin-PIN nicht akzeptiert                     | fiskaly lehnt die eingegebene PIN ab. Verwahrte PIN prüfen, sonst fiskaly-Support oder bewusste Neu-Anlage.        |
 | TSS in nicht übernehmbarem Zustand             | Die vorhandene TSS lässt sich nicht automatisch übernehmen. fiskaly-Support kontaktieren oder manuelle Einrichtung.|
+| Serverfehler direkt nach dem Anlegen           | Selten: die TSS wurde angelegt, das Speichern in jotti schlug fehl. Assistent erneut starten, jotti bietet die Übernahme an (Abschnitt 3.4).|
 | Verbindung mit Auffälligkeiten (Abschlusstest) | Das genannte Feld (TSS, Client oder Seriennummer) prüfen, ggf. Einrichtung wiederholen.                           |
 
 Bei einer unbekannten Admin-PIN sitzt ihr nicht in einer Sackgasse: Entweder die verwahrte

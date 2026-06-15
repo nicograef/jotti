@@ -119,7 +119,12 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, ErrTSEEinrichtung
 	}
 	if err := c.SettingsRepo.UpsertTSEKonfiguration(ctx, konfiguration); err != nil {
-		log.Error().Err(err).Msg("Failed to save tse_konfiguration after setup")
+		// Der fiskaly-Lebenszyklus war erfolgreich, nur das Speichern schlug fehl:
+		// Die TSS existiert bei fiskaly, ohne dass jotti sie kennt. tss_id/client_id
+		// werden geloggt (PUK/PIN niemals), damit sich die TSS spaeter ueber die
+		// Uebernahme (UebernimmTSE) wieder einsammeln laesst.
+		log.Error().Err(err).Str("tss_id", erstellt.ID).Str("client_id", clientID).
+			Msg("Failed to save tse_konfiguration after setup; TSS exists at fiskaly, recoverable via takeover")
 		return TSESetupErgebnis{}, ErrDatabase
 	}
 
@@ -250,7 +255,10 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, ErrTSEEinrichtung
 	}
 	if err := c.SettingsRepo.UpsertTSEKonfiguration(ctx, konfiguration); err != nil {
-		log.Error().Err(err).Msg("Failed to save tse_konfiguration after takeover")
+		// Wie bei der Neuanlage: Lebenszyklus erfolgreich, nur das Speichern schlug
+		// fehl. Die TSS bleibt bei fiskaly und laesst sich erneut uebernehmen.
+		log.Error().Err(err).Str("tss_id", tssID).Str("client_id", clientID).
+			Msg("Failed to save tse_konfiguration after takeover; TSS exists at fiskaly, recoverable via takeover")
 		return TSESetupErgebnis{}, ErrDatabase
 	}
 
