@@ -10,7 +10,8 @@ Vereins-Admins ohne technische Vorkenntnisse können die TSE vollständig über 
 
 Durable Entscheidungen für alle Phasen:
 
-- **Backend-Routes (POST-only, admin):** `admin/tse-setup-pruefen` (seiteneffektfreier Befund), `admin/tse-einrichten` (Durchführung). Frontend-Route: `/admin/tse-einrichtung` (lazy, analog `einstellungen`).
+- **Ausgangslage nach dem Finanzamt-Umbau:** Die Route `/admin/tse-einrichtung`, das umgezogene manuelle Formular (`frontend/src/admin/tse/TSEKonfigurationSection.tsx`) und die faktische Status-Zeile (`frontend/src/admin/finanzamt/TSEAnbindungSection.tsx`) stehen bereits aus dem Finanzamt-Plan. Dieser Plan baut darauf auf; die ursprüngliche Phase 2 ist damit erledigt.
+- **Backend-Routes (POST-only, admin):** `admin/tse-setup-pruefen` (seiteneffektfreier Befund), `admin/tse-einrichten` (Durchführung). Die Frontend-Route `/admin/tse-einrichtung` existiert bereits und rendert `frontend/src/admin/tse/TSEEinrichtungPage.tsx`; der Wizard wird dort ergänzt.
 - **Setup-Authentifizierung nur mit API-Key/-Secret:** Die Setup-Operationen brauchen keine TSS-/Client-ID (`tse.Credentials` verlangt alle vier Felder und bleibt dem Signierbetrieb vorbehalten). Eigener schlanker Credentials-Typ für das Setup.
 - **Setup-Operationen im fiskaly-Repository:** Erweiterung in `tse_repo`, teilt sich `doJSONRequest`/Token-Cache/Retry mit dem bestehenden Client. Die Admin-Authentifizierung (PIN-basierter Token je TSS) ist interner Belang dieses Moduls. Domain-Interface + Fake in `backend/domain/tse` analog `FakeClient`.
 - **Orchestrator in der Settings-Application-Schicht**, Injection über Factory-Funktion analog `NewTSEConnectionTester`.
@@ -19,7 +20,7 @@ Durable Entscheidungen für alle Phasen:
 - **Bestätigte Umgebung als Parameter:** `tse-einrichten` erhält die vom Admin bestätigte Umgebung und bricht bei Abweichung von der tatsächlichen ab. LIVE-TSS-Anlage nur nach Tipp-Bestätigung (wörtlich „LIVE") im Frontend.
 - **Client-`serial_number` = jotti-Kassen-Seriennummer** (UUID; erfüllt DSFinV-K ≥ 2.3, keine `/` und `_`).
 - **`VerbindungStatus` wird erweitert** um Client-State und Seriennummern-Abgleich (Breaking Change am Response-Schema erlaubt, pre-release).
-- **Kein eigener Sidebar-Eintrag:** Die Einrichtungsseite wird aus der TSE-Status-Sektion der Einstellungen verlinkt.
+- **Kein eigener Sidebar-Eintrag:** Die Einrichtungsseite wird aus der TSE-Anbindungs-Sektion der Finanzamt-Seite verlinkt (`frontend/src/admin/finanzamt/TSEAnbindungSection.tsx`); eine Einstellungen-Seite gibt es nicht mehr.
 
 ## Inventory
 
@@ -34,11 +35,12 @@ Durable Entscheidungen für alle Phasen:
 - `backend/api/settings/application/command.go`: `UpdateTSEKonfiguration` (atomares Speichern)
 - `backend/api/settings/http/command_handler.go:39-94`: zog-Schema- und Handler-Muster
 - `backend/api/admin.go:138-155`: Wiring der Settings-Handler und TSE-Routen; `:142-144` Factory-Injection
-- `frontend/src/routes.ts:110-116`: lazy Admin-Route `einstellungen` (Muster für neue Route)
-- `frontend/src/admin/AdminSidebar.tsx:67`: Sidebar-Eintrag Einstellungen
-- `frontend/src/admin/settings/EinstellungenPage.tsx:196-364`: `TSEKonfigurationForm` (zieht um); `:366-420` `TSEKonfigurationSection` (wird Status + Link)
-- `frontend/src/lib/EinstellungenBackend.ts:23-46`: Zod-Schemas inkl. `TSEVerbindungStatusSchema` (wird erweitert)
-- `frontend/src/admin/settings/hooks.ts`: `useTSEKonfiguration` (TanStack-Query-Muster)
+- `frontend/src/routes.ts:131-144`: lazy Admin-Routen `finanzamt` und `tse-einrichtung` (beide bereits angelegt)
+- `frontend/src/admin/AdminSidebar.tsx:66-69`: Sidebar-Eintrag Finanzamt (Einstellungen entfernt)
+- `frontend/src/admin/tse/TSEEinrichtungPage.tsx`: Host der Einrichtungsseite (rendert heute nur `TSEKonfigurationSection`); `frontend/src/admin/tse/TSEKonfigurationSection.tsx:29-256`: umgezogenes manuelles Formular (Speichern/Leeren/Verbindung testen), Verbindungstest-Anzeige bei `:187-196`
+- `frontend/src/admin/finanzamt/TSEAnbindungSection.tsx`: faktische Status-Zeile (konfiguriert/Umgebung) mit Link auf `/admin/tse-einrichtung`
+- `frontend/src/lib/EinstellungenBackend.ts:31-35`: `TSEVerbindungStatusSchema` (wird erweitert); `:136-142` `testTSEVerbindung`
+- `frontend/src/admin/settings/hooks.ts:87-116`: `useTSEKonfiguration`; `:146-157` `useTSEStatus` (TanStack-Query-Muster, bleiben am Ort)
 - `temp/fiskaly_sign_de_api_spec.json`, `temp/fiskaly_SIGN_DE_Postman_Environment_collection.json`: API-Spec 2.2.2 und Lifecycle-Referenz (Kontrakt-Tests)
 - `docs/betrieb/leitfaden-betreiber.md`: bestehender Betreiber-Leitfaden (Einhängepunkt für Phase 6)
 - Live-Test-TSS in fiskaly TEST: TSS `728e3cda-…`, Client `90977ec5-…` (für Verbindungstest-Verifikation; Wizard-Integrationstest legt eigene TSS an)
@@ -48,7 +50,7 @@ Durable Entscheidungen für alle Phasen:
 Aus dem PRD-Prozess (2026-06-11, alle mit User abgestimmt):
 
 - **PUK/PIN einmalig anzeigen, extern verwahren:** keine Speicherung in jotti, keine `admin_puk`/`admin_pin`-Spalten.
-- Eigene Admin-Seite „TSE-Einrichtung"; manuelle Konfiguration zieht dorthin um, Einstellungen-Sektion wird Status + Link.
+- Eigene Admin-Seite „TSE-Einrichtung" mit umgezogener manueller Konfiguration und Status + Link: durch den Finanzamt-Plan bereits umgesetzt (Route, `TSEKonfigurationSection`, `TSEAnbindungSection`). Der Wizard baut darauf auf, statt das erneut anzulegen.
 - **Vorhandene TSS:** Übernahme anbieten (Wiederaufnahme nach Teilfehler eingeschlossen), keine stille Doppel-Anlage.
 - **LIVE-Schutz:** Tipp-Bestätigung „LIVE" vor kostenwirksamer Anlage; in TEST genügt ein Klick.
 - **Tests:** Kontrakt-Tests (Setup-Operationen), Unit-Tests (Orchestrator gegen Fake), env-gated Integrationstest; keine Frontend-Komponententests.
@@ -71,44 +73,34 @@ Aus dem PRD-Prozess (2026-06-11, alle mit User abgestimmt):
 - `backend/repository/tse_repo/fiskaly_client.go:212-244`: `TestConnection` prüft nur TSS-State
 - `backend/domain/tse/client.go:72-85`: `VerbindungStatus` (Umgebung, TSSState)
 - `backend/api/settings/application/query.go:77-117`: `TestTSEVerbindung` (kennt via `SettingsRepo` auch die Kassenidentität)
-- `frontend/src/lib/EinstellungenBackend.ts:33-37`: `TSEVerbindungStatusSchema`
-- `frontend/src/admin/settings/EinstellungenPage.tsx:352-361`: bisherige Status-Anzeige
+- `frontend/src/lib/EinstellungenBackend.ts:31-35`: `TSEVerbindungStatusSchema`
+- `frontend/src/admin/tse/TSEKonfigurationSection.tsx:187-196`: bisherige Verbindungstest-Anzeige (zeigt heute nur Umgebung + TSS-Status)
 - Audit I-15.4 (Client-State ungeprüft), I-09 (Seriennummern-Abgleich)
 
 ### What to build
 
-Der Verbindungstest ruft zusätzlich den fiskaly-Client der konfigurierten TSS ab. `VerbindungStatus` transportiert neu Client-State und Client-`serial_number`; die Application-Schicht vergleicht die `serial_number` mit der Kassen-Seriennummer. Die UI zeigt das Ergebnis aufgeschlüsselt (Umgebung, TSS-Zustand, Client-Zustand, Seriennummern-Abgleich); ein nicht-`REGISTERED`-Client oder eine Seriennummern-Abweichung wird deutlich als Fehler mit verständlichem deutschen Text gemeldet.
+Der Verbindungstest ruft zusätzlich den fiskaly-Client der konfigurierten TSS ab. `VerbindungStatus` transportiert neu Client-State und Client-`serial_number`; die Application-Schicht vergleicht die `serial_number` mit der Kassen-Seriennummer. Die Verbindungstest-Anzeige in `TSEKonfigurationSection.tsx` zeigt das Ergebnis aufgeschlüsselt (Umgebung, TSS-Zustand, Client-Zustand, Seriennummern-Abgleich); ein nicht-`REGISTERED`-Client oder eine Seriennummern-Abweichung wird deutlich als Fehler mit verständlichem deutschen Text gemeldet.
 
 ### Acceptance criteria
 
-- [ ] Verbindungstest meldet einen nicht-`REGISTERED`-Client als Fehler (Kontrakt-Test mit Fake-Server)
-- [ ] Abweichung `serial_number` ↔ Kassen-Seriennummer wird als Fehler gemeldet (Unit-Test)
-- [ ] UI zeigt Umgebung, TSS-Zustand, Client-Zustand und Abgleich-Ergebnis aufgeschlüsselt
+- [x] Verbindungstest meldet einen nicht-`REGISTERED`-Client als Fehler (Kontrakt-Test mit Fake-Server)
+- [x] Abweichung `serial_number` ↔ Kassen-Seriennummer wird als Fehler gemeldet (Unit-Test)
+- [x] UI zeigt Umgebung, TSS-Zustand, Client-Zustand und Abgleich-Ergebnis aufgeschlüsselt
 - [ ] Manuell gegen die Live-Test-TSS verifiziert; `make check` grün
 
 ---
 
-## Phase 2: Seite „TSE-Einrichtung" und Umzug der manuellen Konfiguration
+## Phase 2: Seite „TSE-Einrichtung" und Umzug der manuellen Konfiguration — durch den Finanzamt-Plan erledigt
 
 **User stories**: 19, 20, 21
 
-### Context
+Diese Phase ist vollständig durch [plan-finanzamt.md](plan-finanzamt.md) (Commits `591146c`, `55e4226`) umgesetzt. Sie bleibt zur Nachvollziehbarkeit dokumentiert; hier ist nichts mehr zu bauen.
 
-- `frontend/src/routes.ts:110-116`: Routen-Muster (lazy Admin-Route)
-- `frontend/src/admin/settings/EinstellungenPage.tsx:196-364, 366-420`: `TSEKonfigurationForm` und Section
-- `frontend/src/admin/settings/hooks.ts`: bestehende Hooks (`useTSEKonfiguration`)
-- `backend/api/settings/application/query.go:119-172`: `GetTSEStatus` liefert bereits Umgebung + `IstKonfiguriert`
+- Die lazy Route `/admin/tse-einrichtung` existiert (`frontend/src/routes.ts:138-144`) und rendert `frontend/src/admin/tse/TSEEinrichtungPage.tsx`.
+- Das manuelle Konfigurationsformular (API-Key/-Secret, TSS-ID, Client-ID, Speichern/Leeren/Verbindung testen) ist unverändert nach `frontend/src/admin/tse/TSEKonfigurationSection.tsx` umgezogen.
+- Die frühere Einstellungen-TSE-Sektion ist zur faktischen Status-Zeile geworden und lebt jetzt als `frontend/src/admin/finanzamt/TSEAnbindungSection.tsx` auf der Finanzamt-Seite (konfiguriert ja/nein, Umgebung, Link „Einrichten oder ändern"). Die Einstellungen-Seite gibt es nicht mehr.
 
-### What to build
-
-Neue Frontend-Route `/admin/tse-einrichtung` mit eigener Seite. Die manuelle Konfiguration (API-Key/-Secret, TSS-ID, Client-ID), das Leeren und der Verbindungstest ziehen unverändert dorthin um (als „manuelle Einrichtung"-/Experten-Bereich). Die TSE-Sektion der Einstellungen wird zu einer reinen Status-Anzeige (konfiguriert ja/nein, Umgebung) mit Link auf die neue Seite. Kein Backend-Umbau, reine UI-Umstrukturierung auf bestehenden Endpunkten.
-
-### Acceptance criteria
-
-- [ ] Manuelle Konfiguration, Leeren und Verbindungstest funktionieren auf der neuen Seite unverändert
-- [ ] Einstellungen zeigen TSE-Status (konfiguriert, Umgebung) und verlinken auf `/admin/tse-einrichtung`
-- [ ] In den Einstellungen existieren keine TSE-Formularfelder mehr
-- [ ] `make check` grün (Lint/Typecheck Frontend)
+Folge für den Wizard: Die nachfolgenden Phasen ergänzen den geführten Ablauf auf der bestehenden `TSEEinrichtungPage`; das manuelle Formular bleibt dort als Experten-/Fallback-Bereich erhalten.
 
 ---
 
@@ -122,10 +114,11 @@ Neue Frontend-Route `/admin/tse-einrichtung` mit eigener Seite. Die manuelle Kon
 - `backend/domain/tse/client.go:20-42`: `Credentials` verlangt alle vier Felder → eigener Setup-Credentials-Typ nötig
 - `backend/api/admin.go:138-155`: Wiring-/Routen-Muster; `backend/api/settings/http/command_handler.go:39-94`: zog-Muster
 - `temp/fiskaly_sign_de_api_spec.json`: List-TSS-/List-Clients-Endpunkte
+- `frontend/src/admin/tse/TSEEinrichtungPage.tsx`: Host der Wizard-Schritte (rendert heute nur `TSEKonfigurationSection`); die Schritte kommen darüber, das manuelle Formular bleibt als Experten-Bereich darunter
 
 ### What to build
 
-Erster Teil der Setup-Operationen (Auth nur mit API-Key/-Secret, TSS listen, Clients einer TSS listen) samt Domain-Interface und Fake. Neuer Endpoint `admin/tse-setup-pruefen`: nimmt API-Key/-Secret entgegen, liefert Umgebung und die vorhandenen TSS mit Zustand sowie (je TSS) einen ggf. vorhandenen Client mit passender Kassen-Seriennummer. Im Frontend entstehen die ersten beiden Wizard-Schritte (Zugangsdaten → Befund) mit deutlich sichtbarer Umgebungs-Anzeige (TEST/LIVE). Es passieren ausschließlich Lese-Requests; gespeichert wird nichts.
+Erster Teil der Setup-Operationen (Auth nur mit API-Key/-Secret, TSS listen, Clients einer TSS listen) samt Domain-Interface und Fake. Neuer Endpoint `admin/tse-setup-pruefen`: nimmt API-Key/-Secret entgegen, liefert Umgebung und die vorhandenen TSS mit Zustand sowie (je TSS) einen ggf. vorhandenen Client mit passender Kassen-Seriennummer. Im Frontend entstehen auf `TSEEinrichtungPage` die ersten beiden Wizard-Schritte (Zugangsdaten → Befund) mit deutlich sichtbarer Umgebungs-Anzeige (TEST/LIVE). Es passieren ausschließlich Lese-Requests; gespeichert wird nichts.
 
 ### Acceptance criteria
 

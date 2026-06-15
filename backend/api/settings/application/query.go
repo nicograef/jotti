@@ -113,6 +113,13 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 		return tse.VerbindungStatus{}, ErrTSEVerbindungFehlgeschlagen
 	}
 
+	identitaet, err := q.SettingsRepo.GetKassenidentitaet(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to retrieve kassenidentitaet for connection test")
+		return tse.VerbindungStatus{}, ErrDatabase
+	}
+	status.SeriennummerKorrekt = status.ClientSerialNumber == identitaet.Seriennummer.String()
+
 	return status, nil
 }
 

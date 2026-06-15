@@ -31,6 +31,9 @@ export type TSEKonfiguration = z.infer<typeof TSEKonfigurationSchema>
 export const TSEVerbindungStatusSchema = z.object({
   umgebung: z.enum(['TEST', 'LIVE']),
   tssState: z.string().min(1, 'TSS-Status fehlt'),
+  clientState: z.string().min(1, 'Client-Status fehlt'),
+  clientSerialNumber: z.string().min(1, 'Client-Seriennummer fehlt'),
+  seriennummerKorrekt: z.boolean(),
 })
 export type TSEVerbindungStatus = z.infer<typeof TSEVerbindungStatusSchema>
 

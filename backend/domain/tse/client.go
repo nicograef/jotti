@@ -100,9 +100,17 @@ type FinishResult struct {
 	QRCodeData        string
 }
 
+// VerbindungStatus ist das Ergebnis des Verbindungstests. Umgebung, TSSState,
+// ClientState und ClientSerialNumber werden von der Repository-Schicht aus den
+// fiskaly-Antworten befuellt. SeriennummerKorrekt setzt die Application-Schicht,
+// die die jotti-Kassen-Seriennummer kennt und sie mit der Client-serial_number
+// abgleicht.
 type VerbindungStatus struct {
-	Umgebung Umgebung
-	TSSState string
+	Umgebung            Umgebung
+	TSSState            string
+	ClientState         string
+	ClientSerialNumber  string
+	SeriennummerKorrekt bool
 }
 
 func (v VerbindungStatus) Validate() error {
@@ -111,6 +119,12 @@ func (v VerbindungStatus) Validate() error {
 	}
 	if strings.TrimSpace(v.TSSState) == "" {
 		return fmt.Errorf("tss state is required")
+	}
+	if strings.TrimSpace(v.ClientState) == "" {
+		return fmt.Errorf("client state is required")
+	}
+	if strings.TrimSpace(v.ClientSerialNumber) == "" {
+		return fmt.Errorf("client serial number is required")
 	}
 	return nil
 }

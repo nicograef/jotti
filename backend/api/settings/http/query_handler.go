@@ -48,8 +48,11 @@ type tseKonfigurationResponse struct {
 }
 
 type tseVerbindungResponse struct {
-	Umgebung string `json:"umgebung"`
-	TSSState string `json:"tssState"`
+	Umgebung            string `json:"umgebung"`
+	TSSState            string `json:"tssState"`
+	ClientState         string `json:"clientState"`
+	ClientSerialNumber  string `json:"clientSerialNumber"`
+	SeriennummerKorrekt bool   `json:"seriennummerKorrekt"`
 }
 
 type tseStatusResponse struct {
@@ -132,8 +135,11 @@ func (h *QueryHandler) TestTSEVerbindungHandler() http.HandlerFunc {
 		}
 
 		helper.SendResponse(w, tseVerbindungResponse{
-			Umgebung: string(status.Umgebung),
-			TSSState: status.TSSState,
+			Umgebung:            string(status.Umgebung),
+			TSSState:            status.TSSState,
+			ClientState:         status.ClientState,
+			ClientSerialNumber:  status.ClientSerialNumber,
+			SeriennummerKorrekt: status.SeriennummerKorrekt,
 		})
 	}
 }

@@ -132,7 +132,13 @@ func TestGetTSEKonfigurationHandler_NotFoundReturnsEmpty(t *testing.T) {
 }
 
 func TestTestTSEVerbindungHandler_Success(t *testing.T) {
-	h := &QueryHandler{Query: &mockSettingsQuery{verbindungStatus: tse.VerbindungStatus{Umgebung: tse.UmgebungTest, TSSState: "INITIALIZED"}}}
+	h := &QueryHandler{Query: &mockSettingsQuery{verbindungStatus: tse.VerbindungStatus{
+		Umgebung:            tse.UmgebungTest,
+		TSSState:            "INITIALIZED",
+		ClientState:         "REGISTERED",
+		ClientSerialNumber:  "kasse-serial-1",
+		SeriennummerKorrekt: true,
+	}}}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/test-tse-verbindung", nil)
 	rec := httptest.NewRecorder()
@@ -144,8 +150,11 @@ func TestTestTSEVerbindungHandler_Success(t *testing.T) {
 	}
 
 	var body struct {
-		Umgebung string `json:"umgebung"`
-		TSSState string `json:"tssState"`
+		Umgebung            string `json:"umgebung"`
+		TSSState            string `json:"tssState"`
+		ClientState         string `json:"clientState"`
+		ClientSerialNumber  string `json:"clientSerialNumber"`
+		SeriennummerKorrekt bool   `json:"seriennummerKorrekt"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
@@ -155,6 +164,15 @@ func TestTestTSEVerbindungHandler_Success(t *testing.T) {
 	}
 	if body.TSSState != "INITIALIZED" {
 		t.Fatalf("expected INITIALIZED state, got %q", body.TSSState)
+	}
+	if body.ClientState != "REGISTERED" {
+		t.Fatalf("expected REGISTERED client state, got %q", body.ClientState)
+	}
+	if body.ClientSerialNumber != "kasse-serial-1" {
+		t.Fatalf("expected client serial kasse-serial-1, got %q", body.ClientSerialNumber)
+	}
+	if !body.SeriennummerKorrekt {
+		t.Fatal("expected seriennummerKorrekt to be true")
 	}
 }
 

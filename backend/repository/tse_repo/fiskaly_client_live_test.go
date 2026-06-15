@@ -51,6 +51,12 @@ func TestFiskalyClient_LiveSigniertTransaktion(t *testing.T) {
 	if status.Umgebung != tse.UmgebungTest {
 		t.Fatalf("Live-Test nur gegen die TEST-Umgebung erlaubt, Credentials zeigen auf %s", status.Umgebung)
 	}
+	if status.ClientState != "REGISTERED" {
+		t.Fatalf("expected a REGISTERED client for the live TSS, got %q", status.ClientState)
+	}
+	if status.ClientSerialNumber == "" {
+		t.Fatal("expected the client serial_number to be reported")
+	}
 
 	txID := uuid.NewString()
 

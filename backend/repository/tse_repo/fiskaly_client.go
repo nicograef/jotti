@@ -93,6 +93,11 @@ type tssResponse struct {
 	Env   string `json:"_env"`
 }
 
+type clientResponse struct {
+	State        string `json:"state"`
+	SerialNumber string `json:"serial_number"`
+}
+
 type errorResponse struct {
 	Code    string `json:"code"`
 	Error   string `json:"error"`
@@ -262,7 +267,7 @@ func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungSt
 		return tse.VerbindungStatus{}, err
 	}
 
-	resp := tssResponse{}
+	tssResp := tssResponse{}
 	err = c.doJSONRequest(
 		ctx,
 		http.MethodGet,
@@ -270,19 +275,39 @@ func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungSt
 		nil,
 		nil,
 		true,
-		&resp,
+		&tssResp,
+	)
+	if err != nil {
+		return tse.VerbindungStatus{}, err
+	}
+
+	clientResp := clientResponse{}
+	err = c.doJSONRequest(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("/api/v2/tss/%s/client/%s", url.PathEscape(c.credentials.TssID), url.PathEscape(c.credentials.ClientID)),
+		nil,
+		nil,
+		true,
+		&clientResp,
 	)
 	if err != nil {
 		return tse.VerbindungStatus{}, err
 	}
 
 	if env == "" {
-		env = tse.Umgebung(strings.ToUpper(strings.TrimSpace(resp.Env)))
+		env = tse.Umgebung(strings.ToUpper(strings.TrimSpace(tssResp.Env)))
 	}
 
+	// Ein nicht-REGISTERED-Client und ein Seriennummern-Mismatch sind keine
+	// Transportfehler — sie werden als Befund im Status transportiert, damit die
+	// UI das Ergebnis aufgeschluesselt anzeigen kann. Den Seriennummern-Abgleich
+	// uebernimmt die Application-Schicht (sie kennt die Kassen-Seriennummer).
 	status := tse.VerbindungStatus{
-		Umgebung: env,
-		TSSState: strings.TrimSpace(resp.State),
+		Umgebung:           env,
+		TSSState:           strings.TrimSpace(tssResp.State),
+		ClientState:        strings.TrimSpace(clientResp.State),
+		ClientSerialNumber: strings.TrimSpace(clientResp.SerialNumber),
 	}
 	if err := status.Validate(); err != nil {
 		return tse.VerbindungStatus{}, err

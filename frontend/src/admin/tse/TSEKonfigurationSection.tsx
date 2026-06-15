@@ -91,7 +91,11 @@ function TSEKonfigurationForm({
     await runTestConnection(async () => {
       const status = await onTestConnection()
       setVerbindungStatus(status)
-      toast.success('TSE-Verbindung erfolgreich getestet.')
+      if (verbindungIstSigniertfaehig(status)) {
+        toast.success('TSE-Verbindung erfolgreich getestet.')
+      } else {
+        toast.error('Verbindung steht, aber die TSE ist nicht signierfähig.')
+      }
     })
   }
 
@@ -185,15 +189,66 @@ function TSEKonfigurationForm({
       </div>
 
       {verbindungStatus ? (
-        <p className="text-sm text-muted-foreground">
-          Verbunden mit <strong>{verbindungStatus.umgebung}</strong> ·
-          TSS-Status: {verbindungStatus.tssState}
-        </p>
+        <VerbindungStatusAnzeige status={verbindungStatus} />
       ) : (
         <p className="text-sm text-muted-foreground">
-          Umgebung wird nach einem erfolgreichen Verbindungstest angezeigt.
+          Das Ergebnis erscheint nach einem Verbindungstest.
         </p>
       )}
+    </div>
+  )
+}
+
+// Eine TSE ist nur signierfähig, wenn der Client registriert ist und seine
+// Seriennummer mit der Kassen-Seriennummer übereinstimmt.
+function verbindungIstSigniertfaehig(status: TSEVerbindungStatus): boolean {
+  return status.clientState === 'REGISTERED' && status.seriennummerKorrekt
+}
+
+function VerbindungStatusAnzeige({ status }: { status: TSEVerbindungStatus }) {
+  const clientRegistriert = status.clientState === 'REGISTERED'
+  return (
+    <div className="grid gap-1 text-sm">
+      <StatusZeile label="Umgebung" wert={status.umgebung} />
+      <StatusZeile label="TSS-Zustand" wert={status.tssState} />
+      <StatusZeile
+        label="Client-Zustand"
+        wert={status.clientState}
+        fehler={
+          clientRegistriert
+            ? undefined
+            : 'Der Client ist nicht registriert (REGISTERED). Mit diesem Client kann nicht signiert werden.'
+        }
+      />
+      <StatusZeile
+        label="Seriennummern-Abgleich"
+        wert={status.seriennummerKorrekt ? 'stimmt überein' : 'weicht ab'}
+        fehler={
+          status.seriennummerKorrekt
+            ? undefined
+            : `Die Client-Seriennummer (${status.clientSerialNumber}) stimmt nicht mit der Kassen-Seriennummer überein.`
+        }
+      />
+    </div>
+  )
+}
+
+function StatusZeile({
+  label,
+  wert,
+  fehler,
+}: {
+  label: string
+  wert: string
+  fehler?: string
+}) {
+  return (
+    <div>
+      <span className="text-muted-foreground">{label}: </span>
+      <strong className={fehler ? 'text-destructive' : undefined}>
+        {wert}
+      </strong>
+      {fehler && <p className="text-destructive">{fehler}</p>}
     </div>
   )
 }

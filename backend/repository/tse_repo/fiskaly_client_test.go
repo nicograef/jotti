@@ -435,6 +435,9 @@ func TestFiskalyClient_SingleAttempt_DoesNotRetry(t *testing.T) {
 	}
 }
 
+// TestFiskalyClient_TestConnection bildet den Kontrakt des Verbindungstests ab:
+// neben dem TSS-Zustand wird auch der Client abgefragt, und dessen state sowie
+// serial_number landen aufgeschluesselt im VerbindungStatus.
 func TestFiskalyClient_TestConnection(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -451,7 +454,13 @@ func TestFiskalyClient_TestConnection(t *testing.T) {
 				"state": "INITIALIZED",
 				"_env":  "TEST",
 			})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v2/tss/tss-1/client/client-1":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"state":         "REGISTERED",
+				"serial_number": "kasse-serial-1",
+			})
 		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
@@ -476,5 +485,61 @@ func TestFiskalyClient_TestConnection(t *testing.T) {
 	}
 	if status.TSSState != "INITIALIZED" {
 		t.Fatalf("expected state INITIALIZED, got %s", status.TSSState)
+	}
+	if status.ClientState != "REGISTERED" {
+		t.Fatalf("expected client state REGISTERED, got %s", status.ClientState)
+	}
+	if status.ClientSerialNumber != "kasse-serial-1" {
+		t.Fatalf("expected client serial kasse-serial-1, got %s", status.ClientSerialNumber)
+	}
+}
+
+// TestFiskalyClient_TestConnection_DeregisteredClient sichert, dass ein
+// nicht-REGISTERED-Client kein Transportfehler ist, sondern als Befund im
+// VerbindungStatus transportiert wird — die UI meldet ihn dann als Fehler.
+func TestFiskalyClient_TestConnection_DeregisteredClient(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"access_token":            "token-1",
+				"access_token_expires_at": time.Now().Add(1 * time.Hour).Unix(),
+				"access_token_claims": map[string]any{
+					"env": "TEST",
+				},
+			})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v2/tss/tss-1":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"state": "INITIALIZED",
+				"_env":  "TEST",
+			})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v2/tss/tss-1/client/client-1":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"state":         "DEREGISTERED",
+				"serial_number": "kasse-serial-1",
+			})
+		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewFiskalyTSEClient(server.URL, tse.Credentials{
+		ApiKey:    "api-key",
+		ApiSecret: "api-secret",
+		TssID:     "tss-1",
+		ClientID:  "client-1",
+	}, nil)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	status, err := client.TestConnection(context.Background())
+	if err != nil {
+		t.Fatalf("test connection should not fail for a deregistered client: %v", err)
+	}
+	if status.ClientState != "DEREGISTERED" {
+		t.Fatalf("expected client state DEREGISTERED to be reported, got %s", status.ClientState)
 	}
 }
