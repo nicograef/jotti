@@ -36,6 +36,9 @@ warn()  { printf "${YELLOW}[WARN]${NC}  %s\n" "$1"; }
 error() { printf "${RED}[ERROR]${NC} %s\n" "$1" >&2; }
 fatal() { error "$1"; exit 1; }
 
+# read_env KEY — read a single value from .env without executing the file
+# (passwords may contain shell-special characters). Returns the last match,
+# trimmed of surrounding whitespace.
 read_env() {
   local key="$1"
   grep -E "^${key}=" .env 2>/dev/null | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
