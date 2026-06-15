@@ -48,8 +48,7 @@ type druckerFenster struct {
 	fehlertext string
 }
 
-// druckerFensterAus übersetzt die Drucker-Ausfälle des Drehbuchs in absolute Zeitfenster —
-// mit derselben Sitzungsstart-Berechnung wie die Engine.
+// druckerFensterAus übersetzt die Drucker-Ausfälle des Drehbuchs in absolute Zeitfenster.
 func druckerFensterAus(s szenario, jetzt time.Time) []druckerFenster {
 	ipProKategorie := make(map[druckstation.Kategorie]string, len(s.Druckstationen))
 	for _, st := range s.Druckstationen {
@@ -59,7 +58,7 @@ func druckerFensterAus(s szenario, jetzt time.Time) []druckerFenster {
 	var fenster []druckerFenster
 	for i := range s.Sitzungen {
 		sitzung := &s.Sitzungen[i]
-		start := jetzt.Add(-sitzung.StartVorJetzt)
+		start := sitzung.startZeit(jetzt)
 		for _, a := range sitzung.DruckerAusfaelle {
 			fenster = append(fenster, druckerFenster{
 				ip:         ipProKategorie[a.Kategorie],

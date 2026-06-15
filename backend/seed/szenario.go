@@ -207,6 +207,11 @@ type kassensitzungDrehbuch struct {
 	Aktionen            []aktion
 }
 
+// startZeit ist der absolute Beginn des Sitzungsfensters, bezogen auf „jetzt".
+func (d kassensitzungDrehbuch) startZeit(jetzt time.Time) time.Time {
+	return jetzt.Add(-d.StartVorJetzt)
+}
+
 // szenario bündelt die Stammdaten und das Drehbuch.
 type szenario struct {
 	Benutzer       []benutzer

@@ -35,18 +35,18 @@ type seedDaten struct {
 
 // tagesSummen sammelt die Beträge eines Betriebstags für den Tagesabschluss.
 type tagesSummen struct {
-	ZahlungenCents       int
-	DirektverkaufCents   int
-	DirektverkaufStornos int
-	AuszahlungenCents    int
-	StornierungenCents   int
-	GeldtransitCents     int
+	ZahlungenCents            int
+	DirektverkaufCents        int
+	DirektverkaufStornosCents int
+	AuszahlungenCents         int
+	StornierungenCents        int
+	GeldtransitCents          int
 }
 
 // UmsatzGesamtCents folgt der Reporting-Definition (GetReportingStats):
 // Zahlungen + Direktverkäufe − Direktverkauf-Stornos − Auszahlungen.
 func (s tagesSummen) UmsatzGesamtCents() int {
-	return s.ZahlungenCents + s.DirektverkaufCents - s.DirektverkaufStornos - s.AuszahlungenCents
+	return s.ZahlungenCents + s.DirektverkaufCents - s.DirektverkaufStornosCents - s.AuszahlungenCents
 }
 
 // buildSeedDaten übersetzt das Szenario deterministisch in Events und Kassensitzungs-Zeilen.
@@ -65,7 +65,7 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 
 	for i := range s.Sitzungen {
 		sitzung := &s.Sitzungen[i]
-		start := jetzt.Add(-sitzung.StartVorJetzt)
+		start := sitzung.startZeit(jetzt)
 		ende := start.Add(sitzung.Dauer)
 		if !vorherigesEnde.IsZero() && !start.After(vorherigesEnde) {
 			return seedDaten{}, fmt.Errorf("sitzung %d: Zeitfenster überlappt die vorherige Sitzung", sitzung.ZNr)
@@ -396,7 +396,7 @@ func (b *sitzungsBauer) direktverkaufStorno(a direktverkaufStorno) error {
 	}
 	b.addVerkauf(a.VerkaufID, evt)
 	b.bestandCents -= betrag
-	b.summen.DirektverkaufStornos += betrag
+	b.summen.DirektverkaufStornosCents += betrag
 	return nil
 }
 

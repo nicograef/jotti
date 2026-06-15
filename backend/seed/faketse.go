@@ -46,13 +46,12 @@ type ausfallFenster struct {
 	aufgeloest bool
 }
 
-// ausfallFensterAus übersetzt die TSE-Ausfälle des Drehbuchs in absolute Zeitfenster —
-// mit derselben Sitzungsstart-Berechnung wie die Engine.
+// ausfallFensterAus übersetzt die TSE-Ausfälle des Drehbuchs in absolute Zeitfenster.
 func ausfallFensterAus(s szenario, jetzt time.Time) []ausfallFenster {
 	var fenster []ausfallFenster
 	for i := range s.Sitzungen {
 		sitzung := &s.Sitzungen[i]
-		start := jetzt.Add(-sitzung.StartVorJetzt)
+		start := sitzung.startZeit(jetzt)
 		for _, a := range sitzung.TSEAusfaelle {
 			fenster = append(fenster, ausfallFenster{
 				von:        start.Add(a.NachStart),
@@ -142,7 +141,7 @@ func signiereEvents(events []seedEvent, fenster []ausfallFenster) (tseSeitentabe
 			continue
 		}
 
-		tseData := s.signiere(spec, evt.Time, evt.Time.Add(time.Second), txID)
+		tseData := s.signiere(spec.processType, spec.processData, evt.Time, evt.Time.Add(time.Second), txID)
 		signiert, err := spec.embed(evt, txID, &tseData)
 		if err != nil {
 			return tseSeitentabellen{}, fmt.Errorf("event %s v%d: tse-daten einbetten: %w", evt.Subject, evt.Version, err)
@@ -178,7 +177,7 @@ type fakeSignierer struct {
 // signiere vergibt die nächste Transaktionsnummer samt Signaturzähler und baut die TSE-Daten.
 // Jede Transaktion verbraucht zwei Signaturen (Start + Finish) — der Zähler im Beleg ist der
 // der Finish-Signatur, wie bei einer echten TSE.
-func (s *fakeSignierer) signiere(spec fiskalischeSignierung, logStart, logEnd time.Time, txID string) kasse.TSEData {
+func (s *fakeSignierer) signiere(processType, processData string, logStart, logEnd time.Time, txID string) kasse.TSEData {
 	s.txNummer++
 	s.sigZaehler += 2
 	signatur := fakeSignatur(txID, s.txNummer)
@@ -189,8 +188,8 @@ func (s *fakeSignierer) signiere(spec fiskalischeSignierung, logStart, logEnd ti
 		LogTimeStart:      logStart.UTC().Format(time.RFC3339),
 		LogTimeEnd:        logEnd.UTC().Format(time.RFC3339),
 		Signature:         signatur,
-		ProcessType:       spec.processType,
-		QRCodeData:        qrCodeData(spec, s.txNummer, s.sigZaehler, logStart, logEnd, signatur),
+		ProcessType:       processType,
+		QRCodeData:        qrCodeData(processType, processData, s.txNummer, s.sigZaehler, logStart, logEnd, signatur),
 	}
 }
 
@@ -262,8 +261,7 @@ func (s *fakeSignierer) nachsigniereFenster(fensterIdx int) {
 			fehler = &grund
 		}
 
-		spec := fiskalischeSignierung{processType: p.processType, processData: p.processData}
-		tseData := s.signiere(spec, quittiert, quittiert.Add(time.Second), p.txID)
+		tseData := s.signiere(p.processType, p.processData, quittiert, quittiert.Add(time.Second), p.txID)
 
 		s.seiten.Auftraege = append(s.seiten.Auftraege, nachsignierAuftragZeile{
 			TxID:               p.txID,
@@ -456,12 +454,12 @@ func fakeSignatur(txID string, txNummer int) string {
 
 // qrCodeData baut den KassenSichV-üblichen V0-String (BSI TR-03153-A), wie ihn fiskaly
 // liefert; der Belegdruck rendert das Feld unverändert.
-func qrCodeData(spec fiskalischeSignierung, txNummer, sigZaehler int, logStart, logEnd time.Time, signatur string) string {
+func qrCodeData(processType, processData string, txNummer, sigZaehler int, logStart, logEnd time.Time, signatur string) string {
 	return strings.Join([]string{
 		"V0",
 		fakeKassenSeriennummer,
-		spec.processType,
-		spec.processData,
+		processType,
+		processData,
 		strconv.Itoa(txNummer),
 		strconv.Itoa(sigZaehler),
 		logStart.UTC().Format(time.RFC3339),
