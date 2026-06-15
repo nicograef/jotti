@@ -40,8 +40,9 @@ Ein **Kassenrechner** im WLAN, die Helfer bedienen jotti auf ihren **Handys**.
 - **Falls die grüne Adresse (noch) nicht geht:** Die Status-Seite nennt dann den
   **Fallback** `https://<LAN-IP>` — beim ersten Zugriff pro Gerät einmal die
   Browserwarnung bestätigen, danach anmelden. Öffnet ein Handy die grüne Adresse
-  gar nicht, blockiert vermutlich der Router (DNS-Rebind-Schutz) — die
-  Router-Anleitung steht in der Betriebsdoku (`docs/betrieb/dns-rebind-schutz.md`).
+  gar nicht, blockiert vermutlich der Router (DNS-Rebind-Schutz). Die
+  Router-Anleitung verlinkt die Status-Seite; sie steht auch online unter
+  <https://github.com/nicograef/jotti/blob/main/docs/betrieb/dns-rebind-schutz.md>.
 
 ## Bondruck (optional)
 

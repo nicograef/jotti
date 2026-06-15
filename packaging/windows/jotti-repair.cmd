@@ -16,16 +16,15 @@ set COMPOSE=docker compose -f docker-compose.release.yml --env-file "%ENVFILE%"
 
 if not exist "%ENVFILE%" goto :noenv
 
-REM Aktuellen Install-Schluessel (Benutzer + Passwort) aus der .env lesen. Die
-REM Kommentarzeile beginnt mit '#' und wird per eol uebersprungen; die Werte sind
-REM reines Hex (keine Sonderzeichen), daher ist das Durchreichen unproblematisch.
-set DBUSER=
+REM Das Passwort des Install-Schluessels aus der .env lesen. Die Kommentarzeile
+REM beginnt mit '#' und wird per eol uebersprungen; der Wert ist reines Hex (keine
+REM Sonderzeichen), daher ist das Durchreichen unproblematisch. Der Rollenname ist
+REM fest "admin" (wie core.PostgresUser / .env.example) und wird darum nicht aus
+REM der .env gelesen.
 set DBPASS=
 for /f "usebackq eol=# tokens=1,* delims==" %%a in ("%ENVFILE%") do (
-  if /i "%%a"=="POSTGRES_USER" set DBUSER=%%b
   if /i "%%a"=="POSTGRES_PASSWORD" set DBPASS=%%b
 )
-if not defined DBUSER goto :noenv
 if not defined DBPASS goto :noenv
 
 echo Diese Reparatur gleicht das Datenbank-Passwort an den aktuellen
@@ -40,7 +39,7 @@ echo Starte die Datenbank ...
 if errorlevel 1 goto :error
 
 echo Gleiche das Datenbank-Passwort an den Installations-Schluessel an ...
-docker exec jotti-postgres-local psql -U %DBUSER% -d jotti -v ON_ERROR_STOP=1 -c "ALTER USER %DBUSER% PASSWORD '%DBPASS%'"
+docker exec jotti-postgres-local psql -U admin -d jotti -v ON_ERROR_STOP=1 -c "ALTER USER admin PASSWORD '%DBPASS%'"
 if errorlevel 1 goto :error
 
 echo Starte jotti neu ...
