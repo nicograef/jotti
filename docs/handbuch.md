@@ -159,7 +159,7 @@ Alle Beträge in Cent (Integer). Saldo = 0 bedeutet: alle Positionen bezahlt ode
 | ------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Einzigkeits-Invariante    | Maximal eine Kassensitzung darf `offen` sein.                                                             |
 | Nummern-Invariante        | `z_nr` ist fortlaufend und lückenlos (`max(z_nr) + 1`). Wird beim INSERT in `kassensitzungen` berechnet.  |
-| Anfangsbestand-Invariante | Pro Kassensitzung genau ein `AnfangsbestandGesetzt`. Wiederholter Aufruf wird abgelehnt.                  |
+| Anfangsbestand-Invariante | Anfangsbestand ist `betragCents` in `kassensitzung-eroeffnet:v1`, kein eigenes Event.                     |
 | Kassensturz-Reihenfolge   | `KassensturzDurchgefuehrt` ist Voraussetzung für `TagesabschlussErstellt`.                                |
 | Tisch-Saldo-Sperre        | `TagesabschlussErstellt` ist nur möglich, wenn alle Tisch-Sessions der Kassensitzung Saldo = 0 haben.    |
 | Abschluss-Invariante      | `TagesabschlussErstellt` schließt die KS → Status `abgeschlossen`. Danach keine Events mehr im Stream.    |
@@ -172,10 +172,11 @@ Eine synchrone Projektion (`tisch_sessions`) + eine CRUD-Entität (`kassensitzun
 
 **Routing via StreamType:**
 
-| `streamType`      | Kassenjournal-INSERT | `kassensitzungen` | `tisch_sessions` |
-| ----------------- | -------------------- | ----------------- | ---------------- |
-| `"kassensitzung"` | ✅                   | ✅ INSERT/UPDATE  | —                |
-| `"tisch-session"` | ✅                   | —                 | ✅ UPSERT        |
+| `streamType`      | Kassenjournal-INSERT | `kassensitzungen` | `tisch_sessions`     |
+| ----------------- | -------------------- | ----------------- | -------------------- |
+| `"kassensitzung"` | ✅                   | ✅ INSERT/UPDATE  | —                    |
+| `"tisch-session"` | ✅                   | —                 | ✅ UPSERT            |
+| `"direktverkauf"` | ✅                   | —                 | — (keine Projektion) |
 
 Die Zustandsberechnung (`ApplyEvent()` in `backend/domain/kasse/tisch_session.go`) ist eine reine Funktion der Domain-Schicht (kein DB-Zugriff): Sie nimmt `TischSession` + `Event` entgegen und schreibt pro Event-Typ Saldo und Positionslisten fort.
 
@@ -217,27 +218,13 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 
 > Compliance-spezifische Architektur-Entscheidungen für die TSE-Integration. Rechtliche Grundlagen → [compliance.md §3–§8](compliance.md).
 
-**TSE-Integration:** Die Application-Schicht ruft die TSE über das anbieter-agnostische `TSEClient`-Interface auf (`StartTransaction` / `FinishTransaction`, → `backend/domain/tse/client.go`). Das Interface bildet bewusst nur das atomare Muster ab, ein `UpdateTransaction` (laut BMF-FAQ nur für `Bestellung-V1` und `SonstigerVorgang` zulässig, für `Kassenbeleg-V1` verboten) wird nicht benötigt und ist nicht Teil des Interface. `processType` und `processData` sind bei `StartTransaction` immer leer (DSFinV-K Anhang I); beide Aufrufe adressieren die Transaktion über eine von jotti erzeugte UUIDv4 (`tx_id`), die als `tseTxId` in den Event-Daten persistiert wird. Die TSE-Rückgabewerte (Transaktionsnummer, logTime von Start und Finish, Signaturzähler, Signatur, TSE-Seriennummer, processType) werden als `TSEData` in den Event-Daten des Kassenjournals persistiert (`backend/domain/kasse/*_events.go`); zusätzlich hält die Tisch-Session die logTime der ersten Bestellung für den Bon-Aufdruck. Die gemeinsame Signier-Orchestrierung und die processData-Formatter aller Kontexte liegen in `backend/api/tse/application`.
+**Signier-Interface:** Die Application-Schicht signiert über das anbieter-agnostische `TSEClient`-Interface (`StartTransaction` / `FinishTransaction`, → `backend/domain/tse/client.go`). Jeder jotti-Vorgang ist eine eigenständige, sofort geschlossene Transaktion (atomares „Festzelt-Muster"): `Start` ohne Inhalt, `Finish` mit dem finalen Schema. Ein `UpdateTransaction` ist nicht Teil des Interface, weil es nicht benötigt wird und für `Kassenbeleg-V1` ohnehin unzulässig ist (laut BMF-FAQ nur für `Bestellung-V1`/`SonstigerVorgang`). jotti adressiert die Transaktion über eine selbst erzeugte UUIDv4 (`tx_id`). Die Signaturdaten (`TSEData`: Transaktionsnummer, logTime, Signaturzähler, Signatur, Seriennummer, processType) werden in den Event-Daten persistiert; die Tisch-Session hält zusätzlich die logTime der ersten Bestellung für den Bon-Aufdruck. Orchestrierung und processData-Formatter liegen in `backend/api/tse/application`.
 
-**Mapping: jotti-Vorgänge → TSE-Transaktionen (Atomares Modell):** Für das Festzelt-Muster gilt: Jeder Vorgang ist eine eigenständige, sofort geschlossene TSE-Transaktion.
+**Ausfallpfad (Nachsignieren):** Der Signierversuch läuft synchron im Kassier-Pfad mit kurzer Deadline. Schlägt er fehl (TSE-Ausfall/Timeout), wird der Vorgang trotzdem gebucht und ein Nachsignier-Auftrag (`tse_nachsignier_auftraege`) angelegt; ein Hintergrund-Worker signiert später nach und legt die Signatur in `tse_signaturen` ab. Admins können offene Aufträge zurücksetzen oder verwerfen (`/admin/get-tse-nachsignier-auftraege`, …). Fehlt beim Bon-Aufdruck noch eine logTime, greift die Event-Zeit als Fallback (AEAO 1.14.3).
 
-| jotti-Vorgang                            | TSE-Operation             | processType        | Anmerkung                                                                                               |
-| ---------------------------------------- | ------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------- |
-| Bestellung aufnehmen                     | `Start` + sofort `Finish` | `Bestellung-V1`    | Positionen in processData                                                                               |
-| Zahlung kassieren (Teilzahlung)          | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Betrag + Zahlungsart in processData; kein UpdateTransaction                                             |
-| Zahlung kassieren (Vollzahlung)          | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Wie oben                                                                                                |
-| Positions-Storno                         | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Negative Menge/Betrag; BON_STORNO=1 im DSFinV-K                                                         |
-| Bon-Storno (nach Zahlung)                | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Negativer Gesamtbetrag; BON_STORNO=1, REF_BON_ID gesetzt                                                |
-| Auszahlung (negativen Saldo ausgleichen) | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Bargeldabfluss; negativer Betrag, Zahlungsart bar                                                       |
-| Geldtransit (Einlage/Entnahme)           | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Eigenbeleg über Ein-/Auszahlung (AEAO 2.2.3.6.1); ±Betrag als Zahlung                                   |
-| Kassendifferenz (Kassensturz)            | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Eigenbeleg `DifferenzSollIst` (AEAO 2.2.3.6.1); ±Betrag als Zahlung; umsatzsteuerlich neutral (→ §3.10) |
-| Direktverkauf                            | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Bestellen + Zahlen in einem Schritt; 1 Verkauf = 1 Transaktion                                          |
-| Direktverkauf-Storno                     | `Start` + sofort `Finish` | `Kassenbeleg-V1`   | Negativer Betrag; BON_STORNO=1, REF_BON_ID gesetzt                                                      |
-| Tagesabschluss (Z-Bon)                   | `Start` + sofort `Finish` | `SonstigerVorgang` | Tagesaggregat in processData                                                                            |
+**Vorgang → processType:** Bestellung aufnehmen → `Bestellung-V1`; Zahlung, Storno, Auszahlung, Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) → `Kassenbeleg-V1`; Tagesabschluss (Z-Bon) → `SonstigerVorgang`. Alle Transaktionen eines Tisches teilen denselben `ABRECHNUNGSKREIS`. Eigenbeleg- und Storno-Details im Export (BON_STORNO, REF_BON_ID, AEAO 2.2.3.6.1) → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 
-Alle Transaktionen eines Tisches teilen denselben `ABRECHNUNGSKREIS`-Wert im DSFinV-K-Export.
-
-**DSFinV-K-Exporter:** Drei Module (Stammdaten-, Einzelaufzeichnungs- und Z-Bon-Modul) speisen einen CSV-Generator mit den offiziellen Dateinamen (`transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, …); ein index.xml-Generator und ZIP-Builder bündeln den Export. Datei-Struktur und Pflichtfelder → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
+**DSFinV-K-Export (geplant):** Ein Exporter soll Stammdaten-, Einzelaufzeichnungs- und Z-Bon-Daten als DSFinV-K-CSV (`transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, …) mit `index.xml` und ZIP bündeln. Datei-Struktur und Pflichtfelder → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 
 **Anbieter- und Meldeweg-Entscheidungen:** TSE-Anbieter (fiskaly als erster Zielanbieter; anbieter-agnostisches `TSEClient`-Interface gegen Vendor-Lock-in) und Kassenmeldungs-Weg (Phase 1 manuell über ELSTER, Phase 2 ERiC oder fiskaly-Submission-API) sind mitsamt Begründung und Abwägung in [compliance.md §3.5](compliance.md#35-tse-varianten-und-anbieter-entscheidung) und [§7](compliance.md#7-elektronische-meldepflicht-eric--elster) dokumentiert.
 
@@ -457,14 +444,14 @@ Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchrone
 
 ### 7.2 Admin-Ansichten (Reporting)
 
-Alle Reporting-Ansichten aggregieren über `kassenjournal` und `tisch_sessions` (nur Admins, on-demand per SQL-Aggregation). Konsolidierter Endpoint `POST /admin/get-reporting` mit Sektionen `summary`, `breakdowns`, `stornierungen`. Filtert nach `kassensitzung_nr` statt Zeitraum. Kein Live-Dashboard, kein Polling. Die `summary`-Sektion enthält zusätzlich die Direktverkauf-Kennzahlen `anzahlDirektverkaeufe` und `direktverkaufUmsatzCents` (netto aus Verkauf minus Storno).
+Reporting ist Admin-only und wird on-demand per SQL-Aggregation über `kassenjournal` und `tisch_sessions` berechnet (kein Polling, kein eigener Schreibpfad). Zwei Endpunkte:
 
-| Name                        | ID   | Inhalt (Kurzfassung)                                                                               |
-| --------------------------- | ---- | -------------------------------------------------------------------------------------------------- |
-| Reporting (Unified)         | R-01 | KPIs (inkl. offene Tische), Umsatz pro Servicekraft/Tisch, Stornierungsübersicht, offene Beträge   |
-| Abrechnung pro Tisch        | R-03 | Alle Bestellungen, Zahlungen, Ausgaben, Stornierungen chronologisch; Gesamt-Saldo pro Tisch        |
-| Abrechnung pro Servicekraft | R-04 | Umsatz pro Servicekraft, Anzahl Bestellungen, Anzahl und Betrag der Stornierungen                  |
-| Produktumsatz               | R-05 | Verkaufte Menge pro Produkt/Variante (abzgl. Stornierungen), Ranking, Gesamteinnahmen pro Variante |
+| Endpunkt                         | Scope                                  | Inhalt                                                                              |
+| -------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------- |
+| `POST /admin/get-live-reporting` | offene Kassensitzung (ohne Parameter)  | KPIs, offene Tische, offene Saldi, ausstehende Auszahlungen                         |
+| `POST /admin/get-abrechnung`     | bestimmte Kassensitzung (`kassensitzungNr`) | `summary`, `breakdowns` (Umsatz pro Servicekraft/Tisch), `umsatzProSteuersatz`, `stornierungen` |
+
+Beide `summary`-Sektionen enthalten die Direktverkauf-Kennzahlen `anzahlDirektverkaeufe` und `direktverkaufUmsatzCents` (netto: Verkauf minus Storno). Anforderungs-IDs (R-01–R-05) → [anforderungen.md](anforderungen.md).
 
 ### 7.3 Ausgabe-Ansichten
 
