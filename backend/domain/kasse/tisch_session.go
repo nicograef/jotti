@@ -151,7 +151,6 @@ func reduceByPosition(list []Position, reductions []Position) []Position {
 					list[i].Menge -= red.Menge
 				} else {
 					list = append(list[:i], list[i+1:]...)
-					i--
 				}
 				break
 			}

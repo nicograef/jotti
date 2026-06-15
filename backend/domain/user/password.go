@@ -152,3 +152,17 @@ func generateOnetimePassword() (string, error) {
 
 	return string(bytePassword), nil
 }
+
+func generateOnetimePasswordHash() (string, string, error) {
+	onetimePassword, err := generateOnetimePassword()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate one-time password: %w", err)
+	}
+
+	onetimePasswordHash, err := createArgon2idHash(onetimePassword)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to hash one-time password: %w", err)
+	}
+
+	return onetimePassword, onetimePasswordHash, nil
+}

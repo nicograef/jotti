@@ -25,7 +25,7 @@ type SteuermatrixPosition struct {
 
 var SteuersatzSchema = z.StringLike[Steuersatz]().OneOf(
 	[]Steuersatz{RegelSteuersatz, ErmaessigtSteuersatz, BefreitSteuersatz, KombiSteuersatz},
-	z.Message("Ungueltiger Steuersatz"),
+	z.Message("Ungültiger Steuersatz"),
 )
 
 func (s Steuersatz) Prozent() int {

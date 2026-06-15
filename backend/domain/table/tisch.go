@@ -42,13 +42,13 @@ type AktiverTischMitFavorit struct {
 	IstFavorit bool
 }
 
-var TischIDSchema = z.Int().GTE(1, z.Message("Invalid table ID"))
+var TischIDSchema = z.Int().GTE(1, z.Message("Ungültige Tisch-ID"))
 
-var TischNameSchema = z.String().Trim().Min(3, z.Message("Name too short")).Max(100, z.Message("Name too long"))
+var TischNameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(100, z.Message("Name zu lang"))
 
 var TischStatusSchema = z.StringLike[Status]().OneOf(
 	[]Status{ActiveStatus, InactiveStatus, DeletedStatus},
-	z.Message("Invalid status"),
+	z.Message("Ungültiger Status"),
 )
 
 var TischSchema = z.Struct(z.Shape{

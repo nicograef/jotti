@@ -13,13 +13,13 @@ func KassensitzungSubject(zNr int) string {
 
 // TischSessionSubject constructs the subject for a Tisch-Session event stream.
 func TischSessionSubject(zNr int, tischID int) string {
-	return "kassensitzung-" + strconv.Itoa(zNr) + "/tisch-" + strconv.Itoa(tischID)
+	return KassensitzungSubject(zNr) + "/tisch-" + strconv.Itoa(tischID)
 }
 
 // DirektverkaufSubject constructs the subject for a Direktverkauf event stream.
 // Each Direktverkauf is its own stream identified by a UUID.
 func DirektverkaufSubject(zNr int, verkaufID string) string {
-	return "kassensitzung-" + strconv.Itoa(zNr) + "/direktverkauf-" + verkaufID
+	return KassensitzungSubject(zNr) + "/direktverkauf-" + verkaufID
 }
 
 // ParseVerkaufIDFromSubject extracts the verkaufID from a subject like

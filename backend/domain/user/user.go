@@ -97,14 +97,9 @@ func NewUser(name, username string, role Role) (User, string, error) {
 		return User{}, "", fmt.Errorf("invalid role")
 	}
 
-	onetimePassword, err := generateOnetimePassword()
+	onetimePassword, onetimePasswordHash, err := generateOnetimePasswordHash()
 	if err != nil {
-		return User{}, "", fmt.Errorf("failed to generate one-time password: %w", err)
-	}
-
-	onetimePasswordHash, err := createArgon2idHash(onetimePassword)
-	if err != nil {
-		return User{}, "", fmt.Errorf("failed to hash one-time password: %w", err)
+		return User{}, "", err
 	}
 
 	user := User{
@@ -158,14 +153,9 @@ func (u *User) UpdateDetails(name, username string, role Role) error {
 }
 
 func (u *User) ResetPassword() (string, error) {
-	onetimePassword, err := generateOnetimePassword()
+	onetimePassword, onetimePasswordHash, err := generateOnetimePasswordHash()
 	if err != nil {
-		return "", fmt.Errorf("failed to generate one-time password: %w", err)
-	}
-
-	onetimePasswordHash, err := createArgon2idHash(onetimePassword)
-	if err != nil {
-		return "", fmt.Errorf("failed to hash one-time password: %w", err)
+		return "", err
 	}
 
 	u.OnetimePasswordHash = onetimePasswordHash

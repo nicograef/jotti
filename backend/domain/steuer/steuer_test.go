@@ -166,7 +166,7 @@ func TestSteuersatzSchema(t *testing.T) {
 		}
 
 		issueText := fmt.Sprintf("%v", issue)
-		if !strings.Contains(issueText, "Ungueltiger Steuersatz") {
+		if !strings.Contains(issueText, "Ungültiger Steuersatz") {
 			t.Fatalf("expected german validation message, got %q", issueText)
 		}
 	})

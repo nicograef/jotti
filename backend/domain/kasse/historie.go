@@ -1,6 +1,7 @@
 package kasse
 
 import (
+	"fmt"
 	"slices"
 
 	e "github.com/nicograef/jotti/backend/domain/event"
@@ -62,6 +63,9 @@ func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 				return []HistorieEintrag{}, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragAuszahlung, Auszahlung: &auszahlung})
+
+		default:
+			return []HistorieEintrag{}, fmt.Errorf("unknown event type: %s", event.Type)
 		}
 	}
 
