@@ -192,14 +192,14 @@ Anschließend werden die Einstellungen-Route, der Sidebar-Eintrag und die
 
 ### Acceptance criteria
 
-- [ ] Das Dashboard zeigt statt der zwei Blöcke einen kompakten Banner, der bei
+- [x] Das Dashboard zeigt statt der zwei Blöcke einen kompakten Banner, der bei
       nicht konfigurierter TSE oder offenen Nachsignierungen erscheint und auf
       `/admin/finanzamt` verlinkt
-- [ ] Die Route `/admin/einstellungen` existiert nicht mehr; der Sidebar-Eintrag
+- [x] Die Route `/admin/einstellungen` existiert nicht mehr; der Sidebar-Eintrag
       „Einstellungen" ist entfernt
-- [ ] `EinstellungenPage` ist entfernt; keine Datei referenziert mehr
+- [x] `EinstellungenPage` ist entfernt; keine Datei referenziert mehr
       `/admin/einstellungen`
-- [ ] Betreiber, Kassenidentität, Nachsignier und TSE-Konfiguration sind
+- [x] Betreiber, Kassenidentität, Nachsignier und TSE-Konfiguration sind
       ausschließlich über Finanzamt bzw. `tse-einrichtung` erreichbar (keine
       doppelte Darstellung mehr)
-- [ ] `make lint` (Frontend Lint/Typecheck) grün
+- [x] `make lint` (Frontend Lint/Typecheck) grün

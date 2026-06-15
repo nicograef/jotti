@@ -5,7 +5,6 @@ import {
   LogOut,
   Moon,
   Printer,
-  Settings2,
   Sun,
   Users,
   Utensils,
@@ -67,11 +66,6 @@ const adminItems = [
     title: 'Finanzamt',
     url: '/admin/finanzamt',
     icon: Landmark,
-  },
-  {
-    title: 'Einstellungen',
-    url: '/admin/einstellungen',
-    icon: Settings2,
   },
 ]
 

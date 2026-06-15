@@ -21,37 +21,29 @@ export function AdminDashboardPage() {
   const showTSEWarning = !tseLoading && !tseStatus?.istKonfiguriert
   const offeneNachsignierungen = tseStatus?.offeneNachsignierungen ?? 0
   const showNachsignierWarning = !tseLoading && offeneNachsignierungen > 0
+  const showTSEBanner = showTSEWarning || showNachsignierWarning
 
   return (
     <>
-      {showTSEWarning && (
+      {showTSEBanner && (
         <Alert variant="destructive" className="mb-6">
           <TriangleAlert className="size-4" />
-          <AlertTitle>TSE ist nicht konfiguriert</AlertTitle>
+          <AlertTitle>TSE prüfen</AlertTitle>
           <AlertDescription>
-            Ohne TSE darf jotti nur für Test- oder Demozwecke verwendet werden.
-            Für den regulären Betrieb musst du die TSE-Zugangsdaten unter{' '}
+            {showTSEWarning && <span>Die TSE ist nicht konfiguriert. </span>}
+            {showNachsignierWarning && (
+              <span>
+                {offeneNachsignierungen} Vorgänge warten auf Nachsignierung.{' '}
+              </span>
+            )}
+            Mehr dazu unter{' '}
             <NavLink
-              to="/admin/einstellungen"
+              to="/admin/finanzamt"
               className="underline underline-offset-4"
             >
-              Einstellungen
-            </NavLink>{' '}
-            hinterlegen.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {showNachsignierWarning && (
-        <Alert variant="destructive" className="mb-6">
-          <TriangleAlert className="size-4" />
-          <AlertTitle>TSE-Nachsignierungen offen</AlertTitle>
-          <AlertDescription>
-            Aktuell warten {offeneNachsignierungen} Vorgänge auf Nachsignierung.
-            Bitte TSE-Anbindung prüfen und die Warteschlange beobachten.
-            {tseStatus?.umgebung
-              ? ` Verbundene Umgebung: ${tseStatus.umgebung}.`
-              : ''}
+              Finanzamt
+            </NavLink>
+            .
           </AlertDescription>
         </Alert>
       )}

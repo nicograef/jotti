@@ -142,13 +142,6 @@ export const router = createBrowserRouter([
                 .TSEEinrichtungPage,
             }),
           },
-          {
-            path: 'einstellungen',
-            lazy: async () => ({
-              Component: (await import('./admin/settings/EinstellungenPage'))
-                .EinstellungenPage,
-            }),
-          },
         ],
       },
       {
