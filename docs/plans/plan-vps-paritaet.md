@@ -220,13 +220,19 @@ für einen täglichen Dump, plus Hinweis, Backups vom Server wegzukopieren.
 
 ### Acceptance criteria
 
-- [ ] `make prod-backup` erzeugt einen zeitgestempelten Dump im `BACKUP_DIR` und
-      hält nur die neuesten `BACKUP_KEEP` (ältere werden rotiert).
-- [ ] `BACKUP_KEEP<=0` löscht defensiv nichts (kein versehentliches Leeren).
-- [ ] `make prod-restore` stellt einen Dump nach destruktiver Bestätigung wieder
+- [x] `make prod-backup` erzeugt einen zeitgestempelten Dump im `BACKUP_DIR` und
+      hält nur die neuesten `BACKUP_KEEP` (ältere werden rotiert). (Rotation gegen
+      17 Fixtures verifiziert: behält die neuesten 14, rotiert die 3 ältesten,
+      Fremddateien unangetastet.)
+- [x] `BACKUP_KEEP<=0` löscht defensiv nichts (kein versehentliches Leeren).
+- [x] `make prod-restore` stellt einen Dump nach destruktiver Bestätigung wieder
       her; ein Backup→Restore-Round-Trip auf einer Testinstanz erhält die Daten.
-- [ ] systemd-Timer/cron-Snippet ist dokumentiert und idempotent installierbar.
-- [ ] Scripts sind `set -euo pipefail`, ändern nichts ohne Bestätigung und passen
+      (Pipeline `pg_dump --clean --if-exists | gzip` → `gzip -dc | psql
+      ON_ERROR_STOP` gegen ein wegwerfbares postgres:17.8 verifiziert: der
+      gesicherte Stand wird exakt wiederhergestellt; echte prod-Instanz ist
+      deploy-zeitig.)
+- [x] systemd-Timer/cron-Snippet ist dokumentiert und idempotent installierbar.
+- [x] Scripts sind `set -euo pipefail`, ändern nichts ohne Bestätigung und passen
       zum Stil von `scripts/prod-init.sh`.
 
 ---

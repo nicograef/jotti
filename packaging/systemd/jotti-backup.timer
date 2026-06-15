@@ -1,0 +1,12 @@
+# jotti — schedule for the daily database backup. See jotti-backup.service for
+# the install steps. Persistent=true catches up a missed run after downtime.
+
+[Unit]
+Description=Run jotti database backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

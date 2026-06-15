@@ -7,7 +7,7 @@
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
        build-starter-windows build-relay-windows starter-syso release-windows \
        sqlc \
-       prod-init prod-up prod-down prod-logs \
+       prod-init prod-up prod-down prod-logs prod-backup prod-restore \
        rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed \
        local-up local-down local-logs local-reset-db local-reset-and-seed \
        db-shell seed rebuild-projections \
@@ -162,6 +162,12 @@ prod-down: ## Produktions-Stack stoppen
 
 prod-logs: ## Produktions-Stack Logs folgen
 	docker compose -f docker-compose.prod.yml logs -f
+
+prod-backup: ## Datenbank-Backup ziehen (pg_dump, gzip, rotiert BACKUP_KEEP)
+	./scripts/prod-backup.sh
+
+prod-restore: ## Datenbank aus Backup wiederherstellen (destruktiv, mit Bestätigung)
+	./scripts/prod-restore.sh
 
 # ──────────────────────────────────────────────
 # jotti.rocks Deployment

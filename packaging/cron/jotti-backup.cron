@@ -1,0 +1,12 @@
+# jotti — daily database backup via cron (alternative to the systemd timer).
+#
+# Install (idempotent — copies into the system cron.d drop-in directory):
+#   sudo cp packaging/cron/jotti-backup.cron /etc/cron.d/jotti-backup
+#
+# Adjust the path to your jotti checkout. The script reads .env there and writes
+# dumps to BACKUP_DIR (default ./backups). Set BACKUP_DIR/BACKUP_KEEP inline to
+# override. Keep the trailing newline — cron.d files require it.
+#
+# Reminder: copy the dumps off this server regularly (10-year retention).
+
+30 3 * * * root cd /opt/jotti && ./scripts/prod-backup.sh >> /var/log/jotti-backup.log 2>&1

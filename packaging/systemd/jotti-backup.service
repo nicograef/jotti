@@ -1,0 +1,23 @@
+# jotti — daily database backup (oneshot, triggered by jotti-backup.timer).
+#
+# Install (idempotent — copy, reload, enable):
+#   sudo cp packaging/systemd/jotti-backup.service /etc/systemd/system/
+#   sudo cp packaging/systemd/jotti-backup.timer   /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jotti-backup.timer
+#
+# Adjust WorkingDirectory to your jotti checkout. The script reads .env there and
+# writes dumps to BACKUP_DIR (default ./backups). Override the defaults below if
+# you keep backups elsewhere or want a different retention.
+
+[Unit]
+Description=jotti database backup (pg_dump, rotated)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/jotti
+ExecStart=/opt/jotti/scripts/prod-backup.sh
+# Environment=BACKUP_DIR=/var/backups/jotti
+# Environment=BACKUP_KEEP=14

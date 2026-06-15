@@ -33,6 +33,9 @@ dist/
 dist-ssr/
 build/
 
+# ── Backups (pg_dump output of make prod-backup) ─────────────────────────────
+/backups/
+
 # ── Logs ─────────────────────────────────────────────────────────────────────
 logs
 *.log
