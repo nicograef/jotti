@@ -34,8 +34,8 @@ diesen Arbeitsbereich.
 - Ein Helfer an der Theke wechselt einmal zu Beginn über das Benutzermenü in den
   Direktverkauf, und landet von da an bei jedem Öffnen, nach jedem Neustart, direkt dort.
 - Der prominente Direktverkauf-Button auf der Tischauswahl-Seite entfällt ersatzlos. Der
-  Moduswechsel lebt ausschließlich im Benutzermenü (wo bereits Verwaltung, Theme und Logout
-  liegen).
+  Moduswechsel lebt ausschließlich im Benutzermenü (wo bereits Theme und Abmelden liegen, für
+  Admins zusätzlich der Verwaltung-Link).
 - Der Kopfbereich des Service-Bereichs zeigt den aktiven Modus an („Meine Tische" bzw.
   „Direktverkauf"). Der Direktverkauf ist keine Unterseite mehr: Der Rücklink „Meine Tische"
   im Direktverkauf entfällt; nur die Tischdetail-Seite behält ihren Rücklink zur
@@ -44,6 +44,11 @@ diesen Arbeitsbereich.
 Für Vereine, die nur Tischservice machen, ist der Direktverkauf damit aus dem Weg, ein
 unbenutzter Menüeintrag stört nicht. Für Vereine, die nur Direktverkauf machen, genügt ein
 einmaliger Wechsel pro Gerät.
+
+Weil der Direktverkauf damit aus der Startseite ins Benutzermenü wandert, braucht ein neuer
+Theken-Helfer einen niedrigschwelligen Hinweis, wo der Wechsel liegt: Der leere Zustand der
+Tischauswahl (keine markierten Tische, der Zustand eines frisch angemeldeten Helfers) nennt
+den Moduswechsel im Benutzermenü, damit der Modus ohne Schulung auffindbar ist.
 
 ## User Stories
 
@@ -129,9 +134,20 @@ einmaliger Wechsel pro Gerät.
 - Der Rücklink im Kopfbereich erscheint nur noch auf der Tischdetail-Seite (zurück zur
   Tischauswahl). Im Direktverkauf gibt es keinen Rücklink, er ist keine Unterseite mehr.
 - Das Benutzermenü erhält innerhalb des Service-Bereichs einen Wechsel-Eintrag, der immer
-  den jeweils anderen Modus anbietet („Direktverkauf" bzw. „Meine Tische"). Er steht
-  allen Rollen mit Service-Zugang zur Verfügung (Servicekraft, Serviceleitung, Admin) und
-  setzt die Geräte-Präferenz beim Wechsel.
+  in den jeweils anderen Modus wechselt. Der Eintrag ist als Wechsel-Aktion formuliert (Verb
+  plus Wechsel-Icon), nicht als bloßer Ortsname: „Zu Direktverkauf wechseln" im Tischservice,
+  „Zu Tischservice wechseln" im Direktverkauf. Die Menü-Aktion nennt den Modus also beim
+  Workflow-Begriff (Tischservice), während der Kopfbereich-Titel den vertrauten „Meine
+  Tische"-Titel behält. Er steht allen Rollen mit Service-Zugang zur Verfügung (Servicekraft,
+  Serviceleitung, Admin) und setzt die Geräte-Präferenz beim Wechsel. Die Benutzermenü-
+  Komponente (`UserDropdown`) ist mit dem Admin-Bereich geteilt; der Wechsel-Eintrag wird
+  daher auf Service-Routen begrenzt (die Komponente liest den Pfad bereits über
+  `useLocation`).
+- Der Menü-Trigger im Service-Header ist der alleinige Einstieg in den Moduswechsel und
+  erhält daher eine Touch-Fläche von mindestens 44 px.
+- Der leere Zustand der Tischauswahl („Keine Tische markiert") ergänzt seinen Hinweistext um
+  den Moduswechsel im Benutzermenü, damit Theken-Helfer den Direktverkauf ohne Schulung
+  finden.
 - Der bildschirmbreite Direktverkauf-Button auf der Tischauswahl-Seite wird ersatzlos
   entfernt.
 
@@ -146,13 +162,17 @@ einmaliger Wechsel pro Gerät.
 - **Was ein guter Test ist:** Tests prüfen von außen beobachtbares Verhalten (wohin
   geleitet wird, welcher Modus nach welcher Aktion gespeichert ist), nicht
   Implementierungsdetails wie localStorage-Schlüssel oder interne Strukturen.
-- **Arbeitsmodus-Modul** (Prior Art: bestehende Hook-Tests): ohne Präferenz gilt
+- **Arbeitsmodus-Modul** (Prior Art für das localStorage-Persistenzmuster mit Tests:
+  `Auth.test.ts`; die Theme-Präferenz selbst hat keinen Test): ohne Präferenz gilt
   Tischservice; nach Setzen eines Modus liefert das Modul diesen zurück; der Wert überlebt
   ein Neu-Initialisieren (Persistenz).
-- **Service-Einstieg** (Prior Art: bestehende Routing-Tests): der Einstieg in den
-  Service-Bereich leitet je nach gespeichertem Modus auf die Tischauswahl bzw. den
-  Direktverkauf weiter.
-- **Nicht automatisiert getestet:** Benutzermenü-Eintrag, Kopfbereich-Titel und das
+- **Service-Einstieg** (Prior Art: `routes.test.ts`, `ServiceTableGuard`): der Einstieg in
+  den Service-Bereich leitet je nach gespeichertem Modus auf die Tischauswahl bzw. den
+  Direktverkauf weiter. Der heutige Index-Loader ist eine anonyme Inline-Funktion
+  (`redirect('tische')`) und wird dafür in einen benannten Export extrahiert (wie
+  `ServiceTableGuard`), damit er testbar ist.
+- **Nicht automatisiert getestet:** Benutzermenü-Eintrag (Verb-Label, Wechsel-Icon,
+  Touch-Fläche), Kopfbereich-Titel, der Hinweistext im leeren Tischauswahl-Zustand und das
   Entfernen des Buttons (visuell verifiziert, mobile Viewports).
 
 ## Out of Scope
