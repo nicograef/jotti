@@ -387,7 +387,7 @@ Die Smartphones der Servicekräfte müssen nicht gemeldet werden. Der AEAO zu §
 
 ## 8. Betreiberpflichten
 
-Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung für ihre jotti-Instanz. Laienverständliche Anleitung: [betrieb/leitfaden-betreiber.md](betrieb/leitfaden-betreiber.md).
+Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung für ihre jotti-Instanz. Laienverständliche Anleitung: [betrieb/leitfaden-betreiber.md](betrieb/leitfaden-betreiber.md); die TSE-Einrichtung Schritt für Schritt (fiskaly-Konto, Wizard, PUK/PIN-Verwahrung, TEST→LIVE) in [betrieb/leitfaden-tse-einrichtung.md](betrieb/leitfaden-tse-einrichtung.md).
 
 **Pflichtenverteilung Entwickler / Betreiber:**
 
@@ -405,7 +405,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 
 **Vor dem ersten Einsatz:**
 
-1. **Cloud-TSE-Vertrag:** Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly oder D-Trust) abschließen; API-Schlüssel in den TSE-Einstellungen des Admin-Bereichs hinterlegen (gespeichert in der Datenbank).
+1. **Cloud-TSE-Vertrag:** Vertrag mit einem Cloud-TSE-Anbieter (z. B. fiskaly oder D-Trust) abschließen; API-Key und Secret über den geführten Einrichtungs-Assistenten im Admin-Bereich hinterlegen (verschlüsselt in der Datenbank gespeichert). jotti legt TSS und Client selbst an, das Anbieter-Dashboard kann das nicht (→ [betrieb/leitfaden-tse-einrichtung.md](betrieb/leitfaden-tse-einrichtung.md)).
 2. **ELSTER-Meldung:** Innerhalb von einem Monat nach Inbetriebnahme die Instanz über [ELSTER](https://www.elster.de) anmelden. Benötigt: Kassen-Seriennummer (Admin-Dashboard), Softwarename „jotti", Inbetriebnahmedatum (→ §7.3).
 3. **Seriennummer sichern:** Die Kassen-UUID ist die rechtliche Identität der Kasse (→ §3.7), das Datenbank-Backup muss sie enthalten. Bei Verlust: alte Nummer abmelden, neue Instanz anmelden.
 

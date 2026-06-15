@@ -115,16 +115,22 @@ eine Cloud-TSE: Ihr bucht sie als Online-Dienst und gebt jotti die Zugangsschlü
 
 1. **Anbieter wählen.** Empfohlen für den Start: fiskaly (Cloud-TSE, einfache Einrichtung
    über das Internet). Andere zertifizierte Anbieter sind ebenfalls möglich.
-2. **Vertrag abschließen** und ein TSE-/Kassen-Konto („Client") anlegen. Ihr erhaltet
-   Zugangsdaten (typischerweise ein API-Key und ein Secret).
-3. **Schlüssel in jotti eintragen.** Tragt die Zugangsdaten in die `.env`-Konfigurationsdatei
-   eures Servers ein (die genauen Variablennamen stehen in der `.env.example` bzw. der
-   technischen Doku). Damit verbindet sich jotti automatisch mit der TSE.
-4. **Testen.** Macht einen Testverkauf und prüft, ob auf dem Beleg eine TSE-Signatur,
-   eine Transaktionsnummer und ein Zeitstempel erscheinen.
+2. **fiskaly-Konto und API-Key erstellen.** Im fiskaly-Dashboard registrieren und einen
+   API-Key (mit Secret) erstellen. Die TSS selbst legt ihr nicht im Dashboard an, das
+   übernimmt jotti.
+3. **In jotti einrichten.** Im Admin-Bereich unter „Finanzamt" die TSE-Anbindung öffnen und
+   den geführten Einrichtungs-Assistenten durchlaufen. jotti legt die TSS an, initialisiert
+   sie und registriert eure Kasse als Client.
+4. **Testen.** Der Assistent schließt mit einem Verbindungstest ab, der die
+   Signierfähigkeit bestätigt.
 
-> 🔒 **Schlüssel sind geheim.** Die TSE-Zugangsdaten gehören nicht in den Programmcode und
-> nicht in ein öffentliches Repository, nur in die `.env`-Datei auf eurem Server.
+> 📘 **Ausführliche Anleitung:** Den kompletten Ablauf mit Bildern im Kopf, inklusive
+> PUK/PIN-Verwahrung, TEST→LIVE-Wechsel und Kosten, beschreibt der
+> [TSE-Einrichtungs-Leitfaden](leitfaden-tse-einrichtung.md).
+
+> 🔒 **Schlüssel sind geheim.** API-Key und Secret gehören nicht in Chats, E-Mails oder ein
+> öffentliches Repository. jotti speichert sie verschlüsselt in der Datenbank, ihr tragt sie
+> nur einmal im Assistenten ein.
 
 > _Rechtsgrundlage: § 146a Abs. 1 AO i. V. m. KassenSichV; technischer Standard BSI TR-03153._
 
@@ -197,7 +203,7 @@ ersetzt.
 **Einmalig, vor dem ersten Einsatz:**
 
 - [ ] Nutzungsvereinbarung mit dem Autor abgeschlossen (siehe [Lizenzmodell](../lizenzmodell.md))
-- [ ] TSE bei fiskaly (o. a.) gebucht und Schlüssel in `.env` eingetragen
+- [ ] TSE bei fiskaly (o. a.) gebucht und über den Einrichtungs-Assistenten verbunden (→ [TSE-Einrichtungs-Leitfaden](leitfaden-tse-einrichtung.md))
 - [ ] Betreiber-Stammdaten (Vereinsname, Adresse, Steuernummer) im Admin-Bereich gepflegt
 - [ ] Produkte mit korrekten Steuersätzen angelegt
 - [ ] Kasse über ELSTER beim Finanzamt angemeldet (Seriennummer aus dem Admin-Bereich)

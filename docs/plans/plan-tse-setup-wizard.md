@@ -192,7 +192,7 @@ Betreiber-Dokumentation für die TSE-Einrichtung: fiskaly-Konto registrieren und
 
 ### Acceptance criteria
 
-- [ ] Leitfaden beschreibt beide Einrichtungswege vollständig und laienverständlich
-- [ ] Kapitel zur PUK/PIN-Verwahrung mit Verlustfolgen vorhanden
-- [ ] TEST→LIVE-Wechsel inkl. Kosten beschrieben
-- [ ] D-07 damit geschlossen (Abgleich gegen Audit-Empfehlung)
+- [x] Leitfaden beschreibt beide Einrichtungswege vollständig und laienverständlich
+- [x] Kapitel zur PUK/PIN-Verwahrung mit Verlustfolgen vorhanden
+- [x] TEST→LIVE-Wechsel inkl. Kosten beschrieben
+- [x] D-07 damit geschlossen (Abgleich gegen Audit-Empfehlung)
