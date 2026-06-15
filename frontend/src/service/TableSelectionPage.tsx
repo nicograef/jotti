@@ -1,6 +1,5 @@
-import { Lamp, ShoppingCart, TableIcon } from 'lucide-react'
+import { Lamp, TableIcon } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router'
 
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -18,13 +17,6 @@ export function TableSelectionPage() {
 
   return (
     <div className="py-2">
-      <Button asChild size="lg" className="w-full mb-4">
-        <Link to="/service/direktverkauf">
-          <ShoppingCart />
-          Direktverkauf
-        </Link>
-      </Button>
-
       <EigeneUebersichtKarten
         uebersicht={uebersicht}
         loading={uebersichtLoading}
@@ -36,7 +28,7 @@ export function TableSelectionPage() {
         <EmptyState
           icon={Lamp}
           title="Keine Tische markiert"
-          description="Du hast noch keine Tische markiert. Wähle Tische aus, um sie hier zu sehen."
+          description="Du hast noch keine Tische markiert. Wähle Tische aus, um sie hier zu sehen. Für den Direktverkauf an der Theke wechselst du den Arbeitsmodus im Benutzermenü oben rechts."
           action={
             <Button
               variant="outline"

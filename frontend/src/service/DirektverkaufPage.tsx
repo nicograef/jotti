@@ -19,7 +19,6 @@ export function DirektverkaufPage() {
 
   return (
     <div className="space-y-4 py-2">
-      <h1 className="text-2xl font-bold">Direktverkauf</h1>
       <Tabs defaultValue="verkaufen">
         <TabsList>
           <TabsTrigger value="verkaufen" className="p-4">

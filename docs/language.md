@@ -121,6 +121,12 @@ Schlankes Event-Sourced Aggregat im Kasse-Kontext für den Barverkauf an der The
 
 Nicht-fiskalischer Bon für die Warenübergabe beim Direktverkauf. Festes Label „Direktverkauf", keine Preise, `bon_art = 'arbeitsbon'`, gedruckt an der Druckstation `abholbon` (Bonmodus `pro_bestellung` = ein Sammel-Abholbon, `pro_position` = ein Bon je Position).
 
+#### Arbeitsmodus
+
+Reiner Oberflächenbegriff im Service-Frontend: Eine Servicekraft arbeitet im Service-Bereich in genau einem Modus, Tischservice oder Direktverkauf. Die Wahl wird pro Gerät gemerkt (BYOD, überlebt Logout/Login) und ausschließlich über das Benutzermenü gewechselt. Kein Domain-Konzept, kein Backend, keine `Verkaufsstelle`-Entität.
+
+TS-Typ: `Arbeitsmodus` (`'tischservice' | 'direktverkauf'`) · Persistenz: `localStorage` (`frontend/src/lib/arbeitsmodus.ts`)
+
 #### Bestellung
 
 Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt.

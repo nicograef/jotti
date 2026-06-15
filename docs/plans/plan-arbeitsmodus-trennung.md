@@ -170,16 +170,17 @@ von mindestens 44 px. „Arbeitsmodus" wird als Oberflächenbegriff in
 
 ### Acceptance criteria
 
-- [ ] Der Kopfbereich zeigt im Tischservice „Meine Tische", im Direktverkauf
+- [x] Der Kopfbereich zeigt im Tischservice „Meine Tische", im Direktverkauf
       „Direktverkauf" als Titel.
-- [ ] Der Back-Link erscheint nur auf der Tischdetail-Seite; im Direktverkauf
+- [x] Der Back-Link erscheint nur auf der Tischdetail-Seite; im Direktverkauf
       ist kein Back-Link mehr vorhanden.
-- [ ] Die Direktverkauf-Seite hat keine separate `<h1>`-Überschrift mehr.
-- [ ] Auf der Tischauswahl-Seite gibt es keinen Direktverkauf-Button mehr (kein
+- [x] Die Direktverkauf-Seite hat keine separate `<h1>`-Überschrift mehr.
+- [x] Auf der Tischauswahl-Seite gibt es keinen Direktverkauf-Button mehr (kein
       toter Import).
-- [ ] Der leere Tischauswahl-Zustand weist auf den Moduswechsel im Benutzermenü
+- [x] Der leere Tischauswahl-Zustand weist auf den Moduswechsel im Benutzermenü
       hin.
-- [ ] Der Menü-Trigger im Service-Header hat eine Touch-Fläche von ≥ 44 px.
-- [ ] `docs/language.md` enthält den Eintrag „Arbeitsmodus" (Oberflächenbegriff,
+- [x] Der Menü-Trigger im Service-Header hat eine Touch-Fläche von ≥ 44 px.
+- [x] `docs/language.md` enthält den Eintrag „Arbeitsmodus" (Oberflächenbegriff,
       keine `Verkaufsstelle`-Entität).
 - [ ] Visuell auf mobilem Viewport verifiziert; `make lint` ist grün.
+      (`make lint`/Typecheck/Tests grün; visuelle Mobile-Abnahme steht aus.)

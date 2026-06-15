@@ -6,13 +6,13 @@ import { UserDropdown } from '@/components/common/UserDropdown'
 export function ServiceLayout() {
   const onTableDetail = useMatch('/service/tische/:tischId')
   const onDirektverkauf = useMatch('/service/direktverkauf')
-  const showBackLink = Boolean(onTableDetail ?? onDirektverkauf)
+  const titel = onDirektverkauf ? 'Direktverkauf' : 'Meine Tische'
 
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 h-14 border-b bg-background z-40 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          {showBackLink ? (
+          {onTableDetail ? (
             <Link
               to="/service/tische"
               className="flex items-center gap-1 text-sm font-medium"
@@ -21,7 +21,7 @@ export function ServiceLayout() {
               Meine Tische
             </Link>
           ) : (
-            <span className="text-sm font-bold">Meine Tische</span>
+            <span className="text-sm font-bold">{titel}</span>
           )}
         </div>
         <UserDropdown />
