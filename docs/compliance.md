@@ -64,13 +64,12 @@ Die TSE ist die kryptografische Kernkomponente eines konformen Kassensystems. Si
 
 ### 3.2 Protokollierungs-Ablauf (Transaktions-Lebenszyklus)
 
-Jeder abzusichernde Vorgang kommuniziert mit der TSE über drei Operationen:
+jotti nutzt das atomare Muster (→ §3.6): Jeder Vorgang wird mit `StartTransaction` eröffnet und sofort mit `FinishTransaction` abgeschlossen. Beide Aufrufe adressieren die Transaktion über die von jotti erzeugte `txID` (UUIDv4). Die optionale `UpdateTransaction` (Zwischenaktualisierung eines offen gehaltenen Vorgangs) nutzt jotti nicht; das `TSEClient`-Interface bildet nur Start und Finish ab.
 
-| Operation             | Wann                                                                                                                                       | Request                                                                                       | Response                                                                     |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `StartTransaction`    | Unmittelbar bei Vorgangsbeginn (Ordnungsanforderung; keine maximale Transaktionsdauer in BSI TR-03153)                                    | Kassen-ID, `processType` und `processData` sind bei Start immer leer (DSFinV-K Anhang I)       | Fortlaufende Transaktionsnummer, `logTime`, TSE-Seriennummer, Signaturzähler |
-| `UpdateTransaction`   | Optional, nur für `Bestellung-V1` und `SonstigerVorgang`; für `Kassenbeleg-V1` verboten (processData erst bei Abschluss bekannt) [11]      | Kassen-ID, Transaktionsnummer, aktualisierte `processData`                                    | —                                                                            |
-| `FinishTransaction`   | Bei Abschluss oder Abbruch des Vorgangs                                                                                                   | Transaktionsnummer, finale `processData` (Summen nach Steuersätzen und Zahlungsarten)         | Signatur, `logTime`, finaler Signaturzähler                                  |
+| Operation           | Wann                                                                              | Request                                                                                      | Response                                                                     |
+| ------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `StartTransaction`  | Unmittelbar bei Vorgangsbeginn (keine maximale Transaktionsdauer in BSI TR-03153) | `txID`; `processType` und `processData` sind bei Start immer leer (DSFinV-K Anhang I)         | Fortlaufende Transaktionsnummer, `logTime`, TSE-Seriennummer, Signaturzähler |
+| `FinishTransaction` | Bei Abschluss des Vorgangs                                                         | `txID`, finale `processType` und `processData` (Summen nach Steuersätzen und Zahlungsarten)   | Signatur, `logTime`, finaler Signaturzähler                                  |
 
 ### 3.3 Offizielle processType-Werte
 
@@ -100,8 +99,8 @@ Das vollständige Mapping aller jotti-Vorgänge (inkl. Auszahlung, Geldtransit, 
 - **Encoding:** UTF-8 oder ASCII, kein BOM
 - **Dezimaltrennzeichen:** ausschließlich Punkt (`.`); keine Tausendertrennzeichen, keine Exponentialschreibweise, kein `+`; mindestens eine Stelle vor dem Punkt (`0.5`, nicht `.5`)
 - **Bei `StartTransaction`:** `processType` und `processData` sind immer leer, beide werden erst bei `FinishTransaction` übergeben (DSFinV-K Anhang I)
-- **Format `Kassenbeleg-V1`:** `Beleg^<Betraege>^<Zahlungen>`, die fünf Brutto-Steuerbeträge in fester Reihenfolge: 1. Allgemeiner Steuersatz (19 %) · 2. Ermäßigter Steuersatz (7 %) · 3. Durchschnittssatz § 24 Abs. 1 Nr. 3 UStG (10,7 %) · 4. Durchschnittssatz § 24 Abs. 1 Nr. 1 UStG (5,5 %) · 5. 0 %. Zahlungen als `<Betrag>:<Zahlungsart>`; Zahlungen von `0.00` entfallen.
-  > **Kombi-Positionen (70/30):** Speisen-Anteil (70 %) → Position 2 (ermäßigt), Getränke-Anteil (30 %) → Position 1 (allgemein); steuerbefreite Positionen → Position 5 (0 %). Die fünf Betragstellen bilden alle jotti-Steuersätze ab.
+- **Format `Kassenbeleg-V1`:** `Beleg^<Betraege>^<Zahlungen>`. Die fünf Brutto-Steuerbeträge sind `_`-getrennt in fester Reihenfolge: 1. Allgemeiner Steuersatz (19 %) · 2. Ermäßigter Steuersatz (7 %) · 3.–4. land-/forstwirtschaftliche Durchschnittssätze nach § 24 Abs. 1 Nr. 3 und Nr. 1 UStG · 5. 0 %. jotti belegt nur die Positionen 1, 2 und 5; die Durchschnittssatz-Positionen bleiben stets `0.00`. Mehrere Zahlungen ebenfalls `_`-getrennt als `<Betrag>:<Zahlungsart>`; Zahlungen von `0.00` entfallen.
+  > **Kombi-Positionen (70/30):** Speisen-Anteil (70 %) → Position 2 (ermäßigt), Getränke-Anteil (30 %) → Position 1 (allgemein); steuerbefreite Positionen → Position 5 (0 %).
 - **Format `Bestellung-V1`:** CSV-Darstellung, pro Position eine Zeile `<Menge>;"<Bezeichnung>";<Brutto-Einzelpreis>`, Zeilentrenner `\r` (U+000D), Bezeichnung in Anführungszeichen (innere `"` werden verdoppelt), Preis mit exakt 2 Nachkommastellen. Beispiel aus DSFinV-K Anhang I: `2;"Eisbecher ""Himbeere""";3.99`
 
 ### 3.5 TSE-Varianten und Anbieter-Entscheidung
@@ -245,8 +244,8 @@ Die TSE-Daten können platzsparend als QR-Code auf den Beleg, das Format muss de
 
 ### 5.5 Architektonische Anforderungen an jotti
 
-1. **Beleg-Generator:** Bereits implementiert, `POST /service/beleg-drucken` akzeptiert `verkaufId` (Direktverkauf) oder `tischId` + `zahlungId` (Tisch-Zahlung) und erzeugt einen ESC/POS-Druckauftrag an den Kassenbeleg-Drucker.
-2. TSE-Daten auf dem Beleg (nach TSE-Integration, F-02).
+1. **Beleg-Generator:** Bereits implementiert, `POST /service/beleg-drucken` akzeptiert `verkaufId` (Direktverkauf), `tischId` + `zahlungId` (Tisch-Zahlung) oder `verkaufId` + `stornierungId` (Direktverkauf-Storno-Beleg) und erzeugt einen ESC/POS-Druckauftrag an den Kassenbeleg-Drucker.
+2. TSE-Daten auf dem Beleg andrucken (offen — die TSE-Signierung läuft bereits, der Beleg-Renderer trägt aber noch keine TSE-Felder).
 3. **Erste-Bestellung-Zeitstempel:** `logTime` der ersten `Bestellung-V1` einer Tisch-Session persistieren und beim Beleg-Druck abrufen (nur Tisch-Belege, Direktverkäufe haben keine vorgelagerte Bestellung).
 4. QR-Code-Generierung im DSFinV-K-Format.
 5. Beleg-Archivierung für DSFinV-K-Export und GoBD.
