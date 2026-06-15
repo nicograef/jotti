@@ -171,19 +171,19 @@ rocks-init: ## jotti.rocks Ersteinrichtung (Zertifikate für alle Domains, Stack
 	./scripts/rocks-init.sh
 
 rocks-up: ## jotti.rocks Stack starten/aktualisieren (Landing + Demo App, inkl. nginx-Config)
-	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml up -d --build
-	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml up -d --no-deps --force-recreate reverse-proxy
+	docker compose -f docker-compose.rocks.yml up -d --build
+	docker compose -f docker-compose.rocks.yml up -d --no-deps --force-recreate reverse-proxy
 
 rocks-down: ## jotti.rocks Stack stoppen
-	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml down
+	docker compose -f docker-compose.rocks.yml down
 
 rocks-logs: ## jotti.rocks Stack Logs folgen
-	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml logs -f
+	docker compose -f docker-compose.rocks.yml logs -f
 
 rocks-reset-db: ## jotti.rocks-DB zurücksetzen (Zertifikate bleiben erhalten) — nur Demo/Staging
-	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml down
+	docker compose -f docker-compose.rocks.yml down
 	docker volume rm jotti_postgres-data
-	docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml up -d --build
+	docker compose -f docker-compose.rocks.yml up -d --build
 
 rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (SSL bleibt erhalten) — nur Demo/Staging
 	./scripts/reset-and-seed.sh rocks --yes

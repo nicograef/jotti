@@ -9,8 +9,8 @@ set -euo pipefail
 #            device with HTTPS via Caddy. The Caddy data volume (caddy-data,
 #            certificates + internal CA) is NOT touched, so no browser re-trust is
 #            needed after a reset.
-#   rocks  — jotti.rocks demo/staging (docker-compose.prod.yml + docker-compose.rocks.yml).
-#            NOT for self-hosted production. The SSL volumes (letsencrypt,
+#   rocks  — jotti.rocks demo/staging (docker-compose.rocks.yml). NOT for
+#            self-hosted production. The SSL volumes (letsencrypt,
 #            certbot-challenges) are NOT touched.
 
 RED='\033[0;31m'
@@ -31,7 +31,7 @@ Resets one stack's DB data and reloads seed data without touching its TLS/SSL vo
 
 Stacks:
   local    LAN stack (docker-compose.local.yml); Caddy cert volume preserved
-  rocks    jotti.rocks demo/staging (prod + rocks override); SSL volumes preserved
+  rocks    jotti.rocks demo/staging (docker-compose.rocks.yml); SSL volumes preserved
 
 Options:
   --yes    Skip interactive confirmation prompt
@@ -71,7 +71,7 @@ case "$STACK" in
     TLS_NOTE="The Caddy data volume (caddy-data, TLS certificates) is NOT touched."
     ;;
   rocks)
-    COMPOSE_FILES=(-f docker-compose.prod.yml -f docker-compose.rocks.yml)
+    COMPOSE_FILES=(-f docker-compose.rocks.yml)
     DB_VOLUME="jotti_postgres-data"
     STACK_LABEL="jotti.rocks demo"
     TLS_NOTE="SSL certificate volumes (letsencrypt, certbot-challenges) are NOT touched."

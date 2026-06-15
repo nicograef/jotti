@@ -119,16 +119,16 @@ umgestellt. `docker-compose.initial-cert.yml` bleibt unverändert (rocks-Cert-Bo
 
 ### Acceptance criteria
 
-- [ ] `docker compose -f docker-compose.rocks.yml config` ist valide und enthält
+- [x] `docker compose -f docker-compose.rocks.yml config` ist valide und enthält
       keine Referenz mehr auf `docker-compose.prod.yml`.
-- [ ] `make rocks-up` startet Landing (`jotti.rocks`), Demo (`demo.jotti.rocks`)
+- [x] `make rocks-up` startet Landing (`jotti.rocks`), Demo (`demo.jotti.rocks`)
       und acme-dns (`auth.jotti.rocks`) wie bisher.
-- [ ] Projektname bleibt `jotti`; `jotti_postgres-data`, `letsencrypt` und
+- [x] Projektname bleibt `jotti`; `jotti_postgres-data`, `letsencrypt` und
       `certbot-challenges` werden weiterverwendet (kein Datenverlust, kein
       Neu-Ausstellen der Zertifikate).
-- [ ] `make rocks-down`, `rocks-logs`, `rocks-reset-db`, `rocks-reset-and-seed`
+- [x] `make rocks-down`, `rocks-logs`, `rocks-reset-db`, `rocks-reset-and-seed`
       funktionieren mit dem neuen File.
-- [ ] `make check` bleibt grün.
+- [x] `make check` bleibt grün.
 
 ---
 

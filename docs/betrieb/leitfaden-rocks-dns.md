@@ -9,7 +9,7 @@ Let's-Encrypt-Zertifikate für `*.<install-id>.lokal.jotti.rocks` beziehen
 
 ## 1. Überblick
 
-Zwei Services im rocks-Overlay (`docker-compose.rocks.yml`):
+Zwei Services im rocks-Stack (`docker-compose.rocks.yml`):
 
 | Service    | Zone                | Erreichbarkeit                                          |
 | ---------- | ------------------- | ------------------------------------------------------- |
@@ -79,13 +79,13 @@ Zertifikat. Sobald die DNS-Hoster-Einträge (Abschnitt 3) aktiv sind, das
 Zertifikat erweitern und nginx neu laden:
 
 ```bash
-docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml \
+docker compose -f docker-compose.rocks.yml \
   run --rm --entrypoint certbot certbot certonly \
   --webroot -w /var/www/certbot \
   -d jotti.rocks -d www.jotti.rocks -d demo.jotti.rocks -d auth.jotti.rocks \
   --email graef.nico@gmail.com --agree-tos --no-eff-email --expand
 
-docker compose -f docker-compose.prod.yml -f docker-compose.rocks.yml \
+docker compose -f docker-compose.rocks.yml \
   exec reverse-proxy nginx -s reload
 ```
 

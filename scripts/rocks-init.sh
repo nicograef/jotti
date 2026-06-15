@@ -9,7 +9,7 @@ set -euo pipefail
 #   - https://demo.jotti.rocks   → demo app (frontend + backend API)
 #   - https://auth.jotti.rocks   → acme-dns API (trusted local TLS)
 #
-# Uses docker-compose.prod.yml + docker-compose.rocks.yml override.
+# Uses the standalone docker-compose.rocks.yml file.
 # Self-hosters should use scripts/prod-init.sh instead.
 #
 # Usage: ./scripts/rocks-init.sh
@@ -25,7 +25,7 @@ DOMAIN_AUTH="auth.jotti.rocks"
 EMAIL="graef.nico@gmail.com"
 
 COMPOSE_CERT="docker-compose.initial-cert.yml"
-COMPOSE_PROD=(-f docker-compose.prod.yml -f docker-compose.rocks.yml)
+COMPOSE_PROD=(-f docker-compose.rocks.yml)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -72,9 +72,6 @@ fi
 
 if [[ ! -f "$COMPOSE_CERT" ]]; then
   fatal "Missing compose file: $COMPOSE_CERT"
-fi
-if [[ ! -f docker-compose.prod.yml ]]; then
-  fatal "Missing compose file: docker-compose.prod.yml"
 fi
 if [[ ! -f docker-compose.rocks.yml ]]; then
   fatal "Missing compose file: docker-compose.rocks.yml"
