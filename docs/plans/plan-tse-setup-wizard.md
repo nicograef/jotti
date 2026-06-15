@@ -122,9 +122,9 @@ Erster Teil der Setup-Operationen (Auth nur mit API-Key/-Secret, TSS listen, Cli
 
 ### Acceptance criteria
 
-- [ ] Befund zeigt Umgebung und vorhandene TSS mit Zustand; ein Client mit passender Kassen-Seriennummer wird erkannt und ausgewiesen
-- [ ] Kontrakt-Tests belegen: Prüfung sendet ausschließlich Auth- und GET-Requests
-- [ ] Falsche Zugangsdaten führen zu einer verständlichen deutschen Fehlermeldung
+- [x] Befund zeigt Umgebung und vorhandene TSS mit Zustand; ein Client mit passender Kassen-Seriennummer wird erkannt und ausgewiesen
+- [x] Kontrakt-Tests belegen: Prüfung sendet ausschließlich Auth- und GET-Requests
+- [x] Falsche Zugangsdaten führen zu einer verständlichen deutschen Fehlermeldung
 - [ ] Manuell verifiziert: Befund gegen das echte TEST-Konto zeigt die Audit-TSS
 
 ---

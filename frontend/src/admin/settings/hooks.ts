@@ -9,6 +9,8 @@ import {
   type Betreiber,
   EinstellungenBackend,
   type TSEKonfigurationSpeichern,
+  type TSESetupBefund,
+  type TSESetupZugangsdaten,
   type TSEVerbindungStatus,
 } from '@/lib/EinstellungenBackend'
 
@@ -113,6 +115,12 @@ export function useTSEKonfiguration() {
     clearTSEKonfiguration,
     testTSEVerbindung,
   }
+}
+
+export function pruefeTSESetup(
+  zugangsdaten: TSESetupZugangsdaten,
+): Promise<TSESetupBefund> {
+  return einstellungenBackend.pruefeTSESetup(zugangsdaten)
 }
 
 export function useTSENachsignierAuftraege() {

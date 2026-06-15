@@ -22,16 +22,39 @@ type tseStatusRepo interface {
 
 type NewTSEConnectionTester func(credentials tse.Credentials) (tse.ConnectionTester, error)
 
+type NewTSESetupClient func(credentials tse.SetupCredentials) (tse.SetupClient, error)
+
 type Query struct {
 	SettingsRepo           settingsQueryRepo
 	TSEStatusRepo          tseStatusRepo
 	NewTSEConnectionTester NewTSEConnectionTester
+	NewTSESetupClient      NewTSESetupClient
 }
 
 type TSEStatus struct {
 	Umgebung               string
 	OffeneNachsignierungen int
 	IstKonfiguriert        bool
+}
+
+// TSESetupBefund ist das seiteneffektfreie Ergebnis des Prüf-Schritts: die
+// erkannte Umgebung und die vorhandenen TSS samt Zustand. Je TSS wird ein
+// bereits passender Client (Seriennummer = Kassen-Seriennummer) ausgewiesen.
+type TSESetupBefund struct {
+	Umgebung      string
+	VorhandeneTSS []TSSBefund
+}
+
+type TSSBefund struct {
+	ID              string
+	State           string
+	PassenderClient *ClientBefund
+}
+
+type ClientBefund struct {
+	ID           string
+	SerialNumber string
+	State        string
 }
 
 func (q Query) GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error) {
@@ -121,6 +144,75 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 	status.SeriennummerKorrekt = status.ClientSerialNumber == identitaet.Seriennummer.String()
 
 	return status, nil
+}
+
+// PruefeTSESetup führt den seiteneffektfreien Befund aus: Es authentifiziert
+// sich mit den übergebenen Zugangsdaten, listet die vorhandenen TSS und prüft je
+// TSS, ob bereits ein Client mit der Kassen-Seriennummer registriert ist. Es
+// wird nichts gespeichert; nur Lese-Requests gehen an fiskaly.
+func (q Query) PruefeTSESetup(ctx context.Context, credentials tse.SetupCredentials) (TSESetupBefund, error) {
+	log := zerolog.Ctx(ctx)
+
+	if q.NewTSESetupClient == nil {
+		log.Error().Msg("Missing TSE setup client factory")
+		return TSESetupBefund{}, ErrDatabase
+	}
+	if err := credentials.Validate(); err != nil {
+		return TSESetupBefund{}, ErrTSESetupZugangsdaten
+	}
+
+	client, err := q.NewTSESetupClient(credentials)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create TSE setup client")
+		return TSESetupBefund{}, ErrTSEVerbindungFehlgeschlagen
+	}
+
+	umgebung, tssList, err := client.ListTSS(ctx)
+	if err != nil {
+		if errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
+			return TSESetupBefund{}, ErrTSESetupZugangsdaten
+		}
+		log.Warn().Err(err).Msg("Failed to list TSS during setup check")
+		return TSESetupBefund{}, ErrTSEVerbindungFehlgeschlagen
+	}
+
+	identitaet, err := q.SettingsRepo.GetKassenidentitaet(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to retrieve kassenidentitaet for setup check")
+		return TSESetupBefund{}, ErrDatabase
+	}
+	seriennummer := identitaet.Seriennummer.String()
+
+	befund := TSESetupBefund{
+		Umgebung:      string(umgebung),
+		VorhandeneTSS: make([]TSSBefund, 0, len(tssList)),
+	}
+	for _, t := range tssList {
+		clients, err := client.ListClients(ctx, t.ID)
+		if err != nil {
+			log.Warn().Err(err).Str("tss_id", t.ID).Msg("Failed to list clients during setup check")
+			return TSESetupBefund{}, ErrTSEVerbindungFehlgeschlagen
+		}
+
+		befund.VorhandeneTSS = append(befund.VorhandeneTSS, TSSBefund{
+			ID:              t.ID,
+			State:           t.State,
+			PassenderClient: passenderClient(clients, seriennummer),
+		})
+	}
+
+	return befund, nil
+}
+
+// passenderClient liefert den Client einer TSS, dessen serial_number der
+// Kassen-Seriennummer entspricht — oder nil, wenn es keinen gibt.
+func passenderClient(clients []tse.ClientInfo, seriennummer string) *ClientBefund {
+	for _, c := range clients {
+		if c.SerialNumber == seriennummer {
+			return &ClientBefund{ID: c.ID, SerialNumber: c.SerialNumber, State: c.State}
+		}
+	}
+	return nil
 }
 
 func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {

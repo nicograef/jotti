@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/settings/application"
 	"github.com/nicograef/jotti/backend/domain/settings"
@@ -18,6 +19,7 @@ type settingsQuery interface {
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
 	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 	TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, error)
+	PruefeTSESetup(ctx context.Context, credentials tse.SetupCredentials) (application.TSESetupBefund, error)
 	GetTSEStatus(ctx context.Context) (application.TSEStatus, error)
 }
 
@@ -59,6 +61,33 @@ type tseStatusResponse struct {
 	Umgebung               string `json:"umgebung"`
 	OffeneNachsignierungen int    `json:"offeneNachsignierungen"`
 	IstKonfiguriert        bool   `json:"istKonfiguriert"`
+}
+
+type pruefeTSESetupRequest struct {
+	ApiKey    string `json:"apiKey"`
+	ApiSecret string `json:"apiSecret"`
+}
+
+var pruefeTSESetupSchema = z.Struct(z.Shape{
+	"ApiKey":    z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
+	"ApiSecret": z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
+})
+
+type tseSetupBefundResponse struct {
+	Umgebung      string              `json:"umgebung"`
+	VorhandeneTSS []tssBefundResponse `json:"vorhandeneTss"`
+}
+
+type tssBefundResponse struct {
+	ID              string                `json:"id"`
+	State           string                `json:"state"`
+	PassenderClient *clientBefundResponse `json:"passenderClient"`
+}
+
+type clientBefundResponse struct {
+	ID           string `json:"id"`
+	SerialNumber string `json:"serialNumber"`
+	State        string `json:"state"`
 }
 
 func (h *QueryHandler) GetKassenidentitaetHandler() http.HandlerFunc {
@@ -140,6 +169,53 @@ func (h *QueryHandler) TestTSEVerbindungHandler() http.HandlerFunc {
 			ClientState:         status.ClientState,
 			ClientSerialNumber:  status.ClientSerialNumber,
 			SeriennummerKorrekt: status.SeriennummerKorrekt,
+		})
+	}
+}
+
+func (h *QueryHandler) PruefeTSESetupHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body pruefeTSESetupRequest
+		if !helper.ReadAndValidateBody(w, r, &body, pruefeTSESetupSchema) {
+			return
+		}
+
+		befund, err := h.Query.PruefeTSESetup(r.Context(), tse.SetupCredentials{
+			ApiKey:    body.ApiKey,
+			ApiSecret: body.ApiSecret,
+		})
+		if err != nil {
+			switch {
+			case errors.Is(err, application.ErrTSESetupZugangsdaten):
+				helper.SendClientError(w, "tse_setup_zugangsdaten_ungueltig", nil)
+			case errors.Is(err, application.ErrTSEVerbindungFehlgeschlagen):
+				helper.SendClientError(w, "tse_verbindung_fehlgeschlagen", nil)
+			default:
+				helper.SendServerError(w)
+			}
+			return
+		}
+
+		tssListe := make([]tssBefundResponse, 0, len(befund.VorhandeneTSS))
+		for _, t := range befund.VorhandeneTSS {
+			var client *clientBefundResponse
+			if t.PassenderClient != nil {
+				client = &clientBefundResponse{
+					ID:           t.PassenderClient.ID,
+					SerialNumber: t.PassenderClient.SerialNumber,
+					State:        t.PassenderClient.State,
+				}
+			}
+			tssListe = append(tssListe, tssBefundResponse{
+				ID:              t.ID,
+				State:           t.State,
+				PassenderClient: client,
+			})
+		}
+
+		helper.SendResponse(w, tseSetupBefundResponse{
+			Umgebung:      befund.Umgebung,
+			VorhandeneTSS: tssListe,
 		})
 	}
 }

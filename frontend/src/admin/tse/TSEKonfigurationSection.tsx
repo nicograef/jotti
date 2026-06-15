@@ -298,11 +298,11 @@ export function TSEKonfigurationSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>TSE-Integration (fiskaly)</CardTitle>
+        <CardTitle>Manuelle Konfiguration (Experten)</CardTitle>
         <CardDescription>
-          Hier hinterlegst du die Zugangsdaten für deine Cloud-TSE. Die
-          Seriennummer aus der Kassenidentität wird in fiskaly als serial_number
-          benötigt.
+          Fallback für eine bereits außerhalb von jotti angelegte TSE: Hier
+          hinterlegst du die vier Zugangsdaten direkt. Die Seriennummer aus der
+          Kassenidentität wird in fiskaly als serial_number benötigt.
         </CardDescription>
       </CardHeader>
       <CardContent>{inhalt}</CardContent>

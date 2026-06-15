@@ -106,13 +106,17 @@ type errorResponse struct {
 
 type sleepFn func(ctx context.Context, duration time.Duration) error
 
-type FiskalyTSEClient struct {
-	baseURL     string
-	credentials tse.Credentials
-	httpClient  *http.Client
-	now         func() time.Time
-	sleep       sleepFn
-	maxRetries  int
+// fiskalyClient buendelt die HTTP-Maschinerie, die sich der Signier-Client und
+// der Setup-Client teilen: Basis-URL, API-Key/-Secret-Auth mit Token-Cache und
+// die Retry-Logik. Sie kommt ohne TSS-/Client-ID aus.
+type fiskalyClient struct {
+	baseURL    string
+	apiKey     string
+	apiSecret  string
+	httpClient *http.Client
+	now        func() time.Time
+	sleep      sleepFn
+	maxRetries int
 
 	mu             sync.Mutex
 	accessToken    string
@@ -120,15 +124,18 @@ type FiskalyTSEClient struct {
 	expiresAt      time.Time
 }
 
+// FiskalyTSEClient signiert Transaktionen einer konkreten TSS/Client-Kombination.
+type FiskalyTSEClient struct {
+	*fiskalyClient
+	tssID    string
+	clientID string
+}
+
 var _ tse.TSEClient = (*FiskalyTSEClient)(nil)
 var _ tse.ConnectionTester = (*FiskalyTSEClient)(nil)
 var _ tse.TransactionRetriever = (*FiskalyTSEClient)(nil)
 
-func NewFiskalyTSEClient(baseURL string, credentials tse.Credentials, httpClient *http.Client) (*FiskalyTSEClient, error) {
-	if err := credentials.Validate(); err != nil {
-		return nil, err
-	}
-
+func newFiskalyClient(baseURL, apiKey, apiSecret string, httpClient *http.Client) (*fiskalyClient, error) {
 	trimmedBaseURL := strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if trimmedBaseURL == "" {
 		return nil, fmt.Errorf("base url is required")
@@ -138,13 +145,31 @@ func NewFiskalyTSEClient(baseURL string, credentials tse.Credentials, httpClient
 		httpClient = &http.Client{Timeout: defaultHTTPTimeout}
 	}
 
+	return &fiskalyClient{
+		baseURL:    trimmedBaseURL,
+		apiKey:     apiKey,
+		apiSecret:  apiSecret,
+		httpClient: httpClient,
+		now:        time.Now,
+		sleep:      sleepWithContext,
+		maxRetries: defaultRetryAttempts,
+	}, nil
+}
+
+func NewFiskalyTSEClient(baseURL string, credentials tse.Credentials, httpClient *http.Client) (*FiskalyTSEClient, error) {
+	if err := credentials.Validate(); err != nil {
+		return nil, err
+	}
+
+	base, err := newFiskalyClient(baseURL, credentials.ApiKey, credentials.ApiSecret, httpClient)
+	if err != nil {
+		return nil, err
+	}
+
 	return &FiskalyTSEClient{
-		baseURL:     trimmedBaseURL,
-		credentials: credentials,
-		httpClient:  httpClient,
-		now:         time.Now,
-		sleep:       sleepWithContext,
-		maxRetries:  defaultRetryAttempts,
+		fiskalyClient: base,
+		tssID:         credentials.TssID,
+		clientID:      credentials.ClientID,
 	}, nil
 }
 
@@ -173,11 +198,11 @@ func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string) (t
 	err := c.doJSONRequest(
 		ctx,
 		http.MethodPut,
-		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.credentials.TssID), url.PathEscape(txID)),
+		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.tssID), url.PathEscape(txID)),
 		url.Values{"tx_revision": []string{"1"}},
 		startTransactionRequest{
 			State:    "ACTIVE",
-			ClientID: c.credentials.ClientID,
+			ClientID: c.clientID,
 		},
 		true,
 		&resp,
@@ -199,11 +224,11 @@ func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, p
 	err := c.doJSONRequest(
 		ctx,
 		http.MethodPut,
-		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.credentials.TssID), url.PathEscape(txID)),
+		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.tssID), url.PathEscape(txID)),
 		url.Values{"tx_revision": []string{"2"}},
 		finishTransactionRequest{
 			State:    "FINISHED",
-			ClientID: c.credentials.ClientID,
+			ClientID: c.clientID,
 			Schema: rawSchemaEnvelope{
 				Raw: rawSchema{
 					ProcessType: processType,
@@ -236,7 +261,7 @@ func (c *FiskalyTSEClient) RetrieveTransaction(ctx context.Context, txID string)
 	err := c.doJSONRequest(
 		ctx,
 		http.MethodGet,
-		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.credentials.TssID), url.PathEscape(txID)),
+		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.tssID), url.PathEscape(txID)),
 		nil,
 		nil,
 		true,
@@ -271,7 +296,7 @@ func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungSt
 	err = c.doJSONRequest(
 		ctx,
 		http.MethodGet,
-		fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(c.credentials.TssID)),
+		fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(c.tssID)),
 		nil,
 		nil,
 		true,
@@ -285,7 +310,7 @@ func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungSt
 	err = c.doJSONRequest(
 		ctx,
 		http.MethodGet,
-		fmt.Sprintf("/api/v2/tss/%s/client/%s", url.PathEscape(c.credentials.TssID), url.PathEscape(c.credentials.ClientID)),
+		fmt.Sprintf("/api/v2/tss/%s/client/%s", url.PathEscape(c.tssID), url.PathEscape(c.clientID)),
 		nil,
 		nil,
 		true,
@@ -374,7 +399,7 @@ func mapFinishResult(resp transactionResponse) (tse.FinishResult, error) {
 	}, nil
 }
 
-func (c *FiskalyTSEClient) doJSONRequest(
+func (c *fiskalyClient) doJSONRequest(
 	ctx context.Context,
 	method string,
 	path string,
@@ -471,7 +496,7 @@ func (c *FiskalyTSEClient) doJSONRequest(
 	return fmt.Errorf("request failed after retries")
 }
 
-func (c *FiskalyTSEClient) getAccessToken(ctx context.Context) (string, tse.Umgebung, error) {
+func (c *fiskalyClient) getAccessToken(ctx context.Context) (string, tse.Umgebung, error) {
 	c.mu.Lock()
 	if c.accessToken != "" && c.now().Add(tokenExpiryLeeway).Before(c.expiresAt) {
 		token := c.accessToken
@@ -482,8 +507,8 @@ func (c *FiskalyTSEClient) getAccessToken(ctx context.Context) (string, tse.Umge
 	c.mu.Unlock()
 
 	request := map[string]string{
-		"api_key":    c.credentials.ApiKey,
-		"api_secret": c.credentials.ApiSecret,
+		"api_key":    c.apiKey,
+		"api_secret": c.apiSecret,
 	}
 	response := authResponse{}
 	if err := c.doJSONRequest(ctx, http.MethodPost, "/api/v2/auth", nil, request, false, &response); err != nil {
@@ -508,7 +533,7 @@ func (c *FiskalyTSEClient) getAccessToken(ctx context.Context) (string, tse.Umge
 	return response.AccessToken, env, nil
 }
 
-func (c *FiskalyTSEClient) invalidateToken() {
+func (c *fiskalyClient) invalidateToken() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.accessToken = ""
@@ -582,7 +607,7 @@ func isRetryableStatus(statusCode int) bool {
 	return statusCode == 429 || statusCode == 499 || statusCode >= 500
 }
 
-func (c *FiskalyTSEClient) retryDelay(attempt int, retryAfterHeader string) time.Duration {
+func (c *fiskalyClient) retryDelay(attempt int, retryAfterHeader string) time.Duration {
 	if parsed := parseRetryAfter(retryAfterHeader); parsed > 0 {
 		return parsed
 	}

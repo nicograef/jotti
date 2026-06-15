@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,6 +22,8 @@ type mockSettingsQuery struct {
 	err              error
 	verbindungStatus tse.VerbindungStatus
 	verbindungErr    error
+	setupBefund      application.TSESetupBefund
+	setupErr         error
 	tseStatus        application.TSEStatus
 	tseStatusErr     error
 }
@@ -45,6 +48,13 @@ func (m *mockSettingsQuery) TestTSEVerbindung(_ context.Context) (tse.Verbindung
 		return tse.VerbindungStatus{}, m.verbindungErr
 	}
 	return m.verbindungStatus, nil
+}
+
+func (m *mockSettingsQuery) PruefeTSESetup(_ context.Context, _ tse.SetupCredentials) (application.TSESetupBefund, error) {
+	if m.setupErr != nil {
+		return application.TSESetupBefund{}, m.setupErr
+	}
+	return m.setupBefund, nil
 }
 
 func (m *mockSettingsQuery) GetTSEStatus(_ context.Context) (application.TSEStatus, error) {
@@ -219,6 +229,110 @@ func TestTestTSEVerbindungHandler_VerbindungFehlgeschlagen(t *testing.T) {
 	}
 	if body.Code != "tse_verbindung_fehlgeschlagen" {
 		t.Fatalf("expected code tse_verbindung_fehlgeschlagen, got %q", body.Code)
+	}
+}
+
+func TestPruefeTSESetupHandler_Success(t *testing.T) {
+	h := &QueryHandler{Query: &mockSettingsQuery{setupBefund: application.TSESetupBefund{
+		Umgebung: "TEST",
+		VorhandeneTSS: []application.TSSBefund{
+			{
+				ID:    "tss-1",
+				State: "INITIALIZED",
+				PassenderClient: &application.ClientBefund{
+					ID:           "client-1",
+					SerialNumber: "kasse-serial-1",
+					State:        "REGISTERED",
+				},
+			},
+			{ID: "tss-2", State: "CREATED"},
+		},
+	}}}
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-setup-pruefen",
+		strings.NewReader(`{"apiKey":"api-key","apiSecret":"api-secret"}`))
+	rec := httptest.NewRecorder()
+
+	h.PruefeTSESetupHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	var body struct {
+		Umgebung      string `json:"umgebung"`
+		VorhandeneTSS []struct {
+			ID              string `json:"id"`
+			State           string `json:"state"`
+			PassenderClient *struct {
+				ID           string `json:"id"`
+				SerialNumber string `json:"serialNumber"`
+				State        string `json:"state"`
+			} `json:"passenderClient"`
+		} `json:"vorhandeneTss"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body.Umgebung != "TEST" {
+		t.Fatalf("expected TEST environment, got %q", body.Umgebung)
+	}
+	if len(body.VorhandeneTSS) != 2 {
+		t.Fatalf("expected two TSS, got %d", len(body.VorhandeneTSS))
+	}
+	if body.VorhandeneTSS[0].PassenderClient == nil || body.VorhandeneTSS[0].PassenderClient.ID != "client-1" {
+		t.Fatalf("expected matching client client-1, got %+v", body.VorhandeneTSS[0].PassenderClient)
+	}
+	if body.VorhandeneTSS[1].PassenderClient != nil {
+		t.Fatalf("expected no matching client for tss-2, got %+v", body.VorhandeneTSS[1].PassenderClient)
+	}
+}
+
+func TestPruefeTSESetupHandler_FalscheZugangsdaten(t *testing.T) {
+	h := &QueryHandler{Query: &mockSettingsQuery{setupErr: application.ErrTSESetupZugangsdaten}}
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-setup-pruefen",
+		strings.NewReader(`{"apiKey":"wrong","apiSecret":"wrong"}`))
+	rec := httptest.NewRecorder()
+
+	h.PruefeTSESetupHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rec.Code)
+	}
+
+	var body struct {
+		Code string `json:"code"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body.Code != "tse_setup_zugangsdaten_ungueltig" {
+		t.Fatalf("expected code tse_setup_zugangsdaten_ungueltig, got %q", body.Code)
+	}
+}
+
+func TestPruefeTSESetupHandler_ValidationError(t *testing.T) {
+	h := &QueryHandler{Query: &mockSettingsQuery{}}
+
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-setup-pruefen",
+		strings.NewReader(`{"apiKey":"","apiSecret":""}`))
+	rec := httptest.NewRecorder()
+
+	h.PruefeTSESetupHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rec.Code)
+	}
+
+	var body struct {
+		Code string `json:"code"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if body.Code != "validation_error" {
+		t.Fatalf("expected code validation_error, got %q", body.Code)
 	}
 }
 

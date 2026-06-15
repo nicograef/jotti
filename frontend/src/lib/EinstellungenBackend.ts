@@ -37,6 +37,40 @@ export const TSEVerbindungStatusSchema = z.object({
 })
 export type TSEVerbindungStatus = z.infer<typeof TSEVerbindungStatusSchema>
 
+export const TSEClientBefundSchema = z.object({
+  id: z.string(),
+  serialNumber: z.string(),
+  state: z.string(),
+})
+export type TSEClientBefund = z.infer<typeof TSEClientBefundSchema>
+
+export const TSSBefundSchema = z.object({
+  id: z.string(),
+  state: z.string(),
+  passenderClient: TSEClientBefundSchema.nullable(),
+})
+export type TSSBefund = z.infer<typeof TSSBefundSchema>
+
+export const TSESetupBefundSchema = z.object({
+  umgebung: z.enum(['TEST', 'LIVE']),
+  vorhandeneTss: z.array(TSSBefundSchema),
+})
+export type TSESetupBefund = z.infer<typeof TSESetupBefundSchema>
+
+export const TSESetupZugangsdatenSchema = z.object({
+  apiKey: z
+    .string()
+    .trim()
+    .min(1, 'API-Key ist erforderlich')
+    .max(500, 'API-Key darf höchstens 500 Zeichen lang sein'),
+  apiSecret: z
+    .string()
+    .trim()
+    .min(1, 'API-Secret ist erforderlich')
+    .max(500, 'API-Secret darf höchstens 500 Zeichen lang sein'),
+})
+export type TSESetupZugangsdaten = z.infer<typeof TSESetupZugangsdatenSchema>
+
 export const TSEStatusSchema = z.object({
   umgebung: z.string(),
   offeneNachsignierungen: z
@@ -141,6 +175,17 @@ export class EinstellungenBackend {
       'admin/test-tse-verbindung',
       {},
       TSEVerbindungStatusSchema,
+    )
+  }
+
+  public async pruefeTSESetup(
+    zugangsdaten: TSESetupZugangsdaten,
+  ): Promise<TSESetupBefund> {
+    const body = TSESetupZugangsdatenSchema.parse(zugangsdaten)
+    return this.backend.post(
+      'admin/tse-setup-pruefen',
+      body,
+      TSESetupBefundSchema,
     )
   }
 

@@ -155,11 +155,15 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 		NewTSEConnectionTester: func(credentials tse.Credentials) (tse.ConnectionTester, error) {
 			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
 		},
+		NewTSESetupClient: func(credentials tse.SetupCredentials) (tse.SetupClient, error) {
+			return tse_repo.NewFiskalyTSESetupClient(cfg.FiskalyBaseURL, credentials, nil)
+		},
 	}
 	r.HandleFunc("/get-kassenidentitaet", sq.GetKassenidentitaetHandler())
 	r.HandleFunc("/get-betreiber", sq.GetBetreiberHandler())
 	r.HandleFunc("/get-tse-konfiguration", sq.GetTSEKonfigurationHandler())
 	r.HandleFunc("/test-tse-verbindung", sq.TestTSEVerbindungHandler())
+	r.HandleFunc("/tse-setup-pruefen", sq.PruefeTSESetupHandler())
 	r.HandleFunc("/get-tse-status", sq.GetTSEStatusHandler())
 
 	sc := settingsHTTP.CommandHandler{}
