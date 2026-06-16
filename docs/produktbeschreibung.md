@@ -94,7 +94,7 @@ Mit _(in Entwicklung)_ markierte Features sind geplant, aber noch nicht umgesetz
 | Abrechnung                                    | Tagesabrechnung nach Steuersatz, pro Tisch und pro Servicekraft                                                                 |
 | Produktumsatz-Reporting _(in Entwicklung)_    | Verkaufte Mengen, Ranking und Gesamteinnahmen pro Variante                                                                      |
 | Datenexport (CSV) _(in Entwicklung)_          | Umsätze und Bestellungen als CSV für die Vereinsbuchhaltung                                                                     |
-| DSFinV-K-Export _(in Entwicklung)_            | Maschinenlesbarer Export nach DSFinV-K v2.4 als ZIP-Archiv                                                                      |
+| DSFinV-K-Export _(in Entwicklung)_            | Maschinenlesbarer Export nach DSFinV-K v2.5 als ZIP-Archiv                                                                      |
 | TSE-Anbindung (Cloud-TSE)                     | Integrierte Cloud-TSE-Schnittstelle mit fiskaly-Adapter; jeder Vorgang wird signiert                                           |
 | Belegausgabe                                  | Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse                                             |
 | Kassen-Seriennummer                           | Automatisch generierte UUID (für ELSTER-Meldung und DSFinV-K)                                                                  |
@@ -137,7 +137,7 @@ jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV u
 | Belegausgabe          | Belege mit Pflichtfeldern nach § 6 KassenSichV inkl. TSE-Signatur und QR-Code        |
 | Steuersätze           | 19 % (Standard), 7 % (ermäßigt), 0 %, konfigurierbar pro Produktvariante             |
 | Abrechnungskreis      | Fortlaufend nummerierte Kassensitzungen mit Tagesabschluss (Z-Bon)                   |
-| DSFinV-K-Export       | Vollständiger Export als ZIP (CSV + index.xml) nach DSFinV-K v2.4 _(in Entwicklung)_ |
+| DSFinV-K-Export       | Vollständiger Export als ZIP (CSV + index.xml) nach DSFinV-K v2.5 _(in Entwicklung)_ |
 | Seriennummer / ELSTER | UUID beim ersten Start; ELSTER-Meldeanleitung _(in Entwicklung)_                     |
 
 **Architekturprinzip:** Die Smartphones der Servicekräfte sind reine Eingabegeräte: TSE-Anbindung, Protokollierung und DSFinV-K-Persistenz laufen zentral im Backend; bei Verbindungsverlust blockiert die Webapp sofort (kein Offline-Kassieren). Da jotti self-hosted läuft, schließen Betreiber den Cloud-TSE-Vertrag selbst ab und hinterlegen die API-Schlüssel (Bring Your Own TSE); ohne TSE-Konfiguration bleiben Buchungen unsigniert, was nur für Test und Entwicklung gedacht und für echte Verkäufe nicht konform ist (§ 379 AO). Rechtliche Grundlagen und Betreiberpflichten (ELSTER-Meldung, Datensicherung, 10-jährige GoBD-konforme Aufbewahrung): [compliance.md](compliance.md).

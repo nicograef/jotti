@@ -35,7 +35,7 @@ Die GoBD (BMF-Schreiben 28.11.2019) fordern Nachvollziehbarkeit, Vollständigkei
 
 ### 2.5 DSFinV-K
 
-§ 4 KassenSichV verlangt eine einheitliche digitale Schnittstelle für den Datenexport an die Finanzverwaltung. Die DSFinV-K (Version 2.4, Stand Januar 2024) definiert das Format: CSV-Dateien mit fest vorgeschriebenen (englischen, kleingeschriebenen) Dateinamen, Semikolon-Trennung und `index.xml`, verpackt als ZIP. [5] Details: Abschnitt 6.
+§ 4 KassenSichV verlangt eine einheitliche digitale Schnittstelle für den Datenexport an die Finanzverwaltung. Die DSFinV-K (aktuell verbindlich: Version 2.5, Stand 2026) definiert das Format: CSV-Dateien mit fest vorgeschriebenen (englischen, kleingeschriebenen) Dateinamen, Semikolon-Trennung, `index.xml` und der zugehörigen `gdpdu-01-09-2004.dtd`, verpackt als ZIP. [5] Details: Abschnitt 6.
 
 ### 2.6 Elektronische Kassenmeldepflicht (§ 146a Abs. 4 AO)
 
@@ -264,11 +264,11 @@ Die Servicekräfte nutzen private Smartphones ohne mobile Bondrucker, daraus fol
 
 ### 6.1 Übersicht
 
-Bei Kassen-Nachschau oder Betriebsprüfung verlangt die Finanzverwaltung einen genormten Export nach DSFinV-K v2.4 (Stand Januar 2024), lesbar durch die Prüfsoftware IDEA. [5]
+Bei Kassen-Nachschau oder Betriebsprüfung verlangt die Finanzverwaltung einen genormten Export nach DSFinV-K (aktuell verbindlich: v2.5, Stand 2026), lesbar durch die Prüfsoftware IDEA. [5] Die Tabellenstruktur ist seit v2.0 stabil; v2.4 brachte gegenüber v2.3 keine inhaltlichen Änderungen (nur AEAO-redaktionell). Ein v3.0-Diskussionsentwurf ist in Konsultation, aber noch nicht verbindlich. jotti hält den Versionsstring deshalb konfigurierbar.
 
 ### 6.2 Dateiformat und Grundregeln
 
-- **Gesamtstruktur:** ZIP-Archiv mit CSV-Dateien und einer `index.xml` (Metadaten für das Prüftool)
+- **Gesamtstruktur:** ZIP-Archiv mit CSV-Dateien, einer `index.xml` (Metadaten für das Prüftool) und der zugehörigen `gdpdu-01-09-2004.dtd` (Beschreibungsstandard nach GoBD-Anlage „Ergänzende Informationen zur Datenträgerüberlassung"). Die `index.xml` deklariert die vorhandenen Tabellen samt Spalten, Feldtypen und Trennzeichen; sie ist zwingend, ebenso die DTD.
 - **CSV-Regeln:** Header-Zeile zwingend; Semikolon-Trennung; CRLF; Punkt als Dezimaltrennzeichen, keine Tausendertrennzeichen, mindestens eine Stelle vor dem Punkt, keine führenden Nullen; Spaltenreihenfolge exakt nach Spezifikation
 - **Dateinamen:** englisch und kleingeschrieben (`transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, …), nicht abänderbar. Die deutschen Begriffe der Spezifikation („Bonkopf", „Bonpos") sind logische Bezeichnungen, keine Dateinamen: Wer `Bonkopf.csv` exportiert, erzeugt eine nicht konforme Datei.
 - **Custom-Felder:** Zusätzliche Spalten am Ende erlaubt, müssen in `index.xml` definiert sein
@@ -284,8 +284,10 @@ Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Beze
 | `cashpointclosing.csv` | Stamm_Abschluss      | Metadaten zum Z-Bon: Unternehmensname, Steuernummer, Start-/End-Zeitpunkt                                              |
 | `location.csv`         | Stamm_Orte           | Standortdaten der Betriebsstätte                                                                                       |
 | `cashregister.csv`     | Stamm_Kassen         | Kassendaten: Hersteller, Seriennummer, Software-Typ und -Version                                                       |
-| `tse.csv`              | Stamm_TSE            | TSE-Daten: Zertifikats-ID, Signaturalgorithmus, TSE-Seriennummer (64-stelliger Hexadezimalstring), Public Key (Base64) |
+| `slaves.csv`           | Stamm_Terminals      | Slave-/Terminal-Kassen. Für jotti gegenstandslos (eine Kasse), wird weggelassen                                       |
+| `pa.csv`               | Stamm_Agenturen      | Stammdaten bei Agenturgeschäft. Für jotti gegenstandslos, wird weggelassen                                            |
 | `vat.csv`              | Stamm_USt            | Stammdaten der verwendeten Steuersätze                                                                                 |
+| `tse.csv`              | Stamm_TSE            | TSE-Daten: Zertifikats-ID, Signaturalgorithmus, TSE-Seriennummer (64-stelliger Hexadezimalstring), Public Key (Base64) |
 
 #### B. Einzelaufzeichnungsmodul (Bonmodul)
 
@@ -298,6 +300,8 @@ Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Beze
 | `references.csv`        | Bon_Referenzen       | Referenzen auf andere Bons, u. a. `REF_BON_ID` bei Stornos                                                                       |
 | `lines.csv`             | Bonpos               | Einzelne Artikel: `POS_ZEILE`, `ART_NR`, `MENGE`, `EINHEIT`, `STK_BR` (Stückpreis brutto)                                        |
 | `lines_vat.csv`         | Bonpos_USt           | USt-Aufschlüsselung pro Artikelzeile                                                                                             |
+| `itemamounts.csv`       | Bonpos_Preisfindung  | Preisfindung je Position (Rabatte, Zu-/Abschläge). Nur bei vorhandener Preisfindung befüllt, sonst header-only oder weggelassen   |
+| `subitems.csv`          | Bonpos_Zusatzinfo    | Zusatzinformationen je Position (z. B. Pfand). Nur bei vorhandenen Zusatzinfos befüllt, sonst header-only oder weggelassen        |
 | `transactions_tse.csv`  | TSE_Transaktionen    | Kritisch: TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`)                    |
 
 #### C. Kassenabschlussmodul (Z-Bon)
@@ -331,12 +335,13 @@ Stornierungen erzeugen immer neue Datensätze (GoBD-Radierverbot), nie Änderung
 ### 6.7 Architektonische Anforderungen an jotti
 
 1. CSV-Generator aus Event-Store- und Stammdaten (offizielle englische Dateinamen)
-2. `index.xml`-Generator
+2. `index.xml`- und `gdpdu-01-09-2004.dtd`-Generator (deklariert nur vorhandene Tabellen)
 3. Z-Bon-Logik (Tagessummen aggregieren)
 4. Abrechnungskreis-Verwaltung (Tisch-Session-ID in allen zugehörigen Bons)
 5. Admin-Endpunkt zum Auslösen des Exports
 6. ZIP-Generierung
-7. **Steuersatz-Verwaltung:** USt-Sätze als Stammdaten: 19 % (Regelsteuersatz, z. B. Getränke), 7 % (ermäßigt, z. B. Speisen), 0 % / steuerbefreit (Zweckbetrieb nach § 67a AO), Kombi 70/30 (Kombinationsangebote nach Abschn. 10.1 Abs. 12 UStAE). Produkte erhalten einen konfigurierbaren Steuersatz-Schlüssel. Bei `kombi`-Positionen entfaltet der Export den Pauschalpreis in zwei Steueranteile (70 % → 7 %, 30 % → 19 %): zwei VAT-Einträge in `lines_vat.csv`, beide Anteile in `transactions_vat.csv`. Steuerregeln: [steuerrecht.md](steuerrecht.md).
+7. TSE-Stammdaten-Persistenz: Signaturalgorithmus, Public Key und Zertifikat werden beim TSE-Setup gespeichert (aktuell nicht abfragbar vorhanden) und speisen `tse.csv`
+8. **Steuersatz-Verwaltung:** USt-Sätze als Stammdaten: 19 % (Regelsteuersatz, z. B. Getränke), 7 % (ermäßigt, z. B. Speisen), 0 % / steuerbefreit (Zweckbetrieb nach § 67a AO), Kombi 70/30 (Kombinationsangebote nach Abschn. 10.1 Abs. 12 UStAE). Produkte erhalten einen konfigurierbaren Steuersatz-Schlüssel. Bei `kombi`-Positionen entfaltet der Export den Pauschalpreis in zwei Steueranteile (70 % → 7 %, 30 % → 19 %): zwei VAT-Einträge in `lines_vat.csv`, beide Anteile in `transactions_vat.csv`. Steuerregeln: [steuerrecht.md](steuerrecht.md).
 
 ---
 
