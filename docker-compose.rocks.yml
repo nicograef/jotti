@@ -3,7 +3,7 @@ name: jotti
 # Standalone Docker Compose file for the jotti.rocks project deployment.
 # Runs the full stack (postgres, backend, frontend), serves the static landing
 # page via the dual-domain nginx config and runs the DNS infrastructure for
-# trusted local TLS (resolver + acme-dns); see docs/betrieb/leitfaden-rocks-dns.md.
+# trusted local TLS (resolver + acme-dns); see docs/jotti-rocks-infra.md.
 #
 # Usage:
 #   docker compose -f docker-compose.rocks.yml up -d --build

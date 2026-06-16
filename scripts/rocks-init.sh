@@ -59,7 +59,7 @@ if [[ ! -f .env ]]; then
 fi
 
 if ! grep -qE '^VPS_PUBLIC_IP=.+' .env; then
-  fatal "VPS_PUBLIC_IP missing or empty in .env (public IPv4 of this server, needed by resolver + acme-dns). See docs/betrieb/leitfaden-rocks-dns.md."
+  fatal "VPS_PUBLIC_IP missing or empty in .env (public IPv4 of this server, needed by resolver + acme-dns). See docs/jotti-rocks-infra.md."
 fi
 
 if ! command -v docker &>/dev/null; then
@@ -120,7 +120,7 @@ if host "$DOMAIN_AUTH" &>/dev/null || dig +short "$DOMAIN_AUTH" 2>/dev/null | gr
   CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_AUTH"
 else
   warn "DNS resolution for $DOMAIN_AUTH failed. auth will not be included in the certificate."
-  warn "Expand the certificate after the stack is up — see docs/betrieb/leitfaden-rocks-dns.md."
+  warn "Expand the certificate after the stack is up — see docs/jotti-rocks-infra.md."
 fi
 
 # ---------------------------------------------------------------------------
@@ -188,7 +188,7 @@ AUTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOM
 if [[ "$AUTH_STATUS" == "200" ]]; then
   info "acme-dns API HTTPS check: OK (HTTP $AUTH_STATUS)"
 else
-  warn "acme-dns API HTTPS check returned HTTP $AUTH_STATUS — expected if auth.jotti.rocks is not yet in the certificate (see docs/betrieb/leitfaden-rocks-dns.md)."
+  warn "acme-dns API HTTPS check returned HTTP $AUTH_STATUS — expected if auth.jotti.rocks is not yet in the certificate (see docs/jotti-rocks-infra.md)."
 fi
 
 # Check HTTP→HTTPS redirect
