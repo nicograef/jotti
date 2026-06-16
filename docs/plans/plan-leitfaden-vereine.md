@@ -188,20 +188,21 @@ TSE von fiskaly" als der Anbieter.
 
 ### Acceptance criteria
 
-- [ ] `docs/leitfaden.md` existiert, enthält alle neun Abschnitte in dieser
+- [x] `docs/leitfaden.md` existiert, enthält alle neun Abschnitte in dieser
       Reihenfolge und ist oben sichtbar als kanonische Quelle markiert.
-- [ ] Standardweg steht vollständig vor jedem Server-/Domain-/Kommandozeilen-Thema;
+- [x] Standardweg steht vollständig vor jedem Server-/Domain-/Kommandozeilen-Thema;
       Experten-Weg und TSE-Sonderfälle stehen erkennbar als optional weiter unten.
-- [ ] Faktenstand korrekt: TSE/Beleg vorhanden, DSFinV-K in Entwicklung (v2.5),
+- [x] Faktenstand korrekt: TSE/Beleg vorhanden, DSFinV-K in Entwicklung (v2.5),
       keine Hash-Chain, Betriebs-Proxy Caddy, „Cloud-TSE von fiskaly" (kein
       „z. B.", keine Alternativen).
-- [ ] Verbindliche Fachbegriffe gemäß `docs/language.md` durchgängig verwendet.
-- [ ] Der Fehlersuche-/DNS-Rebind-Abschnitt hat ein stabiles Heading mit klar
-      bestimmbarem GitHub-Anker (Vertragsbasis für Phase 4).
-- [ ] Stil-Gegenprobe: Wortstrom-Diff gegen den Altbestand zeigt keinen neuen
+- [x] Verbindliche Fachbegriffe gemäß `docs/language.md` durchgängig verwendet.
+- [x] Der Fehlersuche-/DNS-Rebind-Abschnitt hat ein stabiles Heading mit klar
+      bestimmbarem GitHub-Anker (Vertragsbasis für Phase 4). Gewählt: `## Fehlersuche`
+      → `#fehlersuche` (ASCII, einwortig, bewusst stabil gehalten).
+- [x] Stil-Gegenprobe: Wortstrom-Diff gegen den Altbestand zeigt keinen neuen
       KI-Slop (keine Gedankenstrich-Manier, kein liberales Bold, keine Floskeln;
       Run-in-Labels erlaubt).
-- [ ] Keine inhaltliche Erweiterung über den Altbestand hinaus (Ziel:
+- [x] Keine inhaltliche Erweiterung über den Altbestand hinaus (Ziel:
       Konsolidierung, Korrektur, Kürzung).
 
 ---
