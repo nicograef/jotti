@@ -215,14 +215,14 @@ oder beim Wechsel von TEST auf LIVE.
 
 ## 7. Wenn die Einrichtung hängt
 
-| Meldung                                        | Bedeutung und Ausweg                                                                                                |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Zugangsdaten ungültig                          | API-Key oder Secret stimmt nicht. Werte erneut eingeben oder im Dashboard neu erstellen.                           |
-| Umgebung hat sich geändert                     | Zwischen Prüfung und Einrichtung wurden die Zugangsdaten gewechselt. Konto erneut prüfen.                          |
-| Admin-PIN nicht akzeptiert                     | fiskaly lehnt die eingegebene PIN ab. Verwahrte PIN prüfen, sonst fiskaly-Support oder bewusste Neu-Anlage.        |
-| TSS in nicht übernehmbarem Zustand             | Die vorhandene TSS lässt sich nicht automatisch übernehmen. fiskaly-Support kontaktieren oder manuelle Einrichtung.|
-| Serverfehler direkt nach dem Anlegen           | Selten: die TSS wurde angelegt, das Speichern in jotti schlug fehl. Assistent erneut starten, jotti bietet die Übernahme an (Abschnitt 3.4).|
-| Verbindung mit Auffälligkeiten (Abschlusstest) | Das genannte Feld (TSS, Client oder Seriennummer) prüfen, ggf. Einrichtung wiederholen.                           |
+| Meldung                                        | Bedeutung und Ausweg                                                                                                                                                                                                         |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zugangsdaten ungültig                          | API-Key oder Secret stimmt nicht. Werte erneut eingeben oder im Dashboard neu erstellen.                                                                                                                                     |
+| Umgebung hat sich geändert                     | Zwischen Prüfung und Einrichtung wurden die Zugangsdaten gewechselt. Konto erneut prüfen.                                                                                                                                    |
+| Admin-PIN nicht akzeptiert                     | fiskaly lehnt die eingegebene PIN ab. Verwahrte PIN prüfen, sonst fiskaly-Support oder bewusste Neu-Anlage.                                                                                                                  |
+| TSS in nicht übernehmbarem Zustand             | Die vorhandene TSS lässt sich nicht automatisch übernehmen. fiskaly-Support kontaktieren oder manuelle Einrichtung.                                                                                                          |
+| Serverfehler direkt nach dem Anlegen           | Selten: die TSS wurde angelegt, das Speichern in jotti schlug fehl. Assistent erneut starten, jotti bietet die Übernahme an (Abschnitt 3.4). Voraussetzung ist die verwahrte Admin-PIN, sonst hilft nur der fiskaly-Support. |
+| Verbindung mit Auffälligkeiten (Abschlusstest) | Das genannte Feld (TSS, Client oder Seriennummer) prüfen, ggf. Einrichtung wiederholen.                                                                                                                                      |
 
 Bei einer unbekannten Admin-PIN sitzt ihr nicht in einer Sackgasse: Entweder die verwahrte
 PIN noch einmal genau prüfen, den fiskaly-Support einschalten, oder mit anderen

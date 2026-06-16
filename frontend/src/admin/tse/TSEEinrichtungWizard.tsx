@@ -11,6 +11,11 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
@@ -200,8 +205,8 @@ function BefundSchritt({
       {uebernehmbar.length > 0 ? (
         <div className="grid gap-3">
           <p className="text-sm">
-            In diesem Konto ist bereits eine TSS vorhanden. Du kannst sie
-            übernehmen, statt eine neue anzulegen.
+            In diesem Konto ist bereits eine TSE vorhanden. Du kannst sie
+            übernehmen.
           </p>
           {uebernehmbar.map((tss) => (
             <UebernahmeSchritt
@@ -223,9 +228,9 @@ function BefundSchritt({
         />
       ) : (
         <Alert variant="destructive">
-          <AlertTitle>TSS in nicht übernehmbarem Zustand</AlertTitle>
+          <AlertTitle>TSE in nicht übernehmbarem Zustand</AlertTitle>
           <AlertDescription>
-            Die vorhandene TSS lässt sich nicht automatisch übernehmen. Bitte
+            Die vorhandene TSE lässt sich nicht automatisch übernehmen. Bitte
             wende dich an den fiskaly-Support oder nutze die manuelle
             Einrichtung unten.
           </AlertDescription>
@@ -260,11 +265,11 @@ function UebernahmeSchritt({
     byCode: {
       ...SETUP_FEHLER,
       tse_setup_tss_nicht_gefunden:
-        'Diese TSS wurde im Konto nicht mehr gefunden. Bitte das Konto erneut prüfen.',
+        'Diese TSE wurde im Konto nicht mehr gefunden. Bitte das Konto erneut prüfen.',
       tse_setup_pin_erforderlich:
-        'Für diese TSS ist die verwahrte Admin-PIN erforderlich.',
+        'Für diese TSE ist die verwahrte Admin-PIN erforderlich.',
       tse_setup_uebernahme_nicht_moeglich:
-        'Diese TSS lässt sich nicht übernehmen. Bitte den fiskaly-Support kontaktieren.',
+        'Diese TSE lässt sich nicht übernehmen. Bitte den fiskaly-Support kontaktieren.',
       tse_einrichtung_fehlgeschlagen:
         'Die Übernahme ist fehlgeschlagen. Bitte später erneut versuchen.',
     },
@@ -305,11 +310,11 @@ function UebernahmeSchritt({
   return (
     <div className="grid gap-4 rounded-md border p-4">
       <div className="grid gap-1.5">
-        <p className="text-sm font-medium">TSS übernehmen</p>
+        <p className="text-sm font-medium">TSE übernehmen</p>
         <p className="text-sm text-muted-foreground">
           {passenderClient
-            ? 'Diese Kasse ist bereits als Client registriert. jotti schließt die Einrichtung ab und speichert die Konfiguration.'
-            : 'jotti vollendet die Einrichtung dieser TSS und registriert diese Kasse als Client.'}
+            ? 'Diese Kasse ist hier bereits angemeldet. jotti schließt die Einrichtung ab und speichert die Konfiguration.'
+            : 'jotti schließt die Einrichtung dieser TSE ab und meldet diese Kasse an.'}
         </p>
       </div>
 
@@ -327,9 +332,10 @@ function UebernahmeSchritt({
             autoComplete="off"
           />
           <p className="text-xs text-muted-foreground">
-            Diese TSS ist bereits personalisiert. Gib die bei der ersten
+            Diese TSE wurde bereits eingerichtet. Gib die bei der ersten
             Einrichtung verwahrte Admin-PIN ein.
           </p>
+          <PinFehltHinweis />
         </div>
       )}
 
@@ -338,9 +344,9 @@ function UebernahmeSchritt({
           <AlertTitle>Admin-PIN nicht akzeptiert</AlertTitle>
           <AlertDescription>
             fiskaly hat die eingegebene Admin-PIN abgelehnt. Ohne die korrekte
-            PIN lässt sich diese TSS nicht übernehmen. Mögliche Auswege: die
+            PIN lässt sich diese TSE nicht übernehmen. Mögliche Auswege: die
             verwahrte PIN erneut prüfen, den fiskaly-Support kontaktieren oder
-            mit anderen Zugangsdaten bewusst eine neue TSS anlegen.
+            mit anderen Zugangsdaten bewusst eine neue TSE anlegen.
           </AlertDescription>
         </Alert>
       )}
@@ -350,9 +356,38 @@ function UebernahmeSchritt({
         onClick={() => void handleUebernehmen()}
         disabled={loading || pinFehlt}
       >
-        {loading ? 'Übernehme…' : 'TSS übernehmen'}
+        {loading ? 'Übernehme…' : 'TSE übernehmen'}
       </Button>
     </div>
+  )
+}
+
+// Auch wenn das PIN-Feld leer ist (Button deaktiviert), braucht der Admin einen
+// sichtbaren Ausweg statt einer Sackgasse. Dieser aufklappbare Hinweis nennt die
+// Wege, wenn die bei der Ersteinrichtung verwahrte Admin-PIN nicht vorliegt.
+function PinFehltHinweis() {
+  const [offen, setOffen] = useState(false)
+
+  return (
+    <Collapsible open={offen} onOpenChange={setOffen}>
+      <CollapsibleTrigger asChild>
+        <Button variant="link" className="h-auto w-fit p-0 text-sm">
+          Ich habe die Admin-PIN nicht
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <Alert className="mt-2">
+          <AlertTitle>Ohne Admin-PIN keine Übernahme</AlertTitle>
+          <AlertDescription>
+            Die Admin-PIN wurde bei der ersten Einrichtung dieser TSE einmalig
+            angezeigt und von euch verwahrt. Ohne sie lässt sie sich nicht
+            übernehmen. Mögliche Wege: die verwahrte PIN in euren Unterlagen
+            suchen, den fiskaly-Support kontaktieren, oder über „Andere
+            Zugangsdaten“ mit einem anderen fiskaly-Konto neu beginnen.
+          </AlertDescription>
+        </Alert>
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
 
@@ -375,7 +410,7 @@ function BestaetigungSchritt({
     byCode: {
       ...SETUP_FEHLER,
       tse_bereits_eingerichtet:
-        'In diesem Konto existiert bereits eine TSS. Es wird keine neue angelegt.',
+        'In diesem Konto existiert bereits eine TSE. Es wird keine neue angelegt.',
       tse_einrichtung_fehlgeschlagen:
         'Die Einrichtung ist fehlgeschlagen. Bitte später erneut versuchen.',
     },
@@ -395,9 +430,9 @@ function BestaetigungSchritt({
       <div className="grid gap-1.5">
         <p className="text-sm font-medium">Einrichtung starten</p>
         <p className="text-sm text-muted-foreground">
-          jotti legt jetzt eine neue TSS an, initialisiert sie und registriert
-          diese Kasse als Client. Du erhältst danach einmalig den Admin-PUK und
-          die Admin-PIN zur Verwahrung.
+          jotti legt jetzt eine neue TSE an, richtet sie ein und meldet diese
+          Kasse an. Du erhältst danach einmalig den Admin-PUK und die Admin-PIN
+          zur Verwahrung.
         </p>
       </div>
 
@@ -482,7 +517,7 @@ function ErgebnisSchritt({
         <Alert>
           <AlertTitle>TSE übernommen</AlertTitle>
           <AlertDescription>
-            Die vorhandene TSS wurde übernommen und die Konfiguration
+            Die vorhandene TSE wurde übernommen und die Konfiguration
             gespeichert. Deine bereits verwahrten Admin-PUK und Admin-PIN gelten
             unverändert weiter.
           </AlertDescription>
@@ -536,8 +571,8 @@ function AbschlussTest({ status }: { status: TSEVerbindungStatus }) {
       <Alert>
         <AlertTitle>Verbindung bestätigt</AlertTitle>
         <AlertDescription>
-          Die TSE ist einsatzbereit (Umgebung {status.umgebung}, TSS{' '}
-          {status.tssState}, Client {status.clientState}).
+          Die TSE ist einsatzbereit (Umgebung {status.umgebung}, TSE-Zustand{' '}
+          {status.tssState}, Kassen-Anmeldung {status.clientState}).
         </AlertDescription>
       </Alert>
     )
@@ -547,8 +582,8 @@ function AbschlussTest({ status }: { status: TSEVerbindungStatus }) {
     <Alert variant="destructive">
       <AlertTitle>Verbindung mit Auffälligkeiten</AlertTitle>
       <AlertDescription>
-        Umgebung {status.umgebung}, TSS {status.tssState}, Client{' '}
-        {status.clientState}, Seriennummern-Abgleich{' '}
+        Umgebung {status.umgebung}, TSE-Zustand {status.tssState},
+        Kassen-Anmeldung {status.clientState}, Seriennummern-Abgleich{' '}
         {status.seriennummerKorrekt ? 'korrekt' : 'abweichend'}. Bitte die
         Einrichtung unten prüfen.
       </AlertDescription>
@@ -575,7 +610,7 @@ function UmgebungAnzeige({ umgebung }: { umgebung: Umgebung }) {
           Umgebung: <Badge variant="destructive">LIVE</Badge>
         </AlertTitle>
         <AlertDescription>
-          Dies ist die echte Produktivumgebung. Hier angelegte TSS verursachen
+          Dies ist die echte Produktivumgebung. Hier angelegte TSE verursachen
           laufende Kosten und lassen sich nicht löschen.
         </AlertDescription>
       </Alert>
@@ -595,33 +630,55 @@ function UmgebungAnzeige({ umgebung }: { umgebung: Umgebung }) {
   )
 }
 
+// Übersetzt den technischen fiskaly-Zustand in eine laienverständliche Angabe.
+// Der rohe Zustand bleibt daneben als Kennung für den Support sichtbar.
+function tssZustandKlartext(state: string): string {
+  switch (state.toUpperCase()) {
+    case 'CREATED':
+      return 'neu angelegt'
+    case 'UNINITIALIZED':
+      return 'angelegt, noch nicht einsatzbereit'
+    case 'INITIALIZED':
+      return 'einsatzbereit'
+    case 'DISABLED':
+      return 'stillgelegt'
+    default:
+      return state
+  }
+}
+
 function TSSListe({ tssListe }: { tssListe: TSSBefund[] }) {
   if (tssListe.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        In diesem Konto wurde noch keine TSS gefunden.
+        In diesem Konto wurde noch keine TSE gefunden.
       </p>
     )
   }
 
   return (
     <div className="grid gap-3">
-      <p className="text-sm font-medium">Gefundene TSS</p>
+      <p className="text-sm font-medium">Gefundene TSE</p>
       {tssListe.map((tss) => (
         <div key={tss.id} className="grid gap-1 rounded-md border p-3 text-sm">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-mono text-xs break-all">{tss.id}</span>
-            <Badge variant="outline">{tss.state}</Badge>
+            <Badge variant="outline">{tssZustandKlartext(tss.state)}</Badge>
+            <span className="font-mono text-xs text-muted-foreground">
+              {tss.state}
+            </span>
           </div>
           {tss.passenderClient ? (
             <p className="text-muted-foreground">
-              Passender Client vorhanden ({tss.passenderClient.state}).
+              Diese Kasse ist hier bereits angemeldet.
             </p>
           ) : (
             <p className="text-muted-foreground">
-              Kein Client mit dieser Kassen-Seriennummer.
+              Diese Kasse ist hier noch nicht angemeldet.
             </p>
           )}
+          <p className="text-muted-foreground text-xs break-all">
+            Technische Kennung: {tss.id}
+          </p>
         </div>
       ))}
     </div>
