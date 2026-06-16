@@ -70,3 +70,19 @@ func (r Repository) UpsertTSEKonfiguration(ctx context.Context, c settings.TSEKo
 	}
 	return nil
 }
+
+// UpsertTSEStammdaten speichert die fiskalischen TSS-Stammdaten fuer den
+// DSFinV-K-Export (Singleton).
+func (r Repository) UpsertTSEStammdaten(ctx context.Context, s settings.TSEStammdaten) error {
+	err := r.q.UpsertTSEStammdaten(ctx, dbgen.UpsertTSEStammdatenParams{
+		SignaturAlgorithmus: s.SignaturAlgorithmus,
+		PublicKey:           s.PublicKey,
+		Zertifikat:          s.Zertifikat,
+		LogTimeFormat:       s.LogTimeFormat,
+		Version:             s.Version,
+	})
+	if err != nil {
+		return db.Error(err)
+	}
+	return nil
+}

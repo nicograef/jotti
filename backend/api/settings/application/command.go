@@ -10,6 +10,7 @@ import (
 type settingsCommandRepo interface {
 	UpsertBetreiber(ctx context.Context, b settings.Betreiber) error
 	UpsertTSEKonfiguration(ctx context.Context, b settings.TSEKonfiguration) error
+	UpsertTSEStammdaten(ctx context.Context, s settings.TSEStammdaten) error
 	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
 }
 

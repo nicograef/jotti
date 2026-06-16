@@ -63,6 +63,14 @@ type createTSSResponse struct {
 type tssDetailResponse struct {
 	AdminPUK string `json:"admin_puk"`
 	State    string `json:"state"`
+	// Fiskalische Stammdaten der TSS-Ressource fuer den DSFinV-K-Export. fiskaly
+	// nennt das Log-Time-Format signature_timestamp_format; _version ist die
+	// API-Versionsangabe.
+	SignatureAlgorithm       string `json:"signature_algorithm"`
+	PublicKey                string `json:"public_key"`
+	Certificate              string `json:"certificate"`
+	SignatureTimestampFormat string `json:"signature_timestamp_format"`
+	Version                  string `json:"_version"`
 }
 
 type tssStateRequest struct {
@@ -164,6 +172,29 @@ func (c *FiskalyTSESetupClient) HoleAdminPUK(ctx context.Context, tssID string) 
 		return "", mapSetupError(err)
 	}
 	return strings.TrimSpace(resp.AdminPUK), nil
+}
+
+// RetrieveTSSStammdaten liest die fiskalischen Stammdaten der TSS-Ressource
+// (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format, Version) fuer
+// den DSFinV-K-Export. Reine Leseoperation auf derselben TSS-Ressource wie
+// HoleAdminPUK.
+func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID string) (tse.TSSStammdaten, error) {
+	tssID = strings.TrimSpace(tssID)
+	if tssID == "" {
+		return tse.TSSStammdaten{}, fmt.Errorf("tss id is required")
+	}
+	resp := tssDetailResponse{}
+	path := fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(tssID))
+	if err := c.doJSONRequest(ctx, http.MethodGet, path, nil, nil, true, &resp); err != nil {
+		return tse.TSSStammdaten{}, mapSetupError(err)
+	}
+	return tse.TSSStammdaten{
+		SignaturAlgorithmus: strings.TrimSpace(resp.SignatureAlgorithm),
+		PublicKey:           strings.TrimSpace(resp.PublicKey),
+		Zertifikat:          strings.TrimSpace(resp.Certificate),
+		LogTimeFormat:       strings.TrimSpace(resp.SignatureTimestampFormat),
+		Version:             strings.TrimSpace(resp.Version),
+	}, nil
 }
 
 // PersonalisiereTSS ueberfuehrt die TSS von CREATED nach UNINITIALIZED.

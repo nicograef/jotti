@@ -16,9 +16,11 @@ import (
 // Kassenidentitaet, damit die Orchestrator-Tests Seriennummer und Speicherung
 // pruefen koennen.
 type stubCommandRepo struct {
-	identitaet  settings.Kassenidentitaet
-	gespeichert *settings.TSEKonfiguration
-	upsertErr   error
+	identitaet             settings.Kassenidentitaet
+	gespeichert            *settings.TSEKonfiguration
+	gespeicherteStammdaten *settings.TSEStammdaten
+	upsertErr              error
+	stammdatenUpsertErr    error
 }
 
 func (s *stubCommandRepo) UpsertBetreiber(context.Context, settings.Betreiber) error {
@@ -34,6 +36,14 @@ func (s *stubCommandRepo) UpsertTSEKonfiguration(_ context.Context, c settings.T
 		return s.upsertErr
 	}
 	s.gespeichert = &c
+	return nil
+}
+
+func (s *stubCommandRepo) UpsertTSEStammdaten(_ context.Context, st settings.TSEStammdaten) error {
+	if s.stammdatenUpsertErr != nil {
+		return s.stammdatenUpsertErr
+	}
+	s.gespeicherteStammdaten = &st
 	return nil
 }
 
@@ -678,5 +688,125 @@ func TestUebernimmTSE_DeaktivierteTSS(t *testing.T) {
 	}
 	if repo.gespeichert != nil {
 		t.Fatal("expected no configuration to be saved for a disabled TSS")
+	}
+}
+
+// stammdatenAntwort ist die fiskaly-Stammdaten-Antwort fuer die
+// Persistenz-Tests des DSFinV-K-Exports.
+func stammdatenAntwort() tse.TSSStammdaten {
+	return tse.TSSStammdaten{
+		SignaturAlgorithmus: "ecdsa-plain-SHA256",
+		PublicKey:           "public-key-b64",
+		Zertifikat:          "certificate-b64",
+		LogTimeFormat:       "unixTime",
+		Version:             "2.2.2",
+	}
+}
+
+// pruefeStammdaten vergleicht die gespeicherten Stammdaten mit der erwarteten
+// fiskaly-Antwort (ohne den serverseitig gesetzten Zeitstempel).
+func pruefeStammdaten(t *testing.T, gespeichert *settings.TSEStammdaten, erwartet tse.TSSStammdaten) {
+	t.Helper()
+	if gespeichert == nil {
+		t.Fatal("expected the tse stammdaten to be persisted")
+	}
+	if gespeichert.SignaturAlgorithmus != erwartet.SignaturAlgorithmus ||
+		gespeichert.PublicKey != erwartet.PublicKey ||
+		gespeichert.Zertifikat != erwartet.Zertifikat ||
+		gespeichert.LogTimeFormat != erwartet.LogTimeFormat ||
+		gespeichert.Version != erwartet.Version {
+		t.Fatalf("persisted stammdaten do not match the fiskaly response, got %+v", gespeichert)
+	}
+}
+
+// TestRichteTSEEin_PersistiertStammdaten sichert, dass nach erfolgreicher
+// Neuanlage die fiskalischen TSS-Stammdaten (Algorithmus, Public Key, Zertifikat,
+// Log-Time-Format) fuer den DSFinV-K-Export gespeichert werden.
+func TestRichteTSEEin_PersistiertStammdaten(t *testing.T) {
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse:   tse.UmgebungTest,
+		CreateTSSResponse:  tse.TSSErstellt{ID: "tss-neu", PUK: "puk", State: "CREATED"},
+		StammdatenResponse: stammdatenAntwort(),
+	}
+
+	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.StammdatenCalls != 1 || client.StammdatenTssID != "tss-neu" {
+		t.Fatalf("expected stammdaten to be fetched once for the new TSS, got %d calls for %q", client.StammdatenCalls, client.StammdatenTssID)
+	}
+	pruefeStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
+}
+
+// TestUebernimmTSE_EinsatzbereitPersistiertStammdaten sichert, dass die
+// Stammdaten-Persistenz am gemeinsamen Speicher-Schritt haengt, nicht am
+// Anlage-Lebenszyklus: selbst die F8-Uebernahme einer einsatzbereiten TSS (ohne
+// jede privilegierte fiskaly-Operation) zieht die Stammdaten nach.
+func TestUebernimmTSE_EinsatzbereitPersistiertStammdaten(t *testing.T) {
+	seriennummer := uuid.New()
+	vorhandenerClient := uuid.NewString()
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse: tse.UmgebungTest,
+		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
+		ClientsByTSS: map[string][]tse.ClientInfo{
+			"tss-init": {{ID: vorhandenerClient, SerialNumber: seriennummer.String(), State: "REGISTERED"}},
+		},
+		StammdatenResponse: stammdatenAntwort(),
+	}
+
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.AuthAdminCalls != 0 {
+		t.Fatalf("expected no lifecycle operations for a ready TSS, got %d admin auth calls", client.AuthAdminCalls)
+	}
+	if client.StammdatenCalls != 1 || client.StammdatenTssID != "tss-init" {
+		t.Fatalf("expected stammdaten to be fetched once for the adopted TSS, got %d calls for %q", client.StammdatenCalls, client.StammdatenTssID)
+	}
+	pruefeStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
+}
+
+// TestUebernimmTSE_PINResetPersistiertStammdaten sichert, dass auch der
+// PUK-Reset-Pfad die Stammdaten nachzieht.
+func TestUebernimmTSE_PINResetPersistiertStammdaten(t *testing.T) {
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse:   tse.UmgebungTest,
+		TSSResponse:        []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
+		StammdatenResponse: stammdatenAntwort(),
+	}
+
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "puk-verwahrt")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	pruefeStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
+}
+
+// TestRichteTSEEin_StammdatenAbrufFehlerKipptSetupNicht sichert die
+// Best-Effort-Semantik: schlaegt der Stammdaten-Abruf fehl, bleibt die
+// Einrichtung erfolgreich und die Konfiguration gespeichert — nur die Stammdaten
+// fehlen (beim naechsten Verbinden nachziehbar).
+func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetupNicht(t *testing.T) {
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse:  tse.UmgebungTest,
+		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk", State: "CREATED"},
+		StammdatenErr:     errors.New("fiskaly stammdaten read failed"),
+	}
+
+	ergebnis, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
+	if err != nil {
+		t.Fatalf("expected setup to succeed despite a stammdaten fetch failure, got %v", err)
+	}
+	if ergebnis.TssID != "tss-neu" || repo.gespeichert == nil {
+		t.Fatalf("expected the configuration to be saved, got result %q saved %+v", ergebnis.TssID, repo.gespeichert)
+	}
+	if repo.gespeicherteStammdaten != nil {
+		t.Fatal("expected no stammdaten to be saved when the fetch fails")
 	}
 }

@@ -125,20 +125,9 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	}
 
 	// Erst nach erfolgreichem Lebenszyklus wird die vollstaendige Konfiguration
-	// atomar gespeichert.
-	konfiguration, err := settings.NewTSEKonfiguration(credentials.ApiKey, credentials.ApiSecret, erstellt.ID, clientID)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to build tse_konfiguration after setup")
-		return TSESetupErgebnis{}, ErrTSEEinrichtung
-	}
-	if err := c.SettingsRepo.UpsertTSEKonfiguration(ctx, konfiguration); err != nil {
-		// Der fiskaly-Lebenszyklus war erfolgreich, nur das Speichern schlug fehl:
-		// Die TSS existiert bei fiskaly, ohne dass jotti sie kennt. tss_id/client_id
-		// werden geloggt (PUK/PIN niemals), damit sich die TSS spaeter ueber die
-		// Uebernahme (UebernimmTSE) wieder einsammeln laesst.
-		log.Error().Err(err).Str("tss_id", erstellt.ID).Str("client_id", clientID).
-			Msg("Failed to save tse_konfiguration after setup; TSS exists at fiskaly, recoverable via takeover")
-		return TSESetupErgebnis{}, ErrDatabase
+	// atomar gespeichert (gemeinsamer Speicher-Schritt aller Einrichtungspfade).
+	if err := c.speichereEinrichtung(ctx, log, client, credentials, erstellt.ID, clientID); err != nil {
+		return TSESetupErgebnis{}, err
 	}
 
 	log.Info().Str("tss_id", erstellt.ID).Str("umgebung", string(umgebung)).Msg("TSE setup completed")
@@ -303,17 +292,8 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, err
 	}
 
-	konfiguration, err := settings.NewTSEKonfiguration(credentials.ApiKey, credentials.ApiSecret, tssID, clientID)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to build tse_konfiguration after takeover")
-		return TSESetupErgebnis{}, ErrTSEEinrichtung
-	}
-	if err := c.SettingsRepo.UpsertTSEKonfiguration(ctx, konfiguration); err != nil {
-		// Wie bei der Neuanlage: Lebenszyklus erfolgreich, nur das Speichern schlug
-		// fehl. Die TSS bleibt bei fiskaly und laesst sich erneut uebernehmen.
-		log.Error().Err(err).Str("tss_id", tssID).Str("client_id", clientID).
-			Msg("Failed to save tse_konfiguration after takeover; TSS exists at fiskaly, recoverable via takeover")
-		return TSESetupErgebnis{}, ErrDatabase
+	if err := c.speichereEinrichtung(ctx, log, client, credentials, tssID, clientID); err != nil {
+		return TSESetupErgebnis{}, err
 	}
 
 	log.Info().Str("tss_id", tssID).Str("umgebung", string(umgebung)).Str("ausgangszustand", state).Msg("TSE takeover completed")
@@ -325,6 +305,45 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		AdminPIN: ergebnisPIN,
 		Umgebung: string(umgebung),
 	}, nil
+}
+
+// speichereEinrichtung ist der gemeinsame Speicher-Schritt aller
+// Einrichtungspfade (Neuanlage, Uebernahme, F8-Uebernahme und PUK-Reset): nach
+// erfolgreichem fiskaly-Lebenszyklus wird die TSE-Konfiguration atomar
+// gespeichert und — best effort — die fiskalischen TSS-Stammdaten fuer den
+// DSFinV-K-Export nachgezogen. Schlaegt das Speichern der Konfiguration fehl, ist
+// die Einrichtung nicht abgeschlossen: die TSS existiert bei fiskaly (per
+// Uebernahme einsammelbar), tss_id/client_id werden geloggt (PUK/PIN niemals).
+func (c Command) speichereEinrichtung(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, credentials tse.SetupCredentials, tssID, clientID string) error {
+	konfiguration, err := settings.NewTSEKonfiguration(credentials.ApiKey, credentials.ApiSecret, tssID, clientID)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to build tse_konfiguration after setup")
+		return ErrTSEEinrichtung
+	}
+	if err := c.SettingsRepo.UpsertTSEKonfiguration(ctx, konfiguration); err != nil {
+		log.Error().Err(err).Str("tss_id", tssID).Str("client_id", clientID).
+			Msg("Failed to save tse_konfiguration after setup; TSS exists at fiskaly, recoverable via takeover")
+		return ErrDatabase
+	}
+
+	c.zieheTSEStammdaten(ctx, log, client, tssID)
+	return nil
+}
+
+// zieheTSEStammdaten liest die fiskalischen TSS-Stammdaten von fiskaly und
+// speichert sie fuer den DSFinV-K-Export. Best effort: jeder Fehler beim Abruf
+// oder Speichern wird nur protokolliert, der Setup-Erfolg bleibt bestehen — die
+// Stammdaten lassen sich beim naechsten Verbinden nachziehen.
+func (c Command) zieheTSEStammdaten(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, tssID string) {
+	gelesen, err := client.RetrieveTSSStammdaten(ctx, tssID)
+	if err != nil {
+		log.Warn().Err(err).Str("tss_id", tssID).Msg("Failed to fetch TSE Stammdaten after setup; recoverable on next connect")
+		return
+	}
+	stammdaten := settings.NewTSEStammdaten(gelesen.SignaturAlgorithmus, gelesen.PublicKey, gelesen.Zertifikat, gelesen.LogTimeFormat, gelesen.Version)
+	if err := c.SettingsRepo.UpsertTSEStammdaten(ctx, stammdaten); err != nil {
+		log.Warn().Err(err).Str("tss_id", tssID).Msg("Failed to save TSE Stammdaten after setup; recoverable on next connect")
+	}
 }
 
 // clientAktion beschreibt, was im Client-Schritt einer INITIALIZED TSS zu tun

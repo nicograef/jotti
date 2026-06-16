@@ -465,6 +465,23 @@ type TseSignaturen struct {
 	ErstelltAm time.Time
 }
 
+// TSE-Stammdaten (Singleton). Fiskalische Stammdaten der TSS fuer den DSFinV-K-Export (tse.csv); bei der Einrichtung von fiskaly gelesen.
+type TseStammdaten struct {
+	ID int
+	// Signaturalgorithmus der TSS (z. B. ecdsa-plain-SHA256).
+	SignaturAlgorithmus string
+	// Public Key der TSS, base64-kodiert.
+	PublicKey string
+	// TSS-Zertifikat, base64-kodiert.
+	Zertifikat string
+	// Format der TSE-Log-Zeitstempel (z. B. unixTime).
+	LogTimeFormat string
+	// Versionsangabe der TSS (fiskaly SIGN DE API-Version).
+	Version string
+	// Letzte Aenderung (UTC)
+	UpdatedAt time.Time
+}
+
 // System users who perform actions in jotti
 type User struct {
 	ID int

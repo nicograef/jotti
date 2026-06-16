@@ -81,6 +81,18 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 		t.Fatalf("register client failed: %v", err)
 	}
 
+	// Die fiskalischen TSS-Stammdaten fuer den DSFinV-K-Export muessen lesbar sein.
+	stammdaten, err := setupClient.RetrieveTSSStammdaten(ctx, erstellt.ID)
+	if err != nil {
+		t.Fatalf("retrieve tss stammdaten failed: %v", err)
+	}
+	if stammdaten.SignaturAlgorithmus == "" || stammdaten.PublicKey == "" || stammdaten.Zertifikat == "" {
+		t.Fatalf("expected non-empty algorithm, public key and certificate, got %+v", stammdaten)
+	}
+	if stammdaten.LogTimeFormat == "" {
+		t.Fatalf("expected a log time format, got %+v", stammdaten)
+	}
+
 	// Die frisch eingerichtete TSS muss signierfähig sein.
 	signClient, err := NewFiskalyTSEClient(baseURL, tse.Credentials{
 		ApiKey:    apiKey,

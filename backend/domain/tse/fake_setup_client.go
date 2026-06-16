@@ -33,6 +33,8 @@ type FakeSetupClient struct {
 	CreateTSSErr         error
 	HoleAdminPUKResponse string
 	HoleAdminPUKErr      error
+	StammdatenResponse   TSSStammdaten
+	StammdatenErr        error
 	PersonalisiereErr    error
 	SetzeAdminPINErr     error
 	AuthAdminErr         error
@@ -43,6 +45,8 @@ type FakeSetupClient struct {
 	// Aufzeichnung fuer Assertions.
 	CreateTSSCalls      int
 	HoleAdminPUKCalls   int
+	StammdatenCalls     int
+	StammdatenTssID     string
 	AuthAdminCalls      int
 	GesetzteAdminPIN    string
 	GesetzterAdminPUK   string
@@ -65,6 +69,15 @@ func (f *FakeSetupClient) ListClients(_ context.Context, tssID string) ([]Client
 		return nil, f.ClientsErr
 	}
 	return f.ClientsByTSS[tssID], nil
+}
+
+func (f *FakeSetupClient) RetrieveTSSStammdaten(_ context.Context, tssID string) (TSSStammdaten, error) {
+	f.StammdatenCalls++
+	f.StammdatenTssID = tssID
+	if f.StammdatenErr != nil {
+		return TSSStammdaten{}, f.StammdatenErr
+	}
+	return f.StammdatenResponse, nil
 }
 
 func (f *FakeSetupClient) CreateTSS(context.Context) (TSSErstellt, error) {

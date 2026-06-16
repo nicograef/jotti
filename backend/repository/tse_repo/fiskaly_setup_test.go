@@ -272,6 +272,74 @@ func TestFiskalySetupClient_ReaktiviereClient(t *testing.T) {
 	}
 }
 
+// TestFiskalySetupClient_RetrieveTSSStammdaten bildet den Kontrakt der
+// Stammdaten-Leseoperation fuer den DSFinV-K-Export ab: ein GET auf die
+// TSS-Ressource liest signature_algorithm, public_key, certificate,
+// signature_timestamp_format (Log-Time-Format) und _version — und sendet
+// ausschliesslich Auth- und GET-Requests.
+func TestFiskalySetupClient_RetrieveTSSStammdaten(t *testing.T) {
+	var (
+		mu    sync.Mutex
+		calls []string
+	)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		calls = append(calls, r.Method)
+		mu.Unlock()
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"access_token":            "token-1",
+				"access_token_expires_at": time.Now().Add(1 * time.Hour).Unix(),
+				"access_token_claims":     map[string]any{"env": "TEST"},
+			})
+		case r.Method == http.MethodGet && r.URL.Path == "/api/v2/tss/tss-1":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"_id":                        "tss-1",
+				"state":                      "INITIALIZED",
+				"_version":                   "2.2.2",
+				"signature_algorithm":        "ecdsa-plain-SHA256",
+				"public_key":                 "public-key-b64",
+				"certificate":                "certificate-b64",
+				"signature_timestamp_format": "unixTime",
+			})
+		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewFiskalyTSESetupClient(server.URL, tse.SetupCredentials{ApiKey: "api-key", ApiSecret: "api-secret"}, nil)
+	if err != nil {
+		t.Fatalf("failed to create setup client: %v", err)
+	}
+
+	stammdaten, err := client.RetrieveTSSStammdaten(context.Background(), "tss-1")
+	if err != nil {
+		t.Fatalf("retrieve tss stammdaten failed: %v", err)
+	}
+	want := tse.TSSStammdaten{
+		SignaturAlgorithmus: "ecdsa-plain-SHA256",
+		PublicKey:           "public-key-b64",
+		Zertifikat:          "certificate-b64",
+		LogTimeFormat:       "unixTime",
+		Version:             "2.2.2",
+	}
+	if stammdaten != want {
+		t.Fatalf("unexpected stammdaten, got %+v want %+v", stammdaten, want)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	for _, m := range calls {
+		if m != http.MethodPost && m != http.MethodGet {
+			t.Fatalf("stammdaten read must only send auth and GET requests, got %s", m)
+		}
+	}
+}
+
 // bodyMatcht meldet, ob jedes erwartete Feld im tatsaechlichen Body steht.
 func bodyMatcht(body, want map[string]any) bool {
 	for k, v := range want {

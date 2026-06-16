@@ -183,16 +183,16 @@ Setup-Erfolg nicht zurückgenommen, aber der Fehlzustand verständlich protokoll
 
 ### Acceptance criteria
 
-- [ ] Nach erfolgreicher Neuanlage (`RichteTSEEin`) liegen Algorithmus, Public Key,
+- [x] Nach erfolgreicher Neuanlage (`RichteTSEEin`) liegen Algorithmus, Public Key,
       Zertifikat und Log-Time-Format in `tse_stammdaten`.
-- [ ] Nach einer Übernahme (`UebernimmTSE`, inkl. PIN-freier F8-Übernahme und
+- [x] Nach einer Übernahme (`UebernimmTSE`, inkl. PIN-freier F8-Übernahme und
       PUK-Reset) sind dieselben Stammdaten vollständig persistiert.
-- [ ] Die Persistenz hängt am gemeinsamen Speicher-Schritt, nicht am
+- [x] Die Persistenz hängt am gemeinsamen Speicher-Schritt, nicht am
       Anlage-Lebenszyklus (per Unit-Test gegen den `SetupClient`-Fake belegt).
-- [ ] Die fiskaly-Leseoperation ist gegen den Fake-Server kontraktgetestet
+- [x] Die fiskaly-Leseoperation ist gegen den Fake-Server kontraktgetestet
       (Pfad/Body), ein env-gated `//go:build integration`-Test deckt den echten
       Abruf ab.
-- [ ] `make sqlc` aktuell, `make check` grün.
+- [x] `make sqlc` aktuell, `make check` grün.
 
 ---
 

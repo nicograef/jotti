@@ -30,6 +30,7 @@ DROP FUNCTION IF EXISTS kj_extract_umsatz_pro_steuersatz(TEXT, JSONB);
 DROP TABLE IF EXISTS kassenidentitaet;
 DROP TABLE IF EXISTS betreiber;
 DROP TABLE IF EXISTS tse_konfiguration;
+DROP TABLE IF EXISTS tse_stammdaten;
 DROP TABLE IF EXISTS tse_signaturen;
 DROP TABLE IF EXISTS tse_nachsignier_auftraege;
 DROP TABLE IF EXISTS kassenjournal;
