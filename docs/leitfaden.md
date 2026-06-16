@@ -1,112 +1,56 @@
 # jotti betreiben: der Leitfaden für Vereine
 
-Dieser Leitfaden führt euch vom ersten Start bis zum rechtssicheren Betrieb. Oben
-steht der Standardfall, den fast alle Vereine brauchen. Server-, Domain- und
-Sonderfall-Themen folgen weiter unten und sind als optional gekennzeichnet.
-
-## In 60 Sekunden
-
 jotti ist eine Kasse im Sinne des Gesetzes (ein „elektronisches
-Aufzeichnungssystem"). Damit gelten dieselben Regeln wie für jede Registrierkasse,
-auch für gemeinnützige Vereine und auch bei kurzen Festen.
+Aufzeichnungssystem"). Damit gelten dieselben Regeln wie für jede Registrierkasse, auch für gemeinnützige Vereine und auch bei kurzen Festen.
 
 Drei Dinge müsst ihr als Verein selbst erledigen:
 
-1. Eine TSE (manipulationssicheres Signaturmodul) als Cloud-TSE von fiskaly buchen
-   und in jotti eintragen.
-2. Eure Kasse beim Finanzamt anmelden (online über ELSTER). Dafür braucht ihr die
-   Seriennummer, die jotti euch im Admin-Bereich anzeigt.
+1. Bei [fiskaly](https://www.fiskaly.com/de/signde) ein Account für die TSE anlegen und die Schlüssel in jotti eintragen (TSE = manipulationssicheres Signaturmodul für Kassensysteme).
+2. Eure Kasse beim Finanzamt anmelden (online über ELSTER). Dafür braucht ihr die Seriennummer, die jotti euch im Admin-Bereich anzeigt.
 3. Alle Kassendaten 10 Jahre aufbewahren (regelmäßige Backups).
 
-**Was jotti schon mitbringt:** Jeder Vorgang wird unveränderlich aufgezeichnet
-(Event-Sourcing, Korrekturen nur als Gegenbuchung). Die TSE-Anbindung und die
-Belegausgabe sind vorhanden. Der DSFinV-K-Export (genormtes Datenpaket für eine
-Prüfung, Zielformat v2.5) ist in Entwicklung.
+**Was kostet uns das?** jotti selbst ist für euch kostenlos. Kosten
+entstehen nur für die TSE von fiskaly (circa 8€ pro Monat), und ggf. für einen Server (circa 5€ pro Monat).
 
-**Was kostet uns das?** jotti selbst ist für berechtigte Vereine kostenlos. Kosten
-entstehen nur für den Server und die Cloud-TSE von fiskaly (kleine laufende Gebühr
-beim Anbieter). Der Standardweg unten kommt ohne Servermiete aus.
-
-## Schnellstart: Standardweg (Einzelgerät im WLAN)
+## Standardweg: Computer im Vereinsheim
 
 Für fast alle Vereinsfeste ist das der richtige Weg: Ein vorhandener
-Windows-Rechner im Vereinsheim wird zum Kassenrechner. Die Servicekräfte bedienen
-jotti auf ihren eigenen Handys im selben WLAN. Kein Server, keine Domain, keine
-laufenden Kosten. Das genügt auch mit mehreren Helfern, vielen Tischen und
-Bondruck.
-
-> 🔒 **Grünes Schloss als Normalfall.** Für den lokalen Betrieb holt jotti
-> automatisch ein echtes, vom Browser anerkanntes Zertifikat über die Adresse
-> `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start ausgestellt und selbst erneuert, ohne Einrichtung pro Gerät. Welche
-> Adresse gerade gilt, zeigt samt QR-Code die Status-Seite `http://localhost:8484`
-> am Kassenrechner.
->
-> Greift die grüne Adresse nicht (vor der ersten Ausstellung, ohne Internet oder
-> bei DNS-Rebind-Schutz im Router, siehe [Fehlersuche](#fehlersuche)), springt ein
-> Fallback `https://<LAN-IP>` mit selbstsigniertem Zertifikat ein (einmalige
-> Browserwarnung pro Gerät).
+Windows-Computer im Vereinsheim wird zum Kassenrechner. Die Servicekräfte bedienen jotti auf ihren eigenen Handys im selben WLAN. Kein Server, keine Domain, keine laufenden Kosten.
 
 ### Voraussetzungen
 
-- Ein Windows-Rechner mit Administratorrechten (der Starter fragt bei jedem Start
-  einmal per UAC nach).
-- Docker Desktop ist installiert (nur installieren, nicht vorab starten):
-  <https://www.docker.com/products/docker-desktop/>
-- Rechner und Handys hängen am selben Router/WLAN.
+- Ein Windows-Rechner mit Administratorrechten
+- Docker Desktop ist installiert: <https://www.docker.com/products/docker-desktop/>
+- Internet und WLAN im Vereinsheim
 
 ### Start per Doppelklick
 
-Für Windows gibt es einen Doppelklick-Starter, der die `.env` erzeugt, den Stack
-hochfährt und Docker-Start sowie Firewall-Freigabe selbst erledigt, ganz ohne
-Kommandozeile.
+Für Windows gibt es einen Doppelklick-Starter, der die `.env` erzeugt, den Stack hochfährt und Docker-Start sowie Firewall-Freigabe selbst erledigt, ganz ohne Kommandozeile.
 
-1. Das aktuelle Release-ZIP von der
-   [GitHub-Releases-Seite](https://github.com/nicograef/jotti/releases)
-   herunterladen und entpacken (alle Dateien bleiben im selben Ordner).
-2. `jotti-start.exe` doppelklicken. Beim ersten Mal dauert der Start einige Minuten
-   (Programmteile werden heruntergeladen). SmartScreen mit „Weitere Informationen"
-   → „Trotzdem ausführen" und UAC mit „Ja" bestätigen.
-3. Wenn alles läuft, die Status-Seite `http://localhost:8484` am Kassenrechner im
-   Browser öffnen. Dort stehen die Zugangsadresse und ein QR-Code.
+1. Das aktuelle Release-ZIP von der [GitHub-Releases-Seite](https://github.com/nicograef/jotti/releases) herunterladen und entpacken (alle Dateien bleiben im selben Ordner).
+2. `jotti-start.exe` doppelklicken. Beim ersten Mal dauert der Start einige Minuten (Programmteile werden heruntergeladen).
+   - SmartScreen mit „Weitere Informationen" → „Trotzdem ausführen" und UAC mit „Ja" bestätigen.
+3. Wenn alles läuft, die Status-Seite `http://localhost:8484` am Kassenrechner im Browser öffnen. Dort stehen die Zugangsadresse und ein QR-Code.
 
-Für den Bondruck zusätzlich `jotti-relay.exe` doppelklicken. Den vollständigen
-Ablauf (SmartScreen, UAC, Bondruck, Beenden, Aktualisieren) beschreibt die
-`KURZANLEITUNG.md` im ZIP.
+Für den Bondruck zusätzlich `jotti-relay.exe` doppelklicken. Den vollständigen Ablauf (SmartScreen, UAC, Bondruck, Beenden, Aktualisieren) beschreibt die `KURZANLEITUNG.md` im ZIP.
 
-> ⚠️ Den ersten Start vorab zuhause mit Internet machen, nicht erst auf dem Fest.
-> Beim Erststart lädt jotti seine Programmteile herunter und holt das
-> vertrauenswürdige Zertifikat. Beides braucht Internet. Danach läuft jotti auch
-> ohne Internet.
+> 🔒 **Grünes Schloss als Normalfall.** Für den lokalen Betrieb holt jotti automatisch ein echtes Zertifikat über die Adresse `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start ausgestellt und selbst erneuert. Dafür müsst ihr einmalig eine Ausnahme für den DNS-Rebind-Schutz bei eurem Router konfigurieren. Welche Adresse gerade gilt, zeigt samt QR-Code die Status-Seite `http://localhost:8484` am Kassenrechner.
+>
+> Greift die grüne Adresse nicht, springt ein Fallback `https://<LAN-IP>` mit selbstsigniertem Zertifikat ein (einmalige Browserwarnung pro Gerät, siehe [Fehlersuche](#fehlersuche)).
 
 ### Handys der Servicekräfte verbinden
 
-Das Handy ins Vereins-WLAN bringen (nicht Mobilfunk, kein Gastnetz). Dann den
-QR-Code von der Status-Seite scannen oder die grüne Adresse eintippen → grünes
-Schloss, keine Warnung, anmelden. Über „Zum Startbildschirm hinzufügen" lässt sich
-jotti wie eine App ablegen.
+Das Handy ins Vereins-WLAN bringen. Dann den QR-Code von der Status-Seite scannen oder die grüne Adresse eintippen, dann anmelden.
 
-Geht die grüne Adresse (noch) nicht, nennt die Status-Seite die Fallback-Adresse
-`https://<LAN-IP>` (z. B. `https://192.168.1.50`). Beim ersten Zugriff pro Gerät
-die einmalige Browserwarnung bestätigen, danach anmelden. Lädt die grüne Adresse
-auf den Handys gar nicht, blockiert vermutlich der Router (siehe
-[Fehlersuche](#fehlersuche)).
+Geht die grüne Adresse nicht, nennt die Status-Seite die Fallback-Adresse (z. B. `https://192.168.1.50`). Beim ersten Zugriff pro Gerät die einmalige Browserwarnung bestätigen, danach anmelden. Lädt die grüne Adresse auf den Handys gar nicht, blockiert vermutlich der Router (siehe [Fehlersuche](#fehlersuche)).
 
 ### Beenden
 
-`jotti-stop.cmd` doppelklicken (oder in Docker Desktop stoppen). Die Daten bleiben
-im Docker-Volume erhalten und stehen beim nächsten Start wieder bereit.
-
-> **Nie ins Internet öffnen.** Der lokale Betrieb ist nur fürs eigene WLAN gedacht.
-> Richtet im Router keine Port-Weiterleitung auf den Kassenrechner ein. Für den
-> Betrieb übers Internet gibt es den [Experten-Weg](#experten-weg-eigener-server-optional).
+`jotti-stop.cmd` doppelklicken (oder in Docker Desktop stoppen). Die Daten bleiben im Docker-Volume erhalten und stehen beim nächsten Start wieder bereit.
 
 ## TSE einrichten (Cloud-TSE von fiskaly)
 
-Die TSE (Technische Sicherheitseinrichtung) ist das digitale Siegel-Modul, das
-jeden Kassenvorgang fälschungssicher signiert. Das Gesetz schreibt sie zwingend
-vor. jotti nutzt die Cloud-TSE von fiskaly: Ihr bucht sie als Online-Dienst und
-gebt jotti die Zugangsschlüssel. Die Einrichtung läuft über einen geführten
-Assistenten, ohne technische Werkzeuge wie Postman oder curl.
+Die TSE (Technische Sicherheitseinrichtung) signiert jeden Kassenvorgang fälschungssicher. Das Gesetz schreibt sie zwingend vor. jotti nutzt die Cloud-TSE von fiskaly: Ihr bucht sie als Online-Dienst und gebt jotti die Zugangsschlüssel. Den Rest erledigt ein Assistent in jotti Schritt für Schritt.
 
 > 💡 **Übt zuerst in TEST.** fiskaly bietet eine kostenlose Test-Umgebung. Richtet
 > die TSE dort einmal komplett ein, bevor ihr auf LIVE umstellt. So lauft ihr den
@@ -116,14 +60,10 @@ Assistenten, ohne technische Werkzeuge wie Postman oder curl.
 
 1. Auf [dashboard.fiskaly.com](https://dashboard.fiskaly.com) registrieren und das
    Konto bestätigen.
-2. Im Dashboard einen API-Key erstellen. Ihr erhaltet zwei Werte: den **API-Key**
-   (eine Art Benutzername) und das **API-Secret** (das zugehörige Passwort, wird
-   nur einmal angezeigt).
-3. Beide Werte sicher notieren. Das Secret könnt ihr später nicht erneut einsehen,
-   nur neu erzeugen.
+2. Im Dashboard einen API-Key erstellen. Ihr erhaltet zwei Werte: den **API-Key** (eine Art Benutzername) und das **API-Secret** (das Passwort, wird nur einmal angezeigt).
+3. Beide Werte sicher notieren. Das Secret könnt ihr später nicht erneut einsehen, nur neu erzeugen.
 
-Mehr ist im Dashboard nicht nötig: Die TSS selbst anlegen, initialisieren und den
-Client registrieren geht dort nicht, das übernimmt jottis Assistent.
+Mehr ist im Dashboard nicht nötig. Die TSS anlegen, initialisieren und den Client registrieren übernimmt jottis Assistent.
 
 > 🔒 **API-Key und Secret sind geheim.** Sie gehören nicht in Chats, E-Mails oder
 > öffentliche Dokumente. jotti speichert sie verschlüsselt in der Datenbank, ihr
@@ -131,21 +71,11 @@ Client registrieren geht dort nicht, das übernimmt jottis Assistent.
 
 ### Schritt 2: Geführter Assistent in jotti
 
-1. Im Admin-Bereich „Finanzamt" öffnen, im Kasten „TSE-Anbindung" auf „Einrichten
-   oder ändern" klicken.
-2. API-Key und API-Secret eingeben und auf „fiskaly-Konto prüfen" klicken. Bei
-   dieser Prüfung wird nichts angelegt, es werden nur Daten gelesen. jotti zeigt
-   danach deutlich die Umgebung an (TEST grau, LIVE rot) und listet die im Konto
-   gefundenen TSS auf.
-3. Ist das Konto leer, bietet jotti „TSE einrichten" an: jotti legt eine neue TSS
-   an, initialisiert sie und registriert diese Kasse als Client. In LIVE müsst ihr
-   zur Sicherheit erst das Wort „LIVE" eintippen.
-4. jotti zeigt danach genau einmal den **Admin-PUK** und die **Admin-PIN** an.
-   Notiert beide sofort und verwahrt sie sicher außerhalb von jotti (siehe unten).
-   Erst nach dem Häkchen „Ich habe Admin-PUK und Admin-PIN sicher verwahrt" geht es
-   weiter.
-5. Zum Schluss „Verbindung testen & abschließen" klicken. Steht „Verbindung
-   bestätigt", ist die TSE einsatzbereit.
+1. Im Admin-Bereich „Finanzamt" öffnen, im Kasten „TSE-Anbindung" auf „Einrichten oder ändern" klicken.
+2. API-Key und API-Secret eingeben und auf „fiskaly-Konto prüfen" klicken. Die Prüfung legt nichts an, sie liest nur. jotti zeigt danach die Umgebung an (TEST grau, LIVE rot) und listet die gefundenen TSS auf.
+3. Ist das Konto leer, bietet jotti „TSE einrichten" an: Es legt eine neue TSS an, initialisiert sie und registriert diese Kasse als Client. In LIVE müsst ihr erst das Wort „LIVE" eintippen.
+4. jotti zeigt danach genau einmal den **Admin-PUK** und die **Admin-PIN** an. Notiert beide sofort und verwahrt sie außerhalb von jotti (siehe unten). Erst nach dem Häkchen „Ich habe Admin-PUK und Admin-PIN sicher verwahrt" geht es weiter.
+5. „Verbindung testen & abschließen" klicken. Steht „Verbindung bestätigt", ist die TSE einsatzbereit.
 
 ### Admin-PUK und Admin-PIN verwahren
 
@@ -162,12 +92,7 @@ So verwahrt ihr richtig:
 - Nicht nur auf dem Gerät, das ihr für die Einrichtung benutzt habt.
 - So, dass die Nachfolge im Vorstand sie wiederfindet.
 
-> ⚠️ **Verlust hat Folgen.** Ist nur die Admin-PIN verloren oder gesperrt, der
-> Admin-PUK aber verwahrt, setzt jotti die PIN über den PUK zurück (siehe
-> [TSE-Sonderfälle](#tse-sonderfälle)). Gehen PUK und PIN beide verloren, könnt ihr
-> eine bereits personalisierte TSS nicht mehr übernehmen. Der Admin-PUK ist deshalb
-> das wichtigste Geheimnis: er heilt eine verlorene PIN, aber nichts heilt einen
-> verlorenen PUK.
+> ⚠️ **Verlust hat Folgen.** Ist nur die Admin-PIN verloren oder gesperrt, der Admin-PUK aber verwahrt, setzt jotti die PIN über den PUK zurück (siehe [TSE-Sonderfälle](#tse-sonderfälle)). Gehen PUK und PIN beide verloren, könnt ihr eine bereits personalisierte TSS nicht mehr übernehmen. Der Admin-PUK ist deshalb euer wichtigstes Geheimnis.
 
 ### Von TEST zu LIVE wechseln (inkl. Kosten)
 
@@ -184,11 +109,7 @@ Habt ihr in TEST geübt, richtet ihr für den Echtbetrieb eine LIVE-TSS ein:
 > und kann nicht gelöscht, nur stillgelegt werden. Legt sie erst an, wenn ihr in
 > den Echtbetrieb geht.
 
-**Kosten (Stand Mitte 2026):** fiskaly veröffentlicht für SIGN DE keine frei
-buchbare Preisliste. Eigenständige Cloud-TSE-Lizenzen lagen Mitte 2026 grob bei 120
-bis 190 € pro Jahr je TSS, teils mit einmaliger Einrichtungsgebühr; eine Gebühr pro
-Vorgang ist unüblich. Eine TSS genügt für eine jotti-Instanz. Holt für die
-Budgetplanung ein aktuelles, schriftliches Angebot direkt bei fiskaly ein.
+**Kosten:** Eine LIVE-TSS kostet circa 8€ pro Monat; eine Gebühr pro Vorgang ist unüblich. Eine TSS genügt für eine jotti-Instanz. fiskaly veröffentlicht für SIGN DE keine feste Preisliste, holt für die Budgetplanung also ein aktuelles Angebot direkt bei fiskaly ein.
 
 ## Pflichten erfüllen
 
@@ -198,9 +119,7 @@ Die rechtlichen Grundlagen im Detail stehen in [docs/compliance.md](compliance.m
 
 ### Kasse beim Finanzamt anmelden
 
-Seit dem 1. Januar 2025 muss jede elektronische Kasse dem Finanzamt online gemeldet
-werden. Das ist eine eigene Pflicht, sie ersetzt nicht die TSE und wird nicht durch
-sie ersetzt.
+Seit dem 1. Januar 2025 muss jede elektronische Kasse dem Finanzamt online gemeldet werden. Das ist eine eigene Pflicht, unabhängig von der TSE.
 
 Was ihr braucht:
 
@@ -272,7 +191,7 @@ Bestätigung aufbewahren.
 
 > Dieser Abschnitt ist nur für den Betrieb über das Internet gedacht und setzt
 > Grundkenntnisse mit Linux und Kommandozeile voraus. Wer alle Helfer beim Fest vor
-> Ort im selben WLAN hat, bleibt beim [Standardweg](#schnellstart-standardweg-einzelgerät-im-wlan).
+> Ort im selben WLAN hat, bleibt beim [Standardweg](#standardweg-computer-im-vereinsheim).
 
 Wer jotti auch außerhalb des lokalen WLANs erreichen will (über das Internet, an
 mehreren Standorten oder ohne einen Rechner vor Ort), betreibt es auf einem eigenen
@@ -281,7 +200,7 @@ Internet-Adresse (Domain) mit Verschlüsselung (HTTPS).
 
 jotti ist genügsam: Schon der kleinste VPS (1 vCPU, 2 GB RAM, 20 GB SSD, Linux)
 reicht für ein durchschnittliches Vereinsfest. Typisches Angebot: netcup VPS 200
-oder vergleichbar (~3 bis 4 €/Monat). Zusätzlich braucht ihr eine Domain, die per
+oder vergleichbar (circa 5€/Monat). Zusätzlich braucht ihr eine Domain, die per
 DNS auf den Server zeigt, sowie ein TLS-Zertifikat. Das Zertifikat holt jotti
 automatisch: Die Produktions-Konfiguration (`docker-compose.prod.yml`) bringt einen
 Caddy-Reverse-Proxy mit, der es beim ersten Start selbst bei Let's Encrypt
@@ -345,15 +264,6 @@ wegen der gesetzlichen 10-Jahre-Aufbewahrung.
 > 💾 Kopiert die Backups regelmäßig vom Server weg. Ein Backup, das nur auf
 > demselben Server liegt, hilft bei dessen Ausfall nicht.
 
-### Server härten (optional)
-
-`make prod-harden` richtet eine Firewall (ufw) ein, die nur SSH sowie die Web-Ports
-80 und 443 erlaubt, gibt SSH frei, bevor die Firewall scharf wird, und aktiviert
-optional fail2ban. Das Skript ist idempotent und kein Teil der Ersteinrichtung.
-
-> ⚠️ Öffnet nach dem Härten eine zweite SSH-Sitzung, bevor ihr die erste schließt,
-> um sicherzugehen, dass ihr weiter Zugriff habt.
-
 ## TSE-Sonderfälle
 
 Die folgenden Fälle braucht ihr nur, wenn etwas vom Normalfall abweicht.
@@ -412,10 +322,10 @@ DNS-Rebind-Schutz ist die wahrscheinliche Ursache, wenn die Fallback-Adresse
 Handy A geht, auf Handy B aber nicht". Bis die Ausnahme eingetragen ist, könnt ihr
 jederzeit mit der Fallback-Adresse weiterarbeiten. Der Verkauf muss nicht warten.
 
-Die Lösung ist eine einmalige Ausnahme im Router: `lokal.jotti.rocks` von der
-Prüfung ausnehmen. Danach funktioniert die grüne Adresse im gesamten Vereins-WLAN.
-Die Ausnahme erlaubt private IPs nur für diese eine Domain; der Rebind-Schutz für
-alle anderen Domains bleibt aktiv.
+Die im Standardweg genannte Router-Ausnahme behebt das: `lokal.jotti.rocks` einmalig
+von der Prüfung ausnehmen. Danach funktioniert die grüne Adresse im gesamten
+Vereins-WLAN. Die Ausnahme erlaubt private IPs nur für diese eine Domain; der
+Rebind-Schutz für alle anderen Domains bleibt aktiv.
 
 ### Router-Hinweise
 
@@ -477,6 +387,6 @@ Getränke gegen Geld verkauft.
 **Können wir die TSE erst testen?** Ja. Richtet sie zuerst in der kostenlosen
 TEST-Umgebung von fiskaly ein und wechselt erst für den Echtbetrieb auf LIVE.
 
-**Was kostet der Betrieb?** jotti ist für berechtigte Vereine kostenlos. Kosten
-entstehen nur für die Cloud-TSE von fiskaly und, beim Experten-Weg, für den VPS
-(~3 bis 8 €/Monat). Der Standardweg kommt ohne Servermiete aus.
+**Was kostet der Betrieb?** jotti ist für euch kostenlos. Kosten entstehen nur für
+die Cloud-TSE von fiskaly (circa 8€/Monat) und, beim Experten-Weg, für den VPS
+(circa 5€/Monat). Der Standardweg kommt ohne Servermiete aus.

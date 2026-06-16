@@ -15,7 +15,6 @@
   </head>
 
   <body>
-    <!--# include virtual="/partials/dev-banner.html" -->
     <!--# include virtual="/partials/header.html" -->
     <!--# include virtual="/partials/mobile-nav.html" -->
 
@@ -37,9 +36,7 @@
               gemeinnützige Organisationen.
             </p>
             <p class="text-15 font-bold text-primary tracking-2 mb-8">
-              Kostenlos. Self-hosted. Fiskalkonform<span class="badge-wip"
-                >In Entwicklung</span
-              >.
+              Kostenlos. Self-hosted. Fiskalkonform.
             </p>
             <div
               class="flex flex-col gap-4 md:flex-row md:flex-wrap md:justify-center lg:justify-start"
@@ -372,9 +369,7 @@
                 </p>
               </div>
               <div>
-                <h4 class="mb-1-5">
-                  Datenexport <span class="badge-wip">In Entwicklung</span>
-                </h4>
+                <h4 class="mb-1-5">Datenexport</h4>
                 <p class="text-15 leading-relaxed">
                   CSV-Export für die Vereinsbuchhaltung. DSFinV-K-Export als
                   ZIP-Archiv für die Finanzverwaltung.
@@ -399,8 +394,8 @@
             <div>
               <h3 class="mb-1-5">TSE-Anbindung</h3>
               <p class="text-15 leading-relaxed">
-                Integrierte Cloud-TSE-Schnittstelle (fiskaly). Jeder Vorgang
-                wird signiert und kryptografisch abgesichert.
+                Integrierte fiskaly Cloud-TSE-Schnittstelle. Jeder Vorgang wird
+                signiert und kryptografisch abgesichert.
               </p>
             </div>
             <div>
@@ -420,9 +415,7 @@
               </p>
             </div>
             <div>
-              <h3 class="mb-1-5">
-                DSFinV-K-Export <span class="badge-wip">In Entwicklung</span>
-              </h3>
+              <h3 class="mb-1-5">DSFinV-K-Export</h3>
               <p class="text-15 leading-relaxed">
                 Maschinenlesbarer Export aller Kassendaten für die
                 Finanzverwaltung, ZIP-Archiv nach DSFinV-K v2.5.
@@ -445,51 +438,6 @@
               height="655"
               loading="lazy"
             />
-          </div>
-
-          <h3 class="text-center mt-12 mb-5">
-            Eure Daten. Manipulationssicher.
-          </h3>
-          <p class="text-17 text-center max-w-160 mx-auto mb-12">
-            jotti speichert jede Bestellung, jede Zahlung und jede Stornierung
-            als unveränderliches Event, append-only gespeichert und per TSE
-            signiert. Nachträgliche Manipulation ist technisch ausgeschlossen.
-            Das schafft Vertrauen: gegenüber dem Vorstand, den Helfern und dem
-            Finanzamt.
-          </p>
-          <ul class="check-list max-w-160 mx-auto">
-            <li>
-              <strong>Rollenmodell:</strong> Admin, Serviceleitung, Servicekraft
-              mit abgestuften Rechten
-            </li>
-            <li>
-              <strong>Self-hosted:</strong> Daten auf eurem eigenen Server,
-              keine fremde Cloud
-            </li>
-            <li>
-              <strong>HTTPS:</strong> verschlüsselte Kommunikation per Let's
-              Encrypt
-            </li>
-            <li>
-              <strong>Sicheres Onboarding:</strong> Einmalpasswort +
-              Argon2id-Hashing, keine unsicheren Account-Versände
-            </li>
-          </ul>
-
-          <div class="compliance-note">
-            <p>
-              <strong>Bring Your Own TSE:</strong> Da jotti self-hosted
-              betrieben wird, schließen Betreiber selbst einen Vertrag mit der
-              Cloud-TSE von fiskaly ab und konfigurieren die API-Schlüssel über
-              die <code>.env</code>-Datei. Seriennummer, Steuersätze (19 %, 7 %,
-              0 %) und ELSTER-Meldung sind dokumentiert.
-            </p>
-          </div>
-
-          <div class="mt-8 text-center">
-            <a href="/leitfaden-fuer-vereine/" class="btn btn-primary"
-              >Leitfaden für Vereine lesen</a
-            >
           </div>
         </div>
       </section>
@@ -593,7 +541,7 @@
         <div class="container">
           <h2 class="text-center mb-3">Selbst betreiben. Kostenlos.</h2>
           <p class="text-17 text-center max-w-160 mx-auto mb-12">
-            jotti ist self-hosted per Docker Compose und für gemeinnützige
+            jotti ist self-hosted per Docker und für gemeinnützige
             Organisationen dauerhaft kostenlos. Wer Docker starten kann, kann
             jotti betreiben. Die einzigen Kosten sind Hosting und eine
             Cloud-TSE.
@@ -618,118 +566,9 @@
             </li>
           </ul>
 
-          <h3 class="text-center mt-12 mb-5">Was kostet der Betrieb?</h3>
-          <ul class="plain-list max-w-160 mx-auto">
-            <li>VPS ab ~3 €/Monat (z.&nbsp;B. Hetzner, Netcup)</li>
-            <li>Raspberry Pi ~50 € einmalig</li>
-            <li>Vereinseigener Server: 0 €</li>
-            <li>Cloud-TSE von fiskaly: je nach Tarif</li>
-          </ul>
-
-          <h3 class="text-center mt-12 mb-5">Technik &amp; Anforderungen</h3>
-          <div class="grid gap-6 md:grid-cols-2">
-            <div>
-              <h3 class="mb-4">Tech-Stack</h3>
-              <div class="flex flex-col gap-3">
-                <div
-                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
-                >
-                  <span class="min-w-25 font-bold text-foreground"
-                    >Frontend</span
-                  >
-                  <span class="text-muted"
-                    >React, TypeScript, Tailwind CSS</span
-                  >
-                </div>
-                <div
-                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
-                >
-                  <span class="min-w-25 font-bold text-foreground"
-                    >Backend</span
-                  >
-                  <span class="text-muted">Go, stdlib net/http, pgx</span>
-                </div>
-                <div
-                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
-                >
-                  <span class="min-w-25 font-bold text-foreground"
-                    >Datenbank</span
-                  >
-                  <span class="text-muted">PostgreSQL</span>
-                </div>
-                <div
-                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
-                >
-                  <span class="min-w-25 font-bold text-foreground">TSE</span>
-                  <span class="text-muted"
-                    >Cloud-TSE via fiskaly (Adapter-Pattern)</span
-                  >
-                </div>
-                <div
-                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
-                >
-                  <span class="min-w-25 font-bold text-foreground"
-                    >Infrastruktur</span
-                  >
-                  <span class="text-muted"
-                    >Docker Compose, Caddy, Let's Encrypt</span
-                  >
-                </div>
-              </div>
-            </div>
-            <div>
-              <h3 class="mb-4">Anforderungen</h3>
-              <div class="flex flex-col gap-3">
-                <div
-                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
-                >
-                  <span class="min-w-25 font-bold text-foreground">Server</span>
-                  <span class="text-muted">1 vCPU, 2 GB RAM, 20 GB SSD</span>
-                </div>
-                <div
-                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
-                >
-                  <span class="min-w-25 font-bold text-foreground">OS</span>
-                  <span class="text-muted">Linux (Ubuntu, Debian o.ä.)</span>
-                </div>
-                <div
-                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
-                >
-                  <span class="min-w-25 font-bold text-foreground"
-                    >Software</span
-                  >
-                  <span class="text-muted">Docker + Docker Compose</span>
-                </div>
-                <div
-                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
-                >
-                  <span class="min-w-25 font-bold text-foreground"
-                    >Netzwerk</span
-                  >
-                  <span class="text-muted">Domain + Port 80/443 offen</span>
-                </div>
-                <div
-                  class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
-                >
-                  <span class="min-w-25 font-bold text-foreground">TSE</span>
-                  <span class="text-muted">Cloud-TSE-Vertrag mit fiskaly</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="quickstart-box">
-            <h3>Schnellstart</h3>
-            <pre><code>cp .env.example .env    <span class="text-muted-light"># Konfiguration + TSE-API-Keys</span>
-make prod-init          <span class="text-muted-light"># SSL-Zertifikat erstellen</span>
-make prod-up            <span class="text-muted-light"># Starten</span></code></pre>
-          </div>
-
-          <div class="mt-8 text-center">
-            <a
-              href="/leitfaden-fuer-vereine/#standardweg"
-              class="btn btn-primary"
-              >Leitfaden: jotti selbst betreiben</a
+          <div class="my-8 text-center">
+            <a href="/leitfaden-fuer-vereine/" class="btn btn-primary"
+              >Leitfaden für Vereine lesen</a
             >
           </div>
         </div>

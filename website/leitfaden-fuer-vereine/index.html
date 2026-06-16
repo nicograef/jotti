@@ -28,10 +28,8 @@
           </p>
           <h1>jotti betreiben: der Leitfaden für Vereine</h1>
           <p class="text-17 max-w-180 mt-5">
-            Vom ersten Start bis zum rechtssicheren Betrieb. Oben steht der
-            Standardfall, den fast alle Vereine brauchen. Server-, Domain- und
-            Sonderfall-Themen folgen weiter unten und sind als optional
-            gekennzeichnet.
+            Vom ersten Start im WLAN bis zum rechtssicheren Betrieb, Schritt für
+            Schritt für ehrenamtliche Teams.
           </p>
         </div>
       </section>
@@ -71,8 +69,9 @@
               <div>
                 <h3 class="mb-1-5">1. TSE buchen</h3>
                 <p class="text-15 leading-relaxed">
-                  Eine Cloud-TSE von fiskaly buchen (manipulationssicheres
-                  Signaturmodul) und in jotti eintragen.
+                  Bei fiskaly ein Konto für die TSE anlegen
+                  (manipulationssicheres Signaturmodul) und die Schlüssel in
+                  jotti eintragen.
                 </p>
               </div>
               <div>
@@ -99,88 +98,39 @@
               Finanzamt liegen bei euch als Verein.
             </p>
 
-            <h3 class="mt-8 mb-3">Was jotti schon mitbringt</h3>
-            <p>
-              Jeder Vorgang wird unveränderlich aufgezeichnet (Event-Sourcing,
-              Korrekturen nur als Gegenbuchung). TSE-Anbindung und Belegausgabe
-              sind vorhanden, der DSFinV-K-Export ist in Entwicklung.
-            </p>
-            <div class="table-wrapper">
-              <table class="comparison-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Baustein</th>
-                    <th scope="col">Wie jotti es löst</th>
-                    <th scope="col">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th scope="row">Unveränderbare Aufzeichnung</th>
-                    <td>
-                      Event-Sourcing: jeder Vorgang als unveränderlicher
-                      Eintrag, Korrekturen nur als Gegenbuchung
-                    </td>
-                    <td>✓ vorhanden</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">TSE-Signatur</th>
-                    <td>
-                      Anbindung an die Cloud-TSE von fiskaly, die jeden Vorgang
-                      kryptografisch versiegelt
-                    </td>
-                    <td>✓ vorhanden</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Beleg</th>
-                    <td>
-                      Kassenbeleg auf Knopfdruck, mit allen Pflichtangaben
-                    </td>
-                    <td>✓ vorhanden</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">DSFinV-K-Export</th>
-                    <td>
-                      Genormtes Datenpaket (ZIP nach DSFinV-K v2.5), das ein
-                      Prüfer einlesen kann
-                    </td>
-                    <td><span class="badge-wip">In Entwicklung</span></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
             <div class="compliance-note">
               <p>
-                <strong>Was kostet uns das?</strong> jotti selbst ist für
-                berechtigte Vereine kostenlos. Kosten entstehen nur für den
-                Server und die Cloud-TSE von fiskaly (kleine laufende Gebühr
-                beim Anbieter). Der Standardweg unten kommt ohne Servermiete
-                aus.
+                <strong>Was kostet uns das?</strong> jotti selbst ist für euch
+                kostenlos. Kosten entstehen nur für die TSE von fiskaly (circa
+                8€ pro Monat) und ggf. für einen Server (circa 5€ pro Monat).
               </p>
             </div>
           </section>
 
           <!-- ============ STANDARDWEG ============ -->
           <section class="mt-10" id="standardweg">
-            <h2>Schnellstart: Standardweg (Einzelgerät im WLAN)</h2>
+            <h2>Standardweg: Computer im Vereinsheim</h2>
             <p>
               Für fast alle Vereinsfeste ist das der richtige Weg: Ein
-              vorhandener Windows-Rechner im Vereinsheim wird zum Kassenrechner.
-              Die Servicekräfte bedienen jotti auf ihren eigenen Handys im
-              selben WLAN. Kein Server, keine Domain, keine laufenden Kosten.
-              Das genügt auch mit mehreren Helfern, vielen Tischen und Bondruck.
+              vorhandener Windows-Computer im Vereinsheim wird zum
+              Kassenrechner. Die Servicekräfte bedienen jotti auf ihren eigenen
+              Handys im selben WLAN. Kein Server, keine Domain, keine laufenden
+              Kosten.
             </p>
             <div class="compliance-note">
               <p>
                 🔒 <strong>Grünes Schloss als Normalfall.</strong> Für den
-                lokalen Betrieb holt jotti automatisch ein echtes, vom Browser
-                anerkanntes Zertifikat über die Adresse
-                <code>…lokal.jotti.rocks</code> (grünes Schloss, keine Warnung).
-                Welche Adresse gerade gilt, zeigt samt QR-Code die Status-Seite
+                lokalen Betrieb holt jotti automatisch ein echtes Zertifikat
+                über die Adresse <code>…lokal.jotti.rocks</code> (grünes
+                Schloss, keine Warnung). Es wird beim ersten Start ausgestellt
+                und selbst erneuert. Dafür müsst ihr einmalig eine Ausnahme für
+                den DNS-Rebind-Schutz bei eurem Router konfigurieren. Welche
+                Adresse gerade gilt, zeigt samt QR-Code die Status-Seite
                 <code>http://localhost:8484</code> am Kassenrechner. Greift die
                 grüne Adresse nicht, springt ein Fallback
                 <code>https://&lt;LAN-IP&gt;</code> mit selbstsigniertem
-                Zertifikat ein (einmalige Browserwarnung pro Gerät).
+                Zertifikat ein (einmalige Browserwarnung pro Gerät, siehe
+                <a href="#fehlersuche">Fehlersuche</a>).
               </p>
             </div>
 
@@ -206,8 +156,7 @@
                   target="_blank"
                   rel="noopener noreferrer"
                   >Docker Desktop</a
-                >
-                (nur installieren, nicht vorab starten).
+                >.
               </li>
               <li>
                 <code>jotti-start.exe</code> doppelklicken. Beim ersten Mal
@@ -222,48 +171,27 @@
                 QR-Code für die Handys.
               </li>
             </ol>
-            <div class="compliance-note">
-              <p>
-                ⚠️ <strong>Ersten Start vorab zuhause machen.</strong> Beim
-                Erststart lädt jotti seine Programmteile herunter und holt das
-                vertrauenswürdige Zertifikat. Beides braucht Internet. Danach
-                läuft jotti auch ohne Internet.
-              </p>
-            </div>
 
             <h3>Handys der Servicekräfte verbinden</h3>
             <p>
-              Das Handy ins Vereins-WLAN bringen (nicht Mobilfunk, kein
-              Gastnetz). Dann den QR-Code von der Status-Seite scannen oder die
-              grüne Adresse eintippen → grünes Schloss, keine Warnung, anmelden.
-              Über „Zum Startbildschirm hinzufügen“ lässt sich jotti wie eine
-              App ablegen. Geht die grüne Adresse (noch) nicht, nennt die
-              Status-Seite die Fallback-Adresse
-              <code>https://&lt;LAN-IP&gt;</code>; lädt auch sie nicht,
-              blockiert vermutlich der Router (siehe
+              Das Handy ins Vereins-WLAN bringen. Dann den QR-Code von der
+              Status-Seite scannen oder die grüne Adresse eintippen, dann
+              anmelden. Geht die grüne Adresse nicht, nennt die Status-Seite die
+              Fallback-Adresse <code>https://&lt;LAN-IP&gt;</code>; lädt auch
+              sie nicht, blockiert vermutlich der Router (siehe
               <a href="#fehlersuche">Fehlersuche</a>).
             </p>
-            <div class="compliance-note">
-              <p>
-                <strong>Nie ins Internet öffnen.</strong> Der lokale Betrieb ist
-                nur fürs eigene WLAN gedacht. Richtet im Router keine
-                Port-Weiterleitung auf den Kassenrechner ein. Für den Betrieb
-                übers Internet gibt es den
-                <a href="#experten-weg">Experten-Weg</a>.
-              </p>
-            </div>
           </section>
 
           <!-- ============ TSE EINRICHTEN ============ -->
           <section class="guide-steps mt-10" id="tse">
             <h2>TSE einrichten (Cloud-TSE von fiskaly)</h2>
             <p>
-              Die TSE („Technische Sicherheitseinrichtung“) ist das digitale
-              Siegel-Modul, das jeden Kassenvorgang fälschungssicher signiert.
-              Das Gesetz schreibt sie zwingend vor. jotti nutzt die Cloud-TSE
-              von fiskaly: Ihr bucht sie als Online-Dienst und gebt jotti die
-              Zugangsschlüssel. Die Einrichtung läuft über einen geführten
-              Assistenten, ohne technische Werkzeuge wie Postman oder curl.
+              Die TSE („Technische Sicherheitseinrichtung“) signiert jeden
+              Kassenvorgang fälschungssicher. Das Gesetz schreibt sie zwingend
+              vor. jotti nutzt die Cloud-TSE von fiskaly: Ihr bucht sie als
+              Online-Dienst und gebt jotti die Zugangsschlüssel. Den Rest
+              erledigt ein Assistent in jotti Schritt für Schritt.
             </p>
             <div class="compliance-note">
               <p>
@@ -310,8 +238,7 @@
                 🔒
                 <strong>API-Key, Secret, PUK und PIN sind geheim.</strong> Sie
                 gehören nicht in Chats, E-Mails oder öffentliche Dokumente. Der
-                Admin-PUK ist das wichtigste Geheimnis: er heilt eine verlorene
-                PIN, aber nichts heilt einen verlorenen PUK.
+                Admin-PUK ist euer wichtigstes Geheimnis.
               </p>
             </div>
             <h3>Von TEST zu LIVE wechseln (inkl. Kosten)</h3>
@@ -324,12 +251,11 @@
             </p>
             <div class="compliance-note">
               <p>
-                <strong>Kosten (Stand Mitte 2026):</strong> Eigenständige
-                Cloud-TSE-Lizenzen lagen grob bei 120 bis 190 € pro Jahr je TSS,
-                teils mit einmaliger Einrichtungsgebühr; eine Gebühr pro Vorgang
-                ist unüblich. Eine TSS genügt für eine jotti-Instanz. Holt für
-                die Budgetplanung ein aktuelles, schriftliches Angebot direkt
-                bei fiskaly ein.
+                <strong>Kosten:</strong> Eine LIVE-TSS kostet circa 8€ pro
+                Monat; eine Gebühr pro Vorgang ist unüblich. Eine TSS genügt für
+                eine jotti-Instanz. fiskaly veröffentlicht für SIGN DE keine
+                feste Preisliste, holt für die Budgetplanung also ein aktuelles
+                Angebot direkt bei fiskaly ein.
               </p>
             </div>
           </section>
@@ -506,7 +432,7 @@
               Verschlüsselung (HTTPS). jotti ist genügsam: Schon der kleinste
               VPS (1 vCPU, 2 GB RAM, 20 GB SSD, Linux) reicht für ein
               durchschnittliches Vereinsfest (netcup VPS 200 oder vergleichbar,
-              ~3 bis 4 €/Monat).
+              circa 5€/Monat).
             </p>
             <p>
               Das TLS-Zertifikat holt jotti automatisch: Die
@@ -624,10 +550,11 @@
               oder wenn es „auf Handy A geht, auf Handy B nicht“.
             </p>
             <p>
-              Die Lösung ist eine einmalige Ausnahme im Router:
-              <code>lokal.jotti.rocks</code> von der Prüfung ausnehmen. Danach
-              funktioniert die grüne Adresse im gesamten Vereins-WLAN; der
-              Rebind-Schutz für alle anderen Domains bleibt aktiv.
+              Die im <a href="#standardweg">Standardweg</a> genannte
+              Router-Ausnahme behebt das: <code>lokal.jotti.rocks</code>
+              einmalig von der Prüfung ausnehmen. Danach funktioniert die grüne
+              Adresse im gesamten Vereins-WLAN; der Rebind-Schutz für alle
+              anderen Domains bleibt aktiv.
             </p>
             <p>
               <strong>Fritz!Box</strong> (häufigster Router im Vereinsumfeld):
@@ -662,12 +589,7 @@
             <h2>Häufige Fragen</h2>
             <dl class="guide-faq">
               <dt>Brauchen wir beim Fest Internet?</dt>
-              <dd>
-                Nur beim ersten Start (für Programmteile und das
-                vertrauenswürdige Zertifikat). Macht ihn vorab zuhause. Danach
-                läuft jotti auch ohne Internet weiter; notfalls über die
-                Fallback-Adresse.
-              </dd>
+              <dd>Ja, durch die TSE braucht jotti eine Internetverbindung.</dd>
               <dt>Was, wenn die grüne Adresse nicht lädt?</dt>
               <dd>
                 Mit der Fallback-Adresse weiterarbeiten und die
@@ -687,7 +609,7 @@
                 Ja. Richtet sie zuerst in der kostenlosen TEST-Umgebung von
                 fiskaly ein und wechselt erst für den Echtbetrieb auf LIVE.
               </dd>
-              <dt>Können wir jotti ohne TSE „einfach mal so“ nutzen?</dt>
+              <dt>Können wir jotti ohne TSE nutzen?</dt>
               <dd>
                 Technisch ja, rechtlich nein für echte Verkäufe. Ohne TSE ist
                 die Kasse nicht konform; das kann als Steuergefährdung mit
@@ -696,9 +618,9 @@
               </dd>
               <dt>Was kostet der Betrieb?</dt>
               <dd>
-                jotti ist für berechtigte Vereine kostenlos. Kosten entstehen
-                nur für die Cloud-TSE von fiskaly und, beim Experten-Weg, für
-                den VPS (~3 bis 8 €/Monat). Der Standardweg kommt ohne
+                jotti ist für euch kostenlos. Kosten entstehen nur für die
+                Cloud-TSE von fiskaly (circa 8€/Monat) und, beim Experten-Weg,
+                für den VPS (circa 5€/Monat). Der Standardweg kommt ohne
                 Servermiete aus.
               </dd>
             </dl>
