@@ -43,6 +43,14 @@ type Snapshot struct {
 // Zeilen-Literale der Tabellen lesbar.
 func itoa(n int) string { return strconv.Itoa(n) }
 
+// abs liefert den Betrag einer Ganzzahl (positive Magnitude).
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
+}
+
 // ptr liefert den Wert eines optionalen Strings oder "" bei nil.
 func ptr(s *string) string {
 	if s == nil {
@@ -83,6 +91,11 @@ func formatPercent(prozent int) string {
 	return fmt.Sprintf("%d.00", prozent)
 }
 
+// ustNichtSteuerbar ist der DSFinV-K-Umsatzsteuerschlüssel für nicht steuerbare
+// Vorgänge (Anlage 2, ID 5): Bargeldbewegungen ohne USt-Bezug (Anfangsbestand,
+// Geldtransit, Auszahlung, Kassendifferenz).
+const ustNichtSteuerbar = 5
+
 // ustSchluessel bildet einen jotti-Steuersatz auf den DSFinV-K-Umsatzsteuer-
 // schlüssel (Anlage 2) ab: 1 = Regelsteuersatz (19 %), 2 = ermäßigter Satz
 // (7 %), 6 = umsatzsteuerfrei (0 %, z. B. Zweckbetrieb § 67a AO). Die
@@ -108,6 +121,8 @@ func ustBeschreibung(schluessel int) string {
 		return "Allgemeiner Steuersatz"
 	case 2:
 		return "Ermäßigter Steuersatz"
+	case ustNichtSteuerbar:
+		return "Nicht steuerbar"
 	case 6:
 		return "Umsatzsteuerfrei"
 	default:

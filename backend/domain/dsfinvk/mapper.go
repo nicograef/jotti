@@ -19,22 +19,28 @@ var ErrKeineVorgaenge = errors.New("kassensitzung enthält keine vorgänge")
 
 // Feste DSFinV-K-Ausprägungen und jotti-Kassenidentität.
 const (
-	bonTypBeleg       = "Beleg"                // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
-	bonTypBestellung  = "AVBestellung"         // Anhang B: Bestellung als anderer Vorgang, noch kein Umsatz
-	gvTypUmsatz       = "Umsatz"               // Anhang C: realisierter Umsatz auf Positionsebene
-	gvTypForderung    = "Forderungsentstehung" // Anhang C: offene Bestellung, Umsatz noch nicht realisiert
-	zahlartBar        = "Bar"                  // Anhang D: jotti kassiert ausschließlich bar
-	zahlartForderung  = "Forderungsentstehung" // Anhang D: Forderung statt Geldzufluss bei offener Bestellung
-	refTypTransaktion = "Transaktion"          // Anhang E: REF_TYP für eine Referenz innerhalb der DSFinV-K (Storno → Ursprung)
-	tseReferenzID     = "1"                    // eine TSS pro Kasse, im Abschluss als ID 1 referenziert
-	land              = "DEU"                  // ISO 3166 ALPHA-3
-	basiswaehrung     = "EUR"                  // ISO 4217
-	tsePDEncoding     = "UTF-8"                // Encoding der ProcessData
-	zertifikatChunk   = 1000                   // max. Zeichen je TSE_ZERTIFIKAT-Feld
-	kasseBrand        = "jotti"
-	kasseModell       = "jotti mPOS"
-	kasseSoftware     = "jotti"
-	kasseSWVersion    = "1.0"
+	bonTypBeleg      = "Beleg"                // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
+	bonTypBestellung = "AVBestellung"         // Anhang B: Bestellung als anderer Vorgang, noch kein Umsatz
+	gvTypUmsatz      = "Umsatz"               // Anhang C: realisierter Umsatz auf Positionsebene
+	gvTypForderung   = "Forderungsentstehung" // Anhang C: offene Bestellung, Umsatz noch nicht realisiert
+	// GV-Typen, die ausschließlich den Kassenbestand betreffen (Anhang C). jotti
+	// erfasst sie als BON_TYP "Beleg" mit einer einzigen nicht-steuerbaren Position.
+	gvTypAnfangsbestand   = "Anfangsbestand"       // Bargeldbestand zu Sitzungsbeginn (Eröffnungs-Event)
+	gvTypGeldtransit      = "Geldtransit"          // Bargeld-Ein-/Entnahme (z. B. zur Bank/Tresor)
+	gvTypAuszahlung       = "Auszahlung"           // Bar-Abfluss ohne USt-Bezug
+	gvTypDifferenzSollIst = "DifferenzSollIst"     // gebuchte Kassendifferenz aus dem Kassensturz
+	zahlartBar            = "Bar"                  // Anhang D: jotti kassiert ausschließlich bar
+	zahlartForderung      = "Forderungsentstehung" // Anhang D: Forderung statt Geldzufluss bei offener Bestellung
+	refTypTransaktion     = "Transaktion"          // Anhang E: REF_TYP für eine Referenz innerhalb der DSFinV-K (Storno → Ursprung)
+	tseReferenzID         = "1"                    // eine TSS pro Kasse, im Abschluss als ID 1 referenziert
+	land                  = "DEU"                  // ISO 3166 ALPHA-3
+	basiswaehrung         = "EUR"                  // ISO 4217
+	tsePDEncoding         = "UTF-8"                // Encoding der ProcessData
+	zertifikatChunk       = 1000                   // max. Zeichen je TSE_ZERTIFIKAT-Feld
+	kasseBrand            = "jotti"
+	kasseModell           = "jotti mPOS"
+	kasseSoftware         = "jotti"
+	kasseSWVersion        = "1.0"
 )
 
 // Archive hält die typisierten Zeilen-Kollektionen eines DSFinV-K-Exports, eine
@@ -58,6 +64,9 @@ type beleg struct {
 	zahlart          string // ZAHLART_TYP: "Bar" oder "Forderungsentstehung"
 	abrechnungskreis string // ABRECHNUNGSKREIS (Tischname); leer ohne Tischbezug (z. B. Direktverkauf)
 	storno           bool
+	barabfluss       bool     // mindert den Kassenbestand (Auszahlung, Geldtransit-Entnahme, Kassenfehlbetrag); steuert das Vorzeichen wie storno
+	nichtSteuerbar   bool     // Bargeldbewegung ohne USt-Bezug: eine einzige Position mit UST_SCHLUESSEL 5 statt Steueraufteilung
+	artikeltext      string   // ARTIKELTEXT der synthetischen Position (nur nichtSteuerbar); sonst aus den Positionen
 	refBonIDs        []string // REF_BON_ID je Ursprungsbon (nur Storno); ein Eintrag je referenziertem Vorgang
 	start            string
 	ende             string
@@ -70,23 +79,51 @@ type beleg struct {
 }
 
 // sign liefert das Vorzeichen der Beträge eines Belegs: +1 im Regelfall, -1 für
-// einen Storno-Beleg. Das GoBD-Radierverbot verlangt, Stornos als eigene
-// Negativ-Datensätze auszuweisen (DSFinV-K Tz. 4.2.2, „Vorzeichen umkehren“),
-// statt den Ursprungsbon zu verändern. Beträge liegen im beleg als positive
-// Magnitude vor; das Vorzeichen wird erst beim Serialisieren der Zeilen gesetzt
-// (die Steueraufteilung rechnet ausschließlich mit nicht-negativen Beträgen).
+// einen Storno-Beleg (Radierverbot, DSFinV-K Tz. 4.2.2, „Vorzeichen umkehren“)
+// und für einen Bar-Abfluss (Auszahlung, Geldtransit-Entnahme, Kassenfehlbetrag).
+// Beträge liegen im beleg stets als positive Magnitude vor; das Vorzeichen wird
+// erst beim Serialisieren der Zeilen gesetzt (die Steueraufteilung rechnet
+// ausschließlich mit nicht-negativen Beträgen).
 func (b *beleg) sign() int {
-	if b.storno {
+	if b.storno || b.barabfluss {
 		return -1
 	}
 	return 1
 }
 
+// ustBetrag ist die USt-Aufschlüsselung eines Belegs für einen Steuerschlüssel,
+// als positive Magnitude (das Vorzeichen setzt der Aufrufer über beleg.sign()).
+type ustBetrag struct {
+	schluessel int
+	brutto     int
+	netto      int
+	ust        int
+}
+
+// ustAufteilung liefert die USt-Aufschlüsselung des Belegs je Steuerschlüssel.
+// Steuerbare Belege werden über die Steuermatrix ihrer Positionen aufgeteilt;
+// eine nicht-steuerbare Bargeldbewegung ergibt eine einzige Zeile mit
+// UST_SCHLUESSEL 5 (Netto = Brutto, keine USt). Bonkopf-USt (transactions_vat)
+// und Kassenabschluss (businesscases) leiten sich aus derselben Quelle ab.
+func (b *beleg) ustAufteilung() []ustBetrag {
+	if b.nichtSteuerbar {
+		return []ustBetrag{{schluessel: ustNichtSteuerbar, brutto: b.bruttoCents, netto: b.bruttoCents, ust: 0}}
+	}
+	matrix := steuer.Steuermatrix(steuermatrixPositionen(b.positionen))
+	out := make([]ustBetrag, 0, len(matrix))
+	for _, a := range matrix {
+		out = append(out, ustBetrag{schluessel: ustSchluessel(a.Satz), brutto: a.Brutto, netto: a.Netto, ust: a.Steuer})
+	}
+	return out
+}
+
 // Map transformiert Snapshot und Events einer Kassensitzung in das typisierte
 // Archiv. Reine Funktion ohne I/O. Belege entstehen aus `bestellung-aufgenommen`
 // (Forderungsentstehung), `zahlung-kassiert` (Umsatzrealisierung), `stornierung-
-// erteilt` (Negativ-Beleg mit Referenz auf den Ursprung) sowie aus den
-// Direktverkauf-Vorgängen; weitere Vorgangstypen folgen in späteren Phasen.
+// erteilt` (Negativ-Beleg mit Referenz auf den Ursprung), den Direktverkauf-
+// Vorgängen sowie den Bargeldbewegungen (Anfangsbestand, Geldtransit, Auszahlung,
+// Kassendifferenz). Das Kassenabschlussmodul (businesscases, payment,
+// cash_per_currency) aggregiert dieselben Belege je GV-Typ und Zahlart.
 func Map(snapshot Snapshot, events []event.Event) (Archive, error) {
 	erstellung := snapshot.Erstellung.UTC().Format(time.RFC3339)
 
@@ -112,6 +149,9 @@ func Map(snapshot Snapshot, events []event.Event) (Archive, error) {
 		buildLines(snapshot, erstellung, belege),
 		buildLinesVat(snapshot, erstellung, belege),
 		buildTransactionsTSE(snapshot, erstellung, belege),
+		buildBusinesscases(snapshot, erstellung, belege),
+		buildPayment(snapshot, erstellung, belege),
+		buildCashPerCurrency(snapshot, erstellung, belege),
 	}
 
 	return Archive{tables: tables}, nil
@@ -254,10 +294,76 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				tse:          data.TSEData,
 				notiz:        data.Kommentar,
 			})
+
+		case string(kasse.EventTypeKassensitzungEroeffnetV1):
+			var data kasse.KassensitzungEroeffnetV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal kassensitzung-eroeffnet (event %d): %w", ev.ID, err)
+			}
+			// Ohne Bargeld zu Sitzungsbeginn gibt es keinen Anfangsbestand zu
+			// dokumentieren (Anhang C: „Erfassung nicht zwingend erforderlich“).
+			if data.BetragCents == 0 {
+				continue
+			}
+			bonNr++
+			belege = append(belege, geldbewegung(ev, fmt.Sprintf("anfangsbestand-%d", ev.ID), bonNr, gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung, nil, tischnamen))
+
+		case string(kasse.EventTypeGeldtransitGebuchtV1):
+			var data kasse.GeldtransitGebuchtV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal geldtransit-gebucht (event %d): %w", ev.ID, err)
+			}
+			bonNr++
+			belege = append(belege, geldbewegung(ev, data.BewegungID, bonNr, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar, data.TSEData, tischnamen))
+
+		case string(kasse.EventTypeAuszahlungGeleistetV1):
+			var data kasse.AuszahlungGeleistetV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal auszahlung-geleistet (event %d): %w", ev.ID, err)
+			}
+			bonNr++
+			belege = append(belege, geldbewegung(ev, data.AuszahlungID, bonNr, gvTypAuszahlung, data.BetragCents, true, data.Kommentar, data.TSEData, tischnamen))
+
+		case string(kasse.EventTypeDifferenzSollIstGebuchtV1):
+			var data kasse.DifferenzSollIstGebuchtV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal differenz-soll-ist-gebucht (event %d): %w", ev.ID, err)
+			}
+			// BetragCents = Soll − Ist: ein positiver Wert ist ein Fehlbetrag
+			// (Bargeld fehlt, Bestand mindern), ein negativer ein Überschuss.
+			bonNr++
+			belege = append(belege, geldbewegung(ev, fmt.Sprintf("differenz-soll-ist-%d", ev.ID), bonNr, gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, "", data.TSEData, tischnamen))
 		}
 	}
 
 	return belege, nil
+}
+
+// geldbewegung baut einen Beleg für eine nicht-steuerbare Bargeldbewegung
+// (Anfangsbestand, Geldtransit, Auszahlung, Kassendifferenz). Solche Vorgänge
+// sind nach DSFinV-K Anhang C BON_TYP "Beleg" mit einer einzigen Position
+// (ARTIKELTEXT = GV-Typ, UST_SCHLUESSEL 5). betragCents ist die positive
+// Magnitude; das Vorzeichen ergibt sich aus barabfluss. Den Abrechnungskreis
+// trägt nur ein Vorgang mit Tischbezug (Auszahlung), sonst bleibt er leer.
+func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragCents int, barabfluss bool, notiz string, tse *kasse.TSEData, tischnamen map[int]string) beleg {
+	return beleg{
+		bonID:            bonID,
+		bonNr:            bonNr,
+		bonTyp:           bonTypBeleg,
+		gvTyp:            gvTyp,
+		zahlart:          zahlartBar,
+		abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
+		barabfluss:       barabfluss,
+		nichtSteuerbar:   true,
+		artikeltext:      gvTyp,
+		start:            zeit(ev),
+		ende:             zeit(ev),
+		bedienerID:       ev.UserID,
+		bedienerName:     ev.UserName,
+		bruttoCents:      betragCents,
+		tse:              tse,
+		notiz:            notiz,
+	}
 }
 
 // ursprungsbons liefert die BON_IDs der Bestellungen, aus denen die stornierten
@@ -322,16 +428,7 @@ var cashpointclosingColumns = []column{
 }
 
 func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table {
-	// Nur Barzahlungen fließen in den Kassenbestand; offene Bestellungen
-	// (Forderungsentstehung) bewegen kein Geld und bleiben außen vor. Ein
-	// Bar-Storno (Direktverkauf) mindert den Bestand über sein negatives Vorzeichen.
-	bar := 0
-	for bi := range belege {
-		b := &belege[bi]
-		if b.zahlart == zahlartBar {
-			bar += b.sign() * b.bruttoCents
-		}
-	}
+	bar := barbestand(belege)
 
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
@@ -403,11 +500,16 @@ var vatColumns = []column{
 }
 
 // buildVat deklariert die in der Sitzung tatsächlich verwendeten Steuersätze,
-// aufsteigend nach Umsatzsteuerschlüssel.
+// aufsteigend nach Umsatzsteuerschlüssel. Nicht-steuerbare Bargeldbewegungen
+// führen den Schlüssel 5 (0 %).
 func buildVat(s Snapshot, erstellung string, belege []beleg) Table {
 	prozentJeSchluessel := map[int]int{}
 	for bi := range belege {
 		b := &belege[bi]
+		if b.nichtSteuerbar {
+			prozentJeSchluessel[ustNichtSteuerbar] = 0
+			continue
+		}
 		for _, aufteilung := range steuer.Steuermatrix(steuermatrixPositionen(b.positionen)) {
 			prozentJeSchluessel[ustSchluessel(aufteilung.Satz)] = aufteilung.Satz.Prozent()
 		}
@@ -536,11 +638,11 @@ func buildTransactionsVat(s Snapshot, erstellung string, belege []beleg) Table {
 	var records [][]string
 	for bi := range belege {
 		b := &belege[bi]
-		for _, aufteilung := range steuer.Steuermatrix(steuermatrixPositionen(b.positionen)) {
+		for _, z := range b.ustAufteilung() {
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-				b.bonID, itoa(ustSchluessel(aufteilung.Satz)),
-				formatAmount(b.sign() * aufteilung.Brutto), formatAmount(b.sign() * aufteilung.Netto), formatAmount(b.sign() * aufteilung.Steuer),
+				b.bonID, itoa(z.schluessel),
+				formatAmount(b.sign() * z.brutto), formatAmount(b.sign() * z.netto), formatAmount(b.sign() * z.ust),
 			})
 		}
 	}
@@ -626,6 +728,19 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 	var records [][]string
 	for bi := range belege {
 		b := &belege[bi]
+		if b.nichtSteuerbar {
+			// Bargeldbewegung: eine synthetische Position (ARTIKELTEXT = GV-Typ),
+			// Menge ±1 trägt das Vorzeichen, der Stückpreis die positive Magnitude.
+			records = append(records, []string{
+				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
+				b.bonID, "1", "", b.artikeltext,
+				"", b.gvTyp, "", "",
+				storno(false), "0", "", "",
+				"", "", formatQuantity(b.sign()), "",
+				"", formatAmount(b.bruttoCents),
+			})
+			continue
+		}
 		for i, p := range b.positionen {
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
@@ -657,6 +772,14 @@ func buildLinesVat(s Snapshot, erstellung string, belege []beleg) Table {
 	var records [][]string
 	for bi := range belege {
 		b := &belege[bi]
+		if b.nichtSteuerbar {
+			records = append(records, []string{
+				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
+				b.bonID, "1", itoa(ustNichtSteuerbar),
+				formatAmount(b.sign() * b.bruttoCents), formatAmount(b.sign() * b.bruttoCents), formatAmount(0),
+			})
+			continue
+		}
 		for i, p := range b.positionen {
 			brutto := p.Einzelpreis * p.Menge
 			for _, aufteilung := range steuer.Aufteilen(brutto, steuer.Steuersatz(p.Steuersatz)) {
@@ -711,7 +834,181 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 	}
 }
 
+// --- Kassenabschlussmodul ---
+
+var businesscasesColumns = []column{
+	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
+	alpha("GV_TYP"), alpha("GV_NAME"), num("AGENTUR_ID", 0), num("UST_SCHLUESSEL", 0),
+	num("Z_UMS_BRUTTO", 2), num("Z_UMS_NETTO", 2), num("Z_UST", 2),
+}
+
+// gvTypReihenfolge ordnet die Geschäftsvorfalltypen für eine stabile Ausgabe der
+// businesscases.csv (Umsatz vor Forderung vor den Bargeldbewegungen).
+var gvTypReihenfolge = map[string]int{
+	gvTypUmsatz:           0,
+	gvTypForderung:        1,
+	gvTypAnfangsbestand:   2,
+	gvTypGeldtransit:      3,
+	gvTypAuszahlung:       4,
+	gvTypDifferenzSollIst: 5,
+}
+
+// gvUstSchluessel ist der Aggregationsschlüssel der businesscases.csv: ein
+// Geschäftsvorfalltyp je Umsatzsteuersatz.
+type gvUstSchluessel struct {
+	gvTyp      string
+	schluessel int
+}
+
+// buildBusinesscases aggregiert die Sitzung je Geschäftsvorfalltyp und
+// Steuersatz (DSFinV-K Anhang C). Die Summen entstehen aus denselben Belegen wie
+// das Einzelaufzeichnungsmodul, daher gleicht sich die Tagessumme gegen die
+// Einzelbons ab.
+func buildBusinesscases(s Snapshot, erstellung string, belege []beleg) Table {
+	summen := map[gvUstSchluessel]ustBetrag{}
+	for bi := range belege {
+		b := &belege[bi]
+		for _, z := range b.ustAufteilung() {
+			key := gvUstSchluessel{gvTyp: b.gvTyp, schluessel: z.schluessel}
+			cur := summen[key]
+			cur.brutto += b.sign() * z.brutto
+			cur.netto += b.sign() * z.netto
+			cur.ust += b.sign() * z.ust
+			summen[key] = cur
+		}
+	}
+
+	keys := make([]gvUstSchluessel, 0, len(summen))
+	for k := range summen {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		oi, oj := ordnung(gvTypReihenfolge, keys[i].gvTyp), ordnung(gvTypReihenfolge, keys[j].gvTyp)
+		if oi != oj {
+			return oi < oj
+		}
+		if keys[i].gvTyp != keys[j].gvTyp {
+			return keys[i].gvTyp < keys[j].gvTyp
+		}
+		return keys[i].schluessel < keys[j].schluessel
+	})
+
+	records := make([][]string, 0, len(keys))
+	for _, k := range keys {
+		summe := summen[k]
+		records = append(records, []string{
+			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
+			k.gvTyp, "", "0", itoa(k.schluessel),
+			formatAmount(summe.brutto), formatAmount(summe.netto), formatAmount(summe.ust),
+		})
+	}
+
+	return Table{
+		File:        "businesscases.csv",
+		LogicalName: "Z_GV_TYP",
+		Description: "Aggregierte Beträge je Geschäftsvorfalltyp und Steuersatz",
+		Columns:     businesscasesColumns,
+		Records:     records,
+	}
+}
+
+var paymentColumns = []column{
+	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
+	alpha("ZAHLART_TYP"), alpha("ZAHLART_NAME"), num("Z_ZAHLART_BETRAG", 2),
+}
+
+// zahlartReihenfolge ordnet die Zahlarten der payment.csv (Bar vor Forderung).
+var zahlartReihenfolge = map[string]int{
+	zahlartBar:       0,
+	zahlartForderung: 1,
+}
+
+// buildPayment aggregiert die Beträge je Zahlart (DSFinV-K Anhang D). jotti
+// kennt Bar (alle Geldbewegungen) und Forderungsentstehung (offene Bestellungen).
+func buildPayment(s Snapshot, erstellung string, belege []beleg) Table {
+	summen := map[string]int{}
+	for bi := range belege {
+		b := &belege[bi]
+		summen[b.zahlart] += b.sign() * b.bruttoCents
+	}
+
+	zahlarten := make([]string, 0, len(summen))
+	for z := range summen {
+		zahlarten = append(zahlarten, z)
+	}
+	sort.Slice(zahlarten, func(i, j int) bool {
+		oi, oj := ordnung(zahlartReihenfolge, zahlarten[i]), ordnung(zahlartReihenfolge, zahlarten[j])
+		if oi != oj {
+			return oi < oj
+		}
+		return zahlarten[i] < zahlarten[j]
+	})
+
+	records := make([][]string, 0, len(zahlarten))
+	for _, z := range zahlarten {
+		records = append(records, []string{
+			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
+			z, z, formatAmount(summen[z]),
+		})
+	}
+
+	return Table{
+		File:        "payment.csv",
+		LogicalName: "Z_Zahlart",
+		Description: "Aggregierte Summen je Zahlart",
+		Columns:     paymentColumns,
+		Records:     records,
+	}
+}
+
+var cashPerCurrencyColumns = []column{
+	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
+	alpha("ZAHLART_WAEH"), num("ZAHLART_BETRAG_WAEH", 2),
+}
+
+// buildCashPerCurrency weist den Bargeldbestand zum Abschluss je Währung aus.
+// jotti rechnet ausschließlich in EUR; der Bestand ergibt sich aus allen baren
+// Belegen (Anfangsbestand, Einnahmen, Geldtransit, Auszahlung, Kassendifferenz).
+func buildCashPerCurrency(s Snapshot, erstellung string, belege []beleg) Table {
+	record := []string{
+		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
+		basiswaehrung, formatAmount(barbestand(belege)),
+	}
+
+	return Table{
+		File:        "cash_per_currency.csv",
+		LogicalName: "Z_Waehrungen",
+		Description: "Bargeldbestand je Währung zum Abschluss",
+		Columns:     cashPerCurrencyColumns,
+		Records:     [][]string{record},
+	}
+}
+
 // --- Hilfsfunktionen ---
+
+// barbestand summiert die baren Belege (vorzeichenbehaftet): Bareinnahmen und
+// Anfangsbestand mehren, Geldtransit-Entnahmen, Auszahlungen und Stornos mindern
+// den Bestand. Forderungen (offene Bestellungen) bewegen kein Bargeld. Quelle für
+// Z_SE_(BAR)ZAHLUNGEN und den Bargeldbestand der cash_per_currency.csv.
+func barbestand(belege []beleg) int {
+	bar := 0
+	for bi := range belege {
+		b := &belege[bi]
+		if b.zahlart == zahlartBar {
+			bar += b.sign() * b.bruttoCents
+		}
+	}
+	return bar
+}
+
+// ordnung liefert die Sortierposition eines Schlüssels; unbekannte Werte landen
+// hinter den bekannten und werden untereinander alphabetisch sortiert.
+func ordnung(reihenfolge map[string]int, key string) int {
+	if v, ok := reihenfolge[key]; ok {
+		return v
+	}
+	return len(reihenfolge) + 1
+}
 
 func steuermatrixPositionen(positionen []kasse.PositionEventData) []steuer.SteuermatrixPosition {
 	out := make([]steuer.SteuermatrixPosition, len(positionen))

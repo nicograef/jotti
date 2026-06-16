@@ -5,6 +5,8 @@ package dsfinvk
 import (
 	"encoding/json"
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -637,6 +639,236 @@ func TestMapDirektverkaufUndStorno(t *testing.T) {
 	}
 }
 
+// eroeffnetEvent eröffnet die Sitzung mit einem Anfangsbestand von 100,00 €.
+func eroeffnetEvent(t *testing.T, betragCents int) event.Event {
+	t.Helper()
+
+	data := kasse.KassensitzungEroeffnetV1Data{
+		Datum:        "2026-06-16",
+		Bezeichnung:  "Sommerfest",
+		BetragCents:  betragCents,
+		EroeffnetVon: 7,
+	}
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal eroeffnet data: %v", err)
+	}
+
+	return event.Event{
+		ID: 10, UserID: 7, UserName: "Anna",
+		Type:    string(kasse.EventTypeKassensitzungEroeffnetV1),
+		Time:    time.Date(2026, 6, 16, 10, 0, 0, 0, time.UTC),
+		Subject: kasse.KassensitzungSubject(3), Version: 1, Data: raw,
+	}
+}
+
+// geldtransitEvent entnimmt 50,00 € aus der Kasse (z. B. zum Tresor), TSE-signiert.
+func geldtransitEvent(t *testing.T) event.Event {
+	t.Helper()
+
+	data := kasse.GeldtransitGebuchtV1Data{
+		BewegungID:  "77777777-7777-7777-7777-777777777777",
+		Richtung:    "entnahme",
+		BetragCents: 5000,
+		Kommentar:   "Abschöpfung Tresor",
+		GebuchtVon:  7,
+		TSEData: &kasse.TSEData{
+			TransactionNumber: 6000, SignatureCounter: 40, SerialNumberTSE: "abc123serial",
+			LogTimeStart: "2026-06-16T15:00:00Z", LogTimeEnd: "2026-06-16T15:00:01Z",
+			Signature: "GTSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;gt",
+		},
+	}
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal geldtransit data: %v", err)
+	}
+
+	return event.Event{
+		ID: 11, UserID: 7, UserName: "Anna",
+		Type:    string(kasse.EventTypeGeldtransitGebuchtV1),
+		Time:    time.Date(2026, 6, 16, 15, 0, 0, 0, time.UTC),
+		Subject: kasse.KassensitzungSubject(3), Version: 1, Data: raw,
+	}
+}
+
+// auszahlungEvent leistet eine Auszahlung von 10,00 € am Tisch 42, TSE-signiert.
+func auszahlungEvent(t *testing.T) event.Event {
+	t.Helper()
+
+	data := kasse.AuszahlungGeleistetV1Data{
+		AuszahlungID: "88888888-8888-8888-8888-888888888888",
+		BetragCents:  1000,
+		Kommentar:    "Pfandrückgabe Lieferant",
+		TSEData: &kasse.TSEData{
+			TransactionNumber: 6001, SignatureCounter: 41, SerialNumberTSE: "abc123serial",
+			LogTimeStart: "2026-06-16T15:05:00Z", LogTimeEnd: "2026-06-16T15:05:01Z",
+			Signature: "AZSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;az",
+		},
+	}
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal auszahlung data: %v", err)
+	}
+
+	return event.Event{
+		ID: 12, UserID: 7, UserName: "Anna",
+		Type:    string(kasse.EventTypeAuszahlungGeleistetV1),
+		Time:    time.Date(2026, 6, 16, 15, 5, 0, 0, time.UTC),
+		Subject: kasse.TischSessionSubject(3, 42), Version: 1, Data: raw,
+	}
+}
+
+// differenzEvent bucht einen Kassenfehlbetrag von 1,00 € (Soll − Ist = +100),
+// TSE-signiert.
+func differenzEvent(t *testing.T) event.Event {
+	t.Helper()
+
+	data := kasse.DifferenzSollIstGebuchtV1Data{
+		BetragCents: 100,
+		GebuchtVon:  7,
+		TSEData: &kasse.TSEData{
+			TransactionNumber: 6002, SignatureCounter: 42, SerialNumberTSE: "abc123serial",
+			LogTimeStart: "2026-06-16T16:00:00Z", LogTimeEnd: "2026-06-16T16:00:01Z",
+			Signature: "DIFFSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;diff",
+		},
+	}
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal differenz data: %v", err)
+	}
+
+	return event.Event{
+		ID: 13, UserID: 7, UserName: "Anna",
+		Type:    string(kasse.EventTypeDifferenzSollIstGebuchtV1),
+		Time:    time.Date(2026, 6, 16, 16, 0, 0, 0, time.UTC),
+		Subject: kasse.KassensitzungSubject(3), Version: 1, Data: raw,
+	}
+}
+
+// TestMapKassenabschlussGemischteSitzung belegt das Kassenabschlussmodul über eine
+// gemischte Sitzung: Anfangsbestand, eine Bestellung (Forderung) plus ihre Zahlung
+// (Umsatz), ein Direktverkauf (Umsatz) sowie Geldtransit, Auszahlung und
+// Kassendifferenz. businesscases.csv und payment.csv lassen sich gegen die
+// Einzelbons abgleichen; cash_per_currency.csv weist den EUR-Bestand aus.
+func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
+	snapshot := testSnapshot()
+	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
+
+	events := []event.Event{
+		eroeffnetEvent(t, 10000), // Anfangsbestand 100,00 €
+		bestellungEvent(t),       // Forderung 4,50 € (Bier, 19 %)
+		zahlungEvent(t),          // Umsatz 4,50 € (Bier, 19 %)
+		direktverkaufEvent(t),    // Umsatz 4,50 € (Bier, 19 %)
+		geldtransitEvent(t),      // Entnahme −50,00 €
+		auszahlungEvent(t),       // Auszahlung −10,00 €
+		differenzEvent(t),        // Fehlbetrag −1,00 €
+	}
+
+	archive, err := Map(snapshot, events)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	const erstellung = "2026-06-16T14:30:00Z"
+
+	wantRecords := map[string][][]string{
+		// Je Geschäftsvorfalltyp und Steuersatz: Umsatz (2 × Bier 19 %) vor
+		// Forderung, dann die nicht-steuerbaren Bargeldbewegungen (Schlüssel 5).
+		"businesscases.csv": {
+			{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "9.00", "7.56", "1.44"},
+			{testSerial, erstellung, "3", "Forderungsentstehung", "", "0", "1", "4.50", "3.78", "0.72"},
+			{testSerial, erstellung, "3", "Anfangsbestand", "", "0", "5", "100.00", "100.00", "0.00"},
+			{testSerial, erstellung, "3", "Geldtransit", "", "0", "5", "-50.00", "-50.00", "0.00"},
+			{testSerial, erstellung, "3", "Auszahlung", "", "0", "5", "-10.00", "-10.00", "0.00"},
+			{testSerial, erstellung, "3", "DifferenzSollIst", "", "0", "5", "-1.00", "-1.00", "0.00"},
+		},
+		// Bar = 100 + 4,50 + 4,50 − 50 − 10 − 1 = 48,00; Forderung = 4,50.
+		"payment.csv": {
+			{testSerial, erstellung, "3", "Bar", "Bar", "48.00"},
+			{testSerial, erstellung, "3", "Forderungsentstehung", "Forderungsentstehung", "4.50"},
+		},
+		"cash_per_currency.csv": {
+			{testSerial, erstellung, "3", "EUR", "48.00"},
+		},
+	}
+
+	for file, want := range wantRecords {
+		table := tableByFile(t, archive, file)
+		if !reflect.DeepEqual(table.Records, want) {
+			t.Errorf("%s records =\n%#v\nwant\n%#v", file, table.Records, want)
+		}
+	}
+
+	// Abgleich der Tagessumme gegen die Einzelbons: die Summe der Bonkopf-Brutto
+	// (Einzelaufzeichnung) muss mit den Aggregaten je GV-Typ und je Zahlart
+	// übereinstimmen (DSFinV-K-Konsistenz Bonmodul ↔ Kassenabschlussmodul).
+	bonkopfSumme := summe(t, archive, "transactions.csv", "UMS_BRUTTO")
+	gvSumme := summe(t, archive, "businesscases.csv", "Z_UMS_BRUTTO")
+	zahlartSumme := summe(t, archive, "payment.csv", "Z_ZAHLART_BETRAG")
+	if bonkopfSumme != gvSumme {
+		t.Errorf("Summe Bonkopf (%d) ≠ Summe businesscases (%d)", bonkopfSumme, gvSumme)
+	}
+	if bonkopfSumme != zahlartSumme {
+		t.Errorf("Summe Bonkopf (%d) ≠ Summe payment (%d)", bonkopfSumme, zahlartSumme)
+	}
+
+	// Anfangsbestand trägt mangels TSE-Signatur keine transactions_tse-Zeile, die
+	// drei signierten Bargeldbewegungen dagegen schon.
+	tse := tableByFile(t, archive, "transactions_tse.csv")
+	for _, sig := range []string{"GTSIG==", "AZSIG==", "DIFFSIG=="} {
+		if !hatSignatur(tse, sig) {
+			t.Errorf("transactions_tse fehlt Signatur %q", sig)
+		}
+	}
+}
+
+// summe addiert eine Cent-Spalte (formatierte Beträge) über alle Zeilen.
+func summe(t *testing.T, a Archive, file, spalte string) int {
+	t.Helper()
+	table := tableByFile(t, a, file)
+	total := 0
+	for row := range table.Records {
+		total += centsAus(t, field(t, table, row, spalte))
+	}
+	return total
+}
+
+// centsAus parst einen DSFinV-K-Dezimalbetrag ("−50.00") zurück nach Cent.
+func centsAus(t *testing.T, s string) int {
+	t.Helper()
+	neg := strings.HasPrefix(s, "-")
+	s = strings.TrimPrefix(s, "-")
+	ganz, frac, ok := strings.Cut(s, ".")
+	if !ok {
+		t.Fatalf("kein Dezimalbetrag: %q", s)
+	}
+	euros, err := strconv.Atoi(ganz)
+	if err != nil {
+		t.Fatalf("ganzer Teil %q: %v", ganz, err)
+	}
+	cents, err := strconv.Atoi(frac)
+	if err != nil {
+		t.Fatalf("Nachkommateil %q: %v", frac, err)
+	}
+	betrag := euros*100 + cents
+	if neg {
+		return -betrag
+	}
+	return betrag
+}
+
+// hatSignatur prüft, ob eine TSE-Signatur in transactions_tse.csv vorkommt.
+func hatSignatur(table Table, sig string) bool {
+	for row := range table.Records {
+		for i, c := range table.Columns {
+			if c.name == "TSE_TA_SIG" && table.Records[row][i] == sig {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func TestErstellungszeitpunkt(t *testing.T) {
 	fallback := time.Date(2026, 6, 16, 14, 30, 0, 0, time.UTC)
 	abschlussZeit := time.Date(2026, 6, 16, 23, 0, 0, 0, time.UTC)
@@ -668,6 +900,7 @@ func TestMapDeclaresOnlyPresentTables(t *testing.T) {
 		"cashpointclosing.csv", "location.csv", "cashregister.csv", "vat.csv", "tse.csv",
 		"transactions.csv", "allocation_groups.csv", "transactions_vat.csv", "datapayment.csv",
 		"references.csv", "lines.csv", "lines_vat.csv", "transactions_tse.csv",
+		"businesscases.csv", "payment.csv", "cash_per_currency.csv",
 	}
 
 	var got []string

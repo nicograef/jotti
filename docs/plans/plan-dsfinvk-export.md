@@ -353,12 +353,12 @@ nicht fiskalisch persistiert).
 
 ### Acceptance criteria
 
-- [ ] `businesscases.csv` und `payment.csv` lassen die Tagessumme gegen die
+- [x] `businesscases.csv` und `payment.csv` lassen die Tagessumme gegen die
       Einzelbons abgleichen (Golden-Test mit gemischter Sitzung).
-- [ ] Geldtransit, Differenz Soll/Ist, Auszahlung und Anfangsbestand erscheinen mit
+- [x] Geldtransit, Differenz Soll/Ist, Auszahlung und Anfangsbestand erscheinen mit
       korrektem Geschäftsvorfalltyp.
-- [ ] `cash_per_currency.csv` weist den EUR-Bestand aus.
-- [ ] `make check` grün.
+- [x] `cash_per_currency.csv` weist den EUR-Bestand aus.
+- [x] `make check` grün.
 
 ---
 

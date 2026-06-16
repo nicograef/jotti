@@ -29,10 +29,11 @@ func TestBuildArchiveContents(t *testing.T) {
 	sort.Strings(got)
 
 	want := []string{
-		"allocation_groups.csv", "cashpointclosing.csv", "cashregister.csv", "datapayment.csv",
-		"gdpdu-01-09-2004.dtd", "index.xml", "lines.csv", "lines_vat.csv",
-		"location.csv", "references.csv", "transactions.csv", "transactions_tse.csv",
-		"transactions_vat.csv", "tse.csv", "vat.csv",
+		"allocation_groups.csv", "businesscases.csv", "cash_per_currency.csv", "cashpointclosing.csv",
+		"cashregister.csv", "datapayment.csv", "gdpdu-01-09-2004.dtd", "index.xml",
+		"lines.csv", "lines_vat.csv", "location.csv", "payment.csv",
+		"references.csv", "transactions.csv", "transactions_tse.csv", "transactions_vat.csv",
+		"tse.csv", "vat.csv",
 	}
 	if !equalStrings(got, want) {
 		t.Errorf("archive files = %v\nwant %v", got, want)

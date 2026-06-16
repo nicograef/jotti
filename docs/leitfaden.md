@@ -37,8 +37,7 @@ Bondruck.
 
 > 🔒 **Grünes Schloss als Normalfall.** Für den lokalen Betrieb holt jotti
 > automatisch ein echtes, vom Browser anerkanntes Zertifikat über die Adresse
-> `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start
-> mit Internet ausgestellt und selbst erneuert, ohne Einrichtung pro Gerät. Welche
+> `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start ausgestellt und selbst erneuert, ohne Einrichtung pro Gerät. Welche
 > Adresse gerade gilt, zeigt samt QR-Code die Status-Seite `http://localhost:8484`
 > am Kassenrechner.
 >
@@ -466,9 +465,7 @@ DNS-Frage scheitern.
 
 ## Häufige Fragen
 
-**Brauchen wir beim Fest Internet?** Nur beim ersten Start (für Programmteile und
-das vertrauenswürdige Zertifikat). Macht ihn vorab zuhause. Danach läuft jotti auch
-ohne Internet weiter; notfalls über die Fallback-Adresse.
+**Brauchen wir beim Fest Internet?** Ja, durch die TSE braucht jotti eine Internetverbindung.
 
 **Was, wenn die grüne Adresse nicht lädt?** Mit der Fallback-Adresse weiterarbeiten
 und die [Fehlersuche](#fehlersuche) durchgehen. Der Verkauf muss nie warten.
