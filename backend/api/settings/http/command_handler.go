@@ -16,7 +16,7 @@ type settingsCommand interface {
 	UpdateBetreiber(ctx context.Context, b settings.Betreiber) error
 	UpdateTSEKonfiguration(ctx context.Context, b settings.TSEKonfiguration) error
 	RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, neuAnlegenTrotzVorhandener bool) (application.TSESetupErgebnis, error)
-	UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, tssID, pin string) (application.TSESetupErgebnis, error)
+	UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, tssID, pin, puk string) (application.TSESetupErgebnis, error)
 }
 
 type CommandHandler struct {
@@ -78,16 +78,20 @@ type tseUebernehmenRequest struct {
 	Umgebung  string `json:"umgebung"`
 	TssID     string `json:"tssId"`
 	Pin       string `json:"pin"`
+	Puk       string `json:"puk"`
 }
 
 // Pin ist optional: bei der Uebernahme einer TSS im Zustand CREATED nicht noetig,
-// ab UNINITIALIZED traegt es die vom Admin verwahrte Admin-PIN.
+// ab UNINITIALIZED traegt es die vom Admin verwahrte Admin-PIN. Puk ist ebenfalls
+// optional und nur fuer den PIN-Reset gesetzt: ist die PIN verloren oder gesperrt,
+// setzt jotti mit dem PUK eine frische PIN und uebernimmt damit weiter.
 var tseUebernehmenSchema = z.Struct(z.Shape{
 	"ApiKey":    z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
 	"ApiSecret": z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
 	"Umgebung":  z.String().OneOf([]string{string(tse.UmgebungTest), string(tse.UmgebungLive)}, z.Message("Ungültige Umgebung")).Required(),
 	"TssID":     z.String().Min(1, z.Message("TSS-ID ist erforderlich")).Max(255, z.Message("TSS-ID darf höchstens 255 Zeichen lang sein")).Required(),
 	"Pin":       z.String().Max(50, z.Message("Admin-PIN darf höchstens 50 Zeichen lang sein")).Optional(),
+	"Puk":       z.String().Max(100, z.Message("Admin-PUK darf höchstens 100 Zeichen lang sein")).Optional(),
 })
 
 // tseEinrichtenResponse uebergibt PUK und Admin-PIN genau einmal an die UI. Sie
@@ -198,6 +202,7 @@ func (h *CommandHandler) UebernimmTSEHandler() http.HandlerFunc {
 			tse.Umgebung(body.Umgebung),
 			body.TssID,
 			body.Pin,
+			body.Puk,
 		)
 		if err != nil {
 			switch {
@@ -211,6 +216,8 @@ func (h *CommandHandler) UebernimmTSEHandler() http.HandlerFunc {
 				helper.SendClientError(w, "tse_setup_pin_erforderlich", nil)
 			case errors.Is(err, application.ErrTSESetupPINUnbekannt):
 				helper.SendClientError(w, "tse_setup_pin_unbekannt", nil)
+			case errors.Is(err, application.ErrTSESetupPUKUnbekannt):
+				helper.SendClientError(w, "tse_setup_puk_unbekannt", nil)
 			case errors.Is(err, application.ErrTSESetupUebernahmeNichtMoeglich):
 				helper.SendClientError(w, "tse_setup_uebernahme_nicht_moeglich", nil)
 			case errors.Is(err, application.ErrTSEEinrichtung),

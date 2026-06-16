@@ -167,13 +167,18 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 //     fiskaly sie ab, endet der Flow als ErrTSESetupPINUnbekannt (Sackgasse mit
 //     Auswegen), nicht als technischer Fehler. Es werden keine neuen Geheimnisse
 //     angezeigt.
+//   - ab UNINITIALIZED mit uebergebenem Admin-PUK (puk): die PIN ist verloren oder
+//     nach fuenf Fehlversuchen gesperrt. jotti setzt mit dem PUK eine frische
+//     Zufalls-PIN (zeigt sie einmalig an) und fuehrt die Uebernahme damit fort.
+//     Der PUK bleibt unveraendert und wird nicht erneut angezeigt; ein falscher
+//     PUK endet als ErrTSESetupPUKUnbekannt.
 //
 // Ein passender REGISTERED Client wird unveraendert uebernommen; ein passender,
 // aber DEREGISTERED Client wird reaktiviert (state=REGISTERED) statt neu
 // angelegt, da die serial_number je TSS eindeutig ist. Wie RichteTSEEin gilt der
 // LIVE-Schutz (Abgleich bestaetigte vs. tatsaechliche Umgebung) und es wird erst
 // nach erfolgreichem Abschluss atomar gespeichert.
-func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, tssID, pin string) (TSESetupErgebnis, error) {
+func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, tssID, pin, puk string) (TSESetupErgebnis, error) {
 	log := zerolog.Ctx(ctx)
 
 	if c.NewTSESetupClient == nil {
@@ -253,11 +258,14 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	// aus (Initialisieren, Client registrieren/reaktivieren) und braucht die PIN.
 	einsatzbereit := state == "INITIALIZED" && aktion == clientFertig
 
-	// PUK/PIN-Strategie nach Zustand (siehe Methodenkommentar).
-	var puk, ergebnisPUK, ergebnisPIN string
+	// PUK/PIN-Strategie nach Zustand (siehe Methodenkommentar). lebenszyklusPUK
+	// treibt nur den CREATED-Schritt (Setzen der ersten PIN); ergebnisPUK/
+	// ergebnisPIN sind die einmalig anzuzeigenden, neu entstandenen Geheimnisse.
+	var lebenszyklusPUK, ergebnisPUK, ergebnisPIN string
+	pinReset := strings.TrimSpace(puk) != ""
 	switch state {
 	case "CREATED":
-		puk, err = client.HoleAdminPUK(ctx, tssID)
+		lebenszyklusPUK, err = client.HoleAdminPUK(ctx, tssID)
 		if err != nil {
 			return TSESetupErgebnis{}, einrichtungsFehler(log, err, "puk beziehen", tssID)
 		}
@@ -266,16 +274,32 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 			log.Error().Err(err).Msg("Failed to generate admin pin")
 			return TSESetupErgebnis{}, ErrTSEEinrichtung
 		}
-		ergebnisPUK, ergebnisPIN = puk, pin
+		ergebnisPUK, ergebnisPIN = lebenszyklusPUK, pin
 	case "UNINITIALIZED", "INITIALIZED":
-		if !einsatzbereit && strings.TrimSpace(pin) == "" {
+		switch {
+		case pinReset:
+			// Verlorene oder gesperrte PIN per PUK zuruecksetzen: eine frische
+			// Zufalls-PIN mit dem PUK setzen und damit fortfahren. Die Zugangsdaten
+			// sind durch ListTSS bereits bestaetigt, daher ist ein Fehler hier
+			// praktisch immer ein falscher PUK.
+			pin, err = erzeugeAdminPIN()
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to generate admin pin")
+				return TSESetupErgebnis{}, ErrTSEEinrichtung
+			}
+			if err := client.SetzeAdminPIN(ctx, tssID, puk, pin); err != nil {
+				log.Warn().Err(err).Str("tss_id", tssID).Msg("Admin PIN reset via PUK failed")
+				return TSESetupErgebnis{}, ErrTSESetupPUKUnbekannt
+			}
+			ergebnisPIN = pin
+		case !einsatzbereit && strings.TrimSpace(pin) == "":
 			return TSESetupErgebnis{}, ErrTSESetupPINErforderlich
 		}
 	default:
 		return TSESetupErgebnis{}, ErrTSESetupUebernahmeNichtMoeglich
 	}
 
-	if err := vollendeLebenszyklus(ctx, log, client, state, tssID, puk, pin, clientID, seriennummer, aktion); err != nil {
+	if err := vollendeLebenszyklus(ctx, log, client, state, tssID, lebenszyklusPUK, pin, clientID, seriennummer, aktion); err != nil {
 		return TSESetupErgebnis{}, err
 	}
 

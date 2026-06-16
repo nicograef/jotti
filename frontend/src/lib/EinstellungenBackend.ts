@@ -105,7 +105,9 @@ export type TSEEinrichten = z.infer<typeof TSEEinrichtenSchema>
 
 // Übernahme einer vorhandenen TSS: tssId wählt die TSS aus dem Befund. pin trägt
 // ab Zustand UNINITIALIZED die vom Admin verwahrte Admin-PIN; bei CREATED bleibt
-// es leer (jotti bezieht PUK und PIN selbst).
+// es leer (jotti bezieht PUK und PIN selbst). puk ist nur für den PIN-Reset
+// gesetzt: ist die PIN verloren oder gesperrt, setzt jotti mit dem PUK eine
+// frische PIN und übernimmt damit weiter.
 export const TSEUebernehmenSchema = z.object({
   apiKey: apiKeyField,
   apiSecret: apiSecretField,
@@ -115,6 +117,11 @@ export const TSEUebernehmenSchema = z.object({
     .string()
     .trim()
     .max(50, 'Admin-PIN darf höchstens 50 Zeichen lang sein'),
+  puk: z
+    .string()
+    .trim()
+    .max(100, 'Admin-PUK darf höchstens 100 Zeichen lang sein')
+    .optional(),
 })
 export type TSEUebernehmen = z.infer<typeof TSEUebernehmenSchema>
 

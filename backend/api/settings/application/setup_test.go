@@ -293,7 +293,7 @@ func TestUebernimmTSE_WiederaufnahmeCreated(t *testing.T) {
 		HoleAdminPUKResponse: "puk-refetch",
 	}
 
-	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-halb", "")
+	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-halb", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -328,7 +328,7 @@ func TestUebernimmTSE_WiederaufnahmeUninitialized(t *testing.T) {
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-uninit", State: "UNINITIALIZED"}},
 	}
 
-	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-uninit", "1234567890")
+	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-uninit", "1234567890", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -360,7 +360,7 @@ func TestUebernimmTSE_InitialisiertOhneClient(t *testing.T) {
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
 	}
 
-	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "1234567890")
+	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "1234567890", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -386,7 +386,7 @@ func TestUebernimmTSE_VorhandenerPassenderClient(t *testing.T) {
 		},
 	}
 
-	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "1234567890")
+	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "1234567890", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -414,7 +414,7 @@ func TestUebernimmTSE_EinsatzbereitOhnePIN(t *testing.T) {
 		},
 	}
 
-	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "")
+	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -450,7 +450,7 @@ func TestUebernimmTSE_DeregistrierterClientReaktiviert(t *testing.T) {
 		},
 	}
 
-	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "1234567890")
+	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "1234567890", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -482,7 +482,7 @@ func TestUebernimmTSE_DeregistrierterClientBrauchtPIN(t *testing.T) {
 		},
 	}
 
-	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "")
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "")
 	if !errors.Is(err, ErrTSESetupPINErforderlich) {
 		t.Fatalf("expected ErrTSESetupPINErforderlich, got %v", err)
 	}
@@ -501,7 +501,7 @@ func TestUebernimmTSE_InitialisiertOhneClientBrauchtPIN(t *testing.T) {
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
 	}
 
-	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "")
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "")
 	if !errors.Is(err, ErrTSESetupPINErforderlich) {
 		t.Fatalf("expected ErrTSESetupPINErforderlich, got %v", err)
 	}
@@ -519,7 +519,7 @@ func TestUebernimmTSE_PINErforderlich(t *testing.T) {
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-uninit", State: "UNINITIALIZED"}},
 	}
 
-	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-uninit", "")
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-uninit", "", "")
 	if !errors.Is(err, ErrTSESetupPINErforderlich) {
 		t.Fatalf("expected ErrTSESetupPINErforderlich, got %v", err)
 	}
@@ -539,12 +539,96 @@ func TestUebernimmTSE_UnbekanntePIN(t *testing.T) {
 		AuthAdminErr:     tse.ErrSetupAuthFehlgeschlagen,
 	}
 
-	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "0000000000")
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "0000000000", "")
 	if !errors.Is(err, ErrTSESetupPINUnbekannt) {
 		t.Fatalf("expected ErrTSESetupPINUnbekannt, got %v", err)
 	}
 	if repo.gespeichert != nil {
 		t.Fatal("expected no configuration to be saved on an unknown pin")
+	}
+}
+
+// TestUebernimmTSE_PINResetPerPUK sichert den PUK-Reset: mit dem verwahrten
+// Admin-PUK setzt jotti eine frische Zufalls-PIN, schliesst damit die Uebernahme
+// ab und zeigt die neue PIN einmalig an. Der PUK wird dabei verwendet, bleibt
+// aber unveraendert und wird nicht erneut zurueckgegeben.
+func TestUebernimmTSE_PINResetPerPUK(t *testing.T) {
+	seriennummer := uuid.New()
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse: tse.UmgebungTest,
+		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
+	}
+
+	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "puk-verwahrt")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.GesetzterAdminPUK != "puk-verwahrt" {
+		t.Fatalf("expected the supplied puk to be used for the reset, got %q", client.GesetzterAdminPUK)
+	}
+	if ergebnis.AdminPIN == "" || ergebnis.AdminPIN != client.GesetzteAdminPIN {
+		t.Fatalf("expected a fresh pin to be set and returned, got result %q set %q", ergebnis.AdminPIN, client.GesetzteAdminPIN)
+	}
+	// Der PUK aendert sich beim Reset nicht und wird nicht erneut angezeigt.
+	if ergebnis.PUK != "" {
+		t.Fatalf("expected no puk to be returned on a reset, got %q", ergebnis.PUK)
+	}
+	// Die frische PIN treibt den Rest der Uebernahme (Admin-Auth + Client).
+	if client.AuthentifiziertePIN != ergebnis.AdminPIN {
+		t.Fatalf("expected the fresh pin to be used for admin auth, got %q", client.AuthentifiziertePIN)
+	}
+	if len(client.RegistrierteClients) != 1 || client.RegistrierteClients[0].SerialNumber != seriennummer.String() {
+		t.Fatalf("expected the client to be registered with the kassen serial, got %+v", client.RegistrierteClients)
+	}
+	if repo.gespeichert == nil || repo.gespeichert.TssID != "tss-init" {
+		t.Fatalf("expected the configuration to be saved, got %+v", repo.gespeichert)
+	}
+}
+
+// TestUebernimmTSE_PINResetPerPUKInLive sichert, dass der PUK-Reset auch in LIVE
+// funktioniert (keine neue, kostenpflichtige TSS) — hier aus UNINITIALIZED, sodass
+// zusaetzlich initialisiert wird.
+func TestUebernimmTSE_PINResetPerPUKInLive(t *testing.T) {
+	seriennummer := uuid.New()
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse: tse.UmgebungLive,
+		TSSResponse:      []tse.TSSInfo{{ID: "tss-uninit", State: "UNINITIALIZED"}},
+	}
+
+	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungLive, "tss-uninit", "", "puk-verwahrt")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.GesetzterAdminPUK != "puk-verwahrt" || ergebnis.AdminPIN == "" {
+		t.Fatalf("expected a puk-based pin reset in LIVE, got puk %q pin %q", client.GesetzterAdminPUK, ergebnis.AdminPIN)
+	}
+	if ergebnis.PUK != "" {
+		t.Fatalf("expected no puk to be returned on a reset, got %q", ergebnis.PUK)
+	}
+	if len(client.RegistrierteClients) != 1 || repo.gespeichert == nil {
+		t.Fatalf("expected the takeover to complete and save, got clients %+v saved %+v", client.RegistrierteClients, repo.gespeichert)
+	}
+}
+
+// TestUebernimmTSE_PINResetFalscherPUK sichert, dass ein von fiskaly abgelehnter
+// PUK als ErrTSESetupPUKUnbekannt endet — vor jeder weiteren Operation und ohne
+// Speicherung, nicht als technischer Fehler.
+func TestUebernimmTSE_PINResetFalscherPUK(t *testing.T) {
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse: tse.UmgebungTest,
+		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
+		SetzeAdminPINErr: tse.ErrSetupAuthFehlgeschlagen,
+	}
+
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "puk-falsch")
+	if !errors.Is(err, ErrTSESetupPUKUnbekannt) {
+		t.Fatalf("expected ErrTSESetupPUKUnbekannt, got %v", err)
+	}
+	if client.AuthAdminCalls != 0 || len(client.RegistrierteClients) != 0 || repo.gespeichert != nil {
+		t.Fatal("expected no further operations or writes on a wrong puk")
 	}
 }
 
@@ -558,7 +642,7 @@ func TestUebernimmTSE_UmgebungAbweichung(t *testing.T) {
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-x", State: "CREATED"}},
 	}
 
-	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-x", "")
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-x", "", "")
 	if !errors.Is(err, ErrTSESetupUmgebungAbweichung) {
 		t.Fatalf("expected ErrTSESetupUmgebungAbweichung, got %v", err)
 	}
@@ -573,7 +657,7 @@ func TestUebernimmTSE_TSSNichtGefunden(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{UmgebungResponse: tse.UmgebungTest}
 
-	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-fehlt", "")
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-fehlt", "", "")
 	if !errors.Is(err, ErrTSESetupTSSNichtGefunden) {
 		t.Fatalf("expected ErrTSESetupTSSNichtGefunden, got %v", err)
 	}
@@ -588,7 +672,7 @@ func TestUebernimmTSE_DeaktivierteTSS(t *testing.T) {
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-tot", State: "DISABLED"}},
 	}
 
-	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-tot", "1234567890")
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-tot", "1234567890", "")
 	if !errors.Is(err, ErrTSESetupUebernahmeNichtMoeglich) {
 		t.Fatalf("expected ErrTSESetupUebernahmeNichtMoeglich, got %v", err)
 	}

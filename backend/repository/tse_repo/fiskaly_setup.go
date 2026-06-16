@@ -189,7 +189,10 @@ func (c *FiskalyTSESetupClient) patchTSSState(ctx context.Context, tssID, state 
 	return nil
 }
 
-// SetzeAdminPIN setzt mit dem Admin-PUK die Admin-PIN der TSS.
+// SetzeAdminPIN setzt mit dem Admin-PUK die Admin-PIN der TSS. Derselbe Endpunkt
+// (PATCH /tss/{id}/admin) setzt eine verlorene PIN neu bzw. entsperrt eine nach
+// fuenf Fehlversuchen gesperrte PIN und funktioniert auch auf einer bereits
+// personalisierten TSS (UNINITIALIZED/INITIALIZED).
 func (c *FiskalyTSESetupClient) SetzeAdminPIN(ctx context.Context, tssID, puk, pin string) error {
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
@@ -253,13 +256,19 @@ func (c *FiskalyTSESetupClient) ReaktiviereClient(ctx context.Context, tssID, cl
 
 // mapSetupError uebersetzt bekannte fiskaly-Fehler in Domain-Sentinels, damit
 // die Application-Schicht verstaendliche Meldungen erzeugen kann: einen
-// Auth-Fehler (falsche Zugangsdaten) und das Erreichen des TSS-Limits
-// (E_TSS_LIMIT_REACHED, in TEST fuenf aktive TSS). Alle anderen Fehler bleiben
-// unveraendert.
+// Auth-Fehler (falsche Zugangsdaten oder abgelehnte/gesperrte Admin-PIN) und das
+// Erreichen des TSS-Limits (E_TSS_LIMIT_REACHED, in TEST fuenf aktive TSS). Eine
+// nach fuenf Fehlversuchen gesperrte Admin-PIN (E_ADMIN_PIN_BLOCKED) liefert
+// fiskaly mit Status 423; sie wird hier ebenfalls als Auth-Fehler gemeldet, damit
+// die Uebernahme in die PIN-Sackgasse (mit PUK-Reset als Ausweg) statt in einen
+// technischen Fehler laeuft. Alle anderen Fehler bleiben unveraendert.
 func mapSetupError(err error) error {
 	var apiErr apiError
 	if errors.As(err, &apiErr) {
 		if apiErr.StatusCode == http.StatusUnauthorized || apiErr.StatusCode == http.StatusForbidden {
+			return tse.ErrSetupAuthFehlgeschlagen
+		}
+		if apiErr.Code == "E_ADMIN_PIN_BLOCKED" {
 			return tse.ErrSetupAuthFehlgeschlagen
 		}
 		if apiErr.Code == "E_TSS_LIMIT_REACHED" {

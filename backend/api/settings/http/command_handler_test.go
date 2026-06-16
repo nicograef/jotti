@@ -43,7 +43,7 @@ func (m *mockSettingsCommand) RichteTSEEin(_ context.Context, _ tse.SetupCredent
 	return m.einrichten, nil
 }
 
-func (m *mockSettingsCommand) UebernimmTSE(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung, _, _ string) (application.TSESetupErgebnis, error) {
+func (m *mockSettingsCommand) UebernimmTSE(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung, _, _, _ string) (application.TSESetupErgebnis, error) {
 	if m.uebernehmErr != nil {
 		return application.TSESetupErgebnis{}, m.uebernehmErr
 	}
@@ -262,5 +262,25 @@ func TestUebernimmTSEHandler_UnbekanntePIN(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "tse_setup_pin_unbekannt") {
 		t.Fatalf("expected error code tse_setup_pin_unbekannt, got %s", rec.Body.String())
+	}
+}
+
+// TestUebernimmTSEHandler_UnbekannterPUK sichert die Uebersetzung des
+// PUK-Reset-Fehlers in den verstaendlichen Fehlercode fuer die UI.
+func TestUebernimmTSEHandler_UnbekannterPUK(t *testing.T) {
+	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupPUKUnbekannt}}
+
+	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST","tssId":"tss-init","puk":"falscher-puk"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-uebernehmen", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.UebernimmTSEHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "tse_setup_puk_unbekannt") {
+		t.Fatalf("expected error code tse_setup_puk_unbekannt, got %s", rec.Body.String())
 	}
 }

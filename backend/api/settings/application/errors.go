@@ -50,3 +50,9 @@ var ErrTSESetupPINUnbekannt = errors.New("tse_setup_pin_unbekannt")
 // ErrTSESetupUebernahmeNichtMoeglich zeigt an, dass die TSS in einem Zustand ist,
 // aus dem keine Wiederaufnahme moeglich ist (z. B. DISABLED oder DEFECTIVE).
 var ErrTSESetupUebernahmeNichtMoeglich = errors.New("tse_setup_uebernahme_nicht_moeglich")
+
+// ErrTSESetupPUKUnbekannt zeigt an, dass fiskaly den beim PIN-Reset uebergebenen
+// Admin-PUK abgelehnt hat. Die Zugangsdaten sind zu diesem Zeitpunkt bereits
+// bestaetigt, daher ist ein Fehler beim Setzen der PIN praktisch immer ein
+// falscher PUK. Sackgasse mit Ausweg (fiskaly-Support), kein technischer Fehler.
+var ErrTSESetupPUKUnbekannt = errors.New("tse_setup_puk_unbekannt")

@@ -45,6 +45,7 @@ type FakeSetupClient struct {
 	HoleAdminPUKCalls   int
 	AuthAdminCalls      int
 	GesetzteAdminPIN    string
+	GesetzterAdminPUK   string
 	AuthentifiziertePIN string
 	RegistrierteClients []RegistrierterClient
 	ReaktivierteClients []ReaktivierterClient
@@ -86,11 +87,12 @@ func (f *FakeSetupClient) PersonalisiereTSS(context.Context, string) error {
 	return f.PersonalisiereErr
 }
 
-func (f *FakeSetupClient) SetzeAdminPIN(_ context.Context, _, _, pin string) error {
+func (f *FakeSetupClient) SetzeAdminPIN(_ context.Context, _, puk, pin string) error {
 	if f.SetzeAdminPINErr != nil {
 		return f.SetzeAdminPINErr
 	}
 	f.GesetzteAdminPIN = pin
+	f.GesetzterAdminPUK = puk
 	return nil
 }
 

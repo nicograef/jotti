@@ -77,7 +77,9 @@ type SetupClient interface {
 	HoleAdminPUK(ctx context.Context, tssID string) (string, error)
 	// PersonalisiereTSS ueberfuehrt die TSS von CREATED nach UNINITIALIZED.
 	PersonalisiereTSS(ctx context.Context, tssID string) error
-	// SetzeAdminPIN setzt mit dem PUK die Admin-PIN der TSS.
+	// SetzeAdminPIN setzt mit dem PUK die Admin-PIN der TSS. Derselbe Endpunkt
+	// setzt eine verlorene PIN neu bzw. entsperrt eine nach fuenf Fehlversuchen
+	// gesperrte PIN — auch auf einer bereits personalisierten TSS.
 	SetzeAdminPIN(ctx context.Context, tssID, puk, pin string) error
 	// AuthentifiziereAdmin hebt das aktuelle Zugriffstoken fuer die folgenden
 	// Admin-Operationen der TSS auf Admin-Rechte an.

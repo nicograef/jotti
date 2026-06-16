@@ -310,12 +310,12 @@ online `developer.fiskaly.com/api/kassensichv/v2`) und die rechtlichen Grundlage
 
 ### Acceptance criteria
 
-- [ ] Mit korrektem PUK setzt der Wizard eine neue Zufalls-PIN, schließt die Übernahme ab
+- [x] Mit korrektem PUK setzt der Wizard eine neue Zufalls-PIN, schließt die Übernahme ab
       und zeigt die neue PIN genau einmal; PUK/PIN werden nicht geloggt/persistiert
       (Unit-Test)
-- [ ] Der Reset funktioniert in TEST und LIVE (Unit-Test je Umgebung)
-- [ ] Eine gesperrte PIN (`E_ADMIN_PIN_BLOCKED`) führt in den PUK-Reset statt in einen
+- [x] Der Reset funktioniert in TEST und LIVE (Unit-Test je Umgebung)
+- [x] Eine gesperrte PIN (`E_ADMIN_PIN_BLOCKED`) führt in den PUK-Reset statt in einen
       technischen Fehler
-- [ ] Falscher PUK ergibt eine verständliche Meldung mit Ausweg (fiskaly-Support), keinen
+- [x] Falscher PUK ergibt eine verständliche Meldung mit Ausweg (fiskaly-Support), keinen
       technischen Fehler
-- [ ] Wizard und Leitfaden warnen vor der 5-Versuche-Sperre; `make check` grün
+- [x] Wizard und Leitfaden warnen vor der 5-Versuche-Sperre; `make check` grün

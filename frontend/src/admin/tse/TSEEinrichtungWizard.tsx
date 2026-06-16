@@ -358,9 +358,18 @@ function UebernahmeSchritt({
           />
           <p className="text-xs text-muted-foreground">
             Diese TSE wurde bereits eingerichtet. Gib die bei der ersten
-            Einrichtung verwahrte Admin-PIN ein.
+            Einrichtung verwahrte Admin-PIN ein. Tippe sie sorgfältig – nach
+            fünf Fehlversuchen sperrt fiskaly die PIN; dann hilft nur der
+            Admin-PUK.
           </p>
           <PinFehltHinweis umgebung={umgebung} />
+          <PukReset
+            apiKey={apiKey}
+            apiSecret={apiSecret}
+            umgebung={umgebung}
+            tssId={tss.id}
+            onUebernommen={onUebernommen}
+          />
         </div>
       )}
 
@@ -368,9 +377,10 @@ function UebernahmeSchritt({
         <Alert variant="destructive">
           <AlertTitle>Admin-PIN nicht akzeptiert</AlertTitle>
           <AlertDescription>
-            fiskaly hat die eingegebene Admin-PIN abgelehnt. Ohne die korrekte
-            PIN lässt sich diese TSE nicht übernehmen. Mögliche Auswege: die
-            verwahrte PIN erneut prüfen, den fiskaly-Support kontaktieren
+            fiskaly hat die Admin-PIN abgelehnt (falsch oder nach fünf
+            Fehlversuchen gesperrt). Mögliche Auswege: die verwahrte PIN erneut
+            prüfen, mit dem Admin-PUK über „Ich habe den Admin-PUK“ eine neue
+            PIN setzen, den fiskaly-Support kontaktieren
             {umgebung === 'TEST'
               ? ' oder unten über „Stattdessen neue TSE anlegen“ eine frische Test-TSE anlegen.'
               : ' oder mit anderen Zugangsdaten bewusst eine neue TSE anlegen.'}
@@ -391,8 +401,9 @@ function UebernahmeSchritt({
 
 // Auch wenn das PIN-Feld leer ist (Button deaktiviert), braucht der Admin einen
 // sichtbaren Ausweg statt einer Sackgasse. Dieser aufklappbare Hinweis nennt die
-// Wege, wenn die bei der Ersteinrichtung verwahrte Admin-PIN nicht vorliegt. In
-// TEST verweist er auf die Sekundäraktion „Stattdessen neue TSE anlegen".
+// Wege, wenn die bei der Ersteinrichtung verwahrte Admin-PIN nicht vorliegt: den
+// PUK-Reset („Ich habe den Admin-PUK"), den fiskaly-Support und – in TEST – die
+// Sekundäraktion „Stattdessen neue TSE anlegen".
 function PinFehltHinweis({ umgebung }: { umgebung: Umgebung }) {
   const [offen, setOffen] = useState(false)
 
@@ -408,14 +419,129 @@ function PinFehltHinweis({ umgebung }: { umgebung: Umgebung }) {
           <AlertTitle>Ohne Admin-PIN keine Übernahme</AlertTitle>
           <AlertDescription>
             Die Admin-PIN wurde bei der ersten Einrichtung dieser TSE einmalig
-            angezeigt und von euch verwahrt. Ohne sie lässt sie sich nicht
-            übernehmen. Mögliche Wege: die verwahrte PIN in euren Unterlagen
-            suchen, den fiskaly-Support kontaktieren
+            angezeigt und von euch verwahrt. Mögliche Wege: die verwahrte PIN in
+            euren Unterlagen suchen, mit dem verwahrten Admin-PUK über „Ich habe
+            den Admin-PUK“ eine neue PIN setzen, den fiskaly-Support
+            kontaktieren
             {umgebung === 'TEST'
               ? ', oder in dieser Test-Umgebung unten über „Stattdessen neue TSE anlegen“ eine frische TSE anlegen.'
               : ', oder über „Andere Zugangsdaten“ mit einem anderen fiskaly-Konto neu beginnen.'}
           </AlertDescription>
         </Alert>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+// Wenn die Admin-PIN verloren oder nach fünf Fehlversuchen gesperrt ist, der
+// Admin aber den Admin-PUK verwahrt hat, setzt jotti damit eine frische PIN und
+// schließt die Übernahme ab – ohne neue, kostenpflichtige TSS. Gilt in TEST und
+// LIVE. Erfolg endet wie die übrigen Wege im ErgebnisSchritt (mit einmaliger
+// Anzeige der neuen PIN); ein falscher PUK bleibt als Meldung mit Ausweg stehen.
+function PukReset({
+  apiKey,
+  apiSecret,
+  umgebung,
+  tssId,
+  onUebernommen,
+}: {
+  apiKey: string
+  apiSecret: string
+  umgebung: Umgebung
+  tssId: string
+  onUebernommen: (ergebnis: TSEEinrichtenErgebnis) => void
+}) {
+  const [offen, setOffen] = useState(false)
+  const [puk, setPuk] = useState('')
+  const [pukUnbekannt, setPukUnbekannt] = useState(false)
+  const { uebernimmTSE } = useTSEEinrichtung()
+
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'PIN zurücksetzen',
+    byCode: {
+      ...SETUP_FEHLER,
+      tse_setup_tss_nicht_gefunden:
+        'Diese TSE wurde im Konto nicht mehr gefunden. Bitte das Konto erneut prüfen.',
+      tse_einrichtung_fehlgeschlagen:
+        'Das Zurücksetzen ist fehlgeschlagen. Bitte später erneut versuchen.',
+    },
+  })
+
+  const pukFehlt = puk.trim() === ''
+
+  const handleReset = async () => {
+    setPukUnbekannt(false)
+    await run(async () => {
+      try {
+        onUebernommen(
+          await uebernimmTSE({
+            apiKey,
+            apiSecret,
+            umgebung,
+            tssId,
+            pin: '',
+            puk,
+          }),
+        )
+      } catch (error) {
+        // Der falsche PUK bleibt als bleibende Meldung mit Ausweg stehen, nicht
+        // als flüchtiger Toast.
+        if (
+          error instanceof BackendError &&
+          error.code === 'tse_setup_puk_unbekannt'
+        ) {
+          setPukUnbekannt(true)
+          return
+        }
+        throw error
+      }
+    })
+  }
+
+  return (
+    <Collapsible open={offen} onOpenChange={setOffen}>
+      <CollapsibleTrigger asChild>
+        <Button variant="link" className="h-auto w-fit p-0 text-sm">
+          Ich habe den Admin-PUK
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-2">
+        <div className="grid gap-1.5">
+          <p className="text-sm text-muted-foreground">
+            Mit dem verwahrten Admin-PUK setzt jotti eine neue Admin-PIN und
+            übernimmt die TSE damit – auch wenn die alte PIN verloren oder
+            gesperrt ist. Der Admin-PUK bleibt unverändert. Du erhältst danach
+            einmalig die neue Admin-PIN zur Verwahrung.
+          </p>
+          <Label htmlFor={`puk-${tssId}`}>Admin-PUK</Label>
+          <Input
+            id={`puk-${tssId}`}
+            type="password"
+            value={puk}
+            onChange={(event) => {
+              setPuk(event.target.value)
+            }}
+            placeholder="Verwahrter Admin-PUK"
+            autoComplete="off"
+          />
+          {pukUnbekannt && (
+            <Alert variant="destructive">
+              <AlertTitle>Admin-PUK nicht akzeptiert</AlertTitle>
+              <AlertDescription>
+                fiskaly hat den eingegebenen Admin-PUK abgelehnt. Bitte den
+                verwahrten PUK genau prüfen. Sind Admin-PUK und Admin-PIN beide
+                verloren, hilft nur der fiskaly-Support.
+              </AlertDescription>
+            </Alert>
+          )}
+          <Button
+            className="w-fit"
+            onClick={() => void handleReset()}
+            disabled={loading || pukFehlt}
+          >
+            {loading ? 'Setze zurück…' : 'PIN zurücksetzen und übernehmen'}
+          </Button>
+        </div>
       </CollapsibleContent>
     </Collapsible>
   )
@@ -569,10 +695,12 @@ function ErgebnisSchritt({
     },
   })
 
-  // Bei der Übernahme einer bereits personalisierten TSS liefert das Backend
-  // keine neuen Geheimnisse — der Admin nutzt die bei der Ersteinrichtung
-  // verwahrten PUK/PIN weiter. Dann entfällt die Verwahr-Bestätigung.
-  const hatNeueGeheimnisse = ergebnis.puk !== ''
+  // Welche Geheimnisse neu sind, steuert die Anzeige: eine Neu-Anlage liefert
+  // PUK und PIN, ein PUK-Reset nur eine neue PIN (der PUK bleibt unverändert),
+  // eine reine Übernahme keine — dann entfällt die Verwahr-Bestätigung.
+  const hatNeuenPuk = ergebnis.puk !== ''
+  const hatNeuePin = ergebnis.adminPin !== ''
+  const hatNeueGeheimnisse = hatNeuenPuk || hatNeuePin
   const abschlussFreigegeben = !hatNeueGeheimnisse || verwahrt
 
   const handleAbschluss = async () => {
@@ -583,12 +711,22 @@ function ErgebnisSchritt({
 
   return (
     <div className="grid gap-4">
-      {hatNeueGeheimnisse ? (
+      {hatNeuenPuk ? (
         <Alert>
           <AlertTitle>TSE erfolgreich eingerichtet</AlertTitle>
           <AlertDescription>
             Notiere PUK und PIN jetzt und verwahre sie sicher außerhalb von
             jotti. Sie werden nicht gespeichert und können nicht erneut
+            angezeigt werden.
+          </AlertDescription>
+        </Alert>
+      ) : hatNeuePin ? (
+        <Alert>
+          <AlertTitle>Neue Admin-PIN gesetzt</AlertTitle>
+          <AlertDescription>
+            Notiere die neue Admin-PIN jetzt und verwahre sie sicher außerhalb
+            von jotti. Dein bereits verwahrter Admin-PUK bleibt unverändert
+            gültig. Die PIN wird nicht gespeichert und kann nicht erneut
             angezeigt werden.
           </AlertDescription>
         </Alert>
@@ -606,8 +744,10 @@ function ErgebnisSchritt({
       {hatNeueGeheimnisse && (
         <>
           <div className="grid gap-3 rounded-md border p-4">
-            <Geheimnis label="Admin-PUK" wert={ergebnis.puk} />
-            <Geheimnis label="Admin-PIN" wert={ergebnis.adminPin} />
+            {hatNeuenPuk && <Geheimnis label="Admin-PUK" wert={ergebnis.puk} />}
+            {hatNeuePin && (
+              <Geheimnis label="Admin-PIN" wert={ergebnis.adminPin} />
+            )}
           </div>
 
           <label className="flex items-start gap-2 text-sm">
@@ -618,7 +758,11 @@ function ErgebnisSchritt({
               }}
               className="mt-0.5"
             />
-            <span>Ich habe Admin-PUK und Admin-PIN sicher verwahrt.</span>
+            <span>
+              {hatNeuenPuk
+                ? 'Ich habe Admin-PUK und Admin-PIN sicher verwahrt.'
+                : 'Ich habe die neue Admin-PIN sicher verwahrt.'}
+            </span>
           </label>
         </>
       )}

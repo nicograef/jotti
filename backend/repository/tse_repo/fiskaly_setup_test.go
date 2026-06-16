@@ -309,3 +309,37 @@ func TestFiskalySetupClient_AuthFailure(t *testing.T) {
 		t.Fatalf("expected ErrSetupAuthFehlgeschlagen, got %v", err)
 	}
 }
+
+// TestFiskalySetupClient_AdminPINBlocked sichert, dass eine nach fuenf
+// Fehlversuchen gesperrte Admin-PIN (fiskaly: Status 423, Code E_ADMIN_PIN_BLOCKED)
+// als ErrSetupAuthFehlgeschlagen gemeldet wird. So laeuft die Uebernahme in die
+// PIN-Sackgasse (mit PUK-Reset als Ausweg) statt in einen technischen Fehler.
+func TestFiskalySetupClient_AdminPINBlocked(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"access_token":            "token-1",
+				"access_token_expires_at": time.Now().Add(1 * time.Hour).Unix(),
+				"access_token_claims":     map[string]any{"env": "TEST"},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v2/tss/tss-1/admin/auth":
+			w.WriteHeader(http.StatusLocked)
+			_ = json.NewEncoder(w).Encode(map[string]any{"code": "E_ADMIN_PIN_BLOCKED", "message": "admin pin is blocked"})
+		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewFiskalyTSESetupClient(server.URL, tse.SetupCredentials{ApiKey: "api-key", ApiSecret: "api-secret"}, nil)
+	if err != nil {
+		t.Fatalf("failed to create setup client: %v", err)
+	}
+
+	err = client.AuthentifiziereAdmin(context.Background(), "tss-1", "0000000000")
+	if !errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
+		t.Fatalf("expected ErrSetupAuthFehlgeschlagen for a blocked admin pin, got %v", err)
+	}
+}
