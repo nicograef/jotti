@@ -57,9 +57,9 @@ func TestBuildIndexXMLDeclaresExactArchiveTables(t *testing.T) {
 			t.Errorf("index.xml must declare %s exactly once", tbl.File)
 		}
 	}
-	for _, absent := range []string{"slaves.csv", "pa.csv", "businesscases.csv", "references.csv"} {
+	for _, absent := range []string{"slaves.csv", "pa.csv", "businesscases.csv"} {
 		if strings.Contains(xml, absent) {
-			t.Errorf("index.xml must not declare %s in phase 2", absent)
+			t.Errorf("index.xml must not declare %s", absent)
 		}
 	}
 }

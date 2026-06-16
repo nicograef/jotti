@@ -7,7 +7,7 @@
 # https://192.168.1.50 — stays available as a fallback (Caddy internal CA).
 #
 # Intended for the smallest setup: a single direct-sales till on one device, cash only,
-# no receipt printing. See docs/betrieb/leitfaden-hosting.md → "Weg A: Einzelgerät im WLAN".
+# no receipt printing. See docs/leitfaden.md → "Standardweg" (Einzelgerät im WLAN).
 #
 # Start:  docker compose -f docker-compose.local.yml up -d --build
 # Stop:   docker compose -f docker-compose.local.yml down

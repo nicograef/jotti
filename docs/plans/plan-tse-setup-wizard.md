@@ -42,7 +42,7 @@ Durable Entscheidungen für alle Phasen:
 - `frontend/src/lib/EinstellungenBackend.ts:31-35`: `TSEVerbindungStatusSchema` (wird erweitert); `:136-142` `testTSEVerbindung`
 - `frontend/src/admin/settings/hooks.ts:87-116`: `useTSEKonfiguration`; `:146-157` `useTSEStatus` (TanStack-Query-Muster, bleiben am Ort)
 - `temp/fiskaly_sign_de_api_spec.json`, `temp/fiskaly_SIGN_DE_Postman_Environment_collection.json`: API-Spec 2.2.2 und Lifecycle-Referenz (Kontrakt-Tests)
-- `docs/betrieb/leitfaden-betreiber.md`: bestehender Betreiber-Leitfaden (Einhängepunkt für Phase 6)
+- `docs/leitfaden.md`: bestehender Vereins-Leitfaden (Einhängepunkt für Phase 6)
 - Live-Test-TSS in fiskaly TEST: TSS `728e3cda-…`, Client `90977ec5-…` (für Verbindungstest-Verifikation; Wizard-Integrationstest legt eigene TSS an)
 
 ## Resolved decisions
@@ -182,7 +182,7 @@ Der Wizard kann eine im Befund gewählte vorhandene TSS übernehmen: Ein vorhand
 
 ### Context
 
-- `docs/betrieb/leitfaden-betreiber.md`: bestehender Betreiber-Leitfaden (Einhängepunkt oder Schwester-Dokument)
+- `docs/leitfaden.md`: bestehender Vereins-Leitfaden (Einhängepunkt oder Schwester-Dokument)
 - Audit D-07: fehlende Doku zu TSS-Lifecycle und Client-Registrierung
 - `docs/compliance.md`: Betreiberpflichten (Querverweis)
 

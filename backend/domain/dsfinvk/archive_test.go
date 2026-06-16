@@ -31,7 +31,7 @@ func TestBuildArchiveContents(t *testing.T) {
 	want := []string{
 		"allocation_groups.csv", "cashpointclosing.csv", "cashregister.csv", "datapayment.csv",
 		"gdpdu-01-09-2004.dtd", "index.xml", "lines.csv", "lines_vat.csv",
-		"location.csv", "transactions.csv", "transactions_tse.csv",
+		"location.csv", "references.csv", "transactions.csv", "transactions_tse.csv",
 		"transactions_vat.csv", "tse.csv", "vat.csv",
 	}
 	if !equalStrings(got, want) {

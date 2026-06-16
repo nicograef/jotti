@@ -19,21 +19,22 @@ var ErrKeineVorgaenge = errors.New("kassensitzung enthält keine vorgänge")
 
 // Feste DSFinV-K-Ausprägungen und jotti-Kassenidentität.
 const (
-	bonTypBeleg      = "Beleg"                // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
-	bonTypBestellung = "AVBestellung"         // Anhang B: Bestellung als anderer Vorgang, noch kein Umsatz
-	gvTypUmsatz      = "Umsatz"               // Anhang C: realisierter Umsatz auf Positionsebene
-	gvTypForderung   = "Forderungsentstehung" // Anhang C: offene Bestellung, Umsatz noch nicht realisiert
-	zahlartBar       = "Bar"                  // Anhang D: jotti kassiert ausschließlich bar
-	zahlartForderung = "Forderungsentstehung" // Anhang D: Forderung statt Geldzufluss bei offener Bestellung
-	tseReferenzID    = "1"                    // eine TSS pro Kasse, im Abschluss als ID 1 referenziert
-	land             = "DEU"                  // ISO 3166 ALPHA-3
-	basiswaehrung    = "EUR"                  // ISO 4217
-	tsePDEncoding    = "UTF-8"                // Encoding der ProcessData
-	zertifikatChunk  = 1000                   // max. Zeichen je TSE_ZERTIFIKAT-Feld
-	kasseBrand       = "jotti"
-	kasseModell      = "jotti mPOS"
-	kasseSoftware    = "jotti"
-	kasseSWVersion   = "1.0"
+	bonTypBeleg       = "Beleg"                // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
+	bonTypBestellung  = "AVBestellung"         // Anhang B: Bestellung als anderer Vorgang, noch kein Umsatz
+	gvTypUmsatz       = "Umsatz"               // Anhang C: realisierter Umsatz auf Positionsebene
+	gvTypForderung    = "Forderungsentstehung" // Anhang C: offene Bestellung, Umsatz noch nicht realisiert
+	zahlartBar        = "Bar"                  // Anhang D: jotti kassiert ausschließlich bar
+	zahlartForderung  = "Forderungsentstehung" // Anhang D: Forderung statt Geldzufluss bei offener Bestellung
+	refTypTransaktion = "Transaktion"          // Anhang E: REF_TYP für eine Referenz innerhalb der DSFinV-K (Storno → Ursprung)
+	tseReferenzID     = "1"                    // eine TSS pro Kasse, im Abschluss als ID 1 referenziert
+	land              = "DEU"                  // ISO 3166 ALPHA-3
+	basiswaehrung     = "EUR"                  // ISO 4217
+	tsePDEncoding     = "UTF-8"                // Encoding der ProcessData
+	zertifikatChunk   = 1000                   // max. Zeichen je TSE_ZERTIFIKAT-Feld
+	kasseBrand        = "jotti"
+	kasseModell       = "jotti mPOS"
+	kasseSoftware     = "jotti"
+	kasseSWVersion    = "1.0"
 )
 
 // Archive hält die typisierten Zeilen-Kollektionen eines DSFinV-K-Exports, eine
@@ -57,6 +58,7 @@ type beleg struct {
 	zahlart          string // ZAHLART_TYP: "Bar" oder "Forderungsentstehung"
 	abrechnungskreis string // ABRECHNUNGSKREIS (Tischname); leer ohne Tischbezug (z. B. Direktverkauf)
 	storno           bool
+	refBonIDs        []string // REF_BON_ID je Ursprungsbon (nur Storno); ein Eintrag je referenziertem Vorgang
 	start            string
 	ende             string
 	bedienerID       int
@@ -67,10 +69,24 @@ type beleg struct {
 	notiz            string
 }
 
+// sign liefert das Vorzeichen der Beträge eines Belegs: +1 im Regelfall, -1 für
+// einen Storno-Beleg. Das GoBD-Radierverbot verlangt, Stornos als eigene
+// Negativ-Datensätze auszuweisen (DSFinV-K Tz. 4.2.2, „Vorzeichen umkehren“),
+// statt den Ursprungsbon zu verändern. Beträge liegen im beleg als positive
+// Magnitude vor; das Vorzeichen wird erst beim Serialisieren der Zeilen gesetzt
+// (die Steueraufteilung rechnet ausschließlich mit nicht-negativen Beträgen).
+func (b *beleg) sign() int {
+	if b.storno {
+		return -1
+	}
+	return 1
+}
+
 // Map transformiert Snapshot und Events einer Kassensitzung in das typisierte
 // Archiv. Reine Funktion ohne I/O. Belege entstehen aus `bestellung-aufgenommen`
-// (Forderungsentstehung) und `zahlung-kassiert` (Umsatzrealisierung); weitere
-// Vorgangstypen folgen in späteren Phasen.
+// (Forderungsentstehung), `zahlung-kassiert` (Umsatzrealisierung), `stornierung-
+// erteilt` (Negativ-Beleg mit Referenz auf den Ursprung) sowie aus den
+// Direktverkauf-Vorgängen; weitere Vorgangstypen folgen in späteren Phasen.
 func Map(snapshot Snapshot, events []event.Event) (Archive, error) {
 	erstellung := snapshot.Erstellung.UTC().Format(time.RFC3339)
 
@@ -92,6 +108,7 @@ func Map(snapshot Snapshot, events []event.Event) (Archive, error) {
 		buildAllocationGroups(snapshot, erstellung, belege),
 		buildTransactionsVat(snapshot, erstellung, belege),
 		buildDatapayment(snapshot, erstellung, belege),
+		buildReferences(snapshot, erstellung, belege),
 		buildLines(snapshot, erstellung, belege),
 		buildLinesVat(snapshot, erstellung, belege),
 		buildTransactionsTSE(snapshot, erstellung, belege),
@@ -100,14 +117,21 @@ func Map(snapshot Snapshot, events []event.Event) (Archive, error) {
 	return Archive{tables: tables}, nil
 }
 
-// belegeFromEvents leitet die Belege aus den Events ab. Eine `bestellung-
-// aufgenommen` wird zur Forderungsentstehung (Umsatz noch nicht realisiert), eine
-// `zahlung-kassiert` zur Umsatzrealisierung, die die Forderung in bar auflöst.
-// BON_NR wird fortlaufend in Reihenfolge vergeben; BON_ID ist die jeweilige
-// Vorgangs-ID.
+// belegeFromEvents leitet die Belege aus den Events ab (nach `id` geordnet, daher
+// liegt ein Ursprungsbon stets vor seinem Storno). Eine `bestellung-aufgenommen`
+// wird zur Forderungsentstehung (Umsatz noch nicht realisiert), eine `zahlung-
+// kassiert` zur Umsatzrealisierung, die die Forderung in bar auflöst. Eine
+// `stornierung-erteilt` ist ein Negativ-Beleg, der die Forderung des Ursprungs
+// zurücknimmt; Direktverkäufe sind eigenständige Barbelege ohne Tischbezug, ihr
+// Storno ein Negativ-Beleg mit Referenz auf den Ursprungsverkauf. BON_NR wird
+// fortlaufend vergeben; BON_ID ist die jeweilige Vorgangs-ID.
 func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg, error) {
 	var belege []beleg
 	bonNr := 0
+	// herkunft bildet jede PositionID auf die BON_ID ihrer Bestellung ab.
+	// PositionIDs sind je Bestellung eindeutig, daher löst der Tisch-Storno seinen
+	// Ursprungsbon (Forderungsentstehung) eindeutig über seine Positionen auf.
+	herkunft := map[string]string{}
 
 	for _, ev := range events {
 		switch ev.Type {
@@ -115,6 +139,9 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 			var data kasse.BestellungAufgenommenV1Data
 			if err := json.Unmarshal(ev.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal bestellung-aufgenommen (event %d): %w", ev.ID, err)
+			}
+			for _, p := range data.Positionen {
+				herkunft[p.PositionID] = data.BestellungID
 			}
 			bonNr++
 			belege = append(belege, beleg{
@@ -156,10 +183,99 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				tse:              data.TSEData,
 				notiz:            data.Kommentar,
 			})
+
+		case string(kasse.EventTypeStornierungErteiltV1):
+			var data kasse.StornierungErteiltV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal stornierung-erteilt (event %d): %w", ev.ID, err)
+			}
+			bonNr++
+			belege = append(belege, beleg{
+				bonID:            data.StornierungID,
+				bonNr:            bonNr,
+				bonTyp:           bonTypBestellung,
+				gvTyp:            gvTypForderung,
+				zahlart:          zahlartForderung,
+				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
+				storno:           true,
+				refBonIDs:        ursprungsbons(data.Positionen, herkunft),
+				start:            zeit(ev),
+				ende:             zeit(ev),
+				bedienerID:       ev.UserID,
+				bedienerName:     ev.UserName,
+				positionen:       data.Positionen,
+				bruttoCents:      data.GesamtStornierungCents,
+				tse:              data.TSEData,
+				notiz:            data.Kommentar,
+			})
+
+		case string(kasse.EventTypeDirektverkaufGetaetigtV1):
+			var data kasse.DirektverkaufGetaetigtV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal direktverkauf-getaetigt (event %d): %w", ev.ID, err)
+			}
+			bonNr++
+			belege = append(belege, beleg{
+				bonID:        data.VerkaufID,
+				bonNr:        bonNr,
+				bonTyp:       bonTypBeleg,
+				gvTyp:        gvTypUmsatz,
+				zahlart:      zahlartBar,
+				start:        zeit(ev),
+				ende:         zeit(ev),
+				bedienerID:   ev.UserID,
+				bedienerName: ev.UserName,
+				positionen:   data.Positionen,
+				bruttoCents:  data.GesamtbetragCents,
+				tse:          data.TSEData,
+				notiz:        data.Kommentar,
+			})
+
+		case string(kasse.EventTypeDirektverkaufStorniertV1):
+			var data kasse.DirektverkaufStorniertV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal direktverkauf-storniert (event %d): %w", ev.ID, err)
+			}
+			bonNr++
+			belege = append(belege, beleg{
+				bonID:        data.StornierungID,
+				bonNr:        bonNr,
+				bonTyp:       bonTypBeleg,
+				gvTyp:        gvTypUmsatz,
+				zahlart:      zahlartBar,
+				storno:       true,
+				refBonIDs:    []string{data.VerkaufID},
+				start:        zeit(ev),
+				ende:         zeit(ev),
+				bedienerID:   ev.UserID,
+				bedienerName: ev.UserName,
+				positionen:   data.Positionen,
+				bruttoCents:  data.GesamtStornierungCents,
+				tse:          data.TSEData,
+				notiz:        data.Kommentar,
+			})
 		}
 	}
 
 	return belege, nil
+}
+
+// ursprungsbons liefert die BON_IDs der Bestellungen, aus denen die stornierten
+// Positionen stammen — in Reihenfolge des ersten Auftretens und ohne Duplikate.
+// Ein Tisch-Storno betrifft meist genau eine Bestellung; über mehrere Bestell-
+// runden hinweg kann er mehrere referenzieren (eine references-Zeile je Ursprung).
+func ursprungsbons(positionen []kasse.PositionEventData, herkunft map[string]string) []string {
+	var bons []string
+	gesehen := map[string]bool{}
+	for _, p := range positionen {
+		bon, ok := herkunft[p.PositionID]
+		if !ok || gesehen[bon] {
+			continue
+		}
+		gesehen[bon] = true
+		bons = append(bons, bon)
+	}
+	return bons
 }
 
 // zeit formatiert den Event-Zeitstempel als ISO-8601-UTC für BON_START/BON_ENDE.
@@ -207,12 +323,13 @@ var cashpointclosingColumns = []column{
 
 func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table {
 	// Nur Barzahlungen fließen in den Kassenbestand; offene Bestellungen
-	// (Forderungsentstehung) bewegen kein Geld und bleiben außen vor.
+	// (Forderungsentstehung) bewegen kein Geld und bleiben außen vor. Ein
+	// Bar-Storno (Direktverkauf) mindert den Bestand über sein negatives Vorzeichen.
 	bar := 0
 	for bi := range belege {
 		b := &belege[bi]
 		if b.zahlart == zahlartBar {
-			bar += b.bruttoCents
+			bar += b.sign() * b.bruttoCents
 		}
 	}
 
@@ -363,7 +480,7 @@ func buildTransactions(s Snapshot, erstellung string, belege []beleg) Table {
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 			b.bonID, itoa(b.bonNr), b.bonTyp, "",
 			"", storno(b.storno), b.start, b.ende,
-			itoa(b.bedienerID), b.bedienerName, formatAmount(b.bruttoCents),
+			itoa(b.bedienerID), b.bedienerName, formatAmount(b.sign() * b.bruttoCents),
 			"", "", "", "",
 			"", "", "", "",
 			b.notiz,
@@ -423,7 +540,7 @@ func buildTransactionsVat(s Snapshot, erstellung string, belege []beleg) Table {
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, itoa(ustSchluessel(aufteilung.Satz)),
-				formatAmount(aufteilung.Brutto), formatAmount(aufteilung.Netto), formatAmount(aufteilung.Steuer),
+				formatAmount(b.sign() * aufteilung.Brutto), formatAmount(b.sign() * aufteilung.Netto), formatAmount(b.sign() * aufteilung.Steuer),
 			})
 		}
 	}
@@ -450,7 +567,7 @@ func buildDatapayment(s Snapshot, erstellung string, belege []beleg) Table {
 		records = append(records, []string{
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 			b.bonID, b.zahlart, b.zahlart,
-			basiswaehrung, formatAmount(b.bruttoCents), formatAmount(b.bruttoCents),
+			basiswaehrung, formatAmount(b.sign() * b.bruttoCents), formatAmount(b.sign() * b.bruttoCents),
 		})
 	}
 
@@ -459,6 +576,39 @@ func buildDatapayment(s Snapshot, erstellung string, belege []beleg) Table {
 		LogicalName: "Bonkopf_Zahlarten",
 		Description: "Zahlarten je Bon",
 		Columns:     datapaymentColumns,
+		Records:     records,
+	}
+}
+
+var referencesColumns = []column{
+	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
+	alpha("BON_ID"), alpha("POS_ZEILE"), alpha("REF_TYP"), alpha("REF_NAME"),
+	alpha("REF_DATUM"), alpha("REF_Z_KASSE_ID"), num("REF_Z_NR", 0), alpha("REF_BON_ID"),
+}
+
+// buildReferences verkettet jeden Storno-Beleg mit seinem Ursprungsvorgang
+// (Radierverbot, DSFinV-K Tz. 4.2.2). REF_TYP "Transaktion" verweist innerhalb
+// der DSFinV-K; da Ursprung und Storno in derselben Sitzung liegen, sind
+// REF_DATUM, REF_Z_KASSE_ID und REF_Z_NR die Abschlusswerte dieser Sitzung.
+// POS_ZEILE bleibt leer (Verweis aus dem Bonkopf, nicht aus einer Position).
+func buildReferences(s Snapshot, erstellung string, belege []beleg) Table {
+	var records [][]string
+	for bi := range belege {
+		b := &belege[bi]
+		for _, refBonID := range b.refBonIDs {
+			records = append(records, []string{
+				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
+				b.bonID, "", refTypTransaktion, "",
+				erstellung, s.KasseSeriennummer, itoa(s.KassensitzungNr), refBonID,
+			})
+		}
+	}
+
+	return Table{
+		File:        "references.csv",
+		LogicalName: "Bon_Referenzen",
+		Description: "Referenzen auf andere Bons (Storno → Ursprung)",
+		Columns:     referencesColumns,
 		Records:     records,
 	}
 }
@@ -482,7 +632,7 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 				b.bonID, itoa(i + 1), "", positionText(p),
 				"", b.gvTyp, "", "",
 				storno(false), "0", itoa(p.VarianteID), "",
-				p.Kategorie, p.Kategorie, formatQuantity(p.Menge), "",
+				p.Kategorie, p.Kategorie, formatQuantity(b.sign() * p.Menge), "",
 				"", formatAmount(p.Einzelpreis),
 			})
 		}
@@ -513,7 +663,7 @@ func buildLinesVat(s Snapshot, erstellung string, belege []beleg) Table {
 				records = append(records, []string{
 					s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 					b.bonID, itoa(i + 1), itoa(ustSchluessel(aufteilung.Satz)),
-					formatAmount(aufteilung.Brutto), formatAmount(aufteilung.Netto), formatAmount(aufteilung.Steuer),
+					formatAmount(b.sign() * aufteilung.Brutto), formatAmount(b.sign() * aufteilung.Netto), formatAmount(b.sign() * aufteilung.Steuer),
 				})
 			}
 		}

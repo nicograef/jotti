@@ -42,7 +42,7 @@ Ein **Kassenrechner** im WLAN, die Helfer bedienen jotti auf ihren **Handys**.
   Browserwarnung bestätigen, danach anmelden. Öffnet ein Handy die grüne Adresse
   gar nicht, blockiert vermutlich der Router (DNS-Rebind-Schutz). Die
   Router-Anleitung verlinkt die Status-Seite; sie steht auch online unter
-  <https://github.com/nicograef/jotti/blob/main/docs/betrieb/dns-rebind-schutz.md>.
+  <https://github.com/nicograef/jotti/blob/main/docs/leitfaden.md#fehlersuche>.
 
 ## Bondruck (optional)
 

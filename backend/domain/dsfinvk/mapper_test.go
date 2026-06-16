@@ -321,6 +321,322 @@ func TestAbrechnungskreisFallback(t *testing.T) {
 	}
 }
 
+const (
+	stornoBonID              = "33333333-3333-3333-3333-333333333333"
+	kombiBonID               = "44444444-4444-4444-4444-444444444444"
+	direktverkaufBonID       = "55555555-5555-5555-5555-555555555555"
+	direktverkaufStornoBonID = "66666666-6666-6666-6666-666666666666"
+)
+
+// stornierungEvent storniert die Bier-Position der bestellungEvent-Bestellung
+// (gleiche PositionID "p1"), TSE-signiert, am selben Tisch 42.
+func stornierungEvent(t *testing.T) event.Event {
+	t.Helper()
+
+	data := kasse.StornierungErteiltV1Data{
+		StornierungID:          stornoBonID,
+		GesamtStornierungCents: 450,
+		Kommentar:              "Versehentlich bestellt",
+		Positionen: []kasse.PositionEventData{
+			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+		},
+		TSEData: &kasse.TSEData{
+			TransactionNumber: 4712,
+			SignatureCounter:  13,
+			SerialNumberTSE:   "abc123serial",
+			LogTimeStart:      "2026-06-16T13:00:00Z",
+			LogTimeEnd:        "2026-06-16T13:00:01Z",
+			Signature:         "STORNOSIG==",
+			ProcessType:       "Kassenbeleg-V1",
+			QRCodeData:        "V0;storno",
+		},
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal stornierung data: %v", err)
+	}
+
+	return event.Event{
+		ID:       2,
+		UserID:   7,
+		UserName: "Anna",
+		Type:     string(kasse.EventTypeStornierungErteiltV1),
+		Time:     time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC),
+		Subject:  kasse.TischSessionSubject(3, 42),
+		Version:  2,
+		Data:     raw,
+	}
+}
+
+// TestMapTischStornoNegativeWithReference belegt das Radierverbot: der Storno ist
+// ein eigener Negativ-Beleg (BON_STORNO=1, umgekehrte Vorzeichen) und verweist in
+// references.csv per REF_BON_ID auf die Ursprungsbestellung.
+func TestMapTischStornoNegativeWithReference(t *testing.T) {
+	snapshot := testSnapshot()
+	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
+
+	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), stornierungEvent(t)})
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	const erstellung = "2026-06-16T14:30:00Z"
+
+	wantRecords := map[string][][]string{
+		// Verkettung Storno → Ursprungsbestellung (gleiche Sitzung: REF_DATUM/REF_Z_NR identisch).
+		"references.csv": {
+			{testSerial, erstellung, "3", stornoBonID, "", "Transaktion", "", erstellung, testSerial, "3", bestellungBonID},
+		},
+		// Ursprung positiv, Storno mit umgekehrtem Vorzeichen.
+		"transactions_vat.csv": {
+			{testSerial, erstellung, "3", bestellungBonID, "1", "4.50", "3.78", "0.72"},
+			{testSerial, erstellung, "3", stornoBonID, "1", "-4.50", "-3.78", "-0.72"},
+		},
+		"lines_vat.csv": {
+			{testSerial, erstellung, "3", bestellungBonID, "1", "1", "4.50", "3.78", "0.72"},
+			{testSerial, erstellung, "3", stornoBonID, "1", "1", "-4.50", "-3.78", "-0.72"},
+		},
+		"datapayment.csv": {
+			{testSerial, erstellung, "3", bestellungBonID, "Forderungsentstehung", "Forderungsentstehung", "EUR", "4.50", "4.50"},
+			{testSerial, erstellung, "3", stornoBonID, "Forderungsentstehung", "Forderungsentstehung", "EUR", "-4.50", "-4.50"},
+		},
+		// Eigene TSE-Signatur des Stornos.
+		"transactions_tse.csv": {
+			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "Bestellung-V1", "11", "BESTELLSIG==", "", "V0;bestell"},
+			{testSerial, erstellung, "3", stornoBonID, "1", "4712", "2026-06-16T13:00:00Z", "2026-06-16T13:00:01Z", "Kassenbeleg-V1", "13", "STORNOSIG==", "", "V0;storno"},
+		},
+	}
+
+	for file, want := range wantRecords {
+		table := tableByFile(t, archive, file)
+		if !reflect.DeepEqual(table.Records, want) {
+			t.Errorf("%s records =\n%#v\nwant\n%#v", file, table.Records, want)
+		}
+	}
+
+	// Bonkopf: der Storno trägt BON_STORNO=1 und negativen UMS_BRUTTO, der Ursprung bleibt unberührt.
+	transactions := tableByFile(t, archive, "transactions.csv")
+	if got := field(t, transactions, 0, "BON_STORNO"); got != "0" {
+		t.Errorf("ursprung BON_STORNO = %q, want 0", got)
+	}
+	if got := field(t, transactions, 1, "BON_STORNO"); got != "1" {
+		t.Errorf("storno BON_STORNO = %q, want 1", got)
+	}
+	if got := field(t, transactions, 1, "UMS_BRUTTO"); got != "-4.50" {
+		t.Errorf("storno UMS_BRUTTO = %q, want -4.50", got)
+	}
+
+	// Positionsebene: negierte MENGE statt P_STORNO-Flag (DSFinV-K Tz. 4.2.3).
+	lines := tableByFile(t, archive, "lines.csv")
+	if got := field(t, lines, 1, "MENGE"); got != "-1.000" {
+		t.Errorf("storno MENGE = %q, want -1.000", got)
+	}
+	if got := field(t, lines, 1, "P_STORNO"); got != "0" {
+		t.Errorf("storno P_STORNO = %q, want 0 (negierte MENGE statt Flag)", got)
+	}
+}
+
+// kombiZahlungEvent kassiert ein Kombi-Menü zum Pauschalpreis 5,01 €.
+func kombiZahlungEvent(t *testing.T) event.Event {
+	t.Helper()
+
+	data := kasse.ZahlungKassiertV1Data{
+		ZahlungID:          kombiBonID,
+		GesamtZahlungCents: 501,
+		Positionen: []kasse.PositionEventData{
+			{PositionID: "p1", VarianteID: 303, ProduktName: "Menü", VarianteName: "", Kategorie: "essen", Steuersatz: "kombi", Einzelpreis: 501, Menge: 1},
+		},
+		TSEData: &kasse.TSEData{
+			TransactionNumber: 4800,
+			SignatureCounter:  20,
+			SerialNumberTSE:   "abc123serial",
+			LogTimeStart:      "2026-06-16T12:30:00Z",
+			LogTimeEnd:        "2026-06-16T12:30:01Z",
+			Signature:         "KOMBISIG==",
+			ProcessType:       "Kassenbeleg-V1",
+			QRCodeData:        "V0;kombi",
+		},
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal kombi data: %v", err)
+	}
+
+	return event.Event{
+		ID:       1,
+		UserID:   7,
+		UserName: "Anna",
+		Type:     string(kasse.EventTypeZahlungKassiertV1),
+		Time:     time.Date(2026, 6, 16, 12, 30, 0, 0, time.UTC),
+		Subject:  kasse.TischSessionSubject(3, 42),
+		Version:  1,
+		Data:     raw,
+	}
+}
+
+// TestMapKombiSteuerSplit belegt die Entfaltung einer kombi-Position in 70 % zu
+// 7 % und 30 % zu 19 %. lines_vat folgt der Aufteilen-Reihenfolge (ermäßigt,
+// regel), transactions_vat der Steuermatrix-Reihenfolge (regel, ermäßigt).
+func TestMapKombiSteuerSplit(t *testing.T) {
+	archive, err := Map(testSnapshot(), []event.Event{kombiZahlungEvent(t)})
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	const erstellung = "2026-06-16T14:30:00Z"
+
+	wantRecords := map[string][][]string{
+		"lines_vat.csv": {
+			{testSerial, erstellung, "3", kombiBonID, "1", "2", "3.51", "3.28", "0.23"},
+			{testSerial, erstellung, "3", kombiBonID, "1", "1", "1.50", "1.26", "0.24"},
+		},
+		"transactions_vat.csv": {
+			{testSerial, erstellung, "3", kombiBonID, "1", "1.50", "1.26", "0.24"},
+			{testSerial, erstellung, "3", kombiBonID, "2", "3.51", "3.28", "0.23"},
+		},
+		"vat.csv": {
+			{testSerial, erstellung, "3", "1", "19.00", "Allgemeiner Steuersatz"},
+			{testSerial, erstellung, "3", "2", "7.00", "Ermäßigter Steuersatz"},
+		},
+	}
+
+	for file, want := range wantRecords {
+		table := tableByFile(t, archive, file)
+		if !reflect.DeepEqual(table.Records, want) {
+			t.Errorf("%s records =\n%#v\nwant\n%#v", file, table.Records, want)
+		}
+	}
+}
+
+// direktverkaufEvent verkauft ein Bier direkt an der Theke (eigener Stream, kein Tisch).
+func direktverkaufEvent(t *testing.T) event.Event {
+	t.Helper()
+
+	data := kasse.DirektverkaufGetaetigtV1Data{
+		VerkaufID:         direktverkaufBonID,
+		GesamtbetragCents: 450,
+		Positionen: []kasse.PositionEventData{
+			{PositionID: "d1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+		},
+		TSEData: &kasse.TSEData{
+			TransactionNumber: 5000,
+			SignatureCounter:  30,
+			SerialNumberTSE:   "abc123serial",
+			LogTimeStart:      "2026-06-16T14:00:00Z",
+			LogTimeEnd:        "2026-06-16T14:00:01Z",
+			Signature:         "DVSIG==",
+			ProcessType:       "Kassenbeleg-V1",
+			QRCodeData:        "V0;dv",
+		},
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal direktverkauf data: %v", err)
+	}
+
+	return event.Event{
+		ID:       1,
+		UserID:   7,
+		UserName: "Anna",
+		Type:     string(kasse.EventTypeDirektverkaufGetaetigtV1),
+		Time:     time.Date(2026, 6, 16, 14, 0, 0, 0, time.UTC),
+		Subject:  kasse.DirektverkaufSubject(3, direktverkaufBonID),
+		Version:  1,
+		Data:     raw,
+	}
+}
+
+// direktverkaufStornoEvent storniert den Direktverkauf, eigener Stream mit Referenz.
+func direktverkaufStornoEvent(t *testing.T) event.Event {
+	t.Helper()
+
+	data := kasse.DirektverkaufStorniertV1Data{
+		StornierungID:          direktverkaufStornoBonID,
+		VerkaufID:              direktverkaufBonID,
+		GesamtStornierungCents: 450,
+		Kommentar:              "Falsch eingegeben",
+		Positionen: []kasse.PositionEventData{
+			{PositionID: "d1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+		},
+		TSEData: &kasse.TSEData{
+			TransactionNumber: 5001,
+			SignatureCounter:  31,
+			SerialNumberTSE:   "abc123serial",
+			LogTimeStart:      "2026-06-16T14:05:00Z",
+			LogTimeEnd:        "2026-06-16T14:05:01Z",
+			Signature:         "DVSTORNOSIG==",
+			ProcessType:       "Kassenbeleg-V1",
+			QRCodeData:        "V0;dvstorno",
+		},
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal direktverkauf storno data: %v", err)
+	}
+
+	return event.Event{
+		ID:       2,
+		UserID:   7,
+		UserName: "Anna",
+		Type:     string(kasse.EventTypeDirektverkaufStorniertV1),
+		Time:     time.Date(2026, 6, 16, 14, 5, 0, 0, time.UTC),
+		Subject:  kasse.DirektverkaufSubject(3, direktverkaufBonID),
+		Version:  1,
+		Data:     raw,
+	}
+}
+
+// TestMapDirektverkaufUndStorno belegt: Direktverkauf und sein Storno sind eigene
+// Barbelege ohne Abrechnungskreis; der Storno verweist per REF_BON_ID auf den
+// Ursprungsverkauf und kehrt die Vorzeichen um.
+func TestMapDirektverkaufUndStorno(t *testing.T) {
+	archive, err := Map(testSnapshot(), []event.Event{direktverkaufEvent(t), direktverkaufStornoEvent(t)})
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	const erstellung = "2026-06-16T14:30:00Z"
+
+	wantRecords := map[string][][]string{
+		"references.csv": {
+			{testSerial, erstellung, "3", direktverkaufStornoBonID, "", "Transaktion", "", erstellung, testSerial, "3", direktverkaufBonID},
+		},
+		"datapayment.csv": {
+			{testSerial, erstellung, "3", direktverkaufBonID, "Bar", "Bar", "EUR", "4.50", "4.50"},
+			{testSerial, erstellung, "3", direktverkaufStornoBonID, "Bar", "Bar", "EUR", "-4.50", "-4.50"},
+		},
+	}
+
+	for file, want := range wantRecords {
+		table := tableByFile(t, archive, file)
+		if !reflect.DeepEqual(table.Records, want) {
+			t.Errorf("%s records =\n%#v\nwant\n%#v", file, table.Records, want)
+		}
+	}
+
+	// Beide Belege tragen BON_TYP "Beleg"; der Storno BON_STORNO=1.
+	transactions := tableByFile(t, archive, "transactions.csv")
+	if got := field(t, transactions, 0, "BON_TYP"); got != "Beleg" {
+		t.Errorf("direktverkauf BON_TYP = %q, want Beleg", got)
+	}
+	if got := field(t, transactions, 0, "BON_STORNO"); got != "0" {
+		t.Errorf("direktverkauf BON_STORNO = %q, want 0", got)
+	}
+	if got := field(t, transactions, 1, "BON_STORNO"); got != "1" {
+		t.Errorf("direktverkauf-storno BON_STORNO = %q, want 1", got)
+	}
+
+	// Direktverkäufe tragen keinen Abrechnungskreis (kein Tischbezug).
+	groups := tableByFile(t, archive, "allocation_groups.csv")
+	if len(groups.Records) != 0 {
+		t.Errorf("allocation_groups must be empty for Direktverkauf, got %d rows", len(groups.Records))
+	}
+}
+
 func TestErstellungszeitpunkt(t *testing.T) {
 	fallback := time.Date(2026, 6, 16, 14, 30, 0, 0, time.UTC)
 	abschlussZeit := time.Date(2026, 6, 16, 23, 0, 0, 0, time.UTC)
@@ -351,7 +667,7 @@ func TestMapDeclaresOnlyPresentTables(t *testing.T) {
 	want := []string{
 		"cashpointclosing.csv", "location.csv", "cashregister.csv", "vat.csv", "tse.csv",
 		"transactions.csv", "allocation_groups.csv", "transactions_vat.csv", "datapayment.csv",
-		"lines.csv", "lines_vat.csv", "transactions_tse.csv",
+		"references.csv", "lines.csv", "lines_vat.csv", "transactions_tse.csv",
 	}
 
 	var got []string

@@ -316,14 +316,14 @@ Direktverkäufe tragen keinen Abrechnungskreis (Feld optional, dokumentiert).
 
 ### Acceptance criteria
 
-- [ ] Eine Stornierung erzeugt einen Negativ-Datensatz mit `BON_STORNO` und
+- [x] Eine Stornierung erzeugt einen Negativ-Datensatz mit `BON_STORNO` und
       `REF_BON_ID` auf den Ursprung; die Referenz steht in `references.csv`
       (Golden-Test).
-- [ ] Eine `kombi`-Position erscheint korrekt in 70/7 % und 30/19 % aufgeteilt in
+- [x] Eine `kombi`-Position erscheint korrekt in 70/7 % und 30/19 % aufgeteilt in
       `lines_vat.csv` und `transactions_vat.csv` (Golden-Test).
-- [ ] Direktverkauf und Direktverkauf-Storno erscheinen als eigene Belege mit
+- [x] Direktverkauf und Direktverkauf-Storno erscheinen als eigene Belege mit
       Referenz (Golden-Tests je Szenario).
-- [ ] `make check` grün.
+- [x] `make check` grün.
 
 ---
 

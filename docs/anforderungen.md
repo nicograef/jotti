@@ -243,7 +243,7 @@ Jede jotti-Instanz muss innerhalb eines Monats nach Inbetriebnahme beim zuständ
 
 **Akzeptanzkriterien:**
 
-- [ ] Dokumentation `docs/betrieb/elster-meldung.md` beschreibt die manuelle Meldung Schritt für Schritt
+- [ ] Dokumentation `docs/leitfaden.md` beschreibt die manuelle Meldung Schritt für Schritt
 - [ ] Admin-Dashboard zeigt Hinweis auf Meldepflicht mit Link zur Anleitung und der Seriennummer an
 - [ ] Manuell setzbarer Meldestatus (`ausstehend` / `gemeldet am TT.MM.JJJJ`)
 - [ ] (Optional) Programmatische Meldung über ERiC oder fiskaly ist konfigurierbar

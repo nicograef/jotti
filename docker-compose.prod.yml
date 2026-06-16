@@ -6,7 +6,7 @@ name: jotti
 # terminates TLS with Caddy in public mode: set JOTTI_DOMAIN + LETSENCRYPT_EMAIL
 # in .env and Caddy obtains and renews a Let's Encrypt certificate automatically
 # (HTTP-01/TLS-ALPN). No certbot, no manual certificate choreography, no editing
-# of tracked files. See docs/betrieb/leitfaden-hosting.md → "Weg B".
+# of tracked files. See docs/leitfaden.md → "Experten-Weg" (eigener Server).
 #
 # Image versions are pinned via ${JOTTI_VERSION} (default: latest).
 #

@@ -116,7 +116,7 @@ if [[ "$TARGET_VERSION" == "$RUNNING_VERSION" ]]; then
 elif is_downgrade "$TARGET_VERSION" "$RUNNING_VERSION"; then
   error "Downgrade refused: JOTTI_VERSION ($TARGET_VERSION) is older than the running version ($RUNNING_VERSION)."
   error "Updates change the database and cannot be undone by downgrading; an older version cannot start on newer data."
-  fatal "To go back, restore a backup instead (see docs/betrieb/leitfaden-hosting.md)."
+  fatal "To go back, restore a backup instead (see docs/leitfaden.md)."
 else
   info "Updating: $RUNNING_VERSION -> $TARGET_VERSION"
 fi

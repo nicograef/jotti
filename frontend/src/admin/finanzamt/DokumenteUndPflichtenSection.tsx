@@ -12,9 +12,9 @@ const REPO_DOCS_BASE = 'https://github.com/nicograef/jotti/blob/main'
 
 const dokumente = [
   {
-    titel: 'Betreiber-Leitfaden',
+    titel: 'Leitfaden für Vereine',
     beschreibung: 'Was ihr als Verein gegenüber dem Finanzamt erledigen müsst.',
-    url: `${REPO_DOCS_BASE}/docs/betrieb/leitfaden-betreiber.md`,
+    url: `${REPO_DOCS_BASE}/docs/leitfaden.md`,
   },
   {
     titel: 'Compliance-Überblick',

@@ -122,4 +122,4 @@ else
 fi
 
 echo ""
-info "Done. Copy backups off this server regularly (10-year retention; see docs/betrieb/leitfaden-betreiber.md)."
+info "Done. Copy backups off this server regularly (10-year retention; see docs/leitfaden.md)."
