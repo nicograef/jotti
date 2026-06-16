@@ -386,9 +386,9 @@ Lesefunktion an den reinen Mapper durch, ohne dass dieser I/O kennt.
 
 ### Acceptance criteria
 
-- [ ] Ein während eines TSE-Ausfalls ohne Event-Signatur persistierter und später
+- [x] Ein während eines TSE-Ausfalls ohne Event-Signatur persistierter und später
       nachsignierter Vorgang erscheint vollständig in `transactions_tse.csv`
       (Transaktionsnummer, Signaturzähler, Signatur), belegt per Golden-Test.
-- [ ] Vorgänge mit Signatur im Event-Payload bleiben unverändert; die Seitentabelle
+- [x] Vorgänge mit Signatur im Event-Payload bleiben unverändert; die Seitentabelle
       wird nur als Fallback genutzt.
-- [ ] `make check` grün.
+- [x] `make check` grün.

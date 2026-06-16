@@ -17,6 +17,14 @@ import (
 // verständlich, statt ein defektes Archiv zu liefern.
 var ErrKeineVorgaenge = errors.New("kassensitzung enthält keine vorgänge")
 
+// SignaturNachladen liefert die nachsignierte TSE-Signatur eines Vorgangs über
+// seine tx_id aus der Seitentabelle. Der reine Mapper kennt kein I/O; der
+// Orchestrator reicht diese Lesefunktion herein. Ein nil-Ergebnis ohne Fehler
+// bedeutet: noch nicht nachsigniert (der Vorgang erscheint dann nicht in
+// transactions_tse.csv). Eine nil-Funktion bedeutet: keine Seitentabelle zur
+// Hand, ein unsignierter Vorgang bleibt ohne Signatur.
+type SignaturNachladen func(txID string) (*kasse.TSEData, error)
+
 // Feste DSFinV-K-Ausprägungen und jotti-Kassenidentität.
 const (
 	bonTypBeleg      = "Beleg"                // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
@@ -75,6 +83,7 @@ type beleg struct {
 	positionen       []kasse.PositionEventData
 	bruttoCents      int
 	tse              *kasse.TSEData
+	tseTxID          string // tx_id zum Nachladen der Signatur aus der Seitentabelle (TSE-Ausfall, später nachsigniert)
 	notiz            string
 }
 
@@ -124,7 +133,9 @@ func (b *beleg) ustAufteilung() []ustBetrag {
 // Vorgängen sowie den Bargeldbewegungen (Anfangsbestand, Geldtransit, Auszahlung,
 // Kassendifferenz). Das Kassenabschlussmodul (businesscases, payment,
 // cash_per_currency) aggregiert dieselben Belege je GV-Typ und Zahlart.
-func Map(snapshot Snapshot, events []event.Event) (Archive, error) {
+// signaturNachladen vereinigt während eines TSE-Ausfalls unsigniert persistierte
+// Vorgänge mit ihrer später nachsignierten Signatur (Seitentabelle).
+func Map(snapshot Snapshot, events []event.Event, signaturNachladen SignaturNachladen) (Archive, error) {
 	erstellung := snapshot.Erstellung.UTC().Format(time.RFC3339)
 
 	belege, err := belegeFromEvents(events, snapshot.Tischnamen)
@@ -133,6 +144,9 @@ func Map(snapshot Snapshot, events []event.Event) (Archive, error) {
 	}
 	if len(belege) == 0 {
 		return Archive{}, ErrKeineVorgaenge
+	}
+	if err := nachsigniereBelege(belege, signaturNachladen); err != nil {
+		return Archive{}, err
 	}
 
 	tables := []Table{
@@ -198,6 +212,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtPreisCents,
 				tse:              data.TSEData,
+				tseTxID:          data.TSETxID,
 				notiz:            data.Kommentar,
 			})
 
@@ -221,6 +236,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtZahlungCents,
 				tse:              data.TSEData,
+				tseTxID:          data.TSETxID,
 				notiz:            data.Kommentar,
 			})
 
@@ -246,6 +262,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtStornierungCents,
 				tse:              data.TSEData,
+				tseTxID:          data.TSETxID,
 				notiz:            data.Kommentar,
 			})
 
@@ -268,6 +285,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				positionen:   data.Positionen,
 				bruttoCents:  data.GesamtbetragCents,
 				tse:          data.TSEData,
+				tseTxID:      data.TSETxID,
 				notiz:        data.Kommentar,
 			})
 
@@ -292,6 +310,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				positionen:   data.Positionen,
 				bruttoCents:  data.GesamtStornierungCents,
 				tse:          data.TSEData,
+				tseTxID:      data.TSETxID,
 				notiz:        data.Kommentar,
 			})
 
@@ -306,7 +325,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				continue
 			}
 			bonNr++
-			belege = append(belege, geldbewegung(ev, fmt.Sprintf("anfangsbestand-%d", ev.ID), bonNr, gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung, nil, tischnamen))
+			belege = append(belege, geldbewegung(ev, fmt.Sprintf("anfangsbestand-%d", ev.ID), bonNr, gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung, "", nil, tischnamen))
 
 		case string(kasse.EventTypeGeldtransitGebuchtV1):
 			var data kasse.GeldtransitGebuchtV1Data
@@ -314,7 +333,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				return nil, fmt.Errorf("unmarshal geldtransit-gebucht (event %d): %w", ev.ID, err)
 			}
 			bonNr++
-			belege = append(belege, geldbewegung(ev, data.BewegungID, bonNr, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar, data.TSEData, tischnamen))
+			belege = append(belege, geldbewegung(ev, data.BewegungID, bonNr, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar, data.TSETxID, data.TSEData, tischnamen))
 
 		case string(kasse.EventTypeAuszahlungGeleistetV1):
 			var data kasse.AuszahlungGeleistetV1Data
@@ -322,7 +341,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				return nil, fmt.Errorf("unmarshal auszahlung-geleistet (event %d): %w", ev.ID, err)
 			}
 			bonNr++
-			belege = append(belege, geldbewegung(ev, data.AuszahlungID, bonNr, gvTypAuszahlung, data.BetragCents, true, data.Kommentar, data.TSEData, tischnamen))
+			belege = append(belege, geldbewegung(ev, data.AuszahlungID, bonNr, gvTypAuszahlung, data.BetragCents, true, data.Kommentar, data.TSETxID, data.TSEData, tischnamen))
 
 		case string(kasse.EventTypeDifferenzSollIstGebuchtV1):
 			var data kasse.DifferenzSollIstGebuchtV1Data
@@ -332,11 +351,37 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 			// BetragCents = Soll − Ist: ein positiver Wert ist ein Fehlbetrag
 			// (Bargeld fehlt, Bestand mindern), ein negativer ein Überschuss.
 			bonNr++
-			belege = append(belege, geldbewegung(ev, fmt.Sprintf("differenz-soll-ist-%d", ev.ID), bonNr, gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, "", data.TSEData, tischnamen))
+			belege = append(belege, geldbewegung(ev, fmt.Sprintf("differenz-soll-ist-%d", ev.ID), bonNr, gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, "", data.TSETxID, data.TSEData, tischnamen))
 		}
 	}
 
 	return belege, nil
+}
+
+// nachsigniereBelege vereinigt die TSE-Signaturen je Beleg (Vorgang): liegt im
+// Event-Payload keine Signatur vor (während eines TSE-Ausfalls unsigniert
+// persistiert), wird sie über die tx_id aus der Seitentabelle nachgeladen. So
+// erscheinen auch nachsignierte Vorgänge vollständig in transactions_tse.csv.
+// Belege mit Signatur im Event-Payload bleiben unberührt — die Seitentabelle ist
+// reiner Fallback und wird für sie nicht gelesen. Ein Vorgang, der weder im Event
+// noch in der Seitentabelle signiert ist (noch nicht nachsigniert), bleibt ohne
+// Signatur.
+func nachsigniereBelege(belege []beleg, signaturNachladen SignaturNachladen) error {
+	if signaturNachladen == nil {
+		return nil
+	}
+	for bi := range belege {
+		b := &belege[bi]
+		if b.tse != nil || b.tseTxID == "" {
+			continue
+		}
+		nachgeladen, err := signaturNachladen(b.tseTxID)
+		if err != nil {
+			return fmt.Errorf("tse-signatur nachladen (tx %s): %w", b.tseTxID, err)
+		}
+		b.tse = nachgeladen
+	}
+	return nil
 }
 
 // geldbewegung baut einen Beleg für eine nicht-steuerbare Bargeldbewegung
@@ -345,7 +390,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 // (ARTIKELTEXT = GV-Typ, UST_SCHLUESSEL 5). betragCents ist die positive
 // Magnitude; das Vorzeichen ergibt sich aus barabfluss. Den Abrechnungskreis
 // trägt nur ein Vorgang mit Tischbezug (Auszahlung), sonst bleibt er leer.
-func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragCents int, barabfluss bool, notiz string, tse *kasse.TSEData, tischnamen map[int]string) beleg {
+func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragCents int, barabfluss bool, notiz string, tseTxID string, tse *kasse.TSEData, tischnamen map[int]string) beleg {
 	return beleg{
 		bonID:            bonID,
 		bonNr:            bonNr,
@@ -362,6 +407,7 @@ func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragC
 		bedienerName:     ev.UserName,
 		bruttoCents:      betragCents,
 		tse:              tse,
+		tseTxID:          tseTxID,
 		notiz:            notiz,
 	}
 }

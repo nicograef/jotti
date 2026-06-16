@@ -84,7 +84,7 @@ func barverkaufEvent(t *testing.T) event.Event {
 }
 
 func TestMapBarverkaufGoldenRows(t *testing.T) {
-	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)})
+	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -251,7 +251,7 @@ func TestMapTischablaufTrennt(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
 
-	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), zahlungEvent(t)})
+	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), zahlungEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -312,7 +312,7 @@ func TestAbrechnungskreisFallback(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = nil // kein Tischname bekannt
 
-	archive, err := Map(snapshot, []event.Event{barverkaufEvent(t)})
+	archive, err := Map(snapshot, []event.Event{barverkaufEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -328,6 +328,8 @@ const (
 	kombiBonID               = "44444444-4444-4444-4444-444444444444"
 	direktverkaufBonID       = "55555555-5555-5555-5555-555555555555"
 	direktverkaufStornoBonID = "66666666-6666-6666-6666-666666666666"
+	nachsigniertSignedBonID  = "77777777-7777-7777-7777-aaaaaaaaaaaa"
+	nachsigniertOutageBonID  = "88888888-8888-8888-8888-bbbbbbbbbbbb"
 )
 
 // stornierungEvent storniert die Bier-Position der bestellungEvent-Bestellung
@@ -378,7 +380,7 @@ func TestMapTischStornoNegativeWithReference(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
 
-	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), stornierungEvent(t)})
+	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), stornierungEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -482,7 +484,7 @@ func kombiZahlungEvent(t *testing.T) event.Event {
 // 7 % und 30 % zu 19 %. lines_vat folgt der Aufteilen-Reihenfolge (ermäßigt,
 // regel), transactions_vat der Steuermatrix-Reihenfolge (regel, ermäßigt).
 func TestMapKombiSteuerSplit(t *testing.T) {
-	archive, err := Map(testSnapshot(), []event.Event{kombiZahlungEvent(t)})
+	archive, err := Map(testSnapshot(), []event.Event{kombiZahlungEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -596,7 +598,7 @@ func direktverkaufStornoEvent(t *testing.T) event.Event {
 // Barbelege ohne Abrechnungskreis; der Storno verweist per REF_BON_ID auf den
 // Ursprungsverkauf und kehrt die Vorzeichen um.
 func TestMapDirektverkaufUndStorno(t *testing.T) {
-	archive, err := Map(testSnapshot(), []event.Event{direktverkaufEvent(t), direktverkaufStornoEvent(t)})
+	archive, err := Map(testSnapshot(), []event.Event{direktverkaufEvent(t), direktverkaufStornoEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -764,7 +766,7 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 		differenzEvent(t),        // Fehlbetrag −1,00 €
 	}
 
-	archive, err := Map(snapshot, events)
+	archive, err := Map(snapshot, events, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -869,6 +871,90 @@ func hatSignatur(table Table, sig string) bool {
 	return false
 }
 
+// zahlungMitTxEvent baut eine Barzahlung mit gesetzter TSE-tx-id. tseData == nil
+// markiert eine während eines TSE-Ausfalls unsigniert persistierte Zahlung, die
+// erst später (über die Seitentabelle) nachsigniert wird.
+func zahlungMitTxEvent(t *testing.T, id int, bonID, txID string, tseData *kasse.TSEData, ts time.Time) event.Event {
+	t.Helper()
+
+	data := kasse.ZahlungKassiertV1Data{
+		ZahlungID:          bonID,
+		GesamtZahlungCents: 450,
+		Positionen: []kasse.PositionEventData{
+			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+		},
+		TSETxID:    txID,
+		TSEData:    tseData,
+		TSEAusfall: tseData == nil,
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal zahlung data: %v", err)
+	}
+
+	return event.Event{
+		ID: id, UserID: 7, UserName: "Anna",
+		Type:    string(kasse.EventTypeZahlungKassiertV1),
+		Time:    ts,
+		Subject: kasse.TischSessionSubject(3, 42), Version: 1, Data: raw,
+	}
+}
+
+// TestMapNachsigniertVorgang belegt die Vereinigung der TSE-Signaturen: ein
+// während eines TSE-Ausfalls unsigniert persistierter, später nachsignierter
+// Vorgang erscheint vollständig in transactions_tse.csv — seine Signatur wird
+// über die tx_id aus der Seitentabelle nachgeladen. Ein im Event-Payload
+// signierter Vorgang bleibt unverändert; die Seitentabelle wird für ihn nicht
+// gelesen (reiner Fallback).
+func TestMapNachsigniertVorgang(t *testing.T) {
+	eventSig := &kasse.TSEData{
+		TransactionNumber: 4711, SignatureCounter: 12, SerialNumberTSE: "abc123serial",
+		LogTimeStart: "2026-06-16T12:00:00Z", LogTimeEnd: "2026-06-16T12:00:01Z",
+		Signature: "EVENTSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;event",
+	}
+	signed := zahlungMitTxEvent(t, 1, nachsigniertSignedBonID, "tx-signed", eventSig, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
+	outage := zahlungMitTxEvent(t, 2, nachsigniertOutageBonID, "tx-outage", nil, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
+
+	// Die nachsignierte Signatur stammt aus der Seitentabelle; sie kennt keinen
+	// ProcessType (TSE_TA_VORGANGSART bleibt leer).
+	backfill := &kasse.TSEData{
+		TransactionNumber: 9100, SignatureCounter: 99, SerialNumberTSE: "abc123serial",
+		LogTimeStart: "2026-06-16T13:00:05Z", LogTimeEnd: "2026-06-16T13:00:06Z",
+		Signature: "BACKFILLSIG==", QRCodeData: "V0;backfill",
+	}
+
+	var nachgeschlagen []string
+	lookup := func(txID string) (*kasse.TSEData, error) {
+		nachgeschlagen = append(nachgeschlagen, txID)
+		if txID == "tx-outage" {
+			return backfill, nil
+		}
+		return nil, nil
+	}
+
+	archive, err := Map(testSnapshot(), []event.Event{signed, outage}, lookup)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	const erstellung = "2026-06-16T14:30:00Z"
+	want := [][]string{
+		{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", "V0;event"},
+		{testSerial, erstellung, "3", nachsigniertOutageBonID, "1", "9100", "2026-06-16T13:00:05Z", "2026-06-16T13:00:06Z", "", "99", "BACKFILLSIG==", "", "V0;backfill"},
+	}
+	tse := tableByFile(t, archive, "transactions_tse.csv")
+	if !reflect.DeepEqual(tse.Records, want) {
+		t.Errorf("transactions_tse.csv records =\n%#v\nwant\n%#v", tse.Records, want)
+	}
+
+	// Die Seitentabelle wird nur als Fallback gelesen: ausschließlich der
+	// unsigniert persistierte Vorgang wird nachgeschlagen, nicht der signierte.
+	if !reflect.DeepEqual(nachgeschlagen, []string{"tx-outage"}) {
+		t.Errorf("nachgeschlagene tx-ids = %v, want [tx-outage]", nachgeschlagen)
+	}
+}
+
 func TestErstellungszeitpunkt(t *testing.T) {
 	fallback := time.Date(2026, 6, 16, 14, 30, 0, 0, time.UTC)
 	abschlussZeit := time.Date(2026, 6, 16, 23, 0, 0, 0, time.UTC)
@@ -891,7 +977,7 @@ func TestErstellungszeitpunkt(t *testing.T) {
 }
 
 func TestMapDeclaresOnlyPresentTables(t *testing.T) {
-	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)})
+	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -924,7 +1010,7 @@ func TestMapEmptySessionIsError(t *testing.T) {
 		Data: json.RawMessage(`{}`),
 	}
 
-	_, err := Map(testSnapshot(), []event.Event{eroeffnet})
+	_, err := Map(testSnapshot(), []event.Event{eroeffnet}, nil)
 	if err != ErrKeineVorgaenge {
 		t.Fatalf("Map() error = %v, want ErrKeineVorgaenge", err)
 	}

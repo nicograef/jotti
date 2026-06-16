@@ -45,7 +45,7 @@ func TestBuildIndexXMLDescriptor(t *testing.T) {
 // genau die im Archiv vorhandenen Tabellen deklariert und die für jotti
 // gegenstandslosen Tabellen weglässt.
 func TestBuildIndexXMLDeclaresExactArchiveTables(t *testing.T) {
-	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)})
+	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}

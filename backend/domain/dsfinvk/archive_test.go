@@ -12,7 +12,7 @@ import (
 )
 
 func TestBuildArchiveContents(t *testing.T) {
-	zipBytes, err := BuildArchive(testSnapshot(), []event.Event{barverkaufEvent(t)})
+	zipBytes, err := BuildArchive(testSnapshot(), []event.Event{barverkaufEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("BuildArchive() error = %v", err)
 	}
@@ -47,7 +47,7 @@ func TestBuildArchiveContents(t *testing.T) {
 }
 
 func TestBuildArchiveEmptySession(t *testing.T) {
-	_, err := BuildArchive(testSnapshot(), nil)
+	_, err := BuildArchive(testSnapshot(), nil, nil)
 	if err != ErrKeineVorgaenge {
 		t.Fatalf("BuildArchive() error = %v, want ErrKeineVorgaenge", err)
 	}
