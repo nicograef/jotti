@@ -9,9 +9,8 @@
                  Radius, Fonts, Container-Breite.
    - base:       Reset + Element-Grundstile (Typografie, Links, Bilder).
    - components: Wenige echte Komponenten (btn, site-header/Navigation,
-                 dev-banner, badge-wip, tag, check-/plain-list,
-                 comparison-table, compliance-note, quickstart-box,
-                 cta-section) plus die Leitfaden-Typografie (guide-prose
+                 badge-wip, tag, check-list, comparison-table,
+                 compliance-note, cta-section) plus die Leitfaden-Typografie (guide-prose
                  mit guide-steps, guide-checklist und guide-faq).
    - utilities:  Kuratierte Utility-Klassen nach Tailwind-Namenskonvention.
                  Es existieren nur Utilities, die das Markup tatsächlich
@@ -386,17 +385,6 @@
     }
   }
 
-  /* Dev-Banner */
-  .dev-banner {
-    background: var(--primary-light);
-    border-bottom: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
-    text-align: center;
-    font-size: 0.8125rem;
-    padding: 0.5rem 1rem;
-    color: var(--accent-foreground);
-    line-height: 1.5;
-  }
-
   /* Badge: In Entwicklung */
   .badge-wip {
     display: inline-block;
@@ -443,27 +431,6 @@
         left: 0;
         color: var(--primary);
         font-weight: 700;
-      }
-    }
-  }
-
-  .plain-list {
-    list-style: none;
-    padding: 0;
-
-    & li {
-      position: relative;
-      padding-left: 1.25rem;
-      margin-bottom: 0.625rem;
-      font-size: 0.9375rem;
-      line-height: 1.6;
-      color: var(--muted);
-
-      &::before {
-        content: "–";
-        position: absolute;
-        left: 0;
-        color: var(--primary);
       }
     }
   }
@@ -553,47 +520,6 @@
       border-radius: 3px;
       font-size: 0.875rem;
       font-family: var(--font-mono);
-    }
-  }
-
-  /* Schnellstart-Codeblock */
-  .quickstart-box {
-    background: var(--panel-bg);
-    border-radius: var(--radius);
-    padding: 1.25rem;
-    margin-top: 1.5rem;
-
-    & h3 {
-      color: #fff;
-      margin-bottom: 1rem;
-      font-size: 1rem;
-    }
-
-    & pre {
-      background: var(--panel-code-bg);
-      border-radius: calc(var(--radius) - 2px);
-      padding: 1rem;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    & code {
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      color: var(--panel-code-ink);
-      line-height: 1.8;
-    }
-
-    @media (min-width: 640px) {
-      padding: 2rem;
-
-      & pre {
-        padding: 1.25rem;
-      }
-
-      & code {
-        font-size: 0.875rem;
-      }
     }
   }
 
@@ -805,10 +731,6 @@
     gap: calc(var(--spacing) * 2.5);
   }
 
-  .gap-3 {
-    gap: calc(var(--spacing) * 3);
-  }
-
   .gap-4 {
     gap: calc(var(--spacing) * 4);
   }
@@ -874,8 +796,8 @@
     margin-top: calc(var(--spacing) * 5);
   }
 
-  .mt-8 {
-    margin-top: calc(var(--spacing) * 8);
+  .my-8 {
+    margin-block: calc(var(--spacing) * 8);
   }
 
   .mt-10 {
@@ -899,10 +821,6 @@
     padding-top: calc(var(--spacing) * 12);
   }
 
-  .pb-3 {
-    padding-bottom: calc(var(--spacing) * 3);
-  }
-
   .pb-5 {
     padding-bottom: calc(var(--spacing) * 5);
   }
@@ -917,10 +835,6 @@
 
   .py-section {
     padding-block: var(--section-gap);
-  }
-
-  .last\:pb-0:last-child {
-    padding-bottom: 0;
   }
 
   /* Sizing */
@@ -962,10 +876,6 @@
 
   .max-w-180 {
     max-width: calc(var(--spacing) * 180); /* 720px */
-  }
-
-  .min-w-25 {
-    min-width: calc(var(--spacing) * 25); /* 100px */
   }
 
   /* Typografie */
@@ -1038,10 +948,6 @@
     color: var(--muted);
   }
 
-  .text-muted-light {
-    color: var(--muted-light);
-  }
-
   .text-white {
     color: #fff;
   }
@@ -1065,10 +971,6 @@
 
   .border-b {
     border-bottom: 1px solid var(--card-border);
-  }
-
-  .last\:border-b-0:last-child {
-    border-bottom: none;
   }
 
   .rounded-sm {
