@@ -23,9 +23,9 @@
       <section class="pt-10 pb-5 bg-surface-alt border-b md:pt-14 md:pb-6">
         <div class="container">
           <p class="text-13 font-bold uppercase tracking-6 text-primary mb-3">
-            Leitfaden für Vereine
+            jotti selbst betreiben
           </p>
-          <h1>jotti betreiben: der Leitfaden für Vereine</h1>
+          <h1>Leitfaden für Vereine</h1>
           <p class="text-17 max-w-180 mt-5">
             Vom ersten Start im WLAN bis zum rechtssicheren Betrieb, Schritt für
             Schritt für ehrenamtliche Teams.
@@ -35,28 +35,6 @@
 
       <div class="container">
         <article class="guide-prose">
-          <!-- ============ INTRO CALLOUT ============ -->
-          <div class="compliance-note">
-            <p>
-              <strong>Kanonische Quelle.</strong> Diese Seite spiegelt den
-              ausführlichen Leitfaden im Projekt-Repository. Die vollständige
-              Fassung mit allen Schritten steht in
-              <a
-                href="https://github.com/nicograef/jotti/blob/main/docs/leitfaden.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                >docs/leitfaden.md</a
-              >
-              auf GitHub.
-            </p>
-            <p>
-              <strong>Keine Rechts- oder Steuerberatung.</strong> Dieser
-              Leitfaden fasst die Rechtslage nach bestem Wissen zusammen. Im
-              Zweifel klärt Details mit eurem Steuerberater oder dem zuständigen
-              Finanzamt.
-            </p>
-          </div>
-
           <section class="mt-10" id="in-60-sekunden">
             <p>
               jotti ist eine Kasse im Sinne des Gesetzes (ein „elektronisches
@@ -88,14 +66,6 @@
                 </p>
               </div>
             </div>
-            <p>
-              <strong
-                >Der Entwickler von jotti ist dafür nicht
-                verantwortlich.</strong
-              >
-              Er stellt nur den Programmcode bereit; die Pflichten gegenüber dem
-              Finanzamt liegen bei euch als Verein.
-            </p>
 
             <div class="compliance-note">
               <p>
@@ -116,22 +86,6 @@
               Handys im selben WLAN. Kein Server, keine Domain, keine laufenden
               Kosten.
             </p>
-            <div class="compliance-note">
-              <p>
-                🔒 <strong>Grünes Schloss als Normalfall.</strong> Für den
-                lokalen Betrieb holt jotti automatisch ein echtes Zertifikat
-                über die Adresse <code>…lokal.jotti.rocks</code> (grünes
-                Schloss, keine Warnung). Es wird beim ersten Start ausgestellt
-                und selbst erneuert. Dafür müsst ihr einmalig eine Ausnahme für
-                den DNS-Rebind-Schutz bei eurem Router konfigurieren. Welche
-                Adresse gerade gilt, zeigt samt QR-Code die Status-Seite
-                <code>http://localhost:8484</code> am Kassenrechner. Greift die
-                grüne Adresse nicht, springt ein Fallback
-                <code>https://&lt;LAN-IP&gt;</code> mit selbstsigniertem
-                Zertifikat ein (einmalige Browserwarnung pro Gerät, siehe
-                <a href="#fehlersuche">Fehlersuche</a>).
-              </p>
-            </div>
 
             <h3>Start per Doppelklick</h3>
             <p>
@@ -180,26 +134,35 @@
               sie nicht, blockiert vermutlich der Router (siehe
               <a href="#fehlersuche">Fehlersuche</a>).
             </p>
+
+            <div class="compliance-note">
+              <p>
+                🔒 <strong>Grünes Schloss als Normalfall.</strong> Für den
+                lokalen Betrieb holt jotti automatisch ein echtes Zertifikat
+                über die Adresse <code>…lokal.jotti.rocks</code> (grünes
+                Schloss, keine Warnung). Es wird beim ersten Start ausgestellt
+                und selbst erneuert. Dafür müsst ihr einmalig eine Ausnahme für
+                den DNS-Rebind-Schutz bei eurem Router konfigurieren. Welche
+                Adresse gerade gilt, zeigt samt QR-Code die Status-Seite
+                <code>http://localhost:8484</code> am Kassenrechner. Greift die
+                grüne Adresse nicht, springt ein Fallback
+                <code>https://&lt;LAN-IP&gt;</code> mit selbstsigniertem
+                Zertifikat ein (einmalige Browserwarnung pro Gerät, siehe
+                <a href="#fehlersuche">Fehlersuche</a>).
+              </p>
+            </div>
           </section>
 
           <!-- ============ TSE EINRICHTEN ============ -->
           <section class="guide-steps mt-10" id="tse">
-            <h2>TSE einrichten (Cloud-TSE von fiskaly)</h2>
+            <h2>TSE einrichten</h2>
             <p>
-              Die TSE („Technische Sicherheitseinrichtung“) signiert jeden
+              Die TSE (Technische Sicherheitseinrichtung) signiert jeden
               Kassenvorgang fälschungssicher. Das Gesetz schreibt sie zwingend
               vor. jotti nutzt die Cloud-TSE von fiskaly: Ihr bucht sie als
               Online-Dienst und gebt jotti die Zugangsschlüssel. Den Rest
               erledigt ein Assistent in jotti Schritt für Schritt.
             </p>
-            <div class="compliance-note">
-              <p>
-                💡 <strong>Übt zuerst in TEST.</strong> fiskaly bietet eine
-                kostenlose Test-Umgebung. Richtet die TSE dort einmal komplett
-                ein, bevor ihr auf LIVE umstellt. So lauft ihr den ganzen Ablauf
-                einmal durch, ohne Kosten und ohne Risiko.
-              </p>
-            </div>
             <ol>
               <li>
                 <strong>fiskaly-Konto und API-Key.</strong> Auf
@@ -231,30 +194,25 @@
                 <strong>Verbindung testen & abschließen.</strong> Steht
                 „Verbindung bestätigt“, ist die TSE einsatzbereit.
               </li>
+              <li>
+                <strong>💡 Übt zuerst in TEST.</strong> fiskaly bietet eine
+                kostenlose Test-Umgebung. Richtet die TSE dort einmal komplett
+                ein, bevor ihr auf LIVE umstellt. So lauft ihr den ganzen Ablauf
+                einmal durch, ohne Kosten und ohne Risiko.
+              </li>
+              <li>
+                <strong>Von TEST zu LIVE wechseln:</strong> Für den Echtbetrieb
+                erstellt ihr im fiskaly-Dashboard einen API-Key für die
+                LIVE-Umgebung (TEST- und LIVE-Schlüssel sind getrennt) und
+                durchlauft den Assistenten erneut. Eine LIVE-TSS verursacht
+                laufende Kosten und kann nicht gelöscht werden.
+              </li>
             </ol>
             <div class="compliance-note">
               <p>
                 🔒
                 <strong>API-Key, Secret, PUK und PIN sind geheim.</strong> Sie
-                gehören nicht in Chats, E-Mails oder öffentliche Dokumente. Der
-                Admin-PUK ist euer wichtigstes Geheimnis.
-              </p>
-            </div>
-            <h3>Von TEST zu LIVE wechseln (inkl. Kosten)</h3>
-            <p>
-              Für den Echtbetrieb erstellt ihr im fiskaly-Dashboard einen
-              API-Key für die LIVE-Umgebung (TEST- und LIVE-Schlüssel sind
-              getrennt) und durchlauft den Assistenten erneut. Eine LIVE-TSS
-              verursacht laufende Kosten und kann nicht gelöscht, nur
-              stillgelegt werden.
-            </p>
-            <div class="compliance-note">
-              <p>
-                <strong>Kosten:</strong> Eine LIVE-TSS kostet circa 8€ pro
-                Monat; eine Gebühr pro Vorgang ist unüblich. Eine TSS genügt für
-                eine jotti-Instanz. fiskaly veröffentlicht für SIGN DE keine
-                feste Preisliste, holt für die Budgetplanung also ein aktuelles
-                Angebot direkt bei fiskaly ein.
+                gehören nicht in Chats, E-Mails oder öffentliche Dokumente.
               </p>
             </div>
           </section>
@@ -263,41 +221,30 @@
           <section class="guide-steps mt-10" id="pflichten">
             <h2>Pflichten erfüllen</h2>
             <p>
-              Die rechtlichen Grundlagen im Detail stehen in
-              <a
-                href="https://github.com/nicograef/jotti/blob/main/docs/compliance.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                >compliance.md</a
-              >
-              (KassenSichV, GoBD, DSFinV-K, ELSTER) und die Steuersätze in
-              <a
-                href="https://github.com/nicograef/jotti/blob/main/docs/steuerrecht.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                >steuerrecht.md</a
-              >. Hier die drei Pflichten in der Praxis.
+              Nach KassenSichV, GoBD, AO und DSFinV-K habt ihr als Verein
+              folgende Pflichten.
             </p>
 
             <h3>Kasse beim Finanzamt anmelden</h3>
             <p>
               Seit 1. Januar 2025 muss jede elektronische Kasse dem Finanzamt
-              online über ELSTER gemeldet werden (§ 146a Abs. 4 AO), eine eigene
-              Pflicht zusätzlich zur TSE. Die Frist beträgt einen Monat nach
-              Inbetriebnahme (und ebenso nach Stilllegung). Ihr braucht dafür:
+              online über ELSTER gemeldet werden (§ 146a Abs. 4 AO). Die Frist
+              beträgt einen Monat nach Inbetriebnahme (und ebenso nach
+              Stilllegung). Ihr braucht dafür:
             </p>
             <ul>
               <li>
-                Die Seriennummer eurer jotti-Kasse: jotti erzeugt sie beim
-                ersten Start automatisch (eine „UUID“) und zeigt sie im
-                Admin-Bereich an.
+                Die Seriennummer eurer jotti-Kasse. Ihr findet sie im
+                Admin-Bereich im Bereich "Finanzamt".
               </li>
               <li>
                 Die Zertifizierungs-ID und Seriennummer der TSE (von fiskaly).
+                jotti zeigt sie im Admin-Bereich an, nachdem die TSE erfolgreich
+                eingerichtet wurde.
               </li>
               <li>
-                Steuernummer, Anschrift der Betriebsstätte, Inbetriebnahmedatum,
-                Softwarename „jotti“.
+                Eure Steuernummer, die Anschrift der Betriebsstätte, das
+                Inbetriebnahmedatum, und den Softwarenamen „jotti“.
               </li>
             </ul>
             <p>
