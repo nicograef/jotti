@@ -380,7 +380,7 @@ Separater Dienst (`windows/relay/`, Repo-Root): reiner Transport ohne Fachlogik 
 
 ### Fiskalkonformität (Compliance Sub-Domain)
 
-Begriffe der gesetzlich vorgeschriebenen Fiskalisierung nach § 146a AO und KassenSichV. TSE-Integration, Steuersätze und Kassenbeleg sind umgesetzt; DSFinV-K-Export, ELSTER-Meldung, eBeleg und Hash-Chain sind offen (→ `docs/anforderungen.md`).
+Begriffe der gesetzlich vorgeschriebenen Fiskalisierung nach § 146a AO und KassenSichV. TSE-Integration, Steuersätze und Kassenbeleg sind umgesetzt; DSFinV-K-Export, ELSTER-Meldung und eBeleg sind offen (→ `docs/anforderungen.md`).
 
 > **Sprachkonvention:** Fiskal-Fachbegriffe folgen der deutschen Gesetzessprache und DSFinV-K-Spezifikation.
 

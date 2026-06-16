@@ -1,9 +1,5 @@
 # jotti betreiben: der Leitfaden für Vereine
 
-> **Der maßgebliche Leitfaden.** Diese Datei ist die einzige verbindliche Quelle
-> für Einrichtung und Betrieb von jotti. Die Website unter
-> `/leitfaden-fuer-vereine/` spiegelt sie bewusst und von Hand.
-
 Dieser Leitfaden führt euch vom ersten Start bis zum rechtssicheren Betrieb. Oben
 steht der Standardfall, den fast alle Vereine brauchen. Server-, Domain- und
 Sonderfall-Themen folgen weiter unten und sind als optional gekennzeichnet.

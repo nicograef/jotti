@@ -183,4 +183,4 @@ jotti steht unter einer proprietären Source-Available-Lizenz: Der Quellcode ist
 | VPS (z. B. Hetzner, Netcup) | ~3–5 €/Monat                            |
 | Raspberry Pi (selbst)       | ~50 € einmalig                          |
 | Vereinseigener Server       | 0 € (bereits vorhanden)                 |
-| Cloud-TSE (z. B. fiskaly)   | Abhängig vom Anbieter (eigener Vertrag) |
+| Cloud-TSE von fiskaly       | Abhängig vom Anbieter (eigener Vertrag) |

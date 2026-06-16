@@ -238,16 +238,16 @@ Alle vier Dateien auf die Korrektheits-Baseline ziehen, jede in ihrer Rolle:
 
 ### Acceptance criteria
 
-- [ ] README nennt TSE/Beleg als vorhanden, DSFinV-K als in Entwicklung (v2.5),
+- [x] README nennt TSE/Beleg als vorhanden, DSFinV-K als in Entwicklung (v2.5),
       enthält keine Hash-Chain-Zeile mehr und keine veralteten „in Entwicklung"-
       Marker auf TSE.
-- [ ] README-Tech-Tabelle nennt Caddy als Reverse Proxy; AGENTS.md ebenso.
-- [ ] README verweist auf genau eine Datei `docs/leitfaden.md` (kein
+- [x] README-Tech-Tabelle nennt Caddy als Reverse Proxy; AGENTS.md ebenso.
+- [x] README verweist auf genau eine Datei `docs/leitfaden.md` (kein
       `docs/betrieb/`-Link mehr); Link ist gültig (Datei existiert seit Phase 1).
-- [ ] Produktbeschreibung und README nennen „Cloud-TSE von fiskaly" ohne „z. B."
+- [x] Produktbeschreibung und README nennen „Cloud-TSE von fiskaly" ohne „z. B."
       und ohne Alternativ-Anbieter.
-- [ ] `language.md:383` widerspricht der Baseline nicht mehr.
-- [ ] Faktenabgleich gegen die PRD-Statusliste bestanden (README-Status =
+- [x] `language.md:383` widerspricht der Baseline nicht mehr.
+- [x] Faktenabgleich gegen die PRD-Statusliste bestanden (README-Status =
       Anforderungs-Status, keine nginx-Reste im Betriebspfad, v2.5, keine
       Hash-Chain).
 

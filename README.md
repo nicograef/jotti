@@ -5,7 +5,7 @@ Ein kostenloses, quelloffenes **Gastronomie-Kassensystem (mPOS)** für Vereine u
 Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer, führen den Kassenbestand und erstellen den Tagesabschluss.
 
 > **Kostenlos. Self-hosted. Auf dem Weg zur Fiskalkonformität.**
-> Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. Auf KassenSichV-Konformität ausgelegt — TSE-Anbindung und DSFinV-K-Export sind in Entwicklung (siehe [Status](#was-jotti-kann) und [docs/compliance.md](docs/compliance.md)).
+> Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. Auf KassenSichV-Konformität ausgelegt — TSE-Anbindung und Belegausgabe sind integriert, der DSFinV-K-Export ist in Entwicklung (siehe [Status](#was-jotti-kann) und [docs/compliance.md](docs/compliance.md)).
 
 ## Was jotti kann
 
@@ -42,7 +42,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 👤 **Abrechnung pro Servicekraft** — Umsatz und Transaktionen pro Person
 - 📈 **Produktumsatz-Reporting** _(in Entwicklung)_ — meistverkaufte Varianten, Mengen und Einnahmen pro Produkt
 - 📥 **Datenexport (CSV)** _(in Entwicklung)_ — Umsätze, Bestellungen und Artikeldaten für die Vereinsbuchhaltung
-- 📦 **DSFinV-K-Export** _(in Entwicklung)_ — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.4)
+- 📦 **DSFinV-K-Export** _(in Entwicklung)_ — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.5)
 
 ### Verwaltung & Sicherheit
 
@@ -50,8 +50,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 🔐 **Rollenmodell** mit `admin`, `serviceleitung` und `service`
 - 🔑 **Sicheres Onboarding** per Einmalpasswort, Argon2id-Hashing, JWT-Auth
 - 📜 **Event-Sourcing** — lückenlose, unveränderliche Bestellhistorie (GoBD-konform durch Append-only-Architektur)
-- 🔗 **Kryptografische Hash-Chain** _(in Entwicklung)_ — SHA-256-Verkettung aller Events, nachträgliche Manipulation nachweisbar
-- 🛡️ **TSE-Anbindung** _(in Entwicklung)_ — integrierte Cloud-TSE-Schnittstelle (fiskaly) mit Signatur jedes Vorgangs
+- 🛡️ **TSE-Anbindung** — integrierte Cloud-TSE von fiskaly mit Signatur jedes Vorgangs
 - 🧾 **Belegausgabe** — gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse
 
 ## Schnellstart
@@ -83,7 +82,7 @@ Optionale Umgebungsvariablen: `RELAY_POLL_SECONDS` (Abfrageintervall, Standard `
 | Backend       | Go 1.26, stdlib `net/http`, pgx/v5                    |
 | Datenbank     | PostgreSQL 17                                         |
 | TSE           | Cloud-TSE via fiskaly (Adapter-Pattern)               |
-| Reverse Proxy | nginx (HTTPS via Let's Encrypt)                       |
+| Reverse Proxy | Caddy (HTTPS via Let's Encrypt)                       |
 
 Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlungen, Kassensitzungen) werden via **Event Sourcing** im Kassenjournal (append-only) persistiert. Eine synchrone Projektion (`tisch_sessions`) und eine CRUD-Entität (`kassensitzungen`) ermöglichen schnelle Reads. Stammdaten nutzen klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
 
@@ -94,7 +93,7 @@ Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlunge
 - Eingetragene Vereine (e.V.), gemeinnützige Organisationen, NPOs
 - Temporäre Veranstaltungen: Vereinsfeste, Sommerfeste, Weihnachtsmärkte, Maihocks, Konzerte
 - Ehrenamtliche Teams (1–30 Helfer:innen)
-- Bargeld-Betrieb mit dem Ziel voller Fiskalkonformität (TSE, DSFinV-K, Belegausgabe — in Entwicklung, siehe [docs/compliance.md](docs/compliance.md))
+- Bargeld-Betrieb mit dem Ziel voller Fiskalkonformität (TSE und Belegausgabe vorhanden, DSFinV-K-Export in Entwicklung, siehe [docs/compliance.md](docs/compliance.md))
 
 ❌ **Nicht geeignet für:**
 
@@ -102,7 +101,7 @@ Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlunge
 - Kartenzahlung / NFC / Online-Payment
 - Kommerzielle Gastro-Betriebe (ohne separate Lizenz)
 
-> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die dafür nötige TSE-Anbindung und der DSFinV-K-Export befinden sich in Entwicklung; jotti ist so konzipiert, dass die TSE-Pflicht nach Fertigstellung über eine Cloud-TSE erfüllt wird — der Betreiber schließt selbst einen Vertrag mit einem TSE-Anbieter (z. B. fiskaly) ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Betreiber-Leitfaden](docs/betrieb/leitfaden-betreiber.md).
+> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die TSE-Anbindung und die Belegausgabe sind integriert; der DSFinV-K-Export ist in Entwicklung. jotti erfüllt die TSE-Pflicht über eine Cloud-TSE von fiskaly — der Betreiber schließt den Vertrag mit fiskaly selbst ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Leitfaden für Vereine](docs/leitfaden.md).
 
 ## Lizenz & Urheberrecht
 
