@@ -107,12 +107,20 @@ Je nach Befund bietet jotti den passenden nächsten Schritt an:
 > Zustand bei fiskaly und holt nur die fehlenden Schritte nach. Es entsteht keine zweite
 > TSS und kein halbfertiger Zustand.
 
+> 🔑 **PIN verloren oder gesperrt? Per PUK zurücksetzen.** Verlangt jotti die Admin-PIN und
+> habt ihr sie nicht (oder hat fiskaly sie nach fünf Fehlversuchen gesperrt), bietet der
+> Assistent „Ich habe den Admin-PUK" an. Gebt dort den verwahrten Admin-PUK ein und klickt
+> „PIN zurücksetzen und übernehmen": jotti setzt damit eine neue Admin-PIN und schließt die
+> Übernahme ab – ohne neue, kostenpflichtige TSS. Das funktioniert in TEST und LIVE. Danach
+> zeigt jotti die neue PIN einmalig an; der Admin-PUK bleibt unverändert. Sind PUK und PIN
+> beide verloren, hilft nur der fiskaly-Support.
+
 > 🧪 **Nur in TEST: neue TSE statt Übernahme.** Liegt die Admin-PIN einer vorhandenen
 > Test-TSE nicht mehr vor, lässt sie sich nicht übernehmen. In der Test-Umgebung bietet
 > jotti dann unter den Übernahme-Optionen die Sekundäraktion „Stattdessen neue TSE anlegen"
 > an, mit der ihr ohne PIN eine frische Test-TSE einrichtet. In LIVE gibt es diesen Ausweg
-> nicht: eine zweite LIVE-TSS verursacht Kosten, hier helfen nur die verwahrte PIN oder der
-> fiskaly-Support.
+> nicht: eine zweite LIVE-TSS verursacht Kosten, hier helfen nur der PUK-Reset (oben), die
+> verwahrte PIN oder der fiskaly-Support.
 
 > ♻️ **Test-TSE räumen sich selbst auf.** fiskaly löscht Test-TSE, die stillgelegt oder
 > länger als 14 Tage ungenutzt sind, regelmäßig (mindestens sonntags). Gleichzeitig erlaubt
@@ -160,15 +168,18 @@ wenn ihr die TSS später auf einer neuen Installation übernehmt (Abschnitt 3.4)
 fiskaly-Support arbeitet. Im normalen Kassenbetrieb braucht ihr sie nicht, jotti signiert
 über API-Key und Secret.
 
-> ⚠️ **Verlust hat Folgen.** jotti speichert PUK und PIN bewusst nicht. Gehen sie verloren,
-> könnt ihr eine bereits personalisierte TSS nicht mehr übernehmen (etwa nach einem
-> Datenbankverlust oder Serverwechsel). Dann bleiben nur der fiskaly-Support oder, in der
-> LIVE-Umgebung kostenpflichtig, eine bewusste Neu-Anlage. Verwahrt PUK und PIN deshalb so
-> sorgfältig wie die Zugangsdaten zum fiskaly-Konto.
+> ⚠️ **Verlust hat Folgen.** jotti speichert PUK und PIN bewusst nicht. Ist nur die Admin-PIN
+> verloren oder gesperrt, der Admin-PUK aber verwahrt, setzt jotti die PIN über den PUK
+> zurück (Abschnitt 3.4): Self-Service in TEST und LIVE, ohne neue TSS. Gehen dagegen PUK und
+> PIN beide verloren, könnt ihr eine bereits personalisierte TSS nicht mehr übernehmen (etwa
+> nach einem Datenbankverlust ohne Backup). Dann bleiben nur der fiskaly-Support oder, in der
+> LIVE-Umgebung kostenpflichtig, eine bewusste Neu-Anlage. Der Admin-PUK ist deshalb das
+> wichtigste Geheimnis: er heilt eine verlorene PIN, aber nichts heilt einen verlorenen PUK.
 
 > ⚠️ **Fünf Fehlversuche sperren die PIN.** Gebt ihr die Admin-PIN fünfmal falsch ein,
-> sperrt fiskaly sie. Sie lässt sich dann nur noch mit dem Admin-PUK zurücksetzen. Ratet
-> deshalb nicht wiederholt, sondern schaut die verwahrte PIN in euren Unterlagen nach.
+> sperrt fiskaly sie. Sie lässt sich dann nur noch mit dem Admin-PUK zurücksetzen (im
+> Assistenten über „Ich habe den Admin-PUK"). Ratet deshalb nicht wiederholt, sondern schaut
+> die verwahrte PIN in euren Unterlagen nach.
 
 **So verwahrt ihr richtig:**
 
@@ -237,15 +248,16 @@ oder beim Wechsel von TEST auf LIVE.
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Zugangsdaten ungültig                          | API-Key oder Secret stimmt nicht. Werte erneut eingeben oder im Dashboard neu erstellen.                                                                                                                                     |
 | Umgebung hat sich geändert                     | Zwischen Prüfung und Einrichtung wurden die Zugangsdaten gewechselt. Konto erneut prüfen.                                                                                                                                    |
-| Admin-PIN nicht akzeptiert                     | fiskaly lehnt die eingegebene PIN ab. Verwahrte PIN prüfen, dabei nicht wiederholt raten (fünf Fehlversuche sperren die PIN). Sonst fiskaly-Support oder, in TEST, eine neue TSE anlegen.                                     |
+| Admin-PIN nicht akzeptiert                     | fiskaly lehnt die PIN ab (falsch oder nach fünf Fehlversuchen gesperrt). Verwahrte PIN prüfen und nicht wiederholt raten. Mit dem Admin-PUK über „Ich habe den Admin-PUK" eine neue PIN setzen. Sonst fiskaly-Support oder, in TEST, eine neue TSE anlegen. |
 | TSS in nicht übernehmbarem Zustand             | Die vorhandene TSS lässt sich nicht automatisch übernehmen. fiskaly-Support kontaktieren oder manuelle Einrichtung.                                                                                                          |
 | Test-Limit erreicht (fünf TSE)                 | Nur in TEST: fiskaly erlaubt höchstens fünf aktive Test-TSE. Eine vorhandene übernehmen oder die automatische Bereinigung (bei Inaktivität) abwarten.                                                                        |
 | Serverfehler direkt nach dem Anlegen           | Selten: die TSS wurde angelegt, das Speichern in jotti schlug fehl. Assistent erneut starten, jotti bietet die Übernahme an (Abschnitt 3.4). Voraussetzung ist die verwahrte Admin-PIN, sonst hilft nur der fiskaly-Support. |
 | Verbindung mit Auffälligkeiten (Abschlusstest) | Das genannte Feld (TSS, Client oder Seriennummer) prüfen, ggf. Einrichtung wiederholen.                                                                                                                                      |
 
-Bei einer unbekannten Admin-PIN sitzt ihr nicht in einer Sackgasse: Entweder die verwahrte
-PIN noch einmal genau prüfen, den fiskaly-Support einschalten, oder mit anderen
-Zugangsdaten bewusst eine neue TSS anlegen (in LIVE kostenpflichtig).
+Bei einer unbekannten oder gesperrten Admin-PIN sitzt ihr nicht in einer Sackgasse: Habt ihr
+den Admin-PUK, setzt ihr die PIN damit zurück und übernehmt die TSS direkt (Abschnitt 3.4).
+Sonst die verwahrte PIN noch einmal genau prüfen, den fiskaly-Support einschalten, oder mit
+anderen Zugangsdaten bewusst eine neue TSS anlegen (in LIVE kostenpflichtig).
 
 ---
 
