@@ -29,7 +29,7 @@ func TestBuildArchiveContents(t *testing.T) {
 	sort.Strings(got)
 
 	want := []string{
-		"cashpointclosing.csv", "cashregister.csv", "datapayment.csv",
+		"allocation_groups.csv", "cashpointclosing.csv", "cashregister.csv", "datapayment.csv",
 		"gdpdu-01-09-2004.dtd", "index.xml", "lines.csv", "lines_vat.csv",
 		"location.csv", "transactions.csv", "transactions_tse.csv",
 		"transactions_vat.csv", "tse.csv", "vat.csv",

@@ -280,14 +280,14 @@ auch vergangene Betriebstage exportierbar sind; für abgeschlossene Sitzungen ko
 
 ### Acceptance criteria
 
-- [ ] Bestellung und zugehörige Zahlung erscheinen als getrennte Geschäftsvorfälle
+- [x] Bestellung und zugehörige Zahlung erscheinen als getrennte Geschäftsvorfälle
       (Forderungsentstehung bzw. -auflösung), Golden-Test belegt die Trennung.
-- [ ] Jeder Bon trägt in `allocation_groups.csv` den korrekten `ABRECHNUNGSKREIS`
+- [x] Jeder Bon trägt in `allocation_groups.csv` den korrekten `ABRECHNUNGSKREIS`
       (Tischname); jede TSE-Transaktion ist über ihren Bon zugeordnet.
-- [ ] Eine abgeschlossene Sitzung lässt sich per Selektor wählen und exportieren;
+- [x] Eine abgeschlossene Sitzung lässt sich per Selektor wählen und exportieren;
       `Z_ERSTELLUNG` stammt aus dem Tagesabschluss-Event.
-- [ ] Der Default zeigt die offene Sitzung, sonst die jüngste abgeschlossene.
-- [ ] `make check` grün.
+- [x] Der Default zeigt die offene Sitzung, sonst die jüngste abgeschlossene.
+- [x] `make check` grün.
 
 ---
 

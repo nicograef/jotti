@@ -14,6 +14,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/rs/zerolog"
 )
 
@@ -40,12 +41,17 @@ type settingsRepo interface {
 	GetTSEStammdaten(ctx context.Context) (settings.TSEStammdaten, error)
 }
 
+type tableRepo interface {
+	GetAllTables(ctx context.Context) ([]table.Tisch, error)
+}
+
 // Export ist der App-Service, der das DSFinV-K-Archiv einer Kassensitzung
 // erzeugt.
 type Export struct {
 	KassenjournalRepo   kassenjournalRepo
 	KassensitzungenRepo kassensitzungenRepo
 	SettingsRepo        settingsRepo
+	TableRepo           tableRepo
 }
 
 // Archiv ist das fertige DSFinV-K-ZIP samt sprechendem Dateinamen.
@@ -70,7 +76,9 @@ func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 		return Archiv{}, ErrDatabase
 	}
 
-	snapshot, err := e.snapshot(ctx, ks)
+	erstellung := dsfinvk.Erstellungszeitpunkt(events, time.Now().UTC())
+
+	snapshot, err := e.snapshot(ctx, ks, erstellung)
 	if err != nil {
 		return Archiv{}, err
 	}
@@ -131,9 +139,10 @@ func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassens
 	return alle[0], nil
 }
 
-// snapshot lädt die Stammdaten für den Export. Z_ERSTELLUNG ist für die offene
-// Sitzung der Exportzeitpunkt (Phase 2 synthetisiert den Abschluss stand-jetzt).
-func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung) (dsfinvk.Snapshot, error) {
+// snapshot lädt die Stammdaten für den Export. erstellung ist Z_ERSTELLUNG: bei
+// einer abgeschlossenen Sitzung die Zeit des Tagesabschluss-Events, bei einer
+// offenen der Exportzeitpunkt.
+func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung time.Time) (dsfinvk.Snapshot, error) {
 	log := zerolog.Ctx(ctx)
 
 	ident, err := e.SettingsRepo.GetKassenidentitaet(ctx)
@@ -151,13 +160,24 @@ func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung) (dsfinvk.S
 		log.Error().Err(err).Msg("Failed to get tse stammdaten")
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
+	tische, err := e.TableRepo.GetAllTables(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get tische")
+		return dsfinvk.Snapshot{}, ErrDatabase
+	}
+
+	tischnamen := make(map[int]string, len(tische))
+	for _, t := range tische {
+		tischnamen[t.ID] = t.Name
+	}
 
 	return dsfinvk.Snapshot{
 		KasseSeriennummer: ident.Seriennummer.String(),
-		Erstellung:        time.Now().UTC(),
+		Erstellung:        erstellung,
 		KassensitzungNr:   ks.ZNr,
 		Betreiber:         betreiber,
 		TSEStammdaten:     stammdaten,
+		Tischnamen:        tischnamen,
 	}, nil
 }
 

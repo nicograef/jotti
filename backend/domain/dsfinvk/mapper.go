@@ -19,18 +19,21 @@ var ErrKeineVorgaenge = errors.New("kassensitzung enthält keine vorgänge")
 
 // Feste DSFinV-K-Ausprägungen und jotti-Kassenidentität.
 const (
-	bonTypBeleg     = "Beleg"  // Anhang B: abgeschlossener Kassenvorgang
-	gvTypUmsatz     = "Umsatz" // Anhang C: realisierter Umsatz auf Positionsebene
-	zahlartBar      = "Bar"    // Anhang D: jotti kassiert ausschließlich bar
-	tseReferenzID   = "1"      // eine TSS pro Kasse, im Abschluss als ID 1 referenziert
-	land            = "DEU"    // ISO 3166 ALPHA-3
-	basiswaehrung   = "EUR"    // ISO 4217
-	tsePDEncoding   = "UTF-8"  // Encoding der ProcessData
-	zertifikatChunk = 1000     // max. Zeichen je TSE_ZERTIFIKAT-Feld
-	kasseBrand      = "jotti"
-	kasseModell     = "jotti mPOS"
-	kasseSoftware   = "jotti"
-	kasseSWVersion  = "1.0"
+	bonTypBeleg      = "Beleg"                // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
+	bonTypBestellung = "AVBestellung"         // Anhang B: Bestellung als anderer Vorgang, noch kein Umsatz
+	gvTypUmsatz      = "Umsatz"               // Anhang C: realisierter Umsatz auf Positionsebene
+	gvTypForderung   = "Forderungsentstehung" // Anhang C: offene Bestellung, Umsatz noch nicht realisiert
+	zahlartBar       = "Bar"                  // Anhang D: jotti kassiert ausschließlich bar
+	zahlartForderung = "Forderungsentstehung" // Anhang D: Forderung statt Geldzufluss bei offener Bestellung
+	tseReferenzID    = "1"                    // eine TSS pro Kasse, im Abschluss als ID 1 referenziert
+	land             = "DEU"                  // ISO 3166 ALPHA-3
+	basiswaehrung    = "EUR"                  // ISO 4217
+	tsePDEncoding    = "UTF-8"                // Encoding der ProcessData
+	zertifikatChunk  = 1000                   // max. Zeichen je TSE_ZERTIFIKAT-Feld
+	kasseBrand       = "jotti"
+	kasseModell      = "jotti mPOS"
+	kasseSoftware    = "jotti"
+	kasseSWVersion   = "1.0"
 )
 
 // Archive hält die typisierten Zeilen-Kollektionen eines DSFinV-K-Exports, eine
@@ -47,28 +50,31 @@ func (a Archive) Tables() []Table { return a.tables }
 // beleg ist die belegbezogene Zwischensicht, aus der mehrere Tabellen abgeleitet
 // werden (Bonkopf, dessen USt-/Zahlart-/Positions-Details und die TSE-Zeile).
 type beleg struct {
-	bonID        string
-	bonNr        int
-	typ          string
-	storno       bool
-	start        string
-	ende         string
-	bedienerID   int
-	bedienerName string
-	positionen   []kasse.PositionEventData
-	bruttoCents  int
-	tse          *kasse.TSEData
-	notiz        string
+	bonID            string
+	bonNr            int
+	bonTyp           string // BON_TYP: "Beleg" (Zahlung) oder "AVBestellung" (offene Bestellung)
+	gvTyp            string // GV_TYP der Positionen: "Umsatz" oder "Forderungsentstehung"
+	zahlart          string // ZAHLART_TYP: "Bar" oder "Forderungsentstehung"
+	abrechnungskreis string // ABRECHNUNGSKREIS (Tischname); leer ohne Tischbezug (z. B. Direktverkauf)
+	storno           bool
+	start            string
+	ende             string
+	bedienerID       int
+	bedienerName     string
+	positionen       []kasse.PositionEventData
+	bruttoCents      int
+	tse              *kasse.TSEData
+	notiz            string
 }
 
 // Map transformiert Snapshot und Events einer Kassensitzung in das typisierte
-// Archiv. Reine Funktion ohne I/O. Für den Tracer-Bullet-Umfang erzeugen nur
-// `zahlung-kassiert`-Events Belege; weitere Vorgangstypen folgen in späteren
-// Phasen.
+// Archiv. Reine Funktion ohne I/O. Belege entstehen aus `bestellung-aufgenommen`
+// (Forderungsentstehung) und `zahlung-kassiert` (Umsatzrealisierung); weitere
+// Vorgangstypen folgen in späteren Phasen.
 func Map(snapshot Snapshot, events []event.Event) (Archive, error) {
 	erstellung := snapshot.Erstellung.UTC().Format(time.RFC3339)
 
-	belege, err := belegeFromEvents(events)
+	belege, err := belegeFromEvents(events, snapshot.Tischnamen)
 	if err != nil {
 		return Archive{}, err
 	}
@@ -83,6 +89,7 @@ func Map(snapshot Snapshot, events []event.Event) (Archive, error) {
 		buildVat(snapshot, erstellung, belege),
 		buildTSE(snapshot, erstellung, belege),
 		buildTransactions(snapshot, erstellung, belege),
+		buildAllocationGroups(snapshot, erstellung, belege),
 		buildTransactionsVat(snapshot, erstellung, belege),
 		buildDatapayment(snapshot, erstellung, belege),
 		buildLines(snapshot, erstellung, belege),
@@ -93,41 +100,98 @@ func Map(snapshot Snapshot, events []event.Event) (Archive, error) {
 	return Archive{tables: tables}, nil
 }
 
-// belegeFromEvents leitet die Belege aus den Events ab. BON_NR wird fortlaufend
-// in Reihenfolge vergeben; BON_ID ist die ZahlungID.
-func belegeFromEvents(events []event.Event) ([]beleg, error) {
+// belegeFromEvents leitet die Belege aus den Events ab. Eine `bestellung-
+// aufgenommen` wird zur Forderungsentstehung (Umsatz noch nicht realisiert), eine
+// `zahlung-kassiert` zur Umsatzrealisierung, die die Forderung in bar auflöst.
+// BON_NR wird fortlaufend in Reihenfolge vergeben; BON_ID ist die jeweilige
+// Vorgangs-ID.
+func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg, error) {
 	var belege []beleg
 	bonNr := 0
 
 	for _, ev := range events {
-		if ev.Type != string(kasse.EventTypeZahlungKassiertV1) {
-			continue
-		}
+		switch ev.Type {
+		case string(kasse.EventTypeBestellungAufgenommenV1):
+			var data kasse.BestellungAufgenommenV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal bestellung-aufgenommen (event %d): %w", ev.ID, err)
+			}
+			bonNr++
+			belege = append(belege, beleg{
+				bonID:            data.BestellungID,
+				bonNr:            bonNr,
+				bonTyp:           bonTypBestellung,
+				gvTyp:            gvTypForderung,
+				zahlart:          zahlartForderung,
+				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
+				start:            zeit(ev),
+				ende:             zeit(ev),
+				bedienerID:       ev.UserID,
+				bedienerName:     ev.UserName,
+				positionen:       data.Positionen,
+				bruttoCents:      data.GesamtPreisCents,
+				tse:              data.TSEData,
+				notiz:            data.Kommentar,
+			})
 
-		var data kasse.ZahlungKassiertV1Data
-		if err := json.Unmarshal(ev.Data, &data); err != nil {
-			return nil, fmt.Errorf("unmarshal zahlung-kassiert (event %d): %w", ev.ID, err)
+		case string(kasse.EventTypeZahlungKassiertV1):
+			var data kasse.ZahlungKassiertV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal zahlung-kassiert (event %d): %w", ev.ID, err)
+			}
+			bonNr++
+			belege = append(belege, beleg{
+				bonID:            data.ZahlungID,
+				bonNr:            bonNr,
+				bonTyp:           bonTypBeleg,
+				gvTyp:            gvTypUmsatz,
+				zahlart:          zahlartBar,
+				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
+				start:            zeit(ev),
+				ende:             zeit(ev),
+				bedienerID:       ev.UserID,
+				bedienerName:     ev.UserName,
+				positionen:       data.Positionen,
+				bruttoCents:      data.GesamtZahlungCents,
+				tse:              data.TSEData,
+				notiz:            data.Kommentar,
+			})
 		}
-
-		bonNr++
-		zeit := ev.Time.UTC().Format(time.RFC3339)
-		belege = append(belege, beleg{
-			bonID:        data.ZahlungID,
-			bonNr:        bonNr,
-			typ:          bonTypBeleg,
-			storno:       false,
-			start:        zeit,
-			ende:         zeit,
-			bedienerID:   ev.UserID,
-			bedienerName: ev.UserName,
-			positionen:   data.Positionen,
-			bruttoCents:  data.GesamtZahlungCents,
-			tse:          data.TSEData,
-			notiz:        data.Kommentar,
-		})
 	}
 
 	return belege, nil
+}
+
+// zeit formatiert den Event-Zeitstempel als ISO-8601-UTC für BON_START/BON_ENDE.
+func zeit(ev event.Event) string { return ev.Time.UTC().Format(time.RFC3339) }
+
+// Erstellungszeitpunkt liefert den Z_ERSTELLUNG-Zeitpunkt der Sitzung: bei einer
+// abgeschlossenen Sitzung die Zeit des `tagesabschluss-erstellt`-Events, sonst
+// fallback (der Exportzeitpunkt einer noch offenen Sitzung). Der Orchestrator
+// ruft die Funktion mit den geladenen Events und reicht das Ergebnis als
+// Snapshot.Erstellung weiter.
+func Erstellungszeitpunkt(events []event.Event, fallback time.Time) time.Time {
+	for _, ev := range events {
+		if ev.Type == string(kasse.EventTypeTagesabschlussErstelltV1) {
+			return ev.Time
+		}
+	}
+	return fallback
+}
+
+// abrechnungskreis leitet den ABRECHNUNGSKREIS aus dem Subject ab: jede
+// Tisch-Session ist ein Abrechnungskreis (F-06). Der Name stammt aus den
+// Tisch-Stammdaten; fehlt er (gelöschter Tisch), wird "Tisch N" synthetisiert.
+// Subjects ohne Tischbezug (Direktverkauf) tragen keinen Abrechnungskreis.
+func abrechnungskreis(subject string, tischnamen map[int]string) string {
+	tischID, err := kasse.ParseTischIDFromSubject(subject)
+	if err != nil {
+		return ""
+	}
+	if name, ok := tischnamen[tischID]; ok {
+		return name
+	}
+	return fmt.Sprintf("Tisch %d", tischID)
 }
 
 // --- Stammdatenmodul ---
@@ -142,10 +206,14 @@ var cashpointclosingColumns = []column{
 }
 
 func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table {
-	gesamt := 0
+	// Nur Barzahlungen fließen in den Kassenbestand; offene Bestellungen
+	// (Forderungsentstehung) bewegen kein Geld und bleiben außen vor.
+	bar := 0
 	for bi := range belege {
 		b := &belege[bi]
-		gesamt += b.bruttoCents
+		if b.zahlart == zahlartBar {
+			bar += b.bruttoCents
+		}
 	}
 
 	record := []string{
@@ -154,7 +222,7 @@ func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table 
 		belege[0].bonID, belege[len(belege)-1].bonID,
 		s.Betreiber.Vereinsname, s.Betreiber.Strasse, s.Betreiber.Plz, s.Betreiber.Ort, land,
 		ptr(s.Betreiber.Steuernummer), ptr(s.Betreiber.UstID),
-		formatAmount(gesamt), formatAmount(gesamt),
+		formatAmount(bar), formatAmount(bar),
 	}
 
 	return Table{
@@ -293,7 +361,7 @@ func buildTransactions(s Snapshot, erstellung string, belege []beleg) Table {
 		b := &belege[bi]
 		records = append(records, []string{
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-			b.bonID, itoa(b.bonNr), b.typ, "",
+			b.bonID, itoa(b.bonNr), b.bonTyp, "",
 			"", storno(b.storno), b.start, b.ende,
 			itoa(b.bedienerID), b.bedienerName, formatAmount(b.bruttoCents),
 			"", "", "", "",
@@ -307,6 +375,36 @@ func buildTransactions(s Snapshot, erstellung string, belege []beleg) Table {
 		LogicalName: "Bonkopf",
 		Description: "Ein Datensatz je Kassenbon",
 		Columns:     transactionsColumns,
+		Records:     records,
+	}
+}
+
+var allocationGroupsColumns = []column{
+	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
+	alpha("BON_ID"), alpha("ABRECHNUNGSKREIS"),
+}
+
+// buildAllocationGroups ordnet jeden Bon mit Tischbezug seinem ABRECHNUNGSKREIS
+// (Tischname) zu (F-06). Belege ohne Abrechnungskreis (Direktverkauf) bleiben
+// außen vor; jede TSE-Transaktion ist über ihren Bon einem Kreis zugeordnet.
+func buildAllocationGroups(s Snapshot, erstellung string, belege []beleg) Table {
+	var records [][]string
+	for bi := range belege {
+		b := &belege[bi]
+		if b.abrechnungskreis == "" {
+			continue
+		}
+		records = append(records, []string{
+			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
+			b.bonID, b.abrechnungskreis,
+		})
+	}
+
+	return Table{
+		File:        "allocation_groups.csv",
+		LogicalName: "Bonkopf_AbrKreis",
+		Description: "Zuordnung Bon zu Abrechnungskreis (Tisch)",
+		Columns:     allocationGroupsColumns,
 		Records:     records,
 	}
 }
@@ -351,7 +449,7 @@ func buildDatapayment(s Snapshot, erstellung string, belege []beleg) Table {
 		b := &belege[bi]
 		records = append(records, []string{
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-			b.bonID, zahlartBar, zahlartBar,
+			b.bonID, b.zahlart, b.zahlart,
 			basiswaehrung, formatAmount(b.bruttoCents), formatAmount(b.bruttoCents),
 		})
 	}
@@ -382,7 +480,7 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, itoa(i + 1), "", positionText(p),
-				"", gvTypUmsatz, "", "",
+				"", b.gvTyp, "", "",
 				storno(false), "0", itoa(p.VarianteID), "",
 				p.Kategorie, p.Kategorie, formatQuantity(p.Menge), "",
 				"", formatAmount(p.Einzelpreis),

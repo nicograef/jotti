@@ -33,6 +33,10 @@ type Snapshot struct {
 	KassensitzungNr int
 	Betreiber       settings.Betreiber
 	TSEStammdaten   settings.TSEStammdaten
+	// Tischnamen bildet Tisch-IDs auf ihren Namen ab (Quelle des
+	// ABRECHNUNGSKREIS). Fehlt ein Tisch (gelöscht), synthetisiert der Mapper
+	// "Tisch N".
+	Tischnamen map[int]string
 }
 
 // itoa formatiert eine Ganzzahl dezimal; ein kurzer Alias hält die dichten

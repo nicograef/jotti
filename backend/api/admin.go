@@ -108,6 +108,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 		KassenjournalRepo:   kassenjournalRepo,
 		KassensitzungenRepo: kassensitzungenRepo,
 		SettingsRepo:        settingsRepo,
+		TableRepo:           tableRepo,
 	}
 	r.HandleFunc("/export/dsfinvk", exportHandler.ExportHandler())
 

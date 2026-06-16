@@ -156,6 +156,192 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 	}
 }
 
+const (
+	bestellungBonID = "11111111-1111-1111-1111-111111111111"
+	zahlungBonID    = "22222222-2222-2222-2222-222222222222"
+)
+
+// bestellungEvent baut eine offene Bestellung (Forderungsentstehung): ein Bier,
+// TSE-signiert als Bestellung-V1, am Tisch 42 aufgenommen.
+func bestellungEvent(t *testing.T) event.Event {
+	t.Helper()
+
+	data := kasse.BestellungAufgenommenV1Data{
+		BestellungID:     bestellungBonID,
+		GesamtPreisCents: 450,
+		Positionen: []kasse.PositionEventData{
+			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+		},
+		TSEData: &kasse.TSEData{
+			TransactionNumber: 4710,
+			SignatureCounter:  11,
+			SerialNumberTSE:   "abc123serial",
+			LogTimeStart:      "2026-06-16T11:00:00Z",
+			LogTimeEnd:        "2026-06-16T11:00:01Z",
+			Signature:         "BESTELLSIG==",
+			ProcessType:       "Bestellung-V1",
+			QRCodeData:        "V0;bestell",
+		},
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal bestellung data: %v", err)
+	}
+
+	return event.Event{
+		ID:       1,
+		UserID:   7,
+		UserName: "Anna",
+		Type:     string(kasse.EventTypeBestellungAufgenommenV1),
+		Time:     time.Date(2026, 6, 16, 11, 0, 0, 0, time.UTC),
+		Subject:  kasse.TischSessionSubject(3, 42),
+		Version:  1,
+		Data:     raw,
+	}
+}
+
+// zahlungEvent baut die spätere Barzahlung desselben Tisches (Umsatzrealisierung
+// und Forderungsauflösung), TSE-signiert als Kassenbeleg-V1.
+func zahlungEvent(t *testing.T) event.Event {
+	t.Helper()
+
+	data := kasse.ZahlungKassiertV1Data{
+		ZahlungID:          zahlungBonID,
+		GesamtZahlungCents: 450,
+		Positionen: []kasse.PositionEventData{
+			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+		},
+		TSEData: &kasse.TSEData{
+			TransactionNumber: 4711,
+			SignatureCounter:  12,
+			SerialNumberTSE:   "abc123serial",
+			LogTimeStart:      "2026-06-16T12:00:00Z",
+			LogTimeEnd:        "2026-06-16T12:00:01Z",
+			Signature:         "ZAHLSIG==",
+			ProcessType:       "Kassenbeleg-V1",
+			QRCodeData:        "V0;zahl",
+		},
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal zahlung data: %v", err)
+	}
+
+	return event.Event{
+		ID:       2,
+		UserID:   7,
+		UserName: "Anna",
+		Type:     string(kasse.EventTypeZahlungKassiertV1),
+		Time:     time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC),
+		Subject:  kasse.TischSessionSubject(3, 42),
+		Version:  1,
+		Data:     raw,
+	}
+}
+
+// TestMapTischablaufTrennt belegt die getrennte Abbildung des gastronomischen
+// Tisch-Ablaufs: die Bestellung erscheint als Forderungsentstehung (kein
+// Umsatz), die Zahlung als Umsatzrealisierung. Beide tragen denselben
+// Abrechnungskreis und je eine eigene TSE-Transaktion.
+func TestMapTischablaufTrennt(t *testing.T) {
+	snapshot := testSnapshot()
+	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
+
+	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), zahlungEvent(t)})
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	const erstellung = "2026-06-16T14:30:00Z"
+
+	wantRecords := map[string][][]string{
+		// Getrennte Geschäftsvorfälle: Bestellung = AVBestellung, Zahlung = Beleg.
+		"allocation_groups.csv": {
+			{testSerial, erstellung, "3", bestellungBonID, "Tisch 42"},
+			{testSerial, erstellung, "3", zahlungBonID, "Tisch 42"},
+		},
+		"datapayment.csv": {
+			{testSerial, erstellung, "3", bestellungBonID, "Forderungsentstehung", "Forderungsentstehung", "EUR", "4.50", "4.50"},
+			{testSerial, erstellung, "3", zahlungBonID, "Bar", "Bar", "EUR", "4.50", "4.50"},
+		},
+		"transactions_tse.csv": {
+			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "Bestellung-V1", "11", "BESTELLSIG==", "", "V0;bestell"},
+			{testSerial, erstellung, "3", zahlungBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "ZAHLSIG==", "", "V0;zahl"},
+		},
+	}
+
+	for file, want := range wantRecords {
+		table := tableByFile(t, archive, file)
+		if !reflect.DeepEqual(table.Records, want) {
+			t.Errorf("%s records =\n%#v\nwant\n%#v", file, table.Records, want)
+		}
+	}
+
+	// Forderungsentstehung trägt keinen Umsatz: Bestellung GV_TYP, Zahlung GV_TYP.
+	lines := tableByFile(t, archive, "lines.csv")
+	if got := field(t, lines, 0, "GV_TYP"); got != "Forderungsentstehung" {
+		t.Errorf("bestellung GV_TYP = %q, want Forderungsentstehung", got)
+	}
+	if got := field(t, lines, 1, "GV_TYP"); got != "Umsatz" {
+		t.Errorf("zahlung GV_TYP = %q, want Umsatz", got)
+	}
+
+	// BON_TYP trennt offene Bestellung und Zahlungsbeleg.
+	transactions := tableByFile(t, archive, "transactions.csv")
+	if got := field(t, transactions, 0, "BON_TYP"); got != "AVBestellung" {
+		t.Errorf("bestellung BON_TYP = %q, want AVBestellung", got)
+	}
+	if got := field(t, transactions, 1, "BON_TYP"); got != "Beleg" {
+		t.Errorf("zahlung BON_TYP = %q, want Beleg", got)
+	}
+
+	// Nur die Barzahlung fließt in den Kassenbestand, nicht die Forderung.
+	closing := tableByFile(t, archive, "cashpointclosing.csv")
+	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "4.50" {
+		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 4.50 (nur Zahlung, nicht Forderung)", got)
+	}
+}
+
+// TestAbrechnungskreisFallback synthetisiert "Tisch N", wenn der Tisch nicht
+// mehr in den Stammdaten steht (z. B. gelöscht).
+func TestAbrechnungskreisFallback(t *testing.T) {
+	snapshot := testSnapshot()
+	snapshot.Tischnamen = nil // kein Tischname bekannt
+
+	archive, err := Map(snapshot, []event.Event{barverkaufEvent(t)})
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	groups := tableByFile(t, archive, "allocation_groups.csv")
+	if got := field(t, groups, 0, "ABRECHNUNGSKREIS"); got != "Tisch 42" {
+		t.Errorf("ABRECHNUNGSKREIS = %q, want Tisch 42", got)
+	}
+}
+
+func TestErstellungszeitpunkt(t *testing.T) {
+	fallback := time.Date(2026, 6, 16, 14, 30, 0, 0, time.UTC)
+	abschlussZeit := time.Date(2026, 6, 16, 23, 0, 0, 0, time.UTC)
+
+	abschluss := event.Event{
+		ID: 9, Type: string(kasse.EventTypeTagesabschlussErstelltV1),
+		Time: abschlussZeit, Subject: kasse.KassensitzungSubject(3), Version: 1,
+		Data: json.RawMessage(`{}`),
+	}
+
+	// Abgeschlossene Sitzung: Zeit stammt aus dem Tagesabschluss-Event.
+	if got := Erstellungszeitpunkt([]event.Event{barverkaufEvent(t), abschluss}, fallback); !got.Equal(abschlussZeit) {
+		t.Errorf("Erstellungszeitpunkt = %v, want %v (Tagesabschluss)", got, abschlussZeit)
+	}
+
+	// Offene Sitzung ohne Abschluss: fallback (Exportzeitpunkt).
+	if got := Erstellungszeitpunkt([]event.Event{barverkaufEvent(t)}, fallback); !got.Equal(fallback) {
+		t.Errorf("Erstellungszeitpunkt = %v, want %v (fallback)", got, fallback)
+	}
+}
+
 func TestMapDeclaresOnlyPresentTables(t *testing.T) {
 	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)})
 	if err != nil {
@@ -164,7 +350,7 @@ func TestMapDeclaresOnlyPresentTables(t *testing.T) {
 
 	want := []string{
 		"cashpointclosing.csv", "location.csv", "cashregister.csv", "vat.csv", "tse.csv",
-		"transactions.csv", "transactions_vat.csv", "datapayment.csv",
+		"transactions.csv", "allocation_groups.csv", "transactions_vat.csv", "datapayment.csv",
 		"lines.csv", "lines_vat.csv", "transactions_tse.csv",
 	}
 
