@@ -58,15 +58,14 @@ type TSSErstellt struct {
 }
 
 // TSSStammdaten sind die fiskalischen Stammdaten der TSS-Ressource, die der
-// DSFinV-K-Export braucht: Signaturalgorithmus, Public Key, Zertifikat,
-// Log-Time-Format (fiskaly: signature_timestamp_format) und die API-Version. Sie
-// aendern sich ueber die Lebensdauer der TSS nicht.
+// DSFinV-K-Export braucht: Signaturalgorithmus, Public Key, Zertifikat und
+// Log-Time-Format (fiskaly: signature_timestamp_format). Sie aendern sich ueber
+// die Lebensdauer der TSS nicht.
 type TSSStammdaten struct {
 	SignaturAlgorithmus string
 	PublicKey           string
 	Zertifikat          string
 	LogTimeFormat       string
-	Version             string
 }
 
 // SetupClient kapselt die fiskaly-Operationen der gefuehrten TSE-Einrichtung:
@@ -80,8 +79,8 @@ type SetupClient interface {
 	ListClients(ctx context.Context, tssID string) ([]ClientInfo, error)
 
 	// RetrieveTSSStammdaten liest die fiskalischen Stammdaten der TSS-Ressource
-	// (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format, Version) fuer
-	// den DSFinV-K-Export. Reine Leseoperation.
+	// (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format) fuer den
+	// DSFinV-K-Export. Reine Leseoperation.
 	RetrieveTSSStammdaten(ctx context.Context, tssID string) (TSSStammdaten, error)
 
 	// CreateTSS legt eine neue TSS an (Zustand CREATED) und liefert deren

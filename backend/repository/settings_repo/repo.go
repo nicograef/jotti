@@ -83,7 +83,6 @@ func (r Repository) GetTSEStammdaten(ctx context.Context) (settings.TSEStammdate
 		PublicKey:           row.PublicKey,
 		Zertifikat:          row.Zertifikat,
 		LogTimeFormat:       row.LogTimeFormat,
-		Version:             row.Version,
 		UpdatedAt:           row.UpdatedAt,
 	}, nil
 }
@@ -96,7 +95,6 @@ func (r Repository) UpsertTSEStammdaten(ctx context.Context, s settings.TSEStamm
 		PublicKey:           s.PublicKey,
 		Zertifikat:          s.Zertifikat,
 		LogTimeFormat:       s.LogTimeFormat,
-		Version:             s.Version,
 	})
 	if err != nil {
 		return db.Error(err)

@@ -476,8 +476,6 @@ type TseStammdaten struct {
 	Zertifikat string
 	// Format der TSE-Log-Zeitstempel (z. B. unixTime).
 	LogTimeFormat string
-	// Versionsangabe der TSS (fiskaly SIGN DE API-Version).
-	Version string
 	// Letzte Aenderung (UTC)
 	UpdatedAt time.Time
 }

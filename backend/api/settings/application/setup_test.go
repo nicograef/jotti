@@ -699,7 +699,6 @@ func stammdatenAntwort() tse.TSSStammdaten {
 		PublicKey:           "public-key-b64",
 		Zertifikat:          "certificate-b64",
 		LogTimeFormat:       "unixTime",
-		Version:             "2.2.2",
 	}
 }
 
@@ -713,8 +712,7 @@ func pruefeStammdaten(t *testing.T, gespeichert *settings.TSEStammdaten, erwarte
 	if gespeichert.SignaturAlgorithmus != erwartet.SignaturAlgorithmus ||
 		gespeichert.PublicKey != erwartet.PublicKey ||
 		gespeichert.Zertifikat != erwartet.Zertifikat ||
-		gespeichert.LogTimeFormat != erwartet.LogTimeFormat ||
-		gespeichert.Version != erwartet.Version {
+		gespeichert.LogTimeFormat != erwartet.LogTimeFormat {
 		t.Fatalf("persisted stammdaten do not match the fiskaly response, got %+v", gespeichert)
 	}
 }

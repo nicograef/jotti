@@ -11,7 +11,7 @@ import (
 )
 
 const getTSEStammdaten = `-- name: GetTSEStammdaten :one
-SELECT signatur_algorithmus, public_key, zertifikat, log_time_format, version, updated_at
+SELECT signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at
 FROM tse_stammdaten WHERE id = 1
 `
 
@@ -20,7 +20,6 @@ type GetTSEStammdatenRow struct {
 	PublicKey           string
 	Zertifikat          string
 	LogTimeFormat       string
-	Version             string
 	UpdatedAt           time.Time
 }
 
@@ -32,21 +31,19 @@ func (q *Queries) GetTSEStammdaten(ctx context.Context) (GetTSEStammdatenRow, er
 		&i.PublicKey,
 		&i.Zertifikat,
 		&i.LogTimeFormat,
-		&i.Version,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const upsertTSEStammdaten = `-- name: UpsertTSEStammdaten :exec
-INSERT INTO tse_stammdaten (id, signatur_algorithmus, public_key, zertifikat, log_time_format, version, updated_at)
-VALUES (1, $1, $2, $3, $4, $5, NOW())
+INSERT INTO tse_stammdaten (id, signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at)
+VALUES (1, $1, $2, $3, $4, NOW())
 ON CONFLICT (id) DO UPDATE SET
     signatur_algorithmus = EXCLUDED.signatur_algorithmus,
     public_key = EXCLUDED.public_key,
     zertifikat = EXCLUDED.zertifikat,
     log_time_format = EXCLUDED.log_time_format,
-    version = EXCLUDED.version,
     updated_at = EXCLUDED.updated_at
 `
 
@@ -55,7 +52,6 @@ type UpsertTSEStammdatenParams struct {
 	PublicKey           string
 	Zertifikat          string
 	LogTimeFormat       string
-	Version             string
 }
 
 func (q *Queries) UpsertTSEStammdaten(ctx context.Context, arg UpsertTSEStammdatenParams) error {
@@ -64,7 +60,6 @@ func (q *Queries) UpsertTSEStammdaten(ctx context.Context, arg UpsertTSEStammdat
 		arg.PublicKey,
 		arg.Zertifikat,
 		arg.LogTimeFormat,
-		arg.Version,
 	)
 	return err
 }

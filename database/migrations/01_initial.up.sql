@@ -448,7 +448,6 @@ CREATE TABLE tse_stammdaten (
     public_key           TEXT NOT NULL,
     zertifikat           TEXT NOT NULL,
     log_time_format      TEXT NOT NULL,
-    version              TEXT NOT NULL,
     updated_at           TIMESTAMPTZ NOT NULL
 );
 
@@ -457,11 +456,10 @@ COMMENT ON COLUMN tse_stammdaten.signatur_algorithmus IS 'Signaturalgorithmus de
 COMMENT ON COLUMN tse_stammdaten.public_key IS 'Public Key der TSS, base64-kodiert.';
 COMMENT ON COLUMN tse_stammdaten.zertifikat IS 'TSS-Zertifikat, base64-kodiert.';
 COMMENT ON COLUMN tse_stammdaten.log_time_format IS 'Format der TSE-Log-Zeitstempel (z. B. unixTime).';
-COMMENT ON COLUMN tse_stammdaten.version IS 'Versionsangabe der TSS (fiskaly SIGN DE API-Version).';
 COMMENT ON COLUMN tse_stammdaten.updated_at IS 'Letzte Aenderung (UTC)';
 
-INSERT INTO tse_stammdaten (id, signatur_algorithmus, public_key, zertifikat, log_time_format, version, updated_at)
-VALUES (1, '', '', '', '', '', now());
+INSERT INTO tse_stammdaten (id, signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at)
+VALUES (1, '', '', '', '', now());
 
 -- ============================================================
 -- Table: tse_nachsignier_auftraege (technical outbox for failed TSE signing)

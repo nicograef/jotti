@@ -340,7 +340,7 @@ func (c Command) zieheTSEStammdaten(ctx context.Context, log *zerolog.Logger, cl
 		log.Warn().Err(err).Str("tss_id", tssID).Msg("Failed to fetch TSE Stammdaten after setup; recoverable on next connect")
 		return
 	}
-	stammdaten := settings.NewTSEStammdaten(gelesen.SignaturAlgorithmus, gelesen.PublicKey, gelesen.Zertifikat, gelesen.LogTimeFormat, gelesen.Version)
+	stammdaten := settings.NewTSEStammdaten(gelesen.SignaturAlgorithmus, gelesen.PublicKey, gelesen.Zertifikat, gelesen.LogTimeFormat)
 	if err := c.SettingsRepo.UpsertTSEStammdaten(ctx, stammdaten); err != nil {
 		log.Warn().Err(err).Str("tss_id", tssID).Msg("Failed to save TSE Stammdaten after setup; recoverable on next connect")
 	}

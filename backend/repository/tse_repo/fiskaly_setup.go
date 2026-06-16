@@ -64,13 +64,11 @@ type tssDetailResponse struct {
 	AdminPUK string `json:"admin_puk"`
 	State    string `json:"state"`
 	// Fiskalische Stammdaten der TSS-Ressource fuer den DSFinV-K-Export. fiskaly
-	// nennt das Log-Time-Format signature_timestamp_format; _version ist die
-	// API-Versionsangabe.
+	// nennt das Log-Time-Format signature_timestamp_format.
 	SignatureAlgorithm       string `json:"signature_algorithm"`
 	PublicKey                string `json:"public_key"`
 	Certificate              string `json:"certificate"`
 	SignatureTimestampFormat string `json:"signature_timestamp_format"`
-	Version                  string `json:"_version"`
 }
 
 type tssStateRequest struct {
@@ -175,8 +173,8 @@ func (c *FiskalyTSESetupClient) HoleAdminPUK(ctx context.Context, tssID string) 
 }
 
 // RetrieveTSSStammdaten liest die fiskalischen Stammdaten der TSS-Ressource
-// (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format, Version) fuer
-// den DSFinV-K-Export. Reine Leseoperation auf derselben TSS-Ressource wie
+// (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format) fuer den
+// DSFinV-K-Export. Reine Leseoperation auf derselben TSS-Ressource wie
 // HoleAdminPUK.
 func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID string) (tse.TSSStammdaten, error) {
 	tssID = strings.TrimSpace(tssID)
@@ -193,7 +191,6 @@ func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID
 		PublicKey:           strings.TrimSpace(resp.PublicKey),
 		Zertifikat:          strings.TrimSpace(resp.Certificate),
 		LogTimeFormat:       strings.TrimSpace(resp.SignatureTimestampFormat),
-		Version:             strings.TrimSpace(resp.Version),
 	}, nil
 }
 
