@@ -226,7 +226,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung | Should      |
 | F-11 | Verfahrensdokumentation | 1 | 🔲                       | Should (Doku) |
 | F-02 | TSE-Integration     | 2     | ✅                         | Should      |
-| F-04 | DSFinV-K Export     | 2     | 🔲                         | Should      |
+| F-04 | DSFinV-K Export     | 2     | ✅                         | Should      |
 | F-09 | eBeleg              | 2     | 🔲                         | Nice        |
 | F-10 | 10-Jahres-Archivierung | 3   | 🔲                         | Should      |
 | F-08 | GoBD-Integritätsnachweis | 3 | 🔲                         | Nice        |
@@ -247,39 +247,6 @@ Jede jotti-Instanz muss innerhalb eines Monats nach Inbetriebnahme beim zuständ
 - [ ] Admin-Dashboard zeigt Hinweis auf Meldepflicht mit Link zur Anleitung und der Seriennummer an
 - [ ] Manuell setzbarer Meldestatus (`ausstehend` / `gemeldet am TT.MM.JJJJ`)
 - [ ] (Optional) Programmatische Meldung über ERiC oder fiskaly ist konfigurierbar
-
----
-
-#### F-06 · Abrechnungskreis (DSFinV-K)
-
-> **Prio:** Should-have
-
-Der `ABRECHNUNGSKREIS` im Sinne der DSFinV-K ist pro Tisch und Kassensitzung: Jede Tisch-Session (Subject `kassensitzung-{nr}/tisch-{id}`) bildet einen eigenständigen Abrechnungskreis. Der DSFinV-K-Export-Wert wird aus dem Tischnamen abgeleitet (z. B. `Tisch 42`).
-
-**Akzeptanzkriterien:**
-
-- [x] Jede Tisch-Session bildet einen `ABRECHNUNGSKREIS` im DSFinV-K-Sinne
-- [x] Beim Tagesabschluss (K-22) wird die Kassensitzung geschlossen; alle zugehörigen Tisch-Sessions sind damit abgeschlossen
-- [ ] Alle TSE-Transaktionen sind einem `ABRECHNUNGSKREIS` zugeordnet
-- [ ] Im DSFinV-K-Export ist der `ABRECHNUNGSKREIS` korrekt ausgewiesen
-
----
-
-#### F-04 · DSFinV-K-Export
-
-> **Prio:** Should-have
-
-Das Backend stellt einen maschinenlesbaren Export der Kassendaten im DSFinV-K-Format (aktuell verbindlich: Version 2.5) bereit: CSV-Dateien mit den vorgeschriebenen offiziellen (englischen) Dateinamen, Semikolon-Trennung, einer `index.xml` und der zugehörigen `gdpdu-01-09-2004.dtd`, verpackt in einem ZIP-Archiv (Format- und Dateinamen-Regeln → [compliance.md §6.2](compliance.md)). Ein Export umfasst genau eine Kassensitzung (ein Kassenabschluss/Z-Bon, `Z_NR` = `kassensitzung_nr`).
-
-**Akzeptanzkriterien:**
-
-- [ ] Admin-Endpunkt `/admin/export/dsfinvk?kassensitzung=N` erzeugt für eine Kassensitzung ein ZIP-Archiv im DSFinV-K-Format v2.5 (Versionsstring konfigurierbar; Standard: aktuelle Kassensitzung)
-- [ ] Alle Pflicht-CSV-Dateien sind mit den offiziellen (englischen) Dateinamen vorhanden: `transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, `businesscases.csv`, `cashpointclosing.csv` u. a. (vollständige Liste der 20 Tabellen → [compliance.md §6.3](compliance.md); nicht deutsche Namen wie `Bonkopf.csv`)
-- [ ] `index.xml` und die `gdpdu-01-09-2004.dtd` sind enthalten; `index.xml` ist korrekt befüllt (Kassenseriennummer, Zeitraum, Version) und deklariert nur die tatsächlich vorhandenen Tabellen
-- [ ] Steuersätze und Betragsaufschlüsselung sind korrekt pro Transaktion ausgewiesen
-- [ ] Betreiber-Stammdaten (Name, Anschrift) sind als Betreiberdaten korrekt ausgewiesen
-
-→ Detailspezifikation: [prds/prd-dsfinvk-export.md](prds/prd-dsfinvk-export.md)
 
 ---
 
