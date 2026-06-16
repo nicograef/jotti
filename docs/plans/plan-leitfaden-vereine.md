@@ -284,18 +284,18 @@ Konsistenz.
 
 ### Acceptance criteria
 
-- [ ] Genau eine Vereins-Leitfaden-Seite unter `/leitfaden-fuer-vereine/`; kein
+- [x] Genau eine Vereins-Leitfaden-Seite unter `/leitfaden-fuer-vereine/`; kein
       Glossar; Wegbenennung „Standardweg/Experten-Weg" identisch zum Leitfaden.
-- [ ] Seite verweist sichtbar auf `docs/leitfaden.md` als kanonische Quelle.
-- [ ] Startseite zeigt denselben Funktionsstatus wie Leitfaden und README
+- [x] Seite verweist sichtbar auf `docs/leitfaden.md` als kanonische Quelle.
+- [x] Startseite zeigt denselben Funktionsstatus wie Leitfaden und README
       (DSFinV-K v2.5/in Entwicklung, keine Hash-Chain) und nennt Caddy, nicht
       nginx; fiskaly ohne „z. B.".
-- [ ] Header, Mobile-Nav und Footer enthalten genau einen Leitfaden-Link;
+- [x] Header, Mobile-Nav und Footer enthalten genau einen Leitfaden-Link;
       `sitemap.xml` listet nur Startseite + Leitfaden.
-- [ ] `/jotti-selbst-betreiben/` liefert 301 auf `/leitfaden-fuer-vereine/`
+- [x] `/jotti-selbst-betreiben/` liefert 301 auf `/leitfaden-fuer-vereine/`
       (in `nginx.rocks.conf`); der Ordner `website/jotti-selbst-betreiben/` ist
       entfernt.
-- [ ] Kein interner Website-Link zeigt mehr auf `/jotti-selbst-betreiben/`.
+- [x] Kein interner Website-Link zeigt mehr auf `/jotti-selbst-betreiben/`.
 
 ---
 

@@ -425,7 +425,7 @@
               </h3>
               <p class="text-15 leading-relaxed">
                 Maschinenlesbarer Export aller Kassendaten für die
-                Finanzverwaltung, ZIP-Archiv nach DSFinV-K v2.4.
+                Finanzverwaltung, ZIP-Archiv nach DSFinV-K v2.5.
               </p>
             </div>
             <div>
@@ -479,16 +479,16 @@
           <div class="compliance-note">
             <p>
               <strong>Bring Your Own TSE:</strong> Da jotti self-hosted
-              betrieben wird, schließen Betreiber selbst einen Vertrag mit einem
-              Cloud-TSE-Anbieter (z.&nbsp;B. fiskaly) ab und konfigurieren die
-              API-Schlüssel über die <code>.env</code>-Datei. Seriennummer,
-              Steuersätze (19 %, 7 %, 0 %) und ELSTER-Meldung sind dokumentiert.
+              betrieben wird, schließen Betreiber selbst einen Vertrag mit der
+              Cloud-TSE von fiskaly ab und konfigurieren die API-Schlüssel über
+              die <code>.env</code>-Datei. Seriennummer, Steuersätze (19 %, 7 %,
+              0 %) und ELSTER-Meldung sind dokumentiert.
             </p>
           </div>
 
           <div class="mt-8 text-center">
             <a href="/leitfaden-fuer-vereine/" class="btn btn-primary"
-              >Betreiber-Leitfaden für Vereine lesen</a
+              >Leitfaden für Vereine lesen</a
             >
           </div>
         </div>
@@ -623,7 +623,7 @@
             <li>VPS ab ~3 €/Monat (z.&nbsp;B. Hetzner, Netcup)</li>
             <li>Raspberry Pi ~50 € einmalig</li>
             <li>Vereinseigener Server: 0 €</li>
-            <li>Cloud-TSE (z.&nbsp;B. fiskaly): je nach Anbieter</li>
+            <li>Cloud-TSE von fiskaly: je nach Tarif</li>
           </ul>
 
           <h3 class="text-center mt-12 mb-5">Technik &amp; Anforderungen</h3>
@@ -672,7 +672,7 @@
                     >Infrastruktur</span
                   >
                   <span class="text-muted"
-                    >Docker Compose, nginx, Let's Encrypt</span
+                    >Docker Compose, Caddy, Let's Encrypt</span
                   >
                 </div>
               </div>
@@ -712,9 +712,7 @@
                   class="flex gap-4 text-15 pb-3 border-b last:border-b-0 last:pb-0"
                 >
                   <span class="min-w-25 font-bold text-foreground">TSE</span>
-                  <span class="text-muted"
-                    >Cloud-TSE-Vertrag (z.&nbsp;B. fiskaly)</span
-                  >
+                  <span class="text-muted">Cloud-TSE-Vertrag mit fiskaly</span>
                 </div>
               </div>
             </div>
@@ -728,8 +726,10 @@ make prod-up            <span class="text-muted-light"># Starten</span></code></
           </div>
 
           <div class="mt-8 text-center">
-            <a href="/jotti-selbst-betreiben/" class="btn btn-primary"
-              >Hosting-Leitfaden: jotti selbst betreiben</a
+            <a
+              href="/leitfaden-fuer-vereine/#standardweg"
+              class="btn btn-primary"
+              >Leitfaden: jotti selbst betreiben</a
             >
           </div>
         </div>

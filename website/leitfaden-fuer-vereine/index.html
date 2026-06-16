@@ -6,8 +6,8 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <!--# set var="page_title" value="Leitfaden für Vereine: jotti rechtssicher betreiben" -->
-    <!--# set var="page_description" value="Betreiber-Leitfaden für Vereine: TSE einrichten, Kasse beim Finanzamt anmelden, Belege und 10-Jahre-Aufbewahrung, verständlich erklärt für ehrenamtliche Teams, die jotti selbst betreiben." -->
+    <!--# set var="page_title" value="Leitfaden für Vereine: jotti einrichten und rechtssicher betreiben" -->
+    <!--# set var="page_description" value="Der Leitfaden für Vereine: jotti im WLAN starten, TSE einrichten, Kasse beim Finanzamt anmelden, Belege und 10-Jahre-Aufbewahrung. Standardweg zuerst, Experten-Weg und Sonderfälle weiter unten, verständlich erklärt für ehrenamtliche Teams." -->
     <!--# set var="page_canonical" value="https://jotti.rocks/leitfaden-fuer-vereine/" -->
     <!--# set var="og_type" value="article" -->
     <!--# include virtual="/partials/head-seo.html" -->
@@ -24,12 +24,14 @@
       <section class="pt-10 pb-5 bg-surface-alt border-b md:pt-14 md:pb-6">
         <div class="container">
           <p class="text-13 font-bold uppercase tracking-6 text-primary mb-3">
-            Betreiber-Leitfaden
+            Leitfaden für Vereine
           </p>
-          <h1>jotti rechtssicher betreiben</h1>
+          <h1>jotti betreiben: der Leitfaden für Vereine</h1>
           <p class="text-17 max-w-180 mt-5">
-            Was euer Verein rund um Kasse, TSE und Finanzamt erledigen muss, in
-            einfacher Sprache, ohne Paragraphendschungel.
+            Vom ersten Start bis zum rechtssicheren Betrieb. Oben steht der
+            Standardfall, den fast alle Vereine brauchen. Server-, Domain- und
+            Sonderfall-Themen folgen weiter unten und sind als optional
+            gekennzeichnet.
           </p>
         </div>
       </section>
@@ -39,15 +41,16 @@
           <!-- ============ INTRO CALLOUT ============ -->
           <div class="compliance-note">
             <p>
-              <strong>Für wen?</strong> Für Vereinsvorstände, Kassenwarte und
-              ehrenamtliche Teams, die jotti selbst auf einem eigenen Server
-              betreiben.
-            </p>
-            <p>
-              <strong>Technische Einrichtung?</strong> Wie ihr jotti aufsetzt
-              und startet, im lokalen WLAN oder auf einem eigenen Server,
-              erklärt der
-              <a href="/jotti-selbst-betreiben/">Hosting-Leitfaden</a>.
+              <strong>Kanonische Quelle.</strong> Diese Seite spiegelt den
+              ausführlichen Leitfaden im Projekt-Repository. Die vollständige
+              Fassung mit allen Schritten steht in
+              <a
+                href="https://github.com/nicograef/jotti/blob/main/docs/leitfaden.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                >docs/leitfaden.md</a
+              >
+              auf GitHub.
             </p>
             <p>
               <strong>Keine Rechts- oder Steuerberatung.</strong> Dieser
@@ -57,20 +60,21 @@
             </p>
           </div>
 
-          <!-- ============ DAS WICHTIGSTE ============ -->
-          <section class="mt-10" id="das-wichtigste">
-            <h2>Das Wichtigste in 60 Sekunden</h2>
+          <!-- ============ IN 60 SEKUNDEN ============ -->
+          <section class="mt-10" id="in-60-sekunden">
+            <h2>In 60 Sekunden</h2>
             <p>
               jotti ist eine Kasse im Sinne des Gesetzes (ein „elektronisches
               Aufzeichnungssystem“). Damit gelten dieselben Regeln wie für jede
-              Registrierkasse. Drei Dinge müsst ihr als Verein selbst erledigen:
+              Registrierkasse, auch für gemeinnützige Vereine und auch bei
+              kurzen Festen. Drei Dinge müsst ihr als Verein selbst erledigen:
             </p>
             <div class="grid gap-y-7 gap-x-10 lg:grid-cols-3">
               <div>
                 <h3 class="mb-1-5">1. TSE buchen</h3>
                 <p class="text-15 leading-relaxed">
-                  Ein manipulationssicheres Signaturmodul bei einem Anbieter wie
-                  fiskaly buchen und in jotti eintragen.
+                  Eine Cloud-TSE von fiskaly buchen (manipulationssicheres
+                  Signaturmodul) und in jotti eintragen.
                 </p>
               </div>
               <div>
@@ -96,100 +100,12 @@
               Er stellt nur den Programmcode bereit; die Pflichten gegenüber dem
               Finanzamt liegen bei euch als Verein.
             </p>
-            <div class="compliance-note">
-              <p>
-                <strong>Aktueller Stand:</strong> TSE-Anbindung und Belegausgabe
-                sind verfügbar. Noch in Entwicklung ist der DSFinV-K-Export
-                (samt 10-Jahres-Archivierung und ELSTER-Dokumentation). Dieser
-                Leitfaden beschreibt, was zu tun ist, sobald auch er
-                bereitsteht.
-              </p>
-            </div>
-          </section>
 
-          <!-- ============ VERANTWORTUNG ============ -->
-          <section class="mt-10" id="verantwortung">
-            <h2>Wer ist verantwortlich?</h2>
+            <h3 class="mt-8 mb-3">Was jotti schon mitbringt</h3>
             <p>
-              jotti ist keine gemietete Cloud-Software, sondern quelloffener
-              Code, den ihr selbst auf eurem eigenen Server betreibt. Daraus
-              ergibt sich eine klare Rollentrennung:
-            </p>
-            <div class="table-wrapper">
-              <table class="comparison-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Aufgabe</th>
-                    <th scope="col">Entwickler</th>
-                    <th scope="col">Euer Verein</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th scope="row">
-                      Programmcode mit TSE- und DSFinV-K-Schnittstelle
-                      bereitstellen
-                    </th>
-                    <td>✓</td>
-                    <td>—</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">
-                      Vertrag mit TSE-Anbieter (z.&nbsp;B. fiskaly) abschließen
-                    </th>
-                    <td>—</td>
-                    <td>✓</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">TSE-Schlüssel in jotti eintragen</th>
-                    <td>—</td>
-                    <td>✓</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Kasse beim Finanzamt anmelden (ELSTER)</th>
-                    <td>—</td>
-                    <td>✓</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Server betreiben, Backups, Datenschutz</th>
-                    <td>—</td>
-                    <td>✓</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Daten 10 Jahre aufbewahren</th>
-                    <td>—</td>
-                    <td>✓</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">
-                      Belege ausgeben (bzw. Befreiung beantragen)
-                    </th>
-                    <td>—</td>
-                    <td>✓</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="compliance-note">
-              <p>
-                <strong>Warum?</strong> Wer eine Kasse tatsächlich verwendet,
-                ist gegenüber dem Finanzamt verantwortlich, das seid ihr als
-                Verein. Der Entwickler erfüllt seine Pflicht, indem er Software
-                bereitstellt, die eine zertifizierte TSE anbinden <em>kann</em>
-                (§ 146a Abs. 1 Satz 5 der Abgabenordnung). Ob ihr sie
-                tatsächlich einrichtet, liegt bei euch (§ 146a Abs. 4, § 379
-                AO).
-              </p>
-            </div>
-          </section>
-
-          <!-- ============ FISKALKONFORM ============ -->
-          <section class="mt-10" id="fiskalkonform">
-            <h2>Was heißt „fiskalkonform“?</h2>
-            <p>
-              Fiskalkonform heißt: Die Kasse erfüllt alle Anforderungen des
-              Finanzamts, damit niemand Umsätze heimlich löschen oder verändern
-              kann. Dafür braucht es vier Bausteine:
+              Jeder Vorgang wird unveränderlich aufgezeichnet (Event-Sourcing,
+              Korrekturen nur als Gegenbuchung). TSE-Anbindung und Belegausgabe
+              sind vorhanden, der DSFinV-K-Export ist in Entwicklung.
             </p>
             <div class="table-wrapper">
               <table class="comparison-table">
@@ -204,7 +120,7 @@
                   <tr>
                     <th scope="row">Unveränderbare Aufzeichnung</th>
                     <td>
-                      „Event-Sourcing“: jeder Vorgang als unveränderlicher
+                      Event-Sourcing: jeder Vorgang als unveränderlicher
                       Eintrag, Korrekturen nur als Gegenbuchung
                     </td>
                     <td>✓ vorhanden</td>
@@ -212,8 +128,8 @@
                   <tr>
                     <th scope="row">TSE-Signatur</th>
                     <td>
-                      Anbindung an eine Cloud-TSE (z.&nbsp;B. fiskaly), die
-                      jeden Vorgang kryptografisch „versiegelt“
+                      Anbindung an die Cloud-TSE von fiskaly, die jeden Vorgang
+                      kryptografisch versiegelt
                     </td>
                     <td>✓ vorhanden</td>
                   </tr>
@@ -227,8 +143,8 @@
                   <tr>
                     <th scope="row">DSFinV-K-Export</th>
                     <td>
-                      Genormtes Datenpaket (ZIP mit CSV-Dateien), das ein Prüfer
-                      einlesen kann
+                      Genormtes Datenpaket (ZIP nach DSFinV-K v2.5), das ein
+                      Prüfer einlesen kann
                     </td>
                     <td><span class="badge-wip">In Entwicklung</span></td>
                   </tr>
@@ -237,76 +153,221 @@
             </div>
             <div class="compliance-note">
               <p>
-                <strong
-                  >Gilt das auch für unseren gemeinnützigen Verein?</strong
-                >
-                Ja. Sobald ihr bei einem Fest Speisen oder Getränke gegen Geld
-                verkauft, betreibt ihr einen „wirtschaftlichen Geschäftsbetrieb“
-                (§ 14, § 64 AO). Die Kassenpflichten gelten unabhängig von der
-                Gemeinnützigkeit und auch bei kurzen Festen. Ob auf eure Umsätze
-                Steuern anfallen, ist eine andere Frage (Zweckbetrieb, § 67a
-                AO), das klärt euer Steuerberater.
+                <strong>Was kostet uns das?</strong> jotti selbst ist für
+                berechtigte Vereine kostenlos. Kosten entstehen nur für den
+                Server und die Cloud-TSE von fiskaly (kleine laufende Gebühr
+                beim Anbieter). Der Standardweg unten kommt ohne Servermiete
+                aus.
               </p>
             </div>
           </section>
 
-          <!-- ============ EURE PFLICHTEN ============ -->
-          <section class="guide-steps mt-10" id="pflichten">
-            <h2>Eure Pflichten: Schritt für Schritt</h2>
-
-            <h3>TSE einrichten (Cloud-TSE mit fiskaly)</h3>
+          <!-- ============ STANDARDWEG ============ -->
+          <section class="mt-10" id="standardweg">
+            <h2>Schnellstart: Standardweg (Einzelgerät im WLAN)</h2>
             <p>
-              Die TSE („Technische Sicherheitseinrichtung“) ist ein
-              Sicherheitsmodul, das jeden Kassenvorgang fälschungssicher
-              signiert, gesetzlich zwingend vorgeschrieben (geregelt in der
-              KassenSichV, der Verordnung mit den technischen Detailregeln). Da
-              jotti auf einem Server ohne USB-Anschluss läuft, nutzt es eine
-              Cloud-TSE: Ihr bucht sie als Online-Dienst und gebt jotti die
-              Zugangsschlüssel.
+              Für fast alle Vereinsfeste ist das der richtige Weg: Ein
+              vorhandener Windows-Rechner im Vereinsheim wird zum Kassenrechner.
+              Die Servicekräfte bedienen jotti auf ihren eigenen Handys im
+              selben WLAN. Kein Server, keine Domain, keine laufenden Kosten.
+              Das genügt auch mit mehreren Helfern, vielen Tischen und Bondruck.
+            </p>
+            <div class="compliance-note">
+              <p>
+                🔒 <strong>Grünes Schloss als Normalfall.</strong> Für den
+                lokalen Betrieb holt jotti automatisch ein echtes, vom Browser
+                anerkanntes Zertifikat über die Adresse
+                <code>…lokal.jotti.rocks</code> (grünes Schloss, keine Warnung).
+                Welche Adresse gerade gilt, zeigt samt QR-Code die Status-Seite
+                <code>http://localhost:8484</code> am Kassenrechner. Greift die
+                grüne Adresse nicht, springt ein Fallback
+                <code>https://&lt;LAN-IP&gt;</code> mit selbstsigniertem
+                Zertifikat ein (einmalige Browserwarnung pro Gerät).
+              </p>
+            </div>
+
+            <h3>Start per Doppelklick</h3>
+            <p>
+              Für Windows gibt es einen Doppelklick-Starter, der die
+              <code>.env</code> erzeugt, den Stack hochfährt und Docker-Start
+              sowie Firewall-Freigabe selbst erledigt, ganz ohne Kommandozeile.
             </p>
             <ol>
               <li>
-                <strong>Anbieter wählen.</strong> Empfohlen für den Start:
-                fiskaly. Andere zertifizierte Anbieter gehen auch.
+                Das aktuelle Release-ZIP von der
+                <a
+                  href="https://github.com/nicograef/jotti/releases"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >GitHub-Releases-Seite</a
+                >
+                herunterladen und entpacken (alle Dateien bleiben im selben
+                Ordner). Voraussetzung ist
+                <a
+                  href="https://www.docker.com/products/docker-desktop/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Docker Desktop</a
+                >
+                (nur installieren, nicht vorab starten).
               </li>
               <li>
-                <strong>Vertrag abschließen</strong> und ein Kassen-Konto
-                („Client“) anlegen. Ihr erhaltet Zugangsdaten (API-Key und
-                Secret).
+                <code>jotti-start.exe</code> doppelklicken. Beim ersten Mal
+                dauert der Start einige Minuten. SmartScreen mit „Weitere
+                Informationen“ → „Trotzdem ausführen“ und UAC mit „Ja“
+                bestätigen. Für den Bondruck zusätzlich
+                <code>jotti-relay.exe</code> doppelklicken.
               </li>
               <li>
-                <strong>Schlüssel eintragen.</strong> Tragt die Zugangsdaten in
-                die <code>.env</code>-Datei eures Servers ein (Variablennamen
-                siehe <code>.env.example</code>). jotti verbindet sich dann
-                automatisch.
-              </li>
-              <li>
-                <strong>Testen.</strong> Macht einen Testverkauf und prüft, ob
-                Signatur, Transaktionsnummer und Zeitstempel auf dem Beleg
-                erscheinen.
+                Die Status-Seite <code>http://localhost:8484</code> am
+                Kassenrechner öffnen. Dort stehen die Zugangsadresse und ein
+                QR-Code für die Handys.
               </li>
             </ol>
             <div class="compliance-note">
               <p>
-                <strong>Schlüssel sind geheim.</strong> TSE-Zugangsdaten gehören
-                nur in die <code>.env</code>-Datei auf eurem Server, niemals in
-                den Programmcode oder ein öffentliches Repository.
+                ⚠️ <strong>Ersten Start vorab zuhause machen.</strong> Beim
+                Erststart lädt jotti seine Programmteile herunter und holt das
+                vertrauenswürdige Zertifikat. Beides braucht Internet. Danach
+                läuft jotti auch ohne Internet.
               </p>
             </div>
+
+            <h3>Handys der Servicekräfte verbinden</h3>
+            <p>
+              Das Handy ins Vereins-WLAN bringen (nicht Mobilfunk, kein
+              Gastnetz). Dann den QR-Code von der Status-Seite scannen oder die
+              grüne Adresse eintippen → grünes Schloss, keine Warnung, anmelden.
+              Über „Zum Startbildschirm hinzufügen“ lässt sich jotti wie eine
+              App ablegen. Geht die grüne Adresse (noch) nicht, nennt die
+              Status-Seite die Fallback-Adresse
+              <code>https://&lt;LAN-IP&gt;</code>; lädt auch sie nicht,
+              blockiert vermutlich der Router (siehe
+              <a href="#fehlersuche">Fehlersuche</a>).
+            </p>
+            <div class="compliance-note">
+              <p>
+                <strong>Nie ins Internet öffnen.</strong> Der lokale Betrieb ist
+                nur fürs eigene WLAN gedacht. Richtet im Router keine
+                Port-Weiterleitung auf den Kassenrechner ein. Für den Betrieb
+                übers Internet gibt es den
+                <a href="#experten-weg">Experten-Weg</a>.
+              </p>
+            </div>
+          </section>
+
+          <!-- ============ TSE EINRICHTEN ============ -->
+          <section class="guide-steps mt-10" id="tse">
+            <h2>TSE einrichten (Cloud-TSE von fiskaly)</h2>
+            <p>
+              Die TSE („Technische Sicherheitseinrichtung“) ist das digitale
+              Siegel-Modul, das jeden Kassenvorgang fälschungssicher signiert.
+              Das Gesetz schreibt sie zwingend vor. jotti nutzt die Cloud-TSE
+              von fiskaly: Ihr bucht sie als Online-Dienst und gebt jotti die
+              Zugangsschlüssel. Die Einrichtung läuft über einen geführten
+              Assistenten, ohne technische Werkzeuge wie Postman oder curl.
+            </p>
+            <div class="compliance-note">
+              <p>
+                💡 <strong>Übt zuerst in TEST.</strong> fiskaly bietet eine
+                kostenlose Test-Umgebung. Richtet die TSE dort einmal komplett
+                ein, bevor ihr auf LIVE umstellt. So lauft ihr den ganzen Ablauf
+                einmal durch, ohne Kosten und ohne Risiko.
+              </p>
+            </div>
+            <ol>
+              <li>
+                <strong>fiskaly-Konto und API-Key.</strong> Auf
+                <a
+                  href="https://dashboard.fiskaly.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >dashboard.fiskaly.com</a
+                >
+                registrieren und einen API-Key erstellen. Ihr erhaltet
+                <strong>API-Key</strong> und <strong>API-Secret</strong>; das
+                Secret wird nur einmal angezeigt. Beide sicher notieren.
+              </li>
+              <li>
+                <strong>Geführter Assistent in jotti.</strong> Im Admin-Bereich
+                „Finanzamt“ öffnen, im Kasten „TSE-Anbindung“ auf „Einrichten
+                oder ändern“ klicken, API-Key und API-Secret eingeben und
+                prüfen. Ist das Konto leer, legt jotti eine neue TSS an,
+                initialisiert sie und registriert diese Kasse als Client. In
+                LIVE müsst ihr vorher das Wort „LIVE“ eintippen.
+              </li>
+              <li>
+                <strong>Admin-PUK und Admin-PIN verwahren.</strong> jotti zeigt
+                beide genau einmal an. Sofort notieren und sicher außerhalb von
+                jotti verwahren (Passwort-Manager des Vorstands, versiegelter
+                Ausdruck im Vereinssafe). Erst nach dem Häkchen geht es weiter.
+              </li>
+              <li>
+                <strong>Verbindung testen & abschließen.</strong> Steht
+                „Verbindung bestätigt“, ist die TSE einsatzbereit.
+              </li>
+            </ol>
+            <div class="compliance-note">
+              <p>
+                🔒
+                <strong>API-Key, Secret, PUK und PIN sind geheim.</strong> Sie
+                gehören nicht in Chats, E-Mails oder öffentliche Dokumente. Der
+                Admin-PUK ist das wichtigste Geheimnis: er heilt eine verlorene
+                PIN, aber nichts heilt einen verlorenen PUK.
+              </p>
+            </div>
+            <h3>Von TEST zu LIVE wechseln (inkl. Kosten)</h3>
+            <p>
+              Für den Echtbetrieb erstellt ihr im fiskaly-Dashboard einen
+              API-Key für die LIVE-Umgebung (TEST- und LIVE-Schlüssel sind
+              getrennt) und durchlauft den Assistenten erneut. Eine LIVE-TSS
+              verursacht laufende Kosten und kann nicht gelöscht, nur
+              stillgelegt werden.
+            </p>
+            <div class="compliance-note">
+              <p>
+                <strong>Kosten (Stand Mitte 2026):</strong> Eigenständige
+                Cloud-TSE-Lizenzen lagen grob bei 120 bis 190 € pro Jahr je TSS,
+                teils mit einmaliger Einrichtungsgebühr; eine Gebühr pro Vorgang
+                ist unüblich. Eine TSS genügt für eine jotti-Instanz. Holt für
+                die Budgetplanung ein aktuelles, schriftliches Angebot direkt
+                bei fiskaly ein.
+              </p>
+            </div>
+          </section>
+
+          <!-- ============ PFLICHTEN ERFÜLLEN ============ -->
+          <section class="guide-steps mt-10" id="pflichten">
+            <h2>Pflichten erfüllen</h2>
+            <p>
+              Die rechtlichen Grundlagen im Detail stehen in
+              <a
+                href="https://github.com/nicograef/jotti/blob/main/docs/compliance.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                >compliance.md</a
+              >
+              (KassenSichV, GoBD, DSFinV-K, ELSTER) und die Steuersätze in
+              <a
+                href="https://github.com/nicograef/jotti/blob/main/docs/steuerrecht.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                >steuerrecht.md</a
+              >. Hier die drei Pflichten in der Praxis.
+            </p>
 
             <h3>Kasse beim Finanzamt anmelden</h3>
             <p>
               Seit 1. Januar 2025 muss jede elektronische Kasse dem Finanzamt
-              online über ELSTER (das Online-Portal der Finanzverwaltung)
-              gemeldet werden (§ 146a Abs. 4 AO), eine eigene Pflicht zusätzlich
-              zur TSE. Ihr braucht dafür:
+              online über ELSTER gemeldet werden (§ 146a Abs. 4 AO), eine eigene
+              Pflicht zusätzlich zur TSE. Die Frist beträgt einen Monat nach
+              Inbetriebnahme (und ebenso nach Stilllegung). Ihr braucht dafür:
             </p>
             <ul>
               <li>
                 Die Seriennummer eurer jotti-Kasse: jotti erzeugt sie beim
                 ersten Start automatisch (eine „UUID“) und zeigt sie im
-                Admin-Bereich an, z.&nbsp;B.
-                <code>7f3a9d12-84e1-4b2c-9f6a-1234567890ab</code>.
+                Admin-Bereich an.
               </li>
               <li>
                 Die Zertifizierungs-ID und Seriennummer der TSE (von fiskaly).
@@ -327,47 +388,15 @@
               das Formular „Mitteilung über elektronische Aufzeichnungssysteme“
               ausfüllen (die Daten findet ihr gebündelt im jotti-Admin-Bereich),
               absenden und die Bestätigung aufbewahren.
-              <strong>Fristen:</strong>
             </p>
-            <div class="table-wrapper">
-              <table class="comparison-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Situation</th>
-                    <th scope="col">Frist</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th scope="row">
-                      Kasse ab 1. Juli 2025 in Betrieb genommen
-                    </th>
-                    <td>innerhalb 1 Monat nach Inbetriebnahme</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Kasse vor 1. Juli 2025 angeschafft</th>
-                    <td>war bis 31. Juli 2025 zu melden</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Kasse stillgelegt</th>
-                    <td>innerhalb 1 Monat nach Außerbetriebnahme</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
             <div class="compliance-note">
               <p>
                 <strong
                   >Smartphones der Servicekräfte müsst ihr NICHT melden.</strong
                 >
-                Sie gelten nur als „Eingabegeräte“ (wie eine Tastatur). Gemeldet
-                wird nur die eine jotti-Instanz auf eurem Server.
-              </p>
-              <p>
-                <strong>Seriennummer sichern!</strong> Die Kassen-Seriennummer
-                steckt in eurer Datenbank. Geht sie ohne Backup verloren, müsst
-                ihr die alte Kasse abmelden und eine neue anmelden, deshalb sind
-                Backups Pflicht.
+                Sie gelten nur als „Eingabegeräte“. Gemeldet wird nur die eine
+                jotti-Instanz. <strong>Seriennummer sichern!</strong> Sie steckt
+                in eurer Datenbank, deshalb sind Backups Pflicht.
               </p>
             </div>
 
@@ -383,9 +412,9 @@
               </li>
               <li>
                 <strong>Steuersätze:</strong> Ordnet jedem Produkt im
-                Admin-Bereich den richtigen Satz zu: 19 % (z.&nbsp;B. Getränke),
-                7 % (z.&nbsp;B. Speisen) oder 0 % / steuerbefreit. Welcher Satz
-                gilt, klärt euer Steuerberater.
+                Admin-Bereich den richtigen Satz zu (19 %, 7 % oder 0 % /
+                steuerbefreit). Der Satz erscheint auf dem Beleg und im
+                Datenexport. Welcher Satz gilt, klärt euer Steuerberater.
               </li>
             </ul>
 
@@ -394,8 +423,7 @@
               <li>
                 Alle Kassendaten (Kassenjournal und spätere DSFinV-K-Exporte)
                 müssen 10 Jahre vollständig, lesbar und unveränderbar aufbewahrt
-                werden (§§ 146, 147 AO; GoBD, die Regeln zu Aufbewahrung und
-                Unveränderbarkeit von Daten).
+                werden (§§ 146, 147 AO; GoBD).
               </li>
               <li>
                 Macht tägliche Backups eurer Datenbank und bewahrt sie sicher
@@ -406,6 +434,18 @@
                 und Daten haben.
               </li>
             </ul>
+            <div class="compliance-note">
+              <p>
+                <strong
+                  >Gilt das auch für unseren gemeinnützigen Verein?</strong
+                >
+                Ja. Sobald ihr bei einem Fest Speisen oder Getränke gegen Geld
+                verkauft, betreibt ihr einen „wirtschaftlichen Geschäftsbetrieb“
+                (§ 14, § 64 AO). Die Kassenpflichten gelten unabhängig von der
+                Gemeinnützigkeit. Ob auf eure Umsätze Steuern anfallen, ist eine
+                andere Frage (das klärt euer Steuerberater).
+              </p>
+            </div>
           </section>
 
           <!-- ============ CHECKLISTE ============ -->
@@ -416,15 +456,21 @@
             <ul class="guide-checklist">
               <li>Nutzungsvereinbarung mit dem Autor abgeschlossen</li>
               <li>
-                TSE bei fiskaly (o.&nbsp;a.) gebucht und Schlüssel in
-                <code>.env</code> eingetragen
+                fiskaly-Konto registriert, API-Key und API-Secret erstellt und
+                sicher notiert
               </li>
+              <li>TSE in TEST einmal komplett durchgespielt</li>
+              <li>LIVE-TSS über den Assistenten eingerichtet</li>
+              <li>Admin-PUK und Admin-PIN sicher und dauerhaft verwahrt</li>
               <li>
                 Betreiber-Stammdaten (Vereinsname, Adresse, Steuernummer) im
                 Admin-Bereich gepflegt
               </li>
               <li>Produkte mit korrekten Steuersätzen angelegt</li>
-              <li>Kasse über ELSTER beim Finanzamt angemeldet</li>
+              <li>
+                Kasse über ELSTER beim Finanzamt angemeldet (Seriennummer aus
+                dem Admin-Bereich)
+              </li>
               <li>Ggf. Antrag auf Befreiung von der Belegausgabe gestellt</li>
               <li>Backup-Routine eingerichtet</li>
             </ul>
@@ -443,10 +489,206 @@
             </ul>
           </section>
 
+          <!-- ============ EXPERTEN-WEG ============ -->
+          <section class="mt-10" id="experten-weg">
+            <h2>Experten-Weg: eigener Server (optional)</h2>
+            <div class="compliance-note">
+              <p>
+                Dieser Abschnitt ist nur für den Betrieb über das Internet
+                gedacht und setzt Grundkenntnisse mit Linux und Kommandozeile
+                voraus. Wer alle Helfer beim Fest vor Ort im selben WLAN hat,
+                bleibt beim <a href="#standardweg">Standardweg</a>.
+              </p>
+            </div>
+            <p>
+              Wer jotti auch außerhalb des lokalen WLANs erreichen will (über
+              das Internet, an mehreren Standorten oder ohne einen Rechner vor
+              Ort), betreibt es auf einem eigenen kleinen Server, einem VPS.
+              Dann erreichen alle Helfer jotti über eine Domain mit
+              Verschlüsselung (HTTPS). jotti ist genügsam: Schon der kleinste
+              VPS (1 vCPU, 2 GB RAM, 20 GB SSD, Linux) reicht für ein
+              durchschnittliches Vereinsfest (netcup VPS 200 oder vergleichbar,
+              ~3 bis 4 €/Monat).
+            </p>
+            <p>
+              Das TLS-Zertifikat holt jotti automatisch: Die
+              Produktions-Konfiguration (<code>docker-compose.prod.yml</code>)
+              bringt einen Caddy-Reverse-Proxy mit, der es beim ersten Start
+              selbst bei Let's Encrypt anfordert und danach erneuert.
+            </p>
+            <ol>
+              <li>
+                <strong>Docker installieren</strong> (Engine samt
+                Compose-Plugin) und die Projektdateien holen (Release-ZIP oder
+                <code>git clone</code>).
+              </li>
+              <li>
+                <strong><code>.env</code> anlegen</strong> mit
+                <code>make init</code> und Domain, E-Mail und Version eintragen
+                (<code>JOTTI_DOMAIN</code>, <code>LETSENCRYPT_EMAIL</code>,
+                <code>JOTTI_VERSION</code>).
+              </li>
+              <li>
+                <strong>DNS auf den Server zeigen lassen</strong> (A- und ggf.
+                AAAA-Record auf die öffentliche IP). Erst dann kann Let's
+                Encrypt ein Zertifikat ausstellen.
+              </li>
+              <li>
+                <strong>Stack starten</strong> mit <code>make prod-init</code>.
+                Das Skript prüft Docker und DNS, zieht die gepinnten Images,
+                startet den Stack und wartet, bis Backend und HTTPS gesund
+                antworten.
+              </li>
+            </ol>
+            <p>
+              Danach ist jotti unter
+              <code>https://&lt;eure-domain&gt;</code> erreichbar. Zum
+              <strong>Aktualisieren</strong> die gewünschte Version in
+              <code>JOTTI_VERSION</code> eintragen und
+              <code>make prod-update</code> ausführen (sichert die Datenbank
+              automatisch, nur vorwärts, kein Downgrade).
+              <strong>Backups</strong> mit <code>make prod-backup</code> ziehen
+              und regelmäßig vom Server wegkopieren.
+              <code>make prod-harden</code>
+              richtet optional eine Firewall (ufw) und fail2ban ein.
+            </p>
+            <div class="compliance-note">
+              <p>
+                ⚠️ Ohne HTTPS dürft ihr jotti nicht über das offene Internet
+                betreiben: Anmeldedaten und Bestellungen würden sonst
+                unverschlüsselt übertragen.
+              </p>
+            </div>
+          </section>
+
+          <!-- ============ TSE-SONDERFÄLLE ============ -->
+          <section class="mt-10" id="tse-sonderfaelle">
+            <h2>TSE-Sonderfälle</h2>
+            <p>
+              Die folgenden Fälle braucht ihr nur, wenn etwas vom Normalfall
+              abweicht.
+            </p>
+            <ul>
+              <li>
+                <strong>PIN per PUK zurücksetzen.</strong> Verlangt jotti die
+                Admin-PIN und habt ihr sie nicht (oder hat fiskaly sie nach fünf
+                Fehlversuchen gesperrt), gebt im Assistenten den verwahrten
+                Admin-PUK ein und setzt eine neue PIN, ohne neue,
+                kostenpflichtige TSS. Funktioniert in TEST und LIVE.
+              </li>
+              <li>
+                <strong>Vorhandene TSS übernehmen.</strong> Findet jotti im
+                Konto bereits eine TSS, bietet es „TSS übernehmen“ an, statt
+                eine zweite anzulegen. Ist sie bereits personalisiert, fragt
+                jotti nach der verwahrten Admin-PIN.
+              </li>
+              <li>
+                <strong>Wiederaufnahme nach Abbruch.</strong> Bricht die
+                Einrichtung ab, startet ihr den Assistenten einfach erneut.
+                jotti erkennt den Zustand bei fiskaly und holt nur die fehlenden
+                Schritte nach.
+              </li>
+              <li>
+                <strong>Test-Limit.</strong> Die Test-Umgebung erlaubt höchstens
+                fünf aktive TSE. Nur in TEST bietet jotti die Sekundäraktion
+                „Stattdessen neue TSE anlegen“ an; in LIVE helfen PUK-Reset,
+                verwahrte PIN oder der fiskaly-Support.
+              </li>
+              <li>
+                <strong>Manuelle Konfiguration (Experten).</strong> Habt ihr TSS
+                und Client schon außerhalb von jotti angelegt, tragt ihr
+                API-Key, API-Secret, TSS-ID und Client-ID direkt ein. Der Client
+                muss bei fiskaly mit der Kassen-Seriennummer registriert sein.
+              </li>
+            </ul>
+          </section>
+
+          <!-- ============ FEHLERSUCHE ============ -->
+          <section class="mt-10" id="fehlersuche">
+            <h2>Fehlersuche</h2>
+            <p>
+              Dieser Abschnitt hilft, wenn die grüne Adresse der lokalen
+              jotti-Kasse auf den Handys nicht lädt, obwohl die Kasse läuft. Die
+              Status-Seite (<code>http://localhost:8484</code>) verlinkt direkt
+              hierher, wenn sie das Problem erkennt.
+            </p>
+
+            <h3>Grüne Adresse lädt nicht (DNS-Rebind-Schutz)</h3>
+            <p>
+              jotti holt für den lokalen Betrieb ein echtes
+              Let's-Encrypt-Zertifikat auf einen Namen, der eure private LAN-IP
+              enthält (z.&nbsp;B.
+              <code>192-168-1-50.&lt;id&gt;.lokal.jotti.rocks</code>). Das ist
+              gewollt und sicher, aber viele Router haben einen
+              DNS-Rebind-Schutz, der genau diese Kombination („öffentlicher Name
+              zeigt auf eine private IP“) blockiert. Wahrscheinliche Ursache ist
+              das, wenn die Fallback-Adresse funktioniert, die grüne aber nicht,
+              oder wenn es „auf Handy A geht, auf Handy B nicht“.
+            </p>
+            <p>
+              Die Lösung ist eine einmalige Ausnahme im Router:
+              <code>lokal.jotti.rocks</code> von der Prüfung ausnehmen. Danach
+              funktioniert die grüne Adresse im gesamten Vereins-WLAN; der
+              Rebind-Schutz für alle anderen Domains bleibt aktiv.
+            </p>
+            <p>
+              <strong>Fritz!Box</strong> (häufigster Router im Vereinsumfeld):
+              <code>http://fritz.box</code> öffnen → Heimnetz → Netzwerk →
+              Netzwerkeinstellungen → „Weitere Einstellungen“ →
+              „DNS-Rebind-Schutz“ → im Feld „Diese Domain(s) ausnehmen“ genau
+              <code>lokal.jotti.rocks</code> eintragen und übernehmen. Pi-hole,
+              OpenWrt und Speedport kennen dieselbe Einstellung unter anderem
+              Namen; die genauen Pfade stehen in
+              <a
+                href="https://github.com/nicograef/jotti/blob/main/docs/leitfaden.md#fehlersuche"
+                target="_blank"
+                rel="noopener noreferrer"
+                >docs/leitfaden.md</a
+              >.
+            </p>
+            <div class="compliance-note">
+              <p>
+                <strong>Fallback-Adresse.</strong> Die Adresse
+                <code>https://&lt;LAN-IP&gt;</code> funktioniert unabhängig vom
+                DNS-Rebind-Schutz und auch ohne Internet. Sie zeigt beim ersten
+                Zugriff pro Gerät eine einmalige Browserwarnung
+                (selbstsigniertes Zertifikat). Der Verkauf muss also nie an der
+                DNS-Frage scheitern. Achtet darauf, dass alle Handys im normalen
+                Vereins-WLAN sind (kein Gastnetz, kein privates DNS/DoH).
+              </p>
+            </div>
+          </section>
+
           <!-- ============ FAQ ============ -->
           <section class="mt-10" id="faq">
             <h2>Häufige Fragen</h2>
             <dl class="guide-faq">
+              <dt>Brauchen wir beim Fest Internet?</dt>
+              <dd>
+                Nur beim ersten Start (für Programmteile und das
+                vertrauenswürdige Zertifikat). Macht ihn vorab zuhause. Danach
+                läuft jotti auch ohne Internet weiter; notfalls über die
+                Fallback-Adresse.
+              </dd>
+              <dt>Was, wenn die grüne Adresse nicht lädt?</dt>
+              <dd>
+                Mit der Fallback-Adresse weiterarbeiten und die
+                <a href="#fehlersuche">Fehlersuche</a> durchgehen. Der Verkauf
+                muss nie warten.
+              </dd>
+              <dt>
+                Brauchen wir wirklich eine TSE, obwohl wir gemeinnützig sind?
+              </dt>
+              <dd>
+                Ja. Die Kassenpflichten gelten unabhängig von der
+                Gemeinnützigkeit, sobald ihr Speisen oder Getränke gegen Geld
+                verkauft.
+              </dd>
+              <dt>Können wir die TSE erst testen?</dt>
+              <dd>
+                Ja. Richtet sie zuerst in der kostenlosen TEST-Umgebung von
+                fiskaly ein und wechselt erst für den Echtbetrieb auf LIVE.
+              </dd>
               <dt>Können wir jotti ohne TSE „einfach mal so“ nutzen?</dt>
               <dd>
                 Technisch ja, rechtlich nein für echte Verkäufe. Ohne TSE ist
@@ -454,11 +696,12 @@
                 Bußgeld bis 25.000 € geahndet werden (§ 379 AO). Ein TSE-freier
                 Modus ist nur für Tests/Entwicklung gedacht.
               </dd>
-              <dt>Was kostet uns das?</dt>
+              <dt>Was kostet der Betrieb?</dt>
               <dd>
-                jotti selbst ist für berechtigte Vereine kostenlos. Kosten
-                entstehen für den Server und die Cloud-TSE (kleine laufende
-                Gebühr beim TSE-Anbieter).
+                jotti ist für berechtigte Vereine kostenlos. Kosten entstehen
+                nur für die Cloud-TSE von fiskaly und, beim Experten-Weg, für
+                den VPS (~3 bis 8 €/Monat). Der Standardweg kommt ohne
+                Servermiete aus.
               </dd>
             </dl>
           </section>
@@ -467,8 +710,13 @@
           <div class="compliance-note">
             <p><strong>Mehr Details (technisch &amp; rechtlich):</strong></p>
             <p>
-              <a href="/jotti-selbst-betreiben/">Hosting-Leitfaden</a>
-              (jotti selbst aufsetzen &amp; betreiben) ·
+              <a
+                href="https://github.com/nicograef/jotti/blob/main/docs/leitfaden.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                >docs/leitfaden.md</a
+              >
+              (vollständiger Leitfaden) ·
               <a
                 href="https://github.com/nicograef/jotti/blob/main/docs/compliance.md"
                 target="_blank"
@@ -483,13 +731,6 @@
                 >anforderungen.md</a
               >
               (Stand der Fiskalkonformität) ·
-              <a
-                href="https://github.com/nicograef/jotti/blob/main/docs/handbuch.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                >handbuch.md §3.13</a
-              >
-              (TSE-Architektur) ·
               <a
                 href="https://github.com/nicograef/jotti/blob/main/docs/lizenzmodell.md"
                 target="_blank"
