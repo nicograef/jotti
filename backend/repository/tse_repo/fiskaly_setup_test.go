@@ -214,6 +214,64 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 	assertCall(http.MethodPut, "/tss/"+erstellt.ID+"/client/client-uuid", map[string]any{"serial_number": "kasse-serial"})
 }
 
+// TestFiskalySetupClient_ReaktiviereClient bildet den Kontrakt der
+// Client-Reaktivierung (F7) ab: ein DEREGISTERED Client wird per PATCH mit
+// state=REGISTERED auf demselben Client-Pfad reaktiviert (kein neuer Client),
+// mit anliegendem Admin-Token (Bearer).
+func TestFiskalySetupClient_ReaktiviereClient(t *testing.T) {
+	var (
+		mu      sync.Mutex
+		method  string
+		path    string
+		body    map[string]any
+		authHdr string
+	)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"access_token":            "token-1",
+				"access_token_expires_at": time.Now().Add(1 * time.Hour).Unix(),
+				"access_token_claims":     map[string]any{"env": "TEST"},
+			})
+		case r.Method == http.MethodPatch:
+			b := map[string]any{}
+			_ = json.NewDecoder(r.Body).Decode(&b)
+			mu.Lock()
+			method, path, body = r.Method, r.URL.Path, b
+			authHdr = r.Header.Get("Authorization")
+			mu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewFiskalyTSESetupClient(server.URL, tse.SetupCredentials{ApiKey: "api-key", ApiSecret: "api-secret"}, nil)
+	if err != nil {
+		t.Fatalf("failed to create setup client: %v", err)
+	}
+
+	if err := client.ReaktiviereClient(context.Background(), "tss-1", "client-1"); err != nil {
+		t.Fatalf("reaktiviere client failed: %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if method != http.MethodPatch || path != "/api/v2/tss/tss-1/client/client-1" {
+		t.Fatalf("expected PATCH to the client path, got %s %s", method, path)
+	}
+	if body["state"] != "REGISTERED" {
+		t.Fatalf("expected body state=REGISTERED, got %v", body)
+	}
+	if !strings.HasPrefix(authHdr, "Bearer ") {
+		t.Fatalf("expected an admin bearer token, got %q", authHdr)
+	}
+}
+
 // bodyMatcht meldet, ob jedes erwartete Feld im tatsaechlichen Body steht.
 func bodyMatcht(body, want map[string]any) bool {
 	for k, v := range want {

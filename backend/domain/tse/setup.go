@@ -81,4 +81,9 @@ type SetupClient interface {
 	// RegistriereClient registriert einen Client unter clientID mit der
 	// uebergebenen serial_number.
 	RegistriereClient(ctx context.Context, tssID, clientID, serialNumber string) error
+	// ReaktiviereClient reaktiviert einen vorhandenen, aber DEREGISTERED Client
+	// per state=REGISTERED. Die serial_number ist je TSS eindeutig, daher wird
+	// kein neuer Client mit derselben Seriennummer angelegt — derselbe clientID
+	// wird wieder aktiviert. Setzt eine vorherige Admin-Authentifizierung voraus.
+	ReaktiviereClient(ctx context.Context, tssID, clientID string) error
 }

@@ -107,7 +107,7 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	if err != nil {
 		return TSESetupErgebnis{}, einrichtungsFehler(log, err, "tss anlegen", "")
 	}
-	if err := vollendeLebenszyklus(ctx, log, client, "CREATED", erstellt.ID, erstellt.PUK, pin, clientID, seriennummer, false); err != nil {
+	if err := vollendeLebenszyklus(ctx, log, client, "CREATED", erstellt.ID, erstellt.PUK, pin, clientID, seriennummer, clientRegistrieren); err != nil {
 		return TSESetupErgebnis{}, err
 	}
 
@@ -146,15 +146,20 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 //
 //   - CREATED: der PUK wird idempotent erneut bezogen und eine frische Admin-PIN
 //     erzeugt; beide werden dem Admin einmalig angezeigt. Keine Nutzereingabe.
-//   - ab UNINITIALIZED: der PUK ist nicht mehr abrufbar; die vom Admin verwahrte
-//     Admin-PIN ist noetig (pin). Lehnt fiskaly sie ab, endet der Flow als
-//     ErrTSESetupPINUnbekannt (Sackgasse mit Auswegen), nicht als technischer
-//     Fehler. Es werden keine neuen Geheimnisse angezeigt.
+//   - INITIALIZED mit passendem, bereits REGISTERED Client: die TSS ist faktisch
+//     einsatzbereit. Es folgt keine privilegierte fiskaly-Operation, daher ist
+//     keine Admin-PIN noetig (F8) — jotti speichert nur noch die Konfiguration.
+//   - ab UNINITIALIZED (bzw. INITIALIZED ohne fertigen Client): der PUK ist nicht
+//     mehr abrufbar; die vom Admin verwahrte Admin-PIN ist noetig (pin). Lehnt
+//     fiskaly sie ab, endet der Flow als ErrTSESetupPINUnbekannt (Sackgasse mit
+//     Auswegen), nicht als technischer Fehler. Es werden keine neuen Geheimnisse
+//     angezeigt.
 //
-// Ein bereits vorhandener Client mit passender Kassen-Seriennummer wird
-// uebernommen statt neu registriert. Wie RichteTSEEin gilt der LIVE-Schutz
-// (Abgleich bestaetigte vs. tatsaechliche Umgebung) und es wird erst nach
-// erfolgreichem Abschluss atomar gespeichert.
+// Ein passender REGISTERED Client wird unveraendert uebernommen; ein passender,
+// aber DEREGISTERED Client wird reaktiviert (state=REGISTERED) statt neu
+// angelegt, da die serial_number je TSS eindeutig ist. Wie RichteTSEEin gilt der
+// LIVE-Schutz (Abgleich bestaetigte vs. tatsaechliche Umgebung) und es wird erst
+// nach erfolgreichem Abschluss atomar gespeichert.
 func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, tssID, pin string) (TSESetupErgebnis, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -214,14 +219,26 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, ErrTSEVerbindungFehlgeschlagen
 	}
 
-	// Einen passenden Client uebernehmen, sonst einen neuen unter eigener UUID
-	// registrieren (wie bei der Neuanlage).
+	// Was mit dem Client zu tun ist: ein passender REGISTERED Client ist fertig,
+	// ein passender DEREGISTERED Client wird reaktiviert (nicht neu angelegt — die
+	// serial_number ist je TSS eindeutig), sonst wird ein neuer Client unter
+	// eigener UUID registriert (wie bei der Neuanlage).
 	clientID := uuid.NewString()
-	hatClient := false
+	aktion := clientRegistrieren
 	if passender := passenderClient(clients, seriennummer); passender != nil {
 		clientID = passender.ID
-		hatClient = true
+		if strings.EqualFold(strings.TrimSpace(passender.State), "REGISTERED") {
+			aktion = clientFertig
+		} else {
+			aktion = clientReaktivieren
+		}
 	}
+
+	// Eine INITIALIZED TSS mit fertigem (REGISTERED) Client ist faktisch
+	// einsatzbereit: es folgt keine privilegierte fiskaly-Operation, daher ist
+	// keine Admin-PIN noetig (F8). Jeder andere Pfad loest eine Admin-Operation
+	// aus (Initialisieren, Client registrieren/reaktivieren) und braucht die PIN.
+	einsatzbereit := state == "INITIALIZED" && aktion == clientFertig
 
 	// PUK/PIN-Strategie nach Zustand (siehe Methodenkommentar).
 	var puk, ergebnisPUK, ergebnisPIN string
@@ -238,14 +255,14 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		}
 		ergebnisPUK, ergebnisPIN = puk, pin
 	case "UNINITIALIZED", "INITIALIZED":
-		if strings.TrimSpace(pin) == "" {
+		if !einsatzbereit && strings.TrimSpace(pin) == "" {
 			return TSESetupErgebnis{}, ErrTSESetupPINErforderlich
 		}
 	default:
 		return TSESetupErgebnis{}, ErrTSESetupUebernahmeNichtMoeglich
 	}
 
-	if err := vollendeLebenszyklus(ctx, log, client, state, tssID, puk, pin, clientID, seriennummer, hatClient); err != nil {
+	if err := vollendeLebenszyklus(ctx, log, client, state, tssID, puk, pin, clientID, seriennummer, aktion); err != nil {
 		return TSESetupErgebnis{}, err
 	}
 
@@ -273,14 +290,28 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	}, nil
 }
 
+// clientAktion beschreibt, was im Client-Schritt einer INITIALIZED TSS zu tun
+// ist: einen neuen Client registrieren (kein passender vorhanden), einen
+// vorhandenen DEREGISTERED Client reaktivieren, oder nichts (passender Client
+// ist bereits REGISTERED — einsatzbereit).
+type clientAktion int
+
+const (
+	clientRegistrieren clientAktion = iota
+	clientReaktivieren
+	clientFertig
+)
+
 // vollendeLebenszyklus treibt eine TSS von ihrem aktuellen Zustand bis zum
 // registrierten Client. puk wird nur im Zustand CREATED gebraucht (Setzen der
 // frischen Admin-PIN); ab UNINITIALIZED traegt pin die vorhandene Admin-PIN.
-// hatClient ueberspringt die Registrierung, wenn bereits ein passender Client
-// existiert. Schlaegt die Admin-Authentifizierung mit einer vom Nutzer
-// eingegebenen PIN fehl (Ausgangszustand != CREATED), endet der Flow als
-// ErrTSESetupPINUnbekannt statt als technischer Fehler.
-func vollendeLebenszyklus(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, state, tssID, puk, pin, clientID, seriennummer string, hatClient bool) error {
+// aktion steuert den Client-Schritt (registrieren/reaktivieren/fertig). Ein
+// bereits REGISTERED Client (clientFertig) ist einsatzbereit: dann faellt der
+// privilegierte Client-Schritt samt Admin-Authentifizierung weg (F8). Schlaegt
+// die Admin-Authentifizierung mit einer vom Nutzer eingegebenen PIN fehl
+// (Ausgangszustand != CREATED), endet der Flow als ErrTSESetupPINUnbekannt statt
+// als technischer Fehler.
+func vollendeLebenszyklus(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, state, tssID, puk, pin, clientID, seriennummer string, aktion clientAktion) error {
 	pinVomNutzer := state != "CREATED"
 	authFehler := func(err error, schritt string) error {
 		if pinVomNutzer && errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
@@ -307,13 +338,26 @@ func vollendeLebenszyklus(ctx context.Context, log *zerolog.Logger, client tse.S
 		}
 		fallthrough
 	case "INITIALIZED":
+		// Ein bereits REGISTERED Client ist fertig — keine fiskaly-Mutation und
+		// damit keine Admin-Authentifizierung noetig (F8, „einsatzbereit ohne
+		// Arbeit"). Aus CREATED/UNINITIALIZED faellt der Code nie hier mit
+		// clientFertig ein, da es dann keinen vorhandenen Client gibt.
+		if aktion == clientFertig {
+			return nil
+		}
 		if err := client.AuthentifiziereAdmin(ctx, tssID, pin); err != nil {
 			return authFehler(err, "admin-auth (client)")
 		}
-		if !hatClient {
-			if err := client.RegistriereClient(ctx, tssID, clientID, seriennummer); err != nil {
-				return einrichtungsFehler(log, err, "client registrieren", tssID)
+		// Ein DEREGISTERED Client wird per state=REGISTERED reaktiviert statt neu
+		// angelegt — die serial_number ist je TSS eindeutig (F7).
+		if aktion == clientReaktivieren {
+			if err := client.ReaktiviereClient(ctx, tssID, clientID); err != nil {
+				return einrichtungsFehler(log, err, "client reaktivieren", tssID)
 			}
+			return nil
+		}
+		if err := client.RegistriereClient(ctx, tssID, clientID, seriennummer); err != nil {
+			return einrichtungsFehler(log, err, "client registrieren", tssID)
 		}
 	default:
 		return ErrTSESetupUebernahmeNichtMoeglich

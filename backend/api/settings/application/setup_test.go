@@ -334,6 +334,118 @@ func TestUebernimmTSE_VorhandenerPassenderClient(t *testing.T) {
 	}
 }
 
+// TestUebernimmTSE_EinsatzbereitOhnePIN sichert F8: eine INITIALIZED TSS mit
+// bereits REGISTERED Client ist einsatzbereit. Die Uebernahme gelingt mit leerer
+// PIN, ohne dass AuthentifiziereAdmin aufgerufen wird (keine fiskaly-Mutation);
+// es wird nur die Konfiguration gespeichert.
+func TestUebernimmTSE_EinsatzbereitOhnePIN(t *testing.T) {
+	seriennummer := uuid.New()
+	vorhandenerClient := uuid.NewString()
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse: tse.UmgebungTest,
+		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
+		ClientsByTSS: map[string][]tse.ClientInfo{
+			"tss-init": {{ID: vorhandenerClient, SerialNumber: seriennummer.String(), State: "REGISTERED"}},
+		},
+	}
+
+	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.AuthAdminCalls != 0 {
+		t.Fatalf("expected AuthentifiziereAdmin to be skipped for a ready TSS, got %d calls", client.AuthAdminCalls)
+	}
+	if len(client.RegistrierteClients) != 0 || len(client.ReaktivierteClients) != 0 {
+		t.Fatalf("expected no client mutation for a ready TSS, got registered %+v reactivated %+v", client.RegistrierteClients, client.ReaktivierteClients)
+	}
+	if ergebnis.PUK != "" || ergebnis.AdminPIN != "" {
+		t.Fatalf("expected no new secrets for a ready TSS, got %+v", ergebnis)
+	}
+	if ergebnis.ClientID != vorhandenerClient {
+		t.Fatalf("expected the existing client to be adopted, got %q", ergebnis.ClientID)
+	}
+	if repo.gespeichert == nil || repo.gespeichert.ClientID != vorhandenerClient {
+		t.Fatalf("expected the configuration to be saved with the existing client, got %+v", repo.gespeichert)
+	}
+}
+
+// TestUebernimmTSE_DeregistrierterClientReaktiviert sichert die F7-Heilung: ein
+// passender, aber DEREGISTERED Client wird mit der PIN reaktiviert (derselbe
+// client_id, kein neuer Client) statt still als fertig gewertet zu werden.
+func TestUebernimmTSE_DeregistrierterClientReaktiviert(t *testing.T) {
+	seriennummer := uuid.New()
+	vorhandenerClient := uuid.NewString()
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse: tse.UmgebungTest,
+		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
+		ClientsByTSS: map[string][]tse.ClientInfo{
+			"tss-init": {{ID: vorhandenerClient, SerialNumber: seriennummer.String(), State: "DEREGISTERED"}},
+		},
+	}
+
+	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "1234567890")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.AuthAdminCalls == 0 {
+		t.Fatal("expected AuthentifiziereAdmin to be called for a privileged reactivation")
+	}
+	if len(client.RegistrierteClients) != 0 {
+		t.Fatalf("expected no new client registration for a deregistered client, got %+v", client.RegistrierteClients)
+	}
+	if len(client.ReaktivierteClients) != 1 || client.ReaktivierteClients[0].ClientID != vorhandenerClient {
+		t.Fatalf("expected the same client to be reactivated, got %+v", client.ReaktivierteClients)
+	}
+	if ergebnis.ClientID != vorhandenerClient || repo.gespeichert.ClientID != vorhandenerClient {
+		t.Fatalf("expected the reactivated client to be saved, got result %q saved %+v", ergebnis.ClientID, repo.gespeichert)
+	}
+}
+
+// TestUebernimmTSE_DeregistrierterClientBrauchtPIN sichert, dass die
+// Reaktivierung eine privilegierte Operation bleibt: ohne PIN wird sie
+// abgewiesen, bevor irgendetwas geschrieben wird.
+func TestUebernimmTSE_DeregistrierterClientBrauchtPIN(t *testing.T) {
+	seriennummer := uuid.New()
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse: tse.UmgebungTest,
+		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
+		ClientsByTSS: map[string][]tse.ClientInfo{
+			"tss-init": {{ID: uuid.NewString(), SerialNumber: seriennummer.String(), State: "DEREGISTERED"}},
+		},
+	}
+
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "")
+	if !errors.Is(err, ErrTSESetupPINErforderlich) {
+		t.Fatalf("expected ErrTSESetupPINErforderlich, got %v", err)
+	}
+	if len(client.ReaktivierteClients) != 0 || repo.gespeichert != nil {
+		t.Fatal("expected no writes when the pin is missing")
+	}
+}
+
+// TestUebernimmTSE_InitialisiertOhneClientBrauchtPIN sichert, dass eine
+// INITIALIZED TSS ohne passenden Client weiterhin die PIN verlangt (Registrierung
+// ist privilegiert) — die F8-Lockerung greift nur bei fertigem Client.
+func TestUebernimmTSE_InitialisiertOhneClientBrauchtPIN(t *testing.T) {
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse: tse.UmgebungTest,
+		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
+	}
+
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "")
+	if !errors.Is(err, ErrTSESetupPINErforderlich) {
+		t.Fatalf("expected ErrTSESetupPINErforderlich, got %v", err)
+	}
+	if len(client.RegistrierteClients) != 0 || repo.gespeichert != nil {
+		t.Fatal("expected no writes when the pin is missing")
+	}
+}
+
 // TestUebernimmTSE_PINErforderlich sichert, dass die Uebernahme ab UNINITIALIZED
 // ohne PIN klar als fehlende PIN gemeldet wird — vor jeder Schreiboperation.
 func TestUebernimmTSE_PINErforderlich(t *testing.T) {

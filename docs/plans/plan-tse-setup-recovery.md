@@ -213,15 +213,15 @@ online `developer.fiskaly.com/api/kassensichv/v2`) und die rechtlichen Grundlage
 
 ### Acceptance criteria
 
-- [ ] Übernahme einer `INITIALIZED` TSS mit passendem `REGISTERED` Client gelingt mit
+- [x] Übernahme einer `INITIALIZED` TSS mit passendem `REGISTERED` Client gelingt mit
       leerer PIN; der Fake belegt über `AuthAdminCalls == 0`, dass `AuthentifiziereAdmin`
       **nicht** aufgerufen wird (Unit-Test)
-- [ ] Übernahme einer `INITIALIZED` TSS mit passendem **`DEREGISTERED`** Client verlangt
+- [x] Übernahme einer `INITIALIZED` TSS mit passendem **`DEREGISTERED`** Client verlangt
       weiterhin die PIN und reaktiviert per `PATCH state=REGISTERED` **denselben**
       `client_id`; es wird **kein** neuer Client angelegt (Unit-Test, Aufruf-Assertion)
-- [ ] Übernahme einer `INITIALIZED` TSS **ohne** passenden Client verlangt weiterhin
+- [x] Übernahme einer `INITIALIZED` TSS **ohne** passenden Client verlangt weiterhin
       die PIN (Registrierung nötig) — bestehendes Verhalten bleibt
-- [ ] Wizard zeigt für die einsatzbereite TSS kein PIN-Feld und schließt die Übernahme
+- [x] Wizard zeigt für die einsatzbereite TSS kein PIN-Feld und schließt die Übernahme
       mit einem Klick ab; `make check` grün
 
 ---

@@ -10,6 +10,14 @@ type RegistrierterClient struct {
 	SerialNumber string
 }
 
+// ReaktivierterClient haelt die Argumente eines ReaktiviereClient-Aufrufs fest.
+// Eine Reaktivierung traegt keine serial_number — sie aktiviert den vorhandenen
+// Client unter seiner ID wieder.
+type ReaktivierterClient struct {
+	TssID    string
+	ClientID string
+}
+
 // FakeSetupClient ist das Test-Double fuer SetupClient — analog zu FakeClient.
 // Die Methoden haben Pointer-Receiver, damit die Aufzeichnungsfelder
 // (CreateTSSCalls, RegistrierteClients, ...) ueber den Interface-Wert hinweg
@@ -30,13 +38,16 @@ type FakeSetupClient struct {
 	AuthAdminErr         error
 	InitialisiereErr     error
 	RegistriereErr       error
+	ReaktiviereErr       error
 
 	// Aufzeichnung fuer Assertions.
 	CreateTSSCalls      int
 	HoleAdminPUKCalls   int
+	AuthAdminCalls      int
 	GesetzteAdminPIN    string
 	AuthentifiziertePIN string
 	RegistrierteClients []RegistrierterClient
+	ReaktivierteClients []ReaktivierterClient
 }
 
 var _ SetupClient = (*FakeSetupClient)(nil)
@@ -84,6 +95,7 @@ func (f *FakeSetupClient) SetzeAdminPIN(_ context.Context, _, _, pin string) err
 }
 
 func (f *FakeSetupClient) AuthentifiziereAdmin(_ context.Context, _, pin string) error {
+	f.AuthAdminCalls++
 	if f.AuthAdminErr != nil {
 		return f.AuthAdminErr
 	}
@@ -103,6 +115,17 @@ func (f *FakeSetupClient) RegistriereClient(_ context.Context, tssID, clientID, 
 		TssID:        tssID,
 		ClientID:     clientID,
 		SerialNumber: serialNumber,
+	})
+	return nil
+}
+
+func (f *FakeSetupClient) ReaktiviereClient(_ context.Context, tssID, clientID string) error {
+	if f.ReaktiviereErr != nil {
+		return f.ReaktiviereErr
+	}
+	f.ReaktivierteClients = append(f.ReaktivierteClients, ReaktivierterClient{
+		TssID:    tssID,
+		ClientID: clientID,
 	})
 	return nil
 }

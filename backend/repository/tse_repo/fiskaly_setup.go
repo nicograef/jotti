@@ -82,6 +82,10 @@ type registerClientRequest struct {
 	SerialNumber string `json:"serial_number"`
 }
 
+type clientStateRequest struct {
+	State string `json:"state"`
+}
+
 // ListTSS listet die TSS des Kontos und liefert die Umgebung (TEST/LIVE) aus der
 // fiskaly-Antwort mit — letztere ist auch bei leerem Konto gesetzt.
 func (c *FiskalyTSESetupClient) ListTSS(ctx context.Context) (tse.Umgebung, []tse.TSSInfo, error) {
@@ -225,6 +229,23 @@ func (c *FiskalyTSESetupClient) RegistriereClient(ctx context.Context, tssID, cl
 	path := fmt.Sprintf("/api/v2/tss/%s/client/%s", url.PathEscape(tssID), url.PathEscape(clientID))
 	body := registerClientRequest{SerialNumber: serialNumber}
 	if err := c.doJSONRequest(ctx, http.MethodPut, path, nil, body, true, nil); err != nil {
+		return mapSetupError(err)
+	}
+	return nil
+}
+
+// ReaktiviereClient reaktiviert einen bereits vorhandenen, aber DEREGISTERED
+// Client per PATCH mit state=REGISTERED. Es wird kein neuer Client angelegt — die
+// serial_number ist je TSS eindeutig.
+func (c *FiskalyTSESetupClient) ReaktiviereClient(ctx context.Context, tssID, clientID string) error {
+	tssID = strings.TrimSpace(tssID)
+	clientID = strings.TrimSpace(clientID)
+	if tssID == "" || clientID == "" {
+		return fmt.Errorf("tss id and client id are required")
+	}
+	path := fmt.Sprintf("/api/v2/tss/%s/client/%s", url.PathEscape(tssID), url.PathEscape(clientID))
+	body := clientStateRequest{State: "REGISTERED"}
+	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, body, true, nil); err != nil {
 		return mapSetupError(err)
 	}
 	return nil

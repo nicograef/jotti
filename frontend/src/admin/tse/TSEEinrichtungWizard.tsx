@@ -44,8 +44,18 @@ function istUebernehmbar(tss: TSSBefund): boolean {
   return UEBERNEHMBARE_ZUSTAENDE.includes(tss.state.toUpperCase())
 }
 
+// Einsatzbereit ohne Arbeit: eine INITIALIZED TSS mit bereits registriertem
+// (REGISTERED) Client braucht keine privilegierte fiskaly-Operation und damit
+// keine Admin-PIN (F8). jotti speichert dann nur noch die Konfiguration.
+function istEinsatzbereit(tss: TSSBefund): boolean {
+  return (
+    tss.state.toUpperCase() === 'INITIALIZED' &&
+    tss.passenderClient?.state.toUpperCase() === 'REGISTERED'
+  )
+}
+
 function brauchtPin(tss: TSSBefund): boolean {
-  return tss.state.toUpperCase() !== 'CREATED'
+  return tss.state.toUpperCase() !== 'CREATED' && !istEinsatzbereit(tss)
 }
 
 // Fehlertexte, die mehrere Setup-Schritte teilen — einmal zentral, damit sie
@@ -277,7 +287,7 @@ function UebernahmeSchritt({
 
   const pinErforderlich = brauchtPin(tss)
   const pinFehlt = pinErforderlich && pin.trim() === ''
-  const passenderClient = tss.passenderClient
+  const einsatzbereit = istEinsatzbereit(tss)
 
   const handleUebernehmen = async () => {
     setPinUnbekannt(false)
@@ -312,8 +322,8 @@ function UebernahmeSchritt({
       <div className="grid gap-1.5">
         <p className="text-sm font-medium">TSE übernehmen</p>
         <p className="text-sm text-muted-foreground">
-          {passenderClient
-            ? 'Diese Kasse ist hier bereits angemeldet. jotti schließt die Einrichtung ab und speichert die Konfiguration.'
+          {einsatzbereit
+            ? 'Diese Kasse ist hier bereits angemeldet und einsatzbereit. jotti speichert nur noch die Konfiguration.'
             : 'jotti schließt die Einrichtung dieser TSE ab und meldet diese Kasse an.'}
         </p>
       </div>
