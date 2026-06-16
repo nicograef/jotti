@@ -12,6 +12,12 @@ import (
 // verstaendliche Meldung fuer den Admin.
 var ErrSetupAuthFehlgeschlagen = errors.New("tse setup authentication failed")
 
+// ErrSetupTSSLimitErreicht zeigt an, dass das fiskaly-Konto die Obergrenze
+// aktiver TSS erreicht hat (in TEST fuenf; fiskaly: E_TSS_LIMIT_REACHED) und
+// keine weitere TSS angelegt werden kann. Alte TEST-TSS werden von fiskaly bei
+// Inaktivitaet automatisch bereinigt.
+var ErrSetupTSSLimitErreicht = errors.New("tse setup tss limit reached")
+
 // SetupCredentials authentifiziert die gefuehrte TSE-Einrichtung. Anders als
 // Credentials kommt das Setup ohne TSS-/Client-ID aus: beide entstehen erst im
 // Verlauf der Einrichtung.

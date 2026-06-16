@@ -26,6 +26,13 @@ var ErrTSEBereitsEingerichtet = errors.New("tse_bereits_eingerichtet")
 // (Anlage, Initialisierung oder Client-Registrierung).
 var ErrTSEEinrichtung = errors.New("tse_einrichtung_fehlgeschlagen")
 
+// ErrTSESetupTSSLimitErreicht zeigt an, dass das fiskaly-TEST-Konto die
+// Obergrenze von fuenf aktiven TSS erreicht hat (E_TSS_LIMIT_REACHED). Alte
+// TEST-TSS werden von fiskaly bei Inaktivitaet automatisch bereinigt; jotti
+// kann sie ohne Admin-PIN nicht stilllegen. Verstaendliche Meldung statt
+// technischem Fehler.
+var ErrTSESetupTSSLimitErreicht = errors.New("tse_setup_tss_limit_erreicht")
+
 // ErrTSESetupTSSNichtGefunden zeigt an, dass die zur Uebernahme gewaehlte TSS im
 // fiskaly-Konto nicht (mehr) existiert.
 var ErrTSESetupTSSNichtGefunden = errors.New("tse_setup_tss_nicht_gefunden")

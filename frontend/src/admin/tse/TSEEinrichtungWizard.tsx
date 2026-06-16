@@ -203,10 +203,18 @@ function BefundSchritt({
   onEingerichtet: (ergebnis: TSEEinrichtenErgebnis) => void
   onZuruck: () => void
 }) {
-  const uebernehmbar = befund.vorhandeneTss.filter(istUebernehmbar)
+  // Die „eigene" TSS (diese Kasse ist dort schon angemeldet) zuerst, damit der
+  // Admin bei mehreren TSS den naheliegenden Übernahme-Kandidaten oben findet.
+  const uebernehmbar = befund.vorhandeneTss
+    .filter(istUebernehmbar)
+    .sort(
+      (a, b) =>
+        Number(b.passenderClient !== null) - Number(a.passenderClient !== null),
+    )
   const nurDisabledOderLeer = befund.vorhandeneTss.every(
     (tss) => tss.state.toUpperCase() === 'DISABLED',
   )
+  const istTest = befund.umgebung === 'TEST'
 
   return (
     <div className="grid gap-4">
@@ -228,6 +236,13 @@ function BefundSchritt({
               onUebernommen={onEingerichtet}
             />
           ))}
+          {istTest && (
+            <NeueTseTrotzdemAnlegen
+              apiKey={apiKey}
+              apiSecret={apiSecret}
+              onEingerichtet={onEingerichtet}
+            />
+          )}
         </div>
       ) : nurDisabledOderLeer ? (
         <BestaetigungSchritt
@@ -345,7 +360,7 @@ function UebernahmeSchritt({
             Diese TSE wurde bereits eingerichtet. Gib die bei der ersten
             Einrichtung verwahrte Admin-PIN ein.
           </p>
-          <PinFehltHinweis />
+          <PinFehltHinweis umgebung={umgebung} />
         </div>
       )}
 
@@ -355,8 +370,10 @@ function UebernahmeSchritt({
           <AlertDescription>
             fiskaly hat die eingegebene Admin-PIN abgelehnt. Ohne die korrekte
             PIN lässt sich diese TSE nicht übernehmen. Mögliche Auswege: die
-            verwahrte PIN erneut prüfen, den fiskaly-Support kontaktieren oder
-            mit anderen Zugangsdaten bewusst eine neue TSE anlegen.
+            verwahrte PIN erneut prüfen, den fiskaly-Support kontaktieren
+            {umgebung === 'TEST'
+              ? ' oder unten über „Stattdessen neue TSE anlegen“ eine frische Test-TSE anlegen.'
+              : ' oder mit anderen Zugangsdaten bewusst eine neue TSE anlegen.'}
           </AlertDescription>
         </Alert>
       )}
@@ -374,8 +391,9 @@ function UebernahmeSchritt({
 
 // Auch wenn das PIN-Feld leer ist (Button deaktiviert), braucht der Admin einen
 // sichtbaren Ausweg statt einer Sackgasse. Dieser aufklappbare Hinweis nennt die
-// Wege, wenn die bei der Ersteinrichtung verwahrte Admin-PIN nicht vorliegt.
-function PinFehltHinweis() {
+// Wege, wenn die bei der Ersteinrichtung verwahrte Admin-PIN nicht vorliegt. In
+// TEST verweist er auf die Sekundäraktion „Stattdessen neue TSE anlegen".
+function PinFehltHinweis({ umgebung }: { umgebung: Umgebung }) {
   const [offen, setOffen] = useState(false)
 
   return (
@@ -392,10 +410,46 @@ function PinFehltHinweis() {
             Die Admin-PIN wurde bei der ersten Einrichtung dieser TSE einmalig
             angezeigt und von euch verwahrt. Ohne sie lässt sie sich nicht
             übernehmen. Mögliche Wege: die verwahrte PIN in euren Unterlagen
-            suchen, den fiskaly-Support kontaktieren, oder über „Andere
-            Zugangsdaten“ mit einem anderen fiskaly-Konto neu beginnen.
+            suchen, den fiskaly-Support kontaktieren
+            {umgebung === 'TEST'
+              ? ', oder in dieser Test-Umgebung unten über „Stattdessen neue TSE anlegen“ eine frische TSE anlegen.'
+              : ', oder über „Andere Zugangsdaten“ mit einem anderen fiskaly-Konto neu beginnen.'}
           </AlertDescription>
         </Alert>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+// In TEST darf der Admin trotz vorhandener (ggf. PIN-loser, nicht übernehmbarer)
+// TSS bewusst eine neue, frische Test-TSE anlegen (F2). Klar untergeordnet als
+// aufklappbare Sekundäraktion, damit die Übernahme der Normalweg bleibt.
+function NeueTseTrotzdemAnlegen({
+  apiKey,
+  apiSecret,
+  onEingerichtet,
+}: {
+  apiKey: string
+  apiSecret: string
+  onEingerichtet: (ergebnis: TSEEinrichtenErgebnis) => void
+}) {
+  const [offen, setOffen] = useState(false)
+
+  return (
+    <Collapsible open={offen} onOpenChange={setOffen}>
+      <CollapsibleTrigger asChild>
+        <Button variant="link" className="h-auto w-fit p-0 text-sm">
+          Stattdessen neue TSE anlegen
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-2">
+        <BestaetigungSchritt
+          apiKey={apiKey}
+          apiSecret={apiSecret}
+          umgebung="TEST"
+          neuAnlegenTrotzVorhandener
+          onEingerichtet={onEingerichtet}
+        />
       </CollapsibleContent>
     </Collapsible>
   )
@@ -405,11 +459,13 @@ function BestaetigungSchritt({
   apiKey,
   apiSecret,
   umgebung,
+  neuAnlegenTrotzVorhandener = false,
   onEingerichtet,
 }: {
   apiKey: string
   apiSecret: string
   umgebung: Umgebung
+  neuAnlegenTrotzVorhandener?: boolean
   onEingerichtet: (ergebnis: TSEEinrichtenErgebnis) => void
 }) {
   const [tippBestaetigung, setTippBestaetigung] = useState('')
@@ -421,6 +477,8 @@ function BestaetigungSchritt({
       ...SETUP_FEHLER,
       tse_bereits_eingerichtet:
         'In diesem Konto existiert bereits eine TSE. Es wird keine neue angelegt.',
+      tse_setup_tss_limit_erreicht:
+        'In der Test-Umgebung sind bereits fünf TSE vorhanden (fiskaly-Grenze). Alte werden bei Inaktivität automatisch bereinigt – bitte später erneut versuchen oder eine vorhandene übernehmen.',
       tse_einrichtung_fehlgeschlagen:
         'Die Einrichtung ist fehlgeschlagen. Bitte später erneut versuchen.',
     },
@@ -431,18 +489,29 @@ function BestaetigungSchritt({
 
   const handleEinrichten = async () => {
     await run(async () => {
-      onEingerichtet(await richteTSEEin({ apiKey, apiSecret, umgebung }))
+      onEingerichtet(
+        await richteTSEEin({
+          apiKey,
+          apiSecret,
+          umgebung,
+          neuAnlegenTrotzVorhandener,
+        }),
+      )
     })
   }
 
   return (
     <div className="grid gap-4 rounded-md border p-4">
       <div className="grid gap-1.5">
-        <p className="text-sm font-medium">Einrichtung starten</p>
+        <p className="text-sm font-medium">
+          {neuAnlegenTrotzVorhandener
+            ? 'Neue Test-TSE anlegen'
+            : 'Einrichtung starten'}
+        </p>
         <p className="text-sm text-muted-foreground">
-          jotti legt jetzt eine neue TSE an, richtet sie ein und meldet diese
-          Kasse an. Du erhältst danach einmalig den Admin-PUK und die Admin-PIN
-          zur Verwahrung.
+          {neuAnlegenTrotzVorhandener
+            ? 'Statt eine vorhandene TSE zu übernehmen, legt jotti eine zusätzliche, frische Test-TSE an und meldet diese Kasse dort an. Sinnvoll, wenn die Admin-PIN der vorhandenen TSE nicht mehr vorliegt. Du erhältst danach einmalig den Admin-PUK und die Admin-PIN zur Verwahrung.'
+            : 'jotti legt jetzt eine neue TSE an, richtet sie ein und meldet diese Kasse an. Du erhältst danach einmalig den Admin-PUK und die Admin-PIN zur Verwahrung.'}
         </p>
       </div>
 

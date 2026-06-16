@@ -92,10 +92,14 @@ export const TSESetupZugangsdatenSchema = z.object({
 })
 export type TSESetupZugangsdaten = z.infer<typeof TSESetupZugangsdatenSchema>
 
+// neuAnlegenTrotzVorhandener erzwingt in TEST bewusst eine zweite, frische TSE
+// trotz vorhandener TSS (F2). Optional und nur in TEST wirksam; LIVE bleibt im
+// Backend hart gesperrt.
 export const TSEEinrichtenSchema = z.object({
   apiKey: apiKeyField,
   apiSecret: apiSecretField,
   umgebung: z.enum(['TEST', 'LIVE']),
+  neuAnlegenTrotzVorhandener: z.boolean().optional(),
 })
 export type TSEEinrichten = z.infer<typeof TSEEinrichtenSchema>
 

@@ -15,7 +15,7 @@ import (
 type settingsCommand interface {
 	UpdateBetreiber(ctx context.Context, b settings.Betreiber) error
 	UpdateTSEKonfiguration(ctx context.Context, b settings.TSEKonfiguration) error
-	RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung) (application.TSESetupErgebnis, error)
+	RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, neuAnlegenTrotzVorhandener bool) (application.TSESetupErgebnis, error)
 	UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, tssID, pin string) (application.TSESetupErgebnis, error)
 }
 
@@ -56,15 +56,20 @@ var updateTSEKonfigurationSchema = z.Struct(z.Shape{
 })
 
 type tseEinrichtenRequest struct {
-	ApiKey    string `json:"apiKey"`
-	ApiSecret string `json:"apiSecret"`
-	Umgebung  string `json:"umgebung"`
+	ApiKey                     string `json:"apiKey"`
+	ApiSecret                  string `json:"apiSecret"`
+	Umgebung                   string `json:"umgebung"`
+	NeuAnlegenTrotzVorhandener bool   `json:"neuAnlegenTrotzVorhandener"`
 }
 
+// NeuAnlegenTrotzVorhandener ist optional (Default false). Nur in TEST und nur
+// als bewusste Sekundaeraktion uebergeht das Backend damit die Sperre gegen eine
+// zweite TSS (F2); LIVE bleibt hart gesperrt.
 var tseEinrichtenSchema = z.Struct(z.Shape{
-	"ApiKey":    z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
-	"ApiSecret": z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
-	"Umgebung":  z.String().OneOf([]string{string(tse.UmgebungTest), string(tse.UmgebungLive)}, z.Message("Ungültige Umgebung")).Required(),
+	"ApiKey":                     z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
+	"ApiSecret":                  z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
+	"Umgebung":                   z.String().OneOf([]string{string(tse.UmgebungTest), string(tse.UmgebungLive)}, z.Message("Ungültige Umgebung")).Required(),
+	"NeuAnlegenTrotzVorhandener": z.Bool().Optional(),
 })
 
 type tseUebernehmenRequest struct {
@@ -149,6 +154,7 @@ func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 			r.Context(),
 			tse.SetupCredentials{ApiKey: body.ApiKey, ApiSecret: body.ApiSecret},
 			tse.Umgebung(body.Umgebung),
+			body.NeuAnlegenTrotzVorhandener,
 		)
 		if err != nil {
 			switch {
@@ -158,6 +164,8 @@ func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 				helper.SendClientError(w, "tse_setup_umgebung_abweichung", nil)
 			case errors.Is(err, application.ErrTSEBereitsEingerichtet):
 				helper.SendClientError(w, "tse_bereits_eingerichtet", nil)
+			case errors.Is(err, application.ErrTSESetupTSSLimitErreicht):
+				helper.SendClientError(w, "tse_setup_tss_limit_erreicht", nil)
 			case errors.Is(err, application.ErrTSEEinrichtung),
 				errors.Is(err, application.ErrTSEVerbindungFehlgeschlagen):
 				helper.SendClientError(w, "tse_einrichtung_fehlgeschlagen", nil)

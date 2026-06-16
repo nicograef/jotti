@@ -256,15 +256,15 @@ online `developer.fiskaly.com/api/kassensichv/v2`) und die rechtlichen Grundlage
 
 ### Acceptance criteria
 
-- [ ] In TEST legt „Stattdessen neue TSE anlegen" trotz vorhandener `INITIALIZED` TSS
+- [x] In TEST legt „Stattdessen neue TSE anlegen" trotz vorhandener `INITIALIZED` TSS
       eine zweite, frische TSE an (Unit-Test mit gesetztem Flag)
-- [ ] In LIVE wird die Neuanlage trotz Flag verweigert (`ErrTSEBereitsEingerichtet`,
+- [x] In LIVE wird die Neuanlage trotz Flag verweigert (`ErrTSEBereitsEingerichtet`,
       Unit-Test)
-- [ ] Ohne Flag bleibt das bisherige Verhalten unverändert (Sperre greift in beiden
+- [x] Ohne Flag bleibt das bisherige Verhalten unverändert (Sperre greift in beiden
       Umgebungen)
-- [ ] `E_TSS_LIMIT_REACHED` (fünf aktive TEST-TSS) wird als verständliche Meldung
+- [x] `E_TSS_LIMIT_REACHED` (fünf aktive TEST-TSS) wird als verständliche Meldung
       angezeigt, nicht als technischer Fehler
-- [ ] Wizard: der PIN-lose Admin findet in TEST den Neuanlage-Ausweg ohne Umweg über
+- [x] Wizard: der PIN-lose Admin findet in TEST den Neuanlage-Ausweg ohne Umweg über
       einen Fehlversuch; Leitfaden ergänzt um den TEST-Hinweis und die Korrektur, dass
       TEST-TSS automatisch bereinigt werden (nicht „nicht löschbar"), inkl. 5-TSS-Limit
       und 5-Versuche-PIN-Sperre

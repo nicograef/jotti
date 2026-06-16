@@ -60,7 +60,7 @@ Der Kern ist eine reine Transformation ohne Seiteneffekte: Events plus Stammdate
 
 ### TSE-Stammdaten (Voraussetzung)
 
-24. Als System möchte ich beim TSE-Setup Signaturalgorithmus, Public Key und Zertifikat der TSE einmalig persistieren, damit die `tse.csv` vollständig erzeugt werden kann.
+24. Als System möchte ich auf jedem Einrichtungspfad (Neuanlage wie Übernahme einer vorhandenen TSS) Signaturalgorithmus, Public Key und Zertifikat der TSE persistieren, damit die `tse.csv` auch bei per Übernahme onboardeten Instanzen vollständig ist.
 25. Als Vereins-Admin möchte ich, dass diese Stammdaten ohne Zusatzschritt im Rahmen der TSE-Einrichtung gespeichert werden, damit der Export später ohne fiskaly-Verbindung funktioniert.
 
 ## Implementation Decisions
@@ -73,7 +73,7 @@ Der Kern ist eine reine Transformation ohne Seiteneffekte: Events plus Stammdate
 - **ZIP-Packer** (dünn): bündelt serialisierte CSVs, `index.xml` und `.dtd` zu einem ZIP-Stream.
 - **Export-Orchestrator** (App-Service): lädt Events und Stammdaten, ruft Mapper, Serializer, index-Generator und ZIP-Packer, liefert das Archiv.
 - **Admin-Handler**: `GET /admin/export/dsfinvk?kassensitzung=N`, Rolle `admin`, streamt das ZIP mit passendem Dateinamen und Content-Type. Ohne Parameter gilt die aktuelle Kassensitzung.
-- **TSE-Stammdaten-Persistenz**: neue Singleton-Tabelle (Signaturalgorithmus, Public Key, Zertifikat, Format-/Zeitformat-Angaben), befüllt im Zuge des TSE-Setups (F-02 / TSE-Setup-Wizard). Speist `tse.csv`.
+- **TSE-Stammdaten-Persistenz**: neue Singleton-Tabelle (Signaturalgorithmus, Public Key, Zertifikat, Format-/Zeitformat-Angaben), befüllt im Zuge des TSE-Setups. Speist `tse.csv`. Der Hook hängt am gemeinsamen „Konfiguration speichern"-Schritt, den alle Einrichtungspfade durchlaufen (Neuanlage `RichteTSEEin` ebenso wie Übernahme `UebernimmTSE` und PUK-Reset), nicht am Anlage-Lebenszyklus. Sonst bekämen per Übernahme onboardete Instanzen ein unvollständiges `tse.csv`. Die Stammdaten werden heute im Setup nicht gelesen (`TSSInfo` trägt nur `ID` und `State`); die Persistenz erfordert eine zusätzliche fiskaly-Leseoperation auf der TSS-Ressource und eine Erweiterung des `SetupClient`-Interface.
 
 ### Format- und Strukturregeln (autoritativ verifiziert)
 
@@ -135,7 +135,7 @@ Schlüsselfelder `Z_KASSE_ID`, `Z_ERSTELLUNG`, `Z_NR`, `BON_ID` in den führende
 
 ### Schema-Änderung
 
-- Neue Singleton-Tabelle für TSE-Stammdaten (Algorithmus, Public Key, Zertifikat, Log-Time-Format). Befüllt beim TSE-Setup. Keine Änderung am Kassenjournal.
+- Neue Singleton-Tabelle für TSE-Stammdaten (Algorithmus, Public Key, Zertifikat, Log-Time-Format). Befüllt am gemeinsamen Speicher-Schritt aller Einrichtungspfade. Keine Änderung am Kassenjournal.
 
 ### API-Kontrakt
 
@@ -169,4 +169,5 @@ Prior Art im Repo: die Aggregations-Tests im Reporting-Modul, der Event-JSON-Con
 - Die aus der Quellen-Evaluation abgeleiteten Korrekturen sind bereits in die Bestandsdokumente eingepflegt (2026-06-16): anforderungen.md F-04 und compliance.md §§2.5, 6.1 auf v2.5; Pflicht-DTD `gdpdu-01-09-2004.dtd` in §6.2 und §6.7 ergänzt; Dateiliste in §6.3 um `slaves.csv`, `pa.csv`, `itemamounts.csv`, `subitems.csv` vervollständigt (`slaves`/`pa` als für jotti gegenstandslos markiert); Versionsbezüge in produktbeschreibung.md und language.md angeglichen.
 - Die im Spec-Fließtext vereinzelt auftauchenden Schreibweisen `Bonkopf.csv` / `Bonpos.csv` sind Spec-interne Inkonsistenzen; kanonisch sind laut Inhaltsverzeichnis `transactions.csv` und `lines.csv`. jottis bisherige Festlegung (englische Dateinamen) ist korrekt.
 - v2.4 brachte gegenüber v2.3 keine inhaltlichen Änderungen (nur AEAO-redaktionell); die Tabellenstruktur ist seit v2.0 stabil. Damit ist jottis Datenmodell vorwärtskompatibel, und der Versionswechsel betrifft im Wesentlichen den deklarierten Versionsstring.
-- Die TSE-Stammdaten-Persistenz (User Stories 24, 25) ist eine Voraussetzung des Exports und berührt das TSE-Setup. Reihenfolge bei der Umsetzung beachten.
+- Die TSE-Stammdaten-Persistenz (User Stories 24, 25) ist eine Voraussetzung des Exports und berührt das TSE-Setup. Sie überschneidet sich direkt mit dem gerade umgesetzten [plan-tse-setup-recovery.md](../plans/plan-tse-setup-recovery.md), der dieselben Dateien ändert (`setup.go`, `domain/tse`-`SetupClient`, `fiskaly_setup.go`) und neue Einrichtungspfade einführt (PIN-freie Übernahme F8, PUK-Reset), die den Anlage-Lebenszyklus überspringen. Reihenfolge: die Persistenz nach bzw. mit diesem Plan umsetzen und an den gemeinsamen Speicher-Schritt hängen. Der Plan deklariert „keine Schema-Änderung" nur für seinen eigenen Scope; die neue Stammdaten-Tabelle steht dazu nicht im Widerspruch.
+- Die harte LIVE-Sperre des Recovery-Plans (genau eine LIVE-TSS pro Kasse) sichert ab, dass `tse.csv` im Produktivfall genau eine Stamm_TSE-Zeile hat. TEST kann mehrere TSS sammeln, ist aber steuerlich ungültig und nicht prüfungsrelevant.

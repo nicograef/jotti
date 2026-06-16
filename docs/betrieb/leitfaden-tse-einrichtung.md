@@ -107,6 +107,20 @@ Je nach Befund bietet jotti den passenden nächsten Schritt an:
 > Zustand bei fiskaly und holt nur die fehlenden Schritte nach. Es entsteht keine zweite
 > TSS und kein halbfertiger Zustand.
 
+> 🧪 **Nur in TEST: neue TSE statt Übernahme.** Liegt die Admin-PIN einer vorhandenen
+> Test-TSE nicht mehr vor, lässt sie sich nicht übernehmen. In der Test-Umgebung bietet
+> jotti dann unter den Übernahme-Optionen die Sekundäraktion „Stattdessen neue TSE anlegen"
+> an, mit der ihr ohne PIN eine frische Test-TSE einrichtet. In LIVE gibt es diesen Ausweg
+> nicht: eine zweite LIVE-TSS verursacht Kosten, hier helfen nur die verwahrte PIN oder der
+> fiskaly-Support.
+
+> ♻️ **Test-TSE räumen sich selbst auf.** fiskaly löscht Test-TSE, die stillgelegt oder
+> länger als 14 Tage ungenutzt sind, regelmäßig (mindestens sonntags). Gleichzeitig erlaubt
+> die Test-Umgebung höchstens fünf aktive TSE. Habt ihr beim Üben fünf erreicht, meldet
+> jotti das verständlich; legt dann keine weitere an, sondern übernehmt eine vorhandene oder
+> wartet die automatische Bereinigung ab. In LIVE gilt das nicht: dort bleibt jede TSS
+> dauerhaft bestehen und verursacht Kosten.
+
 ### 3.5 Admin-PUK und Admin-PIN verwahren
 
 Bei einer Neu-Anlage zeigt jotti danach genau einmal den Admin-PUK und die Admin-PIN an.
@@ -151,6 +165,10 @@ fiskaly-Support arbeitet. Im normalen Kassenbetrieb braucht ihr sie nicht, jotti
 > Datenbankverlust oder Serverwechsel). Dann bleiben nur der fiskaly-Support oder, in der
 > LIVE-Umgebung kostenpflichtig, eine bewusste Neu-Anlage. Verwahrt PUK und PIN deshalb so
 > sorgfältig wie die Zugangsdaten zum fiskaly-Konto.
+
+> ⚠️ **Fünf Fehlversuche sperren die PIN.** Gebt ihr die Admin-PIN fünfmal falsch ein,
+> sperrt fiskaly sie. Sie lässt sich dann nur noch mit dem Admin-PUK zurücksetzen. Ratet
+> deshalb nicht wiederholt, sondern schaut die verwahrte PIN in euren Unterlagen nach.
 
 **So verwahrt ihr richtig:**
 
@@ -219,8 +237,9 @@ oder beim Wechsel von TEST auf LIVE.
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Zugangsdaten ungültig                          | API-Key oder Secret stimmt nicht. Werte erneut eingeben oder im Dashboard neu erstellen.                                                                                                                                     |
 | Umgebung hat sich geändert                     | Zwischen Prüfung und Einrichtung wurden die Zugangsdaten gewechselt. Konto erneut prüfen.                                                                                                                                    |
-| Admin-PIN nicht akzeptiert                     | fiskaly lehnt die eingegebene PIN ab. Verwahrte PIN prüfen, sonst fiskaly-Support oder bewusste Neu-Anlage.                                                                                                                  |
+| Admin-PIN nicht akzeptiert                     | fiskaly lehnt die eingegebene PIN ab. Verwahrte PIN prüfen, dabei nicht wiederholt raten (fünf Fehlversuche sperren die PIN). Sonst fiskaly-Support oder, in TEST, eine neue TSE anlegen.                                     |
 | TSS in nicht übernehmbarem Zustand             | Die vorhandene TSS lässt sich nicht automatisch übernehmen. fiskaly-Support kontaktieren oder manuelle Einrichtung.                                                                                                          |
+| Test-Limit erreicht (fünf TSE)                 | Nur in TEST: fiskaly erlaubt höchstens fünf aktive Test-TSE. Eine vorhandene übernehmen oder die automatische Bereinigung (bei Inaktivität) abwarten.                                                                        |
 | Serverfehler direkt nach dem Anlegen           | Selten: die TSS wurde angelegt, das Speichern in jotti schlug fehl. Assistent erneut starten, jotti bietet die Übernahme an (Abschnitt 3.4). Voraussetzung ist die verwahrte Admin-PIN, sonst hilft nur der fiskaly-Support. |
 | Verbindung mit Auffälligkeiten (Abschlusstest) | Das genannte Feld (TSS, Client oder Seriennummer) prüfen, ggf. Einrichtung wiederholen.                                                                                                                                      |
 

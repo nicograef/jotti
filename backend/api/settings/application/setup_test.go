@@ -62,7 +62,7 @@ func TestRichteTSEEin_LeeresKonto(t *testing.T) {
 		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk-123", State: "CREATED"},
 	}
 
-	ergebnis, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest)
+	ergebnis, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestRichteTSEEin_UmgebungAbweichung(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{UmgebungResponse: tse.UmgebungLive}
 
-	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest)
+	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSESetupUmgebungAbweichung) {
 		t.Fatalf("expected ErrTSESetupUmgebungAbweichung, got %v", err)
 	}
@@ -132,7 +132,7 @@ func TestRichteTSEEin_BestaetigteUmgebungUngueltig(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{UmgebungResponse: tse.UmgebungTest}
 
-	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.Umgebung(""))
+	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.Umgebung(""), false)
 	if !errors.Is(err, ErrTSESetupUmgebungAbweichung) {
 		t.Fatalf("expected ErrTSESetupUmgebungAbweichung for an unconfirmed environment, got %v", err)
 	}
@@ -150,7 +150,7 @@ func TestRichteTSEEin_VorhandeneAktiveTSS(t *testing.T) {
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-alt", State: "INITIALIZED"}},
 	}
 
-	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest)
+	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSEBereitsEingerichtet) {
 		t.Fatalf("expected ErrTSEBereitsEingerichtet, got %v", err)
 	}
@@ -173,7 +173,7 @@ func TestRichteTSEEin_DeaktivierteTSSBlocktNicht(t *testing.T) {
 		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk", State: "CREATED"},
 	}
 
-	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest)
+	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if err != nil {
 		t.Fatalf("unexpected error with only a disabled TSS present: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestRichteTSEEin_AbbruchSpeichertNicht(t *testing.T) {
 		RegistriereErr:    errors.New("client registration failed"),
 	}
 
-	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest)
+	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSEEinrichtung) {
 		t.Fatalf("expected ErrTSEEinrichtung on a failing step, got %v", err)
 	}
@@ -207,12 +207,76 @@ func TestRichteTSEEin_FalscheZugangsdaten(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{TSSErr: tse.ErrSetupAuthFehlgeschlagen}
 
-	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest)
+	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSESetupZugangsdaten) {
 		t.Fatalf("expected ErrTSESetupZugangsdaten, got %v", err)
 	}
 	if client.CreateTSSCalls != 0 {
 		t.Fatalf("expected no TSS to be created on auth failure, got %d calls", client.CreateTSSCalls)
+	}
+}
+
+// TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInTest sichert F2: in TEST darf der
+// Admin trotz vorhandener (hier INITIALIZED) TSS bewusst eine zweite, frische
+// TSE anlegen, wenn er die Sperre per Flag uebergeht.
+func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInTest(t *testing.T) {
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse:  tse.UmgebungTest,
+		TSSResponse:       []tse.TSSInfo{{ID: "tss-alt", State: "INITIALIZED"}},
+		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk", State: "CREATED"},
+	}
+
+	ergebnis, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.CreateTSSCalls != 1 {
+		t.Fatalf("expected a new TSS to be created despite an existing one, got %d calls", client.CreateTSSCalls)
+	}
+	if ergebnis.TssID != "tss-neu" || repo.gespeichert == nil || repo.gespeichert.TssID != "tss-neu" {
+		t.Fatalf("expected the fresh TSS to be set up and saved, got result %q saved %+v", ergebnis.TssID, repo.gespeichert)
+	}
+}
+
+// TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInLiveVerweigert sichert, dass das
+// Flag in LIVE wirkungslos bleibt: die Sperre gegen eine zweite TSS greift hart.
+func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInLiveVerweigert(t *testing.T) {
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse: tse.UmgebungLive,
+		TSSResponse:      []tse.TSSInfo{{ID: "tss-live", State: "INITIALIZED"}},
+	}
+
+	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungLive, true)
+	if !errors.Is(err, ErrTSEBereitsEingerichtet) {
+		t.Fatalf("expected ErrTSEBereitsEingerichtet in LIVE despite the flag, got %v", err)
+	}
+	if client.CreateTSSCalls != 0 {
+		t.Fatalf("expected no TSS to be created in LIVE, got %d calls", client.CreateTSSCalls)
+	}
+	if repo.gespeichert != nil {
+		t.Fatal("expected no configuration to be saved in LIVE")
+	}
+}
+
+// TestRichteTSEEin_TSSLimitErreicht sichert, dass das fiskaly-TSS-Limit (in TEST
+// fuenf aktive TSS) als verstaendliche Meldung statt als technischer Fehler
+// durchgereicht wird.
+func TestRichteTSEEin_TSSLimitErreicht(t *testing.T) {
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	client := &tse.FakeSetupClient{
+		UmgebungResponse: tse.UmgebungTest,
+		TSSResponse:      []tse.TSSInfo{{ID: "tss-alt", State: "INITIALIZED"}},
+		CreateTSSErr:     tse.ErrSetupTSSLimitErreicht,
+	}
+
+	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, true)
+	if !errors.Is(err, ErrTSESetupTSSLimitErreicht) {
+		t.Fatalf("expected ErrTSESetupTSSLimitErreicht, got %v", err)
+	}
+	if repo.gespeichert != nil {
+		t.Fatal("expected no configuration to be saved when the TSS limit is reached")
 	}
 }
 

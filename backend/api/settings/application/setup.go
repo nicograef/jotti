@@ -37,8 +37,12 @@ type TSESetupErgebnis struct {
 // bestaetigteUmgebung ist die vom Admin bestaetigte Umgebung; weicht sie von der
 // tatsaechlichen ab, bricht die Einrichtung vor jeder Schreiboperation ab
 // (Schutz vor versehentlicher LIVE-Anlage). Existiert bereits eine aktive TSS,
-// wird die Neuanlage verweigert.
-func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung) (TSESetupErgebnis, error) {
+// wird die Neuanlage verweigert — ausser der Admin erzwingt sie in TEST per
+// neuAnlegenTrotzVorhandener (F2): in der kostenlosen, steuerlich ungueltigen
+// TEST-Umgebung darf so bewusst eine zweite, frische TSE entstehen (etwa wenn
+// die vorhandene PIN-los und damit nicht uebernehmbar ist). In LIVE bleibt die
+// Sperre hart.
+func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, neuAnlegenTrotzVorhandener bool) (TSESetupErgebnis, error) {
 	log := zerolog.Ctx(ctx)
 
 	if c.NewTSESetupClient == nil {
@@ -75,7 +79,11 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, ErrTSESetupUmgebungAbweichung
 	}
 
-	if hatAktiveTSS(tssListe) {
+	// In TEST darf der Admin die Sperre bewusst uebergehen (F2); in LIVE nie —
+	// eine zweite LIVE-TSS verursacht laufende Kosten. umgebung ist hier bereits
+	// gegen bestaetigteUmgebung abgeglichen und damit autoritativ.
+	neuanlageErzwungen := neuAnlegenTrotzVorhandener && umgebung == tse.UmgebungTest
+	if hatAktiveTSS(tssListe) && !neuanlageErzwungen {
 		return TSESetupErgebnis{}, ErrTSEBereitsEingerichtet
 	}
 
@@ -105,6 +113,11 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	// der Anlage. Bricht ein Schritt ab, wird nichts gespeichert.
 	erstellt, err := client.CreateTSS(ctx)
 	if err != nil {
+		// Das fiskaly-TSS-Limit (in TEST fuenf aktive TSS) ist kein technischer
+		// Fehler, sondern ein verstaendlich zu meldender Zustand.
+		if errors.Is(err, tse.ErrSetupTSSLimitErreicht) {
+			return TSESetupErgebnis{}, ErrTSESetupTSSLimitErreicht
+		}
 		return TSESetupErgebnis{}, einrichtungsFehler(log, err, "tss anlegen", "")
 	}
 	if err := vollendeLebenszyklus(ctx, log, client, "CREATED", erstellt.ID, erstellt.PUK, pin, clientID, seriennummer, clientRegistrieren); err != nil {

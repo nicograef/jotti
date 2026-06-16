@@ -36,7 +36,7 @@ func (m *mockSettingsCommand) UpdateTSEKonfiguration(_ context.Context, b settin
 	return nil
 }
 
-func (m *mockSettingsCommand) RichteTSEEin(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung) (application.TSESetupErgebnis, error) {
+func (m *mockSettingsCommand) RichteTSEEin(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung, _ bool) (application.TSESetupErgebnis, error) {
 	if m.einrichtErr != nil {
 		return application.TSESetupErgebnis{}, m.einrichtErr
 	}

@@ -251,13 +251,20 @@ func (c *FiskalyTSESetupClient) ReaktiviereClient(ctx context.Context, tssID, cl
 	return nil
 }
 
-// mapSetupError uebersetzt einen Auth-Fehler (falsche Zugangsdaten) in das
-// Domain-Sentinel, damit die Application-Schicht eine verstaendliche Meldung
-// erzeugen kann. Alle anderen Fehler bleiben unveraendert.
+// mapSetupError uebersetzt bekannte fiskaly-Fehler in Domain-Sentinels, damit
+// die Application-Schicht verstaendliche Meldungen erzeugen kann: einen
+// Auth-Fehler (falsche Zugangsdaten) und das Erreichen des TSS-Limits
+// (E_TSS_LIMIT_REACHED, in TEST fuenf aktive TSS). Alle anderen Fehler bleiben
+// unveraendert.
 func mapSetupError(err error) error {
 	var apiErr apiError
-	if errors.As(err, &apiErr) && (apiErr.StatusCode == http.StatusUnauthorized || apiErr.StatusCode == http.StatusForbidden) {
-		return tse.ErrSetupAuthFehlgeschlagen
+	if errors.As(err, &apiErr) {
+		if apiErr.StatusCode == http.StatusUnauthorized || apiErr.StatusCode == http.StatusForbidden {
+			return tse.ErrSetupAuthFehlgeschlagen
+		}
+		if apiErr.Code == "E_TSS_LIMIT_REACHED" {
+			return tse.ErrSetupTSSLimitErreicht
+		}
 	}
 	return err
 }
