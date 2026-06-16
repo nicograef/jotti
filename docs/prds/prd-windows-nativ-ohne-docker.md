@@ -1,9 +1,9 @@
 # PRD: Native Windows-Verpackung ohne Docker (Phase C, Ziel)
 
-> Vorgänger: `docs/prds/prd-windows-verpackung.md` (Docker-basiertes
-> Release-ZIP mit Starter/Relay). Diese PRD ersetzt langfristig dessen
+> Vorgänger: die frühere Docker-basierte Windows-Verpackung (Release-ZIP
+> mit Starter/Relay). Diese PRD ersetzt langfristig deren
 > Laufzeitbasis (Docker Desktop) für den lokalen Windows-Betrieb und
-> übernimmt dessen Bedien-Erkenntnisse (`.env`-Vertrag, Health-Check,
+> übernimmt deren Bedien-Erkenntnisse (`.env`-Vertrag, Health-Check,
 > Zugriffs-URL, Relay per Doppelklick, kein Autostart).
 > Status: Ziel-Architektur, spätere Ausarbeitung. Es gibt noch keinen
 > Umsetzungsplan; User Stories und Entscheidungen sind bewusst grob.
@@ -75,7 +75,7 @@ Compose-Drift, keine vEthernet-Adapter, kein UAC-Dialog im Tagesbetrieb.
 
 - **TLS ohne nginx:** Option 2 (selbstsigniert) erzeugt das Zertifikat heute im
   reverse-proxy-Entrypoint, diese Logik wandert in die `jotti.exe`. Synergie
-  mit Option 3 (`docs/prds/prd-lokale-tls-vertrauenswuerdig.md`): deren
+  mit Option 3 (vertrauenswürdiges lokales TLS): deren
   Caddy-Baustein ließe sich durch die CertMagic-Go-Library (Caddys
   ACME-Engine) direkt im Backend ersetzen, acme-dns/DNS-01 in-process, ein
   Baustein weniger.

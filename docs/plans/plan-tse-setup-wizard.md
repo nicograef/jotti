@@ -94,7 +94,7 @@ Der Verbindungstest ruft zusätzlich den fiskaly-Client der konfigurierten TSS a
 
 **User stories**: 19, 20, 21
 
-Diese Phase ist vollständig durch [plan-finanzamt.md](plan-finanzamt.md) (Commits `591146c`, `55e4226`) umgesetzt. Sie bleibt zur Nachvollziehbarkeit dokumentiert; hier ist nichts mehr zu bauen.
+Diese Phase ist vollständig durch den Finanzamt-Plan (Commits `591146c`, `55e4226`) umgesetzt. Sie bleibt zur Nachvollziehbarkeit dokumentiert; hier ist nichts mehr zu bauen.
 
 - Die lazy Route `/admin/tse-einrichtung` existiert (`frontend/src/routes.ts:138-144`) und rendert `frontend/src/admin/tse/TSEEinrichtungPage.tsx`.
 - Das manuelle Konfigurationsformular (API-Key/-Secret, TSS-ID, Client-ID, Speichern/Leeren/Verbindung testen) ist unverändert nach `frontend/src/admin/tse/TSEKonfigurationSection.tsx` umgezogen.

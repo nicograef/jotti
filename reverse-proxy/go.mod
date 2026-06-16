@@ -1,4 +1,4 @@
-module jotti-reverse-proxy
+module github.com/nicograef/jotti/reverse-proxy
 
 go 1.26.0
 

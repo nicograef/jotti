@@ -140,6 +140,12 @@ _olive base, emerald primary, zinc secondary_
 
 ## 8. Frontend-Integration (jotti)
 
+**Quelle der Wahrheit:** Dieses Verzeichnis (`assets/`) hält die Originale aller
+Marken-Assets. `frontend/public/icons/` und `website/icons/` sind davon
+abgeleitete Laufzeitkopien. Bei einer Änderung am Logo oder an den Icons werden
+die Originale in `assets/` aktualisiert und die benötigten Größen in die beiden
+Kopien übernommen.
+
 ### 8.1. Dateistruktur in `frontend/public/`
 
 ```

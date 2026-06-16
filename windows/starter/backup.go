@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"jotti-starter/core"
+	"github.com/nicograef/jotti/windows/starter/core"
 )
 
 // postgresContainer ist der feste container_name des postgres-Service (siehe

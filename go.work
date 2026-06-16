@@ -1,0 +1,9 @@
+go 1.26.0
+
+use (
+	./backend
+	./resolver
+	./reverse-proxy
+	./windows/relay
+	./windows/starter
+)

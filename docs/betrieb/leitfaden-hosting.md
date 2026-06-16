@@ -61,8 +61,7 @@ oder Smartphone im selben WLAN bedient die Kasse im Browser über die lokale Adr
 >
 > **Restrisiko nur beim Fallback:** Über die grüne Adresse scheitert ein aktiver Angreifer im WLAN
 > (MITM) hart. Nur solange ihr den selbstsignierten Fallback nutzt, bleibt (wie bei reinem
-> selbstsigniertem Betrieb) ein aktiver MITM möglich. Hintergrund:
-> `docs/prds/prd-lokale-tls-vertrauenswuerdig.md`.
+> selbstsigniertem Betrieb) ein aktiver MITM möglich.
 >
 > ℹ️ **Einzeltheke-/localhost-Ausnahme:** Wenn jotti nur direkt am selben Rechner über `localhost`
 > bedient wird, entsteht kein WLAN-Transport.

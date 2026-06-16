@@ -1,4 +1,4 @@
-module jotti-resolver
+module github.com/nicograef/jotti/resolver
 
 go 1.26.0
 

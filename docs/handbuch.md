@@ -277,7 +277,7 @@ Bondruck umfasst zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druc
 
 **Direktverkauf-Routing (Ableitungsregel):** Der Bondruck für `direktverkauf-getaetigt:v1` wird aus den konfigurierten Druckstationen abgeleitet: Ist die Abholbon-Station konfiguriert, entstehen Abholbons an dieser Station gemäß ihrem Bonmodus; sonst Arbeitsbons an die Produktstationen; ohne konfigurierte Stationen entsteht kein Auftrag. Der Kassenbeleg-Drucker ist die Druckstation `kassenbeleg`; fehlt ihre IP, schlägt `POST /service/beleg-drucken` mit klarer Fehlermeldung fehl.
 
-**Relay = Transport:** Das Print-Relay (`cmd/relay/main.go`) holt offene Aufträge via `POST /relay/poll`, druckt sie und meldet das Ergebnis via `POST /relay/ergebnis` (gedruckte IDs und Fehlversuche); das Backend setzt die Status entsprechend. Das Relay formatiert nichts, kennt keine Kategorien und führt keinen Cursor, der DB-Status ist autoritativ; noch offene Aufträge liefert der nächste Poll erneut (beim nicht-fiskalischen Arbeitsbon unkritisch). Start und Konfiguration → [README §Print-Relay](../README.md#print-relay).
+**Relay = Transport:** Das Print-Relay (`windows/relay/main.go`) holt offene Aufträge via `POST /relay/poll`, druckt sie und meldet das Ergebnis via `POST /relay/ergebnis` (gedruckte IDs und Fehlversuche); das Backend setzt die Status entsprechend. Das Relay formatiert nichts, kennt keine Kategorien und führt keinen Cursor, der DB-Status ist autoritativ; noch offene Aufträge liefert der nächste Poll erneut (beim nicht-fiskalischen Arbeitsbon unkritisch). Start und Konfiguration → [README §Print-Relay](../README.md#print-relay).
 
 ---
 

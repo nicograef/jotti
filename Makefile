@@ -51,7 +51,7 @@ test-frontend: ## Frontend Tests ausführen
 	cd frontend && pnpm test
 
 test-integration: ## Integrationstests ausführen
-	./test-integration.sh
+	./scripts/test-integration.sh
 
 test-all: test test-frontend ## Alle Unit-Tests (Backend + Frontend)
 
@@ -98,7 +98,7 @@ build-backend: ## Backend kompilieren
 	cd backend && go build ./...
 
 build-relay: ## Print-Relay-Binary kompilieren
-	cd cmd/relay && go build ./...
+	cd windows/relay && go build ./...
 
 build-resolver: ## DNS-Resolver-Binary kompilieren
 	cd resolver && go build ./...
@@ -107,19 +107,19 @@ build-local-proxy: ## Lokales Proxy-Entrypoint-Binary kompilieren
 	cd reverse-proxy && go build ./...
 
 build-starter-windows: ## Windows-Starter (jotti-start.exe) cross-kompilieren (VERSION=… fuer die Versionszeile)
-	cd cmd/starter && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o jotti-start.exe .
+	cd windows/starter && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o jotti-start.exe .
 
 build-relay-windows: ## Windows-Relay (jotti-relay.exe) cross-kompilieren (VERSION=… fuer die Versionszeile)
-	cd cmd/relay && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o jotti-relay.exe .
+	cd windows/relay && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o jotti-relay.exe .
 
 starter-syso: ## Windows-Manifest (rsrc_windows_amd64.syso) aus jotti-start.manifest neu erzeugen (selten noetig)
-	cd cmd/starter && go run github.com/akavel/rsrc@v0.10.2 -manifest jotti-start.manifest -arch amd64 -o rsrc_windows_amd64.syso
+	cd windows/starter && go run github.com/akavel/rsrc@v0.10.2 -manifest jotti-start.manifest -arch amd64 -o rsrc_windows_amd64.syso
 
 release-windows: build-starter-windows build-relay-windows ## Release-ZIP (Exes + Release-Compose + Doku) unter dist/ bauen (VERSION=… setzen; baut KEINE Images)
 	rm -rf "$(RELEASE_DIR)"
 	mkdir -p "$(RELEASE_DIR)"
-	cp cmd/starter/jotti-start.exe "$(RELEASE_DIR)/"
-	cp cmd/relay/jotti-relay.exe "$(RELEASE_DIR)/"
+	cp windows/starter/jotti-start.exe "$(RELEASE_DIR)/"
+	cp windows/relay/jotti-relay.exe "$(RELEASE_DIR)/"
 	cp packaging/windows/jotti-stop.cmd "$(RELEASE_DIR)/"
 	cp packaging/windows/jotti-restore.cmd "$(RELEASE_DIR)/"
 	cp packaging/windows/jotti-repair.cmd "$(RELEASE_DIR)/"
@@ -263,10 +263,10 @@ check-backend: ## Backend komplett prüfen (Deps, Format, Lint, Test, Build)
 	cd backend && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -tags=unit -count=1 -race ./... && go build ./...
 
 check-relay: ## Print-Relay komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd cmd/relay && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+	cd windows/relay && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
 check-starter: ## Windows-Starter komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd cmd/starter && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build ./...
+	cd windows/starter && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build ./...
 
 check-resolver: ## DNS-Resolver komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd resolver && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
@@ -278,7 +278,7 @@ check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
 	cd frontend && pnpm format:check && pnpm lint && pnpm test && pnpm build
 
 check-integration: ## Integrationstests gegen echte Datenbank ausführen
-	./test-integration.sh
+	./scripts/test-integration.sh
 
 check: check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend ## Schnelle Komplettprüfung ohne DB-Integration
 

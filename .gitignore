@@ -25,8 +25,8 @@ node_modules/
 /vendor/
 
 # Cross-compilierte Windows-Exes (Build-Artefakte; landen im Release-ZIP unter dist/)
-cmd/starter/jotti-start.exe
-cmd/relay/jotti-relay.exe
+windows/starter/jotti-start.exe
+windows/relay/jotti-relay.exe
 
 # ── Build artifacts ──────────────────────────────────────────────────────────
 dist/

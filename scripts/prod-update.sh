@@ -5,7 +5,7 @@ set -euo pipefail
 # jotti — Safe Update (self-hosted production, Weg B)
 #
 # Updates the pinned production stack to the JOTTI_VERSION currently set in .env.
-# Mirrors the Windows starter's update flow (cmd/starter/main.go): refuse
+# Mirrors the Windows starter's update flow (windows/starter/main.go): refuse
 # downgrades, take a pre-update backup BEFORE any migration runs, pull, apply,
 # then verify health. If the new version does not come up healthy, the operator
 # gets a clear, copy-pasteable rollback path and the script aborts non-zero —
@@ -48,7 +48,7 @@ read_env() {
 # parse_semver "v1.2.3" — echoes "1 2 3" and returns 0, or returns 1 when the
 # value is not a plain vMAJOR.MINOR.PATCH (e.g. "latest", "dev"). A pre-release
 # or build suffix ("1.2.3-rc1", "1.2.3+meta") is trimmed before parsing. Mirrors
-# core.parseSemver (cmd/starter/core/update.go).
+# core.parseSemver (windows/starter/core/update.go).
 parse_semver() {
   local s="${1#v}"
   s="${s%%[-+]*}"

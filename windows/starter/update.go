@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"jotti-starter/core"
+	"github.com/nicograef/jotti/windows/starter/core"
 )
 
 const (

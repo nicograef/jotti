@@ -9,7 +9,7 @@
 //
 // Host-Zustand (.env-Spiegel, last-version-Marker) liegt unter Windows kanonisch in
 // %PROGRAMDATA%\jotti — unabhaengig vom Entpack-Ort. Die reine Logik liegt in
-// cmd/starter/core; diese Datei verbindet sie mit den echten Seiteneffekten. Alle
+// windows/starter/core; diese Datei verbindet sie mit den echten Seiteneffekten. Alle
 // Windows-spezifischen Schritte laufen nur unter runtime.GOOS == "windows" — der
 // Repo-Dev-Lauf unter Linux ueberspringt sie und haelt den Zustand weiterhin
 // ordnerlokal.
@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"jotti-starter/core"
+	"github.com/nicograef/jotti/windows/starter/core"
 )
 
 // version wird beim Release per -ldflags "-X main.version=vX.Y.Z" gesetzt.

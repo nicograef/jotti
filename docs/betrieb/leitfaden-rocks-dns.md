@@ -3,9 +3,7 @@
 Dieser Leitfaden richtet sich an den Betreiber des jotti.rocks-VPS (nicht an
 Vereine). Er beschreibt Einrichtung, Verifikation und laufenden Betrieb der
 DNS-Infrastruktur, mit der lokale jotti-Installationen echte
-Let's-Encrypt-Zertifikate für `*.<install-id>.lokal.jotti.rocks` beziehen
-(siehe `docs/prds/prd-lokale-tls-vertrauenswuerdig.md` und
-`docs/plans/plan-lokale-tls-vertrauenswuerdig.md`).
+Let's-Encrypt-Zertifikate für `*.<install-id>.lokal.jotti.rocks` beziehen.
 
 ## 1. Überblick
 

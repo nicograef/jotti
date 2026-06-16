@@ -123,10 +123,10 @@ bleiben gleich.
 
 ### Acceptance criteria
 
-- [ ] `cmd/` existiert nicht mehr; `windows/starter` und `windows/relay` sind da.
-- [ ] `grep -rn 'cmd/relay\|cmd/starter'` (ohne `.git`) liefert keine Treffer.
-- [ ] `make build` und `make release-windows VERSION=test` laufen durch.
-- [ ] `make check` ist grün.
+- [x] `cmd/` existiert nicht mehr; `windows/starter` und `windows/relay` sind da.
+- [x] `grep -rn 'cmd/relay\|cmd/starter'` (ohne `.git`) liefert keine Treffer.
+- [x] `make build` und `make release-windows VERSION=test` laufen durch.
+- [x] `make check` ist grün.
 
 ---
 
@@ -151,11 +151,11 @@ Dockerfile-Build-Schritte entsprechend anpassen.
 
 ### Acceptance criteria
 
-- [ ] `go.work` bindet alle fünf Module; `go build ./...` je Modul läuft.
-- [ ] Alle Modulpfade teilen das Präfix `github.com/nicograef/jotti/`.
-- [ ] Docker-Builds je Modul (resolver, reverse-proxy, windows-Binaries) bauen
+- [x] `go.work` bindet alle fünf Module; `go build ./...` je Modul läuft.
+- [x] Alle Modulpfade teilen das Präfix `github.com/nicograef/jotti/`.
+- [x] Docker-Builds je Modul (resolver, reverse-proxy, windows-Binaries) bauen
       unverändert; `go.work` beeinflusst sie nicht.
-- [ ] `make check` ist grün.
+- [x] `make check` ist grün.
 
 ---
 
@@ -181,9 +181,9 @@ einer anderen `ui/`-Komponente.
 
 ### Acceptance criteria
 
-- [ ] Kein Import zeigt auf eine entfernte Komponente.
-- [ ] `make lint-frontend` und `make build-frontend` laufen durch.
-- [ ] `make test-frontend` ist grün.
+- [x] Kein Import zeigt auf eine entfernte Komponente.
+- [x] `make lint-frontend` und `make build-frontend` laufen durch.
+- [x] `make test-frontend` ist grün.
 
 ---
 
@@ -216,11 +216,11 @@ Die Vorausverweise in `docs/anforderungen.md:246,338` bleiben unangetastet.
 
 ### Acceptance criteria
 
-- [ ] Grep über `docs/` findet keine Referenz mehr auf eine nicht existierende
+- [x] Grep über `docs/` findet keine Referenz mehr auf eine nicht existierende
       Repo-Datei, mit Ausnahme der annotierten Vorausverweise in
       `anforderungen.md`.
-- [ ] Vollständig abgehakte Pläne sind aus `docs/plans/` entfernt.
-- [ ] Kein Betreiber-Leitfaden (`docs/betrieb/`) verlinkt auf einen internen
+- [x] Vollständig abgehakte Pläne sind aus `docs/plans/` entfernt.
+- [x] Kein Betreiber-Leitfaden (`docs/betrieb/`) verlinkt auf einen internen
       Plan.
 
 ---
@@ -251,7 +251,7 @@ Drei kleine, voneinander unabhängige Aufräum-Schritte (je ein Commit möglich)
 
 ### Acceptance criteria
 
-- [ ] `test-integration.sh` liegt in `scripts/`, `make test-integration` läuft.
-- [ ] Asset-Quelle ist in `assets-and-design.md` dokumentiert.
-- [ ] `docs/test-01.md` ist aufgelöst (verschoben/umbenannt/migriert).
-- [ ] `make verify` ist grün.
+- [x] `test-integration.sh` liegt in `scripts/`, `make test-integration` läuft.
+- [x] Asset-Quelle ist in `assets-and-design.md` dokumentiert.
+- [x] `docs/test-01.md` ist aufgelöst (verschoben/umbenannt/migriert).
+- [x] `make verify` ist grün.

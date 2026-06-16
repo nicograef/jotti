@@ -21,7 +21,7 @@ func StateDir(goos, programData, fallback string) string {
 
 // PostgresUser ist der fest vergebene Postgres-Rollenname und die einzige Quelle
 // der Wahrheit dafuer: EnvContent schreibt ihn in die .env, und das
-// Pre-Update-Backup (cmd/starter/backup.go) dumpt als dieser Rolle. Wert wie
+// Pre-Update-Backup (windows/starter/backup.go) dumpt als dieser Rolle. Wert wie
 // .env.example / scripts/init-env.sh — damit ein adoptiertes .env nie davon
 // abweicht und der hartcodierte pg_dump-Nutzer nie zur Quelle driftet.
 const PostgresUser = "admin"

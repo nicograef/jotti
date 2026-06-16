@@ -13,7 +13,7 @@ const (
 )
 
 // Statische Preflight-Diagnosen, deutsch und ASCII-transliteriert fuer die
-// Windows-Konsole (wie die Laufzeit-Strings in cmd/relay). Jede nennt den
+// Windows-Konsole (wie die Laufzeit-Strings in windows/relay). Jede nennt den
 // naechsten Handlungsschritt.
 const (
 	DiagnoseDockerCLIFehlt = "Docker wurde nicht gefunden. Bitte Docker Desktop installieren und sicherstellen, dass \"" +

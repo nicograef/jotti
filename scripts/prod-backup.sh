@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # Pulls a full pg_dump from the running production postgres into a timestamped,
 # gzip-compressed file in a host directory and rotates old dumps. Mirrors the
-# Windows pre-update backup (cmd/starter/backup.go): same --clean --if-exists
+# Windows pre-update backup (windows/starter/backup.go): same --clean --if-exists
 # dump and same "keep newest N" rotation, so a later restore re-creates the
 # objects cleanly. Steps:
 #   1. Validate prerequisites (Docker, Compose, .env)

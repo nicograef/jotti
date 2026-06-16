@@ -363,7 +363,7 @@ DB-Tabelle: `druckauftraege` · Spalten u. a.: `ziel_ip`, `payload` (Base64-ESC/
 
 #### Relay
 
-Separater Dienst (`cmd/relay/`, Repo-Root): reiner Transport ohne Fachlogik und ohne lokalen Zustand. Holt offene Druckaufträge (`POST /relay/poll`), druckt und meldet das Ergebnis zurück (`POST /relay/ergebnis`, gedruckte IDs und Fehlversuche). Die ESC/POS-Formatierung liegt im Backend.
+Separater Dienst (`windows/relay/`, Repo-Root): reiner Transport ohne Fachlogik und ohne lokalen Zustand. Holt offene Druckaufträge (`POST /relay/poll`), druckt und meldet das Ergebnis zurück (`POST /relay/ergebnis`, gedruckte IDs und Fehlversuche). Die ESC/POS-Formatierung liegt im Backend.
 
 ---
 

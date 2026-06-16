@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"jotti-starter/core"
+	"github.com/nicograef/jotti/windows/starter/core"
 )
 
 // DockerCliPath ist die Docker-Desktop-CLI fuer den Engine-Wechsel; sie liegt am
