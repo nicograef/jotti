@@ -20,10 +20,10 @@
   bereit. Die Pflichten gegenüber dem Finanzamt liegen bei euch als Verein.
 - **Was kostet uns das?** jotti selbst ist für berechtigte Vereine kostenlos. Kosten
   entstehen nur für den Server und die Cloud-TSE (kleine laufende Gebühr beim Anbieter).
-- ⏳ **Aktueller Stand:** TSE-Anbindung, Belegausgabe und DSFinV-K-Export sind noch in
-  Entwicklung. Solange diese Funktionen nicht fertig sind, ist jotti noch nicht für den
-  fiskalpflichtigen Echtbetrieb geeignet. Dieser Leitfaden beschreibt, was zu tun ist,
-  sobald die Funktionen verfügbar sind.
+- ⏳ **Aktueller Stand:** TSE-Anbindung und Belegausgabe sind verfügbar. Noch in
+  Entwicklung ist der DSFinV-K-Export (samt 10-Jahres-Archivierung und
+  ELSTER-Dokumentation). Dieser Leitfaden beschreibt, was zu tun ist, sobald auch er
+  bereitsteht.
 
 ---
 
@@ -63,8 +63,8 @@ Konkret braucht eine konforme Kasse vier Bausteine:
 | Baustein                    | Was es bedeutet                                                | Wie jotti es löst                                                                                                    | Status            |
 | --------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | Unveränderbare Aufzeichnung | Einmal gebuchte Vorgänge dürfen nie heimlich geändert werden   | „Event-Sourcing": Jeder Vorgang wird als unveränderlicher Eintrag gespeichert; Korrekturen nur als neue Gegenbuchung | ✅ vorhanden      |
-| TSE-Signatur                | Ein Sicherheitsmodul „versiegelt" jeden Vorgang kryptografisch | Anbindung an eine Cloud-TSE (z. B. fiskaly)                                                                          | ⏳ in Entwicklung |
-| Beleg                       | Für jeden Kassiervorgang kann ein gültiger Bon erstellt werden | Kassenbeleg auf Knopfdruck, mit allen Pflichtangaben                                                                 | ⏳ in Entwicklung |
+| TSE-Signatur                | Ein Sicherheitsmodul „versiegelt" jeden Vorgang kryptografisch | Anbindung an eine Cloud-TSE (z. B. fiskaly)                                                                          | ✅ vorhanden      |
+| Beleg                       | Für jeden Kassiervorgang kann ein gültiger Bon erstellt werden | Kassenbeleg auf Knopfdruck, mit allen Pflichtangaben                                                                 | ✅ vorhanden      |
 | DSFinV-K-Export             | Standard-Datenpaket, das ein Prüfer einlesen kann              | ZIP mit genormten CSV-Dateien (`transactions.csv`, `lines.csv` …)                                                    | ⏳ in Entwicklung |
 
 > **Wichtig:** jotti ist so gebaut, dass es nach Fertigstellung dieser Bausteine konform
