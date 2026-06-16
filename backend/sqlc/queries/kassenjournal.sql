@@ -13,6 +13,12 @@ WHERE kassensitzung_nr = $1
   AND type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1')
 ORDER BY id ASC;
 
+-- name: ReadEventsByKassensitzung :many
+-- Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session- und
+-- Direktverkauf-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal WHERE kassensitzung_nr = $1 ORDER BY id ASC;
+
 -- name: GetMaxVersion :one
 SELECT COALESCE(MAX(version), 0)::int AS version FROM kassenjournal WHERE subject = $1;
 

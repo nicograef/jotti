@@ -5,6 +5,7 @@ import { NavLink } from 'react-router'
 import { useTSEStatus } from '@/admin/settings/hooks'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
+import { DsfinvkExportButton } from './DsfinvkExportButton'
 import { useKassensitzungen, useLiveReporting, useReport } from './hooks'
 import { LiveReportingSection } from './LiveReportingSection'
 import { ReportingFilter } from './ReportingFilter'
@@ -53,13 +54,14 @@ export function AdminDashboardPage() {
       <hr className="my-8" />
 
       <h2 className="mt-10 text-lg font-semibold">Historische Auswertung</h2>
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <ReportingFilter
           kassensitzungen={kassensitzungen}
           kassensitzungNr={effectiveNr}
           loading={listLoading}
           onKassensitzungNrChange={setSelectedNr}
         />
+        <DsfinvkExportButton kassensitzungNr={effectiveNr} />
       </div>
 
       {result && (

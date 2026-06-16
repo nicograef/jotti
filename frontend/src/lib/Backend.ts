@@ -74,12 +74,28 @@ function parseJsonSafely(text: string): unknown {
   }
 }
 
+// DownloadResult is a binary response (e.g. a file download) together with the
+// filename the backend proposed via the Content-Disposition header.
+export interface DownloadResult {
+  blob: Blob
+  filename: string
+}
+
 export interface BackendClient {
   post<TResponse>(
     endpoint: string,
     body: unknown,
     responseSchema?: z.ZodType<TResponse>,
   ): Promise<TResponse>
+  download(endpoint: string, body: unknown): Promise<DownloadResult>
+}
+
+function parseFilename(contentDisposition: string | null): string {
+  if (!contentDisposition) {
+    return 'download'
+  }
+  const match = /filename="?([^"]+)"?/.exec(contentDisposition)
+  return match?.[1] ?? 'download'
 }
 
 export class Backend implements BackendClient {
@@ -91,13 +107,9 @@ export class Backend implements BackendClient {
     this.tokenGetter = tokenGetter
   }
 
-  public async post<TResponse>(
-    endpoint: string,
-    body: unknown,
-    responseSchema?: z.ZodType<TResponse>,
-  ): Promise<TResponse> {
+  private async request(endpoint: string, body: unknown): Promise<Response> {
     const token = this.tokenGetter.getToken()
-    const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+    return fetch(`${this.baseUrl}/${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -105,35 +117,48 @@ export class Backend implements BackendClient {
       },
       body: JSON.stringify(body),
     })
+  }
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        AuthSingleton.logout()
-        window.location.href = '/login'
-        throw new BackendError(401, 'unauthorized')
-      }
-
-      const responseText = await response.text()
-      const parsedError = ErrorResponseSchema.safeParse(
-        parseJsonSafely(responseText),
-      )
-
-      if (parsedError.success) {
-        throw new BackendError(
-          response.status,
-          parsedError.data.code,
-          parsedError.data.details,
-        )
-      }
-
-      console.error(
-        'Failed to parse error response:',
-        parsedError.error,
-        'Response text:',
-        responseText,
-      )
-      throw new BackendError(response.status, 'unknown', responseText)
+  private async throwIfNotOk(response: Response): Promise<void> {
+    if (response.ok) {
+      return
     }
+
+    if (response.status === 401) {
+      AuthSingleton.logout()
+      window.location.href = '/login'
+      throw new BackendError(401, 'unauthorized')
+    }
+
+    const responseText = await response.text()
+    const parsedError = ErrorResponseSchema.safeParse(
+      parseJsonSafely(responseText),
+    )
+
+    if (parsedError.success) {
+      throw new BackendError(
+        response.status,
+        parsedError.data.code,
+        parsedError.data.details,
+      )
+    }
+
+    console.error(
+      'Failed to parse error response:',
+      parsedError.error,
+      'Response text:',
+      responseText,
+    )
+    throw new BackendError(response.status, 'unknown', responseText)
+  }
+
+  public async post<TResponse>(
+    endpoint: string,
+    body: unknown,
+    responseSchema?: z.ZodType<TResponse>,
+  ): Promise<TResponse> {
+    const response = await this.request(endpoint, body)
+    await this.throwIfNotOk(response)
 
     if (!responseSchema) {
       return {} as TResponse
@@ -148,6 +173,18 @@ export class Backend implements BackendClient {
     }
 
     return data
+  }
+
+  public async download(
+    endpoint: string,
+    body: unknown,
+  ): Promise<DownloadResult> {
+    const response = await this.request(endpoint, body)
+    await this.throwIfNotOk(response)
+
+    const blob = await response.blob()
+    const filename = parseFilename(response.headers.get('Content-Disposition'))
+    return { blob, filename }
   }
 }
 

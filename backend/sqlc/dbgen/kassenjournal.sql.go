@@ -101,6 +101,56 @@ func (q *Queries) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr i
 	return items, nil
 }
 
+const readEventsByKassensitzung = `-- name: ReadEventsByKassensitzung :many
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal WHERE kassensitzung_nr = $1 ORDER BY id ASC
+`
+
+type ReadEventsByKassensitzungRow struct {
+	ID        int
+	UserID    int
+	UserName  string
+	Version   int
+	Type      string
+	Subject   string
+	Data      json.RawMessage
+	Timestamp time.Time
+}
+
+// Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session- und
+// Direktverkauf-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.
+func (q *Queries) ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]ReadEventsByKassensitzungRow, error) {
+	rows, err := q.db.QueryContext(ctx, readEventsByKassensitzung, kassensitzungNr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReadEventsByKassensitzungRow{}
+	for rows.Next() {
+		var i ReadEventsByKassensitzungRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.UserName,
+			&i.Version,
+			&i.Type,
+			&i.Subject,
+			&i.Data,
+			&i.Timestamp,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const readEventsBySubject = `-- name: ReadEventsBySubject :many
 SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM kassenjournal WHERE subject = $1 ORDER BY id ASC

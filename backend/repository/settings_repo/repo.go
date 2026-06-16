@@ -71,6 +71,23 @@ func (r Repository) UpsertTSEKonfiguration(ctx context.Context, c settings.TSEKo
 	return nil
 }
 
+// GetTSEStammdaten liest die fiskalischen TSS-Stammdaten fuer den
+// DSFinV-K-Export (Singleton). Vor der TSE-Einrichtung sind die Felder leer.
+func (r Repository) GetTSEStammdaten(ctx context.Context) (settings.TSEStammdaten, error) {
+	row, err := r.q.GetTSEStammdaten(ctx)
+	if err != nil {
+		return settings.TSEStammdaten{}, db.Error(err)
+	}
+	return settings.TSEStammdaten{
+		SignaturAlgorithmus: row.SignaturAlgorithmus,
+		PublicKey:           row.PublicKey,
+		Zertifikat:          row.Zertifikat,
+		LogTimeFormat:       row.LogTimeFormat,
+		Version:             row.Version,
+		UpdatedAt:           row.UpdatedAt,
+	}, nil
+}
+
 // UpsertTSEStammdaten speichert die fiskalischen TSS-Stammdaten fuer den
 // DSFinV-K-Export (Singleton).
 func (r Repository) UpsertTSEStammdaten(ctx context.Context, s settings.TSEStammdaten) error {

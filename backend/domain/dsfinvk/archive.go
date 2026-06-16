@@ -1,0 +1,68 @@
+package dsfinvk
+
+import (
+	"archive/zip"
+	"bytes"
+	_ "embed"
+
+	"github.com/nicograef/jotti/backend/domain/event"
+)
+
+// gdpduDTD ist die statische, zwingend mitzuliefernde GoBD/GDPdU-Beschreibungs-
+// DTD, auf die die index.xml verweist.
+//
+//go:embed gdpdu-01-09-2004.dtd
+var gdpduDTD []byte
+
+const (
+	// DTDFilename ist der unveränderliche Dateiname der GDPdU-DTD im Archiv.
+	DTDFilename = "gdpdu-01-09-2004.dtd"
+	// indexFilename ist der Beschreibungs-Index des Archivs.
+	indexFilename = "index.xml"
+)
+
+// BuildArchive transformiert Snapshot und Events einer Kassensitzung in ein
+// vollständiges DSFinV-K-ZIP: die CSV-Dateien, die beschreibende index.xml und
+// die gdpdu-01-09-2004.dtd. Seiteneffektfrei — komponiert Mapper, CSV-Serializer,
+// index.xml-Generator und ZIP-Packer.
+func BuildArchive(snapshot Snapshot, events []event.Event) ([]byte, error) {
+	archive, err := Map(snapshot, events)
+	if err != nil {
+		return nil, err
+	}
+
+	supplier := dataSupplier{
+		name:     snapshot.Betreiber.Vereinsname,
+		location: snapshot.Betreiber.Ort,
+		comment:  "jotti DSFinV-K-Export",
+	}
+
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+
+	if err := writeZipFile(zw, indexFilename, buildIndexXML(supplier, archive.Tables())); err != nil {
+		return nil, err
+	}
+	if err := writeZipFile(zw, DTDFilename, gdpduDTD); err != nil {
+		return nil, err
+	}
+	for _, t := range archive.Tables() {
+		if err := writeZipFile(zw, t.File, serializeCSV(t)); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func writeZipFile(zw *zip.Writer, name string, content []byte) error {
+	w, err := zw.Create(name)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(content)
+	return err
+}

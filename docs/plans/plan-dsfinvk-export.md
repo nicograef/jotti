@@ -231,20 +231,21 @@ Sitzung.
 
 ### Acceptance criteria
 
-- [ ] `GET /admin/export/dsfinvk` ohne Parameter liefert für die aktuelle Sitzung
+- [x] `POST /admin/export/dsfinvk` ohne Parameter liefert für die aktuelle Sitzung
       ein `200 application/zip` mit `Content-Disposition`-Dateiname (Seriennummer,
-      Kassensitzung, Zeitstempel).
-- [ ] Das Archiv enthält die CSV-Dateien mit offiziellen englischen Kleinschreib-
+      Kassensitzung, Zeitstempel). (POST statt GET: Repo-Guardrail „alle Endpunkte
+      POST-only", durch `PostMethodOnlyMiddleware` erzwungen; Sitzung im JSON-Body.)
+- [x] Das Archiv enthält die CSV-Dateien mit offiziellen englischen Kleinschreib-
       Namen, eine `index.xml` und die `gdpdu-01-09-2004.dtd`; `slaves.csv`/`pa.csv`
       fehlen und sind nicht deklariert.
-- [ ] Eine unbekannte Sitzung liefert `404`, ein ungültiger Parameter `400`; eine
+- [x] Eine unbekannte Sitzung liefert `404`, ein ungültiger Parameter `400`; eine
       leere Sitzung eine verständliche Meldung statt eines defekten Archivs.
-- [ ] Golden-Test (einfacher Barverkauf) prüft die erzeugten Zeilen je Tabelle
+- [x] Golden-Test (einfacher Barverkauf) prüft die erzeugten Zeilen je Tabelle
       inkl. Brutto/Netto/Steuer, `Z_KASSE_ID`, `Z_NR`, `BON_ID` und der
       TSE-Transaktionsdaten.
-- [ ] Serializer-Formattest (Semikolon, CRLF, Dezimalpunkt, keine Tausendertrenner,
+- [x] Serializer-Formattest (Semikolon, CRLF, Dezimalpunkt, keine Tausendertrenner,
       Header, Spaltenreihenfolge, Escaping) und `index.xml`-Descriptor-Test grün.
-- [ ] Der Download-Button lädt im Reporting-Bereich ein Archiv der aktuellen
+- [x] Der Download-Button lädt im Reporting-Bereich ein Archiv der aktuellen
       Sitzung; `make check` grün.
 
 ---

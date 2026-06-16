@@ -39,6 +39,11 @@ func SendConflictError(w http.ResponseWriter) {
 	SendConflict(w, "conflict")
 }
 
+// SendNotFound sends a 404 Not Found response with the given error code.
+func SendNotFound(w http.ResponseWriter, code string) {
+	SendJSONResponse(w, errorResponse{Code: code}, http.StatusNotFound)
+}
+
 // SendConflict sends a 409 Conflict response with the given error code.
 func SendConflict(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusConflict)

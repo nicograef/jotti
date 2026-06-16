@@ -7,7 +7,36 @@ package dbgen
 
 import (
 	"context"
+	"time"
 )
+
+const getTSEStammdaten = `-- name: GetTSEStammdaten :one
+SELECT signatur_algorithmus, public_key, zertifikat, log_time_format, version, updated_at
+FROM tse_stammdaten WHERE id = 1
+`
+
+type GetTSEStammdatenRow struct {
+	SignaturAlgorithmus string
+	PublicKey           string
+	Zertifikat          string
+	LogTimeFormat       string
+	Version             string
+	UpdatedAt           time.Time
+}
+
+func (q *Queries) GetTSEStammdaten(ctx context.Context) (GetTSEStammdatenRow, error) {
+	row := q.db.QueryRowContext(ctx, getTSEStammdaten)
+	var i GetTSEStammdatenRow
+	err := row.Scan(
+		&i.SignaturAlgorithmus,
+		&i.PublicKey,
+		&i.Zertifikat,
+		&i.LogTimeFormat,
+		&i.Version,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
 
 const upsertTSEStammdaten = `-- name: UpsertTSEStammdaten :exec
 INSERT INTO tse_stammdaten (id, signatur_algorithmus, public_key, zertifikat, log_time_format, version, updated_at)

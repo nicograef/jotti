@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import type { BackendClient } from '@/lib/Backend'
+import type { BackendClient, DownloadResult } from '@/lib/Backend'
 
 import {
   type Kassensitzung,
@@ -41,5 +41,16 @@ export class ReportingBackend {
       z.object({ kassensitzungen: z.array(KassensitzungSchema) }),
     )
     return response.kassensitzungen
+  }
+
+  // exportDsfinvk lädt das DSFinV-K-Archiv der gewählten Kassensitzung herunter.
+  // Ohne Nummer wählt das Backend die Standard-Sitzung.
+  public async exportDsfinvk(
+    kassensitzungNr: number | null,
+  ): Promise<DownloadResult> {
+    return this.backend.download(
+      'admin/export/dsfinvk',
+      kassensitzungNr ? { kassensitzung: kassensitzungNr } : {},
+    )
   }
 }

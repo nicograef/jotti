@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
-import { BackendSingleton } from '@/lib/Backend'
+import { BackendError, BackendSingleton } from '@/lib/Backend'
+import { triggerBrowserDownload } from '@/lib/download'
 
 import { ReportingBackend } from './ReportingBackend'
 import type { Kassensitzung, LiveReportingData, ReportingData } from './types'
@@ -33,4 +35,23 @@ export function useLiveReporting() {
       queryFn: () => reportingBackend.getLiveReporting(),
     })
   return { liveData, isPending }
+}
+
+export function useDsfinvkExport() {
+  const mutation = useMutation({
+    mutationFn: (kassensitzungNr: number | null) =>
+      reportingBackend.exportDsfinvk(kassensitzungNr),
+    onSuccess: ({ blob, filename }) => {
+      triggerBrowserDownload(blob, filename)
+      toast.success('DSFinV-K-Archiv heruntergeladen.')
+    },
+    onError: (error) => {
+      const message =
+        error instanceof BackendError && error.code === 'leere_kassensitzung'
+          ? 'Diese Kassensitzung enthält keine Vorgänge zum Exportieren.'
+          : 'Der DSFinV-K-Export ist fehlgeschlagen.'
+      toast.error(message)
+    },
+  })
+  return { exportieren: mutation.mutate, isPending: mutation.isPending }
 }

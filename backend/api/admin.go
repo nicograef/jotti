@@ -8,6 +8,8 @@ import (
 	druckauftragHTTP "github.com/nicograef/jotti/backend/api/druckauftrag/http"
 	druckstationApp "github.com/nicograef/jotti/backend/api/druckstation/application"
 	druckstationHTTP "github.com/nicograef/jotti/backend/api/druckstation/http"
+	exportApp "github.com/nicograef/jotti/backend/api/export/application"
+	exportHTTP "github.com/nicograef/jotti/backend/api/export/http"
 	kasseApp "github.com/nicograef/jotti/backend/api/kasse/application"
 	kasseHTTP "github.com/nicograef/jotti/backend/api/kasse/http"
 	productApp "github.com/nicograef/jotti/backend/api/product/application"
@@ -100,6 +102,14 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
 	r.HandleFunc("/get-all-kassensitzungen", rq.GetAllKassensitzungenHandler())
 	r.HandleFunc("/get-live-reporting", rq.GetLiveReportingHandler())
+
+	exportHandler := exportHTTP.Handler{}
+	exportHandler.Service = exportApp.Export{
+		KassenjournalRepo:   kassenjournalRepo,
+		KassensitzungenRepo: kassensitzungenRepo,
+		SettingsRepo:        settingsRepo,
+	}
+	r.HandleFunc("/export/dsfinvk", exportHandler.ExportHandler())
 
 	kc := kasseHTTP.CommandHandler{}
 	kc.Command = kasseApp.Command{

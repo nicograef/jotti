@@ -414,6 +414,22 @@ func eventFromDirektverkaufRow(row dbgen.ReadDirektverkaufEventsRow) event.Event
 	}
 }
 
+// eventFromKassensitzungRow maps a Kassensitzung-wide read row to a domain event.
+// ReadEventsByKassensitzung selects the same columns as ReadEventsBySubject but
+// sqlc emits a distinct row type, so it needs its own mapping.
+func eventFromKassensitzungRow(row dbgen.ReadEventsByKassensitzungRow) event.Event {
+	return event.Event{
+		ID:       row.ID,
+		UserID:   row.UserID,
+		UserName: row.UserName,
+		Version:  row.Version,
+		Type:     row.Type,
+		Subject:  row.Subject,
+		Data:     row.Data,
+		Time:     row.Timestamp,
+	}
+}
+
 // ReadEventsBySubject retrieves all events of the given subject.
 // Events are ordered by ID ascending (first element in slice is first event).
 func (r Repository) ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error) {
@@ -441,6 +457,23 @@ func (r Repository) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr
 	events := make([]event.Event, 0, len(rows))
 	for i := range rows {
 		events = append(events, eventFromDirektverkaufRow(rows[i]))
+	}
+
+	return events, nil
+}
+
+// ReadEventsByKassensitzung retrieves all events of the given Kassensitzung
+// (Kassensitzungs-, Tisch-Session- and Direktverkauf-Streams) ordered by ID
+// ascending. It is the read side of the DSFinV-K export.
+func (r Repository) ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, error) {
+	rows, err := r.q.ReadEventsByKassensitzung(ctx, kassensitzungNr)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	events := make([]event.Event, 0, len(rows))
+	for i := range rows {
+		events = append(events, eventFromKassensitzungRow(rows[i]))
 	}
 
 	return events, nil
