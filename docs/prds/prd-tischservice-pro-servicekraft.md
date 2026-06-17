@@ -37,10 +37,17 @@ Darauf aufbauend:
   gilt als erledigt, wenn keine ihrer bestellten Positionen mehr ausstehend
   (nicht ausgegeben) und keine mehr unbezahlt ist, unabhängig davon, wer
   ausgibt oder kassiert. So funktioniert auch die Schichtübergabe.
-- **Eigene Positionen zuerst.** Beim Kassieren, Stornieren, Ausgabe-Bestätigen
-  und Umbuchen stehen die eigenen Positionen oben und separat. Fremde Positionen
-  sind eingeklappt und über "Alle anzeigen" erreichbar, damit eine Servicekraft
-  bei Bedarf für eine abwesende Kollegin einspringen kann.
+- **Eigene Positionen zuerst (Kassieren, Ausgabe).** Beim Kassieren und
+  Ausgabe-Bestätigen, die jede Servicekraft an eigener Arbeit ausführt, stehen
+  die eigenen Positionen oben und separat. Fremde Positionen sind eingeklappt
+  und über "Alle anzeigen" erreichbar, damit jemand bei Bedarf für eine
+  abwesende Kollegin einspringen kann.
+- **Besteller sichtbar (Stornieren, Umbuchen).** Stornieren und Umbuchen führt
+  zentral die Serviceleitung (oder ein Admin) aus, fast immer für fremde
+  Bestellungen. Hier wird nichts eingeklappt: Die Bestell-Historie bleibt
+  vollständig sichtbar, und jeder Eintrag ist mit dem Namen der bestellenden
+  Servicekraft beschriftet, damit die richtige Bestellung ohne zusätzlichen
+  Klick auffindbar ist.
 - **Schichtende-Prüfung im Live-Dashboard.** Der bestehende
   "Servicekräfte"-Tab zeigt pro Servicekraft zusätzlich die noch offene eigene
   Arbeit: an welchen Tischen noch eigene Positionen ausstehend oder unbezahlt
@@ -90,13 +97,14 @@ sichtbar.
 
 ### Serviceleitung: Stornieren und Umbuchen
 
-12. Als Serviceleitung möchte ich beim Stornieren zuerst die Bestellungen sehen,
-    die ich selbst aufgenommen habe, damit ich nicht versehentlich fremde
-    Positionen storniere.
-13. Als Serviceleitung möchte ich fremde Bestellungen beim Stornieren bei Bedarf
-    einblenden, damit ich auch fremde Positionen stornieren kann, wenn nötig.
-14. Als Serviceleitung möchte ich beim Umbuchen zuerst meine eigenen
-    Bestellungen sehen.
+12. Als Serviceleitung möchte ich beim Stornieren an jeder Bestellung den Namen
+    der bestellenden Servicekraft sehen, damit ich die richtige Bestellung
+    schnell finde.
+13. Als Serviceleitung möchte ich die vollständige Bestell-Historie eines
+    Tisches flach sehen (nichts eingeklappt), weil ich fast immer fremde
+    Bestellungen storniere und nicht jedes Mal "Alle anzeigen" klicken will.
+14. Als Serviceleitung möchte ich beim Umbuchen ebenfalls an jeder Bestellung
+    den Namen der bestellenden Servicekraft sehen.
 
 ### Admin: Schichtende und Reporting
 
@@ -182,15 +190,16 @@ sichtbar.
 
 ### Kassieren, Ausgabe, Stornieren, Umbuchen (Frontend)
 
-- Kassieren und Ausgabe-Bestätigen: Die Positionsliste wird in "Meine" (oben,
-  ausgeklappt) und "Andere" (eingeklappt, per "Alle anzeigen" erreichbar)
-  getrennt. Die eigentliche Buchung bleibt unverändert.
-- Stornieren und Umbuchen erfolgen weiterhin über die Historie je Bestellung.
-  Die Historie kennt die bestellende Servicekraft bereits. Die Bestell-Einträge
-  werden so sortiert/gruppiert, dass eigene Bestellungen oben stehen und fremde
-  einklappbar sind.
-- Es gibt keine harte Sperre für fremde Positionen. Die Trennung ist rein
-  visuell und über "Alle anzeigen" auflösbar.
+- Kassieren und Ausgabe-Bestätigen (jede Servicekraft an eigener Arbeit): Die
+  Positionsliste wird in "Meine" (oben, ausgeklappt) und "Andere" (eingeklappt,
+  per "Alle anzeigen" erreichbar) getrennt. Die eigentliche Buchung bleibt
+  unverändert. Keine harte Sperre; die Trennung ist rein visuell.
+- Stornieren und Umbuchen (zentral durch Serviceleitung/Admin): Sie erfolgen
+  weiterhin über die Historie je Bestellung. Hier wird nichts eingeklappt, weil
+  die Serviceleitung fast immer fremde Bestellungen bearbeitet. Stattdessen
+  zeigt jeder Historien-Eintrag den Namen der bestellenden Servicekraft (statt
+  des heutigen rein farblichen Eigen-Eintrag-Rands), damit die richtige
+  Bestellung ohne zusätzlichen Klick auffindbar ist.
 
 ### Schichtende-Prüfung (Admin Live-Dashboard)
 
@@ -242,6 +251,9 @@ oder erledigt ist.
 - **Frontend: Kassieren.** Eigene vs. fremde Positionen werden getrennt
   dargestellt, fremde sind erst nach "Alle anzeigen" sichtbar. Prior Art:
   `service/components/table/Zahlung.test.tsx`.
+- **Frontend: Stornieren/Umbuchen.** Die Bestell-Historie wird flach (nichts
+  eingeklappt) angezeigt, und jeder Eintrag trägt den Namen der bestellenden
+  Servicekraft. Prior Art: bestehende Tests zur Historie.
 - **Frontend: Tischkarte.** Die Karte zeigt die Anzahl eigener offener
   Positionen und die persönliche Erledigt-Aussage korrekt an.
 

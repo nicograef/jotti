@@ -42,7 +42,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 👤 **Abrechnung pro Servicekraft** — Umsatz und Transaktionen pro Person
 - 📈 **Produktumsatz-Reporting** _(in Entwicklung)_ — meistverkaufte Varianten, Mengen und Einnahmen pro Produkt
 - 📥 **Datenexport (CSV)** _(in Entwicklung)_ — Umsätze, Bestellungen und Artikeldaten für die Vereinsbuchhaltung
-- 📦 **DSFinV-K-Export** _(in Entwicklung)_ — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.5)
+- 📦 **DSFinV-K-Export** — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.5)
 
 ### Verwaltung & Sicherheit
 
