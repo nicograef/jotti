@@ -48,7 +48,7 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | K-09 | Bestellungen umbuchen   | Serviceleitung/Admin buchen unbezahlte Bestellungen atomar zwischen Tischen um (Quell-Storno + Ziel-Bestellung in einer Transaktion).                                                           |
 | K-10 | Rückgeldberechnung      | Optionale Eingabe von erhaltenem Betrag und Zielbetrag (inkl. Trinkgeld) beim Kassieren. Rückgeld und Trinkgeld werden rein clientseitig berechnet und angezeigt.                               |
 | K-11 | Tisch-Schnellsuche      | Suchfeld im Alle-Tische-Drawer. Clientseitige Echtzeit-Filterung nach Tischname (case-insensitive).                                                                                             |
-| K-12 | Arbeitsbon              | Automatischer Arbeitsbon (ohne Preise) bei Bestellaufnahme an konfigurierte Druckstationen (Küche, Theke). Operativ, nicht-fiskalisch, kein Kassenbeleg (→ F-03).                                |
+| K-12 | Arbeitsbon              | Automatischer Arbeitsbon (ohne Preise) bei Bestellaufnahme an konfigurierte Druckstationen (Küche, Theke). Operativ, nicht-fiskalisch, kein Kassenbeleg (→ F-03).                               |
 | K-14 | Tisch-Favoriten         | Serverseitig gespeicherte Favoriten pro Benutzer. Stern-Toggle im Alle-Tische-Drawer.                                                                                                           |
 | K-16 | Kassensitzung eröffnen  | Global nummerierter Betriebstag. Kassensitzung-Sperre blockiert Betrieb ohne offene Sitzung.                                                                                                    |
 | K-17 | Anfangsbestand setzen   | Wechselgeld als Basis für Kassenbestandsführung. Genau einmal pro Kassensitzung.                                                                                                                |
@@ -58,8 +58,6 @@ Alle funktionalen und querschnittlichen Anforderungen an jotti. Umgesetzte Featu
 | K-21 | Kassensturz durchführen | Gezählter Ist-Bestand vs. Soll-Bestand. Differenz wird automatisch gebucht.                                                                                                                     |
 | K-22 | Tagesabschluss / Z-Bon  | Formaler Tagesabschluss. Schließt Kassensitzung ab. Voraussetzung: Kassensturz + alle Tische auf Saldo 0.                                                                                       |
 | K-24 | Direktverkauf           | Barverkauf an der Theke: bestellen + zahlen + ausgeben in einem Schritt. Eigener Event-Stream pro Verkauf (`direktverkauf-getaetigt:v1`), sofort kassenwirksam, ohne Tisch und ohne Projektion. |
-
-> 🚫 **K-08 · Bezeichnung pro Bestellung:** Won't-have. Wird über das bestehende Kommentarfeld (K-01) gelöst.
 
 ### Offen
 
@@ -134,15 +132,15 @@ Für jottis Festzelt-Betrieb (Vereinsfest, Maihock) die korrektere Abbildung der
 
 ### Umgesetzt
 
-| ID   | Titel             | Beschreibung                                                                                                                              |
-| ---- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Q-01 | Mobile-first      | Alle Seiten auf Smartphones ab 360 px bedienbar. Touch-optimiert, Drawer-Overlays.                                                        |
-| Q-02 | Mehrbenutzerfähig | Parallele Zugriffe ohne Datenverlust. Optimistic Concurrency Control.                                                                     |
-| Q-03 | Validierung       | Zod (Frontend) + zog (Backend). Doppelte Validierung, deutsche Fehlermeldungen.                                                           |
-| Q-04 | Datenintegrität   | Transaktionssicher, append-only Kassenjournal, Cent-Werte, Soft-Deletes.                                                                  |
+| ID   | Titel             | Beschreibung                                                                                                                                                                                                                              |
+| ---- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q-01 | Mobile-first      | Alle Seiten auf Smartphones ab 360 px bedienbar. Touch-optimiert, Drawer-Overlays.                                                                                                                                                        |
+| Q-02 | Mehrbenutzerfähig | Parallele Zugriffe ohne Datenverlust. Optimistic Concurrency Control.                                                                                                                                                                     |
+| Q-03 | Validierung       | Zod (Frontend) + zog (Backend). Doppelte Validierung, deutsche Fehlermeldungen.                                                                                                                                                           |
+| Q-04 | Datenintegrität   | Transaktionssicher, append-only Kassenjournal, Cent-Werte, Soft-Deletes.                                                                                                                                                                  |
 | Q-06 | HTTPS / TLS       | Lokal: Caddy terminiert TLS, vertrauenswürdiges Let's-Encrypt-Zertifikat via `lokal.jotti.rocks` (DNS-01), selbstsignierter Fallback auf `https://<LAN-IP>` (einmalige Browserwarnung), HTTP→HTTPS-Redirect. Prod: nginx + Let's Encrypt. |
-| Q-07 | Rate Limiting     | Login-Endpunkt geschützt (HTTP 429 bei Überschreitung).                                                                                   |
-| Q-08 | Security Headers  | CSP, X-Content-Type-Options, X-Frame-Options, HSTS.                                                                                       |
+| Q-07 | Rate Limiting     | Login-Endpunkt geschützt (HTTP 429 bei Überschreitung).                                                                                                                                                                                   |
+| Q-08 | Security Headers  | CSP, X-Content-Type-Options, X-Frame-Options, HSTS.                                                                                                                                                                                       |
 
 ### Offen
 
@@ -178,15 +176,13 @@ Bei einem Internetausfall während der Veranstaltung soll die Bestellaufnahme we
 | R-04 | Abrechnung pro Servicekraft | Umsatzübersicht pro Servicekraft als Bestandteil von R-01 (`UmsatzProServicekraft[]`). |
 | R-06 | Eigene Übersicht            | KPI-Sektion auf dem Service-Dashboard: eigene Bestellungen und kassierte Zahlungen.    |
 
-> ℹ️ R-07 · Tagesabschluss wurde als K-22 in den Kasse-Kontext verschoben.
-
 ### Offen
 
 ---
 
 #### R-05 · Produktumsatz-Reporting
 
-> **Rolle:** Admin · **Prio:** Should-have
+> **Rolle:** Admin · **Prio:** Nice-to-have
 
 Der Admin kann Auswertungen über Produktumsätze in der gewählten Kassensitzung einsehen: verkaufte Mengen pro Produkt und Variante, ein Ranking der meistverkauften Varianten sowie Gesamteinnahmen pro Produkt.
 
@@ -217,20 +213,20 @@ Der Admin kann Umsätze, Bestellungen und Artikeldaten als CSV exportieren, um s
 
 jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht nach § 146a AO. Die folgenden Anforderungen sind verbindlich. Rechtliche Grundlagen und Compliance-Entscheidungen: [compliance.md](compliance.md).
 
-| ID   | Titel               | Phase | Status                     | Prio        |
-| ---- | ------------------- | ----- | -------------------------- | ----------- |
-| F-01 | Seriennummer        | 1     | ✅                         | Must        |
-| F-07 | Steuersätze         | 1     | ✅                         | Must        |
-| F-03 | Belegausgabepflicht | 1/2   | ✅                         | Must        |
-| F-05 | ELSTER-Meldung      | 1     | ✅ Doku                    | Must (Doku) |
-| F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung | Should      |
-| F-11 | Verfahrensdokumentation | 1 | ✅ Doku                  | Should (Doku) |
-| F-02 | TSE-Integration     | 2     | ✅                         | Should      |
-| F-04 | DSFinV-K Export     | 2     | ✅                         | Should      |
-| F-09 | eBeleg              | 2     | 🔲                         | Nice        |
-| F-10 | 10-Jahres-Archivierung | 3   | ✅ Doku                    | Should (Doku) |
-| F-08 | GoBD-Integritätsnachweis | 3 | 🔲                         | Nice        |
-| F-12 | ELSTER-Meldung (API) | 3     | 🔲                         | Nice        |
+| ID   | Titel                    | Status                     | Prio          |
+| ---- | ------------------------ | -------------------------- | ------------- |
+| F-01 | Seriennummer             | ✅                         | Must          |
+| F-07 | Steuersätze              | ✅                         | Must          |
+| F-03 | Belegausgabepflicht      | ✅                         | Must          |
+| F-05 | ELSTER-Meldung           | ✅ Doku                    | Must (Doku)   |
+| F-06 | Abrechnungskreis         | ✅ Pro Tisch/Kassensitzung | Should        |
+| F-11 | Verfahrensdokumentation  | ✅ Doku                    | Should (Doku) |
+| F-02 | TSE-Integration          | ✅                         | Should        |
+| F-04 | DSFinV-K Export          | ✅                         | Should        |
+| F-09 | eBeleg                   | 🔲                         | Nice          |
+| F-10 | 10-Jahres-Archivierung   | ✅ Doku                    | Should (Doku) |
+| F-08 | GoBD-Integritätsnachweis | 🔲                         | Nice          |
+| F-12 | ELSTER-Meldung (API)     | 🔲                         | Nice          |
 
 **Legende:** ✅ Umgesetzt · 🔲 Offen. **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
 

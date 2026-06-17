@@ -163,8 +163,8 @@ const (
 	zahlungBonID    = "22222222-2222-2222-2222-222222222222"
 )
 
-// bestellungEvent baut eine offene Bestellung (Forderungsentstehung): ein Bier,
-// TSE-signiert als Bestellung-V1, am Tisch 42 aufgenommen.
+// bestellungEvent baut eine offene Bestellung (geldneutrale AVBestellung): ein
+// Bier, TSE-signiert als Bestellung-V1, am Tisch 42 aufgenommen.
 func bestellungEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -203,8 +203,8 @@ func bestellungEvent(t *testing.T) event.Event {
 	}
 }
 
-// zahlungEvent baut die spätere Barzahlung desselben Tisches (Umsatzrealisierung
-// und Forderungsauflösung), TSE-signiert als Kassenbeleg-V1.
+// zahlungEvent baut die spätere Barzahlung desselben Tisches: der einzige
+// umsatzwirksame Beleg (Revenue-at-payment), TSE-signiert als Kassenbeleg-V1.
 func zahlungEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -243,10 +243,11 @@ func zahlungEvent(t *testing.T) event.Event {
 	}
 }
 
-// TestMapTischablaufTrennt belegt die getrennte Abbildung des gastronomischen
-// Tisch-Ablaufs: die Bestellung erscheint als Forderungsentstehung (kein
-// Umsatz), die Zahlung als Umsatzrealisierung. Beide tragen denselben
-// Abrechnungskreis und je eine eigene TSE-Transaktion.
+// TestMapTischablaufTrennt belegt Revenue-at-payment für den gastronomischen
+// Tisch-Ablauf: die Bestellung ist eine geldneutrale AVBestellung (TSE-gesichert,
+// informative Positionen, aber UMS_BRUTTO=0.00 und kein Beitrag zu USt, Zahlart
+// oder Kassenbestand), die Zahlung der einzige umsatzwirksame Beleg. Beide tragen
+// denselben Abrechnungskreis und je eine eigene TSE-Transaktion.
 func TestMapTischablaufTrennt(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
@@ -259,18 +260,25 @@ func TestMapTischablaufTrennt(t *testing.T) {
 	const erstellung = "2026-06-16T14:30:00Z"
 
 	wantRecords := map[string][][]string{
-		// Getrennte Geschäftsvorfälle: Bestellung = AVBestellung, Zahlung = Beleg.
+		// Beide Vorgänge sind ihrem Tisch zugeordnet und je TSE-gesichert.
 		"allocation_groups.csv": {
 			{testSerial, erstellung, "3", bestellungBonID, "Tisch 42"},
 			{testSerial, erstellung, "3", zahlungBonID, "Tisch 42"},
 		},
-		"datapayment.csv": {
-			{testSerial, erstellung, "3", bestellungBonID, "Forderungsentstehung", "Forderungsentstehung", "EUR", "4.50", "4.50"},
-			{testSerial, erstellung, "3", zahlungBonID, "Bar", "Bar", "EUR", "4.50", "4.50"},
-		},
 		"transactions_tse.csv": {
 			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "Bestellung-V1", "11", "BESTELLSIG==", "", "V0;bestell"},
 			{testSerial, erstellung, "3", zahlungBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "ZAHLSIG==", "", "V0;zahl"},
+		},
+		// Nur die Zahlung ist geldwirksam: die AVBestellung trägt keine Zahlart bei.
+		"datapayment.csv": {
+			{testSerial, erstellung, "3", zahlungBonID, "Bar", "Bar", "EUR", "4.50", "4.50"},
+		},
+		// Umsatz entsteht genau einmal (bei der Zahlung), keine Verdopplung.
+		"businesscases.csv": {
+			{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "4.50", "3.78", "0.72"},
+		},
+		"payment.csv": {
+			{testSerial, erstellung, "3", "Bar", "Bar", "4.50"},
 		},
 	}
 
@@ -281,28 +289,48 @@ func TestMapTischablaufTrennt(t *testing.T) {
 		}
 	}
 
-	// Forderungsentstehung trägt keinen Umsatz: Bestellung GV_TYP, Zahlung GV_TYP.
+	// Die geldneutrale AVBestellung trägt nichts zu transactions_vat/lines_vat bei.
+	for _, file := range []string{"transactions_vat.csv", "lines_vat.csv"} {
+		table := tableByFile(t, archive, file)
+		for _, rec := range table.Records {
+			if rec[3] == bestellungBonID {
+				t.Errorf("%s enthält Zeile für die AVBestellung: %v", file, rec)
+			}
+		}
+	}
+
+	// lines.csv hält die Bestellpositionen informativ (mit Preis, GV_TYP=Umsatz).
 	lines := tableByFile(t, archive, "lines.csv")
-	if got := field(t, lines, 0, "GV_TYP"); got != "Forderungsentstehung" {
-		t.Errorf("bestellung GV_TYP = %q, want Forderungsentstehung", got)
+	if got := field(t, lines, 0, "GV_TYP"); got != "Umsatz" {
+		t.Errorf("bestellung GV_TYP = %q, want Umsatz", got)
+	}
+	if got := field(t, lines, 0, "STK_BR"); got != "4.50" {
+		t.Errorf("bestellung STK_BR = %q, want 4.50 (informativer Preis)", got)
 	}
 	if got := field(t, lines, 1, "GV_TYP"); got != "Umsatz" {
 		t.Errorf("zahlung GV_TYP = %q, want Umsatz", got)
 	}
 
-	// BON_TYP trennt offene Bestellung und Zahlungsbeleg.
+	// BON_TYP trennt offene Bestellung und Zahlungsbeleg; die AVBestellung trägt
+	// UMS_BRUTTO=0.00, der Umsatz erscheint erst bei der Zahlung.
 	transactions := tableByFile(t, archive, "transactions.csv")
 	if got := field(t, transactions, 0, "BON_TYP"); got != "AVBestellung" {
 		t.Errorf("bestellung BON_TYP = %q, want AVBestellung", got)
 	}
+	if got := field(t, transactions, 0, "UMS_BRUTTO"); got != "0.00" {
+		t.Errorf("bestellung UMS_BRUTTO = %q, want 0.00", got)
+	}
 	if got := field(t, transactions, 1, "BON_TYP"); got != "Beleg" {
 		t.Errorf("zahlung BON_TYP = %q, want Beleg", got)
 	}
+	if got := field(t, transactions, 1, "UMS_BRUTTO"); got != "4.50" {
+		t.Errorf("zahlung UMS_BRUTTO = %q, want 4.50", got)
+	}
 
-	// Nur die Barzahlung fließt in den Kassenbestand, nicht die Forderung.
+	// Nur die Barzahlung fließt in den Kassenbestand, nicht die AVBestellung.
 	closing := tableByFile(t, archive, "cashpointclosing.csv")
 	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "4.50" {
-		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 4.50 (nur Zahlung, nicht Forderung)", got)
+		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 4.50 (nur Zahlung, nicht AVBestellung)", got)
 	}
 }
 
@@ -373,9 +401,11 @@ func stornierungEvent(t *testing.T) event.Event {
 	}
 }
 
-// TestMapTischStornoNegativeWithReference belegt das Radierverbot: der Storno ist
-// ein eigener Negativ-Beleg (BON_STORNO=1, umgekehrte Vorzeichen) und verweist in
-// references.csv per REF_BON_ID auf die Ursprungsbestellung.
+// TestMapTischStornoNegativeWithReference belegt das Radierverbot für die
+// geldneutrale AVBestellung: der Storno ist ein eigener Negativ-Beleg
+// (BON_STORNO=1, negierte MENGE) und verweist in references.csv per REF_BON_ID auf
+// die Ursprungsbestellung. Da Bestellung und Storno geldneutral sind, trägt eine
+// reine Bestell-/Storno-Sitzung nichts zu USt, Zahlart und Kassenbestand bei.
 func TestMapTischStornoNegativeWithReference(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
@@ -392,19 +422,6 @@ func TestMapTischStornoNegativeWithReference(t *testing.T) {
 		"references.csv": {
 			{testSerial, erstellung, "3", stornoBonID, "", "Transaktion", "", erstellung, testSerial, "3", bestellungBonID},
 		},
-		// Ursprung positiv, Storno mit umgekehrtem Vorzeichen.
-		"transactions_vat.csv": {
-			{testSerial, erstellung, "3", bestellungBonID, "1", "4.50", "3.78", "0.72"},
-			{testSerial, erstellung, "3", stornoBonID, "1", "-4.50", "-3.78", "-0.72"},
-		},
-		"lines_vat.csv": {
-			{testSerial, erstellung, "3", bestellungBonID, "1", "1", "4.50", "3.78", "0.72"},
-			{testSerial, erstellung, "3", stornoBonID, "1", "1", "-4.50", "-3.78", "-0.72"},
-		},
-		"datapayment.csv": {
-			{testSerial, erstellung, "3", bestellungBonID, "Forderungsentstehung", "Forderungsentstehung", "EUR", "4.50", "4.50"},
-			{testSerial, erstellung, "3", stornoBonID, "Forderungsentstehung", "Forderungsentstehung", "EUR", "-4.50", "-4.50"},
-		},
 		// Eigene TSE-Signatur des Stornos.
 		"transactions_tse.csv": {
 			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "Bestellung-V1", "11", "BESTELLSIG==", "", "V0;bestell"},
@@ -419,19 +436,32 @@ func TestMapTischStornoNegativeWithReference(t *testing.T) {
 		}
 	}
 
-	// Bonkopf: der Storno trägt BON_STORNO=1 und negativen UMS_BRUTTO, der Ursprung bleibt unberührt.
+	// Geldneutralität: eine reine Bestell-/Storno-Sitzung erzeugt keine
+	// USt-, Zahlart- oder Geschäftsvorfall-Zeilen.
+	for _, file := range []string{"transactions_vat.csv", "lines_vat.csv", "datapayment.csv", "businesscases.csv", "payment.csv"} {
+		table := tableByFile(t, archive, file)
+		if len(table.Records) != 0 {
+			t.Errorf("%s muss leer sein (geldneutrale AVBestellung), hat %d Zeilen", file, len(table.Records))
+		}
+	}
+
+	// Bonkopf: der Storno trägt BON_STORNO=1; beide Vorgänge sind geldneutral (UMS_BRUTTO=0.00).
 	transactions := tableByFile(t, archive, "transactions.csv")
 	if got := field(t, transactions, 0, "BON_STORNO"); got != "0" {
 		t.Errorf("ursprung BON_STORNO = %q, want 0", got)
 	}
+	if got := field(t, transactions, 0, "UMS_BRUTTO"); got != "0.00" {
+		t.Errorf("ursprung UMS_BRUTTO = %q, want 0.00", got)
+	}
 	if got := field(t, transactions, 1, "BON_STORNO"); got != "1" {
 		t.Errorf("storno BON_STORNO = %q, want 1", got)
 	}
-	if got := field(t, transactions, 1, "UMS_BRUTTO"); got != "-4.50" {
-		t.Errorf("storno UMS_BRUTTO = %q, want -4.50", got)
+	if got := field(t, transactions, 1, "UMS_BRUTTO"); got != "0.00" {
+		t.Errorf("storno UMS_BRUTTO = %q, want 0.00", got)
 	}
 
-	// Positionsebene: negierte MENGE statt P_STORNO-Flag (DSFinV-K Tz. 4.2.3).
+	// Positionsebene: negierte MENGE statt P_STORNO-Flag (DSFinV-K Tz. 4.2.3); der
+	// informative Preis bleibt erhalten.
 	lines := tableByFile(t, archive, "lines.csv")
 	if got := field(t, lines, 1, "MENGE"); got != "-1.000" {
 		t.Errorf("storno MENGE = %q, want -1.000", got)
@@ -748,9 +778,10 @@ func differenzEvent(t *testing.T) event.Event {
 }
 
 // TestMapKassenabschlussGemischteSitzung belegt das Kassenabschlussmodul über eine
-// gemischte Sitzung: Anfangsbestand, eine Bestellung (Forderung) plus ihre Zahlung
-// (Umsatz), ein Direktverkauf (Umsatz) sowie Geldtransit, Auszahlung und
-// Kassendifferenz. businesscases.csv und payment.csv lassen sich gegen die
+// gemischte Sitzung: Anfangsbestand, eine geldneutrale Bestellung plus ihre
+// Zahlung (Umsatz), ein Direktverkauf (Umsatz) sowie Geldtransit, Auszahlung und
+// Kassendifferenz. Der Umsatz entsteht nur bei den Zahlungen (Revenue-at-payment),
+// nicht bei der Bestellung. businesscases.csv und payment.csv lassen sich gegen die
 // Einzelbons abgleichen; cash_per_currency.csv weist den EUR-Bestand aus.
 func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 	snapshot := testSnapshot()
@@ -758,7 +789,7 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 
 	events := []event.Event{
 		eroeffnetEvent(t, 10000), // Anfangsbestand 100,00 €
-		bestellungEvent(t),       // Forderung 4,50 € (Bier, 19 %)
+		bestellungEvent(t),       // AVBestellung 4,50 € (Bier, 19 %, geldneutral)
 		zahlungEvent(t),          // Umsatz 4,50 € (Bier, 19 %)
 		direktverkaufEvent(t),    // Umsatz 4,50 € (Bier, 19 %)
 		geldtransitEvent(t),      // Entnahme −50,00 €
@@ -774,20 +805,19 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 	const erstellung = "2026-06-16T14:30:00Z"
 
 	wantRecords := map[string][][]string{
-		// Je Geschäftsvorfalltyp und Steuersatz: Umsatz (2 × Bier 19 %) vor
-		// Forderung, dann die nicht-steuerbaren Bargeldbewegungen (Schlüssel 5).
+		// Je Geschäftsvorfalltyp und Steuersatz: Umsatz (2 × Bier 19 %, nur die
+		// Zahlungen) vor den nicht-steuerbaren Bargeldbewegungen (Schlüssel 5). Die
+		// geldneutrale AVBestellung erzeugt keine eigene Geschäftsvorfall-Zeile.
 		"businesscases.csv": {
 			{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "9.00", "7.56", "1.44"},
-			{testSerial, erstellung, "3", "Forderungsentstehung", "", "0", "1", "4.50", "3.78", "0.72"},
 			{testSerial, erstellung, "3", "Anfangsbestand", "", "0", "5", "100.00", "100.00", "0.00"},
 			{testSerial, erstellung, "3", "Geldtransit", "", "0", "5", "-50.00", "-50.00", "0.00"},
 			{testSerial, erstellung, "3", "Auszahlung", "", "0", "5", "-10.00", "-10.00", "0.00"},
 			{testSerial, erstellung, "3", "DifferenzSollIst", "", "0", "5", "-1.00", "-1.00", "0.00"},
 		},
-		// Bar = 100 + 4,50 + 4,50 − 50 − 10 − 1 = 48,00; Forderung = 4,50.
+		// Bar = 100 + 4,50 + 4,50 − 50 − 10 − 1 = 48,00; die AVBestellung trägt nichts bei.
 		"payment.csv": {
 			{testSerial, erstellung, "3", "Bar", "Bar", "48.00"},
-			{testSerial, erstellung, "3", "Forderungsentstehung", "Forderungsentstehung", "4.50"},
 		},
 		"cash_per_currency.csv": {
 			{testSerial, erstellung, "3", "EUR", "48.00"},

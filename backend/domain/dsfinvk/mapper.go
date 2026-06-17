@@ -27,24 +27,22 @@ type SignaturNachladen func(txID string) (*kasse.TSEData, error)
 
 // Feste DSFinV-K-Ausprägungen und jotti-Kassenidentität.
 const (
-	bonTypBeleg      = "Beleg"                // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
-	bonTypBestellung = "AVBestellung"         // Anhang B: Bestellung als anderer Vorgang, noch kein Umsatz
-	gvTypUmsatz      = "Umsatz"               // Anhang C: realisierter Umsatz auf Positionsebene
-	gvTypForderung   = "Forderungsentstehung" // Anhang C: offene Bestellung, Umsatz noch nicht realisiert
+	bonTypBeleg      = "Beleg"        // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
+	bonTypBestellung = "AVBestellung" // Anhang B: Bestellung als anderer Vorgang, geldneutral
+	gvTypUmsatz      = "Umsatz"       // Anhang C: realisierter Umsatz auf Positionsebene
 	// GV-Typen, die ausschließlich den Kassenbestand betreffen (Anhang C). jotti
 	// erfasst sie als BON_TYP "Beleg" mit einer einzigen nicht-steuerbaren Position.
-	gvTypAnfangsbestand   = "Anfangsbestand"       // Bargeldbestand zu Sitzungsbeginn (Eröffnungs-Event)
-	gvTypGeldtransit      = "Geldtransit"          // Bargeld-Ein-/Entnahme (z. B. zur Bank/Tresor)
-	gvTypAuszahlung       = "Auszahlung"           // Bar-Abfluss ohne USt-Bezug
-	gvTypDifferenzSollIst = "DifferenzSollIst"     // gebuchte Kassendifferenz aus dem Kassensturz
-	zahlartBar            = "Bar"                  // Anhang D: jotti kassiert ausschließlich bar
-	zahlartForderung      = "Forderungsentstehung" // Anhang D: Forderung statt Geldzufluss bei offener Bestellung
-	refTypTransaktion     = "Transaktion"          // Anhang E: REF_TYP für eine Referenz innerhalb der DSFinV-K (Storno → Ursprung)
-	tseReferenzID         = "1"                    // eine TSS pro Kasse, im Abschluss als ID 1 referenziert
-	land                  = "DEU"                  // ISO 3166 ALPHA-3
-	basiswaehrung         = "EUR"                  // ISO 4217
-	tsePDEncoding         = "UTF-8"                // Encoding der ProcessData
-	zertifikatChunk       = 1000                   // max. Zeichen je TSE_ZERTIFIKAT-Feld
+	gvTypAnfangsbestand   = "Anfangsbestand"   // Bargeldbestand zu Sitzungsbeginn (Eröffnungs-Event)
+	gvTypGeldtransit      = "Geldtransit"      // Bargeld-Ein-/Entnahme (z. B. zur Bank/Tresor)
+	gvTypAuszahlung       = "Auszahlung"       // Bar-Abfluss ohne USt-Bezug
+	gvTypDifferenzSollIst = "DifferenzSollIst" // gebuchte Kassendifferenz aus dem Kassensturz
+	zahlartBar            = "Bar"              // Anhang D: jotti kassiert ausschließlich bar
+	refTypTransaktion     = "Transaktion"      // Anhang E: REF_TYP für eine Referenz innerhalb der DSFinV-K (Storno → Ursprung)
+	tseReferenzID         = "1"                // eine TSS pro Kasse, im Abschluss als ID 1 referenziert
+	land                  = "DEU"              // ISO 3166 ALPHA-3
+	basiswaehrung         = "EUR"              // ISO 4217
+	tsePDEncoding         = "UTF-8"            // Encoding der ProcessData
+	zertifikatChunk       = 1000               // max. Zeichen je TSE_ZERTIFIKAT-Feld
 	kasseBrand            = "jotti"
 	kasseModell           = "jotti mPOS"
 	kasseSoftware         = "jotti"
@@ -68,11 +66,12 @@ type beleg struct {
 	bonID            string
 	bonNr            int
 	bonTyp           string // BON_TYP: "Beleg" (Zahlung) oder "AVBestellung" (offene Bestellung)
-	gvTyp            string // GV_TYP der Positionen: "Umsatz" oder "Forderungsentstehung"
-	zahlart          string // ZAHLART_TYP: "Bar" oder "Forderungsentstehung"
+	gvTyp            string // GV_TYP der Positionen: "Umsatz" oder ein Bargeld-GV-Typ
+	zahlart          string // ZAHLART_TYP: "Bar"; leer bei der geldneutralen AVBestellung
 	abrechnungskreis string // ABRECHNUNGSKREIS (Tischname); leer ohne Tischbezug (z. B. Direktverkauf)
 	storno           bool
 	barabfluss       bool     // mindert den Kassenbestand (Auszahlung, Geldtransit-Entnahme, Kassenfehlbetrag); steuert das Vorzeichen wie storno
+	geldneutral      bool     // AVBestellung (Bestellung/Storno): TSE-gesichert und informativ in lines.csv, aber ohne Umsatz, USt, Zahlart und Kassenbestandswirkung
 	nichtSteuerbar   bool     // Bargeldbewegung ohne USt-Bezug: eine einzige Position mit UST_SCHLUESSEL 5 statt Steueraufteilung
 	artikeltext      string   // ARTIKELTEXT der synthetischen Position (nur nichtSteuerbar); sonst aus den Positionen
 	refBonIDs        []string // REF_BON_ID je Ursprungsbon (nur Storno); ein Eintrag je referenziertem Vorgang
@@ -127,12 +126,15 @@ func (b *beleg) ustAufteilung() []ustBetrag {
 }
 
 // Map transformiert Snapshot und Events einer Kassensitzung in das typisierte
-// Archiv. Reine Funktion ohne I/O. Belege entstehen aus `bestellung-aufgenommen`
-// (Forderungsentstehung), `zahlung-kassiert` (Umsatzrealisierung), `stornierung-
-// erteilt` (Negativ-Beleg mit Referenz auf den Ursprung), den Direktverkauf-
-// Vorgängen sowie den Bargeldbewegungen (Anfangsbestand, Geldtransit, Auszahlung,
-// Kassendifferenz). Das Kassenabschlussmodul (businesscases, payment,
-// cash_per_currency) aggregiert dieselben Belege je GV-Typ und Zahlart.
+// Archiv. Reine Funktion ohne I/O. Der Umsatz entsteht einmal, bei der Zahlung
+// (Revenue-at-payment, DSFinV-K Tz. 2.7.2): `zahlung-kassiert` ist der einzige
+// umsatzwirksame Beleg. `bestellung-aufgenommen` und `stornierung-erteilt`
+// werden geldneutrale `AVBestellung`-Vorgänge (TSE-gesichert, informative
+// Positionen, aber ohne Umsatz/USt/Zahlart); der Storno trägt zusätzlich eine
+// Referenz auf den Ursprung. Hinzu kommen die Direktverkauf-Vorgänge sowie die
+// Bargeldbewegungen (Anfangsbestand, Geldtransit, Auszahlung, Kassendifferenz).
+// Das Kassenabschlussmodul (businesscases, payment, cash_per_currency) aggregiert
+// dieselben Belege je GV-Typ und Zahlart.
 // signaturNachladen vereinigt während eines TSE-Ausfalls unsigniert persistierte
 // Vorgänge mit ihrer später nachsignierten Signatur (Seitentabelle).
 func Map(snapshot Snapshot, events []event.Event, signaturNachladen SignaturNachladen) (Archive, error) {
@@ -173,18 +175,18 @@ func Map(snapshot Snapshot, events []event.Event, signaturNachladen SignaturNach
 
 // belegeFromEvents leitet die Belege aus den Events ab (nach `id` geordnet, daher
 // liegt ein Ursprungsbon stets vor seinem Storno). Eine `bestellung-aufgenommen`
-// wird zur Forderungsentstehung (Umsatz noch nicht realisiert), eine `zahlung-
-// kassiert` zur Umsatzrealisierung, die die Forderung in bar auflöst. Eine
-// `stornierung-erteilt` ist ein Negativ-Beleg, der die Forderung des Ursprungs
-// zurücknimmt; Direktverkäufe sind eigenständige Barbelege ohne Tischbezug, ihr
-// Storno ein Negativ-Beleg mit Referenz auf den Ursprungsverkauf. BON_NR wird
-// fortlaufend vergeben; BON_ID ist die jeweilige Vorgangs-ID.
+// wird zur geldneutralen `AVBestellung` (TSE-gesichert, noch kein Umsatz), eine
+// `zahlung-kassiert` zur Umsatzrealisierung (der einzige umsatzwirksame Beleg).
+// Eine `stornierung-erteilt` ist ebenfalls geldneutral und verweist auf die
+// Ursprungsbestellung; Direktverkäufe sind eigenständige Barbelege ohne
+// Tischbezug, ihr Storno ein Negativ-Beleg mit Referenz auf den Ursprungsverkauf.
+// BON_NR wird fortlaufend vergeben; BON_ID ist die jeweilige Vorgangs-ID.
 func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg, error) {
 	var belege []beleg
 	bonNr := 0
 	// herkunft bildet jede PositionID auf die BON_ID ihrer Bestellung ab.
-	// PositionIDs sind je Bestellung eindeutig, daher löst der Tisch-Storno seinen
-	// Ursprungsbon (Forderungsentstehung) eindeutig über seine Positionen auf.
+	// PositionIDs sind je Bestellung eindeutig, daher löst der Tisch-Storno seine
+	// Ursprungsbestellung eindeutig über seine Positionen auf.
 	herkunft := map[string]string{}
 
 	for _, ev := range events {
@@ -202,8 +204,8 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bonID:            data.BestellungID,
 				bonNr:            bonNr,
 				bonTyp:           bonTypBestellung,
-				gvTyp:            gvTypForderung,
-				zahlart:          zahlartForderung,
+				gvTyp:            gvTypUmsatz,
+				geldneutral:      true,
 				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
 				start:            zeit(ev),
 				ende:             zeit(ev),
@@ -250,8 +252,8 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bonID:            data.StornierungID,
 				bonNr:            bonNr,
 				bonTyp:           bonTypBestellung,
-				gvTyp:            gvTypForderung,
-				zahlart:          zahlartForderung,
+				gvTyp:            gvTypUmsatz,
+				geldneutral:      true,
 				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
 				storno:           true,
 				refBonIDs:        ursprungsbons(data.Positionen, herkunft),
@@ -624,11 +626,17 @@ func buildTransactions(s Snapshot, erstellung string, belege []beleg) Table {
 	records := make([][]string, 0, len(belege))
 	for bi := range belege {
 		b := &belege[bi]
+		// Die geldneutrale AVBestellung trägt keinen Umsatz (UMS_BRUTTO = 0.00);
+		// ihr Bruttobetrag erscheint nur informativ auf Positionsebene (lines.csv).
+		umsBrutto := b.sign() * b.bruttoCents
+		if b.geldneutral {
+			umsBrutto = 0
+		}
 		records = append(records, []string{
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 			b.bonID, itoa(b.bonNr), b.bonTyp, "",
 			"", storno(b.storno), b.start, b.ende,
-			itoa(b.bedienerID), b.bedienerName, formatAmount(b.sign() * b.bruttoCents),
+			itoa(b.bedienerID), b.bedienerName, formatAmount(umsBrutto),
 			"", "", "", "",
 			"", "", "", "",
 			b.notiz,
@@ -684,6 +692,9 @@ func buildTransactionsVat(s Snapshot, erstellung string, belege []beleg) Table {
 	var records [][]string
 	for bi := range belege {
 		b := &belege[bi]
+		if b.geldneutral {
+			continue
+		}
 		for _, z := range b.ustAufteilung() {
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
@@ -709,9 +720,12 @@ var datapaymentColumns = []column{
 }
 
 func buildDatapayment(s Snapshot, erstellung string, belege []beleg) Table {
-	records := make([][]string, 0, len(belege))
+	var records [][]string
 	for bi := range belege {
 		b := &belege[bi]
+		if b.geldneutral {
+			continue
+		}
 		records = append(records, []string{
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 			b.bonID, b.zahlart, b.zahlart,
@@ -818,6 +832,9 @@ func buildLinesVat(s Snapshot, erstellung string, belege []beleg) Table {
 	var records [][]string
 	for bi := range belege {
 		b := &belege[bi]
+		if b.geldneutral {
+			continue
+		}
 		if b.nichtSteuerbar {
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
@@ -889,14 +906,13 @@ var businesscasesColumns = []column{
 }
 
 // gvTypReihenfolge ordnet die Geschäftsvorfalltypen für eine stabile Ausgabe der
-// businesscases.csv (Umsatz vor Forderung vor den Bargeldbewegungen).
+// businesscases.csv (Umsatz vor den Bargeldbewegungen).
 var gvTypReihenfolge = map[string]int{
 	gvTypUmsatz:           0,
-	gvTypForderung:        1,
-	gvTypAnfangsbestand:   2,
-	gvTypGeldtransit:      3,
-	gvTypAuszahlung:       4,
-	gvTypDifferenzSollIst: 5,
+	gvTypAnfangsbestand:   1,
+	gvTypGeldtransit:      2,
+	gvTypAuszahlung:       3,
+	gvTypDifferenzSollIst: 4,
 }
 
 // gvUstSchluessel ist der Aggregationsschlüssel der businesscases.csv: ein
@@ -914,6 +930,9 @@ func buildBusinesscases(s Snapshot, erstellung string, belege []beleg) Table {
 	summen := map[gvUstSchluessel]ustBetrag{}
 	for bi := range belege {
 		b := &belege[bi]
+		if b.geldneutral {
+			continue
+		}
 		for _, z := range b.ustAufteilung() {
 			key := gvUstSchluessel{gvTyp: b.gvTyp, schluessel: z.schluessel}
 			cur := summen[key]
@@ -963,18 +982,21 @@ var paymentColumns = []column{
 	alpha("ZAHLART_TYP"), alpha("ZAHLART_NAME"), num("Z_ZAHLART_BETRAG", 2),
 }
 
-// zahlartReihenfolge ordnet die Zahlarten der payment.csv (Bar vor Forderung).
+// zahlartReihenfolge ordnet die Zahlarten der payment.csv. jotti kassiert
+// ausschließlich bar; die Map hält die Sortierung offen für künftige Zahlarten.
 var zahlartReihenfolge = map[string]int{
-	zahlartBar:       0,
-	zahlartForderung: 1,
+	zahlartBar: 0,
 }
 
 // buildPayment aggregiert die Beträge je Zahlart (DSFinV-K Anhang D). jotti
-// kennt Bar (alle Geldbewegungen) und Forderungsentstehung (offene Bestellungen).
+// kennt nur Bar; die geldneutrale AVBestellung trägt keine Zahlart bei.
 func buildPayment(s Snapshot, erstellung string, belege []beleg) Table {
 	summen := map[string]int{}
 	for bi := range belege {
 		b := &belege[bi]
+		if b.geldneutral {
+			continue
+		}
 		summen[b.zahlart] += b.sign() * b.bruttoCents
 	}
 
@@ -1034,8 +1056,9 @@ func buildCashPerCurrency(s Snapshot, erstellung string, belege []beleg) Table {
 
 // barbestand summiert die baren Belege (vorzeichenbehaftet): Bareinnahmen und
 // Anfangsbestand mehren, Geldtransit-Entnahmen, Auszahlungen und Stornos mindern
-// den Bestand. Forderungen (offene Bestellungen) bewegen kein Bargeld. Quelle für
-// Z_SE_(BAR)ZAHLUNGEN und den Bargeldbestand der cash_per_currency.csv.
+// den Bestand. Die geldneutrale AVBestellung trägt keine Zahlart "Bar" und bewegt
+// daher kein Bargeld. Quelle für Z_SE_(BAR)ZAHLUNGEN und den Bargeldbestand der
+// cash_per_currency.csv.
 func barbestand(belege []beleg) int {
 	bar := 0
 	for bi := range belege {

@@ -162,22 +162,22 @@ korrekt (keine Forderung mehr im Bestand).
 
 ### Acceptance criteria
 
-- [ ] `bestellung-aufgenommen` erzeugt `transactions.csv` mit
+- [x] `bestellung-aufgenommen` erzeugt `transactions.csv` mit
       `BON_TYP=AVBestellung`, `UMS_BRUTTO=0.00`, eine `transactions_tse.csv`- und
       `allocation_groups.csv`-Zeile sowie `lines.csv`-Positionen mit Preisen.
-- [ ] `bestellung-aufgenommen` erzeugt **keine** Zeile in
+- [x] `bestellung-aufgenommen` erzeugt **keine** Zeile in
       `transactions_vat.csv`, `lines_vat.csv`, `datapayment.csv`,
       `businesscases.csv`, `payment.csv`.
-- [ ] `stornierung-erteilt` ist geldneutral, trägt `BON_STORNO=1` und eine
+- [x] `stornierung-erteilt` ist geldneutral, trägt `BON_STORNO=1` und eine
       `references.csv`-Zeile auf die Ursprungsbestellung.
-- [ ] `businesscases.csv` enthält keinen `GV_TYP=Forderungsentstehung` mehr;
+- [x] `businesscases.csv` enthält keinen `GV_TYP=Forderungsentstehung` mehr;
       `payment.csv` keine `Zahlart=Forderungsentstehung`.
-- [ ] Für eine Bestellung + zugehörige Zahlung (gleiche Ware) weist
+- [x] Für eine Bestellung + zugehörige Zahlung (gleiche Ware) weist
       `businesscases.csv` genau einmal `Umsatz` aus (keine Verdopplung).
-- [ ] Invariante erhalten: `Σ transactions.UMS_BRUTTO == Σ businesscases.Z_UMS_BRUTTO == Σ payment.Z_ZAHLART_BETRAG`.
-- [ ] `Forderungsentstehung`/`Forderungsauflösung` kommen nirgends mehr im
+- [x] Invariante erhalten: `Σ transactions.UMS_BRUTTO == Σ businesscases.Z_UMS_BRUTTO == Σ payment.Z_ZAHLART_BETRAG`.
+- [x] `Forderungsentstehung`/`Forderungsauflösung` kommen nirgends mehr im
       `dsfinvk`-Paket vor.
-- [ ] Golden-Tests (`TestMapTischablaufTrennt`,
+- [x] Golden-Tests (`TestMapTischablaufTrennt`,
       `TestMapTischStornoNegativeWithReference`,
       `TestMapKassenabschlussGemischteSitzung`) aktualisiert und grün; der
       irreführende Kommentar „und Forderungsauflösung“ entfernt/korrigiert.
