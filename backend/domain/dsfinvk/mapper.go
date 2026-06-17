@@ -39,6 +39,7 @@ const (
 	zahlartBar            = "Bar"              // Anhang D: jotti kassiert ausschließlich bar
 	refTypTransaktion     = "Transaktion"      // Anhang E: REF_TYP für eine Referenz innerhalb der DSFinV-K (Storno → Ursprung)
 	tseReferenzID         = "1"                // eine TSS pro Kasse, im Abschluss als ID 1 referenziert
+	tseFehlerAusfall      = "TSE-Ausfall"      // TSE_TA_FEHLER eines unsignierten Ausfall-Vorgangs (noch nicht nachsigniert)
 	land                  = "DEU"              // ISO 3166 ALPHA-3
 	basiswaehrung         = "EUR"              // ISO 4217
 	tsePDEncoding         = "UTF-8"            // Encoding der ProcessData
@@ -85,6 +86,7 @@ type beleg struct {
 	bruttoCents      int
 	tse              *kasse.TSEData
 	tseTxID          string // tx_id zum Nachladen der Signatur aus der Seitentabelle (TSE-Ausfall, später nachsigniert)
+	tseAusfall       bool   // Signierung schlug bei der Erfassung fehl: ohne Nachsignierung trägt der Vorgang eine TSE_TA_FEHLER-Zeile statt zu fehlen
 	notiz            string
 }
 
@@ -241,6 +243,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bruttoCents:      data.GesamtZahlungCents,
 				tse:              data.TSEData,
 				tseTxID:          data.TSETxID,
+				tseAusfall:       data.TSEAusfall,
 				notiz:            data.Kommentar,
 			})
 
@@ -290,6 +293,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bruttoCents:  data.GesamtbetragCents,
 				tse:          data.TSEData,
 				tseTxID:      data.TSETxID,
+				tseAusfall:   data.TSEAusfall,
 				notiz:        data.Kommentar,
 			})
 
@@ -881,16 +885,28 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 	var records [][]string
 	for bi := range belege {
 		b := &belege[bi]
-		if b.tse == nil {
-			continue
+		switch {
+		case b.tse != nil:
+			records = append(records, []string{
+				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
+				b.bonID, tseReferenzID, itoa(b.tse.TransactionNumber),
+				b.tse.LogTimeStart, b.tse.LogTimeEnd, b.tse.ProcessType,
+				itoa(b.tse.SignatureCounter), b.tse.Signature, "",
+				b.tse.QRCodeData,
+			})
+		case b.tseAusfall:
+			// TSE-Ausfall ohne Nachsignierung: der TSE-pflichtige Vorgang ist
+			// (noch) unsigniert. Statt zu fehlen trägt er eine Fehlerzeile —
+			// TSE_TA_FEHLER gesetzt, alle Transaktionsfelder leer (es gab keine
+			// TSE-Transaktion) —, damit jeder Bonkopf eine TSE-Zeile hat.
+			records = append(records, []string{
+				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
+				b.bonID, tseReferenzID, "",
+				"", "", "",
+				"", "", tseFehlerAusfall,
+				"",
+			})
 		}
-		records = append(records, []string{
-			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-			b.bonID, tseReferenzID, itoa(b.tse.TransactionNumber),
-			b.tse.LogTimeStart, b.tse.LogTimeEnd, b.tse.ProcessType,
-			itoa(b.tse.SignatureCounter), b.tse.Signature, "",
-			b.tse.QRCodeData,
-		})
 	}
 
 	return Table{

@@ -263,13 +263,13 @@ unsichtbar.
 
 ### Acceptance criteria
 
-- [ ] Ein unsigniert persistierter Ausfall-Vorgang (kein Backfill) erzeugt eine
+- [x] Ein unsigniert persistierter Ausfall-Vorgang (kein Backfill) erzeugt eine
       `transactions_tse.csv`-Zeile mit `TSE_TA_FEHLER` gesetzt und leerer
       `TSE_TA_SIG`.
-- [ ] Nach Nachsignierung erscheint weiterhin die vollständige signierte Zeile
+- [x] Nach Nachsignierung erscheint weiterhin die vollständige signierte Zeile
       (bestehendes Verhalten, `TestMapNachsigniertVorgang` bleibt grün).
-- [ ] Jeder Bonkopf-Vorgang hat genau eine `transactions_tse.csv`-Zeile.
-- [ ] Neuer Test deckt den Ausfall-ohne-Backfill-Fall ab.
+- [x] Jeder Bonkopf-Vorgang hat genau eine `transactions_tse.csv`-Zeile.
+- [x] Neuer Test deckt den Ausfall-ohne-Backfill-Fall ab.
 
 ---
 

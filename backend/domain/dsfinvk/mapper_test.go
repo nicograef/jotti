@@ -1022,6 +1022,51 @@ func TestMapNachsigniertVorgang(t *testing.T) {
 	}
 }
 
+// TestMapAusfallOhneNachsignierungFehlerzeile belegt Finding 4: ein während eines
+// TSE-Ausfalls unsigniert persistierter, (noch) nicht nachsignierter Vorgang
+// fehlt nicht länger in transactions_tse.csv, sondern trägt eine Fehlerzeile mit
+// gesetztem TSE_TA_FEHLER und leerer Signatur. So hat jeder Bonkopf-Vorgang
+// genau eine TSE-Zeile.
+func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
+	eventSig := &kasse.TSEData{
+		TransactionNumber: 4711, SignatureCounter: 12, SerialNumberTSE: "abc123serial",
+		LogTimeStart: "2026-06-16T12:00:00Z", LogTimeEnd: "2026-06-16T12:00:01Z",
+		Signature: "EVENTSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;event",
+	}
+	signed := zahlungMitTxEvent(t, 1, nachsigniertSignedBonID, "tx-signed", eventSig, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
+	outage := zahlungMitTxEvent(t, 2, nachsigniertOutageBonID, "tx-outage", nil, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
+
+	// Kein Backfill: ohne Seitentabelle bleibt der Ausfall-Vorgang unsigniert.
+	archive, err := Map(testSnapshot(), []event.Event{signed, outage}, nil)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	const erstellung = "2026-06-16T14:30:00Z"
+	want := [][]string{
+		{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", "V0;event"},
+		{testSerial, erstellung, "3", nachsigniertOutageBonID, "1", "", "", "", "", "", "", tseFehlerAusfall, ""},
+	}
+	tse := tableByFile(t, archive, "transactions_tse.csv")
+	if !reflect.DeepEqual(tse.Records, want) {
+		t.Errorf("transactions_tse.csv records =\n%#v\nwant\n%#v", tse.Records, want)
+	}
+
+	// Die Fehlerzeile trägt den Vermerk, aber keine Signatur.
+	if got := field(t, tse, 1, "TSE_TA_FEHLER"); got != tseFehlerAusfall {
+		t.Errorf("TSE_TA_FEHLER = %q, want %q", got, tseFehlerAusfall)
+	}
+	if got := field(t, tse, 1, "TSE_TA_SIG"); got != "" {
+		t.Errorf("TSE_TA_SIG = %q, want leer", got)
+	}
+
+	// Jeder Bonkopf-Vorgang hat genau eine TSE-Zeile (signiert oder als Ausfall).
+	transactions := tableByFile(t, archive, "transactions.csv")
+	if len(tse.Records) != len(transactions.Records) {
+		t.Errorf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tse.Records), len(transactions.Records))
+	}
+}
+
 func TestErstellungszeitpunkt(t *testing.T) {
 	fallback := time.Date(2026, 6, 16, 14, 30, 0, 0, time.UTC)
 	abschlussZeit := time.Date(2026, 6, 16, 23, 0, 0, 0, time.UTC)
