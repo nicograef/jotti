@@ -42,6 +42,7 @@ const (
 	land                  = "DEU"              // ISO 3166 ALPHA-3
 	basiswaehrung         = "EUR"              // ISO 4217
 	tsePDEncoding         = "UTF-8"            // Encoding der ProcessData
+	tseZeitformat         = "utcTime"          // TSE_ZEITFORMAT: TSE_TA_START/ENDE sind RFC3339-UTC, nicht unixTime
 	zertifikatChunk       = 1000               // max. Zeichen je TSE_ZERTIFIKAT-Feld
 	kasseBrand            = "jotti"
 	kasseModell           = "jotti mPOS"
@@ -597,7 +598,7 @@ func buildTSE(s Snapshot, erstellung string, belege []beleg) Table {
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 		tseReferenzID, tseSerial(belege), s.TSEStammdaten.SignaturAlgorithmus,
-		s.TSEStammdaten.LogTimeFormat, tsePDEncoding, s.TSEStammdaten.PublicKey,
+		tseZeitformat, tsePDEncoding, s.TSEStammdaten.PublicKey,
 		certChunk(s.TSEStammdaten.Zertifikat, 0), certChunk(s.TSEStammdaten.Zertifikat, 1),
 	}
 

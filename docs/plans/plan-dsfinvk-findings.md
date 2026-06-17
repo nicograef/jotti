@@ -204,10 +204,11 @@ fiskaly-Meldung), wird aber nicht mehr gelesen.
 
 ### Acceptance criteria
 
-- [ ] `tse.csv` führt `TSE_ZEITFORMAT=utcTime`.
-- [ ] Genauer Wert gegen die DSFinV-K-Spec bestätigt (`utcTime` vs. exakte
-      Schreibweise).
-- [ ] Golden-Test angepasst; `go test ./domain/dsfinvk/...` grün.
+- [x] `tse.csv` führt `TSE_ZEITFORMAT=utcTime`.
+- [x] Genauer Wert gegen die DSFinV-K-Spec bestätigt (`utcTime` vs. exakte
+      Schreibweise). DSFinV-K Stamm_TSE lässt für `TSE_ZEITFORMAT` genau
+      `unixTime`/`utcTime`/`unknown` zu; RFC3339-UTC entspricht `utcTime`.
+- [x] Golden-Test angepasst; `go test ./domain/dsfinvk/...` grün.
 
 ---
 

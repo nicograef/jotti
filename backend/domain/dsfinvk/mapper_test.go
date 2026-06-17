@@ -112,7 +112,7 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 			{testSerial, erstellung, "3", "2", "7.00", "Ermäßigter Steuersatz"},
 		},
 		"tse.csv": {
-			{testSerial, erstellung, "3", "1", "abc123serial", "ecdsa-plain-SHA256", "unixTime", "UTF-8", "PUBKEY==", "CERTBASE64", ""},
+			{testSerial, erstellung, "3", "1", "abc123serial", "ecdsa-plain-SHA256", "utcTime", "UTF-8", "PUBKEY==", "CERTBASE64", ""},
 		},
 		"location.csv": {
 			{testSerial, erstellung, "3", "TSV Beispiel", "Hauptstr. 1", "12345", "Musterdorf", "DEU", ""},
