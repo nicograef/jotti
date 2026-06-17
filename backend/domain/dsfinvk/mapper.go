@@ -483,10 +483,11 @@ var cashpointclosingColumns = []column{
 
 func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table {
 	bar := barbestand(belege)
+	buchungstag := s.Erstellung.UTC().Format(time.DateOnly)
 
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-		"", Version,
+		buchungstag, Version,
 		belege[0].bonID, belege[len(belege)-1].bonID,
 		s.Betreiber.Vereinsname, s.Betreiber.Strasse, s.Betreiber.Plz, s.Betreiber.Ort, land,
 		ptr(s.Betreiber.Steuernummer), ptr(s.Betreiber.UstID),

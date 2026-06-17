@@ -292,18 +292,21 @@ Code-Änderung).
 
 ### Acceptance criteria
 
-- [ ] `cashpointclosing.csv` führt `Z_BUCHUNGSTAG` im Format `YYYY-MM-DD`;
+- [x] `cashpointclosing.csv` führt `Z_BUCHUNGSTAG` im Format `YYYY-MM-DD`;
       Golden-Test angepasst.
-- [ ] Frontend zeigt für `kassensitzung_nicht_gefunden` eine spezifische
+- [x] Frontend zeigt für `kassensitzung_nicht_gefunden` eine spezifische
       Meldung statt der generischen.
-- [ ] `UST_SCHLUESSEL` 5 (nicht steuerbar) / 6 (umsatzsteuerfrei) gegen Anlage 2
+- [x] `UST_SCHLUESSEL` 5 (nicht steuerbar) / 6 (umsatzsteuerfrei) gegen Anlage 2
       bestätigt; Befund in `docs/compliance.md` oder als Code-Kommentar notiert.
+      Bestätigt gegen die DFKA-Taxonomie Kassendaten (Quelle der Anlage 2):
+      ID 5 = „Nicht Steuerbar“ (0,00 %), ID 6 = „Umsatzsteuerfrei“ (0,00 %) —
+      keine Code-Änderung nötig, Befund als Kommentar in `dsfinvk.go` notiert.
 
 ---
 
 ## Verifikation (alle Phasen)
 
-- [ ] `make build` ✓
-- [ ] `make lint-backend` ✓ (`go vet`, `goimports`)
-- [ ] `make test` ✓ (`go test -tags=unit -race ./...`)
-- [ ] `make test-frontend` ✓ (für Phase 5)
+- [x] `make build` ✓
+- [x] `make lint-backend` ✓ (`go vet`, `goimports`)
+- [x] `make test` ✓ (`go test -tags=unit -race ./...`)
+- [x] `make test-frontend` ✓ (für Phase 5)

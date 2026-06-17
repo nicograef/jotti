@@ -1,8 +1,9 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { BackendError, BackendSingleton } from '@/lib/Backend'
+import { BackendSingleton } from '@/lib/Backend'
 import { triggerBrowserDownload } from '@/lib/download'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { ReportingBackend } from './ReportingBackend'
 import type { Kassensitzung, LiveReportingData, ReportingData } from './types'
@@ -46,11 +47,18 @@ export function useDsfinvkExport() {
       toast.success('DSFinV-K-Archiv heruntergeladen.')
     },
     onError: (error) => {
-      const message =
-        error instanceof BackendError && error.code === 'leere_kassensitzung'
-          ? 'Diese Kassensitzung enthält keine Vorgänge zum Exportieren.'
-          : 'Der DSFinV-K-Export ist fehlgeschlagen.'
-      toast.error(message)
+      toast.error(
+        getActionErrorMessage({
+          actionLabel: 'DSFinV-K-Export',
+          error,
+          byCode: {
+            leere_kassensitzung:
+              'Diese Kassensitzung enthält keine Vorgänge zum Exportieren.',
+            kassensitzung_nicht_gefunden:
+              'Die gewählte Kassensitzung wurde nicht gefunden. Bitte neu auswählen und erneut versuchen.',
+          },
+        }),
+      )
     },
   })
   return { exportieren: mutation.mutate, isPending: mutation.isPending }

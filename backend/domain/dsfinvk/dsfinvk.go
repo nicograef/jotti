@@ -101,6 +101,11 @@ const ustNichtSteuerbar = 5
 // (7 %), 6 = umsatzsteuerfrei (0 %, z. B. Zweckbetrieb § 67a AO). Die
 // Steueraufteilung entfaltet kombi vorab in regel und ermäßigt, daher kommt hier
 // nie KombiSteuersatz an.
+//
+// Die Schlüssel 5 und 6 sind gegen die DFKA-Taxonomie Kassendaten (Quelle der
+// DSFinV-K-Anlage 2) bestätigt: ID 5 = "Nicht Steuerbar" (0,00 %), ID 6 =
+// "Umsatzsteuerfrei" (0,00 %). ID 7 (Umsatzsteuer nicht ermittelbar) dient nur
+// der Forderungsauflösung und entfällt in jottis Revenue-at-payment-Modell.
 func ustSchluessel(satz steuer.Steuersatz) int {
 	switch satz {
 	case steuer.RegelSteuersatz:
