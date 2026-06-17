@@ -228,7 +228,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | F-02 | TSE-Integration     | 2     | ✅                         | Should      |
 | F-04 | DSFinV-K Export     | 2     | ✅                         | Should      |
 | F-09 | eBeleg              | 2     | 🔲                         | Nice        |
-| F-10 | 10-Jahres-Archivierung | 3   | 🔲                         | Should      |
+| F-10 | 10-Jahres-Archivierung | 3   | ✅ Doku                    | Should (Doku) |
 | F-08 | GoBD-Integritätsnachweis | 3 | 🔲                         | Nice        |
 
 **Legende:** ✅ Umgesetzt · 🔲 Offen. **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
@@ -278,21 +278,6 @@ F-08 ergänzt stattdessen einen read-only Selbsttest, der die bestehenden Garant
 - [ ] Prüft, dass jeder signierpflichtige Event entweder eine TSE-Signatur trägt oder als TSE-Ausfall markiert und in der Nachsignier-Outbox vorhanden ist (keine still-unsignierten Geschäftsvorfälle)
 - [ ] Liefert einen kompakten Report (geprüfte Subjects, gefundene Abweichungen) für Admin und Betriebsprüfer
 - [ ] Kein Schema-Eingriff, keine neue Spalte, keine Hash-Chain
-
----
-
-#### F-10 · 10-Jahres-Archivierung
-
-> **Prio:** Should
-
-§§ 146, 147 AO und GoBD verlangen, alle steuerlich relevanten Daten 10 Jahre aufzubewahren: jederzeit verfügbar, maschinell auswertbar und unveränderbar. Die Aufbewahrung selbst (Backups, Speicher) ist Betreiberpflicht ([compliance.md §8](compliance.md)); jotti stellt die Daten dafür in einem vollständigen, selbst-erklärenden Format bereit.
-
-**Akzeptanzkriterien:**
-
-- [ ] Admin kann ein vollständiges Archiv-Bundle exportieren: Kassenjournal (roh), Stammdaten-Snapshot (Produkte, Preise, Steuersätze), Kassenidentität und Seriennummer
-- [ ] Ergänzt den DSFinV-K-Export (F-04); offene, maschinenlesbare Formate (JSON/CSV), ohne proprietäre Software lesbar
-- [ ] Aufbewahrungsstrategie ist dokumentiert (was, wie lange, wie wiederherstellbar) in [compliance.md §4](compliance.md) und im Betreiber-Leitfaden
-- [ ] jotti erzeugt nur das Archiv-Artefakt; die Aufbewahrungspflicht bleibt beim Betreiber
 
 ---
 

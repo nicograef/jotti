@@ -162,7 +162,7 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 | Zeitgerechte Buchung       | ✅ Erfüllt          | Events mit Echtzeit-Zeitstempel                                                                                               |
 | Ordnungsmäßigkeit          | ✅ Erfüllt          | Strukturiertes Datenmodell, typisierte Events                                                                                 |
 | Kryptografische Verkettung | ✅ Erfüllt          | TSE-Signatur (fiskaly Cloud-TSE) für alle Geschäftsvorfälle; Signaturdaten im Event persistiert, Ausfälle werden nachsigniert |
-| 10-Jahres-Aufbewahrung     | 🔲 Geplant (F-10)   | Archiv-Export und dokumentierte Aufbewahrungsstrategie geplant; die Aufbewahrung selbst ist Betreiberpflicht (§8)              |
+| 10-Jahres-Aufbewahrung     | ✅ Erfüllt (F-10)   | DSFinV-K-Export (F-04) und DB-Backup decken die Daten ab; Aufbewahrungsstrategie in §4.4 dokumentiert. Die Aufbewahrung selbst ist Betreiberpflicht (§8) |
 
 ### 4.2 Anforderungen gemäß §§ 146, 147 AO und GoBD
 
@@ -173,9 +173,23 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 
 ### 4.3 Handlungsbedarf
 
-- 10-Jahres-Archivierung: Archiv-Export bereitstellen und Aufbewahrungsstrategie dokumentieren (→ [anforderungen.md F-10](anforderungen.md))
+- 10-Jahres-Archivierung: erledigt. Aufbewahrungsstrategie in §4.4 dokumentiert; die Daten decken DSFinV-K-Export (F-04) und DB-Backup ab (→ [anforderungen.md F-10](anforderungen.md))
 - Muster-Verfahrensdokumentation im Repository bereitstellen (→ [anforderungen.md F-11](anforderungen.md))
 - Soft-Delete bei Stammdaten: umgesetzt (Status `deleted` statt Hard-Delete; Verkaufspreise werden pro Event festgeschrieben, historische Buchungen bleiben dadurch unberührt)
+
+### 4.4 Aufbewahrungsstrategie (F-10)
+
+Die aufzubewahrenden Daten entstehen in offenen, ohne proprietäre Software lesbaren Formaten; ein zusätzliches Roh-Exportformat ist nicht nötig. Der DSFinV-K-Export ist die maschinell auswertbare Standardform, das Datenbank-Backup enthält das vollständige Kassenjournal im Rohformat samt TSE-Signaturen und Stammdaten. Die Aufbewahrung selbst (Speicherung, Lesbarkeit über 10 Jahre, Zugriffsschutz) bleibt Betreiberpflicht (§8).
+
+| Artefakt | Format | Quelle | Aufbewahrung | Wiederherstellung / Lesbarkeit |
+| --- | --- | --- | --- | --- |
+| DSFinV-K-Export je Kassensitzung | CSV, index.xml, DTD (ZIP) | Admin-Bereich → Auswertungen → Dashboard → „DSFinV-K-Export" | 10 Jahre, an mindestens zwei getrennten Orten | mit jeder Tabellenkalkulation oder Prüfsoftware (IDEA) lesbar |
+| Datenbank-Backup (rohes Kassenjournal samt TSE-Signaturen und Stammdaten) | pg_dump (.sql) | automatisch vor jedem Update; Server: `make prod-backup` | 10 Jahre | `jotti-restore.cmd` (Standardweg) bzw. `make prod-restore` (Server) |
+| Z-Bons (Tagesabschlüsse) | im Kassenjournal und DSFinV-K-Export enthalten | Tagesabschluss (K-22) | 10 Jahre | Teil von Export und Backup |
+| Zählprotokolle (Kassensturz) | Papier oder digital | manuell beim Kassensturz (K-21) | 10 Jahre | Betreiber |
+| Kassen-Seriennummer | UUID | Admin-Bereich; im DB-Backup enthalten | dauerhaft | aus Admin-Bereich oder Backup |
+
+Laienverständliche Anleitung für Vereine: [leitfaden.md, Daten 10 Jahre aufbewahren](leitfaden.md#daten-10-jahre-aufbewahren).
 
 ---
 
