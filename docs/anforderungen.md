@@ -222,7 +222,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | F-01 | Seriennummer        | 1     | ✅                         | Must        |
 | F-07 | Steuersätze         | 1     | ✅                         | Must        |
 | F-03 | Belegausgabepflicht | 1/2   | ✅                         | Must        |
-| F-05 | ELSTER-Meldung      | 1     | 🔲                         | Must (Doku) |
+| F-05 | ELSTER-Meldung      | 1     | ✅ Doku                    | Must (Doku) |
 | F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung | Should      |
 | F-11 | Verfahrensdokumentation | 1 | ✅ Doku                  | Should (Doku) |
 | F-02 | TSE-Integration     | 2     | ✅                         | Should      |
@@ -230,23 +230,9 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | F-09 | eBeleg              | 2     | 🔲                         | Nice        |
 | F-10 | 10-Jahres-Archivierung | 3   | ✅ Doku                    | Should (Doku) |
 | F-08 | GoBD-Integritätsnachweis | 3 | 🔲                         | Nice        |
+| F-12 | ELSTER-Meldung (API) | 3     | 🔲                         | Nice        |
 
 **Legende:** ✅ Umgesetzt · 🔲 Offen. **Phasen:** 0 = Baseline · 1 = Compliance-Grundlage · 2 = TSE-Integration · 3 = Erweiterungen
-
----
-
-#### F-05 · ELSTER-Meldepflicht
-
-> **Prio:** Must-have (manuelle Anleitung), Nice-to-have (programmatisch)
-
-Jede jotti-Instanz muss innerhalb eines Monats nach Inbetriebnahme beim zuständigen Finanzamt über ELSTER gemeldet werden (§ 146a Abs. 4 AO). Phase 1 liefert eine schriftliche Anleitung und UI-Hinweis. Optional: programmatische Meldung über ERiC oder fiskaly-API.
-
-**Akzeptanzkriterien:**
-
-- [ ] Dokumentation `docs/leitfaden.md` beschreibt die manuelle Meldung Schritt für Schritt
-- [ ] Admin-Dashboard zeigt Hinweis auf Meldepflicht mit Link zur Anleitung und der Seriennummer an
-- [ ] Manuell setzbarer Meldestatus (`ausstehend` / `gemeldet am TT.MM.JJJJ`)
-- [ ] (Optional) Programmatische Meldung über ERiC oder fiskaly ist konfigurierbar
 
 ---
 
@@ -278,5 +264,20 @@ F-08 ergänzt stattdessen einen read-only Selbsttest, der die bestehenden Garant
 - [ ] Prüft, dass jeder signierpflichtige Event entweder eine TSE-Signatur trägt oder als TSE-Ausfall markiert und in der Nachsignier-Outbox vorhanden ist (keine still-unsignierten Geschäftsvorfälle)
 - [ ] Liefert einen kompakten Report (geprüfte Subjects, gefundene Abweichungen) für Admin und Betriebsprüfer
 - [ ] Kein Schema-Eingriff, keine neue Spalte, keine Hash-Chain
+
+---
+
+#### F-12 · Programmatische ELSTER-Meldung
+
+> **Prio:** Nice-to-have
+
+Statt der manuellen Meldung im Mein-ELSTER-Portal (F-05) meldet jotti die Kasse programmatisch beim Finanzamt an, entweder direkt über die ERiC-Bibliothek oder über die fiskaly-API, die die Meldung als Service kapselt. Für nicht-technische Vereinsbetreiber entfällt damit der manuelle Schritt im ELSTER-Portal.
+
+**Akzeptanzkriterien:**
+
+- [ ] Programmatische Meldung über ERiC oder fiskaly ist konfigurierbar
+- [ ] Meldedaten (Seriennummer, TSE-Daten, Betreiber-Stammdaten) stammen aus den vorhandenen jotti-Stammdaten
+- [ ] Übermittlungsbestätigung und Meldestatus werden im Admin-Bereich angezeigt
+- [ ] Fehlgeschlagene Übermittlung ist erkennbar und wiederholbar
 
 ---

@@ -1,6 +1,7 @@
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy, Info } from 'lucide-react'
 import { useState } from 'react'
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -12,6 +13,9 @@ import {
 import { Label } from '@/components/ui/label'
 
 import { useKassenidentitaet } from '../settings/hooks'
+
+const LEITFADEN_URL =
+  'https://github.com/nicograef/jotti/blob/main/docs/leitfaden.md#kasse-beim-finanzamt-anmelden'
 
 export function KassenidentitaetSection() {
   const { data: kassenidentitaet, isPending, error } = useKassenidentitaet()
@@ -37,7 +41,7 @@ export function KassenidentitaetSection() {
           Kassenidentität in jotti erzeugt wurde.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="grid gap-4">
         {isPending && (
           <p className="text-muted-foreground text-sm">Lade Kassenidentität…</p>
         )}
@@ -78,6 +82,19 @@ export function KassenidentitaetSection() {
             </div>
           </div>
         )}
+        <Alert>
+          <Info className="size-4" />
+          <AlertTitle>Meldepflicht beim Finanzamt</AlertTitle>
+          <AlertDescription>
+            Diese Kasse muss innerhalb eines Monats nach Inbetriebnahme über
+            ELSTER beim Finanzamt gemeldet werden (§ 146a Abs. 4 AO). Verwendet
+            dafür die Seriennummer oben.{' '}
+            <a href={LEITFADEN_URL} target="_blank" rel="noopener noreferrer">
+              Schritt-für-Schritt-Anleitung
+            </a>
+            .
+          </AlertDescription>
+        </Alert>
       </CardContent>
     </Card>
   )
