@@ -60,7 +60,16 @@ function DrawerContent({
         {...props}
       >
         <div className="mx-auto mt-4 hidden h-1.5 w-[100px] shrink-0 rounded-full bg-muted group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
-        {children}
+        {/*
+          iOS Safari reads the tiny finger jitter of a tap as a vaul drag
+          gesture, which moves the sheet and swallows the tap (buttons fail to
+          fire, the panel flickers). Marking the whole panel no-drag makes taps
+          land reliably; the handle above stays a sibling, so swipe-to-dismiss
+          from the handle still works. `contents` keeps the wrapper layout-free.
+        */}
+        <div data-vaul-no-drag className="contents">
+          {children}
+        </div>
       </DrawerPrimitive.Content>
     </DrawerPortal>
   )
