@@ -112,7 +112,7 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 			{testSerial, erstellung, "3", "2", "7.00", "Ermäßigter Steuersatz"},
 		},
 		"tse.csv": {
-			{testSerial, erstellung, "3", "1", "abc123serial", "ecdsa-plain-SHA256", "utcTime", "UTF-8", "PUBKEY==", "CERTBASE64", ""},
+			{testSerial, erstellung, "3", "1", "abc123serial", "ecdsa-plain-SHA256", "utcTime", "UTF-8", "PUBKEY==", "CERTBASE64", "", "", "", ""},
 		},
 		"location.csv": {
 			{testSerial, erstellung, "3", "TSV Beispiel", "Hauptstr. 1", "12345", "Musterdorf", "DEU", ""},
@@ -155,6 +155,43 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 		if got := field(t, transactions, 0, name); got != want {
 			t.Errorf("transactions %s = %q, want %q", name, got, want)
 		}
+	}
+}
+
+// TestMapLangesZertifikatVollstaendig stellt sicher, dass ein Zertifikat von mehr
+// als 2.000 Zeichen vollständig über die fünf TSE_ZERTIFIKAT-Felder (I…V)
+// ausgegeben und nicht still abgeschnitten wird (Stamm_TSE).
+func TestMapLangesZertifikatVollstaendig(t *testing.T) {
+	const certLen = 2500 // Chunks à 1000 → I, II voll, III halb, IV/V leer
+	cert := strings.Repeat("A", certLen)
+
+	snap := testSnapshot()
+	snap.TSEStammdaten.Zertifikat = cert
+
+	archive, err := Map(snap, []event.Event{barverkaufEvent(t)}, nil)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+	tse := tableByFile(t, archive, "tse.csv")
+
+	var gotCert string
+	belegt := 0
+	for _, name := range []string{"TSE_ZERTIFIKAT_I", "TSE_ZERTIFIKAT_II", "TSE_ZERTIFIKAT_III", "TSE_ZERTIFIKAT_IV", "TSE_ZERTIFIKAT_V"} {
+		chunk := field(t, tse, 0, name)
+		if len(chunk) > zertifikatChunk {
+			t.Errorf("%s = %d Zeichen, höchstens %d erlaubt", name, len(chunk), zertifikatChunk)
+		}
+		if chunk != "" {
+			belegt++
+		}
+		gotCert += chunk
+	}
+
+	if gotCert != cert {
+		t.Errorf("zusammengesetztes Zertifikat = %d Zeichen, want %d (abgeschnitten?)", len(gotCert), certLen)
+	}
+	if belegt != 3 {
+		t.Errorf("Zertifikat mit %d Zeichen sollte 3 Felder belegen, belegt: %d", certLen, belegt)
 	}
 }
 

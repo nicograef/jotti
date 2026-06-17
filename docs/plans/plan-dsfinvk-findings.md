@@ -230,11 +230,14 @@ längere Zertifikate nicht mehr still ab.
 
 ### Acceptance criteria
 
-- [ ] `tse.csv` deklariert und befüllt fünf `TSE_ZERTIFIKAT_I…_V`-Spalten.
-- [ ] Spaltenzahl gegen DSFinV-K-Anhang (Stamm_TSE) bestätigt.
-- [ ] Ein > 2000 Zeichen langes Test-Zertifikat wird vollständig (über mehrere
+- [x] `tse.csv` deklariert und befüllt fünf `TSE_ZERTIFIKAT_I…_V`-Spalten.
+- [x] Spaltenzahl gegen DSFinV-K-Anhang (Stamm_TSE) bestätigt. DSFinV-K v2.4
+      §3.2.7 definiert `TSE_ZERTIFIKAT_I/_II` (je 1000 Zeichen base64) und erlaubt
+      bei Zertifikaten > 2000 Zeichen die Felder `_III/_IV/_V`; die `index.xml`
+      wird aus `tseColumns` abgeleitet und deckt die Ergänzung automatisch ab.
+- [x] Ein > 2000 Zeichen langes Test-Zertifikat wird vollständig (über mehrere
       Chunks) ausgegeben, nicht abgeschnitten.
-- [ ] Golden-Test (`CERTBASE64` in `_I`, Rest leer) angepasst; Tests grün.
+- [x] Golden-Test (`CERTBASE64` in `_I`, Rest leer) angepasst; Tests grün.
 
 ---
 

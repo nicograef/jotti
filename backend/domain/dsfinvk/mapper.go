@@ -44,6 +44,7 @@ const (
 	tsePDEncoding         = "UTF-8"            // Encoding der ProcessData
 	tseZeitformat         = "utcTime"          // TSE_ZEITFORMAT: TSE_TA_START/ENDE sind RFC3339-UTC, nicht unixTime
 	zertifikatChunk       = 1000               // max. Zeichen je TSE_ZERTIFIKAT-Feld
+	zertifikatSpalten     = 5                  // TSE_ZERTIFIKAT_I…_V: fünf Felder à 1000 Zeichen (Stamm_TSE)
 	kasseBrand            = "jotti"
 	kasseModell           = "jotti mPOS"
 	kasseSoftware         = "jotti"
@@ -591,7 +592,8 @@ var tseColumns = []column{
 	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
 	num("TSE_ID", 0), alpha("TSE_SERIAL"), alpha("TSE_SIG_ALGO"),
 	alpha("TSE_ZEITFORMAT"), alpha("TSE_PD_ENCODING"), alpha("TSE_PUBLIC_KEY"),
-	alpha("TSE_ZERTIFIKAT_I"), alpha("TSE_ZERTIFIKAT_II"),
+	alpha("TSE_ZERTIFIKAT_I"), alpha("TSE_ZERTIFIKAT_II"), alpha("TSE_ZERTIFIKAT_III"),
+	alpha("TSE_ZERTIFIKAT_IV"), alpha("TSE_ZERTIFIKAT_V"),
 }
 
 func buildTSE(s Snapshot, erstellung string, belege []beleg) Table {
@@ -599,7 +601,9 @@ func buildTSE(s Snapshot, erstellung string, belege []beleg) Table {
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 		tseReferenzID, tseSerial(belege), s.TSEStammdaten.SignaturAlgorithmus,
 		tseZeitformat, tsePDEncoding, s.TSEStammdaten.PublicKey,
-		certChunk(s.TSEStammdaten.Zertifikat, 0), certChunk(s.TSEStammdaten.Zertifikat, 1),
+	}
+	for i := 0; i < zertifikatSpalten; i++ {
+		record = append(record, certChunk(s.TSEStammdaten.Zertifikat, i))
 	}
 
 	return Table{
