@@ -178,6 +178,17 @@ Ebenfalls aufbewahren: die Z-Bons (Tagesabschlüsse, im DSFinV-K-Export enthalte
 und die Zählprotokolle vom Kassensturz. Sorgt dafür, dass nur berechtigte Personen
 Zugriff auf Rechner und Daten haben.
 
+### Verfahrensdokumentation bereithalten
+
+Die GoBD verlangen eine Verfahrensdokumentation: eine Beschreibung, wie eure Kasse
+Daten erzeugt, sichert und aufbewahrt. Bei einer Betriebsprüfung müsst ihr sie
+vorlegen können. Ihr müsst sie nicht selbst schreiben: jotti liefert eine fertige
+Vorlage in [docs/verfahrensdokumentation.md](verfahrensdokumentation.md). Die
+technischen Teile (Architektur, Datenmodell, TSE, Export) sind bereits ausgefüllt;
+ihr ergänzt nur die mit «…» markierten Stellen, etwa Vereinsname, TSE-Anbieter,
+Betriebsumgebung und Verantwortliche. Druckt das angepasste Dokument aus oder legt
+es als PDF zu euren Kassenunterlagen.
+
 ## Checkliste
 
 **Einmalig, vor dem ersten Einsatz:**
@@ -196,6 +207,8 @@ Zugriff auf Rechner und Daten haben.
       Admin-Bereich)
 - [ ] Ggf. Antrag auf Befreiung von der Belegausgabe gestellt
 - [ ] Backup-Routine eingerichtet
+- [ ] Verfahrensdokumentation an den Verein angepasst (Vorlage in
+      [docs/verfahrensdokumentation.md](verfahrensdokumentation.md))
 
 **Laufend / regelmäßig:**
 

@@ -224,7 +224,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV-Pflicht 
 | F-03 | Belegausgabepflicht | 1/2   | ✅                         | Must        |
 | F-05 | ELSTER-Meldung      | 1     | 🔲                         | Must (Doku) |
 | F-06 | Abrechnungskreis    | 1     | ✅ Pro Tisch/Kassensitzung | Should      |
-| F-11 | Verfahrensdokumentation | 1 | 🔲                       | Should (Doku) |
+| F-11 | Verfahrensdokumentation | 1 | ✅ Doku                  | Should (Doku) |
 | F-02 | TSE-Integration     | 2     | ✅                         | Should      |
 | F-04 | DSFinV-K Export     | 2     | ✅                         | Should      |
 | F-09 | eBeleg              | 2     | 🔲                         | Nice        |
@@ -278,20 +278,5 @@ F-08 ergänzt stattdessen einen read-only Selbsttest, der die bestehenden Garant
 - [ ] Prüft, dass jeder signierpflichtige Event entweder eine TSE-Signatur trägt oder als TSE-Ausfall markiert und in der Nachsignier-Outbox vorhanden ist (keine still-unsignierten Geschäftsvorfälle)
 - [ ] Liefert einen kompakten Report (geprüfte Subjects, gefundene Abweichungen) für Admin und Betriebsprüfer
 - [ ] Kein Schema-Eingriff, keine neue Spalte, keine Hash-Chain
-
----
-
-#### F-11 · Muster-Verfahrensdokumentation
-
-> **Prio:** Should (Doku)
-
-Die GoBD verlangt vom Betreiber eine Verfahrensdokumentation ([compliance.md §4.2](compliance.md)). Als Hersteller stellt jotti eine anpassbare Muster-Verfahrensdokumentation im Repository bereit ([compliance.md §2.7](compliance.md)), die Vereine an ihre Instanz anpassen und Betriebsprüfern vorlegen.
-
-**Akzeptanzkriterien:**
-
-- [ ] Muster-Verfahrensdokumentation liegt versioniert im Repository (z. B. `docs/verfahrensdokumentation.md`)
-- [ ] Deckt ab: Systemüberblick und Architektur, Datenmodell und Event-Sourcing, TSE-Anbindung, DSFinV-K-Export, Rollen- und Zugriffskonzept, Archivierung und Aufbewahrung, Nachvollziehbarkeit von Änderungen
-- [ ] Als Vorlage gekennzeichnet; vom Betreiber auszufüllende Stellen (Vereinsname, TSE-Anbieter, Betriebsumgebung) sind markiert
-- [ ] Aus dem Betreiber-Leitfaden verlinkt
 
 ---

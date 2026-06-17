@@ -50,7 +50,7 @@ jotti ist kein SaaS: Der Code ist öffentlich auf GitHub, die Vereine betreiben 
 - TSE-Schnittstelle (`TSEClient`-Interface) und DSFinV-K-Export müssen im Code vorhanden und nutzbar sein.
 - Entscheidet ein Verein, keinen TSE-API-Key einzutragen, liegt das rechtliche Risiko ausschließlich beim Verein.
 - Der Entwickler hat keine Meldepflicht für fremdbetriebene Installationen, mitteilungspflichtig ist nur, wer das System tatsächlich verwendet.
-- Eine Muster-Verfahrensdokumentation im Repository ist empfehlenswert (Architektur, Datenschutz, TSE-Anbindung für Betriebsprüfer).
+- Eine Muster-Verfahrensdokumentation liegt im Repository bereit ([verfahrensdokumentation.md](verfahrensdokumentation.md)): eine anpassbare Vorlage zu Architektur, Datenmodell, TSE-Anbindung und Aufbewahrung, die der Verein an seine Instanz anpasst und Betriebsprüfern vorlegt.
 
 **Pflichten der Betreiber:** → Abschnitt 8.
 
@@ -169,12 +169,12 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 - **Aufbewahrungspflicht:** Alle steuerlich relevanten Daten 10 Jahre, jederzeit verfügbar, unverzüglich lesbar, vollständig, unveränderbar.
 - **Elektronisches Radierverbot:** Kein `UPDATE` oder `DELETE` nach der Erfassung.
 - **Stornierungen:** Immer als neue Buchungssätze (neuer Zeitstempel, neue TSE-Signatur), die den alten Wert ausgleichen.
-- **Verfahrensdokumentation:** Wie das System Daten erzeugt, verarbeitet und archiviert, muss dokumentiert sein. [4]
+- **Verfahrensdokumentation:** Wie das System Daten erzeugt, verarbeitet und archiviert, muss dokumentiert sein. [4] jotti stellt dafür eine anpassbare Muster-Verfahrensdokumentation bereit ([verfahrensdokumentation.md](verfahrensdokumentation.md), F-11); das Führen und Anpassen der eigenen Verfahrensdokumentation bleibt Betreiberpflicht (§8).
 
 ### 4.3 Handlungsbedarf
 
 - 10-Jahres-Archivierung: erledigt. Aufbewahrungsstrategie in §4.4 dokumentiert; die Daten decken DSFinV-K-Export (F-04) und DB-Backup ab (→ [anforderungen.md F-10](anforderungen.md))
-- Muster-Verfahrensdokumentation im Repository bereitstellen (→ [anforderungen.md F-11](anforderungen.md))
+- Muster-Verfahrensdokumentation: erledigt. Anpassbare Vorlage liegt im Repository ([verfahrensdokumentation.md](verfahrensdokumentation.md), → [anforderungen.md F-11](anforderungen.md)); Anpassen und Führen bleibt Betreiberpflicht (§8)
 - Soft-Delete bei Stammdaten: umgesetzt (Status `deleted` statt Hard-Delete; Verkaufspreise werden pro Event festgeschrieben, historische Buchungen bleiben dadurch unberührt)
 
 ### 4.4 Aufbewahrungsstrategie (F-10)
@@ -414,7 +414,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 | -------------------------------------------- | ------------------ | --------------------------- |
 | TSE-Schnittstelle im Code implementieren     | ✅ Pflicht         | —                           |
 | DSFinV-K-Export im Code implementieren       | ✅ Pflicht         | —                           |
-| Muster-Verfahrensdokumentation bereitstellen | Empfohlen          | —                           |
+| Verfahrensdokumentation (GoBD)               | ✅ Vorlage bereitgestellt | ✅ Pflicht (anpassen, führen) |
 | Cloud-TSE-Vertrag abschließen                | —                  | ✅ Pflicht                  |
 | TSE-API-Keys konfigurieren (Admin-UI)        | —                  | ✅ Pflicht                  |
 | ELSTER-Meldung (§ 146a Abs. 4 AO)            | ❌ Keine Pflicht   | ✅ Pflicht (Frist: 1 Monat) |
@@ -427,6 +427,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 1. **Cloud-TSE-Vertrag:** Vertrag mit der Cloud-TSE von fiskaly abschließen; API-Key und Secret über den geführten Einrichtungs-Assistenten im Admin-Bereich hinterlegen (verschlüsselt in der Datenbank gespeichert). jotti legt TSS und Client selbst an, das Anbieter-Dashboard kann das nicht (→ [TSE einrichten](leitfaden.md#tse-einrichten-cloud-tse-von-fiskaly)).
 2. **ELSTER-Meldung:** Innerhalb von einem Monat nach Inbetriebnahme die Instanz über [ELSTER](https://www.elster.de) anmelden. Benötigt: Kassen-Seriennummer (Admin-Dashboard), Softwarename „jotti", Inbetriebnahmedatum (→ §7.3).
 3. **Seriennummer sichern:** Die Kassen-UUID ist die rechtliche Identität der Kasse (→ §3.7), das Datenbank-Backup muss sie enthalten. Bei Verlust: alte Nummer abmelden, neue Instanz anmelden.
+4. **Verfahrensdokumentation anpassen:** Die Muster-Verfahrensdokumentation ([verfahrensdokumentation.md](verfahrensdokumentation.md)) an die eigene Instanz anpassen (Vereinsname, TSE-Anbieter, Betriebsumgebung, Verantwortliche) und für die Betriebsprüfung bereithalten.
 
 **Laufend:**
 
