@@ -11,7 +11,7 @@ description: 'Muster-Verfahrensdokumentation für die Kassenführung mit jotti: 
 
 Die GoBD (BMF-Schreiben vom 28.11.2019) verlangen vom Betreiber eines elektronischen Kassensystems eine Verfahrensdokumentation: eine nachvollziehbare Beschreibung, wie das System steuerlich relevante Daten erzeugt, verarbeitet, sichert und aufbewahrt. Sie versetzt einen sachverständigen Dritten (Betriebsprüfer) in die Lage, den Kassenprozess in angemessener Zeit zu verstehen und zu prüfen. Dieses Dokument erfüllt diese Pflicht für die Kassenführung mit jotti.
 
-Rechtliche Grundlagen im Detail: [compliance.md](compliance.md). Technische Architektur: [handbuch.md](handbuch.md). Betreiber-Anleitung in laienverständlicher Form: [leitfaden.md](leitfaden.md).
+Rechtliche Grundlagen im Detail: [compliance.md](compliance.md). Technische Architektur: [handbuch.md](handbuch.md). Betreiber-Anleitung in laienverständlicher Form: [Leitfaden](leitfaden/was-ist-jotti.md).
 
 ---
 
@@ -91,7 +91,7 @@ jotti unterliegt nach § 146a AO der Pflicht, jeden Geschäftsvorfall durch eine
 
 **Ausfallpfad:** Schlägt die Signierung fehl (TSE-Ausfall oder Zeitüberschreitung), wird der Vorgang dennoch gebucht und ein Nachsignier-Auftrag angelegt; ein Hintergrundprozess signiert später nach. Es gibt keine still unsignierten Geschäftsvorfälle.
 
-**TSE-Stammdaten dieser Instanz:** Anbieter «TSE-Anbieter», Zertifizierungs-ID «BSI-K-TR-nnnn-yyyy», TSE-Seriennummer «Hexadezimalstring». Die Einrichtung (fiskaly-Konto, geführter Assistent, Verwahrung von Admin-PUK und Admin-PIN, Wechsel von TEST zu LIVE) ist im [Leitfaden, Abschnitt „TSE einrichten"](leitfaden.md#tse-einrichten-cloud-tse-von-fiskaly) dokumentiert.
+**TSE-Stammdaten dieser Instanz:** Anbieter «TSE-Anbieter», Zertifizierungs-ID «BSI-K-TR-nnnn-yyyy», TSE-Seriennummer «Hexadezimalstring». Die Einrichtung (fiskaly-Konto, geführter Assistent, Verwahrung von Admin-PUK und Admin-PIN, Wechsel von TEST zu LIVE) ist im [Leitfaden, Abschnitt „TSE einrichten"](leitfaden/tse-einrichten.md) dokumentiert.
 
 Rechtliche und technische Details: [compliance.md §3](compliance.md#3-tse-integration-technische-sicherheitseinrichtung) und [handbuch.md §3.13](handbuch.md#313-tse-architektur).
 
@@ -152,7 +152,7 @@ Alle steuerlich relevanten Daten sind 10 Jahre vollständig, jederzeit verfügba
 
 **Aufbewahrung in diesem Verein (auszufüllen):** «Beschreibt, wo und wie ihr archiviert. Beispiel: Nach jedem Veranstaltungstag exportieren wir die DSFinV-K-ZIP und legen sie auf einem USB-Stick im Vereinssafe sowie zusätzlich in «Cloud-Speicher» ab. Tägliche Datenbank-Backups laufen «automatisch über … / manuell durch …». Verantwortlich: «Name».»
 
-Strategie im Detail: [compliance.md §4.4](compliance.md#44-aufbewahrungsstrategie-f-10). Laienverständliche Anleitung: [leitfaden.md, Daten 10 Jahre aufbewahren](leitfaden.md#daten-10-jahre-aufbewahren).
+Strategie im Detail: [compliance.md §4.4](compliance.md#44-aufbewahrungsstrategie-f-10). Laienverständliche Anleitung: [Leitfaden, Datenaufbewahrung](leitfaden/datenaufbewahrung.md).
 
 ---
 
@@ -185,7 +185,7 @@ Die Unveränderbarkeit und Nachvollziehbarkeit nach GoBD wird auf drei Ebenen si
 | TSE-Verwaltung (PUK/PIN-Verwahrung) | «Name» |
 | ELSTER-Meldung und Stammdatenpflege | «Name» |
 
-Betreiberpflichten vollständig: [compliance.md §8](compliance.md#8-betreiberpflichten); Praxis-Checkliste: [leitfaden.md, Checkliste](leitfaden.md#checkliste).
+Betreiberpflichten vollständig: [compliance.md §8](compliance.md#8-betreiberpflichten); Praxis-Checkliste: [Leitfaden, Checkliste](leitfaden/checkliste.md).
 
 ---
 

@@ -393,13 +393,13 @@ Anzahl ausstehender/unbezahlter eigener Positionen) oder einen "fertig"-Hinweis.
 
 ### Acceptance criteria
 
-- [ ] `LiveReportingData` enthält die offene Arbeit pro Servicekraft, per user_id
+- [x] `LiveReportingData` enthält die offene Arbeit pro Servicekraft, per user_id
       mit dem kassierten Umsatz zusammengeführt.
-- [ ] Eine Servicekraft mit offener Arbeit, aber ohne kassierten Umsatz
+- [x] Eine Servicekraft mit offener Arbeit, aber ohne kassierten Umsatz
       erscheint dennoch.
-- [ ] Der "Servicekräfte"-Tab zeigt je Person den Umsatz und die offene Arbeit
+- [x] Der "Servicekräfte"-Tab zeigt je Person den Umsatz und die offene Arbeit
       bzw. "fertig".
-- [ ] Tests: Merge per user_id, offene Arbeit korrekt aus den Sessions, "fertig"
+- [x] Tests: Merge per user_id, offene Arbeit korrekt aus den Sessions, "fertig"
       bei keiner offenen eigenen Arbeit.
 
 ---

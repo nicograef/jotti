@@ -192,7 +192,7 @@ Die aufzubewahrenden Daten entstehen in offenen, ohne proprietäre Software lesb
 | Zählprotokolle (Kassensturz) | Papier oder digital | manuell beim Kassensturz (K-21) | 10 Jahre | Betreiber |
 | Kassen-Seriennummer | UUID | Admin-Bereich; im DB-Backup enthalten | dauerhaft | aus Admin-Bereich oder Backup |
 
-Laienverständliche Anleitung für Vereine: [leitfaden.md, Daten 10 Jahre aufbewahren](leitfaden.md#daten-10-jahre-aufbewahren).
+Laienverständliche Anleitung für Vereine: [Leitfaden, Datenaufbewahrung](leitfaden/datenaufbewahrung.md).
 
 ---
 
@@ -411,7 +411,7 @@ Die Smartphones der Servicekräfte müssen nicht gemeldet werden. Der AEAO zu §
 
 ## 8. Betreiberpflichten
 
-Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung für ihre jotti-Instanz. Laienverständliche Anleitung: [leitfaden.md](leitfaden.md); die TSE-Einrichtung Schritt für Schritt (fiskaly-Konto, Wizard, PUK/PIN-Verwahrung, TEST→LIVE) im Abschnitt [TSE einrichten](leitfaden.md#tse-einrichten-cloud-tse-von-fiskaly).
+Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung für ihre jotti-Instanz. Laienverständliche Anleitung: [Leitfaden](leitfaden/was-ist-jotti.md); die TSE-Einrichtung Schritt für Schritt (fiskaly-Konto, Wizard, PUK/PIN-Verwahrung, TEST→LIVE) im Abschnitt [TSE einrichten](leitfaden/tse-einrichten.md).
 
 **Pflichtenverteilung Entwickler / Betreiber:**
 
@@ -429,7 +429,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 
 **Vor dem ersten Einsatz:**
 
-1. **Cloud-TSE-Vertrag:** Vertrag mit der Cloud-TSE von fiskaly abschließen; API-Key und Secret über den geführten Einrichtungs-Assistenten im Admin-Bereich hinterlegen (verschlüsselt in der Datenbank gespeichert). jotti legt TSS und Client selbst an, das Anbieter-Dashboard kann das nicht (→ [TSE einrichten](leitfaden.md#tse-einrichten-cloud-tse-von-fiskaly)).
+1. **Cloud-TSE-Vertrag:** Vertrag mit der Cloud-TSE von fiskaly abschließen; API-Key und Secret über den geführten Einrichtungs-Assistenten im Admin-Bereich hinterlegen (verschlüsselt in der Datenbank gespeichert). jotti legt TSS und Client selbst an, das Anbieter-Dashboard kann das nicht (→ [TSE einrichten](leitfaden/tse-einrichten.md)).
 2. **ELSTER-Meldung:** Innerhalb von einem Monat nach Inbetriebnahme die Instanz über [ELSTER](https://www.elster.de) anmelden. Benötigt: Kassen-Seriennummer (Admin-Dashboard), Softwarename „jotti", Inbetriebnahmedatum (→ §7.3).
 3. **Seriennummer sichern:** Die Kassen-UUID ist die rechtliche Identität der Kasse (→ §3.7), das Datenbank-Backup muss sie enthalten. Bei Verlust: alte Nummer abmelden, neue Instanz anmelden.
 4. **Verfahrensdokumentation anpassen:** Die Muster-Verfahrensdokumentation ([verfahrensdokumentation.md](verfahrensdokumentation.md)) an die eigene Instanz anpassen (Vereinsname, TSE-Anbieter, Betriebsumgebung, Verantwortliche) und für die Betriebsprüfung bereithalten.

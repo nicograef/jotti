@@ -2,7 +2,7 @@
 
 Übersicht und Roadmap aller Anforderungen an jotti: was umgesetzt ist und was geplant ist. Die fachliche Spezifikation einzelner Features entsteht bei Bedarf vor der Umsetzung als PRD (`docs/prds/`).
 
-Weiterführend: Recht und Fiskal in [compliance.md](compliance.md), Architektur und Domäne in [handbuch.md](handbuch.md), Begriffe in [language.md](language.md), Betrieb in [leitfaden.md](leitfaden.md).
+Weiterführend: Recht und Fiskal in [compliance.md](compliance.md), Architektur und Domäne in [handbuch.md](handbuch.md), Begriffe in [language.md](language.md), Betrieb in [Leitfaden](leitfaden/was-ist-jotti.md).
 
 Aufbau: Die Roadmap listet die offenen Anforderungen, der Funktionsumfang die umgesetzten je Domäne. Jede Anforderung steht an genau einer Stelle und wandert beim Umsetzen aus der Roadmap in ihre Domäne.
 

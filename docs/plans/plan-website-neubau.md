@@ -324,16 +324,18 @@ nicht; sie werden in Phase 6 vereinheitlicht.
 
 ### Acceptance criteria
 
-- [ ] `docs/leitfaden.md` ist in `docs/leitfaden/`-Schritt-Seiten aufgeteilt; der
+- [x] `docs/leitfaden.md` ist in `docs/leitfaden/`-Schritt-Seiten aufgeteilt; der
       Inhalt ist erhalten, nur umgegliedert.
-- [ ] Die Leitfaden-Sidebar trennt Standardweg vom Experten-Weg und Technik vom
+- [x] Die Leitfaden-Sidebar trennt Standardweg vom Experten-Weg und Technik vom
       Recht (Gruppierung wie oben).
-- [ ] Eine klare Schritt-für-Schritt-Führung für den Standardweg existiert; der
+- [x] Eine klare Schritt-für-Schritt-Führung für den Standardweg existiert; der
       Experten-Weg (Self-Hosting) ist ein eigener Bereich.
-- [ ] Ein Fehlersuche-/FAQ-Bereich ist vorhanden.
-- [ ] `AGENTS.md` und alle Markdown-Querverweise zeigen auf die neue
+- [x] Ein Fehlersuche-/FAQ-Bereich ist vorhanden.
+- [x] `AGENTS.md` und alle Markdown-Querverweise zeigen auf die neue
       `docs/leitfaden/`-Struktur; keine toten Verweise (Build grün).
-      Nicht-Markdown-Deep-Links bleiben Phase 6 vorbehalten.
+      Nicht-Markdown-Deep-Links bleiben Phase 6 vorbehalten. (`AGENTS.md` enthielt
+      keinen Leitfaden-Verweis; der GitHub-Deep-Link in
+      `packaging/windows/KURZANLEITUNG.md` zählt als Deep-Link und folgt in Phase 6.)
 
 ---
 

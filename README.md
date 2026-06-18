@@ -101,7 +101,7 @@ Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlunge
 - Kartenzahlung / NFC / Online-Payment
 - Kommerzielle Gastro-Betriebe (ohne separate Lizenz)
 
-> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die TSE-Anbindung und die Belegausgabe sind integriert; der DSFinV-K-Export ist in Entwicklung. jotti erfüllt die TSE-Pflicht über eine Cloud-TSE von fiskaly — der Betreiber schließt den Vertrag mit fiskaly selbst ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Leitfaden für Vereine](docs/leitfaden.md).
+> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die TSE-Anbindung und die Belegausgabe sind integriert; der DSFinV-K-Export ist in Entwicklung. jotti erfüllt die TSE-Pflicht über eine Cloud-TSE von fiskaly — der Betreiber schließt den Vertrag mit fiskaly selbst ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Leitfaden für Vereine](docs/leitfaden/was-ist-jotti.md).
 
 ## Lizenz & Urheberrecht
 
