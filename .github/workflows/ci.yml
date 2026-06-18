@@ -333,7 +333,10 @@ jobs:
           POSTGRES_PASSWORD: admin
           POSTGRES_DBNAME: jotti
           JWT_SECRET: test-secret
-        run: go test -tags=integration -v -race ./...
+        # -p 1 serializes package test binaries: all integration tests share the single
+        # Postgres service, so running packages in parallel pollutes each other's data
+        # (e.g. user cleanup races kassenjournal inserts). Matches scripts/test-integration.sh.
+        run: go test -tags=integration -v -race -p 1 ./...
 
       - name: Run database migrations down
         if: always()
