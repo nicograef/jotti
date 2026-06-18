@@ -25,6 +25,24 @@ func NewRepository(database *sql.DB) Repository {
 	return Repository{db: database, q: dbgen.New(database)}
 }
 
+// withTx runs fn within a single transaction: it begins the tx, rolls back on
+// any error (a rollback after commit is a no-op), and commits otherwise. fn
+// receives the transaction-bound queries and owns its own error wrapping; only
+// begin/commit failures are normalized via db.Error.
+func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return db.Error(err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
+	if err := fn(r.q.WithTx(tx)); err != nil {
+		return err
+	}
+
+	return db.Error(tx.Commit())
+}
+
 // WriteEvent stores a new event in the kassenjournal and synchronously updates
 // the appropriate projection within the same transaction.
 // Routing by streamType:
@@ -32,22 +50,20 @@ func NewRepository(database *sql.DB) Repository {
 //   - "tisch-session" → UPSERT tisch_sessions (synchronous projection)
 //   - "direktverkauf" → kassenjournal only (no projection)
 func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
-
-	stored, err := r.writeEventInTx(ctx, r.q.WithTx(tx), e, streamType, kassensitzungNr)
+	var id int
+	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+		if err != nil {
+			return err
+		}
+		id = stored.ID
+		return nil
+	})
 	if err != nil {
 		return 0, err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return 0, db.Error(err)
-	}
-
-	return stored.ID, nil
+	return id, nil
 }
 
 // WriteEventWithDruckauftraege writes an event and the print jobs derived from it
@@ -62,28 +78,25 @@ func (r Repository) WriteEventWithDruckauftraege(
 	kassensitzungNr int,
 	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
 ) (int, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+	var id int
+	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+		if err != nil {
+			return err
+		}
 
-	qtx := r.q.WithTx(tx)
+		if err := druckauftrag_repo.InsertDruckauftraege(ctx, qtx, buildAuftraege(stored)); err != nil {
+			return err
+		}
 
-	stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+		id = stored.ID
+		return nil
+	})
 	if err != nil {
 		return 0, err
 	}
 
-	if err := druckauftrag_repo.InsertDruckauftraege(ctx, qtx, buildAuftraege(stored)); err != nil {
-		return 0, err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return 0, db.Error(err)
-	}
-
-	return stored.ID, nil
+	return id, nil
 }
 
 // WriteEventWithNachsignierAuftrag writes an event and enqueues a TSE retry
@@ -98,33 +111,30 @@ func (r Repository) WriteEventWithNachsignierAuftrag(
 	processType string,
 	processData string,
 ) (int, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+	var id int
+	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+		if err != nil {
+			return err
+		}
 
-	qtx := r.q.WithTx(tx)
+		err = qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
+			TxID:        txID,
+			ProcessType: processType,
+			ProcessData: processData,
+		})
+		if err != nil {
+			return db.Error(err)
+		}
 
-	stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+		id = stored.ID
+		return nil
+	})
 	if err != nil {
 		return 0, err
 	}
 
-	err = qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
-		TxID:        txID,
-		ProcessType: processType,
-		ProcessData: processData,
-	})
-	if err != nil {
-		return 0, db.Error(err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return 0, db.Error(err)
-	}
-
-	return stored.ID, nil
+	return id, nil
 }
 
 // WriteEventWithDruckauftraegeUndNachsignierAuftrag writes an event, derived
@@ -139,63 +149,50 @@ func (r Repository) WriteEventWithDruckauftraegeUndNachsignierAuftrag(
 	processType string,
 	processData string,
 ) (int, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+	var id int
+	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+		if err != nil {
+			return err
+		}
 
-	qtx := r.q.WithTx(tx)
+		if err := druckauftrag_repo.InsertDruckauftraege(ctx, qtx, buildAuftraege(stored)); err != nil {
+			return err
+		}
 
-	stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
-	if err != nil {
-		return 0, err
-	}
+		err = qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
+			TxID:        txID,
+			ProcessType: processType,
+			ProcessData: processData,
+		})
+		if err != nil {
+			return db.Error(err)
+		}
 
-	if err := druckauftrag_repo.InsertDruckauftraege(ctx, qtx, buildAuftraege(stored)); err != nil {
-		return 0, err
-	}
-
-	err = qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
-		TxID:        txID,
-		ProcessType: processType,
-		ProcessData: processData,
+		id = stored.ID
+		return nil
 	})
 	if err != nil {
-		return 0, db.Error(err)
+		return 0, err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return 0, db.Error(err)
-	}
-
-	return stored.ID, nil
+	return id, nil
 }
 
 // WriteUmbuchung writes the source stornierung and target bestellung atomically.
 // Both events must already carry their final subject/version.
 func (r Repository) WriteUmbuchung(ctx context.Context, stornierungEvent event.Event, bestellungEvent event.Event, kassensitzungNr int) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		if _, err := r.writeEventInTx(ctx, qtx, stornierungEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+			return err
+		}
 
-	qtx := r.q.WithTx(tx)
+		if _, err := r.writeEventInTx(ctx, qtx, bestellungEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+			return err
+		}
 
-	if _, err := r.writeEventInTx(ctx, qtx, stornierungEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
-		return err
-	}
-
-	if _, err := r.writeEventInTx(ctx, qtx, bestellungEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return db.Error(err)
-	}
-
-	return nil
+		return nil
+	})
 }
 
 // writeEventInTx inserts the event into the kassenjournal and updates the matching
@@ -519,61 +516,55 @@ func (r Repository) GetMaxVersion(ctx context.Context, subject string) (int, err
 // Note: kassensitzungen is a CRUD entity and is NOT replayed.
 // Returns the number of subjects rebuilt.
 func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
-
-	qtx := r.q.WithTx(tx)
-
-	// 1. Delete all existing tisch_sessions projections
-	if err := qtx.DeleteAllTischSession(ctx); err != nil {
-		return 0, fmt.Errorf("delete all tisch sessions: %w", err)
-	}
-
-	// 2. Get all distinct tisch-session subjects (filtered in SQL)
-	subjects, err := qtx.GetDistinctTischSessionSubjects(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("get distinct tisch-session subjects: %w", err)
-	}
-
-	// 3. Replay events for each tisch-session subject
 	rebuiltCount := 0
-	for _, subject := range subjects {
-		tischID, err := kasse.ParseTischIDFromSubject(subject)
-		if err != nil {
-			return 0, fmt.Errorf("parse tisch ID from subject %q: %w", subject, err)
+	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		// 1. Delete all existing tisch_sessions projections
+		if err := qtx.DeleteAllTischSession(ctx); err != nil {
+			return fmt.Errorf("delete all tisch sessions: %w", err)
 		}
 
-		kassensitzungNr, err := kasse.ParseZNrFromSubject(subject)
+		// 2. Get all distinct tisch-session subjects (filtered in SQL)
+		subjects, err := qtx.GetDistinctTischSessionSubjects(ctx)
 		if err != nil {
-			return 0, fmt.Errorf("parse z_nr from subject %q: %w", subject, err)
+			return fmt.Errorf("get distinct tisch-session subjects: %w", err)
 		}
 
-		rows, err := qtx.ReadEventsBySubject(ctx, subject)
-		if err != nil {
-			return 0, fmt.Errorf("read events for subject %q: %w", subject, err)
-		}
-
-		state := kasse.TischSession{}
-		for i := range rows {
-			state, err = kasse.ApplyEvent(state, eventFromReadRow(rows[i]))
+		// 3. Replay events for each tisch-session subject
+		for _, subject := range subjects {
+			tischID, err := kasse.ParseTischIDFromSubject(subject)
 			if err != nil {
-				return 0, fmt.Errorf("apply event %d to subject %q: %w", rows[i].ID, subject, err)
+				return fmt.Errorf("parse tisch ID from subject %q: %w", subject, err)
 			}
+
+			kassensitzungNr, err := kasse.ParseZNrFromSubject(subject)
+			if err != nil {
+				return fmt.Errorf("parse z_nr from subject %q: %w", subject, err)
+			}
+
+			rows, err := qtx.ReadEventsBySubject(ctx, subject)
+			if err != nil {
+				return fmt.Errorf("read events for subject %q: %w", subject, err)
+			}
+
+			state := kasse.TischSession{}
+			for i := range rows {
+				state, err = kasse.ApplyEvent(state, eventFromReadRow(rows[i]))
+				if err != nil {
+					return fmt.Errorf("apply event %d to subject %q: %w", rows[i].ID, subject, err)
+				}
+			}
+
+			if err := upsertTischSessionState(ctx, qtx, subject, tischID, kassensitzungNr, state); err != nil {
+				return fmt.Errorf("rebuild tisch session for subject %q: %w", subject, err)
+			}
+
+			rebuiltCount++
 		}
 
-		if err := upsertTischSessionState(ctx, qtx, subject, tischID, kassensitzungNr, state); err != nil {
-			return 0, fmt.Errorf("rebuild tisch session for subject %q: %w", subject, err)
-		}
-
-		rebuiltCount++
-	}
-
-	// 4. Commit transaction
-	if err := tx.Commit(); err != nil {
-		return 0, db.Error(err)
+		return nil
+	})
+	if err != nil {
+		return 0, err
 	}
 
 	return rebuiltCount, nil

@@ -59,6 +59,24 @@ func NewRepository(database *sql.DB) Repository {
 	return Repository{db: database, q: dbgen.New(database)}
 }
 
+// withTx runs fn within a single transaction: it begins the tx, rolls back on
+// any error (a rollback after commit is a no-op), and commits otherwise. fn
+// receives the transaction-bound queries and owns its own error wrapping; only
+// begin/commit failures are normalized via db.Error.
+func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return db.Error(err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
+	if err := fn(r.q.WithTx(tx)); err != nil {
+		return err
+	}
+
+	return db.Error(tx.Commit())
+}
+
 func (r Repository) GetOffeneTSENachsignierAuftraege(ctx context.Context, limit int) ([]OffenerNachsignierAuftrag, error) {
 	rows, err := r.q.GetOffeneTSENachsignierAuftraege(ctx, int32(limit))
 	if err != nil {
@@ -79,37 +97,28 @@ func (r Repository) GetOffeneTSENachsignierAuftraege(ctx context.Context, limit 
 }
 
 func (r Repository) QuittiereTSENachsignierAuftrag(ctx context.Context, auftragID int, signatur Signatur) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		err := qtx.UpsertTSESignatur(ctx, dbgen.UpsertTSESignaturParams{
+			TxID:              strings.TrimSpace(signatur.TxID),
+			TransaktionNummer: signatur.TransaktionNummer,
+			SignaturZaehler:   signatur.SignaturZaehler,
+			TseSeriennummer:   strings.TrimSpace(signatur.TSESeriennummer),
+			LogTimeStart:      signatur.LogTimeStart.UTC(),
+			LogTimeEnd:        signatur.LogTimeEnd.UTC(),
+			Signatur:          strings.TrimSpace(signatur.Signatur),
+			QrCodeData:        strings.TrimSpace(signatur.QRCodeData),
+		})
+		if err != nil {
+			return db.Error(err)
+		}
 
-	qtx := r.q.WithTx(tx)
-	err = qtx.UpsertTSESignatur(ctx, dbgen.UpsertTSESignaturParams{
-		TxID:              strings.TrimSpace(signatur.TxID),
-		TransaktionNummer: signatur.TransaktionNummer,
-		SignaturZaehler:   signatur.SignaturZaehler,
-		TseSeriennummer:   strings.TrimSpace(signatur.TSESeriennummer),
-		LogTimeStart:      signatur.LogTimeStart.UTC(),
-		LogTimeEnd:        signatur.LogTimeEnd.UTC(),
-		Signatur:          strings.TrimSpace(signatur.Signatur),
-		QrCodeData:        strings.TrimSpace(signatur.QRCodeData),
+		err = qtx.MarkTSENachsignierAuftragErledigt(ctx, auftragID)
+		if err != nil {
+			return db.Error(err)
+		}
+
+		return nil
 	})
-	if err != nil {
-		return db.Error(err)
-	}
-
-	err = qtx.MarkTSENachsignierAuftragErledigt(ctx, auftragID)
-	if err != nil {
-		return db.Error(err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return db.Error(err)
-	}
-
-	return nil
 }
 
 // TSENachsignierAuftragFehlversuch verbucht einen Fehlversuch: Zaehler hoch,

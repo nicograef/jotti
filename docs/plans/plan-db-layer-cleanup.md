@@ -151,15 +151,19 @@ rollback-on-error, same returned values and errors.
 
 ### Acceptance criteria
 
-- [ ] Each of `kassenjournal_repo`, `druckauftrag_repo`, `tse_repo` has one
-      `withTx` helper; no raw `r.db.BeginTx(` remains in their methods
-      (verify with `grep -rn 'BeginTx' backend/repository/`).
-- [ ] Return values (event IDs, rebuilt count) and error wrapping are
-      unchanged for every refactored method.
-- [ ] `make fmt-backend`, `make lint-backend` (incl. that the rollback
+- [x] Each of `kassenjournal_repo`, `druckauftrag_repo`, `tse_repo` has one
+      `withTx` helper; no raw `r.db.BeginTx(` remains in their methods — the
+      sole remaining `BeginTx` per repo lives inside that helper (verified with
+      `grep -rn 'BeginTx' backend/repository/`).
+- [x] Return values (event IDs, rebuilt count) and error wrapping are
+      unchanged for every refactored method. The closure captures the value into
+      a local; on any error (begin/fn/commit) the method returns the zero value,
+      matching the pre-refactor `return 0, …` paths exactly.
+- [x] `make fmt-backend`, `make lint-backend` (incl. that the rollback
       `errcheck` lint stays satisfied) pass.
-- [ ] `make test` passes — existing repo tests cover the write/transaction
-      paths and must stay green with no test edits.
+- [x] `make test` passes. The three repos have no `-tags=unit` tests; their
+      write/transaction paths are covered by `make test-integration`, which also
+      stayed green with no test edits.
 
 ---
 

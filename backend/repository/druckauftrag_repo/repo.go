@@ -53,26 +53,32 @@ func NewRepository(database *sql.DB) Repository {
 	return Repository{db: database, q: dbgen.New(database)}
 }
 
-func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []NeuerDruckauftrag) error {
-	if len(auftraege) == 0 {
-		return nil
-	}
-
+// withTx runs fn within a single transaction: it begins the tx, rolls back on
+// any error (a rollback after commit is a no-op), and commits otherwise. fn
+// receives the transaction-bound queries and owns its own error wrapping; only
+// begin/commit failures are normalized via db.Error.
+func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return db.Error(err)
 	}
 	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
 
-	if err := InsertDruckauftraege(ctx, r.q.WithTx(tx), auftraege); err != nil {
+	if err := fn(r.q.WithTx(tx)); err != nil {
 		return err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return db.Error(err)
+	return db.Error(tx.Commit())
+}
+
+func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []NeuerDruckauftrag) error {
+	if len(auftraege) == 0 {
+		return nil
 	}
 
-	return nil
+	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		return InsertDruckauftraege(ctx, qtx, auftraege)
+	})
 }
 
 // InsertDruckauftraege inserts the given print jobs using the provided
@@ -123,34 +129,25 @@ func (r Repository) MeldeDruckergebnis(ctx context.Context, gedruckteIDs []int, 
 		return nil
 	}
 
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
-
-	qtx := r.q.WithTx(tx)
-	for _, id := range gedruckteIDs {
-		if err := qtx.MarkDruckauftragGedruckt(ctx, id); err != nil {
-			return db.Error(err)
+	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		for _, id := range gedruckteIDs {
+			if err := qtx.MarkDruckauftragGedruckt(ctx, id); err != nil {
+				return db.Error(err)
+			}
 		}
-	}
-	for _, f := range fehlversuche {
-		err := qtx.IncrementDruckauftragFehlversuch(ctx, dbgen.IncrementDruckauftragFehlversuchParams{
-			ID:            f.ID,
-			LetzterFehler: sql.NullString{String: f.Fehler, Valid: true},
-			MaxVersuche:   MaxDruckversuche,
-		})
-		if err != nil {
-			return db.Error(err)
+		for _, f := range fehlversuche {
+			err := qtx.IncrementDruckauftragFehlversuch(ctx, dbgen.IncrementDruckauftragFehlversuchParams{
+				ID:            f.ID,
+				LetzterFehler: sql.NullString{String: f.Fehler, Valid: true},
+				MaxVersuche:   MaxDruckversuche,
+			})
+			if err != nil {
+				return db.Error(err)
+			}
 		}
-	}
 
-	if err := tx.Commit(); err != nil {
-		return db.Error(err)
-	}
-
-	return nil
+		return nil
+	})
 }
 
 // GetFehlgeschlageneDruckauftraege liefert alle nach MaxDruckversuche
