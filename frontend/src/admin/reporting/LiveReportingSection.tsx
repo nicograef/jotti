@@ -185,7 +185,9 @@ export function LiveReportingSection({
               {breakdowns.umsatzProServicekraft.map((sk) => (
                 <Item key={sk.userId} variant="outline" size="sm">
                   <ItemContent>
-                    <ItemTitle>{formatBediener(sk.userName, sk.name)}</ItemTitle>
+                    <ItemTitle>
+                      {formatBediener(sk.userName, sk.name)}
+                    </ItemTitle>
                     <Progress
                       value={pct(sk.zahlungenCents, summary.gesamtUmsatzCents)}
                       className="mt-1 h-1.5"
