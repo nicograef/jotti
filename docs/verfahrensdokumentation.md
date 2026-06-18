@@ -131,6 +131,8 @@ Stornierungen und Auszahlungen sind ausschließlich `serviceleitung` und `admin`
 
 «Beschreibt hier kurz, wer die Admin-Rolle hält (üblicherweise Vorstand oder Schatzmeister) und nach welchem Verfahren neue Servicekräfte angelegt und nach dem Fest wieder deaktiviert werden.»
 
+**Bedienerzuordnung:** Jede Kassenaktion hält im Kassenjournal und im DSFinV-K-Export die stabile Benutzer-ID (`BEDIENER_ID`) und den zum Zeitpunkt der Aktion eingefrorenen Benutzernamen (`BEDIENER_NAME`) fest, nicht den bürgerlichen Klarnamen. Die Benutzerverwaltung (`users.name`) hält die Zuordnung Benutzername → Person und dient damit als Bedienerliste für die Betriebsprüfung; die obige Tabelle bildet dieselbe Zuordnung dokumentiert ab. Benutzernamen sind dauerhaft eindeutig und werden nie neu vergeben, sodass ein eingefrorener Name über die gesamte Aufbewahrungsfrist genau einer Person zugeordnet bleibt. Für gute Lesbarkeit empfiehlt sich eine Konvention wie Vorname plus Initial des Nachnamens (z. B. `annak`); jotti erzwingt sie nicht.
+
 ---
 
 ## 7. Archivierung und Aufbewahrung

@@ -280,10 +280,14 @@ oder erledigt ist.
 - Die Erledigt-Definition (ausgegeben und bezahlt, unabhängig vom Ausführenden)
   wurde bewusst gewählt, damit Schichtübergaben funktionieren. Sie ist
   positionsbasiert und ignoriert die tischweite Auszahlung.
-- Der Besteller-Name wird wie bei den fetten Events zum Zeitpunkt der Bestellung
-  festgehalten. Spätere Umbenennungen eines Benutzers ändern angezeigte
-  Besteller-Namen alter Positionen nicht. Das ist konsistent mit dem
-  bestehenden Verhalten (Reporting nutzt den zuletzt bekannten Namen).
+- Der Besteller ist der Akteur des `bestellung-aufgenommen`-Events. Sein
+  Benutzername ist im Event-Umschlag (`UserName`) bereits zum Bestellzeitpunkt
+  eingefroren, wie bei den fetten Events; ein zusätzliches Namensfeld in
+  `PositionEventData` gibt es deshalb nicht. Spätere Umbenennungen eines
+  Benutzers ändern angezeigte Besteller-Namen alter Positionen nicht. Das
+  Reporting nutzt denselben eingefrorenen Benutzernamen; der bürgerliche
+  Klarname erscheint nirgends im Journal und wird nur in den Admin-Auswertungen
+  live über die `user_id` aus `users` aufgelöst.
 - Die persönliche Erledigt-Übersicht berücksichtigt alle Tische der offenen
   Kassensitzung, an denen die Servicekraft bestellt hat, nicht nur ihre
   Favoriten. Favoriten ("Meine Tische") bleiben eine getrennte, frei wählbare

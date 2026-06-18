@@ -330,6 +330,8 @@ Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Beze
 
 Fast jede CSV-Datei führt in den ersten Spalten: `Z_KASSE_ID` (Kassen-ID), `Z_ERSTELLUNG` (Zeitstempel des Kassenabschlusses), `Z_NR` (fortlaufende Z-Bon-Nummer), `BON_ID` (Vorgangs-ID).
 
+Der Bonkopf (`transactions.csv`) führt zusätzlich `BEDIENER_ID` und `BEDIENER_NAME`. Die DSFinV-K definiert `BEDIENER_NAME` (Feldlänge 50) als „unternehmensinternen Namen der Person, die den Vorgang erfasst". jotti füllt `BEDIENER_ID` mit der stabilen Benutzer-ID (`user_id`) und `BEDIENER_NAME` mit dem zum Buchungszeitpunkt eingefrorenen Benutzernamen (`kassenjournal.user_name`), nicht mit dem bürgerlichen Klarnamen. Der unternehmensinterne Benutzername erfüllt die Felddefinition vollständig; der Klarname wird bewusst nicht exportiert (Datenminimierung nach Art. 5 Abs. 1 lit. c DSGVO). Die Zuordnung Benutzername → Person hält die Benutzerverwaltung (`users.name`) als Bedienerliste für die Betriebsprüfung vor (→ [verfahrensdokumentation.md](verfahrensdokumentation.md)).
+
 ### 6.5 Abrechnungskreis: Tisch-Verknüpfung für Festzelt
 
 Das Feld `ABRECHNUNGSKREIS` (in `allocation_groups.csv`, je `BON_ID`) verknüpft Bestellungen und Zahlungen eines Tisches zu einer logischen Einheit, Beispieltabelle und Ablauf: → [§3.6](#36-das-festzelt-muster-atomare-tse-transaktionen).

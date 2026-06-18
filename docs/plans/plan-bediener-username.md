@@ -299,11 +299,11 @@ Bedienerliste für die Betriebsprüfung dient.
 
 ### Acceptance criteria
 
-- [ ] Tischservice-PRD enthält keinen Widerspruch mehr zwischen „eingefroren"
+- [x] Tischservice-PRD enthält keinen Widerspruch mehr zwischen „eingefroren"
       und „live aufgelöst"; US 23 ist auf „Username im Umschlag bereits
       eingefroren, kein neues Feld in `PositionEventData`" umformuliert.
-- [ ] Die falsche Reporting-Aussage ist korrigiert.
-- [ ] `compliance.md`/`steuerrecht.md` begründen `BEDIENER_NAME` = Username
+- [x] Die falsche Reporting-Aussage ist korrigiert.
+- [x] `compliance.md`/`steuerrecht.md` begründen `BEDIENER_NAME` = Username
       anhand der DSFinV-K-Felddefinition.
-- [ ] `verfahrensdokumentation.md` nennt `users.name` als Bedienerliste
+- [x] `verfahrensdokumentation.md` nennt `users.name` als Bedienerliste
       (Username → Person) und empfiehlt eine Username-Konvention.
