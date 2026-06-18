@@ -7,7 +7,7 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-// Repository implements table persistence layer using sqlc-generated queries.
+// Repository implements kassensitzungen persistence layer using sqlc-generated queries.
 type Repository struct {
 	q *dbgen.Queries
 }

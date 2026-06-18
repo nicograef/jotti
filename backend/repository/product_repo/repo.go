@@ -18,7 +18,7 @@ func (r Repository) GetProduct(ctx context.Context, id int) (product.Produkt, er
 
 	varianten, err := parseVariantsJSON(row.Varianten)
 	if err != nil {
-		return product.Produkt{}, fmt.Errorf("failed to unmarshal variants: %w", err)
+		return product.Produkt{}, fmt.Errorf("unmarshal variants: %w", err)
 	}
 
 	return product.Produkt{
@@ -43,7 +43,7 @@ func (r Repository) GetAllProducts(ctx context.Context) ([]product.Produkt, erro
 	for i := range rows {
 		varianten, err := parseVariantsJSON(rows[i].Varianten)
 		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal variants: %w", err)
+			return nil, fmt.Errorf("unmarshal variants: %w", err)
 		}
 
 		products = append(products, product.Produkt{
@@ -71,7 +71,7 @@ func (r Repository) GetActiveProducts(ctx context.Context) ([]product.Produkt, e
 	for i := range rows {
 		varianten, err := parseVariantsJSON(rows[i].Varianten)
 		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal variants: %w", err)
+			return nil, fmt.Errorf("unmarshal variants: %w", err)
 		}
 
 		products = append(products, product.Produkt{

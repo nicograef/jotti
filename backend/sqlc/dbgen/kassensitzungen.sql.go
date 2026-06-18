@@ -50,8 +50,8 @@ SELECT (
     COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int
     + COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
     - COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int
-  + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
-  - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
+    + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
+    - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
     + COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int
     + COALESCE(SUM(kj_extract_differenz_cents(type, data)), 0)::int
 )::int AS soll_bestand_cents

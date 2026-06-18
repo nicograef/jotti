@@ -112,11 +112,15 @@ Three independent, behavior-neutral edits:
 
 ### Acceptance criteria
 
-- [ ] `kassensitzungen_repo/types.go:10` no longer mentions "table".
-- [ ] No `failed to` strings remain in `backend/repository/` (verify with
-      `grep -rn '"failed to' backend/repository/`).
-- [ ] `GetKassenbestand`'s COALESCE terms are uniformly indented.
-- [ ] `make lint-backend` and `make test` pass; no other files touched.
+- [x] `kassensitzungen_repo/types.go:10` no longer mentions "table".
+- [x] No `failed to` strings remain in `backend/repository/` production code
+      (the three variant-unmarshal wraps in `product_repo`; remaining matches are
+      unrelated `t.Fatalf("failed to …")` test-helper messages, left untouched).
+- [x] `GetKassenbestand`'s COALESCE terms are uniformly indented.
+- [x] `make lint-backend` and `make test` pass. The SQL re-indent regenerated
+      `dbgen/kassensitzungen.sql.go` (whitespace-only in the embedded query;
+      query results unchanged) — sqlc embeds verbatim SQL text, so source and
+      generated had to stay in sync.
 
 ---
 
