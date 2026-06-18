@@ -54,9 +54,11 @@ Durchgängig gültige Entscheidungen:
   (`title`, `description`, optional Sidebar-Label/Reihenfolge); die bisherige H1
   entfällt zugunsten des Frontmatter-Titels. Private Dokumente bleiben ohne
   Frontmatter.
-- **Build als Gate:** `astro check` plus Build (inkl. Link-/Anker-Validierung)
-  ersetzen `scripts/check-website.sh`. Tote Links und fehlende Anker auf
-  veröffentlichte Ziele lassen den Build fehlschlagen.
+- **Build als Gate:** `astro check` plus Build (plus Vitest für den
+  Link-Rewriter) ersetzen `scripts/check-website.sh`. Eine automatische
+  Link-/Anker-Validierung als Build-Gate ist bewusst entfallen (User-Entscheidung
+  in Phase 3: KISS, kein Link-Validator — `starlight-links-validator` ist mit dem
+  externen Glob-Loader inkompatibel, siehe Phase 3).
 - **Auslieferung:** Eigener `website`-Container analog zu
   [frontend/Dockerfile](../../frontend/Dockerfile) (Astro-Build → nginx-Runner).
   Der Reverse-Proxy proxyt `jotti.rocks` → `website:80`; die Security-Header/CSP
@@ -263,15 +265,22 @@ einen Anker, der nicht existiert, bricht den Build ab.
 
 ### Acceptance criteria
 
-- [ ] Repo-relative Links in veröffentlichten Dokumenten lösen auf `/docs`-Routen
+- [x] Repo-relative Links in veröffentlichten Dokumenten lösen auf `/docs`-Routen
       auf; Anker zeigen auf den Slug der Zielüberschrift.
-- [ ] Links auf private Dokumente und Dateien außerhalb `docs/` werden zu
+- [x] Links auf private Dokumente und Dateien außerhalb `docs/` werden zu
       absoluten GitHub-URLs; externe Links bleiben unverändert.
-- [ ] Die reine `href`-Funktion ist mit Vitest abgedeckt (veröffentlicht mit/ohne
+- [x] Die reine `href`-Funktion ist mit Vitest abgedeckt (veröffentlicht mit/ohne
       Anker, privat → GitHub, außerhalb `docs/` → GitHub, extern unverändert).
-- [ ] Ein toter Link oder fehlender Anker auf ein veröffentlichtes Ziel lässt den
-      Build fehlschlagen.
-- [ ] Die GitHub-Vorschau und die Editor-Vorschau der Quelldateien bleiben gültig
+- [~] ~~Ein toter Link oder fehlender Anker auf ein veröffentlichtes Ziel lässt den
+      Build fehlschlagen.~~ **Bewusst entfallen (User-Entscheidung: KISS, kein
+      Link-Validator).** `starlight-links-validator` ist mit dem externen
+      Glob-Loader + `/docs/`-`generateId`-Präfix inkompatibel: es schlüsselt
+      Heading-Indizes über den Dateipfad relativ zu `src/content/docs` und würde
+      jeden Link auf ein veröffentlichtes Dokument verwerfen. Die einzige Brücke
+      wäre ein `slug: docs/<name>`-Frontmatter pro kanonischer Datei — das würde
+      die Website-Route in die Quelle der Wahrheit einbetten und `generateId`
+      duplizieren. Statt dessen kein Build-Gate für Links.
+- [x] Die GitHub-Vorschau und die Editor-Vorschau der Quelldateien bleiben gültig
       (Autoren schreiben weiter repo-relative Links).
 
 ---

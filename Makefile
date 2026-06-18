@@ -14,7 +14,7 @@
        clean \
        check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-integration check check-full verify \
        website website-check website-fmt \
-       website-dev website-build website-verify \
+       website-dev website-build website-test website-verify \
        help
 
 # ──────────────────────────────────────────────
@@ -314,8 +314,11 @@ website-dev: ## Astro Dev-Server starten (http://localhost:4321), liest docs/ li
 website-build: ## Website bauen (Astro Build → website/dist)
 	cd website && pnpm build
 
-website-verify: ## Website prüfen (astro check + Build inkl. Link-Validierung)
-	cd website && pnpm check
+website-test: ## Website Unit-Tests (Link-Rewriter, Vitest)
+	cd website && pnpm test
+
+website-verify: ## Website prüfen (Vitest + astro check + Build)
+	cd website && pnpm test && pnpm check
 
 # ──────────────────────────────────────────────
 # Hilfe

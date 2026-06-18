@@ -1,11 +1,23 @@
 // @ts-check
 import starlight from '@astrojs/starlight'
 import tailwindcss from '@tailwindcss/vite'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'astro/config'
+
+import { remarkDocLinks } from './src/lib/remark-doc-links.ts'
+
+// Querverweise: Autoren schreiben repo-relative Markdown-Links in `docs/`; der
+// remark-Link-Rewriter bildet sie auf Website-Routen bzw. GitHub-URLs ab.
+const docsDir = fileURLToPath(new URL('../docs', import.meta.url))
+const repoBaseUrl = 'https://github.com/nicograef/jotti/blob/main'
 
 // https://astro.build/config
 export default defineConfig({
   site: 'https://jotti.rocks',
+  markdown: {
+    // Tupel-Form [attacher, options]: unified ruft remarkDocLinks(options) auf.
+    remarkPlugins: [[remarkDocLinks, { docsDir, repoBaseUrl }]],
+  },
   integrations: [
     starlight({
       title: 'jotti',
