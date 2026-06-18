@@ -303,8 +303,10 @@ PRD-Sidebar:
 Der Inhalt wird nicht neu erfunden, sondern umgegliedert und in
 Schritt-für-Schritt-Form gebracht; die Trennung Standardweg/Experten-Weg und
 Technik/Recht entsteht über die Gruppierung. Jede Schritt-Seite erhält
-Frontmatter. Die `AGENTS.md`-Referenztabelle und alle Querverweise auf
-`docs/leitfaden.md` werden auf die neue Struktur aktualisiert.
+Frontmatter. Die `AGENTS.md`-Referenztabelle und alle Markdown-Querverweise auf
+`docs/leitfaden.md` werden auf die neue Struktur aktualisiert. Deep-Links aus
+Nicht-Markdown-Konsumenten (Frontend, Backend, Compose) sieht der Astro-Build
+nicht; sie werden in Phase 6 vereinheitlicht.
 
 ### Acceptance criteria
 
@@ -315,8 +317,9 @@ Frontmatter. Die `AGENTS.md`-Referenztabelle und alle Querverweise auf
 - [ ] Eine klare Schritt-für-Schritt-Führung für den Standardweg existiert; der
       Experten-Weg (Self-Hosting) ist ein eigener Bereich.
 - [ ] Ein Fehlersuche-/FAQ-Bereich ist vorhanden.
-- [ ] `AGENTS.md` und Querverweise zeigen auf die neue `docs/leitfaden/`-Struktur;
-      keine toten Verweise (Build grün).
+- [ ] `AGENTS.md` und alle Markdown-Querverweise zeigen auf die neue
+      `docs/leitfaden/`-Struktur; keine toten Verweise (Build grün).
+      Nicht-Markdown-Deep-Links bleiben Phase 6 vorbehalten.
 
 ---
 
@@ -379,6 +382,15 @@ sodass die neuen Doku-Seiten indexiert werden.
   [website/leitfaden-fuer-vereine/](../../website/leitfaden-fuer-vereine/) — zu
   entfernen.
 - [Makefile](../../Makefile) (Zeilen 293–306) — alte Targets ersetzen.
+- Externe Deep-Link-Konsumenten — zeigen heute auf GitHub-`blob`-URLs von
+  `docs/leitfaden.md` und brechen nach der Aufteilung in Phase 4:
+  [DokumenteUndPflichtenSection.tsx](../../frontend/src/admin/finanzamt/DokumenteUndPflichtenSection.tsx)
+  (`docs/leitfaden.md`, `docs/compliance.md`),
+  [KassenidentitaetSection.tsx](../../frontend/src/admin/finanzamt/KassenidentitaetSection.tsx)
+  (`docs/leitfaden.md#kasse-beim-finanzamt-anmelden`),
+  [reverse-proxy/statuspage.go](../../reverse-proxy/statuspage.go)
+  (`docs/leitfaden.md#fehlersuche`); dazu Kommentar-Verweise in
+  `docker-compose.prod.yml` und `docker-compose.local.yml`.
 
 ### What to build
 
@@ -389,6 +401,22 @@ Serving mit SSI auf `proxy_pass http://website:80` umgestellt; Security-Header
 und CSP bleiben im Reverse-Proxy. Redirects von `/leitfaden-fuer-vereine/` und
 `/jotti-selbst-betreiben/` auf die neue Leitfaden-Einstiegsseite bleiben für
 SEO-Kontinuität erhalten. Das `./website`-Volume entfällt.
+
+Externe Doku-Links werden vereinheitlicht: Frontend und Backend zeigen nicht mehr
+auf GitHub-`blob`-Deep-Links, sondern auf kanonische
+`https://jotti.rocks/docs/<slug>`-URLs. Betroffen sind
+`DokumenteUndPflichtenSection.tsx`, `KassenidentitaetSection.tsx` und
+`reverse-proxy/statuspage.go`; die Kommentar-Verweise in den Compose-Dateien
+werden auf die neue `docs/leitfaden/`-Struktur nachgezogen. Weil die Slugs stabil
+gehalten werden, braucht eine spätere Doku-Restrukturierung keinen Eingriff in
+TS/Go mehr, sondern nur einen Eintrag in der Redirect-Map. Diese Redirect-Map
+liegt an einer Stelle im Reverse-Proxy (Muster der bestehenden
+`/leitfaden-fuer-vereine/`- und `/jotti-selbst-betreiben/`-Redirects) und deckt
+umbenannte oder verschobene Doku-Routen ab, sodass alte
+`jotti.rocks/docs/<slug>`-URLs weiter auflösen. Vor dem Rückbau wird das Repo
+einmal nach verbliebenen Deep-Links auf `docs/leitfaden.md` durchsucht (Frontend,
+Backend, Konfiguration), damit kein toter Verweis zurückbleibt, den der
+Astro-Build nicht sieht.
 
 Das alte Setup wird vollständig zurückgebaut: SSI-Partials und ihre
 nginx-Konfiguration, `css/base.css`, `scripts/check-website.sh`, die handgebaute
@@ -411,4 +439,13 @@ Build-Schritt") wird angepasst.
       Parallelsystem bleibt.
 - [ ] Die Projektdoku zum Website-Workflow ist auf das neue Build-Setup
       aktualisiert.
+- [ ] Frontend und Backend verlinken Doku über kanonische
+      `jotti.rocks/docs/<slug>`-URLs statt GitHub-`blob`-Deep-Links
+      (`DokumenteUndPflichtenSection.tsx`, `KassenidentitaetSection.tsx`,
+      `statuspage.go`); die Compose-Kommentare zeigen auf `docs/leitfaden/`.
+- [ ] Eine repo-weite Suche nach Deep-Links auf `docs/leitfaden.md` außerhalb
+      veröffentlichter Markdown ist leer; kein toter Anker-Verweis bleibt.
+- [ ] Umbenannte oder verschobene Doku-Routen sind über eine Redirect-Map an
+      einer Stelle im Reverse-Proxy abgedeckt; alte `jotti.rocks/docs/<slug>`-URLs
+      lösen weiter auf.
 - [ ] Deployment funktioniert manuell wie bisher (kein automatisiertes Deployment).
