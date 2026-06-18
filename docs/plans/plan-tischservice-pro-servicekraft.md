@@ -277,17 +277,17 @@ per-Tisch-"für mich erledigt" aus Phase 1, getrennt vom Gesamtzustand.
 
 ### Acceptance criteria
 
-- [ ] Das Rollup berechnet pro Servicekraft die offenen Tische, die Anzahlen
+- [x] Das Rollup berechnet pro Servicekraft die offenen Tische, die Anzahlen
       (ausstehend/unbezahlt) und "alles erledigt"; Schichtübergabe (fremde
       Ausgabe/Kassierung schließt eigene Arbeit ab) ist abgedeckt.
-- [ ] `/get-eigene-uebersicht` liefert die offene eigene Arbeit zusätzlich zum
+- [x] `/get-eigene-uebersicht` liefert die offene eigene Arbeit zusätzlich zum
       bestehenden Inhalt, bezogen auf alle Tische der offenen Kassensitzung.
-- [ ] Die Übersicht zeigt "Alles erledigt!" bzw. die Liste der eigenen offenen
+- [x] Die Übersicht zeigt "Alles erledigt!" bzw. die Liste der eigenen offenen
       Tische.
-- [ ] Jede Tischkarte zeigt die Anzahl offener Positionen und davon eigene als
+- [x] Jede Tischkarte zeigt die Anzahl offener Positionen und davon eigene als
       eine Zahl; die Detailseite zeigt "für mich erledigt" getrennt vom
       Gesamtzustand.
-- [ ] Tests für Rollup (mehrere Tische/Servicekräfte) und für die erweiterte
+- [x] Tests für Rollup (mehrere Tische/Servicekräfte) und für die erweiterte
       Übersicht grün.
 
 ---

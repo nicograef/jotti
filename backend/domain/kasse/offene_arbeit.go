@@ -1,5 +1,7 @@
 package kasse
 
+import "sort"
+
 // EigeneArbeitAnTisch ist die offene eigene Arbeit einer Servicekraft an einem
 // einzelnen Tisch: ihre noch ausstehenden (nicht ausgegebenen) und noch
 // unbezahlten Positionen sowie das daraus abgeleitete "erledigt"-Kennzeichen.
@@ -48,5 +50,53 @@ func ComputeEigeneArbeitAnTisch(session TischSession, userID int) EigeneArbeitAn
 		AnzahlUnbezahlt:  anzahlUnbezahlt,
 		AnzahlOffen:      len(offeneIDs),
 		Erledigt:         anzahlAusstehend == 0 && anzahlUnbezahlt == 0,
+	}
+}
+
+// OffeneArbeitTisch ist die offene eigene Arbeit einer Servicekraft an einem
+// einzelnen Tisch, angereichert um die Tisch-ID für die Rollup-Liste.
+type OffeneArbeitTisch struct {
+	TischID          int
+	AnzahlAusstehend int
+	AnzahlUnbezahlt  int
+	AnzahlOffen      int
+}
+
+// OffeneArbeitRollup fasst die offene eigene Arbeit einer Servicekraft über
+// mehrere Tisch-Sessions (i. d. R. alle einer offenen Kassensitzung) zusammen.
+type OffeneArbeitRollup struct {
+	// OffeneTische listet nur Tische mit offener eigener Arbeit (nicht erledigt),
+	// aufsteigend nach Tisch-ID.
+	OffeneTische []OffeneArbeitTisch
+	// Erledigt ist true, wenn an keinem Tisch noch offene eigene Arbeit besteht.
+	Erledigt bool
+}
+
+// ComputeOffeneArbeitRollup berechnet die offene eigene Arbeit der Servicekraft
+// userID über alle gegebenen Tisch-Sessions. Tische, an denen für die Person
+// alles erledigt ist, werden ausgelassen. Schichtübergabe ist implizit über
+// ComputeEigeneArbeitAnTisch abgedeckt.
+func ComputeOffeneArbeitRollup(sessions []TischSession, userID int) OffeneArbeitRollup {
+	offeneTische := make([]OffeneArbeitTisch, 0)
+	for _, session := range sessions {
+		arbeit := ComputeEigeneArbeitAnTisch(session, userID)
+		if arbeit.Erledigt {
+			continue
+		}
+		offeneTische = append(offeneTische, OffeneArbeitTisch{
+			TischID:          session.TischID,
+			AnzahlAusstehend: arbeit.AnzahlAusstehend,
+			AnzahlUnbezahlt:  arbeit.AnzahlUnbezahlt,
+			AnzahlOffen:      arbeit.AnzahlOffen,
+		})
+	}
+
+	sort.Slice(offeneTische, func(i, j int) bool {
+		return offeneTische[i].TischID < offeneTische[j].TischID
+	})
+
+	return OffeneArbeitRollup{
+		OffeneTische: offeneTische,
+		Erledigt:     len(offeneTische) == 0,
 	}
 }

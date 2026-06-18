@@ -93,9 +93,25 @@ type LiveReportingData struct {
 	Stornierungen               []StornierungDetail
 }
 
+// OffeneArbeitTisch ist die offene eigene Arbeit einer Servicekraft an einem
+// Tisch, angereichert um den Tisch-Namen für die Anzeige.
+type OffeneArbeitTisch struct {
+	TischID          int
+	TischName        string
+	AnzahlAusstehend int
+	AnzahlUnbezahlt  int
+	AnzahlOffen      int
+}
+
 type EigeneUebersicht struct {
 	AnzahlBestellungen int
 	BestellungenCents  int
 	AnzahlZahlungen    int
 	ZahlungenCents     int
+	// OffeneTische listet die Tische der offenen Kassensitzung, an denen die
+	// Servicekraft noch offene eigene Arbeit hat (aufsteigend nach Tisch-ID).
+	OffeneTische []OffeneArbeitTisch
+	// AlleErledigt ist true, wenn die Servicekraft an keinem Tisch noch offene
+	// eigene Arbeit hat.
+	AlleErledigt bool
 }

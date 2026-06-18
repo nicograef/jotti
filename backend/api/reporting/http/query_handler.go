@@ -271,11 +271,21 @@ func (h *QueryHandler) GetAllKassensitzungenHandler() http.HandlerFunc {
 	}
 }
 
+type offeneArbeitTischResponse struct {
+	TischID          int    `json:"tischId"`
+	TischName        string `json:"tischName"`
+	AnzahlAusstehend int    `json:"anzahlAusstehend"`
+	AnzahlUnbezahlt  int    `json:"anzahlUnbezahlt"`
+	AnzahlOffen      int    `json:"anzahlOffen"`
+}
+
 type eigeneUebersichtResponse struct {
-	AnzahlBestellungen int `json:"anzahlBestellungen"`
-	BestellungenCents  int `json:"bestellungenCents"`
-	AnzahlZahlungen    int `json:"anzahlZahlungen"`
-	ZahlungenCents     int `json:"zahlungenCents"`
+	AnzahlBestellungen int                         `json:"anzahlBestellungen"`
+	BestellungenCents  int                         `json:"bestellungenCents"`
+	AnzahlZahlungen    int                         `json:"anzahlZahlungen"`
+	ZahlungenCents     int                         `json:"zahlungenCents"`
+	OffeneTische       []offeneArbeitTischResponse `json:"offeneTische"`
+	AlleErledigt       bool                        `json:"alleErledigt"`
 }
 
 func (h *QueryHandler) GetEigeneUebersichtHandler() http.HandlerFunc {
@@ -292,11 +302,24 @@ func (h *QueryHandler) GetEigeneUebersichtHandler() http.HandlerFunc {
 			return
 		}
 
+		offeneTische := make([]offeneArbeitTischResponse, len(data.OffeneTische))
+		for i, tisch := range data.OffeneTische {
+			offeneTische[i] = offeneArbeitTischResponse{
+				TischID:          tisch.TischID,
+				TischName:        tisch.TischName,
+				AnzahlAusstehend: tisch.AnzahlAusstehend,
+				AnzahlUnbezahlt:  tisch.AnzahlUnbezahlt,
+				AnzahlOffen:      tisch.AnzahlOffen,
+			}
+		}
+
 		helper.SendResponse(w, eigeneUebersichtResponse{
 			AnzahlBestellungen: data.AnzahlBestellungen,
 			BestellungenCents:  data.BestellungenCents,
 			AnzahlZahlungen:    data.AnzahlZahlungen,
 			ZahlungenCents:     data.ZahlungenCents,
+			OffeneTische:       offeneTische,
+			AlleErledigt:       data.AlleErledigt,
 		})
 	}
 }

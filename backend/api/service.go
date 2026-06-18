@@ -96,7 +96,12 @@ func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 
 	reportingRepo := reporting_repo.NewRepository(db)
 	rq := reportingHTTP.QueryHandler{}
-	rq.Query = reportingApp.Query{ReportingRepo: reportingRepo, KassensitzungenRepo: kassensitzungenRepo}
+	rq.Query = reportingApp.Query{
+		ReportingRepo:       reportingRepo,
+		KassensitzungenRepo: kassensitzungenRepo,
+		TischSessionRepo:    kassenjournalRepo,
+		TischRepo:           tableRepo,
+	}
 	r.HandleFunc("/get-eigene-uebersicht", rq.GetEigeneUebersichtHandler())
 
 	return r

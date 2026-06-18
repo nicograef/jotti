@@ -8,6 +8,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/steuer"
+	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/rs/zerolog"
 )
 
@@ -25,9 +26,19 @@ type kassensitzungenRepo interface {
 	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
+type tischSessionRepo interface {
+	GetTischSessionsByKassensitzungNr(ctx context.Context, kassensitzungNr int) ([]kasse.TischSession, error)
+}
+
+type tischRepo interface {
+	GetAllTables(ctx context.Context) ([]table.Tisch, error)
+}
+
 type Query struct {
 	ReportingRepo       reportingRepo
 	KassensitzungenRepo kassensitzungenRepo
+	TischSessionRepo    tischSessionRepo
+	TischRepo           tischRepo
 }
 
 func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error) {
@@ -125,6 +136,35 @@ func (q Query) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.E
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get eigene uebersicht")
 		return reporting.EigeneUebersicht{}, ErrDatabase
+	}
+
+	sessions, err := q.TischSessionRepo.GetTischSessionsByKassensitzungNr(ctx, kassensitzungNr)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get tisch sessions for eigene uebersicht")
+		return reporting.EigeneUebersicht{}, ErrDatabase
+	}
+
+	tische, err := q.TischRepo.GetAllTables(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get tische for eigene uebersicht")
+		return reporting.EigeneUebersicht{}, ErrDatabase
+	}
+	nameByTischID := make(map[int]string, len(tische))
+	for _, t := range tische {
+		nameByTischID[t.ID] = t.Name
+	}
+
+	rollup := kasse.ComputeOffeneArbeitRollup(sessions, userID)
+	data.AlleErledigt = rollup.Erledigt
+	data.OffeneTische = make([]reporting.OffeneArbeitTisch, len(rollup.OffeneTische))
+	for i, tisch := range rollup.OffeneTische {
+		data.OffeneTische[i] = reporting.OffeneArbeitTisch{
+			TischID:          tisch.TischID,
+			TischName:        nameByTischID[tisch.TischID],
+			AnzahlAusstehend: tisch.AnzahlAusstehend,
+			AnzahlUnbezahlt:  tisch.AnzahlUnbezahlt,
+			AnzahlOffen:      tisch.AnzahlOffen,
+		}
 	}
 
 	log.Info().Msg("Retrieved eigene uebersicht")

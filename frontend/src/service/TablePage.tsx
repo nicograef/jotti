@@ -69,6 +69,19 @@ export function TablePage() {
               <Badge>Alles ausgegeben!</Badge>
             )}
           </ItemTitle>
+          {!stateLoading && (
+            <ItemDescription>
+              {state.fuerMichErledigt ? (
+                <span className="font-medium text-green-600">
+                  Für dich erledigt
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  Für dich noch offen
+                </span>
+              )}
+            </ItemDescription>
+          )}
         </ItemContent>
         <ItemContent>
           <ItemDescription className="text-2xl">

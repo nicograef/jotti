@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
 import type { TischSession } from '../table/Tisch'
@@ -17,11 +18,9 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
     void navigate(`/service/tische/${state.tischId.toString()}`)
   }
 
-  const hatAusstehende = state.ausstehendePositionen.length > 0
-  const hatUnbezahlte = state.unbezahltePositionen.length > 0
+  const { anzahlOffen, anzahlEigeneOffen } = zaehleOffenePositionen(state)
   const hatAuszahlung = state.saldoCents < 0
-  const alleErledigt =
-    !hatAusstehende && !hatUnbezahlte && state.saldoCents >= 0
+  const alleErledigt = anzahlOffen === 0 && state.saldoCents >= 0
 
   return (
     <Card
@@ -41,16 +40,14 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
             {formatCents(state.saldoCents)} €
           </span>
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {hatAusstehende && (
-            <Badge variant="secondary">
-              {state.ausstehendePositionen.length} ausstehend
-            </Badge>
-          )}
-          {hatUnbezahlte && (
-            <Badge variant="outline">
-              {state.unbezahltePositionen.length} unbezahlt
-            </Badge>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {anzahlOffen > 0 && (
+            <>
+              <Badge variant="secondary">{anzahlOffen} offen</Badge>
+              <span className="text-sm text-muted-foreground">
+                davon {anzahlEigeneOffen} von dir
+              </span>
+            </>
           )}
           {hatAuszahlung && (
             <Badge variant="destructive">
@@ -66,4 +63,28 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
       </CardContent>
     </Card>
   )
+}
+
+// zaehleOffenePositionen bildet die Vereinigung aus ausstehenden und unbezahlten
+// Positionen (je Position einmal über die positionId) und zählt zusätzlich, wie
+// viele davon von der angemeldeten Servicekraft bestellt wurden.
+function zaehleOffenePositionen(state: TischSession) {
+  const myUserId = AuthSingleton.userId
+  const offeneIds = new Set<string>()
+  const eigeneOffeneIds = new Set<string>()
+
+  for (const position of [
+    ...state.ausstehendePositionen,
+    ...state.unbezahltePositionen,
+  ]) {
+    offeneIds.add(position.positionId)
+    if (position.bestellerUserId === myUserId) {
+      eigeneOffeneIds.add(position.positionId)
+    }
+  }
+
+  return {
+    anzahlOffen: offeneIds.size,
+    anzahlEigeneOffen: eigeneOffeneIds.size,
+  }
 }

@@ -28,6 +28,7 @@ linters:
         - performance # Flag code that can be optimized for speed or allocations
       disabled-checks:
         - hugeParam # Allow passing large structs by value (acceptable in this codebase)
+        - rangeValCopy # Same rationale: ranging over slices of large structs (e.g. Position, 128 bytes) by value is acceptable here
 
 formatters:
   enable:

@@ -98,6 +98,8 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	rq.Query = reportingApp.Query{
 		ReportingRepo:       reportingRepo,
 		KassensitzungenRepo: kassensitzungenRepo,
+		TischSessionRepo:    kassenjournalRepo,
+		TischRepo:           tableRepo,
 	}
 	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
 	r.HandleFunc("/get-all-kassensitzungen", rq.GetAllKassensitzungenHandler())
