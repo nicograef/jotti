@@ -122,12 +122,7 @@ func NewBestellungAufgenommenEvent(subject string, userID int, userName string, 
 		return e.Event{}, fmt.Errorf("bestellung aufgenommen data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeBestellungAufgenommenV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeBestellungAufgenommenV1), subject, data)
 }
 
 func NewZahlungKassiertEvent(subject string, userID int, userName string, positionen []Position, gesamtZahlungCents int, kommentar string) (e.Event, error) {
@@ -143,12 +138,7 @@ func NewZahlungKassiertEvent(subject string, userID int, userName string, positi
 		return e.Event{}, fmt.Errorf("zahlung kassiert data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeZahlungKassiertV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeZahlungKassiertV1), subject, data)
 }
 
 func NewStornierungErteiltEvent(subject string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
@@ -164,12 +154,7 @@ func NewStornierungErteiltEvent(subject string, userID int, userName string, pos
 		return e.Event{}, fmt.Errorf("stornierung erteilt data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeStornierungErteiltV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeStornierungErteiltV1), subject, data)
 }
 
 func NewAusgabeBestaetigtEvent(subject string, userID int, userName string, positionen []Position, kommentar string) (e.Event, error) {
@@ -184,12 +169,7 @@ func NewAusgabeBestaetigtEvent(subject string, userID int, userName string, posi
 		return e.Event{}, fmt.Errorf("ausgabe bestaetigt data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeAusgabeBestaetigtV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeAusgabeBestaetigtV1), subject, data)
 }
 
 func NewAuszahlungGeleistetEvent(subject string, userID int, userName string, betragCents int, kommentar string) (e.Event, error) {
@@ -204,12 +184,7 @@ func NewAuszahlungGeleistetEvent(subject string, userID int, userName string, be
 		return e.Event{}, fmt.Errorf("auszahlung geleistet data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeAuszahlungGeleistetV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeAuszahlungGeleistetV1), subject, data)
 }
 
 // --- Build-from-Event-Funktionen ---

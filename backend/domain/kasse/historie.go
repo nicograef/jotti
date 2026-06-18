@@ -42,38 +42,38 @@ func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 		case string(EventTypeBestellungAufgenommenV1):
 			bestellung, err := buildBestellungFromEvent(event)
 			if err != nil {
-				return []HistorieEintrag{}, err
+				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragBestellung, Bestellung: &bestellung})
 		case string(EventTypeZahlungKassiertV1):
 			zahlung, err := buildZahlungFromEvent(event)
 			if err != nil {
-				return []HistorieEintrag{}, err
+				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragZahlung, Zahlung: &zahlung})
 		case string(EventTypeStornierungErteiltV1):
 			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
-				return []HistorieEintrag{}, err
+				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragStornierung, Stornierung: &stornierung})
 
 		case string(EventTypeAusgabeBestaetigtV1):
 			ausgabe, err := buildAusgabeFromEvent(event)
 			if err != nil {
-				return []HistorieEintrag{}, err
+				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragAusgabe, Ausgabe: &ausgabe})
 
 		case string(EventTypeAuszahlungGeleistetV1):
 			auszahlung, err := buildAuszahlungFromEvent(event)
 			if err != nil {
-				return []HistorieEintrag{}, err
+				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragAuszahlung, Auszahlung: &auszahlung})
 
 		default:
-			return []HistorieEintrag{}, fmt.Errorf("unknown event type: %s", event.Type)
+			return nil, fmt.Errorf("unknown event type: %s", event.Type)
 		}
 	}
 

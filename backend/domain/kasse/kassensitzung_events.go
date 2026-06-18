@@ -116,12 +116,7 @@ func NewKassensitzungEroeffnetEvent(subject string, userID int, userName string,
 		return e.Event{}, fmt.Errorf("kassensitzung eroeffnet data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeKassensitzungEroeffnetV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeKassensitzungEroeffnetV1), subject, data)
 }
 
 func NewGeldtransitGebuchtEvent(subject string, userID int, userName string, richtung string, betragCents int, kommentar string) (e.Event, error) {
@@ -138,12 +133,7 @@ func NewGeldtransitGebuchtEvent(subject string, userID int, userName string, ric
 		return e.Event{}, fmt.Errorf("geldtransit gebucht data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeGeldtransitGebuchtV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeGeldtransitGebuchtV1), subject, data)
 }
 
 func NewKassensturzDurchgefuehrtEvent(subject string, userID int, userName string, sollBestandCents int, istBestandCents int, differenzCents int) (e.Event, error) {
@@ -159,12 +149,7 @@ func NewKassensturzDurchgefuehrtEvent(subject string, userID int, userName strin
 		return e.Event{}, fmt.Errorf("kassensturz durchgefuehrt data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeKassensturzDurchgefuehrtV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeKassensturzDurchgefuehrtV1), subject, data)
 }
 
 func NewDifferenzSollIstGebuchtEvent(subject string, userID int, userName string, betragCents int) (e.Event, error) {
@@ -178,12 +163,7 @@ func NewDifferenzSollIstGebuchtEvent(subject string, userID int, userName string
 		return e.Event{}, fmt.Errorf("differenz soll-ist gebucht data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeDifferenzSollIstGebuchtV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeDifferenzSollIstGebuchtV1), subject, data)
 }
 
 func NewTagesabschlussErstelltEvent(subject string, userID int, userName string, zNr int, zeitraumVon time.Time, zeitraumBis time.Time, umsatzGesamtCents int, stornierungCents int, auszahlungenCents int, geldtransitCents int) (e.Event, error) {
@@ -203,10 +183,5 @@ func NewTagesabschlussErstelltEvent(subject string, userID int, userName string,
 		return e.Event{}, fmt.Errorf("tagesabschluss erstellt data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeTagesabschlussErstelltV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeTagesabschlussErstelltV1), subject, data)
 }

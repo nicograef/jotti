@@ -78,12 +78,7 @@ func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 		return e.Event{}, fmt.Errorf("direktverkauf getaetigt data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeDirektverkaufGetaetigtV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeDirektverkaufGetaetigtV1), subject, data)
 }
 
 // NewDirektverkaufStorniertEvent creates a position-precise cancellation event for a Direktverkauf.
@@ -104,10 +99,5 @@ func NewDirektverkaufStorniertEvent(subject string, verkaufID string, userID int
 		return e.Event{}, fmt.Errorf("direktverkauf storniert data validation failed: %v", issues)
 	}
 
-	event, err := e.New(userID, userName, string(EventTypeDirektverkaufStorniertV1), subject, data)
-	if err != nil {
-		return e.Event{}, err
-	}
-
-	return event, nil
+	return e.New(userID, userName, string(EventTypeDirektverkaufStorniertV1), subject, data)
 }
