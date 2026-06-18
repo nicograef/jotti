@@ -13,8 +13,7 @@
        db-shell seed rebuild-projections \
        clean \
        check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-integration check check-full verify \
-       website website-check website-fmt \
-       website-dev website-build website-test website-verify \
+       website-dev website-build website-test website-check \
        help
 
 # ──────────────────────────────────────────────
@@ -288,26 +287,10 @@ check-full: check check-integration ## Vollständige Prüfung inkl. Integrations
 verify: check-tools check-full ## Alias für vollständige Repo-Prüfung
 
 # ──────────────────────────────────────────────
-# Website                                       
+# Website (Astro + Starlight, website/)
 # ──────────────────────────────────────────────
+# Setzt einmaliges `cd website && pnpm install` voraus.
 
-website: ## Website Dev-Server (nginx + SSI) starten (http://localhost:8080)
-	docker run --rm -p 8080:80 \
-	  -v $(CURDIR)/website:/usr/share/nginx/html:ro \
-	  -v $(CURDIR)/reverse-proxy/nginx.website-dev.conf:/etc/nginx/conf.d/default.conf:ro \
-	  nginx:1.27-alpine
-
-# head-seo.html ist für Prettier kein valides HTML (SSI-Echo in Attributwerten)
-# und wird deshalb von Format-Check und -Write ausgenommen.
-website-check: ## Website prüfen (Links, Assets, SSI, CSS-Klassen, Format)
-	./scripts/check-website.sh
-	cd frontend && pnpm exec prettier --check --ignore-unknown ../website '!../website/partials/head-seo.html'
-
-website-fmt: ## Website formatieren (Prettier via Frontend-Installation)
-	cd frontend && pnpm exec prettier --write --ignore-unknown ../website '!../website/partials/head-seo.html'
-
-# Neue Astro/Starlight-Website (website/). Setzt einmaliges `cd website && pnpm install`
-# voraus. Ersetzt in der letzten Phase die statischen Targets oben.
 website-dev: ## Astro Dev-Server starten (http://localhost:4321), liest docs/ live
 	cd website && pnpm dev
 
@@ -317,7 +300,7 @@ website-build: ## Website bauen (Astro Build → website/dist)
 website-test: ## Website Unit-Tests (Link-Rewriter, Vitest)
 	cd website && pnpm test
 
-website-verify: ## Website prüfen (Vitest + astro check + Build)
+website-check: ## Website prüfen (Vitest + astro check + Build)
 	cd website && pnpm test && pnpm check
 
 # ──────────────────────────────────────────────

@@ -446,25 +446,25 @@ Build-Schritt") wird angepasst.
 
 ### Acceptance criteria
 
-- [ ] Der Rocks-Stack baut das `website`-Image in einer Build-Stage und serviert
+- [x] Der Rocks-Stack baut das `website`-Image in einer Build-Stage und serviert
       Landing und Doku über `jotti.rocks` via Reverse-Proxy; kein `dist/` im Repo,
       kein Host-seitiger Build.
-- [ ] Alte URLs (`/leitfaden-fuer-vereine/`, `/jotti-selbst-betreiben/`) leiten
+- [x] Alte URLs (`/leitfaden-fuer-vereine/`, `/jotti-selbst-betreiben/`) leiten
       auf die neue Leitfaden-Einstiegsseite um.
-- [ ] SSI-Partials, `css/base.css`, `scripts/check-website.sh`, die
+- [x] SSI-Partials, `css/base.css`, `scripts/check-website.sh`, die
       Leitfaden-HTML und `nginx.website-dev.conf` sind entfernt; das
       `./website`-Volume ist aus dem Compose-Setup raus.
-- [ ] Die Makefile-Targets sind ersetzt (Dev-Server, Build, Check); kein
+- [x] Die Makefile-Targets sind ersetzt (Dev-Server, Build, Check); kein
       Parallelsystem bleibt.
-- [ ] Die Projektdoku zum Website-Workflow ist auf das neue Build-Setup
+- [x] Die Projektdoku zum Website-Workflow ist auf das neue Build-Setup
       aktualisiert.
-- [ ] Frontend und Backend verlinken Doku über kanonische
+- [x] Frontend und Backend verlinken Doku über kanonische
       `jotti.rocks/docs/<slug>`-URLs statt GitHub-`blob`-Deep-Links
       (`DokumenteUndPflichtenSection.tsx`, `KassenidentitaetSection.tsx`,
       `statuspage.go`); die Compose-Kommentare zeigen auf `docs/leitfaden/`.
-- [ ] Eine repo-weite Suche nach Deep-Links auf `docs/leitfaden.md` außerhalb
+- [x] Eine repo-weite Suche nach Deep-Links auf `docs/leitfaden.md` außerhalb
       veröffentlichter Markdown ist leer; kein toter Anker-Verweis bleibt.
-- [ ] Umbenannte oder verschobene Doku-Routen sind über eine Redirect-Map an
+- [x] Umbenannte oder verschobene Doku-Routen sind über eine Redirect-Map an
       einer Stelle im Reverse-Proxy abgedeckt; alte `jotti.rocks/docs/<slug>`-URLs
       lösen weiter auf.
-- [ ] Deployment funktioniert manuell wie bisher (kein automatisiertes Deployment).
+- [x] Deployment funktioniert manuell wie bisher (kein automatisiertes Deployment).

@@ -14,8 +14,7 @@ import { Label } from '@/components/ui/label'
 
 import { useKassenidentitaet } from '../settings/hooks'
 
-const LEITFADEN_URL =
-  'https://github.com/nicograef/jotti/blob/main/docs/leitfaden.md#kasse-beim-finanzamt-anmelden'
+const LEITFADEN_URL = 'https://jotti.rocks/docs/leitfaden/finanzamt-anmelden/'
 
 export function KassenidentitaetSection() {
   const { data: kassenidentitaet, isPending, error } = useKassenidentitaet()

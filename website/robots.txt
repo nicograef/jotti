@@ -1,5 +1,0 @@
-# robots.txt for jotti.rocks
-User-agent: *
-Allow: /
-
-Sitemap: https://jotti.rocks/sitemap.xml

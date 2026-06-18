@@ -21,7 +21,7 @@ const (
 	caddyHTTPSAddr = "127.0.0.1:443"
 	// rebindGuideURL verweist auf die Router-Anleitung zum DNS-Rebind-Schutz in
 	// der Projekt-Doku.
-	rebindGuideURL = "https://github.com/nicograef/jotti/blob/main/docs/leitfaden.md#fehlersuche"
+	rebindGuideURL = "https://jotti.rocks/docs/leitfaden/fehlersuche/"
 )
 
 // statusConfig bündelt die Startwerte, aus denen die Status-Seite ihre festen

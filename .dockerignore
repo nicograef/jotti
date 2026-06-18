@@ -1,0 +1,8 @@
+# Build context for the website image is the repository root (it needs docs/).
+# Send only website/ and docs/, then drop the website build artifacts within.
+*
+!website
+!docs
+website/node_modules
+website/dist
+website/.astro

@@ -1,9 +1,10 @@
 name: jotti
 
 # Standalone Docker Compose file for the jotti.rocks project deployment.
-# Runs the full stack (postgres, backend, frontend), serves the static landing
-# page via the dual-domain nginx config and runs the DNS infrastructure for
-# trusted local TLS (resolver + acme-dns); see docs/jotti-rocks-infra.md.
+# Runs the full stack (postgres, backend, frontend, website) and the DNS
+# infrastructure for trusted local TLS (resolver + acme-dns). The reverse proxy
+# terminates TLS and routes jotti.rocks to the website container (Astro build)
+# and demo.jotti.rocks to the frontend; see docs/jotti-rocks-infra.md.
 #
 # Usage:
 #   docker compose -f docker-compose.rocks.yml up -d --build
@@ -111,6 +112,23 @@ services:
           cpus: "0.5"
     # No exposed ports; served via reverse proxy
 
+  # Marketing landing + docs (Astro + Starlight). The build context is the repo
+  # root because Astro reads the published Markdown straight from docs/.
+  website:
+    build:
+      context: .
+      dockerfile: website/Dockerfile
+    container_name: jotti-website
+    restart: unless-stopped
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
+    # No exposed ports; served via reverse proxy
+
   reverse-proxy:
     image: nginx:1.27-alpine
     container_name: jotti-reverse-proxy
@@ -120,13 +138,14 @@ services:
       - "443:443"
     volumes:
       - ./reverse-proxy/nginx.rocks.conf:/etc/nginx/conf.d/jotti.conf:ro
-      - ./website:/usr/share/nginx/html/landing:ro
       - certbot-challenges:/var/www/certbot
       - letsencrypt:/etc/letsencrypt
     networks:
       - app-network
     depends_on:
       frontend:
+        condition: service_started
+      website:
         condition: service_started
       backend:
         condition: service_healthy

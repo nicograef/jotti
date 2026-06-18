@@ -8,18 +8,18 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-const REPO_DOCS_BASE = 'https://github.com/nicograef/jotti/blob/main'
+const DOCS_BASE = 'https://jotti.rocks/docs'
 
 const dokumente = [
   {
     titel: 'Leitfaden für Vereine',
     beschreibung: 'Was ihr als Verein gegenüber dem Finanzamt erledigen müsst.',
-    url: `${REPO_DOCS_BASE}/docs/leitfaden.md`,
+    url: `${DOCS_BASE}/leitfaden/was-ist-jotti/`,
   },
   {
     titel: 'Compliance-Überblick',
     beschreibung: 'Rechtsgrundlagen (KassenSichV, GoBD, DSFinV-K, ELSTER).',
-    url: `${REPO_DOCS_BASE}/docs/compliance.md`,
+    url: `${DOCS_BASE}/compliance/`,
   },
 ]
 
