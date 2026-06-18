@@ -187,3 +187,5 @@ jotti steht unter einer proprietären Source-Available-Lizenz: Der Quellcode ist
 | Raspberry Pi (selbst)       | ~50 € einmalig                          |
 | Vereinseigener Server       | 0 € (bereits vorhanden)                 |
 | Cloud-TSE von fiskaly       | Abhängig vom Anbieter (eigener Vertrag) |
+
+Optionaler Service: Die Software bleibt für gemeinnützige Organisationen kostenlos. Unabhängig davon bietet der Autor auf Anfrage entgeltliche Unterstützung an (Einrichtung, Hosting-Hilfe, Tech-Support, Schulung); die Konditionen werden individuell vereinbart. Diese Leistungen sind freiwillig und keine Voraussetzung für die Nutzung.
