@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
-import { Zahlung } from './Zahlung'
+import { Ausgabe } from './Ausgabe'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -16,8 +16,7 @@ vi.mock('@/lib/Auth', () => ({
 }))
 
 // vaul's Drawer braucht Browser-APIs, die jsdom nicht bereitstellt. Trigger
-// inline rendern, Drawer-Inhalt ausblenden — so bleiben nur die Aktionsleiste
-// und der Auszahlung-Trigger übrig.
+// inline rendern, Drawer-Inhalt ausblenden — so bleibt nur die Positionsliste.
 vi.mock('@/components/ui/drawer', () => {
   const Passthrough = ({ children }: { children?: ReactNode }) => children
   return {
@@ -65,50 +64,22 @@ const fremdePosition: Position = {
   bestellerName: 'Kollegin',
 }
 
-function renderZahlung(positionen: Position[] = [position]) {
+function renderAusgabe(positionen: Position[] = [position]) {
   render(
-    <Zahlung
-      backend={{
-        zahlungKassieren: vi.fn().mockResolvedValue(undefined),
-        auszahlungLeisten: vi.fn().mockResolvedValue(undefined),
-      }}
+    <Ausgabe
+      backend={{ ausgabeBestaetigen: vi.fn().mockResolvedValue(undefined) }}
       tisch={tisch}
       positionen={positionen}
-      saldoCents={0}
       loading={false}
-      onZahlungKassiert={vi.fn()}
-      onAuszahlungGeleistet={vi.fn()}
+      onAusgabeBestaetigt={vi.fn()}
     />,
   )
 }
 
-describe('Zahlung Aktionsleiste', () => {
-  it('ist ohne Auswahl deaktiviert und zeigt nach Auswahl Anzahl und Summe', async () => {
-    const user = userEvent.setup()
-    renderZahlung()
-
-    expect(screen.getByRole('button', { name: /Kassieren/ })).toBeDisabled()
-
-    await user.click(screen.getByRole('button', { name: 'Produkt hinzufügen' }))
-
-    const bar = screen.getByRole('button', { name: /Kassieren/ })
-    expect(bar).toBeEnabled()
-    expect(bar).toHaveTextContent('3,50')
-  })
-
-  it('hält die Auszahlung weiterhin erreichbar', () => {
-    renderZahlung()
-
-    expect(
-      screen.getByRole('button', { name: 'Auszahlung' }),
-    ).toBeInTheDocument()
-  })
-})
-
-describe('Zahlung Positionsgruppen', () => {
+describe('Ausgabe Positionsgruppen', () => {
   it('zeigt eigene Positionen direkt und fremde erst nach „Alle anzeigen"', async () => {
     const user = userEvent.setup()
-    renderZahlung([position, fremdePosition])
+    renderAusgabe([position, fremdePosition])
 
     expect(screen.getByText('Bratwurst Normal')).toBeInTheDocument()
     expect(screen.queryByText('Pommes Normal')).not.toBeInTheDocument()
@@ -122,7 +93,7 @@ describe('Zahlung Positionsgruppen', () => {
   })
 
   it('ohne fremde Positionen gibt es keinen „Alle anzeigen"-Schalter', () => {
-    renderZahlung([position])
+    renderAusgabe([position])
 
     expect(screen.getByText('Bratwurst Normal')).toBeInTheDocument()
     expect(

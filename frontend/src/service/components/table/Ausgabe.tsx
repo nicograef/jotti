@@ -12,6 +12,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AuthSingleton } from '@/lib/Auth'
 import { formatPositionName } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
@@ -35,6 +36,7 @@ export function Ausgabe({
   onAusgabeBestaetigt,
 }: AusgabeProps) {
   const [mengen, setMengen] = useState<Record<string, number>>({})
+  const [alleAnzeigen, setAlleAnzeigen] = useState(false)
 
   const ausstehendeMengen: Record<string, number> = {}
   positionen.forEach((position) => {
@@ -63,6 +65,29 @@ export function Ausgabe({
     })
   }
 
+  const meinePositionen = positionen.filter(
+    (position) => position.bestellerUserId === AuthSingleton.userId,
+  )
+  const anderePositionen = positionen.filter(
+    (position) => position.bestellerUserId !== AuthSingleton.userId,
+  )
+
+  const renderPosition = (position: Position, showBesteller: boolean) => (
+    <PositionItem
+      key={position.positionId}
+      position={position}
+      showBesteller={showBesteller}
+      menge={mengen[position.positionId] || 0}
+      ausstehendeMenge={ausstehendeMengen[position.positionId] || 0}
+      onAdd={() => {
+        onAdd(position.positionId)
+      }}
+      onRemove={() => {
+        onRemove(position.positionId)
+      }}
+    />
+  )
+
   return (
     <>
       <AusgabeDrawer
@@ -76,27 +101,42 @@ export function Ausgabe({
           onAusgabeBestaetigt()
         }}
       />
-      <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 mt-4">
-        {loading
-          ? Array.from({ length: 6 }).map((_, index) => (
-              // eslint-disable-next-line react-x/no-array-index-key
-              <PositionItemSkeleton key={index} />
-            ))
-          : positionen.map((position) => (
-              <PositionItem
-                key={position.positionId}
-                position={position}
-                menge={mengen[position.positionId] || 0}
-                ausstehendeMenge={ausstehendeMengen[position.positionId] || 0}
-                onAdd={() => {
-                  onAdd(position.positionId)
+      {loading ? (
+        <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 mt-4">
+          {Array.from({ length: 6 }).map((_, index) => (
+            // eslint-disable-next-line react-x/no-array-index-key
+            <PositionItemSkeleton key={index} />
+          ))}
+        </ItemGroup>
+      ) : (
+        <div className="mt-4 space-y-3">
+          <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+            {meinePositionen.map((position) => renderPosition(position, false))}
+          </ItemGroup>
+          {anderePositionen.length > 0 && (
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setAlleAnzeigen((offen) => !offen)
                 }}
-                onRemove={() => {
-                  onRemove(position.positionId)
-                }}
-              />
-            ))}
-      </ItemGroup>
+              >
+                {alleAnzeigen
+                  ? 'Weniger anzeigen'
+                  : `Alle anzeigen (${anderePositionen.length.toString()} von anderen)`}
+              </Button>
+              {alleAnzeigen && (
+                <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+                  {anderePositionen.map((position) =>
+                    renderPosition(position, true),
+                  )}
+                </ItemGroup>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </>
   )
 }
@@ -105,6 +145,7 @@ interface PositionItemProps {
   position: Position
   menge: number
   ausstehendeMenge: number
+  showBesteller: boolean
   onAdd: () => void
   onRemove: () => void
 }
@@ -113,6 +154,7 @@ function PositionItem({
   position,
   menge,
   ausstehendeMenge,
+  showBesteller,
   onAdd,
   onRemove,
 }: PositionItemProps) {
@@ -124,6 +166,11 @@ function PositionItem({
         </ItemTitle>
         <ItemDescription>
           noch {ausstehendeMenge - menge} ausstehend
+          {showBesteller && (
+            <span className="block text-muted-foreground">
+              von {position.bestellerName}
+            </span>
+          )}
         </ItemDescription>
       </ItemContent>
       <ItemActions>

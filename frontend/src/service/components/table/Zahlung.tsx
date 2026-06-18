@@ -1,4 +1,5 @@
 import { Minus, Plus } from 'lucide-react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -40,6 +41,8 @@ export function Zahlung({
   onZahlungKassiert,
   onAuszahlungGeleistet,
 }: ZahlungProps) {
+  const [alleAnzeigen, setAlleAnzeigen] = useState(false)
+
   const unbezahlteMengen: Record<string, number> = {}
   positionen.forEach((position) => {
     unbezahlteMengen[position.positionId] = position.menge
@@ -51,6 +54,29 @@ export function Zahlung({
     remove: onRemove,
     reset,
   } = useMengen<string>((positionId) => unbezahlteMengen[positionId] || 0)
+
+  const meinePositionen = positionen.filter(
+    (position) => position.bestellerUserId === AuthSingleton.userId,
+  )
+  const anderePositionen = positionen.filter(
+    (position) => position.bestellerUserId !== AuthSingleton.userId,
+  )
+
+  const renderPosition = (position: Position, showBesteller: boolean) => (
+    <PositionItem
+      key={position.positionId}
+      position={position}
+      showBesteller={showBesteller}
+      menge={mengen[position.positionId] || 0}
+      unbezahlteMenge={unbezahlteMengen[position.positionId] || 0}
+      onAdd={() => {
+        onAdd(position.positionId)
+      }}
+      onRemove={() => {
+        onRemove(position.positionId)
+      }}
+    />
+  )
 
   return (
     <>
@@ -78,27 +104,42 @@ export function Zahlung({
           onZahlungKassiert()
         }}
       />
-      <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-        {loading
-          ? Array.from({ length: 6 }).map((_, index) => (
-              // eslint-disable-next-line react-x/no-array-index-key
-              <PositionItemSkeleton key={index} />
-            ))
-          : positionen.map((position) => (
-              <PositionItem
-                key={position.positionId}
-                position={position}
-                menge={mengen[position.positionId] || 0}
-                unbezahlteMenge={unbezahlteMengen[position.positionId] || 0}
-                onAdd={() => {
-                  onAdd(position.positionId)
+      {loading ? (
+        <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+          {Array.from({ length: 6 }).map((_, index) => (
+            // eslint-disable-next-line react-x/no-array-index-key
+            <PositionItemSkeleton key={index} />
+          ))}
+        </ItemGroup>
+      ) : (
+        <div className="my-4 space-y-3">
+          <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+            {meinePositionen.map((position) => renderPosition(position, false))}
+          </ItemGroup>
+          {anderePositionen.length > 0 && (
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setAlleAnzeigen((offen) => !offen)
                 }}
-                onRemove={() => {
-                  onRemove(position.positionId)
-                }}
-              />
-            ))}
-      </ItemGroup>
+              >
+                {alleAnzeigen
+                  ? 'Weniger anzeigen'
+                  : `Alle anzeigen (${anderePositionen.length.toString()} von anderen)`}
+              </Button>
+              {alleAnzeigen && (
+                <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+                  {anderePositionen.map((position) =>
+                    renderPosition(position, true),
+                  )}
+                </ItemGroup>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </>
   )
 }
@@ -107,6 +148,7 @@ interface PositionItemProps {
   position: Position
   menge: number
   unbezahlteMenge: number
+  showBesteller: boolean
   onAdd: () => void
   onRemove: () => void
 }
@@ -115,6 +157,7 @@ function PositionItem({
   position,
   menge,
   unbezahlteMenge,
+  showBesteller,
   onAdd,
   onRemove,
 }: PositionItemProps) {
@@ -129,6 +172,11 @@ function PositionItem({
             {formatCents(position.einzelpreis)}&nbsp;€
           </span>
           &nbsp; &ndash; &nbsp;noch {unbezahlteMenge - menge} unbezahlt
+          {showBesteller && (
+            <span className="block text-muted-foreground">
+              von {position.bestellerName}
+            </span>
+          )}
         </ItemDescription>
       </ItemContent>
       <ItemActions>
