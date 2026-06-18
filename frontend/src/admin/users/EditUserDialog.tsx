@@ -115,7 +115,7 @@ export function EditUserDialog(props: EditUserDialogProps) {
         <DialogFooter className="mt-4">
           <Button
             variant="ghost"
-            disabled={loading || !form.formState.isValid}
+            disabled={loading}
             onClick={() => {
               void resetPassword()
             }}

@@ -3,6 +3,7 @@ import {
   Landmark,
   LayoutDashboard,
   LogOut,
+  type LucideIcon,
   Moon,
   Printer,
   Sun,
@@ -10,8 +11,7 @@ import {
   Utensils,
   Wallet,
 } from 'lucide-react'
-import { NavLink, useNavigate } from 'react-router'
-import { useLocation } from 'react-router'
+import { NavLink, useLocation, useNavigate } from 'react-router'
 
 import { useTheme } from '@/components/theme-provider'
 import {
@@ -77,8 +77,40 @@ const serviceItems = [
   },
 ]
 
-export function AdminSidebar() {
+function NavGroup({
+  label,
+  items,
+}: {
+  label: string
+  items: { title: string; url: string; icon: LucideIcon }[]
+}) {
   const location = useLocation()
+
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname === item.url}
+              >
+                <NavLink to={item.url}>
+                  <item.icon />
+                  <span>{item.title}</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
+export function AdminSidebar() {
   const navigate = useNavigate()
   const { isDark, setTheme } = useTheme()
   const toggleTheme = () => {
@@ -96,66 +128,9 @@ export function AdminSidebar() {
         <h1 className="text-4xl text-center font-extrabold">jotti</h1>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Auswertungen</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {reportingItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.url}
-                  >
-                    <NavLink to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Verwaltung</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.url}
-                  >
-                    <NavLink to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Service</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {serviceItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.url}
-                  >
-                    <NavLink to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <NavGroup label="Auswertungen" items={reportingItems} />
+        <NavGroup label="Verwaltung" items={adminItems} />
+        <NavGroup label="Service" items={serviceItems} />
         <SidebarGroup>
           <SidebarGroupLabel>Einstellungen</SidebarGroupLabel>
           <SidebarGroupContent>

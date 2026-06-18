@@ -42,8 +42,6 @@ export class ProduktBackend {
     this.backend = backend
   }
 
-  // Produkt methods
-
   public async createProdukt(
     newProdukt: z.infer<typeof CreateProduktSchema>,
   ): Promise<number> {
@@ -71,8 +69,6 @@ export class ProduktBackend {
     )
     return produkte
   }
-
-  // Variante methods
 
   public async createVariante(
     newVariante: z.infer<typeof CreateVarianteSchema>,
