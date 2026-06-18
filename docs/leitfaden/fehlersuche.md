@@ -69,5 +69,4 @@ Kassenrechners erreichen kann:
 Die Fallback-Adresse `https://<LAN-IP>` funktioniert unabhängig vom
 DNS-Rebind-Schutz und auch ohne Internet. Sie zeigt beim ersten Zugriff pro Gerät
 eine einmalige Browserwarnung (selbstsigniertes Zertifikat), die bestätigt werden
-muss. Danach ist der Verkauf normal möglich. Der Verkauf muss also nie an der
-DNS-Frage scheitern.
+muss. Danach ist der Verkauf normal möglich.

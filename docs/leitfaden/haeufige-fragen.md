@@ -16,5 +16,5 @@ Getränke gegen Geld verkauft.
 TEST-Umgebung von fiskaly ein und wechselt erst für den Echtbetrieb auf LIVE.
 
 **Was kostet der Betrieb?** jotti ist für euch kostenlos. Kosten entstehen nur für
-die Cloud-TSE von fiskaly (circa 8€/Monat) und, beim Experten-Weg, für den VPS
-(circa 5€/Monat). Der Standardweg kommt ohne Servermiete aus.
+die Cloud-TSE von fiskaly (ca. 8 €/Monat) und, beim Experten-Weg, für den VPS
+(ca. 5 €/Monat). Der Standardweg kommt ohne Servermiete aus.

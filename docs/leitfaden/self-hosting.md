@@ -14,7 +14,7 @@ Internet-Adresse (Domain) mit Verschlüsselung (HTTPS).
 
 jotti ist genügsam: Schon der kleinste VPS (1 vCPU, 2 GB RAM, 20 GB SSD, Linux)
 reicht für ein durchschnittliches Vereinsfest. Typisches Angebot: netcup VPS 200
-oder vergleichbar (circa 5€/Monat). Zusätzlich braucht ihr eine Domain, die per
+oder vergleichbar (ca. 5 €/Monat). Zusätzlich braucht ihr eine Domain, die per
 DNS auf den Server zeigt, sowie ein TLS-Zertifikat. Das Zertifikat holt jotti
 automatisch: Die Produktions-Konfiguration (`docker-compose.prod.yml`) bringt einen
 Caddy-Reverse-Proxy mit, der es beim ersten Start selbst bei Let's Encrypt

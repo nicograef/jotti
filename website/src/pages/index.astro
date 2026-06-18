@@ -5,13 +5,11 @@ import Landing from '../layouts/Landing.astro'
 import dashboard from '../assets/jotti-service-dashboard.webp'
 import bon from '../assets/jotti-bon.webp'
 import jottiSymbol from '../assets/jotti-symbol.png'
+import { githubUrl, leitfadenUrl } from '../lib/links'
 
 const title = 'jotti: Das kostenlose Kassensystem für Vereinsfeste'
 const description =
   'jotti ist ein kostenloses Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Fiskalkonform mit TSE-Anbindung und gesetzeskonformer Belegausgabe. Self-hosted, Mobile-first, kein Cloud-Abo. Quellcode einsehbar (Source-Available).'
-
-const leitfadenUrl = '/docs/leitfaden/was-ist-jotti/'
-const githubUrl = 'https://github.com/nicograef/jotti'
 ---
 
 <Landing title={title} description={description}>
@@ -165,7 +163,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             </svg>
           </span>
           <h3 class="mb-1.5 text-lg font-bold">Stift &amp; Papier</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             Unleserliche Handschrift, verlorene Bonblöcke, keine Echtzeit-Übersicht. Am Ende
             sitzt ihr stundenlang an der Abrechnung. Und die KassenSichV erfüllt ihr damit nicht.
           </p>
@@ -191,7 +189,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             </svg>
           </span>
           <h3 class="mb-1.5 text-lg font-bold">Excel-Tabelle</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             Nicht echtzeitfähig, kein Mehrbenutzerbetrieb, keine Tisch-Zuordnung. Einer tippt,
             alle anderen warten. Keine TSE-Anbindung, keine Fiskalkonformität.
           </p>
@@ -215,7 +213,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             </svg>
           </span>
           <h3 class="mb-1.5 text-lg font-bold">Kommerzielles POS</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             30 bis 100 € pro Monat plus Hardware. Fiskalkonform, aber für zwei bis drei Feste im
             Jahr völlig überdimensioniert und viel zu teuer.
           </p>
@@ -350,7 +348,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Bestellungen aufnehmen</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Produkte mit Varianten und Steuersätzen auswählen, Menge und Kommentar angeben, auf
               den Tisch buchen. Alles im Browser.
             </p>
@@ -374,7 +372,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Ausgabe bestätigen</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Bestellte Positionen als ausgegeben markieren. Jeder weiß, was raus ist und was noch
               fehlt.
             </p>
@@ -399,7 +397,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Kassieren</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Am Tisch kassieren, mit Teilzahlungen und automatischer Rückgeldberechnung. Der
               offene Saldo bleibt immer im Blick.
             </p>
@@ -424,7 +422,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Direktverkauf an der Theke</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Bestellen, kassieren und ausgeben in einem Schritt, ideal für Getränke- und
               Kuchentheke. Kein offener Saldo, sofort bezahlt, auf Wunsch mit Abholbon.
             </p>
@@ -448,7 +446,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Stornieren &amp; Auszahlung</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Falschbestellungen rückgängig machen (Serviceleitung oder Admin, mit
               Pflichtkommentar). Negativen Saldo nach Stornierung ausgleichen.
             </p>
@@ -474,7 +472,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Umbuchen</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Bestellungen auf einen anderen Tisch verschieben. Eine atomare Operation, lückenlos
               nachvollziehbar.
             </p>
@@ -500,7 +498,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Tischübersicht</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Alle Tische mit Saldo und Status auf einen Blick. Eigene Tische als Favoriten
               markieren, Schnellsuche per Name oder Nummer.
             </p>
@@ -535,7 +533,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Arbeitsbon (Küche &amp; Theke)</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Bestellungen automatisch als Arbeitsanweisung an die Druckstationen senden, pro
               Kategorie konfigurierbar und ganz ohne Preise. Kein Beleg, sondern reine
               Ausgabe-Hilfe.
@@ -564,7 +562,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               Küchendisplay (KDS)
               <span class="badge-wip">In Entwicklung</span>
             </h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Eingehende Bestellungen in Echtzeit auf einem Bildschirm in der Küche oder an der
               Ausgabe.
             </p>
@@ -592,7 +590,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             <h4 class="mb-1.5 text-lg font-bold">
               Ausgabestationen <span class="badge-wip">In Entwicklung</span>
             </h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Zubereitungsstatus verwalten: Servicekräfte sehen, wann Positionen abholbereit sind.
             </p>
           </div>
@@ -625,7 +623,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Abrechnungskreis</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Fortlaufend nummerierte Kassensitzungen eröffnen und schließen. Anfangsbestand
               (Wechselgeld) zu Beginn erfassen.
             </p>
@@ -651,7 +649,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Kassenbestand &amp; Bewegungen</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Soll-Bestand jederzeit einsehen. Geldtransit, Privatentnahmen und Privateinlagen
               buchen.
             </p>
@@ -676,7 +674,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Kassensturz &amp; Z-Bon</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Ist-Bestand eingeben, Differenz berechnen. Formaler Tagesabschluss mit fortlaufender
               Nummer und Stammdaten-Snapshot.
             </p>
@@ -711,7 +709,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Tagesabrechnung</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge, nach Steuersatz
               aufgeschlüsselt.
             </p>
@@ -737,7 +735,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Pro Tisch &amp; Servicekraft</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               Detaillierte Aufstellung je Tisch. Umsatz und Transaktionen pro Servicekraft.
               Produktumsatz-Ranking.
             </p>
@@ -762,7 +760,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
               </svg>
             </span>
             <h4 class="mb-1.5 text-lg font-bold">Datenexport</h4>
-            <p class="text-[0.9375rem] leading-relaxed text-muted">
+            <p class="card-text">
               CSV-Export für die Vereinsbuchhaltung. DSFinV-K-Export als ZIP-Archiv für die
               Finanzverwaltung.
             </p>
@@ -806,7 +804,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             </svg>
           </span>
           <h3 class="mb-1.5 text-lg font-bold">TSE-Anbindung</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             Integrierte fiskaly-Cloud-TSE. Jeder Vorgang wird signiert und kryptografisch
             abgesichert.
           </p>
@@ -833,7 +831,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             </svg>
           </span>
           <h3 class="mb-1.5 text-lg font-bold">Kassenbeleg (auf Anforderung)</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             Gesetzeskonformer Zahlungsbeleg nach § 146a AO: alle Positionen mit Preisen,
             Vereinsdaten und Kassen-Seriennummer, auf Knopfdruck, wenn der Gast ihn verlangt.
             Inklusive TSE-Signatur, QR-Code und Steuer-Aufschlüsselung.
@@ -859,7 +857,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             </svg>
           </span>
           <h3 class="mb-1.5 text-lg font-bold">Event-Sourcing</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             Lückenlose, unveränderliche Bestellhistorie. GoBD-konform durch
             Append-only-Architektur, ohne nachträgliches Löschen.
           </p>
@@ -884,7 +882,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             </svg>
           </span>
           <h3 class="mb-1.5 text-lg font-bold">DSFinV-K-Export</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             Maschinenlesbarer Export aller Kassendaten für die Finanzverwaltung, als ZIP-Archiv
             nach DSFinV-K v2.5.
           </p>
@@ -909,7 +907,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             </svg>
           </span>
           <h3 class="mb-1.5 text-lg font-bold">Tagesabschluss (Z-Bon)</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             Immutables Abschlussdokument mit fortlaufender Nummer, Umsatzaggregation und
             Stammdaten-Snapshot.
           </p>
@@ -919,7 +917,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
       <div class="mt-12 overflow-hidden rounded-2xl">
         <Image
           src={bon}
-          alt="Gedruckter Kassenbeleg auf einem Bierzelttisch beim Vereinsfest, mit Artikeln und Preisen, geplant mit TSE-Signatur und QR-Code"
+          alt="Gedruckter Kassenbeleg auf einem Bierzelttisch beim Vereinsfest, mit Artikeln und Preisen, TSE-Signatur und QR-Code"
           class="w-full"
           widths={[400, 800, 1200]}
           sizes="(min-width: 1024px) 1000px, 100vw"
@@ -932,7 +930,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
   {/* ============ SO FUNKTIONIERT'S ============ */}
   <section class="py-16 sm:py-24" id="so-funktionierts">
     <div class="mx-auto max-w-6xl px-6">
-      <p class="eyebrow mb-3 text-center">In drei Schritten</p>
+      <p class="eyebrow mb-3 text-center">Schnellstart</p>
       <h2 class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl">
         In drei Schritten startklar.
       </h2>
@@ -946,7 +944,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             >1</span
           >
           <h3 class="mb-2 text-lg font-bold">Admin richtet ein</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             Produkte mit Varianten, Preisen und Steuersätzen anlegen, Tische erstellen, Benutzer
             einladen, Betreiber-Stammdaten pflegen.
           </p>
@@ -957,7 +955,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             >2</span
           >
           <h3 class="mb-2 text-lg font-bold">Team meldet sich an</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             Jeder Helfer öffnet den Browser auf dem eigenen Smartphone, gibt das Einmalpasswort
             ein und setzt ein eigenes Passwort.
           </p>
@@ -968,7 +966,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             >3</span
           >
           <h3 class="mb-2 text-lg font-bold">Loslegen</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             Bestellungen aufnehmen, Ausgabe bestätigen, kassieren. Am Ende des Abends
             Tagesabschluss und Z-Bon.
           </p>
@@ -1011,7 +1009,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             </svg>
           </span>
           <h3 class="mb-1.5 text-lg font-bold">Vereine (e.V.)</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             Sport-, Musik-, Schützen-, Karnevals- und Fördervereine: jeder eingetragene Verein,
             der Feste veranstaltet.
           </p>
@@ -1040,7 +1038,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
             </svg>
           </span>
           <h3 class="mb-1.5 text-lg font-bold">Gemeinnützige Organisationen</h3>
-          <p class="text-[0.9375rem] leading-relaxed text-muted">
+          <p class="card-text">
             gGmbH, gUG, Stiftungen, kirchliche Träger, NGOs: alle, die unter das
             Gemeinnützigkeitsrecht fallen.
           </p>
@@ -1068,7 +1066,7 @@ const githubUrl = 'https://github.com/nicograef/jotti'
     <div class="mx-auto max-w-6xl px-6">
       <div class="grid items-center gap-12 lg:grid-cols-2">
         <div>
-          <p class="eyebrow mb-3">Selbst betreiben</p>
+          <p class="eyebrow mb-3">Betrieb &amp; Kosten</p>
           <h2 class="mb-3 text-2xl font-bold tracking-tight sm:text-4xl">
             Selbst betreiben. Kostenlos.
           </h2>
