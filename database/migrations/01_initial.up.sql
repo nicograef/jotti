@@ -181,7 +181,7 @@ CREATE TRIGGER kassenjournal_no_truncate
 
 COMMENT ON TABLE kassenjournal IS 'Append-only Kassenjournal (Event Store) for all kasse operations (event-sourcing)';
 COMMENT ON COLUMN kassenjournal.user_id IS 'Actor who triggered the event';
-COMMENT ON COLUMN kassenjournal.user_name IS 'Display name of the actor at the time of the event';
+COMMENT ON COLUMN kassenjournal.user_name IS 'Username of the actor at the time of the event (frozen; DSFinV-K BEDIENER_NAME)';
 COMMENT ON COLUMN kassenjournal.version IS 'Optimistic concurrency version per subject (monotonically increasing)';
 COMMENT ON COLUMN kassenjournal.type IS 'Event type identifier, e.g., bestellung-aufgenommen:v1';
 COMMENT ON COLUMN kassenjournal.subject IS 'Aggregate key, e.g. "kassensitzung-1/tisch-42" for a tisch session, "kassensitzung-1" for a kassensitzung';

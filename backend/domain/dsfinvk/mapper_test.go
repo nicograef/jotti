@@ -74,7 +74,7 @@ func barverkaufEvent(t *testing.T) event.Event {
 	return event.Event{
 		ID:       1,
 		UserID:   7,
-		UserName: "Anna",
+		UserName: "anna",
 		Type:     string(kasse.EventTypeZahlungKassiertV1),
 		Time:     time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC),
 		Subject:  kasse.TischSessionSubject(3, 42),
@@ -148,7 +148,7 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 		"BON_START":     "2026-06-16T12:00:00Z",
 		"BON_ENDE":      "2026-06-16T12:00:00Z",
 		"BEDIENER_ID":   "7",
-		"BEDIENER_NAME": "Anna",
+		"BEDIENER_NAME": "anna",
 		"UMS_BRUTTO":    "10.50",
 	}
 	for name, want := range checks {
@@ -231,7 +231,7 @@ func bestellungEvent(t *testing.T) event.Event {
 	return event.Event{
 		ID:       1,
 		UserID:   7,
-		UserName: "Anna",
+		UserName: "anna",
 		Type:     string(kasse.EventTypeBestellungAufgenommenV1),
 		Time:     time.Date(2026, 6, 16, 11, 0, 0, 0, time.UTC),
 		Subject:  kasse.TischSessionSubject(3, 42),
@@ -271,7 +271,7 @@ func zahlungEvent(t *testing.T) event.Event {
 	return event.Event{
 		ID:       2,
 		UserID:   7,
-		UserName: "Anna",
+		UserName: "anna",
 		Type:     string(kasse.EventTypeZahlungKassiertV1),
 		Time:     time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC),
 		Subject:  kasse.TischSessionSubject(3, 42),
@@ -429,7 +429,7 @@ func stornierungEvent(t *testing.T) event.Event {
 	return event.Event{
 		ID:       2,
 		UserID:   7,
-		UserName: "Anna",
+		UserName: "anna",
 		Type:     string(kasse.EventTypeStornierungErteiltV1),
 		Time:     time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC),
 		Subject:  kasse.TischSessionSubject(3, 42),
@@ -538,7 +538,7 @@ func kombiZahlungEvent(t *testing.T) event.Event {
 	return event.Event{
 		ID:       1,
 		UserID:   7,
-		UserName: "Anna",
+		UserName: "anna",
 		Type:     string(kasse.EventTypeZahlungKassiertV1),
 		Time:     time.Date(2026, 6, 16, 12, 30, 0, 0, time.UTC),
 		Subject:  kasse.TischSessionSubject(3, 42),
@@ -611,7 +611,7 @@ func direktverkaufEvent(t *testing.T) event.Event {
 	return event.Event{
 		ID:       1,
 		UserID:   7,
-		UserName: "Anna",
+		UserName: "anna",
 		Type:     string(kasse.EventTypeDirektverkaufGetaetigtV1),
 		Time:     time.Date(2026, 6, 16, 14, 0, 0, 0, time.UTC),
 		Subject:  kasse.DirektverkaufSubject(3, direktverkaufBonID),
@@ -652,7 +652,7 @@ func direktverkaufStornoEvent(t *testing.T) event.Event {
 	return event.Event{
 		ID:       2,
 		UserID:   7,
-		UserName: "Anna",
+		UserName: "anna",
 		Type:     string(kasse.EventTypeDirektverkaufStorniertV1),
 		Time:     time.Date(2026, 6, 16, 14, 5, 0, 0, time.UTC),
 		Subject:  kasse.DirektverkaufSubject(3, direktverkaufBonID),
@@ -724,7 +724,7 @@ func eroeffnetEvent(t *testing.T, betragCents int) event.Event {
 	}
 
 	return event.Event{
-		ID: 10, UserID: 7, UserName: "Anna",
+		ID: 10, UserID: 7, UserName: "anna",
 		Type:    string(kasse.EventTypeKassensitzungEroeffnetV1),
 		Time:    time.Date(2026, 6, 16, 10, 0, 0, 0, time.UTC),
 		Subject: kasse.KassensitzungSubject(3), Version: 1, Data: raw,
@@ -753,7 +753,7 @@ func geldtransitEvent(t *testing.T) event.Event {
 	}
 
 	return event.Event{
-		ID: 11, UserID: 7, UserName: "Anna",
+		ID: 11, UserID: 7, UserName: "anna",
 		Type:    string(kasse.EventTypeGeldtransitGebuchtV1),
 		Time:    time.Date(2026, 6, 16, 15, 0, 0, 0, time.UTC),
 		Subject: kasse.KassensitzungSubject(3), Version: 1, Data: raw,
@@ -780,7 +780,7 @@ func auszahlungEvent(t *testing.T) event.Event {
 	}
 
 	return event.Event{
-		ID: 12, UserID: 7, UserName: "Anna",
+		ID: 12, UserID: 7, UserName: "anna",
 		Type:    string(kasse.EventTypeAuszahlungGeleistetV1),
 		Time:    time.Date(2026, 6, 16, 15, 5, 0, 0, time.UTC),
 		Subject: kasse.TischSessionSubject(3, 42), Version: 1, Data: raw,
@@ -807,7 +807,7 @@ func differenzEvent(t *testing.T) event.Event {
 	}
 
 	return event.Event{
-		ID: 13, UserID: 7, UserName: "Anna",
+		ID: 13, UserID: 7, UserName: "anna",
 		Type:    string(kasse.EventTypeDifferenzSollIstGebuchtV1),
 		Time:    time.Date(2026, 6, 16, 16, 0, 0, 0, time.UTC),
 		Subject: kasse.KassensitzungSubject(3), Version: 1, Data: raw,
@@ -961,7 +961,7 @@ func zahlungMitTxEvent(t *testing.T, id int, bonID, txID string, tseData *kasse.
 	}
 
 	return event.Event{
-		ID: id, UserID: 7, UserName: "Anna",
+		ID: id, UserID: 7, UserName: "anna",
 		Type:    string(kasse.EventTypeZahlungKassiertV1),
 		Time:    ts,
 		Subject: kasse.TischSessionSubject(3, 42), Version: 1, Data: raw,
@@ -1116,7 +1116,7 @@ func TestMapDeclaresOnlyPresentTables(t *testing.T) {
 func TestMapEmptySessionIsError(t *testing.T) {
 	// Eine Sitzung nur mit Eröffnungs-Event hat keinen Beleg.
 	eroeffnet := event.Event{
-		ID: 1, UserID: 7, UserName: "Anna",
+		ID: 1, UserID: 7, UserName: "anna",
 		Type: string(kasse.EventTypeKassensitzungEroeffnetV1),
 		Time: time.Now().UTC(), Subject: kasse.KassensitzungSubject(3), Version: 1,
 		Data: json.RawMessage(`{}`),

@@ -187,14 +187,14 @@ aktualisiert. Der Seed erzeugt Events mit Usernames.
 
 ### Acceptance criteria
 
-- [ ] Nach Login enthält das JWT den Claim `username` mit dem Username; kein
+- [x] Nach Login enthält das JWT den Claim `username` mit dem Username; kein
       Klarname mehr im Token.
-- [ ] Eine über die API ausgelöste Kassenaktion schreibt den Username in
+- [x] Eine über die API ausgelöste Kassenaktion schreibt den Username in
       `kassenjournal.user_name`.
-- [ ] Der DSFinV-K-Export zeigt `BEDIENER_NAME` = Username und `BEDIENER_ID` =
+- [x] Der DSFinV-K-Export zeigt `BEDIENER_NAME` = Username und `BEDIENER_ID` =
       `user_id`; kein Klarname im Export.
-- [ ] Das bestehende Umsatz-/Storno-Reporting zeigt den Username.
-- [ ] Seed-Lauf erzeugt Events mit Usernames; alle Backend-Tests grün
+- [x] Das bestehende Umsatz-/Storno-Reporting zeigt den Username.
+- [x] Seed-Lauf erzeugt Events mit Usernames; alle Backend-Tests grün
       (jwt-, mapper-, reporting-, seed-Tests auf Username aktualisiert).
 
 ---

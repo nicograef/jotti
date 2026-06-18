@@ -51,7 +51,7 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 		}
 	}
 
-	token, err := jwt.GenerateJWTTokenForUser(u.ID, u.Name, string(u.Role), c.JWTSecret)
+	token, err := jwt.GenerateJWTTokenForUser(u.ID, u.Username, string(u.Role), c.JWTSecret)
 	if err != nil {
 		log.Error().Err(err).Str("username", username).Msg("Failed to generate JWT token")
 		return "", ErrTokenGeneration

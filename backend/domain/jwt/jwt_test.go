@@ -10,7 +10,7 @@ import (
 )
 
 func TestGenerateJWTTokenForUser(t *testing.T) {
-	token, err := GenerateJWTTokenForUser(1, "Test Admin", "admin", "test_secret")
+	token, err := GenerateJWTTokenForUser(1, "admin", "admin", "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
@@ -27,8 +27,8 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 	if int(claims["sub"].(float64)) != 1 {
 		t.Errorf("Expected subject '1', got '%v'", int(claims["sub"].(float64)))
 	}
-	if claims["name"].(string) != "Test Admin" {
-		t.Errorf("Expected name 'Test Admin', got '%v'", claims["name"])
+	if claims["username"].(string) != "admin" {
+		t.Errorf("Expected username 'admin', got '%v'", claims["username"])
 	}
 	if claims["role"].(string) != "admin" {
 		t.Errorf("Expected role '%s', got '%v'", "admin", claims["role"])
@@ -39,12 +39,12 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 }
 
 func TestParseAndValidateJWTToken(t *testing.T) {
-	token, err := GenerateJWTTokenForUser(2, "Service User", "service", "test_secret")
+	token, err := GenerateJWTTokenForUser(2, "service", "service", "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
 
-	userID, userName, userRole, err := ParseAndValidateJWTToken(token, "test_secret")
+	userID, username, userRole, err := ParseAndValidateJWTToken(token, "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to parse and validate JWT token: %v", err)
 	}
@@ -52,8 +52,8 @@ func TestParseAndValidateJWTToken(t *testing.T) {
 	if userID != 2 {
 		t.Errorf("Expected UserID '%d', got '%d'", 2, userID)
 	}
-	if userName != "Service User" {
-		t.Errorf("Expected UserName '%s', got '%s'", "Service User", userName)
+	if username != "service" {
+		t.Errorf("Expected username '%s', got '%s'", "service", username)
 	}
 	if userRole != "service" {
 		t.Errorf("Expected Role '%s', got '%s'", "service", userRole)
@@ -68,12 +68,12 @@ func makeTokenWithClaims(claims jwt.MapClaims) string {
 
 func baseClaims() jwt.MapClaims {
 	return jwt.MapClaims{
-		"iss":  issuer,
-		"iat":  jwt.NewNumericDate(time.Now().UTC()),
-		"exp":  jwt.NewNumericDate(time.Now().UTC().Add(1 * time.Hour)),
-		"sub":  float64(1),
-		"name": "Test",
-		"role": "admin",
+		"iss":      issuer,
+		"iat":      jwt.NewNumericDate(time.Now().UTC()),
+		"exp":      jwt.NewNumericDate(time.Now().UTC().Add(1 * time.Hour)),
+		"sub":      float64(1),
+		"username": "testuser",
+		"role":     "admin",
 	}
 }
 

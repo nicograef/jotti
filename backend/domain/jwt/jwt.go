@@ -9,14 +9,14 @@ import (
 
 const issuer = "jotti"
 
-func GenerateJWTTokenForUser(userID int, userName, userRole string, secret string) (string, error) {
+func GenerateJWTTokenForUser(userID int, username, userRole string, secret string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iss":  issuer,
-		"iat":  jwt.NewNumericDate(time.Now().UTC()),
-		"exp":  jwt.NewNumericDate(time.Now().UTC().Add(12 * time.Hour)),
-		"sub":  userID,
-		"name": userName,
-		"role": userRole,
+		"iss":      issuer,
+		"iat":      jwt.NewNumericDate(time.Now().UTC()),
+		"exp":      jwt.NewNumericDate(time.Now().UTC().Add(12 * time.Hour)),
+		"sub":      userID,
+		"username": username,
+		"role":     userRole,
 	})
 
 	key := []byte(secret)
@@ -44,11 +44,11 @@ func ParseAndValidateJWTToken(tokenString, secret string) (int, string, string, 
 		return 0, "", "", errors.New("invalid sub claim")
 	}
 	userID := int(userIDFloat)
-	userName, _ := claims["name"].(string)
+	username, _ := claims["username"].(string)
 	userRole, ok := claims["role"].(string)
 	if !ok {
 		return 0, "", "", errors.New("invalid role claim")
 	}
 
-	return userID, userName, userRole, nil
+	return userID, username, userRole, nil
 }

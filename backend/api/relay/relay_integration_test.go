@@ -153,11 +153,11 @@ func setupTestEnv(t *testing.T) testEnv {
 	ts := httptest.NewServer(handler)
 	t.Cleanup(func() { ts.Close() })
 
-	adminTkn, err := jwt.GenerateJWTTokenForUser(1, "Nico Graef", "admin", testJWTSecret)
+	adminTkn, err := jwt.GenerateJWTTokenForUser(1, "admin", "admin", testJWTSecret)
 	if err != nil {
 		t.Fatalf("Failed to generate admin JWT: %v", err)
 	}
-	svcTkn, err := jwt.GenerateJWTTokenForUser(serviceUserID, "Test Service", "service", testJWTSecret)
+	svcTkn, err := jwt.GenerateJWTTokenForUser(serviceUserID, "test-service", "service", testJWTSecret)
 	if err != nil {
 		t.Fatalf("Failed to generate service JWT: %v", err)
 	}

@@ -637,11 +637,11 @@ func variantenIndex(produkte []produkt) map[int]kasse.Position {
 	return idx
 }
 
-// benutzerIndex bildet jede Benutzer-ID auf den Anzeigenamen ab.
+// benutzerIndex bildet jede Benutzer-ID auf den Username ab (eingefroren in den Events).
 func benutzerIndex(benutzer []benutzer) map[int]string {
 	idx := make(map[int]string, len(benutzer))
 	for _, b := range benutzer {
-		idx[b.ID] = b.Name
+		idx[b.ID] = b.Username
 	}
 	return idx
 }
