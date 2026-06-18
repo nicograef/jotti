@@ -54,7 +54,7 @@ func loadConfig(getenv func(string) string) config {
 		domain:        strings.TrimSpace(getenv("JOTTI_DOMAIN")),
 		email:         strings.TrimSpace(getenv("LETSENCRYPT_EMAIL")),
 		wwwRedirect:   parseBool(getenv("JOTTI_WWW_REDIRECT")),
-		lanIPEnv:      getenv("LAN_IP"),
+		lanIPEnv:      strings.TrimSpace(getenv("LAN_IP")),
 		zone:          valueOrDefault(getenv("PROXY_ZONE"), defaultZone),
 		acmeDNSURL:    valueOrDefault(getenv("ACMEDNS_BASE_URL"), defaultACMEDNSURL),
 		statePath:     valueOrDefault(getenv("PROXY_STATE_PATH"), defaultStatePath),
