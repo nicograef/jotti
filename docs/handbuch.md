@@ -194,7 +194,7 @@ Alle Summanden stammen aus dem Kassenjournal. Keine Cross-Context-Projektion. Di
 
 ### 3.10 Kassensturz
 
-Am Ende einer Schicht vergleicht der Admin den errechneten Soll-Bestand (→ [3.9](#39-kassenbestand-read-model)) mit dem physisch gezählten Ist-Bestand. Der Application Service schreibt beim Kassensturz zwei Events in derselben Transaktion: `kassensturz-durchgefuehrt:v1` (immer) und `differenz-soll-ist-gebucht:v1` (nur wenn `differenz_cents ≠ 0`). Differenzen werden nie per `UPDATE` korrigiert, sie sind eigene Geschäftsvorfälle: Das Differenz-Event bekommt eine eigene `kassenjournal.id` und ist direkt als Zeile in `businesscases.csv` exportierbar (`GV_TYP = DifferenzSollIst`).
+Am Ende einer Schicht vergleicht der Admin den errechneten Soll-Bestand (→ [3.9](#39-kassenbestand-read-model)) mit dem physisch gezählten Ist-Bestand. Der Application Service schreibt im Kassenabschluss (→ [3.11](#311-tagesabschluss-z-bon)) nacheinander `kassensturz-durchgefuehrt:v1` (immer) und `differenz-soll-ist-gebucht:v1` (nur wenn `differenz_cents ≠ 0`); eine umschließende Transaktion über die Abschluss-Events gibt es bewusst nicht. Differenzen werden nie per `UPDATE` korrigiert, sie sind eigene Geschäftsvorfälle: Das Differenz-Event bekommt eine eigene `kassenjournal.id` und ist direkt als Zeile in `businesscases.csv` exportierbar (`GV_TYP = DifferenzSollIst`).
 
 Rechtliche Grundlagen und Betreiberpflichten (Zählprotokoll, Differenzbuchung, Aufbewahrung) → [compliance.md §4](compliance.md#4-gobd-konformität) und [§8](compliance.md#8-betreiberpflichten).
 

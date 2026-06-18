@@ -45,13 +45,15 @@ Rollen: `admin` (Stammdaten und Kasse), `serviceleitung` (Kasse inkl. Storno und
 | K-12 | Arbeitsbon              | Automatischer Bon ohne Preise an Druckstationen (nicht-fiskalisch).               |
 | K-14 | Tisch-Favoriten         | Serverseitige Favoriten pro Benutzer, Stern-Toggle.                               |
 | K-16 | Kassensitzung eröffnen  | Global nummerierter Betriebstag; Sperre ohne offene Sitzung.                      |
-| K-17 | Anfangsbestand setzen   | Wechselgeld als Basis, einmal pro Kassensitzung.                                  |
+| K-17 | Anfangsbestand setzen   | Wechselgeld als Basis; wird beim Eröffnen (K-16) gesetzt, kein eigener Schritt.   |
 | K-18 | Kassenbestand einsehen  | Soll-Bestand als Aggregation über das Kassenjournal.                              |
 | K-19 | Geldtransit buchen      | Einlage oder Entnahme als Journal-Event.                                          |
 | K-20 | Betreiber-Stammdaten    | Vereinsdaten für Beleg (F-03) und DSFinV-K-Export (F-04).                         |
-| K-21 | Kassensturz durchführen | Gezählter Ist- gegen Soll-Bestand, Differenz wird gebucht.                        |
-| K-22 | Tagesabschluss / Z-Bon  | Schließt die Kassensitzung (Voraussetzung: Kassensturz, alle Tische auf 0).       |
-| K-24 | Direktverkauf           | Bestellen, zahlen und ausgeben in einem Schritt, ohne Tisch.                      |
+| K-21 | Kassensturz durchführen | Gezählter Ist- gegen Soll-Bestand, Differenz wird gebucht; Teil von K-22.         |
+| K-22 | Kassenabschluss / Z-Bon | Kassensturz (K-21) und Tagesabschluss in einem Schritt; alle Tische auf Saldo 0.  |
+| K-24 | Direktverkauf           | Bestellen, zahlen und ausgeben in einem Schritt, ohne Tisch; mit Historie/Storno. |
+| K-25 | Druckstationen          | Konfiguration der Ausgabestationen; Zuordnung von Produktkategorien.              |
+| K-26 | Druckauftrag-Verwaltung | Druckaufträge per Relay abrufen; fehlgeschlagene erneut versuchen/verwerfen.      |
 
 ### Stammdaten (Supporting Domain)
 
@@ -79,6 +81,7 @@ Zeitraumbezogene Auswertungen beziehen sich je auf eine Kassensitzung (`kassensi
 | R-03 | Abrechnung pro Tisch        | Umsatz pro Tisch (Teil von R-01).        |
 | R-04 | Abrechnung pro Servicekraft | Umsatz pro Servicekraft (Teil von R-01). |
 | R-06 | Eigene Übersicht            | KPI-Sektion auf dem Service-Dashboard.   |
+| R-07 | Live-Dashboard              | Echtzeit-KPIs der offenen Kassensitzung. |
 
 ### Querschnitt (Qualitätsmerkmale)
 
@@ -100,10 +103,12 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV (§146a 
 | ---- | ----------------------- | ----------------------------------------------------------------- |
 | F-01 | Seriennummer            | Eindeutige Kassen- und Client-ID je Aufzeichnung.                 |
 | F-02 | TSE-Integration         | Signatur jedes Geschäftsvorfalls (fiskaly Cloud-TSE).             |
-| F-03 | Belegausgabepflicht     | Bondruck oder eBeleg nach §146a AO.                               |
+| F-03 | Belegausgabepflicht     | Bondruck nach §146a AO (eBeleg geplant, F-09).                    |
 | F-04 | DSFinV-K Export         | Prüfdatensatz im DSFinV-K-Format.                                 |
 | F-05 | ELSTER-Meldung          | Manuelle Kassenmeldung im Mein-ELSTER-Portal (per Dokumentation). |
 | F-06 | Abrechnungskreis        | Pro Tisch und Kassensitzung.                                      |
 | F-07 | Steuersätze             | Korrekte USt-Sätze je Position.                                   |
 | F-10 | 10-Jahres-Archivierung  | Aufbewahrungskonzept (per Dokumentation).                         |
 | F-11 | Verfahrensdokumentation | Dokumentierte Kassenführung (per Dokumentation).                  |
+| F-13 | TSE-Inbetriebnahme      | Geführte Ersteinrichtung der TSE: Konfiguration, Test, Status.    |
+| F-14 | TSE-Ausfallsicherheit   | Nachsignierung bei TSE-Ausfall und Ausfalldokumentation.          |
