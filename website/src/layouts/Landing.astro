@@ -236,37 +236,11 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
       </div>
     </footer>
 
-    <script>
-      const toggle = document.getElementById('menu-toggle')
-      const nav = document.getElementById('mobile-nav')
-      const iconOpen = toggle?.querySelector('.menu-icon-open')
-      const iconClose = toggle?.querySelector('.menu-icon-close')
-
-      if (toggle && nav) {
-        const setOpen = (open: boolean) => {
-          toggle.setAttribute('aria-expanded', String(open))
-          toggle.setAttribute('aria-label', open ? 'Menü schließen' : 'Menü öffnen')
-          nav.classList.toggle('hidden', !open)
-          nav.classList.toggle('flex', open)
-          iconOpen?.classList.toggle('hidden', open)
-          iconClose?.classList.toggle('hidden', !open)
-        }
-
-        toggle.addEventListener('click', () => {
-          setOpen(toggle.getAttribute('aria-expanded') !== 'true')
-        })
-
-        nav.querySelectorAll('a').forEach((link) => {
-          link.addEventListener('click', () => setOpen(false))
-        })
-
-        document.addEventListener('keydown', (event) => {
-          if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
-            setOpen(false)
-            toggle.focus()
-          }
-        })
-      }
-    </script>
+    <!--
+      Externe Datei aus public/ statt eines gebuendelten <script>: Astro inlinet
+      kleine Skripte, die Produktiv-CSP (`script-src 'self'`) blockiert aber
+      Inline-Skripte. is:inline laesst Astro das Tag unveraendert ausliefern.
+    -->
+    <script is:inline type="module" src="/mobile-nav.js"></script>
   </body>
 </html>
