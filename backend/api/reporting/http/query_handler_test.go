@@ -196,6 +196,17 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
 			UmsatzProTisch:        []reporting.UmsatzTisch{},
 		},
+		Servicekraefte: []reporting.ServicekraftLive{
+			{
+				UserID:         7,
+				UserName:       "Anna",
+				ZahlungenCents: 1500,
+				OffeneTische: []reporting.OffeneArbeitTisch{
+					{TischID: 3, TischName: "Tisch 3", AnzahlUnbezahlt: 1, AnzahlOffen: 1},
+				},
+				Erledigt: false,
+			},
+		},
 		Stornierungen: []reporting.StornierungDetail{},
 	}
 	handler := QueryHandler{Query: mockQuery{liveData: liveData}}
@@ -223,6 +234,16 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 			AnzahlDirektverkaeufe    int `json:"anzahlDirektverkaeufe"`
 			DirektverkaufUmsatzCents int `json:"direktverkaufUmsatzCents"`
 		} `json:"summary"`
+		Breakdowns struct {
+			Servicekraefte []struct {
+				UserID       int  `json:"userId"`
+				Erledigt     bool `json:"erledigt"`
+				OffeneTische []struct {
+					TischName   string `json:"tischName"`
+					AnzahlOffen int    `json:"anzahlOffen"`
+				} `json:"offeneTische"`
+			} `json:"servicekraefte"`
+		} `json:"breakdowns"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("expected valid JSON response: %v", err)
@@ -247,6 +268,16 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 	}
 	if resp.Summary.DirektverkaufUmsatzCents != 1800 {
 		t.Errorf("expected direktverkaufUmsatzCents 1800, got %d", resp.Summary.DirektverkaufUmsatzCents)
+	}
+	if len(resp.Breakdowns.Servicekraefte) != 1 {
+		t.Fatalf("expected 1 servicekraft, got %+v", resp.Breakdowns.Servicekraefte)
+	}
+	sk := resp.Breakdowns.Servicekraefte[0]
+	if sk.UserID != 7 || sk.Erledigt {
+		t.Errorf("expected servicekraft 7 with open work, got %+v", sk)
+	}
+	if len(sk.OffeneTische) != 1 || sk.OffeneTische[0].TischName != "Tisch 3" || sk.OffeneTische[0].AnzahlOffen != 1 {
+		t.Errorf("expected open work at 'Tisch 3', got %+v", sk.OffeneTische)
 	}
 }
 

@@ -90,7 +90,29 @@ type LiveReportingData struct {
 	AusstehendAuszahlungenCents int
 	Summary                     Summary
 	Breakdowns                  Breakdowns
-	Stornierungen               []StornierungDetail
+	// Servicekraefte ist die Live-Sicht pro Servicekraft: kassierter Umsatz
+	// (aus Breakdowns.UmsatzProServicekraft) zusammengeführt mit der offenen
+	// eigenen Arbeit über die Tisch-Sessions, per user_id gemerged.
+	Servicekraefte []ServicekraftLive
+	Stornierungen  []StornierungDetail
+}
+
+// ServicekraftLive ist die Live-Sicht auf eine Servicekraft im Admin-Dashboard:
+// ihr kassierter Umsatz, zusammengeführt mit ihrer offenen eigenen Arbeit (per
+// user_id). Personen mit offener Arbeit, aber ohne kassierten Umsatz erscheinen
+// ebenfalls (dann mit Null-Umsatz).
+type ServicekraftLive struct {
+	UserID            int
+	UserName          string // eingefrorener Username
+	Name              string // live aus users aufgeloester Klarname (leer bei reiner offener Arbeit)
+	ZahlungenCents    int
+	AuszahlungenCents int
+	AnzahlZahlungen   int
+	// OffeneTische listet die Tische mit offener eigener Arbeit (aufsteigend nach
+	// Tisch-ID); leer wenn die Servicekraft fertig ist.
+	OffeneTische []OffeneArbeitTisch
+	// Erledigt ist true, wenn keine offene eigene Arbeit mehr besteht.
+	Erledigt bool
 }
 
 // OffeneArbeitTisch ist die offene eigene Arbeit einer Servicekraft an einem

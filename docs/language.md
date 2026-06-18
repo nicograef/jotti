@@ -143,6 +143,12 @@ Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einze
 | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
 | `Position` | `Position` | `positionId`, `varianteId`, `produktName`, `varianteName`, `kategorie`, `steuersatz`, `einzelpreis`, `menge` |
 
+#### Besteller (bestellende Servicekraft)
+
+Die Servicekraft, die eine Bestellung aufgenommen hat. Reines Projektions- und Anzeigekonzept: Jede offene `Position` trägt den Besteller als eingefrorenen Username aus dem Event-Umschlag des `bestellung-aufgenommen`-Events. Die Event-Form bleibt unverändert, spätere Umbenennungen ändern alte Positionen nicht. Grundlage für die persönliche Erledigt-Sicht, die Sortierung „eigene zuerst" beim Kassieren und Ausgeben und die Schichtende-Prüfung im Live-Dashboard.
+
+Go-Projektion-Felder: `Position.BestellerUserID`, `Position.BestellerName` · JSON/TS: `bestellerUserId`, `bestellerName`
+
 #### Ausgabe
 
 Bestätigung, dass bestellte Positionen dem Gast übergeben wurden.

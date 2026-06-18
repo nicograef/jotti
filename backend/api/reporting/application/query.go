@@ -192,6 +192,78 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 	data.Bezeichnung = ks.Bezeichnung
 	data.Datum = ks.Datum
 
+	sessions, err := q.TischSessionRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get tisch sessions for live reporting")
+		return nil, ErrDatabase
+	}
+
+	tische, err := q.TischRepo.GetAllTables(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get tische for live reporting")
+		return nil, ErrDatabase
+	}
+	nameByTischID := make(map[int]string, len(tische))
+	for _, t := range tische {
+		nameByTischID[t.ID] = t.Name
+	}
+
+	data.Servicekraefte = mergeServicekraefteLive(data.Breakdowns.UmsatzProServicekraft, sessions, nameByTischID)
+
 	log.Info().Msg("Retrieved live reporting")
 	return &data, nil
+}
+
+// mergeServicekraefteLive führt den kassierten Umsatz pro Servicekraft mit der
+// offenen eigenen Arbeit aus den Tisch-Sessions per user_id zusammen.
+// Servicekräfte mit kassiertem Umsatz erscheinen zuerst (in Umsatz-Reihenfolge),
+// danach Personen mit ausschließlich offener Arbeit (aufsteigend nach UserID).
+func mergeServicekraefteLive(
+	umsatz []reporting.UmsatzServicekraft,
+	sessions []kasse.TischSession,
+	nameByTischID map[int]string,
+) []reporting.ServicekraftLive {
+	servicekraefte := make([]reporting.ServicekraftLive, len(umsatz))
+	indexByUserID := make(map[int]int, len(umsatz))
+	for i, u := range umsatz {
+		servicekraefte[i] = reporting.ServicekraftLive{
+			UserID:            u.UserID,
+			UserName:          u.UserName,
+			Name:              u.Name,
+			ZahlungenCents:    u.ZahlungenCents,
+			AuszahlungenCents: u.AuszahlungenCents,
+			AnzahlZahlungen:   u.AnzahlZahlungen,
+			OffeneTische:      []reporting.OffeneArbeitTisch{},
+			Erledigt:          true,
+		}
+		indexByUserID[u.UserID] = i
+	}
+
+	for _, arbeit := range kasse.ComputeOffeneArbeitProServicekraft(sessions) {
+		offeneTische := make([]reporting.OffeneArbeitTisch, len(arbeit.OffeneTische))
+		for i, tisch := range arbeit.OffeneTische {
+			offeneTische[i] = reporting.OffeneArbeitTisch{
+				TischID:          tisch.TischID,
+				TischName:        nameByTischID[tisch.TischID],
+				AnzahlAusstehend: tisch.AnzahlAusstehend,
+				AnzahlUnbezahlt:  tisch.AnzahlUnbezahlt,
+				AnzahlOffen:      tisch.AnzahlOffen,
+			}
+		}
+
+		if idx, ok := indexByUserID[arbeit.UserID]; ok {
+			servicekraefte[idx].OffeneTische = offeneTische
+			servicekraefte[idx].Erledigt = false
+			continue
+		}
+
+		servicekraefte = append(servicekraefte, reporting.ServicekraftLive{
+			UserID:       arbeit.UserID,
+			UserName:     arbeit.UserName,
+			OffeneTische: offeneTische,
+			Erledigt:     false,
+		})
+	}
+
+	return servicekraefte
 }

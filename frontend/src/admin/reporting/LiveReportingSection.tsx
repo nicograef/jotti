@@ -1,4 +1,11 @@
-import { Ban, ChartBar, LayoutDashboard, TableIcon, Users } from 'lucide-react'
+import {
+  Ban,
+  ChartBar,
+  CheckCircle2,
+  LayoutDashboard,
+  TableIcon,
+  Users,
+} from 'lucide-react'
 import { NavLink } from 'react-router'
 
 import { Badge } from '@/components/ui/badge'
@@ -22,7 +29,13 @@ import { formatCents, formatPositionName } from '@/lib/utils'
 
 import { SummaryCard } from './SummaryCard'
 import type { LiveReportingData } from './types'
-import { formatBediener, formatDatum, formatLocalTime, pct } from './utils'
+import {
+  formatBediener,
+  formatDatum,
+  formatLocalTime,
+  formatOffeneArbeit,
+  pct,
+} from './utils'
 
 export function LiveReportingSection({
   liveData,
@@ -79,9 +92,9 @@ export function LiveReportingSection({
             <TabsTrigger value="servicekraefte">
               <Users className="size-4" />
               Servicekräfte
-              {breakdowns.umsatzProServicekraft.length > 0 && (
+              {breakdowns.servicekraefte.length > 0 && (
                 <Badge variant="secondary" className="ml-1">
-                  {breakdowns.umsatzProServicekraft.length}
+                  {breakdowns.servicekraefte.length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -168,21 +181,21 @@ export function LiveReportingSection({
 
         {/* Servicekräfte */}
         <TabsContent value="servicekraefte" className="mt-4">
-          {breakdowns.umsatzProServicekraft.length === 0 ? (
+          {breakdowns.servicekraefte.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <Users />
                 </EmptyMedia>
-                <EmptyTitle>Keine Zahlungen</EmptyTitle>
+                <EmptyTitle>Keine Servicekräfte aktiv</EmptyTitle>
                 <EmptyDescription>
-                  Keine Zahlungen im gewählten Zeitraum.
+                  Noch keine Zahlungen und keine offenen Tische.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
             <ItemGroup>
-              {breakdowns.umsatzProServicekraft.map((sk) => (
+              {breakdowns.servicekraefte.map((sk) => (
                 <Item key={sk.userId} variant="outline" size="sm">
                   <ItemContent>
                     <ItemTitle>
@@ -192,6 +205,27 @@ export function LiveReportingSection({
                       value={pct(sk.zahlungenCents, summary.gesamtUmsatzCents)}
                       className="mt-1 h-1.5"
                     />
+                    {sk.erledigt ? (
+                      <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-green-700">
+                        <CheckCircle2 className="size-3.5" />
+                        Fertig
+                      </span>
+                    ) : (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {sk.offeneTische.map((t) => (
+                          <span
+                            key={t.tischId}
+                            className="rounded-md border px-2 py-0.5 text-xs"
+                          >
+                            <span className="font-medium">{t.tischName}</span>
+                            <span className="text-muted-foreground">
+                              {' · '}
+                              {formatOffeneArbeit(t)}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </ItemContent>
                   <ItemActions>
                     <Badge variant="secondary">

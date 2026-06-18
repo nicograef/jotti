@@ -287,6 +287,8 @@ func TestGetLiveReporting_HappyPath(t *testing.T) {
 	q := Query{
 		ReportingRepo:       mockReportingRepo{liveData: liveData},
 		KassensitzungenRepo: mockKasseRepo{kassensitzung: ks},
+		TischSessionRepo:    mockTischSessionRepo{},
+		TischRepo:           mockTischRepo{},
 	}
 
 	result, err := q.GetLiveReporting(context.Background())
@@ -310,6 +312,79 @@ func TestGetLiveReporting_HappyPath(t *testing.T) {
 	}
 	if len(result.OffeneTische) != 1 {
 		t.Errorf("expected 1 offener Tisch, got %d", len(result.OffeneTische))
+	}
+}
+
+func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
+	ks := &kasse.Kassensitzung{ZNr: testKassensitzungNr, Status: kasse.KassensitzungOffen}
+	liveData := reporting.LiveReportingData{
+		KassensitzungNr: testKassensitzungNr,
+		Breakdowns: reporting.Breakdowns{
+			UmsatzProServicekraft: []reporting.UmsatzServicekraft{
+				{UserID: 7, UserName: "Anna", Name: "Anna A.", ZahlungenCents: 1500, AnzahlZahlungen: 2},
+				{UserID: 9, UserName: "Cleo", Name: "Cleo C.", ZahlungenCents: 900, AnzahlZahlungen: 1},
+			},
+			UmsatzProTisch: []reporting.UmsatzTisch{},
+		},
+	}
+	sessions := []kasse.TischSession{
+		{
+			// Anna (7, hat Umsatz) hat hier noch offene Arbeit.
+			TischID: 3,
+			AusstehendePositionen: []kasse.Position{
+				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
+			},
+			UnbezahltePositionen: []kasse.Position{
+				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
+			},
+		},
+		{
+			// Bert (8) hat offene Arbeit, aber keinen kassierten Umsatz.
+			TischID: 1,
+			UnbezahltePositionen: []kasse.Position{
+				{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
+			},
+		},
+	}
+	q := Query{
+		ReportingRepo:       mockReportingRepo{liveData: liveData},
+		KassensitzungenRepo: mockKasseRepo{kassensitzung: ks},
+		TischSessionRepo:    mockTischSessionRepo{sessions: sessions},
+		TischRepo:           mockTischRepo{tische: []table.Tisch{{ID: 3, Name: "Tisch 3"}, {ID: 1, Name: "Tisch 1"}}},
+	}
+
+	result, err := q.GetLiveReporting(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+	if len(result.Servicekraefte) != 3 {
+		t.Fatalf("expected 3 servicekraefte (2 mit Umsatz + Bert ohne), got %d: %+v", len(result.Servicekraefte), result.Servicekraefte)
+	}
+
+	// Umsatz-Servicekräfte zuerst, in Umsatz-Reihenfolge.
+	anna := result.Servicekraefte[0]
+	if anna.UserID != 7 || anna.ZahlungenCents != 1500 || anna.Erledigt {
+		t.Errorf("expected Anna mit Umsatz und offener Arbeit, got %+v", anna)
+	}
+	if len(anna.OffeneTische) != 1 || anna.OffeneTische[0].TischID != 3 || anna.OffeneTische[0].TischName != "Tisch 3" || anna.OffeneTische[0].AnzahlOffen != 1 {
+		t.Errorf("expected Anna offen an Tisch 3, got %+v", anna.OffeneTische)
+	}
+
+	cleo := result.Servicekraefte[1]
+	if cleo.UserID != 9 || !cleo.Erledigt || len(cleo.OffeneTische) != 0 {
+		t.Errorf("expected Cleo mit Umsatz aber fertig, got %+v", cleo)
+	}
+
+	// Person mit offener Arbeit, aber ohne Umsatz, wird angehängt.
+	bert := result.Servicekraefte[2]
+	if bert.UserID != 8 || bert.UserName != "Bert" || bert.Name != "" || bert.ZahlungenCents != 0 || bert.Erledigt {
+		t.Errorf("expected Bert ohne Umsatz mit offener Arbeit, got %+v", bert)
+	}
+	if len(bert.OffeneTische) != 1 || bert.OffeneTische[0].TischID != 1 || bert.OffeneTische[0].AnzahlUnbezahlt != 1 {
+		t.Errorf("expected Bert offen an Tisch 1, got %+v", bert.OffeneTische)
 	}
 }
 

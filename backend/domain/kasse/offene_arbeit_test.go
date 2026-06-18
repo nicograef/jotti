@@ -172,3 +172,77 @@ func TestComputeOffeneArbeitRollup_EmptySessions(t *testing.T) {
 		t.Errorf("expected empty open tische, got %+v", rollup.OffeneTische)
 	}
 }
+
+func TestComputeOffeneArbeitProServicekraft_MehrereServicekraefte(t *testing.T) {
+	sessions := []TischSession{
+		{
+			TischID: 3,
+			AusstehendePositionen: []Position{
+				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
+			},
+			UnbezahltePositionen: []Position{
+				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
+			},
+		},
+		{
+			TischID: 1,
+			AusstehendePositionen: []Position{
+				{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
+			},
+			UnbezahltePositionen: []Position{
+				{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
+				{PositionID: "p3", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
+			},
+		},
+	}
+
+	servicekraefte := ComputeOffeneArbeitProServicekraft(sessions)
+
+	if len(servicekraefte) != 2 {
+		t.Fatalf("expected 2 servicekraefte with open work, got %d: %+v", len(servicekraefte), servicekraefte)
+	}
+	// Aufsteigend nach UserID: Anna (7) zuerst, dann Bert (8).
+	anna := servicekraefte[0]
+	if anna.UserID != 7 || anna.UserName != "Anna" {
+		t.Errorf("expected first entry Anna (7), got %+v", anna)
+	}
+	if len(anna.OffeneTische) != 2 || anna.OffeneTische[0].TischID != 1 || anna.OffeneTische[1].TischID != 3 {
+		t.Errorf("expected Anna open at tische [1 3], got %+v", anna.OffeneTische)
+	}
+	bert := servicekraefte[1]
+	if bert.UserID != 8 || bert.UserName != "Bert" {
+		t.Errorf("expected second entry Bert (8), got %+v", bert)
+	}
+	if len(bert.OffeneTische) != 1 || bert.OffeneTische[0].TischID != 1 {
+		t.Errorf("expected Bert open at tisch [1], got %+v", bert.OffeneTische)
+	}
+}
+
+// Schichtübergabe: eine Servicekraft ohne offene eigene Arbeit erscheint nicht,
+// auch wenn sie an einem Tisch bestellt hatte und Kolleginnen alles abgearbeitet
+// haben.
+func TestComputeOffeneArbeitProServicekraft_FertigeServicekraftFehlt(t *testing.T) {
+	sessions := []TischSession{
+		{
+			TischID: 1,
+			AusstehendePositionen: []Position{
+				{PositionID: "p1", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
+			},
+			// Anna (7) hatte hier nichts mehr offen.
+		},
+	}
+
+	servicekraefte := ComputeOffeneArbeitProServicekraft(sessions)
+
+	if len(servicekraefte) != 1 || servicekraefte[0].UserID != 8 {
+		t.Fatalf("expected only Bert (8) with open work, got %+v", servicekraefte)
+	}
+}
+
+func TestComputeOffeneArbeitProServicekraft_EmptySessions(t *testing.T) {
+	servicekraefte := ComputeOffeneArbeitProServicekraft(nil)
+
+	if len(servicekraefte) != 0 {
+		t.Errorf("expected no servicekraefte for no sessions, got %+v", servicekraefte)
+	}
+}

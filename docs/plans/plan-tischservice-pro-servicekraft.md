@@ -406,8 +406,8 @@ Anzahl ausstehender/unbezahlter eigener Positionen) oder einen "fertig"-Hinweis.
 
 ## Abschluss
 
-- [ ] Begriff "Besteller" / "bestellende Servicekraft" in
+- [x] Begriff "Besteller" / "bestellende Servicekraft" in
       [docs/language.md](../../docs/language.md) aufgenommen.
-- [ ] Out of Scope bestätigt: keine Übernahme/Neuzuordnung, keine
+- [x] Out of Scope bestätigt: keine Übernahme/Neuzuordnung, keine
       besteller-basierte Umsatzzuordnung, Direktverkauf unberührt, historische
       Tagesabrechnung nicht erweitert.

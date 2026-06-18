@@ -342,6 +342,26 @@ type liveSummaryResponse struct {
 	DirektverkaufUmsatzCents int `json:"direktverkaufUmsatzCents"`
 }
 
+// servicekraftLiveResponse ist die Live-Sicht pro Servicekraft: kassierter
+// Umsatz zusammengeführt mit der offenen eigenen Arbeit.
+type servicekraftLiveResponse struct {
+	UserID            int                         `json:"userId"`
+	UserName          string                      `json:"userName"`
+	Name              string                      `json:"name"`
+	ZahlungenCents    int                         `json:"zahlungenCents"`
+	AuszahlungenCents int                         `json:"auszahlungenCents"`
+	AnzahlZahlungen   int                         `json:"anzahlZahlungen"`
+	OffeneTische      []offeneArbeitTischResponse `json:"offeneTische"`
+	Erledigt          bool                        `json:"erledigt"`
+}
+
+// liveBreakdownsResponse trägt im Live-Dashboard die zusammengeführte
+// Servicekraft-Sicht statt des reinen kassierten Umsatzes.
+type liveBreakdownsResponse struct {
+	Servicekraefte []servicekraftLiveResponse `json:"servicekraefte"`
+	UmsatzProTisch []umsatzTisch              `json:"umsatzProTisch"`
+}
+
 type liveReportingResponse struct {
 	KassensitzungNr             int                    `json:"kassensitzungNr"`
 	Bezeichnung                 string                 `json:"bezeichnung"`
@@ -350,8 +370,39 @@ type liveReportingResponse struct {
 	OffeneSaldiCents            int                    `json:"offeneSaldiCents"`
 	AusstehendAuszahlungenCents int                    `json:"ausstehendAuszahlungenCents"`
 	Summary                     liveSummaryResponse    `json:"summary"`
-	Breakdowns                  breakdownsResponse     `json:"breakdowns"`
+	Breakdowns                  liveBreakdownsResponse `json:"breakdowns"`
 	Stornierungen               []stornierungDetail    `json:"stornierungen"`
+}
+
+func toServicekraftLive(s reporting.ServicekraftLive) servicekraftLiveResponse {
+	offeneTische := make([]offeneArbeitTischResponse, len(s.OffeneTische))
+	for i, t := range s.OffeneTische {
+		offeneTische[i] = offeneArbeitTischResponse{
+			TischID:          t.TischID,
+			TischName:        t.TischName,
+			AnzahlAusstehend: t.AnzahlAusstehend,
+			AnzahlUnbezahlt:  t.AnzahlUnbezahlt,
+			AnzahlOffen:      t.AnzahlOffen,
+		}
+	}
+	return servicekraftLiveResponse{
+		UserID:            s.UserID,
+		UserName:          s.UserName,
+		Name:              s.Name,
+		ZahlungenCents:    s.ZahlungenCents,
+		AuszahlungenCents: s.AuszahlungenCents,
+		AnzahlZahlungen:   s.AnzahlZahlungen,
+		OffeneTische:      offeneTische,
+		Erledigt:          s.Erledigt,
+	}
+}
+
+func toServicekraefteLive(servicekraefte []reporting.ServicekraftLive) []servicekraftLiveResponse {
+	out := make([]servicekraftLiveResponse, len(servicekraefte))
+	for i := range servicekraefte {
+		out[i] = toServicekraftLive(servicekraefte[i])
+	}
+	return out
 }
 
 func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingResponse {
@@ -381,9 +432,9 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 			AnzahlDirektverkaeufe:    d.Summary.AnzahlDirektverkaeufe,
 			DirektverkaufUmsatzCents: d.Summary.DirektverkaufUmsatzCents,
 		},
-		Breakdowns: breakdownsResponse{
-			UmsatzProServicekraft: toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),
-			UmsatzProTisch:        toUmsatzTischList(d.Breakdowns.UmsatzProTisch),
+		Breakdowns: liveBreakdownsResponse{
+			Servicekraefte: toServicekraefteLive(d.Servicekraefte),
+			UmsatzProTisch: toUmsatzTischList(d.Breakdowns.UmsatzProTisch),
 		},
 		Stornierungen: toStornierungDetails(d.Stornierungen),
 	}

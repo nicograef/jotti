@@ -72,6 +72,29 @@ export const OffenerTischSchema = z.object({
 })
 export type OffenerTisch = z.infer<typeof OffenerTischSchema>
 
+export const OffeneArbeitTischSchema = z.object({
+  tischId: z.number().int(),
+  tischName: z.string(),
+  anzahlAusstehend: z.number().int(),
+  anzahlUnbezahlt: z.number().int(),
+  anzahlOffen: z.number().int(),
+})
+export type OffeneArbeitTisch = z.infer<typeof OffeneArbeitTischSchema>
+
+// ServicekraftLive führt den kassierten Umsatz mit der offenen eigenen Arbeit
+// zusammen; erledigt ist true, wenn keine offene eigene Arbeit mehr besteht.
+export const ServicekraftLiveSchema = z.object({
+  userId: z.number().int(),
+  userName: z.string(),
+  name: z.string(),
+  zahlungenCents: z.number().int(),
+  auszahlungenCents: z.number().int(),
+  anzahlZahlungen: z.number().int(),
+  offeneTische: z.array(OffeneArbeitTischSchema),
+  erledigt: z.boolean(),
+})
+export type ServicekraftLive = z.infer<typeof ServicekraftLiveSchema>
+
 export const LiveReportingDataSchema = z.object({
   kassensitzungNr: z.number().int(),
   bezeichnung: z.string(),
@@ -81,7 +104,7 @@ export const LiveReportingDataSchema = z.object({
   ausstehendAuszahlungenCents: z.number().int(),
   summary: SummarySchema,
   breakdowns: z.object({
-    umsatzProServicekraft: z.array(UmsatzServicekraftSchema),
+    servicekraefte: z.array(ServicekraftLiveSchema),
     umsatzProTisch: z.array(UmsatzTischSchema),
   }),
   stornierungen: z.array(StornierungDetailSchema),

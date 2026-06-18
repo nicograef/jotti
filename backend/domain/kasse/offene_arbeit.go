@@ -100,3 +100,48 @@ func ComputeOffeneArbeitRollup(sessions []TischSession, userID int) OffeneArbeit
 		Erledigt:     len(offeneTische) == 0,
 	}
 }
+
+// OffeneArbeitServicekraft ist die offene eigene Arbeit einer Servicekraft über
+// mehrere Tisch-Sessions, angereichert um ihre Identität: UserID und den
+// eingefrorenen Besteller-Namen aus den Positionen.
+type OffeneArbeitServicekraft struct {
+	UserID       int
+	UserName     string // eingefrorener Besteller-Name aus den Positionen
+	OffeneTische []OffeneArbeitTisch
+}
+
+// ComputeOffeneArbeitProServicekraft berechnet die offene eigene Arbeit aller
+// Servicekräfte, die in den Sessions noch offene Positionen haben (ausstehend
+// oder unbezahlt). Servicekräfte ohne offene eigene Arbeit erscheinen nicht;
+// das Ergebnis ist aufsteigend nach UserID sortiert. Schichtübergabe ist
+// implizit über ComputeOffeneArbeitRollup abgedeckt.
+func ComputeOffeneArbeitProServicekraft(sessions []TischSession) []OffeneArbeitServicekraft {
+	nameByUserID := make(map[int]string)
+	for _, session := range sessions {
+		for _, pos := range session.AusstehendePositionen {
+			nameByUserID[pos.BestellerUserID] = pos.BestellerName
+		}
+		for _, pos := range session.UnbezahltePositionen {
+			nameByUserID[pos.BestellerUserID] = pos.BestellerName
+		}
+	}
+
+	servicekraefte := make([]OffeneArbeitServicekraft, 0, len(nameByUserID))
+	for userID, name := range nameByUserID {
+		rollup := ComputeOffeneArbeitRollup(sessions, userID)
+		if rollup.Erledigt {
+			continue
+		}
+		servicekraefte = append(servicekraefte, OffeneArbeitServicekraft{
+			UserID:       userID,
+			UserName:     name,
+			OffeneTische: rollup.OffeneTische,
+		})
+	}
+
+	sort.Slice(servicekraefte, func(i, j int) bool {
+		return servicekraefte[i].UserID < servicekraefte[j].UserID
+	})
+
+	return servicekraefte
+}

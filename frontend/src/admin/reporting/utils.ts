@@ -20,3 +20,20 @@ export function formatDatum(datum: string): string {
     timeZone: 'UTC',
   })
 }
+
+// formatOffeneArbeit beschreibt die offene eigene Arbeit an einem Tisch: noch
+// auszugebende (ausstehende) und noch zu kassierende (unbezahlte) Positionen.
+// Null-Anteile werden weggelassen.
+export function formatOffeneArbeit(tisch: {
+  anzahlAusstehend: number
+  anzahlUnbezahlt: number
+}): string {
+  const parts: string[] = []
+  if (tisch.anzahlAusstehend > 0) {
+    parts.push(`${tisch.anzahlAusstehend.toString()} auszugeben`)
+  }
+  if (tisch.anzahlUnbezahlt > 0) {
+    parts.push(`${tisch.anzahlUnbezahlt.toString()} zu kassieren`)
+  }
+  return parts.join(' · ')
+}
