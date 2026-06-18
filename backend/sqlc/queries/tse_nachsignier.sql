@@ -25,10 +25,10 @@ WHERE id = $1
 -- name: TSENachsignierAuftragFehlversuch :exec
 UPDATE tse_nachsignier_auftraege
 SET versuche = versuche + 1,
-    letzter_fehler = sqlc.arg(letzter_fehler),
+    letzter_fehler = @letzter_fehler,
     naechster_versuch_am = NOW() + LEAST(POWER(2, versuche), 30) * interval '1 minute',
-    status = CASE WHEN versuche + 1 >= sqlc.arg(max_versuche) THEN 'fehlgeschlagen' ELSE status END
-WHERE id = sqlc.arg(id) AND status = 'offen';
+    status = CASE WHEN versuche + 1 >= @max_versuche THEN 'fehlgeschlagen' ELSE status END
+WHERE id = @id AND status = 'offen';
 
 -- Zaehlt noch nicht erledigte Nachsignierungen (offen und fehlgeschlagen):
 -- beide Status bedeuten unsignierte Vorgaenge.
