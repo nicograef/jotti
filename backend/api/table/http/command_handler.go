@@ -276,12 +276,11 @@ func toPositionRef(p positionRefRequest) kasse.PositionRef {
 }
 
 func toPositionRefs(refs []positionRefRequest) []kasse.PositionRef {
-	positionRefs := make([]kasse.PositionRef, 0, len(refs))
-	for _, ref := range refs {
-		positionRefs = append(positionRefs, toPositionRef(ref))
+	out := make([]kasse.PositionRef, len(refs))
+	for i, ref := range refs {
+		out[i] = toPositionRef(ref)
 	}
-
-	return positionRefs
+	return out
 }
 
 var bestellPositionInputSchema = z.Struct(z.Shape{

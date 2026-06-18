@@ -41,10 +41,9 @@ func (c Command) CreateProduct(ctx context.Context, name string, kategorie produ
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Err(err).Str("name", produkt.Name).Msg("Product name already exists")
 			return 0, ErrProduktAlreadyExists
-		} else {
-			log.Error().Str("name", produkt.Name).Msg("Failed to create product")
-			return 0, ErrDatabase
 		}
+		log.Error().Str("name", produkt.Name).Msg("Failed to create product")
+		return 0, ErrDatabase
 	}
 
 	log.Info().Int("product_id", productID).Msg("Product created")
@@ -59,10 +58,9 @@ func (c Command) UpdateProduct(ctx context.Context, productID int, name string, 
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Int("product_id", productID).Msg("Product not found for update")
 			return ErrProduktNotFound
-		} else {
-			log.Error().Int("product_id", productID).Msg("Failed to retrieve product for update")
-			return ErrDatabase
 		}
+		log.Error().Int("product_id", productID).Msg("Failed to retrieve product for update")
+		return ErrDatabase
 	}
 
 	err = produkt.UpdateDetails(name, kategorie, steuersatz)
@@ -92,10 +90,9 @@ func (c Command) CreateVariant(ctx context.Context, productID int, name string, 
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Int("product_id", productID).Msg("Product not found for variant creation")
 			return 0, ErrProduktNotFound
-		} else {
-			log.Error().Int("product_id", productID).Msg("Failed to retrieve product for variant creation")
-			return 0, ErrDatabase
 		}
+		log.Error().Int("product_id", productID).Msg("Failed to retrieve product for variant creation")
+		return 0, ErrDatabase
 	}
 
 	variante, err := product.NewVariante(name, preisCents)
@@ -122,10 +119,9 @@ func (c Command) UpdateVariant(ctx context.Context, variantID int, name string, 
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Int("variant_id", variantID).Msg("Variant not found for update")
 			return ErrVarianteNotFound
-		} else {
-			log.Error().Int("variant_id", variantID).Msg("Failed to retrieve variant for update")
-			return ErrDatabase
 		}
+		log.Error().Int("variant_id", variantID).Msg("Failed to retrieve variant for update")
+		return ErrDatabase
 	}
 
 	err = variante.UpdateDetails(name, preisCents)
@@ -184,10 +180,9 @@ func (c Command) DeleteProdukt(ctx context.Context, productID int) error {
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Int("product_id", productID).Msg("Product not found for deletion")
 			return ErrProduktNotFound
-		} else {
-			log.Error().Int("product_id", productID).Msg("Failed to retrieve product for deletion")
-			return ErrDatabase
 		}
+		log.Error().Int("product_id", productID).Msg("Failed to retrieve product for deletion")
+		return ErrDatabase
 	}
 
 	for i := range produkt.Varianten {
@@ -219,10 +214,9 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, variantID in
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Int("product_id", produktID).Msg("Product not found for variant deletion")
 			return ErrProduktNotFound
-		} else {
-			log.Error().Int("product_id", produktID).Msg("Failed to retrieve product for variant deletion")
-			return ErrDatabase
 		}
+		log.Error().Int("product_id", produktID).Msg("Failed to retrieve product for variant deletion")
+		return ErrDatabase
 	}
 
 	variante, err := c.ProductRepo.GetVariant(ctx, variantID)
@@ -230,10 +224,9 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, variantID in
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Int("variant_id", variantID).Msg("Variant not found for deletion")
 			return ErrVarianteNotFound
-		} else {
-			log.Error().Int("variant_id", variantID).Msg("Failed to retrieve variant for deletion")
-			return ErrDatabase
 		}
+		log.Error().Int("variant_id", variantID).Msg("Failed to retrieve variant for deletion")
+		return ErrDatabase
 	}
 
 	variante.Delete()

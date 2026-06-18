@@ -34,10 +34,9 @@ func (c Command) CreateUser(ctx context.Context, name, username string, role use
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Err(err).Str("username", user.Username).Msg("Username already exists")
 			return 0, "", ErrUsernameAlreadyExists
-		} else {
-			log.Error().Str("username", user.Username).Msg("Failed to create user")
-			return 0, "", ErrDatabase
 		}
+		log.Error().Str("username", user.Username).Msg("Failed to create user")
+		return 0, "", ErrDatabase
 	}
 
 	log.Info().Str("username", user.Username).Msg("User created successfully")
@@ -52,10 +51,9 @@ func (c Command) UpdateUser(ctx context.Context, userID int, name, username stri
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Int("user_id", userID).Msg("User not found for update")
 			return ErrUserNotFound
-		} else {
-			log.Error().Int("user_id", userID).Msg("Failed to retrieve user for update")
-			return ErrDatabase
 		}
+		log.Error().Int("user_id", userID).Msg("Failed to retrieve user for update")
+		return ErrDatabase
 	}
 
 	err = user.UpdateDetails(name, username, role)
@@ -69,10 +67,9 @@ func (c Command) UpdateUser(ctx context.Context, userID int, name, username stri
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Err(err).Str("username", user.Username).Msg("Username already exists")
 			return ErrUsernameAlreadyExists
-		} else {
-			log.Error().Err(err).Int("user_id", userID).Msg("Failed to update user")
-			return ErrDatabase
 		}
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to update user")
+		return ErrDatabase
 	}
 
 	log.Info().Int("user_id", userID).Msg("User updated successfully")
@@ -131,10 +128,9 @@ func (c Command) applyUserStatusChange(
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Int("user_id", userID).Msg(notFoundMsg)
 			return ErrUserNotFound
-		} else {
-			log.Error().Int("user_id", userID).Msg(loadFailedMsg)
-			return ErrDatabase
 		}
+		log.Error().Int("user_id", userID).Msg(loadFailedMsg)
+		return ErrDatabase
 	}
 
 	action(&user)
@@ -157,10 +153,9 @@ func (c Command) ResetPassword(ctx context.Context, userID int) (string, error) 
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Int("user_id", userID).Msg("User not found for password reset")
 			return "", ErrUserNotFound
-		} else {
-			log.Error().Int("user_id", userID).Msg("Failed to retrieve user for password reset")
-			return "", ErrDatabase
 		}
+		log.Error().Int("user_id", userID).Msg("Failed to retrieve user for password reset")
+		return "", ErrDatabase
 	}
 
 	onetimePassword, err := user.ResetPassword()

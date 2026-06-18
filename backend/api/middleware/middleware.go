@@ -60,7 +60,6 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		logger := log.With().Str("correlation", correlationID).Logger()
 		r = r.WithContext(logger.WithContext(r.Context()))
 
-		// Create a response writer wrapper to capture status code
 		ww := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(ww, r)
 
@@ -178,7 +177,6 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler
 				return
 			}
 
-			// get jwt token, remove "Bearer " prefix
 			const bearerPrefix = "Bearer "
 			if len(token) <= len(bearerPrefix) || token[:len(bearerPrefix)] != bearerPrefix {
 				logger.Error().Msg("Invalid Authorization header format")
@@ -193,7 +191,6 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler
 				return
 			}
 
-			// check if role is allowed
 			roleAllowed := slices.Contains(allowedRoles, userRole)
 			if !roleAllowed {
 				logger.Warn().Str("role", userRole).Msg("Insufficient permissions")

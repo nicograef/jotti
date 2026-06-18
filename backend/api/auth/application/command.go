@@ -28,10 +28,9 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Str("username", username).Msg("User not found during login")
 			return "", ErrUserNotFound
-		} else {
-			log.Error().Str("username", username).Msg("Failed to retrieve user ID")
-			return "", ErrDatabase
 		}
+		log.Error().Str("username", username).Msg("Failed to retrieve user ID")
+		return "", ErrDatabase
 	}
 
 	if err := u.VerifyPassword(password); err != nil {
@@ -69,10 +68,9 @@ func (c Command) SetNewPassword(ctx context.Context, username, newPassword, onet
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Str("username", username).Msg("User not found during login")
 			return ErrUserNotFound
-		} else {
-			log.Error().Str("username", username).Msg("Failed to retrieve user ID")
-			return ErrDatabase
 		}
+		log.Error().Str("username", username).Msg("Failed to retrieve user ID")
+		return ErrDatabase
 	}
 
 	err = u.SetPassword(onetimePassword, newPassword)
