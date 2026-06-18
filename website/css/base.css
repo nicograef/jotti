@@ -551,6 +551,158 @@
     }
   }
 
+  /* Eyebrow: kleine Sektions-Auszeichnung über der Überschrift */
+  .eyebrow {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--primary);
+  }
+
+  /* Hero: dezenter Markenfarben-Verlauf */
+  .section-hero {
+    background:
+      radial-gradient(
+        115% 80% at 85% -10%,
+        var(--primary-light),
+        transparent 55%
+      ),
+      var(--background);
+  }
+
+  /* Trust-Badges im Hero */
+  .trust-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem 1.5rem;
+    list-style: none;
+
+    @media (min-width: 960px) {
+      justify-content: flex-start;
+    }
+  }
+
+  .trust-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--foreground);
+
+    & svg {
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+  }
+
+  /* Inhalts-Karte mit Icon-Box */
+  .card {
+    height: 100%;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: calc(var(--radius) * 1.6);
+    padding: 1.5rem;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+
+    &:hover {
+      border-color: var(--primary-light);
+      box-shadow: 0 14px 30px rgba(16, 40, 28, 0.08);
+      transform: translateY(-2px);
+    }
+  }
+
+  .icon-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-bottom: 1rem;
+    border-radius: calc(var(--radius) * 1.1);
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+
+  /* Gruppen-Überschrift innerhalb der Features */
+  .feature-group-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.01em;
+    color: var(--primary);
+    margin-bottom: 1.25rem;
+  }
+
+  /* Schritt-Karte (So funktioniert's) */
+  .step {
+    list-style: none;
+    text-align: center;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: calc(var(--radius) * 1.6);
+    padding: 2rem 1.5rem;
+  }
+
+  /* Preis-Panel (Selbst betreiben) */
+  .price-panel {
+    background: var(--panel-bg);
+    border-radius: calc(var(--radius) * 2);
+    padding: 2rem;
+  }
+
+  .price-panel p {
+    color: var(--muted-light);
+    margin-top: 1.25rem;
+  }
+
+  .price-panel-label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--primary-light);
+    margin-bottom: 1.25rem;
+  }
+
+  .price-list {
+    list-style: none;
+    padding: 0;
+
+    & li {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.875rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    & li:last-child {
+      border-bottom: none;
+    }
+
+    & li:first-child .price-list-value {
+      color: var(--primary-light);
+    }
+  }
+
+  .price-list-name {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .price-list-value {
+    color: var(--panel-code-ink);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
   /* Leitfaden-Fließtext: Typografie für die langen Leitfaden-Seiten.
      Schritt-Counter, Checklisten-Kästchen und FAQ leben von
      Pseudo-Elementen und sind als Utilities nicht sinnvoll. */
@@ -784,6 +936,10 @@
     margin-bottom: calc(var(--spacing) * 5);
   }
 
+  .mb-6 {
+    margin-bottom: calc(var(--spacing) * 6);
+  }
+
   .mb-8 {
     margin-bottom: calc(var(--spacing) * 8);
   }
@@ -796,8 +952,8 @@
     margin-top: calc(var(--spacing) * 5);
   }
 
-  .my-8 {
-    margin-block: calc(var(--spacing) * 8);
+  .mt-8 {
+    margin-top: calc(var(--spacing) * 8);
   }
 
   .mt-10 {
@@ -819,6 +975,10 @@
 
   .pt-12 {
     padding-top: calc(var(--spacing) * 12);
+  }
+
+  .pt-5 {
+    padding-top: calc(var(--spacing) * 5);
   }
 
   .pb-5 {
@@ -915,22 +1075,6 @@
     text-align: center;
   }
 
-  .uppercase {
-    text-transform: uppercase;
-  }
-
-  .tracking-1 {
-    letter-spacing: 0.01em;
-  }
-
-  .tracking-2 {
-    letter-spacing: 0.02em;
-  }
-
-  .tracking-6 {
-    letter-spacing: 0.06em;
-  }
-
   .leading-relaxed {
     line-height: 1.6;
   }
@@ -938,10 +1082,6 @@
   /* Farben */
   .text-primary {
     color: var(--primary);
-  }
-
-  .text-foreground {
-    color: var(--foreground);
   }
 
   .text-muted {
@@ -971,10 +1111,6 @@
 
   .border-b {
     border-bottom: 1px solid var(--card-border);
-  }
-
-  .rounded-sm {
-    border-radius: 0.25rem;
   }
 
   .rounded-2xl {
