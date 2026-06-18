@@ -36,27 +36,27 @@
 
 @font-face {
   font-family: Montserrat;
-  src: url("../fonts/Montserrat-Regular.woff2") format("woff2");
+  src: url('../fonts/Montserrat-Regular.woff2') format('woff2');
   font-display: swap;
 }
 
 @font-face {
   font-family: Montserrat;
-  src: url("../fonts/Montserrat-Bold.woff2") format("woff2");
+  src: url('../fonts/Montserrat-Bold.woff2') format('woff2');
   font-weight: 700;
   font-display: swap;
 }
 
 @font-face {
   font-family: Montserrat;
-  src: url("../fonts/Montserrat-Italic.woff2") format("woff2");
+  src: url('../fonts/Montserrat-Italic.woff2') format('woff2');
   font-style: italic;
   font-display: swap;
 }
 
 @font-face {
   font-family: Montserrat;
-  src: url("../fonts/Montserrat-BoldItalic.woff2") format("woff2");
+  src: url('../fonts/Montserrat-BoldItalic.woff2') format('woff2');
   font-weight: 700;
   font-style: italic;
   font-display: swap;
@@ -93,7 +93,7 @@
     /* Radius, Fonts, Container */
     --radius: 0.625rem;
     --font-sans: Montserrat, system-ui, -apple-system, sans-serif;
-    --font-mono: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+    --font-mono: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
     --container-max: 1120px;
 
     /* Vertikaler Abstand zwischen Seiten-Sektionen (utility py-section) */
@@ -426,7 +426,7 @@
       color: var(--muted);
 
       &::before {
-        content: "✓";
+        content: '✓';
         position: absolute;
         left: 0;
         color: var(--primary);
@@ -805,7 +805,7 @@
   }
 
   .guide-prose .guide-checklist li::before {
-    content: "";
+    content: '';
     position: absolute;
     left: 0;
     top: 0.3em;

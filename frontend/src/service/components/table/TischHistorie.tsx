@@ -401,8 +401,7 @@ function Details({
               {title} {id.slice(0, 8)}
             </DrawerTitle>
             <DrawerDescription>
-              von {userName} am{' '}
-              {new Date(date).toLocaleDateString('de-DE')} um{' '}
+              von {userName} am {new Date(date).toLocaleDateString('de-DE')} um{' '}
               {new Date(date).toLocaleTimeString('de-DE')} Uhr
             </DrawerDescription>
           </DrawerHeader>
