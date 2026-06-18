@@ -7,6 +7,8 @@ export const StornierungSchema = z.object({
   art: z.literal('stornierung'),
   id: z.uuid(),
   userId: z.number().int().min(1),
+  // Eingefrorener Name des Akteurs, beschriftet den Historien-Eintrag.
+  userName: z.string().min(1),
   tischId: z.number().int().min(1),
   positionen: PositionSchema.array().min(1),
   gesamtStornierungCents: z.number().int().min(0),

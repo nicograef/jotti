@@ -4,14 +4,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Bestellung } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
+import type { Zahlung } from '../../table/Zahlung'
 import { TischHistorie } from './TischHistorie'
+
+type HistorieEintrag = Bestellung | Zahlung
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
 vi.mock('@/lib/Auth', () => ({
-  AuthSingleton: { canCancel: true, userId: 1 },
+  AuthSingleton: { canCancel: true },
 }))
 
 // vaul's Drawer braucht Browser-APIs, die jsdom nicht bereitstellt. Hier wird
@@ -66,12 +69,39 @@ function bestellung(overrides: Partial<Bestellung> = {}): Bestellung {
   }
 }
 
-function renderHistorie(historie: Bestellung[]) {
+function zahlung(overrides: Partial<Zahlung> = {}): Zahlung {
+  return {
+    art: 'zahlung',
+    id: '00000000-0000-0000-0000-0000000000f1',
+    userId: 2,
+    userName: 'Bert',
+    tischId: 1,
+    positionen: [
+      {
+        positionId: '00000000-0000-0000-0000-0000000000a1',
+        varianteId: 1,
+        produktName: 'Bratwurst',
+        varianteName: 'Normal',
+        kategorie: 'essen',
+        steuersatz: 'regel',
+        einzelpreis: 350,
+        menge: 1,
+        bestellerUserId: 1,
+        bestellerName: 'Anna',
+      },
+    ],
+    gesamtZahlungCents: 350,
+    kommentar: '',
+    kassiertAm: '2026-06-18T12:05:00Z',
+    ...overrides,
+  }
+}
+
+function renderHistorie(historie: HistorieEintrag[]) {
   render(
     <TischHistorie
       historie={historie}
       historieLoading={false}
-      userId={1}
       tisch={tisch}
       backend={{
         stornierungErteilen: vi.fn().mockResolvedValue(undefined),
@@ -85,16 +115,14 @@ function renderHistorie(historie: Bestellung[]) {
 }
 
 describe('TischHistorie', () => {
-  it('beschriftet jede Bestellung mit dem Namen der bestellenden Servicekraft', () => {
+  it('beschriftet jeden Eintrag mit dem Namen der handelnden Servicekraft', () => {
     renderHistorie([
       bestellung({
         id: '00000000-0000-0000-0000-000000000001',
-        userId: 1,
         userName: 'Anna',
       }),
-      bestellung({
-        id: '00000000-0000-0000-0000-000000000002',
-        userId: 2,
+      zahlung({
+        id: '00000000-0000-0000-0000-0000000000f1',
         userName: 'Bert',
       }),
     ])

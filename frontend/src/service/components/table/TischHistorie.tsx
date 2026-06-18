@@ -43,7 +43,6 @@ type HistorieEintrag = Bestellung | Zahlung | Stornierung | Ausgabe | Auszahlung
 interface TischHistorieProps {
   historie: HistorieEintrag[]
   historieLoading: boolean
-  userId: number | null
   tisch: Tisch
   backend: Pick<
     TischBackend,
@@ -56,7 +55,6 @@ interface TischHistorieProps {
 export function TischHistorie({
   historie,
   historieLoading,
-  userId,
   tisch,
   backend,
   onStornierungErteilt,
@@ -96,7 +94,7 @@ export function TischHistorie({
                       key={item.id}
                       title={`Zahlung -${formatCents(item.gesamtZahlungCents)} €`}
                       date={item.kassiertAm}
-                      isFromUser={userId === item.userId}
+                      userName={item.userName}
                       kommentar={item.kommentar}
                       onClick={() => {
                         setDetail(item)
@@ -109,7 +107,7 @@ export function TischHistorie({
                       key={item.id}
                       title={`Bestellung +${formatCents(item.gesamtPreisCents)} €`}
                       date={item.aufgenommenAm}
-                      besteller={item.userName}
+                      userName={item.userName}
                       kommentar={item.kommentar}
                       onClick={() => {
                         setDetail(item)
@@ -138,7 +136,7 @@ export function TischHistorie({
                       key={item.id}
                       title={`Stornierung -${formatCents(item.gesamtStornierungCents)} €`}
                       date={item.storniertAm}
-                      isFromUser={userId === item.userId}
+                      userName={item.userName}
                       kommentar={item.kommentar}
                       onClick={() => {
                         setDetail(item)
@@ -151,7 +149,7 @@ export function TischHistorie({
                       key={item.id}
                       title="Ausgabe"
                       date={item.ausgegebenAm}
-                      isFromUser={userId === item.userId}
+                      userName={item.userName}
                       kommentar={item.kommentar}
                       onClick={() => {
                         setDetail(item)
@@ -164,7 +162,7 @@ export function TischHistorie({
                       key={item.id}
                       title={`Auszahlung -${formatCents(item.betragCents)} €`}
                       date={item.geleistetAm}
-                      isFromUser={userId === item.userId}
+                      userName={item.userName}
                       kommentar={item.kommentar}
                       onClick={() => {
                         setDetail(item)
@@ -178,8 +176,7 @@ export function TischHistorie({
         <Details
           {...detailView(detail)}
           id={detail.id}
-          isFromUser={userId === detail.userId}
-          besteller={detail.art === 'bestellung' ? detail.userName : undefined}
+          userName={detail.userName}
           kommentar={detail.kommentar}
           onClose={() => {
             setDetail(null)
@@ -236,8 +233,7 @@ export function TischHistorie({
 function HistoryItem({
   title,
   date,
-  isFromUser,
-  besteller,
+  userName,
   kommentar,
   onClick,
   onStornieren,
@@ -245,19 +241,18 @@ function HistoryItem({
 }: {
   title: string
   date: string
-  isFromUser?: boolean
-  besteller?: string
+  userName: string
   kommentar: string
   onClick: () => void
   onStornieren?: () => void
   onUmbuchen?: () => void
 }) {
   return (
-    <Item variant="outline" className={isFromUser ? 'border-primary' : ''}>
+    <Item variant="outline">
       <ItemContent>
         <ItemTitle>{title}</ItemTitle>
         <ItemDescription>
-          {besteller && <span className="block">von {besteller}</span>}
+          <span className="block">von {userName}</span>
           {new Date(date).toLocaleString('de-DE')}
           {kommentar && (
             <>
@@ -376,8 +371,7 @@ function Details({
   title,
   id,
   date,
-  isFromUser,
-  besteller,
+  userName,
   kommentar,
   positionen,
   totalPrice,
@@ -387,8 +381,7 @@ function Details({
   title: string
   id: string
   date: string
-  isFromUser: boolean
-  besteller?: string
+  userName: string
   kommentar: string
   positionen?: ReceiptPosition[]
   totalPrice?: number
@@ -408,7 +401,7 @@ function Details({
               {title} {id.slice(0, 8)}
             </DrawerTitle>
             <DrawerDescription>
-              {besteller ? `von ${besteller} am ` : isFromUser ? 'Du am ' : ''}
+              von {userName} am{' '}
               {new Date(date).toLocaleDateString('de-DE')} um{' '}
               {new Date(date).toLocaleTimeString('de-DE')} Uhr
             </DrawerDescription>

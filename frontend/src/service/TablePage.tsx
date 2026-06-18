@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/item'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { AuthSingleton } from '@/lib/Auth'
 import { BackendSingleton } from '@/lib/Backend'
 import { formatCents } from '@/lib/utils'
 
@@ -167,7 +166,6 @@ export function TablePage() {
             <TischHistorie
               historie={historie}
               historieLoading={historieLoading}
-              userId={AuthSingleton.userId}
               tisch={tisch}
               backend={tischBackend}
               onStornierungErteilt={reload}

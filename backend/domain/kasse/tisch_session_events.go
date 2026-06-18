@@ -268,6 +268,7 @@ func buildZahlungFromEvent(event e.Event) (Zahlung, error) {
 	zahlung := Zahlung{
 		ID:                 data.ZahlungID,
 		UserID:             event.UserID,
+		UserName:           event.UserName,
 		TischID:            tischID,
 		Positionen:         fromPositionenEventData(data.Positionen),
 		GesamtZahlungCents: data.GesamtZahlungCents,
@@ -302,6 +303,7 @@ func buildStornierungFromEvent(event e.Event) (Stornierung, error) {
 	stornierung := Stornierung{
 		ID:                     data.StornierungID,
 		UserID:                 event.UserID,
+		UserName:               event.UserName,
 		TischID:                tischID,
 		Positionen:             fromPositionenEventData(data.Positionen),
 		GesamtStornierungCents: data.GesamtStornierungCents,
@@ -336,6 +338,7 @@ func buildAusgabeFromEvent(event e.Event) (Ausgabe, error) {
 	ausgabe := Ausgabe{
 		ID:           data.AusgabeID,
 		UserID:       event.UserID,
+		UserName:     event.UserName,
 		TischID:      tischID,
 		Positionen:   fromPositionenEventData(data.Positionen),
 		Kommentar:    data.Kommentar,
@@ -369,6 +372,7 @@ func buildAuszahlungFromEvent(event e.Event) (Auszahlung, error) {
 	auszahlung := Auszahlung{
 		ID:          data.AuszahlungID,
 		UserID:      event.UserID,
+		UserName:    event.UserName,
 		TischID:     tischID,
 		BetragCents: data.BetragCents,
 		Kommentar:   data.Kommentar,

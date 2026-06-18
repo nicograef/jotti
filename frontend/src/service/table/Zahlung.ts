@@ -7,6 +7,8 @@ export const ZahlungSchema = z.object({
   art: z.literal('zahlung'),
   id: z.uuid(),
   userId: z.number().int().min(1),
+  // Eingefrorener Name des Akteurs, beschriftet den Historien-Eintrag.
+  userName: z.string().min(1),
   tischId: z.number().int().min(1),
   positionen: PositionSchema.array().min(1),
   gesamtZahlungCents: z.number().int().min(0),

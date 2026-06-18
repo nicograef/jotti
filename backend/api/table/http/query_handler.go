@@ -179,6 +179,7 @@ type ausgabe struct {
 	Art          string     `json:"art"`
 	ID           string     `json:"id"`
 	UserID       int        `json:"userId"`
+	UserName     string     `json:"userName"`
 	TischID      int        `json:"tischId"`
 	Positionen   []position `json:"positionen"`
 	Kommentar    string     `json:"kommentar"`
@@ -190,6 +191,7 @@ func toAusgabe(a k.Ausgabe) ausgabe {
 		Art:          string(k.HistorieEintragAusgabe),
 		ID:           a.ID,
 		UserID:       a.UserID,
+		UserName:     a.UserName,
 		TischID:      a.TischID,
 		Positionen:   toPositionen(a.Positionen),
 		Kommentar:    a.Kommentar,
@@ -201,6 +203,7 @@ type zahlung struct {
 	Art                string     `json:"art"`
 	ID                 string     `json:"id"`
 	UserID             int        `json:"userId"`
+	UserName           string     `json:"userName"`
 	TischID            int        `json:"tischId"`
 	Positionen         []position `json:"positionen"`
 	GesamtZahlungCents int        `json:"gesamtZahlungCents"`
@@ -213,6 +216,7 @@ func toZahlung(z k.Zahlung) zahlung {
 		Art:                string(k.HistorieEintragZahlung),
 		ID:                 z.ID,
 		UserID:             z.UserID,
+		UserName:           z.UserName,
 		TischID:            z.TischID,
 		Positionen:         toPositionen(z.Positionen),
 		GesamtZahlungCents: z.GesamtZahlungCents,
@@ -225,6 +229,7 @@ type stornierung struct {
 	Art                    string     `json:"art"`
 	ID                     string     `json:"id"`
 	UserID                 int        `json:"userId"`
+	UserName               string     `json:"userName"`
 	TischID                int        `json:"tischId"`
 	Positionen             []position `json:"positionen"`
 	GesamtStornierungCents int        `json:"gesamtStornierungCents"`
@@ -237,6 +242,7 @@ func toStornierung(s k.Stornierung) stornierung {
 		Art:                    string(k.HistorieEintragStornierung),
 		ID:                     s.ID,
 		UserID:                 s.UserID,
+		UserName:               s.UserName,
 		TischID:                s.TischID,
 		Positionen:             toPositionen(s.Positionen),
 		GesamtStornierungCents: s.GesamtStornierungCents,
@@ -249,6 +255,7 @@ type auszahlung struct {
 	Art         string    `json:"art"`
 	ID          string    `json:"id"`
 	UserID      int       `json:"userId"`
+	UserName    string    `json:"userName"`
 	TischID     int       `json:"tischId"`
 	BetragCents int       `json:"betragCents"`
 	Kommentar   string    `json:"kommentar"`
@@ -260,6 +267,7 @@ func toAuszahlung(a k.Auszahlung) auszahlung {
 		Art:         string(k.HistorieEintragAuszahlung),
 		ID:          a.ID,
 		UserID:      a.UserID,
+		UserName:    a.UserName,
 		TischID:     a.TischID,
 		BetragCents: a.BetragCents,
 		Kommentar:   a.Kommentar,

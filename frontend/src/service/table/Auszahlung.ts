@@ -6,6 +6,8 @@ export const AuszahlungSchema = z.object({
   art: z.literal('auszahlung'),
   id: z.uuid(),
   userId: z.number().int().min(1),
+  // Eingefrorener Name des Akteurs, beschriftet den Historien-Eintrag.
+  userName: z.string().min(1),
   tischId: z.number().int().min(1),
   betragCents: z.number().int().min(1),
   kommentar: z.string().min(3).max(100),
