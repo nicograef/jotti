@@ -218,16 +218,16 @@ unverändert und sind über die Website nicht erreichbar.
 
 ### Acceptance criteria
 
-- [ ] Alle fünf Dokumente rendern unter `/docs/<slug>/` mit dem aus Frontmatter
+- [x] Alle fünf Dokumente rendern unter `/docs/<slug>/` mit dem aus Frontmatter
       gerenderten Titel; keine doppelte Überschrift (H1 entfernt).
-- [ ] Die Sidebar zeigt die Gruppen aus der PRD (ohne Leitfaden) in der
+- [x] Die Sidebar zeigt die Gruppen aus der PRD (ohne Leitfaden) in der
       definierten Reihenfolge.
-- [ ] Jede veröffentlichte Seite hat `title` und `description` für SEO/Open Graph.
-- [ ] Private Dokumente sind nicht als Website-Route erreichbar und unverändert
+- [x] Jede veröffentlichte Seite hat `title` und `description` für SEO/Open Graph.
+- [x] Private Dokumente sind nicht als Website-Route erreichbar und unverändert
       (kein Frontmatter).
-- [ ] Welche Dateien veröffentlicht werden, ist an einer Stelle in der
+- [x] Welche Dateien veröffentlicht werden, ist an einer Stelle in der
       Website-Konfiguration ablesbar.
-- [ ] `astro check` und Build laufen grün; die Seiten sind auf dem Smartphone
+- [x] `astro check` und Build laufen grün; die Seiten sind auf dem Smartphone
       gut lesbar.
 
 ---

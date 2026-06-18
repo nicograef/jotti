@@ -6,8 +6,14 @@ import { defineCollection } from 'astro:content'
 // dem top-level `docs/`-Verzeichnis gelesen (keine Kopie, kein Sync-Skript).
 //
 // Diese Liste ist die *eine* Stelle, an der die Veröffentlichungs-Auswahl steht.
-// Pfade sind relativ zu `docs/`.
-const publishedDocs = ['lizenzmodell.md']
+// Pfade sind relativ zu `docs/`. Der Leitfaden folgt in Phase 4.
+const publishedDocs = [
+  'compliance.md',
+  'steuerrecht.md',
+  'verfahrensdokumentation.md',
+  'produktbeschreibung.md',
+  'lizenzmodell.md',
+]
 
 export const collections = {
   docs: defineCollection({

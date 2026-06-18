@@ -1,4 +1,7 @@
-# Produktbeschreibung: jotti
+---
+title: Produktbeschreibung
+description: 'Produktidentität von jotti: Positionierung, Zielgruppe, Abgrenzung, Kernfeatures und Lizenz.'
+---
 
 Produktidentität von jotti: Positionierung, Zielgruppe, Abgrenzung, Kernfeatures, USPs und Lizenz. Kanonische Referenz für Entwickler und Agenten.
 

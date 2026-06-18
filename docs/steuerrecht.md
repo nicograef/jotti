@@ -1,4 +1,7 @@
-# Steuerrecht (Gastronomie): jotti
+---
+title: Steuerrecht Gastronomie
+description: 'Umsatzsteuerrecht der Gastronomie ab 2026: Steuersätze für Speisen und Getränke, Ausnahmen, Kombi-Angebote, Gutscheine und Belegpflichtangaben.'
+---
 
 ## 1. Überblick
 

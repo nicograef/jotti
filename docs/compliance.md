@@ -1,4 +1,7 @@
-# Compliance-Anforderungen: Fiskalische Grundlagen für jotti
+---
+title: Compliance-Anforderungen
+description: 'Fiskalische Grundlagen für jotti: KassenSichV, TSE, GoBD, DSFinV-K und ELSTER mit Rechtsnormen sowie Entwickler- und Betreiberpflichten.'
+---
 
 > **Betrifft:** KassenSichV, TSE, GoBD, Belegausgabepflicht, DSFinV-K, ERiC/ELSTER
 

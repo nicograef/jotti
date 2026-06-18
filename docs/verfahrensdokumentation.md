@@ -1,4 +1,7 @@
-# Muster-Verfahrensdokumentation für die Kassenführung mit jotti
+---
+title: Muster-Verfahrensdokumentation
+description: 'Muster-Verfahrensdokumentation für die Kassenführung mit jotti: Vorlage, die der Betreiber für seine GoBD-Pflicht an die eigene Instanz anpasst.'
+---
 
 > ⚠️ **Dies ist eine Vorlage.** jotti stellt diese Muster-Verfahrensdokumentation als Hersteller bereit ([compliance.md §2.7](compliance.md#27-sonderfall-source-available-self-hosted-pflichten-des-entwicklers)). Der Betreiber (Verein) passt sie an seine Instanz an, ergänzt die betrieblichen Angaben und legt sie bei einer Kassen-Nachschau oder Betriebsprüfung vor. Die Verfahrensdokumentation selbst ist eine Betreiberpflicht nach GoBD ([compliance.md §4.2](compliance.md#42-anforderungen-gemäß--146-147-ao-und-gobd)).
 >

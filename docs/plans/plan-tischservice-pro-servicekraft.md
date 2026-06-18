@@ -318,12 +318,12 @@ bei der richtigen Person, ohne neue Umsatzzuordnung.
 
 ### Acceptance criteria
 
-- [ ] Kassieren und Ausgabe zeigen eigene Positionen oben und ausgeklappt,
+- [x] Kassieren und Ausgabe zeigen eigene Positionen oben und ausgeklappt,
       fremde eingeklappt hinter "Alle anzeigen".
-- [ ] Fremde Positionen sind mit dem Besteller-Namen beschriftet.
-- [ ] "Alle anzeigen" blendet fremde Positionen ein; Buchung funktioniert für
+- [x] Fremde Positionen sind mit dem Besteller-Namen beschriftet.
+- [x] "Alle anzeigen" blendet fremde Positionen ein; Buchung funktioniert für
       eigene wie fremde Positionen unverändert.
-- [ ] Tests: eigene vs. fremde getrennt, fremde erst nach "Alle anzeigen"
+- [x] Tests: eigene vs. fremde getrennt, fremde erst nach "Alle anzeigen"
       sichtbar.
 
 ---
