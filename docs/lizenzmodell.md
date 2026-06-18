@@ -1,4 +1,7 @@
-# Lizenzmodell: jotti
+---
+title: Lizenzmodell
+description: Das Lizenzmodell von jotti — Eigentum, Source-Available-Prinzip, berechtigte Nutzer, Kommerzialisierung und Community-Beiträge.
+---
 
 Dieses Dokument erklärt das Lizenzmodell von jotti: Eigentum, Source-Available-Prinzip, berechtigte Nutzer, Kommerzialisierung und Community-Beiträge. Verbindlich sind die [Nutzungsbedingungen (TERMS.md)](../TERMS.md) und die [LICENSE](../LICENSE)-Datei. Dieses Dokument fasst zusammen und verweist.
 

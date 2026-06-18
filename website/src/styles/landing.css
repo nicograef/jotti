@@ -1,0 +1,14 @@
+/* Stil-Einstieg der Marketing-Landing: Tailwind 4 plus das gemeinsame
+   Marken-Token-Set. Die Markenwerte werden als Tailwind-Theme-Tokens
+   verfügbar gemacht (text-brand, bg-brand …). */
+
+@import 'tailwindcss';
+@import './brand.css';
+
+@theme {
+  --font-sans: var(--brand-font);
+  --color-brand: var(--brand-green);
+  --color-brand-hover: var(--brand-green-hover);
+  --color-brand-tint: var(--brand-green-tint);
+  --color-brand-deep: var(--brand-green-deep);
+}

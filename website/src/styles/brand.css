@@ -1,0 +1,45 @@
+/* jotti-Marke — gemeinsames Token-Set für Landing und Doku.
+   Einzige Quelle der Markenwerte: Markengrün (identisch zum App- und
+   Landing-Primary, Brand-Hue 165.612) und die self-hosted Schrift Montserrat.
+   Landing nutzt diese Tokens direkt; das Starlight-Theme bezieht sie in
+   starlight.css über dessen CSS-Custom-Properties. */
+
+@font-face {
+  font-family: Montserrat;
+  src: url('/fonts/Montserrat-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Montserrat;
+  src: url('/fonts/Montserrat-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Montserrat;
+  src: url('/fonts/Montserrat-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: Montserrat;
+  src: url('/fonts/Montserrat-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  /* Markengrün (Brand-Hue 165.612) und davon abgeleitete Töne */
+  --brand-green: oklch(0.508 0.118 165.612);
+  --brand-green-hover: oklch(0.44 0.118 165.612);
+  --brand-green-tint: oklch(0.93 0.03 165.612);
+  --brand-green-deep: oklch(0.3 0.07 165.612);
+
+  --brand-font: Montserrat, system-ui, -apple-system, sans-serif;
+}

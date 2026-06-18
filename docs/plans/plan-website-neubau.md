@@ -117,14 +117,19 @@ Bestehendes Setup, das ersetzt oder angepasst wird:
 
 ## Open questions / Risks
 
-- **Glob-Loader auf externes Verzeichnis (Hauptrisiko).** Starlight aus dem
-  `website/`-Paket auf das top-level `docs/` zeigen zu lassen, ist der
-  technische Knackpunkt (Pfad-Basis des Loaders, Datei-Watching im Dev-Modus).
-  Phase 1 de-riskt das explizit; Fallback ist ein im Build erzeugter Symlink.
-- **Starlight unter Subpfad `/docs/`.** Starlight beansprucht standardmäßig den
-  Root. Die Slug-/Routen-Generierung muss so konfiguriert werden, dass alle
-  Doku-Seiten unter `/docs/` liegen und die Landing `/` frei bleibt. In Phase 1
-  verifizieren.
+- **Glob-Loader auf externes Verzeichnis (Hauptrisiko).** ✅ In Phase 1
+  aufgelöst: Astros generischer `glob()`-Loader (`astro/loaders`) mit
+  `base: '../docs'` liest die veröffentlichten Dateien direkt aus dem top-level
+  `docs/`. `astro check` und Build laufen grün; Datei-Watching im Dev-Modus
+  greift (Änderung in `docs/` ohne Neustart sichtbar). Der Symlink-Fallback wird
+  nicht gebraucht. Hinweis: `docsLoader()` selbst kann nicht auf ein externes
+  Verzeichnis zeigen (feste Basis `src/content/docs/`), daher der `glob()`-Loader
+  mit Starlights `docsSchema()`.
+- **Starlight unter Subpfad `/docs/`.** ✅ In Phase 1 aufgelöst: Der
+  `generateId`-Callback des Loaders prefixt jeden Slug mit `docs/`
+  (`lizenzmodell.md` → `docs/lizenzmodell` → `/docs/lizenzmodell/`). Die Landing
+  liegt als eigene Astro-Seite unter `src/pages/index.astro` auf `/`; Starlight
+  beansprucht den Root nicht, weil kein Eintrag den leeren Slug hat.
 - **Prettier ohne Frontend-Installation.** Die PRD nannte „Prettier bleibt über
   die Frontend-Installation". Mit getrennten Paketen bekommt `website/` eine
   eigene Prettier-Einbindung (oder teilt die Konfiguration). In Phase 1 festlegen.
@@ -168,18 +173,18 @@ Neue `make`-Targets: lokaler Dev-Server (Astro dev), Build und Qualitäts-Check
 
 ### Acceptance criteria
 
-- [ ] `website/` ist ein eigenständiges pnpm-Paket (eigener Lockfile); ein
+- [x] `website/` ist ein eigenständiges pnpm-Paket (eigener Lockfile); ein
       Dev-Server startet mit einem `make`-Target und ist lokal erreichbar.
-- [ ] Die Platzhalter-Landing liegt auf `/`, das eine veröffentlichte Dokument
+- [x] Die Platzhalter-Landing liegt auf `/`, das eine veröffentlichte Dokument
       auf `/docs/<slug>/`; das Frontend-Paket bleibt unverändert.
-- [ ] Das Doku-Dokument wird direkt aus `docs/` gelesen (keine Kopie); eine
+- [x] Das Doku-Dokument wird direkt aus `docs/` gelesen (keine Kopie); eine
       Änderung der Datei in `docs/` ist im Dev-Server ohne Neustart sichtbar.
-- [ ] Sidebar-Navigation, Volltextsuche (Pagefind), Dunkelmodus (folgt
+- [x] Sidebar-Navigation, Volltextsuche (Pagefind), Dunkelmodus (folgt
       System-Einstellung) und „Auf dieser Seite" funktionieren auf der
       Doku-Seite; die Framework-Texte sind deutsch.
-- [ ] Marke ist sichtbar gebrandet (Markengrün, Montserrat) und über ein
+- [x] Marke ist sichtbar gebrandet (Markengrün, Montserrat) und über ein
       gemeinsames Token-Set für Landing und Doku konsistent.
-- [ ] `astro check` und der Build laufen grün durch.
+- [x] `astro check` und der Build laufen grün durch.
 
 ---
 

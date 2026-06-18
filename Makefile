@@ -14,6 +14,7 @@
        clean \
        check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-integration check check-full verify \
        website website-check website-fmt \
+       website-dev website-build website-verify \
        help
 
 # ──────────────────────────────────────────────
@@ -305,8 +306,19 @@ website-check: ## Website prüfen (Links, Assets, SSI, CSS-Klassen, Format)
 website-fmt: ## Website formatieren (Prettier via Frontend-Installation)
 	cd frontend && pnpm exec prettier --write --ignore-unknown ../website '!../website/partials/head-seo.html'
 
+# Neue Astro/Starlight-Website (website/). Setzt einmaliges `cd website && pnpm install`
+# voraus. Ersetzt in der letzten Phase die statischen Targets oben.
+website-dev: ## Astro Dev-Server starten (http://localhost:4321), liest docs/ live
+	cd website && pnpm dev
+
+website-build: ## Website bauen (Astro Build → website/dist)
+	cd website && pnpm build
+
+website-verify: ## Website prüfen (astro check + Build inkl. Link-Validierung)
+	cd website && pnpm check
+
 # ──────────────────────────────────────────────
-# Hilfe                                         
+# Hilfe
 # ──────────────────────────────────────────────
 
 help: ## Alle verfügbaren Targets anzeigen

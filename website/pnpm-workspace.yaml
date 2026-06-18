@@ -1,0 +1,5 @@
+allowBuilds:
+  sharp: true
+  esbuild: true
+minimumReleaseAgeExclude:
+  - astro@6.4.8

@@ -1,0 +1,51 @@
+---
+import '../styles/landing.css'
+
+const title = 'jotti — kostenloses Kassensystem für Vereinsfeste'
+const description =
+  'jotti ist ein kostenloses Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Fiskalkonform, self-hosted, Mobile-first.'
+---
+
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href="https://jotti.rocks/" />
+  </head>
+  <body class="min-h-dvh bg-white font-sans text-neutral-900">
+    <main class="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-6 px-6 py-16">
+      <p class="text-sm font-semibold tracking-wide text-brand uppercase">
+        Mobile Kasse für das Ehrenamt
+      </p>
+      <h1 class="text-4xl font-bold text-balance sm:text-5xl">
+        Das kostenlose Kassensystem
+        <span class="text-brand">für euer Vereinsfest.</span>
+      </h1>
+      <p class="text-lg text-neutral-600">
+        Bestellen, ausgeben, kassieren — direkt auf dem Smartphone, ohne eigene
+        Hardware. Gemacht für Vereine und gemeinnützige Organisationen.
+      </p>
+      <div class="flex flex-wrap gap-4">
+        <a
+          href="/docs/lizenzmodell/"
+          class="rounded-lg bg-brand px-5 py-3 font-semibold text-white transition-colors hover:bg-brand-hover"
+        >
+          Dokumentation lesen
+        </a>
+        <a
+          href="https://github.com/nicograef/jotti"
+          class="rounded-lg border border-neutral-300 px-5 py-3 font-semibold text-neutral-700 transition-colors hover:border-brand hover:text-brand"
+        >
+          Auf GitHub ansehen
+        </a>
+      </div>
+      <p class="text-sm text-neutral-400">
+        Neue Seite im Aufbau — die vollständige Landing folgt in einer späteren
+        Phase.
+      </p>
+    </main>
+  </body>
+</html>

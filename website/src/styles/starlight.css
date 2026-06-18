@@ -1,0 +1,23 @@
+/* Brandet das Starlight-Doku-Theme mit dem gemeinsamen jotti-Token-Set.
+   Übersetzt die Markenwerte aus brand.css in Starlights CSS-Custom-Properties,
+   damit Landing und Doku visuell konsistent sind. */
+
+@import './brand.css';
+
+:root {
+  --sl-font: var(--brand-font);
+}
+
+/* Dunkelmodus (Starlight-Default, folgt System) — Akzent als helleres Grün */
+:root {
+  --sl-color-accent-low: oklch(0.27 0.06 165.612);
+  --sl-color-accent: oklch(0.62 0.12 165.612);
+  --sl-color-accent-high: oklch(0.9 0.05 165.612);
+}
+
+/* Hellmodus — Akzent als Markengrün */
+:root[data-theme='light'] {
+  --sl-color-accent-low: var(--brand-green-tint);
+  --sl-color-accent: var(--brand-green);
+  --sl-color-accent-high: var(--brand-green-deep);
+}
