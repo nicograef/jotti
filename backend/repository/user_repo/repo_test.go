@@ -4,6 +4,7 @@ package user_repo
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -176,6 +177,41 @@ func TestUpdateUserInDB_Error(t *testing.T) {
 
 	if err != dbpkg.ErrNotFound {
 		t.Fatalf("expected user not found error, got %v", err)
+	}
+}
+
+func TestCreateUser_DuplicateUsernameRejected(t *testing.T) {
+	seeded, repo, teardown := setup(t)
+	defer teardown(t)
+
+	duplicate, _, err := user.NewUser("someone else", seeded.Username, user.ServiceRole)
+	if err != nil {
+		t.Fatalf("failed to build user object: %v", err)
+	}
+
+	_, err = repo.CreateUser(context.Background(), duplicate)
+	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
+		t.Fatalf("expected ErrAlreadyExists for duplicate username, got %v", err)
+	}
+}
+
+func TestCreateUser_UsernameNotRecycledAfterSoftDelete(t *testing.T) {
+	seeded, repo, teardown := setup(t)
+	defer teardown(t)
+
+	seeded.Delete()
+	if err := repo.UpdateUser(context.Background(), seeded); err != nil {
+		t.Fatalf("expected no error soft-deleting user, got %v", err)
+	}
+
+	reused, _, err := user.NewUser("someone else", seeded.Username, user.ServiceRole)
+	if err != nil {
+		t.Fatalf("failed to build user object: %v", err)
+	}
+
+	_, err = repo.CreateUser(context.Background(), reused)
+	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
+		t.Fatalf("expected ErrAlreadyExists; a soft-deleted user's username must not be recycled, got %v", err)
 	}
 }
 

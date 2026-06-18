@@ -19,8 +19,9 @@ CREATE TABLE users (
 
 CREATE INDEX idx_users_status ON users(status);
 
--- Username unique only among non-deleted users; a soft-deleted user's username can be reused.
-CREATE UNIQUE INDEX idx_users_username_active ON users(username) WHERE status != 'deleted';
+-- Username is globally unique, including soft-deleted users: usernames are never recycled,
+-- so a username frozen into the kassenjournal always maps to exactly one user_id over time.
+CREATE UNIQUE INDEX idx_users_username ON users(username);
 
 COMMENT ON TABLE users IS 'System users who perform actions in jotti';
 COMMENT ON COLUMN users.name IS 'Full name of the user';

@@ -221,11 +221,11 @@ genau einer `user_id` zugeordnet.
 
 ### Acceptance criteria
 
-- [ ] Ein Username, der von einem aktiven **oder gelöschten** Benutzer belegt
+- [x] Ein Username, der von einem aktiven **oder gelöschten** Benutzer belegt
       ist, kann nicht erneut vergeben werden.
-- [ ] Der bestehende „Username nach Soft-Delete wiederverwendbar"-Test ist auf
+- [x] Der bestehende „Username nach Soft-Delete wiederverwendbar"-Test ist auf
       das neue Verhalten umgestellt und grün.
-- [ ] Kein eingefrorener `user_name` im Journal kann über die Zeit auf zwei
+- [x] Kein eingefrorener `user_name` im Journal kann über die Zeit auf zwei
       verschiedene `user_id` zeigen.
 
 ---

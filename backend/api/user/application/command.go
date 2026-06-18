@@ -66,9 +66,13 @@ func (c Command) UpdateUser(ctx context.Context, userID int, name, username stri
 
 	err = c.UserRepo.UpdateUser(ctx, user)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to update user")
-		return ErrDatabase
-
+		if errors.Is(err, db.ErrAlreadyExists) {
+			log.Warn().Err(err).Str("username", user.Username).Msg("Username already exists")
+			return ErrUsernameAlreadyExists
+		} else {
+			log.Error().Err(err).Int("user_id", userID).Msg("Failed to update user")
+			return ErrDatabase
+		}
 	}
 
 	log.Info().Int("user_id", userID).Msg("User updated successfully")
