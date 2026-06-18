@@ -32,7 +32,7 @@ func TestGetAllTische(t *testing.T) {
 
 func TestGetTischState(t *testing.T) {
 	positions := []kasse.Position{
-		{PositionID: "p1", ProduktName: "Cola", VarianteName: "0,5l", Einzelpreis: 350, Menge: 2},
+		{PositionID: "p1", ProduktName: "Cola", VarianteName: "0,5l", Einzelpreis: 350, Menge: 2, BestellerUserID: 5, BestellerName: "Anna"},
 	}
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
@@ -49,7 +49,7 @@ func TestGetTischState(t *testing.T) {
 		KassensitzungenRepo: sitzungMock,
 	}
 
-	state, err := query.GetTischState(context.Background(), 1)
+	state, err := query.GetTischState(context.Background(), 1, 5)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -62,8 +62,24 @@ func TestGetTischState(t *testing.T) {
 	if state.UnbezahltePositionen[0].Menge != 2 {
 		t.Errorf("expected menge 2, got %d", state.UnbezahltePositionen[0].Menge)
 	}
+	if state.UnbezahltePositionen[0].BestellerName != "Anna" {
+		t.Errorf("expected besteller Anna, got %q", state.UnbezahltePositionen[0].BestellerName)
+	}
 	if len(state.AusstehendePositionen) != 1 {
 		t.Fatalf("expected 1 ausstehende position, got %d", len(state.AusstehendePositionen))
+	}
+	// Anna hat eigene offene Positionen an diesem Tisch -> nicht erledigt.
+	if state.FuerMichErledigt {
+		t.Errorf("expected FuerMichErledigt false for besteller with open positions")
+	}
+
+	// Eine andere Servicekraft (ohne eigene Positionen) sieht den Tisch als erledigt.
+	stateAndere, err := query.GetTischState(context.Background(), 1, 99)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !stateAndere.FuerMichErledigt {
+		t.Errorf("expected FuerMichErledigt true for servicekraft without own positions")
 	}
 }
 
@@ -76,7 +92,7 @@ func TestGetTischState_NoState(t *testing.T) {
 		KassensitzungenRepo: sitzungMock,
 	}
 
-	state, err := query.GetTischState(context.Background(), 999)
+	state, err := query.GetTischState(context.Background(), 999, 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

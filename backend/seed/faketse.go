@@ -435,7 +435,7 @@ func parseEventData[T any](evt e.Event) (T, error) {
 func zuPositionen(eventPositionen []kasse.PositionEventData) []kasse.Position {
 	positionen := make([]kasse.Position, len(eventPositionen))
 	for i, p := range eventPositionen {
-		positionen[i] = kasse.Position(p)
+		positionen[i] = kasse.PositionFromEventData(p)
 	}
 	return positionen
 }

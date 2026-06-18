@@ -36,7 +36,7 @@ func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]kasse.H
 	return []kasse.HistorieEintrag{{Art: kasse.HistorieEintragBestellung, Bestellung: &m.order}}, m.err
 }
 
-func (m mockQuery) GetTischState(ctx context.Context, tischID int) (application.TischStateView, error) {
+func (m mockQuery) GetTischState(ctx context.Context, tischID int, userID int) (application.TischStateView, error) {
 	return application.TischStateView{
 		SaldoCents:            m.balance,
 		UnbezahltePositionen:  []kasse.Position{m.position},
@@ -108,6 +108,7 @@ func TestPositionResponsesIncludeSteuersatz(t *testing.T) {
 	t.Run("get-tisch-state", func(t *testing.T) {
 		body := []byte(`{"tischId":1}`)
 		req := httptest.NewRequest(http.MethodPost, "/get-tisch-state", bytes.NewReader(body))
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, 7))
 		rec := httptest.NewRecorder()
 
 		handler.GetTischStateHandler().ServeHTTP(rec, req)

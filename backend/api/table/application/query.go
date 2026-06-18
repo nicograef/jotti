@@ -19,6 +19,9 @@ type TischStateView struct {
 	UnbezahltePositionen  []kasse.Position
 	AusstehendePositionen []kasse.Position
 	GesamtZahlungenCents  int
+	// FuerMichErledigt ist true, wenn die anfragende Servicekraft an diesem Tisch
+	// keine eigenen ausstehenden und keine eigenen unbezahlten Positionen mehr hat.
+	FuerMichErledigt bool
 }
 
 type Query struct {
@@ -64,7 +67,7 @@ func (q Query) GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error) {
 	return tische, nil
 }
 
-func (q Query) GetTischState(ctx context.Context, tischID int) (TischStateView, error) {
+func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (TischStateView, error) {
 	log := zerolog.Ctx(ctx)
 
 	tisch, err := q.TableRepo.GetTable(ctx, tischID)
@@ -104,6 +107,7 @@ func (q Query) GetTischState(ctx context.Context, tischID int) (TischStateView, 
 		UnbezahltePositionen:  state.UnbezahltePositionen,
 		AusstehendePositionen: state.AusstehendePositionen,
 		GesamtZahlungenCents:  state.GesamtZahlungenCents,
+		FuerMichErledigt:      kasse.ComputeEigeneArbeitAnTisch(state, userID).Erledigt,
 	}, nil
 }
 
@@ -177,6 +181,7 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 			UnbezahltePositionen:  state.UnbezahltePositionen,
 			AusstehendePositionen: state.AusstehendePositionen,
 			GesamtZahlungenCents:  state.GesamtZahlungenCents,
+			FuerMichErledigt:      kasse.ComputeEigeneArbeitAnTisch(state, userID).Erledigt,
 		})
 	}
 

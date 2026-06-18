@@ -38,6 +38,7 @@ const DEFAULT_TISCH_STATE: TischSession = {
   unbezahltePositionen: [],
   ausstehendePositionen: [],
   gesamtZahlungenCents: 0,
+  fuerMichErledigt: true,
 }
 
 export function useTischState(tischId: number) {

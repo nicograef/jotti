@@ -18,6 +18,12 @@ type Position struct {
 	Steuersatz   string
 	Einzelpreis  int
 	Menge        int
+	// BestellerUserID und BestellerName sind reine Projektions-/Anzeigefelder:
+	// die Servicekraft, die die Bestellung aufgenommen hat. Sie werden beim
+	// Anwenden des bestellung-aufgenommen-Events aus dem Event-Umschlag getagt
+	// (eingefrorener Username) und nicht in der Event-Form serialisiert.
+	BestellerUserID int
+	BestellerName   string
 }
 
 // Bezeichnung is the canonical position name: product name and variant name
@@ -40,20 +46,52 @@ type PositionEventData struct {
 	Menge        int    `json:"menge"`
 }
 
+// toPositionenEventData maps projection positions to their event form. The
+// Besteller fields live only in the projection and are deliberately dropped here
+// (the besteller is already recorded in the event envelope's UserID/UserName).
 func toPositionenEventData(positionen []Position) []PositionEventData {
 	out := make([]PositionEventData, len(positionen))
 	for i, p := range positionen {
-		out[i] = PositionEventData(p)
+		out[i] = PositionEventData{
+			PositionID:   p.PositionID,
+			VarianteID:   p.VarianteID,
+			ProduktName:  p.ProduktName,
+			VarianteName: p.VarianteName,
+			Kategorie:    p.Kategorie,
+			Steuersatz:   p.Steuersatz,
+			Einzelpreis:  p.Einzelpreis,
+			Menge:        p.Menge,
+		}
 	}
 	return out
 }
 
+// fromPositionenEventData maps event-form positions back to projection positions.
+// The Besteller fields are left zero here; they are tagged from the event
+// envelope when the bestellung-aufgenommen event is applied.
 func fromPositionenEventData(positionen []PositionEventData) []Position {
 	out := make([]Position, len(positionen))
 	for i, p := range positionen {
-		out[i] = Position(p)
+		out[i] = PositionFromEventData(p)
 	}
 	return out
+}
+
+// PositionFromEventData maps a single event-form position to a projection
+// position. The Besteller fields are left zero (the event form carries no
+// besteller); it is the single source of truth for this mapping, used both
+// inside the projection and by callers that read raw event positions.
+func PositionFromEventData(p PositionEventData) Position {
+	return Position{
+		PositionID:   p.PositionID,
+		VarianteID:   p.VarianteID,
+		ProduktName:  p.ProduktName,
+		VarianteName: p.VarianteName,
+		Kategorie:    p.Kategorie,
+		Steuersatz:   p.Steuersatz,
+		Einzelpreis:  p.Einzelpreis,
+		Menge:        p.Menge,
+	}
 }
 
 var positionSchema = z.Struct(z.Shape{

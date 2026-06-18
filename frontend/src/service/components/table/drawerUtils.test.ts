@@ -21,6 +21,8 @@ describe('selectPositionen', () => {
       steuersatz: 'ermaessigt',
       einzelpreis: 350,
       menge: 5,
+      bestellerUserId: 1,
+      bestellerName: 'Anna',
     },
     {
       positionId: 'aaa-002',
@@ -31,6 +33,8 @@ describe('selectPositionen', () => {
       steuersatz: 'ermaessigt',
       einzelpreis: 250,
       menge: 3,
+      bestellerUserId: 1,
+      bestellerName: 'Anna',
     },
     {
       positionId: 'aaa-003',
@@ -41,6 +45,8 @@ describe('selectPositionen', () => {
       steuersatz: 'regel',
       einzelpreis: 200,
       menge: 2,
+      bestellerUserId: 1,
+      bestellerName: 'Anna',
     },
   ]
 

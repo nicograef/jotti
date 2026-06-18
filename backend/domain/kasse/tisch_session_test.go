@@ -338,6 +338,102 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 	}
 }
 
+func TestApplyEvent_BestellungTagsBesteller(t *testing.T) {
+	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)}
+	orderEvent, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", products, "")
+	if err != nil {
+		t.Fatalf("failed to create order event: %v", err)
+	}
+	orderEvent.ID = 1
+	orderEvent.Version = 1
+
+	state, err := ApplyEvent(TischSession{}, orderEvent)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if state.UnbezahltePositionen[0].BestellerUserID != 7 || state.UnbezahltePositionen[0].BestellerName != "Anna" {
+		t.Errorf("expected unbezahlt besteller 7/Anna, got %d/%q",
+			state.UnbezahltePositionen[0].BestellerUserID, state.UnbezahltePositionen[0].BestellerName)
+	}
+	if state.AusstehendePositionen[0].BestellerUserID != 7 || state.AusstehendePositionen[0].BestellerName != "Anna" {
+		t.Errorf("expected ausstehend besteller 7/Anna, got %d/%q",
+			state.AusstehendePositionen[0].BestellerUserID, state.AusstehendePositionen[0].BestellerName)
+	}
+}
+
+func TestApplyEvent_MultipleBestellerAtSameTable(t *testing.T) {
+	annaOrder, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}, "")
+	if err != nil {
+		t.Fatalf("failed to create anna order: %v", err)
+	}
+	annaOrder.ID, annaOrder.Version = 1, 1
+
+	bertOrder, err := NewBestellungAufgenommenEvent(testSubject, 8, "Bert", []Position{testPosition(2, "Wurst", "Bratwurst", "essen", 400, 1)}, "")
+	if err != nil {
+		t.Fatalf("failed to create bert order: %v", err)
+	}
+	bertOrder.ID, bertOrder.Version = 2, 2
+
+	state, err := ApplyEvent(TischSession{}, annaOrder)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	state, err = ApplyEvent(state, bertOrder)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	bestellerByProdukt := map[string]string{}
+	for _, pos := range state.AusstehendePositionen {
+		bestellerByProdukt[pos.ProduktName] = pos.BestellerName
+	}
+	if bestellerByProdukt["Beer"] != "Anna" {
+		t.Errorf("expected Beer ordered by Anna, got %q", bestellerByProdukt["Beer"])
+	}
+	if bestellerByProdukt["Wurst"] != "Bert" {
+		t.Errorf("expected Wurst ordered by Bert, got %q", bestellerByProdukt["Wurst"])
+	}
+}
+
+func TestApplyEvent_PaymentCancelDeliveryKeepBestellerTag(t *testing.T) {
+	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)}
+	orderEvent, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", products, "")
+	if err != nil {
+		t.Fatalf("failed to create order event: %v", err)
+	}
+	orderEvent.ID, orderEvent.Version = 1, 1
+
+	state, err := ApplyEvent(TischSession{}, orderEvent)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// A colleague (Bert) delivers and pays part of Anna's order — the besteller tag must survive.
+	deliverPos := positionsFromOrder(t, orderEvent, 1)
+	deliveryEvent := mustCreateDeliveryEvent(t, testSubject, 8, deliverPos)
+	deliveryEvent.ID, deliveryEvent.Version = 2, 2
+	state, err = ApplyEvent(state, deliveryEvent)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	payPos := positionsFromOrder(t, orderEvent, 1)
+	paymentEvent := mustCreatePaymentEvent(t, testSubject, 8, payPos, 500)
+	paymentEvent.ID, paymentEvent.Version = 3, 3
+	state, err = ApplyEvent(state, paymentEvent)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if state.AusstehendePositionen[0].BestellerName != "Anna" {
+		t.Errorf("expected ausstehend besteller to stay Anna, got %q", state.AusstehendePositionen[0].BestellerName)
+	}
+	if state.UnbezahltePositionen[0].BestellerName != "Anna" {
+		t.Errorf("expected unbezahlt besteller to stay Anna, got %q", state.UnbezahltePositionen[0].BestellerName)
+	}
+}
+
 func TestApplyEvent_UnknownEventType_ReturnsError(t *testing.T) {
 	evt := e.Event{
 		ID:      1,

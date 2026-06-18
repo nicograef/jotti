@@ -33,8 +33,9 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 			return state, fmt.Errorf("unmarshal bestellung data: %w", err)
 		}
 		state.SaldoCents += data.GesamtPreisCents
-		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
-		state.AusstehendePositionen = accumulatePositionen(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
+		neuePositionen := tagBesteller(fromPositionenEventData(data.Positionen), evt.UserID, evt.UserName)
+		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, neuePositionen)
+		state.AusstehendePositionen = accumulatePositionen(state.AusstehendePositionen, neuePositionen)
 
 		// AEAO 1.14.3: Liegt keine TSE-logTime vor (z. B. TSE-Ausfall bei der ersten
 		// Bestellung), stellt das Aufzeichnungssystem den Zeitpunkt — Fallback auf die Event-Zeit.
@@ -122,6 +123,17 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 	}
 
 	return nichtStorniert, nil
+}
+
+// tagBesteller stamps the ordering Servicekraft (from the event envelope) onto
+// each freshly ordered position. Payment/cancellation/delivery keep the tag via
+// the position ID in reduceByPosition.
+func tagBesteller(positionen []Position, userID int, userName string) []Position {
+	for i := range positionen {
+		positionen[i].BestellerUserID = userID
+		positionen[i].BestellerName = userName
+	}
+	return positionen
 }
 
 // accumulatePositionen adds positions to a list, merging quantities for matching positions (by PositionID)

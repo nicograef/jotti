@@ -47,6 +47,8 @@ const position: Position = {
   steuersatz: 'regel',
   einzelpreis: 350,
   menge: 2,
+  bestellerUserId: 1,
+  bestellerName: 'Tester',
 }
 
 function renderZahlung() {

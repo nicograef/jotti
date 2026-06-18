@@ -16,7 +16,7 @@ type query interface {
 	GetAllTische(ctx context.Context) ([]t.Tisch, error)
 	GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error)
 	GetTischHistorie(ctx context.Context, tischID int) ([]k.HistorieEintrag, error)
-	GetTischState(ctx context.Context, tischID int) (application.TischStateView, error)
+	GetTischState(ctx context.Context, tischID int, userID int) (application.TischStateView, error)
 	GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]t.AktiverTischMitFavorit, error)
 	GetMeineTischeState(ctx context.Context, userID int) ([]application.TischStateView, error)
 }
@@ -108,26 +108,30 @@ type getTischHistorieResponse struct {
 }
 
 type position struct {
-	PositionID   string `json:"positionId"`
-	VarianteID   int    `json:"varianteId"`
-	ProduktName  string `json:"produktName"`
-	VarianteName string `json:"varianteName"`
-	Kategorie    string `json:"kategorie"`
-	Steuersatz   string `json:"steuersatz"`
-	Einzelpreis  int    `json:"einzelpreis"`
-	Menge        int    `json:"menge"`
+	PositionID      string `json:"positionId"`
+	VarianteID      int    `json:"varianteId"`
+	ProduktName     string `json:"produktName"`
+	VarianteName    string `json:"varianteName"`
+	Kategorie       string `json:"kategorie"`
+	Steuersatz      string `json:"steuersatz"`
+	Einzelpreis     int    `json:"einzelpreis"`
+	Menge           int    `json:"menge"`
+	BestellerUserID int    `json:"bestellerUserId"`
+	BestellerName   string `json:"bestellerName"`
 }
 
 func toPosition(p k.Position) position {
 	return position{
-		PositionID:   p.PositionID,
-		VarianteID:   p.VarianteID,
-		ProduktName:  p.ProduktName,
-		VarianteName: p.VarianteName,
-		Kategorie:    p.Kategorie,
-		Steuersatz:   p.Steuersatz,
-		Einzelpreis:  p.Einzelpreis,
-		Menge:        p.Menge,
+		PositionID:      p.PositionID,
+		VarianteID:      p.VarianteID,
+		ProduktName:     p.ProduktName,
+		VarianteName:    p.VarianteName,
+		Kategorie:       p.Kategorie,
+		Steuersatz:      p.Steuersatz,
+		Einzelpreis:     p.Einzelpreis,
+		Menge:           p.Menge,
+		BestellerUserID: p.BestellerUserID,
+		BestellerName:   p.BestellerName,
 	}
 }
 
@@ -319,6 +323,7 @@ type tischState struct {
 	UnbezahltePositionen  []position `json:"unbezahltePositionen"`
 	AusstehendePositionen []position `json:"ausstehendePositionen"`
 	GesamtZahlungenCents  int        `json:"gesamtZahlungenCents"`
+	FuerMichErledigt      bool       `json:"fuerMichErledigt"`
 }
 
 func toTischState(s application.TischStateView) tischState {
@@ -329,17 +334,24 @@ func toTischState(s application.TischStateView) tischState {
 		UnbezahltePositionen:  toPositionen(s.UnbezahltePositionen),
 		AusstehendePositionen: toPositionen(s.AusstehendePositionen),
 		GesamtZahlungenCents:  s.GesamtZahlungenCents,
+		FuerMichErledigt:      s.FuerMichErledigt,
 	}
 }
 
 func (h *QueryHandler) GetTischStateHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		userID, _, ok := middleware.UserFromContext(r.Context())
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+
 		body := getTischStateRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
 
-		state, err := h.Query.GetTischState(r.Context(), body.TischID)
+		state, err := h.Query.GetTischState(r.Context(), body.TischID, userID)
 		if err != nil {
 			helper.SendServerError(w)
 			return

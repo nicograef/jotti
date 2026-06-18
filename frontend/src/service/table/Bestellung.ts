@@ -12,6 +12,10 @@ export const PositionSchema = z.object({
   steuersatz: SteuersatzSchema,
   einzelpreis: z.number().int().min(0),
   menge: z.number().int().min(1),
+  // Besteller (aufnehmende Servicekraft). In der Tisch-Session gesetzt; in der
+  // Historie (stornierbare/umbuchbare Positionen) leer (0/'').
+  bestellerUserId: z.number().int(),
+  bestellerName: z.string(),
 })
 export type Position = z.infer<typeof PositionSchema>
 

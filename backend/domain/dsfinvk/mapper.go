@@ -1141,5 +1141,5 @@ func certChunk(cert string, index int) string {
 // positionText ist die kanonische Artikelbezeichnung: Produkt- und Variantenname
 // mit einem Leerzeichen verbunden.
 func positionText(p kasse.PositionEventData) string {
-	return kasse.Position(p).Bezeichnung()
+	return kasse.PositionFromEventData(p).Bezeichnung()
 }

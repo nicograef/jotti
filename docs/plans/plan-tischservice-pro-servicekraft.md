@@ -228,17 +228,17 @@ nutzt sie hier noch nicht (reines Plumbing).
 
 ### Acceptance criteria
 
-- [ ] Nach einer Bestellung tragen die offenen Positionen der Tisch-Session den
+- [x] Nach einer Bestellung tragen die offenen Positionen der Tisch-Session den
       korrekten Besteller (UserID + eingefrorener Username); mehrere Bestellungen
       verschiedener Servicekräfte an einem Tisch bleiben korrekt zugeordnet.
-- [ ] Zahlung, Stornierung und Ausgabe erhalten das Besteller-Tag der
+- [x] Zahlung, Stornierung und Ausgabe erhalten das Besteller-Tag der
       betroffenen Positionen.
-- [ ] Der JSON-Contract der Event-Form (`PositionEventData`) ist unverändert;
+- [x] Der JSON-Contract der Event-Form (`PositionEventData`) ist unverändert;
       Direktverkauf-Events round-trippen weiter (bestehende Contract-Tests grün).
-- [ ] `GetTischState`/`GetMeineTischeState` liefern je Position
+- [x] `GetTischState`/`GetMeineTischeState` liefern je Position
       `bestellerUserId`/`bestellerName` und je Tisch ein korrektes
       "für mich erledigt" für die anfragende Servicekraft.
-- [ ] Die Projektion ist per Replay neu aufgebaut; Frontend-Schemas validieren
+- [x] Die Projektion ist per Replay neu aufgebaut; Frontend-Schemas validieren
       die erweiterte Antwort; alle Backend-Tests grün.
 
 ---
