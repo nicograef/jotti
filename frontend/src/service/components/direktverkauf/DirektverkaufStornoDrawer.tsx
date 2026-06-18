@@ -14,6 +14,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useMengen } from '@/hooks/use-mengen'
 import { formatCents, formatPositionName } from '@/lib/utils'
 
 import type {
@@ -38,7 +39,11 @@ export function DirektverkaufStornoDrawer({
   onStorniert,
 }: DirektverkaufStornoDrawerProps) {
   const [kommentar, setKommentar] = useState('')
-  const [mengen, setMengen] = useState<Record<string, number>>({})
+  const { mengen, add, remove } = useMengen<string>(
+    (positionId) =>
+      verkauf.offenePositionen.find((p) => p.positionId === positionId)
+        ?.menge ?? 0,
+  )
 
   const selectedPositionen = verkauf.offenePositionen
     .map((position) => ({
@@ -49,22 +54,6 @@ export function DirektverkaufStornoDrawer({
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
   const kommentarInvalid = kommentar.trim().length < 3
-
-  const onAdd = (positionId: string, maxMenge: number) => {
-    setMengen((prev) => {
-      const current = prev[positionId] || 0
-      if (current >= maxMenge) return prev
-      return { ...prev, [positionId]: current + 1 }
-    })
-  }
-
-  const onRemove = (positionId: string) => {
-    setMengen((prev) => {
-      const current = prev[positionId] || 0
-      if (current <= 0) return prev
-      return { ...prev, [positionId]: current - 1 }
-    })
-  }
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Stornierung ausführen',
@@ -136,7 +125,7 @@ export function DirektverkaufStornoDrawer({
                         className="h-8 w-8"
                         aria-label={`${formatPositionName(position.produktName, position.varianteName)} verringern`}
                         onClick={() => {
-                          onRemove(position.positionId)
+                          remove(position.positionId)
                         }}
                       >
                         <Minus
@@ -153,7 +142,7 @@ export function DirektverkaufStornoDrawer({
                         className="h-8 w-8"
                         aria-label={`${formatPositionName(position.produktName, position.varianteName)} hinzufügen`}
                         onClick={() => {
-                          onAdd(position.positionId, position.menge)
+                          add(position.positionId)
                         }}
                       >
                         <Plus size={16} />

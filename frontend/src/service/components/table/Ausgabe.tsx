@@ -12,6 +12,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useMengen } from '@/hooks/use-mengen'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatPositionName } from '@/lib/utils'
 
@@ -35,7 +36,6 @@ export function Ausgabe({
   loading,
   onAusgabeBestaetigt,
 }: AusgabeProps) {
-  const [mengen, setMengen] = useState<Record<string, number>>({})
   const [alleAnzeigen, setAlleAnzeigen] = useState(false)
 
   const ausstehendeMengen: Record<string, number> = {}
@@ -43,27 +43,12 @@ export function Ausgabe({
     ausstehendeMengen[position.positionId] = position.menge
   })
 
-  const onAdd = (positionId: string) => {
-    setMengen((prev) => {
-      const aktuelleMenge = prev[positionId] || 0
-      if (aktuelleMenge >= (ausstehendeMengen[positionId] || 0)) return prev
-      return {
-        ...prev,
-        [positionId]: aktuelleMenge + 1,
-      }
-    })
-  }
-
-  const onRemove = (positionId: string) => {
-    setMengen((prev) => {
-      const aktuelleMenge = prev[positionId] || 0
-      if (aktuelleMenge <= 0) return prev
-      return {
-        ...prev,
-        [positionId]: aktuelleMenge - 1,
-      }
-    })
-  }
+  const {
+    mengen,
+    add: onAdd,
+    remove: onRemove,
+    reset,
+  } = useMengen<string>((positionId) => ausstehendeMengen[positionId] || 0)
 
   const meinePositionen = positionen.filter(
     (position) => position.bestellerUserId === AuthSingleton.userId,
@@ -96,7 +81,7 @@ export function Ausgabe({
         ausstehendePositionen={positionen}
         mengen={mengen}
         ausgabeBestaetigt={() => {
-          setMengen({})
+          reset()
           toast.success(`Ausgabe wurde bestätigt.`)
           onAusgabeBestaetigt()
         }}
