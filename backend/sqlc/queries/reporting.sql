@@ -50,17 +50,20 @@ FROM tisch_sessions WHERE saldo_cents > 0 AND kassensitzung_nr = @kassensitzung_
 -- name: GetUmsatzProServicekraft :many
 -- Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Servicekraft pro Kassensitzung.
 -- Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
--- MAX(user_name) nimmt den lexikographisch letzten Namen bei Namensaenderungen.
+-- MAX(user_name) nimmt den lexikographisch letzten eingefrorenen Username; name ist der live aus users
+-- aufgeloeste Klarname (bleibt auch fuer soft-geloeschte Benutzer verfuegbar, leer wenn der Benutzer fehlt).
 SELECT
-    user_id,
-    MAX(user_name)::text AS user_name,
-    COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int AS zahlungen_cents,
-    COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS auszahlungen_cents,
-    COUNT(CASE WHEN type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
-FROM kassenjournal
-WHERE type IN ('zahlung-kassiert:v1', 'auszahlung-geleistet:v1')
-AND kassensitzung_nr = @kassensitzung_nr
-GROUP BY user_id
+    e.user_id,
+    MAX(e.user_name)::text AS user_name,
+    COALESCE(MAX(u.name), '')::text AS name,
+    COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS zahlungen_cents,
+    COALESCE(SUM(kj_extract_auszahlung_cents(e.type, e.data)), 0)::int AS auszahlungen_cents,
+    COUNT(CASE WHEN e.type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
+FROM kassenjournal e
+LEFT JOIN users u ON u.id = e.user_id
+WHERE e.type IN ('zahlung-kassiert:v1', 'auszahlung-geleistet:v1')
+AND e.kassensitzung_nr = @kassensitzung_nr
+GROUP BY e.user_id
 ORDER BY zahlungen_cents DESC;
 
 -- name: GetStornierungen :many
@@ -75,10 +78,12 @@ SELECT
     COALESCE(t.name, '')::text AS tisch_name,
     e.user_id,
     e.user_name,
+    COALESCE(u.name, '')::text AS name,
     e.data
 FROM kassenjournal e
 LEFT JOIN tisch_sessions tss ON tss.subject = e.subject
 LEFT JOIN tische t ON t.id = tss.tisch_id
+LEFT JOIN users u ON u.id = e.user_id
 WHERE e.type IN ('stornierung-erteilt:v1', 'direktverkauf-storniert:v1')
 AND e.kassensitzung_nr = @kassensitzung_nr
 ORDER BY e.timestamp DESC;

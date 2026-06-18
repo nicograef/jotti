@@ -23,7 +23,7 @@ import { formatCents, formatPositionName } from '@/lib/utils'
 
 import { SummaryCard } from './SummaryCard'
 import type { ReportingData } from './types'
-import { formatLocalTime, pct } from './utils'
+import { formatBediener, formatLocalTime, pct } from './utils'
 
 export function ReportingResults({
   result,
@@ -181,7 +181,7 @@ export function ReportingResults({
             {breakdowns.umsatzProServicekraft.map((sk) => (
               <Item key={sk.userId} variant="outline" size="sm">
                 <ItemContent>
-                  <ItemTitle>{sk.userName}</ItemTitle>
+                  <ItemTitle>{formatBediener(sk.userName, sk.name)}</ItemTitle>
                   <Progress
                     value={pct(sk.zahlungenCents, summary.gesamtUmsatzCents)}
                     className="mt-1 h-1.5"
@@ -283,7 +283,7 @@ export function ReportingResults({
                           ? 'Direktverkauf'
                           : storno.tischName}
                         <Badge variant="secondary" className="ml-2 font-normal">
-                          {storno.userName}
+                          {formatBediener(storno.userName, storno.name)}
                         </Badge>
                       </ItemTitle>
                       <p className="mt-0.5 text-sm text-muted-foreground">

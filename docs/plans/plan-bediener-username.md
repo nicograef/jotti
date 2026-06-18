@@ -259,13 +259,13 @@ Service-Sichten und der DSFinV-K-Export bleiben Username-only.
 
 ### Acceptance criteria
 
-- [ ] `users.name` ist weiterhin `NOT NULL` und im Anlage-/Bearbeiten-Formular
+- [x] `users.name` ist weiterhin `NOT NULL` und im Anlage-/Bearbeiten-Formular
       Pflicht.
-- [ ] Umsatz-pro-Servicekraft, Stornierungs-Liste und Live-Dashboard zeigen
+- [x] Umsatz-pro-Servicekraft, Stornierungs-Liste und Live-Dashboard zeigen
       `username (Klarname)`, mit live aus `users` aufgelöstem Klarnamen.
-- [ ] Service-Sichten zeigen nur den Username; der DSFinV-K-Export enthält
+- [x] Service-Sichten zeigen nur den Username; der DSFinV-K-Export enthält
       **keinen** Klarnamen.
-- [ ] Reporting-Tests prüfen die `username (Klarname)`-Auflösung inkl. eines
+- [x] Reporting-Tests prüfen die `username (Klarname)`-Auflösung inkl. eines
       soft-gelöschten Benutzers (Klarname bleibt auflösbar).
 
 ---

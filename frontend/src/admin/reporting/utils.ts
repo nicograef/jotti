@@ -2,6 +2,12 @@ export function pct(part: number, total: number): number {
   return total > 0 ? Math.round((part / total) * 100) : 0
 }
 
+// Admin-Auswertungen zeigen den eingefrorenen Username, ergaenzt um den live
+// aufgeloesten Klarnamen: "username (Klarname)". Fehlt der Klarname, nur Username.
+export function formatBediener(userName: string, name: string): string {
+  return name ? `${userName} (${name})` : userName
+}
+
 export function formatLocalTime(utcString: string): string {
   return new Date(utcString).toLocaleString('de-DE')
 }

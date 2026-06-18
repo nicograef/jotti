@@ -15,6 +15,7 @@ export const SummarySchema = z.object({
 export const UmsatzServicekraftSchema = z.object({
   userId: z.number().int(),
   userName: z.string(),
+  name: z.string(),
   zahlungenCents: z.number().int(),
   auszahlungenCents: z.number().int(),
   anzahlZahlungen: z.number().int(),
@@ -35,6 +36,7 @@ export const StornierungDetailSchema = z.object({
   tischName: z.string(),
   userId: z.number().int(),
   userName: z.string(),
+  name: z.string(),
   betragCents: z.number().int(),
   kommentar: z.string(),
   positionen: z.array(StornierungPositionSchema),

@@ -76,6 +76,7 @@ type breakdownsResponse struct {
 type umsatzServicekraft struct {
 	UserID            int    `json:"userId"`
 	UserName          string `json:"userName"`
+	Name              string `json:"name"`
 	ZahlungenCents    int    `json:"zahlungenCents"`
 	AuszahlungenCents int    `json:"auszahlungenCents"`
 	AnzahlZahlungen   int    `json:"anzahlZahlungen"`
@@ -110,6 +111,7 @@ type stornierungDetail struct {
 	TischName   string                `json:"tischName"`
 	UserID      int                   `json:"userId"`
 	UserName    string                `json:"userName"`
+	Name        string                `json:"name"`
 	BetragCents int                   `json:"betragCents"`
 	Kommentar   string                `json:"kommentar"`
 	Positionen  []stornierungPosition `json:"positionen"`
@@ -119,6 +121,7 @@ func toUmsatzServicekraft(u reporting.UmsatzServicekraft) umsatzServicekraft {
 	return umsatzServicekraft{
 		UserID:            u.UserID,
 		UserName:          u.UserName,
+		Name:              u.Name,
 		ZahlungenCents:    u.ZahlungenCents,
 		AuszahlungenCents: u.AuszahlungenCents,
 		AnzahlZahlungen:   u.AnzahlZahlungen,
@@ -197,6 +200,7 @@ func toStornierungDetail(d reporting.StornierungDetail) stornierungDetail {
 		TischName:   d.TischName,
 		UserID:      d.UserID,
 		UserName:    d.UserName,
+		Name:        d.Name,
 		BetragCents: d.BetragCents,
 		Kommentar:   d.Kommentar,
 		Positionen:  toStornierungPositionen(d.Positionen),

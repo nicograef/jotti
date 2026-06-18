@@ -219,6 +219,7 @@ func toUmsatzServicekraft(rows []dbgen.GetUmsatzProServicekraftRow) []reporting.
 		umsatz[i] = reporting.UmsatzServicekraft{
 			UserID:            row.UserID,
 			UserName:          row.UserName,
+			Name:              row.Name,
 			ZahlungenCents:    row.ZahlungenCents,
 			AuszahlungenCents: row.AuszahlungenCents,
 			AnzahlZahlungen:   row.AnzahlZahlungen,
@@ -259,6 +260,7 @@ func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungD
 			TischName:   row.TischName,
 			UserID:      row.UserID,
 			UserName:    row.UserName,
+			Name:        row.Name,
 			BetragCents: data.GesamtStornierungCents,
 			Kommentar:   data.Kommentar,
 			Positionen:  positionen,

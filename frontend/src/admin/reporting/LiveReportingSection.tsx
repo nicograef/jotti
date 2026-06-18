@@ -22,7 +22,7 @@ import { formatCents, formatPositionName } from '@/lib/utils'
 
 import { SummaryCard } from './SummaryCard'
 import type { LiveReportingData } from './types'
-import { formatDatum, formatLocalTime, pct } from './utils'
+import { formatBediener, formatDatum, formatLocalTime, pct } from './utils'
 
 export function LiveReportingSection({
   liveData,
@@ -185,7 +185,7 @@ export function LiveReportingSection({
               {breakdowns.umsatzProServicekraft.map((sk) => (
                 <Item key={sk.userId} variant="outline" size="sm">
                   <ItemContent>
-                    <ItemTitle>{sk.userName}</ItemTitle>
+                    <ItemTitle>{formatBediener(sk.userName, sk.name)}</ItemTitle>
                     <Progress
                       value={pct(sk.zahlungenCents, summary.gesamtUmsatzCents)}
                       className="mt-1 h-1.5"
@@ -285,7 +285,7 @@ export function LiveReportingSection({
                       {s.quelle === 'direktverkauf'
                         ? 'Direktverkauf'
                         : s.tischName}{' '}
-                      · {s.userName}
+                      · {formatBediener(s.userName, s.name)}
                     </ItemTitle>
                     <p className="text-xs text-muted-foreground">
                       {formatLocalTime(s.zeitpunkt)}

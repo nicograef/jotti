@@ -8,7 +8,8 @@ import (
 
 type UmsatzServicekraft struct {
 	UserID            int
-	UserName          string
+	UserName          string // eingefrorener Username
+	Name              string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
 	ZahlungenCents    int
 	AuszahlungenCents int
 	AnzahlZahlungen   int
@@ -42,7 +43,8 @@ type StornierungDetail struct {
 	TischID     int
 	TischName   string
 	UserID      int
-	UserName    string
+	UserName    string // eingefrorener Username
+	Name        string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
 	BetragCents int
 	Kommentar   string
 	Positionen  []StornierungPosition

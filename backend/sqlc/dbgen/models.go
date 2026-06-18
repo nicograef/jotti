@@ -294,7 +294,7 @@ type Kassenjournal struct {
 	ID int
 	// Actor who triggered the event
 	UserID int
-	// Display name of the actor at the time of the event
+	// Username of the actor at the time of the event (frozen; DSFinV-K BEDIENER_NAME)
 	UserName string
 	// Event type identifier, e.g., bestellung-aufgenommen:v1
 	Type string
