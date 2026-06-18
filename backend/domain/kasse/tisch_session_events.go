@@ -233,6 +233,7 @@ func buildBestellungFromEvent(event e.Event) (Bestellung, error) {
 	bestellung := Bestellung{
 		ID:               data.BestellungID,
 		UserID:           event.UserID,
+		UserName:         event.UserName,
 		TischID:          tischID,
 		Positionen:       fromPositionenEventData(data.Positionen),
 		GesamtPreisCents: data.GesamtPreisCents,

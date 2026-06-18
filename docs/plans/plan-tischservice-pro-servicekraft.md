@@ -357,10 +357,10 @@ Bestellungen ohne zusätzlichen Klick findet.
 
 ### Acceptance criteria
 
-- [ ] Die Tisch-Historie liefert je Bestellung den eingefrorenen Besteller-Namen.
-- [ ] Stornieren und Umbuchen zeigen die vollständige Historie flach (nichts
+- [x] Die Tisch-Historie liefert je Bestellung den eingefrorenen Besteller-Namen.
+- [x] Stornieren und Umbuchen zeigen die vollständige Historie flach (nichts
       eingeklappt), jeder Eintrag mit Besteller-Namen beschriftet.
-- [ ] Tests: flache Darstellung und Besteller-Name je Eintrag.
+- [x] Tests: flache Darstellung und Besteller-Name je Eintrag.
 
 ---
 

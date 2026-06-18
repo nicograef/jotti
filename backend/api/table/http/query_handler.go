@@ -148,6 +148,7 @@ type bestellung struct {
 	Art                    string     `json:"art"`
 	ID                     string     `json:"id"`
 	UserID                 int        `json:"userId"`
+	UserName               string     `json:"userName"`
 	TischID                int        `json:"tischId"`
 	Positionen             []position `json:"positionen"`
 	GesamtPreisCents       int        `json:"gesamtPreisCents"`
@@ -163,6 +164,7 @@ func toBestellung(eintrag k.HistorieEintrag) bestellung {
 		Art:                    string(k.HistorieEintragBestellung),
 		ID:                     b.ID,
 		UserID:                 b.UserID,
+		UserName:               b.UserName,
 		TischID:                b.TischID,
 		Positionen:             toPositionen(b.Positionen),
 		GesamtPreisCents:       b.GesamtPreisCents,

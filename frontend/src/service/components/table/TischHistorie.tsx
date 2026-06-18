@@ -109,7 +109,7 @@ export function TischHistorie({
                       key={item.id}
                       title={`Bestellung +${formatCents(item.gesamtPreisCents)} €`}
                       date={item.aufgenommenAm}
-                      isFromUser={userId === item.userId}
+                      besteller={item.userName}
                       kommentar={item.kommentar}
                       onClick={() => {
                         setDetail(item)
@@ -179,6 +179,7 @@ export function TischHistorie({
           {...detailView(detail)}
           id={detail.id}
           isFromUser={userId === detail.userId}
+          besteller={detail.art === 'bestellung' ? detail.userName : undefined}
           kommentar={detail.kommentar}
           onClose={() => {
             setDetail(null)
@@ -236,6 +237,7 @@ function HistoryItem({
   title,
   date,
   isFromUser,
+  besteller,
   kommentar,
   onClick,
   onStornieren,
@@ -243,7 +245,8 @@ function HistoryItem({
 }: {
   title: string
   date: string
-  isFromUser: boolean
+  isFromUser?: boolean
+  besteller?: string
   kommentar: string
   onClick: () => void
   onStornieren?: () => void
@@ -254,6 +257,7 @@ function HistoryItem({
       <ItemContent>
         <ItemTitle>{title}</ItemTitle>
         <ItemDescription>
+          {besteller && <span className="block">von {besteller}</span>}
           {new Date(date).toLocaleString('de-DE')}
           {kommentar && (
             <>
@@ -373,6 +377,7 @@ function Details({
   id,
   date,
   isFromUser,
+  besteller,
   kommentar,
   positionen,
   totalPrice,
@@ -383,6 +388,7 @@ function Details({
   id: string
   date: string
   isFromUser: boolean
+  besteller?: string
   kommentar: string
   positionen?: ReceiptPosition[]
   totalPrice?: number
@@ -402,7 +408,7 @@ function Details({
               {title} {id.slice(0, 8)}
             </DrawerTitle>
             <DrawerDescription>
-              {isFromUser ? 'Du am ' : ''}
+              {besteller ? `von ${besteller} am ` : isFromUser ? 'Du am ' : ''}
               {new Date(date).toLocaleDateString('de-DE')} um{' '}
               {new Date(date).toLocaleTimeString('de-DE')} Uhr
             </DrawerDescription>

@@ -41,6 +41,27 @@ func TestGetHistorieFromEvents_ReturnsAllEventTypes(t *testing.T) {
 	}
 }
 
+func TestGetHistorieFromEvents_BestellungTraegtBestellerName(t *testing.T) {
+	products := []Position{
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
+	}
+	orderEvent, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", products, "")
+	if err != nil {
+		t.Fatalf("failed to create order event: %v", err)
+	}
+
+	history, err := GetHistorieFromEvents([]e.Event{orderEvent})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(history) != 1 || history[0].Bestellung == nil {
+		t.Fatalf("expected one Bestellung entry, got %+v", history)
+	}
+	if history[0].Bestellung.UserName != "Anna" {
+		t.Errorf("expected besteller name Anna, got %q", history[0].Bestellung.UserName)
+	}
+}
+
 func TestGetHistorieFromEvents_EnrichesBestellungMitRestmengen(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),

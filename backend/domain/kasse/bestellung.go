@@ -113,8 +113,13 @@ type PositionRef struct {
 }
 
 type Bestellung struct {
-	ID               string
-	UserID           int
+	ID     string
+	UserID int
+	// UserName ist der eingefrorene Username der bestellenden Servicekraft aus
+	// dem Event-Umschlag. Er beschriftet die Bestellung in der Storno-/Umbuch-
+	// Historie, damit die Serviceleitung fremde Bestellungen ohne zusätzlichen
+	// Klick findet. Spätere Umbenennungen ändern alte Einträge nicht.
+	UserName         string
 	TischID          int
 	Positionen       []Position
 	GesamtPreisCents int
@@ -125,6 +130,7 @@ type Bestellung struct {
 var bestellungSchema = z.Struct(z.Shape{
 	"ID":               z.String().UUID().Required(),
 	"UserID":           z.Int().GTE(1).Required(),
+	"UserName":         z.String().Min(1).Required(),
 	"TischID":          z.Int().GTE(1).Required(),
 	"Positionen":       z.Slice(positionSchema).Min(1).Required(),
 	"GesamtPreisCents": z.Int().GTE(0).Required(),
