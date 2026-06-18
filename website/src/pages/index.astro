@@ -1,51 +1,1187 @@
 ---
-import '../styles/landing.css'
+import { Image } from 'astro:assets'
 
-const title = 'jotti — kostenloses Kassensystem für Vereinsfeste'
+import Landing from '../layouts/Landing.astro'
+import dashboard from '../assets/jotti-service-dashboard.webp'
+import bon from '../assets/jotti-bon.webp'
+import jottiSymbol from '../assets/jotti-symbol.png'
+
+const title = 'jotti: Das kostenlose Kassensystem für Vereinsfeste'
 const description =
-  'jotti ist ein kostenloses Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Fiskalkonform, self-hosted, Mobile-first.'
+  'jotti ist ein kostenloses Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Fiskalkonform mit TSE-Anbindung und gesetzeskonformer Belegausgabe. Self-hosted, Mobile-first, kein Cloud-Abo. Quellcode einsehbar (Source-Available).'
+
+const leitfadenUrl = '/docs/leitfaden/was-ist-jotti/'
+const githubUrl = 'https://github.com/nicograef/jotti'
 ---
 
-<!doctype html>
-<html lang="de">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
-    <link rel="canonical" href="https://jotti.rocks/" />
-  </head>
-  <body class="min-h-dvh bg-white font-sans text-neutral-900">
-    <main class="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-6 px-6 py-16">
-      <p class="text-sm font-semibold tracking-wide text-brand uppercase">
-        Mobile Kasse für das Ehrenamt
+<Landing title={title} description={description}>
+  {/* ============ HERO ============ */}
+  <section class="hero-gradient">
+    <div
+      class="mx-auto grid max-w-6xl items-center gap-12 px-6 pt-12 pb-10 text-center md:pt-20 md:pb-16 lg:grid-cols-2 lg:text-left"
+    >
+      <div class="lg:max-w-[34rem]">
+        <p class="eyebrow mb-4">Mobile Kasse für das Ehrenamt</p>
+        <h1 class="mb-5 text-3xl font-bold tracking-tight text-balance sm:text-5xl">
+          Das kostenlose Kassensystem
+          <span class="text-brand">für euer Vereinsfest.</span>
+        </h1>
+        <p class="mb-6 text-lg text-muted">
+          Bestellen, ausgeben, kassieren: am bedienten Tisch oder per Direktverkauf an der
+          Theke, direkt auf dem Smartphone und ohne eigene Hardware. Gemacht für Vereine und
+          gemeinnützige Organisationen.
+        </p>
+        <ul class="mb-8 flex flex-wrap justify-center gap-x-6 gap-y-3 lg:justify-start">
+          <li class="flex items-center gap-2 font-bold">
+            <svg
+              class="text-brand"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"
+              ></path>
+              <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path>
+            </svg>
+            Kostenlos
+          </li>
+          <li class="flex items-center gap-2 font-bold">
+            <svg
+              class="text-brand"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect width="20" height="8" x="2" y="2" rx="2" ry="2"></rect>
+              <rect width="20" height="8" x="2" y="14" rx="2" ry="2"></rect>
+              <line x1="6" x2="6.01" y1="6" y2="6"></line>
+              <line x1="6" x2="6.01" y1="18" y2="18"></line>
+            </svg>
+            Self-hosted
+          </li>
+          <li class="flex items-center gap-2 font-bold">
+            <svg
+              class="text-brand"
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              ></path>
+              <path d="m9 12 2 2 4-4"></path>
+            </svg>
+            Fiskalkonform
+          </li>
+        </ul>
+        <div class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start">
+          <a href={leitfadenUrl} class="btn btn-primary">Leitfaden für Vereine lesen</a>
+          <a href={githubUrl} target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
+              ></path>
+              <path d="M9 18c-4.51 2-5-2-7-2"></path>
+            </svg>
+            Auf GitHub ansehen
+          </a>
+        </div>
+      </div>
+      <div class="order-first flex items-center justify-center lg:order-none">
+        <Image
+          src={dashboard}
+          alt="jotti Service-Ansicht auf einem Smartphone: Tischübersicht mit offenen Saldi und farbigen Status-Badges"
+          class="w-full max-w-[200px] drop-shadow-xl lg:max-w-[300px]"
+          widths={[200, 300, 400, 600]}
+          sizes="(min-width: 1024px) 300px, 200px"
+          loading="eager"
+        />
+      </div>
+    </div>
+  </section>
+
+  {/* ============ WARUM JOTTI (Problem + Vergleich) ============ */}
+  <section class="bg-surface-alt py-16 sm:py-24" id="warum">
+    <div class="mx-auto max-w-6xl px-6">
+      <p class="eyebrow mb-3 text-center">Das Problem</p>
+      <h2 class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl">Warum jotti?</h2>
+      <p class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted">
+        Die meisten Vereine bewirtschaften ihre Feste mit Stift und Papier, einer Excel-Tabelle
+        oder einem teuren kommerziellen Kassensystem. Dabei stoßen sie immer wieder an dieselben
+        Grenzen.
       </p>
-      <h1 class="text-4xl font-bold text-balance sm:text-5xl">
-        Das kostenlose Kassensystem
-        <span class="text-brand">für euer Vereinsfest.</span>
-      </h1>
-      <p class="text-lg text-neutral-600">
-        Bestellen, ausgeben, kassieren — direkt auf dem Smartphone, ohne eigene
-        Hardware. Gemacht für Vereine und gemeinnützige Organisationen.
+      <div class="grid gap-x-10 gap-y-7 lg:grid-cols-3">
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 20h9"></path>
+              <path
+                d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"
+              ></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Stift &amp; Papier</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            Unleserliche Handschrift, verlorene Bonblöcke, keine Echtzeit-Übersicht. Am Ende
+            sitzt ihr stundenlang an der Abrechnung. Und die KassenSichV erfüllt ihr damit nicht.
+          </p>
+        </div>
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+              <path d="M3 9h18"></path>
+              <path d="M3 15h18"></path>
+              <path d="M12 3v18"></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Excel-Tabelle</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            Nicht echtzeitfähig, kein Mehrbenutzerbetrieb, keine Tisch-Zuordnung. Einer tippt,
+            alle anderen warten. Keine TSE-Anbindung, keine Fiskalkonformität.
+          </p>
+        </div>
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect width="20" height="14" x="2" y="5" rx="2"></rect>
+              <line x1="2" x2="22" y1="10" y2="10"></line>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Kommerzielles POS</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            30 bis 100 € pro Monat plus Hardware. Fiskalkonform, aber für zwei bis drei Feste im
+            Jahr völlig überdimensioniert und viel zu teuer.
+          </p>
+        </div>
+      </div>
+
+      <h3 class="mt-12 mb-5 text-center text-lg font-bold">jotti löst genau diese Probleme.</h3>
+      <div class="-mx-6 overflow-x-auto px-6">
+        <table
+          class="w-full overflow-hidden rounded-lg border border-card-border bg-card text-sm"
+        >
+          <thead>
+            <tr class="bg-surface-alt text-xs tracking-wider text-muted uppercase">
+              <th class="p-3 text-left font-bold"></th>
+              <th class="p-3 text-left font-bold text-brand" scope="col">jotti</th>
+              <th class="p-3 text-left font-bold" scope="col">Stift &amp; Papier</th>
+              <th class="p-3 text-left font-bold" scope="col">Kommerzielles POS</th>
+            </tr>
+          </thead>
+          <tbody class="[&_td]:p-3 [&_td]:text-muted [&_th]:p-3 [&_tr]:border-t [&_tr]:border-card-border">
+            <tr>
+              <th scope="row" class="text-left font-semibold">Kosten</th>
+              <td class="bg-brand-tint font-bold text-foreground">Kostenlos</td>
+              <td>~0 €</td>
+              <td>30–100 €/Monat + Hardware</td>
+            </tr>
+            <tr>
+              <th scope="row" class="text-left font-semibold">Hardware</th>
+              <td class="bg-brand-tint font-bold text-foreground">Eigenes Smartphone</td>
+              <td>Stifte, Bonblöcke</td>
+              <td>Terminal, iPad, Drucker</td>
+            </tr>
+            <tr>
+              <th scope="row" class="text-left font-semibold">Fiskalkonformität</th>
+              <td class="bg-brand-tint font-bold text-foreground">
+                KassenSichV-konform (TSE&nbsp;+&nbsp;DSFinV-K)
+              </td>
+              <td>✗</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <th scope="row" class="text-left font-semibold">Echtzeit-Übersicht</th>
+              <td class="bg-brand-tint text-foreground">✓</td>
+              <td>✗</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <th scope="row" class="text-left font-semibold">Mehrbenutzerbetrieb</th>
+              <td class="bg-brand-tint text-foreground">✓</td>
+              <td>✗</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <th scope="row" class="text-left font-semibold">Kassenführung</th>
+              <td class="bg-brand-tint font-bold text-foreground">Z-Bon, Kassensturz, Bewegungen</td>
+              <td>✗</td>
+              <td>✓</td>
+            </tr>
+            <tr>
+              <th scope="row" class="text-left font-semibold">Abrechnung</th>
+              <td class="bg-brand-tint font-bold text-foreground">Automatisch + CSV + DSFinV-K</td>
+              <td>Stundenlang manuell</td>
+              <td>Automatisch</td>
+            </tr>
+            <tr>
+              <th scope="row" class="text-left font-semibold">Einrichtung</th>
+              <td class="bg-brand-tint font-bold text-foreground">Minuten</td>
+              <td>Sofort</td>
+              <td>Tage bis Wochen</td>
+            </tr>
+            <tr>
+              <th scope="row" class="text-left font-semibold">Datenhoheit</th>
+              <td class="bg-brand-tint font-bold text-foreground">Eigener Server</td>
+              <td>Zettelwirtschaft</td>
+              <td>Beim Anbieter</td>
+            </tr>
+            <tr>
+              <th scope="row" class="text-left font-semibold">Vertragslaufzeit</th>
+              <td class="bg-brand-tint font-bold text-foreground">Keine</td>
+              <td>Keine</td>
+              <td>12–24 Monate</td>
+            </tr>
+            <tr>
+              <th scope="row" class="text-left font-semibold">Nachvollziehbarkeit</th>
+              <td class="bg-brand-tint font-bold text-foreground">TSE-Signatur + Event-Sourcing</td>
+              <td>Fehleranfällig</td>
+              <td>Ja</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ FEATURES ============ */}
+  <section class="py-16 sm:py-24" id="features">
+    <div class="mx-auto max-w-6xl px-6">
+      <p class="eyebrow mb-3 text-center">Funktionen</p>
+      <h2 class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl">
+        Alles, was euer Vereinsfest braucht.
+      </h2>
+      <p class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted">
+        Nicht mehr, nicht weniger. jotti konzentriert sich auf die Kernfunktionen, damit sich
+        euer Team auf die Gäste konzentrieren kann.
       </p>
-      <div class="flex flex-wrap gap-4">
+
+      {/* Kassenbetrieb */}
+      <div class="mb-12 last:mb-0">
+        <h3 class="mb-5 text-center text-xl font-bold tracking-wide text-brand">Kassenbetrieb</h3>
+        <div class="grid gap-x-10 gap-y-7 md:grid-cols-2">
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect>
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+                ></path>
+                <path d="M12 11h4"></path>
+                <path d="M12 16h4"></path>
+                <path d="M8 11h.01"></path>
+                <path d="M8 16h.01"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Bestellungen aufnehmen</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Produkte mit Varianten und Steuersätzen auswählen, Menge und Kommentar angeben, auf
+              den Tisch buchen. Alles im Browser.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Ausgabe bestätigen</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Bestellte Positionen als ausgegeben markieren. Jeder weiß, was raus ist und was noch
+              fehlt.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect width="20" height="12" x="2" y="6" rx="2"></rect>
+                <circle cx="12" cy="12" r="2"></circle>
+                <path d="M6 12h.01M18 12h.01"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Kassieren</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Am Tisch kassieren, mit Teilzahlungen und automatischer Rückgeldberechnung. Der
+              offene Saldo bleibt immer im Blick.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <path d="M3 6h18"></path>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Direktverkauf an der Theke</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Bestellen, kassieren und ausgeben in einem Schritt, ideal für Getränke- und
+              Kuchentheke. Kein offener Saldo, sofort bezahlt, auf Wunsch mit Abholbon.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Stornieren &amp; Auszahlung</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Falschbestellungen rückgängig machen (Serviceleitung oder Admin, mit
+              Pflichtkommentar). Negativen Saldo nach Stornierung ausgleichen.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M8 3 4 7l4 4"></path>
+                <path d="M4 7h16"></path>
+                <path d="m16 21 4-4-4-4"></path>
+                <path d="M20 17H4"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Umbuchen</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Bestellungen auf einen anderen Tisch verschieben. Eine atomare Operation, lückenlos
+              nachvollziehbar.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect width="7" height="7" x="3" y="3" rx="1"></rect>
+                <rect width="7" height="7" x="14" y="3" rx="1"></rect>
+                <rect width="7" height="7" x="14" y="14" rx="1"></rect>
+                <rect width="7" height="7" x="3" y="14" rx="1"></rect>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Tischübersicht</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Alle Tische mit Saldo und Status auf einen Blick. Eigene Tische als Favoriten
+              markieren, Schnellsuche per Name oder Nummer.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Küche & Ausgabe */}
+      <div class="mb-12 last:mb-0">
+        <h3 class="mb-5 text-center text-xl font-bold tracking-wide text-brand">
+          Küche &amp; Ausgabe
+        </h3>
+        <div class="grid gap-x-10 gap-y-7 md:grid-cols-2">
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                ></path>
+                <path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"></path>
+                <rect width="12" height="8" x="6" y="14" rx="1"></rect>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Arbeitsbon (Küche &amp; Theke)</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Bestellungen automatisch als Arbeitsanweisung an die Druckstationen senden, pro
+              Kategorie konfigurierbar und ganz ohne Preise. Kein Beleg, sondern reine
+              Ausgabe-Hilfe.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect width="20" height="14" x="2" y="3" rx="2"></rect>
+                <line x1="8" x2="16" y1="21" y2="21"></line>
+                <line x1="12" x2="12" y1="17" y2="21"></line>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">
+              Küchendisplay (KDS)
+              <span class="badge-wip">In Entwicklung</span>
+            </h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Eingehende Bestellungen in Echtzeit auf einem Bildschirm in der Küche oder an der
+              Ausgabe.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path
+                  d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"
+                ></path>
+                <path d="M6 17h12"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">
+              Ausgabestationen <span class="badge-wip">In Entwicklung</span>
+            </h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Zubereitungsstatus verwalten: Servicekräfte sehen, wann Positionen abholbereit sind.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Kassenführung */}
+      <div class="mb-12 last:mb-0">
+        <h3 class="mb-5 text-center text-xl font-bold tracking-wide text-brand">Kassenführung</h3>
+        <div class="grid gap-x-10 gap-y-7 md:grid-cols-2">
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M8 2v4"></path>
+                <path d="M16 2v4"></path>
+                <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+                <path d="M3 10h18"></path>
+                <path d="m9 16 2 2 4-4"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Abrechnungskreis</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Fortlaufend nummerierte Kassensitzungen eröffnen und schließen. Anfangsbestand
+              (Wechselgeld) zu Beginn erfassen.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="8" cy="8" r="6"></circle>
+                <path d="M18.09 10.37A6 6 0 1 1 10.34 18"></path>
+                <path d="M7 6h1v4"></path>
+                <path d="m16.71 13.88.7.71-2.82 2.82"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Kassenbestand &amp; Bewegungen</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Soll-Bestand jederzeit einsehen. Geldtransit, Privatentnahmen und Privateinlagen
+              buchen.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+                <path d="m9 15 2 2 4-4"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Kassensturz &amp; Z-Bon</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Ist-Bestand eingeben, Differenz berechnen. Formaler Tagesabschluss mit fortlaufender
+              Nummer und Stammdaten-Snapshot.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Abrechnung & Reporting */}
+      <div class="mb-12 last:mb-0">
+        <h3 class="mb-5 text-center text-xl font-bold tracking-wide text-brand">
+          Abrechnung &amp; Reporting
+        </h3>
+        <div class="grid gap-x-10 gap-y-7 md:grid-cols-2">
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 3v16a2 2 0 0 0 2 2h16"></path>
+                <path d="M18 17V9"></path>
+                <path d="M13 17V5"></path>
+                <path d="M8 17v-3"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Tagesabrechnung</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge, nach Steuersatz
+              aufgeschlüsselt.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Pro Tisch &amp; Servicekraft</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              Detaillierte Aufstellung je Tisch. Umsatz und Transaktionen pro Servicekraft.
+              Produktumsatz-Ranking.
+            </p>
+          </div>
+          <div class="card">
+            <span class="icon-box">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" x2="12" y1="15" y2="3"></line>
+              </svg>
+            </span>
+            <h4 class="mb-1.5 text-lg font-bold">Datenexport</h4>
+            <p class="text-[0.9375rem] leading-relaxed text-muted">
+              CSV-Export für die Vereinsbuchhaltung. DSFinV-K-Export als ZIP-Archiv für die
+              Finanzverwaltung.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ FISKALKONFORM & SICHER ============ */}
+  <section class="bg-surface-alt py-16 sm:py-24" id="fiskalkonform">
+    <div class="mx-auto max-w-6xl px-6">
+      <p class="eyebrow mb-3 text-center">Rechtssicher</p>
+      <h2 class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl">
+        Finanzamtssicher. Ab Werk.
+      </h2>
+      <p class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted">
+        jotti ist ein elektronisches Aufzeichnungssystem nach KassenSichV und erfüllt die
+        TSE-Pflicht nach § 146a AO. Fiskalkonform, ohne Zusatzkosten für die Software.
+      </p>
+
+      <div class="grid gap-x-10 gap-y-7 md:grid-cols-2">
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              ></path>
+              <path d="m9 12 2 2 4-4"></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">TSE-Anbindung</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            Integrierte fiskaly-Cloud-TSE. Jeder Vorgang wird signiert und kryptografisch
+            abgesichert.
+          </p>
+        </div>
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"
+              ></path>
+              <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+              <path d="M12 17.5v-11"></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Kassenbeleg (auf Anforderung)</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            Gesetzeskonformer Zahlungsbeleg nach § 146a AO: alle Positionen mit Preisen,
+            Vereinsdaten und Kassen-Seriennummer, auf Knopfdruck, wenn der Gast ihn verlangt.
+            Inklusive TSE-Signatur, QR-Code und Steuer-Aufschlüsselung.
+          </p>
+        </div>
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+              <path d="M12 7v5l4 2"></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Event-Sourcing</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            Lückenlose, unveränderliche Bestellhistorie. GoBD-konform durch
+            Append-only-Architektur, ohne nachträgliches Löschen.
+          </p>
+        </div>
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect width="20" height="5" x="2" y="3" rx="1"></rect>
+              <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path>
+              <path d="M10 12h4"></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">DSFinV-K-Export</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            Maschinenlesbarer Export aller Kassendaten für die Finanzverwaltung, als ZIP-Archiv
+            nach DSFinV-K v2.5.
+          </p>
+        </div>
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+              <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+              <path d="m9 15 2 2 4-4"></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Tagesabschluss (Z-Bon)</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            Immutables Abschlussdokument mit fortlaufender Nummer, Umsatzaggregation und
+            Stammdaten-Snapshot.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-12 overflow-hidden rounded-2xl">
+        <Image
+          src={bon}
+          alt="Gedruckter Kassenbeleg auf einem Bierzelttisch beim Vereinsfest, mit Artikeln und Preisen, geplant mit TSE-Signatur und QR-Code"
+          class="w-full"
+          widths={[400, 800, 1200]}
+          sizes="(min-width: 1024px) 1000px, 100vw"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  </section>
+
+  {/* ============ SO FUNKTIONIERT'S ============ */}
+  <section class="py-16 sm:py-24" id="so-funktionierts">
+    <div class="mx-auto max-w-6xl px-6">
+      <p class="eyebrow mb-3 text-center">In drei Schritten</p>
+      <h2 class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl">
+        In drei Schritten startklar.
+      </h2>
+      <p class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted">
+        Keine wochenlange Einrichtung, kein Schulungsbedarf. Einfach loslegen.
+      </p>
+      <ol class="mx-auto grid max-w-88 gap-8 lg:max-w-none lg:grid-cols-3 lg:gap-10">
+        <li class="rounded-2xl border border-card-border bg-card p-8 text-center">
+          <span
+            class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-solid text-xl font-bold text-white"
+            >1</span
+          >
+          <h3 class="mb-2 text-lg font-bold">Admin richtet ein</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            Produkte mit Varianten, Preisen und Steuersätzen anlegen, Tische erstellen, Benutzer
+            einladen, Betreiber-Stammdaten pflegen.
+          </p>
+        </li>
+        <li class="rounded-2xl border border-card-border bg-card p-8 text-center">
+          <span
+            class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-solid text-xl font-bold text-white"
+            >2</span
+          >
+          <h3 class="mb-2 text-lg font-bold">Team meldet sich an</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            Jeder Helfer öffnet den Browser auf dem eigenen Smartphone, gibt das Einmalpasswort
+            ein und setzt ein eigenes Passwort.
+          </p>
+        </li>
+        <li class="rounded-2xl border border-card-border bg-card p-8 text-center">
+          <span
+            class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-solid text-xl font-bold text-white"
+            >3</span
+          >
+          <h3 class="mb-2 text-lg font-bold">Loslegen</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            Bestellungen aufnehmen, Ausgabe bestätigen, kassieren. Am Ende des Abends
+            Tagesabschluss und Z-Bon.
+          </p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  {/* ============ FÜR WEN ============ */}
+  <section class="bg-surface-alt py-16 sm:py-24">
+    <div class="mx-auto max-w-6xl px-6">
+      <p class="eyebrow mb-3 text-center">Zielgruppe</p>
+      <h2 class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl">
+        Für wen ist jotti gedacht?
+      </h2>
+      <p class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted">
+        jotti ist für alle gemeinnützigen Organisationen, die temporäre
+        Gastronomie-Veranstaltungen durchführen, mit voller Fiskalkonformität und unabhängig von
+        der Rechtsform.
+      </p>
+      <div class="grid gap-x-10 gap-y-7 md:grid-cols-2">
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Vereine (e.V.)</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            Sport-, Musik-, Schützen-, Karnevals- und Fördervereine: jeder eingetragene Verein,
+            der Feste veranstaltet.
+          </p>
+        </div>
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
+              <path d="M10 6h4"></path>
+              <path d="M10 10h4"></path>
+              <path d="M10 14h4"></path>
+              <path d="M10 18h4"></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Gemeinnützige Organisationen</h3>
+          <p class="text-[0.9375rem] leading-relaxed text-muted">
+            gGmbH, gUG, Stiftungen, kirchliche Träger, NGOs: alle, die unter das
+            Gemeinnützigkeitsrecht fallen.
+          </p>
+        </div>
+      </div>
+
+      <h3 class="mt-12 mb-5 text-center text-lg font-bold">Typische Veranstaltungen</h3>
+      <div class="flex flex-wrap justify-center gap-2.5">
+        <span class="tag">Vereinsfeste</span>
+        <span class="tag">Sommerfeste</span>
+        <span class="tag">Weihnachtsmärkte</span>
+        <span class="tag">Maihocks</span>
+        <span class="tag">Straßenfeste</span>
+        <span class="tag">Konzerte</span>
+        <span class="tag">Sportevents</span>
+        <span class="tag">Fasching</span>
+        <span class="tag">Jubiläen</span>
+        <span class="tag">Kulturveranstaltungen</span>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ SELBST BETREIBEN & KOSTEN ============ */}
+  <section class="py-16 sm:py-24" id="technik">
+    <div class="mx-auto max-w-6xl px-6">
+      <div class="grid items-center gap-12 lg:grid-cols-2">
+        <div>
+          <p class="eyebrow mb-3">Selbst betreiben</p>
+          <h2 class="mb-3 text-2xl font-bold tracking-tight sm:text-4xl">
+            Selbst betreiben. Kostenlos.
+          </h2>
+          <p class="mb-8 text-[1.0625rem] text-muted">
+            jotti ist self-hosted per Docker und für gemeinnützige Organisationen dauerhaft
+            kostenlos. Wer Docker starten kann, kann jotti betreiben. Die einzigen Kosten sind
+            Hosting und eine Cloud-TSE.
+          </p>
+          <ul class="flex flex-col gap-3">
+            <li class="flex gap-3 text-[0.9375rem] text-muted">
+              <span class="font-bold text-brand">✓</span>
+              Voller Funktionsumfang inklusive Fiskalkonformität, ohne Limits bei Tischen,
+              Produkten oder Benutzern
+            </li>
+            <li class="flex gap-3 text-[0.9375rem] text-muted">
+              <span class="font-bold text-brand">✓</span>
+              Keine Werbung, kein Tracking, keine versteckte Paywall
+            </li>
+            <li class="flex gap-3 text-[0.9375rem] text-muted">
+              <span class="font-bold text-brand">✓</span>
+              Quellcode einsehbar (Source-Available)
+            </li>
+            <li class="flex gap-3 text-[0.9375rem] text-muted">
+              <span class="font-bold text-brand">✓</span>
+              Keine Vertragslaufzeit
+            </li>
+            <li class="flex gap-3 text-[0.9375rem] text-muted">
+              <span class="font-bold text-brand">✓</span>
+              <span>
+                <a
+                  href={`${githubUrl}/blob/main/TERMS.md`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-brand hover:text-brand-hover">Nutzungsvereinbarung per E-Mail</a
+                > vor erster Nutzung erforderlich
+              </span>
+            </li>
+          </ul>
+          <div class="mt-8">
+            <a href={leitfadenUrl} class="btn btn-primary">Leitfaden für Vereine lesen</a>
+          </div>
+        </div>
+        <div class="rounded-3xl bg-[#1d2b21] p-8">
+          <p class="mb-5 text-[0.8125rem] font-bold tracking-[0.06em] text-[#a7d3bf] uppercase">
+            Laufende Kosten
+          </p>
+          <ul class="mb-5">
+            <li
+              class="flex items-baseline justify-between gap-4 border-b border-white/10 py-3.5"
+            >
+              <span class="font-semibold text-white">jotti-Software</span>
+              <span class="font-bold whitespace-nowrap text-[#a7d3bf]">0 €</span>
+            </li>
+            <li
+              class="flex items-baseline justify-between gap-4 border-b border-white/10 py-3.5"
+            >
+              <span class="font-semibold text-white">Cloud-TSE (fiskaly)</span>
+              <span class="font-bold whitespace-nowrap text-[#dde7db]">ca. 8 €/Monat</span>
+            </li>
+            <li class="flex items-baseline justify-between gap-4 py-3.5">
+              <span class="font-semibold text-white">Server (optional)</span>
+              <span class="font-bold whitespace-nowrap text-[#dde7db]">ca. 5 €/Monat</span>
+            </li>
+          </ul>
+          <p class="text-[0.8125rem] text-[#9fb0a4]">
+            Der Standardweg im Vereinsheim kommt ohne Servermiete aus, der Computer vor Ort
+            genügt.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ CTA ============ */}
+  <section class="bg-brand-solid py-16 sm:py-24" id="bereit">
+    <div class="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 text-center">
+      <Image src={jottiSymbol} alt="jotti" class="h-20 w-auto" loading="lazy" />
+      <h2 class="text-2xl font-bold tracking-tight text-white sm:text-4xl">
+        Bereit für euer nächstes Fest?
+      </h2>
+      <p class="max-w-[480px] text-[1.0625rem] text-white/85">
+        Startet mit dem Leitfaden für Vereine: kostenlos, fiskalkonform und in Minuten
+        einsatzbereit. Der Quellcode ist auf GitHub einsehbar, die Nutzung mit kostenloser
+        Vereinbarung.
+      </p>
+      <div class="flex flex-col gap-4 sm:flex-row">
+        <a href={leitfadenUrl} class="btn btn-lg btn-on-brand">Leitfaden für Vereine lesen</a>
         <a
-          href="/docs/lizenzmodell/"
-          class="rounded-lg bg-brand px-5 py-3 font-semibold text-white transition-colors hover:bg-brand-hover"
+          href={githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-lg border-white/70 text-white hover:bg-white/10"
         >
-          Dokumentation lesen
-        </a>
-        <a
-          href="https://github.com/nicograef/jotti"
-          class="rounded-lg border border-neutral-300 px-5 py-3 font-semibold text-neutral-700 transition-colors hover:border-brand hover:text-brand"
-        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path
+              d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
+            ></path>
+            <path d="M9 18c-4.51 2-5-2-7-2"></path>
+          </svg>
           Auf GitHub ansehen
         </a>
       </div>
-      <p class="text-sm text-neutral-400">
-        Neue Seite im Aufbau — die vollständige Landing folgt in einer späteren
-        Phase.
-      </p>
-    </main>
-  </body>
-</html>
+    </div>
+  </section>
+</Landing>

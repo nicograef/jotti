@@ -1,14 +1,136 @@
 /* Stil-Einstieg der Marketing-Landing: Tailwind 4 plus das gemeinsame
    Marken-Token-Set. Die Markenwerte werden als Tailwind-Theme-Tokens
-   verfügbar gemacht (text-brand, bg-brand …). */
+   verfügbar gemacht (text-brand, bg-brand …). Eine kleine Component-Schicht
+   bündelt die mehrfach genutzten Muster (Button, Karte, Eyebrow). */
 
 @import 'tailwindcss';
 @import './brand.css';
 
-@theme {
+/* Semantische Farb-Tokens. Hell/Dunkel folgen der Systemeinstellung
+   (prefers-color-scheme), damit die Landing im Dunkelmodus konsistent zum
+   Starlight-Doku-Theme erscheint. */
+:root {
+  --c-background: #f6f9f4;
+  --c-foreground: #18231a;
+  --c-card: #ffffff;
+  --c-card-border: #d8e1d3;
+  --c-muted: #5e6c62;
+  --c-surface-alt: #eef4ea;
+  /* Akzent-Grün für Text/Icons; hell genug für dunklen Grund im Dark-Mode. */
+  --c-brand: var(--brand-green);
+  --c-brand-hover: var(--brand-green-hover);
+  /* Dezenter Grün-Hintergrund (Icon-Boxen, Tags, Tabellen-Highlight). */
+  --c-brand-tint: var(--brand-green-tint);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-background: oklch(0.2 0.008 170);
+    --c-foreground: oklch(0.93 0.01 170);
+    --c-card: oklch(0.25 0.01 170);
+    --c-card-border: oklch(0.33 0.012 170);
+    --c-muted: oklch(0.73 0.015 170);
+    --c-surface-alt: oklch(0.23 0.01 170);
+    --c-brand: oklch(0.72 0.12 165.612);
+    --c-brand-hover: oklch(0.8 0.12 165.612);
+    --c-brand-tint: oklch(0.3 0.06 165.612);
+  }
+}
+
+/* `inline`: die Utilities referenzieren direkt die obigen, umschaltbaren
+   Variablen, sodass der Moduswechsel ohne Neudefinition der Tokens greift. */
+@theme inline {
   --font-sans: var(--brand-font);
-  --color-brand: var(--brand-green);
-  --color-brand-hover: var(--brand-green-hover);
-  --color-brand-tint: var(--brand-green-tint);
-  --color-brand-deep: var(--brand-green-deep);
+
+  --color-background: var(--c-background);
+  --color-foreground: var(--c-foreground);
+  --color-card: var(--c-card);
+  --color-card-border: var(--c-card-border);
+  --color-muted: var(--c-muted);
+  --color-surface-alt: var(--c-surface-alt);
+  --color-brand: var(--c-brand);
+  --color-brand-hover: var(--c-brand-hover);
+  --color-brand-tint: var(--c-brand-tint);
+
+  /* Konstantes Markengrün für gefüllte Flächen (Buttons, CTA, Zähler-Badges),
+     wo weißer Text in beiden Modi ausreichend Kontrast braucht. */
+  --color-brand-solid: var(--brand-green);
+  --color-brand-solid-hover: var(--brand-green-hover);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+
+  ::selection {
+    background: var(--c-brand-tint);
+    color: var(--c-brand);
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg
+      border-2 border-transparent px-7 py-3 text-[0.9375rem] font-bold transition-colors;
+  }
+
+  .btn-primary {
+    @apply border-brand-solid bg-brand-solid text-white hover:border-brand-solid-hover hover:bg-brand-solid-hover;
+  }
+
+  .btn-ghost {
+    @apply border-card-border text-foreground hover:border-brand hover:bg-brand-tint hover:text-brand;
+  }
+
+  .btn-outline {
+    @apply border-brand bg-transparent text-brand hover:bg-brand hover:text-white;
+  }
+
+  .btn-sm {
+    @apply px-4 py-2 text-[0.8125rem];
+  }
+
+  .btn-lg {
+    @apply px-10 py-4 text-[1.0625rem];
+  }
+
+  /* CTA-Variante: heller Button auf grünem Grund. */
+  .btn-on-brand {
+    @apply border-white bg-white text-brand-solid hover:border-brand-tint hover:bg-brand-tint;
+  }
+
+  .eyebrow {
+    @apply text-[0.8125rem] font-bold tracking-[0.06em] text-brand uppercase;
+  }
+
+  .card {
+    @apply h-full rounded-2xl border border-card-border bg-card p-6 transition
+      hover:-translate-y-0.5 hover:border-brand hover:shadow-lg;
+  }
+
+  .icon-box {
+    @apply mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-tint text-brand;
+  }
+
+  .tag {
+    @apply inline-block rounded-full bg-brand-tint px-3.5 py-1.5 text-sm font-semibold text-brand;
+  }
+
+  .badge-wip {
+    @apply ml-1.5 inline-block whitespace-nowrap rounded-full bg-brand-tint px-2 py-0.5
+      align-middle text-[0.65rem] font-semibold tracking-[0.02em] text-brand;
+  }
+
+  /* Hero: dezenter Markenfarben-Verlauf hinter dem Einstieg. */
+  .hero-gradient {
+    background:
+      radial-gradient(
+        115% 80% at 85% -10%,
+        var(--c-brand-tint),
+        transparent 55%
+      ),
+      var(--c-background);
+  }
 }

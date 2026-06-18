@@ -367,14 +367,17 @@ sodass die neuen Doku-Seiten indexiert werden.
 
 ### Acceptance criteria
 
-- [ ] Die Landing ist visuell auf Marke (Grün, Montserrat, Logo), responsiv und
+- [x] Die Landing ist visuell auf Marke (Grün, Montserrat, Logo), responsiv und
       im Dunkelmodus konsistent mit der Doku.
-- [ ] Hero, Vertrauensmerkmale, Features, Vergleich und CTA sind inhaltlich wie
+- [x] Hero, Vertrauensmerkmale, Features, Vergleich und CTA sind inhaltlich wie
       heute vorhanden; die Value-Proposition ist auf einen Blick erkennbar.
-- [ ] Die CTAs führen in Leitfaden und Doku.
-- [ ] Bilder werden über Astros Bild-Optimierung ausgeliefert.
-- [ ] Jede veröffentlichte Seite hat Titel/Beschreibung (SEO/OG); `sitemap.xml`
-      und `robots.txt` werden ausgeliefert und decken die Doku-Seiten ab.
+- [x] Die CTAs führen in Leitfaden und Doku.
+- [x] Bilder werden über Astros Bild-Optimierung ausgeliefert.
+- [x] Jede veröffentlichte Seite hat Titel/Beschreibung (SEO/OG); `sitemap.xml`
+      und `robots.txt` werden ausgeliefert und decken die Doku-Seiten ab. Die
+      Sitemap (`sitemap-index.xml` + `sitemap-0.xml`) wird von Starlights
+      eingebautem `@astrojs/sitemap` erzeugt; `robots.txt` (in `public/`) verweist
+      darauf. Ein eigener Sitemap-Endpunkt entfällt dadurch (KISS).
 
 ---
 

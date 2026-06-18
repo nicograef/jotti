@@ -1,0 +1,269 @@
+---
+import { Image } from 'astro:assets'
+
+import '../styles/landing.css'
+import jottiSymbol from '../assets/jotti-symbol.png'
+import ogImage from '../assets/jotti-bon.webp'
+
+interface Props {
+  title: string
+  description: string
+}
+
+const { title, description } = Astro.props
+
+const canonical = new URL(Astro.url.pathname, Astro.site).href
+const ogImageUrl = new URL(ogImage.src, Astro.site).href
+
+// Einstieg in den Leitfaden für alle CTAs/Navigationspunkte.
+const leitfadenUrl = '/docs/leitfaden/was-ist-jotti/'
+const githubUrl = 'https://github.com/nicograef/jotti'
+---
+
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="author" content="Nico Gräf" />
+    <meta name="robots" content="index, follow" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="jotti" />
+    <meta property="og:locale" content="de_DE" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImageUrl} />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
+    <!-- Favicons -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/icons/jotti-icon-light-32.png"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/icons/jotti-icon-dark-32.png"
+      media="(prefers-color-scheme: dark)"
+    />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/jotti-icon-light-32.png" />
+    <link rel="apple-touch-icon" href="/icons/jotti-logo-icon-light.png" />
+    <meta name="theme-color" content="#147758" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121e16" media="(prefers-color-scheme: dark)" />
+
+    <!-- Schrift vorladen -->
+    <link
+      rel="preload"
+      href="/fonts/Montserrat-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/Montserrat-Bold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+  </head>
+
+  <body class="min-h-dvh bg-background font-sans text-foreground antialiased">
+    <header
+      class="sticky top-0 z-50 border-b border-card-border bg-background/95 backdrop-blur"
+    >
+      <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <a href="/" class="flex items-center gap-2" aria-label="jotti Startseite">
+          <Image src={jottiSymbol} alt="" class="h-7 w-auto" loading="eager" />
+          <span class="text-xl font-bold tracking-tight">jotti</span>
+        </a>
+
+        <nav class="hidden items-center gap-7 lg:flex" aria-label="Hauptnavigation">
+          <a href="/#features" class="text-sm font-semibold text-muted hover:text-foreground"
+            >Features</a
+          >
+          <a
+            href="/#fiskalkonform"
+            class="text-sm font-semibold text-muted hover:text-foreground">Fiskalkonform</a
+          >
+          <a href="/#technik" class="text-sm font-semibold text-muted hover:text-foreground"
+            >Selbst betreiben</a
+          >
+          <a href={leitfadenUrl} class="text-sm font-semibold text-muted hover:text-foreground"
+            >Leitfaden</a
+          >
+          <a href={githubUrl} target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline">
+            GitHub
+          </a>
+        </nav>
+
+        <button
+          id="menu-toggle"
+          class="flex h-10 w-10 items-center justify-center text-foreground lg:hidden"
+          aria-label="Menü öffnen"
+          aria-expanded="false"
+          aria-controls="mobile-nav"
+        >
+          <svg
+            class="menu-icon-open"
+            xmlns="http://www.w3.org/2000/svg"
+            width="26"
+            height="26"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="4" x2="20" y1="6" y2="6" />
+            <line x1="4" x2="20" y1="12" y2="12" />
+            <line x1="4" x2="20" y1="18" y2="18" />
+          </svg>
+          <svg
+            class="menu-icon-close hidden"
+            xmlns="http://www.w3.org/2000/svg"
+            width="26"
+            height="26"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <nav
+        id="mobile-nav"
+        class="hidden flex-col gap-2 border-t border-card-border bg-background px-6 py-4 lg:hidden"
+        aria-label="Mobile Navigation"
+      >
+        <a href="/#features" class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
+          >Features</a
+        >
+        <a href="/#fiskalkonform" class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
+          >Fiskalkonform</a
+        >
+        <a href="/#technik" class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
+          >Selbst betreiben</a
+        >
+        <a href={leitfadenUrl} class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
+          >Leitfaden für Vereine</a
+        >
+        <a
+          href={githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt">GitHub</a
+        >
+      </nav>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="border-t border-card-border py-10">
+      <div class="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 text-center">
+        <a href="/" class="flex items-center gap-2" aria-label="jotti Startseite">
+          <Image src={jottiSymbol} alt="" class="h-7 w-auto" loading="lazy" />
+          <span class="text-xl font-bold tracking-tight">jotti</span>
+        </a>
+        <p class="max-w-160 text-[0.9375rem] text-muted">
+          Das kostenlose, fiskalkonforme Kassensystem für Vereinsfeste und gemeinnützige
+          Organisationen.
+        </p>
+        <nav class="flex flex-wrap justify-center gap-6" aria-label="Footer-Navigation">
+          <a href={leitfadenUrl} class="text-sm font-semibold text-muted hover:text-brand"
+            >Leitfaden für Vereine</a
+          >
+          <a
+            href={githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-sm font-semibold text-muted hover:text-brand">GitHub</a
+          >
+          <a
+            href={`${githubUrl}/blob/main/TERMS.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-sm font-semibold text-muted hover:text-brand">Nutzungsbedingungen</a
+          >
+          <a
+            href={`${githubUrl}/blob/main/LICENSE`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-sm font-semibold text-muted hover:text-brand">Lizenz</a
+          >
+        </nav>
+        <p class="w-full border-t border-card-border pt-5 text-[0.8125rem] text-muted">
+          Entwickelt von
+          <a
+            href="https://nicograef.de"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-semibold hover:text-brand">Nico Gräf</a
+          >
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      const toggle = document.getElementById('menu-toggle')
+      const nav = document.getElementById('mobile-nav')
+      const iconOpen = toggle?.querySelector('.menu-icon-open')
+      const iconClose = toggle?.querySelector('.menu-icon-close')
+
+      if (toggle && nav) {
+        const setOpen = (open: boolean) => {
+          toggle.setAttribute('aria-expanded', String(open))
+          toggle.setAttribute('aria-label', open ? 'Menü schließen' : 'Menü öffnen')
+          nav.classList.toggle('hidden', !open)
+          nav.classList.toggle('flex', open)
+          iconOpen?.classList.toggle('hidden', open)
+          iconClose?.classList.toggle('hidden', !open)
+        }
+
+        toggle.addEventListener('click', () => {
+          setOpen(toggle.getAttribute('aria-expanded') !== 'true')
+        })
+
+        nav.querySelectorAll('a').forEach((link) => {
+          link.addEventListener('click', () => setOpen(false))
+        })
+
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+            setOpen(false)
+            toggle.focus()
+          }
+        })
+      }
+    </script>
+  </body>
+</html>

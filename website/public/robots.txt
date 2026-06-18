@@ -1,0 +1,7 @@
+# robots.txt for jotti.rocks
+User-agent: *
+Allow: /
+
+# Sitemap wird beim Build von Starlight (@astrojs/sitemap) erzeugt und deckt
+# Landing und alle Doku-Routen ab.
+Sitemap: https://jotti.rocks/sitemap-index.xml
