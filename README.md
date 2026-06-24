@@ -1,5 +1,8 @@
 # jotti — Das kostenlose Kassensystem für Vereinsfeste.
 
+> [!NOTE]
+> **Beta:** jotti 1.0 wird gerade noch getestet und geprüft.
+
 Ein kostenloses, quelloffenes **Gastronomie-Kassensystem (mPOS)** für Vereine und gemeinnützige Organisationen — Vereinsfeste, Weihnachtsmärkte, Konzerte, Maihocks, Sommerfeste.
 
 Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer, führen den Kassenbestand und erstellen den Tagesabschluss.

@@ -61,7 +61,8 @@
 @layer base {
   html {
     scroll-behavior: smooth;
-    scroll-padding-top: 5rem;
+    /* Sticky-Header inkl. Beta-Banner darüber: Anker nicht verdecken. */
+    scroll-padding-top: 7rem;
   }
 
   ::selection {

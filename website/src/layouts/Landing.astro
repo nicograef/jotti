@@ -61,10 +61,23 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
       href="/icons/jotti-icon-dark-32.png"
       media="(prefers-color-scheme: dark)"
     />
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/jotti-icon-light-32.png" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/icons/jotti-icon-light-32.png"
+    />
     <link rel="apple-touch-icon" href="/icons/jotti-logo-icon-light.png" />
-    <meta name="theme-color" content="#147758" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#121e16" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="theme-color"
+      content="#147758"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#121e16"
+      media="(prefers-color-scheme: dark)"
+    />
 
     <!-- Schrift vorladen -->
     <link
@@ -87,30 +100,66 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
     <header
       class="sticky top-0 z-50 border-b border-card-border bg-background/95 backdrop-blur"
     >
-      <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <a href="/" class="flex items-center gap-2" aria-label="jotti Startseite">
+      <!-- Beta-Hinweis: jotti ist noch vor Version 1.0. -->
+      <div class="border-b border-card-border bg-brand-tint">
+        <p
+          class="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-2 gap-y-0.5 px-6 py-2 text-center text-[0.8125rem]"
+        >
+          <span class="font-bold tracking-[0.06em] text-brand uppercase"
+            >Beta</span
+          >
+          <span class="text-muted"
+            >jotti 1.0 wird gerade noch getestet und geprüft</span
+          >
+        </p>
+      </div>
+      <div
+        class="mx-auto flex h-16 max-w-6xl items-center justify-between px-6"
+      >
+        <a
+          href="/"
+          class="flex items-center gap-2"
+          aria-label="jotti Startseite"
+        >
           <Image src={jottiSymbol} alt="" class="h-7 w-auto" loading="eager" />
           <span class="text-xl font-bold tracking-tight">jotti</span>
         </a>
 
-        <nav class="hidden items-center gap-7 lg:flex" aria-label="Hauptnavigation">
-          <a href="/#versprechen" class="text-sm font-semibold text-muted hover:text-foreground"
+        <nav
+          class="hidden items-center gap-7 lg:flex"
+          aria-label="Hauptnavigation"
+        >
+          <a
+            href="/#versprechen"
+            class="text-sm font-semibold text-muted hover:text-foreground"
             >Versprechen</a
           >
-          <a href="/#features" class="text-sm font-semibold text-muted hover:text-foreground"
+          <a
+            href="/#features"
+            class="text-sm font-semibold text-muted hover:text-foreground"
             >Features</a
           >
           <a
             href="/#fiskalkonform"
-            class="text-sm font-semibold text-muted hover:text-foreground">Fiskalkonform</a
+            class="text-sm font-semibold text-muted hover:text-foreground"
+            >Fiskalkonform</a
           >
-          <a href="/#technik" class="text-sm font-semibold text-muted hover:text-foreground"
+          <a
+            href="/#technik"
+            class="text-sm font-semibold text-muted hover:text-foreground"
             >Selbst betreiben</a
           >
-          <a href={leitfadenUrl} class="text-sm font-semibold text-muted hover:text-foreground"
+          <a
+            href={leitfadenUrl}
+            class="text-sm font-semibold text-muted hover:text-foreground"
             >Leitfaden</a
           >
-          <a href={githubUrl} target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline">
+          <a
+            href={githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-sm btn-outline"
+          >
             GitHub
           </a>
         </nav>
@@ -135,9 +184,9 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
             stroke-linejoin="round"
             aria-hidden="true"
           >
-            <line x1="4" x2="20" y1="6" y2="6" />
-            <line x1="4" x2="20" y1="12" y2="12" />
-            <line x1="4" x2="20" y1="18" y2="18" />
+            <line x1="4" x2="20" y1="6" y2="6"></line>
+            <line x1="4" x2="20" y1="12" y2="12"></line>
+            <line x1="4" x2="20" y1="18" y2="18"></line>
           </svg>
           <svg
             class="menu-icon-close hidden"
@@ -152,8 +201,8 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
             stroke-linejoin="round"
             aria-hidden="true"
           >
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
           </svg>
         </button>
       </div>
@@ -163,26 +212,37 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
         class="hidden flex-col gap-2 border-t border-card-border bg-background px-6 py-4 lg:hidden"
         aria-label="Mobile Navigation"
       >
-        <a href="/#versprechen" class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
+        <a
+          href="/#versprechen"
+          class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
           >Versprechen</a
         >
-        <a href="/#features" class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
+        <a
+          href="/#features"
+          class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
           >Features</a
         >
-        <a href="/#fiskalkonform" class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
+        <a
+          href="/#fiskalkonform"
+          class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
           >Fiskalkonform</a
         >
-        <a href="/#technik" class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
+        <a
+          href="/#technik"
+          class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
           >Selbst betreiben</a
         >
-        <a href={leitfadenUrl} class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
+        <a
+          href={leitfadenUrl}
+          class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
           >Leitfaden für Vereine</a
         >
         <a
           href={githubUrl}
           target="_blank"
           rel="noopener noreferrer"
-          class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt">GitHub</a
+          class="rounded-lg px-3 py-2.5 font-semibold hover:bg-surface-alt"
+          >GitHub</a
         >
       </nav>
     </header>
@@ -192,17 +252,28 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
     </main>
 
     <footer class="border-t border-card-border py-10">
-      <div class="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 text-center">
-        <a href="/" class="flex items-center gap-2" aria-label="jotti Startseite">
+      <div
+        class="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 text-center"
+      >
+        <a
+          href="/"
+          class="flex items-center gap-2"
+          aria-label="jotti Startseite"
+        >
           <Image src={jottiSymbol} alt="" class="h-7 w-auto" loading="lazy" />
           <span class="text-xl font-bold tracking-tight">jotti</span>
         </a>
         <p class="max-w-160 text-[0.9375rem] text-muted">
-          Das kostenlose, fiskalkonforme Kassensystem für Vereinsfeste und gemeinnützige
-          Organisationen.
+          Das kostenlose, fiskalkonforme Kassensystem für Vereinsfeste und
+          gemeinnützige Organisationen.
         </p>
-        <nav class="flex flex-wrap justify-center gap-6" aria-label="Footer-Navigation">
-          <a href={leitfadenUrl} class="text-sm font-semibold text-muted hover:text-brand"
+        <nav
+          class="flex flex-wrap justify-center gap-6"
+          aria-label="Footer-Navigation"
+        >
+          <a
+            href={leitfadenUrl}
+            class="text-sm font-semibold text-muted hover:text-brand"
             >Leitfaden für Vereine</a
           >
           <a
@@ -215,7 +286,8 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
             href={`${githubUrl}/blob/main/TERMS.md`}
             target="_blank"
             rel="noopener noreferrer"
-            class="text-sm font-semibold text-muted hover:text-brand">Nutzungsbedingungen</a
+            class="text-sm font-semibold text-muted hover:text-brand"
+            >Nutzungsbedingungen</a
           >
           <a
             href={`${githubUrl}/blob/main/LICENSE`}
@@ -224,7 +296,9 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
             class="text-sm font-semibold text-muted hover:text-brand">Lizenz</a
           >
         </nav>
-        <p class="w-full border-t border-card-border pt-5 text-[0.8125rem] text-muted">
+        <p
+          class="w-full border-t border-card-border pt-5 text-[0.8125rem] text-muted"
+        >
           Entwickelt von
           <a
             href="https://nicograef.de"
