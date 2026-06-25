@@ -226,13 +226,13 @@ Hinweis"-Box bleibt als gutes Vorbild erhalten.
 
 ### Acceptance criteria
 
-- [ ] README und Produktbeschreibung verwenden eine identische, belegbare
+- [x] README und Produktbeschreibung verwenden eine identische, belegbare
       Status-Formulierung; kein interner Widerspruch mehr zwischen „Feature
       vorhanden" und „in Entwicklung".
-- [ ] Kein absolutes „fiskalkonform" als jotti-Selbstaussage außerhalb klar als
+- [x] Kein absolutes „fiskalkonform" als jotti-Selbstaussage außerhalb klar als
       Zielbild markierter Stellen.
-- [ ] Jede DSFinV-K-Versionsangabe in README nennt 2.4.
-- [ ] Beta-Note in der README bleibt erhalten.
+- [x] Jede DSFinV-K-Versionsangabe in README nennt 2.4.
+- [x] Beta-Note in der README bleibt erhalten.
 
 ---
 
@@ -257,10 +257,10 @@ Strukturänderung nicht erwartet).
 
 ### Acceptance criteria
 
-- [ ] `dsfinvk.go` deklariert `Version = "2.4"`; der Kommentar nennt die korrekte
+- [x] `dsfinvk.go` deklariert `Version = "2.4"`; der Kommentar nennt die korrekte
       verbindliche Fassung.
-- [ ] Erzeugte `index.xml` enthält `<Version>2.4</Version>`.
-- [ ] `go test ./backend/domain/dsfinvk/...` ist grün (alle „2.5"-Erwartungen
+- [x] Erzeugte `index.xml` enthält `<Version>2.4</Version>`.
+- [x] `go test ./backend/domain/dsfinvk/...` ist grün (alle „2.5"-Erwartungen
       aktualisiert).
-- [ ] compliance.md, README und der erzeugte Export nennen durchgängig dieselbe
+- [x] compliance.md, README und der erzeugte Export nennen durchgängig dieselbe
       Version (2.4) — kein Widerspruch mehr zwischen Code, Doku und Marketing.
