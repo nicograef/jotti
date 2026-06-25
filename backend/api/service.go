@@ -63,6 +63,7 @@ func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 		TSESignierer:        tseSignierer,
 	}
 	r.HandleFunc("/bestellung-aufnehmen", tc.BestellungAufnehmenHandler())
+	r.HandleFunc("/bestellung-umbuchen", tc.BestellungUmbuchenHandler())
 	r.HandleFunc("/zahlung-kassieren", tc.ZahlungKassierenHandler())
 	r.HandleFunc("/beleg-drucken", tc.KassenbelegDruckenHandler())
 	r.HandleFunc("/ausgabe-bestaetigen", tc.AusgabeBestaetigenHandler())

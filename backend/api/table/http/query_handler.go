@@ -251,6 +251,41 @@ func toStornierung(s k.Stornierung) stornierung {
 	}
 }
 
+type umbuchung struct {
+	Art                    string     `json:"art"`
+	ID                     string     `json:"id"`
+	UserID                 int        `json:"userId"`
+	UserName               string     `json:"userName"`
+	TischID                int        `json:"tischId"`
+	QuellTischID           int        `json:"quellTischId"`
+	ZielTischID            int        `json:"zielTischId"`
+	Positionen             []position `json:"positionen"`
+	GesamtCents            int        `json:"gesamtCents"`
+	Kommentar              string     `json:"kommentar"`
+	UmgebuchtAm            time.Time  `json:"umgebuchtAm"`
+	StornierbarePositionen []position `json:"stornierbarePositionen"`
+	UmbuchbarePositionen   []position `json:"umbuchbarePositionen"`
+}
+
+func toUmbuchung(eintrag k.HistorieEintrag) umbuchung {
+	u := *eintrag.Umbuchung
+	return umbuchung{
+		Art:                    string(k.HistorieEintragUmbuchung),
+		ID:                     u.ID,
+		UserID:                 u.UserID,
+		UserName:               u.UserName,
+		TischID:                u.TischID,
+		QuellTischID:           u.QuellTischID,
+		ZielTischID:            u.ZielTischID,
+		Positionen:             toPositionen(u.Positionen),
+		GesamtCents:            u.GesamtCents,
+		Kommentar:              u.Kommentar,
+		UmgebuchtAm:            u.UmgebuchtAm,
+		StornierbarePositionen: toPositionen(eintrag.StornierbarePositionen),
+		UmbuchbarePositionen:   toPositionen(eintrag.UmbuchbarePositionen),
+	}
+}
+
 type auszahlung struct {
 	Art         string    `json:"art"`
 	ID          string    `json:"id"`
@@ -294,6 +329,10 @@ func toHistorie(eintraege []k.HistorieEintrag) []any {
 		case k.HistorieEintragStornierung:
 			if eintrag.Stornierung != nil {
 				historieResponse = append(historieResponse, toStornierung(*eintrag.Stornierung))
+			}
+		case k.HistorieEintragUmbuchung:
+			if eintrag.Umbuchung != nil {
+				historieResponse = append(historieResponse, toUmbuchung(eintrag))
 			}
 		case k.HistorieEintragAuszahlung:
 			if eintrag.Auszahlung != nil {

@@ -141,16 +141,13 @@ type umbuchungPositionData struct {
 	Menge        int    `json:"menge"`
 }
 
-type stornierungErteiltData struct {
-	Positionen             []umbuchungPositionData `json:"positionen"`
-	GesamtStornierungCents int                     `json:"gesamtStornierungCents"`
-	Kommentar              string                  `json:"kommentar"`
-}
-
-type bestellungAufgenommenData struct {
-	Positionen       []umbuchungPositionData `json:"positionen"`
-	GesamtPreisCents int                     `json:"gesamtPreisCents"`
-	Kommentar        string                  `json:"kommentar"`
+type bestellungUmgebuchtData struct {
+	UmbuchungID  string                  `json:"umbuchungId"`
+	QuellTischID int                     `json:"quellTischId"`
+	ZielTischID  int                     `json:"zielTischId"`
+	Positionen   []umbuchungPositionData `json:"positionen"`
+	GesamtCents  int                     `json:"gesamtCents"`
+	Kommentar    string                  `json:"kommentar"`
 }
 
 type umbuchungTableRepoMock struct {
@@ -1200,8 +1197,8 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	if len(quellEvents) != 1 {
 		t.Fatalf("expected 1 source event, got %d", len(quellEvents))
 	}
-	if quellEvents[0].Type != string(kasse.EventTypeStornierungErteiltV1) {
-		t.Fatalf("expected source event type %s, got %s", kasse.EventTypeStornierungErteiltV1, quellEvents[0].Type)
+	if quellEvents[0].Type != string(kasse.EventTypeBestellungUmgebuchtV1) {
+		t.Fatalf("expected source event type %s, got %s", kasse.EventTypeBestellungUmgebuchtV1, quellEvents[0].Type)
 	}
 
 	zielEvents, err := eventMock.ReadEventsBySubject(ctx, zielSubject)
@@ -1211,50 +1208,140 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	if len(zielEvents) != 1 {
 		t.Fatalf("expected 1 target event, got %d", len(zielEvents))
 	}
-	if zielEvents[0].Type != string(kasse.EventTypeBestellungAufgenommenV1) {
-		t.Fatalf("expected target event type %s, got %s", kasse.EventTypeBestellungAufgenommenV1, zielEvents[0].Type)
+	if zielEvents[0].Type != string(kasse.EventTypeBestellungUmgebuchtV1) {
+		t.Fatalf("expected target event type %s, got %s", kasse.EventTypeBestellungUmgebuchtV1, zielEvents[0].Type)
 	}
 
-	var stornoData stornierungErteiltData
-	if err := json.Unmarshal(quellEvents[0].Data, &stornoData); err != nil {
-		t.Fatalf("expected no unmarshal error for storno data, got %v", err)
+	var quellData bestellungUmgebuchtData
+	if err := json.Unmarshal(quellEvents[0].Data, &quellData); err != nil {
+		t.Fatalf("expected no unmarshal error for source umbuchung data, got %v", err)
 	}
 
-	if stornoData.GesamtStornierungCents != 350 {
-		t.Fatalf("expected source amount 350, got %d", stornoData.GesamtStornierungCents)
+	if quellData.GesamtCents != 350 {
+		t.Fatalf("expected source amount 350, got %d", quellData.GesamtCents)
 	}
-	if stornoData.Kommentar != "Umbuchung auf Tisch Tisch Ziel" {
-		t.Fatalf("unexpected source comment: %q", stornoData.Kommentar)
+	if quellData.QuellTischID != quellTisch.ID || quellData.ZielTischID != zielTisch.ID {
+		t.Fatalf("unexpected source tisch refs: quell=%d ziel=%d", quellData.QuellTischID, quellData.ZielTischID)
 	}
-	if len(stornoData.Positionen) != 1 {
-		t.Fatalf("expected 1 source position, got %d", len(stornoData.Positionen))
+	if quellData.Kommentar != "Umbuchung auf Tisch Tisch Ziel" {
+		t.Fatalf("unexpected source comment: %q", quellData.Kommentar)
 	}
-	if stornoData.Positionen[0].PositionID != quellPositionID {
-		t.Fatalf("expected source position ID %q, got %q", quellPositionID, stornoData.Positionen[0].PositionID)
+	if len(quellData.Positionen) != 1 {
+		t.Fatalf("expected 1 source position, got %d", len(quellData.Positionen))
 	}
-	if stornoData.Positionen[0].Einzelpreis != 350 {
-		t.Fatalf("expected source einzelpreis 350, got %d", stornoData.Positionen[0].Einzelpreis)
+	if quellData.Positionen[0].PositionID != quellPositionID {
+		t.Fatalf("expected source position ID %q, got %q", quellPositionID, quellData.Positionen[0].PositionID)
 	}
-
-	var bestellungData bestellungAufgenommenData
-	if err := json.Unmarshal(zielEvents[0].Data, &bestellungData); err != nil {
-		t.Fatalf("expected no unmarshal error for bestellung data, got %v", err)
+	if quellData.Positionen[0].Einzelpreis != 350 {
+		t.Fatalf("expected source einzelpreis 350, got %d", quellData.Positionen[0].Einzelpreis)
 	}
 
-	if bestellungData.GesamtPreisCents != 350 {
-		t.Fatalf("expected target amount 350, got %d", bestellungData.GesamtPreisCents)
+	var zielData bestellungUmgebuchtData
+	if err := json.Unmarshal(zielEvents[0].Data, &zielData); err != nil {
+		t.Fatalf("expected no unmarshal error for target umbuchung data, got %v", err)
 	}
-	if bestellungData.Kommentar != "Umbuchung von Tisch Tisch Quelle" {
-		t.Fatalf("unexpected target comment: %q", bestellungData.Kommentar)
+
+	if zielData.GesamtCents != 350 {
+		t.Fatalf("expected target amount 350, got %d", zielData.GesamtCents)
 	}
-	if len(bestellungData.Positionen) != 1 {
-		t.Fatalf("expected 1 target position, got %d", len(bestellungData.Positionen))
+	// Beide Seiten teilen sich dieselbe UmbuchungID.
+	if zielData.UmbuchungID != quellData.UmbuchungID {
+		t.Fatalf("expected shared UmbuchungID, got quell=%q ziel=%q", quellData.UmbuchungID, zielData.UmbuchungID)
 	}
-	if bestellungData.Positionen[0].PositionID == quellPositionID {
-		t.Fatalf("expected target position ID to be regenerated, but remained %q", bestellungData.Positionen[0].PositionID)
+	if zielData.Kommentar != "Umbuchung von Tisch Tisch Quelle" {
+		t.Fatalf("unexpected target comment: %q", zielData.Kommentar)
 	}
-	if bestellungData.Positionen[0].Einzelpreis != 350 {
-		t.Fatalf("expected target einzelpreis 350, got %d", bestellungData.Positionen[0].Einzelpreis)
+	if len(zielData.Positionen) != 1 {
+		t.Fatalf("expected 1 target position, got %d", len(zielData.Positionen))
+	}
+	if zielData.Positionen[0].PositionID == quellPositionID {
+		t.Fatalf("expected target position ID to be regenerated, but remained %q", zielData.Positionen[0].PositionID)
+	}
+	if zielData.Positionen[0].Einzelpreis != 350 {
+		t.Fatalf("expected target einzelpreis 350, got %d", zielData.Positionen[0].Einzelpreis)
+	}
+}
+
+func TestBestellungUmbuchen_SigniertBeideSeitenAlsBestellung(t *testing.T) {
+	ctx := context.Background()
+	quellTisch := table.Tisch{ID: 1, Name: "Tisch Quelle", Status: table.ActiveStatus}
+	zielTisch := table.Tisch{ID: 2, Name: "Tisch Ziel", Status: table.ActiveStatus}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
+	zielSubject := kasse.TischSessionSubject(testKassensitzungNr, zielTisch.ID)
+	quellPositionID := uuid.New().String()
+
+	eventMock.SetTischSession(quellSubject, kasse.TischSession{
+		SaldoCents: 350,
+		UnbezahltePositionen: []kasse.Position{{
+			PositionID:   quellPositionID,
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk", Steuersatz: "regel",
+			Einzelpreis: 350,
+			Menge:       1,
+		}},
+	})
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{quellTisch, zielTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				signierZeit := time.Date(2026, 6, 10, 20, 0, 1, 0, time.UTC)
+				return tse.FakeClient{
+					StartResponse: tse.StartResult{TransactionNumber: 91, LogTime: signierZeit, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 100},
+					FinishResponse: tse.FinishResult{
+						TransactionNumber: 91, Signature: "SIG-ABC", LogTime: signierZeit,
+						LogTimeStart: signierZeit, LogTimeEnd: signierZeit, SignatureCounter: 101, SerialNumberTSE: "TSE-SN-1",
+					},
+				}, nil
+			},
+		},
+	}
+
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	for _, tc := range []struct {
+		name    string
+		subject string
+	}{{"quelle", quellSubject}, {"ziel", zielSubject}} {
+		events, err := eventMock.ReadEventsBySubject(ctx, tc.subject)
+		if err != nil {
+			t.Fatalf("%s: expected no read error, got %v", tc.name, err)
+		}
+		if len(events) != 1 {
+			t.Fatalf("%s: expected 1 event, got %d", tc.name, len(events))
+		}
+		var data bestellungUmgebuchtData
+		if err := json.Unmarshal(events[0].Data, &data); err != nil {
+			t.Fatalf("%s: unmarshal: %v", tc.name, err)
+		}
+		var felder struct {
+			TSEData *kasse.TSEData `json:"tseData"`
+		}
+		if err := json.Unmarshal(events[0].Data, &felder); err != nil {
+			t.Fatalf("%s: unmarshal tse: %v", tc.name, err)
+		}
+		if felder.TSEData == nil {
+			t.Fatalf("%s: expected umbuchung event to be signed", tc.name)
+		}
+		if felder.TSEData.ProcessType != tse.ProcessTypeBestellungV1 {
+			t.Fatalf("%s: processType = %q, want %q", tc.name, felder.TSEData.ProcessType, tse.ProcessTypeBestellungV1)
+		}
 	}
 }
 
@@ -1294,26 +1381,26 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 	quellEvents, _ := eventMock.ReadEventsBySubject(ctx, quellSubject)
 	zielEvents, _ := eventMock.ReadEventsBySubject(ctx, zielSubject)
 
-	var stornoData stornierungErteiltData
-	if err := json.Unmarshal(quellEvents[0].Data, &stornoData); err != nil {
-		t.Fatalf("expected no unmarshal error for storno data, got %v", err)
+	var quellData bestellungUmgebuchtData
+	if err := json.Unmarshal(quellEvents[0].Data, &quellData); err != nil {
+		t.Fatalf("expected no unmarshal error for source umbuchung data, got %v", err)
 	}
-	var bestellungData bestellungAufgenommenData
-	if err := json.Unmarshal(zielEvents[0].Data, &bestellungData); err != nil {
-		t.Fatalf("expected no unmarshal error for bestellung data, got %v", err)
+	var zielData bestellungUmgebuchtData
+	if err := json.Unmarshal(zielEvents[0].Data, &zielData); err != nil {
+		t.Fatalf("expected no unmarshal error for target umbuchung data, got %v", err)
 	}
 
-	if utf8.RuneCountInString(stornoData.Kommentar) > 100 {
-		t.Fatalf("expected source comment length <= 100 runes, got %d", utf8.RuneCountInString(stornoData.Kommentar))
+	if utf8.RuneCountInString(quellData.Kommentar) > 100 {
+		t.Fatalf("expected source comment length <= 100 runes, got %d", utf8.RuneCountInString(quellData.Kommentar))
 	}
-	if utf8.RuneCountInString(bestellungData.Kommentar) > 100 {
-		t.Fatalf("expected target comment length <= 100 runes, got %d", utf8.RuneCountInString(bestellungData.Kommentar))
+	if utf8.RuneCountInString(zielData.Kommentar) > 100 {
+		t.Fatalf("expected target comment length <= 100 runes, got %d", utf8.RuneCountInString(zielData.Kommentar))
 	}
-	if !strings.HasPrefix(stornoData.Kommentar, "Umbuchung auf Tisch ") {
-		t.Fatalf("expected source comment prefix, got %q", stornoData.Kommentar)
+	if !strings.HasPrefix(quellData.Kommentar, "Umbuchung auf Tisch ") {
+		t.Fatalf("expected source comment prefix, got %q", quellData.Kommentar)
 	}
-	if !strings.HasPrefix(bestellungData.Kommentar, "Umbuchung von Tisch ") {
-		t.Fatalf("expected target comment prefix, got %q", bestellungData.Kommentar)
+	if !strings.HasPrefix(zielData.Kommentar, "Umbuchung von Tisch ") {
+		t.Fatalf("expected target comment prefix, got %q", zielData.Kommentar)
 	}
 }
 

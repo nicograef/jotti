@@ -17,7 +17,7 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
 import { formatCents, formatPositionName } from '@/lib/utils'
 
-import type { Bestellung, Position } from '../../table/Bestellung'
+import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { KommentarField } from './CommentField'
@@ -30,7 +30,9 @@ import {
 interface HistorieStornierungDrawerProps {
   backend: Pick<TischBackend, 'stornierungErteilen'>
   tisch: Tisch
-  bestellung: Bestellung
+  // Ursprungsvorgang (Bestellung oder Umbuchungs-Zugang), dessen Positionen storniert
+  // werden; beschriftet den Drawer.
+  vorgangId: string
   positionen: Position[]
   onClose: () => void
   onStornierungErteilt: () => void
@@ -39,7 +41,7 @@ interface HistorieStornierungDrawerProps {
 export function HistorieStornierungDrawer({
   backend,
   tisch,
-  bestellung,
+  vorgangId,
   positionen,
   onClose,
   onStornierungErteilt,
@@ -87,10 +89,10 @@ export function HistorieStornierungDrawer({
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
             <DrawerTitle>
-              Stornierung aus Bestellung {bestellung.id.slice(0, 8)}
+              Stornierung aus Vorgang {vorgangId.slice(0, 8)}
             </DrawerTitle>
             <DrawerDescription>
-              Positionen aus dieser Bestellung zum Stornieren auswählen.
+              Positionen aus diesem Vorgang zum Stornieren auswählen.
             </DrawerDescription>
           </DrawerHeader>
           <ScrollArea className="max-h-72">

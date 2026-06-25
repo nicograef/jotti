@@ -132,10 +132,11 @@ func (b *beleg) ustAufteilung() []ustBetrag {
 // Map transformiert Snapshot und Events einer Kassensitzung in das typisierte
 // Archiv. Reine Funktion ohne I/O. Der Umsatz entsteht einmal, bei der Zahlung
 // (Revenue-at-payment, DSFinV-K Tz. 2.7.2): `zahlung-kassiert` ist der einzige
-// umsatzwirksame Beleg. `bestellung-aufgenommen` und `stornierung-erteilt`
-// werden geldneutrale `AVBestellung`-Vorgänge (TSE-gesichert, informative
-// Positionen, aber ohne Umsatz/USt/Zahlart); der Storno trägt zusätzlich eine
-// Referenz auf den Ursprung. Hinzu kommen die Direktverkauf-Vorgänge sowie die
+// umsatzwirksame Beleg. `bestellung-aufgenommen`, `stornierung-erteilt` und
+// `bestellung-umgebucht` werden geldneutrale `AVBestellung`-Vorgänge (TSE-gesichert,
+// informative Positionen, aber ohne Umsatz/USt/Zahlart); Storno und Umbuchungs-Zugang
+// tragen zusätzlich eine Referenz auf den Ursprung. Hinzu kommen die
+// Direktverkauf-Vorgänge sowie die
 // Bargeldbewegungen (Anfangsbestand, Geldtransit, Auszahlung, Kassendifferenz).
 // Das Kassenabschlussmodul (businesscases, payment, cash_per_currency) aggregiert
 // dieselben Belege je GV-Typ und Zahlart.
@@ -272,6 +273,47 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				tseTxID:          data.TSETxID,
 				notiz:            data.Kommentar,
 			})
+
+		case string(kasse.EventTypeBestellungUmgebuchtV1):
+			var data kasse.BestellungUmgebuchtV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal bestellung-umgebucht (event %d): %w", ev.ID, err)
+			}
+			tischID, err := kasse.ParseTischIDFromSubject(ev.Subject)
+			if err != nil {
+				return nil, fmt.Errorf("parse tisch from bestellung-umgebucht (event %d): %w", ev.ID, err)
+			}
+			// Eine Umbuchung ist geldneutral (AVBestellung, kein Umsatz/Zahlart/Kassen-
+			// bestand). Quelle und Ziel teilen sich die UmbuchungID: der Abgang trägt sie
+			// als BON_ID, der Zugang referenziert sie — so sind beide Seiten verknüpft.
+			bon := beleg{
+				bonNr:            0, // unten gesetzt
+				bonTyp:           bonTypBestellung,
+				gvTyp:            gvTypUmsatz,
+				geldneutral:      true,
+				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
+				start:            zeit(ev),
+				ende:             zeit(ev),
+				bedienerID:       ev.UserID,
+				bedienerName:     ev.UserName,
+				positionen:       data.Positionen,
+				bruttoCents:      data.GesamtCents,
+				tse:              data.TSEData,
+				tseTxID:          data.TSETxID,
+				notiz:            data.Kommentar,
+			}
+			if tischID == data.QuellTischID {
+				bon.bonID = data.UmbuchungID
+			} else {
+				bon.bonID = fmt.Sprintf("umbuchung-%d", ev.ID)
+				bon.refBonIDs = []string{data.UmbuchungID}
+				for _, p := range data.Positionen {
+					herkunft[p.PositionID] = bon.bonID
+				}
+			}
+			bonNr++
+			bon.bonNr = bonNr
+			belege = append(belege, bon)
 
 		case string(kasse.EventTypeDirektverkaufGetaetigtV1):
 			var data kasse.DirektverkaufGetaetigtV1Data
@@ -758,11 +800,13 @@ var referencesColumns = []column{
 	alpha("REF_DATUM"), alpha("REF_Z_KASSE_ID"), num("REF_Z_NR", 0), alpha("REF_BON_ID"),
 }
 
-// buildReferences verkettet jeden Storno-Beleg mit seinem Ursprungsvorgang
-// (Radierverbot, DSFinV-K Tz. 4.2.2). REF_TYP "Transaktion" verweist innerhalb
-// der DSFinV-K; da Ursprung und Storno in derselben Sitzung liegen, sind
-// REF_DATUM, REF_Z_KASSE_ID und REF_Z_NR die Abschlusswerte dieser Sitzung.
-// POS_ZEILE bleibt leer (Verweis aus dem Bonkopf, nicht aus einer Position).
+// buildReferences verkettet referenzierende Belege mit ihrem Ursprungsvorgang: den
+// Storno mit dem stornierten Beleg (Radierverbot, DSFinV-K Tz. 4.2.2) und den
+// Umbuchungs-Zugang mit dem zugehörigen Abgang. REF_TYP "Transaktion" verweist
+// innerhalb der DSFinV-K; da Ursprung und referenzierender Beleg in derselben
+// Sitzung liegen, sind REF_DATUM, REF_Z_KASSE_ID und REF_Z_NR die Abschlusswerte
+// dieser Sitzung. POS_ZEILE bleibt leer (Verweis aus dem Bonkopf, nicht aus einer
+// Position).
 func buildReferences(s Snapshot, erstellung string, belege []beleg) Table {
 	var records [][]string
 	for bi := range belege {
@@ -779,7 +823,7 @@ func buildReferences(s Snapshot, erstellung string, belege []beleg) Table {
 	return Table{
 		File:        "references.csv",
 		LogicalName: "Bon_Referenzen",
-		Description: "Referenzen auf andere Bons (Storno → Ursprung)",
+		Description: "Referenzen auf andere Bons (Storno/Umbuchung → Ursprung)",
 		Columns:     referencesColumns,
 		Records:     records,
 	}

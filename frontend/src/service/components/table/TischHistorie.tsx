@@ -31,6 +31,7 @@ import type { Bestellung } from '../../table/Bestellung'
 import type { Stornierung } from '../../table/Stornierung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import type { Umbuchung } from '../../table/Umbuchung'
 import type { Zahlung } from '../../table/Zahlung'
 import { Kommentar } from './CommentField'
 import { toReceiptItems } from './drawerUtils'
@@ -38,7 +39,17 @@ import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 import { Receipt, type ReceiptPosition } from './Receipt'
 
-type HistorieEintrag = Bestellung | Zahlung | Stornierung | Ausgabe | Auszahlung
+type HistorieEintrag =
+  | Bestellung
+  | Zahlung
+  | Stornierung
+  | Umbuchung
+  | Ausgabe
+  | Auszahlung
+
+// Quelle ist ein Eintrag, der Positionen auf den Tisch bringt — eine Bestellung oder
+// der Zugang einer Umbuchung. Nur diese tragen stornier-/umbuchbare Positionen.
+type Quelle = Bestellung | Umbuchung
 
 interface TischHistorieProps {
   historie: HistorieEintrag[]
@@ -61,10 +72,8 @@ export function TischHistorie({
   onBestellungUmgebucht,
 }: TischHistorieProps) {
   const [detail, setDetail] = useState<HistorieEintrag | null>(null)
-  const [stornierenBestellung, setStornierenBestellung] =
-    useState<Bestellung | null>(null)
-  const [umbuchenBestellung, setUmbuchenBestellung] =
-    useState<Bestellung | null>(null)
+  const [stornierenQuelle, setStornierenQuelle] = useState<Quelle | null>(null)
+  const [umbuchenQuelle, setUmbuchenQuelle] = useState<Quelle | null>(null)
   const { loading: belegDruckenLoading, run: runBelegDrucken } =
     useActionSubmit({
       actionLabel: 'Beleg drucken',
@@ -116,20 +125,51 @@ export function TischHistorie({
                         AuthSingleton.canCancel &&
                         item.stornierbarePositionen.length > 0
                           ? () => {
-                              setStornierenBestellung(item)
+                              setStornierenQuelle(item)
                             }
                           : undefined
                       }
                       onUmbuchen={
-                        AuthSingleton.canCancel &&
+                        AuthSingleton.canRebook &&
                         item.umbuchbarePositionen.length > 0
                           ? () => {
-                              setUmbuchenBestellung(item)
+                              setUmbuchenQuelle(item)
                             }
                           : undefined
                       }
                     />
                   )
+                case 'umbuchung': {
+                  const istZugang = item.tischId === item.zielTischId
+                  return (
+                    <HistoryItem
+                      key={item.id}
+                      title={`Umbuchung ${istZugang ? '+' : '-'}${formatCents(item.gesamtCents)} €`}
+                      date={item.umgebuchtAm}
+                      userName={item.userName}
+                      kommentar={item.kommentar}
+                      onClick={() => {
+                        setDetail(item)
+                      }}
+                      onStornieren={
+                        AuthSingleton.canCancel &&
+                        item.stornierbarePositionen.length > 0
+                          ? () => {
+                              setStornierenQuelle(item)
+                            }
+                          : undefined
+                      }
+                      onUmbuchen={
+                        AuthSingleton.canRebook &&
+                        item.umbuchbarePositionen.length > 0
+                          ? () => {
+                              setUmbuchenQuelle(item)
+                            }
+                          : undefined
+                      }
+                    />
+                  )
+                }
                 case 'stornierung':
                   return (
                     <HistoryItem
@@ -196,32 +236,32 @@ export function TischHistorie({
           }
         />
       )}
-      {stornierenBestellung && (
+      {stornierenQuelle && (
         <HistorieStornierungDrawer
           backend={backend}
           tisch={tisch}
-          bestellung={stornierenBestellung}
-          positionen={stornierenBestellung.stornierbarePositionen}
+          vorgangId={stornierenQuelle.id}
+          positionen={stornierenQuelle.stornierbarePositionen}
           onClose={() => {
-            setStornierenBestellung(null)
+            setStornierenQuelle(null)
           }}
           onStornierungErteilt={() => {
-            setStornierenBestellung(null)
+            setStornierenQuelle(null)
             onStornierungErteilt()
           }}
         />
       )}
-      {umbuchenBestellung && (
+      {umbuchenQuelle && (
         <HistorieUmbuchungDrawer
           backend={backend}
           tisch={tisch}
-          bestellung={umbuchenBestellung}
-          positionen={umbuchenBestellung.umbuchbarePositionen}
+          vorgangId={umbuchenQuelle.id}
+          positionen={umbuchenQuelle.umbuchbarePositionen}
           onClose={() => {
-            setUmbuchenBestellung(null)
+            setUmbuchenQuelle(null)
           }}
           onBestellungUmgebucht={() => {
-            setUmbuchenBestellung(null)
+            setUmbuchenQuelle(null)
             onBestellungUmgebucht()
           }}
         />
@@ -344,6 +384,13 @@ function detailView(eintrag: HistorieEintrag): {
         date: eintrag.storniertAm,
         positionen: toReceiptItems(eintrag.positionen),
         totalPrice: eintrag.gesamtStornierungCents,
+      }
+    case 'umbuchung':
+      return {
+        title: 'Umbuchung',
+        date: eintrag.umgebuchtAm,
+        positionen: toReceiptItems(eintrag.positionen),
+        totalPrice: eintrag.gesamtCents,
       }
     case 'ausgabe':
       return {

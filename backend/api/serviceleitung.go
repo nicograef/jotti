@@ -43,7 +43,6 @@ func NewServiceleitungApi(cfg config.Config, db *sql.DB) http.Handler {
 		TSESignierer:        tseSignierer,
 	}
 	r.HandleFunc("/stornierung-erteilen", tc.StornierungErteilenHandler())
-	r.HandleFunc("/bestellung-umbuchen", tc.BestellungUmbuchenHandler())
 	r.HandleFunc("/auszahlung-leisten", tc.AuszahlungLeistenHandler())
 
 	dc := direktverkaufHTTP.CommandHandler{}

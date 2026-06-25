@@ -37,18 +37,8 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, neuePositionen)
 		state.AusstehendePositionen = accumulatePositionen(state.AusstehendePositionen, neuePositionen)
 
-		// AEAO 1.14.3: Liegt keine TSE-logTime vor (z. B. TSE-Ausfall bei der ersten
-		// Bestellung), stellt das Aufzeichnungssystem den Zeitpunkt — Fallback auf die Event-Zeit.
-		if state.ErsteBestellungLogTime == nil {
-			logTime := evt.Time.UTC()
-			if data.TSEData != nil && strings.TrimSpace(data.TSEData.LogTimeStart) != "" {
-				parsed, err := time.Parse(time.RFC3339, strings.TrimSpace(data.TSEData.LogTimeStart))
-				if err != nil {
-					return state, fmt.Errorf("parse erste bestellung log time: %w", err)
-				}
-				logTime = parsed.UTC()
-			}
-			state.ErsteBestellungLogTime = &logTime
+		if err := setErsteBestellungLogTime(&state, data.TSEData, evt.Time); err != nil {
+			return state, err
 		}
 
 	case string(EventTypeZahlungKassiertV1):
@@ -68,6 +58,35 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		state.SaldoCents -= data.GesamtStornierungCents
 		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
 		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
+
+	case string(EventTypeBestellungUmgebuchtV1):
+		var data BestellungUmgebuchtV1Data
+		if err := json.Unmarshal(evt.Data, &data); err != nil {
+			return state, fmt.Errorf("unmarshal umbuchung data: %w", err)
+		}
+		tischID, err := ParseTischIDFromSubject(evt.Subject)
+		if err != nil {
+			return state, err
+		}
+		positionen := fromPositionenEventData(data.Positionen)
+		if tischID == data.QuellTischID {
+			// Abgang: die Positionen verlassen den Quelltisch (geldneutral je System,
+			// der Quell-Saldo sinkt).
+			state.SaldoCents -= data.GesamtCents
+			state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, positionen)
+			state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, positionen)
+		} else {
+			// Zugang: die Positionen kommen auf den Zieltisch, wie eine frische
+			// Bestellung (Saldo steigt, Positionen sind ausstehend und unbezahlt).
+			neuePositionen := tagBesteller(positionen, evt.UserID, evt.UserName)
+			state.SaldoCents += data.GesamtCents
+			state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, neuePositionen)
+			state.AusstehendePositionen = accumulatePositionen(state.AusstehendePositionen, neuePositionen)
+
+			if err := setErsteBestellungLogTime(&state, data.TSEData, evt.Time); err != nil {
+				return state, err
+			}
+		}
 
 	case string(EventTypeAusgabeBestaetigtV1):
 		var data AusgabeBestaetigtV1Data
@@ -93,6 +112,28 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 	return state, nil
 }
 
+// setErsteBestellungLogTime stempelt den Zeitpunkt der ersten Bestellung auf den
+// Tisch, sofern noch nicht gesetzt. AEAO 1.14.3: Liegt keine TSE-logTime vor (z. B.
+// TSE-Ausfall bei der ersten Bestellung), stellt das Aufzeichnungssystem den
+// Zeitpunkt — Fallback auf die Event-Zeit. Eine Umbuchung auf einen leeren Zieltisch
+// zählt dabei wie eine erste Bestellung.
+func setErsteBestellungLogTime(state *TischSession, tseData *TSEData, eventTime time.Time) error {
+	if state.ErsteBestellungLogTime != nil {
+		return nil
+	}
+
+	logTime := eventTime.UTC()
+	if tseData != nil && strings.TrimSpace(tseData.LogTimeStart) != "" {
+		parsed, err := time.Parse(time.RFC3339, strings.TrimSpace(tseData.LogTimeStart))
+		if err != nil {
+			return fmt.Errorf("parse erste bestellung log time: %w", err)
+		}
+		logTime = parsed.UTC()
+	}
+	state.ErsteBestellungLogTime = &logTime
+	return nil
+}
+
 // ComputeNichtStorniertePositionen replays events to compute all positions that were ordered
 // but not yet cancelled. Used on-demand for stornierung validation.
 func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
@@ -113,6 +154,25 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 				return nil, fmt.Errorf("unmarshal stornierung data: %w", err)
 			}
 			nichtStorniert = reduceByPosition(nichtStorniert, fromPositionenEventData(data.Positionen))
+
+		case string(EventTypeBestellungUmgebuchtV1):
+			// Abgang entfernt die umgebuchten Positionen vom Quelltisch, Zugang fügt
+			// sie dem Zieltisch hinzu — wie eine Bestellung. Welche Seite hier vorliegt,
+			// folgt aus dem Tisch des Subjects.
+			var data BestellungUmgebuchtV1Data
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal umbuchung data: %w", err)
+			}
+			tischID, err := ParseTischIDFromSubject(evt.Subject)
+			if err != nil {
+				return nil, err
+			}
+			positionen := fromPositionenEventData(data.Positionen)
+			if tischID == data.QuellTischID {
+				nichtStorniert = reduceByPosition(nichtStorniert, positionen)
+			} else {
+				nichtStorniert = accumulatePositionen(nichtStorniert, positionen)
+			}
 
 		case string(EventTypeZahlungKassiertV1), string(EventTypeAusgabeBestaetigtV1), string(EventTypeAuszahlungGeleistetV1):
 			continue

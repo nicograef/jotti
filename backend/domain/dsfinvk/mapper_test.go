@@ -508,6 +508,115 @@ func TestMapTischStornoNegativeWithReference(t *testing.T) {
 	}
 }
 
+const umbuchungBonID = "99999999-9999-4999-8999-999999999999"
+
+// umbuchungEventPaar baut das verknüpfte, geldneutrale Umbuchungs-Paar: Abgang auf
+// Tisch 42 (BON_ID = UmbuchungID) und Zugang auf Tisch 7, beide als Bestellung-V1
+// signiert. Beide tragen dieselbe UmbuchungID.
+func umbuchungEventPaar(t *testing.T) (event.Event, event.Event) {
+	t.Helper()
+
+	bauen := func(id int, tischID int, posID string, kommentar string, sig string) event.Event {
+		data := kasse.BestellungUmgebuchtV1Data{
+			UmbuchungID:  umbuchungBonID,
+			QuellTischID: 42,
+			ZielTischID:  7,
+			GesamtCents:  450,
+			Kommentar:    kommentar,
+			Positionen: []kasse.PositionEventData{
+				{PositionID: posID, VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+			},
+			TSEData: &kasse.TSEData{
+				TransactionNumber: 4720 + id,
+				SignatureCounter:  20 + id,
+				SerialNumberTSE:   "abc123serial",
+				LogTimeStart:      "2026-06-16T13:30:00Z",
+				LogTimeEnd:        "2026-06-16T13:30:01Z",
+				Signature:         sig,
+				ProcessType:       "Bestellung-V1",
+				QRCodeData:        "V0;umbuch",
+			},
+		}
+		raw, err := json.Marshal(data)
+		if err != nil {
+			t.Fatalf("marshal umbuchung data: %v", err)
+		}
+		return event.Event{
+			ID:       id,
+			UserID:   7,
+			UserName: "anna",
+			Type:     string(kasse.EventTypeBestellungUmgebuchtV1),
+			Time:     time.Date(2026, 6, 16, 13, 30, 0, 0, time.UTC),
+			Subject:  kasse.TischSessionSubject(3, tischID),
+			Version:  2,
+			Data:     raw,
+		}
+	}
+
+	abgang := bauen(2, 42, "p1", "Umbuchung auf Tisch Tisch 7", "UMBUCHABSIG==")
+	zugang := bauen(3, 7, "p1z", "Umbuchung von Tisch Tisch 42", "UMBUCHZUSIG==")
+	return abgang, zugang
+}
+
+// TestMapUmbuchungGeldneutralMitReferenz belegt: eine Umbuchung erzeugt je Seite eine
+// geldneutrale AVBestellung (kein Umsatz, keine Zahlart, keine Kassenbestandswirkung);
+// der Zugang verweist in references.csv per REF_BON_ID auf den Abgang (gemeinsame
+// UmbuchungID).
+func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
+	snapshot := testSnapshot()
+	snapshot.Tischnamen = map[int]string{42: "Tisch 42", 7: "Tisch 7"}
+
+	abgang, zugang := umbuchungEventPaar(t)
+	archive, err := Map(snapshot, []event.Event{abgang, zugang}, nil)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	const erstellung = "2026-06-16T14:30:00Z"
+	const zugangBonID = "umbuchung-3"
+
+	wantRecords := map[string][][]string{
+		// Verkettung Zugang → Abgang (gemeinsame Sitzung).
+		"references.csv": {
+			{testSerial, erstellung, "3", zugangBonID, "", "Transaktion", "", erstellung, testSerial, "3", umbuchungBonID},
+		},
+	}
+	for file, want := range wantRecords {
+		table := tableByFile(t, archive, file)
+		if !reflect.DeepEqual(table.Records, want) {
+			t.Errorf("%s records =\n%#v\nwant\n%#v", file, table.Records, want)
+		}
+	}
+
+	// Geldneutralität: keine USt-, Zahlart- oder Geschäftsvorfall-Zeilen.
+	for _, file := range []string{"transactions_vat.csv", "lines_vat.csv", "datapayment.csv", "businesscases.csv", "payment.csv"} {
+		table := tableByFile(t, archive, file)
+		if len(table.Records) != 0 {
+			t.Errorf("%s muss leer sein (geldneutrale Umbuchung), hat %d Zeilen", file, len(table.Records))
+		}
+	}
+
+	// Beide Seiten sind AVBestellungen ohne Storno-Kennzeichen und ohne Umsatz.
+	transactions := tableByFile(t, archive, "transactions.csv")
+	for row := 0; row < 2; row++ {
+		if got := field(t, transactions, row, "BON_TYP"); got != "AVBestellung" {
+			t.Errorf("umbuchung[%d] BON_TYP = %q, want AVBestellung", row, got)
+		}
+		if got := field(t, transactions, row, "BON_STORNO"); got != "0" {
+			t.Errorf("umbuchung[%d] BON_STORNO = %q, want 0", row, got)
+		}
+		if got := field(t, transactions, row, "UMS_BRUTTO"); got != "0.00" {
+			t.Errorf("umbuchung[%d] UMS_BRUTTO = %q, want 0.00", row, got)
+		}
+	}
+
+	// Kein Bargeld bewegt sich durch die Umbuchung.
+	closing := tableByFile(t, archive, "cashpointclosing.csv")
+	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "0.00" {
+		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 0.00 (Umbuchung ist geldneutral)", got)
+	}
+}
+
 // kombiZahlungEvent kassiert ein Kombi-Menü zum Pauschalpreis 5,01 €.
 func kombiZahlungEvent(t *testing.T) event.Event {
 	t.Helper()

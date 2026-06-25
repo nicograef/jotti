@@ -13,6 +13,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/rs/zerolog"
 )
 
@@ -30,7 +31,7 @@ type eventRepo interface {
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
 	WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error)
 	WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error)
-	WriteUmbuchung(ctx context.Context, stornierungEvent event.Event, bestellungEvent event.Event, kassensitzungNr int) error
+	WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, nachsignierungen []kassenjournal_repo.TSENachsignierung, kassensitzungNr int) error
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
@@ -583,20 +584,26 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return ErrPositionNichtUmbuchbar
 	}
 
-	resolvedPositionen, gesamtStornierungCents := resolvePositions(quellState.UnbezahltePositionen, positionen)
+	resolvedPositionen, gesamtCents := resolvePositions(quellState.UnbezahltePositionen, positionen)
 
-	stornierungKommentar := buildUmbuchungKommentar("Umbuchung auf Tisch ", zielTisch.Name)
-	bestellungKommentar := buildUmbuchungKommentar("Umbuchung von Tisch ", quellTisch.Name)
+	quellKommentar := buildUmbuchungKommentar("Umbuchung auf Tisch ", zielTisch.Name)
+	zielKommentar := buildUmbuchungKommentar("Umbuchung von Tisch ", quellTisch.Name)
 
-	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, userName, resolvedPositionen, gesamtStornierungCents, stornierungKommentar)
+	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ks.ZNr, quellTischID, zielTischID, userID, userName, resolvedPositionen, gesamtCents, quellKommentar, zielKommentar)
 	if err != nil {
-		log.Error().Err(err).Int("quell_tisch_id", quellTischID).Msg("Failed to create stornierung event for umbuchung")
+		log.Error().Err(err).Int("quell_tisch_id", quellTischID).Int("ziel_tisch_id", zielTischID).Msg("Failed to create umbuchung events")
 		return err
 	}
 
-	bestellungEvent, err := kasse.NewBestellungAufgenommenEvent(zielSubject, userID, userName, resolvedPositionen, bestellungKommentar)
+	// Beide Seiten sind geldneutrale Bestellungen und werden je mit eigener
+	// TSE-Transaktion als Bestellung-V1 signiert; die Waren (und damit die
+	// processData) sind auf beiden Seiten identisch.
+	quellSignierung, err := c.signBestellungUmgebuchtEvent(ctx, quellEvent, resolvedPositionen)
 	if err != nil {
-		log.Error().Err(err).Int("ziel_tisch_id", zielTischID).Msg("Failed to create bestellung event for umbuchung")
+		return err
+	}
+	zielSignierung, err := c.signBestellungUmgebuchtEvent(ctx, zielEvent, resolvedPositionen)
+	if err != nil {
 		return err
 	}
 
@@ -612,15 +619,19 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return ErrDatabase
 	}
 
-	stornierungEvent.Version = quellMaxVersion + 1
-	bestellungEvent.Version = zielMaxVersion + 1
+	quellSigniert := quellSignierung.Event
+	zielSigniert := zielSignierung.Event
+	quellSigniert.Version = quellMaxVersion + 1
+	zielSigniert.Version = zielMaxVersion + 1
 
-	err = c.EventRepo.WriteUmbuchung(ctx, stornierungEvent, bestellungEvent, ks.ZNr)
+	nachsignierungen := nachsignierungenAusSignierungen(quellSignierung, zielSignierung)
+
+	err = c.EventRepo.WriteUmbuchung(ctx, quellSigniert, zielSigniert, nachsignierungen, ks.ZNr)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().
-				Int("quell_version", stornierungEvent.Version).
-				Int("ziel_version", bestellungEvent.Version).
+				Int("quell_version", quellSigniert.Version).
+				Int("ziel_version", zielSigniert.Version).
 				Str("quell_subject", quellSubject).
 				Str("ziel_subject", zielSubject).
 				Msg("OCC conflict bei Bestellung umbuchen")
@@ -633,6 +644,24 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 
 	log.Info().Int("quell_tisch_id", quellTischID).Int("ziel_tisch_id", zielTischID).Msg("Bestellung umgebucht")
 	return nil
+}
+
+// nachsignierungenAusSignierungen sammelt die Nachsignier-Aufträge der Seiten, deren
+// Signierung bei der Erfassung fehlschlug (TSE-Ausfall), damit der Worker sie atomar
+// mit den Events nachholt.
+func nachsignierungenAusSignierungen(signierungen ...tseApp.Signierung) []kassenjournal_repo.TSENachsignierung {
+	var nachsignierungen []kassenjournal_repo.TSENachsignierung
+	for _, s := range signierungen {
+		if s.NachsignierAuftrag == nil {
+			continue
+		}
+		nachsignierungen = append(nachsignierungen, kassenjournal_repo.TSENachsignierung{
+			TxID:        s.NachsignierAuftrag.TxID,
+			ProcessType: s.NachsignierAuftrag.ProcessType,
+			ProcessData: s.NachsignierAuftrag.ProcessData,
+		})
+	}
+	return nachsignierungen
 }
 
 func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {

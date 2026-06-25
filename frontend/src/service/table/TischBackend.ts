@@ -33,7 +33,11 @@ import {
   type TischSession,
   TischSessionSchema,
 } from './Tisch'
-import { BestellungUmbuchenSchema } from './Umbuchung'
+import {
+  BestellungUmbuchenSchema,
+  type Umbuchung,
+  UmbuchungSchema,
+} from './Umbuchung'
 import { type Zahlung, ZahlungKassierenSchema, ZahlungSchema } from './Zahlung'
 
 export class TischBackend {
@@ -84,7 +88,7 @@ export class TischBackend {
     umbuchung: z.infer<typeof BestellungUmbuchenSchema>,
   ): Promise<void> {
     const body = BestellungUmbuchenSchema.parse(umbuchung)
-    await this.backend.post('serviceleitung/bestellung-umbuchen', body)
+    await this.backend.post('service/bestellung-umbuchen', body)
   }
 
   public async auszahlungLeisten(
@@ -103,7 +107,9 @@ export class TischBackend {
 
   public async getTischHistorie(
     tischId: number,
-  ): Promise<(Bestellung | Zahlung | Stornierung | Ausgabe | Auszahlung)[]> {
+  ): Promise<
+    (Bestellung | Zahlung | Stornierung | Umbuchung | Ausgabe | Auszahlung)[]
+  > {
     const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
     const { historie } = await this.backend.post(
       'service/get-tisch-historie',
@@ -114,6 +120,7 @@ export class TischBackend {
             BestellungSchema,
             ZahlungSchema,
             StornierungSchema,
+            UmbuchungSchema,
             AusgabeSchema,
             AuszahlungSchema,
           ]),

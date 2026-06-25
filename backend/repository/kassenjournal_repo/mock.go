@@ -111,7 +111,7 @@ func (m *MockRepo) WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx context
 	return id, nil
 }
 
-func (m *MockRepo) WriteUmbuchung(_ context.Context, stornierungEvent event.Event, bestellungEvent event.Event, _ int) error {
+func (m *MockRepo) WriteUmbuchung(_ context.Context, quellEvent event.Event, zielEvent event.Event, nachsignierungen []TSENachsignierung, _ int) error {
 	if m.writeErr != nil {
 		return m.writeErr
 	}
@@ -120,10 +120,14 @@ func (m *MockRepo) WriteUmbuchung(_ context.Context, stornierungEvent event.Even
 	}
 
 	firstID := len(m.events) + 1
-	stornierungEvent.ID = firstID
-	bestellungEvent.ID = firstID + 1
-	m.events[firstID] = stornierungEvent
-	m.events[firstID+1] = bestellungEvent
+	quellEvent.ID = firstID
+	zielEvent.ID = firstID + 1
+	m.events[firstID] = quellEvent
+	m.events[firstID+1] = zielEvent
+
+	for _, ns := range nachsignierungen {
+		m.nachsignier = append(m.nachsignier, NachsignierAuftrag(ns))
+	}
 
 	return nil
 }

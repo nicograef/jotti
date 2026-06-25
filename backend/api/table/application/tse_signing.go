@@ -30,6 +30,18 @@ func (c Command) signBestellungAufgenommenEvent(ctx context.Context, evt event.E
 	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeBestellungV1, processData, kasse.EmbedTSEInBestellungAufgenommen)
 }
 
+func (c Command) signBestellungUmgebuchtEvent(ctx context.Context, evt event.Event, positionen []kasse.Position) (tseApp.Signierung, error) {
+	// Eine Umbuchung ist geldneutral: dieselbe Bestellung-V1-processData wie eine
+	// Bestellung (keine :Bar-Zahlungszeile).
+	processData, err := tseApp.BuildBestellungProcessData(positionen)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to build TSE process_data for umbuchung")
+		return tseApp.Signierung{}, ErrDatabase
+	}
+
+	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeBestellungV1, processData, kasse.EmbedTSEInBestellungUmgebucht)
+}
+
 func (c Command) signStornierungErteiltEvent(ctx context.Context, evt event.Event, positionen []kasse.Position, stornoBetragCents int) (tseApp.Signierung, error) {
 	processData, err := tseApp.BuildKassenbelegProcessDataWithFaktor(positionen, -stornoBetragCents, -1)
 	if err != nil {

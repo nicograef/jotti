@@ -15,6 +15,7 @@ const (
 	EventTypeBestellungAufgenommenV1 EventType = "bestellung-aufgenommen:v1"
 	EventTypeZahlungKassiertV1       EventType = "zahlung-kassiert:v1"
 	EventTypeStornierungErteiltV1    EventType = "stornierung-erteilt:v1"
+	EventTypeBestellungUmgebuchtV1   EventType = "bestellung-umgebucht:v1"
 	EventTypeAusgabeBestaetigtV1     EventType = "ausgabe-bestaetigt:v1"
 	EventTypeAuszahlungGeleistetV1   EventType = "auszahlung-geleistet:v1"
 )
@@ -68,6 +69,31 @@ var stornierungErteiltV1DataSchema = z.Struct(z.Shape{
 	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(0).Required(),
 	"Kommentar":              z.String().Min(3).Max(100).Required(),
+})
+
+// BestellungUmgebuchtV1Data ist die geldneutrale Umbuchung unbezahlter Positionen
+// zwischen zwei Tischen. Quell- und Zielstrom erhalten je ein Event mit derselben
+// UmbuchungID; das Event auf dem Quelltisch trägt die ursprünglichen PositionIDs
+// (Abgang), das auf dem Zieltisch frische (Zugang). Die Projektion unterscheidet die
+// Richtung über den Tisch des Event-Subjects (QuellTischID vs. ZielTischID).
+type BestellungUmgebuchtV1Data struct {
+	UmbuchungID  string              `json:"umbuchungId"`
+	QuellTischID int                 `json:"quellTischId"`
+	ZielTischID  int                 `json:"zielTischId"`
+	Positionen   []PositionEventData `json:"positionen"`
+	GesamtCents  int                 `json:"gesamtCents"`
+	Kommentar    string              `json:"kommentar"`
+	TSETxID      string              `json:"tseTxId,omitempty"`
+	TSEData      *TSEData            `json:"tseData,omitempty"`
+}
+
+var bestellungUmgebuchtV1DataSchema = z.Struct(z.Shape{
+	"UmbuchungID":  z.String().UUID().Required(),
+	"QuellTischID": z.Int().GTE(1).Required(),
+	"ZielTischID":  z.Int().GTE(1).Required(),
+	"Positionen":   z.Slice(positionSchema).Min(1).Required(),
+	"GesamtCents":  z.Int().GTE(0).Required(),
+	"Kommentar":    z.String().Max(100),
 })
 
 type AusgabeBestaetigtV1Data struct {
@@ -155,6 +181,52 @@ func NewStornierungErteiltEvent(subject string, userID int, userName string, pos
 	}
 
 	return e.New(userID, userName, string(EventTypeStornierungErteiltV1), subject, data)
+}
+
+// NewBestellungUmgebuchtEvents erzeugt das verknüpfte Event-Paar einer Umbuchung:
+// ein Abgang auf dem Quelltisch (mit den übergebenen, ursprünglichen Positionen) und
+// ein Zugang auf dem Zieltisch (mit frischen PositionIDs, damit die Positionen dort
+// eigenständig weiterverarbeitet werden können). Beide teilen sich eine UmbuchungID
+// und werden vom Aufrufer atomar geschrieben.
+func NewBestellungUmgebuchtEvents(zNr int, quellTischID int, zielTischID int, userID int, userName string, quellPositionen []Position, gesamtCents int, quellKommentar string, zielKommentar string) (e.Event, e.Event, error) {
+	umbuchungID := uuid.New().String()
+
+	zielPositionen := slices.Clone(quellPositionen)
+	for i := range zielPositionen {
+		zielPositionen[i].PositionID = uuid.New().String()
+	}
+
+	quellData := BestellungUmgebuchtV1Data{
+		UmbuchungID:  umbuchungID,
+		QuellTischID: quellTischID,
+		ZielTischID:  zielTischID,
+		Positionen:   toPositionenEventData(quellPositionen),
+		GesamtCents:  gesamtCents,
+		Kommentar:    quellKommentar,
+	}
+	zielData := quellData
+	zielData.Positionen = toPositionenEventData(zielPositionen)
+	zielData.Kommentar = zielKommentar
+
+	if err := bestellungUmgebuchtV1DataSchema.Validate(&quellData); err != nil {
+		issues := z.Issues.FlattenAndCollect(err)
+		return e.Event{}, e.Event{}, fmt.Errorf("bestellung umgebucht (quelle) data validation failed: %v", issues)
+	}
+	if err := bestellungUmgebuchtV1DataSchema.Validate(&zielData); err != nil {
+		issues := z.Issues.FlattenAndCollect(err)
+		return e.Event{}, e.Event{}, fmt.Errorf("bestellung umgebucht (ziel) data validation failed: %v", issues)
+	}
+
+	quellEvent, err := e.New(userID, userName, string(EventTypeBestellungUmgebuchtV1), TischSessionSubject(zNr, quellTischID), quellData)
+	if err != nil {
+		return e.Event{}, e.Event{}, err
+	}
+	zielEvent, err := e.New(userID, userName, string(EventTypeBestellungUmgebuchtV1), TischSessionSubject(zNr, zielTischID), zielData)
+	if err != nil {
+		return e.Event{}, e.Event{}, err
+	}
+
+	return quellEvent, zielEvent, nil
 }
 
 func NewAusgabeBestaetigtEvent(subject string, userID int, userName string, positionen []Position, kommentar string) (e.Event, error) {
@@ -292,6 +364,43 @@ func buildStornierungFromEvent(event e.Event) (Stornierung, error) {
 	}
 
 	return stornierung, nil
+}
+
+func buildUmbuchungFromEvent(event e.Event) (Umbuchung, error) {
+	if event.Type != string(EventTypeBestellungUmgebuchtV1) {
+		return Umbuchung{}, fmt.Errorf("unsupported event type: %s", event.Type)
+	}
+
+	tischID, err := ParseTischIDFromSubject(event.Subject)
+	if err != nil {
+		return Umbuchung{}, err
+	}
+
+	data := BestellungUmgebuchtV1Data{}
+	err = e.ParseData(event, &data, bestellungUmgebuchtV1DataSchema)
+	if err != nil {
+		return Umbuchung{}, err
+	}
+
+	umbuchung := Umbuchung{
+		ID:           data.UmbuchungID,
+		UserID:       event.UserID,
+		UserName:     event.UserName,
+		TischID:      tischID,
+		QuellTischID: data.QuellTischID,
+		ZielTischID:  data.ZielTischID,
+		Positionen:   fromPositionenEventData(data.Positionen),
+		GesamtCents:  data.GesamtCents,
+		Kommentar:    data.Kommentar,
+		UmgebuchtAm:  event.Time,
+	}
+
+	if err := umbuchungSchema.Validate(&umbuchung); err != nil {
+		issues := z.Issues.FlattenAndCollect(err)
+		return Umbuchung{}, fmt.Errorf("umbuchung validation failed: %v", issues)
+	}
+
+	return umbuchung, nil
 }
 
 func buildAusgabeFromEvent(event e.Event) (Ausgabe, error) {

@@ -11,11 +11,12 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// fiskalischeTypen sind die neun zu signierenden Event-Typen mit ihrem erwarteten processType.
+// fiskalischeTypen sind die zu signierenden Event-Typen mit ihrem erwarteten processType.
 var fiskalischeTypen = map[string]string{
 	string(kasse.EventTypeBestellungAufgenommenV1):   tse.ProcessTypeBestellungV1,
 	string(kasse.EventTypeZahlungKassiertV1):         tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeStornierungErteiltV1):      tse.ProcessTypeKassenbelegV1,
+	string(kasse.EventTypeBestellungUmgebuchtV1):     tse.ProcessTypeBestellungV1,
 	string(kasse.EventTypeAuszahlungGeleistetV1):     tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeDirektverkaufGetaetigtV1):  tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeDirektverkaufStorniertV1):  tse.ProcessTypeKassenbelegV1,

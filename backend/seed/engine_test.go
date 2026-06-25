@@ -272,49 +272,53 @@ func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 	}
 }
 
-// TestBuildSeedDaten_Umbuchungspaar prüft, dass die Umbuchung als Storno-/Bestellungs-Paar
-// mit den Standard-Kommentaren und identischen Positionen erzeugt wird.
+// TestBuildSeedDaten_Umbuchungspaar prüft, dass die Umbuchung als verknüpftes
+// bestellung-umgebucht-Paar (Abgang/Zugang) mit gemeinsamer UmbuchungID, den
+// Standard-Kommentaren und identischen Positionen (Mengen/Preise) erzeugt wird.
 func TestBuildSeedDaten_Umbuchungspaar(t *testing.T) {
 	_, daten := buildTestDaten(t)
 
 	anzahl := 0
 	for i, ev := range daten.Events {
-		if ev.event.Type != string(kasse.EventTypeStornierungErteiltV1) {
+		if ev.event.Type != string(kasse.EventTypeBestellungUmgebuchtV1) {
 			continue
 		}
-		storno := parseData[kasse.StornierungErteiltV1Data](t, ev.event)
-		if !strings.HasPrefix(storno.Kommentar, "Umbuchung auf Tisch ") {
+		abgang := parseData[kasse.BestellungUmgebuchtV1Data](t, ev.event)
+		if !strings.HasPrefix(abgang.Kommentar, "Umbuchung auf Tisch ") {
 			continue
 		}
 		anzahl++
 
 		if i+1 >= len(daten.Events) {
-			t.Fatal("Umbuchungs-Storno ist das letzte Event, Bestellung fehlt")
+			t.Fatal("Umbuchungs-Abgang ist das letzte Event, Zugang fehlt")
 		}
 		naechstes := daten.Events[i+1]
-		if naechstes.event.Type != string(kasse.EventTypeBestellungAufgenommenV1) {
-			t.Fatalf("auf Umbuchungs-Storno folgt %s, erwartet Bestellung", naechstes.event.Type)
+		if naechstes.event.Type != string(kasse.EventTypeBestellungUmgebuchtV1) {
+			t.Fatalf("auf Umbuchungs-Abgang folgt %s, erwartet bestellung-umgebucht", naechstes.event.Type)
 		}
-		bestellung := parseData[kasse.BestellungAufgenommenV1Data](t, naechstes.event)
-		if !strings.HasPrefix(bestellung.Kommentar, "Umbuchung von Tisch ") {
-			t.Errorf("Bestellungs-Kommentar %q ohne Umbuchungs-Präfix", bestellung.Kommentar)
+		zugang := parseData[kasse.BestellungUmgebuchtV1Data](t, naechstes.event)
+		if !strings.HasPrefix(zugang.Kommentar, "Umbuchung von Tisch ") {
+			t.Errorf("Zugangs-Kommentar %q ohne Umbuchungs-Präfix", zugang.Kommentar)
 		}
-		if bestellung.GesamtPreisCents != storno.GesamtStornierungCents {
-			t.Errorf("Umbuchung: Bestellung %d Cent ≠ Storno %d Cent", bestellung.GesamtPreisCents, storno.GesamtStornierungCents)
+		if zugang.UmbuchungID != abgang.UmbuchungID {
+			t.Errorf("Umbuchung: Zugang/Abgang ohne gemeinsame UmbuchungID (%q vs %q)", zugang.UmbuchungID, abgang.UmbuchungID)
+		}
+		if zugang.GesamtCents != abgang.GesamtCents {
+			t.Errorf("Umbuchung: Zugang %d Cent ≠ Abgang %d Cent", zugang.GesamtCents, abgang.GesamtCents)
 		}
 
 		// Identische Positionen: gleiche Varianten, Mengen und Einzelpreise.
 		type posKey struct{ variante, menge, preis int }
-		stornoPositionen := map[posKey]int{}
-		for _, p := range storno.Positionen {
-			stornoPositionen[posKey{p.VarianteID, p.Menge, p.Einzelpreis}]++
+		abgangPositionen := map[posKey]int{}
+		for _, p := range abgang.Positionen {
+			abgangPositionen[posKey{p.VarianteID, p.Menge, p.Einzelpreis}]++
 		}
-		for _, p := range bestellung.Positionen {
+		for _, p := range zugang.Positionen {
 			key := posKey{p.VarianteID, p.Menge, p.Einzelpreis}
-			if stornoPositionen[key] == 0 {
-				t.Errorf("Umbuchung: Position %+v der Bestellung fehlt im Storno", key)
+			if abgangPositionen[key] == 0 {
+				t.Errorf("Umbuchung: Position %+v des Zugangs fehlt im Abgang", key)
 			}
-			stornoPositionen[key]--
+			abgangPositionen[key]--
 		}
 	}
 

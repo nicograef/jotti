@@ -180,6 +180,80 @@ func TestGetHistorieFromEvents_IncludesAuszahlung(t *testing.T) {
 	}
 }
 
+func TestGetHistorieFromEvents_UmbuchungAbgangReduziertRestmengen(t *testing.T) {
+	const zNr, quellTischID, zielTischID = 1, 42, 7
+	quellSubject := TischSessionSubject(zNr, quellTischID)
+
+	products := []Position{
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
+	}
+	orderEvent := mustCreateOrderEvent(t, quellSubject, 1, products)
+	eine := positionsFromOrder(t, orderEvent, 1)
+
+	quellEvent, _, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", eine, 500, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle")
+	if err != nil {
+		t.Fatalf("failed to create umbuchung events: %v", err)
+	}
+
+	history, err := GetHistorieFromEvents([]e.Event{orderEvent, quellEvent})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Most recent first: the umbuchung (abgang) is at index 0, the Bestellung last.
+	if history[0].Art != HistorieEintragUmbuchung || history[0].Umbuchung == nil {
+		t.Fatalf("expected first entry to be Umbuchung, got %q", history[0].Art)
+	}
+	if history[0].Umbuchung.IstZugang() {
+		t.Fatal("expected the source entry to be an Abgang, not a Zugang")
+	}
+
+	bestellung := history[len(history)-1]
+	// Ordered 3, moved away 1 => 2 still stornierbar and umbuchbar.
+	if len(bestellung.StornierbarePositionen) != 1 || bestellung.StornierbarePositionen[0].Menge != 2 {
+		t.Fatalf("expected stornierbar menge 2, got %+v", bestellung.StornierbarePositionen)
+	}
+	if len(bestellung.UmbuchbarePositionen) != 1 || bestellung.UmbuchbarePositionen[0].Menge != 2 {
+		t.Fatalf("expected umbuchbar menge 2, got %+v", bestellung.UmbuchbarePositionen)
+	}
+}
+
+func TestGetHistorieFromEvents_UmbuchungZugangIstStornierbar(t *testing.T) {
+	const zNr, quellTischID, zielTischID = 1, 42, 7
+	zielSubject := TischSessionSubject(zNr, zielTischID)
+
+	positionen := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)}
+	// PositionIDs werden im Quell-Event vergeben; für den Zugang reicht eine ID.
+	positionen[0].PositionID = "11111111-1111-4111-8111-111111111111"
+
+	_, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", positionen, 1000, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle")
+	if err != nil {
+		t.Fatalf("failed to create umbuchung events: %v", err)
+	}
+	if zielEvent.Subject != zielSubject {
+		t.Fatalf("expected ziel subject %q, got %q", zielSubject, zielEvent.Subject)
+	}
+
+	history, err := GetHistorieFromEvents([]e.Event{zielEvent})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(history) != 1 || history[0].Umbuchung == nil {
+		t.Fatalf("expected one Umbuchung entry, got %+v", history)
+	}
+	zugang := history[0]
+	if !zugang.Umbuchung.IstZugang() {
+		t.Fatal("expected the target entry to be a Zugang")
+	}
+	// Der Zugang bringt Positionen auf den Tisch: voll stornierbar/umbuchbar.
+	if len(zugang.StornierbarePositionen) != 1 || zugang.StornierbarePositionen[0].Menge != 2 {
+		t.Fatalf("expected stornierbar menge 2, got %+v", zugang.StornierbarePositionen)
+	}
+	if len(zugang.UmbuchbarePositionen) != 1 || zugang.UmbuchbarePositionen[0].Menge != 2 {
+		t.Fatalf("expected umbuchbar menge 2, got %+v", zugang.UmbuchbarePositionen)
+	}
+}
+
 func TestNewAuszahlungGeleistetEvent_InvalidBetrag(t *testing.T) {
 	_, err := NewAuszahlungGeleistetEvent(testSubject, 1, "TestUser", 0, "Rueckzahlung")
 	if err == nil {

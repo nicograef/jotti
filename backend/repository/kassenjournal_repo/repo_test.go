@@ -413,7 +413,7 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	}
 	bestellungEvent.Version = 1
 
-	if err := repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, ksNr); err != nil {
+	if err := repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, nil, ksNr); err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
@@ -515,7 +515,7 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 
 	ungueltigesZielEvent := newTestEvent(userID, "unknown-event:v1", zielSubject, 1, map[string]any{"any": "value"})
 
-	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, ungueltigesZielEvent, ksNr)
+	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, ungueltigesZielEvent, nil, ksNr)
 	if err == nil {
 		t.Fatal("Expected error, got nil")
 	}
@@ -606,7 +606,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 	}
 	bestellungEvent.Version = 1 // conflicts with existing target event version 1
 
-	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, ksNr)
+	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, nil, ksNr)
 	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
 		t.Fatalf("Expected ErrAlreadyExists conflict, got %v", err)
 	}

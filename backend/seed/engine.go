@@ -310,8 +310,10 @@ func (b *sitzungsBauer) auszahlen(a auszahlen) error {
 	return nil
 }
 
-// umbuchen erzeugt das atomare Storno-/Bestellungs-Paar mit identischen Positionen und den
-// Standard-Kommentaren — wie BestellungUmbuchen im Produktivbetrieb.
+// umbuchen erzeugt das verknüpfte, geldneutrale Umbuchungs-Event-Paar (Abgang auf
+// dem Quelltisch, Zugang auf dem Zieltisch) mit den Standard-Kommentaren — wie
+// BestellungUmbuchen im Produktivbetrieb. Eine Umbuchung ist kein Storno und fließt
+// daher nicht in die Storno-Summe ein.
 func (b *sitzungsBauer) umbuchen(a umbuchen) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {
@@ -335,19 +337,13 @@ func (b *sitzungsBauer) umbuchen(a umbuchen) error {
 	}
 	betrag := summeCents(auswahl)
 
-	storno, err := kasse.NewStornierungErteiltEvent(b.tischSubject(a.VonTisch), a.User, name,
-		auswahl, betrag, "Umbuchung auf Tisch "+zielTisch)
+	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(b.sitzung.ZNr, a.VonTisch, a.NachTisch, a.User, name,
+		auswahl, betrag, "Umbuchung auf Tisch "+zielTisch, "Umbuchung von Tisch "+quellTisch)
 	if err != nil {
 		return err
 	}
-	bestellung, err := kasse.NewBestellungAufgenommenEvent(b.tischSubject(a.NachTisch), a.User, name,
-		auswahl, "Umbuchung von Tisch "+quellTisch)
-	if err != nil {
-		return err
-	}
-	b.addTisch(a.VonTisch, storno)
-	b.addTisch(a.NachTisch, bestellung)
-	b.summen.StornierungenCents += betrag
+	b.addTisch(a.VonTisch, quellEvent)
+	b.addTisch(a.NachTisch, zielEvent)
 	return nil
 }
 

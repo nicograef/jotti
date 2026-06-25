@@ -200,19 +200,19 @@ als „Umbuchung", nicht als „Storno". Der Endpunkt liegt auf `/service`.
 
 ### Acceptance criteria
 
-- [ ] `bestellung-umgebucht:v1` ist als geldneutraler Vorgang definiert (Domain,
+- [x] `bestellung-umgebucht:v1` ist als geldneutraler Vorgang definiert (Domain,
       Schema, Embed); nur unbezahlte Positionen sind umbuchbar.
-- [ ] Quell- und Zielstrom erhalten verknüpfte Einträge, atomar geschrieben; beide
+- [x] Quell- und Zielstrom erhalten verknüpfte Einträge, atomar geschrieben; beide
       als `Bestellung-V1` signiert, ohne `:Bar`-Zeile.
-- [ ] Projektion: Umbuchung verschiebt nur unbezahlte Positionen; Quell-Saldo sinkt,
+- [x] Projektion: Umbuchung verschiebt nur unbezahlte Positionen; Quell-Saldo sinkt,
       Ziel-Saldo steigt um denselben Betrag; `ComputeNichtStorniertePositionen` zählt
       korrekt.
-- [ ] Mapper: Umbuchung ist `AVBestellung` (geldneutral, keine Zahlart, keine
+- [x] Mapper: Umbuchung ist `AVBestellung` (geldneutral, keine Zahlart, keine
       Bargeldwirkung); Quelle und Ziel sind verknüpft erkennbar.
-- [ ] Historie/Export weisen den Vorgang als „Umbuchung" aus, nicht als „Stornierung".
-- [ ] Endpunkt `/bestellung-umbuchen` liegt auf `/service`; Frontend ruft ihn von der
+- [x] Historie/Export weisen den Vorgang als „Umbuchung" aus, nicht als „Stornierung".
+- [x] Endpunkt `/bestellung-umbuchen` liegt auf `/service`; Frontend ruft ihn von der
       Servicekraft-Oberfläche.
-- [ ] Projektions-, Mapper- und Command-Tests decken die Umbuchung ab.
+- [x] Projektions-, Mapper- und Command-Tests decken die Umbuchung ab.
 
 ---
 

@@ -18,7 +18,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { formatCents, formatPositionName } from '@/lib/utils'
 
-import type { Bestellung, Position } from '../../table/Bestellung'
+import type { Position } from '../../table/Bestellung'
 import { useAktiveTische } from '../../table/hooks'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
@@ -31,7 +31,9 @@ import {
 interface HistorieUmbuchungDrawerProps {
   backend: Pick<TischBackend, 'bestellungUmbuchen'>
   tisch: Tisch
-  bestellung: Bestellung
+  // Ursprungsvorgang (Bestellung oder Umbuchungs-Zugang), dessen Positionen umgebucht
+  // werden; beschriftet den Drawer.
+  vorgangId: string
   positionen: Position[]
   onClose: () => void
   onBestellungUmgebucht: () => void
@@ -47,7 +49,7 @@ function createDefaultMengen(positionen: Position[]): Record<string, number> {
 export function HistorieUmbuchungDrawer({
   backend,
   tisch,
-  bestellung,
+  vorgangId,
   positionen,
   onClose,
   onBestellungUmgebucht,
@@ -132,7 +134,7 @@ export function HistorieUmbuchungDrawer({
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
             <DrawerTitle>
-              Umbuchung aus Bestellung {bestellung.id.slice(0, 8)}
+              Umbuchung aus Vorgang {vorgangId.slice(0, 8)}
             </DrawerTitle>
             <DrawerDescription>
               Positionen auswählen und auf einen Ziel-Tisch umbuchen.

@@ -179,16 +179,36 @@ func (r Repository) WriteEventWithDruckauftraegeUndNachsignierAuftrag(
 	return id, nil
 }
 
-// WriteUmbuchung writes the source stornierung and target bestellung atomically.
-// Both events must already carry their final subject/version.
-func (r Repository) WriteUmbuchung(ctx context.Context, stornierungEvent event.Event, bestellungEvent event.Event, kassensitzungNr int) error {
+// TSENachsignierung beschreibt einen TSE-Nachsignier-Auftrag, der atomar mit einem
+// während eines TSE-Ausfalls unsigniert persistierten Vorgang geschrieben wird.
+type TSENachsignierung struct {
+	TxID        string
+	ProcessType string
+	ProcessData string
+}
+
+// WriteUmbuchung writes the linked source and target umbuchung events atomically,
+// together with any TSE-Nachsignier-Aufträge for sides that could not be signed at
+// capture time. Both events must already carry their final subject/version.
+func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, nachsignierungen []TSENachsignierung, kassensitzungNr int) error {
 	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
-		if _, err := r.writeEventInTx(ctx, qtx, stornierungEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+		if _, err := r.writeEventInTx(ctx, qtx, quellEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 			return err
 		}
 
-		if _, err := r.writeEventInTx(ctx, qtx, bestellungEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+		if _, err := r.writeEventInTx(ctx, qtx, zielEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 			return err
+		}
+
+		for _, ns := range nachsignierungen {
+			err := qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
+				TxID:        ns.TxID,
+				ProcessType: ns.ProcessType,
+				ProcessData: ns.ProcessData,
+			})
+			if err != nil {
+				return db.Error(err)
+			}
 		}
 
 		return nil

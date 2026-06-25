@@ -57,6 +57,11 @@ class Auth {
     return this.isAdmin || this.isServiceleitung
   }
 
+  // Umbuchen ist geldneutral und für jede Servicekraft erlaubt (Endpunkt /service).
+  public get canRebook(): boolean {
+    return this.isAdmin || this.isServiceleitung || this.isService
+  }
+
   public logout(): void {
     localStorage.removeItem('JOTTI_TOKEN')
     this.token = null

@@ -216,6 +216,72 @@ func TestApplyEvent_StornierungReducesSaldoAndUnbezahlt(t *testing.T) {
 	}
 }
 
+func TestApplyEvent_UmbuchungMovesPositionsBetweenTische(t *testing.T) {
+	const zNr = 1
+	const quellTischID = 42
+	const zielTischID = 7
+	quellSubject := TischSessionSubject(zNr, quellTischID)
+	zielSubject := TischSessionSubject(zNr, zielTischID)
+
+	products := []Position{
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
+	}
+	orderEvent := mustCreateOrderEvent(t, quellSubject, 1, products)
+	orderEvent.ID = 1
+	orderEvent.Version = 1
+
+	quellState, err := ApplyEvent(TischSession{}, orderEvent)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Eine von zwei Positionen auf den Zieltisch umbuchen.
+	umbuchPositionen := positionsFromOrder(t, orderEvent, 1)
+	quellEvent, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", umbuchPositionen, 500, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle")
+	if err != nil {
+		t.Fatalf("failed to create umbuchung events: %v", err)
+	}
+	quellEvent.ID, quellEvent.Version = 2, 2
+	zielEvent.ID, zielEvent.Version = 3, 1
+
+	// Abgang auf dem Quelltisch: Saldo sinkt, eine Position bleibt.
+	quellState, err = ApplyEvent(quellState, quellEvent)
+	if err != nil {
+		t.Fatalf("expected no error applying abgang, got %v", err)
+	}
+	if quellState.SaldoCents != 500 {
+		t.Fatalf("expected source SaldoCents 500, got %d", quellState.SaldoCents)
+	}
+	if len(quellState.UnbezahltePositionen) != 1 || quellState.UnbezahltePositionen[0].Menge != 1 {
+		t.Fatalf("expected 1 unbezahlte position with menge 1, got %+v", quellState.UnbezahltePositionen)
+	}
+	if len(quellState.AusstehendePositionen) != 1 || quellState.AusstehendePositionen[0].Menge != 1 {
+		t.Fatalf("expected 1 ausstehende position with menge 1, got %+v", quellState.AusstehendePositionen)
+	}
+
+	// Zugang auf dem leeren Zieltisch: wie eine frische Bestellung.
+	zielState, err := ApplyEvent(TischSession{Subject: zielSubject}, zielEvent)
+	if err != nil {
+		t.Fatalf("expected no error applying zugang, got %v", err)
+	}
+	if zielState.SaldoCents != 500 {
+		t.Fatalf("expected target SaldoCents 500, got %d", zielState.SaldoCents)
+	}
+	if len(zielState.UnbezahltePositionen) != 1 || zielState.UnbezahltePositionen[0].Menge != 1 {
+		t.Fatalf("expected 1 unbezahlte position with menge 1, got %+v", zielState.UnbezahltePositionen)
+	}
+	if len(zielState.AusstehendePositionen) != 1 || zielState.AusstehendePositionen[0].Menge != 1 {
+		t.Fatalf("expected 1 ausstehende position with menge 1, got %+v", zielState.AusstehendePositionen)
+	}
+	if zielState.ErsteBestellungLogTime == nil {
+		t.Fatal("expected target ErsteBestellungLogTime to be set by the zugang")
+	}
+	// Der Zugang trägt frische PositionIDs (eigenständig auf dem Zieltisch).
+	if zielState.UnbezahltePositionen[0].PositionID == quellState.UnbezahltePositionen[0].PositionID {
+		t.Fatal("expected target position to carry a fresh PositionID")
+	}
+}
+
 func TestApplyEvent_AusgabeReducesOnlyAusstehend(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
