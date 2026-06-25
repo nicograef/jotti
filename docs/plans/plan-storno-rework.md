@@ -389,9 +389,9 @@ Tagesabschluss-Schema (ohne `auszahlungenCents`) aktualisiert. Begleitende Docs
 
 ### Acceptance criteria
 
-- [ ] `docs/language.md` nennt keine Auszahlung mehr; Stornierung ist als
+- [x] `docs/language.md` nennt keine Auszahlung mehr; Stornierung ist als
       Warenrücknahme (bezahlt) plus geldneutrale Korrektur (unbezahlt) beschrieben.
-- [ ] Umbuchung (`bestellung-umgebucht`) und `bestellung-korrigiert` sind als eigene
+- [x] Umbuchung (`bestellung-umgebucht`) und `bestellung-korrigiert` sind als eigene
       Vorgänge dokumentiert; Rollen-/Endpunktzuordnung stimmt.
-- [ ] Tagesabschluss-Schema und Reporting-Begriffe ohne Auszahlung.
-- [ ] Keine weitere Doc beschreibt das alte Storno-plus-Auszahlung-Modell.
+- [x] Tagesabschluss-Schema und Reporting-Begriffe ohne Auszahlung.
+- [x] Keine weitere Doc beschreibt das alte Storno-plus-Auszahlung-Modell.

@@ -10,7 +10,7 @@ Aufbau: Die Roadmap listet die offenen Anforderungen, der Funktionsumfang die um
 
 Priorität (MoSCoW): Must, Should, Nice.
 IDs sind stabil und werden nicht wiederverwendet; Lücken in der Nummerierung sind normal.
-Rollen: `admin` (Stammdaten und Kasse), `serviceleitung` (Kasse inkl. Storno und Auszahlung), `service` (Kasse ohne Storno). Vollständige Matrix in [handbuch.md](handbuch.md) §5.1.
+Rollen: `admin` (Stammdaten und Kasse), `serviceleitung` (Kasse inkl. Storno), `service` (Kasse ohne Storno). Vollständige Matrix in [handbuch.md](handbuch.md) §5.1.
 
 ## Roadmap
 
@@ -35,8 +35,7 @@ Rollen: `admin` (Stammdaten und Kasse), `serviceleitung` (Kasse inkl. Storno und
 | K-01 | Bestellung aufnehmen    | Tisch wählen, aus dem Produktkatalog eine Bestellung zusammenstellen und abgeben. |
 | K-02 | Zahlung registrieren    | Barzahlung mit Positionsauswahl (Teilzahlung), reduziert den Tischsaldo.          |
 | K-03 | Ausgabe bestätigen      | Positionen als ausgegeben markieren, offene nachverfolgen.                        |
-| K-04 | Stornierung erteilen    | Serviceleitung/Admin storniert Positionen; Saldo kann negativ werden.             |
-| K-05 | Auszahlung leisten      | Negativen Tischsaldo positionsunabhängig ausgleichen.                             |
+| K-04 | Stornierung erteilen    | Serviceleitung/Admin storniert Positionen; bezahlte als kassenwirksame Warenrücknahme, unbezahlte geldneutral; Saldo bleibt ≥ 0. |
 | K-06 | Tischübersicht          | Dashboard mit Favoriten, Alle-Tische-Drawer und Tisch-Detail.                     |
 | K-07 | Kassenjournal           | Append-only Event-Tabelle als Single Source of Truth.                             |
 | K-09 | Bestellungen umbuchen   | Unbezahlte Bestellungen atomar zwischen Tischen umbuchen.                         |

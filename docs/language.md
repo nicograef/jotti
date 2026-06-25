@@ -50,7 +50,7 @@ Das Finanzamt teilt einen Verein in vier steuerliche Sphären, die Buchführungs
 **Fachliche Akteure (kein Code-Mapping):**
 
 - **Servicekraft / Bedienung:** Freiwillige Helfer, die Bestellungen aufnehmen, kassieren und Ausgaben bestätigen. Systemrolle `service`.
-- **Serviceleitung:** Erfahrene Servicekraft mit erweiterten Rechten für Stornierungen und Auszahlungen. Systemrolle `serviceleitung`.
+- **Serviceleitung:** Erfahrene Servicekraft mit erweiterten Rechten für Stornierungen. Systemrolle `serviceleitung`.
 - **Kassenwart / Schatzmeister:** Vorstandsmitglied, verantwortlich für Finanzen, Buchhaltung und Steuererklärungen. Typischerweise Systemrolle `admin`.
 - **Vorstand:** Gesetzliches Vertretungsorgan des Vereins; haftet persönlich für die Einhaltung steuerlicher Pflichten. Typischerweise Systemrolle `admin`.
 
@@ -94,7 +94,7 @@ Go-Struct: `Tisch` · TS-Typ: `Tisch` · DB-Tabelle: `tische`
 
 #### Tisch-Session (Abrechnungskreis)
 
-Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Bestellungen, Zahlungen, Stornierungen, Ausgaben, Auszahlungen) eines Tisches innerhalb einer Kassensitzung ab. Entsteht implizit mit der ersten Bestellung.
+Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Bestellungen, Zahlungen, Stornierungen, Umbuchungen, Ausgaben) eines Tisches innerhalb einer Kassensitzung ab. Entsteht implizit mit der ersten Bestellung.
 
 | Go-Struct      | TS-Typ         | DB-Projektion    | Subject-Format                       |
 | -------------- | -------------- | ---------------- | ------------------------------------ |
@@ -113,7 +113,7 @@ Schlankes Event-Sourced Aggregat im Kasse-Kontext für den Barverkauf an der The
 
 > **Verkauf:** die fachliche Einheit eines Direktverkaufs (ein Stream, ein `verkaufId`). Kein eigenes Domain-Struct, der Verkauf existiert nur als Event-Stream im Kassenjournal. `direktverkauf-getaetigt:v1` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream.
 
-> **Direktverkauf-Stornierung:** positionsgenaue Korrektur/Rückgabe eines Verkaufs durch Serviceleitung/Admin (`direktverkauf-storniert:v1`, Fat-Positionen, sofort kassenwirksam ohne separate Auszahlung). API-Input: `PositionRef`; Validierung per On-Demand-Replay (`ComputeNichtStornierteVerkaufPositionen`). Regeln im Detail → [handbuch.md §3.3](handbuch.md#33-subject-design-hierarchische-subjects).
+> **Direktverkauf-Stornierung:** positionsgenaue Korrektur/Rückgabe eines Verkaufs durch Serviceleitung/Admin (`direktverkauf-storniert:v1`, Fat-Positionen, sofort kassenwirksam, die Bar-Rückgabe ist Teil des Vorgangs). API-Input: `PositionRef`; Validierung per On-Demand-Replay (`ComputeNichtStornierteVerkaufPositionen`). Regeln im Detail → [handbuch.md §3.3](handbuch.md#33-subject-design-hierarchische-subjects).
 
 > **Direktverkauf-Bondruck (Ableitungsregel):** Ist die Druckstation `abholbon` konfiguriert, erzeugt `direktverkauf-getaetigt:v1` Abholbon(s) gemäß deren Bonmodus; sonst Arbeitsbons an die Produktstationen; ohne konfigurierte Stationen entsteht kein Druckauftrag.
 
@@ -167,23 +167,28 @@ Kassierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen.
 
 #### Stornierung
 
-Nachträgliche Aufhebung bestellter Positionen. Nur durch Serviceleitung oder Admin. `Kommentar` ist Pflichtfeld.
+Nachträgliche Aufhebung bestellter Positionen, nur durch Serviceleitung oder Admin (Endpunkt `/stornierung-erteilen`). Eine „Stornieren"-Anforderung wird serverseitig nach Bezahlstatus aufgeteilt: noch unbezahlte Mengen werden geldneutral korrigiert, bereits bezahlte als kassenwirksame Warenrücknahme zurückgenommen. Die entstehenden Events werden atomar geschrieben (alles-oder-nichts), jedes mit eigener TSE-Transaktion.
 
-| Go-Struct     | TS-Typ        | Event-Typ                |
-| ------------- | ------------- | ------------------------ |
-| `Stornierung` | `Stornierung` | `stornierung-erteilt:v1` |
+**Warenrücknahme (kassenwirksam):** Rückgabe bereits bezahlter Positionen als negativer Umsatz am Ursprungssteuersatz mit Bar-Rückgabe im selben Beleg. `ZahlungID` referenziert genau die begleichende Zahlung, deren Mengen zurückgenommen werden (eine Warenrücknahme je betroffener Zahlung, FIFO nach Zahlung, älteste zuerst). Der Rückgabebetrag folgt aus den Positionen, ist nicht frei wählbar. `Kommentar` ist Pflichtfeld. Signiert als `Kassenbeleg-V1` mit negativem Bruttoumsatz je Steuersatz und negativer Bar-Zahlung.
 
-#### Auszahlung
+**Korrektur (geldneutral):** Stornierung noch unbezahlter Positionen ohne Geld- und Umsatzwirkung. Reduziert den offenen Betrag und nimmt die Positionen aus den aktiven Listen. `Kommentar` ist optional. Signiert als `Bestellung-V1` (ohne Zahlungszeile). In der Historie erscheint die Korrektur als „Stornierung".
 
-Auszahlung an den Gast, um einen negativen Saldo auszugleichen, entsteht, wenn bereits kassierte Positionen nachträglich storniert wurden (K-05). Kein Positionsbezug; freier Betrag. `Kommentar` ist Pflichtfeld.
+| Vorgang        | Go-Struct     | TS-Typ        | Event-Typ                  |
+| -------------- | ------------- | ------------- | -------------------------- |
+| Warenrücknahme | `Stornierung` | `Stornierung` | `stornierung-erteilt:v1`   |
+| Korrektur      | `Stornierung` | `Stornierung` | `bestellung-korrigiert:v1` |
 
-| Go-Struct    | TS-Typ       | Event-Typ                 |
-| ------------ | ------------ | ------------------------- |
-| `Auszahlung` | `Auszahlung` | `auszahlung-geleistet:v1` |
+#### Umbuchung
+
+Geldneutrale Verschiebung noch unbezahlter Positionen zwischen zwei Tischen, durch die Servicekraft (Endpunkt `/bestellung-umbuchen`, Rolle `service`). Quell- und Zielstrom erhalten je ein Event mit derselben `UmbuchungID`: der Quelltisch verliert die Positionen (Saldo sinkt), der Zieltisch nimmt sie geldneutral auf (Saldo steigt um denselben Betrag). Beide Events werden atomar geschrieben und als `Bestellung-V1` signiert (ohne Zahlungszeile). `Kommentar` ist optional. In Historie und Export erscheint der Vorgang als „Umbuchung", nicht als „Stornierung".
+
+| Go-Struct   | TS-Typ      | Event-Typ                 |
+| ----------- | ----------- | ------------------------- |
+| `Umbuchung` | `Umbuchung` | `bestellung-umgebucht:v1` |
 
 #### Saldo
 
-Offener Betrag einer Tisch-Session. Immer in Cent. Die Saldo-Formel ist kanonisch in [handbuch.md §3.7](handbuch.md#37-invarianten) definiert.
+Offener Betrag einer Tisch-Session: Summe der noch unbezahlten Positionen, immer in Cent und nie negativ. Die Warenrücknahme bezahlter Positionen verändert den Saldo nicht (sie wirkt auf den Kassenbestand), die geldneutrale Korrektur und die Umbuchung reduzieren ihn. Die Saldo-Formel ist kanonisch in [handbuch.md §3.7](handbuch.md#37-invarianten) definiert.
 
 Go-Projektion-Feld: `SaldoCents` · Berechnung: `ApplyEvent()` → `TischSession`
 
@@ -203,10 +208,10 @@ Go-Funktion: `GetHistorieFromEvents()` · Application-Query: `GetTischHistorie()
 
 | Begriff              | Bedeutung                                                                 | Code-Mapping                                                                                                   |
 | -------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Kommentar            | Freitextnotiz; Pflicht bei Stornierung und Auszahlung, sonst optional     | Go `Kommentar` · JSON/TS `kommentar`                                                                           |
+| Kommentar            | Freitextnotiz; Pflicht bei Warenrücknahme (kassenwirksamer Storno), sonst optional | Go `Kommentar` · JSON/TS `kommentar`                                                                  |
 | Menge                | Anzahl einer Produktvariante innerhalb einer Position                     | Go `Menge` · JSON/TS `menge`                                                                                   |
 | PositionRef          | Referenz auf eine Position (ID + Menge) für Zahlung, Ausgabe, Stornierung | Go/TS `PositionRef` · JSON `positionId`, `menge`                                                               |
-| HistorieEintrag      | Eintrag der Tisch-Historie, typisiert nach Art                            | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `ausgabe`, `auszahlung`             |
+| HistorieEintrag      | Eintrag der Tisch-Historie, typisiert nach Art                            | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `umbuchung`, `ausgabe`              |
 | EigeneUebersicht     | KPI-Read-Model einer Servicekraft: eigene Bestellungen und Zahlungen      | Go/TS `EigeneUebersicht` · JSON `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` |
 | AktiverTisch         | Kompakte Tisch-Darstellung mit Saldo für die Tischübersicht (Read Model)  | Go `AktiverTisch` · TS `AktiverTischMitFavorit` (mit `istFavorit`)                                             |
 | BestellPositionInput | Frontend-Eingabetyp einer Bestellposition (Produkt + Variante + Menge)    | TS `BestellPositionInput` · JSON `produktId`, `varianteId`, `menge`                                            |
@@ -271,7 +276,7 @@ Formeller Tagesabschluss: aggregiert die Kassensitzung und schließt sie ab (Sta
 
 | Event-Typ                    | DB-Feld                | JSON-Keys (Auszug)                                                                                                    |
 | ---------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `tagesabschluss-erstellt:v1` | `kassensitzungen.z_nr` | `zNr`, `zeitraumVon`, `zeitraumBis`, `umsatzGesamtCents`, `stornierungCents`, `auszahlungenCents`, `geldtransitCents` |
+| `tagesabschluss-erstellt:v1` | `kassensitzungen.z_nr` | `zNr`, `zeitraumVon`, `zeitraumBis`, `umsatzGesamtCents`, `stornierungCents`, `geldtransitCents` |
 
 #### X-Bon
 
@@ -330,9 +335,9 @@ Reporting-Daten werden on-demand per SQL-Aggregation aus dem Kassenjournal berec
 | ReportingData       | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen                |
 | Summary             | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen)                |
 | Breakdowns          | Aufschlüsselung des Umsatzes: `UmsatzProServicekraft []UmsatzServicekraft`, `UmsatzProTisch []UmsatzTisch` |
-| UmsatzServicekraft  | Umsatz einer einzelnen Servicekraft (Zahlungen, Auszahlungen, Anzahl)                                      |
-| UmsatzTisch         | Umsatz eines einzelnen Tisches (Zahlungen, Auszahlungen, Anzahl)                                           |
-| StornierungDetail   | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, Benutzer, Betrag, Kommentar, Positionen)              |
+| UmsatzServicekraft  | Umsatz einer einzelnen Servicekraft (Zahlungen, Anzahl)                                                    |
+| UmsatzTisch         | Umsatz eines einzelnen Tisches (Zahlungen, Anzahl)                                                         |
+| StornierungDetail   | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, Benutzer, Betrag, Kommentar, Positionen); `barRueckgabe` markiert die kassenwirksame Warenrücknahme gegenüber der geldneutralen Korrektur |
 | StornierungPosition | Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis)                |
 
 ---

@@ -54,14 +54,14 @@ Der Kasse-Kontext schützt sich über eine Anti-Corruption Layer (ACL) vor Stamm
 
 ## 3. Kasse (Core Domain)
 
-Der Kasse-Kontext vereint alle finanziellen Geschäftsvorfälle mit Event-Sourcing über das Kassenjournal: tischbezogene Vorgänge (Bestellen, Ausgabe bestätigen, Bezahlen/Kassieren, Stornieren, Auszahlen) und kassenführungsbezogene Vorgänge (Kassensitzung eröffnen, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss).
+Der Kasse-Kontext vereint alle finanziellen Geschäftsvorfälle mit Event-Sourcing über das Kassenjournal: tischbezogene Vorgänge (Bestellen, Ausgabe bestätigen, Bezahlen/Kassieren, Stornieren, Umbuchen) und kassenführungsbezogene Vorgänge (Kassensitzung eröffnen, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss).
 
 ### 3.1 Kassensitzung und Abrechnungskreis
 
 | Begriff          | Scope                            | DSFinV-K-Feld                  | Beschreibung                                                                                                                            |
 | ---------------- | -------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Kassensitzung    | Global, 1× pro Veranstaltungstag | `Z_NR` (Kassenabschlussnummer) | Der administrative Rahmen: Eröffnung durch Admin, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss (Z-Bon).                |
-| Abrechnungskreis | Pro Tisch pro Kassensitzung      | `ABRECHNUNGSKREIS`             | Die buchhalterische Einheit: Alle Bestellungen, Zahlungen, Stornierungen und Auszahlungen an einem Tisch innerhalb einer Kassensitzung. |
+| Abrechnungskreis | Pro Tisch pro Kassensitzung      | `ABRECHNUNGSKREIS`             | Die buchhalterische Einheit: Alle Bestellungen, Zahlungen, Stornierungen und Umbuchungen an einem Tisch innerhalb einer Kassensitzung. |
 
 Die Kassensitzung ist der Container, der Abrechnungskreis (= Tisch-Session) ist der Inhalt. Der `ABRECHNUNGSKREIS` ist pro Tisch pro Tag (DSFinV-K).
 
@@ -85,7 +85,7 @@ kassensitzung-{nr}/direktverkauf-{uuid}         → Direktverkauf (ein Stream pr
 
 **Tisch-Session-Subject:** `kassensitzung-1/tisch-42`, entsteht implizit mit der ersten Bestellung (kein „Tisch-Öffnen"-Event).
 
-**Direktverkauf-Subject:** `kassensitzung-1/direktverkauf-<uuid>`, ein eigener Stream pro Barverkauf an der Theke, ohne Projektion. `direktverkauf-getaetigt:v1` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream. Die Storno-Validierung läuft per On-Demand-Replay des einzelnen Verkauf-Streams: Es lassen sich nur Positionen stornieren, die noch nicht (vollständig) storniert wurden, höchstens in der ursprünglich verkauften Menge. Anders als beim Tisch ist die Bargeld-Rückgabe Teil des Storno-Vorgangs selbst und mindert den Soll-Kassenbestand direkt, es gibt keine separate `auszahlung-geleistet`-Buchung, weil ein Direktverkauf keinen aufzulösenden Saldo hat. Die kompakte Direktverkauf-Historie (eine Zeile pro Verkauf) entsteht durch Cross-Stream-Replay aller `direktverkauf-*`-Events der offenen Kassensitzung.
+**Direktverkauf-Subject:** `kassensitzung-1/direktverkauf-<uuid>`, ein eigener Stream pro Barverkauf an der Theke, ohne Projektion. `direktverkauf-getaetigt:v1` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream. Die Storno-Validierung läuft per On-Demand-Replay des einzelnen Verkauf-Streams: Es lassen sich nur Positionen stornieren, die noch nicht (vollständig) storniert wurden, höchstens in der ursprünglich verkauften Menge. Die Bargeld-Rückgabe ist Teil des Storno-Vorgangs selbst und mindert den Soll-Kassenbestand direkt, analog zur Warenrücknahme bezahlter Tisch-Positionen. Die kompakte Direktverkauf-Historie (eine Zeile pro Verkauf) entsteht durch Cross-Stream-Replay aller `direktverkauf-*`-Events der offenen Kassensitzung.
 
 Separate Tisch-Subjects sind notwendig, weil der OCC-Constraint `UNIQUE(subject, version)` bei einem einzigen Subject alle Schreibvorgänge serialisieren würde, bei 5–30 Servicekräften nicht praktikabel.
 
@@ -117,8 +117,9 @@ Alle Events sind unveränderlich (append-only) und werden im Kassenjournal persi
 | `bestellung-aufgenommen:v1` | Servicekraft nimmt eine Bestellung am Tisch auf | ≥ 1 Position; Produktname, Variante, Kategorie und Einzelpreis als Fat Event eingefroren |
 | `ausgabe-bestaetigt:v1`     | Positionen als ausgegeben markiert              | Positionsbezug (`position_id` + `menge`); Teilausgaben möglich                           |
 | `zahlung-kassiert:v1`       | Barzahlung kassiert                             | Betrag = Summe der gewählten Positionen; Teilzahlungen möglich                           |
-| `stornierung-erteilt:v1`    | Stornierung durch Serviceleitung/Admin          | Kommentar Pflicht (min. 3 Zeichen); unabhängig vom Ausgabe-/Bezahlstatus                 |
-| `auszahlung-geleistet:v1`   | Auszahlung gleicht negativen Saldo aus (K-05)   | Freier Betrag ≥ 1 Cent, kein Positionsbezug; Kommentar Pflicht                           |
+| `stornierung-erteilt:v1`    | Kassenwirksame Warenrücknahme bezahlter Positionen | Genau eine `zahlungId` (FIFO je Zahlung); negativer Umsatz am Ursprungssteuersatz + Bar-Rückgabe; Kommentar Pflicht (min. 3 Zeichen) |
+| `bestellung-korrigiert:v1`  | Geldneutrale Stornierung unbezahlter Positionen | Positionsbezug; ohne Geld- und Umsatzwirkung; Kommentar optional                         |
+| `bestellung-umgebucht:v1`   | Geldneutrale Umbuchung unbezahlter Positionen zwischen zwei Tischen | Quell-/Zielstrom mit gemeinsamer `umbuchungId`; ohne Geldwirkung; Kommentar optional     |
 
 **Direktverkauf-Events** (Subject `kassensitzung-{nr}/direktverkauf-{uuid}`):
 
@@ -141,16 +142,15 @@ Alle Events sind unveränderlich (append-only) und werden im Kassenjournal persi
 
 #### Tisch-Session-Invarianten
 
-$$\text{Saldo} = \sum \text{Bestellungen} - \sum \text{Zahlungen} - \sum \text{Stornierungen} + \sum \text{Auszahlungen}$$
+$$\text{Saldo} = \sum \text{Bestellungen} - \sum \text{Zahlungen} - \sum \text{Korrekturen} \pm \sum \text{Umbuchungen}$$
 
-Alle Beträge in Cent (Integer). Saldo = 0 bedeutet: alle Positionen bezahlt oder storniert. Ein Saldo < 0 entsteht, wenn bereits kassierte Positionen nachträglich storniert werden; `AuszahlungGeleistet` gleicht diesen negativen Saldo wieder aus.
+Alle Beträge in Cent (Integer); der Saldo ist die Summe der noch offenen (bestellten, nicht bezahlten, nicht korrigierten/umgebuchten) Positionen und stets ≥ 0. Saldo = 0 bedeutet: alle Positionen bezahlt, korrigiert oder umgebucht. Die kassenwirksame Warenrücknahme bereits bezahlter Positionen (`stornierung-erteilt:v1`) verändert den Saldo nicht; sie wirkt allein auf den Kassenbestand (Bar-Rückgabe).
 
 - **Kassensitzung-Invariante:** Jeder schreibende Tisch-Vorgang erfordert eine offene Kassensitzung. Prüfung via `kassensitzungen`-Entität im Application Service. Keine offene KS → HTTP 409.
 - **Ausgabe-Invariante:** Nur bestellte, nicht-stornierte Positionen können ausgegeben werden. Bereits ausgegebene Positionen nicht erneut ausgebbar. Teilausgaben zulässig.
 - **Bezahl-Invariante:** Nur bestellte, nicht-stornierte, nicht-bezahlte Positionen können bezahlt werden. Der Zahlungsbetrag ergibt sich aus der Summe der gewählten Positionen, Überzahlung nicht möglich. Teilzahlungen zulässig.
-- **Stornierungsinvariante:** Nur bestellte, nicht-stornierte Positionen können storniert werden, unabhängig vom Ausgabe- und Bezahlstatus. Bei Stornierung bereits bezahlter Positionen kann der Saldo temporär negativ werden (bewusstes Design). Kommentar ist Pflichtfeld (min. 3 Zeichen).
-- **Auszahlungs-Invariante:** Betrag muss ≥ 1 Cent sein. Kommentar ist Pflichtfeld (min. 3, max. 100 Zeichen). Es gibt keine Obergrenze für den Auszahlungsbetrag (Freifeld). Nur `serviceleitung` und `admin` dürfen Auszahlungen leisten.
-- **Rolleninvariante:** Stornierungen und Auszahlungen nur durch `serviceleitung` und `admin`. Alle anderen Tischoperationen (Bestellen, Ausgabe bestätigen, Kassieren) stehen allen drei Rollen zur Verfügung.
+- **Stornierungsinvariante:** Nur bestellte, nicht-stornierte Positionen sind stornierbar. Eine „Stornieren"-Anforderung wird serverseitig nach Bezahlstatus aufgeteilt: noch unbezahlte Positionen werden geldneutral korrigiert (`bestellung-korrigiert:v1`, Kommentar optional), bereits bezahlte als kassenwirksame Warenrücknahme zurückgenommen (`stornierung-erteilt:v1`, je betroffener Zahlung ein Event mit genau einer `zahlungId`, FIFO nach Zahlung, Kommentar Pflicht, min. 3 Zeichen). Die entstehenden Events werden atomar geschrieben, jedes mit eigener TSE-Transaktion; der Saldo bleibt stets ≥ 0.
+- **Rolleninvariante:** Stornierungen nur durch `serviceleitung` und `admin`. Alle anderen Tischoperationen (Bestellen, Ausgabe bestätigen, Kassieren, Umbuchen) stehen allen drei Rollen zur Verfügung.
 - **Mindestmengen-Invariante:** Jede positionsbasierte Operation erfordert mindestens eine Position. Bestellung, Ausgabe, Zahlung oder Stornierung ohne Positionen sind ungültig.
 
 #### Kassensitzung-Invarianten
@@ -188,7 +188,7 @@ Die Zustandsberechnung (`ApplyEvent()` in `backend/domain/kasse/tisch_session.go
 
 SQL-Aggregation über das Kassenjournal (eine `SELECT`-Query über `kassensitzung_nr`):
 
-$$\text{Soll} = \text{Anfangsbestand}_{\text{KS}} + \sum_{\text{Tische}} \text{Zahlungen} - \sum_{\text{Tische}} \text{Auszahlungen} + \sum \text{Direktverkauf} - \sum \text{Direktverkauf-Storno} + \text{Kassenbewegungen}_{\text{netto}} + \text{DifferenzSollIst}$$
+$$\text{Soll} = \text{Anfangsbestand}_{\text{KS}} + \sum_{\text{Tische}} \text{Zahlungen} - \sum_{\text{Tische}} \text{Warenrücknahmen} + \sum \text{Direktverkauf} - \sum \text{Direktverkauf-Storno} + \text{Kassenbewegungen}_{\text{netto}} + \text{DifferenzSollIst}$$
 
 Alle Summanden stammen aus dem Kassenjournal. Keine Cross-Context-Projektion. Direktverkauf-Events (`direktverkauf-getaetigt:v1`, `direktverkauf-storniert:v1`) haben keine eigene Projektion, sind aber vollständig kassenwirksam und fließen in den Soll-Bestand ein.
 
@@ -212,7 +212,7 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 
 - **Stornierungsberechtigung (K-04):** Nur `serviceleitung` und `admin` dürfen `StornierungErteilen`. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat geht.
 - **Arbeitsbon-Druck nach Kategorie (K-12):** Jedes `bestellung-aufgenommen:v1`-Event löst im Backend die Arbeitsbon-Policy aus, die Druckaufträge in die Outbox einreiht (→ [4.6 Bondruck](#46-bondruck-arbeitsbon-und-kassenbeleg-k-12)).
-- **Umbuchung (K-09):** Verschiebt eine Bestellung von Quell- auf Ziel-Tisch (= Stornierung + neue Bestellung). Cross-Aggregat-Transaktion, Atomarität auf Anwendungsebene sicherstellen. Nur `serviceleitung` und `admin`.
+- **Umbuchung (K-09):** Verschiebt unbezahlte Positionen von Quell- auf Ziel-Tisch über ein geldneutrales `bestellung-umgebucht:v1` (Quell- und Zielstrom mit gemeinsamer `umbuchungId`). Cross-Aggregat-Transaktion, atomar geschrieben. Steht allen drei Rollen (`service`, `serviceleitung`, `admin`) zur Verfügung.
 
 ### 3.13 TSE-Architektur
 
@@ -222,7 +222,7 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 
 **Ausfallpfad (Nachsignieren):** Der Signierversuch läuft synchron im Kassier-Pfad mit kurzer Deadline. Schlägt er fehl (TSE-Ausfall/Timeout), wird der Vorgang trotzdem gebucht und ein Nachsignier-Auftrag (`tse_nachsignier_auftraege`) angelegt; ein Hintergrund-Worker signiert später nach und legt die Signatur in `tse_signaturen` ab. Admins können offene Aufträge zurücksetzen oder verwerfen (`/admin/get-tse-nachsignier-auftraege`, …). Fehlt beim Bon-Aufdruck noch eine logTime, greift die Event-Zeit als Fallback (AEAO 1.14.3).
 
-**Vorgang → processType:** Bestellung aufnehmen → `Bestellung-V1`; Zahlung, Storno, Auszahlung, Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) → `Kassenbeleg-V1`; Tagesabschluss (Z-Bon) → `SonstigerVorgang`. Alle Transaktionen eines Tisches teilen denselben `ABRECHNUNGSKREIS`. Eigenbeleg- und Storno-Details im Export (BON_STORNO, REF_BON_ID, AEAO 2.2.3.6.1) → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
+**Vorgang → processType:** Bestellung aufnehmen, geldneutrale Korrektur (`bestellung-korrigiert`), Umbuchung (`bestellung-umgebucht`) → `Bestellung-V1`; Zahlung, kassenwirksame Warenrücknahme (`stornierung-erteilt`), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) → `Kassenbeleg-V1`; Tagesabschluss (Z-Bon) → `SonstigerVorgang`. Alle Transaktionen eines Tisches teilen denselben `ABRECHNUNGSKREIS`. Eigenbeleg- und Storno-Details im Export (BON_STORNO, REF_BON_ID, AEAO 2.2.3.6.1) → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 
 **DSFinV-K-Export (geplant):** Ein Exporter soll Stammdaten-, Einzelaufzeichnungs- und Z-Bon-Daten als DSFinV-K-CSV (`transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, …) mit `index.xml` und ZIP bündeln. Datei-Struktur und Pflichtfelder → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 
@@ -308,7 +308,7 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen. Die Rollenprüfung erfol
 | Ausgabe bestätigen             |   ✔   |       ✔        |      ✔       |
 | Zahlung kassieren              |   ✔   |       ✔        |      ✔       |
 | Stornierung erteilen           |   ✔   |       ✔        |              |
-| Auszahlung leisten             |   ✔   |       ✔        |              |
+| Bestellung umbuchen            |   ✔   |       ✔        |      ✔       |
 | Tischübersicht einsehen        |   ✔   |       ✔        |      ✔       |
 | Kassenjournal einsehen         |   ✔   |       ✔        |      ✔       |
 | _Kasse: Kassensitzung_         |       |                |              |
@@ -448,7 +448,7 @@ Reporting ist Admin-only und wird on-demand per SQL-Aggregation über `kassenjou
 
 | Endpunkt                         | Scope                                  | Inhalt                                                                              |
 | -------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------- |
-| `POST /admin/get-live-reporting` | offene Kassensitzung (ohne Parameter)  | KPIs, offene Tische, offene Saldi, ausstehende Auszahlungen                         |
+| `POST /admin/get-live-reporting` | offene Kassensitzung (ohne Parameter)  | KPIs, offene Tische, offene Saldi, Stornierungen                                    |
 | `POST /admin/get-abrechnung`     | bestimmte Kassensitzung (`kassensitzungNr`) | `summary`, `breakdowns` (Umsatz pro Servicekraft/Tisch), `umsatzProSteuersatz`, `stornierungen` |
 
 Beide `summary`-Sektionen enthalten die Direktverkauf-Kennzahlen `anzahlDirektverkaeufe` und `direktverkaufUmsatzCents` (netto: Verkauf minus Storno). Anforderungs-IDs (R-01–R-05) → [anforderungen.md](anforderungen.md).

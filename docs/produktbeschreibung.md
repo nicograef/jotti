@@ -80,7 +80,7 @@ Mit _(in Entwicklung)_ markierte Features sind geplant, aber noch nicht umgesetz
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
 | Bestellung & Ausgabe                       | Produkte und Varianten auf den Tisch buchen (Menge, Steuersatz, Kommentar), als ausgegeben markieren, ausstehende nachverfolgen |
 | Zahlung kassieren                          | Bargeld kassieren: Teilzahlung und Rückgeldberechnung                                                                           |
-| Stornierung & Auszahlung                   | Falschbestellungen rückgängig machen (Serviceleitung/Admin, Pflichtkommentar); negativen Saldo per Auszahlung ausgleichen       |
+| Stornierung                                | Falschbestellungen rückgängig machen (Serviceleitung/Admin): bezahlte Positionen als Warenrücknahme mit Bar-Rückgabe, unbezahlte geldneutral                |
 | Umbuchen & Direktverkauf                   | Bestellungen atomar zwischen Tischen verschieben; Barverkauf an der Theke in einem Schritt                                      |
 | Tisch-Übersicht                            | Saldo, Bestellungen, Zahlungen und Historie auf einen Blick; Favoriten als Rich Cards, Schnellsuche per Name/Nummer             |
 | Küchendisplay (KDS) _(in Entwicklung)_     | Eingehende Bestellungen in Echtzeit im Küchen-/Ausgabebereich anzeigen                                                          |

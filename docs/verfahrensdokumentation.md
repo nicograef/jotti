@@ -47,7 +47,7 @@ jotti ist ein self-hosted Kassensystem (mobile Point of Sale) für Vereinsfeste.
 
 | Bereich | Aufgabe | Persistenz |
 | --- | --- | --- |
-| Kasse | Alle finanziellen Geschäftsvorfälle: Bestellen, Ausgeben, Kassieren, Stornieren, Auszahlen, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal) |
+| Kasse | Alle finanziellen Geschäftsvorfälle: Bestellen, Ausgeben, Kassieren, Stornieren, Umbuchen, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal) |
 | Stammdaten | Produkte, Tische, Benutzer, Betreiber-Stammdaten | CRUD mit Soft-Delete |
 | Auth | Login, Logout, Passwort, Token | Infrastruktur |
 
@@ -83,8 +83,8 @@ jotti unterliegt nach § 146a AO der Pflicht, jeden Geschäftsvorfall durch eine
 
 | jotti-Vorgang | TSE-Vorgangsart (processType) |
 | --- | --- |
-| Bestellung aufnehmen | `Bestellung-V1` |
-| Zahlung, Storno, Auszahlung, Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) | `Kassenbeleg-V1` |
+| Bestellung aufnehmen, geldneutrale Korrektur, Umbuchung | `Bestellung-V1` |
+| Zahlung, Warenrücknahme (kassenwirksamer Storno), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) | `Kassenbeleg-V1` |
 | Tagesabschluss (Z-Bon) | `SonstigerVorgang` |
 
 **Persistenz der Signaturen:** Die von der TSE gelieferten Signaturdaten (Transaktionsnummer, Signaturzähler, Signatur, Zeitstempel, Seriennummer) werden zusammen mit dem Ereignis im Kassenjournal gespeichert.
@@ -120,10 +120,10 @@ Format- und Felddetails: [compliance.md §6](compliance.md#6-dsfinv-k-export-sch
 | Rolle | Berechtigung |
 | --- | --- |
 | `admin` | Voller Zugriff: Stammdaten, Kasse, Kassensitzung, Auswertungen, Export, Finanzamt-Daten |
-| `serviceleitung` | Kasse einschließlich Stornierung und Auszahlung |
-| `service` | Kasse ohne Stornierung und Auszahlung |
+| `serviceleitung` | Kasse einschließlich Stornierung |
+| `service` | Kasse ohne Stornierung |
 
-Stornierungen und Auszahlungen sind ausschließlich `serviceleitung` und `admin` vorbehalten; die Kassensitzung (Eröffnen, Kassensturz, Tagesabschluss) und alle Stammdaten- und Auswertungsfunktionen sind dem `admin` vorbehalten. Die vollständige Berechtigungsmatrix steht in [handbuch.md §5.1](handbuch.md#51-rollen-und-berechtigungsmatrix).
+Stornierungen sind ausschließlich `serviceleitung` und `admin` vorbehalten; die Kassensitzung (Eröffnen, Kassensturz, Tagesabschluss) und alle Stammdaten- und Auswertungsfunktionen sind dem `admin` vorbehalten. Die vollständige Berechtigungsmatrix steht in [handbuch.md §5.1](handbuch.md#51-rollen-und-berechtigungsmatrix).
 
 **Rollenvergabe in diesem Verein (auszufüllen):**
 

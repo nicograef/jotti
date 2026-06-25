@@ -80,7 +80,7 @@ Die `processType`-Werte sind im AEAO zu § 146a AO, Anhang I, festgelegt. Die -V
 
 | processType        | Verwendung                                                                                                                                                           |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Kassenbeleg-V1`   | Zahlungsbeleg (Rechnung), der dem Kunden ausgehändigt wird; auch Eigenbelege über Ein-/Auszahlungen wie Geldtransit, Kassendifferenz und Auszahlung (AEAO 2.2.3.6.1) |
+| `Kassenbeleg-V1`   | Zahlungsbeleg (Rechnung), der dem Kunden ausgehändigt wird; auch Eigenbelege über Ein-/Auszahlungen wie Geldtransit und Kassendifferenz (AEAO 2.2.3.6.1)             |
 | `Bestellung-V1`    | Zwischenabsicherung einer Bestellung ohne sofortige Zahlung (Gastronomie)                                                                                            |
 | `SonstigerVorgang` | Alle anderen abzusichernden Vorgänge (Tagesabschluss, TSE-Selbsttest, ...)                                                                                           |
 
@@ -92,10 +92,12 @@ Die `processType`-Werte sind im AEAO zu § 146a AO, Anhang I, festgelegt. Die -V
 | `zahlung-kassiert:v1`        | `Kassenbeleg-V1`   | Tisch-Teilzahlung oder Vollzahlung                                                            |
 | `direktverkauf-getaetigt:v1` | `Kassenbeleg-V1`   | Atomar, keine vorgelagerte `Bestellung-V1`, da Bestellung und Zahlung zeitgleich stattfinden |
 | `direktverkauf-storniert:v1` | `Kassenbeleg-V1`   | Stornobeleg mit negativem Betrag, `REF_BON_ID` auf den Ursprungsverkauf                       |
-| `stornierung-erteilt:v1`     | `Kassenbeleg-V1`   | Positions-Storno am Tisch mit negativen Beträgen                                              |
+| `stornierung-erteilt:v1`     | `Kassenbeleg-V1`   | Warenrücknahme bezahlter Positionen, negative Beträge, `REF_BON_ID` auf die Zahlung           |
+| `bestellung-korrigiert:v1`   | `Bestellung-V1`    | Geldneutrale Korrektur unbezahlter Positionen, ohne Zahlungszeile                             |
+| `bestellung-umgebucht:v1`    | `Bestellung-V1`    | Geldneutrale Umbuchung unbezahlter Positionen zwischen Tischen, ohne Zahlungszeile           |
 | Tagesabschluss (Z-Bon)       | `SonstigerVorgang` | Aggregierte Tagessummen                                                                       |
 
-Das vollständige Mapping aller jotti-Vorgänge (inkl. Auszahlung, Geldtransit, Kassendifferenz): [handbuch.md §3.13](handbuch.md#313-tse-architektur).
+Das vollständige Mapping aller jotti-Vorgänge (inkl. Geldtransit, Kassendifferenz): [handbuch.md §3.13](handbuch.md#313-tse-architektur).
 
 ### 3.4 Datenformat-Vorgaben (`processData`)
 
