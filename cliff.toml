@@ -1,0 +1,48 @@
+# git-cliff configuration — generates jotti's GitHub release notes from
+# Conventional Commits. Only user-relevant types (feat, fix) are shown;
+# the `website` scope and all other types are filtered out. See
+# docs/plans/plan-changelog-git-cliff.md for the rationale.
+
+[changelog]
+header = ""
+body = """
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}\
+{{ commit.message | split(pat="\n") | first | upper_first }}
+{%- endfor %}
+{% endfor %}
+{% if previous and previous.version and version %}
+**Full Changelog**: https://github.com/nicograef/jotti/compare/{{ previous.version }}...{{ version }}
+{% endif %}
+"""
+# Der Compare-Link steht bewusst am Body-Ende statt im `footer`-Template:
+# `version`/`previous` sind reine Release-Variablen und im `footer`-Kontext
+# nicht verfügbar. Da je Lauf genau ein Release gerendert wird (--latest oder
+# ein Tag-Range), erscheint der Link wie gewünscht ganz unten.
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+filter_commits = true
+# Reihenfolge zählt — der erste passende Parser gewinnt:
+#   1. `scope = website` zuerst, sonst greifen feat/fix davor und die
+#      Website-Commits landen trotzdem im Changelog. Scope wird über
+#      `field`/`pattern` gematcht (ein blankes `scope =` setzt nur den
+#      Output-Scope, es filtert nicht).
+#   2. Breaking vor feat/fix, sonst landen feat!/fix! in feat/fix. Das
+#      `breaking`-Flag deckt beide Auslöser ab — `typ!:` und den
+#      `BREAKING CHANGE`-Footer (Letzterer steht nach dem Conventional-
+#      Parsing nicht mehr im Body, daher kein `body`-Match).
+# Das <!-- N -->-Präfix steuert die Gruppen-Sortierung und wird per
+# `striptags` aus dem Output entfernt.
+commit_parsers = [
+  { field = "scope", pattern = "website", skip = true },
+  { field = "breaking", pattern = "true", group = "<!-- 0 -->⚠️ Breaking Changes" },
+  { message = "^feat", group = "<!-- 1 -->✨ Neue Funktionen" },
+  { message = "^fix",  group = "<!-- 2 -->🐛 Fehlerbehebungen" },
+  { message = ".*", skip = true },
+]
+tag_pattern = "v[0-9]*"

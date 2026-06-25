@@ -177,20 +177,20 @@ Compare-Link im Footer.
 
 ### Acceptance criteria
 
-- [ ] `cliff.toml` liegt im Repo-Root.
-- [ ] `npx git-cliff --latest` läuft fehlerfrei und gibt ein nach Typ
+- [x] `cliff.toml` liegt im Repo-Root.
+- [x] `npx git-cliff --latest` läuft fehlerfrei und gibt ein nach Typ
       gruppiertes Markdown-Changelog aus.
-- [ ] Nur `feat`- und `fix`-Commits erscheinen; `docs`/`refactor`/`chore`/
+- [x] Nur `feat`- und `fix`-Commits erscheinen; `docs`/`refactor`/`chore`/
       `ci`/`test`/`build` fehlen; `scope = website` fehlt.
-- [ ] Gruppen-Reihenfolge ist Breaking Changes → Neue Funktionen →
+- [x] Gruppen-Reihenfolge ist Breaking Changes → Neue Funktionen →
       Fehlerbehebungen; die `<!-- N -->`-Sortierpräfixe sind im Output nicht
       sichtbar.
-- [ ] Einträge zeigen den Scope als fettes Präfix; Commits ohne Scope erscheinen
+- [x] Einträge zeigen den Scope als fettes Präfix; Commits ohne Scope erscheinen
       ohne Präfix.
-- [ ] Breaking-Commits (`typ!:`/`BREAKING CHANGE`) erscheinen ausschließlich in
+- [x] Breaking-Commits (`typ!:`/`BREAKING CHANGE`) erscheinen ausschließlich in
       `⚠️ Breaking Changes`, nicht zusätzlich in feat/fix.
-- [ ] Footer enthält den `**Full Changelog**`-Compare-Link.
-- [ ] Stichprobe gegen `git log v0.10.0..v0.11.0` bestätigt Vollständigkeit der
+- [x] Footer enthält den `**Full Changelog**`-Compare-Link.
+- [x] Stichprobe gegen `git log v0.10.0..v0.11.0` bestätigt Vollständigkeit der
       feat/fix-Einträge.
 
 ---
