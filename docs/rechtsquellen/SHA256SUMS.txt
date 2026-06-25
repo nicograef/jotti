@@ -1,0 +1,39 @@
+d3d34f0a3a39cc4806e80668e34c8b9db6ddad70f4766e6fa8d65acadb9f1b45  ./fiskaly/fiskaly-SIGN-DE-API-v2-openapi.json
+a86dd22e02cffbab7fb1b668627f318d22723f7162df0da0bf4da0909746dc1e  ./gesetze/AO.pdf
+27b720c812be1bdf1462ff468ad6410fe94da80b48f6d10fa7e2269b9e5a1597  ./gesetze/DSGVO-VO-EU-2016-679.pdf
+e5351ca28768ece983f25c28376c74d06fc2f22d2ed3f5195c97f9074030c303  ./gesetze/KassenSichV.pdf
+712b2e3832d460a91ada0ac28776dd18754643ebde513fe29560debd0b18930e  ./gesetze/UStG.pdf
+e6f688d63c6318bb2940675b21bb7ce064c6094d469ab8dbc22dfd5c4a8f5373  ./technik-spezifikationen/BSI-TR-03153-1-Anhang-A.pdf
+072af69cd203951a77122c543a0d010c36cdde9264b927eb2666543e1b4ae38e  ./technik-spezifikationen/BSI-TR-03153-1-Anhang-B.pdf
+871ade43f9f3ad5977cd23af0a4406c9df3322adc45845c24b6741395a9031ad  ./technik-spezifikationen/BSI-TR-03153-1.pdf
+0d89b7f458c2e6e2500642545267d0371948c245ba3936f40b8576c82b158f2f  ./technik-spezifikationen/BSI-TR-03153-2.pdf
+788286aef91791dcf5d2584a55ea0374cd5b37dea7a70c94cca6be6854fb4780  ./technik-spezifikationen/DSFinV-K-2.4/01_rechtliche Grundlagen/2019-02-28-BSI-TR-03153-03151-03116.pdf
+0eb2a543a81af8382a6cbceecc83b3e5efc11262aa28ec854f6730b0d7043d1e  ./technik-spezifikationen/DSFinV-K-2.4/01_rechtliche Grundlagen/2019-06-17-Einführung und Anwendungserlass-146a AO.pdf
+e896f86db5b5a474b1aaaec8a18e2ba01926b7962646bacc6e8bbce8690d5a09  ./technik-spezifikationen/DSFinV-K-2.4/01_rechtliche Grundlagen/2023-06-29-BSI-TR-03153-13151-03145-03116.pdf
+de5d247f2c9cbac72cfd15be9f27317cac6d38e332a3a7cd00870a132a6dfc2b  ./technik-spezifikationen/DSFinV-K-2.4/01_rechtliche Grundlagen/2023-06-30-AEAO-Par-146-AO.pdf
+1286c26559c5fb6021488ac35ef53bb3a733ea9109e8cdc0f50b41e6046e7ed2  ./technik-spezifikationen/DSFinV-K-2.4/01_rechtliche Grundlagen/2023-12-29-BSI-TR-03153.pdf
+00a0b809d35b094a84afcbc6041ccac8a3d75f79eaf0fc46401fdd675bbf85af  ./technik-spezifikationen/DSFinV-K-2.4/01_rechtliche Grundlagen/Änderungen der GoBD (11. März 2024).pdf
+af3d4c5a19e991f2d8c53995bc708680bbd7ff9326fde539c55b7e2c63f848a2  ./technik-spezifikationen/DSFinV-K-2.4/02_index.xml/gdpdu-01-09-2004.dtd
+d0b1fed31a50dc6370d7a54528034a1e0ac2f982f82e3c0a9250a15c64c85160  ./technik-spezifikationen/DSFinV-K-2.4/02_index.xml/index.xml
+2e0a26ce87477497b9502ee7bc43b7ca679bec7928fbd9c9c344475c39e4a897  ./technik-spezifikationen/DSFinV-K-2.4/03_Beispiele/V_2_3_01 a Beispiele_Behandlung von Forderungen_processing flag_true.xlsx
+d89fd2b6f91d24f638f0b74ccfc055062984c1bbd67819336508b2235ed7c2e3  ./technik-spezifikationen/DSFinV-K-2.4/03_Beispiele/V_2_3_01 b Beispiele_Behandlung von Forderungen_processing flag_false_Bil-IST.....xlsx
+279ed3ede57fa69061e5b4ef02c13b3f952a4987a54315e6740536848caec608  ./technik-spezifikationen/DSFinV-K-2.4/03_Beispiele/V_2_3_01 c Beispiele_Behandlung von Forderungen_processing flag_false_Bil-SOLL....xlsx
+571d40ff3900761f60a9f9aa3a5e13c9b6b2bf6ce3648e2d1b584a2a5d383bca  ./technik-spezifikationen/DSFinV-K-2.4/03_Beispiele/V_2_3_02 Beispiele_Behandlung von Mehrzweckgutscheinen.xlsx
+ab3f48e0d2a683a1be0e6306c2df7bc241fba33ef8c737cbcbc3f1b08c0f0c57  ./technik-spezifikationen/DSFinV-K-2.4/03_Beispiele/V_2_3_03 Beispiele_Behandlung von Einzweckgutscheinen.xlsx
+63c59b3b7dd69b640095948113cbf294b71b5af4f9fdc90c0ab4dd224b98f90b  ./technik-spezifikationen/DSFinV-K-2.4/03_Beispiele/V_2_3_04 Beispiele_Behandlung von Anzahlungen.xlsx
+10a545ad31d29fcf22db69aca0012a655c1bad1432b6af23a821e9c379821a73  ./technik-spezifikationen/DSFinV-K-2.4/03_Beispiele/V_2_3_05 Beispiele_Behandlung von Privatvorgängen.xlsx
+58a045812cb89835adde6e7b7a1764383b930a36845c3dda3cf7c3c71bce8839  ./technik-spezifikationen/DSFinV-K-2.4/03_Beispiele/V_2_3_06 Beispiele_Behandlung von Wechselgeld & Geldtransit Vorgängen.xlsx
+2abf979d317d1ae366765043b0320ecfaffbee7bb15c18792ae5fbc57fd29b28  ./technik-spezifikationen/DSFinV-K-2.4/03_Beispiele/V_2_3_07 Beispiele_Behandlung von Differenzbeträgen.xlsx
+01c8fa646fa92e70be62511a196177487323c3514640043ef8a5dfdfb97bbecb  ./technik-spezifikationen/DSFinV-K-2.4/20231215_DSFinV_K_2_4.pdf
+441b2961575bebd6f0cf4ba3c5b1409c55e87248f863f9ded0398eecd70123a2  ./technik-spezifikationen/DSFinV-K-2.4/20231215_DSFinV_K_Anlage1_Änderungsnachweis.pdf
+23e2f4e2b95ab682f5baf735e2cc0259da1bbf3abba942d099cecef9f90eaa39  ./technik-spezifikationen/DSFinV-K-2.4/20241205_DSFinV_K_Anlage2_UStSchluessel.pdf
+c5cdbdaa60845591fdac55cd313e0561711a532893ff9cd5be398b8c13886021  ./technik-spezifikationen/DSFinV-K-2.4/Anhang_G_Uebersicht.xlsx
+efd6816f95d86d773015c38e8a80fd0c9eca1bc2bba9968b900cfd9564e7b1a7  ./technik-spezifikationen/DSFinV-K-2.4.zip
+af3d4c5a19e991f2d8c53995bc708680bbd7ff9326fde539c55b7e2c63f848a2  ./technik-spezifikationen/gdpdu-01-09-2004.dtd
+f84ba946be42265a50bf1d6cc2b985cbb6897afbe0bc7572baba953729123e1f  ./verwaltung-bmf/AEAO-zu-146-146a-147-Aenderung-2025-09-01.pdf
+de5d247f2c9cbac72cfd15be9f27317cac6d38e332a3a7cd00870a132a6dfc2b  ./verwaltung-bmf/AEAO-zu-146a-2023-06-30.pdf
+d82605c0ef70723071ea700799fa0168eafdce5458436298ebb6c8cde43929a5  ./verwaltung-bmf/AEAO-zu-146a-Aenderung-2024-06-28.pdf
+00a0b809d35b094a84afcbc6041ccac8a3d75f79eaf0fc46401fdd675bbf85af  ./verwaltung-bmf/GoBD-Aenderung-2024-03-11.pdf
+142386fb87ac9c090cf6f678b612f7188a3850b410c53947da92fb3295a81e0b  ./verwaltung-bmf/GoBD-Aenderung-2025-07-14.pdf
+7beee42798678eb57498240b4e4b883904d843045895f63a3a04a9f54cee2098  ./verwaltung-bmf/Kassenmeldepflicht-BMF-2024-06-28.pdf
+ab78ca30d2e9573755053f3b2d2a96f0987b26953176c1ade54a44f5c152aa5f  ./verwaltung-bmf/UStAE-konsolidiert-2026-06-02.pdf
