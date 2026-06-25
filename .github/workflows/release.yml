@@ -24,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # volle History inkl. aller Tags für git-cliff
 
       - uses: actions/setup-go@v6
         with:
@@ -42,6 +44,24 @@ jobs:
             echo "version=dev-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
             echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
+
+      # Release-Notes aus den Conventional Commits seit dem letzten Tag rendern.
+      # Läuft in beiden Pfaden: beim Tag-Push wird das Ergebnis an das Release
+      # gehängt, beim Dispatch dient es nur als Vorschau (siehe Job-Summary).
+      - name: Changelog generieren
+        id: changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+
+      - name: Changelog-Vorschau in die Job-Summary
+        run: |
+          {
+            echo '## Changelog'
+            echo
+            cat "${{ steps.changelog.outputs.changelog }}"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Alle vier Images lokal bauen und in den Docker-Store laden (--load), damit
       # der Smoke-Test sie ohne Registry-Push verwenden kann. Push erst nach
@@ -127,4 +147,4 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: dist/jotti-windows-${{ steps.version.outputs.version }}.zip
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.content }}

@@ -223,15 +223,17 @@ Der nächste echte Tag-Push erzeugt dann ein Release mit ausgefülltem Body.
 
 ### Acceptance criteria
 
-- [ ] `actions/checkout` nutzt `fetch-depth: 0`.
-- [ ] Neuer Changelog-Step läuft in Push- und Dispatch-Pfad und rendert per
+- [x] `actions/checkout` nutzt `fetch-depth: 0`.
+- [x] Neuer Changelog-Step läuft in Push- und Dispatch-Pfad und rendert per
       `cliff.toml`.
-- [ ] Im `workflow_dispatch`-Dry-Run erscheint das gerenderte Changelog im
+- [x] Im `workflow_dispatch`-Dry-Run erscheint das gerenderte Changelog im
       Job-Summary; es wird **kein** Release/Image publiziert.
-- [ ] Release-Step nutzt `body:` aus dem Changelog-Output statt
+- [x] Release-Step nutzt `body:` aus dem Changelog-Output statt
       `generate_release_notes: true`; das Windows-ZIP wird weiterhin angehängt.
 - [ ] Der nächste Tag-Push (oder ein manueller Re-Run gegen einen Tag) erzeugt
       ein Release, dessen Body das gruppierte feat/fix-Changelog enthält.
+      (Mechanik steht und der Body ist lokal verifiziert; empirische Bestätigung
+      erst beim nächsten echten Tag-Push möglich.)
 
 ---
 
