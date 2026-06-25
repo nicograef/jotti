@@ -76,22 +76,6 @@ func TestNewStornierungErteiltEvent_Kommentar(t *testing.T) {
 	}
 }
 
-// --- Auszahlung: Kommentar ist Pflichtfeld (min 3 Zeichen) ---
-
-func TestNewAuszahlungGeleistetEvent_Kommentar(t *testing.T) {
-	for _, tt := range kommentarTests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewAuszahlungGeleistetEvent(kommentarTestSubject, 1, "Servicekraft", 500, tt.kommentar)
-			if tt.wantErr && err == nil {
-				t.Errorf("erwartete Fehler für Kommentar %q, aber kein Fehler", tt.kommentar)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("kein Fehler erwartet für Kommentar %q, aber: %v", tt.kommentar, err)
-			}
-		})
-	}
-}
-
 // --- Bestellung: Kommentar ist optional ---
 
 func TestNewBestellungAufgenommenEvent_Kommentar(t *testing.T) {

@@ -62,7 +62,7 @@ describe('MeinTischCard', () => {
     expect(screen.queryByText('Alles erledigt')).not.toBeInTheDocument()
   })
 
-  it('zeigt "Alles erledigt" wenn keine offenen Positionen und kein Auszahlungssaldo', () => {
+  it('zeigt "Alles erledigt" wenn keine offenen Positionen', () => {
     render(<MeinTischCard state={tischSession({})} />)
 
     expect(screen.getByText('Alles erledigt')).toBeInTheDocument()

@@ -827,26 +827,3 @@ func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName st
 	log.Info().Int("tisch_id", tischID).Msg("Ausgabe bestätigt")
 	return nil
 }
-
-func (c Command) AuszahlungLeisten(ctx context.Context, userID int, userName string, tischID int, betragCents int, kommentar string) error {
-	log := zerolog.Ctx(ctx)
-
-	// Tisch-Existenz und Status prüfen
-	subject, kassensitzungNr, _, err := c.loadTischState(ctx, tischID)
-	if err != nil {
-		return err
-	}
-
-	evt, err := kasse.NewAuszahlungGeleistetEvent(subject, userID, userName, betragCents, kommentar)
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create auszahlung geleistet event")
-		return err
-	}
-
-	signierung, err := c.signAuszahlungGeleistetEvent(ctx, evt, betragCents)
-	if err != nil {
-		return err
-	}
-
-	return c.persistSignedTischEvent(ctx, signierung, subject, kassensitzungNr, tischID, "Auszahlung geleistet")
-}

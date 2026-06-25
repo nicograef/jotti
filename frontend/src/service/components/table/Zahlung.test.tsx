@@ -12,12 +12,12 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/lib/Auth', () => ({
-  AuthSingleton: { canCancel: true, userId: 1 },
+  AuthSingleton: { userId: 1 },
 }))
 
 // vaul's Drawer braucht Browser-APIs, die jsdom nicht bereitstellt. Trigger
-// inline rendern, Drawer-Inhalt ausblenden — so bleiben nur die Aktionsleiste
-// und der Auszahlung-Trigger übrig.
+// inline rendern, Drawer-Inhalt ausblenden — so bleibt nur die Aktionsleiste
+// (der Kassieren-Trigger) übrig.
 vi.mock('@/components/ui/drawer', () => {
   const Passthrough = ({ children }: { children?: ReactNode }) => children
   return {
@@ -70,14 +70,11 @@ function renderZahlung(positionen: Position[] = [position]) {
     <Zahlung
       backend={{
         zahlungKassieren: vi.fn().mockResolvedValue(undefined),
-        auszahlungLeisten: vi.fn().mockResolvedValue(undefined),
       }}
       tisch={tisch}
       positionen={positionen}
-      saldoCents={0}
       loading={false}
       onZahlungKassiert={vi.fn()}
-      onAuszahlungGeleistet={vi.fn()}
     />,
   )
 }
@@ -94,14 +91,6 @@ describe('Zahlung Aktionsleiste', () => {
     const bar = screen.getByRole('button', { name: /Kassieren/ })
     expect(bar).toBeEnabled()
     expect(bar).toHaveTextContent('3,50')
-  })
-
-  it('hält die Auszahlung weiterhin erreichbar', () => {
-    renderZahlung()
-
-    expect(
-      screen.getByRole('button', { name: 'Auszahlung' }),
-    ).toBeInTheDocument()
   })
 })
 

@@ -84,18 +84,7 @@ export function TablePage() {
         </ItemContent>
         <ItemContent>
           <ItemDescription className="text-2xl">
-            {stateLoading ? (
-              '?'
-            ) : (
-              <span className={state.saldoCents < 0 ? 'text-destructive' : ''}>
-                {formatCents(state.saldoCents)} €
-              </span>
-            )}
-            {!stateLoading && state.saldoCents < 0 && (
-              <Badge variant="destructive" className="ml-2">
-                Auszahlung ausstehend
-              </Badge>
-            )}
+            {stateLoading ? '?' : `${formatCents(state.saldoCents)} €`}
           </ItemDescription>
         </ItemContent>
       </Item>
@@ -154,10 +143,8 @@ export function TablePage() {
               backend={tischBackend}
               tisch={tisch}
               positionen={state.unbezahltePositionen}
-              saldoCents={state.saldoCents}
               loading={stateLoading}
               onZahlungKassiert={reload}
-              onAuszahlungGeleistet={reload}
             />
           )}
         </TabsContent>

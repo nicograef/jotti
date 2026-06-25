@@ -34,7 +34,6 @@ const (
 	// erfasst sie als BON_TYP "Beleg" mit einer einzigen nicht-steuerbaren Position.
 	gvTypAnfangsbestand   = "Anfangsbestand"   // Bargeldbestand zu Sitzungsbeginn (Eröffnungs-Event)
 	gvTypGeldtransit      = "Geldtransit"      // Bargeld-Ein-/Entnahme (z. B. zur Bank/Tresor)
-	gvTypAuszahlung       = "Auszahlung"       // Bar-Abfluss ohne USt-Bezug
 	gvTypDifferenzSollIst = "DifferenzSollIst" // gebuchte Kassendifferenz aus dem Kassensturz
 	zahlartBar            = "Bar"              // Anhang D: jotti kassiert ausschließlich bar
 	refTypTransaktion     = "Transaktion"      // Anhang E: REF_TYP für eine Referenz innerhalb der DSFinV-K (Storno → Ursprung)
@@ -73,7 +72,7 @@ type beleg struct {
 	zahlart          string   // ZAHLART_TYP: "Bar"; leer bei der geldneutralen AVBestellung
 	abrechnungskreis string   // ABRECHNUNGSKREIS (Tischname); leer ohne Tischbezug (z. B. Direktverkauf)
 	storno           bool     // negative Belegdarstellung (Warenrücknahme/Korrektur): kehrt das Vorzeichen um; kein Vorgangs-Storno, BON_STORNO bleibt 0
-	barabfluss       bool     // mindert den Kassenbestand (Auszahlung, Geldtransit-Entnahme, Kassenfehlbetrag); steuert das Vorzeichen wie storno
+	barabfluss       bool     // mindert den Kassenbestand (Geldtransit-Entnahme, Kassenfehlbetrag); steuert das Vorzeichen wie storno
 	geldneutral      bool     // AVBestellung (Bestellung/Korrektur/Umbuchung): TSE-gesichert und informativ in lines.csv, aber ohne Umsatz, USt, Zahlart und Kassenbestandswirkung
 	nichtSteuerbar   bool     // Bargeldbewegung ohne USt-Bezug: eine einzige Position mit UST_SCHLUESSEL 5 statt Steueraufteilung
 	artikeltext      string   // ARTIKELTEXT der synthetischen Position (nur nichtSteuerbar); sonst aus den Positionen
@@ -92,8 +91,8 @@ type beleg struct {
 
 // sign liefert das Vorzeichen der Beträge eines Belegs: +1 im Regelfall, -1 für
 // einen Negativ-Beleg (Warenrücknahme bezahlter bzw. Korrektur unbezahlter Positionen,
-// DSFinV-K Tz. 4.2.5, „Vorzeichen umkehren“) und für einen Bar-Abfluss (Auszahlung,
-// Geldtransit-Entnahme, Kassenfehlbetrag).
+// DSFinV-K Tz. 4.2.5, „Vorzeichen umkehren“) und für einen Bar-Abfluss
+// (Geldtransit-Entnahme, Kassenfehlbetrag).
 // Beträge liegen im beleg stets als positive Magnitude vor; das Vorzeichen wird
 // erst beim Serialisieren der Zeilen gesetzt (die Steueraufteilung rechnet
 // ausschließlich mit nicht-negativen Beträgen).
@@ -139,7 +138,7 @@ func (b *beleg) ustAufteilung() []ustBetrag {
 // `AVBestellung`-Vorgänge (TSE-gesichert, informative Positionen, aber ohne
 // Umsatz/USt/Zahlart); Korrektur und Umbuchungs-Zugang tragen zusätzlich eine Referenz
 // auf den Ursprung. Hinzu kommen die Direktverkauf-Vorgänge sowie die
-// Bargeldbewegungen (Anfangsbestand, Geldtransit, Auszahlung, Kassendifferenz).
+// Bargeldbewegungen (Anfangsbestand, Geldtransit, Kassendifferenz).
 // Das Kassenabschlussmodul (businesscases, payment, cash_per_currency) aggregiert
 // dieselben Belege je GV-Typ und Zahlart.
 // signaturNachladen vereinigt während eines TSE-Ausfalls unsigniert persistierte
@@ -411,7 +410,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				continue
 			}
 			bonNr++
-			belege = append(belege, geldbewegung(ev, fmt.Sprintf("anfangsbestand-%d", ev.ID), bonNr, gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung, "", nil, tischnamen))
+			belege = append(belege, geldbewegung(ev, fmt.Sprintf("anfangsbestand-%d", ev.ID), bonNr, gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung, "", nil))
 
 		case string(kasse.EventTypeGeldtransitGebuchtV1):
 			var data kasse.GeldtransitGebuchtV1Data
@@ -419,15 +418,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				return nil, fmt.Errorf("unmarshal geldtransit-gebucht (event %d): %w", ev.ID, err)
 			}
 			bonNr++
-			belege = append(belege, geldbewegung(ev, data.BewegungID, bonNr, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar, data.TSETxID, data.TSEData, tischnamen))
-
-		case string(kasse.EventTypeAuszahlungGeleistetV1):
-			var data kasse.AuszahlungGeleistetV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal auszahlung-geleistet (event %d): %w", ev.ID, err)
-			}
-			bonNr++
-			belege = append(belege, geldbewegung(ev, data.AuszahlungID, bonNr, gvTypAuszahlung, data.BetragCents, true, data.Kommentar, data.TSETxID, data.TSEData, tischnamen))
+			belege = append(belege, geldbewegung(ev, data.BewegungID, bonNr, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar, data.TSETxID, data.TSEData))
 
 		case string(kasse.EventTypeDifferenzSollIstGebuchtV1):
 			var data kasse.DifferenzSollIstGebuchtV1Data
@@ -437,7 +428,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 			// BetragCents = Soll − Ist: ein positiver Wert ist ein Fehlbetrag
 			// (Bargeld fehlt, Bestand mindern), ein negativer ein Überschuss.
 			bonNr++
-			belege = append(belege, geldbewegung(ev, fmt.Sprintf("differenz-soll-ist-%d", ev.ID), bonNr, gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, "", data.TSETxID, data.TSEData, tischnamen))
+			belege = append(belege, geldbewegung(ev, fmt.Sprintf("differenz-soll-ist-%d", ev.ID), bonNr, gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, "", data.TSETxID, data.TSEData))
 		}
 	}
 
@@ -471,30 +462,29 @@ func nachsigniereBelege(belege []beleg, signaturNachladen SignaturNachladen) err
 }
 
 // geldbewegung baut einen Beleg für eine nicht-steuerbare Bargeldbewegung
-// (Anfangsbestand, Geldtransit, Auszahlung, Kassendifferenz). Solche Vorgänge
-// sind nach DSFinV-K Anhang C BON_TYP "Beleg" mit einer einzigen Position
+// (Anfangsbestand, Geldtransit, Kassendifferenz). Solche Vorgänge sind nach
+// DSFinV-K Anhang C BON_TYP "Beleg" mit einer einzigen Position
 // (ARTIKELTEXT = GV-Typ, UST_SCHLUESSEL 5). betragCents ist die positive
-// Magnitude; das Vorzeichen ergibt sich aus barabfluss. Den Abrechnungskreis
-// trägt nur ein Vorgang mit Tischbezug (Auszahlung), sonst bleibt er leer.
-func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragCents int, barabfluss bool, notiz string, tseTxID string, tse *kasse.TSEData, tischnamen map[int]string) beleg {
+// Magnitude; das Vorzeichen ergibt sich aus barabfluss. Sie liegen alle auf
+// Kassensitzungsebene (kein Tischbezug), daher bleibt der Abrechnungskreis leer.
+func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragCents int, barabfluss bool, notiz string, tseTxID string, tse *kasse.TSEData) beleg {
 	return beleg{
-		bonID:            bonID,
-		bonNr:            bonNr,
-		bonTyp:           bonTypBeleg,
-		gvTyp:            gvTyp,
-		zahlart:          zahlartBar,
-		abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
-		barabfluss:       barabfluss,
-		nichtSteuerbar:   true,
-		artikeltext:      gvTyp,
-		start:            zeit(ev),
-		ende:             zeit(ev),
-		bedienerID:       ev.UserID,
-		bedienerName:     ev.UserName,
-		bruttoCents:      betragCents,
-		tse:              tse,
-		tseTxID:          tseTxID,
-		notiz:            notiz,
+		bonID:          bonID,
+		bonNr:          bonNr,
+		bonTyp:         bonTypBeleg,
+		gvTyp:          gvTyp,
+		zahlart:        zahlartBar,
+		barabfluss:     barabfluss,
+		nichtSteuerbar: true,
+		artikeltext:    gvTyp,
+		start:          zeit(ev),
+		ende:           zeit(ev),
+		bedienerID:     ev.UserID,
+		bedienerName:   ev.UserName,
+		bruttoCents:    betragCents,
+		tse:            tse,
+		tseTxID:        tseTxID,
+		notiz:          notiz,
 	}
 }
 
@@ -1017,8 +1007,7 @@ var gvTypReihenfolge = map[string]int{
 	gvTypUmsatz:           0,
 	gvTypAnfangsbestand:   1,
 	gvTypGeldtransit:      2,
-	gvTypAuszahlung:       3,
-	gvTypDifferenzSollIst: 4,
+	gvTypDifferenzSollIst: 3,
 }
 
 // gvUstSchluessel ist der Aggregationsschlüssel der businesscases.csv: ein
@@ -1142,7 +1131,7 @@ var cashPerCurrencyColumns = []column{
 
 // buildCashPerCurrency weist den Bargeldbestand zum Abschluss je Währung aus.
 // jotti rechnet ausschließlich in EUR; der Bestand ergibt sich aus allen baren
-// Belegen (Anfangsbestand, Einnahmen, Geldtransit, Auszahlung, Kassendifferenz).
+// Belegen (Anfangsbestand, Einnahmen, Geldtransit, Kassendifferenz).
 func buildCashPerCurrency(s Snapshot, erstellung string, belege []beleg) Table {
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
@@ -1161,7 +1150,7 @@ func buildCashPerCurrency(s Snapshot, erstellung string, belege []beleg) Table {
 // --- Hilfsfunktionen ---
 
 // barbestand summiert die baren Belege (vorzeichenbehaftet): Bareinnahmen und
-// Anfangsbestand mehren, Geldtransit-Entnahmen, Auszahlungen und Stornos mindern
+// Anfangsbestand mehren, Geldtransit-Entnahmen und Warenrücknahmen mindern
 // den Bestand. Die geldneutrale AVBestellung trägt keine Zahlart "Bar" und bewegt
 // daher kein Bargeld. Quelle für Z_SE_(BAR)ZAHLUNGEN und den Bargeldbestand der
 // cash_per_currency.csv.

@@ -62,10 +62,6 @@ func (m *mockCommand) AusgabeBestaetigen(ctx context.Context, userID int, userNa
 	return m.err
 }
 
-func (m *mockCommand) AuszahlungLeisten(ctx context.Context, userID int, userName string, tischID int, betragCents int, kommentar string) error {
-	return m.err
-}
-
 func (m *mockCommand) KassenbelegDrucken(_ context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) error {
 	m.lastTischID = tischID
 	m.lastZahlung = zahlungID

@@ -19,27 +19,22 @@ import { formatCents, formatPositionName } from '@/lib/utils'
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
-import { AuszahlungDrawer } from './AuszahlungDrawer'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
 interface ZahlungProps {
-  backend: Pick<TischBackend, 'zahlungKassieren' | 'auszahlungLeisten'>
+  backend: Pick<TischBackend, 'zahlungKassieren'>
   tisch: Tisch
   positionen: Position[]
-  saldoCents: number
   loading: boolean
   onZahlungKassiert: () => void
-  onAuszahlungGeleistet: () => void
 }
 
 export function Zahlung({
   tisch,
   backend,
   positionen,
-  saldoCents,
   loading,
   onZahlungKassiert,
-  onAuszahlungGeleistet,
 }: ZahlungProps) {
   const [alleAnzeigen, setAlleAnzeigen] = useState(false)
 
@@ -80,19 +75,6 @@ export function Zahlung({
 
   return (
     <>
-      {AuthSingleton.canCancel && (
-        <div className={saldoCents < 0 ? 'mb-4' : 'mb-4 w-fit'}>
-          <AuszahlungDrawer
-            backend={backend}
-            tisch={tisch}
-            saldoCents={saldoCents}
-            auszahlungGeleistet={() => {
-              toast.success(`Auszahlung erfolgreich.`)
-              onAuszahlungGeleistet()
-            }}
-          />
-        </div>
-      )}
       <ZahlungDrawer
         backend={backend}
         tisch={tisch}

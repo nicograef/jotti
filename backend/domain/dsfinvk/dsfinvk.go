@@ -94,7 +94,7 @@ func formatPercent(prozent int) string {
 
 // ustNichtSteuerbar ist der DSFinV-K-Umsatzsteuerschlüssel für nicht steuerbare
 // Vorgänge (Anlage 2, ID 5): Bargeldbewegungen ohne USt-Bezug (Anfangsbestand,
-// Geldtransit, Auszahlung, Kassendifferenz).
+// Geldtransit, Kassendifferenz).
 const ustNichtSteuerbar = 5
 
 // ustSchluessel bildet einen jotti-Steuersatz auf den DSFinV-K-Umsatzsteuer-

@@ -41,17 +41,16 @@ type tagesSummen struct {
 	ZahlungenCents            int
 	DirektverkaufCents        int
 	DirektverkaufStornosCents int
-	AuszahlungenCents         int
 	StornierungenCents        int
 	WarenruecknahmenCents     int
 	GeldtransitCents          int
 }
 
 // UmsatzGesamtCents folgt der Reporting-Definition: Zahlungen + Direktverkäufe
-// − Direktverkauf-Stornos − Warenrücknahmen − Auszahlungen. Die geldneutrale Korrektur
-// fließt nicht ein, die kassenwirksame Warenrücknahme mindert den Umsatz.
+// − Direktverkauf-Stornos − Warenrücknahmen. Die geldneutrale Korrektur fließt
+// nicht ein, die kassenwirksame Warenrücknahme mindert den Umsatz.
 func (s tagesSummen) UmsatzGesamtCents() int {
-	return s.ZahlungenCents + s.DirektverkaufCents - s.DirektverkaufStornosCents - s.WarenruecknahmenCents - s.AuszahlungenCents
+	return s.ZahlungenCents + s.DirektverkaufCents - s.DirektverkaufStornosCents - s.WarenruecknahmenCents
 }
 
 // buildSeedDaten übersetzt das Szenario deterministisch in Events und Kassensitzungs-Zeilen.
@@ -181,8 +180,6 @@ func (b *sitzungsBauer) verarbeite(a aktion) error {
 		return b.kassieren(a)
 	case stornieren:
 		return b.stornieren(a)
-	case auszahlen:
-		return b.auszahlen(a)
 	case umbuchen:
 		return b.umbuchen(a)
 	case direktverkauf:
@@ -313,32 +310,6 @@ func (b *sitzungsBauer) stornieren(a stornieren) error {
 		b.summen.StornierungenCents += wr.GesamtCents
 		b.summen.WarenruecknahmenCents += wr.GesamtCents
 	}
-	return nil
-}
-
-func (b *sitzungsBauer) auszahlen(a auszahlen) error {
-	name, err := b.benutzerName(a.User)
-	if err != nil {
-		return err
-	}
-	betrag := a.BetragCents
-	if betrag == 0 {
-		state, err := b.tischState(a.Tisch)
-		if err != nil {
-			return err
-		}
-		if state.SaldoCents >= 0 {
-			return fmt.Errorf("auszahlen ohne Betrag: Tisch %d hat kein Guthaben (Saldo %d)", a.Tisch, state.SaldoCents)
-		}
-		betrag = -state.SaldoCents
-	}
-	evt, err := kasse.NewAuszahlungGeleistetEvent(b.tischSubject(a.Tisch), a.User, name, betrag, a.Kommentar)
-	if err != nil {
-		return err
-	}
-	b.addTisch(a.Tisch, evt)
-	b.bestandCents -= betrag
-	b.summen.AuszahlungenCents += betrag
 	return nil
 }
 
@@ -501,7 +472,7 @@ func (b *sitzungsBauer) schliesseTagAb(start, ende time.Time) error {
 	evt, err := kasse.NewTagesabschlussErstelltEvent(kasse.KassensitzungSubject(b.sitzung.ZNr),
 		b.sitzung.EroeffnetVon, name, b.sitzung.ZNr, start, ende,
 		b.summen.UmsatzGesamtCents(), b.summen.StornierungenCents,
-		b.summen.AuszahlungenCents, b.summen.GeldtransitCents)
+		b.summen.GeldtransitCents)
 	if err != nil {
 		return fmt.Errorf("tagesabschluss: %w", err)
 	}

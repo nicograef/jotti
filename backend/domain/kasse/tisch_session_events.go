@@ -18,7 +18,6 @@ const (
 	EventTypeBestellungKorrigiertV1  EventType = "bestellung-korrigiert:v1"
 	EventTypeBestellungUmgebuchtV1   EventType = "bestellung-umgebucht:v1"
 	EventTypeAusgabeBestaetigtV1     EventType = "ausgabe-bestaetigt:v1"
-	EventTypeAuszahlungGeleistetV1   EventType = "auszahlung-geleistet:v1"
 )
 
 // --- Event-Data-Structs ---
@@ -134,20 +133,6 @@ var ausgabeBestaetigtV1DataSchema = z.Struct(z.Shape{
 	"AusgabeID":  z.String().UUID().Required(),
 	"Positionen": z.Slice(positionSchema).Min(1).Required(),
 	"Kommentar":  z.String().Max(100),
-})
-
-type AuszahlungGeleistetV1Data struct {
-	AuszahlungID string   `json:"auszahlungId"`
-	BetragCents  int      `json:"betragCents"`
-	Kommentar    string   `json:"kommentar"`
-	TSETxID      string   `json:"tseTxId,omitempty"`
-	TSEData      *TSEData `json:"tseData,omitempty"`
-}
-
-var auszahlungGeleistetV1DataSchema = z.Struct(z.Shape{
-	"AuszahlungID": z.String().UUID().Required(),
-	"BetragCents":  z.Int().GTE(1).Required(),
-	"Kommentar":    z.String().Min(3).Max(100).Required(),
 })
 
 // --- Event-Erstellungsfunktionen ---
@@ -287,21 +272,6 @@ func NewAusgabeBestaetigtEvent(subject string, userID int, userName string, posi
 	}
 
 	return e.New(userID, userName, string(EventTypeAusgabeBestaetigtV1), subject, data)
-}
-
-func NewAuszahlungGeleistetEvent(subject string, userID int, userName string, betragCents int, kommentar string) (e.Event, error) {
-	data := AuszahlungGeleistetV1Data{
-		AuszahlungID: uuid.New().String(),
-		BetragCents:  betragCents,
-		Kommentar:    kommentar,
-	}
-
-	if err := auszahlungGeleistetV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("auszahlung geleistet data validation failed: %v", issues)
-	}
-
-	return e.New(userID, userName, string(EventTypeAuszahlungGeleistetV1), subject, data)
 }
 
 // --- Build-from-Event-Funktionen ---
@@ -513,38 +483,4 @@ func buildAusgabeFromEvent(event e.Event) (Ausgabe, error) {
 	}
 
 	return ausgabe, nil
-}
-
-func buildAuszahlungFromEvent(event e.Event) (Auszahlung, error) {
-	if event.Type != string(EventTypeAuszahlungGeleistetV1) {
-		return Auszahlung{}, fmt.Errorf("unsupported event type: %s", event.Type)
-	}
-
-	tischID, err := ParseTischIDFromSubject(event.Subject)
-	if err != nil {
-		return Auszahlung{}, err
-	}
-
-	data := AuszahlungGeleistetV1Data{}
-	err = e.ParseData(event, &data, auszahlungGeleistetV1DataSchema)
-	if err != nil {
-		return Auszahlung{}, err
-	}
-
-	auszahlung := Auszahlung{
-		ID:          data.AuszahlungID,
-		UserID:      event.UserID,
-		UserName:    event.UserName,
-		TischID:     tischID,
-		BetragCents: data.BetragCents,
-		Kommentar:   data.Kommentar,
-		GeleistetAm: event.Time,
-	}
-
-	if err := auszahlungSchema.Validate(&auszahlung); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return Auszahlung{}, fmt.Errorf("auszahlung validation failed: %v", issues)
-	}
-
-	return auszahlung, nil
 }

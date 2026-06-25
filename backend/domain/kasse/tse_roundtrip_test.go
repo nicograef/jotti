@@ -154,29 +154,6 @@ func TestEventDataRoundtrip_Stornierung_WithAndWithoutTSE(t *testing.T) {
 	}
 }
 
-func TestEventDataRoundtrip_Auszahlung_WithAndWithoutTSE(t *testing.T) {
-	evtOhne, err := NewAuszahlungGeleistetEvent(testSubject, 1, "User", 500, "Rueckzahlung")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	dataOhne := assertTypedRoundtrip[AuszahlungGeleistetV1Data](t, evtOhne.Data)
-	if dataOhne.TSEData != nil || dataOhne.TSETxID != "" {
-		t.Fatal("expected no TSE fields for event without TSE")
-	}
-
-	signed, err := EmbedTSEInAuszahlungGeleistet(evtOhne, "tx-auszahlung", testRoundtripTSEData("Kassenbeleg-V1"))
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	dataMit := assertTypedRoundtrip[AuszahlungGeleistetV1Data](t, signed.Data)
-	if dataMit.TSEData == nil {
-		t.Fatal("expected TSEData for signed event")
-	}
-	if dataMit.TSETxID != "tx-auszahlung" {
-		t.Fatalf("expected tseTxId to survive roundtrip, got %q", dataMit.TSETxID)
-	}
-}
-
 func TestEventDataRoundtrip_DirektverkaufGetaetigt_WithAndWithoutTSE(t *testing.T) {
 	verkaufID := uuid.NewString()
 	subject := DirektverkaufSubject(1, verkaufID)
@@ -307,7 +284,7 @@ func TestEventDataRoundtrip_Tagesabschluss_WithAndWithoutTSE(t *testing.T) {
 	von := time.Date(2026, 6, 10, 8, 0, 0, 0, time.UTC)
 	bis := time.Date(2026, 6, 10, 22, 0, 0, 0, time.UTC)
 
-	evtOhne, err := NewTagesabschlussErstelltEvent(subject, 1, "User", 1, von, bis, 10000, 500, 300, 200)
+	evtOhne, err := NewTagesabschlussErstelltEvent(subject, 1, "User", 1, von, bis, 10000, 500, 200)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

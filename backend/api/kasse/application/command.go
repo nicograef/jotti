@@ -284,7 +284,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		ks.ZNr,
 		ks.CreatedAt, now,
 		summary.GesamtUmsatzCents, summary.GesamtStornierungenCents,
-		summary.GesamtAuszahlungenCents, summary.GeldtransitCents,
+		summary.GeldtransitCents,
 	)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create tagesabschluss-erstellt event")

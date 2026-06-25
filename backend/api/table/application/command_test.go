@@ -1062,61 +1062,6 @@ func TestStornierungErteilen_BeiTSEAusfall_NachsignierauftragMitNegativemBetrag(
 	}
 }
 
-func TestAuszahlungLeisten_MitTSE_DatenImEvent(t *testing.T) {
-	ctx := context.Background()
-	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
-
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
-
-	start := time.Date(2026, 6, 10, 20, 20, 1, 0, time.UTC)
-	end := time.Date(2026, 6, 10, 20, 20, 2, 0, time.UTC)
-
-	command := Command{
-		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
-		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		TSESignierer: tseApp.Signierer{
-			SettingsRepo: &mockSettingsRepo{tse: settings.TSEKonfiguration{
-				ApiKey:    "api-key",
-				ApiSecret: "api-secret",
-				TssID:     "tss-1",
-				ClientID:  "client-1",
-				UpdatedAt: time.Now(),
-			}},
-			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-				return tse.FakeClient{
-					StartResponse:  tse.StartResult{TransactionNumber: 21, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 20},
-					FinishResponse: tse.FinishResult{TransactionNumber: 21, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 21, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-AUSZAHLUNG"},
-				}, nil
-			},
-		},
-	}
-
-	err := command.AuszahlungLeisten(ctx, 1, "Test User", testActiveTisch.ID, 500, "Rueckzahlung")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	events, err := eventMock.ReadEventsBySubject(ctx, subject)
-	if err != nil {
-		t.Fatalf("expected no read error, got %v", err)
-	}
-	if len(events) != 1 {
-		t.Fatalf("expected exactly one event, got %d", len(events))
-	}
-
-	var data kasse.AuszahlungGeleistetV1Data
-	if err := json.Unmarshal(events[0].Data, &data); err != nil {
-		t.Fatalf("expected no unmarshal error, got %v", err)
-	}
-	if data.TSEData == nil {
-		t.Fatal("expected TSE data in auszahlung event")
-	}
-	if data.TSEData.ProcessType != "Kassenbeleg-V1" {
-		t.Fatalf("expected process type Kassenbeleg-V1, got %q", data.TSEData.ProcessType)
-	}
-}
-
 func TestAusgabeBestaetigen_MitTSEKonfiguration_WirdNichtSigniert(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)

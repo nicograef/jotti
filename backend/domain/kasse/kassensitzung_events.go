@@ -83,7 +83,6 @@ type TagesabschlussErstelltV1Data struct {
 	ZeitraumBis       time.Time `json:"zeitraumBis"`
 	UmsatzGesamtCents int       `json:"umsatzGesamtCents"`
 	StornierungCents  int       `json:"stornierungCents"`
-	AuszahlungenCents int       `json:"auszahlungenCents"`
 	GeldtransitCents  int       `json:"geldtransitCents"`
 	ErstelltVon       int       `json:"erstelltVon"`
 	TSETxID           string    `json:"tseTxId,omitempty"`
@@ -96,7 +95,6 @@ var tagesabschlussErstelltV1DataSchema = z.Struct(z.Shape{
 	"ZeitraumBis":       z.Time().Required(),
 	"UmsatzGesamtCents": z.Int(),
 	"StornierungCents":  z.Int(),
-	"AuszahlungenCents": z.Int(),
 	"GeldtransitCents":  z.Int(),
 	"ErstelltVon":       z.Int().GTE(1).Required(),
 })
@@ -166,14 +164,13 @@ func NewDifferenzSollIstGebuchtEvent(subject string, userID int, userName string
 	return e.New(userID, userName, string(EventTypeDifferenzSollIstGebuchtV1), subject, data)
 }
 
-func NewTagesabschlussErstelltEvent(subject string, userID int, userName string, zNr int, zeitraumVon time.Time, zeitraumBis time.Time, umsatzGesamtCents int, stornierungCents int, auszahlungenCents int, geldtransitCents int) (e.Event, error) {
+func NewTagesabschlussErstelltEvent(subject string, userID int, userName string, zNr int, zeitraumVon time.Time, zeitraumBis time.Time, umsatzGesamtCents int, stornierungCents int, geldtransitCents int) (e.Event, error) {
 	data := TagesabschlussErstelltV1Data{
 		ZNr:               zNr,
 		ZeitraumVon:       zeitraumVon,
 		ZeitraumBis:       zeitraumBis,
 		UmsatzGesamtCents: umsatzGesamtCents,
 		StornierungCents:  stornierungCents,
-		AuszahlungenCents: auszahlungenCents,
 		GeldtransitCents:  geldtransitCents,
 		ErstelltVon:       userID,
 	}

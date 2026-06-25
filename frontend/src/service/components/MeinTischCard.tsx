@@ -19,8 +19,7 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
   }
 
   const { anzahlOffen, anzahlEigeneOffen } = zaehleOffenePositionen(state)
-  const hatAuszahlung = state.saldoCents < 0
-  const alleErledigt = anzahlOffen === 0 && state.saldoCents >= 0
+  const alleErledigt = anzahlOffen === 0
 
   return (
     <Card
@@ -30,15 +29,7 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
       <CardContent className="pt-4">
         <div className="flex items-center justify-between mb-2">
           <span className="font-semibold text-base">{state.tischName}</span>
-          <span
-            className={
-              state.saldoCents < 0
-                ? 'font-medium text-destructive'
-                : 'font-medium'
-            }
-          >
-            {formatCents(state.saldoCents)} €
-          </span>
+          <span className="font-medium">{formatCents(state.saldoCents)} €</span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {anzahlOffen > 0 && (
@@ -48,11 +39,6 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
                 davon {anzahlEigeneOffen} von dir
               </span>
             </>
-          )}
-          {hatAuszahlung && (
-            <Badge variant="destructive">
-              Auszahlung: {formatCents(Math.abs(state.saldoCents))} €
-            </Badge>
           )}
           {alleErledigt && (
             <span className="text-sm text-green-600 font-medium">

@@ -109,13 +109,6 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		}
 		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
 
-	case string(EventTypeAuszahlungGeleistetV1):
-		var data AuszahlungGeleistetV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return state, fmt.Errorf("unmarshal auszahlung data: %w", err)
-		}
-		state.SaldoCents += data.BetragCents
-
 	default:
 		return state, fmt.Errorf("unknown event type: %s", evt.Type)
 	}
@@ -195,7 +188,7 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 				nichtStorniert = accumulatePositionen(nichtStorniert, positionen)
 			}
 
-		case string(EventTypeZahlungKassiertV1), string(EventTypeAusgabeBestaetigtV1), string(EventTypeAuszahlungGeleistetV1):
+		case string(EventTypeZahlungKassiertV1), string(EventTypeAusgabeBestaetigtV1):
 			continue
 
 		default:

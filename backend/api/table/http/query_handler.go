@@ -286,30 +286,6 @@ func toUmbuchung(eintrag k.HistorieEintrag) umbuchung {
 	}
 }
 
-type auszahlung struct {
-	Art         string    `json:"art"`
-	ID          string    `json:"id"`
-	UserID      int       `json:"userId"`
-	UserName    string    `json:"userName"`
-	TischID     int       `json:"tischId"`
-	BetragCents int       `json:"betragCents"`
-	Kommentar   string    `json:"kommentar"`
-	GeleistetAm time.Time `json:"geleistetAm"`
-}
-
-func toAuszahlung(a k.Auszahlung) auszahlung {
-	return auszahlung{
-		Art:         string(k.HistorieEintragAuszahlung),
-		ID:          a.ID,
-		UserID:      a.UserID,
-		UserName:    a.UserName,
-		TischID:     a.TischID,
-		BetragCents: a.BetragCents,
-		Kommentar:   a.Kommentar,
-		GeleistetAm: a.GeleistetAm,
-	}
-}
-
 func toHistorie(eintraege []k.HistorieEintrag) []any {
 	historieResponse := make([]any, 0, len(eintraege))
 	for _, eintrag := range eintraege {
@@ -333,10 +309,6 @@ func toHistorie(eintraege []k.HistorieEintrag) []any {
 		case k.HistorieEintragUmbuchung:
 			if eintrag.Umbuchung != nil {
 				historieResponse = append(historieResponse, toUmbuchung(eintrag))
-			}
-		case k.HistorieEintragAuszahlung:
-			if eintrag.Auszahlung != nil {
-				historieResponse = append(historieResponse, toAuszahlung(*eintrag.Auszahlung))
 			}
 		}
 	}

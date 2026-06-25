@@ -974,33 +974,6 @@ func geldtransitEvent(t *testing.T) event.Event {
 	}
 }
 
-// auszahlungEvent leistet eine Auszahlung von 10,00 € am Tisch 42, TSE-signiert.
-func auszahlungEvent(t *testing.T) event.Event {
-	t.Helper()
-
-	data := kasse.AuszahlungGeleistetV1Data{
-		AuszahlungID: "88888888-8888-8888-8888-888888888888",
-		BetragCents:  1000,
-		Kommentar:    "Pfandrückgabe Lieferant",
-		TSEData: &kasse.TSEData{
-			TransactionNumber: 6001, SignatureCounter: 41, SerialNumberTSE: "abc123serial",
-			LogTimeStart: "2026-06-16T15:05:00Z", LogTimeEnd: "2026-06-16T15:05:01Z",
-			Signature: "AZSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;az",
-		},
-	}
-	raw, err := json.Marshal(data)
-	if err != nil {
-		t.Fatalf("marshal auszahlung data: %v", err)
-	}
-
-	return event.Event{
-		ID: 12, UserID: 7, UserName: "anna",
-		Type:    string(kasse.EventTypeAuszahlungGeleistetV1),
-		Time:    time.Date(2026, 6, 16, 15, 5, 0, 0, time.UTC),
-		Subject: kasse.TischSessionSubject(3, 42), Version: 1, Data: raw,
-	}
-}
-
 // differenzEvent bucht einen Kassenfehlbetrag von 1,00 € (Soll − Ist = +100),
 // TSE-signiert.
 func differenzEvent(t *testing.T) event.Event {
@@ -1030,7 +1003,7 @@ func differenzEvent(t *testing.T) event.Event {
 
 // TestMapKassenabschlussGemischteSitzung belegt das Kassenabschlussmodul über eine
 // gemischte Sitzung: Anfangsbestand, eine geldneutrale Bestellung plus ihre
-// Zahlung (Umsatz), ein Direktverkauf (Umsatz) sowie Geldtransit, Auszahlung und
+// Zahlung (Umsatz), ein Direktverkauf (Umsatz) sowie Geldtransit und
 // Kassendifferenz. Der Umsatz entsteht nur bei den Zahlungen (Revenue-at-payment),
 // nicht bei der Bestellung. businesscases.csv und payment.csv lassen sich gegen die
 // Einzelbons abgleichen; cash_per_currency.csv weist den EUR-Bestand aus.
@@ -1044,7 +1017,6 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 		zahlungEvent(t),          // Umsatz 4,50 € (Bier, 19 %)
 		direktverkaufEvent(t),    // Umsatz 4,50 € (Bier, 19 %)
 		geldtransitEvent(t),      // Entnahme −50,00 €
-		auszahlungEvent(t),       // Auszahlung −10,00 €
 		differenzEvent(t),        // Fehlbetrag −1,00 €
 	}
 
@@ -1063,15 +1035,14 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 			{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "9.00", "7.56", "1.44"},
 			{testSerial, erstellung, "3", "Anfangsbestand", "", "0", "5", "100.00", "100.00", "0.00"},
 			{testSerial, erstellung, "3", "Geldtransit", "", "0", "5", "-50.00", "-50.00", "0.00"},
-			{testSerial, erstellung, "3", "Auszahlung", "", "0", "5", "-10.00", "-10.00", "0.00"},
 			{testSerial, erstellung, "3", "DifferenzSollIst", "", "0", "5", "-1.00", "-1.00", "0.00"},
 		},
-		// Bar = 100 + 4,50 + 4,50 − 50 − 10 − 1 = 48,00; die AVBestellung trägt nichts bei.
+		// Bar = 100 + 4,50 + 4,50 − 50 − 1 = 58,00; die AVBestellung trägt nichts bei.
 		"payment.csv": {
-			{testSerial, erstellung, "3", "Bar", "Bar", "48.00"},
+			{testSerial, erstellung, "3", "Bar", "Bar", "58.00"},
 		},
 		"cash_per_currency.csv": {
-			{testSerial, erstellung, "3", "EUR", "48.00"},
+			{testSerial, erstellung, "3", "EUR", "58.00"},
 		},
 	}
 
@@ -1096,9 +1067,9 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 	}
 
 	// Anfangsbestand trägt mangels TSE-Signatur keine transactions_tse-Zeile, die
-	// drei signierten Bargeldbewegungen dagegen schon.
+	// beiden signierten Bargeldbewegungen dagegen schon.
 	tse := tableByFile(t, archive, "transactions_tse.csv")
-	for _, sig := range []string{"GTSIG==", "AZSIG==", "DIFFSIG=="} {
+	for _, sig := range []string{"GTSIG==", "DIFFSIG=="} {
 		if !hatSignatur(tse, sig) {
 			t.Errorf("transactions_tse fehlt Signatur %q", sig)
 		}

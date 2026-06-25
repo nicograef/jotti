@@ -229,7 +229,7 @@ func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 		}
 		abschluss := parseData[kasse.TagesabschlussErstelltV1Data](t, letztes)
 
-		var zahlungen, warenruecknahmen, korrekturen, auszahlungen, dv, dvStorno, transit int
+		var zahlungen, warenruecknahmen, korrekturen, dv, dvStorno, transit int
 		for _, evt := range tagesEvents {
 			switch evt.Type {
 			case string(kasse.EventTypeZahlungKassiertV1):
@@ -238,8 +238,6 @@ func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 				warenruecknahmen += parseData[kasse.StornierungErteiltV1Data](t, evt).GesamtStornierungCents
 			case string(kasse.EventTypeBestellungKorrigiertV1):
 				korrekturen += parseData[kasse.BestellungKorrigiertV1Data](t, evt).GesamtCents
-			case string(kasse.EventTypeAuszahlungGeleistetV1):
-				auszahlungen += parseData[kasse.AuszahlungGeleistetV1Data](t, evt).BetragCents
 			case string(kasse.EventTypeDirektverkaufGetaetigtV1):
 				dv += parseData[kasse.DirektverkaufGetaetigtV1Data](t, evt).GesamtbetragCents
 			case string(kasse.EventTypeDirektverkaufStorniertV1):
@@ -256,15 +254,12 @@ func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 
 		// Die kassenwirksame Warenrücknahme mindert den Umsatz, die geldneutrale
 		// Korrektur nicht; StornierungCents umfasst beide Storno-Arten.
-		umsatz := zahlungen + dv - dvStorno - warenruecknahmen - auszahlungen
+		umsatz := zahlungen + dv - dvStorno - warenruecknahmen
 		if abschluss.UmsatzGesamtCents != umsatz {
 			t.Errorf("Sitzung %d: UmsatzGesamtCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.UmsatzGesamtCents, umsatz)
 		}
 		if abschluss.StornierungCents != warenruecknahmen+korrekturen {
 			t.Errorf("Sitzung %d: StornierungCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.StornierungCents, warenruecknahmen+korrekturen)
-		}
-		if abschluss.AuszahlungenCents != auszahlungen {
-			t.Errorf("Sitzung %d: AuszahlungenCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.AuszahlungenCents, auszahlungen)
 		}
 		if abschluss.GeldtransitCents != transit {
 			t.Errorf("Sitzung %d: GeldtransitCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.GeldtransitCents, transit)
@@ -418,8 +413,6 @@ func TestBuildSeedDaten_Kassenfuehrung(t *testing.T) {
 		case string(kasse.EventTypeStornierungErteiltV1):
 			// Kassenwirksame Warenrücknahme: Bar-Rückgabe mindert den Bestand.
 			bestand -= parseData[kasse.StornierungErteiltV1Data](t, evt).GesamtStornierungCents
-		case string(kasse.EventTypeAuszahlungGeleistetV1):
-			bestand -= parseData[kasse.AuszahlungGeleistetV1Data](t, evt).BetragCents
 		case string(kasse.EventTypeDirektverkaufGetaetigtV1):
 			bestand += parseData[kasse.DirektverkaufGetaetigtV1Data](t, evt).GesamtbetragCents
 		case string(kasse.EventTypeDirektverkaufStorniertV1):

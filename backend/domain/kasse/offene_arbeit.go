@@ -7,8 +7,8 @@ import "sort"
 // unbezahlten Positionen sowie das daraus abgeleitete "erledigt"-Kennzeichen.
 //
 // Reines, DB-freies Deep Module: Eingabe ist eine Tisch-Session, Ausgabe ist die
-// berechnete Sicht für genau eine Servicekraft. Die tischweite ausstehende
-// Auszahlung (negativer Saldo) fließt bewusst nicht ein.
+// berechnete Sicht für genau eine Servicekraft. Der tischweite offene Saldo
+// fließt bewusst nicht ein.
 type EigeneArbeitAnTisch struct {
 	// AnzahlAusstehend ist die Anzahl eigener Positionen, die noch nicht ausgegeben sind.
 	AnzahlAusstehend int

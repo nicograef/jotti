@@ -57,15 +57,6 @@ func mustCreateDeliveryEvent(t *testing.T, subject string, userID int, positions
 	return event
 }
 
-func mustCreateAuszahlungEvent(t *testing.T, subject string, userID int, betragCents int, kommentar string) e.Event {
-	t.Helper()
-	event, err := NewAuszahlungGeleistetEvent(subject, userID, "TestUser", betragCents, kommentar)
-	if err != nil {
-		t.Fatalf("failed to create auszahlung event: %v", err)
-	}
-	return event
-}
-
 // helper to create a test Position with fat event fields
 func testPosition(varianteID int, produktName, varianteName, kategorie string, einzelpreis, menge int) Position {
 	steuersatz := "regel"
@@ -581,58 +572,6 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 	// Die zurückgenommene Position verschwindet aus der Ausstehend-Liste.
 	if state.AusstehendePositionen[0].Menge != 1 {
 		t.Fatalf("expected 1 ausstehende position remaining, got %+v", state.AusstehendePositionen)
-	}
-}
-
-func TestApplyEvent_AuszahlungIncreasesSaldo(t *testing.T) {
-	products := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
-	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
-	orderEvent.ID = 1
-	orderEvent.Version = 1
-
-	state, err := ApplyEvent(TischSession{}, orderEvent)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if state.SaldoCents != 1000 {
-		t.Fatalf("expected SaldoCents 1000, got %d", state.SaldoCents)
-	}
-
-	// Die (auslaufende) Auszahlung erhöht den Saldo um ihren Betrag.
-	auszahlungEvent := mustCreateAuszahlungEvent(t, testSubject, 1, 500, "Rueckzahlung")
-	auszahlungEvent.ID = 2
-	auszahlungEvent.Version = 2
-
-	state, err = ApplyEvent(state, auszahlungEvent)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if state.SaldoCents != 1500 {
-		t.Fatalf("expected SaldoCents 1500, got %d", state.SaldoCents)
-	}
-	if state.LastEventID != 2 {
-		t.Fatalf("expected LastEventID 2, got %d", state.LastEventID)
-	}
-}
-
-func TestComputeNichtStorniertePositionen_IgnoresAuszahlung(t *testing.T) {
-	products := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
-	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
-	positions := positionsFromOrder(t, orderEvent, 2)
-	payEvent := mustCreatePaymentEvent(t, testSubject, 1, positions, 1000)
-	auszahlungEvent := mustCreateAuszahlungEvent(t, testSubject, 1, 500, "Rueckzahlung")
-
-	nichtStorniert, err := ComputeNichtStorniertePositionen([]e.Event{orderEvent, payEvent, auszahlungEvent})
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	// 2 beers still not cancelled
-	if len(nichtStorniert) != 1 || nichtStorniert[0].Menge != 2 {
-		t.Fatalf("expected 2 beers not cancelled, got %v", nichtStorniert)
 	}
 }
 

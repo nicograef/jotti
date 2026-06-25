@@ -45,7 +45,6 @@ func TestEventDataJSONContract_MonetaryKeys(t *testing.T) {
 	assertJSONKeys(t, DirektverkaufGetaetigtV1Data{}, "gesamtbetragCents", "positionen")
 	assertJSONKeys(t, DirektverkaufStorniertV1Data{}, "gesamtStornierungCents", "positionen")
 	assertJSONKeys(t, KassensitzungEroeffnetV1Data{}, "betragCents")
-	assertJSONKeys(t, AuszahlungGeleistetV1Data{}, "betragCents")
 	assertJSONKeys(t, GeldtransitGebuchtV1Data{}, "richtung", "betragCents")
 	assertJSONKeys(t, DifferenzSollIstGebuchtV1Data{}, "betragCents")
 }

@@ -210,7 +210,6 @@ func TestKasseAbschliessen_TagesabschlussMitEchtenSummen(t *testing.T) {
 			Summary: reporting.Summary{
 				GesamtUmsatzCents:        12345,
 				GesamtStornierungenCents: 200,
-				GesamtAuszahlungenCents:  300,
 				GeldtransitCents:         400,
 			},
 		}},
@@ -236,9 +235,6 @@ func TestKasseAbschliessen_TagesabschlussMitEchtenSummen(t *testing.T) {
 	}
 	if data.StornierungCents != 200 {
 		t.Errorf("expected StornierungCents 200, got %d", data.StornierungCents)
-	}
-	if data.AuszahlungenCents != 300 {
-		t.Errorf("expected AuszahlungenCents 300, got %d", data.AuszahlungenCents)
 	}
 	if data.GeldtransitCents != 400 {
 		t.Errorf("expected GeldtransitCents 400, got %d", data.GeldtransitCents)

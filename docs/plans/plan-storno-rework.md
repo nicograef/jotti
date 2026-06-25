@@ -317,16 +317,16 @@ ausstehend"-Hinweis. Sicher, weil Phase 3 den Saldo nie negativ werden lässt.
 
 ### Acceptance criteria
 
-- [ ] Kein Vorkommen von `auszahlung-geleistet`, `AuszahlungGeleistet`,
+- [x] Kein Vorkommen von `auszahlung-geleistet`, `AuszahlungGeleistet`,
       `AuszahlungLeisten` oder `AuszahlungDrawer` mehr im Backend/Frontend (außer in
       Reporting/SQL, das Phase 5 räumt).
-- [ ] `tagesabschluss-erstellt:v1` trägt kein `AuszahlungenCents` mehr; Konstruktor und
+- [x] `tagesabschluss-erstellt:v1` trägt kein `AuszahlungenCents` mehr; Konstruktor und
       Schema angepasst, Tagesabschluss-Erstellung baut darauf.
-- [ ] Mapper kennt keinen GV_TYP `Auszahlung`; Bargeldbestand und businesscases stimmen
+- [x] Mapper kennt keinen GV_TYP `Auszahlung`; Bargeldbestand und businesscases stimmen
       ohne Auszahlungs-Case.
-- [ ] Frontend: kein Auszahlungs-Button/Drawer, kein „Auszahlung ausstehend"-Hinweis;
+- [x] Frontend: kein Auszahlungs-Button/Drawer, kein „Auszahlung ausstehend"-Hinweis;
       Storno-UX zeigt durchgehend „Storno"/„Stornieren".
-- [ ] Build, Tests und Linter (Backend + Frontend) grün.
+- [x] Build, Tests und Linter (Backend + Frontend) grün.
 
 ---
 

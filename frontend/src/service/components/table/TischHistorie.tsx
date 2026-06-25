@@ -26,7 +26,6 @@ import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
 import type { Ausgabe } from '../../table/Ausgabe'
-import type { Auszahlung } from '../../table/Auszahlung'
 import type { Bestellung } from '../../table/Bestellung'
 import type { Stornierung } from '../../table/Stornierung'
 import type { Tisch } from '../../table/Tisch'
@@ -39,13 +38,7 @@ import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 import { Receipt, type ReceiptPosition } from './Receipt'
 
-type HistorieEintrag =
-  | Bestellung
-  | Zahlung
-  | Stornierung
-  | Umbuchung
-  | Ausgabe
-  | Auszahlung
+type HistorieEintrag = Bestellung | Zahlung | Stornierung | Umbuchung | Ausgabe
 
 // Quelle ist ein Eintrag, der Positionen auf den Tisch bringt — eine Bestellung oder
 // der Zugang einer Umbuchung. Nur diese tragen stornier-/umbuchbare Positionen.
@@ -189,19 +182,6 @@ export function TischHistorie({
                       key={item.id}
                       title="Ausgabe"
                       date={item.ausgegebenAm}
-                      userName={item.userName}
-                      kommentar={item.kommentar}
-                      onClick={() => {
-                        setDetail(item)
-                      }}
-                    />
-                  )
-                case 'auszahlung':
-                  return (
-                    <HistoryItem
-                      key={item.id}
-                      title={`Auszahlung -${formatCents(item.betragCents)} €`}
-                      date={item.geleistetAm}
                       userName={item.userName}
                       kommentar={item.kommentar}
                       onClick={() => {
@@ -356,7 +336,6 @@ function ItemSkeleton() {
 }
 
 // detailView maps a history entry to the fields the detail drawer renders.
-// Auszahlung has no positions (only a payout amount), so positionen is omitted.
 function detailView(eintrag: HistorieEintrag): {
   title: string
   date: string
@@ -397,12 +376,6 @@ function detailView(eintrag: HistorieEintrag): {
         title: 'Ausgabe',
         date: eintrag.ausgegebenAm,
         positionen: toReceiptItems(eintrag.positionen),
-      }
-    case 'auszahlung':
-      return {
-        title: 'Auszahlung',
-        date: eintrag.geleistetAm,
-        totalPrice: eintrag.betragCents,
       }
   }
 }

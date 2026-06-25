@@ -25,7 +25,6 @@ type command interface {
 	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
-	AuszahlungLeisten(ctx context.Context, userID int, userName string, tischID int, betragCents int, kommentar string) error
 	KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) error
 	FavoritHinzufuegen(ctx context.Context, userID, tischID int) error
 	FavoritEntfernen(ctx context.Context, userID, tischID int) error
@@ -624,12 +623,6 @@ type ausgabeBestaetigenRequest struct {
 	Kommentar  string               `json:"kommentar"`
 }
 
-type auszahlungLeistenRequest struct {
-	TischID     int    `json:"tischId"`
-	BetragCents int    `json:"betragCents"`
-	Kommentar   string `json:"kommentar"`
-}
-
 var ausgabeBestaetigenSchema = z.Struct(z.Shape{
 	"TischID":    table.TischIDSchema.Required(),
 	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
@@ -660,44 +653,6 @@ func (h *CommandHandler) AusgabeBestaetigenHandler() http.HandlerFunc {
 					application.ErrTischNotFound:          "tisch_not_found",
 					application.ErrTischNotActive:         "tisch_not_active",
 					application.ErrPositionNichtAusgebbar: "position_nicht_ausgebbar",
-				})
-			}
-			return
-		}
-
-		helper.SendEmptyResponse(w)
-	}
-}
-
-var auszahlungLeistenSchema = z.Struct(z.Shape{
-	"TischID":     table.TischIDSchema.Required(),
-	"BetragCents": z.Int().GTE(1).Required(),
-	"Kommentar":   z.String().Min(3).Max(100).Required(),
-})
-
-func (h *CommandHandler) AuszahlungLeistenHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body := auszahlungLeistenRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, auszahlungLeistenSchema) {
-			return
-		}
-
-		userID, userName, ok := middleware.UserFromContext(r.Context())
-		if !ok {
-			helper.SendServerError(w)
-			return
-		}
-		err := h.Command.AuszahlungLeisten(r.Context(), userID, userName, body.TischID, body.BetragCents, body.Kommentar)
-		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			default:
-				helper.MapError(w, err, map[error]string{
-					application.ErrTischNotFound:  "tisch_not_found",
-					application.ErrTischNotActive: "tisch_not_active",
 				})
 			}
 			return

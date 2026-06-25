@@ -103,13 +103,6 @@ type stornieren struct {
 	Kommentar   string
 }
 
-// auszahlen leistet eine Auszahlung; BetragCents 0 = gesamtes Guthaben (negativer Saldo).
-type auszahlen struct {
-	Tisch, User int
-	BetragCents int
-	Kommentar   string
-}
-
 // umbuchen verschiebt unbezahlte Positionen als atomares Storno-/Bestellungs-Paar mit den
 // Standard-Kommentaren („Umbuchung auf/von Tisch …"); leere Posten = alle unbezahlten.
 type umbuchen struct {
@@ -155,7 +148,6 @@ func (bestellen) istAktion()           {}
 func (ausgeben) istAktion()            {}
 func (kassieren) istAktion()           {}
 func (stornieren) istAktion()          {}
-func (auszahlen) istAktion()           {}
 func (umbuchen) istAktion()            {}
 func (direktverkauf) istAktion()       {}
 func (direktverkaufStorno) istAktion() {}
