@@ -52,6 +52,18 @@ func (c Command) signStornierungErteiltEvent(ctx context.Context, evt event.Even
 	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, kasse.EmbedTSEInStornierungErteilt)
 }
 
+func (c Command) signBestellungKorrigiertEvent(ctx context.Context, evt event.Event, positionen []kasse.Position) (tseApp.Signierung, error) {
+	// Die geldneutrale Korrektur ist kassenneutral: dieselbe Bestellung-V1-processData
+	// wie eine Bestellung (keine :Bar-Zahlungszeile).
+	processData, err := tseApp.BuildBestellungProcessData(positionen)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to build TSE process_data for korrektur")
+		return tseApp.Signierung{}, ErrDatabase
+	}
+
+	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeBestellungV1, processData, kasse.EmbedTSEInBestellungKorrigiert)
+}
+
 func (c Command) signAuszahlungGeleistetEvent(ctx context.Context, evt event.Event, betragCents int) (tseApp.Signierung, error) {
 	// Eine Auszahlung ist ein Eigenbeleg ohne Umsatz (AEAO 2.2.3.6.1): alle
 	// Steuerbetraege 0.00, nur der negative Zahlbetrag ist gefuellt — wie der

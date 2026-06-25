@@ -187,17 +187,18 @@ type TSENachsignierung struct {
 	ProcessData string
 }
 
-// WriteUmbuchung writes the linked source and target umbuchung events atomically,
-// together with any TSE-Nachsignier-Aufträge for sides that could not be signed at
-// capture time. Both events must already carry their final subject/version.
-func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, nachsignierungen []TSENachsignierung, kassensitzungNr int) error {
+// WriteTischSessionEventsAtomic writes the given tisch-session events atomically
+// (all-or-nothing), together with any TSE-Nachsignier-Aufträge for events that could
+// not be signed at capture time. Each event must already carry its final subject and
+// version. Backs UI actions that map to multiple typed events with one TSE-transaction
+// each — the Umbuchung (two linked tables) and the Storno (one geldneutrale Korrektur
+// plus one Warenrücknahme per betroffener Zahlung).
+func (r Repository) WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, nachsignierungen []TSENachsignierung, kassensitzungNr int) error {
 	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
-		if _, err := r.writeEventInTx(ctx, qtx, quellEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
-			return err
-		}
-
-		if _, err := r.writeEventInTx(ctx, qtx, zielEvent, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
-			return err
+		for _, evt := range events {
+			if _, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+				return err
+			}
 		}
 
 		for _, ns := range nachsignierungen {
@@ -213,6 +214,13 @@ func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, 
 
 		return nil
 	})
+}
+
+// WriteUmbuchung writes the linked source and target umbuchung events atomically,
+// together with any TSE-Nachsignier-Aufträge for sides that could not be signed at
+// capture time. Both events must already carry their final subject/version.
+func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, nachsignierungen []TSENachsignierung, kassensitzungNr int) error {
+	return r.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, nachsignierungen, kassensitzungNr)
 }
 
 // writeEventInTx inserts the event into the kassenjournal and updates the matching

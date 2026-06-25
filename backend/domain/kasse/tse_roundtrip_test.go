@@ -132,7 +132,7 @@ func TestEventDataRoundtrip_Stornierung_WithAndWithoutTSE(t *testing.T) {
 		Menge:        1,
 	}}
 
-	evtOhne, err := NewStornierungErteiltEvent(testSubject, 1, "User", positionen, 350, "Reklamation")
+	evtOhne, err := NewStornierungErteiltEvent(testSubject, 1, "User", "11111111-1111-1111-1111-111111111111", positionen, 350, "Reklamation")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

@@ -32,6 +32,7 @@ type eventRepo interface {
 	WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error)
 	WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error)
 	WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, nachsignierungen []kassenjournal_repo.TSENachsignierung, kassensitzungNr int) error
+	WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, nachsignierungen []kassenjournal_repo.TSENachsignierung, kassensitzungNr int) error
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
@@ -228,18 +229,6 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 	}
 
 	return subject, ks.ZNr, state, nil
-}
-
-// computeNichtStorniertePositionen replays all events for a subject to compute
-// the list of positions that have been ordered but not yet cancelled.
-// This is used for stornierung validation (on-demand, not stored in projection).
-func (c Command) computeNichtStorniertePositionen(ctx context.Context, subject string) ([]kasse.Position, error) {
-	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
-	if err != nil {
-		return nil, err
-	}
-
-	return kasse.ComputeNichtStorniertePositionen(events)
 }
 
 // validatePositionRefs checks that every requested PositionRef exists in the available positions
@@ -695,6 +684,12 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	return c.persistSignedTischEvent(ctx, signierung, subject, kassensitzungNr, tischID, "Zahlung kassiert")
 }
 
+// StornierungErteilen führt eine „Stornieren"-Aktion aus und teilt sie serverseitig
+// nach Bezahlstatus auf: unbezahlte Mengen werden geldneutral korrigiert
+// (ein bestellung-korrigiert), bezahlte Mengen werden ihren begleichenden Zahlungen
+// FIFO zugeordnet und je Zahlung als kassenwirksame Warenrücknahme zurückgenommen
+// (ein stornierung-erteilt mit genau einer ZahlungID). Jedes entstehende Event trägt
+// eine eigene TSE-Transaktion; alle werden atomar geschrieben (alles-oder-nichts).
 func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -704,33 +699,98 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		return err
 	}
 
-	// Stornierungsinvariante: Nur bestellte, nicht-stornierte Positionen können storniert werden
-	// (unabhängig vom Bezahlstatus). On-demand event replay to compute nicht-stornierte Positionen.
-	nichtStorniert, err := c.computeNichtStorniertePositionen(ctx, subject)
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to compute nicht-stornierte Positionen")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for stornierung")
 		return ErrDatabase
 	}
 
-	if !validatePositionRefs(nichtStorniert, positionen) {
+	// Routing nach Bezahlstatus (FIFO je Zahlung). false = angeforderte Menge übersteigt
+	// die noch stornierbare Menge.
+	aufteilung, ok := kasse.ComputeStornoAufteilung(events, positionen)
+	if !ok {
 		log.Warn().Int("tisch_id", tischID).Msg("Stornierungsinvariante verletzt: angeforderte Positionen nicht stornierbar")
 		return ErrPositionNichtStornierbar
 	}
 
-	resolvedPositionen, gesamtStornierungCents := resolvePositions(nichtStorniert, positionen)
-
-	evt, err := kasse.NewStornierungErteiltEvent(subject, userID, userName, resolvedPositionen, gesamtStornierungCents, kommentar)
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create stornierung erteilt event")
-		return err
-	}
-
-	signierung, err := c.signStornierungErteiltEvent(ctx, evt, resolvedPositionen, gesamtStornierungCents)
+	signierungen, err := c.signStornoAufteilung(ctx, subject, userID, userName, aufteilung, kommentar)
 	if err != nil {
 		return err
 	}
 
-	return c.persistSignedTischEvent(ctx, signierung, subject, kassensitzungNr, tischID, "Stornierung erteilt")
+	return c.persistStornoEvents(ctx, signierungen, subject, kassensitzungNr, tischID)
+}
+
+// signStornoAufteilung erzeugt und signiert die Events einer aufgeteilten Storno-
+// Aktion: zuerst die geldneutrale Korrektur (falls unbezahlte Mengen vorliegen), dann
+// je betroffener Zahlung eine kassenwirksame Warenrücknahme. Die Signierungen werden in
+// Schreibreihenfolge zurückgegeben (jede mit eigener TSE-Transaktion).
+func (c Command) signStornoAufteilung(ctx context.Context, subject string, userID int, userName string, aufteilung kasse.StornoAufteilung, kommentar string) ([]tseApp.Signierung, error) {
+	log := zerolog.Ctx(ctx)
+
+	var signierungen []tseApp.Signierung
+
+	if len(aufteilung.Korrektur) > 0 {
+		evt, err := kasse.NewBestellungKorrigiertEvent(subject, userID, userName, aufteilung.Korrektur, aufteilung.KorrekturCents, kommentar)
+		if err != nil {
+			log.Error().Err(err).Str("subject", subject).Msg("Failed to create bestellung korrigiert event")
+			return nil, err
+		}
+		signierung, err := c.signBestellungKorrigiertEvent(ctx, evt, aufteilung.Korrektur)
+		if err != nil {
+			return nil, err
+		}
+		signierungen = append(signierungen, signierung)
+	}
+
+	for _, wr := range aufteilung.Warenruecknahmen {
+		evt, err := kasse.NewStornierungErteiltEvent(subject, userID, userName, wr.ZahlungID, wr.Positionen, wr.GesamtCents, kommentar)
+		if err != nil {
+			log.Error().Err(err).Str("subject", subject).Msg("Failed to create stornierung erteilt event")
+			return nil, err
+		}
+		signierung, err := c.signStornierungErteiltEvent(ctx, evt, wr.Positionen, wr.GesamtCents)
+		if err != nil {
+			return nil, err
+		}
+		signierungen = append(signierungen, signierung)
+	}
+
+	return signierungen, nil
+}
+
+// persistStornoEvents weist den signierten Storno-Events fortlaufende Versionen ab dem
+// aktuellen Maximum desselben Subjects zu und schreibt sie atomar (mit etwaigen
+// Nachsignier-Aufträgen). Ein OCC-Konflikt wird zu ErrConflict.
+func (c Command) persistStornoEvents(ctx context.Context, signierungen []tseApp.Signierung, subject string, kassensitzungNr int, tischID int) error {
+	log := zerolog.Ctx(ctx)
+
+	maxVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
+	if err != nil {
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to load max version for stornierung")
+		return ErrDatabase
+	}
+
+	events := make([]event.Event, 0, len(signierungen))
+	for i, signierung := range signierungen {
+		evt := signierung.Event
+		evt.Version = maxVersion + 1 + i
+		events = append(events, evt)
+	}
+
+	nachsignierungen := nachsignierungenAusSignierungen(signierungen...)
+
+	if err := c.EventRepo.WriteTischSessionEventsAtomic(ctx, events, nachsignierungen, kassensitzungNr); err != nil {
+		if errors.Is(err, db.ErrAlreadyExists) {
+			log.Warn().Int("tisch_id", tischID).Str("subject", subject).Msg("OCC conflict bei Stornierung")
+			return ErrConflict
+		}
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write stornierung events")
+		return ErrDatabase
+	}
+
+	log.Info().Int("tisch_id", tischID).Int("anzahl_events", len(events)).Msg("Stornierung erteilt")
+	return nil
 }
 
 func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {

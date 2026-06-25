@@ -28,7 +28,7 @@ func TestGetHistorieFromEvents_ReturnsAllEventTypes(t *testing.T) {
 	events := []e.Event{
 		orderEvent,
 		mustCreatePaymentEvent(t, testSubject, 1, positions, 500),
-		mustCreateCancelationEvent(t, testSubject, 1, positions, 500),
+		mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, positions, 500),
 		mustCreateDeliveryEvent(t, testSubject, 1, positions),
 	}
 
@@ -71,7 +71,7 @@ func TestGetHistorieFromEvents_EnrichesBestellungMitRestmengen(t *testing.T) {
 
 	events := []e.Event{
 		orderEvent,
-		mustCreateCancelationEvent(t, testSubject, 1, eine, 500),
+		mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, eine, 500),
 		mustCreatePaymentEvent(t, testSubject, 1, eine, 500),
 	}
 
@@ -105,7 +105,7 @@ func TestGetHistorieFromEvents_FullyConsumedBestellungHasNoRestmengen(t *testing
 
 	events := []e.Event{
 		orderEvent,
-		mustCreateCancelationEvent(t, testSubject, 1, positions, 500),
+		mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, positions, 500),
 	}
 
 	history, err := GetHistorieFromEvents(events)
@@ -157,7 +157,7 @@ func TestGetHistorieFromEvents_IncludesAuszahlung(t *testing.T) {
 	events := []e.Event{
 		orderEvent,
 		mustCreatePaymentEvent(t, testSubject, 1, positions, 500),
-		mustCreateCancelationEvent(t, testSubject, 1, positions, 500),
+		mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, positions, 500),
 		mustCreateAuszahlungEvent(t, testSubject, 1, 500, "Rueckzahlung"),
 	}
 

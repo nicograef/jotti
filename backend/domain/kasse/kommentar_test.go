@@ -65,7 +65,7 @@ var kommentarTestPositionenMitID = []Position{
 func TestNewStornierungErteiltEvent_Kommentar(t *testing.T) {
 	for _, tt := range kommentarTests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewStornierungErteiltEvent(kommentarTestSubject, 1, "Servicekraft", kommentarTestPositionenMitID, 350, tt.kommentar)
+			_, err := NewStornierungErteiltEvent(kommentarTestSubject, 1, "Servicekraft", "11111111-1111-1111-1111-111111111111", kommentarTestPositionenMitID, 350, tt.kommentar)
 			if tt.wantErr && err == nil {
 				t.Errorf("erwartete Fehler für Kommentar %q, aber kein Fehler", tt.kommentar)
 			}

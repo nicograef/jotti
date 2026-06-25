@@ -61,6 +61,16 @@ func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragStornierung, Stornierung: &stornierung})
 
+		case string(EventTypeBestellungKorrigiertV1):
+			// Die geldneutrale Korrektur erscheint in Historie und UI ebenfalls als
+			// „Stornierung" (durchgehend „Storno" für Helfer); die fiskalische
+			// Unterscheidung bleibt unsichtbar.
+			korrektur, err := buildKorrekturFromEvent(event)
+			if err != nil {
+				return nil, err
+			}
+			history = append(history, HistorieEintrag{Art: HistorieEintragStornierung, Stornierung: &korrektur})
+
 		case string(EventTypeBestellungUmgebuchtV1):
 			umbuchung, err := buildUmbuchungFromEvent(event)
 			if err != nil {

@@ -145,7 +145,8 @@ func TestBuildSeedDaten_EventGroessenordnung(t *testing.T) {
 }
 
 // TestBuildSeedDaten_SonntagsTischZustaende prüft, dass der offene Sonntag alle Tisch-Zustände
-// abdeckt: leer, frisch bestellt, teilgeliefert, teilbezahlt, Guthaben/Auszahlung, abgeschlossen.
+// abdeckt: leer, frisch bestellt, teilgeliefert, teilbezahlt, Warenrücknahme nach Bezahlung,
+// abgeschlossen.
 func TestBuildSeedDaten_SonntagsTischZustaende(t *testing.T) {
 	_, daten := buildTestDaten(t)
 	states := tischStates(t, eventsProSitzung(daten)[3])
@@ -178,17 +179,17 @@ func TestBuildSeedDaten_SonntagsTischZustaende(t *testing.T) {
 		t.Errorf("Tisch 2 nicht teilbezahlt: saldo=%d zahlungen=%d", t2.SaldoCents, t2.GesamtZahlungenCents)
 	}
 
-	// Tisch 7: Guthaben — Stornierung nach Bezahlung, Auszahlung steht aus.
-	if t7 := states[subject(7)]; t7.SaldoCents >= 0 {
-		t.Errorf("Tisch 7 Saldo = %d, erwartet < 0 (Guthaben)", t7.SaldoCents)
+	// Tisch 7: Storno nach Bezahlung (Warenrücknahme) — der offene Betrag bleibt 0.
+	if t7 := states[subject(7)]; t7.SaldoCents != 0 {
+		t.Errorf("Tisch 7 Saldo = %d, erwartet 0 (Warenrücknahme nach Bezahlung)", t7.SaldoCents)
 	}
 
-	// Tisch 9: abgeschlossen über Auszahlung des Guthabens.
+	// Tisch 9: Storno nach Bezahlung (Warenrücknahme) — ausgeglichen.
 	if t9 := states[subject(9)]; t9.SaldoCents != 0 {
-		t.Errorf("Tisch 9 Saldo = %d, erwartet 0 (Guthaben ausgezahlt)", t9.SaldoCents)
+		t.Errorf("Tisch 9 Saldo = %d, erwartet 0 (Warenrücknahme nach Bezahlung)", t9.SaldoCents)
 	}
 
-	// Abgeschlossene Tische: Bestellungen − Stornierungen − Zahlungen (± Auszahlung) = 0.
+	// Abgeschlossene Tische: Bestellungen − Korrekturen − Zahlungen = 0.
 	for _, tischID := range []int{1, 5, 9, 18, 19} {
 		if st := states[subject(tischID)]; st.SaldoCents != 0 {
 			t.Errorf("Tisch %d Saldo = %d, erwartet 0 (abgeschlossen)", tischID, st.SaldoCents)
@@ -228,13 +229,15 @@ func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 		}
 		abschluss := parseData[kasse.TagesabschlussErstelltV1Data](t, letztes)
 
-		var zahlungen, stornierungen, auszahlungen, dv, dvStorno, transit int
+		var zahlungen, warenruecknahmen, korrekturen, auszahlungen, dv, dvStorno, transit int
 		for _, evt := range tagesEvents {
 			switch evt.Type {
 			case string(kasse.EventTypeZahlungKassiertV1):
 				zahlungen += parseData[kasse.ZahlungKassiertV1Data](t, evt).GesamtZahlungCents
 			case string(kasse.EventTypeStornierungErteiltV1):
-				stornierungen += parseData[kasse.StornierungErteiltV1Data](t, evt).GesamtStornierungCents
+				warenruecknahmen += parseData[kasse.StornierungErteiltV1Data](t, evt).GesamtStornierungCents
+			case string(kasse.EventTypeBestellungKorrigiertV1):
+				korrekturen += parseData[kasse.BestellungKorrigiertV1Data](t, evt).GesamtCents
 			case string(kasse.EventTypeAuszahlungGeleistetV1):
 				auszahlungen += parseData[kasse.AuszahlungGeleistetV1Data](t, evt).BetragCents
 			case string(kasse.EventTypeDirektverkaufGetaetigtV1):
@@ -251,12 +254,14 @@ func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 			}
 		}
 
-		umsatz := zahlungen + dv - dvStorno - auszahlungen
+		// Die kassenwirksame Warenrücknahme mindert den Umsatz, die geldneutrale
+		// Korrektur nicht; StornierungCents umfasst beide Storno-Arten.
+		umsatz := zahlungen + dv - dvStorno - warenruecknahmen - auszahlungen
 		if abschluss.UmsatzGesamtCents != umsatz {
 			t.Errorf("Sitzung %d: UmsatzGesamtCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.UmsatzGesamtCents, umsatz)
 		}
-		if abschluss.StornierungCents != stornierungen {
-			t.Errorf("Sitzung %d: StornierungCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.StornierungCents, stornierungen)
+		if abschluss.StornierungCents != warenruecknahmen+korrekturen {
+			t.Errorf("Sitzung %d: StornierungCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.StornierungCents, warenruecknahmen+korrekturen)
 		}
 		if abschluss.AuszahlungenCents != auszahlungen {
 			t.Errorf("Sitzung %d: AuszahlungenCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.AuszahlungenCents, auszahlungen)
@@ -410,6 +415,9 @@ func TestBuildSeedDaten_Kassenfuehrung(t *testing.T) {
 			bestand += parseData[kasse.KassensitzungEroeffnetV1Data](t, evt).BetragCents
 		case string(kasse.EventTypeZahlungKassiertV1):
 			bestand += parseData[kasse.ZahlungKassiertV1Data](t, evt).GesamtZahlungCents
+		case string(kasse.EventTypeStornierungErteiltV1):
+			// Kassenwirksame Warenrücknahme: Bar-Rückgabe mindert den Bestand.
+			bestand -= parseData[kasse.StornierungErteiltV1Data](t, evt).GesamtStornierungCents
 		case string(kasse.EventTypeAuszahlungGeleistetV1):
 			bestand -= parseData[kasse.AuszahlungGeleistetV1Data](t, evt).BetragCents
 		case string(kasse.EventTypeDirektverkaufGetaetigtV1):

@@ -390,6 +390,7 @@ func TestAbrechnungskreisFallback(t *testing.T) {
 
 const (
 	stornoBonID              = "33333333-3333-3333-3333-333333333333"
+	korrekturBonID           = "33333333-3333-3333-3333-3333333333cc"
 	kombiBonID               = "44444444-4444-4444-4444-444444444444"
 	direktverkaufBonID       = "55555555-5555-5555-5555-555555555555"
 	direktverkaufStornoBonID = "66666666-6666-6666-6666-666666666666"
@@ -397,21 +398,23 @@ const (
 	nachsigniertOutageBonID  = "88888888-8888-8888-8888-bbbbbbbbbbbb"
 )
 
-// stornierungEvent storniert die Bier-Position der bestellungEvent-Bestellung
-// (gleiche PositionID "p1"), TSE-signiert, am selben Tisch 42.
-func stornierungEvent(t *testing.T) event.Event {
+// warenruecknahmeEvent nimmt die zuvor bezahlte Bier-Position (zahlungEvent, ZahlungID
+// zahlungBonID) kassenwirksam zurück: negativer Umsatz mit Bar-Rückgabe, TSE-signiert
+// als Kassenbeleg-V1, am selben Tisch 42.
+func warenruecknahmeEvent(t *testing.T) event.Event {
 	t.Helper()
 
 	data := kasse.StornierungErteiltV1Data{
 		StornierungID:          stornoBonID,
+		ZahlungID:              zahlungBonID,
 		GesamtStornierungCents: 450,
-		Kommentar:              "Versehentlich bestellt",
+		Kommentar:              "Reklamation",
 		Positionen: []kasse.PositionEventData{
 			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
 		},
 		TSEData: &kasse.TSEData{
-			TransactionNumber: 4712,
-			SignatureCounter:  13,
+			TransactionNumber: 4713,
+			SignatureCounter:  14,
 			SerialNumberTSE:   "abc123serial",
 			LogTimeStart:      "2026-06-16T13:00:00Z",
 			LogTimeEnd:        "2026-06-16T13:00:01Z",
@@ -423,14 +426,55 @@ func stornierungEvent(t *testing.T) event.Event {
 
 	raw, err := json.Marshal(data)
 	if err != nil {
-		t.Fatalf("marshal stornierung data: %v", err)
+		t.Fatalf("marshal warenruecknahme data: %v", err)
+	}
+
+	return event.Event{
+		ID:       3,
+		UserID:   7,
+		UserName: "anna",
+		Type:     string(kasse.EventTypeStornierungErteiltV1),
+		Time:     time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC),
+		Subject:  kasse.TischSessionSubject(3, 42),
+		Version:  3,
+		Data:     raw,
+	}
+}
+
+// korrekturEvent storniert die noch unbezahlte Bier-Position der bestellungEvent-
+// Bestellung (gleiche PositionID "p1") geldneutral, TSE-signiert als Bestellung-V1.
+func korrekturEvent(t *testing.T) event.Event {
+	t.Helper()
+
+	data := kasse.BestellungKorrigiertV1Data{
+		KorrekturID: korrekturBonID,
+		GesamtCents: 450,
+		Kommentar:   "Versehentlich bestellt",
+		Positionen: []kasse.PositionEventData{
+			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+		},
+		TSEData: &kasse.TSEData{
+			TransactionNumber: 4712,
+			SignatureCounter:  13,
+			SerialNumberTSE:   "abc123serial",
+			LogTimeStart:      "2026-06-16T13:00:00Z",
+			LogTimeEnd:        "2026-06-16T13:00:01Z",
+			Signature:         "KORREKTURSIG==",
+			ProcessType:       "Bestellung-V1",
+			QRCodeData:        "V0;korrektur",
+		},
+	}
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal korrektur data: %v", err)
 	}
 
 	return event.Event{
 		ID:       2,
 		UserID:   7,
 		UserName: "anna",
-		Type:     string(kasse.EventTypeStornierungErteiltV1),
+		Type:     string(kasse.EventTypeBestellungKorrigiertV1),
 		Time:     time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC),
 		Subject:  kasse.TischSessionSubject(3, 42),
 		Version:  2,
@@ -438,16 +482,16 @@ func stornierungEvent(t *testing.T) event.Event {
 	}
 }
 
-// TestMapTischStornoNegativeWithReference belegt das Radierverbot für die
-// geldneutrale AVBestellung: der Storno ist ein eigener Negativ-Beleg
-// (BON_STORNO=1, negierte MENGE) und verweist in references.csv per REF_BON_ID auf
-// die Ursprungsbestellung. Da Bestellung und Storno geldneutral sind, trägt eine
-// reine Bestell-/Storno-Sitzung nichts zu USt, Zahlart und Kassenbestand bei.
-func TestMapTischStornoNegativeWithReference(t *testing.T) {
+// TestMapKorrekturGeldneutralWithReference belegt das Radierverbot für die
+// geldneutrale Korrektur unbezahlter Positionen: sie ist eine AVBestellung mit
+// negierter MENGE (kein Vorgangs-Storno, BON_STORNO=0) und verweist per REF_BON_ID
+// auf die Ursprungsbestellung. Bestellung und Korrektur sind geldneutral, tragen also
+// nichts zu USt, Zahlart und Kassenbestand bei.
+func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
 
-	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), stornierungEvent(t)}, nil)
+	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), korrekturEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -455,14 +499,14 @@ func TestMapTischStornoNegativeWithReference(t *testing.T) {
 	const erstellung = "2026-06-16T14:30:00Z"
 
 	wantRecords := map[string][][]string{
-		// Verkettung Storno → Ursprungsbestellung (gleiche Sitzung: REF_DATUM/REF_Z_NR identisch).
+		// Verkettung Korrektur → Ursprungsbestellung (gleiche Sitzung: REF_DATUM/REF_Z_NR identisch).
 		"references.csv": {
-			{testSerial, erstellung, "3", stornoBonID, "", "Transaktion", "", erstellung, testSerial, "3", bestellungBonID},
+			{testSerial, erstellung, "3", korrekturBonID, "", "Transaktion", "", erstellung, testSerial, "3", bestellungBonID},
 		},
-		// Eigene TSE-Signatur des Stornos.
+		// Eigene TSE-Signatur der Korrektur.
 		"transactions_tse.csv": {
 			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "Bestellung-V1", "11", "BESTELLSIG==", "", "V0;bestell"},
-			{testSerial, erstellung, "3", stornoBonID, "1", "4712", "2026-06-16T13:00:00Z", "2026-06-16T13:00:01Z", "Kassenbeleg-V1", "13", "STORNOSIG==", "", "V0;storno"},
+			{testSerial, erstellung, "3", korrekturBonID, "1", "4712", "2026-06-16T13:00:00Z", "2026-06-16T13:00:01Z", "Bestellung-V1", "13", "KORREKTURSIG==", "", "V0;korrektur"},
 		},
 	}
 
@@ -473,7 +517,7 @@ func TestMapTischStornoNegativeWithReference(t *testing.T) {
 		}
 	}
 
-	// Geldneutralität: eine reine Bestell-/Storno-Sitzung erzeugt keine
+	// Geldneutralität: eine reine Bestell-/Korrektur-Sitzung erzeugt keine
 	// USt-, Zahlart- oder Geschäftsvorfall-Zeilen.
 	for _, file := range []string{"transactions_vat.csv", "lines_vat.csv", "datapayment.csv", "businesscases.csv", "payment.csv"} {
 		table := tableByFile(t, archive, file)
@@ -482,7 +526,7 @@ func TestMapTischStornoNegativeWithReference(t *testing.T) {
 		}
 	}
 
-	// Bonkopf: der Storno trägt BON_STORNO=1; beide Vorgänge sind geldneutral (UMS_BRUTTO=0.00).
+	// Bonkopf: beide Vorgänge sind geldneutral (UMS_BRUTTO=0.00, BON_STORNO=0).
 	transactions := tableByFile(t, archive, "transactions.csv")
 	if got := field(t, transactions, 0, "BON_STORNO"); got != "0" {
 		t.Errorf("ursprung BON_STORNO = %q, want 0", got)
@@ -490,21 +534,81 @@ func TestMapTischStornoNegativeWithReference(t *testing.T) {
 	if got := field(t, transactions, 0, "UMS_BRUTTO"); got != "0.00" {
 		t.Errorf("ursprung UMS_BRUTTO = %q, want 0.00", got)
 	}
-	if got := field(t, transactions, 1, "BON_STORNO"); got != "1" {
-		t.Errorf("storno BON_STORNO = %q, want 1", got)
+	if got := field(t, transactions, 1, "BON_STORNO"); got != "0" {
+		t.Errorf("korrektur BON_STORNO = %q, want 0", got)
 	}
 	if got := field(t, transactions, 1, "UMS_BRUTTO"); got != "0.00" {
-		t.Errorf("storno UMS_BRUTTO = %q, want 0.00", got)
+		t.Errorf("korrektur UMS_BRUTTO = %q, want 0.00", got)
 	}
 
 	// Positionsebene: negierte MENGE statt P_STORNO-Flag (DSFinV-K Tz. 4.2.3); der
 	// informative Preis bleibt erhalten.
 	lines := tableByFile(t, archive, "lines.csv")
 	if got := field(t, lines, 1, "MENGE"); got != "-1.000" {
-		t.Errorf("storno MENGE = %q, want -1.000", got)
+		t.Errorf("korrektur MENGE = %q, want -1.000", got)
 	}
 	if got := field(t, lines, 1, "P_STORNO"); got != "0" {
-		t.Errorf("storno P_STORNO = %q, want 0 (negierte MENGE statt Flag)", got)
+		t.Errorf("korrektur P_STORNO = %q, want 0 (negierte MENGE statt Flag)", got)
+	}
+}
+
+// TestMapWarenruecknahmeNegativeWithZahlungReference belegt die kassenwirksame
+// Warenrücknahme bezahlter Positionen: ein negativer Bar-Beleg (BON_TYP Beleg, GV_TYP
+// Umsatz, Zahlart Bar, BON_STORNO=0) mit REF_BON_ID auf die Zahlung. Der Bargeldbestand
+// gleicht sich gegen die vorausgegangene Zahlung aus (keine Doppelbuchung).
+func TestMapWarenruecknahmeNegativeWithZahlungReference(t *testing.T) {
+	snapshot := testSnapshot()
+	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
+
+	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), zahlungEvent(t), warenruecknahmeEvent(t)}, nil)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	const erstellung = "2026-06-16T14:30:00Z"
+
+	wantRecords := map[string][][]string{
+		// Verkettung Warenrücknahme → Zahlung (nicht die Bestellung).
+		"references.csv": {
+			{testSerial, erstellung, "3", stornoBonID, "", "Transaktion", "", erstellung, testSerial, "3", zahlungBonID},
+		},
+		// Negative Bar-Rückgabe, gegenläufig zur Zahlung.
+		"datapayment.csv": {
+			{testSerial, erstellung, "3", zahlungBonID, "Bar", "Bar", "EUR", "4.50", "4.50"},
+			{testSerial, erstellung, "3", stornoBonID, "Bar", "Bar", "EUR", "-4.50", "-4.50"},
+		},
+	}
+
+	for file, want := range wantRecords {
+		table := tableByFile(t, archive, file)
+		if !reflect.DeepEqual(table.Records, want) {
+			t.Errorf("%s records =\n%#v\nwant\n%#v", file, table.Records, want)
+		}
+	}
+
+	// Bonkopf: die Warenrücknahme ist ein Beleg mit negativem Umsatz, ohne
+	// Vorgangs-Storno-Kennzeichen.
+	transactions := tableByFile(t, archive, "transactions.csv")
+	if got := field(t, transactions, 2, "BON_TYP"); got != "Beleg" {
+		t.Errorf("warenruecknahme BON_TYP = %q, want Beleg", got)
+	}
+	if got := field(t, transactions, 2, "BON_STORNO"); got != "0" {
+		t.Errorf("warenruecknahme BON_STORNO = %q, want 0", got)
+	}
+	if got := field(t, transactions, 2, "UMS_BRUTTO"); got != "-4.50" {
+		t.Errorf("warenruecknahme UMS_BRUTTO = %q, want -4.50", got)
+	}
+
+	// Der Bargeldbestand gleicht sich aus: Zahlung +4.50, Warenrücknahme −4.50.
+	closing := tableByFile(t, archive, "cashpointclosing.csv")
+	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "0.00" {
+		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 0.00 (Zahlung und Rückgabe heben sich auf)", got)
+	}
+
+	// Umsatz je Steuersatz saldiert sich auf 0 (Zahlung +, Warenrücknahme −).
+	businesscases := tableByFile(t, archive, "businesscases.csv")
+	if got := field(t, businesscases, 0, "Z_UMS_BRUTTO"); got != "0.00" {
+		t.Errorf("businesscases Z_UMS_BRUTTO = %q, want 0.00", got)
 	}
 }
 
@@ -798,7 +902,8 @@ func TestMapDirektverkaufUndStorno(t *testing.T) {
 		}
 	}
 
-	// Beide Belege tragen BON_TYP "Beleg"; der Storno BON_STORNO=1.
+	// Beide Belege tragen BON_TYP "Beleg"; der Storno ist eine negative
+	// Belegdarstellung ohne Vorgangs-Storno-Kennzeichen (BON_STORNO=0).
 	transactions := tableByFile(t, archive, "transactions.csv")
 	if got := field(t, transactions, 0, "BON_TYP"); got != "Beleg" {
 		t.Errorf("direktverkauf BON_TYP = %q, want Beleg", got)
@@ -806,8 +911,8 @@ func TestMapDirektverkaufUndStorno(t *testing.T) {
 	if got := field(t, transactions, 0, "BON_STORNO"); got != "0" {
 		t.Errorf("direktverkauf BON_STORNO = %q, want 0", got)
 	}
-	if got := field(t, transactions, 1, "BON_STORNO"); got != "1" {
-		t.Errorf("direktverkauf-storno BON_STORNO = %q, want 1", got)
+	if got := field(t, transactions, 1, "BON_STORNO"); got != "0" {
+		t.Errorf("direktverkauf-storno BON_STORNO = %q, want 0", got)
 	}
 
 	// Direktverkäufe tragen keinen Abrechnungskreis (kein Tischbezug).

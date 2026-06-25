@@ -15,6 +15,7 @@ const (
 	EventTypeBestellungAufgenommenV1 EventType = "bestellung-aufgenommen:v1"
 	EventTypeZahlungKassiertV1       EventType = "zahlung-kassiert:v1"
 	EventTypeStornierungErteiltV1    EventType = "stornierung-erteilt:v1"
+	EventTypeBestellungKorrigiertV1  EventType = "bestellung-korrigiert:v1"
 	EventTypeBestellungUmgebuchtV1   EventType = "bestellung-umgebucht:v1"
 	EventTypeAusgabeBestaetigtV1     EventType = "ausgabe-bestaetigt:v1"
 	EventTypeAuszahlungGeleistetV1   EventType = "auszahlung-geleistet:v1"
@@ -55,8 +56,14 @@ var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
 	"Kommentar":          z.String().Max(100),
 })
 
+// StornierungErteiltV1Data ist die kassenwirksame Warenrücknahme bereits bezahlter
+// Positionen: ein negativer Umsatz am Ursprungssteuersatz mit Bar-Rückgabe, signiert
+// als Kassenbeleg-V1. ZahlungID referenziert genau die begleichende Zahlung, deren
+// Mengen zurückgenommen werden (eine Warenrücknahme je Zahlung). Der Kommentar ist
+// Pflicht (Dokumentation des Rückgabegrunds für die Betriebsprüfung).
 type StornierungErteiltV1Data struct {
 	StornierungID          string              `json:"stornierungId"`
+	ZahlungID              string              `json:"zahlungId"`
 	Positionen             []PositionEventData `json:"positionen"`
 	GesamtStornierungCents int                 `json:"gesamtStornierungCents"`
 	Kommentar              string              `json:"kommentar"`
@@ -66,9 +73,30 @@ type StornierungErteiltV1Data struct {
 
 var stornierungErteiltV1DataSchema = z.Struct(z.Shape{
 	"StornierungID":          z.String().UUID().Required(),
+	"ZahlungID":              z.String().UUID().Required(),
 	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(0).Required(),
 	"Kommentar":              z.String().Min(3).Max(100).Required(),
+})
+
+// BestellungKorrigiertV1Data ist die geldneutrale Stornierung noch unbezahlter
+// Positionen: eine reine Auftragskorrektur ohne Geld- und Umsatzwirkung, signiert als
+// Bestellung-V1 (ohne Zahlungszeile). Sie reduziert den offenen Betrag und nimmt die
+// Positionen aus den aktiven Listen.
+type BestellungKorrigiertV1Data struct {
+	KorrekturID string              `json:"korrekturId"`
+	Positionen  []PositionEventData `json:"positionen"`
+	GesamtCents int                 `json:"gesamtCents"`
+	Kommentar   string              `json:"kommentar"`
+	TSETxID     string              `json:"tseTxId,omitempty"`
+	TSEData     *TSEData            `json:"tseData,omitempty"`
+}
+
+var bestellungKorrigiertV1DataSchema = z.Struct(z.Shape{
+	"KorrekturID": z.String().UUID().Required(),
+	"Positionen":  z.Slice(positionSchema).Min(1).Required(),
+	"GesamtCents": z.Int().GTE(0).Required(),
+	"Kommentar":   z.String().Max(100),
 })
 
 // BestellungUmgebuchtV1Data ist die geldneutrale Umbuchung unbezahlter Positionen
@@ -167,9 +195,10 @@ func NewZahlungKassiertEvent(subject string, userID int, userName string, positi
 	return e.New(userID, userName, string(EventTypeZahlungKassiertV1), subject, data)
 }
 
-func NewStornierungErteiltEvent(subject string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
+func NewStornierungErteiltEvent(subject string, userID int, userName string, zahlungID string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
 	data := StornierungErteiltV1Data{
 		StornierungID:          uuid.New().String(),
+		ZahlungID:              zahlungID,
 		Positionen:             toPositionenEventData(positionen),
 		GesamtStornierungCents: gesamtStornierungCents,
 		Kommentar:              kommentar,
@@ -181,6 +210,22 @@ func NewStornierungErteiltEvent(subject string, userID int, userName string, pos
 	}
 
 	return e.New(userID, userName, string(EventTypeStornierungErteiltV1), subject, data)
+}
+
+func NewBestellungKorrigiertEvent(subject string, userID int, userName string, positionen []Position, gesamtCents int, kommentar string) (e.Event, error) {
+	data := BestellungKorrigiertV1Data{
+		KorrekturID: uuid.New().String(),
+		Positionen:  toPositionenEventData(positionen),
+		GesamtCents: gesamtCents,
+		Kommentar:   kommentar,
+	}
+
+	if err := bestellungKorrigiertV1DataSchema.Validate(&data); err != nil {
+		issues := z.Issues.FlattenAndCollect(err)
+		return e.Event{}, fmt.Errorf("bestellung korrigiert data validation failed: %v", issues)
+	}
+
+	return e.New(userID, userName, string(EventTypeBestellungKorrigiertV1), subject, data)
 }
 
 // NewBestellungUmgebuchtEvents erzeugt das verknüpfte Event-Paar einer Umbuchung:
@@ -364,6 +409,39 @@ func buildStornierungFromEvent(event e.Event) (Stornierung, error) {
 	}
 
 	return stornierung, nil
+}
+
+// buildKorrekturFromEvent baut die geldneutrale Korrektur als Stornierung auf: in
+// Historie und UI erscheinen beide Storno-Arten (kassenwirksame Warenrücknahme und
+// geldneutrale Korrektur) einheitlich als „Stornierung". Die Daten wurden bei der
+// Event-Erstellung validiert, daher keine erneute Schema-Prüfung (der Kommentar ist
+// hier optional, anders als bei der Warenrücknahme).
+func buildKorrekturFromEvent(event e.Event) (Stornierung, error) {
+	if event.Type != string(EventTypeBestellungKorrigiertV1) {
+		return Stornierung{}, fmt.Errorf("unsupported event type: %s", event.Type)
+	}
+
+	tischID, err := ParseTischIDFromSubject(event.Subject)
+	if err != nil {
+		return Stornierung{}, err
+	}
+
+	data := BestellungKorrigiertV1Data{}
+	err = e.ParseData(event, &data, bestellungKorrigiertV1DataSchema)
+	if err != nil {
+		return Stornierung{}, err
+	}
+
+	return Stornierung{
+		ID:                     data.KorrekturID,
+		UserID:                 event.UserID,
+		UserName:               event.UserName,
+		TischID:                tischID,
+		Positionen:             fromPositionenEventData(data.Positionen),
+		GesamtStornierungCents: data.GesamtCents,
+		Kommentar:              data.Kommentar,
+		StorniertAm:            event.Time,
+	}, nil
 }
 
 func buildUmbuchungFromEvent(event e.Event) (Umbuchung, error) {

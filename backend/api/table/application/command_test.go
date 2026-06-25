@@ -558,7 +558,9 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 	}
 	posID := orderData.Positionen[0].PositionID
 
-	cancelEvent, _ := kasse.NewStornierungErteiltEvent(subject, 1, "Test User",
+	// Die Position wurde bereits geldneutral korrigiert (unbezahlt) — ein erneuter
+	// Storno darf nicht mehr greifen.
+	cancelEvent, _ := kasse.NewBestellungKorrigiertEvent(subject, 1, "Test User",
 		[]kasse.Position{
 			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
 		}, 350, "Test")
@@ -568,7 +570,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 		SaldoCents:            0,
 		UnbezahltePositionen:  []kasse.Position{},
 		AusstehendePositionen: []kasse.Position{},
-		GesamtZahlungenCents:  350,
+		GesamtZahlungenCents:  0,
 	})
 	orderEvent.Subject = subject
 	cancelEvent.Subject = subject
@@ -1013,9 +1015,17 @@ func TestStornierungErteilen_BeiTSEAusfall_NachsignierauftragMitNegativemBetrag(
 	}
 	posID := orderData.Positionen[0].PositionID
 
+	// Die Position ist bereits bezahlt — der Storno wird zur kassenwirksamen
+	// Warenrücknahme (Kassenbeleg-V1 mit negativer Bar-Rückgabe).
+	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, 1, "Test User",
+		[]kasse.Position{{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1}}, 350, "")
+
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	eventMock.SetTischSession(subject, kasse.TischSession{})
+	orderEvent.Subject = subject
+	paymentEvent.Subject = subject
 	eventMock.AddEvent(orderEvent)
+	eventMock.AddEvent(paymentEvent)
 
 	command := Command{
 		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
@@ -2493,6 +2503,148 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 		if !strings.Contains(got, check) {
 			t.Fatalf("expected %q in stornobeleg, got:\n%q", check, got)
 		}
+	}
+}
+
+func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", []kasse.Position{{
+		VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 2,
+	}}, "")
+	var orderData kasse.BestellungAufgenommenV1Data
+	if err := json.Unmarshal(orderEvent.Data, &orderData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	posID := orderData.Positionen[0].PositionID
+
+	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
+		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 2,
+	}}, 700, "")
+	var paymentData kasse.ZahlungKassiertV1Data
+	if err := json.Unmarshal(paymentEvent.Data, &paymentData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+
+	stornoEvent, err := kasse.NewStornierungErteiltEvent(subject, 2, "Leitung", paymentData.ZahlungID, []kasse.Position{{
+		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 2,
+	}}, 700, "Rückgabe")
+	if err != nil {
+		t.Fatalf("expected no storno event error, got %v", err)
+	}
+	stornoEvent, err = kasse.EmbedTSEInStornierungErteilt(stornoEvent, "tx-tisch-storno-beleg", &kasse.TSEData{
+		TransactionNumber: 4003,
+		SignatureCounter:  101,
+		SerialNumberTSE:   "SW-TSE-SN-0044",
+		LogTimeStart:      "2026-06-10T19:20:01Z",
+		LogTimeEnd:        "2026-06-10T19:20:03Z",
+		Signature:         "SIG-STORNO",
+		ProcessType:       "Kassenbeleg-V1",
+		QRCodeData:        "V0;STORNO",
+	})
+	if err != nil {
+		t.Fatalf("expected no storno embed error, got %v", err)
+	}
+	var stornoData kasse.StornierungErteiltV1Data
+	if err := json.Unmarshal(stornoEvent.Data, &stornoData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(orderEvent)   // ID 1
+	eventMock.AddEvent(paymentEvent) // ID 2
+	eventMock.AddEvent(stornoEvent)  // ID 3
+
+	auftragMock := &mockDruckauftragRepo{}
+	command := Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
+		SettingsRepo:        belegTestSettingsMock(),
+		DruckauftragRepo:    auftragMock,
+	}
+
+	err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, "", "", stornoData.StornierungID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(auftragMock.enqueued) != 1 {
+		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
+	}
+	if !strings.HasPrefix(auftragMock.enqueued[0].Referenz, "stornierung-erteilt:") {
+		t.Fatalf("expected stornierung-erteilt referenz, got %s", auftragMock.enqueued[0].Referenz)
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+
+	got := string(payload)
+	// Referenz auf den Ursprungs-Zahlungsbeleg (Event-ID 2) und negativer Betrag.
+	for _, check := range []string{"STORNOBELEG", "Storno zu Bon-Nr: 2", "GESAMT: -7,00 EUR", "SIG-STORNO"} {
+		if !strings.Contains(got, check) {
+			t.Fatalf("expected %q in stornobeleg, got:\n%q", check, got)
+		}
+	}
+}
+
+func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahme(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	// Bestellt 3 Bier, davon 1 bezahlt → ein Storno von 3 spaltet in 2 Korrektur
+	// (unbezahlt) und 1 Warenrücknahme (bezahlt).
+	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", []kasse.Position{{
+		VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 3,
+	}}, "")
+	var orderData kasse.BestellungAufgenommenV1Data
+	if err := json.Unmarshal(orderEvent.Data, &orderData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	posID := orderData.Positionen[0].PositionID
+
+	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
+		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1,
+	}}, 350, "")
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.SetTischSession(subject, kasse.TischSession{})
+	eventMock.AddEvent(orderEvent)
+	eventMock.AddEvent(paymentEvent)
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.StornierungErteilen(ctx, 2, "Leitung", testActiveTisch.ID, []kasse.PositionRef{{PositionID: posID, Menge: 3}}, "Reklamation")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	events, err := eventMock.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		t.Fatalf("expected no error reading events, got %v", err)
+	}
+
+	var korrektur, warenruecknahme int
+	for _, evt := range events {
+		switch evt.Type {
+		case string(kasse.EventTypeBestellungKorrigiertV1):
+			korrektur++
+		case string(kasse.EventTypeStornierungErteiltV1):
+			warenruecknahme++
+		}
+	}
+	if korrektur != 1 {
+		t.Fatalf("expected exactly 1 bestellung-korrigiert, got %d", korrektur)
+	}
+	if warenruecknahme != 1 {
+		t.Fatalf("expected exactly 1 stornierung-erteilt, got %d", warenruecknahme)
 	}
 }
 

@@ -34,19 +34,24 @@ type seedDaten struct {
 }
 
 // tagesSummen sammelt die Beträge eines Betriebstags für den Tagesabschluss.
+// StornierungenCents umfasst beide Storno-Arten (geldneutrale Korrektur und
+// kassenwirksame Warenrücknahme); nur die Warenrücknahme mindert als negativer Umsatz
+// den Tagesumsatz und den Bargeldbestand, daher wird sie zusätzlich getrennt geführt.
 type tagesSummen struct {
 	ZahlungenCents            int
 	DirektverkaufCents        int
 	DirektverkaufStornosCents int
 	AuszahlungenCents         int
 	StornierungenCents        int
+	WarenruecknahmenCents     int
 	GeldtransitCents          int
 }
 
-// UmsatzGesamtCents folgt der Reporting-Definition (GetReportingStats):
-// Zahlungen + Direktverkäufe − Direktverkauf-Stornos − Auszahlungen.
+// UmsatzGesamtCents folgt der Reporting-Definition: Zahlungen + Direktverkäufe
+// − Direktverkauf-Stornos − Warenrücknahmen − Auszahlungen. Die geldneutrale Korrektur
+// fließt nicht ein, die kassenwirksame Warenrücknahme mindert den Umsatz.
 func (s tagesSummen) UmsatzGesamtCents() int {
-	return s.ZahlungenCents + s.DirektverkaufCents - s.DirektverkaufStornosCents - s.AuszahlungenCents
+	return s.ZahlungenCents + s.DirektverkaufCents - s.DirektverkaufStornosCents - s.WarenruecknahmenCents - s.AuszahlungenCents
 }
 
 // buildSeedDaten übersetzt das Szenario deterministisch in Events und Kassensitzungs-Zeilen.
@@ -255,6 +260,11 @@ func (b *sitzungsBauer) kassieren(a kassieren) error {
 	return nil
 }
 
+// stornieren bildet eine „Stornieren"-Aktion wie im Produktivbetrieb ab: das Routing
+// teilt die ausgewählten Positionen nach Bezahlstatus auf — unbezahlte Mengen werden
+// geldneutral korrigiert (bestellung-korrigiert), bezahlte Mengen je begleichender
+// Zahlung als kassenwirksame Warenrücknahme zurückgenommen (stornierung-erteilt). Nur
+// die Warenrücknahme mindert den Bargeldbestand; die Korrektur ist geldneutral.
 func (b *sitzungsBauer) stornieren(a stornieren) error {
 	if len(a.Posten) == 0 {
 		return fmt.Errorf("stornieren ohne Posten")
@@ -263,24 +273,46 @@ func (b *sitzungsBauer) stornieren(a stornieren) error {
 	if err != nil {
 		return err
 	}
-	kandidaten, err := kasse.ComputeNichtStorniertePositionen(b.tischEvents[a.Tisch])
+	events := b.tischEvents[a.Tisch]
+	kandidaten, err := kasse.ComputeNichtStorniertePositionen(events)
 	if err != nil {
 		return err
 	}
-	// Jüngste Positionen zuerst, damit die Varianten-Auswahl die letzte Bestellung trifft
-	// (und nicht ältere, bereits bezahlte Positionen derselben Variante).
+	// Jüngste Positionen zuerst, damit die Varianten-Auswahl die letzte Bestellung trifft.
 	slices.Reverse(kandidaten)
 	auswahl, err := waehlePositionen(kandidaten, a.Posten)
 	if err != nil {
 		return fmt.Errorf("nicht stornierte Positionen: %w", err)
 	}
-	betrag := summeCents(auswahl)
-	evt, err := kasse.NewStornierungErteiltEvent(b.tischSubject(a.Tisch), a.User, name, auswahl, betrag, a.Kommentar)
-	if err != nil {
-		return err
+
+	refs := make([]kasse.PositionRef, len(auswahl))
+	for i, p := range auswahl {
+		refs[i] = kasse.PositionRef{PositionID: p.PositionID, Menge: p.Menge}
 	}
-	b.addTisch(a.Tisch, evt)
-	b.summen.StornierungenCents += betrag
+	aufteilung, ok := kasse.ComputeStornoAufteilung(events, refs)
+	if !ok {
+		return fmt.Errorf("stornieren: ausgewählte Positionen nicht stornierbar (Tisch %d)", a.Tisch)
+	}
+
+	subject := b.tischSubject(a.Tisch)
+	if len(aufteilung.Korrektur) > 0 {
+		evt, err := kasse.NewBestellungKorrigiertEvent(subject, a.User, name, aufteilung.Korrektur, aufteilung.KorrekturCents, a.Kommentar)
+		if err != nil {
+			return err
+		}
+		b.addTisch(a.Tisch, evt)
+		b.summen.StornierungenCents += aufteilung.KorrekturCents
+	}
+	for _, wr := range aufteilung.Warenruecknahmen {
+		evt, err := kasse.NewStornierungErteiltEvent(subject, a.User, name, wr.ZahlungID, wr.Positionen, wr.GesamtCents, a.Kommentar)
+		if err != nil {
+			return err
+		}
+		b.addTisch(a.Tisch, evt)
+		b.bestandCents -= wr.GesamtCents
+		b.summen.StornierungenCents += wr.GesamtCents
+		b.summen.WarenruecknahmenCents += wr.GesamtCents
+	}
 	return nil
 }
 

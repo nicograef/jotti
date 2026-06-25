@@ -111,7 +111,7 @@ func (m *MockRepo) WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx context
 	return id, nil
 }
 
-func (m *MockRepo) WriteUmbuchung(_ context.Context, quellEvent event.Event, zielEvent event.Event, nachsignierungen []TSENachsignierung, _ int) error {
+func (m *MockRepo) WriteTischSessionEventsAtomic(_ context.Context, events []event.Event, nachsignierungen []TSENachsignierung, _ int) error {
 	if m.writeErr != nil {
 		return m.writeErr
 	}
@@ -119,17 +119,21 @@ func (m *MockRepo) WriteUmbuchung(_ context.Context, quellEvent event.Event, zie
 		return m.err
 	}
 
-	firstID := len(m.events) + 1
-	quellEvent.ID = firstID
-	zielEvent.ID = firstID + 1
-	m.events[firstID] = quellEvent
-	m.events[firstID+1] = zielEvent
+	for _, evt := range events {
+		newID := len(m.events) + 1
+		evt.ID = newID
+		m.events[newID] = evt
+	}
 
 	for _, ns := range nachsignierungen {
 		m.nachsignier = append(m.nachsignier, NachsignierAuftrag(ns))
 	}
 
 	return nil
+}
+
+func (m *MockRepo) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, nachsignierungen []TSENachsignierung, kassensitzungNr int) error {
+	return m.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, nachsignierungen, kassensitzungNr)
 }
 
 // CapturedDruckauftraege returns the print jobs produced via WriteEventWithDruckauftraege.

@@ -608,9 +608,9 @@ func freitagsAktionen() []aktion {
 }
 
 // samstagsAktionen ist der Haupttag (~700 Events): voller Betrieb auf 16 Tischen mit
-// Geburtstagsfeier, Stornierungen durch die Serviceleitung, Teil-Ausgabe und -Zahlung,
-// Auszahlungen, Direktverkaufsstand mit Storno, Geldtransit-Entnahme und Kassensturz
-// mit kleiner Soll/Ist-Differenz.
+// Geburtstagsfeier, Stornierungen durch die Serviceleitung (geldneutrale Korrektur und
+// kassenwirksame Warenrücknahme), Teil-Ausgabe und -Zahlung, Direktverkaufsstand mit
+// Storno, Geldtransit-Entnahme und Kassensturz mit kleiner Soll/Ist-Differenz.
 func samstagsAktionen() []aktion {
 	stammtisch := runden(1, maria, 18,
 		posten(pos(24, 4)),
@@ -636,7 +636,7 @@ func samstagsAktionen() []aktion {
 		posten(pos(10, 2), pos(42, 2)),
 	)
 	// Geburtstagsfeier: große Bestellungen; am Ende Reklamation einer Grillplatte
-	// nach der Zahlung mit anschließender Auszahlung des Guthabens.
+	// nach der Zahlung — die Bar-Rückgabe ist Teil des Stornos (Warenrücknahme).
 	geburtstag := append(runden(4, sophie, 12,
 		posten(pos(13, 3), pos(31, 4), pos(24, 4)),
 		posten(pos(10, 4), pos(27, 4)),
@@ -647,7 +647,6 @@ func samstagsAktionen() []aktion {
 		ausgeben{Tisch: 4, User: sophie},
 		kassieren{Tisch: 4, User: sophie},
 		stornieren{Tisch: 4, User: sophie, Posten: posten(pos(13, 1)), Kommentar: "Reklamation: Grillplatte kalt serviert"},
-		auszahlen{Tisch: 4, User: sophie, Kommentar: "Erstattung nach Reklamation"},
 	)
 	vorstand := runden(5, felix, 12,
 		posten(pos(49, 4)),
@@ -677,7 +676,8 @@ func samstagsAktionen() []aktion {
 		posten(pos(10, 3), pos(24, 3)),
 		posten(pos(25, 2), pos(21, 4)),
 	)
-	// Tisch 10: Stornierung nach Bezahlung mit Auszahlung des Guthabens.
+	// Tisch 10: Stornierung nach Bezahlung — die Bar-Rückgabe ist Teil des Stornos
+	// (Warenrücknahme), keine separate Auszahlung.
 	reklamation := append(runden(10, sophie, 2,
 		posten(pos(24, 2), pos(31, 2)),
 	),
@@ -685,7 +685,6 @@ func samstagsAktionen() []aktion {
 		ausgeben{Tisch: 10, User: sophie},
 		kassieren{Tisch: 10, User: sophie},
 		stornieren{Tisch: 10, User: sophie, Posten: posten(pos(8, 1)), Kommentar: "Flammkuchen verbrannt, Küche bestätigt"},
-		auszahlen{Tisch: 10, User: sophie, Kommentar: "Erstattung Flammkuchen"},
 	)
 	// Jugendgruppe: große Essensbestellung kommt in zwei Ausgaben aus der Küche.
 	jugend := append(runden(12, markus, 10,
@@ -756,8 +755,9 @@ func samstagsAktionen() []aktion {
 }
 
 // sonntagsAktionen ist der offene aktuelle Tag (~130 Events): Tische in allen Zuständen
-// (leer, frisch bestellt, teilgeliefert, teilbezahlt, Guthaben, abgeschlossen), eine
-// Umbuchung vom Stehtisch Eingang an den freien Tisch 4 und die Wechselgeld-Einlage.
+// (leer, frisch bestellt, teilgeliefert, teilbezahlt, Warenrücknahme nach Bezahlung,
+// abgeschlossen), eine Umbuchung vom Stehtisch Eingang an den freien Tisch 4 und die
+// Wechselgeld-Einlage.
 func sonntagsAktionen() []aktion {
 	// Frühschoppen am Stammtisch: jede Runde direkt bezahlt, Tisch ist ausgeglichen.
 	stammtisch := runden(1, maria, 4,
@@ -782,8 +782,9 @@ func sonntagsAktionen() []aktion {
 		bestellen{Tisch: 6, User: lisa, Posten: posten(pos(11, 3), pos(31, 2), pos(5, 2))},
 		ausgeben{Tisch: 6, User: lisa},
 	}
-	// Tisch 7: Stornierung nach Bezahlung — der Tisch wartet mit Guthaben auf die Auszahlung.
-	guthaben := []aktion{
+	// Tisch 7: Stornierung nach Bezahlung — die Bar-Rückgabe ist Teil des Stornos
+	// (Warenrücknahme), der Tisch ist danach ausgeglichen.
+	warenruecknahme := []aktion{
 		bestellen{Tisch: 7, User: lisa, Posten: posten(pos(11, 2), pos(27, 2))},
 		ausgeben{Tisch: 7, User: lisa},
 		kassieren{Tisch: 7, User: lisa},
@@ -795,13 +796,13 @@ func sonntagsAktionen() []aktion {
 		ausgeben{Tisch: 8, User: lisa, Posten: posten(pos(31, 3))},
 		bestellen{Tisch: 8, User: lisa, Posten: posten(pos(16, 2))},
 	}
-	// Kegelclub: Stornierung nach Bezahlung, Guthaben bereits ausgezahlt — abgeschlossen.
+	// Kegelclub: Stornierung nach Bezahlung — die Bar-Rückgabe ist Teil des Stornos
+	// (Warenrücknahme), der Tisch ist danach ausgeglichen.
 	kegelclub := []aktion{
 		bestellen{Tisch: 9, User: lisa, Posten: posten(pos(24, 6), pos(11, 3))},
 		ausgeben{Tisch: 9, User: lisa},
 		kassieren{Tisch: 9, User: lisa},
 		stornieren{Tisch: 9, User: felix, Posten: posten(pos(11, 1)), Kommentar: "Reklamation Tagesgericht, Kulanz"},
-		auszahlen{Tisch: 9, User: lisa, Kommentar: "Erstattung Tagesgericht"},
 	}
 	dazugekommen := []aktion{
 		bestellen{Tisch: 11, User: markus, Posten: posten(pos(24, 2), pos(31, 2))},
@@ -855,7 +856,7 @@ func sonntagsAktionen() []aktion {
 		direktverkauf{VerkaufID: dvID(3, 4), User: sophie, Posten: posten(pos(16, 2), pos(52, 2))},
 	}
 
-	tag := verflechte(stammtisch, teilbezahlt, vorstand, frischeGaeste, guthaben, teilgeliefert,
+	tag := verflechte(stammtisch, teilbezahlt, vorstand, frischeGaeste, warenruecknahme, teilgeliefert,
 		kegelclub, dazugekommen, frischBestellt, zeltA1, zeltA2, bar, umbuchung, terrasse, stand)
 	// Wechselgeld-Einlage gleich nach der Eröffnung.
 	return append([]aktion{

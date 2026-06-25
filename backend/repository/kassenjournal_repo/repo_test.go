@@ -401,7 +401,7 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 		Menge:        2,
 	}
 
-	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
+	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", "11111111-1111-1111-1111-111111111111", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
 	if err != nil {
 		t.Fatalf("Failed to build stornierung event: %v", err)
 	}
@@ -507,7 +507,7 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 		Menge:        2,
 	}
 
-	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
+	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", "11111111-1111-1111-1111-111111111111", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
 	if err != nil {
 		t.Fatalf("Failed to build stornierung event: %v", err)
 	}
@@ -594,7 +594,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 		Menge:        2,
 	}
 
-	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
+	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", "11111111-1111-1111-1111-111111111111", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
 	if err != nil {
 		t.Fatalf("Failed to build stornierung event: %v", err)
 	}

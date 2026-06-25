@@ -51,11 +51,25 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
 
 	case string(EventTypeStornierungErteiltV1):
+		// Kassenwirksame Warenrücknahme bezahlter Positionen: der offene Betrag bleibt
+		// unverändert (die Positionen waren bereits bezahlt, also nicht Teil des Saldos),
+		// die Bar-Rückgabe mindert die am Tisch vereinnahmten Zahlungen. Bereits
+		// ausgegebene Positionen werden ggf. aus der Ausstehend-Liste genommen.
 		var data StornierungErteiltV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal stornierung data: %w", err)
 		}
-		state.SaldoCents -= data.GesamtStornierungCents
+		state.GesamtZahlungenCents -= data.GesamtStornierungCents
+		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
+
+	case string(EventTypeBestellungKorrigiertV1):
+		// Geldneutrale Korrektur unbezahlter Positionen: reduziert den offenen Betrag
+		// und nimmt die Positionen aus Unbezahlt und Ausstehend.
+		var data BestellungKorrigiertV1Data
+		if err := json.Unmarshal(evt.Data, &data); err != nil {
+			return state, fmt.Errorf("unmarshal korrektur data: %w", err)
+		}
+		state.SaldoCents -= data.GesamtCents
 		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
 		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
 
@@ -152,6 +166,13 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 			var data StornierungErteiltV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal stornierung data: %w", err)
+			}
+			nichtStorniert = reduceByPosition(nichtStorniert, fromPositionenEventData(data.Positionen))
+
+		case string(EventTypeBestellungKorrigiertV1):
+			var data BestellungKorrigiertV1Data
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal korrektur data: %w", err)
 			}
 			nichtStorniert = reduceByPosition(nichtStorniert, fromPositionenEventData(data.Positionen))
 

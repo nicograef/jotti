@@ -68,16 +68,16 @@ func (a Archive) Tables() []Table { return a.tables }
 type beleg struct {
 	bonID            string
 	bonNr            int
-	bonTyp           string // BON_TYP: "Beleg" (Zahlung) oder "AVBestellung" (offene Bestellung)
-	gvTyp            string // GV_TYP der Positionen: "Umsatz" oder ein Bargeld-GV-Typ
-	zahlart          string // ZAHLART_TYP: "Bar"; leer bei der geldneutralen AVBestellung
-	abrechnungskreis string // ABRECHNUNGSKREIS (Tischname); leer ohne Tischbezug (z. B. Direktverkauf)
-	storno           bool
+	bonTyp           string   // BON_TYP: "Beleg" (Zahlung) oder "AVBestellung" (offene Bestellung)
+	gvTyp            string   // GV_TYP der Positionen: "Umsatz" oder ein Bargeld-GV-Typ
+	zahlart          string   // ZAHLART_TYP: "Bar"; leer bei der geldneutralen AVBestellung
+	abrechnungskreis string   // ABRECHNUNGSKREIS (Tischname); leer ohne Tischbezug (z. B. Direktverkauf)
+	storno           bool     // negative Belegdarstellung (Warenrücknahme/Korrektur): kehrt das Vorzeichen um; kein Vorgangs-Storno, BON_STORNO bleibt 0
 	barabfluss       bool     // mindert den Kassenbestand (Auszahlung, Geldtransit-Entnahme, Kassenfehlbetrag); steuert das Vorzeichen wie storno
-	geldneutral      bool     // AVBestellung (Bestellung/Storno): TSE-gesichert und informativ in lines.csv, aber ohne Umsatz, USt, Zahlart und Kassenbestandswirkung
+	geldneutral      bool     // AVBestellung (Bestellung/Korrektur/Umbuchung): TSE-gesichert und informativ in lines.csv, aber ohne Umsatz, USt, Zahlart und Kassenbestandswirkung
 	nichtSteuerbar   bool     // Bargeldbewegung ohne USt-Bezug: eine einzige Position mit UST_SCHLUESSEL 5 statt Steueraufteilung
 	artikeltext      string   // ARTIKELTEXT der synthetischen Position (nur nichtSteuerbar); sonst aus den Positionen
-	refBonIDs        []string // REF_BON_ID je Ursprungsbon (nur Storno); ein Eintrag je referenziertem Vorgang
+	refBonIDs        []string // REF_BON_ID je referenziertem Ursprungsbon (Warenrücknahme → Zahlung, Korrektur → Bestellung, Umbuchungs-Zugang → Abgang)
 	start            string
 	ende             string
 	bedienerID       int
@@ -91,8 +91,9 @@ type beleg struct {
 }
 
 // sign liefert das Vorzeichen der Beträge eines Belegs: +1 im Regelfall, -1 für
-// einen Storno-Beleg (Radierverbot, DSFinV-K Tz. 4.2.2, „Vorzeichen umkehren“)
-// und für einen Bar-Abfluss (Auszahlung, Geldtransit-Entnahme, Kassenfehlbetrag).
+// einen Negativ-Beleg (Warenrücknahme bezahlter bzw. Korrektur unbezahlter Positionen,
+// DSFinV-K Tz. 4.2.5, „Vorzeichen umkehren“) und für einen Bar-Abfluss (Auszahlung,
+// Geldtransit-Entnahme, Kassenfehlbetrag).
 // Beträge liegen im beleg stets als positive Magnitude vor; das Vorzeichen wird
 // erst beim Serialisieren der Zeilen gesetzt (die Steueraufteilung rechnet
 // ausschließlich mit nicht-negativen Beträgen).
@@ -130,13 +131,14 @@ func (b *beleg) ustAufteilung() []ustBetrag {
 }
 
 // Map transformiert Snapshot und Events einer Kassensitzung in das typisierte
-// Archiv. Reine Funktion ohne I/O. Der Umsatz entsteht einmal, bei der Zahlung
-// (Revenue-at-payment, DSFinV-K Tz. 2.7.2): `zahlung-kassiert` ist der einzige
-// umsatzwirksame Beleg. `bestellung-aufgenommen`, `stornierung-erteilt` und
-// `bestellung-umgebucht` werden geldneutrale `AVBestellung`-Vorgänge (TSE-gesichert,
-// informative Positionen, aber ohne Umsatz/USt/Zahlart); Storno und Umbuchungs-Zugang
-// tragen zusätzlich eine Referenz auf den Ursprung. Hinzu kommen die
-// Direktverkauf-Vorgänge sowie die
+// Archiv. Reine Funktion ohne I/O. Der Umsatz entsteht bei der Zahlung
+// (Revenue-at-payment, DSFinV-K Tz. 2.7.2) und wird durch eine Warenrücknahme negativ
+// gemindert: `zahlung-kassiert` (positiv) und `stornierung-erteilt` (negativer Bar-Beleg
+// mit Referenz auf die Zahlung) sind die umsatzwirksamen Belege. `bestellung-aufgenommen`,
+// `bestellung-korrigiert` und `bestellung-umgebucht` werden geldneutrale
+// `AVBestellung`-Vorgänge (TSE-gesichert, informative Positionen, aber ohne
+// Umsatz/USt/Zahlart); Korrektur und Umbuchungs-Zugang tragen zusätzlich eine Referenz
+// auf den Ursprung. Hinzu kommen die Direktverkauf-Vorgänge sowie die
 // Bargeldbewegungen (Anfangsbestand, Geldtransit, Auszahlung, Kassendifferenz).
 // Das Kassenabschlussmodul (businesscases, payment, cash_per_currency) aggregiert
 // dieselben Belege je GV-Typ und Zahlart.
@@ -181,11 +183,13 @@ func Map(snapshot Snapshot, events []event.Event, signaturNachladen SignaturNach
 // belegeFromEvents leitet die Belege aus den Events ab (nach `id` geordnet, daher
 // liegt ein Ursprungsbon stets vor seinem Storno). Eine `bestellung-aufgenommen`
 // wird zur geldneutralen `AVBestellung` (TSE-gesichert, noch kein Umsatz), eine
-// `zahlung-kassiert` zur Umsatzrealisierung (der einzige umsatzwirksame Beleg).
-// Eine `stornierung-erteilt` ist ebenfalls geldneutral und verweist auf die
-// Ursprungsbestellung; Direktverkäufe sind eigenständige Barbelege ohne
-// Tischbezug, ihr Storno ein Negativ-Beleg mit Referenz auf den Ursprungsverkauf.
-// BON_NR wird fortlaufend vergeben; BON_ID ist die jeweilige Vorgangs-ID.
+// `zahlung-kassiert` zur Umsatzrealisierung. Eine `stornierung-erteilt` ist die
+// kassenwirksame Warenrücknahme bezahlter Positionen: ein negativer Bar-Beleg mit
+// Referenz auf die Zahlung. Eine `bestellung-korrigiert` ist die geldneutrale
+// Stornierung unbezahlter Positionen und verweist auf die Ursprungsbestellung.
+// Direktverkäufe sind eigenständige Barbelege ohne Tischbezug, ihr Storno ein
+// Negativ-Beleg mit Referenz auf den Ursprungsverkauf. BON_NR wird fortlaufend
+// vergeben; BON_ID ist die jeweilige Vorgangs-ID.
 func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg, error) {
 	var belege []beleg
 	bonNr := 0
@@ -253,9 +257,41 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 			if err := json.Unmarshal(ev.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal stornierung-erteilt (event %d): %w", ev.ID, err)
 			}
+			// Kassenwirksame Warenrücknahme bezahlter Positionen: negativer Umsatz am
+			// Ursprungssteuersatz mit Bar-Rückgabe (DSFinV-K Tz. 4.2.5), Referenz auf die
+			// begleichende Zahlung (Tz. 4.2.2). Negative Belegdarstellung, kein
+			// Vorgangs-Storno (BON_STORNO bleibt 0).
 			bonNr++
 			belege = append(belege, beleg{
 				bonID:            data.StornierungID,
+				bonNr:            bonNr,
+				bonTyp:           bonTypBeleg,
+				gvTyp:            gvTypUmsatz,
+				zahlart:          zahlartBar,
+				storno:           true,
+				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
+				refBonIDs:        []string{data.ZahlungID},
+				start:            zeit(ev),
+				ende:             zeit(ev),
+				bedienerID:       ev.UserID,
+				bedienerName:     ev.UserName,
+				positionen:       data.Positionen,
+				bruttoCents:      data.GesamtStornierungCents,
+				tse:              data.TSEData,
+				tseTxID:          data.TSETxID,
+				notiz:            data.Kommentar,
+			})
+
+		case string(kasse.EventTypeBestellungKorrigiertV1):
+			var data kasse.BestellungKorrigiertV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal bestellung-korrigiert (event %d): %w", ev.ID, err)
+			}
+			// Geldneutrale Stornierung unbezahlter Positionen: AVBestellung ohne Umsatz,
+			// Zahlart oder Kassenbestandswirkung; verweist auf die Ursprungsbestellung.
+			bonNr++
+			belege = append(belege, beleg{
+				bonID:            data.KorrekturID,
 				bonNr:            bonNr,
 				bonTyp:           bonTypBestellung,
 				gvTyp:            gvTypUmsatz,
@@ -268,7 +304,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bedienerID:       ev.UserID,
 				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
-				bruttoCents:      data.GesamtStornierungCents,
+				bruttoCents:      data.GesamtCents,
 				tse:              data.TSEData,
 				tseTxID:          data.TSETxID,
 				notiz:            data.Kommentar,
@@ -684,10 +720,14 @@ func buildTransactions(s Snapshot, erstellung string, belege []beleg) Table {
 		if b.geldneutral {
 			umsBrutto = 0
 		}
+		// BON_STORNO kennzeichnet die vollständige Aufhebung eines ganzen Belegs. jotti
+		// nimmt nur Teilmengen negativ zurück (Warenrücknahme, DSFinV-K Tz. 4.2.5) bzw.
+		// korrigiert geldneutral; beides ist kein Vorgangs-Storno, daher bleibt
+		// BON_STORNO stets 0 (das negative Vorzeichen trägt b.sign()).
 		records = append(records, []string{
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 			b.bonID, itoa(b.bonNr), b.bonTyp, "",
-			"", storno(b.storno), b.start, b.ende,
+			"", storno(false), b.start, b.ende,
 			itoa(b.bedienerID), b.bedienerName, formatAmount(umsBrutto),
 			"", "", "", "",
 			"", "", "", "",

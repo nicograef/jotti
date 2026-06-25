@@ -60,6 +60,11 @@ var (
 		data.TSEData = tseData
 	})
 
+	EmbedTSEInBestellungKorrigiert = embedTSEInData(EventTypeBestellungKorrigiertV1, func(data *BestellungKorrigiertV1Data, txID string, tseData *TSEData) {
+		data.TSETxID = txID
+		data.TSEData = tseData
+	})
+
 	EmbedTSEInBestellungUmgebucht = embedTSEInData(EventTypeBestellungUmgebuchtV1, func(data *BestellungUmgebuchtV1Data, txID string, tseData *TSEData) {
 		data.TSETxID = txID
 		data.TSEData = tseData

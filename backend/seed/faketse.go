@@ -358,6 +358,14 @@ func fiskalischeSignierungFuer(evt e.Event) (fiskalischeSignierung, bool, error)
 		pd, err := tseApp.BuildKassenbelegProcessDataWithFaktor(zuPositionen(data.Positionen), -data.GesamtStornierungCents, -1)
 		return signierung(tse.ProcessTypeKassenbelegV1, pd, kasse.EmbedTSEInStornierungErteilt, err)
 
+	case kasse.EventTypeBestellungKorrigiertV1:
+		data, err := parseEventData[kasse.BestellungKorrigiertV1Data](evt)
+		if err != nil {
+			return fiskalischeSignierung{}, false, err
+		}
+		pd, err := tseApp.BuildBestellungProcessData(zuPositionen(data.Positionen))
+		return signierung(tse.ProcessTypeBestellungV1, pd, kasse.EmbedTSEInBestellungKorrigiert, err)
+
 	case kasse.EventTypeBestellungUmgebuchtV1:
 		data, err := parseEventData[kasse.BestellungUmgebuchtV1Data](evt)
 		if err != nil {

@@ -28,14 +28,25 @@ func mustCreatePaymentEvent(t *testing.T, subject string, userID int, positions 
 	return event
 }
 
-func mustCreateCancelationEvent(t *testing.T, subject string, userID int, positions []Position, gesamtStornierungCents int) e.Event {
+func mustCreateCancelationEvent(t *testing.T, subject string, userID int, zahlungID string, positions []Position, gesamtStornierungCents int) e.Event {
 	t.Helper()
-	event, err := NewStornierungErteiltEvent(subject, userID, "TestUser", positions, gesamtStornierungCents, "Test")
+	event, err := NewStornierungErteiltEvent(subject, userID, "TestUser", zahlungID, positions, gesamtStornierungCents, "Test")
 	if err != nil {
 		t.Fatalf("failed to create cancelation event: %v", err)
 	}
 	return event
 }
+
+func mustCreateKorrekturEvent(t *testing.T, subject string, userID int, positions []Position, gesamtCents int) e.Event {
+	t.Helper()
+	event, err := NewBestellungKorrigiertEvent(subject, userID, "TestUser", positions, gesamtCents, "Test")
+	if err != nil {
+		t.Fatalf("failed to create korrektur event: %v", err)
+	}
+	return event
+}
+
+const testZahlungID = "11111111-1111-1111-1111-111111111111"
 
 func mustCreateDeliveryEvent(t *testing.T, subject string, userID int, positions []Position) e.Event {
 	t.Helper()
@@ -175,7 +186,7 @@ func TestApplyEvent_ZahlungReducesSaldoAndUnbezahlt(t *testing.T) {
 	}
 }
 
-func TestApplyEvent_StornierungReducesSaldoAndUnbezahlt(t *testing.T) {
+func TestApplyEvent_KorrekturReducesSaldoAndUnbezahlt(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
@@ -188,8 +199,9 @@ func TestApplyEvent_StornierungReducesSaldoAndUnbezahlt(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
+	// Geldneutrale Korrektur einer noch unbezahlten Position.
 	positions := positionsFromOrder(t, orderEvent, 1)
-	cancelEvent := mustCreateCancelationEvent(t, testSubject, 1, positions, 500)
+	cancelEvent := mustCreateKorrekturEvent(t, testSubject, 1, positions, 500)
 	cancelEvent.ID = 2
 	cancelEvent.Version = 2
 
@@ -382,10 +394,10 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 		t.Fatalf("expected GesamtZahlungenCents 500, got %d", state.GesamtZahlungenCents)
 	}
 
-	// Cancel 1 wurst (400)
+	// Cancel 1 wurst (400) — still unbezahlt, so a geldneutral correction.
 	wurstPos := []Position{bestellung.Positionen[1]}
 	wurstPos[0].Menge = 1
-	cancelEvent := mustCreateCancelationEvent(t, testSubject, 1, wurstPos, 400)
+	cancelEvent := mustCreateKorrekturEvent(t, testSubject, 1, wurstPos, 400)
 	cancelEvent.ID = 4
 	cancelEvent.Version = 4
 
@@ -514,7 +526,11 @@ func TestApplyEvent_UnknownEventType_ReturnsError(t *testing.T) {
 	}
 }
 
-func TestApplyEvent_StornierungAfterPayment_NegativeSaldo(t *testing.T) {
+// TestApplyEvent_WarenruecknahmeAfterPayment belegt, dass eine kassenwirksame
+// Warenrücknahme bezahlter Positionen den offenen Betrag nicht ins Minus dreht: der
+// Saldo bleibt 0, die am Tisch vereinnahmten Zahlungen werden um die Rückgabe gemindert
+// und die zurückgenommene Position verschwindet aus der Ausstehend-Liste.
+func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
@@ -541,9 +557,9 @@ func TestApplyEvent_StornierungAfterPayment_NegativeSaldo(t *testing.T) {
 		t.Fatalf("expected SaldoCents 0, got %d", state.SaldoCents)
 	}
 
-	// Cancel 1 beer after payment — should result in negative saldo
+	// Warenrücknahme von 1 Bier nach der Zahlung — der offene Betrag bleibt 0.
 	cancelPositions := positionsFromOrder(t, orderEvent, 1)
-	cancelEvent := mustCreateCancelationEvent(t, testSubject, 1, cancelPositions, 500)
+	cancelEvent := mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, cancelPositions, 500)
 	cancelEvent.ID = 3
 	cancelEvent.Version = 3
 
@@ -551,12 +567,20 @@ func TestApplyEvent_StornierungAfterPayment_NegativeSaldo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if state.SaldoCents != -500 {
-		t.Fatalf("expected SaldoCents -500, got %d", state.SaldoCents)
+	if state.SaldoCents != 0 {
+		t.Fatalf("expected SaldoCents 0 (offener Betrag nie negativ), got %d", state.SaldoCents)
+	}
+	// Die Bar-Rückgabe mindert die vereinnahmten Zahlungen.
+	if state.GesamtZahlungenCents != 500 {
+		t.Fatalf("expected GesamtZahlungenCents 500, got %d", state.GesamtZahlungenCents)
 	}
 	// Unbezahlt was already empty (paid), stays empty
 	if len(state.UnbezahltePositionen) != 0 {
 		t.Fatalf("expected 0 unbezahlte positionen, got %d", len(state.UnbezahltePositionen))
+	}
+	// Die zurückgenommene Position verschwindet aus der Ausstehend-Liste.
+	if state.AusstehendePositionen[0].Menge != 1 {
+		t.Fatalf("expected 1 ausstehende position remaining, got %+v", state.AusstehendePositionen)
 	}
 }
 
@@ -572,49 +596,24 @@ func TestApplyEvent_AuszahlungIncreasesSaldo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-
-	// Pay for all 2 beers
-	payPositions := positionsFromOrder(t, orderEvent, 2)
-	payEvent := mustCreatePaymentEvent(t, testSubject, 1, payPositions, 1000)
-	payEvent.ID = 2
-	payEvent.Version = 2
-
-	state, err = ApplyEvent(state, payEvent)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if state.SaldoCents != 0 {
-		t.Fatalf("expected SaldoCents 0, got %d", state.SaldoCents)
+	if state.SaldoCents != 1000 {
+		t.Fatalf("expected SaldoCents 1000, got %d", state.SaldoCents)
 	}
 
-	// Cancel 1 beer after payment — negative saldo
-	cancelPositions := positionsFromOrder(t, orderEvent, 1)
-	cancelEvent := mustCreateCancelationEvent(t, testSubject, 1, cancelPositions, 500)
-	cancelEvent.ID = 3
-	cancelEvent.Version = 3
-
-	state, err = ApplyEvent(state, cancelEvent)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if state.SaldoCents != -500 {
-		t.Fatalf("expected SaldoCents -500, got %d", state.SaldoCents)
-	}
-
-	// Auszahlung: pay out 500 cents
+	// Die (auslaufende) Auszahlung erhöht den Saldo um ihren Betrag.
 	auszahlungEvent := mustCreateAuszahlungEvent(t, testSubject, 1, 500, "Rueckzahlung")
-	auszahlungEvent.ID = 4
-	auszahlungEvent.Version = 4
+	auszahlungEvent.ID = 2
+	auszahlungEvent.Version = 2
 
 	state, err = ApplyEvent(state, auszahlungEvent)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if state.SaldoCents != 0 {
-		t.Fatalf("expected SaldoCents 0 after auszahlung, got %d", state.SaldoCents)
+	if state.SaldoCents != 1500 {
+		t.Fatalf("expected SaldoCents 1500, got %d", state.SaldoCents)
 	}
-	if state.LastEventID != 4 {
-		t.Fatalf("expected LastEventID 4, got %d", state.LastEventID)
+	if state.LastEventID != 2 {
+		t.Fatalf("expected LastEventID 2, got %d", state.LastEventID)
 	}
 }
 

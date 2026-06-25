@@ -258,29 +258,29 @@ dasselbe Modell umgestellt. Auf Anforderung wird ein Stornobeleg gedruckt.
 
 ### Acceptance criteria
 
-- [ ] `stornierung-erteilt:v1` trägt Positionen, Gesamtbetrag, genau eine
+- [x] `stornierung-erteilt:v1` trägt Positionen, Gesamtbetrag, genau eine
       Zahlungsreferenz und einen Pflichtkommentar; signiert als `Kassenbeleg-V1` mit
       negativem Bruttoumsatz je Steuersatz und negativer Bar-Zahlung (Summe stimmt,
       inkl. Kombi-Positionen).
-- [ ] `bestellung-korrigiert:v1` ist geldneutral, signiert als `Bestellung-V1` ohne
+- [x] `bestellung-korrigiert:v1` ist geldneutral, signiert als `Bestellung-V1` ohne
       `:Bar`-Zeile.
-- [ ] Command-Routing: reine unbezahlte Anforderung → ein `bestellung-korrigiert`;
+- [x] Command-Routing: reine unbezahlte Anforderung → ein `bestellung-korrigiert`;
       reine bezahlte → ein `stornierung-erteilt` je betroffener Zahlung (FIFO, genau
       eine `ZahlungID`); gemischte → ein geldneutraler plus die kassenwirksamen Teile,
       atomar geschrieben.
-- [ ] Der Rückgabebetrag folgt aus den bezahlten Positionen und ist nicht frei wählbar;
+- [x] Der Rückgabebetrag folgt aus den bezahlten Positionen und ist nicht frei wählbar;
       der kassenwirksame Storno ist auf `/serviceleitung` beschränkt.
-- [ ] Projektion über beliebige Event-Folgen: offener Betrag bleibt ≥ 0; Warenrücknahme
+- [x] Projektion über beliebige Event-Folgen: offener Betrag bleibt ≥ 0; Warenrücknahme
       lässt den offenen Betrag unverändert und entfernt die Positionen aus Ausstehend;
       Korrektur reduziert offenen Betrag und Ausstehend.
-- [ ] Mapper: Warenrücknahme = negativer Beleg (`BON_TYP` Beleg, GV_TYP `Umsatz`,
+- [x] Mapper: Warenrücknahme = negativer Beleg (`BON_TYP` Beleg, GV_TYP `Umsatz`,
       Zahlart Bar, `REF_BON_ID` = Zahlung, `BON_STORNO=0`); Korrektur = geldneutrale
       `AVBestellung`; `direktverkauf-storniert` setzt `BON_STORNO=0`; summierter
       Bargeldbestand stimmt mit den tatsächlichen Bar-Bewegungen (keine Doppelbuchung).
-- [ ] Stornobeleg auf Anforderung über `beleg-drucken` (`tischId` + `stornierungId`),
+- [x] Stornobeleg auf Anforderung über `beleg-drucken` (`tischId` + `stornierungId`),
       negativer Betrag, Referenz auf den Ursprungsbeleg, analog zum Direktverkauf-Storno.
-- [ ] Die signierten `processData` und der DSFinV-K-Export zeigen dieselbe Bar-Bewegung.
-- [ ] Bestehende Storno-UI funktioniert unverändert (eine „Stornieren"-Aktion); kein
+- [x] Die signierten `processData` und der DSFinV-K-Export zeigen dieselbe Bar-Bewegung.
+- [x] Bestehende Storno-UI funktioniert unverändert (eine „Stornieren"-Aktion); kein
       negativer Saldo mehr nach einem Storno bezahlter Positionen.
 
 ---

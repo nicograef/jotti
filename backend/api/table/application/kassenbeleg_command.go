@@ -81,6 +81,24 @@ func toTSEAbschnitt(data *kasse.TSEData) (*escpos.TSEAbschnitt, error) {
 	}, nil
 }
 
+func findStornierungEvent(events []event.Event, stornierungID string) (event.Event, kasse.StornierungErteiltV1Data, error) {
+	for _, evt := range events {
+		if evt.Type != string(kasse.EventTypeStornierungErteiltV1) {
+			continue
+		}
+
+		var data kasse.StornierungErteiltV1Data
+		if err := json.Unmarshal(evt.Data, &data); err != nil {
+			return event.Event{}, kasse.StornierungErteiltV1Data{}, err
+		}
+		if data.StornierungID == stornierungID {
+			return evt, data, nil
+		}
+	}
+
+	return event.Event{}, kasse.StornierungErteiltV1Data{}, ErrStornierungNichtGefunden
+}
+
 func findDirektverkaufGetaetigtEvent(events []event.Event, verkaufID string) (event.Event, kasse.DirektverkaufGetaetigtV1Data, error) {
 	for _, evt := range events {
 		if evt.Type != string(kasse.EventTypeDirektverkaufGetaetigtV1) {
@@ -231,6 +249,49 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		referenz = fmt.Sprintf("direktverkauf-storniert:%d", stornoEvent.ID)
 		stornobeleg = true
 		stornoZuBelegnummer = fmt.Sprintf("%d", verkaufEvent.ID)
+
+		tseAbschnitt, tseAusfallvermerk, err = c.tseAbschnittFuerBeleg(ctx, stornoData.TSEData, false, stornoData.TSETxID)
+		if err != nil {
+			log.Error().Err(err).Str("stornierung_id", stornierungID).Msg("Failed to resolve TSE section for stornobeleg")
+			return ErrDatabase
+		}
+
+	case stornierungID != "":
+		// Tisch-Storno-Beleg (Warenrücknahme): negativer Betrag, Referenz auf den
+		// ursprünglichen Zahlungsbeleg — analog zum Direktverkauf-Storno-Beleg.
+		subject := kasse.TischSessionSubject(ks.ZNr, tischID)
+		events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
+		if err != nil {
+			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for stornobeleg")
+			return ErrDatabase
+		}
+
+		stornoEvent, stornoData, err := findStornierungEvent(events, stornierungID)
+		if err != nil {
+			if errors.Is(err, ErrStornierungNichtGefunden) {
+				log.Warn().Int("tisch_id", tischID).Str("stornierung_id", stornierungID).Msg("Stornierung not found for stornobeleg")
+				return ErrStornierungNichtGefunden
+			}
+			log.Error().Err(err).Int("tisch_id", tischID).Str("stornierung_id", stornierungID).Msg("Failed to decode stornierung event data")
+			return ErrDatabase
+		}
+
+		zahlungEvent, _, err := findZahlungEvent(events, stornoData.ZahlungID)
+		if err != nil {
+			if errors.Is(err, ErrZahlungNichtGefunden) {
+				log.Warn().Int("tisch_id", tischID).Str("zahlung_id", stornoData.ZahlungID).Msg("Referenzierte Zahlung not found for stornobeleg")
+				return ErrZahlungNichtGefunden
+			}
+			log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", stornoData.ZahlungID).Msg("Failed to decode referenzierte zahlung event data")
+			return ErrDatabase
+		}
+
+		quelleEvent = stornoEvent
+		positionen = toKassePositionen(stornoData.Positionen)
+		gesamtbetragCents = -stornoData.GesamtStornierungCents
+		referenz = fmt.Sprintf("stornierung-erteilt:%d", stornoEvent.ID)
+		stornobeleg = true
+		stornoZuBelegnummer = fmt.Sprintf("%d", zahlungEvent.ID)
 
 		tseAbschnitt, tseAusfallvermerk, err = c.tseAbschnittFuerBeleg(ctx, stornoData.TSEData, false, stornoData.TSETxID)
 		if err != nil {
