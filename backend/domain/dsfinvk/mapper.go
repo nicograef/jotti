@@ -992,7 +992,7 @@ func buildBusinesscases(s Snapshot, erstellung string, belege []beleg) Table {
 
 	return Table{
 		File:        "businesscases.csv",
-		LogicalName: "Z_GV_TYP",
+		LogicalName: "Z_GV_Typ",
 		Description: "Aggregierte Beträge je Geschäftsvorfalltyp und Steuersatz",
 		Columns:     businesscasesColumns,
 		Records:     records,

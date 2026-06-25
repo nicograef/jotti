@@ -41,11 +41,9 @@ func (c Command) signStornierungErteiltEvent(ctx context.Context, evt event.Even
 }
 
 func (c Command) signAuszahlungGeleistetEvent(ctx context.Context, evt event.Event, betragCents int) (tseApp.Signierung, error) {
-	processData, err := tseApp.BuildKassenbelegProcessData(nil, -betragCents)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to build TSE process_data for auszahlung")
-		return tseApp.Signierung{}, ErrDatabase
-	}
-
+	// Eine Auszahlung ist ein Eigenbeleg ohne Umsatz (AEAO 2.2.3.6.1): alle
+	// Steuerbetraege 0.00, nur der negative Zahlbetrag ist gefuellt — wie der
+	// Geldtransit.
+	processData := tseApp.BuildEigenbelegProcessData(-betragCents)
 	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, kasse.EmbedTSEInAuszahlungGeleistet)
 }

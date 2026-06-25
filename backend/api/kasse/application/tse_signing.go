@@ -22,7 +22,9 @@ func (c Command) signGeldtransitGebuchtEvent(ctx context.Context, evt event.Even
 }
 
 func (c Command) signDifferenzSollIstGebuchtEvent(ctx context.Context, evt event.Event, differenzCents int) (tseApp.Signierung, error) {
-	processData := tseApp.BuildEigenbelegProcessData(differenzCents)
+	// differenzCents = Soll − Ist. Die tatsächliche Bargeldbewegung ist Ist − Soll:
+	// ein Fehlbetrag (Soll > Ist) mindert den Bestand, ein Überschuss mehrt ihn.
+	processData := tseApp.BuildEigenbelegProcessData(-differenzCents)
 	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, kasse.EmbedTSEInDifferenzSollIstGebucht)
 }
 

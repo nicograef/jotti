@@ -109,15 +109,18 @@ func BuildGeldtransitProcessData(richtung string, betragCents int) (string, erro
 	}
 }
 
-// BuildEigenbelegProcessData erzeugt Kassenbeleg-V1-processData für Geschäftsvorfälle
-// ohne Umsatz (Eigenbelege nach AEAO 2.2.3.6.1): alle Steuerbeträge 0.00, nur der
-// Zahlbetrag ist gefüllt. DSFinV-K Anhang I: Zahlungen von 0.00 müssen entfallen.
+// BuildEigenbelegProcessData erzeugt Kassenbeleg-V1-processData für USt-neutrale
+// Bargeldbewegungen (Eigenbelege nach AEAO 2.2.3.6.1, z. B. Geldtransit und
+// Kassendifferenz). Der Betrag steht im 0-%-Feld (Feld 5, UST_SCHLUESSEL 5 =
+// nicht steuerbar) und gleicht so die Bar-Zahlung aus; das Vorzeichen folgt dem
+// übergebenen Bargeldbetrag (Abfluss negativ). DSFinV-K Anhang I: Zahlungen von
+// 0.00 müssen entfallen.
 func BuildEigenbelegProcessData(zahlbetragCents int) string {
 	zahlungen := ""
 	if zahlbetragCents != 0 {
 		zahlungen = betragString(zahlbetragCents) + ":" + zahlungsartBar
 	}
-	return fmt.Sprintf("Beleg^0.00_0.00_0.00_0.00_0.00^%s", zahlungen)
+	return fmt.Sprintf("Beleg^0.00_0.00_0.00_0.00_%s^%s", betragString(zahlbetragCents), zahlungen)
 }
 
 // BuildTagesabschlussProcessData erzeugt SonstigerVorgang-processData fuer den

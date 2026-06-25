@@ -161,13 +161,13 @@ auf `0.00` zu setzen. Danach gleichen sich Bruttosumme und Bar-Zahlung im signie
 
 ### Acceptance criteria
 
-- [ ] `BuildEigenbelegProcessData` setzt das 0-%-Bruttofeld (Feld 5) auf die
+- [x] `BuildEigenbelegProcessData` setzt das 0-%-Bruttofeld (Feld 5) auf die
       Magnitude des Bargeldbetrags; die Bar-Zahlung gleicht die Bruttosumme aus.
-- [ ] Geldtransit (Einlage/Entnahme) und Kassendifferenz erzeugen balancierende
+- [x] Geldtransit (Einlage/Entnahme) und Kassendifferenz erzeugen balancierende
       `processData`; Vorzeichen für Entnahme/Fehlbetrag korrekt.
-- [ ] processData-Tests decken Einlage, Entnahme und Kassendifferenz ab und prüfen
+- [x] processData-Tests decken Einlage, Entnahme und Kassendifferenz ab und prüfen
       Feld 5 sowie Zahlungszeile.
-- [ ] Der DSFinV-K-Export dieser Vorgänge bleibt unverändert korrekt (UST 5,
+- [x] Der DSFinV-K-Export dieser Vorgänge bleibt unverändert korrekt (UST 5,
       Bargeldbestand stimmt).
 
 ---

@@ -45,7 +45,7 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 			expected:   "Beleg^1234.56_0.00_0.00_0.00_0.00^1234.56:Bar",
 		},
 		{
-			name:       "auszahlung ohne positionen mit negativem betrag",
+			name:       "ohne positionen mit negativem betrag",
 			positionen: nil,
 			zahlbetrag: -1500,
 			expected:   "Beleg^0.00_0.00_0.00_0.00_0.00^-15.00:Bar",
@@ -134,7 +134,8 @@ func TestBuildGeldtransitProcessData_Einlage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	want := "Beleg^0.00_0.00_0.00_0.00_0.00^12.34:Bar"
+	// Feld 5 (0 %, nicht steuerbar) trägt den Betrag und gleicht die Bar-Zahlung aus.
+	want := "Beleg^0.00_0.00_0.00_0.00_12.34^12.34:Bar"
 	if got != want {
 		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}
@@ -145,7 +146,7 @@ func TestBuildGeldtransitProcessData_Entnahme(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	want := "Beleg^0.00_0.00_0.00_0.00_0.00^-12.34:Bar"
+	want := "Beleg^0.00_0.00_0.00_0.00_-12.34^-12.34:Bar"
 	if got != want {
 		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}
@@ -163,9 +164,14 @@ func TestBuildEigenbelegProcessData(t *testing.T) {
 		zahlbetragCents int
 		expected        string
 	}{
-		{name: "positiver betrag", zahlbetragCents: 250, expected: "Beleg^0.00_0.00_0.00_0.00_0.00^2.50:Bar"},
-		{name: "negativer betrag", zahlbetragCents: -250, expected: "Beleg^0.00_0.00_0.00_0.00_0.00^-2.50:Bar"},
+		// Feld 5 (0 %, nicht steuerbar) trägt den Betrag, die Bar-Zahlung gleicht ihn aus.
+		{name: "positiver betrag", zahlbetragCents: 250, expected: "Beleg^0.00_0.00_0.00_0.00_2.50^2.50:Bar"},
+		{name: "negativer betrag", zahlbetragCents: -250, expected: "Beleg^0.00_0.00_0.00_0.00_-2.50^-2.50:Bar"},
 		{name: "zahlung 0.00 entfaellt", zahlbetragCents: 0, expected: "Beleg^0.00_0.00_0.00_0.00_0.00^"},
+		// Kassendifferenz: der Aufrufer übergibt die Bargeldbewegung (Ist − Soll).
+		// Ein Fehlbetrag mindert den Bestand (negativ), ein Überschuss mehrt ihn.
+		{name: "kassendifferenz fehlbetrag", zahlbetragCents: -100, expected: "Beleg^0.00_0.00_0.00_0.00_-1.00^-1.00:Bar"},
+		{name: "kassendifferenz ueberschuss", zahlbetragCents: 100, expected: "Beleg^0.00_0.00_0.00_0.00_1.00^1.00:Bar"},
 	}
 
 	for _, tc := range tests {
