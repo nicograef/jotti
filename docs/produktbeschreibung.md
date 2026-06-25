@@ -11,7 +11,7 @@ Produktidentität von jotti: Positionierung, Zielgruppe, Abgrenzung, Kernfeature
 
 > jotti: Das kostenlose Kassensystem für Vereinsfeste.
 
-jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfeste, Weihnachtsmärkte, Konzerte und andere Non-Profit-Veranstaltungen. Servicekräfte nehmen Bestellungen direkt auf ihrem Smartphone auf, bestätigen die Ausgabe, kassieren und stornieren, alles pro Tisch, alles im Browser. Auf KassenSichV-Konformität ausgelegt: TSE-Anbindung und Belegausgabe sind integriert, der DSFinV-K-Export ist _(in Entwicklung)_. Kein Cloud-Abo, keine spezielle Hardware, einfach auf dem eigenen Server installieren und loslegen.
+jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfeste, Weihnachtsmärkte, Konzerte und andere Non-Profit-Veranstaltungen. Servicekräfte nehmen Bestellungen direkt auf ihrem Smartphone auf, bestätigen die Ausgabe, kassieren und stornieren, alles pro Tisch, alles im Browser. jotti bringt die fiskalischen Bausteine mit: eine BSI-zertifizierte Cloud-TSE, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber. Kein Cloud-Abo, keine spezielle Hardware, einfach auf dem eigenen Server installieren und loslegen.
 
 ---
 
@@ -19,7 +19,7 @@ jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfes
 
 ### 2.1 Positioning Statement
 
-Für eingetragene Vereine, gemeinnützige Organisationen und Non-Profit-Veranstalter, die ein einfaches und fiskalkonformes Kassensystem für ihre Gastronomie-Veranstaltungen brauchen, ist jotti ein kostenloses, quelloffenes Mobile-Point-of-Sale-System, das ohne Hardware-Investition, ohne Cloud-Abo und ohne technisches Vorwissen den kompletten Kassenbetrieb auf dem Smartphone ermöglicht, inklusive TSE-Anbindung, Belegausgabe nach KassenSichV und DSFinV-K-Export _(in Entwicklung)_. Anders als kommerzielle POS-Systeme wie Orderbird, Toast oder Zettle erfordert jotti keine laufenden Kosten, keine Kartenterminals und keine Anbieter-Abhängigkeit; es gehört dem Verein, läuft auf dem eigenen Server und ist speziell für den ehrenamtlichen Einsatz gebaut.
+Für eingetragene Vereine, gemeinnützige Organisationen und Non-Profit-Veranstalter, die ein einfaches Kassensystem mit fiskalischen Bausteinen für ihre Gastronomie-Veranstaltungen brauchen, ist jotti ein kostenloses, quelloffenes Mobile-Point-of-Sale-System, das ohne Hardware-Investition, ohne Cloud-Abo und ohne technisches Vorwissen den kompletten Kassenbetrieb auf dem Smartphone ermöglicht, inklusive TSE-Anbindung, Belegausgabe nach KassenSichV und DSFinV-K-Export (v2.4). Anders als kommerzielle POS-Systeme wie Orderbird, Toast oder Zettle erfordert jotti keine laufenden Kosten, keine Kartenterminals und keine Anbieter-Abhängigkeit; es gehört dem Verein, läuft auf dem eigenen Server und ist speziell für den ehrenamtlichen Einsatz gebaut.
 
 ### 2.2 Marktkategorie
 
@@ -59,7 +59,7 @@ Vereins- und Sommerfeste, Weihnachts- und Adventsmärkte, Maihocks und Straßenf
 
 ## 4. Problem & Lösung
 
-Die meisten Vereine bewirtschaften ihre Veranstaltungen mit Stift & Papier (fehleranfällig, keine Echtzeit-Übersicht, aufwändige Abrechnung), einer Excel-Tabelle (kein Mehrbenutzerbetrieb, keine Tisch-Zuordnung) oder einem kommerziellen POS (zu teuer, zu komplex, überdimensioniert für 2–3 Veranstaltungen im Jahr). jotti löst die daraus folgenden Kernprobleme mit einem radikal einfachen, fiskalkonform ausgelegten Ansatz:
+Die meisten Vereine bewirtschaften ihre Veranstaltungen mit Stift & Papier (fehleranfällig, keine Echtzeit-Übersicht, aufwändige Abrechnung), einer Excel-Tabelle (kein Mehrbenutzerbetrieb, keine Tisch-Zuordnung) oder einem kommerziellen POS (zu teuer, zu komplex, überdimensioniert für 2–3 Veranstaltungen im Jahr). jotti löst die daraus folgenden Kernprobleme mit einem radikal einfachen, auf die KassenSichV ausgelegten Ansatz:
 
 | Problem                                                          | jotti-Lösung                                                                       |
 | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -68,7 +68,7 @@ Die meisten Vereine bewirtschaften ihre Veranstaltungen mit Stift & Papier (fehl
 | Komplexität (Reservierung, Inventory, Kartenzahlung)             | Nur die Funktionen, die ein Vereinsfest braucht, nicht mehr                        |
 | Abhängigkeit (Cloud-Abo, Anbieterbindung, kein Datenzugriff)     | Self-hosted auf dem eigenen Server, volle Datenkontrolle                           |
 | Abrechnung (am Ende stimmt die Kasse nicht, niemand weiß warum)  | Echtzeit-Saldo pro Tisch, lückenlose Bestellhistorie, transparente Abrechnung      |
-| Fiskalkonformität (mit Papier/Excel nicht erfüllbar)             | TSE-Anbindung, Belegausgabe und Tagesabschluss; DSFinV-K-Export _(in Entwicklung)_ |
+| Fiskalkonformität (mit Papier/Excel nicht erfüllbar)             | TSE-Anbindung, Belegausgabe und Tagesabschluss; DSFinV-K-Export (v2.4)             |
 
 ---
 
@@ -97,7 +97,7 @@ Mit _(in Entwicklung)_ markierte Features sind geplant, aber noch nicht umgesetz
 | Abrechnung                                    | Tagesabrechnung nach Steuersatz, pro Tisch und pro Servicekraft                                                                 |
 | Produktumsatz-Reporting _(in Entwicklung)_    | Verkaufte Mengen, Ranking und Gesamteinnahmen pro Variante                                                                      |
 | Datenexport (CSV) _(in Entwicklung)_          | Umsätze und Bestellungen als CSV für die Vereinsbuchhaltung                                                                     |
-| DSFinV-K-Export _(in Entwicklung)_            | Maschinenlesbarer Export nach DSFinV-K v2.5 als ZIP-Archiv                                                                      |
+| DSFinV-K-Export                               | Maschinenlesbarer Export nach DSFinV-K v2.4 als ZIP-Archiv                                                                      |
 | TSE-Anbindung (Cloud-TSE)                     | Integrierte Cloud-TSE-Schnittstelle mit fiskaly-Adapter; jeder Vorgang wird signiert                                           |
 | Belegausgabe                                  | Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse                                             |
 | Kassen-Seriennummer                           | Automatisch generierte UUID (für ELSTER-Meldung und DSFinV-K)                                                                  |
@@ -117,7 +117,7 @@ Mit _(in Entwicklung)_ markierte Features sind geplant, aber noch nicht umgesetz
 | Hosting           | Self-hosted (Docker)                                                         | Cloud-SaaS                           |
 | Zielgruppe        | Vereine, gemeinnützige Organisationen                                        | Gastronomie-Betriebe, Restaurants    |
 | Zahlungsarten     | Bargeld                                                                      | Karte, NFC, Online-Payment           |
-| Fiskalkonformität | TSE (Cloud-TSE/fiskaly) und Belegausgabe; DSFinV-K-Export _(in Entwicklung)_ | Zertifizierte TSE, GoBD, KassenSichV |
+| Fiskalkonformität | TSE (Cloud-TSE/fiskaly) und Belegausgabe; DSFinV-K-Export (v2.4)             | Zertifizierte TSE, GoBD, KassenSichV |
 | Vertragslaufzeit  | Keine                                                                        | 12–24 Monate                         |
 | Datenhoheit       | Volle Kontrolle (eigener Server)                                             | Daten beim Anbieter                  |
 | Quellcode         | Einsehbar (Source-Available)                                                 | Proprietär                           |
@@ -140,7 +140,7 @@ jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV u
 | Belegausgabe          | Belege mit Pflichtfeldern nach § 6 KassenSichV inkl. TSE-Signatur und QR-Code        |
 | Steuersätze           | 19 % (Standard), 7 % (ermäßigt), 0 %, konfigurierbar pro Produktvariante             |
 | Abrechnungskreis      | Fortlaufend nummerierte Kassensitzungen mit Tagesabschluss (Z-Bon)                   |
-| DSFinV-K-Export       | Vollständiger Export als ZIP (CSV + index.xml) nach DSFinV-K v2.5 _(in Entwicklung)_ |
+| DSFinV-K-Export       | Vollständiger Export als ZIP (CSV + index.xml) nach DSFinV-K v2.4                    |
 | Seriennummer / ELSTER | UUID beim ersten Start; ELSTER-Meldeanleitung _(in Entwicklung)_                     |
 
 **Architekturprinzip:** Die Smartphones der Servicekräfte sind reine Eingabegeräte: TSE-Anbindung, Protokollierung und DSFinV-K-Persistenz laufen zentral im Backend; bei Verbindungsverlust blockiert die Webapp sofort (kein Offline-Kassieren). Da jotti self-hosted läuft, schließen Betreiber den Cloud-TSE-Vertrag selbst ab und hinterlegen die API-Schlüssel (Bring Your Own TSE); ohne TSE-Konfiguration bleiben Buchungen unsigniert, was nur für Test und Entwicklung gedacht und für echte Verkäufe nicht konform ist (§ 379 AO). Rechtliche Grundlagen und Betreiberpflichten (ELSTER-Meldung, Datensicherung, 10-jährige GoBD-konforme Aufbewahrung): [compliance.md](compliance.md).
@@ -169,7 +169,7 @@ Sechs Punkte, die jotti von kommerziellen Kassensystemen und von Stift-und-Papie
 | In Minuten einsatzbereit | Docker Compose starten, Produkte anlegen, Team einladen                             |
 | Lückenlose Transparenz   | Event-Sourcing: unveränderliche, nachvollziehbare Bestellhistorie                  |
 | Volle Datenhoheit        | Self-hosted auf dem eigenen Server, keine fremde Cloud                              |
-| Fiskalkonform ausgelegt  | TSE, Belegausgabe und Tagesabschluss integriert; DSFinV-K-Export _(in Entwicklung)_ |
+| Fiskalische Bausteine    | TSE, Belegausgabe und Tagesabschluss integriert; DSFinV-K-Export (v2.4)             |
 
 Wie jotti die typischen Vereinsprobleme löst, zeigt [§4 Problem & Lösung](#4-problem--lösung); der direkte Vergleich mit kommerziellen Systemen steht in [§6.1](#61-jotti-vs-kommerzielle-pos-systeme).
 

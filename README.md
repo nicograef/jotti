@@ -7,8 +7,8 @@ Ein kostenloses, quelloffenes **Gastronomie-Kassensystem (mPOS)** für Vereine u
 
 Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer, führen den Kassenbestand und erstellen den Tagesabschluss.
 
-> **Kostenlos. Self-hosted. Auf dem Weg zur Fiskalkonformität.**
-> Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. Auf KassenSichV-Konformität ausgelegt — TSE-Anbindung und Belegausgabe sind integriert, der DSFinV-K-Export ist in Entwicklung (siehe [Status](#was-jotti-kann) und [docs/compliance.md](docs/compliance.md)).
+> **Kostenlos. Self-hosted. Auf die KassenSichV ausgelegt.**
+> Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. jotti bringt die fiskalischen Bausteine mit: eine BSI-zertifizierte Cloud-TSE, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber.
 
 ## Was jotti kann
 
@@ -45,7 +45,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 👤 **Abrechnung pro Servicekraft** — Umsatz und Transaktionen pro Person
 - 📈 **Produktumsatz-Reporting** _(in Entwicklung)_ — meistverkaufte Varianten, Mengen und Einnahmen pro Produkt
 - 📥 **Datenexport (CSV)** _(in Entwicklung)_ — Umsätze, Bestellungen und Artikeldaten für die Vereinsbuchhaltung
-- 📦 **DSFinV-K-Export** — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.5)
+- 📦 **DSFinV-K-Export** — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.4)
 
 ### Verwaltung & Sicherheit
 
@@ -96,7 +96,7 @@ Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlunge
 - Eingetragene Vereine (e.V.), gemeinnützige Organisationen, NPOs
 - Temporäre Veranstaltungen: Vereinsfeste, Sommerfeste, Weihnachtsmärkte, Maihocks, Konzerte
 - Ehrenamtliche Teams (1–30 Helfer:innen)
-- Bargeld-Betrieb mit dem Ziel voller Fiskalkonformität (TSE und Belegausgabe vorhanden, DSFinV-K-Export in Entwicklung, siehe [docs/compliance.md](docs/compliance.md))
+- Bargeld-Betrieb mit integrierten fiskalischen Bausteinen (TSE-Anbindung, Belegausgabe und DSFinV-K-Export v2.4; den konformen Betrieb verantwortet der Betreiber, siehe [docs/compliance.md](docs/compliance.md))
 
 ❌ **Nicht geeignet für:**
 
@@ -104,7 +104,7 @@ Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlunge
 - Kartenzahlung / NFC / Online-Payment
 - Kommerzielle Gastro-Betriebe (ohne separate Lizenz)
 
-> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die TSE-Anbindung und die Belegausgabe sind integriert; der DSFinV-K-Export ist in Entwicklung. jotti erfüllt die TSE-Pflicht über eine Cloud-TSE von fiskaly — der Betreiber schließt den Vertrag mit fiskaly selbst ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Leitfaden für Vereine](docs/leitfaden/was-ist-jotti.md).
+> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die fiskalischen Bausteine (TSE-Anbindung, Belegausgabe und DSFinV-K-Export v2.4) sind integriert; eine geprüfte Konformität wird nicht zugesichert. jotti erfüllt die TSE-Pflicht über eine Cloud-TSE von fiskaly — der Betreiber schließt den Vertrag mit fiskaly selbst ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Leitfaden für Vereine](docs/leitfaden/was-ist-jotti.md).
 
 ## Lizenz & Urheberrecht
 
@@ -120,6 +120,6 @@ jotti steht unter einer **proprietären Source-Available-Lizenz** — siehe [LIC
 - ❌ **Jede Nutzung** (Installation, Deployment, Betrieb) **erfordert eine vorherige Nutzungsvereinbarung in Textform (E-Mail)** mit dem Autor.
 - ❌ **Forks, Modifikation und Weitergabe** sind nicht gestattet (außer PRs an das offizielle Repo).
 - 💼 **Kommerzielle Lizenzierung:** Für gewerbliche Nutzung ist eine separate kommerzielle Lizenz vom Urheber erforderlich — Kontakt über GitHub.
-- 🤝 **Optionaler Service:** Einrichtung, Hosting-Hilfe, Support und Schulung sind auf Anfrage gegen Entgelt verfügbar. Freiwillig und unabhängig von der kostenlosen Nutzung der Software.
+- 🤝 **Optionaler Service:** Einrichtung, Hosting-Hilfe, Support und Schulung sind auf Anfrage gegen Entgelt verfügbar — als Unterstützung nach gesonderter Absprache, freiwillig und unabhängig von der kostenlosen Nutzung der Software. Die Verantwortung für den konformen Betrieb bleibt beim Verein.
 
 Ausführliche Informationen: [docs/lizenzmodell.md](docs/lizenzmodell.md) · Nutzungsbedingungen & Prozess: [TERMS.md](TERMS.md)
