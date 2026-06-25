@@ -23,7 +23,8 @@ Vorgang, nämlich die Rückgabe.
 
 Fiskalisch ist es falsch. Eine Rückerstattung bezahlter Speisen ist eine
 Warenrücknahme: ein negativer Umsatz am ursprünglichen Steuersatz mit Bezug
-auf den Ursprungsbeleg (DSFinV-K Tz. 4.2.5, Storno nach Zahlung). jotti bucht
+auf den Ursprungsbeleg (DSFinV-K Tz. 4.2.5 „Vorgänge mit Negativpositionen“; die
+Referenz auf den Ursprungsbeleg regelt Tz. 4.2.2). jotti bucht
 sie stattdessen als USt-neutrale Auszahlung ohne Steuersatz und ohne Referenz.
 Zusätzlich widersprechen sich die beiden fiskalischen Darstellungen desselben
 Stornos: Die TSE-signierten `processData` enthalten eine `-X:Bar`-Zeile
@@ -125,14 +126,17 @@ nicht als „Storno".
 ## Implementation Decisions
 
 **Event-Modell (Domain `kasse`).** Eine „Storno"-Aktion in der UI bildet auf
-zwei Domain-Events ab; das Command-Routing wählt nach Bezahlstatus der
-referenzierten Positionen. Bezahlt und unbezahlt gemischte Anforderungen
-werden serverseitig in je ein Event pro Teil aufgeteilt (eine TSE-Transaktion
-pro Event):
+ein oder mehrere Domain-Events ab; das Command-Routing wählt nach Bezahlstatus
+der referenzierten Positionen. Bezahlt und unbezahlt gemischte Anforderungen
+werden serverseitig in je ein Event pro Teil aufgeteilt; betrifft der bezahlte
+Teil mehrere Teilzahlungen, entsteht ein `stornierung-erteilt`-Event je
+referenzierter Zahlung (Zuordnung der stornierten Mengen FIFO, älteste
+begleichende Zahlung zuerst). Es gilt durchgehend eine TSE-Transaktion pro Event
+und ein Storno-Beleg je referenzierter Zahlung:
 
 - `stornierung-erteilt:v1` wird neu definiert als **kassenwirksame
   Warenrücknahme bereits bezahlter Positionen**. Trägt die Positionen (mit
-  Steuersatz), den Gesamtbetrag, eine Referenz auf die ursprüngliche
+  Steuersatz), den Gesamtbetrag, eine Referenz auf genau eine ursprüngliche
   Zahlung und einen Pflichtkommentar. Wird als `Kassenbeleg-V1` mit negativem
   Bruttoumsatz je Steuersatz und einer negativen Bar-Zahlung signiert.
 - `bestellung-korrigiert:v1` (neu) ist die **geldneutrale Stornierung
@@ -167,14 +171,26 @@ negative Umsatzaufteilung der Warenrücknahme direkt aus den stornierten
 Positionen (Regel-, ermäßigter, befreiter und Kombi-Satz wie beim Verkauf).
 Die `processData` der geldneutralen Vorgänge enthalten keine `:Bar`-Zeile
 (behebt die bisherige Doppelbuchung). Der DSFinV-K-Export setzt für den
-kassenwirksamen Storno `REF_BON_ID` auf die **Zahlung** (nicht die Bestellung);
-dafür wird die Herkunftszuordnung im Mapper um „welche Zahlung hat eine
-Position beglichen" erweitert.
+kassenwirksamen Storno `REF_BON_ID` auf die **Zahlung** (nicht die Bestellung).
+Weil Zahlungen mengenweise erfolgen, ordnet das Command die stornierten Mengen
+ihren begleichenden Zahlungen zu (FIFO) und legt je betroffener Zahlung ein
+eigenes `stornierung-erteilt`-Event mit genau einer Zahlungsreferenz an; der
+Mapper übernimmt diese Referenz unverändert. So verweist jeder Storno-Beleg auf
+genau einen Ursprungs-Zahlungsbon.
 
 **Belegausgabe.** Der kassenwirksame Tisch-Storno erzeugt auf Anforderung einen
 Stornobeleg (negativer Betrag, Referenz auf den Ursprungsbeleg), über denselben
 Druck-Endpunkt wie der reguläre Kassenbeleg, analog zum bestehenden
 Direktverkauf-Storno-Beleg.
+
+**Eigenbeleg-`processData` (Feld 5).** Der gemeinsame Eigenbeleg-Builder
+(Geldtransit, Kassendifferenz; die Auszahlung entfällt) schreibt heute alle fünf
+Bruttofelder auf `0.00` und füllt nur die Zahlung, sodass Bruttosumme und
+Zahlung nicht balancieren. Korrekt trägt ein USt-neutraler Bargeldfluss seinen
+Betrag im 0-%-Feld (Feld 5), wie die DSFinV-K-Beispiele in Anhang I (Geldtransit,
+Privatentnahme). Der Builder wird entsprechend korrigiert; der Export bucht den
+Betrag ohnehin schon unter `UST_SCHLUESSEL` 5, erst danach stimmen signierte
+`processData` und Export überein und der Eigenbeleg ist kassensturzfähig.
 
 **Berechtigung.** Der kassenwirksame Storno (`stornierung-erteilt`) bleibt der
 Rolle `serviceleitung` (und Admin) vorbehalten, wie heute Stornierung und
@@ -184,9 +200,15 @@ offenstehen; finale Rollenzuordnung wird bei der Umsetzung an der bestehenden
 Rollen- und Endpunkt-Aufteilung (Serviceleitung vs. Service) ausgerichtet.
 
 **DSFinV-K-Mapper.** Der Mapper entfällt für `auszahlung-geleistet`. Der
-kassenwirksame Storno wird ein Beleg (`BON_TYP` Beleg, GV_TYP `Umsatz`,
-`BON_STORNO = 1`, Zahlart Bar, Referenz auf die Zahlung). `bestellung-korrigiert`
-und `bestellung-umgebucht` werden geldneutrale Vorgänge (`AVBestellung`, keine
+kassenwirksame Storno wird ein negativer Beleg (`BON_TYP` Beleg, GV_TYP `Umsatz`,
+Zahlart Bar, Referenz auf die Zahlung). Er ist eine Warenrücknahme als negative
+Belegdarstellung (DSFinV-K Tz. 4.2.5 und Hinweis zu `AVBelegstorno`), kein
+Vorgangs-Storno: `BON_STORNO` bleibt `0`. Das Storno-Kennzeichen ist der
+vollständigen Aufhebung eines ganzen Belegs vorbehalten; jotti bucht eine
+Teilmenge negativ zurück und verkettet sie allein über die Referenz auf die
+Zahlung. Der bestehende `direktverkauf-storniert` wird auf dasselbe Modell
+umgestellt (er setzt heute `BON_STORNO = 1`). `bestellung-korrigiert` und
+`bestellung-umgebucht` werden geldneutrale Vorgänge (`AVBestellung`, keine
 Zahlart, keine Bargeldwirkung). Der GV_TYP `Auszahlung` wird im Mapper nicht
 mehr verwendet.
 
@@ -213,7 +235,9 @@ Getestet werden alle vier Deep Modules:
 - **processData-Builder.** Geldneutrale Vorgänge (`Bestellung-V1`) erzeugen
   keine `:Bar`-Zeile; die Warenrücknahme erzeugt einen `Kassenbeleg-V1` mit
   korrekt negierten Bruttobeträgen je Steuersatz und einer negativen Bar-Zahlung,
-  die der Summe entspricht. Steuersatz-Aufteilung inklusive Kombi-Positionen.
+  die der Summe entspricht. Steuersatz-Aufteilung inklusive Kombi-Positionen. Der
+  Eigenbeleg (Geldtransit, Kassendifferenz) trägt seinen Betrag im 0-%-Feld, und
+  die Bruttosumme gleicht die Bar-Zahlung aus.
 - **TischSession-Projektion.** Über beliebige Event-Folgen gilt: der offene
   Betrag bleibt größer oder gleich null; eine Warenrücknahme bezahlter
   Positionen lässt den offenen Betrag unverändert und entfernt die Positionen;
@@ -221,14 +245,16 @@ Getestet werden alle vier Deep Modules:
   eine Umbuchung verschiebt nur unbezahlte Positionen.
 - **Command-Routing.** Eine Storno-Anforderung erzeugt nach Bezahlstatus das
   korrekte Event; gemischte Anforderungen werden in einen geldneutralen und
-  einen kassenwirksamen Teil aufgeteilt; der kassenwirksame Storno ist auf die
+  einen kassenwirksamen Teil aufgeteilt; betreffen die bezahlten Positionen
+  mehrere Teilzahlungen, entsteht ein kassenwirksames Event je Zahlung (FIFO),
+  jedes mit genau einer Zahlungsreferenz; der kassenwirksame Storno ist auf die
   Serviceleitung beschränkt; der Rückgabebetrag folgt aus den bezahlten
   Positionen und ist nicht frei wählbar.
-- **DSFinV-K-Mapper.** Der kassenwirksame Storno wird ein Beleg mit
-  `BON_STORNO`, Zahlart Bar und Referenz auf die Zahlung; Korrektur und
-  Umbuchung sind geldneutral; kein Beleg trägt mehr den GV_TYP `Auszahlung`;
-  der summierte Bargeldbestand stimmt mit den tatsächlichen Bar-Bewegungen
-  überein (keine Doppelbuchung).
+- **DSFinV-K-Mapper.** Der kassenwirksame Storno wird ein negativer Beleg ohne
+  `BON_STORNO`-Kennzeichen, mit Zahlart Bar und Referenz auf die Zahlung;
+  Korrektur und Umbuchung sind geldneutral; kein Beleg trägt mehr den GV_TYP
+  `Auszahlung`; der summierte Bargeldbestand stimmt mit den tatsächlichen
+  Bar-Bewegungen überein (keine Doppelbuchung).
 
 ## Out of Scope
 
@@ -241,20 +267,12 @@ Getestet werden alle vier Deep Modules:
 - **Teil-Mengen-Rückgabe über die bestehende Positionslogik hinaus.** Die
   vorhandene Mengen-Auflösung (`PositionRef`, Restmengen) wird wiederverwendet,
   nicht neu entworfen.
-- **Geldtransit und Kassendifferenz.** Bleiben Kassensitzungs-Vorgänge; ihre
-  fiskalische Darstellung wird hier nicht umgebaut (siehe Further Notes für
-  eine verwandte Korrektheitsfrage).
+- **Geldtransit und Kassendifferenz.** Bleiben als Vorgänge unverändert; nur
+  der gemeinsame Eigenbeleg-`processData`-Builder wird mitkorrigiert (Feld 5,
+  siehe Implementation Decisions). Ein darüber hinausgehender Umbau dieser
+  Vorgänge ist nicht Teil dieser PRD.
 
 ## Further Notes
-
-**Verwandte Korrektheit: `processData` der Eigenbelege (Feld 5).** Nach Wegfall
-der Auszahlung verbleibt der gemeinsame Eigenbeleg-`processData`-Builder bei
-Geldtransit und Kassendifferenz. Dessen aktuelle Form schreibt alle fünf
-Bruttofelder auf `0.00` und füllt nur die Zahlung. Die DSFinV-K-Beispiele
-(Anhang I) tragen den Betrag eines USt-neutralen Bargeldab-/zuflusses dagegen
-im 0-%-Feld (Feld 5), damit Bruttosumme und Zahlung balancieren. Das ist eine
-eigenständige, kleinere Korrektheitsfrage; sie sollte im Zuge dieses Umbaus
-mitgenommen werden, ist aber nicht Kernscope dieser PRD.
 
 **Bezug zu bestehenden Vorhaben.** Der Wegfall von `AuszahlungenCents` im
 Tagesabschluss berührt das separat geplante Kassenabschluss-Vereinfachungs-PRD
