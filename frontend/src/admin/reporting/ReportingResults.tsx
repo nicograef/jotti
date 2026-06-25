@@ -87,7 +87,7 @@ export function ReportingResults({
           <SummaryCard
             title="Gesamtumsatz"
             value={`${formatCents(summary.gesamtUmsatzCents)} €`}
-            sub="Kassierungen − Auszahlungen"
+            sub="Kassierungen − Warenrücknahmen"
           />
           <SummaryCard
             title="Direktverkauf"
@@ -103,10 +103,6 @@ export function ReportingResults({
             title="Stornierungen"
             value={String(summary.anzahlStornierungen)}
             sub={`${formatCents(summary.gesamtStornierungenCents)} €`}
-          />
-          <SummaryCard
-            title="Auszahlungen"
-            value={`${formatCents(summary.gesamtAuszahlungenCents)} €`}
           />
         </div>
 
@@ -191,16 +187,9 @@ export function ReportingResults({
                   <Badge variant="secondary">
                     {sk.anzahlZahlungen} Zahlungen
                   </Badge>
-                  <div className="flex flex-col items-end">
-                    <span className="min-w-24 text-right text-sm font-semibold">
-                      {formatCents(sk.zahlungenCents)} €
-                    </span>
-                    {sk.auszahlungenCents > 0 && (
-                      <span className="text-right text-xs text-muted-foreground">
-                        {formatCents(sk.auszahlungenCents)} € Auszahlungen
-                      </span>
-                    )}
-                  </div>
+                  <span className="min-w-24 text-right text-sm font-semibold">
+                    {formatCents(sk.zahlungenCents)} €
+                  </span>
                 </ItemActions>
               </Item>
             ))}
@@ -237,16 +226,9 @@ export function ReportingResults({
                   <Badge variant="secondary">
                     {t.anzahlZahlungen} Zahlungen
                   </Badge>
-                  <div className="flex flex-col items-end">
-                    <span className="min-w-24 text-right text-sm font-semibold">
-                      {formatCents(t.zahlungenCents)} €
-                    </span>
-                    {t.auszahlungenCents > 0 && (
-                      <span className="text-right text-xs text-muted-foreground">
-                        {formatCents(t.auszahlungenCents)} € Auszahlungen
-                      </span>
-                    )}
-                  </div>
+                  <span className="min-w-24 text-right text-sm font-semibold">
+                    {formatCents(t.zahlungenCents)} €
+                  </span>
                 </ItemActions>
               </Item>
             ))}
@@ -290,9 +272,16 @@ export function ReportingResults({
                         {formatLocalTime(storno.zeitpunkt)}
                       </p>
                     </div>
-                    <Badge variant="destructive">
-                      {formatCents(storno.betragCents)} €
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={storno.barRueckgabe ? 'outline' : 'secondary'}
+                      >
+                        {storno.barRueckgabe ? 'Bar-Rückgabe' : 'Geldneutral'}
+                      </Badge>
+                      <Badge variant="destructive">
+                        {formatCents(storno.betragCents)} €
+                      </Badge>
+                    </div>
                   </div>
                   {storno.kommentar && (
                     <p className="mt-1 text-sm italic text-muted-foreground">

@@ -2,7 +2,6 @@ import { z } from 'zod'
 
 export const SummarySchema = z.object({
   gesamtUmsatzCents: z.number().int(),
-  gesamtAuszahlungenCents: z.number().int(),
   gesamtBestellungenCents: z.number().int(),
   gesamtStornierungenCents: z.number().int(),
   geldtransitCents: z.number().int(),
@@ -17,7 +16,6 @@ export const UmsatzServicekraftSchema = z.object({
   userName: z.string(),
   name: z.string(),
   zahlungenCents: z.number().int(),
-  auszahlungenCents: z.number().int(),
   anzahlZahlungen: z.number().int(),
 })
 export type UmsatzServicekraft = z.infer<typeof UmsatzServicekraftSchema>
@@ -32,6 +30,7 @@ export const StornierungPositionSchema = z.object({
 export const StornierungDetailSchema = z.object({
   zeitpunkt: z.string(),
   quelle: z.enum(['tisch', 'direktverkauf']),
+  barRueckgabe: z.boolean(),
   tischId: z.number().int(),
   tischName: z.string(),
   userId: z.number().int(),
@@ -47,7 +46,6 @@ export const UmsatzTischSchema = z.object({
   tischId: z.number().int(),
   tischName: z.string(),
   zahlungenCents: z.number().int(),
-  auszahlungenCents: z.number().int(),
   anzahlZahlungen: z.number().int(),
 })
 export type UmsatzTisch = z.infer<typeof UmsatzTischSchema>
@@ -88,7 +86,6 @@ export const ServicekraftLiveSchema = z.object({
   userName: z.string(),
   name: z.string(),
   zahlungenCents: z.number().int(),
-  auszahlungenCents: z.number().int(),
   anzahlZahlungen: z.number().int(),
   offeneTische: z.array(OffeneArbeitTischSchema),
   erledigt: z.boolean(),
@@ -101,7 +98,6 @@ export const LiveReportingDataSchema = z.object({
   datum: z.string(),
   offeneTische: z.array(OffenerTischSchema),
   offeneSaldiCents: z.number().int(),
-  ausstehendAuszahlungenCents: z.number().int(),
   summary: SummarySchema,
   breakdowns: z.object({
     servicekraefte: z.array(ServicekraftLiveSchema),

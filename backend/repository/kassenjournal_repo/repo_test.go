@@ -97,11 +97,34 @@ func validZahlungData(positionID string, menge, gesamtCents int) map[string]any 
 	}
 }
 
-func validAuszahlungData(betragCents int) map[string]any {
+// validStornierungData returns valid stornierung-erteilt:v1 (kassenwirksame Warenrücknahme) event data.
+func validStornierungData(betragCents int) map[string]any {
 	return map[string]any{
-		"auszahlungId": "a0000000-0000-0000-0000-000000000001",
-		"betragCents":  betragCents,
-		"kommentar":    "",
+		"stornierungId":          "11111111-0000-0000-0000-000000000001",
+		"zahlungId":              "z0000000-0000-0000-0000-000000000001",
+		"gesamtStornierungCents": betragCents,
+		"kommentar":              "Rueckgabe",
+		"positionen": []map[string]any{
+			{
+				"positionId": "p0000000-0000-0000-0000-000000000001",
+				"menge":      1,
+			},
+		},
+	}
+}
+
+// validKorrekturData returns valid bestellung-korrigiert:v1 (geldneutrale Korrektur) event data.
+func validKorrekturData(betragCents int) map[string]any {
+	return map[string]any{
+		"korrekturId": "22222222-0000-0000-0000-000000000001",
+		"gesamtCents": betragCents,
+		"kommentar":   "",
+		"positionen": []map[string]any{
+			{
+				"positionId": "p0000000-0000-0000-0000-000000000002",
+				"menge":      1,
+			},
+		},
 	}
 }
 
@@ -401,19 +424,14 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 		Menge:        2,
 	}
 
-	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", "11111111-1111-1111-1111-111111111111", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
+	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ksNr, quellTischID, zielTischID, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle")
 	if err != nil {
-		t.Fatalf("Failed to build stornierung event: %v", err)
+		t.Fatalf("Failed to build umbuchung events: %v", err)
 	}
-	stornierungEvent.Version = 2
+	quellEvent.Version = 2
+	zielEvent.Version = 1
 
-	bestellungEvent, err := kasse.NewBestellungAufgenommenEvent(zielSubject, userID, "nico", []kasse.Position{umbuchPosition}, "Umbuchung")
-	if err != nil {
-		t.Fatalf("Failed to build bestellung event: %v", err)
-	}
-	bestellungEvent.Version = 1
-
-	if err := repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, nil, ksNr); err != nil {
+	if err := repo.WriteUmbuchung(context.Background(), quellEvent, zielEvent, nil, ksNr); err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
@@ -424,8 +442,8 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	if len(quellEvents) != 2 {
 		t.Fatalf("Expected 2 source events, got %d", len(quellEvents))
 	}
-	if quellEvents[1].Type != string(kasse.EventTypeStornierungErteiltV1) {
-		t.Fatalf("Expected source event type %q, got %q", kasse.EventTypeStornierungErteiltV1, quellEvents[1].Type)
+	if quellEvents[1].Type != string(kasse.EventTypeBestellungUmgebuchtV1) {
+		t.Fatalf("Expected source event type %q, got %q", kasse.EventTypeBestellungUmgebuchtV1, quellEvents[1].Type)
 	}
 
 	zielEvents, err := repo.ReadEventsBySubject(context.Background(), zielSubject)
@@ -435,8 +453,8 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	if len(zielEvents) != 1 {
 		t.Fatalf("Expected 1 target event, got %d", len(zielEvents))
 	}
-	if zielEvents[0].Type != string(kasse.EventTypeBestellungAufgenommenV1) {
-		t.Fatalf("Expected target event type %q, got %q", kasse.EventTypeBestellungAufgenommenV1, zielEvents[0].Type)
+	if zielEvents[0].Type != string(kasse.EventTypeBestellungUmgebuchtV1) {
+		t.Fatalf("Expected target event type %q, got %q", kasse.EventTypeBestellungUmgebuchtV1, zielEvents[0].Type)
 	}
 
 	quellState, err := repo.ReadTischSession(context.Background(), quellSubject)
@@ -745,6 +763,54 @@ func TestGetKassenbestand_DirektverkaufIncreasesThenStornoDecreases(t *testing.T
 	}
 }
 
+func TestGetKassenbestand_WarenruecknahmeDecreasesKorrekturDoesNot(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischSubject := kasse.TischSessionSubject(ksNr, 1)
+
+	zahlung := newTestEvent(userID, "zahlung-kassiert:v1", tischSubject, 1, validZahlungData("p0000000-0000-0000-0000-000000000001", 1, 1000))
+	if _, err := insertEventRaw(repo.db, zahlung, ksNr); err != nil {
+		t.Fatalf("Failed to insert zahlung-kassiert event: %v", err)
+	}
+
+	bestand, err := repo.GetKassenbestand(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if bestand != 1000 {
+		t.Fatalf("Expected kassenbestand 1000 after zahlung, got %d", bestand)
+	}
+
+	// Geldneutrale Korrektur verändert den Kassenbestand nicht.
+	korrektur := newTestEvent(userID, "bestellung-korrigiert:v1", tischSubject, 2, validKorrekturData(400))
+	if _, err := insertEventRaw(repo.db, korrektur, ksNr); err != nil {
+		t.Fatalf("Failed to insert bestellung-korrigiert event: %v", err)
+	}
+
+	bestand, err = repo.GetKassenbestand(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if bestand != 1000 {
+		t.Fatalf("Expected kassenbestand 1000 after geldneutrale Korrektur, got %d", bestand)
+	}
+
+	// Kassenwirksame Warenrücknahme gibt Bargeld zurück und mindert den Bestand.
+	storno := newTestEvent(userID, "stornierung-erteilt:v1", tischSubject, 3, validStornierungData(300))
+	if _, err := insertEventRaw(repo.db, storno, ksNr); err != nil {
+		t.Fatalf("Failed to insert stornierung-erteilt event: %v", err)
+	}
+
+	bestand, err = repo.GetKassenbestand(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if bestand != 700 {
+		t.Fatalf("Expected kassenbestand 700 after Warenrücknahme, got %d", bestand)
+	}
+}
+
 func TestGetReportingStats_IncludesDirektverkaufMetrics(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
@@ -755,9 +821,9 @@ func TestGetReportingStats_IncludesDirektverkaufMetrics(t *testing.T) {
 		t.Fatalf("Failed to insert zahlung-kassiert event: %v", err)
 	}
 
-	auszahlung := newTestEvent(userID, "auszahlung-geleistet:v1", tischSubject, 2, validAuszahlungData(300))
-	if _, err := insertEventRaw(repo.db, auszahlung, ksNr); err != nil {
-		t.Fatalf("Failed to insert auszahlung-geleistet event: %v", err)
+	storno := newTestEvent(userID, "stornierung-erteilt:v1", tischSubject, 2, validStornierungData(300))
+	if _, err := insertEventRaw(repo.db, storno, ksNr); err != nil {
+		t.Fatalf("Failed to insert stornierung-erteilt event: %v", err)
 	}
 
 	dvSubject := kasse.DirektverkaufSubject(ksNr, "verkauf-2")
@@ -1012,7 +1078,6 @@ func TestWriteEvent_TagesabschlussErstellt(t *testing.T) {
 		"zeitraumBis":       time.Now().Format(time.RFC3339),
 		"umsatzGesamtCents": 15000,
 		"stornierungCents":  500,
-		"auszahlungenCents": 1000,
 		"geldtransitCents":  0,
 		"erstelltVon":       userID,
 	}

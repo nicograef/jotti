@@ -8,7 +8,6 @@ const reportingResult: ReportingData = {
   kassensitzungNr: 1,
   summary: {
     gesamtUmsatzCents: 12345,
-    gesamtAuszahlungenCents: 1200,
     gesamtBestellungenCents: 6500,
     gesamtStornierungenCents: 300,
     geldtransitCents: 0,

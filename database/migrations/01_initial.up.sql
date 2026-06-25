@@ -213,7 +213,7 @@ COMMENT ON TABLE tisch_sessions IS 'Synchronous CQRS projection of per-tisch-ses
 COMMENT ON COLUMN tisch_sessions.subject IS 'Aggregate key of the tisch session, e.g. "kassensitzung-1/tisch-42" (see kassenjournal.subject)';
 COMMENT ON COLUMN tisch_sessions.tisch_id IS 'Tisch this session belongs to';
 COMMENT ON COLUMN tisch_sessions.kassensitzung_nr IS 'Kassensitzung number (z_nr) this session belongs to';
-COMMENT ON COLUMN tisch_sessions.saldo_cents IS 'Open balance in cents: positive = unpaid Bestellungen, negative = refund owed to the guest (settled by Auszahlung)';
+COMMENT ON COLUMN tisch_sessions.saldo_cents IS 'Open balance in cents: sum of the unpaid Bestellungen, never negative';
 COMMENT ON COLUMN tisch_sessions.unbezahlte_positionen IS 'Positions ordered but not yet paid (JSON array), reduced by Zahlung and Stornierung';
 COMMENT ON COLUMN tisch_sessions.ausstehende_positionen IS 'Positions ordered but not yet handed out (JSON array), reduced by Ausgabe and Stornierung';
 COMMENT ON COLUMN tisch_sessions.gesamt_zahlungen_cents IS 'Sum of all Zahlungen collected in this session, in cents';
@@ -304,11 +304,6 @@ CREATE FUNCTION kj_extract_eroeffnung_cents(type TEXT, data JSONB) RETURNS int A
     SELECT CASE WHEN type = 'kassensitzung-eroeffnet:v1' THEN (data->>'betragCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
--- Returns the Auszahlung amount in cents for a matching event row, NULL otherwise.
-CREATE FUNCTION kj_extract_auszahlung_cents(type TEXT, data JSONB) RETURNS int AS $$
-    SELECT CASE WHEN type = 'auszahlung-geleistet:v1' THEN (data->>'betragCents')::int END
-$$ LANGUAGE sql IMMUTABLE;
-
 -- Returns the signed Geldtransit amount in cents for a matching event row, NULL otherwise.
 CREATE FUNCTION kj_extract_geldtransit_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE
@@ -327,9 +322,14 @@ CREATE FUNCTION kj_extract_bestellung_cents(type TEXT, data JSONB) RETURNS int A
     SELECT CASE WHEN type = 'bestellung-aufgenommen:v1' THEN (data->>'gesamtPreisCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
--- Returns the Stornierung amount in cents for a matching event row, NULL otherwise.
+-- Returns the cash-relevant Stornierung (Warenrücknahme) amount in cents for a matching event row, NULL otherwise.
 CREATE FUNCTION kj_extract_stornierung_cents(type TEXT, data JSONB) RETURNS int AS $$
     SELECT CASE WHEN type = 'stornierung-erteilt:v1' THEN (data->>'gesamtStornierungCents')::int END
+$$ LANGUAGE sql IMMUTABLE;
+
+-- Returns the geldneutral Korrektur (bestellung-korrigiert) amount in cents for a matching event row, NULL otherwise.
+CREATE FUNCTION kj_extract_korrektur_cents(type TEXT, data JSONB) RETURNS int AS $$
+    SELECT CASE WHEN type = 'bestellung-korrigiert:v1' THEN (data->>'gesamtCents')::int END
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the Direktverkauf amount in cents for a matching event row, NULL otherwise.
@@ -343,14 +343,15 @@ CREATE FUNCTION kj_extract_direktverkauf_storno_cents(type TEXT, data JSONB) RET
 $$ LANGUAGE sql IMMUTABLE;
 
 -- Returns the gross cents per steuersatz from position arrays for Umsatz aggregation.
+-- Warenrücknahme (stornierung-erteilt) and Direktverkauf-Storno count as negative Umsatz.
 CREATE FUNCTION kj_extract_umsatz_pro_steuersatz(type TEXT, data JSONB)
 RETURNS TABLE(steuersatz Steuersatz, brutto_cents int) AS $$
     SELECT
         (position->>'steuersatz')::Steuersatz AS steuersatz,
         ((position->>'einzelpreis')::int * (position->>'menge')::int)
-            * CASE WHEN type = 'direktverkauf-storniert:v1' THEN -1 ELSE 1 END AS brutto_cents
+            * CASE WHEN type IN ('direktverkauf-storniert:v1', 'stornierung-erteilt:v1') THEN -1 ELSE 1 END AS brutto_cents
     FROM jsonb_array_elements(data->'positionen') AS position
-    WHERE type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1')
+    WHERE type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1', 'stornierung-erteilt:v1')
 $$ LANGUAGE sql IMMUTABLE;
 
 -- ============================================================

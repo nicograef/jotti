@@ -475,14 +475,6 @@ export function KasseAbschliessenSection({
                     </dd>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Auszahlungen</dt>
-                    <dd>
-                      {liveData
-                        ? `${formatCents(liveData.summary.gesamtAuszahlungenCents)} €`
-                        : '—'}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">Geldtransit</dt>
                     <dd>
                       {liveData

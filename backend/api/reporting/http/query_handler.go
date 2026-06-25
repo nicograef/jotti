@@ -58,7 +58,6 @@ func (h *QueryHandler) GetReportingHandler() http.HandlerFunc {
 
 type summaryResponse struct {
 	GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
-	GesamtAuszahlungenCents  int `json:"gesamtAuszahlungenCents"`
 	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
 	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
 	GeldtransitCents         int `json:"geldtransitCents"`
@@ -74,20 +73,18 @@ type breakdownsResponse struct {
 }
 
 type umsatzServicekraft struct {
-	UserID            int    `json:"userId"`
-	UserName          string `json:"userName"`
-	Name              string `json:"name"`
-	ZahlungenCents    int    `json:"zahlungenCents"`
-	AuszahlungenCents int    `json:"auszahlungenCents"`
-	AnzahlZahlungen   int    `json:"anzahlZahlungen"`
+	UserID          int    `json:"userId"`
+	UserName        string `json:"userName"`
+	Name            string `json:"name"`
+	ZahlungenCents  int    `json:"zahlungenCents"`
+	AnzahlZahlungen int    `json:"anzahlZahlungen"`
 }
 
 type umsatzTisch struct {
-	TischID           int    `json:"tischId"`
-	TischName         string `json:"tischName"`
-	ZahlungenCents    int    `json:"zahlungenCents"`
-	AuszahlungenCents int    `json:"auszahlungenCents"`
-	AnzahlZahlungen   int    `json:"anzahlZahlungen"`
+	TischID         int    `json:"tischId"`
+	TischName       string `json:"tischName"`
+	ZahlungenCents  int    `json:"zahlungenCents"`
+	AnzahlZahlungen int    `json:"anzahlZahlungen"`
 }
 
 type umsatzSteuersatzResponse struct {
@@ -105,26 +102,26 @@ type stornierungPosition struct {
 }
 
 type stornierungDetail struct {
-	Zeitpunkt   time.Time             `json:"zeitpunkt"`
-	Quelle      string                `json:"quelle"`
-	TischID     int                   `json:"tischId"`
-	TischName   string                `json:"tischName"`
-	UserID      int                   `json:"userId"`
-	UserName    string                `json:"userName"`
-	Name        string                `json:"name"`
-	BetragCents int                   `json:"betragCents"`
-	Kommentar   string                `json:"kommentar"`
-	Positionen  []stornierungPosition `json:"positionen"`
+	Zeitpunkt    time.Time             `json:"zeitpunkt"`
+	Quelle       string                `json:"quelle"`
+	BarRueckgabe bool                  `json:"barRueckgabe"`
+	TischID      int                   `json:"tischId"`
+	TischName    string                `json:"tischName"`
+	UserID       int                   `json:"userId"`
+	UserName     string                `json:"userName"`
+	Name         string                `json:"name"`
+	BetragCents  int                   `json:"betragCents"`
+	Kommentar    string                `json:"kommentar"`
+	Positionen   []stornierungPosition `json:"positionen"`
 }
 
 func toUmsatzServicekraft(u reporting.UmsatzServicekraft) umsatzServicekraft {
 	return umsatzServicekraft{
-		UserID:            u.UserID,
-		UserName:          u.UserName,
-		Name:              u.Name,
-		ZahlungenCents:    u.ZahlungenCents,
-		AuszahlungenCents: u.AuszahlungenCents,
-		AnzahlZahlungen:   u.AnzahlZahlungen,
+		UserID:          u.UserID,
+		UserName:        u.UserName,
+		Name:            u.Name,
+		ZahlungenCents:  u.ZahlungenCents,
+		AnzahlZahlungen: u.AnzahlZahlungen,
 	}
 }
 
@@ -138,11 +135,10 @@ func toUmsatzServicekraftList(umsatz []reporting.UmsatzServicekraft) []umsatzSer
 
 func toUmsatzTisch(u reporting.UmsatzTisch) umsatzTisch {
 	return umsatzTisch{
-		TischID:           u.TischID,
-		TischName:         u.TischName,
-		ZahlungenCents:    u.ZahlungenCents,
-		AuszahlungenCents: u.AuszahlungenCents,
-		AnzahlZahlungen:   u.AnzahlZahlungen,
+		TischID:         u.TischID,
+		TischName:       u.TischName,
+		ZahlungenCents:  u.ZahlungenCents,
+		AnzahlZahlungen: u.AnzahlZahlungen,
 	}
 }
 
@@ -194,16 +190,17 @@ func toStornierungPositionen(positionen []reporting.StornierungPosition) []storn
 
 func toStornierungDetail(d reporting.StornierungDetail) stornierungDetail {
 	return stornierungDetail{
-		Zeitpunkt:   d.Zeitpunkt,
-		Quelle:      d.Quelle,
-		TischID:     d.TischID,
-		TischName:   d.TischName,
-		UserID:      d.UserID,
-		UserName:    d.UserName,
-		Name:        d.Name,
-		BetragCents: d.BetragCents,
-		Kommentar:   d.Kommentar,
-		Positionen:  toStornierungPositionen(d.Positionen),
+		Zeitpunkt:    d.Zeitpunkt,
+		Quelle:       d.Quelle,
+		BarRueckgabe: d.BarRueckgabe,
+		TischID:      d.TischID,
+		TischName:    d.TischName,
+		UserID:       d.UserID,
+		UserName:     d.UserName,
+		Name:         d.Name,
+		BetragCents:  d.BetragCents,
+		Kommentar:    d.Kommentar,
+		Positionen:   toStornierungPositionen(d.Positionen),
 	}
 }
 
@@ -220,7 +217,6 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 		KassensitzungNr: d.KassensitzungNr,
 		Summary: summaryResponse{
 			GesamtUmsatzCents:        d.Summary.GesamtUmsatzCents,
-			GesamtAuszahlungenCents:  d.Summary.GesamtAuszahlungenCents,
 			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
 			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
 			GeldtransitCents:         d.Summary.GeldtransitCents,
@@ -332,7 +328,6 @@ type offenerTischResponse struct {
 
 type liveSummaryResponse struct {
 	GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
-	GesamtAuszahlungenCents  int `json:"gesamtAuszahlungenCents"`
 	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
 	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
 	GeldtransitCents         int `json:"geldtransitCents"`
@@ -345,14 +340,13 @@ type liveSummaryResponse struct {
 // servicekraftLiveResponse ist die Live-Sicht pro Servicekraft: kassierter
 // Umsatz zusammengeführt mit der offenen eigenen Arbeit.
 type servicekraftLiveResponse struct {
-	UserID            int                         `json:"userId"`
-	UserName          string                      `json:"userName"`
-	Name              string                      `json:"name"`
-	ZahlungenCents    int                         `json:"zahlungenCents"`
-	AuszahlungenCents int                         `json:"auszahlungenCents"`
-	AnzahlZahlungen   int                         `json:"anzahlZahlungen"`
-	OffeneTische      []offeneArbeitTischResponse `json:"offeneTische"`
-	Erledigt          bool                        `json:"erledigt"`
+	UserID          int                         `json:"userId"`
+	UserName        string                      `json:"userName"`
+	Name            string                      `json:"name"`
+	ZahlungenCents  int                         `json:"zahlungenCents"`
+	AnzahlZahlungen int                         `json:"anzahlZahlungen"`
+	OffeneTische    []offeneArbeitTischResponse `json:"offeneTische"`
+	Erledigt        bool                        `json:"erledigt"`
 }
 
 // liveBreakdownsResponse trägt im Live-Dashboard die zusammengeführte
@@ -363,15 +357,14 @@ type liveBreakdownsResponse struct {
 }
 
 type liveReportingResponse struct {
-	KassensitzungNr             int                    `json:"kassensitzungNr"`
-	Bezeichnung                 string                 `json:"bezeichnung"`
-	Datum                       time.Time              `json:"datum"`
-	OffeneTische                []offenerTischResponse `json:"offeneTische"`
-	OffeneSaldiCents            int                    `json:"offeneSaldiCents"`
-	AusstehendAuszahlungenCents int                    `json:"ausstehendAuszahlungenCents"`
-	Summary                     liveSummaryResponse    `json:"summary"`
-	Breakdowns                  liveBreakdownsResponse `json:"breakdowns"`
-	Stornierungen               []stornierungDetail    `json:"stornierungen"`
+	KassensitzungNr  int                    `json:"kassensitzungNr"`
+	Bezeichnung      string                 `json:"bezeichnung"`
+	Datum            time.Time              `json:"datum"`
+	OffeneTische     []offenerTischResponse `json:"offeneTische"`
+	OffeneSaldiCents int                    `json:"offeneSaldiCents"`
+	Summary          liveSummaryResponse    `json:"summary"`
+	Breakdowns       liveBreakdownsResponse `json:"breakdowns"`
+	Stornierungen    []stornierungDetail    `json:"stornierungen"`
 }
 
 func toServicekraftLive(s reporting.ServicekraftLive) servicekraftLiveResponse {
@@ -386,14 +379,13 @@ func toServicekraftLive(s reporting.ServicekraftLive) servicekraftLiveResponse {
 		}
 	}
 	return servicekraftLiveResponse{
-		UserID:            s.UserID,
-		UserName:          s.UserName,
-		Name:              s.Name,
-		ZahlungenCents:    s.ZahlungenCents,
-		AuszahlungenCents: s.AuszahlungenCents,
-		AnzahlZahlungen:   s.AnzahlZahlungen,
-		OffeneTische:      offeneTische,
-		Erledigt:          s.Erledigt,
+		UserID:          s.UserID,
+		UserName:        s.UserName,
+		Name:            s.Name,
+		ZahlungenCents:  s.ZahlungenCents,
+		AnzahlZahlungen: s.AnzahlZahlungen,
+		OffeneTische:    offeneTische,
+		Erledigt:        s.Erledigt,
 	}
 }
 
@@ -415,15 +407,13 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 		}
 	}
 	return liveReportingResponse{
-		KassensitzungNr:             d.KassensitzungNr,
-		Bezeichnung:                 d.Bezeichnung,
-		Datum:                       d.Datum,
-		OffeneTische:                offeneTische,
-		OffeneSaldiCents:            d.OffeneSaldiCents,
-		AusstehendAuszahlungenCents: d.AusstehendAuszahlungenCents,
+		KassensitzungNr:  d.KassensitzungNr,
+		Bezeichnung:      d.Bezeichnung,
+		Datum:            d.Datum,
+		OffeneTische:     offeneTische,
+		OffeneSaldiCents: d.OffeneSaldiCents,
 		Summary: liveSummaryResponse{
 			GesamtUmsatzCents:        d.Summary.GesamtUmsatzCents,
-			GesamtAuszahlungenCents:  d.Summary.GesamtAuszahlungenCents,
 			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
 			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
 			GeldtransitCents:         d.Summary.GeldtransitCents,

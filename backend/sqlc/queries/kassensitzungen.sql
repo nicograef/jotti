@@ -14,11 +14,13 @@ SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
 FROM kassensitzungen ORDER BY datum DESC, created_at DESC;
 
 -- name: GetKassenbestand :one
--- Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Auszahlungen, Geldtransits und Differenz-Buchungen.
+-- Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Warenrücknahmen, Geldtransits und Differenz-Buchungen.
+-- Die kassenwirksame Warenrücknahme (stornierung-erteilt) gibt Bargeld zurück und mindert den Bestand;
+-- geldneutrale Vorgänge (bestellung-korrigiert, bestellung-umgebucht) berühren den Kassenbestand nicht.
 SELECT (
     COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int
     + COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
-    - COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int
+    - COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
     + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
     - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
     + COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int
@@ -29,7 +31,7 @@ WHERE kassensitzung_nr = $1
   AND type IN (
     'kassensitzung-eroeffnet:v1',
     'zahlung-kassiert:v1',
-    'auszahlung-geleistet:v1',
+    'stornierung-erteilt:v1',
     'direktverkauf-getaetigt:v1',
     'direktverkauf-storniert:v1',
     'geldtransit-gebucht:v1',

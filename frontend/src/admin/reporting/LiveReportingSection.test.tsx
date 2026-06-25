@@ -14,10 +14,8 @@ function liveData(
     datum: '2026-06-18',
     offeneTische: [],
     offeneSaldiCents: 0,
-    ausstehendAuszahlungenCents: 0,
     summary: {
       gesamtUmsatzCents: 2400,
-      gesamtAuszahlungenCents: 0,
       gesamtBestellungenCents: 0,
       gesamtStornierungenCents: 0,
       geldtransitCents: 0,
@@ -42,7 +40,6 @@ describe('LiveReportingSection — Servicekräfte', () => {
             userName: 'Anna',
             name: 'Anna A.',
             zahlungenCents: 1500,
-            auszahlungenCents: 0,
             anzahlZahlungen: 2,
             offeneTische: [
               {
@@ -60,7 +57,6 @@ describe('LiveReportingSection — Servicekräfte', () => {
             userName: 'Cleo',
             name: '',
             zahlungenCents: 900,
-            auszahlungenCents: 0,
             anzahlZahlungen: 1,
             offeneTische: [],
             erledigt: true,

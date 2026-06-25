@@ -358,15 +358,15 @@ Umsätze aus, nicht als Auszahlungen. Die Reporting-UI spiegelt das wider.
 
 ### Acceptance criteria
 
-- [ ] SQL-Funktion `kj_extract_auszahlung_cents` und Query `GetAusstehendAuszahlungen`
+- [x] SQL-Funktion `kj_extract_auszahlung_cents` und Query `GetAusstehendAuszahlungen`
       entfernt (Migration + Queries); keine Query referenziert `auszahlung-geleistet:v1`.
-- [ ] Reporting-Domain und -Repository ohne Auszahlungs-Felder; Code kompiliert und
+- [x] Reporting-Domain und -Repository ohne Auszahlungs-Felder; Code kompiliert und
       sqlc-Generierung ist konsistent.
-- [ ] Stornierungsliste und Stornoquote zählen beide Storno-Arten; die kassenwirksame
+- [x] Stornierungsliste und Stornoquote zählen beide Storno-Arten; die kassenwirksame
       Warenrücknahme ist als Bar-Rückgabe markiert.
-- [ ] Z-Bon/Reporting weisen Warenrücknahmen als negative Umsätze aus; Kassenbestand
+- [x] Z-Bon/Reporting weisen Warenrücknahmen als negative Umsätze aus; Kassenbestand
       stimmt (kassenwirksame Stornos mindern, geldneutrale Vorgänge nicht).
-- [ ] Reporting-UI zeigt keine Auszahlungs-Kennzahl mehr; beide Storno-Arten sichtbar.
+- [x] Reporting-UI zeigt keine Auszahlungs-Kennzahl mehr; beide Storno-Arten sichtbar.
 
 ---
 

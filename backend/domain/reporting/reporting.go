@@ -7,20 +7,18 @@ import (
 )
 
 type UmsatzServicekraft struct {
-	UserID            int
-	UserName          string // eingefrorener Username
-	Name              string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
-	ZahlungenCents    int
-	AuszahlungenCents int
-	AnzahlZahlungen   int
+	UserID          int
+	UserName        string // eingefrorener Username
+	Name            string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
+	ZahlungenCents  int
+	AnzahlZahlungen int
 }
 
 type UmsatzTisch struct {
-	TischID           int
-	TischName         string
-	ZahlungenCents    int
-	AuszahlungenCents int
-	AnzahlZahlungen   int
+	TischID         int
+	TischName       string
+	ZahlungenCents  int
+	AnzahlZahlungen int
 }
 
 type UmsatzSteuersatz struct {
@@ -38,21 +36,21 @@ type StornierungPosition struct {
 }
 
 type StornierungDetail struct {
-	Zeitpunkt   time.Time
-	Quelle      string // "tisch" oder "direktverkauf"
-	TischID     int
-	TischName   string
-	UserID      int
-	UserName    string // eingefrorener Username
-	Name        string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
-	BetragCents int
-	Kommentar   string
-	Positionen  []StornierungPosition
+	Zeitpunkt    time.Time
+	Quelle       string // "tisch" oder "direktverkauf"
+	BarRueckgabe bool   // true bei kassenwirksamer Warenrücknahme, false bei geldneutraler Korrektur
+	TischID      int
+	TischName    string
+	UserID       int
+	UserName     string // eingefrorener Username
+	Name         string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
+	BetragCents  int
+	Kommentar    string
+	Positionen   []StornierungPosition
 }
 
 type Summary struct {
 	GesamtUmsatzCents        int
-	GesamtAuszahlungenCents  int
 	GesamtBestellungenCents  int
 	GesamtStornierungenCents int
 	GeldtransitCents         int
@@ -82,14 +80,13 @@ type OffenerTisch struct {
 }
 
 type LiveReportingData struct {
-	KassensitzungNr             int
-	Bezeichnung                 string
-	Datum                       time.Time
-	OffeneTische                []OffenerTisch
-	OffeneSaldiCents            int
-	AusstehendAuszahlungenCents int
-	Summary                     Summary
-	Breakdowns                  Breakdowns
+	KassensitzungNr  int
+	Bezeichnung      string
+	Datum            time.Time
+	OffeneTische     []OffenerTisch
+	OffeneSaldiCents int
+	Summary          Summary
+	Breakdowns       Breakdowns
 	// Servicekraefte ist die Live-Sicht pro Servicekraft: kassierter Umsatz
 	// (aus Breakdowns.UmsatzProServicekraft) zusammengeführt mit der offenen
 	// eigenen Arbeit über die Tisch-Sessions, per user_id gemerged.
@@ -102,12 +99,11 @@ type LiveReportingData struct {
 // user_id). Personen mit offener Arbeit, aber ohne kassierten Umsatz erscheinen
 // ebenfalls (dann mit Null-Umsatz).
 type ServicekraftLive struct {
-	UserID            int
-	UserName          string // eingefrorener Username
-	Name              string // live aus users aufgeloester Klarname (leer bei reiner offener Arbeit)
-	ZahlungenCents    int
-	AuszahlungenCents int
-	AnzahlZahlungen   int
+	UserID          int
+	UserName        string // eingefrorener Username
+	Name            string // live aus users aufgeloester Klarname (leer bei reiner offener Arbeit)
+	ZahlungenCents  int
+	AnzahlZahlungen int
 	// OffeneTische listet die Tische mit offener eigener Arbeit (aufsteigend nach
 	// Tisch-ID); leer wenn die Servicekraft fertig ist.
 	OffeneTische []OffeneArbeitTisch

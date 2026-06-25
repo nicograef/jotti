@@ -374,7 +374,7 @@ type TischSession struct {
 	TischID int
 	// Kassensitzung number (z_nr) this session belongs to
 	KassensitzungNr int
-	// Open balance in cents: positive = unpaid Bestellungen, negative = refund owed to the guest (settled by Auszahlung)
+	// Open balance in cents: sum of the unpaid Bestellungen, never negative
 	SaldoCents int
 	// Positions ordered but not yet paid (JSON array), reduced by Zahlung and Stornierung
 	UnbezahltePositionen json.RawMessage

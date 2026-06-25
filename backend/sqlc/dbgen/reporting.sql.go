@@ -11,20 +11,6 @@ import (
 	"time"
 )
 
-const getAusstehendAuszahlungen = `-- name: GetAusstehendAuszahlungen :one
-SELECT COALESCE(SUM(ABS(saldo_cents)), 0)::int AS ausstehend_auszahlungen_cents
-FROM tisch_sessions
-WHERE saldo_cents < 0 AND kassensitzung_nr = $1
-`
-
-// Live-Dashboard: Summe der negativen Tischsaldi der offenen Kassensitzung.
-func (q *Queries) GetAusstehendAuszahlungen(ctx context.Context, kassensitzungNr int) (int, error) {
-	row := q.db.QueryRowContext(ctx, getAusstehendAuszahlungen, kassensitzungNr)
-	var ausstehend_auszahlungen_cents int
-	err := row.Scan(&ausstehend_auszahlungen_cents)
-	return ausstehend_auszahlungen_cents, err
-}
-
 const getEigeneUebersicht = `-- name: GetEigeneUebersicht :one
 SELECT
     COALESCE(COUNT(CASE WHEN type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
@@ -120,17 +106,17 @@ SELECT
         COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
         + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
-        - COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
     )::int AS gesamt_umsatz_cents,
-    COALESCE(SUM(kj_extract_auszahlung_cents(type, data)), 0)::int AS gesamt_auszahlungen_cents,
     COALESCE(SUM(kj_extract_bestellung_cents(type, data)), 0)::int AS gesamt_bestellungen_cents,
     (
         COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_korrektur_cents(type, data)), 0)::int
         + COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
     )::int AS gesamt_stornierungen_cents,
     COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int AS gesamt_geldtransit_cents,
     COALESCE(COUNT(CASE WHEN type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
-    COALESCE(COUNT(CASE WHEN type IN ('stornierung-erteilt:v1', 'direktverkauf-storniert:v1') THEN 1 END), 0)::int AS anzahl_stornierungen,
+    COALESCE(COUNT(CASE WHEN type IN ('stornierung-erteilt:v1', 'bestellung-korrigiert:v1', 'direktverkauf-storniert:v1') THEN 1 END), 0)::int AS anzahl_stornierungen,
     COALESCE(COUNT(CASE WHEN type = 'direktverkauf-getaetigt:v1' THEN 1 END), 0)::int AS anzahl_direktverkaeufe,
     (
         COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
@@ -141,7 +127,7 @@ WHERE type IN (
     'bestellung-aufgenommen:v1',
     'zahlung-kassiert:v1',
     'stornierung-erteilt:v1',
-    'auszahlung-geleistet:v1',
+    'bestellung-korrigiert:v1',
     'direktverkauf-getaetigt:v1',
     'direktverkauf-storniert:v1',
     'geldtransit-gebucht:v1'
@@ -151,7 +137,6 @@ AND kassensitzung_nr = $1
 
 type GetReportingStatsRow struct {
 	GesamtUmsatzCents        int
-	GesamtAuszahlungenCents  int
 	GesamtBestellungenCents  int
 	GesamtStornierungenCents int
 	GesamtGeldtransitCents   int
@@ -167,7 +152,6 @@ func (q *Queries) GetReportingStats(ctx context.Context, kassensitzungNr int) (G
 	var i GetReportingStatsRow
 	err := row.Scan(
 		&i.GesamtUmsatzCents,
-		&i.GesamtAuszahlungenCents,
 		&i.GesamtBestellungenCents,
 		&i.GesamtStornierungenCents,
 		&i.GesamtGeldtransitCents,
@@ -183,36 +167,42 @@ const getStornierungen = `-- name: GetStornierungen :many
 SELECT
     e.timestamp,
     CASE WHEN e.type = 'direktverkauf-storniert:v1' THEN 'direktverkauf' ELSE 'tisch' END::text AS quelle,
+    (e.type IN ('stornierung-erteilt:v1', 'direktverkauf-storniert:v1'))::bool AS bar_rueckgabe,
     COALESCE(tss.tisch_id, 0)::int AS tisch_id,
     COALESCE(t.name, '')::text AS tisch_name,
     e.user_id,
     e.user_name,
     COALESCE(u.name, '')::text AS name,
+    COALESCE((e.data->>'gesamtStornierungCents')::int, (e.data->>'gesamtCents')::int, 0)::int AS betrag_cents,
     e.data
 FROM kassenjournal e
 LEFT JOIN tisch_sessions tss ON tss.subject = e.subject
 LEFT JOIN tische t ON t.id = tss.tisch_id
 LEFT JOIN users u ON u.id = e.user_id
-WHERE e.type IN ('stornierung-erteilt:v1', 'direktverkauf-storniert:v1')
+WHERE e.type IN ('stornierung-erteilt:v1', 'bestellung-korrigiert:v1', 'direktverkauf-storniert:v1')
 AND e.kassensitzung_nr = $1
 ORDER BY e.timestamp DESC
 `
 
 type GetStornierungenRow struct {
-	Timestamp time.Time
-	Quelle    string
-	TischID   int
-	TischName string
-	UserID    int
-	UserName  string
-	Name      string
-	Data      json.RawMessage
+	Timestamp    time.Time
+	Quelle       string
+	BarRueckgabe bool
+	TischID      int
+	TischName    string
+	UserID       int
+	UserName     string
+	Name         string
+	BetragCents  int
+	Data         json.RawMessage
 }
 
-// Reporting: Storno-Events (Tisch und Direktverkauf) pro Kassensitzung.
-// Tisch-Stornos tragen einen Tischbezug; Direktverkauf-Stornos haben keinen (quelle = 'direktverkauf',
-// tisch_id = 0, tisch_name = ”). Beide Event-Typen teilen dieselbe JSONB-Form (gesamtStornierungCents,
-// kommentar, fat positions) — parse in Go.
+// Reporting: Storno-Events pro Kassensitzung — kassenwirksame Warenrücknahme (stornierung-erteilt),
+// geldneutrale Korrektur (bestellung-korrigiert) und Direktverkauf-Storno (direktverkauf-storniert).
+// bar_rueckgabe markiert die kassenwirksamen Stornos (Bargeld-Rückgabe). Tisch-Stornos tragen einen
+// Tischbezug; Direktverkauf-Stornos haben keinen (quelle = 'direktverkauf', tisch_id = 0, tisch_name = ”).
+// Der Betrag liegt je nach Event-Typ in gesamtStornierungCents oder gesamtCents; kommentar und fat
+// positions werden in Go aus data geparst.
 func (q *Queries) GetStornierungen(ctx context.Context, kassensitzungNr int) ([]GetStornierungenRow, error) {
 	rows, err := q.db.QueryContext(ctx, getStornierungen, kassensitzungNr)
 	if err != nil {
@@ -225,11 +215,13 @@ func (q *Queries) GetStornierungen(ctx context.Context, kassensitzungNr int) ([]
 		if err := rows.Scan(
 			&i.Timestamp,
 			&i.Quelle,
+			&i.BarRueckgabe,
 			&i.TischID,
 			&i.TischName,
 			&i.UserID,
 			&i.UserName,
 			&i.Name,
+			&i.BetragCents,
 			&i.Data,
 		); err != nil {
 			return nil, err
@@ -251,26 +243,24 @@ SELECT
     MAX(e.user_name)::text AS user_name,
     COALESCE(MAX(u.name), '')::text AS name,
     COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS zahlungen_cents,
-    COALESCE(SUM(kj_extract_auszahlung_cents(e.type, e.data)), 0)::int AS auszahlungen_cents,
     COUNT(CASE WHEN e.type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
 FROM kassenjournal e
 LEFT JOIN users u ON u.id = e.user_id
-WHERE e.type IN ('zahlung-kassiert:v1', 'auszahlung-geleistet:v1')
+WHERE e.type = 'zahlung-kassiert:v1'
 AND e.kassensitzung_nr = $1
 GROUP BY e.user_id
 ORDER BY zahlungen_cents DESC
 `
 
 type GetUmsatzProServicekraftRow struct {
-	UserID            int
-	UserName          string
-	Name              string
-	ZahlungenCents    int
-	AuszahlungenCents int
-	AnzahlZahlungen   int
+	UserID          int
+	UserName        string
+	Name            string
+	ZahlungenCents  int
+	AnzahlZahlungen int
 }
 
-// Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Servicekraft pro Kassensitzung.
+// Tagesabrechnung: kassierte Zahlungen gruppiert nach Servicekraft pro Kassensitzung.
 // Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
 // MAX(user_name) nimmt den lexikographisch letzten eingefrorenen Username; name ist der live aus users
 // aufgeloeste Klarname (bleibt auch fuer soft-geloeschte Benutzer verfuegbar, leer wenn der Benutzer fehlt).
@@ -288,7 +278,6 @@ func (q *Queries) GetUmsatzProServicekraft(ctx context.Context, kassensitzungNr 
 			&i.UserName,
 			&i.Name,
 			&i.ZahlungenCents,
-			&i.AuszahlungenCents,
 			&i.AnzahlZahlungen,
 		); err != nil {
 			return nil, err
@@ -356,26 +345,24 @@ SELECT
     tss.tisch_id,
     t.name AS tisch_name,
     COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS zahlungen_cents,
-    COALESCE(SUM(kj_extract_auszahlung_cents(e.type, e.data)), 0)::int AS auszahlungen_cents,
     COUNT(CASE WHEN e.type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
 FROM kassenjournal e
 JOIN tisch_sessions tss ON tss.subject = e.subject
 JOIN tische t ON t.id = tss.tisch_id
-WHERE e.type IN ('zahlung-kassiert:v1', 'auszahlung-geleistet:v1')
+WHERE e.type = 'zahlung-kassiert:v1'
 AND e.kassensitzung_nr = $1
 GROUP BY tss.tisch_id, t.name
 ORDER BY zahlungen_cents DESC
 `
 
 type GetUmsatzProTischRow struct {
-	TischID           int
-	TischName         string
-	ZahlungenCents    int
-	AuszahlungenCents int
-	AnzahlZahlungen   int
+	TischID         int
+	TischName       string
+	ZahlungenCents  int
+	AnzahlZahlungen int
 }
 
-// Tagesabrechnung: Zahlungen und Auszahlungen gruppiert nach Tisch pro Kassensitzung.
+// Tagesabrechnung: kassierte Zahlungen gruppiert nach Tisch pro Kassensitzung.
 // Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
 func (q *Queries) GetUmsatzProTisch(ctx context.Context, kassensitzungNr int) ([]GetUmsatzProTischRow, error) {
 	rows, err := q.db.QueryContext(ctx, getUmsatzProTisch, kassensitzungNr)
@@ -390,7 +377,6 @@ func (q *Queries) GetUmsatzProTisch(ctx context.Context, kassensitzungNr int) ([
 			&i.TischID,
 			&i.TischName,
 			&i.ZahlungenCents,
-			&i.AuszahlungenCents,
 			&i.AnzahlZahlungen,
 		); err != nil {
 			return nil, err

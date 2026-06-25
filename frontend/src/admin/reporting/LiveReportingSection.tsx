@@ -135,7 +135,7 @@ export function LiveReportingSection({
             <SummaryCard
               title="Gesamtumsatz"
               value={`${formatCents(summary.gesamtUmsatzCents)} €`}
-              sub="Kassierungen − Auszahlungen"
+              sub="Kassierungen − Warenrücknahmen"
             />
             <SummaryCard
               title="Offene Saldi"
@@ -143,17 +143,9 @@ export function LiveReportingSection({
               sub={`${String(liveData.offeneTische.length)} offene Tische`}
             />
             <SummaryCard
-              title="Ausstehende Auszahlungen"
-              value={`${formatCents(liveData.ausstehendAuszahlungenCents)} €`}
-            />
-            <SummaryCard
               title="Stornierungen"
               value={String(summary.anzahlStornierungen)}
               sub={`${formatCents(summary.gesamtStornierungenCents)} €`}
-            />
-            <SummaryCard
-              title="Auszahlungen"
-              value={`${formatCents(summary.gesamtAuszahlungenCents)} €`}
             />
           </div>
 
@@ -231,16 +223,9 @@ export function LiveReportingSection({
                     <Badge variant="secondary">
                       {sk.anzahlZahlungen} Zahlungen
                     </Badge>
-                    <div className="flex flex-col items-end">
-                      <span className="min-w-24 text-right text-sm font-semibold">
-                        {formatCents(sk.zahlungenCents)} €
-                      </span>
-                      {sk.auszahlungenCents > 0 && (
-                        <span className="text-right text-xs text-muted-foreground">
-                          {formatCents(sk.auszahlungenCents)} € Auszahlungen
-                        </span>
-                      )}
-                    </div>
+                    <span className="min-w-24 text-right text-sm font-semibold">
+                      {formatCents(sk.zahlungenCents)} €
+                    </span>
                   </ItemActions>
                 </Item>
               ))}
@@ -277,16 +262,9 @@ export function LiveReportingSection({
                     <Badge variant="secondary">
                       {t.anzahlZahlungen} Zahlungen
                     </Badge>
-                    <div className="flex flex-col items-end">
-                      <span className="min-w-24 text-right text-sm font-semibold">
-                        {formatCents(t.zahlungenCents)} €
-                      </span>
-                      {t.auszahlungenCents > 0 && (
-                        <span className="text-right text-xs text-muted-foreground">
-                          {formatCents(t.auszahlungenCents)} € Auszahlungen
-                        </span>
-                      )}
-                    </div>
+                    <span className="min-w-24 text-right text-sm font-semibold">
+                      {formatCents(t.zahlungenCents)} €
+                    </span>
                   </ItemActions>
                 </Item>
               ))}
@@ -348,6 +326,9 @@ export function LiveReportingSection({
                     )}
                   </ItemContent>
                   <ItemActions>
+                    <Badge variant={s.barRueckgabe ? 'outline' : 'secondary'}>
+                      {s.barRueckgabe ? 'Bar-Rückgabe' : 'Geldneutral'}
+                    </Badge>
                     <span className="text-sm font-semibold">
                       {formatCents(s.betragCents)} €
                     </span>

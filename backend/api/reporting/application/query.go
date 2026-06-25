@@ -227,14 +227,13 @@ func mergeServicekraefteLive(
 	indexByUserID := make(map[int]int, len(umsatz))
 	for i, u := range umsatz {
 		servicekraefte[i] = reporting.ServicekraftLive{
-			UserID:            u.UserID,
-			UserName:          u.UserName,
-			Name:              u.Name,
-			ZahlungenCents:    u.ZahlungenCents,
-			AuszahlungenCents: u.AuszahlungenCents,
-			AnzahlZahlungen:   u.AnzahlZahlungen,
-			OffeneTische:      []reporting.OffeneArbeitTisch{},
-			Erledigt:          true,
+			UserID:          u.UserID,
+			UserName:        u.UserName,
+			Name:            u.Name,
+			ZahlungenCents:  u.ZahlungenCents,
+			AnzahlZahlungen: u.AnzahlZahlungen,
+			OffeneTische:    []reporting.OffeneArbeitTisch{},
+			Erledigt:        true,
 		}
 		indexByUserID[u.UserID] = i
 	}

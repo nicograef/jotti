@@ -26,7 +26,6 @@ vi.mock('@/admin/reporting/hooks', () => ({
       summary: {
         gesamtUmsatzCents: 12345,
         gesamtStornierungenCents: 300,
-        gesamtAuszahlungenCents: 1200,
         geldtransitCents: 5000,
       },
     },
