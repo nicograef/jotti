@@ -121,7 +121,7 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 			{testSerial, erstellung, "3", "jotti", "jotti mPOS", testSerial, "jotti", "1.0", "EUR", ""},
 		},
 		"cashpointclosing.csv": {
-			{testSerial, erstellung, "3", "2026-06-16", "2.5", testBonID, testBonID, "TSV Beispiel", "Hauptstr. 1", "12345", "Musterdorf", "DEU", "12345/67890", "", "10.50", "10.50"},
+			{testSerial, erstellung, "3", "2026-06-16", "2.4", testBonID, testBonID, "TSV Beispiel", "Hauptstr. 1", "12345", "Musterdorf", "DEU", "12345/67890", "", "10.50", "10.50"},
 		},
 	}
 

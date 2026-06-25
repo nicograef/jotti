@@ -16,8 +16,9 @@ import (
 )
 
 // Version ist der deklarierte DSFinV-K-Versionsstring. Konfigurierbar gehalten,
-// da die Tabellenstruktur seit v2.0 stabil ist; aktuell verbindlich ist v2.5.
-const Version = "2.5"
+// da die Tabellenstruktur seit v2.0 stabil ist; aktuell verbindlich ist v2.4
+// (Stand Dezember 2023).
+const Version = "2.4"
 
 // Snapshot ist der lesende Stammdaten-Eingang des Mappers: alles, was der Export
 // neben den Events selbst braucht. Der Orchestrator lädt ihn; der Mapper bleibt

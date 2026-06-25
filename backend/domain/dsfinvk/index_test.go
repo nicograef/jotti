@@ -23,7 +23,7 @@ func TestBuildIndexXMLDescriptor(t *testing.T) {
 
 	mustContain := []string{
 		`<!DOCTYPE DataSet SYSTEM "gdpdu-01-09-2004.dtd">`,
-		"<Version>2.5</Version>",
+		"<Version>2.4</Version>",
 		"<Name>TSV Beispiel</Name>",
 		"<URL>transactions.csv</URL>",
 		"<Name>Bonkopf</Name>",
