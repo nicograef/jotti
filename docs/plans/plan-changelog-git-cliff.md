@@ -259,8 +259,8 @@ gerenderten Bodies erst vorgelegt und bestätigt, bevor `gh release edit` läuft
 
 ### Acceptance criteria
 
-- [ ] Bodies für `v0.9.1`, `v0.10.0`, `v0.11.0` lokal gerendert und vor dem
+- [x] Bodies für `v0.9.1`, `v0.10.0`, `v0.11.0` lokal gerendert und vor dem
       Schreiben bestätigt.
-- [ ] Die drei Releases zeigen das gruppierte feat/fix-Changelog (gleiche Form
+- [x] Die drei Releases zeigen das gruppierte feat/fix-Changelog (gleiche Form
       wie künftige Releases aus Phase 2).
-- [ ] `v0.9.0` bleibt unverändert.
+- [x] `v0.9.0` bleibt unverändert.
