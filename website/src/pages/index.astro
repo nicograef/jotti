@@ -9,7 +9,7 @@ import { githubUrl, leitfadenUrl } from '../lib/links'
 
 const title = 'jotti: Das kostenlose Kassensystem für Vereinsfeste'
 const description =
-  'jotti ist ein kostenloses Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Fiskalkonform mit TSE-Anbindung und gesetzeskonformer Belegausgabe. Self-hosted, Mobile-first, kein Cloud-Abo. Quellcode einsehbar (Source-Available).'
+  'jotti ist ein kostenloses Mobile-Kassensystem (mPOS) für Vereine und gemeinnützige Organisationen. Mit BSI-zertifizierter Cloud-TSE, Belegausgabe nach § 146a AO und DSFinV-K-Export. Self-hosted, Mobile-first, kein Cloud-Abo. Quellcode einsehbar (Source-Available).'
 ---
 
 <Landing title={title} description={description}>
@@ -98,7 +98,7 @@ const description =
               ></path>
               <path d="m9 12 2 2 4-4"></path>
             </svg>
-            Fiskalkonform
+            TSE-Anbindung
           </li>
         </ul>
         <div
@@ -184,9 +184,9 @@ const description =
           </span>
           <h3 class="mb-1.5 text-lg font-bold">Voller Funktionsumfang</h3>
           <p class="card-text">
-            Alle Funktionen inklusive Fiskalkonformität. Keine Limits bei
-            Tischen, Produkten oder Benutzern, keine Funktion hinter einer
-            höheren Stufe.
+            Alle Funktionen inklusive der fiskalischen Bausteine: TSE-Anbindung,
+            Belegausgabe und DSFinV-K-Export. Keine Limits bei Tischen,
+            Produkten oder Benutzern, keine Funktion hinter einer höheren Stufe.
           </p>
         </div>
         <div class="card">
@@ -419,7 +419,7 @@ const description =
                 >Fiskalkonformität</th
               >
               <td class="bg-brand-tint font-bold text-foreground">
-                KassenSichV-konform (TSE&nbsp;+&nbsp;DSFinV-K)
+                TSE, Beleg &amp; DSFinV-K integriert
               </td>
               <td>✗</td>
               <td>✓</td>
@@ -984,18 +984,19 @@ const description =
   {/* ============ FISKALKONFORM & SICHER ============ */}
   <section class="bg-surface-alt py-16 sm:py-24" id="fiskalkonform">
     <div class="mx-auto max-w-6xl px-6">
-      <p class="eyebrow mb-3 text-center">Rechtssicher</p>
+      <p class="eyebrow mb-3 text-center">Compliance</p>
       <h2
         class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
       >
-        Finanzamtssicher. Ab Werk.
+        Auf die KassenSichV ausgelegt.
       </h2>
       <p
         class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted"
       >
-        jotti ist ein elektronisches Aufzeichnungssystem nach KassenSichV und
-        erfüllt die TSE-Pflicht nach § 146a AO. Fiskalkonform, ohne Zusatzkosten
-        für die Software.
+        jotti bringt die fiskalischen Bausteine mit: eine BSI-zertifizierte
+        Cloud-TSE, Belegausgabe nach § 146a AO, ein append-only Kassenjournal
+        (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb
+        (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber.
       </p>
 
       <div class="grid gap-x-10 gap-y-7 md:grid-cols-2">
@@ -1104,7 +1105,7 @@ const description =
           <h3 class="mb-1.5 text-lg font-bold">DSFinV-K-Export</h3>
           <p class="card-text">
             Maschinenlesbarer Export aller Kassendaten für die Finanzverwaltung,
-            als ZIP-Archiv nach DSFinV-K v2.5.
+            als ZIP-Archiv nach DSFinV-K v2.4.
           </p>
         </div>
         <div class="card">
@@ -1134,6 +1135,42 @@ const description =
             Umsatzaggregation und Stammdaten-Snapshot.
           </p>
         </div>
+      </div>
+
+      <div
+        class="mt-12 rounded-2xl border border-card-border bg-brand-tint p-6 sm:p-8"
+      >
+        <p class="mb-2 flex items-center gap-2 font-bold">
+          <svg
+            class="text-brand"
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 16v-4"></path>
+            <path d="M12 8h.01"></path>
+          </svg>
+          Verantwortung beim Betreiber
+        </p>
+        <p class="card-text">
+          jotti sichert keine Konformität zu; die Verantwortung für den
+          konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) liegt
+          beim Betreiber. Mehr dazu in den <a
+            href="/docs/compliance/"
+            class="text-brand hover:text-brand-hover">Compliance-Grundlagen</a
+          > und im <a
+            href={leitfadenUrl}
+            class="text-brand hover:text-brand-hover">Leitfaden für Vereine</a
+          >.
+        </p>
       </div>
 
       <div class="mt-12 overflow-hidden rounded-2xl">
@@ -1222,7 +1259,7 @@ const description =
         class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted"
       >
         jotti ist für alle gemeinnützigen Organisationen, die temporäre
-        Gastronomie-Veranstaltungen durchführen, mit voller Fiskalkonformität
+        Gastronomie-Veranstaltungen durchführen, mit integrierter TSE-Anbindung
         und unabhängig von der Rechtsform.
       </p>
       <div class="grid gap-x-10 gap-y-7 md:grid-cols-2">
@@ -1527,8 +1564,8 @@ const description =
         Bereit für euer nächstes Fest?
       </h2>
       <p class="max-w-[480px] text-[1.0625rem] text-white/85">
-        Startet mit dem Leitfaden für Vereine: kostenlos, fiskalkonform und in
-        Minuten einsatzbereit. Der Quellcode ist auf GitHub einsehbar, die
+        Startet mit dem Leitfaden für Vereine: kostenlos, mit TSE-Anbindung und
+        in Minuten einsatzbereit. Der Quellcode ist auf GitHub einsehbar, die
         Nutzung mit kostenloser Vereinbarung.
       </p>
       <div class="flex flex-col gap-4 sm:flex-row">
