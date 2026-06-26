@@ -33,7 +33,11 @@ COMMENT ON COLUMN users.status IS 'Account status: active, inactive, or deleted'
 COMMENT ON COLUMN users.created_at IS 'Creation timestamp (UTC)';
 COMMENT ON COLUMN users.updated_at IS 'Last modification timestamp (UTC)';
 
--- Create first admin user: onetime password set, regular password NULL until first login
+-- Initialer Admin-User für die Ersteinrichtung.
+-- Einmalpasswort (OTP): 123456 (Argon2id-Hash des Klartexts "123456")
+-- Das OTP dient ausschließlich dazu, beim ersten Start ein eigenes Passwort zu setzen
+-- (POST /auth/set-new-password). Ein direkter Login mit dem OTP ist nicht möglich.
+-- Nach dem Passwortsetzen wird das OTP-Hash automatisch gelöscht.
 INSERT INTO users (username, name, role, onetime_password_hash, status, created_at, updated_at) VALUES (
   'admin', 'Administrator', 'admin', '$argon2id$v=19$m=64,t=2,p=2$ekV4Uzg2cUhVTTBUaTJJVw$4Sfsc6eRVIWXSzgNoWaybDBws3c830yC6IMcdUDG1ns', 'active', now(), now()
 );

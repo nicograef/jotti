@@ -27,6 +27,16 @@ Für den Bondruck zusätzlich `jotti-relay.exe` doppelklicken. Den vollständige
 >
 > Greift die grüne Adresse nicht, springt ein Fallback `https://<LAN-IP>` mit selbstsigniertem Zertifikat ein (einmalige Browserwarnung pro Gerät, siehe [Fehlersuche](fehlersuche.md)).
 
+## Erster Login
+
+Beim ersten Start ist noch kein Admin-Passwort gesetzt. Öffne die jotti-Oberfläche und melde dich **nicht** normal an, sondern wähle „Neues Passwort festlegen":
+
+- **Benutzername:** `admin`
+- **Einmalpasswort:** `123456`
+- **Neues Passwort:** ein eigenes, sicheres Passwort wählen
+
+Nach dem Speichern ist das Einmalpasswort ungültig und der Login mit dem neuen Passwort möglich. Dieser Schritt ist einmalig; alle weiteren Admin-Konten legt ihr danach selbst im Admin-Bereich an.
+
 ## Handys der Servicekräfte verbinden
 
 Das Handy ins Vereins-WLAN bringen. Dann den QR-Code von der Status-Seite scannen oder die grüne Adresse eintippen, dann anmelden.
