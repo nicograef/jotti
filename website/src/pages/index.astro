@@ -2,10 +2,64 @@
 import { Image } from 'astro:assets'
 
 import Landing from '../layouts/Landing.astro'
-import dashboard from '../assets/jotti-service-dashboard.webp'
 import bon from '../assets/jotti-bon.webp'
 import jottiSymbol from '../assets/jotti-symbol.png'
+import tischeUebersicht from '../assets/screenshots/service-tische-uebersicht.png'
+import tischBestellen from '../assets/screenshots/tisch-bestellen.png'
+import tischZahlung from '../assets/screenshots/tisch-zahlung.png'
+import tischStornierung from '../assets/screenshots/tisch-stornierung.png'
+import kasseGeldtransit from '../assets/screenshots/kasse-geldtransit.png'
+import produkteVerwalten from '../assets/screenshots/produkte-verwalten.png'
+import benutzerVerwalten from '../assets/screenshots/benutzer-verwalten.png'
+import auswertungHistorisch from '../assets/screenshots/auswertung-historisch.png'
+import direktverkauf from '../assets/screenshots/direktverkauf.png'
 import { githubUrl, leitfadenUrl } from '../lib/links'
+
+// Reihenfolge der Showcase-Sektion „Einblicke" (CSS-Scroll-Snap-Carousel).
+// Service- und Admin-Ansichten gemischt; Alt-Texte stammen aus
+// screenshots/README.md.
+const carouselSlides = [
+  {
+    src: tischeUebersicht,
+    titel: 'Meine Tische',
+    alt: 'jotti Service-Startseite „Meine Tische" mit persönlichen Kennzahlen und den offenen Tisch-Karten samt Saldo und „offen"-Badge.',
+  },
+  {
+    src: tischBestellen,
+    titel: 'Bestellen',
+    alt: 'Bestell-Ansicht von Tisch 4: aufgeklappte Kategorie mit Mengen-Steppern und grüner Aktionsleiste mit 3 Positionen für 14,50 €.',
+  },
+  {
+    src: tischZahlung,
+    titel: 'Kassieren',
+    alt: 'Zahlung-Drawer für Tisch 4 mit Eingabe für Trinkgeld und Erhalten sowie automatisch berechnetem Rückgeld und Trinkgeld.',
+  },
+  {
+    src: tischStornierung,
+    titel: 'Stornieren',
+    alt: 'Storno-Drawer zum positionsweisen Stornieren mit gewähltem Artikel und Pflicht-Kommentar vor „Stornierung erteilen".',
+  },
+  {
+    src: kasseGeldtransit,
+    titel: 'Kassensitzung',
+    alt: 'Offene Kassensitzung mit dem Formular „Geldtransit buchen" zum Erfassen von Einlage oder Entnahme.',
+  },
+  {
+    src: produkteVerwalten,
+    titel: 'Produkte verwalten',
+    alt: 'Produktverwaltung mit aufklappbaren Produkt-Karten, aktiven Varianten samt Preisen und dem Button „+ Neues Produkt".',
+  },
+  {
+    src: auswertungHistorisch,
+    titel: 'Auswertung',
+    alt: 'Historische Auswertung einer Kassensitzung mit vier Kennzahl-Karten, DSFinV-K-Export-Button und der Tabelle „Umsatz nach Steuersatz".',
+  },
+  {
+    src: direktverkauf,
+    titel: 'Direktverkauf',
+    alt: 'Direktverkauf im Reiter „Verkaufen" mit Verkaufszusammenfassung, Kommentarfeld und Button „Verkauf abschließen".',
+  },
+]
 
 const title = 'jotti: Das kostenlose Kassensystem für Vereinsfeste'
 const description =
@@ -136,9 +190,9 @@ const description =
       </div>
       <div class="order-first flex items-center justify-center lg:order-none">
         <Image
-          src={dashboard}
-          alt="jotti Service-Ansicht auf einem Smartphone: Tischübersicht mit offenen Saldi und farbigen Status-Badges"
-          class="w-full max-w-[200px] drop-shadow-xl lg:max-w-[300px]"
+          src={tischeUebersicht}
+          alt="jotti Service-Ansicht auf einem Smartphone: Tischübersicht mit offenen Saldi und „offen“-Badges"
+          class="phone-shot w-full max-w-[200px] lg:max-w-[300px]"
           widths={[200, 300, 400, 600]}
           sizes="(min-width: 1024px) 300px, 200px"
           loading="eager"
@@ -981,8 +1035,117 @@ const description =
     </div>
   </section>
 
+  {/* ============ EINBLICKE (Screenshot-Carousel) ============ */}
+  <section
+    class="bg-surface-alt py-16 sm:py-24"
+    id="einblicke"
+    aria-roledescription="Bildergalerie"
+    aria-label="Einblicke in jotti"
+    data-carousel
+  >
+    <div class="mx-auto max-w-6xl px-6">
+      <p class="eyebrow mb-3 text-center">Einblicke</p>
+      <h2
+        class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
+      >
+        So sieht jotti aus.
+      </h2>
+      <p
+        class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted"
+      >
+        Echte Ansichten aus der Demo „Sommerfest 26" — vom Bestellen am Tisch
+        bis zur Auswertung. Wischen oder mit den Pfeilen blättern.
+      </p>
+    </div>
+
+    <div class="carousel">
+      <ul class="carousel-track" data-carousel-track>
+        {
+          carouselSlides.map((slide) => (
+            <li class="carousel-slide">
+              <figure class="m-0">
+                <Image
+                  src={slide.src}
+                  alt={slide.alt}
+                  class="phone-shot w-full"
+                  widths={[240, 320, 480]}
+                  sizes="(min-width: 640px) 16rem, 70vw"
+                  loading="lazy"
+                />
+                <figcaption class="mt-4 text-center text-sm font-semibold text-brand">
+                  {slide.titel}
+                </figcaption>
+              </figure>
+            </li>
+          ))
+        }
+      </ul>
+
+      <div class="carousel-controls">
+        <button
+          type="button"
+          class="carousel-arrow"
+          data-carousel-prev
+          aria-label="Vorheriges Bild"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+        </button>
+        <ul class="carousel-dots" data-carousel-dots>
+          {
+            carouselSlides.map((slide, index) => (
+              <li>
+                <button
+                  type="button"
+                  class="carousel-dot"
+                  data-carousel-dot
+                  data-index={index}
+                  aria-label={`Zu Bild ${index + 1}: ${slide.titel}`}
+                  aria-current={index === 0 ? 'true' : 'false'}
+                />
+              </li>
+            ))
+          }
+        </ul>
+        <button
+          type="button"
+          class="carousel-arrow"
+          data-carousel-next
+          aria-label="Nächstes Bild"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m9 18 6-6-6-6"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
   {/* ============ Compliance ============ */}
-  <section class="bg-surface-alt py-16 sm:py-24" id="compliance">
+  <section class="py-16 sm:py-24" id="compliance">
     <div class="mx-auto max-w-6xl px-6">
       <p class="eyebrow mb-3 text-center">Compliance</p>
       <h2
@@ -1187,7 +1350,7 @@ const description =
   </section>
 
   {/* ============ SO FUNKTIONIERT'S ============ */}
-  <section class="py-16 sm:py-24" id="so-funktionierts">
+  <section class="bg-surface-alt py-16 sm:py-24" id="so-funktionierts">
     <div class="mx-auto max-w-6xl px-6">
       <p class="eyebrow mb-3 text-center">Schnellstart</p>
       <h2
@@ -1215,6 +1378,14 @@ const description =
             Produkte mit Varianten, Preisen und Steuersätzen anlegen, Tische
             erstellen, Benutzer einladen, Betreiber-Stammdaten pflegen.
           </p>
+          <Image
+            src={produkteVerwalten}
+            alt="Produktverwaltung mit aufklappbaren Produkt-Karten, aktiven Varianten samt Preisen und dem Button „+ Neues Produkt“."
+            class="phone-shot mx-auto mt-6 w-full max-w-[150px]"
+            widths={[150, 300]}
+            sizes="150px"
+            loading="lazy"
+          />
         </li>
         <li
           class="rounded-2xl border border-card-border bg-card p-8 text-center"
@@ -1228,6 +1399,14 @@ const description =
             Jeder Helfer öffnet den Browser auf dem eigenen Smartphone, gibt das
             Einmalpasswort ein und setzt ein eigenes Passwort.
           </p>
+          <Image
+            src={benutzerVerwalten}
+            alt="Benutzerverwaltung als Liste mit Aktiv-Schalter, Rollen-Stern, Erstellungsdatum und dem Button „+ Neuer Benutzer“."
+            class="phone-shot mx-auto mt-6 w-full max-w-[150px]"
+            widths={[150, 300]}
+            sizes="150px"
+            loading="lazy"
+          />
         </li>
         <li
           class="rounded-2xl border border-card-border bg-card p-8 text-center"
@@ -1241,13 +1420,21 @@ const description =
             Bestellungen aufnehmen, Ausgabe bestätigen, kassieren. Am Ende des
             Abends Tagesabschluss und Z-Bon.
           </p>
+          <Image
+            src={tischBestellen}
+            alt="Bestell-Ansicht eines Tisches mit aufgeklappter Kategorie, Mengen-Steppern und grüner Aktionsleiste zum Aufnehmen der Bestellung."
+            class="phone-shot mx-auto mt-6 w-full max-w-[150px]"
+            widths={[150, 300]}
+            sizes="150px"
+            loading="lazy"
+          />
         </li>
       </ol>
     </div>
   </section>
 
   {/* ============ FÜR WEN ============ */}
-  <section class="bg-surface-alt py-16 sm:py-24">
+  <section class="py-16 sm:py-24">
     <div class="mx-auto max-w-6xl px-6">
       <p class="eyebrow mb-3 text-center">Zielgruppe</p>
       <h2
@@ -1339,7 +1526,7 @@ const description =
   </section>
 
   {/* ============ SELBST BETREIBEN & KOSTEN ============ */}
-  <section class="py-16 sm:py-24" id="technik">
+  <section class="bg-surface-alt py-16 sm:py-24" id="technik">
     <div class="mx-auto max-w-6xl px-6">
       <div class="grid items-center gap-12 lg:grid-cols-2">
         <div>
@@ -1407,7 +1594,7 @@ const description =
   </section>
 
   {/* ============ SERVICE (optional, auf Anfrage) ============ */}
-  <section class="bg-surface-alt py-16 sm:py-24" id="service">
+  <section class="py-16 sm:py-24" id="service">
     <div class="mx-auto max-w-6xl px-6">
       <p class="eyebrow mb-3 text-center">Optionale Unterstützung</p>
       <h2
@@ -1603,4 +1790,12 @@ const description =
       </div>
     </div>
   </section>
+
+  {/*
+    Externe Datei aus public/ statt eines gebuendelten <script>: Die Produktiv-CSP
+    (`script-src 'self'`) blockiert Inline-Skripte (siehe mobile-nav.js).
+    is:inline laesst Astro das Tag unveraendert. Das Carousel ist ohne JS voll
+    bedienbar; das Skript ergaenzt nur Pfeile und Punkt-Indikatoren.
+  */}
+  <script is:inline type="module" src="/carousel.js"></script>
 </Landing>
