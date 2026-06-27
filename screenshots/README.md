@@ -17,8 +17,8 @@ rige Route und beschreibt den Screenshot in einem
 
 ## Admin – Verwaltung & Auswertung
 
-- **[Navigation / Sidebar](Screenshot_20260626-22
-4430.png)** (`/admin`) — Das geöffnete Admin-Navi
+- [Navigation / Sidebar](./Screenshot_20260626-22
+4430.png) (`/admin`) — Das geöffnete Admin-Navi
 gationsmenü mit den Bereichen Auswertungen, Verwa
 ltung, Service und Einstellungen samt Dark-Mode-U
 mschalter und „Abmelden", wobei der Punkt „Benutz
