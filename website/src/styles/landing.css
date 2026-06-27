@@ -14,6 +14,10 @@
   --c-foreground: #18231a;
   --c-card: #ffffff;
   --c-card-border: #d8e1d3;
+  /* Kräftigere Kante für Controls (Ghost-Button, Carousel) und Chip-Haarlinien. */
+  --c-control-border: #c4d2bd;
+  /* Gepolsterter Rahmen hinter App-Screenshots (erdet sie gegen den Grund). */
+  --c-screenshot-frame: #d8e1d3;
   --c-muted: #5e6c62;
   --c-surface-alt: #eef4ea;
   /* Akzent-Grün für Text/Icons; hell genug für dunklen Grund im Dark-Mode. */
@@ -25,15 +29,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --c-background: oklch(0.2 0.008 170);
+    --c-background: oklch(0.24 0.008 170);
     --c-foreground: oklch(0.93 0.01 170);
-    --c-card: oklch(0.25 0.01 170);
-    --c-card-border: oklch(0.33 0.012 170);
+    --c-card: oklch(0.32 0.01 170);
+    --c-card-border: oklch(0.46 0.015 170);
+    --c-control-border: oklch(0.58 0.018 170);
+    --c-screenshot-frame: oklch(0.16 0.006 170);
     --c-muted: oklch(0.73 0.015 170);
-    --c-surface-alt: oklch(0.23 0.01 170);
+    --c-surface-alt: oklch(0.28 0.01 170);
     --c-brand: oklch(0.72 0.12 165.612);
     --c-brand-hover: oklch(0.8 0.12 165.612);
-    --c-brand-tint: oklch(0.3 0.06 165.612);
+    --c-brand-tint: oklch(0.34 0.075 165.612);
   }
 }
 
@@ -46,6 +52,8 @@
   --color-foreground: var(--c-foreground);
   --color-card: var(--c-card);
   --color-card-border: var(--c-card-border);
+  --color-control-border: var(--c-control-border);
+  --color-screenshot-frame: var(--c-screenshot-frame);
   --color-muted: var(--c-muted);
   --color-surface-alt: var(--c-surface-alt);
   --color-brand: var(--c-brand);
@@ -82,7 +90,7 @@
   }
 
   .btn-ghost {
-    @apply border-card-border text-foreground hover:border-brand hover:bg-brand-tint hover:text-brand;
+    @apply border-control-border text-foreground hover:border-brand hover:bg-brand-tint hover:text-brand;
   }
 
   .btn-outline {
@@ -116,15 +124,15 @@
   }
 
   .icon-box {
-    @apply mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-tint text-brand;
+    @apply mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-control-border bg-brand-tint text-brand;
   }
 
   .tag {
-    @apply inline-block rounded-full bg-brand-tint px-3.5 py-1.5 text-sm font-semibold text-brand;
+    @apply inline-block rounded-full border border-control-border bg-brand-tint px-3.5 py-1.5 text-sm font-semibold text-brand;
   }
 
   .badge-wip {
-    @apply ml-1.5 inline-block whitespace-nowrap rounded-full bg-brand-tint px-2 py-0.5
+    @apply ml-1.5 inline-block whitespace-nowrap rounded-full border border-control-border bg-brand-tint px-2 py-0.5
       align-middle text-[0.65rem] font-semibold tracking-[0.02em] text-brand;
   }
 
@@ -142,7 +150,7 @@
   /* Einheitlicher Phone-Mockup-Look für alle Oberflächen-Screenshots
      (Hero, Schnellstart-Schritte, Einblicke-Carousel). */
   .phone-shot {
-    @apply h-auto rounded-[1.25rem] border border-card-border shadow-xl;
+    @apply h-auto rounded-[1.25rem] border border-card-border bg-screenshot-frame p-1.5 shadow-xl;
   }
 }
 
@@ -172,9 +180,9 @@
 
   .carousel-arrow {
     @apply inline-flex h-10 w-10 items-center justify-center rounded-full
-      border border-card-border bg-card text-foreground transition-colors
+      border border-control-border bg-card text-foreground transition-colors
       hover:border-brand hover:bg-brand-tint hover:text-brand
-      disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-card-border
+      disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-control-border
       disabled:hover:bg-card disabled:hover:text-foreground;
   }
 
@@ -183,7 +191,7 @@
   }
 
   .carousel-dot {
-    @apply h-2.5 w-2.5 rounded-full bg-card-border transition-colors hover:bg-brand;
+    @apply h-2.5 w-2.5 rounded-full bg-control-border transition-colors hover:bg-brand;
   }
 
   .carousel-dot[aria-current='true'] {
