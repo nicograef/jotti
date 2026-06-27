@@ -138,4 +138,55 @@
       ),
       var(--c-background);
   }
+
+  /* Einheitlicher Phone-Mockup-Look für alle Oberflächen-Screenshots
+     (Hero, Schnellstart-Schritte, Einblicke-Carousel). */
+  .phone-shot {
+    @apply h-auto rounded-[1.25rem] border border-card-border shadow-xl;
+  }
+}
+
+/* ============ Einblicke: Screenshot-Carousel ============ */
+@layer components {
+  /* Voll-bleed Track: die Phone-Mockups scrollen horizontal mit
+     Scroll-Snap. Ohne JS bereits voll bedienbar (Wischen/Scrollen);
+     carousel.js ergänzt nur Pfeile und Punkt-Indikatoren. */
+  .carousel-track {
+    @apply flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pt-2 pb-4;
+    scroll-padding-inline: 1.5rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .carousel-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .carousel-slide {
+    @apply w-[70vw] max-w-64 shrink-0 snap-center sm:w-64;
+  }
+
+  .carousel-controls {
+    @apply mt-6 flex items-center justify-center gap-4;
+  }
+
+  .carousel-arrow {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-full
+      border border-card-border bg-card text-foreground transition-colors
+      hover:border-brand hover:bg-brand-tint hover:text-brand
+      disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-card-border
+      disabled:hover:bg-card disabled:hover:text-foreground;
+  }
+
+  .carousel-dots {
+    @apply flex items-center gap-2;
+  }
+
+  .carousel-dot {
+    @apply h-2.5 w-2.5 rounded-full bg-card-border transition-colors hover:bg-brand;
+  }
+
+  .carousel-dot[aria-current='true'] {
+    @apply w-6 bg-brand;
+  }
 }
