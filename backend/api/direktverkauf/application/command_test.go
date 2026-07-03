@@ -347,6 +347,28 @@ func TestDirektverkaufStornieren_UeberVerfuegbareMenge(t *testing.T) {
 	}
 }
 
+func TestDirektverkaufStornieren_DuplikatPositionRefs(t *testing.T) {
+	// Duplikate sind per se ungültig — auch wenn die Summe der Mengen (1+1) die
+	// verfügbare Menge (3) nicht übersteigt.
+	for _, menge := range []int{2, 1} {
+		getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 3)
+		spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}
+		command := newCommand(spy, testOpenKS)
+
+		refs := []kasse.PositionRef{
+			{PositionID: positionID, Menge: menge},
+			{PositionID: positionID, Menge: menge},
+		}
+		err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, refs, "Duplikat")
+		if err != ErrPositionNichtStornierbar {
+			t.Fatalf("menge %d: expected ErrPositionNichtStornierbar, got %v", menge, err)
+		}
+		if len(spy.written) != 0 {
+			t.Fatalf("menge %d: expected no event written, got %d", menge, len(spy.written))
+		}
+	}
+}
+
 func TestDirektverkaufStornieren_WritesStornoEventWithNextVersion(t *testing.T) {
 	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 2)
 	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}

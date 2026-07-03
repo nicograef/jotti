@@ -717,6 +717,97 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 	}
 }
 
+// duplikatTestSession liefert eine Tisch-Session mit einer Position (Menge 3),
+// unbezahlt und ausstehend, für die Duplikat-Ablehnungstests.
+func duplikatTestSession() kasse.TischSession {
+	pos := kasse.Position{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 3}
+	return kasse.TischSession{
+		SaldoCents:            1050,
+		UnbezahltePositionen:  []kasse.Position{pos},
+		AusstehendePositionen: []kasse.Position{pos},
+	}
+}
+
+// Duplikate sind per se ungültig — auch wenn die Summe der Mengen (1+1) die
+// verfügbare Menge (3) nicht übersteigt.
+var duplikatRefs = []kasse.PositionRef{
+	{PositionID: "pos-1", Menge: 1},
+	{PositionID: "pos-1", Menge: 1},
+}
+
+func TestZahlungKassieren_DuplikatPositionRefs(t *testing.T) {
+	ctx := context.Background()
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.SetTischSession(kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID), duplikatTestSession())
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, duplikatRefs, "")
+	if err != ErrPositionNichtBezahlbar {
+		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
+	}
+}
+
+func TestAusgabeBestaetigen_DuplikatPositionRefs(t *testing.T) {
+	ctx := context.Background()
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.SetTischSession(kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID), duplikatTestSession())
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.AusgabeBestaetigen(ctx, 1, "Test User", testActiveTisch.ID, duplikatRefs, "")
+	if err != ErrPositionNichtAusgebbar {
+		t.Fatalf("expected ErrPositionNichtAusgebbar, got %v", err)
+	}
+}
+
+func TestStornierungErteilen_DuplikatPositionRefs(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User",
+		[]kasse.Position{
+			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 3},
+		}, "")
+
+	var orderData struct {
+		Positionen []struct {
+			PositionID string `json:"positionId"`
+		} `json:"positionen"`
+	}
+	if err := json.Unmarshal(orderEvent.Data, &orderData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	posID := orderData.Positionen[0].PositionID
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.SetTischSession(subject, duplikatTestSession())
+	orderEvent.Subject = subject
+	eventMock.AddEvent(orderEvent)
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	refs := []kasse.PositionRef{
+		{PositionID: posID, Menge: 1},
+		{PositionID: posID, Menge: 1},
+	}
+
+	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "Duplikat")
+	if err != ErrPositionNichtStornierbar {
+		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
+	}
+}
+
 func TestZahlungKassieren_MitTSESignaturImEvent(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)

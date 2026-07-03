@@ -42,7 +42,8 @@ type zahlungRest struct {
 // Zahlung zuerst) zugeordnet und je Zahlung als Warenrücknahme zurückgenommen. Pro
 // Position wird zuerst die unbezahlte Menge korrigiert, der Rest aus den Zahlungen
 // genommen. Der zweite Rückgabewert ist false, wenn eine angeforderte Menge die noch
-// stornierbare (bestellte, nicht bereits zurückgenommene) Menge übersteigt.
+// stornierbare (bestellte, nicht bereits zurückgenommene) Menge übersteigt oder eine
+// PositionID mehrfach referenziert wird (kein legitimer Client sendet Duplikate).
 func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAufteilung, bool) {
 	details := map[string]Position{}
 	unbezahlt := map[string]int{}
@@ -124,7 +125,13 @@ func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAuftei
 	}
 
 	var aufteilung StornoAufteilung
+	seen := make(map[string]bool, len(refs))
 	for _, ref := range refs {
+		if seen[ref.PositionID] {
+			return StornoAufteilung{}, false
+		}
+		seen[ref.PositionID] = true
+
 		det, ok := details[ref.PositionID]
 		if !ok {
 			return StornoAufteilung{}, false

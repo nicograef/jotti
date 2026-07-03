@@ -196,10 +196,16 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 	return nil
 }
 
-// validatePositionRefs checks that every requested PositionRef exists in the available positions
-// and that the requested Menge does not exceed the available Menge.
+// validatePositionRefs checks that every requested PositionRef exists in the available positions,
+// that no PositionID is referenced more than once (duplicates would add up unnoticed), and that
+// the requested Menge does not exceed the available Menge.
 func validatePositionRefs(available []kasse.Position, requested []kasse.PositionRef) bool {
+	seen := make(map[string]bool, len(requested))
 	for _, ref := range requested {
+		if seen[ref.PositionID] {
+			return false
+		}
+		seen[ref.PositionID] = true
 		found := false
 		for _, pos := range available {
 			if pos.PositionID == ref.PositionID {
