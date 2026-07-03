@@ -12,6 +12,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/rs/zerolog"
 )
 
@@ -313,6 +314,10 @@ func writeVersionedEvent(ctx context.Context, e event.Event, subject string, exp
 		if errors.Is(err, db.ErrAlreadyExists) {
 			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC conflict")
 			return ErrConflict
+		}
+		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
+			zerolog.Ctx(ctx).Warn().Str("subject", subject).Msg("Kassensitzung nicht mehr offen")
+			return ErrKasseNichtGeoeffnet
 		}
 		return err
 	}

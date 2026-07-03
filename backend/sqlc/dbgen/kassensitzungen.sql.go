@@ -80,6 +80,21 @@ func (q *Queries) GetKassenbestand(ctx context.Context, kassensitzungNr int) (in
 	return soll_bestand_cents, err
 }
 
+const getKassensitzungStatusForShare = `-- name: GetKassensitzungStatusForShare :one
+SELECT status FROM kassensitzungen WHERE z_nr = $1 FOR SHARE
+`
+
+// Status-Guard für Event-Writes: sperrt die Kassensitzungs-Zeile mit FOR SHARE,
+// damit ein paralleler Tagesabschluss (UPDATE = FOR UPDATE) erst nach Commit der
+// laufenden Event-Transaktion durchkommt — und umgekehrt spätere Writes den neuen
+// Status sehen.
+func (q *Queries) GetKassensitzungStatusForShare(ctx context.Context, zNr int) (string, error) {
+	row := q.db.QueryRowContext(ctx, getKassensitzungStatusForShare, zNr)
+	var status string
+	err := row.Scan(&status)
+	return status, err
+}
+
 const getOffeneKassensitzung = `-- name: GetOffeneKassensitzung :one
 SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
 FROM kassensitzungen WHERE status = 'offen' LIMIT 1

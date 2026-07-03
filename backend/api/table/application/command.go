@@ -122,6 +122,10 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 				Msg("OCC conflict")
 			return 0, ErrConflict
 		}
+		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
+			zerolog.Ctx(ctx).Warn().Str("subject", subject).Msg("Kassensitzung nicht mehr offen")
+			return 0, ErrKasseNichtGeoeffnet
+		}
 		return 0, err
 	}
 
@@ -628,6 +632,10 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 
 	err = c.EventRepo.WriteUmbuchung(ctx, quellSigniert, zielSigniert, nachsignierungen, ks.ZNr)
 	if err != nil {
+		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
+			log.Warn().Int("quell_tisch_id", quellTischID).Msg("Kassensitzung nicht mehr offen")
+			return ErrKasseNichtGeoeffnet
+		}
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().
 				Int("quell_version", quellSigniert.Version).
@@ -798,6 +806,10 @@ func (c Command) persistStornoEvents(ctx context.Context, signierungen []tseApp.
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Int("tisch_id", tischID).Str("subject", subject).Msg("OCC conflict bei Stornierung")
 			return ErrConflict
+		}
+		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
+			log.Warn().Int("tisch_id", tischID).Msg("Kassensitzung nicht mehr offen")
+			return ErrKasseNichtGeoeffnet
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write stornierung events")
 		return ErrDatabase
