@@ -93,26 +93,31 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 
 	wantRecords := map[string][][]string{
 		"transactions_vat.csv": {
-			{testSerial, erstellung, "3", testBonID, "1", "9.00", "7.56", "1.44"},
-			{testSerial, erstellung, "3", testBonID, "2", "1.50", "1.40", "0.10"},
+			{testSerial, erstellung, "3", testBonID, "1", "9,00", "7,56", "1,44"},
+			{testSerial, erstellung, "3", testBonID, "2", "1,50", "1,40", "0,10"},
 		},
 		"lines.csv": {
-			{testSerial, erstellung, "3", testBonID, "1", "", "Bier 0,5l", "", "Umsatz", "", "", "0", "0", "101", "", "getraenk", "getraenk", "2.000", "", "", "4.50"},
-			{testSerial, erstellung, "3", testBonID, "2", "", "Brezel", "", "Umsatz", "", "", "0", "0", "202", "", "essen", "essen", "1.000", "", "", "1.50"},
+			{testSerial, erstellung, "3", testBonID, "1", "", "Bier 0,5l", "", "Umsatz", "", "", "0", "0", "101", "", "getraenk", "getraenk", "2,000", "", "", "4,50"},
+			{testSerial, erstellung, "3", testBonID, "2", "", "Brezel", "", "Umsatz", "", "", "0", "0", "202", "", "essen", "essen", "1,000", "", "", "1,50"},
 		},
 		"lines_vat.csv": {
-			{testSerial, erstellung, "3", testBonID, "1", "1", "9.00", "7.56", "1.44"},
-			{testSerial, erstellung, "3", testBonID, "2", "2", "1.50", "1.40", "0.10"},
+			{testSerial, erstellung, "3", testBonID, "1", "1", "9,00", "7,56", "1,44"},
+			{testSerial, erstellung, "3", testBonID, "2", "2", "1,50", "1,40", "0,10"},
 		},
 		"transactions_tse.csv": {
 			{testSerial, erstellung, "3", testBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "SIGBASE64==", "", "V0;keydata"},
 		},
 		"vat.csv": {
-			{testSerial, erstellung, "3", "1", "19.00", "Allgemeiner Steuersatz"},
-			{testSerial, erstellung, "3", "2", "7.00", "Ermäßigter Steuersatz"},
+			{testSerial, erstellung, "3", "1", "19,00", "Allgemeiner Steuersatz"},
+			{testSerial, erstellung, "3", "2", "7,00", "Ermäßigter Steuersatz"},
+			{testSerial, erstellung, "3", "3", "10,70", "Durchschnittsatz (§ 24 Abs. 1 Nr. 3 UStG)"},
+			{testSerial, erstellung, "3", "4", "5,50", "Durchschnittsatz (§ 24 Abs. 1 Nr. 1 UStG)"},
+			{testSerial, erstellung, "3", "5", "0,00", "Nicht Steuerbar"},
+			{testSerial, erstellung, "3", "6", "0,00", "Umsatzsteuerfrei"},
+			{testSerial, erstellung, "3", "7", "0,00", "UmsatzsteuerNichtErmittelbar"},
 		},
 		"tse.csv": {
-			{testSerial, erstellung, "3", "1", "abc123serial", "ecdsa-plain-SHA256", "utcTime", "UTF-8", "PUBKEY==", "CERTBASE64", "", "", "", ""},
+			{testSerial, erstellung, "3", "1", "abc123serial", "ecdsa-plain-SHA256", "unixTime", "UTF-8", "PUBKEY==", "CERTBASE64", ""},
 		},
 		"location.csv": {
 			{testSerial, erstellung, "3", "TSV Beispiel", "Hauptstr. 1", "12345", "Musterdorf", "DEU", ""},
@@ -121,7 +126,7 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 			{testSerial, erstellung, "3", "jotti", "jotti mPOS", testSerial, "jotti", "1.0", "EUR", ""},
 		},
 		"cashpointclosing.csv": {
-			{testSerial, erstellung, "3", "2026-06-16", "2.4", testBonID, testBonID, "TSV Beispiel", "Hauptstr. 1", "12345", "Musterdorf", "DEU", "12345/67890", "", "10.50", "10.50"},
+			{testSerial, erstellung, "3", "2026-06-16", "2.4", testBonID, testBonID, "TSV Beispiel", "Hauptstr. 1", "12345", "Musterdorf", "DEU", "12345/67890", "", "10,50", "10,50"},
 		},
 	}
 
@@ -149,7 +154,7 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 		"BON_ENDE":      "2026-06-16T12:00:00Z",
 		"BEDIENER_ID":   "7",
 		"BEDIENER_NAME": "anna",
-		"UMS_BRUTTO":    "10.50",
+		"UMS_BRUTTO":    "10,50",
 	}
 	for name, want := range checks {
 		if got := field(t, transactions, 0, name); got != want {
@@ -158,40 +163,34 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 	}
 }
 
-// TestMapLangesZertifikatVollstaendig stellt sicher, dass ein Zertifikat von mehr
-// als 2.000 Zeichen vollständig über die fünf TSE_ZERTIFIKAT-Felder (I…V)
-// ausgegeben und nicht still abgeschnitten wird (Stamm_TSE).
-func TestMapLangesZertifikatVollstaendig(t *testing.T) {
-	const certLen = 2500 // Chunks à 1000 → I, II voll, III halb, IV/V leer
-	cert := strings.Repeat("A", certLen)
-
+// TestMapZertifikatChunking prüft die amtlichen zwei TSE_ZERTIFIKAT-Felder:
+// Ein Zertifikat bis 2.000 Zeichen wird vollständig auf I/II verteilt; ein
+// längeres wird NICHT abgeschnitten, sondern beide Felder bleiben leer (das
+// vollständige Zertifikat liegt in den TSE-Stammdaten und im TSE-Export vor).
+func TestMapZertifikatChunking(t *testing.T) {
+	passt := strings.Repeat("A", 1500)
 	snap := testSnapshot()
-	snap.TSEStammdaten.Zertifikat = cert
+	snap.TSEStammdaten.Zertifikat = passt
 
 	archive, err := Map(snap, []event.Event{barverkaufEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
 	tse := tableByFile(t, archive, "tse.csv")
-
-	var gotCert string
-	belegt := 0
-	for _, name := range []string{"TSE_ZERTIFIKAT_I", "TSE_ZERTIFIKAT_II", "TSE_ZERTIFIKAT_III", "TSE_ZERTIFIKAT_IV", "TSE_ZERTIFIKAT_V"} {
-		chunk := field(t, tse, 0, name)
-		if len(chunk) > zertifikatChunk {
-			t.Errorf("%s = %d Zeichen, höchstens %d erlaubt", name, len(chunk), zertifikatChunk)
-		}
-		if chunk != "" {
-			belegt++
-		}
-		gotCert += chunk
+	gotCert := field(t, tse, 0, "TSE_ZERTIFIKAT_I") + field(t, tse, 0, "TSE_ZERTIFIKAT_II")
+	if gotCert != passt {
+		t.Errorf("zusammengesetztes Zertifikat = %d Zeichen, want %d", len(gotCert), len(passt))
 	}
 
-	if gotCert != cert {
-		t.Errorf("zusammengesetztes Zertifikat = %d Zeichen, want %d (abgeschnitten?)", len(gotCert), certLen)
+	zuLang := strings.Repeat("B", 2500)
+	snap.TSEStammdaten.Zertifikat = zuLang
+	archive, err = Map(snap, []event.Event{barverkaufEvent(t)}, nil)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
 	}
-	if belegt != 3 {
-		t.Errorf("Zertifikat mit %d Zeichen sollte 3 Felder belegen, belegt: %d", certLen, belegt)
+	tse = tableByFile(t, archive, "tse.csv")
+	if field(t, tse, 0, "TSE_ZERTIFIKAT_I") != "" || field(t, tse, 0, "TSE_ZERTIFIKAT_II") != "" {
+		t.Error("Zertifikat > 2000 Zeichen darf nicht abgeschnitten exportiert werden — Felder müssen leer bleiben")
 	}
 }
 
@@ -308,14 +307,14 @@ func TestMapTischablaufTrennt(t *testing.T) {
 		},
 		// Nur die Zahlung ist geldwirksam: die AVBestellung trägt keine Zahlart bei.
 		"datapayment.csv": {
-			{testSerial, erstellung, "3", zahlungBonID, "Bar", "Bar", "EUR", "4.50", "4.50"},
+			{testSerial, erstellung, "3", zahlungBonID, "Bar", "Bar", "EUR", "4,50", "4,50"},
 		},
 		// Umsatz entsteht genau einmal (bei der Zahlung), keine Verdopplung.
 		"businesscases.csv": {
-			{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "4.50", "3.78", "0.72"},
+			{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "4,50", "3,78", "0,72"},
 		},
 		"payment.csv": {
-			{testSerial, erstellung, "3", "Bar", "Bar", "4.50"},
+			{testSerial, erstellung, "3", "Bar", "Bar", "4,50"},
 		},
 	}
 
@@ -336,12 +335,13 @@ func TestMapTischablaufTrennt(t *testing.T) {
 		}
 	}
 
-	// lines.csv hält die Bestellpositionen informativ (mit Preis, GV_TYP=Umsatz).
+	// lines.csv hält die Bestellpositionen informativ (mit Preis); die geldneutrale
+	// AVBestellung trägt keinen GV_TYP — sie ist kein Umsatz-Geschäftsvorfall.
 	lines := tableByFile(t, archive, "lines.csv")
-	if got := field(t, lines, 0, "GV_TYP"); got != "Umsatz" {
-		t.Errorf("bestellung GV_TYP = %q, want Umsatz", got)
+	if got := field(t, lines, 0, "GV_TYP"); got != "" {
+		t.Errorf("bestellung GV_TYP = %q, want leer (geldneutrale AVBestellung)", got)
 	}
-	if got := field(t, lines, 0, "STK_BR"); got != "4.50" {
+	if got := field(t, lines, 0, "STK_BR"); got != "4,50" {
 		t.Errorf("bestellung STK_BR = %q, want 4.50 (informativer Preis)", got)
 	}
 	if got := field(t, lines, 1, "GV_TYP"); got != "Umsatz" {
@@ -354,19 +354,19 @@ func TestMapTischablaufTrennt(t *testing.T) {
 	if got := field(t, transactions, 0, "BON_TYP"); got != "AVBestellung" {
 		t.Errorf("bestellung BON_TYP = %q, want AVBestellung", got)
 	}
-	if got := field(t, transactions, 0, "UMS_BRUTTO"); got != "0.00" {
+	if got := field(t, transactions, 0, "UMS_BRUTTO"); got != "0,00" {
 		t.Errorf("bestellung UMS_BRUTTO = %q, want 0.00", got)
 	}
 	if got := field(t, transactions, 1, "BON_TYP"); got != "Beleg" {
 		t.Errorf("zahlung BON_TYP = %q, want Beleg", got)
 	}
-	if got := field(t, transactions, 1, "UMS_BRUTTO"); got != "4.50" {
+	if got := field(t, transactions, 1, "UMS_BRUTTO"); got != "4,50" {
 		t.Errorf("zahlung UMS_BRUTTO = %q, want 4.50", got)
 	}
 
 	// Nur die Barzahlung fließt in den Kassenbestand, nicht die AVBestellung.
 	closing := tableByFile(t, archive, "cashpointclosing.csv")
-	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "4.50" {
+	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "4,50" {
 		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 4.50 (nur Zahlung, nicht AVBestellung)", got)
 	}
 }
@@ -531,20 +531,20 @@ func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 	if got := field(t, transactions, 0, "BON_STORNO"); got != "0" {
 		t.Errorf("ursprung BON_STORNO = %q, want 0", got)
 	}
-	if got := field(t, transactions, 0, "UMS_BRUTTO"); got != "0.00" {
+	if got := field(t, transactions, 0, "UMS_BRUTTO"); got != "0,00" {
 		t.Errorf("ursprung UMS_BRUTTO = %q, want 0.00", got)
 	}
 	if got := field(t, transactions, 1, "BON_STORNO"); got != "0" {
 		t.Errorf("korrektur BON_STORNO = %q, want 0", got)
 	}
-	if got := field(t, transactions, 1, "UMS_BRUTTO"); got != "0.00" {
+	if got := field(t, transactions, 1, "UMS_BRUTTO"); got != "0,00" {
 		t.Errorf("korrektur UMS_BRUTTO = %q, want 0.00", got)
 	}
 
 	// Positionsebene: negierte MENGE statt P_STORNO-Flag (DSFinV-K Tz. 4.2.3); der
 	// informative Preis bleibt erhalten.
 	lines := tableByFile(t, archive, "lines.csv")
-	if got := field(t, lines, 1, "MENGE"); got != "-1.000" {
+	if got := field(t, lines, 1, "MENGE"); got != "-1,000" {
 		t.Errorf("korrektur MENGE = %q, want -1.000", got)
 	}
 	if got := field(t, lines, 1, "P_STORNO"); got != "0" {
@@ -574,8 +574,8 @@ func TestMapWarenruecknahmeNegativeWithZahlungReference(t *testing.T) {
 		},
 		// Negative Bar-Rückgabe, gegenläufig zur Zahlung.
 		"datapayment.csv": {
-			{testSerial, erstellung, "3", zahlungBonID, "Bar", "Bar", "EUR", "4.50", "4.50"},
-			{testSerial, erstellung, "3", stornoBonID, "Bar", "Bar", "EUR", "-4.50", "-4.50"},
+			{testSerial, erstellung, "3", zahlungBonID, "Bar", "Bar", "EUR", "4,50", "4,50"},
+			{testSerial, erstellung, "3", stornoBonID, "Bar", "Bar", "EUR", "-4,50", "-4,50"},
 		},
 	}
 
@@ -595,19 +595,19 @@ func TestMapWarenruecknahmeNegativeWithZahlungReference(t *testing.T) {
 	if got := field(t, transactions, 2, "BON_STORNO"); got != "0" {
 		t.Errorf("warenruecknahme BON_STORNO = %q, want 0", got)
 	}
-	if got := field(t, transactions, 2, "UMS_BRUTTO"); got != "-4.50" {
+	if got := field(t, transactions, 2, "UMS_BRUTTO"); got != "-4,50" {
 		t.Errorf("warenruecknahme UMS_BRUTTO = %q, want -4.50", got)
 	}
 
 	// Der Bargeldbestand gleicht sich aus: Zahlung +4.50, Warenrücknahme −4.50.
 	closing := tableByFile(t, archive, "cashpointclosing.csv")
-	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "0.00" {
+	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "0,00" {
 		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 0.00 (Zahlung und Rückgabe heben sich auf)", got)
 	}
 
 	// Umsatz je Steuersatz saldiert sich auf 0 (Zahlung +, Warenrücknahme −).
 	businesscases := tableByFile(t, archive, "businesscases.csv")
-	if got := field(t, businesscases, 0, "Z_UMS_BRUTTO"); got != "0.00" {
+	if got := field(t, businesscases, 0, "Z_UMS_BRUTTO"); got != "0,00" {
 		t.Errorf("businesscases Z_UMS_BRUTTO = %q, want 0.00", got)
 	}
 }
@@ -709,14 +709,14 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 		if got := field(t, transactions, row, "BON_STORNO"); got != "0" {
 			t.Errorf("umbuchung[%d] BON_STORNO = %q, want 0", row, got)
 		}
-		if got := field(t, transactions, row, "UMS_BRUTTO"); got != "0.00" {
+		if got := field(t, transactions, row, "UMS_BRUTTO"); got != "0,00" {
 			t.Errorf("umbuchung[%d] UMS_BRUTTO = %q, want 0.00", row, got)
 		}
 	}
 
 	// Kein Bargeld bewegt sich durch die Umbuchung.
 	closing := tableByFile(t, archive, "cashpointclosing.csv")
-	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "0.00" {
+	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "0,00" {
 		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 0.00 (Umbuchung ist geldneutral)", got)
 	}
 }
@@ -773,16 +773,21 @@ func TestMapKombiSteuerSplit(t *testing.T) {
 
 	wantRecords := map[string][][]string{
 		"lines_vat.csv": {
-			{testSerial, erstellung, "3", kombiBonID, "1", "2", "3.51", "3.28", "0.23"},
-			{testSerial, erstellung, "3", kombiBonID, "1", "1", "1.50", "1.26", "0.24"},
+			{testSerial, erstellung, "3", kombiBonID, "1", "2", "3,51", "3,28", "0,23"},
+			{testSerial, erstellung, "3", kombiBonID, "1", "1", "1,50", "1,26", "0,24"},
 		},
 		"transactions_vat.csv": {
-			{testSerial, erstellung, "3", kombiBonID, "1", "1.50", "1.26", "0.24"},
-			{testSerial, erstellung, "3", kombiBonID, "2", "3.51", "3.28", "0.23"},
+			{testSerial, erstellung, "3", kombiBonID, "1", "1,50", "1,26", "0,24"},
+			{testSerial, erstellung, "3", kombiBonID, "2", "3,51", "3,28", "0,23"},
 		},
 		"vat.csv": {
-			{testSerial, erstellung, "3", "1", "19.00", "Allgemeiner Steuersatz"},
-			{testSerial, erstellung, "3", "2", "7.00", "Ermäßigter Steuersatz"},
+			{testSerial, erstellung, "3", "1", "19,00", "Allgemeiner Steuersatz"},
+			{testSerial, erstellung, "3", "2", "7,00", "Ermäßigter Steuersatz"},
+			{testSerial, erstellung, "3", "3", "10,70", "Durchschnittsatz (§ 24 Abs. 1 Nr. 3 UStG)"},
+			{testSerial, erstellung, "3", "4", "5,50", "Durchschnittsatz (§ 24 Abs. 1 Nr. 1 UStG)"},
+			{testSerial, erstellung, "3", "5", "0,00", "Nicht Steuerbar"},
+			{testSerial, erstellung, "3", "6", "0,00", "Umsatzsteuerfrei"},
+			{testSerial, erstellung, "3", "7", "0,00", "UmsatzsteuerNichtErmittelbar"},
 		},
 	}
 
@@ -890,8 +895,8 @@ func TestMapDirektverkaufUndStorno(t *testing.T) {
 			{testSerial, erstellung, "3", direktverkaufStornoBonID, "", "Transaktion", "", erstellung, testSerial, "3", direktverkaufBonID},
 		},
 		"datapayment.csv": {
-			{testSerial, erstellung, "3", direktverkaufBonID, "Bar", "Bar", "EUR", "4.50", "4.50"},
-			{testSerial, erstellung, "3", direktverkaufStornoBonID, "Bar", "Bar", "EUR", "-4.50", "-4.50"},
+			{testSerial, erstellung, "3", direktverkaufBonID, "Bar", "Bar", "EUR", "4,50", "4,50"},
+			{testSerial, erstellung, "3", direktverkaufStornoBonID, "Bar", "Bar", "EUR", "-4,50", "-4,50"},
 		},
 	}
 
@@ -1032,17 +1037,17 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 		// Zahlungen) vor den nicht-steuerbaren Bargeldbewegungen (Schlüssel 5). Die
 		// geldneutrale AVBestellung erzeugt keine eigene Geschäftsvorfall-Zeile.
 		"businesscases.csv": {
-			{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "9.00", "7.56", "1.44"},
-			{testSerial, erstellung, "3", "Anfangsbestand", "", "0", "5", "100.00", "100.00", "0.00"},
-			{testSerial, erstellung, "3", "Geldtransit", "", "0", "5", "-50.00", "-50.00", "0.00"},
-			{testSerial, erstellung, "3", "DifferenzSollIst", "", "0", "5", "-1.00", "-1.00", "0.00"},
+			{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "9,00", "7,56", "1,44"},
+			{testSerial, erstellung, "3", "Anfangsbestand", "", "0", "5", "100,00", "100,00", "0,00"},
+			{testSerial, erstellung, "3", "Geldtransit", "", "0", "5", "-50,00", "-50,00", "0,00"},
+			{testSerial, erstellung, "3", "DifferenzSollIst", "", "0", "5", "-1,00", "-1,00", "0,00"},
 		},
 		// Bar = 100 + 4,50 + 4,50 − 50 − 1 = 58,00; die AVBestellung trägt nichts bei.
 		"payment.csv": {
-			{testSerial, erstellung, "3", "Bar", "Bar", "58.00"},
+			{testSerial, erstellung, "3", "Bar", "Bar", "58,00"},
 		},
 		"cash_per_currency.csv": {
-			{testSerial, erstellung, "3", "EUR", "58.00"},
+			{testSerial, erstellung, "3", "EUR", "58,00"},
 		},
 	}
 
@@ -1087,12 +1092,13 @@ func summe(t *testing.T, a Archive, file, spalte string) int {
 	return total
 }
 
-// centsAus parst einen DSFinV-K-Dezimalbetrag ("−50.00") zurück nach Cent.
+// centsAus parst einen DSFinV-K-Dezimalbetrag ("−50,00", Komma laut amtlicher
+// index.xml) zurück nach Cent.
 func centsAus(t *testing.T, s string) int {
 	t.Helper()
 	neg := strings.HasPrefix(s, "-")
 	s = strings.TrimPrefix(s, "-")
-	ganz, frac, ok := strings.Cut(s, ".")
+	ganz, frac, ok := strings.Cut(s, ",")
 	if !ok {
 		t.Fatalf("kein Dezimalbetrag: %q", s)
 	}
@@ -1366,24 +1372,26 @@ func TestErstellungszeitpunkt(t *testing.T) {
 	}
 }
 
-func TestMapDeclaresOnlyPresentTables(t *testing.T) {
+func TestMapErzeugtAlle20AmtlichenTabellen(t *testing.T) {
 	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
 
+	// Reihenfolge und Umfang der amtlichen index.xml; nicht befüllte Tabellen
+	// (slaves, pa, itemamounts, subitems) sind Header-only enthalten.
 	want := []string{
-		"cashpointclosing.csv", "location.csv", "cashregister.csv", "vat.csv", "tse.csv",
-		"transactions.csv", "allocation_groups.csv", "transactions_vat.csv", "datapayment.csv",
-		"references.csv", "lines.csv", "lines_vat.csv", "transactions_tse.csv",
-		"businesscases.csv", "payment.csv", "cash_per_currency.csv",
+		"cashpointclosing.csv", "location.csv", "cashregister.csv", "slaves.csv", "pa.csv",
+		"tse.csv", "vat.csv", "businesscases.csv", "payment.csv", "cash_per_currency.csv",
+		"transactions.csv", "datapayment.csv", "lines.csv", "itemamounts.csv", "subitems.csv",
+		"transactions_tse.csv", "transactions_vat.csv", "lines_vat.csv", "allocation_groups.csv", "references.csv",
 	}
 
 	var got []string
 	for _, tbl := range archive.Tables() {
 		got = append(got, tbl.File)
-		if tbl.File == "slaves.csv" || tbl.File == "pa.csv" {
-			t.Errorf("archive must not contain %s", tbl.File)
+		if (tbl.File == "slaves.csv" || tbl.File == "pa.csv" || tbl.File == "itemamounts.csv" || tbl.File == "subitems.csv") && len(tbl.Records) != 0 {
+			t.Errorf("%s muss Header-only sein, hat %d Zeilen", tbl.File, len(tbl.Records))
 		}
 	}
 	if !reflect.DeepEqual(got, want) {

@@ -68,28 +68,29 @@ func storno(b bool) string {
 	return "0"
 }
 
-// formatAmount stellt einen Cent-Betrag als Dezimalzahl mit Punkt und zwei
-// Nachkommastellen dar, z. B. 500 -> "5.00", -150 -> "-1.50". Zwei Stellen sind
-// der DSFinV-K-Regelfall (technisch bis fünf zulässig); intern wird durchgehend
-// in Cent gerechnet, erst hier dezimal dargestellt.
+// formatAmount stellt einen Cent-Betrag als Dezimalzahl mit KOMMA und zwei
+// Nachkommastellen dar, z. B. 500 -> "5,00", -150 -> "-1,50". Das Komma ist
+// durch die amtliche index.xml vorgegeben (DecimalSymbol ","); zwei Stellen
+// sind der DSFinV-K-Regelfall (technisch bis fünf zulässig). Intern wird
+// durchgehend in Cent gerechnet, erst hier dezimal dargestellt.
 func formatAmount(cents int) string {
 	sign := ""
 	if cents < 0 {
 		sign = "-"
 		cents = -cents
 	}
-	return fmt.Sprintf("%s%d.%02d", sign, cents/100, cents%100)
+	return fmt.Sprintf("%s%d,%02d", sign, cents/100, cents%100)
 }
 
 // formatQuantity stellt eine Stückzahl mit drei Nachkommastellen dar (MENGE).
 func formatQuantity(menge int) string {
-	return fmt.Sprintf("%d.000", menge)
+	return fmt.Sprintf("%d,000", menge)
 }
 
 // formatPercent stellt einen Steuersatz als Prozentwert mit zwei Nachkommastellen
 // dar, z. B. 19 -> "19.00".
 func formatPercent(prozent int) string {
-	return fmt.Sprintf("%d.00", prozent)
+	return fmt.Sprintf("%d,00", prozent)
 }
 
 // ustNichtSteuerbar ist der DSFinV-K-Umsatzsteuerschlüssel für nicht steuerbare
