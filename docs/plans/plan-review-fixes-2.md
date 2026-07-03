@@ -255,16 +255,16 @@ des Abschlusses eine verständliche Fehlermeldung.
 
 ### Acceptance criteria
 
-- [ ] Eine parallele Bestellung/Zahlung/Direktverkauf nach dem
+- [x] Eine parallele Bestellung/Zahlung/Direktverkauf nach dem
       Statuswechsel wird mit 409 abgelehnt; der Z-Bon enthält
       ausschließlich Umsätze, die vor der Barriere committet waren.
-- [ ] Kassensturz-Differenz und Reporting-Summen desselben Abschlusses
+- [x] Kassensturz-Differenz und Reporting-Summen desselben Abschlusses
       basieren auf demselben Datenstand (Test mit injizierter paralleler
       Zahlung).
-- [ ] Abbruch nach Statuswechsel: Sitzung steht wieder auf `offen` oder
+- [x] Abbruch nach Statuswechsel: Sitzung steht wieder auf `offen` oder
       der Wiederholungs-Aufruf schließt sie erfolgreich ab; kein
       dauerhafter Sperrzustand (Test für beide Pfade).
-- [ ] Buchung in eine Sitzung im Zwischenstatus liefert im Frontend die
+- [x] Buchung in eine Sitzung im Zwischenstatus liefert im Frontend die
       Meldung, dass die Kasse gerade abgeschlossen wird.
 
 ---

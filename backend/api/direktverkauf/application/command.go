@@ -27,6 +27,7 @@ type eventRepo interface {
 
 type kassensitzungenRepo interface {
 	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
 type productRepo interface {
@@ -54,19 +55,32 @@ type Command struct {
 	TSESignierer        tseApp.Signierer
 }
 
+// getOffeneKassensitzungOderFehler retrieves the open Kassensitzung for a Direktverkauf. It returns
+// ErrKasseNichtGeoeffnet when none is active and ErrKasseWirdAbgeschlossen while the Kassensitzung is
+// being closed (barrier active), rejecting the Direktverkauf before any TSE roundtrip.
+func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
+	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
+	if err != nil {
+		return nil, ErrDatabase
+	}
+	if ks == nil {
+		return nil, ErrKasseNichtGeoeffnet
+	}
+	if ks.Status == kasse.KassensitzungWirdAbgeschlossen {
+		return nil, ErrKasseWirdAbgeschlossen
+	}
+	return ks, nil
+}
+
 // DirektverkaufTaetigen records a Direktverkauf as a single immutable event in its own stream
 // (kassensitzung-{nr}/direktverkauf-{uuid}). It requires an open Kassensitzung and writes nothing
 // to any projection. Returns ErrKasseNichtGeoeffnet (HTTP 409) when no Kassensitzung is open.
 func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, inputs []VerkaufPositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	ks, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load open Kassensitzung")
-		return ErrDatabase
-	}
-	if ks == nil {
-		return ErrKasseNichtGeoeffnet
+		return err
 	}
 
 	positionen, err := c.enrichPositionen(ctx, inputs)
@@ -134,13 +148,9 @@ func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]bo
 func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	ks, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load open Kassensitzung")
-		return ErrDatabase
-	}
-	if ks == nil {
-		return ErrKasseNichtGeoeffnet
+		return err
 	}
 
 	subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)

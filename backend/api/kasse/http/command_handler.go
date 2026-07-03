@@ -106,6 +106,8 @@ func (h *CommandHandler) GeldtransitBuchenHandler() http.HandlerFunc {
 			switch {
 			case errors.Is(err, kasseApp.ErrKonflikt):
 				helper.SendConflictError(w)
+			case errors.Is(err, kasseApp.ErrKasseWirdAbgeschlossen):
+				helper.SendConflict(w, "kasse_wird_abgeschlossen")
 			case errors.Is(err, kasseApp.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:

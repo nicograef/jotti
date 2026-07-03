@@ -922,6 +922,50 @@ func TestWriteEvent_InGeschlosseneKassensitzungWirdAbgelehnt(t *testing.T) {
 	}
 }
 
+// Im Zwischenstatus 'wird_abgeschlossen' lehnt der Status-Guard Buchungs-Events ab,
+// lässt aber die Abschluss-Events (hier: Kassensturz) durch — genau das erlaubt dem
+// Tagesabschluss, in die noch nicht endgültig geschlossene Sitzung zu schreiben.
+func TestWriteEvent_ZwischenstatusWirdAbgeschlossen(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischID, err := createTisch(repo.db, "Tisch 1")
+	if err != nil {
+		t.Fatalf("Failed to create tisch: %v", err)
+	}
+
+	if _, err := repo.db.Exec("UPDATE kassensitzungen SET status = 'wird_abgeschlossen' WHERE z_nr = $1", ksNr); err != nil {
+		t.Fatalf("set barrier status: %v", err)
+	}
+
+	// Buchungs-Event wird abgelehnt.
+	tischSubject := kasse.TischSessionSubject(ksNr, tischID)
+	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", tischSubject, 1, validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 1))
+	if _, err := repo.WriteEvent(context.Background(), bestellung, kasse.StreamTypeTischSession, ksNr); !errors.Is(err, ErrKassensitzungNichtOffen) {
+		t.Fatalf("expected booking to be rejected in wird_abgeschlossen, got %v", err)
+	}
+
+	// Abschluss-Event wird zugelassen.
+	ksSubject := kasse.KassensitzungSubject(ksNr)
+	kassensturz := newTestEvent(userID, "kassensturz-durchgefuehrt:v1", ksSubject, 1, map[string]any{
+		"sollBestandCents": 0,
+		"istBestandCents":  0,
+		"differenzCents":   0,
+		"durchgefuehrtVon": userID,
+	})
+	if _, err := repo.WriteEvent(context.Background(), kassensturz, kasse.StreamTypeKassensitzung, ksNr); err != nil {
+		t.Fatalf("expected kassensturz to pass guard in wird_abgeschlossen, got %v", err)
+	}
+
+	events, err := repo.ReadEventsBySubject(context.Background(), tischSubject)
+	if err != nil {
+		t.Fatalf("read events: %v", err)
+	}
+	if len(events) != 0 {
+		t.Fatalf("expected no persisted booking events, got %d", len(events))
+	}
+}
+
 // validEroeffnungData returns valid kassensitzung-eroeffnet:v1 event data.
 func validEroeffnungData(userID, betragCents int) map[string]any {
 	return map[string]any{

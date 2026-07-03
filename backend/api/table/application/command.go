@@ -41,6 +41,7 @@ type eventRepo interface {
 
 type kassensitzungenRepo interface {
 	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
 type productRepo interface {
@@ -89,15 +90,19 @@ type Command struct {
 	TSESignierer        tseApp.Signierer
 }
 
-// getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung.
-// Returns ErrKasseNichtGeoeffnet (HTTP 409) when no open Kassensitzung exists.
+// getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung for a booking.
+// Returns ErrKasseNichtGeoeffnet (HTTP 409) when none is active and ErrKasseWirdAbgeschlossen while
+// the Kassensitzung is being closed (barrier active), rejecting the booking before any TSE roundtrip.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
-	ks, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
 		return nil, ErrDatabase
 	}
 	if ks == nil {
 		return nil, ErrKasseNichtGeoeffnet
+	}
+	if ks.Status == kasse.KassensitzungWirdAbgeschlossen {
+		return nil, ErrKasseWirdAbgeschlossen
 	}
 	return ks, nil
 }

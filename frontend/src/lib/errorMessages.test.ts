@@ -56,6 +56,10 @@ const mappedCodes: [string, string][] = [
     'Die Kasse ist noch nicht geöffnet. Bitte zuerst eine Kassensitzung eröffnen.',
   ],
   [
+    'kasse_wird_abgeschlossen',
+    'Die Kasse wird gerade abgeschlossen. Bitte warten, bis der Abschluss fertig ist, und dann erneut versuchen.',
+  ],
+  [
     'kassenbeleg_drucker_nicht_konfiguriert',
     'Für Kassenbelege ist kein Drucker konfiguriert. Bitte die Druckstation-Einstellungen prüfen.',
   ],

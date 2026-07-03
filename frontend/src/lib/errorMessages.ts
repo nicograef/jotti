@@ -33,6 +33,8 @@ const commonErrorMessages: Record<string, string> = {
     'Ein Tisch mit diesem Namen existiert bereits. Bitte einen anderen Namen verwenden.',
   kasse_nicht_geoeffnet:
     'Die Kasse ist noch nicht geöffnet. Bitte zuerst eine Kassensitzung eröffnen.',
+  kasse_wird_abgeschlossen:
+    'Die Kasse wird gerade abgeschlossen. Bitte warten, bis der Abschluss fertig ist, und dann erneut versuchen.',
   kasse_bereits_geoeffnet:
     'Es gibt bereits eine offene Kassensitzung. Bitte zuerst die aktuelle Kassensitzung abschließen.',
   kassensturz_erforderlich:

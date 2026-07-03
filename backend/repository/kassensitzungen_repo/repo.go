@@ -46,6 +46,44 @@ func (r Repository) GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensi
 	}, nil
 }
 
+// GetAktiveKassensitzung reads the active (not yet closed) Kassensitzung, i.e. one with status
+// 'offen' or 'wird_abgeschlossen'. Returns nil if no such Kassensitzung exists. There is at most
+// one active Kassensitzung (enforced by idx_kassensitzungen_eine_aktiv).
+func (r Repository) GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error) {
+	row, err := r.q.GetAktiveKassensitzung(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, db.Error(err)
+	}
+
+	ks := kassensitzungRowToDomain(row)
+	return &ks, nil
+}
+
+// SetKassensitzungWirdAbgeschlossen sets the barrier status: it moves the Kassensitzung from
+// 'offen' (or keeps it at 'wird_abgeschlossen' for a resumed close) to 'wird_abgeschlossen'.
+// The UPDATE waits for in-flight booking transactions holding FOR SHARE. Returns the number of
+// affected rows (0 when the Kassensitzung is already closed).
+func (r Repository) SetKassensitzungWirdAbgeschlossen(ctx context.Context, zNr int) (int64, error) {
+	rows, err := r.q.SetKassensitzungWirdAbgeschlossen(ctx, zNr)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	return rows, nil
+}
+
+// SetKassensitzungOffen resets the barrier status back to 'offen' after a failed close (best effort).
+// It only affects a Kassensitzung still in 'wird_abgeschlossen'. Returns the number of affected rows.
+func (r Repository) SetKassensitzungOffen(ctx context.Context, zNr int) (int64, error) {
+	rows, err := r.q.SetKassensitzungOffen(ctx, zNr)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	return rows, nil
+}
+
 // GetOffeneKassensitzungNr returns the z_nr of the currently open Kassensitzung, or 0 if none exists.
 func (r Repository) GetOffeneKassensitzungNr(ctx context.Context) (int, error) {
 	ks, err := r.GetOffeneKassensitzung(ctx)

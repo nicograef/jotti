@@ -279,16 +279,24 @@ func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, 
 // projection within the given transaction, returning the event with its generated
 // ID. The caller owns the transaction (commit/rollback).
 func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (event.Event, error) {
-	// 0. Status-Guard mit Zeilensperre: Events dürfen nur in eine offene Kassensitzung.
-	// FOR SHARE serialisiert gegen den Tagesabschluss (dessen Status-UPDATE in derselben
-	// Transaktion wie sein Event läuft): Entweder committet dieser Write vor dem Abschluss
-	// (und wird von der Saldo-Sperre erfasst), oder er sieht den neuen Status und scheitert.
-	// Der Tagesabschluss selbst schreibt in die noch offene Sitzung und passiert den Guard.
+	// 0. Status-Guard mit Zeilensperre: Buchungs-Events dürfen nur in eine offene Kassensitzung.
+	// FOR SHARE serialisiert gegen den Statuswechsel auf 'wird_abgeschlossen', den KasseAbschliessen
+	// als erste Handlung committet (UPDATE = FOR UPDATE): Entweder committet dieser Write vor der
+	// Barriere (und wird von der Saldo-Sperre erfasst), oder er sieht den neuen Status und scheitert.
+	// Im Zwischenstatus 'wird_abgeschlossen' passieren nur die drei Abschluss-Events selbst; der
+	// Tagesabschluss schreibt in diesem Status und setzt in derselben Transaktion 'abgeschlossen'.
 	status, err := qtx.GetKassensitzungStatusForShare(ctx, kassensitzungNr)
 	if err != nil {
 		return event.Event{}, db.Error(err)
 	}
-	if status != string(kasse.KassensitzungOffen) {
+	switch kasse.KassensitzungStatus(status) {
+	case kasse.KassensitzungOffen:
+		// Alle Events erlaubt.
+	case kasse.KassensitzungWirdAbgeschlossen:
+		if !kasse.IsAbschlussEventType(e.Type) {
+			return event.Event{}, ErrKassensitzungNichtOffen
+		}
+	default: // abgeschlossen
 		return event.Event{}, ErrKassensitzungNichtOffen
 	}
 

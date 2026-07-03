@@ -318,7 +318,7 @@ type Kassensitzungen struct {
 	Datum time.Time
 	// Bezeichnung (z.B. "Sommerfest Tag 1")
 	Bezeichnung string
-	// Kassensitzung-Status: offen oder abgeschlossen
+	// Kassensitzung-Status: offen, wird_abgeschlossen (transienter Abschluss-Zwischenstatus) oder abgeschlossen
 	Status string
 	// Creation timestamp (UTC)
 	CreatedAt time.Time

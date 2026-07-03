@@ -9,6 +9,10 @@ import (
 // ErrKasseNichtGeoeffnet is returned when no open Kassensitzung exists.
 var ErrKasseNichtGeoeffnet = errors.New("kasse nicht geoeffnet")
 
+// ErrKasseWirdAbgeschlossen is returned when a Direktverkauf is attempted while the Kassensitzung is
+// in the transient 'wird_abgeschlossen' status (the Kassenabschluss barrier is active).
+var ErrKasseWirdAbgeschlossen = errors.New("kasse wird gerade abgeschlossen")
+
 // ErrProduktNotFound is returned when a product or variant is not found during enrichment.
 var ErrProduktNotFound = errors.New("produkt not found")
 

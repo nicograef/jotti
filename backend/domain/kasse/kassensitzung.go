@@ -15,6 +15,10 @@ type Kassensitzung struct {
 }
 
 const (
-	KassensitzungOffen         KassensitzungStatus = "offen"
-	KassensitzungAbgeschlossen KassensitzungStatus = "abgeschlossen"
+	KassensitzungOffen KassensitzungStatus = "offen"
+	// KassensitzungWirdAbgeschlossen ist der transiente Zwischenstatus während des
+	// Abschlusses: Ab ihm lehnt der Status-Guard alle Buchungs-Events ab, nur die
+	// Abschluss-Events selbst dürfen noch geschrieben werden.
+	KassensitzungWirdAbgeschlossen KassensitzungStatus = "wird_abgeschlossen"
+	KassensitzungAbgeschlossen     KassensitzungStatus = "abgeschlossen"
 )

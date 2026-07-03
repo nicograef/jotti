@@ -10,6 +10,27 @@ import (
 	"time"
 )
 
+const getAktiveKassensitzung = `-- name: GetAktiveKassensitzung :one
+SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
+FROM kassensitzungen WHERE status <> 'abgeschlossen' LIMIT 1
+`
+
+// Die aktive (nicht abgeschlossene) Kassensitzung, also 'offen' oder 'wird_abgeschlossen'.
+// Dank idx_kassensitzungen_eine_aktiv gibt es davon höchstens eine.
+func (q *Queries) GetAktiveKassensitzung(ctx context.Context) (Kassensitzungen, error) {
+	row := q.db.QueryRowContext(ctx, getAktiveKassensitzung)
+	var i Kassensitzungen
+	err := row.Scan(
+		&i.ZNr,
+		&i.Datum,
+		&i.Bezeichnung,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getAllKassensitzungen = `-- name: GetAllKassensitzungen :many
 SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
 FROM kassensitzungen ORDER BY datum DESC, created_at DESC
@@ -85,9 +106,9 @@ SELECT status FROM kassensitzungen WHERE z_nr = $1 FOR SHARE
 `
 
 // Status-Guard für Event-Writes: sperrt die Kassensitzungs-Zeile mit FOR SHARE,
-// damit ein paralleler Tagesabschluss (UPDATE = FOR UPDATE) erst nach Commit der
-// laufenden Event-Transaktion durchkommt — und umgekehrt spätere Writes den neuen
-// Status sehen.
+// damit der Statuswechsel auf 'wird_abgeschlossen' (UPDATE = FOR UPDATE) erst nach
+// Commit der laufenden Event-Transaktion durchkommt — und umgekehrt spätere Writes
+// den neuen Status sehen und abgelehnt werden.
 func (q *Queries) GetKassensitzungStatusForShare(ctx context.Context, zNr int) (string, error) {
 	row := q.db.QueryRowContext(ctx, getKassensitzungStatusForShare, zNr)
 	var status string
@@ -130,6 +151,38 @@ func (q *Queries) InsertKassensitzung(ctx context.Context, arg InsertKassensitzu
 	var z_nr int
 	err := row.Scan(&z_nr)
 	return z_nr, err
+}
+
+const setKassensitzungOffen = `-- name: SetKassensitzungOffen :execrows
+UPDATE kassensitzungen SET status = 'offen', updated_at = NOW()
+WHERE z_nr = $1 AND status = 'wird_abgeschlossen'
+`
+
+// Rücksetzen der Barriere nach einem Fehler im Abschluss (best effort), damit die Sitzung
+// nicht im Zwischenstatus hängen bleibt. Nur wirksam, solange sie noch nicht abgeschlossen ist.
+func (q *Queries) SetKassensitzungOffen(ctx context.Context, zNr int) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setKassensitzungOffen, zNr)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const setKassensitzungWirdAbgeschlossen = `-- name: SetKassensitzungWirdAbgeschlossen :execrows
+UPDATE kassensitzungen SET status = 'wird_abgeschlossen', updated_at = NOW()
+WHERE z_nr = $1 AND status IN ('offen', 'wird_abgeschlossen')
+`
+
+// Erster Schritt des Abschlusses: setzt die Barriere. Der UPDATE (FOR UPDATE) wartet auf
+// alle noch laufenden Buchungs-Transaktionen (FOR SHARE) und ist idempotent, sodass ein
+// Wiederholungs-Aufruf im Zwischenstatus fortsetzt. Liefert 0, wenn die Sitzung bereits
+// abgeschlossen ist.
+func (q *Queries) SetKassensitzungWirdAbgeschlossen(ctx context.Context, zNr int) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setKassensitzungWirdAbgeschlossen, zNr)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateKassensitzung = `-- name: UpdateKassensitzung :exec

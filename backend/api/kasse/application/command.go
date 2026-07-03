@@ -26,6 +26,9 @@ type kassenjournalRepo interface {
 
 type kassensitzungenRepo interface {
 	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+	SetKassensitzungWirdAbgeschlossen(ctx context.Context, zNr int) (int64, error)
+	SetKassensitzungOffen(ctx context.Context, zNr int) (int64, error)
 }
 
 type settingsRepo interface {
@@ -44,14 +47,19 @@ type Command struct {
 	TSESignierer        tseApp.Signierer
 }
 
-// getOffeneKassensitzungOderFehler returns the open Kassensitzung or ErrKasseNichtGeoeffnet.
+// getOffeneKassensitzungOderFehler returns the open Kassensitzung for a booking. It returns
+// ErrKasseNichtGeoeffnet when none is active and ErrKasseWirdAbgeschlossen while the Kassensitzung
+// is being closed (barrier active), so bookings are rejected before any TSE roundtrip.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
-	ks, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
 		return nil, ErrDatabase
 	}
 	if ks == nil {
 		return nil, ErrKasseNichtGeoeffnet
+	}
+	if ks.Status == kasse.KassensitzungWirdAbgeschlossen {
+		return nil, ErrKasseWirdAbgeschlossen
 	}
 	return ks, nil
 }
@@ -140,13 +148,15 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		return 0, ErrBetreiberNichtKonfiguriert
 	}
 
-	existing, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	// Aktive Sitzung deckt 'offen' und 'wird_abgeschlossen' ab: Während ein Abschluss läuft, darf
+	// keine zweite Sitzung eröffnet werden (idx_kassensitzungen_eine_aktiv wäre die letzte Bremse).
+	existing, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to check for existing open Kassensitzung")
+		log.Error().Err(err).Msg("Failed to check for existing active Kassensitzung")
 		return 0, ErrDatabase
 	}
 	if existing != nil {
-		log.Warn().Int("z_nr", existing.ZNr).Msg("Kassensitzung already open")
+		log.Warn().Int("z_nr", existing.ZNr).Msg("Kassensitzung already active")
 		return 0, ErrKasseAlreadyOpen
 	}
 
@@ -254,23 +264,56 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 // Invariante: Tisch-Saldo-Sperre — alle Tisch-Sessions müssen saldo_cents = 0
 // haben. Die Tagessummen des Z-Bons kommen aus GetReporting.
 //
-// Teilfehler: Schlägt ein Schreibvorgang nach dem ersten Event fehl, bleibt die
-// Kassensitzung offen und der Abschluss kann wiederholt werden. Es gibt bewusst
-// keine umschließende Transaktion über alle Events.
-func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName string, istBestandCents int) error {
+// Zweiphasig über die Barriere: Als erste Handlung setzt die Sitzung auf
+// 'wird_abgeschlossen'. Ab diesem Commit lehnt der Status-Guard alle Buchungs-Events ab;
+// erst danach laufen Saldo-Prüfung, Reporting und TSE-Signierungen auf einem eingefrorenen
+// Datenstand. Schlägt danach etwas fehl, wird die Sitzung best effort auf 'offen'
+// zurückgesetzt; unabhängig davon setzt ein erneuter Aufruf im Zwischenstatus fort.
+//
+// Teilfehler: Schlägt ein Schreibvorgang nach dem ersten Event fehl, kann der Abschluss
+// wiederholt werden. Es gibt bewusst keine umschließende Transaktion über alle Events.
+func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName string, istBestandCents int) (err error) {
 	log := zerolog.Ctx(ctx)
 
-	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	// Aktive Sitzung akzeptiert 'offen' und 'wird_abgeschlossen' (Wiederanlauf im Zwischenstatus).
+	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		return err
+		log.Error().Err(err).Msg("Failed to load Kassensitzung for Kassenabschluss")
+		return ErrDatabase
 	}
+	if ks == nil {
+		return ErrKasseNichtGeoeffnet
+	}
+
+	// Phase 1: Barriere setzen. Der UPDATE wartet auf noch laufende Buchungen (FOR SHARE);
+	// danach lehnt der Status-Guard alle weiteren Buchungs-Events ab. Idempotent, damit ein
+	// Wiederholungs-Aufruf im Zwischenstatus fortsetzt.
+	rows, err := c.KassensitzungenRepo.SetKassensitzungWirdAbgeschlossen(ctx, ks.ZNr)
+	if err != nil {
+		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to set Kassensitzung status wird_abgeschlossen")
+		return ErrDatabase
+	}
+	if rows == 0 {
+		return ErrKasseNichtGeoeffnet
+	}
+
+	// Fehler nach dem Statuswechsel setzen die Sitzung best effort zurück auf 'offen', damit sie
+	// nicht im Zwischenstatus hängen bleibt und Buchungen wieder möglich werden. Ausnahme: Ein
+	// Versionskonflikt bedeutet einen konkurrierenden zweiten Abschluss — dann darf diese Instanz
+	// die Barriere nicht unter dem gewinnenden Abschluss wegräumen (SetKassensitzungOffen greift
+	// ohnehin nur, solange noch nicht 'abgeschlossen').
+	defer func() {
+		if err != nil && !errors.Is(err, ErrKonflikt) {
+			if _, resetErr := c.KassensitzungenRepo.SetKassensitzungOffen(ctx, ks.ZNr); resetErr != nil {
+				log.Error().Err(resetErr).Int("z_nr", ks.ZNr).Msg("Failed to reset Kassensitzung status to offen after Abschluss error")
+			}
+		}
+	}()
 
 	subject := kasse.KassensitzungSubject(ks.ZNr)
 
-	// OCC-Anker VOR der Bestandsberechnung: Bucht ein paralleler Geldtransit in den
-	// KS-Stream, nachdem der Soll-Bestand gelesen wurde, wäre die Differenz veraltet —
-	// der Kassensturz-Write läuft dann in den Versionskonflikt und der Abschluss wird
-	// mit frischem Bestand wiederholt.
+	// OCC-Anker für die Abschluss-Events: Die Barriere verhindert bereits neue Buchungen; der
+	// Anker erkennt zusätzlich einen konkurrierenden zweiten Abschluss (Versionskonflikt).
 	expectedVersion, err := c.KassenjournalRepo.GetMaxVersion(ctx, subject)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to load max version for Kassenabschluss")

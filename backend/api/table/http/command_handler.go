@@ -316,6 +316,8 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 			switch {
 			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
+			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
+				helper.SendConflict(w, "kasse_wird_abgeschlossen")
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
@@ -408,6 +410,8 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 			switch {
 			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
+			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
+				helper.SendConflict(w, "kasse_wird_abgeschlossen")
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
@@ -458,9 +462,12 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 
 			err := h.Command.KassenbelegDrucken(r.Context(), 0, "", verkaufID, stornierungID)
 			if err != nil {
-				if errors.Is(err, application.ErrKasseNichtGeoeffnet) {
+				switch {
+				case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
+					helper.SendConflict(w, "kasse_wird_abgeschlossen")
+				case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 					helper.SendConflict(w, "kasse_nicht_geoeffnet")
-				} else {
+				default:
 					helper.MapError(w, err, map[error]string{
 						application.ErrVerkaufNichtGefunden:                "verkauf_not_found",
 						application.ErrStornierungNichtGefunden:            "stornierung_not_found",
@@ -481,9 +488,12 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 
 			err := h.Command.KassenbelegDrucken(r.Context(), cmd.TischID, "", "", cmd.StornierungID)
 			if err != nil {
-				if errors.Is(err, application.ErrKasseNichtGeoeffnet) {
+				switch {
+				case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
+					helper.SendConflict(w, "kasse_wird_abgeschlossen")
+				case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 					helper.SendConflict(w, "kasse_nicht_geoeffnet")
-				} else {
+				default:
 					helper.MapError(w, err, map[error]string{
 						application.ErrStornierungNichtGefunden:            "stornierung_not_found",
 						application.ErrZahlungNichtGefunden:                "zahlung_not_found",
@@ -504,9 +514,12 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 
 			err := h.Command.KassenbelegDrucken(r.Context(), cmd.TischID, cmd.ZahlungID, "", "")
 			if err != nil {
-				if errors.Is(err, application.ErrKasseNichtGeoeffnet) {
+				switch {
+				case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
+					helper.SendConflict(w, "kasse_wird_abgeschlossen")
+				case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 					helper.SendConflict(w, "kasse_nicht_geoeffnet")
-				} else {
+				default:
 					helper.MapError(w, err, map[error]string{
 						application.ErrZahlungNichtGefunden:                "zahlung_not_found",
 						application.ErrKassenbelegDruckerNichtKonfiguriert: "kassenbeleg_drucker_nicht_konfiguriert",
@@ -566,6 +579,8 @@ func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 			switch {
 			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
+			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
+				helper.SendConflict(w, "kasse_wird_abgeschlossen")
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
@@ -600,6 +615,8 @@ func (h *CommandHandler) BestellungUmbuchenHandler() http.HandlerFunc {
 			switch {
 			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
+			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
+				helper.SendConflict(w, "kasse_wird_abgeschlossen")
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
@@ -646,6 +663,8 @@ func (h *CommandHandler) AusgabeBestaetigenHandler() http.HandlerFunc {
 			switch {
 			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
+			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
+				helper.SendConflict(w, "kasse_wird_abgeschlossen")
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:

@@ -284,6 +284,113 @@ func TestKasseAbschliessen_KasseNichtGeoeffnet(t *testing.T) {
 	}
 }
 
+// Phase 1 des Abschlusses setzt die Barriere ('wird_abgeschlossen') als ersten Schritt und
+// setzt sie bei Erfolg nicht zurück.
+func TestKasseAbschliessen_SetztBarriere(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock.SetKassenbestand(50000)
+	sitzungMock := kassensitzungen_repo.NewMock(testOpenKS, nil)
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: sitzungMock,
+		ReportingRepo:       reportingMock{},
+	}
+
+	if err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if sitzungMock.WirdAbgeschlossenCalls != 1 {
+		t.Fatalf("expected barrier to be set once, got %d", sitzungMock.WirdAbgeschlossenCalls)
+	}
+	if sitzungMock.OffenCalls != 0 {
+		t.Fatalf("expected no reset on success, got %d", sitzungMock.OffenCalls)
+	}
+}
+
+// Schlägt der Abschluss nach dem Statuswechsel fehl, wird die Sitzung best effort auf 'offen'
+// zurückgesetzt, damit sie nicht im Zwischenstatus hängen bleibt.
+func TestKasseAbschliessen_FehlerSetztStatusZurueck(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock.SetKassenbestand(50000)
+	sitzungMock := kassensitzungen_repo.NewMock(testOpenKS, nil)
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: sitzungMock,
+		ReportingRepo:       reportingMock{err: db.ErrDatabase}, // Reporting scheitert nach der Barriere
+	}
+
+	if err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err == nil {
+		t.Fatal("expected an error, got nil")
+	}
+	if sitzungMock.WirdAbgeschlossenCalls != 1 {
+		t.Fatalf("expected barrier to be set once, got %d", sitzungMock.WirdAbgeschlossenCalls)
+	}
+	if sitzungMock.OffenCalls != 1 {
+		t.Fatalf("expected status reset to offen after error, got %d", sitzungMock.OffenCalls)
+	}
+}
+
+// Ein Versionskonflikt bedeutet einen konkurrierenden zweiten Abschluss — die unterlegene
+// Instanz darf die Barriere nicht unter dem gewinnenden Abschluss wegräumen.
+func TestKasseAbschliessen_KonfliktSetztStatusNichtZurueck(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMockWithWriteErr(nil, db.ErrAlreadyExists)
+	journalMock.SetKassenbestand(50000)
+	sitzungMock := kassensitzungen_repo.NewMock(testOpenKS, nil)
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: sitzungMock,
+		ReportingRepo:       reportingMock{},
+	}
+
+	if err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrKonflikt {
+		t.Fatalf("expected ErrKonflikt, got %v", err)
+	}
+	if sitzungMock.OffenCalls != 0 {
+		t.Fatalf("expected NO reset on conflict, got %d", sitzungMock.OffenCalls)
+	}
+}
+
+// Wiederanlauf: Steht die Sitzung nach einem Abbruch noch auf 'wird_abgeschlossen', schließt
+// ein erneuter Aufruf sie erfolgreich ab.
+func TestKasseAbschliessen_WiederanlaufImZwischenstatus(t *testing.T) {
+	ctx := context.Background()
+	imAbschluss := &kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungWirdAbgeschlossen, CreatedAt: time.Now().UTC()}
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock.SetKassenbestand(50000)
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(imAbschluss, nil),
+		ReportingRepo:       reportingMock{},
+	}
+
+	if err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {
+		t.Fatalf("expected resume to succeed, got %v", err)
+	}
+
+	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(imAbschluss.ZNr))
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 2 {
+		t.Fatalf("expected kassensturz + tagesabschluss, got %d", len(events))
+	}
+}
+
+// Eine Buchung in eine Sitzung im Zwischenstatus wird mit ErrKasseWirdAbgeschlossen abgelehnt.
+func TestGeldtransitBuchen_WirdAbgeschlossen(t *testing.T) {
+	ctx := context.Background()
+	imAbschluss := &kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungWirdAbgeschlossen, CreatedAt: time.Now().UTC()}
+	cmd := newTestCommand(imAbschluss)
+
+	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "einlage", 1000, "Wechselgeld")
+	if err != ErrKasseWirdAbgeschlossen {
+		t.Fatalf("expected ErrKasseWirdAbgeschlossen, got %v", err)
+	}
+}
+
 func TestGeldtransitBuchen_MitTSE_DatenImEvent(t *testing.T) {
 	ctx := context.Background()
 	journalMock := kassenjournal_repo.NewMock(nil, nil)

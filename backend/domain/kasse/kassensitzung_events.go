@@ -17,6 +17,18 @@ const (
 	EventTypeTagesabschlussErstelltV1   EventType = "tagesabschluss-erstellt:v1"
 )
 
+// IsAbschlussEventType meldet, ob der Event-Typ eines der drei Abschluss-Events ist
+// (Kassensturz, Differenzbuchung, Tagesabschluss). Nur diese dürfen im Zwischenstatus
+// KassensitzungWirdAbgeschlossen noch in eine Kassensitzung geschrieben werden.
+func IsAbschlussEventType(eventType string) bool {
+	switch EventType(eventType) {
+	case EventTypeKassensturzDurchgefuehrtV1, EventTypeDifferenzSollIstGebuchtV1, EventTypeTagesabschlussErstelltV1:
+		return true
+	default:
+		return false
+	}
+}
+
 // --- Event-Data-Structs ---
 
 type KassensitzungEroeffnetV1Data struct {

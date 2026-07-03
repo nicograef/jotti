@@ -7,14 +7,34 @@ UPDATE kassensitzungen SET status = $2, updated_at = NOW() WHERE z_nr = $1;
 
 -- name: GetKassensitzungStatusForShare :one
 -- Status-Guard für Event-Writes: sperrt die Kassensitzungs-Zeile mit FOR SHARE,
--- damit ein paralleler Tagesabschluss (UPDATE = FOR UPDATE) erst nach Commit der
--- laufenden Event-Transaktion durchkommt — und umgekehrt spätere Writes den neuen
--- Status sehen.
+-- damit der Statuswechsel auf 'wird_abgeschlossen' (UPDATE = FOR UPDATE) erst nach
+-- Commit der laufenden Event-Transaktion durchkommt — und umgekehrt spätere Writes
+-- den neuen Status sehen und abgelehnt werden.
 SELECT status FROM kassensitzungen WHERE z_nr = $1 FOR SHARE;
 
 -- name: GetOffeneKassensitzung :one
 SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
 FROM kassensitzungen WHERE status = 'offen' LIMIT 1;
+
+-- name: GetAktiveKassensitzung :one
+-- Die aktive (nicht abgeschlossene) Kassensitzung, also 'offen' oder 'wird_abgeschlossen'.
+-- Dank idx_kassensitzungen_eine_aktiv gibt es davon höchstens eine.
+SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
+FROM kassensitzungen WHERE status <> 'abgeschlossen' LIMIT 1;
+
+-- name: SetKassensitzungWirdAbgeschlossen :execrows
+-- Erster Schritt des Abschlusses: setzt die Barriere. Der UPDATE (FOR UPDATE) wartet auf
+-- alle noch laufenden Buchungs-Transaktionen (FOR SHARE) und ist idempotent, sodass ein
+-- Wiederholungs-Aufruf im Zwischenstatus fortsetzt. Liefert 0, wenn die Sitzung bereits
+-- abgeschlossen ist.
+UPDATE kassensitzungen SET status = 'wird_abgeschlossen', updated_at = NOW()
+WHERE z_nr = $1 AND status IN ('offen', 'wird_abgeschlossen');
+
+-- name: SetKassensitzungOffen :execrows
+-- Rücksetzen der Barriere nach einem Fehler im Abschluss (best effort), damit die Sitzung
+-- nicht im Zwischenstatus hängen bleibt. Nur wirksam, solange sie noch nicht abgeschlossen ist.
+UPDATE kassensitzungen SET status = 'offen', updated_at = NOW()
+WHERE z_nr = $1 AND status = 'wird_abgeschlossen';
 
 -- name: GetAllKassensitzungen :many
 SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
