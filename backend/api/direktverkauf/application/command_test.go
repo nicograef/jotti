@@ -296,6 +296,9 @@ func getaetigtEvent(t *testing.T, einzelpreis, menge int) (event.Event, string, 
 	if err != nil {
 		t.Fatalf("failed to create getaetigt event: %v", err)
 	}
+	// Ein direktverkauf-getaetigt ist immer version = 1 seines Streams; der Storno-Pfad
+	// leitet seine erwartete Version aus dem Replay ab (OCC gegen den gelesenen Zustand).
+	evt.Version = 1
 
 	var data struct {
 		Positionen []struct {

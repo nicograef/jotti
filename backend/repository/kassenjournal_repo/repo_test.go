@@ -358,8 +358,16 @@ func TestWriteEventWithNachsignierAuftrag_CommitsEventAndOutbox(t *testing.T) {
 	}
 
 	subject := kasse.TischSessionSubject(ksNr, tischID)
+
+	// Die Projektion prüft Zahlungen strikt gegen die unbezahlten Positionen —
+	// der Stream braucht eine vorausgehende Bestellung.
+	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, validBestellungData("10000000-0000-4000-8000-000000000001", 350, 1))
+	if _, err := repo.WriteEvent(context.Background(), bestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
+		t.Fatalf("Failed to write bestellung event: %v", err)
+	}
+
 	data := validZahlungData("10000000-0000-4000-8000-000000000001", 1, 350)
-	e := newTestEvent(userID, "zahlung-kassiert:v1", subject, 1, data)
+	e := newTestEvent(userID, "zahlung-kassiert:v1", subject, 2, data)
 
 	txID := "tx-zahlung-1"
 	processType := "Kassenbeleg-V1"
@@ -377,8 +385,8 @@ func TestWriteEventWithNachsignierAuftrag_CommitsEventAndOutbox(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
-	if len(events) != 1 {
-		t.Fatalf("Expected 1 persisted event, got %d", len(events))
+	if len(events) != 2 {
+		t.Fatalf("Expected 2 persisted events, got %d", len(events))
 	}
 
 	var count int

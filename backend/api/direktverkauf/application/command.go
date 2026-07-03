@@ -97,7 +97,8 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen)
 	}
 
-	if err := c.persistSignedVerkaufEvent(ctx, tseSignierung, subject, ks.ZNr, buildAuftraege); err != nil {
+	// Frischer Stream (neue UUID): erwartete Version 0, das Event ist immer version = 1.
+	if err := c.persistSignedVerkaufEvent(ctx, tseSignierung, subject, 0, ks.ZNr, buildAuftraege); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -176,7 +177,9 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return err
 	}
 
-	if err := c.persistSignedVerkaufEvent(ctx, tseSignierung, subject, ks.ZNr, nil); err != nil {
+	// OCC gegen den validierten Zustand: Basis ist die höchste Version des Replays,
+	// gegen den die Storno-Invariante geprüft wurde.
+	if err := c.persistSignedVerkaufEvent(ctx, tseSignierung, subject, events[len(events)-1].Version, ks.ZNr, nil); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -298,19 +301,15 @@ func (c Command) enrichPositionen(ctx context.Context, inputs []VerkaufPositionI
 	return positionen, nil
 }
 
-// writeEvent writes an event with optimistic concurrency control.
-// It reads the current max version for the subject, sets event.Version = maxVersion + 1
-// (1 for a fresh Direktverkauf stream), and writes the event into the kassenjournal.
-// Returns ErrConflict on a UNIQUE(subject, version) violation.
-func (c Command) writeEvent(ctx context.Context, e event.Event, subject string, kassensitzungNr int) error {
-	maxVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
-	if err != nil {
-		return err
-	}
+// writeVersionedEvent writes the event with version expectedVersion+1 via write.
+// expectedVersion ist die Version des Zustands, gegen den der Command validiert hat
+// (1. Event eines frischen Streams: 0; Storno: höchste Version des Replays). Ein
+// UNIQUE(subject, version)-Konflikt — der Stream hat sich seit dem Lesen geändert —
+// wird zu ErrConflict.
+func writeVersionedEvent(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) error {
+	e.Version = expectedVersion + 1
 
-	e.Version = maxVersion + 1
-
-	if _, err := c.EventRepo.WriteEvent(ctx, e, kasse.StreamTypeDirektverkauf, kassensitzungNr); err != nil {
+	if _, err := write(e); err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC conflict")
 			return ErrConflict
@@ -321,100 +320,29 @@ func (c Command) writeEvent(ctx context.Context, e event.Event, subject string, 
 	return nil
 }
 
-func (c Command) writeEventWithDruckauftraege(
-	ctx context.Context,
-	e event.Event,
-	subject string,
-	kassensitzungNr int,
-	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
-) error {
-	maxVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
-	if err != nil {
-		return err
-	}
-
-	e.Version = maxVersion + 1
-
-	if _, err := c.EventRepo.WriteEventWithDruckauftraege(ctx, e, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege); err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC conflict")
-			return ErrConflict
-		}
-		return err
-	}
-
-	return nil
-}
-
-func (c Command) writeEventWithDruckauftraegeUndNachsignierAuftrag(
-	ctx context.Context,
-	e event.Event,
-	subject string,
-	kassensitzungNr int,
-	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
-	txID string,
-	processType string,
-	processData string,
-) error {
-	maxVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
-	if err != nil {
-		return err
-	}
-
-	e.Version = maxVersion + 1
-
-	if _, err := c.EventRepo.WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx, e, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege, txID, processType, processData); err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC conflict")
-			return ErrConflict
-		}
-		return err
-	}
-
-	return nil
-}
-
-func (c Command) writeEventWithNachsignierAuftrag(
-	ctx context.Context,
-	e event.Event,
-	subject string,
-	kassensitzungNr int,
-	txID string,
-	processType string,
-	processData string,
-) error {
-	maxVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
-	if err != nil {
-		return err
-	}
-
-	e.Version = maxVersion + 1
-
-	if _, err := c.EventRepo.WriteEventWithNachsignierAuftrag(ctx, e, kasse.StreamTypeDirektverkauf, kassensitzungNr, txID, processType, processData); err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC conflict")
-			return ErrConflict
-		}
-		return err
-	}
-
-	return nil
-}
-
-// persistSignedVerkaufEvent writes a signed Direktverkauf event with OCC. When buildAuftraege is
-// non-nil the derived print jobs are written in the same transaction; when the signing produced a
-// Nachsignier-Auftrag the TSE retry job is written alongside. Returns ErrConflict on a version conflict.
-func (c Command) persistSignedVerkaufEvent(ctx context.Context, signierung tseApp.Signierung, subject string, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
+// persistSignedVerkaufEvent writes a signed Direktverkauf event with OCC against expectedVersion.
+// When buildAuftraege is non-nil the derived print jobs are written in the same transaction; when
+// the signing produced a Nachsignier-Auftrag the TSE retry job is written alongside. Returns
+// ErrConflict on a version conflict.
+func (c Command) persistSignedVerkaufEvent(ctx context.Context, signierung tseApp.Signierung, subject string, expectedVersion int, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
 	evt := signierung.Event
 	if signierung.NachsignierAuftrag != nil {
 		na := signierung.NachsignierAuftrag
 		if buildAuftraege != nil {
-			return c.writeEventWithDruckauftraegeUndNachsignierAuftrag(ctx, evt, subject, kassensitzungNr, buildAuftraege, na.TxID, na.ProcessType, na.ProcessData)
+			return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
+				return c.EventRepo.WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege, na.TxID, na.ProcessType, na.ProcessData)
+			})
 		}
-		return c.writeEventWithNachsignierAuftrag(ctx, evt, subject, kassensitzungNr, na.TxID, na.ProcessType, na.ProcessData)
+		return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
+			return c.EventRepo.WriteEventWithNachsignierAuftrag(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr, na.TxID, na.ProcessType, na.ProcessData)
+		})
 	}
 	if buildAuftraege != nil {
-		return c.writeEventWithDruckauftraege(ctx, evt, subject, kassensitzungNr, buildAuftraege)
+		return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
+			return c.EventRepo.WriteEventWithDruckauftraege(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege)
+		})
 	}
-	return c.writeEvent(ctx, evt, subject, kassensitzungNr)
+	return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
+		return c.EventRepo.WriteEvent(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr)
+	})
 }

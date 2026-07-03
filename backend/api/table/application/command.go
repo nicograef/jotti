@@ -102,15 +102,16 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
-// writeEventOCC assigns the next version for the subject and writes the event via
-// write, mapping a version conflict (UNIQUE violation) to ErrConflict.
-func writeEventOCC(ctx context.Context, repo eventRepo, e event.Event, subject string, write func(event.Event) (int, error)) (int, error) {
-	maxVersion, err := repo.GetMaxVersion(ctx, subject)
-	if err != nil {
-		return 0, err
-	}
-
-	e.Version = maxVersion + 1
+// writeEventOCC writes the event with version expectedVersion+1, mapping a version
+// conflict (UNIQUE violation) to ErrConflict.
+//
+// expectedVersion muss die Version des Zustands sein, gegen den der Command validiert
+// hat (Projektion bzw. Replay) — nicht ein frisches GetMaxVersion zum Schreibzeitpunkt.
+// Nur so erkennt der UNIQUE(subject, version)-Constraint, dass sich der Stream seit dem
+// Lesen geändert hat (z. B. während der TSE-Signierung), und verhindert Doppel-Writes
+// auf Basis veralteter Validierung.
+func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) (int, error) {
+	e.Version = expectedVersion + 1
 
 	eventID, err := write(e)
 	if err != nil {
@@ -127,10 +128,10 @@ func writeEventOCC(ctx context.Context, repo eventRepo, e event.Event, subject s
 	return eventID, nil
 }
 
-// writeEvent writes an event with optimistic concurrency control.
+// writeEvent writes an event with optimistic concurrency control against expectedVersion.
 // Returns ErrConflict on a version conflict.
-func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
-	return writeEventOCC(ctx, repo, e, subject, func(versioned event.Event) (int, error) {
+func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
+	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEvent(ctx, versioned, streamType, kassensitzungNr)
 	})
 }
@@ -138,36 +139,37 @@ func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject stri
 // writeEventWithDruckauftraege writes an event and the print jobs derived from it
 // (built from the stored event including its generated ID) in a single transaction.
 // Returns ErrConflict on a version conflict.
-func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
-	return writeEventOCC(ctx, repo, e, subject, func(versioned event.Event) (int, error) {
+func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
+	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
 	})
 }
 
-func writeEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error) {
-	return writeEventOCC(ctx, repo, e, subject, func(versioned event.Event) (int, error) {
+func writeEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error) {
+	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx, versioned, streamType, kassensitzungNr, buildAuftraege, txID, processType, processData)
 	})
 }
 
 // writeEventWithNachsignierAuftrag writes an event plus a TSE retry job in one
 // transaction. Returns ErrConflict on a version conflict.
-func writeEventWithNachsignierAuftrag(ctx context.Context, repo eventRepo, e event.Event, subject string, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error) {
-	return writeEventOCC(ctx, repo, e, subject, func(versioned event.Event) (int, error) {
+func writeEventWithNachsignierAuftrag(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error) {
+	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEventWithNachsignierAuftrag(ctx, versioned, streamType, kassensitzungNr, txID, processType, processData)
 	})
 }
 
 // persistSignedTischEvent writes a signed tisch-session event: when the signing produced a
 // Nachsignier-Auftrag the event is written together with that TSE retry job, otherwise on its own.
+// expectedVersion ist die Version des gelesenen Zustands, gegen den validiert wurde.
 // An OCC conflict maps to ErrConflict, any other write error to ErrDatabase. aktion is the success
 // log message; on the deferred-signing path it is suffixed accordingly.
-func (c Command) persistSignedTischEvent(ctx context.Context, signierung tseApp.Signierung, subject string, kassensitzungNr int, tischID int, aktion string) error {
+func (c Command) persistSignedTischEvent(ctx context.Context, signierung tseApp.Signierung, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
 	log := zerolog.Ctx(ctx)
 
 	if signierung.NachsignierAuftrag != nil {
 		na := signierung.NachsignierAuftrag
-		if _, err := writeEventWithNachsignierAuftrag(ctx, c.EventRepo, signierung.Event, subject, kasse.StreamTypeTischSession, kassensitzungNr, na.TxID, na.ProcessType, na.ProcessData); err != nil {
+		if _, err := writeEventWithNachsignierAuftrag(ctx, c.EventRepo, signierung.Event, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr, na.TxID, na.ProcessType, na.ProcessData); err != nil {
 			if errors.Is(err, ErrConflict) {
 				return ErrConflict
 			}
@@ -178,7 +180,7 @@ func (c Command) persistSignedTischEvent(ctx context.Context, signierung tseApp.
 		return nil
 	}
 
-	if _, err := writeEvent(ctx, c.EventRepo, signierung.Event, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+	if _, err := writeEvent(ctx, c.EventRepo, signierung.Event, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -440,12 +442,24 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen)
 	}
 
+	// Bestellungen validieren keinen Stream-Zustand (reines Anhängen); die Version wird
+	// deshalb erst unmittelbar vor dem Schreiben bestimmt, damit parallele Bestellungen
+	// am selben Tisch nicht über die gesamte Signier-Dauer hinweg kollidieren. Bumpt eine
+	// Bestellung die Version zwischen Lesen und Schreiben eines validierenden Commands
+	// (Zahlung, Storno, …), läuft dieser korrekt in den OCC-Konflikt.
+	expectedVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
+	if err != nil {
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to load max version for bestellung")
+		return ErrDatabase
+	}
+
 	if signierung.NachsignierAuftrag != nil {
 		if _, err = writeEventWithDruckauftraegeUndNachsignierAuftrag(
 			ctx,
 			c.EventRepo,
 			evt,
 			subject,
+			expectedVersion,
 			kasse.StreamTypeTischSession,
 			kassensitzungNr,
 			buildAuftraege,
@@ -464,7 +478,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return nil
 	}
 
-	_, err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
+	_, err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
 	if err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
@@ -596,12 +610,9 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return err
 	}
 
-	quellMaxVersion, err := c.EventRepo.GetMaxVersion(ctx, quellSubject)
-	if err != nil {
-		log.Error().Err(err).Int("quell_tisch_id", quellTischID).Msg("Failed to load max version for source subject")
-		return ErrDatabase
-	}
-
+	// Quelle: OCC gegen den validierten Zustand (die Umbuchbarkeit wurde gegen die
+	// Quell-Projektion geprüft). Ziel: dort wird kein Zustand validiert (reines
+	// Anhängen), die Version kommt erst unmittelbar vor dem Schreiben.
 	zielMaxVersion, err := c.EventRepo.GetMaxVersion(ctx, zielSubject)
 	if err != nil {
 		log.Error().Err(err).Int("ziel_tisch_id", zielTischID).Msg("Failed to load max version for target subject")
@@ -610,7 +621,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 
 	quellSigniert := quellSignierung.Event
 	zielSigniert := zielSignierung.Event
-	quellSigniert.Version = quellMaxVersion + 1
+	quellSigniert.Version = quellState.LastEventVersion + 1
 	zielSigniert.Version = zielMaxVersion + 1
 
 	nachsignierungen := nachsignierungenAusSignierungen(quellSignierung, zielSignierung)
@@ -681,7 +692,9 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		return err
 	}
 
-	return c.persistSignedTischEvent(ctx, signierung, subject, kassensitzungNr, tischID, "Zahlung kassiert")
+	// OCC gegen den validierten Zustand: Hat sich der Stream seit dem Lesen geändert
+	// (z. B. parallele Zahlung während der TSE-Signierung), schlägt der Write mit 409 fehl.
+	return c.persistSignedTischEvent(ctx, signierung, subject, state.LastEventVersion, kassensitzungNr, tischID, "Zahlung kassiert")
 }
 
 // StornierungErteilen führt eine „Stornieren"-Aktion aus und teilt sie serverseitig
@@ -718,7 +731,14 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		return err
 	}
 
-	return c.persistStornoEvents(ctx, signierungen, subject, kassensitzungNr, tischID)
+	// OCC gegen den validierten Zustand: Basis ist die höchste Version des Replays,
+	// gegen den die Storno-Aufteilung berechnet wurde.
+	expectedVersion := 0
+	if len(events) > 0 {
+		expectedVersion = events[len(events)-1].Version
+	}
+
+	return c.persistStornoEvents(ctx, signierungen, subject, expectedVersion, kassensitzungNr, tischID)
 }
 
 // signStornoAufteilung erzeugt und signiert die Events einer aufgeteilten Storno-
@@ -759,22 +779,16 @@ func (c Command) signStornoAufteilung(ctx context.Context, subject string, userI
 	return signierungen, nil
 }
 
-// persistStornoEvents weist den signierten Storno-Events fortlaufende Versionen ab dem
-// aktuellen Maximum desselben Subjects zu und schreibt sie atomar (mit etwaigen
-// Nachsignier-Aufträgen). Ein OCC-Konflikt wird zu ErrConflict.
-func (c Command) persistStornoEvents(ctx context.Context, signierungen []tseApp.Signierung, subject string, kassensitzungNr int, tischID int) error {
+// persistStornoEvents weist den signierten Storno-Events fortlaufende Versionen ab der
+// erwarteten Version (Stand des validierten Replays) zu und schreibt sie atomar (mit
+// etwaigen Nachsignier-Aufträgen). Ein OCC-Konflikt wird zu ErrConflict.
+func (c Command) persistStornoEvents(ctx context.Context, signierungen []tseApp.Signierung, subject string, expectedVersion int, kassensitzungNr int, tischID int) error {
 	log := zerolog.Ctx(ctx)
-
-	maxVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to load max version for stornierung")
-		return ErrDatabase
-	}
 
 	events := make([]event.Event, 0, len(signierungen))
 	for i, signierung := range signierungen {
 		evt := signierung.Event
-		evt.Version = maxVersion + 1 + i
+		evt.Version = expectedVersion + 1 + i
 		events = append(events, evt)
 	}
 
@@ -816,7 +830,8 @@ func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName st
 		return err
 	}
 
-	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+	// OCC gegen den validierten Zustand (siehe ZahlungKassieren).
+	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, state.LastEventVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}

@@ -65,7 +65,7 @@ type kassensitzungEroeffnenRequest struct {
 	BetragCents int    `json:"betragCents"`
 }
 
-func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteID, tischID int) {
+func seedTestData(t *testing.T, db *sql.DB) (adminUserID, serviceUserID, produktID, varianteID, tischID int) {
 	t.Helper()
 
 	_, err := db.Exec(`
@@ -80,6 +80,20 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 	_, err = db.Exec("DELETE FROM druckauftraege")
 	if err != nil {
 		t.Fatalf("Failed to reset druckauftraege: %v", err)
+	}
+
+	// Der Admin muss real in der users-Tabelle existieren: Der Event-Write hat einen
+	// FK auf users(id), ein JWT mit hartkodierter ID schlägt fehl, sobald andere
+	// Test-Suiten die users-Tabelle geleert und die ID-Sequenz weitergedreht haben.
+	var adminID int
+	err = db.QueryRow(`
+		INSERT INTO users (name, username, password_hash, role, status, created_at, updated_at)
+		VALUES ('Test Admin', 'test-admin', 'unused', 'admin', 'active', now(), now())
+		ON CONFLICT (username) WHERE status != 'deleted' DO UPDATE SET name = EXCLUDED.name
+		RETURNING id
+	`).Scan(&adminID)
+	if err != nil {
+		t.Fatalf("Failed to create test admin user: %v", err)
 	}
 
 	var userID int
@@ -125,7 +139,7 @@ func seedTestData(t *testing.T, db *sql.DB) (serviceUserID, produktID, varianteI
 		t.Fatalf("Failed to create test tisch: %v", err)
 	}
 
-	return userID, prodID, varID, tID
+	return adminID, userID, prodID, varID, tID
 }
 
 type testEnv struct {
@@ -146,14 +160,14 @@ func setupTestEnv(t *testing.T) testEnv {
 	db := jottiDB.OpenTestDatabase()
 	t.Cleanup(func() { db.Close() })
 
-	serviceUserID, produktID, varianteID, tischID := seedTestData(t, db)
+	adminUserID, serviceUserID, produktID, varianteID, tischID := seedTestData(t, db)
 
 	cfg := config.Load()
 	handler := app.SetupRoutes(cfg, db)
 	ts := httptest.NewServer(handler)
 	t.Cleanup(func() { ts.Close() })
 
-	adminTkn, err := jwt.GenerateJWTTokenForUser(1, "admin", "admin", testJWTSecret)
+	adminTkn, err := jwt.GenerateJWTTokenForUser(adminUserID, "test-admin", "admin", testJWTSecret)
 	if err != nil {
 		t.Fatalf("Failed to generate admin JWT: %v", err)
 	}

@@ -48,7 +48,11 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		}
 		state.SaldoCents -= data.GesamtZahlungCents
 		state.GesamtZahlungenCents += data.GesamtZahlungCents
-		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
+		unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
+		if err != nil {
+			return state, fmt.Errorf("zahlung %s: %w", evt.Subject, err)
+		}
+		state.UnbezahltePositionen = unbezahlt
 
 	case string(EventTypeStornierungErteiltV1):
 		// Kassenwirksame Warenrücknahme bezahlter Positionen: der offene Betrag bleibt
@@ -70,7 +74,11 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 			return state, fmt.Errorf("unmarshal korrektur data: %w", err)
 		}
 		state.SaldoCents -= data.GesamtCents
-		state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
+		unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
+		if err != nil {
+			return state, fmt.Errorf("korrektur %s: %w", evt.Subject, err)
+		}
+		state.UnbezahltePositionen = unbezahlt
 		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
 
 	case string(EventTypeBestellungUmgebuchtV1):
@@ -87,7 +95,11 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 			// Abgang: die Positionen verlassen den Quelltisch (geldneutral je System,
 			// der Quell-Saldo sinkt).
 			state.SaldoCents -= data.GesamtCents
-			state.UnbezahltePositionen = reduceByPosition(state.UnbezahltePositionen, positionen)
+			unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, positionen)
+			if err != nil {
+				return state, fmt.Errorf("umbuchung %s: %w", evt.Subject, err)
+			}
+			state.UnbezahltePositionen = unbezahlt
 			state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, positionen)
 		} else {
 			// Zugang: die Positionen kommen auf den Zieltisch, wie eine frische
@@ -107,7 +119,11 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal ausgabe data: %w", err)
 		}
-		state.AusstehendePositionen = reduceByPosition(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
+		ausstehend, err := reduceByPositionStrict(state.AusstehendePositionen, fromPositionenEventData(data.Positionen))
+		if err != nil {
+			return state, fmt.Errorf("ausgabe %s: %w", evt.Subject, err)
+		}
+		state.AusstehendePositionen = ausstehend
 
 	default:
 		return state, fmt.Errorf("unknown event type: %s", evt.Type)
@@ -228,7 +244,9 @@ func accumulatePositionen(list []Position, positionen []Position) []Position {
 	return list
 }
 
-// reduceByPosition subtracts positions from a list, removing entries when quantity reaches zero
+// reduceByPosition subtracts positions from a list, removing entries when quantity reaches zero.
+// Fehlende Positionen und Überreduktionen werden toleriert — nur für Listen verwenden, in denen
+// das fachlich vorkommt (Ausstehend: Positionen können bereits ausgegeben worden sein).
 func reduceByPosition(list []Position, reductions []Position) []Position {
 	for _, red := range reductions {
 		for i := 0; i < len(list); i++ {
@@ -243,4 +261,32 @@ func reduceByPosition(list []Position, reductions []Position) []Position {
 		}
 	}
 	return list
+}
+
+// reduceByPositionStrict subtracts positions from a list and fails on inconsistencies:
+// Eine Reduktion, die keine Position trifft oder die verfügbare Menge übersteigt, meldet
+// einen Fehler statt still zu kappen — sie wäre das Symptom eines durchgerutschten
+// Doppel-Writes (OCC-Verletzung) und darf die Projektion nicht unbemerkt verfälschen.
+func reduceByPositionStrict(list []Position, reductions []Position) ([]Position, error) {
+	for _, red := range reductions {
+		found := false
+		for i := 0; i < len(list); i++ {
+			if list[i].PositionID == red.PositionID {
+				if red.Menge > list[i].Menge {
+					return nil, fmt.Errorf("überreduktion für position %s: %d > %d", red.PositionID, red.Menge, list[i].Menge)
+				}
+				if list[i].Menge > red.Menge {
+					list[i].Menge -= red.Menge
+				} else {
+					list = append(list[:i], list[i+1:]...)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("position %s nicht in der liste", red.PositionID)
+		}
+	}
+	return list, nil
 }

@@ -16,6 +16,7 @@ import (
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/settings"
@@ -471,6 +472,100 @@ func TestZahlungKassieren_DoublePayment(t *testing.T) {
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
+	}
+}
+
+// TestZahlungKassieren_KonfliktBeiParallelemCommit stellt das Read–Validate–Sign–Write-
+// Race nach: Der Command validiert gegen die Projektion (LastEventVersion 1), aber im
+// Event-Store liegt bereits ein parallel committetes Event mit Version 2 (z. B. eine
+// zweite Zahlung während der TSE-Signierung). Der Write mit erwarteter Version 1 muss
+// am UNIQUE(subject, version)-Constraint scheitern — der zweite Request bekommt 409
+// statt eine Doppelzahlung durchzuschreiben.
+func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	konkurrierendesEvent, err := kasse.NewZahlungKassiertEvent(subject, 2, "Andere Servicekraft",
+		[]kasse.Position{{PositionID: "22222222-2222-4222-8222-222222222222", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1}},
+		350, "")
+	if err != nil {
+		t.Fatalf("failed to create concurrent event: %v", err)
+	}
+	konkurrierendesEvent.ID = 5
+	konkurrierendesEvent.Version = 2
+
+	eventMock := kassenjournal_repo.NewMock([]event.Event{konkurrierendesEvent}, nil)
+	// Die Projektion ist der Stand VOR dem parallelen Commit: Version 1, Position offen.
+	eventMock.SetTischSession(subject, kasse.TischSession{
+		SaldoCents: 350,
+		UnbezahltePositionen: []kasse.Position{{
+			PositionID:   "22222222-2222-4222-8222-222222222222",
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk",
+			Steuersatz:   "regel",
+			Einzelpreis:  350,
+			Menge:        1,
+		}},
+		LastEventVersion: 1,
+	})
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err = command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
+	if err != ErrConflict {
+		t.Fatalf("expected ErrConflict, got %v", err)
+	}
+}
+
+// Ohne parallelen Commit schreibt die Zahlung mit der Version des gelesenen Zustands + 1.
+func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.SetTischSession(subject, kasse.TischSession{
+		SaldoCents: 350,
+		UnbezahltePositionen: []kasse.Position{{
+			PositionID:   "22222222-2222-4222-8222-222222222222",
+			VarianteID:   1,
+			ProduktName:  "Cola",
+			VarianteName: "0,5l",
+			Kategorie:    "getraenk",
+			Steuersatz:   "regel",
+			Einzelpreis:  350,
+			Menge:        1,
+		}},
+		LastEventVersion: 3,
+	})
+
+	command := Command{
+		TableRepo:           table_repo.NewMock([]table.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	events, err := eventMock.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected exactly one event, got %d", len(events))
+	}
+	if events[0].Version != 4 {
+		t.Fatalf("expected version 4 (LastEventVersion 3 + 1), got %d", events[0].Version)
 	}
 }
 
