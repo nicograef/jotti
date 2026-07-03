@@ -87,12 +87,6 @@ func formatQuantity(menge int) string {
 	return fmt.Sprintf("%d,000", menge)
 }
 
-// formatPercent stellt einen Steuersatz als Prozentwert mit zwei Nachkommastellen
-// dar, z. B. 19 -> "19.00".
-func formatPercent(prozent int) string {
-	return fmt.Sprintf("%d,00", prozent)
-}
-
 // ustNichtSteuerbar ist der DSFinV-K-Umsatzsteuerschlüssel für nicht steuerbare
 // Vorgänge (Anlage 2, ID 5): Bargeldbewegungen ohne USt-Bezug (Anfangsbestand,
 // Geldtransit, Kassendifferenz).
