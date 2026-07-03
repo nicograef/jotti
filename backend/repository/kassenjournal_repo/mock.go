@@ -56,12 +56,25 @@ type NachsignierAuftrag struct {
 	ProcessData string
 }
 
+// versionConflict mirrors the UNIQUE(subject, version) constraint of the kassenjournal.
+func (m *MockRepo) versionConflict(e event.Event) bool {
+	for _, existing := range m.events {
+		if existing.Subject == e.Subject && existing.Version == e.Version {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamType, _ int) (int, error) {
 	if m.writeErr != nil {
 		return 0, m.writeErr
 	}
 	if m.err != nil {
 		return 0, m.err
+	}
+	if m.versionConflict(e) {
+		return 0, db.ErrAlreadyExists
 	}
 	newID := len(m.events) + 1
 	e.ID = newID
@@ -120,6 +133,9 @@ func (m *MockRepo) WriteTischSessionEventsAtomic(_ context.Context, events []eve
 	}
 
 	for _, evt := range events {
+		if m.versionConflict(evt) {
+			return db.ErrAlreadyExists
+		}
 		newID := len(m.events) + 1
 		evt.ID = newID
 		m.events[newID] = evt

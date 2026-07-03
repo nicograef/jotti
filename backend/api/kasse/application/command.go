@@ -55,19 +55,16 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
-// writeKassensitzungEvent writes a Kassensitzung event with OCC.
-func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kassensitzungNr int) error {
+// writeKassensitzungEvent writes a Kassensitzung event with OCC against expectedVersion.
+// expectedVersion ist die Version des Zustands, gegen den der Command validiert hat
+// (frischer Stream: 0). Ein UNIQUE(subject, version)-Konflikt wird zu ErrKonflikt.
+func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kassensitzungNr int, expectedVersion int) error {
 	log := zerolog.Ctx(ctx)
 
 	subject := kasse.KassensitzungSubject(kassensitzungNr)
-	maxVersion, err := c.KassenjournalRepo.GetMaxVersion(ctx, subject)
-	if err != nil {
-		return ErrDatabase
-	}
+	e.Version = expectedVersion + 1
 
-	e.Version = maxVersion + 1
-
-	_, err = c.KassenjournalRepo.WriteEvent(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr)
+	_, err := c.KassenjournalRepo.WriteEvent(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC Kassensitzung conflict")
@@ -79,18 +76,13 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 	return nil
 }
 
-func (c Command) writeKassensitzungEventWithNachsignierAuftrag(ctx context.Context, e event.Event, kassensitzungNr int, txID string, processType string, processData string) error {
+func (c Command) writeKassensitzungEventWithNachsignierAuftrag(ctx context.Context, e event.Event, kassensitzungNr int, expectedVersion int, txID string, processType string, processData string) error {
 	log := zerolog.Ctx(ctx)
 
 	subject := kasse.KassensitzungSubject(kassensitzungNr)
-	maxVersion, err := c.KassenjournalRepo.GetMaxVersion(ctx, subject)
-	if err != nil {
-		return ErrDatabase
-	}
+	e.Version = expectedVersion + 1
 
-	e.Version = maxVersion + 1
-
-	_, err = c.KassenjournalRepo.WriteEventWithNachsignierAuftrag(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr, txID, processType, processData)
+	_, err := c.KassenjournalRepo.WriteEventWithNachsignierAuftrag(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr, txID, processType, processData)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC Kassensitzung conflict")
@@ -104,12 +96,12 @@ func (c Command) writeKassensitzungEventWithNachsignierAuftrag(ctx context.Conte
 
 // writeSignedKassensitzungEvent writes a signed Kassensitzung event, attaching the TSE retry job
 // when the signing produced a Nachsignier-Auftrag and writing the event on its own otherwise.
-func (c Command) writeSignedKassensitzungEvent(ctx context.Context, signierung tseApp.Signierung, kassensitzungNr int) error {
+func (c Command) writeSignedKassensitzungEvent(ctx context.Context, signierung tseApp.Signierung, kassensitzungNr int, expectedVersion int) error {
 	if signierung.NachsignierAuftrag != nil {
 		na := signierung.NachsignierAuftrag
-		return c.writeKassensitzungEventWithNachsignierAuftrag(ctx, signierung.Event, kassensitzungNr, na.TxID, na.ProcessType, na.ProcessData)
+		return c.writeKassensitzungEventWithNachsignierAuftrag(ctx, signierung.Event, kassensitzungNr, expectedVersion, na.TxID, na.ProcessType, na.ProcessData)
 	}
-	return c.writeKassensitzungEvent(ctx, signierung.Event, kassensitzungNr)
+	return c.writeKassensitzungEvent(ctx, signierung.Event, kassensitzungNr, expectedVersion)
 }
 
 // KassensitzungEroeffnen opens a new Kassensitzung. Returns ErrKasseAlreadyOpen if one is already open.
@@ -159,7 +151,8 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		return 0, err
 	}
 
-	if err := c.writeKassensitzungEvent(ctx, evt, zNr); err != nil {
+	// Frischer Stream (neue z_nr): erwartete Version 0, das Eröffnungs-Event ist version = 1.
+	if err := c.writeKassensitzungEvent(ctx, evt, zNr, 0); err != nil {
 		return 0, err
 	}
 
@@ -187,7 +180,15 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 		return err
 	}
 
-	if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr); err != nil {
+	// Geldtransit validiert keinen Stream-Zustand (reines Anhängen); die Version wird
+	// erst unmittelbar vor dem Schreiben bestimmt.
+	maxVersion, err := c.KassenjournalRepo.GetMaxVersion(ctx, kasse.KassensitzungSubject(ks.ZNr))
+	if err != nil {
+		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to load max version for geldtransit")
+		return ErrDatabase
+	}
+
+	if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr, maxVersion); err != nil {
 		return err
 	}
 
@@ -223,6 +224,16 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 
 	subject := kasse.KassensitzungSubject(ks.ZNr)
 
+	// OCC-Anker VOR der Bestandsberechnung: Bucht ein paralleler Geldtransit in den
+	// KS-Stream, nachdem der Soll-Bestand gelesen wurde, wäre die Differenz veraltet —
+	// der Kassensturz-Write läuft dann in den Versionskonflikt und der Abschluss wird
+	// mit frischem Bestand wiederholt.
+	expectedVersion, err := c.KassenjournalRepo.GetMaxVersion(ctx, subject)
+	if err != nil {
+		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to load max version for Kassenabschluss")
+		return ErrDatabase
+	}
+
 	sollBestandCents, err := c.KassenjournalRepo.GetKassenbestand(ctx, ks.ZNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get Kassenbestand for Kassenabschluss")
@@ -250,9 +261,10 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create kassensturz-durchgefuehrt event")
 		return err
 	}
-	if err := c.writeKassensitzungEvent(ctx, kassensturzEvt, ks.ZNr); err != nil {
+	if err := c.writeKassensitzungEvent(ctx, kassensturzEvt, ks.ZNr, expectedVersion); err != nil {
 		return err
 	}
+	expectedVersion++
 
 	// 2. Differenzbuchung nur bei Differenz ungleich Null
 	if differenzCents != 0 {
@@ -265,9 +277,10 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		if err != nil {
 			return err
 		}
-		if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr); err != nil {
+		if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr, expectedVersion); err != nil {
 			return err
 		}
+		expectedVersion++
 	}
 
 	// 3. Tagesabschluss mit echten Tagessummen aus dem Reporting
@@ -294,7 +307,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	if err != nil {
 		return err
 	}
-	if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr); err != nil {
+	if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr, expectedVersion); err != nil {
 		return err
 	}
 
