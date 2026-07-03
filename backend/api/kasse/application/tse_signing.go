@@ -11,6 +11,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// signKassensitzungEroeffnetEvent signiert den Anfangsbestand als Eigenbeleg
+// (Bareinlage zu Sitzungsbeginn, AEAO 2.2.3.6.1) — wie Geldtransit und
+// Kassendifferenz ist er ein abzusichernder Geschäftsvorfall.
+func (c Command) signKassensitzungEroeffnetEvent(ctx context.Context, evt event.Event, betragCents int) (tseApp.Signierung, error) {
+	processData := tseApp.BuildEigenbelegProcessData(betragCents)
+	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeKassenbelegV1, processData, kasse.EmbedTSEInKassensitzungEroeffnet)
+}
+
 func (c Command) signGeldtransitGebuchtEvent(ctx context.Context, evt event.Event, richtung string, betragCents int) (tseApp.Signierung, error) {
 	processData, err := tseApp.BuildGeldtransitProcessData(richtung, betragCents)
 	if err != nil {

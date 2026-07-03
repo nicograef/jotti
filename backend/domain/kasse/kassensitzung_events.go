@@ -20,10 +20,12 @@ const (
 // --- Event-Data-Structs ---
 
 type KassensitzungEroeffnetV1Data struct {
-	Datum        string `json:"datum"`
-	Bezeichnung  string `json:"bezeichnung"`
-	BetragCents  int    `json:"betragCents"`
-	EroeffnetVon int    `json:"eroeffnetVon"`
+	Datum        string   `json:"datum"`
+	Bezeichnung  string   `json:"bezeichnung"`
+	BetragCents  int      `json:"betragCents"`
+	EroeffnetVon int      `json:"eroeffnetVon"`
+	TSETxID      string   `json:"tseTxId,omitempty"`
+	TSEData      *TSEData `json:"tseData,omitempty"`
 }
 
 var kassensitzungEroeffnetV1DataSchema = z.Struct(z.Shape{

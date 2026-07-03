@@ -1252,6 +1252,99 @@ func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
 	}
 }
 
+// stripSignatur simuliert einen TSE-Ausfall bei der Erfassung für ein beliebiges
+// Fixture-Event: tx-ID gesetzt (Signierversuch fand statt), aber keine Signatur.
+func stripSignatur(t *testing.T, evt event.Event, txID string) event.Event {
+	t.Helper()
+
+	var data map[string]any
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		t.Fatalf("unmarshal event data: %v", err)
+	}
+	delete(data, "tseData")
+	data["tseTxId"] = txID
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal event data: %v", err)
+	}
+	evt.Data = raw
+	return evt
+}
+
+// Unsignierte Vorgänge ALLER Vorgangsarten — nicht nur Zahlung und Direktverkauf —
+// müssen im Export eine TSE_TA_FEHLER-Zeile tragen: Der Ausfall wird generisch aus
+// tx-ID-ohne-Signatur abgeleitet (Dokumentationspflicht des Ausfalls, AEAO 1.14).
+func TestUnsignierteVorgaengeAllerArtenTragenAusfallzeile(t *testing.T) {
+	events := []event.Event{
+		stripSignatur(t, eroeffnetEvent(t, 10000), "tx-eroeffnet"),
+		stripSignatur(t, bestellungEvent(t), "tx-bestellung"),
+		stripSignatur(t, zahlungEvent(t), "tx-zahlung"),
+		stripSignatur(t, warenruecknahmeEvent(t), "tx-storno"),
+		stripSignatur(t, korrekturEvent(t), "tx-korrektur"),
+		stripSignatur(t, geldtransitEvent(t), "tx-geldtransit"),
+		stripSignatur(t, differenzEvent(t), "tx-differenz"),
+	}
+
+	archive, err := Map(testSnapshot(), events, nil)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	transactions := tableByFile(t, archive, "transactions.csv")
+	tse := tableByFile(t, archive, "transactions_tse.csv")
+
+	// Invariante: jeder Bonkopf-Vorgang hat genau eine TSE-Zeile.
+	if len(tse.Records) != len(transactions.Records) {
+		t.Fatalf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tse.Records), len(transactions.Records))
+	}
+
+	for i := range tse.Records {
+		if got := field(t, tse, i, "TSE_TA_FEHLER"); got != tseFehlerAusfall {
+			t.Errorf("Zeile %d (BON_ID %s): TSE_TA_FEHLER = %q, want %q", i, field(t, tse, i, "BON_ID"), got, tseFehlerAusfall)
+		}
+		if got := field(t, tse, i, "TSE_TA_SIG"); got != "" {
+			t.Errorf("Zeile %d: TSE_TA_SIG = %q, want leer", i, got)
+		}
+	}
+}
+
+// Der Anfangsbestand trägt die TSE-Signatur seines Eröffnungs-Events im Export.
+func TestAnfangsbestandTraegtTSESignatur(t *testing.T) {
+	evt := eroeffnetEvent(t, 10000)
+
+	var data kasse.KassensitzungEroeffnetV1Data
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		t.Fatalf("unmarshal eroeffnet data: %v", err)
+	}
+	data.TSETxID = "tx-eroeffnet"
+	data.TSEData = &kasse.TSEData{
+		TransactionNumber: 7000, SignatureCounter: 50, SerialNumberTSE: "abc123serial",
+		LogTimeStart: "2026-06-16T10:00:00Z", LogTimeEnd: "2026-06-16T10:00:01Z",
+		Signature: "EROEFFNUNGSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;eroeffnet",
+	}
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal eroeffnet data: %v", err)
+	}
+	evt.Data = raw
+
+	archive, err := Map(testSnapshot(), []event.Event{evt}, nil)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	tse := tableByFile(t, archive, "transactions_tse.csv")
+	if len(tse.Records) != 1 {
+		t.Fatalf("expected 1 transactions_tse row, got %d", len(tse.Records))
+	}
+	if got := field(t, tse, 0, "TSE_TA_SIG"); got != "EROEFFNUNGSIG==" {
+		t.Errorf("TSE_TA_SIG = %q, want EROEFFNUNGSIG==", got)
+	}
+	if got := field(t, tse, 0, "TSE_TA_FEHLER"); got != "" {
+		t.Errorf("TSE_TA_FEHLER = %q, want leer", got)
+	}
+}
+
 func TestErstellungszeitpunkt(t *testing.T) {
 	fallback := time.Date(2026, 6, 16, 14, 30, 0, 0, time.UTC)
 	abschlussZeit := time.Date(2026, 6, 16, 23, 0, 0, 0, time.UTC)

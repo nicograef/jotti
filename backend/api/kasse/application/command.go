@@ -151,12 +151,27 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		return 0, err
 	}
 
+	// Anfangsbestand > 0 ist ein Geschäftsvorfall (Bareinlage) und wird wie Geldtransit
+	// und Kassendifferenz TSE-signiert; ohne Bargeld zu Sitzungsbeginn gibt es nichts
+	// abzusichern (der Export lässt den Anfangsbestand dann ebenfalls weg).
+	signierung := tseApp.Signierung{Event: evt}
+	if betragCents > 0 {
+		signierung, err = c.signKassensitzungEroeffnetEvent(ctx, evt, betragCents)
+		if err != nil {
+			return 0, err
+		}
+	}
+
 	// Frischer Stream (neue z_nr): erwartete Version 0, das Eröffnungs-Event ist version = 1.
-	if err := c.writeKassensitzungEvent(ctx, evt, zNr, 0); err != nil {
+	if err := c.writeSignedKassensitzungEvent(ctx, signierung, zNr, 0); err != nil {
 		return 0, err
 	}
 
-	log.Info().Int("z_nr", zNr).Msg("Kassensitzung eroeffnet")
+	msg := "Kassensitzung eroeffnet"
+	if signierung.NachsignierAuftrag != nil {
+		msg += " (unsigniert, Nachsignierung vorgemerkt)"
+	}
+	log.Info().Int("z_nr", zNr).Msg(msg)
 	return zNr, nil
 }
 
