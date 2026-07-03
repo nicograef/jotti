@@ -51,15 +51,19 @@ Die Signierung wird vollständig vom Kassier-Pfad entkoppelt:
    Healing (Ist-Abfrage vor erneutem Signieren), Backoff und die
    Admin-Aktionen des heutigen Nachsignier-Workers bleiben erhalten.
 3. Der Kassenbeleg ist der einzige Ort, der auf die Signatur wartet: Beim
-   Beleg-Abruf wartet das System auf die Signatur oder den Ausgang des
-   laufenden Signierversuchs. Im Normalbetrieb liegt die Signatur beim Druck
-   längst vor; ein Beleg ohne TSE-Daten entsteht nur bei nachweisbarem
-   Fehlversuch, also einem echten, automatisch dokumentierten TSE-Ausfall.
+   Beleg-Abruf wartet das System begrenzt (rund zehn Sekunden) auf die
+   Signatur oder den Ausgang des laufenden Signierversuchs. Im Normalbetrieb
+   liegt die Signatur beim Druck längst vor; ein Beleg ohne TSE-Daten
+   entsteht nur bei dokumentiertem Ausfall. Bei bloßem Rückstau ohne Ausfall
+   meldet das System den Beleg als ausstehend, statt einen rechtlich
+   ungedeckten Ausfallvermerk zu drucken.
 4. Ein TSE-Ausfall ist kein Event-Fakt mehr, sondern ein Queue-Zustand:
-   Solange Aufträge fehlschlagen, dokumentiert die Auftragstabelle den Ausfall
-   (Beginn, Ende, Grund), Belege tragen den Ausfallvermerk, und nach
-   Rückkehr der TSE arbeitet der Worker den Rückstand ab. Nachsignierte
-   Belege tragen beim Nachdruck einen Vermerk.
+   Ausfall ist jede dokumentierte Verhinderung zeitnahen Signierens, ob
+   durch Fehlversuche gegen die TSE oder durch Rückstand über der
+   Ausfall-Schwelle (deckt auch hängenden Worker und App-Fehler ab). Die
+   Auftragstabelle dokumentiert Beginn, Ende und Grund, Belege tragen den
+   Ausfallvermerk, und nach Rückkehr der TSE arbeitet der Worker den
+   Rückstand ab. Nachsignierte Belege tragen beim Nachdruck einen Vermerk.
 
 Für Servicekräfte heißt das: Buchen blockiert nie auf die TSE, auch nicht bei
 Störungen. Für Admins: ein Ort für Signaturstatus, Ausfalldokumentation und
@@ -76,7 +80,8 @@ Merge-Logik, ein TSE-freier Kassen-Kern.
    der Betrieb auf dem Fest weiterläuft.
 3. Als Servicekraft möchte ich einen Kassenbeleg mit vollständigen TSE-Daten
    drucken können, sobald ich ihn anfordere, und dafür höchstens eine kurze,
-   begrenzte Wartezeit in Kauf nehmen.
+   begrenzte Wartezeit in Kauf nehmen. Dauert es ausnahmsweise länger,
+   möchte ich eine klare Ausstehend-Meldung statt einer Blockade.
 4. Als Servicekraft möchte ich bei einem echten TSE-Ausfall trotzdem einen
    Beleg ausgeben können, der den Ausfall klar ausweist, damit die
    Belegausgabepflicht erfüllt bleibt.
@@ -105,23 +110,26 @@ Merge-Logik, ein TSE-freier Kassen-Kern.
 12. Als Vereins-Admin möchte ich im Dashboard gewarnt werden, wenn die
     Signatur-Queue wächst oder Aufträge endgültig fehlschlagen, damit ich
     reagieren kann.
-13. Als Betriebsprüfer möchte ich im DSFinV-K-Export jede TSE-Transaktion
+13. Als Vereins-Admin möchte ich, dass Vorgänge aus der Zeit vor der
+    TSE-Einrichtung nach dem Einrichten automatisch nachsigniert werden,
+    damit der Bestand ohne Handarbeit vollständig abgesichert ist.
+14. Als Betriebsprüfer möchte ich im DSFinV-K-Export jede TSE-Transaktion
     einem Kassenvorgang zuordnen können und umgekehrt, damit die Verprobung
     ohne Waisen und Lücken aufgeht.
-14. Als Betriebsprüfer möchte ich nicht signierte Vorgänge im Export mit
+15. Als Betriebsprüfer möchte ich nicht signierte Vorgänge im Export mit
     einer Fehlererläuterung vorfinden, damit Ausfälle nachvollziehbar sind.
-15. Als Betriebsprüfer möchte ich anhand der Auftrags- und Signaturdaten
+16. Als Betriebsprüfer möchte ich anhand der Auftrags- und Signaturdaten
     nachvollziehen können, dass die Absicherung im Regelbetrieb unmittelbar
     erfolgte (Auftragszeit vs. TSE-Zeit), damit die Konformität belegbar ist.
-16. Als Entwickler möchte ich Kassen-Commands ohne TSE-Verdrahtung testen,
+17. Als Entwickler möchte ich Kassen-Commands ohne TSE-Verdrahtung testen,
     damit Kassenlogik-Tests einfach und schnell bleiben.
-17. Als Entwickler möchte ich genau einen Signaturpfad pflegen, damit
+18. Als Entwickler möchte ich genau einen Signaturpfad pflegen, damit
     Fehlerbehandlung, Idempotenz und Retry an einer Stelle leben.
-18. Als Entwickler möchte ich Signaturen über genau einen Leseweg beziehen,
+19. Als Entwickler möchte ich Signaturen über genau einen Leseweg beziehen,
     damit Beleg und Export keine Merge-Logik über zwei Quellen brauchen.
-19. Als Entwickler möchte ich den TSE-Anbieter hinter dem Worker austauschen
+20. Als Entwickler möchte ich den TSE-Anbieter hinter dem Worker austauschen
     können, ohne den Kassen-Kern anzufassen.
-20. Als Entwickler möchte ich, dass jede TSE-Transaktion garantiert einem
+21. Als Entwickler möchte ich, dass jede TSE-Transaktion garantiert einem
     persistierten Event zugeordnet ist (erst committen, dann signieren),
     damit das Waisen-Szenario konstruktiv ausgeschlossen ist.
 
@@ -136,9 +144,17 @@ Architektur
   Auftrag referenziert sein Event eindeutig und trägt die selbst erzeugte
   TSE-Transaktions-ID.
 - Die Statusmaschine des Auftrags bleibt: offen, erledigt, fehlgeschlagen
-  (nach Maximalversuchen mit exponentiellem Backoff), verworfen. Die
+  (nach Maximalversuchen), verworfen. Übergänge: Der Worker quittiert offen
+  zu erledigt oder zählt Fehlversuche bis fehlgeschlagen; der Admin setzt
+  fehlgeschlagen auf offen zurück oder verwirft offene wie fehlgeschlagene
+  Aufträge mit Begründung. Der Backoff startet im Sekundenbereich (etwa 5,
+  15, 45 Sekunden) und wächst dann exponentiell in Minuten bis zum Deckel
+  von 30 Minuten; die heutige Minuten-Kurve stammt aus dem
+  Nachsignier-Sonderfall und wäre im Normalpfad zu träge. Die
   Auftragstabelle ist zugleich die TSE-Ausfalldokumentation (Beginn, Ende,
-  Grund je Auftrag) und die Datenbasis der Latenz-Metrik.
+  Grund je Auftrag) und die Datenbasis der Latenz-Metrik; sie ist
+  aufbewahrungspflichtig: Aufträge werden nie gelöscht, Verwerfen ist ein
+  protokollierter Statuswechsel mit Grund, Benutzer und Zeitpunkt (GoBD).
 - processType und processData werden beim Einreihen als Snapshot im Auftrag
   gespeichert (friert ein, was zu signieren war; der Worker bleibt frei von
   Event-Schema-Wissen).
@@ -149,11 +165,28 @@ Architektur
   womit signiert wird.
 - Der Signatur-Worker ist der einzige Sprecher zur TSE: Sofort-Trigger nach
   jedem Commit über eine In-Process-Benachrichtigung, der bestehende
-  Polling-Tick bleibt nur als Fallback; Abarbeitung in Auftragsreihenfolge
-  (FIFO, hält das TSE-Log chronologisch); Ist-Abfrage-Healing vor erneutem
-  Signieren und atomare Quittierung (Signatur ablegen + Auftrag erledigen)
-  werden vom Nachsignier-Worker übernommen; der TSE-Client samt Auth-Token
-  wird über Aufträge hinweg wiederverwendet.
+  Polling-Tick bleibt nur als Fallback und fängt nach einem Absturz
+  verlorene Trigger auf; Abarbeitung in Auftragsreihenfolge (FIFO als
+  Soll-Eigenschaft: im Regelbetrieb bleibt das TSE-Log chronologisch);
+  differenzierte Fehlerbehandlung nach Fehlerklasse: Ein auftragsspezifischer
+  Fehler (etwa von fiskaly abgelehnte processData) wird übersprungen und
+  kommt per Backoff wieder dran, ein Gift-Auftrag staut also nie die Queue;
+  ein TSE-weiter Fehler (Verbindung, 5xx) bricht den Durchlauf ab, statt
+  Fehlversuche über den ganzen Rückstand zu kaskadieren; Ist-Abfrage-Healing
+  vor erneutem Signieren und atomare Quittierung (Signatur ablegen + Auftrag
+  erledigen) werden vom Nachsignier-Worker übernommen; der TSE-Client samt
+  Auth-Token wird über Aufträge hinweg wiederverwendet. Der In-Process-
+  Trigger setzt das Single-Prozess-Deployment von jotti voraus; ein
+  Scale-out (LISTEN/NOTIFY, FOR UPDATE SKIP LOCKED) ist bewusst nicht Teil
+  dieses Umbaus.
+- Signaturaufträge entstehen auch ohne TSE-Konfiguration (Erst-Setup,
+  Testbetrieb): Der Queue-Zustand heißt dann „wartet auf TSE-Konfiguration",
+  ein dokumentierter Dauerzustand ohne Fehlversuchszählung und ohne
+  Rückstands-Warnung. Belege tragen bis dahin den Vermerk, dass keine TSE
+  konfiguriert ist; solche Aufträge blockieren den Tagesabschluss nicht.
+  Wird die TSE später eingerichtet, arbeitet der Worker den gesamten
+  Bestand automatisch nach; das TSE-Setup-Wizard-Vorhaben erhält die
+  Nachsignierung des Altbestands damit ohne Zusatzaufwand.
 - Die Signatur-Seitentabelle wird der einzige Signatur-Store. Event-Payloads
   verlieren sämtliche TSE-Felder (Signaturdaten, Transaktions-ID,
   Ausfall-Flag); der Ausfall ist künftig ein Queue-Zustand zur Lesezeit, kein
@@ -172,15 +205,28 @@ Beleg und Wartepunkt
 
 - Einziger Wartepunkt ist der Kassenbeleg-Abruf (Entscheidung: Beleg wartet,
   nicht die Buchungs-Response). Ein Warte-Modul kapselt die Logik und liefert
-  genau eines von drei Ergebnissen: Signatur vorhanden (regulärer
-  TSE-Abschnitt), Signatur vorhanden mit Nachsigniert-Kennzeichen, oder
-  Ausfall mit belegbarem Grund (Ausfallvermerk).
-- Ausfallvermerk-Politik (Entscheidung: nur nach Fehlversuch): Der
-  Beleg-Abruf wartet auf den Ausgang des laufenden Signierversuchs, begrenzt
-  durch dessen Deadline. Ein Beleg ohne TSE-Daten entsteht nur, wenn ein
-  Fehlversuch am Auftrag protokolliert ist oder eine Aufholphase nach
-  dokumentiertem Ausfall läuft. Bloße Queue-Latenz erzeugt nie einen
-  Ausfallvermerk, denn der Vermerk ist rechtlich nur für echte Ausfälle
+  genau eines von vier Ergebnissen: Signatur vorhanden (regulärer
+  TSE-Abschnitt), Signatur vorhanden mit Nachsigniert-Kennzeichen, Ausfall
+  mit belegbarem Grund (Ausfallvermerk), oder Signatur ausstehend (kein
+  Beleg, die UI fordert erneut an). Die Gesamtwartezeit des Beleg-Abrufs ist
+  auf rund zehn Sekunden begrenzt; damit ist auch der Rückstau-Fall
+  definiert, in dem der Auftrag noch hinter anderen wartet und weder
+  Signatur noch Fehlversuch vorliegt.
+- Ausfallbegriff (Entscheidung: ursachenunabhängig mit Rückstands-Schwelle):
+  Ein dokumentierter Ausfall liegt vor, wenn Fehlversuche am Auftrag
+  protokolliert sind oder der älteste offene Auftrag älter als zwei Minuten
+  ist (Rückstands-Ausfall; deckt auch hängenden Worker und App-Fehler ab,
+  bei denen nie ein Fehlversuch entsteht). Der Dauerzustand „wartet auf
+  TSE-Konfiguration" zählt ebenfalls als dokumentierter Zustand. Die
+  Schwelle liegt deutlich über normalen Lastspitzen, damit Stoßbetrieb die
+  Ausfalldokumentation nicht verwässert.
+- Ausfallvermerk-Politik (Entscheidung: nur bei dokumentiertem Ausfall):
+  Der Beleg-Abruf wartet auf den Ausgang des laufenden Signierversuchs,
+  höchstens bis zu seiner Gesamtdeadline. Ein Beleg ohne TSE-Daten entsteht
+  nur bei dokumentiertem Ausfall im obigen Sinn oder während einer
+  Aufholphase nach dokumentiertem Ausfall. Bloße Queue-Latenz unterhalb der
+  Schwelle erzeugt nie einen Ausfallvermerk, sondern das Ergebnis Signatur
+  ausstehend, denn der Vermerk ist rechtlich nur für echte Ausfälle
   gedeckt.
 - Nachsigniert-Vermerk (Entscheidung: beibehalten, Kriterium Fehlversuch
   oder verspätet): Der Vermerk erscheint, wenn am Auftrag mindestens ein
@@ -192,41 +238,65 @@ Beleg und Wartepunkt
 Tagesabschluss
 
 - Tagesabschluss-Gate (Entscheidung: warten, Ausfall-Reste zulässig): Der
-  Abschluss wartet kurz auf das Leerlaufen der Queue. Verbleiben nur
-  fehlgeschlagene oder verworfene Aufträge eines dokumentierten Ausfalls,
-  fährt er fort; verbleiben offene, noch signierbare Aufträge, bricht er mit
-  einer Meldung ab, die die offenen Aufträge benennt. Das Abschluss-Event
-  selbst wird regulär über die Queue signiert.
+  Abschluss wartet kurz auf das Leerlaufen der Queue. Ausfall-Reste sind
+  endgültig fehlgeschlagene, verworfene und offene Aufträge, die einem
+  dokumentierten, auch noch laufenden Ausfall zuzurechnen sind (mindestens
+  ein Fehlversuch oder aktiver Rückstands-Ausfall); sie lassen den Abschluss
+  zu, die Abschlussmeldung weist sie aus. Nur frische offene Aufträge ohne
+  Ausfallbezug blockieren mit einer Meldung, die sie benennt. Aufträge im
+  Zustand „wartet auf TSE-Konfiguration" blockieren nicht. Das
+  Abschluss-Event selbst wird regulär über die Queue signiert.
+- Reste nach dem Abschluss (Entscheidung: nachsignieren): Kehrt die TSE nach
+  einem Abschluss mit Ausfall-Resten zurück, arbeitet der Worker offene
+  Reste regulär nach; endgültig fehlgeschlagene kann der Admin zurücksetzen.
+  Die Signatur landet in der Seitentabelle, der Export zeigt sie
+  vollständig, Nachsigniert-Vermerk und Ausfalldokumentation erklären den
+  Zeitversatz gegenüber dem Kassenabschluss. Lieber eine späte Signatur als
+  dauerhaft keine (AEAO Nr. 1.14.4: schnellstmögliche Wiederherstellung des
+  konformen Zustands).
 
 Admin und Monitoring
 
 - Die Nachsignier-Verwaltung wird zur Signaturauftrags-Verwaltung
-  (Statusliste, Zurücksetzen, Verwerfen) und um den Queue-Zustand ergänzt:
-  Anzahl offener Aufträge und Alter des ältesten offenen Auftrags als
-  Latenz-Metrik, mit Warnhinweis im Admin-Dashboard bei Rückstand oder
-  endgültig fehlgeschlagenen Aufträgen. Die Ausfalldokumentations-Ansicht
-  bleibt und speist sich unverändert aus der Auftragstabelle.
+  (Statusliste, Zurücksetzen, Verwerfen mit Begründung) und um den
+  Queue-Zustand ergänzt: Anzahl offener Aufträge und Alter des ältesten
+  offenen Auftrags als Latenz-Metrik. Das Admin-Dashboard warnt ab rund
+  einer Minute Rückstand oder bei endgültig fehlgeschlagenen Aufträgen; ab
+  zwei Minuten Rückstand beginnt automatisch der dokumentierte
+  Rückstands-Ausfall. Die Ausfalldokumentations-Ansicht bleibt, speist sich
+  unverändert aus der Auftragstabelle und fasst zusammenhängende Aufträge zu
+  Ausfall-Zeiträumen zusammen (ein Ausfall ist für den Prüfer ein Zeitraum
+  mit Grund, nicht hunderte Einzelaufträge).
 
 Konformitätsbedingungen (als Anforderungen verbindlich)
 
 - Einreihen transaktional mit der Aufzeichnung (KassenSichV § 2 Satz 1:
   unmittelbare, zwangsläufige Auslösung je Aufzeichnung).
 - Sofort-Trigger statt Polling als Normalpfad; Ziellatenz im Regelbetrieb im
-  Sekundenbereich; die Latenz ist aus den gespeicherten Zeiten (Auftrag
-  erstellt vs. TSE-logTime) jederzeit nachweisbar.
-- Beleg ohne TSE-Daten nur bei nachweisbarem Fehlversuch bzw. dokumentiertem
-  Ausfall (AEAO Nr. 1.14.2/1.14.3), nie bei bloßer Queue-Latenz.
+  Sekundenbereich, p95 unter fünf Sekunden; die Latenz ist aus den
+  gespeicherten Zeiten (Auftrag erstellt vs. TSE-logTime) jederzeit
+  nachweisbar.
+- Beleg ohne TSE-Daten nur bei dokumentiertem Ausfall im Sinne des
+  ursachenunabhängigen Ausfallbegriffs (AEAO Nr. 1.14.2/1.14.3), nie bei
+  bloßer Queue-Latenz unterhalb der Schwelle.
 - Tagesabschluss nur bei leerer Queue oder ausschließlich dokumentierten
   Ausfall-Resten (AEAO Nr. 2.2.3.3).
 - Ausfalldokumentation automatisch über die Auftragstabelle (AEAO
-  Nr. 1.14.1); die Verfahrensbeschreibung in der Compliance-Dokumentation
-  erläutert Mechanismus und typische Latenz.
+  Nr. 1.14.1), ursachenunabhängig einschließlich Rückstands-Ausfall; die
+  Verfahrensbeschreibung in der Compliance-Dokumentation erläutert
+  Mechanismus, typische Latenz und mögliche Verzögerungen und erfüllt damit
+  zugleich die Herstellerdokumentations-Pflicht aus BSI TR-03153-1
+  Kap. 3.9.3.
+- Die Auftragstabelle ist Teil der aufbewahrungspflichtigen Unterlagen:
+  kein Löschen, Verwerfen nur als protokollierter Statuswechsel mit Grund,
+  Benutzer und Zeitpunkt (GoBD-Nachvollziehbarkeit).
 
 Benennung und Dokumentation
 
-- Neue Begriffe (Signaturauftrag, Signatur-Worker, Aufholphase) werden in der
-  Ubiquitous Language ergänzt; Endpunkte und UI-Texte folgen der bestehenden
-  deutschen Fachsprache.
+- Neue Begriffe (Signaturauftrag, Signatur-Worker, Aufholphase,
+  Rückstands-Ausfall, Signatur ausstehend) werden in der Ubiquitous Language
+  ergänzt; Endpunkte und UI-Texte folgen der bestehenden deutschen
+  Fachsprache.
 - Handbuch (TSE-Architektur) und Compliance-Dokumentation (TSE-Integration,
   Verfahrensbeschreibung) werden auf das Outbox-Modell aktualisiert.
 
@@ -242,16 +312,26 @@ Getestet werden alle Kernmodule:
 
 - Fiskalische Projektion: tabellengetrieben je Event-Typ (signaturpflichtig
   ja/nein, processType, processData inklusive Vorzeichen-/Faktor-Fällen).
-- Signatur-Worker: Erfolgsfall, Fehlversuch mit Backoff, Healing-Fälle
+- Signatur-Worker: Erfolgsfall, Fehlversuch mit Sekunden-Backoff,
+  differenzierte Fehlerbehandlung (auftragsspezifischer Fehler wird
+  übersprungen, TSE-weiter Fehler bricht den Durchlauf ab), Healing-Fälle
   (Transaktion bei der TSE bereits abgeschlossen, noch aktiv, unbekannt),
-  FIFO-Reihenfolge, Quittierung atomar, Trigger-Verhalten.
-- Signatur-Warte-Modul: Signatur rechtzeitig; Fehlversuch führt zum
-  Ausfallergebnis mit Grund; Aufholphase; verspätete Signatur führt zum
+  FIFO-Reihenfolge im Regelbetrieb, Quittierung atomar, Trigger-Verhalten,
+  Crash-Recovery (Auftrag committet, Trigger verloren, der Polling-Fallback
+  signiert nach).
+- Signatur-Warte-Modul: Signatur rechtzeitig; dokumentierter Ausfall führt
+  zum Ausfallergebnis mit Grund; Rückstau ohne Ausfall führt zum Ergebnis
+  Signatur ausstehend; Überschreiten der Rückstands-Schwelle kippt
+  Ausstehend in Ausfall; Aufholphase; verspätete Signatur führt zum
   Nachsigniert-Kennzeichen; keine falschen Ausfallvermerke bei bloßer
   Latenz.
-- Tagesabschluss-Gate: leere Queue, offener Auftrag blockiert mit Meldung,
-  Ausfall-Reste lassen den Abschluss zu.
-- Angepasste Beleg- und Export-Pfade: Kassenbeleg-Erzeugung mit den drei
+- Tagesabschluss-Gate: leere Queue, frischer offener Auftrag blockiert mit
+  Meldung, Ausfall-Reste (auch offene Aufträge im laufenden Ausfall) lassen
+  den Abschluss zu, Aufträge im Zustand „wartet auf TSE-Konfiguration"
+  blockieren nicht.
+- TSE-nicht-konfiguriert-Fluss: Aufträge entstehen ohne Konfiguration, eine
+  spätere Einrichtung arbeitet den Bestand vollständig nach.
+- Angepasste Beleg- und Export-Pfade: Kassenbeleg-Erzeugung mit den vier
   Ergebnisarten des Warte-Moduls; DSFinV-K-Mapper liest nur noch die
   Seitentabelle und füllt das Fehlerfeld für unsignierte Vorgänge.
 - Der bestehende Seed-Integrationstest wird auf das neue Schema und den
@@ -270,6 +350,9 @@ Getestet werden alle Kernmodule:
   hinaus; ELSTER-Meldepflicht.
 - Eine Datenmigration für bestehende Events oder Instanzen (Pre-Release,
   keine produktiven Nutzer).
+- Ein Scale-out des Signatur-Workers über mehrere Prozesse (LISTEN/NOTIFY,
+  FOR UPDATE SKIP LOCKED). Der Umbau setzt das heutige
+  Single-Prozess-Deployment voraus und dokumentiert das als Annahme.
 
 ## Further Notes
 
@@ -285,10 +368,17 @@ Vorgangsbeginn starten; 45-Sekunden-Anker für Updates), Nr. 2.2.3.3 (vor
 Belegausgabe und Kassenabschluss zwingend beenden), Nr. 2.5.7
 (Belegausgabe unmittelbar nach Vorgangsende) und Nr. 1.14 (Ausfallregime).
 BSI TR-03153-1 Kap. 3.9.3 erkennt Durchführungszeiten und Verzögerungen der
-Signaturerstellung ausdrücklich an. Die fünf daraus abgeleiteten
-Konformitätsbedingungen sind oben als Anforderungen festgeschrieben. Eine
-Nachsignierungspflicht existiert nicht; die Nachsignierung bleibt als
-freiwillige Härtung erhalten.
+Signaturerstellung ausdrücklich an und verpflichtet den Hersteller (MUSS),
+in einer Herstellerdokumentation darüber zu informieren; jotti ist hier
+Hersteller, die Verfahrensbeschreibung erfüllt diese Pflicht. Die daraus
+abgeleiteten Konformitätsbedingungen sind oben als Anforderungen
+festgeschrieben. Das verbleibende Auslegungsrisiko liegt im nicht
+quantifizierten Begriff unmittelbar (KassenSichV § 2 Satz 1, AEAO
+Nr. 2.2.2): Sekundenlatenz ist mit dem 45-Sekunden-Wertungsmaßstab und der
+TR-Anerkennung von Verzögerungen gut vertretbar, und die jederzeit
+nachweisbare Latenz (Auftragszeit vs. TSE-logTime) ist die
+Verteidigungslinie. Eine Nachsignierungspflicht existiert nicht; die
+Nachsignierung bleibt als freiwillige Härtung erhalten.
 
 Das Outbox-Modell ist der Rechtslage in zwei Punkten näher als der heutige
 Sync-Pfad: Die Vollständigkeit der Absicherung ist transaktional garantiert
@@ -300,4 +390,8 @@ Betriebshinweis: Die Queue-Latenz ist die zentrale Betriebsgröße des neuen
 Modells. Sie fällt als Differenz zwischen Auftragserstellung und TSE-logTime
 ohnehin an und soll im Admin-Dashboard sichtbar sein; die
 Verfahrensbeschreibung dokumentiert den Mechanismus und die erwartete
-Größenordnung.
+Größenordnung. Durchsatzannahme: Der serielle Worker schafft bei
+fiskaly-Latenzen von 300 bis 500 Millisekunden grob zwei bis drei Signaturen
+pro Sekunde; der Spitzenbedarf eines Vereinsfests liegt weit darunter. Würde
+die Annahme je verletzt, wäre paralleles Signieren unter Aufgabe der
+FIFO-Chronologie der nächste Schritt.
