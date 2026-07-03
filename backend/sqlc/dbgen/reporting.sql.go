@@ -299,7 +299,7 @@ SELECT
     COALESCE(SUM(s.brutto_cents), 0)::int AS brutto_cents
 FROM kassenjournal kj
 CROSS JOIN LATERAL kj_extract_umsatz_pro_steuersatz(kj.type, kj.data) AS s(steuersatz, brutto_cents)
-WHERE kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1')
+WHERE kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1', 'stornierung-erteilt:v1')
 AND kj.kassensitzung_nr = $1
 GROUP BY s.steuersatz
 ORDER BY CASE s.steuersatz
@@ -317,6 +317,9 @@ type GetUmsatzProSteuersatzRow struct {
 }
 
 // Tagesabrechnung: Bruttoumsatz gruppiert nach Steuersatz pro Kassensitzung.
+// Kassenwirksame Warenrücknahmen (stornierung-erteilt) zählen als negativer Umsatz
+// (Faktor -1 in kj_extract_umsatz_pro_steuersatz), damit die Aufschlüsselung mit
+// dem Gesamtumsatz und dem DSFinV-K-Export übereinstimmt.
 func (q *Queries) GetUmsatzProSteuersatz(ctx context.Context, kassensitzungNr int) ([]GetUmsatzProSteuersatzRow, error) {
 	rows, err := q.db.QueryContext(ctx, getUmsatzProSteuersatz, kassensitzungNr)
 	if err != nil {

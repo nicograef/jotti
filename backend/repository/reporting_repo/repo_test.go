@@ -16,6 +16,11 @@ import (
 
 func cleanDB(t *testing.T, db *sql.DB) {
 	t.Helper()
+	// tisch_sessions referenziert kassenjournal (last_event_id) und muss zuerst weg —
+	// auch Hinterlassenschaften anderer Testpakete auf der geteilten Test-DB.
+	if _, err := db.Exec("DELETE FROM tisch_sessions"); err != nil {
+		t.Fatalf("Failed to clean tisch_sessions table: %v", err)
+	}
 	if _, err := db.Exec("ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete"); err != nil {
 		t.Fatalf("Failed to disable kassenjournal_no_delete trigger: %v", err)
 	}
@@ -98,6 +103,7 @@ func stornierungData(betragCents int, kommentar string) map[string]any {
 		"positionen": []map[string]any{{
 			"produktName":  "Bier",
 			"varianteName": "0.5L",
+			"steuersatz":   "regel",
 			"menge":        1,
 			"einzelpreis":  betragCents,
 		}},
@@ -232,5 +238,43 @@ func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
 	}
 	if data.Summary.AnzahlStornierungen != 2 {
 		t.Errorf("expected anzahl stornierungen 2, got %d", data.Summary.AnzahlStornierungen)
+	}
+}
+
+// Die USt-Aufschlüsselung muss kassenwirksame Warenrücknahmen als negativen
+// Umsatz einbeziehen: Sonst übersteigt die Summe über alle Steuersätze den
+// Gesamtumsatz und divergiert vom DSFinV-K-Export. Geldneutrale Korrekturen
+// bleiben außen vor (kein Umsatz).
+func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer db.Close()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	userID := createUser(t, db, "Anna Müller", "anna", "active")
+	ksNr := createKassensitzung(t, db)
+
+	insertEvent(t, db, userID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 1, zahlungData(2000), ksNr)
+	insertEvent(t, db, userID, "anna", "stornierung-erteilt:v1", "kassensitzung-1/tisch-1", 2, stornierungData(500, "Warenruecknahme"), ksNr)
+	insertEvent(t, db, userID, "anna", "bestellung-korrigiert:v1", "kassensitzung-1/tisch-1", 3, korrekturData(300, "Korrektur"), ksNr)
+
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+
+	summe := 0
+	for _, u := range data.UmsatzProSteuersatz {
+		summe += u.BruttoCents
+		if u.Satz == "regel" && u.BruttoCents != 1500 {
+			t.Errorf("expected regel-Umsatz 1500 (2000 Zahlung - 500 Warenrücknahme), got %d", u.BruttoCents)
+		}
+	}
+
+	if summe != data.Summary.GesamtUmsatzCents {
+		t.Errorf("expected Steuersatz-Summe %d == GesamtUmsatz %d", summe, data.Summary.GesamtUmsatzCents)
 	}
 }
