@@ -10,6 +10,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/steuer"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 // ErrKeineVorgaenge signalisiert eine Sitzung ohne abrechenbare Belege. Ein
@@ -86,6 +87,7 @@ type beleg struct {
 	bruttoCents      int
 	tse              *kasse.TSEData
 	tseTxID          string // tx_id zum Nachladen der Signatur aus der Seitentabelle (TSE-Ausfall, später nachsigniert)
+	processType      string // TSE_TA_VORGANGSART, aus dem Event-Typ abgeleitet (gilt auch für nachsignierte Vorgänge)
 	notiz            string
 }
 
@@ -205,6 +207,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 	herkunft := map[string]string{}
 
 	for _, ev := range events {
+		vorher := len(belege)
 		switch ev.Type {
 		case string(kasse.EventTypeBestellungAufgenommenV1):
 			var data kasse.BestellungAufgenommenV1Data
@@ -458,9 +461,42 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				tseTxID:      data.TSETxID,
 			})
 		}
+		// Jeder in dieser Iteration erzeugte Beleg trägt die Vorgangsart seines
+		// Events. So exportieren auch nachsignierte Vorgänge, deren Seitentabelle
+		// keinen processType kennt, die korrekte TSE_TA_VORGANGSART (B1).
+		vorgangsart := tseVorgangsart(ev.Type)
+		for i := vorher; i < len(belege); i++ {
+			belege[i].processType = vorgangsart
+		}
 	}
 
 	return belege, nil
+}
+
+// tseVorgangsart spiegelt für den Export das Event-Typ→processType-Mapping des
+// Signierpfads (die tse_signing.go der Anwendungsschichten). Sie liefert die
+// TSE_TA_VORGANGSART damit unabhängig davon, ob die Signatur im Event-Payload
+// steckt oder aus der Seitentabelle nachgeladen wurde (die keinen processType
+// führt). Nicht TSE-pflichtige Event-Typen liefern "".
+func tseVorgangsart(eventTyp string) string {
+	switch eventTyp {
+	case string(kasse.EventTypeBestellungAufgenommenV1),
+		string(kasse.EventTypeBestellungKorrigiertV1),
+		string(kasse.EventTypeBestellungUmgebuchtV1):
+		return tse.ProcessTypeBestellungV1
+	case string(kasse.EventTypeTagesabschlussErstelltV1):
+		return tse.ProcessTypeSonstigerVorgang
+	case string(kasse.EventTypeZahlungKassiertV1),
+		string(kasse.EventTypeStornierungErteiltV1),
+		string(kasse.EventTypeDirektverkaufGetaetigtV1),
+		string(kasse.EventTypeDirektverkaufStorniertV1),
+		string(kasse.EventTypeKassensitzungEroeffnetV1),
+		string(kasse.EventTypeGeldtransitGebuchtV1),
+		string(kasse.EventTypeDifferenzSollIstGebuchtV1):
+		return tse.ProcessTypeKassenbelegV1
+	default:
+		return ""
+	}
 }
 
 // nachsigniereBelege vereinigt die TSE-Signaturen je Beleg (Vorgang): liegt im
@@ -579,11 +615,13 @@ var cashpointclosingColumns = []column{
 
 func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table {
 	bar := barbestand(belege)
-	buchungstag := s.Erstellung.UTC().Format(time.DateOnly)
 
+	// Z_BUCHUNGSTAG bleibt leer: Das Feld ist amtlich nur für einen vom
+	// Erstellungstag abweichenden Buchungstag vorgesehen; jotti bucht am
+	// Erstellungstag (Z_ERSTELLUNG), es gibt keinen abweichenden (B4).
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-		buchungstag, Version,
+		"", Version,
 		belege[0].bonID, belege[len(belege)-1].bonID,
 		s.Betreiber.Vereinsname, s.Betreiber.Strasse, s.Betreiber.Plz, s.Betreiber.Ort, land,
 		ptr(s.Betreiber.Steuernummer), ptr(s.Betreiber.UstID),
@@ -1037,12 +1075,16 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 		b := &belege[bi]
 		switch {
 		case b.tse != nil:
+			// TSE_VORGANGSDATEN bleibt leer: Das Feld ist amtlich optional und die
+			// signierte processData wird nicht persistiert, also hier nicht
+			// rekonstruiert (B2). TSE_TA_VORGANGSART stammt aus dem Event-Typ (B1),
+			// nicht aus b.tse.ProcessType, damit auch nachsignierte Vorgänge greifen.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, tseReferenzID, itoa(b.tse.TransactionNumber),
-				b.tse.LogTimeStart, b.tse.LogTimeEnd, b.tse.ProcessType,
+				b.tse.LogTimeStart, b.tse.LogTimeEnd, b.processType,
 				itoa(b.tse.SignatureCounter), b.tse.Signature, "",
-				b.tse.QRCodeData,
+				"",
 			})
 		case b.tseTxID != "":
 			// TSE-Ausfall ohne Nachsignierung — für jede Vorgangsart: Ein Beleg
@@ -1275,6 +1317,15 @@ func tseSerial(belege []beleg) string {
 	return ""
 }
 
+// ZertifikatZuLang meldet, ob das TSE-Zertifikat die zwei amtlichen
+// TSE_ZERTIFIKAT-Felder übersteigt und daher leer exportiert wird (siehe
+// certChunk). Der Aufrufer nutzt das für eine Log-Warnung; das Archiv bleibt
+// gültig, da das vollständige Zertifikat in den TSE-Stammdaten und im
+// Anbieter-Export vorliegt.
+func ZertifikatZuLang(cert string) bool {
+	return len(cert) > zertifikatSpalten*zertifikatChunk
+}
+
 // certChunk liefert den index-ten 1000-Zeichen-Block des base64-Zertifikats
 // (für TSE_ZERTIFIKAT_I und _II). Base64 ist ASCII, daher ist Byte-Slicing sicher.
 //
@@ -1283,7 +1334,7 @@ func tseSerial(belege []beleg) string {
 // damit wertloses — Zertifikat zu exportieren: Das vollständige Zertifikat liegt
 // in den TSE-Stammdaten (DB-Backup) und im TSE-Export des Anbieters vor.
 func certChunk(cert string, index int) string {
-	if len(cert) > zertifikatSpalten*zertifikatChunk {
+	if ZertifikatZuLang(cert) {
 		return ""
 	}
 	start := index * zertifikatChunk

@@ -86,6 +86,13 @@ func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 		return Archiv{}, err
 	}
 
+	if dsfinvk.ZertifikatZuLang(snapshot.TSEStammdaten.Zertifikat) {
+		log.Warn().
+			Int("kassensitzung", ks.ZNr).
+			Int("laenge", len(snapshot.TSEStammdaten.Zertifikat)).
+			Msg("TSE certificate exceeds two DSFinV-K fields; TSE_ZERTIFIKAT left empty in export")
+	}
+
 	inhalt, err := dsfinvk.BuildArchive(snapshot, events, e.signaturNachladen(ctx))
 	if err != nil {
 		if errors.Is(err, dsfinvk.ErrKeineVorgaenge) {

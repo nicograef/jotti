@@ -105,7 +105,7 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 			{testSerial, erstellung, "3", testBonID, "2", "2", "1,50", "1,40", "0,10"},
 		},
 		"transactions_tse.csv": {
-			{testSerial, erstellung, "3", testBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "SIGBASE64==", "", "V0;keydata"},
+			{testSerial, erstellung, "3", testBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "SIGBASE64==", "", ""},
 		},
 		"vat.csv": {
 			{testSerial, erstellung, "3", "1", "19,00", "Allgemeiner Steuersatz"},
@@ -126,7 +126,7 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 			{testSerial, erstellung, "3", "jotti", "jotti mPOS", testSerial, "jotti", "1.0", "EUR", ""},
 		},
 		"cashpointclosing.csv": {
-			{testSerial, erstellung, "3", "2026-06-16", "2.4", testBonID, testBonID, "TSV Beispiel", "Hauptstr. 1", "12345", "Musterdorf", "DEU", "12345/67890", "", "10,50", "10,50"},
+			{testSerial, erstellung, "3", "", "2.4", testBonID, testBonID, "TSV Beispiel", "Hauptstr. 1", "12345", "Musterdorf", "DEU", "12345/67890", "", "10,50", "10,50"},
 		},
 	}
 
@@ -181,9 +181,16 @@ func TestMapZertifikatChunking(t *testing.T) {
 	if gotCert != passt {
 		t.Errorf("zusammengesetztes Zertifikat = %d Zeichen, want %d", len(gotCert), len(passt))
 	}
+	if ZertifikatZuLang(passt) {
+		t.Error("Zertifikat bis 2000 Zeichen darf nicht als zu lang gelten")
+	}
 
 	zuLang := strings.Repeat("B", 2500)
 	snap.TSEStammdaten.Zertifikat = zuLang
+	// Der Aufrufer (Export) loggt hierauf eine Warnung; die Felder bleiben leer.
+	if !ZertifikatZuLang(zuLang) {
+		t.Error("Zertifikat > 2000 Zeichen muss als zu lang gelten (Log-Warnung im Export)")
+	}
 	archive, err = Map(snap, []event.Event{barverkaufEvent(t)}, nil)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
@@ -302,8 +309,8 @@ func TestMapTischablaufTrennt(t *testing.T) {
 			{testSerial, erstellung, "3", zahlungBonID, "Tisch 42"},
 		},
 		"transactions_tse.csv": {
-			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "Bestellung-V1", "11", "BESTELLSIG==", "", "V0;bestell"},
-			{testSerial, erstellung, "3", zahlungBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "ZAHLSIG==", "", "V0;zahl"},
+			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "Bestellung-V1", "11", "BESTELLSIG==", "", ""},
+			{testSerial, erstellung, "3", zahlungBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "ZAHLSIG==", "", ""},
 		},
 		// Nur die Zahlung ist geldwirksam: die AVBestellung trägt keine Zahlart bei.
 		"datapayment.csv": {
@@ -505,8 +512,8 @@ func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 		},
 		// Eigene TSE-Signatur der Korrektur.
 		"transactions_tse.csv": {
-			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "Bestellung-V1", "11", "BESTELLSIG==", "", "V0;bestell"},
-			{testSerial, erstellung, "3", korrekturBonID, "1", "4712", "2026-06-16T13:00:00Z", "2026-06-16T13:00:01Z", "Bestellung-V1", "13", "KORREKTURSIG==", "", "V0;korrektur"},
+			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "Bestellung-V1", "11", "BESTELLSIG==", "", ""},
+			{testSerial, erstellung, "3", korrekturBonID, "1", "4712", "2026-06-16T13:00:00Z", "2026-06-16T13:00:01Z", "Bestellung-V1", "13", "KORREKTURSIG==", "", ""},
 		},
 	}
 
@@ -1365,8 +1372,8 @@ func TestMapNachsigniertVorgang(t *testing.T) {
 
 	const erstellung = "2026-06-16T14:30:00Z"
 	want := [][]string{
-		{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", "V0;event"},
-		{testSerial, erstellung, "3", nachsigniertOutageBonID, "1", "9100", "2026-06-16T13:00:05Z", "2026-06-16T13:00:06Z", "", "99", "BACKFILLSIG==", "", "V0;backfill"},
+		{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", ""},
+		{testSerial, erstellung, "3", nachsigniertOutageBonID, "1", "9100", "2026-06-16T13:00:05Z", "2026-06-16T13:00:06Z", "Kassenbeleg-V1", "99", "BACKFILLSIG==", "", ""},
 	}
 	tse := tableByFile(t, archive, "transactions_tse.csv")
 	if !reflect.DeepEqual(tse.Records, want) {
@@ -1402,7 +1409,7 @@ func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
 
 	const erstellung = "2026-06-16T14:30:00Z"
 	want := [][]string{
-		{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", "V0;event"},
+		{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", ""},
 		{testSerial, erstellung, "3", nachsigniertOutageBonID, "1", "", "", "", "", "", "", tseFehlerAusfall, ""},
 	}
 	tse := tableByFile(t, archive, "transactions_tse.csv")

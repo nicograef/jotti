@@ -216,13 +216,13 @@ eines überlangen Zertifikats wird eine Log-Warnung ausgegeben.
 
 ### Acceptance criteria
 
-- [ ] Nachsignierter Vorgang exportiert `TSE_TA_VORGANGSART` mit dem
+- [x] Nachsignierter Vorgang exportiert `TSE_TA_VORGANGSART` mit dem
       korrekten processType (`Kassenbeleg-V1` bzw. `Bestellung-V1`).
-- [ ] `TSE_VORGANGSDATEN` ist in allen Zeilen leer; kein QR-String mehr im
+- [x] `TSE_VORGANGSDATEN` ist in allen Zeilen leer; kein QR-String mehr im
       Export.
-- [ ] Zertifikat > 2000 Zeichen erzeugt eine Log-Warnung; Felder bleiben
+- [x] Zertifikat > 2000 Zeichen erzeugt eine Log-Warnung; Felder bleiben
       wie bisher leer.
-- [ ] `Z_BUCHUNGSTAG` ist leer; Golden-Files entsprechend aktualisiert.
+- [x] `Z_BUCHUNGSTAG` ist leer; Golden-Files entsprechend aktualisiert.
 
 ---
 
