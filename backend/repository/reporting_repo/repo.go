@@ -41,7 +41,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		stats      dbgen.GetReportingStatsRow
 		umsatzRows []dbgen.GetUmsatzProServicekraftRow
 		tischRows  []dbgen.GetUmsatzProTischRow
-		steuerRows []dbgen.GetUmsatzProSteuersatzRow
+		zeilenRows []dbgen.GetUmsatzPositionszeilenRow
 		stornoRows []dbgen.GetStornierungenRow
 	)
 
@@ -64,7 +64,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	})
 	g.Go(func() error {
 		var err error
-		steuerRows, err = r.q.GetUmsatzProSteuersatz(ctx, kassensitzungNr)
+		zeilenRows, err = r.q.GetUmsatzPositionszeilen(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
@@ -82,8 +82,10 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		return reporting.ReportingData{}, err
 	}
 
-	umsatzProSteuersatz := make([]reporting.UmsatzSteuersatz, len(steuerRows))
-	for i, row := range steuerRows {
+	// Unaggregierte Brutto-Positionszeilen; die Anwendungsschicht ersetzt sie
+	// durch die aggregierte USt-Aufschlüsselung (steuer.Aufteilen je Zeile).
+	umsatzProSteuersatz := make([]reporting.UmsatzSteuersatz, len(zeilenRows))
+	for i, row := range zeilenRows {
 		umsatzProSteuersatz[i] = reporting.UmsatzSteuersatz{
 			Satz:        steuer.Steuersatz(row.Steuersatz),
 			BruttoCents: row.BruttoCents,

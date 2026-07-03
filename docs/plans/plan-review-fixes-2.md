@@ -363,12 +363,12 @@ Export-Summen.
 
 ### Acceptance criteria
 
-- [ ] Für eine Sitzung mit Kombi-Positionen, Warenrücknahmen und
+- [x] Für eine Sitzung mit Kombi-Positionen, Warenrücknahmen und
       Teilzahlungen gilt: Reporting-Aufschlüsselung ==
       `businesscases.csv`-Summen (gemeinsamer Testfall).
-- [ ] Σ(Brutto je Steuersatz) == Gesamtumsatz; Netto + Steuer == Brutto je
+- [x] Σ(Brutto je Steuersatz) == Gesamtumsatz; Netto + Steuer == Brutto je
       Satz.
-- [ ] Bestehende Reporting-Tests angepasst und grün.
+- [x] Bestehende Reporting-Tests angepasst und grün.
 
 ---
 

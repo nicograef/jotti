@@ -150,6 +150,43 @@ func TestGetReporting_BerechnetUmsatzProSteuersatz(t *testing.T) {
 	}
 }
 
+// Zeilenbasis statt Aggregatbasis (B9): Zwei Kombi-Zeilen à 10,05 € runden je
+// Zeile (2 × 7,04 € ermäßigt = 14,08 €), nicht auf dem Aggregat (20,10 € →
+// 14,07 €). Warenrücknahmen kommen als negative Zeilen und mindern die
+// Aufschlüsselung, statt bei negativem Aggregat zu verschwinden.
+func TestGetReporting_UmsatzProSteuersatzRechnetJeZeile(t *testing.T) {
+	data := reporting.ReportingData{
+		KassensitzungNr: testKassensitzungNr,
+		UmsatzProSteuersatz: []reporting.UmsatzSteuersatz{
+			{Satz: steuer.KombiSteuersatz, BruttoCents: 1005},
+			{Satz: steuer.KombiSteuersatz, BruttoCents: 1005},
+			{Satz: steuer.RegelSteuersatz, BruttoCents: -450},
+		},
+	}
+
+	q := Query{ReportingRepo: mockReportingRepo{data: data}, KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
+
+	result, err := q.GetReporting(context.Background(), testKassensitzungNr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	bySatz := map[steuer.Steuersatz]reporting.UmsatzSteuersatz{}
+	for _, eintrag := range result.UmsatzProSteuersatz {
+		bySatz[eintrag.Satz] = eintrag
+	}
+
+	ermaessigt := bySatz[steuer.ErmaessigtSteuersatz]
+	if ermaessigt.BruttoCents != 1408 || ermaessigt.NettoCents != 1316 || ermaessigt.SteuerCents != 92 {
+		t.Fatalf("unexpected ermaessigt values (Zeilenbasis): %+v", ermaessigt)
+	}
+
+	regel := bySatz[steuer.RegelSteuersatz]
+	if regel.BruttoCents != 152 || regel.NettoCents != 128 || regel.SteuerCents != 24 {
+		t.Fatalf("unexpected regel values (Warenrücknahme abgezogen): %+v", regel)
+	}
+}
+
 func TestGetReporting_DatabaseError(t *testing.T) {
 	q := Query{ReportingRepo: mockReportingRepo{err: errors.New("db connection failed")}, KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
 

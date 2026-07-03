@@ -107,26 +107,21 @@ AND e.kassensitzung_nr = @kassensitzung_nr
 GROUP BY tss.tisch_id, t.name
 ORDER BY zahlungen_cents DESC;
 
--- name: GetUmsatzProSteuersatz :many
--- Tagesabrechnung: Bruttoumsatz gruppiert nach Steuersatz pro Kassensitzung.
--- Kassenwirksame Warenrücknahmen (stornierung-erteilt) zählen als negativer Umsatz
--- (Faktor -1 in kj_extract_umsatz_pro_steuersatz), damit die Aufschlüsselung mit
--- dem Gesamtumsatz und dem DSFinV-K-Export übereinstimmt.
+-- name: GetUmsatzPositionszeilen :many
+-- Tagesabrechnung: umsatzwirksame Brutto-Positionszeilen mit Steuersatz pro
+-- Kassensitzung, unaggregiert (eine Zeile je Position). Die USt-Aufschlüsselung
+-- rechnet die Anwendungsschicht auf Zeilenbasis (steuer.Aufteilen je Zeile,
+-- danach Aggregation) — dieselbe Basis wie Beleg, TSE-processData und
+-- DSFinV-K-Export. Kassenwirksame Warenrücknahmen (stornierung-erteilt) und
+-- Direktverkauf-Stornos zählen als negative Zeilen (Faktor -1 in
+-- kj_extract_umsatz_pro_steuersatz).
 SELECT
     s.steuersatz::Steuersatz AS steuersatz,
-    COALESCE(SUM(s.brutto_cents), 0)::int AS brutto_cents
+    s.brutto_cents::int AS brutto_cents
 FROM kassenjournal kj
 CROSS JOIN LATERAL kj_extract_umsatz_pro_steuersatz(kj.type, kj.data) AS s(steuersatz, brutto_cents)
 WHERE kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1', 'stornierung-erteilt:v1')
-AND kj.kassensitzung_nr = @kassensitzung_nr
-GROUP BY s.steuersatz
-ORDER BY CASE s.steuersatz
-    WHEN 'regel' THEN 1
-    WHEN 'ermaessigt' THEN 2
-    WHEN 'befreit' THEN 3
-    WHEN 'kombi' THEN 4
-    ELSE 5
-END;
+AND kj.kassensitzung_nr = @kassensitzung_nr;
 
 -- name: GetEigeneUebersicht :one
 -- Service-Dashboard: Eigene KPIs der eingeloggten Servicekraft pro Kassensitzung.

@@ -241,10 +241,11 @@ func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
 	}
 }
 
-// Die USt-Aufschlüsselung muss kassenwirksame Warenrücknahmen als negativen
-// Umsatz einbeziehen: Sonst übersteigt die Summe über alle Steuersätze den
-// Gesamtumsatz und divergiert vom DSFinV-K-Export. Geldneutrale Korrekturen
-// bleiben außen vor (kein Umsatz).
+// Die Brutto-Positionszeilen müssen kassenwirksame Warenrücknahmen als
+// negative Zeilen einbeziehen: Sonst übersteigt die Summe über alle
+// Steuersätze den Gesamtumsatz und divergiert vom DSFinV-K-Export.
+// Geldneutrale Korrekturen bleiben außen vor (kein Umsatz). Das Repo liefert
+// unaggregierte Zeilen; die Aufschlüsselung rechnet die Anwendungsschicht.
 func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
 	db := dbpkg.OpenTestDatabase()
 	defer db.Close()
@@ -266,15 +267,24 @@ func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
 		t.Fatalf("GetReporting failed: %v", err)
 	}
 
+	// Zwei Zeilen: die Zahlung positiv, die Warenrücknahme negativ (jeweils regel).
+	if len(data.UmsatzProSteuersatz) != 2 {
+		t.Fatalf("expected 2 Positionszeilen, got %d: %+v", len(data.UmsatzProSteuersatz), data.UmsatzProSteuersatz)
+	}
+
 	summe := 0
-	for _, u := range data.UmsatzProSteuersatz {
-		summe += u.BruttoCents
-		if u.Satz == "regel" && u.BruttoCents != 1500 {
-			t.Errorf("expected regel-Umsatz 1500 (2000 Zahlung - 500 Warenrücknahme), got %d", u.BruttoCents)
+	regelSumme := 0
+	for _, zeile := range data.UmsatzProSteuersatz {
+		summe += zeile.BruttoCents
+		if zeile.Satz == "regel" {
+			regelSumme += zeile.BruttoCents
 		}
 	}
 
+	if regelSumme != 1500 {
+		t.Errorf("expected regel-Umsatz 1500 (2000 Zahlung - 500 Warenrücknahme), got %d", regelSumme)
+	}
 	if summe != data.Summary.GesamtUmsatzCents {
-		t.Errorf("expected Steuersatz-Summe %d == GesamtUmsatz %d", summe, data.Summary.GesamtUmsatzCents)
+		t.Errorf("expected Zeilen-Summe %d == GesamtUmsatz %d", summe, data.Summary.GesamtUmsatzCents)
 	}
 }

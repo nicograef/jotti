@@ -56,20 +56,27 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 	return data, nil
 }
 
-func berechneUmsatzProSteuersatz(bruttoProSatz []reporting.UmsatzSteuersatz) []reporting.UmsatzSteuersatz {
-	if len(bruttoProSatz) == 0 {
-		return []reporting.UmsatzSteuersatz{}
-	}
-
-	aggregiert := make(map[steuer.Steuersatz]reporting.UmsatzSteuersatz, len(bruttoProSatz))
-	for _, eintrag := range bruttoProSatz {
-		aufteilungen := steuer.Aufteilen(eintrag.BruttoCents, eintrag.Satz)
-		for _, aufteilung := range aufteilungen {
+// berechneUmsatzProSteuersatz aggregiert die USt-Aufschlüsselung aus den
+// unaggregierten Brutto-Positionszeilen — auf derselben Basis wie Beleg,
+// TSE-processData und DSFinV-K-Export: steuer.Aufteilen je Positionszeile,
+// danach Aggregation je Steuersatz. Warenrücknahmen kommen als negative
+// Zeilen; wie beim Stornobeleg wird die positive Magnitude aufgeteilt und
+// das Vorzeichen danach angewendet (steuer.Aufteilen ignoriert Negatives).
+func berechneUmsatzProSteuersatz(bruttoZeilen []reporting.UmsatzSteuersatz) []reporting.UmsatzSteuersatz {
+	aggregiert := make(map[steuer.Steuersatz]reporting.UmsatzSteuersatz, 3)
+	for _, zeile := range bruttoZeilen {
+		vorzeichen := 1
+		brutto := zeile.BruttoCents
+		if brutto < 0 {
+			vorzeichen = -1
+			brutto = -brutto
+		}
+		for _, aufteilung := range steuer.Aufteilen(brutto, zeile.Satz) {
 			current := aggregiert[aufteilung.Satz]
 			current.Satz = aufteilung.Satz
-			current.BruttoCents += aufteilung.Brutto
-			current.NettoCents += aufteilung.Netto
-			current.SteuerCents += aufteilung.Steuer
+			current.BruttoCents += vorzeichen * aufteilung.Brutto
+			current.NettoCents += vorzeichen * aufteilung.Netto
+			current.SteuerCents += vorzeichen * aufteilung.Steuer
 			aggregiert[aufteilung.Satz] = current
 		}
 	}
