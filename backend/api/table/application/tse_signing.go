@@ -30,10 +30,11 @@ func (c Command) signBestellungAufgenommenEvent(ctx context.Context, evt event.E
 	return c.TSESignierer.SignEvent(ctx, evt, tse.ProcessTypeBestellungV1, processData, kasse.EmbedTSEInBestellungAufgenommen)
 }
 
-func (c Command) signBestellungUmgebuchtEvent(ctx context.Context, evt event.Event, positionen []kasse.Position) (tseApp.Signierung, error) {
-	// Eine Umbuchung ist geldneutral: dieselbe Bestellung-V1-processData wie eine
-	// Bestellung (keine :Bar-Zahlungszeile).
-	processData, err := tseApp.BuildBestellungProcessData(positionen)
+func (c Command) signBestellungUmgebuchtEvent(ctx context.Context, evt event.Event, positionen []kasse.Position, faktor int) (tseApp.Signierung, error) {
+	// Eine Umbuchung ist geldneutral (keine :Bar-Zahlungszeile). Der Abgang vom
+	// Quelltisch wird mit negativen Mengen signiert (faktor -1), der Zugang auf dem
+	// Zieltisch mit positiven — sonst erschiene die Ware TSE-seitig doppelt bestellt.
+	processData, err := tseApp.BuildBestellungProcessDataWithFaktor(positionen, faktor)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to build TSE process_data for umbuchung")
 		return tseApp.Signierung{}, ErrDatabase
@@ -53,9 +54,10 @@ func (c Command) signStornierungErteiltEvent(ctx context.Context, evt event.Even
 }
 
 func (c Command) signBestellungKorrigiertEvent(ctx context.Context, evt event.Event, positionen []kasse.Position) (tseApp.Signierung, error) {
-	// Die geldneutrale Korrektur ist kassenneutral: dieselbe Bestellung-V1-processData
-	// wie eine Bestellung (keine :Bar-Zahlungszeile).
-	processData, err := tseApp.BuildBestellungProcessData(positionen)
+	// Die geldneutrale Korrektur ist kassenneutral (keine :Bar-Zahlungszeile) und
+	// nimmt Positionen zurück: negative Mengen (Anhang I), damit die Rücknahme
+	// TSE-seitig von einer Neubestellung unterscheidbar ist.
+	processData, err := tseApp.BuildBestellungProcessDataWithFaktor(positionen, -1)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("Failed to build TSE process_data for korrektur")
 		return tseApp.Signierung{}, ErrDatabase

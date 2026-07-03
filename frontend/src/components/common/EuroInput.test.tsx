@@ -36,6 +36,29 @@ describe('EuroInput', () => {
     expect(input).toHaveValue('4,50')
   })
 
+  it('behandelt einen Punkt als Dezimaltrenner (4.5 → 4,50, nicht 45,00)', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    const input = screen.getByPlaceholderText('0,00')
+
+    await user.type(input, '4.5')
+    await user.tab()
+
+    expect(input).toHaveValue('4,50')
+  })
+
+  it('verwirft weitere Trennzeichen nach dem ersten', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    const input = screen.getByPlaceholderText('0,00')
+
+    await user.type(input, '1,2,3')
+    await user.tab()
+
+    // Der zweite Trenner wird beim Tippen sichtbar verworfen: 1,2 dann 3 → 1,23 €.
+    expect(input).toHaveValue('1,23')
+  })
+
   it('leert das Feld beim Verlassen, wenn kein gültiger Betrag eingegeben wurde', async () => {
     const user = userEvent.setup()
     render(<Harness />)

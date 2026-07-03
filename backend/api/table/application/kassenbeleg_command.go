@@ -159,6 +159,12 @@ func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventTSEData *kasse.
 		if err != nil {
 			return nil, false, err
 		}
+		if abschnitt != nil {
+			// Die Signatur stammt aus der Nachsignier-Seitentabelle: Der Vorgang wurde
+			// nach einem TSE-Ausfall nachträglich signiert — der Beleg kennzeichnet das,
+			// weil die TSE-Zeitpunkte vom Belegdatum abweichen.
+			abschnitt.Nachsigniert = true
+		}
 		return abschnitt, false, nil
 	case errors.Is(err, db.ErrNotFound):
 		return nil, tseAusfall, nil
