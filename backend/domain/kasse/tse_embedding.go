@@ -44,6 +44,11 @@ func embedTSEInData[T any](eventType EventType, apply func(data *T, txID string,
 // tseApp.EmbedTSE). tseData == nil markiert den Ausfall; Event-Typen mit
 // Ausfallvermerk setzen dann zusaetzlich ihr TSEAusfall-Flag.
 var (
+	EmbedTSEInKassensitzungEroeffnet = embedTSEInData(EventTypeKassensitzungEroeffnetV1, func(data *KassensitzungEroeffnetV1Data, txID string, tseData *TSEData) {
+		data.TSETxID = txID
+		data.TSEData = tseData
+	})
+
 	EmbedTSEInBestellungAufgenommen = embedTSEInData(EventTypeBestellungAufgenommenV1, func(data *BestellungAufgenommenV1Data, txID string, tseData *TSEData) {
 		data.TSETxID = txID
 		data.TSEData = tseData

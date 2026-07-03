@@ -402,7 +402,64 @@ func TestKasseAbschliessen_MitTSE_SigniertDifferenzUndTagesabschluss(t *testing.
 	}
 }
 
-func TestKassensitzungEroeffnen_MitTSEKonfiguration_WirdNichtSigniert(t *testing.T) {
+// Der Anfangsbestand (> 0) ist eine Bareinlage und wird wie Geldtransit als
+// Kassenbeleg-V1-Eigenbeleg signiert.
+func TestKassensitzungEroeffnen_MitTSE_SigniertAnfangsbestand(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	start := time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 6, 10, 9, 0, 1, 0, time.UTC)
+
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
+		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: settingsMock{tse: settings.TSEKonfiguration{
+				ApiKey:    "api-key",
+				ApiSecret: "api-secret",
+				TssID:     "tss-1",
+				ClientID:  "client-1",
+				UpdatedAt: time.Now(),
+			}},
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{
+					StartResponse:  tse.StartResult{TransactionNumber: 60, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 59},
+					FinishResponse: tse.FinishResult{TransactionNumber: 60, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 60, SerialNumberTSE: "TSE-SN-1", Signature: "SIG"},
+				}, nil
+			},
+		},
+	}
+
+	zNr, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest", 10000)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(zNr))
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected one event, got %d", len(events))
+	}
+
+	var data kasse.KassensitzungEroeffnetV1Data
+	if err := json.Unmarshal(events[0].Data, &data); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+	if data.TSEData == nil {
+		t.Fatal("expected TSE data in eroeffnet event (Anfangsbestand ist eine Bareinlage)")
+	}
+	if data.TSEData.ProcessType != "Kassenbeleg-V1" {
+		t.Fatalf("expected process type Kassenbeleg-V1, got %q", data.TSEData.ProcessType)
+	}
+}
+
+// Ohne Anfangsbestand gibt es keinen Geschäftsvorfall — keine TSE-Transaktion.
+// (Das Event-Schema lehnt betragCents = 0 derzeit ohnehin ab; der Test dokumentiert,
+// dass der Signierpfad in diesem Fall nie erreicht wird.)
+func TestKassensitzungEroeffnen_OhneAnfangsbestand_WirdNichtSigniert(t *testing.T) {
 	ctx := context.Background()
 	tseClientCalled := false
 
@@ -425,11 +482,11 @@ func TestKassensitzungEroeffnen_MitTSEKonfiguration_WirdNichtSigniert(t *testing
 		},
 	}
 
-	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest", 10000)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest", 0)
+	if err == nil {
+		t.Fatal("expected validation error for betragCents = 0 (Schema verlangt Anfangsbestand)")
 	}
 	if tseClientCalled {
-		t.Fatal("expected TSE client to not be created for kassensitzung-eroeffnet")
+		t.Fatal("expected TSE client to not be created for kassensitzung-eroeffnet without Anfangsbestand")
 	}
 }

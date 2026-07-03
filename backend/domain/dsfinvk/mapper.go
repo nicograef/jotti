@@ -85,7 +85,6 @@ type beleg struct {
 	bruttoCents      int
 	tse              *kasse.TSEData
 	tseTxID          string // tx_id zum Nachladen der Signatur aus der Seitentabelle (TSE-Ausfall, später nachsigniert)
-	tseAusfall       bool   // Signierung schlug bei der Erfassung fehl: ohne Nachsignierung trägt der Vorgang eine TSE_TA_FEHLER-Zeile statt zu fehlen
 	notiz            string
 }
 
@@ -247,7 +246,6 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bruttoCents:      data.GesamtZahlungCents,
 				tse:              data.TSEData,
 				tseTxID:          data.TSETxID,
-				tseAusfall:       data.TSEAusfall,
 				notiz:            data.Kommentar,
 			})
 
@@ -370,7 +368,6 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bruttoCents:  data.GesamtbetragCents,
 				tse:          data.TSEData,
 				tseTxID:      data.TSETxID,
-				tseAusfall:   data.TSEAusfall,
 				notiz:        data.Kommentar,
 			})
 
@@ -410,7 +407,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				continue
 			}
 			bonNr++
-			belege = append(belege, geldbewegung(ev, fmt.Sprintf("anfangsbestand-%d", ev.ID), bonNr, gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung, "", nil))
+			belege = append(belege, geldbewegung(ev, fmt.Sprintf("anfangsbestand-%d", ev.ID), bonNr, gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung, data.TSETxID, data.TSEData))
 
 		case string(kasse.EventTypeGeldtransitGebuchtV1):
 			var data kasse.GeldtransitGebuchtV1Data
@@ -969,11 +966,14 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 				itoa(b.tse.SignatureCounter), b.tse.Signature, "",
 				b.tse.QRCodeData,
 			})
-		case b.tseAusfall:
-			// TSE-Ausfall ohne Nachsignierung: der TSE-pflichtige Vorgang ist
-			// (noch) unsigniert. Statt zu fehlen trägt er eine Fehlerzeile —
-			// TSE_TA_FEHLER gesetzt, alle Transaktionsfelder leer (es gab keine
+		case b.tseTxID != "":
+			// TSE-Ausfall ohne Nachsignierung — für jede Vorgangsart: Ein Beleg
+			// mit tx-ID, aber ohne Signatur (weder im Event noch nachsigniert)
+			// ist ein (noch) unsignierter, TSE-pflichtiger Vorgang. Statt zu
+			// fehlen trägt er eine Fehlerzeile — TSE_TA_FEHLER gesetzt, alle
+			// Transaktionsfelder leer (es gab keine abgeschlossene
 			// TSE-Transaktion) —, damit jeder Bonkopf eine TSE-Zeile hat.
+			// Ohne tx-ID wurde nie signiert (keine TSE konfiguriert): keine Zeile.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, tseReferenzID, "",
