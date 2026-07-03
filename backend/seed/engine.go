@@ -442,7 +442,8 @@ func (b *sitzungsBauer) kassensturz(a kassensturz) error {
 			return err
 		}
 		b.add(diff)
-		b.bestandCents += a.DifferenzCents
+		// Differenz = Soll − Ist; die Bargeldwirkung ist Ist − Soll (Fehlbetrag mindert den Bestand).
+		b.bestandCents -= a.DifferenzCents
 	}
 
 	b.kassensturzDone = true

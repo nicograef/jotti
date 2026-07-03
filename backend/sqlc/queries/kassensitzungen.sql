@@ -17,6 +17,8 @@ FROM kassensitzungen ORDER BY datum DESC, created_at DESC;
 -- Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Warenrücknahmen, Geldtransits und Differenz-Buchungen.
 -- Die kassenwirksame Warenrücknahme (stornierung-erteilt) gibt Bargeld zurück und mindert den Bestand;
 -- geldneutrale Vorgänge (bestellung-korrigiert, bestellung-umgebucht) berühren den Kassenbestand nicht.
+-- Die Differenz ist als Soll − Ist gebucht; ihre Bargeldwirkung ist Ist − Soll und wird deshalb
+-- subtrahiert: Nach der Differenzbuchung entspricht der Soll-Bestand dem gezählten Ist-Bestand.
 SELECT (
     COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int
     + COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
@@ -24,7 +26,7 @@ SELECT (
     + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
     - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
     + COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int
-    + COALESCE(SUM(kj_extract_differenz_cents(type, data)), 0)::int
+    - COALESCE(SUM(kj_extract_differenz_cents(type, data)), 0)::int
 )::int AS soll_bestand_cents
 FROM kassenjournal
 WHERE kassensitzung_nr = $1

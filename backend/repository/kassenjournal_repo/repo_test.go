@@ -811,6 +811,94 @@ func TestGetKassenbestand_WarenruecknahmeDecreasesKorrekturDoesNot(t *testing.T)
 	}
 }
 
+// validEroeffnungData returns valid kassensitzung-eroeffnet:v1 event data.
+func validEroeffnungData(userID, betragCents int) map[string]any {
+	return map[string]any{
+		"datum":        "2026-07-03",
+		"bezeichnung":  "Testsitzung",
+		"betragCents":  betragCents,
+		"eroeffnetVon": userID,
+	}
+}
+
+// validDifferenzData returns valid differenz-soll-ist-gebucht:v1 event data.
+// betragCents ist Soll − Ist (positiv = Fehlbetrag, negativ = Überschuss).
+func validDifferenzData(userID, betragCents int) map[string]any {
+	return map[string]any{
+		"betragCents": betragCents,
+		"gebuchtVon":  userID,
+	}
+}
+
+// Nach der Differenzbuchung muss der Soll-Bestand dem gezählten Ist-Bestand
+// entsprechen: Ein erneuter Kassensturz (z. B. beim Abschluss-Retry nach
+// Teilfehler) berechnet dann Differenz 0 und bucht kein zweites Differenz-Event.
+func TestGetKassenbestand_DifferenzbuchungGleichtSollAnIstAn(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	ksSubject := kasse.KassensitzungSubject(ksNr)
+	tischSubject := kasse.TischSessionSubject(ksNr, 1)
+
+	eroeffnung := newTestEvent(userID, "kassensitzung-eroeffnet:v1", ksSubject, 1, validEroeffnungData(userID, 10000))
+	if _, err := insertEventRaw(repo.db, eroeffnung, ksNr); err != nil {
+		t.Fatalf("Failed to insert kassensitzung-eroeffnet event: %v", err)
+	}
+
+	zahlung := newTestEvent(userID, "zahlung-kassiert:v1", tischSubject, 1, validZahlungData("p0000000-0000-0000-0000-000000000001", 1, 5000))
+	if _, err := insertEventRaw(repo.db, zahlung, ksNr); err != nil {
+		t.Fatalf("Failed to insert zahlung-kassiert event: %v", err)
+	}
+
+	bestand, err := repo.GetKassenbestand(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if bestand != 15000 {
+		t.Fatalf("Expected kassenbestand 15000 (Soll vor Kassensturz), got %d", bestand)
+	}
+
+	// Kassensturz zählt Ist = 13000 → Differenz = Soll − Ist = +2000 (Fehlbetrag).
+	differenz := newTestEvent(userID, "differenz-soll-ist-gebucht:v1", ksSubject, 2, validDifferenzData(userID, 2000))
+	if _, err := insertEventRaw(repo.db, differenz, ksNr); err != nil {
+		t.Fatalf("Failed to insert differenz-soll-ist-gebucht event: %v", err)
+	}
+
+	bestand, err = repo.GetKassenbestand(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if bestand != 13000 {
+		t.Fatalf("Expected kassenbestand 13000 (= Ist) nach Fehlbetrag-Buchung, got %d", bestand)
+	}
+}
+
+func TestGetKassenbestand_UeberschussErhoehtSollAufIst(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	ksSubject := kasse.KassensitzungSubject(ksNr)
+
+	eroeffnung := newTestEvent(userID, "kassensitzung-eroeffnet:v1", ksSubject, 1, validEroeffnungData(userID, 10000))
+	if _, err := insertEventRaw(repo.db, eroeffnung, ksNr); err != nil {
+		t.Fatalf("Failed to insert kassensitzung-eroeffnet event: %v", err)
+	}
+
+	// Kassensturz zählt Ist = 10500 → Differenz = Soll − Ist = −500 (Überschuss).
+	differenz := newTestEvent(userID, "differenz-soll-ist-gebucht:v1", ksSubject, 2, validDifferenzData(userID, -500))
+	if _, err := insertEventRaw(repo.db, differenz, ksNr); err != nil {
+		t.Fatalf("Failed to insert differenz-soll-ist-gebucht event: %v", err)
+	}
+
+	bestand, err := repo.GetKassenbestand(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if bestand != 10500 {
+		t.Fatalf("Expected kassenbestand 10500 (= Ist) nach Überschuss-Buchung, got %d", bestand)
+	}
+}
+
 func TestGetReportingStats_IncludesDirektverkaufMetrics(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
