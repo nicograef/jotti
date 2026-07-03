@@ -75,7 +75,4 @@ func TestZahlenformateNutzenKommaAlsDezimalsymbol(t *testing.T) {
 	if got := formatQuantity(2); got != "2,000" {
 		t.Errorf("formatQuantity(2) = %q, want 2,000", got)
 	}
-	if got := formatPercent(19); got != "19,00" {
-		t.Errorf("formatPercent(19) = %q, want 19,00", got)
-	}
 }

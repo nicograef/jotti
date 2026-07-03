@@ -120,19 +120,3 @@ func ustSchluessel(satz steuer.Steuersatz) int {
 		return 0
 	}
 }
-
-// ustBeschreibung liefert die UST_BESCHR für die vat.csv je Schlüssel.
-func ustBeschreibung(schluessel int) string {
-	switch schluessel {
-	case 1:
-		return "Allgemeiner Steuersatz"
-	case 2:
-		return "Ermäßigter Steuersatz"
-	case ustNichtSteuerbar:
-		return "Nicht steuerbar"
-	case 6:
-		return "Umsatzsteuerfrei"
-	default:
-		return ""
-	}
-}
