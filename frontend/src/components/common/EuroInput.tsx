@@ -3,9 +3,18 @@ import { useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { cn, formatCents, parseCents } from '@/lib/utils'
 
-/** Keeps only digits and a single comma so the field can never hold invalid characters. */
+/**
+ * Keeps only digits and a single decimal separator so the field can never hold
+ * an invalid amount. A typed `.` counts as decimal separator (manche
+ * Tastatur-Layouts liefern trotz `inputMode="decimal"` einen Punkt statt des
+ * Kommas — `4.5` muss 4,50 € ergeben, nicht 45,00 €); everything after the
+ * first separator is treated as decimals, additional separators are dropped.
+ */
 const cleanInput = (input: string): string => {
-  return input.replace(/[^0-9,]/g, '').replace(/,+/g, ',')
+  const normalized = input.replace(/\./g, ',').replace(/[^0-9,]/g, '')
+  const [ganze, ...rest] = normalized.split(',')
+  if (rest.length === 0) return ganze
+  return ganze + ',' + rest.join('')
 }
 
 /** Normalises a raw Euro string to the canonical `12,50` form, or empty when there is no amount. */

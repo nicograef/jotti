@@ -43,6 +43,10 @@ type TSEAbschnitt struct {
 	ZeitpunktEnde   time.Time
 	Signatur        string
 	QRCodeData      string
+	// Nachsigniert: die Signatur entstand nach einem TSE-Ausfall nachträglich
+	// (Nachsignier-Worker). Der Beleg weist das aus, weil die TSE-Zeitpunkte
+	// dann sichtbar vom Belegdatum abweichen.
+	Nachsigniert bool
 }
 
 // FormatPositionBon generiert einen Bon fuer eine einzelne Position (Standard-Bonmodus).
@@ -252,6 +256,10 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		buf.WriteString(toWPC1252("  Signatur: "))
 		buf.WriteString(toWPC1252(wrapLine(data.TSE.Signatur, lineWidth-2)))
 		buf.WriteByte('\n')
+		if data.TSE.Nachsigniert {
+			fmt.Fprintf(&buf, toWPC1252("  Nachsigniert am %s\n"), data.TSE.ZeitpunktEnde.Format("02.01.2006 15:04:05"))
+			buf.WriteString(toWPC1252("  (TSE war bei der Erfassung nicht erreichbar)\n"))
+		}
 
 		appendNativeQRCode(&buf, data.TSE.QRCodeData)
 	} else if data.TSEAusfallvermerk {

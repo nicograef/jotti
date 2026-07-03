@@ -70,14 +70,28 @@ func BuildKassenbelegProcessDataWithFaktor(positionen []kasse.Position, zahlbetr
 // pro Position `<Menge>;"<Bezeichnung>";<Brutto-Einzelpreis>`, Zeilentrenner \r,
 // Anführungszeichen in der Bezeichnung werden verdoppelt.
 func BuildBestellungProcessData(positionen []kasse.Position) (string, error) {
+	return BuildBestellungProcessDataWithFaktor(positionen, 1)
+}
+
+// BuildBestellungProcessDataWithFaktor erzeugt Bestellung-V1-processData mit
+// Vorzeichen: faktor -1 stellt Rücknahmen dar (geldneutrale Korrektur, Abgang
+// einer Umbuchung) — DSFinV-K Anhang I sieht für Bestell-Storni negative Mengen
+// vor. Ohne Vorzeichen wäre eine Rücknahme TSE-seitig von einer zusätzlichen
+// Neubestellung nicht unterscheidbar.
+func BuildBestellungProcessDataWithFaktor(positionen []kasse.Position, faktor int) (string, error) {
 	if len(positionen) == 0 {
 		return "", fmt.Errorf("bestellung processData requires at least one position")
+	}
+	if faktor != 1 && faktor != -1 {
+		return "", fmt.Errorf("unsupported faktor %d", faktor)
 	}
 
 	zeilen := make([]string, 0, len(positionen))
 	for _, pos := range positionen {
+		// Eine nicht-positive Menge wäre das Symptom eines Fehlers im Aufrufer —
+		// hart melden statt still zu verschlucken (Vollständigkeit der Absicherung).
 		if pos.Menge <= 0 {
-			continue
+			return "", fmt.Errorf("bestellung processData requires positive quantities, got %d for %q", pos.Menge, pos.Bezeichnung())
 		}
 
 		name := pos.Bezeichnung()
@@ -86,11 +100,7 @@ func BuildBestellungProcessData(positionen []kasse.Position) (string, error) {
 		}
 
 		bezeichnung := `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
-		zeilen = append(zeilen, fmt.Sprintf("%d;%s;%s", pos.Menge, bezeichnung, betragString(pos.Einzelpreis)))
-	}
-
-	if len(zeilen) == 0 {
-		return "", fmt.Errorf("bestellung processData requires positive quantities")
+		zeilen = append(zeilen, fmt.Sprintf("%d;%s;%s", faktor*pos.Menge, bezeichnung, betragString(pos.Einzelpreis)))
 	}
 
 	return strings.Join(zeilen, "\r"), nil

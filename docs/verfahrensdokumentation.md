@@ -89,7 +89,7 @@ jotti unterliegt nach § 146a AO der Pflicht, jeden Geschäftsvorfall durch eine
 
 **Persistenz der Signaturen:** Die von der TSE gelieferten Signaturdaten (Transaktionsnummer, Signaturzähler, Signatur, Zeitstempel, Seriennummer) werden zusammen mit dem Ereignis im Kassenjournal gespeichert.
 
-**Ausfallpfad:** Schlägt die Signierung fehl (TSE-Ausfall oder Zeitüberschreitung), wird der Vorgang dennoch gebucht und ein Nachsignier-Auftrag angelegt; ein Hintergrundprozess signiert später nach. Es gibt keine still unsignierten Geschäftsvorfälle.
+**Ausfallpfad:** Schlägt die Signierung fehl (TSE-Ausfall oder Zeitüberschreitung), wird der Vorgang dennoch gebucht und ein Nachsignier-Auftrag angelegt; ein Hintergrundprozess signiert später nach. Es gibt keine still unsignierten Geschäftsvorfälle. Die Auftragstabelle (`tse_nachsignier_auftraege`) dokumentiert jeden Ausfall samt Zeitpunkt und Status und dient als Ausfalldokumentation (AEAO zu § 146a, 1.14.1). Ein nach der Nachsignierung gedruckter Kassenbeleg weist die nachträgliche Signierung mit dem Vermerk „Nachsigniert am …" aus, da die TSE-Zeitpunkte dann vom Belegdatum abweichen; im DSFinV-K-Export erhalten noch unsignierte Vorgänge aller Vorgangsarten eine `TSE_TA_FEHLER`-Zeile.
 
 **TSE-Stammdaten dieser Instanz:** Anbieter «TSE-Anbieter», Zertifizierungs-ID «BSI-K-TR-nnnn-yyyy», TSE-Seriennummer «Hexadezimalstring». Die Einrichtung (fiskaly-Konto, geführter Assistent, Verwahrung von Admin-PUK und Admin-PIN, Wechsel von TEST zu LIVE) ist im [Leitfaden, Abschnitt „TSE einrichten"](leitfaden/tse-einrichten.md) dokumentiert.
 

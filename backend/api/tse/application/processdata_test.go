@@ -114,6 +114,37 @@ func TestBuildBestellungProcessData_CSVFormat(t *testing.T) {
 	}
 }
 
+// Rücknahmen (geldneutrale Korrektur, Umbuchungs-Abgang) tragen negative Mengen
+// (DSFinV-K Anhang I) — sonst wäre die Rücknahme TSE-seitig von einer
+// Neubestellung nicht unterscheidbar.
+func TestBuildBestellungProcessDataWithFaktor_NegativeMengen(t *testing.T) {
+	positionen := []kasse.Position{
+		{ProduktName: "Bier", VarianteName: "0,5l", Einzelpreis: 450, Menge: 2},
+		{ProduktName: "Brezel", Einzelpreis: 150, Menge: 1},
+	}
+
+	got, err := BuildBestellungProcessDataWithFaktor(positionen, -1)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	want := "-2;\"Bier 0,5l\";4.50\r-1;\"Brezel\";1.50"
+	if got != want {
+		t.Errorf("processData = %q, want %q", got, want)
+	}
+}
+
+// Nicht-positive Mengen sind ein Aufrufer-Fehler und werden hart gemeldet statt
+// still verschluckt (Vollständigkeit der TSE-Absicherung).
+func TestBuildBestellungProcessData_LehntNichtPositiveMengenAb(t *testing.T) {
+	positionen := []kasse.Position{
+		{ProduktName: "Bier", Einzelpreis: 450, Menge: 0},
+	}
+	if _, err := BuildBestellungProcessData(positionen); err == nil {
+		t.Fatal("expected error for non-positive quantity")
+	}
+}
+
 func TestBuildBestellungProcessData_VerdoppeltAnfuehrungszeichen(t *testing.T) {
 	got, err := BuildBestellungProcessData([]kasse.Position{
 		{ProduktName: `Eisbecher "Himbeere"`, Menge: 2, Einzelpreis: 399},

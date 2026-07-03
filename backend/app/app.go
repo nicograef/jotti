@@ -67,7 +67,7 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	r.Handle("/relay/", middleware.RateLimitMiddleware(5)(http.StripPrefix("/relay", relayApi)))
 
 	// Wrap the entire router with middleware chain
-	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by nginx
+	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by the reverse proxy (Caddy)
 	var handler http.Handler = r
 	handler = middleware.PostMethodOnlyMiddleware(handler)
 	handler = middleware.LoggingMiddleware(handler)

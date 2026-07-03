@@ -113,6 +113,15 @@ func (c Command) writeSignedKassensitzungEvent(ctx context.Context, signierung t
 	return c.writeKassensitzungEvent(ctx, signierung.Event, kassensitzungNr, expectedVersion)
 }
 
+// betriebstag liefert das Wandkalenderdatum des Zeitpunkts in der übergebenen
+// Zeitzone (als Mitternacht UTC, passend zur DATE-Spalte). Ein Truncate(24h)
+// würde auf UTC-Mitternacht schneiden und einer nach Mitternacht (00:00–02:00
+// Ortszeit) eröffneten Sitzung das Datum des Vortags geben.
+func betriebstag(now time.Time, ort *time.Location) time.Time {
+	jahr, monat, tag := now.In(ort).Date()
+	return time.Date(jahr, monat, tag, 0, 0, 0, 0, time.UTC)
+}
+
 // KassensitzungEroeffnen opens a new Kassensitzung. Returns ErrKasseAlreadyOpen if one is already open.
 func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error) {
 	log := zerolog.Ctx(ctx)
@@ -146,7 +155,7 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		log.Error().Err(err).Msg("Failed to load Europe/Berlin timezone")
 		return 0, ErrDatabase
 	}
-	datum := time.Now().In(berliner).Truncate(24 * time.Hour)
+	datum := betriebstag(time.Now(), berliner)
 
 	// Entität und Eröffnungs-Event entstehen atomar in einer Transaktion: Schlägt der
 	// Event-Write fehl, bleibt keine offene Sitzung ohne Eröffnungs-Event zurück.

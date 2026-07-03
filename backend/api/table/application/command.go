@@ -603,13 +603,13 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	}
 
 	// Beide Seiten sind geldneutrale Bestellungen und werden je mit eigener
-	// TSE-Transaktion als Bestellung-V1 signiert; die Waren (und damit die
-	// processData) sind auf beiden Seiten identisch.
-	quellSignierung, err := c.signBestellungUmgebuchtEvent(ctx, quellEvent, resolvedPositionen)
+	// TSE-Transaktion als Bestellung-V1 signiert: der Abgang mit negativen,
+	// der Zugang mit positiven Mengen (Anhang I).
+	quellSignierung, err := c.signBestellungUmgebuchtEvent(ctx, quellEvent, resolvedPositionen, -1)
 	if err != nil {
 		return err
 	}
-	zielSignierung, err := c.signBestellungUmgebuchtEvent(ctx, zielEvent, resolvedPositionen)
+	zielSignierung, err := c.signBestellungUmgebuchtEvent(ctx, zielEvent, resolvedPositionen, +1)
 	if err != nil {
 		return err
 	}
