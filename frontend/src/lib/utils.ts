@@ -34,10 +34,16 @@ export function formatPositionName(
 }
 
 /**
- * Parses a Euro string (with comma or dot separator) to cents.
- * Example: "12,50" → 1250, "12.50" → 1250, invalid → 0
+ * Parses a Euro string (with comma or dot separator, at most two decimals) to
+ * cents. String-based, no float arithmetic. Invalid or over-precise input
+ * (more than two decimals, multiple separators) parses to 0.
+ * Example: "12,50" → 1250, "12.50" → 1250, "12,505" → 0, "1,2,3" → 0
  */
 export function parseCents(euroInput: string): number {
-  const parsed = parseFloat(euroInput.replace(',', '.'))
-  return isNaN(parsed) ? 0 : Math.round(parsed * 100)
+  const match = /^(-?)(\d*)(?:[,.](\d{0,2}))?$/.exec(euroInput.trim())
+  if (!match) return 0
+  const [, sign, euros, decimals = ''] = match
+  if (euros === '' && decimals === '') return 0
+  const cents = Number(euros || '0') * 100 + Number(decimals.padEnd(2, '0'))
+  return sign === '-' ? -cents : cents
 }

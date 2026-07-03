@@ -37,6 +37,10 @@ describe('parseCents', () => {
     ['', 0],
     ['abc', 0],
     ['10,', 1000],
+    [',5', 50],
+    ['12,505', 0],
+    ['1,2,3', 0],
+    ['12,50 €', 0],
   ])('parseCents(%s) = %i', (input, expected) => {
     expect(parseCents(input)).toBe(expected)
   })

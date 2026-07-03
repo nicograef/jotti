@@ -13,6 +13,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/health"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/config"
+	"github.com/nicograef/jotti/backend/repository/user_repo"
 )
 
 // App represents the application with its configuration, router, server, and database connection.
@@ -50,16 +51,20 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 	authApi := api.NewAuthApi(cfg, db)
 	r.Handle("/auth/", middleware.RateLimitMiddleware(5)(http.StripPrefix("/auth", authApi)))
 
-	admin := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin"})
+	// Der Benutzer-Lookup pro Request stellt sicher, dass deaktivierte Benutzer
+	// sofort ausgesperrt sind, nicht erst beim Token-Ablauf.
+	users := user_repo.NewRepository(db)
+
+	admin := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin"}, users)
 	adminApi := api.NewAdminApi(cfg, db)
 	r.Handle("/admin/", admin(http.StripPrefix("/admin", adminApi)))
 
 	servicesApi := api.NewServiceApi(cfg, db)
-	service := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "serviceleitung", "service"})
+	service := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "serviceleitung", "service"}, users)
 	r.Handle("/service/", service(http.StripPrefix("/service", servicesApi)))
 
 	serviceleitungApi := api.NewServiceleitungApi(cfg, db)
-	serviceleitung := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "serviceleitung"})
+	serviceleitung := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "serviceleitung"}, users)
 	r.Handle("/serviceleitung/", serviceleitung(http.StripPrefix("/serviceleitung", serviceleitungApi)))
 
 	// Relay — kein JWT, Token-Prüfung im Handler; Rate-Limit gegen Token-Brute-Force

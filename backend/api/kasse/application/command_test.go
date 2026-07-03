@@ -357,6 +357,24 @@ func TestKasseAbschliessen_KonfliktSetztStatusNichtZurueck(t *testing.T) {
 	}
 }
 
+// Ein Deadlock (40P01) beim Event-Write wird wie ein Konflikt behandelt (409 statt 500);
+// die Barriere bleibt stehen, ein erneuter Aufruf setzt den Abschluss fort.
+func TestKasseAbschliessen_DeadlockMapsToKonflikt(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMockWithWriteErr(nil, db.ErrConflict)
+	journalMock.SetKassenbestand(50000)
+	sitzungMock := kassensitzungen_repo.NewMock(testOpenKS, nil)
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: sitzungMock,
+		ReportingRepo:       reportingMock{},
+	}
+
+	if err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrKonflikt {
+		t.Fatalf("expected ErrKonflikt, got %v", err)
+	}
+}
+
 // Wiederanlauf: Steht die Sitzung nach einem Abbruch noch auf 'wird_abgeschlossen', schließt
 // ein erneuter Aufruf sie erfolgreich ab.
 func TestKasseAbschliessen_WiederanlaufImZwischenstatus(t *testing.T) {

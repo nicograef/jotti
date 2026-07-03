@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -11,7 +12,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/jwt"
+	"github.com/nicograef/jotti/backend/domain/user"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -174,9 +177,17 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+// UserGetter loads a user by ID; the JWT middleware uses it to verify that the
+// account behind a valid token is still active.
+type UserGetter interface {
+	GetUser(ctx context.Context, id int) (user.User, error)
+}
+
 // NewJwtMiddleware validates the JWT Token in the Authorization header.
-// If valid, it adds the user information to the request context.
-func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler) http.HandlerFunc {
+// If valid, it verifies the user is still active (deactivated users lose
+// access immediately, not at token expiry) and adds the user information
+// to the request context.
+func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter) func(http.Handler) http.HandlerFunc {
 	return func(h http.Handler) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger := zerolog.Ctx(r.Context())
@@ -206,6 +217,23 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string) func(http.Handler
 			if !roleAllowed {
 				logger.Warn().Str("role", userRole).Msg("Insufficient permissions")
 				helper.SendClientError(w, "insufficient_permissions", fmt.Sprintf("Insufficient permissions for role %s", userRole))
+				return
+			}
+
+			u, err := users.GetUser(r.Context(), userID)
+			if err != nil {
+				if errors.Is(err, db.ErrNotFound) {
+					logger.Warn().Int("user_id", userID).Msg("User from token no longer exists")
+					helper.SendUnauthorized(w, "user_inactive")
+					return
+				}
+				logger.Error().Err(err).Int("user_id", userID).Msg("Failed to load user for active-status check")
+				helper.SendServerError(w)
+				return
+			}
+			if u.Status != user.ActiveStatus {
+				logger.Warn().Int("user_id", userID).Str("status", string(u.Status)).Msg("User is not active")
+				helper.SendUnauthorized(w, "user_inactive")
 				return
 			}
 

@@ -80,6 +80,10 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC Kassensitzung conflict")
 			return ErrKonflikt
 		}
+		if errors.Is(err, db.ErrConflict) {
+			log.Warn().Str("subject", subject).Msg("Deadlock on event write")
+			return ErrKonflikt
+		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
 			log.Warn().Str("subject", subject).Msg("Kassensitzung nicht mehr offen")
 			return ErrKasseNichtGeoeffnet
@@ -100,6 +104,10 @@ func (c Command) writeKassensitzungEventWithNachsignierAuftrag(ctx context.Conte
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC Kassensitzung conflict")
+			return ErrKonflikt
+		}
+		if errors.Is(err, db.ErrConflict) {
+			log.Warn().Str("subject", subject).Msg("Deadlock on event write")
 			return ErrKonflikt
 		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {

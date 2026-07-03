@@ -8,13 +8,14 @@ import { cn, formatCents, parseCents } from '@/lib/utils'
  * an invalid amount. A typed `.` counts as decimal separator (manche
  * Tastatur-Layouts liefern trotz `inputMode="decimal"` einen Punkt statt des
  * Kommas — `4.5` muss 4,50 € ergeben, nicht 45,00 €); everything after the
- * first separator is treated as decimals, additional separators are dropped.
+ * first separator is treated as decimals, additional separators are dropped,
+ * and decimals are capped at two (parseCents rejects over-precise input).
  */
 const cleanInput = (input: string): string => {
   const normalized = input.replace(/\./g, ',').replace(/[^0-9,]/g, '')
   const [ganze, ...rest] = normalized.split(',')
   if (rest.length === 0) return ganze
-  return ganze + ',' + rest.join('')
+  return ganze + ',' + rest.join('').slice(0, 2)
 }
 
 /** Normalises a raw Euro string to the canonical `12,50` form, or empty when there is no amount. */

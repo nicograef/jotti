@@ -44,6 +44,12 @@ func SendNotFound(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusNotFound)
 }
 
+// SendUnauthorized sends a 401 Unauthorized response with the given error code.
+// The frontend logs the user out and redirects to the login page on 401.
+func SendUnauthorized(w http.ResponseWriter, code string) {
+	SendJSONResponse(w, errorResponse{Code: code}, http.StatusUnauthorized)
+}
+
 // SendConflict sends a 409 Conflict response with the given error code.
 func SendConflict(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusConflict)

@@ -332,11 +332,11 @@ Kassenlade gehört; der Leitfaden erwähnt das ebenfalls.
 
 ### Acceptance criteria
 
-- [ ] Simulierter 40P01-Fehler wird als Konflikt (409) beantwortet.
-- [ ] `parseCents`: `"12,50"` → 1250, `"12.50"` → 1250, `"12,505"` und
+- [x] Simulierter 40P01-Fehler wird als Konflikt (409) beantwortet.
+- [x] `parseCents`: `"12,50"` → 1250, `"12.50"` → 1250, `"12,505"` und
       `"1,2,3"` ungültig; Tests in `utils.test.ts` und `EuroInput.test.tsx`.
-- [ ] Deaktivierter Benutzer erhält mit gültigem Alt-Token sofort 401.
-- [ ] Trinkgeld-Hinweis erscheint nur, wenn Trinkgeld angezeigt wird;
+- [x] Deaktivierter Benutzer erhält mit gültigem Alt-Token sofort 401.
+- [x] Trinkgeld-Hinweis erscheint nur, wenn Trinkgeld angezeigt wird;
       Leitfaden-Abschnitt ergänzt.
 
 ---

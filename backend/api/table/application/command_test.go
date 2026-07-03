@@ -413,6 +413,24 @@ func TestBestellungAufnehmen_Conflict(t *testing.T) {
 	}
 }
 
+func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
+	ctx := context.Background()
+	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
+	productMock.AddVariant(testProduct.ID, testVariant)
+	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, db.ErrConflict)
+	command := newTestCommandWithEventMock([]table.Tisch{testActiveTisch}, []product.Produkt{testProduct}, eventMock)
+	command.ProductRepo = productMock
+
+	inputs := []BestellPositionInput{
+		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
+	}
+
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", 1, inputs, "")
+	if err != ErrConflict {
+		t.Fatalf("expected ErrConflict, got %v", err)
+	}
+}
+
 // --- Invariant Tests ---
 
 func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {

@@ -138,10 +138,16 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
               </div>
             )}
             {trinkgeldCents !== null && (
-              <div className="flex justify-between font-medium">
-                <div>Trinkgeld</div>
-                <div>{formatCents(trinkgeldCents)}&nbsp;€</div>
-              </div>
+              <>
+                <div className="flex justify-between font-medium">
+                  <div>Trinkgeld</div>
+                  <div>{formatCents(trinkgeldCents)}&nbsp;€</div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Trinkgeld wird nicht als Kasseneinnahme gebucht und gehört
+                  nicht in die Kassenlade.
+                </p>
+              </>
             )}
           </div>
           <div className="px-4 pt-3">

@@ -3,13 +3,29 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/jwt"
+	"github.com/nicograef/jotti/backend/domain/user"
 )
+
+// stubUsers satisfies UserGetter with a fixed user and error.
+type stubUsers struct {
+	user user.User
+	err  error
+}
+
+func (s stubUsers) GetUser(context.Context, int) (user.User, error) {
+	return s.user, s.err
+}
+
+// activeUsers reports every user ID as an active user.
+var activeUsers = stubUsers{user: user.User{ID: 1, Status: user.ActiveStatus}}
 
 func TestCorrelationIDMiddleware_GeneratesID(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -152,7 +168,7 @@ func TestJwtMiddleware_ValidToken(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin"})(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUsers)(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -169,7 +185,7 @@ func TestJwtMiddleware_NoToken(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware("test-secret", []string{"admin"})(handler)
+	middleware := NewJwtMiddleware("test-secret", []string{"admin"}, activeUsers)(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	rec := httptest.NewRecorder()
 
@@ -197,7 +213,7 @@ func TestJwtMiddleware_InvalidBearerFormat(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			middleware := NewJwtMiddleware("test-secret", []string{"admin"})(handler)
+			middleware := NewJwtMiddleware("test-secret", []string{"admin"}, activeUsers)(handler)
 			req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 			req.Header.Set("Authorization", tc.value)
 			rec := httptest.NewRecorder()
@@ -222,7 +238,7 @@ func TestJwtMiddleware_ServiceRole(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin"})(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUsers)(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -245,7 +261,7 @@ func TestServiceMiddleware_ValidToken(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"service"})(handler)
+	middleware := NewJwtMiddleware(secret, []string{"service"}, activeUsers)(handler)
 	req := httptest.NewRequest(http.MethodGet, "/service", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -268,7 +284,7 @@ func TestServiceleitungRole_AllowedForServiceEndpoints(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung", "service"})(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung", "service"}, activeUsers)(handler)
 	req := httptest.NewRequest(http.MethodGet, "/service", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -291,7 +307,7 @@ func TestServiceleitungRole_AllowedForCancelEndpoint(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"})(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"}, activeUsers)(handler)
 	req := httptest.NewRequest(http.MethodGet, "/service/cancel", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -322,7 +338,7 @@ func TestJwtMiddleware_SetsUserNameInContext(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin"})(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUsers)(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -331,6 +347,45 @@ func TestJwtMiddleware_SetsUserNameInContext(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+// Deaktivierte oder gelöschte Benutzer verlieren den Zugriff sofort (401),
+// nicht erst beim Ablauf ihres Tokens.
+func TestJwtMiddleware_UserStatusCheck(t *testing.T) {
+	secret := "test-secret"
+	token, err := jwt.GenerateJWTTokenForUser(1, "admin", "admin", secret)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	cases := []struct {
+		name     string
+		users    stubUsers
+		wantCode int
+	}{
+		{"inactive user", stubUsers{user: user.User{ID: 1, Status: user.InactiveStatus}}, http.StatusUnauthorized},
+		{"deleted user", stubUsers{user: user.User{ID: 1, Status: user.DeletedStatus}}, http.StatusUnauthorized},
+		{"user no longer exists", stubUsers{err: db.ErrNotFound}, http.StatusUnauthorized},
+		{"lookup error", stubUsers{err: db.ErrDatabase}, http.StatusInternalServerError},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Error("handler must not be called")
+			})
+			middleware := NewJwtMiddleware(secret, []string{"admin"}, tc.users)(handler)
+			req := httptest.NewRequest(http.MethodPost, "/admin", nil)
+			req.Header.Set("Authorization", "Bearer "+token)
+			rec := httptest.NewRecorder()
+
+			middleware.ServeHTTP(rec, req)
+
+			if rec.Code != tc.wantCode {
+				t.Errorf("expected status %d, got %d", tc.wantCode, rec.Code)
+			}
+		})
 	}
 }
 
@@ -345,7 +400,7 @@ func TestServiceRole_DeniedForCancelEndpoint(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"})(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"}, activeUsers)(handler)
 	req := httptest.NewRequest(http.MethodGet, "/service/cancel", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()

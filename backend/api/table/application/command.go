@@ -127,6 +127,10 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 				Msg("OCC conflict")
 			return 0, ErrConflict
 		}
+		if errors.Is(err, db.ErrConflict) {
+			zerolog.Ctx(ctx).Warn().Str("subject", subject).Msg("Deadlock on event write")
+			return 0, ErrConflict
+		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
 			zerolog.Ctx(ctx).Warn().Str("subject", subject).Msg("Kassensitzung nicht mehr offen")
 			return 0, ErrKasseNichtGeoeffnet

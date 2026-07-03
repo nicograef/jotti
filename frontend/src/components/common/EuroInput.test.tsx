@@ -59,6 +59,17 @@ describe('EuroInput', () => {
     expect(input).toHaveValue('1,23')
   })
 
+  it('kappt Nachkommastellen beim Tippen auf zwei', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    const input = screen.getByPlaceholderText('0,00')
+
+    await user.type(input, '4,505')
+    await user.tab()
+
+    expect(input).toHaveValue('4,50')
+  })
+
   it('leert das Feld beim Verlassen, wenn kein gültiger Betrag eingegeben wurde', async () => {
     const user = userEvent.setup()
     render(<Harness />)

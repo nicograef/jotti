@@ -16,6 +16,8 @@ type ErrorCode string
 const (
 	// UniqueViolation indicates a violation of a unique constraint.
 	ErrorCodeUniqueViolation ErrorCode = "23505"
+	// DeadlockDetected indicates the transaction was aborted as a deadlock victim.
+	ErrorCodeDeadlockDetected ErrorCode = "40P01"
 )
 
 // ErrNotFound is returned when a record is not found.
@@ -23,6 +25,10 @@ var ErrNotFound = errors.New("not found")
 
 // ErrAlreadyExists is returned when a record already exists.
 var ErrAlreadyExists = errors.New("already exists")
+
+// ErrConflict is returned when a transaction was aborted because of a
+// concurrent transaction (deadlock victim); the request can be retried.
+var ErrConflict = errors.New("transaction conflict")
 
 // ErrDatabase is returned when there is a database error.
 var ErrDatabase = errors.New("database error")
@@ -34,8 +40,11 @@ func Error(err error) error {
 	}
 
 	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
-		if pgErr.Code == string(ErrorCodeUniqueViolation) {
+		switch ErrorCode(pgErr.Code) {
+		case ErrorCodeUniqueViolation:
 			return ErrAlreadyExists
+		case ErrorCodeDeadlockDetected:
+			return ErrConflict
 		}
 	}
 

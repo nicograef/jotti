@@ -250,6 +250,16 @@ func TestDirektverkaufTaetigen_Conflict(t *testing.T) {
 	}
 }
 
+func TestDirektverkaufTaetigen_DeadlockMapsToConflict(t *testing.T) {
+	spy := &spyEventRepo{writeErr: db.ErrConflict}
+	command := newCommand(spy, testOpenKS)
+
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "")
+	if err != ErrConflict {
+		t.Fatalf("expected ErrConflict, got %v", err)
+	}
+}
+
 func TestDirektverkaufTaetigen_AbholbonModeQueuesExactlyOneAuftrag(t *testing.T) {
 	spy := &spyEventRepo{}
 	command := newCommandWithDruckstationen(
