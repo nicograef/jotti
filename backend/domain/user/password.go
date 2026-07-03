@@ -20,6 +20,10 @@ var ErrInvalidPassword = errors.New("invalid password")
 
 var ErrNoPassword = errors.New("no password set")
 
+// ErrOnetimePasswordLocked: das Einmalpasswort wurde nach zu vielen Fehlversuchen
+// ungültig; der Admin muss ein neues erzeugen.
+var ErrOnetimePasswordLocked = errors.New("onetime password locked after too many attempts")
+
 type argon2Configuration struct {
 	HashRaw    []byte
 	Salt       []byte
@@ -137,8 +141,12 @@ func verifyPassword(correctPasswordHash, userProvidedPassword string) error {
 }
 
 func generateOnetimePassword() (string, error) {
-	const passwordLength = 6
-	const charset = "0123456789"
+	const passwordLength = 8
+	// Exakt 32 eindeutige Zeichen (Kleinbuchstaben + Ziffern, ohne die verwechselbaren
+	// o, i, l und 1; die 0 ist eindeutig, weil das o fehlt): 32^8 ≈ 1,1 · 10^12
+	// Kombinationen statt 10^6 bei 6 Ziffern. Da 256 % 32 == 0, ist charset[b % 32]
+	// exakt gleichverteilt (kein Modulo-Bias).
+	const charset = "abcdefghjkmnpqrstuvwxyz023456789"
 
 	bytePassword := make([]byte, passwordLength)
 	_, err := rand.Read(bytePassword)

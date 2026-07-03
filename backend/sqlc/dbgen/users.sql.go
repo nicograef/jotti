@@ -90,20 +90,21 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error) {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, name, username, role, status, password_hash, onetime_password_hash, created_at, updated_at
+SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at
 FROM users WHERE id = $1 AND status != 'deleted'
 `
 
 type GetUserRow struct {
-	ID                  int
-	Name                string
-	Username            string
-	Role                Userrole
-	Status              Entitystatus
-	PasswordHash        sql.NullString
-	OnetimePasswordHash sql.NullString
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+	ID                      int
+	Name                    string
+	Username                string
+	Role                    Userrole
+	Status                  Entitystatus
+	PasswordHash            sql.NullString
+	OnetimePasswordHash     sql.NullString
+	OnetimePasswordAttempts int
+	CreatedAt               time.Time
+	UpdatedAt               time.Time
 }
 
 func (q *Queries) GetUser(ctx context.Context, id int) (GetUserRow, error) {
@@ -117,6 +118,7 @@ func (q *Queries) GetUser(ctx context.Context, id int) (GetUserRow, error) {
 		&i.Status,
 		&i.PasswordHash,
 		&i.OnetimePasswordHash,
+		&i.OnetimePasswordAttempts,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -124,20 +126,21 @@ func (q *Queries) GetUser(ctx context.Context, id int) (GetUserRow, error) {
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, name, username, role, status, password_hash, onetime_password_hash, created_at, updated_at
+SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at
 FROM users WHERE username = $1 AND status != 'deleted'
 `
 
 type GetUserByUsernameRow struct {
-	ID                  int
-	Name                string
-	Username            string
-	Role                Userrole
-	Status              Entitystatus
-	PasswordHash        sql.NullString
-	OnetimePasswordHash sql.NullString
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+	ID                      int
+	Name                    string
+	Username                string
+	Role                    Userrole
+	Status                  Entitystatus
+	PasswordHash            sql.NullString
+	OnetimePasswordHash     sql.NullString
+	OnetimePasswordAttempts int
+	CreatedAt               time.Time
+	UpdatedAt               time.Time
 }
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error) {
@@ -151,6 +154,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUs
 		&i.Status,
 		&i.PasswordHash,
 		&i.OnetimePasswordHash,
+		&i.OnetimePasswordAttempts,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -158,19 +162,20 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUs
 }
 
 const updateUser = `-- name: UpdateUser :execresult
-UPDATE users SET name = $1, username = $2, role = $3, status = $4, password_hash = $5, onetime_password_hash = $6, updated_at = $7
-WHERE id = $8
+UPDATE users SET name = $1, username = $2, role = $3, status = $4, password_hash = $5, onetime_password_hash = $6, onetime_password_attempts = $7, updated_at = $8
+WHERE id = $9
 `
 
 type UpdateUserParams struct {
-	Name                string
-	Username            string
-	Role                Userrole
-	Status              Entitystatus
-	PasswordHash        sql.NullString
-	OnetimePasswordHash sql.NullString
-	UpdatedAt           time.Time
-	ID                  int
+	Name                    string
+	Username                string
+	Role                    Userrole
+	Status                  Entitystatus
+	PasswordHash            sql.NullString
+	OnetimePasswordHash     sql.NullString
+	OnetimePasswordAttempts int
+	UpdatedAt               time.Time
+	ID                      int
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (sql.Result, error) {
@@ -181,6 +186,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (sql.Res
 		arg.Status,
 		arg.PasswordHash,
 		arg.OnetimePasswordHash,
+		arg.OnetimePasswordAttempts,
 		arg.UpdatedAt,
 		arg.ID,
 	)

@@ -4,6 +4,8 @@ const serverErrorMessage =
   'Es ist ein unerwarteter Serverfehler aufgetreten. Bitte Seite neu laden oder den Administrator kontaktieren.'
 
 const commonErrorMessages: Record<string, string> = {
+  onetime_password_locked:
+    'Das Einmalpasswort wurde nach zu vielen Fehlversuchen gesperrt. Bitte einen Admin um ein neues Einmalpasswort.',
   already_has_password:
     'Für diesen Benutzer wurde bereits ein Passwort gesetzt.',
   betreiber_nicht_konfiguriert:

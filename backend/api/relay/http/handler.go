@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"crypto/subtle"
 	"net/http"
 
 	"github.com/nicograef/jotti/backend/api/helper"
@@ -73,7 +74,9 @@ func (h *Handler) isRelayTokenValid(token string) bool {
 		return false
 	}
 
-	return token == h.RelayToken
+	// Konstant-zeitlicher Vergleich (wie beim Passwortpfad): kein Timing-Seitenkanal
+	// auf den statischen Relay-Token.
+	return subtle.ConstantTimeCompare([]byte(token), []byte(h.RelayToken)) == 1
 }
 
 func (h *Handler) PollHandler() http.HandlerFunc {

@@ -61,14 +61,15 @@ func (r Repository) CreateUser(ctx context.Context, u user.User) (int, error) {
 
 func (r Repository) UpdateUser(ctx context.Context, u user.User) error {
 	result, err := r.q.UpdateUser(ctx, dbgen.UpdateUserParams{
-		Name:                u.Name,
-		Username:            u.Username,
-		Role:                dbgen.Userrole(u.Role),
-		Status:              dbgen.Entitystatus(u.Status),
-		PasswordHash:        sql.NullString{String: u.PasswordHash, Valid: u.PasswordHash != ""},
-		OnetimePasswordHash: sql.NullString{String: u.OnetimePasswordHash, Valid: u.OnetimePasswordHash != ""},
-		UpdatedAt:           u.UpdatedAt,
-		ID:                  u.ID,
+		Name:                    u.Name,
+		Username:                u.Username,
+		Role:                    dbgen.Userrole(u.Role),
+		Status:                  dbgen.Entitystatus(u.Status),
+		PasswordHash:            sql.NullString{String: u.PasswordHash, Valid: u.PasswordHash != ""},
+		OnetimePasswordHash:     sql.NullString{String: u.OnetimePasswordHash, Valid: u.OnetimePasswordHash != ""},
+		OnetimePasswordAttempts: u.OnetimePasswordAttempts,
+		UpdatedAt:               u.UpdatedAt,
+		ID:                      u.ID,
 	})
 	if err != nil {
 		return db.Error(err)

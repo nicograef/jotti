@@ -3,6 +3,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -86,6 +87,57 @@ func TestRateLimitMiddleware_BlocksExceedingLimit(t *testing.T) {
 
 	if rec.Code != http.StatusTooManyRequests {
 		t.Errorf("expected status 429, got %d", rec.Code)
+	}
+}
+
+// Der Limiter-Key darf sich nicht über Client-kontrollierte X-Forwarded-For-Einträge
+// variieren lassen: Nur der LETZTE Eintrag (vom eigenen Reverse-Proxy angehängt) zählt.
+func TestRateLimitMiddleware_XForwardedForSpoofingUmgehtLimitNicht(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := RateLimitMiddleware(1)(handler)
+
+	// Der Angreifer variiert vorangestellte Einträge, die echte IP (letzter Eintrag,
+	// vom Proxy gesetzt) bleibt gleich → alle Requests treffen denselben Limiter.
+	blocked := false
+	for i := range 10 {
+		req := httptest.NewRequest(http.MethodPost, "/test", nil)
+		req.Header.Set("X-Forwarded-For", fmt.Sprintf("10.0.0.%d, 203.0.113.7", i))
+		rec := httptest.NewRecorder()
+		middleware.ServeHTTP(rec, req)
+		if rec.Code == http.StatusTooManyRequests {
+			blocked = true
+		}
+	}
+
+	if !blocked {
+		t.Error("expected rate limit to trigger despite varying X-Forwarded-For prefixes")
+	}
+}
+
+func TestClientIP(t *testing.T) {
+	cases := []struct {
+		name string
+		xff  string
+		want string
+	}{
+		{"ohne Header: RemoteAddr", "", "192.0.2.1:1234"},
+		{"ein Eintrag", "203.0.113.7", "203.0.113.7"},
+		{"Client-Spoofing: letzter Eintrag zählt", "1.2.3.4, 5.6.7.8, 203.0.113.7", "203.0.113.7"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/test", nil)
+			req.RemoteAddr = "192.0.2.1:1234"
+			if tc.xff != "" {
+				req.Header.Set("X-Forwarded-For", tc.xff)
+			}
+			if got := clientIP(req); got != tc.want {
+				t.Errorf("clientIP() = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 

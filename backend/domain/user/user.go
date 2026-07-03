@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	z "github.com/Oudwins/zog"
@@ -39,9 +40,17 @@ type User struct {
 	Status              Status
 	PasswordHash        string
 	OnetimePasswordHash string
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+	// OnetimePasswordAttempts zählt Fehlversuche gegen das aktuelle Einmalpasswort.
+	// Nach MaxOnetimePasswordAttempts Fehlversuchen wird es ungültig (Brute-Force-Schutz);
+	// der Admin muss ein neues erzeugen.
+	OnetimePasswordAttempts int
+	CreatedAt               time.Time
+	UpdatedAt               time.Time
 }
+
+// MaxOnetimePasswordAttempts ist die Zahl der Fehlversuche, nach der ein
+// Einmalpasswort ungültig wird.
+const MaxOnetimePasswordAttempts = 5
 
 var IDSchema = z.Int().GTE(1, z.Message("Ungültige Benutzer-ID"))
 
@@ -159,18 +168,34 @@ func (u *User) ResetPassword() (string, error) {
 	}
 
 	u.OnetimePasswordHash = onetimePasswordHash
+	u.OnetimePasswordAttempts = 0
 	u.PasswordHash = ""
 	u.UpdatedAt = time.Now().UTC()
 
 	return onetimePassword, nil
 }
 
+// SetPassword setzt das Passwort gegen Vorlage des Einmalpassworts. Jeder
+// Fehlversuch erhöht den Zähler; nach MaxOnetimePasswordAttempts Fehlversuchen
+// wird das Einmalpasswort ungültig — der Aufrufer muss den geänderten Zähler
+// persistieren, damit die Sperre wirkt.
 func (u *User) SetPassword(onetimePassword, newPassword string) error {
 	if u.OnetimePasswordHash == "" {
 		return ErrNoPassword
 	}
 
+	// Das Einmalpasswort besteht aus Kleinbuchstaben und Ziffern; Eingaben werden
+	// tolerant normalisiert (Großschreibung, umgebende Leerzeichen).
+	onetimePassword = strings.ToLower(strings.TrimSpace(onetimePassword))
+
 	if err := verifyPassword(u.OnetimePasswordHash, onetimePassword); err != nil {
+		u.OnetimePasswordAttempts++
+		u.UpdatedAt = time.Now().UTC()
+		if u.OnetimePasswordAttempts >= MaxOnetimePasswordAttempts {
+			u.OnetimePasswordHash = ""
+			u.OnetimePasswordAttempts = 0
+			return ErrOnetimePasswordLocked
+		}
 		return err
 	}
 
@@ -185,6 +210,7 @@ func (u *User) SetPassword(onetimePassword, newPassword string) error {
 
 	u.PasswordHash = passwordHash
 	u.OnetimePasswordHash = ""
+	u.OnetimePasswordAttempts = 0
 	u.UpdatedAt = time.Now().UTC()
 
 	return nil

@@ -3,20 +3,22 @@
 package user
 
 import (
-	"strconv"
+	"regexp"
 	"testing"
 )
 
 func TestGenerateOnetimePassword(t *testing.T) {
-	password, err := generateOnetimePassword()
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if len(password) != 6 {
-		t.Fatalf("Expected password length 6, got %d", len(password))
-	}
-	if _, err := strconv.Atoi(password); err != nil {
-		t.Fatalf("Expected numeric password, got %s", password)
+	// Alphanumerisch (ohne verwechselbare o, i, l, 1), 8 Zeichen.
+	valid := regexp.MustCompile(`^[a-hj-km-np-z023-9]{8}$`)
+
+	for range 50 {
+		password, err := generateOnetimePassword()
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+		if !valid.MatchString(password) {
+			t.Fatalf("Expected 8 unambiguous alphanumeric chars, got %q", password)
+		}
 	}
 }
 

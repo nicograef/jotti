@@ -4,7 +4,7 @@ package application
 
 import (
 	"context"
-	"strconv"
+	"regexp"
 	"testing"
 
 	"github.com/nicograef/jotti/backend/db"
@@ -24,11 +24,11 @@ func TestCreateUser(t *testing.T) {
 	if userId != 1 {
 		t.Errorf("expected user ID 1, got %d", userId)
 	}
-	if len(onetimePassword) != 6 {
-		t.Fatalf("Expected password length 6, got %d", len(onetimePassword))
+	if len(onetimePassword) != 8 {
+		t.Fatalf("Expected password length 8, got %d", len(onetimePassword))
 	}
-	if _, err := strconv.Atoi(onetimePassword); err != nil {
-		t.Fatalf("Expected numeric password, got %s", onetimePassword)
+	if !regexp.MustCompile(`^[a-z0-9]{8}$`).MatchString(onetimePassword) {
+		t.Fatalf("Expected alphanumeric password, got %s", onetimePassword)
 	}
 }
 

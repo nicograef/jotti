@@ -16,6 +16,10 @@ var ErrInvalidPassword = errors.New("invalid password")
 
 var ErrNoOnetimePassword = errors.New("no onetime password set")
 
+// ErrOnetimePasswordLocked: das Einmalpasswort wurde nach zu vielen Fehlversuchen
+// ungueltig; der Admin muss ein neues erzeugen.
+var ErrOnetimePasswordLocked = errors.New("onetime password locked")
+
 var ErrPasswordTooWeak = errors.New("password too weak")
 
 var ErrTokenGeneration = errors.New("token generation failed")
