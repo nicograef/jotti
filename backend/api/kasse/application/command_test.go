@@ -3,8 +3,11 @@
 package application
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +19,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
+	"github.com/rs/zerolog"
 )
 
 var testOpenKS = &kasse.Kassensitzung{
@@ -621,5 +625,68 @@ func TestKassensitzungEroeffnen_OhneAnfangsbestand_WirdNichtSigniert(t *testing.
 	}
 	if tseClientCalled {
 		t.Fatal("expected TSE client to not be created for kassensitzung-eroeffnet without Anfangsbestand")
+	}
+}
+
+// Eröffnen ohne konfigurierte TSE wird nicht gesperrt, aber im Log vermerkt (F6).
+func TestKassensitzungEroeffnen_OhneTSE_LoggtWarnung(t *testing.T) {
+	var logbuf bytes.Buffer
+	ctx := zerolog.New(&logbuf).WithContext(context.Background())
+	cmd := newTestCommand(nil) // settingsMock ohne TSE-Konfiguration
+
+	zNr, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	var warnLine string
+	for _, line := range strings.Split(strings.TrimSpace(logbuf.String()), "\n") {
+		if strings.Contains(line, `"level":"warn"`) && strings.Contains(line, "ohne TSE-Konfiguration") {
+			warnLine = line
+		}
+	}
+	if warnLine == "" {
+		t.Fatalf("expected warning about missing TSE-Konfiguration, got logs: %s", logbuf.String())
+	}
+	if !strings.Contains(warnLine, fmt.Sprintf(`"z_nr":%d`, zNr)) {
+		t.Errorf("expected z_nr %d in warning, got: %s", zNr, warnLine)
+	}
+}
+
+// Mit konfigurierter TSE bleibt das Eröffnen warnungsfrei.
+func TestKassensitzungEroeffnen_MitTSE_KeineWarnung(t *testing.T) {
+	var logbuf bytes.Buffer
+	ctx := zerolog.New(&logbuf).WithContext(context.Background())
+	start := time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 6, 10, 9, 0, 1, 0, time.UTC)
+
+	tseSettings := settingsMock{vereinsname: "TestVerein", tse: settings.TSEKonfiguration{
+		ApiKey:    "api-key",
+		ApiSecret: "api-secret",
+		TssID:     "tss-1",
+		ClientID:  "client-1",
+		UpdatedAt: time.Now(),
+	}}
+	cmd := Command{
+		KassenjournalRepo:   kassenjournal_repo.NewMock(nil, nil),
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
+		SettingsRepo:        tseSettings,
+		TSESignierer: tseApp.Signierer{
+			SettingsRepo: tseSettings,
+			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
+				return tse.FakeClient{
+					StartResponse:  tse.StartResult{TransactionNumber: 60, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 59},
+					FinishResponse: tse.FinishResult{TransactionNumber: 60, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 60, SerialNumberTSE: "TSE-SN-1", Signature: "SIG"},
+				}, nil
+			},
+		},
+	}
+
+	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if strings.Contains(logbuf.String(), "ohne TSE-Konfiguration") {
+		t.Errorf("expected no TSE warning, got logs: %s", logbuf.String())
 	}
 }

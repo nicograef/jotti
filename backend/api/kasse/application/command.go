@@ -33,6 +33,7 @@ type kassensitzungenRepo interface {
 
 type settingsRepo interface {
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
+	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
 
 type reportingRepo interface {
@@ -148,6 +149,20 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		return 0, ErrBetreiberNichtKonfiguriert
 	}
 
+	// Ohne konfigurierte TSE wird nicht gesperrt (jotti funktioniert vollständig ohne),
+	// aber der unsignierte Betrieb soll im Log nachvollziehbar sein. Der Check ist best
+	// effort: Ein Lesefehler verhindert die Eröffnung nicht und unterdrückt nur die Warnung.
+	ohneTSE := false
+	if conf, err := c.SettingsRepo.GetTSEKonfiguration(ctx); err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			ohneTSE = true
+		} else {
+			log.Error().Err(err).Msg("Failed to load TSE-Konfiguration")
+		}
+	} else if !conf.IstKonfiguriert() {
+		ohneTSE = true
+	}
+
 	// Aktive Sitzung deckt 'offen' und 'wird_abgeschlossen' ab: Während ein Abschluss läuft, darf
 	// keine zweite Sitzung eröffnet werden (idx_kassensitzungen_eine_aktiv wäre die letzte Bremse).
 	existing, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
@@ -210,6 +225,9 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		msg += " (unsigniert, Nachsignierung vorgemerkt)"
 	}
 	log.Info().Int("z_nr", zNr).Msg(msg)
+	if ohneTSE {
+		log.Warn().Int("z_nr", zNr).Msg("Kassensitzung ohne TSE-Konfiguration eroeffnet; Vorgaenge werden nicht signiert")
+	}
 	return zNr, nil
 }
 

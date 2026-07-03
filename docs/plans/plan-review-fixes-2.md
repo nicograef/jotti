@@ -293,11 +293,11 @@ Sperre, kein sonstiger Verhaltensunterschied.
 
 ### Acceptance criteria
 
-- [ ] Ohne TSE-Konfiguration: Dialog erscheint, Abbrechen eröffnet nicht,
+- [x] Ohne TSE-Konfiguration: Dialog erscheint, Abbrechen eröffnet nicht,
       Bestätigen eröffnet die Sitzung.
-- [ ] Mit konfigurierter TSE: kein Dialog, Flow unverändert.
-- [ ] Backend-Log enthält beim Eröffnen ohne TSE ein Warning mit z_nr.
-- [ ] Test in `KassensitzungPage.test.tsx` deckt beide Zweige ab.
+- [x] Mit konfigurierter TSE: kein Dialog, Flow unverändert.
+- [x] Backend-Log enthält beim Eröffnen ohne TSE ein Warning mit z_nr.
+- [x] Test in `KassensitzungPage.test.tsx` deckt beide Zweige ab.
 
 ---
 

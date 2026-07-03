@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { useLiveReporting } from '@/admin/reporting/hooks'
+import { useTSEKonfiguration } from '@/admin/settings/hooks'
 import { EuroField } from '@/components/common/FormFields'
 import {
   AlertDialog,
@@ -97,7 +98,11 @@ export function KassensitzungPage() {
   )
 }
 
-function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
+export function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
+  const { tseKonfiguration } = useTSEKonfiguration()
+  const [tseDialogOpen, setTseDialogOpen] = useState(false)
+  const [pendingData, setPendingData] = useState<FormData | null>(null)
+
   const FormDataSchema = z.object({
     bezeichnung: BezeichnungSchema,
     betragCents: BetragCentsSchema.gte(1, {
@@ -124,15 +129,25 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
     },
   })
 
-  const onSubmit = async (data: FormData) => {
+  const eroeffnen = async (data: FormData) => {
     await run(async () => {
       await kasseBackend.kassensitzungEroeffnen(
         data.bezeichnung,
         data.betragCents,
       )
       toast.success('Kassensitzung eröffnet.')
+      setTseDialogOpen(false)
       onSuccess()
     })
+  }
+
+  const onSubmit = async (data: FormData) => {
+    if (tseKonfiguration?.istKonfiguriert) {
+      await eroeffnen(data)
+      return
+    }
+    setPendingData(data)
+    setTseDialogOpen(true)
   }
 
   return (
@@ -185,6 +200,33 @@ function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
             </div>
           </FieldGroup>
         </form>
+
+        <AlertDialog open={tseDialogOpen} onOpenChange={setTseDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Keine TSE konfiguriert</AlertDialogTitle>
+              <AlertDialogDescription>
+                Es ist keine technische Sicherheitseinrichtung (TSE)
+                eingerichtet. Vorgänge dieser Kassensitzung werden nicht nach §
+                146a AO signiert. Trotzdem eröffnen?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={loading}>
+                Abbrechen
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={loading}
+                onClick={(e) => {
+                  e.preventDefault()
+                  if (pendingData) void eroeffnen(pendingData)
+                }}
+              >
+                Trotzdem eröffnen
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   )

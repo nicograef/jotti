@@ -2,20 +2,23 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { KasseAbschliessenSection } from './KassensitzungPage'
+import { EroeffnenSection, KasseAbschliessenSection } from './KassensitzungPage'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
-const { kasseAbschliessen } = vi.hoisted(() => ({
+const { kasseAbschliessen, kassensitzungEroeffnen } = vi.hoisted(() => ({
   kasseAbschliessen: vi
     .fn<(cents: number) => Promise<void>>()
     .mockResolvedValue(undefined),
+  kassensitzungEroeffnen: vi
+    .fn<(bezeichnung: string, betragCents: number) => Promise<number>>()
+    .mockResolvedValue(1),
 }))
 
 vi.mock('./hooks', () => ({
-  kasseBackend: { kasseAbschliessen },
+  kasseBackend: { kasseAbschliessen, kassensitzungEroeffnen },
   useKassenbestand: () => ({ kassenbestand: { sollBestandCents: 34000 } }),
   useOffeneKassensitzung: vi.fn(),
 }))
@@ -33,8 +36,63 @@ vi.mock('@/admin/reporting/hooks', () => ({
   }),
 }))
 
+const tseState = vi.hoisted(() => ({ istKonfiguriert: false }))
+
+vi.mock('@/admin/settings/hooks', () => ({
+  useTSEKonfiguration: () => ({
+    tseKonfiguration: { istKonfiguriert: tseState.istKonfiguriert },
+  }),
+}))
+
 afterEach(() => {
   cleanup()
+  vi.clearAllMocks()
+})
+
+describe('EroeffnenSection', () => {
+  it('fragt ohne TSE-Konfiguration nach; Abbrechen eröffnet nicht, Bestätigen eröffnet', async () => {
+    tseState.istKonfiguriert = false
+    const user = userEvent.setup()
+    render(<EroeffnenSection onSuccess={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Bezeichnung'), 'Sommerfest Tag 1')
+    await user.type(screen.getByLabelText('Anfangsbestand'), '150,00')
+    await user.click(
+      screen.getByRole('button', { name: 'Kassensitzung eröffnen' }),
+    )
+
+    expect(screen.getByText('Keine TSE konfiguriert')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Abbrechen' }))
+    expect(kassensitzungEroeffnen).not.toHaveBeenCalled()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Kassensitzung eröffnen' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Trotzdem eröffnen' }))
+    expect(kassensitzungEroeffnen).toHaveBeenCalledWith(
+      'Sommerfest Tag 1',
+      15000,
+    )
+  })
+
+  it('eröffnet mit konfigurierter TSE direkt ohne Dialog', async () => {
+    tseState.istKonfiguriert = true
+    const user = userEvent.setup()
+    render(<EroeffnenSection onSuccess={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Bezeichnung'), 'Sommerfest Tag 1')
+    await user.type(screen.getByLabelText('Anfangsbestand'), '150,00')
+    await user.click(
+      screen.getByRole('button', { name: 'Kassensitzung eröffnen' }),
+    )
+
+    expect(screen.queryByText('Keine TSE konfiguriert')).not.toBeInTheDocument()
+    expect(kassensitzungEroeffnen).toHaveBeenCalledWith(
+      'Sommerfest Tag 1',
+      15000,
+    )
+  })
 })
 
 describe('KasseAbschliessenSection', () => {
