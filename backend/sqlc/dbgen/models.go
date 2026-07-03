@@ -491,6 +491,8 @@ type User struct {
 	PasswordHash sql.NullString
 	// Argon2id password hash for a one-time password. That can be used to setup a new user or reset their password as an admin. NULL if not set
 	OnetimePasswordHash sql.NullString
+	// Fehlversuche gegen das aktuelle Einmalpasswort; nach 5 Fehlversuchen wird es ungueltig (Brute-Force-Schutz)
+	OnetimePasswordAttempts int
 	// Role of the user, determining access rights
 	Role Userrole
 	// Account status: active, inactive, or deleted

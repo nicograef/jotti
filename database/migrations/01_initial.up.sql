@@ -11,6 +11,7 @@ CREATE TABLE users (
     username TEXT NOT NULL,
     password_hash TEXT NULL,
     onetime_password_hash TEXT NULL,
+    onetime_password_attempts INT NOT NULL DEFAULT 0,
     role UserRole NOT NULL,
     status EntityStatus NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
@@ -28,6 +29,7 @@ COMMENT ON COLUMN users.name IS 'Full name of the user';
 COMMENT ON COLUMN users.username IS 'Unique username';
 COMMENT ON COLUMN users.password_hash IS 'Argon2id password hash; NULL if user has not set a password (on first login)';
 COMMENT ON COLUMN users.onetime_password_hash IS 'Argon2id password hash for a one-time password. That can be used to setup a new user or reset their password as an admin. NULL if not set';
+COMMENT ON COLUMN users.onetime_password_attempts IS 'Fehlversuche gegen das aktuelle Einmalpasswort; nach 5 Fehlversuchen wird es ungueltig (Brute-Force-Schutz)';
 COMMENT ON COLUMN users.role IS 'Role of the user, determining access rights';
 COMMENT ON COLUMN users.status IS 'Account status: active, inactive, or deleted';
 COMMENT ON COLUMN users.created_at IS 'Creation timestamp (UTC)';

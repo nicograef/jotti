@@ -82,7 +82,20 @@ func (c Command) SetNewPassword(ctx context.Context, username, newPassword, onet
 		case errors.Is(err, user.ErrPasswordTooWeak):
 			log.Warn().Str("username", username).Msg("Password too weak")
 			return ErrPasswordTooWeak
+		case errors.Is(err, user.ErrOnetimePasswordLocked):
+			// Sperre persistieren: das Einmalpasswort ist ab jetzt unbrauchbar.
+			if updateErr := c.UserRepo.UpdateUser(ctx, u); updateErr != nil {
+				log.Error().Err(updateErr).Str("username", username).Msg("Failed to persist onetime password lock")
+				return ErrDatabase
+			}
+			log.Warn().Str("username", username).Msg("One-time password locked after too many failed attempts")
+			return ErrOnetimePasswordLocked
 		default:
+			// Fehlversuch persistieren, damit der Zaehler die Sperre tragen kann.
+			if updateErr := c.UserRepo.UpdateUser(ctx, u); updateErr != nil {
+				log.Error().Err(updateErr).Str("username", username).Msg("Failed to persist onetime password attempt")
+				return ErrDatabase
+			}
 			log.Warn().Err(err).Str("username", username).Msg("One-time password validation failed")
 			return ErrInvalidPassword
 		}

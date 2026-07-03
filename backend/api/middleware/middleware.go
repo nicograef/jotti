@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -114,12 +115,7 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger := zerolog.Ctx(r.Context())
 
-			// Extract IP from X-Forwarded-For (set by nginx) or fall back to RemoteAddr
-			ip := r.Header.Get("X-Forwarded-For")
-			if ip == "" {
-				ip = r.RemoteAddr
-			}
-
+			ip := clientIP(r)
 			limiter := getLimiter(ip)
 			if !limiter.Allow() {
 				logger.Warn().Str("ip", ip).Msg("Rate limit exceeded")
@@ -129,6 +125,21 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// clientIP bestimmt die Client-IP für das Rate-Limiting. jotti läuft produktiv
+// hinter dem eigenen Reverse-Proxy (Caddy), der die echte Client-IP als LETZTEN
+// Eintrag an X-Forwarded-For anhängt. Der ganze Header ist als Limiter-Key
+// ungeeignet: Ein Client kann beliebige eigene Einträge voranstellen und so für
+// jeden Request einen frischen Key erzeugen — nur der letzte (vom eigenen Proxy
+// gesetzte) Eintrag ist vertrauenswürdig. Ohne Header zählt RemoteAddr.
+func clientIP(r *http.Request) string {
+	xff := r.Header.Get("X-Forwarded-For")
+	if xff == "" {
+		return r.RemoteAddr
+	}
+	parts := strings.Split(xff, ",")
+	return strings.TrimSpace(parts[len(parts)-1])
 }
 
 // PostMethodOnlyMiddleware middleware ensures the request method is POST
