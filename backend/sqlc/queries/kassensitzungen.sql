@@ -5,6 +5,13 @@ VALUES ($1, $2, $3, NOW(), NOW()) RETURNING z_nr;
 -- name: UpdateKassensitzung :exec
 UPDATE kassensitzungen SET status = $2, updated_at = NOW() WHERE z_nr = $1;
 
+-- name: GetKassensitzungStatusForShare :one
+-- Status-Guard für Event-Writes: sperrt die Kassensitzungs-Zeile mit FOR SHARE,
+-- damit ein paralleler Tagesabschluss (UPDATE = FOR UPDATE) erst nach Commit der
+-- laufenden Event-Transaktion durchkommt — und umgekehrt spätere Writes den neuen
+-- Status sehen.
+SELECT status FROM kassensitzungen WHERE z_nr = $1 FOR SHARE;
+
 -- name: GetOffeneKassensitzung :one
 SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
 FROM kassensitzungen WHERE status = 'offen' LIMIT 1;

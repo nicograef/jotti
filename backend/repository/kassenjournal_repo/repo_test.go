@@ -819,6 +819,109 @@ func TestGetKassenbestand_WarenruecknahmeDecreasesKorrekturDoesNot(t *testing.T)
 	}
 }
 
+// Die Eröffnung ist atomar: Scheitert der Event-Write (hier: build-Fehler),
+// bleibt keine offene Sitzung ohne Eröffnungs-Event zurück.
+func TestEroeffneKassensitzung_RollbackBeiEventFehler(t *testing.T) {
+	userID, _, repo, teardown := setup(t)
+	defer teardown(t)
+
+	var vorher int
+	if err := repo.db.QueryRow("SELECT COUNT(*) FROM kassensitzungen").Scan(&vorher); err != nil {
+		t.Fatalf("count kassensitzungen: %v", err)
+	}
+
+	_, err := repo.EroeffneKassensitzung(context.Background(), time.Now().UTC(), "Testsitzung", func(zNr int) (event.Event, *TSENachsignierung, error) {
+		return event.Event{}, nil, errors.New("signierung fehlgeschlagen")
+	})
+	if err == nil {
+		t.Fatal("expected error from build callback")
+	}
+
+	var nachher int
+	if err := repo.db.QueryRow("SELECT COUNT(*) FROM kassensitzungen").Scan(&nachher); err != nil {
+		t.Fatalf("count kassensitzungen: %v", err)
+	}
+	if nachher != vorher {
+		t.Fatalf("expected rollback of kassensitzungen row: vorher %d, nachher %d", vorher, nachher)
+	}
+	_ = userID
+}
+
+func TestEroeffneKassensitzung_SchreibtEntitaetUndEventAtomar(t *testing.T) {
+	userID, alteKsNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	// setup() legt bereits eine offene Sitzung an; die Einzigkeits-Invariante
+	// (partieller Unique-Index) erlaubt nur eine offene Sitzung gleichzeitig.
+	if _, err := repo.db.Exec("UPDATE kassensitzungen SET status = 'abgeschlossen' WHERE z_nr = $1", alteKsNr); err != nil {
+		t.Fatalf("close previous kassensitzung: %v", err)
+	}
+
+	zNr, err := repo.EroeffneKassensitzung(context.Background(), time.Now().UTC(), "Testsitzung", func(zNr int) (event.Event, *TSENachsignierung, error) {
+		evt := newTestEvent(userID, "kassensitzung-eroeffnet:v1", kasse.KassensitzungSubject(zNr), 1, validEroeffnungData(userID, 10000))
+		return evt, &TSENachsignierung{TxID: "tx-eroeffnet-atomar", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^..."}, nil
+	})
+	if err != nil {
+		t.Fatalf("EroeffneKassensitzung: %v", err)
+	}
+
+	var status string
+	if err := repo.db.QueryRow("SELECT status FROM kassensitzungen WHERE z_nr = $1", zNr).Scan(&status); err != nil {
+		t.Fatalf("read kassensitzung: %v", err)
+	}
+	if status != "offen" {
+		t.Fatalf("expected status offen, got %q", status)
+	}
+
+	events, err := repo.ReadEventsBySubject(context.Background(), kasse.KassensitzungSubject(zNr))
+	if err != nil {
+		t.Fatalf("read events: %v", err)
+	}
+	if len(events) != 1 || events[0].Type != "kassensitzung-eroeffnet:v1" {
+		t.Fatalf("expected exactly the eroeffnet event, got %v", events)
+	}
+
+	var auftraege int
+	if err := repo.db.QueryRow("SELECT COUNT(*) FROM tse_nachsignier_auftraege WHERE tx_id = 'tx-eroeffnet-atomar'").Scan(&auftraege); err != nil {
+		t.Fatalf("count nachsignier auftraege: %v", err)
+	}
+	if auftraege != 1 {
+		t.Fatalf("expected 1 nachsignier auftrag, got %d", auftraege)
+	}
+}
+
+// Kein Event darf in eine abgeschlossene Kassensitzung geschrieben werden —
+// der Status-Guard in writeEventInTx lehnt den Write mit Zeilensperre ab.
+func TestWriteEvent_InGeschlosseneKassensitzungWirdAbgelehnt(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischID, err := createTisch(repo.db, "Tisch 1")
+	if err != nil {
+		t.Fatalf("Failed to create tisch: %v", err)
+	}
+
+	if _, err := repo.db.Exec("UPDATE kassensitzungen SET status = 'abgeschlossen' WHERE z_nr = $1", ksNr); err != nil {
+		t.Fatalf("close kassensitzung: %v", err)
+	}
+
+	subject := kasse.TischSessionSubject(ksNr, tischID)
+	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 1))
+
+	_, err = repo.WriteEvent(context.Background(), e, kasse.StreamTypeTischSession, ksNr)
+	if !errors.Is(err, ErrKassensitzungNichtOffen) {
+		t.Fatalf("expected ErrKassensitzungNichtOffen, got %v", err)
+	}
+
+	events, err := repo.ReadEventsBySubject(context.Background(), subject)
+	if err != nil {
+		t.Fatalf("read events: %v", err)
+	}
+	if len(events) != 0 {
+		t.Fatalf("expected no persisted events in closed session, got %d", len(events))
+	}
+}
+
 // validEroeffnungData returns valid kassensitzung-eroeffnet:v1 event data.
 func validEroeffnungData(userID, betragCents int) map[string]any {
 	return map[string]any{

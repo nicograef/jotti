@@ -5,6 +5,7 @@ package kassenjournal_repo
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
@@ -39,6 +40,7 @@ func NewMockWithWriteErr(events []event.Event, writeErr error) *MockRepo {
 }
 
 type MockRepo struct {
+	NextZNr         int // z_nr, die EroeffneKassensitzung vergibt (0 → 1)
 	events          map[int]event.Event
 	err             error
 	writeErr        error // separate error for WriteEvent
@@ -64,6 +66,29 @@ func (m *MockRepo) versionConflict(e event.Event) bool {
 		}
 	}
 	return false
+}
+
+// EroeffneKassensitzung mirrors the atomic open: assigns the next z_nr, runs build,
+// and stores the event. NextZNr configures the assigned number (default 1).
+func (m *MockRepo) EroeffneKassensitzung(ctx context.Context, _ time.Time, _ string, build func(zNr int) (event.Event, *TSENachsignierung, error)) (int, error) {
+	if m.err != nil {
+		return 0, m.err
+	}
+	zNr := m.NextZNr
+	if zNr == 0 {
+		zNr = 1
+	}
+	evt, nachsignierung, err := build(zNr)
+	if err != nil {
+		return 0, err
+	}
+	if _, err := m.WriteEvent(ctx, evt, kasse.StreamTypeKassensitzung, zNr); err != nil {
+		return 0, err
+	}
+	if nachsignierung != nil {
+		m.nachsignier = append(m.nachsignier, NachsignierAuftrag(*nachsignierung))
+	}
+	return zNr, nil
 }
 
 func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamType, _ int) (int, error) {

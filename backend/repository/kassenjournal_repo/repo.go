@@ -16,6 +16,11 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
+// ErrKassensitzungNichtOffen: der Event-Write traf auf eine Kassensitzung, die
+// nicht (mehr) offen ist — z. B. weil parallel der Tagesabschluss lief. Die
+// Application-Schicht mappt das auf ihren Konflikt-Fehler (HTTP 409).
+var ErrKassensitzungNichtOffen = errors.New("kassensitzung ist nicht offen")
+
 type Repository struct {
 	db *sql.DB
 	q  *dbgen.Queries
@@ -216,6 +221,53 @@ func (r Repository) WriteTischSessionEventsAtomic(ctx context.Context, events []
 	})
 }
 
+// EroeffneKassensitzung legt die Kassensitzungs-Entität an und schreibt das
+// Eröffnungs-Event in EINER Transaktion: Schlägt der Event-Write fehl, bleibt
+// keine offene Sitzung ohne Eröffnungs-Event (und damit ohne Anfangsbestand)
+// zurück. build erhält die vergebene z_nr, erzeugt und signiert das Event und
+// liefert optional den Nachsignier-Auftrag eines TSE-Ausfalls.
+func (r Repository) EroeffneKassensitzung(ctx context.Context, datum time.Time, bezeichnung string, build func(zNr int) (event.Event, *TSENachsignierung, error)) (int, error) {
+	var zNr int
+	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		n, err := qtx.InsertKassensitzung(ctx, dbgen.InsertKassensitzungParams{
+			Datum:       datum,
+			Bezeichnung: bezeichnung,
+			Status:      string(kasse.KassensitzungOffen),
+		})
+		if err != nil {
+			return db.Error(err)
+		}
+
+		evt, nachsignierung, err := build(n)
+		if err != nil {
+			return err
+		}
+
+		if _, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeKassensitzung, n); err != nil {
+			return err
+		}
+
+		if nachsignierung != nil {
+			err := qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
+				TxID:        nachsignierung.TxID,
+				ProcessType: nachsignierung.ProcessType,
+				ProcessData: nachsignierung.ProcessData,
+			})
+			if err != nil {
+				return db.Error(err)
+			}
+		}
+
+		zNr = n
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return zNr, nil
+}
+
 // WriteUmbuchung writes the linked source and target umbuchung events atomically,
 // together with any TSE-Nachsignier-Aufträge for sides that could not be signed at
 // capture time. Both events must already carry their final subject/version.
@@ -227,6 +279,19 @@ func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, 
 // projection within the given transaction, returning the event with its generated
 // ID. The caller owns the transaction (commit/rollback).
 func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (event.Event, error) {
+	// 0. Status-Guard mit Zeilensperre: Events dürfen nur in eine offene Kassensitzung.
+	// FOR SHARE serialisiert gegen den Tagesabschluss (dessen Status-UPDATE in derselben
+	// Transaktion wie sein Event läuft): Entweder committet dieser Write vor dem Abschluss
+	// (und wird von der Saldo-Sperre erfasst), oder er sieht den neuen Status und scheitert.
+	// Der Tagesabschluss selbst schreibt in die noch offene Sitzung und passiert den Guard.
+	status, err := qtx.GetKassensitzungStatusForShare(ctx, kassensitzungNr)
+	if err != nil {
+		return event.Event{}, db.Error(err)
+	}
+	if status != string(kasse.KassensitzungOffen) {
+		return event.Event{}, ErrKassensitzungNichtOffen
+	}
+
 	// 1. Insert event into kassenjournal
 	id, err := qtx.WriteEvent(ctx, dbgen.WriteEventParams{
 		UserID:          e.UserID,
