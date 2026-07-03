@@ -29,6 +29,7 @@ type SignaturNachladen func(txID string) (*kasse.TSEData, error)
 const (
 	bonTypBeleg      = "Beleg"        // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
 	bonTypBestellung = "AVBestellung" // Anhang B: Bestellung als anderer Vorgang, geldneutral
+	bonTypSonstige   = "AVSonstige"   // Anhang B: sonstiger anderer Vorgang (Tagesabschluss), geldneutral
 	gvTypUmsatz      = "Umsatz"       // Anhang C: realisierter Umsatz auf Positionsebene
 	// GV-Typen, die ausschließlich den Kassenbestand betreffen (Anhang C). jotti
 	// erfasst sie als BON_TYP "Beleg" mit einer einzigen nicht-steuerbaren Position.
@@ -192,8 +193,9 @@ func Map(snapshot Snapshot, events []event.Event, signaturNachladen SignaturNach
 // Referenz auf die Zahlung. Eine `bestellung-korrigiert` ist die geldneutrale
 // Stornierung unbezahlter Positionen und verweist auf die Ursprungsbestellung.
 // Direktverkäufe sind eigenständige Barbelege ohne Tischbezug, ihr Storno ein
-// Negativ-Beleg mit Referenz auf den Ursprungsverkauf. BON_NR wird fortlaufend
-// vergeben; BON_ID ist die jeweilige Vorgangs-ID.
+// Negativ-Beleg mit Referenz auf den Ursprungsverkauf. Der `tagesabschluss-erstellt`
+// wird ein geldneutraler `AVSonstige`-Bon, der allein seine TSE-Signatur in den Export
+// trägt. BON_NR wird fortlaufend vergeben; BON_ID ist die jeweilige Vorgangs-ID.
 func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg, error) {
 	var belege []beleg
 	bonNr := 0
@@ -432,6 +434,29 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 			// (Bargeld fehlt, Bestand mindern), ein negativer ein Überschuss.
 			bonNr++
 			belege = append(belege, geldbewegung(ev, fmt.Sprintf("differenz-soll-ist-%d", ev.ID), bonNr, gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, "", data.TSETxID, data.TSEData))
+
+		case string(kasse.EventTypeTagesabschlussErstelltV1):
+			var data kasse.TagesabschlussErstelltV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal tagesabschluss-erstellt (event %d): %w", ev.ID, err)
+			}
+			// Der Tagesabschluss ist ein TSE-gesicherter „anderer Vorgang“ (AVSonstige):
+			// geldneutral, ohne Positionen und ohne Kassenbestandswirkung. Er erscheint im
+			// Export allein, damit seine TSE-Signatur eine transactions_tse.csv-Zeile erhält
+			// und der Abgleich fiskaly-TSE ↔ Export je Sitzung aufgeht.
+			bonNr++
+			belege = append(belege, beleg{
+				bonID:        fmt.Sprintf("tagesabschluss-%d", ev.ID),
+				bonNr:        bonNr,
+				bonTyp:       bonTypSonstige,
+				geldneutral:  true,
+				start:        zeit(ev),
+				ende:         zeit(ev),
+				bedienerID:   ev.UserID,
+				bedienerName: ev.UserName,
+				tse:          data.TSEData,
+				tseTxID:      data.TSETxID,
+			})
 		}
 	}
 

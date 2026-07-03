@@ -1006,6 +1006,36 @@ func differenzEvent(t *testing.T) event.Event {
 	}
 }
 
+// tagesabschlussEvent schließt die Sitzung ab (Z-Bon). tse == nil mit gesetzter
+// txID markiert einen während eines TSE-Ausfalls unsigniert persistierten
+// Abschluss. Als letztes Event trägt er die höchste Event-ID und wird damit der
+// letzte Beleg der Sitzung.
+func tagesabschlussEvent(t *testing.T, tse *kasse.TSEData, txID string) event.Event {
+	t.Helper()
+
+	data := kasse.TagesabschlussErstelltV1Data{
+		ZNr:               3,
+		ZeitraumVon:       time.Date(2026, 6, 16, 10, 0, 0, 0, time.UTC),
+		ZeitraumBis:       time.Date(2026, 6, 16, 18, 0, 0, 0, time.UTC),
+		UmsatzGesamtCents: 450,
+		GeldtransitCents:  -5000,
+		ErstelltVon:       7,
+		TSETxID:           txID,
+		TSEData:           tse,
+	}
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal tagesabschluss data: %v", err)
+	}
+
+	return event.Event{
+		ID: 20, UserID: 7, UserName: "anna",
+		Type:    string(kasse.EventTypeTagesabschlussErstelltV1),
+		Time:    time.Date(2026, 6, 16, 18, 0, 0, 0, time.UTC),
+		Subject: kasse.KassensitzungSubject(3), Version: 1, Data: raw,
+	}
+}
+
 // TestMapKassenabschlussGemischteSitzung belegt das Kassenabschlussmodul über eine
 // gemischte Sitzung: Anfangsbestand, eine geldneutrale Bestellung plus ihre
 // Zahlung (Umsatz), ein Direktverkauf (Umsatz) sowie Geldtransit und
@@ -1078,6 +1108,143 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 		if !hatSignatur(tse, sig) {
 			t.Errorf("transactions_tse fehlt Signatur %q", sig)
 		}
+	}
+}
+
+// TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon belegt Finding 5: der
+// TSE-signierte Tagesabschluss erscheint als geldneutraler AVSonstige-Bon mit
+// eigener transactions_tse.csv-Zeile. Weil er geldneutral ist, bleiben die
+// Aggregate (businesscases, payment, cash_per_currency) und die Bar-Summen des
+// Kassenabschlusses unverändert; als letzter Vorgang der Sitzung wird er
+// zusätzlich Z_ENDE_ID, ohne die BON_NR der übrigen Belege zu verschieben.
+func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
+	const tagesabschlussBonID = "tagesabschluss-20"
+
+	tse := &kasse.TSEData{
+		TransactionNumber: 7777, SignatureCounter: 88, SerialNumberTSE: "abc123serial",
+		LogTimeStart: "2026-06-16T18:00:00Z", LogTimeEnd: "2026-06-16T18:00:02Z",
+		Signature: "TAGSIG==", ProcessType: "SonstigerVorgang", QRCodeData: "V0;tag",
+	}
+
+	// Dieselbe Sitzung mit und ohne Abschluss: die Aggregate müssen identisch sein.
+	ohneAbschluss := []event.Event{
+		eroeffnetEvent(t, 10000), // Anfangsbestand 100,00 € (ohne TSE)
+		zahlungEvent(t),          // Umsatz 4,50 € (Bier 19 %)
+		geldtransitEvent(t),      // Entnahme −50,00 €
+		differenzEvent(t),        // Fehlbetrag −1,00 €
+	}
+	mitAbschluss := append(append([]event.Event{}, ohneAbschluss...), tagesabschlussEvent(t, tse, ""))
+
+	archivOhne, err := Map(testSnapshot(), ohneAbschluss, nil)
+	if err != nil {
+		t.Fatalf("Map(ohne) error = %v", err)
+	}
+	archivMit, err := Map(testSnapshot(), mitAbschluss, nil)
+	if err != nil {
+		t.Fatalf("Map(mit) error = %v", err)
+	}
+
+	// Der 0-Bon lässt die Aggregationsdateien unverändert.
+	for _, file := range []string{"businesscases.csv", "payment.csv", "cash_per_currency.csv"} {
+		ohne := tableByFile(t, archivOhne, file)
+		mit := tableByFile(t, archivMit, file)
+		if !reflect.DeepEqual(mit.Records, ohne.Records) {
+			t.Errorf("%s durch Tagesabschluss verändert:\n mit  %#v\n ohne %#v", file, mit.Records, ohne.Records)
+		}
+	}
+
+	// cashpointclosing: Bar-Summen und Z_START_ID unverändert, Z_ENDE_ID zeigt auf
+	// den Abschluss-Bon (letzte BON_ID im Abschluss).
+	closingOhne := tableByFile(t, archivOhne, "cashpointclosing.csv")
+	closingMit := tableByFile(t, archivMit, "cashpointclosing.csv")
+	for _, spalte := range []string{"Z_START_ID", "Z_SE_ZAHLUNGEN", "Z_SE_BARZAHLUNGEN"} {
+		if got, want := field(t, closingMit, 0, spalte), field(t, closingOhne, 0, spalte); got != want {
+			t.Errorf("cashpointclosing %s = %q, want %q (unverändert)", spalte, got, want)
+		}
+	}
+	if got := field(t, closingMit, 0, "Z_ENDE_ID"); got != tagesabschlussBonID {
+		t.Errorf("Z_ENDE_ID = %q, want %q", got, tagesabschlussBonID)
+	}
+
+	// Genau ein AVSonstige-Bon als letzter Bonkopf, geldneutral (UMS_BRUTTO 0,00);
+	// die übrigen BON_NR bleiben gegenüber der Sitzung ohne Abschluss unverschoben.
+	transOhne := tableByFile(t, archivOhne, "transactions.csv")
+	transMit := tableByFile(t, archivMit, "transactions.csv")
+	if len(transMit.Records) != len(transOhne.Records)+1 {
+		t.Fatalf("transactions: %d Zeilen, want %d", len(transMit.Records), len(transOhne.Records)+1)
+	}
+	for i := range transOhne.Records {
+		if got, want := field(t, transMit, i, "BON_NR"), field(t, transOhne, i, "BON_NR"); got != want {
+			t.Errorf("BON_NR Zeile %d = %q, want %q (verschoben)", i, got, want)
+		}
+	}
+	letzte := len(transMit.Records) - 1
+	checks := map[string]string{
+		"BON_ID":     tagesabschlussBonID,
+		"BON_NR":     "5",
+		"BON_TYP":    "AVSonstige",
+		"BON_STORNO": "0",
+		"UMS_BRUTTO": "0,00",
+		"BON_START":  "2026-06-16T18:00:00Z",
+		"BON_ENDE":   "2026-06-16T18:00:00Z",
+	}
+	for name, want := range checks {
+		if got := field(t, transMit, letzte, name); got != want {
+			t.Errorf("Abschluss-Bon %s = %q, want %q", name, got, want)
+		}
+	}
+	sonstige := 0
+	for i := range transMit.Records {
+		if field(t, transMit, i, "BON_TYP") == "AVSonstige" {
+			sonstige++
+		}
+	}
+	if sonstige != 1 {
+		t.Errorf("AVSonstige-Bons = %d, want 1", sonstige)
+	}
+
+	// Der Abschluss-Bon trägt seine eigene TSE-Zeile mit Signatur.
+	tseTab := tableByFile(t, archivMit, "transactions_tse.csv")
+	row := tseRowByBonID(t, tseTab, tagesabschlussBonID)
+	if got := field(t, tseTab, row, "TSE_TA_SIG"); got != "TAGSIG==" {
+		t.Errorf("Abschluss TSE_TA_SIG = %q, want TAGSIG==", got)
+	}
+	if got := field(t, tseTab, row, "TSE_TA_FEHLER"); got != "" {
+		t.Errorf("Abschluss TSE_TA_FEHLER = %q, want leer", got)
+	}
+}
+
+// TestMapTagesabschlussAusfallTraegtFehlerzeile belegt: ein während eines
+// TSE-Ausfalls unsigniert persistierter, nicht nachsignierter Tagesabschluss fehlt
+// nicht im Export, sondern trägt — wie jeder andere Vorgang — eine TSE_TA_FEHLER-
+// Zeile. So gilt die Invariante „jeder Bonkopf hat genau eine TSE-Zeile“ auch für
+// den neuen AVSonstige-Bon.
+func TestMapTagesabschlussAusfallTraegtFehlerzeile(t *testing.T) {
+	const tagesabschlussBonID = "tagesabschluss-20"
+
+	events := []event.Event{
+		zahlungEvent(t),                       // signierte Zahlung
+		tagesabschlussEvent(t, nil, "tx-tag"), // Abschluss ohne Signatur (Ausfall)
+	}
+
+	archive, err := Map(testSnapshot(), events, nil)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	tse := tableByFile(t, archive, "transactions_tse.csv")
+	row := tseRowByBonID(t, tse, tagesabschlussBonID)
+	if got := field(t, tse, row, "TSE_TA_FEHLER"); got != tseFehlerAusfall {
+		t.Errorf("Abschluss TSE_TA_FEHLER = %q, want %q", got, tseFehlerAusfall)
+	}
+	if got := field(t, tse, row, "TSE_TA_SIG"); got != "" {
+		t.Errorf("Abschluss TSE_TA_SIG = %q, want leer", got)
+	}
+
+	// Invariante: jeder Bonkopf-Vorgang hat genau eine TSE-Zeile.
+	transactions := tableByFile(t, archive, "transactions.csv")
+	if len(tse.Records) != len(transactions.Records) {
+		t.Errorf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tse.Records), len(transactions.Records))
 	}
 }
 
@@ -1434,4 +1601,16 @@ func field(t *testing.T, table Table, row int, name string) string {
 	}
 	t.Fatalf("column %q not found in %s", name, table.File)
 	return ""
+}
+
+// tseRowByBonID liefert den Zeilenindex der transactions_tse-Zeile eines Bons.
+func tseRowByBonID(t *testing.T, table Table, bonID string) int {
+	t.Helper()
+	for row := range table.Records {
+		if field(t, table, row, "BON_ID") == bonID {
+			return row
+		}
+	}
+	t.Fatalf("keine transactions_tse-Zeile für BON_ID %q", bonID)
+	return -1
 }

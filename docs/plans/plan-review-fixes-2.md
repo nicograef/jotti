@@ -174,14 +174,16 @@ wie bei den übrigen Belegen). Der Abgleich fiskaly-TSE-Export gegen
 
 ### Acceptance criteria
 
-- [ ] Export einer abgeschlossenen Sitzung enthält genau einen
+- [x] Export einer abgeschlossenen Sitzung enthält genau einen
       Tagesabschluss-Bon mit `transactions_tse.csv`-Zeile (Golden-Test,
       signierter Fall und Ausfall-Fall).
-- [ ] Die Aggregationsdateien (businesscases, payment, cashpointclosing,
-      cash_per_currency) bleiben durch den 0-Bon unverändert.
-- [ ] `BON_NR`-Vergabe der übrigen Belege verschiebt sich nicht (der
+- [x] Die Aggregationsdateien (businesscases, payment, cashpointclosing,
+      cash_per_currency) bleiben durch den 0-Bon unverändert. (Ausnahme laut
+      Review-Entscheidung: `Z_ENDE_ID` zeigt nun auf den Abschluss-Bon als
+      letzte BON_ID im Abschluss; die aggregierten Beträge bleiben unverändert.)
+- [x] `BON_NR`-Vergabe der übrigen Belege verschiebt sich nicht (der
       Tagesabschluss ist das letzte Event der Sitzung).
-- [ ] Bestehende Invariante „jeder fiskalische Bonkopf hat eine TSE-Zeile"
+- [x] Bestehende Invariante „jeder fiskalische Bonkopf hat eine TSE-Zeile"
       deckt den neuen Bon-Typ ab.
 
 ---
